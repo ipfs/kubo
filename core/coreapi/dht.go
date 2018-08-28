@@ -103,9 +103,8 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, bs blockstore.Bl
 
 	errCh := make(chan error)
 	go func() {
+		dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
 		for _, c := range cids {
-			dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
-
 			err := dag.EnumerateChildrenAsync(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx))
 			if err != nil {
 				errCh <- err

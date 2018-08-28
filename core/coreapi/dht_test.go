@@ -51,7 +51,7 @@ func TestDhtFindProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err := apis[2].Dht().FindProviders(ctx, p, options.Dht.WithNumProviders(1))
+	out, err := apis[2].Dht().FindProviders(ctx, p, options.Dht.NumProviders(1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestDhtProvide(t *testing.T) {
 	nds[0].Blockstore.Put(b)
 	p := iface.IpfsPath(b.Cid())
 
-	out, err := apis[2].Dht().FindProviders(ctx, p, options.Dht.WithNumProviders(1))
+	out, err := apis[2].Dht().FindProviders(ctx, p, options.Dht.NumProviders(1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestDhtProvide(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err = apis[2].Dht().FindProviders(ctx, p, options.Dht.WithNumProviders(1))
+	out, err = apis[2].Dht().FindProviders(ctx, p, options.Dht.NumProviders(1))
 	if err != nil {
 		t.Fatal(err)
 	}
