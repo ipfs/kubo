@@ -127,7 +127,7 @@ Resolve the value of a dnslink:
 		recursive, _ := req.Options[recursiveOptionName].(bool)
 		rc, rcok := req.Options[dhtRecordCountOptionName].(int)
 		dhtt, dhttok := req.Options[dhtTimeoutOptionName].(string)
-
+		stream, _ := req.Options[streamOptionName].(bool)
 		var ropts []nsopts.ResolveOpt
 		if !recursive {
 			ropts = append(ropts, nsopts.Depth(1))
@@ -150,13 +150,27 @@ Resolve the value of a dnslink:
 			name = "/ipns/" + name
 		}
 
-		output, err := resolver.Resolve(req.Context, name, ropts...)
-		if err != nil {
-			return err
-		}
-
 		// TODO: better errors (in the case of not finding the name, we get "failed to find any peer in table")
-		return cmds.EmitOnce(res, &ResolvedPath{output})
+
+		if !stream {
+			output, err := resolver.Resolve(req.Context, name, ropts...)
+			if err != nil {
+				return err
+			}
+
+			return cmds.EmitOnce(res, &ResolvedPath{output})
+		} else {
+			output := resolver.ResolveAsync(req.Context, name, ropts...)
+			for v := range output {
+				if v.Err != nil {
+					return err
+				}
+				if err := res.Emit(&ResolvedPath{v.Path}); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
