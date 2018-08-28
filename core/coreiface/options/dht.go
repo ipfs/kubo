@@ -43,18 +43,18 @@ type dhtOpts struct{}
 
 var Dht dhtOpts
 
-// WithRecursive is an option for Dht.Provide which specifies whether to provide
+// Recursive is an option for Dht.Provide which specifies whether to provide
 // the given path recursively
-func (dhtOpts) WithRecursive(recursive bool) DhtProvideOption {
+func (dhtOpts) Recursive(recursive bool) DhtProvideOption {
 	return func(settings *DhtProvideSettings) error {
 		settings.Recursive = recursive
 		return nil
 	}
 }
 
-// WithNumProviders is an option for Dht.FindProviders which specifies the
+// NumProviders is an option for Dht.FindProviders which specifies the
 // number of peers to look for. Default is 20
-func (dhtOpts) WithNumProviders(numProviders int) DhtFindProvidersOption {
+func (dhtOpts) NumProviders(numProviders int) DhtFindProvidersOption {
 	return func(settings *DhtFindProvidersSettings) error {
 		settings.NumProviders = numProviders
 		return nil
