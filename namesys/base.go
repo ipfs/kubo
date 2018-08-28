@@ -17,45 +17,33 @@ type onceResult struct {
 }
 
 type resolver interface {
-	// resolveOnce looks up a name once (without recursion).
-	resolveOnce(ctx context.Context, name string, options opts.ResolveOpts) (value path.Path, ttl time.Duration, err error)
-
 	resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult
 }
 
 // resolve is a helper for implementing Resolver.ResolveN using resolveOnce.
 func resolve(ctx context.Context, r resolver, name string, options opts.ResolveOpts, prefix string) (path.Path, error) {
-	depth := options.Depth
-	for {
-		p, _, err := r.resolveOnce(ctx, name, options)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	err := ErrResolveFailed
+	var p path.Path
+
+	resCh := resolveAsync(ctx, r, name, options, prefix)
+
+	for res := range resCh {
+		p, err = res.Path, res.Err
 		if err != nil {
-			return "", err
-		}
-		log.Debugf("resolved %s to %s", name, p.String())
-
-		if strings.HasPrefix(p.String(), "/ipfs/") {
-			// we've bottomed out with an IPFS path
-			return p, nil
-		}
-
-		if depth == 1 {
-			return p, ErrResolveRecursion
-		}
-
-		if !strings.HasPrefix(p.String(), prefix) {
-			return p, nil
-		}
-		name = strings.TrimPrefix(p.String(), prefix)
-
-		if depth > 1 {
-			depth--
+			break
 		}
 	}
+
+	return p, err
 }
 
 //TODO:
 // - better error handling
-func resolveAsyncDo(ctx context.Context, r resolver, name string, options opts.ResolveOpts, prefix string) <-chan Result {
+// - select on writes
+func resolveAsync(ctx context.Context, r resolver, name string, options opts.ResolveOpts, prefix string) <-chan Result {
 	resCh := r.resolveOnceAsync(ctx, name, options)
 	depth := options.Depth
 	outCh := make(chan Result)
@@ -70,7 +58,7 @@ func resolveAsyncDo(ctx context.Context, r resolver, name string, options opts.R
 			case res, ok := <-resCh:
 				if !ok {
 					resCh = nil
-					continue
+					break
 				}
 
 				if res.err != nil {
@@ -79,14 +67,13 @@ func resolveAsyncDo(ctx context.Context, r resolver, name string, options opts.R
 				}
 				log.Debugf("resolved %s to %s", name, res.value.String())
 				if strings.HasPrefix(res.value.String(), "/ipfs/") {
-					outCh <- Result{Err: res.err}
-					continue
+					outCh <- Result{Path: res.value}
+					break
 				}
-				p := strings.TrimPrefix(res.value.String(), prefix)
 
 				if depth == 1 {
-					outCh <- Result{Err: ErrResolveRecursion}
-					continue
+					outCh <- Result{Path: res.value, Err: ErrResolveRecursion}
+					break
 				}
 
 				subopts := options
@@ -102,26 +89,21 @@ func resolveAsyncDo(ctx context.Context, r resolver, name string, options opts.R
 				subCtx, cancelSub = context.WithCancel(ctx)
 				defer cancelSub()
 
-				subCh = resolveAsyncDo(subCtx, r, p, subopts, prefix)
+				p := strings.TrimPrefix(res.value.String(), prefix)
+				subCh = resolveAsync(subCtx, r, p, subopts, prefix)
 			case res, ok := <-subCh:
 				if !ok {
 					subCh = nil
-					continue
-				}
-
-				if res.Err != nil {
-					outCh <- Result{Err: res.Err}
-					return
+					break
 				}
 
 				outCh <- res
 			case <-ctx.Done():
 			}
+			if resCh == nil && subCh == nil {
+				return
+			}
 		}
 	}()
 	return outCh
-}
-
-func resolveAsync(ctx context.Context, r resolver, name string, options opts.ResolveOpts, prefix string) <-chan Result {
-	return resolveAsyncDo(ctx, r, name, options, prefix)
 }
