@@ -55,16 +55,10 @@ func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *op
 	}
 
 	name = strings.TrimPrefix(name, "/ipns/")
-	hash, err := mh.FromB58String(name)
+	pid, err := peer.IDB58Decode(name)
 	if err != nil {
 		// name should be a multihash. if it isn't, error out here.
 		log.Debugf("RoutingResolver: bad input hash: [%s]\n", name)
-		return "", 0, err
-	}
-
-	pid, err := peer.IDFromBytes(hash)
-	if err != nil {
-		log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", name, err)
 		return "", 0, err
 	}
 
