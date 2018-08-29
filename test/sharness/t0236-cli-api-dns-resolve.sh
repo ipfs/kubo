@@ -13,7 +13,7 @@ test_init_ipfs
 test_expect_success "can make http request against dns resolved nc server" '
   nc -ld 5005 > nc_out &
   NCPID=$!
-  go-sleep 0.5s && kill "$NCPID" &
+  go-sleep 1s && kill "$NCPID" &
   ipfs cat /ipfs/Qmabcdef --api /dns4/localhost/tcp/5005 || true
 '
 
