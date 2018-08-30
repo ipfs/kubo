@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
-	
+
 	"github.com/ipfs/go-ipfs/core/commands/e"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
@@ -153,21 +153,17 @@ func (i *argumentIterator) err() error {
 
 func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) error {
 	itr := argumentIterator{req.Arguments, req.BodyArgs()}
-	for {
+	var emitErr error
+	for emitErr == nil {
 		cidStr, ok := itr.next()
 		if !ok {
 			break
 		}
-		emit := func(fmtd string, err error) {
-			res := &CidFormatRes{CidStr: cidStr, Formatted: fmtd}
-			if err != nil {
-				res.ErrorMsg = err.Error()
-			}
-			resp.Emit(res)
-		}
+		res := &CidFormatRes{CidStr: cidStr}
 		c, err := cid.Decode(cidStr)
 		if err != nil {
-			emit("", err)
+			res.ErrorMsg = err.Error()
+			emitErr = resp.Emit(res)
 			continue
 		}
 		base := opts.newBase
@@ -177,7 +173,8 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 		if opts.verConv != nil {
 			c, err = opts.verConv(c)
 			if err != nil {
-				emit("", err)
+				res.ErrorMsg = err.Error()
+				emitErr = resp.Emit(res)
 				continue
 			}
 		}
@@ -186,7 +183,15 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 			// no point in continuing if there is a problem with the format string
 			return err
 		}
-		emit(str, err)
+		if err != nil {
+			res.ErrorMsg = err.Error()
+		} else {
+			res.Formatted = str
+		}
+		emitErr = resp.Emit(res)
+	}
+	if emitErr != nil {
+		return emitErr
 	}
 	err := itr.err()
 	if err != nil {
