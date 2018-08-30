@@ -58,7 +58,7 @@ func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *op
 	pid, err := peer.IDB58Decode(name)
 	if err != nil {
 		// name should be a multihash. if it isn't, error out here.
-		log.Debugf("RoutingResolver: bad input hash: [%s]\n", name)
+		log.Debugf("RoutingResolver: IPNS address not a valid peer ID: [%s]\n", name)
 		return "", 0, err
 	}
 
