@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	
+	"github.com/ipfs/go-ipfs/core/commands/e"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mhash "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -66,7 +68,7 @@ The optional format string is a printf style format string:
 		case "1":
 			opts.verConv = toCidV1
 		default:
-			return fmt.Errorf("invalid cid version: %s\n", verStr)
+			return fmt.Errorf("invalid cid version: %s", verStr)
 		}
 
 		if baseStr != "" {
@@ -82,7 +84,7 @@ The optional format string is a printf style format string:
 		return emitCids(req, resp, opts)
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: streamRes(func(v interface{}, out io.Writer) nonFatalError {
+		cmds.CLI: streamResults(func(v interface{}, out io.Writer) nonFatalError {
 			r := v.(*CidFormatRes)
 			if r.ErrorMsg != "" {
 				return nonFatalError(fmt.Sprintf("%s: %s", r.CidStr, r.ErrorMsg))
@@ -230,7 +232,10 @@ var basesCmd = &cmds.Command{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
 			prefixes, _ := req.Options["prefix"].(bool)
 			numeric, _ := req.Options["numeric"].(bool)
-			val := val0.([]CodeAndName)
+			val, ok := val0.([]CodeAndName)
+			if !ok {
+				return e.TypeErr(val, val0)
+			}
 			sort.Sort(multibaseSorter{val})
 			for _, v := range val {
 				code := v.Code
@@ -274,7 +279,10 @@ var codecsCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
 			numeric, _ := req.Options["numeric"].(bool)
-			val := val0.([]CodeAndName)
+			val, ok := val0.([]CodeAndName)
+			if !ok {
+				return e.TypeErr(val, val0)
+			}
 			sort.Sort(codeAndNameSorter{val})
 			for _, v := range val {
 				if numeric {

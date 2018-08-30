@@ -153,10 +153,10 @@ func unwrapOutput(i interface{}) (interface{}, error) {
 
 type nonFatalError string
 
-// streamRes is a helper function to stream results, that possibly
-// contain with non-fatal, the helper function is allowed to panic on
-// internal errors
-func streamRes(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
+// streamResults is a helper function to stream results that possibly
+// contain non-fatal errors.  The helper function is allowed to panic
+// on internal errors.
+func streamResults(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
 	return func(res cmds.Response, re cmds.ResponseEmitter) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
