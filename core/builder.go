@@ -205,22 +205,24 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		opts.HasBloomFilterSize = 0
 	}
 
-	wbs, err := bstore.CachedBlockstore(ctx, bs, opts)
-	if err != nil {
-		return err
+	if !cfg.NilRepo {
+		bs, err = bstore.CachedBlockstore(ctx, bs, opts)
+		if err != nil {
+			return err
+		}
 	}
 
-	wbs = bstore.NewIdStore(wbs)
+	bs = bstore.NewIdStore(bs)
 
-	wbs = cidv0v1.NewBlockstore(wbs)
+	bs = cidv0v1.NewBlockstore(bs)
 
-	n.BaseBlocks = wbs
+	n.BaseBlocks = bs
 	n.GCLocker = bstore.NewGCLocker()
-	n.Blockstore = bstore.NewGCBlockstore(wbs, n.GCLocker)
+	n.Blockstore = bstore.NewGCBlockstore(bs, n.GCLocker)
 
 	if conf.Experimental.FilestoreEnabled || conf.Experimental.UrlstoreEnabled {
 		// hash security
-		n.Filestore = filestore.NewFilestore(wbs, n.Repo.FileManager())
+		n.Filestore = filestore.NewFilestore(bs, n.Repo.FileManager())
 		n.Blockstore = bstore.NewGCBlockstore(n.Filestore, n.GCLocker)
 		n.Blockstore = &verifbs.VerifBSGC{GCBlockstore: n.Blockstore}
 	}
