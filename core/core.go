@@ -249,6 +249,9 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		libp2pOpts = append(libp2pOpts, libp2p.EnableRelay(opts...))
 	}
 
+	// explicitly enable the default transports
+	libp2pOpts = append(libp2pOpts, libp2p.DefaultTransports)
+
 	if cfg.Experimental.QUIC {
 		libp2pOpts = append(libp2pOpts, libp2p.Transport(quic.NewTransport))
 	}
