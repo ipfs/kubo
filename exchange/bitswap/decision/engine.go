@@ -254,8 +254,8 @@ func (e *Engine) MessageReceived(p peer.ID, m bsmsg.BitSwapMessage) error {
 	}
 
 	for _, block := range m.Blocks() {
-		log.Debugf("got block %s %d bytes", block, len(block.RawData()))
 		l.ReceivedBytes(len(block.RawData()))
+		log.Debugf("received block %s %d bytes from %s. new debt ratio: %d", block, len(block.RawData()), block.Cid(), l.Accounting.Value())
 	}
 	return nil
 }
@@ -299,6 +299,7 @@ func (e *Engine) MessageSent(p peer.ID, m bsmsg.BitSwapMessage) error {
 		l.SentBytes(len(block.RawData()))
 		l.wantList.Remove(block.Cid())
 		e.peerRequestQueue.Remove(block.Cid(), p)
+		log.Debugf("sent block %s %d bytes to peer %s. new debt ratio: %d", block, len(block.RawData()), block.Cid(), l.Accounting.Value())
 	}
 
 	return nil
