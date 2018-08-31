@@ -32,6 +32,7 @@ Please put all issues regarding:
   - [System Requirements](#system-requirements)
   - [Install prebuilt packages](#install-prebuilt-packages)
   - [From Linux package managers](#from-linux-package-managers)
+  - [Development binaries](#development-binaries)
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -109,6 +110,10 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 ```
 $ sudo snap install ipfs
 ```
+
+### Development binaries
+
+You can get binary builds of the master branch from [our CI](https://ci.ipfs.team/job/IPFS/job/go-ipfs/job/master/lastSuccessfulBuild/artifact/cmd/ipfs/)
 
 ### Build from Source
 
