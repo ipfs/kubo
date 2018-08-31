@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	bsengine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
+	bsengine "github.com/ipfs/go-bitswap/decision"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"

@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	bsengine "github.com/ipfs/go-ipfs/exchange/bitswap/decision"
+	bsengine "github.com/ipfs/go-bitswap/decision"
 	version "github.com/ipfs/go-ipfs"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
