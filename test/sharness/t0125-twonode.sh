@@ -90,12 +90,29 @@ test_expect_success "set up tcp testbed" '
 '
 
 # test multiplex muxer
+echo "Running advanced tests with mplex"
 export LIBP2P_MUX_PREFS="/mplex/6.7.0"
 run_advanced_test "--enable-mplex-experiment"
 unset LIBP2P_MUX_PREFS
 
 # test default configuration
+echo "Running advanced tests with default config"
 run_advanced_test
 
+# test QUIC
+echo "Running advanced tests over QUIC"
+test_expect_success "enable QUIC experiment" '
+  ipfsi 0 config --json Experimental.QUIC true &&
+  ipfsi 1 config --json Experimental.QUIC true
+'
+
+addr1='"[\"/ip4/127.0.0.1/udp/0/quic/\"]"'
+addr2='"[\"/ip4/127.0.0.1/udp/0/quic/\"]"'
+test_expect_success "add QUIC swarm addresses" '
+  ipfsi 0 config --json Addresses.Swarm '$addr1' &&
+  ipfsi 1 config --json Addresses.Swarm '$addr2'
+'
+
+run_advanced_test
 
 test_done
