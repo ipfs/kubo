@@ -7,6 +7,7 @@ type ObjectNewSettings struct {
 type ObjectPutSettings struct {
 	InputEnc string
 	DataType string
+	Pin      bool
 }
 
 type ObjectAddLinkSettings struct {
@@ -35,6 +36,7 @@ func ObjectPutOptions(opts ...ObjectPutOption) (*ObjectPutSettings, error) {
 	options := &ObjectPutSettings{
 		InputEnc: "json",
 		DataType: "text",
+		Pin:      false,
 	}
 
 	for _, opt := range opts {
@@ -99,6 +101,15 @@ func (objectOpts) InputEnc(e string) ObjectPutOption {
 func (objectOpts) DataType(t string) ObjectPutOption {
 	return func(settings *ObjectPutSettings) error {
 		settings.DataType = t
+		return nil
+	}
+}
+
+// Pin is an option for Object.Put which specifies whether to pin the added
+// objects, default is false
+func (objectOpts) Pin(pin bool) ObjectPutOption {
+	return func(settings *ObjectPutSettings) error {
+		settings.Pin = pin
 		return nil
 	}
 }

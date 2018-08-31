@@ -9,7 +9,7 @@ import (
 // Pin holds information about pinned resource
 type Pin interface {
 	// Path to the pinned object
-	Path() Path
+	Path() ResolvedPath
 
 	// Type of the pin
 	Type() string
@@ -27,7 +27,7 @@ type PinStatus interface {
 // BadPinNode is a node that has been marked as bad by Pin.Verify
 type BadPinNode interface {
 	// Path is the path of the node
-	Path() Path
+	Path() ResolvedPath
 
 	// Err is the reason why the node has been marked as bad
 	Err() error

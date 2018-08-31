@@ -27,7 +27,7 @@ _ipfs_add()
 
 _ipfs_bitswap()
 {
-    ipfs_comp "ledger stat unwant wantlist --help"
+    ipfs_comp "ledger stat wantlist --help"
 }
 
 _ipfs_bitswap_ledger()
@@ -40,19 +40,9 @@ _ipfs_bitswap_stat()
     _ipfs_help_only
 }
 
-_ipfs_bitswap_unwant()
-{
-    _ipfs_help_only
-}
-
 _ipfs_bitswap_wantlist()
 {
     ipfs_comp "--peer= --help"
-}
-
-_ipfs_bitswap_unwant()
-{
-    _ipfs_help_only
 }
 
 _ipfs_block()

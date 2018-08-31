@@ -6,11 +6,11 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
-	dshelp "gx/ipfs/QmTmqJGRQfuH8eKWD1FjThwPRipt1QhqJQNZ8MpzmfAAxo/go-ipfs-ds-help"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	dsq "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/query"
-	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
+	dsq "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/query"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	blockstore "gx/ipfs/QmcmpX42gtDv1fz24kau4wjS9hfwWj5VexWBKgGnWzsyag/go-ipfs-blockstore"
+	dshelp "gx/ipfs/Qmd39D2vUhmPKQA2fgykjo2JXwekHKeJUggmGRpYuVMA2Z/go-ipfs-ds-help"
 )
 
 // Status is used to identify the state of the block data referenced
@@ -212,9 +212,9 @@ func listAllFileOrder(fs *Filestore, verify bool) (func() *ListRes, error) {
 		}
 		// now reconstruct the DataObj
 		dobj := pb.DataObj{
-			FilePath: &v.filePath,
-			Offset:   &v.offset,
-			Size_:    &v.size,
+			FilePath: v.filePath,
+			Offset:   v.offset,
+			Size_:    v.size,
 		}
 		// now if we could not convert the datastore key return that
 		// error
@@ -277,8 +277,8 @@ func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
 		Status:   status,
 		ErrorMsg: errorMsg,
 		Key:      c,
-		FilePath: *d.FilePath,
-		Size:     *d.Size_,
-		Offset:   *d.Offset,
+		FilePath: d.FilePath,
+		Size:     d.Size_,
+		Offset:   d.Offset,
 	}
 }

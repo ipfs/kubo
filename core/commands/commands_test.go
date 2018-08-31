@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
+	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 )
 
 func collectPaths(prefix string, cmd *cmds.Command, out map[string]struct{}) {
@@ -73,7 +73,6 @@ func TestCommands(t *testing.T) {
 		"/bitswap/ledger",
 		"/bitswap/reprovide",
 		"/bitswap/stat",
-		"/bitswap/unwant",
 		"/bitswap/wantlist",
 		"/block",
 		"/block/get",
@@ -210,6 +209,8 @@ func TestCommands(t *testing.T) {
 		"/tar/add",
 		"/tar/cat",
 		"/update",
+		"/urlstore",
+		"/urlstore/add",
 		"/version",
 	}
 

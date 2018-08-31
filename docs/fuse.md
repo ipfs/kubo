@@ -97,8 +97,8 @@ Verify that the config file can be read by your user:
 sudo ls -l /etc/fuse.conf
 -rw-r----- 1 root fuse 216 Jan  2  2013 /etc/fuse.conf
 ```
-In most distributions group named `fuse` is be created during fuse installation.
-You can check this with:
+In most distributions, the group named `fuse` will be created during fuse
+installation. You can check this with:
 
 ```sh
 sudo grep -q fuse /etc/group && echo fuse_group_present || echo fuse_group_missing

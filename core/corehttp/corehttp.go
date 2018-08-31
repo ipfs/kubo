@@ -5,19 +5,25 @@ high-level HTTP interfaces to IPFS.
 package corehttp
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	"gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	periodicproc "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/periodic"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 )
 
 var log = logging.Logger("core/server")
+
+// shutdownTimeout is the timeout after which we'll stop waiting for hung
+// commands to return on shutdown.
+const shutdownTimeout = 30 * time.Second
 
 // ServeOption registers any HTTP handlers it provides on the given mux.
 // It returns the mux to expose to future options, which may be a new mux if it
@@ -61,10 +67,13 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	addr = list.Multiaddr()
 	fmt.Printf("API server listening on %s\n", addr)
 
-	return Serve(n, list.NetListener(), options...)
+	return Serve(n, manet.NetListener(list), options...)
 }
 
 func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error {
+	// make sure we close this no matter what.
+	defer lis.Close()
+
 	handler, err := makeHandler(node, lis, options...)
 	if err != nil {
 		return err
@@ -75,43 +84,44 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 		return err
 	}
 
-	// if the server exits beforehand
-	var serverError error
-	serverExited := make(chan struct{})
-
 	select {
 	case <-node.Process().Closing():
 		return fmt.Errorf("failed to start server, process closing")
 	default:
 	}
 
-	node.Process().Go(func(p goprocess.Process) {
-		serverError = http.Serve(lis, handler)
-		close(serverExited)
+	server := &http.Server{
+		Handler: handler,
+	}
+
+	var serverError error
+	serverProc := node.Process().Go(func(p goprocess.Process) {
+		serverError = server.Serve(lis)
 	})
 
 	// wait for server to exit.
 	select {
-	case <-serverExited:
-
+	case <-serverProc.Closed():
 	// if node being closed before server exits, close server
 	case <-node.Process().Closing():
 		log.Infof("server at %s terminating...", addr)
 
-		lis.Close()
+		warnProc := periodicproc.Tick(5*time.Second, func(_ goprocess.Process) {
+			log.Infof("waiting for server at %s to terminate...", addr)
+		})
 
-	outer:
-		for {
-			// wait until server exits
-			select {
-			case <-serverExited:
-				// if the server exited as we are closing, we really dont care about errors
-				serverError = nil
-				break outer
-			case <-time.After(5 * time.Second):
-				log.Infof("waiting for server at %s to terminate...", addr)
-			}
-		}
+		// This timeout shouldn't be necessary if all of our commands
+		// are obeying their contexts but we should have *some* timeout.
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		err := server.Shutdown(ctx)
+
+		// Should have already closed but we still need to wait for it
+		// to set the error.
+		<-serverProc.Closed()
+		serverError = err
+
+		warnProc.Close()
 	}
 
 	log.Infof("server at %s terminated", addr)

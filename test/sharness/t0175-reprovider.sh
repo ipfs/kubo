@@ -51,10 +51,6 @@ reprovide() {
   '
 }
 
-test_expect_success 'stop peer 1' '
-  iptb stop 1
-'
-
 # Test 'all' strategy
 init_strategy 'all'
 
@@ -149,5 +145,9 @@ findprovs_empty '$HASH_0'
 reprovide
 findprovs_expect '$HASH_0' '$PEERID_0'
 
+test_expect_success 'resolve object $HASH_0' '
+  HASH_WITH_PREFIX=$(ipfsi 1 resolve $HASH_0)
+'
+findprovs_expect '$HASH_WITH_PREFIX' '$PEERID_0'
 
 test_done

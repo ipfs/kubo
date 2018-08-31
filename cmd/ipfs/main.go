@@ -18,28 +18,32 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	coreCmds "github.com/ipfs/go-ipfs/core/commands"
+	corecmds "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds/cli"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds/http"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds/cli"
+	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds/http"
+	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	"gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
-	loggables "gx/ipfs/Qmf9JgVLz46pxPXwG2eWSJpkqVCcjD4rp7zCRi2KP6GTNB/go-libp2p-loggables"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	loggables "gx/ipfs/QmZ4zF1mBrt8C2mSCM4ZYE4aAnv78f7GvrzufJC4G5tecK/go-libp2p-loggables"
+	madns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
 )
 
 // log is the command logger
 var log = logging.Logger("cmd/ipfs")
 
 var errRequestCanceled = errors.New("request canceled")
+
+// declared as a var for testing purposes
+var dnsResolver = madns.DefaultResolver
 
 const (
 	EnvEnableProfiling = "IPFS_PROF"
@@ -172,7 +176,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		}
 		if ok {
 			if _, err := loader.LoadPlugins(pluginpath); err != nil {
-				log.Warning("error loading plugins: ", err)
+				log.Error("error loading plugins: ", err)
 			}
 		}
 
@@ -233,9 +237,9 @@ func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, cctx *oldcm
 	// to this point so that we don't check unnecessarily
 
 	// did user specify an api to use for this command?
-	apiAddrStr, _ := req.Options[coreCmds.ApiOption].(string)
+	apiAddrStr, _ := req.Options[corecmds.ApiOption].(string)
 
-	client, err := getApiClient(cctx.ConfigRoot, apiAddrStr)
+	client, err := getAPIClient(req.Context, cctx.ConfigRoot, apiAddrStr)
 	if err == repo.ErrApiNotRunning {
 		if apiAddrStr != "" && req.Command != daemonCmd {
 			// if user SPECIFIED an api, and this cmd is not daemon
@@ -403,10 +407,10 @@ If you're sure go-ipfs isn't running, you can just delete it.
 var checkIPFSUnixFmt = "Otherwise check:\n\tps aux | grep ipfs"
 var checkIPFSWinFmt = "Otherwise check:\n\ttasklist | findstr ipfs"
 
-// getApiClient checks the repo, and the given options, checking for
+// getAPIClient checks the repo, and the given options, checking for
 // a running API service. if there is one, it returns a client.
 // otherwise, it returns errApiNotRunning, or another error.
-func getApiClient(repoPath, apiAddrStr string) (http.Client, error) {
+func getAPIClient(ctx context.Context, repoPath, apiAddrStr string) (http.Client, error) {
 	var apiErrorFmt string
 	switch {
 	case osh.IsUnix():
@@ -440,14 +444,35 @@ func getApiClient(repoPath, apiAddrStr string) (http.Client, error) {
 	if len(addr.Protocols()) == 0 {
 		return nil, fmt.Errorf(apiErrorFmt, repoPath, "multiaddr doesn't provide any protocols")
 	}
-	return apiClientForAddr(addr)
+	return apiClientForAddr(ctx, addr)
 }
 
-func apiClientForAddr(addr ma.Multiaddr) (http.Client, error) {
+func apiClientForAddr(ctx context.Context, addr ma.Multiaddr) (http.Client, error) {
+	addr, err := resolveAddr(ctx, addr)
+	if err != nil {
+		return nil, err
+	}
+
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return nil, err
 	}
 
 	return http.NewClient(host, http.ClientWithAPIPrefix(corehttp.APIPath)), nil
+}
+
+func resolveAddr(ctx context.Context, addr ma.Multiaddr) (ma.Multiaddr, error) {
+	ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+	defer cancelFunc()
+
+	addrs, err := dnsResolver.Resolve(ctx, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(addrs) == 0 {
+		return nil, errors.New("non-resolvable API endpoint")
+	}
+
+	return addrs[0], nil
 }

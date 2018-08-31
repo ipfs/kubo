@@ -6,8 +6,8 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 // ObjectStat provides information about dag nodes
@@ -31,6 +31,40 @@ type ObjectStat struct {
 	CumulativeSize int
 }
 
+// ChangeType denotes type of change in ObjectChange
+type ChangeType int
+
+const (
+	// DiffAdd is set when a link was added to the graph
+	DiffAdd ChangeType = iota
+
+	// DiffRemove is set when a link was removed from the graph
+	DiffRemove
+
+	// DiffMod is set when a link was changed in the graph
+	DiffMod
+)
+
+// ObjectChange represents a change ia a graph
+type ObjectChange struct {
+	// Type of the change, either:
+	// * DiffAdd - Added a link
+	// * DiffRemove - Removed a link
+	// * DiffMod - Modified a link
+	Type ChangeType
+
+	// Path to the changed link
+	Path string
+
+	// Before holds the link path before the change. Note that when a link is
+	// added, this will be nil.
+	Before ResolvedPath
+
+	// After holds the link path after the change. Note that when a link is
+	// removed, this will be nil.
+	After ResolvedPath
+}
+
 // ObjectAPI specifies the interface to MerkleDAG and contains useful utilities
 // for manipulating MerkleDAG data structures.
 type ObjectAPI interface {
@@ -38,7 +72,7 @@ type ObjectAPI interface {
 	New(context.Context, ...options.ObjectNewOption) (ipld.Node, error)
 
 	// Put imports the data into merkledag
-	Put(context.Context, io.Reader, ...options.ObjectPutOption) (Path, error)
+	Put(context.Context, io.Reader, ...options.ObjectPutOption) (ResolvedPath, error)
 
 	// Get returns the node for the path
 	Get(context.Context, Path) (ipld.Node, error)
@@ -55,14 +89,18 @@ type ObjectAPI interface {
 	// AddLink adds a link under the specified path. child path can point to a
 	// subdirectory within the patent which must be present (can be overridden
 	// with WithCreate option).
-	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (Path, error)
+	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (ResolvedPath, error)
 
 	// RmLink removes a link from the node
-	RmLink(ctx context.Context, base Path, link string) (Path, error)
+	RmLink(ctx context.Context, base Path, link string) (ResolvedPath, error)
 
 	// AppendData appends data to the node
-	AppendData(context.Context, Path, io.Reader) (Path, error)
+	AppendData(context.Context, Path, io.Reader) (ResolvedPath, error)
 
 	// SetData sets the data contained in the node
-	SetData(context.Context, Path, io.Reader) (Path, error)
+	SetData(context.Context, Path, io.Reader) (ResolvedPath, error)
+
+	// Diff returns a set of changes needed to transform the first object into the
+	// second.
+	Diff(context.Context, Path, Path) ([]ObjectChange, error)
 }

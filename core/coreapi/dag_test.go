@@ -6,11 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
 var (
@@ -74,7 +73,7 @@ func TestPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	p, err := coreapi.ParsePath(path.Join(res.Cid().String(), "lnk"))
+	p, err := coreiface.ParsePath(path.Join(res.Cid().String(), "lnk"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -115,5 +114,38 @@ func TestTree(t *testing.T) {
 		if _, ok := treeExpected[ent]; !ok {
 			t.Errorf("unexpected tree entry %s", ent)
 		}
+	}
+}
+
+func TestBatch(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	batch := api.Dag().Batch(ctx)
+
+	c, err := batch.Put(ctx, strings.NewReader(`"Hello"`))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if c.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", c.Cid().String())
+	}
+
+	_, err = api.Dag().Get(ctx, c)
+	if err == nil || err.Error() != "merkledag: not found" {
+		t.Error(err)
+	}
+
+	if err := batch.Commit(ctx); err != nil {
+		t.Error(err)
+	}
+
+	_, err = api.Dag().Get(ctx, c)
+	if err != nil {
+		t.Error(err)
 	}
 }

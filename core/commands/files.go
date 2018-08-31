@@ -8,28 +8,30 @@ import (
 	"io"
 	"os"
 	gopath "path"
+	"sort"
 	"strings"
 
-	bservice "github.com/ipfs/go-ipfs/blockservice"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	mfs "github.com/ipfs/go-ipfs/mfs"
-	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
-	ft "github.com/ipfs/go-ipfs/unixfs"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
+	ft "gx/ipfs/QmQjEpRiwVvtowhq69dAtB4jhioPVFXiCcWZm9Sfgn7eqc/go-unixfs"
+	uio "gx/ipfs/QmQjEpRiwVvtowhq69dAtB4jhioPVFXiCcWZm9Sfgn7eqc/go-unixfs/io"
+	dag "gx/ipfs/QmRiQCJZ91B7VNmLvA6sxzDuBJGSojS3uXHHVuNr3iueNZ/go-merkledag"
+	bservice "gx/ipfs/QmbSB9Uh3wVgmiCb1fAb8zuC3qAE6un4kd1jvatUurfAmB/go-blockservice"
+	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
+	resolver "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path/resolver"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	offline "gx/ipfs/QmZxjqR9Qgompju73kakSoUj3rbVndAzky3oCDiBNCxPs1/go-ipfs-exchange-offline"
+	mfs "gx/ipfs/QmdghKsSDa2AD1kC4qYRnVYWqZecdSBRZjeXRdhMYYhafj/go-mfs"
 )
 
 var flog = logging.Logger("cmds/files")
@@ -113,7 +115,7 @@ var filesStatCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrClient)
 		}
 
-		node, err := GetNode(env)
+		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -329,13 +331,13 @@ var filesCpCmd = &oldcmds.Command{
 
 		nd, err := getNodeFromPath(req.Context(), node, node.DAG, src)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cp: cannot get node from path %s: %s", src, err), cmdkit.ErrNormal)
 			return
 		}
 
 		err = mfs.PutNode(node.FilesRoot, dst, nd)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			res.SetError(fmt.Errorf("cp: cannot put node in path %s: %s", dst, err), cmdkit.ErrNormal)
 			return
 		}
 
@@ -405,6 +407,7 @@ Examples:
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("l", "Use long listing format."),
+		cmdkit.BoolOption("U", "Do not sort; list entries in directory order."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		var arg string
@@ -462,7 +465,24 @@ Examples:
 			return
 		case *mfs.File:
 			_, name := gopath.Split(path)
-			out := &filesLsOutput{[]mfs.NodeListing{mfs.NodeListing{Name: name, Type: 1}}}
+			out := &filesLsOutput{[]mfs.NodeListing{mfs.NodeListing{Name: name}}}
+			if long {
+				out.Entries[0].Type = int(fsn.Type())
+
+				size, err := fsn.Size()
+				if err != nil {
+					res.SetError(err, cmdkit.ErrNormal)
+					return
+				}
+				out.Entries[0].Size = size
+
+				nd, err := fsn.GetNode()
+				if err != nil {
+					res.SetError(err, cmdkit.ErrNormal)
+					return
+				}
+				out.Entries[0].Hash = nd.Cid().String()
+			}
 			res.SetOutput(out)
 			return
 		default:
@@ -482,8 +502,15 @@ Examples:
 			}
 
 			buf := new(bytes.Buffer)
-			long, _, _ := res.Request().Option("l").Bool()
 
+			noSort, _, _ := res.Request().Option("U").Bool()
+			if !noSort {
+				sort.Slice(out.Entries, func(i, j int) bool {
+					return strings.Compare(out.Entries[i].Name, out.Entries[j].Name) < 0
+				})
+			}
+
+			long, _, _ := res.Request().Option("l").Bool()
 			for _, o := range out.Entries {
 				if long {
 					fmt.Fprintf(buf, "%s\t%s\t%d\n", o.Name, o.Hash, o.Size)
@@ -695,6 +722,7 @@ stat' on the file or any of its ancestors.
 	Options: []cmdkit.Option{
 		cmdkit.IntOption("offset", "o", "Byte offset to begin writing at."),
 		cmdkit.BoolOption("create", "e", "Create the file if it does not exist."),
+		cmdkit.BoolOption("parents", "p", "Make parent directories as needed."),
 		cmdkit.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
 		cmdkit.IntOption("count", "n", "Maximum number of bytes to read."),
 		cmdkit.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
@@ -709,6 +737,7 @@ stat' on the file or any of its ancestors.
 		}
 
 		create, _ := req.Options["create"].(bool)
+		mkParents, _ := req.Options["parents"].(bool)
 		trunc, _ := req.Options["truncate"].(bool)
 		flush, _ := req.Options["flush"].(bool)
 		rawLeaves, rawLeavesDef := req.Options["raw-leaves"].(bool)
@@ -719,7 +748,7 @@ stat' on the file or any of its ancestors.
 			return
 		}
 
-		nd, err := GetNode(env)
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			re.SetError(err, cmdkit.ErrNormal)
 			return
@@ -729,6 +758,14 @@ stat' on the file or any of its ancestors.
 		if offset < 0 {
 			re.SetError(fmt.Errorf("cannot have negative write offset"), cmdkit.ErrNormal)
 			return
+		}
+
+		if mkParents {
+			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix)
+			if err != nil {
+				re.SetError(err, cmdkit.ErrNormal)
+				return
+			}
 		}
 
 		fi, err := getFileHandle(nd.FilesRoot, path, create, prefix)
@@ -842,9 +879,9 @@ Examples:
 		root := n.FilesRoot
 
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
-			Mkparents: dashp,
-			Flush:     flush,
-			Prefix:    prefix,
+			Mkparents:  dashp,
+			Flush:      flush,
+			CidBuilder: prefix,
 		})
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -932,8 +969,8 @@ Change the cid version or hash function of the root node of a given path.
 	},
 }
 
-func updatePath(rt *mfs.Root, pth string, prefix *cid.Prefix, flush bool) error {
-	if prefix == nil {
+func updatePath(rt *mfs.Root, pth string, builder cid.Builder, flush bool) error {
+	if builder == nil {
 		return nil
 	}
 
@@ -944,7 +981,7 @@ func updatePath(rt *mfs.Root, pth string, prefix *cid.Prefix, flush bool) error 
 
 	switch n := nd.(type) {
 	case *mfs.Directory:
-		n.SetPrefix(prefix)
+		n.SetCidBuilder(builder)
 	default:
 		return fmt.Errorf("can only update directories")
 	}
@@ -1062,7 +1099,7 @@ Remove files or directories.
 	},
 }
 
-func getPrefixNew(req *cmds.Request) (*cid.Prefix, error) {
+func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
 	cidVer, cidVerSet := req.Options["cid-version"].(int)
 	hashFunStr, hashFunSet := req.Options["hash"].(string)
 
@@ -1091,7 +1128,7 @@ func getPrefixNew(req *cmds.Request) (*cid.Prefix, error) {
 	return &prefix, nil
 }
 
-func getPrefix(req oldcmds.Request) (*cid.Prefix, error) {
+func getPrefix(req oldcmds.Request) (cid.Builder, error) {
 	cidVer, cidVerSet, _ := req.Option("cid-version").Int()
 	hashFunStr, hashFunSet, _ := req.Option("hash").String()
 
@@ -1120,7 +1157,20 @@ func getPrefix(req oldcmds.Request) (*cid.Prefix, error) {
 	return &prefix, nil
 }
 
-func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*mfs.File, error) {
+func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder) error {
+	dirtomake := gopath.Dir(path)
+
+	if dirtomake == "/" {
+		return nil
+	}
+
+	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{
+		Mkparents:  true,
+		CidBuilder: builder,
+	})
+}
+
+func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (*mfs.File, error) {
 	target, err := mfs.Lookup(r, path)
 	switch err {
 	case nil:
@@ -1146,12 +1196,12 @@ func getFileHandle(r *mfs.Root, path string, create bool, prefix *cid.Prefix) (*
 		if !ok {
 			return nil, fmt.Errorf("%s was not a directory", dirname)
 		}
-		if prefix == nil {
-			prefix = pdir.GetPrefix()
+		if builder == nil {
+			builder = pdir.GetCidBuilder()
 		}
 
 		nd := dag.NodeWithData(ft.FilePBData(nil, 0))
-		nd.SetPrefix(prefix)
+		nd.SetCidBuilder(builder)
 		err = pdir.AddChild(fname, nd)
 		if err != nil {
 			return nil, err

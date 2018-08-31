@@ -4,25 +4,27 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 
-	id "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/protocol/identify"
-	datastore "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	syncds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	id "gx/ipfs/QmQiaskfWpdRJ4x2spEQjPFTUkEB87KDYu91qnNYBqvvcX/go-libp2p/p2p/protocol/identify"
+	dag "gx/ipfs/QmRiQCJZ91B7VNmLvA6sxzDuBJGSojS3uXHHVuNr3iueNZ/go-merkledag"
+	config "gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config"
+	datastore "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
+	syncds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/sync"
+	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 )
 
 // `ipfs object new unixfs-dir`
@@ -31,11 +33,28 @@ var emptyDir = "/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
 type mockNamesys map[string]path.Path
 
 func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.ResolveOpt) (value path.Path, err error) {
-	p, ok := m[name]
-	if !ok {
-		return "", namesys.ErrResolveFailed
+	cfg := nsopts.DefaultResolveOpts()
+	for _, o := range opts {
+		o(cfg)
 	}
-	return p, nil
+	depth := cfg.Depth
+	if depth == nsopts.UnlimitedDepth {
+		depth = math.MaxUint64
+	}
+	for strings.HasPrefix(name, "/ipns/") {
+		if depth <= 0 {
+			return value, namesys.ErrResolveRecursion
+		}
+		depth--
+
+		var ok bool
+		value, ok = m[name]
+		if !ok {
+			return "", namesys.ErrResolveFailed
+		}
+		name = value.String()
+	}
+	return value, nil
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
@@ -130,6 +149,10 @@ func TestGatewayGet(t *testing.T) {
 		t.Fatal(err)
 	}
 	ns["/ipns/example.com"] = path.FromString("/ipfs/" + k)
+	ns["/ipns/working.example.com"] = path.FromString("/ipfs/" + k)
+	ns["/ipns/double.example.com"] = path.FromString("/ipns/working.example.com")
+	ns["/ipns/triple.example.com"] = path.FromString("/ipns/double.example.com")
+	ns["/ipns/broken.example.com"] = path.FromString("/ipns/" + k)
 
 	t.Log(ts.URL)
 	for _, test := range []struct {
@@ -145,6 +168,13 @@ func TestGatewayGet(t *testing.T) {
 		{"localhost:5001", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
+
+		{"working.example.com", "/", http.StatusOK, "fnord"},
+		{"double.example.com", "/", http.StatusOK, "fnord"},
+		{"triple.example.com", "/", http.StatusOK, "fnord"},
+		{"working.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com/ipfs/" + k + ": no link by that name\n"},
+		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"broken.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/ipfs/" + k + ": " + namesys.ErrResolveFailed.Error() + "\n"},
 	} {
 		var c http.Client
 		r, err := http.NewRequest("GET", ts.URL+test.path, nil)
@@ -516,7 +546,7 @@ func TestGoGetSupport(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	config.CurrentCommit = "theshortcommithash"
+	version.CurrentCommit = "theshortcommithash"
 
 	ns := mockNamesys{}
 	ts, _ := newTestServerAndNode(t, ns)

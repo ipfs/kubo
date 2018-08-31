@@ -61,7 +61,7 @@ test_expect_success "start nodes" '
 '
 
 test_expect_success "try connecting node in public network with priv networks" '
-  iptb connect --timeout=2s [1-4] 0
+  test_must_fail iptb connect --timeout=2s [1-4] 0
 '
 
 test_expect_success "node 0 (public network) swarm is empty" '
@@ -70,7 +70,7 @@ test_expect_success "node 0 (public network) swarm is empty" '
 '
 
 test_expect_success "try connecting nodes in different private networks" '
-  iptb connect 2 3
+  test_must_fail iptb connect 2 3
 '
 
 test_expect_success "node 3 (pnet 2) swarm is empty" '

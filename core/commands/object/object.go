@@ -2,10 +2,7 @@ package objectcmd
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
-	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -15,17 +12,15 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
-	pin "github.com/ipfs/go-ipfs/pin"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	dag "gx/ipfs/QmRiQCJZ91B7VNmLvA6sxzDuBJGSojS3uXHHVuNr3iueNZ/go-merkledag"
+	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -88,31 +83,25 @@ is the raw data of the object.
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		fpath, err := path.ParsePath(req.Arguments()[0])
+		path, err := coreiface.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
+		data, err := api.Object().Data(req.Context(), path)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		pbnode, ok := node.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(bytes.NewReader(pbnode.Data()))
+		res.SetOutput(data)
 	},
 }
 
@@ -133,7 +122,7 @@ multihash.
 		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -145,19 +134,39 @@ multihash.
 			return
 		}
 
-		fpath := path.Path(req.Arguments()[0])
-		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
+		path, err := coreiface.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		output, err := getOutput(node)
+		rp, err := api.ResolvePath(req.Context(), path)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(output)
+
+		links, err := api.Object().Links(req.Context(), rp)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		outLinks := make([]Link, len(links))
+		for i, link := range links {
+			outLinks[i] = Link{
+				Hash: link.Cid.String(),
+				Name: link.Name,
+				Size: link.Size,
+			}
+		}
+
+		out := Object{
+			Hash:  rp.Cid().String(),
+			Links: outLinks,
+		}
+
+		res.SetOutput(out)
 	},
 	Marshalers: oldcmds.MarshalerMap{
 		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
@@ -204,39 +213,72 @@ This command outputs data in the following encodings:
   * "protobuf"
   * "json"
   * "xml"
-(Specified by the "--encoding" or "--enc" flag)`,
+(Specified by the "--encoding" or "--enc" flag)
+
+The encoding of the object's data field can be specifed by using the
+--data-encoding flag
+
+Supported values are:
+	* "text" (default)
+	* "base64"
+`,
 	},
 
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
+	Options: []cmdkit.Option{
+		cmdkit.StringOption("data-encoding", "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
+	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		fpath := path.Path(req.Arguments()[0])
-
-		object, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
+		path, err := coreiface.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		pbo, ok := object.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
+		datafieldenc, _, err := req.Option("data-encoding").String()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		nd, err := api.Object().Get(req.Context(), path)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		r, err := api.Object().Data(req.Context(), path)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		data, err := ioutil.ReadAll(r)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		out, err := encodeData(data, datafieldenc)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		node := &Node{
-			Links: make([]Link, len(object.Links())),
-			Data:  string(pbo.Data()),
+			Links: make([]Link, len(nd.Links())),
+			Data:  out,
 		}
 
-		for i, link := range object.Links() {
+		for i, link := range nd.Links() {
 			node.Links[i] = Link{
 				Hash: link.Cid.String(),
 				Name: link.Name,
@@ -293,27 +335,34 @@ var ObjectStatCmd = &oldcmds.Command{
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		fpath := path.Path(req.Arguments()[0])
-
-		object, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
+		path, err := coreiface.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		ns, err := object.Stat()
+		ns, err := api.Object().Stat(req.Context(), path)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		res.SetOutput(ns)
+		oldStat := &ipld.NodeStat{
+			Hash:           ns.Cid.String(),
+			NumLinks:       ns.NumLinks,
+			BlockSize:      ns.BlockSize,
+			LinksSize:      ns.LinksSize,
+			DataSize:       ns.DataSize,
+			CumulativeSize: ns.CumulativeSize,
+		}
+
+		res.SetOutput(oldStat)
 	},
 	Type: ipld.NodeStat{},
 	Marshalers: oldcmds.MarshalerMap{
@@ -391,7 +440,7 @@ And then run:
 		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -421,30 +470,16 @@ And then run:
 			return
 		}
 
-		if dopin {
-			defer n.Blockstore.PinLock().Unlock()
-		}
-
-		objectCid, err := objectPut(req.Context(), n, input, inputenc, datafieldenc)
+		p, err := api.Object().Put(req.Context(), input,
+			options.Object.DataType(datafieldenc),
+			options.Object.InputEnc(inputenc),
+			options.Object.Pin(dopin))
 		if err != nil {
-			errType := cmdkit.ErrNormal
-			if err == ErrUnknownObjectEnc {
-				errType = cmdkit.ErrClient
-			}
-			res.SetError(err, errType)
+			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		if dopin {
-			n.Pinning.PinWithMode(objectCid, pin.Recursive)
-			err = n.Pinning.Flush()
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-		}
-
-		res.SetOutput(&Object{Hash: objectCid.String()})
+		res.SetOutput(&Object{Hash: p.Cid().String()})
 	},
 	Marshalers: oldcmds.MarshalerMap{
 		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
@@ -490,29 +525,24 @@ Available templates:
 		cmdkit.StringArg("template", false, false, "Template to use. Optional."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		node := new(dag.ProtoNode)
+		template := "empty"
 		if len(req.Arguments()) == 1 {
-			template := req.Arguments()[0]
-			var err error
-			node, err = nodeFromTemplate(template)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
+			template = req.Arguments()[0]
 		}
 
-		err = n.DAG.Add(req.Context(), node)
-		if err != nil {
+		nd, err := api.Object().New(req.Context(), options.Object.Type(template))
+		if err != nil && err != io.EOF {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(&Object{Hash: node.Cid().String()})
+
+		res.SetOutput(&Object{Hash: nd.Cid().String()})
 	},
 	Marshalers: oldcmds.MarshalerMap{
 		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
@@ -530,126 +560,6 @@ Available templates:
 		},
 	},
 	Type: Object{},
-}
-
-func nodeFromTemplate(template string) (*dag.ProtoNode, error) {
-	switch template {
-	case "unixfs-dir":
-		return ft.EmptyDirNode(), nil
-	default:
-		return nil, fmt.Errorf("template '%s' not found", template)
-	}
-}
-
-// ErrEmptyNode is returned when the input to 'ipfs object put' contains no data
-var ErrEmptyNode = errors.New("no data or links in this node")
-
-// objectPut takes a format option, serializes bytes from stdin and updates the dag with that data
-func objectPut(ctx context.Context, n *core.IpfsNode, input io.Reader, encoding string, dataFieldEncoding string) (*cid.Cid, error) {
-
-	data, err := ioutil.ReadAll(io.LimitReader(input, inputLimit+10))
-	if err != nil {
-		return nil, err
-	}
-
-	if len(data) >= inputLimit {
-		return nil, ErrObjectTooLarge
-	}
-
-	var dagnode *dag.ProtoNode
-	switch getObjectEnc(encoding) {
-	case objectEncodingJSON:
-		node := new(Node)
-		err = json.Unmarshal(data, node)
-		if err != nil {
-			return nil, err
-		}
-
-		// check that we have data in the Node to add
-		// otherwise we will add the empty object without raising an error
-		if NodeEmpty(node) {
-			return nil, ErrEmptyNode
-		}
-
-		dagnode, err = deserializeNode(node, dataFieldEncoding)
-		if err != nil {
-			return nil, err
-		}
-
-	case objectEncodingProtobuf:
-		dagnode, err = dag.DecodeProtobuf(data)
-
-	case objectEncodingXML:
-		node := new(Node)
-		err = xml.Unmarshal(data, node)
-		if err != nil {
-			return nil, err
-		}
-
-		// check that we have data in the Node to add
-		// otherwise we will add the empty object without raising an error
-		if NodeEmpty(node) {
-			return nil, ErrEmptyNode
-		}
-
-		dagnode, err = deserializeNode(node, dataFieldEncoding)
-		if err != nil {
-			return nil, err
-		}
-
-	default:
-		return nil, ErrUnknownObjectEnc
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = n.DAG.Add(ctx, dagnode)
-	if err != nil {
-		return nil, err
-	}
-
-	return dagnode.Cid(), nil
-}
-
-// ErrUnknownObjectEnc is returned if a invalid encoding is supplied
-var ErrUnknownObjectEnc = errors.New("unknown object encoding")
-
-type objectEncoding string
-
-const (
-	objectEncodingJSON     objectEncoding = "json"
-	objectEncodingProtobuf                = "protobuf"
-	objectEncodingXML                     = "xml"
-)
-
-func getObjectEnc(o interface{}) objectEncoding {
-	v, ok := o.(string)
-	if !ok {
-		// chosen as default because it's human readable
-		return objectEncodingJSON
-	}
-
-	return objectEncoding(v)
-}
-
-func getOutput(dagnode ipld.Node) (*Object, error) {
-	c := dagnode.Cid()
-	output := &Object{
-		Hash:  c.String(),
-		Links: make([]Link, len(dagnode.Links())),
-	}
-
-	for i, link := range dagnode.Links() {
-		output.Links[i] = Link{
-			Name: link.Name,
-			Hash: link.Cid.String(),
-			Size: link.Size,
-		}
-	}
-
-	return output, nil
 }
 
 // converts the Node object into a real dag.ProtoNode
@@ -685,10 +595,6 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 	return dagnode, nil
 }
 
-func NodeEmpty(node *Node) bool {
-	return node.Data == "" && len(node.Links) == 0
-}
-
 // copy+pasted from ../commands.go
 func unwrapOutput(i interface{}) (interface{}, error) {
 	var (
@@ -701,4 +607,15 @@ func unwrapOutput(i interface{}) (interface{}, error) {
 	}
 
 	return <-ch, nil
+}
+
+func encodeData(data []byte, encoding string) (string, error) {
+	switch encoding {
+	case "text":
+		return string(data), nil
+	case "base64":
+		return base64.StdEncoding.EncodeToString(data), nil
+	}
+
+	return "", fmt.Errorf("unkown data field encoding")
 }

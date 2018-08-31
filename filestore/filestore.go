@@ -9,16 +9,20 @@ package filestore
 
 import (
 	"context"
+	"errors"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	dsq "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/query"
-	blockstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	posinfo "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	blocks "gx/ipfs/Qmej7nf81hi2x2tvjRBF3mcp74sQyuDH4VMYDGd1YtXjb2/go-block-format"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	dsq "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/query"
+	blocks "gx/ipfs/QmWAzSEoqZ6xU6pu8yL8e5WaMb7wtbfbhhN4p1DknUPtr3/go-block-format"
+	posinfo "gx/ipfs/QmXD4grfThQ4LwVoEEfe4dgR7ukmbV9TppM5Q4SPowp7hU/go-ipfs-posinfo"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	blockstore "gx/ipfs/QmcmpX42gtDv1fz24kau4wjS9hfwWj5VexWBKgGnWzsyag/go-ipfs-blockstore"
 )
 
 var log = logging.Logger("filestore")
+
+var ErrFilestoreNotEnabled = errors.New("filestore is not enabled, see https://git.io/vNItf")
+var ErrUrlstoreNotEnabled = errors.New("urlstore is not enabled")
 
 // Filestore implements a Blockstore by combining a standard Blockstore
 // to store regular blocks and a special Blockstore called
@@ -139,15 +143,27 @@ func (f *Filestore) DeleteBlock(c *cid.Cid) error {
 func (f *Filestore) Get(c *cid.Cid) (blocks.Block, error) {
 	blk, err := f.bs.Get(c)
 	switch err {
-	default:
-		return nil, err
 	case nil:
 		return blk, nil
 	case blockstore.ErrNotFound:
-		// try filestore
+		return f.fm.Get(c)
+	default:
+		return nil, err
 	}
+}
 
-	return f.fm.Get(c)
+// GetSize returns the size of the requested block. It may return ErrNotFound
+// when the block is not stored.
+func (f *Filestore) GetSize(c *cid.Cid) (int, error) {
+	size, err := f.bs.GetSize(c)
+	switch err {
+	case nil:
+		return size, nil
+	case blockstore.ErrNotFound:
+		return f.fm.GetSize(c)
+	default:
+		return -1, err
+	}
 }
 
 // Has returns true if the block with the given Cid is

@@ -7,21 +7,24 @@ import (
 	"os"
 	"strings"
 
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/coreunix"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagtest "github.com/ipfs/go-ipfs/merkledag/test"
-	mfs "github.com/ipfs/go-ipfs/mfs"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	filestore "github.com/ipfs/go-ipfs/filestore"
+	ft "gx/ipfs/QmQjEpRiwVvtowhq69dAtB4jhioPVFXiCcWZm9Sfgn7eqc/go-unixfs"
+	dag "gx/ipfs/QmRiQCJZ91B7VNmLvA6sxzDuBJGSojS3uXHHVuNr3iueNZ/go-merkledag"
+	dagtest "gx/ipfs/QmRiQCJZ91B7VNmLvA6sxzDuBJGSojS3uXHHVuNr3iueNZ/go-merkledag/test"
+	blockservice "gx/ipfs/QmbSB9Uh3wVgmiCb1fAb8zuC3qAE6un4kd1jvatUurfAmB/go-blockservice"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	pb "gx/ipfs/QmeWjRodbcZFKe5tMN7poEx3izym6osrLSnTLf9UjJZBbs/pb"
+	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	pb "gx/ipfs/QmPtj12fdwuAqj9sBSTNUxBNu8kCGNp8b3o8yUzMm5GHpq/pb"
+	cidutil "gx/ipfs/QmPyxJ2QS7L5FhGkNYkNcXHGjDhvGHueJ4auqAstFHYxy5/go-cidutil"
+	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
+	offline "gx/ipfs/QmZxjqR9Qgompju73kakSoUj3rbVndAzky3oCDiBNCxPs1/go-ipfs-exchange-offline"
+	bstore "gx/ipfs/QmcmpX42gtDv1fz24kau4wjS9hfwWj5VexWBKgGnWzsyag/go-ipfs-blockstore"
+	mfs "gx/ipfs/QmdghKsSDa2AD1kC4qYRnVYWqZecdSBRZjeXRdhMYYhafj/go-mfs"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
@@ -43,6 +46,8 @@ const (
 	fstoreCacheOptionName = "fscache"
 	cidVersionOptionName  = "cid-version"
 	hashOptionName        = "hash"
+	inlineOptionName      = "inline"
+	inlineLimitOptionName = "inline-limit"
 )
 
 const adderOutChanSize = 8
@@ -119,6 +124,8 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
 		cmdkit.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. (experimental)"),
 		cmdkit.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmdkit.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
+		cmdkit.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -140,7 +147,7 @@ You can now check what blocks have been created by:
 		return nil
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		n, err := GetNode(env)
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -172,6 +179,8 @@ You can now check what blocks have been created by:
 		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
 		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
 		hashFunStr, _ := req.Options[hashOptionName].(string)
+		inline, _ := req.Options[inlineOptionName].(bool)
+		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 
 		// The arguments are subject to the following constraints.
 		//
@@ -183,8 +192,7 @@ You can now check what blocks have been created by:
 
 		// nocopy -> filestoreEnabled
 		if nocopy && !cfg.Experimental.FilestoreEnabled {
-			res.SetError(errors.New("filestore is not enabled, see https://git.io/vNItf"),
-				cmdkit.ErrClient)
+			res.SetError(filestore.ErrFilestoreNotEnabled, cmdkit.ErrClient)
 			return
 		}
 
@@ -279,13 +287,20 @@ You can now check what blocks have been created by:
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
-		fileAdder.Prefix = &prefix
+		fileAdder.CidBuilder = prefix
+
+		if inline {
+			fileAdder.CidBuilder = cidutil.InlineBuilder{
+				Builder: fileAdder.CidBuilder,
+				Limit:   inlineLimit,
+			}
+		}
 
 		if hash {
 			md := dagtest.Mock()
 			emptyDirNode := ft.EmptyDirNode()
 			// Use the same prefix for the "empty" MFS root as for the file adder.
-			emptyDirNode.Prefix = *fileAdder.Prefix
+			emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
 			mr, err := mfs.NewRoot(req.Context, md, emptyDirNode, nil)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)

@@ -9,14 +9,15 @@ import (
 	"strconv"
 	"strings"
 
+	version "github.com/ipfs/go-ipfs"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core"
 	corecommands "github.com/ipfs/go-ipfs/core/commands"
-	path "github.com/ipfs/go-ipfs/path"
-	config "github.com/ipfs/go-ipfs/repo/config"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	cmdsHttp "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds/http"
+	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	cmdsHttp "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds/http"
+	config "gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config"
+	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 )
 
 var (
@@ -77,7 +78,7 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	for h, v := range nc.API.HTTPHeaders {
 		c.Headers[h] = v
 	}
-	c.Headers["Server"] = []string{"go-ipfs/" + config.CurrentVersionNumber}
+	c.Headers["Server"] = []string{"go-ipfs/" + version.CurrentVersionNumber}
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
@@ -152,7 +153,7 @@ func CommandsROOption(cctx oldcmds.Context) ServeOption {
 
 // CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/go-ipfs/`
 func CheckVersionOption() ServeOption {
-	daemonVersion := config.ApiVersion
+	daemonVersion := version.ApiVersion
 
 	return ServeOption(func(n *core.IpfsNode, l net.Listener, parent *http.ServeMux) (*http.ServeMux, error) {
 		mux := http.NewServeMux()
@@ -162,10 +163,10 @@ func CheckVersionOption() ServeOption {
 				pth := path.SplitList(cmdqry)
 
 				// backwards compatibility to previous version check
-				if pth[1] != "version" {
+				if len(pth) >= 2 && pth[1] != "version" {
 					clientVersion := r.UserAgent()
 					// skips check if client is not go-ipfs
-					if clientVersion != "" && strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+					if strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
 						http.Error(w, fmt.Sprintf("%s (%s != %s)", errAPIVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
 						return
 					}

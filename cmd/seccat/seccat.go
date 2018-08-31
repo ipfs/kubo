@@ -19,11 +19,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	secio "gx/ipfs/QmT8TkDNBDyBsnZ4JJ2ecHU7qN184jkw1tY8y4chFfeWsy/go-libp2p-secio"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	secio "gx/ipfs/QmWKKkNLFRcznF5vDqt2eeRsnQqQhwbjVf8zJ9KC2RXrzN/go-libp2p-secio"
+	pstore "gx/ipfs/QmeKD8YT7887Xu6Z86iZmpYNxrLogJexqxEugSmaf14k64/go-libp2p-peerstore"
 )
 
 var verbose = false
@@ -152,17 +152,20 @@ func connect(args args) error {
 	}
 
 	// log everything that goes through conn
-	rwc := &logRW{n: "conn", rw: conn}
+	rwc := &logConn{n: "conn", Conn: conn}
 
 	// OK, let's setup the channel.
 	sk := ps.PrivKey(p)
-	sg := secio.SessionGenerator{LocalID: p, PrivateKey: sk}
-	sess, err := sg.NewSession(context.TODO(), rwc)
+	sg, err := secio.New(sk)
 	if err != nil {
 		return err
 	}
-	out("remote peer id: %s", sess.RemotePeer())
-	netcat(sess.ReadWriter().(io.ReadWriteCloser))
+	sconn, err := sg.SecureInbound(context.TODO(), rwc)
+	if err != nil {
+		return err
+	}
+	out("remote peer id: %s", sconn.RemotePeer())
+	netcat(sconn)
 	return nil
 }
 

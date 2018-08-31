@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	ipath "github.com/ipfs/go-ipfs/path"
+	ipath "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"

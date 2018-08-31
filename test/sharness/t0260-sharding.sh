@@ -76,6 +76,15 @@ test_expect_success "'ipfs ls --resolve-type=false' admits missing block" '
   test_cmp sharded_out missing_out
 '
 
+test_launch_ipfs_daemon
+
+test_expect_success "gateway can resolve sharded dirs" '
+  echo 100 > expected &&
+  curl -sfo actual "http://127.0.0.1:$GWAY_PORT/ipfs/$SHARDED/file100" &&
+  test_cmp expected actual
+'
+
+test_kill_ipfs_daemon
 
 test_add_large_dir_v1() {
   exphash="$1"

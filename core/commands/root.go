@@ -1,22 +1,26 @@
 package commands
 
 import (
+	"errors"
 	"io"
 	"strings"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
+	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	name "github.com/ipfs/go-ipfs/core/commands/name"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
 
 var log = logging.Logger("core/commands")
+
+var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
 
 const (
 	ApiOption = "api"
@@ -121,11 +125,11 @@ var rootSubcommands = map[string]*cmds.Command{
 	"diag":      lgc.NewCommand(DiagCmd),
 	"dns":       lgc.NewCommand(DNSCmd),
 	"id":        lgc.NewCommand(IDCmd),
-	"key":       lgc.NewCommand(KeyCmd),
+	"key":       KeyCmd,
 	"log":       lgc.NewCommand(LogCmd),
 	"ls":        lgc.NewCommand(LsCmd),
 	"mount":     lgc.NewCommand(MountCmd),
-	"name":      lgc.NewCommand(NameCmd),
+	"name":      name.NameCmd,
 	"object":    ocmd.ObjectCmd,
 	"pin":       lgc.NewCommand(PinCmd),
 	"ping":      lgc.NewCommand(PingCmd),
@@ -136,8 +140,9 @@ var rootSubcommands = map[string]*cmds.Command{
 	"tar":       lgc.NewCommand(TarCmd),
 	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
 	"update":    lgc.NewCommand(ExternalBinary()),
+	"urlstore":  urlStoreCmd,
 	"version":   lgc.NewCommand(VersionCmd),
-	"shutdown":  lgc.NewCommand(daemonShutdownCmd),
+	"shutdown":  daemonShutdownCmd,
 }
 
 // RootRO is the readonly version of Root
@@ -159,11 +164,11 @@ var rootROSubcommands = map[string]*cmds.Command{
 	"get": GetCmd,
 	"dns": lgc.NewCommand(DNSCmd),
 	"ls":  lgc.NewCommand(LsCmd),
-	"name": lgc.NewCommand(&oldcmds.Command{
-		Subcommands: map[string]*oldcmds.Command{
-			"resolve": IpnsCmd,
+	"name": &cmds.Command{
+		Subcommands: map[string]*cmds.Command{
+			"resolve": name.IpnsCmd,
 		},
-	}),
+	},
 	"object": lgc.NewCommand(&oldcmds.Command{
 		Subcommands: map[string]*oldcmds.Command{
 			"data":  ocmd.ObjectDataCmd,

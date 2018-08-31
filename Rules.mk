@@ -47,19 +47,10 @@ ifneq ($(filter coverage% clean distclean,$(MAKECMDGOALS)),)
 	include $(dir)/Rules.mk
 endif
 
-dir := namesys/pb
-include $(dir)/Rules.mk
-
-dir := unixfs/pb
-include $(dir)/Rules.mk
-
-dir := merkledag/pb
-include $(dir)/Rules.mk
-
-dir := exchange/bitswap/message/pb
-include $(dir)/Rules.mk
-
 dir := pin/internal/pb
+include $(dir)/Rules.mk
+
+dir := filestore/pb
 include $(dir)/Rules.mk
 
 

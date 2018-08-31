@@ -11,15 +11,16 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	config "gx/ipfs/QmTyiSs9VgdVb4pnzdjtKhcfdTkHFEaNn6xnCbZq4DTFRt/go-ipfs-config"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	bstore "gx/ipfs/QmcmpX42gtDv1fz24kau4wjS9hfwWj5VexWBKgGnWzsyag/go-ipfs-blockstore"
 )
 
 type RepoVersion struct {
@@ -150,33 +151,49 @@ var repoStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Get stats for the currently used repo.",
 		ShortDescription: `
-'ipfs repo stat' is a plumbing command that will scan the local
-set of stored objects and print repo statistics. It outputs to stdout:
+'ipfs repo stat' provides information about the local set of
+stored objects. It outputs:
+
+RepoSize        int Size in bytes that the repo is currently taking.
+StorageMax      string Maximum datastore size (from configuration)
 NumObjects      int Number of objects in the local repo.
 RepoPath        string The path to the repo being currently used.
-RepoSize        int Size in bytes that the repo is currently taking.
 Version         string The repo version.
 `,
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		n, err := GetNode(env)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		stat, err := corerepo.RepoStat(n, req.Context)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		cmds.EmitOnce(res, stat)
-	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("human", "Output RepoSize in MiB."),
+		cmdkit.BoolOption("size-only", "Only report RepoSize and StorageMax."),
+		cmdkit.BoolOption("human", "Output sizes in MiB."),
 	},
-	Type: corerepo.Stat{},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		sizeOnly, _ := req.Options["size-only"].(bool)
+		if sizeOnly {
+			sizeStat, err := corerepo.RepoSize(req.Context, n)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+			cmds.EmitOnce(res, &corerepo.Stat{
+				SizeStat: sizeStat,
+			})
+			return
+		}
+
+		stat, err := corerepo.RepoStat(req.Context, n)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		cmds.EmitOnce(res, &stat)
+	},
+	Type: &corerepo.Stat{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			stat, ok := v.(*corerepo.Stat)
@@ -184,31 +201,34 @@ Version         string The repo version.
 				return e.TypeErr(stat, v)
 			}
 
-			human, _ := req.Options["human"].(bool)
-
 			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+			defer wtr.Flush()
 
-			fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
-			sizeInMiB := stat.RepoSize / (1024 * 1024)
-			if human && sizeInMiB > 0 {
-				fmt.Fprintf(wtr, "RepoSize (MiB):\t%d\n", sizeInMiB)
-			} else {
-				fmt.Fprintf(wtr, "RepoSize:\t%d\n", stat.RepoSize)
-			}
-			if stat.StorageMax != corerepo.NoLimit {
-				maxSizeInMiB := stat.StorageMax / (1024 * 1024)
-				if human && maxSizeInMiB > 0 {
-					fmt.Fprintf(wtr, "StorageMax (MiB):\t%d\n", maxSizeInMiB)
+			human, _ := req.Options["human"].(bool)
+			sizeOnly, _ := req.Options["size-only"].(bool)
+
+			printSize := func(name string, size uint64) {
+				sizeInMiB := size / (1024 * 1024)
+				if human && sizeInMiB > 0 {
+					fmt.Fprintf(wtr, "%s (MiB):\t%d\n", name, sizeInMiB)
 				} else {
-					fmt.Fprintf(wtr, "StorageMax:\t%d\n", stat.StorageMax)
+					fmt.Fprintf(wtr, "%s:\t%d\n", name, size)
 				}
 			}
-			fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
-			fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
-			wtr.Flush()
+
+			if !sizeOnly {
+				fmt.Fprintf(wtr, "NumObjects:\t%d\n", stat.NumObjects)
+			}
+
+			printSize("RepoSize", stat.RepoSize)
+			printSize("StorageMax", stat.StorageMax)
+
+			if !sizeOnly {
+				fmt.Fprintf(wtr, "RepoPath:\t%s\n", stat.RepoPath)
+				fmt.Fprintf(wtr, "Version:\t%s\n", stat.Version)
+			}
 
 			return nil
-
 		}),
 	},
 }

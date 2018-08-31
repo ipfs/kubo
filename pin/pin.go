@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	mdag "github.com/ipfs/go-ipfs/merkledag"
-	dutils "github.com/ipfs/go-ipfs/merkledag/utils"
+	"github.com/ipfs/go-ipfs/dagutils"
+	mdag "gx/ipfs/QmRiQCJZ91B7VNmLvA6sxzDuBJGSojS3uXHHVuNr3iueNZ/go-merkledag"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
+	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 var log = logging.Logger("pin")
@@ -440,16 +440,11 @@ func cidSetWithValues(cids []*cid.Cid) *cid.Set {
 func LoadPinner(d ds.Datastore, dserv, internal ipld.DAGService) (Pinner, error) {
 	p := new(pinner)
 
-	rootKeyI, err := d.Get(pinDatastoreKey)
+	rootKey, err := d.Get(pinDatastoreKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load pin state: %v", err)
 	}
-	rootKeyBytes, ok := rootKeyI.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("cannot load pin state: %s was not bytes", pinDatastoreKey)
-	}
-
-	rootCid, err := cid.Cast(rootKeyBytes)
+	rootCid, err := cid.Cast(rootKey)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +513,7 @@ func (p *pinner) Update(ctx context.Context, from, to *cid.Cid, unpin bool) erro
 		return fmt.Errorf("'from' cid was not recursively pinned already")
 	}
 
-	err := dutils.DiffEnumerate(ctx, p.dserv, from, to)
+	err := dagutils.DiffEnumerate(ctx, p.dserv, from, to)
 	if err != nil {
 		return err
 	}

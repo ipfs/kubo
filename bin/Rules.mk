@@ -1,6 +1,6 @@
 include mk/header.mk
 
-dist_root_$(d)="/ipfs/QmXtsjCX29kcdeSjrijWiFTK1qwQNW8UrEWDi8okuC2Pog"
+dist_root_$(d)="/ipfs/QmYpvspyyUWQTE226NFWteXYJF3x3br25xmB6XzEoqfzyv"
 
 $(d)/gx: $(d)/gx-v0.13.0
 $(d)/gx-go: $(d)/gx-go-v1.7.0

@@ -6,11 +6,12 @@ import (
 	"runtime"
 	"strings"
 
+	version "github.com/ipfs/go-ipfs"
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+
+	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
 
 type VersionOutput struct {
@@ -35,8 +36,8 @@ var VersionCmd = &cmds.Command{
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&VersionOutput{
-			Version: config.CurrentVersionNumber,
-			Commit:  config.CurrentCommit,
+			Version: version.CurrentVersionNumber,
+			Commit:  version.CurrentCommit,
 			Repo:    fmt.Sprint(fsrepo.RepoVersion),
 			System:  runtime.GOARCH + "/" + runtime.GOOS, //TODO: Precise version here
 			Golang:  runtime.Version(),

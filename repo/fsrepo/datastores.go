@@ -10,14 +10,14 @@ import (
 
 	repo "github.com/ipfs/go-ipfs/repo"
 
-	badgerds "gx/ipfs/QmPAiAmc3qhTFwzWnKpxr6WCXGZ5mqpaQ2YEwSTnwyduHo/go-ds-badger"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	levelds "gx/ipfs/QmVVhwMHaGHPgZY6pi8hbWGLSgMcZUSdEhJBChjxhBMCoy/go-ds-leveldb"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	mount "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/mount"
-	flatfs "gx/ipfs/QmaCTqBCt1aKaGfHfSVzsprqWRXCjHthK8xXrPbUZYCWga/go-ds-flatfs"
+	measure "gx/ipfs/QmRa2HJZNKkkkbNVPkZu9VCzst4B3JmxoaR97EUFhWcK6m/go-ds-measure"
+	flatfs "gx/ipfs/QmU8mLmWDS1SKmqrRUiiedxkFE9gUuST6ggpWM8jAon27d/go-ds-flatfs"
+	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
+	mount "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/mount"
+	levelds "gx/ipfs/QmasKXNPqroziae8LEBmGwUjccYQnSaijbSq1gp9ouQrmw/go-ds-leveldb"
 	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
-	measure "gx/ipfs/QmbJgZGRtkFeSdCxBCPaMKWRDYbqMxHyFfvjQGcWzpqsDe/go-ds-measure"
+	badgerds "gx/ipfs/QmciWFTxK1t1PNyPdoTsv8wtj3DWim2qRFjaUEcFWCnV8D/go-ds-badger"
 )
 
 // ConfigFromMap creates a new datastore config from a map

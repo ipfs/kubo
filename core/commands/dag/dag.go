@@ -10,14 +10,14 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
-	path "github.com/ipfs/go-ipfs/path"
 	pin "github.com/ipfs/go-ipfs/pin"
+	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 
-	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
+	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 var DagCmd = &cmds.Command{
@@ -207,7 +207,12 @@ format.
 			return
 		}
 
-		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		lastCid, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		obj, err := n.DAG.Get(req.Context(), lastCid)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -251,14 +256,14 @@ var DagResolveCmd = &cmds.Command{
 			return
 		}
 
-		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		lastCid, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		res.SetOutput(&ResolveOutput{
-			Cid:     obj.Cid(),
+			Cid:     lastCid,
 			RemPath: path.Join(rem),
 		})
 	},

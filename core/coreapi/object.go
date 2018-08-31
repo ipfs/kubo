@@ -13,12 +13,13 @@ import (
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	"github.com/ipfs/go-ipfs/dagutils"
+	"github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	ft "gx/ipfs/QmQjEpRiwVvtowhq69dAtB4jhioPVFXiCcWZm9Sfgn7eqc/go-unixfs"
+	dag "gx/ipfs/QmRiQCJZ91B7VNmLvA6sxzDuBJGSojS3uXHHVuNr3iueNZ/go-merkledag"
+	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 const inputLimit = 2 << 20
@@ -56,7 +57,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	return n, nil
 }
 
-func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (coreiface.Path, error) {
+func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (coreiface.ResolvedPath, error) {
 	options, err := caopts.ObjectPutOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -116,12 +117,24 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		return nil, err
 	}
 
+	if options.Pin {
+		defer api.node.Blockstore.PinLock().Unlock()
+	}
+
 	err = api.node.DAG.Add(ctx, dagnode)
 	if err != nil {
 		return nil, err
 	}
 
-	return ParseCid(dagnode.Cid()), nil
+	if options.Pin {
+		api.node.Pinning.PinWithMode(dagnode.Cid(), pin.Recursive)
+		err = api.node.Pinning.Flush()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return coreiface.IpfsPath(dagnode.Cid()), nil
 }
 
 func (api *ObjectAPI) Get(ctx context.Context, path coreiface.Path) (ipld.Node, error) {
@@ -180,7 +193,7 @@ func (api *ObjectAPI) Stat(ctx context.Context, path coreiface.Path) (*coreiface
 	return out, nil
 }
 
-func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name string, child coreiface.Path, opts ...caopts.ObjectAddLinkOption) (coreiface.Path, error) {
+func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name string, child coreiface.Path, opts ...caopts.ObjectAddLinkOption) (coreiface.ResolvedPath, error) {
 	options, err := caopts.ObjectAddLinkOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -218,10 +231,10 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name str
 		return nil, err
 	}
 
-	return ParseCid(nnode.Cid()), nil
+	return coreiface.IpfsPath(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link string) (coreiface.Path, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link string) (coreiface.ResolvedPath, error) {
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
 		return nil, err
@@ -244,18 +257,18 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link stri
 		return nil, err
 	}
 
-	return ParseCid(nnode.Cid()), nil
+	return coreiface.IpfsPath(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) AppendData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.Path, error) {
+func (api *ObjectAPI) AppendData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.ResolvedPath, error) {
 	return api.patchData(ctx, path, r, true)
 }
 
-func (api *ObjectAPI) SetData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.Path, error) {
+func (api *ObjectAPI) SetData(ctx context.Context, path coreiface.Path, r io.Reader) (coreiface.ResolvedPath, error) {
 	return api.patchData(ctx, path, r, false)
 }
 
-func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.Reader, appendData bool) (coreiface.Path, error) {
+func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.Reader, appendData bool) (coreiface.ResolvedPath, error) {
 	nd, err := api.core().ResolveNode(ctx, path)
 	if err != nil {
 		return nil, err
@@ -281,7 +294,42 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 		return nil, err
 	}
 
-	return ParseCid(pbnd.Cid()), nil
+	return coreiface.IpfsPath(pbnd.Cid()), nil
+}
+
+func (api *ObjectAPI) Diff(ctx context.Context, before coreiface.Path, after coreiface.Path) ([]coreiface.ObjectChange, error) {
+	beforeNd, err := api.core().ResolveNode(ctx, before)
+	if err != nil {
+		return nil, err
+	}
+
+	afterNd, err := api.core().ResolveNode(ctx, after)
+	if err != nil {
+		return nil, err
+	}
+
+	changes, err := dagutils.Diff(ctx, api.node.DAG, beforeNd, afterNd)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]coreiface.ObjectChange, len(changes))
+	for i, change := range changes {
+		out[i] = coreiface.ObjectChange{
+			Type: change.Type,
+			Path: change.Path,
+		}
+
+		if change.Before != nil {
+			out[i].Before = coreiface.IpfsPath(change.Before)
+		}
+
+		if change.After != nil {
+			out[i].After = coreiface.IpfsPath(change.After)
+		}
+	}
+
+	return out, nil
 }
 
 func (api *ObjectAPI) core() coreiface.CoreAPI {

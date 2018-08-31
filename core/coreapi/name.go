@@ -13,11 +13,11 @@ import (
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
-	ipath "github.com/ipfs/go-ipfs/path"
+	ipath "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 
-	offline "gx/ipfs/QmXtoXbu9ReyV6Q4kDQ5CF9wXQNDY1PdHc4HhfxRR5AHB3/go-ipfs-routing/offline"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	offline "gx/ipfs/Qmd45r5jHr1PKMNQqifnbZy1ZQwHdtXUDJFamUEvUJE544/go-ipfs-routing/offline"
 )
 
 type NameAPI CoreAPI
@@ -107,8 +107,8 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 	}
 
 	if options.Local {
-		offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.PrivateKey)
-		resolver = namesys.NewRoutingResolver(offroute, 0)
+		offroute := offline.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
+		resolver = namesys.NewIpnsResolver(offroute)
 	}
 
 	if !options.Cache {
@@ -129,7 +129,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, err
 	}
 
-	return &path{path: output}, nil
+	return coreiface.ParsePath(output.String())
 }
 
 func keylookup(n *core.IpfsNode, k string) (crypto.PrivKey, error) {

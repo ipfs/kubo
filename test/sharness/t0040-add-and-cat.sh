@@ -166,6 +166,24 @@ test_add_cat_file() {
     echo "added $HASH .hello.txt" >expected &&
     test_cmp expected actual
   '
+
+  test_expect_success "add zero length file" '
+    touch zero-length-file &&
+    ZEROHASH=$(ipfs add -q zero-length-file) &&
+    echo $ZEROHASH
+  '
+
+  test_expect_success "zero length file has correct hash" '
+    test "$ZEROHASH" = QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH
+  '
+
+  test_expect_success "cat zero length file" '
+    ipfs cat $ZEROHASH > zero-length-file_out
+  '
+
+  test_expect_success "make sure it looks good" '
+    test_cmp zero-length-file zero-length-file_out
+  '
 }
 
 test_add_cat_5MB() {
@@ -220,6 +238,24 @@ test_add_cat_raw() {
 
   test_expect_success "make sure it looks good" '
     test_cmp afile afile_out
+  '
+
+  test_expect_success "add zero length file with raw-leaves" '
+    touch zero-length-file &&
+    ZEROHASH=$(ipfs add -q --raw-leaves zero-length-file) &&
+    echo $ZEROHASH
+  '
+
+  test_expect_success "zero length file has correct hash" '
+    test "$ZEROHASH" = zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW
+  '
+
+  test_expect_success "cat zero length file" '
+    ipfs cat $ZEROHASH > zero-length-file_out
+  '
+
+  test_expect_success "make sure it looks good" '
+    test_cmp zero-length-file zero-length-file_out
   '
 }
 
@@ -554,7 +590,7 @@ test_add_cat_expensive "--cid-version=1" "zdj7WcatQrtuE4WMkS4XsfsMixuQN2po4irkYh
 # encoded with the blake2b-256 hash funtion
 test_add_cat_expensive '--hash=blake2b-256' "zDMZof1kwndounDzQCANUHjiE3zt1mPEgx7RE3JTHoZrRRa79xcv"
 
-test_add_named_pipe " Post http://$API_ADDR/api/v0/add?chunker=size-262144&encoding=json&hash=sha2-256&pin=true&progress=true&recursive=true&stream-channels=true:"
+test_add_named_pipe " Post http://$API_ADDR/api/v0/add?chunker=size-262144&encoding=json&hash=sha2-256&inline-limit=32&pin=true&progress=true&recursive=true&stream-channels=true:"
 
 test_add_pwd_is_symlink
 

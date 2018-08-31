@@ -2,23 +2,24 @@ package namesys
 
 import (
 	"strings"
+	"time"
 
 	context "context"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "github.com/ipfs/go-ipfs/path"
+	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 )
 
 type resolver interface {
 	// resolveOnce looks up a name once (without recursion).
-	resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (value path.Path, err error)
+	resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (value path.Path, ttl time.Duration, err error)
 }
 
 // resolve is a helper for implementing Resolver.ResolveN using resolveOnce.
 func resolve(ctx context.Context, r resolver, name string, options *opts.ResolveOpts, prefixes ...string) (path.Path, error) {
 	depth := options.Depth
 	for {
-		p, err := r.resolveOnce(ctx, name, options)
+		p, _, err := r.resolveOnce(ctx, name, options)
 		if err != nil {
 			return "", err
 		}

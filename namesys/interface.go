@@ -36,9 +36,9 @@ import (
 	context "context"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "github.com/ipfs/go-ipfs/path"
+	path "gx/ipfs/QmdMPBephdLYNESkruDX2hcDTgFYhoCt4LimWhgnomSdV2/go-path"
 
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.
@@ -61,7 +61,6 @@ var ErrPublishFailed = errors.New("could not publish name")
 type NameSystem interface {
 	Resolver
 	Publisher
-	ResolverLookup
 }
 
 // Resolver is an object capable of resolving names.
@@ -94,11 +93,4 @@ type Publisher interface {
 	// TODO: to be replaced by a more generic 'PublishWithValidity' type
 	// call once the records spec is implemented
 	PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error
-}
-
-// ResolverLookup is an object capable of finding resolvers for a subsystem
-type ResolverLookup interface {
-
-	// GetResolver retrieves a resolver associated with a subsystem
-	GetResolver(subs string) (Resolver, bool)
 }

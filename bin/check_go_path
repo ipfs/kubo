@@ -1,19 +1,30 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-PWD=$1
+set -e
 
-if [ -z "$PWD" ]; then
-	echo "must pass in your current working directory"
-	exit 1
+PKG="$1"
+
+DIR="$(pwd -P)"
+GOPATH="$(go env GOPATH)"
+
+# The path separator is ; on windows.
+if [ "$(go env GOOS)" = "windows" ]; then
+    PATHSEP=';'
+else
+    PATHSEP=':'
 fi
 
-while [ ${#} -gt 1 ]; do
-	if [ "$PWD" = "$2" ]; then
-		exit 0
-	fi
-	shift
-done
+while read -r -d "$PATHSEP" p; do
+    if ! cd "$p/src/$PKG" 2>/dev/null; then
+        continue
+    fi
+
+    if [ "$DIR" = "$(pwd -P)" ]; then
+        exit 0
+    fi
+    cd "$DIR"
+done <<< "$GOPATH$PATHSEP"
 
 echo "go-ipfs must be built from within your \$GOPATH directory."
-echo "expected within '$(go env GOPATH)' but got '$PWD'"
+echo "expected within '$GOPATH' but got '$DIR'"
 exit 1

@@ -47,6 +47,23 @@ test_object_cmd() {
     test_cmp ../t0051-object-data/expected_getOut actual_getOut
   '
 
+  test_expect_success "'ipfs object get' can specify data encoding as base64" '
+    ipfs object get --data-encoding base64 $HASH > obj_out &&
+    echo "{\"Links\":[],\"Data\":\"CAISCkhlbGxvIE1hcnMYCg==\"}" > obj_exp &&
+    test_cmp obj_out obj_exp
+  '
+
+  test_expect_success "'ipfs object get' can specify data encoding as text" '
+    echo "{\"Links\":[],\"Data\":\"Hello Mars\"}" | ipfs object put &&
+    ipfs object get --data-encoding text QmS3hVY6eYrMQ6L22agwrx3YHBEsc3LJxVXCtyQHqRBukH > obj_out &&
+    echo "{\"Links\":[],\"Data\":\"Hello Mars\"}" > obj_exp &&
+    test_cmp obj_out obj_exp
+  '
+
+  test_expect_failure "'ipfs object get' requires known data encoding" '
+    ipfs object get --data-encoding nonsensical-encoding $HASH
+  '
+
   test_expect_success "'ipfs object stat' succeeds" '
     ipfs object stat $HASH >actual_stat
   '
