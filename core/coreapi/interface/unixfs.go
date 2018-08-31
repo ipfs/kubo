@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // UnixfsAPI is the basic interface to immutable files in IPFS

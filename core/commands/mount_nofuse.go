@@ -5,7 +5,7 @@ package commands
 import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmdkit"
 )
 
 var MountCmd = &cmds.Command{

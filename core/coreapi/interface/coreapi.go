@@ -5,7 +5,7 @@ package iface
 import (
 	"context"
 
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // CoreAPI defines an unified interface to IPFS for Go programs
