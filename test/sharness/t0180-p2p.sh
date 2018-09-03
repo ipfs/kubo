@@ -23,7 +23,8 @@ test_expect_success 'peer ids' '
 check_test_ports() {
   test_expect_success "test ports are closed" '
     (! (netstat -lnp | grep "LISTEN" | grep ":10101 ")) &&
-    (! (netstat -lnp | grep "LISTEN" | grep ":10102 "))
+    (! (netstat -lnp | grep "LISTEN" | grep ":10102 "))&&
+    (! (netstat -lnp | grep "LISTEN" | grep ":10103 "))
   '
 }
 check_test_ports
@@ -39,6 +40,10 @@ test_expect_success "enable filestore config setting" '
 
 test_expect_success 'start p2p listener' '
   ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 2>&1 > listener-stdouterr.log
+'
+
+test_expect_success 'cannot re-register p2p listener' '
+  test_must_fail ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10103 2>&1 > listener-stdouterr.log
 '
 
 # Server to client communications

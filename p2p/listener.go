@@ -26,7 +26,6 @@ type Listener interface {
 type listenerKey struct {
 	proto  string
 	listen string
-	target string
 }
 
 // ListenerRegistry is a collection of local application proto listeners.
@@ -119,6 +118,5 @@ func getListenerKey(l Listener) listenerKey {
 	return listenerKey{
 		proto:  string(l.Protocol()),
 		listen: l.ListenAddress().String(),
-		target: l.TargetAddress().String(),
 	}
 }
