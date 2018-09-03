@@ -4,8 +4,11 @@ import (
 	"errors"
 	"sync"
 
+	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	p2phost "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 // Listener listens for connections and proxies them to a target
@@ -28,10 +31,44 @@ type listenerKey struct {
 
 // ListenerRegistry is a collection of local application proto listeners.
 type ListenerRegistry struct {
-	sync.Mutex
+	sync.RWMutex
 
 	Listeners map[listenerKey]Listener
 	starting  map[listenerKey]struct{}
+}
+
+func newListenerRegistry(id peer.ID, host p2phost.Host) *ListenerRegistry {
+	reg := &ListenerRegistry{
+		Listeners: map[listenerKey]Listener{},
+		starting:  map[listenerKey]struct{}{},
+	}
+
+	addr, err := ma.NewMultiaddr(maPrefix + id.Pretty())
+	if err != nil {
+		panic(err)
+	}
+
+	host.SetStreamHandlerMatch("/x/", func(p string) bool {
+		reg.RLock()
+		defer reg.RUnlock()
+		for _, l := range reg.Listeners {
+			if l.ListenAddress().Equal(addr) && string(l.Protocol()) == p {
+				return true
+			}
+		}
+
+		return false
+	}, func(stream net.Stream) {
+		for _, l := range reg.Listeners {
+			if l.ListenAddress().Equal(addr) && l.Protocol() == stream.Protocol() {
+				l.(*remoteListener).handleStream(stream)
+			}
+		}
+
+		// panic?
+	})
+
+	return reg
 }
 
 // Register registers listenerInfo into this registry and starts it
