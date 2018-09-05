@@ -23,9 +23,6 @@ import (
 	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
-// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
-var ErrObjectTooLarge = errors.New("input object was too large. limit is 2mbytes")
-
 const inputLimit = 2 << 20
 
 type Node struct {
@@ -42,6 +39,12 @@ type Object struct {
 	Hash  string `json:"Hash,omitempty"`
 	Links []Link `json:"Links,omitempty"`
 }
+
+var (
+	// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
+	ErrObjectTooLarge = errors.New("input object was too large. limit is 2mbytes")
+	ErrDataEncoding   = errors.New("unkown data field encoding")
+)
 
 var ObjectCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -575,7 +578,7 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 		}
 		dagnode.SetData(data)
 	default:
-		return nil, fmt.Errorf("unkown data field encoding")
+		return nil, ErrDataEncoding
 	}
 
 	links := make([]*ipld.Link, len(nd.Links))
@@ -617,5 +620,5 @@ func encodeData(data []byte, encoding string) (string, error) {
 		return base64.StdEncoding.EncodeToString(data), nil
 	}
 
-	return "", fmt.Errorf("unkown data field encoding")
+	return "", ErrDataEncoding
 }
