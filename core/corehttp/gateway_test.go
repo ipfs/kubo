@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,10 +20,10 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 
-	id "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/protocol/identify"
-	datastore "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	syncds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
-	ci "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	id "gx/ipfs/QmY51bqSM5XgxQZqsBrQcRkKTnCb8EKpJpR9K6Qax7Njco/go-libp2p/p2p/protocol/identify"
+	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	datastore "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
+	syncds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
 )
 
 // `ipfs object new unixfs-dir`
@@ -31,11 +32,28 @@ var emptyDir = "/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn"
 type mockNamesys map[string]path.Path
 
 func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.ResolveOpt) (value path.Path, err error) {
-	p, ok := m[name]
-	if !ok {
-		return "", namesys.ErrResolveFailed
+	cfg := nsopts.DefaultResolveOpts()
+	for _, o := range opts {
+		o(cfg)
 	}
-	return p, nil
+	depth := cfg.Depth
+	if depth == nsopts.UnlimitedDepth {
+		depth = math.MaxUint64
+	}
+	for strings.HasPrefix(name, "/ipns/") {
+		if depth <= 0 {
+			return value, namesys.ErrResolveRecursion
+		}
+		depth--
+
+		var ok bool
+		value, ok = m[name]
+		if !ok {
+			return "", namesys.ErrResolveFailed
+		}
+		name = value.String()
+	}
+	return value, nil
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
@@ -130,6 +148,10 @@ func TestGatewayGet(t *testing.T) {
 		t.Fatal(err)
 	}
 	ns["/ipns/example.com"] = path.FromString("/ipfs/" + k)
+	ns["/ipns/working.example.com"] = path.FromString("/ipfs/" + k)
+	ns["/ipns/double.example.com"] = path.FromString("/ipns/working.example.com")
+	ns["/ipns/triple.example.com"] = path.FromString("/ipns/double.example.com")
+	ns["/ipns/broken.example.com"] = path.FromString("/ipns/" + k)
 
 	t.Log(ts.URL)
 	for _, test := range []struct {
@@ -145,6 +167,13 @@ func TestGatewayGet(t *testing.T) {
 		{"localhost:5001", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
+
+		{"working.example.com", "/", http.StatusOK, "fnord"},
+		{"double.example.com", "/", http.StatusOK, "fnord"},
+		{"triple.example.com", "/", http.StatusOK, "fnord"},
+		{"working.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com/ipfs/" + k + ": no link by that name\n"},
+		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"broken.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/ipfs/" + k + ": " + namesys.ErrResolveFailed.Error() + "\n"},
 	} {
 		var c http.Client
 		r, err := http.NewRequest("GET", ts.URL+test.path, nil)

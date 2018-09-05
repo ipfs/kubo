@@ -52,7 +52,7 @@ func TestPinSimple(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != p.String() {
+	if list[0].Path().Cid().String() != p.Cid().String() {
 		t.Error("paths don't match")
 	}
 
@@ -156,7 +156,7 @@ func TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != p0.String() {
+	if list[0].Path().Cid().String() != p0.Cid().String() {
 		t.Error("unexpected path")
 	}
 
@@ -195,7 +195,7 @@ func TestPinRecursive(t *testing.T) {
 			t.Fatalf("unexpected badNodes len")
 		}
 
-		if r.BadNodes()[0].Path().String() != p0.String() {
+		if r.BadNodes()[0].Path().Cid().String() != p0.Cid().String() {
 			t.Error("unexpected badNode path")
 		}
 

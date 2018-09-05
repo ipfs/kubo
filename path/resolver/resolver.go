@@ -10,9 +10,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 )
 
 var log = logging.Logger("pathresolv")
@@ -34,6 +34,9 @@ func (e ErrNoLink) Error() string {
 	return fmt.Sprintf("no link named %q under %s", e.Name, e.Node.String())
 }
 
+// ResolveOnce resolves path through a single node
+type ResolveOnce func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error)
+
 // Resolver provides path resolution to IPFS
 // It has a pointer to a DAGService, which is uses to resolve nodes.
 // TODO: now that this is more modular, try to unify this code with the
@@ -41,7 +44,7 @@ func (e ErrNoLink) Error() string {
 type Resolver struct {
 	DAG ipld.NodeGetter
 
-	ResolveOnce func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error)
+	ResolveOnce ResolveOnce
 }
 
 // NewBasicResolver constructs a new basic resolver.
@@ -66,25 +69,46 @@ func (r *Resolver) ResolveToLastNode(ctx context.Context, fpath path.Path) (ipld
 	}
 
 	for len(p) > 0 {
-		val, rest, err := nd.Resolve(p)
+		lnk, rest, err := r.ResolveOnce(ctx, r.DAG, nd, p)
+
+		// Note: have to drop the error here as `ResolveOnce` doesn't handle 'leaf'
+		// paths (so e.g. for `echo '{"foo":123}' | ipfs dag put` we wouldn't be
+		// able to resolve `zdpu[...]/foo`)
+		if lnk == nil {
+			break
+		}
+
 		if err != nil {
 			return nil, nil, err
 		}
 
-		switch val := val.(type) {
-		case *ipld.Link:
-			next, err := val.GetNode(ctx, r.DAG)
-			if err != nil {
-				return nil, nil, err
-			}
-			nd = next
-			p = rest
-		default:
-			return nd, p, nil
+		next, err := lnk.GetNode(ctx, r.DAG)
+		if err != nil {
+			return nil, nil, err
 		}
+		nd = next
+		p = rest
 	}
 
-	return nd, nil, nil
+	if len(p) == 0 {
+		return nd, nil, nil
+	}
+
+	// Confirm the path exists within the object
+	val, rest, err := nd.Resolve(p)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(rest) > 0 {
+		return nil, nil, errors.New("path failed to resolve fully")
+	}
+	switch val.(type) {
+	case *ipld.Link:
+		return nil, nil, errors.New("inconsistent ResolveOnce / nd.Resolve")
+	default:
+		return nd, p, nil
+	}
 }
 
 // ResolvePath fetches the node for given path. It returns the last item

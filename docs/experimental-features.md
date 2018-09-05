@@ -17,10 +17,14 @@ the above issue.
 - [go-multiplex stream muxer](#go-multiplex-stream-muxer)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
+- [ipfs urlstore](#ipfs-urlstore)
 - [BadgerDB datastore](#badger-datastore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [Circuit Relay](#circuit-relay)
+- [Plugins](#plugins)
+- [Directory Sharding / HAMT](#directory-sharding-hamt)
+- [IPNS PubSub](#ipns-pubsub)
 
 ---
 
@@ -158,6 +162,26 @@ And then pass the `--nocopy` flag when running `ipfs add`
 - [ ] Need to address error states and failure conditions
 - [ ] Need to write docs on usage, advantages, disadvantages
 - [ ] Need to merge utility commands to aid in maintenance and repair of filestore
+
+---
+
+## ipfs urlstore
+Allows ipfs to retrieve blocks contents via a url instead of storing it in the datastore
+
+### State
+experimental.
+
+### In Version
+???.
+
+### How to enable
+Modify your ipfs config:
+```
+ipfs config --json Experimental.UrlstoreEnabled true
+```
+
+### Road to being a real feature
+???.
 
 ---
 

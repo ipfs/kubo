@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	gopath "path"
+	"path/filepath"
 	"strconv"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -18,13 +19,13 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	unixfs "github.com/ipfs/go-ipfs/unixfs"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
-	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	posinfo "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	files "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit/files"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	posinfo "gx/ipfs/QmSHjPDw8yNgLZ7cBfX7w3Smn7PHwYhNEpd4LHQQxUg35L/go-ipfs-posinfo"
+	chunker "gx/ipfs/QmVDjhUMtkRskBFAVNwyXuLSKbeAya7JKPnzAxMKDaK4x4/go-ipfs-chunker"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	bstore "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	files "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit/files"
 )
 
 var log = logging.Logger("coreunix")
@@ -144,7 +145,7 @@ func (adder *Adder) RootNode() (ipld.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	root, err := mr.GetValue().GetNode()
+	root, err := mr.GetDirectory().GetNode()
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +200,8 @@ func (adder *Adder) Finalize() (ipld.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	root := mr.GetValue()
+	var root mfs.FSNode
+	root = mr.GetDirectory()
 
 	err = root.Flush()
 	if err != nil {
@@ -224,10 +226,7 @@ func (adder *Adder) Finalize() (ipld.Node, error) {
 			return nil, err
 		}
 
-		dir, ok := mr.GetValue().(*mfs.Directory)
-		if !ok {
-			return nil, fmt.Errorf("root is not a directory")
-		}
+		dir := mr.GetDirectory()
 
 		root, err = dir.Child(name)
 		if err != nil {
@@ -316,7 +315,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	f, err := files.NewSerialFile(root, root, false, stat)
+	f, err := files.NewSerialFile(filepath.Base(root), root, false, stat)
 	if err != nil {
 		return "", err
 	}

@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"net"
 	"os"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 )
 
 var log = logging.Logger("seccat")
@@ -24,28 +24,24 @@ func out(format string, vals ...interface{}) {
 	}
 }
 
-type logRW struct {
-	n  string
-	rw io.ReadWriter
+type logConn struct {
+	net.Conn
+	n string
 }
 
-func (r *logRW) Read(buf []byte) (int, error) {
-	n, err := r.rw.Read(buf)
+func (r *logConn) Read(buf []byte) (int, error) {
+	n, err := r.Conn.Read(buf)
 	if n > 0 {
 		log.Debugf("%s read: %v", r.n, buf)
 	}
 	return n, err
 }
 
-func (r *logRW) Write(buf []byte) (int, error) {
+func (r *logConn) Write(buf []byte) (int, error) {
 	log.Debugf("%s write: %v", r.n, buf)
-	return r.rw.Write(buf)
+	return r.Conn.Write(buf)
 }
 
-func (r *logRW) Close() error {
-	c, ok := r.rw.(io.Closer)
-	if ok {
-		return c.Close()
-	}
-	return nil
+func (r *logConn) Close() error {
+	return r.Conn.Close()
 }

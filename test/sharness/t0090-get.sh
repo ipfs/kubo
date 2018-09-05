@@ -20,7 +20,7 @@ test_ipfs_get_flag() {
   '
 
   test_expect_success "ipfs get $flag output looks good" '
-    printf "%s\n\n" "Saving archive to $HASH$ext" >expected &&
+    printf "%s\n" "Saving archive to $HASH$ext" >expected &&
     test_cmp expected actual
   '
 
@@ -51,7 +51,7 @@ test_get_cmd() {
   '
 
   test_expect_success "ipfs get output looks good" '
-    printf "%s\n\n" "Saving file(s) to $HASH" >expected &&
+    printf "%s\n" "Saving file(s) to $HASH" >expected &&
     test_cmp expected actual
   '
 
@@ -70,7 +70,7 @@ test_get_cmd() {
   '
 
   test_expect_success "ipfs get output looks good" '
-    printf "%s\n\n" "Saving file(s) to $HASH2" >expected2 &&
+    printf "%s\n" "Saving file(s) to $HASH2" >expected2 &&
     test_cmp expected2 actual2
   '
 
@@ -94,7 +94,7 @@ test_get_cmd() {
   '
 
   test_expect_success "ipfs get output looks good (directory)" '
-    printf "%s\n\n" "Saving file(s) to $HASH2" >expected &&
+    printf "%s\n" "Saving file(s) to $HASH2" >expected &&
     test_cmp expected actual
   '
 
@@ -117,7 +117,7 @@ test_get_cmd() {
   '
 
   test_expect_success "ipfs get -a -C output looks good (directory)" '
-    printf "%s\n\n" "Saving archive to $HASH2.tar.gz" >expected &&
+    printf "%s\n" "Saving archive to $HASH2.tar.gz" >expected &&
     test_cmp expected actual
   '
 

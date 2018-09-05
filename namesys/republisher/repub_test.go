@@ -12,9 +12,9 @@ import (
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
 	path "github.com/ipfs/go-ipfs/path"
 
-	mocknet "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/net/mock"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
+	mocknet "gx/ipfs/QmY51bqSM5XgxQZqsBrQcRkKTnCb8EKpJpR9K6Qax7Njco/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 )
 
 func TestRepublish(t *testing.T) {
@@ -58,19 +58,34 @@ func TestRepublish(t *testing.T) {
 	// have one node publish a record that is valid for 1 second
 	publisher := nodes[3]
 	p := path.FromString("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn") // does not need to be valid
-	rp := namesys.NewRoutingPublisher(publisher.Routing, publisher.Repo.Datastore())
-	err := rp.PublishWithEOL(ctx, publisher.PrivateKey, p, time.Now().Add(time.Second))
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	rp := namesys.NewIpnsPublisher(publisher.Routing, publisher.Repo.Datastore())
 	name := "/ipns/" + publisher.Identity.Pretty()
-	if err := verifyResolution(nodes, name, p); err != nil {
+
+	// Retry in case the record expires before we can fetch it. This can
+	// happen when running the test on a slow machine.
+	var expiration time.Time
+	timeout := time.Second
+	for {
+		expiration = time.Now().Add(time.Second)
+		err := rp.PublishWithEOL(ctx, publisher.PrivateKey, p, expiration)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = verifyResolution(nodes, name, p)
+		if err == nil {
+			break
+		}
+
+		if time.Now().After(expiration) {
+			timeout *= 2
+			continue
+		}
 		t.Fatal(err)
 	}
 
 	// Now wait a second, the records will be invalid and we should fail to resolve
-	time.Sleep(time.Second)
+	time.Sleep(timeout)
 	if err := verifyResolutionFails(nodes, name); err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +93,7 @@ func TestRepublish(t *testing.T) {
 	// The republishers that are contained within the nodes have their timeout set
 	// to 12 hours. Instead of trying to tweak those, we're just going to pretend
 	// they dont exist and make our own.
-	repub := NewRepublisher(publisher.Routing, publisher.Repo.Datastore(), publisher.PrivateKey, publisher.Repo.Keystore())
+	repub := NewRepublisher(rp, publisher.Repo.Datastore(), publisher.PrivateKey, publisher.Repo.Keystore())
 	repub.Interval = time.Second
 	repub.RecordLifetime = time.Second * 5
 

@@ -17,6 +17,17 @@ check_has_connection() {
   grep "ipfs" "swarm_peers_$node" >/dev/null
 }
 
+iptb() {
+    if ! command iptb "$@"; then
+        case "$1" in
+            start|stop|connect)
+                test_fsh command iptb logs '*'
+                ;;
+        esac
+        return 1
+    fi
+}
+
 startup_cluster() {
   num_nodes="$1"
   shift
@@ -24,9 +35,9 @@ startup_cluster() {
   bound=$(expr "$num_nodes" - 1)
 
   if test -n "$other_args"; then
-    test_expect_success "start up nodes with additional args" '
-      iptb start --args $other_args
-    '
+    test_expect_success "start up nodes with additional args" "
+      iptb start --args \"${other_args[@]}\"
+    "
   else
     test_expect_success "start up nodes" '
       iptb start

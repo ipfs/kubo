@@ -22,10 +22,10 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
 // ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
@@ -204,11 +204,22 @@ This command outputs data in the following encodings:
   * "protobuf"
   * "json"
   * "xml"
-(Specified by the "--encoding" or "--enc" flag)`,
+(Specified by the "--encoding" or "--enc" flag)
+
+The encoding of the object's data field can be specifed by using the
+--data-encoding flag
+
+Supported values are:
+	* "text" (default)
+	* "base64"
+`,
 	},
 
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+	},
+	Options: []cmdkit.Option{
+		cmdkit.StringOption("data-encoding", "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -218,6 +229,12 @@ This command outputs data in the following encodings:
 		}
 
 		fpath := path.Path(req.Arguments()[0])
+
+		datafieldenc, _, err := req.Option("data-encoding").String()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		object, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, fpath)
 		if err != nil {
@@ -231,9 +248,15 @@ This command outputs data in the following encodings:
 			return
 		}
 
+		data, err := encodeData(pbo.Data(), datafieldenc)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		node := &Node{
 			Links: make([]Link, len(object.Links())),
-			Data:  string(pbo.Data()),
+			Data:  data,
 		}
 
 		for i, link := range object.Links() {
@@ -701,4 +724,15 @@ func unwrapOutput(i interface{}) (interface{}, error) {
 	}
 
 	return <-ch, nil
+}
+
+func encodeData(data []byte, encoding string) (string, error) {
+	switch encoding {
+	case "text":
+		return string(data), nil
+	case "base64":
+		return base64.StdEncoding.EncodeToString(data), nil
+	}
+
+	return "", fmt.Errorf("unkown data field encoding")
 }

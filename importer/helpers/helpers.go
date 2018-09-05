@@ -8,9 +8,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	pi "gx/ipfs/Qmb3jLEFAQrqdVgWUajqEyuuDoavkSq1XQXz6tWdFWF995/go-ipfs-posinfo"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	pi "gx/ipfs/QmSHjPDw8yNgLZ7cBfX7w3Smn7PHwYhNEpd4LHQQxUg35L/go-ipfs-posinfo"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 // BlockSizeLimit specifies the maximum size an imported block can have.
@@ -70,17 +70,6 @@ func (n *UnixfsNode) NumChildren() int {
 	return n.ufmt.NumChildren()
 }
 
-// Set replaces the current UnixfsNode with another one. It performs
-// a shallow copy.
-func (n *UnixfsNode) Set(other *UnixfsNode) {
-	n.node = other.node
-	n.raw = other.raw
-	n.rawnode = other.rawnode
-	if other.ufmt != nil {
-		n.ufmt.Data = other.ufmt.Data
-	}
-}
-
 // GetChild gets the ith child of this node from the given DAGService.
 func (n *UnixfsNode) GetChild(ctx context.Context, i int, ds ipld.DAGService) (*UnixfsNode, error) {
 	nd, err := n.node.Links()[i].GetNode(ctx, ds)
@@ -127,7 +116,7 @@ func (n *UnixfsNode) RemoveChild(index int, dbh *DagBuilderHelper) {
 
 // SetData stores data in this node.
 func (n *UnixfsNode) SetData(data []byte) {
-	n.ufmt.Data = data
+	n.ufmt.SetData(data)
 }
 
 // FileSize returns the total file size of this tree (including children)

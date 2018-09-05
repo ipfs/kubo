@@ -25,7 +25,6 @@ const (
 // Common errors
 var (
 	ErrMalformedFileFormat = errors.New("malformed data in file format")
-	ErrInvalidDirLocation  = errors.New("found directory node in unexpected place")
 	ErrUnrecognizedType    = errors.New("unrecognized node type")
 )
 
@@ -139,67 +138,113 @@ func DataSize(data []byte) (uint64, error) {
 	}
 }
 
-// An FSNode represents a filesystem object.
+// An FSNode represents a filesystem object using the UnixFS specification.
+//
+// The `NewFSNode` constructor should be used instead of just calling `new(FSNode)`
+// to guarantee that the required (`Type` and `Filesize`) fields in the `format`
+// structure are initialized before marshaling (in `GetBytes()`).
 type FSNode struct {
-	Data []byte
 
-	// total data size for each child
-	blocksizes []uint64
-
-	// running sum of blocksizes
-	subtotal uint64
-
-	// node type of this node
-	Type pb.Data_DataType
+	// UnixFS format defined as a protocol buffers message.
+	format pb.Data
 }
 
 // FSNodeFromBytes unmarshal a protobuf message onto an FSNode.
 func FSNodeFromBytes(b []byte) (*FSNode, error) {
-	pbn := new(pb.Data)
-	err := proto.Unmarshal(b, pbn)
+	n := new(FSNode)
+	err := proto.Unmarshal(b, &n.format)
 	if err != nil {
 		return nil, err
 	}
 
-	n := new(FSNode)
-	n.Data = pbn.Data
-	n.blocksizes = pbn.Blocksizes
-	n.subtotal = pbn.GetFilesize() - uint64(len(n.Data))
-	n.Type = pbn.GetType()
 	return n, nil
+}
+
+// NewFSNode creates a new FSNode structure with the given `dataType`.
+//
+// It initializes the (required) `Type` field (that doesn't have a `Set()`
+// accessor so it must be specified at creation), otherwise the `Marshal()`
+// method in `GetBytes()` would fail (`required field "Type" not set`).
+//
+// It also initializes the `Filesize` pointer field to ensure its value
+// is never nil before marshaling, this is not a required field but it is
+// done to be backwards compatible with previous `go-ipfs` versions hash.
+// (If it wasn't initialized there could be cases where `Filesize` could
+// have been left at nil, when the `FSNode` was created but no data or
+// child nodes were set to adjust it, as is the case in `NewLeaf()`.)
+func NewFSNode(dataType pb.Data_DataType) *FSNode {
+	n := new(FSNode)
+	n.format.Type = &dataType
+
+	// Initialize by `Filesize` by updating it with a dummy (zero) value.
+	n.UpdateFilesize(0)
+
+	return n
 }
 
 // AddBlockSize adds the size of the next child block of this node
 func (n *FSNode) AddBlockSize(s uint64) {
-	n.subtotal += s
-	n.blocksizes = append(n.blocksizes, s)
+	n.UpdateFilesize(int64(s))
+	n.format.Blocksizes = append(n.format.Blocksizes, s)
 }
 
 // RemoveBlockSize removes the given child block's size.
 func (n *FSNode) RemoveBlockSize(i int) {
-	n.subtotal -= n.blocksizes[i]
-	n.blocksizes = append(n.blocksizes[:i], n.blocksizes[i+1:]...)
+	n.UpdateFilesize(-int64(n.format.Blocksizes[i]))
+	n.format.Blocksizes = append(n.format.Blocksizes[:i], n.format.Blocksizes[i+1:]...)
+}
+
+// BlockSize returns the block size indexed by `i`.
+// TODO: Evaluate if this function should be bounds checking.
+func (n *FSNode) BlockSize(i int) uint64 {
+	return n.format.Blocksizes[i]
+}
+
+// RemoveAllBlockSizes removes all the child block sizes of this node.
+func (n *FSNode) RemoveAllBlockSizes() {
+	n.format.Blocksizes = []uint64{}
+	n.format.Filesize = proto.Uint64(uint64(len(n.Data())))
 }
 
 // GetBytes marshals this node as a protobuf message.
 func (n *FSNode) GetBytes() ([]byte, error) {
-	pbn := new(pb.Data)
-	pbn.Type = &n.Type
-	pbn.Filesize = proto.Uint64(uint64(len(n.Data)) + n.subtotal)
-	pbn.Blocksizes = n.blocksizes
-	pbn.Data = n.Data
-	return proto.Marshal(pbn)
+	return proto.Marshal(&n.format)
 }
 
 // FileSize returns the total size of this tree. That is, the size of
 // the data in this node plus the size of all its children.
 func (n *FSNode) FileSize() uint64 {
-	return uint64(len(n.Data)) + n.subtotal
+	return n.format.GetFilesize()
 }
 
 // NumChildren returns the number of child blocks of this node
 func (n *FSNode) NumChildren() int {
-	return len(n.blocksizes)
+	return len(n.format.Blocksizes)
+}
+
+// Data retrieves the `Data` field from the internal `format`.
+func (n *FSNode) Data() []byte {
+	return n.format.GetData()
+}
+
+// SetData sets the `Data` field from the internal `format`
+// updating its `Filesize`.
+func (n *FSNode) SetData(newData []byte) {
+	n.UpdateFilesize(int64(len(newData) - len(n.Data())))
+	n.format.Data = newData
+}
+
+// UpdateFilesize updates the `Filesize` field from the internal `format`
+// by a signed difference (`filesizeDiff`).
+// TODO: Add assert to check for `Filesize` > 0?
+func (n *FSNode) UpdateFilesize(filesizeDiff int64) {
+	n.format.Filesize = proto.Uint64(uint64(
+		int64(n.format.GetFilesize()) + filesizeDiff))
+}
+
+// Type retrieves the `Type` field from the internal `format`.
+func (n *FSNode) Type() pb.Data_DataType {
+	return n.format.GetType()
 }
 
 // Metadata is used to store additional FSNode information.

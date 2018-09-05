@@ -2,15 +2,15 @@ package commands
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	ns "github.com/ipfs/go-ipfs/namesys"
 
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	record "gx/ipfs/QmVsp2KdPYE6M8ryzCk5KHLo3zprcY5hBDaYx6uPCFUdxA/go-libp2p-record"
+	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 type ipnsPubsubState struct {
@@ -49,8 +49,7 @@ var ipnspsStateCmd = &cmds.Command{
 			return
 		}
 
-		_, ok := n.Namesys.GetResolver("pubsub")
-		res.SetOutput(&ipnsPubsubState{ok})
+		res.SetOutput(&ipnsPubsubState{n.PSRouter != nil})
 	},
 	Type: ipnsPubsubState{},
 	Marshalers: cmds.MarshalerMap{
@@ -88,19 +87,26 @@ var ipnspsSubsCmd = &cmds.Command{
 			return
 		}
 
-		r, ok := n.Namesys.GetResolver("pubsub")
-		if !ok {
+		if n.PSRouter == nil {
 			res.SetError(errors.New("IPNS pubsub subsystem is not enabled"), cmdkit.ErrClient)
 			return
 		}
-
-		psr, ok := r.(*ns.PubsubResolver)
-		if !ok {
-			res.SetError(fmt.Errorf("unexpected resolver type: %v", r), cmdkit.ErrNormal)
-			return
+		var paths []string
+		for _, key := range n.PSRouter.GetSubscriptions() {
+			ns, k, err := record.SplitKey(key)
+			if err != nil || ns != "ipns" {
+				// Not necessarily an error.
+				continue
+			}
+			pid, err := peer.IDFromString(k)
+			if err != nil {
+				log.Errorf("ipns key not a valid peer ID: %s", err)
+				continue
+			}
+			paths = append(paths, "/ipns/"+peer.IDB58Encode(pid))
 		}
 
-		res.SetOutput(&stringList{psr.GetSubscriptions()})
+		res.SetOutput(&stringList{paths})
 	},
 	Type: stringList{},
 	Marshalers: cmds.MarshalerMap{
@@ -119,19 +125,20 @@ var ipnspsCancelCmd = &cmds.Command{
 			return
 		}
 
-		r, ok := n.Namesys.GetResolver("pubsub")
-		if !ok {
+		if n.PSRouter == nil {
 			res.SetError(errors.New("IPNS pubsub subsystem is not enabled"), cmdkit.ErrClient)
 			return
 		}
 
-		psr, ok := r.(*ns.PubsubResolver)
-		if !ok {
-			res.SetError(fmt.Errorf("unexpected resolver type: %v", r), cmdkit.ErrNormal)
+		name := req.Arguments()[0]
+		name = strings.TrimPrefix(name, "/ipns/")
+		pid, err := peer.IDB58Decode(name)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrClient)
 			return
 		}
 
-		ok = psr.Cancel(req.Arguments()[0])
+		ok := n.PSRouter.Cancel("/ipns/" + string(pid))
 		res.SetOutput(&ipnsPubsubCancel{ok})
 	},
 	Arguments: []cmdkit.Argument{

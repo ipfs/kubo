@@ -10,20 +10,16 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	ftpb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	proto "gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 // PBDagReader provides a way to easily read the data contained in a dag.
 type PBDagReader struct {
 	serv ipld.NodeGetter
 
-	// the node being read
-	node *mdag.ProtoNode
-
-	// cached protobuf structure from node.Data
-	pbdata *ftpb.Data
+	// UnixFS file (it should be of type `Data_File` or `Data_Raw` only).
+	file *ft.FSNode
 
 	// the current data buffer to be read from
 	// will either be a bytes.Reader or a child DagReader
@@ -51,33 +47,29 @@ type PBDagReader struct {
 var _ DagReader = (*PBDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, pb *ftpb.Data, serv ipld.NodeGetter) *PBDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, file *ft.FSNode, serv ipld.NodeGetter) *PBDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	curLinks := getLinkCids(n)
 	return &PBDagReader{
-		node:     n,
 		serv:     serv,
-		buf:      NewBufDagReader(pb.GetData()),
+		buf:      NewBufDagReader(file.Data()),
 		promises: make([]*ipld.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
 		cancel:   cancel,
-		pbdata:   pb,
+		file:     file,
 	}
 }
 
 const preloadSize = 10
 
-func (dr *PBDagReader) preloadNextNodes(ctx context.Context) {
-	beg := dr.linkPosition
+func (dr *PBDagReader) preload(ctx context.Context, beg int) {
 	end := beg + preloadSize
 	if end >= len(dr.links) {
 		end = len(dr.links)
 	}
 
-	for i, p := range ipld.GetNodes(ctx, dr.serv, dr.links[beg:end]) {
-		dr.promises[beg+i] = p
-	}
+	copy(dr.promises[beg:], ipld.GetNodes(ctx, dr.serv, dr.links[beg:end]))
 }
 
 // precalcNextBuf follows the next link in line and loads it from the
@@ -92,46 +84,70 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 		return io.EOF
 	}
 
-	if dr.promises[dr.linkPosition] == nil {
-		dr.preloadNextNodes(ctx)
+	// If we drop to <= preloadSize/2 preloading nodes, preload the next 10.
+	for i := dr.linkPosition; i < dr.linkPosition+preloadSize/2 && i < len(dr.promises); i++ {
+		// TODO: check if canceled.
+		if dr.promises[i] == nil {
+			dr.preload(ctx, i)
+			break
+		}
 	}
 
 	nxt, err := dr.promises[dr.linkPosition].Get(ctx)
-	if err != nil {
+	dr.promises[dr.linkPosition] = nil
+	switch err {
+	case nil:
+	case context.DeadlineExceeded, context.Canceled:
+		err = ctx.Err()
+		if err != nil {
+			return ctx.Err()
+		}
+		// In this case, the context used to *preload* the node has been canceled.
+		// We need to retry the load with our context and we might as
+		// well preload some extra nodes while we're at it.
+		//
+		// Note: When using `Read`, this code will never execute as
+		// `Read` will use the global context. It only runs if the user
+		// explicitly reads with a custom context (e.g., by calling
+		// `CtxReadFull`).
+		dr.preload(ctx, dr.linkPosition)
+		nxt, err = dr.promises[dr.linkPosition].Get(ctx)
+		dr.promises[dr.linkPosition] = nil
+		if err != nil {
+			return err
+		}
+	default:
 		return err
 	}
-	dr.promises[dr.linkPosition] = nil
+
 	dr.linkPosition++
 
-	switch nxt := nxt.(type) {
+	return dr.loadBufNode(nxt)
+}
+
+func (dr *PBDagReader) loadBufNode(node ipld.Node) error {
+	switch node := node.(type) {
 	case *mdag.ProtoNode:
-		pb := new(ftpb.Data)
-		err = proto.Unmarshal(nxt.Data(), pb)
+		fsNode, err := ft.FSNodeFromBytes(node.Data())
 		if err != nil {
 			return fmt.Errorf("incorrectly formatted protobuf: %s", err)
 		}
 
-		switch pb.GetType() {
-		case ftpb.Data_Directory, ftpb.Data_HAMTShard:
-			// A directory should not exist within a file
-			return ft.ErrInvalidDirLocation
+		switch fsNode.Type() {
 		case ftpb.Data_File:
-			dr.buf = NewPBFileReader(dr.ctx, nxt, pb, dr.serv)
+			dr.buf = NewPBFileReader(dr.ctx, node, fsNode, dr.serv)
 			return nil
 		case ftpb.Data_Raw:
-			dr.buf = NewBufDagReader(pb.GetData())
+			dr.buf = NewBufDagReader(fsNode.Data())
 			return nil
-		case ftpb.Data_Metadata:
-			return errors.New("shouldnt have had metadata object inside file")
-		case ftpb.Data_Symlink:
-			return errors.New("shouldnt have had symlink inside file")
 		default:
-			return ft.ErrUnrecognizedType
+			return fmt.Errorf("found %s node in unexpected place", fsNode.Type().String())
 		}
+	case *mdag.RawNode:
+		dr.buf = NewBufDagReader(node.RawData())
+		return nil
 	default:
-		var err error
-		dr.buf, err = NewDagReader(ctx, nxt, dr.serv)
-		return err
+		return ErrUnkownNodeType
 	}
 }
 
@@ -146,7 +162,7 @@ func getLinkCids(n ipld.Node) []*cid.Cid {
 
 // Size return the total length of the data from the DAG structured file.
 func (dr *PBDagReader) Size() uint64 {
-	return dr.pbdata.GetFilesize()
+	return dr.file.FileSize()
 }
 
 // Read reads data from the DAG structured file
@@ -225,11 +241,6 @@ func (dr *PBDagReader) Close() error {
 	return nil
 }
 
-// Offset returns the current reader offset
-func (dr *PBDagReader) Offset() int64 {
-	return dr.offset
-}
-
 // Seek implements io.Seeker, and will seek to a given offset in the file
 // interface matches standard unix seek
 // TODO: check if we can do relative seeks, to reduce the amount of dagreader
@@ -244,17 +255,14 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 			return offset, nil
 		}
 
-		// Grab cached protobuf object (solely to make code look cleaner)
-		pb := dr.pbdata
-
 		// left represents the number of bytes remaining to seek to (from beginning)
 		left := offset
-		if int64(len(pb.Data)) >= offset {
+		if int64(len(dr.file.Data())) >= offset {
 			// Close current buf to close potential child dagreader
 			if dr.buf != nil {
 				dr.buf.Close()
 			}
-			dr.buf = NewBufDagReader(pb.GetData()[offset:])
+			dr.buf = NewBufDagReader(dr.file.Data()[offset:])
 
 			// start reading links from the beginning
 			dr.linkPosition = 0
@@ -263,15 +271,15 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 		}
 
 		// skip past root block data
-		left -= int64(len(pb.Data))
+		left -= int64(len(dr.file.Data()))
 
 		// iterate through links and find where we need to be
-		for i := 0; i < len(pb.Blocksizes); i++ {
-			if pb.Blocksizes[i] > uint64(left) {
+		for i := 0; i < dr.file.NumChildren(); i++ {
+			if dr.file.BlockSize(i) > uint64(left) {
 				dr.linkPosition = i
 				break
 			} else {
-				left -= int64(pb.Blocksizes[i])
+				left -= int64(dr.file.BlockSize(i))
 			}
 		}
 
@@ -303,14 +311,14 @@ func (dr *PBDagReader) Seek(offset int64, whence int) (int64, error) {
 		noffset := dr.offset + offset
 		return dr.Seek(noffset, io.SeekStart)
 	case io.SeekEnd:
-		noffset := int64(dr.pbdata.GetFilesize()) - offset
+		noffset := int64(dr.file.FileSize()) - offset
 		n, err := dr.Seek(noffset, io.SeekStart)
 
 		// Return negative number if we can't figure out the file size. Using io.EOF
 		// for this seems to be good(-enough) solution as it's only returned by
 		// precalcNextBuf when we step out of file range.
 		// This is needed for gateway to function properly
-		if err == io.EOF && *dr.pbdata.Type == ftpb.Data_File {
+		if err == io.EOF && dr.file.Type() == ftpb.Data_File {
 			return -1, nil
 		}
 		return n, err

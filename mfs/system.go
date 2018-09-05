@@ -19,9 +19,9 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	ft "github.com/ipfs/go-ipfs/unixfs"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 )
 
 var ErrNotExist = errors.New("no such rootfs")
@@ -50,17 +50,11 @@ type FSNode interface {
 
 // Root represents the root of a filesystem tree.
 type Root struct {
-	// node is the merkledag root.
-	node *dag.ProtoNode
 
-	// val represents the node. It can either be a File or a Directory.
-	val FSNode
+	// Root directory of the MFS layout.
+	dir *Directory
 
 	repub *Republisher
-
-	dserv ipld.DAGService
-
-	Type string
 }
 
 // PubFunc is the function used by the `publish()` method.
@@ -77,9 +71,7 @@ func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf
 	}
 
 	root := &Root{
-		node:  node,
 		repub: repub,
-		dserv: ds,
 	}
 
 	pbn, err := ft.FromBytes(node.Data())
@@ -90,33 +82,29 @@ func NewRoot(parent context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf
 
 	switch pbn.GetType() {
 	case ft.TDirectory, ft.THAMTShard:
-		rval, err := NewDirectory(parent, node.String(), node, root, ds)
+		newDir, err := NewDirectory(parent, node.String(), node, root, ds)
 		if err != nil {
 			return nil, err
 		}
 
-		root.val = rval
+		root.dir = newDir
 	case ft.TFile, ft.TMetadata, ft.TRaw:
-		fi, err := NewFile(node.String(), node, root, ds)
-		if err != nil {
-			return nil, err
-		}
-		root.val = fi
+		return nil, fmt.Errorf("root can't be a file (unixfs type: %s)", pbn.GetType())
 	default:
 		return nil, fmt.Errorf("unrecognized unixfs type: %s", pbn.GetType())
 	}
 	return root, nil
 }
 
-// GetValue returns the value of Root.
-func (kr *Root) GetValue() FSNode {
-	return kr.val
+// GetDirectory returns the root directory.
+func (kr *Root) GetDirectory() *Directory {
+	return kr.dir
 }
 
 // Flush signals that an update has occurred since the last publish,
 // and updates the Root republisher.
 func (kr *Root) Flush() error {
-	nd, err := kr.GetValue().GetNode()
+	nd, err := kr.GetDirectory().GetNode()
 	if err != nil {
 		return err
 	}
@@ -136,10 +124,7 @@ func (kr *Root) Flush() error {
 // A better implemented mfs system (one that does smarter internal caching and
 // refcounting) shouldnt need this method.
 func (kr *Root) FlushMemFree(ctx context.Context) error {
-	dir, ok := kr.GetValue().(*Directory)
-	if !ok {
-		return fmt.Errorf("invalid mfs structure, root should be a directory")
-	}
+	dir := kr.GetDirectory()
 
 	if err := dir.Flush(); err != nil {
 		return err
@@ -160,7 +145,7 @@ func (kr *Root) FlushMemFree(ctx context.Context) error {
 // closeChild implements the childCloser interface, and signals to the publisher that
 // there are changes ready to be published.
 func (kr *Root) closeChild(name string, nd ipld.Node, sync bool) error {
-	err := kr.dserv.Add(context.TODO(), nd)
+	err := kr.GetDirectory().dserv.Add(context.TODO(), nd)
 	if err != nil {
 		return err
 	}
@@ -172,7 +157,7 @@ func (kr *Root) closeChild(name string, nd ipld.Node, sync bool) error {
 }
 
 func (kr *Root) Close() error {
-	nd, err := kr.GetValue().GetNode()
+	nd, err := kr.GetDirectory().GetNode()
 	if err != nil {
 		return err
 	}

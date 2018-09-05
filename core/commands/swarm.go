@@ -15,12 +15,14 @@ import (
 	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	iaddr "gx/ipfs/QmQViVWBHbU6HmYjXcdNq7tVASCNgdg64ZGcauuDkLCivW/go-ipfs-addr"
+	inet "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
-	swarm "gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	cmdkit "gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
+	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	iaddr "gx/ipfs/Qme4QgoVPyQqxVc4G1c2L2wc9TDa6o294rtspGMnBNRujm/go-ipfs-addr"
+	swarm "gx/ipfs/QmemVjhp1UuWPQqrWSvPcaqH3QJRMjMqNm4T2RULMkDDQe/go-libp2p-swarm"
 )
 
 type stringList struct {
@@ -90,10 +92,13 @@ var swarmPeersCmd = &cmds.Command{
 				Peer: pid.Pretty(),
 			}
 
-			swcon, ok := c.(*swarm.Conn)
-			if ok {
-				ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
-			}
+			/*
+				// FIXME(steb):
+							swcon, ok := c.(*swarm.Conn)
+							if ok {
+								ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
+							}
+			*/
 
 			if verbose || latency {
 				lat := n.Peerstore.LatencyEWMA(pid)
@@ -104,11 +109,7 @@ var swarmPeersCmd = &cmds.Command{
 				}
 			}
 			if verbose || streams {
-				strs, err := c.GetStreams()
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
-				}
+				strs := c.GetStreams()
 
 				for _, s := range strs {
 					ci.Streams = append(ci.Streams, streamInfo{Protocol: string(s.Protocol())})
@@ -384,13 +385,12 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		// FIXME(steb): Nasty
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(fmt.Errorf("peerhost network was not swarm"), cmdkit.ErrNormal)
 			return
 		}
-
-		swrm := snet.Swarm()
 
 		pis, err := peersWithAddresses(addrs)
 		if err != nil {
@@ -459,26 +459,38 @@ it will reconnect.
 		output := make([]string, len(iaddrs))
 		for i, addr := range iaddrs {
 			taddr := addr.Transport()
-			output[i] = "disconnect " + addr.ID().Pretty()
+			id := addr.ID()
+			output[i] = "disconnect " + id.Pretty()
 
-			found := false
-			conns := n.PeerHost.Network().ConnsToPeer(addr.ID())
-			for _, conn := range conns {
-				if !conn.RemoteMultiaddr().Equal(taddr) {
-					continue
-				}
+			net := n.PeerHost.Network()
 
-				if err := conn.Close(); err != nil {
+			if taddr == nil {
+				if net.Connectedness(id) != inet.Connected {
+					output[i] += " failure: not connected"
+				} else if err := net.ClosePeer(id); err != nil {
 					output[i] += " failure: " + err.Error()
 				} else {
 					output[i] += " success"
 				}
-				found = true
-				break
-			}
+			} else {
+				found := false
+				for _, conn := range net.ConnsToPeer(id) {
+					if !conn.RemoteMultiaddr().Equal(taddr) {
+						continue
+					}
 
-			if !found {
-				output[i] += " failure: conn not found"
+					if err := conn.Close(); err != nil {
+						output[i] += " failure: " + err.Error()
+					} else {
+						output[i] += " success"
+					}
+					found = true
+					break
+				}
+
+				if !found {
+					output[i] += " failure: conn not found"
+				}
 			}
 		}
 		res.SetOutput(&stringList{output})
@@ -524,16 +536,27 @@ func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
 
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(addrs []string) (pis []pstore.PeerInfo, err error) {
+func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 	iaddrs, err := parseAddresses(addrs)
 	if err != nil {
 		return nil, err
 	}
 
+	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
 	for _, iaddr := range iaddrs {
+		id := iaddr.ID()
+		current, ok := peers[id]
+		if tpt := iaddr.Transport(); tpt != nil {
+			peers[id] = append(current, tpt)
+		} else if !ok {
+			peers[id] = nil
+		}
+	}
+	pis := make([]pstore.PeerInfo, 0, len(peers))
+	for id, maddrs := range peers {
 		pis = append(pis, pstore.PeerInfo{
-			ID:    iaddr.ID(),
-			Addrs: []ma.Multiaddr{iaddr.Transport()},
+			ID:    id,
+			Addrs: maddrs,
 		})
 	}
 	return pis, nil
@@ -574,14 +597,15 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		// FIXME(steb)
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(errors.New("failed to cast network to swarm network"), cmdkit.ErrNormal)
 			return
 		}
 
 		var output []string
-		for _, f := range snet.Filters.Filters() {
+		for _, f := range swrm.Filters.Filters() {
 			s, err := mafilter.ConvertIPNet(f)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -621,7 +645,8 @@ add your filters to the ipfs config file.
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		// FIXME(steb)
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(errors.New("failed to cast network to swarm network"), cmdkit.ErrNormal)
 			return
@@ -651,7 +676,7 @@ add your filters to the ipfs config file.
 				return
 			}
 
-			snet.Filters.AddDialFilter(mask)
+			swrm.Filters.AddDialFilter(mask)
 		}
 
 		added, err := filtersAdd(r, cfg, req.Arguments())
@@ -693,7 +718,7 @@ remove your filters from the ipfs config file.
 			return
 		}
 
-		snet, ok := n.PeerHost.Network().(*swarm.Network)
+		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
 		if !ok {
 			res.SetError(errors.New("failed to cast network to swarm network"), cmdkit.ErrNormal)
 			return
@@ -712,9 +737,9 @@ remove your filters from the ipfs config file.
 		}
 
 		if req.Arguments()[0] == "all" || req.Arguments()[0] == "*" {
-			fs := snet.Filters.Filters()
+			fs := swrm.Filters.Filters()
 			for _, f := range fs {
-				snet.Filters.Remove(f)
+				swrm.Filters.Remove(f)
 			}
 
 			removed, err := filtersRemoveAll(r, cfg)
@@ -735,7 +760,7 @@ remove your filters from the ipfs config file.
 				return
 			}
 
-			snet.Filters.Remove(mask)
+			swrm.Filters.Remove(mask)
 		}
 
 		removed, err := filtersRemove(r, cfg, req.Arguments())

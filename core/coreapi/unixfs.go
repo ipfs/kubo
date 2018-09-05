@@ -8,15 +8,15 @@ import (
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 type UnixfsAPI CoreAPI
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
-func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.Path, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.ResolvedPath, error) {
 	k, err := coreunix.AddWithContext(ctx, api.node, r)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.Path, err
 	if err != nil {
 		return nil, err
 	}
-	return ParseCid(c), nil
+	return coreiface.IpfsPath(c), nil
 }
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.

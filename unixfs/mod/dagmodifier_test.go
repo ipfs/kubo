@@ -13,7 +13,7 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	testu "github.com/ipfs/go-ipfs/unixfs/test"
 
-	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
+	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 )
 
 func testModWrite(t *testing.T, beg, size uint64, orig []byte, dm *DagModifier, opts testu.NodeOpts) []byte {
@@ -323,6 +323,11 @@ func testLargeWriteChunks(t *testing.T, opts testu.NodeOpts) {
 		}
 	}
 
+	_, err = dagmod.Seek(0, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	out, err := ioutil.ReadAll(dagmod)
 	if err != nil {
 		t.Fatal(err)
@@ -403,6 +408,44 @@ func testDagTruncate(t *testing.T, opts testu.NodeOpts) {
 
 	if size != 0 {
 		t.Fatal("size was incorrect!")
+	}
+}
+
+// TestDagTruncateSameSize tests that a DAG truncated
+// to the same size (i.e., doing nothing) doesn't modify
+// the DAG (its hash).
+func TestDagTruncateSameSize(t *testing.T) {
+	runAllSubtests(t, testDagTruncateSameSize)
+}
+func testDagTruncateSameSize(t *testing.T, opts testu.NodeOpts) {
+	dserv := testu.GetDAGServ()
+	_, n := testu.GetRandomNode(t, dserv, 50000, opts)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dagmod, err := NewDagModifier(ctx, n, dserv, testu.SizeSplitterGen(512))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Copied from `TestDagTruncate`.
+
+	size, err := dagmod.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dagmod.Truncate(size)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	modifiedNode, err := dagmod.GetNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if modifiedNode.Cid().Equals(n.Cid()) == false {
+		t.Fatal("the node has been modified!")
 	}
 }
 
@@ -663,7 +706,7 @@ func testReadAndSeek(t *testing.T, opts testu.NodeOpts) {
 	// skip 4
 	_, err = dagmod.Seek(1, io.SeekCurrent)
 	if err != nil {
-		t.Fatalf("error: %s, offset %d, reader offset %d", err, dagmod.curWrOff, dagmod.read.Offset())
+		t.Fatalf("error: %s, offset %d, reader offset %d", err, dagmod.curWrOff, getOffset(dagmod.read))
 	}
 
 	//read 5,6,7
@@ -749,4 +792,12 @@ func BenchmarkDagmodWrite(b *testing.B) {
 			b.Fatal("Wrote bad size")
 		}
 	}
+}
+
+func getOffset(reader uio.DagReader) int64 {
+	offset, err := reader.Seek(0, io.SeekCurrent)
+	if err != nil {
+		panic("failed to retrieve offset: " + err.Error())
+	}
+	return offset
 }

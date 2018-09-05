@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
 )
 
 var (
@@ -59,10 +59,11 @@ func (p Path) String() string {
 	return string(p)
 }
 
-// IsJustAKey returns true if the path is of the form <key> or /ipfs/<key>.
+// IsJustAKey returns true if the path is of the form <key> or /ipfs/<key>, or
+// /ipld/<key>
 func (p Path) IsJustAKey() bool {
 	parts := p.Segments()
-	return len(parts) == 2 && parts[0] == "ipfs"
+	return len(parts) == 2 && (parts[0] == "ipfs" || parts[0] == "ipld")
 }
 
 // PopLastSegment returns a new Path without its final segment, and the final
@@ -120,7 +121,7 @@ func ParsePath(txt string) (Path, error) {
 		if _, err := ParseCidToPath(parts[2]); err != nil {
 			return "", err
 		}
-	} else if parts[1] != "ipns" {
+	} else if parts[1] != "ipns" && parts[1] != "ipld" { //TODO: make this smarter
 		return "", ErrBadPath
 	}
 
@@ -161,7 +162,7 @@ func SplitList(pth string) []string {
 // must be a Multihash) and return it separately.
 func SplitAbsPath(fpath Path) (*cid.Cid, []string, error) {
 	parts := fpath.Segments()
-	if parts[0] == "ipfs" {
+	if parts[0] == "ipfs" || parts[0] == "ipld" {
 		parts = parts[1:]
 	}
 

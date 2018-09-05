@@ -11,8 +11,8 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 type DagAPI CoreAPI
@@ -20,7 +20,7 @@ type DagAPI CoreAPI
 // Put inserts data using specified format and input encoding. Unless used with
 // `WithCodes` or `WithHash`, the defaults "dag-cbor" and "sha256" are used.
 // Returns the path of the inserted data.
-func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.Path, error) {
+func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.ResolvedPath, error) {
 	settings, err := caopts.DagPutOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 		return nil, err
 	}
 
-	return ParseCid(nds[0].Cid()), nil
+	return coreiface.IpldPath(nds[0].Cid()), nil
 }
 
 // Get resolves `path` using Unixfs resolver, returns the resolved Node.
@@ -66,7 +66,7 @@ func (api *DagAPI) Tree(ctx context.Context, p coreiface.Path, opts ...caopts.Da
 	paths := n.Tree("", settings.Depth)
 	out := make([]coreiface.Path, len(paths))
 	for n, p2 := range paths {
-		out[n], err = ParsePath(gopath.Join(p.String(), p2))
+		out[n], err = coreiface.ParsePath(gopath.Join(p.String(), p2))
 		if err != nil {
 			return nil, err
 		}

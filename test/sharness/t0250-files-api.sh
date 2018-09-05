@@ -56,17 +56,27 @@ test_sharding() {
 
   test_expect_success "can make 100 files in a directory $EXTRA" '
     printf "" > list_exp_raw
-    for i in `seq 100`
+    for i in `seq 100 -1 1`
     do
       echo $i | ipfs files write --create /foo/file$i || return 1
       echo file$i >> list_exp_raw
     done
   '
+  # Create the files in reverse (unsorted) order (`seq 100 -1 1`)
+  # to check the sort in the `ipfs files ls` command. `ProtoNode`
+  # links are always sorted at the DAG layer so the sorting feature
+  # is tested with sharded directories.
 
-  test_expect_success "listing works $EXTRA" '
-    ipfs files ls /foo |sort > list_out &&
+  test_expect_success "sorted listing works $EXTRA" '
+    ipfs files ls /foo > list_out &&
     sort list_exp_raw > list_exp &&
     test_cmp list_exp list_out
+  '
+
+  test_expect_success "unsorted listing works $EXTRA" '
+    ipfs files ls -U /foo > list_out &&
+    sort list_exp_raw > sort_list_not_exp &&
+    ! test_cmp sort_list_not_exp list_out
   '
 
   test_expect_success "can read a file from sharded directory $EXTRA" '
@@ -183,6 +193,18 @@ test_files_api() {
   test_expect_success "file has correct hash and size in directory $EXTRA" '
     echo "file1	$FILE1	4" > ls_l_expected &&
     ipfs files ls -l /cats > ls_l_actual &&
+    test_cmp ls_l_expected ls_l_actual
+  '
+
+  test_expect_success "file has correct hash and size listed with -l" '
+    echo "file1	$FILE1	4" > ls_l_expected &&
+    ipfs files ls -l /cats/file1 > ls_l_actual &&
+    test_cmp ls_l_expected ls_l_actual
+  '
+
+  test_expect_success "file shows up with the correct name" '
+    echo "file1" > ls_l_expected &&
+    ipfs files ls /cats/file1 > ls_l_actual &&
     test_cmp ls_l_expected ls_l_actual
   '
 
@@ -601,7 +623,7 @@ tests_for_files_api() {
   ROOT_HASH=QmcwKfTMCT7AaeiD92hWjnZn9b6eh9NxnhfSzN5x2vnDpt
   CATS_HASH=Qma88m8ErTGkZHbBWGqy1C7VmEmX8wwNDWNpGyCaNmEgwC
   FILE_HASH=QmQdQt9qooenjeaNhiKHF3hBvmNteB4MQBtgu3jxgf9c7i
-  TRUNC_HASH=QmdaQZbLwK5ykweGdCVovNnvBom7QhikovDUVqTPHQG4L8
+  TRUNC_HASH=QmPVnT9gocPbqzN4G6SMp8vAPyzcjDbUJrNdKgzQquuDg4
   test_files_api "($EXTRA)"
 
   test_expect_success "can create some files for testing with raw-leaves ($EXTRA)" '
@@ -617,13 +639,13 @@ tests_for_files_api() {
   ROOT_HASH=QmW3dMSU6VNd1mEdpk9S3ZYRuR1YwwoXjGaZhkyK6ru9YU
   CATS_HASH=QmPqWDEg7NoWRX8Y4vvYjZtmdg5umbfsTQ9zwNr12JoLmt
   FILE_HASH=QmRCgHeoKxCqK2Es6M6nPUDVWz19yNQPnsXGsXeuTkSKpN
-  TRUNC_HASH=QmRFJEKWF5A5FyFYZgNhusLw2UziW9zBKYr4huyHjzcB6o
+  TRUNC_HASH=QmckstrVxJuecVD1FHUiURJiU9aPURZWJieeBVHJPACj8L
   test_files_api "($EXTRA, raw-leaves)" '' --raw-leaves
 
   ROOT_HASH=QmageRWxC7wWjPv5p36NeAgBAiFdBHaNfxAehBSwzNech2
   CATS_HASH=zdj7WkEzPLNAr5TYJSQC8CFcBjLvWFfGdx6kaBrJXnBguwWeX
   FILE_HASH=zdj7WYHvf5sBRgSBjYnq64QFr449CCbgupXfBvoYL3aHC1DzJ
-  TRUNC_HASH=zdj7WYLYbka6Ydg8gZUJRLKnFBVehCADhQKBsFbNiMxZSB5Gj
+  TRUNC_HASH=zdj7Wjr8GHZonPFVCWvz2SLLo9H6MmqBxyeB34ArHfyCbmdJG
   if [ "$EXTRA" = "offline" ]; then
     test_files_api "($EXTRA, cidv1)" --cid-version=1
   fi
@@ -648,7 +670,7 @@ tests_for_files_api() {
     ROOT_HASH=zDMZof1kxEsAwSgCZsGQRVcHCMtHLjkUQoiZUbZ87erpPQJGUeW8
     CATS_HASH=zDMZof1kuAhr3zBkxq48V7o9HJZCTVyu1Wd9wnZtVcPJLW8xnGft
     FILE_HASH=zDMZof1kxbB9CvxgRioBzESbGnZUxtSCsZ18H1EUkxDdWt1DYEkK
-    TRUNC_HASH=zDMZof1kxXqKdVsVo231qVdN3hCTF5a34UuQZpzmm5K7CbRJ4u2S
+    TRUNC_HASH=zDMZof1kpH1vxK3k2TeYc8w59atCbzMzrhZonsztMWSptVro2zQa
     test_files_api "($EXTRA, blake2b-256 root)"
   fi
 

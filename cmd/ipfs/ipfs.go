@@ -5,7 +5,7 @@ import (
 
 	commands "github.com/ipfs/go-ipfs/core/commands"
 
-	cmds "gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
+	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
 )
 
 // This is the CLI root, used for executing commands accessible to CLI clients.
@@ -26,7 +26,6 @@ var localCommands = map[string]*cmds.Command{
 	"init":     initCmd,
 	"commands": commandsClientCmd,
 }
-var localMap = make(map[*cmds.Command]bool)
 
 func init() {
 	// setting here instead of in literal to prevent initialization loop
@@ -37,10 +36,6 @@ func init() {
 		if _, found := Root.Subcommands[k]; !found {
 			Root.Subcommands[k] = v
 		}
-	}
-
-	for _, v := range localCommands {
-		localMap[v] = true
 	}
 }
 

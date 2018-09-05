@@ -18,22 +18,22 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
-	coreCmds "github.com/ipfs/go-ipfs/core/commands"
+	corecmds "github.com/ipfs/go-ipfs/core/commands"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	repo "github.com/ipfs/go-ipfs/repo"
 	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds/cli"
-	"gx/ipfs/QmTjNRVt2fvaRFu93keEC7z5M1GS1iH6qZ9227htQioTUY/go-ipfs-cmds/http"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
+	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds/cli"
+	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds/http"
+	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
+	loggables "gx/ipfs/QmRPkGkHLB72caXgdDYnoaWigXNWx95BcYDKV1n3KTEpaG/go-libp2p-loggables"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
-	loggables "gx/ipfs/Qmf9JgVLz46pxPXwG2eWSJpkqVCcjD4rp7zCRi2KP6GTNB/go-libp2p-loggables"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
 )
 
 // log is the command logger
@@ -92,6 +92,7 @@ func mainRet() int {
 	os.Args[0] = "ipfs"
 
 	buildEnv := func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
+		checkDebug(req)
 		repoPath, err := getRepoPath(req)
 		if err != nil {
 			return nil, err
@@ -151,12 +152,7 @@ func checkDebug(req *cmds.Request) {
 }
 
 func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
-	checkDebug(req)
-	details, err := commandDetails(req.Path, Root)
-	if err != nil {
-		return nil, err
-	}
-
+	details := commandDetails(req.Path)
 	client, err := commandShouldRunOnDaemon(*details, req, env.(*oldcmds.Context))
 	if err != nil {
 		return nil, err
@@ -176,7 +172,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		}
 		if ok {
 			if _, err := loader.LoadPlugins(pluginpath); err != nil {
-				log.Warning("error loading plugins: ", err)
+				log.Error("error loading plugins: ", err)
 			}
 		}
 
@@ -200,25 +196,16 @@ func checkPermissions(path string) (bool, error) {
 	return true, nil
 }
 
-// commandDetails returns a command's details for the command given by |path|
-// within the |root| command tree.
-//
-// Returns an error if the command is not found in the Command tree.
-func commandDetails(path []string, root *cmds.Command) (*cmdDetails, error) {
+// commandDetails returns a command's details for the command given by |path|.
+func commandDetails(path []string) *cmdDetails {
 	var details cmdDetails
 	// find the last command in path that has a cmdDetailsMap entry
-	cmd := root
-	for _, cmp := range path {
-		cmd = cmd.Subcommands[cmp]
-		if cmd == nil {
-			return nil, fmt.Errorf("subcommand %s should be in root", cmp)
-		}
-
-		if cmdDetails, found := cmdDetailsMap[strings.Join(path, "/")]; found {
+	for i := range path {
+		if cmdDetails, found := cmdDetailsMap[strings.Join(path[:i+1], "/")]; found {
 			details = cmdDetails
 		}
 	}
-	return &details, nil
+	return &details
 }
 
 // commandShouldRunOnDaemon determines, from command details, whether a
@@ -246,7 +233,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, cctx *oldcm
 	// to this point so that we don't check unnecessarily
 
 	// did user specify an api to use for this command?
-	apiAddrStr, _ := req.Options[coreCmds.ApiOption].(string)
+	apiAddrStr, _ := req.Options[corecmds.ApiOption].(string)
 
 	client, err := getApiClient(cctx.ConfigRoot, apiAddrStr)
 	if err == repo.ErrApiNotRunning {
@@ -318,7 +305,7 @@ func startProfiling() (func(), error) {
 
 	stopProfiling := func() {
 		pprof.StopCPUProfile()
-		defer ofi.Close() // captured by the closure
+		ofi.Close() // captured by the closure
 	}
 	return stopProfiling, nil
 }

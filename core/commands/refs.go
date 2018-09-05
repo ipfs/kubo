@@ -12,9 +12,9 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	path "github.com/ipfs/go-ipfs/path"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
 // KeyList is a general type for outputting lists of keys
@@ -129,7 +129,10 @@ NOTE: List all references recursively by using the flag '-r'.
 
 			for _, o := range objs {
 				if _, err := rw.WriteRefs(o); err != nil {
-					out <- &RefWrapper{Err: err.Error()}
+					select {
+					case out <- &RefWrapper{Err: err.Error()}:
+					case <-ctx.Done():
+					}
 					return
 				}
 			}
@@ -169,7 +172,11 @@ Displays the hashes of all local objects.
 			defer close(out)
 
 			for k := range allKeys {
-				out <- &RefWrapper{Ref: k.String()}
+				select {
+				case out <- &RefWrapper{Ref: k.String()}:
+				case <-req.Context().Done():
+					return
+				}
 			}
 		}()
 	},

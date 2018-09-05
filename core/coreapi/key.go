@@ -10,8 +10,8 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	ipfspath "github.com/ipfs/go-ipfs/path"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 type KeyAPI CoreAPI
@@ -28,7 +28,12 @@ func (k *key) Name() string {
 
 // Path returns the path of the key.
 func (k *key) Path() coreiface.Path {
-	return &path{path: ipfspath.FromString(ipfspath.Join([]string{"/ipns", k.peerId}))}
+	path, err := coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerId}))
+	if err != nil {
+		panic("error parsing path: " + err.Error())
+	}
+
+	return path
 }
 
 // Generate generates new key, stores it in the keystore under the specified

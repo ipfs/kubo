@@ -21,14 +21,14 @@ import (
 	ft "github.com/ipfs/go-ipfs/unixfs"
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 
-	u "gx/ipfs/QmNiJuT8Ja3hMVpBHXv3Q6dwmperaQ6JjLtpMQgMCD7xvx/go-ipfs-util"
-	offline "gx/ipfs/QmWM5HhdG5ZQNyHQ5XhMdGmV9CvLpFynQfGpTxN2MEM7Lc/go-ipfs-exchange-offline"
-	chunker "gx/ipfs/QmWo8jYc19ppG7YoTsrr2kEtLRbARTJho5oNXFTR6B7Peq/go-ipfs-chunker"
-	ds "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore"
-	dssync "gx/ipfs/QmXRKBQA4wXP7xWbFiZsR1GP4HV6wMDQ1aWFxZZ4uBcPX9/go-datastore/sync"
-	bstore "gx/ipfs/QmaG4DZ4JaqEfvPWt5nPPgoTzhc1tr1T3f4Nu9Jpdm8ymY/go-ipfs-blockstore"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
+	offline "gx/ipfs/QmS6mo1dPpHdYsVkm27BRZDLxpKBCiJKUH8fHX15XFfMez/go-ipfs-exchange-offline"
+	chunker "gx/ipfs/QmVDjhUMtkRskBFAVNwyXuLSKbeAya7JKPnzAxMKDaK4x4/go-ipfs-chunker"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	bstore "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
+	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
+	dssync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
 )
 
 func emptyDirNode() *dag.ProtoNode {
@@ -213,7 +213,7 @@ func TestBasic(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	// test making a basic dir
 	_, err := rootdir.Mkdir("a")
@@ -243,7 +243,7 @@ func TestMkdir(t *testing.T) {
 	defer cancel()
 	_, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	dirsToMake := []string{"a", "B", "foo", "bar", "cats", "fish"}
 	sort.Strings(dirsToMake) // sort for easy comparing later
@@ -281,7 +281,7 @@ func TestDirectoryLoadFromDag(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	nd := getRandFile(t, ds, 1000)
 	err := ds.Add(ctx, nd)
@@ -373,7 +373,7 @@ func TestMfsFile(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	fisize := 1000
 	nd := getRandFile(t, ds, 1000)
@@ -686,7 +686,7 @@ func actorReadFile(d *Directory) error {
 }
 
 func testActor(rt *Root, iterations int, errs chan error) {
-	d := rt.GetValue().(*Directory)
+	d := rt.GetDirectory()
 	for i := 0; i < iterations; i++ {
 		switch rand.Intn(5) {
 		case 0:
@@ -763,7 +763,7 @@ func TestConcurrentWriteAndFlush(t *testing.T) {
 	defer cancel()
 	ds, rt := setupRoot(ctx, t)
 
-	d := mkdirP(t, rt.GetValue().(*Directory), "foo/bar/baz")
+	d := mkdirP(t, rt.GetDirectory(), "foo/bar/baz")
 	fn := fileNodeFromReader(t, ds, bytes.NewBuffer(nil))
 	err := d.AddChild("file", fn)
 	if err != nil {
@@ -786,7 +786,7 @@ func TestConcurrentWriteAndFlush(t *testing.T) {
 	}()
 
 	for i := 0; i < nloops; i++ {
-		_, err := rt.GetValue().GetNode()
+		_, err := rt.GetDirectory().GetNode()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -800,7 +800,7 @@ func TestFlushing(t *testing.T) {
 	defer cancel()
 	_, rt := setupRoot(ctx, t)
 
-	dir := rt.GetValue().(*Directory)
+	dir := rt.GetDirectory()
 	c := mkdirP(t, dir, "a/b/c")
 	d := mkdirP(t, dir, "a/b/d")
 	e := mkdirP(t, dir, "a/b/e")
@@ -852,7 +852,7 @@ func TestFlushing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if fsnode.Type != ft.TDirectory {
+	if fsnode.Type() != ft.TDirectory {
 		t.Fatal("root wasnt a directory")
 	}
 
@@ -901,7 +901,7 @@ func TestConcurrentReads(t *testing.T) {
 
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	path := "a/b/c"
 	d := mkdirP(t, rootdir, path)
@@ -976,7 +976,7 @@ func TestConcurrentWrites(t *testing.T) {
 
 	ds, rt := setupRoot(ctx, t)
 
-	rootdir := rt.GetValue().(*Directory)
+	rootdir := rt.GetDirectory()
 
 	path := "a/b/c"
 	d := mkdirP(t, rootdir, path)
@@ -1011,7 +1011,7 @@ func TestFileDescriptors(t *testing.T) {
 	defer cancel()
 
 	ds, rt := setupRoot(ctx, t)
-	dir := rt.GetValue().(*Directory)
+	dir := rt.GetDirectory()
 
 	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
 	fi, err := NewFile("test", nd, dir, ds)
@@ -1109,5 +1109,76 @@ func TestFileDescriptors(t *testing.T) {
 	_, err = wfd.Write([]byte{})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestTruncateAtSize(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ds, rt := setupRoot(ctx, t)
+
+	dir := rt.GetDirectory()
+
+	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
+	fi, err := NewFile("test", nd, dir, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fd, err := fi.Open(OpenReadWrite, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fd.Close()
+	_, err = fd.Write([]byte("test"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd.Truncate(4)
+}
+
+func TestTruncateAndWrite(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ds, rt := setupRoot(ctx, t)
+
+	dir := rt.GetDirectory()
+
+	nd := dag.NodeWithData(ft.FilePBData(nil, 0))
+	fi, err := NewFile("test", nd, dir, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fd, err := fi.Open(OpenReadWrite, true)
+	defer fd.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 200; i++ {
+		err = fd.Truncate(0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		l, err := fd.Write([]byte("test"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if l != len("test") {
+			t.Fatal("incorrect write length")
+		}
+
+		_, err = fd.Seek(0, io.SeekStart)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		data, err := ioutil.ReadAll(fd)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != "test" {
+			t.Fatalf("read error at read %d, read: %v", i, data)
+		}
 	}
 }

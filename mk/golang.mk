@@ -1,5 +1,5 @@
 # golang utilities
-GO_MIN_VERSION = 1.9
+GO_MIN_VERSION = 1.10
 
 
 # pre-definitions
@@ -66,7 +66,7 @@ check_go_version:
 DEPS_GO += check_go_version
 
 check_go_path:
-	bin/check_go_path $(realpath $(shell pwd)) $(realpath $(addsuffix /src/github.com/ipfs/go-ipfs,$(subst $(PATH_SEP),$(space),$(GOPATH))))
+	GOPATH="$(GOPATH)" bin/check_go_path github.com/ipfs/go-ipfs
 .PHONY: check_go_path
 DEPS_GO += check_go_path
 

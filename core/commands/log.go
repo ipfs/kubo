@@ -6,8 +6,9 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	logging "gx/ipfs/QmRb5jh8z2E8hMGN2tkvs1yHynUanqnZ3UeKwgN1i9P1F8/go-log"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
+	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	lwriter "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log/writer"
+	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -105,7 +106,7 @@ Outputs event log messages (not other log messages) as they are generated.
 			defer w.Close()
 			<-ctx.Done()
 		}()
-		logging.WriterGroup.AddWriter(w)
+		lwriter.WriterGroup.AddWriter(w)
 		res.SetOutput(r)
 	},
 }

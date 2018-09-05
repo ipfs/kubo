@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sort"
 	"sync"
 	"time"
 
@@ -15,8 +14,8 @@ import (
 	uio "github.com/ipfs/go-ipfs/unixfs/io"
 	ufspb "github.com/ipfs/go-ipfs/unixfs/pb"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 var ErrNotYetImplemented = errors.New("not yet implemented")
@@ -33,7 +32,9 @@ type Directory struct {
 	lock sync.Mutex
 	ctx  context.Context
 
-	dirbuilder *uio.Directory
+	// UnixFS directory implementation used for creating,
+	// reading and editing directories.
+	unixfsDir uio.Directory
 
 	modTime time.Time
 
@@ -51,25 +52,25 @@ func NewDirectory(ctx context.Context, name string, node ipld.Node, parent child
 	}
 
 	return &Directory{
-		dserv:      dserv,
-		ctx:        ctx,
-		name:       name,
-		dirbuilder: db,
-		parent:     parent,
-		childDirs:  make(map[string]*Directory),
-		files:      make(map[string]*File),
-		modTime:    time.Now(),
+		dserv:     dserv,
+		ctx:       ctx,
+		name:      name,
+		unixfsDir: db,
+		parent:    parent,
+		childDirs: make(map[string]*Directory),
+		files:     make(map[string]*File),
+		modTime:   time.Now(),
 	}, nil
 }
 
 // GetPrefix gets the CID prefix of the root node
 func (d *Directory) GetPrefix() *cid.Prefix {
-	return d.dirbuilder.GetPrefix()
+	return d.unixfsDir.GetPrefix()
 }
 
 // SetPrefix sets the CID prefix
 func (d *Directory) SetPrefix(prefix *cid.Prefix) {
-	d.dirbuilder.SetPrefix(prefix)
+	d.unixfsDir.SetPrefix(prefix)
 }
 
 // closeChild updates the child by the given name to the dag node 'nd'
@@ -103,7 +104,7 @@ func (d *Directory) closeChildUpdate(name string, nd ipld.Node, sync bool) (*dag
 }
 
 func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
-	nd, err := d.dirbuilder.GetNode()
+	nd, err := d.unixfsDir.GetNode()
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +123,7 @@ func (d *Directory) flushCurrentNode() (*dag.ProtoNode, error) {
 }
 
 func (d *Directory) updateChild(name string, nd ipld.Node) error {
-	err := d.dirbuilder.AddChild(d.ctx, name, nd)
+	err := d.AddUnixFSChild(name, nd)
 	if err != nil {
 		return err
 	}
@@ -206,7 +207,7 @@ func (d *Directory) Uncache(name string) {
 // childFromDag searches through this directories dag node for a child link
 // with the given name
 func (d *Directory) childFromDag(name string) (ipld.Node, error) {
-	return d.dirbuilder.Find(d.ctx, name)
+	return d.unixfsDir.Find(d.ctx, name)
 }
 
 // childUnsync returns the child under this directory by the given name
@@ -237,15 +238,13 @@ func (d *Directory) ListNames(ctx context.Context) ([]string, error) {
 	defer d.lock.Unlock()
 
 	var out []string
-	err := d.dirbuilder.ForEachLink(ctx, func(l *ipld.Link) error {
+	err := d.unixfsDir.ForEachLink(ctx, func(l *ipld.Link) error {
 		out = append(out, l.Name)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	sort.Strings(out)
 
 	return out, nil
 }
@@ -262,7 +261,7 @@ func (d *Directory) List(ctx context.Context) ([]NodeListing, error) {
 func (d *Directory) ForEachEntry(ctx context.Context, f func(NodeListing) error) error {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	return d.dirbuilder.ForEachLink(ctx, func(l *ipld.Link) error {
+	return d.unixfsDir.ForEachLink(ctx, func(l *ipld.Link) error {
 		c, err := d.childUnsync(l.Name)
 		if err != nil {
 			return err
@@ -315,7 +314,7 @@ func (d *Directory) Mkdir(name string) (*Directory, error) {
 		return nil, err
 	}
 
-	err = d.dirbuilder.AddChild(d.ctx, name, ndir)
+	err = d.AddUnixFSChild(name, ndir)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +335,7 @@ func (d *Directory) Unlink(name string) error {
 	delete(d.childDirs, name)
 	delete(d.files, name)
 
-	return d.dirbuilder.RemoveChild(d.ctx, name)
+	return d.unixfsDir.RemoveChild(d.ctx, name)
 }
 
 func (d *Directory) Flush() error {
@@ -363,12 +362,35 @@ func (d *Directory) AddChild(name string, nd ipld.Node) error {
 		return err
 	}
 
-	err = d.dirbuilder.AddChild(d.ctx, name, nd)
+	err = d.AddUnixFSChild(name, nd)
 	if err != nil {
 		return err
 	}
 
 	d.modTime = time.Now()
+	return nil
+}
+
+// AddUnixFSChild adds a child to the inner UnixFS directory
+// and transitions to a HAMT implementation if needed.
+func (d *Directory) AddUnixFSChild(name string, node ipld.Node) error {
+	if uio.UseHAMTSharding {
+		// If the directory HAMT implementation is being used and this
+		// directory is actually a basic implementation switch it to HAMT.
+		if basicDir, ok := d.unixfsDir.(*uio.BasicDirectory); ok {
+			hamtDir, err := basicDir.SwitchToSharding(d.ctx)
+			if err != nil {
+				return err
+			}
+			d.unixfsDir = hamtDir
+		}
+	}
+
+	err := d.unixfsDir.AddChild(d.ctx, name, node)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -426,7 +448,7 @@ func (d *Directory) GetNode() (ipld.Node, error) {
 		return nil, err
 	}
 
-	nd, err := d.dirbuilder.GetNode()
+	nd, err := d.unixfsDir.GetNode()
 	if err != nil {
 		return nil, err
 	}

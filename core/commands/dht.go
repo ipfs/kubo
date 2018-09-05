@@ -13,18 +13,20 @@ import (
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 
-	routing "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing"
-	notif "gx/ipfs/QmTiWLZ6Fo5j4KcTVutZJ5KWRRJrbxzmxA4td8NfEdrPh7/go-libp2p-routing/notifications"
 	b58 "gx/ipfs/QmWFAMPqsEyUX7gDUsRVmMWz59FxSpJ1b2v6bJ1yYzo7jY/go-base58-fast/base58"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	ipdht "gx/ipfs/QmY1y2M1aCcVhy8UuTbZJBvuFbegZm47f9cDAdgxiehQfx/go-libp2p-kad-dht"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	"gx/ipfs/QmceUdzxkimdYsgtX733uNgzf1DLHyBKN6ehGSp85ayppM/go-ipfs-cmdkit"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	routing "gx/ipfs/QmZ383TySJVeZWzGnWui6pRcKyYZk9VkKTuW7tmKRWk5au/go-libp2p-routing"
+	notif "gx/ipfs/QmZ383TySJVeZWzGnWui6pRcKyYZk9VkKTuW7tmKRWk5au/go-libp2p-routing/notifications"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
+
+// TODO: Factor into `ipfs dht` and `ipfs routing`.
+// Everything *except `query` goes into `ipfs routing`.
 
 var DhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -61,8 +63,7 @@ var queryDhtCmd = &cmds.Command{
 			return
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
+		if n.DHT == nil {
 			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
 			return
 		}
@@ -76,7 +77,7 @@ var queryDhtCmd = &cmds.Command{
 			return
 		}
 
-		closestPeers, err := dht.GetClosestPeers(ctx, string(id))
+		closestPeers, err := n.DHT.GetClosestPeers(ctx, string(id))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -140,7 +141,7 @@ var queryDhtCmd = &cmds.Command{
 
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline:          "Find peers in the DHT that can provide a specific value, given a key.",
+		Tagline:          "Find peers that can provide a specific value, given a key.",
 		ShortDescription: "Outputs a list of newline-delimited provider Peer IDs.",
 	},
 
@@ -158,9 +159,8 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
+		if n.Routing == nil {
+			res.SetError(errNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -186,7 +186,7 @@ var findProvidersDhtCmd = &cmds.Command{
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 
-		pchan := dht.FindProvidersAsync(ctx, c, numProviders)
+		pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
 		go func() {
 			defer close(outChan)
 			for e := range events {
@@ -406,7 +406,7 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv ipld.DAGSe
 
 var findPeerDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline:          "Query the DHT for all of the multiaddresses associated with a Peer ID.",
+		Tagline:          "Find the multiaddresses associated with a Peer ID.",
 		ShortDescription: "Outputs a list of newline-delimited multiaddresses.",
 	},
 
@@ -423,9 +423,8 @@ var findPeerDhtCmd = &cmds.Command{
 			return
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
+		if n.Routing == nil {
+			res.SetError(errNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -454,7 +453,7 @@ var findPeerDhtCmd = &cmds.Command{
 
 		go func() {
 			defer close(events)
-			pi, err := dht.FindPeer(ctx, pid)
+			pi, err := n.Routing.FindPeer(ctx, pid)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
@@ -504,14 +503,14 @@ var findPeerDhtCmd = &cmds.Command{
 
 var getValueDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Given a key, query the DHT for its best value.",
+		Tagline: "Given a key, query the routing system for its best value.",
 		ShortDescription: `
 Outputs the best value for the given key.
 
-There may be several different values for a given key stored in the DHT; in
-this context 'best' means the record that is most desirable. There is no one
-metric for 'best': it depends entirely on the key type. For IPNS, 'best' is
-the record that is both valid and has the highest sequence number (freshest).
+There may be several different values for a given key stored in the routing
+system; in this context 'best' means the record that is most desirable. There is
+no one metric for 'best': it depends entirely on the key type. For IPNS, 'best'
+is the record that is both valid and has the highest sequence number (freshest).
 Different key types can specify other 'best' rules.
 `,
 	},
@@ -529,9 +528,8 @@ Different key types can specify other 'best' rules.
 			return
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
+		if n.Routing == nil {
+			res.SetError(errNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -559,7 +557,7 @@ Different key types can specify other 'best' rules.
 
 		go func() {
 			defer close(events)
-			val, err := dht.GetValue(ctx, dhtkey)
+			val, err := n.Routing.GetValue(ctx, dhtkey)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
@@ -610,10 +608,10 @@ Different key types can specify other 'best' rules.
 
 var putValueDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Write a key/value pair to the DHT.",
+		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `
 Given a key of the form /foo/bar and a value of any form, this will write that
-value to the DHT with that key.
+value to the routing system with that key.
 
 Keys have two parts: a keytype (foo) and the key name (bar). IPNS uses the
 /ipns keytype, and expects the key name to be a Peer ID. IPNS entries are
@@ -621,7 +619,7 @@ specifically formatted (protocol buffer).
 
 You may only use keytypes that are supported in your ipfs binary: currently
 this is only /ipns. Unless you have a relatively deep understanding of the
-go-ipfs DHT internals, you likely want to be using 'ipfs name publish' instead
+go-ipfs routing internals, you likely want to be using 'ipfs name publish' instead
 of this.
 
 Value is arbitrary text. Standard input can be used to provide value.
@@ -644,9 +642,8 @@ NOTE: A value may not exceed 2048 bytes.
 			return
 		}
 
-		dht, ok := n.Routing.(*ipdht.IpfsDHT)
-		if !ok {
-			res.SetError(ErrNotDHT, cmdkit.ErrNormal)
+		if n.Routing == nil {
+			res.SetError(errNotOnline, cmdkit.ErrNormal)
 			return
 		}
 
@@ -677,7 +674,7 @@ NOTE: A value may not exceed 2048 bytes.
 
 		go func() {
 			defer close(events)
-			err := dht.PutValue(ctx, key, []byte(data))
+			err := n.Routing.PutValue(ctx, key, []byte(data))
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,

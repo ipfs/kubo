@@ -1,7 +1,6 @@
 package mfs
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	gopath "path"
@@ -9,8 +8,8 @@ import (
 
 	path "github.com/ipfs/go-ipfs/path"
 
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	ipld "gx/ipfs/Qme5bWv7wtjUNGsK2BNGVUFPKiuxWrsqrtvYwCLRw8YFES/go-ipld-format"
+	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
+	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
 )
 
 // Mv moves the file or directory at 'src' to 'dst'
@@ -129,7 +128,7 @@ func Mkdir(r *Root, pth string, opts MkdirOpts) error {
 		return fmt.Errorf("cannot create directory '/': Already exists")
 	}
 
-	cur := r.GetValue().(*Directory)
+	cur := r.GetDirectory()
 	for i, d := range parts[:len(parts)-1] {
 		fsn, err := cur.Child(d)
 		if err == os.ErrNotExist && opts.Mkparents {
@@ -172,12 +171,11 @@ func Mkdir(r *Root, pth string, opts MkdirOpts) error {
 	return nil
 }
 
+// Lookup extracts the root directory and performs a lookup under it.
+// TODO: Now that the root is always a directory, can this function
+// be collapsed with `DirLookup`? Or at least be made a method of `Root`?
 func Lookup(r *Root, path string) (FSNode, error) {
-	dir, ok := r.GetValue().(*Directory)
-	if !ok {
-		log.Errorf("root not a dir: %#v", r.GetValue())
-		return nil, errors.New("root was not a directory")
-	}
+	dir := r.GetDirectory()
 
 	return DirLookup(dir, path)
 }

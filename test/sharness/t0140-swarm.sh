@@ -97,4 +97,34 @@ test_expect_success "Addresses.NoAnnounce with /ipcidr affects addresses" '
 
 test_kill_ipfs_daemon
 
+test_expect_success "set up tcp testbed" '
+  iptb init -n 2 -p 0 -f --bootstrap=none
+'
+
+startup_cluster 2
+
+test_expect_success "disconnect work without specifying a transport address" '
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ] &&
+  ipfsi 0 swarm disconnect "/ipfs/$(iptb get id 1)" &&
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ]
+'
+
+test_expect_success "connect work without specifying a transport address" '
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ] &&
+  ipfsi 0 swarm connect "/ipfs/$(iptb get id 1)" &&
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ]
+'
+
+test_expect_success "/p2p addresses work" '
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ] &&
+  ipfsi 0 swarm disconnect "/p2p/$(iptb get id 1)" &&
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ] &&
+  ipfsi 0 swarm connect "/p2p/$(iptb get id 1)" &&
+  [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ]
+'
+
+test_expect_success "stopping cluster" '
+  iptb stop
+'
+
 test_done
