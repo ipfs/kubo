@@ -472,7 +472,8 @@ func (adder *Adder) addFile(file files.File) error {
 	}
 
 	addFileName := file.FileName()
-	if (file.FullPath() == "/dev/stdin" || file.FullPath() == "") && adder.Name != "" {
+	addFileInfo := file.(files.FileInfo)
+	if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
 		addFileName = adder.Name
 		adder.Name = ""
 	}
