@@ -269,10 +269,14 @@ func perKeyActionToChan(ctx context.Context, args []string, action func(*cid.Cid
 		for _, arg := range args {
 			c, err := cid.Decode(arg)
 			if err != nil {
-				out <- &filestore.ListRes{
+				select {
+				case out <- &filestore.ListRes{
 					Status:   filestore.StatusOtherError,
 					ErrorMsg: fmt.Sprintf("%s: %v", arg, err),
+				}:
+				case <-ctx.Done():
 				}
+
 				continue
 			}
 			r := action(c)
