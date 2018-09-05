@@ -12,12 +12,13 @@ import (
 )
 
 // Listener listens for connections and proxies them to a target
-type P2PListener interface {
+type ListenerP2P interface {
 	Protocol() protocol.ID
 	ListenAddress() ma.Multiaddr
 	TargetAddress() ma.Multiaddr
 
 	start() error
+	handleStream(remote net.Stream)
 
 	// Close closes the listener. Does not affect child streams
 	Close() error
@@ -27,13 +28,13 @@ type P2PListener interface {
 type ListenersP2P struct {
 	sync.RWMutex
 
-	Listeners map[protocol.ID]ListenerLocal
+	Listeners map[protocol.ID]ListenerP2P
 	starting  map[protocol.ID]struct{}
 }
 
 func newListenerP2PRegistry(id peer.ID, host p2phost.Host) *ListenersP2P {
 	reg := &ListenersP2P{
-		Listeners: map[protocol.ID]ListenerLocal{},
+		Listeners: map[protocol.ID]ListenerP2P{},
 		starting:  map[protocol.ID]struct{}{},
 	}
 
@@ -59,7 +60,7 @@ func newListenerP2PRegistry(id peer.ID, host p2phost.Host) *ListenersP2P {
 
 		for _, l := range reg.Listeners {
 			if l.ListenAddress().Equal(addr) && l.Protocol() == stream.Protocol() {
-				go l.(*remoteListener).handleStream(stream)
+				go l.handleStream(stream)
 				return
 			}
 		}
@@ -69,7 +70,7 @@ func newListenerP2PRegistry(id peer.ID, host p2phost.Host) *ListenersP2P {
 }
 
 // Register registers listenerInfo into this registry and starts it
-func (r *ListenersP2P) Register(l ListenerLocal) error {
+func (r *ListenersP2P) Register(l ListenerP2P) error {
 	r.Lock()
 
 	k := l.Protocol()
