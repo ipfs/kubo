@@ -11,8 +11,9 @@ var log = logging.Logger("p2p-mount")
 
 // P2P structure holds information on currently running streams/listeners
 type P2P struct {
-	Listeners *ListenerRegistry
-	Streams   *StreamRegistry
+	ListenersLocal *ListenersLocal
+	ListenersP2P   *ListenersP2P
+	Streams        *StreamRegistry
 
 	identity  peer.ID
 	peerHost  p2phost.Host
@@ -26,7 +27,9 @@ func NewP2P(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore)
 		peerHost:  peerHost,
 		peerstore: peerstore,
 
-		Listeners: newListenerRegistry(identity, peerHost),
+		ListenersLocal: newListenerRegistry(identity, peerHost),
+		ListenersP2P:   newListenerP2PRegistry(identity, peerHost),
+
 		Streams: &StreamRegistry{
 			Streams: map[uint64]*Stream{},
 		},

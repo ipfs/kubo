@@ -12,7 +12,7 @@ import (
 )
 
 // Listener listens for connections and proxies them to a target
-type Listener interface {
+type P2PListener interface {
 	Protocol() protocol.ID
 	ListenAddress() ma.Multiaddr
 	TargetAddress() ma.Multiaddr
@@ -23,23 +23,18 @@ type Listener interface {
 	Close() error
 }
 
-type listenerKey struct {
-	proto  string
-	listen string
-}
-
 // ListenerRegistry is a collection of local application proto listeners.
-type ListenerRegistry struct {
+type ListenersP2P struct {
 	sync.RWMutex
 
-	Listeners map[listenerKey]Listener
-	starting  map[listenerKey]struct{}
+	Listeners map[protocol.ID]ListenerLocal
+	starting  map[protocol.ID]struct{}
 }
 
-func newListenerRegistry(id peer.ID, host p2phost.Host) *ListenerRegistry {
-	reg := &ListenerRegistry{
-		Listeners: map[listenerKey]Listener{},
-		starting:  map[listenerKey]struct{}{},
+func newListenerP2PRegistry(id peer.ID, host p2phost.Host) *ListenersP2P {
+	reg := &ListenersP2P{
+		Listeners: map[protocol.ID]ListenerLocal{},
+		starting:  map[protocol.ID]struct{}{},
 	}
 
 	addr, err := ma.NewMultiaddr(maPrefix + id.Pretty())
@@ -74,10 +69,10 @@ func newListenerRegistry(id peer.ID, host p2phost.Host) *ListenerRegistry {
 }
 
 // Register registers listenerInfo into this registry and starts it
-func (r *ListenerRegistry) Register(l Listener) error {
+func (r *ListenersP2P) Register(l ListenerLocal) error {
 	r.Lock()
-	k := getListenerKey(l)
 
+	k := l.Protocol()
 	if _, ok := r.Listeners[k]; ok {
 		r.Unlock()
 		return errors.New("listener already registered")
@@ -104,7 +99,7 @@ func (r *ListenerRegistry) Register(l Listener) error {
 }
 
 // Deregister removes p2p listener from this registry
-func (r *ListenerRegistry) Deregister(k listenerKey) (bool, error) {
+func (r *ListenersP2P) Deregister(k protocol.ID) (bool, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -115,11 +110,4 @@ func (r *ListenerRegistry) Deregister(k listenerKey) (bool, error) {
 	_, ok := r.Listeners[k]
 	delete(r.Listeners, k)
 	return ok, nil
-}
-
-func getListenerKey(l Listener) listenerKey {
-	return listenerKey{
-		proto:  string(l.Protocol()),
-		listen: l.ListenAddress().String(),
-	}
 }

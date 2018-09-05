@@ -230,15 +230,25 @@ var p2pLsCmd = &cmds.Command{
 
 		output := &P2PLsOutput{}
 
-		n.P2P.Listeners.Lock()
-		for _, listener := range n.P2P.Listeners.Listeners {
+		n.P2P.ListenersLocal.Lock()
+		for _, listener := range n.P2P.ListenersLocal.Listeners {
 			output.Listeners = append(output.Listeners, P2PListenerInfoOutput{
 				Protocol:      string(listener.Protocol()),
 				ListenAddress: listener.ListenAddress().String(),
 				TargetAddress: listener.TargetAddress().String(),
 			})
 		}
-		n.P2P.Listeners.Unlock()
+		n.P2P.ListenersLocal.Unlock()
+
+		n.P2P.ListenersP2P.Lock()
+		for _, listener := range n.P2P.ListenersP2P.Listeners {
+			output.Listeners = append(output.Listeners, P2PListenerInfoOutput{
+				Protocol:      string(listener.Protocol()),
+				ListenAddress: listener.ListenAddress().String(),
+				TargetAddress: listener.TargetAddress().String(),
+			})
+		}
+		n.P2P.ListenersP2P.Unlock()
 
 		res.SetOutput(output)
 	},
@@ -314,7 +324,7 @@ var p2pCloseCmd = &cmds.Command{
 			return
 		}
 
-		match := func(listener p2p.Listener) bool {
+		match := func(listener p2p.ListenerLocal) bool {
 			if closeAll {
 				return true
 			}
@@ -330,15 +340,23 @@ var p2pCloseCmd = &cmds.Command{
 			return true
 		}
 
-		todo := make([]p2p.Listener, 0)
-		n.P2P.Listeners.Lock()
-		for _, l := range n.P2P.Listeners.Listeners {
+		todo := make([]p2p.ListenerLocal, 0)
+		n.P2P.ListenersLocal.Lock()
+		for _, l := range n.P2P.ListenersLocal.Listeners {
 			if !match(l) {
 				continue
 			}
 			todo = append(todo, l)
 		}
-		n.P2P.Listeners.Unlock()
+		n.P2P.ListenersLocal.Unlock()
+		n.P2P.ListenersP2P.Lock()
+		for _, l := range n.P2P.ListenersP2P.Listeners {
+			if !match(l) {
+				continue
+			}
+			todo = append(todo, l)
+		}
+		n.P2P.ListenersP2P.Unlock()
 
 		var errs []string
 		for _, l := range todo {

@@ -23,7 +23,7 @@ type remoteListener struct {
 }
 
 // ForwardRemote creates new p2p listener
-func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Multiaddr) (Listener, error) {
+func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Multiaddr) (P2PListener, error) {
 	listener := &remoteListener{
 		p2p: p2p,
 
@@ -31,7 +31,7 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Mu
 		addr:  addr,
 	}
 
-	if err := p2p.Listeners.Register(listener); err != nil {
+	if err := p2p.ListenersP2P.Register(listener); err != nil {
 		return nil, err
 	}
 
@@ -97,7 +97,7 @@ func (l *remoteListener) TargetAddress() ma.Multiaddr {
 }
 
 func (l *remoteListener) Close() error {
-	ok, err := l.p2p.Listeners.Deregister(getListenerKey(l))
+	ok, err := l.p2p.ListenersP2P.Deregister(l.proto)
 	if err != nil {
 		return err
 	}
