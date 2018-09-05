@@ -50,6 +50,7 @@ func newListenerRegistry(id peer.ID, host p2phost.Host) *ListenerRegistry {
 	host.SetStreamHandlerMatch("/x/", func(p string) bool {
 		reg.RLock()
 		defer reg.RUnlock()
+
 		for _, l := range reg.Listeners {
 			if l.ListenAddress().Equal(addr) && string(l.Protocol()) == p {
 				return true
@@ -58,13 +59,15 @@ func newListenerRegistry(id peer.ID, host p2phost.Host) *ListenerRegistry {
 
 		return false
 	}, func(stream net.Stream) {
+		reg.RLock()
+		defer reg.RUnlock()
+
 		for _, l := range reg.Listeners {
 			if l.ListenAddress().Equal(addr) && l.Protocol() == stream.Protocol() {
-				l.(*remoteListener).handleStream(stream)
+				go l.(*remoteListener).handleStream(stream)
+				return
 			}
 		}
-
-		// panic?
 	})
 
 	return reg
