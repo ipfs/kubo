@@ -40,11 +40,7 @@ type Object struct {
 	Links []Link `json:"Links,omitempty"`
 }
 
-var (
-	// ErrObjectTooLarge is returned when too much data was read from stdin. current limit 2m
-	ErrObjectTooLarge = errors.New("input object was too large. limit is 2mbytes")
-	ErrDataEncoding   = errors.New("unkown data field encoding")
-)
+var ErrDataEncoding = errors.New("unkown data field encoding")
 
 var ObjectCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
