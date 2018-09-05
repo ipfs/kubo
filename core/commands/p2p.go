@@ -511,7 +511,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 		n.P2P.Streams.Unlock()
 
 		for _, s := range toClose {
-			s.Reset()
+			n.P2P.Streams.Reset(s)
 		}
 	},
 }

@@ -31,7 +31,9 @@ func NewP2P(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore)
 		ListenersP2P:   newListenerP2PRegistry(identity, peerHost),
 
 		Streams: &StreamRegistry{
-			Streams: map[uint64]*Stream{},
+			Streams:     map[uint64]*Stream{},
+			ConnManager: peerHost.ConnManager(),
+			conns:       map[peer.ID]int{},
 		},
 	}
 }

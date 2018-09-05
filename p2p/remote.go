@@ -57,23 +57,17 @@ func (l *remoteListener) handleStream(remote net.Stream) {
 		return
 	}
 
-	cmgr := l.p2p.peerHost.ConnManager()
-	cmgr.TagPeer(peer, CMGR_TAG, 20)
-
 	stream := &Stream{
 		Protocol: l.proto,
 
 		OriginAddr: peerMa,
 		TargetAddr: l.addr,
+		peer:       peer,
 
 		Local:  local,
 		Remote: remote,
 
 		Registry: l.p2p.Streams,
-
-		cleanup: func() {
-			cmgr.UntagPeer(peer, CMGR_TAG)
-		},
 	}
 
 	l.p2p.Streams.Register(stream)
