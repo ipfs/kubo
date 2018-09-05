@@ -276,6 +276,14 @@ test_expect_success 'start p2p listener on custom proto' '
   test_must_be_empty listener-stdouterr.log
 '
 
+spawn_sending_server
+
+test_expect_success 'S->C Setup client side (custom proto)' '
+  ipfsi 1 p2p forward --allow-custom-protocol /p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
+'
+
+test_server_to_client
+
 test_expect_success 'C->S Close local listener' '
   ipfsi 0 p2p close -p /p2p-test
   ipfsi 0 p2p ls > actual &&
@@ -285,6 +293,8 @@ test_expect_success 'C->S Close local listener' '
 test_expect_success 'stop iptb' '
   iptb stop
 '
+
+check_test_ports
 
 test_done
 
