@@ -12,7 +12,7 @@ import (
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
-const CMGR_TAG = "stream-fwd"
+const cmgrTag = "stream-fwd"
 
 // Stream holds information on active incoming and outgoing p2p streams.
 type Stream struct {
@@ -30,7 +30,7 @@ type Stream struct {
 	Registry *StreamRegistry
 }
 
-// close closes stream endpoints and deregisters it
+// close stream endpoints and deregister it
 func (s *Stream) close() error {
 	s.Registry.Close(s)
 	return nil
@@ -78,7 +78,7 @@ func (r *StreamRegistry) Register(streamInfo *Stream) {
 	r.Lock()
 	defer r.Unlock()
 
-	r.ConnManager.TagPeer(streamInfo.peer, CMGR_TAG, 20)
+	r.ConnManager.TagPeer(streamInfo.peer, cmgrTag, 20)
 	r.conns[streamInfo.peer]++
 
 	streamInfo.id = r.nextID
@@ -99,13 +99,13 @@ func (r *StreamRegistry) Deregister(streamID uint64) {
 	r.conns[p]--
 	if r.conns[p] < 1 {
 		delete(r.conns, p)
-		r.ConnManager.UntagPeer(p, CMGR_TAG)
+		r.ConnManager.UntagPeer(p, cmgrTag)
 	}
 
 	delete(r.Streams, streamID)
 }
 
-// close closes stream endpoints and deregisters it
+// Close stream endpoints and deregister it
 func (r *StreamRegistry) Close(s *Stream) error {
 	s.Local.Close()
 	s.Remote.Close()
@@ -113,7 +113,7 @@ func (r *StreamRegistry) Close(s *Stream) error {
 	return nil
 }
 
-// reset closes stream endpoints and deregisters it
+// Reset closes stream endpoints and deregisters it
 func (r *StreamRegistry) Reset(s *Stream) error {
 	s.Local.Close()
 	s.Remote.Reset()

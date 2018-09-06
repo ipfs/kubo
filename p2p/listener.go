@@ -24,6 +24,8 @@ type Listener interface {
 	Close() error
 }
 
+// Listeners manages a group of Listener implementations,
+// checking for conflicts and optionally dispatching connections
 type Listeners struct {
 	sync.RWMutex
 
