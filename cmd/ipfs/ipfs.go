@@ -5,6 +5,7 @@ import (
 
 	commands "github.com/ipfs/go-ipfs/core/commands"
 
+	_ "github.com/gxed/go-require-gx"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 

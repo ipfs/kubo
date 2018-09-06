@@ -580,6 +580,12 @@
       "hash": "QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC",
       "name": "go-ipfs-files",
       "version": "1.0.1"
+    },
+    {
+      "author": "stebalien",
+      "hash": "QmQKUCtsLJJHvqejxsDM3Nk3VqFFCg7JR7gPmnL2GW6RHs",
+      "name": "go-require-gx",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.10.0",
