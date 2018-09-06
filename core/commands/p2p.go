@@ -324,7 +324,7 @@ var p2pCloseCmd = &cmds.Command{
 			return
 		}
 
-		match := func(listener p2p.ListenerLocal) bool {
+		match := func(listener p2p.Listener) bool {
 			if closeAll {
 				return true
 			}
@@ -340,7 +340,7 @@ var p2pCloseCmd = &cmds.Command{
 			return true
 		}
 
-		todo := make([]p2p.ListenerLocal, 0)
+		todo := make([]p2p.Listener, 0)
 		n.P2P.ListenersLocal.Lock()
 		for _, l := range n.P2P.ListenersLocal.Listeners {
 			if !match(l) {
@@ -389,7 +389,7 @@ var p2pCloseCmd = &cmds.Command{
 }
 
 ///////
-// Listener
+// Stream
 //
 
 // p2pStreamCmd is the 'ipfs p2p stream' command

@@ -12,30 +12,36 @@ import (
 )
 
 // Listener listens for connections and proxies them to a target
-type ListenerP2P interface {
+type Listener interface {
 	Protocol() protocol.ID
 	ListenAddress() ma.Multiaddr
 	TargetAddress() ma.Multiaddr
 
 	start() error
-	handleStream(remote net.Stream)
+	key() string
 
 	// Close closes the listener. Does not affect child streams
 	Close() error
 }
 
-// ListenerRegistry is a collection of local application proto listeners.
-type ListenersP2P struct {
+type Listeners struct {
 	sync.RWMutex
 
-	Listeners map[protocol.ID]ListenerP2P
-	starting  map[protocol.ID]struct{}
+	Listeners map[string]Listener
+	starting  map[string]struct{}
 }
 
-func newListenerP2PRegistry(id peer.ID, host p2phost.Host) *ListenersP2P {
-	reg := &ListenersP2P{
-		Listeners: map[protocol.ID]ListenerP2P{},
-		starting:  map[protocol.ID]struct{}{},
+func newListenersLocal(id peer.ID) *Listeners {
+	return &Listeners{
+		Listeners: map[string]Listener{},
+		starting:  map[string]struct{}{},
+	}
+}
+
+func newListenersP2P(id peer.ID, host p2phost.Host) *Listeners {
+	reg := &Listeners{
+		Listeners: map[string]Listener{},
+		starting:  map[string]struct{}{},
 	}
 
 	addr, err := ma.NewMultiaddr(maPrefix + id.Pretty())
@@ -60,7 +66,7 @@ func newListenerP2PRegistry(id peer.ID, host p2phost.Host) *ListenersP2P {
 
 		for _, l := range reg.Listeners {
 			if l.ListenAddress().Equal(addr) && l.Protocol() == stream.Protocol() {
-				go l.handleStream(stream)
+				go l.(*remoteListener).handleStream(stream)
 				return
 			}
 		}
@@ -70,10 +76,10 @@ func newListenerP2PRegistry(id peer.ID, host p2phost.Host) *ListenersP2P {
 }
 
 // Register registers listenerInfo into this registry and starts it
-func (r *ListenersP2P) Register(l ListenerP2P) error {
+func (r *Listeners) Register(l Listener) error {
 	r.Lock()
+	k := l.key()
 
-	k := l.Protocol()
 	if _, ok := r.Listeners[k]; ok {
 		r.Unlock()
 		return errors.New("listener already registered")
@@ -100,7 +106,7 @@ func (r *ListenersP2P) Register(l ListenerP2P) error {
 }
 
 // Deregister removes p2p listener from this registry
-func (r *ListenersP2P) Deregister(k protocol.ID) (bool, error) {
+func (r *Listeners) Deregister(k string) (bool, error) {
 	r.Lock()
 	defer r.Unlock()
 
