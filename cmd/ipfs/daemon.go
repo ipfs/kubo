@@ -542,11 +542,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("gateway"),
-		corehttp.CheckVersionOption(),
-		corehttp.CommandsROOption(*cctx),
-		corehttp.VersionOption(),
 		corehttp.IPNSHostnameOption(),
 		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
+		corehttp.VersionOption(),
+		corehttp.CheckVersionOption(),
+		corehttp.CommandsROOption(*cctx),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
