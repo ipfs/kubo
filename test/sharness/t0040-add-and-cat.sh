@@ -186,22 +186,22 @@ test_add_cat_file() {
   '
 
   test_expect_success "ipfs add --name" '
-    HASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    NAMEHASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
     echo "IPFS" | ipfs add --name file.txt > actual &&
-    echo "added $HASH file.txt" > expected &&
+    echo "added $NAMEHASH file.txt" > expected &&
     test_cmp expected actual
   '
 
   test_expect_success "ipfs add --name -w" '
-    HASH1="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    NAMEHASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
     echo "IPFS" | ipfs add -w --name file.txt | head -n1> actual &&
-    echo "added $HASH1 file.txt" > expected &&
+    echo "added $NAMEHASH file.txt" > expected &&
     test_cmp expected actual
   '
 
   test_expect_success "ipfs cat with name" '
-    HASH=$(echo "IPFS" | ipfs add -w --name file.txt -Q) &&
-    ipfs cat /ipfs/$HASH/file.txt > expected &&
+    NAMEHASH=$(echo "IPFS" | ipfs add -w --name file.txt -Q) &&
+    ipfs cat /ipfs/$NAMEHASH/file.txt > expected &&
     echo "IPFS" > actual &&
     test_cmp expected actual
   '
