@@ -38,10 +38,6 @@ func (p2p *P2P) ForwardRemote(ctx context.Context, proto protocol.ID, addr ma.Mu
 	return listener, nil
 }
 
-func (l *remoteListener) start() error {
-	return nil
-}
-
 func (l *remoteListener) handleStream(remote net.Stream) {
 	local, err := manet.Dial(l.addr)
 	if err != nil {
@@ -71,7 +67,6 @@ func (l *remoteListener) handleStream(remote net.Stream) {
 	}
 
 	l.p2p.Streams.Register(stream)
-	stream.startStreaming()
 }
 
 func (l *remoteListener) Protocol() protocol.ID {

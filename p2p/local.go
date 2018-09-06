@@ -17,7 +17,6 @@ type localListener struct {
 	ctx context.Context
 
 	p2p *P2P
-	id  peer.ID
 
 	proto protocol.ID
 	laddr ma.Multiaddr
@@ -32,12 +31,18 @@ func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto protocol.I
 		ctx: ctx,
 
 		p2p: p2p,
-		id:  p2p.identity,
 
 		proto: proto,
 		laddr: bindAddr,
 		peer:  peer,
 	}
+
+	maListener, err := manet.Listen(listener.laddr)
+	if err != nil {
+		return nil, err
+	}
+
+	listener.listener = maListener
 
 	if err := p2p.ListenersLocal.Register(listener); err != nil {
 		return nil, err
@@ -91,17 +96,6 @@ func (l *localListener) setupStream(local manet.Conn) {
 	}
 
 	l.p2p.Streams.Register(stream)
-	stream.startStreaming()
-}
-
-func (l *localListener) start() error {
-	maListener, err := manet.Listen(l.laddr)
-	if err != nil {
-		return err
-	}
-
-	l.listener = maListener
-	return nil
 }
 
 func (l *localListener) Close() error {

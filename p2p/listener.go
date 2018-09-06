@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	net "gx/ipfs/QmQSbtGXCyNrj34LWL8EgXyNNYDZ8r3SwQcpW5pPxVhLnM/go-libp2p-net"
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	p2phost "gx/ipfs/QmfH9FKYv3Jp1xiyL8sPchGBUBg6JA6XviwajAo3qgnT3B/go-libp2p-host"
@@ -17,7 +16,6 @@ type Listener interface {
 	ListenAddress() ma.Multiaddr
 	TargetAddress() ma.Multiaddr
 
-	start() error
 	key() string
 
 	// Close closes the listener. Does not affect child streams
@@ -30,20 +28,17 @@ type Listeners struct {
 	sync.RWMutex
 
 	Listeners map[string]Listener
-	starting  map[string]struct{}
 }
 
-func newListenersLocal(id peer.ID) *Listeners {
+func newListenersLocal() *Listeners {
 	return &Listeners{
 		Listeners: map[string]Listener{},
-		starting:  map[string]struct{}{},
 	}
 }
 
-func newListenersP2P(id peer.ID, host p2phost.Host) *Listeners {
+func newListenersP2P(host p2phost.Host) *Listeners {
 	reg := &Listeners{
 		Listeners: map[string]Listener{},
-		starting:  map[string]struct{}{},
 	}
 
 	host.SetStreamHandlerMatch("/x/", func(p string) bool {
@@ -68,30 +63,13 @@ func newListenersP2P(id peer.ID, host p2phost.Host) *Listeners {
 // Register registers listenerInfo into this registry and starts it
 func (r *Listeners) Register(l Listener) error {
 	r.Lock()
-	k := l.key()
+	defer r.Unlock()
 
-	if _, ok := r.Listeners[k]; ok {
-		r.Unlock()
+	if _, ok := r.Listeners[l.key()]; ok {
 		return errors.New("listener already registered")
 	}
 
-	r.Listeners[k] = l
-	r.starting[k] = struct{}{}
-
-	r.Unlock()
-
-	err := l.start()
-
-	r.Lock()
-	defer r.Unlock()
-
-	delete(r.starting, k)
-
-	if err != nil {
-		delete(r.Listeners, k)
-		return err
-	}
-
+	r.Listeners[l.key()] = l
 	return nil
 }
 
@@ -99,10 +77,6 @@ func (r *Listeners) Register(l Listener) error {
 func (r *Listeners) Deregister(k string) (bool, error) {
 	r.Lock()
 	defer r.Unlock()
-
-	if _, ok := r.starting[k]; ok {
-		return false, errors.New("listener didn't start yet")
-	}
 
 	_, ok := r.Listeners[k]
 	delete(r.Listeners, k)

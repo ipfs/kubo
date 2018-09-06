@@ -84,6 +84,8 @@ func (r *StreamRegistry) Register(streamInfo *Stream) {
 	streamInfo.id = r.nextID
 	r.Streams[r.nextID] = streamInfo
 	r.nextID++
+
+	streamInfo.startStreaming()
 }
 
 // Deregister deregisters stream from the registry
