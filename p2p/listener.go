@@ -44,31 +44,19 @@ func newListenersP2P(id peer.ID, host p2phost.Host) *Listeners {
 		starting:  map[string]struct{}{},
 	}
 
-	addr, err := ma.NewMultiaddr(maPrefix + id.Pretty())
-	if err != nil {
-		panic(err)
-	}
-
 	host.SetStreamHandlerMatch("/x/", func(p string) bool {
 		reg.RLock()
 		defer reg.RUnlock()
 
-		for _, l := range reg.Listeners {
-			if l.ListenAddress().Equal(addr) && string(l.Protocol()) == p {
-				return true
-			}
-		}
-
-		return false
+		_, ok := reg.Listeners[p]
+		return ok
 	}, func(stream net.Stream) {
 		reg.RLock()
 		defer reg.RUnlock()
 
-		for _, l := range reg.Listeners {
-			if l.ListenAddress().Equal(addr) && l.Protocol() == stream.Protocol() {
-				go l.(*remoteListener).handleStream(stream)
-				return
-			}
+		l := reg.Listeners[string(stream.Protocol())]
+		if l != nil {
+			go l.(*remoteListener).handleStream(stream)
 		}
 	})
 
