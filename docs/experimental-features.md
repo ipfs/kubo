@@ -25,6 +25,7 @@ the above issue.
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding-hamt)
 - [IPNS PubSub](#ipns-pubsub)
+- [QUIC](#quic)
 
 ---
 
