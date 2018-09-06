@@ -287,9 +287,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
-		Repo:      repo,
-		Permanent: true, // It is temporary way to signify that node is permanent
-		Online:    !offline,
+		Repo:                        repo,
+		Permanent:                   true, // It is temporary way to signify that node is permanent
+		Online:                      !offline,
 		DisableEncryptedConnections: unencrypted,
 		ExtraOpts: map[string]bool{
 			"pubsub": pubsub,

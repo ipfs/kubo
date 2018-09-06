@@ -184,6 +184,27 @@ test_add_cat_file() {
   test_expect_success "make sure it looks good" '
     test_cmp zero-length-file zero-length-file_out
   '
+
+  test_expect_success "ipfs add --name" '
+    HASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    echo "IPFS" | ipfs add --name file.txt > actual &&
+    echo "added $HASH file.txt" > expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --name -w" '
+    HASH1="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    echo "IPFS" | ipfs add -w --name file.txt | head -n1> actual &&
+    echo "added $HASH1 file.txt" > expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with name" '
+    HASH=$(echo "IPFS" | ipfs add -w --name file.txt -Q) &&
+    ipfs cat /ipfs/$HASH/file.txt > expected &&
+    echo "IPFS" > actual &&
+    test_cmp expected actual
+  '
 }
 
 test_add_cat_5MB() {
