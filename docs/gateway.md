@@ -46,3 +46,14 @@ your query string to explicitly specify the filename. For example:
 ## MIME-Types
 
 TODO
+
+## Read-Only API
+
+For convenience, the gateway exposes a read-only API. This read-only API exposes
+a read-only, "safe" subset of the normal API.
+
+For example, you use this to download a block:
+
+```
+> curl https://ipfs.io/api/v0/block/get/zb2rhi36Gc9GJWijLEL6zW45MBux5FcFv5gJmjXA7VAMozEXY
+```
