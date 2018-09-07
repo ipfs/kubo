@@ -2,14 +2,6 @@ include mk/header.mk
 
 TGTS_$(d) :=
 
-$(d)/random: Godeps/_workspace/src/github.com/jbenet/go-random/random
-	$(go-build)
-TGTS_$(d) += $(d)/random
-
-$(d)/random-files: Godeps/_workspace/src/github.com/jbenet/go-random-files/random-files
-	$(go-build)
-TGTS_$(d) += $(d)/random-files
-
 $(d)/pollEndpoint: thirdparty/pollEndpoint
 	$(go-build)
 TGTS_$(d) += $(d)/pollEndpoint
@@ -43,6 +35,16 @@ TGTS_$(d) += $(d)/multihash
 $(d)/cid-fmt:
 	go build -i $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-cidutil)/go-cidutil/cid-fmt"
 TGTS_$(d) += $(d)/cid-fmt
+
+# random is also special
+$(d)/random:
+	go build -i $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-random)/go-random/random"
+TGTS_$(d) += $(d)/random
+
+# random-files is also special
+$(d)/random-files:
+	go build -i $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-random-files)/go-random-files/random-files"
+TGTS_$(d) += $(d)/random-files
 
 
 $(TGTS_$(d)): $$(DEPS_GO)

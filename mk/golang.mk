@@ -19,7 +19,7 @@ CHECK_GO :=
 go-pkg-name=$(shell $(GOCC) list $(go-tags) github.com/ipfs/go-ipfs/$(1))
 go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
 go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
-go-pkgs-novendor=$(shell $(GOCC) list github.com/ipfs/go-ipfs/... | grep -v /Godeps/)
+go-pkgs=$(shell $(GOCC) list github.com/ipfs/go-ipfs/...)
 
 go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 go-flags-with-tags=$(GOFLAGS)$(go-tags)
@@ -55,7 +55,7 @@ TEST_GO += test_go_fmt
 
 test_go_megacheck:
 	@$(GOCC) get honnef.co/go/tools/cmd/megacheck
-	@for pkg in $(go-pkgs-novendor); do megacheck "$$pkg"; done
+	@for pkg in $(go-pkgs); do megacheck "$$pkg"; done
 .PHONY: megacheck
 
 test_go: $(TEST_GO)

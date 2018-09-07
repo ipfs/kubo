@@ -1,4 +1,3 @@
-RANDOMSRC = ../../Godeps/_workspace/src/github.com/jbenet/go-random
 IMAGE_NAME = ipfs-test-latest
 IPFS_ROOT = ../..
 
@@ -20,7 +19,8 @@ data/filerand: bin/random
 	./bin/random 50000000 > ./data/filerand
 
 bin/random: $(RANDOMSRC)/**/*.go
-	go build -o ./bin/random $(RANDOMSRC)/random
+	go get github.com/jbenet/go-random
+	go build -o ./bin/random github.com/jbenet/go-random/random
 
 # just build it every time... this part isn't
 # even the lengthy part, and it decreases pain.

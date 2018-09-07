@@ -5,7 +5,7 @@
 verify_gofmt() {
     GOFMT="gofmt -s"
     cd "$(git rev-parse --show-toplevel)"
-    bad_files=$($GOFMT -l . | grep -v Godeps)
+    bad_files=$($GOFMT -l .)
     cd -
     if [[ -n $bad_files ]]; then
         echo "You have to run '$GOFMT' on these files:"
