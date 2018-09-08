@@ -12,11 +12,11 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
+	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
 	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	offline "gx/ipfs/QmRuUsZEg2WLCuidJGHVmE1NreHDmXWKLS466PKyDpXMhN/go-ipfs-routing/offline"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	path "gx/ipfs/QmTKaiDxQqVxmA1bRipSuP7hnTSgnMSmEa98NYeS6fcoiv/go-path"
-	offline "gx/ipfs/QmZdn8S4FLTfDrmLZb7JoLkrRvTYnyuMWEG6ZGZ3YKwEiK/go-ipfs-routing/offline"
 )
 
 var log = logging.Logger("core/commands/ipns")

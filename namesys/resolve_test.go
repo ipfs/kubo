@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	path "gx/ipfs/QmTKaiDxQqVxmA1bRipSuP7hnTSgnMSmEa98NYeS6fcoiv/go-path"
+	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
 
-	ipns "gx/ipfs/QmNqBhXpBKa5jcjoUZHfxDgAFxtqK3rDA5jtW811GBvVob/go-ipns"
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	testutil "gx/ipfs/QmRNhSdqzMcuRxX9A1egBeQ3BhDTguDV5HPwi8wRykkPU8/go-testutil"
-	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
-	dssync "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/sync"
-	mockrouting "gx/ipfs/QmZdn8S4FLTfDrmLZb7JoLkrRvTYnyuMWEG6ZGZ3YKwEiK/go-ipfs-routing/mock"
+	mockrouting "gx/ipfs/QmRuUsZEg2WLCuidJGHVmE1NreHDmXWKLS466PKyDpXMhN/go-ipfs-routing/mock"
+	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
+	dssync "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/sync"
+	ipns "gx/ipfs/QmbUUxB9ErnEQdwTzy6HTxucnBvAH4am6vsfbD8CiqKhi9/go-ipns"
 )
 
 func TestRoutingResolve(t *testing.T) {

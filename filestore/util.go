@@ -6,11 +6,11 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
-	ds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
-	dsq "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/query"
+	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
+	dsq "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/query"
 	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
-	blockstore "gx/ipfs/QmcmpX42gtDv1fz24kau4wjS9hfwWj5VexWBKgGnWzsyag/go-ipfs-blockstore"
-	dshelp "gx/ipfs/Qmd39D2vUhmPKQA2fgykjo2JXwekHKeJUggmGRpYuVMA2Z/go-ipfs-ds-help"
+	blockstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
+	dshelp "gx/ipfs/Qmf1xGr3SyBpiPp3ZDuKkYMh4gnRk9K4QnbL17kstnf35h/go-ipfs-ds-help"
 )
 
 // Status is used to identify the state of the block data referenced
