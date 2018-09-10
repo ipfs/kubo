@@ -374,6 +374,11 @@ Listing of the main packages used in the IPFS ecosystem. There are also three sp
 | [`go-ipfs-util`](//github.com/ipfs/go-ipfs-util) | [![Travis CI](https://travis-ci.org/ipfs/go-ipfs-util.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs-util) | N/A | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-util/branch/master/graph/badge.svg)](https://codecov.io/gh/ipfs/go-ipfs-util) | the kitchen sink |
 | [`go-ipfs-addr`](//github.com/ipfs/go-ipfs-addr) | [![Travis CI](https://travis-ci.org/ipfs/go-ipfs-addr.svg?branch=master)](https://travis-ci.org/ipfs/go-ipfs-addr) | N/A | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-addr/branch/master/graph/badge.svg)](https://codecov.io/gh/ipfs/go-ipfs-addr) | utility functions for parsing IPFS multiaddrs |
 
+For brevity, we've omitted go-libp2p and go-ipld packages. These package tables can be found in their respective project's READMEs:
+
+* [go-libp2p](https://github.com/libp2p/go-libp2p#packages)
+* [go-ipld](https://github.com/ipld/go-ipld#packages)
+
 ## Development
 
 Some places to get you started on the codebase:
