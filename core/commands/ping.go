@@ -10,10 +10,10 @@ import (
 	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
@@ -120,33 +120,49 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 
 		if len(n.Peerstore.Addrs(pid)) == 0 {
 			// Make sure we can find the node in question
-			outChan <- &PingResult{
+			select {
+			case outChan <- &PingResult{
 				Text:    fmt.Sprintf("Looking up peer %s", pid.Pretty()),
 				Success: true,
+			}:
+			case <-ctx.Done():
+				return
 			}
 
 			ctx, cancel := context.WithTimeout(ctx, kPingTimeout)
 			defer cancel()
 			p, err := n.Routing.FindPeer(ctx, pid)
 			if err != nil {
-				outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}
+				select {
+				case outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}:
+				case <-ctx.Done():
+					return
+				}
+
 				return
 			}
 			n.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
 		}
 
-		outChan <- &PingResult{
+		select {
+		case outChan <- &PingResult{
 			Text:    fmt.Sprintf("PING %s.", pid.Pretty()),
 			Success: true,
+		}:
+		case <-ctx.Done():
+			return
 		}
 
 		ctx, cancel := context.WithTimeout(ctx, kPingTimeout*time.Duration(numPings))
 		defer cancel()
 		pings, err := n.Ping.Ping(ctx, pid)
 		if err != nil {
-			outChan <- &PingResult{
+			select {
+			case outChan <- &PingResult{
 				Success: false,
 				Text:    fmt.Sprintf("Ping error: %s", err),
+			}:
+			case <-ctx.Done():
 			}
 			return
 		}
@@ -163,19 +179,25 @@ func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) 
 					done = true
 					break
 				}
-
-				outChan <- &PingResult{
+				select {
+				case outChan <- &PingResult{
 					Success: true,
 					Time:    t,
+				}:
+				case <-ctx.Done():
+					return
 				}
 				total += t
 				time.Sleep(time.Second)
 			}
 		}
 		averagems := total.Seconds() * 1000 / float64(numPings)
-		outChan <- &PingResult{
+		select {
+		case outChan <- &PingResult{
 			Success: true,
 			Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
+		}:
+		case <-ctx.Done():
 		}
 	}()
 	return outChan
