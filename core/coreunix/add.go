@@ -472,10 +472,12 @@ func (adder *Adder) addFile(file files.File) error {
 	}
 
 	addFileName := file.FileName()
-	addFileInfo := file.(files.FileInfo)
-	if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
-		addFileName = adder.Name
-		adder.Name = ""
+	addFileInfo, ok := file.(files.FileInfo)
+	if ok {
+		if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
+			addFileName = adder.Name
+			adder.Name = ""
+		}
 	}
 	// patch it into the root
 	return adder.addNode(dagnode, addFileName)
