@@ -41,7 +41,7 @@ func PubSubSubscribeOptions(opts ...PubSubSubscribeOption) (*PubSubSubscribeSett
 
 type pubsubOpts struct{}
 
-var PubBub nameOpts
+var PubSub pubsubOpts
 
 func (pubsubOpts) Topic(topic string) PubSubPeersOption {
 	return func(settings *PubSubPeersSettings) error {
