@@ -6,7 +6,7 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )
 
 // PubSubSubscription is an active PubSub subscription
@@ -24,6 +24,12 @@ type PubSubMessage interface {
 
 	// Data returns the message body
 	Data() []byte
+
+	// Seq returns message identifier
+	Seq() []byte
+
+	// Topics returns list of topics this message was set to
+	Topics() []string
 }
 
 // PubSubAPI specifies the interface to PubSub

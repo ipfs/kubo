@@ -3,12 +3,18 @@ package coreapi
 import (
 	"context"
 	"errors"
+	"strings"
+	"sync"
+	"time"
 
+	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	floodsub "gx/ipfs/QmY1L5krVk8dv8d74uESmJTXGpoigVYqBVxXXz1aS8aFSb/go-libp2p-floodsub"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
+	floodsub "gx/ipfs/QmUK4h113Hh7bR2gPpsMcbUEbbzc7hspocmPi91Bmi69nH/go-libp2p-floodsub"
+	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )
 
 type PubSubAPI CoreAPI
@@ -58,6 +64,8 @@ func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) er
 }
 
 func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (coreiface.PubSubSubscription, error) {
+	options, err := caopts.PubSubSubscribeOptions(opts...)
+
 	if err := api.checkNode(); err != nil {
 		return nil, err
 	}
@@ -67,7 +75,43 @@ func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 		return nil, err
 	}
 
+	if options.Discover {
+		go func() {
+			blk, err := api.core().Block().Put(ctx, strings.NewReader("floodsub:"+topic))
+			if err != nil {
+				log.Error("pubsub discovery: ", err)
+				return
+			}
+
+			connectToPubSubPeers(ctx, api.node, blk.Path().Cid())
+		}()
+	}
+
 	return &pubSubSubscription{sub}, nil
+}
+
+func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid cid.Cid) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	provs := n.Routing.FindProvidersAsync(ctx, cid, 10)
+	wg := &sync.WaitGroup{}
+	for p := range provs {
+		wg.Add(1)
+		go func(pi pstore.PeerInfo) {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+			defer cancel()
+			err := n.PeerHost.Connect(ctx, pi)
+			if err != nil {
+				log.Info("pubsub discover: ", err)
+				return
+			}
+			log.Info("connected to pubsub peer:", pi.ID)
+		}(p)
+	}
+
+	wg.Wait()
 }
 
 func (api *PubSubAPI) checkNode() error {
@@ -102,4 +146,16 @@ func (msg *pubSubMessage) From() peer.ID {
 
 func (msg *pubSubMessage) Data() []byte {
 	return msg.msg.Data
+}
+
+func (msg *pubSubMessage) Seq() []byte {
+	return msg.msg.Seqno
+}
+
+func (msg *pubSubMessage) Topics() []string {
+	return msg.msg.TopicIDs
+}
+
+func (api *PubSubAPI) core() coreiface.CoreAPI {
+	return (*CoreAPI)(api)
 }
