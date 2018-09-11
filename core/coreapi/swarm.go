@@ -34,12 +34,10 @@ func (api *SwarmAPI) Connect(ctx context.Context, addr ma.Multiaddr) error {
 		return coreiface.ErrOffline
 	}
 
-	snet, ok := api.node.PeerHost.Network().(*swarm.Network)
+	swrm, ok := api.node.PeerHost.Network().(*swarm.Swarm)
 	if !ok {
 		return fmt.Errorf("peerhost network was not swarm")
 	}
-
-	swrm := snet.Swarm()
 
 	ia, err := iaddr.ParseMultiaddr(ma.Multiaddr(addr))
 	if err != nil {
@@ -109,10 +107,13 @@ func (api *SwarmAPI) Peers(context.Context) ([]coreiface.PeerInfo, error) {
 			peer: pid,
 		}
 
-		swcon, ok := c.(*swarm.Conn)
-		if ok {
-			ci.muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
-		}
+		/*
+			// FIXME(steb):
+			swcon, ok := c.(*swarm.Conn)
+			if ok {
+				ci.muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
+			}
+		*/
 
 		out = append(out, ci)
 	}
@@ -133,10 +134,7 @@ func (ci *connInfo) Latency(context.Context) (time.Duration, error) {
 }
 
 func (ci *connInfo) Streams(context.Context) ([]string, error) {
-	streams, err := ci.conn.GetStreams()
-	if err != nil {
-		return nil, err
-	}
+	streams := ci.conn.GetStreams()
 
 	out := make([]string, len(streams))
 	for i, s := range streams {
