@@ -16,7 +16,7 @@ import (
 
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	chunker "gx/ipfs/QmXzBbJo2sLf3uwjNTeoWYiJV7CjAhkiA4twtLvwJSSNdK/go-ipfs-chunker"
+	chunker "gx/ipfs/QmVjPAXntr6sAdzDr5PhgXveZtQm5MccSNZo9UheGKzfAX/go-ipfs-chunker"
 )
 
 var log = logging.Logger("tarfmt")
