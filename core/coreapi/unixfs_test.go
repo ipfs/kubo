@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"math"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	mock "github.com/ipfs/go-ipfs/core/mock"
 	keystore "github.com/ipfs/go-ipfs/keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 
@@ -22,8 +24,10 @@ import (
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	datastore "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
 	syncds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/sync"
+	mocknet "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/net/mock"
 	unixfs "gx/ipfs/QmWAfTyD6KEBm7bzqNRBPvqKrZCDtn5PGbs9V1DKfnVK59/go-unixfs"
 	config "gx/ipfs/QmYVqYJTVjetcf1guieEgWpK1PZtHPytP624vKzTF1P3r2/go-ipfs-config"
+	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
 	cbor "gx/ipfs/QmepvyyduWnXHm1G7ybmGbJfQQHTAo36DjP2nvF7H7ZXjE/go-ipld-cbor"
 )
 
@@ -36,51 +40,89 @@ var helloStr = "hello, world!"
 // `echo -n | ipfs add`
 var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
 
-func makeAPIIdent(ctx context.Context, fullIdentity bool) (*core.IpfsNode, coreiface.CoreAPI, error) {
-	var ident config.Identity
-	if fullIdentity {
-		sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
+func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNode, []coreiface.CoreAPI, error) {
+	mn := mocknet.New(ctx)
+
+	nodes := make([]*core.IpfsNode, n)
+	apis := make([]coreiface.CoreAPI, n)
+
+	for i := 0; i < n; i++ {
+		var ident config.Identity
+		if fullIdentity {
+			sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			id, err := peer.IDFromPublicKey(pk)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			kbytes, err := sk.Bytes()
+			if err != nil {
+				return nil, nil, err
+			}
+
+			ident = config.Identity{
+				PeerID:  id.Pretty(),
+				PrivKey: base64.StdEncoding.EncodeToString(kbytes),
+			}
+		} else {
+			ident = config.Identity{
+				PeerID: testPeerID,
+			}
+		}
+
+		c := config.Config{}
+		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.%d.1/tcp/4001", i)}
+		c.Identity = ident
+
+		r := &repo.Mock{
+			C: c,
+			D: syncds.MutexWrap(datastore.NewMapDatastore()),
+			K: keystore.NewMemKeystore(),
+		}
+
+		node, err := core.NewNode(ctx, &core.BuildCfg{
+			Repo:   r,
+			Host:   mock.MockHostOption(mn),
+			Online: fullIdentity,
+		})
 		if err != nil {
 			return nil, nil, err
 		}
-
-		id, err := peer.IDFromPublicKey(pk)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		kbytes, err := sk.Bytes()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		ident = config.Identity{
-			PeerID:  id.Pretty(),
-			PrivKey: base64.StdEncoding.EncodeToString(kbytes),
-		}
-	} else {
-		ident = config.Identity{
-			PeerID: testPeerID,
-		}
+		nodes[i] = node
+		apis[i] = coreapi.NewCoreAPI(node)
 	}
 
-	r := &repo.Mock{
-		C: config.Config{
-			Identity: ident,
-		},
-		D: syncds.MutexWrap(datastore.NewMapDatastore()),
-		K: keystore.NewMemKeystore(),
-	}
-	node, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
+	err := mn.LinkAll()
 	if err != nil {
 		return nil, nil, err
 	}
-	api := coreapi.NewCoreAPI(node)
-	return node, api, nil
+
+	bsinf := core.BootstrapConfigWithPeers(
+		[]pstore.PeerInfo{
+			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
+		},
+	)
+
+	for _, n := range nodes[1:] {
+		if err := n.Bootstrap(bsinf); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return nodes, apis, nil
 }
 
 func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
-	return makeAPIIdent(ctx, false)
+	nd, api, err := makeAPISwarm(ctx, false, 1)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return nd[0], api[0], nil
 }
 
 func TestAdd(t *testing.T) {
