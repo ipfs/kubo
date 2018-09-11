@@ -403,10 +403,10 @@
       "version": "0.0.6"
     },
     {
-      "author": "hsanjuan",
-      "hash": "QmXzBbJo2sLf3uwjNTeoWYiJV7CjAhkiA4twtLvwJSSNdK",
+      "author": "kjzz",
+      "hash": "QmVjPAXntr6sAdzDr5PhgXveZtQm5MccSNZo9UheGKzfAX",
       "name": "go-ipfs-chunker",
-      "version": "0.0.11"
+      "version": "0.0.12"
     },
     {
       "author": "jbenet",
