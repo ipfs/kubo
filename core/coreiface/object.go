@@ -6,14 +6,14 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 // ObjectStat provides information about dag nodes
 type ObjectStat struct {
 	// Cid is the CID of the node
-	Cid *cid.Cid
+	Cid cid.Cid
 
 	// NumLinks is number of links the node contains
 	NumLinks int
