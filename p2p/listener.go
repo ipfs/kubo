@@ -18,8 +18,8 @@ type Listener interface {
 
 	key() string
 
-	// Close closes the listener. Does not affect child streams
-	Close() error
+	// close closes the listener. Does not affect child streams
+	close()
 }
 
 // Listeners manages a group of Listener implementations,
@@ -73,12 +73,24 @@ func (r *Listeners) Register(l Listener) error {
 	return nil
 }
 
-// Deregister removes p2p listener from this registry
-func (r *Listeners) Deregister(k string) (bool, error) {
+func (r *Listeners) Close(matchFunc func(listener Listener) bool) int {
+	todo := make([]Listener, 0)
 	r.Lock()
-	defer r.Unlock()
+	for _, l := range r.Listeners {
+		if !matchFunc(l) {
+			continue
+		}
 
-	_, ok := r.Listeners[k]
-	delete(r.Listeners, k)
-	return ok, nil
+		if _, ok := r.Listeners[l.key()]; ok {
+			delete(r.Listeners, l.key())
+			todo = append(todo, l)
+		}
+	}
+	r.Unlock()
+
+	for _, l := range todo {
+		l.close()
+	}
+
+	return len(todo)
 }

@@ -98,15 +98,8 @@ func (l *localListener) setupStream(local manet.Conn) {
 	l.p2p.Streams.Register(stream)
 }
 
-func (l *localListener) Close() error {
-	ok, err := l.p2p.ListenersLocal.Deregister(l.laddr.String())
-	if err != nil {
-		return err
-	}
-	if ok {
-		return l.listener.Close()
-	}
-	return nil
+func (l *localListener) close() {
+	l.listener.Close()
 }
 
 func (l *localListener) Protocol() protocol.ID {

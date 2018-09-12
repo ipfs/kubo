@@ -285,10 +285,12 @@ test_expect_success 'S->C Setup client side (custom proto)' '
 test_server_to_client
 
 test_expect_success 'C->S Close local listener' '
-  ipfsi 0 p2p close -p /p2p-test
-  ipfsi 0 p2p ls > actual &&
+  ipfsi 1 p2p close -p /p2p-test
+  ipfsi 1 p2p ls > actual &&
   test_must_be_empty actual
 '
+
+check_test_ports
 
 test_expect_success 'stop iptb' '
   iptb stop

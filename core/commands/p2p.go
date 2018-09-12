@@ -340,36 +340,10 @@ var p2pCloseCmd = &cmds.Command{
 			return true
 		}
 
-		todo := make([]p2p.Listener, 0)
-		n.P2P.ListenersLocal.Lock()
-		for _, l := range n.P2P.ListenersLocal.Listeners {
-			if !match(l) {
-				continue
-			}
-			todo = append(todo, l)
-		}
-		n.P2P.ListenersLocal.Unlock()
-		n.P2P.ListenersP2P.Lock()
-		for _, l := range n.P2P.ListenersP2P.Listeners {
-			if !match(l) {
-				continue
-			}
-			todo = append(todo, l)
-		}
-		n.P2P.ListenersP2P.Unlock()
+		done := n.P2P.ListenersLocal.Close(match)
+		done += n.P2P.ListenersP2P.Close(match)
 
-		var errs []string
-		for _, l := range todo {
-			if err := l.Close(); err != nil {
-				errs = append(errs, err.Error())
-			}
-		}
-		if len(errs) != 0 {
-			res.SetError(fmt.Errorf("errors when closing streams: %s", strings.Join(errs, "; ")), cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(len(todo))
+		res.SetOutput(done)
 	},
 	Type: int(0),
 	Marshalers: cmds.MarshalerMap{

@@ -85,13 +85,7 @@ func (l *remoteListener) TargetAddress() ma.Multiaddr {
 	return l.addr
 }
 
-func (l *remoteListener) Close() error {
-	_, err := l.p2p.ListenersP2P.Deregister(string(l.proto))
-	if err != nil {
-		return err
-	}
-	return nil
-}
+func (l *remoteListener) close() {}
 
 func (l *remoteListener) key() string {
 	return string(l.proto)
