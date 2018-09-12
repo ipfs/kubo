@@ -5,29 +5,29 @@ import (
 
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	merkledag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	cidutil "gx/ipfs/QmPyxJ2QS7L5FhGkNYkNcXHGjDhvGHueJ4auqAstFHYxy5/go-cidutil"
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
-	blocks "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
+	merkledag "gx/ipfs/QmXv5mwmQ74r4aiHcNeQ4GAmfB3aWJuqaE4WyDfDfvkgLM/go-merkledag"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	blocks "gx/ipfs/QmegPGspn3RpTMQ23Fd3GVVMopo1zsEMurudbFMZ5UXBLH/go-ipfs-blockstore"
 )
 
 // NewBlockstoreProvider returns key provider using bstore.AllKeysChan
 func NewBlockstoreProvider(bstore blocks.Blockstore) KeyChanFunc {
-	return func(ctx context.Context) (<-chan *cid.Cid, error) {
+	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		return bstore.AllKeysChan(ctx)
 	}
 }
 
 // NewPinnedProvider returns provider supplying pinned keys
 func NewPinnedProvider(pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) KeyChanFunc {
-	return func(ctx context.Context) (<-chan *cid.Cid, error) {
+	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		set, err := pinSet(ctx, pinning, dag, onlyRoots)
 		if err != nil {
 			return nil, err
 		}
 
-		outCh := make(chan *cid.Cid)
+		outCh := make(chan cid.Cid)
 		go func() {
 			defer close(outCh)
 			for c := range set.New {

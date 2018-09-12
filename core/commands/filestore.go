@@ -13,9 +13,9 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/filestore"
 
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -57,7 +57,7 @@ The output is:
 		}
 		args := req.Arguments
 		if len(args) > 0 {
-			out := perKeyActionToChan(req.Context, args, func(c *cid.Cid) *filestore.ListRes {
+			out := perKeyActionToChan(req.Context, args, func(c cid.Cid) *filestore.ListRes {
 				return filestore.List(fs, c)
 			})
 
@@ -157,7 +157,7 @@ For ERROR entries the error will also be printed to stderr.
 		}
 		args := req.Arguments()
 		if len(args) > 0 {
-			out := perKeyActionToChan(req.Context(), args, func(c *cid.Cid) *filestore.ListRes {
+			out := perKeyActionToChan(req.Context(), args, func(c cid.Cid) *filestore.ListRes {
 				return filestore.Verify(fs, c)
 			})
 			res.SetOutput(out)
@@ -269,7 +269,7 @@ func listResToChan(ctx context.Context, next func() *filestore.ListRes) <-chan i
 	return out
 }
 
-func perKeyActionToChan(ctx context.Context, args []string, action func(*cid.Cid) *filestore.ListRes) <-chan interface{} {
+func perKeyActionToChan(ctx context.Context, args []string, action func(cid.Cid) *filestore.ListRes) <-chan interface{} {
 	out := make(chan interface{}, 128)
 	go func() {
 		defer close(out)

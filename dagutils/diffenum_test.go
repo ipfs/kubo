@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	dag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	mdtest "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag/test"
+	dag "gx/ipfs/QmXv5mwmQ74r4aiHcNeQ4GAmfB3aWJuqaE4WyDfDfvkgLM/go-merkledag"
+	mdtest "gx/ipfs/QmXv5mwmQ74r4aiHcNeQ4GAmfB3aWJuqaE4WyDfDfvkgLM/go-merkledag/test"
 
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 func buildNode(name string, desc map[string]ndesc, out map[string]ipld.Node) ipld.Node {
@@ -147,7 +147,7 @@ func TestDiffEnumBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = assertCidList(lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
+	err = assertCidList(lgds.log, []cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,10 +155,10 @@ func TestDiffEnumBasic(t *testing.T) {
 
 type getLogger struct {
 	ds  ipld.NodeGetter
-	log []*cid.Cid
+	log []cid.Cid
 }
 
-func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (ipld.Node, error) {
+func (gl *getLogger) Get(ctx context.Context, c cid.Cid) (ipld.Node, error) {
 	nd, err := gl.ds.Get(ctx, c)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (gl *getLogger) Get(ctx context.Context, c *cid.Cid) (ipld.Node, error) {
 	return nd, nil
 }
 
-func (gl *getLogger) GetMany(ctx context.Context, cids []*cid.Cid) <-chan *ipld.NodeOption {
+func (gl *getLogger) GetMany(ctx context.Context, cids []cid.Cid) <-chan *ipld.NodeOption {
 	outCh := make(chan *ipld.NodeOption, len(cids))
 	nds := gl.ds.GetMany(ctx, cids)
 	for no := range nds {
@@ -183,7 +183,7 @@ func (gl *getLogger) GetMany(ctx context.Context, cids []*cid.Cid) <-chan *ipld.
 	return nds
 }
 
-func assertCidList(a, b []*cid.Cid) error {
+func assertCidList(a, b []cid.Cid) error {
 	if len(a) != len(b) {
 		return fmt.Errorf("got different number of cids than expected")
 	}
@@ -215,7 +215,7 @@ func TestDiffEnumFail(t *testing.T) {
 		t.Fatal("expected err not found")
 	}
 
-	err = assertCidList(lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
+	err = assertCidList(lgds.log, []cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func TestDiffEnumRecurse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = assertCidList(lgds.log, []*cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid(), nds["d"].Cid()})
+	err = assertCidList(lgds.log, []cid.Cid{nds["a1"].Cid(), nds["a2"].Cid(), nds["c"].Cid(), nds["d"].Cid()})
 	if err != nil {
 		t.Fatal(err)
 	}

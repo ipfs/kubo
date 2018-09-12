@@ -7,12 +7,12 @@ import (
 	"math/rand"
 	"testing"
 
-	dag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
+	dag "gx/ipfs/QmXv5mwmQ74r4aiHcNeQ4GAmfB3aWJuqaE4WyDfDfvkgLM/go-merkledag"
 
+	posinfo "gx/ipfs/QmPG32VXR5jmpo9q8R9FNdR4Ae97Ky9CiZE6SctJLUB79H/go-ipfs-posinfo"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
-	posinfo "gx/ipfs/QmXD4grfThQ4LwVoEEfe4dgR7ukmbV9TppM5Q4SPowp7hU/go-ipfs-posinfo"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
-	blockstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
+	blockstore "gx/ipfs/QmegPGspn3RpTMQ23Fd3GVVMopo1zsEMurudbFMZ5UXBLH/go-ipfs-blockstore"
 )
 
 func newTestFilestore(t *testing.T) (string, *Filestore) {
@@ -55,7 +55,7 @@ func TestBasicFilestore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var cids []*cid.Cid
+	var cids []cid.Cid
 	for i := 0; i < 100; i++ {
 		n := &posinfo.FilestoreNode{
 			PosInfo: &posinfo.PosInfo{
@@ -104,7 +104,7 @@ func TestBasicFilestore(t *testing.T) {
 	}
 }
 
-func randomFileAdd(t *testing.T, fs *Filestore, dir string, size int) (string, []*cid.Cid) {
+func randomFileAdd(t *testing.T, fs *Filestore, dir string, size int) (string, []cid.Cid) {
 	buf := make([]byte, size)
 	rand.Read(buf)
 
@@ -113,7 +113,7 @@ func randomFileAdd(t *testing.T, fs *Filestore, dir string, size int) (string, [
 		t.Fatal(err)
 	}
 
-	var out []*cid.Cid
+	var out []cid.Cid
 	for i := 0; i < size/10; i++ {
 		n := &posinfo.FilestoreNode{
 			PosInfo: &posinfo.PosInfo{

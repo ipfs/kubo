@@ -19,7 +19,7 @@ test_expect_success "error reason is pointed out" '
 '
 
 test_expect_success "adding using too short of a hash function gives out an error" '
-  echo foo | test_must_fail ipfs block put --mhlen 19 2>block_out
+  echo foo | test_must_fail ipfs block put -f protobuf --mhlen 19 2>block_out
 '
 
 test_expect_success "error reason is pointed out" '

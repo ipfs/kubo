@@ -5,20 +5,20 @@ import (
 	"testing"
 	"time"
 
-	mdag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	bs "gx/ipfs/QmQLG22wSEStiociTSKQpZAuuaaWoF1B3iKyjPFvWiTQ77/go-blockservice"
+	mdag "gx/ipfs/QmXv5mwmQ74r4aiHcNeQ4GAmfB3aWJuqaE4WyDfDfvkgLM/go-merkledag"
+	bs "gx/ipfs/Qma2KhbQarYTkmSJAeaMGRAg8HAXAhEWK8ge4SReG7ZSD3/go-blockservice"
 
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	offline "gx/ipfs/QmPuLWvxK1vg6ckKUpT53Dow9VLCcQGdL5Trwxa8PTLp7r/go-ipfs-exchange-offline"
 	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
 	dssync "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/sync"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
-	blockstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
+	offline "gx/ipfs/QmcRC35JF2pJQneAxa5LdQBQRumWggccWErogSrCkS1h8T/go-ipfs-exchange-offline"
+	blockstore "gx/ipfs/QmegPGspn3RpTMQ23Fd3GVVMopo1zsEMurudbFMZ5UXBLH/go-ipfs-blockstore"
 )
 
 var rand = util.NewTimeSeededRand()
 
-func randNode() (*mdag.ProtoNode, *cid.Cid) {
+func randNode() (*mdag.ProtoNode, cid.Cid) {
 	nd := new(mdag.ProtoNode)
 	nd.SetData(make([]byte, 32))
 	rand.Read(nd.Data())
@@ -26,7 +26,7 @@ func randNode() (*mdag.ProtoNode, *cid.Cid) {
 	return nd, k
 }
 
-func assertPinned(t *testing.T, p Pinner, c *cid.Cid, failmsg string) {
+func assertPinned(t *testing.T, p Pinner, c cid.Cid, failmsg string) {
 	_, pinned, err := p.IsPinned(c)
 	if err != nil {
 		t.Fatal(err)
@@ -37,7 +37,7 @@ func assertPinned(t *testing.T, p Pinner, c *cid.Cid, failmsg string) {
 	}
 }
 
-func assertUnpinned(t *testing.T, p Pinner, c *cid.Cid, failmsg string) {
+func assertUnpinned(t *testing.T, p Pinner, c cid.Cid, failmsg string) {
 	_, pinned, err := p.IsPinned(c)
 	if err != nil {
 		t.Fatal(err)
@@ -187,7 +187,7 @@ func TestIsPinnedLookup(t *testing.T) {
 	p := NewPinner(dstore, dserv, dserv)
 
 	aNodes := make([]*mdag.ProtoNode, aBranchLen)
-	aKeys := make([]*cid.Cid, aBranchLen)
+	aKeys := make([]cid.Cid, aBranchLen)
 	for i := 0; i < aBranchLen; i++ {
 		a, _ := randNode()
 		if i >= 1 {

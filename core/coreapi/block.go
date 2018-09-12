@@ -11,8 +11,8 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	blocks "gx/ipfs/QmWAzSEoqZ6xU6pu8yL8e5WaMb7wtbfbhhN4p1DknUPtr3/go-block-format"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	blocks "gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
 )
 
 type BlockAPI CoreAPI
@@ -75,7 +75,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 	if err != nil {
 		return err
 	}
-	cids := []*cid.Cid{rp.Cid()}
+	cids := []cid.Cid{rp.Cid()}
 	o := util.RmBlocksOpts{Force: settings.Force}
 
 	out, err := util.RmBlocks(api.node.Blockstore, api.node.Pinning, cids, o)
