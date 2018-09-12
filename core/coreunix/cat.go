@@ -4,9 +4,9 @@ import (
 	"context"
 
 	core "github.com/ipfs/go-ipfs/core"
-	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
-	resolver "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path/resolver"
-	uio "gx/ipfs/QmWAfTyD6KEBm7bzqNRBPvqKrZCDtn5PGbs9V1DKfnVK59/go-unixfs/io"
+	uio "gx/ipfs/QmPXzQ9LAFGZjcifFANCQFQiYt5SXgJziGoxUfJULVpHyA/go-unixfs/io"
+	path "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path"
+	resolver "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path/resolver"
 )
 
 func Cat(ctx context.Context, n *core.IpfsNode, pstr string) (uio.DagReader, error) {

@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
-	dag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	mdtest "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag/test"
+	path "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path"
+	dag "gx/ipfs/QmURqt1jB9Yu3X4Tr9WQJf36QGN7vi8mGTzjnX2ij1CJwC/go-merkledag"
+	mdtest "gx/ipfs/QmURqt1jB9Yu3X4Tr9WQJf36QGN7vi8mGTzjnX2ij1CJwC/go-merkledag/test"
 
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 func TestAddLink(t *testing.T) {
@@ -41,7 +41,7 @@ func TestAddLink(t *testing.T) {
 	}
 }
 
-func assertNodeAtPath(t *testing.T, ds ipld.DAGService, root *dag.ProtoNode, pth string, exp *cid.Cid) {
+func assertNodeAtPath(t *testing.T, ds ipld.DAGService, root *dag.ProtoNode, pth string, exp cid.Cid) {
 	parts := path.SplitList(pth)
 	cur := root
 	for _, e := range parts {

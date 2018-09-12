@@ -6,11 +6,11 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
 	dsq "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/query"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
-	blockstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
-	dshelp "gx/ipfs/Qmf1xGr3SyBpiPp3ZDuKkYMh4gnRk9K4QnbL17kstnf35h/go-ipfs-ds-help"
+	dshelp "gx/ipfs/QmXejiSr776HgKLEGSs7unW7GT82AgfMbQX5crfSybGU8b/go-ipfs-ds-help"
+	blockstore "gx/ipfs/QmeMussyD8s3fQ3pM19ZsfbxvomEqPV9FvczLMWyBDYSnS/go-ipfs-blockstore"
 )
 
 // Status is used to identify the state of the block data referenced
@@ -60,7 +60,7 @@ func (s Status) Format() string {
 type ListRes struct {
 	Status   Status
 	ErrorMsg string
-	Key      *cid.Cid
+	Key      cid.Cid
 	FilePath string
 	Offset   uint64
 	Size     uint64
@@ -69,7 +69,7 @@ type ListRes struct {
 // FormatLong returns a human readable string for a ListRes object.
 func (r *ListRes) FormatLong() string {
 	switch {
-	case r.Key == nil:
+	case !r.Key.Defined():
 		return "<corrupt key>"
 	case r.FilePath == "":
 		return r.Key.String()
@@ -82,7 +82,7 @@ func (r *ListRes) FormatLong() string {
 // of the given Filestore and returns a ListRes object with the information.
 // List does not verify that the reference is valid or whether the
 // raw data is accesible. See Verify().
-func List(fs *Filestore, key *cid.Cid) *ListRes {
+func List(fs *Filestore, key cid.Cid) *ListRes {
 	return list(fs, false, key)
 }
 
@@ -101,7 +101,7 @@ func ListAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
 // of the given Filestore and returns a ListRes object with the information.
 // Verify makes sure that the reference is valid and the block data can be
 // read.
-func Verify(fs *Filestore, key *cid.Cid) *ListRes {
+func Verify(fs *Filestore, key cid.Cid) *ListRes {
 	return list(fs, true, key)
 }
 
@@ -116,7 +116,7 @@ func VerifyAll(fs *Filestore, fileOrder bool) (func() *ListRes, error) {
 	return listAll(fs, true)
 }
 
-func list(fs *Filestore, verify bool, key *cid.Cid) *ListRes {
+func list(fs *Filestore, verify bool, key cid.Cid) *ListRes {
 	dobj, err := fs.fm.getDataObj(key)
 	if err != nil {
 		return mkListRes(key, nil, err)
@@ -145,16 +145,16 @@ func listAll(fs *Filestore, verify bool) (func() *ListRes, error) {
 	}, nil
 }
 
-func next(qr dsq.Results) (*cid.Cid, *pb.DataObj, error) {
+func next(qr dsq.Results) (cid.Cid, *pb.DataObj, error) {
 	v, ok := qr.NextSync()
 	if !ok {
-		return nil, nil, nil
+		return cid.Cid{}, nil, nil
 	}
 
 	k := ds.RawKey(v.Key)
 	c, err := dshelp.DsKeyToCid(k)
 	if err != nil {
-		return nil, nil, fmt.Errorf("decoding cid from filestore: %s", err)
+		return cid.Cid{}, nil, fmt.Errorf("decoding cid from filestore: %s", err)
 	}
 
 	dobj, err := unmarshalDataObj(v.Value)
@@ -252,7 +252,7 @@ func (l listEntries) Less(i, j int) bool {
 	return l[i].filePath < l[j].filePath
 }
 
-func mkListRes(c *cid.Cid, d *pb.DataObj, err error) *ListRes {
+func mkListRes(c cid.Cid, d *pb.DataObj, err error) *ListRes {
 	status := StatusOk
 	errorMsg := ""
 	if err != nil {

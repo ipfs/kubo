@@ -5,9 +5,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	nsys "github.com/ipfs/go-ipfs/namesys"
-	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
+	ft "gx/ipfs/QmPXzQ9LAFGZjcifFANCQFQiYt5SXgJziGoxUfJULVpHyA/go-unixfs"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	ft "gx/ipfs/QmWAfTyD6KEBm7bzqNRBPvqKrZCDtn5PGbs9V1DKfnVK59/go-unixfs"
+	path "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to

@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
-	resolver "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path/resolver"
+	path "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path"
+	resolver "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path/resolver"
 
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't
@@ -80,7 +80,7 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver,
 // It first checks if the path is already in the form of just a cid (<cid> or
 // /ipfs/<cid>) and returns immediately if so. Otherwise, it falls back onto
 // Resolve to perform resolution of the dagnode being referenced.
-func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (*cid.Cid, error) {
+func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (cid.Cid, error) {
 
 	// If the path is simply a cid, parse and return it. Parsed paths are already
 	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should
@@ -93,17 +93,17 @@ func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *resolver.Reso
 	// segment of the path and resolve its link to the last segment.
 	head, tail, err := p.PopLastSegment()
 	if err != nil {
-		return nil, err
+		return cid.Cid{}, err
 	}
 	dagnode, err := Resolve(ctx, nsys, r, head)
 	if err != nil {
-		return nil, err
+		return cid.Cid{}, err
 	}
 
 	// Extract and return the cid of the link to the target dag node.
 	link, _, err := dagnode.ResolveLink([]string{tail})
 	if err != nil {
-		return nil, err
+		return cid.Cid{}, err
 	}
 
 	return link.Cid, nil

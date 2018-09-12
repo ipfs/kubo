@@ -7,9 +7,9 @@ import (
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	dag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	"gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	dag "gx/ipfs/QmURqt1jB9Yu3X4Tr9WQJf36QGN7vi8mGTzjnX2ij1CJwC/go-merkledag"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 // These constants define the changes that can be applied to a DAG.
@@ -24,8 +24,8 @@ const (
 type Change struct {
 	Type   coreiface.ChangeType
 	Path   string
-	Before *cid.Cid
-	After  *cid.Cid
+	Before cid.Cid
+	After  cid.Cid
 }
 
 // String prints a human-friendly line about a change.

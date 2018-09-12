@@ -18,15 +18,15 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/core"
-	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
-	resolver "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path/resolver"
-	uio "gx/ipfs/QmWAfTyD6KEBm7bzqNRBPvqKrZCDtn5PGbs9V1DKfnVK59/go-unixfs/io"
+	uio "gx/ipfs/QmPXzQ9LAFGZjcifFANCQFQiYt5SXgJziGoxUfJULVpHyA/go-unixfs/io"
+	path "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path"
+	resolver "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path/resolver"
 
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 )
 
-func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-	out := make([]*cid.Cid, len(paths))
+func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]cid.Cid, error) {
+	out := make([]cid.Cid, len(paths))
 
 	r := &resolver.Resolver{
 		DAG:         n.DAG,
@@ -58,8 +58,8 @@ func Pin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) 
 	return out, nil
 }
 
-func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]*cid.Cid, error) {
-	unpinned := make([]*cid.Cid, len(paths))
+func Unpin(n *core.IpfsNode, ctx context.Context, paths []string, recursive bool) ([]cid.Cid, error) {
+	unpinned := make([]cid.Cid, len(paths))
 
 	r := &resolver.Resolver{
 		DAG:         n.DAG,

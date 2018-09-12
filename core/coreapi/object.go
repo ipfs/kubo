@@ -16,10 +16,10 @@ import (
 	"github.com/ipfs/go-ipfs/dagutils"
 	"github.com/ipfs/go-ipfs/pin"
 
-	dag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	ft "gx/ipfs/QmWAfTyD6KEBm7bzqNRBPvqKrZCDtn5PGbs9V1DKfnVK59/go-unixfs"
-	ipld "gx/ipfs/QmX5CsuHyVZeTLxgRSYkgLSDQKb9UjE8xnhQzCEJWWWFsC/go-ipld-format"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ft "gx/ipfs/QmPXzQ9LAFGZjcifFANCQFQiYt5SXgJziGoxUfJULVpHyA/go-unixfs"
+	dag "gx/ipfs/QmURqt1jB9Yu3X4Tr9WQJf36QGN7vi8mGTzjnX2ij1CJwC/go-merkledag"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 const inputLimit = 2 << 20
@@ -320,11 +320,11 @@ func (api *ObjectAPI) Diff(ctx context.Context, before coreiface.Path, after cor
 			Path: change.Path,
 		}
 
-		if change.Before != nil {
+		if change.Before.Defined() {
 			out[i].Before = coreiface.IpfsPath(change.Before)
 		}
 
-		if change.After != nil {
+		if change.After.Defined() {
 			out[i].After = coreiface.IpfsPath(change.After)
 		}
 	}

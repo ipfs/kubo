@@ -12,16 +12,16 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	pin "github.com/ipfs/go-ipfs/pin"
-	uio "gx/ipfs/QmWAfTyD6KEBm7bzqNRBPvqKrZCDtn5PGbs9V1DKfnVK59/go-unixfs/io"
+	uio "gx/ipfs/QmPXzQ9LAFGZjcifFANCQFQiYt5SXgJziGoxUfJULVpHyA/go-unixfs/io"
 
-	path "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path"
-	resolver "gx/ipfs/QmNgXoHgXU1HzNb2HEZmRww9fDKE9NfDsvQwWLHiKHpvKM/go-path/resolver"
-	dag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	offline "gx/ipfs/QmPuLWvxK1vg6ckKUpT53Dow9VLCcQGdL5Trwxa8PTLp7r/go-ipfs-exchange-offline"
-	bserv "gx/ipfs/QmQLG22wSEStiociTSKQpZAuuaaWoF1B3iKyjPFvWiTQ77/go-blockservice"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	path "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path"
+	resolver "gx/ipfs/QmRYx6fJzTWFoeTo3qQn64iDrVC154Gy9waQDhvKRr2ND3/go-path/resolver"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	"gx/ipfs/QmVUhfewLZpSaAiBYCpw2krYMaiVmFuhr2iurQLuRoU6sD/go-verifcid"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	dag "gx/ipfs/QmURqt1jB9Yu3X4Tr9WQJf36QGN7vi8mGTzjnX2ij1CJwC/go-merkledag"
+	"gx/ipfs/QmVkMRSkXrpjqrroEXWuYBvDBnXCdMMY6gsKicBGVGUqKT/go-verifcid"
+	offline "gx/ipfs/QmXHsHBveZF6ueKzDJbUg476gmrbzoR1yijiyH5SZAEuDT/go-ipfs-exchange-offline"
+	bserv "gx/ipfs/QmYHXfGs5GVxXN233aFr5Jenvd7NG4qZ7pmjfyz7yvG93m/go-blockservice"
 )
 
 var PinCmd = &cmds.Command{
@@ -94,7 +94,7 @@ var addPinCmd = &cmds.Command{
 		ctx := v.DeriveContext(req.Context())
 
 		type pinResult struct {
-			pins []*cid.Cid
+			pins []cid.Cid
 			err  error
 		}
 		ch := make(chan pinResult, 1)
@@ -552,7 +552,7 @@ func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string
 
 	keys := make(map[string]RefKeyObject)
 
-	AddToResultKeys := func(keyList []*cid.Cid, typeStr string) {
+	AddToResultKeys := func(keyList []cid.Cid, typeStr string) {
 		for _, c := range keyList {
 			keys[c.String()] = RefKeyObject{
 				Type: typeStr,
@@ -611,8 +611,8 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 	getLinks := dag.GetLinksWithDAG(DAG)
 	recPins := n.Pinning.RecursiveKeys()
 
-	var checkPin func(root *cid.Cid) PinStatus
-	checkPin = func(root *cid.Cid) PinStatus {
+	var checkPin func(root cid.Cid) PinStatus
+	checkPin = func(root cid.Cid) PinStatus {
 		key := root.String()
 		if status, ok := visited[key]; ok {
 			return status
@@ -680,7 +680,7 @@ func (r PinVerifyRes) Format(out io.Writer) {
 	}
 }
 
-func cidsToStrings(cs []*cid.Cid) []string {
+func cidsToStrings(cs []cid.Cid) []string {
 	out := make([]string, 0, len(cs))
 	for _, c := range cs {
 		out = append(out, c.String())

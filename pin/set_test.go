@@ -5,17 +5,17 @@ import (
 	"encoding/binary"
 	"testing"
 
-	dag "gx/ipfs/QmNr4E8z9bGTztvHJktp7uQaMdx9p3r9Asrq6eYk7iCh4a/go-merkledag"
-	bserv "gx/ipfs/QmQLG22wSEStiociTSKQpZAuuaaWoF1B3iKyjPFvWiTQ77/go-blockservice"
+	dag "gx/ipfs/QmURqt1jB9Yu3X4Tr9WQJf36QGN7vi8mGTzjnX2ij1CJwC/go-merkledag"
+	bserv "gx/ipfs/QmYHXfGs5GVxXN233aFr5Jenvd7NG4qZ7pmjfyz7yvG93m/go-blockservice"
 
-	offline "gx/ipfs/QmPuLWvxK1vg6ckKUpT53Dow9VLCcQGdL5Trwxa8PTLp7r/go-ipfs-exchange-offline"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
 	dsq "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/query"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
-	blockstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
+	offline "gx/ipfs/QmXHsHBveZF6ueKzDJbUg476gmrbzoR1yijiyH5SZAEuDT/go-ipfs-exchange-offline"
+	blockstore "gx/ipfs/QmeMussyD8s3fQ3pM19ZsfbxvomEqPV9FvczLMWyBDYSnS/go-ipfs-blockstore"
 )
 
-func ignoreCids(_ *cid.Cid) {}
+func ignoreCids(_ cid.Cid) {}
 
 func objCount(d ds.Datastore) int {
 	q := dsq.Query{KeysOnly: true}
@@ -46,7 +46,7 @@ func TestSet(t *testing.T) {
 	// an infinite recursion and crash (OOM)
 	limit := uint32((defaultFanout * maxItems) + 1)
 
-	var inputs []*cid.Cid
+	var inputs []cid.Cid
 	buf := make([]byte, 4)
 	for i := uint32(0); i < limit; i++ {
 		binary.BigEndian.PutUint32(buf, i)

@@ -10,15 +10,15 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
+	posinfo "gx/ipfs/QmPG32VXR5jmpo9q8R9FNdR4Ae97Ky9CiZE6SctJLUB79H/go-ipfs-posinfo"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	blocks "gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
 	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
 	dsns "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/namespace"
 	dsq "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/query"
-	blocks "gx/ipfs/QmWAzSEoqZ6xU6pu8yL8e5WaMb7wtbfbhhN4p1DknUPtr3/go-block-format"
-	posinfo "gx/ipfs/QmXD4grfThQ4LwVoEEfe4dgR7ukmbV9TppM5Q4SPowp7hU/go-ipfs-posinfo"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
+	dshelp "gx/ipfs/QmXejiSr776HgKLEGSs7unW7GT82AgfMbQX5crfSybGU8b/go-ipfs-ds-help"
 	proto "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
-	blockstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
-	dshelp "gx/ipfs/Qmf1xGr3SyBpiPp3ZDuKkYMh4gnRk9K4QnbL17kstnf35h/go-ipfs-ds-help"
+	blockstore "gx/ipfs/QmeMussyD8s3fQ3pM19ZsfbxvomEqPV9FvczLMWyBDYSnS/go-ipfs-blockstore"
 )
 
 // FilestorePrefix identifies the key prefix for FileManager blocks.
@@ -60,7 +60,7 @@ func NewFileManager(ds ds.Batching, root string) *FileManager {
 // AllKeysChan returns a channel from which to read the keys stored in
 // the FileManager. If the given context is cancelled the channel will be
 // closed.
-func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) {
+func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	q := dsq.Query{KeysOnly: true}
 
 	res, err := f.ds.Query(q)
@@ -68,7 +68,7 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 		return nil, err
 	}
 
-	out := make(chan *cid.Cid, dsq.KeysOnlyBufSize)
+	out := make(chan cid.Cid, dsq.KeysOnlyBufSize)
 	go func() {
 		defer close(out)
 		for {
@@ -97,7 +97,7 @@ func (f *FileManager) AllKeysChan(ctx context.Context) (<-chan *cid.Cid, error) 
 
 // DeleteBlock deletes the reference-block from the underlying
 // datastore. It does not touch the referenced data.
-func (f *FileManager) DeleteBlock(c *cid.Cid) error {
+func (f *FileManager) DeleteBlock(c cid.Cid) error {
 	err := f.ds.Delete(dshelp.CidToDsKey(c))
 	if err == ds.ErrNotFound {
 		return blockstore.ErrNotFound
@@ -109,7 +109,7 @@ func (f *FileManager) DeleteBlock(c *cid.Cid) error {
 // is done in two steps: the first step retrieves the reference
 // block from the datastore. The second step uses the stored
 // path and offsets to read the raw block data directly from disk.
-func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
+func (f *FileManager) Get(c cid.Cid) (blocks.Block, error) {
 	dobj, err := f.getDataObj(c)
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (f *FileManager) Get(c *cid.Cid) (blocks.Block, error) {
 //
 // This method may successfully return the size even if returning the block
 // would fail because the associated file is no longer available.
-func (f *FileManager) GetSize(c *cid.Cid) (int, error) {
+func (f *FileManager) GetSize(c cid.Cid) (int, error) {
 	dobj, err := f.getDataObj(c)
 	if err != nil {
 		return -1, err
@@ -134,14 +134,14 @@ func (f *FileManager) GetSize(c *cid.Cid) (int, error) {
 	return int(dobj.GetSize_()), nil
 }
 
-func (f *FileManager) readDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readDataObj(c cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if IsURL(d.GetFilePath()) {
 		return f.readURLDataObj(c, d)
 	}
 	return f.readFileDataObj(c, d)
 }
 
-func (f *FileManager) getDataObj(c *cid.Cid) (*pb.DataObj, error) {
+func (f *FileManager) getDataObj(c cid.Cid) (*pb.DataObj, error) {
 	o, err := f.ds.Get(dshelp.CidToDsKey(c))
 	switch err {
 	case ds.ErrNotFound:
@@ -164,7 +164,7 @@ func unmarshalDataObj(data []byte) (*pb.DataObj, error) {
 	return &dobj, nil
 }
 
-func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readFileDataObj(c cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if !f.AllowFiles {
 		return nil, ErrFilestoreNotEnabled
 	}
@@ -207,7 +207,7 @@ func (f *FileManager) readFileDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error)
 }
 
 // reads and verifies the block from URL
-func (f *FileManager) readURLDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) {
+func (f *FileManager) readURLDataObj(c cid.Cid, d *pb.DataObj) ([]byte, error) {
 	if !f.AllowUrls {
 		return nil, ErrUrlstoreNotEnabled
 	}
@@ -252,7 +252,7 @@ func (f *FileManager) readURLDataObj(c *cid.Cid, d *pb.DataObj) ([]byte, error) 
 
 // Has returns if the FileManager is storing a block reference. It does not
 // validate the data, nor checks if the reference is valid.
-func (f *FileManager) Has(c *cid.Cid) (bool, error) {
+func (f *FileManager) Has(c cid.Cid) (bool, error) {
 	// NOTE: interesting thing to consider. Has doesnt validate the data.
 	// So the data on disk could be invalid, and we could think we have it.
 	dsk := dshelp.CidToDsKey(c)

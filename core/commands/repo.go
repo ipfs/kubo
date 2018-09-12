@@ -16,11 +16,11 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	config "gx/ipfs/QmYVqYJTVjetcf1guieEgWpK1PZtHPytP624vKzTF1P3r2/go-ipfs-config"
-	cid "gx/ipfs/QmZFbDTY9jfSBms2MchvYM9oYRbAF19K7Pby47yDBfpPrb/go-cid"
-	bstore "gx/ipfs/Qmeg56ecxRnVv7VWViMrDeEMoBHaNFMs4vQnyQrJ79Zz7i/go-ipfs-blockstore"
+	bstore "gx/ipfs/QmeMussyD8s3fQ3pM19ZsfbxvomEqPV9FvczLMWyBDYSnS/go-ipfs-blockstore"
 )
 
 type RepoVersion struct {
@@ -46,7 +46,7 @@ var RepoCmd = &cmds.Command{
 
 // GcResult is the result returned by "repo gc" command.
 type GcResult struct {
-	Key   *cid.Cid
+	Key   cid.Cid
 	Error string `json:",omitempty"`
 }
 
@@ -102,7 +102,7 @@ order to reclaim hard disk space.
 					res.SetError(fmt.Errorf("encountered errors during gc run"), cmdkit.ErrNormal)
 				}
 			} else {
-				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k *cid.Cid) {
+				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k cid.Cid) {
 					select {
 					case outChan <- &GcResult{Key: k}:
 					case <-req.Context().Done():
