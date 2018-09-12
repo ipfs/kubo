@@ -128,9 +128,9 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, *core
 
 	dh.Handler, err = makeHandler(n,
 		ts.Listener,
-		VersionOption(),
 		IPNSHostnameOption(),
 		GatewayOption(false, "/ipfs", "/ipns"),
+		VersionOption(),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -289,6 +289,23 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Errorf("location header not present")
 	} else if hdr[0] != "/good-prefix/foo/" {
 		t.Errorf("location header is %v, expected /good-prefix/foo/", hdr[0])
+	}
+
+	// make sure /version isn't exposed
+	req, err = http.NewRequest("GET", ts.URL+"/version", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "/good-prefix")
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.StatusCode != 404 {
+		t.Fatalf("expected a 404 error, got: %s", res.Status)
 	}
 }
 
