@@ -83,6 +83,7 @@ type Adder struct {
 	RawLeaves  bool
 	Silent     bool
 	Wrap       bool
+	Name       string
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
@@ -470,8 +471,16 @@ func (adder *Adder) addFile(file files.File) error {
 		return err
 	}
 
+	addFileName := file.FileName()
+	addFileInfo, ok := file.(files.FileInfo)
+	if ok {
+		if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
+			addFileName = adder.Name
+			adder.Name = ""
+		}
+	}
 	// patch it into the root
-	return adder.addNode(dagnode, file.FileName())
+	return adder.addNode(dagnode, addFileName)
 }
 
 func (adder *Adder) addDir(dir files.File) error {

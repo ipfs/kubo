@@ -184,6 +184,27 @@ test_add_cat_file() {
   test_expect_success "make sure it looks good" '
     test_cmp zero-length-file zero-length-file_out
   '
+
+  test_expect_success "ipfs add --stdin-name" '
+    NAMEHASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    echo "IPFS" | ipfs add --stdin-name file.txt > actual &&
+    echo "added $NAMEHASH file.txt" > expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --stdin-name -w" '
+    NAMEHASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    echo "IPFS" | ipfs add -w --stdin-name file.txt | head -n1> actual &&
+    echo "added $NAMEHASH file.txt" > expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with stdin-name" '
+    NAMEHASH=$(echo "IPFS" | ipfs add -w --stdin-name file.txt -Q) &&
+    ipfs cat /ipfs/$NAMEHASH/file.txt > expected &&
+    echo "IPFS" > actual &&
+    test_cmp expected actual
+  '
 }
 
 test_add_cat_5MB() {

@@ -37,6 +37,7 @@ const (
 	progressOptionName    = "progress"
 	trickleOptionName     = "trickle"
 	wrapOptionName        = "wrap-with-directory"
+	stdinPathName         = "stdin-name"
 	hiddenOptionName      = "hidden"
 	onlyHashOptionName    = "only-hash"
 	chunkerOptionName     = "chunker"
@@ -116,6 +117,7 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmdkit.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmdkit.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
+		cmdkit.StringOption(stdinPathName, "Assign a name if the file source is stdin."),
 		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
 		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
@@ -181,6 +183,7 @@ You can now check what blocks have been created by:
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+		pathName, _ := req.Options[stdinPathName].(string)
 
 		// The arguments are subject to the following constraints.
 		//
@@ -287,6 +290,7 @@ You can now check what blocks have been created by:
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
+		fileAdder.Name = pathName
 		fileAdder.CidBuilder = prefix
 
 		if inline {
