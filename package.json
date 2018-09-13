@@ -487,6 +487,12 @@
       "version": "0.1.8"
     },
     {
+      "author": "whyrusleeping",
+      "hash": "QmWHgLqrghM9zw77nF6gdvT9ExQ2RB9pLxkd8sDHZf1rWb",
+      "name": "go-temp-err-catcher",
+      "version": "0.0.0"
+    },
+    {
       "author": "why",
       "hash": "QmUyaGN3WPr3CTLai7DBvMikagK45V4fUi8p8cNRaJQoU1",
       "name": "go-bitswap",

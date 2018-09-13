@@ -250,36 +250,114 @@ configured, the daemon will fail to start.
 ---
 
 ## ipfs p2p
-Allows to tunnel TCP connections through Libp2p streams
+
+Allows tunneling of TCP connections through Libp2p streams. If you've ever used
+port forwarding with SSH (the `-L` option in openssh), this feature is quite
+similar.
 
 ### State
+
 Experimental
 
 ### In Version
+
 master, 0.4.10
 
 ### How to enable
-P2P command needs to be enabled in config
 
-`ipfs config --json Experimental.Libp2pStreamMounting true`
+The `p2p` command needs to be enabled in config:
+
+```sh
+> ipfs config --json Experimental.Libp2pStreamMounting true
+```
 
 ### How to use
 
-Basic usage:
+**Netcat example:**
 
-- Open a listener on one node (node A)
-`ipfs p2p listener open p2p-test /ip4/127.0.0.1/tcp/10101`
-- Where `/ip4/127.0.0.1/tcp/10101` put address of application you want to pass
-  p2p connections to
-- On the other node, connect to the listener on node A
-`ipfs p2p stream dial $NODE_A_PEERID p2p-test /ip4/127.0.0.1/tcp/10102`
-- Node B is now listening for a connection on TCP at 127.0.0.1:10102, connect
-  your application there to complete the connection
+First, pick a protocol name for your application. Think of the protocol name as
+a port number, just significantly more user-friendly. In this example, we're
+going to use `/x/kickass/1.0`.
+
+***Setup:***
+
+1. A "server" node with peer ID `$SERVER_ID`
+2. A "client" node.
+
+***On the "server" node:***
+
+First, start your application and have it listen for TCP connections on
+port `$APP_PORT`.
+
+Then, configure the p2p listener by running:
+
+```sh
+> ipfs p2p listen /x/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
+```
+
+This will configure IPFS to forward all incoming `/x/kickass/1.0` streams to
+`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per
+incoming stream.
+
+***On the "client" node:***
+
+First, configure the client p2p dialer, so that it forwards all inbound
+connections on `127.0.0.1:SOME_PORT` to the server node listening
+on `/x/kickass/1.0`.
+
+```sh
+> ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /ipfs/$SERVER_ID
+```
+
+Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
+connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
+the remote machine. You can test it with netcat:
+
+***On "server" node:***
+```sh
+> nc -v -l -p $APP_PORT
+```
+
+***On "client" node:***
+```sh
+> nc -v 127.0.0.1 $SOME_PORT
+```
+
+You should now see that a connection has been established and be able to
+exchange messages between netcat instances.
+
+(note that depending on your netcat version you may need to drop the `-v` flag)
+
+**SSH example**
+
+**Setup:**
+
+1. A "server" node with peer ID `$SERVER_ID` and running ssh server on the
+   default port.
+2. A "client" node.
+
+_you can get `$SERVER_ID` by running `ipfs id -f "<id>\n"`_
+
+***First, on the "server" node:***
+
+```sh
+ipfs p2p listen /x/ssh /ip4/127.0.0.1/tcp/22
+```
+
+***Then, on "client" node:***
+
+```sh
+ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /ipfs/$SERVER_ID
+```
+
+You should now be able to connect to your ssh server through a libp2p connection
+with `ssh [user]@127.0.0.1 -p 2222`.
+
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
-- [ ] Support other protocols
+- [ ] Support other protocols (e.g, unix domain sockets, websockets, etc.)
 
 ---
 
