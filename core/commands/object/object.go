@@ -160,7 +160,7 @@ multihash.
 			}
 		}
 
-		out := Object{
+		out := &Object{
 			Hash:  rp.Cid().String(),
 			Links: outLinks,
 		}
