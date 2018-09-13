@@ -547,6 +547,12 @@
       "version": "0.2.4"
     },
     {
+      "author": "elgris",
+      "hash": "QmZGHFN4HM1b1s3cApDL2qtSJL8HpbyYT6MBAThqJsSg56",
+      "name": "jsondiff",
+      "version": "0.0.0"
+    },
+    {
       "author": "marten-seemann",
       "hash": "QmYfvQoJCUTCJ54Rog3zWSCDWAkwLWFTMKzcwaNMpXYSQT",
       "name": "go-libp2p-quic-transport",

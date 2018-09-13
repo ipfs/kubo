@@ -18,7 +18,12 @@ import (
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	config "gx/ipfs/QmXUU23sGKdT7AHpyJ4aSvYpXbWjbiuYG1CYhZ3ai3btkG/go-ipfs-config"
+	"gx/ipfs/QmZGHFN4HM1b1s3cApDL2qtSJL8HpbyYT6MBAThqJsSg56/jsondiff"
 )
+
+type ConfigProfileApplyOutput struct {
+	Diff jsondiff.Diff
+}
 
 type ConfigField struct {
 	Key   string
@@ -328,6 +333,9 @@ var configProfileApplyCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Apply profile to config.",
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("dry-run", "print difference between the current config and the config that would be generated"),
+	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
@@ -338,12 +346,39 @@ var configProfileApplyCmd = &cmds.Command{
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform)
+		dryRun, _, _ := req.Option("dry-run").Bool()
+		diff, err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform, dryRun)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(nil)
+		res.SetOutput(&ConfigProfileApplyOutput{
+			Diff: *diff,
+		})
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			apply, ok := v.(*ConfigProfileApplyOutput)
+			if !ok {
+				return nil, e.TypeErr(apply, v)
+			}
+
+			dryRun, _, err := res.Request().Option("dry-run").Bool()
+			if err != nil {
+				return nil, err
+			}
+			if dryRun {
+				buf := jsondiff.Format(apply.Diff)
+				return strings.NewReader(string(buf)), nil
+			}
+
+			return strings.NewReader(""), nil
+		},
 	},
 }
 
@@ -362,29 +397,40 @@ func buildProfileHelp() string {
 	return out
 }
 
-func transformConfig(configRoot string, configName string, transformer config.Transformer) error {
+func transformConfig(configRoot string, configName string, transformer config.Transformer, dryRun bool) (*jsondiff.Diff, error) {
 	r, err := fsrepo.Open(configRoot)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer r.Close()
 
 	cfg, err := r.Config()
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	oldCfg := *cfg
 
 	err = transformer(cfg)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	diff := jsondiff.Compare(&oldCfg, cfg)
+	if dryRun {
+		return &diff, nil
 	}
 
 	_, err = r.BackupConfig("pre-" + configName + "-")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return r.SetConfig(cfg)
+	err = r.SetConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &diff, nil
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
