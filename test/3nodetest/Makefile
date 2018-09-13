@@ -15,12 +15,11 @@ save_profiling_data:
 data/filetiny: Makefile
 	cp Makefile ./data/filetiny # simple
 
-data/filerand: bin/random
-	./bin/random 50000000 > ./data/filerand
+data/filerand: ../bin/random
+	../bin/random 50000000 > ./data/filerand
 
-bin/random: $(RANDOMSRC)/**/*.go
-	go get github.com/jbenet/go-random
-	go build -o ./bin/random github.com/jbenet/go-random/random
+../bin/random:
+	make -C ./../../ test/bin/random
 
 # just build it every time... this part isn't
 # even the lengthy part, and it decreases pain.
