@@ -75,6 +75,17 @@ test_profile_apply_revert() {
   '
 }
 
+test_profile_apply_dry_run_not_alter() {
+  profile=$1
+
+  test_expect_success "'ipfs config profile apply ${profile} --dry-run' doesn't alter config" '
+    cat "$IPFS_PATH/config" >expected &&
+    ipfs config profile apply '${profile}' --dry-run &&
+    cat "$IPFS_PATH/config" >actual &&
+    test_cmp expected actual
+  '
+}
+
 test_config_cmd() {
   test_config_cmd_set "beep" "boop"
   test_config_cmd_set "beep1" "boop2"
@@ -219,6 +230,37 @@ test_config_cmd() {
 
   # need to do this in reverse as the test profile is already applied in sharness
   test_profile_apply_revert default-networking test
+
+  test_profile_apply_dry_run_not_alter server
+
+  test_profile_apply_dry_run_not_alter local-discovery
+
+  test_profile_apply_dry_run_not_alter test
+
+  test_expect_success "'ipfs config profile apply local-discovery --dry-run' looks good with different profile info" '
+    ipfs config profile apply local-discovery --dry-run > diff_info &&
+    test `grep "DisableNatPortMap" diff_info | wc -l` = 2
+  '
+
+  test_expect_success "'ipfs config profile apply server --dry-run' looks good with same profile info" '
+    ipfs config profile apply server --dry-run > diff_info &&
+    test `grep "DisableNatPortMap" diff_info | wc -l` = 1
+  '
+
+  test_expect_success "'ipfs config profile apply server' looks good with same profile info" '
+    ipfs config profile apply server > diff_info &&
+    test `grep "DisableNatPortMap" diff_info | wc -l` = 1
+  '
+
+  test_expect_success "'ipfs config profile apply local-discovery' looks good with different profile info" '
+    ipfs config profile apply local-discovery > diff_info &&
+    test `grep "DisableNatPortMap" diff_info | wc -l` = 2
+  '
+
+  test_expect_success "'ipfs config profile apply test' looks good with different profile info" '
+    ipfs config profile apply test > diff_info &&
+    test `grep "DisableNatPortMap" diff_info | wc -l` = 2
+  '
 
   # won't work as it changes datastore definition, which makes ipfs not launch
   # without converting first

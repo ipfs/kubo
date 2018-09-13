@@ -16,9 +16,16 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
 	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
+
+// ConfigUpdateOutput is config profile apply command's output
+type ConfigUpdateOutput struct {
+	Old config.Config
+	New config.Config
+}
 
 type ConfigField struct {
 	Key   string
@@ -333,6 +340,9 @@ var configProfileApplyCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Apply profile to config.",
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("dry-run", "print difference between the current config and the config that would be generated"),
+	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
@@ -343,13 +353,40 @@ var configProfileApplyCmd = &cmds.Command{
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform)
+		dryRun, _, _ := req.Option("dry-run").Bool()
+		oldCfg, newCfg, err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform, dryRun)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(nil)
+		res.SetOutput(&ConfigUpdateOutput{
+			Old: *oldCfg,
+			New: *newCfg,
+		})
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			if res.Error() != nil {
+				return nil, res.Error()
+			}
+
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			apply, ok := v.(*ConfigUpdateOutput)
+			if !ok {
+				return nil, e.TypeErr(apply, v)
+			}
+
+			diff := jsondiff.Compare(apply.Old, apply.New)
+			buf := jsondiff.Format(diff)
+
+			return strings.NewReader(string(buf)), nil
+		},
+	},
+	Type: ConfigUpdateOutput{},
 }
 
 func buildProfileHelp() string {
@@ -367,29 +404,44 @@ func buildProfileHelp() string {
 	return out
 }
 
-func transformConfig(configRoot string, configName string, transformer config.Transformer) error {
+// transformConfig returns old config and new config instead of difference between they,
+// because apply command can provide stable API through this way.
+// If dryRun is true, repo's config should not be updated and persisted
+// to storage. Otherwise, repo's config should be updated and persisted
+// to storage.
+func transformConfig(configRoot string, configName string, transformer config.Transformer, dryRun bool) (*config.Config, *config.Config, error) {
 	r, err := fsrepo.Open(configRoot)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	defer r.Close()
 
 	cfg, err := r.Config()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	err = transformer(cfg)
+	// make a copy to avoid updating repo's config unintentionally
+	oldCfg := *cfg
+	newCfg := oldCfg
+	err = transformer(&newCfg)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	_, err = r.BackupConfig("pre-" + configName + "-")
-	if err != nil {
-		return err
+	if !dryRun {
+		_, err = r.BackupConfig("pre-" + configName + "-")
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = r.SetConfig(&newCfg)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	return r.SetConfig(cfg)
+	return &oldCfg, &newCfg, nil
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
