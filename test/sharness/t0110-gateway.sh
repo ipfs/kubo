@@ -12,7 +12,6 @@ test_init_ipfs
 test_launch_ipfs_daemon
 
 port=$GWAY_PORT
-apiport=$API_PORT
 
 # TODO check both 5001 and 5002.
 # 5001 should have a readable gateway (part of the API)
@@ -80,47 +79,6 @@ test_expect_success "GET invalid path errors" '
   test_must_fail curl -sf "http://127.0.0.1:$port/12345"
 '
 
-test_expect_success "GET /webui returns code expected" '
-  test_curl_resp_http_code "http://127.0.0.1:$apiport/webui" "HTTP/1.1 302 Found" "HTTP/1.1 301 Moved Permanently"
-'
-
-test_expect_success "GET /webui/ returns code expected" '
-  test_curl_resp_http_code "http://127.0.0.1:$apiport/webui/" "HTTP/1.1 302 Found" "HTTP/1.1 301 Moved Permanently"
-'
-
-test_expect_success "GET /logs returns logs" '
-  test_expect_code 28 curl http://127.0.0.1:$apiport/logs -m1 > log_out
-'
-
-test_expect_success "log output looks good" '
-  grep "log API client connected" log_out
-'
-
-test_expect_success "GET /api/v0/version succeeds" '
-  curl -v "http://127.0.0.1:$apiport/api/v0/version" 2> version_out
-'
-
-test_expect_success "output only has one transfer encoding header" '
-  grep "Transfer-Encoding: chunked" version_out | wc -l | xargs echo > tecount_out &&
-  echo "1" > tecount_exp &&
-  test_cmp tecount_out tecount_exp
-'
-
-curl_pprofmutex() {
-  curl -f -X POST "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=$1"
-}
-
-test_expect_success "set mutex fraction for pprof (negative so it doesn't enable)" '
-  curl_pprofmutex -1
-'
-
-test_expect_success "test failure conditions of mutex pprof endpoint" '
-  test_must_fail curl_pprofmutex &&
-    test_must_fail curl_pprofmutex that_is_string &&
-    test_must_fail curl -f -X GET "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=-1"
-'
-
-
 test_expect_success "setup index hash" '
   mkdir index &&
   echo "<p></p>" > index/index.html &&
@@ -140,57 +98,6 @@ test_expect_success "HEAD 'index.html' has no content" '
   curl -X HEAD --max-time 1 http://127.0.0.1:$port/ipfs/$INDEXHASH/ > output;
   [ ! -s output ]
 '
-
-# test ipfs readonly api
-
-test_curl_gateway_api() {
-  curl -sfo actual "http://127.0.0.1:$port/api/v0/$1"
-}
-
-test_expect_success "get IPFS directory file through readonly API succeeds" '
-  test_curl_gateway_api "cat?arg=$HASH2/test"
-'
-
-test_expect_success "get IPFS directory file through readonly API output looks good" '
-  test_cmp dir/test actual
-'
-
-test_expect_success "refs IPFS directory file through readonly API succeeds" '
-  test_curl_gateway_api "refs?arg=$HASH2/test"
-'
-
-for cmd in add  \
-           block/put \
-           bootstrap \
-           config \
-           dht \
-           diag \
-           id \
-           mount \
-           name/publish \
-           object/put \
-           object/new \
-           object/patch \
-           pin \
-           ping \
-           repo \
-           stats \
-           swarm \
-           file \
-           update \
-           bitswap
-do
-  test_expect_success "test gateway api is sanitized: $cmd" '
-    test_curl_resp_http_code "http://127.0.0.1:$port/api/v0/$cmd" "HTTP/1.1 404 Not Found"
-  '
-done
-
-# This one is different. `local` will be interpreted as a path if the command isn't defined.
-test_expect_success "test gateway api is sanitized: refs/local" '
-    echo "Error: invalid '"'ipfs ref'"' path" > refs_local_expected &&
-    ! ipfs --api /ip4/127.0.0.1/tcp/$port refs local > refs_local_actual 2>&1 &&
-    test_cmp refs_local_expected refs_local_actual
-  '
 
 test_expect_success "create raw-leaves node" '
   echo "This is RAW!" > rfile &&
