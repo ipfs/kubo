@@ -157,11 +157,11 @@ test_add_cat_file() {
   '
 
   test_expect_success "ipfs add --chunker rabin-36-512-1024 succeeds" '
-    ipfs add --chunker rabin-36-512-1024 mountdir/hello.txt >actual
+    ipfs add -Q --chunker rabin-36-512-1024 mountdir/hello.txt
   '
 
-  test_expect_failure "ipfs add --chunker rabin-12-512-1024 failed" '
-    ipfs add --chunker rabin-12-512-1024 mountdir/hello.txt >actual
+  test_expect_code 127 "ipfs add --chunker rabin-12-512-1024 failed" '
+    ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
   '
 
 
