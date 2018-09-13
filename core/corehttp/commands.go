@@ -30,12 +30,8 @@ This functionality is deprecated, and will be removed in future versions.
 Instead, try either adding headers to the config, or passing them via
 cli arguments:
 
-	ipfs config API.HTTPHeaders 'Access-Control-Allow-Origin' '*'
+	ipfs config API.HTTPHeaders --json '{"Access-Control-Allow-Origin": ["*"]}'
 	ipfs daemon
-
-or
-
-	ipfs daemon --api-http-header 'Access-Control-Allow-Origin: *'
 `
 
 // APIPath is the path at which the API is mounted.
