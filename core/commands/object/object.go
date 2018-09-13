@@ -160,7 +160,7 @@ multihash.
 			}
 		}
 
-		out := Object{
+		out := &Object{
 			Hash:  rp.Cid().String(),
 			Links: outLinks,
 		}
@@ -183,10 +183,10 @@ multihash.
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
 			headers, _, _ := res.Request().Option("headers").Bool()
 			if headers {
-				fmt.Fprintln(w, "Hash\tSize\tName\t")
+				fmt.Fprintln(w, "Hash\tSize\tName")
 			}
 			for _, link := range object.Links {
-				fmt.Fprintf(w, "%s\t%v\t%s\t\n", link.Hash, link.Size, link.Name)
+				fmt.Fprintf(w, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
 			}
 			w.Flush()
 			return buf, nil
