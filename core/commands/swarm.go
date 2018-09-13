@@ -81,15 +81,14 @@ var swarmPeersCmd = &cmds.Command{
 		streams, _, _ := req.Option("streams").Bool()
 
 		conns := n.PeerHost.Network().Conns()
-
 		var out connInfos
 		for _, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
-
 			ci := connInfo{
-				Addr: addr.String(),
-				Peer: pid.Pretty(),
+				Addr:      addr.String(),
+				Peer:      pid.Pretty(),
+				Direction: inet.Direction(-1),
 			}
 
 			/*
@@ -101,6 +100,9 @@ var swarmPeersCmd = &cmds.Command{
 			*/
 
 			if verbose || latency {
+				// set direction
+				ci.Direction = c.Stat().Direction
+
 				lat := n.Peerstore.LatencyEWMA(pid)
 				if lat == 0 {
 					ci.Latency = "n/a"
@@ -146,6 +148,11 @@ var swarmPeersCmd = &cmds.Command{
 				if info.Latency != "" {
 					fmt.Fprintf(buf, " %s", info.Latency)
 				}
+
+				if info.Direction >= 0 {
+					fmt.Fprintf(buf, " %s", directionString(info.Direction))
+				}
+
 				fmt.Fprintln(buf)
 
 				for _, s := range info.Streams {
@@ -168,11 +175,12 @@ type streamInfo struct {
 }
 
 type connInfo struct {
-	Addr    string
-	Peer    string
-	Latency string
-	Muxer   string
-	Streams []streamInfo
+	Addr      string
+	Peer      string
+	Latency   string
+	Muxer     string
+	Direction inet.Direction
+	Streams   []streamInfo
 }
 
 func (ci *connInfo) Less(i, j int) bool {
@@ -201,6 +209,18 @@ func (ci connInfos) Len() int {
 
 func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
+}
+
+// directionString transfers to string
+func directionString(d inet.Direction) string {
+	switch d {
+	case inet.DirInbound:
+		return "inbound"
+	case inet.DirOutbound:
+		return "outbound"
+	default:
+		return "unknown"
+	}
 }
 
 var swarmAddrsCmd = &cmds.Command{
