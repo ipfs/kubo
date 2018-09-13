@@ -74,6 +74,11 @@ The output is:
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			_, err := NewCidBaseHandler(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return err
+			}
+
 			var errors bool
 			for {
 				v, err := res.Next()
@@ -162,6 +167,11 @@ For ERROR entries the error will also be printed to stderr.
 	},
 	Marshalers: oldCmds.MarshalerMap{
 		oldCmds.Text: func(res oldCmds.Response) (io.Reader, error) {
+			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
+
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err
@@ -198,6 +208,13 @@ var dupsFileStore = &oldCmds.Command{
 			return
 		}
 
+		h, err := NewCidBaseHandlerLegacy(req).Proc()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+		enc := h.Encoder()
+
 		out := make(chan interface{}, 128)
 		res.SetOutput((<-chan interface{})(out))
 
@@ -214,7 +231,7 @@ var dupsFileStore = &oldCmds.Command{
 				}
 				if have {
 					select {
-					case out <- &RefWrapper{Ref: cid.String()}:
+					case out <- &RefWrapper{Ref: enc.Encode(cid)}:
 					case <-req.Context().Done():
 						return
 					}

@@ -22,6 +22,7 @@ import (
 	bserv "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
 	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
 	resolver "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path/resolver"
+	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
 )
 
 var PinCmd = &cmds.Command{
@@ -39,11 +40,11 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pins []string
+	Pins []apicid.Hash
 }
 
 type AddPinOutput struct {
-	Pins     []string
+	Pins     []apicid.Hash
 	Progress int `json:",omitempty"`
 }
 
@@ -84,7 +85,7 @@ var addPinCmd = &cmds.Command{
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
-			res.SetOutput(&AddPinOutput{Pins: cidsToStrings(added)})
+			res.SetOutput(&AddPinOutput{Pins: toAPICids(added)})
 			return
 		}
 
@@ -117,7 +118,7 @@ var addPinCmd = &cmds.Command{
 				if pv := v.Value(); pv != 0 {
 					out <- &AddPinOutput{Progress: v.Value()}
 				}
-				out <- &AddPinOutput{Pins: cidsToStrings(val.pins)}
+				out <- &AddPinOutput{Pins: toAPICids(val.pins)}
 				return
 			case <-ticker.C:
 				out <- &AddPinOutput{Progress: v.Value()}
@@ -130,12 +131,16 @@ var addPinCmd = &cmds.Command{
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err
 			}
 
-			var added []string
+			var added []apicid.Hash
 
 			switch out := v.(type) {
 			case *AddPinOutput:
@@ -206,10 +211,15 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return
 		}
 
-		res.SetOutput(&PinOutput{cidsToStrings(removed)})
+		res.SetOutput(&PinOutput{toAPICids(removed)})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
+
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err
@@ -345,6 +355,10 @@ Example:
 	},
 }
 
+type UpdatePinOutput struct {
+	Pins []string // really paths
+}
+
 var updatePinCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Update a recursive pin",
@@ -362,7 +376,7 @@ new pin and removing the old one.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("unpin", "Remove the old pin.").WithDefault(true),
 	},
-	Type: PinOutput{},
+	Type: UpdatePinOutput{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
 		if err != nil {
@@ -417,7 +431,7 @@ new pin and removing the old one.
 			return
 		}
 
-		res.SetOutput(&PinOutput{Pins: []string{from.String(), to.String()}})
+		res.SetOutput(&UpdatePinOutput{Pins: []string{from.String(), to.String()}})
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
@@ -425,7 +439,7 @@ new pin and removing the old one.
 			if err != nil {
 				return nil, err
 			}
-			added, ok := v.(*PinOutput)
+			added, ok := v.(*UpdatePinOutput)
 			if !ok {
 				return nil, e.TypeErr(added, v)
 			}
@@ -680,10 +694,10 @@ func (r PinVerifyRes) Format(out io.Writer) {
 	}
 }
 
-func cidsToStrings(cs []cid.Cid) []string {
-	out := make([]string, 0, len(cs))
+func toAPICids(cs []cid.Cid) []apicid.Hash {
+	out := make([]apicid.Hash, 0, len(cs))
 	for _, c := range cs {
-		out = append(out, c.String())
+		out = append(out, apicid.FromCid(c))
 	}
 	return out
 }

@@ -89,6 +89,12 @@ Resolve the value of an IPFS DAG path:
 		name := req.Arguments[0]
 		recursive, _ := req.Options["recursive"].(bool)
 
+		h, err := NewCidBaseHandler(req).Proc()
+		if err != nil {
+			return err
+		}
+		enc := h.EncoderFromPath(name)
+
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
 			rc, rcok := req.Options["dht-record-count"].(uint)
@@ -131,7 +137,7 @@ Resolve the value of an IPFS DAG path:
 
 		c := rp.Cid()
 
-		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.FromCid(c)})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.FromString("/ipfs/" + enc.Encode(c))})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {

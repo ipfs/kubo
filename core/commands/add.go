@@ -17,12 +17,12 @@ import (
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	pb "gx/ipfs/QmPtj12fdwuAqj9sBSTNUxBNu8kCGNp8b3o8yUzMm5GHpq/pb"
-	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
 	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
+	cidutil "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil"
 	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
@@ -367,6 +367,11 @@ You can now check what blocks have been created by:
 				log.Warning("cannot determine size of input file")
 			}
 
+			_, err := NewCidBaseHandler(req).UseGlobal().Proc()
+			if err != nil {
+				return err
+			}
+
 			progressBar := func(wait chan struct{}) {
 				defer close(wait)
 
@@ -402,8 +407,9 @@ You can now check what blocks have been created by:
 							break LOOP
 						}
 						output := out.(*coreunix.AddedObject)
-						if len(output.Hash) > 0 {
-							lastHash = output.Hash
+						hash := output.Hash.String()
+						if len(hash) > 0 {
+							lastHash = hash
 							if quieter {
 								continue
 							}
@@ -413,9 +419,9 @@ You can now check what blocks have been created by:
 								fmt.Fprintf(os.Stderr, "\033[2K\r")
 							}
 							if quiet {
-								fmt.Fprintf(os.Stdout, "%s\n", output.Hash)
+								fmt.Fprintf(os.Stdout, "%s\n", hash)
 							} else {
-								fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, output.Name)
+								fmt.Fprintf(os.Stdout, "added %s %s\n", hash, output.Name)
 							}
 
 						} else {

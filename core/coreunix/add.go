@@ -25,6 +25,7 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
 	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
@@ -41,16 +42,16 @@ type Link struct {
 }
 
 type Object struct {
-	Hash  string
+	Hash  apicid.Hash
 	Links []Link
 	Size  string
 }
 
 type AddedObject struct {
 	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
+	Hash  apicid.Hash `json:",omitempty"`
+	Bytes int64       `json:",omitempty"`
+	Size  string      `json:",omitempty"`
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
@@ -564,7 +565,7 @@ func getOutput(dagnode ipld.Node) (*Object, error) {
 	}
 
 	output := &Object{
-		Hash:  c.String(),
+		Hash:  apicid.FromCid(c),
 		Size:  strconv.FormatUint(s, 10),
 		Links: make([]Link, len(dagnode.Links())),
 	}

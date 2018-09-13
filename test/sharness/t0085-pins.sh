@@ -36,6 +36,11 @@ test_pins() {
     cat hashes | ipfs pin add $EXTRA_ARGS
   '
 
+  #test_expect_success "'ipfs pin add $EXTRA_ARGS' output looks good" '
+  #  sed -e "s/^/pinned /; s/$/ recursively/" hashes > expected &&
+  #  test_cmp expected actual
+  #'
+
   test_expect_success "see if verify works" '
     ipfs pin verify
   '
@@ -51,7 +56,7 @@ test_pins() {
 
   test_expect_success "test pin update" '
     ipfs pin add "$HASH_A" &&
-    ipfs pin ls > before_update &&
+    ipfs pin ls | tee before_update &&
     test_should_contain "$HASH_A" before_update &&
     test_must_fail grep -q "$HASH_B" before_update &&
     ipfs pin update --unpin=true "$HASH_A" "$HASH_B" &&

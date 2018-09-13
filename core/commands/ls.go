@@ -21,12 +21,14 @@ import (
 	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
 )
 
 type LsLink struct {
-	Name, Hash string
-	Size       uint64
-	Type       unixfspb.Data_DataType
+	Name string
+	Hash apicid.Hash
+	Size uint64
+	Type unixfspb.Data_DataType
 }
 
 type LsObject struct {
@@ -160,7 +162,7 @@ The JSON output contains type information.
 				}
 				output[i].Links[j] = LsLink{
 					Name: link.Name,
-					Hash: link.Cid.String(),
+					Hash: apicid.FromCid(link.Cid),
 					Size: link.Size,
 					Type: t,
 				}
@@ -171,6 +173,10 @@ The JSON output contains type information.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
 
 			v, err := unwrapOutput(res.Output())
 			if err != nil {

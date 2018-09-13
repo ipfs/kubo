@@ -164,7 +164,6 @@ test_add_cat_file() {
     test_expect_code 1 ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
   '
 
-
   test_expect_success "ipfs add on hidden file succeeds" '
     echo "Hello Worlds!" >mountdir/.hello.txt &&
     ipfs add mountdir/.hello.txt >actual
@@ -242,6 +241,36 @@ test_add_cat_file() {
 
   test_expect_success "ipfs add -r ./ output looks good" '
     echo "added QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1 test_current_dir" > expected
+    test_cmp expected actual
+  '
+    
+  # --cid-base=base32
+  
+  test_expect_success "ipfs add --cid-base=base32 succeeds" '
+    echo "Hello Worlds!" >mountdir/hello.txt &&
+    ipfs add --cid-base=base32 mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add output looks good" '
+    HASH="bafybeidpq7lcjx4w5c6yr4vuthzvlav54hgxsremwk73to5ferdc2rxhai" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --cid-base=base32 --only-hash succeeds" '
+    ipfs add --cid-base=base32 --only-hash mountdir/hello.txt > oh_actual
+  '
+
+  test_expect_success "ipfs add --only-hash output looks good" '
+    test_cmp expected oh_actual
+  '
+
+  test_expect_success "ipfs cat succeeds" '
+    ipfs cat "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat output looks good" '
+    echo "Hello Worlds!" >expected &&
     test_cmp expected actual
   '
 }

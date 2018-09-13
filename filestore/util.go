@@ -10,6 +10,7 @@ import (
 	dshelp "gx/ipfs/QmUDTSi6zJ6ACyQaKtxscCUxrg5DaXs9r4RQUPFQXGPHpo/go-ipfs-ds-help"
 	ds "gx/ipfs/QmUyz7JTJzgegC6tiJrfby3mPhzcdswVtG4x58TQ6pq8jV/go-datastore"
 	dsq "gx/ipfs/QmUyz7JTJzgegC6tiJrfby3mPhzcdswVtG4x58TQ6pq8jV/go-datastore/query"
+	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
 	blockstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
@@ -60,7 +61,7 @@ func (s Status) Format() string {
 type ListRes struct {
 	Status   Status
 	ErrorMsg string
-	Key      cid.Cid
+	Key      apicid.Cid
 	FilePath string
 	Offset   uint64
 	Size     uint64
@@ -269,14 +270,14 @@ func mkListRes(c cid.Cid, d *pb.DataObj, err error) *ListRes {
 		return &ListRes{
 			Status:   status,
 			ErrorMsg: errorMsg,
-			Key:      c,
+			Key:      apicid.Cid{Cid: c},
 		}
 	}
 
 	return &ListRes{
 		Status:   status,
 		ErrorMsg: errorMsg,
-		Key:      c,
+		Key:      apicid.Cid{Cid: c},
 		FilePath: d.FilePath,
 		Size:     d.Size_,
 		Offset:   d.Offset,

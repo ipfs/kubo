@@ -2,8 +2,8 @@ package cidv0v1
 
 import (
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	blocks "gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
+	cidutil "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil"
 	bs "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
@@ -20,7 +20,7 @@ func (b *blockstore) Has(c cid.Cid) (bool, error) {
 	if have || err != nil {
 		return have, err
 	}
-	c1 := tryOtherCidVersion(c)
+	c1 := cidutil.TryOtherCidVersion(c)
 	if !c1.Defined() {
 		return false, nil
 	}
@@ -35,7 +35,7 @@ func (b *blockstore) Get(c cid.Cid) (blocks.Block, error) {
 	if err != bs.ErrNotFound {
 		return nil, err
 	}
-	c1 := tryOtherCidVersion(c)
+	c1 := cidutil.TryOtherCidVersion(c)
 	if !c1.Defined() {
 		return nil, bs.ErrNotFound
 	}
@@ -65,23 +65,9 @@ func (b *blockstore) GetSize(c cid.Cid) (int, error) {
 	if err != bs.ErrNotFound {
 		return -1, err
 	}
-	c1 := tryOtherCidVersion(c)
+	c1 := cidutil.TryOtherCidVersion(c)
 	if !c1.Defined() {
 		return -1, bs.ErrNotFound
 	}
 	return b.Blockstore.GetSize(c1)
-}
-
-func tryOtherCidVersion(c cid.Cid) cid.Cid {
-	prefix := c.Prefix()
-	if prefix.Codec != cid.DagProtobuf || prefix.MhType != mh.SHA2_256 || prefix.MhLength != 32 {
-		return cid.Undef
-	}
-	var c1 cid.Cid
-	if prefix.Version == 0 {
-		c1 = cid.NewCidV1(cid.DagProtobuf, c.Hash())
-	} else {
-		c1 = cid.NewCidV0(c.Hash())
-	}
-	return c1
 }

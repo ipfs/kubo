@@ -54,7 +54,6 @@ The resolver can recursively resolve:
 		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not a DNS link."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-
 		recursive, _, _ := req.Option("recursive").Bool()
 		name := req.Arguments()[0]
 		resolver := namesys.NewDNSResolver()
@@ -77,6 +76,7 @@ The resolver can recursively resolve:
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err

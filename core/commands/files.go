@@ -32,6 +32,7 @@ import (
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
 )
 
 var flog = logging.Logger("cmds/files")
@@ -77,7 +78,7 @@ var hashOption = cmdkit.StringOption("hash", "Hash function to use. Will set Cid
 var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
 type statOutput struct {
-	Hash           string
+	Hash           apicid.Hash
 	Size           uint64
 	CumulativeSize uint64
 	Blocks         int
@@ -162,13 +163,18 @@ var filesStatCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+			_, err := NewCidBaseHandler(req).UseGlobal().Proc()
+			if err != nil {
+				return err
+			}
+
 			out, ok := v.(*statOutput)
 			if !ok {
 				return e.TypeErr(out, v)
 			}
 
 			s, _ := statGetFormatOptions(req)
-			s = strings.Replace(s, "<hash>", out.Hash, -1)
+			s = strings.Replace(s, "<hash>", out.Hash.String(), -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
@@ -239,7 +245,7 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 		}
 
 		return &statOutput{
-			Hash:           c.String(),
+			Hash:           apicid.FromCid(c),
 			Blocks:         len(nd.Links()),
 			Size:           d.FileSize(),
 			CumulativeSize: cumulsize,
@@ -247,7 +253,7 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 		}, nil
 	case *dag.RawNode:
 		return &statOutput{
-			Hash:           c.String(),
+			Hash:           apicid.FromCid(c),
 			Blocks:         0,
 			Size:           cumulsize,
 			CumulativeSize: cumulsize,
@@ -486,6 +492,11 @@ Examples:
 	},
 	Marshalers: oldcmds.MarshalerMap{
 		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
+			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
+
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err

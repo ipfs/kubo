@@ -11,7 +11,6 @@ test_description="Test ls command"
 test_init_ipfs
 
 test_ls_cmd() {
-
   test_expect_success "'ipfs add -r testData' succeeds" '
     mkdir -p testData testData/d1 testData/d2 &&
     echo "test" >testData/f1 &&
@@ -87,6 +86,15 @@ QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 14   a
 
 EOF
     test_cmp expected_ls_headers actual_ls_headers
+  '
+
+  test_expect_success "'ipfs ls --cid-base=base32 <three dir hashes>' succeeds" '
+    ipfs ls --cid-base=base32 $(cid-fmt -v 1 -b base32 %s QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss) >actual_ls_base32
+  '
+
+  test_expect_success "'ipfs ls --cid-base=base32 <three dir hashes>' output looks good" '
+    cid-fmt -b base32 -v 1 --filter %s < expected_ls > expected_ls_base32
+    test_cmp expected_ls_base32 actual_ls_base32
   '
 }
 

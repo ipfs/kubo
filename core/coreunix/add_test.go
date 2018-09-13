@@ -23,6 +23,7 @@ import (
 	config "gx/ipfs/QmVBUpxsHh53rNcufqxMpLAmz37eGyLJUaexDy1W9YkiNk/go-ipfs-config"
 	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 	"gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
+	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
 	blockstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
@@ -93,7 +94,7 @@ func TestAddGCLive(t *testing.T) {
 
 	}()
 
-	addedHashes := make(map[string]struct{})
+	addedHashes := make(map[apicid.Hash]struct{})
 	select {
 	case o := <-out:
 		addedHashes[o.(*AddedObject).Hash] = struct{}{}
@@ -132,7 +133,7 @@ func TestAddGCLive(t *testing.T) {
 		if r.Error != nil {
 			t.Fatal(err)
 		}
-		if _, ok := addedHashes[r.KeyRemoved.String()]; ok {
+		if _, ok := addedHashes[apicid.FromCid(r.KeyRemoved)]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}
@@ -140,7 +141,7 @@ func TestAddGCLive(t *testing.T) {
 	var last cid.Cid
 	for a := range out {
 		// wait for it to finish
-		c, err := cid.Decode(a.(*AddedObject).Hash)
+		c, err := a.(*AddedObject).Hash.Cid()
 		if err != nil {
 			t.Fatal(err)
 		}
