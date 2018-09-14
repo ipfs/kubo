@@ -62,6 +62,7 @@ var swarmPeersCmd = &cmds.Command{
 		cmdkit.BoolOption("verbose", "v", "display all extra information"),
 		cmdkit.BoolOption("streams", "Also list information about open streams for each peer"),
 		cmdkit.BoolOption("latency", "Also list information about latency to each peer"),
+		cmdkit.BoolOption("direction", "Also list information about the direction of connection"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
@@ -79,14 +80,13 @@ var swarmPeersCmd = &cmds.Command{
 		verbose, _, _ := req.Option("verbose").Bool()
 		latency, _, _ := req.Option("latency").Bool()
 		streams, _, _ := req.Option("streams").Bool()
+		direction, _, _ := req.Option("direction").Bool()
 
 		conns := n.PeerHost.Network().Conns()
-
 		var out connInfos
 		for _, c := range conns {
 			pid := c.RemotePeer()
 			addr := c.RemoteMultiaddr()
-
 			ci := connInfo{
 				Addr: addr.String(),
 				Peer: pid.Pretty(),
@@ -99,6 +99,11 @@ var swarmPeersCmd = &cmds.Command{
 								ci.Muxer = fmt.Sprintf("%T", swcon.StreamConn().Conn())
 							}
 			*/
+
+			if verbose || direction {
+				// set direction
+				ci.Direction = c.Stat().Direction
+			}
 
 			if verbose || latency {
 				lat := n.Peerstore.LatencyEWMA(pid)
@@ -146,6 +151,11 @@ var swarmPeersCmd = &cmds.Command{
 				if info.Latency != "" {
 					fmt.Fprintf(buf, " %s", info.Latency)
 				}
+
+				if info.Direction != inet.DirUnknown {
+					fmt.Fprintf(buf, " %s", directionString(info.Direction))
+				}
+
 				fmt.Fprintln(buf)
 
 				for _, s := range info.Streams {
@@ -168,11 +178,12 @@ type streamInfo struct {
 }
 
 type connInfo struct {
-	Addr    string
-	Peer    string
-	Latency string
-	Muxer   string
-	Streams []streamInfo
+	Addr      string
+	Peer      string
+	Latency   string
+	Muxer     string
+	Direction inet.Direction
+	Streams   []streamInfo
 }
 
 func (ci *connInfo) Less(i, j int) bool {
@@ -201,6 +212,18 @@ func (ci connInfos) Len() int {
 
 func (ci connInfos) Swap(i, j int) {
 	ci.Peers[i], ci.Peers[j] = ci.Peers[j], ci.Peers[i]
+}
+
+// directionString transfers to string
+func directionString(d inet.Direction) string {
+	switch d {
+	case inet.DirInbound:
+		return "inbound"
+	case inet.DirOutbound:
+		return "outbound"
+	default:
+		return ""
+	}
 }
 
 var swarmAddrsCmd = &cmds.Command{
