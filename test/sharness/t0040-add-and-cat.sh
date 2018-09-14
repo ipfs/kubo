@@ -156,6 +156,15 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
+  test_expect_success "ipfs add --chunker rabin-36-512-1024 succeeds" '
+    ipfs add -Q --chunker rabin-36-512-1024 mountdir/hello.txt
+  '
+
+  test_expect_success "ipfs add --chunker rabin-12-512-1024 failed" '
+    test_expect_code 1 ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
+  '
+
+
   test_expect_success "ipfs add on hidden file succeeds" '
     echo "Hello Worlds!" >mountdir/.hello.txt &&
     ipfs add mountdir/.hello.txt >actual
