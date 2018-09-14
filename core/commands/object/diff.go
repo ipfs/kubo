@@ -74,6 +74,10 @@ Example:
 		}
 
 		changes, err := api.Object().Diff(req.Context(), pa, pb)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
 
 		out := make([]*dagutils.Change, len(changes))
 		for i, change := range changes {
