@@ -366,6 +366,62 @@ func TestRenameOverwrite(t *testing.T) {
 	}
 }
 
+func TestRenameSameNameNoForce(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = api.Key().Generate(ctx, "foo")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	k, overwrote, err := api.Key().Rename(ctx, "foo", "foo")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	if overwrote {
+		t.Error("overwrote should be false")
+	}
+
+	if k.Name() != "foo" {
+		t.Errorf("returned key should be called 'foo', got '%s'", k.Name())
+	}
+}
+
+func TestRenameSameName(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = api.Key().Generate(ctx, "foo")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	k, overwrote, err := api.Key().Rename(ctx, "foo", "foo", opt.Key.Force(true))
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	if overwrote {
+		t.Error("overwrote should be false")
+	}
+
+	if k.Name() != "foo" {
+		t.Errorf("returned key should be called 'foo', got '%s'", k.Name())
+	}
+}
+
 func TestRemove(t *testing.T) {
 	ctx := context.Background()
 	_, api, err := makeAPI(ctx)
