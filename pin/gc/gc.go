@@ -193,6 +193,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 			select {
 			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
 			case <-ctx.Done():
+				return nil, ctx.Err()
 			}
 		}
 		return links, nil
@@ -203,6 +204,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		select {
 		case output <- Result{Error: err}:
 		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 
@@ -213,6 +215,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 			select {
 			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
 			case <-ctx.Done():
+				return nil, ctx.Err()
 			}
 		}
 		return links, nil
@@ -223,6 +226,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		select {
 		case output <- Result{Error: err}:
 		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 
@@ -236,6 +240,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		select {
 		case output <- Result{Error: err}:
 		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 	}
 
