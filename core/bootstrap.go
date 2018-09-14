@@ -117,9 +117,6 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	// get bootstrap peers from config. retrieving them here makes
 	// sure we remain observant of changes to client configuration.
 	peers := cfg.BootstrapPeers()
-	if len(peers) == 0 {
-		log.Error("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
-	}
 	// determine how many bootstrap connections to open
 	connected := host.Network().Peers()
 	if len(connected) >= cfg.MinPeerThreshold {
@@ -141,6 +138,11 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	// if connected to all bootstrap peer candidates, exit
 	if len(notConnected) < 1 {
 		log.Debugf("%s no more bootstrap peers to create %d connections", id, numToDial)
+		if len(peers) == 0 {
+			// We *need* to bootstrap but we have no bootstrap peers
+			// configured *at all*, inform the user.
+			log.Error("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
+		}
 		return ErrNotEnoughBootstrapPeers
 	}
 
