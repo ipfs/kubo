@@ -112,8 +112,8 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 	}
 
 	var out []*Change
-	cleanA := a.Copy().(*dag.ProtoNode)
-	cleanB := b.Copy().(*dag.ProtoNode)
+	cleanA := a.Copy()
+	cleanB := b.Copy()
 
 	// strip out unchanged stuff
 	for _, lnk := range a.Links() {
@@ -132,17 +132,7 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 					return nil, err
 				}
 
-				anodepb, ok := anode.(*dag.ProtoNode)
-				if !ok {
-					return nil, dag.ErrNotProtobuf
-				}
-
-				bnodepb, ok := bnode.(*dag.ProtoNode)
-				if !ok {
-					return nil, dag.ErrNotProtobuf
-				}
-
-				sub, err := Diff(ctx, ds, anodepb, bnodepb)
+				sub, err := Diff(ctx, ds, anode, bnode)
 				if err != nil {
 					return nil, err
 				}
@@ -152,8 +142,12 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 					out = append(out, subc)
 				}
 			}
-			cleanA.RemoveNodeLink(l.Name)
-			cleanB.RemoveNodeLink(l.Name)
+			if cleanA, ok := cleanA.(*dag.ProtoNode); ok {
+				cleanA.RemoveNodeLink(l.Name)
+			}
+			if cleanB, ok := cleanB.(*dag.ProtoNode); ok {
+				cleanB.RemoveNodeLink(l.Name)
+			}
 		}
 	}
 
