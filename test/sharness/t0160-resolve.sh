@@ -19,7 +19,7 @@ test_resolve_setup_name() {
 
   test_expect_success "resolve: prepare name" '
     id_hash=$(ipfs id -f="<id>") &&
-    ipfs name publish "$ref" &&
+    ipfs name publish --allow-offline "$ref" &&
     printf "$ref\n" >expected_nameval &&
     ipfs name resolve >actual_nameval &&
     test_cmp expected_nameval actual_nameval
@@ -31,7 +31,7 @@ test_resolve_setup_name_fail() {
 
   test_expect_failure "resolve: prepare name" '
     id_hash=$(ipfs id -f="<id>") &&
-    ipfs name publish "$ref" &&
+    ipfs name publish --allow-offline "$ref" &&
     printf "$ref" >expected_nameval &&
     ipfs name resolve >actual_nameval &&
     test_cmp expected_nameval actual_nameval

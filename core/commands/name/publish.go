@@ -20,18 +20,18 @@ import (
 )
 
 var (
-	ErrAllowOffline = errors.New("cannot publish in offline mode by default,using `--allow-offline` to publish again")
-	ErrIpnsMount = errors.New("cannot manually publish while IPNS is mounted")
-	ErrIdentityLoad = errors.New("identity not loaded")
+	errAllowOffline = errors.New("cannot publish in offline mode by default,using `--allow-offline` to publish again")
+	errIpnsMount    = errors.New("cannot manually publish while IPNS is mounted")
+	errIdentityLoad = errors.New("identity not loaded")
 )
 
 const (
-	ipfsPathOptionName = "ipfs-path"
-	resolveOptionName = "resolve"
+	ipfsPathOptionName     = "ipfs-path"
+	resolveOptionName      = "resolve"
 	allowOfflineOptionName = "allow-offline"
-	lifeTimeOptionName = "lifetime"
-	ttlOptionName = "ttl"
-	keyOptionName = "key"
+	lifeTimeOptionName     = "lifetime"
+	ttlOptionName          = "ttl"
+	keyOptionName          = "key"
 )
 
 var PublishCmd = &cmds.Command{
@@ -97,7 +97,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		allowOffline, _ := req.Options[allowOfflineOptionName].(bool)
 		if !n.OnlineMode() {
 			if !allowOffline {
-				res.SetError(ErrAllowOffline,cmdkit.ErrNormal)
+				res.SetError(errAllowOffline, cmdkit.ErrNormal)
 				return
 			}
 			err := n.SetupOfflineRouting()
@@ -108,14 +108,14 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		}
 
 		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
-			res.SetError(ErrIpnsMount, cmdkit.ErrNormal)
+			res.SetError(errIpnsMount, cmdkit.ErrNormal)
 			return
 		}
 
 		pstr := req.Arguments[0]
 
 		if n.Identity == "" {
-			res.SetError(ErrIdentityLoad, cmdkit.ErrNormal)
+			res.SetError(errIdentityLoad, cmdkit.ErrNormal)
 			return
 		}
 
