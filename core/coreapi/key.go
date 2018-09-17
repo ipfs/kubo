@@ -216,3 +216,7 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, erro
 
 	return &key{"", pid}, nil
 }
+
+func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
+	return &key{"self", api.node.Identity}, nil
+}

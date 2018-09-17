@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
@@ -24,6 +25,7 @@ type SwarmAPI struct {
 type connInfo struct {
 	api  *CoreAPI
 	conn net.Conn
+	dir  net.Direction
 
 	addr  ma.Multiaddr
 	peer  peer.ID
@@ -80,6 +82,41 @@ func (api *SwarmAPI) Disconnect(ctx context.Context, addr ma.Multiaddr) error {
 	return nil
 }
 
+func (api *SwarmAPI) KnownAddrs(context.Context) (map[peer.ID][]ma.Multiaddr, error) {
+	if api.node.PeerHost == nil {
+		return nil, coreiface.ErrOffline
+	}
+
+	addrs := make(map[peer.ID][]ma.Multiaddr)
+	ps := api.node.PeerHost.Network().Peerstore()
+	for _, p := range ps.Peers() {
+		for _, a := range ps.Addrs(p) {
+			addrs[p] = append(addrs[p], a)
+		}
+		sort.Slice(addrs[p], func(i, j int) bool {
+			return addrs[p][i].String() < addrs[p][j].String()
+		})
+	}
+
+	return addrs, nil
+}
+
+func (api *SwarmAPI) LocalAddrs(context.Context) ([]ma.Multiaddr, error) {
+	if api.node.PeerHost == nil {
+		return nil, coreiface.ErrOffline
+	}
+
+	return api.node.PeerHost.Addrs(), nil
+}
+
+func (api *SwarmAPI) ListenAddrs(context.Context) ([]ma.Multiaddr, error) {
+	if api.node.PeerHost == nil {
+		return nil, coreiface.ErrOffline
+	}
+
+	return api.node.PeerHost.Network().InterfaceListenAddresses()
+}
+
 func (api *SwarmAPI) Peers(context.Context) ([]coreiface.ConnectionInfo, error) {
 	if api.node.PeerHost == nil {
 		return nil, coreiface.ErrOffline
@@ -95,6 +132,7 @@ func (api *SwarmAPI) Peers(context.Context) ([]coreiface.ConnectionInfo, error) 
 		ci := &connInfo{
 			api:  api.CoreAPI,
 			conn: c,
+			dir:  c.Stat().Direction,
 
 			addr: addr,
 			peer: pid,
@@ -120,6 +158,10 @@ func (ci *connInfo) ID() peer.ID {
 
 func (ci *connInfo) Address() ma.Multiaddr {
 	return ci.addr
+}
+
+func (ci *connInfo) Direction() net.Direction {
+	return ci.dir
 }
 
 func (ci *connInfo) Latency(context.Context) (time.Duration, error) {

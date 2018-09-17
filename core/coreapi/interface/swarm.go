@@ -9,12 +9,13 @@ import (
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 	pstore "gx/ipfs/QmfAQMFpgDU2U4BXG64qVr8HSiictfWvkSBz7Y2oDj65st/go-libp2p-peerstore"
+	net "gx/ipfs/QmfDPh144WGBqRxZb1TGDHerbMnZATrHZggAPw7putNnBq/go-libp2p-net"
 )
 
 var (
 	ErrNotConnected = errors.New("not connected")
 	ErrConnNotFound = errors.New("conn not found")
-	)
+)
 
 // ConnectionInfo contains information about a peer
 type ConnectionInfo interface {
@@ -23,6 +24,9 @@ type ConnectionInfo interface {
 
 	// Address returns the multiaddress via which we are connected with the peer
 	Address() ma.Multiaddr
+
+	// Direction returns which way the connection was established
+	Direction() net.Direction
 
 	// Latency returns last known round trip time to the peer
 	Latency(context.Context) (time.Duration, error)
@@ -41,4 +45,8 @@ type SwarmAPI interface {
 
 	// Peers returns the list of peers we are connected to
 	Peers(context.Context) ([]ConnectionInfo, error)
+
+	KnownAddrs(context.Context) (map[peer.ID][]ma.Multiaddr, error)
+	LocalAddrs(context.Context) ([]ma.Multiaddr, error)
+	ListenAddrs(context.Context) ([]ma.Multiaddr, error)
 }
