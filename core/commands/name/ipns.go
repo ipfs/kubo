@@ -25,6 +25,13 @@ type ResolvedPath struct {
 	Path path.Path
 }
 
+const (
+	recursiveOptionName      = "recursive"
+	nocacheOptionName        = "nocache"
+	dhtRecordCountOptionName = "dht-record-count"
+	dhtTimeoutOptionName     = "dht-timeout"
+)
+
 var IpnsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Resolve IPNS names.",
@@ -67,10 +74,10 @@ Resolve the value of a dnslink:
 		cmdkit.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not an IPNS name."),
-		cmdkit.BoolOption("nocache", "n", "Do not use cached entries."),
-		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
-		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
+		cmdkit.BoolOption(recursiveOptionName, "r", "Resolve until the result is not an IPNS name."),
+		cmdkit.BoolOption(nocacheOptionName, "n", "Do not use cached entries."),
+		cmdkit.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
+		cmdkit.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := cmdenv.GetNode(env)
@@ -119,9 +126,10 @@ Resolve the value of a dnslink:
 			name = req.Arguments[0]
 		}
 
-		recursive, _ := req.Options["recursive"].(bool)
-		rc, rcok := req.Options["dht-record-count"].(int)
-		dhtt, dhttok := req.Options["dht-timeout"].(string)
+		recursive, _ := req.Options[recursiveOptionName].(bool)
+		rc, rcok := req.Options[dhtRecordCountOptionName].(int)
+		dhtt, dhttok := req.Options[dhtTimeoutOptionName].(string)
+
 		var ropts []nsopts.ResolveOpt
 		if !recursive {
 			ropts = append(ropts, nsopts.Depth(1))
