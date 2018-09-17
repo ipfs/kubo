@@ -118,7 +118,7 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmdkit.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmdkit.StringOption(stdinPathName, "Assign a name if the file source is stdin."),
-		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
+		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add.").WithDefault(true),
 		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
 		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 		cmdkit.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),

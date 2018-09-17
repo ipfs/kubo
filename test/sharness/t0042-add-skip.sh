@@ -10,7 +10,7 @@ test_description="Test add and cat commands"
 
 test_add_skip() {
 
-  test_expect_success "'ipfs add -r' with hidden file succeeds" '
+  test_expect_success "'ipfs add -r --hidden=false' with hidden file succeeds" '
     mkdir -p mountdir/planets/.asteroids &&
     echo "Hello Mars" >mountdir/planets/mars.txt &&
     echo "Hello Venus" >mountdir/planets/venus.txt &&
@@ -18,7 +18,7 @@ test_add_skip() {
     echo "Hello Charon" >mountdir/planets/.charon.txt &&
     echo "Hello Ceres" >mountdir/planets/.asteroids/ceres.txt &&
     echo "Hello Pallas" >mountdir/planets/.asteroids/pallas.txt &&
-    ipfs add -r mountdir/planets >actual
+    ipfs add -r --hidden=false mountdir/planets >actual
   '
 
   test_expect_success "'ipfs add -r' did not include . files" '
@@ -30,11 +30,11 @@ EOF
     test_cmp expected actual
   '
 
-  test_expect_success "'ipfs add -r --hidden' succeeds" '
-    ipfs add -r --hidden mountdir/planets >actual
+  test_expect_success "'ipfs add -r' succeeds" '
+    ipfs add -r mountdir/planets >actual
   '
 
-  test_expect_success "'ipfs add -r --hidden' did include . files" '
+  test_expect_success "'ipfs add -r' did include . files" '
     cat >expected <<-\EOF &&
 added QmcAREBcjgnUpKfyFmUGnfajA1NQS5ydqRp7WfqZ6JF8Dx planets/.asteroids/ceres.txt
 added QmZ5eaLybJ5GUZBNwy24AA9EEDTDpA4B8qXnuN3cGxu2uF planets/.asteroids/pallas.txt
@@ -48,13 +48,13 @@ EOF
     test_cmp expected actual
   '
 
-  test_expect_success "'ipfs add' includes hidden files given explicitly even without --hidden" '
+  test_expect_success "'ipfs add' includes hidden files given explicitly even with --hidden=false" '
     mkdir -p mountdir/dotfiles &&
     echo "set nocompatible" > mountdir/dotfiles/.vimrc
     cat >expected <<-\EOF &&
 added QmT4uMRDCN7EMpFeqwvKkboszbqeW1kWVGrBxBuCGqZcQc .vimrc
 EOF
-    ipfs add mountdir/dotfiles/.vimrc >actual
+    ipfs add --hidden=false mountdir/dotfiles/.vimrc >actual
     cat actual
     test_cmp expected actual
   '
