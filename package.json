@@ -300,9 +300,9 @@
       "version": "3.0.11"
     },
     {
-      "hash": "QmSwR1QndLsdnw2mpW2rrywoCUPeY7o8UxtK1dLpPCNFGD",
+      "hash": "QmdsFzGmSLMQQaaPhcgGkpDjPocqBWLFA829u6iMv5huPw",
       "name": "go-ipfs-cmds",
-      "version": "2.0.0-beta2"
+      "version": "2.0.0-rc1"
     },
     {
       "hash": "QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky",
