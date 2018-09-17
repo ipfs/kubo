@@ -2,14 +2,22 @@ package iface
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	pstore "gx/ipfs/QmfAQMFpgDU2U4BXG64qVr8HSiictfWvkSBz7Y2oDj65st/go-libp2p-peerstore"
 )
 
-// PeerInfo contains information about a peer
-type PeerInfo interface {
+var (
+	ErrNotConnected = errors.New("not connected")
+	ErrConnNotFound = errors.New("conn not found")
+	)
+
+// ConnectionInfo contains information about a peer
+type ConnectionInfo interface {
 	// ID returns PeerID
 	ID() peer.ID
 
@@ -20,18 +28,17 @@ type PeerInfo interface {
 	Latency(context.Context) (time.Duration, error)
 
 	// Streams returns list of streams established with the peer
-	// TODO: should this return multicodecs?
-	Streams(context.Context) ([]string, error)
+	Streams(context.Context) ([]protocol.ID, error)
 }
 
 // SwarmAPI specifies the interface to libp2p swarm
 type SwarmAPI interface {
-	// Connect to a given address
-	Connect(context.Context, ma.Multiaddr) error
+	// Connect to a given peer
+	Connect(context.Context, pstore.PeerInfo) error
 
 	// Disconnect from a given address
 	Disconnect(context.Context, ma.Multiaddr) error
 
 	// Peers returns the list of peers we are connected to
-	Peers(context.Context) ([]PeerInfo, error)
+	Peers(context.Context) ([]ConnectionInfo, error)
 }

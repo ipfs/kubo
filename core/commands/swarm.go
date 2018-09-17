@@ -368,22 +368,12 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 		cmdkit.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		n, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env)
 		if err != nil {
 			return err
 		}
 
 		addrs := req.Arguments
-
-		if n.PeerHost == nil {
-			return err
-		}
-
-		// FIXME(steb): Nasty
-		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
-		if !ok {
-			return fmt.Errorf("peerhost network was not swarm")
-		}
 
 		pis, err := peersWithAddresses(addrs)
 		if err != nil {
@@ -392,18 +382,16 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 		output := make([]string, len(pis))
 		for i, pi := range pis {
-			swrm.Backoff().Clear(pi.ID)
-
 			output[i] = "connect " + pi.ID.Pretty()
 
-			err := n.PeerHost.Connect(req.Context, pi)
+			err := api.Swarm().Connect(req.Context, pi)
 			if err != nil {
 				return fmt.Errorf("%s failure: %s", output[i], err)
 			}
 			output[i] += " success"
 		}
 
-		return cmds.EmitOnce(res, &stringList{addrs})
+		return cmds.EmitOnce(res, &stringList{output})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(stringListEncoder),
@@ -428,57 +416,24 @@ it will reconnect.
 		cmdkit.StringArg("address", true, true, "Address of peer to disconnect from.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		n, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env)
 		if err != nil {
 			return err
 		}
 
-		addrs := req.Arguments
-
-		if n.PeerHost == nil {
-			return ErrNotOnline
-		}
-
-		iaddrs, err := parseAddresses(addrs)
+		iaddrs, err := parseAddresses(req.Arguments)
 		if err != nil {
 			return err
 		}
 
 		output := make([]string, len(iaddrs))
 		for i, addr := range iaddrs {
-			taddr := addr.Transport()
-			id := addr.ID()
-			output[i] = "disconnect " + id.Pretty()
+			output[i] = "disconnect " + addr.ID().Pretty()
 
-			net := n.PeerHost.Network()
-
-			if taddr == nil {
-				if net.Connectedness(id) != inet.Connected {
-					output[i] += " failure: not connected"
-				} else if err := net.ClosePeer(id); err != nil {
-					output[i] += " failure: " + err.Error()
-				} else {
-					output[i] += " success"
-				}
+			if err := api.Swarm().Disconnect(req.Context, addr.Multiaddr()); err != nil {
+				output[i] += " failure: " + err.Error()
 			} else {
-				found := false
-				for _, conn := range net.ConnsToPeer(id) {
-					if !conn.RemoteMultiaddr().Equal(taddr) {
-						continue
-					}
-
-					if err := conn.Close(); err != nil {
-						output[i] += " failure: " + err.Error()
-					} else {
-						output[i] += " success"
-					}
-					found = true
-					break
-				}
-
-				if !found {
-					output[i] += " failure: conn not found"
-				}
+				output[i] += " success"
 			}
 		}
 		return cmds.EmitOnce(res, &stringList{output})
