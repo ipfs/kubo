@@ -100,7 +100,10 @@ var addPinCmd = &cmds.Command{
 		ch := make(chan pinResult, 1)
 		go func() {
 			added, err := corerepo.Pin(n, ctx, req.Arguments(), recursive)
-			ch <- pinResult{pins: added, err: err}
+			select {
+			case ch <- pinResult{pins: added, err: err}:
+			case <-ctx.Done():
+			}
 		}()
 
 		ticker := time.NewTicker(500 * time.Millisecond)
@@ -115,12 +118,31 @@ var addPinCmd = &cmds.Command{
 				}
 
 				if pv := v.Value(); pv != 0 {
-					out <- &AddPinOutput{Progress: v.Value()}
+					select {
+					case out <- &AddPinOutput{Progress: v.Value()}:
+					case <-ctx.Done():
+						log.Error(ctx.Err())
+						res.SetError(ctx.Err(), cmdkit.ErrNormal)
+						return
+					}
 				}
-				out <- &AddPinOutput{Pins: cidsToStrings(val.pins)}
+
+				select {
+				case out <- &AddPinOutput{Pins: cidsToStrings(val.pins)}:
+				case <-ctx.Done():
+					log.Error(ctx.Err())
+					res.SetError(ctx.Err(), cmdkit.ErrNormal)
+				}
+
 				return
 			case <-ticker.C:
-				out <- &AddPinOutput{Progress: v.Value()}
+				select {
+				case out <- &AddPinOutput{Progress: v.Value()}:
+				case <-ctx.Done():
+					log.Error(ctx.Err())
+					res.SetError(ctx.Err(), cmdkit.ErrNormal)
+					return
+				}
 			case <-ctx.Done():
 				log.Error(ctx.Err())
 				res.SetError(ctx.Err(), cmdkit.ErrNormal)
