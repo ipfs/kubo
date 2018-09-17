@@ -21,7 +21,7 @@ func addTestObject(ctx context.Context, api coreiface.CoreAPI) (coreiface.Path, 
 
 func TestBasicPublishResolve(t *testing.T) {
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 2)
+	nds, apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -62,7 +62,7 @@ func TestBasicPublishResolve(t *testing.T) {
 
 func TestBasicPublishResolveKey(t *testing.T) {
 	ctx := context.Background()
-	_, apis, err := makeAPISwarm(ctx, true, 2)
+	_, apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -110,7 +110,7 @@ func TestBasicPublishResolveTimeout(t *testing.T) {
 	t.Skip("ValidTime doesn't appear to work at this time resolution")
 
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 2)
+	nds, apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 		return
