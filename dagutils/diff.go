@@ -94,7 +94,11 @@ func ApplyChange(ctx context.Context, ds ipld.DAGService, nd *dag.ProtoNode, cs 
 	return e.Finalize(ctx, ds)
 }
 
-// Diff returns a set of changes that transform node 'a' into node 'b'
+// Diff returns a set of changes that transform node 'a' into node 'b'.
+// It supports two nodes forms: ProtoNode and RawNode. Because we treats
+// the nodes as IPLD nodes as long as possible and only convert them
+// to ProtoNode when necessary: when we need to remove links, and at that point
+// (if they have links to remove) we know they are not raw nodes.
 func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, error) {
 	// Base case where both nodes are leaves, just compare
 	// their CIDs.
@@ -103,7 +107,7 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 			return []*Change{}, nil
 		}
 		return []*Change{
-			&Change{
+			{
 				Type:   Mod,
 				Before: a.Cid(),
 				After:  b.Cid(),
