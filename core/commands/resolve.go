@@ -14,7 +14,9 @@ import (
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "gx/ipfs/QmX7uSbkNz76yNwBhuwYwRbhihLnJqM73VTCjS3UMJud9A/go-path"
 
+	uio "gx/ipfs/QmPL8bYtbACcSFFiSr4s2du7Na382NxRADR8hC7D9FkEA2/go-unixfs/io"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	resolver "gx/ipfs/QmX7uSbkNz76yNwBhuwYwRbhihLnJqM73VTCjS3UMJud9A/go-path/resolver"
 )
 
 var ResolveCmd = &cmds.Command{
@@ -121,7 +123,12 @@ Resolve the value of an IPFS DAG path:
 			return
 		}
 
-		node, err := core.Resolve(req.Context(), n.Namesys, n.Resolver, p)
+		r := &resolver.Resolver{
+			DAG:         n.DAG,
+			ResolveOnce: uio.ResolveUnixfsOnce,
+		}
+
+		node, err := core.Resolve(req.Context(), n.Namesys, r, p)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
