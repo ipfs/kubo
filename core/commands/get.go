@@ -103,9 +103,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 			outReader, ok := v.(io.Reader)
 			if !ok {
-				// TODO or just return the error here?
-				log.Error(e.New(e.TypeErr(outReader, v)))
-				return nil
+				return e.New(e.TypeErr(outReader, v))
 			}
 
 			outPath := getOutPath(req)

@@ -107,11 +107,10 @@ time.
 			return err
 		}
 
-		err = cmds.EmitOnce(res, &BlockStat{
+		return cmds.EmitOnce(res, &BlockStat{
 			Key:  root.Cid().String(),
 			Size: int(hres.ContentLength),
 		})
-		return err
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, bs *BlockStat) error {

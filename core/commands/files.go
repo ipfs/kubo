@@ -112,7 +112,6 @@ var filesStatCmd = &cmds.Command{
 
 		_, err := statGetFormatOptions(req)
 		if err != nil {
-			// REVIEW NOTE: We didn't return here before, was that correct?
 			return cmdkit.Errorf(cmdkit.ErrClient, err.Error())
 		}
 
@@ -725,7 +724,7 @@ stat' on the file or any of its ancestors.
 		cidVersionOption,
 		hashOption,
 	},
-	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (retErr error) {
 		path, err := checkPath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -775,7 +774,11 @@ stat' on the file or any of its ancestors.
 		defer func() {
 			err := wfd.Close()
 			if err != nil {
-				re.CloseWithError(cmdkit.Errorf(cmdkit.ErrNormal, err.Error()))
+				if retErr == nil {
+					retErr = err
+				} else {
+					log.Error("files: error closing file mfs file descriptor", err)
+				}
 			}
 		}()
 
