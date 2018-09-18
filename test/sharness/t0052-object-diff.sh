@@ -34,92 +34,134 @@ test_expect_success "create some objects for testing diffs" '
 '
 
 test_expect_success "diff against self is empty" '
-  ipfs object diff $A $A > diff_out &&
-  ipfs object diff $AR $AR > diff_raw_out
+  ipfs object diff $A $A > diff_out
 '
 
 test_expect_success "identity diff output looks good" '
   printf "" > diff_exp &&
-  printf "" > diff_raw_exp &&
   test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff (raw-leaves) against self is empty" '
+  ipfs object diff $AR $AR > diff_raw_out
+'
+
+test_expect_success "identity diff (raw-leaves) output looks good" '
+  printf "" > diff_raw_exp &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "diff against self (single file) is empty" '
   ipfs object diff $SINGLE_FILE $SINGLE_FILE > diff_out &&
-  ipfs object diff $SINGLE_FILE_RAW $SINGLE_FILE_RAW > diff_raw_out
   printf "" > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff (raw-leaves) against self (single file) is empty" '
+  ipfs object diff $SINGLE_FILE_RAW $SINGLE_FILE_RAW > diff_raw_out
   printf "" > diff_raw_exp &&
-  test_cmp diff_exp diff_out &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "diff against self (empty dir) is empty" '
   ipfs object diff $EMPTY_DIR $EMPTY_DIR > diff_out
-  ipfs object diff $EMPTY_DIR_RAW $EMPTY_DIR_RAW > diff_raw_out
   printf "" > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff (raw-leaves) against self (empty dir) is empty" '
+  ipfs object diff $EMPTY_DIR_RAW $EMPTY_DIR_RAW > diff_raw_out
   printf "" > diff_raw_exp &&
-  test_cmp diff_exp diff_out &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "diff added link works" '
   ipfs object diff $A $B > diff_out
-  ipfs object diff $AR $BR > diff_raw_out
 '
 
 test_expect_success "diff added link looks right" '
   echo + QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A \"cat\" > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff (raw-leaves) added link works" '
+  ipfs object diff $AR $BR > diff_raw_out
+'
+
+test_expect_success "diff (raw-leaves) added link looks right" '
   echo + zb2rhmWNFDCdMjJoCZPE5b5NuU38yoRzRmEtfzb4exxk3R8g4 \"cat\" > diff_raw_exp &&
-  test_cmp diff_exp diff_out &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "verbose diff added link works" '
   ipfs object diff -v $A $B > diff_out
-  ipfs object diff -v $AR $BR > diff_raw_out
 '
 
 test_expect_success "verbose diff added link looks right" '
   echo Added new link \"cat\" pointing to QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A. > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "verbose diff (raw-leaves) added link works" '
+  ipfs object diff -v $AR $BR > diff_raw_out
+'
+
+test_expect_success "verbose diff (raw-leaves) added link looks right" '
   echo Added new link \"cat\" pointing to zb2rhmWNFDCdMjJoCZPE5b5NuU38yoRzRmEtfzb4exxk3R8g4. > diff_raw_exp &&
-  test_cmp diff_exp diff_out &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "diff removed link works" '
-  ipfs object diff -v $B $A > diff_out &&
-  ipfs object diff -v $BR $AR > diff_raw_out
+  ipfs object diff -v $B $A > diff_out
 '
 
 test_expect_success "diff removed link looks right" '
   echo Removed link \"cat\" \(was QmUSvcqzhdfYM1KLDbM76eLPdS9ANFtkJvFuPYeZt73d7A\). > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff (raw-leaves) removed link works" '
+  ipfs object diff -v $BR $AR > diff_raw_out
+'
+
+test_expect_success "diff (raw-leaves) removed link looks right" '
   echo Removed link \"cat\" \(was zb2rhmWNFDCdMjJoCZPE5b5NuU38yoRzRmEtfzb4exxk3R8g4\). > diff_raw_exp &&
-  test_cmp diff_exp diff_out &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "diff nested add works" '
-  ipfs object diff -v $B $C > diff_out &&
-  ipfs object diff -v $BR $CR > diff_raw_out
+  ipfs object diff -v $B $C > diff_out
 '
 
 test_expect_success "diff looks right" '
   echo Added new link \"baz/dog\" pointing to QmdNJQUTZuDpsUcec7YDuCfRfvw1w4J13DCm7YcU4VMZdS. > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff (raw-leaves) nested add works" '
+  ipfs object diff -v $BR $CR > diff_raw_out
+'
+
+test_expect_success "diff (raw-leaves) looks right" '
   echo Added new link \"baz/dog\" pointing to zb2rhaM8wjDfi8A22dEqk89raWtViq8pjxvKQu2eaKtWhYKgE. > diff_raw_exp &&
-  test_cmp diff_exp diff_out &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "diff changed link works" '
-  ipfs object diff -v $C $D > diff_out &&
-  ipfs object diff -v $CR $DR > diff_raw_out
+  ipfs object diff -v $C $D > diff_out
 '
 
 test_expect_success "diff looks right" '
   echo Changed \"bar\" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb. > diff_exp &&
+  test_cmp diff_exp diff_out
+'
+
+test_expect_success "diff (raw-leaves) changed link works" '
+  ipfs object diff -v $CR $DR > diff_raw_out
+'
+
+test_expect_success "diff（raw-leaves) looks right" '
   echo Changed \"bar\" from zb2rhdUECGnPgMJNgmghaMKdqqGdpTe9GmEJiPna488ThfLBz to zb2rhfEA1M13SPoeayrsPcKhCezgMQPjguGFLH56G8qQ2qpDn. > diff_raw_exp &&
-  test_cmp diff_exp diff_out &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
