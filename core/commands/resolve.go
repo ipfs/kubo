@@ -2,12 +2,13 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"time"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	ns "github.com/ipfs/go-ipfs/namesys"
@@ -15,6 +16,7 @@ import (
 	path "gx/ipfs/QmX7uSbkNz76yNwBhuwYwRbhihLnJqM73VTCjS3UMJud9A/go-path"
 
 	uio "gx/ipfs/QmPL8bYtbACcSFFiSr4s2du7Na382NxRADR8hC7D9FkEA2/go-unixfs/io"
+	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	resolver "gx/ipfs/QmX7uSbkNz76yNwBhuwYwRbhihLnJqM73VTCjS3UMJud9A/go-path/resolver"
 )
@@ -67,29 +69,20 @@ Resolve the value of an IPFS DAG path:
 		cmdkit.UintOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
 		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		if !n.OnlineMode() {
-			err := n.SetupOfflineRouting()
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-		}
-
-		name := req.Arguments()[0]
-		recursive, _, _ := req.Option("recursive").Bool()
+		name := req.Arguments[0]
+		recursive, _ := req.Options["recursive"].(bool)
 
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
-			rc, rcok, _ := req.Option("dht-record-count").Int()
-			dhtt, dhttok, _ := req.Option("dht-timeout").String()
+			rc, rcok := req.Options["dht-record-count"].(int)
+			dhtt, dhttok := req.Options["dht-timeout"].(string)
 			ropts := []nsopts.ResolveOpt{nsopts.Depth(1)}
 			if rcok {
 				ropts = append(ropts, nsopts.DhtRecordCount(uint(rc)))
@@ -106,13 +99,13 @@ Resolve the value of an IPFS DAG path:
 				}
 				ropts = append(ropts, nsopts.DhtTimeout(d))
 			}
-			p, err := n.Namesys.Resolve(req.Context(), name, ropts...)
+			p, err := n.Namesys.Resolve(req.Context, name, ropts...)
 			// ErrResolveRecursion is fine
 			if err != nil && err != ns.ErrResolveRecursion {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
-			res.SetOutput(&ncmd.ResolvedPath{Path: p})
+			cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: p})
 			return
 		}
 
@@ -128,7 +121,7 @@ Resolve the value of an IPFS DAG path:
 			ResolveOnce: uio.ResolveUnixfsOnce,
 		}
 
-		node, err := core.Resolve(req.Context(), n.Namesys, r, p)
+		node, err := core.Resolve(req.Context, n.Namesys, r, p)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -136,21 +129,18 @@ Resolve the value of an IPFS DAG path:
 
 		c := node.Cid()
 
-		res.SetOutput(&ncmd.ResolvedPath{Path: path.FromCid(c)})
+		cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.FromCid(c)})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
 			output, ok := v.(*ncmd.ResolvedPath)
 			if !ok {
-				return nil, e.TypeErr(output, v)
+				return e.TypeErr(output, v)
 			}
-			return strings.NewReader(output.Path.String() + "\n"), nil
-		},
+
+			fmt.Fprintln(w, output.Path.String())
+			return nil
+		}),
 	},
 	Type: ncmd.ResolvedPath{},
 }
