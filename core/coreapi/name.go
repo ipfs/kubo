@@ -119,9 +119,10 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		name = "/ipns/" + name
 	}
 
-	var ropts []nsopts.ResolveOpt
-	if !options.Recursive {
-		ropts = append(ropts, nsopts.Depth(1))
+	ropts := []nsopts.ResolveOpt{
+		nsopts.Depth(uint(options.Depth)),
+		nsopts.DhtRecordCount(uint(options.DhtRecordCount)),
+		nsopts.DhtTimeout(options.DhtTimeout),
 	}
 
 	output, err := resolver.Resolve(ctx, name, ropts...)
