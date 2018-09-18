@@ -344,7 +344,7 @@ var filesCpCmd = &oldcmds.Command{
 		if flush {
 			err := mfs.FlushPath(node.FilesRoot, dst)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
+				res.SetError(fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err), cmdkit.ErrNormal)
 				return
 			}
 		}
