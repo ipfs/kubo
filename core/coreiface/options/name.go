@@ -14,9 +14,12 @@ type NamePublishSettings struct {
 }
 
 type NameResolveSettings struct {
-	Recursive bool
-	Local     bool
-	Cache     bool
+	Depth int
+	Local bool
+	Cache bool
+
+	DhtRecordCount int
+	DhtTimeout     time.Duration
 }
 
 type NamePublishOption func(*NamePublishSettings) error
@@ -40,9 +43,12 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 
 func NameResolveOptions(opts ...NameResolveOption) (*NameResolveSettings, error) {
 	options := &NameResolveSettings{
-		Recursive: false,
-		Local:     false,
-		Cache:     true,
+		Depth: 1,
+		Local: false,
+		Cache: true,
+
+		DhtRecordCount: 16,
+		DhtTimeout:     time.Minute,
 	}
 
 	for _, opt := range opts {
@@ -80,11 +86,11 @@ func (nameOpts) Key(key string) NamePublishOption {
 	}
 }
 
-// Recursive is an option for Name.Resolve which specifies whether to perform a
+// Depth is an option for Name.Resolve which specifies the maximum depth of a
 // recursive lookup. Default value is false
-func (nameOpts) Recursive(recursive bool) NameResolveOption {
+func (nameOpts) Depth(depth int) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
-		settings.Recursive = recursive
+		settings.Depth = depth
 		return nil
 	}
 }
@@ -103,6 +109,25 @@ func (nameOpts) Local(local bool) NameResolveOption {
 func (nameOpts) Cache(cache bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Cache = cache
+		return nil
+	}
+}
+
+// DhtRecordCount is an option for Name.Resolve which specifies how many records
+// we want to validate before selecting the best one (newest). Note that setting
+// this value too low will have security implications
+func (nameOpts) DhtRecordCount(rc int) NameResolveOption {
+	return func(settings *NameResolveSettings) error {
+		settings.DhtRecordCount = rc
+		return nil
+	}
+}
+
+// DhtTimeout is an option for Name.Resolve which specifies timeout for
+// DHT lookup
+func (nameOpts) DhtTimeout(timeout time.Duration) NameResolveOption {
+	return func(settings *NameResolveSettings) error {
+		settings.DhtTimeout = timeout
 		return nil
 	}
 }
