@@ -62,7 +62,7 @@ test_expect_success "GET IPFS non existent file returns code expected (404)" '
 '
 
 test_expect_failure "GET IPNS path succeeds" '
-  ipfs name publish "$HASH" &&
+  ipfs name publish --allow-offline "$HASH" &&
   PEERID=$(ipfs config Identity.PeerID) &&
   test_check_peerid "$PEERID" &&
   curl -sfo actual "http://127.0.0.1:$port/ipns/$PEERID"

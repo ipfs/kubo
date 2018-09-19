@@ -19,6 +19,21 @@ import (
 	path "gx/ipfs/QmX7uSbkNz76yNwBhuwYwRbhihLnJqM73VTCjS3UMJud9A/go-path"
 )
 
+var (
+	errAllowOffline = errors.New("can't publish while offline: pass `--allow-offline` to override")
+	errIpnsMount    = errors.New("cannot manually publish while IPNS is mounted")
+	errIdentityLoad = errors.New("identity not loaded")
+)
+
+const (
+	ipfsPathOptionName     = "ipfs-path"
+	resolveOptionName      = "resolve"
+	allowOfflineOptionName = "allow-offline"
+	lifeTimeOptionName     = "lifetime"
+	ttlOptionName          = "ttl"
+	keyOptionName          = "key"
+)
+
 var PublishCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Publish IPNS names.",
@@ -60,16 +75,17 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 	},
 
 	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", true, false, "ipfs path of the object to be published.").EnableStdin(),
+		cmdkit.StringArg(ipfsPathOptionName, true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("resolve", "Resolve given path before publishing.").WithDefault(true),
-		cmdkit.StringOption("lifetime", "t",
+		cmdkit.BoolOption(resolveOptionName, "Resolve given path before publishing.").WithDefault(true),
+		cmdkit.StringOption(lifeTimeOptionName, "t",
 			`Time duration that the record will be valid for. <<default>>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("24h"),
-		cmdkit.StringOption("ttl", "Time duration this record should be cached for (caution: experimental)."),
-		cmdkit.StringOption("key", "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'. Default: <<default>>.").WithDefault("self"),
+		cmdkit.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
+		cmdkit.StringOption(ttlOptionName, "Time duration this record should be cached for (caution: experimental)."),
+		cmdkit.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'. Default: <<default>>.").WithDefault("self"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
 		n, err := cmdenv.GetNode(env)
@@ -78,7 +94,12 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			return
 		}
 
+		allowOffline, _ := req.Options[allowOfflineOptionName].(bool)
 		if !n.OnlineMode() {
+			if !allowOffline {
+				res.SetError(errAllowOffline, cmdkit.ErrNormal)
+				return
+			}
 			err := n.SetupOfflineRouting()
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -87,22 +108,22 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		}
 
 		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
-			res.SetError(errors.New("cannot manually publish while IPNS is mounted"), cmdkit.ErrNormal)
+			res.SetError(errIpnsMount, cmdkit.ErrNormal)
 			return
 		}
 
 		pstr := req.Arguments[0]
 
 		if n.Identity == "" {
-			res.SetError(errors.New("identity not loaded"), cmdkit.ErrNormal)
+			res.SetError(errIdentityLoad, cmdkit.ErrNormal)
 			return
 		}
 
 		popts := new(publishOpts)
 
-		popts.verifyExists, _ = req.Options["resolve"].(bool)
+		popts.verifyExists, _ = req.Options[resolveOptionName].(bool)
 
-		validtime, _ := req.Options["lifetime"].(string)
+		validtime, _ := req.Options[lifeTimeOptionName].(string)
 		d, err := time.ParseDuration(validtime)
 		if err != nil {
 			res.SetError(fmt.Errorf("error parsing lifetime option: %s", err), cmdkit.ErrNormal)
@@ -112,7 +133,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		popts.pubValidTime = d
 
 		ctx := req.Context
-		if ttl, found := req.Options["ttl"].(string); found {
+		if ttl, found := req.Options[ttlOptionName].(string); found {
 			d, err := time.ParseDuration(ttl)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -122,7 +143,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			ctx = context.WithValue(ctx, "ipns-publish-ttl", d)
 		}
 
-		kname, _ := req.Options["key"].(string)
+		kname, _ := req.Options[keyOptionName].(string)
 		k, err := keylookup(n, kname)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
