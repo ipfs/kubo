@@ -86,9 +86,7 @@ The output is:
 
 				r, ok := v.(*filestore.ListRes)
 				if !ok {
-					// TODO or just return that error? why didn't we do that before?
-					log.Error(e.New(e.TypeErr(r, v)))
-					break
+					return e.New(e.TypeErr(r, v))
 				}
 
 				if r.ErrorMsg != "" {

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -99,7 +100,7 @@ order to reclaim hard disk space.
 					}
 				}
 				if errs {
-					outChan <- &GcResult{Error: "encountered errors during gc run"}
+					res.SetError(errors.New("encountered errors during gc run"), cmdkit.ErrNormal)
 				}
 			} else {
 				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k cid.Cid) {
