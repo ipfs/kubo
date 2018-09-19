@@ -292,3 +292,13 @@ func (h *CidBaseHandler) EncoderFromPath(p string) cidenc.Encoder {
 		return *h.enc
 	}
 }
+
+func (h *CidBaseHandler) EncoderWithOverride() cidenc.Interface {
+	if h.base == "" {
+		enc := cidenc.NewOverride(*h.enc)
+		enc.Add(h.args...)
+		return enc
+	} else {
+		return *h.enc
+	}
+}

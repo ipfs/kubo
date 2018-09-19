@@ -123,7 +123,7 @@ NOTE: List all references recursively by using the flag '-r'.
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		enc := h.Encoder()
+		enc := h.EncoderWithOverride()
 
 		objs, err := objectsForPaths(ctx, n, req.Arguments())
 		if err != nil {
