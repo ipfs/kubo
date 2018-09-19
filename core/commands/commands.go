@@ -13,7 +13,7 @@ import (
 
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
-	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	cmds "gx/ipfs/QmPXR4tNdLbp8HsZiPMjpsgqphX9Vhw2J6Jh5MKH2ovW3D/go-ipfs-cmds"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
 
@@ -68,13 +68,10 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		Options: []cmdkit.Option{
 			cmdkit.BoolOption(flagsOptionName, "f", "Show command flags"),
 		},
-		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 			rootCmd := cmd2outputCmd("ipfs", root)
 			rootCmd.showOpts, _ = req.Options[flagsOptionName].(bool)
-			err := cmds.EmitOnce(res, &rootCmd)
-			if err != nil {
-				log.Error(err)
-			}
+			return cmds.EmitOnce(res, &rootCmd)
 		},
 		Encoders: cmds.EncoderMap{
 			cmds.Text: func(req *cmds.Request) func(io.Writer) cmds.Encoder {

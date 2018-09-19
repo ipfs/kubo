@@ -12,7 +12,7 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
-	cmds "gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
+	cmds "gx/ipfs/QmPXR4tNdLbp8HsZiPMjpsgqphX9Vhw2J6Jh5MKH2ovW3D/go-ipfs-cmds"
 	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	offline "gx/ipfs/QmSNe4MWVxZWk6UxxW2z2EKofFo4GdFzud1vfn1iVby3mj/go-ipfs-routing/offline"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
@@ -79,18 +79,16 @@ Resolve the value of a dnslink:
 		cmdkit.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
 		cmdkit.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !n.OnlineMode() {
 			err := n.SetupOfflineRouting()
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
@@ -101,8 +99,7 @@ Resolve the value of a dnslink:
 		var resolver namesys.Resolver = n.Namesys
 
 		if local && nocache {
-			res.SetError(errors.New("cannot specify both local and nocache"), cmdkit.ErrNormal)
-			return
+			return errors.New("cannot specify both local and nocache")
 		}
 
 		if local {
@@ -117,8 +114,7 @@ Resolve the value of a dnslink:
 		var name string
 		if len(req.Arguments) == 0 {
 			if n.Identity == "" {
-				res.SetError(errors.New("identity not loaded"), cmdkit.ErrNormal)
-				return
+				return errors.New("identity not loaded")
 			}
 			name = n.Identity.Pretty()
 
@@ -140,12 +136,10 @@ Resolve the value of a dnslink:
 		if dhttok {
 			d, err := time.ParseDuration(dhtt)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 			if d < 0 {
-				res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
-				return
+				return errors.New("DHT timeout value must be >= 0")
 			}
 			ropts = append(ropts, nsopts.DhtTimeout(d))
 		}
@@ -156,13 +150,11 @@ Resolve the value of a dnslink:
 
 		output, err := resolver.Resolve(req.Context, name, ropts...)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		// TODO: better errors (in the case of not finding the name, we get "failed to find any peer in table")
-
-		cmds.EmitOnce(res, &ResolvedPath{output})
+		return cmds.EmitOnce(res, &ResolvedPath{output})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
