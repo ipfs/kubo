@@ -10,6 +10,8 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
@@ -100,6 +102,9 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 	defer catter.Close()
+
+	catterApi := coreapi.NewCoreAPI(catter)
+
 	mn.LinkAll()
 
 	bis := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
@@ -116,7 +121,12 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	readerCatted, err := coreunix.Cat(ctx, catter, added)
+	ap, err := iface.ParsePath(added)
+	if err != nil {
+		return err
+	}
+
+	readerCatted, err := catterApi.Unixfs().Cat(ctx, ap)
 	if err != nil {
 		return err
 	}

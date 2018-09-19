@@ -6,9 +6,8 @@ import (
 	"io"
 	"os"
 
-	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
@@ -31,6 +30,11 @@ var CatCmd = &cmds.Command{
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		api, err := cmdenv.GetApi(env)
 		if err != nil {
 			return err
 		}
@@ -62,7 +66,7 @@ var CatCmd = &cmds.Command{
 			return err
 		}
 
-		readers, length, err := cat(req.Context, node, req.Arguments, int64(offset), int64(max))
+		readers, length, err := cat(req.Context, api, req.Arguments, int64(offset), int64(max))
 		if err != nil {
 			return err
 		}
@@ -115,14 +119,19 @@ var CatCmd = &cmds.Command{
 	},
 }
 
-func cat(ctx context.Context, node *core.IpfsNode, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
+func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	if max == 0 {
 		return nil, 0, nil
 	}
-	for _, fpath := range paths {
-		read, err := coreunix.Cat(ctx, node, fpath)
+	for _, p := range paths {
+		fpath, err := iface.ParsePath(p)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		read, err := api.Unixfs().Cat(ctx, fpath)
 		if err != nil {
 			return nil, 0, err
 		}
