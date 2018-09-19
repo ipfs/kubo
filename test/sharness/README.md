@@ -16,6 +16,13 @@ The usual ipfs env flags also apply:
 IPFS_LOGGING=debug TEST_VERBOSE=1 make
 ```
 
+To make the tests abort as soon as an error occurs, use the TEST_IMMEDIATE env variable:
+
+```sh
+# this will abort as soon the first error occurs
+TEST_IMMEDIATE=1 make
+```
+
 ## Running just one test
 
 You can run only one test script by launching it like a regular shell
