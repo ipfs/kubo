@@ -21,7 +21,7 @@ import (
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
-	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
+	mfs "gx/ipfs/QmaxgEmTteUHnA1PQrKwHqHme1WQg3Fep9AmdbUGa4t6Wf/go-mfs"
 	cidutil "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil"
 	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )

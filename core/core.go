@@ -65,7 +65,7 @@ import (
 	dht "gx/ipfs/QmZVakpN44VAUxs9eXAuUGLFYTCGmSyqSy6hyEKfMv68ME/go-libp2p-kad-dht"
 	dhtopts "gx/ipfs/QmZVakpN44VAUxs9eXAuUGLFYTCGmSyqSy6hyEKfMv68ME/go-libp2p-kad-dht/opts"
 	pnet "gx/ipfs/QmZaQ3K9PRd5sYYoG1xbTGPtd3N7TYiKBRmcBUTsx8HVET/go-libp2p-pnet"
-	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
+	mfs "gx/ipfs/QmaxgEmTteUHnA1PQrKwHqHme1WQg3Fep9AmdbUGa4t6Wf/go-mfs"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 	merkledag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 	bserv "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"

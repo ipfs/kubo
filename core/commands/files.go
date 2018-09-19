@@ -30,7 +30,7 @@ import (
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
+	mfs "gx/ipfs/QmaxgEmTteUHnA1PQrKwHqHme1WQg3Fep9AmdbUGa4t6Wf/go-mfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
 )
@@ -482,7 +482,7 @@ Examples:
 					res.SetError(err, cmdkit.ErrNormal)
 					return
 				}
-				out.Entries[0].Hash = nd.Cid().String()
+				out.Entries[0].Hash = apicid.FromCid(nd.Cid())
 			}
 			res.SetOutput(out)
 			return
