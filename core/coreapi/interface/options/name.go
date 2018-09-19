@@ -2,6 +2,8 @@ package options
 
 import (
 	"time"
+
+	ropts "github.com/ipfs/go-ipfs/namesys/opts"
 )
 
 const (
@@ -14,12 +16,10 @@ type NamePublishSettings struct {
 }
 
 type NameResolveSettings struct {
-	Depth int
 	Local bool
 	Cache bool
 
-	DhtRecordCount int
-	DhtTimeout     time.Duration
+	ResolveOpts []ropts.ResolveOpt
 }
 
 type NamePublishOption func(*NamePublishSettings) error
@@ -43,12 +43,8 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 
 func NameResolveOptions(opts ...NameResolveOption) (*NameResolveSettings, error) {
 	options := &NameResolveSettings{
-		Depth: 1,
 		Local: false,
 		Cache: true,
-
-		DhtRecordCount: 16,
-		DhtTimeout:     time.Minute,
 	}
 
 	for _, opt := range opts {
@@ -86,15 +82,6 @@ func (nameOpts) Key(key string) NamePublishOption {
 	}
 }
 
-// Depth is an option for Name.Resolve which specifies the maximum depth of a
-// recursive lookup. Default value is false
-func (nameOpts) Depth(depth int) NameResolveOption {
-	return func(settings *NameResolveSettings) error {
-		settings.Depth = depth
-		return nil
-	}
-}
-
 // Local is an option for Name.Resolve which specifies if the lookup should be
 // offline. Default value is false
 func (nameOpts) Local(local bool) NameResolveOption {
@@ -113,21 +100,10 @@ func (nameOpts) Cache(cache bool) NameResolveOption {
 	}
 }
 
-// DhtRecordCount is an option for Name.Resolve which specifies how many records
-// we want to validate before selecting the best one (newest). Note that setting
-// this value too low will have security implications
-func (nameOpts) DhtRecordCount(rc int) NameResolveOption {
+//
+func (nameOpts) ResolveOption(opt ropts.ResolveOpt) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
-		settings.DhtRecordCount = rc
-		return nil
-	}
-}
-
-// DhtTimeout is an option for Name.Resolve which specifies timeout for
-// DHT lookup
-func (nameOpts) DhtTimeout(timeout time.Duration) NameResolveOption {
-	return func(settings *NameResolveSettings) error {
-		settings.DhtTimeout = timeout
+		settings.ResolveOpts = append(settings.ResolveOpts, opt)
 		return nil
 	}
 }

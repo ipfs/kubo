@@ -11,8 +11,9 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	ns "github.com/ipfs/go-ipfs/namesys"
+	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "gx/ipfs/QmX7uSbkNz76yNwBhuwYwRbhihLnJqM73VTCjS3UMJud9A/go-path"
 
 	"gx/ipfs/QmPTfgFTo9PFr1PvPKyKoeMgBvYPh6cX3aDP7DHKVbnCbi/go-ipfs-cmds"
@@ -93,12 +94,14 @@ Resolve the value of an IPFS DAG path:
 
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
-			rc, rcok := req.Options["dht-record-count"].(int)
+			rc, rcok := req.Options["dht-record-count"].(uint)
 			dhtt, dhttok := req.Options["dht-timeout"].(string)
-			ropts := []options.NameResolveOption{options.Name.Depth(1)}
+			ropts := []options.NameResolveOption{
+				options.Name.ResolveOption(nsopts.Depth(1)),
+			}
 
 			if rcok {
-				ropts = append(ropts, options.Name.DhtRecordCount(rc))
+				ropts = append(ropts, options.Name.ResolveOption(nsopts.DhtRecordCount(rc)))
 			}
 			if dhttok {
 				d, err := time.ParseDuration(dhtt)
@@ -110,7 +113,7 @@ Resolve the value of an IPFS DAG path:
 					res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
 					return
 				}
-				ropts = append(ropts, options.Name.DhtTimeout(d))
+				ropts = append(ropts, options.Name.ResolveOption(nsopts.DhtTimeout(d)))
 			}
 			p, err := api.Name().Resolve(req.Context, name, ropts...)
 			// ErrResolveRecursion is fine
