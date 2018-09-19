@@ -32,7 +32,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.ResolvedP
 func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
 	dget := api.node.DAG // TODO: use a session here once routing perf issues are resolved
 
-	dagnode, err := resolveNode(ctx, dget, api.node.Namesys, p)
+	dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,8 @@ package options
 
 import (
 	"time"
+
+	ropts "github.com/ipfs/go-ipfs/namesys/opts"
 )
 
 const (
@@ -14,9 +16,10 @@ type NamePublishSettings struct {
 }
 
 type NameResolveSettings struct {
-	Recursive bool
-	Local     bool
-	Cache     bool
+	Local bool
+	Cache bool
+
+	ResolveOpts []ropts.ResolveOpt
 }
 
 type NamePublishOption func(*NamePublishSettings) error
@@ -40,9 +43,8 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 
 func NameResolveOptions(opts ...NameResolveOption) (*NameResolveSettings, error) {
 	options := &NameResolveSettings{
-		Recursive: false,
-		Local:     false,
-		Cache:     true,
+		Local: false,
+		Cache: true,
 	}
 
 	for _, opt := range opts {
@@ -80,15 +82,6 @@ func (nameOpts) Key(key string) NamePublishOption {
 	}
 }
 
-// Recursive is an option for Name.Resolve which specifies whether to perform a
-// recursive lookup. Default value is false
-func (nameOpts) Recursive(recursive bool) NameResolveOption {
-	return func(settings *NameResolveSettings) error {
-		settings.Recursive = recursive
-		return nil
-	}
-}
-
 // Local is an option for Name.Resolve which specifies if the lookup should be
 // offline. Default value is false
 func (nameOpts) Local(local bool) NameResolveOption {
@@ -103,6 +96,14 @@ func (nameOpts) Local(local bool) NameResolveOption {
 func (nameOpts) Cache(cache bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Cache = cache
+		return nil
+	}
+}
+
+//
+func (nameOpts) ResolveOption(opt ropts.ResolveOpt) NameResolveOption {
+	return func(settings *NameResolveSettings) error {
+		settings.ResolveOpts = append(settings.ResolveOpts, opt)
 		return nil
 	}
 }

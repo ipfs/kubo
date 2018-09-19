@@ -135,7 +135,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"ping":      lgc.NewCommand(PingCmd),
 	"p2p":       lgc.NewCommand(P2PCmd),
 	"refs":      lgc.NewCommand(RefsCmd),
-	"resolve":   lgc.NewCommand(ResolveCmd),
+	"resolve":   ResolveCmd,
 	"swarm":     lgc.NewCommand(SwarmCmd),
 	"tar":       lgc.NewCommand(TarCmd),
 	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
@@ -183,7 +183,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"resolve": dag.DagResolveCmd,
 		},
 	}),
-	"resolve": lgc.NewCommand(ResolveCmd),
+	"resolve": ResolveCmd,
 	"version": lgc.NewCommand(VersionCmd),
 }
 
