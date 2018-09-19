@@ -155,53 +155,40 @@ var RefsROCmd = &oldcmds.Command{}
 var rootROSubcommands = map[string]*cmds.Command{
 	"commands": CommandsDaemonROCmd,
 	"cat":      CatCmd,
-	"block": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"stat": blockStatCmd,
-			"get":  blockGetCmd,
-		},
-	},
-	"get": GetCmd,
-	"dns": lgc.NewCommand(DNSCmd),
-	"ls":  lgc.NewCommand(LsCmd),
-	"name": &cmds.Command{
-		Subcommands: map[string]*cmds.Command{
-			"resolve": name.IpnsCmd,
-		},
-	},
-	"object": lgc.NewCommand(&oldcmds.Command{
-		Subcommands: map[string]*oldcmds.Command{
-			"data":  ocmd.ObjectDataCmd,
-			"links": ocmd.ObjectLinksCmd,
-			"get":   ocmd.ObjectGetCmd,
-			"stat":  ocmd.ObjectStatCmd,
-		},
-	}),
-	"dag": lgc.NewCommand(&oldcmds.Command{
-		Subcommands: map[string]*oldcmds.Command{
-			"get":     dag.DagGetCmd,
-			"resolve": dag.DagResolveCmd,
-		},
-	}),
-	"resolve": lgc.NewCommand(ResolveCmd),
-	"version": lgc.NewCommand(VersionCmd),
+	"block":    whitelistSubcommands(BlockCmd, "stat", "get"),
+	"get":      GetCmd,
+	"dns":      lgc.NewCommand(DNSCmd),
+	"ls":       lgc.NewCommand(LsCmd),
+	"name":     whitelistSubcommands(name.NameCmd, "resolve"),
+	"object":   whitelistSubcommands(ocmd.ObjectCmd, "data", "links", "get", "stat"),
+	"dag":      whitelistSubcommands(lgc.NewCommand(dag.DagCmd), "get", "resolve"),
+	"refs":     whitelistSubcommands(lgc.NewCommand(RefsCmd)), // empty whitelist, forbid all subcmds
+	"resolve":  lgc.NewCommand(ResolveCmd),
+	"version":  lgc.NewCommand(VersionCmd),
+}
+
+func whitelistSubcommands(cmd *cmds.Command, whitelist ...string) *cmds.Command {
+	newCmd := *cmd
+	newCmd.Subcommands = make(map[string]*cmds.Command)
+
+	for _, cmdName := range whitelist {
+		sub, ok := cmd.Subcommands[cmdName]
+		if !ok {
+			log.Error("subcommand %q whitelisted but not found")
+			continue
+		}
+
+		newCmd.Subcommands[cmdName] = sub
+	}
+
+	return &newCmd
 }
 
 func init() {
 	Root.ProcessHelp()
 	*RootRO = *Root
 
-	// sanitize readonly refs command
-	*RefsROCmd = *RefsCmd
-	RefsROCmd.Subcommands = map[string]*oldcmds.Command{}
-
-	// this was in the big map definition above before,
-	// but if we leave it there lgc.NewCommand will be executed
-	// before the value is updated (:/sanitize readonly refs command/)
-	rootROSubcommands["refs"] = lgc.NewCommand(RefsROCmd)
-
 	Root.Subcommands = rootSubcommands
-
 	RootRO.Subcommands = rootROSubcommands
 }
 
