@@ -774,7 +774,8 @@ func (n *IpfsNode) LoadPrivateKey() error {
 	}
 
 	if n.PrivateKey != nil {
-		return errors.New("private key already loaded")
+		log.Warning("private key already loaded")
+		return nil
 	}
 
 	cfg, err := n.Repo.Config()
