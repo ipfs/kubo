@@ -68,24 +68,21 @@ Resolve the value of an IPFS DAG path:
 		cmdkit.IntOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
 		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !n.OnlineMode() {
 			err := n.SetupOfflineRouting()
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
@@ -106,41 +103,35 @@ Resolve the value of an IPFS DAG path:
 			if dhttok {
 				d, err := time.ParseDuration(dhtt)
 				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
+					return err
 				}
 				if d < 0 {
-					res.SetError(errors.New("DHT timeout value must be >= 0"), cmdkit.ErrNormal)
-					return
+					return errors.New("DHT timeout value must be >= 0")
 				}
 				ropts = append(ropts, options.Name.ResolveOption(nsopts.DhtTimeout(d)))
 			}
 			p, err := api.Name().Resolve(req.Context, name, ropts...)
 			// ErrResolveRecursion is fine
 			if err != nil && err != ns.ErrResolveRecursion {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
-			cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path(p.String())})
-			return
+			return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path(p.String())})
 		}
 
 		// else, ipfs path or ipns with recursive flag
 		p, err := coreiface.ParsePath(name)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		rp, err := api.ResolvePath(req.Context, p)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		c := rp.Cid()
 
-		cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.FromCid(c)})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.FromCid(c)})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
