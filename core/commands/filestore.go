@@ -72,7 +72,7 @@ The output is:
 		return res.Emit(out)
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: streamResults(func(v interface{}, out io.Writer) nonFatalError {
+		cmds.CLI: streamResult(func(v interface{}, out io.Writer) nonFatalError {
 			r := v.(*filestore.ListRes)
 			if r.ErrorMsg != "" {
 				return nonFatalError(r.ErrorMsg)

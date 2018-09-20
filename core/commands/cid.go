@@ -84,7 +84,7 @@ The optional format string is a printf style format string:
 		return emitCids(req, resp, opts)
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: streamResults(func(v interface{}, out io.Writer) nonFatalError {
+		cmds.CLI: streamResult(func(v interface{}, out io.Writer) nonFatalError {
 			r := v.(*CidFormatRes)
 			if r.ErrorMsg != "" {
 				return nonFatalError(fmt.Sprintf("%s: %s", r.CidStr, r.ErrorMsg))
