@@ -204,6 +204,13 @@ func TestAdd(t *testing.T) {
 			path: "/ipfs/QmNNhDGttafX3M1wKWixGre6PrLFGjnoPEDXjBYpTv93HP",
 			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.Layout(options.TrickleLeyout)},
 		},
+		// Local
+		{
+			name: "addLocal", // better cases in sharness
+			data: helloStr,
+			path: hello,
+			opts: []options.UnixfsAddOption{options.Unixfs.Local(true)},
+		},
 	}
 
 	for _, testCase := range cases {
@@ -241,6 +248,55 @@ func TestAdd(t *testing.T) {
 				t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
 			}
 		})
+	}
+}
+
+func TestAddPinned(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	str := strings.NewReader(helloStr)
+	_, err = api.Unixfs().Add(ctx, ioutil.NopCloser(str), options.Unixfs.Pin(true))
+	if err != nil {
+		t.Error(err)
+	}
+
+	pins, err := api.Pin().Ls(ctx)
+	if len(pins) != 1 {
+		t.Fatalf("expected 1 pin, got %d", len(pins))
+	}
+
+	if pins[0].Path().String() != "/ipld/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk" {
+		t.Fatalf("got unexpected pin: %s", pins[0].Path().String())
+	}
+}
+
+func TestAddHashOnly(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	str := strings.NewReader(helloStr)
+	p, err := api.Unixfs().Add(ctx, ioutil.NopCloser(str), options.Unixfs.HashOnly(true))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if p.String() != hello {
+		t.Errorf("unxepected path: %s", p.String())
+	}
+
+	_, err = api.Block().Get(ctx, p)
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if err.Error() != "blockservice: key not found" {
+		t.Errorf("unxepected error: %s", err.Error())
 	}
 }
 

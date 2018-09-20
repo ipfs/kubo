@@ -21,6 +21,10 @@ type UnixfsAddSettings struct {
 
 	Chunker string
 	Layout  Layout
+
+	Pin      bool
+	OnlyHash bool
+	Local    bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -36,6 +40,10 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, error) {
 
 		Chunker: "size-262144",
 		Layout:  BalancedLayout,
+
+		Pin:      false,
+		OnlyHash: false,
+		Local:    false,
 	}
 
 	for _, opt := range opts {
@@ -91,6 +99,27 @@ func (unixfsOpts) Chunker(chunker string) UnixfsAddOption {
 func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Layout = layout
+		return nil
+	}
+}
+
+func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Pin = pin
+		return nil
+	}
+}
+
+func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.OnlyHash = hashOnly
+		return nil
+	}
+}
+
+func (unixfsOpts) Local(local bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Local = local
 		return nil
 	}
 }

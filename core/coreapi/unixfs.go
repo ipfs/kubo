@@ -4,18 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core"
 	"io"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 
-	uio "gx/ipfs/QmPL8bYtbACcSFFiSr4s2du7Na382NxRADR8hC7D9FkEA2/go-unixfs/io"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
+	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
+	ft "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
+	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
+	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
 	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
+	dagtest "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag/test"
+	blockservice "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
 type UnixfsAPI CoreAPI
@@ -59,7 +66,33 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	prefix.MhType = settings.MhType
 	prefix.MhLength = -1
 
-	fileAdder, err := coreunix.NewAdder(ctx, api.node.Pinning, api.node.Blockstore, api.node.DAG)
+	n := api.node
+	if settings.OnlyHash {
+		nilnode, err := core.NewNode(ctx, &core.BuildCfg{
+			//TODO: need this to be true or all files
+			// hashed will be stored in memory!
+			NilRepo: true,
+		})
+		if err != nil {
+			return nil, err
+		}
+		n = nilnode
+	}
+
+	addblockstore := n.Blockstore
+	//if !(fscache || nocopy) {
+	addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
+	//}
+
+	exch := n.Exchange
+	if settings.Local {
+		exch = offline.Exchange(addblockstore)
+	}
+
+	bserv := blockservice.New(addblockstore, exch) // hash security 001
+	dserv := dag.NewDAGService(bserv)
+
+	fileAdder, err := coreunix.NewAdder(ctx, n.Pinning, n.Blockstore, dserv)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +101,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	//fileAdder.Progress = progress
 	//fileAdder.Hidden = hidden
 	//fileAdder.Wrap = wrap
-	//fileAdder.Pin = dopin
+	fileAdder.Pin = settings.Pin
 	fileAdder.Silent = true
 	fileAdder.RawLeaves = settings.RawLeaves
 	//fileAdder.NoCopy = nocopy
@@ -91,6 +124,19 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 		}
 	}
 
+	if settings.OnlyHash {
+		md := dagtest.Mock()
+		emptyDirNode := ft.EmptyDirNode()
+		// Use the same prefix for the "empty" MFS root as for the file adder.
+		emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
+		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		fileAdder.SetMfsRoot(mr)
+	}
+
 	err = fileAdder.AddFile(files.NewReaderFile("", "", r, nil))
 	if err != nil {
 		return nil, err
@@ -101,8 +147,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 		return nil, err
 	}
 
-	return coreiface.IpfsPath(nd.Cid()), err
+	if settings.Pin {
+		err = fileAdder.PinRoot()
+	}
 
+	return coreiface.IpfsPath(nd.Cid()), err
 }
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
