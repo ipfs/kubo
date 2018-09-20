@@ -13,7 +13,7 @@ type Layout int
 
 const (
 	BalancedLayout Layout = iota
-	TrickleLeyout
+	TrickleLayout
 )
 
 type UnixfsAddSettings struct {
@@ -95,6 +95,8 @@ type unixfsOpts struct{}
 
 var Unixfs unixfsOpts
 
+// CidVersion specifies which CID version to use. Defaults to 0 unless an option
+// that depends on CIDv1 is passed.
 func (unixfsOpts) CidVersion(version int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.CidVersion = version
@@ -102,6 +104,9 @@ func (unixfsOpts) CidVersion(version int) UnixfsAddOption {
 	}
 }
 
+// Hash function to use. Implies CIDv1 if not set to sha2-256 (default).
+//
+// Table of functions is declared in https://github.com/multiformats/go-multihash/blob/master/multihash.go
 func (unixfsOpts) Hash(mhtype uint64) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.MhType = mhtype
@@ -109,6 +114,8 @@ func (unixfsOpts) Hash(mhtype uint64) UnixfsAddOption {
 	}
 }
 
+// RawLeaves specifies whether to use raw blocks for leaves (data nodes with no
+// links) instead of wrapping them with unixfs structures.
 func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.RawLeaves = enable
@@ -117,6 +124,11 @@ func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 	}
 }
 
+// InlineLimit sets the amount of bytes below which blocks will be encoded
+// directly into CID instead of being stored and addressed by it's hash
+//
+// Note that while there is no hard limit on the number of bytes here, it should
+// be kept at something reasonably low like 32b (default for 'ipfs add')
 func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.InlineLimit = limit
@@ -124,6 +136,11 @@ func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
 	}
 }
 
+// Chunker specifies settings for the chunking algorithm to use.
+//
+// Default: size-262144, formats:
+// size-[bytes] - Simple chunker splitting data into blocks of n bytes
+// rabin-[min]-[avg]-[max] - Rabin chunker
 func (unixfsOpts) Chunker(chunker string) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Chunker = chunker
@@ -131,6 +148,10 @@ func (unixfsOpts) Chunker(chunker string) UnixfsAddOption {
 	}
 }
 
+// Layout tells the adder how to balance data between leaves.
+// options.BalancedLayout is the default, it's optimized for static seekable
+// files.
+// options.TrickleLayout is optimized for streaming data,
 func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Layout = layout
@@ -138,6 +159,7 @@ func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
 	}
 }
 
+// Pin tells the adder to pin the file root recursively after adding
 func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Pin = pin
@@ -145,6 +167,8 @@ func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
 	}
 }
 
+// HashOnly will make the adder calculate data hash without storing it in the
+// blockstore or announcing it to the network
 func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.OnlyHash = hashOnly
@@ -152,6 +176,9 @@ func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 	}
 }
 
+// Local will add the data to blockstore without announcing it to the network
+//
+// Note that this doesn't prevent other nodes from getting this data
 func (unixfsOpts) Local(local bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Local = local
