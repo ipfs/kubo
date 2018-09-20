@@ -140,6 +140,7 @@ func TestAdd(t *testing.T) {
 		err  string
 		opts []options.UnixfsAddOption
 	}{
+		// Simple cases
 		{
 			name: "simpleAdd",
 			data: helloStr,
@@ -151,12 +152,20 @@ func TestAdd(t *testing.T) {
 			data: "",
 			path: "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH",
 		},
+		// CIDv1 version / rawLeaves
 		{
 			name: "addCidV1",
 			data: helloStr,
 			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
 			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(1)},
 		},
+		{
+			name: "addCidV1NoLeaves",
+			data: helloStr,
+			path: "/ipfs/zdj7WY4GbN8NDbTW1dfCShAQNVovams2xhq9hVCx5vXcjvT8g",
+			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(1), options.Unixfs.RawLeaves(false)},
+		},
+		// Non sha256 hash vs CID
 		{
 			name: "addCidSha3",
 			data: helloStr,
@@ -168,6 +177,19 @@ func TestAdd(t *testing.T) {
 			data: helloStr,
 			err:  "CIDv0 only supports sha2-256",
 			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(0), options.Unixfs.Hash(mh.SHA3_256)},
+		},
+		// Inline
+		{
+			name: "addInline",
+			data: helloStr,
+			path: "/ipfs/zaYomJdLndMku8P9LHngHB5w2CQ7NenLbv",
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32)},
+		},
+		{ //TODO: after coreapi add is used in `ipfs add`, consider making this default for inline
+			name: "addInlineRaw",
+			data: helloStr,
+			path: "/ipfs/zj7Gr8AcBreqGEfrnR5kPFe",
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.RawLeaves(true)},
 		},
 	}
 
