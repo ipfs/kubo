@@ -29,6 +29,8 @@ type LsLink struct {
 
 type LsObject struct {
 	Hash  string
+	Size  uint64
+	Type  string
 	Links []LsLink
 }
 
@@ -116,60 +118,94 @@ The JSON output contains type information.
 		ro := merkledag.NewReadOnlyDagService(ng)
 
 		for i, dagnode := range dagnodes {
-			dir, err := uio.NewDirectoryFromNode(ro, dagnode)
-			if err != nil && err != uio.ErrNotADir {
-				res.SetError(fmt.Errorf("the data in %s (at %q) is not a UnixFS directory: %s", dagnode.Cid(), paths[i], err), cmdkit.ErrNormal)
+			dagp, ok := dagnode.(*merkledag.ProtoNode)
+			if !ok {
+				res.SetError(merkledag.ErrNotProtobuf, cmdkit.ErrNormal)
 				return
 			}
 
-			var links []*ipld.Link
-			if dir == nil {
-				links = dagnode.Links()
-			} else {
-				links, err = dir.Links(req.Context())
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
+			fsn, err := unixfs.FSNodeFromBytes(dagp.Data())
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
+			}
+
+			switch fsn.Type() {
+			case unixfs.TSymlink:
+				res.SetError(fmt.Errorf("cannot list symlinks yet"), cmdkit.ErrNormal)
+				return
+			case unixfs.THAMTShard:
+				res.SetError(fmt.Errorf("cannot list large directories yet"), cmdkit.ErrNormal)
+				return
+			case unixfs.TFile:
+				output[i] = LsObject{
+					Hash: paths[i],
+					Size: fsn.FileSize(),
+				}
+			case unixfs.TDirectory:
+				dir, err := uio.NewDirectoryFromNode(ro, dagnode)
+				if err != nil && err != uio.ErrNotADir {
+					res.SetError(fmt.Errorf("the data in %s (at %q) is not a UnixFS directory: %s", dagnode.Cid(), paths[i], err), cmdkit.ErrNormal)
 					return
 				}
-			}
-
-			output[i] = LsObject{
-				Hash:  paths[i],
-				Links: make([]LsLink, len(links)),
-			}
-
-			for j, link := range links {
-				t := unixfspb.Data_DataType(-1)
-
-				switch link.Cid.Type() {
-				case cid.Raw:
-					// No need to check with raw leaves
-					t = unixfs.TFile
-				case cid.DagProtobuf:
-					linkNode, err := link.GetNode(req.Context(), dserv)
-					if err == ipld.ErrNotFound && !resolve {
-						// not an error
-						linkNode = nil
-					} else if err != nil {
+				var links []*ipld.Link
+				if dir == nil {
+					links = dagnode.Links()
+				} else {
+					links, err = dir.Links(req.Context())
+					if err != nil {
 						res.SetError(err, cmdkit.ErrNormal)
 						return
 					}
+				}
 
-					if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-						d, err := unixfs.FSNodeFromBytes(pn.Data())
-						if err != nil {
+				output[i] = LsObject{
+					Hash:  paths[i],
+					Type:  fsn.Type().String(),
+					Links: make([]LsLink, len(links)),
+				}
+
+				for j, link := range links {
+					t := unixfspb.Data_DataType(-1)
+					size := uint64(0)
+					switch link.Cid.Type() {
+					case cid.Raw:
+						// No need to check with raw leaves
+						t = unixfs.TFile
+					case cid.DagProtobuf:
+						linkNode, err := link.GetNode(req.Context(), dserv)
+						if err == ipld.ErrNotFound && !resolve {
+							// not an error
+							linkNode = nil
+						} else if err != nil {
 							res.SetError(err, cmdkit.ErrNormal)
 							return
 						}
-						t = d.Type()
+
+						t = fsn.Type()
+						if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+							fsn, err := unixfs.FSNodeFromBytes(pn.Data())
+							if err != nil {
+								res.SetError(err, cmdkit.ErrNormal)
+								return
+							}
+							if t == unixfs.TFile {
+								size = fsn.FileSize()
+							} else {
+								size = link.Size
+							}
+						}
+					}
+					output[i].Links[j] = LsLink{
+						Name: link.Name,
+						Hash: link.Cid.String(),
+						Size: size,
+						Type: t,
 					}
 				}
-				output[i].Links[j] = LsLink{
-					Name: link.Name,
-					Hash: link.Cid.String(),
-					Size: link.Size,
-					Type: t,
-				}
+			default:
+				res.SetError(fmt.Errorf("unrecognized type: %s", fsn.Type()), cmdkit.ErrImplementation)
+				return
 			}
 		}
 
@@ -198,6 +234,12 @@ The JSON output contains type information.
 				if headers {
 					fmt.Fprintln(w, "Hash\tSize\tName")
 				}
+
+				// file object
+				if object.Hash != "" && object.Links == nil {
+					fmt.Fprintf(w, "%s\t%v\t\n", object.Hash, object.Size)
+				}
+
 				for _, link := range object.Links {
 					if link.Type == unixfs.TDirectory {
 						link.Name += "/"
