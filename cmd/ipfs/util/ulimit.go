@@ -45,19 +45,19 @@ func setMaxFds() {
 
 // ManageFdLimit raise the current max file descriptor count
 // of the process based on the IPFS_FD_MAX value
-func ManageFdLimit() error {
+func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 	if !supportsFDManagement {
-		return nil
+		return false, 0, nil
 	}
 
 	setMaxFds()
 	soft, hard, err := getLimit()
 	if err != nil {
-		return err
+		return false, 0, err
 	}
 
 	if maxFds <= soft {
-		return nil
+		return false, 0, nil
 	}
 
 	// the soft limit is the value that the kernel enforces for the
@@ -67,23 +67,21 @@ func ManageFdLimit() error {
 	// alue in the range from 0 up to the hard limit
 	if err = setLimit(maxFds, maxFds); err != nil {
 		if err != syscall.EPERM {
-			return fmt.Errorf("error setting: ulimit: %s", err)
+			return false, 0, fmt.Errorf("error setting: ulimit: %s", err)
 		}
 
 		// the process does not have permission so we should only
 		// set the soft value
 		if maxFds > hard {
-			return errors.New(
+			return false, 0, errors.New(
 				"cannot set rlimit, IPFS_FD_MAX is larger than the hard limit",
 			)
 		}
 
 		if err = setLimit(maxFds, hard); err != nil {
-			return fmt.Errorf("error setting ulimit wihout hard limit: %s", err)
+			return false, 0, fmt.Errorf("error setting ulimit wihout hard limit: %s", err)
 		}
 	}
 
-	fmt.Printf("Successfully raised file descriptor limit to %d.\n", maxFds)
-
-	return nil
+	return true, maxFds, nil
 }
