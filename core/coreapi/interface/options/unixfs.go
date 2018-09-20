@@ -1,7 +1,12 @@
 package options
 
 import (
+	"errors"
+	"fmt"
+
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 )
 
 type Layout int
@@ -29,7 +34,7 @@ type UnixfsAddSettings struct {
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
 
-func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, error) {
+func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, error) {
 	options := &UnixfsAddSettings{
 		CidVersion: -1,
 		MhType:     mh.SHA2_256,
@@ -49,11 +54,41 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, error) {
 	for _, opt := range opts {
 		err := opt(options)
 		if err != nil {
-			return nil, err
+			return nil, cid.Prefix{}, err
 		}
 	}
 
-	return options, nil
+	// (hash != "sha2-256") -> CIDv1
+	if options.MhType != mh.SHA2_256 {
+		switch options.CidVersion {
+		case 0:
+			return nil, cid.Prefix{}, errors.New("CIDv0 only supports sha2-256")
+		case 1, -1:
+			options.CidVersion = 1
+		default:
+			return nil, cid.Prefix{}, fmt.Errorf("unknown CID version: %d", options.CidVersion)
+		}
+	} else {
+		if options.CidVersion < 0 {
+			// Default to CIDv0
+			options.CidVersion = 0
+		}
+	}
+
+	// cidV1 -> raw blocks (by default)
+	if options.CidVersion > 0 && !options.RawLeavesSet {
+		options.RawLeaves = true
+	}
+
+	prefix, err := dag.PrefixForCidVersion(options.CidVersion)
+	if err != nil {
+		return nil, cid.Prefix{}, err
+	}
+
+	prefix.MhType = options.MhType
+	prefix.MhLength = -1
+
+	return options, prefix, nil
 }
 
 type unixfsOpts struct{}

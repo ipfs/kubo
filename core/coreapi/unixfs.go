@@ -2,7 +2,6 @@ package coreapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/ipfs/go-ipfs/core"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
 	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
@@ -30,41 +28,10 @@ type UnixfsAPI CoreAPI
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
 func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.UnixfsAddOption) (coreiface.ResolvedPath, error) {
-	settings, err := options.UnixfsAddOptions(opts...)
+	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO: move to options
-	// (hash != "sha2-256") -> CIDv1
-	if settings.MhType != mh.SHA2_256 {
-		switch settings.CidVersion {
-		case 0:
-			return nil, errors.New("CIDv0 only supports sha2-256")
-		case 1, -1:
-			settings.CidVersion = 1
-		default:
-			return nil, fmt.Errorf("unknown CID version: %d", settings.CidVersion)
-		}
-	} else {
-		if settings.CidVersion < 0 {
-			// Default to CIDv0
-			settings.CidVersion = 0
-		}
-	}
-
-	// cidV1 -> raw blocks (by default)
-	if settings.CidVersion > 0 && !settings.RawLeavesSet {
-		settings.RawLeaves = true
-	}
-
-	prefix, err := dag.PrefixForCidVersion(settings.CidVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	prefix.MhType = settings.MhType
-	prefix.MhLength = -1
 
 	n := api.node
 	if settings.OnlyHash {
