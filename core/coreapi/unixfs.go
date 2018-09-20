@@ -2,15 +2,19 @@ package coreapi
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
 	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
+	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
@@ -19,10 +23,41 @@ type UnixfsAPI CoreAPI
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
 func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.UnixfsAddOption) (coreiface.ResolvedPath, error) {
-	_, err := options.UnixfsAddOptions(opts...)
+	settings, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: move to options
+	// (hash != "sha2-256") -> CIDv1
+	if settings.MhType != mh.SHA2_256 {
+		switch settings.CidVersion {
+		case 0:
+			return nil, errors.New("CIDv0 only supports sha2-256")
+		case 1, -1:
+			settings.CidVersion = 1
+		default:
+			return nil, fmt.Errorf("unknown CID version: %d", settings.CidVersion)
+		}
+	} else {
+		if settings.CidVersion < 0 {
+			// Default to CIDv0
+			settings.CidVersion = 0
+		}
+	}
+
+	// cidV1 -> raw blocks (by default)
+	if settings.CidVersion > 0 && !settings.RawLeavesSet {
+		settings.RawLeaves = true
+	}
+
+	prefix, err := dag.PrefixForCidVersion(settings.CidVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	prefix.MhType = settings.MhType
+	prefix.MhLength = -1
 
 	outChan := make(chan interface{}, 1)
 
@@ -32,6 +67,17 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	}
 
 	fileAdder.Out = outChan
+	//fileAdder.Chunker = chunker
+	//fileAdder.Progress = progress
+	//fileAdder.Hidden = hidden
+	//fileAdder.Trickle = trickle
+	//fileAdder.Wrap = wrap
+	//fileAdder.Pin = dopin
+	fileAdder.Silent = false
+	fileAdder.RawLeaves = settings.RawLeaves
+	//fileAdder.NoCopy = nocopy
+	//fileAdder.Name = pathName
+	fileAdder.CidBuilder = prefix
 
 	err = fileAdder.AddFile(files.NewReaderFile("", "", r, nil))
 	if err != nil {

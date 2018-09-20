@@ -8,7 +8,9 @@ type UnixfsAddSettings struct {
 	CidVersion int
 	MhType     uint64
 
-	InlineLimit int
+	InlineLimit  int
+	RawLeaves    bool
+	RawLeavesSet bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -18,7 +20,9 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, error) {
 		CidVersion: -1,
 		MhType:     mh.SHA2_256,
 
-		InlineLimit: 0,
+		InlineLimit:  0,
+		RawLeaves:    false,
+		RawLeavesSet: false,
 	}
 
 	for _, opt := range opts {
