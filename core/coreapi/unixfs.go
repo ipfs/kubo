@@ -78,7 +78,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	switch settings.Layout {
 	case options.BalancedLayout:
 		// Default
-	case options.TrickleLeyout:
+	case options.TrickleLayout:
 		fileAdder.Trickle = true
 	default:
 		return nil, fmt.Errorf("unknown layout: %d", settings.Layout)

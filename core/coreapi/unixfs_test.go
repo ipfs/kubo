@@ -202,7 +202,7 @@ func TestAdd(t *testing.T) {
 			name: "addChunksTrickle",
 			data: strings.Repeat("aoeuidhtns", 200),
 			path: "/ipfs/QmNNhDGttafX3M1wKWixGre6PrLFGjnoPEDXjBYpTv93HP",
-			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.Layout(options.TrickleLeyout)},
+			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.Layout(options.TrickleLayout)},
 		},
 		// Local
 		{
