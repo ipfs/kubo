@@ -52,3 +52,18 @@ func (unixfsOpts) Hash(mhtype uint64) UnixfsAddOption {
 		return nil
 	}
 }
+
+func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.RawLeaves = enable
+		settings.RawLeavesSet = true
+		return nil
+	}
+}
+
+func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.InlineLimit = limit
+		return nil
+	}
+}
