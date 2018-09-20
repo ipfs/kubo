@@ -33,6 +33,29 @@ test_expect_success "resolve output looks good" '
   test_cmp expected2 output
 '
 
+# test publishing with -Q option
+
+
+test_expect_success "'ipfs name publish --quieter' succeeds" '
+  PEERID=`ipfs id --format="<id>"` &&
+  test_check_peerid "${PEERID}" &&
+  ipfs name publish --allow-offline  -Q "/ipfs/$HASH_WELCOME_DOCS" >publish_out
+'
+
+test_expect_success "pubrmlish --quieter output looks good" '
+  echo "${PEERID}" >expected1 &&
+  test_cmp expected1 publish_out
+'
+
+test_expect_success "'ipfs name resolve' succeeds" '
+  ipfs name resolve "$PEERID" >output
+'
+
+test_expect_success "resolve output looks good" '
+  printf "/ipfs/%s\n" "$HASH_WELCOME_DOCS" >expected2 &&
+  test_cmp expected2 output
+'
+
 # now test with a path
 
 test_expect_success "'ipfs name publish --allow-offline' succeeds" '
@@ -96,6 +119,14 @@ test_expect_success "publish an explicit node ID as key name looks good" '
 
 test_expect_success "'ipfs name publish' fails" '
   printf '' | test_expect_code 1 ipfs name publish --allow-offline  >publish_out 2>&1
+'
+
+test_expect_success "publish output has the correct error" '
+  grep "argument \"ipfs-path\" is required" publish_out
+'
+
+test_expect_success "'ipfs name publish' fails" '
+  printf '' | test_expect_code 1 ipfs name publish -Q --allow-offline  >publish_out 2>&1
 '
 
 test_expect_success "publish output has the correct error" '
