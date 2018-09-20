@@ -3,6 +3,7 @@ package coreapi_test
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ import (
 var rnd = rand.New(rand.NewSource(0x62796532303137))
 
 func addTestObject(ctx context.Context, api coreiface.CoreAPI) (coreiface.Path, error) {
-	return api.Unixfs().Add(ctx, &io.LimitedReader{R: rnd, N: 4092})
+	return api.Unixfs().Add(ctx, ioutil.NopCloser(&io.LimitedReader{R: rnd, N: 4092}))
 }
 
 func TestBasicPublishResolve(t *testing.T) {

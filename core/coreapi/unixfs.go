@@ -5,10 +5,12 @@ import (
 	"io"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
-	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
+	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
@@ -16,16 +18,44 @@ type UnixfsAPI CoreAPI
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
-func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.ResolvedPath, error) {
-	k, err := coreunix.AddWithContext(ctx, api.node, r)
+func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.UnixfsAddOption) (coreiface.ResolvedPath, error) {
+	_, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
-	c, err := cid.Decode(k)
+
+	outChan := make(chan interface{}, 1)
+
+	fileAdder, err := coreunix.NewAdder(ctx, api.node.Pinning, api.node.Blockstore, api.node.DAG)
 	if err != nil {
 		return nil, err
 	}
-	return coreiface.IpfsPath(c), nil
+
+	fileAdder.Out = outChan
+
+	err = fileAdder.AddFile(files.NewReaderFile("", "", r, nil))
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = fileAdder.Finalize(); err != nil {
+		return nil, err
+	}
+
+	for {
+		select {
+		case r := <-outChan:
+			output := r.(*coreunix.AddedObject)
+			if output.Hash != "" {
+				c, err := cid.Parse(output.Hash)
+				if err != nil {
+					return nil, err
+				}
+
+				return coreiface.IpfsPath(c), err
+			}
+		}
+	}
 }
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.

@@ -4,13 +4,15 @@ import (
 	"context"
 	"io"
 
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
 type UnixfsAPI interface {
 	// Add imports the data from the reader into merkledag file
-	Add(context.Context, io.Reader) (ResolvedPath, error)
+	Add(context.Context, io.ReadCloser, ...options.UnixfsAddOption) (ResolvedPath, error)
 
 	// Cat returns a reader for the file
 	Cat(context.Context, Path) (Reader, error)

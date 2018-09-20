@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"strings"
 	"testing"
@@ -133,7 +134,7 @@ func TestAdd(t *testing.T) {
 	}
 
 	str := strings.NewReader(helloStr)
-	p, err := api.Unixfs().Add(ctx, str)
+	p, err := api.Unixfs().Add(ctx, ioutil.NopCloser(str))
 	if err != nil {
 		t.Error(err)
 	}
@@ -165,7 +166,7 @@ func TestAddEmptyFile(t *testing.T) {
 	}
 
 	str := strings.NewReader("")
-	p, err := api.Unixfs().Add(ctx, str)
+	p, err := api.Unixfs().Add(ctx, ioutil.NopCloser(str))
 	if err != nil {
 		t.Error(err)
 	}
