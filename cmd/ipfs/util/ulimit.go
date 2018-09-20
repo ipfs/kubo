@@ -16,9 +16,9 @@ var (
 	supportsFDManagement = false
 
 	// getlimit returns the soft and hard limits of file descriptors counts
-	getLimit func() (int64, int64, error)
+	getLimit func() (uint64, uint64, error)
 	// set limit sets the soft and hard limits of file descriptors counts
-	setLimit func(int64, int64) error
+	setLimit func(uint64, uint64) error
 )
 
 // maxFds is the maximum number of file descriptors that go-ipfs
@@ -56,9 +56,7 @@ func ManageFdLimit() error {
 		return err
 	}
 
-	max := int64(maxFds)
-
-	if max <= soft {
+	if maxFds <= soft {
 		return nil
 	}
 
@@ -67,25 +65,25 @@ func ManageFdLimit() error {
 	// the hard limit acts as a ceiling for the soft limit
 	// an unprivileged process may only set it's soft limit to a
 	// alue in the range from 0 up to the hard limit
-	if err = setLimit(max, max); err != nil {
+	if err = setLimit(maxFds, maxFds); err != nil {
 		if err != syscall.EPERM {
 			return fmt.Errorf("error setting: ulimit: %s", err)
 		}
 
 		// the process does not have permission so we should only
 		// set the soft value
-		if max > hard {
+		if maxFds > hard {
 			return errors.New(
 				"cannot set rlimit, IPFS_FD_MAX is larger than the hard limit",
 			)
 		}
 
-		if err = setLimit(max, hard); err != nil {
+		if err = setLimit(maxFds, hard); err != nil {
 			return fmt.Errorf("error setting ulimit wihout hard limit: %s", err)
 		}
 	}
 
-	fmt.Printf("Successfully raised file descriptor limit to %d.\n", max)
+	fmt.Printf("Successfully raised file descriptor limit to %d.\n", maxFds)
 
 	return nil
 }
