@@ -68,10 +68,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	}
 
 	fileAdder.Out = outChan
-	//fileAdder.Chunker = chunker
+	fileAdder.Chunker = settings.Chunker
 	//fileAdder.Progress = progress
 	//fileAdder.Hidden = hidden
-	//fileAdder.Trickle = trickle
 	//fileAdder.Wrap = wrap
 	//fileAdder.Pin = dopin
 	fileAdder.Silent = false
@@ -79,6 +78,15 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	//fileAdder.NoCopy = nocopy
 	//fileAdder.Name = pathName
 	fileAdder.CidBuilder = prefix
+
+	switch settings.Layout {
+	case options.BalancedLayout:
+		// Default
+	case options.TrickleLeyout:
+		fileAdder.Trickle = true
+	default:
+		return nil, fmt.Errorf("unknown layout: %d", settings.Layout)
+	}
 
 	if settings.InlineLimit > 0 {
 		fileAdder.CidBuilder = cidutil.InlineBuilder{

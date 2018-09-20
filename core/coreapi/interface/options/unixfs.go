@@ -4,6 +4,13 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
+type Layout int
+
+const (
+	BalancedLayout Layout = iota
+	TrickleLeyout
+)
+
 type UnixfsAddSettings struct {
 	CidVersion int
 	MhType     uint64
@@ -11,6 +18,9 @@ type UnixfsAddSettings struct {
 	InlineLimit  int
 	RawLeaves    bool
 	RawLeavesSet bool
+
+	Chunker string
+	Layout  Layout
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -23,6 +33,9 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, error) {
 		InlineLimit:  0,
 		RawLeaves:    false,
 		RawLeavesSet: false,
+
+		Chunker: "size-262144",
+		Layout:  BalancedLayout,
 	}
 
 	for _, opt := range opts {
@@ -64,6 +77,20 @@ func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.InlineLimit = limit
+		return nil
+	}
+}
+
+func (unixfsOpts) Chunker(chunker string) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Chunker = chunker
+		return nil
+	}
+}
+
+func (unixfsOpts) Layout(layout Layout) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Layout = layout
 		return nil
 	}
 }

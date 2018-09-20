@@ -191,6 +191,19 @@ func TestAdd(t *testing.T) {
 			path: "/ipfs/zj7Gr8AcBreqGEfrnR5kPFe",
 			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.RawLeaves(true)},
 		},
+		// Chunker / Layout
+		{
+			name: "addChunks",
+			data: strings.Repeat("aoeuidhtns", 200),
+			path: "/ipfs/QmRo11d4QJrST47aaiGVJYwPhoNA4ihRpJ5WaxBWjWDwbX",
+			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4")},
+		},
+		{
+			name: "addChunksTrickle",
+			data: strings.Repeat("aoeuidhtns", 200),
+			path: "/ipfs/QmNNhDGttafX3M1wKWixGre6PrLFGjnoPEDXjBYpTv93HP",
+			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.Layout(options.TrickleLeyout)},
+		},
 	}
 
 	for _, testCase := range cases {
@@ -211,7 +224,7 @@ func TestAdd(t *testing.T) {
 			}
 
 			if p.String() != testCase.path {
-				t.Fatalf("expected path %s, got: %s", hello, p)
+				t.Errorf("expected path %s, got: %s", testCase.path, p)
 			}
 
 			r, err := api.Unixfs().Cat(ctx, p)
