@@ -11,15 +11,16 @@ import (
 	"strings"
 	"testing"
 
-	core "github.com/ipfs/go-ipfs/core"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 	mock "github.com/ipfs/go-ipfs/core/mock"
-	keystore "github.com/ipfs/go-ipfs/keystore"
-	repo "github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/keystore"
+	"github.com/ipfs/go-ipfs/repo"
 
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	cbor "gx/ipfs/QmSywXfm2v4Qkp4DcFqo8eehj49dJK3bdUnaLVxrdFLMQn/go-ipld-cbor"
 	unixfs "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
@@ -39,7 +40,6 @@ var hello = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
 var helloStr = "hello, world!"
 
 // `echo -n | ipfs add`
-var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
 
 func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNode, []coreiface.CoreAPI, error) {
 	mn := mocknet.New(ctx)
@@ -133,84 +133,79 @@ func TestAdd(t *testing.T) {
 		t.Error(err)
 	}
 
-	str := strings.NewReader(helloStr)
-	p, err := api.Unixfs().Add(ctx, ioutil.NopCloser(str))
-	if err != nil {
-		t.Error(err)
+	cases := []struct {
+		name string
+		data string
+		path string
+		err  string
+		opts []options.UnixfsAddOption
+	}{
+		{
+			name: "simpleAdd",
+			data: helloStr,
+			path: hello,
+			opts: []options.UnixfsAddOption{},
+		},
+		{
+			name: "addEmpty",
+			data: "",
+			path: "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH",
+		},
+		{
+			name: "addCidV1",
+			data: helloStr,
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(1)},
+		},
+		{
+			name: "addCidSha3",
+			data: helloStr,
+			path: "/ipfs/zb2wwnYtXBxpndNABjtYxWAPt3cwWNRnc11iT63fvkYV78iRb",
+			opts: []options.UnixfsAddOption{options.Unixfs.Hash(mh.SHA3_256)},
+		},
+		{
+			name: "addCidSha3Cid0",
+			data: helloStr,
+			err:  "CIDv0 only supports sha2-256",
+			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(0), options.Unixfs.Hash(mh.SHA3_256)},
+		},
 	}
 
-	if p.String() != hello {
-		t.Fatalf("expected path %s, got: %s", hello, p)
-	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			str := strings.NewReader(testCase.data)
+			p, err := api.Unixfs().Add(ctx, ioutil.NopCloser(str), testCase.opts...)
+			if testCase.err != "" {
+				if err == nil {
+					t.Fatalf("expected an error: %s", testCase.err)
+				}
+				if err.Error() != testCase.err {
+					t.Fatalf("expected an error: '%s' != '%s'", err.Error(), testCase.err)
+				}
+				return
+			}
+			if err != nil {
+				t.Error(err)
+			}
 
-	r, err := api.Unixfs().Cat(ctx, p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf := make([]byte, len(helloStr))
-	_, err = io.ReadFull(r, buf)
-	if err != nil {
-		t.Error(err)
-	}
+			if p.String() != testCase.path {
+				t.Fatalf("expected path %s, got: %s", hello, p)
+			}
 
-	if string(buf) != helloStr {
-		t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
-	}
-}
+			r, err := api.Unixfs().Cat(ctx, p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			buf := make([]byte, len(testCase.data))
+			_, err = io.ReadFull(r, buf)
+			if err != nil {
+				t.Error(err)
+			}
 
-func TestAddEmptyFile(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
-	if err != nil {
-		t.Error(err)
-	}
-
-	str := strings.NewReader("")
-	p, err := api.Unixfs().Add(ctx, ioutil.NopCloser(str))
-	if err != nil {
-		t.Error(err)
-	}
-
-	if p.String() != emptyFile {
-		t.Fatalf("expected path %s, got: %s", hello, p)
-	}
-}
-
-func TestCatBasic(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	hr := strings.NewReader(helloStr)
-	p, err := coreunix.Add(node, hr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	p = "/ipfs/" + p
-
-	if p != hello {
-		t.Fatalf("expected CID %s, got: %s", hello, p)
-	}
-
-	helloPath, err := coreiface.ParsePath(hello)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r, err := api.Unixfs().Cat(ctx, helloPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buf := make([]byte, len(helloStr))
-	_, err = io.ReadFull(r, buf)
-	if err != nil {
-		t.Error(err)
-	}
-	if string(buf) != helloStr {
-		t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
+			if string(buf) != testCase.data {
+				t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
+			}
+		})
 	}
 }
 
@@ -226,7 +221,7 @@ func TestCatEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	emptyFilePath, err := coreiface.ParsePath(emptyFile)
+	emptyFilePath, err := coreiface.ParsePath("/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH")
 	if err != nil {
 		t.Fatal(err)
 	}
