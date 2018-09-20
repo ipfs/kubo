@@ -10,6 +10,7 @@ import (
 )
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
+// NOTE: This API is heavily WIP, things are guaranteed to break frequently
 type UnixfsAPI interface {
 	// Add imports the data from the reader into merkledag file
 	Add(context.Context, io.ReadCloser, ...options.UnixfsAddOption) (ResolvedPath, error)
