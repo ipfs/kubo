@@ -10,11 +10,10 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	uio "gx/ipfs/QmPL8bYtbACcSFFiSr4s2du7Na382NxRADR8hC7D9FkEA2/go-unixfs/io"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
-	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
 	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
@@ -60,20 +59,17 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	prefix.MhType = settings.MhType
 	prefix.MhLength = -1
 
-	outChan := make(chan interface{}, 1)
-
 	fileAdder, err := coreunix.NewAdder(ctx, api.node.Pinning, api.node.Blockstore, api.node.DAG)
 	if err != nil {
 		return nil, err
 	}
 
-	fileAdder.Out = outChan
 	fileAdder.Chunker = settings.Chunker
 	//fileAdder.Progress = progress
 	//fileAdder.Hidden = hidden
 	//fileAdder.Wrap = wrap
 	//fileAdder.Pin = dopin
-	fileAdder.Silent = false
+	fileAdder.Silent = true
 	fileAdder.RawLeaves = settings.RawLeaves
 	//fileAdder.NoCopy = nocopy
 	//fileAdder.Name = pathName
@@ -100,24 +96,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 		return nil, err
 	}
 
-	if _, err = fileAdder.Finalize(); err != nil {
+	nd, err := fileAdder.Finalize()
+	if err != nil {
 		return nil, err
 	}
 
-	for {
-		select {
-		case r := <-outChan:
-			output := r.(*coreunix.AddedObject)
-			if output.Hash != "" {
-				c, err := cid.Parse(output.Hash)
-				if err != nil {
-					return nil, err
-				}
+	return coreiface.IpfsPath(nd.Cid()), err
 
-				return coreiface.IpfsPath(c), err
-			}
-		}
-	}
 }
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
