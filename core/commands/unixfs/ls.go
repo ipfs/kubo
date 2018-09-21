@@ -120,18 +120,18 @@ possible, please use 'ipfs ls' instead.
 				return
 			}
 
-			unixFSNode, err := unixfs.FromBytes(ndpb.Data())
+			unixFSNode, err := unixfs.FSNodeFromBytes(ndpb.Data())
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
-			t := unixFSNode.GetType()
+			t := unixFSNode.Type()
 
 			output.Objects[hash] = &LsObject{
 				Hash: c.String(),
 				Type: t.String(),
-				Size: unixFSNode.GetFilesize(),
+				Size: unixFSNode.FileSize(),
 			}
 
 			switch t {
@@ -156,19 +156,19 @@ possible, please use 'ipfs ls' instead.
 						return
 					}
 
-					d, err := unixfs.FromBytes(lnpb.Data())
+					d, err := unixfs.FSNodeFromBytes(lnpb.Data())
 					if err != nil {
 						res.SetError(err, cmdkit.ErrNormal)
 						return
 					}
-					t := d.GetType()
+					t := d.Type()
 					lsLink := LsLink{
 						Name: link.Name,
 						Hash: link.Cid.String(),
 						Type: t.String(),
 					}
 					if t == unixfspb.Data_File {
-						lsLink.Size = d.GetFilesize()
+						lsLink.Size = d.FileSize()
 					} else {
 						lsLink.Size = link.Size
 					}

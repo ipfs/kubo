@@ -150,12 +150,12 @@ The JSON output contains type information.
 					}
 
 					if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-						d, err := unixfs.FromBytes(pn.Data())
+						d, err := unixfs.FSNodeFromBytes(pn.Data())
 						if err != nil {
 							res.SetError(err, cmdkit.ErrNormal)
 							return
 						}
-						t = d.GetType()
+						t = d.Type()
 					}
 				}
 				output[i].Links[j] = LsLink{

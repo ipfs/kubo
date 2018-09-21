@@ -223,25 +223,25 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 
 	switch n := nd.(type) {
 	case *dag.ProtoNode:
-		d, err := ft.FromBytes(n.Data())
+		d, err := ft.FSNodeFromBytes(n.Data())
 		if err != nil {
 			return nil, err
 		}
 
 		var ndtype string
-		switch d.GetType() {
+		switch d.Type() {
 		case ft.TDirectory, ft.THAMTShard:
 			ndtype = "directory"
 		case ft.TFile, ft.TMetadata, ft.TRaw:
 			ndtype = "file"
 		default:
-			return nil, fmt.Errorf("unrecognized node type: %s", d.GetType())
+			return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
 		}
 
 		return &statOutput{
 			Hash:           c.String(),
 			Blocks:         len(nd.Links()),
-			Size:           d.GetFilesize(),
+			Size:           d.FileSize(),
 			CumulativeSize: cumulsize,
 			Type:           ndtype,
 		}, nil
