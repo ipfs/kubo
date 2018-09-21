@@ -8,9 +8,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"runtime"
 	"sort"
 	"sync"
 
+	version "github.com/ipfs/go-ipfs"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -193,6 +195,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
+
+	// print the ipfs version
+	printVersion()
 
 	managefd, _ := req.Options[adjustFDLimitKwd].(bool)
 	if managefd {
@@ -643,4 +648,11 @@ func YesNoPrompt(prompt string) bool {
 	}
 
 	return false
+}
+
+func printVersion() {
+	fmt.Printf("go-ipfs version: %s-%s\n", version.CurrentVersionNumber, version.CurrentCommit)
+	fmt.Printf("Repo version: %d\n", fsrepo.RepoVersion)
+	fmt.Printf("System version: %s\n", runtime.GOARCH+"/"+runtime.GOOS)
+	fmt.Printf("Golang version: %s\n", runtime.Version())
 }
