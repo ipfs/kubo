@@ -95,29 +95,23 @@ func ApplyChange(ctx context.Context, ds ipld.DAGService, nd *dag.ProtoNode, cs 
 }
 
 // Diff returns a set of changes that transform node 'a' into node 'b'.
-// It supports two nodes forms: ProtoNode and RawNode. Because we treat
-// the nodes as IPLD nodes as long as possible and only convert them
-// to ProtoNode when necessary: when we need to remove links, and at that point
-// (if they have links to remove) we know they are not raw nodes.
+// It only traverses links in the following cases:
+// 1. two node's links number are greater than 0.
+// 2. both of two nodes are ProtoNode.
+// Otherwise, it compares the cid and emits a Mod change object.
 func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, error) {
 	// Base case where both nodes are leaves, just compare
 	// their CIDs.
 	if len(a.Links()) == 0 && len(b.Links()) == 0 {
-		if a.Cid().Equals(b.Cid()) {
-			return []*Change{}, nil
-		}
-		return []*Change{
-			{
-				Type:   Mod,
-				Before: a.Cid(),
-				After:  b.Cid(),
-			},
-		}, nil
+		return getChange(a, b)
 	}
 
 	var out []*Change
-	cleanA := a.Copy()
-	cleanB := b.Copy()
+	cleanA, okA := a.Copy().(*dag.ProtoNode)
+	cleanB, okB := b.Copy().(*dag.ProtoNode)
+	if !okA || !okB {
+		return getChange(a, b)
+	}
 
 	// strip out unchanged stuff
 	for _, lnk := range a.Links() {
@@ -146,12 +140,8 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 					out = append(out, subc)
 				}
 			}
-			if cleanA, ok := cleanA.(*dag.ProtoNode); ok {
-				cleanA.RemoveNodeLink(l.Name)
-			}
-			if cleanB, ok := cleanB.(*dag.ProtoNode); ok {
-				cleanB.RemoveNodeLink(l.Name)
-			}
+			cleanA.RemoveNodeLink(l.Name)
+			cleanB.RemoveNodeLink(l.Name)
 		}
 	}
 
@@ -206,4 +196,17 @@ func MergeDiffs(a, b []*Change) ([]*Change, []Conflict) {
 		out = append(out, c)
 	}
 	return out, conflicts
+}
+
+func getChange(a, b ipld.Node) ([]*Change, error) {
+	if a.Cid().Equals(b.Cid()) {
+		return []*Change{}, nil
+	}
+	return []*Change{
+		{
+			Type:   Mod,
+			Before: a.Cid(),
+			After:  b.Cid(),
+		},
+	}, nil
 }

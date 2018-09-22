@@ -58,19 +58,19 @@ test_expect_success "diff against self (single file) is empty" '
 '
 
 test_expect_success "diff (raw-leaves) against self (single file) is empty" '
-  ipfs object diff $SINGLE_FILE_RAW $SINGLE_FILE_RAW > diff_raw_out
+  ipfs object diff $SINGLE_FILE_RAW $SINGLE_FILE_RAW > diff_raw_out &&
   printf "" > diff_raw_exp &&
   test_cmp diff_raw_exp diff_raw_out
 '
 
 test_expect_success "diff against self (empty dir) is empty" '
-  ipfs object diff $EMPTY_DIR $EMPTY_DIR > diff_out
+  ipfs object diff $EMPTY_DIR $EMPTY_DIR > diff_out &&
   printf "" > diff_exp &&
   test_cmp diff_exp diff_out
 '
 
 test_expect_success "diff (raw-leaves) against self (empty dir) is empty" '
-  ipfs object diff $EMPTY_DIR_RAW $EMPTY_DIR_RAW > diff_raw_out
+  ipfs object diff $EMPTY_DIR_RAW $EMPTY_DIR_RAW > diff_raw_out &&
   printf "" > diff_raw_exp &&
   test_cmp diff_raw_exp diff_raw_out
 '
