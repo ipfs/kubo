@@ -12,7 +12,6 @@ import (
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
-	cidv0v1 "github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
 	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
 	uio "gx/ipfs/QmPL8bYtbACcSFFiSr4s2du7Na382NxRADR8hC7D9FkEA2/go-unixfs/io"
 	resolver "gx/ipfs/QmX7uSbkNz76yNwBhuwYwRbhihLnJqM73VTCjS3UMJud9A/go-path/resolver"
@@ -214,8 +213,6 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	bs = bstore.NewIdStore(bs)
-
-	bs = cidv0v1.NewBlockstore(bs)
 
 	n.BaseBlocks = bs
 	n.GCLocker = bstore.NewGCLocker()
