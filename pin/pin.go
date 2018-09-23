@@ -236,6 +236,14 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 			return err
 		}
 
+		if p.recursePin.Has(c) {
+			return nil
+		}
+
+		if p.directPin.Has(c) {
+			p.directPin.Remove(c)
+		}
+
 		p.recursePin.Add(c)
 	} else {
 		p.lock.Unlock()
