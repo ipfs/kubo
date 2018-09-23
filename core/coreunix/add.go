@@ -86,7 +86,6 @@ type Adder struct {
 	Name       string
 	NoCopy     bool
 	Chunker    string
-	Hash       bool
 	root       ipld.Node
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
@@ -441,7 +440,7 @@ func (adder *Adder) AddAllAndPin(file files.File) error {
 		return err
 	}
 
-	if adder.Hash {
+	if !adder.Pin {
 		return nil
 	}
 	return adder.PinRoot()

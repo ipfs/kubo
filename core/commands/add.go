@@ -270,13 +270,12 @@ You can now check what blocks have been created by:
 		fileAdder.Hidden = hidden
 		fileAdder.Trickle = trickle
 		fileAdder.Wrap = wrap
-		fileAdder.Pin = dopin
+		fileAdder.Pin = dopin && !hash
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
 		fileAdder.Name = pathName
 		fileAdder.CidBuilder = prefix
-		fileAdder.Hash = hash
 
 		if inline {
 			fileAdder.CidBuilder = cidutil.InlineBuilder{
