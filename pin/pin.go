@@ -228,16 +228,20 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 		if p.directPin.Has(c) {
 			p.directPin.Remove(c)
 		}
-
+		p.lock.Unlock()
 		// fetch entire graph
 		err := mdag.FetchGraph(ctx, c, p.dserv)
+		p.lock.Lock()
 		if err != nil {
 			return err
 		}
 
 		p.recursePin.Add(c)
 	} else {
-		if _, err := p.dserv.Get(ctx, c); err != nil {
+		p.lock.Unlock()
+		_, err := p.dserv.Get(ctx, c)
+		p.lock.Lock()
+		if err != nil {
 			return err
 		}
 
