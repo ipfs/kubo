@@ -13,11 +13,11 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	kb "gx/ipfs/QmRtUtF42geEhpRg9z45ZfBqRMC6xyeNW7i1iqha3nRMFe/go-libp2p-kbucket"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
-	kb "gx/ipfs/QmWXTuqkFh63jvYxAn1h3MZe6JkHAdvhm5fvQpBzkMQMfE/go-libp2p-kbucket"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	identify "gx/ipfs/QmVsVARb86uSe1qYouewFMNd2p2sp2NGWm1JGPReVDWchW/go-libp2p/p2p/protocol/identify"
+	"gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	pstore "gx/ipfs/QmfAQMFpgDU2U4BXG64qVr8HSiictfWvkSBz7Y2oDj65st/go-libp2p-peerstore"
 )
 
 const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote
