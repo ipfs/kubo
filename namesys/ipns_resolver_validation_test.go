@@ -174,6 +174,10 @@ func (m *mockValueStore) GetValue(ctx context.Context, k string, opts ...ropts.O
 	return m.r.GetValue(ctx, k, opts...)
 }
 
+func (m *mockValueStore) SearchValue(ctx context.Context, k string, opts ...ropts.Option) (<-chan []byte, error) {
+	return m.r.SearchValue(ctx, k, opts...)
+}
+
 func (m *mockValueStore) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {
 	pk := m.kbook.PubKey(p)
 	if pk != nil {

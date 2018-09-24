@@ -133,7 +133,10 @@ var ipnspsCancelCmd = &cmds.Command{
 			return cmdkit.Errorf(cmdkit.ErrClient, err.Error())
 		}
 
-		ok := n.PSRouter.Cancel("/ipns/" + string(pid))
+		ok, err := n.PSRouter.Cancel("/ipns/" + string(pid))
+		if err != nil {
+			return err
+		}
 		return cmds.EmitOnce(res, &ipnsPubsubCancel{ok})
 	},
 	Arguments: []cmdkit.Argument{
