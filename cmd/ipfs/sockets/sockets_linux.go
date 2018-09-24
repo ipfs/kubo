@@ -13,8 +13,10 @@ import (
 
 var log = logging.Logger("socket-activation")
 
-var socketsMu sync.Mutex
-var sockets map[string][]manet.Listener
+var (
+	socketsMu sync.Mutex
+	sockets   map[string][]manet.Listener
+)
 
 func initSockets() {
 	if sockets != nil {
