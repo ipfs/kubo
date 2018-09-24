@@ -15,6 +15,7 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	config "github.com/ipfs/go-ipfs-config"
 	cserial "github.com/ipfs/go-ipfs-config/serialize"
+	sockets "github.com/ipfs/go-ipfs/cmd/ipfs/sockets"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -290,11 +291,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// fail before we get to that. It can't hurt to close it twice.
 	defer repo.Close()
 
-	cfg, err := cctx.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	offline, _ := req.Options[offlineKwd].(bool)
 	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
 	pubsub, _ := req.Options[enablePubSubKwd].(bool)
@@ -404,14 +400,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	// construct http gateway - if it is set in the config
-	var gwErrc <-chan error
-	if len(cfg.Addresses.Gateway) > 0 {
-		var err error
-		gwErrc, err = serveHTTPGateway(req, cctx)
-		if err != nil {
-			return err
-		}
+	// construct http gateway
+	gwErrc, err := serveHTTPGateway(req, cctx)
+	if err != nil {
+		return err
 	}
 
 	// initialize metrics collector
@@ -446,31 +438,40 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err)
 	}
 
-	apiAddrs := make([]string, 0, 2)
-	apiAddr, _ := req.Options[commands.ApiOption].(string)
-	if apiAddr == "" {
-		apiAddrs = cfg.Addresses.API
-	} else {
-		apiAddrs = append(apiAddrs, apiAddr)
+	listeners, err := sockets.TakeSockets("io.ipfs.api")
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGateway: socket activation failed: %s", err)
 	}
 
-	listeners := make([]manet.Listener, 0, len(apiAddrs))
-	for _, addr := range apiAddrs {
-		apiMaddr, err := ma.NewMultiaddr(addr)
-		if err != nil {
-			return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", apiAddr, err)
+	if len(listeners) == 0 {
+		apiAddrs := make([]string, 0, 2)
+		apiAddr, _ := req.Options[commands.ApiOption].(string)
+		if apiAddr == "" {
+			apiAddrs = cfg.Addresses.API
+		} else {
+			apiAddrs = append(apiAddrs, apiAddr)
 		}
 
-		apiLis, err := manet.Listen(apiMaddr)
-		if err != nil {
-			return nil, fmt.Errorf("serveHTTPApi: manet.Listen(%s) failed: %s", apiMaddr, err)
-		}
+		listeners := make([]manet.Listener, 0, len(apiAddrs))
+		for _, addr := range apiAddrs {
+			apiMaddr, err := ma.NewMultiaddr(addr)
+			if err != nil {
+				return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", apiAddr, err)
+			}
 
+			apiLis, err := manet.Listen(apiMaddr)
+			if err != nil {
+				return nil, fmt.Errorf("serveHTTPApi: manet.Listen(%s) failed: %s", apiMaddr, err)
+			}
+
+			listeners = append(listeners, apiLis)
+		}
+	}
+
+	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - lets see what we are listing on
-		apiMaddr = apiLis.Multiaddr()
-		fmt.Printf("API server listening on %s\n", apiMaddr)
-		fmt.Printf("WebUI: http://%s/webui\n", apiLis.Addr())
-		listeners = append(listeners, apiLis)
+		fmt.Printf("API server listening on %s\n", listener.Multiaddr())
+		fmt.Printf("WebUI: http://%s/webui\n", listener.Addr())
 	}
 
 	// by default, we don't let you load arbitrary ipfs objects through the api,
@@ -571,28 +572,35 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		writable = cfg.Gateway.Writable
 	}
 
-	gatewayAddrs := cfg.Addresses.Gateway
-	listeners := make([]manet.Listener, 0, len(gatewayAddrs))
-	for _, addr := range gatewayAddrs {
-		gatewayMaddr, err := ma.NewMultiaddr(addr)
-		if err != nil {
-			return nil, fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", addr, err)
-		}
+	listeners, err := sockets.TakeSockets("io.ipfs.gateway")
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGateway: socket activation failed: %s", err)
+	}
 
-		gwLis, err := manet.Listen(gatewayMaddr)
-		if err != nil {
-			return nil, fmt.Errorf("serveHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
-		}
-		// we might have listened to /tcp/0 - lets see what we are listing on
-		gatewayMaddr = gwLis.Multiaddr()
+	if len(listeners) == 0 {
+		gatewayAddrs := cfg.Addresses.Gateway
+		for _, addr := range gatewayAddrs {
+			gatewayMaddr, err := ma.NewMultiaddr(addr)
+			if err != nil {
+				return nil, fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", addr, err)
+			}
 
-		if writable {
-			fmt.Printf("Gateway (writable) server listening on %s\n", gatewayMaddr)
-		} else {
-			fmt.Printf("Gateway (readonly) server listening on %s\n", gatewayMaddr)
+			gwLis, err := manet.Listen(gatewayMaddr)
+			if err != nil {
+				return nil, fmt.Errorf("serveHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
+			}
+			listeners = append(listeners, gwLis)
 		}
+	}
 
-		listeners = append(listeners, gwLis)
+	// we might have listened to /tcp/0 - lets see what we are listing on
+	gwType := "readonly"
+	if writable {
+		gwType = "writable"
+	}
+
+	for _, listener := range listeners {
+		fmt.Printf("Gateway (%s) server listening on %s\n", gwType, listener.Multiaddr())
 	}
 
 	cmdctx := *cctx

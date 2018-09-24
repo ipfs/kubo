@@ -5,6 +5,7 @@ require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190823232136-616930265c33 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/fatih/color v1.7.0 // indirect
