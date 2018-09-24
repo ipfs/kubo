@@ -66,6 +66,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 				"Access-Control-Allow-Methods": []string{"GET"},
 				"Access-Control-Allow-Headers": []string{"X-Requested-With", "Range"},
 			},
+			APICommands: []string{},
 		},
 		Reprovider: Reprovider{
 			Interval: "12h",

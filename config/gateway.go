@@ -6,4 +6,5 @@ type Gateway struct {
 	RootRedirect string
 	Writable     bool
 	PathPrefixes []string
+	APICommands  []string
 }
