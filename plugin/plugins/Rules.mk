@@ -1,6 +1,6 @@
 include mk/header.mk
 
-$(d)_plugins:=$(d)/git
+$(d)_plugins:=$(d)/git $(d)/swiftds
 $(d)_plugins_so:=$(addsuffix .so,$($(d)_plugins))
 $(d)_plugins_main:=$(addsuffix /main/main.go,$($(d)_plugins))
 
