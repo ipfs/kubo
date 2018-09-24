@@ -5,14 +5,14 @@ import (
 	"encoding/binary"
 	"testing"
 
-	dag "gx/ipfs/QmVB15p7qNVQQGC5RQcAQAovDFaQpRNqorbRwpvdNjHmVC/go-merkledag"
-	bserv "gx/ipfs/QmWAU1Etv448cx9GLohtr27vnVC87amqE7fN4Hf4hcLDQY/go-blockservice"
+	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
+	bserv "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	ds "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
-	dsq "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore/query"
-	offline "gx/ipfs/QmcRC35JF2pJQneAxa5LdQBQRumWggccWErogSrCkS1h8T/go-ipfs-exchange-offline"
-	blockstore "gx/ipfs/QmegPGspn3RpTMQ23Fd3GVVMopo1zsEMurudbFMZ5UXBLH/go-ipfs-blockstore"
+	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
+	ds "gx/ipfs/QmUyz7JTJzgegC6tiJrfby3mPhzcdswVtG4x58TQ6pq8jV/go-datastore"
+	dsq "gx/ipfs/QmUyz7JTJzgegC6tiJrfby3mPhzcdswVtG4x58TQ6pq8jV/go-datastore/query"
+	blockstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
 func ignoreCids(_ cid.Cid) {}

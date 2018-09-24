@@ -12,16 +12,16 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	pin "github.com/ipfs/go-ipfs/pin"
-	uio "gx/ipfs/QmWqiuwk7ZzUFQvfBuQDwxPxyAQtNMxGYwZkjJuF6GgWQk/go-unixfs/io"
+	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	dag "gx/ipfs/QmVB15p7qNVQQGC5RQcAQAovDFaQpRNqorbRwpvdNjHmVC/go-merkledag"
 	"gx/ipfs/QmVkMRSkXrpjqrroEXWuYBvDBnXCdMMY6gsKicBGVGUqKT/go-verifcid"
-	bserv "gx/ipfs/QmWAU1Etv448cx9GLohtr27vnVC87amqE7fN4Hf4hcLDQY/go-blockservice"
-	path "gx/ipfs/Qmc17MNY1xUgiE2nopbi6KATWau9qcGZtdmKKuXvFMVUgc/go-path"
-	resolver "gx/ipfs/Qmc17MNY1xUgiE2nopbi6KATWau9qcGZtdmKKuXvFMVUgc/go-path/resolver"
-	offline "gx/ipfs/QmcRC35JF2pJQneAxa5LdQBQRumWggccWErogSrCkS1h8T/go-ipfs-exchange-offline"
+	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
+	bserv "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
+	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
+	resolver "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path/resolver"
 )
 
 var PinCmd = &cmds.Command{

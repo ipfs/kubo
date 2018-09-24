@@ -3,7 +3,7 @@ package fsrepo
 import (
 	"os"
 
-	config "gx/ipfs/QmYVqYJTVjetcf1guieEgWpK1PZtHPytP624vKzTF1P3r2/go-ipfs-config"
+	config "gx/ipfs/QmVBUpxsHh53rNcufqxMpLAmz37eGyLJUaexDy1W9YkiNk/go-ipfs-config"
 	homedir "gx/ipfs/QmdcULN1WCzgoQmcCaUAmEhwcxHYsDrbZ2LvRJKCL8dMrK/go-homedir"
 )
 

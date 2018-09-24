@@ -12,8 +12,8 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmPXR4tNdLbp8HsZiPMjpsgqphX9Vhw2J6Jh5MKH2ovW3D/go-ipfs-cmds"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 )
 
 var ObjectPatchCmd = &cmds.Command{

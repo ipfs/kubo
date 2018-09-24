@@ -12,20 +12,20 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/pin"
-	dag "gx/ipfs/QmVB15p7qNVQQGC5RQcAQAovDFaQpRNqorbRwpvdNjHmVC/go-merkledag"
-	unixfs "gx/ipfs/QmWqiuwk7ZzUFQvfBuQDwxPxyAQtNMxGYwZkjJuF6GgWQk/go-unixfs"
-	balanced "gx/ipfs/QmWqiuwk7ZzUFQvfBuQDwxPxyAQtNMxGYwZkjJuF6GgWQk/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/QmWqiuwk7ZzUFQvfBuQDwxPxyAQtNMxGYwZkjJuF6GgWQk/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/QmWqiuwk7ZzUFQvfBuQDwxPxyAQtNMxGYwZkjJuF6GgWQk/go-unixfs/importer/trickle"
+	unixfs "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
+	balanced "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/trickle"
+	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 
 	posinfo "gx/ipfs/QmPG32VXR5jmpo9q8R9FNdR4Ae97Ky9CiZE6SctJLUB79H/go-ipfs-posinfo"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
-	mfs "gx/ipfs/QmWoqDNUJv3MThSxngVrxRBJ3toUfHdG1XAo6ja2FqRDK9/go-mfs"
+	chunker "gx/ipfs/QmULKgr55cSWR8Kiwy3cVRcAiGVnR6EVSaB7hJcWS4138p/go-ipfs-chunker"
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
-	chunker "gx/ipfs/QmdSeG9s4EQ9TGruJJS9Us38TQDZtMmFGwzTYUDVqNTURm/go-ipfs-chunker"
-	bstore "gx/ipfs/QmegPGspn3RpTMQ23Fd3GVVMopo1zsEMurudbFMZ5UXBLH/go-ipfs-blockstore"
+	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
 var log = logging.Logger("coreunix")

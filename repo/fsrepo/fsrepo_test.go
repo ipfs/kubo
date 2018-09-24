@@ -9,8 +9,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/thirdparty/assert"
 
-	datastore "gx/ipfs/QmSpg1CvpXQQow5ernt1gNBXaXV6yxyNqi7XoeerWfzB5w/go-datastore"
-	config "gx/ipfs/QmYVqYJTVjetcf1guieEgWpK1PZtHPytP624vKzTF1P3r2/go-ipfs-config"
+	datastore "gx/ipfs/QmUyz7JTJzgegC6tiJrfby3mPhzcdswVtG4x58TQ6pq8jV/go-datastore"
+	config "gx/ipfs/QmVBUpxsHh53rNcufqxMpLAmz37eGyLJUaexDy1W9YkiNk/go-ipfs-config"
 )
 
 // swap arg order

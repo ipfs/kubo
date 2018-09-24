@@ -15,8 +15,8 @@ import (
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
-	offroute "gx/ipfs/QmPKLDMELt3Z1g4fHZoE8HEj3THpTnpynHUQDjW1gDMUdk/go-ipfs-routing/offline"
-	ci "gx/ipfs/QmRNhSdqzMcuRxX9A1egBeQ3BhDTguDV5HPwi8wRykkPU8/go-testutil/ci"
+	ci "gx/ipfs/QmNfQbgBfARAtrYsBguChX6VJ5nbjeoYy1KdC36aaYWqG8/go-testutil/ci"
+	offroute "gx/ipfs/QmScZySgru9jaoDa12sSfvh21sWbqF5eXkieTmJzAHJXkQ/go-ipfs-routing/offline"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
