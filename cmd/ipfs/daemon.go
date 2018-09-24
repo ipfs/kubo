@@ -282,9 +282,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
-		Repo:      repo,
-		Permanent: true, // It is temporary way to signify that node is permanent
-		Online:    !offline,
+		Repo:                        repo,
+		Permanent:                   true, // It is temporary way to signify that node is permanent
+		Online:                      !offline,
 		DisableEncryptedConnections: unencrypted,
 		ExtraOpts: map[string]bool{
 			"pubsub": pubsub,
@@ -402,7 +402,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	listeners, err := sockets.TakeSockets("io.ipfs.api")
 	if err != nil {
-		return nil, fmt.Errorf("serveHTTPGateway: socket activation failed: %s", err)
+		return nil, fmt.Errorf("serveHTTPApi: socket activation failed: %s", err)
 	}
 
 	if len(listeners) == 0 {
