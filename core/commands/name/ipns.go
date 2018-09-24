@@ -159,16 +159,17 @@ Resolve the value of a dnslink:
 			}
 
 			return cmds.EmitOnce(res, &ResolvedPath{output})
-		} else {
-			output := resolver.ResolveAsync(req.Context, name, ropts...)
-			for v := range output {
-				if v.Err != nil {
-					return err
-				}
-				if err := res.Emit(&ResolvedPath{v.Path}); err != nil {
-					return err
-				}
+		}
+
+		output := resolver.ResolveAsync(req.Context, name, ropts...)
+		for v := range output {
+			if v.Err != nil {
+				return err
 			}
+			if err := res.Emit(&ResolvedPath{v.Path}); err != nil {
+				return err
+			}
+
 		}
 		return nil
 	},

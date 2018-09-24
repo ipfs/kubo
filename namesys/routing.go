@@ -11,7 +11,6 @@ import (
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	routing "gx/ipfs/QmVBnJDKhtFXTRVjXKinqpwGu8t1DyNqPKan2iGX8PR8xG/go-libp2p-routing"
-	ropts "gx/ipfs/QmVBnJDKhtFXTRVjXKinqpwGu8t1DyNqPKan2iGX8PR8xG/go-libp2p-routing/options"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	dht "gx/ipfs/QmZVakpN44VAUxs9eXAuUGLFYTCGmSyqSy6hyEKfMv68ME/go-libp2p-kad-dht"
 	ipns "gx/ipfs/QmZrmn2BPZbSviQAWeyY2iXkCukmJHv9n7zrLgWU5KgbTb/go-ipns"
@@ -89,7 +88,7 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 	// the value, which in turn verifies the ipns record signature
 	ipnsKey := ipns.RecordKey(pid)
 
-	vals, err := r.searchValue(ctx, ipnsKey, dht.Quorum(int(options.DhtRecordCount)))
+	vals, err := r.routing.SearchValue(ctx, ipnsKey, dht.Quorum(int(options.DhtRecordCount)))
 	if err != nil {
 		log.Debugf("RoutingResolver: dht get for name %s failed: %s", name, err)
 		out <- onceResult{err: err}
@@ -172,15 +171,4 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 	}()
 
 	return out
-}
-
-func (r *IpnsResolver) searchValue(ctx context.Context, key string, opts ...ropts.Option) (<-chan []byte, error) {
-	if ir, ok := r.routing.(*dht.IpfsDHT); ok {
-		return ir.SearchValue(ctx, key, opts...)
-	}
-	out := make(chan []byte, 1)
-	val, err := r.routing.GetValue(ctx, key, opts...)
-	out <- val
-	close(out)
-	return out, err
 }
