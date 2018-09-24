@@ -440,7 +440,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	listeners, err := sockets.TakeSockets("io.ipfs.api")
 	if err != nil {
-		return nil, fmt.Errorf("serveHTTPGateway: socket activation failed: %s", err)
+		return nil, fmt.Errorf("serveHTTPApi: socket activation failed: %s", err)
 	}
 
 	if len(listeners) == 0 {
