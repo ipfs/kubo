@@ -7,17 +7,16 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	name "github.com/ipfs/go-ipfs/core/commands/name"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
-	cidenc "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/cidenc"
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	"gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	mbase "gx/ipfs/QmekxXDhCxCJRNuzmHreuaT3BsuJcsjcXWNrtV9C8DRHtd/go-multibase"
 )
 
 var log = logging.Logger("core/commands")
@@ -25,9 +24,7 @@ var log = logging.Logger("core/commands")
 var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
 
 const (
-	ApiOption         = "api"
-	CidBaseOption     = "cid-base"
-	OutputCidV1Option = "output-cidv1"
+	ApiOption = "api"
 )
 
 var Root = &cmds.Command{
@@ -99,10 +96,11 @@ The CLI will exit with one of the following values:
 		cmdkit.BoolOption("h", "Show a short version of the command help text."),
 		cmdkit.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
-		cmdkit.StringOption(CidBaseOption, "mbase", "Multi-base to use to encode version 1 CIDs in output."),
-		cmdkit.BoolOption(OutputCidV1Option, "Upgrade CID version 0 to version 1 in output."),
 
 		// global options, added to every command
+		cmdenv.OptionCidBase,
+		cmdenv.OptionOutputCidV1,
+
 		cmds.OptionEncodingType,
 		cmds.OptionStreamChannels,
 		cmds.OptionTimeout,
@@ -227,78 +225,4 @@ func MessageTextMarshaler(res oldcmds.Response) (io.Reader, error) {
 	}
 
 	return strings.NewReader(out.Message), nil
-}
-
-type CidBaseHandler struct {
-	base           string
-	upgrade        bool
-	upgradeDefined bool
-	args           []string
-	enc            *cidenc.Encoder
-}
-
-func NewCidBaseHandler(req *cmds.Request) *CidBaseHandler {
-	h := &CidBaseHandler{}
-	h.base, _ = req.Options[CidBaseOption].(string)
-	h.upgrade, h.upgradeDefined = req.Options[OutputCidV1Option].(bool)
-	h.args = req.Arguments
-	return h
-}
-
-func NewCidBaseHandlerLegacy(req oldcmds.Request) *CidBaseHandler {
-	h := &CidBaseHandler{}
-	h.base, _, _ = req.Option(CidBaseOption).String()
-	h.upgrade, h.upgradeDefined, _ = req.Option(OutputCidV1Option).Bool()
-	h.args = req.Arguments()
-	return h
-}
-
-func (h *CidBaseHandler) UseGlobal() *CidBaseHandler {
-	h.enc = &cidenc.Default
-	return h
-}
-
-func (h *CidBaseHandler) Proc() (*CidBaseHandler, error) {
-	var e cidenc.Encoder = cidenc.Default
-	if h.base != "" {
-		var err error
-		e.Base, err = mbase.EncoderByName(h.base)
-		if err != nil {
-			return h, err
-		}
-	}
-
-	e.Upgrade = h.upgrade
-	if h.base != "" && !h.upgradeDefined {
-		e.Upgrade = true
-	}
-
-	if h.enc == nil {
-		h.enc = &cidenc.Encoder{}
-	}
-	*h.enc = e
-	return h, nil
-}
-
-func (h *CidBaseHandler) Encoder() cidenc.Encoder {
-	return *h.enc
-}
-
-func (h *CidBaseHandler) EncoderFromPath(p string) cidenc.Encoder {
-	if h.base == "" {
-		enc, _ := cidenc.FromPath(*h.enc, p)
-		return enc
-	} else {
-		return *h.enc
-	}
-}
-
-func (h *CidBaseHandler) EncoderWithOverride() cidenc.Interface {
-	if h.base == "" {
-		enc := cidenc.NewOverride(*h.enc)
-		enc.Add(h.args...)
-		return enc
-	} else {
-		return *h.enc
-	}
 }

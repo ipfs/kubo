@@ -9,6 +9,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	cidenc "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/cidenc"
 
@@ -118,7 +119,7 @@ NOTE: List all references recursively by using the flag '-r'.
 			format = "<src> -> <dst>"
 		}
 
-		h, err := NewCidBaseHandlerLegacy(req).Proc()
+		h, err := cmdenv.NewCidBaseHandlerLegacy(req).Proc()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -178,7 +179,7 @@ Displays the hashes of all local objects.
 			return
 		}
 
-		h, err := NewCidBaseHandlerLegacy(req).Proc()
+		h, err := cmdenv.NewCidBaseHandlerLegacy(req).Proc()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -213,7 +214,7 @@ Displays the hashes of all local objects.
 
 var refsMarshallerMap = cmds.MarshalerMap{
 	cmds.Text: func(res cmds.Response) (io.Reader, error) {
-		_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+		_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
 		if err != nil {
 			return nil, err
 		}

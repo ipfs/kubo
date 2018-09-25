@@ -74,7 +74,7 @@ The output is:
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			_, err := NewCidBaseHandler(res.Request()).UseGlobal().Proc()
+			_, err := cmdenv.NewCidBaseHandler(res.Request()).UseGlobal().Proc()
 			if err != nil {
 				return err
 			}
@@ -167,7 +167,7 @@ For ERROR entries the error will also be printed to stderr.
 	},
 	Marshalers: oldCmds.MarshalerMap{
 		oldCmds.Text: func(res oldCmds.Response) (io.Reader, error) {
-			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
 			if err != nil {
 				return nil, err
 			}
@@ -208,7 +208,7 @@ var dupsFileStore = &oldCmds.Command{
 			return
 		}
 
-		h, err := NewCidBaseHandlerLegacy(req).Proc()
+		h, err := cmdenv.NewCidBaseHandlerLegacy(req).Proc()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

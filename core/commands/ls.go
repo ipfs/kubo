@@ -8,6 +8,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	unixfs "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
 	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
@@ -173,7 +174,7 @@ The JSON output contains type information.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
 			if err != nil {
 				return nil, err
 			}

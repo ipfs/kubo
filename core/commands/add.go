@@ -367,7 +367,7 @@ You can now check what blocks have been created by:
 				log.Warning("cannot determine size of input file")
 			}
 
-			_, err := NewCidBaseHandler(req).UseGlobal().Proc()
+			_, err := cmdenv.NewCidBaseHandler(req).UseGlobal().Proc()
 			if err != nil {
 				return err
 			}

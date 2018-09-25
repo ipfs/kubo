@@ -163,7 +163,7 @@ var filesStatCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			_, err := NewCidBaseHandler(req).UseGlobal().Proc()
+			_, err := cmdenv.NewCidBaseHandler(req).UseGlobal().Proc()
 			if err != nil {
 				return err
 			}
@@ -492,7 +492,7 @@ Examples:
 	},
 	Marshalers: oldcmds.MarshalerMap{
 		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
 			if err != nil {
 				return nil, err
 			}

@@ -6,6 +6,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	tar "github.com/ipfs/go-ipfs/tar"
@@ -69,7 +70,7 @@ represent it.
 	Type: coreunix.AddedObject{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			_, err := NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
 			if err != nil {
 				return nil, err
 			}
