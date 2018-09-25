@@ -3,6 +3,9 @@
 package util
 
 import (
+	"errors"
+	"math"
+
 	unix "gx/ipfs/QmVGjyM9i2msKvLXwh9VosCTgP4mL91kC7hDmqnwTTx6Hu/sys/unix"
 )
 
@@ -12,16 +15,22 @@ func init() {
 	setLimit = freebsdSetLimit
 }
 
-func freebsdGetLimit() (int64, int64, error) {
+func freebsdGetLimit() (uint64, uint64, error) {
 	rlimit := unix.Rlimit{}
 	err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit)
-	return rlimit.Cur, rlimit.Max, err
+	if (rlimit.Cur < 0) || (rlimit.Max < 0) {
+		return 0, 0, errors.New("invalid rlimits")
+	}
+	return uint64(rlimit.Cur), uint64(rlimit.Max), err
 }
 
-func freebsdSetLimit(soft int64, max int64) error {
+func freebsdSetLimit(soft uint64, max uint64) error {
+	if (soft > math.MaxInt64) || (max > math.MaxInt64) {
+		return errors.New("invalid rlimits")
+	}
 	rlimit := unix.Rlimit{
-		Cur: soft,
-		Max: max,
+		Cur: int64(soft),
+		Max: int64(max),
 	}
 	return unix.Setrlimit(unix.RLIMIT_NOFILE, &rlimit)
 }

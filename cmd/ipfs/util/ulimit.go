@@ -16,9 +16,9 @@ var (
 	supportsFDManagement = false
 
 	// getlimit returns the soft and hard limits of file descriptors counts
-	getLimit func() (int64, int64, error)
+	getLimit func() (uint64, uint64, error)
 	// set limit sets the soft and hard limits of file descriptors counts
-	setLimit func(int64, int64) error
+	setLimit func(uint64, uint64) error
 )
 
 // maxFds is the maximum number of file descriptors that go-ipfs
@@ -45,21 +45,19 @@ func setMaxFds() {
 
 // ManageFdLimit raise the current max file descriptor count
 // of the process based on the IPFS_FD_MAX value
-func ManageFdLimit() error {
+func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 	if !supportsFDManagement {
-		return nil
+		return false, 0, nil
 	}
 
 	setMaxFds()
 	soft, hard, err := getLimit()
 	if err != nil {
-		return err
+		return false, 0, err
 	}
 
-	max := int64(maxFds)
-
-	if max <= soft {
-		return nil
+	if maxFds <= soft {
+		return false, 0, nil
 	}
 
 	// the soft limit is the value that the kernel enforces for the
@@ -67,25 +65,23 @@ func ManageFdLimit() error {
 	// the hard limit acts as a ceiling for the soft limit
 	// an unprivileged process may only set it's soft limit to a
 	// alue in the range from 0 up to the hard limit
-	if err = setLimit(max, max); err != nil {
+	if err = setLimit(maxFds, maxFds); err != nil {
 		if err != syscall.EPERM {
-			return fmt.Errorf("error setting: ulimit: %s", err)
+			return false, 0, fmt.Errorf("error setting: ulimit: %s", err)
 		}
 
 		// the process does not have permission so we should only
 		// set the soft value
-		if max > hard {
-			return errors.New(
+		if maxFds > hard {
+			return false, 0, errors.New(
 				"cannot set rlimit, IPFS_FD_MAX is larger than the hard limit",
 			)
 		}
 
-		if err = setLimit(max, hard); err != nil {
-			return fmt.Errorf("error setting ulimit wihout hard limit: %s", err)
+		if err = setLimit(maxFds, hard); err != nil {
+			return false, 0, fmt.Errorf("error setting ulimit wihout hard limit: %s", err)
 		}
 	}
 
-	fmt.Printf("Successfully raised file descriptor limit to %d.\n", max)
-
-	return nil
+	return true, maxFds, nil
 }
