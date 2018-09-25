@@ -7,6 +7,7 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 **go-ipfs handles large datasets (1TB++) without a sweat**
 - `PX` - It takes less than 48 hours to transfer 1TB dataset over Fast Ethernet (100Mbps)
 - `PX` - It takes less than 12 hours to transfer 200GB sharded dataset over Fast Ethernet (100Mbps)
+- `PX` - There is a prototype implementation of GraphSync for go-ipfs
 - `PX` - There is a better and more performant datastore module (e.g Badger or better)
 - `P1` - Rewrite pinning data structures to support large data sets / many files performantly
 
