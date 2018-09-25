@@ -25,9 +25,9 @@ var log = logging.Logger("core/commands")
 var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
 
 const (
-	ApiOption          = "api"
-	CidBaseOption      = "cid-base"
-	UpgradeCidV0Option = "upgrade-cidv0"
+	ApiOption         = "api"
+	CidBaseOption     = "cid-base"
+	OutputCidV1Option = "output-cidv1"
 )
 
 var Root = &cmds.Command{
@@ -100,7 +100,7 @@ The CLI will exit with one of the following values:
 		cmdkit.BoolOption("local", "L", "Run the command locally, instead of using the daemon."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 		cmdkit.StringOption(CidBaseOption, "mbase", "Multi-base to use to encode version 1 CIDs in output."),
-		cmdkit.BoolOption(UpgradeCidV0Option, "Upgrade CID version 0 to version 1 in output."),
+		cmdkit.BoolOption(OutputCidV1Option, "Upgrade CID version 0 to version 1 in output."),
 
 		// global options, added to every command
 		cmds.OptionEncodingType,
@@ -240,7 +240,7 @@ type CidBaseHandler struct {
 func NewCidBaseHandler(req *cmds.Request) *CidBaseHandler {
 	h := &CidBaseHandler{}
 	h.base, _ = req.Options[CidBaseOption].(string)
-	h.upgrade, h.upgradeDefined = req.Options[UpgradeCidV0Option].(bool)
+	h.upgrade, h.upgradeDefined = req.Options[OutputCidV1Option].(bool)
 	h.args = req.Arguments
 	return h
 }
@@ -248,7 +248,7 @@ func NewCidBaseHandler(req *cmds.Request) *CidBaseHandler {
 func NewCidBaseHandlerLegacy(req oldcmds.Request) *CidBaseHandler {
 	h := &CidBaseHandler{}
 	h.base, _, _ = req.Option(CidBaseOption).String()
-	h.upgrade, h.upgradeDefined, _ = req.Option(UpgradeCidV0Option).Bool()
+	h.upgrade, h.upgradeDefined, _ = req.Option(OutputCidV1Option).Bool()
 	h.args = req.Arguments()
 	return h
 }
