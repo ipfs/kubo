@@ -4,7 +4,39 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 
 ## 2018 Q4
 
-Writting in Progress
+**go-ipfs handles large datasets (1TB++) without a sweat**
+- `PX` - It takes less than 48 hours to transfer 1TB dataset over Fast Ethernet (100Mbps)
+- `PX` - It takes less than 12 hours to transfer 200GB sharded dataset over Fast Ethernet (100Mbps)
+- `PX` - There is a better and more performant datastore module (e.g Badger or better)
+- `P1` - Rewrite pinning data structures to support large data sets / many files performantly
+
+**The bandwidth usage is reduced significantly and is well kept under control**
+- `PX` - Users can opt out of providing every IPLD node (and only provide root hashes)
+- `PX` - "Bitswap improvements around reducing chattiness, decreasing bandwidth usage (fewer dupe blocks), and increasing throughput"
+
+**It is a joy to use go-ipfs programatically**
+- `PX` @magik6k - The Core API is finalized and released. Make it easier to import go-ipfs as a package
+- `PX` - go-ipfs-api exposes the new Core API
+- `PX` - go-ipfs Daemon uses the new Core API
+- `PX` - go-ipfs Gateway uses the new Core API
+- `PX` - go-ipfs-cms uses uses the new Core API
+- `PX` - The legacy non Core API is deprecated and the diagram on go-ipfs README is updated
+
+**go-ipfs becomes a well maintained project**
+- `PX` - The Go Contributing Guidelines are updated to contemplate expecations from Core Devs and instructions on how to be an effective contributor (e.g include PR templates)
+- `PX` - A Lead Maintainer Protocol equivalent is proposed, reviewed by the team, merged and implemented
+- `PX` - Every issue on https://waffle.io/ipfs/go-ipfs gets triaged (reviewed and labeled following https://github.com/ipfs/pm/blob/master/GOLANG_CORE_DEV_MGMT.md)
+- `PX` - Every package has tests and tests+code coverage are running on Jenkins
+- `PX` - There is an up-to-date Architecture Diagram of the Go implementation of IPFS that links packages to subsystems to workflows
+
+**gx becomes a beloved tool by the Go Core Contributors**
+- `PX` - 
+- `PX` - 
+
+**Complete outstanding endeavours and still high priorities from Q3**
+- `P0` @kevina - base32 is supported and enabled by default
+- `PX` - go-ipfs gets a unixfsV2 prototype
+- `PX` @djdv - IPFS Mount
 
 ## 2018 Q3
 
