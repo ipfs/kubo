@@ -9,6 +9,9 @@ import (
 
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	apicid "gx/ipfs/QmdPF1WZQHFNfLdwhaShiR3e4KvFviAM58TrxVxPMhukic/go-cidutil/apicid"
+
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
@@ -26,7 +29,7 @@ type LsLink struct {
 }
 
 type LsObject struct {
-	Hash  string
+	Hash  apicid.Hash
 	Size  uint64
 	Type  string
 	Links []LsLink
@@ -128,7 +131,7 @@ possible, please use 'ipfs ls' instead.
 			t := unixFSNode.Type()
 
 			output.Objects[hash] = &LsObject{
-				Hash: c.String(),
+				Hash: apicid.FromCid(c),
 				Type: t.String(),
 				Size: unixFSNode.FileSize(),
 			}
@@ -186,6 +189,11 @@ possible, please use 'ipfs ls' instead.
 	},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
+
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err
