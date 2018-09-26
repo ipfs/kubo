@@ -17,9 +17,9 @@ ipfs version
 if [ -e "$repo/config" ]; then
   echo "Found IPFS fs-repo at $repo"
 else
-  case $IPFS_PROFILE in
-    "") INIT_ARGS= ;;
-    *) INIT_ARGS=--profile=$IPFS_PROFILE ;;
+  case "$IPFS_PROFILE" in
+    "") INIT_ARGS="" ;;
+    *) INIT_ARGS="--profile=$IPFS_PROFILE" ;;
   esac
   ipfs init $INIT_ARGS
   ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
