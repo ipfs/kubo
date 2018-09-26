@@ -18,9 +18,7 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 **It is a joy to use go-ipfs programatically**
 - `PX` @magik6k - The Core API is finalized and released. Make it easier to import go-ipfs as a package
 - `PX` - go-ipfs-api exposes the new Core API
-- `PX` - go-ipfs Daemon uses the new Core API
-- `PX` - go-ipfs Gateway uses the new Core API
-- `PX` - go-ipfs-cms uses uses the new Core API
+- `PX` - go-ipfs Daemon, Gateway, and cmds library use the new Core API
 - `PX` - The legacy non Core API is deprecated and the diagram on go-ipfs README is updated
 
 **go-ipfs becomes a well maintained project**
