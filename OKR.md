@@ -24,9 +24,9 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 - `PX` - The legacy non Core API is deprecated and the diagram on go-ipfs README is updated
 
 **go-ipfs becomes a well maintained project**
-- `PX` - The Go Contributing Guidelines are updated to contemplate expecations from Core Devs and instructions on how to be an effective contributor (e.g include PR templates)
-- `PX` - A Lead Maintainer Protocol equivalent is proposed, reviewed by the team, merged and implemented
-- `PX` - Every issue on https://waffle.io/ipfs/go-ipfs gets triaged (reviewed and labeled following https://github.com/ipfs/pm/blob/master/GOLANG_CORE_DEV_MGMT.md)
+- `PX` @eingenito - The Go Contributing Guidelines are updated to contemplate expecations from Core Devs and instructions on how to be an effective contributor (e.g include PR templates)
+- `PX` @eingenito - A Lead Maintainer Protocol equivalent is proposed, reviewed by the team, merged and implemented
+- `PX` @eingenito - Every issue on https://waffle.io/ipfs/go-ipfs gets triaged (reviewed and labeled following https://github.com/ipfs/pm/blob/master/GOLANG_CORE_DEV_MGMT.md)
 - `PX` - Every package has tests and tests+code coverage are running on Jenkins
 - `PX` - There is an up-to-date Architecture Diagram of the Go implementation of IPFS that links packages to subsystems to workflows
 
