@@ -88,6 +88,9 @@ This command outputs data in the following encodings:
 		discover, _ := req.Options[pubsubDiscoverOptionName].(bool)
 
 		sub, err := api.PubSub().Subscribe(req.Context, topic, options.PubSub.Discover(discover))
+		if err != nil {
+			return err
+		}
 		defer sub.Close()
 
 		if f, ok := res.(http.Flusher); ok {
