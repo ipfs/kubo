@@ -38,7 +38,6 @@ type PubSubAPI interface {
 	Ls(context.Context) ([]string, error)
 
 	// Peers list peers we are currently pubsubbing with
-	// TODO: WithTopic
 	Peers(context.Context, ...options.PubSubPeersOption) ([]peer.ID, error)
 
 	// Publish a message to a given pubsub topic
