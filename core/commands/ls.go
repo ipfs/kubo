@@ -138,7 +138,7 @@ The JSON output contains type information.
 				switch link.Cid.Type() {
 				case cid.Raw:
 					// No need to check with raw leaves
-					t = unixfspb.Data_File
+					t = unixfs.TFile
 				case cid.DagProtobuf:
 					linkNode, err := link.GetNode(req.Context(), dserv)
 					if err == ipld.ErrNotFound && !resolve {
@@ -193,7 +193,7 @@ The JSON output contains type information.
 					fmt.Fprintln(w, "Hash\tSize\tName")
 				}
 				for _, link := range object.Links {
-					if link.Type == unixfspb.Data_Directory {
+					if link.Type == unixfs.TDirectory {
 						link.Name += "/"
 					}
 					fmt.Fprintf(w, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)

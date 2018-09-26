@@ -11,8 +11,8 @@ import (
 	"syscall"
 
 	core "github.com/ipfs/go-ipfs/core"
+	ft "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
 	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
-	ftpb "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/pb"
 	mdag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
 
@@ -21,7 +21,6 @@ import (
 	fs "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
-	proto "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
 )
 
 var log = logging.Logger("fuse/ipfs")
@@ -93,13 +92,16 @@ func (*Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 type Node struct {
 	Ipfs   *core.IpfsNode
 	Nd     ipld.Node
-	cached *ftpb.Data
+	cached *ft.FSNode
 }
 
 func (s *Node) loadData() error {
 	if pbnd, ok := s.Nd.(*mdag.ProtoNode); ok {
-		s.cached = new(ftpb.Data)
-		return proto.Unmarshal(pbnd.Data(), s.cached)
+		fsn, err := ft.FSNodeFromBytes(pbnd.Data())
+		if err != nil {
+			return err
+		}
+		s.cached = fsn
 	}
 	return nil
 }
@@ -119,23 +121,23 @@ func (s *Node) Attr(ctx context.Context, a *fuse.Attr) error {
 			return fmt.Errorf("readonly: loadData() failed: %s", err)
 		}
 	}
-	switch s.cached.GetType() {
-	case ftpb.Data_Directory, ftpb.Data_HAMTShard:
+	switch s.cached.Type() {
+	case ft.TDirectory, ft.THAMTShard:
 		a.Mode = os.ModeDir | 0555
-	case ftpb.Data_File:
-		size := s.cached.GetFilesize()
+	case ft.TFile:
+		size := s.cached.FileSize()
 		a.Mode = 0444
 		a.Size = uint64(size)
 		a.Blocks = uint64(len(s.Nd.Links()))
-	case ftpb.Data_Raw:
+	case ft.TRaw:
 		a.Mode = 0444
-		a.Size = uint64(len(s.cached.GetData()))
+		a.Size = uint64(len(s.cached.Data()))
 		a.Blocks = uint64(len(s.Nd.Links()))
-	case ftpb.Data_Symlink:
+	case ft.TSymlink:
 		a.Mode = 0777 | os.ModeSymlink
-		a.Size = uint64(len(s.cached.GetData()))
+		a.Size = uint64(len(s.cached.Data()))
 	default:
-		return fmt.Errorf("invalid data type - %s", s.cached.GetType())
+		return fmt.Errorf("invalid data type - %s", s.cached.Type())
 	}
 	return nil
 }
@@ -192,21 +194,20 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		case *mdag.RawNode:
 			t = fuse.DT_File
 		case *mdag.ProtoNode:
-			var data ftpb.Data
-			if err := proto.Unmarshal(nd.Data(), &data); err != nil {
+			if fsn, err := ft.FSNodeFromBytes(nd.Data()); err != nil {
 				log.Warning("failed to unmarshal protonode data field:", err)
 			} else {
-				switch data.GetType() {
-				case ftpb.Data_Directory, ftpb.Data_HAMTShard:
+				switch fsn.Type() {
+				case ft.TDirectory, ft.THAMTShard:
 					t = fuse.DT_Dir
-				case ftpb.Data_File, ftpb.Data_Raw:
+				case ft.TFile, ft.TRaw:
 					t = fuse.DT_File
-				case ftpb.Data_Symlink:
+				case ft.TSymlink:
 					t = fuse.DT_Link
-				case ftpb.Data_Metadata:
+				case ft.TMetadata:
 					log.Error("metadata object in fuse should contain its wrapped type")
 				default:
-					log.Error("unrecognized protonode data type: ", data.GetType())
+					log.Error("unrecognized protonode data type: ", fsn.Type())
 				}
 			}
 		}
@@ -230,10 +231,10 @@ func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fu
 }
 
 func (s *Node) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
-	if s.cached == nil || s.cached.GetType() != ftpb.Data_Symlink {
+	if s.cached == nil || s.cached.Type() != ft.TSymlink {
 		return "", fuse.Errno(syscall.EINVAL)
 	}
-	return string(s.cached.GetData()), nil
+	return string(s.cached.Data()), nil
 }
 
 func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {

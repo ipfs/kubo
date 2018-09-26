@@ -14,7 +14,6 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	unixfs "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
 	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
-	unixfspb "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/pb"
 	merkledag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
 	resolver "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path/resolver"
@@ -135,13 +134,13 @@ possible, please use 'ipfs ls' instead.
 			}
 
 			switch t {
-			case unixfspb.Data_File:
+			case unixfs.TFile:
 				break
-			case unixfspb.Data_HAMTShard:
+			case unixfs.THAMTShard:
 				// We need a streaming ls API for this.
 				res.SetError(fmt.Errorf("cannot list large directories yet"), cmdkit.ErrNormal)
 				return
-			case unixfspb.Data_Directory:
+			case unixfs.TDirectory:
 				links := make([]LsLink, len(merkleNode.Links()))
 				output.Objects[hash].Links = links
 				for i, link := range merkleNode.Links() {
@@ -167,14 +166,14 @@ possible, please use 'ipfs ls' instead.
 						Hash: link.Cid.String(),
 						Type: t.String(),
 					}
-					if t == unixfspb.Data_File {
+					if t == unixfs.TFile {
 						lsLink.Size = d.FileSize()
 					} else {
 						lsLink.Size = link.Size
 					}
 					links[i] = lsLink
 				}
-			case unixfspb.Data_Symlink:
+			case unixfs.TSymlink:
 				res.SetError(fmt.Errorf("cannot list symlinks yet"), cmdkit.ErrNormal)
 				return
 			default:
