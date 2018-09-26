@@ -33,6 +33,7 @@ import (
 	metrics "gx/ipfs/QmNn6gcjBXpg8kccr9zEV7UVBpqAw8FZEiQ6DksvzyTQ5K/go-libp2p-metrics"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	quic "gx/ipfs/QmPWMfcxNC7txnUvT21xdivgRJfJ9e7YuC5nCn6JEALFQv/go-libp2p-quic-transport"
+	psrouter "gx/ipfs/QmPbLCBNGvyQhs3xK64cbobq7sN1Hdn6Ud9pkhsZME1sqT/go-libp2p-pubsub-router"
 	floodsub "gx/ipfs/QmPbYVFhKxamZAN9MyrQMDeoGYa6zkQkhAPguwFfzxPM1J/go-libp2p-floodsub"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
@@ -68,12 +69,11 @@ import (
 	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 	merkledag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
+	rhelpers "gx/ipfs/QmcRdSdYkL17qhuQAibF5D14XdQ1iunvaVnXGjDiQTdRm9/go-libp2p-routing-helpers"
 	bserv "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
 	"gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path/resolver"
 	yamux "gx/ipfs/QmcsgrV3nCAKjiHKZhKVXWc4oY3WBECJCqahXEMpHeMrev/go-smux-yamux"
-	psrouter "gx/ipfs/Qmd547Rr4cZUEG5ETGHHNgx6xHBY4ee7hB6NAEBw2UWnea/go-libp2p-pubsub-router"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
-	rhelpers "gx/ipfs/QmdELF3gxpecwBauFtZBib2fcnEEAbXiTVA1NSWZjf95Tp/go-libp2p-routing-helpers"
 	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 	p2phost "gx/ipfs/QmeA5hsqgLryvkeyqeQdvGDqurLkYi3XEPLZP3pzuBJXh2/go-libp2p-host"
 	pstore "gx/ipfs/QmfAQMFpgDU2U4BXG64qVr8HSiictfWvkSBz7Y2oDj65st/go-libp2p-peerstore"
@@ -523,14 +523,17 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 			n.RecordValidator,
 		)
 		n.Routing = rhelpers.Tiered{
-			// Always check pubsub first.
-			&rhelpers.Compose{
-				ValueStore: &rhelpers.LimitedValueStore{
-					ValueStore: n.PSRouter,
-					Namespaces: []string{"ipns"},
+			Routers: []routing.IpfsRouting{
+				// Always check pubsub first.
+				&rhelpers.Compose{
+					ValueStore: &rhelpers.LimitedValueStore{
+						ValueStore: n.PSRouter,
+						Namespaces: []string{"ipns"},
+					},
 				},
+				n.Routing,
 			},
-			n.Routing,
+			Validator: n.RecordValidator,
 		}
 	}
 
