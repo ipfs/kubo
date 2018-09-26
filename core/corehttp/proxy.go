@@ -1,4 +1,4 @@
-package p2p
+package corehttp
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
+
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )
@@ -62,17 +63,17 @@ type proxyRequest struct {
 }
 
 // from the url path parse the peer-ID, name and http path
-// /http/$peer_id/$name/$http_path
+// /proxy/http/$peer_id/$name/$http_path
 func parseRequest(request *http.Request) (*proxyRequest, error) {
 	path := request.URL.Path
 
 	split := strings.SplitN(path, "/", 6)
-	if split[2] != "http" {
-		return nil, fmt.Errorf("Invalid proxy request protocol '%s'", path)
-	}
-
 	if len(split) < 6 {
 		return nil, fmt.Errorf("Invalid request path '%s'", path)
+	}
+
+	if split[2] != "http" {
+		return nil, fmt.Errorf("Invalid proxy request protocol '%s'", split[2])
 	}
 
 	peerID, err := peer.IDB58Decode(split[3])
