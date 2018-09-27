@@ -312,7 +312,7 @@ Example:
 			return
 		}
 
-		var keys map[string]RefKeyObject
+		var keys map[apicid.Hash]RefKeyObject
 
 		if len(req.Arguments()) > 0 {
 			keys, err = pinLsKeys(req.Context(), req.Arguments(), typeStr, n)
@@ -329,6 +329,11 @@ Example:
 	Type: RefKeyList{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
+
 			v, err := unwrapOutput(res.Output())
 			if err != nil {
 				return nil, err
@@ -513,17 +518,17 @@ type RefKeyObject struct {
 }
 
 type RefKeyList struct {
-	Keys map[string]RefKeyObject
+	Keys map[apicid.Hash]RefKeyObject
 }
 
-func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode) (map[apicid.Hash]RefKeyObject, error) {
 
 	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
 		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[apicid.Hash]RefKeyObject)
 
 	r := &resolver.Resolver{
 		DAG:         n.DAG,
@@ -555,7 +560,7 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[c.String()] = RefKeyObject{
+		keys[apicid.FromCid(c)] = RefKeyObject{
 			Type: pinType,
 		}
 	}
@@ -563,13 +568,13 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 	return keys, nil
 }
 
-func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[apicid.Hash]RefKeyObject, error) {
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[apicid.Hash]RefKeyObject)
 
 	AddToResultKeys := func(keyList []cid.Cid, typeStr string) {
 		for _, c := range keyList {
-			keys[c.String()] = RefKeyObject{
+			keys[apicid.FromCid(c)] = RefKeyObject{
 				Type: typeStr,
 			}
 		}
