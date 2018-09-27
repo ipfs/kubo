@@ -106,6 +106,21 @@ test_expect_success "output only has one transfer encoding header" '
   test_cmp tecount_out tecount_exp
 '
 
+curl_pprofmutex() {
+  curl -f -X POST "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=$1"
+}
+
+test_expect_success "set mutex fraction for pprof (negative so it doesn't enable)" '
+  curl_pprofmutex -1
+'
+
+test_expect_success "test failure conditions of mutex pprof endpoint" '
+  test_must_fail curl_pprofmutex &&
+    test_must_fail curl_pprofmutex that_is_string &&
+    test_must_fail curl -f -X GET "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=-1"
+'
+
+
 test_expect_success "setup index hash" '
   mkdir index &&
   echo "<p></p>" > index/index.html &&
