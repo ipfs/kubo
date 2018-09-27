@@ -624,7 +624,7 @@ type pinVerifyOpts struct {
 }
 
 func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
-	visited := make(map[string]PinStatus)
+	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
@@ -633,7 +633,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
-		key := root.String()
+		key := root
 		if status, ok := visited[key]; ok {
 			return status
 		}
@@ -641,7 +641,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err := verifcid.ValidateCid(root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: key.String(), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -651,7 +651,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: key.String(), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
