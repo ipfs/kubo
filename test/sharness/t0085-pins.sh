@@ -57,9 +57,16 @@ test_pins() {
     ipfs pin verify
   '
 
-  test_expect_success "see if verify --verbose works" '
-    ipfs pin verify --verbose > verify_out &&
-    test $(cat verify_out | wc -l) -ge 7
+  test_expect_success "see if verify --verbose $BASE_ARGS works" '
+    ipfs pin verify --verbose $BASE_ARGS > verify_out &&
+    test $(cat verify_out | wc -l) -ge 7 &&
+    test_should_contain "$HASH_A ok" verify_out &&
+    test_should_contain "$HASH_B ok" verify_out &&
+    test_should_contain "$HASH_C ok" verify_out &&
+    test_should_contain "$HASH_D ok" verify_out &&
+    test_should_contain "$HASH_E ok" verify_out &&
+    test_should_contain "$HASH_F ok" verify_out &&
+    test_should_contain "$HASH_G ok" verify_out
   '
 
   test_expect_success "ipfs pin ls $BASE_ARGS works" '

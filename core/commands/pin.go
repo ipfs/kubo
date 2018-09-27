@@ -490,6 +490,11 @@ var verifyPinCmd = &cmds.Command{
 	Type: PinVerifyRes{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			_, err := cmdenv.NewCidBaseHandlerLegacy(res.Request()).UseGlobal().Proc()
+			if err != nil {
+				return nil, err
+			}
+
 			quiet, _, _ := res.Request().Option("quiet").Bool()
 
 			out, err := unwrapOutput(res.Output())
@@ -602,7 +607,7 @@ func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[apicid
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
 type PinVerifyRes struct {
-	Cid string
+	Cid apicid.Hash
 	PinStatus
 }
 
@@ -614,7 +619,7 @@ type PinStatus struct {
 
 // BadNode is used in PinVerifyRes
 type BadNode struct {
-	Cid string
+	Cid apicid.Hash
 	Err string
 }
 
@@ -641,7 +646,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err := verifcid.ValidateCid(root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key.String(), Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: apicid.FromCid(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -651,7 +656,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key.String(), Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: apicid.FromCid(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -677,7 +682,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 			pinStatus := checkPin(cid)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{cid.String(), pinStatus}:
+				case out <- &PinVerifyRes{apicid.FromCid(cid), pinStatus}:
 				case <-ctx.Done():
 					return
 				}
