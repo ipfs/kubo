@@ -47,7 +47,7 @@ test_pins() {
 
   test_expect_success "see if verify --verbose works" '
     ipfs pin verify --verbose > verify_out &&
-    test $(cat verify_out | wc -l) > 8
+    test $(cat verify_out | wc -l) -ge 7
   '
 
   test_expect_success "unpin those hashes" '
