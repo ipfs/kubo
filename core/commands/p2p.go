@@ -49,6 +49,14 @@ type P2PStreamsOutput struct {
 	Streams []P2PStreamInfoOutput
 }
 
+var (
+	allowCustomProtocolOptionName = "allow-custom-protocol"
+	allOptionName                 = "all"
+	protocolOptionName            = "protocol"
+	listenAddressOptionName       = "listen-address"
+	targetAddressOptionName       = "target-address"
+)
+
 // P2PCmd is the 'ipfs p2p' command
 var P2PCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -91,7 +99,7 @@ Example:
 		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("allow-custom-protocol", "Don't require /x/ prefix"),
+		cmdkit.BoolOption(allowCustomProtocolOptionName, "Don't require /x/ prefix"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -118,7 +126,7 @@ Example:
 			return
 		}
 
-		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
+		allowCustom, _, err := req.Option(allowCustomProtocolOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -156,7 +164,7 @@ Example:
 		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("allow-custom-protocol", "Don't require /x/ prefix"),
+		cmdkit.BoolOption(allowCustomProtocolOptionName, "Don't require /x/ prefix"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -176,7 +184,7 @@ Example:
 			return
 		}
 
-		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
+		allowCustom, _, err := req.Option(allowCustomProtocolOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -283,10 +291,10 @@ var p2pCloseCmd = &cmds.Command{
 		Tagline: "Stop listening for new connections to forward.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("all", "a", "Close all listeners."),
-		cmdkit.StringOption("protocol", "p", "Match protocol name"),
-		cmdkit.StringOption("listen-address", "l", "Match listen address"),
-		cmdkit.StringOption("target-address", "t", "Match target address"),
+		cmdkit.BoolOption(allOptionName, "a", "Close all listeners."),
+		cmdkit.StringOption(protocolOptionName, "p", "Match protocol name"),
+		cmdkit.StringOption(listenAddressOptionName, "l", "Match listen address"),
+		cmdkit.StringOption(targetAddressOptionName, "t", "Match target address"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -295,10 +303,10 @@ var p2pCloseCmd = &cmds.Command{
 			return
 		}
 
-		closeAll, _, _ := req.Option("all").Bool()
-		protoOpt, p, _ := req.Option("protocol").String()
-		listenOpt, l, _ := req.Option("listen-address").String()
-		targetOpt, t, _ := req.Option("target-address").String()
+		closeAll, _, _ := req.Option(allOptionName).Bool()
+		protoOpt, p, _ := req.Option(protocolOptionName).String()
+		listenOpt, l, _ := req.Option(listenAddressOptionName).String()
+		targetOpt, t, _ := req.Option(targetAddressOptionName).String()
 
 		proto := protocol.ID(protoOpt)
 
