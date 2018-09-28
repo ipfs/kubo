@@ -6,7 +6,7 @@ test_description="Test experimental p2p commands"
 
 # start iptb + wait for peering
 test_expect_success 'init iptb' '
-  iptb init -n 2 --bootstrap=none --port=0
+  iptb init -n 3 --bootstrap=none --port=0
 '
 
 test_expect_success 'generate test data' '
@@ -14,7 +14,7 @@ test_expect_success 'generate test data' '
   echo "012345" > test1.bin
 '
 
-startup_cluster 2
+startup_cluster 3
 
 test_expect_success 'peer ids' '
   PEERID_0=$(iptb get id 0) &&
@@ -37,6 +37,7 @@ test_expect_success 'fail without config option being enabled' '
 test_expect_success "enable filestore config setting" '
   ipfsi 0 config --json Experimental.Libp2pStreamMounting true
   ipfsi 1 config --json Experimental.Libp2pStreamMounting true
+  ipfsi 2 config --json Experimental.Libp2pStreamMounting true
 '
 
 test_expect_success 'start p2p listener' '
@@ -146,6 +147,23 @@ test_expect_success 'C->S Close local listener' '
 '
 
 check_test_ports
+
+# Checking port
+
+test_expect_success "cannot accept 0 port in 'ipfs p2p listen'" '
+  test_must_fail ipfsi 2 p2p listen /x/p2p-test/0 /ip4/127.0.0.1/tcp/0
+'
+
+test_expect_success "'ipfs p2p forward' accept 0 port" '
+  ipfsi 2 p2p forward /x/p2p-test/0 /ip4/127.0.0.1/tcp/0 /ipfs/$PEERID_0
+'
+
+test_expect_success "'ipfs p2p ls' output looks good" '
+  echo "true" > forward_0_expected &&
+  ipfsi 2 p2p ls | awk '\''{print $2}'\'' | sed "s/.*\///" | awk -F: '\''{if($1>0)print"true"}'\''  > forward_0_actual &&
+  ipfsi 2 p2p close -p /x/p2p-test/0 &&
+  test_cmp forward_0_expected forward_0_actual
+'
 
 # Listing streams
 

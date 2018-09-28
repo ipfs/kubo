@@ -273,7 +273,7 @@ func checkPort(target ma.Multiaddr) error {
 	}
 
 	if port == 0 {
-		return fmt.Errorf("port can't be 0")
+		return fmt.Errorf("port can not be 0")
 	}
 
 	return nil
