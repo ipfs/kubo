@@ -43,6 +43,7 @@ func ProxyOption() ServeOption {
 
 			s := bufio.NewReader(stream)
 			proxyResponse, err := http.ReadResponse(s, proxyReq)
+
 			defer func() { proxyResponse.Body.Close() }()
 			if err != nil {
 				msg := fmt.Sprintf("Failed to send request to stream '%v' to peer '%v'", parsedRequest.name, parsedRequest.target)
