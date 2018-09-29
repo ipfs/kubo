@@ -20,6 +20,8 @@ profiling information.
   - `curl localhost:5001/debug/pprof/profile > ipfs.cpuprof`
 - heap trace dump
   - `curl localhost:5001/debug/pprof/heap > ipfs.heap`
+- memory statistics (in json, see "memstats" object)
+  - `curl localhost:5001/debug/pprof/vars > ipfs.vars`
 - system information
   - `ipfs diag sys > ipfs.sysinfo`
 
