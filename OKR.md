@@ -9,7 +9,7 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 - `P0` @hannahhoward - List a sharded directory with 1M entries over LAN in under 1 minute, with less than a second to the first entry.
 - `PX` - There is a prototype implementation of GraphSync for go-ipfs
 - `P0` @magik6k - There is a better and more performant datastore module (e.g Badger or better)
-- `P1` - Rewrite pinning data structures to support large data sets / many files performantly
+- `P1` - Rewrite pinning data structure to support large pinsets and flexible pin modes
 
 **The bandwidth usage is reduced significantly and is well kept under control**
 - `PX` - Spec and draft implementation of allowing users to opt out of providing every IPLD node (and only provide root hashes)
