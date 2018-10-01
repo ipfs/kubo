@@ -15,7 +15,7 @@ import (
 
 func ProxyOption() ServeOption {
 	return func(ipfsNode *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		mux.HandleFunc("/proxy/", func(w http.ResponseWriter, request *http.Request) {
+		mux.HandleFunc("/proxy/http/", func(w http.ResponseWriter, request *http.Request) {
 			// parse request
 			parsedRequest, err := parseRequest(request)
 			if err != nil {
@@ -71,10 +71,6 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 	split := strings.SplitN(path, "/", 6)
 	if len(split) < 6 {
 		return nil, fmt.Errorf("Invalid request path '%s'", path)
-	}
-
-	if split[2] != "http" {
-		return nil, fmt.Errorf("Invalid proxy request protocol '%s'", split[2])
 	}
 
 	peerID, err := peer.IDB58Decode(split[3])

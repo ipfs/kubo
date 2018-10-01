@@ -138,7 +138,7 @@ teardown_sender_and_receiver
 test_expect_success 'handle proxy http request invalid request' '
 setup_receiver_ipfs &&
 setup_sender_ipfs &&
-curl_check_response_code 400 DERPDERPDERP
+curl_check_response_code 404 DERPDERPDERP
 '
 teardown_sender_and_receiver
 
