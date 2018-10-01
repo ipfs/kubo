@@ -12,9 +12,9 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 - `P1` - Rewrite pinning data structure to support large pinsets and flexible pin modes
 
 **The bandwidth usage is reduced significantly and is well kept under control**
-- `PX` - Spec and draft implementation of allowing users to opt out of providing every IPLD node (and only provide root hashes)
-- `PX` - Bitswap improvements reduce number of duplicate blocks downloaded by 75%
-- `PX` @stebalien - The number of messages sent by Bitswap is on average <= 2x the number of blocks received
+- `P1` - Spec and draft implementation of allowing users to opt out of providing every IPLD node (and only provide root hashes)
+- `P0` - Bitswap improvements reduce number of duplicate blocks downloaded by 75%
+- `P0` @stebalien - The number of messages sent by Bitswap is on average <= 2x the number of blocks received
 
 **It is a joy to use go-ipfs programatically**
 - `PX` @magik6k - The Core API is finalized and released. Make it easier to import go-ipfs as a package
