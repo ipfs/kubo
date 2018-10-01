@@ -5,37 +5,39 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 ## 2018 Q4
 
 **go-ipfs handles large datasets (1TB++) without a sweat**
-- `PX` - It takes less than 48 hours to transfer 1TB dataset over Fast Ethernet (100Mbps)
-- `PX` - It takes less than 12 hours to transfer 200GB sharded dataset over Fast Ethernet (100Mbps)
+- `P0` - It takes less than 48 hours to transfer 1TB dataset over Fast Ethernet (100Mbps)
+- `P0` @hannahhoward - List a sharded directory with 1M entries over LAN in under 1 minute, with less than a second to the first entry.
 - `PX` - There is a prototype implementation of GraphSync for go-ipfs
-- `PX` - There is a better and more performant datastore module (e.g Badger or better)
+- `P0` @magik6k - There is a better and more performant datastore module (e.g Badger or better)
 - `P1` - Rewrite pinning data structures to support large data sets / many files performantly
 
 **The bandwidth usage is reduced significantly and is well kept under control**
-- `PX` - Users can opt out of providing every IPLD node (and only provide root hashes)
-- `PX` - "Bitswap improvements around reducing chattiness, decreasing bandwidth usage (fewer dupe blocks), and increasing throughput"
+- `PX` - Spec and draft implementation of allowing users to opt out of providing every IPLD node (and only provide root hashes)
+- `PX` - Bitswap improvements reduce number of duplicate blocks downloaded by 75%
+- `PX` @stebalien - The number of messages sent by Bitswap is on average <= 2x the number of blocks received
 
 **It is a joy to use go-ipfs programatically**
 - `PX` @magik6k - The Core API is finalized and released. Make it easier to import go-ipfs as a package
-- `PX` - go-ipfs-api exposes the new Core API
-- `PX` - go-ipfs Daemon, Gateway, and cmds library use the new Core API
-- `PX` - The legacy non Core API is deprecated and the diagram on go-ipfs README is updated
+- `PX` @magik6k - go-ipfs-api exposes the new Core API
+- `PX` @magik6k - go-ipfs Daemon, Gateway, and cmds library use the new Core API
+- `PX` @magik6k - The legacy non Core API is deprecated and the diagram on go-ipfs README is updated
 
 **go-ipfs becomes a well maintained project**
-- `PX` @eingenito - The Go Contributing Guidelines are updated to contemplate expecations from Core Devs and instructions on how to be an effective contributor (e.g include PR templates)
-- `PX` @eingenito - A Lead Maintainer Protocol equivalent is proposed, reviewed by the team, merged and implemented
-- `PX` @eingenito - Every issue on https://waffle.io/ipfs/go-ipfs gets triaged (reviewed and labeled following https://github.com/ipfs/pm/blob/master/GOLANG_CORE_DEV_MGMT.md)
-- `PX` - Every package has tests and tests+code coverage are running on Jenkins
-- `PX` - There is an up-to-date Architecture Diagram of the Go implementation of IPFS that links packages to subsystems to workflows
+- `P2` @eingenito - The Go Contributing Guidelines are updated to contemplate expecations from Core Devs and instructions on how to be an effective contributor (e.g include PR templates)
+- `P1` @eingenito - A Lead Maintainer Protocol equivalent is proposed, reviewed by the team, merged and implemented
+- `P0` @eingenito - Every issue on https://waffle.io/ipfs/go-ipfs gets triaged (reviewed and labeled following https://github.com/ipfs/pm/blob/master/GOLANG_CORE_DEV_MGMT.md)
+- `P0` @eingenito - Every non-trivial PR is first reviewed by someone other than @Stebalien before he looks at it.
+- `P2` - Every package has tests and tests+code coverage are running on Jenkins
+- `P2` - There is an up-to-date Architecture Diagram of the Go implementation of IPFS that links packages to subsystems to workflows
 
 **gx becomes a beloved tool by the Go Core Contributors**
-- `PX` - 
-- `PX` - 
+- `P0` - You can update a minor version of a transitive dependancy without updating intermediate dependancies
+- `P0` - go-ipfs doesn't have checked-in gx paths
 
 **Complete outstanding endeavours and still high priorities from Q3**
 - `P0` @kevina - base32 is supported and enabled by default
-- `PX` - go-ipfs gets a unixfsV2 prototype
-- `PX` @djdv - IPFS Mount
+- `P1` - go-ipfs gets a unixfsV2 spec and prototype
+- `P2` @djdv - Add mutable methods (r+w) to the new mount implementation and get it building+tested on all supported platforms
 
 ## 2018 Q3
 
