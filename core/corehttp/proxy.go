@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	//"net/http/httputil"
+	"net/http/httputil"
 	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
 
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	inet "gx/ipfs/QmfDPh144WGBqRxZb1TGDHerbMnZATrHZggAPw7putNnBq/go-libp2p-net"
 )
 
-// This adds an endpoint for proxying a request to another ipfs peer
+// This adds an endpoint for proxying a HTTP request to another ipfs peer
 func ProxyOption() ServeOption {
 	return func(ipfsNode *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/proxy/http/", func(w http.ResponseWriter, request *http.Request) {
@@ -33,28 +34,7 @@ func ProxyOption() ServeOption {
 				return
 			}
 
-			//httputil.ReverseProxy(
-			// send request to peer
-			proxyReq, err := http.NewRequest(request.Method, parsedRequest.httpPath, request.Body)
-
-			if err != nil {
-				handleError(w, "Failed to format proxy request", err, 500)
-				return
-			}
-
-			proxyReq.Write(stream)
-
-			s := bufio.NewReader(stream)
-			proxyResponse, err := http.ReadResponse(s, proxyReq)
-
-			defer func() { proxyResponse.Body.Close() }()
-			if err != nil {
-				msg := fmt.Sprintf("Failed to send request to stream '%v' to peer '%v'", parsedRequest.name, parsedRequest.target)
-				handleError(w, msg, err, 500)
-				return
-			}
-			// send client response
-			proxyResponse.Write(w)
+			newReverseHttpProxy(parsedRequest, &stream).ServeHTTP(w, request)
 		})
 		return mux, nil
 	}
@@ -85,9 +65,28 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 	return &proxyRequest{peerID, split[4], split[5]}, nil
 }
 
-// log error and send response to client
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
 	w.WriteHeader(code)
 	fmt.Fprintf(w, "%s: %s\n", msg, err)
 	log.Warningf("server error: %s: %s", err)
+}
+
+func newReverseHttpProxy(req *proxyRequest, streamToPeer *inet.Stream) *httputil.ReverseProxy {
+	director := func(r *http.Request) {
+		r.URL.Path = req.httpPath //the scheme etc. doesn't matter
+	}
+
+	return &httputil.ReverseProxy{
+		Director:  director,
+		Transport: &roundTripper{streamToPeer}}
+}
+
+type roundTripper struct {
+	stream *inet.Stream
+}
+
+func (self *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Write(*self.stream)
+	s := bufio.NewReader(*self.stream)
+	return http.ReadResponse(s, req)
 }

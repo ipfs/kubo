@@ -55,6 +55,9 @@ function setup_sender_ipfs() {
     sleep 5
 }
 
+function setup_sender_and_receiver_ipfs() {
+    setup_receiver_ipfs && setup_sender_ipfs
+}
 
 function teardown_sender_and_receiver() {
     kill -9 $SENDER_PID $RECEIVER_PID > /dev/null 2>&1
@@ -64,9 +67,9 @@ function teardown_sender_and_receiver() {
 function curl_check_response_code() {
     local expected_status_code=$1
     local path_stub=${2:-http/$RECEIVER_ID/test/index.txt}
-    local status_code=$(curl -s --write-out %{http_code} --output /dev/null http://localhost:5001/proxy/$path_stub)
+    local status_code=$(curl -s --write-out %{http_code} --output /dev/null http://localhost:5001/proxy/http/$path_stub)
 
-    if [[ $status_code -ne $expected_status_code ]];
+    if [[ "$status_code" -ne "$expected_status_code" ]];
     then
         echo "Found status-code "$status_code", expected "$expected_status_code
         return 1
@@ -108,44 +111,35 @@ function curl_send_proxy_request_and_check_response() {
 }
 
 
-#test_expect_success 'handle proxy http request propogates error response from remote' '
-#serve_http_once "SORRY GUYS, I LOST IT" "404 Not Found" &&
-#setup_receiver_ipfs &&
-#setup_sender_ipfs &&
-#curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
-#'
-#kill -9 $REMOTE_SERVER_PID
-#teardown_sender_and_receiver
+test_expect_success 'handle proxy http request propogates error response from remote' '
+serve_http_once "SORRY GUYS, I LOST IT" "404 Not Found" &&
+setup_sender_and_receiver_ipfs &&
+curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
+'
+teardown_sender_and_receiver
 
-test_expect_success 'handle proxy http request when remote server not available ' '
-setup_receiver_ipfs &&
-setup_sender_ipfs &&
-curl_check_response_code "000"
+test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
+setup_sender_and_receiver_ipfs &&
+curl_send_proxy_request_and_check_response 502 ""
 '
 teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request ' '
 serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
-setup_receiver_ipfs &&
-setup_sender_ipfs &&
+setup_sender_and_receiver_ipfs &&
 curl_send_proxy_request_and_check_response 200 "THE WOODS ARE LOVELY DARK AND DEEP"
 '
-kill -9 $REMOTE_SERVER_PID
 teardown_sender_and_receiver
 
-
-
 test_expect_success 'handle proxy http request invalid request' '
-setup_receiver_ipfs &&
-setup_sender_ipfs &&
-curl_check_response_code 404 DERPDERPDERP
+setup_sender_and_receiver_ipfs &&
+curl_check_response_code 400 DERPDERPDERP
 '
 teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
-setup_receiver_ipfs &&
-setup_sender_ipfs &&
-curl_check_response_code 400 http/unknown_peer/test/index.txt
+setup_sender_and_receiver_ipfs &&
+curl_check_response_code 400 unknown_peer/test/index.txt
 '
 teardown_sender_and_receiver
 
