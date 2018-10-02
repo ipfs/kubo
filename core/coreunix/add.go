@@ -398,8 +398,8 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	return nil
 }
 
-// AddFile adds the given file while respecting the adder.
-func (adder *Adder) AddFile(file files.File) error {
+// AddAllAndPin adds the given request's files and pin them.
+func (adder *Adder) AddAllAndPin(file files.File) error {
 	if adder.Pin {
 		adder.unlocker = adder.blockstore.PinLock()
 	}
@@ -409,7 +409,41 @@ func (adder *Adder) AddFile(file files.File) error {
 		}
 	}()
 
-	return adder.addFile(file)
+	switch {
+	case file.IsDirectory():
+		// Iterate over each top-level file and add individually. Otherwise the
+		// single files.File f is treated as a directory, affecting hidden file
+		// semantics.
+		for {
+			file, err := file.NextFile()
+			if err == io.EOF {
+				// Finished the list of files.
+				break
+			} else if err != nil {
+				return err
+			}
+			if err := adder.addFile(file); err != nil {
+				return err
+			}
+		}
+		break
+	default:
+		if err := adder.addFile(file); err != nil {
+			return err
+		}
+		break
+	}
+
+	// copy intermediary nodes from editor to our actual dagservice
+	_, err := adder.Finalize()
+	if err != nil {
+		return err
+	}
+
+	if !adder.Pin {
+		return nil
+	}
+	return adder.PinRoot()
 }
 
 func (adder *Adder) addFile(file files.File) error {

@@ -270,7 +270,7 @@ You can now check what blocks have been created by:
 		fileAdder.Hidden = hidden
 		fileAdder.Trickle = trickle
 		fileAdder.Wrap = wrap
-		fileAdder.Pin = dopin
+		fileAdder.Pin = dopin && !hash
 		fileAdder.Silent = silent
 		fileAdder.RawLeaves = rawblks
 		fileAdder.NoCopy = nocopy
@@ -297,42 +297,12 @@ You can now check what blocks have been created by:
 			fileAdder.SetMfsRoot(mr)
 		}
 
-		addAllAndPin := func(f files.File) error {
-			// Iterate over each top-level file and add individually. Otherwise the
-			// single files.File f is treated as a directory, affecting hidden file
-			// semantics.
-			for {
-				file, err := f.NextFile()
-				if err == io.EOF {
-					// Finished the list of files.
-					break
-				} else if err != nil {
-					return err
-				}
-				if err := fileAdder.AddFile(file); err != nil {
-					return err
-				}
-			}
-
-			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize()
-			if err != nil {
-				return err
-			}
-
-			if hash {
-				return nil
-			}
-
-			return fileAdder.PinRoot()
-		}
-
 		errCh := make(chan error)
 		go func() {
 			var err error
 			defer func() { errCh <- err }()
 			defer close(outChan)
-			err = addAllAndPin(req.Files)
+			err = fileAdder.AddAllAndPin(req.Files)
 		}()
 
 		err = res.Emit(outChan)

@@ -85,7 +85,7 @@ func TestAddGCLive(t *testing.T) {
 	go func() {
 		defer close(addDone)
 		defer close(out)
-		err := adder.AddFile(slf)
+		err := adder.AddAllAndPin(slf)
 
 		if err != nil {
 			t.Fatal(err)
@@ -191,7 +191,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 
 	go func() {
 		defer close(adder.Out)
-		err = adder.AddFile(file)
+		err = adder.AddAllAndPin(file)
 		if err != nil {
 			t.Fatal(err)
 		}
