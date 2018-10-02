@@ -67,6 +67,8 @@ func (api *PinAPI) Update(ctx context.Context, from coreiface.Path, to coreiface
 		return err
 	}
 
+	defer api.node.Blockstore.PinLock().Unlock()
+
 	fp, err := api.core().ResolvePath(ctx, from)
 	if err != nil {
 		return err
