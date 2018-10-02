@@ -405,6 +405,8 @@ new pin and removing the old one.
 			return
 		}
 
+		defer n.Blockstore.PinLock().Unlock()
+
 		err = n.Pinning.Update(req.Context(), fromc, toc, unpin)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
