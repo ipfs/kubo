@@ -40,6 +40,7 @@ var hello = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
 var helloStr = "hello, world!"
 
 // `echo -n | ipfs add`
+var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
 
 func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNode, []coreiface.CoreAPI, error) {
 	mn := mocknet.New(ctx)
@@ -150,7 +151,7 @@ func TestAdd(t *testing.T) {
 		{
 			name: "addEmpty",
 			data: "",
-			path: "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH",
+			path: emptyFile,
 		},
 		// CIDv1 version / rawLeaves
 		{
@@ -183,13 +184,25 @@ func TestAdd(t *testing.T) {
 			name: "addInline",
 			data: helloStr,
 			path: "/ipfs/zaYomJdLndMku8P9LHngHB5w2CQ7NenLbv",
-			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32)},
+			opts: []options.UnixfsAddOption{options.Unixfs.Inline(true)},
+		},
+		{
+			name: "addInlineLimit",
+			data: helloStr,
+			path: "/ipfs/zaYomJdLndMku8P9LHngHB5w2CQ7NenLbv",
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true)},
+		},
+		{
+			name: "addInlineZero",
+			data: "",
+			path: "/ipfs/z2yYDV",
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(0), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
 		},
 		{ //TODO: after coreapi add is used in `ipfs add`, consider making this default for inline
 			name: "addInlineRaw",
 			data: helloStr,
 			path: "/ipfs/zj7Gr8AcBreqGEfrnR5kPFe",
-			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.RawLeaves(true)},
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
 		},
 		// Chunker / Layout
 		{
@@ -312,7 +325,7 @@ func TestCatEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	emptyFilePath, err := coreiface.ParsePath("/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH")
+	emptyFilePath, err := coreiface.ParsePath(emptyFile)
 	if err != nil {
 		t.Fatal(err)
 	}

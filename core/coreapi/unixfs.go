@@ -84,7 +84,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 		return nil, fmt.Errorf("unknown layout: %d", settings.Layout)
 	}
 
-	if settings.InlineLimit > 0 {
+	if settings.Inline {
 		fileAdder.CidBuilder = cidutil.InlineBuilder{
 			Builder: fileAdder.CidBuilder,
 			Limit:   settings.InlineLimit,
