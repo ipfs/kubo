@@ -20,6 +20,7 @@ type UnixfsAddSettings struct {
 	CidVersion int
 	MhType     uint64
 
+	Inline       bool
 	InlineLimit  int
 	RawLeaves    bool
 	RawLeavesSet bool
@@ -39,7 +40,8 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		CidVersion: -1,
 		MhType:     mh.SHA2_256,
 
-		InlineLimit:  0,
+		Inline:       false,
+		InlineLimit:  32,
 		RawLeaves:    false,
 		RawLeavesSet: false,
 
@@ -124,11 +126,26 @@ func (unixfsOpts) RawLeaves(enable bool) UnixfsAddOption {
 	}
 }
 
+// Inline tells the adder to inline small blocks into CIDs
+func (unixfsOpts) Inline(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Inline = enable
+		return nil
+	}
+}
+
 // InlineLimit sets the amount of bytes below which blocks will be encoded
-// directly into CID instead of being stored and addressed by it's hash
+// directly into CID instead of being stored and addressed by it's hash.
+// Specifying this option won't enable block inlining. For that use `Inline`
+// option. Default: 32 bytes
 //
-// Note that while there is no hard limit on the number of bytes here, it should
-// be kept at something reasonably low like 32b (default for 'ipfs add')
+// Note that while there is no hard limit on the number of bytes, it should
+// be kept at a reasonably low value, like 64 bytes if you intend to display
+// these hashes. Larger values like 256 bytes will work fine, but may affect
+// de-duplication of smaller blocks.
+//
+// Setting this value too high may cause various problems, such as render some
+// blocks unfetchable
 func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.InlineLimit = limit
