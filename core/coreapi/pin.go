@@ -22,12 +22,12 @@ func (api *PinAPI) Add(ctx context.Context, p coreiface.Path, opts ...caopts.Pin
 		return err
 	}
 
-	defer api.node.Blockstore.PinLock().Unlock()
-
 	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return err
 	}
+
+	defer api.node.Blockstore.PinLock().Unlock()
 
 	_, err = corerepo.Pin(api.node, api.core(), ctx, []string{rp.Cid().String()}, settings.Recursive)
 	if err != nil {
@@ -76,6 +76,8 @@ func (api *PinAPI) Update(ctx context.Context, from coreiface.Path, to coreiface
 	if err != nil {
 		return err
 	}
+
+	defer api.node.Blockstore.PinLock().Unlock()
 
 	err = api.node.Pinning.Update(ctx, fp.Cid(), tp.Cid(), settings.Unpin)
 	if err != nil {
