@@ -33,6 +33,9 @@ type KeyAPI interface {
 	// List lists keys stored in keystore
 	List(ctx context.Context) ([]Key, error)
 
+	// Self returns the 'main' node key
+	Self(ctx context.Context) (Key, error)
+
 	// Remove removes keys from keystore. Returns ipns path of the removed key
 	Remove(ctx context.Context, name string) (Key, error)
 }

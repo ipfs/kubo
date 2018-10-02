@@ -137,7 +137,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"p2p":       lgc.NewCommand(P2PCmd),
 	"refs":      lgc.NewCommand(RefsCmd),
 	"resolve":   ResolveCmd,
-	"swarm":     lgc.NewCommand(SwarmCmd),
+	"swarm":     SwarmCmd,
 	"tar":       lgc.NewCommand(TarCmd),
 	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
 	"update":    lgc.NewCommand(ExternalBinary()),
