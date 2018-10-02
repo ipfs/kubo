@@ -8,7 +8,7 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 - `P0` - It takes less than 48 hours to transfer 1TB dataset over Fast Ethernet (100Mbps)
 - `P0` @hannahhoward - List a sharded directory with 1M entries over LAN in under 1 minute, with less than a second to the first entry.
 - `PX` - There is a prototype implementation of GraphSync for go-ipfs
-- `P0` @magik6k - There is a better and more performant datastore module (e.g Badger or better)
+- `P0` @schomatis - There is a better and more performant datastore module (e.g Badger or better)
 - `P1` - Rewrite pinning data structure to support large pinsets and flexible pin modes
 
 **The bandwidth usage is reduced significantly and is well kept under control**
