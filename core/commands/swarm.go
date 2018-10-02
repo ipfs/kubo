@@ -94,7 +94,7 @@ var swarmPeersCmd = &cmds.Command{
 			}
 
 			if verbose || latency {
-				lat, err := c.Latency(req.Context)
+				lat, err := c.Latency()
 				if err != nil {
 					return err
 				}
@@ -106,7 +106,7 @@ var swarmPeersCmd = &cmds.Command{
 				}
 			}
 			if verbose || streams {
-				strs, err := c.Streams(req.Context)
+				strs, err := c.Streams()
 				if err != nil {
 					return err
 				}

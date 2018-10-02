@@ -2,7 +2,6 @@ package coreapi
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"time"
 
@@ -37,12 +36,9 @@ func (api *SwarmAPI) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 		return coreiface.ErrOffline
 	}
 
-	swrm, ok := api.node.PeerHost.Network().(*swarm.Swarm)
-	if !ok {
-		return fmt.Errorf("peerhost network was not swarm")
+	if swrm, ok := api.node.PeerHost.Network().(*swarm.Swarm); ok {
+		swrm.Backoff().Clear(pi.ID)
 	}
-
-	swrm.Backoff().Clear(pi.ID)
 
 	return api.node.PeerHost.Connect(ctx, pi)
 }
@@ -164,11 +160,11 @@ func (ci *connInfo) Direction() net.Direction {
 	return ci.dir
 }
 
-func (ci *connInfo) Latency(context.Context) (time.Duration, error) {
+func (ci *connInfo) Latency() (time.Duration, error) {
 	return ci.api.node.Peerstore.LatencyEWMA(peer.ID(ci.ID())), nil
 }
 
-func (ci *connInfo) Streams(context.Context) ([]protocol.ID, error) {
+func (ci *connInfo) Streams() ([]protocol.ID, error) {
 	streams := ci.conn.GetStreams()
 
 	out := make([]protocol.ID, len(streams))

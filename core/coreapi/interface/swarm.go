@@ -29,10 +29,10 @@ type ConnectionInfo interface {
 	Direction() net.Direction
 
 	// Latency returns last known round trip time to the peer
-	Latency(context.Context) (time.Duration, error)
+	Latency() (time.Duration, error)
 
 	// Streams returns list of streams established with the peer
-	Streams(context.Context) ([]protocol.ID, error)
+	Streams() ([]protocol.ID, error)
 }
 
 // SwarmAPI specifies the interface to libp2p swarm
@@ -46,7 +46,12 @@ type SwarmAPI interface {
 	// Peers returns the list of peers we are connected to
 	Peers(context.Context) ([]ConnectionInfo, error)
 
+	// KnownAddrs returns the list of all addresses this node is aware of
 	KnownAddrs(context.Context) (map[peer.ID][]ma.Multiaddr, error)
+
+	// LocalAddrs returns the list of announced listening addresses
 	LocalAddrs(context.Context) ([]ma.Multiaddr, error)
+
+	// ListenAddrs returns the list of all listening addresses
 	ListenAddrs(context.Context) ([]ma.Multiaddr, error)
 }
