@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	swarm "gx/ipfs/QmPQoCVRHaGD25VffyB7DFV5qP65hFSQJdSDy75P1vYBKe/go-libp2p-swarm"
@@ -17,12 +18,10 @@ import (
 	net "gx/ipfs/QmfDPh144WGBqRxZb1TGDHerbMnZATrHZggAPw7putNnBq/go-libp2p-net"
 )
 
-type SwarmAPI struct {
-	*CoreAPI
-}
+type SwarmAPI CoreAPI
 
 type connInfo struct {
-	api  *CoreAPI
+	node *core.IpfsNode
 	conn net.Conn
 	dir  net.Direction
 
@@ -126,7 +125,7 @@ func (api *SwarmAPI) Peers(context.Context) ([]coreiface.ConnectionInfo, error) 
 		addr := c.RemoteMultiaddr()
 
 		ci := &connInfo{
-			api:  api.CoreAPI,
+			node: api.node,
 			conn: c,
 			dir:  c.Stat().Direction,
 
@@ -161,7 +160,7 @@ func (ci *connInfo) Direction() net.Direction {
 }
 
 func (ci *connInfo) Latency() (time.Duration, error) {
-	return ci.api.node.Peerstore.LatencyEWMA(peer.ID(ci.ID())), nil
+	return ci.node.Peerstore.LatencyEWMA(peer.ID(ci.ID())), nil
 }
 
 func (ci *connInfo) Streams() ([]protocol.ID, error) {
