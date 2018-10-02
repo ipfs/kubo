@@ -15,7 +15,7 @@ import (
 	inet "gx/ipfs/QmfDPh144WGBqRxZb1TGDHerbMnZATrHZggAPw7putNnBq/go-libp2p-net"
 )
 
-// This adds an endpoint for proxying a HTTP request to another ipfs peer
+// ProxyOption is an endpoint for proxying a HTTP request to another ipfs peer
 func ProxyOption() ServeOption {
 	return func(ipfsNode *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/proxy/http/", func(w http.ResponseWriter, request *http.Request) {
@@ -33,8 +33,8 @@ func ProxyOption() ServeOption {
 				handleError(w, msg, err, 500)
 				return
 			}
-
-			newReverseHttpProxy(parsedRequest, &stream).ServeHTTP(w, request)
+			//send proxy request and response to client
+			newReverseHTTPProxy(parsedRequest, &stream).ServeHTTP(w, request)
 		})
 		return mux, nil
 	}
@@ -71,7 +71,7 @@ func handleError(w http.ResponseWriter, msg string, err error, code int) {
 	log.Warningf("server error: %s: %s", err)
 }
 
-func newReverseHttpProxy(req *proxyRequest, streamToPeer *inet.Stream) *httputil.ReverseProxy {
+func newReverseHTTPProxy(req *proxyRequest, streamToPeer *inet.Stream) *httputil.ReverseProxy {
 	director := func(r *http.Request) {
 		r.URL.Path = req.httpPath //the scheme etc. doesn't matter
 	}
@@ -85,8 +85,19 @@ type roundTripper struct {
 	stream *inet.Stream
 }
 
-func (self *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Write(*self.stream)
-	s := bufio.NewReader(*self.stream)
+func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+
+	sendRequest := func() {
+		err := req.Write(*rt.stream)
+		if err != nil {
+			(*(rt.stream)).Close()
+		}
+		if req.Body != nil {
+			req.Body.Close()
+		}
+	}
+	//send request while reading response
+	go sendRequest()
+	s := bufio.NewReader(*rt.stream)
 	return http.ReadResponse(s, req)
 }
