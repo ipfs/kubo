@@ -29,12 +29,12 @@ func (api *PinAPI) Add(ctx context.Context, p coreiface.Path, opts ...caopts.Pin
 		return err
 	}
 
-	_, err = corerepo.Pin(api.node, ctx, []string{rp.Cid().String()}, settings.Recursive)
+	_, err = corerepo.Pin(api.node, api.core(), ctx, []string{rp.Cid().String()}, settings.Recursive)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return api.node.Pinning.Flush()
 }
 
 func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]coreiface.Pin, error) {
@@ -53,12 +53,12 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]coreif
 }
 
 func (api *PinAPI) Rm(ctx context.Context, p coreiface.Path) error {
-	_, err := corerepo.Unpin(api.node, ctx, []string{p.String()}, true)
+	_, err := corerepo.Unpin(api.node, api.core(), ctx, []string{p.String()}, true)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return api.node.Pinning.Flush()
 }
 
 func (api *PinAPI) Update(ctx context.Context, from coreiface.Path, to coreiface.Path, opts ...caopts.PinUpdateOption) error {
@@ -77,7 +77,12 @@ func (api *PinAPI) Update(ctx context.Context, from coreiface.Path, to coreiface
 		return err
 	}
 
-	return api.node.Pinning.Update(ctx, fp.Cid(), tp.Cid(), settings.Unpin)
+	err = api.node.Pinning.Update(ctx, fp.Cid(), tp.Cid(), settings.Unpin)
+	if err != nil {
+		return err
+	}
+
+	return api.node.Pinning.Flush()
 }
 
 type pinStatus struct {
