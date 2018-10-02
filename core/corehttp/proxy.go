@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	//"net/http/httputil"
 	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -13,6 +14,7 @@ import (
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )
 
+// This adds an endpoint for proxying a request to another ipfs peer
 func ProxyOption() ServeOption {
 	return func(ipfsNode *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.HandleFunc("/proxy/http/", func(w http.ResponseWriter, request *http.Request) {
@@ -31,6 +33,7 @@ func ProxyOption() ServeOption {
 				return
 			}
 
+			//httputil.ReverseProxy(
 			// send request to peer
 			proxyReq, err := http.NewRequest(request.Method, parsedRequest.httpPath, request.Body)
 

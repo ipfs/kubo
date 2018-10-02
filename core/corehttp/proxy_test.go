@@ -20,18 +20,6 @@ func TestParseRequest(t *testing.T) {
 	assert.True(parsed.target.Pretty() == "QmT8JtU54XSmC38xSb1XHFSMm775VuTeajg7LWWWTAwzxT", t, "proxy request peer-id")
 }
 
-func TestParseRequestInvalidProtocol(t *testing.T) {
-	url := "http://localhost:5001/proxy/invalid/QmT8JtU54XSmC38xSb1XHFSMm775VuTeajg7LWWWTAwzxT/test-name/path/to/index.txt"
-	req, _ := http.NewRequest("GET", url, strings.NewReader(""))
-
-	_, err := parseRequest(req)
-	if err == nil {
-		t.Fail()
-	}
-
-	assert.True(err.Error() == "Invalid proxy request protocol 'invalid'", t, "fails with invalid proxy")
-}
-
 func TestParseRequestInvalidPath(t *testing.T) {
 	url := "http://localhost:5001/proxy/http/foobar"
 	req, _ := http.NewRequest("GET", url, strings.NewReader(""))
