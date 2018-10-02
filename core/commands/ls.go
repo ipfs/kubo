@@ -107,9 +107,11 @@ The JSON output contains type information.
 		}
 
 		output := make([]LsObject, len(req.Arguments()))
+		ng := merkledag.NewSession(req.Context(), nd.DAG)
+		ro := merkledag.NewReadOnlyDagService(ng)
 
 		for i, dagnode := range dagnodes {
-			dir, err := uio.NewDirectoryFromNode(nd.DAG, dagnode)
+			dir, err := uio.NewDirectoryFromNode(ro, dagnode)
 			if err != nil && err != uio.ErrNotADir {
 				res.SetError(fmt.Errorf("the data in %s (at %q) is not a UnixFS directory: %s", dagnode.Cid(), paths[i], err), cmdkit.ErrNormal)
 				return
