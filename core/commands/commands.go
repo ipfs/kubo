@@ -8,6 +8,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 
@@ -148,4 +149,43 @@ func unwrapOutput(i interface{}) (interface{}, error) {
 	}
 
 	return <-ch, nil
+}
+
+type nonFatalError string
+
+// streamResult is a helper function to stream results that possibly
+// contain non-fatal errors.  The helper function is allowed to panic
+// on internal errors.
+func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
+	return func(res cmds.Response, re cmds.ResponseEmitter) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("internal error: %v", r)
+			}
+			re.Close()
+		}()
+
+		var errors bool
+		for {
+			v, err := res.Next()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
+			}
+
+			errorMsg := procVal(v, os.Stdout)
+
+			if errorMsg != "" {
+				errors = true
+				fmt.Fprintf(os.Stderr, "%s\n", errorMsg)
+			}
+		}
+
+		if errors {
+			return fmt.Errorf("errors while displaying some entries")
+		}
+		return nil
+	}
 }
