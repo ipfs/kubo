@@ -62,7 +62,7 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 		return nil, err
 	}
 
-	return &proxyRequest{peerID, split[4], split[5]}, nil
+	return &proxyRequest{peerID, split[4], "/" + split[5]}, nil
 }
 
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
