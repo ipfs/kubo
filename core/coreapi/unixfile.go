@@ -163,7 +163,7 @@ func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, nam
 
 	switch dn := nd.(type) {
 	case *dag.ProtoNode:
-		fsn, err := ft.FSNodeFromBytes(nd.RawData())
+		fsn, err := ft.FSNodeFromBytes(dn.Data())
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +172,6 @@ func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, nam
 		}
 
 	case *dag.RawNode:
-
 		r := ioutil.NopCloser(bytes.NewReader(dn.RawData()))
 		fi := &sizeInfo{
 			size: int64(len(dn.RawData())),

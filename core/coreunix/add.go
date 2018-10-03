@@ -415,14 +415,14 @@ func (adder *Adder) AddAllAndPin(file files.File) (ipld.Node, error) {
 		// single files.File f is treated as a directory, affecting hidden file
 		// semantics.
 		for {
-			file, err := file.NextFile()
+			f, err := file.NextFile()
 			if err == io.EOF {
 				// Finished the list of files.
 				break
 			} else if err != nil {
 				return nil, err
 			}
-			if err := adder.addFile(file); err != nil {
+			if err := adder.addFile(f); err != nil {
 				return nil, err
 			}
 		}

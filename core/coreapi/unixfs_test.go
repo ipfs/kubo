@@ -142,11 +142,12 @@ func TestAdd(t *testing.T) {
 	}
 
 	cases := []struct {
-		name string
-		data func() files.File
-		path string
-		err  string
-		opts []options.UnixfsAddOption
+		name      string
+		data      func() files.File
+		path      string
+		err       string
+		recursive bool
+		opts      []options.UnixfsAddOption
 	}{
 		// Simple cases
 		{
@@ -231,11 +232,45 @@ func TestAdd(t *testing.T) {
 			path: hello,
 			opts: []options.UnixfsAddOption{options.Unixfs.Local(true)},
 		},
+		// multi file
+		{
+			name: "simpleDir",
+			data: func() files.File {
+				return files.NewSliceFile("t", "t", []files.File{
+					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+				})
+			},
+			recursive: true,
+			path:      "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+		},
+		{
+			name: "twoLevelDir",
+			data: func() files.File {
+				return files.NewSliceFile("t", "t", []files.File{
+					files.NewSliceFile("t/abc", "t/abc", []files.File{
+						files.NewReaderFile("t/abc/def", "t/abc/def", ioutil.NopCloser(strings.NewReader("world")), nil),
+					}),
+					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+				})
+			},
+			recursive: true,
+			path:      "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+		},
 	}
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			p, err := api.Unixfs().Add(ctx, testCase.data(), testCase.opts...)
+
+			data := testCase.data()
+			if testCase.recursive {
+				data = files.NewSliceFile("", "", []files.File{
+					data,
+				})
+			}
+
+			p, err := api.Unixfs().Add(ctx, data, testCase.opts...)
 			if testCase.err != "" {
 				if err == nil {
 					t.Fatalf("expected an error: %s", testCase.err)
@@ -246,27 +281,64 @@ func TestAdd(t *testing.T) {
 				return
 			}
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
 
 			if p.String() != testCase.path {
 				t.Errorf("expected path %s, got: %s", testCase.path, p)
 			}
 
-			/*r, err := api.Unixfs().Cat(ctx, p)
+			var cmpFile func(orig files.File, got files.File)
+			cmpFile = func(orig files.File, got files.File) {
+				if orig.IsDirectory() != got.IsDirectory() {
+					t.Fatal("file type mismatch")
+				}
+
+				if !orig.IsDirectory() {
+					defer orig.Close()
+					defer got.Close()
+
+					do, err := ioutil.ReadAll(orig)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					dg, err := ioutil.ReadAll(got)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if !bytes.Equal(do, dg) {
+						t.Fatal("data not equal")
+					}
+
+					return
+				}
+
+				for {
+					fo, err := orig.NextFile()
+					fg, err2 := got.NextFile()
+
+					if err != nil {
+						if err == io.EOF && err2 == io.EOF {
+							break
+						}
+						t.Fatal(err)
+					}
+					if err2 != nil {
+						t.Fatal(err)
+					}
+
+					cmpFile(fo, fg)
+				}
+			}
+
+			f, err := api.Unixfs().Get(ctx, p)
 			if err != nil {
 				t.Fatal(err)
 			}
-			buf := make([]byte, len(testCase.data))
-			_, err = io.ReadFull(r, buf)
-			if err != nil {
-				t.Error(err)
-			}
 
-			if string(buf) != testCase.data {
-				t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
-			}*/
-
+			cmpFile(testCase.data(), f)
 		})
 	}
 }
