@@ -134,6 +134,18 @@ func strFile(data string) func() files.File {
 	}
 }
 
+func twoLevelDir() func() files.File {
+	return func() files.File {
+		return files.NewSliceFile("t", "t", []files.File{
+			files.NewSliceFile("t/abc", "t/abc", []files.File{
+				files.NewReaderFile("t/abc/def", "t/abc/def", ioutil.NopCloser(strings.NewReader("world")), nil),
+			}),
+			files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+			files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+		})
+	}
+}
+
 func TestAdd(t *testing.T) {
 	ctx := context.Background()
 	_, api, err := makeAPI(ctx)
@@ -142,12 +154,16 @@ func TestAdd(t *testing.T) {
 	}
 
 	cases := []struct {
-		name      string
-		data      func() files.File
-		path      string
-		err       string
+		name string
+		data func() files.File
+
+		path string
+		err  string
+
 		recursive bool
-		opts      []options.UnixfsAddOption
+		wrapped   bool
+
+		opts []options.UnixfsAddOption
 	}{
 		// Simple cases
 		{
@@ -232,6 +248,12 @@ func TestAdd(t *testing.T) {
 			path: hello,
 			opts: []options.UnixfsAddOption{options.Unixfs.Local(true)},
 		},
+		{
+			name: "hashOnly", // test (non)fetchability
+			data: strFile(helloStr),
+			path: hello,
+			opts: []options.UnixfsAddOption{options.Unixfs.HashOnly(true)},
+		},
 		// multi file
 		{
 			name: "simpleDir",
@@ -245,18 +267,36 @@ func TestAdd(t *testing.T) {
 			path:      "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
 		},
 		{
-			name: "twoLevelDir",
-			data: func() files.File {
-				return files.NewSliceFile("t", "t", []files.File{
-					files.NewSliceFile("t/abc", "t/abc", []files.File{
-						files.NewReaderFile("t/abc/def", "t/abc/def", ioutil.NopCloser(strings.NewReader("world")), nil),
-					}),
-					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
-					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
-				})
-			},
+			name:      "twoLevelDir",
+			data:      twoLevelDir(),
 			recursive: true,
 			path:      "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+		},
+		// wrapped
+		{
+			name: "addWrapped",
+			path: "/ipfs/QmVE9rNpj5doj7XHzp5zMUxD7BJgXEqx4pe3xZ3JBReWHE",
+			data: func() files.File {
+				return files.NewReaderFile("foo", "foo", ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			wrapped: true,
+			opts:    []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name:      "twoLevelDirWrapped",
+			data:      twoLevelDir(),
+			recursive: true,
+			wrapped:   true,
+			path:      "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name:      "twoLevelInlineHash",
+			data:      twoLevelDir(),
+			recursive: true,
+			wrapped:   true,
+			path:      "/ipfs/zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
 		},
 	}
 
@@ -338,7 +378,14 @@ func TestAdd(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			cmpFile(testCase.data(), f)
+			orig := testCase.data()
+			if testCase.wrapped {
+				orig = files.NewSliceFile("", "", []files.File{
+					orig,
+				})
+			}
+
+			cmpFile(orig, f)
 		})
 	}
 }
