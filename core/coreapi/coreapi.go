@@ -70,5 +70,5 @@ func (api *CoreAPI) Dht() coreiface.DhtAPI {
 
 // Swarm returns the SwarmAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Swarm() coreiface.SwarmAPI {
-	return &SwarmAPI{api}
+	return (*SwarmAPI)(api)
 }
