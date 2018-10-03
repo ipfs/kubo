@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"os"
 	"strings"
 	"testing"
 
@@ -287,6 +288,32 @@ func TestAdd(t *testing.T) {
 			},
 			expect: wrapped,
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name: "stdinWrapped",
+			path: "/ipfs/QmU3r81oZycjHS9oaSHw37ootMFuFUw1DvMLKXPsezdtqU",
+			data: func() files.File {
+				return files.NewReaderFile("", os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			expect: func(files.File) files.File {
+				return files.NewSliceFile("", "", []files.File{
+					files.NewReaderFile("QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", "QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", ioutil.NopCloser(strings.NewReader(helloStr)), nil),
+				})
+			},
+			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name: "stdinNamed",
+			path: "/ipfs/QmQ6cGBmb3ZbdrQW1MRm1RJnYnaxCqfssz7CrTa9NEhQyS",
+			data: func() files.File {
+				return files.NewReaderFile("", os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			expect: func(files.File) files.File {
+				return files.NewSliceFile("", "", []files.File{
+					files.NewReaderFile("test", "test", ioutil.NopCloser(strings.NewReader(helloStr)), nil),
+				})
+			},
+			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.StdinName("test")},
 		},
 		{
 			name:      "twoLevelDirWrapped",

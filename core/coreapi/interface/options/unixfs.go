@@ -32,8 +32,9 @@ type UnixfsAddSettings struct {
 	OnlyHash bool
 	Local    bool
 
-	Wrap   bool
-	Hidden bool
+	Wrap      bool
+	Hidden    bool
+	StdinName string
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -55,8 +56,9 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		OnlyHash: false,
 		Local:    false,
 
-		Wrap:   false,
-		Hidden: false,
+		Wrap:      false,
+		Hidden:    false,
+		StdinName: "",
 	}
 
 	for _, opt := range opts {
@@ -222,6 +224,15 @@ func (unixfsOpts) Wrap(wrap bool) UnixfsAddOption {
 func (unixfsOpts) Hidden(hidden bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Hidden = hidden
+		return nil
+	}
+}
+
+// StdinName is the name set for files which don specify FilePath as
+// os.Stdin.Name()
+func (unixfsOpts) StdinName(name string) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.StdinName = name
 		return nil
 	}
 }
