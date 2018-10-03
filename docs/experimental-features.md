@@ -183,7 +183,7 @@ Allows ipfs to retrieve blocks contents via a url instead of storing it in the d
 experimental.
 
 ### In Version
-???.
+master, v0.4.17
 
 ### How to enable
 Modify your ipfs config:
@@ -191,8 +191,14 @@ Modify your ipfs config:
 ipfs config --json Experimental.UrlstoreEnabled true
 ```
 
+And then add a file at a specific URL using `ipfs urlstore add <url>`
+
 ### Road to being a real feature
-???.
+- [ ] Needs more people to use and report on how well it works.
+- [ ] Need to address error states and failure conditions
+- [ ] Need to write docs on usage, advantages, disadvantages
+- [ ] Need to implement caching
+- [ ] Need to add metrics to monitor performance
 
 ---
 
