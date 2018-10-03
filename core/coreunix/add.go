@@ -399,7 +399,7 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 }
 
 // AddAllAndPin adds the given request's files and pin them.
-func (adder *Adder) AddAllAndPin(file files.File) error {
+func (adder *Adder) AddAllAndPin(file files.File) (ipld.Node, error) {
 	if adder.Pin {
 		adder.unlocker = adder.blockstore.PinLock()
 	}
@@ -420,30 +420,30 @@ func (adder *Adder) AddAllAndPin(file files.File) error {
 				// Finished the list of files.
 				break
 			} else if err != nil {
-				return err
+				return nil, err
 			}
 			if err := adder.addFile(file); err != nil {
-				return err
+				return nil, err
 			}
 		}
 		break
 	default:
 		if err := adder.addFile(file); err != nil {
-			return err
+			return nil, err
 		}
 		break
 	}
 
 	// copy intermediary nodes from editor to our actual dagservice
-	_, err := adder.Finalize()
+	nd, err := adder.Finalize()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !adder.Pin {
-		return nil
+		return nd, nil
 	}
-	return adder.PinRoot()
+	return nd, adder.PinRoot()
 }
 
 func (adder *Adder) addFile(file files.File) error {

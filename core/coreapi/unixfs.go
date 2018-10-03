@@ -68,7 +68,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 	//fileAdder.Progress = progress
 	//fileAdder.Hidden = hidden
 	//fileAdder.Wrap = wrap
-	fileAdder.Pin = settings.Pin
+	fileAdder.Pin = settings.Pin && !settings.OnlyHash
 	fileAdder.Silent = true
 	fileAdder.RawLeaves = settings.RawLeaves
 	//fileAdder.NoCopy = nocopy
@@ -104,21 +104,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, r io.ReadCloser, opts ...options.
 		fileAdder.SetMfsRoot(mr)
 	}
 
-	err = fileAdder.AddFile(files.NewReaderFile("", "", r, nil))
+	nd, err := fileAdder.AddAllAndPin(files.NewReaderFile("", "", r, nil))
 	if err != nil {
 		return nil, err
 	}
-
-	nd, err := fileAdder.Finalize()
-	if err != nil {
-		return nil, err
-	}
-
-	if settings.Pin {
-		err = fileAdder.PinRoot()
-	}
-
-	return coreiface.IpfsPath(nd.Cid()), err
+	return coreiface.IpfsPath(nd.Cid()), nil
 }
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.

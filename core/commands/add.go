@@ -302,7 +302,7 @@ You can now check what blocks have been created by:
 			var err error
 			defer func() { errCh <- err }()
 			defer close(outChan)
-			err = fileAdder.AddAllAndPin(req.Files)
+			_, err = fileAdder.AddAllAndPin(req.Files)
 		}()
 
 		err = res.Emit(outChan)
