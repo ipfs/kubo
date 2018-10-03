@@ -1002,6 +1002,7 @@ Remove files or directories.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Recursively remove directories."),
+		cmdkit.BoolOption("force", "Forcibly remove target at path; implies -r for directories"),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		defer res.SetOutput(nil)
@@ -1041,8 +1042,6 @@ Remove files or directories.
 			return
 		}
 
-		dashr, _, _ := req.Option("r").Bool()
-
 		var success bool
 		defer func() {
 			if success {
@@ -1054,8 +1053,10 @@ Remove files or directories.
 			}
 		}()
 
-		// if '-r' specified, don't check file type (in bad scenarios, the block may not exist)
-		if dashr {
+		// if '--force' specified, it will remove anything else,
+		// including file, directory, corrupted node, etc
+		force, _, _ := req.Option("force").Bool()
+		if force {
 			err := pdir.Unlink(name)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -1066,25 +1067,31 @@ Remove files or directories.
 			return
 		}
 
-		childi, err := pdir.Child(name)
+		// get child node by name, when the node is corrupted and nonexistent,
+		// it will return specific error.
+		child, err := pdir.Child(name)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		switch childi.(type) {
+		dashr, _, _ := req.Option("r").Bool()
+
+		switch child.(type) {
 		case *mfs.Directory:
-			res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
-			return
-		default:
-			err := pdir.Unlink(name)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
+			if !dashr {
+				res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
 				return
 			}
-
-			success = true
 		}
+
+		err = pdir.Unlink(name)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		success = true
 	},
 }
 
