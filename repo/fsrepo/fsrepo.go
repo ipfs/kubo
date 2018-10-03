@@ -19,8 +19,8 @@ import (
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
 	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	config "gx/ipfs/QmYJi32193V4FBJa4pXXwVNh4puvY7Qn3X5e1r3xQVWgY1/go-ipfs-config"
-	serialize "gx/ipfs/QmYJi32193V4FBJa4pXXwVNh4puvY7Qn3X5e1r3xQVWgY1/go-ipfs-config/serialize"
+	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
+	serialize "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config/serialize"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	ds "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore"

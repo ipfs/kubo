@@ -7,7 +7,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 
-	config "gx/ipfs/QmYJi32193V4FBJa4pXXwVNh4puvY7Qn3X5e1r3xQVWgY1/go-ipfs-config"
+	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
 	datastore "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore"
 	syncds "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore/sync"
 )

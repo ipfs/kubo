@@ -14,9 +14,9 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	corecommands "github.com/ipfs/go-ipfs/core/commands"
 
+	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 	cmdsHttp "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds/http"
-	config "gx/ipfs/QmYJi32193V4FBJa4pXXwVNh4puvY7Qn3X5e1r3xQVWgY1/go-ipfs-config"
 	path "gx/ipfs/QmbE9gr6c2FomTgc2pRZRTooHpchJ1uaZKremypyWJMV4t/go-path"
 )
 

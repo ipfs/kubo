@@ -20,7 +20,7 @@ import (
 
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	dag "gx/ipfs/QmRfWhkc5eHLzZ1FActaXNeThijM2CY6JWc2qynQExFFJm/go-merkledag"
-	config "gx/ipfs/QmYJi32193V4FBJa4pXXwVNh4puvY7Qn3X5e1r3xQVWgY1/go-ipfs-config"
+	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
 	path "gx/ipfs/QmbE9gr6c2FomTgc2pRZRTooHpchJ1uaZKremypyWJMV4t/go-path"
 	datastore "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore"
 	syncds "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore/sync"
