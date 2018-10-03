@@ -9,8 +9,8 @@ import (
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	bitswap "gx/ipfs/QmUdtRsAr9RYxqNwUzeHDhv5bnVppiHLixP1SU4YysVj2S/go-bitswap"
-	decision "gx/ipfs/QmUdtRsAr9RYxqNwUzeHDhv5bnVppiHLixP1SU4YysVj2S/go-bitswap/decision"
+	bitswap "gx/ipfs/QmVTXcrDPd4m8dSvaHc96E3dQjhe5rS8ekpZLXjsEmzSQc/go-bitswap"
+	decision "gx/ipfs/QmVTXcrDPd4m8dSvaHc96E3dQjhe5rS8ekpZLXjsEmzSQc/go-bitswap/decision"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
