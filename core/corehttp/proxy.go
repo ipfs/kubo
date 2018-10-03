@@ -95,7 +95,11 @@ type respBody struct {
 
 // Closes the response's body and the connection.
 func (rb *respBody) Close() error {
-	rb.stream.Close()
+	if err := rb.stream.Close(); err != nil {
+		rb.stream.Reset()
+	} else {
+		go inet.AwaitEOF(rb.stream)
+	}
 	return rb.ReadCloser.Close()
 }
 
