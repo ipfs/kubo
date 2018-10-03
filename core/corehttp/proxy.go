@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -34,7 +35,7 @@ func ProxyOption() ServeOption {
 				return
 			}
 			//send proxy request and response to client
-			newReverseHTTPProxy(parsedRequest, &stream).ServeHTTP(w, request)
+			newReverseHTTPProxy(parsedRequest, stream).ServeHTTP(w, request)
 		})
 		return mux, nil
 	}
@@ -71,7 +72,7 @@ func handleError(w http.ResponseWriter, msg string, err error, code int) {
 	log.Warningf("server error: %s: %s", err)
 }
 
-func newReverseHTTPProxy(req *proxyRequest, streamToPeer *inet.Stream) *httputil.ReverseProxy {
+func newReverseHTTPProxy(req *proxyRequest, streamToPeer inet.Stream) *httputil.ReverseProxy {
 	director := func(r *http.Request) {
 		r.URL.Path = req.httpPath //the scheme etc. doesn't matter
 	}
@@ -82,15 +83,28 @@ func newReverseHTTPProxy(req *proxyRequest, streamToPeer *inet.Stream) *httputil
 }
 
 type roundTripper struct {
-	stream *inet.Stream
+	stream inet.Stream
+}
+
+// we wrap the response body and close the stream
+// only when it's closed.
+type respBody struct {
+	io.ReadCloser
+	stream inet.Stream
+}
+
+// Closes the response's body and the connection.
+func (rb *respBody) Close() error {
+	rb.stream.Close()
+	return rb.ReadCloser.Close()
 }
 
 func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	sendRequest := func() {
-		err := req.Write(*rt.stream)
+		err := req.Write(rt.stream)
 		if err != nil {
-			(*(rt.stream)).Close()
+			rt.stream.Close()
 		}
 		if req.Body != nil {
 			req.Body.Close()
@@ -98,6 +112,17 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	//send request while reading response
 	go sendRequest()
-	s := bufio.NewReader(*rt.stream)
-	return http.ReadResponse(s, req)
+	s := bufio.NewReader(rt.stream)
+
+	resp, err := http.ReadResponse(s, req)
+	if err != nil {
+		return resp, err
+	}
+
+	resp.Body = &respBody{
+		ReadCloser: resp.Body,
+		stream:       rt.stream,
+	}
+
+	return resp, nil
 }
