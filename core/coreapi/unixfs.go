@@ -40,6 +40,14 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 		return nil, err
 	}
 
+	// check if repo will exceed storage limit if added
+	// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)
+	// TODO: conditional GC is disabled due to it is somehow not possible to pass the size to the daemon
+	//if err := corerepo.ConditionalGC(req.Context(), n, uint64(size)); err != nil {
+	//	res.SetError(err, cmdkit.ErrNormal)
+	//	return
+	//}
+
 	if settings.NoCopy && !cfg.Experimental.FilestoreEnabled {
 		return nil, filestore.ErrFilestoreNotEnabled
 	}
