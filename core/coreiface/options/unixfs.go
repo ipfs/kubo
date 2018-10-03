@@ -31,6 +31,8 @@ type UnixfsAddSettings struct {
 	Pin      bool
 	OnlyHash bool
 	Local    bool
+
+	Wrap bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -51,6 +53,8 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		Pin:      false,
 		OnlyHash: false,
 		Local:    false,
+
+		Wrap: false,
 	}
 
 	for _, opt := range opts {
@@ -199,6 +203,15 @@ func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 func (unixfsOpts) Local(local bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Local = local
+		return nil
+	}
+}
+
+// Wrap tells the adder to wrap the added file structure with an additional
+// directory.
+func (unixfsOpts) Wrap(wrap bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Wrap = wrap
 		return nil
 	}
 }
