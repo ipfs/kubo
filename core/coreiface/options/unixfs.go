@@ -32,7 +32,8 @@ type UnixfsAddSettings struct {
 	OnlyHash bool
 	Local    bool
 
-	Wrap bool
+	Wrap   bool
+	Hidden bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -54,7 +55,8 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		OnlyHash: false,
 		Local:    false,
 
-		Wrap: false,
+		Wrap:   false,
+		Hidden: false,
 	}
 
 	for _, opt := range opts {
@@ -212,6 +214,14 @@ func (unixfsOpts) Local(local bool) UnixfsAddOption {
 func (unixfsOpts) Wrap(wrap bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Wrap = wrap
+		return nil
+	}
+}
+
+// Hidden enables adding of hidden files (files prefixed with '.')
+func (unixfsOpts) Hidden(hidden bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Hidden = hidden
 		return nil
 	}
 }
