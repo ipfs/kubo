@@ -9,6 +9,14 @@ import (
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
+// TODO: ideas on making this more coreapi-ish without breaking the http API?
+type AddEvent struct {
+	Name  string
+	Hash  string `json:",omitempty"`
+	Bytes int64  `json:",omitempty"`
+	Size  string `json:",omitempty"`
+}
+
 // UnixfsAPI is the basic interface to immutable files in IPFS
 // NOTE: This API is heavily WIP, things are guaranteed to break frequently
 type UnixfsAPI interface {
@@ -24,6 +32,7 @@ type UnixfsAPI interface {
 	Get(context.Context, Path) (files.File, error)
 
 	// Cat returns a reader for the file
+	// TODO: Remove in favour of Get (if we use Get on a file we still have reader directly, so..)
 	Cat(context.Context, Path) (Reader, error)
 
 	// Ls returns the list of links in a directory

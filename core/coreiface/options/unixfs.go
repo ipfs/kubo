@@ -35,6 +35,10 @@ type UnixfsAddSettings struct {
 	Wrap      bool
 	Hidden    bool
 	StdinName string
+
+	Events   chan<- interface{}
+	Silent   bool
+	Progress bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -59,6 +63,10 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		Wrap:      false,
 		Hidden:    false,
 		StdinName: "",
+
+		Events:   nil,
+		Silent:   false,
+		Progress: false,
 	}
 
 	for _, opt := range opts {
@@ -233,6 +241,33 @@ func (unixfsOpts) Hidden(hidden bool) UnixfsAddOption {
 func (unixfsOpts) StdinName(name string) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.StdinName = name
+		return nil
+	}
+}
+
+// Events specifies channel which will be used to report events about ongoing
+// Add operation.
+//
+// Note that if this channel blocks it may slowdown the adder
+func (unixfsOpts) Events(sink chan<- interface{}) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Events = sink
+		return nil
+	}
+}
+
+// Silent reduces event output
+func (unixfsOpts) Silent(silent bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Silent = silent
+		return nil
+	}
+}
+
+// Progress tells the adder whether to enable progress events
+func (unixfsOpts) Progress(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.Progress = enable
 		return nil
 	}
 }
