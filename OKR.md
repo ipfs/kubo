@@ -29,15 +29,20 @@ We try to frame our ongoing work using a process based on quarterly Objectives a
 - `P0` @eingenito - Every non-trivial PR is first reviewed by someone other than @Stebalien before he looks at it.
 - `P2` - Every package has tests and tests+code coverage are running on Jenkins
 - `P2` - There is an up-to-date Architecture Diagram of the Go implementation of IPFS that links packages to subsystems to workflows
+- `P2` @schomatis - go-unixfs is more maintainable with improved code, comments and documentation
+
+@momack2 Could you help me phrase these ones with a KR-oriented approach?
 
 **gx becomes a beloved tool by the Go Core Contributors**
-- `P0` - You can update a minor version of a transitive dependancy without updating intermediate dependancies
-- `P0` - go-ipfs doesn't have checked-in gx paths
+- `P0` @travisperson - You can update a minor version of a transitive dependancy without updating intermediate dependancies
+- `P0` @travisperson - go-ipfs doesn't have checked-in gx paths
 
 **Complete outstanding endeavours and still high priorities from Q3**
 - `P0` @kevina - base32 is supported and enabled by default
 - `P1` - go-ipfs gets a unixfsV2 spec and prototype
-- `P2` @djdv - Add mutable methods (r+w) to the new mount implementation and get it building+tested on all supported platforms
+- `P2` @djdv - Add mutable methods (r+w) to the new mount implementation and get it building+tested on all supported
+platforms
+- `P1` @schomatis - MFS behavior and implementation is performant and correct
 
 ## 2018 Q3
 
