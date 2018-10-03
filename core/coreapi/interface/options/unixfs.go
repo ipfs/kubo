@@ -31,6 +31,8 @@ type UnixfsAddSettings struct {
 	Pin      bool
 	OnlyHash bool
 	Local    bool
+	FsCache  bool
+	NoCopy   bool
 
 	Wrap      bool
 	Hidden    bool
@@ -59,6 +61,8 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		Pin:      false,
 		OnlyHash: false,
 		Local:    false,
+		FsCache:  false,
+		NoCopy:   false,
 
 		Wrap:      false,
 		Hidden:    false,
@@ -74,6 +78,17 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		if err != nil {
 			return nil, cid.Prefix{}, err
 		}
+	}
+
+	// nocopy -> rawblocks
+	if options.NoCopy && !options.RawLeaves {
+		// fixed?
+		if options.RawLeavesSet {
+			return nil, cid.Prefix{}, fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well")
+		}
+
+		// No, satisfy mandatory constraint.
+		options.RawLeaves = true
 	}
 
 	// (hash != "sha2-256") -> CIDv1
@@ -268,6 +283,26 @@ func (unixfsOpts) Silent(silent bool) UnixfsAddOption {
 func (unixfsOpts) Progress(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Progress = enable
+		return nil
+	}
+}
+
+// FsCache tells the adder to check the filestore for pre-existing blocks
+//
+// Experimental
+func (unixfsOpts) FsCache(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.FsCache = enable
+		return nil
+	}
+}
+
+// NoCopy tells the adder to add the files using filestore. Implies RawLeaves.
+//
+// Experimental
+func (unixfsOpts) Nocopy(enable bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.NoCopy = enable
 		return nil
 	}
 }

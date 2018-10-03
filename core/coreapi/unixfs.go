@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/filestore"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
@@ -33,6 +34,16 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	}
 
 	n := api.node
+
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.NoCopy && !cfg.Experimental.FilestoreEnabled {
+		return nil, filestore.ErrFilestoreNotEnabled
+	}
+
 	if settings.OnlyHash {
 		nilnode, err := core.NewNode(ctx, &core.BuildCfg{
 			//TODO: need this to be true or all files
@@ -46,9 +57,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	}
 
 	addblockstore := n.Blockstore
-	//if !(fscache || nocopy) {
-	addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
-	//}
+	if !(settings.FsCache || settings.NoCopy) {
+		addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
+	}
 
 	exch := n.Exchange
 	if settings.Local {
@@ -73,7 +84,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
-	//fileAdder.NoCopy = nocopy
+	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.Name = settings.StdinName
 	fileAdder.CidBuilder = prefix
 
