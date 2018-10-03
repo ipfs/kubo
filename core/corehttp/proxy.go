@@ -3,8 +3,8 @@ package corehttp
 import (
 	"bufio"
 	"fmt"
-	"net"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -28,7 +28,7 @@ func ProxyOption() ServeOption {
 			}
 
 			// open connect to peer
-			stream, err := ipfsNode.P2P.PeerHost.NewStream(ipfsNode.Context(), parsedRequest.target, protocol.ID("/x/"+parsedRequest.name))
+			stream, err := ipfsNode.P2P.PeerHost.NewStream(request.Context(), parsedRequest.target, protocol.ID("/x/"+parsedRequest.name))
 			if err != nil {
 				msg := fmt.Sprintf("Failed to open stream '%v' to target peer '%v'", parsedRequest.name, parsedRequest.target)
 				handleError(w, msg, err, 500)
@@ -121,7 +121,7 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	resp.Body = &respBody{
 		ReadCloser: resp.Body,
-		stream:       rt.stream,
+		stream:     rt.stream,
 	}
 
 	return resp, nil
