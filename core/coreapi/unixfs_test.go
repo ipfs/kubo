@@ -146,6 +146,12 @@ func twoLevelDir() func() files.File {
 	}
 }
 
+func wrapped(f files.File) files.File {
+	return files.NewSliceFile("", "", []files.File{
+		f,
+	})
+}
+
 func TestAdd(t *testing.T) {
 	ctx := context.Background()
 	_, api, err := makeAPI(ctx)
@@ -154,14 +160,14 @@ func TestAdd(t *testing.T) {
 	}
 
 	cases := []struct {
-		name string
-		data func() files.File
+		name   string
+		data   func() files.File
+		expect func(files.File) files.File
 
 		path string
 		err  string
 
 		recursive bool
-		wrapped   bool
 
 		opts []options.UnixfsAddOption
 	}{
@@ -279,14 +285,14 @@ func TestAdd(t *testing.T) {
 			data: func() files.File {
 				return files.NewReaderFile("foo", "foo", ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 			},
-			wrapped: true,
-			opts:    []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+			expect: wrapped,
+			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
 		},
 		{
 			name:      "twoLevelDirWrapped",
 			data:      twoLevelDir(),
 			recursive: true,
-			wrapped:   true,
+			expect:    wrapped,
 			path:      "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
 			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
 		},
@@ -294,9 +300,50 @@ func TestAdd(t *testing.T) {
 			name:      "twoLevelInlineHash",
 			data:      twoLevelDir(),
 			recursive: true,
-			wrapped:   true,
+			expect:    wrapped,
 			path:      "/ipfs/zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi",
 			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
+		},
+		// hidden
+		{
+			name: "hiddenFiles",
+			data: func() files.File {
+				return files.NewSliceFile("t", "t", []files.File{
+					files.NewReaderFile("t/.bar", "t/.bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+				})
+			},
+			recursive: true,
+			path:      "/ipfs/QmehGvpf2hY196MzDFmjL8Wy27S4jbgGDUAhBJyvXAwr3g",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Hidden(true)},
+		},
+		{
+			name: "hiddenFileAlwaysAdded",
+			data: func() files.File {
+				return files.NewReaderFile(".foo", ".foo", ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			recursive: true,
+			path:      hello,
+		},
+		{
+			name: "hiddenFilesNotAdded",
+			data: func() files.File {
+				return files.NewSliceFile("t", "t", []files.File{
+					files.NewReaderFile("t/.bar", "t/.bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+				})
+			},
+			expect: func(files.File) files.File {
+				return files.NewSliceFile("t", "t", []files.File{
+					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+				})
+			},
+			recursive: true,
+			path:      "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
 		},
 	}
 
@@ -379,10 +426,8 @@ func TestAdd(t *testing.T) {
 			}
 
 			orig := testCase.data()
-			if testCase.wrapped {
-				orig = files.NewSliceFile("", "", []files.File{
-					orig,
-				})
+			if testCase.expect != nil {
+				orig = testCase.expect(orig)
 			}
 
 			cmpFile(orig, f)

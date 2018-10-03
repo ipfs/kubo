@@ -65,7 +65,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 
 	fileAdder.Chunker = settings.Chunker
 	//fileAdder.Progress = progress
-	//fileAdder.Hidden = hidden
+	fileAdder.Hidden = settings.Hidden
 	fileAdder.Wrap = settings.Wrap
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
 	fileAdder.Silent = true
