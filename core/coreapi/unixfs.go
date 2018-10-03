@@ -110,6 +110,15 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
 
+func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.File, error) {
+	nd, err := api.core().ResolveNode(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return newUnixfsFile(ctx, api.node.DAG, nd, "", nil)
+}
+
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
 func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
 	dget := api.node.DAG // TODO: use a session here once routing perf issues are resolved
