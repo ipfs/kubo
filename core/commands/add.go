@@ -8,6 +8,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	ft "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
@@ -371,7 +372,7 @@ You can now check what blocks have been created by:
 
 							break LOOP
 						}
-						output := out.(*coreunix.AddedObject)
+						output := out.(*coreiface.AddEvent)
 						if len(output.Hash) > 0 {
 							lastHash = output.Hash
 							if quieter {
@@ -451,5 +452,5 @@ You can now check what blocks have been created by:
 			}
 		},
 	},
-	Type: coreunix.AddedObject{},
+	Type: coreiface.AddEvent{},
 }

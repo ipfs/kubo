@@ -64,11 +64,14 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	}
 
 	fileAdder.Chunker = settings.Chunker
-	//fileAdder.Progress = progress
+	if settings.Events != nil {
+		fileAdder.Out = settings.Events
+		fileAdder.Progress = settings.Progress
+	}
 	fileAdder.Hidden = settings.Hidden
 	fileAdder.Wrap = settings.Wrap
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
-	fileAdder.Silent = true
+	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
 	//fileAdder.NoCopy = nocopy
 	fileAdder.Name = settings.StdinName

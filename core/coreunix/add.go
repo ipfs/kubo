@@ -11,19 +11,20 @@ import (
 	"strconv"
 
 	core "github.com/ipfs/go-ipfs/core"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/pin"
-	unixfs "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
-	balanced "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/trickle"
-	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 
 	posinfo "gx/ipfs/QmPG32VXR5jmpo9q8R9FNdR4Ae97Ky9CiZE6SctJLUB79H/go-ipfs-posinfo"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
+	unixfs "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
+	balanced "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/importer/trickle"
 	chunker "gx/ipfs/QmULKgr55cSWR8Kiwy3cVRcAiGVnR6EVSaB7hJcWS4138p/go-ipfs-chunker"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
+	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
@@ -44,13 +45,6 @@ type Object struct {
 	Hash  string
 	Links []Link
 	Size  string
-}
-
-type AddedObject struct {
-	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
@@ -75,7 +69,7 @@ type Adder struct {
 	pinning    pin.Pinner
 	blockstore bstore.GCBlockstore
 	dagService ipld.DAGService
-	Out        chan interface{}
+	Out        chan<- interface{}
 	Progress   bool
 	Hidden     bool
 	Pin        bool
@@ -570,7 +564,7 @@ func (adder *Adder) maybePauseForGC() error {
 }
 
 // outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan interface{}, name string, dn ipld.Node) error {
+func outputDagnode(out chan<- interface{}, name string, dn ipld.Node) error {
 	if out == nil {
 		return nil
 	}
@@ -580,7 +574,7 @@ func outputDagnode(out chan interface{}, name string, dn ipld.Node) error {
 		return err
 	}
 
-	out <- &AddedObject{
+	out <- &coreiface.AddEvent{
 		Hash: o.Hash,
 		Name: name,
 		Size: o.Size,
@@ -615,7 +609,7 @@ func getOutput(dagnode ipld.Node) (*Object, error) {
 
 type progressReader struct {
 	file         files.File
-	out          chan interface{}
+	out          chan<- interface{}
 	bytes        int64
 	lastProgress int64
 }
@@ -626,7 +620,7 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	i.bytes += int64(n)
 	if i.bytes-i.lastProgress >= progressReaderIncrement || err == io.EOF {
 		i.lastProgress = i.bytes
-		i.out <- &AddedObject{
+		i.out <- &coreiface.AddEvent{
 			Name:  i.file.FileName(),
 			Bytes: i.bytes,
 		}
