@@ -17,7 +17,11 @@ func (o *Strings) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*o = []string{value}
+	if len(value) == 0 {
+		*o = []string{}
+	} else {
+		*o = []string{value}
+	}
 	return nil
 }
 
