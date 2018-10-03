@@ -288,7 +288,7 @@ Example:
 		cmdkit.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
+		cmdkit.StringOption("type", "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("recursive"),
 		cmdkit.BoolOption("quiet", "q", "Write just hashes of objects."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
