@@ -574,6 +574,12 @@
       "hash": "QmbyJLe6SdVR5VLjtcoLdKhUuV4RT9a1FxX28zaWnY34d8",
       "name": "go-random-files",
       "version": "1.0.0"
+    },
+    {
+      "author": "coreos",
+      "hash": "QmW2mADUYMw9sKTtL59oa84WwMPV9scVR7n3Ji9gTRPW5d",
+      "name": "go-systemd-activation",
+      "version": "0.17.0"
     }
   ],
   "gxVersion": "0.10.0",
