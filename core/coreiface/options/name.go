@@ -13,6 +13,10 @@ const (
 type NamePublishSettings struct {
 	ValidTime time.Duration
 	Key       string
+
+	TTL *time.Duration
+
+	AllowOffline bool
 }
 
 type NameResolveSettings struct {
@@ -29,6 +33,8 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 	options := &NamePublishSettings{
 		ValidTime: DefaultNameValidTime,
 		Key:       "self",
+
+		AllowOffline: false,
 	}
 
 	for _, opt := range opts {
@@ -78,6 +84,24 @@ func (nameOpts) ValidTime(validTime time.Duration) NamePublishOption {
 func (nameOpts) Key(key string) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
 		settings.Key = key
+		return nil
+	}
+}
+
+// AllowOffline is an option for Name.Publish which specifies whether to allow
+// publishing when the node is offline. Default value is false
+func (nameOpts) AllowOffline(allow bool) NamePublishOption {
+	return func(settings *NamePublishSettings) error {
+		settings.AllowOffline = allow
+		return nil
+	}
+}
+
+// TTL is an option for Name.Publish which specifies the time duration the
+// published record should be cached for (caution: experimental).
+func (nameOpts) TTL(ttl time.Duration) NamePublishOption {
+	return func(settings *NamePublishSettings) error {
+		settings.TTL = &ttl
 		return nil
 	}
 }
