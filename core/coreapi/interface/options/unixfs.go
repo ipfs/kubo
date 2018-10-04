@@ -170,13 +170,10 @@ func (unixfsOpts) Inline(enable bool) UnixfsAddOption {
 // Specifying this option won't enable block inlining. For that use `Inline`
 // option. Default: 32 bytes
 //
-// Note that while there is no hard limit on the number of bytes, it should
-// be kept at a reasonably low value, like 64 bytes if you intend to display
-// these hashes. Larger values like 256 bytes will work fine, but may affect
-// de-duplication of smaller blocks.
-//
-// Setting this value too high may cause various problems, such as render some
-// blocks unfetchable
+// Note that while there is no hard limit on the number of bytes, it should be
+// kept at a reasonably low value, such as 64 and no more than 1k. Setting this
+// value too high may cause various problems, such as render some
+// blocks unfetchable.
 func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.InlineLimit = limit
