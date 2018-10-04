@@ -45,6 +45,9 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	n := api.node
 
 	if !n.OnlineMode() {
+		if !options.AllowOffline {
+			return nil, coreiface.ErrOffline
+		}
 		err := n.SetupOfflineRouting()
 		if err != nil {
 			return nil, err
@@ -63,6 +66,10 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	k, err := keylookup(n, options.Key)
 	if err != nil {
 		return nil, err
+	}
+
+	if options.TTL != nil {
+		ctx = context.WithValue(ctx, "ipns-publish-ttl", *options.TTL)
 	}
 
 	eol := time.Now().Add(options.ValidTime)

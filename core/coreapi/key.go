@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -218,5 +219,9 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, erro
 }
 
 func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
+	if api.node.Identity == "" {
+		return nil, errors.New("identity not loaded")
+	}
+
 	return &key{"self", api.node.Identity}, nil
 }
