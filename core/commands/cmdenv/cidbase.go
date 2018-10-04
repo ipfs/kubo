@@ -9,7 +9,7 @@ import (
 	mbase "gx/ipfs/QmekxXDhCxCJRNuzmHreuaT3BsuJcsjcXWNrtV9C8DRHtd/go-multibase"
 )
 
-var OptionCidBase = cmdkit.StringOption("cid-base", "mbase", "Multi-base to use to encode version 1 CIDs in output.")
+var OptionCidBase = cmdkit.StringOption("cid-base", "mbase", "Multi-base encoding used for version 1 CIDs in output.")
 var OptionOutputCidV1 = cmdkit.BoolOption("output-cidv1", "Upgrade CID version 0 to version 1 in output.")
 
 // CidBaseHandler is a helper class to process the `--cid-base` and
@@ -28,7 +28,7 @@ type CidBaseHandler struct {
 	enc            *cidenc.Encoder
 }
 
-// NewCidBaseHandler created a a CidBaseHandler from a request
+// NewCidBaseHandler created a CidBaseHandler from a request
 func NewCidBaseHandler(req *cmds.Request) *CidBaseHandler {
 	h := &CidBaseHandler{}
 	h.base, _ = req.Options["cid-base"].(string)
@@ -37,7 +37,7 @@ func NewCidBaseHandler(req *cmds.Request) *CidBaseHandler {
 	return h
 }
 
-// NewCidBaseHandlerLegacy created a a CidBaseHandler from a request
+// NewCidBaseHandlerLegacy created a CidBaseHandler from a request
 // using the old commands library
 func NewCidBaseHandlerLegacy(req oldcmds.Request) *CidBaseHandler {
 	h := &CidBaseHandler{}
@@ -56,7 +56,7 @@ func (h *CidBaseHandler) UseGlobal() *CidBaseHandler {
 }
 
 // Proc processes the `--cid-base` and `--output-cidv1` options.  If
-// UseGlobal was enabled it will change the value of the global
+// UseGlobal was enabled, it will change the value of the global
 // default.
 func (h *CidBaseHandler) Proc() (*CidBaseHandler, error) {
 	var e cidenc.Encoder = cidenc.Default
@@ -85,13 +85,13 @@ func (h *CidBaseHandler) Encoder() cidenc.Encoder {
 	return *h.enc
 }
 
-// EncoderFromPath returns a a new Encoder that will format Cid like
+// EncoderFromPath returns a new Encoder that will format CIDs like
 // the one in the path if the `--cid-base` option is not used.  (If
 // the `--cid-base` is used then a copy of the base encoder will be
 // returned.)  In particular: if the path contains a version 1 CID
 // then all CIDs will be outputting using the same multibase.  if the
 // path contains a version 0 CID then version 0 CIDs will be outputted
-// as is and version1 cids will use the multibase from the base
+// as is and version 1 cids will use the multibase from the base
 // encoder
 func (h *CidBaseHandler) EncoderFromPath(p string) cidenc.Encoder {
 	if h.base == "" {
