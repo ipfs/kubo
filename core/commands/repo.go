@@ -51,6 +51,11 @@ type GcResult struct {
 	Error string `json:",omitempty"`
 }
 
+const (
+	repoStreamErrorsOptionName = "stream-errors"
+	repoQuietOptionName        = "quiet"
+)
+
 var repoGcCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Perform a garbage collection sweep on the repo.",
@@ -61,8 +66,8 @@ order to reclaim hard disk space.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("stream-errors", "Stream errors."),
-		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
+		cmdkit.BoolOption(repoStreamErrorsOptionName, "Stream errors."),
+		cmdkit.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -70,7 +75,7 @@ order to reclaim hard disk space.
 			return err
 		}
 
-		streamErrors, _ := req.Options["stream-errors"].(bool)
+		streamErrors, _ := req.Options[repoStreamErrorsOptionName].(bool)
 
 		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context)
 
@@ -101,7 +106,7 @@ order to reclaim hard disk space.
 	Type: GcResult{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			quiet, _ := req.Options["quiet"].(bool)
+			quiet, _ := req.Options[repoQuietOptionName].(bool)
 
 			obj, ok := v.(*GcResult)
 			if !ok {
@@ -124,6 +129,11 @@ order to reclaim hard disk space.
 	},
 }
 
+const (
+	repoSizeOnlyOptionName = "size-only"
+	repoHumanOptionName    = "human"
+)
+
 var repoStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Get stats for the currently used repo.",
@@ -139,8 +149,8 @@ Version         string The repo version.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("size-only", "Only report RepoSize and StorageMax."),
-		cmdkit.BoolOption("human", "Output sizes in MiB."),
+		cmdkit.BoolOption(repoSizeOnlyOptionName, "Only report RepoSize and StorageMax."),
+		cmdkit.BoolOption(repoHumanOptionName, "Output sizes in MiB."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -148,7 +158,7 @@ Version         string The repo version.
 			return err
 		}
 
-		sizeOnly, _ := req.Options["size-only"].(bool)
+		sizeOnly, _ := req.Options[repoSizeOnlyOptionName].(bool)
 		if sizeOnly {
 			sizeStat, err := corerepo.RepoSize(req.Context, n)
 			if err != nil {
@@ -178,8 +188,8 @@ Version         string The repo version.
 			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
 			defer wtr.Flush()
 
-			human, _ := req.Options["human"].(bool)
-			sizeOnly, _ := req.Options["size-only"].(bool)
+			human, _ := req.Options[repoHumanOptionName].(bool)
+			sizeOnly, _ := req.Options[repoSizeOnlyOptionName].(bool)
 
 			printSize := func(name string, size uint64) {
 				sizeInMiB := size / (1024 * 1024)
@@ -360,7 +370,7 @@ var repoVersionCmd = &oldcmds.Command{
 	},
 
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
+		cmdkit.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		res.SetOutput(&RepoVersion{

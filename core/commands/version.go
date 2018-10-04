@@ -22,6 +22,13 @@ type VersionOutput struct {
 	Golang  string
 }
 
+const (
+	versionNumberOptionName = "number"
+	versionCommitOptionName = "commit"
+	versionRepoOptionName   = "repo"
+	versionAllOptionName    = "all"
+)
+
 var VersionCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline:          "Show ipfs version information.",
@@ -29,10 +36,10 @@ var VersionCmd = &cmds.Command{
 	},
 
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("number", "n", "Only show the version number."),
-		cmdkit.BoolOption("commit", "Show the commit hash."),
-		cmdkit.BoolOption("repo", "Show repo version."),
-		cmdkit.BoolOption("all", "Show all version information"),
+		cmdkit.BoolOption(versionNumberOptionName, "n", "Only show the version number."),
+		cmdkit.BoolOption(versionCommitOptionName, "Show the commit hash."),
+		cmdkit.BoolOption(versionRepoOptionName, "Show repo version."),
+		cmdkit.BoolOption(versionAllOptionName, "Show all version information"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(&VersionOutput{
@@ -55,7 +62,7 @@ var VersionCmd = &cmds.Command{
 				return nil, e.TypeErr(version, v)
 			}
 
-			repo, _, err := res.Request().Option("repo").Bool()
+			repo, _, err := res.Request().Option(versionRepoOptionName).Bool()
 			if err != nil {
 				return nil, err
 			}
@@ -64,7 +71,7 @@ var VersionCmd = &cmds.Command{
 				return strings.NewReader(version.Repo + "\n"), nil
 			}
 
-			commit, _, err := res.Request().Option("commit").Bool()
+			commit, _, err := res.Request().Option(versionCommitOptionName).Bool()
 			commitTxt := ""
 			if err != nil {
 				return nil, err
@@ -73,7 +80,7 @@ var VersionCmd = &cmds.Command{
 				commitTxt = "-" + version.Commit
 			}
 
-			number, _, err := res.Request().Option("number").Bool()
+			number, _, err := res.Request().Option(versionNumberOptionName).Bool()
 			if err != nil {
 				return nil, err
 			}
@@ -81,7 +88,7 @@ var VersionCmd = &cmds.Command{
 				return strings.NewReader(fmt.Sprintln(version.Version + commitTxt)), nil
 			}
 
-			all, _, err := res.Request().Option("all").Bool()
+			all, _, err := res.Request().Option(versionAllOptionName).Bool()
 			if err != nil {
 				return nil, err
 			}

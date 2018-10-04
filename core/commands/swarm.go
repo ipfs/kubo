@@ -52,6 +52,13 @@ ipfs peers in the internet.
 	},
 }
 
+const (
+	swarmVerboseOptionName   = "verbose"
+	swarmStreamsOptionName   = "streams"
+	swarmLatencyOptionName   = "latency"
+	swarmDirectionOptionName = "direction"
+)
+
 var swarmPeersCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List peers with open connections.",
@@ -60,10 +67,10 @@ var swarmPeersCmd = &cmds.Command{
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "display all extra information"),
-		cmdkit.BoolOption("streams", "Also list information about open streams for each peer"),
-		cmdkit.BoolOption("latency", "Also list information about latency to each peer"),
-		cmdkit.BoolOption("direction", "Also list information about the direction of connection"),
+		cmdkit.BoolOption(swarmVerboseOptionName, "v", "display all extra information"),
+		cmdkit.BoolOption(swarmStreamsOptionName, "Also list information about open streams for each peer"),
+		cmdkit.BoolOption(swarmLatencyOptionName, "Also list information about latency to each peer"),
+		cmdkit.BoolOption(swarmDirectionOptionName, "Also list information about the direction of connection"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
@@ -71,10 +78,10 @@ var swarmPeersCmd = &cmds.Command{
 			return err
 		}
 
-		verbose, _ := req.Options["verbose"].(bool)
-		latency, _ := req.Options["latency"].(bool)
-		streams, _ := req.Options["streams"].(bool)
-		direction, _ := req.Options["direction"].(bool)
+		verbose, _ := req.Options[swarmVerboseOptionName].(bool)
+		latency, _ := req.Options[swarmLatencyOptionName].(bool)
+		streams, _ := req.Options[swarmStreamsOptionName].(bool)
+		direction, _ := req.Options[swarmDirectionOptionName].(bool)
 
 		conns, err := api.Swarm().Peers(req.Context)
 		if err != nil {

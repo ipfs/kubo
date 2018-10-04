@@ -31,6 +31,12 @@ var CidCmd = &cmds.Command{
 	},
 }
 
+const (
+	cidFormatOptionName    = "f"
+	cidVerisonOptionName   = "v"
+	cidMultibaseOptionName = "b"
+)
+
 var cidFmtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Format and convert a CID in various useful ways.",
@@ -44,14 +50,14 @@ The optional format string is a printf style format string:
 		cmdkit.StringArg("cid", true, true, "Cids to format.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("f", "Printf style format string.").WithDefault("%s"),
-		cmdkit.StringOption("v", "CID version to convert to."),
-		cmdkit.StringOption("b", "Multibase to display CID in."),
+		cmdkit.StringOption(cidFormatOptionName, "Printf style format string.").WithDefault("%s"),
+		cmdkit.StringOption(cidVerisonOptionName, "CID version to convert to."),
+		cmdkit.StringOption(cidMultibaseOptionName, "Multibase to display CID in."),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
-		fmtStr, _ := req.Options["f"].(string)
-		verStr, _ := req.Options["v"].(string)
-		baseStr, _ := req.Options["b"].(string)
+		fmtStr, _ := req.Options[cidFormatOptionName].(string)
+		verStr, _ := req.Options[cidVerisonOptionName].(string)
+		baseStr, _ := req.Options[cidMultibaseOptionName].(string)
 
 		opts := cidFormatOpts{}
 
@@ -216,13 +222,18 @@ type CodeAndName struct {
 	Name string
 }
 
+const (
+	prefixOptionName  = "prefix"
+	numericOptionName = "numeric"
+)
+
 var basesCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List available multibase encodings.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("prefix", "also include the single leter prefixes in addition to the code"),
-		cmdkit.BoolOption("numeric", "also include numeric codes"),
+		cmdkit.BoolOption(prefixOptionName, "also include the single leter prefixes in addition to the code"),
+		cmdkit.BoolOption(numericOptionName, "also include numeric codes"),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		var res []CodeAndName
@@ -235,8 +246,8 @@ var basesCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
-			prefixes, _ := req.Options["prefix"].(bool)
-			numeric, _ := req.Options["numeric"].(bool)
+			prefixes, _ := req.Options[prefixOptionName].(bool)
+			numeric, _ := req.Options[numericOptionName].(bool)
 			val, ok := val0.([]CodeAndName)
 			if !ok {
 				return e.TypeErr(val, val0)
@@ -265,12 +276,16 @@ var basesCmd = &cmds.Command{
 	Type: []CodeAndName{},
 }
 
+const (
+	codecsNumericOptionName = "numeric"
+)
+
 var codecsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List available CID codecs.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("numeric", "also include numeric codes"),
+		cmdkit.BoolOption(codecsNumericOptionName, "also include numeric codes"),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		var res []CodeAndName
@@ -283,7 +298,7 @@ var codecsCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
-			numeric, _ := req.Options["numeric"].(bool)
+			numeric, _ := req.Options[codecsNumericOptionName].(bool)
 			val, ok := val0.([]CodeAndName)
 			if !ok {
 				return e.TypeErr(val, val0)

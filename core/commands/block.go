@@ -126,6 +126,12 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 	},
 }
 
+const (
+	blockFormatOptionName = "format"
+	mhtypeOptionName      = "mhtype"
+	mhlenOptionName       = "mhlen"
+)
+
 var blockPutCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Store input as an IPFS block.",
@@ -142,9 +148,9 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		cmdkit.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "f", "cid format for blocks to be created with."),
-		cmdkit.StringOption("mhtype", "multihash hash function").WithDefault("sha2-256"),
-		cmdkit.IntOption("mhlen", "multihash hash length").WithDefault(-1),
+		cmdkit.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
+		cmdkit.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
+		cmdkit.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
@@ -157,18 +163,18 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 			return err
 		}
 
-		mhtype, _ := req.Options["mhtype"].(string)
+		mhtype, _ := req.Options[mhtypeOptionName].(string)
 		mhtval, ok := mh.Names[mhtype]
 		if !ok {
 			return fmt.Errorf("unrecognized multihash function: %s", mhtype)
 		}
 
-		mhlen, ok := req.Options["mhlen"].(int)
+		mhlen, ok := req.Options[mhlenOptionName].(int)
 		if !ok {
 			return errors.New("missing option \"mhlen\"")
 		}
 
-		format, formatSet := req.Options["format"].(string)
+		format, formatSet := req.Options[blockFormatOptionName].(string)
 		if !formatSet {
 			if mhtval != mh.SHA2_256 || (mhlen != -1 && mhlen != 32) {
 				format = "protobuf"
@@ -200,6 +206,11 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 	Type: BlockStat{},
 }
 
+const (
+	forceOptionName      = "force"
+	blockQuietOptionName = "quiet"
+)
+
 var blockRmCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove IPFS block(s).",
@@ -212,8 +223,8 @@ It takes a list of base58 encoded multihashes to remove.
 		cmdkit.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("force", "f", "Ignore nonexistent blocks."),
-		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
+		cmdkit.BoolOption(forceOptionName, "f", "Ignore nonexistent blocks."),
+		cmdkit.BoolOption(blockQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
@@ -221,8 +232,8 @@ It takes a list of base58 encoded multihashes to remove.
 			return err
 		}
 
-		force, _ := req.Options["force"].(bool)
-		quiet, _ := req.Options["quiet"].(bool)
+		force, _ := req.Options[forceOptionName].(bool)
+		quiet, _ := req.Options[blockQuietOptionName].(bool)
 
 		// TODO: use batching coreapi when done
 		for _, b := range req.Arguments {

@@ -28,6 +28,10 @@ var FileStoreCmd = &cmds.Command{
 	},
 }
 
+const (
+	fileOrderOptionName = "file-order"
+)
+
 var lsFileStore = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List objects in filestore.",
@@ -46,7 +50,7 @@ The output is:
 		cmdkit.StringArg("obj", false, true, "Cid of objects to list."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("file-order", "sort the results based on the path of the backing file"),
+		cmdkit.BoolOption(fileOrderOptionName, "sort the results based on the path of the backing file"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		_, fs, err := getFilestore(env)
@@ -62,7 +66,7 @@ The output is:
 			return res.Emit(out)
 		}
 
-		fileOrder, _ := req.Options["file-order"].(bool)
+		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
 		next, err := filestore.ListAll(fs, fileOrder)
 		if err != nil {
 			return err
@@ -112,7 +116,7 @@ For ERROR entries the error will also be printed to stderr.
 		cmdkit.StringArg("obj", false, true, "Cid of objects to verify."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("file-order", "verify the objects based on the order of the backing file"),
+		cmdkit.BoolOption(fileOrderOptionName, "verify the objects based on the order of the backing file"),
 	},
 	Run: func(req oldCmds.Request, res oldCmds.Response) {
 		_, fs, err := getFilestore(req.InvocContext())
@@ -127,7 +131,7 @@ For ERROR entries the error will also be printed to stderr.
 			})
 			res.SetOutput(out)
 		} else {
-			fileOrder, _, _ := req.Option("file-order").Bool()
+			fileOrder, _, _ := req.Option(fileOrderOptionName).Bool()
 			next, err := filestore.VerifyAll(fs, fileOrder)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)

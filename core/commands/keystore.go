@@ -55,13 +55,18 @@ type KeyRenameOutput struct {
 	Overwrite bool
 }
 
+const (
+	keyStoreTypeOptionName = "type"
+	keyStoreSizeOptionName = "size"
+)
+
 var keyGenCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Create a new keypair",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("type", "t", "type of the key to create [rsa, ed25519]"),
-		cmdkit.IntOption("size", "s", "size of the key to generate"),
+		cmdkit.StringOption(keyStoreTypeOptionName, "t", "type of the key to create [rsa, ed25519]"),
+		cmdkit.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("name", true, false, "name of key to create"),
@@ -72,7 +77,7 @@ var keyGenCmd = &cmds.Command{
 			return err
 		}
 
-		typ, f := req.Options["type"].(string)
+		typ, f := req.Options[keyStoreTypeOptionName].(string)
 		if !f {
 			return fmt.Errorf("please specify a key type with --type")
 		}
@@ -84,7 +89,7 @@ var keyGenCmd = &cmds.Command{
 
 		opts := []options.KeyGenerateOption{options.Key.Type(typ)}
 
-		size, sizefound := req.Options["size"].(int)
+		size, sizefound := req.Options[keyStoreSizeOptionName].(int)
 		if sizefound {
 			opts = append(opts, options.Key.Size(size))
 		}
@@ -146,6 +151,10 @@ var keyListCmd = &cmds.Command{
 	Type: KeyOutputList{},
 }
 
+const (
+	keyStoreForceOptionName = "force"
+)
+
 var keyRenameCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Rename a keypair",
@@ -155,7 +164,7 @@ var keyRenameCmd = &cmds.Command{
 		cmdkit.StringArg("newName", true, false, "new name of the key"),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("force", "f", "Allow to overwrite an existing key."),
+		cmdkit.BoolOption(keyStoreForceOptionName, "f", "Allow to overwrite an existing key."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
@@ -165,7 +174,7 @@ var keyRenameCmd = &cmds.Command{
 
 		name := req.Arguments[0]
 		newName := req.Arguments[1]
-		force, _ := req.Options["force"].(bool)
+		force, _ := req.Options[keyStoreForceOptionName].(bool)
 
 		key, overwritten, err := api.Key().Rename(req.Context, name, newName, options.Key.Force(force))
 		if err != nil {

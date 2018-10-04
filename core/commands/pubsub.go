@@ -44,6 +44,10 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 	},
 }
 
+const (
+	pubsubDiscoverOptionName = "discover"
+)
+
 var PubsubSubCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Subscribe to messages on a given topic.",
@@ -72,7 +76,7 @@ This command outputs data in the following encodings:
 		cmdkit.StringArg("topic", true, false, "String name of topic to subscribe to."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("discover", "try to discover other peers subscribed to the same topic"),
+		cmdkit.BoolOption(pubsubDiscoverOptionName, "try to discover other peers subscribed to the same topic"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -96,7 +100,7 @@ This command outputs data in the following encodings:
 		}
 		defer sub.Cancel()
 
-		discover, _ := req.Options["discover"].(bool)
+		discover, _ := req.Options[pubsubDiscoverOptionName].(bool)
 		if discover {
 			go func() {
 				blk := blocks.NewBlock([]byte("floodsub:" + topic))

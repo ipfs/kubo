@@ -44,6 +44,10 @@ var DhtCmd = &cmds.Command{
 	},
 }
 
+const (
+	dhtVerboseOptionName = "v"
+)
+
 var queryDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
@@ -54,7 +58,7 @@ var queryDhtCmd = &cmds.Command{
 		cmdkit.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption("verbose", dhtVerboseOptionName, "Print extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -128,7 +132,7 @@ var queryDhtCmd = &cmds.Command{
 					return nil, e.TypeErr(obj, v)
 				}
 
-				verbose, _, _ := res.Request().Option("v").Bool()
+				verbose, _, _ := res.Request().Option(dhtVerboseOptionName).Bool()
 
 				buf := new(bytes.Buffer)
 				printEvent(obj, buf, verbose, pfm)
@@ -138,6 +142,10 @@ var queryDhtCmd = &cmds.Command{
 	},
 	Type: notif.QueryEvent{},
 }
+
+const (
+	numProvidersOptionName = "num-providers"
+)
 
 var findProvidersDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -149,8 +157,8 @@ var findProvidersDhtCmd = &cmds.Command{
 		cmdkit.StringArg("key", true, true, "The key to find providers for."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
-		cmdkit.IntOption("num-providers", "n", "The number of providers to find.").WithDefault(20),
+		cmdkit.BoolOption("verbose", dhtVerboseOptionName, "Print extra information."),
+		cmdkit.IntOption(numProvidersOptionName, "n", "The number of providers to find.").WithDefault(20),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -164,7 +172,7 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 
-		numProviders, _, err := res.Request().Option("num-providers").Int()
+		numProviders, _, err := res.Request().Option(numProvidersOptionName).Int()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -232,7 +240,7 @@ var findProvidersDhtCmd = &cmds.Command{
 			}
 
 			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
+				verbose, _, _ := res.Request().Option(dhtVerboseOptionName).Bool()
 				v, err := unwrapOutput(res.Output())
 				if err != nil {
 					return nil, err
@@ -252,6 +260,10 @@ var findProvidersDhtCmd = &cmds.Command{
 	Type: notif.QueryEvent{},
 }
 
+const (
+	recursiveOptionName = "recursive"
+)
+
 var provideRefDhtCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Announce to the network that you are providing given values.",
@@ -261,8 +273,8 @@ var provideRefDhtCmd = &cmds.Command{
 		cmdkit.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
-		cmdkit.BoolOption("recursive", "r", "Recursively provide entire graph."),
+		cmdkit.BoolOption("verbose", dhtVerboseOptionName, "Print extra information."),
+		cmdkit.BoolOption(recursiveOptionName, "r", "Recursively provide entire graph."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -281,7 +293,7 @@ var provideRefDhtCmd = &cmds.Command{
 			return
 		}
 
-		rec, _, _ := req.Option("recursive").Bool()
+		rec, _, _ := req.Option(recursiveOptionName).Bool()
 
 		var cids []cid.Cid
 		for _, arg := range req.Arguments() {
@@ -349,7 +361,7 @@ var provideRefDhtCmd = &cmds.Command{
 			}
 
 			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
+				verbose, _, _ := res.Request().Option(dhtVerboseOptionName).Bool()
 				v, err := unwrapOutput(res.Output())
 				if err != nil {
 					return nil, err
@@ -414,7 +426,7 @@ var findPeerDhtCmd = &cmds.Command{
 		cmdkit.StringArg("peerID", true, true, "The ID of the peer to search for."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption("verbose", dhtVerboseOptionName, "Print extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -480,7 +492,7 @@ var findPeerDhtCmd = &cmds.Command{
 			}
 
 			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
+				verbose, _, _ := res.Request().Option(dhtVerboseOptionName).Bool()
 				v, err := unwrapOutput(res.Output())
 				if err != nil {
 					return nil, err
@@ -519,7 +531,7 @@ Different key types can specify other 'best' rules.
 		cmdkit.StringArg("key", true, true, "The key to find a value for."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption("verbose", dhtVerboseOptionName, "Print extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -584,7 +596,7 @@ Different key types can specify other 'best' rules.
 			}
 
 			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
+				verbose, _, _ := res.Request().Option(dhtVerboseOptionName).Bool()
 				v, err := unwrapOutput(res.Output())
 				if err != nil {
 					return nil, err
@@ -633,7 +645,7 @@ NOTE: A value may not exceed 2048 bytes.
 		cmdkit.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption("verbose", dhtVerboseOptionName, "Print extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -697,7 +709,7 @@ NOTE: A value may not exceed 2048 bytes.
 			}
 
 			return func(res cmds.Response) (io.Reader, error) {
-				verbose, _, _ := res.Request().Option("v").Bool()
+				verbose, _, _ := res.Request().Option(dhtVerboseOptionName).Bool()
 				v, err := unwrapOutput(res.Output())
 				if err != nil {
 					return nil, err

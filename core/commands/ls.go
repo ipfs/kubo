@@ -36,6 +36,11 @@ type LsOutput struct {
 	Objects []LsObject
 }
 
+const (
+	lsHeadersOptionNameTime = "headers"
+	lsResolveTypeOptionName = "resolve-type"
+)
+
 var LsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List directory contents for Unix filesystem objects.",
@@ -53,8 +58,8 @@ The JSON output contains type information.
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
-		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").WithDefault(true),
+		cmdkit.BoolOption(lsHeadersOptionNameTime, "v", "Print table headers (Hash, Size, Name)."),
+		cmdkit.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -70,12 +75,12 @@ The JSON output contains type information.
 		}
 
 		// get options early -> exit early in case of error
-		if _, _, err := req.Option("headers").Bool(); err != nil {
+		if _, _, err := req.Option(lsHeadersOptionNameTime).Bool(); err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		resolve, _, err := req.Option("resolve-type").Bool()
+		resolve, _, err := req.Option(lsResolveTypeOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -178,7 +183,7 @@ The JSON output contains type information.
 				return nil, err
 			}
 
-			headers, _, _ := res.Request().Option("headers").Bool()
+			headers, _, _ := res.Request().Option(lsHeadersOptionNameTime).Bool()
 			output, ok := v.(*LsOutput)
 			if !ok {
 				return nil, e.TypeErr(output, v)
