@@ -33,6 +33,9 @@ RUN set -x \
 # Get the TLS CA certificates, they're not provided by busybox.
 RUN apt-get update && apt-get install -y ca-certificates
 
+# Install FUSE
+RUN apt-get update && apt-get install -y fuse
+
 # Now comes the actual target image, which aims to be as small as possible.
 FROM busybox:1-glibc
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
@@ -43,7 +46,11 @@ COPY --from=0 $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
 COPY --from=0 /tmp/su-exec/su-exec /sbin/su-exec
 COPY --from=0 /tmp/tini /sbin/tini
+COPY --from=0 /bin/fusermount /usr/local/bin/fusermount
 COPY --from=0 /etc/ssl/certs /etc/ssl/certs
+
+# Add suid bit on fusermount so it will run properly
+RUN chmod 4755 /usr/local/bin/fusermount
 
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
 COPY --from=0 /lib/x86_64-linux-gnu/libdl-2.24.so /lib/libdl.so.2
@@ -62,6 +69,10 @@ ENV IPFS_PATH /data/ipfs
 RUN mkdir -p $IPFS_PATH \
   && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
   && chown ipfs:users $IPFS_PATH
+
+# Create mount points for `ipfs mount` command
+RUN mkdir /ipfs /ipns \
+  && chown ipfs:users /ipfs /ipns
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.
