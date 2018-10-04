@@ -59,18 +59,21 @@ func (h *CidBaseHandler) UseGlobal() *CidBaseHandler {
 // UseGlobal was enabled, it will change the value of the global
 // default.
 func (h *CidBaseHandler) Proc() (*CidBaseHandler, error) {
-	var e cidenc.Encoder = cidenc.Default
+	e := cidenc.Default
+
 	if h.base != "" {
 		var err error
 		e.Base, err = mbase.EncoderByName(h.base)
 		if err != nil {
 			return h, err
 		}
+		if !h.upgradeDefined {
+			e.Upgrade = true
+		}
 	}
 
-	e.Upgrade = h.upgrade
-	if h.base != "" && !h.upgradeDefined {
-		e.Upgrade = true
+	if h.upgradeDefined {
+		e.Upgrade = h.upgrade
 	}
 
 	if h.enc == nil {
