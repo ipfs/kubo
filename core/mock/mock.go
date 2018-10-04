@@ -8,14 +8,14 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 
 	testutil "gx/ipfs/QmNfQbgBfARAtrYsBguChX6VJ5nbjeoYy1KdC36aaYWqG8/go-testutil"
+	libp2p "gx/ipfs/QmNmj2AeM46ZQqHARnWidb5qqHoZJFeYWzmG65jviJDRQY/go-libp2p"
+	mocknet "gx/ipfs/QmNmj2AeM46ZQqHARnWidb5qqHoZJFeYWzmG65jviJDRQY/go-libp2p/p2p/net/mock"
 	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
 	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
 	host "gx/ipfs/QmX9pw5dSUZ2FozbppcSDJiS7eEh1RFwJNwrbmyLoUMS9x/go-libp2p-host"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 	datastore "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore"
 	syncds "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore/sync"
-	libp2p "gx/ipfs/Qmd9zWxAeeDJoLdxqvaDXAGtoafX5cc9Tp25DNm9W7fVnB/go-libp2p"
-	mocknet "gx/ipfs/Qmd9zWxAeeDJoLdxqvaDXAGtoafX5cc9Tp25DNm9W7fVnB/go-libp2p/p2p/net/mock"
 )
 
 // NewMockNode constructs an IpfsNode for use in tests.

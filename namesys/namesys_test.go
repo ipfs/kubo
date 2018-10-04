@@ -7,8 +7,8 @@ import (
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "gx/ipfs/QmYh33CFYYEgQNSZ9PEP7ZN57dhErRZ7NfLS1BUA9GBBRk/go-path"
-	"gx/ipfs/QmdF8ovKr2zNMWi2hiDMqQAQeNw35xwytb1W7Ydwsf1ufx/go-unixfs"
+	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
+	"gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs"
 
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	pstoremem "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore/pstoremem"

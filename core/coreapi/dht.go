@@ -8,14 +8,14 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
+	blockservice "gx/ipfs/QmNozJswSuwiZspexEHcQo5GMqpzM5exUGjNW6s4AAipUX/go-blockservice"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	offline "gx/ipfs/QmPXcrGQQEEPswwg6YiE2WLk8qkmvncZ7zphMKKP8bXqY3/go-ipfs-exchange-offline"
 	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
 	routing "gx/ipfs/QmQRfifvvbJ8xTKj4KX1VvGWK26hnPiy8eQvW1hmjc82nD/go-libp2p-routing"
 	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
-	dag "gx/ipfs/Qmb5kvkvMyuaJ9e58vLh3TdRWgH9CCQPLJD4BgvNQvQFwf/go-merkledag"
+	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
-	blockservice "gx/ipfs/QmewCqLsNJ2j7xrbEk8nYoCCMtBMSK3Eq6pdNdNPogdehi/go-blockservice"
 	blockstore "gx/ipfs/QmfUhZX9KpvJiuiziUzP2cjhRAyqHJURsPgRKn1cdDZMKa/go-ipfs-blockstore"
 )
 

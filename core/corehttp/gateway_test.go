@@ -18,13 +18,13 @@ import (
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 	repo "github.com/ipfs/go-ipfs/repo"
 
+	id "gx/ipfs/QmNmj2AeM46ZQqHARnWidb5qqHoZJFeYWzmG65jviJDRQY/go-libp2p/p2p/protocol/identify"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
-	path "gx/ipfs/QmYh33CFYYEgQNSZ9PEP7ZN57dhErRZ7NfLS1BUA9GBBRk/go-path"
-	dag "gx/ipfs/Qmb5kvkvMyuaJ9e58vLh3TdRWgH9CCQPLJD4BgvNQvQFwf/go-merkledag"
+	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
+	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
 	datastore "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore"
 	syncds "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore/sync"
-	id "gx/ipfs/Qmd9zWxAeeDJoLdxqvaDXAGtoafX5cc9Tp25DNm9W7fVnB/go-libp2p/p2p/protocol/identify"
 )
 
 // `ipfs object new unixfs-dir`

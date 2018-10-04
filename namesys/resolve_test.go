@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	path "gx/ipfs/QmYh33CFYYEgQNSZ9PEP7ZN57dhErRZ7NfLS1BUA9GBBRk/go-path"
+	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
 
 	testutil "gx/ipfs/QmNfQbgBfARAtrYsBguChX6VJ5nbjeoYy1KdC36aaYWqG8/go-testutil"
 	mockrouting "gx/ipfs/QmYKPBQpSSWwmgNTvVE3vQdPoeqxwudPQnXJ4hU383RsSA/go-ipfs-routing/mock"

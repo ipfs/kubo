@@ -19,10 +19,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	secio "gx/ipfs/QmNkxudvyUjdKw5ComDSCbJTHCjrjNGYjEAUdhoEUUjFsX/go-libp2p-secio"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
 	pstoremem "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore/pstoremem"
-	secio "gx/ipfs/QmUdVuLDQCQD4WPBpgDsbBAaqui3GW4d7exBHK2PUKRQpv/go-libp2p-secio"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )

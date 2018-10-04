@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	core "github.com/ipfs/go-ipfs/core"
-	merkledag "gx/ipfs/Qmb5kvkvMyuaJ9e58vLh3TdRWgH9CCQPLJD4BgvNQvQFwf/go-merkledag"
-	ft "gx/ipfs/QmdF8ovKr2zNMWi2hiDMqQAQeNw35xwytb1W7Ydwsf1ufx/go-unixfs"
-	importer "gx/ipfs/QmdF8ovKr2zNMWi2hiDMqQAQeNw35xwytb1W7Ydwsf1ufx/go-unixfs/importer"
-	uio "gx/ipfs/QmdF8ovKr2zNMWi2hiDMqQAQeNw35xwytb1W7Ydwsf1ufx/go-unixfs/io"
-	bserv "gx/ipfs/QmewCqLsNJ2j7xrbEk8nYoCCMtBMSK3Eq6pdNdNPogdehi/go-blockservice"
+	bserv "gx/ipfs/QmNozJswSuwiZspexEHcQo5GMqpzM5exUGjNW6s4AAipUX/go-blockservice"
+	merkledag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
+	ft "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs"
+	importer "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/importer"
+	uio "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/io"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	offline "gx/ipfs/QmPXcrGQQEEPswwg6YiE2WLk8qkmvncZ7zphMKKP8bXqY3/go-ipfs-exchange-offline"

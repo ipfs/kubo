@@ -12,7 +12,7 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/namesys"
-	ipath "gx/ipfs/QmYh33CFYYEgQNSZ9PEP7ZN57dhErRZ7NfLS1BUA9GBBRk/go-path"
+	ipath "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
 
 	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmYKPBQpSSWwmgNTvVE3vQdPoeqxwudPQnXJ4hU383RsSA/go-ipfs-routing/offline"

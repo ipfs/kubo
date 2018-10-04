@@ -3,7 +3,7 @@ package namesys
 import (
 	"time"
 
-	path "gx/ipfs/QmYh33CFYYEgQNSZ9PEP7ZN57dhErRZ7NfLS1BUA9GBBRk/go-path"
+	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
 )
 
 func (ns *mpns) cacheGet(name string) (path.Path, bool) {

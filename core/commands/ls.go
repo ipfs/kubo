@@ -10,15 +10,15 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
+	blockservice "gx/ipfs/QmNozJswSuwiZspexEHcQo5GMqpzM5exUGjNW6s4AAipUX/go-blockservice"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	offline "gx/ipfs/QmPXcrGQQEEPswwg6YiE2WLk8qkmvncZ7zphMKKP8bXqY3/go-ipfs-exchange-offline"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	merkledag "gx/ipfs/Qmb5kvkvMyuaJ9e58vLh3TdRWgH9CCQPLJD4BgvNQvQFwf/go-merkledag"
+	merkledag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
+	unixfs "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs"
+	uio "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/io"
+	unixfspb "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/pb"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
-	unixfs "gx/ipfs/QmdF8ovKr2zNMWi2hiDMqQAQeNw35xwytb1W7Ydwsf1ufx/go-unixfs"
-	uio "gx/ipfs/QmdF8ovKr2zNMWi2hiDMqQAQeNw35xwytb1W7Ydwsf1ufx/go-unixfs/io"
-	unixfspb "gx/ipfs/QmdF8ovKr2zNMWi2hiDMqQAQeNw35xwytb1W7Ydwsf1ufx/go-unixfs/pb"
-	blockservice "gx/ipfs/QmewCqLsNJ2j7xrbEk8nYoCCMtBMSK3Eq6pdNdNPogdehi/go-blockservice"
 )
 
 type LsLink struct {

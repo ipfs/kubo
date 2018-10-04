@@ -22,7 +22,7 @@ import (
 	"gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
-	"gx/ipfs/QmcyQj1V6Ht8uSrRqj865UXGUo5Sc8GxNA4U8bLQxCSmfX/go-libp2p-swarm"
+	"gx/ipfs/QmcALnLPFXgLLaZkXzGv99yt8xPfiWqFTumiXpWBJbU9cY/go-libp2p-swarm"
 	iaddr "gx/ipfs/QmesXvbRGyKQn1XbPHx1Mr5E6RTJYR9c8zwFVuGZq9Aa1j/go-ipfs-addr"
 )
 

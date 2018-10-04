@@ -6,12 +6,12 @@ import (
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "gx/ipfs/QmYh33CFYYEgQNSZ9PEP7ZN57dhErRZ7NfLS1BUA9GBBRk/go-path"
+	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	routing "gx/ipfs/QmQRfifvvbJ8xTKj4KX1VvGWK26hnPiy8eQvW1hmjc82nD/go-libp2p-routing"
-	dht "gx/ipfs/QmXBVGodwBx38Pvx6x8nt9mtCWbiDcNv7XWDGuvkajELvK/go-libp2p-kad-dht"
+	dht "gx/ipfs/QmXKSnQHAihkcGgk8ZXz7FgZgHboXeRduuEz9FkAddJK6P/go-libp2p-kad-dht"
 	ipns "gx/ipfs/QmYZdD9dRfHtoYt4qAFgtKoiPBAoXntmM3ZcktZVvAgB4s/go-ipns"
 	pb "gx/ipfs/QmYZdD9dRfHtoYt4qAFgtKoiPBAoXntmM3ZcktZVvAgB4s/go-ipns/pb"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
