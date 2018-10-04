@@ -1,11 +1,9 @@
 package coreapi
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	gopath "path"
 	"time"
@@ -172,12 +170,6 @@ func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, nam
 		}
 
 	case *dag.RawNode:
-		r := ioutil.NopCloser(bytes.NewReader(dn.RawData()))
-		fi := &sizeInfo{
-			size: int64(len(dn.RawData())),
-		}
-
-		return files.NewReaderFile("", "", r, fi), nil
 	default:
 		return nil, errors.New("unknown node type")
 	}
