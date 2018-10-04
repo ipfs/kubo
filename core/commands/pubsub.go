@@ -20,7 +20,7 @@ import (
 	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
-	floodsub "gx/ipfs/QmcdMfj1jwvWWcQB1549ebeFkyj8iadzKrXaHqaEpUyQKY/go-libp2p-floodsub"
+	floodsub "gx/ipfs/Qmch44z24hut8iN2snohMNLiX63E3QfZLMQKoe14iZ3FhQ/go-libp2p-floodsub"
 )
 
 var PubsubCmd = &cmds.Command{
