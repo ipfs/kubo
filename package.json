@@ -605,6 +605,12 @@
       "hash": "QmRmMbeY5QC5iMsuW16wchtFt8wmYTv2suWb8t9MV8dsxm",
       "name": "go-libp2p-autonat-svc",
       "version": "1.0.5"
+    },
+    {
+      "author": "edgarl",
+      "hash": "QmYHDxm9sm7whjnbFMq8YdKVdQuji4858PGQRgXYjUZyNv",
+      "name": "go-ds-s3",
+      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.10.0",
