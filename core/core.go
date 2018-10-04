@@ -524,13 +524,15 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		)
 		n.Routing = rhelpers.Tiered{
 			// Always check pubsub first.
-			&rhelpers.Compose{
-				ValueStore: &rhelpers.LimitedValueStore{
-					ValueStore: n.PSRouter,
-					Namespaces: []string{"ipns"},
+			Routers: []routing.IpfsRouting{
+				&rhelpers.Compose{
+					ValueStore: &rhelpers.LimitedValueStore{
+						ValueStore: n.PSRouter,
+						Namespaces: []string{"ipns"},
+					},
 				},
+				n.Routing,
 			},
-			n.Routing,
 		}
 	}
 

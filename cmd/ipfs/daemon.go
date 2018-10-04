@@ -414,7 +414,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	apiAddr, _ := req.Options[commands.ApiOption].(string)
 	if apiAddr == "" {
-		apiAddr = cfg.Addresses.API
+		apiAddr = cfg.Addresses.API[0]
 	}
 	apiMaddr, err := ma.NewMultiaddr(apiAddr)
 	if err != nil {
@@ -512,7 +512,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		return nil, fmt.Errorf("serveHTTPGateway: GetConfig() failed: %s", err)
 	}
 
-	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway)
+	gatewayMaddr, err := ma.NewMultiaddr(cfg.Addresses.Gateway[0])
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", cfg.Addresses.Gateway, err)
 	}
