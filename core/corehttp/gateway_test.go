@@ -153,6 +153,7 @@ func TestGatewayGet(t *testing.T) {
 	ns["/ipns/double.example.com"] = path.FromString("/ipns/working.example.com")
 	ns["/ipns/triple.example.com"] = path.FromString("/ipns/double.example.com")
 	ns["/ipns/broken.example.com"] = path.FromString("/ipns/" + k)
+	ns["/ipns/example.man"] = path.FromString("/ipfs/" + k)
 
 	t.Log(ts.URL)
 	for _, test := range []struct {
@@ -175,6 +176,7 @@ func TestGatewayGet(t *testing.T) {
 		{"working.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com/ipfs/" + k + ": no link by that name\n"},
 		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"broken.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/ipfs/" + k + ": " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"example.man", "/", http.StatusOK, "fnord"},
 	} {
 		var c http.Client
 		r, err := http.NewRequest("GET", ts.URL+test.path, nil)
@@ -190,6 +192,10 @@ func TestGatewayGet(t *testing.T) {
 			continue
 		}
 		defer resp.Body.Close()
+		contentType := resp.Header.Get("Content-Type")
+		if contentType != "text/plain; charset=utf-8" {
+			t.Errorf("expected content type to be text/plain, got %s", contentType)
+		}
 		if resp.StatusCode != test.status {
 			t.Errorf("got %d, expected %d from %s", resp.StatusCode, test.status, urlstr)
 			continue
