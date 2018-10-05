@@ -82,13 +82,9 @@ func mainRet() int {
 	intrh, ctx := setupInterruptHandler(ctx)
 	defer intrh.Close()
 
-	// Handle `ipfs help'
-	if len(os.Args) == 2 {
-		if os.Args[1] == "help" {
-			os.Args[1] = "-h"
-		} else if os.Args[1] == "--version" {
-			os.Args[1] = "version"
-		}
+	// Handle `ipfs version'
+	if len(os.Args) == 2 && os.Args[1] == "--version" {
+		os.Args[1] = "version"
 	}
 
 	// output depends on executable name passed in os.Args
