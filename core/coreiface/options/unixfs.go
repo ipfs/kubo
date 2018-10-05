@@ -6,7 +6,7 @@ import (
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
+	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
 )
 
 type Layout int
