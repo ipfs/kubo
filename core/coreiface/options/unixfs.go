@@ -171,9 +171,8 @@ func (unixfsOpts) Inline(enable bool) UnixfsAddOption {
 // option. Default: 32 bytes
 //
 // Note that while there is no hard limit on the number of bytes, it should be
-// kept at a reasonably low value, such as 64 and no more than 1k. Setting this
-// value too high may cause various problems, such as render some
-// blocks unfetchable.
+// kept at a reasonably low value, such as 64; implementations may choose to
+// reject anything larger.
 func (unixfsOpts) InlineLimit(limit int) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.InlineLimit = limit
