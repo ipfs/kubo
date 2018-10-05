@@ -157,7 +157,9 @@ func TestGatewayGet(t *testing.T) {
 	// 1. It's a valid TLD.
 	// 2. Go treats it as the file extension for "man" files (even though
 	//    nobody actually *uses* this extension, AFAIK).
-	// 3. Go accepts "fnord" (the test value) as a valid man file.
+	//
+	// Unfortunately, this may not work on all platforms as file type
+	// detection is platform dependent.
 	ns["/ipns/example.man"] = path.FromString("/ipfs/" + k)
 
 	t.Log(ts.URL)
