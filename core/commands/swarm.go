@@ -1,11 +1,15 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"path"
 	"sort"
+	"strings"
+	"sync"
+	"time"
 
 	commands "github.com/ipfs/go-ipfs/commands"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -22,6 +26,10 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	ma "github.com/multiformats/go-multiaddr"
 	mafilter "github.com/whyrusleeping/multiaddr-filter"
+)
+
+const (
+	dnsResolveTimeout = 10 * time.Second
 )
 
 type stringList struct {
@@ -444,10 +452,29 @@ func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
 	return
 }
 
+// parseMultiaddrs is a function that takes in a slice of peer multiaddr
+// and returns slices of multiaddrs and peerids
+func parseMultiaddrs(maddrs []ma.Multiaddr) (iaddrs []iaddr.IPFSAddr, err error) {
+	iaddrs = make([]iaddr.IPFSAddr, len(maddrs))
+	for i, maddr := range maddrs {
+		iaddrs[i], err = iaddr.ParseMultiaddr(maddr)
+		if err != nil {
+			return nil, cmds.ClientError("invalid peer address: " + err.Error())
+		}
+	}
+	return
+}
+
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
 func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
-	iaddrs, err := parseAddresses(addrs)
+	// resolve addresses
+	maddrs, err := resolveAddresses(addrs)
+	if err != nil {
+		return nil, err
+	}
+
+	iaddrs, err := parseMultiaddrs(maddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -470,6 +497,56 @@ func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 		})
 	}
 	return pis, nil
+}
+
+// resolveAddresses resolves addresses parallelly
+func resolveAddresses(addrs []string) ([]ma.Multiaddr, error) {
+	var maddrs []ma.Multiaddr
+	var wg sync.WaitGroup
+	resolveErrC := make(chan error, len(addrs))
+
+	for _, addr := range addrs {
+		maddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return nil, err
+		}
+		// check whether address ends in `ipfs/Qm...`
+		if _, err := maddr.ValueForProtocol(ma.P_IPFS); err != ma.ErrProtocolNotFound {
+			maddrs = append(maddrs, maddr)
+			continue
+		}
+		wg.Add(1)
+		go func(maddr ma.Multiaddr) {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), dnsResolveTimeout)
+			raddrs, err := madns.Resolve(ctx, maddr)
+			cancel()
+			if err != nil {
+				resolveErrC <- err
+				return
+			}
+			if len(raddrs) == 0 {
+				resolveErrC <- fmt.Errorf("non-resolvable multiaddr about %v", maddr)
+				return
+			}
+			// filter out addresses that still doesn't end in `ipfs/Qm...`
+			for _, raddr := range raddrs {
+				if _, err := raddr.ValueForProtocol(ma.P_IPFS); err != ma.ErrProtocolNotFound {
+					maddrs = append(maddrs, raddr)
+				}
+			}
+		}(maddr)
+	}
+	// wait for address resolving
+	wg.Wait()
+
+	select {
+	case err := <-resolveErrC:
+		return nil, err
+	default:
+	}
+
+	return maddrs, nil
 }
 
 var swarmFiltersCmd = &cmds.Command{
