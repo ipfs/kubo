@@ -153,6 +153,11 @@ func TestGatewayGet(t *testing.T) {
 	ns["/ipns/double.example.com"] = path.FromString("/ipns/working.example.com")
 	ns["/ipns/triple.example.com"] = path.FromString("/ipns/double.example.com")
 	ns["/ipns/broken.example.com"] = path.FromString("/ipns/" + k)
+	// We picked .man because:
+	// 1. It's a valid TLD.
+	// 2. Go treats it as the file extension for "man" files (even though
+	//    nobody actually *uses* this extension, AFAIK).
+	// 3. Go accepts "fnord" (the test value) as a valid man file.
 	ns["/ipns/example.man"] = path.FromString("/ipfs/" + k)
 
 	t.Log(ts.URL)
@@ -176,6 +181,7 @@ func TestGatewayGet(t *testing.T) {
 		{"working.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com/ipfs/" + k + ": no link by that name\n"},
 		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"broken.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/ipfs/" + k + ": " + namesys.ErrResolveFailed.Error() + "\n"},
+		// This test case ensures we don't treat the TLD as a file extension.
 		{"example.man", "/", http.StatusOK, "fnord"},
 	} {
 		var c http.Client
