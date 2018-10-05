@@ -27,7 +27,7 @@ type ConfigField struct {
 
 const (
 	configBoolOptionName = "bool"
-	configJsonOptionName = "json"
+	configJSONOptionName = "json"
 )
 
 var ConfigCmd = &cmds.Command{
@@ -60,7 +60,7 @@ Set the value of the 'Datastore.Path' key:
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(configBoolOptionName, "Set a boolean value."),
-		cmdkit.BoolOption(configJsonOptionName, "Parse stringified JSON."),
+		cmdkit.BoolOption(configJSONOptionName, "Parse stringified JSON."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
@@ -92,7 +92,7 @@ Set the value of the 'Datastore.Path' key:
 		if len(args) == 2 {
 			value := args[1]
 
-			if parseJson, _, _ := req.Option(configJsonOptionName).Bool(); parseJson {
+			if parseJSON, _, _ := req.Option(configJSONOptionName).Bool(); parseJSON {
 				var jsonVal interface{}
 				if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
 					err = fmt.Errorf("failed to unmarshal json. %s", err)
