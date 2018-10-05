@@ -14,12 +14,12 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	"gx/ipfs/QmPtj12fdwuAqj9sBSTNUxBNu8kCGNp8b3o8yUzMm5GHpq/pb"
+	uarchive "gx/ipfs/QmQDcPcBH8nfz3JB4K4oEvxhRmBwCrMgvG966XpExEWexf/go-unixfs/archive"
 	tar "gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"
+	path "gx/ipfs/QmQmMu1vsgsjxyB8tzrA6ZTCTCLDLVaXMb4Q57r2v886Sx/go-path"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
-	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
 	"gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
-	uarchive "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/archive"
+	dag "gx/ipfs/QmXTw4By9FMZAt7qJm4JoJuNBrBgqMMzkS4AjKc4zqTUVd/go-merkledag"
 )
 
 var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")

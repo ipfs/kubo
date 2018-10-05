@@ -16,17 +16,17 @@ import (
 
 	posinfo "gx/ipfs/QmPG32VXR5jmpo9q8R9FNdR4Ae97Ky9CiZE6SctJLUB79H/go-ipfs-posinfo"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	mfs "gx/ipfs/QmQUjAGdPuNA9tpzrx5osWnPMhht7B5YzJNddjB45DUq2U/go-mfs"
+	mfs "gx/ipfs/QmPbuswDwcPT4WquGqGoeBBDuuBaUmbZJFYiaes6vkgXYJ/go-mfs"
+	unixfs "gx/ipfs/QmQDcPcBH8nfz3JB4K4oEvxhRmBwCrMgvG966XpExEWexf/go-unixfs"
+	balanced "gx/ipfs/QmQDcPcBH8nfz3JB4K4oEvxhRmBwCrMgvG966XpExEWexf/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmQDcPcBH8nfz3JB4K4oEvxhRmBwCrMgvG966XpExEWexf/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmQDcPcBH8nfz3JB4K4oEvxhRmBwCrMgvG966XpExEWexf/go-unixfs/importer/trickle"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
-	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
-	chunker "gx/ipfs/QmULKgr55cSWR8Kiwy3cVRcAiGVnR6EVSaB7hJcWS4138p/go-ipfs-chunker"
+	dag "gx/ipfs/QmXTw4By9FMZAt7qJm4JoJuNBrBgqMMzkS4AjKc4zqTUVd/go-merkledag"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	unixfs "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs"
-	balanced "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/importer/trickle"
+	chunker "gx/ipfs/QmbrQ27wGQeE8spxjbw9mk5Ef7as4tRFSnWLkEGg4xeg2f/go-ipfs-chunker"
+	bstore "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
-	bstore "gx/ipfs/QmfUhZX9KpvJiuiziUzP2cjhRAyqHJURsPgRKn1cdDZMKa/go-ipfs-blockstore"
 )
 
 var log = logging.Logger("coreunix")

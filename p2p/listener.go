@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	net "gx/ipfs/QmQdLcvoy3JuSqhV6iwQ9T6Cv7hWLAdzob4jUZRPqFL67Z/go-libp2p-net"
-	p2phost "gx/ipfs/QmX9pw5dSUZ2FozbppcSDJiS7eEh1RFwJNwrbmyLoUMS9x/go-libp2p-host"
+	p2phost "gx/ipfs/QmQKod7iLxQK6X3aFYvhDDnFdXo3QjxKeL2F7UrPtdKQR2/go-libp2p-host"
+	net "gx/ipfs/QmWUPYHpNv4YahaBYXovuEJttgfqcNcN9Gg4arhQYcRoqa/go-libp2p-net"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )

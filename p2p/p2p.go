@@ -1,8 +1,8 @@
 package p2p
 
 import (
-	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
-	p2phost "gx/ipfs/QmX9pw5dSUZ2FozbppcSDJiS7eEh1RFwJNwrbmyLoUMS9x/go-libp2p-host"
+	p2phost "gx/ipfs/QmQKod7iLxQK6X3aFYvhDDnFdXo3QjxKeL2F7UrPtdKQR2/go-libp2p-host"
+	pstore "gx/ipfs/QmXEyLwySuDMXejWBu8XwdkX2WuGKk8x9jFwz8js7j72UX/go-libp2p-peerstore"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )

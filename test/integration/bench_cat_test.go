@@ -16,8 +16,8 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
 	testutil "gx/ipfs/QmNfQbgBfARAtrYsBguChX6VJ5nbjeoYy1KdC36aaYWqG8/go-testutil"
-	mocknet "gx/ipfs/QmNmj2AeM46ZQqHARnWidb5qqHoZJFeYWzmG65jviJDRQY/go-libp2p/p2p/net/mock"
-	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
+	mocknet "gx/ipfs/QmU9Cf9q5TBCAC3kg74Fqr6K7DQTwa41C44YypYqB2GfR8/go-libp2p/p2p/net/mock"
+	pstore "gx/ipfs/QmXEyLwySuDMXejWBu8XwdkX2WuGKk8x9jFwz8js7j72UX/go-libp2p-peerstore"
 )
 
 func BenchmarkCat1MB(b *testing.B) { benchmarkVarCat(b, unit.MB*1) }

@@ -8,13 +8,13 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	inet "gx/ipfs/QmQdLcvoy3JuSqhV6iwQ9T6Cv7hWLAdzob4jUZRPqFL67Z/go-libp2p-net"
-	net "gx/ipfs/QmQdLcvoy3JuSqhV6iwQ9T6Cv7hWLAdzob4jUZRPqFL67Z/go-libp2p-net"
-	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
+	inet "gx/ipfs/QmWUPYHpNv4YahaBYXovuEJttgfqcNcN9Gg4arhQYcRoqa/go-libp2p-net"
+	net "gx/ipfs/QmWUPYHpNv4YahaBYXovuEJttgfqcNcN9Gg4arhQYcRoqa/go-libp2p-net"
+	pstore "gx/ipfs/QmXEyLwySuDMXejWBu8XwdkX2WuGKk8x9jFwz8js7j72UX/go-libp2p-peerstore"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	swarm "gx/ipfs/Qmb55o5PuhvqwjdVLvc4VV3ouLziYc6TfwM9LC6GwBQokn/go-libp2p-swarm"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
-	swarm "gx/ipfs/QmcALnLPFXgLLaZkXzGv99yt8xPfiWqFTumiXpWBJbU9cY/go-libp2p-swarm"
 	iaddr "gx/ipfs/QmesXvbRGyKQn1XbPHx1Mr5E6RTJYR9c8zwFVuGZq9Aa1j/go-ipfs-addr"
 )
 

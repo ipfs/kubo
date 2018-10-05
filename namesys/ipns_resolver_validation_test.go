@@ -6,22 +6,22 @@ import (
 	"time"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
+	path "gx/ipfs/QmQmMu1vsgsjxyB8tzrA6ZTCTCLDLVaXMb4Q57r2v886Sx/go-path"
 
 	testutil "gx/ipfs/QmNfQbgBfARAtrYsBguChX6VJ5nbjeoYy1KdC36aaYWqG8/go-testutil"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	routing "gx/ipfs/QmQRfifvvbJ8xTKj4KX1VvGWK26hnPiy8eQvW1hmjc82nD/go-libp2p-routing"
-	ropts "gx/ipfs/QmQRfifvvbJ8xTKj4KX1VvGWK26hnPiy8eQvW1hmjc82nD/go-libp2p-routing/options"
-	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
-	pstoremem "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore/pstoremem"
+	mockrouting "gx/ipfs/QmQqPdGQfsfQTpRUUzgD3d2RzWHJffZsSqwopnZ2BkiezW/go-ipfs-routing/mock"
+	offline "gx/ipfs/QmQqPdGQfsfQTpRUUzgD3d2RzWHJffZsSqwopnZ2BkiezW/go-ipfs-routing/offline"
 	record "gx/ipfs/QmSb4B8ZAAj5ALe9LjfzPyF8Ma6ezC1NTnDF2JQPUJxEXb/go-libp2p-record"
-	mockrouting "gx/ipfs/QmYKPBQpSSWwmgNTvVE3vQdPoeqxwudPQnXJ4hU383RsSA/go-ipfs-routing/mock"
-	offline "gx/ipfs/QmYKPBQpSSWwmgNTvVE3vQdPoeqxwudPQnXJ4hU383RsSA/go-ipfs-routing/offline"
-	ipns "gx/ipfs/QmYZdD9dRfHtoYt4qAFgtKoiPBAoXntmM3ZcktZVvAgB4s/go-ipns"
+	routing "gx/ipfs/QmVQPj6rHdqz6dDQrjcdP36zDYLaoB7xwqRg39kx2PqqKU/go-libp2p-routing"
+	ropts "gx/ipfs/QmVQPj6rHdqz6dDQrjcdP36zDYLaoB7xwqRg39kx2PqqKU/go-libp2p-routing/options"
+	ipns "gx/ipfs/QmWhm9qS3NZdvTgAsB1cX4q9UbNu8yFybCcAMchCN88w7o/go-ipns"
+	pstore "gx/ipfs/QmXEyLwySuDMXejWBu8XwdkX2WuGKk8x9jFwz8js7j72UX/go-libp2p-peerstore"
+	pstoremem "gx/ipfs/QmXEyLwySuDMXejWBu8XwdkX2WuGKk8x9jFwz8js7j72UX/go-libp2p-peerstore/pstoremem"
+	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
+	dssync "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/sync"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
-	ds "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore"
-	dssync "gx/ipfs/QmbQshXLNcCPRUGZv4sBGxnZNAHREA6MKeomkwihNXPZWP/go-datastore/sync"
 )
 
 func TestResolverValidation(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"io"
 	"sync"
 
-	net "gx/ipfs/QmQdLcvoy3JuSqhV6iwQ9T6Cv7hWLAdzob4jUZRPqFL67Z/go-libp2p-net"
 	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
-	ifconnmgr "gx/ipfs/QmYbLGD41kmPZfgGs5B8DMMwxtY61Wz4KPeGFZ2qoetsPY/go-libp2p-interface-connmgr"
+	net "gx/ipfs/QmWUPYHpNv4YahaBYXovuEJttgfqcNcN9Gg4arhQYcRoqa/go-libp2p-net"
+	ifconnmgr "gx/ipfs/QmXPqoktJEKkWPT6rSdhCM2G3E1yR7uUBdjnJrhJYeBgHU/go-libp2p-interface-connmgr"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
