@@ -70,11 +70,11 @@ test_expect_success "ipfs version output looks good" '
   test_fsh cat version.txt
 '
 
-test_expect_success "ipfs help succeeds" '
-  ipfs help >help.txt
+test_expect_success "ipfs --help succeeds" '
+  ipfs --help >help.txt
 '
 
-test_expect_success "ipfs help output looks good" '
+test_expect_success "ipfs --help output looks good" '
   egrep -i "^Usage" help.txt >/dev/null &&
   egrep "ipfs .* <command>" help.txt >/dev/null ||
   test_fsh cat help.txt
