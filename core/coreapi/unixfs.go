@@ -2,30 +2,143 @@ package coreapi
 
 import (
 	"context"
-	"io"
+	"fmt"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/filestore"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
-	uio "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/io"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	blockservice "gx/ipfs/QmNozJswSuwiZspexEHcQo5GMqpzM5exUGjNW6s4AAipUX/go-blockservice"
+	offline "gx/ipfs/QmPXcrGQQEEPswwg6YiE2WLk8qkmvncZ7zphMKKP8bXqY3/go-ipfs-exchange-offline"
+	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
+	mfs "gx/ipfs/QmQUjAGdPuNA9tpzrx5osWnPMhht7B5YzJNddjB45DUq2U/go-mfs"
+	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
+	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
+	dagtest "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag/test"
+	ft "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs"
+	uio "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs/io"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	bstore "gx/ipfs/QmfUhZX9KpvJiuiziUzP2cjhRAyqHJURsPgRKn1cdDZMKa/go-ipfs-blockstore"
 )
 
 type UnixfsAPI CoreAPI
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
-func (api *UnixfsAPI) Add(ctx context.Context, r io.Reader) (coreiface.ResolvedPath, error) {
-	k, err := coreunix.AddWithContext(ctx, api.node, r)
+func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options.UnixfsAddOption) (coreiface.ResolvedPath, error) {
+	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
-	c, err := cid.Decode(k)
+
+	n := api.node
+
+	cfg, err := n.Repo.Config()
 	if err != nil {
 		return nil, err
 	}
-	return coreiface.IpfsPath(c), nil
+
+	// check if repo will exceed storage limit if added
+	// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)
+	// TODO: conditional GC is disabled due to it is somehow not possible to pass the size to the daemon
+	//if err := corerepo.ConditionalGC(req.Context(), n, uint64(size)); err != nil {
+	//	res.SetError(err, cmdkit.ErrNormal)
+	//	return
+	//}
+
+	if settings.NoCopy && !cfg.Experimental.FilestoreEnabled {
+		return nil, filestore.ErrFilestoreNotEnabled
+	}
+
+	if settings.OnlyHash {
+		nilnode, err := core.NewNode(ctx, &core.BuildCfg{
+			//TODO: need this to be true or all files
+			// hashed will be stored in memory!
+			NilRepo: true,
+		})
+		if err != nil {
+			return nil, err
+		}
+		n = nilnode
+	}
+
+	addblockstore := n.Blockstore
+	if !(settings.FsCache || settings.NoCopy) {
+		addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
+	}
+
+	exch := n.Exchange
+	if settings.Local {
+		exch = offline.Exchange(addblockstore)
+	}
+
+	bserv := blockservice.New(addblockstore, exch) // hash security 001
+	dserv := dag.NewDAGService(bserv)
+
+	fileAdder, err := coreunix.NewAdder(ctx, n.Pinning, n.Blockstore, dserv)
+	if err != nil {
+		return nil, err
+	}
+
+	fileAdder.Chunker = settings.Chunker
+	if settings.Events != nil {
+		fileAdder.Out = settings.Events
+		fileAdder.Progress = settings.Progress
+	}
+	fileAdder.Hidden = settings.Hidden
+	fileAdder.Wrap = settings.Wrap
+	fileAdder.Pin = settings.Pin && !settings.OnlyHash
+	fileAdder.Silent = settings.Silent
+	fileAdder.RawLeaves = settings.RawLeaves
+	fileAdder.NoCopy = settings.NoCopy
+	fileAdder.Name = settings.StdinName
+	fileAdder.CidBuilder = prefix
+
+	switch settings.Layout {
+	case options.BalancedLayout:
+		// Default
+	case options.TrickleLayout:
+		fileAdder.Trickle = true
+	default:
+		return nil, fmt.Errorf("unknown layout: %d", settings.Layout)
+	}
+
+	if settings.Inline {
+		fileAdder.CidBuilder = cidutil.InlineBuilder{
+			Builder: fileAdder.CidBuilder,
+			Limit:   settings.InlineLimit,
+		}
+	}
+
+	if settings.OnlyHash {
+		md := dagtest.Mock()
+		emptyDirNode := ft.EmptyDirNode()
+		// Use the same prefix for the "empty" MFS root as for the file adder.
+		emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
+		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		fileAdder.SetMfsRoot(mr)
+	}
+
+	nd, err := fileAdder.AddAllAndPin(files)
+	if err != nil {
+		return nil, err
+	}
+	return coreiface.IpfsPath(nd.Cid()), nil
+}
+
+func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.File, error) {
+	nd, err := api.core().ResolveNode(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return newUnixfsFile(ctx, api.node.DAG, nd, "", nil)
 }
 
 // Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.

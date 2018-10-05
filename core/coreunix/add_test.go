@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/pin/gc"
 	"github.com/ipfs/go-ipfs/repo"
 
@@ -85,7 +86,7 @@ func TestAddGCLive(t *testing.T) {
 	go func() {
 		defer close(addDone)
 		defer close(out)
-		err := adder.AddAllAndPin(slf)
+		_, err := adder.AddAllAndPin(slf)
 
 		if err != nil {
 			t.Fatal(err)
@@ -96,7 +97,7 @@ func TestAddGCLive(t *testing.T) {
 	addedHashes := make(map[string]struct{})
 	select {
 	case o := <-out:
-		addedHashes[o.(*AddedObject).Hash] = struct{}{}
+		addedHashes[o.(*coreiface.AddEvent).Hash] = struct{}{}
 	case <-addDone:
 		t.Fatal("add shouldnt complete yet")
 	}
@@ -124,7 +125,7 @@ func TestAddGCLive(t *testing.T) {
 
 	// receive next object from adder
 	o := <-out
-	addedHashes[o.(*AddedObject).Hash] = struct{}{}
+	addedHashes[o.(*coreiface.AddEvent).Hash] = struct{}{}
 
 	<-gcstarted
 
@@ -140,7 +141,7 @@ func TestAddGCLive(t *testing.T) {
 	var last cid.Cid
 	for a := range out {
 		// wait for it to finish
-		c, err := cid.Decode(a.(*AddedObject).Hash)
+		c, err := cid.Decode(a.(*coreiface.AddEvent).Hash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,7 +179,8 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adder.Out = make(chan interface{})
+	out := make(chan interface{})
+	adder.Out = out
 	adder.Progress = true
 	adder.RawLeaves = rawLeaves
 	adder.NoCopy = true
@@ -191,12 +193,12 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 
 	go func() {
 		defer close(adder.Out)
-		err = adder.AddAllAndPin(file)
+		_, err = adder.AddAllAndPin(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
-	for range adder.Out {
+	for range out {
 	}
 
 	exp := 0

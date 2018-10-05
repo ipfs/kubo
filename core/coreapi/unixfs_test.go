@@ -6,22 +6,28 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
+	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
-	core "github.com/ipfs/go-ipfs/core"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 	mock "github.com/ipfs/go-ipfs/core/mock"
-	keystore "github.com/ipfs/go-ipfs/keystore"
-	repo "github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/keystore"
+	"github.com/ipfs/go-ipfs/repo"
 
 	mocknet "gx/ipfs/QmNmj2AeM46ZQqHARnWidb5qqHoZJFeYWzmG65jviJDRQY/go-libp2p/p2p/net/mock"
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
+	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
 	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
 	cbor "gx/ipfs/QmSywXfm2v4Qkp4DcFqo8eehj49dJK3bdUnaLVxrdFLMQn/go-ipld-cbor"
 	mdag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
@@ -125,6 +131,37 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
 	return nd[0], api[0], nil
 }
 
+func strFile(data string) func() files.File {
+	return func() files.File {
+		return files.NewReaderFile("", "", ioutil.NopCloser(strings.NewReader(data)), nil)
+	}
+}
+
+func twoLevelDir() func() files.File {
+	return func() files.File {
+		return files.NewSliceFile("t", "t", []files.File{
+			files.NewSliceFile("t/abc", "t/abc", []files.File{
+				files.NewReaderFile("t/abc/def", "t/abc/def", ioutil.NopCloser(strings.NewReader("world")), nil),
+			}),
+			files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+			files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+		})
+	}
+}
+
+func flatDir() files.File {
+	return files.NewSliceFile("t", "t", []files.File{
+		files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+		files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+	})
+}
+
+func wrapped(f files.File) files.File {
+	return files.NewSliceFile("", "", []files.File{
+		f,
+	})
+}
+
 func TestAdd(t *testing.T) {
 	ctx := context.Background()
 	_, api, err := makeAPI(ctx)
@@ -132,84 +169,454 @@ func TestAdd(t *testing.T) {
 		t.Error(err)
 	}
 
-	str := strings.NewReader(helloStr)
-	p, err := api.Unixfs().Add(ctx, str)
-	if err != nil {
-		t.Error(err)
+	cases := []struct {
+		name   string
+		data   func() files.File
+		expect func(files.File) files.File
+
+		path string
+		err  string
+
+		recursive bool
+
+		events []coreiface.AddEvent
+
+		opts []options.UnixfsAddOption
+	}{
+		// Simple cases
+		{
+			name: "simpleAdd",
+			data: strFile(helloStr),
+			path: hello,
+			opts: []options.UnixfsAddOption{},
+		},
+		{
+			name: "addEmpty",
+			data: strFile(""),
+			path: emptyFile,
+		},
+		// CIDv1 version / rawLeaves
+		{
+			name: "addCidV1",
+			data: strFile(helloStr),
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(1)},
+		},
+		{
+			name: "addCidV1NoLeaves",
+			data: strFile(helloStr),
+			path: "/ipfs/zdj7WY4GbN8NDbTW1dfCShAQNVovams2xhq9hVCx5vXcjvT8g",
+			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(1), options.Unixfs.RawLeaves(false)},
+		},
+		// Non sha256 hash vs CID
+		{
+			name: "addCidSha3",
+			data: strFile(helloStr),
+			path: "/ipfs/zb2wwnYtXBxpndNABjtYxWAPt3cwWNRnc11iT63fvkYV78iRb",
+			opts: []options.UnixfsAddOption{options.Unixfs.Hash(mh.SHA3_256)},
+		},
+		{
+			name: "addCidSha3Cid0",
+			data: strFile(helloStr),
+			err:  "CIDv0 only supports sha2-256",
+			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(0), options.Unixfs.Hash(mh.SHA3_256)},
+		},
+		// Inline
+		{
+			name: "addInline",
+			data: strFile(helloStr),
+			path: "/ipfs/zaYomJdLndMku8P9LHngHB5w2CQ7NenLbv",
+			opts: []options.UnixfsAddOption{options.Unixfs.Inline(true)},
+		},
+		{
+			name: "addInlineLimit",
+			data: strFile(helloStr),
+			path: "/ipfs/zaYomJdLndMku8P9LHngHB5w2CQ7NenLbv",
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true)},
+		},
+		{
+			name: "addInlineZero",
+			data: strFile(""),
+			path: "/ipfs/z2yYDV",
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(0), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
+		},
+		{ //TODO: after coreapi add is used in `ipfs add`, consider making this default for inline
+			name: "addInlineRaw",
+			data: strFile(helloStr),
+			path: "/ipfs/zj7Gr8AcBreqGEfrnR5kPFe",
+			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
+		},
+		// Chunker / Layout
+		{
+			name: "addChunks",
+			data: strFile(strings.Repeat("aoeuidhtns", 200)),
+			path: "/ipfs/QmRo11d4QJrST47aaiGVJYwPhoNA4ihRpJ5WaxBWjWDwbX",
+			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4")},
+		},
+		{
+			name: "addChunksTrickle",
+			data: strFile(strings.Repeat("aoeuidhtns", 200)),
+			path: "/ipfs/QmNNhDGttafX3M1wKWixGre6PrLFGjnoPEDXjBYpTv93HP",
+			opts: []options.UnixfsAddOption{options.Unixfs.Chunker("size-4"), options.Unixfs.Layout(options.TrickleLayout)},
+		},
+		// Local
+		{
+			name: "addLocal", // better cases in sharness
+			data: strFile(helloStr),
+			path: hello,
+			opts: []options.UnixfsAddOption{options.Unixfs.Local(true)},
+		},
+		{
+			name: "hashOnly", // test (non)fetchability
+			data: strFile(helloStr),
+			path: hello,
+			opts: []options.UnixfsAddOption{options.Unixfs.HashOnly(true)},
+		},
+		// multi file
+		{
+			name:      "simpleDir",
+			data:      flatDir,
+			recursive: true,
+			path:      "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+		},
+		{
+			name:      "twoLevelDir",
+			data:      twoLevelDir(),
+			recursive: true,
+			path:      "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+		},
+		// wrapped
+		{
+			name: "addWrapped",
+			path: "/ipfs/QmVE9rNpj5doj7XHzp5zMUxD7BJgXEqx4pe3xZ3JBReWHE",
+			data: func() files.File {
+				return files.NewReaderFile("foo", "foo", ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			expect: wrapped,
+			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name: "stdinWrapped",
+			path: "/ipfs/QmU3r81oZycjHS9oaSHw37ootMFuFUw1DvMLKXPsezdtqU",
+			data: func() files.File {
+				return files.NewReaderFile("", os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			expect: func(files.File) files.File {
+				return files.NewSliceFile("", "", []files.File{
+					files.NewReaderFile("QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", "QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", ioutil.NopCloser(strings.NewReader(helloStr)), nil),
+				})
+			},
+			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name: "stdinNamed",
+			path: "/ipfs/QmQ6cGBmb3ZbdrQW1MRm1RJnYnaxCqfssz7CrTa9NEhQyS",
+			data: func() files.File {
+				return files.NewReaderFile("", os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			expect: func(files.File) files.File {
+				return files.NewSliceFile("", "", []files.File{
+					files.NewReaderFile("test", "test", ioutil.NopCloser(strings.NewReader(helloStr)), nil),
+				})
+			},
+			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.StdinName("test")},
+		},
+		{
+			name:      "twoLevelDirWrapped",
+			data:      twoLevelDir(),
+			recursive: true,
+			expect:    wrapped,
+			path:      "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name:      "twoLevelInlineHash",
+			data:      twoLevelDir(),
+			recursive: true,
+			expect:    wrapped,
+			path:      "/ipfs/zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
+		},
+		// hidden
+		{
+			name: "hiddenFiles",
+			data: func() files.File {
+				return files.NewSliceFile("t", "t", []files.File{
+					files.NewReaderFile("t/.bar", "t/.bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+				})
+			},
+			recursive: true,
+			path:      "/ipfs/QmehGvpf2hY196MzDFmjL8Wy27S4jbgGDUAhBJyvXAwr3g",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Hidden(true)},
+		},
+		{
+			name: "hiddenFileAlwaysAdded",
+			data: func() files.File {
+				return files.NewReaderFile(".foo", ".foo", ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			recursive: true,
+			path:      hello,
+		},
+		{
+			name: "hiddenFilesNotAdded",
+			data: func() files.File {
+				return files.NewSliceFile("t", "t", []files.File{
+					files.NewReaderFile("t/.bar", "t/.bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
+					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+				})
+			},
+			expect: func(files.File) files.File {
+				return flatDir()
+			},
+			recursive: true,
+			path:      "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+			opts:      []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
+		},
+		// Events / Progress
+		{
+			name: "simpleAddEvent",
+			data: strFile(helloStr),
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			events: []coreiface.AddEvent{
+				{Name: "zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd", Hash: "zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd", Size: strconv.Itoa(len(helloStr))},
+			},
+			opts: []options.UnixfsAddOption{options.Unixfs.RawLeaves(true)},
+		},
+		{
+			name: "silentAddEvent",
+			data: twoLevelDir(),
+			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+			events: []coreiface.AddEvent{
+				{Name: "t/abc", Hash: "QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt", Size: "62"},
+				{Name: "t", Hash: "QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr", Size: "229"},
+			},
+			recursive: true,
+			opts:      []options.UnixfsAddOption{options.Unixfs.Silent(true)},
+		},
+		{
+			name: "dirAddEvents",
+			data: twoLevelDir(),
+			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+			events: []coreiface.AddEvent{
+				{Name: "t/abc/def", Hash: "QmNyJpQkU1cEkBwMDhDNFstr42q55mqG5GE5Mgwug4xyGk", Size: "13"},
+				{Name: "t/bar", Hash: "QmS21GuXiRMvJKHos4ZkEmQDmRBqRaF5tQS2CQCu2ne9sY", Size: "14"},
+				{Name: "t/foo", Hash: "QmfAjGiVpTN56TXi6SBQtstit5BEw3sijKj1Qkxn6EXKzJ", Size: "14"},
+				{Name: "t/abc", Hash: "QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt", Size: "62"},
+				{Name: "t", Hash: "QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr", Size: "229"},
+			},
+			recursive: true,
+		},
+		{
+			name: "progress1M",
+			data: func() files.File {
+				r := bytes.NewReader(bytes.Repeat([]byte{0}, 1000000))
+				return files.NewReaderFile("", "", ioutil.NopCloser(r), nil)
+			},
+			path: "/ipfs/QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD",
+			events: []coreiface.AddEvent{
+				{Name: "", Bytes: 262144},
+				{Name: "", Bytes: 524288},
+				{Name: "", Bytes: 786432},
+				{Name: "", Bytes: 1000000},
+				{Name: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Hash: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Size: "1000256"},
+			},
+			recursive: true,
+			opts:      []options.UnixfsAddOption{options.Unixfs.Progress(true)},
+		},
 	}
 
-	if p.String() != hello {
-		t.Fatalf("expected path %s, got: %s", hello, p)
-	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 
-	r, err := api.Unixfs().Cat(ctx, p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf := make([]byte, len(helloStr))
-	_, err = io.ReadFull(r, buf)
-	if err != nil {
-		t.Error(err)
-	}
+			// recursive logic
 
-	if string(buf) != helloStr {
-		t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
+			data := testCase.data()
+			if testCase.recursive {
+				data = files.NewSliceFile("", "", []files.File{
+					data,
+				})
+			}
+
+			// handle events if relevant to test case
+
+			opts := testCase.opts
+			eventOut := make(chan interface{})
+			var evtWg sync.WaitGroup
+			if len(testCase.events) > 0 {
+				opts = append(opts, options.Unixfs.Events(eventOut))
+				evtWg.Add(1)
+
+				go func() {
+					defer evtWg.Done()
+					expected := testCase.events
+
+					for evt := range eventOut {
+						event, ok := evt.(*coreiface.AddEvent)
+						if !ok {
+							t.Fatal("unexpected event type")
+						}
+
+						if len(expected) < 1 {
+							t.Fatal("got more events than expected")
+						}
+
+						if expected[0].Size != event.Size {
+							t.Errorf("Event.Size didn't match, %s != %s", expected[0].Size, event.Size)
+						}
+
+						if expected[0].Name != event.Name {
+							t.Errorf("Event.Name didn't match, %s != %s", expected[0].Name, event.Name)
+						}
+
+						if expected[0].Hash != event.Hash {
+							t.Errorf("Event.Hash didn't match, %s != %s", expected[0].Hash, event.Hash)
+						}
+						if expected[0].Bytes != event.Bytes {
+							t.Errorf("Event.Bytes didn't match, %d != %d", expected[0].Bytes, event.Bytes)
+						}
+
+						expected = expected[1:]
+					}
+
+					if len(expected) > 0 {
+						t.Fatalf("%d event(s) didn't arrive", len(expected))
+					}
+				}()
+			}
+
+			// Add!
+
+			p, err := api.Unixfs().Add(ctx, data, opts...)
+			close(eventOut)
+			evtWg.Wait()
+			if testCase.err != "" {
+				if err == nil {
+					t.Fatalf("expected an error: %s", testCase.err)
+				}
+				if err.Error() != testCase.err {
+					t.Fatalf("expected an error: '%s' != '%s'", err.Error(), testCase.err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if p.String() != testCase.path {
+				t.Errorf("expected path %s, got: %s", testCase.path, p)
+			}
+
+			// compare file structure with Unixfs().Get
+
+			var cmpFile func(orig files.File, got files.File)
+			cmpFile = func(orig files.File, got files.File) {
+				if orig.IsDirectory() != got.IsDirectory() {
+					t.Fatal("file type mismatch")
+				}
+
+				if !orig.IsDirectory() {
+					defer orig.Close()
+					defer got.Close()
+
+					do, err := ioutil.ReadAll(orig)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					dg, err := ioutil.ReadAll(got)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if !bytes.Equal(do, dg) {
+						t.Fatal("data not equal")
+					}
+
+					return
+				}
+
+				for {
+					fo, err := orig.NextFile()
+					fg, err2 := got.NextFile()
+
+					if err != nil {
+						if err == io.EOF && err2 == io.EOF {
+							break
+						}
+						t.Fatal(err)
+					}
+					if err2 != nil {
+						t.Fatal(err)
+					}
+
+					cmpFile(fo, fg)
+				}
+			}
+
+			f, err := api.Unixfs().Get(ctx, p)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			orig := testCase.data()
+			if testCase.expect != nil {
+				orig = testCase.expect(orig)
+			}
+
+			cmpFile(orig, f)
+		})
 	}
 }
 
-func TestAddEmptyFile(t *testing.T) {
+func TestAddPinned(t *testing.T) {
 	ctx := context.Background()
 	_, api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
-	str := strings.NewReader("")
-	p, err := api.Unixfs().Add(ctx, str)
+	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true))
 	if err != nil {
 		t.Error(err)
 	}
 
-	if p.String() != emptyFile {
-		t.Fatalf("expected path %s, got: %s", hello, p)
+	pins, err := api.Pin().Ls(ctx)
+	if len(pins) != 1 {
+		t.Fatalf("expected 1 pin, got %d", len(pins))
+	}
+
+	if pins[0].Path().String() != "/ipld/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk" {
+		t.Fatalf("got unexpected pin: %s", pins[0].Path().String())
 	}
 }
 
-func TestCatBasic(t *testing.T) {
+func TestAddHashOnly(t *testing.T) {
 	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	hr := strings.NewReader(helloStr)
-	p, err := coreunix.Add(node, hr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	p = "/ipfs/" + p
-
-	if p != hello {
-		t.Fatalf("expected CID %s, got: %s", hello, p)
-	}
-
-	helloPath, err := coreiface.ParsePath(hello)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r, err := api.Unixfs().Cat(ctx, helloPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buf := make([]byte, len(helloStr))
-	_, err = io.ReadFull(r, buf)
+	_, api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
-	if string(buf) != helloStr {
-		t.Fatalf("expected [%s], got [%s] [err=%s]", helloStr, string(buf), err)
+
+	p, err := api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.HashOnly(true))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if p.String() != hello {
+		t.Errorf("unxepected path: %s", p.String())
+	}
+
+	_, err = api.Block().Get(ctx, p)
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if err.Error() != "blockservice: key not found" {
+		t.Errorf("unxepected error: %s", err.Error())
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	"github.com/ipfs/go-ipfs/core/coreunix"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	tar "github.com/ipfs/go-ipfs/tar"
 	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
 	path "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
@@ -60,12 +60,12 @@ represent it.
 		c := node.Cid()
 
 		fi.FileName()
-		res.SetOutput(&coreunix.AddedObject{
+		res.SetOutput(&coreiface.AddEvent{
 			Name: fi.FileName(),
 			Hash: c.String(),
 		})
 	},
-	Type: coreunix.AddedObject{},
+	Type: coreiface.AddEvent{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, err := unwrapOutput(res.Output())
@@ -73,7 +73,7 @@ represent it.
 				return nil, err
 			}
 
-			o, ok := v.(*coreunix.AddedObject)
+			o, ok := v.(*coreiface.AddEvent)
 			if !ok {
 				return nil, e.TypeErr(o, v)
 			}
