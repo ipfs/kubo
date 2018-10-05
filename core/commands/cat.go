@@ -13,7 +13,11 @@ import (
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 )
 
-const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
+const (
+	progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
+	offsetOptionName   = "offset"
+	lengthOptionName   = "length"
+)
 
 var CatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -25,8 +29,8 @@ var CatCmd = &cmds.Command{
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
-		cmdkit.IntOption("length", "l", "Maximum number of bytes to read."),
+		cmdkit.IntOption(offsetOptionName, "o", "Byte offset to begin reading from."),
+		cmdkit.IntOption(lengthOptionName, "l", "Maximum number of bytes to read."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
@@ -45,12 +49,12 @@ var CatCmd = &cmds.Command{
 			}
 		}
 
-		offset, _ := req.Options["offset"].(int)
+		offset, _ := req.Options[offsetOptionName].(int)
 		if offset < 0 {
 			return fmt.Errorf("cannot specify negative offset")
 		}
 
-		max, found := req.Options["length"].(int)
+		max, found := req.Options[lengthOptionName].(int)
 		if err != nil {
 			return err
 		}

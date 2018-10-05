@@ -13,6 +13,10 @@ import (
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
 
+const (
+	dnsRecursiveOptionName = "recursive"
+)
+
 var DNSCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Resolve DNS links.",
@@ -51,11 +55,11 @@ The resolver can recursively resolve:
 		cmdkit.StringArg("domain-name", true, false, "The domain-name name to resolve.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Resolve until the result is not a DNS link."),
+		cmdkit.BoolOption(dnsRecursiveOptionName, "r", "Resolve until the result is not a DNS link."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 
-		recursive, _, _ := req.Option("recursive").Bool()
+		recursive, _, _ := req.Option(dnsRecursiveOptionName).Bool()
 		name := req.Arguments()[0]
 		resolver := namesys.NewDNSResolver()
 

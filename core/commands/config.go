@@ -25,6 +25,11 @@ type ConfigField struct {
 	Value interface{}
 }
 
+const (
+	configBoolOptionName = "bool"
+	configJSONOptionName = "json"
+)
+
 var ConfigCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Get and set ipfs config values.",
@@ -54,8 +59,8 @@ Set the value of the 'Datastore.Path' key:
 		cmdkit.StringArg("value", false, false, "The value to set the config entry to."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("bool", "Set a boolean value."),
-		cmdkit.BoolOption("json", "Parse stringified JSON."),
+		cmdkit.BoolOption(configBoolOptionName, "Set a boolean value."),
+		cmdkit.BoolOption(configJSONOptionName, "Parse stringified JSON."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
@@ -87,7 +92,7 @@ Set the value of the 'Datastore.Path' key:
 		if len(args) == 2 {
 			value := args[1]
 
-			if parseJson, _, _ := req.Option("json").Bool(); parseJson {
+			if parseJSON, _, _ := req.Option(configJSONOptionName).Bool(); parseJSON {
 				var jsonVal interface{}
 				if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
 					err = fmt.Errorf("failed to unmarshal json. %s", err)
@@ -96,7 +101,7 @@ Set the value of the 'Datastore.Path' key:
 				}
 
 				output, err = setConfig(r, key, jsonVal)
-			} else if isbool, _, _ := req.Option("bool").Bool(); isbool {
+			} else if isbool, _, _ := req.Option(configBoolOptionName).Bool(); isbool {
 				output, err = setConfig(r, key, value == "true")
 			} else {
 				output, err = setConfig(r, key, value)

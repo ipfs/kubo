@@ -37,6 +37,10 @@ type IdOutput struct {
 	ProtocolVersion string
 }
 
+const (
+	formatOptionName = "format"
+)
+
 var IDCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show ipfs node id info.",
@@ -60,7 +64,7 @@ EXAMPLE:
 		cmdkit.StringArg("peerid", false, false, "Peer.ID of node to look up."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "f", "Optional output format."),
+		cmdkit.StringOption(formatOptionName, "f", "Optional output format."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		node, err := req.InvocContext().GetNode()
@@ -126,7 +130,7 @@ EXAMPLE:
 				return nil, e.TypeErr(val, v)
 			}
 
-			format, found, err := res.Request().Option("format").String()
+			format, found, err := res.Request().Option(formatOptionName).String()
 			if err != nil {
 				return nil, err
 			}

@@ -32,6 +32,10 @@ var BitswapCmd = &cmds.Command{
 	},
 }
 
+const (
+	peerOptionName = "peer"
+)
+
 var showWantlistCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show blocks currently on the wantlist.",
@@ -39,7 +43,7 @@ var showWantlistCmd = &oldcmds.Command{
 Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("peer", "p", "Specify which peer to show wantlist for. Default: self."),
+		cmdkit.StringOption(peerOptionName, "p", "Specify which peer to show wantlist for. Default: self."),
 	},
 	Type: KeyList{},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
@@ -60,7 +64,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 			return
 		}
 
-		pstr, found, err := req.Option("peer").String()
+		pstr, found, err := req.Option(peerOptionName).String()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

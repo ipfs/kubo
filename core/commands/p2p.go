@@ -53,10 +53,6 @@ type P2PStreamsOutput struct {
 
 const (
 	allowCustomProtocolOptionName = "allow-custom-protocol"
-	allOptionName                 = "all"
-	protocolOptionName            = "protocol"
-	listenAddressOptionName       = "listen-address"
-	targetAddressOptionName       = "target-address"
 )
 
 var resolveTimeout = 10 * time.Second
@@ -258,12 +254,16 @@ func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto pr
 	return err
 }
 
+const (
+	p2pHeadersOptionName = "headers"
+)
+
 var p2pLsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List active p2p listeners.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Protocol, Listen, Target)."),
+		cmdkit.BoolOption(p2pHeadersOptionName, "v", "Print table headers (Protocol, Listen, Target)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -304,7 +304,7 @@ var p2pLsCmd = &cmds.Command{
 				return nil, err
 			}
 
-			headers, _, _ := res.Request().Option("headers").Bool()
+			headers, _, _ := res.Request().Option(p2pHeadersOptionName).Bool()
 			list := v.(*P2PLsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
@@ -322,15 +322,22 @@ var p2pLsCmd = &cmds.Command{
 	},
 }
 
+const (
+	p2pAllOptionName           = "all"
+	p2pProtocolOptionName      = "protocol"
+	p2pListenAddressOptionName = "listen-address"
+	p2pTargetAddressOptionName = "target-address"
+)
+
 var p2pCloseCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Stop listening for new connections to forward.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption(allOptionName, "a", "Close all listeners."),
-		cmdkit.StringOption(protocolOptionName, "p", "Match protocol name"),
-		cmdkit.StringOption(listenAddressOptionName, "l", "Match listen address"),
-		cmdkit.StringOption(targetAddressOptionName, "t", "Match target address"),
+		cmdkit.BoolOption(p2pAllOptionName, "a", "Close all listeners."),
+		cmdkit.StringOption(p2pProtocolOptionName, "p", "Match protocol name"),
+		cmdkit.StringOption(p2pListenAddressOptionName, "l", "Match listen address"),
+		cmdkit.StringOption(p2pTargetAddressOptionName, "t", "Match target address"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -339,10 +346,10 @@ var p2pCloseCmd = &cmds.Command{
 			return
 		}
 
-		closeAll, _, _ := req.Option(allOptionName).Bool()
-		protoOpt, p, _ := req.Option(protocolOptionName).String()
-		listenOpt, l, _ := req.Option(listenAddressOptionName).String()
-		targetOpt, t, _ := req.Option(targetAddressOptionName).String()
+		closeAll, _, _ := req.Option(p2pAllOptionName).Bool()
+		protoOpt, p, _ := req.Option(p2pProtocolOptionName).String()
+		listenOpt, l, _ := req.Option(p2pListenAddressOptionName).String()
+		targetOpt, t, _ := req.Option(p2pTargetAddressOptionName).String()
 
 		proto := protocol.ID(protoOpt)
 
@@ -428,7 +435,7 @@ var p2pStreamLsCmd = &cmds.Command{
 		Tagline: "List active p2p streams.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (ID, Protocol, Local, Remote)."),
+		cmdkit.BoolOption(p2pHeadersOptionName, "v", "Print table headers (ID, Protocol, Local, Remote)."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -462,7 +469,7 @@ var p2pStreamLsCmd = &cmds.Command{
 				return nil, err
 			}
 
-			headers, _, _ := res.Request().Option("headers").Bool()
+			headers, _, _ := res.Request().Option(p2pHeadersOptionName).Bool()
 			list := v.(*P2PStreamsOutput)
 			buf := new(bytes.Buffer)
 			w := tabwriter.NewWriter(buf, 1, 2, 1, ' ', 0)
@@ -488,7 +495,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 		cmdkit.StringArg("id", false, false, "Stream identifier"),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("all", "a", "Close all streams."),
+		cmdkit.BoolOption(p2pAllOptionName, "a", "Close all streams."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		res.SetOutput(nil)
@@ -499,7 +506,7 @@ var p2pStreamCloseCmd = &cmds.Command{
 			return
 		}
 
-		closeAll, _, _ := req.Option("all").Bool()
+		closeAll, _, _ := req.Option(p2pAllOptionName).Bool()
 		var handlerID uint64
 
 		if !closeAll {
