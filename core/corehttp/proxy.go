@@ -25,6 +25,7 @@ func ProxyOption() ServeOption {
 				return
 			}
 
+			request.Host = "" // Let URL's Host take precedence.
 			target, err := url.Parse(fmt.Sprintf("libp2p://%s/%s", parsedRequest.target, parsedRequest.httpPath))
 			if err != nil {
 				handleError(w, "Failed to parse url", err, 400)
