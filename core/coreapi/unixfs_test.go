@@ -94,6 +94,9 @@ func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNo
 			Repo:   r,
 			Host:   mock.MockHostOption(mn),
 			Online: fullIdentity,
+			ExtraOpts: map[string]bool{
+				"pubsub": true,
+			},
 		})
 		if err != nil {
 			return nil, nil, err
