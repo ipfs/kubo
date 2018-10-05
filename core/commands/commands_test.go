@@ -17,31 +17,17 @@ func collectPaths(prefix string, cmd *cmds.Command, out map[string]struct{}) {
 
 func TestROCommands(t *testing.T) {
 	list := []string{
-		"/block",
-		"/block/get",
-		"/block/stat",
 		"/cat",
-		"/commands",
-		"/dag",
-		"/dag/get",
-		"/dag/resolve",
-		"/dns",
-		"/get",
 		"/ls",
-		"/name",
-		"/name/resolve",
-		"/object",
-		"/object/data",
-		"/object/get",
-		"/object/links",
-		"/object/stat",
-		"/refs",
-		"/resolve",
-		"/version",
+	}
+
+	root, err := RootSubset([]string{"ls", "cat"})
+	if err != nil {
+		t.Errorf("RootSubset error: %s", err)
 	}
 
 	cmdSet := make(map[string]struct{})
-	collectPaths("", RootRO, cmdSet)
+	collectPaths("", root, cmdSet)
 
 	for _, path := range list {
 		if _, ok := cmdSet[path]; !ok {
@@ -58,7 +44,7 @@ func TestROCommands(t *testing.T) {
 	for _, path := range list {
 		path = path[1:] // remove leading slash
 		split := strings.Split(path, "/")
-		sub, err := RootRO.Get(split)
+		sub, err := root.Get(split)
 		if err != nil {
 			t.Errorf("error getting subcommand %q: %v", path, err)
 		} else if sub == nil {

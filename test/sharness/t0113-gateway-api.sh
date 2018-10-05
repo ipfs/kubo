@@ -9,8 +9,30 @@ test_description="Test API on Gateway"
 . lib/test-lib.sh
 
 test_init_ipfs
-test_launch_ipfs_daemon
 
+test_curl_gateway_api() {
+  curl -sfo "$1" "http://127.0.0.1:$port/api/v0/$2"
+}
+
+test_expect_success 'allow API command' '
+  ipfs config Gateway.APICommands --json '"'"'["config"]'"'"'
+'
+
+test_launch_ipfs_daemon
+port=$GWAY_PORT
+
+test_expect_success 'verify allowed API command' '
+  echo '"'"'{"Key":"Gateway.APICommands","Value":["config"]}'"'"' >> commands_expected &&
+  test_curl_gateway_api commands_actual "config?arg=Gateway.APICommands" &&
+  test_cmp commands_expected commands_actual
+'
+
+test_expect_success 'revert to default API commands' '
+  ipfs config Gateway.APICommands --json '"'"'[]'"'"'
+'
+
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon
 port=$GWAY_PORT
 
 for cmd in add  \
@@ -53,21 +75,16 @@ test_expect_success "GET IPFS directory path succeeds" '
   HASH2=$(tail -n 1 actual)
 '
 
-test_curl_gateway_api() {
-  curl -sfo actual "http://127.0.0.1:$port/api/v0/$1"
-}
-
 test_expect_success "get IPFS directory file through readonly API succeeds" '
-  test_curl_gateway_api "cat?arg=$HASH2/test"
+  test_curl_gateway_api dir_actual "cat?arg=$HASH2/test"
 '
 
 test_expect_success "get IPFS directory file through readonly API output looks good" '
-  test_cmp dir/test actual
+  test_cmp dir/test dir_actual
 '
 
 test_expect_success "refs IPFS directory file through readonly API succeeds" '
-  test_curl_gateway_api "refs?arg=$HASH2/test"
+  test_curl_gateway_api file_actual "refs?arg=$HASH2/test"
 '
 
-test_kill_ipfs_daemon
 test_done

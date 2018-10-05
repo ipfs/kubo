@@ -13,6 +13,7 @@ import (
 
 	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
+	commands "github.com/ipfs/go-ipfs/core/commands"
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
@@ -596,4 +597,25 @@ func TestVersion(t *testing.T) {
 	if !strings.Contains(s, "Protocol Version: "+id.LibP2PVersion) {
 		t.Fatalf("response doesn't contain protocol version:\n%s", s)
 	}
+}
+
+func TestCommands(t *testing.T) {
+	printErrors := func(errs map[string][]error) {
+		if errs == nil {
+			return
+		}
+		t.Error("In Root command tree:")
+		for cmd, err := range errs {
+			t.Errorf("  In X command %s:", cmd)
+			for _, e := range err {
+				t.Errorf("    %s", e)
+			}
+		}
+	}
+
+	gwroot, err := commands.RootSubset(GatewayAPICommands)
+	if err != nil {
+		t.Errorf("RootSubset error: %s", err)
+	}
+	printErrors(gwroot.DebugValidate())
 }
