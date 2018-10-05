@@ -9,16 +9,18 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	p2p "github.com/ipfs/go-ipfs/p2p"
 
+	pstore "gx/ipfs/QmSJ36wcYQyEViJUWUEhJU81tw1KdakTKqLLHbvYbA9zDv/go-libp2p-peerstore"
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	"gx/ipfs/QmSzdvo9aPzLj4HXWTcgGAp8N84tZc8LbLmFZFwUb1dpWk/go-ipfs-addr"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	pstore "gx/ipfs/QmfAQMFpgDU2U4BXG64qVr8HSiictfWvkSBz7Y2oDj65st/go-libp2p-peerstore"
+	"gx/ipfs/QmesXvbRGyKQn1XbPHx1Mr5E6RTJYR9c8zwFVuGZq9Aa1j/go-ipfs-addr"
+	madns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
 )
 
 // P2PProtoPrefix is the default required prefix for protocol names
@@ -48,6 +50,16 @@ type P2PLsOutput struct {
 type P2PStreamsOutput struct {
 	Streams []P2PStreamInfoOutput
 }
+
+const (
+	allowCustomProtocolOptionName = "allow-custom-protocol"
+	allOptionName                 = "all"
+	protocolOptionName            = "protocol"
+	listenAddressOptionName       = "listen-address"
+	targetAddressOptionName       = "target-address"
+)
+
+var resolveTimeout = 10 * time.Second
 
 // P2PCmd is the 'ipfs p2p' command
 var P2PCmd = &cmds.Command{
@@ -91,7 +103,7 @@ Example:
 		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("allow-custom-protocol", "Don't require /x/ prefix"),
+		cmdkit.BoolOption(allowCustomProtocolOptionName, "Don't require /x/ prefix"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -112,13 +124,13 @@ Example:
 			return
 		}
 
-		target, err := ipfsaddr.ParseString(targetOpt)
+		targets, err := parseIpfsAddr(targetOpt)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
+		allowCustom, _, err := req.Option(allowCustomProtocolOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -129,12 +141,43 @@ Example:
 			return
 		}
 
-		if err := forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, target); err != nil {
+		if err := forwardLocal(n.Context(), n.P2P, n.Peerstore, proto, listen, targets); err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 		res.SetOutput(nil)
 	},
+}
+
+// parseIpfsAddr is a function that takes in addr string and return ipfsAddrs
+func parseIpfsAddr(addr string) ([]ipfsaddr.IPFSAddr, error) {
+	mutiladdr, err := ma.NewMultiaddr(addr)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := mutiladdr.ValueForProtocol(ma.P_IPFS); err == nil {
+		iaddrs := make([]ipfsaddr.IPFSAddr, 1)
+		iaddrs[0], err = ipfsaddr.ParseMultiaddr(mutiladdr)
+		if err != nil {
+			return nil, err
+		}
+		return iaddrs, nil
+	}
+	// resolve mutiladdr whose protocol is not ma.P_IPFS
+	ctx, cancel := context.WithTimeout(context.Background(), resolveTimeout)
+	addrs, err := madns.Resolve(ctx, mutiladdr)
+	cancel()
+	if len(addrs) == 0 {
+		return nil, errors.New("fail to resolve the multiaddr:" + mutiladdr.String())
+	}
+	iaddrs := make([]ipfsaddr.IPFSAddr, len(addrs))
+	for i, addr := range addrs {
+		iaddrs[i], err = ipfsaddr.ParseMultiaddr(addr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return iaddrs, nil
 }
 
 var p2pListenCmd = &cmds.Command{
@@ -156,7 +199,7 @@ Example:
 		cmdkit.StringArg("target-address", true, false, "Target endpoint."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("allow-custom-protocol", "Don't require /x/ prefix"),
+		cmdkit.BoolOption(allowCustomProtocolOptionName, "Don't require /x/ prefix"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -176,7 +219,7 @@ Example:
 			return
 		}
 
-		allowCustom, _, err := req.Option("allow-custom-protocol").Bool()
+		allowCustom, _, err := req.Option(allowCustomProtocolOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -204,13 +247,14 @@ func forwardRemote(ctx context.Context, p *p2p.P2P, proto protocol.ID, target ma
 }
 
 // forwardLocal forwards local connections to a libp2p service
-func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto protocol.ID, bindAddr ma.Multiaddr, addr ipfsaddr.IPFSAddr) error {
-	if addr != nil {
+func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto protocol.ID, bindAddr ma.Multiaddr, addrs []ipfsaddr.IPFSAddr) error {
+	for _, addr := range addrs {
 		ps.AddAddr(addr.ID(), addr.Multiaddr(), pstore.TempAddrTTL)
 	}
-
 	// TODO: return some info
-	_, err := p.ForwardLocal(ctx, addr.ID(), proto, bindAddr)
+	// the length of the addrs must large than 0
+	// peerIDs in addr must be the same and choose addr[0] to connect
+	_, err := p.ForwardLocal(ctx, addrs[0].ID(), proto, bindAddr)
 	return err
 }
 
@@ -283,10 +327,10 @@ var p2pCloseCmd = &cmds.Command{
 		Tagline: "Stop listening for new connections to forward.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("all", "a", "Close all listeners."),
-		cmdkit.StringOption("protocol", "p", "Match protocol name"),
-		cmdkit.StringOption("listen-address", "l", "Match listen address"),
-		cmdkit.StringOption("target-address", "t", "Match target address"),
+		cmdkit.BoolOption(allOptionName, "a", "Close all listeners."),
+		cmdkit.StringOption(protocolOptionName, "p", "Match protocol name"),
+		cmdkit.StringOption(listenAddressOptionName, "l", "Match listen address"),
+		cmdkit.StringOption(targetAddressOptionName, "t", "Match target address"),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		n, err := p2pGetNode(req)
@@ -295,10 +339,10 @@ var p2pCloseCmd = &cmds.Command{
 			return
 		}
 
-		closeAll, _, _ := req.Option("all").Bool()
-		protoOpt, p, _ := req.Option("protocol").String()
-		listenOpt, l, _ := req.Option("listen-address").String()
-		targetOpt, t, _ := req.Option("target-address").String()
+		closeAll, _, _ := req.Option(allOptionName).Bool()
+		protoOpt, p, _ := req.Option(protocolOptionName).String()
+		listenOpt, l, _ := req.Option(listenAddressOptionName).String()
+		targetOpt, t, _ := req.Option(targetAddressOptionName).String()
 
 		proto := protocol.ID(protoOpt)
 

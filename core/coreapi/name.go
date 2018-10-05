@@ -12,10 +12,10 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/namesys"
-	ipath "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
+	ipath "gx/ipfs/QmV4QxScV9Y7LbaWhHazFfRd8uyeUd4pAH8a7fFFbi5odJ/go-path"
 
 	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmScZySgru9jaoDa12sSfvh21sWbqF5eXkieTmJzAHJXkQ/go-ipfs-routing/offline"
+	"gx/ipfs/QmYKPBQpSSWwmgNTvVE3vQdPoeqxwudPQnXJ4hU383RsSA/go-ipfs-routing/offline"
 	"gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )
 
@@ -45,6 +45,9 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	n := api.node
 
 	if !n.OnlineMode() {
+		if !options.AllowOffline {
+			return nil, coreiface.ErrOffline
+		}
 		err := n.SetupOfflineRouting()
 		if err != nil {
 			return nil, err
@@ -63,6 +66,10 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	k, err := keylookup(n, options.Key)
 	if err != nil {
 		return nil, err
+	}
+
+	if options.TTL != nil {
+		ctx = context.WithValue(ctx, "ipns-publish-ttl", *options.TTL)
 	}
 
 	eol := time.Now().Add(options.ValidTime)

@@ -18,17 +18,17 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
+	bservice "gx/ipfs/QmNozJswSuwiZspexEHcQo5GMqpzM5exUGjNW6s4AAipUX/go-blockservice"
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	offline "gx/ipfs/QmPXcrGQQEEPswwg6YiE2WLk8qkmvncZ7zphMKKP8bXqY3/go-ipfs-exchange-offline"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
+	mfs "gx/ipfs/QmQUjAGdPuNA9tpzrx5osWnPMhht7B5YzJNddjB45DUq2U/go-mfs"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	ft "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
+	dag "gx/ipfs/QmTGpm48qm4fUZ9E5hMXy4ZngJUYCMKu15rTMVR3BSEnPm/go-merkledag"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
-	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
-	bservice "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
+	ft "gx/ipfs/QmavvHwEZTkNShKWK1jRejv2Y8oF6ZYxdGxytL3Mwvices/go-unixfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
@@ -1002,6 +1002,7 @@ Remove files or directories.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Recursively remove directories."),
+		cmdkit.BoolOption("force", "Forcibly remove target at path; implies -r for directories"),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		defer res.SetOutput(nil)
@@ -1041,8 +1042,6 @@ Remove files or directories.
 			return
 		}
 
-		dashr, _, _ := req.Option("r").Bool()
-
 		var success bool
 		defer func() {
 			if success {
@@ -1054,8 +1053,10 @@ Remove files or directories.
 			}
 		}()
 
-		// if '-r' specified, don't check file type (in bad scenarios, the block may not exist)
-		if dashr {
+		// if '--force' specified, it will remove anything else,
+		// including file, directory, corrupted node, etc
+		force, _, _ := req.Option("force").Bool()
+		if force {
 			err := pdir.Unlink(name)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -1066,25 +1067,31 @@ Remove files or directories.
 			return
 		}
 
-		childi, err := pdir.Child(name)
+		// get child node by name, when the node is corrupted and nonexistent,
+		// it will return specific error.
+		child, err := pdir.Child(name)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		switch childi.(type) {
+		dashr, _, _ := req.Option("r").Bool()
+
+		switch child.(type) {
 		case *mfs.Directory:
-			res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
-			return
-		default:
-			err := pdir.Unlink(name)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
+			if !dashr {
+				res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
 				return
 			}
-
-			success = true
 		}
+
+		err = pdir.Unlink(name)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		success = true
 	},
 }
 

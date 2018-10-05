@@ -24,7 +24,8 @@ check_test_ports() {
   test_expect_success "test ports are closed" '
     (! (netstat -lnp | grep "LISTEN" | grep ":10101 ")) &&
     (! (netstat -lnp | grep "LISTEN" | grep ":10102 "))&&
-    (! (netstat -lnp | grep "LISTEN" | grep ":10103 "))
+    (! (netstat -lnp | grep "LISTEN" | grep ":10103 ")) &&
+    (! (netstat -lnp | grep "LISTEN" | grep ":10104 "))
   '
 }
 check_test_ports
@@ -73,8 +74,25 @@ test_server_to_client() {
 
 spawn_sending_server
 
-test_expect_success 'S->C Setup client side' '
+test_expect_success 'S->C(/ipfs/peerID) Setup client side' '
   ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
+'
+
+test_expect_success 'S->C Setup(dnsaddr/addr/ipfs/peerID) client side' '
+  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10103 /dnsaddr/bootstrap.libp2p.io/ipfs/${PEERID_0}  2>&1 > dialer-stdouterr.log
+'
+
+test_expect_success 'S->C Setup(dnsaddr/addr) client side' '
+  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10104 /dnsaddr/bootstrap.libp2p.io/ 2>&1 > dialer-stdouterr.log
+'
+
+
+test_expect_success 'S->C Output is empty' '
+  test_must_be_empty dialer-stdouterr.log
+'
+
+test_expect_success "'ipfs p2p ls | grep' succeeds" '
+  ipfsi 1 p2p ls | grep "/x/p2p-test /ip4/127.0.0.1/tcp/10104"
 '
 
 test_server_to_client

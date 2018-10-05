@@ -629,6 +629,20 @@ test_files_api() {
   test_expect_success "repo gc $EXTRA" '
     ipfs repo gc
   '
+
+  # test rm
+
+  test_expect_success "remove file forcibly" '
+    echo "hello world" | ipfs files write --create /forcibly &&
+    ipfs files rm --force /forcibly &&
+    verify_dir_contents /
+  '
+
+  test_expect_success "remove directory forcibly" '
+    ipfs files mkdir /forcibly-dir &&
+    ipfs files rm --force /forcibly-dir &&
+    verify_dir_contents /
+  '
 }
 
 # test offline and online
