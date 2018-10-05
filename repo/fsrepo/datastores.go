@@ -36,7 +36,12 @@ type DatastoreConfig interface {
 	Create(path string) (repo.Datastore, error)
 }
 
-// DiskSpec is the type returned by the DatastoreConfig's DiskSpec method
+// DiskSpec is a minimal representation of the characteristic values of the
+// datastore. If two diskspecs are the same, the loader assumes that they refer
+// to exactly the same datastore. If they differ at all, it is assumed they are
+// completely different datastores and a migration will be performed. Runtime
+// values such as cache options or concurrency options should not be added
+// here.
 type DiskSpec map[string]interface{}
 
 // Bytes returns a minimal JSON encoding of the DiskSpec
@@ -66,6 +71,16 @@ func init() {
 		"log":      LogDatastoreConfig,
 		"measure":  MeasureDatastoreConfig,
 	}
+}
+
+func AddDatastoreConfigHandler(name string, dsc ConfigFromMap) error {
+	_, ok := datastores[name]
+	if ok {
+		return fmt.Errorf("already have a datastore named %q", name)
+	}
+
+	datastores[name] = dsc
+	return nil
 }
 
 // AnyDatastoreConfig returns a DatastoreConfig from a spec based on
