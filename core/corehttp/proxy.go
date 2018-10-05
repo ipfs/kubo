@@ -26,7 +26,8 @@ func ProxyOption() ServeOption {
 			}
 
 			request.Host = "" // Let URL's Host take precedence.
-			target, err := url.Parse(fmt.Sprintf("libp2p://%s/%s", parsedRequest.target, parsedRequest.httpPath))
+			request.URL.Path = parsedRequest.httpPath
+			target, err := url.Parse(fmt.Sprintf("libp2p://%s", parsedRequest.target))
 			if err != nil {
 				handleError(w, "Failed to parse url", err, 400)
 				return
@@ -57,7 +58,7 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 		return nil, fmt.Errorf("Invalid request path '%s'", path)
 	}
 
-	return &proxyRequest{split[3], protocol.ID(split[4]), "/" + split[5]}, nil
+	return &proxyRequest{split[3], protocol.ID(split[4]), split[5]}, nil
 }
 
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
