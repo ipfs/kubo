@@ -187,6 +187,18 @@ var rootROSubcommands = map[string]*cmds.Command{
 	}),
 	"resolve": ResolveCmd,
 	"version": lgc.NewCommand(VersionCmd),
+	"refs":    lgc.NewCommand(RefsROCmd),
+	"dht": lgc.NewCommand(&oldcmds.Command{
+		Subcommands: map[string]*oldcmds.Command{
+			"findprovs": findProvidersDhtCmd,
+			"findpeer":  findPeerDhtCmd,
+		},
+	}),
+	"swarm": lgc.NewCommand(&oldcmds.Command{
+		Subcommands: map[string]*oldcmds.Command{
+			"connect": swarmConnectCmd,
+		},
+	}),
 }
 
 func init() {
