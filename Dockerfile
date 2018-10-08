@@ -9,14 +9,24 @@ MAINTAINER Lars Gierth <lgierth@ipfs.io>
 ENV GX_IPFS ""
 ENV SRC_DIR /go/src/github.com/ipfs/go-ipfs
 
+COPY ./package.json $SRC_DIR/package.json
+
+# Fetch dependencies.
+# Also: allow using a custom IPFS API endpoint.
+RUN set -x \
+  && go get github.com/whyrusleeping/gx \
+  && go get github.com/whyrusleeping/gx-go \
+  && ([ -z "$GX_IPFS" ] || echo $GX_IPFS > /root/.ipfs/api) \
+  && cd $SRC_DIR \
+  && gx install
+
 COPY . $SRC_DIR
 
 # Build the thing.
 # Also: fix getting HEAD commit hash via git rev-parse.
-# Also: allow using a custom IPFS API endpoint.
-RUN cd $SRC_DIR \
+RUN set -x \
+  && cd $SRC_DIR \
   && mkdir .git/objects \
-  && ([ -z "$GX_IPFS" ] || echo $GX_IPFS > /root/.ipfs/api) \
   && make build
 
 # Get su-exec, a very minimal tool for dropping privileges,
