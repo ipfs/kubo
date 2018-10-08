@@ -20,15 +20,6 @@ RUN set -x \
   && cd $SRC_DIR \
   && gx install
 
-COPY . $SRC_DIR
-
-# Build the thing.
-# Also: fix getting HEAD commit hash via git rev-parse.
-RUN set -x \
-  && cd $SRC_DIR \
-  && mkdir .git/objects \
-  && make build
-
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
@@ -42,6 +33,15 @@ RUN set -x \
   && cd /tmp \
   && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
   && chmod +x tini
+
+COPY . $SRC_DIR
+
+# Build the thing.
+# Also: fix getting HEAD commit hash via git rev-parse.
+RUN set -x \
+  && cd $SRC_DIR \
+  && mkdir .git/objects \
+  && make build
 
 # Get the TLS CA certificates, they're not provided by busybox.
 RUN apt-get update && apt-get install -y ca-certificates

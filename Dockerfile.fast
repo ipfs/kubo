@@ -20,17 +20,6 @@ RUN set -x \
   && cd $SRC_DIR \
   && gx install
 
-COPY . $SRC_DIR
-
-# Build the thing.
-# Also: fix getting HEAD commit hash via git rev-parse.
-RUN set -x \
-  && cd $SRC_DIR \
-  && mkdir .git/objects \
-  && make build \
-  && mv cmd/ipfs/ipfs /usr/local/bin/ipfs \
-  && mv bin/container_daemon /usr/local/bin/start_ipfs
-
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
@@ -45,6 +34,17 @@ RUN set -x \
   && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
   && chmod +x tini \
   && mv su-exec/su-exec tini /sbin/ # Install them
+
+COPY . $SRC_DIR
+
+# Build the thing.
+# Also: fix getting HEAD commit hash via git rev-parse.
+RUN set -x \
+  && cd $SRC_DIR \
+  && mkdir .git/objects \
+  && make build \
+  && mv cmd/ipfs/ipfs /usr/local/bin/ipfs \
+  && mv bin/container_daemon /usr/local/bin/start_ipfs
 
 # Ports for Swarm TCP, Swarm uTP, API, Gateway, Swarm Websockets
 EXPOSE 4001
