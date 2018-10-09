@@ -158,6 +158,10 @@ test_expect_success "'ipfs name publish --help' succeeds" '
   ipfs name publish --help
 '
 
+test_expect_success "'ipfs help name publish' succeeds" '
+  ipfs help name publish
+'
+
 test_launch_ipfs_daemon
 
 test_expect_success "empty request to name publish doesn't panic and returns error" '

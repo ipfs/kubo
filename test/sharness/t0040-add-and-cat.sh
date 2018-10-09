@@ -10,12 +10,21 @@ test_description="Test add and cat commands"
 
 test_add_cat_file() {
   test_expect_success "ipfs add --help works" '
-    ipfs add --help 2> add_help_err > /dev/null
+    ipfs add --help 2> add_help_err1 > /dev/null
   '
 
   test_expect_success "stdin reading message doesnt show up" '
-    test_expect_code 1 grep "ipfs: Reading from" add_help_err &&
-    test_expect_code 1 grep "send Ctrl-d to stop." add_help_err
+    test_expect_code 1 grep "ipfs: Reading from" add_help_err1 &&
+    test_expect_code 1 grep "send Ctrl-d to stop." add_help_err1
+  '
+
+  test_expect_success "ipfs help add works" '
+    ipfs help add 2> add_help_err2 > /dev/null
+  '
+
+  test_expect_success "stdin reading message doesnt show up" '
+    test_expect_code 1 grep "ipfs: Reading from" add_help_err2 &&
+    test_expect_code 1 grep "send Ctrl-d to stop." add_help_err2
   '
 
   test_expect_success "ipfs add succeeds" '
@@ -431,11 +440,29 @@ test_expect_success "'ipfs add --help' output looks good" '
   test_fsh cat actual
 '
 
+test_expect_success "'ipfs help add' succeeds" '
+  ipfs help add >actual
+'
+
+test_expect_success "'ipfs help add' output looks good" '
+  egrep "ipfs add.*<path>" actual >/dev/null ||
+  test_fsh cat actual
+'
+
 test_expect_success "'ipfs cat --help' succeeds" '
   ipfs cat --help >actual
 '
 
 test_expect_success "'ipfs cat --help' output looks good" '
+  egrep "ipfs cat.*<ipfs-path>" actual >/dev/null ||
+  test_fsh cat actual
+'
+
+test_expect_success "'ipfs help cat' succeeds" '
+  ipfs help cat >actual
+'
+
+test_expect_success "'ipfs help cat' output looks good" '
   egrep "ipfs cat.*<ipfs-path>" actual >/dev/null ||
   test_fsh cat actual
 '
