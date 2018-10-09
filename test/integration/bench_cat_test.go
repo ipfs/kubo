@@ -94,7 +94,7 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	b.StartTimer()
-	readerCatted, err := catterApi.Unixfs().Cat(ctx, ap)
+	readerCatted, err := catterApi.Unixfs().Get(ctx, ap)
 	if err != nil {
 		return err
 	}

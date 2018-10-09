@@ -31,10 +31,6 @@ type UnixfsAPI interface {
 	// to operations performed on the returned file
 	Get(context.Context, Path) (files.File, error)
 
-	// Cat returns a reader for the file
-	// TODO: Remove in favour of Get (if we use Get on a file we still have reader directly, so..)
-	Cat(context.Context, Path) (Reader, error)
-
 	// Ls returns the list of links in a directory
 	Ls(context.Context, Path) ([]*ipld.Link, error)
 }

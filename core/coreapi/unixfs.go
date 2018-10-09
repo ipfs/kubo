@@ -139,25 +139,8 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.File, er
 		return nil, err
 	}
 
-	return newUnixfsFile(ctx, api.node.DAG, nd, "", nil)
-}
-
-// Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
-func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
-	dget := api.node.DAG // TODO: use a session here once routing perf issues are resolved
-
-	dagnode, err := api.core().ResolveNode(ctx, p)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := uio.NewDagReader(ctx, dagnode, dget)
-	if err == uio.ErrIsDir {
-		return nil, coreiface.ErrIsDir
-	} else if err != nil {
-		return nil, err
-	}
-	return r, nil
+	ses := dag.NewReadOnlyDagService(dag.NewSession(ctx, api.node.DAG))
+	return newUnixfsFile(ctx, ses, nd, "", nil)
 }
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:

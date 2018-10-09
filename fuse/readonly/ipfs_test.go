@@ -175,7 +175,7 @@ func TestIpfsStressRead(t *testing.T) {
 					errs <- err
 				}
 
-				read, err := api.Unixfs().Cat(nd.Context(), item)
+				read, err := api.Unixfs().Get(nd.Context(), item)
 				if err != nil {
 					errs <- err
 				}
