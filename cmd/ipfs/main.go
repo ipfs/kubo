@@ -93,9 +93,13 @@ func mainRet() int {
 		if os.Args[1] == "help" {
 			if len(os.Args) > 2 {
 				os.Args = append(os.Args[:1], os.Args[2:]...)
-				os.Args = append(os.Args, "-h")
+				// Handle `ipfs help --help`
+				// append `--help`,when the command is not `ipfs help --help`
+				if os.Args[1] != "--help" {
+					os.Args = append(os.Args, "--help")
+				}
 			} else {
-				os.Args[1] = "-h"
+				os.Args[1] = "--help"
 			}
 		}
 	}
