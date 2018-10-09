@@ -1,4 +1,4 @@
-FROM golang:1.10-stretch
+FROM golang:1.11-stretch
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # There is a copy of this Dockerfile called Dockerfile.fast,
