@@ -130,6 +130,8 @@ The JSON output contains type information.
 				return
 			}
 
+			var links []*ipld.Link
+
 			switch fsn.Type() {
 			case unixfs.TSymlink:
 				res.SetError(fmt.Errorf("cannot list symlinks yet"), cmdkit.ErrNormal)
@@ -138,25 +140,22 @@ The JSON output contains type information.
 				res.SetError(fmt.Errorf("cannot list large directories yet"), cmdkit.ErrNormal)
 				return
 			case unixfs.TFile:
+				links = dagnode.Links()
 				output[i] = LsObject{
-					Hash: paths[i],
-					Size: fsn.FileSize(),
+					Hash:  paths[i],
+					Size:  fsn.FileSize(),
+					Links: make([]LsLink, len(links)),
 				}
 			case unixfs.TDirectory:
 				dir, err := uio.NewDirectoryFromNode(ro, dagnode)
-				if err != nil && err != uio.ErrNotADir {
+				if err != nil {
 					res.SetError(fmt.Errorf("the data in %s (at %q) is not a UnixFS directory: %s", dagnode.Cid(), paths[i], err), cmdkit.ErrNormal)
 					return
 				}
-				var links []*ipld.Link
-				if dir == nil {
-					links = dagnode.Links()
-				} else {
-					links, err = dir.Links(req.Context())
-					if err != nil {
-						res.SetError(err, cmdkit.ErrNormal)
-						return
-					}
+				links, err = dir.Links(req.Context())
+				if err != nil {
+					res.SetError(err, cmdkit.ErrNormal)
+					return
 				}
 
 				output[i] = LsObject{
@@ -164,49 +163,49 @@ The JSON output contains type information.
 					Type:  fsn.Type().String(),
 					Links: make([]LsLink, len(links)),
 				}
-
-				for j, link := range links {
-					t := unixfspb.Data_DataType(-1)
-					size := uint64(0)
-					switch link.Cid.Type() {
-					case cid.Raw:
-						// No need to check with raw leaves
-						t = unixfs.TFile
-						size = link.Size
-					case cid.DagProtobuf:
-						linkNode, err := link.GetNode(req.Context(), dserv)
-						if err == ipld.ErrNotFound && !resolve {
-							// not an error
-							linkNode = nil
-						} else if err != nil {
-							res.SetError(err, cmdkit.ErrNormal)
-							return
-						}
-
-						if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-							fsn, err := unixfs.FSNodeFromBytes(pn.Data())
-							t = fsn.Type()
-							if err != nil {
-								res.SetError(err, cmdkit.ErrNormal)
-								return
-							}
-							if t == unixfs.TFile {
-								size = fsn.FileSize()
-							} else {
-								size = link.Size
-							}
-						}
-					}
-					output[i].Links[j] = LsLink{
-						Name: link.Name,
-						Hash: link.Cid.String(),
-						Size: size,
-						Type: t,
-					}
-				}
 			default:
 				res.SetError(fmt.Errorf("unrecognized type: %s", fsn.Type()), cmdkit.ErrImplementation)
 				return
+			}
+
+			for j, link := range links {
+				t := unixfspb.Data_DataType(-1)
+				size := uint64(0)
+				switch link.Cid.Type() {
+				case cid.Raw:
+					// No need to check with raw leaves
+					t = unixfs.TFile
+					size = link.Size
+				case cid.DagProtobuf:
+					linkNode, err := link.GetNode(req.Context(), dserv)
+					if err == ipld.ErrNotFound && !resolve {
+						// not an error
+						linkNode = nil
+					} else if err != nil {
+						res.SetError(err, cmdkit.ErrNormal)
+						return
+					}
+
+					if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+						fsn, err := unixfs.FSNodeFromBytes(pn.Data())
+						t = fsn.Type()
+						if err != nil {
+							res.SetError(err, cmdkit.ErrNormal)
+							return
+						}
+						if t == unixfs.TFile {
+							size = fsn.FileSize()
+						} else {
+							size = link.Size
+						}
+					}
+				}
+				output[i].Links[j] = LsLink{
+					Name: link.Name,
+					Hash: link.Cid.String(),
+					Size: size,
+					Type: t,
+				}
 			}
 		}
 

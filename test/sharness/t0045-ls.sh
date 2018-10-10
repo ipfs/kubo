@@ -105,8 +105,8 @@ test_ls_object() {
   test_expect_success "ipfs add medium size file then 'ipfs ls' works as expected" '
     random 500000 2 > somefile &&
     HASH=$(ipfs add somefile -q) &&
-    echo "QmPrM8S5T7Q3M8DQvQMS7m41m3Aq4jBjzAzvky5fH3xfr4 262158 " > ls-expect &&
-    echo "QmdaAntAzQqqVMo4B8V69nkQd5d918YjHXUe2oF6hr72ri 237870 " >> ls-expect &&
+    echo "QmPrM8S5T7Q3M8DQvQMS7m41m3Aq4jBjzAzvky5fH3xfr4 262144 " > ls-expect &&
+    echo "QmdaAntAzQqqVMo4B8V69nkQd5d918YjHXUe2oF6hr72ri 237856 " >> ls-expect &&
     ipfs ls $HASH > ls-actual &&
     test_cmp ls-actual ls-expect
   '
