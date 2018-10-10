@@ -3,8 +3,12 @@ package iface
 import (
 	"context"
 
+	"errors"
+
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+var ErrResolveFailed = errors.New("could not resolve name")
 
 // IpnsEntry specifies the interface to IpnsEntries
 type IpnsEntry interface {
@@ -12,6 +16,11 @@ type IpnsEntry interface {
 	Name() string
 	// Value returns IpnsEntry value
 	Value() Path
+}
+
+type IpnsResult struct {
+	Path
+	Err error
 }
 
 // NameAPI specifies the interface to IPNS.
@@ -28,4 +37,11 @@ type NameAPI interface {
 
 	// Resolve attempts to resolve the newest version of the specified name
 	Resolve(ctx context.Context, name string, opts ...options.NameResolveOption) (Path, error)
+
+	// Search is a version of Resolve which outputs paths as they are discovered,
+	// reducing the time to first entry
+	//
+	// Note that by default only the last path returned before the channel closes
+	// can be considered 'safe'.
+	Search(ctx context.Context, name string, opts ...options.NameResolveOption) (<-chan IpnsResult, error)
 }
