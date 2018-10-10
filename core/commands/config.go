@@ -23,8 +23,8 @@ import (
 
 // ConfigUpdateOutput is config profile apply command's output
 type ConfigUpdateOutput struct {
-	Old config.Config
-	New config.Config
+	OldCfg map[string]interface{}
+	NewCfg map[string]interface{}
 }
 
 type ConfigField struct {
@@ -359,9 +359,22 @@ var configProfileApplyCmd = &cmds.Command{
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+
+		oldCfgMap, err := scrubPrivKey(oldCfg)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		newCfgMap, err := scrubPrivKey(newCfg)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		res.SetOutput(&ConfigUpdateOutput{
-			Old: *oldCfg,
-			New: *newCfg,
+			OldCfg: oldCfgMap,
+			NewCfg: newCfgMap,
 		})
 	},
 	Marshalers: cmds.MarshalerMap{
@@ -380,7 +393,7 @@ var configProfileApplyCmd = &cmds.Command{
 				return nil, e.TypeErr(apply, v)
 			}
 
-			diff := jsondiff.Compare(apply.Old, apply.New)
+			diff := jsondiff.Compare(apply.OldCfg, apply.NewCfg)
 			buf := jsondiff.Format(diff)
 
 			return strings.NewReader(string(buf)), nil
@@ -402,6 +415,21 @@ func buildProfileHelp() string {
 	}
 
 	return out
+}
+
+// scrubPrivKey scrubs private key for security reasons.
+func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
+	cfgMap, err := config.ToMap(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = scrubValue(cfgMap, []string{config.IdentityTag, config.PrivKeyTag})
+	if err != nil {
+		return nil, err
+	}
+
+	return cfgMap, nil
 }
 
 // transformConfig returns old config and new config instead of difference between they,

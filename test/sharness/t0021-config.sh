@@ -262,6 +262,16 @@ test_config_cmd() {
     test `grep "DisableNatPortMap" diff_info | wc -l` = 2
   '
 
+  test_expect_success "'ipfs config profile apply test --dry-run' doesn't include privkey" '
+    ipfs config profile apply test --dry-run > show_config &&
+    test_expect_code 1 grep PrivKey show_config
+  '
+
+  test_expect_success "'ipfs config profile apply test' doesn't include privkey" '
+    ipfs config profile apply test > show_config &&
+    test_expect_code 1 grep PrivKey show_config
+  '
+
   # won't work as it changes datastore definition, which makes ipfs not launch
   # without converting first
   # test_profile_apply_revert badgerds
