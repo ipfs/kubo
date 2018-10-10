@@ -12,8 +12,8 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	path "gx/ipfs/QmQmMu1vsgsjxyB8tzrA6ZTCTCLDLVaXMb4Q57r2v886Sx/go-path"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
@@ -21,6 +21,14 @@ import (
 type KeyList struct {
 	Keys []cid.Cid
 }
+
+const (
+	refsFormatOptionName    = "format"
+	refsEdgesOptionName     = "edges"
+	refsUniqueOptionName    = "unique"
+	refsRecursiveOptionName = "recursive"
+	refsMaxDepthOptionName  = "max-depth"
+)
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
 func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
@@ -60,11 +68,11 @@ NOTE: List all references recursively by using the flag '-r'.
 		cmdkit.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").WithDefault("<dst>"),
-		cmdkit.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
-		cmdkit.BoolOption("unique", "u", "Omit duplicate refs from output."),
-		cmdkit.BoolOption("recursive", "r", "Recursively list links of child nodes."),
-		cmdkit.IntOption("max-depth", "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
+		cmdkit.StringOption(refsFormatOptionName, "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").WithDefault("<dst>"),
+		cmdkit.BoolOption(refsEdgesOptionName, "e", "Emit edge format: `<from> -> <to>`."),
+		cmdkit.BoolOption(refsUniqueOptionName, "u", "Omit duplicate refs from output."),
+		cmdkit.BoolOption(refsRecursiveOptionName, "r", "Recursively list links of child nodes."),
+		cmdkit.IntOption(refsMaxDepthOptionName, "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
@@ -74,19 +82,19 @@ NOTE: List all references recursively by using the flag '-r'.
 			return
 		}
 
-		unique, _, err := req.Option("unique").Bool()
+		unique, _, err := req.Option(refsUniqueOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		recursive, _, err := req.Option("recursive").Bool()
+		recursive, _, err := req.Option(refsRecursiveOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		maxDepth, _, err := req.Option("max-depth").Int()
+		maxDepth, _, err := req.Option(refsMaxDepthOptionName).Int()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -96,13 +104,13 @@ NOTE: List all references recursively by using the flag '-r'.
 			maxDepth = 1 // write only direct refs
 		}
 
-		format, _, err := req.Option("format").String()
+		format, _, err := req.Option(refsFormatOptionName).String()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		edges, _, err := req.Option("edges").Bool()
+		edges, _, err := req.Option(refsEdgesOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

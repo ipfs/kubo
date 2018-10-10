@@ -4,8 +4,9 @@ This is a document for helping debug go-ipfs. Please add to it if you can!
 
 ### Table of Contents
 - [Beginning](#beginning)
-- [Analysing the stack dump](#analysing-the-stack-dump)
+- [Analyzing the stack dump](#analyzing-the-stack-dump)
 - [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
+- [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
 - [Other](#other)
 
 ### Beginning
@@ -20,6 +21,8 @@ profiling information.
   - `curl localhost:5001/debug/pprof/profile > ipfs.cpuprof`
 - heap trace dump
   - `curl localhost:5001/debug/pprof/heap > ipfs.heap`
+- memory statistics (in json, see "memstats" object)
+  - `curl localhost:5001/debug/vars > ipfs.vars`
 - system information
   - `ipfs diag sys > ipfs.sysinfo`
 
@@ -28,7 +31,7 @@ Bundle all that up and include a copy of the ipfs binary that you are running
 
 You can investigate yourself if you feel intrepid:
 
-### Analysing the stack dump
+### Analyzing the stack dump
 
 The first thing to look for is hung goroutines -- any goroutine thats been stuck
 for over a minute will note that in the trace. It looks something like:
@@ -83,6 +86,10 @@ gathered the above information, you can skip down to where they start talking
 about `go tool pprof`. My go-to method of analyzing these is to run the `web`
 command, which generates an SVG dotgraph and opens it in your browser. This is
 the quickest way to easily point out where the hot spots in the code are.
+
+### Analyzing vars and memory statistics
+
+The output is JSON formatted and includes badger store statistics, the command line run, and the output from Go's [runtime.ReadMemStats](https://golang.org/pkg/runtime/#ReadMemStats). The [MemStats](https://golang.org/pkg/runtime/#MemStats) has useful information about memory allocation and garbage collection.
 
 ### Other
 

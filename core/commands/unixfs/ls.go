@@ -7,16 +7,13 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	unixfs "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
-	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
-	merkledag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
-	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
-	resolver "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path/resolver"
+	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+
+	unixfs "gx/ipfs/QmQDcPcBH8nfz3JB4K4oEvxhRmBwCrMgvG966XpExEWexf/go-unixfs"
+	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	merkledag "gx/ipfs/QmXTw4By9FMZAt7qJm4JoJuNBrBgqMMzkS4AjKc4zqTUVd/go-merkledag"
 )
 
 type LsLink struct {
@@ -82,6 +79,12 @@ possible, please use 'ipfs ls' instead.
 			return
 		}
 
+		api, err := req.InvocContext().GetApi()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		paths := req.Arguments()
 
 		output := LsOutput{
@@ -89,15 +92,16 @@ possible, please use 'ipfs ls' instead.
 			Objects:   map[string]*LsObject{},
 		}
 
-		for _, fpath := range paths {
+		for _, p := range paths {
 			ctx := req.Context()
 
-			resolver := &resolver.Resolver{
-				DAG:         node.DAG,
-				ResolveOnce: uio.ResolveUnixfsOnce,
+			fpath, err := iface.ParsePath(p)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
 			}
 
-			merkleNode, err := core.Resolve(ctx, node.Namesys, resolver, path.Path(fpath))
+			merkleNode, err := api.ResolveNode(ctx, fpath)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
@@ -106,7 +110,7 @@ possible, please use 'ipfs ls' instead.
 			c := merkleNode.Cid()
 
 			hash := c.String()
-			output.Arguments[fpath] = hash
+			output.Arguments[p] = hash
 
 			if _, ok := output.Objects[hash]; ok {
 				// duplicate argument for an already-listed node

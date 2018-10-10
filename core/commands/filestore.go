@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	oldCmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
@@ -29,6 +28,10 @@ var FileStoreCmd = &cmds.Command{
 	},
 }
 
+const (
+	fileOrderOptionName = "file-order"
+)
+
 var lsFileStore = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List objects in filestore.",
@@ -47,7 +50,7 @@ The output is:
 		cmdkit.StringArg("obj", false, true, "Cid of objects to list."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("file-order", "sort the results based on the path of the backing file"),
+		cmdkit.BoolOption(fileOrderOptionName, "sort the results based on the path of the backing file"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		_, fs, err := getFilestore(env)
@@ -63,7 +66,7 @@ The output is:
 			return res.Emit(out)
 		}
 
-		fileOrder, _ := req.Options["file-order"].(bool)
+		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
 		next, err := filestore.ListAll(fs, fileOrder)
 		if err != nil {
 			return err
@@ -73,36 +76,14 @@ The output is:
 		return res.Emit(out)
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			var errors bool
-			for {
-				v, err := res.Next()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					return err
-				}
-
-				r, ok := v.(*filestore.ListRes)
-				if !ok {
-					return e.New(e.TypeErr(r, v))
-				}
-
-				if r.ErrorMsg != "" {
-					errors = true
-					fmt.Fprintf(os.Stderr, "%s\n", r.ErrorMsg)
-				} else {
-					fmt.Fprintf(os.Stdout, "%s\n", r.FormatLong())
-				}
+		cmds.CLI: streamResult(func(v interface{}, out io.Writer) nonFatalError {
+			r := v.(*filestore.ListRes)
+			if r.ErrorMsg != "" {
+				return nonFatalError(r.ErrorMsg)
 			}
-
-			if errors {
-				return fmt.Errorf("errors while displaying some entries")
-			}
-
-			return nil
-		},
+			fmt.Fprintf(out, "%s\n", r.FormatLong())
+			return ""
+		}),
 	},
 	Type: filestore.ListRes{},
 }
@@ -135,7 +116,7 @@ For ERROR entries the error will also be printed to stderr.
 		cmdkit.StringArg("obj", false, true, "Cid of objects to verify."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("file-order", "verify the objects based on the order of the backing file"),
+		cmdkit.BoolOption(fileOrderOptionName, "verify the objects based on the order of the backing file"),
 	},
 	Run: func(req oldCmds.Request, res oldCmds.Response) {
 		_, fs, err := getFilestore(req.InvocContext())
@@ -150,7 +131,7 @@ For ERROR entries the error will also be printed to stderr.
 			})
 			res.SetOutput(out)
 		} else {
-			fileOrder, _, _ := req.Option("file-order").Bool()
+			fileOrder, _, _ := req.Option(fileOrderOptionName).Bool()
 			next, err := filestore.VerifyAll(fs, fileOrder)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)

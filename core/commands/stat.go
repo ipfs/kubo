@@ -33,6 +33,13 @@ for your IPFS node.`,
 	},
 }
 
+const (
+	statPeerOptionName     = "peer"
+	statProtoOptionName    = "proto"
+	statPollOptionName     = "poll"
+	statIntervalOptionName = "interval"
+)
+
 var statBwCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Print ipfs bandwidth information.",
@@ -71,10 +78,10 @@ Example:
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("peer", "p", "Specify a peer to print bandwidth for."),
-		cmdkit.StringOption("proto", "t", "Specify a protocol to print bandwidth for."),
-		cmdkit.BoolOption("poll", "Print bandwidth at an interval."),
-		cmdkit.StringOption("interval", "i", `Time interval to wait between updating output, if 'poll' is true.
+		cmdkit.StringOption(statPeerOptionName, "p", "Specify a peer to print bandwidth for."),
+		cmdkit.StringOption(statProtoOptionName, "t", "Specify a protocol to print bandwidth for."),
+		cmdkit.BoolOption(statPollOptionName, "Print bandwidth at an interval."),
+		cmdkit.StringOption(statIntervalOptionName, "i", `Time interval to wait between updating output, if 'poll' is true.
 
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are:
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("1s"),
@@ -95,7 +102,7 @@ Example:
 			return fmt.Errorf("bandwidth reporter disabled in config")
 		}
 
-		pstr, pfound := req.Options["peer"].(string)
+		pstr, pfound := req.Options[statPeerOptionName].(string)
 		tstr, tfound := req.Options["proto"].(string)
 		if pfound && tfound {
 			return cmdkit.Errorf(cmdkit.ErrClient, "please only specify peer OR protocol")
@@ -110,13 +117,13 @@ Example:
 			pid = checkpid
 		}
 
-		timeS, _ := req.Options["interval"].(string)
+		timeS, _ := req.Options[statIntervalOptionName].(string)
 		interval, err := time.ParseDuration(timeS)
 		if err != nil {
 			return err
 		}
 
-		doPoll, _ := req.Options["poll"].(bool)
+		doPoll, _ := req.Options[statPollOptionName].(bool)
 		for {
 			if pfound {
 				stats := nd.Reporter.GetBandwidthForPeer(pid)
@@ -142,7 +149,7 @@ Example:
 	Type: metrics.Stats{},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			polling, _ := res.Request().Options["poll"].(bool)
+			polling, _ := res.Request().Options[statPollOptionName].(bool)
 
 			if polling {
 				fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")

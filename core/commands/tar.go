@@ -7,10 +7,10 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	"github.com/ipfs/go-ipfs/core/coreunix"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	tar "github.com/ipfs/go-ipfs/tar"
-	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
-	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
+	path "gx/ipfs/QmQmMu1vsgsjxyB8tzrA6ZTCTCLDLVaXMb4Q57r2v886Sx/go-path"
+	dag "gx/ipfs/QmXTw4By9FMZAt7qJm4JoJuNBrBgqMMzkS4AjKc4zqTUVd/go-merkledag"
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
@@ -60,12 +60,12 @@ represent it.
 		c := node.Cid()
 
 		fi.FileName()
-		res.SetOutput(&coreunix.AddedObject{
+		res.SetOutput(&coreiface.AddEvent{
 			Name: fi.FileName(),
 			Hash: c.String(),
 		})
 	},
-	Type: coreunix.AddedObject{},
+	Type: coreiface.AddEvent{},
 	Marshalers: cmds.MarshalerMap{
 		cmds.Text: func(res cmds.Response) (io.Reader, error) {
 			v, err := unwrapOutput(res.Output())
@@ -73,7 +73,7 @@ represent it.
 				return nil, err
 			}
 
-			o, ok := v.(*coreunix.AddedObject)
+			o, ok := v.(*coreiface.AddEvent)
 			if !ok {
 				return nil, e.TypeErr(o, v)
 			}

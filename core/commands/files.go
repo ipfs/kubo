@@ -16,21 +16,19 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	ft "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
-	uio "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs/io"
-	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
-	bservice "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
-	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
-	resolver "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path/resolver"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	mfs "gx/ipfs/QmPbuswDwcPT4WquGqGoeBBDuuBaUmbZJFYiaes6vkgXYJ/go-mfs"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
+	ft "gx/ipfs/QmQDcPcBH8nfz3JB4K4oEvxhRmBwCrMgvG966XpExEWexf/go-unixfs"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	offline "gx/ipfs/QmT6dHGp3UYd3vUMpy7rzX2CXQv7HLcj42Vtq8qwwjgASb/go-ipfs-exchange-offline"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
+	dag "gx/ipfs/QmXTw4By9FMZAt7qJm4JoJuNBrBgqMMzkS4AjKc4zqTUVd/go-merkledag"
+	bservice "gx/ipfs/QmY1fUNoXjC8sH86kyaK8BWFGaU6MmH4AJfF1w4sKjmtRZ/go-blockservice"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
@@ -71,8 +69,13 @@ operations.
 	},
 }
 
-var cidVersionOption = cmdkit.IntOption("cid-version", "cid-ver", "Cid version to use. (experimental)")
-var hashOption = cmdkit.StringOption("hash", "Hash function to use. Will set Cid version to 1 if used. (experimental)")
+const (
+	filesCidVersionOptionName = "cid-version"
+	filesHashOptionName       = "hash"
+)
+
+var cidVersionOption = cmdkit.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
+var hashOption = cmdkit.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
 
 var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
@@ -87,11 +90,16 @@ type statOutput struct {
 	SizeLocal      uint64 `json:",omitempty"`
 }
 
-const defaultStatFormat = `<hash>
+const (
+	defaultStatFormat = `<hash>
 Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
 Type: <type>`
+	filesFormatOptionName    = "format"
+	filesSizeOptionName      = "size"
+	filesWithLocalOptionName = "with-local"
+)
 
 var filesStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -102,11 +110,11 @@ var filesStatCmd = &cmds.Command{
 		cmdkit.StringArg("path", true, false, "Path to node to stat."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "Print statistics in given format. Allowed tokens: "+
+		cmdkit.StringOption(filesFormatOptionName, "Print statistics in given format. Allowed tokens: "+
 			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(defaultStatFormat),
-		cmdkit.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
-		cmdkit.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
-		cmdkit.BoolOption("with-local", "Compute the amount of the dag that is local, and if possible the total size"),
+		cmdkit.BoolOption(filesHashOptionName, "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
+		cmdkit.BoolOption(filesSizeOptionName, "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
+		cmdkit.BoolOption(filesWithLocalOptionName, "Compute the amount of the dag that is local, and if possible the total size"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 
@@ -120,12 +128,17 @@ var filesStatCmd = &cmds.Command{
 			return err
 		}
 
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
+		}
+
 		path, err := checkPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
 
-		withLocal, _ := req.Options["with-local"].(bool)
+		withLocal, _ := req.Options[filesWithLocalOptionName].(bool)
 
 		var dagserv ipld.DAGService
 		if withLocal {
@@ -138,7 +151,7 @@ var filesStatCmd = &cmds.Command{
 			dagserv = node.DAG
 		}
 
-		nd, err := getNodeFromPath(req.Context, node, dagserv, path)
+		nd, err := getNodeFromPath(req.Context, node, api, path)
 		if err != nil {
 			return err
 		}
@@ -196,9 +209,9 @@ func moreThanOne(a, b, c bool) bool {
 
 func statGetFormatOptions(req *cmds.Request) (string, error) {
 
-	hash, _ := req.Options["hash"].(bool)
-	size, _ := req.Options["size"].(bool)
-	format, _ := req.Options["format"].(string)
+	hash, _ := req.Options[filesHashOptionName].(bool)
+	size, _ := req.Options[filesSizeOptionName].(bool)
+	format, _ := req.Options[filesFormatOptionName].(string)
 
 	if moreThanOne(hash, size, format != defaultStatFormat) {
 		return "", errFormat
@@ -305,6 +318,12 @@ var filesCpCmd = &oldcmds.Command{
 			return
 		}
 
+		api, err := req.InvocContext().GetApi()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		flush, _, _ := req.Option("flush").Bool()
 
 		src, err := checkPath(req.Arguments()[0])
@@ -324,7 +343,7 @@ var filesCpCmd = &oldcmds.Command{
 			dst += gopath.Base(src)
 		}
 
-		nd, err := getNodeFromPath(req.Context(), node, node.DAG, src)
+		nd, err := getNodeFromPath(req.Context(), node, api, src)
 		if err != nil {
 			res.SetError(fmt.Errorf("cp: cannot get node from path %s: %s", src, err), cmdkit.ErrNormal)
 			return
@@ -348,20 +367,15 @@ var filesCpCmd = &oldcmds.Command{
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, dagservice ipld.DAGService, p string) (ipld.Node, error) {
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
-		np, err := path.ParsePath(p)
+		np, err := iface.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		resolver := &resolver.Resolver{
-			DAG:         dagservice,
-			ResolveOnce: uio.ResolveUnixfsOnce,
-		}
-
-		return core.Resolve(ctx, node.Namesys, resolver, np)
+		return api.ResolveNode(ctx, np)
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {
@@ -375,6 +389,11 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, dagservice ipld.D
 type filesLsOutput struct {
 	Entries []mfs.NodeListing
 }
+
+const (
+	longOptionName     = "l"
+	dontSortOptionName = "U"
+)
 
 var filesLsCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -401,8 +420,8 @@ Examples:
 		cmdkit.StringArg("path", false, false, "Path to show listing for. Defaults to '/'."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("l", "Use long listing format."),
-		cmdkit.BoolOption("U", "Do not sort; list entries in directory order."),
+		cmdkit.BoolOption(longOptionName, "Use long listing format."),
+		cmdkit.BoolOption(dontSortOptionName, "Do not sort; list entries in directory order."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		var arg string
@@ -431,7 +450,7 @@ Examples:
 			return
 		}
 
-		long, _, _ := req.Option("l").Bool()
+		long, _, _ := req.Option(longOptionName).Bool()
 
 		switch fsn := fsn.(type) {
 		case *mfs.Directory:
@@ -498,14 +517,14 @@ Examples:
 
 			buf := new(bytes.Buffer)
 
-			noSort, _, _ := res.Request().Option("U").Bool()
+			noSort, _, _ := res.Request().Option(dontSortOptionName).Bool()
 			if !noSort {
 				sort.Slice(out.Entries, func(i, j int) bool {
 					return strings.Compare(out.Entries[i].Name, out.Entries[j].Name) < 0
 				})
 			}
 
-			long, _, _ := res.Request().Option("l").Bool()
+			long, _, _ := res.Request().Option(longOptionName).Bool()
 			for _, o := range out.Entries {
 				if long {
 					fmt.Fprintf(buf, "%s\t%s\t%d\n", o.Name, o.Hash, o.Size)
@@ -518,6 +537,11 @@ Examples:
 	},
 	Type: filesLsOutput{},
 }
+
+const (
+	filesOffsetOptionName = "offset"
+	filesCountOptionName  = "count"
+)
 
 var filesReadCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -537,8 +561,8 @@ Examples:
 		cmdkit.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
-		cmdkit.IntOption("count", "n", "Maximum number of bytes to read."),
+		cmdkit.IntOption(filesOffsetOptionName, "o", "Byte offset to begin reading from."),
+		cmdkit.IntOption(filesCountOptionName, "n", "Maximum number of bytes to read."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		n, err := req.InvocContext().GetNode()
@@ -573,7 +597,7 @@ Examples:
 
 		defer rfd.Close()
 
-		offset, _, err := req.Option("offset").Int()
+		offset, _, err := req.Option(offsetOptionName).Int()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -601,7 +625,7 @@ Examples:
 		}
 
 		var r io.Reader = &contextReaderWrapper{R: rfd, ctx: req.Context()}
-		count, found, err := req.Option("count").Int()
+		count, found, err := req.Option(filesCountOptionName).Int()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -676,6 +700,14 @@ Example:
 	},
 }
 
+const (
+	filesCreateOptionName    = "create"
+	filesParentsOptionName   = "parents"
+	filesTruncateOptionName  = "truncate"
+	filesRawLeavesOptionName = "raw-leaves"
+	filesFlushOptionName     = "flush"
+)
+
 var filesWriteCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Write to a mutable file in a given filesystem.",
@@ -715,12 +747,12 @@ stat' on the file or any of its ancestors.
 		cmdkit.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("offset", "o", "Byte offset to begin writing at."),
-		cmdkit.BoolOption("create", "e", "Create the file if it does not exist."),
-		cmdkit.BoolOption("parents", "p", "Make parent directories as needed."),
-		cmdkit.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
-		cmdkit.IntOption("count", "n", "Maximum number of bytes to read."),
-		cmdkit.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
+		cmdkit.IntOption(filesOffsetOptionName, "o", "Byte offset to begin writing at."),
+		cmdkit.BoolOption(filesCreateOptionName, "e", "Create the file if it does not exist."),
+		cmdkit.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
+		cmdkit.BoolOption(filesTruncateOptionName, "t", "Truncate the file to size zero before writing."),
+		cmdkit.IntOption(filesCountOptionName, "n", "Maximum number of bytes to read."),
+		cmdkit.BoolOption(filesRawLeavesOptionName, "Use raw blocks for newly created leaf nodes. (experimental)"),
 		cidVersionOption,
 		hashOption,
 	},
@@ -730,11 +762,11 @@ stat' on the file or any of its ancestors.
 			return err
 		}
 
-		create, _ := req.Options["create"].(bool)
-		mkParents, _ := req.Options["parents"].(bool)
-		trunc, _ := req.Options["truncate"].(bool)
-		flush, _ := req.Options["flush"].(bool)
-		rawLeaves, rawLeavesDef := req.Options["raw-leaves"].(bool)
+		create, _ := req.Options[filesCreateOptionName].(bool)
+		mkParents, _ := req.Options[filesParentsOptionName].(bool)
+		trunc, _ := req.Options[filesTruncateOptionName].(bool)
+		flush, _ := req.Options[filesFlushOptionName].(bool)
+		rawLeaves, rawLeavesDef := req.Options[filesRawLeavesOptionName].(bool)
 
 		prefix, err := getPrefixNew(req)
 		if err != nil {
@@ -746,7 +778,7 @@ stat' on the file or any of its ancestors.
 			return err
 		}
 
-		offset, _ := req.Options["offset"].(int)
+		offset, _ := req.Options[filesOffsetOptionName].(int)
 		if offset < 0 {
 			return fmt.Errorf("cannot have negative write offset")
 		}
@@ -788,7 +820,7 @@ stat' on the file or any of its ancestors.
 			}
 		}
 
-		count, countfound := req.Options["count"].(int)
+		count, countfound := req.Options[filesCountOptionName].(int)
 		if countfound && count < 0 {
 			return fmt.Errorf("cannot have negative byte count")
 		}
@@ -836,7 +868,7 @@ Examples:
 		cmdkit.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("parents", "p", "No error if existing, make parent directories as needed."),
+		cmdkit.BoolOption(filesParentsOptionName, "p", "No error if existing, make parent directories as needed."),
 		cidVersionOption,
 		hashOption,
 	},
@@ -847,14 +879,14 @@ Examples:
 			return
 		}
 
-		dashp, _, _ := req.Option("parents").Bool()
+		dashp, _, _ := req.Option(filesParentsOptionName).Bool()
 		dirtomake, err := checkPath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		flush, _, _ := req.Option("flush").Bool()
+		flush, _, _ := req.Option(filesFlushOptionName).Bool()
 
 		prefix, err := getPrefix(req)
 		if err != nil {
@@ -936,7 +968,7 @@ Change the cid version or hash function of the root node of a given path.
 			path = req.Arguments()[0]
 		}
 
-		flush, _, _ := req.Option("flush").Bool()
+		flush, _, _ := req.Option(filesFlushOptionName).Bool()
 
 		prefix, err := getPrefix(req)
 		if err != nil {
@@ -998,6 +1030,7 @@ Remove files or directories.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("recursive", "r", "Recursively remove directories."),
+		cmdkit.BoolOption("force", "Forcibly remove target at path; implies -r for directories"),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		defer res.SetOutput(nil)
@@ -1037,8 +1070,6 @@ Remove files or directories.
 			return
 		}
 
-		dashr, _, _ := req.Option("r").Bool()
-
 		var success bool
 		defer func() {
 			if success {
@@ -1050,8 +1081,10 @@ Remove files or directories.
 			}
 		}()
 
-		// if '-r' specified, don't check file type (in bad scenarios, the block may not exist)
-		if dashr {
+		// if '--force' specified, it will remove anything else,
+		// including file, directory, corrupted node, etc
+		force, _, _ := req.Option("force").Bool()
+		if force {
 			err := pdir.Unlink(name)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -1062,31 +1095,37 @@ Remove files or directories.
 			return
 		}
 
-		childi, err := pdir.Child(name)
+		// get child node by name, when the node is corrupted and nonexistent,
+		// it will return specific error.
+		child, err := pdir.Child(name)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		switch childi.(type) {
+		dashr, _, _ := req.Option("r").Bool()
+
+		switch child.(type) {
 		case *mfs.Directory:
-			res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
-			return
-		default:
-			err := pdir.Unlink(name)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
+			if !dashr {
+				res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
 				return
 			}
-
-			success = true
 		}
+
+		err = pdir.Unlink(name)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		success = true
 	},
 }
 
 func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
-	cidVer, cidVerSet := req.Options["cid-version"].(int)
-	hashFunStr, hashFunSet := req.Options["hash"].(string)
+	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
+	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
 
 	if !cidVerSet && !hashFunSet {
 		return nil, nil
@@ -1114,8 +1153,8 @@ func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
 }
 
 func getPrefix(req oldcmds.Request) (cid.Builder, error) {
-	cidVer, cidVerSet, _ := req.Option("cid-version").Int()
-	hashFunStr, hashFunSet, _ := req.Option("hash").String()
+	cidVer, cidVerSet, _ := req.Option(filesCidVersionOptionName).Int()
+	hashFunStr, hashFunSet, _ := req.Option(filesHashOptionName).String()
 
 	if !cidVerSet && !hashFunSet {
 		return nil, nil

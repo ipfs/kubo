@@ -156,14 +156,33 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
+  test_expect_success "ipfs add --chunker size-64 succeeds" '
+    ipfs add --chunker=size-64 mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add --chunker size-64 output looks good" '
+    HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --chunker=size-0 failed" '
+    test_expect_code 1 ipfs add -Q --chunker=size-0 mountdir/hello.txt
+  '
+
   test_expect_success "ipfs add --chunker rabin-36-512-1024 succeeds" '
-    ipfs add -Q --chunker rabin-36-512-1024 mountdir/hello.txt
+    ipfs add --chunker rabin-36-512-1024 mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add --chunker rabin-36-512-1024 output looks good" '
+    HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
   '
 
   test_expect_success "ipfs add --chunker rabin-12-512-1024 failed" '
     test_expect_code 1 ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
   '
-
 
   test_expect_success "ipfs add on hidden file succeeds" '
     echo "Hello Worlds!" >mountdir/.hello.txt &&

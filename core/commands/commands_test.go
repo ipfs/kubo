@@ -211,6 +211,12 @@ func TestCommands(t *testing.T) {
 		"/urlstore",
 		"/urlstore/add",
 		"/version",
+		"/cid",
+		"/cid/format",
+		"/cid/base32",
+		"/cid/codecs",
+		"/cid/bases",
+		"/cid/hashes",
 	}
 
 	cmdSet := make(map[string]struct{})

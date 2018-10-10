@@ -199,8 +199,11 @@ test_set_address_vars() {
   '
 
   if ipfs swarm addrs local >/dev/null 2>&1; then
+    test_expect_success "get swarm addresses" '
+      ipfs swarm addrs local > addrs_out
+    '
+
     test_expect_success "set swarm address vars" '
-    ipfs swarm addrs local > addrs_out &&
       SWARM_MADDR=$(grep "127.0.0.1" addrs_out) &&
       SWARM_PORT=$(port_from_maddr $SWARM_MADDR)
     '

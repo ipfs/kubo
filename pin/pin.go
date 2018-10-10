@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/dagutils"
-	mdag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
+	mdag "gx/ipfs/QmXTw4By9FMZAt7qJm4JoJuNBrBgqMMzkS4AjKc4zqTUVd/go-merkledag"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	ds "gx/ipfs/QmUyz7JTJzgegC6tiJrfby3mPhzcdswVtG4x58TQ6pq8jV/go-datastore"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
@@ -228,16 +228,28 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 		if p.directPin.Has(c) {
 			p.directPin.Remove(c)
 		}
-
+		p.lock.Unlock()
 		// fetch entire graph
 		err := mdag.FetchGraph(ctx, c, p.dserv)
+		p.lock.Lock()
 		if err != nil {
 			return err
 		}
 
+		if p.recursePin.Has(c) {
+			return nil
+		}
+
+		if p.directPin.Has(c) {
+			p.directPin.Remove(c)
+		}
+
 		p.recursePin.Add(c)
 	} else {
-		if _, err := p.dserv.Get(ctx, c); err != nil {
+		p.lock.Unlock()
+		_, err := p.dserv.Get(ctx, c)
+		p.lock.Lock()
+		if err != nil {
 			return err
 		}
 

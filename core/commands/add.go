@@ -6,24 +6,15 @@ import (
 	"os"
 	"strings"
 
-	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	filestore "github.com/ipfs/go-ipfs/filestore"
-	ft "gx/ipfs/QmU4x3742bvgfxJsByEDpBnifJqjJdV6x528co4hwKCn46/go-unixfs"
-	dag "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag"
-	dagtest "gx/ipfs/QmcBoNcAP6qDjgRBew7yjvCqHq7p5jMstE44jPUBWBxzsV/go-merkledag/test"
-	blockservice "gx/ipfs/QmcRecCZWM2NZfCQrCe97Ch3Givv8KKEP82tGUDntzdLFe/go-blockservice"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	pb "gx/ipfs/QmPtj12fdwuAqj9sBSTNUxBNu8kCGNp8b3o8yUzMm5GHpq/pb"
-	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
-	offline "gx/ipfs/QmR5miWuikPxWyUrzMYJVmFUcD44pGdtc98h9Qsbp4YcJw/go-ipfs-exchange-offline"
 	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
-	mfs "gx/ipfs/QmahrY1adY4wvtYEtoGjpZ2GUohTyukrkMkwUR9ytRjTG2/go-mfs"
-	bstore "gx/ipfs/QmdriVJgKx4JADRgh3cYPXqXmsa1A45SvFki1nDWHhQNtC/go-ipfs-blockstore"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
@@ -148,22 +139,10 @@ You can now check what blocks have been created by:
 		return nil
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		n, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env)
 		if err != nil {
 			return err
 		}
-
-		cfg, err := n.Repo.Config()
-		if err != nil {
-			return err
-		}
-		// check if repo will exceed storage limit if added
-		// TODO: this doesn't handle the case if the hashed file is already in blocks (deduplicated)
-		// TODO: conditional GC is disabled due to it is somehow not possible to pass the size to the daemon
-		//if err := corerepo.ConditionalGC(req.Context(), n, uint64(size)); err != nil {
-		//	res.SetError(err, cmdkit.ErrNormal)
-		//	return
-		//}
 
 		progress, _ := req.Options[progressOptionName].(bool)
 		trickle, _ := req.Options[trickleOptionName].(bool)
@@ -181,161 +160,59 @@ You can now check what blocks have been created by:
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 		pathName, _ := req.Options[stdinPathName].(string)
-
-		// The arguments are subject to the following constraints.
-		//
-		// nocopy -> filestoreEnabled
-		// nocopy -> rawblocks
-		// (hash != sha2-256) -> cidv1
-
-		// NOTE: 'rawblocks -> cidv1' is missing. Legacy reasons.
-
-		// nocopy -> filestoreEnabled
-		if nocopy && !cfg.Experimental.FilestoreEnabled {
-			return cmdkit.Errorf(cmdkit.ErrClient, filestore.ErrFilestoreNotEnabled.Error())
-		}
-
-		// nocopy -> rawblocks
-		if nocopy && !rawblks {
-			// fixed?
-			if rbset {
-				return fmt.Errorf("nocopy option requires '--raw-leaves' to be enabled as well")
-			}
-			// No, satisfy mandatory constraint.
-			rawblks = true
-		}
-
-		// (hash != "sha2-256") -> CIDv1
-		if hashFunStr != "sha2-256" && cidVer == 0 {
-			if cidVerSet {
-				return cmdkit.Errorf(cmdkit.ErrClient, "CIDv0 only supports sha2-256")
-			}
-			cidVer = 1
-		}
-
-		// cidV1 -> raw blocks (by default)
-		if cidVer > 0 && !rbset {
-			rawblks = true
-		}
-
-		prefix, err := dag.PrefixForCidVersion(cidVer)
-		if err != nil {
-			return err
-		}
+		local, _ := req.Options["local"].(bool)
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
 			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
 		}
 
-		prefix.MhType = hashFunCode
-		prefix.MhLength = -1
+		events := make(chan interface{}, adderOutChanSize)
 
-		if hash {
-			nilnode, err := core.NewNode(n.Context(), &core.BuildCfg{
-				//TODO: need this to be true or all files
-				// hashed will be stored in memory!
-				NilRepo: true,
-			})
-			if err != nil {
-				return err
-			}
-			n = nilnode
+		opts := []options.UnixfsAddOption{
+			options.Unixfs.Hash(hashFunCode),
+
+			options.Unixfs.Inline(inline),
+			options.Unixfs.InlineLimit(inlineLimit),
+
+			options.Unixfs.Chunker(chunker),
+
+			options.Unixfs.Pin(dopin),
+			options.Unixfs.HashOnly(hash),
+			options.Unixfs.Local(local),
+			options.Unixfs.FsCache(fscache),
+			options.Unixfs.Nocopy(nocopy),
+
+			options.Unixfs.Wrap(wrap),
+			options.Unixfs.Hidden(hidden),
+			options.Unixfs.StdinName(pathName),
+
+			options.Unixfs.Progress(progress),
+			options.Unixfs.Silent(silent),
+			options.Unixfs.Events(events),
 		}
 
-		addblockstore := n.Blockstore
-		if !(fscache || nocopy) {
-			addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
+		if cidVerSet {
+			opts = append(opts, options.Unixfs.CidVersion(cidVer))
 		}
 
-		exch := n.Exchange
-		local, _ := req.Options["local"].(bool)
-		if local {
-			exch = offline.Exchange(addblockstore)
+		if rbset {
+			opts = append(opts, options.Unixfs.RawLeaves(rawblks))
 		}
 
-		bserv := blockservice.New(addblockstore, exch) // hash security 001
-		dserv := dag.NewDAGService(bserv)
-
-		outChan := make(chan interface{}, adderOutChanSize)
-
-		fileAdder, err := coreunix.NewAdder(req.Context, n.Pinning, n.Blockstore, dserv)
-		if err != nil {
-			return err
-		}
-
-		fileAdder.Out = outChan
-		fileAdder.Chunker = chunker
-		fileAdder.Progress = progress
-		fileAdder.Hidden = hidden
-		fileAdder.Trickle = trickle
-		fileAdder.Wrap = wrap
-		fileAdder.Pin = dopin
-		fileAdder.Silent = silent
-		fileAdder.RawLeaves = rawblks
-		fileAdder.NoCopy = nocopy
-		fileAdder.Name = pathName
-		fileAdder.CidBuilder = prefix
-
-		if inline {
-			fileAdder.CidBuilder = cidutil.InlineBuilder{
-				Builder: fileAdder.CidBuilder,
-				Limit:   inlineLimit,
-			}
-		}
-
-		if hash {
-			md := dagtest.Mock()
-			emptyDirNode := ft.EmptyDirNode()
-			// Use the same prefix for the "empty" MFS root as for the file adder.
-			emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
-			mr, err := mfs.NewRoot(req.Context, md, emptyDirNode, nil)
-			if err != nil {
-				return err
-			}
-
-			fileAdder.SetMfsRoot(mr)
-		}
-
-		addAllAndPin := func(f files.File) error {
-			// Iterate over each top-level file and add individually. Otherwise the
-			// single files.File f is treated as a directory, affecting hidden file
-			// semantics.
-			for {
-				file, err := f.NextFile()
-				if err == io.EOF {
-					// Finished the list of files.
-					break
-				} else if err != nil {
-					return err
-				}
-				if err := fileAdder.AddFile(file); err != nil {
-					return err
-				}
-			}
-
-			// copy intermediary nodes from editor to our actual dagservice
-			_, err := fileAdder.Finalize()
-			if err != nil {
-				return err
-			}
-
-			if hash {
-				return nil
-			}
-
-			return fileAdder.PinRoot()
+		if trickle {
+			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
 		errCh := make(chan error)
 		go func() {
 			var err error
 			defer func() { errCh <- err }()
-			defer close(outChan)
-			err = addAllAndPin(req.Files)
+			defer close(events)
+			_, err = api.Unixfs().Add(req.Context, req.Files, opts...)
 		}()
 
-		err = res.Emit(outChan)
+		err = res.Emit(events)
 		if err != nil {
 			return err
 		}
@@ -401,7 +278,7 @@ You can now check what blocks have been created by:
 
 							break LOOP
 						}
-						output := out.(*coreunix.AddedObject)
+						output := out.(*coreiface.AddEvent)
 						if len(output.Hash) > 0 {
 							lastHash = output.Hash
 							if quieter {
@@ -481,5 +358,5 @@ You can now check what blocks have been created by:
 			}
 		},
 	},
-	Type: coreunix.AddedObject{},
+	Type: coreiface.AddEvent{},
 }

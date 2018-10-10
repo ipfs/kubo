@@ -14,6 +14,10 @@ import (
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 )
 
+const (
+	verboseOptionName = "v"
+)
+
 var ActiveReqsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List commands run on this IPFS node.",
@@ -25,7 +29,7 @@ Lists running and recently run commands.
 		res.SetOutput(req.InvocContext().ReqLog.Report())
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", "v", "Print extra information."),
+		cmdkit.BoolOption("verbose", verboseOptionName, "Print extra information."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"clear":    clearInactiveCmd,
@@ -44,7 +48,7 @@ Lists running and recently run commands.
 			}
 			buf := new(bytes.Buffer)
 
-			verbose, _, _ := res.Request().Option("v").Bool()
+			verbose, _, _ := res.Request().Option(verboseOptionName).Bool()
 
 			w := tabwriter.NewWriter(buf, 4, 4, 2, ' ', 0)
 			if verbose {

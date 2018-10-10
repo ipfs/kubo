@@ -14,10 +14,16 @@ import (
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	ns "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
+	path "gx/ipfs/QmQmMu1vsgsjxyB8tzrA6ZTCTCLDLVaXMb4Q57r2v886Sx/go-path"
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	"gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
+)
+
+const (
+	resolveRecursiveOptionName      = "recursive"
+	resolveDhtRecordCountOptionName = "dht-record-count"
+	resolveDhtTimeoutOptionName     = "dht-timeout"
 )
 
 var ResolveCmd = &cmds.Command{
@@ -64,9 +70,9 @@ Resolve the value of an IPFS DAG path:
 		cmdkit.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Resolve until the result is an IPFS name."),
-		cmdkit.IntOption("dht-record-count", "dhtrc", "Number of records to request for DHT resolution."),
-		cmdkit.StringOption("dht-timeout", "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
+		cmdkit.BoolOption(resolveRecursiveOptionName, "r", "Resolve until the result is an IPFS name."),
+		cmdkit.IntOption(resolveDhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
+		cmdkit.StringOption(resolveDhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
@@ -87,12 +93,12 @@ Resolve the value of an IPFS DAG path:
 		}
 
 		name := req.Arguments[0]
-		recursive, _ := req.Options["recursive"].(bool)
+		recursive, _ := req.Options[resolveRecursiveOptionName].(bool)
 
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
-			rc, rcok := req.Options["dht-record-count"].(uint)
-			dhtt, dhttok := req.Options["dht-timeout"].(string)
+			rc, rcok := req.Options[resolveDhtRecordCountOptionName].(uint)
+			dhtt, dhttok := req.Options[resolveDhtTimeoutOptionName].(string)
 			ropts := []options.NameResolveOption{
 				options.Name.ResolveOption(nsopts.Depth(1)),
 			}

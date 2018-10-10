@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -10,8 +11,8 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	ipfspath "gx/ipfs/QmQmMu1vsgsjxyB8tzrA6ZTCTCLDLVaXMb4Q57r2v886Sx/go-path"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
-	ipfspath "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
 )
 
 type KeyAPI CoreAPI
@@ -215,4 +216,12 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, erro
 	}
 
 	return &key{"", pid}, nil
+}
+
+func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
+	if api.node.Identity == "" {
+		return nil, errors.New("identity not loaded")
+	}
+
+	return &key{"self", api.node.Identity}, nil
 }

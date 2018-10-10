@@ -71,6 +71,7 @@ TOOL COMMANDS
   version       Show ipfs version information
   update        Download and apply go-ipfs updates
   commands      List all available commands
+  cid           Convert and discover properties of CIDs
 
 Use 'ipfs <command> --help' to learn more about each command.
 
@@ -136,13 +137,14 @@ var rootSubcommands = map[string]*cmds.Command{
 	"p2p":       lgc.NewCommand(P2PCmd),
 	"refs":      lgc.NewCommand(RefsCmd),
 	"resolve":   ResolveCmd,
-	"swarm":     lgc.NewCommand(SwarmCmd),
+	"swarm":     SwarmCmd,
 	"tar":       lgc.NewCommand(TarCmd),
 	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
 	"update":    lgc.NewCommand(ExternalBinary()),
 	"urlstore":  urlStoreCmd,
 	"version":   lgc.NewCommand(VersionCmd),
 	"shutdown":  daemonShutdownCmd,
+	"cid":       CidCmd,
 }
 
 // RootRO is the readonly version of Root

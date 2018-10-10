@@ -6,15 +6,18 @@ import (
 	"io"
 	"os"
 
-	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
 	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
 )
 
-const progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
+const (
+	progressBarMinSize = 1024 * 1024 * 8 // show progress bar for outputs > 8MiB
+	offsetOptionName   = "offset"
+	lengthOptionName   = "length"
+)
 
 var CatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -26,11 +29,16 @@ var CatCmd = &cmds.Command{
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
-		cmdkit.IntOption("length", "l", "Maximum number of bytes to read."),
+		cmdkit.IntOption(offsetOptionName, "o", "Byte offset to begin reading from."),
+		cmdkit.IntOption(lengthOptionName, "l", "Maximum number of bytes to read."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		api, err := cmdenv.GetApi(env)
 		if err != nil {
 			return err
 		}
@@ -41,12 +49,12 @@ var CatCmd = &cmds.Command{
 			}
 		}
 
-		offset, _ := req.Options["offset"].(int)
+		offset, _ := req.Options[offsetOptionName].(int)
 		if offset < 0 {
 			return fmt.Errorf("cannot specify negative offset")
 		}
 
-		max, found := req.Options["length"].(int)
+		max, found := req.Options[lengthOptionName].(int)
 		if err != nil {
 			return err
 		}
@@ -62,7 +70,7 @@ var CatCmd = &cmds.Command{
 			return err
 		}
 
-		readers, length, err := cat(req.Context, node, req.Arguments, int64(offset), int64(max))
+		readers, length, err := cat(req.Context, api, req.Arguments, int64(offset), int64(max))
 		if err != nil {
 			return err
 		}
@@ -115,14 +123,19 @@ var CatCmd = &cmds.Command{
 	},
 }
 
-func cat(ctx context.Context, node *core.IpfsNode, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
+func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
 	if max == 0 {
 		return nil, 0, nil
 	}
-	for _, fpath := range paths {
-		read, err := coreunix.Cat(ctx, node, fpath)
+	for _, p := range paths {
+		fpath, err := iface.ParsePath(p)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		read, err := api.Unixfs().Cat(ctx, fpath)
 		if err != nil {
 			return nil, 0, err
 		}

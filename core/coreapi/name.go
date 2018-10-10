@@ -7,15 +7,16 @@ import (
 	"strings"
 	"time"
 
+	ipath "gx/ipfs/QmQmMu1vsgsjxyB8tzrA6ZTCTCLDLVaXMb4Q57r2v886Sx/go-path"
+
 	"github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/namesys"
-	ipath "gx/ipfs/QmcjwUb36Z16NJkvDX6ccXPqsFswo6AsRXynyXcLLCphV2/go-path"
 
 	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmScZySgru9jaoDa12sSfvh21sWbqF5eXkieTmJzAHJXkQ/go-ipfs-routing/offline"
+	"gx/ipfs/QmQqPdGQfsfQTpRUUzgD3d2RzWHJffZsSqwopnZ2BkiezW/go-ipfs-routing/offline"
 	"gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
 )
 
@@ -45,6 +46,9 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	n := api.node
 
 	if !n.OnlineMode() {
+		if !options.AllowOffline {
+			return nil, coreiface.ErrOffline
+		}
 		err := n.SetupOfflineRouting()
 		if err != nil {
 			return nil, err
@@ -65,6 +69,10 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 		return nil, err
 	}
 
+	if options.TTL != nil {
+		ctx = context.WithValue(ctx, "ipns-publish-ttl", *options.TTL)
+	}
+
 	eol := time.Now().Add(options.ValidTime)
 	err = n.Namesys.PublishWithEOL(ctx, k, pth, eol)
 	if err != nil {
@@ -82,9 +90,7 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	}, nil
 }
 
-// Resolve attempts to resolve the newest version of the specified name and
-// returns its path.
-func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (coreiface.Path, error) {
+func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.NameResolveOption) (<-chan coreiface.IpnsResult, error) {
 	options, err := caopts.NameResolveOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -118,12 +124,42 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		name = "/ipns/" + name
 	}
 
-	output, err := resolver.Resolve(ctx, name, options.ResolveOpts...)
+	out := make(chan coreiface.IpnsResult)
+	go func() {
+		defer close(out)
+		for res := range resolver.ResolveAsync(ctx, name, options.ResolveOpts...) {
+			p, _ := coreiface.ParsePath(res.Path.String())
+
+			select {
+			case out <- coreiface.IpnsResult{Path: p, Err: res.Err}:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return out, nil
+}
+
+// Resolve attempts to resolve the newest version of the specified name and
+// returns its path.
+func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (coreiface.Path, error) {
+	results, err := api.Search(ctx, name, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	return coreiface.ParsePath(output.String())
+	err = coreiface.ErrResolveFailed
+	var p coreiface.Path
+
+	for res := range results {
+		p, err = res.Path, res.Err
+		if err != nil {
+			break
+		}
+	}
+
+	return p, err
 }
 
 func keylookup(n *core.IpfsNode, k string) (crypto.PrivKey, error) {
