@@ -147,6 +147,10 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 			return nil, 0, err
 		}
 
+		if f.IsDirectory() {
+			return nil, 0, iface.ErrIsDir
+		}
+
 		file := f.(catFile)
 
 		fsize, err := file.Size()
