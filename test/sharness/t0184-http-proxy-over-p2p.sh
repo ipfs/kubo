@@ -38,7 +38,7 @@ function setup_receiver_ipfs() {
     #
     # start a p2p listener on RECIVER to the HTTP server with our content
     #
-    ipfs p2p listen /x/test /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT >> $RECEIVER_LOG 2>&1
+    ipfs p2p listen --allow-custom-protocol test /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT >> $RECEIVER_LOG 2>&1
 }
 
 
@@ -93,7 +93,7 @@ function curl_send_proxy_request_and_check_response() {
     #
     if [[ $STATUS_CODE -ne $expected_status_code ]];
     then
-        echo "Found status-code "$STATUS_CODE", expected "$expected_status_code
+        echo -e "Found status-code "$STATUS_CODE", expected "$expected_status_code
         return 1
     fi
 
@@ -120,7 +120,7 @@ teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
 setup_sender_and_receiver_ipfs &&
-curl_send_proxy_request_and_check_response 502 ""
+curl_send_proxy_request_and_check_response 404 ""
 '
 teardown_sender_and_receiver
 
@@ -139,7 +139,7 @@ teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
 setup_sender_and_receiver_ipfs &&
-curl_check_response_code 400 unknown_peer/test/index.txt
+curl_check_response_code 502 unknown_peer/test/index.txt
 '
 teardown_sender_and_receiver
 
