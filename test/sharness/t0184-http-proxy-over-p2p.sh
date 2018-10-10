@@ -64,6 +64,11 @@ function teardown_sender_and_receiver() {
     sleep 5
 }
 
+function teardown_remote_server() {
+    kill -9 $REMOTE_SERVER_PID > /dev/null 2>&1
+    sleep 5
+}
+
 function curl_check_response_code() {
     local expected_status_code=$1
     local path_stub=${2:-http/$RECEIVER_ID/test/index.txt}
@@ -117,10 +122,11 @@ setup_sender_and_receiver_ipfs &&
 curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
 '
 teardown_sender_and_receiver
+teardown_remote_server
 
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
 setup_sender_and_receiver_ipfs &&
-curl_send_proxy_request_and_check_response 404 ""
+curl_send_proxy_request_and_check_response 502 ""
 '
 teardown_sender_and_receiver
 
