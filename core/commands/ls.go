@@ -172,6 +172,7 @@ The JSON output contains type information.
 					case cid.Raw:
 						// No need to check with raw leaves
 						t = unixfs.TFile
+						size = link.Size
 					case cid.DagProtobuf:
 						linkNode, err := link.GetNode(req.Context(), dserv)
 						if err == ipld.ErrNotFound && !resolve {
@@ -182,9 +183,9 @@ The JSON output contains type information.
 							return
 						}
 
-						t = fsn.Type()
 						if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
 							fsn, err := unixfs.FSNodeFromBytes(pn.Data())
+							t = fsn.Type()
 							if err != nil {
 								res.SetError(err, cmdkit.ErrNormal)
 								return
