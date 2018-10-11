@@ -215,4 +215,47 @@ test_expect_success "GET compact blocks succeeds" '
 
 test_kill_ipfs_daemon
 
+GWPORT=32563
+test_expect_success "set up iptb testbed" '
+  iptb testbed create -type localipfs -count 2 -force -init &&
+  ipfsi 0 config Addresses.Gateway /ip4/127.0.0.1/tcp/$GWPORT
+'
+
+test_expect_success "set FetchBlocks to false in config of node 0" '
+  ipfsi 0 config --bool=true Gateway.FetchBlocks false
+'
+
+test_expect_success "start ipfs nodes" 'iptb start -wait &&
+  iptb connect 0 1
+'
+
+test_expect_success "try fetching not present key from node 0" '
+  echo "hi" | ipfsi 1 add -Q > hi.hash &&
+  test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipfs/$(cat hi.hash)"
+'
+
+test_expect_success "try fetching present key from from node 0" '
+  echo "hi" | ipfsi 0 add -Q --pin=false > hi.hash &&
+  PORT1=$(ipfs config Addresses.Gateway | cut -d/ -f 5) &&
+  curl -f "http://127.0.0.1:$GWPORT/ipfs/$(cat hi.hash)"
+'
+
+test_expect_success "try publishing present key via IPNS" '
+  ipfsi 1 key gen gwtestkey --type=ed25519 > gwtestkey.id &&
+  ipfsi 1 name publish --key=gwtestkey /ipfs/$(cat hi.hash)
+'
+
+test_expect_success "try retrieving present key via IPNS" '
+  curl -f "http://127.0.0.1:$GWPORT/ipns/$(cat gwtestkey.id)"
+'
+
+test_expect_success "try retrieving non-present key via IPNS" '
+  ipfsi 0 block rm $(cat hi.hash)
+  test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipns/$(cat gwtestkey.id)"
+'
+
+test_expect_success "stop testbed" '
+  iptb stop
+'
+
 test_done
