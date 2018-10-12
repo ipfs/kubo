@@ -23,18 +23,18 @@ import (
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo"
 
-	unixfs "gx/ipfs/QmNWmxWDZjv1dMUvz3sgThydJfeNUxxXaaZptF6E9b59vQ/go-unixfs"
+	mocknet "gx/ipfs/QmPL3AKtiaQyYpchZceXBZhZ3MSnoGqJvLZrc7fzDTTQdJ/go-libp2p/p2p/net/mock"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	unixfs "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs"
 	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
 	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
-	cbor "gx/ipfs/QmSywXfm2v4Qkp4DcFqo8eehj49dJK3bdUnaLVxrdFLMQn/go-ipld-cbor"
-	mdag "gx/ipfs/QmTpyXP1bsqJvyW5VcNmALPCb47VPJFy2T8icGASNy4ML1/go-merkledag"
+	mdag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
 	pstore "gx/ipfs/QmWtCpWB39Rzc2xTB75MKorsxNpo3TyecTEN24CJ3KVohE/go-libp2p-peerstore"
+	cbor "gx/ipfs/Qma8k32hzB25pgmdTPQr2DCa2DT2v7yCyGadMiYVKF1pyH/go-ipld-cbor"
 	datastore "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
 	syncds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/sync"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
-	mocknet "gx/ipfs/QmcmNfbQznhk66ipFiaRHmZU8DVpvDKFfHrRo9q5wsHzZP/go-libp2p/p2p/net/mock"
 )
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"

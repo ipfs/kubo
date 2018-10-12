@@ -13,17 +13,17 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	ft "gx/ipfs/QmNWmxWDZjv1dMUvz3sgThydJfeNUxxXaaZptF6E9b59vQ/go-unixfs"
-	dag "gx/ipfs/QmTpyXP1bsqJvyW5VcNmALPCb47VPJFy2T8icGASNy4ML1/go-merkledag"
-	path "gx/ipfs/QmTy6VoHV2E5baEFDXbp1xmHhxSVff5qTSrTsoXxD1eB2P/go-path"
+	ft "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs"
+	dag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
+	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	fuse "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse"
 	fs "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs"
-	mfs "gx/ipfs/QmTBRw8S3NqcrCi3gAPuDa3o76DP6TzcxWz5iwHnHag493/go-mfs"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	mfs "gx/ipfs/Qmbs19iFfAxmYfjrHib6G2eJCczoNZ3GQED6CDxmhc2dn2/go-mfs"
 )
 
 func init() {
