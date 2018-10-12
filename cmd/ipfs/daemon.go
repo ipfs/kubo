@@ -461,13 +461,15 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		corehttp.MutexFractionOption("/debug/pprof-mutex/"),
 		corehttp.MetricsScrapingOption("/debug/metrics/prometheus"),
 		corehttp.LogOption(),
-		corehttp.ProxyOption(),
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
 	}
 
+	if cfg.Experimental.P2pHttpProxy {
+		opts = append(opts, corehttp.ProxyOption())
+	}
 	node, err := cctx.ConstructNode()
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)

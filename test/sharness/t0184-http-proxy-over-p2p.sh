@@ -51,6 +51,7 @@ function setup_sender_ipfs() {
     SENDER_LOG=$IPFS_PATH/ipfs.log
     ipfs init >> $SENDER_LOG 2>&1
     ipfs config --json Experimental.Libp2pStreamMounting true >> $SENDER_LOG 2>&1
+    ipfs config --json Experimental.P2pHttpProxy true >> $RECEIVER_LOG 2>&1
     ipfs daemon >> $SENDER_LOG 2>&1 &
     SENDER_PID=$!
     sleep 5
