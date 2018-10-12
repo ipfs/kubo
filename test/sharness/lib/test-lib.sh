@@ -405,13 +405,13 @@ directory_size() {
     find "$1" -type f | ( while read fname; do
         fsize=$(file_size "$fname")
         res=$?
-        if ! test $? -eq 0; then
+        if ! test $res -eq 0; then
             echo "failed to get filesize" >&2
             return $res
         fi
         total=$(expr "$total" + "$fsize")
         res=$?
-        if ! test $? -eq 0; then
+        if ! test $res -eq 0; then
             echo "filesize not a number: $fsize" >&2
             return $res
         fi
