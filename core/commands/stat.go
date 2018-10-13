@@ -142,7 +142,7 @@ Example:
 			select {
 			case <-time.After(interval):
 			case <-req.Context.Done():
-				break
+				return nil
 			}
 		}
 	},
