@@ -25,15 +25,6 @@ func resolve(ctx context.Context, r resolver, name string, options *opts.Resolve
 		}
 		log.Debugf("resolved %s to %s", name, p.String())
 
-		if strings.HasPrefix(p.String(), "/ipfs/") {
-			// we've bottomed out with an IPFS path
-			return p, nil
-		}
-
-		if depth == 1 {
-			return p, ErrResolveRecursion
-		}
-
 		matched := false
 		for _, prefix := range prefixes {
 			if strings.HasPrefix(p.String(), prefix) {
@@ -45,10 +36,17 @@ func resolve(ctx context.Context, r resolver, name string, options *opts.Resolve
 			}
 		}
 
+		// Not something we can resolve, return it.
 		if !matched {
 			return p, nil
 		}
 
+		// No more depth left, return it.
+		if depth == 1 {
+			return p, ErrResolveRecursion
+		}
+
+		// Depth could be 0.
 		if depth > 1 {
 			depth--
 		}
