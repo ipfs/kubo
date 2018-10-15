@@ -134,13 +134,14 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 }
 
 func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (coreiface.UnixfsFile, error) {
-	nd, err := api.core().ResolveNode(ctx, p)
+	ses := api.core().getSession(ctx)
+
+	nd, err := ses.ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	ses := dag.NewReadOnlyDagService(dag.NewSession(ctx, api.node.DAG))
-	return newUnixfsFile(ctx, ses, nd, "", nil)
+	return newUnixfsFile(ctx, ses.dag, nd, "", nil)
 }
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
@@ -173,6 +174,6 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*ipld.Link, e
 	return links, nil
 }
 
-func (api *UnixfsAPI) core() coreiface.CoreAPI {
+func (api *UnixfsAPI) core() *CoreAPI {
 	return (*CoreAPI)(api)
 }
