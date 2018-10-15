@@ -406,6 +406,9 @@ directory_size() {
         fsize=$(file_size "$fname")
         res=$?
         if ! test $res -eq 0; then
+            if ! test -e "$fname"; then
+                continue;
+            fi
             echo "failed to get filesize" >&2
             return $res
         fi
