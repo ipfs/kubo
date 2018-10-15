@@ -270,7 +270,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		} else {
 			name = getFilename(urlPath)
 		}
-		i.serveFile(w, r, name, modtime, dr.(io.ReadSeeker))
+		i.serveFile(w, r, name, modtime, dr)
 		return
 	}
 
@@ -305,7 +305,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		defer dr.Close()
 
 		// write to request
-		http.ServeContent(w, r, "index.html", modtime, dr.(io.ReadSeeker))
+		http.ServeContent(w, r, "index.html", modtime, dr)
 		return
 	default:
 		internalWebError(w, err)

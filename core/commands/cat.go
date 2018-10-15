@@ -6,11 +6,10 @@ import (
 	"io"
 	"os"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	cmds "gx/ipfs/QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1/go-ipfs-cmds"
-	"gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -124,12 +123,6 @@ var CatCmd = &cmds.Command{
 	},
 }
 
-type catFile interface {
-	files.SizeFile
-
-	io.Seeker
-}
-
 func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, max int64) ([]io.Reader, uint64, error) {
 	readers := make([]io.Reader, 0, len(paths))
 	length := uint64(0)
@@ -142,16 +135,14 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 			return nil, 0, err
 		}
 
-		f, err := api.Unixfs().Get(ctx, fpath)
+		file, err := api.Unixfs().Get(ctx, fpath)
 		if err != nil {
 			return nil, 0, err
 		}
 
-		if f.IsDirectory() {
+		if file.IsDirectory() {
 			return nil, 0, iface.ErrIsDir
 		}
-
-		file := f.(catFile)
 
 		fsize, err := file.Size()
 		if err != nil {
