@@ -16,12 +16,25 @@ func collectPaths(prefix string, cmd *cmds.Command, out map[string]struct{}) {
 }
 
 func TestROCommands(t *testing.T) {
-	list := []string{
-		"/cat",
-		"/ls",
+	whitelist := []string{
+		"ls",
+		"cat",
+		"dag", // only included for the check afterwards
+		"dag/resolve",
+		"dag/get",
 	}
 
-	root, err := RootSubset([]string{"ls", "cat"})
+	list := func() []string {
+		out := make([]string, len(whitelist))
+
+		for i, line := range whitelist {
+			out[i] = "/" + line
+		}
+
+		return out
+	}()
+
+	root, err := RootSubset(whitelist)
 	if err != nil {
 		t.Errorf("RootSubset error: %s", err)
 	}
@@ -52,6 +65,7 @@ func TestROCommands(t *testing.T) {
 		}
 	}
 }
+
 func TestCommands(t *testing.T) {
 	list := []string{
 		"/add",
