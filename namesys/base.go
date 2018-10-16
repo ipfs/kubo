@@ -1,12 +1,12 @@
 package namesys
 
 import (
+	"context"
 	"strings"
 	"time"
 
-	context "context"
-
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
+
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
 )
 
@@ -40,13 +40,10 @@ func resolve(ctx context.Context, r resolver, name string, options opts.ResolveO
 	return p, err
 }
 
-//TODO:
-// - better error handling
-// - select on writes
 func resolveAsync(ctx context.Context, r resolver, name string, options opts.ResolveOpts, prefix string) <-chan Result {
 	resCh := r.resolveOnceAsync(ctx, name, options)
 	depth := options.Depth
-	outCh := make(chan Result)
+	outCh := make(chan Result, 1)
 
 	go func() {
 		defer close(outCh)
@@ -97,8 +94,13 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 					break
 				}
 
-				outCh <- res
+				select {
+				case outCh <- res:
+				case <-ctx.Done():
+					return
+				}
 			case <-ctx.Done():
+				return
 			}
 			if resCh == nil && subCh == nil {
 				return

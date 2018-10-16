@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
+
 	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
 )

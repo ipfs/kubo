@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	routing "gx/ipfs/QmPmFeQ5oY5G6M7aBWggi5phxEPXwsQntE1DFcUzETULdp/go-libp2p-routing"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
@@ -138,10 +139,21 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 
 				// Attach rest of the path
 				if len(segments) > 3 {
-					p, _ = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+					p, err := path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+					if err != nil {
+						select {
+						case out <- onceResult{value: p, err: err}:
+						case <-ctx.Done():
+						}
+						return
+					}
 				}
 
-				out <- onceResult{value: p, err: res.err}
+				select {
+				case out <- onceResult{value: p, ttl: res.ttl, err: res.err}:
+				case <-ctx.Done():
+					return
+				}
 			case <-ctx.Done():
 				return
 			}

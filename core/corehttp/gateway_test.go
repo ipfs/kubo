@@ -62,7 +62,7 @@ func (m mockNamesys) ResolveAsync(ctx context.Context, name string, opts ...nsop
 	v, err := m.Resolve(ctx, name, opts...)
 	out <- namesys.Result{Path: v, Err: err}
 	close(out)
-	return nil
+	return out
 }
 
 func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
