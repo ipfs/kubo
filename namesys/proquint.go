@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	proquint "gx/ipfs/QmYnf27kzqR2cxt6LFZdrAFJuQd6785fTkBvMuEj9EeRxM/proquint"
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 )
 
 type ProquintResolver struct{}
 
 // Resolve implements Resolver.
 func (r *ProquintResolver) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
-	return resolve(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
+	return resolve(ctx, r, name, opts.ProcessOpts(options))
 }
 
 // resolveOnce implements resolver. Decodes the proquint string.

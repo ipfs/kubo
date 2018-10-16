@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	testutil "gx/ipfs/QmNfQbgBfARAtrYsBguChX6VJ5nbjeoYy1KdC36aaYWqG8/go-testutil"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
@@ -57,7 +58,7 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Resolve entry
-	resp, err := resolve(ctx, resolver, id.Pretty(), opts.DefaultResolveOpts(), "/ipns/")
+	resp, err := resolve(ctx, resolver, id.Pretty(), opts.DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +78,7 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Record should fail validation because entry is expired
-	_, err = resolve(ctx, resolver, id.Pretty(), opts.DefaultResolveOpts(), "/ipns/")
+	_, err = resolve(ctx, resolver, id.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have returned error")
 	}
@@ -99,7 +100,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key defined by
 	// ipns path doesn't match record signature
-	_, err = resolve(ctx, resolver, id2.Pretty(), opts.DefaultResolveOpts(), "/ipns/")
+	_, err = resolve(ctx, resolver, id2.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed signature verification")
 	}
@@ -117,7 +118,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key is not available
 	// in peer store or on network
-	_, err = resolve(ctx, resolver, id3.Pretty(), opts.DefaultResolveOpts(), "/ipns/")
+	_, err = resolve(ctx, resolver, id3.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed because public key was not found")
 	}
@@ -132,7 +133,7 @@ func TestResolverValidation(t *testing.T) {
 	// public key is available in the peer store by looking it up in
 	// the DHT, which causes the DHT to fetch it and cache it in the
 	// peer store
-	_, err = resolve(ctx, resolver, id3.Pretty(), opts.DefaultResolveOpts(), "/ipns/")
+	_, err = resolve(ctx, resolver, id3.Pretty(), opts.DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}

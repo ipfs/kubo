@@ -40,7 +40,7 @@ type NameAPI interface {
 	// Search is a version of Resolve which outputs paths as they are discovered,
 	// reducing the time to first entry
 	//
-	// Note that by default only the last path returned before the channel closes
-	// can be considered 'safe'.
+	// Note: by default, all paths read from the channel are considered unsafe,
+	// except the latest (last path in channel read buffer).
 	Search(ctx context.Context, name string, opts ...options.NameResolveOption) (<-chan IpnsResult, error)
 }

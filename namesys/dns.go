@@ -28,12 +28,12 @@ func NewDNSResolver() *DNSResolver {
 
 // Resolve implements Resolver.
 func (r *DNSResolver) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
-	return resolve(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
+	return resolve(ctx, r, name, opts.ProcessOpts(options))
 }
 
 // ResolveAsync implements Resolver.
 func (r *DNSResolver) ResolveAsync(ctx context.Context, name string, options ...opts.ResolveOpt) <-chan Result {
-	return resolveAsync(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
+	return resolveAsync(ctx, r, name, opts.ProcessOpts(options))
 }
 
 type lookupRes struct {

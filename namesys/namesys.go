@@ -62,7 +62,7 @@ func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.Resolv
 		return path.ParsePath("/ipfs/" + name)
 	}
 
-	return resolve(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
+	return resolve(ctx, ns, name, opts.ProcessOpts(options))
 }
 
 func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.ResolveOpt) <-chan Result {
@@ -79,7 +79,7 @@ func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.R
 		return res
 	}
 
-	return resolveAsync(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
+	return resolveAsync(ctx, ns, name, opts.ProcessOpts(options))
 }
 
 // resolveOnce implements resolver.

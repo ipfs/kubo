@@ -21,14 +21,14 @@ type resolver interface {
 }
 
 // resolve is a helper for implementing Resolver.ResolveN using resolveOnce.
-func resolve(ctx context.Context, r resolver, name string, options opts.ResolveOpts, prefix string) (path.Path, error) {
+func resolve(ctx context.Context, r resolver, name string, options opts.ResolveOpts) (path.Path, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	err := ErrResolveFailed
 	var p path.Path
 
-	resCh := resolveAsync(ctx, r, name, options, prefix)
+	resCh := resolveAsync(ctx, r, name, options)
 
 	for res := range resCh {
 		p, err = res.Path, res.Err
@@ -40,7 +40,7 @@ func resolve(ctx context.Context, r resolver, name string, options opts.ResolveO
 	return p, err
 }
 
-func resolveAsync(ctx context.Context, r resolver, name string, options opts.ResolveOpts, prefix string) <-chan Result {
+func resolveAsync(ctx context.Context, r resolver, name string, options opts.ResolveOpts) <-chan Result {
 	resCh := r.resolveOnceAsync(ctx, name, options)
 	depth := options.Depth
 	outCh := make(chan Result, 1)
@@ -86,8 +86,8 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 				subCtx, cancelSub = context.WithCancel(ctx)
 				defer cancelSub()
 
-				p := strings.TrimPrefix(res.value.String(), prefix)
-				subCh = resolveAsync(subCtx, r, p, subopts, prefix)
+				p := strings.TrimPrefix(res.value.String(), ipnsPrefix)
+				subCh = resolveAsync(subCtx, r, p, subopts)
 			case res, ok := <-subCh:
 				if !ok {
 					subCh = nil

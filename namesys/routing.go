@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	routing "gx/ipfs/QmPmFeQ5oY5G6M7aBWggi5phxEPXwsQntE1DFcUzETULdp/go-libp2p-routing"
@@ -39,12 +40,12 @@ func NewIpnsResolver(route routing.ValueStore) *IpnsResolver {
 
 // Resolve implements Resolver.
 func (r *IpnsResolver) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
-	return resolve(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
+	return resolve(ctx, r, name, opts.ProcessOpts(options))
 }
 
 // ResolveAsync implements Resolver.
 func (r *IpnsResolver) ResolveAsync(ctx context.Context, name string, options ...opts.ResolveOpt) <-chan Result {
-	return resolveAsync(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
+	return resolveAsync(ctx, r, name, opts.ProcessOpts(options))
 }
 
 // resolveOnce implements resolver. Uses the IPFS routing system to
