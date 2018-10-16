@@ -49,6 +49,11 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 		defer close(outCh)
 		var subCh <-chan Result
 		var cancelSub context.CancelFunc
+		defer func() {
+			if cancelSub != nil {
+				cancelSub()
+			}
+		}()
 
 		for {
 			select {
@@ -59,20 +64,17 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 				}
 
 				if res.err != nil {
-					outCh <- Result{Err: res.err}
-					if cancelSub != nil {
-						cancelSub()
-					}
+					emitResult(ctx, outCh, Result{Err: res.err})
 					return
 				}
 				log.Debugf("resolved %s to %s", name, res.value.String())
 				if !strings.HasPrefix(res.value.String(), ipnsPrefix) {
-					outCh <- Result{Path: res.value}
+					emitResult(ctx, outCh, Result{Path: res.value})
 					break
 				}
 
 				if depth == 1 {
-					outCh <- Result{Path: res.value, Err: ErrResolveRecursion}
+					emitResult(ctx, outCh, Result{Path: res.value, Err: ErrResolveRecursion})
 					break
 				}
 
@@ -87,6 +89,7 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 					cancelSub()
 				}
 				subCtx, cancelSub = context.WithCancel(ctx)
+				_ = cancelSub
 
 				p := strings.TrimPrefix(res.value.String(), ipnsPrefix)
 				subCh = resolveAsync(subCtx, r, p, subopts)
@@ -96,27 +99,21 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 					break
 				}
 
-				select {
-				case outCh <- res:
-				case <-ctx.Done():
-					if cancelSub != nil {
-						cancelSub()
-					}
-					return
-				}
+				emitResult(ctx, outCh, res)
 			case <-ctx.Done():
-				if cancelSub != nil {
-					cancelSub()
-				}
 				return
 			}
 			if resCh == nil && subCh == nil {
-				if cancelSub != nil {
-					cancelSub()
-				}
 				return
 			}
 		}
 	}()
 	return outCh
+}
+
+func emitResult(ctx context.Context, outCh chan<- Result, r Result) {
+	select {
+	case outCh <- r:
+	case <-ctx.Done():
+	}
 }

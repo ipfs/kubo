@@ -112,10 +112,7 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 				err = proto.Unmarshal(val, entry)
 				if err != nil {
 					log.Debugf("RoutingResolver: could not unmarshal value for name %s: %s", name, err)
-					select {
-					case out <- onceResult{err: err}:
-					case <-ctx.Done():
-					}
+					emitOnceResult(ctx, out, onceResult{err: err})
 					return
 				}
 
@@ -129,10 +126,7 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 					// Not a multihash, probably a new style record
 					p, err = path.ParsePath(string(entry.GetValue()))
 					if err != nil {
-						select {
-						case out <- onceResult{err: err}:
-						case <-ctx.Done():
-						}
+						emitOnceResult(ctx, out, onceResult{err: err})
 						return
 					}
 				}
@@ -154,17 +148,11 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 					}
 				default:
 					log.Errorf("encountered error when parsing EOL: %s", err)
-					select {
-					case out <- onceResult{err: err}:
-					case <-ctx.Done():
-					}
+					emitOnceResult(ctx, out, onceResult{err: err})
 					return
 				}
 
-				select {
-				case out <- onceResult{value: p, ttl: ttl}:
-				case <-ctx.Done():
-				}
+				emitOnceResult(ctx, out, onceResult{value: p, ttl: ttl})
 			case <-ctx.Done():
 				return
 			}

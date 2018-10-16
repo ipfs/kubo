@@ -141,19 +141,11 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 				if len(segments) > 3 {
 					p, err := path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
 					if err != nil {
-						select {
-						case out <- onceResult{value: p, err: err}:
-						case <-ctx.Done():
-						}
-						return
+						emitOnceResult(ctx, out, onceResult{value: p, ttl: res.ttl, err: err})
 					}
 				}
 
-				select {
-				case out <- onceResult{value: p, ttl: res.ttl, err: res.err}:
-				case <-ctx.Done():
-					return
-				}
+				emitOnceResult(ctx, out, onceResult{value: p, ttl: res.ttl, err: res.err})
 			case <-ctx.Done():
 				return
 			}
@@ -161,6 +153,13 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 	}()
 
 	return out
+}
+
+func emitOnceResult(ctx context.Context, outCh chan<- onceResult, r onceResult) {
+	select {
+	case outCh <- r:
+	case <-ctx.Done():
+	}
 }
 
 // Publish implements Publisher

@@ -80,10 +80,7 @@ func (r *DNSResolver) resolveOnceAsync(ctx context.Context, name string, options
 				}
 				if subRes.error == nil {
 					p, err := appendPath(subRes.path)
-					select {
-					case out <- onceResult{value: p, err: err}:
-					case <-ctx.Done():
-					}
+					emitOnceResult(ctx, out, onceResult{value: p, err: err})
 					return
 				}
 			case rootRes, ok := <-rootChan:
@@ -93,10 +90,7 @@ func (r *DNSResolver) resolveOnceAsync(ctx context.Context, name string, options
 				}
 				if rootRes.error == nil {
 					p, err := appendPath(rootRes.path)
-					select {
-					case out <- onceResult{value: p, err: err}:
-					case <-ctx.Done():
-					}
+					emitOnceResult(ctx, out, onceResult{value: p, err: err})
 				}
 			case <-ctx.Done():
 				return
