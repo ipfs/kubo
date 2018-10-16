@@ -60,6 +60,9 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 
 				if res.err != nil {
 					outCh <- Result{Err: res.err}
+					if cancelSub != nil {
+						cancelSub()
+					}
 					return
 				}
 				log.Debugf("resolved %s to %s", name, res.value.String())
@@ -79,12 +82,11 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 				}
 
 				var subCtx context.Context
-				if subCh != nil {
+				if cancelSub != nil {
 					// Cancel previous recursive resolve since it won't be used anyways
 					cancelSub()
 				}
 				subCtx, cancelSub = context.WithCancel(ctx)
-				defer cancelSub()
 
 				p := strings.TrimPrefix(res.value.String(), ipnsPrefix)
 				subCh = resolveAsync(subCtx, r, p, subopts)
@@ -97,12 +99,21 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 				select {
 				case outCh <- res:
 				case <-ctx.Done():
+					if cancelSub != nil {
+						cancelSub()
+					}
 					return
 				}
 			case <-ctx.Done():
+				if cancelSub != nil {
+					cancelSub()
+				}
 				return
 			}
 			if resCh == nil && subCh == nil {
+				if cancelSub != nil {
+					cancelSub()
+				}
 				return
 			}
 		}

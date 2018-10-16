@@ -86,8 +86,8 @@ func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.R
 func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
 	out := make(chan onceResult, 1)
 
-	if !strings.HasPrefix(name, "/ipns/") {
-		name = "/ipns/" + name
+	if !strings.HasPrefix(name, ipnsPrefix) {
+		name = ipnsPrefix + name
 	}
 	segments := strings.SplitN(name, "/", 4)
 	if len(segments) < 3 || segments[0] != "" {
