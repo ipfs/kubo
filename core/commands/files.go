@@ -479,7 +479,7 @@ Examples:
 			return
 		case *mfs.File:
 			_, name := gopath.Split(path)
-			out := &filesLsOutput{[]mfs.NodeListing{mfs.NodeListing{Name: name}}}
+			out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
 			if long {
 				out.Entries[0].Type = int(fsn.Type())
 
@@ -527,6 +527,9 @@ Examples:
 			long, _, _ := res.Request().Option(longOptionName).Bool()
 			for _, o := range out.Entries {
 				if long {
+					if o.Type == int(mfs.TDir) {
+						o.Name += "/"
+					}
 					fmt.Fprintf(buf, "%s\t%s\t%d\n", o.Name, o.Hash, o.Size)
 				} else {
 					fmt.Fprintf(buf, "%s\n", o.Name)
