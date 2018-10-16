@@ -114,6 +114,27 @@ test_expect_success "publish an explicit node ID as key name looks good" '
   test_cmp expected_node_id_publish actual_node_id_publish
 '
 
+# test IPNS + IPLD
+test_expect_success "'ipfs dag put' succeeds" '
+  HELLO_HASH="$(echo "\"hello world\"" | ipfs dag put)" &&
+  OBJECT_HASH="$(echo "{\"thing\": {\"/\": \"${HELLO_HASH}\" }}" | ipfs dag put)"
+'
+test_expect_success "'ipfs name publish --allow-offline /ipld/...' succeeds" '
+  PEERID=`ipfs id --format="<id>"` &&
+  test_check_peerid "${PEERID}" &&
+  ipfs name publish --allow-offline "/ipld/$OBJECT_HASH/thing" >publish_out
+'
+test_expect_success "publish a path looks good" '
+  echo "Published to ${PEERID}: /ipld/$OBJECT_HASH/thing" >expected3 &&
+  test_cmp expected3 publish_out
+'
+test_expect_success "'ipfs name resolve' succeeds" '
+  ipfs name resolve "$PEERID" >output
+'
+test_expect_success "resolve output looks good" '
+  printf "/ipld/%s/thing\n" "$OBJECT_HASH" >expected4 &&
+  test_cmp expected4 output
+'
 
 # test publishing nothing
 

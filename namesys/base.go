@@ -63,7 +63,7 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 					return
 				}
 				log.Debugf("resolved %s to %s", name, res.value.String())
-				if strings.HasPrefix(res.value.String(), "/ipfs/") {
+				if !strings.HasPrefix(res.value.String(), ipnsPrefix) {
 					outCh <- Result{Path: res.value}
 					break
 				}
