@@ -12,9 +12,9 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/filestore"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
+	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmVy9gWXWJB8GrQG85Sq7hCknC6ANqZjJCZkRo8Y6sk5tx/go-ipfs-cmds"
 )
 
 var FileStoreCmd = &cmds.Command{

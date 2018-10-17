@@ -9,10 +9,10 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	tar "github.com/ipfs/go-ipfs/tar"
-	dag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
-	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+	dag "github.com/ipfs/go-merkledag"
+	path "github.com/ipfs/go-path"
 
-	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmdkit"
 )
 
 var TarCmd = &cmds.Command{

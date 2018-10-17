@@ -8,10 +8,10 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 
-	"gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	"gx/ipfs/QmSb4B8ZAAj5ALe9LjfzPyF8Ma6ezC1NTnDF2JQPUJxEXb/go-libp2p-record"
-	"gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
-	"gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-record"
+	"gx/ipfs/QmVy9gWXWJB8GrQG85Sq7hCknC6ANqZjJCZkRo8Y6sk5tx/go-ipfs-cmds"
 )
 
 type ipnsPubsubState struct {

@@ -8,14 +8,14 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	balanced "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs/importer/trickle"
-	cmdkit "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit"
-	chunk "gx/ipfs/QmTUTG9Jg9ZRA1EzTPGTDvnwfcfKhDMnqANnP9fe4rSjMR/go-ipfs-chunker"
-	cmds "gx/ipfs/QmXTmUCBtDUrzDYVzASogLiNph7EBuYqEgPL7QoHNMzUnz/go-ipfs-cmds"
+	cid "github.com/ipfs/go-cid"
+	chunk "github.com/ipfs/go-ipfs-chunker"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	mh "github.com/multiformats/go-multihash"
+	cmds "gx/ipfs/QmVy9gWXWJB8GrQG85Sq7hCknC6ANqZjJCZkRo8Y6sk5tx/go-ipfs-cmds"
+	balanced "gx/ipfs/QmZMVjyWaNCo3Ec44Ce2BcboNuGiQZiJdwW2D3pzwsJdRd/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmZMVjyWaNCo3Ec44Ce2BcboNuGiQZiJdwW2D3pzwsJdRd/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmZMVjyWaNCo3Ec44Ce2BcboNuGiQZiJdwW2D3pzwsJdRd/go-unixfs/importer/trickle"
 )
 
 var urlStoreCmd = &cmds.Command{

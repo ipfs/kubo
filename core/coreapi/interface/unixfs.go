@@ -5,8 +5,8 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	files "gx/ipfs/QmSP88ryZkHSRn1fnngAaV2Vcn63WUJzAavnRM9CVdU1Ky/go-ipfs-cmdkit/files"
-	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
+	files "gx/ipfs/QmPPTbdBVPWgSwtDzL4ftVc5E3TH32oUtnov3RFNwbEoR4/go-ipfs-files"
 )
 
 // TODO: ideas on making this more coreapi-ish without breaking the http API?
