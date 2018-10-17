@@ -9,8 +9,8 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	blocks "gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
-	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	blocks "github.com/ipfs/go-block-format"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 func TestDhtFindPeer(t *testing.T) {
