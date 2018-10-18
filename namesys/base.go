@@ -99,6 +99,8 @@ func resolveAsync(ctx context.Context, r resolver, name string, options opts.Res
 					break
 				}
 
+				// We don't bother returning here in case of context timeout as there is
+				// no good reason to do that, and we may still be able to emit a result
 				emitResult(ctx, outCh, res)
 			case <-ctx.Done():
 				return
