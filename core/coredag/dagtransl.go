@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // DagParser is function used for parsing stream into Node

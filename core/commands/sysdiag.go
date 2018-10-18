@@ -8,9 +8,9 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	cmds "github.com/ipfs/go-ipfs/commands"
 
-	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
-	sysi "gx/ipfs/QmZRjKbHa6DenStpQJFiaPcEwkZqrx7TH6xTf342LDU3qM/go-sysinfo"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	manet "github.com/multiformats/go-multiaddr-net"
+	sysi "github.com/whyrusleeping/go-sysinfo"
 )
 
 var sysDiagCmd = &cmds.Command{

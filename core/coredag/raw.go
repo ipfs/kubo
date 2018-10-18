@@ -5,12 +5,12 @@ import (
 	"io/ioutil"
 	"math"
 
-	"gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
+	"github.com/ipfs/go-merkledag"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	block "gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
-	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	block "github.com/ipfs/go-block-format"
+	cid "github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
+	mh "github.com/multiformats/go-multihash"
 )
 
 func rawRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {

@@ -18,15 +18,15 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
-	util "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	measure "gx/ipfs/QmQS6UXi1R87y9nEgnCNmG6YfMzvBSLir7xUheMNFP3hoe/go-ds-measure"
-	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
-	serialize "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config/serialize"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
-	lockfile "gx/ipfs/Qmc4w3gm2TqoEbTYjpPs5FXP8DEB6cuvZWPy6bUTKiht7a/go-fs-lock"
-	homedir "gx/ipfs/QmdcULN1WCzgoQmcCaUAmEhwcxHYsDrbZ2LvRJKCL8dMrK/go-homedir"
+	ds "github.com/ipfs/go-datastore"
+	measure "github.com/ipfs/go-ds-measure"
+	lockfile "github.com/ipfs/go-fs-lock"
+	config "github.com/ipfs/go-ipfs-config"
+	serialize "github.com/ipfs/go-ipfs-config/serialize"
+	util "github.com/ipfs/go-ipfs-util"
+	logging "github.com/ipfs/go-log"
+	homedir "github.com/mitchellh/go-homedir"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // LockFile is the filename of the repo lock, relative to config dir

@@ -10,14 +10,14 @@ import (
 
 	repo "github.com/ipfs/go-ipfs/repo"
 
-	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	measure "gx/ipfs/QmQS6UXi1R87y9nEgnCNmG6YfMzvBSLir7xUheMNFP3hoe/go-ds-measure"
-	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
-	mount "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/mount"
-	badgerds "gx/ipfs/QmaixNkKwtinV3umL5VD1VDD5CQjnZhXY31awM2YHTzbui/go-ds-badger"
-	ldbopts "gx/ipfs/QmbBhyDKsY4mbY6xsKt3qu9Y7FPvMJ6qbD8AMjYYvPRw1g/goleveldb/leveldb/opt"
-	flatfs "gx/ipfs/QmbYQHTSz4Sg4Y2Vyd7hftGgM1yXwSUBKb47VpoPRuP5Nc/go-ds-flatfs"
-	levelds "gx/ipfs/QmccqjKZUTqp4ikWNyAbjBuP5HEdqSqRuAr9mcEhYab54a/go-ds-leveldb"
+	humanize "github.com/dustin/go-humanize"
+	ds "github.com/ipfs/go-datastore"
+	mount "github.com/ipfs/go-datastore/mount"
+	badgerds "github.com/ipfs/go-ds-badger"
+	flatfs "github.com/ipfs/go-ds-flatfs"
+	levelds "github.com/ipfs/go-ds-leveldb"
+	measure "github.com/ipfs/go-ds-measure"
+	ldbopts "github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 // ConfigFromMap creates a new datastore config from a map

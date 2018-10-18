@@ -9,13 +9,13 @@ import (
 	"os"
 	"path/filepath"
 
+	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	uio "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs/io"
+	uio "github.com/ipfs/go-unixfs/io"
 
 	// this import keeps gx from thinking the dep isn't used
-	_ "gx/ipfs/QmdZ4PvPHFQVLLEve7DgoKDcSY19wwpGBB1GKjjKi2rEL1/dir-index-html"
+	_ "github.com/ipfs/dir-index-html"
 )
 
 // initDocPaths lists the paths for the docs we want to seed during --init

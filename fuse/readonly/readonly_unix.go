@@ -11,16 +11,16 @@ import (
 	"syscall"
 
 	core "github.com/ipfs/go-ipfs/core"
-	mdag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
-	ft "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs"
-	uio "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs/io"
-	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+	mdag "github.com/ipfs/go-merkledag"
+	path "github.com/ipfs/go-path"
+	ft "github.com/ipfs/go-unixfs"
+	uio "github.com/ipfs/go-unixfs/io"
 
-	lgbl "gx/ipfs/QmNLzS18jsmwTxXewTm3YnZVLftWCeegNZEBFjMrnvnBrH/go-libp2p-loggables"
-	fuse "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse"
-	fs "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
+	fuse "bazil.org/fuse"
+	fs "bazil.org/fuse/fs"
+	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
+	lgbl "github.com/libp2p/go-libp2p-loggables"
 )
 
 var log = logging.Logger("fuse/ipfs")

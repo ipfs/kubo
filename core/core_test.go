@@ -7,9 +7,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 
-	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
-	datastore "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
-	syncds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/sync"
+	datastore "github.com/ipfs/go-datastore"
+	syncds "github.com/ipfs/go-datastore/sync"
+	config "github.com/ipfs/go-ipfs-config"
 )
 
 func TestInitialization(t *testing.T) {

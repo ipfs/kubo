@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"io"
 
+	bitswap "github.com/ipfs/go-bitswap"
+	decision "github.com/ipfs/go-bitswap/decision"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	bitswap "gx/ipfs/QmXBT58TaD2CJThpHy4xkxC1xsW4hXWBGZuKMepwjuzJ5B/go-bitswap"
-	decision "gx/ipfs/QmXBT58TaD2CJThpHy4xkxC1xsW4hXWBGZuKMepwjuzJ5B/go-bitswap/decision"
 
-	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cmds "gx/ipfs/QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1/go-ipfs-cmds"
-	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"github.com/dustin/go-humanize"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 var BitswapCmd = &cmds.Command{
