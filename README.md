@@ -391,6 +391,16 @@ Some places to get you started on the codebase:
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
   - PubSub: https://github.com/libp2p/go-floodsub
 
+### Development Dependencies
+
+Before beginning developement, you'll need to run `make deps`. This will fetch
+all required build tools and run `gx-go rw` to rewrite all paths to use GX.
+Please *don't* commit these rewritten paths when making PRs. Instead, run `gx-go
+rw --fix` before committing.
+
+If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
+
+
 ### CLI, HTTP-API, Architecture Diagram
 
 ![](./docs/cli-http-api-core-diagram.png)
@@ -404,10 +414,6 @@ Description: Dotted means "likely going away". The "Legacy" parts are thin wrapp
 ```
 make test
 ```
-
-### Development Dependencies
-
-If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
 
 ### Developer Notes
 
