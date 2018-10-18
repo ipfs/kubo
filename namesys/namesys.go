@@ -53,15 +53,15 @@ const DefaultResolverCacheTTL = time.Minute
 
 // Resolve implements Resolver.
 func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
-	if strings.HasPrefix(name, "/ipfs/") {
-		return path.ParsePath(name)
+	if strings.HasPrefix(name, "/ipns/") {
+		return resolve(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
 	}
-
 	if !strings.HasPrefix(name, "/") {
 		return path.ParsePath("/ipfs/" + name)
 	}
+	// TODO: Forbid this case.
+	return path.ParsePath("/ipfs/" + name)
 
-	return resolve(ctx, ns, name, opts.ProcessOpts(options), "/ipns/")
 }
 
 // resolveOnce implements resolver.
