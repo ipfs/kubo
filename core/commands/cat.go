@@ -29,8 +29,8 @@ var CatCmd = &cmds.Command{
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption(offsetOptionName, "o", "Byte offset to begin reading from."),
-		cmdkit.IntOption(lengthOptionName, "l", "Maximum number of bytes to read."),
+		cmdkit.Int64Option(offsetOptionName, "o", "Byte offset to begin reading from."),
+		cmdkit.Int64Option(lengthOptionName, "l", "Maximum number of bytes to read."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
@@ -49,12 +49,12 @@ var CatCmd = &cmds.Command{
 			}
 		}
 
-		offset, _ := req.Options[offsetOptionName].(int)
+		offset, _ := req.Options[offsetOptionName].(int64)
 		if offset < 0 {
 			return fmt.Errorf("cannot specify negative offset")
 		}
 
-		max, found := req.Options[lengthOptionName].(int)
+		max, found := req.Options[lengthOptionName].(int64)
 		if err != nil {
 			return err
 		}
