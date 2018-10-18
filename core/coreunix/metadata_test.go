@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	core "github.com/ipfs/go-ipfs/core"
-	ft "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs"
-	importer "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs/importer"
-	uio "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs/io"
 	bserv "gx/ipfs/QmSU7Nx5eUHWkc9zCTiXDu3ZkdXAZdRgRGRaKM86VjGU4m/go-blockservice"
 	merkledag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
+	ft "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs"
+	importer "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs/importer"
+	uio "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs/io"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"

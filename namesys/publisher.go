@@ -7,7 +7,7 @@ import (
 	"time"
 
 	pin "github.com/ipfs/go-ipfs/pin"
-	ft "gx/ipfs/QmRX6WZhMinQrQhyuwaqNHYQtNPhtBwzxKFySzNMaJmW9v/go-unixfs"
+	ft "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs"
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
 
 	routing "gx/ipfs/QmPmFeQ5oY5G6M7aBWggi5phxEPXwsQntE1DFcUzETULdp/go-libp2p-routing"
