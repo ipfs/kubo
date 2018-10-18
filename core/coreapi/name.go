@@ -12,11 +12,11 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/namesys"
-	ipath "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
 
 	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmQ9PR61a8rwEFuFNs7JMA1QtQC9yZnBwoDn51JWXDbaTd/go-ipfs-routing/offline"
 	"gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	ipath "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
 )
 
 type NameAPI CoreAPI
@@ -89,9 +89,7 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 	}, nil
 }
 
-// Resolve attempts to resolve the newest version of the specified name and
-// returns its path.
-func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (coreiface.Path, error) {
+func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.NameResolveOption) (<-chan coreiface.IpnsResult, error) {
 	options, err := caopts.NameResolveOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -125,12 +123,42 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		name = "/ipns/" + name
 	}
 
-	output, err := resolver.Resolve(ctx, name, options.ResolveOpts...)
+	out := make(chan coreiface.IpnsResult)
+	go func() {
+		defer close(out)
+		for res := range resolver.ResolveAsync(ctx, name, options.ResolveOpts...) {
+			p, _ := coreiface.ParsePath(res.Path.String())
+
+			select {
+			case out <- coreiface.IpnsResult{Path: p, Err: res.Err}:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return out, nil
+}
+
+// Resolve attempts to resolve the newest version of the specified name and
+// returns its path.
+func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (coreiface.Path, error) {
+	results, err := api.Search(ctx, name, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	return coreiface.ParsePath(output.String())
+	err = coreiface.ErrResolveFailed
+	var p coreiface.Path
+
+	for res := range results {
+		p, err = res.Path, res.Err
+		if err != nil {
+			break
+		}
+	}
+
+	return p, err
 }
 
 func keylookup(n *core.IpfsNode, k string) (crypto.PrivKey, error) {

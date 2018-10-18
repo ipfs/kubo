@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
 	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+
+	opts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	routing "gx/ipfs/QmPmFeQ5oY5G6M7aBWggi5phxEPXwsQntE1DFcUzETULdp/go-libp2p-routing"
@@ -39,27 +40,34 @@ func NewIpnsResolver(route routing.ValueStore) *IpnsResolver {
 
 // Resolve implements Resolver.
 func (r *IpnsResolver) Resolve(ctx context.Context, name string, options ...opts.ResolveOpt) (path.Path, error) {
-	return resolve(ctx, r, name, opts.ProcessOpts(options), "/ipns/")
+	return resolve(ctx, r, name, opts.ProcessOpts(options))
+}
+
+// ResolveAsync implements Resolver.
+func (r *IpnsResolver) ResolveAsync(ctx context.Context, name string, options ...opts.ResolveOpt) <-chan Result {
+	return resolveAsync(ctx, r, name, opts.ProcessOpts(options))
 }
 
 // resolveOnce implements resolver. Uses the IPFS routing system to
 // resolve SFS-like names.
-func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *opts.ResolveOpts) (path.Path, time.Duration, error) {
+func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+	out := make(chan onceResult, 1)
 	log.Debugf("RoutingResolver resolving %s", name)
+	cancel := func() {}
 
 	if options.DhtTimeout != 0 {
 		// Resolution must complete within the timeout
-		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, options.DhtTimeout)
-		defer cancel()
 	}
 
 	name = strings.TrimPrefix(name, "/ipns/")
 	pid, err := peer.IDB58Decode(name)
 	if err != nil {
-		// name should be a multihash. if it isn't, error out here.
-		log.Debugf("RoutingResolver: IPNS address not a valid peer ID: [%s]\n", name)
-		return "", 0, err
+		log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", name, err)
+		out <- onceResult{err: err}
+		close(out)
+		cancel()
+		return out
 	}
 
 	// Name should be the hash of a public key retrievable from ipfs.
@@ -70,59 +78,86 @@ func (r *IpnsResolver) resolveOnce(ctx context.Context, name string, options *op
 	_, err = routing.GetPublicKey(r.routing, ctx, pid)
 	if err != nil {
 		log.Debugf("RoutingResolver: could not retrieve public key %s: %s\n", name, err)
-		return "", 0, err
+		out <- onceResult{err: err}
+		close(out)
+		cancel()
+		return out
 	}
 
 	// Use the routing system to get the name.
 	// Note that the DHT will call the ipns validator when retrieving
 	// the value, which in turn verifies the ipns record signature
 	ipnsKey := ipns.RecordKey(pid)
-	val, err := r.routing.GetValue(ctx, ipnsKey, dht.Quorum(int(options.DhtRecordCount)))
+
+	vals, err := r.routing.SearchValue(ctx, ipnsKey, dht.Quorum(int(options.DhtRecordCount)))
 	if err != nil {
 		log.Debugf("RoutingResolver: dht get for name %s failed: %s", name, err)
-		return "", 0, err
+		out <- onceResult{err: err}
+		close(out)
+		cancel()
+		return out
 	}
 
-	entry := new(pb.IpnsEntry)
-	err = proto.Unmarshal(val, entry)
-	if err != nil {
-		log.Debugf("RoutingResolver: could not unmarshal value for name %s: %s", name, err)
-		return "", 0, err
-	}
+	go func() {
+		defer cancel()
+		defer close(out)
+		for {
+			select {
+			case val, ok := <-vals:
+				if !ok {
+					return
+				}
 
-	var p path.Path
-	// check for old style record:
-	if valh, err := mh.Cast(entry.GetValue()); err == nil {
-		// Its an old style multihash record
-		log.Debugf("encountered CIDv0 ipns entry: %s", valh)
-		p = path.FromCid(cid.NewCidV0(valh))
-	} else {
-		// Not a multihash, probably a new record
-		p, err = path.ParsePath(string(entry.GetValue()))
-		if err != nil {
-			return "", 0, err
+				entry := new(pb.IpnsEntry)
+				err = proto.Unmarshal(val, entry)
+				if err != nil {
+					log.Debugf("RoutingResolver: could not unmarshal value for name %s: %s", name, err)
+					emitOnceResult(ctx, out, onceResult{err: err})
+					return
+				}
+
+				var p path.Path
+				// check for old style record:
+				if valh, err := mh.Cast(entry.GetValue()); err == nil {
+					// Its an old style multihash record
+					log.Debugf("encountered CIDv0 ipns entry: %s", valh)
+					p = path.FromCid(cid.NewCidV0(valh))
+				} else {
+					// Not a multihash, probably a new style record
+					p, err = path.ParsePath(string(entry.GetValue()))
+					if err != nil {
+						emitOnceResult(ctx, out, onceResult{err: err})
+						return
+					}
+				}
+
+				ttl := DefaultResolverCacheTTL
+				if entry.Ttl != nil {
+					ttl = time.Duration(*entry.Ttl)
+				}
+				switch eol, err := ipns.GetEOL(entry); err {
+				case ipns.ErrUnrecognizedValidity:
+					// No EOL.
+				case nil:
+					ttEol := eol.Sub(time.Now())
+					if ttEol < 0 {
+						// It *was* valid when we first resolved it.
+						ttl = 0
+					} else if ttEol < ttl {
+						ttl = ttEol
+					}
+				default:
+					log.Errorf("encountered error when parsing EOL: %s", err)
+					emitOnceResult(ctx, out, onceResult{err: err})
+					return
+				}
+
+				emitOnceResult(ctx, out, onceResult{value: p, ttl: ttl})
+			case <-ctx.Done():
+				return
+			}
 		}
-	}
+	}()
 
-	ttl := DefaultResolverCacheTTL
-	if entry.Ttl != nil {
-		ttl = time.Duration(*entry.Ttl)
-	}
-	switch eol, err := ipns.GetEOL(entry); err {
-	case ipns.ErrUnrecognizedValidity:
-		// No EOL.
-	case nil:
-		ttEol := eol.Sub(time.Now())
-		if ttEol < 0 {
-			// It *was* valid when we first resolved it.
-			ttl = 0
-		} else if ttEol < ttl {
-			ttl = ttEol
-		}
-	default:
-		log.Errorf("encountered error when parsing EOL: %s", err)
-		return "", 0, err
-	}
-
-	return p, ttl, nil
+	return out
 }

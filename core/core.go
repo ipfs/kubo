@@ -523,8 +523,8 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 			n.RecordValidator,
 		)
 		n.Routing = rhelpers.Tiered{
-			// Always check pubsub first.
 			Routers: []routing.IpfsRouting{
+				// Always check pubsub first.
 				&rhelpers.Compose{
 					ValueStore: &rhelpers.LimitedValueStore{
 						ValueStore: n.PSRouter,
@@ -533,6 +533,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 				},
 				n.Routing,
 			},
+			Validator: n.RecordValidator,
 		}
 	}
 

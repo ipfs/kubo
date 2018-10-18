@@ -29,6 +29,7 @@ const (
 	nocacheOptionName        = "nocache"
 	dhtRecordCountOptionName = "dht-record-count"
 	dhtTimeoutOptionName     = "dht-timeout"
+	streamOptionName         = "stream"
 )
 
 var IpnsCmd = &cmds.Command{
@@ -77,6 +78,7 @@ Resolve the value of a dnslink:
 		cmdkit.BoolOption(nocacheOptionName, "n", "Do not use cached entries."),
 		cmdkit.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
 		cmdkit.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
+		cmdkit.BoolOption(streamOptionName, "s", "Stream entries as they are found."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
@@ -101,6 +103,7 @@ Resolve the value of a dnslink:
 		recursive, _ := req.Options[recursiveOptionName].(bool)
 		rc, rcok := req.Options[dhtRecordCountOptionName].(int)
 		dhtt, dhttok := req.Options[dhtTimeoutOptionName].(string)
+		stream, _ := req.Options[streamOptionName].(bool)
 
 		opts := []options.NameResolveOption{
 			options.Name.Local(local),
@@ -128,12 +131,31 @@ Resolve the value of a dnslink:
 			name = "/ipns/" + name
 		}
 
-		output, err := api.Name().Resolve(req.Context, name, opts...)
+		if !stream {
+			output, err := api.Name().Resolve(req.Context, name, opts...)
+			if err != nil {
+				return err
+			}
+
+			return cmds.EmitOnce(res, &ResolvedPath{path.FromString(output.String())})
+		}
+
+		output, err := api.Name().Search(req.Context, name, opts...)
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &ResolvedPath{path.FromString(output.String())})
+		for v := range output {
+			if v.Err != nil {
+				return err
+			}
+			if err := res.Emit(&ResolvedPath{path.FromString(v.Path.String())}); err != nil {
+				return err
+			}
+
+		}
+
+		return nil
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
