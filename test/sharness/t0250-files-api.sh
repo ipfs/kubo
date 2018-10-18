@@ -260,6 +260,13 @@ test_files_api() {
     verify_dir_contents /cats/this/is/a/dir
   '
 
+  test_expect_success "dir has correct name" '
+    DIR_HASH=$(ipfs files stat /cats/this --hash) &&
+    echo "this/	$DIR_HASH	0" > ls_dir_expected &&
+    ipfs files ls -l /cats | grep this/ > ls_dir_actual &&
+    test_cmp ls_dir_expected ls_dir_actual
+  '
+
   test_expect_success "can copy file into new dir $EXTRA" '
     ipfs files cp /ipfs/$FILE3 /cats/this/is/a/dir/file3
   '
