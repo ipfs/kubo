@@ -18,6 +18,10 @@ bin/gx
 bin/gx*
 bin/tmp
 
+# remove gx-lock.json when we switch to this by default
+gx-lock.json
+.gx/cache
+
 
 vendor
 .tarball

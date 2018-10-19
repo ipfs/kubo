@@ -398,6 +398,10 @@ all required build tools and run `gx-go rw` to rewrite all paths to use GX.
 Please *don't* commit these rewritten paths when making PRs. Instead, run `gx-go
 rw --fix` before committing.
 
+Alternatively, you can use the experimental gx "lockfile" support. To do this,
+run `make lock && make deps`. The advantage is that *this* won't run `gx-go rw`.
+The disadvantage is that builds won't include re-written paths.
+
 If you make changes to the protocol buffers, you will need to install the [protoc compiler](https://github.com/google/protobuf).
 
 

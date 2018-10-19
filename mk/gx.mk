@@ -1,9 +1,17 @@
 gx-path = gx/ipfs/$(shell gx deps find $(1))/$(1)
 
-gx-deps:
+# Rebuild the lockfile iff it exists.
+gx-deps: $(wildcard gx-lock.json)
 	gx install --global
-	gx-go rw
+	if test -e gx-lock.json; then gx-go rw --fix && gx lock-install; else rm -rf vendor && gx-go rw; fi
+
 .PHONY: gx-deps
+
+lock: gx-lock.json
+.PHONY: lock
+
+gx-lock.json: package.json
+	gx-go lock-gen >gx-lock.json
 
 ifneq ($(IPFS_GX_USE_GLOBAL),1)
 gx-deps: bin/gx bin/gx-go
