@@ -2,8 +2,7 @@ gx-path = gx/ipfs/$(shell gx deps find $(1))/$(1)
 
 # Rebuild the lockfile iff it exists.
 gx-deps: $(wildcard gx-lock.json)
-	gx install --global
-	if test -e gx-lock.json; then gx-go rw --fix && gx lock-install; else rm -rf vendor && gx-go rw; fi
+	if test -e gx-lock.json; then gx-go rw --undo && gx lock-install; else rm -rf vendor && gx install --global && gx-go rw; fi
 
 .PHONY: gx-deps
 
