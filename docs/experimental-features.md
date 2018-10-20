@@ -457,6 +457,7 @@ You should now see the resulting http response: IPFS rocks!
 
 ### Road to being a real feature
 - [ ] Needs p2p streams to graduate from experiments
+- [ ] Decide how to handle protocol names with /'s in them
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
 
