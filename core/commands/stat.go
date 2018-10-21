@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -39,6 +40,9 @@ const (
 	statPollOptionName     = "poll"
 	statIntervalOptionName = "interval"
 )
+
+// for `--poll` flag in `ipfs stat bw`
+var once sync.Once
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -147,35 +151,31 @@ Example:
 		}
 	},
 	Type: metrics.Stats{},
-	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			polling, _ := res.Request().Options[statPollOptionName].(bool)
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+			polling, _ := req.Options[statPollOptionName].(bool)
 
 			if polling {
-				fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")
+				// print only once in `--poll` flag
+				once.Do(func() {
+					fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")
+				})
 			}
-			for {
-				v, err := res.Next()
-				if err != nil {
-					if err == io.EOF {
-						return nil
-					}
-					return err
-				}
 
-				bs := v.(*metrics.Stats)
+			bs := v.(*metrics.Stats)
 
-				if !polling {
-					printStats(os.Stdout, bs)
-					return nil
-				}
-
-				fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
-				fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
-				fmt.Fprintf(os.Stdout, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
-				fmt.Fprintf(os.Stdout, "%8s/s      \r", humanize.Bytes(uint64(bs.RateIn)))
+			if !polling {
+				printStats(os.Stdout, bs)
+				return nil
 			}
-		},
+
+			fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
+			fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
+			fmt.Fprintf(os.Stdout, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
+			fmt.Fprintf(os.Stdout, "%8s/s      \r", humanize.Bytes(uint64(bs.RateIn)))
+
+			return nil
+		}),
 	},
 }
 
