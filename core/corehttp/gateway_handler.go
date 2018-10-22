@@ -179,16 +179,14 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	}
 
 	dr, err := i.api.Unixfs().Get(ctx, resolvedPath)
-	dir := false
-	switch {
-	case err == nil:
-		dir = dr.IsDirectory()
-		if !dir {
-			defer dr.Close()
-		}
-	default:
+	if err != nil {
 		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
+	}
+
+	dir := dr.IsDirectory()
+	if !dir {
+		defer dr.Close()
 	}
 
 	// Check etag send back to us
