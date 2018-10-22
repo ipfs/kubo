@@ -1,5 +1,5 @@
 [Unit]
-description=ipfs p2p daemon
+Description=ipfs p2p daemon
 After=network.target
 Requires=network.target
 
@@ -22,10 +22,10 @@ ExecStartPre=-adduser --system --group --home /var/lib/ipfs ipfs
 ExecStartPre=-mkdir /var/lib/ipfs
 ExecStartPre=-/bin/chown ipfs:ipfs /var/lib/ipfs
 ExecStartPre=-/bin/chmod u+rwx /var/lib/ipfs
-ExecStartPre=-chpst -u ipfs /usr/local/bin/ipfs init --profile=badgerds
-ExecStartPre=-chpst -u ipfs /usr/local/bin/ipfs config profile apply server
-ExecStartPre=-chpst -u ipfs /usr/local/bin/ipfs config Datastore.StorageMax "4000GB"
-ExecStart=/usr/local/bin/ipfs daemon --enable-namesys-pubsub --enable-pubsub-experiment --migrate=true
+ExecStartPre=-chpst -u ipfs /usr/bin/env ipfs init --profile=badgerds
+ExecStartPre=-chpst -u ipfs /usr/bin/env ipfs config profile apply server
+ExecStartPre=-chpst -u ipfs /usr/bin/env ipfs config Datastore.StorageMax "4000GB"
+ExecStart=/usr/bin/env ipfs daemon --enable-namesys-pubsub --enable-pubsub-experiment --migrate=true
 
 [Install]
 WantedBy=multi-user.target
