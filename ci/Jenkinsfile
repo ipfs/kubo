@@ -128,6 +128,13 @@ ansiColor('xterm') { withEnv(['TERM=xterm-color']) {
             run 'test -z "$(./bin/gx deps dupes)"'
           }
         }
+      },
+      'check for gx paths': {
+        setupStep('linux') { run ->
+          timeout(time: check_timeout, unit: 'MINUTES') {
+            run 'make test_gx_imports'
+          }
+        }
       }
     )
   }

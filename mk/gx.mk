@@ -17,6 +17,9 @@ gx-deps: bin/gx bin/gx-go
 endif
 .PHONY: gx-deps
 
+test_gx_imports:
+	bin/test-gx-imports
+
 ifeq ($(tarball-is),0)
 DEPS_GO += gx-deps
 endif

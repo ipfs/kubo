@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+T="$(mktemp)"
+if go list -f '{{ join .Deps "\n" }}' ./... | grep '^gx/ipfs/' >"$T"; then
+	echo "Go-ipfs has the following gx-imports"
+	echo "-----------------------------------"
+	cat "$T"
+	echo "-----------------------------------"
+	echo "Run 'gx-go rw --fix' in your source directory"
+	rm -f "$T"
+	exit 1
+fi
+rm -f "$T"
