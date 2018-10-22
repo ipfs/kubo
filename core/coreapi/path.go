@@ -9,7 +9,6 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	dag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
 	uio "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs/io"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	ipfspath "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
@@ -24,7 +23,7 @@ func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (ipld.Nod
 		return nil, err
 	}
 
-	node, err := api.node.DAG.Get(ctx, rp.Cid())
+	node, err := api.dag.Get(ctx, rp.Cid())
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 	}
 
 	r := &resolver.Resolver{
-		DAG:         api.node.DAG,
+		DAG:         api.dag,
 		ResolveOnce: resolveOnce,
 	}
 
@@ -73,9 +72,4 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 	}
 
 	return coreiface.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
-}
-
-func (api *CoreAPI) getSession(ctx context.Context) *CoreAPI {
-	ng := dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
-	return &CoreAPI{api.node, ng}
 }
