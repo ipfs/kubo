@@ -2,6 +2,7 @@ package iface
 
 import (
 	"context"
+	"io"
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
@@ -17,6 +18,11 @@ type AddEvent struct {
 	Size  string `json:",omitempty"`
 }
 
+type UnixfsFile interface {
+	files.SizeFile
+	io.Seeker
+}
+
 // UnixfsAPI is the basic interface to immutable files in IPFS
 // NOTE: This API is heavily WIP, things are guaranteed to break frequently
 type UnixfsAPI interface {
@@ -29,11 +35,7 @@ type UnixfsAPI interface {
 	//
 	// Note that some implementations of this API may apply the specified context
 	// to operations performed on the returned file
-	Get(context.Context, Path) (files.File, error)
-
-	// Cat returns a reader for the file
-	// TODO: Remove in favour of Get (if we use Get on a file we still have reader directly, so..)
-	Cat(context.Context, Path) (Reader, error)
+	Get(context.Context, Path) (UnixfsFile, error)
 
 	// Ls returns the list of links in a directory
 	Ls(context.Context, Path) ([]*ipld.Link, error)

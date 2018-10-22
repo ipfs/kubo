@@ -14,21 +14,26 @@ Interfaces here aren't yet completely stable.
 package coreapi
 
 import (
+	"context"
+
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
+	dag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 )
 
 var log = logging.Logger("core/coreapi")
 
 type CoreAPI struct {
 	node *core.IpfsNode
+	dag  ipld.DAGService
 }
 
 // NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node.
 func NewCoreAPI(n *core.IpfsNode) coreiface.CoreAPI {
-	api := &CoreAPI{n}
+	api := &CoreAPI{n, n.DAG}
 	return api
 }
 
@@ -80,4 +85,10 @@ func (api *CoreAPI) Swarm() coreiface.SwarmAPI {
 // PubSub returns the PubSubAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 	return (*PubSubAPI)(api)
+}
+
+// getSession returns new api backed by the same node with a read-only session DAG
+func (api *CoreAPI) getSession(ctx context.Context) *CoreAPI {
+	ng := dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
+	return &CoreAPI{api.node, ng}
 }

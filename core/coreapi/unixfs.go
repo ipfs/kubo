@@ -133,31 +133,15 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
 
-func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.File, error) {
-	nd, err := api.core().ResolveNode(ctx, p)
+func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (coreiface.UnixfsFile, error) {
+	ses := api.core().getSession(ctx)
+
+	nd, err := ses.ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	return newUnixfsFile(ctx, api.node.DAG, nd, "", nil)
-}
-
-// Cat returns the data contained by an IPFS or IPNS object(s) at path `p`.
-func (api *UnixfsAPI) Cat(ctx context.Context, p coreiface.Path) (coreiface.Reader, error) {
-	dget := api.node.DAG // TODO: use a session here once routing perf issues are resolved
-
-	dagnode, err := api.core().ResolveNode(ctx, p)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := uio.NewDagReader(ctx, dagnode, dget)
-	if err == uio.ErrIsDir {
-		return nil, coreiface.ErrIsDir
-	} else if err != nil {
-		return nil, err
-	}
-	return r, nil
+	return newUnixfsFile(ctx, ses.dag, nd, "", nil)
 }
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
@@ -169,7 +153,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*ipld.Link, e
 	}
 
 	var ndlinks []*ipld.Link
-	dir, err := uio.NewDirectoryFromNode(api.node.DAG, dagnode)
+	dir, err := uio.NewDirectoryFromNode(api.dag, dagnode)
 	switch err {
 	case nil:
 		l, err := dir.Links(ctx)
@@ -190,6 +174,6 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*ipld.Link, e
 	return links, nil
 }
 
-func (api *UnixfsAPI) core() coreiface.CoreAPI {
+func (api *UnixfsAPI) core() *CoreAPI {
 	return (*CoreAPI)(api)
 }
