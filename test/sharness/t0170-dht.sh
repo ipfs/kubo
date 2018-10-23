@@ -12,14 +12,14 @@ test_dht() {
 
   test_expect_success 'init iptb' '
     rm -rf .iptb/ &&
-    iptb init -n $NUM_NODES --bootstrap=none --port=0
+    iptb testbed create -type localipfs -count $NUM_NODES -init
   '
 
-  startup_cluster $NUM_NODES "$@"
+  startup_cluster $NUM_NODES $@
 
   test_expect_success 'peer ids' '
-    PEERID_0=$(iptb get id 0) &&
-    PEERID_2=$(iptb get id 2)
+    PEERID_0=$(iptb attr get 0 id) &&
+    PEERID_2=$(iptb attr get 2 id)
   '
   
   # ipfs dht findpeer <peerID>
@@ -70,7 +70,7 @@ test_dht() {
   # ipfs dht findprovs <key>
   test_expect_success 'findprovs' '
     ipfsi 4 dht findprovs $HASH > provs &&
-    iptb get id 3 > expected &&
+    iptb attr get 3 id > expected &&
     test_cmp provs expected
   '
   

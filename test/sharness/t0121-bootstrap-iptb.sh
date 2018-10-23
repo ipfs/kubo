@@ -18,11 +18,11 @@ test_expect_success "disable mdns" '
 test_launch_ipfs_daemon
 
 test_expect_success "setup iptb nodes" '
-  iptb init -n 5 -f --bootstrap=none --port=0
+  iptb testbed create -type localipfs -count 5 -force -init
 '
 
 test_expect_success "start up iptb nodes" '
-  iptb start
+  iptb start -wait
 '
 
 test_expect_success "check peers works" '
@@ -38,11 +38,11 @@ betterwait() {
 }
 
 test_expect_success "bring down iptb nodes" '
-  PID0=$(cat "$IPTB_ROOT/0/daemon.pid") &&
-  PID1=$(cat "$IPTB_ROOT/1/daemon.pid") &&
-  PID2=$(cat "$IPTB_ROOT/2/daemon.pid") &&
-  PID3=$(cat "$IPTB_ROOT/3/daemon.pid") &&
-  PID4=$(cat "$IPTB_ROOT/4/daemon.pid") &&
+  PID0=$(cat "$IPTB_ROOT/benches/default/0/daemon.pid") &&
+  PID1=$(cat "$IPTB_ROOT/benches/default/1/daemon.pid") &&
+  PID2=$(cat "$IPTB_ROOT/benches/default/2/daemon.pid") &&
+  PID3=$(cat "$IPTB_ROOT/benches/default/3/daemon.pid") &&
+  PID4=$(cat "$IPTB_ROOT/benches/default/4/daemon.pid") &&
   iptb stop && # TODO: add --wait flag to iptb stop
   betterwait $PID0
   betterwait $PID1
@@ -53,7 +53,7 @@ test_expect_success "bring down iptb nodes" '
 
 test_expect_success "reset iptb nodes" '
   # the api doesnt seem to get cleaned up in sharness tests for some reason
-  iptb init -n 5 -f --bootstrap=none --port=0
+  iptb testbed create -type localipfs -count 5 -force -init
 '
 
 test_expect_success "set bootstrap addrs" '
@@ -67,7 +67,7 @@ test_expect_success "set bootstrap addrs" '
 '
 
 test_expect_success "start up iptb nodes" '
-  iptb start --wait
+  iptb start -wait
 '
 
 test_expect_success "check peers works" '

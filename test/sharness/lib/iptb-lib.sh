@@ -8,7 +8,7 @@ export IPTB_ROOT="$(pwd)/.iptb"
 ipfsi() {
   dir="$1"
   shift
-  IPFS_PATH="$IPTB_ROOT/$dir" ipfs "$@"
+  IPFS_PATH="$IPTB_ROOT/testbeds/default/$dir" ipfs "$@"
 }
 
 check_has_connection() {
@@ -21,7 +21,7 @@ iptb() {
     if ! command iptb "$@"; then
         case "$1" in
             start|stop|connect)
-                test_fsh command iptb logs '*'
+                test_fsh command iptb logs
                 ;;
         esac
         return 1
@@ -36,11 +36,11 @@ startup_cluster() {
 
   if test -n "$other_args"; then
     test_expect_success "start up nodes with additional args" "
-      iptb start --args \"${other_args[@]}\"
+      iptb start -wait -- ${other_args[@]}
     "
   else
     test_expect_success "start up nodes" '
-      iptb start
+      iptb start -wait
     '
   fi
 
@@ -58,7 +58,7 @@ startup_cluster() {
 }
 
 iptb_wait_stop() {
-    while ! iptb for-each sh -c '! { test -e "$IPFS_PATH/repo.lock" && fuser -f "$IPFS_PATH/repo.lock" >/dev/null; }'; do
+    while ! iptb run -- sh -c '! { test -e "$IPFS_PATH/repo.lock" && fuser -f "$IPFS_PATH/repo.lock" >/dev/null; }'; do
         go-sleep 10ms
     done
 }
