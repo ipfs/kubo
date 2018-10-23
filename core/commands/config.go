@@ -401,15 +401,18 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 	}
 	defer r.Close()
 
-	cfg, err := r.Config()
+	oldCfg, err := r.Config()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// make a copy to avoid updating repo's config unintentionally
-	oldCfg := *cfg
-	newCfg := oldCfg
-	err = transformer(&newCfg)
+	newCfg, err := oldCfg.Clone()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = transformer(newCfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -420,13 +423,13 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 			return nil, nil, err
 		}
 
-		err = r.SetConfig(&newCfg)
+		err = r.SetConfig(newCfg)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
-	return &oldCfg, &newCfg, nil
+	return oldCfg, newCfg, nil
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
