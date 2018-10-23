@@ -110,3 +110,19 @@ func ToMap(conf *Config) (map[string]interface{}, error) {
 	}
 	return m, nil
 }
+
+// Clone copies the config. Use when updating.
+func (c *Config) Clone() (*Config, error) {
+	var newConfig Config
+	var buf bytes.Buffer
+
+	if err := json.NewEncoder(&buf).Encode(c); err != nil {
+		return nil, fmt.Errorf("failure to encode config: %s", err)
+	}
+
+	if err := json.NewDecoder(&buf).Decode(&newConfig); err != nil {
+		return nil, fmt.Errorf("failure to decode config: %s", err)
+	}
+
+	return &newConfig, nil
+}
