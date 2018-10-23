@@ -31,7 +31,7 @@ type dagBatch struct {
 func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.ResolvedPath, error) {
 	nd, err := getNode(src, opts...)
 
-	err = api.node.DAG.Add(ctx, nd)
+	err = api.dag.Add(ctx, nd)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (b *dagBatch) Commit(ctx context.Context) error {
 		b.toPut = nil
 	}()
 
-	return b.api.node.DAG.AddMany(ctx, b.toPut)
+	return b.api.dag.AddMany(ctx, b.toPut)
 }
 
 func getNode(src io.Reader, opts ...caopts.DagPutOption) (ipld.Node, error) {

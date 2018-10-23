@@ -623,7 +623,7 @@ func TestAddHashOnly(t *testing.T) {
 	}
 }
 
-func TestCatEmptyFile(t *testing.T) {
+func TestGetEmptyFile(t *testing.T) {
 	ctx := context.Background()
 	node, api, err := makeAPI(ctx)
 	if err != nil {
@@ -640,7 +640,7 @@ func TestCatEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r, err := api.Unixfs().Cat(ctx, emptyFilePath)
+	r, err := api.Unixfs().Get(ctx, emptyFilePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -655,7 +655,7 @@ func TestCatEmptyFile(t *testing.T) {
 	}
 }
 
-func TestCatDir(t *testing.T) {
+func TestGetDir(t *testing.T) {
 	ctx := context.Background()
 	node, api, err := makeAPI(ctx)
 	if err != nil {
@@ -677,13 +677,18 @@ func TestCatDir(t *testing.T) {
 		t.Fatalf("expected path %s, got: %s", emptyDir.Cid(), p.String())
 	}
 
-	_, err = api.Unixfs().Cat(ctx, coreiface.IpfsPath(emptyDir.Cid()))
-	if err != coreiface.ErrIsDir {
+	r, err := api.Unixfs().Get(ctx, coreiface.IpfsPath(emptyDir.Cid()))
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = r.Read(make([]byte, 2))
+	if err != files.ErrNotReader {
 		t.Fatalf("expected ErrIsDir, got: %s", err)
 	}
 }
 
-func TestCatNonUnixfs(t *testing.T) {
+func TestGetNonUnixfs(t *testing.T) {
 	ctx := context.Background()
 	node, api, err := makeAPI(ctx)
 	if err != nil {
@@ -696,7 +701,7 @@ func TestCatNonUnixfs(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Unixfs().Cat(ctx, coreiface.IpfsPath(nd.Cid()))
+	_, err = api.Unixfs().Get(ctx, coreiface.IpfsPath(nd.Cid()))
 	if !strings.Contains(err.Error(), "proto: required field") {
 		t.Fatalf("expected protobuf error, got: %s", err)
 	}
@@ -713,7 +718,7 @@ func TestCatOffline(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = api.Unixfs().Cat(ctx, p)
+	_, err = api.Unixfs().Get(ctx, p)
 	if err != coreiface.ErrOffline {
 		t.Fatalf("expected ErrOffline, got: %s", err)
 	}
