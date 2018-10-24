@@ -124,9 +124,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmabWrc5aEQ36iWgJZonKgHpttvyDhHoWBoCtesuyMn9XF",
+      "hash": "QmRqtXHu5gsCLpf2s1R2jQuKJBowYKkg6FGQiGCbzttSd1",
       "name": "go-libp2p",
-      "version": "6.0.20"
+      "version": "6.0.22"
     },
     {
       "author": "whyrusleeping",
@@ -171,9 +171,9 @@
       "version": "0.2.0"
     },
     {
-      "hash": "QmRMohiAZU9231TVUydLJfyiiEmXRJYpGVLDarhsLy4FU3",
+      "hash": "QmVMa2b3qsZCWFSfpU7Q7ci57q3o8rQzfWdS8c1yqqL4US",
       "name": "go-libp2p-kad-dht",
-      "version": "4.4.9"
+      "version": "4.4.11"
     },
     {
       "author": "whyrusleeping",
@@ -488,33 +488,33 @@
     },
     {
       "author": "why",
-      "hash": "QmWGGyipL2oTT5SyqZs7TrbbNhHHQG7sf7wokgcRBEPhjD",
+      "hash": "QmctT2dR93JQxjVM5s45XM6sRWpYUauZpB35pBD6GYoWer",
       "name": "go-bitswap",
-      "version": "1.1.10"
-    },
-    {
-      "author": "why",
-      "hash": "QmTdoqcwpxSgzUSzX9ZGj6RFsZ28A5SLqsJRUgdFvGQbFC",
-      "name": "go-blockservice",
-      "version": "1.1.10"
-    },
-    {
-      "author": "why",
-      "hash": "QmY5xpETYHq3PPvaJnafyLWKqk5y7cZnUeBqLRtLUpEV3s",
-      "name": "go-merkledag",
-      "version": "1.1.10"
-    },
-    {
-      "author": "why",
-      "hash": "QmayGyPXjTt3cGzjCR3wb5HsHQX7LaJcWUbZemGDn6rKWq",
-      "name": "go-path",
-      "version": "1.1.10"
-    },
-    {
-      "author": "why",
-      "hash": "QmU7HFzvfEvimC6wJehti4rcEkvQhvtgo1koHhPN4TXav4",
-      "name": "go-unixfs",
       "version": "1.1.12"
+    },
+    {
+      "author": "why",
+      "hash": "QmbZbNRg1x28X9ayEG1ZgEuSXcryGPcdEtWN5k6sNz4aqz",
+      "name": "go-blockservice",
+      "version": "1.1.12"
+    },
+    {
+      "author": "why",
+      "hash": "QmcescwzzD86xrxoXNJ6VwSw46wLC91QzFDnozYRVf4KnX",
+      "name": "go-merkledag",
+      "version": "1.1.12"
+    },
+    {
+      "author": "why",
+      "hash": "QmQ4sKWqHhSYekzST5RwT4VHdQB4df6JWLHNy7tuWTo8uY",
+      "name": "go-path",
+      "version": "1.1.12"
+    },
+    {
+      "author": "why",
+      "hash": "QmeA7Cd6kMzQNDFzfXXhe64jX1XufcL8B79hwguu5v6ib9",
+      "name": "go-unixfs",
+      "version": "1.1.14"
     },
     {
       "author": "magik6k",
@@ -530,9 +530,9 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmXQsRn4ahTyRQymexcDkoUnDJizuz6ModHk9mtEFJexTC",
+      "hash": "QmcoscuUaw2N3zVzS2sPt1JFTCxoJjty9QioZdvY5pDRFX",
       "name": "go-mfs",
-      "version": "0.1.12"
+      "version": "0.1.14"
     },
     {
       "author": "kevina",

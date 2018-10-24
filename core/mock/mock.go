@@ -8,13 +8,13 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 
 	config "gx/ipfs/QmNUhkTWN7iynJZTj1RcTsQDSRGGkh87zMo9ELypxhY8Y6/go-ipfs-config"
+	libp2p "gx/ipfs/QmRqtXHu5gsCLpf2s1R2jQuKJBowYKkg6FGQiGCbzttSd1/go-libp2p"
+	mocknet "gx/ipfs/QmRqtXHu5gsCLpf2s1R2jQuKJBowYKkg6FGQiGCbzttSd1/go-libp2p/p2p/net/mock"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
 	testutil "gx/ipfs/Qma6ESRQTf1ZLPgzpCwDTqQJefPnU6uLvMjP18vK8EWp8L/go-testutil"
 	datastore "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
 	syncds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/sync"
-	libp2p "gx/ipfs/QmabWrc5aEQ36iWgJZonKgHpttvyDhHoWBoCtesuyMn9XF/go-libp2p"
-	mocknet "gx/ipfs/QmabWrc5aEQ36iWgJZonKgHpttvyDhHoWBoCtesuyMn9XF/go-libp2p/p2p/net/mock"
 	host "gx/ipfs/QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc/go-libp2p-host"
 )
 
