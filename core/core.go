@@ -241,16 +241,20 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	if !cfg.Swarm.DisableNatPortMap {
 		libp2pOpts = append(libp2pOpts, libp2p.NATPortMap())
 	}
-	if !cfg.Swarm.DisableRelay {
-		var opts []circuit.RelayOpt
-		if cfg.Swarm.EnableRelayHop {
-			opts = append(opts, circuit.OptHop)
-		}
-		libp2pOpts = append(libp2pOpts, libp2p.EnableRelay(opts...))
-	}
 
 	// disable the default listen addrs
 	libp2pOpts = append(libp2pOpts, libp2p.NoListenAddrs)
+
+	if cfg.Swarm.DisableRelay {
+		// Enabled by default.
+		libp2pOpts = append(libp2pOpts, libp2p.DisableRelay())
+	} else {
+		relayOpts := []circuit.RelayOpt{circuit.OptDiscovery}
+		if cfg.Swarm.EnableRelayHop {
+			relayOpts = append(relayOpts, circuit.OptHop)
+		}
+		libp2pOpts = append(libp2pOpts, libp2p.EnableRelay(relayOpts...))
+	}
 
 	// explicitly enable the default transports
 	libp2pOpts = append(libp2pOpts, libp2p.DefaultTransports)
