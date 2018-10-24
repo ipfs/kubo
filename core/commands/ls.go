@@ -11,12 +11,12 @@ import (
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	blockservice "gx/ipfs/QmSU7Nx5eUHWkc9zCTiXDu3ZkdXAZdRgRGRaKM86VjGU4m/go-blockservice"
 	offline "gx/ipfs/QmT6dHGp3UYd3vUMpy7rzX2CXQv7HLcj42Vtq8qwwjgASb/go-ipfs-exchange-offline"
-	merkledag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
-	unixfs "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs"
-	uio "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs/io"
-	unixfspb "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs/pb"
+	blockservice "gx/ipfs/QmTdoqcwpxSgzUSzX9ZGj6RFsZ28A5SLqsJRUgdFvGQbFC/go-blockservice"
+	unixfs "gx/ipfs/QmU7HFzvfEvimC6wJehti4rcEkvQhvtgo1koHhPN4TXav4/go-unixfs"
+	uio "gx/ipfs/QmU7HFzvfEvimC6wJehti4rcEkvQhvtgo1koHhPN4TXav4/go-unixfs/io"
+	unixfspb "gx/ipfs/QmU7HFzvfEvimC6wJehti4rcEkvQhvtgo1koHhPN4TXav4/go-unixfs/pb"
+	merkledag "gx/ipfs/QmY5xpETYHq3PPvaJnafyLWKqk5y7cZnUeBqLRtLUpEV3s/go-merkledag"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
