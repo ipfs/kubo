@@ -13,15 +13,15 @@ import (
 
 	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
 	offline "gx/ipfs/QmT6dHGp3UYd3vUMpy7rzX2CXQv7HLcj42Vtq8qwwjgASb/go-ipfs-exchange-offline"
+	ft "gx/ipfs/QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC/go-unixfs"
+	uio "gx/ipfs/QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC/go-unixfs/io"
+	blockservice "gx/ipfs/QmWfhv1D18DRSiSm73r4QGcByspzPtxxRTcmHW3axFXZo8/go-blockservice"
+	dag "gx/ipfs/QmY8BMUSpCwNiTmFhACmC9Bt1qT63cHP35AoQAus4x14qH/go-merkledag"
+	dagtest "gx/ipfs/QmY8BMUSpCwNiTmFhACmC9Bt1qT63cHP35AoQAus4x14qH/go-merkledag/test"
 	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
-	blockservice "gx/ipfs/QmbZbNRg1x28X9ayEG1ZgEuSXcryGPcdEtWN5k6sNz4aqz/go-blockservice"
 	bstore "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
-	dag "gx/ipfs/QmcescwzzD86xrxoXNJ6VwSw46wLC91QzFDnozYRVf4KnX/go-merkledag"
-	dagtest "gx/ipfs/QmcescwzzD86xrxoXNJ6VwSw46wLC91QzFDnozYRVf4KnX/go-merkledag/test"
-	mfs "gx/ipfs/QmcoscuUaw2N3zVzS2sPt1JFTCxoJjty9QioZdvY5pDRFX/go-mfs"
+	mfs "gx/ipfs/QmcctvPwYdaJvM4VefQnKAfU2ppSVfjpECvBVVEm18qk68/go-mfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
-	ft "gx/ipfs/QmeA7Cd6kMzQNDFzfXXhe64jX1XufcL8B79hwguu5v6ib9/go-unixfs"
-	uio "gx/ipfs/QmeA7Cd6kMzQNDFzfXXhe64jX1XufcL8B79hwguu5v6ib9/go-unixfs/io"
 )
 
 type UnixfsAPI CoreAPI

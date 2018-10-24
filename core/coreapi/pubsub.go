@@ -14,7 +14,7 @@ import (
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	pubsub "gx/ipfs/QmUM8nuPYryeLY2ENKz8oX566H6HE2EPNQ3SQxjnEw3bD4/go-libp2p-pubsub"
+	pubsub "gx/ipfs/QmZuwf2M6vSPpHh9KWp59HFq3kAibka77hAbKhxeb7uW3T/go-libp2p-pubsub"
 )
 
 type PubSubAPI CoreAPI

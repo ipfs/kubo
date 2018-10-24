@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	mdag "gx/ipfs/QmcescwzzD86xrxoXNJ6VwSw46wLC91QzFDnozYRVf4KnX/go-merkledag"
+	mdag "gx/ipfs/QmY8BMUSpCwNiTmFhACmC9Bt1qT63cHP35AoQAus4x14qH/go-merkledag"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"

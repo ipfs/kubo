@@ -23,13 +23,13 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	cmds "gx/ipfs/QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1/go-ipfs-cmds"
 	offline "gx/ipfs/QmT6dHGp3UYd3vUMpy7rzX2CXQv7HLcj42Vtq8qwwjgASb/go-ipfs-exchange-offline"
+	ft "gx/ipfs/QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC/go-unixfs"
+	bservice "gx/ipfs/QmWfhv1D18DRSiSm73r4QGcByspzPtxxRTcmHW3axFXZo8/go-blockservice"
+	dag "gx/ipfs/QmY8BMUSpCwNiTmFhACmC9Bt1qT63cHP35AoQAus4x14qH/go-merkledag"
 	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	bservice "gx/ipfs/QmbZbNRg1x28X9ayEG1ZgEuSXcryGPcdEtWN5k6sNz4aqz/go-blockservice"
-	dag "gx/ipfs/QmcescwzzD86xrxoXNJ6VwSw46wLC91QzFDnozYRVf4KnX/go-merkledag"
-	mfs "gx/ipfs/QmcoscuUaw2N3zVzS2sPt1JFTCxoJjty9QioZdvY5pDRFX/go-mfs"
+	mfs "gx/ipfs/QmcctvPwYdaJvM4VefQnKAfU2ppSVfjpECvBVVEm18qk68/go-mfs"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	ft "gx/ipfs/QmeA7Cd6kMzQNDFzfXXhe64jX1XufcL8B79hwguu5v6ib9/go-unixfs"
 )
 
 var flog = logging.Logger("cmds/files")
