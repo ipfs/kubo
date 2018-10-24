@@ -5,18 +5,34 @@ test_description="Test http proxy over p2p"
 . lib/test-lib.sh
 WEB_SERVE_PORT=5099
 
+function show_logs() {
+
+    echo "*****************"
+    echo "  RECEIVER LOG  "
+    echo "*****************"
+    cat $RECEIVER_LOG
+    echo "*****************"
+    echo "  SENDER LOG  "
+    echo "*****************"
+    cat $SENDER_LOG
+    echo "*****************"
+    echo "REMOTE_SERVER LOG"
+    echo $REMOTE_SERVER_LOG
+    echo "*****************"
+    cat $REMOTE_SERVER_LOG
+}
+
 function serve_http_once() {
     #
     # one shot http server (via nc) with static body
     #
     local body=$1
     local status_code=${2:-"200 OK"}
-    local length=$(expr 1 + ${#body})
+    local length=$((1 + ${#body}))
     REMOTE_SERVER_LOG=$(mktemp)
-    echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" | nc -l $WEB_SERVE_PORT > $REMOTE_SERVER_LOG &
+    echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" | nc -l $WEB_SERVE_PORT 2>&1 > $REMOTE_SERVER_LOG &
     REMOTE_SERVER_PID=$!
 }
-
 
 function setup_receiver_ipfs() {
     #
@@ -24,7 +40,6 @@ function setup_receiver_ipfs() {
     #
     local IPFS_PATH=$(mktemp -d)
     RECEIVER_LOG=$IPFS_PATH/ipfs.log
-
     ipfs init >> $RECEIVER_LOG 2>&1
     ipfs config --json Experimental.Libp2pStreamMounting true >> $RECEIVER_LOG 2>&1
     ipfs config --json Addresses.API "\"/ip4/127.0.0.1/tcp/6001\"" >> $RECEIVER_LOG 2>&1
@@ -34,7 +49,7 @@ function setup_receiver_ipfs() {
     RECEIVER_PID=$!
     # wait for daemon to start.. maybe?
     # ipfs id returns empty string if we don't wait here..
-    sleep 5
+    sleep 10
     RECEIVER_ID=$(ipfs id -f "<id>")
     #
     # start a p2p listener on RECIVER to the HTTP server with our content
@@ -54,7 +69,7 @@ function setup_sender_ipfs() {
     ipfs config --json Experimental.P2pHttpProxy true >> $RECEIVER_LOG 2>&1
     ipfs daemon >> $SENDER_LOG 2>&1 &
     SENDER_PID=$!
-    sleep 5
+    sleep 10
 }
 
 function setup_sender_and_receiver_ipfs() {
@@ -125,7 +140,7 @@ function curl_send_multipart_form_request() {
     #
     # send multipart form request
     #
-    STATUS_CODE=$(curl -s -F file=@$FILE_PATH  http://localhost:5001/proxy/http/$RECEIVER_ID/test/index.txt)
+    STATUS_CODE=$(curl -v -F file=@$FILE_PATH  http://localhost:5001/proxy/http/$RECEIVER_ID/test/index.txt)
     #
     # check status code
     #
@@ -140,14 +155,7 @@ function curl_send_multipart_form_request() {
     if ! grep "POST /index.txt" $REMOTE_SERVER_LOG > /dev/null;
     then
         echo "Remote server request method/resource path was incorrect"
-        return 1
-    fi
-    #
-    # check content received
-    #
-    if ! grep "$FILE_CONTENT" $REMOTE_SERVER_LOG > /dev/null;
-    then
-        echo "form-data-content was not correct"
+        show_logs
         return 1
     fi
     #
@@ -156,12 +164,12 @@ function curl_send_multipart_form_request() {
     if ! grep "Content-Type: multipart/form-data;" $REMOTE_SERVER_LOG > /dev/null;
     then
         echo "Request content-type was not multipart/form-data"
+        show_logs
         return 1
     fi
     return 0
 }
 
-teardown_sender_and_receiver
 test_expect_success 'handle proxy http request propogates error response from remote' '
 serve_http_once "SORRY GUYS, I LOST IT" "404 Not Found" &&
     setup_sender_and_receiver_ipfs &&
@@ -182,6 +190,7 @@ serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
     curl_send_proxy_request_and_check_response 200 "THE WOODS ARE LOVELY DARK AND DEEP"
 '
 teardown_sender_and_receiver
+teardown_remote_server
 
 test_expect_success 'handle proxy http request invalid request' '
 setup_sender_and_receiver_ipfs &&

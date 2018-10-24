@@ -57,8 +57,13 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 	if len(split) < 6 {
 		return nil, fmt.Errorf("Invalid request path '%s'", path)
 	}
+	//url-decode the name
+	decodedName, err := url.PathUnescape(split[4])
+	if err != nil {
+		return nil, err
+	}
 
-	return &proxyRequest{split[3], protocol.ID(split[4]), split[5]}, nil
+	return &proxyRequest{split[3], protocol.ID(decodedName), split[5]}, nil
 }
 
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
