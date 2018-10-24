@@ -183,12 +183,6 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmTcC9Qx2adsdGguNpqZ6dJK7MMsH8sf3yfxZxG3bSwKet",
-      "name": "go-libp2p-floodsub",
-      "version": "0.9.36"
-    },
-    {
-      "author": "whyrusleeping",
       "hash": "QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL",
       "name": "go-ipld-format",
       "version": "0.6.0"
@@ -464,9 +458,9 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmX5cToCpsigs7ZebYjm8P8aQN5A6Mx9LydrrSyBBtevzn",
+      "hash": "QmQ9qNWAZDDoPYenvsMwoyh4ZrJFZdbfGTVDuZkxUcJKp1",
       "name": "go-libp2p-pubsub-router",
-      "version": "0.4.11"
+      "version": "0.4.12"
     },
     {
       "author": "Stebalien",
@@ -586,6 +580,12 @@
       "hash": "QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC",
       "name": "go-ipfs-files",
       "version": "1.0.1"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmdxgseTjZvbvEKGbpnSitR6oCCanRZiSiqjn1SC4pb7Wy",
+      "name": "go-libp2p-pubsub",
+      "version": "0.10.0"
     }
   ],
   "gxVersion": "0.10.0",

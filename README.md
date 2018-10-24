@@ -389,7 +389,7 @@ Some places to get you started on the codebase:
 - libp2p
   - libp2p: https://github.com/libp2p/go-libp2p
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
-  - PubSub: https://github.com/libp2p/go-floodsub
+  - PubSub: https://github.com/libp2p/go-libp2p-pubsub
 
 ### CLI, HTTP-API, Architecture Diagram
 

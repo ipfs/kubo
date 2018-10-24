@@ -44,6 +44,7 @@ import (
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	nilrouting "gx/ipfs/QmQ9PR61a8rwEFuFNs7JMA1QtQC9yZnBwoDn51JWXDbaTd/go-ipfs-routing/none"
 	offroute "gx/ipfs/QmQ9PR61a8rwEFuFNs7JMA1QtQC9yZnBwoDn51JWXDbaTd/go-ipfs-routing/offline"
+	psrouter "gx/ipfs/QmQ9qNWAZDDoPYenvsMwoyh4ZrJFZdbfGTVDuZkxUcJKp1/go-libp2p-pubsub-router"
 	exchange "gx/ipfs/QmR1nncPsZR14A4hWr39mq8Lm7BGgS68bHVT9nop8NpWEM/go-ipfs-exchange-interface"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
@@ -53,12 +54,10 @@ import (
 	config "gx/ipfs/QmSoYrBMibm2T3LupaLuez7LPGnyrJwdRxvTfPUyCp691u/go-ipfs-config"
 	dht "gx/ipfs/QmSteomMgXnSQxLEY5UpxmkYAd8QF9JuLLeLYBokTHxFru/go-libp2p-kad-dht"
 	dhtopts "gx/ipfs/QmSteomMgXnSQxLEY5UpxmkYAd8QF9JuLLeLYBokTHxFru/go-libp2p-kad-dht/opts"
-	floodsub "gx/ipfs/QmTcC9Qx2adsdGguNpqZ6dJK7MMsH8sf3yfxZxG3bSwKet/go-libp2p-floodsub"
 	merkledag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
 	yamux "gx/ipfs/QmVwYCtShoL74Xi8TgEg9jXvHVVtWwZ3Hg1QZqQvQA9xji/go-smux-yamux"
 	ft "gx/ipfs/QmWE6Ftsk98cG2MTVgH4wJT8VP2nL9TuBkYTrz9GSqcsh5/go-unixfs"
 	pstore "gx/ipfs/QmWtCpWB39Rzc2xTB75MKorsxNpo3TyecTEN24CJ3KVohE/go-libp2p-peerstore"
-	psrouter "gx/ipfs/QmX5cToCpsigs7ZebYjm8P8aQN5A6Mx9LydrrSyBBtevzn/go-libp2p-pubsub-router"
 	bitswap "gx/ipfs/QmXBT58TaD2CJThpHy4xkxC1xsW4hXWBGZuKMepwjuzJ5B/go-bitswap"
 	bsnet "gx/ipfs/QmXBT58TaD2CJThpHy4xkxC1xsW4hXWBGZuKMepwjuzJ5B/go-bitswap/network"
 	pnet "gx/ipfs/QmY4Q5JC4vxLEi8EpVxJM4rcRryEVtH1zRKVTAm6BKV1pg/go-libp2p-pnet"
@@ -75,6 +74,7 @@ import (
 	bstore "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	"gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path/resolver"
+	pubsub "gx/ipfs/QmdxgseTjZvbvEKGbpnSitR6oCCanRZiSiqjn1SC4pb7Wy/go-libp2p-pubsub"
 	mfs "gx/ipfs/Qmf5gumjmXpwmn7uDfAvkXbFQ5sHGGbJGccS8znSYmDQaz/go-mfs"
 	p2phost "gx/ipfs/Qmf5yHzmWAyHSJRPAmZzfk3Yd7icydBLi7eec5741aov7v/go-libp2p-host"
 )
@@ -137,7 +137,7 @@ type IpfsNode struct {
 	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
-	Floodsub *floodsub.PubSub
+	PubSub   *pubsub.PubSub
 	PSRouter *psrouter.PubsubValueStore
 	DHT      *dht.IpfsDHT
 	P2P      *p2p.P2P
@@ -459,26 +459,26 @@ func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
-func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption, pubsub bool, ipnsps bool) error {
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption, enablePubsub bool, enableIpnsps bool) error {
 	// setup diagnostics service
 	n.Ping = ping.NewPingService(host)
 
-	if pubsub || ipnsps {
+	if enablePubsub || enableIpnsps {
 		cfg, err := n.Repo.Config()
 		if err != nil {
 			return err
 		}
 
-		var service *floodsub.PubSub
+		var service *pubsub.PubSub
 
 		switch cfg.Pubsub.Router {
 		case "":
 			fallthrough
 		case "floodsub":
-			service, err = floodsub.NewFloodSub(ctx, host)
+			service, err = pubsub.NewFloodSub(ctx, host)
 
 		case "gossipsub":
-			service, err = floodsub.NewGossipSub(ctx, host)
+			service, err = pubsub.NewGossipSub(ctx, host)
 
 		default:
 			err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)
@@ -487,7 +487,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		if err != nil {
 			return err
 		}
-		n.Floodsub = service
+		n.PubSub = service
 	}
 
 	// setup routing service
@@ -514,12 +514,12 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		n.DHT = dht
 	}
 
-	if ipnsps {
+	if enableIpnsps {
 		n.PSRouter = psrouter.NewPubsubValueStore(
 			ctx,
 			host,
 			n.Routing,
-			n.Floodsub,
+			n.PubSub,
 			n.RecordValidator,
 		)
 		n.Routing = rhelpers.Tiered{
