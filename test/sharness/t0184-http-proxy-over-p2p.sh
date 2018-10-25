@@ -10,11 +10,11 @@ function show_logs() {
     echo "*****************"
     echo "  RECEIVER LOG  "
     echo "*****************"
-    cat $RECEIVER_LOG
+    iptb logs 1
     echo "*****************"
     echo "  SENDER LOG  "
     echo "*****************"
-    cat $SENDER_LOG
+    iptb logs 0
     echo "*****************"
     echo "REMOTE_SERVER LOG"
     echo $REMOTE_SERVER_LOG
@@ -29,56 +29,37 @@ function serve_http_once() {
     local body=$1
     local status_code=${2:-"200 OK"}
     local length=$((1 + ${#body}))
-    REMOTE_SERVER_LOG=$(mktemp)
+    REMOTE_SERVER_LOG="server.log"
     echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" | nc -l $WEB_SERVE_PORT 2>&1 > $REMOTE_SERVER_LOG &
     REMOTE_SERVER_PID=$!
 }
 
-function setup_receiver_ipfs() {
-    #
-    # setup RECEIVER IPFS daemon
-    #
-    local IPFS_PATH=$(mktemp -d)
-    RECEIVER_LOG=$IPFS_PATH/ipfs.log
-    ipfs init >> $RECEIVER_LOG 2>&1
-    ipfs config --json Experimental.Libp2pStreamMounting true >> $RECEIVER_LOG 2>&1
-    ipfs config --json Addresses.API "\"/ip4/127.0.0.1/tcp/6001\"" >> $RECEIVER_LOG 2>&1
-    ipfs config --json Addresses.Gateway "\"/ip4/127.0.0.1/tcp/8081\"" >> $RECEIVER_LOG 2>&1
-    ipfs config --json Addresses.Swarm "[\"/ip4/0.0.0.0/tcp/7001\", \"/ip6/::/tcp/7001\"]" >> $RECEIVER_LOG 2>&1
-    ipfs daemon >> $RECEIVER_LOG 2>&1 &
-    RECEIVER_PID=$!
-    # wait for daemon to start.. maybe?
-    # ipfs id returns empty string if we don't wait here..
-    sleep 10
-    RECEIVER_ID=$(ipfs id -f "<id>")
-    #
-    # start a p2p listener on RECIVER to the HTTP server with our content
-    #
-    ipfs p2p listen --allow-custom-protocol test /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT >> $RECEIVER_LOG 2>&1
-}
-
-
-function setup_sender_ipfs() {
-    #
-    # setup SENDER IPFS daemon
-    #
-    local IPFS_PATH=$(mktemp -d)
-    SENDER_LOG=$IPFS_PATH/ipfs.log
-    ipfs init >> $SENDER_LOG 2>&1
-    ipfs config --json Experimental.Libp2pStreamMounting true >> $SENDER_LOG 2>&1
-    ipfs config --json Experimental.P2pHttpProxy true >> $RECEIVER_LOG 2>&1
-    ipfs daemon >> $SENDER_LOG 2>&1 &
-    SENDER_PID=$!
-    sleep 10
-}
-
 function setup_sender_and_receiver_ipfs() {
-    setup_receiver_ipfs && setup_sender_ipfs
+    iptb init -n 2 -p 0 -f --bootstrap=none &&
+
+    # Configure features
+
+    ipfsi 0 config --json Experimental.Libp2pStreamMounting true &&
+    ipfsi 1 config --json Experimental.Libp2pStreamMounting true &&
+    ipfsi 0 config --json Experimental.P2pHttpProxy true &&
+
+    # Start
+
+    iptb start &&
+    iptb connect 0 1 &&
+
+    # Setup the p2p listener
+
+    ipfsi 1 p2p listen --allow-custom-protocol test /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT &&
+
+    # Setup Environment
+
+    RECEIVER_ID="$(iptb get id 1)" &&
+    SENDER_URL="$(sed 's|^/ip[46]/\([^/]*\)/tcp/\([0-9]*\)$|http://\1:\2/proxy/http|' < "$(iptb get path 0)/api")"
 }
 
 function teardown_sender_and_receiver() {
-    kill -9 $SENDER_PID $RECEIVER_PID > /dev/null 2>&1
-    sleep 5
+    iptb stop
 }
 
 function teardown_remote_server() {
@@ -89,7 +70,7 @@ function teardown_remote_server() {
 function curl_check_response_code() {
     local expected_status_code=$1
     local path_stub=${2:-http/$RECEIVER_ID/test/index.txt}
-    local status_code=$(curl -s --write-out %{http_code} --output /dev/null http://localhost:5001/proxy/http/$path_stub)
+    local status_code=$(curl -s --write-out %{http_code} --output /dev/null $SENDER_URL/$path_stub)
 
     if [[ "$status_code" -ne "$expected_status_code" ]];
     then
@@ -107,8 +88,8 @@ function curl_send_proxy_request_and_check_response() {
     #
     # make a request to SENDER_IPFS via the proxy endpoint
     #
-    CONTENT_PATH=$(mktemp)
-    STATUS_CODE=$(curl -s -o $CONTENT_PATH --write-out %{http_code} http://localhost:5001/proxy/http/$RECEIVER_ID/test/index.txt)
+    CONTENT_PATH="retrieved-file"
+    STATUS_CODE=$(curl -s -o $CONTENT_PATH --write-out %{http_code} $SENDER_URL/$RECEIVER_ID/test/index.txt)
 
     #
     # check status code
@@ -134,13 +115,13 @@ function curl_send_proxy_request_and_check_response() {
 
 function curl_send_multipart_form_request() {
     local expected_status_code=$1
-    local FILE_PATH=$(mktemp)
+    local FILE_PATH="uploaded-file"
     FILE_CONTENT="curl will send a multipart-form POST request when sending a file which is handy"
     echo $FILE_CONTENT > $FILE_PATH
     #
     # send multipart form request
     #
-    STATUS_CODE=$(curl -v -F file=@$FILE_PATH  http://localhost:5001/proxy/http/$RECEIVER_ID/test/index.txt)
+    STATUS_CODE=$(curl -v -F file=@$FILE_PATH  $SENDER_URL/$RECEIVER_ID/test/index.txt)
     #
     # check status code
     #
@@ -171,7 +152,7 @@ function curl_send_multipart_form_request() {
 }
 
 test_expect_success 'handle proxy http request propogates error response from remote' '
-serve_http_once "SORRY GUYS, I LOST IT" "404 Not Found" &&
+    serve_http_once "SORRY GUYS, I LOST IT" "404 Not Found" &&
     setup_sender_and_receiver_ipfs &&
     curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
 '
@@ -179,13 +160,13 @@ teardown_sender_and_receiver
 teardown_remote_server
 
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
-setup_sender_and_receiver_ipfs &&
+    setup_sender_and_receiver_ipfs &&
     curl_send_proxy_request_and_check_response 502 ""
 '
 teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request ' '
-serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
+    serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
     setup_sender_and_receiver_ipfs &&
     curl_send_proxy_request_and_check_response 200 "THE WOODS ARE LOVELY DARK AND DEEP"
 '
@@ -193,21 +174,21 @@ teardown_sender_and_receiver
 teardown_remote_server
 
 test_expect_success 'handle proxy http request invalid request' '
-setup_sender_and_receiver_ipfs &&
+    setup_sender_and_receiver_ipfs &&
     curl_check_response_code 400 DERPDERPDERP
 '
 teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
-setup_sender_and_receiver_ipfs &&
+    setup_sender_and_receiver_ipfs &&
     curl_check_response_code 502 unknown_peer/test/index.txt
 '
 teardown_sender_and_receiver
 
 test_expect_success 'handle multipart/form-data http request' '
-serve_http_once "OK" &&
-setup_sender_and_receiver_ipfs &&
-curl_send_multipart_form_request
+    serve_http_once "OK" &&
+    setup_sender_and_receiver_ipfs &&
+    curl_send_multipart_form_request
 '
 teardown_sender_and_receiver
 teardown_remote_server
