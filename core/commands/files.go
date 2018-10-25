@@ -452,8 +452,9 @@ Examples:
 
 		long, _, _ := req.Option(longOptionName).Bool()
 
-		switch fsn := fsn.(type) {
-		case *mfs.Directory:
+		switch fsn.Type() {
+		case mfs.TDir:
+			fsn := fsn.(*mfs.Directory)
 			if !long {
 				var output []mfs.NodeListing
 				names, err := fsn.ListNames(req.Context())
@@ -477,7 +478,8 @@ Examples:
 				res.SetOutput(&filesLsOutput{listing})
 			}
 			return
-		case *mfs.File:
+		case mfs.TFile:
+			fsn := fsn.(*mfs.File)
 			_, name := gopath.Split(path)
 			out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
 			if long {
@@ -999,12 +1001,12 @@ func updatePath(rt *mfs.Root, pth string, builder cid.Builder, flush bool) error
 		return err
 	}
 
-	switch n := nd.(type) {
-	case *mfs.Directory:
-		n.SetCidBuilder(builder)
-	default:
+	if !mfs.IsDir(nd) {
 		return fmt.Errorf("can only update directories")
 	}
+
+	n := nd.(*mfs.Directory)
+	n.SetCidBuilder(builder)
 
 	if flush {
 		nd.Flush()
@@ -1067,11 +1069,12 @@ Remove files or directories.
 			return
 		}
 
-		pdir, ok := parent.(*mfs.Directory)
-		if !ok {
+		if !mfs.IsDir(parent) {
 			res.SetError(fmt.Errorf("no such file or directory: %s", path), cmdkit.ErrNormal)
 			return
 		}
+
+		pdir := parent.(*mfs.Directory)
 
 		var success bool
 		defer func() {
@@ -1107,9 +1110,7 @@ Remove files or directories.
 		}
 
 		dashr, _, _ := req.Option("r").Bool()
-
-		switch child.(type) {
-		case *mfs.Directory:
+		if mfs.IsDir(child) {
 			if !dashr {
 				res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
 				return

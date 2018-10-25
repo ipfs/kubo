@@ -237,10 +237,11 @@ func (adder *Adder) Finalize() (ipld.Node, error) {
 }
 
 func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
-	switch fsn := fsn.(type) {
-	case *mfs.File:
+	switch fsn.Type() {
+	case mfs.TFile:
 		return nil
-	case *mfs.Directory:
+	case mfs.TDir:
+		fsn := fsn.(*mfs.Directory)
 		names, err := fsn.ListNames(adder.ctx)
 		if err != nil {
 			return err
