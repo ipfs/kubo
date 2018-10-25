@@ -34,34 +34,6 @@ function serve_http_once() {
     REMOTE_SERVER_PID=$!
 }
 
-function setup_sender_and_receiver_ipfs() {
-    iptb init -n 2 -p 0 -f --bootstrap=none &&
-
-    # Configure features
-
-    ipfsi 0 config --json Experimental.Libp2pStreamMounting true &&
-    ipfsi 1 config --json Experimental.Libp2pStreamMounting true &&
-    ipfsi 0 config --json Experimental.P2pHttpProxy true &&
-
-    # Start
-
-    iptb start &&
-    iptb connect 0 1 &&
-
-    # Setup the p2p listener
-
-    ipfsi 1 p2p listen --allow-custom-protocol test /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT &&
-
-    # Setup Environment
-
-    RECEIVER_ID="$(iptb get id 1)" &&
-    SENDER_URL="$(sed 's|^/ip[46]/\([^/]*\)/tcp/\([0-9]*\)$|http://\1:\2/proxy/http|' < "$(iptb get path 0)/api")"
-}
-
-function teardown_sender_and_receiver() {
-    iptb stop
-}
-
 function teardown_remote_server() {
     kill -9 $REMOTE_SERVER_PID > /dev/null 2>&1
     sleep 5
@@ -151,47 +123,58 @@ function curl_send_multipart_form_request() {
     return 0
 }
 
+test_expect_success 'configure nodes' '
+    iptb init -n 2 -p 0 -f --bootstrap=none &&
+    ipfsi 0 config --json Experimental.Libp2pStreamMounting true &&
+    ipfsi 1 config --json Experimental.Libp2pStreamMounting true &&
+    ipfsi 0 config --json Experimental.P2pHttpProxy true
+'
+
+test_expect_success 'start and connect nodes' '
+    iptb start && iptb connect 0 1
+'
+
+test_expect_success 'setup p2p listener on the receiver' '
+    ipfsi 1 p2p listen --allow-custom-protocol test /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT
+'
+
+test_expect_success 'setup environment variables' '
+    RECEIVER_ID="$(iptb get id 1)" &&
+    SENDER_URL="$(sed "s|^/ip[46]/\([^/]*\)/tcp/\([0-9]*\)\$|http://\\1:\\2/proxy/http|" < "$(iptb get path 0)/api")"
+'
+
 test_expect_success 'handle proxy http request propogates error response from remote' '
     serve_http_once "SORRY GUYS, I LOST IT" "404 Not Found" &&
-    setup_sender_and_receiver_ipfs &&
     curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
 '
-teardown_sender_and_receiver
 teardown_remote_server
 
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
-    setup_sender_and_receiver_ipfs &&
     curl_send_proxy_request_and_check_response 502 ""
 '
-teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request ' '
     serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
-    setup_sender_and_receiver_ipfs &&
     curl_send_proxy_request_and_check_response 200 "THE WOODS ARE LOVELY DARK AND DEEP"
 '
-teardown_sender_and_receiver
 teardown_remote_server
 
 test_expect_success 'handle proxy http request invalid request' '
-    setup_sender_and_receiver_ipfs &&
     curl_check_response_code 400 DERPDERPDERP
 '
-teardown_sender_and_receiver
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
-    setup_sender_and_receiver_ipfs &&
     curl_check_response_code 502 unknown_peer/test/index.txt
 '
-teardown_sender_and_receiver
 
 test_expect_success 'handle multipart/form-data http request' '
     serve_http_once "OK" &&
-    setup_sender_and_receiver_ipfs &&
     curl_send_multipart_form_request
 '
-teardown_sender_and_receiver
 teardown_remote_server
 
+test_expect_success 'stop nodes' '
+    iptb stop
+'
 
 test_done
