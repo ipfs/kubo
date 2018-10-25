@@ -7,7 +7,6 @@ import (
 	"io"
 	"path"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	ma "github.com/multiformats/go-multiaddr"
+	madns "github.com/multiformats/go-multiaddr-dns"
 	mafilter "github.com/whyrusleeping/multiaddr-filter"
 )
 
@@ -505,13 +505,27 @@ func resolveAddresses(addrs []string) ([]ma.Multiaddr, error) {
 	var wg sync.WaitGroup
 	resolveErrC := make(chan error, len(addrs))
 
+	maddrC := make(chan ma.Multiaddr)
+	go func() {
+		for {
+			select {
+			case maddr, ok := <-maddrC:
+				if !ok {
+					return
+				}
+				maddrs = append(maddrs, maddr)
+			}
+		}
+	}()
+
 	for _, addr := range addrs {
 		maddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
 			return nil, err
 		}
+
 		// check whether address ends in `ipfs/Qm...`
-		if _, err := maddr.ValueForProtocol(ma.P_IPFS); err != ma.ErrProtocolNotFound {
+		if _, last := ma.SplitLast(maddr); last.Protocol().Code == ma.P_IPFS {
 			maddrs = append(maddrs, maddr)
 			continue
 		}
@@ -531,14 +545,17 @@ func resolveAddresses(addrs []string) ([]ma.Multiaddr, error) {
 			}
 			// filter out addresses that still doesn't end in `ipfs/Qm...`
 			for _, raddr := range raddrs {
-				if _, err := raddr.ValueForProtocol(ma.P_IPFS); err != ma.ErrProtocolNotFound {
-					maddrs = append(maddrs, raddr)
+				if _, last := ma.SplitLast(raddr); last.Protocol().Code == ma.P_IPFS {
+					maddrC <- raddr
+					continue
 				}
 			}
 		}(maddr)
 	}
 	// wait for address resolving
 	wg.Wait()
+	// close the channel of collecting multiaddr
+	close(maddrC)
 
 	select {
 	case err := <-resolveErrC:
