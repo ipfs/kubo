@@ -10,15 +10,15 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	dag "gx/ipfs/QmVvNkTCx8V9Zei8xuTYTBdUXmbnDRS4iNuw1SztYyhQwQ/go-merkledag"
-	path "gx/ipfs/QmdrpbDgeYH3VxkCciQCJY5LkDYdXtig6unDzQmMxFtWEw/go-path"
+	path "gx/ipfs/QmRKuTyCzg7HFBcV1YUhzStroGtJSb8iWgyxfsDCwFhWTS/go-path"
+	dag "gx/ipfs/QmY8BMUSpCwNiTmFhACmC9Bt1qT63cHP35AoQAus4x14qH/go-merkledag"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	routing "gx/ipfs/QmPmFeQ5oY5G6M7aBWggi5phxEPXwsQntE1DFcUzETULdp/go-libp2p-routing"
-	notif "gx/ipfs/QmPmFeQ5oY5G6M7aBWggi5phxEPXwsQntE1DFcUzETULdp/go-libp2p-routing/notifications"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
 	b58 "gx/ipfs/QmWFAMPqsEyUX7gDUsRVmMWz59FxSpJ1b2v6bJ1yYzo7jY/go-base58-fast/base58"
-	pstore "gx/ipfs/QmWtCpWB39Rzc2xTB75MKorsxNpo3TyecTEN24CJ3KVohE/go-libp2p-peerstore"
-	peer "gx/ipfs/QmbNepETomvmXfz1X5pHNFD2QuPqnqi47dTd94QJWSorQ3/go-libp2p-peer"
+	routing "gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing"
+	notif "gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing/notifications"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -72,23 +72,24 @@ var queryDhtCmd = &cmds.Command{
 			return
 		}
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
-
 		id, err := peer.IDB58Decode(req.Arguments()[0])
 		if err != nil {
 			res.SetError(cmds.ClientError("invalid peer ID"), cmdkit.ErrClient)
 			return
 		}
 
+		ctx, cancel := context.WithCancel(req.Context())
+		ctx, events := notif.RegisterForQueryEvents(ctx)
+
 		closestPeers, err := n.DHT.GetClosestPeers(ctx, string(id))
 		if err != nil {
+			cancel()
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			for p := range closestPeers {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					ID:   p,
@@ -182,8 +183,6 @@ var findProvidersDhtCmd = &cmds.Command{
 			return
 		}
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
 		c, err := cid.Parse(req.Arguments()[0])
 
 		if err != nil {
@@ -193,6 +192,9 @@ var findProvidersDhtCmd = &cmds.Command{
 
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
+
+		ctx, cancel := context.WithCancel(req.Context())
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
 		go func() {
@@ -207,7 +209,7 @@ var findProvidersDhtCmd = &cmds.Command{
 		}()
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			for p := range pchan {
 				np := p
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -320,8 +322,8 @@ var provideRefDhtCmd = &cmds.Command{
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		ctx, cancel := context.WithCancel(req.Context())
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
 			defer close(outChan)
@@ -335,7 +337,7 @@ var provideRefDhtCmd = &cmds.Command{
 		}()
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			var err error
 			if rec {
 				err = provideKeysRec(ctx, n.Routing, n.DAG, cids)
@@ -449,8 +451,8 @@ var findPeerDhtCmd = &cmds.Command{
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		ctx, cancel := context.WithCancel(req.Context())
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
 			defer close(outChan)
@@ -464,7 +466,7 @@ var findPeerDhtCmd = &cmds.Command{
 		}()
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			pi, err := n.Routing.FindPeer(ctx, pid)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -554,8 +556,8 @@ Different key types can specify other 'best' rules.
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
+		ctx, cancel := context.WithCancel(req.Context())
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
 			defer close(outChan)
@@ -568,7 +570,7 @@ Different key types can specify other 'best' rules.
 		}()
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			val, err := n.Routing.GetValue(ctx, dhtkey)
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -659,9 +661,6 @@ NOTE: A value may not exceed 2048 bytes.
 			return
 		}
 
-		events := make(chan *notif.QueryEvent)
-		ctx := notif.RegisterForQueryEvents(req.Context(), events)
-
 		key, err := escapeDhtKey(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
@@ -672,6 +671,9 @@ NOTE: A value may not exceed 2048 bytes.
 		res.SetOutput((<-chan interface{})(outChan))
 
 		data := req.Arguments()[1]
+
+		ctx, cancel := context.WithCancel(req.Context())
+		ctx, events := notif.RegisterForQueryEvents(ctx)
 
 		go func() {
 			defer close(outChan)
@@ -685,7 +687,7 @@ NOTE: A value may not exceed 2048 bytes.
 		}()
 
 		go func() {
-			defer close(events)
+			defer cancel()
 			err := n.Routing.PutValue(ctx, key, []byte(data))
 			if err != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
