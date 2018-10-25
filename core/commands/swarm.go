@@ -6,7 +6,6 @@ import (
 	"io"
 	"path"
 	"sort"
-	"strings"
 
 	"github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -138,12 +137,7 @@ var swarmPeersCmd = &cmds.Command{
 
 			pipfs := ma.ProtocolWithCode(ma.P_IPFS).Name
 			for _, info := range ci.Peers {
-				ids := fmt.Sprintf("/%s/%s", pipfs, info.Peer)
-				if strings.HasSuffix(info.Addr, ids) {
-					fmt.Fprintf(w, "%s", info.Addr)
-				} else {
-					fmt.Fprintf(w, "%s%s", info.Addr, ids)
-				}
+				fmt.Fprintf(w, "%s/%s/%s", info.Addr, pipfs, info.Peer)
 				if info.Latency != "" {
 					fmt.Fprintf(w, " %s", info.Latency)
 				}
