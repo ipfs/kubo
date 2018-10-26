@@ -100,6 +100,14 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 	key := segments[2]
 
 	if p, ok := ns.cacheGet(key); ok {
+		if len(segments) > 3 {
+			var err error
+			p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+			if err != nil {
+				emitOnceResult(ctx, out, onceResult{value: p, err: err})
+			}
+		}
+
 		out <- onceResult{value: p}
 		close(out)
 		return out
@@ -139,7 +147,8 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 
 				// Attach rest of the path
 				if len(segments) > 3 {
-					p, err := path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+					var err error
+					p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
 					if err != nil {
 						emitOnceResult(ctx, out, onceResult{value: p, ttl: res.ttl, err: err})
 					}
