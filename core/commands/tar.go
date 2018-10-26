@@ -10,8 +10,8 @@ import (
 	tar "github.com/ipfs/go-ipfs/tar"
 
 	"gx/ipfs/QmRKuTyCzg7HFBcV1YUhzStroGtJSb8iWgyxfsDCwFhWTS/go-path"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
 	dag "gx/ipfs/QmY8BMUSpCwNiTmFhACmC9Bt1qT63cHP35AoQAus4x14qH/go-merkledag"
-	cmds "gx/ipfs/QmdTmGruUz23vgzym3uWpnAEQdGdGifQqBvP8UXSRjG8gZ/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
