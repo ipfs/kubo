@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"fmt"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"net"
 	"net/http"
 
@@ -25,7 +26,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			return nil, err
 		}
 
-		api, err := coreapi.NewCoreAPI(n)
+		api, err := coreapi.NewCoreAPI(n, options.Api.Offline(cfg.Gateway.NoFetch))
 		if err != nil {
 			return nil, err
 		}
