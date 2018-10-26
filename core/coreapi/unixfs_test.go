@@ -298,7 +298,7 @@ func TestAdd(t *testing.T) {
 			data: func() files.File {
 				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 			},
-			wrap: "foo",
+			wrap:   "foo",
 			expect: wrapped("foo"),
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
 		},
