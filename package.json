@@ -458,9 +458,9 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmWqQVkbYzC8himRvPCWmkfpFuYtHidY7xEKtrrQ3dhySs",
+      "hash": "QmPqBXFFNFdNCpDXNTw2wP9HPCsHhu5Kpfpgg1e4opgAw9",
       "name": "go-libp2p-pubsub-router",
-      "version": "0.5.1"
+      "version": "0.5.2"
     },
     {
       "author": "Stebalien",
@@ -583,9 +583,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmTQdS71yMtTmaSeeGptMDxDBpRcq2kTsJ6X2CPd7riyMs",
+      "hash": "Qma69SSfgYENa23tUFctmGBteR9J6akXv2CKee6uPH8G5S",
       "name": "go-libp2p-pubsub",
-      "version": "0.11.1"
+      "version": "0.11.2"
     }
   ],
   "gxVersion": "0.10.0",
