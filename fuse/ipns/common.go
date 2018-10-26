@@ -7,7 +7,7 @@ import (
 	nsys "github.com/ipfs/go-ipfs/namesys"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	path "gx/ipfs/QmRKuTyCzg7HFBcV1YUhzStroGtJSb8iWgyxfsDCwFhWTS/go-path"
-	ft "gx/ipfs/QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC/go-unixfs"
+	ft "gx/ipfs/QmfNLMuGmRnunxgSAJfjHRFLkXoRGvV7MSQP9w9D8difaD/go-unixfs"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to

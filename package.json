@@ -294,9 +294,9 @@
       "version": "3.0.22"
     },
     {
-      "hash": "QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1",
+      "hash": "QmeLH4FCZJ2LXwoBYkLdcA2GaaNFTntHjVezH5ks3AQUUM",
       "name": "go-ipfs-cmds",
-      "version": "2.0.3"
+      "version": "2.1.0"
     },
     {
       "hash": "Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg",
@@ -512,9 +512,9 @@
     },
     {
       "author": "why",
-      "hash": "QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC",
+      "hash": "QmfNLMuGmRnunxgSAJfjHRFLkXoRGvV7MSQP9w9D8difaD",
       "name": "go-unixfs",
-      "version": "1.1.15"
+      "version": "1.1.16"
     },
     {
       "author": "magik6k",
@@ -530,9 +530,9 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmcctvPwYdaJvM4VefQnKAfU2ppSVfjpECvBVVEm18qk68",
+      "hash": "QmehmU3ZZQbpAUuaMJUjHuzQ1S3QLtyxXm34xVjrx46TQR",
       "name": "go-mfs",
-      "version": "0.1.15"
+      "version": "0.2.0"
     },
     {
       "author": "kevina",
@@ -577,9 +577,9 @@
     },
     {
       "author": "magik6k",
-      "hash": "QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC",
+      "hash": "QmYa9UizNuarPvLskj5QTUARySxSMs8TyECHd4ySu77VUa",
       "name": "go-ipfs-files",
-      "version": "1.0.1"
+      "version": "2.0.0"
     },
     {
       "author": "whyrusleeping",
