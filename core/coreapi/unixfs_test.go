@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -297,8 +298,17 @@ func TestAdd(t *testing.T) {
 			data: func() files.File {
 				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 			},
+			wrap: "foo",
 			expect: wrapped("foo"),
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name: "addNotWrappedDirFile",
+			path: hello,
+			data: func() files.File {
+				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			},
+			wrap: "foo",
 		},
 		{
 			name: "stdinWrapped",
@@ -317,7 +327,12 @@ func TestAdd(t *testing.T) {
 			name: "stdinNamed",
 			path: "/ipfs/QmQ6cGBmb3ZbdrQW1MRm1RJnYnaxCqfssz7CrTa9NEhQyS",
 			data: func() files.File {
-				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+				rf, err := files.NewReaderPathFile(os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+				if err != nil {
+					panic(err)
+				}
+
+				return rf
 			},
 			expect: func(files.File) files.File {
 				return files.NewSliceFile([]files.FileEntry{
@@ -330,7 +345,7 @@ func TestAdd(t *testing.T) {
 			name:   "twoLevelDirWrapped",
 			data:   twoLevelDir(),
 			wrap:   "t",
-			expect: wrapped(""),
+			expect: wrapped("t"),
 			path:   "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
 		},
@@ -338,7 +353,7 @@ func TestAdd(t *testing.T) {
 			name:   "twoLevelInlineHash",
 			data:   twoLevelDir(),
 			wrap:   "t",
-			expect: wrapped(""),
+			expect: wrapped("t"),
 			path:   "/ipfs/zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi",
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
 		},
@@ -428,7 +443,7 @@ func TestAdd(t *testing.T) {
 				{Name: "", Bytes: 1000000},
 				{Name: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Hash: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Size: "1000256"},
 			},
-			wrap: "t",
+			wrap: "",
 			opts: []options.UnixfsAddOption{options.Unixfs.Progress(true)},
 		},
 	}
@@ -525,7 +540,7 @@ func TestAdd(t *testing.T) {
 				}
 
 				if origName != gotName {
-					t.Fatal("file name mismatch")
+					t.Errorf("file name mismatch, orig='%s', got='%s'", origName, gotName)
 				}
 
 				if !orig.IsDirectory() {
