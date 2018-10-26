@@ -307,7 +307,7 @@ can't be undone.
 		}
 		defer r.Close()
 
-		file, err := req.Files().NextFile()
+		_, file, err := req.Files().NextFile()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

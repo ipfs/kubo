@@ -78,7 +78,7 @@ the limit will not be respected by the network.
 			return err
 		}
 
-		data, err := req.Files.NextFile()
+		_, data, err := req.Files.NextFile()
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ Example:
 			return
 		}
 
-		data, err := req.Files().NextFile()
+		_, data, err := req.Files().NextFile()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

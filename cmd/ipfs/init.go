@@ -85,7 +85,7 @@ environment variable:
 
 		f := req.Files
 		if f != nil {
-			confFile, err := f.NextFile()
+			_, confFile, err := f.NextFile()
 			if err != nil {
 				return err
 			}

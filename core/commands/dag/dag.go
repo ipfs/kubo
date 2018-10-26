@@ -104,7 +104,7 @@ into an object of the specified format.
 			b := ipld.NewBatch(req.Context(), n.DAG)
 
 			for {
-				file, err := f.NextFile()
+				_, file, err := f.NextFile()
 				if err == io.EOF {
 					// Finished the list of files.
 					break

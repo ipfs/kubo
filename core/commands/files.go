@@ -834,7 +834,7 @@ stat' on the file or any of its ancestors.
 			return err
 		}
 
-		input, err := req.Files.NextFile()
+		_, input, err := req.Files.NextFile()
 		if err != nil {
 			return err
 		}

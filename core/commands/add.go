@@ -6,15 +6,14 @@ import (
 	"os"
 	"strings"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	pb "gx/ipfs/QmPtj12fdwuAqj9sBSTNUxBNu8kCGNp8b3o8yUzMm5GHpq/pb"
-	files "gx/ipfs/QmYa9UizNuarPvLskj5QTUARySxSMs8TyECHd4ySu77VUa/go-ipfs-files"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	cmds "gx/ipfs/QmeLH4FCZJ2LXwoBYkLdcA2GaaNFTntHjVezH5ks3AQUUM/go-ipfs-cmds"
+	"gx/ipfs/QmPtj12fdwuAqj9sBSTNUxBNu8kCGNp8b3o8yUzMm5GHpq/pb"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"gx/ipfs/QmeLH4FCZJ2LXwoBYkLdcA2GaaNFTntHjVezH5ks3AQUUM/go-ipfs-cmds"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
@@ -225,24 +224,17 @@ You can now check what blocks have been created by:
 			outChan := make(chan interface{})
 			req := res.Request()
 
-			sizeFile, ok := req.Files.(files.SizeFile)
-			if ok {
-				// Could be slow.
-				go func() {
-					size, err := sizeFile.Size()
-					if err != nil {
-						log.Warningf("error getting files size: %s", err)
-						// see comment above
-						return
-					}
+			// Could be slow.
+			go func() {
+				size, err := req.Files.Size()
+				if err != nil {
+					log.Warningf("error getting files size: %s", err)
+					// see comment above
+					return
+				}
 
-					sizeChan <- size
-				}()
-			} else {
-				// we don't need to error, the progress bar just
-				// won't know how big the files are
-				log.Warning("cannot determine size of input file")
-			}
+				sizeChan <- size
+			}()
 
 			progressBar := func(wait chan struct{}) {
 				defer close(wait)
