@@ -10,11 +10,11 @@ import (
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	cmds "gx/ipfs/QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1/go-ipfs-cmds"
 	balanced "gx/ipfs/QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC/go-unixfs/importer/balanced"
 	ihelper "gx/ipfs/QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC/go-unixfs/importer/helpers"
 	trickle "gx/ipfs/QmTJUySFxXjh54zEoFbzQEmGD3yj89XKS3A28y7Nqsn1TC/go-unixfs/importer/trickle"
 	chunk "gx/ipfs/QmTUTG9Jg9ZRA1EzTPGTDvnwfcfKhDMnqANnP9fe4rSjMR/go-ipfs-chunker"
+	cmds "gx/ipfs/QmdTmGruUz23vgzym3uWpnAEQdGdGifQqBvP8UXSRjG8gZ/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 

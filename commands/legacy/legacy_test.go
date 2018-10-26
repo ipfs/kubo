@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
-	cmds "gx/ipfs/QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1/go-ipfs-cmds"
+	cmds "gx/ipfs/QmdTmGruUz23vgzym3uWpnAEQdGdGifQqBvP8UXSRjG8gZ/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -69,12 +69,11 @@ func TestNewCommand(t *testing.T) {
 
 	// test calling "test" command
 	testCmd := root.Subcommands["test"]
-	enc := testCmd.Encoders[oldcmds.Text]
-	if enc == nil {
-		t.Fatal("got nil encoder")
-	}
 
-	re := cmds.NewWriterResponseEmitter(WriteNopCloser{buf}, req, enc)
+	re, err := cmds.NewWriterResponseEmitter(WriteNopCloser{buf}, req)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var env oldcmds.Context
 
@@ -122,8 +121,14 @@ func TestPipePair(t *testing.T) {
 	}
 
 	r, w := io.Pipe()
-	re := cmds.NewWriterResponseEmitter(w, req, cmds.Encoders[cmds.JSON])
-	res := cmds.NewReaderResponse(r, cmds.JSON, req)
+	re, err := cmds.NewWriterResponseEmitter(w, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := cmds.NewReaderResponse(r, req)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	wait := make(chan interface{})
 
