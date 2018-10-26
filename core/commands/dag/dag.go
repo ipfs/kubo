@@ -110,7 +110,7 @@ into an object of the specified format.
 			}
 
 			for _, nd := range nds {
-				err := b.Add(nd)
+				err := b.Add(req.Context, nd)
 				if err != nil {
 					return err
 				}
