@@ -127,7 +127,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"dag":       lgc.NewCommand(dag.DagCmd),
 	"dht":       lgc.NewCommand(DhtCmd),
 	"diag":      lgc.NewCommand(DiagCmd),
-	"dns":       lgc.NewCommand(DNSCmd),
+	"dns":       DNSCmd,
 	"id":        IDCmd,
 	"key":       KeyCmd,
 	"log":       lgc.NewCommand(LogCmd),
@@ -141,7 +141,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"refs":      lgc.NewCommand(RefsCmd),
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
-	"tar":       lgc.NewCommand(TarCmd),
+	"tar":       TarCmd,
 	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
 	"update":    lgc.NewCommand(ExternalBinary()),
 	"urlstore":  urlStoreCmd,
@@ -167,7 +167,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 		},
 	},
 	"get": GetCmd,
-	"dns": lgc.NewCommand(DNSCmd),
+	"dns": DNSCmd,
 	"ls":  lgc.NewCommand(LsCmd),
 	"name": &cmds.Command{
 		Subcommands: map[string]*cmds.Command{
