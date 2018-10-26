@@ -145,14 +145,14 @@ Example:
 
 var patchRmLinkCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Remove a link from an object.",
+		Tagline: "Remove a link from a given object.",
 		ShortDescription: `
-Removes a link by the given name from root.
+Remove a Merkle-link from the given object and return the hash of the result.
 `,
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
-		cmdkit.StringArg("link", true, false, "Name of the link to remove."),
+		cmdkit.StringArg("name", true, false, "Name of the link to remove."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		api, err := req.InvocContext().GetApi()
@@ -167,8 +167,8 @@ Removes a link by the given name from root.
 			return
 		}
 
-		link := req.Arguments()[1]
-		p, err := api.Object().RmLink(req.Context(), root, link)
+		name := req.Arguments()[1]
+		p, err := api.Object().RmLink(req.Context(), root, name)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
