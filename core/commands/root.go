@@ -123,7 +123,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"repo":      RepoCmd,
 	"stats":     StatsCmd,
 	"bootstrap": lgc.NewCommand(BootstrapCmd),
-	"config":    lgc.NewCommand(ConfigCmd),
+	"config":    ConfigCmd,
 	"dag":       dag.DagCmd,
 	"dht":       DhtCmd,
 	"diag":      DiagCmd,

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,11 +10,11 @@ import (
 	"os/exec"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	cmds "gx/ipfs/QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1/go-ipfs-cmds"
 	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
 	config "gx/ipfs/QmbK4EmM2Xx5fmbqK38TGP3PpY66r3tkXLZTcc7dF9mFwM/go-ipfs-config"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
@@ -60,7 +59,12 @@ Set the value of the 'Datastore.Path' key:
   $ ipfs config Datastore.Path ~/.ipfs/datastore
 `,
 	},
-
+	Subcommands: map[string]*cmds.Command{
+		"show":    configShowCmd,
+		"edit":    configEditCmd,
+		"replace": configReplaceCmd,
+		"profile": configProfileCmd,
+	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")."),
 		cmdkit.StringArg("value", false, false, "The value to set the config entry to."),
@@ -69,46 +73,37 @@ Set the value of the 'Datastore.Path' key:
 		cmdkit.BoolOption(configBoolOptionName, "Set a boolean value."),
 		cmdkit.BoolOption(configJSONOptionName, "Parse stringified JSON."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		args := req.Arguments()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		args := req.Arguments
 		key := args[0]
 
 		var output *ConfigField
-		defer func() {
-			if output != nil {
-				res.SetOutput(output)
-			} else {
-				res.SetOutput(nil)
-			}
-		}()
 
 		// This is a temporary fix until we move the private key out of the config file
 		switch strings.ToLower(key) {
 		case "identity", "identity.privkey":
-			res.SetError(fmt.Errorf("cannot show or change private key through API"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot show or change private key through API")
 		default:
 		}
 
-		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		ctx := env.(*oldcmds.Context)
+		r, err := fsrepo.Open(ctx.ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		defer r.Close()
 		if len(args) == 2 {
 			value := args[1]
 
-			if parseJSON, _, _ := req.Option(configJSONOptionName).Bool(); parseJSON {
+			if parseJSON, _ := req.Options[configJSONOptionName].(bool); parseJSON {
 				var jsonVal interface{}
 				if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
 					err = fmt.Errorf("failed to unmarshal json. %s", err)
-					res.SetError(err, cmdkit.ErrNormal)
-					return
+					return err
 				}
 
 				output, err = setConfig(r, key, jsonVal)
-			} else if isbool, _, _ := req.Option(configBoolOptionName).Bool(); isbool {
+			} else if isbool, _ := req.Options[configBoolOptionName].(bool); isbool {
 				output, err = setConfig(r, key, value == "true")
 			} else {
 				output, err = setConfig(r, key, value)
@@ -116,46 +111,28 @@ Set the value of the 'Datastore.Path' key:
 		} else {
 			output, err = getConfig(r, key)
 		}
+
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
+
+		return res.Emit(output)
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			if len(res.Request().Arguments()) == 2 {
-				return nil, nil // dont output anything
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ConfigField) error {
+			if len(req.Arguments) == 2 {
+				return nil
 			}
 
-			if res.Error() != nil {
-				return nil, res.Error()
-			}
-
-			v, err := unwrapOutput(res.Output())
+			buf, err := config.HumanOutput(out.Value)
 			if err != nil {
-				return nil, err
+				return err
 			}
-
-			vf, ok := v.(*ConfigField)
-			if !ok {
-				return nil, e.TypeErr(vf, v)
-			}
-
-			buf, err := config.HumanOutput(vf.Value)
-			if err != nil {
-				return nil, err
-			}
-			buf = append(buf, byte('\n'))
-			return bytes.NewReader(buf), nil
-		},
+			fmt.Fprintln(w, string(buf))
+			return nil
+		}),
 	},
 	Type: ConfigField{},
-	Subcommands: map[string]*cmds.Command{
-		"show":    configShowCmd,
-		"edit":    configEditCmd,
-		"replace": configReplaceCmd,
-		"profile": configProfileCmd,
-	},
 }
 
 var configShowCmd = &cmds.Command{
@@ -166,57 +143,41 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 `,
 	},
 	Type: map[string]interface{}{},
-	Run: func(req cmds.Request, res cmds.Response) {
-		cfgPath := req.InvocContext().ConfigRoot
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := env.(*oldcmds.Context)
+		cfgPath := ctx.ConfigRoot
 		fname, err := config.Filename(cfgPath)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		data, err := ioutil.ReadFile(fname)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		var cfg map[string]interface{}
 		err = json.Unmarshal(data, &cfg)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-		res.SetOutput(&cfg)
+
+		return res.Emit(&cfg)
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			if res.Error() != nil {
-				return nil, res.Error()
-			}
-
-			v, err := unwrapOutput(res.Output())
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
+			buf, err := config.HumanOutput(out)
 			if err != nil {
-				return nil, err
+				return err
 			}
-
-			cfg, ok := v.(*map[string]interface{})
-			if !ok {
-				return nil, e.TypeErr(cfg, v)
-			}
-
-			buf, err := config.HumanOutput(cfg)
-			if err != nil {
-				return nil, err
-			}
-			buf = append(buf, byte('\n'))
-			return bytes.NewReader(buf), nil
-		},
+			fmt.Fprintln(w, string(buf))
+			return nil
+		}),
 	},
 }
 
@@ -270,17 +231,14 @@ variable set to your preferred text editor.
 `,
 	},
 
-	Run: func(req cmds.Request, res cmds.Response) {
-		filename, err := config.Filename(req.InvocContext().ConfigRoot)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := env.(*oldcmds.Context)
+		filename, err := config.Filename(ctx.ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = editConfig(filename)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-		}
+		return editConfig(filename)
 	},
 }
 
@@ -296,29 +254,21 @@ can't be undone.
 	Arguments: []cmdkit.Argument{
 		cmdkit.FileArg("file", true, false, "The file to use as the new config."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		// has to be called
-		res.SetOutput(nil)
-
-		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := env.(*oldcmds.Context)
+		r, err := fsrepo.Open(ctx.ConfigRoot)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		defer r.Close()
 
-		file, err := req.Files().NextFile()
+		file, err := req.Files.NextFile()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		defer file.Close()
 
-		err = replaceConfig(r, file)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		return replaceConfig(r, file)
 	},
 }
 
@@ -346,58 +296,42 @@ var configProfileApplyCmd = &cmds.Command{
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		profile, ok := config.Profiles[req.Arguments()[0]]
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		profile, ok := config.Profiles[req.Arguments[0]]
 		if !ok {
-			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("%s is not a profile", req.Arguments[0])
 		}
 
-		dryRun, _, _ := req.Option("dry-run").Bool()
-		oldCfg, newCfg, err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform, dryRun)
+		dryRun, _ := req.Options["dry-run"].(bool)
+		ctx := env.(*oldcmds.Context)
+		oldCfg, newCfg, err := transformConfig(ctx.ConfigRoot, req.Arguments[0], profile.Transform, dryRun)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		oldCfgMap, err := scrubPrivKey(oldCfg)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		newCfgMap, err := scrubPrivKey(newCfg)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&ConfigUpdateOutput{
+		return res.Emit(&ConfigUpdateOutput{
 			OldCfg: oldCfgMap,
 			NewCfg: newCfgMap,
 		})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			if res.Error() != nil {
-				return nil, res.Error()
-			}
-
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			apply, ok := v.(*ConfigUpdateOutput)
-			if !ok {
-				return nil, e.TypeErr(apply, v)
-			}
-
-			diff := jsondiff.Compare(apply.OldCfg, apply.NewCfg)
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ConfigUpdateOutput) error {
+			diff := jsondiff.Compare(out.OldCfg, out.NewCfg)
 			buf := jsondiff.Format(diff)
 
-			return strings.NewReader(string(buf)), nil
-		},
+			fmt.Fprint(w, string(buf))
+			return nil
+		}),
 	},
 	Type: ConfigUpdateOutput{},
 }

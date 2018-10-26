@@ -34,7 +34,7 @@ Lists running and recently run commands.
 		"clear":    clearInactiveCmd,
 		"set-time": setRequestClearCmd,
 	},
-	Encoders: cmds.EncoderMap {
+	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *[]*cmds.ReqLogEntry) error {
 			verbose, _ := req.Options[verboseOptionName].(bool)
 
