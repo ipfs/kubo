@@ -132,7 +132,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"key":       KeyCmd,
 	"log":       lgc.NewCommand(LogCmd),
 	"ls":        lgc.NewCommand(LsCmd),
-	"mount":     lgc.NewCommand(MountCmd),
+	"mount":     MountCmd,
 	"name":      name.NameCmd,
 	"object":    ocmd.ObjectCmd,
 	"pin":       lgc.NewCommand(PinCmd),
