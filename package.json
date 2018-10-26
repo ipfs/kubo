@@ -47,9 +47,9 @@
       "version": "0.1.3"
     },
     {
-      "hash": "QmPwecoMB9jN9DosznNqcApK63PnrEmMduxp1mn5nqS7Pq",
+      "hash": "QmV1DPm5F46LvQMxCVPhu35zHgZEeMvyVtpxjb5TwfGiua",
       "name": "iptb",
-      "version": "1.3.18"
+      "version": "1.3.19"
     },
     {
       "hash": "QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8",
@@ -458,9 +458,9 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmPgUM9uSnDuM8MAF56htHLMLn33KuUqT82PBsF13qyJNk",
+      "hash": "QmWqQVkbYzC8himRvPCWmkfpFuYtHidY7xEKtrrQ3dhySs",
       "name": "go-libp2p-pubsub-router",
-      "version": "0.4.14"
+      "version": "0.5.1"
     },
     {
       "author": "Stebalien",
@@ -518,9 +518,9 @@
     },
     {
       "author": "magik6k",
-      "hash": "QmNUhkTWN7iynJZTj1RcTsQDSRGGkh87zMo9ELypxhY8Y6",
+      "hash": "QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR",
       "name": "go-ipfs-config",
-      "version": "0.2.15"
+      "version": "0.2.16"
     },
     {
       "author": "why",
@@ -583,9 +583,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmZuwf2M6vSPpHh9KWp59HFq3kAibka77hAbKhxeb7uW3T",
+      "hash": "QmTQdS71yMtTmaSeeGptMDxDBpRcq2kTsJ6X2CPd7riyMs",
       "name": "go-libp2p-pubsub",
-      "version": "0.10.2"
+      "version": "0.11.1"
     }
   ],
   "gxVersion": "0.10.0",
