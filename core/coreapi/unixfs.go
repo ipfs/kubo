@@ -133,7 +133,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
 
-func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (coreiface.UnixfsFile, error) {
+func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.File, error) {
 	ses := api.core().getSession(ctx)
 
 	nd, err := ses.ResolveNode(ctx, p)
@@ -141,7 +141,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (coreiface.Unix
 		return nil, err
 	}
 
-	return newUnixfsFile(ctx, ses.dag, nd, "", nil)
+	return newUnixfsFile(ctx, ses.dag, nd, nil)
 }
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:

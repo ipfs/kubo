@@ -20,7 +20,7 @@ import (
 var rnd = rand.New(rand.NewSource(0x62796532303137))
 
 func addTestObject(ctx context.Context, api coreiface.CoreAPI) (coreiface.Path, error) {
-	return api.Unixfs().Add(ctx, files.NewReaderFile("", "", ioutil.NopCloser(&io.LimitedReader{R: rnd, N: 4092}), nil))
+	return api.Unixfs().Add(ctx, files.NewReaderFile(ioutil.NopCloser(&io.LimitedReader{R: rnd, N: 4092}), nil))
 }
 
 func appendPath(p coreiface.Path, sub string) coreiface.Path {

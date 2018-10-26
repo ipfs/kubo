@@ -71,16 +71,20 @@ func TestAddGCLive(t *testing.T) {
 	adder.Out = out
 
 	dataa := ioutil.NopCloser(bytes.NewBufferString("testfileA"))
-	rfa := files.NewReaderFile("a", "a", dataa, nil)
+	rfa := files.NewReaderFile(dataa, nil)
 
 	// make two files with pipes so we can 'pause' the add for timing of the test
 	piper, pipew := io.Pipe()
-	hangfile := files.NewReaderFile("b", "b", piper, nil)
+	hangfile := files.NewReaderFile(piper, nil)
 
 	datad := ioutil.NopCloser(bytes.NewBufferString("testfileD"))
-	rfd := files.NewReaderFile("d", "d", datad, nil)
+	rfd := files.NewReaderFile(datad, nil)
 
-	slf := files.NewSliceFile("files", "files", []files.File{rfa, hangfile, rfd})
+	slf := files.NewSliceFile([]files.FileEntry{
+		{File: rfa, Name: "a"},
+		{File: hangfile, Name: "b"},
+		{File: rfd, Name: "d"},
+	})
 
 	addDone := make(chan struct{})
 	go func() {
@@ -189,7 +193,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	rand.New(rand.NewSource(2)).Read(data) // Rand.Read never returns an error
 	fileData := ioutil.NopCloser(bytes.NewBuffer(data))
 	fileInfo := dummyFileInfo{"foo.txt", int64(len(data)), time.Now()}
-	file := files.NewReaderFile("foo.txt", "/tmp/foo.txt", fileData, &fileInfo)
+	file := files.NewReaderFile(fileData, &fileInfo)
 
 	go func() {
 		defer close(adder.Out)

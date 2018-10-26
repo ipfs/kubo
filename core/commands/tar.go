@@ -44,7 +44,7 @@ represent it.
 			return err
 		}
 
-		fi, err := req.Files.NextFile()
+		name, fi, err := req.Files.NextFile()
 		if err != nil {
 			return err
 		}
@@ -56,9 +56,8 @@ represent it.
 
 		c := node.Cid()
 
-		fi.FileName()
 		return cmds.EmitOnce(res, &coreiface.AddEvent{
-			Name: fi.FileName(),
+			Name: name,
 			Hash: c.String(),
 		})
 	},

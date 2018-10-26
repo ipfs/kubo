@@ -2,9 +2,8 @@ package iface
 
 import (
 	"context"
-	"io"
 
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
@@ -16,11 +15,6 @@ type AddEvent struct {
 	Hash  string `json:",omitempty"`
 	Bytes int64  `json:",omitempty"`
 	Size  string `json:",omitempty"`
-}
-
-type UnixfsFile interface {
-	files.SizeFile
-	io.Seeker
 }
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
@@ -35,7 +29,7 @@ type UnixfsAPI interface {
 	//
 	// Note that some implementations of this API may apply the specified context
 	// to operations performed on the returned file
-	Get(context.Context, Path) (UnixfsFile, error)
+	Get(context.Context, Path) (files.File, error)
 
 	// Ls returns the list of links in a directory
 	Ls(context.Context, Path) ([]*ipld.Link, error)

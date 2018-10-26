@@ -386,7 +386,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 }
 
 func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	p, err := i.api.Unixfs().Add(ctx, files.NewReaderFile("", "", ioutil.NopCloser(r.Body), nil))
+	p, err := i.api.Unixfs().Add(ctx, files.NewReaderFile(ioutil.NopCloser(r.Body), nil))
 	if err != nil {
 		internalWebError(w, err)
 		return

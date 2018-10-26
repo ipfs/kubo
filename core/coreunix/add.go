@@ -311,7 +311,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	f, err := files.NewSerialFile(filepath.Base(root), root, false, stat)
+	f, err := files.NewSerialFile(root, false, stat)
 	if err != nil {
 		return "", err
 	}
@@ -322,7 +322,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	err = fileAdder.addFile(f)
+	err = fileAdder.addFile(filepath.Base(root), f)
 	if err != nil {
 		return "", err
 	}
@@ -340,7 +340,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 // Returns the path of the added file ("<dir hash>/filename"), the DAG node of
 // the directory, and and error if any.
 func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, ipld.Node, error) {
-	file := files.NewReaderFile(filename, filename, ioutil.NopCloser(r), nil)
+	file := files.NewReaderFile(ioutil.NopCloser(r), nil)
 	fileAdder, err := NewAdder(n.Context(), n.Pinning, n.Blockstore, n.DAG)
 	if err != nil {
 		return "", nil, err
@@ -349,7 +349,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, ipld.No
 
 	defer n.Blockstore.PinLock().Unlock()
 
-	err = fileAdder.addFile(file)
+	err = fileAdder.addFile(filename, file)
 	if err != nil {
 		return "", nil, err
 	}
@@ -416,20 +416,20 @@ func (adder *Adder) AddAllAndPin(file files.File) (ipld.Node, error) {
 		// single files.File f is treated as a directory, affecting hidden file
 		// semantics.
 		for {
-			f, err := file.NextFile()
+			name, f, err := file.NextFile()
 			if err == io.EOF {
 				// Finished the list of files.
 				break
 			} else if err != nil {
 				return nil, err
 			}
-			if err := adder.addFile(f); err != nil {
+			if err := adder.addFile(name, f); err != nil {
 				return nil, err
 			}
 		}
 		break
 	default:
-		if err := adder.addFile(file); err != nil {
+		if err := adder.addFile("", file); err != nil {
 			return nil, err
 		}
 		break
@@ -447,7 +447,7 @@ func (adder *Adder) AddAllAndPin(file files.File) (ipld.Node, error) {
 	return nd, adder.PinRoot()
 }
 
-func (adder *Adder) addFile(file files.File) error {
+func (adder *Adder) addFile(path string, file files.File) error {
 	err := adder.maybePauseForGC()
 	if err != nil {
 		return err
@@ -468,7 +468,7 @@ func (adder *Adder) addFile(file files.File) error {
 	adder.liveNodes++
 
 	if file.IsDirectory() {
-		return adder.addDir(file)
+		return adder.addDir(path, file)
 	}
 
 	// case for symlink
@@ -485,7 +485,7 @@ func (adder *Adder) addFile(file files.File) error {
 			return err
 		}
 
-		return adder.addNode(dagnode, s.FileName())
+		return adder.addNode(dagnode, path)
 	}
 
 	// case for regular file
@@ -493,7 +493,7 @@ func (adder *Adder) addFile(file files.File) error {
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
 	if adder.Progress {
-		rdr := &progressReader{file: file, out: adder.Out}
+		rdr := &progressReader{file: file, path: path, out: adder.Out}
 		if fi, ok := file.(files.FileInfo); ok {
 			reader = &progressReader2{rdr, fi}
 		} else {
@@ -506,26 +506,25 @@ func (adder *Adder) addFile(file files.File) error {
 		return err
 	}
 
-	addFileName := file.FileName()
 	addFileInfo, ok := file.(files.FileInfo)
 	if ok {
 		if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
-			addFileName = adder.Name
+			path = adder.Name
 			adder.Name = ""
 		}
 	}
 	// patch it into the root
-	return adder.addNode(dagnode, addFileName)
+	return adder.addNode(dagnode, path)
 }
 
-func (adder *Adder) addDir(dir files.File) error {
-	log.Infof("adding directory: %s", dir.FileName())
+func (adder *Adder) addDir(path string, dir files.File) error {
+	log.Infof("adding directory: %s", path)
 
 	mr, err := adder.mfsRoot()
 	if err != nil {
 		return err
 	}
-	err = mfs.Mkdir(mr, dir.FileName(), mfs.MkdirOpts{
+	err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
 		Mkparents:  true,
 		Flush:      false,
 		CidBuilder: adder.CidBuilder,
@@ -535,7 +534,7 @@ func (adder *Adder) addDir(dir files.File) error {
 	}
 
 	for {
-		file, err := dir.NextFile()
+		name, file, err := dir.NextFile()
 		if err != nil && err != io.EOF {
 			return err
 		}
@@ -543,12 +542,14 @@ func (adder *Adder) addDir(dir files.File) error {
 			break
 		}
 
+		fpath := gopath.Join(path, name)
+
 		// Skip hidden files when adding recursively, unless Hidden is enabled.
-		if files.IsHidden(file) && !adder.Hidden {
-			log.Infof("%s is hidden, skipping", file.FileName())
+		if files.IsHidden(fpath, file) && !adder.Hidden {
+			log.Infof("%s is hidden, skipping", fpath)
 			continue
 		}
-		err = adder.addFile(file)
+		err = adder.addFile(fpath, file)
 		if err != nil {
 			return err
 		}
@@ -616,6 +617,7 @@ func getOutput(dagnode ipld.Node) (*Object, error) {
 
 type progressReader struct {
 	file         files.File
+	path         string
 	out          chan<- interface{}
 	bytes        int64
 	lastProgress int64
@@ -628,7 +630,7 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	if i.bytes-i.lastProgress >= progressReaderIncrement || err == io.EOF {
 		i.lastProgress = i.bytes
 		i.out <- &coreiface.AddEvent{
-			Name:  i.file.FileName(),
+			Name:  i.path,
 			Bytes: i.bytes,
 		}
 	}
@@ -639,4 +641,8 @@ func (i *progressReader) Read(p []byte) (int, error) {
 type progressReader2 struct {
 	*progressReader
 	files.FileInfo
+}
+
+func (i *progressReader2) Read(p []byte) (int, error) {
+	return i.progressReader.Read(p)
 }

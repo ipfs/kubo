@@ -93,7 +93,7 @@ into an object of the specified format.
 		}
 
 		for {
-			file, err := req.Files.NextFile()
+			_, file, err := req.Files.NextFile()
 			if err == io.EOF {
 				// Finished the list of files.
 				break

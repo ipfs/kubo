@@ -391,7 +391,7 @@ And then run:
 			return err
 		}
 
-		input, err := req.Files.NextFile()
+		_, input, err := req.Files.NextFile()
 		if err != nil && err != io.EOF {
 			return err
 		}
