@@ -1,16 +1,15 @@
 package commands
 
 import (
+	"fmt"
 	"io"
-	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmdTmGruUz23vgzym3uWpnAEQdGdGifQqBvP8UXSRjG8gZ/go-ipfs-cmds"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 const (
@@ -61,10 +60,9 @@ The resolver can recursively resolve:
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(dnsRecursiveOptionName, "r", "Resolve until the result is not a DNS link."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-
-		recursive, _, _ := req.Option(dnsRecursiveOptionName).Bool()
-		name := req.Arguments()[0]
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		recursive, _ := req.Options[dnsRecursiveOptionName].(bool)
+		name := req.Arguments[0]
 		resolver := namesys.NewDNSResolver()
 
 		var ropts []nsopts.ResolveOpt
@@ -72,30 +70,20 @@ The resolver can recursively resolve:
 			ropts = append(ropts, nsopts.Depth(1))
 		}
 
-		output, err := resolver.Resolve(req.Context(), name, ropts...)
+		output, err := resolver.Resolve(req.Context, name, ropts...)
 		if err == namesys.ErrResolveFailed {
-			res.SetError(err, cmdkit.ErrNotFound)
-			return
+			return err
 		}
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-		res.SetOutput(&ncmd.ResolvedPath{Path: output})
+		return res.Emit(&ncmd.ResolvedPath{Path: output})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			output, ok := v.(*ncmd.ResolvedPath)
-			if !ok {
-				return nil, e.TypeErr(output, v)
-			}
-			return strings.NewReader(output.Path.String() + "\n"), nil
-		},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ncmd.ResolvedPath) error {
+			fmt.Fprintln(w, out.Path.String())
+			return nil
+		}),
 	},
 	Type: ncmd.ResolvedPath{},
 }
