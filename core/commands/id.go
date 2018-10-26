@@ -10,7 +10,6 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
@@ -112,25 +111,20 @@ EXAMPLE:
 		return cmds.EmitOnce(res, output)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			val, ok := v.(*IdOutput)
-			if !ok {
-				return e.TypeErr(val, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *IdOutput) error {
 			format, found := req.Options[formatOptionName].(string)
 			if found {
 				output := format
-				output = strings.Replace(output, "<id>", val.ID, -1)
-				output = strings.Replace(output, "<aver>", val.AgentVersion, -1)
-				output = strings.Replace(output, "<pver>", val.ProtocolVersion, -1)
-				output = strings.Replace(output, "<pubkey>", val.PublicKey, -1)
-				output = strings.Replace(output, "<addrs>", strings.Join(val.Addresses, "\n"), -1)
+				output = strings.Replace(output, "<id>", out.ID, -1)
+				output = strings.Replace(output, "<aver>", out.AgentVersion, -1)
+				output = strings.Replace(output, "<pver>", out.ProtocolVersion, -1)
+				output = strings.Replace(output, "<pubkey>", out.PublicKey, -1)
+				output = strings.Replace(output, "<addrs>", strings.Join(out.Addresses, "\n"), -1)
 				output = strings.Replace(output, "\\n", "\n", -1)
 				output = strings.Replace(output, "\\t", "\t", -1)
 				fmt.Fprint(w, output)
 			} else {
-				marshaled, err := json.MarshalIndent(val, "", "\t")
+				marshaled, err := json.MarshalIndent(out, "", "\t")
 				if err != nil {
 					return err
 				}
