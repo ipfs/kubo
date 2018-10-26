@@ -13,7 +13,6 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	path "gx/ipfs/QmRKuTyCzg7HFBcV1YUhzStroGtJSb8iWgyxfsDCwFhWTS/go-path"
 	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -89,6 +88,10 @@ into an object of the specified format.
 		cids := cid.NewSet()
 		b := ipld.NewBatch(req.Context, nd.DAG)
 
+		if dopin {
+			defer nd.Blockstore.PinLock().Unlock()
+		}
+
 		for {
 			file, err := req.Files.NextFile()
 			if err == io.EOF {
@@ -125,8 +128,6 @@ into an object of the specified format.
 		}
 
 		if dopin {
-			defer nd.Blockstore.PinLock().Unlock()
-
 			cids.ForEach(func(c cid.Cid) error {
 				nd.Pinning.PinWithMode(c, pin.Recursive)
 				return nil
