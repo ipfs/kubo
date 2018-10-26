@@ -124,7 +124,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"stats":     StatsCmd,
 	"bootstrap": lgc.NewCommand(BootstrapCmd),
 	"config":    lgc.NewCommand(ConfigCmd),
-	"dag":       lgc.NewCommand(dag.DagCmd),
+	"dag":       dag.DagCmd,
 	"dht":       lgc.NewCommand(DhtCmd),
 	"diag":      lgc.NewCommand(DiagCmd),
 	"dns":       lgc.NewCommand(DNSCmd),
@@ -169,7 +169,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	"get": GetCmd,
 	"dns": lgc.NewCommand(DNSCmd),
 	"ls":  lgc.NewCommand(LsCmd),
-	"name": &cmds.Command{
+	"name": {
 		Subcommands: map[string]*cmds.Command{
 			"resolve": name.IpnsCmd,
 		},
@@ -182,12 +182,12 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"stat":  ocmd.ObjectStatCmd,
 		},
 	}),
-	"dag": lgc.NewCommand(&oldcmds.Command{
-		Subcommands: map[string]*oldcmds.Command{
+	"dag": {
+		Subcommands: map[string]*cmds.Command{
 			"get":     dag.DagGetCmd,
 			"resolve": dag.DagResolveCmd,
 		},
-	}),
+	},
 	"resolve": ResolveCmd,
 	"version": lgc.NewCommand(VersionCmd),
 }
