@@ -145,7 +145,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
 	"update":    lgc.NewCommand(ExternalBinary()),
 	"urlstore":  urlStoreCmd,
-	"version":   lgc.NewCommand(VersionCmd),
+	"version":   VersionCmd,
 	"shutdown":  daemonShutdownCmd,
 	"cid":       CidCmd,
 }
@@ -189,7 +189,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 		},
 	}),
 	"resolve": ResolveCmd,
-	"version": lgc.NewCommand(VersionCmd),
+	"version": VersionCmd,
 }
 
 func init() {
