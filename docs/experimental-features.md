@@ -54,6 +54,21 @@ feature shouldn't break compatibility with existing IPFS nodes.
 You can enable gossipsub via configuration:
 `ipfs config Pubsub.Router gossipsub`
 
+### Message Signing
+
+As of 0.4.18, go-ipfs signs all pubsub messages by default. For now, it doesn't
+*reject* unsigned messages but it will in the future.
+
+You can turn off message signing (not recommended unless you're using a private
+network) by running:
+`ipfs config Pubsub.DisableSigning true`
+
+You can turn on strict signature verification (require that all messages be
+signed) by running:
+`ipfs config Pubsub.StrictSignatureVerification true`
+
+(this last option will be set to true by default and eventually removed entirely)
+
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works
 - [ ] Needs authenticated modes to be implemented
