@@ -107,6 +107,18 @@ CIDs. In this release, we've added support for creating these CIDs. You can now
 run `ipfs add` with the `--inline` flag to inline blocks less than or equal to
 32 bytes in length into a CID, instead of writing an actual block.
 
+#### CoreAPI
+
+CoreAPI is a new way to interact with IPFS from Go. While it's still not
+final, most things you can do via the CLI or HTTP interfaces, can now be done
+through the new API.
+
+Currently there is only one implementation, backed by go-ipfs node, and there are
+plans to start http-api backed one soon. We are also looking into creating RPC
+interface using this API, which could help performance in some use cases.
+
+You can track progress in https://github.com/ipfs/go-ipfs/issues/4498
+
 #### WebUI
 
 Finally, this release includes the shiny [updated
