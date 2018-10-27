@@ -49,7 +49,7 @@ operations.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("f", "flush", "Flush target and ancestors after write.").WithDefault(true),
+		cmdkit.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"read":  filesReadCmd,
@@ -313,7 +313,7 @@ var filesCpCmd = &cmds.Command{
 			return err
 		}
 
-		flush, _ := req.Options["flush"].(bool)
+		flush, _ := req.Options[filesFlushOptionName].(bool)
 
 		src, err := checkPath(req.Arguments[0])
 		if err != nil {
@@ -448,13 +448,12 @@ Examples:
 					})
 				}
 				return res.Emit(&filesLsOutput{output})
-			} else {
-				listing, err := fsn.List(req.Context)
-				if err != nil {
-					return err
-				}
-				return res.Emit(&filesLsOutput{listing})
 			}
+			listing, err := fsn.List(req.Context)
+			if err != nil {
+				return err
+			}
+			return res.Emit(&filesLsOutput{listing})
 		case *mfs.File:
 			_, name := gopath.Split(path)
 			out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
