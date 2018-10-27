@@ -12,8 +12,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
+	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
@@ -171,12 +170,7 @@ var filesStatCmd = &cmds.Command{
 		return cmds.EmitOnce(res, o)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			out, ok := v.(*statOutput)
-			if !ok {
-				return e.TypeErr(out, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *statOutput) error {
 			s, _ := statGetFormatOptions(req)
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
@@ -952,11 +946,11 @@ Remove files or directories.
 		cmdkit.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Recursively remove directories."),
-		cmdkit.BoolOption("force", "Forcibly remove target at path; implies -r for directories"),
+		cmdkit.BoolOption(recursiveOptionName, "r", "Recursively remove directories."),
+		cmdkit.BoolOption(forceOptionName, "Forcibly remove target at path; implies -r for directories"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err :=cmdenv.GetNode(env)
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
 		}
@@ -988,7 +982,7 @@ Remove files or directories.
 
 		// if '--force' specified, it will remove anything else,
 		// including file, directory, corrupted node, etc
-		force, _ := req.Options["force"].(bool)
+		force, _ := req.Options[forceOptionName].(bool)
 		if force {
 			err := pdir.Unlink(name)
 			if err != nil {
@@ -1005,7 +999,7 @@ Remove files or directories.
 			return err
 		}
 
-		dashr, _ := req.Options["r"].(bool)
+		dashr, _ := req.Options[recursiveOptionName].(bool)
 
 		switch child.(type) {
 		case *mfs.Directory:
