@@ -94,7 +94,13 @@ It's still experimental but we don't expect too many breaking changes at this
 point (it will very likely be stabilized in the next release).
 
 TODO: Put this (vv) somewhere else.
-TODO: mention `name resolve --stream`.
+There is now a new flag for `ipfs name resolve` - `--stream`. When the command is
+invoked with the flag set, it will start returning results as soon as they are discovered
+in the DHT and other routing mechanisms. This enables certain applications to start
+prefetching/displaying data while the discovery is still running. Note that for security
+reasons, unless you implement custom validation method, you should wait for the
+command to return before considering returned records up to date.
+
 
 In the previous release, we added support for extracting blocks inlined into
 CIDs. In this release, we've added support for creating these CIDs. You can now
