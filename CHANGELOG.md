@@ -30,7 +30,7 @@ For us, this means (eventually):
 * Behaves better on lossy networks. When multiplexing multiple requests over a
   single TCP connection, a single dropped packet will bring the entire
   connection to a halt while the packet is re-transmitted. However, because QUIC
-  handles multiplexing internally, parallel requests can...
+  handles multiplexing internally, dropping a single packets affects only the related stream
 * Better home router behavior (hopefully). Currently, IPFS can crash buggy
   end-user routers simply by opening too many connections. We believe this is
   happening because many home routers try to track every single open connection,
