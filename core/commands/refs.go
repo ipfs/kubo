@@ -4,16 +4,19 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
+	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	path "gx/ipfs/QmRG3XuGwT7GYuAqgWDJBKTzdaHMwAnc1x7J2KHEXNHxzG/go-path"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -31,7 +34,7 @@ const (
 )
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
-func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
+func KeyListTextMarshaler(res oldcmds.Response) (io.Reader, error) {
 	out, err := unwrapOutput(res.Output())
 	if err != nil {
 		return nil, err
@@ -74,65 +77,37 @@ NOTE: List all references recursively by using the flag '-r'.
 		cmdkit.BoolOption(refsRecursiveOptionName, "r", "Recursively list links of child nodes."),
 		cmdkit.IntOption(refsMaxDepthOptionName, "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context()
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := req.Context
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		unique, _, err := req.Option(refsUniqueOptionName).Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		recursive, _, err := req.Option(refsRecursiveOptionName).Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		maxDepth, _, err := req.Option(refsMaxDepthOptionName).Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		unique, _ := req.Options[refsUniqueOptionName].(bool)
+		recursive, _ := req.Options[refsRecursiveOptionName].(bool)
+		maxDepth, _ := req.Options[refsMaxDepthOptionName].(int)
+		edges, _ := req.Options[refsEdgesOptionName].(bool)
+		format, _ := req.Options[refsFormatOptionName].(string)
 
 		if !recursive {
 			maxDepth = 1 // write only direct refs
 		}
 
-		format, _, err := req.Option(refsFormatOptionName).String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		edges, _, err := req.Option(refsEdgesOptionName).Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
 		if edges {
 			if format != "<dst>" {
-				res.SetError(errors.New("using format argument with edges is not allowed"),
-					cmdkit.ErrClient)
-				return
+				return errors.New("using format argument with edges is not allowed")
 			}
 
 			format = "<src> -> <dst>"
 		}
 
-		objs, err := objectsForPaths(ctx, n, req.Arguments())
+		objs, err := objectsForPaths(ctx, n, req.Arguments)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		out := make(chan interface{})
-		res.SetOutput((<-chan interface{})(out))
 
 		go func() {
 			defer close(out)
@@ -156,9 +131,20 @@ NOTE: List all references recursively by using the flag '-r'.
 				}
 			}
 		}()
+
+		return res.Emit(out)
 	},
-	Marshalers: refsMarshallerMap,
-	Type:       RefWrapper{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
+			if out.Err != "" {
+				return fmt.Errorf(out.Err)
+			}
+			fmt.Fprintln(w, out.Ref)
+
+			return nil
+		}),
+	},
+	Type: RefWrapper{},
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -169,23 +155,20 @@ Displays the hashes of all local objects.
 `,
 	},
 
-	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context()
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := req.Context
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		// todo: make async
 		allKeys, err := n.Blockstore.AllKeysChan(ctx)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		out := make(chan interface{})
-		res.SetOutput((<-chan interface{})(out))
 
 		go func() {
 			defer close(out)
@@ -193,18 +176,29 @@ Displays the hashes of all local objects.
 			for k := range allKeys {
 				select {
 				case out <- &RefWrapper{Ref: k.String()}:
-				case <-req.Context().Done():
+				case <-req.Context.Done():
 					return
 				}
 			}
 		}()
+
+		return res.Emit(out)
 	},
-	Marshalers: refsMarshallerMap,
-	Type:       RefWrapper{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
+			if out.Err != "" {
+				return fmt.Errorf(out.Err)
+			}
+			fmt.Fprintln(w, out.Ref)
+
+			return nil
+		}),
+	},
+	Type: RefWrapper{},
 }
 
-var refsMarshallerMap = cmds.MarshalerMap{
-	cmds.Text: func(res cmds.Response) (io.Reader, error) {
+var refsMarshallerMap = oldcmds.MarshalerMap{
+	cmds.Text: func(res oldcmds.Response) (io.Reader, error) {
 		v, err := unwrapOutput(res.Output())
 		if err != nil {
 			return nil, err
