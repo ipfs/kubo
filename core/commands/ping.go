@@ -14,6 +14,7 @@ import (
 	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
+	iaddr "gx/ipfs/QmZc5PLgxW61uTPG24TroxHDF6xzgbhZZQf5i53ciQC47Y/go-ipfs-addr"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -157,38 +158,15 @@ trip latency information.
 }
 
 func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
-	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
-	idx := strings.LastIndex(text, "/")
-	if idx == -1 {
-		pid, err := peer.IDB58Decode(text)
+	// Multiaddr
+	if strings.HasPrefix(text, "/") {
+		a, err := iaddr.ParseString(text)
 		if err != nil {
 			return nil, "", err
 		}
-
-		return nil, pid, nil
+		return a.Transport(), a.ID(), nil
 	}
-
-	addrS := text[:idx]
-	peeridS := text[idx+1:]
-
-	var maddr ma.Multiaddr
-	var pid peer.ID
-
-	// make sure addrS parses as a multiaddr.
-	if len(addrS) > 0 {
-		var err error
-		maddr, err = ma.NewMultiaddr(addrS)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
-	// make sure idS parses as a peer.ID
-	var err error
-	pid, err = peer.IDB58Decode(peeridS)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return maddr, pid, nil
+	// Raw peer ID
+	p, err := peer.IDB58Decode(text)
+	return nil, p, err
 }
