@@ -137,7 +137,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"object":    ocmd.ObjectCmd,
 	"pin":       lgc.NewCommand(PinCmd),
 	"ping":      PingCmd,
-	"p2p":       lgc.NewCommand(P2PCmd),
+	"p2p":       P2PCmd,
 	"refs":      lgc.NewCommand(RefsCmd),
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
