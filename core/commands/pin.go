@@ -90,7 +90,6 @@ var addPinCmd = &cmds.Command{
 		}
 
 		out := make(chan interface{})
-		res.Emit(out)
 
 		v := new(dag.ProgressTracker)
 		ctx := v.DeriveContext(req.Context)
@@ -105,30 +104,43 @@ var addPinCmd = &cmds.Command{
 			ch <- pinResult{pins: added, err: err}
 		}()
 
-		ticker := time.NewTicker(500 * time.Millisecond)
-		defer ticker.Stop()
-		defer close(out)
-		for {
-			select {
-			case val := <-ch:
-				if val.err != nil {
-					return val.err
-				}
+		errC := make(chan error)
+		go func() {
+			var err error
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
+			defer func() { errC <- err }()
+			defer close(out)
 
-				if pv := v.Value(); pv != 0 {
+			for {
+				select {
+				case val := <-ch:
+					if val.err != nil {
+						err = val.err
+						return
+					}
+
+					if pv := v.Value(); pv != 0 {
+						out <- &AddPinOutput{Progress: v.Value()}
+					}
+					out <- &AddPinOutput{Pins: cidsToStrings(val.pins)}
+					return
+				case <-ticker.C:
 					out <- &AddPinOutput{Progress: v.Value()}
+				case <-ctx.Done():
+					log.Error(ctx.Err())
+					err = ctx.Err()
+					return
 				}
-				out <- &AddPinOutput{Pins: cidsToStrings(val.pins)}
-				return nil
-			case <-ticker.C:
-				out <- &AddPinOutput{Progress: v.Value()}
-			case <-ctx.Done():
-				log.Error(ctx.Err())
-				return ctx.Err()
 			}
+		}()
+
+		err = res.Emit(out)
+		if err != nil {
+			return err
 		}
 
-		return nil
+		return <-errC
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddPinOutput) error {
@@ -294,9 +306,9 @@ Example:
 
 		if err != nil {
 			return err
-		} else {
-			return res.Emit(&RefKeyList{Keys: keys})
 		}
+
+		return res.Emit(&RefKeyList{Keys: keys})
 	},
 	Type: RefKeyList{},
 	Encoders: cmds.EncoderMap{
