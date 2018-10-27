@@ -126,15 +126,15 @@ For ERROR entries the error will also be printed to stderr.
 				return filestore.Verify(fs, c)
 			})
 			return res.Emit(out)
-		} else {
-			fileOrder, _ := req.Options[fileOrderOptionName].(bool)
-			next, err := filestore.VerifyAll(fs, fileOrder)
-			if err != nil {
-				return err
-			}
-			out := listResToChan(req.Context, next)
-			return res.Emit(out)
 		}
+
+		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
+		next, err := filestore.VerifyAll(fs, fileOrder)
+		if err != nil {
+			return err
+		}
+		out := listResToChan(req.Context, next)
+		return res.Emit(out)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filestore.ListRes) error {
