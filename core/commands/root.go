@@ -174,8 +174,8 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"resolve": name.IpnsCmd,
 		},
 	},
-	"object": lgc.NewCommand(&oldcmds.Command{
-		Subcommands: map[string]*oldcmds.Command{
+	"object": {
+		Subcommands: map[string]*cmds.Command{
 			"data":  ocmd.ObjectDataCmd,
 			"links": ocmd.ObjectLinksCmd,
 			"get":   ocmd.ObjectGetCmd,
