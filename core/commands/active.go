@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"sort"
@@ -10,7 +9,7 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 
-	cmds "gx/ipfs/QmdTmGruUz23vgzym3uWpnAEQdGdGifQqBvP8UXSRjG8gZ/go-ipfs-cmds"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -40,9 +39,7 @@ Lists running and recently run commands.
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *[]*cmds.ReqLogEntry) error {
 			verbose, _ := req.Options[verboseOptionName].(bool)
 
-			buf := new(bytes.Buffer)
-
-			tw := tabwriter.NewWriter(buf, 4, 4, 2, ' ', 0)
+			tw := tabwriter.NewWriter(w, 4, 4, 2, ' ', 0)
 			if verbose {
 				fmt.Fprint(tw, "ID\t")
 			}
@@ -81,8 +78,6 @@ Lists running and recently run commands.
 				fmt.Fprintf(tw, "%t\t%s\t%s\n", req.Active, t, live)
 			}
 			tw.Flush()
-
-			fmt.Fprint(w, buf)
 
 			return nil
 		}),
