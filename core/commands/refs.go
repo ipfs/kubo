@@ -168,21 +168,14 @@ Displays the hashes of all local objects.
 			return err
 		}
 
-		out := make(chan interface{})
-
-		go func() {
-			defer close(out)
-
-			for k := range allKeys {
-				select {
-				case out <- &RefWrapper{Ref: k.String()}:
-				case <-req.Context.Done():
-					return
-				}
+		for k := range allKeys {
+			err := res.Emit(&RefWrapper{Ref: k.String()})
+			if err != nil {
+				return err
 			}
-		}()
+		}
 
-		return res.Emit(out)
+		return nil
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
