@@ -135,7 +135,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"mount":     MountCmd,
 	"name":      name.NameCmd,
 	"object":    ocmd.ObjectCmd,
-	"pin":       lgc.NewCommand(PinCmd),
+	"pin":       PinCmd,
 	"ping":      PingCmd,
 	"p2p":       P2PCmd,
 	"refs":      lgc.NewCommand(RefsCmd),
