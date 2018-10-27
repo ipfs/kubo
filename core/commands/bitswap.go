@@ -1,18 +1,15 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+
+	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	bitswap "gx/ipfs/QmXRphxBT4BH2GqGHUSbqULm7wNsxnpA2NrbNaY3DU1Y5K/go-bitswap"
 	decision "gx/ipfs/QmXRphxBT4BH2GqGHUSbqULm7wNsxnpA2NrbNaY3DU1Y5K/go-bitswap/decision"
-
-	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	peer "gx/ipfs/QmcqU6QUDSXprb1518vYDGczrTJTyGwLG9eUa5iNX4xUtS/go-libp2p-peer"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
@@ -26,9 +23,9 @@ var BitswapCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"stat":      bitswapStatCmd,
-		"wantlist":  lgc.NewCommand(showWantlistCmd),
-		"ledger":    lgc.NewCommand(ledgerCmd),
-		"reprovide": lgc.NewCommand(reprovideCmd),
+		"wantlist":  showWantlistCmd,
+		"ledger":    ledgerCmd,
+		"reprovide": reprovideCmd,
 	},
 }
 
@@ -36,7 +33,7 @@ const (
 	peerOptionName = "peer"
 )
 
-var showWantlistCmd = &oldcmds.Command{
+var showWantlistCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show blocks currently on the wantlist.",
 		ShortDescription: `
@@ -46,47 +43,46 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 		cmdkit.StringOption(peerOptionName, "p", "Specify which peer to show wantlist for. Default: self."),
 	},
 	Type: KeyList{},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(ErrNotOnline, cmdkit.ErrClient)
-			return
+			return ErrNotOnline
 		}
 
 		bs, ok := nd.Exchange.(*bitswap.Bitswap)
 		if !ok {
-			res.SetError(e.TypeErr(bs, nd.Exchange), cmdkit.ErrNormal)
-			return
+			return e.TypeErr(bs, nd.Exchange)
 		}
 
-		pstr, found, err := req.Option(peerOptionName).String()
+		pstr, found := req.Options[peerOptionName].(string)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		if found {
 			pid, err := peer.IDB58Decode(pstr)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 			if pid == nd.Identity {
-				res.SetOutput(&KeyList{bs.GetWantlist()})
-				return
+				return res.Emit(&KeyList{bs.GetWantlist()})
 			}
 
-			res.SetOutput(&KeyList{bs.WantlistForPeer(pid)})
-		} else {
-			res.SetOutput(&KeyList{bs.GetWantlist()})
+			return res.Emit(&KeyList{bs.WantlistForPeer(pid)})
 		}
+		return res.Emit(&KeyList{bs.GetWantlist()})
 	},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: KeyListTextMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *KeyList) error {
+			for _, key := range out.Keys {
+				fmt.Fprintln(w, key.String())
+			}
+
+			return nil
+		}),
 	},
 }
 
@@ -147,7 +143,7 @@ var bitswapStatCmd = &cmds.Command{
 	},
 }
 
-var ledgerCmd = &oldcmds.Command{
+var ledgerCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show the current ledger for a peer.",
 		ShortDescription: `
@@ -160,81 +156,63 @@ prints the ledger associated with a given peer.
 		cmdkit.StringArg("peer", true, false, "The PeerID (B58) of the ledger to inspect."),
 	},
 	Type: decision.Receipt{},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(ErrNotOnline, cmdkit.ErrClient)
-			return
+			return ErrNotOnline
 		}
 
 		bs, ok := nd.Exchange.(*bitswap.Bitswap)
 		if !ok {
-			res.SetError(e.TypeErr(bs, nd.Exchange), cmdkit.ErrNormal)
-			return
+			return e.TypeErr(bs, nd.Exchange)
 		}
 
-		partner, err := peer.IDB58Decode(req.Arguments()[0])
+		partner, err := peer.IDB58Decode(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrClient)
-			return
+			return err
 		}
-		res.SetOutput(bs.LedgerForPeer(partner))
+		return res.Emit(bs.LedgerForPeer(partner))
 	},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			out, ok := v.(*decision.Receipt)
-			if !ok {
-				return nil, e.TypeErr(out, v)
-			}
-
-			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "Ledger for %s\n"+
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *decision.Receipt) error {
+			fmt.Fprintf(w, "Ledger for %s\n"+
 				"Debt ratio:\t%f\n"+
 				"Exchanges:\t%d\n"+
 				"Bytes sent:\t%d\n"+
 				"Bytes received:\t%d\n\n",
 				out.Peer, out.Value, out.Exchanged,
 				out.Sent, out.Recv)
-			return buf, nil
-		},
+			return nil
+		}),
 	},
 }
 
-var reprovideCmd = &oldcmds.Command{
+var reprovideCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Trigger reprovider.",
 		ShortDescription: `
 Trigger reprovider to announce our data to network.
 `,
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(ErrNotOnline, cmdkit.ErrClient)
-			return
+			return ErrNotOnline
 		}
 
-		err = nd.Reprovider.Trigger(req.Context())
+		err = nd.Reprovider.Trigger(req.Context)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(nil)
+		return nil
 	},
 }
