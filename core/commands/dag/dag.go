@@ -6,7 +6,6 @@ import (
 	"math"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/core/coredag"
 	"github.com/ipfs/go-ipfs/pin"
 
@@ -14,7 +13,6 @@ import (
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	path "gx/ipfs/QmRKuTyCzg7HFBcV1YUhzStroGtJSb8iWgyxfsDCwFhWTS/go-path"
 	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	ipld "gx/ipfs/QmdDXJs4axxefSPgK6Y1QhpJWKuDPnGJiqgq4uncb4rFHL/go-ipld-format"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -87,81 +85,60 @@ into an object of the specified format.
 			}
 		}
 
-		outChan := make(chan interface{}, 8)
+		cids := cid.NewSet()
+		b := ipld.NewBatch(req.Context, nd.DAG)
 
-		addAllAndPin := func(f files.File) error {
-			cids := cid.NewSet()
-			b := ipld.NewBatch(req.Context, nd.DAG)
+		if dopin {
+			defer nd.Blockstore.PinLock().Unlock()
+		}
 
-			for {
-				file, err := f.NextFile()
-				if err == io.EOF {
-					// Finished the list of files.
-					break
-				} else if err != nil {
-					return err
-				}
-
-				nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
-				if err != nil {
-					return err
-				}
-				if len(nds) == 0 {
-					return fmt.Errorf("no node returned from ParseInputs")
-				}
-
-				for _, nd := range nds {
-					err := b.Add(nd)
-					if err != nil {
-						return err
-					}
-				}
-
-				cid := nds[0].Cid()
-				cids.Add(cid)
-
-				select {
-				case outChan <- &OutputObject{Cid: cid}:
-				case <-req.Context.Done():
-					return nil
-				}
-			}
-
-			if err := b.Commit(); err != nil {
+		for {
+			file, err := req.Files.NextFile()
+			if err == io.EOF {
+				// Finished the list of files.
+				break
+			} else if err != nil {
 				return err
 			}
 
-			if dopin {
-				defer nd.Blockstore.PinLock().Unlock()
+			nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
+			if err != nil {
+				return err
+			}
+			if len(nds) == 0 {
+				return fmt.Errorf("no node returned from ParseInputs")
+			}
 
-				cids.ForEach(func(c cid.Cid) error {
-					nd.Pinning.PinWithMode(c, pin.Recursive)
-					return nil
-				})
-
-				err := nd.Pinning.Flush()
+			for _, nd := range nds {
+				err := b.Add(nd)
 				if err != nil {
 					return err
 				}
 			}
 
-			return nil
+			cid := nds[0].Cid()
+			cids.Add(cid)
+			if err := res.Emit(&OutputObject{Cid: cid}); err != nil {
+				return err
+			}
 		}
 
-		errC := make(chan error)
-		go func() {
-			var err error
-			defer func() { errC <- err }()
-			defer close(outChan)
-			err = addAllAndPin(req.Files)
-		}()
-
-		err = res.Emit(outChan)
-		if err != nil {
+		if err := b.Commit(); err != nil {
 			return err
 		}
 
-		return <-errC
+		if dopin {
+			cids.ForEach(func(c cid.Cid) error {
+				nd.Pinning.PinWithMode(c, pin.Recursive)
+				return nil
+			})
+
+			err := nd.Pinning.Flush()
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	},
 	Type: OutputObject{},
 	Encoders: cmds.EncoderMap{
@@ -259,18 +236,4 @@ var DagResolveCmd = &cmds.Command{
 		}),
 	},
 	Type: ResolveOutput{},
-}
-
-// copy+pasted from ../commands.go
-func unwrapOutput(i interface{}) (interface{}, error) {
-	var (
-		ch <-chan interface{}
-		ok bool
-	)
-
-	if ch, ok = i.(<-chan interface{}); !ok {
-		return nil, e.TypeErr(ch, i)
-	}
-
-	return <-ch, nil
 }
