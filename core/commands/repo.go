@@ -42,8 +42,8 @@ var RepoCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"stat":    repoStatCmd,
 		"gc":      repoGcCmd,
-		"fsck":    lgc.NewCommand(RepoFsckCmd),
-		"version": lgc.NewCommand(repoVersionCmd),
+		"fsck":    RepoFsckCmd,
+		"version": repoVersionCmd,
 		"verify":  lgc.NewCommand(repoVerifyCmd),
 	},
 }
@@ -224,7 +224,7 @@ Version         string The repo version.
 	},
 }
 
-var RepoFsckCmd = &oldcmds.Command{
+var RepoFsckCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove repo lockfiles.",
 		ShortDescription: `
@@ -233,13 +233,15 @@ lockfiles, as well as the api file. This command can only run when no ipfs
 daemons are running.
 `,
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		configRoot := req.InvocContext().ConfigRoot
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		configRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
 
 		dsPath, err := config.DataStorePath(configRoot)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		dsLockFile := filepath.Join(dsPath, "LOCK") // TODO: get this lockfile programmatically
@@ -252,25 +254,25 @@ daemons are running.
 
 		err = os.Remove(repoLockFile)
 		if err != nil && !os.IsNotExist(err) {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		err = os.Remove(dsLockFile)
 		if err != nil && !os.IsNotExist(err) {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		err = os.Remove(apiFile)
 		if err != nil && !os.IsNotExist(err) {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&MessageOutput{"Lockfiles have been removed.\n"})
+		return cmds.EmitOnce(res, &MessageOutput{"Lockfiles have been removed.\n"})
 	},
 	Type: MessageOutput{},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: MessageTextMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *MessageOutput) error {
+			fmt.Fprintf(w, out.Message)
+			return nil
+		}),
 	},
 }
 
@@ -409,7 +411,7 @@ var repoVerifyCmd = &oldcmds.Command{
 	},
 }
 
-var repoVersionCmd = &oldcmds.Command{
+var repoVersionCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show the repo version.",
 		ShortDescription: `
@@ -420,36 +422,22 @@ var repoVersionCmd = &oldcmds.Command{
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		res.SetOutput(&RepoVersion{
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		return cmds.EmitOnce(res, &RepoVersion{
 			Version: fmt.Sprint(fsrepo.RepoVersion),
 		})
 	},
 	Type: RepoVersion{},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-			response, ok := v.(*RepoVersion)
-			if !ok {
-				return nil, e.TypeErr(response, v)
-			}
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RepoVersion) error {
+			quiet, _ := req.Options[repoQuietOptionName].(bool)
 
-			quiet, _, err := res.Request().Option("quiet").Bool()
-			if err != nil {
-				return nil, err
-			}
-
-			buf := new(bytes.Buffer)
 			if quiet {
-				buf = bytes.NewBufferString(fmt.Sprintf("fs-repo@%s\n", response.Version))
+				fmt.Fprintf(w, fmt.Sprintf("fs-repo@%s\n", out.Version))
 			} else {
-				buf = bytes.NewBufferString(fmt.Sprintf("ipfs repo version fs-repo@%s\n", response.Version))
+				fmt.Fprintf(w, fmt.Sprintf("ipfs repo version fs-repo@%s\n", out.Version))
 			}
-			return buf, nil
-
-		},
+			return nil
+		}),
 	},
 }
