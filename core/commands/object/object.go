@@ -56,6 +56,7 @@ directly.`,
 	},
 }
 
+// ObjectDataCmd object data command
 var ObjectDataCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Output the raw bytes of an IPFS object.",
@@ -95,6 +96,7 @@ is the raw data of the object.
 	},
 }
 
+// ObjectLinksCmd object links command
 var ObjectLinksCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Output the links pointed to by the specified object.",
@@ -166,6 +168,7 @@ multihash.
 	Type: &Object{},
 }
 
+// ObjectGetCmd object get command
 var ObjectGetCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Get and serialize the DAG node named by <key>.",
@@ -271,6 +274,7 @@ Supported values are:
 	},
 }
 
+// ObjectStatCmd object stat command
 var ObjectStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Get stats for the DAG node named by <key>.",
@@ -333,6 +337,7 @@ var ObjectStatCmd = &cmds.Command{
 	},
 }
 
+// ObjectPutCmd object put command
 var ObjectPutCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Store input as a DAG object, print its key.",
@@ -433,6 +438,7 @@ And then run:
 	Type: Object{},
 }
 
+// ObjectNewCmd object new command
 var ObjectNewCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Create a new object from an ipfs template.",

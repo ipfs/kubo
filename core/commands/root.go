@@ -181,7 +181,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"get":   ocmd.ObjectGetCmd,
 			"stat":  ocmd.ObjectStatCmd,
 		},
-	}),
+	},
 	"dag": {
 		Subcommands: map[string]*cmds.Command{
 			"get":     dag.DagGetCmd,
