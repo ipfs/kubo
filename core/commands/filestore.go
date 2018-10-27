@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	oldCmds "github.com/ipfs/go-ipfs/commands"
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	"github.com/ipfs/go-ipfs/core"
+	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	"github.com/ipfs/go-ipfs/filestore"
+	filestore "github.com/ipfs/go-ipfs/filestore"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
@@ -23,8 +20,8 @@ var FileStoreCmd = &cmds.Command{
 	},
 	Subcommands: map[string]*cmds.Command{
 		"ls":     lsFileStore,
-		"verify": lgc.NewCommand(verifyFileStore),
-		"dups":   lgc.NewCommand(dupsFileStore),
+		"verify": verifyFileStore,
+		"dups":   dupsFileStore,
 	},
 }
 
@@ -88,7 +85,7 @@ The output is:
 	Type: filestore.ListRes{},
 }
 
-var verifyFileStore = &oldCmds.Command{
+var verifyFileStore = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Verify objects in filestore.",
 		LongDescription: `
@@ -118,69 +115,54 @@ For ERROR entries the error will also be printed to stderr.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(fileOrderOptionName, "verify the objects based on the order of the backing file"),
 	},
-	Run: func(req oldCmds.Request, res oldCmds.Response) {
-		_, fs, err := getFilestore(req.InvocContext())
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		_, fs, err := getFilestore(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-		args := req.Arguments()
+		args := req.Arguments
 		if len(args) > 0 {
-			out := perKeyActionToChan(req.Context(), args, func(c cid.Cid) *filestore.ListRes {
+			out := perKeyActionToChan(req.Context, args, func(c cid.Cid) *filestore.ListRes {
 				return filestore.Verify(fs, c)
 			})
-			res.SetOutput(out)
+			return res.Emit(out)
 		} else {
-			fileOrder, _, _ := req.Option(fileOrderOptionName).Bool()
+			fileOrder, _ := req.Options[fileOrderOptionName].(bool)
 			next, err := filestore.VerifyAll(fs, fileOrder)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
-			out := listResToChan(req.Context(), next)
-			res.SetOutput(out)
+			out := listResToChan(req.Context, next)
+			return res.Emit(out)
 		}
 	},
-	Marshalers: oldCmds.MarshalerMap{
-		oldCmds.Text: func(res oldCmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filestore.ListRes) error {
+			if out.Status == filestore.StatusOtherError {
+				return fmt.Errorf(out.ErrorMsg)
 			}
-
-			r, ok := v.(*filestore.ListRes)
-			if !ok {
-				return nil, e.TypeErr(r, v)
-			}
-
-			if r.Status == filestore.StatusOtherError {
-				fmt.Fprintf(res.Stderr(), "%s\n", r.ErrorMsg)
-			}
-			fmt.Fprintf(res.Stdout(), "%s %s\n", r.Status.Format(), r.FormatLong())
-			return nil, nil
-		},
+			fmt.Fprintf(w, "%s %s\n", out.Status.Format(), out.FormatLong())
+			return nil
+		}),
 	},
 	Type: filestore.ListRes{},
 }
 
-var dupsFileStore = &oldCmds.Command{
+var dupsFileStore = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List blocks that are both in the filestore and standard block storage.",
 	},
-	Run: func(req oldCmds.Request, res oldCmds.Response) {
-		_, fs, err := getFilestore(req.InvocContext())
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		_, fs, err := getFilestore(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-		ch, err := fs.FileManager().AllKeysChan(req.Context())
+		ch, err := fs.FileManager().AllKeysChan(req.Context)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		out := make(chan interface{}, 128)
-		res.SetOutput((<-chan interface{})(out))
 
 		go func() {
 			defer close(out)
@@ -189,25 +171,36 @@ var dupsFileStore = &oldCmds.Command{
 				if err != nil {
 					select {
 					case out <- &RefWrapper{Err: err.Error()}:
-					case <-req.Context().Done():
+					case <-req.Context.Done():
 					}
 					return
 				}
 				if have {
 					select {
 					case out <- &RefWrapper{Ref: cid.String()}:
-					case <-req.Context().Done():
+					case <-req.Context.Done():
 						return
 					}
 				}
 			}
 		}()
+		return res.Emit(out)
 	},
-	Marshalers: refsMarshallerMap,
-	Type:       RefWrapper{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
+			if out.Err != "" {
+				return fmt.Errorf(out.Err)
+			}
+
+			fmt.Fprintln(w, out.Ref)
+
+			return nil
+		}),
+	},
+	Type: RefWrapper{},
 }
 
-func getFilestore(env interface{}) (*core.IpfsNode, *filestore.Filestore, error) {
+func getFilestore(env cmds.Environment) (*core.IpfsNode, *filestore.Filestore, error) {
 	n, err := cmdenv.GetNode(env)
 	if err != nil {
 		return nil, nil, err
