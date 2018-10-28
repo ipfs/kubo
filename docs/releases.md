@@ -9,7 +9,7 @@ will be allowed up to release day.
 ## Release Candidate Checklist
 - [ ] CHANGELOG.md has been updated
   - use `./bin/mkreleaselog` to generate a nice starter list
-- [ ] version string in `repo/version.go` has been updated
+- [ ] version string in `version.go` has been updated
 - [ ] tag commit with vX.Y.Z-rcN
 - [ ] publish gx version with `gx publish`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
   - you will have to manually adjust the gx version to 'rc'
