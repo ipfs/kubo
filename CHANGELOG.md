@@ -30,7 +30,8 @@ For us, this means (eventually):
 * Behaves better on lossy networks. When multiplexing multiple requests over a
   single TCP connection, a single dropped packet will bring the entire
   connection to a halt while the packet is re-transmitted. However, because QUIC
-  handles multiplexing internally, dropping a single packets affects only the related stream
+  handles multiplexing internally, dropping a single packets affects only the
+  related stream.
 * Better NAT traversal: TL;DR: NAT hole-punching is significantly easier and, in
   many cases, more reliable with UDP than with TCP.
 
