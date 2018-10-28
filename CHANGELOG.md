@@ -111,7 +111,8 @@ installing go-ipfs and visiting http://localhost:5001/webui.
 ### Performance
 
 This release includes some significant performance improvements, both in terms
-of resource utilization and speed.
+of resource utilization and speed. This section will go into some technical
+details so feel free to skip it if you're just looking for shiny new features.
 
 #### Resource Utilization
 
@@ -119,26 +120,48 @@ In this release, we've (a) fixed a slow memory leak in libp2p and (b)
 significantly reduced the allocation load. Together, these should improve both
 memory and CPU usage.
 
-... TODO ...
+##### Datastructures
 
-* CIDs
-* Multiaddrs
-* Peerstore revert
-* Yamux buffering
-* ...
+We've changed two of our most frequently used datastructures, CIDs and
+Multiaddrs, to reduce allocation load.
+
+First, we now store CIDs *encode* as strings, instead of decoded in structs
+(behind pointers). In addition to being more compact, our `Cid` type is now a
+valid `map` key so we no longer have to encode CIDs every time we want to use
+them in a map/set. Allocations when inserting CIDs into maps/sets was showing up
+as a significant source of allocations under heavy load so this change should
+improve memory usage.
+
+Second, we've changed many of our multiaddr parsing/processing/formatting
+functions to allocate less. Much of our DHT related-work includes processing
+multiaddrs so this should reduce CPU utilization when heavily using the DHT.
+
+##### Streams and Yamux
+
+Streams have always plagued us in terms of memory utilization. This was
+partially solved by introducing the connection manager, keeping our maximum
+connection count to a reasonable number but they're still a major memory sink.
+
+This release sees two improvements on this front:
+
+1. A memory [leak in identify](https://github.com/libp2p/go-libp2p/issues/419)
+   has been fixed. This was slowly causing us to leak connections (locking up
+   the memory used by the connections' streams).
+2. Yamux streams now use a buffer-pool backed, auto shrinking read buffer.
+   Before, this read buffer would grow to its maximum size (a few megabytes) and
+   never shrink but these buffers now shrink as they're emptied.
 
 #### Bitswap Performance
 
-TODO: Multiple blocks per message. Could someone test this? Basic tests showed
-some improvements for small files but I'd like to see some numbers.
+Bitswap will now pack *multiple* small blocks into a single message thanks
+[ipfs/go-bitswap#5](https://github.com/ipfs/go-bitswap/pull/5). While this won't
+help when transferring large files (with large blocks), this should help when
+transferring many tiny files.
 
-#### Async Directory Listing V1
+### Refactors and Endeavors
 
-(v2 will make it into the next release)
-
-TODO
-
-### Efforts
+This release saw yet another commands-library refactor, work towards the
+CoreAPI, and the first step towards reliable base32 CID support.
 
 #### Commands Lib
 
@@ -160,25 +183,49 @@ interface using this API, which could help performance in some use cases.
 
 You can track progress in https://github.com/ipfs/go-ipfs/issues/4498
 
-
 #### CIDv1/Base32 Migration
 
-FIXME: Someone in charge of the DWEB effort should review and edit this section.
+Currently, IPFS is usually used in browsers by browsing to
+`https://SOME_GATEWAY/ipfs/CID/...`. There are two significant drawbacks to this
+approach:
 
-In order to support CIDs in dweb links (CID.ipfs.dweb.link) this
-release contains two important changes:
+1. From a browser security standpoint, all IPFS "sites" will live under the same
+   origin (SOME_GATEWAY).
+2. From a UX standpoint, this doesn't feel very "native" (even if the gateway is
+   a local IPFS node).
 
-(1) The previous mentioned `ipfs cid base32` command for converting
-CID to a case intensive encoding required by domain names.  This
-command converts a CID to version 1 and encodes it using base32.
+To fix the security issue, we intend to switch IPFS gateway links
+`https://ipfs.io/ipfs/CID` to to `https://CID.ipfs.dweb.link`. This way, the CID
+will be a part of the
+["origin"](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin) so
+each IPFS website will get a separate security origin.
 
-(2) Unfortunately when a CID is converted to base32 the version of the
-CID also changes which changes the binary representation of the CID.
-This means that up until this release trying to retrieve CID version 0
-content using CID version 1 will fail.  This release adds a hack so
-that so that content is available regardless of the CID version used
-making retrieving content via a CIDv1/Base32 link more reliable once
-enough nodes are upgraded.
+To fix the UX issue, we've been working on adding support for `ipfs://CID/...`
+to web browsers through our
+[ipfs-companion](https://github.com/ipfs/ipfs-companion/) add-on and some new,
+experimental extension APIs from Mozilla. This has the same effect of putting
+the CID in the URL origin but has the added benefit of looking "native".
+
+Unfortunately, origins must be *case insensitive*. Currently, most CIDs users
+see are *CIDv0* CIDs (those starting with `Qm`) which are *always* base58
+encoded and are therefore case-sensitive.
+
+Fortunately, CIDv1 (the latest CID format) supports arbitrary bases using the
+[multibase](https://github.com/multiformats/multibase/) standard. Unfortunately,
+IPFS has always treated equivalent CIDv0 and CIDv1 CIDs as distinct. This means
+that files added with CIDv0 CIDs (the default) can't be looked up using the
+equivalent CIDv1.
+
+This release makes some significant progress towards solving this issue by
+introducing two features:
+
+(1) The previous mentioned `ipfs cid base32` command for converting CID to a
+case intensive encoding required by domain names. This command converts a CID to
+version 1 and encodes it using base32.
+
+(2) A hack to allow locally looking up blocks associated with a CIDv0 CID using
+the equivalent CIDv1 CID. This hack will eventually (likely in the next release)
+be replaced with a proper CID-version agnostic datastore.
 
 ### go-ipfs changelog
 
