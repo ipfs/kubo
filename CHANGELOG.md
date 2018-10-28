@@ -59,7 +59,8 @@ applications. You can read about how to configure this feature
 #### Commands
 
 In terms of new toys, this release introduces a new `ipfs cid` subcommand for
-working with CIDs and a completely refactored `ipfs p2p` command.
+working with CIDs, a completely refactored `ipfs p2p` command, streaming name
+resolution, and complete inline block support.
 
 The new `ipfs cid` command allows users to both inspect CIDs and convert them
 between various formats and versions. For example:
