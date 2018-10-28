@@ -86,19 +86,20 @@ documentation in
 It's still experimental but we don't expect too many breaking changes at this
 point (it will very likely be stabilized in the next release).
 
-TODO: Put this (vv) somewhere else.
-There is now a new flag for `ipfs name resolve` - `--stream`. When the command is
-invoked with the flag set, it will start returning results as soon as they are discovered
-in the DHT and other routing mechanisms. This enables certain applications to start
-prefetching/displaying data while the discovery is still running. Note that for security
-reasons, unless you implement custom validation method, you should wait for the
-command to return before considering returned records up to date.
+There is now a new flag for `ipfs name resolve` - `--stream`. When the command
+is invoked with the flag set, it will start returning results as soon as they
+are discovered in the DHT and other routing mechanisms. This enables certain
+applications to start prefetching/displaying data while the discovery is still
+running. Note that this command will likely return many outdated records
+before it finding and returning the latest. However, it will always return
+*valid* records (even if a bit stale).
 
-
-In the previous release, we added support for extracting blocks inlined into
-CIDs. In this release, we've added support for creating these CIDs. You can now
-run `ipfs add` with the `--inline` flag to inline blocks less than or equal to
-32 bytes in length into a CID, instead of writing an actual block.
+Finally, in the previous release, we added support for extracting blocks inlined
+into CIDs. In this release, we've added support for creating these CIDs. You can
+now run `ipfs add` with the `--inline` flag to inline blocks less than or equal
+to 32 bytes in length into a CID, instead of writing an actual block. This
+should significantly reduce the size of filesystem trees with many empty
+directories and tiny files.
 
 #### CoreAPI
 
