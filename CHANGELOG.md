@@ -155,6 +155,25 @@ some improvements for small files but I'd like to see some numbers.
 
 TODO
 
+#### Effort towards Migration to CIDv1/Base32
+
+FIXME: Someone in charge of the DWEB effort should review and edit this section.
+
+In order to support CIDs in dweb links (CID.ipfs.dweb.link) this
+release contains two important changes:
+
+(1) The previous mentioned `ipfs cid base32` command for converting
+CID to a case intensive encoding required by domain names.  This
+command converts a CID to version 1 and encodes it using base32.
+
+(2) Unfortunately when a CID is converted to base32 the version of the
+CID also changes which changes the binary representation of the CID.
+This means that up until this release trying to retrieve CID version 0
+content using CID version 1 will fail.  This release adds a hack so
+that so that content is available regardless of the CID version used
+making retrieving content via a CIDv1/Base32 link more reliable once
+enough nodes are upgraded.
+
 ### go-ipfs changelog
 
 TODO: only changes in the go-ipfs repo are included. We need to include changes
