@@ -207,14 +207,11 @@ Fixes (i.e., users take note) (some fixed issues may have been introduced *in* t
   - Fixed ipns address resolution in fuse unix mount ([ipfs/go-ipfs#5384](https://github.com/ipfs/go-ipfs/pull/5384))
   - core/commands/ls: wrap `NewDirectoryFromNode` error ([ipfs/go-ipfs#5166](https://github.com/ipfs/go-ipfs/pull/5166))
   - fix goroutine leaks in filestore.go ([ipfs/go-ipfs#5427](https://github.com/ipfs/go-ipfs/pull/5427))
-  - fix two transport related bugs ([ipfs/go-ipfs#5417](https://github.com/ipfs/go-ipfs/pull/5417))
   - move VersionOption after GatewayOption to fix #5422 ([ipfs/go-ipfs#5424](https://github.com/ipfs/go-ipfs/pull/5424))
   - fix(commands): fix filestore.go goroutine leak ([ipfs/go-ipfs#5439](https://github.com/ipfs/go-ipfs/pull/5439))
   - fix(commands): goroutine leaks in ping.go ([ipfs/go-ipfs#5444](https://github.com/ipfs/go-ipfs/pull/5444))
   - fix output of object command ([ipfs/go-ipfs#5459](https://github.com/ipfs/go-ipfs/pull/5459))
-  - add rabin min error test ([ipfs/go-ipfs#5449](https://github.com/ipfs/go-ipfs/pull/5449))
   - add warning when no bootstrap in config ([ipfs/go-ipfs#5445](https://github.com/ipfs/go-ipfs/pull/5445))
-  - make warnings on no bootstrap peers less noisy ([ipfs/go-ipfs#5466](https://github.com/ipfs/go-ipfs/pull/5466))
   - fix behaviour of key rename to same name ([ipfs/go-ipfs#5465](https://github.com/ipfs/go-ipfs/pull/5465))
   - fix(object): print object diff error ([ipfs/go-ipfs#5469](https://github.com/ipfs/go-ipfs/pull/5469))
   - fix(pin): goroutine leaks ([ipfs/go-ipfs#5453](https://github.com/ipfs/go-ipfs/pull/5453))
@@ -227,12 +224,16 @@ Fixes (i.e., users take note) (some fixed issues may have been introduced *in* t
   - take the pinlock when updating pins ([ipfs/go-ipfs#5550](https://github.com/ipfs/go-ipfs/pull/5550))
   - fix(object): add support for raw leaves in object diff ([ipfs/go-ipfs#5472](https://github.com/ipfs/go-ipfs/pull/5472))
   - don't use the domain name as a filename in /ipns/a.com ([ipfs/go-ipfs#5564](https://github.com/ipfs/go-ipfs/pull/5564))
-  - fix infinite loop in `stats bw` ([ipfs/go-ipfs#5598](https://github.com/ipfs/go-ipfs/pull/5598))
   - refactor(command): modify int to int64 ([ipfs/go-ipfs#5612](https://github.com/ipfs/go-ipfs/pull/5612))
-  - fix(p2p): issue #5523 ([ipfs/go-ipfs#5529](https://github.com/ipfs/go-ipfs/pull/5529))
   - fix(core): ipns config RecordLifetime panic ([ipfs/go-ipfs#5648](https://github.com/ipfs/go-ipfs/pull/5648))
-  - namesys: properly attach path in name.Resolve ([ipfs/go-ipfs#5660](https://github.com/ipfs/go-ipfs/pull/5660))
   - simplify dag put and correctly take pin lock ([ipfs/go-ipfs#5667](https://github.com/ipfs/go-ipfs/pull/5667))
+
+Regressions Fixes (fixes for bugs introduced since the last release):
+  - namesys: properly attach path in name.Resolve ([ipfs/go-ipfs#5660](https://github.com/ipfs/go-ipfs/pull/5660))
+  - fix(p2p): issue #5523 ([ipfs/go-ipfs#5529](https://github.com/ipfs/go-ipfs/pull/5529))
+  - fix infinite loop in `stats bw` ([ipfs/go-ipfs#5598](https://github.com/ipfs/go-ipfs/pull/5598))
+  - make warnings on no bootstrap peers less noisy ([ipfs/go-ipfs#5466](https://github.com/ipfs/go-ipfs/pull/5466))
+  - fix two transport related bugs ([ipfs/go-ipfs#5417](https://github.com/ipfs/go-ipfs/pull/5417))
 
 Extractions:
   - Extract bitswap to go-bitswap ([ipfs/go-ipfs#5294](https://github.com/ipfs/go-ipfs/pull/5294))
@@ -281,6 +282,7 @@ Testing:
   - fix(command):update `add --chunker` test ([ipfs/go-ipfs#5571](https://github.com/ipfs/go-ipfs/pull/5571))
   - switch to go 1.11 ([ipfs/go-ipfs#5483](https://github.com/ipfs/go-ipfs/pull/5483))
   - fix: sharness race in directory_size if file is removed ([ipfs/go-ipfs#5586](https://github.com/ipfs/go-ipfs/pull/5586))
+  - add rabin min error test ([ipfs/go-ipfs#5449](https://github.com/ipfs/go-ipfs/pull/5449))
 
 Internal:
   - Add ability to retrieve blocks even if given using a different CID version ([ipfs/go-ipfs#5285](https://github.com/ipfs/go-ipfs/pull/5285))
