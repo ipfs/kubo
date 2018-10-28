@@ -101,30 +101,18 @@ to 32 bytes in length into a CID, instead of writing an actual block. This
 should significantly reduce the size of filesystem trees with many empty
 directories and tiny files.
 
-#### CoreAPI
-
-CoreAPI is a new way to interact with IPFS from Go. While it's still not
-final, most things you can do via the CLI or HTTP interfaces, can now be done
-through the new API.
-
-Currently there is only one implementation, backed by go-ipfs node, and there are
-plans to start http-api backed one soon. We are also looking into creating RPC
-interface using this API, which could help performance in some use cases.
-
-You can track progress in https://github.com/ipfs/go-ipfs/issues/4498
-
 #### WebUI
 
 Finally, this release includes the shiny [updated
 webui](https://github.com/ipfs-shipyard/ipfs-webui). You can view it by
 installing go-ipfs and visiting http://localhost:5001/webui.
 
-#### Performance
+### Performance
 
 This release includes some significant performance improvements, both in terms
 of resource utilization and speed.
 
-##### Resource Utilization
+#### Resource Utilization
 
 In this release, we've (a) fixed a slow memory leak in libp2p and (b)
 significantly reduced the allocation load. Together, these should improve both
@@ -138,18 +126,41 @@ memory and CPU usage.
 * Yamux buffering
 * ...
 
-##### Bitswap Performance
+#### Bitswap Performance
 
 TODO: Multiple blocks per message. Could someone test this? Basic tests showed
 some improvements for small files but I'd like to see some numbers.
 
-##### Async Directory Listing V1
+#### Async Directory Listing V1
 
 (v2 will make it into the next release)
 
 TODO
 
-#### Effort towards Migration to CIDv1/Base32
+### Efforts
+
+#### Commands Lib
+
+We've completely refactored our commands library (again). While it still needs
+quite a bit of work, it now requires significantly less boilerplate and should
+be significantly more robust. The refactor immediately found two broken tests
+and probably fixed quite a few bugs around properly returning and handling
+errors.
+
+#### CoreAPI
+
+CoreAPI is a new way to interact with IPFS from Go. While it's still not
+final, most things you can do via the CLI or HTTP interfaces, can now be done
+through the new API.
+
+Currently there is only one implementation, backed by go-ipfs node, and there are
+plans to start http-api backed one soon. We are also looking into creating RPC
+interface using this API, which could help performance in some use cases.
+
+You can track progress in https://github.com/ipfs/go-ipfs/issues/4498
+
+
+#### CIDv1/Base32 Migration
 
 FIXME: Someone in charge of the DWEB effort should review and edit this section.
 
