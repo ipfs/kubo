@@ -231,6 +231,8 @@ Fixes (i.e., users take note) (some fixed issues may have been introduced *in* t
   - refactor(command): modify int to int64 ([ipfs/go-ipfs#5612](https://github.com/ipfs/go-ipfs/pull/5612))
   - fix(p2p): issue #5523 ([ipfs/go-ipfs#5529](https://github.com/ipfs/go-ipfs/pull/5529))
   - fix(core): ipns config RecordLifetime panic ([ipfs/go-ipfs#5648](https://github.com/ipfs/go-ipfs/pull/5648))
+  - namesys: properly attach path in name.Resolve ([ipfs/go-ipfs#5660](https://github.com/ipfs/go-ipfs/pull/5660))
+  - simplify dag put and correctly take pin lock ([ipfs/go-ipfs#5667](https://github.com/ipfs/go-ipfs/pull/5667))
 
 Extractions:
   - Extract bitswap to go-bitswap ([ipfs/go-ipfs#5294](https://github.com/ipfs/go-ipfs/pull/5294))
@@ -260,6 +262,7 @@ Documentation:
   - Fix link in readme ([ipfs/go-ipfs#5632](https://github.com/ipfs/go-ipfs/pull/5632))
   - docs: add a note for dns command ([ipfs/go-ipfs#5629](https://github.com/ipfs/go-ipfs/pull/5629))
   - Dockerfile: Specifies comments on exposed ports ([ipfs/go-ipfs#5615](https://github.com/ipfs/go-ipfs/pull/5615))
+  - document pubsub message signing ([ipfs/go-ipfs#5669](https://github.com/ipfs/go-ipfs/pull/5669))
 
 Testing:
   - Include cid-fmt binary in test/bin. ([ipfs/go-ipfs#5297](https://github.com/ipfs/go-ipfs/pull/5297))
@@ -318,6 +321,7 @@ Cleanup:
   - object patch rm-link: change arg from 'link' to 'name' ([ipfs/go-ipfs#5638](https://github.com/ipfs/go-ipfs/pull/5638))
   - refactor(cmds): use new cmds lib in version, tar and dns ([ipfs/go-ipfs#5650](https://github.com/ipfs/go-ipfs/pull/5650))
   - cmds/dag: use new cmds lib ([ipfs/go-ipfs#5662](https://github.com/ipfs/go-ipfs/pull/5662))
+  - commands/ping: use new cmds lib ([ipfs/go-ipfs#5675](https://github.com/ipfs/go-ipfs/pull/5675))
 
 ## 0.4.17 2018-07-27
 
