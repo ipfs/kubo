@@ -31,14 +31,6 @@ For us, this means (eventually):
   single TCP connection, a single dropped packet will bring the entire
   connection to a halt while the packet is re-transmitted. However, because QUIC
   handles multiplexing internally, dropping a single packets affects only the related stream
-* Better home router behavior (hopefully). Currently, IPFS can crash buggy
-  end-user routers simply by opening too many connections. We believe this is
-  happening because many home routers try to track every single open connection,
-  run out of memory, and crash. Because QUIC is based on UDP and UDP doesn't
-  have the concept of a "connection", we believe many of these routers simply
-  won't try to track these QUIC connections, simply forwarding the traffic
-  instead. This won't be the case for all routers in practice but we're hoping
-  this will improve the situation somewhat.
 * Better NAT traversal: TL;DR: NAT hole-punching is significantly easier and, in
   many cases, more reliable with UDP than with TCP.
 
@@ -305,7 +297,7 @@ Internal:
   - fix: maketarball.sh for OSX ([ipfs/go-ipfs#5575](https://github.com/ipfs/go-ipfs/pull/5575))
   - test the correct return value when checking directory size ([ipfs/go-ipfs#5580](https://github.com/ipfs/go-ipfs/pull/5580))
   - downgrade iptb to a 1.3 patch release ([ipfs/go-ipfs#5596](https://github.com/ipfs/go-ipfs/pull/5596))
-  - coreapi unixfs: remove Cat, use sessions ([ipfs/go-ipfs#5574](https://github.com/ipfs/go-ipfs/pull/5574))
+  - coreapi unixfs: remove Cat ([ipfs/go-ipfs#5574](https://github.com/ipfs/go-ipfs/pull/5574))
 
 Cleanup:
   - Fix some weird code in core/coreunix/add.go ([ipfs/go-ipfs#5354](https://github.com/ipfs/go-ipfs/pull/5354))
