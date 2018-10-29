@@ -169,7 +169,7 @@ func connectToPubSubPeers(ctx context.Context, n *core.IpfsNode, cid cid.Cid) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	provs := n.Routing.FindProvidersAsync(ctx, cid, 10)
+	provs := n.Routing.FindProvidersAsync(ctx, cid.Hash(), 10)
 	wg := &sync.WaitGroup{}
 	for p := range provs {
 		wg.Add(1)

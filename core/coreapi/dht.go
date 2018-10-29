@@ -8,6 +8,7 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
+	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
@@ -46,7 +47,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...
 		return nil, fmt.Errorf("number of providers must be greater than 0")
 	}
 
-	pchan := api.node.Routing.FindProvidersAsync(ctx, rp.Cid(), numProviders)
+	pchan := api.node.Routing.FindProvidersAsync(ctx, rp.Cid().Hash(), numProviders)
 	return pchan, nil
 }
 
@@ -66,8 +67,9 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 	}
 
 	c := rp.Cid()
+	h := c.Hash()
 
-	has, err := api.node.Blockstore.Has(c.Hash())
+	has, err := api.node.Blockstore.Has(h)
 	if err != nil {
 		return err
 	}
@@ -79,7 +81,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 	if settings.Recursive {
 		err = provideKeysRec(ctx, api.node.Routing, api.node.Blockstore, []cid.Cid{c})
 	} else {
-		err = provideKeys(ctx, api.node.Routing, []cid.Cid{c})
+		err = provideKeys(ctx, api.node.Routing, []mh.Multihash{h})
 	}
 	if err != nil {
 		return err
@@ -88,7 +90,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 	return nil
 }
 
-func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []cid.Cid) error {
+func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []mh.Multihash) error {
 	for _, c := range cids {
 		err := r.Provide(ctx, c, true)
 		if err != nil {
@@ -115,7 +117,7 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, bs blockstore.Bl
 	for {
 		select {
 		case k := <-provided.New:
-			err := r.Provide(ctx, k, true)
+			err := r.Provide(ctx, k.Hash(), true)
 			if err != nil {
 				return err
 			}

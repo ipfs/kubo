@@ -186,7 +186,7 @@ var findProvidersDhtCmd = &cmds.Command{
 		outChan := make(chan interface{})
 		res.SetOutput((<-chan interface{})(outChan))
 
-		pchan := n.Routing.FindProvidersAsync(ctx, c, numProviders)
+		pchan := n.Routing.FindProvidersAsync(ctx, c.Hash(), numProviders)
 		go func() {
 			defer close(outChan)
 			for e := range events {
@@ -370,7 +370,7 @@ var provideRefDhtCmd = &cmds.Command{
 
 func provideKeys(ctx context.Context, r routing.IpfsRouting, cids []cid.Cid) error {
 	for _, c := range cids {
-		err := r.Provide(ctx, c, true)
+		err := r.Provide(ctx, c.Hash(), true)
 		if err != nil {
 			return err
 		}
@@ -393,7 +393,7 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv ipld.DAGSe
 				continue
 			}
 
-			err = r.Provide(ctx, k, true)
+			err = r.Provide(ctx, k.Hash(), true)
 			if err != nil {
 				return err
 			}
