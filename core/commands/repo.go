@@ -83,10 +83,14 @@ order to reclaim hard disk space.
 			errs := false
 			for res := range gcOutChan {
 				if res.Error != nil {
-					re.Emit(&GcResult{Error: res.Error.Error()})
+					if err := re.Emit(&GcResult{Error: res.Error.Error()}); err != nil {
+						return err
+					}
 					errs = true
 				} else {
-					re.Emit(&GcResult{Key: res.KeyRemoved})
+					if err := re.Emit(&GcResult{Key: res.KeyRemoved}); err != nil {
+						return err
+					}
 				}
 			}
 			if errs {
