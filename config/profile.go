@@ -121,6 +121,7 @@ Make sure to backup your data frequently.`,
 					"type":       "badgerds",
 					"path":       "badgerds",
 					"syncWrites": true,
+					"truncate":   true,
 				},
 			}
 			return nil
