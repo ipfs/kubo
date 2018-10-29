@@ -229,9 +229,6 @@ be replaced with a proper CID-version agnostic datastore.
 
 ### go-ipfs changelog
 
-TODO: only changes in the go-ipfs repo are included. We need to include changes
-from other repos (we'll want a script).
-
 Features (i.e., users take heed):
   - gossipsub ([ipfs/go-ipfs#5373](https://github.com/ipfs/go-ipfs/pull/5373))
   - support /ipfs/CID in `ipfs dht findprovs` ([ipfs/go-ipfs#5329](https://github.com/ipfs/go-ipfs/pull/5329))
@@ -383,6 +380,165 @@ Cleanup:
   - refactor(cmds): use new cmds lib in version, tar and dns ([ipfs/go-ipfs#5650](https://github.com/ipfs/go-ipfs/pull/5650))
   - cmds/dag: use new cmds lib ([ipfs/go-ipfs#5662](https://github.com/ipfs/go-ipfs/pull/5662))
   - commands/ping: use new cmds lib ([ipfs/go-ipfs#5675](https://github.com/ipfs/go-ipfs/pull/5675))
+
+### related changelogs
+
+Changes to sub-packages go-ipfs depends on. This *does not* include libp2p or multiformats.
+
+github.com/ipfs/go-log
+  - update gogo protobuf ([ipfs/go-log#39](https://github.com/ipfs/go-log/pull/39))
+  - rename the protobuf to loggabletracer ([ipfs/go-log#41](https://github.com/ipfs/go-log/pull/41))
+  - protect loggers with rwmutex ([ipfs/go-log#44](https://github.com/ipfs/go-log/pull/44))
+  - make logging prettier ([ipfs/go-log#45](https://github.com/ipfs/go-log/pull/45))
+  - add env vars for logging to file and syslog ([ipfs/go-log#46](https://github.com/ipfs/go-log/pull/46))
+  - remove syslogger ([ipfs/go-log#47](https://github.com/ipfs/go-log/pull/47))
+
+github.com/ipfs/go-datastore
+  - implement DiskUsage for the rest of the datastores ([ipfs/go-datastore#86](https://github.com/ipfs/go-datastore/pull/86))
+  - switch to google's uuid library ([ipfs/go-datastore#89](https://github.com/ipfs/go-datastore/pull/89))
+  - return ErrNotFound from the NullDatastore instead of nil, nil ([ipfs/go-datastore#92](https://github.com/ipfs/go-datastore/pull/92))
+  - Add TTL and Transactional interfaces ([ipfs/go-datastore#91](https://github.com/ipfs/go-datastore/pull/91))
+  - improve testing ([ipfs/go-datastore#93](https://github.com/ipfs/go-datastore/pull/93))
+  - Add support for querying entry expiration ([ipfs/go-datastore#96](https://github.com/ipfs/go-datastore/pull/96))
+  - Allow ds.NewTransaction() to return an error ([ipfs/go-datastore#98](https://github.com/ipfs/go-datastore/pull/98))
+  - add a GetSize method ([ipfs/go-datastore#99](https://github.com/ipfs/go-datastore/pull/99))
+
+github.com/ipfs/go-cid
+  - Add tests for Set type ([ipfs/go-cid#63](https://github.com/ipfs/go-cid/pull/63))
+  - Create new Builder interface for creating CIDs. ([ipfs/go-cid#53](https://github.com/ipfs/go-cid/pull/53))
+  - cid-fmt Enhancments ([ipfs/go-cid#61](https://github.com/ipfs/go-cid/pull/61))
+  - add String benchmark ([ipfs/go-cid#44](https://github.com/ipfs/go-cid/pull/44))
+  - add a streaming CID set ([ipfs/go-cid#67](https://github.com/ipfs/go-cid/pull/67))
+  - Extract non-core functionality from go-cid into go-cidutil ([ipfs/go-cid#69](https://github.com/ipfs/go-cid/pull/69))
+  - cid implementation research ([ipfs/go-cid#70](https://github.com/ipfs/go-cid/pull/70))
+  - cid implementation variations++ ([ipfs/go-cid#72](https://github.com/ipfs/go-cid/pull/72))
+  - Create a new Encode method that is like StringOfBase but never errors ([ipfs/go-cid#60](https://github.com/ipfs/go-cid/pull/60))
+  - add codecs for Dash blocks, tx ([ipfs/go-cid#78](https://github.com/ipfs/go-cid/pull/78))
+
+github.com/ipfs/go-ds-flatfs
+  - check error before defer-removing disk usage file ([ipfs/go-ds-flatfs#47](https://github.com/ipfs/go-ds-flatfs/pull/47))
+  - add GetSize function ([ipfs/go-ds-flatfs#48](https://github.com/ipfs/go-ds-flatfs/pull/48))
+
+github.com/ipfs/go-ds-measure
+  -  ([ipfs/go-ds-measure#](https://github.com/ipfs/go-ds-measure/pull/))
+
+github.com/ipfs/go-ds-leveldb
+  - recover datastore on corruption ([ipfs/go-ds-leveldb#15](https://github.com/ipfs/go-ds-leveldb/pull/15))
+  - Add transactional support to leveldb datastore. ([ipfs/go-ds-leveldb#17](https://github.com/ipfs/go-ds-leveldb/pull/17))
+  - implement GetSize ([ipfs/go-ds-leveldb#18](https://github.com/ipfs/go-ds-leveldb/pull/18))
+
+github.com/ipfs/go-metrics-prometheus
+  - use an existing metric when it has already been registered ([ipfs/go-metrics-prometheus#1](https://github.com/ipfs/go-metrics-prometheus/pull/1))
+
+github.com/ipfs/go-metrics-interface
+  - update the counter interface to match prometheus ([ipfs/go-metrics-interface#2](https://github.com/ipfs/go-metrics-interface/pull/2))
+
+github.com/ipfs/go-ipld-format
+  - add copy dagservice function ([ipfs/go-ipld-format#41](https://github.com/ipfs/go-ipld-format/pull/41))
+
+github.com/ipfs/go-ipld-cbor
+  - Refactor to refmt ([ipfs/go-ipld-cbor#30](https://github.com/ipfs/go-ipld-cbor/pull/30))
+  - import changes from the filecoin branch ([ipfs/go-ipld-cbor#41](https://github.com/ipfs/go-ipld-cbor/pull/41))
+  - register the BitIntAtlasEntry for the tests ([ipfs/go-ipld-cbor#43](https://github.com/ipfs/go-ipld-cbor/pull/43))
+  - attempt to allocate a bit less ([ipfs/go-ipld-cbor#45](https://github.com/ipfs/go-ipld-cbor/pull/45))
+
+github.com/ipfs/go-ipfs-cmds
+  - check if we can decode an error before trying ([ipfs/go-ipfs-cmds#108](https://github.com/ipfs/go-ipfs-cmds/pull/108))
+  - fix(option): print error message for error timeout option ([ipfs/go-ipfs-cmds#118](https://github.com/ipfs/go-ipfs-cmds/pull/118))
+  - Create Jenkinsfile ([ipfs/go-ipfs-cmds#89](https://github.com/ipfs/go-ipfs-cmds/pull/89))
+  - fix(add): refer to ipfs issue #5456 ([ipfs/go-ipfs-cmds#121](https://github.com/ipfs/go-ipfs-cmds/pull/121))
+  - commands refactor 2.0 ([ipfs/go-ipfs-cmds#112](https://github.com/ipfs/go-ipfs-cmds/pull/112))
+  - always assign keks to review new PRs ([ipfs/go-ipfs-cmds#123](https://github.com/ipfs/go-ipfs-cmds/pull/123))
+  - extract go-ipfs-files ([ipfs/go-ipfs-cmds#125](https://github.com/ipfs/go-ipfs-cmds/pull/125))
+  - split the value encoder and the error encoder ([ipfs/go-ipfs-cmds#128](https://github.com/ipfs/go-ipfs-cmds/pull/128))
+
+github.com/ipfs/go-ipfs-cmdkit
+  - all: gofmt ([ipfs/go-ipfs-cmdkit#22](https://github.com/ipfs/go-ipfs-cmdkit/pull/22))
+  - add standard ci scripts ([ipfs/go-ipfs-cmdkit#23](https://github.com/ipfs/go-ipfs-cmdkit/pull/23))
+  - only count size for regular files ([ipfs/go-ipfs-cmdkit#25](https://github.com/ipfs/go-ipfs-cmdkit/pull/25))
+  - Create Jenkinsfile ([ipfs/go-ipfs-cmdkit#16](https://github.com/ipfs/go-ipfs-cmdkit/pull/16))
+  - Feat: add WebFile File implementation. ([ipfs/go-ipfs-cmdkit#26](https://github.com/ipfs/go-ipfs-cmdkit/pull/26))
+  - feat(type): fix issue #28 ([ipfs/go-ipfs-cmdkit#29](https://github.com/ipfs/go-ipfs-cmdkit/pull/29))
+  - Extract files package ([ipfs/go-ipfs-cmdkit#31](https://github.com/ipfs/go-ipfs-cmdkit/pull/31))
+
+github.com/ipfs/go-ds-badger
+  - update protobuf ([ipfs/go-ds-badger#26](https://github.com/ipfs/go-ds-badger/pull/26))
+  - exported type datastore => Datastore ([ipfs/go-ds-badger#1](https://github.com/ipfs/go-ds-badger/pull/1))
+  - using exported Datastore type ([ipfs/go-ds-badger#2](https://github.com/ipfs/go-ds-badger/pull/2))
+  - exported type datastore => Datastore ([ipfs/go-ds-badger#28](https://github.com/ipfs/go-ds-badger/pull/28))
+  - Implement new TxDatastore and Txn interfaces ([ipfs/go-ds-badger#27](https://github.com/ipfs/go-ds-badger/pull/27))
+  - Avoid discarding transaction too early in queries ([ipfs/go-ds-badger#31](https://github.com/ipfs/go-ds-badger/pull/31))
+  - Ability to get entry expirations ([ipfs/go-ds-badger#32](https://github.com/ipfs/go-ds-badger/pull/32))
+  - Update badger to 2.8.0 ([ipfs/go-ds-badger#33](https://github.com/ipfs/go-ds-badger/pull/33))
+  - ds.NewTransaction() now returns an error parameter ([ipfs/go-ds-badger#36](https://github.com/ipfs/go-ds-badger/pull/36))
+  - make has faster ([ipfs/go-ds-badger#37](https://github.com/ipfs/go-ds-badger/pull/37))
+  - Implement GetSize and update badger ([ipfs/go-ds-badger#38](https://github.com/ipfs/go-ds-badger/pull/38))
+
+github.com/ipfs/go-ipfs-addr
+  - Remove dependency on libp2p-circuit ([ipfs/go-ipfs-addr#7](https://github.com/ipfs/go-ipfs-addr/pull/7))
+
+github.com/ipfs/go-ipfs-chunker
+  - return err when rabin min less than 16 ([ipfs/go-ipfs-chunker#3](https://github.com/ipfs/go-ipfs-chunker/pull/3))
+  - switch to go-buffer-pool ([ipfs/go-ipfs-chunker#8](https://github.com/ipfs/go-ipfs-chunker/pull/8))
+  - fix size-0 chunker bug ([ipfs/go-ipfs-chunker#9](https://github.com/ipfs/go-ipfs-chunker/pull/9))
+
+github.com/ipfs/go-ipfs-routing
+  - update protobuf ([ipfs/go-ipfs-routing#8](https://github.com/ipfs/go-ipfs-routing/pull/8))
+  - Implement SearchValue ([ipfs/go-ipfs-routing#12](https://github.com/ipfs/go-ipfs-routing/pull/12))
+
+github.com/ipfs/go-ipfs-blockstore
+  - blockstore: Adding Stat method to map from Cid to BlockSize ([ipfs/go-ipfs-blockstore#5](https://github.com/ipfs/go-ipfs-blockstore/pull/5))
+  - correctly convert the datastore not found errors ([ipfs/go-ipfs-blockstore#10](https://github.com/ipfs/go-ipfs-blockstore/pull/10))
+  - Fix typo: Change 'should not' to 'should' ([ipfs/go-ipfs-blockstore#14](https://github.com/ipfs/go-ipfs-blockstore/pull/14))
+  - fix test race condition ([ipfs/go-ipfs-blockstore#9](https://github.com/ipfs/go-ipfs-blockstore/pull/9))
+  - make arccache.GetSize return ErrNotFound when not found ([ipfs/go-ipfs-blockstore#16](https://github.com/ipfs/go-ipfs-blockstore/pull/16))
+  - use datastore.GetSize ([ipfs/go-ipfs-blockstore#17](https://github.com/ipfs/go-ipfs-blockstore/pull/17))
+
+github.com/ipfs/go-ipns
+  - update gogo protobuf ([ipfs/go-ipns#16](https://github.com/ipfs/go-ipns/pull/16))
+  - use new ExtractPublicKey signature ([ipfs/go-ipns#17](https://github.com/ipfs/go-ipns/pull/17))
+
+github.com/ipfs/go-bitswap
+  - update gogo protobuf ([ipfs/go-bitswap#2](https://github.com/ipfs/go-bitswap/pull/2))
+  - ci: add jenkins ([ipfs/go-bitswap#9](https://github.com/ipfs/go-bitswap/pull/9))
+  - bitswap: Bitswap now sends multiple blocks per message ([ipfs/go-bitswap#5](https://github.com/ipfs/go-bitswap/pull/5))
+  - reduce allocations ([ipfs/go-bitswap#12](https://github.com/ipfs/go-bitswap/pull/12))
+  - buffer writes ([ipfs/go-bitswap#15](https://github.com/ipfs/go-bitswap/pull/15))
+  - delay finding providers ([ipfs/go-bitswap#17](https://github.com/ipfs/go-bitswap/pull/17))
+github.com/ipfs/go-blockservice
+  - Avoid allocating a session unless we need it ([ipfs/go-blockservice#6](https://github.com/ipfs/go-blockservice/pull/6))
+
+github.com/ipfs/go-cidutil
+  - add a utility method for sorting CID slices ([ipfs/go-cidutil#5](https://github.com/ipfs/go-cidutil/pull/5))
+
+github.com/ipfs/go-ipfs-config
+  - Add pubsub configuration options ([ipfs/go-ipfs-config#3](https://github.com/ipfs/go-ipfs-config/pull/3))
+  - add QUIC experiment ([ipfs/go-ipfs-config#4](https://github.com/ipfs/go-ipfs-config/pull/4))
+  - Add Gateway.APICommands for /api allowlists ([ipfs/go-ipfs-config#10](https://github.com/ipfs/go-ipfs-config/pull/10))
+  - allow multiple API/Gateway addresses ([ipfs/go-ipfs-config#11](https://github.com/ipfs/go-ipfs-config/pull/11))
+  - Fix handling of null strings ([ipfs/go-ipfs-config#12](https://github.com/ipfs/go-ipfs-config/pull/12))
+  - add experiment for p2p http proxy ([ipfs/go-ipfs-config#13](https://github.com/ipfs/go-ipfs-config/pull/13))
+  - add message signing config options ([ipfs/go-ipfs-config#18](https://github.com/ipfs/go-ipfs-config/pull/18))
+
+github.com/ipfs/go-merkledag
+  - Add FetchGraphWithDepthLimit to specify depth-limited graph fetching. ([ipfs/go-merkledag#2](https://github.com/ipfs/go-merkledag/pull/2))
+  - update gogo protobuf ([ipfs/go-merkledag#4](https://github.com/ipfs/go-merkledag/pull/4))
+  - Update to use new Builder interface for creating CIDs. ([ipfs/go-merkledag#6](https://github.com/ipfs/go-merkledag/pull/6))
+  - perf: avoid allocations when filtering nodes ([ipfs/go-merkledag#11](https://github.com/ipfs/go-merkledag/pull/11))
+
+github.com/ipfs/go-mfs
+  - fix(unixfs): issue #6 ([ipfs/go-mfs#7](https://github.com/ipfs/go-mfs/pull/7))
+  - fix(type): issue #13 ([ipfs/go-mfs#14](https://github.com/ipfs/go-mfs/pull/14))
+
+github.com/ipfs/go-path
+  - fix: don't dag.Get in ResolveToLastNode when not needed ([ipfs/go-path#1](https://github.com/ipfs/go-path/pull/1))
+
+github.com/ipfs/go-unixfs
+  - update gogo protobuf ([ipfs/go-unixfs#6](https://github.com/ipfs/go-unixfs/pull/6))
+  - Update to use new Builder interface for creating CIDs. ([ipfs/go-unixfs#7](https://github.com/ipfs/go-unixfs/pull/7))
+  - nit: make dagTruncate a method on DagModifier ([ipfs/go-unixfs#13](https://github.com/ipfs/go-unixfs/pull/13))
+  - fix(fsnode): issue #17 ([ipfs/go-unixfs#18](https://github.com/ipfs/go-unixfs/pull/18))
+  - Use EnumerateChildrenAsync in for enumerating HAMT links ([ipfs/go-unixfs#19](https://github.com/ipfs/go-unixfs/pull/19))
 
 ## 0.4.17 2018-07-27
 
