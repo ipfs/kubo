@@ -498,6 +498,48 @@ github.com/ipfs/go-ipns
   - update gogo protobuf ([ipfs/go-ipns#16](https://github.com/ipfs/go-ipns/pull/16))
   - use new ExtractPublicKey signature ([ipfs/go-ipns#17](https://github.com/ipfs/go-ipns/pull/17))
 
+github.com/ipfs/go-bitswap
+  - update gogo protobuf ([ipfs/go-bitswap#2](https://github.com/ipfs/go-bitswap/pull/2))
+  - ci: add jenkins ([ipfs/go-bitswap#9](https://github.com/ipfs/go-bitswap/pull/9))
+  - bitswap: Bitswap now sends multiple blocks per message ([ipfs/go-bitswap#5](https://github.com/ipfs/go-bitswap/pull/5))
+  - reduce allocations ([ipfs/go-bitswap#12](https://github.com/ipfs/go-bitswap/pull/12))
+  - buffer writes ([ipfs/go-bitswap#15](https://github.com/ipfs/go-bitswap/pull/15))
+  - delay finding providers ([ipfs/go-bitswap#17](https://github.com/ipfs/go-bitswap/pull/17))
+github.com/ipfs/go-blockservice
+  - Avoid allocating a session unless we need it ([ipfs/go-blockservice#6](https://github.com/ipfs/go-blockservice/pull/6))
+
+github.com/ipfs/go-cidutil
+  - add a utility method for sorting CID slices ([ipfs/go-cidutil#5](https://github.com/ipfs/go-cidutil/pull/5))
+
+github.com/ipfs/go-ipfs-config
+  - Add pubsub configuration options ([ipfs/go-ipfs-config#3](https://github.com/ipfs/go-ipfs-config/pull/3))
+  - add QUIC experiment ([ipfs/go-ipfs-config#4](https://github.com/ipfs/go-ipfs-config/pull/4))
+  - Add Gateway.APICommands for /api allowlists ([ipfs/go-ipfs-config#10](https://github.com/ipfs/go-ipfs-config/pull/10))
+  - allow multiple API/Gateway addresses ([ipfs/go-ipfs-config#11](https://github.com/ipfs/go-ipfs-config/pull/11))
+  - Fix handling of null strings ([ipfs/go-ipfs-config#12](https://github.com/ipfs/go-ipfs-config/pull/12))
+  - add experiment for p2p http proxy ([ipfs/go-ipfs-config#13](https://github.com/ipfs/go-ipfs-config/pull/13))
+  - add message signing config options ([ipfs/go-ipfs-config#18](https://github.com/ipfs/go-ipfs-config/pull/18))
+
+github.com/ipfs/go-merkledag
+  - Add FetchGraphWithDepthLimit to specify depth-limited graph fetching. ([ipfs/go-merkledag#2](https://github.com/ipfs/go-merkledag/pull/2))
+  - update gogo protobuf ([ipfs/go-merkledag#4](https://github.com/ipfs/go-merkledag/pull/4))
+  - Update to use new Builder interface for creating CIDs. ([ipfs/go-merkledag#6](https://github.com/ipfs/go-merkledag/pull/6))
+  - perf: avoid allocations when filtering nodes ([ipfs/go-merkledag#11](https://github.com/ipfs/go-merkledag/pull/11))
+
+github.com/ipfs/go-mfs
+  - fix(unixfs): issue #6 ([ipfs/go-mfs#7](https://github.com/ipfs/go-mfs/pull/7))
+  - fix(type): issue #13 ([ipfs/go-mfs#14](https://github.com/ipfs/go-mfs/pull/14))
+
+github.com/ipfs/go-path
+  - fix: don't dag.Get in ResolveToLastNode when not needed ([ipfs/go-path#1](https://github.com/ipfs/go-path/pull/1))
+
+github.com/ipfs/go-unixfs
+  - update gogo protobuf ([ipfs/go-unixfs#6](https://github.com/ipfs/go-unixfs/pull/6))
+  - Update to use new Builder interface for creating CIDs. ([ipfs/go-unixfs#7](https://github.com/ipfs/go-unixfs/pull/7))
+  - nit: make dagTruncate a method on DagModifier ([ipfs/go-unixfs#13](https://github.com/ipfs/go-unixfs/pull/13))
+  - fix(fsnode): issue #17 ([ipfs/go-unixfs#18](https://github.com/ipfs/go-unixfs/pull/18))
+  - Use EnumerateChildrenAsync in for enumerating HAMT links ([ipfs/go-unixfs#19](https://github.com/ipfs/go-unixfs/pull/19))
+
 ## 0.4.17 2018-07-27
 
 Ipfs 0.4.17 is a quick release to fix a major performance regression in bitswap
