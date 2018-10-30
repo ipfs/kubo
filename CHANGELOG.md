@@ -224,8 +224,9 @@ case intensive encoding required by domain names. This command converts a CID to
 version 1 and encodes it using base32.
 
 (2) A hack to allow locally looking up blocks associated with a CIDv0 CID using
-the equivalent CIDv1 CID. This hack will eventually (likely in the next release)
-be replaced with a proper CID-version agnostic datastore.
+the equivalent CIDv1 CID (or the reverse). This hack will eventually
+be replaced with a multihash indexed blockstore, which is agnostic to both the
+CID version and multicodec content type.
 
 ### go-ipfs changelog
 
