@@ -447,13 +447,13 @@ Examples:
 						Name: name,
 					})
 				}
-				return res.Emit(&filesLsOutput{output})
+				return cmds.EmitOnce(res, &filesLsOutput{output})
 			}
 			listing, err := fsn.List(req.Context)
 			if err != nil {
 				return err
 			}
-			return res.Emit(&filesLsOutput{listing})
+			return cmds.EmitOnce(res, &filesLsOutput{listing})
 		case *mfs.File:
 			_, name := gopath.Split(path)
 			out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
@@ -472,7 +472,7 @@ Examples:
 				}
 				out.Entries[0].Hash = nd.Cid().String()
 			}
-			return res.Emit(out)
+			return cmds.EmitOnce(res, out)
 		default:
 			return errors.New("unrecognized type")
 		}
