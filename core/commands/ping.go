@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
 	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
+	iaddr "gx/ipfs/QmZc5PLgxW61uTPG24TroxHDF6xzgbhZZQf5i53ciQC47Y/go-ipfs-addr"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -59,17 +59,17 @@ trip latency information.
 			return ErrNotOnline
 		}
 
-		addr, peerID, err := ParsePeerParam(req.Arguments[0])
+		addr, pid, err := ParsePeerParam(req.Arguments[0])
 		if err != nil {
 			return fmt.Errorf("failed to parse peer address '%s': %s", req.Arguments[0], err)
 		}
 
-		if peerID == n.Identity {
+		if pid == n.Identity {
 			return ErrPingSelf
 		}
 
 		if addr != nil {
-			n.Peerstore.AddAddr(peerID, addr, pstore.TempAddrTTL) // temporary
+			n.Peerstore.AddAddr(pid, addr, pstore.TempAddrTTL) // temporary
 		}
 
 		numPings, _ := req.Options[pingCountOptionName].(int)
@@ -77,9 +77,70 @@ trip latency information.
 			return fmt.Errorf("error: ping count must be greater than 0, was %d", numPings)
 		}
 
-		outChan := pingPeer(req.Context, n, peerID, numPings)
+		if len(n.Peerstore.Addrs(pid)) == 0 {
+			// Make sure we can find the node in question
+			if err := res.Emit(&PingResult{
+				Text:    fmt.Sprintf("Looking up peer %s", pid.Pretty()),
+				Success: true,
+			}); err != nil {
+				return err
+			}
 
-		return res.Emit(outChan)
+			ctx, cancel := context.WithTimeout(req.Context, kPingTimeout)
+			p, err := n.Routing.FindPeer(ctx, pid)
+			cancel()
+			if err != nil {
+				return res.Emit(&PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)})
+			}
+			n.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
+		}
+
+		if err := res.Emit(&PingResult{
+			Text:    fmt.Sprintf("PING %s.", pid.Pretty()),
+			Success: true,
+		}); err != nil {
+			return err
+		}
+
+		ctx, cancel := context.WithTimeout(req.Context, kPingTimeout*time.Duration(numPings))
+		defer cancel()
+		pings, err := n.Ping.Ping(ctx, pid)
+		if err != nil {
+			return res.Emit(&PingResult{
+				Success: false,
+				Text:    fmt.Sprintf("Ping error: %s", err),
+			})
+		}
+
+		var total time.Duration
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for i := 0; i < numPings; i++ {
+			t, ok := <-pings
+			if !ok {
+				break
+			}
+
+			if err := res.Emit(&PingResult{
+				Success: true,
+				Time:    t,
+			}); err != nil {
+				return err
+			}
+
+			total += t
+
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		averagems := total.Seconds() * 1000 / float64(numPings)
+		return res.Emit(&PingResult{
+			Success: true,
+			Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
+		})
 	},
 	Type: PingResult{},
 	Encoders: cmds.EncoderMap{
@@ -96,129 +157,16 @@ trip latency information.
 	},
 }
 
-func pingPeer(ctx context.Context, n *core.IpfsNode, pid peer.ID, numPings int) <-chan interface{} {
-	outChan := make(chan interface{})
-	go func() {
-		defer close(outChan)
-
-		if len(n.Peerstore.Addrs(pid)) == 0 {
-			// Make sure we can find the node in question
-			select {
-			case outChan <- &PingResult{
-				Text:    fmt.Sprintf("Looking up peer %s", pid.Pretty()),
-				Success: true,
-			}:
-			case <-ctx.Done():
-				return
-			}
-
-			ctx, cancel := context.WithTimeout(ctx, kPingTimeout)
-			defer cancel()
-			p, err := n.Routing.FindPeer(ctx, pid)
-			if err != nil {
-				select {
-				case outChan <- &PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)}:
-				case <-ctx.Done():
-					return
-				}
-
-				return
-			}
-			n.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
-		}
-
-		select {
-		case outChan <- &PingResult{
-			Text:    fmt.Sprintf("PING %s.", pid.Pretty()),
-			Success: true,
-		}:
-		case <-ctx.Done():
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(ctx, kPingTimeout*time.Duration(numPings))
-		defer cancel()
-		pings, err := n.Ping.Ping(ctx, pid)
-		if err != nil {
-			select {
-			case outChan <- &PingResult{
-				Success: false,
-				Text:    fmt.Sprintf("Ping error: %s", err),
-			}:
-			case <-ctx.Done():
-			}
-			return
-		}
-
-		var done bool
-		var total time.Duration
-		for i := 0; i < numPings && !done; i++ {
-			select {
-			case <-ctx.Done():
-				done = true
-				break
-			case t, ok := <-pings:
-				if !ok {
-					done = true
-					break
-				}
-				select {
-				case outChan <- &PingResult{
-					Success: true,
-					Time:    t,
-				}:
-				case <-ctx.Done():
-					return
-				}
-				total += t
-				time.Sleep(time.Second)
-			}
-		}
-		averagems := total.Seconds() * 1000 / float64(numPings)
-		select {
-		case outChan <- &PingResult{
-			Success: true,
-			Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
-		}:
-		case <-ctx.Done():
-		}
-	}()
-	return outChan
-}
-
 func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
-	// to be replaced with just multiaddr parsing, once ptp is a multiaddr protocol
-	idx := strings.LastIndex(text, "/")
-	if idx == -1 {
-		pid, err := peer.IDB58Decode(text)
+	// Multiaddr
+	if strings.HasPrefix(text, "/") {
+		a, err := iaddr.ParseString(text)
 		if err != nil {
 			return nil, "", err
 		}
-
-		return nil, pid, nil
+		return a.Transport(), a.ID(), nil
 	}
-
-	addrS := text[:idx]
-	peeridS := text[idx+1:]
-
-	var maddr ma.Multiaddr
-	var pid peer.ID
-
-	// make sure addrS parses as a multiaddr.
-	if len(addrS) > 0 {
-		var err error
-		maddr, err = ma.NewMultiaddr(addrS)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
-	// make sure idS parses as a peer.ID
-	var err error
-	pid, err = peer.IDB58Decode(peeridS)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return maddr, pid, nil
+	// Raw peer ID
+	p, err := peer.IDB58Decode(text)
+	return nil, p, err
 }
