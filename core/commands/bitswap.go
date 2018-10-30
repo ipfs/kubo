@@ -59,21 +59,18 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 		}
 
 		pstr, found := req.Options[peerOptionName].(string)
-		if err != nil {
-			return err
-		}
 		if found {
 			pid, err := peer.IDB58Decode(pstr)
 			if err != nil {
 				return err
 			}
 			if pid == nd.Identity {
-				return res.Emit(&KeyList{bs.GetWantlist()})
+				return cmds.EmitOnce(res, &KeyList{bs.GetWantlist()})
 			}
 
-			return res.Emit(&KeyList{bs.WantlistForPeer(pid)})
+			return cmds.EmitOnce(res, &KeyList{bs.WantlistForPeer(pid)})
 		}
-		return res.Emit(&KeyList{bs.GetWantlist()})
+		return cmds.EmitOnce(res, &KeyList{bs.GetWantlist()})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *KeyList) error {
@@ -175,7 +172,7 @@ prints the ledger associated with a given peer.
 		if err != nil {
 			return err
 		}
-		return res.Emit(bs.LedgerForPeer(partner))
+		return cmds.EmitOnce(res, bs.LedgerForPeer(partner))
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *decision.Receipt) error {
