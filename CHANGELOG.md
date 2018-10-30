@@ -120,6 +120,12 @@ to 32 bytes in length into a CID, instead of writing an actual block. This
 should significantly reduce the size of filesystem trees with many empty
 directories and tiny files.
 
+#### IPNS
+
+You can now, finally, publish and resolve paths with namespaces *other* than
+`/ipns` and `/ipfs` through IPNS. Critically, IPNS can now be used with IPLD
+paths (paths starting with `/ipld`).
+
 #### WebUI
 
 Finally, this release includes the shiny [updated
