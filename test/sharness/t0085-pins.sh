@@ -45,6 +45,13 @@ test_pins() {
     test $(cat verify_out | wc -l) > 8
   '
 
+  test_expect_success "test pin ls hash" '
+    echo $HASH_B | test_must_fail grep /ipfs && # just to be sure
+    ipfs pin ls $HASH_B > ls_hash_out &&
+    echo "$HASH_B recursive" > ls_hash_exp &&
+    test_cmp ls_hash_exp ls_hash_out
+  '
+
   test_expect_success "unpin those hashes" '
     cat hashes | ipfs pin rm
   '

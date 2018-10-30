@@ -547,7 +547,7 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[c.String()] = RefKeyObject{
+		keys[c.Cid().String()] = RefKeyObject{
 			Type: pinType,
 		}
 	}
