@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"os"
 
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -150,7 +151,7 @@ For ERROR entries the error will also be printed to stderr.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filestore.ListRes) error {
 			if out.Status == filestore.StatusOtherError {
-				return fmt.Errorf(out.ErrorMsg)
+				fmt.Fprintf(os.Stderr, "%s\n", out.ErrorMsg)
 			}
 			fmt.Fprintf(w, "%s %s\n", out.Status.Format(), out.FormatLong())
 			return nil
