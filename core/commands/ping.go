@@ -14,6 +14,7 @@ import (
 	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
 	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
+	ping "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/protocol/ping"
 	iaddr "gx/ipfs/QmZc5PLgxW61uTPG24TroxHDF6xzgbhZZQf5i53ciQC47Y/go-ipfs-addr"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -104,7 +105,7 @@ trip latency information.
 
 		ctx, cancel := context.WithTimeout(req.Context, kPingTimeout*time.Duration(numPings))
 		defer cancel()
-		pings, err := n.Ping.Ping(ctx, pid)
+		pings, err := ping.Ping(ctx, n.PeerHost, pid)
 		if err != nil {
 			return res.Emit(&PingResult{
 				Success: false,
