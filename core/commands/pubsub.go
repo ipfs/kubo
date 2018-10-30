@@ -105,12 +105,14 @@ This command outputs data in the following encodings:
 				return err
 			}
 
-			res.Emit(&pubsubMessage{
+			if err := res.Emit(&pubsubMessage{
 				Data:     msg.Data(),
 				From:     []byte(msg.From()),
 				Seqno:    msg.Seq(),
 				TopicIDs: msg.Topics(),
-			})
+			}); err != nil {
+				return err
+			}
 		}
 	},
 	Encoders: cmds.EncoderMap{

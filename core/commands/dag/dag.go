@@ -188,7 +188,7 @@ format.
 			}
 			out = final
 		}
-		return res.Emit(&out)
+		return cmds.EmitOnce(res, &out)
 	},
 }
 
@@ -219,7 +219,7 @@ var DagResolveCmd = &cmds.Command{
 			return err
 		}
 
-		return res.Emit(&ResolveOutput{
+		return cmds.EmitOnce(res, &ResolveOutput{
 			Cid:     lastCid,
 			RemPath: path.Join(rem),
 		})

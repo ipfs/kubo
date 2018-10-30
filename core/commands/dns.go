@@ -77,7 +77,7 @@ The resolver can recursively resolve:
 		if err != nil {
 			return err
 		}
-		return res.Emit(&ncmd.ResolvedPath{Path: output})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: output})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ncmd.ResolvedPath) error {

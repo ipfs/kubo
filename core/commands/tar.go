@@ -57,7 +57,7 @@ represent it.
 		c := node.Cid()
 
 		fi.FileName()
-		return res.Emit(&coreiface.AddEvent{
+		return cmds.EmitOnce(res, &coreiface.AddEvent{
 			Name: fi.FileName(),
 			Hash: c.String(),
 		})
