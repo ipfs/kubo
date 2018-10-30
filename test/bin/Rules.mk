@@ -18,6 +18,10 @@ $(d)/ma-pipe-unidir: test/dependencies/ma-pipe-unidir
 	$(go-build)
 TGTS_$(d) += $(d)/ma-pipe-unidir
 
+$(d)/json-to-junit: test/dependencies/json-to-junit
+	$(go-build)
+TGTS_$(d) += $(d)/json-to-junit
+
 TGTS_GX_$(d) := hang-fds iptb
 TGTS_GX_$(d) := $(addprefix $(d)/,$(TGTS_GX_$(d)))
 
