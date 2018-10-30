@@ -2,7 +2,8 @@
 
 ## 0.4.18 2018-10-26-rc1
 
-This is probably one of largest go-ipfs release to date, 3 months in the making.
+This is probably one of the largest go-ipfs release in recent history, 3 months
+in the making.
 
 ### Features
 
