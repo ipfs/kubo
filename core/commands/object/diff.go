@@ -94,7 +94,7 @@ Example:
 			}
 		}
 
-		return res.Emit(&Changes{out})
+		return cmds.EmitOnce(res, &Changes{out})
 	},
 	Type: Changes{},
 	Encoders: cmds.EncoderMap{

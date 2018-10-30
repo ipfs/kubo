@@ -49,7 +49,7 @@ the limit will not be respected by the network.
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
 		if err != nil {
 			return err
@@ -70,7 +70,7 @@ the limit will not be respected by the network.
 			return err
 		}
 
-		return cmds.EmitOnce(re, &Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: &Object{},
 	Encoders: cmds.EncoderMap{
@@ -117,7 +117,7 @@ Example:
 			return err
 		}
 
-		return res.Emit(&Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{
@@ -156,7 +156,7 @@ Remove a Merkle-link from the given object and return the hash of the result.
 			return err
 		}
 
-		return res.Emit(&Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{
@@ -220,7 +220,7 @@ to a file containing 'bar', and returns the hash of the new object.
 			return err
 		}
 
-		return res.Emit(&Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
 	Encoders: cmds.EncoderMap{

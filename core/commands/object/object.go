@@ -148,7 +148,7 @@ multihash.
 			Links: outLinks,
 		}
 
-		return res.Emit(out)
+		return cmds.EmitOnce(res, out)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
@@ -252,7 +252,7 @@ Supported values are:
 			}
 		}
 
-		return res.Emit(node)
+		return cmds.EmitOnce(res, node)
 	},
 	Type: Node{},
 	Encoders: cmds.EncoderMap{
@@ -318,7 +318,7 @@ var ObjectStatCmd = &cmds.Command{
 			CumulativeSize: ns.CumulativeSize,
 		}
 
-		return res.Emit(oldStat)
+		return cmds.EmitOnce(res, oldStat)
 	},
 	Type: ipld.NodeStat{},
 	Encoders: cmds.EncoderMap{
@@ -419,7 +419,7 @@ And then run:
 			return err
 		}
 
-		return res.Emit(&Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
@@ -474,7 +474,7 @@ Available templates:
 			return err
 		}
 
-		return res.Emit(&Object{Hash: nd.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: nd.Cid().String()})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
