@@ -136,7 +136,9 @@ Resolve the value of an IPFS DAG path:
 		}
 
 		if rp.Remainder() != "" {
-			return fmt.Errorf("path does not end on a dag-node boundary")
+			// TODO: js expects this error. Instead of fixing this
+			// error, we should fix #5703.
+			return fmt.Errorf("found non-link at given path")
 		}
 
 		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path("/" + rp.Namespace() + "/" + rp.Cid().String())})
