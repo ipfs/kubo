@@ -135,9 +135,11 @@ Resolve the value of an IPFS DAG path:
 			return err
 		}
 
-		c := rp.Cid()
+		if rp.Remainder() != "" {
+			return fmt.Errorf("path does not end on a dag-node boundary")
+		}
 
-		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.FromCid(c)})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path("/" + rp.Namespace() + "/" + rp.Cid().String())})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
