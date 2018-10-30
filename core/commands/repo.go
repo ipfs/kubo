@@ -39,7 +39,7 @@ var RepoCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"stat":    repoStatCmd,
 		"gc":      repoGcCmd,
-		"fsck":    RepoFsckCmd,
+		"fsck":    repoFsckCmd,
 		"version": repoVersionCmd,
 		"verify":  repoVerifyCmd,
 	},
@@ -221,7 +221,7 @@ Version         string The repo version.
 	},
 }
 
-var RepoFsckCmd = &cmds.Command{
+var repoFsckCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove repo lockfiles.",
 		ShortDescription: `
