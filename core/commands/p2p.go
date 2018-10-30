@@ -310,7 +310,7 @@ var p2pLsCmd = &cmds.Command{
 		}
 		n.P2P.ListenersP2P.Unlock()
 
-		return res.Emit(output)
+		return cmds.EmitOnce(res, output)
 	},
 	Type: P2PLsOutput{},
 	Encoders: cmds.EncoderMap{
@@ -398,7 +398,7 @@ var p2pCloseCmd = &cmds.Command{
 		done := n.P2P.ListenersLocal.Close(match)
 		done += n.P2P.ListenersP2P.Close(match)
 
-		return res.Emit(done)
+		return cmds.EmitOnce(res, done)
 	},
 	Type: int(0),
 	Encoders: cmds.EncoderMap{
@@ -454,7 +454,7 @@ var p2pStreamLsCmd = &cmds.Command{
 		}
 		n.P2P.Streams.Unlock()
 
-		return res.Emit(output)
+		return cmds.EmitOnce(res, output)
 	},
 	Type: P2PStreamsOutput{},
 	Encoders: cmds.EncoderMap{
