@@ -40,7 +40,7 @@ var VersionCmd = &cmds.Command{
 		cmdkit.BoolOption(versionAllOptionName, "Show all version information"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		return res.Emit(&VersionOutput{
+		return cmds.EmitOnce(res, &VersionOutput{
 			Version: version.CurrentVersionNumber,
 			Commit:  version.CurrentCommit,
 			Repo:    fmt.Sprint(fsrepo.RepoVersion),

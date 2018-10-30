@@ -127,14 +127,20 @@ Example:
 		for {
 			if pfound {
 				stats := nd.Reporter.GetBandwidthForPeer(pid)
-				res.Emit(&stats)
+				if err := res.Emit(&stats); err != nil {
+					return err
+				}
 			} else if tfound {
 				protoId := protocol.ID(tstr)
 				stats := nd.Reporter.GetBandwidthForProtocol(protoId)
-				res.Emit(&stats)
+				if err := res.Emit(&stats); err != nil {
+					return err
+				}
 			} else {
 				totals := nd.Reporter.GetBandwidthTotals()
-				res.Emit(&totals)
+				if err := res.Emit(&totals); err != nil {
+					return err
+				}
 			}
 			if !doPoll {
 				return nil
@@ -142,7 +148,7 @@ Example:
 			select {
 			case <-time.After(interval):
 			case <-req.Context.Done():
-				return nil
+				return req.Context.Err()
 			}
 		}
 	},
