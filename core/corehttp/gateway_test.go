@@ -21,8 +21,8 @@ import (
 	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	dag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
+	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
 	id "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/protocol/identify"
-	path "gx/ipfs/QmZbQUht8hzKmQxLHnzY14WSuoQqYkR5mn4cunchyWPmhn/go-path"
 	datastore "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
 	syncds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/sync"
 )
@@ -188,7 +188,7 @@ func TestGatewayGet(t *testing.T) {
 		{"working.example.com", "/", http.StatusOK, "fnord"},
 		{"double.example.com", "/", http.StatusOK, "fnord"},
 		{"triple.example.com", "/", http.StatusOK, "fnord"},
-		{"working.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com/ipfs/" + k + ": no link by that name\n"},
+		{"working.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com/ipfs/" + k + ": no link named \"ipfs\" under " + k + "\n"},
 		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"broken.example.com", "/ipfs/" + k, http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/ipfs/" + k + ": " + namesys.ErrResolveFailed.Error() + "\n"},
 		// This test case ensures we don't treat the TLD as a file extension.

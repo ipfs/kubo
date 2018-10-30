@@ -10,8 +10,8 @@ import (
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	ipfspath "gx/ipfs/QmZbQUht8hzKmQxLHnzY14WSuoQqYkR5mn4cunchyWPmhn/go-path"
-	"gx/ipfs/QmZbQUht8hzKmQxLHnzY14WSuoQqYkR5mn4cunchyWPmhn/go-path/resolver"
+	ipfspath "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	"gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path/resolver"
 	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
 )
 
