@@ -135,9 +135,13 @@ Resolve the value of an IPFS DAG path:
 			return err
 		}
 
-		c := rp.Cid()
+		if rp.Remainder() != "" {
+			// TODO: js expects this error. Instead of fixing this
+			// error, we should fix #5703.
+			return fmt.Errorf("found non-link at given path")
+		}
 
-		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.FromCid(c)})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path("/" + rp.Namespace() + "/" + rp.Cid().String())})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
