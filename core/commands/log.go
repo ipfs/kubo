@@ -110,6 +110,8 @@ Outputs event log messages (not other log messages) as they are generated.
 			defer w1.Close()
 			<-ctx.Done()
 		}()
+		// Reformat the logs as ndjson
+		// TODO: remove this: #5709
 		go func() {
 			defer w2.Close()
 			decoder := json.NewDecoder(r1)
