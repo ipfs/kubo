@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -103,13 +104,28 @@ Outputs event log messages (not other log messages) as they are generated.
 
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
-		r, w := io.Pipe()
+		r1, w1 := io.Pipe()
+		r2, w2 := io.Pipe()
 		go func() {
-			defer w.Close()
+			defer w1.Close()
 			<-ctx.Done()
 		}()
-		lwriter.WriterGroup.AddWriter(w)
-		res.SetOutput(r)
+		// Reformat the logs as ndjson
+		// TODO: remove this: #5709
+		go func() {
+			defer w2.Close()
+			decoder := json.NewDecoder(r1)
+			encoder := json.NewEncoder(w2)
+			for {
+				var obj interface{}
+				if decoder.Decode(&obj) != nil || encoder.Encode(obj) != nil {
+					return
+				}
+			}
+		}()
+
+		lwriter.WriterGroup.AddWriter(w1)
+		res.SetOutput(r2)
 	},
 }
 
