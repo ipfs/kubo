@@ -14,8 +14,8 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmds "gx/ipfs/QmRRovo1DE6i5cMjCbf19mQCSuszF6SKwdZNUMS7MtBnH1/go-ipfs-cmds"
 	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	config "gx/ipfs/QmbK4EmM2Xx5fmbqK38TGP3PpY66r3tkXLZTcc7dF9mFwM/go-ipfs-config"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -167,7 +167,7 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 			return err
 		}
 
-		return res.Emit(&cfg)
+		return cmds.EmitOnce(res, &cfg)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
@@ -319,7 +319,7 @@ var configProfileApplyCmd = &cmds.Command{
 			return err
 		}
 
-		return res.Emit(&ConfigUpdateOutput{
+		return cmds.EmitOnce(res, &ConfigUpdateOutput{
 			OldCfg: oldCfgMap,
 			NewCfg: newCfgMap,
 		})
