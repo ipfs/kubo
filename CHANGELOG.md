@@ -281,7 +281,7 @@ Features (i.e., users take heed):
   - feat: add dry-run flag for config profile apply command ([ipfs/go-ipfs#5455](https://github.com/ipfs/go-ipfs/pull/5455))
   - configurable pubsub signing ([ipfs/go-ipfs#5647](https://github.com/ipfs/go-ipfs/pull/5647))
 
-Fixes (i.e., users take note) (some fixed issues may have been introduced *in* this release):
+Fixes (i.e., users take note):
   - pin update fixes ([ipfs/go-ipfs#5265](https://github.com/ipfs/go-ipfs/pull/5265))
   - Fix inability to pin two things at once ([ipfs/go-ipfs#5512](https://github.com/ipfs/go-ipfs/pull/5512))
   - wait for all connections to close before exiting on shutdown. ([ipfs/go-ipfs#5322](https://github.com/ipfs/go-ipfs/pull/5322))
@@ -308,6 +308,7 @@ Fixes (i.e., users take note) (some fixed issues may have been introduced *in* t
   - refactor(command): modify int to int64 ([ipfs/go-ipfs#5612](https://github.com/ipfs/go-ipfs/pull/5612))
   - fix(core): ipns config RecordLifetime panic ([ipfs/go-ipfs#5648](https://github.com/ipfs/go-ipfs/pull/5648))
   - simplify dag put and correctly take pin lock ([ipfs/go-ipfs#5667](https://github.com/ipfs/go-ipfs/pull/5667))
+  - fix prometheus concurrent map write bug ([ipfs/go-ipfs#5706](https://github.com/ipfs/go-ipfs/pull/5706))
 
 Regressions Fixes (fixes for bugs introduced since the last release):
   - namesys: properly attach path in name.Resolve ([ipfs/go-ipfs#5660](https://github.com/ipfs/go-ipfs/pull/5660))
@@ -331,6 +332,8 @@ Extractions:
   - Extract unixfs and importers to go-unixfs ([ipfs/go-ipfs#5316](https://github.com/ipfs/go-ipfs/pull/5316))
   - delete unixfs code... ([ipfs/go-ipfs#5319](https://github.com/ipfs/go-ipfs/pull/5319))
   - Extract /mfs to github.com/ipfs/go-mfs ([ipfs/go-ipfs#5391](https://github.com/ipfs/go-ipfs/pull/5391))
+  - re-format log output as ndjson ([ipfs/go-ipfs#5708](https://github.com/ipfs/go-ipfs/pull/5708))
+  - error on resolving non-terminal paths ([ipfs/go-ipfs#5705](https://github.com/ipfs/go-ipfs/pull/5705))
 
 Documentation:
   - document the fact that we now publish releases on GitHub ([ipfs/go-ipfs#5301](https://github.com/ipfs/go-ipfs/pull/5301))
