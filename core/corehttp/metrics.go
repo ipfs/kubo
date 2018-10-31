@@ -47,8 +47,8 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 			}
 		}
 
-		opts.Name = "request_duration_microseconds"
-		opts.Help = "The HTTP request latencies in microseconds."
+		opts.Name = "request_duration_seconds"
+		opts.Help = "The HTTP request latencies in seconds."
 		reqDur := prometheus.NewSummaryVec(opts, nil)
 		if err := prometheus.Register(reqDur); err != nil {
 			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
