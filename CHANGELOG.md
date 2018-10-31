@@ -207,6 +207,17 @@ interface using this API, which could help performance in some use cases.
 
 You can track progress in https://github.com/ipfs/go-ipfs/issues/4498
 
+#### IPLD paths
+
+We introduced new path type which introduces distinction between IPLD and
+IPFS (unixfs) paths. From now on paths prefixed with `/ipld/` will always
+use IPLD link traversal and `/ipfs/` will use unixfs path resolver, which
+takes things like shardnig into account.
+
+Note that this is only initial support and there likely are some bugs in
+how the paths are handled internally, so consider this feature
+experimental for now.
+
 #### CIDv1/Base32 Migration
 
 Currently, IPFS is usually used in browsers by browsing to
