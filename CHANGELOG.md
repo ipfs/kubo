@@ -1,8 +1,9 @@
 # go-ipfs changelog
 
-## 0.4.18 2018-10-26-rc1
+## 0.4.18-rc2 2018-10-26
 
-This is probably one of largest go-ipfs release to date, 3 months in the making.
+This is probably one of the largest go-ipfs releases in recent history, 3 months
+in the making.
 
 ### Features
 
@@ -119,6 +120,12 @@ to 32 bytes in length into a CID, instead of writing an actual block. This
 should significantly reduce the size of filesystem trees with many empty
 directories and tiny files.
 
+#### IPNS
+
+You can now, finally, publish and resolve paths with namespaces *other* than
+`/ipns` and `/ipfs` through IPNS. Critically, IPNS can now be used with IPLD
+paths (paths starting with `/ipld`).
+
 #### WebUI
 
 Finally, this release includes the shiny [updated
@@ -200,6 +207,17 @@ interface using this API, which could help performance in some use cases.
 
 You can track progress in https://github.com/ipfs/go-ipfs/issues/4498
 
+#### IPLD paths
+
+We introduced new path type which introduces distinction between IPLD and
+IPFS (unixfs) paths. From now on paths prefixed with `/ipld/` will always
+use IPLD link traversal and `/ipfs/` will use unixfs path resolver, which
+takes things like shardnig into account.
+
+Note that this is only initial support and there likely are some bugs in
+how the paths are handled internally, so consider this feature
+experimental for now.
+
 #### CIDv1/Base32 Migration
 
 Currently, IPFS is usually used in browsers by browsing to
@@ -274,7 +292,7 @@ Features (i.e., users take heed):
   - feat: add dry-run flag for config profile apply command ([ipfs/go-ipfs#5455](https://github.com/ipfs/go-ipfs/pull/5455))
   - configurable pubsub signing ([ipfs/go-ipfs#5647](https://github.com/ipfs/go-ipfs/pull/5647))
 
-Fixes (i.e., users take note) (some fixed issues may have been introduced *in* this release):
+Fixes (i.e., users take note):
   - pin update fixes ([ipfs/go-ipfs#5265](https://github.com/ipfs/go-ipfs/pull/5265))
   - Fix inability to pin two things at once ([ipfs/go-ipfs#5512](https://github.com/ipfs/go-ipfs/pull/5512))
   - wait for all connections to close before exiting on shutdown. ([ipfs/go-ipfs#5322](https://github.com/ipfs/go-ipfs/pull/5322))
@@ -301,6 +319,7 @@ Fixes (i.e., users take note) (some fixed issues may have been introduced *in* t
   - refactor(command): modify int to int64 ([ipfs/go-ipfs#5612](https://github.com/ipfs/go-ipfs/pull/5612))
   - fix(core): ipns config RecordLifetime panic ([ipfs/go-ipfs#5648](https://github.com/ipfs/go-ipfs/pull/5648))
   - simplify dag put and correctly take pin lock ([ipfs/go-ipfs#5667](https://github.com/ipfs/go-ipfs/pull/5667))
+  - fix prometheus concurrent map write bug ([ipfs/go-ipfs#5706](https://github.com/ipfs/go-ipfs/pull/5706))
 
 Regressions Fixes (fixes for bugs introduced since the last release):
   - namesys: properly attach path in name.Resolve ([ipfs/go-ipfs#5660](https://github.com/ipfs/go-ipfs/pull/5660))
@@ -308,6 +327,12 @@ Regressions Fixes (fixes for bugs introduced since the last release):
   - fix infinite loop in `stats bw` ([ipfs/go-ipfs#5598](https://github.com/ipfs/go-ipfs/pull/5598))
   - make warnings on no bootstrap peers less noisy ([ipfs/go-ipfs#5466](https://github.com/ipfs/go-ipfs/pull/5466))
   - fix two transport related bugs ([ipfs/go-ipfs#5417](https://github.com/ipfs/go-ipfs/pull/5417))
+  - Fix pin ls output when hash is specified ([ipfs/go-ipfs#5699](https://github.com/ipfs/go-ipfs/pull/5699))
+  - ping: switch to the ping service enabled in the libp2p constructor ([ipfs/go-ipfs#5698](https://github.com/ipfs/go-ipfs/pull/5698))
+  - commands: fix a bunch of tiny commands-lib issues ([ipfs/go-ipfs#5697](https://github.com/ipfs/go-ipfs/pull/5697))
+  - cleanup the ping command ([ipfs/go-ipfs#5680](https://github.com/ipfs/go-ipfs/pull/5680))
+  - fix gossipsub goroutine explosion ([ipfs/go-ipfs#5688](https://github.com/ipfs/go-ipfs/pull/5688))
+  - fix(cmd/gc): Run func does not return error when Emit func returns error ([ipfs/go-ipfs#5687](https://github.com/ipfs/go-ipfs/pull/5687))
 
 Extractions:
   - Extract bitswap to go-bitswap ([ipfs/go-ipfs#5294](https://github.com/ipfs/go-ipfs/pull/5294))
@@ -318,6 +343,8 @@ Extractions:
   - Extract unixfs and importers to go-unixfs ([ipfs/go-ipfs#5316](https://github.com/ipfs/go-ipfs/pull/5316))
   - delete unixfs code... ([ipfs/go-ipfs#5319](https://github.com/ipfs/go-ipfs/pull/5319))
   - Extract /mfs to github.com/ipfs/go-mfs ([ipfs/go-ipfs#5391](https://github.com/ipfs/go-ipfs/pull/5391))
+  - re-format log output as ndjson ([ipfs/go-ipfs#5708](https://github.com/ipfs/go-ipfs/pull/5708))
+  - error on resolving non-terminal paths ([ipfs/go-ipfs#5705](https://github.com/ipfs/go-ipfs/pull/5705))
 
 Documentation:
   - document the fact that we now publish releases on GitHub ([ipfs/go-ipfs#5301](https://github.com/ipfs/go-ipfs/pull/5301))
@@ -356,7 +383,9 @@ Testing:
   - fix(command):update `add --chunker` test ([ipfs/go-ipfs#5571](https://github.com/ipfs/go-ipfs/pull/5571))
   - switch to go 1.11 ([ipfs/go-ipfs#5483](https://github.com/ipfs/go-ipfs/pull/5483))
   - fix: sharness race in directory_size if file is removed ([ipfs/go-ipfs#5586](https://github.com/ipfs/go-ipfs/pull/5586))
+  - Bump Go versions and use '.x' to always get latest minor versions ([ipfs/go-ipfs#5682](https://github.com/ipfs/go-ipfs/pull/5682))
   - add rabin min error test ([ipfs/go-ipfs#5449](https://github.com/ipfs/go-ipfs/pull/5449))
+  - Use CircleCI 2.0 ([ipfs/go-ipfs#5691](https://github.com/ipfs/go-ipfs/pull/5691))
 
 Internal:
   - Add ability to retrieve blocks even if given using a different CID version ([ipfs/go-ipfs#5285](https://github.com/ipfs/go-ipfs/pull/5285))
@@ -377,8 +406,8 @@ Internal:
   - coreapi: PubSub API ([ipfs/go-ipfs#4805](https://github.com/ipfs/go-ipfs/pull/4805))
   - fix: maketarball.sh for OSX ([ipfs/go-ipfs#5575](https://github.com/ipfs/go-ipfs/pull/5575))
   - test the correct return value when checking directory size ([ipfs/go-ipfs#5580](https://github.com/ipfs/go-ipfs/pull/5580))
-  - downgrade iptb to a 1.3 patch release ([ipfs/go-ipfs#5596](https://github.com/ipfs/go-ipfs/pull/5596))
   - coreapi unixfs: remove Cat ([ipfs/go-ipfs#5574](https://github.com/ipfs/go-ipfs/pull/5574))
+  - Explicitally use BufferedDAG after removing Batch from importers ([ipfs/go-ipfs#5626](https://github.com/ipfs/go-ipfs/pull/5626))
 
 Cleanup:
   - Fix some weird code in core/coreunix/add.go ([ipfs/go-ipfs#5354](https://github.com/ipfs/go-ipfs/pull/5354))
