@@ -512,9 +512,9 @@
     },
     {
       "author": "why",
-      "hash": "QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8",
+      "hash": "QmUaZkqxmKvUX16F8XeAAk9LVvmNMktvbhcx4PG4s8SqDG",
       "name": "go-unixfs",
-      "version": "1.1.16"
+      "version": "1.2.0"
     },
     {
       "author": "magik6k",
@@ -530,9 +530,9 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmUwXQs8aZ472DmXZ8uJNf7HJNKoMJQVa7RaCz7ujZ3ua9",
+      "hash": "QmYvkBqASjpaX9ZZeYCd1Qkt9ncbxjqkZC16nooBZbWTzr",
       "name": "go-mfs",
-      "version": "0.1.18"
+      "version": "0.1.19"
     },
     {
       "author": "kevina",
