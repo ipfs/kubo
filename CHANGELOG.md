@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.18-rc2 2018-10-26
+## 0.4.18 2018-10-26
 
 This is probably one of the largest go-ipfs releases in recent history, 3 months
 in the making.
@@ -19,22 +19,22 @@ solves many of the long standing issues with TCP.
 
 For us, this means (eventually):
 
-* Fewer local resources. TCP requires a file-descriptor per connection while
+* **Fewer local resources.** TCP requires a file-descriptor per connection while
   QUIC (and most UDP based transports) can share a single file descriptor
   between all connections. This should allow us to dial faster and keep more
   connections open.
-* Faster connection establishment. When client authentication is included, QUIC
-  has a three-way handshake like TCP. However, unlike TCP, this handshake brings
-  us from all the way from 0 to a fully encrypted, authenticated, and
+* **Faster connection establishment.** When client authentication is included,
+  QUIC has a three-way handshake like TCP. However, unlike TCP, this handshake
+  brings us from all the way from 0 to a fully encrypted, authenticated, and
   multiplexed connection. In theory (not yet in practice), this should
   significantly reduce the latency of DHT queries.
-* Behaves better on lossy networks. When multiplexing multiple requests over a
-  single TCP connection, a single dropped packet will bring the entire
+* **Behaves better on lossy networks.** When multiplexing multiple requests over
+  a single TCP connection, a single dropped packet will bring the entire
   connection to a halt while the packet is re-transmitted. However, because QUIC
   handles multiplexing internally, dropping a single packets affects only the
   related stream.
-* Better NAT traversal: TL;DR: NAT hole-punching is significantly easier and, in
-  many cases, more reliable with UDP than with TCP.
+* **Better NAT traversal.** TL;DR: NAT hole-punching is significantly easier
+  and, in many cases, more reliable with UDP than with TCP.
 
 However, we still have a long way to go. While we encourage users to test this,
 the IETF QUIC protocol is still being actively developed and *will* change. You
@@ -52,10 +52,10 @@ so you can enable it and still talk to nodes using the floodsub algorithm. You
 can find instructions to enable gossipsub in go-ipfs
 [here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#gossipsub).
 
-Messages are now, finally, signed by their authors. While signing has been
-enabled by default, strict signature verification has not been and will not be
-for at least one release (probably multiple) to avoid breaking existing
-applications. You can read about how to configure this feature
+Messages are now signed by their authors. While signing has now been enabled by
+default, strict signature verification has not been and will not be for at least
+one release (probably multiple) to avoid breaking existing applications. You can
+read about how to configure this feature
 [here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#message-signing).
 
 #### Commands
@@ -83,8 +83,8 @@ bafybeicg2rebjoofv4kbyovkw7af3rpiitvnl6i7ckcywaq6xjcxnc2mby
 
 The refactored `ipfs p2p` command allows forwarding TCP streams through two IPFS
 nodes from one host to another. It's `ssh -L` but for IPFS. You can find
-documentation in
-[here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#ipfs-p2p)).
+documentation 
+[here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#ipfs-p2p).
 It's still experimental but we don't expect too many breaking changes at this
 point (it will very likely be stabilized in the next release). Quick summary of
 breaking changes:
@@ -122,9 +122,9 @@ directories and tiny files.
 
 #### IPNS
 
-You can now, finally, publish and resolve paths with namespaces *other* than
-`/ipns` and `/ipfs` through IPNS. Critically, IPNS can now be used with IPLD
-paths (paths starting with `/ipld`).
+You can now publish and resolve paths with namespaces *other* than `/ipns` and
+`/ipfs` through IPNS. Critically, IPNS can now be used with IPLD paths (paths
+starting with `/ipld`).
 
 #### WebUI
 
