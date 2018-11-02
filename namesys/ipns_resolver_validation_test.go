@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	path "gx/ipfs/QmUB3RFRDctDp1k73mDJydzWiKdiuNHfyuoRPQeU52rWWT/go-path"
 
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
 
