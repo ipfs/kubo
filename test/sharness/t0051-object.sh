@@ -223,6 +223,12 @@ test_object_cmd() {
     ipfs object stat $OUTPUT
   '
 
+  test_expect_success "'ipfs object links' gives the correct results" '
+    echo "$EMPTY_DIR" 4 foo > expected &&
+    ipfs object links "$OUTPUT" > actual &&
+    test_cmp expected actual
+  '
+
   test_expect_success "'ipfs object patch add-link' should work with paths" '
     EMPTY_DIR=$(ipfs object new unixfs-dir) &&
     N1=$(ipfs object patch $EMPTY_DIR add-link baz $EMPTY_DIR) &&

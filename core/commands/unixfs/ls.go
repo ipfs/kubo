@@ -7,17 +7,13 @@ import (
 	"sort"
 	"text/tabwriter"
 
-	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
-
 	cmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
-	unixfs "github.com/ipfs/go-ipfs/unixfs"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+
+	merkledag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	unixfs "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs"
 )
 
 type LsLink struct {
@@ -83,6 +79,12 @@ possible, please use 'ipfs ls' instead.
 			return
 		}
 
+		api, err := req.InvocContext().GetApi()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
 		paths := req.Arguments()
 
 		output := LsOutput{
@@ -90,15 +92,16 @@ possible, please use 'ipfs ls' instead.
 			Objects:   map[string]*LsObject{},
 		}
 
-		for _, fpath := range paths {
+		for _, p := range paths {
 			ctx := req.Context()
 
-			resolver := &resolver.Resolver{
-				DAG:         node.DAG,
-				ResolveOnce: uio.ResolveUnixfsOnce,
+			fpath, err := iface.ParsePath(p)
+			if err != nil {
+				res.SetError(err, cmdkit.ErrNormal)
+				return
 			}
 
-			merkleNode, err := core.Resolve(ctx, node.Namesys, resolver, path.Path(fpath))
+			merkleNode, err := api.ResolveNode(ctx, fpath)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
@@ -107,7 +110,7 @@ possible, please use 'ipfs ls' instead.
 			c := merkleNode.Cid()
 
 			hash := c.String()
-			output.Arguments[fpath] = hash
+			output.Arguments[p] = hash
 
 			if _, ok := output.Objects[hash]; ok {
 				// duplicate argument for an already-listed node
@@ -120,28 +123,28 @@ possible, please use 'ipfs ls' instead.
 				return
 			}
 
-			unixFSNode, err := unixfs.FromBytes(ndpb.Data())
+			unixFSNode, err := unixfs.FSNodeFromBytes(ndpb.Data())
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
-			t := unixFSNode.GetType()
+			t := unixFSNode.Type()
 
 			output.Objects[hash] = &LsObject{
 				Hash: c.String(),
 				Type: t.String(),
-				Size: unixFSNode.GetFilesize(),
+				Size: unixFSNode.FileSize(),
 			}
 
 			switch t {
-			case unixfspb.Data_File:
+			case unixfs.TFile:
 				break
-			case unixfspb.Data_HAMTShard:
+			case unixfs.THAMTShard:
 				// We need a streaming ls API for this.
 				res.SetError(fmt.Errorf("cannot list large directories yet"), cmdkit.ErrNormal)
 				return
-			case unixfspb.Data_Directory:
+			case unixfs.TDirectory:
 				links := make([]LsLink, len(merkleNode.Links()))
 				output.Objects[hash].Links = links
 				for i, link := range merkleNode.Links() {
@@ -156,25 +159,25 @@ possible, please use 'ipfs ls' instead.
 						return
 					}
 
-					d, err := unixfs.FromBytes(lnpb.Data())
+					d, err := unixfs.FSNodeFromBytes(lnpb.Data())
 					if err != nil {
 						res.SetError(err, cmdkit.ErrNormal)
 						return
 					}
-					t := d.GetType()
+					t := d.Type()
 					lsLink := LsLink{
 						Name: link.Name,
 						Hash: link.Cid.String(),
 						Type: t.String(),
 					}
-					if t == unixfspb.Data_File {
-						lsLink.Size = d.GetFilesize()
+					if t == unixfs.TFile {
+						lsLink.Size = d.FileSize()
 					} else {
 						lsLink.Size = link.Size
 					}
 					links[i] = lsLink
 				}
-			case unixfspb.Data_Symlink:
+			case unixfs.TSymlink:
 				res.SetError(fmt.Errorf("cannot list symlinks yet"), cmdkit.ErrNormal)
 				return
 			default:

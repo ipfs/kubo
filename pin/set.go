@@ -9,12 +9,12 @@ import (
 	"hash/fnv"
 	"sort"
 
-	"github.com/ipfs/go-ipfs/merkledag"
 	"github.com/ipfs/go-ipfs/pin/internal/pb"
+	"gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	"gx/ipfs/QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV/gogo-protobuf/proto"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	"gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 	maxItems = 8192
 )
 
-func hash(seed uint32, c *cid.Cid) uint32 {
+func hash(seed uint32, c cid.Cid) uint32 {
 	var buf [4]byte
 	binary.LittleEndian.PutUint32(buf[:], seed)
 	h := fnv.New32a()
@@ -34,9 +34,9 @@ func hash(seed uint32, c *cid.Cid) uint32 {
 	return h.Sum32()
 }
 
-type itemIterator func() (c *cid.Cid, ok bool)
+type itemIterator func() (c cid.Cid, ok bool)
 
-type keyObserver func(*cid.Cid)
+type keyObserver func(cid.Cid)
 
 type sortByHash struct {
 	links []*ipld.Link
@@ -67,9 +67,9 @@ func storeItems(ctx context.Context, dag ipld.DAGService, estimatedLen uint64, d
 	internalKeys(emptyKey)
 
 	hdr := &pb.Set{
-		Version: proto.Uint32(1),
-		Fanout:  proto.Uint32(defaultFanout),
-		Seed:    proto.Uint32(depth),
+		Version: 1,
+		Fanout:  defaultFanout,
+		Seed:    depth,
 	}
 	if err := writeHdr(n, hdr); err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func storeItems(ctx context.Context, dag ipld.DAGService, estimatedLen uint64, d
 		sort.Stable(s)
 	}
 
-	hashed := make([][]*cid.Cid, defaultFanout)
+	hashed := make([][]cid.Cid, defaultFanout)
 	for {
 		// This loop essentially enumerates every single item in the set
 		// and maps them all into a set of buckets. Each bucket will be recursively
@@ -238,7 +238,7 @@ func walkItems(ctx context.Context, dag ipld.DAGService, n *merkledag.ProtoNode,
 	return nil
 }
 
-func loadSet(ctx context.Context, dag ipld.DAGService, root *merkledag.ProtoNode, name string, internalKeys keyObserver) ([]*cid.Cid, error) {
+func loadSet(ctx context.Context, dag ipld.DAGService, root *merkledag.ProtoNode, name string, internalKeys keyObserver) ([]cid.Cid, error) {
 	l, err := root.GetNodeLink(name)
 	if err != nil {
 		return nil, err
@@ -257,7 +257,7 @@ func loadSet(ctx context.Context, dag ipld.DAGService, root *merkledag.ProtoNode
 		return nil, merkledag.ErrNotProtobuf
 	}
 
-	var res []*cid.Cid
+	var res []cid.Cid
 	walk := func(idx int, link *ipld.Link) error {
 		res = append(res, link.Cid)
 		return nil
@@ -269,10 +269,10 @@ func loadSet(ctx context.Context, dag ipld.DAGService, root *merkledag.ProtoNode
 	return res, nil
 }
 
-func getCidListIterator(cids []*cid.Cid) itemIterator {
-	return func() (c *cid.Cid, ok bool) {
+func getCidListIterator(cids []cid.Cid) itemIterator {
+	return func() (c cid.Cid, ok bool) {
 		if len(cids) == 0 {
-			return nil, false
+			return cid.Cid{}, false
 		}
 
 		first := cids[0]
@@ -281,7 +281,7 @@ func getCidListIterator(cids []*cid.Cid) itemIterator {
 	}
 }
 
-func storeSet(ctx context.Context, dag ipld.DAGService, cids []*cid.Cid, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
+func storeSet(ctx context.Context, dag ipld.DAGService, cids []cid.Cid, internalKeys keyObserver) (*merkledag.ProtoNode, error) {
 	iter := getCidListIterator(cids)
 
 	n, err := storeItems(ctx, dag, uint64(len(cids)), 0, iter, internalKeys)

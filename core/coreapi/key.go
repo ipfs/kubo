@@ -3,22 +3,23 @@ package coreapi
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sort"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	ipfspath "github.com/ipfs/go-ipfs/path"
 
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	ipfspath "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 )
 
 type KeyAPI CoreAPI
 
 type key struct {
 	name   string
-	peerId string
+	peerID peer.ID
 }
 
 // Name returns the key name
@@ -28,12 +29,17 @@ func (k *key) Name() string {
 
 // Path returns the path of the key.
 func (k *key) Path() coreiface.Path {
-	path, err := coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerId}))
+	path, err := coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
 	if err != nil {
 		panic("error parsing path: " + err.Error())
 	}
 
 	return path
+}
+
+// ID returns key PeerID
+func (k *key) ID() peer.ID {
+	return k.peerID
 }
 
 // Generate generates new key, stores it in the keystore under the specified
@@ -45,7 +51,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	}
 
 	if name == "self" {
-		return nil, fmt.Errorf("cannot overwrite key with name 'self'")
+		return nil, fmt.Errorf("cannot create key with name 'self'")
 	}
 
 	_, err = api.node.Repo.Keystore().Get(name)
@@ -91,7 +97,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 		return nil, err
 	}
 
-	return &key{name, pid.Pretty()}, nil
+	return &key{name, pid}, nil
 }
 
 // List returns a list keys stored in keystore.
@@ -104,7 +110,7 @@ func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 	sort.Strings(keys)
 
 	out := make([]coreiface.Key, len(keys)+1)
-	out[0] = &key{"self", api.node.Identity.Pretty()}
+	out[0] = &key{"self", api.node.Identity}
 
 	for n, k := range keys {
 		privKey, err := api.node.Repo.Keystore().Get(k)
@@ -119,7 +125,7 @@ func (api *KeyAPI) List(ctx context.Context) ([]coreiface.Key, error) {
 			return nil, err
 		}
 
-		out[n+1] = &key{k, pid.Pretty()}
+		out[n+1] = &key{k, pid}
 	}
 	return out, nil
 }
@@ -154,6 +160,12 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 		return nil, false, err
 	}
 
+	// This is important, because future code will delete key `oldName`
+	// even if it is the same as newName.
+	if newName == oldName {
+		return &key{oldName, pid}, false, nil
+	}
+
 	overwrite := false
 	if options.Force {
 		exist, err := ks.Has(newName)
@@ -175,11 +187,11 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 		return nil, false, err
 	}
 
-	return &key{newName, pid.Pretty()}, overwrite, ks.Delete(oldName)
+	return &key{newName, pid}, overwrite, ks.Delete(oldName)
 }
 
 // Remove removes keys from keystore. Returns ipns path of the removed key.
-func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Path, error) {
+func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, error) {
 	ks := api.node.Repo.Keystore()
 
 	if name == "self" {
@@ -203,5 +215,13 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Path, err
 		return nil, err
 	}
 
-	return (&key{"", pid.Pretty()}).Path(), nil
+	return &key{"", pid}, nil
+}
+
+func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
+	if api.node.Identity == "" {
+		return nil, errors.New("identity not loaded")
+	}
+
+	return &key{"self", api.node.Identity}, nil
 }

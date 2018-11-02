@@ -59,5 +59,29 @@ test_expect_success "ipfs daemon --offline --mount fails - #2995" '
   test_fsh cat daemon_err
 '
 
+test_launch_ipfs_daemon --offline
+
+test_expect_success "'ipfs name resolve' succeeds after ipfs id when daemon offline" '
+  PEERID=`ipfs id --format="<id>"` &&
+  test_check_peerid "${PEERID}" &&
+  ipfs name publish --allow-offline  -Q "/ipfs/$HASH_WELCOME_DOCS" >publish_out
+'
+
+test_expect_success "pubrmlish --quieter output looks good" '
+  echo "${PEERID}" >expected1 &&
+  test_cmp expected1 publish_out
+'
+
+test_expect_success "'ipfs name resolve' succeeds" '
+  ipfs name resolve "$PEERID" >output
+'
+
+test_expect_success "resolve output looks good" '
+  printf "/ipfs/%s\n" "$HASH_WELCOME_DOCS" >expected2 &&
+  test_cmp expected2 output
+'
+
+test_kill_ipfs_daemon
+
 test_done
 

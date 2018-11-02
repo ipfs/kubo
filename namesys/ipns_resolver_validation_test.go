@@ -5,29 +5,31 @@ import (
 	"testing"
 	"time"
 
+	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+
 	opts "github.com/ipfs/go-ipfs/namesys/opts"
-	path "github.com/ipfs/go-ipfs/path"
 
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	record "gx/ipfs/QmVsp2KdPYE6M8ryzCk5KHLo3zprcY5hBDaYx6uPCFUdxA/go-libp2p-record"
-	routing "gx/ipfs/QmZ383TySJVeZWzGnWui6pRcKyYZk9VkKTuW7tmKRWk5au/go-libp2p-routing"
-	ropts "gx/ipfs/QmZ383TySJVeZWzGnWui6pRcKyYZk9VkKTuW7tmKRWk5au/go-libp2p-routing/options"
-	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
-	mockrouting "gx/ipfs/QmbFRJeEmEU16y3BmKKaD4a9fm5oHsEAMHe2vSB1UnfLMi/go-ipfs-routing/mock"
-	offline "gx/ipfs/QmbFRJeEmEU16y3BmKKaD4a9fm5oHsEAMHe2vSB1UnfLMi/go-ipfs-routing/offline"
-	testutil "gx/ipfs/QmcW4FGAt24fdK1jBgWQn3yP4R9ZLyWQqjozv9QK7epRhL/go-testutil"
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	ipns "gx/ipfs/Qmdue1XShFNi3mpizGx9NR9hyNEj6U2wEW93yGhKqKCFGN/go-ipns"
-	ci "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
-	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
-	dssync "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore/sync"
+	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
+	pstoremem "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore/pstoremem"
+	testutil "gx/ipfs/Qma6ESRQTf1ZLPgzpCwDTqQJefPnU6uLvMjP18vK8EWp8L/go-testutil"
+	record "gx/ipfs/Qma9Eqp16mNHDX1EL73pcxhFfzbyXVcAYtaDd1xdmDRDtL/go-libp2p-record"
+	ipns "gx/ipfs/QmaRFtZhVAwXBk4Z3zEsvjScH9fjsDZmhXfa1Gm8eMb9cg/go-ipns"
+	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
+	dssync "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/sync"
+	routing "gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing"
+	ropts "gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing/options"
+	mockrouting "gx/ipfs/QmcjvUP25nLSwELgUeqWe854S3XVbtsntTr7kZxG63yKhe/go-ipfs-routing/mock"
+	offline "gx/ipfs/QmcjvUP25nLSwELgUeqWe854S3XVbtsntTr7kZxG63yKhe/go-ipfs-routing/offline"
 )
 
 func TestResolverValidation(t *testing.T) {
 	ctx := context.Background()
 	rid := testutil.RandIdentityOrFatal(t)
 	dstore := dssync.MutexWrap(ds.NewMapDatastore())
-	peerstore := pstore.NewPeerstore()
+	peerstore := pstoremem.NewPeerstore()
 
 	vstore := newMockValueStore(rid, dstore, peerstore)
 	resolver := NewIpnsResolver(vstore)
@@ -56,14 +58,13 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Resolve entry
-	resp, _, err := resolver.resolveOnce(ctx, id.Pretty(), opts.DefaultResolveOpts())
+	resp, err := resolve(ctx, resolver, id.Pretty(), opts.DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp != path.Path(p) {
 		t.Fatalf("Mismatch between published path %s and resolved path %s", p, resp)
 	}
-
 	// Create expired entry
 	expiredEntry, err := ipns.Create(priv, p, 1, ts.Add(-1*time.Hour))
 	if err != nil {
@@ -77,7 +78,7 @@ func TestResolverValidation(t *testing.T) {
 	}
 
 	// Record should fail validation because entry is expired
-	_, _, err = resolver.resolveOnce(ctx, id.Pretty(), opts.DefaultResolveOpts())
+	_, err = resolve(ctx, resolver, id.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have returned error")
 	}
@@ -99,7 +100,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key defined by
 	// ipns path doesn't match record signature
-	_, _, err = resolver.resolveOnce(ctx, id2.Pretty(), opts.DefaultResolveOpts())
+	_, err = resolve(ctx, resolver, id2.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed signature verification")
 	}
@@ -117,7 +118,7 @@ func TestResolverValidation(t *testing.T) {
 
 	// Record should fail validation because public key is not available
 	// in peer store or on network
-	_, _, err = resolver.resolveOnce(ctx, id3.Pretty(), opts.DefaultResolveOpts())
+	_, err = resolve(ctx, resolver, id3.Pretty(), opts.DefaultResolveOpts())
 	if err == nil {
 		t.Fatal("ValidateIpnsRecord should have failed because public key was not found")
 	}
@@ -132,7 +133,7 @@ func TestResolverValidation(t *testing.T) {
 	// public key is available in the peer store by looking it up in
 	// the DHT, which causes the DHT to fetch it and cache it in the
 	// peer store
-	_, _, err = resolver.resolveOnce(ctx, id3.Pretty(), opts.DefaultResolveOpts())
+	_, err = resolve(ctx, resolver, id3.Pretty(), opts.DefaultResolveOpts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,6 +172,10 @@ func newMockValueStore(id testutil.Identity, dstore ds.Datastore, kbook pstore.K
 
 func (m *mockValueStore) GetValue(ctx context.Context, k string, opts ...ropts.Option) ([]byte, error) {
 	return m.r.GetValue(ctx, k, opts...)
+}
+
+func (m *mockValueStore) SearchValue(ctx context.Context, k string, opts ...ropts.Option) (<-chan []byte, error) {
+	return m.r.SearchValue(ctx, k, opts...)
 }
 
 func (m *mockValueStore) GetPublicKey(ctx context.Context, p peer.ID) (ci.PubKey, error) {

@@ -5,7 +5,7 @@ import (
 
 	commands "github.com/ipfs/go-ipfs/core/commands"
 
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
 )
 
 // This is the CLI root, used for executing commands accessible to CLI clients.
@@ -92,4 +92,5 @@ var cmdDetailsMap = map[string]cmdDetails{
 	"diag/cmds":   {cannotRunOnClient: true},
 	"repo/fsck":   {cannotRunOnDaemon: true},
 	"config/edit": {cannotRunOnDaemon: true, doesNotUseRepo: true},
+	"cid":         {doesNotUseRepo: true},
 }

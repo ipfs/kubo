@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
-	mfs "github.com/ipfs/go-ipfs/mfs"
 	gc "github.com/ipfs/go-ipfs/pin/gc"
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	mfs "gx/ipfs/QmUwXQs8aZ472DmXZ8uJNf7HJNKoMJQVa7RaCz7ujZ3ua9/go-mfs"
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 )
 
 var log = logging.Logger("corerepo")
@@ -70,13 +70,13 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 	}, nil
 }
 
-func BestEffortRoots(filesRoot *mfs.Root) ([]*cid.Cid, error) {
+func BestEffortRoots(filesRoot *mfs.Root) ([]cid.Cid, error) {
 	rootDag, err := filesRoot.GetDirectory().GetNode()
 	if err != nil {
 		return nil, err
 	}
 
-	return []*cid.Cid{rootDag.Cid()}, nil
+	return []cid.Cid{rootDag.Cid()}, nil
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
@@ -94,7 +94,7 @@ func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
 // CollectResult collects the output of a garbage collection run and calls the
 // given callback for each object removed.  It also collects all errors into a
 // MultiError which is returned after the gc is completed.
-func CollectResult(ctx context.Context, gcOut <-chan gc.Result, cb func(*cid.Cid)) error {
+func CollectResult(ctx context.Context, gcOut <-chan gc.Result, cb func(cid.Cid)) error {
 	var errors []error
 loop:
 	for {
@@ -105,7 +105,7 @@ loop:
 			}
 			if res.Error != nil {
 				errors = append(errors, res.Error)
-			} else if res.KeyRemoved != nil && cb != nil {
+			} else if res.KeyRemoved.Defined() && cb != nil {
 				cb(res.KeyRemoved)
 			}
 		case <-ctx.Done():

@@ -31,7 +31,7 @@ func TestMutablePath(t *testing.T) {
 		t.Error(err)
 	}
 
-	if blk.Mutable() {
+	if blk.Path().Mutable() {
 		t.Error("expected /ipld path to be immutable")
 	}
 }
@@ -129,7 +129,7 @@ func TestPathRoot(t *testing.T) {
 		t.Error(err)
 	}
 
-	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"/": "`+blk.Cid().String()+`"}}`))
+	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"/": "`+blk.Path().Cid().String()+`"}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +148,7 @@ func TestPathRoot(t *testing.T) {
 		t.Error("unexpected path root")
 	}
 
-	if rp.Cid().String() != blk.Cid().String() {
+	if rp.Cid().String() != blk.Path().Cid().String() {
 		t.Error("unexpected path cid")
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
@@ -383,5 +384,44 @@ func TestObjectSetData(t *testing.T) {
 
 	if string(data) != "bar" {
 		t.Error("unexpected data")
+	}
+}
+
+func TestDiffTest(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p1, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"foo"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p2, err := api.Object().Put(ctx, strings.NewReader(`{"Data":"bar"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changes, err := api.Object().Diff(ctx, p1, p2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(changes) != 1 {
+		t.Fatal("unexpected changes len")
+	}
+
+	if changes[0].Type != iface.DiffMod {
+		t.Fatal("unexpected change type")
+	}
+
+	if changes[0].Before.String() != p1.String() {
+		t.Fatal("unexpected before path")
+	}
+
+	if changes[0].After.String() != p2.String() {
+		t.Fatal("unexpected before path")
 	}
 }

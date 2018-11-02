@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	oldCmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	"github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/filestore"
 
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -27,6 +27,10 @@ var FileStoreCmd = &cmds.Command{
 		"dups":   lgc.NewCommand(dupsFileStore),
 	},
 }
+
+const (
+	fileOrderOptionName = "file-order"
+)
 
 var lsFileStore = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -46,74 +50,40 @@ The output is:
 		cmdkit.StringArg("obj", false, true, "Cid of objects to list."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("file-order", "sort the results based on the path of the backing file"),
+		cmdkit.BoolOption(fileOrderOptionName, "sort the results based on the path of the backing file"),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		_, fs, err := getFilestore(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		args := req.Arguments
 		if len(args) > 0 {
-			out := perKeyActionToChan(req.Context, args, func(c *cid.Cid) *filestore.ListRes {
+			out := perKeyActionToChan(req.Context, args, func(c cid.Cid) *filestore.ListRes {
 				return filestore.List(fs, c)
 			})
 
-			err = res.Emit(out)
-			if err != nil {
-				log.Error(err)
-			}
-		} else {
-			fileOrder, _ := req.Options["file-order"].(bool)
-			next, err := filestore.ListAll(fs, fileOrder)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
-			}
-
-			out := listResToChan(req.Context, next)
-			err = res.Emit(out)
-			if err != nil {
-				log.Error(err)
-			}
+			return res.Emit(out)
 		}
+
+		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
+		next, err := filestore.ListAll(fs, fileOrder)
+		if err != nil {
+			return err
+		}
+
+		out := listResToChan(req.Context, next)
+		return res.Emit(out)
 	},
 	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(req *cmds.Request, re cmds.ResponseEmitter) cmds.ResponseEmitter {
-			reNext, res := cmds.NewChanResponsePair(req)
-
-			go func() {
-				defer re.Close()
-
-				var errors bool
-				for {
-					v, err := res.Next()
-					if !cmds.HandleError(err, res, re) {
-						break
-					}
-
-					r, ok := v.(*filestore.ListRes)
-					if !ok {
-						log.Error(e.New(e.TypeErr(r, v)))
-						return
-					}
-
-					if r.ErrorMsg != "" {
-						errors = true
-						fmt.Fprintf(os.Stderr, "%s\n", r.ErrorMsg)
-					} else {
-						fmt.Fprintf(os.Stdout, "%s\n", r.FormatLong())
-					}
-				}
-
-				if errors {
-					re.SetError("errors while displaying some entries", cmdkit.ErrNormal)
-				}
-			}()
-
-			return reNext
-		},
+		cmds.CLI: streamResult(func(v interface{}, out io.Writer) nonFatalError {
+			r := v.(*filestore.ListRes)
+			if r.ErrorMsg != "" {
+				return nonFatalError(r.ErrorMsg)
+			}
+			fmt.Fprintf(out, "%s\n", r.FormatLong())
+			return ""
+		}),
 	},
 	Type: filestore.ListRes{},
 }
@@ -146,7 +116,7 @@ For ERROR entries the error will also be printed to stderr.
 		cmdkit.StringArg("obj", false, true, "Cid of objects to verify."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("file-order", "verify the objects based on the order of the backing file"),
+		cmdkit.BoolOption(fileOrderOptionName, "verify the objects based on the order of the backing file"),
 	},
 	Run: func(req oldCmds.Request, res oldCmds.Response) {
 		_, fs, err := getFilestore(req.InvocContext())
@@ -156,12 +126,12 @@ For ERROR entries the error will also be printed to stderr.
 		}
 		args := req.Arguments()
 		if len(args) > 0 {
-			out := perKeyActionToChan(req.Context(), args, func(c *cid.Cid) *filestore.ListRes {
+			out := perKeyActionToChan(req.Context(), args, func(c cid.Cid) *filestore.ListRes {
 				return filestore.Verify(fs, c)
 			})
 			res.SetOutput(out)
 		} else {
-			fileOrder, _, _ := req.Option("file-order").Bool()
+			fileOrder, _, _ := req.Option(fileOrderOptionName).Bool()
 			next, err := filestore.VerifyAll(fs, fileOrder)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
@@ -217,11 +187,18 @@ var dupsFileStore = &oldCmds.Command{
 			for cid := range ch {
 				have, err := fs.MainBlockstore().Has(cid)
 				if err != nil {
-					out <- &RefWrapper{Err: err.Error()}
+					select {
+					case out <- &RefWrapper{Err: err.Error()}:
+					case <-req.Context().Done():
+					}
 					return
 				}
 				if have {
-					out <- &RefWrapper{Ref: cid.String()}
+					select {
+					case out <- &RefWrapper{Ref: cid.String()}:
+					case <-req.Context().Done():
+						return
+					}
 				}
 			}
 		}()
@@ -231,7 +208,7 @@ var dupsFileStore = &oldCmds.Command{
 }
 
 func getFilestore(env interface{}) (*core.IpfsNode, *filestore.Filestore, error) {
-	n, err := GetNode(env)
+	n, err := cmdenv.GetNode(env)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -261,17 +238,21 @@ func listResToChan(ctx context.Context, next func() *filestore.ListRes) <-chan i
 	return out
 }
 
-func perKeyActionToChan(ctx context.Context, args []string, action func(*cid.Cid) *filestore.ListRes) <-chan interface{} {
+func perKeyActionToChan(ctx context.Context, args []string, action func(cid.Cid) *filestore.ListRes) <-chan interface{} {
 	out := make(chan interface{}, 128)
 	go func() {
 		defer close(out)
 		for _, arg := range args {
 			c, err := cid.Decode(arg)
 			if err != nil {
-				out <- &filestore.ListRes{
+				select {
+				case out <- &filestore.ListRes{
 					Status:   filestore.StatusOtherError,
 					ErrorMsg: fmt.Sprintf("%s: %v", arg, err),
+				}:
+				case <-ctx.Done():
 				}
+
 				continue
 			}
 			r := action(c)

@@ -14,16 +14,28 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
+	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
+
+// ConfigUpdateOutput is config profile apply command's output
+type ConfigUpdateOutput struct {
+	OldCfg map[string]interface{}
+	NewCfg map[string]interface{}
+}
 
 type ConfigField struct {
 	Key   string
 	Value interface{}
 }
+
+const (
+	configBoolOptionName = "bool"
+	configJSONOptionName = "json"
+)
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -54,8 +66,8 @@ Set the value of the 'Datastore.Path' key:
 		cmdkit.StringArg("value", false, false, "The value to set the config entry to."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("bool", "Set a boolean value."),
-		cmdkit.BoolOption("json", "Parse stringified JSON."),
+		cmdkit.BoolOption(configBoolOptionName, "Set a boolean value."),
+		cmdkit.BoolOption(configJSONOptionName, "Parse stringified JSON."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		args := req.Arguments()
@@ -87,7 +99,7 @@ Set the value of the 'Datastore.Path' key:
 		if len(args) == 2 {
 			value := args[1]
 
-			if parseJson, _, _ := req.Option("json").Bool(); parseJson {
+			if parseJSON, _, _ := req.Option(configJSONOptionName).Bool(); parseJSON {
 				var jsonVal interface{}
 				if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
 					err = fmt.Errorf("failed to unmarshal json. %s", err)
@@ -96,7 +108,7 @@ Set the value of the 'Datastore.Path' key:
 				}
 
 				output, err = setConfig(r, key, jsonVal)
-			} else if isbool, _, _ := req.Option("bool").Bool(); isbool {
+			} else if isbool, _, _ := req.Option(configBoolOptionName).Bool(); isbool {
 				output, err = setConfig(r, key, value == "true")
 			} else {
 				output, err = setConfig(r, key, value)
@@ -153,7 +165,7 @@ var configShowCmd = &cmds.Command{
 NOTE: For security reasons, this command will omit your private key. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
-
+	Type: map[string]interface{}{},
 	Run: func(req cmds.Request, res cmds.Response) {
 		cfgPath := req.InvocContext().ConfigRoot
 		fname, err := config.Filename(cfgPath)
@@ -180,14 +192,31 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
+		res.SetOutput(&cfg)
+	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			if res.Error() != nil {
+				return nil, res.Error()
+			}
 
-		output, err := config.HumanOutput(cfg)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
 
-		res.SetOutput(bytes.NewReader(output))
+			cfg, ok := v.(*map[string]interface{})
+			if !ok {
+				return nil, e.TypeErr(cfg, v)
+			}
+
+			buf, err := config.HumanOutput(cfg)
+			if err != nil {
+				return nil, err
+			}
+			buf = append(buf, byte('\n'))
+			return bytes.NewReader(buf), nil
+		},
 	},
 }
 
@@ -311,6 +340,9 @@ var configProfileApplyCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Apply profile to config.",
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption("dry-run", "print difference between the current config and the config that would be generated"),
+	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
@@ -321,13 +353,53 @@ var configProfileApplyCmd = &cmds.Command{
 			return
 		}
 
-		err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform)
+		dryRun, _, _ := req.Option("dry-run").Bool()
+		oldCfg, newCfg, err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform, dryRun)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
-		res.SetOutput(nil)
+
+		oldCfgMap, err := scrubPrivKey(oldCfg)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		newCfgMap, err := scrubPrivKey(newCfg)
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		res.SetOutput(&ConfigUpdateOutput{
+			OldCfg: oldCfgMap,
+			NewCfg: newCfgMap,
+		})
 	},
+	Marshalers: cmds.MarshalerMap{
+		cmds.Text: func(res cmds.Response) (io.Reader, error) {
+			if res.Error() != nil {
+				return nil, res.Error()
+			}
+
+			v, err := unwrapOutput(res.Output())
+			if err != nil {
+				return nil, err
+			}
+
+			apply, ok := v.(*ConfigUpdateOutput)
+			if !ok {
+				return nil, e.TypeErr(apply, v)
+			}
+
+			diff := jsondiff.Compare(apply.OldCfg, apply.NewCfg)
+			buf := jsondiff.Format(diff)
+
+			return strings.NewReader(string(buf)), nil
+		},
+	},
+	Type: ConfigUpdateOutput{},
 }
 
 func buildProfileHelp() string {
@@ -345,29 +417,59 @@ func buildProfileHelp() string {
 	return out
 }
 
-func transformConfig(configRoot string, configName string, transformer config.Transformer) error {
+// scrubPrivKey scrubs private key for security reasons.
+func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
+	cfgMap, err := config.ToMap(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = scrubValue(cfgMap, []string{config.IdentityTag, config.PrivKeyTag})
+	if err != nil {
+		return nil, err
+	}
+
+	return cfgMap, nil
+}
+
+// transformConfig returns old config and new config instead of difference between they,
+// because apply command can provide stable API through this way.
+// If dryRun is true, repo's config should not be updated and persisted
+// to storage. Otherwise, repo's config should be updated and persisted
+// to storage.
+func transformConfig(configRoot string, configName string, transformer config.Transformer, dryRun bool) (*config.Config, *config.Config, error) {
 	r, err := fsrepo.Open(configRoot)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	defer r.Close()
 
 	cfg, err := r.Config()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	err = transformer(cfg)
+	// make a copy to avoid updating repo's config unintentionally
+	oldCfg := *cfg
+	newCfg := oldCfg
+	err = transformer(&newCfg)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	_, err = r.BackupConfig("pre-" + configName + "-")
-	if err != nil {
-		return err
+	if !dryRun {
+		_, err = r.BackupConfig("pre-" + configName + "-")
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = r.SetConfig(&newCfg)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	return r.SetConfig(cfg)
+	return &oldCfg, &newCfg, nil
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {

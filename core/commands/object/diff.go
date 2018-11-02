@@ -6,11 +6,11 @@ import (
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-	path "github.com/ipfs/go-ipfs/path"
-	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/dagutils"
+
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 type Changes struct {
@@ -52,7 +52,7 @@ Example:
 		cmdkit.BoolOption("verbose", "v", "Print extra information."),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		node, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -61,39 +61,41 @@ Example:
 		a := req.Arguments()[0]
 		b := req.Arguments()[1]
 
-		pa, err := path.ParsePath(a)
+		pa, err := coreiface.ParsePath(a)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		pb, err := path.ParsePath(b)
+		pb, err := coreiface.ParsePath(b)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		ctx := req.Context()
-
-		obj_a, err := core.Resolve(ctx, node.Namesys, node.Resolver, pa)
+		changes, err := api.Object().Diff(req.Context(), pa, pb)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		obj_b, err := core.Resolve(ctx, node.Namesys, node.Resolver, pb)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+		out := make([]*dagutils.Change, len(changes))
+		for i, change := range changes {
+			out[i] = &dagutils.Change{
+				Type: change.Type,
+				Path: change.Path,
+			}
+
+			if change.Before != nil {
+				out[i].Before = change.Before.Cid()
+			}
+
+			if change.After != nil {
+				out[i].After = change.After.Cid()
+			}
 		}
 
-		changes, err := dagutils.Diff(ctx, node.DAG, obj_a, obj_b)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&Changes{changes})
+		res.SetOutput(&Changes{out})
 	},
 	Type: Changes{},
 	Marshalers: cmds.MarshalerMap{

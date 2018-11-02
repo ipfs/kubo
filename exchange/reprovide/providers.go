@@ -3,33 +3,34 @@ package reprovide
 import (
 	"context"
 
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	blocks "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	cidutil "gx/ipfs/QmQJSeE3CX4zos9qeaG8EhecEK9zvrTEfTG84J8C5NVRwt/go-cidutil"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	merkledag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
+	blocks "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
 )
 
 // NewBlockstoreProvider returns key provider using bstore.AllKeysChan
 func NewBlockstoreProvider(bstore blocks.Blockstore) KeyChanFunc {
-	return func(ctx context.Context) (<-chan *cid.Cid, error) {
+	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		return bstore.AllKeysChan(ctx)
 	}
 }
 
 // NewPinnedProvider returns provider supplying pinned keys
 func NewPinnedProvider(pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) KeyChanFunc {
-	return func(ctx context.Context) (<-chan *cid.Cid, error) {
+	return func(ctx context.Context) (<-chan cid.Cid, error) {
 		set, err := pinSet(ctx, pinning, dag, onlyRoots)
 		if err != nil {
 			return nil, err
 		}
 
-		outCh := make(chan *cid.Cid)
+		outCh := make(chan cid.Cid)
 		go func() {
 			defer close(outCh)
-			for c := range set.new {
+			for c := range set.New {
 				select {
 				case <-ctx.Done():
 					return
@@ -43,21 +44,23 @@ func NewPinnedProvider(pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) 
 	}
 }
 
-func pinSet(ctx context.Context, pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) (*streamingSet, error) {
-	set := newStreamingSet()
+func pinSet(ctx context.Context, pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) (*cidutil.StreamingSet, error) {
+	set := cidutil.NewStreamingSet()
 
 	go func() {
-		defer close(set.new)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		defer close(set.New)
 
 		for _, key := range pinning.DirectKeys() {
-			set.add(key)
+			set.Visitor(ctx)(key)
 		}
 
 		for _, key := range pinning.RecursiveKeys() {
-			set.add(key)
+			set.Visitor(ctx)(key)
 
 			if !onlyRoots {
-				err := merkledag.EnumerateChildren(ctx, merkledag.GetLinksWithDAG(dag), key, set.add)
+				err := merkledag.EnumerateChildren(ctx, merkledag.GetLinksWithDAG(dag), key, set.Visitor(ctx))
 				if err != nil {
 					log.Errorf("reprovide indirect pins: %s", err)
 					return
@@ -67,28 +70,4 @@ func pinSet(ctx context.Context, pinning pin.Pinner, dag ipld.DAGService, onlyRo
 	}()
 
 	return set, nil
-}
-
-type streamingSet struct {
-	set *cid.Set
-	new chan *cid.Cid
-}
-
-// NewSet initializes and returns a new Set.
-func newStreamingSet() *streamingSet {
-	return &streamingSet{
-		set: cid.NewSet(),
-		new: make(chan *cid.Cid),
-	}
-}
-
-// add adds a Cid to the set only if it is
-// not in it already.
-func (s *streamingSet) add(c *cid.Cid) bool {
-	if s.set.Visit(c) {
-		s.new <- c
-		return true
-	}
-
-	return false
 }

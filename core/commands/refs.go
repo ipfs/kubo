@@ -10,17 +10,25 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	path "github.com/ipfs/go-ipfs/path"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
-	Keys []*cid.Cid
+	Keys []cid.Cid
 }
+
+const (
+	refsFormatOptionName    = "format"
+	refsEdgesOptionName     = "edges"
+	refsUniqueOptionName    = "unique"
+	refsRecursiveOptionName = "recursive"
+	refsMaxDepthOptionName  = "max-depth"
+)
 
 // KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
 func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
@@ -60,10 +68,11 @@ NOTE: List all references recursively by using the flag '-r'.
 		cmdkit.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").WithDefault("<dst>"),
-		cmdkit.BoolOption("edges", "e", "Emit edge format: `<from> -> <to>`."),
-		cmdkit.BoolOption("unique", "u", "Omit duplicate refs from output."),
-		cmdkit.BoolOption("recursive", "r", "Recursively list links of child nodes."),
+		cmdkit.StringOption(refsFormatOptionName, "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").WithDefault("<dst>"),
+		cmdkit.BoolOption(refsEdgesOptionName, "e", "Emit edge format: `<from> -> <to>`."),
+		cmdkit.BoolOption(refsUniqueOptionName, "u", "Omit duplicate refs from output."),
+		cmdkit.BoolOption(refsRecursiveOptionName, "r", "Recursively list links of child nodes."),
+		cmdkit.IntOption(refsMaxDepthOptionName, "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
@@ -73,25 +82,35 @@ NOTE: List all references recursively by using the flag '-r'.
 			return
 		}
 
-		unique, _, err := req.Option("unique").Bool()
+		unique, _, err := req.Option(refsUniqueOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		recursive, _, err := req.Option("recursive").Bool()
+		recursive, _, err := req.Option(refsRecursiveOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		format, _, err := req.Option("format").String()
+		maxDepth, _, err := req.Option(refsMaxDepthOptionName).Int()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		edges, _, err := req.Option("edges").Bool()
+		if !recursive {
+			maxDepth = 1 // write only direct refs
+		}
+
+		format, _, err := req.Option(refsFormatOptionName).String()
+		if err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		edges, _, err := req.Option(refsEdgesOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -119,12 +138,12 @@ NOTE: List all references recursively by using the flag '-r'.
 			defer close(out)
 
 			rw := RefWriter{
-				out:       out,
-				DAG:       n.DAG,
-				Ctx:       ctx,
-				Unique:    unique,
-				PrintFmt:  format,
-				Recursive: recursive,
+				out:      out,
+				DAG:      n.DAG,
+				Ctx:      ctx,
+				Unique:   unique,
+				PrintFmt: format,
+				MaxDepth: maxDepth,
 			}
 
 			for _, o := range objs {
@@ -231,90 +250,131 @@ type RefWriter struct {
 	DAG ipld.DAGService
 	Ctx context.Context
 
-	Unique    bool
-	Recursive bool
-	PrintFmt  string
+	Unique   bool
+	MaxDepth int
+	PrintFmt string
 
-	seen *cid.Set
+	seen map[string]int
 }
 
 // WriteRefs writes refs of the given object to the underlying writer.
 func (rw *RefWriter) WriteRefs(n ipld.Node) (int, error) {
-	if rw.Recursive {
-		return rw.writeRefsRecursive(n)
-	}
-	return rw.writeRefsSingle(n)
+	return rw.writeRefsRecursive(n, 0)
+
 }
 
-func (rw *RefWriter) writeRefsRecursive(n ipld.Node) (int, error) {
+func (rw *RefWriter) writeRefsRecursive(n ipld.Node, depth int) (int, error) {
 	nc := n.Cid()
 
 	var count int
 	for i, ng := range ipld.GetDAG(rw.Ctx, rw.DAG, n) {
 		lc := n.Links()[i].Cid
-		if rw.skip(lc) {
+		goDeeper, shouldWrite := rw.visit(lc, depth+1) // The children are at depth+1
+
+		// Avoid "Get()" on the node and continue with next Link.
+		// We can do this if:
+		// - We printed it before (thus it was already seen and
+		//   fetched with Get()
+		// - AND we must not go deeper.
+		// This is an optimization for pruned branches which have been
+		// visited before.
+		if !shouldWrite && !goDeeper {
 			continue
 		}
 
-		if err := rw.WriteEdge(nc, lc, n.Links()[i].Name); err != nil {
-			return count, err
-		}
-
+		// We must Get() the node because:
+		// - it is new (never written)
+		// - OR we need to go deeper.
+		// This ensures printed refs are always fetched.
 		nd, err := ng.Get(rw.Ctx)
 		if err != nil {
 			return count, err
 		}
 
-		c, err := rw.writeRefsRecursive(nd)
-		count += c
-		if err != nil {
-			return count, err
+		// Write this node if not done before (or !Unique)
+		if shouldWrite {
+			if err := rw.WriteEdge(nc, lc, n.Links()[i].Name); err != nil {
+				return count, err
+			}
+			count++
+		}
+
+		// Keep going deeper. This happens:
+		// - On unexplored branches
+		// - On branches not explored deep enough
+		// Note when !Unique, branches are always considered
+		// unexplored and only depth limits apply.
+		if goDeeper {
+			c, err := rw.writeRefsRecursive(nd, depth+1)
+			count += c
+			if err != nil {
+				return count, err
+			}
 		}
 	}
+
 	return count, nil
 }
 
-func (rw *RefWriter) writeRefsSingle(n ipld.Node) (int, error) {
-	c := n.Cid()
+// visit returns two values:
+// - the first boolean is true if we should keep traversing the DAG
+// - the second boolean is true if we should print the CID
+//
+// visit will do branch pruning depending on rw.MaxDepth, previously visited
+// cids and whether rw.Unique is set. i.e. rw.Unique = false and
+// rw.MaxDepth = -1 disables any pruning. But setting rw.Unique to true will
+// prune already visited branches at the cost of keeping as set of visited
+// CIDs in memory.
+func (rw *RefWriter) visit(c cid.Cid, depth int) (bool, bool) {
+	atMaxDepth := rw.MaxDepth >= 0 && depth == rw.MaxDepth
+	overMaxDepth := rw.MaxDepth >= 0 && depth > rw.MaxDepth
 
-	if rw.skip(c) {
-		return 0, nil
+	// Shortcut when we are over max depth. In practice, this
+	// only applies when calling refs with --maxDepth=0, as root's
+	// children are already over max depth. Otherwise nothing should
+	// hit this.
+	if overMaxDepth {
+		return false, false
 	}
 
-	count := 0
-	for _, l := range n.Links() {
-		lc := l.Cid
-		if rw.skip(lc) {
-			continue
-		}
-
-		if err := rw.WriteEdge(c, lc, l.Name); err != nil {
-			return count, err
-		}
-		count++
-	}
-	return count, nil
-}
-
-// skip returns whether to skip a cid
-func (rw *RefWriter) skip(c *cid.Cid) bool {
+	// We can shortcut right away if we don't need unique output:
+	//   - we keep traversing when not atMaxDepth
+	//   - always print
 	if !rw.Unique {
-		return false
+		return !atMaxDepth, true
 	}
 
+	// Unique == true from this point.
+	// Thus, we keep track of seen Cids, and their depth.
 	if rw.seen == nil {
-		rw.seen = cid.NewSet()
+		rw.seen = make(map[string]int)
+	}
+	key := string(c.Bytes())
+	oldDepth, ok := rw.seen[key]
+
+	// Unique == true && depth < MaxDepth (or unlimited) from this point
+
+	// Branch pruning cases:
+	// - We saw the Cid before and either:
+	//   - Depth is unlimited (MaxDepth = -1)
+	//   - We saw it higher (smaller depth) in the DAG (means we must have
+	//     explored deep enough before)
+	// Because we saw the CID, we don't print it again.
+	if ok && (rw.MaxDepth < 0 || oldDepth <= depth) {
+		return false, false
 	}
 
-	has := rw.seen.Has(c)
-	if !has {
-		rw.seen.Add(c)
-	}
-	return has
+	// Final case, we must keep exploring the DAG from this CID
+	// (unless we hit the depth limit).
+	// We note down its depth because it was either not seen
+	// or is lower than last time.
+	// We print if it was not seen.
+	rw.seen[key] = depth
+	return !atMaxDepth, !ok
 }
 
 // Write one edge
-func (rw *RefWriter) WriteEdge(from, to *cid.Cid, linkname string) error {
+func (rw *RefWriter) WriteEdge(from, to cid.Cid, linkname string) error {
 	if rw.Ctx != nil {
 		select {
 		case <-rw.Ctx.Done(): // just in case.

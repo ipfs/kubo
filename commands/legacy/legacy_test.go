@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 type WriteNopCloser struct {
@@ -69,18 +69,17 @@ func TestNewCommand(t *testing.T) {
 
 	// test calling "test" command
 	testCmd := root.Subcommands["test"]
-	enc := testCmd.Encoders[oldcmds.Text]
-	if enc == nil {
-		t.Fatal("got nil encoder")
-	}
 
-	re := cmds.NewWriterResponseEmitter(WriteNopCloser{buf}, req, enc)
+	re, err := cmds.NewWriterResponseEmitter(WriteNopCloser{buf}, req)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var env oldcmds.Context
 
 	root.Call(req, re, &env)
 
-	expected := `{"Value":"Test."}
+	expected := `"Test."
 `
 
 	if buf.String() != expected {
@@ -114,7 +113,7 @@ func TestNewCommand(t *testing.T) {
 }
 
 func TestPipePair(t *testing.T) {
-	cmd := &cmds.Command{Type: "string"}
+	cmd := NewCommand(&oldcmds.Command{Type: "string"})
 
 	req, err := cmds.NewRequest(context.TODO(), nil, nil, nil, nil, cmd)
 	if err != nil {
@@ -122,14 +121,25 @@ func TestPipePair(t *testing.T) {
 	}
 
 	r, w := io.Pipe()
-	re := cmds.NewWriterResponseEmitter(w, req, cmds.Encoders[cmds.JSON])
-	res := cmds.NewReaderResponse(r, cmds.JSON, req)
+	re, err := cmds.NewWriterResponseEmitter(w, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := cmds.NewReaderResponse(r, req)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	wait := make(chan interface{})
 
 	expect := "abc"
 	go func() {
 		err := re.Emit(expect)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = re.Close()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -149,6 +159,57 @@ func TestPipePair(t *testing.T) {
 		t.Fatalf("expected value %#v but got %#v", expect, v)
 	}
 
-	<-wait
+	_, err = res.Next()
+	if err != io.EOF {
+		t.Fatal("expected io.EOF, got:", err)
+	}
 
+	<-wait
+}
+
+func TestChanPair(t *testing.T) {
+	cmd := NewCommand(&oldcmds.Command{Type: "string"})
+
+	req, err := cmds.NewRequest(context.TODO(), nil, nil, nil, nil, cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	re, res := cmds.NewChanResponsePair(req)
+
+	wait := make(chan interface{})
+
+	expect := "abc"
+	go func() {
+		err := re.Emit(expect)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = re.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		close(wait)
+	}()
+
+	v, err := res.Next()
+	if err != nil {
+		t.Fatal(err)
+	}
+	str, ok := v.(string)
+	if !ok {
+		t.Fatalf("expected type %T but got %T", expect, v)
+	}
+	if str != expect {
+		t.Fatalf("expected value %#v but got %#v", expect, v)
+	}
+
+	_, err = res.Next()
+	if err != io.EOF {
+		t.Fatal("expected io.EOF, got:", err)
+	}
+
+	<-wait
 }

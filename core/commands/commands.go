@@ -8,13 +8,14 @@ package commands
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 type commandEncoder struct {
@@ -68,13 +69,10 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		Options: []cmdkit.Option{
 			cmdkit.BoolOption(flagsOptionName, "f", "Show command flags"),
 		},
-		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 			rootCmd := cmd2outputCmd("ipfs", root)
 			rootCmd.showOpts, _ = req.Options[flagsOptionName].(bool)
-			err := cmds.EmitOnce(res, &rootCmd)
-			if err != nil {
-				log.Error(err)
-			}
+			return cmds.EmitOnce(res, &rootCmd)
 		},
 		Encoders: cmds.EncoderMap{
 			cmds.Text: func(req *cmds.Request) func(io.Writer) cmds.Encoder {
@@ -151,4 +149,43 @@ func unwrapOutput(i interface{}) (interface{}, error) {
 	}
 
 	return <-ch, nil
+}
+
+type nonFatalError string
+
+// streamResult is a helper function to stream results that possibly
+// contain non-fatal errors.  The helper function is allowed to panic
+// on internal errors.
+func streamResult(procVal func(interface{}, io.Writer) nonFatalError) func(cmds.Response, cmds.ResponseEmitter) error {
+	return func(res cmds.Response, re cmds.ResponseEmitter) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("internal error: %v", r)
+			}
+			re.Close()
+		}()
+
+		var errors bool
+		for {
+			v, err := res.Next()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
+			}
+
+			errorMsg := procVal(v, os.Stdout)
+
+			if errorMsg != "" {
+				errors = true
+				fmt.Fprintf(os.Stderr, "%s\n", errorMsg)
+			}
+		}
+
+		if errors {
+			return fmt.Errorf("errors while displaying some entries")
+		}
+		return nil
+	}
 }

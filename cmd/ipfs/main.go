@@ -22,24 +22,28 @@ import (
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds/cli"
-	"gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds/http"
+	"gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
 	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	loggables "gx/ipfs/QmRPkGkHLB72caXgdDYnoaWigXNWx95BcYDKV1n3KTEpaG/go-libp2p-loggables"
-	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
+	"gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	"gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds/cli"
+	"gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds/http"
+	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
+	loggables "gx/ipfs/QmVrDtvvQCUeMZaY9UFkae6c85kdQ1GvVEhPrjPTdjxRLv/go-libp2p-loggables"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	manet "gx/ipfs/Qmaabb1tJZ2CX5cp6MuuiGgns71NYoxdgQP6Xdid1dVceC/go-multiaddr-net"
+	madns "gx/ipfs/QmeHJXPqCNzSFbVkYM1uQLuM2L5FyJB9zukQ7EeqRP8ZC9/go-multiaddr-dns"
 )
 
 // log is the command logger
 var log = logging.Logger("cmd/ipfs")
 
 var errRequestCanceled = errors.New("request canceled")
+
+// declared as a var for testing purposes
+var dnsResolver = madns.DefaultResolver
 
 const (
 	EnvEnableProfiling = "IPFS_PROF"
@@ -235,7 +239,7 @@ func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, cctx *oldcm
 	// did user specify an api to use for this command?
 	apiAddrStr, _ := req.Options[corecmds.ApiOption].(string)
 
-	client, err := getApiClient(cctx.ConfigRoot, apiAddrStr)
+	client, err := getAPIClient(req.Context, cctx.ConfigRoot, apiAddrStr)
 	if err == repo.ErrApiNotRunning {
 		if apiAddrStr != "" && req.Command != daemonCmd {
 			// if user SPECIFIED an api, and this cmd is not daemon
@@ -403,10 +407,10 @@ If you're sure go-ipfs isn't running, you can just delete it.
 var checkIPFSUnixFmt = "Otherwise check:\n\tps aux | grep ipfs"
 var checkIPFSWinFmt = "Otherwise check:\n\ttasklist | findstr ipfs"
 
-// getApiClient checks the repo, and the given options, checking for
+// getAPIClient checks the repo, and the given options, checking for
 // a running API service. if there is one, it returns a client.
 // otherwise, it returns errApiNotRunning, or another error.
-func getApiClient(repoPath, apiAddrStr string) (http.Client, error) {
+func getAPIClient(ctx context.Context, repoPath, apiAddrStr string) (http.Client, error) {
 	var apiErrorFmt string
 	switch {
 	case osh.IsUnix():
@@ -440,14 +444,35 @@ func getApiClient(repoPath, apiAddrStr string) (http.Client, error) {
 	if len(addr.Protocols()) == 0 {
 		return nil, fmt.Errorf(apiErrorFmt, repoPath, "multiaddr doesn't provide any protocols")
 	}
-	return apiClientForAddr(addr)
+	return apiClientForAddr(ctx, addr)
 }
 
-func apiClientForAddr(addr ma.Multiaddr) (http.Client, error) {
+func apiClientForAddr(ctx context.Context, addr ma.Multiaddr) (http.Client, error) {
+	addr, err := resolveAddr(ctx, addr)
+	if err != nil {
+		return nil, err
+	}
+
 	_, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return nil, err
 	}
 
 	return http.NewClient(host, http.ClientWithAPIPrefix(corehttp.APIPath)), nil
+}
+
+func resolveAddr(ctx context.Context, addr ma.Multiaddr) (ma.Multiaddr, error) {
+	ctx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
+	defer cancelFunc()
+
+	addrs, err := dnsResolver.Resolve(ctx, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(addrs) == 0 {
+		return nil, errors.New("non-resolvable API endpoint")
+	}
+
+	return addrs[0], nil
 }

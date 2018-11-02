@@ -7,9 +7,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	bs "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
-	ds "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
+	bs "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
 )
 
 // RemovedBlock is used to respresent the result of removing a block.
@@ -34,7 +34,7 @@ type RmBlocksOpts struct {
 // It returns a channel where objects of type RemovedBlock are placed, when
 // not using the Quiet option. Block removal is asynchronous and will
 // skip any pinned blocks.
-func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []*cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
+func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
 	// make the channel large enough to hold any result to avoid
 	// blocking while holding the GCLock
 	out := make(chan interface{}, len(cids))
@@ -65,8 +65,8 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []*cid.Cid, opts RmB
 // out channel, with an error which indicates that the Cid is pinned.
 // This function is used in RmBlocks to filter out any blocks which are not
 // to be removed (because they are pinned).
-func FilterPinned(pins pin.Pinner, out chan<- interface{}, cids []*cid.Cid) []*cid.Cid {
-	stillOkay := make([]*cid.Cid, 0, len(cids))
+func FilterPinned(pins pin.Pinner, out chan<- interface{}, cids []cid.Cid) []cid.Cid {
+	stillOkay := make([]cid.Cid, 0, len(cids))
 	res, err := pins.CheckIfPinned(cids...)
 	if err != nil {
 		out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}

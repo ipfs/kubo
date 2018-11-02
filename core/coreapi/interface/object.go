@@ -6,14 +6,14 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 )
 
 // ObjectStat provides information about dag nodes
 type ObjectStat struct {
 	// Cid is the CID of the node
-	Cid *cid.Cid
+	Cid cid.Cid
 
 	// NumLinks is number of links the node contains
 	NumLinks int
@@ -29,6 +29,40 @@ type ObjectStat struct {
 
 	// CumulativeSize is size of the tree (BlockSize + link sizes)
 	CumulativeSize int
+}
+
+// ChangeType denotes type of change in ObjectChange
+type ChangeType int
+
+const (
+	// DiffAdd is set when a link was added to the graph
+	DiffAdd ChangeType = iota
+
+	// DiffRemove is set when a link was removed from the graph
+	DiffRemove
+
+	// DiffMod is set when a link was changed in the graph
+	DiffMod
+)
+
+// ObjectChange represents a change ia a graph
+type ObjectChange struct {
+	// Type of the change, either:
+	// * DiffAdd - Added a link
+	// * DiffRemove - Removed a link
+	// * DiffMod - Modified a link
+	Type ChangeType
+
+	// Path to the changed link
+	Path string
+
+	// Before holds the link path before the change. Note that when a link is
+	// added, this will be nil.
+	Before ResolvedPath
+
+	// After holds the link path after the change. Note that when a link is
+	// removed, this will be nil.
+	After ResolvedPath
 }
 
 // ObjectAPI specifies the interface to MerkleDAG and contains useful utilities
@@ -65,4 +99,8 @@ type ObjectAPI interface {
 
 	// SetData sets the data contained in the node
 	SetData(context.Context, Path, io.Reader) (ResolvedPath, error)
+
+	// Diff returns a set of changes needed to transform the first object into the
+	// second.
+	Diff(context.Context, Path, Path) ([]ObjectChange, error)
 }

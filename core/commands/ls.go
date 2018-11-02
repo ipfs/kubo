@@ -6,21 +6,19 @@ import (
 	"io"
 	"text/tabwriter"
 
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
 	cmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	merkledag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
-	unixfs "github.com/ipfs/go-ipfs/unixfs"
-	uio "github.com/ipfs/go-ipfs/unixfs/io"
-	unixfspb "github.com/ipfs/go-ipfs/unixfs/pb"
+	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	offline "gx/ipfs/QmS6mo1dPpHdYsVkm27BRZDLxpKBCiJKUH8fHX15XFfMez/go-ipfs-exchange-offline"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	merkledag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
+	offline "gx/ipfs/QmT6dHGp3UYd3vUMpy7rzX2CXQv7HLcj42Vtq8qwwjgASb/go-ipfs-exchange-offline"
+	blockservice "gx/ipfs/QmWfhv1D18DRSiSm73r4QGcByspzPtxxRTcmHW3axFXZo8/go-blockservice"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	unixfs "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs"
+	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
+	unixfspb "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/pb"
 )
 
 type LsLink struct {
@@ -37,6 +35,11 @@ type LsObject struct {
 type LsOutput struct {
 	Objects []LsObject
 }
+
+const (
+	lsHeadersOptionNameTime = "headers"
+	lsResolveTypeOptionName = "resolve-type"
+)
 
 var LsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -55,8 +58,8 @@ The JSON output contains type information.
 		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to list links from.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
-		cmdkit.BoolOption("resolve-type", "Resolve linked objects to find out their types.").WithDefault(true),
+		cmdkit.BoolOption(lsHeadersOptionNameTime, "v", "Print table headers (Hash, Size, Name)."),
+		cmdkit.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
 		nd, err := req.InvocContext().GetNode()
@@ -65,13 +68,19 @@ The JSON output contains type information.
 			return
 		}
 
-		// get options early -> exit early in case of error
-		if _, _, err := req.Option("headers").Bool(); err != nil {
+		api, err := req.InvocContext().GetApi()
+		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		resolve, _, err := req.Option("resolve-type").Bool()
+		// get options early -> exit early in case of error
+		if _, _, err := req.Option(lsHeadersOptionNameTime).Bool(); err != nil {
+			res.SetError(err, cmdkit.ErrNormal)
+			return
+		}
+
+		resolve, _, err := req.Option(lsResolveTypeOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -88,18 +97,13 @@ The JSON output contains type information.
 
 		var dagnodes []ipld.Node
 		for _, fpath := range paths {
-			p, err := path.ParsePath(fpath)
+			p, err := iface.ParsePath(fpath)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
 			}
 
-			r := &resolver.Resolver{
-				DAG:         nd.DAG,
-				ResolveOnce: uio.ResolveUnixfsOnce,
-			}
-
-			dagnode, err := core.Resolve(req.Context(), nd.Namesys, r, p)
+			dagnode, err := api.ResolveNode(req.Context(), p)
 			if err != nil {
 				res.SetError(err, cmdkit.ErrNormal)
 				return
@@ -108,11 +112,13 @@ The JSON output contains type information.
 		}
 
 		output := make([]LsObject, len(req.Arguments()))
+		ng := merkledag.NewSession(req.Context(), nd.DAG)
+		ro := merkledag.NewReadOnlyDagService(ng)
 
 		for i, dagnode := range dagnodes {
-			dir, err := uio.NewDirectoryFromNode(nd.DAG, dagnode)
+			dir, err := uio.NewDirectoryFromNode(ro, dagnode)
 			if err != nil && err != uio.ErrNotADir {
-				res.SetError(err, cmdkit.ErrNormal)
+				res.SetError(fmt.Errorf("the data in %s (at %q) is not a UnixFS directory: %s", dagnode.Cid(), paths[i], err), cmdkit.ErrNormal)
 				return
 			}
 
@@ -138,7 +144,7 @@ The JSON output contains type information.
 				switch link.Cid.Type() {
 				case cid.Raw:
 					// No need to check with raw leaves
-					t = unixfspb.Data_File
+					t = unixfs.TFile
 				case cid.DagProtobuf:
 					linkNode, err := link.GetNode(req.Context(), dserv)
 					if err == ipld.ErrNotFound && !resolve {
@@ -150,12 +156,12 @@ The JSON output contains type information.
 					}
 
 					if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
-						d, err := unixfs.FromBytes(pn.Data())
+						d, err := unixfs.FSNodeFromBytes(pn.Data())
 						if err != nil {
 							res.SetError(err, cmdkit.ErrNormal)
 							return
 						}
-						t = d.GetType()
+						t = d.Type()
 					}
 				}
 				output[i].Links[j] = LsLink{
@@ -177,7 +183,7 @@ The JSON output contains type information.
 				return nil, err
 			}
 
-			headers, _, _ := res.Request().Option("headers").Bool()
+			headers, _, _ := res.Request().Option(lsHeadersOptionNameTime).Bool()
 			output, ok := v.(*LsOutput)
 			if !ok {
 				return nil, e.TypeErr(output, v)
@@ -193,7 +199,7 @@ The JSON output contains type information.
 					fmt.Fprintln(w, "Hash\tSize\tName")
 				}
 				for _, link := range object.Links {
-					if link.Type == unixfspb.Data_Directory {
+					if link.Type == unixfs.TDirectory {
 						link.Name += "/"
 					}
 					fmt.Fprintf(w, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)

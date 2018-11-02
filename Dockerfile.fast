@@ -1,4 +1,4 @@
-FROM golang:1.10-stretch
+FROM golang:1.11-stretch
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # This is a copy of /Dockerfile,

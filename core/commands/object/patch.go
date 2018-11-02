@@ -3,24 +3,18 @@ package objectcmd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	dagutils "github.com/ipfs/go-ipfs/merkledag/utils"
-	path "github.com/ipfs/go-ipfs/path"
-	ft "github.com/ipfs/go-ipfs/unixfs"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
-	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
-
-var log = logging.Logger("core/commands/object")
 
 var ObjectPatchCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -73,54 +67,30 @@ the limit will not be respected by the network.
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
-		nd, err := GetNode(env)
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		root, err := path.ParsePath(req.Arguments[0])
+		root, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		rootnd, err := core.Resolve(req.Context, nd.Namesys, nd.Resolver, root)
+		data, err := req.Files.NextFile()
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		rtpb, ok := rootnd.(*dag.ProtoNode)
-		if !ok {
-			re.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
-			return
-		}
-
-		fi, err := req.Files.NextFile()
+		p, err := api.Object().AppendData(req.Context, root, data)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		data, err := ioutil.ReadAll(fi)
-		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		rtpb.SetData(append(rtpb.Data(), data...))
-
-		err = nd.DAG.Add(req.Context, rtpb)
-		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		cmds.EmitOnce(re, &Object{Hash: rtpb.Cid().String()})
+		return cmds.EmitOnce(re, &Object{Hash: p.Cid().String()})
 	},
-	Type: Object{},
+	Type: &Object{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, obj *Object) error {
 			_, err := fmt.Fprintln(w, obj.Hash)
@@ -145,51 +115,27 @@ Example:
 		cmdkit.FileArg("data", true, false, "The data to set the object to.").EnableStdin(),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
+
+		root, err := coreiface.ParsePath(req.StringArguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		rp, err := path.ParsePath(req.StringArguments()[0])
+		data, err := req.Files().NextFile()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		root, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, rp)
+		p, err := api.Object().SetData(req.Context(), root, data)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		rtpb, ok := root.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
-			return
-		}
-
-		fi, err := req.Files().NextFile()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		data, err := ioutil.ReadAll(fi)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		rtpb.SetData(data)
-
-		err = nd.DAG.Add(req.Context(), rtpb)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&Object{Hash: rtpb.Cid().String()})
+		res.SetOutput(&Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
 	Marshalers: oldcmds.MarshalerMap{
@@ -199,59 +145,36 @@ Example:
 
 var patchRmLinkCmd = &oldcmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Remove a link from an object.",
+		Tagline: "Remove a link from a given object.",
 		ShortDescription: `
-Removes a link by the given name from root.
+Remove a Merkle-link from the given object and return the hash of the result.
 `,
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
-		cmdkit.StringArg("link", true, false, "Name of the link to remove."),
+		cmdkit.StringArg("name", true, false, "Name of the link to remove."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		rootp, err := path.ParsePath(req.Arguments()[0])
+		root, err := coreiface.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		root, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, rootp)
+		name := req.Arguments()[1]
+		p, err := api.Object().RmLink(req.Context(), root, name)
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		rtpb, ok := root.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
-			return
-		}
-
-		path := req.Arguments()[1]
-
-		e := dagutils.NewDagEditor(rtpb, nd.DAG)
-
-		err = e.RmLink(req.Context(), path)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		nnode, err := e.Finalize(req.Context(), nd.DAG)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		nc := nnode.Cid()
-
-		res.SetOutput(&Object{Hash: nc.String()})
+		res.SetOutput(&Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
 	Marshalers: oldcmds.MarshalerMap{
@@ -284,32 +207,21 @@ to a file containing 'bar', and returns the hash of the new object.
 		cmdkit.BoolOption("create", "p", "Create intermediary nodes."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+		api, err := req.InvocContext().GetApi()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		rootp, err := path.ParsePath(req.Arguments()[0])
+		root, err := coreiface.ParsePath(req.Arguments()[0])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		root, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, rootp)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		name := req.Arguments()[1]
 
-		rtpb, ok := root.(*dag.ProtoNode)
-		if !ok {
-			res.SetError(dag.ErrNotProtobuf, cmdkit.ErrNormal)
-			return
-		}
-
-		npath := req.Arguments()[1]
-		childp, err := path.ParsePath(req.Arguments()[2])
+		child, err := coreiface.ParsePath(req.Arguments()[2])
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -321,48 +233,17 @@ to a file containing 'bar', and returns the hash of the new object.
 			return
 		}
 
-		var createfunc func() *dag.ProtoNode
-		if create {
-			createfunc = ft.EmptyDirNode
-		}
-
-		e := dagutils.NewDagEditor(rtpb, nd.DAG)
-
-		childnd, err := core.Resolve(req.Context(), nd.Namesys, nd.Resolver, childp)
+		p, err := api.Object().AddLink(req.Context(), root, name, child,
+			options.Object.Create(create))
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
 		}
 
-		err = e.InsertNodeAtPath(req.Context(), npath, childnd, createfunc)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		nnode, err := e.Finalize(req.Context(), nd.DAG)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		nc := nnode.Cid()
-
-		res.SetOutput(&Object{Hash: nc.String()})
+		res.SetOutput(&Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
 	Marshalers: oldcmds.MarshalerMap{
 		oldcmds.Text: objectMarshaler,
 	},
-}
-
-// COPIED FROM ONE LEVEL UP
-// GetNode extracts the node from the environment.
-func GetNode(env interface{}) (*core.IpfsNode, error) {
-	ctx, ok := env.(*oldcmds.Context)
-	if !ok {
-		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)
-	}
-
-	return ctx.GetNode()
 }

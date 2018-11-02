@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/thirdparty/assert"
-	datastore "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
+
+	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	datastore "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
 )
 
 // swap arg order
@@ -95,10 +96,8 @@ func TestDatastorePersistsFromRepoToRepo(t *testing.T) {
 
 	r2, err := Open(path)
 	assert.Nil(err, t)
-	v, err := r2.Datastore().Get(datastore.NewKey(k))
+	actual, err := r2.Datastore().Get(datastore.NewKey(k))
 	assert.Nil(err, t, "using second repo, Get should be successful")
-	actual, ok := v.([]byte)
-	assert.True(ok, t, "value should be the []byte from r1's Put")
 	assert.Nil(r2.Close(), t)
 	assert.True(bytes.Equal(expected, actual), t, "data should match")
 }

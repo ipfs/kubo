@@ -6,4 +6,7 @@ include $(dir)/Rules.mk
 dir := $(d)/sharness
 include $(dir)/Rules.mk
 
+dir := $(d)/unit
+include $(dir)/Rules.mk
+
 include mk/footer.mk

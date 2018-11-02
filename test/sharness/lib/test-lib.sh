@@ -26,6 +26,7 @@ fi
 # it's too late to pass in --verbose, and --verbose is harder
 # to pass through in some cases.
 test "$TEST_VERBOSE" = 1 && verbose=t
+test "$TEST_IMMEDIATE" = 1 && immediate=t
 # source the common hashes first.
 . lib/test-lib-hashes.sh
 
@@ -198,8 +199,11 @@ test_set_address_vars() {
   '
 
   if ipfs swarm addrs local >/dev/null 2>&1; then
+    test_expect_success "get swarm addresses" '
+      ipfs swarm addrs local > addrs_out
+    '
+
     test_expect_success "set swarm address vars" '
-    ipfs swarm addrs local > addrs_out &&
       SWARM_MADDR=$(grep "127.0.0.1" addrs_out) &&
       SWARM_PORT=$(port_from_maddr $SWARM_MADDR)
     '
@@ -392,6 +396,30 @@ file_size() {
             ;;
     esac
     $_STAT "$1"
+}
+
+directory_size() {
+    local total=0
+    local fsize=0
+    local res=0
+    find "$1" -type f | ( while read fname; do
+        fsize=$(file_size "$fname")
+        res=$?
+        if ! test $res -eq 0; then
+            if ! test -e "$fname"; then
+                continue;
+            fi
+            echo "failed to get filesize" >&2
+            return $res
+        fi
+        total=$(expr "$total" + "$fsize")
+        res=$?
+        if ! test $res -eq 0; then
+            echo "filesize not a number: $fsize" >&2
+            return $res
+        fi
+    done
+    echo "$total" ) # do not remove this subshell
 }
 
 test_check_peerid() {

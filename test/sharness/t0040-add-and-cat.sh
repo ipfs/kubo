@@ -156,6 +156,34 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
+  test_expect_success "ipfs add --chunker size-64 succeeds" '
+    ipfs add --chunker=size-64 mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add --chunker size-64 output looks good" '
+    HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --chunker=size-0 failed" '
+    test_expect_code 1 ipfs add -Q --chunker=size-0 mountdir/hello.txt
+  '
+
+  test_expect_success "ipfs add --chunker rabin-36-512-1024 succeeds" '
+    ipfs add --chunker rabin-36-512-1024 mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add --chunker rabin-36-512-1024 output looks good" '
+    HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --chunker rabin-12-512-1024 failed" '
+    test_expect_code 1 ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
+  '
+
   test_expect_success "ipfs add on hidden file succeeds" '
     echo "Hello Worlds!" >mountdir/.hello.txt &&
     ipfs add mountdir/.hello.txt >actual
@@ -183,6 +211,57 @@ test_add_cat_file() {
 
   test_expect_success "make sure it looks good" '
     test_cmp zero-length-file zero-length-file_out
+  '
+
+  test_expect_success "ipfs add --stdin-name" '
+    NAMEHASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    echo "IPFS" | ipfs add --stdin-name file.txt > actual &&
+    echo "added $NAMEHASH file.txt" > expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --stdin-name -w" '
+    NAMEHASH="QmdFyxZXsFiP4csgfM5uPu99AvFiKH62CSPDw5TP92nr7w" &&
+    echo "IPFS" | ipfs add -w --stdin-name file.txt | head -n1> actual &&
+    echo "added $NAMEHASH file.txt" > expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat with stdin-name" '
+    NAMEHASH=$(echo "IPFS" | ipfs add -w --stdin-name file.txt -Q) &&
+    ipfs cat /ipfs/$NAMEHASH/file.txt > expected &&
+    echo "IPFS" > actual &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add -r ." '
+    mkdir test_current_dir &&
+    echo "Hey" > test_current_dir/hey &&
+    mkdir test_current_dir/hello &&
+    echo "World" > test_current_dir/hello/world &&
+    ( cd test_current_dir &&
+    ipfs add -r . | tail -n1 > ../actual && cd ../ ) &&
+    rm -r test_current_dir
+  '
+
+  test_expect_success "ipfs add -r . output looks good" '
+    echo "added QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1 test_current_dir" > expected
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add -r ./" '
+    mkdir test_current_dir &&
+    echo "Hey" > test_current_dir/hey &&
+    mkdir test_current_dir/hello &&
+    echo "World" > test_current_dir/hello/world &&
+    ( cd test_current_dir &&
+    ipfs add -r ./ | tail -n1 > ../actual && cd ../ ) &&
+    rm -r test_current_dir
+  '
+
+  test_expect_success "ipfs add -r ./ output looks good" '
+    echo "added QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1 test_current_dir" > expected
+    test_cmp expected actual
   '
 }
 
@@ -590,7 +669,7 @@ test_add_cat_expensive "--cid-version=1" "zdj7WcatQrtuE4WMkS4XsfsMixuQN2po4irkYh
 # encoded with the blake2b-256 hash funtion
 test_add_cat_expensive '--hash=blake2b-256' "zDMZof1kwndounDzQCANUHjiE3zt1mPEgx7RE3JTHoZrRRa79xcv"
 
-test_add_named_pipe " Post http://$API_ADDR/api/v0/add?chunker=size-262144&encoding=json&hash=sha2-256&pin=true&progress=true&recursive=true&stream-channels=true:"
+test_add_named_pipe " Post http://$API_ADDR/api/v0/add?chunker=size-262144&encoding=json&hash=sha2-256&inline-limit=32&pin=true&progress=true&recursive=true&stream-channels=true:"
 
 test_add_pwd_is_symlink
 

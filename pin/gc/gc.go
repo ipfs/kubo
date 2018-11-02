@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"strings"
 
-	bserv "github.com/ipfs/go-ipfs/blockservice"
-	dag "github.com/ipfs/go-ipfs/merkledag"
 	pin "github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/thirdparty/verifcid"
+	dag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
+	bserv "gx/ipfs/QmWfhv1D18DRSiSm73r4QGcByspzPtxxRTcmHW3axFXZo8/go-blockservice"
 
-	offline "gx/ipfs/QmS6mo1dPpHdYsVkm27BRZDLxpKBCiJKUH8fHX15XFfMez/go-ipfs-exchange-offline"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	bstore "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
-	dstore "gx/ipfs/QmeiCcJfDW1GJnWUArudsv5rQsihpi4oyddPhdqo3CfX6i/go-datastore"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	offline "gx/ipfs/QmT6dHGp3UYd3vUMpy7rzX2CXQv7HLcj42Vtq8qwwjgASb/go-ipfs-exchange-offline"
+	"gx/ipfs/QmVkMRSkXrpjqrroEXWuYBvDBnXCdMMY6gsKicBGVGUqKT/go-verifcid"
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	dstore "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
+	bstore "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
 )
 
 var log = logging.Logger("gc")
@@ -25,7 +25,7 @@ var log = logging.Logger("gc")
 // Result represents an incremental output from a garbage collection
 // run.  It contains either an error, or the cid of a removed object.
 type Result struct {
-	KeyRemoved *cid.Cid
+	KeyRemoved cid.Cid
 	Error      error
 }
 
@@ -38,7 +38,7 @@ type Result struct {
 //
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
-func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []*cid.Cid) <-chan Result {
+func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []cid.Cid) <-chan Result {
 
 	elock := log.EventBegin(ctx, "GC.lockWait")
 	unlocker := bs.GCLock()
@@ -58,7 +58,10 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 
 		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
 		if err != nil {
-			output <- Result{Error: err}
+			select {
+			case output <- Result{Error: err}:
+			case <-ctx.Done():
+			}
 			return
 		}
 		emark.Append(logging.LoggableMap{
@@ -69,7 +72,10 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
-			output <- Result{Error: err}
+			select {
+			case output <- Result{Error: err}:
+			case <-ctx.Done():
+			}
 			return
 		}
 
@@ -108,7 +114,11 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 		})
 		esweep.Done()
 		if errors {
-			output <- Result{Error: ErrCannotDeleteSomeBlocks}
+			select {
+			case output <- Result{Error: ErrCannotDeleteSomeBlocks}:
+			case <-ctx.Done():
+				return
+			}
 		}
 
 		defer log.EventBegin(ctx, "GC.datastore").Done()
@@ -119,7 +129,10 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 
 		err = gds.CollectGarbage()
 		if err != nil {
-			output <- Result{Error: err}
+			select {
+			case output <- Result{Error: err}:
+			case <-ctx.Done():
+			}
 			return
 		}
 	}()
@@ -130,8 +143,8 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 // Descendants recursively finds all the descendants of the given roots and
 // adds them to the given cid.Set, using the provided dag.GetLinks function
 // to walk the tree.
-func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []*cid.Cid) error {
-	verifyGetLinks := func(ctx context.Context, c *cid.Cid) ([]*ipld.Link, error) {
+func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []cid.Cid) error {
+	verifyGetLinks := func(ctx context.Context, c cid.Cid) ([]*ipld.Link, error) {
 		err := verifcid.ValidateCid(c)
 		if err != nil {
 			return nil, err
@@ -168,37 +181,53 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 // ColoredSet computes the set of nodes in the graph that are pinned by the
 // pins in the given pinner.
-func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffortRoots []*cid.Cid, output chan<- Result) (*cid.Set, error) {
+func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffortRoots []cid.Cid, output chan<- Result) (*cid.Set, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	errors := false
 	gcs := cid.NewSet()
-	getLinks := func(ctx context.Context, cid *cid.Cid) ([]*ipld.Link, error) {
+	getLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
 		links, err := ipld.GetLinks(ctx, ng, cid)
 		if err != nil {
 			errors = true
-			output <- Result{Error: &CannotFetchLinksError{cid, err}}
+			select {
+			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 		}
 		return links, nil
 	}
 	err := Descendants(ctx, getLinks, gcs, pn.RecursiveKeys())
 	if err != nil {
 		errors = true
-		output <- Result{Error: err}
+		select {
+		case output <- Result{Error: err}:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 
-	bestEffortGetLinks := func(ctx context.Context, cid *cid.Cid) ([]*ipld.Link, error) {
+	bestEffortGetLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
 		links, err := ipld.GetLinks(ctx, ng, cid)
 		if err != nil && err != ipld.ErrNotFound {
 			errors = true
-			output <- Result{Error: &CannotFetchLinksError{cid, err}}
+			select {
+			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 		}
 		return links, nil
 	}
 	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
 		errors = true
-		output <- Result{Error: err}
+		select {
+		case output <- Result{Error: err}:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 
 	for _, k := range pn.DirectKeys() {
@@ -208,7 +237,11 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
 	if err != nil {
 		errors = true
-		output <- Result{Error: err}
+		select {
+		case output <- Result{Error: err}:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 
 	if errors {
@@ -230,7 +263,7 @@ var ErrCannotDeleteSomeBlocks = errors.New("garbage collection incomplete: could
 // CannotFetchLinksError provides detailed information about which links
 // could not be fetched and can appear as a Result in the GC output channel.
 type CannotFetchLinksError struct {
-	Key *cid.Cid
+	Key cid.Cid
 	Err error
 }
 
@@ -244,7 +277,7 @@ func (e *CannotFetchLinksError) Error() string {
 // blocks could not be deleted and can appear as a Result in the GC output
 // channel.
 type CannotDeleteBlockError struct {
-	Key *cid.Cid
+	Key cid.Cid
 	Err error
 }
 

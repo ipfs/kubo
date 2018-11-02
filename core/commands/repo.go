@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,15 +12,16 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmds "gx/ipfs/QmNueRyPRQiV7PUEpnP4GgGLuK1rKQLaRW7sfPvUetYig1/go-ipfs-cmds"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	bstore "gx/ipfs/QmadMhXJLHMFjpRmh85XjpmVDkEtQpNYEZNRpWRvYVLrvb/go-ipfs-blockstore"
-	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	bstore "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 type RepoVersion struct {
@@ -36,7 +38,7 @@ var RepoCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"stat":    repoStatCmd,
-		"gc":      lgc.NewCommand(repoGcCmd),
+		"gc":      repoGcCmd,
 		"fsck":    lgc.NewCommand(RepoFsckCmd),
 		"version": lgc.NewCommand(repoVersionCmd),
 		"verify":  lgc.NewCommand(repoVerifyCmd),
@@ -45,11 +47,16 @@ var RepoCmd = &cmds.Command{
 
 // GcResult is the result returned by "repo gc" command.
 type GcResult struct {
-	Key   *cid.Cid
+	Key   cid.Cid
 	Error string `json:",omitempty"`
 }
 
-var repoGcCmd = &oldcmds.Command{
+const (
+	repoStreamErrorsOptionName = "stream-errors"
+	repoQuietOptionName        = "quiet"
+)
+
+var repoGcCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Perform a garbage collection sweep on the repo.",
 		ShortDescription: `
@@ -59,92 +66,77 @@ order to reclaim hard disk space.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("stream-errors", "Stream errors."),
-		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
+		cmdkit.BoolOption(repoStreamErrorsOptionName, "Stream errors."),
+		cmdkit.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		streamErrors, _, _ := res.Request().Option("stream-errors").Bool()
+		streamErrors, _ := req.Options[repoStreamErrorsOptionName].(bool)
 
-		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context())
+		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context)
 
-		outChan := make(chan interface{})
-		res.SetOutput(outChan)
-
-		go func() {
-			defer close(outChan)
-
-			if streamErrors {
-				errs := false
-				for res := range gcOutChan {
-					if res.Error != nil {
-						select {
-						case outChan <- &GcResult{Error: res.Error.Error()}:
-						case <-req.Context().Done():
-							return
-						}
-						errs = true
-					} else {
-						select {
-						case outChan <- &GcResult{Key: res.KeyRemoved}:
-						case <-req.Context().Done():
-							return
-						}
+		if streamErrors {
+			errs := false
+			for res := range gcOutChan {
+				if res.Error != nil {
+					if err := re.Emit(&GcResult{Error: res.Error.Error()}); err != nil {
+						return err
 					}
-				}
-				if errs {
-					res.SetError(fmt.Errorf("encountered errors during gc run"), cmdkit.ErrNormal)
-				}
-			} else {
-				err := corerepo.CollectResult(req.Context(), gcOutChan, func(k *cid.Cid) {
-					select {
-					case outChan <- &GcResult{Key: k}:
-					case <-req.Context().Done():
+					errs = true
+				} else {
+					if err := re.Emit(&GcResult{Key: res.KeyRemoved}); err != nil {
+						return err
 					}
-				})
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
 				}
 			}
-		}()
+			if errs {
+				return errors.New("encountered errors during gc run")
+			}
+		} else {
+			err := corerepo.CollectResult(req.Context, gcOutChan, func(k cid.Cid) {
+				re.Emit(&GcResult{Key: k})
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
 	Type: GcResult{},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			quiet, _, err := res.Request().Option("quiet").Bool()
-			if err != nil {
-				return nil, err
-			}
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+			quiet, _ := req.Options[repoQuietOptionName].(bool)
 
 			obj, ok := v.(*GcResult)
 			if !ok {
-				return nil, e.TypeErr(obj, v)
+				return e.TypeErr(obj, v)
 			}
 
 			if obj.Error != "" {
-				fmt.Fprintf(res.Stderr(), "Error: %s\n", obj.Error)
-				return nil, nil
+				_, err := fmt.Fprintf(w, "Error: %s\n", obj.Error)
+				return err
 			}
 
-			msg := obj.Key.String() + "\n"
-			if !quiet {
-				msg = "removed " + msg
+			prefix := "removed "
+			if quiet {
+				prefix = ""
 			}
 
-			return bytes.NewBufferString(msg), nil
-		},
+			_, err := fmt.Fprintf(w, "%s%s\n", prefix, obj.Key)
+			return err
+		}),
 	},
 }
+
+const (
+	repoSizeOnlyOptionName = "size-only"
+	repoHumanOptionName    = "human"
+)
 
 var repoStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -161,36 +153,33 @@ Version         string The repo version.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("size-only", "Only report RepoSize and StorageMax."),
-		cmdkit.BoolOption("human", "Output sizes in MiB."),
+		cmdkit.BoolOption(repoSizeOnlyOptionName, "Only report RepoSize and StorageMax."),
+		cmdkit.BoolOption(repoHumanOptionName, "Output sizes in MiB."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
-		n, err := GetNode(env)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		sizeOnly, _ := req.Options["size-only"].(bool)
+		sizeOnly, _ := req.Options[repoSizeOnlyOptionName].(bool)
 		if sizeOnly {
 			sizeStat, err := corerepo.RepoSize(req.Context, n)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 			cmds.EmitOnce(res, &corerepo.Stat{
 				SizeStat: sizeStat,
 			})
-			return
+			return nil
 		}
 
 		stat, err := corerepo.RepoStat(req.Context, n)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		cmds.EmitOnce(res, &stat)
+		return cmds.EmitOnce(res, &stat)
 	},
 	Type: &corerepo.Stat{},
 	Encoders: cmds.EncoderMap{
@@ -203,8 +192,8 @@ Version         string The repo version.
 			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
 			defer wtr.Flush()
 
-			human, _ := req.Options["human"].(bool)
-			sizeOnly, _ := req.Options["size-only"].(bool)
+			human, _ := req.Options[repoHumanOptionName].(bool)
+			sizeOnly, _ := req.Options[repoSizeOnlyOptionName].(bool)
 
 			printSize := func(name string, size uint64) {
 				sizeInMiB := size / (1024 * 1024)
@@ -385,7 +374,7 @@ var repoVersionCmd = &oldcmds.Command{
 	},
 
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
+		cmdkit.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req oldcmds.Request, res oldcmds.Response) {
 		res.SetOutput(&RepoVersion{

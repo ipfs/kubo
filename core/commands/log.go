@@ -1,14 +1,17 @@
 package commands
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
-	lwriter "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log/writer"
-	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	lwriter "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log/writer"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -101,12 +104,47 @@ Outputs event log messages (not other log messages) as they are generated.
 
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
-		r, w := io.Pipe()
+		r1, w1 := io.Pipe()
+		r2, w2 := io.Pipe()
 		go func() {
-			defer w.Close()
+			defer w1.Close()
 			<-ctx.Done()
 		}()
-		lwriter.WriterGroup.AddWriter(w)
-		res.SetOutput(r)
+		// Reformat the logs as ndjson
+		// TODO: remove this: #5709
+		go func() {
+			defer w2.Close()
+			decoder := json.NewDecoder(r1)
+			encoder := json.NewEncoder(w2)
+			for {
+				var obj interface{}
+				if decoder.Decode(&obj) != nil || encoder.Encode(obj) != nil {
+					return
+				}
+			}
+		}()
+
+		lwriter.WriterGroup.AddWriter(w1)
+		res.SetOutput(r2)
 	},
+}
+
+func stringListMarshaler(res cmds.Response) (io.Reader, error) {
+	v, err := unwrapOutput(res.Output())
+	if err != nil {
+		return nil, err
+	}
+
+	list, ok := v.(*stringList)
+	if !ok {
+		return nil, e.TypeErr(list, v)
+	}
+
+	buf := new(bytes.Buffer)
+	for _, s := range list.Strings {
+		buf.WriteString(s)
+		buf.WriteString("\n")
+	}
+
+	return buf, nil
 }

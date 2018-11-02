@@ -6,12 +6,11 @@ import (
 	"strings"
 
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	path "github.com/ipfs/go-ipfs/path"
-	resolver "github.com/ipfs/go-ipfs/path/resolver"
 
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	logging "gx/ipfs/QmcVVHfdyv15GVPk7NrxdWjh2hLVccXnoD8j2tyQShiXJb/go-log"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	resolver "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path/resolver"
+	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
 )
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't
@@ -73,38 +72,4 @@ func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver,
 
 	// ok, we have an IPFS path now (or what we'll treat as one)
 	return r.ResolvePath(ctx, p)
-}
-
-// ResolveToCid resolves a path to a cid.
-//
-// It first checks if the path is already in the form of just a cid (<cid> or
-// /ipfs/<cid>) and returns immediately if so. Otherwise, it falls back onto
-// Resolve to perform resolution of the dagnode being referenced.
-func ResolveToCid(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (*cid.Cid, error) {
-
-	// If the path is simply a cid, parse and return it. Parsed paths are already
-	// normalized (read: prepended with /ipfs/ if needed), so segment[1] should
-	// always be the key.
-	if p.IsJustAKey() {
-		return cid.Decode(p.Segments()[1])
-	}
-
-	// Fall back onto regular dagnode resolution. Retrieve the second-to-last
-	// segment of the path and resolve its link to the last segment.
-	head, tail, err := p.PopLastSegment()
-	if err != nil {
-		return nil, err
-	}
-	dagnode, err := Resolve(ctx, nsys, r, head)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract and return the cid of the link to the target dag node.
-	link, _, err := dagnode.ResolveLink([]string{tail})
-	if err != nil {
-		return nil, err
-	}
-
-	return link.Cid, nil
 }

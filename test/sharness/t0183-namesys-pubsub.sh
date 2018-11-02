@@ -28,8 +28,8 @@ test_expect_success 'check namesys pubsub state' '
 
 # These commands are *expected* to fail. We haven't published anything yet.
 test_expect_success 'subscribe nodes to the publisher topic' '
-    ipfsi 1 name resolve /ipns/$PEERID_0;
-    ipfsi 2 name resolve /ipns/$PEERID_0;
+    ipfsi 1 name resolve /ipns/$PEERID_0 --timeout=1s;
+    ipfsi 2 name resolve /ipns/$PEERID_0 --timeout=1s;
     true
 '
 

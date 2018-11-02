@@ -116,3 +116,36 @@ func TestTree(t *testing.T) {
 		}
 	}
 }
+
+func TestBatch(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	batch := api.Dag().Batch(ctx)
+
+	c, err := batch.Put(ctx, strings.NewReader(`"Hello"`))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if c.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", c.Cid().String())
+	}
+
+	_, err = api.Dag().Get(ctx, c)
+	if err == nil || err.Error() != "merkledag: not found" {
+		t.Error(err)
+	}
+
+	if err := batch.Commit(ctx); err != nil {
+		t.Error(err)
+	}
+
+	_, err = api.Dag().Get(ctx, c)
+	if err != nil {
+		t.Error(err)
+	}
+}

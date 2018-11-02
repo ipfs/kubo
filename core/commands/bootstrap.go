@@ -9,10 +9,10 @@ import (
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 	repo "github.com/ipfs/go-ipfs/repo"
-	config "github.com/ipfs/go-ipfs/repo/config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
+	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 type BootstrapOutput struct {
@@ -40,6 +40,10 @@ Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
 	},
 }
 
+const (
+	defaultOptionName = "default"
+)
+
 var bootstrapAddCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Add peers to the bootstrap list.",
@@ -53,14 +57,14 @@ in the bootstrap list).
 	},
 
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("default", "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
+		cmdkit.BoolOption(defaultOptionName, "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"default": bootstrapAddDefaultCmd,
 	},
 
 	Run: func(req cmds.Request, res cmds.Response) {
-		deflt, _, err := req.Option("default").Bool()
+		deflt, _, err := req.Option(defaultOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return
@@ -191,6 +195,10 @@ in the bootstrap list).`,
 	},
 }
 
+const (
+	bootstrapAllOptionName = "all"
+)
+
 var bootstrapRemoveCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove peers from the bootstrap list.",
@@ -202,13 +210,13 @@ var bootstrapRemoveCmd = &cmds.Command{
 		cmdkit.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("all", "Remove all bootstrap peers. (Deprecated, use 'all' subcommand)"),
+		cmdkit.BoolOption(bootstrapAllOptionName, "Remove all bootstrap peers. (Deprecated, use 'all' subcommand)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"all": bootstrapRemoveAllCmd,
 	},
 	Run: func(req cmds.Request, res cmds.Response) {
-		all, _, err := req.Option("all").Bool()
+		all, _, err := req.Option(bootstrapAllOptionName).Bool()
 		if err != nil {
 			res.SetError(err, cmdkit.ErrNormal)
 			return

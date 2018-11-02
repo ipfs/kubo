@@ -1,23 +1,20 @@
 package dagcmd
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math"
-	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	coredag "github.com/ipfs/go-ipfs/core/coredag"
-	path "github.com/ipfs/go-ipfs/path"
-	pin "github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/coredag"
+	"github.com/ipfs/go-ipfs/pin"
 
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	cid "gx/ipfs/QmYVNvtQkeZ6AKSwDrjQTs432QtL6umrrK41EBq3cu7iSP/go-cid"
-	ipld "gx/ipfs/QmZtNq8dArGfnpCZfx2pUNY7UcjGhVp5qqwQ4hH6mpTMRQ/go-ipld-format"
-	cmdkit "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit"
-	files "gx/ipfs/QmdE4gMduCKCGAcczM2F5ioYDfdeKuPix138wrES1YSr7f/go-ipfs-cmdkit/files"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var DagCmd = &cmds.Command{
@@ -39,12 +36,12 @@ to deprecate and replace the existing 'ipfs object' command moving forward.
 
 // OutputObject is the output type of 'dag put' command
 type OutputObject struct {
-	Cid *cid.Cid
+	Cid cid.Cid
 }
 
 // ResolveOutput is the output type of 'dag resolve' command
 type ResolveOutput struct {
-	Cid     *cid.Cid
+	Cid     cid.Cid
 	RemPath string
 }
 
@@ -65,21 +62,16 @@ into an object of the specified format.
 		cmdkit.BoolOption("pin", "Pin this object when adding."),
 		cmdkit.StringOption("hash", "Hash function to use").WithDefault(""),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		ienc, _, _ := req.Option("input-enc").String()
-		format, _, _ := req.Option("format").String()
-		hash, _, err := req.Option("hash").String()
-		dopin, _, err := req.Option("pin").Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		ienc, _ := req.Options["input-enc"].(string)
+		format, _ := req.Options["format"].(string)
+		hash, _ := req.Options["hash"].(string)
+		dopin, _ := req.Options["pin"].(bool)
 
 		// mhType tells inputParser which hash should be used. MaxUint64 means 'use
 		// default hash' (sha256 for cbor, sha1 for git..)
@@ -89,97 +81,71 @@ into an object of the specified format.
 			var ok bool
 			mhType, ok = mh.Names[hash]
 			if !ok {
-				res.SetError(fmt.Errorf("%s in not a valid multihash name", hash), cmdkit.ErrNormal)
-
-				return
+				return fmt.Errorf("%s in not a valid multihash name", hash)
 			}
 		}
 
-		outChan := make(chan interface{}, 8)
-		res.SetOutput((<-chan interface{})(outChan))
+		cids := cid.NewSet()
+		b := ipld.NewBatch(req.Context, nd.DAG)
 
-		addAllAndPin := func(f files.File) error {
-			cids := cid.NewSet()
-			b := ipld.NewBatch(req.Context(), n.DAG)
+		if dopin {
+			defer nd.Blockstore.PinLock().Unlock()
+		}
 
-			for {
-				file, err := f.NextFile()
-				if err == io.EOF {
-					// Finished the list of files.
-					break
-				} else if err != nil {
-					return err
-				}
-
-				nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
-				if err != nil {
-					return err
-				}
-				if len(nds) == 0 {
-					return fmt.Errorf("no node returned from ParseInputs")
-				}
-
-				for _, nd := range nds {
-					err := b.Add(nd)
-					if err != nil {
-						return err
-					}
-				}
-
-				cid := nds[0].Cid()
-				cids.Add(cid)
-
-				select {
-				case outChan <- &OutputObject{Cid: cid}:
-				case <-req.Context().Done():
-					return nil
-				}
-			}
-
-			if err := b.Commit(); err != nil {
+		for {
+			file, err := req.Files.NextFile()
+			if err == io.EOF {
+				// Finished the list of files.
+				break
+			} else if err != nil {
 				return err
 			}
 
-			if dopin {
-				defer n.Blockstore.PinLock().Unlock()
+			nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
+			if err != nil {
+				return err
+			}
+			if len(nds) == 0 {
+				return fmt.Errorf("no node returned from ParseInputs")
+			}
 
-				cids.ForEach(func(c *cid.Cid) error {
-					n.Pinning.PinWithMode(c, pin.Recursive)
-					return nil
-				})
-
-				err := n.Pinning.Flush()
+			for _, nd := range nds {
+				err := b.Add(req.Context, nd)
 				if err != nil {
 					return err
 				}
 			}
 
-			return nil
+			cid := nds[0].Cid()
+			cids.Add(cid)
+			if err := res.Emit(&OutputObject{Cid: cid}); err != nil {
+				return err
+			}
 		}
 
-		go func() {
-			defer close(outChan)
-			if err := addAllAndPin(req.Files()); err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+		if err := b.Commit(); err != nil {
+			return err
+		}
+
+		if dopin {
+			cids.ForEach(func(c cid.Cid) error {
+				nd.Pinning.PinWithMode(c, pin.Recursive)
+				return nil
+			})
+
+			err := nd.Pinning.Flush()
+			if err != nil {
+				return err
 			}
-		}()
+		}
+		return nil
 	},
 	Type: OutputObject{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			oobj, ok := v.(*OutputObject)
-			if !ok {
-				return nil, e.TypeErr(oobj, v)
-			}
-
-			return strings.NewReader(oobj.Cid.String() + "\n"), nil
-		},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *OutputObject) error {
+			fmt.Fprintln(w, out.Cid.String())
+			return nil
+		}),
 	},
 }
 
@@ -194,36 +160,35 @@ format.
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("ref", true, false, "The object to get").EnableStdin(),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		p, err := path.ParsePath(req.Arguments()[0])
+		p, err := path.ParsePath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		lastCid, rem, err := nd.Resolver.ResolveToLastNode(req.Context, p)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+		obj, err := nd.DAG.Get(req.Context, lastCid)
+		if err != nil {
+			return err
 		}
 
 		var out interface{} = obj
 		if len(rem) > 0 {
 			final, _, err := obj.Resolve(rem)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 			out = final
 		}
-
-		res.SetOutput(out)
+		return cmds.EmitOnce(res, &out)
 	},
 }
 
@@ -238,62 +203,37 @@ var DagResolveCmd = &cmds.Command{
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		p, err := path.ParsePath(req.Arguments()[0])
+		p, err := path.ParsePath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		obj, rem, err := n.Resolver.ResolveToLastNode(req.Context(), p)
+		lastCid, rem, err := nd.Resolver.ResolveToLastNode(req.Context, p)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&ResolveOutput{
-			Cid:     obj.Cid(),
+		return cmds.EmitOnce(res, &ResolveOutput{
+			Cid:     lastCid,
 			RemPath: path.Join(rem),
 		})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ResolveOutput) error {
+			p := out.Cid.String()
+			if out.RemPath != "" {
+				p = path.Join([]string{p, out.RemPath})
 			}
 
-			output := v.(*ResolveOutput)
-			buf := new(bytes.Buffer)
-			p := output.Cid.String()
-			if output.RemPath != "" {
-				p = path.Join([]string{p, output.RemPath})
-			}
-
-			buf.WriteString(p)
-
-			return buf, nil
-		},
+			fmt.Fprint(w, p)
+			return nil
+		}),
 	},
 	Type: ResolveOutput{},
-}
-
-// copy+pasted from ../commands.go
-func unwrapOutput(i interface{}) (interface{}, error) {
-	var (
-		ch <-chan interface{}
-		ok bool
-	)
-
-	if ch, ok = i.(<-chan interface{}); !ok {
-		return nil, e.TypeErr(ch, i)
-	}
-
-	return <-ch, nil
 }

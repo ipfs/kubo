@@ -25,6 +25,7 @@ the above issue.
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding-hamt)
 - [IPNS PubSub](#ipns-pubsub)
+- [QUIC](#quic)
 
 ---
 
@@ -42,6 +43,31 @@ experimental, default-disabled.
 
 run your daemon with the `--enable-pubsub-experiment` flag. Then use the
 `ipfs pubsub` commands.
+
+### gossipsub
+
+Gossipsub is a new, experimental routing protocol for pubsub that
+should waste less bandwidth than floodsub, the current pubsub
+protocol. It's backwards compatible with floodsub so enabling this
+feature shouldn't break compatibility with existing IPFS nodes.
+
+You can enable gossipsub via configuration:
+`ipfs config Pubsub.Router gossipsub`
+
+### Message Signing
+
+As of 0.4.18, go-ipfs signs all pubsub messages by default. For now, it doesn't
+*reject* unsigned messages but it will in the future.
+
+You can turn off message signing (not recommended unless you're using a private
+network) by running:
+`ipfs config Pubsub.DisableSigning true`
+
+You can turn on strict signature verification (require that all messages be
+signed) by running:
+`ipfs config Pubsub.StrictSignatureVerification true`
+
+(this last option will be set to true by default and eventually removed entirely)
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works
@@ -172,7 +198,7 @@ Allows ipfs to retrieve blocks contents via a url instead of storing it in the d
 experimental.
 
 ### In Version
-???.
+master, v0.4.17
 
 ### How to enable
 Modify your ipfs config:
@@ -180,8 +206,14 @@ Modify your ipfs config:
 ipfs config --json Experimental.UrlstoreEnabled true
 ```
 
+And then add a file at a specific URL using `ipfs urlstore add <url>`
+
 ### Road to being a real feature
-???.
+- [ ] Needs more people to use and report on how well it works.
+- [ ] Need to address error states and failure conditions
+- [ ] Need to write docs on usage, advantages, disadvantages
+- [ ] Need to implement caching
+- [ ] Need to add metrics to monitor performance
 
 ---
 
@@ -239,36 +271,114 @@ configured, the daemon will fail to start.
 ---
 
 ## ipfs p2p
-Allows to tunnel TCP connections through Libp2p streams
+
+Allows tunneling of TCP connections through Libp2p streams. If you've ever used
+port forwarding with SSH (the `-L` option in openssh), this feature is quite
+similar.
 
 ### State
+
 Experimental
 
 ### In Version
+
 master, 0.4.10
 
 ### How to enable
-P2P command needs to be enabled in config
 
-`ipfs config --json Experimental.Libp2pStreamMounting true`
+The `p2p` command needs to be enabled in config:
+
+```sh
+> ipfs config --json Experimental.Libp2pStreamMounting true
+```
 
 ### How to use
 
-Basic usage:
+**Netcat example:**
 
-- Open a listener on one node (node A)
-`ipfs p2p listener open p2p-test /ip4/127.0.0.1/tcp/10101`
-- Where `/ip4/127.0.0.1/tcp/10101` put address of application you want to pass
-  p2p connections to
-- On the other node, connect to the listener on node A
-`ipfs p2p stream dial $NODE_A_PEERID p2p-test /ip4/127.0.0.1/tcp/10102`
-- Node B is now listening for a connection on TCP at 127.0.0.1:10102, connect
-  your application there to complete the connection
+First, pick a protocol name for your application. Think of the protocol name as
+a port number, just significantly more user-friendly. In this example, we're
+going to use `/x/kickass/1.0`.
+
+***Setup:***
+
+1. A "server" node with peer ID `$SERVER_ID`
+2. A "client" node.
+
+***On the "server" node:***
+
+First, start your application and have it listen for TCP connections on
+port `$APP_PORT`.
+
+Then, configure the p2p listener by running:
+
+```sh
+> ipfs p2p listen /x/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
+```
+
+This will configure IPFS to forward all incoming `/x/kickass/1.0` streams to
+`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per
+incoming stream.
+
+***On the "client" node:***
+
+First, configure the client p2p dialer, so that it forwards all inbound
+connections on `127.0.0.1:SOME_PORT` to the server node listening
+on `/x/kickass/1.0`.
+
+```sh
+> ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /ipfs/$SERVER_ID
+```
+
+Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
+connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
+the remote machine. You can test it with netcat:
+
+***On "server" node:***
+```sh
+> nc -v -l -p $APP_PORT
+```
+
+***On "client" node:***
+```sh
+> nc -v 127.0.0.1 $SOME_PORT
+```
+
+You should now see that a connection has been established and be able to
+exchange messages between netcat instances.
+
+(note that depending on your netcat version you may need to drop the `-v` flag)
+
+**SSH example**
+
+**Setup:**
+
+1. A "server" node with peer ID `$SERVER_ID` and running ssh server on the
+   default port.
+2. A "client" node.
+
+_you can get `$SERVER_ID` by running `ipfs id -f "<id>\n"`_
+
+***First, on the "server" node:***
+
+```sh
+ipfs p2p listen /x/ssh /ip4/127.0.0.1/tcp/22
+```
+
+***Then, on "client" node:***
+
+```sh
+ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /ipfs/$SERVER_ID
+```
+
+You should now be able to connect to your ssh server through a libp2p connection
+with `ssh [user]@127.0.0.1 -p 2222`.
+
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
-- [ ] Support other protocols
+- [ ] Support other protocols (e.g, unix domain sockets, websockets, etc.)
 
 ---
 
@@ -425,5 +535,35 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 
 - [ ] Needs more people to use and report on how well it works
 - [ ] Add a mechanism for last record distribution on subscription,
-      so that we don't have to hit the DHT for the initial resolution.
-      Alternatively, we could republish the last record periodically.
+  so that we don't have to hit the DHT for the initial resolution.
+  Alternatively, we could republish the last record periodically.
+
+
+
+## QUIC
+
+### In Version
+
+0.4.18
+
+### State
+
+Experiment, disabled by default
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.QUIC true
+```
+
+For listening on a QUIC address, add it the swarm addresses, e.g. `/ip4/0.0.0.0/udp/4001/quic`.
+
+
+### Road to being a real feature
+
+- [ ] The IETF QUIC specification needs to be finalised.
+- [ ] Make sure QUIC connections work reliably
+- [ ] Make sure QUIC connection offer equal or better performance than TCP connections on real world networks
+- [ ] Finalize libp2p-TLS handshake spec.
