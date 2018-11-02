@@ -189,9 +189,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmSbrWdBtHgfYjeRcLotTrPXFkxY4GHMJZVxS6MQvzsYmf",
+      "hash": "QmfVWZztCxyZuS5NDBV1JpmUJiNQKD1MEnbWbqTTzZLyP7",
       "name": "go-ipld-cbor",
-      "version": "1.5.4"
+      "version": "1.5.6"
     },
     {
       "author": "lgierth",
@@ -500,21 +500,21 @@
     },
     {
       "author": "why",
-      "hash": "QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc",
+      "hash": "QmXyuFW7at4r9dxRAbrPU9JpHW5aqngAFyxvyhvYjzxRKS",
       "name": "go-merkledag",
-      "version": "1.1.15"
+      "version": "1.1.17"
     },
     {
       "author": "why",
-      "hash": "QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3",
+      "hash": "QmUB3RFRDctDp1k73mDJydzWiKdiuNHfyuoRPQeU52rWWT",
       "name": "go-path",
-      "version": "1.1.16"
+      "version": "1.1.18"
     },
     {
       "author": "why",
-      "hash": "QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8",
+      "hash": "Qmcba8ak38WXFWuaLak5pfJPUDFxcSWbkycBNQfmarpuTv",
       "name": "go-unixfs",
-      "version": "1.1.16"
+      "version": "1.2.2"
     },
     {
       "author": "magik6k",
@@ -530,9 +530,9 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmUwXQs8aZ472DmXZ8uJNf7HJNKoMJQVa7RaCz7ujZ3ua9",
+      "hash": "QmbvE3cYaSEfHTUU4GN4tvrRtHWTnyLVppiRcDamx1HC8i",
       "name": "go-mfs",
-      "version": "0.1.18"
+      "version": "0.1.20"
     },
     {
       "author": "kevina",
