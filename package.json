@@ -47,9 +47,9 @@
       "version": "0.1.4"
     },
     {
-      "hash": "QmYAXfidRkyrQH5sGVA71TAwL1cknsDtMoLPV6Bjk13VrG",
+      "hash": "QmckeQ2zrYLAXoSHYTGn5BDdb22BqbUoHEHm8KZ9YWRxd1",
       "name": "iptb",
-      "version": "1.3.7"
+      "version": "2.0.0"
     },
     {
       "hash": "QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8",
@@ -589,7 +589,7 @@
     },
     {
       "author": "travisperson",
-      "hash": "QmZJXRAhsC7Zi94udXXdsnncJLYdSYBAckWxbxHJe9fPG3",
+      "hash": "QmX51YXMSkZWJ6fQFP8ieQvwTbmLFK1YbGHqeJwgLvjkZU",
       "name": "iptb-plugins",
       "version": "1.0.0"
     }
