@@ -40,3 +40,13 @@ func GetConfig(env cmds.Environment) (*config.Config, error) {
 
 	return ctx.GetConfig()
 }
+
+// GetConfigRoot extracts the config root from the environment
+func GetConfigRoot(env cmds.Environment) (string, error) {
+	ctx, ok := env.(*commands.Context)
+	if !ok {
+		return "", fmt.Errorf("expected env to be of type %T, got %T", ctx, env)
+	}
+
+	return ctx.ConfigRoot, nil
+}
