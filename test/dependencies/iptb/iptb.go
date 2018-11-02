@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	cli "gx/ipfs/QmU5w6sBozzDcfHXuKn1ZZAYuBw1rE57YYRVxgUcCjEX8C/iptb/cli"
-	plugin "gx/ipfs/QmU5w6sBozzDcfHXuKn1ZZAYuBw1rE57YYRVxgUcCjEX8C/iptb/plugins/ipfs/local"
-	testbed "gx/ipfs/QmU5w6sBozzDcfHXuKn1ZZAYuBw1rE57YYRVxgUcCjEX8C/iptb/testbed"
+	cli "gx/ipfs/QmYAXfidRkyrQH5sGVA71TAwL1cknsDtMoLPV6Bjk13VrG/iptb/cli"
+	testbed "gx/ipfs/QmYAXfidRkyrQH5sGVA71TAwL1cknsDtMoLPV6Bjk13VrG/iptb/testbed"
+
+	plugin "gx/ipfs/QmZJXRAhsC7Zi94udXXdsnncJLYdSYBAckWxbxHJe9fPG3/iptb-plugins/local"
 )
 
 func init() {

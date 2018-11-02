@@ -108,18 +108,18 @@ test_expect_success "add afile using CIDv0 to node 0" '
 '
 
 test_expect_success "get afile using CIDv1 via node 1" '
-  iptb run -raw 1 -- ipfs --timeout=2s cat $AHASHv1 > thefile &&
+  iptb -quiet run 1 -- ipfs --timeout=2s cat $AHASHv1 > thefile &&
   test_cmp afile thefile
 '
 
 test_expect_success "add bfile using CIDv1 to node 0" '
-  BHASHv1=$(iptb run -raw 0 -- ipfs add -q --cid-version=1 --raw-leaves=false bfile)
+  BHASHv1=$(iptb -quiet run 0 -- ipfs add -q --cid-version=1 --raw-leaves=false bfile)
 '
 
 test_expect_success "get bfile using CIDv0 via node 1" '
   BHASHv0=$(cid-fmt -v 0 %s $BHASHv1)
   echo $BHASHv1 &&
-  iptb run -raw 1 -- ipfs --timeout=2s cat $BHASHv0 > thefile &&
+  iptb -quiet run 1 -- ipfs --timeout=2s cat $BHASHv0 > thefile &&
   test_cmp bfile thefile
 '
 
