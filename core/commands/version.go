@@ -50,22 +50,10 @@ var VersionCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, version *VersionOutput) error {
-			repo, _ := req.Options[versionRepoOptionName].(bool)
-			if repo {
-				fmt.Fprintln(w, version.Repo)
-				return nil
-			}
-
 			commit, _ := req.Options[versionCommitOptionName].(bool)
 			commitTxt := ""
 			if commit {
 				commitTxt = "-" + version.Commit
-			}
-
-			number, _ := req.Options[versionNumberOptionName].(bool)
-			if number {
-				fmt.Fprintln(w, version.Version+commitTxt)
-				return nil
 			}
 
 			all, _ := req.Options[versionAllOptionName].(bool)
@@ -74,6 +62,18 @@ var VersionCmd = &cmds.Command{
 					"Repo version: %s\nSystem version: %s\nGolang version: %s\n",
 					version.Version, version.Commit, version.Repo, version.System, version.Golang)
 				fmt.Fprint(w, out)
+				return nil
+			}
+
+			repo, _ := req.Options[versionRepoOptionName].(bool)
+			if repo {
+				fmt.Fprintln(w, version.Repo)
+				return nil
+			}
+
+			number, _ := req.Options[versionNumberOptionName].(bool)
+			if number {
+				fmt.Fprintln(w, version.Version+commitTxt)
 				return nil
 			}
 
