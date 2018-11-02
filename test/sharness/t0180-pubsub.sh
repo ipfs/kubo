@@ -142,7 +142,7 @@ test_expect_success 're-enable signing on node 1' '
 '
 
 test_expect_success 'enable strict signature verification on all nodes' '
-  iptb for-each ipfs config --json Pubsub.StrictSignatureVerification true
+  iptb run -- ipfs config --json Pubsub.StrictSignatureVerification true
 '
 
 startup_cluster $NUM_NODES --enable-pubsub-experiment
