@@ -39,7 +39,7 @@ For us, this means (eventually):
 However, we still have a long way to go. While we encourage users to test this,
 the IETF QUIC protocol is still being actively developed and *will* change. You
 can find instructions for enabling it
-[here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#QUIC).
+[here](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#QUIC).
 
 #### Pubsub
 
@@ -50,13 +50,13 @@ The gossipsub routing algorithm is *significantly* more efficient than the
 current floodsub routing algorithm. Even better, it's fully backwards compatible
 so you can enable it and still talk to nodes using the floodsub algorithm. You
 can find instructions to enable gossipsub in go-ipfs
-[here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#gossipsub).
+[here](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#gossipsub).
 
 Messages are now signed by their authors. While signing has now been enabled by
 default, strict signature verification has not been and will not be for at least
 one release (probably multiple) to avoid breaking existing applications. You can
 read about how to configure this feature
-[here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#message-signing).
+[here](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#message-signing).
 
 #### Commands
 
@@ -84,7 +84,7 @@ bafybeicg2rebjoofv4kbyovkw7af3rpiitvnl6i7ckcywaq6xjcxnc2mby
 The refactored `ipfs p2p` command allows forwarding TCP streams through two IPFS
 nodes from one host to another. It's `ssh -L` but for IPFS. You can find
 documentation 
-[here](https://github.com/ipfs/go-ipfs/docs/experimental-features.md#ipfs-p2p).
+[here](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-p2p).
 It's still experimental but we don't expect too many breaking changes at this
 point (it will very likely be stabilized in the next release). Quick summary of
 breaking changes:
