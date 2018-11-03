@@ -17,7 +17,7 @@ test_init_ipfs
 # start iptb + wait for peering
 NUM_NODES=3
 test_expect_success 'init iptb' '
-  iptb init -n $NUM_NODES -f --bootstrap=none --port=0 &&
+  iptb testbed create -type localipfs -count $NUM_NODES -force -init &&
   startup_cluster $NUM_NODES
 '
 

@@ -47,9 +47,9 @@
       "version": "0.1.4"
     },
     {
-      "hash": "QmV1DPm5F46LvQMxCVPhu35zHgZEeMvyVtpxjb5TwfGiua",
+      "hash": "QmckeQ2zrYLAXoSHYTGn5BDdb22BqbUoHEHm8KZ9YWRxd1",
       "name": "iptb",
-      "version": "1.3.19"
+      "version": "2.0.0"
     },
     {
       "hash": "QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8",
@@ -586,6 +586,12 @@
       "hash": "QmY4dowpPFCBsbaoaJc9mNWso64eDJsm32LJznwPNaAiJG",
       "name": "go-libp2p-pubsub",
       "version": "0.11.3"
+    },
+    {
+      "author": "travisperson",
+      "hash": "QmX51YXMSkZWJ6fQFP8ieQvwTbmLFK1YbGHqeJwgLvjkZU",
+      "name": "iptb-plugins",
+      "version": "1.0.0"
     }
   ],
   "gxVersion": "0.10.0",

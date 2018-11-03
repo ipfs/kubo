@@ -6,7 +6,7 @@ test_description="Test experimental p2p commands"
 
 # start iptb + wait for peering
 test_expect_success 'init iptb' '
-  iptb init -n 3 --bootstrap=none --port=0
+  iptb testbed create -type localipfs --count 3 --init
 '
 
 test_expect_success 'generate test data' '
@@ -17,8 +17,8 @@ test_expect_success 'generate test data' '
 startup_cluster 3
 
 test_expect_success 'peer ids' '
-  PEERID_0=$(iptb get id 0) &&
-  PEERID_1=$(iptb get id 1)
+  PEERID_0=$(iptb attr get 0 id) &&
+  PEERID_1=$(iptb attr get 1 id)
 '
 check_test_ports() {
   test_expect_success "test ports are closed" '

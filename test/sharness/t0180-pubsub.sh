@@ -7,13 +7,13 @@ test_description="Test dht command"
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
-  iptb init -n $NUM_NODES --bootstrap=none --port=0
+  iptb testbed create -type localipfs -count $NUM_NODES -init
 '
 
 run_pubsub_tests() {
   test_expect_success 'peer ids' '
-    PEERID_0=$(iptb get id 0) &&
-    PEERID_2=$(iptb get id 2)
+    PEERID_0=$(iptb attr get 0 id) &&
+    PEERID_2=$(iptb attr get 2 id)
   '
   
   # ipfs pubsub sub
@@ -142,7 +142,7 @@ test_expect_success 're-enable signing on node 1' '
 '
 
 test_expect_success 'enable strict signature verification on all nodes' '
-  iptb for-each ipfs config --json Pubsub.StrictSignatureVerification true
+  iptb run -- ipfs config --json Pubsub.StrictSignatureVerification true
 '
 
 startup_cluster $NUM_NODES --enable-pubsub-experiment
