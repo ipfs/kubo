@@ -13,11 +13,11 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
 	offline "gx/ipfs/QmPpnbwgAuvhUkA9jGooR88ZwZtTUHXXvoQNKdjZC6nYku/go-ipfs-exchange-offline"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	bserv "gx/ipfs/QmVPeMNK9DfGLXDZzs2W4RoFWC9Zq1EnLGmLXtYtWrNdcW/go-blockservice"
 	"gx/ipfs/QmYMQuypUbgsdNHmuCBSUJV6wdQVsBHRivNAp3efHJwZJD/go-verifcid"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	dag "gx/ipfs/QmaDBne4KeY3UepeqSVKYpSmQGa3q9zP6x3LfVF2UjF3Hc/go-merkledag"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -65,6 +65,11 @@ var addPinCmd = &cmds.Command{
 	},
 	Type: AddPinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		err := req.ParseBodyArgs()
+		if err != nil {
+			return err
+		}
+
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -86,7 +91,7 @@ var addPinCmd = &cmds.Command{
 			if err != nil {
 				return err
 			}
-			return res.Emit(&AddPinOutput{Pins: cidsToStrings(added)})
+			return cmds.EmitOnce(res, &AddPinOutput{Pins: cidsToStrings(added)})
 		}
 
 		out := make(chan interface{})
@@ -187,6 +192,11 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 	},
 	Type: PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		err := req.ParseBodyArgs()
+		if err != nil {
+			return err
+		}
+
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -205,7 +215,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return err
 		}
 
-		return res.Emit(&PinOutput{cidsToStrings(removed)})
+		return cmds.EmitOnce(res, &PinOutput{cidsToStrings(removed)})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
@@ -308,7 +318,7 @@ Example:
 			return err
 		}
 
-		return res.Emit(&RefKeyList{Keys: keys})
+		return cmds.EmitOnce(res, &RefKeyList{Keys: keys})
 	},
 	Type: RefKeyList{},
 	Encoders: cmds.EncoderMap{
@@ -373,7 +383,7 @@ new pin and removing the old one.
 			return err
 		}
 
-		return res.Emit(&PinOutput{Pins: []string{from.String(), to.String()}})
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{from.String(), to.String()}})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
