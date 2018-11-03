@@ -7,16 +7,16 @@ import (
 	"time"
 
 	pin "github.com/ipfs/go-ipfs/pin"
-	path "gx/ipfs/QmUB3RFRDctDp1k73mDJydzWiKdiuNHfyuoRPQeU52rWWT/go-path"
-	ft "gx/ipfs/Qmcba8ak38WXFWuaLak5pfJPUDFxcSWbkycBNQfmarpuTv/go-unixfs"
+	path "gx/ipfs/QmWZr1S1C28AePSC2zBVsU4WKQqe6AxbiFu9SeDtD7Xkdw/go-path"
+	ft "gx/ipfs/QmZBYfq7U5FXirpJDvnsm3L8PncRNXnL7yziDR44jWqwUr/go-unixfs"
 
-	ci "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	ipns "gx/ipfs/QmaRFtZhVAwXBk4Z3zEsvjScH9fjsDZmhXfa1Gm8eMb9cg/go-ipns"
-	pb "gx/ipfs/QmaRFtZhVAwXBk4Z3zEsvjScH9fjsDZmhXfa1Gm8eMb9cg/go-ipns/pb"
+	ipns "gx/ipfs/QmQZJ3WAhrhGXrw7DWNJpAvwoEg2JCi8aR2DjYMZHaX1h4/go-ipns"
+	pb "gx/ipfs/QmQZJ3WAhrhGXrw7DWNJpAvwoEg2JCi8aR2DjYMZHaX1h4/go-ipns/pb"
+	peer "gx/ipfs/QmUz7HmU4ws577TMEVNoTjNghVvq2jXnxnVhbkNXKPKpgK/go-libp2p-peer"
+	routing "gx/ipfs/QmYqBrmvWUKMmMhNJHqYASqzcaW7zg2gefi9N4DSBT4AbE/go-libp2p-routing"
 	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
 	dsquery "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/query"
-	routing "gx/ipfs/QmcQ81jSyWCp1jpkQ8CMbtpXT3jK7Wg6ZtYmoyWFgBoF9c/go-libp2p-routing"
+	ci "gx/ipfs/QmaZ1F8vQdJaQqA8hjAzH8a7Qnqqb2n2ZYeUbKMjMcxAZe/go-libp2p-crypto"
 	proto "gx/ipfs/QmdxUuburamoF6zF9qjeQC4WYcWGbWuRmdLacMEsW8ioD8/gogo-protobuf/proto"
 	base32 "gx/ipfs/QmfVj3x4D6Jkq9SEoi5n2NmoUomLwoeiwnYz2KQa15wRw6/base32"
 )

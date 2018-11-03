@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
-	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	testutil "gx/ipfs/Qma6ESRQTf1ZLPgzpCwDTqQJefPnU6uLvMjP18vK8EWp8L/go-testutil"
+	pstore "gx/ipfs/QmNVzTd29YipdnuXB67b2VnFSerudTVS3ZrxyBhNxcdvAg/go-libp2p-peerstore"
+	config "gx/ipfs/QmNqGkQ53mLMJ2Qe7WmYwv2Vo9QjcYTfsM4bcDNvfS6AXV/go-ipfs-config"
+	testutil "gx/ipfs/QmbtxgRVMQS2fZpuwowZRQUg3QNri9yuHSFGfXUrqoSABU/go-testutil"
 )
 
 func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {

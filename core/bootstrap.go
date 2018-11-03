@@ -10,16 +10,16 @@ import (
 	"time"
 
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
-	lgbl "gx/ipfs/QmVrDtvvQCUeMZaY9UFkae6c85kdQ1GvVEhPrjPTdjxRLv/go-libp2p-loggables"
+	lgbl "gx/ipfs/QmZdC12tc1dboSPXr6B5R7gQzuZtUg1Poa5Ly7GG5kwxdb/go-libp2p-loggables"
 
-	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	pstore "gx/ipfs/QmNVzTd29YipdnuXB67b2VnFSerudTVS3ZrxyBhNxcdvAg/go-libp2p-peerstore"
+	config "gx/ipfs/QmNqGkQ53mLMJ2Qe7WmYwv2Vo9QjcYTfsM4bcDNvfS6AXV/go-ipfs-config"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	procctx "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/context"
 	periodicproc "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess/periodic"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	inet "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
-	host "gx/ipfs/QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc/go-libp2p-host"
+	host "gx/ipfs/QmUR3nQ8nSP7vUnzTvz2kLxq4ncud6eC2s4BAEC8uiAsde/go-libp2p-host"
+	peer "gx/ipfs/QmUz7HmU4ws577TMEVNoTjNghVvq2jXnxnVhbkNXKPKpgK/go-libp2p-peer"
+	inet "gx/ipfs/QmX1VAqodkn8yFJe7gYFs8PvrSCVsCWcTUBgxswoeC3J4K/go-libp2p-net"
 )
 
 // ErrNotEnoughBootstrapPeers signals that we do not have enough bootstrap

@@ -10,11 +10,11 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	dag "gx/ipfs/QmXyuFW7at4r9dxRAbrPU9JpHW5aqngAFyxvyhvYjzxRKS/go-merkledag"
+	dag "gx/ipfs/QmYu5UyuTYdw9GJCnrLVpm45P3iUsftiBM67UaktYEtVte/go-merkledag"
+	ft "gx/ipfs/QmZBYfq7U5FXirpJDvnsm3L8PncRNXnL7yziDR44jWqwUr/go-unixfs"
+	uio "gx/ipfs/QmZBYfq7U5FXirpJDvnsm3L8PncRNXnL7yziDR44jWqwUr/go-unixfs/io"
 	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
-	ft "gx/ipfs/Qmcba8ak38WXFWuaLak5pfJPUDFxcSWbkycBNQfmarpuTv/go-unixfs"
-	uio "gx/ipfs/Qmcba8ak38WXFWuaLak5pfJPUDFxcSWbkycBNQfmarpuTv/go-unixfs/io"
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 )
 
 // Number to file to prefetch in directories

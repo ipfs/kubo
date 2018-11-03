@@ -10,13 +10,13 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	ping "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/protocol/ping"
-	iaddr "gx/ipfs/QmZc5PLgxW61uTPG24TroxHDF6xzgbhZZQf5i53ciQC47Y/go-ipfs-addr"
+	pstore "gx/ipfs/QmNVzTd29YipdnuXB67b2VnFSerudTVS3ZrxyBhNxcdvAg/go-libp2p-peerstore"
+	ma "gx/ipfs/QmRKLtwMw131aK7ugC3G7ybpumMz78YrJe5dzneyindvG1/go-multiaddr"
+	"gx/ipfs/QmUz7HmU4ws577TMEVNoTjNghVvq2jXnxnVhbkNXKPKpgK/go-libp2p-peer"
+	ping "gx/ipfs/QmW1qc6tENFpuvv3VfjSHRz1GiVYGiQa13nnEMJBaJDBqW/go-libp2p/p2p/protocol/ping"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	iaddr "gx/ipfs/QmfHGW3vQQkjotQ9PqwRo39ExguwCmUffrPQ28bq7UYYUG/go-ipfs-addr"
 )
 
 const kPingTimeout = 10 * time.Second

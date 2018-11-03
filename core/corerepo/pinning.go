@@ -20,7 +20,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 )
 
 func Pin(n *core.IpfsNode, api iface.CoreAPI, ctx context.Context, paths []string, recursive bool) ([]cid.Cid, error) {

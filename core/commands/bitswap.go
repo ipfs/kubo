@@ -9,12 +9,12 @@ import (
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	bitswap "gx/ipfs/QmNkxFCmPtr2RQxjZNRCNryLud4L9wMEiBJsLgF14MqTHj/go-bitswap"
-	decision "gx/ipfs/QmNkxFCmPtr2RQxjZNRCNryLud4L9wMEiBJsLgF14MqTHj/go-bitswap/decision"
+	bitswap "gx/ipfs/QmShAtD2ZB7Jvneh2grNCQwUHTxf1RqBV9HAUzCPikNa17/go-bitswap"
+	decision "gx/ipfs/QmShAtD2ZB7Jvneh2grNCQwUHTxf1RqBV9HAUzCPikNa17/go-bitswap/decision"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "gx/ipfs/QmUz7HmU4ws577TMEVNoTjNghVvq2jXnxnVhbkNXKPKpgK/go-libp2p-peer"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 

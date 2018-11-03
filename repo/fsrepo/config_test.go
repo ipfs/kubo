@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	config "gx/ipfs/QmNqGkQ53mLMJ2Qe7WmYwv2Vo9QjcYTfsM4bcDNvfS6AXV/go-ipfs-config"
 )
 
 // note: to test sorting of the mountpoints in the disk spec they are
