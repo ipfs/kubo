@@ -109,6 +109,8 @@ cat <<EOF > codecs_expect
   193  zcash-tx
   224  decred-block
   225  decred-tx
+  240  dash-block
+  241  dash-tx
 EOF
 
 cat <<EOF > hashes_expect
