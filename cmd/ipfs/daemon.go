@@ -435,7 +435,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		// we might have listened to /tcp/0 - lets see what we are listing on
 		apiMaddr = apiLis.Multiaddr()
 		fmt.Printf("API server listening on %s\n", apiMaddr)
-
+		fmt.Printf("WebUI: http://%s/webui\n", apiLis.Addr())
 		listeners = append(listeners, apiLis)
 	}
 
