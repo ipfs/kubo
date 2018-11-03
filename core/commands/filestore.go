@@ -7,6 +7,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	e "github.com/ipfs/go-ipfs/core/commands/e"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
@@ -148,14 +149,28 @@ For ERROR entries the error will also be printed to stderr.
 
 		return nil
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filestore.ListRes) error {
-			if out.Status == filestore.StatusOtherError {
-				fmt.Fprintf(os.Stderr, "%s\n", out.ErrorMsg)
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+
+				list, ok := v.(*filestore.ListRes)
+				if !ok {
+					return e.TypeErr(list, v)
+				}
+
+				if list.Status == filestore.StatusOtherError {
+					fmt.Fprintf(os.Stderr, "%s\n", list.ErrorMsg)
+				}
+				fmt.Fprintf(os.Stdout, "%s %s\n", list.Status.Format(), list.FormatLong())
 			}
-			fmt.Fprintf(w, "%s %s\n", out.Status.Format(), out.FormatLong())
-			return nil
-		}),
+		},
 	},
 	Type: filestore.ListRes{},
 }
