@@ -5,18 +5,18 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-
-OUTPUT="${1:-go-ipfs-source.tar.gz}"
+OUTPUT="$(readlink -f "${1:-go-ipfs-source.tar.gz}")"
 
 TMPDIR="$(mktemp -d)"
-NEWIPFS="$TMPDIR/github.com/ipfs/go-ipfs"
+NEWIPFS="$TMPDIR/src/github.com/ipfs/go-ipfs"
 mkdir -p "$NEWIPFS"
 cp -r . "$NEWIPFS"
 ( cd "$NEWIPFS" &&
-  echo $PWD &&
-  GOPATH="$TMPDIR" gx install --local &&
-  (git rev-parse --short HEAD || true) > .tarball &&
-  tar -czf "$OUTPUT" --exclude="./.git" .
+      echo $PWD &&
+      GOPATH="$TMPDIR" gx install --local &&
+      (git rev-parse --short HEAD || true) > .tarball &&
+      chmod -R u=rwX,go=rX "$NEWIPFS" # normalize permissions
+      tar -czf "$OUTPUT" --exclude="./.git" .
 )
 
 rm -rf "$TMPDIR"
