@@ -2,15 +2,14 @@ package commands
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 
 	cmds "github.com/ipfs/go-ipfs/commands"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	lwriter "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log/writer"
+	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
+	lwriter "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log/writer"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -104,28 +103,13 @@ Outputs event log messages (not other log messages) as they are generated.
 
 	Run: func(req cmds.Request, res cmds.Response) {
 		ctx := req.Context()
-		r1, w1 := io.Pipe()
-		r2, w2 := io.Pipe()
+		r, w := io.Pipe()
 		go func() {
-			defer w1.Close()
+			defer w.Close()
 			<-ctx.Done()
 		}()
-		// Reformat the logs as ndjson
-		// TODO: remove this: #5709
-		go func() {
-			defer w2.Close()
-			decoder := json.NewDecoder(r1)
-			encoder := json.NewEncoder(w2)
-			for {
-				var obj interface{}
-				if decoder.Decode(&obj) != nil || encoder.Encode(obj) != nil {
-					return
-				}
-			}
-		}()
-
-		lwriter.WriterGroup.AddWriter(w1)
-		res.SetOutput(r2)
+		lwriter.WriterGroup.AddWriter(w)
+		res.SetOutput(r)
 	},
 }
 

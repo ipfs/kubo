@@ -4,8 +4,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	ipldcbor "gx/ipfs/QmfVWZztCxyZuS5NDBV1JpmUJiNQKD1MEnbWbqTTzZLyP7/go-ipld-cbor"
+	ipldcbor "gx/ipfs/QmRoARq3nkUb13HSKZGepCZSWe5GrVPwx7xURJGZ7KWv9V/go-ipld-cbor"
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 )
 
 func cborJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
