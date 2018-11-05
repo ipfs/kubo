@@ -174,10 +174,11 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			if _, err := loader.LoadPlugins(pluginpath); err != nil {
-				log.Error("error loading plugins: ", err)
-			}
+		if !ok {
+			pluginpath = ""
+		}
+		if _, err := loader.LoadPlugins(pluginpath); err != nil {
+			log.Error("error loading plugins: ", err)
 		}
 
 		exctr = cmds.NewExecutor(req.Root)
