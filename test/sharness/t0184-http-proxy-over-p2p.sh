@@ -124,14 +124,14 @@ function curl_send_multipart_form_request() {
 }
 
 test_expect_success 'configure nodes' '
-    iptb init -n 2 -p 0 -f --bootstrap=none &&
+    iptb testbed create -type localipfs -count 2 -force -init &&
     ipfsi 0 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 1 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 0 config --json Experimental.P2pHttpProxy true
 '
 
 test_expect_success 'start and connect nodes' '
-    iptb start && iptb connect 0 1
+    iptb start -wait && iptb connect 0 1
 '
 
 test_expect_success 'setup p2p listener on the receiver' '
