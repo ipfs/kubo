@@ -30,7 +30,7 @@ func (api *HttpApi) ResolvePath(ctx context.Context, path iface.Path) (iface.Res
 	}
 
 	// TODO:
-	ipath, err := ipfspath.FromSegments("/" +path.Namespace() + "/", out.Cid.String(), out.RemPath)
+	ipath, err := ipfspath.FromSegments("/"+path.Namespace()+"/", out.Cid.String(), out.RemPath)
 	if err != nil {
 		return nil, err
 	}

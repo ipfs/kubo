@@ -1,7 +1,7 @@
 package httpapi
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 	"io/ioutil"
 	gohttp "net/http"
 	"os"
@@ -12,7 +12,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
-	)
+)
 
 const (
 	DefaultPathName = ".ipfs"
@@ -91,7 +91,7 @@ func (api *HttpApi) Unixfs() iface.UnixfsAPI {
 }
 
 func (api *HttpApi) Block() iface.BlockAPI {
-	return nil
+	return (*BlockAPI)(api)
 }
 
 func (api *HttpApi) Dag() iface.DagAPI {
