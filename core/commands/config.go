@@ -10,14 +10,14 @@ import (
 	"os/exec"
 	"strings"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	config "gx/ipfs/QmbK4EmM2Xx5fmbqK38TGP3PpY66r3tkXLZTcc7dF9mFwM/go-ipfs-config"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -86,8 +86,11 @@ Set the value of the 'Datastore.Path' key:
 		default:
 		}
 
-		ctx := env.(*oldcmds.Context)
-		r, err := fsrepo.Open(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+		r, err := fsrepo.Open(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -128,7 +131,9 @@ Set the value of the 'Datastore.Path' key:
 			if err != nil {
 				return err
 			}
-			fmt.Fprintln(w, string(buf))
+			buf = append(buf, byte('\n'))
+
+			w.Write(buf)
 			return nil
 		}),
 	},
@@ -144,9 +149,12 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 	},
 	Type: map[string]interface{}{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := env.(*oldcmds.Context)
-		cfgPath := ctx.ConfigRoot
-		fname, err := config.Filename(cfgPath)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		fname, err := config.Filename(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -175,7 +183,9 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 			if err != nil {
 				return err
 			}
-			fmt.Fprintln(w, string(buf))
+			buf = append(buf, byte('\n'))
+			w.Write(buf)
+
 			return nil
 		}),
 	},
@@ -232,8 +242,12 @@ variable set to your preferred text editor.
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := env.(*oldcmds.Context)
-		filename, err := config.Filename(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		filename, err := config.Filename(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -255,8 +269,12 @@ can't be undone.
 		cmdkit.FileArg("file", true, false, "The file to use as the new config."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := env.(*oldcmds.Context)
-		r, err := fsrepo.Open(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -303,8 +321,12 @@ var configProfileApplyCmd = &cmds.Command{
 		}
 
 		dryRun, _ := req.Options["dry-run"].(bool)
-		ctx := env.(*oldcmds.Context)
-		oldCfg, newCfg, err := transformConfig(ctx.ConfigRoot, req.Arguments[0], profile.Transform, dryRun)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		oldCfg, newCfg, err := transformConfig(cfgRoot, req.Arguments[0], profile.Transform, dryRun)
 		if err != nil {
 			return err
 		}
@@ -329,7 +351,8 @@ var configProfileApplyCmd = &cmds.Command{
 			diff := jsondiff.Compare(out.OldCfg, out.NewCfg)
 			buf := jsondiff.Format(diff)
 
-			fmt.Fprint(w, string(buf))
+			w.Write(buf)
+
 			return nil
 		}),
 	},

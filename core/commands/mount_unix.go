@@ -93,7 +93,7 @@ baz
 
 		// error if we aren't running node in online mode
 		if nd.LocalMode() {
-			return err
+			return ErrNotOnline
 		}
 
 		fsdir, found := req.Options[mountIPFSPathOptionName].(string)
@@ -120,9 +120,9 @@ baz
 	Type: config.Mounts{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, mounts *config.Mounts) error {
-			s := fmt.Sprintf("IPFS mounted at: %s\n", mounts.IPFS)
-			s += fmt.Sprintf("IPNS mounted at: %s\n", mounts.IPNS)
-			fmt.Fprint(w, s)
+			fmt.Fprintf(w, "IPFS mounted at: %s\n", mounts.IPFS)
+			fmt.Fprintf(w, "IPNS mounted at: %s\n", mounts.IPNS)
+
 			return nil
 		}),
 	},
