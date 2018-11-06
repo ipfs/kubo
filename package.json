@@ -592,6 +592,12 @@
       "hash": "QmTzWwfHZr9N6Tnk4iDTtKMWY57D3wik73qNCVo21Bu1UP",
       "name": "iptb-plugins",
       "version": "1.0.3"
+    },
+    {
+      "author": "bjzhang",
+      "hash": "QmdZuk8xgy7o832HfhMEYFpVfWjGFm9FdgRW4ZatK1nwwQ",
+      "name": "go-ds-rados",
+      "version": "0.0.3"
     }
   ],
   "gxVersion": "0.10.0",

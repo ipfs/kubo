@@ -8,7 +8,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	rados "github.com/ipfs/go-ds-rados"
+	rados "gx/ipfs/QmdZuk8xgy7o832HfhMEYFpVfWjGFm9FdgRW4ZatK1nwwQ/go-ds-rados"
 )
 
 // Plugins is exported list of plugins that will be loaded
