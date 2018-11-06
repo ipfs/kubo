@@ -327,6 +327,14 @@ You can now check what blocks have been created by:
 						return
 					}
 				}
+
+				if progress && bar.Total == 0 && bar.Get() != 0 {
+					bar.Total = bar.Get()
+					bar.ShowPercent = true
+					bar.ShowBar = true
+					bar.ShowTimeLeft = true
+					bar.Update()
+				}
 			}
 
 			if e := res.Error(); e != nil {
