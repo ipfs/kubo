@@ -155,6 +155,7 @@ var RootRO = &cmds.Command{}
 
 var CommandsDaemonROCmd = CommandsCmd(RootRO)
 
+// RefsROCmd is `ipfs refs` command
 var RefsROCmd = &cmds.Command{}
 
 var rootROSubcommands = map[string]*cmds.Command{

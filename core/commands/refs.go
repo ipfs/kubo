@@ -1,24 +1,32 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	path "gx/ipfs/QmRG3XuGwT7GYuAqgWDJBKTzdaHMwAnc1x7J2KHEXNHxzG/go-path"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
+
+var refsEncoderMap = cmds.EncoderMap{
+	cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
+		if out.Err != "" {
+			return fmt.Errorf(out.Err)
+		}
+		fmt.Fprintln(w, out.Ref)
+
+		return nil
+	}),
+}
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
@@ -33,25 +41,7 @@ const (
 	refsMaxDepthOptionName  = "max-depth"
 )
 
-// KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
-func KeyListTextMarshaler(res oldcmds.Response) (io.Reader, error) {
-	out, err := unwrapOutput(res.Output())
-	if err != nil {
-		return nil, err
-	}
-
-	output, ok := out.(*KeyList)
-	if !ok {
-		return nil, e.TypeErr(output, out)
-	}
-
-	buf := new(bytes.Buffer)
-	for _, key := range output.Keys {
-		buf.WriteString(key.String() + "\n")
-	}
-	return buf, nil
-}
-
+// RefsCmd is the `ipfs refs` command
 var RefsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List links (references) from an object.",
@@ -78,6 +68,11 @@ NOTE: List all references recursively by using the flag '-r'.
 		cmdkit.IntOption(refsMaxDepthOptionName, "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		err := req.ParseBodyArgs()
+		if err != nil {
+			return err
+		}
+
 		ctx := req.Context
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -134,17 +129,8 @@ NOTE: List all references recursively by using the flag '-r'.
 
 		return res.Emit(out)
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
-			if out.Err != "" {
-				return fmt.Errorf(out.Err)
-			}
-			fmt.Fprintln(w, out.Ref)
-
-			return nil
-		}),
-	},
-	Type: RefWrapper{},
+	Encoders: refsEncoderMap,
+	Type:     RefWrapper{},
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -177,37 +163,8 @@ Displays the hashes of all local objects.
 
 		return nil
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
-			if out.Err != "" {
-				return fmt.Errorf(out.Err)
-			}
-			fmt.Fprintln(w, out.Ref)
-
-			return nil
-		}),
-	},
-	Type: RefWrapper{},
-}
-
-var refsMarshallerMap = oldcmds.MarshalerMap{
-	cmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-		v, err := unwrapOutput(res.Output())
-		if err != nil {
-			return nil, err
-		}
-
-		obj, ok := v.(*RefWrapper)
-		if !ok {
-			return nil, e.TypeErr(obj, v)
-		}
-
-		if obj.Err != "" {
-			return nil, errors.New(obj.Err)
-		}
-
-		return strings.NewReader(obj.Ref + "\n"), nil
-	},
+	Encoders: refsEncoderMap,
+	Type:     RefWrapper{},
 }
 
 func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]ipld.Node, error) {
@@ -247,7 +204,6 @@ type RefWriter struct {
 // WriteRefs writes refs of the given object to the underlying writer.
 func (rw *RefWriter) WriteRefs(n ipld.Node) (int, error) {
 	return rw.writeRefsRecursive(n, 0)
-
 }
 
 func (rw *RefWriter) writeRefsRecursive(n ipld.Node, depth int) (int, error) {
