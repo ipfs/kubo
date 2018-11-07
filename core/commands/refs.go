@@ -102,32 +102,24 @@ NOTE: List all references recursively by using the flag '-r'.
 			return err
 		}
 
-		out := make(chan interface{})
+		rw := RefWriter{
+			res:      res,
+			DAG:      n.DAG,
+			Ctx:      ctx,
+			Unique:   unique,
+			PrintFmt: format,
+			MaxDepth: maxDepth,
+		}
 
-		go func() {
-			defer close(out)
-
-			rw := RefWriter{
-				out:      out,
-				DAG:      n.DAG,
-				Ctx:      ctx,
-				Unique:   unique,
-				PrintFmt: format,
-				MaxDepth: maxDepth,
-			}
-
-			for _, o := range objs {
-				if _, err := rw.WriteRefs(o); err != nil {
-					select {
-					case out <- &RefWrapper{Err: err.Error()}:
-					case <-ctx.Done():
-					}
-					return
+		for _, o := range objs {
+			if _, err := rw.WriteRefs(o); err != nil {
+				if err := res.Emit(&RefWrapper{Err: err.Error()}); err != nil {
+					return err
 				}
 			}
-		}()
+		}
 
-		return res.Emit(out)
+		return nil
 	},
 	Encoders: refsEncoderMap,
 	Type:     RefWrapper{},
@@ -190,7 +182,7 @@ type RefWrapper struct {
 }
 
 type RefWriter struct {
-	out chan interface{}
+	res cmds.ResponseEmitter
 	DAG ipld.DAGService
 	Ctx context.Context
 
@@ -337,6 +329,5 @@ func (rw *RefWriter) WriteEdge(from, to cid.Cid, linkname string) error {
 		s += to.String()
 	}
 
-	rw.out <- &RefWrapper{Ref: s}
-	return nil
+	return rw.res.Emit(&RefWrapper{Ref: s})
 }
