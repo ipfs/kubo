@@ -135,6 +135,23 @@ var addPinCmd = &cmds.Command{
 			}
 		}
 	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddPinOutput) error {
+			rec, found := req.Options["recursive"].(bool)
+			var pintype string
+			if rec || !found {
+				pintype = "recursively"
+			} else {
+				pintype = "directly"
+			}
+
+			for _, k := range out.Pins {
+				fmt.Fprintf(w, "pinned %s %s\n", k, pintype)
+			}
+
+			return nil
+		}),
+	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			for {
@@ -150,25 +167,14 @@ var addPinCmd = &cmds.Command{
 				if !ok {
 					return e.TypeErr(out, v)
 				}
-				var added []string
-
-				if out.Pins != nil {
-					added = out.Pins
-				} else {
+				if out.Pins == nil {
 					// this can only happen if the progress option is set
 					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes\r", out.Progress)
-				}
-
-				var pintype string
-				rec, found := res.Request().Options["recursive"].(bool)
-				if rec || !found {
-					pintype = "recursively"
 				} else {
-					pintype = "directly"
-				}
-
-				for _, k := range added {
-					fmt.Fprintf(os.Stdout, "pinned %s %s\n", k, pintype)
+					err = re.Emit(out)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		},
