@@ -203,18 +203,8 @@ var dupsFileStore = &cmds.Command{
 
 		return nil
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
-			if out.Err != "" {
-				return fmt.Errorf(out.Err)
-			}
-
-			fmt.Fprintln(w, out.Ref)
-
-			return nil
-		}),
-	},
-	Type: RefWrapper{},
+	Encoders: refsEncoderMap,
+	Type:     RefWrapper{},
 }
 
 func getFilestore(env cmds.Environment) (*core.IpfsNode, *filestore.Filestore, error) {
