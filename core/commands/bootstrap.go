@@ -5,13 +5,13 @@ import (
 	"io"
 	"sort"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	config "gx/ipfs/QmbK4EmM2Xx5fmbqK38TGP3PpY66r3tkXLZTcc7dF9mFwM/go-ipfs-config"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 type BootstrapOutput struct {
@@ -75,6 +75,10 @@ in the bootstrap list).
 
 			inputPeers = defltPeers
 		} else {
+			if err := req.ParseBodyArgs(); err != nil {
+				return err
+			}
+
 			parsedPeers, err := config.ParseBootstrapPeers(req.Arguments)
 			if err != nil {
 				return err
@@ -87,8 +91,12 @@ in the bootstrap list).
 			return errors.New("no bootstrap peers to add")
 		}
 
-		ctx := env.(*oldcmds.Context)
-		r, err := fsrepo.Open(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -103,7 +111,7 @@ in the bootstrap list).
 			return err
 		}
 
-		return res.Emit(&BootstrapOutput{config.BootstrapPeerStrings(added)})
+		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(added)})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -125,8 +133,12 @@ in the bootstrap list).`,
 			return err
 		}
 
-		ctx := env.(*oldcmds.Context)
-		r, err := fsrepo.Open(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -142,7 +154,7 @@ in the bootstrap list).`,
 			return err
 		}
 
-		return res.Emit(&BootstrapOutput{config.BootstrapPeerStrings(added)})
+		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(added)})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -175,8 +187,12 @@ var bootstrapRemoveCmd = &cmds.Command{
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		all, _ := req.Options[bootstrapAllOptionName].(bool)
 
-		ctx := env.(*oldcmds.Context)
-		r, err := fsrepo.Open(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -190,6 +206,10 @@ var bootstrapRemoveCmd = &cmds.Command{
 		if all {
 			removed, err = bootstrapRemoveAll(r, cfg)
 		} else {
+			if err := req.ParseBodyArgs(); err != nil {
+				return err
+			}
+
 			input, perr := config.ParseBootstrapPeers(req.Arguments)
 			if perr != nil {
 				return err
@@ -201,7 +221,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return err
 		}
 
-		return res.Emit(&BootstrapOutput{config.BootstrapPeerStrings(removed)})
+		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(removed)})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -218,8 +238,12 @@ var bootstrapRemoveAllCmd = &cmds.Command{
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := env.(*oldcmds.Context)
-		r, err := fsrepo.Open(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -234,7 +258,7 @@ var bootstrapRemoveAllCmd = &cmds.Command{
 			return err
 		}
 
-		return res.Emit(&BootstrapOutput{config.BootstrapPeerStrings(removed)})
+		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(removed)})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -251,8 +275,12 @@ var bootstrapListCmd = &cmds.Command{
 	},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		ctx := env.(*oldcmds.Context)
-		r, err := fsrepo.Open(ctx.ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
 		if err != nil {
 			return err
 		}
@@ -267,7 +295,7 @@ var bootstrapListCmd = &cmds.Command{
 			return err
 		}
 
-		return res.Emit(&BootstrapOutput{config.BootstrapPeerStrings(peers)})
+		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(peers)})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
