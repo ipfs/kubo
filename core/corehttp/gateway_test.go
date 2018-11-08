@@ -396,8 +396,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/") {
-		t.Fatalf("expected a path in directory listing")
+	if !strings.Contains(s, "Index of "+dagn2.Cid().String()) {
+		t.Fatalf("expected a hash in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/\">") {
 		t.Fatalf("expected backlink in directory listing")
@@ -426,8 +426,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /") {
-		t.Fatalf("expected a path in directory listing")
+	if !strings.Contains(s, "Index of "+dagn1.Cid().String()) {
+		t.Fatalf("expected a hash in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/\">") {
 		t.Fatalf("expected backlink in directory listing")
@@ -456,8 +456,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/bar/") {
-		t.Fatalf("expected a path in directory listing")
+	if !strings.Contains(s, "Index of "+dagn3.Cid().String()) {
+		t.Fatalf("expected a hash in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/\">") {
 		t.Fatalf("expected backlink in directory listing")
@@ -487,8 +487,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /good-prefix") {
-		t.Fatalf("expected a path in directory listing")
+	if !strings.Contains(s, "Index of "+dagn1.Cid().String()) {
+		t.Fatalf("expected a hash in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {
 		t.Fatalf("expected backlink in directory listing")
@@ -526,8 +526,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /") {
-		t.Fatalf("expected a path in directory listing")
+	if !strings.Contains(s, "Index of "+dagn1.Cid().String()) {
+		t.Fatalf("expected a hash in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/\">") {
 		t.Fatalf("expected backlink in directory listing")

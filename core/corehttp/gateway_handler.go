@@ -361,6 +361,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		Listing:  dirListing,
 		Path:     originalUrlPath,
 		BackLink: backLink,
+		Hash:     resolvedPath.Cid().String(),
 	}
 	err = listingTemplate.Execute(w, tplData)
 	if err != nil {
