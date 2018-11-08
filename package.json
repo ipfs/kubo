@@ -595,9 +595,9 @@
     },
     {
       "author": "bjzhang",
-      "hash": "QmdZuk8xgy7o832HfhMEYFpVfWjGFm9FdgRW4ZatK1nwwQ",
+      "hash": "QmYyMML9pPAFqQAtHW56YHzUXK7CBnubB1g7kK123eo98G",
       "name": "go-ds-rados",
-      "version": "0.0.3"
+      "version": "0.0.4"
     }
   ],
   "gxVersion": "0.10.0",
