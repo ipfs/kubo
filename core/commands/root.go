@@ -2,13 +2,9 @@ package commands
 
 import (
 	"errors"
-	"io"
-	"strings"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
 	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	dag "github.com/ipfs/go-ipfs/core/commands/dag"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 	name "github.com/ipfs/go-ipfs/core/commands/name"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
@@ -213,18 +209,4 @@ func init() {
 
 type MessageOutput struct {
 	Message string
-}
-
-func MessageTextMarshaler(res oldcmds.Response) (io.Reader, error) {
-	v, err := unwrapOutput(res.Output())
-	if err != nil {
-		return nil, err
-	}
-
-	out, ok := v.(*MessageOutput)
-	if !ok {
-		return nil, e.TypeErr(out, v)
-	}
-
-	return strings.NewReader(out.Message), nil
 }
