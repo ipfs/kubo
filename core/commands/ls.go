@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"os"
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -29,20 +30,16 @@ type LsLink struct {
 }
 
 // LsObject is an element of LsOutput
-// It can represent a whole directory, a directory header, one or more links,
-// Or a the end of a directory
+// It can represent all or part of a directory
 type LsObject struct {
-	Hash      string
-	Links     []LsLink
-	HasHeader bool
-	HasLinks  bool
-	HasFooter bool
+	Hash  string
+	Links []LsLink
 }
 
-// LsOutput is a set of printable data for directories
+// LsOutput is a set of printable data for directories,
+// it can be complete or partial
 type LsOutput struct {
-	MultipleFolders bool
-	Objects         []LsObject
+	Objects []LsObject
 }
 
 const (
@@ -114,10 +111,10 @@ The JSON output contains type information.
 		ng := merkledag.NewSession(req.Context, nd.DAG)
 		ro := merkledag.NewReadOnlyDagService(ng)
 
+		output := make([]LsObject, len(req.Arguments))
+
 		stream, _ := req.Options[lsStreamOptionName].(bool)
-		multipleFolders := len(req.Arguments) > 1
 		if !stream {
-			output := make([]LsObject, len(req.Arguments))
 
 			for i, dagnode := range dagnodes {
 				dir, err := uio.NewDirectoryFromNode(ro, dagnode)
@@ -142,10 +139,21 @@ The JSON output contains type information.
 					}
 					outputLinks[j] = *lsLink
 				}
-				output[i] = newFullDirectoryLsObject(paths[i], outputLinks)
+				output[i] = LsObject{
+					Hash:  paths[i],
+					Links: outputLinks,
+				}
 			}
 
-			return cmds.EmitOnce(res, &LsOutput{multipleFolders, output})
+			return cmds.EmitOnce(res, &LsOutput{output})
+		}
+
+		outputLinks := make([]LsLink, 1)
+		for i, path := range paths {
+			output[i] = LsObject{
+				Hash:  path,
+				Links: nil,
+			}
 		}
 
 		for i, dagnode := range dagnodes {
@@ -161,13 +169,8 @@ The JSON output contains type information.
 				linkResults = dir.EnumLinksAsync(req.Context)
 			}
 
-			output := make([]LsObject, 1)
-			outputLinks := make([]LsLink, 1)
+			output[i].Links = outputLinks
 
-			output[0] = newDirectoryHeaderLsObject(paths[i])
-			if err = res.Emit(&LsOutput{multipleFolders, output}); err != nil {
-				return nil
-			}
 			for linkResult := range linkResults {
 				if linkResult.Err != nil {
 					return linkResult.Err
@@ -178,37 +181,57 @@ The JSON output contains type information.
 					return err
 				}
 				outputLinks[0] = *lsLink
-				output[0] = newDirectoryLinksLsObject(outputLinks)
-				if err = res.Emit(&LsOutput{multipleFolders, output}); err != nil {
+				if err = res.Emit(&LsOutput{output}); err != nil {
 					return err
 				}
 			}
-			output[0] = newDirectoryFooterLsObject()
-			if err = res.Emit(&LsOutput{multipleFolders, output}); err != nil {
-				return err
-			}
+			output[i].Links = nil
 		}
 		return nil
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			req := res.Request()
 			headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
-			output, ok := v.(*LsOutput)
-			if !ok {
-				return e.TypeErr(output, v)
-			}
+			multipleFolders := len(req.Arguments) > 1
+			lastDirectoryWritten := -1
+			tw := tabwriter.NewWriter(os.Stdout, 1, 2, 1, ' ', 0)
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						if multipleFolders {
+							fmt.Fprintln(os.Stdout)
+						}
+						return nil
+					}
 
-			tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
-			for _, object := range output.Objects {
-				if object.HasHeader {
-					if output.MultipleFolders {
-						fmt.Fprintf(tw, "%s:\n", object.Hash)
-					}
-					if headers {
-						fmt.Fprintln(tw, "Hash\tSize\tName")
-					}
+					return err
 				}
-				if object.HasLinks {
+
+				output, ok := v.(*LsOutput)
+				if !ok {
+					return e.TypeErr(output, v)
+				}
+
+				for i, object := range output.Objects {
+					if len(object.Links) == 0 {
+						continue
+					}
+					if i > lastDirectoryWritten {
+						if i > 0 {
+							if multipleFolders {
+								fmt.Fprintln(tw)
+							}
+						}
+						if multipleFolders {
+							fmt.Fprintf(tw, "%s:\n", object.Hash)
+						}
+						if headers {
+							fmt.Fprintln(tw, "Hash\tSize\tName")
+						}
+						lastDirectoryWritten = i
+					}
 					for _, link := range object.Links {
 						if link.Type == unixfs.TDirectory {
 							link.Name += "/"
@@ -217,15 +240,9 @@ The JSON output contains type information.
 						fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
 					}
 				}
-				if object.HasFooter {
-					if output.MultipleFolders {
-						fmt.Fprintln(tw)
-					}
-				}
+				tw.Flush()
 			}
-			tw.Flush()
-			return nil
-		}),
+		},
 	},
 	Type: LsOutput{},
 }
@@ -246,19 +263,6 @@ func makeDagNodeLinkResults(req *cmds.Request, dagnode ipld.Node) <-chan unixfs.
 		}
 	}()
 	return linkResults
-}
-
-func newFullDirectoryLsObject(hash string, links []LsLink) LsObject {
-	return LsObject{hash, links, true, true, true}
-}
-func newDirectoryHeaderLsObject(hash string) LsObject {
-	return LsObject{hash, nil, true, false, false}
-}
-func newDirectoryLinksLsObject(links []LsLink) LsObject {
-	return LsObject{"", links, false, true, false}
-}
-func newDirectoryFooterLsObject() LsObject {
-	return LsObject{"", nil, false, false, true}
 }
 
 func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ipld.Link) (*LsLink, error) {
