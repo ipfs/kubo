@@ -138,7 +138,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
 	"tar":       TarCmd,
-	"file":      lgc.NewCommand(unixfs.UnixFSCmd),
+	"file":      unixfs.UnixFSCmd,
 	"update":    lgc.NewCommand(ExternalBinary()),
 	"urlstore":  urlStoreCmd,
 	"version":   VersionCmd,
