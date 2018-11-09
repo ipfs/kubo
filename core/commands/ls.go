@@ -3,11 +3,9 @@ package commands
 import (
 	"fmt"
 	"io"
-	"os"
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
@@ -39,7 +37,8 @@ type LsObject struct {
 // LsOutput is a set of printable data for directories,
 // it can be complete or partial
 type LsOutput struct {
-	Objects []LsObject
+	Objects        []LsObject
+	LastObjectHash string
 }
 
 const (
@@ -112,6 +111,8 @@ The JSON output contains type information.
 		ro := merkledag.NewReadOnlyDagService(ng)
 
 		stream, _ := req.Options[lsStreamOptionName].(bool)
+		lastObjectHash := ""
+
 		if !stream {
 			output := make([]LsObject, len(req.Arguments))
 
@@ -144,7 +145,7 @@ The JSON output contains type information.
 				}
 			}
 
-			return cmds.EmitOnce(res, &LsOutput{output})
+			return cmds.EmitOnce(res, &LsOutput{output, lastObjectHash})
 		}
 
 		for i, dagnode := range dagnodes {
@@ -161,15 +162,6 @@ The JSON output contains type information.
 			}
 
 			for linkResult := range linkResults {
-				output := make([]LsObject, len(req.Arguments))
-
-				for i, path := range paths {
-					output[i] = LsObject{
-						Hash:  path,
-						Links: nil,
-					}
-				}
-				outputLinks := make([]LsLink, 1)
 
 				if linkResult.Err != nil {
 					return linkResult.Err
@@ -179,21 +171,24 @@ The JSON output contains type information.
 				if err != nil {
 					return err
 				}
-				outputLinks[0] = *lsLink
-				output[i].Links = outputLinks
-				if err = res.Emit(&LsOutput{output}); err != nil {
+				output := []LsObject{
+					{
+						Hash:  paths[i],
+						Links: []LsLink{*lsLink},
+					},
+				}
+				if err = res.Emit(&LsOutput{output, lastObjectHash}); err != nil {
 					return err
 				}
+				lastObjectHash = paths[i]
 			}
 		}
 		return nil
 	},
-	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			req := res.Request()
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *LsOutput) error {
 			headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
 			stream, _ := req.Options[lsStreamOptionName].(bool)
-
 			// in streaming mode we can't automatically align the tabs
 			// so we take a best guess
 			var minTabWidth int
@@ -204,56 +199,36 @@ The JSON output contains type information.
 			}
 
 			multipleFolders := len(req.Arguments) > 1
-			lastDirectoryWritten := -1
+			lastObjectHash := out.LastObjectHash
 
-			tw := tabwriter.NewWriter(os.Stdout, minTabWidth, 2, 1, ' ', 0)
-			for {
-				v, err := res.Next()
-				if err != nil {
-					if err == io.EOF {
-						if multipleFolders {
-							fmt.Fprintln(os.Stdout)
+			tw := tabwriter.NewWriter(w, minTabWidth, 2, 1, ' ', 0)
+
+			for _, object := range out.Objects {
+
+				if object.Hash != lastObjectHash {
+					if multipleFolders {
+						if lastObjectHash != "" {
+							fmt.Fprintln(tw)
 						}
-						return nil
+						fmt.Fprintf(tw, "%s:\n", object.Hash)
 					}
-
-					return err
+					if headers {
+						fmt.Fprintln(tw, "Hash\tSize\tName")
+					}
+					lastObjectHash = object.Hash
 				}
 
-				output, ok := v.(*LsOutput)
-				if !ok {
-					return e.TypeErr(output, v)
-				}
+				for _, link := range object.Links {
+					if link.Type == unixfs.TDirectory {
+						link.Name += "/"
+					}
 
-				for i, object := range output.Objects {
-					if len(object.Links) == 0 {
-						continue
-					}
-					if i > lastDirectoryWritten {
-						if i > 0 {
-							if multipleFolders {
-								fmt.Fprintln(tw)
-							}
-						}
-						if multipleFolders {
-							fmt.Fprintf(tw, "%s:\n", object.Hash)
-						}
-						if headers {
-							fmt.Fprintln(tw, "Hash\tSize\tName")
-						}
-						lastDirectoryWritten = i
-					}
-					for _, link := range object.Links {
-						if link.Type == unixfs.TDirectory {
-							link.Name += "/"
-						}
-
-						fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
-					}
+					fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
 				}
-				tw.Flush()
 			}
-		},
+			tw.Flush()
+			return nil
+		}),
 	},
 	Type: LsOutput{},
 }
