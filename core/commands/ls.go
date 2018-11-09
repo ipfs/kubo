@@ -111,10 +111,9 @@ The JSON output contains type information.
 		ng := merkledag.NewSession(req.Context, nd.DAG)
 		ro := merkledag.NewReadOnlyDagService(ng)
 
-		output := make([]LsObject, len(req.Arguments))
-
 		stream, _ := req.Options[lsStreamOptionName].(bool)
 		if !stream {
+			output := make([]LsObject, len(req.Arguments))
 
 			for i, dagnode := range dagnodes {
 				dir, err := uio.NewDirectoryFromNode(ro, dagnode)
@@ -148,14 +147,6 @@ The JSON output contains type information.
 			return cmds.EmitOnce(res, &LsOutput{output})
 		}
 
-		outputLinks := make([]LsLink, 1)
-		for i, path := range paths {
-			output[i] = LsObject{
-				Hash:  path,
-				Links: nil,
-			}
-		}
-
 		for i, dagnode := range dagnodes {
 			dir, err := uio.NewDirectoryFromNode(ro, dagnode)
 			if err != nil && err != uio.ErrNotADir {
@@ -169,9 +160,17 @@ The JSON output contains type information.
 				linkResults = dir.EnumLinksAsync(req.Context)
 			}
 
-			output[i].Links = outputLinks
-
 			for linkResult := range linkResults {
+				output := make([]LsObject, len(req.Arguments))
+
+				for i, path := range paths {
+					output[i] = LsObject{
+						Hash:  path,
+						Links: nil,
+					}
+				}
+				outputLinks := make([]LsLink, 1)
+
 				if linkResult.Err != nil {
 					return linkResult.Err
 				}
@@ -181,11 +180,11 @@ The JSON output contains type information.
 					return err
 				}
 				outputLinks[0] = *lsLink
+				output[i].Links = outputLinks
 				if err = res.Emit(&LsOutput{output}); err != nil {
 					return err
 				}
 			}
-			output[i].Links = nil
 		}
 		return nil
 	},
@@ -193,9 +192,21 @@ The JSON output contains type information.
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
 			req := res.Request()
 			headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
+			stream, _ := req.Options[lsStreamOptionName].(bool)
+
+			// in streaming mode we can't automatically align the tabs
+			// so we take a best guess
+			var minTabWidth int
+			if stream {
+				minTabWidth = 10
+			} else {
+				minTabWidth = 1
+			}
+
 			multipleFolders := len(req.Arguments) > 1
 			lastDirectoryWritten := -1
-			tw := tabwriter.NewWriter(os.Stdout, 1, 2, 1, ' ', 0)
+
+			tw := tabwriter.NewWriter(os.Stdout, minTabWidth, 2, 1, ' ', 0)
 			for {
 				v, err := res.Next()
 				if err != nil {
