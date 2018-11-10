@@ -393,7 +393,7 @@ Experimental
 
 ### In Version
 
-master, 0.4.18
+master, 0.4.19
 
 ### How to enable
 
@@ -415,7 +415,7 @@ On the client, the p2p http proxy needs to be enabled in the config:
 
 First, pick a protocol name for your application. Think of the protocol name as
 a port number, just significantly more user-friendly. In this example, we're
-going to use `test`.
+going to use `/http`.
 
 ***Setup:***
 
@@ -430,15 +430,15 @@ port `$APP_PORT`.
 Then, configure the p2p listener by running:
 
 ```sh
-> ipfs p2p listen --allow-custom-protocol test /ip4/127.0.0.1/tcp/$APP_PORT
+> ipfs p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$APP_PORT
 ```
 
-This will configure IPFS to forward all incoming `test` streams to
+This will configure IPFS to forward all incoming `/http` streams to
 `127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per incoming stream.
 
 ***On the "client" node:***
 
-Next, have your application make a http request to `127.0.0.1:5001/proxy/http/$SERVER_ID/$PROTOCOL/$FORWARDED_PATH`. This
+Next, have your application make a http request to `127.0.0.1:8080/p2p/$SERVER_ID/http/$FORWARDED_PATH`. This
 connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
 the remote machine (which needs to be a http server!) with path `$FORWARDED_PATH`. You can test it with netcat:
 
@@ -449,15 +449,16 @@ the remote machine (which needs to be a http server!) with path `$FORWARDED_PATH
 
 ***On "client" node:***
 ```sh
-> curl http://localhost:5001/proxy/http/$SERVER_ID/test/
+> curl http://localhost:8080/p2p/$SERVER_ID/http/
 ```
 
 You should now see the resulting http response: IPFS rocks!
 
+### Custom protocol names
+We also support use of protocol names of the form /x/$NAME/http where $NAME doesn't contain any "/"'s
 
 ### Road to being a real feature
 - [ ] Needs p2p streams to graduate from experiments
-- [ ] Decide how to handle protocol names with /'s in them
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
 
