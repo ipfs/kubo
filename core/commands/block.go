@@ -8,7 +8,6 @@ import (
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
@@ -83,11 +82,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 	},
 	Type: BlockStat{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			bs, ok := v.(*BlockStat)
-			if !ok {
-				return e.TypeErr(bs, v)
-			}
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, bs *BlockStat) error {
 			_, err := fmt.Fprintf(w, "%s", bs)
 			return err
 		}),
@@ -194,11 +189,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			bs, ok := v.(*BlockStat)
-			if !ok {
-				return e.TypeErr(bs, v)
-			}
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, bs *BlockStat) error {
 			_, err := fmt.Fprintf(w, "%s\n", bs.Key)
 			return err
 		}),

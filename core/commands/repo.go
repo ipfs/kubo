@@ -13,7 +13,6 @@ import (
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
@@ -109,16 +108,11 @@ order to reclaim hard disk space.
 	},
 	Type: GcResult{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, gcr *GcResult) error {
 			quiet, _ := req.Options[repoQuietOptionName].(bool)
 
-			obj, ok := v.(*GcResult)
-			if !ok {
-				return e.TypeErr(obj, v)
-			}
-
-			if obj.Error != "" {
-				_, err := fmt.Fprintf(w, "Error: %s\n", obj.Error)
+			if gcr.Error != "" {
+				_, err := fmt.Fprintf(w, "Error: %s\n", gcr.Error)
 				return err
 			}
 
@@ -127,7 +121,7 @@ order to reclaim hard disk space.
 				prefix = ""
 			}
 
-			_, err := fmt.Fprintf(w, "%s%s\n", prefix, obj.Key)
+			_, err := fmt.Fprintf(w, "%s%s\n", prefix, gcr.Key)
 			return err
 		}),
 	},
@@ -183,12 +177,7 @@ Version         string The repo version.
 	},
 	Type: &corerepo.Stat{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			stat, ok := v.(*corerepo.Stat)
-			if !ok {
-				return e.TypeErr(stat, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, stat *corerepo.Stat) error {
 			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
 			defer wtr.Flush()
 

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ipfs/go-ipfs/core/commands/e"
-
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	verifcid "gx/ipfs/QmYMQuypUbgsdNHmuCBSUJV6wdQVsBHRivNAp3efHJwZJD/go-verifcid"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
@@ -245,13 +243,9 @@ var basesCmd = &cmds.Command{
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, val []CodeAndName) error {
 			prefixes, _ := req.Options[prefixOptionName].(bool)
 			numeric, _ := req.Options[numericOptionName].(bool)
-			val, ok := val0.([]CodeAndName)
-			if !ok {
-				return e.TypeErr(val, val0)
-			}
 			sort.Sort(multibaseSorter{val})
 			for _, v := range val {
 				code := v.Code
@@ -297,12 +291,8 @@ var codecsCmd = &cmds.Command{
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, val0 interface{}) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, val []CodeAndName) error {
 			numeric, _ := req.Options[codecsNumericOptionName].(bool)
-			val, ok := val0.([]CodeAndName)
-			if !ok {
-				return e.TypeErr(val, val0)
-			}
 			sort.Sort(codeAndNameSorter{val})
 			for _, v := range val {
 				if numeric {
