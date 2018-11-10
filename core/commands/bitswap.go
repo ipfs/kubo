@@ -11,6 +11,7 @@ import (
 	bitswap "gx/ipfs/QmXRphxBT4BH2GqGHUSbqULm7wNsxnpA2NrbNaY3DU1Y5K/go-bitswap"
 	decision "gx/ipfs/QmXRphxBT4BH2GqGHUSbqULm7wNsxnpA2NrbNaY3DU1Y5K/go-bitswap/decision"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
+	cidutil "gx/ipfs/QmbfKu17LbMWyGUxHEUns9Wf5Dkm8PT6be4uPhTkk4YvaV/go-cidutil"
 	peer "gx/ipfs/QmcqU6QUDSXprb1518vYDGczrTJTyGwLG9eUa5iNX4xUtS/go-libp2p-peer"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -64,18 +65,19 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 			if err != nil {
 				return err
 			}
-			if pid == nd.Identity {
-				return cmds.EmitOnce(res, &KeyList{bs.GetWantlist()})
+			if pid != nd.Identity {
+				return cmds.EmitOnce(res, &KeyList{bs.WantlistForPeer(pid)})
 			}
-
-			return cmds.EmitOnce(res, &KeyList{bs.WantlistForPeer(pid)})
 		}
+
 		return cmds.EmitOnce(res, &KeyList{bs.GetWantlist()})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *KeyList) error {
+			// sort the keys first
+			cidutil.Sort(out.Keys)
 			for _, key := range out.Keys {
-				fmt.Fprintln(w, key.String())
+				fmt.Fprintln(w, key)
 			}
 
 			return nil
