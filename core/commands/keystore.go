@@ -6,11 +6,10 @@ import (
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/commands/e"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	"gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var KeyCmd = &cmds.Command{
@@ -106,13 +105,8 @@ var keyGenCmd = &cmds.Command{
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			k, ok := v.(*KeyOutput)
-			if !ok {
-				return e.TypeErr(k, v)
-			}
-
-			_, err := w.Write([]byte(k.Id + "\n"))
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *KeyOutput) error {
+			_, err := w.Write([]byte(ko.Id + "\n"))
 			return err
 		}),
 	},
@@ -146,7 +140,7 @@ var keyListCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &KeyOutputList{list})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: keyOutputListMarshaler(),
+		cmds.Text: keyOutputListEncoders(),
 	},
 	Type: KeyOutputList{},
 }
@@ -189,16 +183,11 @@ var keyRenameCmd = &cmds.Command{
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			k, ok := v.(*KeyRenameOutput)
-			if !ok {
-				return fmt.Errorf("expected a KeyRenameOutput as command result")
-			}
-
-			if k.Overwrite {
-				fmt.Fprintf(w, "Key %s renamed to %s with overwriting\n", k.Id, k.Now)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, kro *KeyRenameOutput) error {
+			if kro.Overwrite {
+				fmt.Fprintf(w, "Key %s renamed to %s with overwriting\n", kro.Id, kro.Now)
 			} else {
-				fmt.Fprintf(w, "Key %s renamed to %s\n", k.Id, k.Now)
+				fmt.Fprintf(w, "Key %s renamed to %s\n", kro.Id, kro.Now)
 			}
 			return nil
 		}),
@@ -237,19 +226,14 @@ var keyRmCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &KeyOutputList{list})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: keyOutputListMarshaler(),
+		cmds.Text: keyOutputListEncoders(),
 	},
 	Type: KeyOutputList{},
 }
 
-func keyOutputListMarshaler() cmds.EncoderFunc {
-	return cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
+func keyOutputListEncoders() cmds.EncoderFunc {
+	return cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, list *KeyOutputList) error {
 		withID, _ := req.Options["l"].(bool)
-
-		list, ok := v.(*KeyOutputList)
-		if !ok {
-			return e.TypeErr(list, v)
-		}
 
 		tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 		for _, s := range list.Keys {

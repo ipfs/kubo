@@ -7,22 +7,21 @@ import (
 	"path"
 	"sort"
 
-	"github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/commands/e"
-	"github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	commands "github.com/ipfs/go-ipfs/commands"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	repo "github.com/ipfs/go-ipfs/repo"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	ma "gx/ipfs/QmRKLtwMw131aK7ugC3G7ybpumMz78YrJe5dzneyindvG1/go-multiaddr"
 	inet "gx/ipfs/QmRKbEchaYADxSCyyjhDh4cTrUby8ftXUb8MRLBTHQYupw/go-libp2p-net"
 	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	iaddr "gx/ipfs/QmUSE3APe1pMFVsUBZUZaKQKERiPteCWvTAERtVQmtXzgE/go-ipfs-addr"
 	pstore "gx/ipfs/QmUymf8fJtideyv3z727BcZUifGBjMZMpCJqu3Gxk5aRUk/go-libp2p-peerstore"
-	"gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
-	"gx/ipfs/QmbK4EmM2Xx5fmbqK38TGP3PpY66r3tkXLZTcc7dF9mFwM/go-ipfs-config"
-	"gx/ipfs/QmcYC4ayKi7bq8xecEZxHVEuTL6HREZWTTErrSRd1S3Spz/go-libp2p-swarm"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
+	config "gx/ipfs/QmbK4EmM2Xx5fmbqK38TGP3PpY66r3tkXLZTcc7dF9mFwM/go-ipfs-config"
+	swarm "gx/ipfs/QmcYC4ayKi7bq8xecEZxHVEuTL6HREZWTTErrSRd1S3Spz/go-libp2p-swarm"
 	peer "gx/ipfs/QmcqU6QUDSXprb1518vYDGczrTJTyGwLG9eUa5iNX4xUtS/go-libp2p-peer"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 type stringList struct {
@@ -129,12 +128,7 @@ var swarmPeersCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &out)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			ci, ok := v.(*connInfos)
-			if !ok {
-				return e.TypeErr(ci, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ci *connInfos) error {
 			pipfs := ma.ProtocolWithCode(ma.P_IPFS).Name
 			for _, info := range ci.Peers {
 				fmt.Fprintf(w, "%s/%s/%s", info.Addr, pipfs, info.Peer)
@@ -248,26 +242,22 @@ var swarmAddrsCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &addrMap{Addrs: out})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			m, ok := v.(*addrMap)
-			if !ok {
-				return e.TypeErr(m, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, am *addrMap) error {
 			// sort the ids first
-			ids := make([]string, 0, len(m.Addrs))
-			for p := range m.Addrs {
+			ids := make([]string, 0, len(am.Addrs))
+			for p := range am.Addrs {
 				ids = append(ids, p)
 			}
 			sort.Sort(sort.StringSlice(ids))
 
 			for _, p := range ids {
-				paddrs := m.Addrs[p]
+				paddrs := am.Addrs[p]
 				fmt.Fprintf(w, "%s (%d)\n", p, len(paddrs))
 				for _, addr := range paddrs {
 					fmt.Fprintf(w, "\t"+addr+"\n")
 				}
 			}
+
 			return nil
 		}),
 	},
@@ -314,7 +304,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 }
 
@@ -346,7 +336,7 @@ var swarmAddrsListenCmd = &cmds.Command{
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 }
 
@@ -391,7 +381,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 		return cmds.EmitOnce(res, &stringList{output})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -436,7 +426,7 @@ it will reconnect.
 		return cmds.EmitOnce(res, &stringList{output})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -532,7 +522,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 		return cmds.EmitOnce(res, &stringList{output})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -596,7 +586,7 @@ add your filters to the ipfs config file.
 		return cmds.EmitOnce(res, &stringList{added})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -669,7 +659,7 @@ remove your filters from the ipfs config file.
 		return cmds.EmitOnce(res, &stringList{removed})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }

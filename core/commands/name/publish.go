@@ -7,12 +7,11 @@ import (
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var (
@@ -139,18 +138,13 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			entry, ok := v.(*IpnsEntry)
-			if !ok {
-				return e.TypeErr(entry, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ie *IpnsEntry) error {
 			var err error
 			quieter, _ := req.Options[quieterOptionName].(bool)
 			if quieter {
-				_, err = fmt.Fprintln(w, entry.Name)
+				_, err = fmt.Fprintln(w, ie.Name)
 			} else {
-				_, err = fmt.Fprintf(w, "Published to %s: %s\n", entry.Name, entry.Value)
+				_, err = fmt.Fprintf(w, "Published to %s: %s\n", ie.Name, ie.Value)
 			}
 			return err
 		}),

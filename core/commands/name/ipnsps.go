@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/commands/e"
-
 	"gx/ipfs/QmSoeYGNm8v8jAF49hX7UwHwkXjoeobSrn9sya5NPPsxXP/go-libp2p-record"
 	"gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	"gx/ipfs/QmcqU6QUDSXprb1518vYDGczrTJTyGwLG9eUa5iNX4xUtS/go-libp2p-peer"
@@ -57,14 +55,9 @@ var ipnspsStateCmd = &cmds.Command{
 	},
 	Type: ipnsPubsubState{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			output, ok := v.(*ipnsPubsubState)
-			if !ok {
-				return e.TypeErr(output, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ips *ipnsPubsubState) error {
 			var state string
-			if output.Enabled {
+			if ips.Enabled {
 				state = "enabled"
 			} else {
 				state = "disabled"
@@ -108,7 +101,7 @@ var ipnspsSubsCmd = &cmds.Command{
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: stringListMarshaler(),
+		cmds.Text: stringListEncoder(),
 	},
 }
 
@@ -144,14 +137,9 @@ var ipnspsCancelCmd = &cmds.Command{
 	},
 	Type: ipnsPubsubCancel{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			output, ok := v.(*ipnsPubsubCancel)
-			if !ok {
-				return e.TypeErr(output, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ipc *ipnsPubsubCancel) error {
 			var state string
-			if output.Canceled {
+			if ipc.Canceled {
 				state = "canceled"
 			} else {
 				state = "no subscription"
@@ -163,13 +151,8 @@ var ipnspsCancelCmd = &cmds.Command{
 	},
 }
 
-func stringListMarshaler() cmds.EncoderFunc {
-	return cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-		list, ok := v.(*stringList)
-		if !ok {
-			return e.TypeErr(list, v)
-		}
-
+func stringListEncoder() cmds.EncoderFunc {
+	return cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, list *stringList) error {
 		for _, s := range list.Strings {
 			_, err := fmt.Fprintln(w, s)
 			if err != nil {
