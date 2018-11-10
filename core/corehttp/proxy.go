@@ -17,7 +17,7 @@ import (
 // ProxyOption is an endpoint for proxying a HTTP request to another ipfs peer
 func ProxyOption() ServeOption {
 	return func(ipfsNode *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		mux.HandleFunc("/proxy/http/", func(w http.ResponseWriter, request *http.Request) {
+		mux.HandleFunc("/p2p/", func(w http.ResponseWriter, request *http.Request) {
 			// parse request
 			parsedRequest, err := parseRequest(request)
 			if err != nil {
@@ -49,16 +49,27 @@ type proxyRequest struct {
 }
 
 // from the url path parse the peer-ID, name and http path
-// /proxy/http/$peer_id/$name/$http_path
+// /p2p/$peer_id/http/$http_path
+// or
+// /p2p/$peer_id/x/$protocol/http/$http_path
 func parseRequest(request *http.Request) (*proxyRequest, error) {
 	path := request.URL.Path
 
-	split := strings.SplitN(path, "/", 6)
-	if len(split) < 6 {
+	split := strings.SplitN(path, "/", 5)
+	if len(split) < 5 {
 		return nil, fmt.Errorf("Invalid request path '%s'", path)
 	}
 
-	return &proxyRequest{split[3], protocol.ID(split[4]), split[5]}, nil
+	if split[3] == "http" {
+		return &proxyRequest{split[2], protocol.ID("/http"), split[4]}, nil
+	}
+
+	split = strings.SplitN(path, "/", 7)
+	if split[3] != "x" || split[5] != "http" {
+		return nil, fmt.Errorf("Invalid request path '%s'", path)
+	}
+
+	return &proxyRequest{split[2], protocol.ID("/x/" + split[4] + "/http"), split[6]}, nil
 }
 
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
