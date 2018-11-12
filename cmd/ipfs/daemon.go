@@ -629,17 +629,49 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 }
 
 func maybeRunGC(req *cmds.Request, node *core.IpfsNode) (<-chan error, error) {
-	enableGC, _ := req.Options[enableGCKwd].(bool)
-	if !enableGC {
+	gc, err := initGC(req, node)
+	if err != nil {
+		return nil, err
+	}
+	if !gc.EnableGC {
+		log.Warningf("GC: %s", "Repo GC is disabled.")
 		return nil, nil
 	}
 
 	errc := make(chan error)
-	go func() {
-		errc <- corerepo.PeriodicGC(req.Context, node)
-		close(errc)
-	}()
+	// if duration larger than 0, it means GC is enabled.
+	if int64(gc.GCPeriod) > 0 {
+		go func() {
+			errc <- corerepo.PeriodicGC(req.Context, gc)
+			close(errc)
+		}()
+	}
+
 	return errc, nil
+}
+
+func initGC(req *cmds.Request, node *core.IpfsNode) (*corerepo.GC, error) {
+	enableGC, _ := req.Options[enableGCKwd].(bool)
+	cfg, err := node.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.Datastore.GCPeriod == "" {
+		log.Warning("GCPeriod isn't set, the default value is 1h")
+		cfg.Datastore.GCPeriod = "1h"
+	}
+
+	gc, err := corerepo.NewGC(node)
+	if err != nil {
+		return nil, err
+	}
+	gc.EnableGC = enableGC
+
+	node.StorageMax = gc.StorageMax
+	node.EnableGC = gc.EnableGC
+
+	return gc, nil
 }
 
 // merge does fan-in of multiple read-only error channels

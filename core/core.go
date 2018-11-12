@@ -140,6 +140,10 @@ type IpfsNode struct {
 	DHT      *dht.IpfsDHT
 	P2P      *p2p.P2P
 
+	// GC Configuration
+	EnableGC   bool
+	StorageMax uint64
+
 	proc goprocess.Process
 	ctx  context.Context
 

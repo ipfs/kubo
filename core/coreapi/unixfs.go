@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -22,6 +23,10 @@ import (
 	cidutil "gx/ipfs/QmbfKu17LbMWyGUxHEUns9Wf5Dkm8PT6be4uPhTkk4YvaV/go-cidutil"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 	mfs "gx/ipfs/QmcUXFi2Fp7oguoFT81f2poJpnb44dFkZanQhDBHMoYyG9/go-mfs"
+)
+
+var (
+	errFullStorage = errors.New("DataStorage is full, please enable gc and restart node")
 )
 
 type UnixfsAPI CoreAPI
@@ -124,6 +129,23 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 		}
 
 		fileAdder.SetMfsRoot(mr)
+	}
+
+	// Get storageMax when node is online.
+	if !n.EnableGC && n.OnlineMode() {
+		storageUsage, err := n.Repo.GetStorageUsage()
+		if err != nil {
+			return nil, err
+		}
+		storPercentage := float64(storageUsage) / float64(n.StorageMax)
+		switch {
+		case storPercentage > 0.99:
+			return nil, errFullStorage
+		case storPercentage > 0.95:
+			log.Error("DataStorage exceeds 95%,please note the storage usage.")
+		case storPercentage > 0.90:
+			log.Warning("DataStorage exceeds 90%,please note the storage usage.")
+		}
 	}
 
 	nd, err := fileAdder.AddAllAndPin(files)

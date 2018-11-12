@@ -23,10 +23,12 @@ var ErrMaxStorageExceeded = errors.New("maximum storage limit exceeded. Try to u
 type GC struct {
 	Node       *core.IpfsNode
 	Repo       repo.Repo
+	EnableGC   bool
 	StorageMax uint64
 	StorageGC  uint64
 	SlackGB    uint64
 	Storage    uint64
+	GCPeriod   time.Duration
 }
 
 func NewGC(n *core.IpfsNode) (*GC, error) {
@@ -61,12 +63,18 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 		slackGB = 1
 	}
 
+	period, err := time.ParseDuration(cfg.Datastore.GCPeriod)
+	if err != nil {
+		return nil, err
+	}
+
 	return &GC{
 		Node:       n,
 		Repo:       r,
 		StorageMax: storageMax,
 		StorageGC:  storageGC,
 		SlackGB:    slackGB,
+		GCPeriod:   period,
 	}, nil
 }
 
@@ -157,35 +165,13 @@ func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) <-chan gc.Result
 	return gc.GC(ctx, n.Blockstore, n.Repo.Datastore(), n.Pinning, roots)
 }
 
-func PeriodicGC(ctx context.Context, node *core.IpfsNode) error {
-	cfg, err := node.Repo.Config()
-	if err != nil {
-		return err
-	}
-
-	if cfg.Datastore.GCPeriod == "" {
-		cfg.Datastore.GCPeriod = "1h"
-	}
-
-	period, err := time.ParseDuration(cfg.Datastore.GCPeriod)
-	if err != nil {
-		return err
-	}
-	if int64(period) == 0 {
-		// if duration is 0, it means GC is disabled.
-		return nil
-	}
-
-	gc, err := NewGC(node)
-	if err != nil {
-		return err
-	}
-
+// PeriodicGC create a goroutine to gc.
+func PeriodicGC(ctx context.Context, gc *GC) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(period):
+		case <-time.After(gc.GCPeriod):
 			// the private func maybeGC doesn't compute storageMax, storageGC, slackGC so that they are not re-computed for every cycle
 			if err := gc.maybeGC(ctx, 0); err != nil {
 				log.Error(err)
