@@ -138,7 +138,8 @@ test_expect_success 'start and connect nodes' '
 '
 
 test_expect_success 'setup p2p listener on the receiver' '
-    ipfsi 1 p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT
+    ipfsi 1 p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT &&
+    ipfsi 1 p2p listen /x/custom/http /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT
 '
 
 test_expect_success 'setup environment' '
@@ -167,6 +168,22 @@ test_expect_success 'handle proxy http request invalid request' '
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
     curl_check_response_code 502 p2p/unknown_peer/http/index.txt
+'
+
+test_expect_success 'handle proxy http request to custom protocol' '
+    serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
+    curl_check_response_code 200 p2p/$RECEIVER_ID/x/custom/http/index.txt
+'
+teardown_remote_server
+
+test_expect_success 'handle proxy http request to missing protocol' '
+    serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
+    curl_check_response_code 502 p2p/$RECEIVER_ID/x/missing/http/index.txt
+'
+teardown_remote_server
+
+test_expect_success 'handle proxy http request missing the /http' '
+    curl_check_response_code 400 p2p/$RECEIVER_ID/x/custom/index.txt
 '
 
 test_expect_success 'handle multipart/form-data http request' '
