@@ -4,6 +4,8 @@ test_description="Test http proxy over p2p"
 
 . lib/test-lib.sh
 WEB_SERVE_PORT=5099
+IPFS_GATEWAY_PORT=5199
+SENDER_GATEWAY="http://127.0.0.1:$IPFS_GATEWAY_PORT"
 
 function show_logs() {
 
@@ -41,8 +43,8 @@ function teardown_remote_server() {
 
 function curl_check_response_code() {
     local expected_status_code=$1
-    local path_stub=${2:-http/$RECEIVER_ID/test/index.txt}
-    local status_code=$(curl -s --write-out %{http_code} --output /dev/null $SENDER_URL/$path_stub)
+    local path_stub=${2:-p2p/$RECEIVER_ID/http/index.txt}
+    local status_code=$(curl -s --write-out %{http_code} --output /dev/null $SENDER_GATEWAY/$path_stub)
 
     if [[ "$status_code" -ne "$expected_status_code" ]];
     then
@@ -61,12 +63,12 @@ function curl_send_proxy_request_and_check_response() {
     # make a request to SENDER_IPFS via the proxy endpoint
     #
     CONTENT_PATH="retrieved-file"
-    STATUS_CODE=$(curl -s -o $CONTENT_PATH --write-out %{http_code} $SENDER_URL/$RECEIVER_ID/test/index.txt)
+    STATUS_CODE="$(curl -s -o $CONTENT_PATH --write-out %{http_code} $SENDER_GATEWAY/p2p/$RECEIVER_ID/http/index.txt)"
 
     #
     # check status code
     #
-    if [[ $STATUS_CODE -ne $expected_status_code ]];
+    if [[ "$STATUS_CODE" -ne "$expected_status_code" ]];
     then
         echo -e "Found status-code "$STATUS_CODE", expected "$expected_status_code
         return 1
@@ -75,7 +77,7 @@ function curl_send_proxy_request_and_check_response() {
     #
     # check content
     #
-    RESPONSE_CONTENT=$(tail -n 1 $CONTENT_PATH)
+    RESPONSE_CONTENT="$(tail -n 1 $CONTENT_PATH)"
     if [[ "$RESPONSE_CONTENT" == "$expected_content" ]];
     then
         return 0
@@ -93,11 +95,11 @@ function curl_send_multipart_form_request() {
     #
     # send multipart form request
     #
-    STATUS_CODE=$(curl -v -F file=@$FILE_PATH  $SENDER_URL/$RECEIVER_ID/test/index.txt)
+    STATUS_CODE="$(curl -v -F file=@$FILE_PATH  $SENDER_GATEWAY/p2p/$RECEIVER_ID/http/index.txt)"
     #
     # check status code
     #
-    if [[ $STATUS_CODE -ne $expected_status_code ]];
+    if [[ "$STATUS_CODE" -ne "$expected_status_code" ]];
     then
         echo -e "Found status-code "$STATUS_CODE", expected "$expected_status_code
         return 1
@@ -128,6 +130,7 @@ test_expect_success 'configure nodes' '
     ipfsi 0 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 1 config --json Experimental.Libp2pStreamMounting true &&
     ipfsi 0 config --json Experimental.P2pHttpProxy true
+    ipfsi 0 config --json Addresses.Gateway "[\"/ip4/127.0.0.1/tcp/$IPFS_GATEWAY_PORT\"]"
 '
 
 test_expect_success 'start and connect nodes' '
@@ -135,12 +138,11 @@ test_expect_success 'start and connect nodes' '
 '
 
 test_expect_success 'setup p2p listener on the receiver' '
-    ipfsi 1 p2p listen --allow-custom-protocol test /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT
+    ipfsi 1 p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$WEB_SERVE_PORT
 '
 
-test_expect_success 'setup environment variables' '
-    RECEIVER_ID="$(iptb get id 1)" &&
-    SENDER_URL="$(sed "s|^/ip[46]/\([^/]*\)/tcp/\([0-9]*\)\$|http://\\1:\\2/proxy/http|" < "$(iptb get path 0)/api")"
+test_expect_success 'setup environment' '
+    RECEIVER_ID="$(iptb attr get 1 id)"
 '
 
 test_expect_success 'handle proxy http request propogates error response from remote' '
@@ -160,11 +162,11 @@ test_expect_success 'handle proxy http request ' '
 teardown_remote_server
 
 test_expect_success 'handle proxy http request invalid request' '
-    curl_check_response_code 400 DERPDERPDERP
+    curl_check_response_code 400 p2p/DERPDERPDERP
 '
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
-    curl_check_response_code 502 unknown_peer/test/index.txt
+    curl_check_response_code 502 p2p/unknown_peer/http/index.txt
 '
 
 test_expect_success 'handle multipart/form-data http request' '
