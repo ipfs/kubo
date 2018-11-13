@@ -77,6 +77,12 @@ func Bootstrap(n *IpfsNode, cfg BootstrapConfig) (io.Closer, error) {
 	// make a signal to wait for one bootstrap round to complete.
 	doneWithRound := make(chan struct{})
 
+	if len(cfg.BootstrapPeers()) == 0 {
+		// We *need* to bootstrap but we have no bootstrap peers
+		// configured *at all*, inform the user.
+		log.Error("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
+	}
+
 	// the periodic bootstrap function -- the connection supervisor
 	periodic := func(worker goprocess.Process) {
 		ctx := procctx.OnClosingContext(worker)
@@ -138,11 +144,6 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	// if connected to all bootstrap peer candidates, exit
 	if len(notConnected) < 1 {
 		log.Debugf("%s no more bootstrap peers to create %d connections", id, numToDial)
-		if len(peers) == 0 {
-			// We *need* to bootstrap but we have no bootstrap peers
-			// configured *at all*, inform the user.
-			log.Error("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
-		}
 		return ErrNotEnoughBootstrapPeers
 	}
 
