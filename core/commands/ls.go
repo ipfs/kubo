@@ -37,7 +37,9 @@ type LsObject struct {
 // LsOutput is a set of printable data for directories,
 // it can be complete or partial
 type LsOutput struct {
-	Objects        []LsObject
+	Objects []LsObject
+	// temporary flag to help us figure out where we are in the process of ls-ing
+	// the directory when we are streaming
 	LastObjectHash string
 }
 
@@ -66,7 +68,7 @@ The JSON output contains type information.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(lsHeadersOptionNameTime, "v", "Print table headers (Hash, Size, Name)."),
 		cmdkit.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
-		cmdkit.BoolOption(lsStreamOptionName, "s", "Stream directory entries as they are found."),
+		cmdkit.BoolOption(lsStreamOptionName, "s", "Enable exprimental streaming of directory entries as they are traversed."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
