@@ -21,7 +21,7 @@ func ProxyOption() ServeOption {
 			// parse request
 			parsedRequest, err := parseRequest(request)
 			if err != nil {
-				handleError(w, "Failed to parse request", err, 400)
+				handleError(w, "failed to parse request", err, 400)
 				return
 			}
 
@@ -29,7 +29,7 @@ func ProxyOption() ServeOption {
 			request.URL.Path = parsedRequest.httpPath
 			target, err := url.Parse(fmt.Sprintf("libp2p://%s", parsedRequest.target))
 			if err != nil {
-				handleError(w, "Failed to parse url", err, 400)
+				handleError(w, "failed to parse url", err, 400)
 				return
 			}
 
@@ -75,5 +75,5 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
 	w.WriteHeader(code)
 	fmt.Fprintf(w, "%s: %s\n", msg, err)
-	log.Warningf("server error: %s: %s", err)
+	log.Warningf("http proxy error: %s: %s", err)
 }

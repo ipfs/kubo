@@ -14,7 +14,7 @@ func TestParseRequest(t *testing.T) {
 
 	parsed, err := parseRequest(req)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	assert.True(parsed.httpPath == "path/to/index.txt", t, "proxy request path")
 	assert.True(parsed.name == "/http", t, "proxy request name")
