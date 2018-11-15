@@ -94,10 +94,11 @@ func TestAddGCLive(t *testing.T) {
 
 	}()
 
-	addedHashes := make(map[string]struct{})
+	addedHashes := make(map[cid.Cid]struct{})
 	select {
 	case o := <-out:
-		addedHashes[o.(*coreiface.AddEvent).Hash] = struct{}{}
+		c, _ := o.(*coreiface.AddEvent).Hash.Cid()
+		addedHashes[c] = struct{}{}
 	case <-addDone:
 		t.Fatal("add shouldnt complete yet")
 	}
@@ -125,7 +126,8 @@ func TestAddGCLive(t *testing.T) {
 
 	// receive next object from adder
 	o := <-out
-	addedHashes[o.(*coreiface.AddEvent).Hash] = struct{}{}
+	c, _ := o.(*coreiface.AddEvent).Hash.Cid()
+	addedHashes[c] = struct{}{}
 
 	<-gcstarted
 
@@ -133,7 +135,7 @@ func TestAddGCLive(t *testing.T) {
 		if r.Error != nil {
 			t.Fatal(err)
 		}
-		if _, ok := addedHashes[r.KeyRemoved.String()]; ok {
+		if _, ok := addedHashes[r.KeyRemoved]; ok {
 			t.Fatal("gc'ed a hash we just added")
 		}
 	}
@@ -141,7 +143,7 @@ func TestAddGCLive(t *testing.T) {
 	var last cid.Cid
 	for a := range out {
 		// wait for it to finish
-		c, err := cid.Decode(a.(*coreiface.AddEvent).Hash)
+		c, err := a.(*coreiface.AddEvent).Hash.Cid()
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -10,6 +10,7 @@ import (
 	tar "github.com/ipfs/go-ipfs/tar"
 
 	"gx/ipfs/QmVi2uUygezqaMTqs3Yzt5FcZFHJoYD4B7jQ2BELjj7ZuY/go-path"
+	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	dag "gx/ipfs/QmcGt25mrjuB2kKW2zhPbXVZNHc4yoTDQ65NA8m6auP2f1/go-merkledag"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
@@ -59,12 +60,17 @@ represent it.
 		fi.FileName()
 		return cmds.EmitOnce(res, &coreiface.AddEvent{
 			Name: fi.FileName(),
-			Hash: c.String(),
+			Hash: apicid.FromCid(c),
 		})
 	},
 	Type: coreiface.AddEvent{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *coreiface.AddEvent) error {
+			err := cmdenv.ProcCidBaseClientSide(req)
+			if err != nil {
+				return err
+			}
+
 			fmt.Fprintln(w, out.Hash)
 			return nil
 		}),

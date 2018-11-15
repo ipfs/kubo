@@ -6,6 +6,7 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
+	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 )
@@ -13,9 +14,9 @@ import (
 // TODO: ideas on making this more coreapi-ish without breaking the http API?
 type AddEvent struct {
 	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
+	Hash  apicid.Hash `json:",omitempty"`
+	Bytes int64       `json:",omitempty"`
+	Size  string      `json:",omitempty"`
 }
 
 type UnixfsFile interface {
