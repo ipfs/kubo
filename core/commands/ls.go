@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"os"
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -38,9 +39,6 @@ type LsObject struct {
 // it can be complete or partial
 type LsOutput struct {
 	Objects []LsObject
-	// temporary flag to help us figure out where we are in the process of ls-ing
-	// the directory when we are streaming
-	LastObjectHash string
 }
 
 const (
@@ -102,7 +100,6 @@ The JSON output contains type information.
 			if err != nil {
 				return err
 			}
-
 			dagnode, err := api.ResolveNode(req.Context, p)
 			if err != nil {
 				return err
@@ -113,7 +110,6 @@ The JSON output contains type information.
 		ro := merkledag.NewReadOnlyDagService(ng)
 
 		stream, _ := req.Options[lsStreamOptionName].(bool)
-		lastObjectHash := ""
 
 		if !stream {
 			output := make([]LsObject, len(req.Arguments))
@@ -147,7 +143,7 @@ The JSON output contains type information.
 				}
 			}
 
-			return cmds.EmitOnce(res, &LsOutput{output, lastObjectHash})
+			return cmds.EmitOnce(res, &LsOutput{output})
 		}
 
 		for i, dagnode := range dagnodes {
@@ -173,62 +169,42 @@ The JSON output contains type information.
 				if err != nil {
 					return err
 				}
-				output := []LsObject{
-					{
-						Hash:  paths[i],
-						Links: []LsLink{*lsLink},
-					},
-				}
-				if err = res.Emit(&LsOutput{output, lastObjectHash}); err != nil {
+				output := []LsObject{{
+					Hash:  paths[i],
+					Links: []LsLink{*lsLink},
+				}}
+				if err = res.Emit(&LsOutput{output}); err != nil {
 					return err
 				}
-				lastObjectHash = paths[i]
 			}
 		}
 		return nil
 	},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			req := res.Request()
+			lastObjectHash := ""
+
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+				out := v.(*LsOutput)
+				lastObjectHash = tabularOutput(req, os.Stdout, out, lastObjectHash, false)
+			}
+		},
+	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *LsOutput) error {
-			headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
-			stream, _ := req.Options[lsStreamOptionName].(bool)
-			// in streaming mode we can't automatically align the tabs
-			// so we take a best guess
-			var minTabWidth int
-			if stream {
-				minTabWidth = 10
-			} else {
-				minTabWidth = 1
-			}
-
-			multipleFolders := len(req.Arguments) > 1
-			lastObjectHash := out.LastObjectHash
-
-			tw := tabwriter.NewWriter(w, minTabWidth, 2, 1, ' ', 0)
-
-			for _, object := range out.Objects {
-
-				if object.Hash != lastObjectHash {
-					if multipleFolders {
-						if lastObjectHash != "" {
-							fmt.Fprintln(tw)
-						}
-						fmt.Fprintf(tw, "%s:\n", object.Hash)
-					}
-					if headers {
-						fmt.Fprintln(tw, "Hash\tSize\tName")
-					}
-					lastObjectHash = object.Hash
-				}
-
-				for _, link := range object.Links {
-					if link.Type == unixfs.TDirectory {
-						link.Name += "/"
-					}
-
-					fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
-				}
-			}
-			tw.Flush()
+			// when streaming over HTTP using a text encoder, we cannot render breaks
+			// between directories because we don't know the hash of the last
+			// directory encoder
+			ignoreBreaks, _ := req.Options[lsStreamOptionName].(bool)
+			tabularOutput(req, w, out, "", ignoreBreaks)
 			return nil
 		}),
 	},
@@ -283,4 +259,47 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ip
 		Size: link.Size,
 		Type: t,
 	}, nil
+}
+
+func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash string, ignoreBreaks bool) string {
+	headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
+	stream, _ := req.Options[lsStreamOptionName].(bool)
+	// in streaming mode we can't automatically align the tabs
+	// so we take a best guess
+	var minTabWidth int
+	if stream {
+		minTabWidth = 10
+	} else {
+		minTabWidth = 1
+	}
+
+	multipleFolders := len(req.Arguments) > 1
+
+	tw := tabwriter.NewWriter(w, minTabWidth, 2, 1, ' ', 0)
+
+	for _, object := range out.Objects {
+
+		if !ignoreBreaks && object.Hash != lastObjectHash {
+			if multipleFolders {
+				if lastObjectHash != "" {
+					fmt.Fprintln(tw)
+				}
+				fmt.Fprintf(tw, "%s:\n", object.Hash)
+			}
+			if headers {
+				fmt.Fprintln(tw, "Hash\tSize\tName")
+			}
+			lastObjectHash = object.Hash
+		}
+
+		for _, link := range object.Links {
+			if link.Type == unixfs.TDirectory {
+				link.Name += "/"
+			}
+
+			fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
+		}
+	}
+	tw.Flush()
+	return lastObjectHash
 }
