@@ -32,7 +32,9 @@ function serve_http_once() {
     local status_code=${2:-"200 OK"}
     local length=$((1 + ${#body}))
     REMOTE_SERVER_LOG="server.log"
+    rm $REMOTE_SERVER_LOG
     echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" | nc -l $WEB_SERVE_PORT 2>&1 > $REMOTE_SERVER_LOG &
+    test_wait_for_file 30 100ms $REMOTE_SERVER_LOG
     REMOTE_SERVER_PID=$!
 }
 
