@@ -81,6 +81,7 @@ type statOutput struct {
 	CumulativeSize uint64
 	Blocks         int
 	Type           string
+	Message        string
 	WithLocality   bool   `json:",omitempty"`
 	Local          bool   `json:",omitempty"`
 	SizeLocal      uint64 `json:",omitempty"`
@@ -155,8 +156,10 @@ var filesStatCmd = &cmds.Command{
 			}
 		} else {
 			nd, err = getNodeFromMfs(node, path)
+			// TODO: here requesting a stable error from the MFS API.
 			if err != nil {
-				return err
+				o := statOutput{Type: "error", Message: err.Error()}
+				return cmds.EmitOnce(res, o)
 			}
 		}
 
