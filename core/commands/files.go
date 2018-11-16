@@ -147,9 +147,17 @@ var filesStatCmd = &cmds.Command{
 			dagserv = node.DAG
 		}
 
-		nd, err := getNodeFromPath(req.Context, node, api, path)
-		if err != nil {
-			return err
+		var nd ipld.Node
+		if strings.HasPrefix(path, "/ipfs/") {
+			nd, err = getNodeFromDag(req.Context, api, path)
+			if err != nil {
+				return err
+			}
+		} else {
+			nd, err = getNodeFromMfs(node, path)
+			if err != nil {
+				return err
+			}
 		}
 
 		o, err := statNode(nd)
@@ -354,20 +362,28 @@ var filesCpCmd = &cmds.Command{
 func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
-		np, err := iface.ParsePath(p)
-		if err != nil {
-			return nil, err
-		}
-
-		return api.ResolveNode(ctx, np)
+		return getNodeFromDag(ctx, api, p)
 	default:
-		fsn, err := mfs.Lookup(node.FilesRoot, p)
-		if err != nil {
-			return nil, err
-		}
-
-		return fsn.GetNode()
+		return getNodeFromMfs(node, p)
 	}
+}
+
+func getNodeFromDag(ctx context.Context, api iface.CoreAPI, p string) (ipld.Node, error) {
+	np, err := iface.ParsePath(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.ResolveNode(ctx, np)
+}
+
+func getNodeFromMfs(node *core.IpfsNode, p string) (ipld.Node, error) {
+	fsn, err := mfs.Lookup(node.FilesRoot, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return fsn.GetNode()
 }
 
 type filesLsOutput struct {
