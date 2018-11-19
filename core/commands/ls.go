@@ -212,20 +212,15 @@ The JSON output contains type information.
 }
 
 func makeDagNodeLinkResults(req *cmds.Request, dagnode ipld.Node) <-chan unixfs.LinkResult {
-	linkResults := make(chan unixfs.LinkResult)
-	go func() {
-		defer close(linkResults)
-		for _, l := range dagnode.Links() {
-			select {
-			case linkResults <- unixfs.LinkResult{
-				Link: l,
-				Err:  nil,
-			}:
-			case <-req.Context.Done():
-				return
-			}
+	links := dagnode.Links()
+	linkResults := make(chan unixfs.LinkResult, len(links))
+	defer close(linkResults)
+	for _, l := range links {
+		linkResults <- unixfs.LinkResult{
+			Link: l,
+			Err:  nil,
 		}
-	}()
+	}
 	return linkResults
 }
 
