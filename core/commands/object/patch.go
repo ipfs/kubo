@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var ObjectPatchCmd = &cmds.Command{
@@ -60,12 +60,15 @@ the limit will not be respected by the network.
 			return err
 		}
 
-		_, data, err := req.Files.NextFile()
-		if err != nil {
-			return err
+		it, _ := req.Files.Entries()
+		if !it.Next() && it.Err() != nil {
+			return it.Err()
+		}
+		if it.File() == nil {
+			return fmt.Errorf("expected a regular file")
 		}
 
-		p, err := api.Object().AppendData(req.Context, root, data)
+		p, err := api.Object().AppendData(req.Context, root, it.File())
 		if err != nil {
 			return err
 		}
@@ -107,12 +110,15 @@ Example:
 			return err
 		}
 
-		_, data, err := req.Files.NextFile()
-		if err != nil {
-			return err
+		it, _ := req.Files.Entries()
+		if !it.Next() && it.Err() != nil {
+			return it.Err()
+		}
+		if it.File() == nil {
+			return fmt.Errorf("expected a regular file")
 		}
 
-		p, err := api.Object().SetData(req.Context, root, data)
+		p, err := api.Object().SetData(req.Context, root, it.File())
 		if err != nil {
 			return err
 		}

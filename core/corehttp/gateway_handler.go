@@ -172,10 +172,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	dir := dr.IsDirectory()
-	if !dir {
-		defer dr.Close()
-	}
+	defer dr.Close()
 
 	// Check etag send back to us
 	etag := "\"" + resolvedPath.Cid().String() + "\""
@@ -240,14 +237,14 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
 
-	if strings.HasPrefix(urlPath, ipfsPathPrefix) && !dir {
-		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
+	if f, ok := dr.(files.File); ok {
+		if strings.HasPrefix(urlPath, ipfsPathPrefix) {
+			w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 
-		// set modtime to a really long time ago, since files are immutable and should stay cached
-		modtime = time.Unix(1, 0)
-	}
+			// set modtime to a really long time ago, since files are immutable and should stay cached
+			modtime = time.Unix(1, 0)
+		}
 
-	if !dir {
 		urlFilename := r.URL.Query().Get("filename")
 		var name string
 		if urlFilename != "" {
@@ -256,8 +253,9 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		} else {
 			name = getFilename(urlPath)
 		}
-		i.serveFile(w, r, name, modtime, dr)
+		i.serveFile(w, r, name, modtime, f)
 		return
+
 	}
 
 	nd, err := i.api.ResolveNode(ctx, resolvedPath)
@@ -290,8 +288,14 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		}
 		defer dr.Close()
 
+		f, ok := dr.(files.File)
+		if !ok {
+			internalWebError(w, files.ErrNotReader)
+			return
+		}
+
 		// write to request
-		http.ServeContent(w, r, "index.html", modtime, dr)
+		http.ServeContent(w, r, "index.html", modtime, f)
 		return
 	default:
 		internalWebError(w, err)

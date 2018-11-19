@@ -81,10 +81,10 @@ func TestAddGCLive(t *testing.T) {
 	datad := ioutil.NopCloser(bytes.NewBufferString("testfileD"))
 	rfd := files.NewReaderFile(datad, nil)
 
-	slf := files.NewSliceFile([]files.FileEntry{
-		{File: rfa, Name: "a"},
-		{File: hangfile, Name: "b"},
-		{File: rfd, Name: "d"},
+	slf := files.NewSliceFile([]files.DirEntry{
+		files.FileEntry("a", rfa),
+		files.FileEntry("b", hangfile),
+		files.FileEntry("d", rfd),
 	})
 
 	addDone := make(chan struct{})

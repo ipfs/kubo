@@ -3,7 +3,6 @@ package coreapi
 import (
 	"context"
 	"errors"
-	"io"
 
 	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	ft "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs"
@@ -21,74 +20,73 @@ const prefetchFiles = 4
 type ufsDirectory struct {
 	ctx   context.Context
 	dserv ipld.DAGService
+	dir   uio.Directory
+}
 
+type ufsIterator struct {
+	ctx   context.Context
 	files chan *ipld.Link
+	dserv ipld.DAGService
+
+	curName string
+	curFile files.Node
+
+	err error
+}
+
+func (it *ufsIterator) Name() string {
+	return it.curName
+}
+
+func (it *ufsIterator) Node() files.Node {
+	return it.curFile
+}
+
+func (it *ufsIterator) File() files.File {
+	f, _ := it.curFile.(files.File)
+	return f
+}
+
+func (it *ufsIterator) Dir() files.Directory {
+	d, _ := it.curFile.(files.Directory)
+	return d
+}
+
+func (it *ufsIterator) Next() bool {
+	l, ok := <-it.files
+	if !ok {
+		return false
+	}
+
+	it.curFile = nil
+
+	nd, err := l.GetNode(it.ctx, it.dserv)
+	if err != nil {
+		it.err = err
+		return false
+	}
+
+	it.curName = l.Name
+	it.curFile, it.err = newUnixfsFile(it.ctx, it.dserv, nd)
+	return it.err == nil
+}
+
+func (it *ufsIterator) Err() error {
+	return it.err
 }
 
 func (d *ufsDirectory) Close() error {
-	return files.ErrNotReader
+	return nil
 }
 
-func (d *ufsDirectory) Read(_ []byte) (int, error) {
-	return 0, files.ErrNotReader
-}
-
-func (d *ufsDirectory) IsDirectory() bool {
-	return true
-}
-
-func (d *ufsDirectory) NextFile() (string, files.File, error) {
-	l, ok := <-d.files
-	if !ok {
-		return "", nil, io.EOF
-	}
-
-	nd, err := l.GetNode(d.ctx, d.dserv)
-	if err != nil {
-		return "", nil, err
-	}
-
-	f, err := newUnixfsFile(d.ctx, d.dserv, nd, d)
-	return l.Name, f, err
-}
-
-func (d *ufsDirectory) Size() (int64, error) {
-	return 0, files.ErrNotReader
-}
-
-func (d *ufsDirectory) Seek(offset int64, whence int) (int64, error) {
-	return 0, files.ErrNotReader
-}
-
-type ufsFile struct {
-	uio.DagReader
-}
-
-func (f *ufsFile) IsDirectory() bool {
-	return false
-}
-
-func (f *ufsFile) NextFile() (string, files.File, error) {
-	return "", nil, files.ErrNotDirectory
-}
-
-func (f *ufsFile) Size() (int64, error) {
-	return int64(f.DagReader.Size()), nil
-}
-
-func newUnixfsDir(ctx context.Context, dserv ipld.DAGService, nd ipld.Node) (files.File, error) {
-	dir, err := uio.NewDirectoryFromNode(dserv, nd)
-	if err != nil {
-		return nil, err
-	}
-
+func (d *ufsDirectory) Entries() (files.DirIterator, error) {
 	fileCh := make(chan *ipld.Link, prefetchFiles)
 	go func() {
-		dir.ForEachLink(ctx, func(link *ipld.Link) error {
+		d.dir.ForEachLink(d.ctx, func(link *ipld.Link) error {
 			select {
 			case fileCh <- link:
-			case <-ctx.Done():
-				return ctx.Err()
+			case <-d.ctx.Done():
+				return d.ctx.Err()
 			}
 			return nil
 		})
@@ -96,15 +94,40 @@ func newUnixfsDir(ctx context.Context, dserv ipld.DAGService, nd ipld.Node) (fil
 		close(fileCh)
 	}()
 
+	return &ufsIterator{
+		ctx:   d.ctx,
+		files: fileCh,
+		dserv: d.dserv,
+	}, nil
+}
+
+func (d *ufsDirectory) Size() (int64, error) {
+	return 0, files.ErrNotSupported
+}
+
+type ufsFile struct {
+	uio.DagReader
+}
+
+func (f *ufsFile) Size() (int64, error) {
+	return int64(f.DagReader.Size()), nil
+}
+
+func newUnixfsDir(ctx context.Context, dserv ipld.DAGService, nd ipld.Node) (files.Directory, error) {
+	dir, err := uio.NewDirectoryFromNode(dserv, nd)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ufsDirectory{
 		ctx:   ctx,
 		dserv: dserv,
 
-		files: fileCh,
+		dir: dir,
 	}, nil
 }
 
-func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, parent files.File) (files.File, error) {
+func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node) (files.Node, error) {
 	switch dn := nd.(type) {
 	case *dag.ProtoNode:
 		fsn, err := ft.FSNodeFromBytes(dn.Data())
@@ -129,3 +152,6 @@ func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, par
 		DagReader: dr,
 	}, nil
 }
+
+var _ files.Directory = &ufsDirectory{}
+var _ files.File = &ufsFile{}

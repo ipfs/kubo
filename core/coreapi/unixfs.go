@@ -28,7 +28,7 @@ type UnixfsAPI CoreAPI
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
-func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options.UnixfsAddOption) (coreiface.ResolvedPath, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (coreiface.ResolvedPath, error) {
 	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
 
-func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.File, error) {
+func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, error) {
 	ses := api.core().getSession(ctx)
 
 	nd, err := ses.ResolveNode(ctx, p)
@@ -141,7 +141,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.File, er
 		return nil, err
 	}
 
-	return newUnixfsFile(ctx, ses.dag, nd, nil)
+	return newUnixfsFile(ctx, ses.dag, nd)
 }
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:

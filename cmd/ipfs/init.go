@@ -85,13 +85,16 @@ environment variable:
 
 		f := req.Files
 		if f != nil {
-			_, confFile, err := f.NextFile()
-			if err != nil {
-				return err
+			it, _ := req.Files.Entries()
+			if !it.Next() && it.Err() != nil {
+				return it.Err()
+			}
+			if it.File() == nil {
+				return fmt.Errorf("expected a regular file")
 			}
 
 			conf = &config.Config{}
-			if err := json.NewDecoder(confFile).Decode(conf); err != nil {
+			if err := json.NewDecoder(it.File()).Decode(conf); err != nil {
 				return err
 			}
 		}

@@ -391,9 +391,12 @@ And then run:
 			return err
 		}
 
-		_, input, err := req.Files.NextFile()
-		if err != nil && err != io.EOF {
-			return err
+		it, _ := req.Files.Entries()
+		if !it.Next() && it.Err() != nil {
+			return it.Err()
+		}
+		if it.File() == nil {
+			return fmt.Errorf("expected a regular file")
 		}
 
 		inputenc, _ := req.Options["inputenc"].(string)
@@ -411,7 +414,7 @@ And then run:
 			return err
 		}
 
-		p, err := api.Object().Put(req.Context, input,
+		p, err := api.Object().Put(req.Context, it.File(),
 			options.Object.DataType(datafieldenc),
 			options.Object.InputEnc(inputenc),
 			options.Object.Pin(dopin))

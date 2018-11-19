@@ -769,12 +769,15 @@ stat' on the file or any of its ancestors.
 			return err
 		}
 
-		_, input, err := req.Files.NextFile()
-		if err != nil {
-			return err
+		it, _ := req.Files.Entries()
+		if !it.Next() && it.Err() != nil {
+			return it.Err()
+		}
+		if it.File() == nil {
+			return fmt.Errorf("expected a regular file")
 		}
 
-		var r io.Reader = input
+		var r io.Reader = it.File()
 		if countfound {
 			r = io.LimitReader(r, int64(count))
 		}

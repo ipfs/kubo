@@ -280,10 +280,14 @@ can't be undone.
 		}
 		defer r.Close()
 
-		file, err := req.Files.NextFile()
-		if err != nil {
-			return err
+		it, _ := req.Files.Entries()
+		if !it.Next() && it.Err() != nil {
+			return it.Err()
 		}
+		if it.File() == nil {
+			return fmt.Errorf("expected a regular file")
+		}
+		file := it.File()
 		defer file.Close()
 
 		return replaceConfig(r, file)

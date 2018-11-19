@@ -134,36 +134,36 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
 	return nd[0], api[0], nil
 }
 
-func strFile(data string) func() files.File {
-	return func() files.File {
+func strFile(data string) func() files.Node {
+	return func() files.Node {
 		return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(data)), nil)
 	}
 }
 
-func twoLevelDir() func() files.File {
-	return func() files.File {
-		return files.NewSliceFile([]files.FileEntry{{
-			Name: "abc", File: files.NewSliceFile([]files.FileEntry{
-				{Name: "def", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("world")), nil)},
-			})},
+func twoLevelDir() func() files.Node {
+	return func() files.Node {
+		return files.NewSliceFile([]files.DirEntry{
+			files.FileEntry("abc", files.NewSliceFile([]files.DirEntry{
+				files.FileEntry("def", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("world")), nil)),
+			})),
 
-			{Name: "bar", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)},
-			{Name: "foo", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)},
+			files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
+			files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
 		})
 	}
 }
 
-func flatDir() files.File {
-	return files.NewSliceFile([]files.FileEntry{
-		{Name: "bar", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)},
-		{Name: "foo", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)},
+func flatDir() files.Node {
+	return files.NewSliceFile([]files.DirEntry{
+		files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
+		files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
 	})
 }
 
-func wrapped(name string) func(f files.File) files.File {
-	return func(f files.File) files.File {
-		return files.NewSliceFile([]files.FileEntry{
-			{Name: name, File: f},
+func wrapped(name string) func(f files.Node) files.Node {
+	return func(f files.Node) files.Node {
+		return files.NewSliceFile([]files.DirEntry{
+			files.FileEntry(name, f),
 		})
 	}
 }
@@ -177,8 +177,8 @@ func TestAdd(t *testing.T) {
 
 	cases := []struct {
 		name   string
-		data   func() files.File
-		expect func(files.File) files.File
+		data   func() files.Node
+		expect func(files.Node) files.Node
 
 		path string
 		err  string
@@ -295,7 +295,7 @@ func TestAdd(t *testing.T) {
 		{
 			name: "addWrapped",
 			path: "/ipfs/QmVE9rNpj5doj7XHzp5zMUxD7BJgXEqx4pe3xZ3JBReWHE",
-			data: func() files.File {
+			data: func() files.Node {
 				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 			},
 			wrap:   "foo",
@@ -305,7 +305,7 @@ func TestAdd(t *testing.T) {
 		{
 			name: "addNotWrappedDirFile",
 			path: hello,
-			data: func() files.File {
+			data: func() files.Node {
 				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 			},
 			wrap: "foo",
@@ -313,12 +313,12 @@ func TestAdd(t *testing.T) {
 		{
 			name: "stdinWrapped",
 			path: "/ipfs/QmU3r81oZycjHS9oaSHw37ootMFuFUw1DvMLKXPsezdtqU",
-			data: func() files.File {
+			data: func() files.Node {
 				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 			},
-			expect: func(files.File) files.File {
-				return files.NewSliceFile([]files.FileEntry{
-					{Name: "QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)},
+			expect: func(files.Node) files.Node {
+				return files.NewSliceFile([]files.DirEntry{
+					files.FileEntry("QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)),
 				})
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
@@ -326,7 +326,7 @@ func TestAdd(t *testing.T) {
 		{
 			name: "stdinNamed",
 			path: "/ipfs/QmQ6cGBmb3ZbdrQW1MRm1RJnYnaxCqfssz7CrTa9NEhQyS",
-			data: func() files.File {
+			data: func() files.Node {
 				rf, err := files.NewReaderPathFile(os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 				if err != nil {
 					panic(err)
@@ -334,9 +334,9 @@ func TestAdd(t *testing.T) {
 
 				return rf
 			},
-			expect: func(files.File) files.File {
-				return files.NewSliceFile([]files.FileEntry{
-					{Name: "test", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)},
+			expect: func(files.Node) files.Node {
+				return files.NewSliceFile([]files.DirEntry{
+					files.FileEntry("test", files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)),
 				})
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.StdinName("test")},
@@ -360,11 +360,11 @@ func TestAdd(t *testing.T) {
 		// hidden
 		{
 			name: "hiddenFiles",
-			data: func() files.File {
-				return files.NewSliceFile([]files.FileEntry{
-					{Name: ".bar", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)},
-					{Name: "bar", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)},
-					{Name: "foo", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)},
+			data: func() files.Node {
+				return files.NewSliceFile([]files.DirEntry{
+					files.FileEntry(".bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
+					files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
+					files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
 				})
 			},
 			wrap: "t",
@@ -373,7 +373,7 @@ func TestAdd(t *testing.T) {
 		},
 		{
 			name: "hiddenFileAlwaysAdded",
-			data: func() files.File {
+			data: func() files.Node {
 				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
 			},
 			wrap: ".foo",
@@ -381,14 +381,14 @@ func TestAdd(t *testing.T) {
 		},
 		{
 			name: "hiddenFilesNotAdded",
-			data: func() files.File {
-				return files.NewSliceFile([]files.FileEntry{
-					{Name: ".bar", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)},
-					{Name: "bar", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)},
-					{Name: "foo", File: files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)},
+			data: func() files.Node {
+				return files.NewSliceFile([]files.DirEntry{
+					files.FileEntry(".bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
+					files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
+					files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
 				})
 			},
-			expect: func(files.File) files.File {
+			expect: func(files.Node) files.Node {
 				return flatDir()
 			},
 			wrap: "t",
@@ -431,7 +431,7 @@ func TestAdd(t *testing.T) {
 		},
 		{
 			name: "progress1M",
-			data: func() files.File {
+			data: func() files.Node {
 				r := bytes.NewReader(bytes.Repeat([]byte{0}, 1000000))
 				return files.NewReaderFile(ioutil.NopCloser(r), nil)
 			},
@@ -457,8 +457,8 @@ func TestAdd(t *testing.T) {
 
 			data := testCase.data()
 			if testCase.wrap != "" {
-				data = files.NewSliceFile([]files.FileEntry{
-					{Name: testCase.wrap, File: data},
+				data = files.NewSliceFile([]files.DirEntry{
+					files.FileEntry(testCase.wrap, data),
 				})
 			}
 
@@ -533,9 +533,12 @@ func TestAdd(t *testing.T) {
 
 			// compare file structure with Unixfs().Get
 
-			var cmpFile func(origName string, orig files.File, gotName string, got files.File)
-			cmpFile = func(origName string, orig files.File, gotName string, got files.File) {
-				if orig.IsDirectory() != got.IsDirectory() {
+			var cmpFile func(origName string, orig files.Node, gotName string, got files.Node)
+			cmpFile = func(origName string, orig files.Node, gotName string, got files.Node) {
+				_, origDir := orig.(files.Directory)
+				_, gotDir := got.(files.Directory)
+
+				if origDir != gotDir {
 					t.Fatal("file type mismatch")
 				}
 
@@ -543,16 +546,16 @@ func TestAdd(t *testing.T) {
 					t.Errorf("file name mismatch, orig='%s', got='%s'", origName, gotName)
 				}
 
-				if !orig.IsDirectory() {
+				if !gotDir {
 					defer orig.Close()
 					defer got.Close()
 
-					do, err := ioutil.ReadAll(orig)
+					do, err := ioutil.ReadAll(orig.(files.File))
 					if err != nil {
 						t.Fatal(err)
 					}
 
-					dg, err := ioutil.ReadAll(got)
+					dg, err := ioutil.ReadAll(got.(files.File))
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -564,21 +567,28 @@ func TestAdd(t *testing.T) {
 					return
 				}
 
+				origIt, _ := orig.(files.Directory).Entries()
+				gotIt, _ := got.(files.Directory).Entries()
+
 				for {
-					origName, origFile, err := orig.NextFile()
-					gotName, gotFile, err2 := got.NextFile()
-
-					if err != nil {
-						if err == io.EOF && err2 == io.EOF {
-							break
+					if origIt.Next() {
+						if !gotIt.Next() {
+							t.Fatal("gotIt out of entries before origIt")
 						}
-						t.Fatal(err)
-					}
-					if err2 != nil {
-						t.Fatal(err)
+					} else {
+						if gotIt.Next() {
+							t.Fatal("origIt out of entries before gotIt")
+						}
+						break
 					}
 
-					cmpFile(origName, origFile, gotName, gotFile)
+					cmpFile(origIt.Name(), origIt.Node(), gotIt.Name(), gotIt.Node())
+				}
+				if origIt.Err() != nil {
+					t.Fatal(origIt.Err())
+				}
+				if gotIt.Err() != nil {
+					t.Fatal(gotIt.Err())
 				}
 			}
 
@@ -667,7 +677,7 @@ func TestGetEmptyFile(t *testing.T) {
 	}
 
 	buf := make([]byte, 1) // non-zero so that Read() actually tries to read
-	n, err := io.ReadFull(r, buf)
+	n, err := io.ReadFull(r.(files.File), buf)
 	if err != nil && err != io.EOF {
 		t.Error(err)
 	}
@@ -703,9 +713,8 @@ func TestGetDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = r.Read(make([]byte, 2))
-	if err != files.ErrNotReader {
-		t.Fatalf("expected ErrIsDir, got: %s", err)
+	if _, ok := r.(files.Directory); !ok {
+		t.Fatalf("expected a directory")
 	}
 }
 

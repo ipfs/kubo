@@ -44,12 +44,15 @@ represent it.
 			return err
 		}
 
-		name, fi, err := req.Files.NextFile()
-		if err != nil {
-			return err
+		it, _ := req.Files.Entries()
+		if !it.Next() && it.Err() != nil {
+			return it.Err()
+		}
+		if it.File() == nil {
+			return fmt.Errorf("expected a regular file")
 		}
 
-		node, err := tar.ImportTar(req.Context, fi, nd.DAG)
+		node, err := tar.ImportTar(req.Context, it.File(), nd.DAG)
 		if err != nil {
 			return err
 		}
@@ -57,7 +60,7 @@ represent it.
 		c := node.Cid()
 
 		return cmds.EmitOnce(res, &coreiface.AddEvent{
-			Name: name,
+			Name: it.Name(),
 			Hash: c.String(),
 		})
 	},

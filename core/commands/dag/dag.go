@@ -92,16 +92,12 @@ into an object of the specified format.
 			defer nd.Blockstore.PinLock().Unlock()
 		}
 
-		for {
-			_, file, err := req.Files.NextFile()
-			if err == io.EOF {
-				// Finished the list of files.
-				break
-			} else if err != nil {
-				return err
+		it, _ := req.Files.Entries()
+		for it.Next() {
+			if it.File() == nil {
+				return fmt.Errorf("expected a regular file")
 			}
-
-			nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
+			nds, err := coredag.ParseInputs(ienc, format, it.File(), mhType, -1)
 			if err != nil {
 				return err
 			}
@@ -121,6 +117,9 @@ into an object of the specified format.
 			if err := res.Emit(&OutputObject{Cid: cid}); err != nil {
 				return err
 			}
+		}
+		if it.Err() != nil {
+			return err
 		}
 
 		if err := b.Commit(); err != nil {
