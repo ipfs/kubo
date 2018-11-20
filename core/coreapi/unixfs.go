@@ -130,6 +130,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.File, opts ...options
 	if err != nil {
 		return nil, err
 	}
+
+	if !settings.Local {
+		api.core().Provider().Provide(nd.Cid())
+	}
+
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
 
@@ -140,6 +145,8 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (coreiface.Unix
 	if err != nil {
 		return nil, err
 	}
+
+	api.core().Provider().Provide(nd.Cid())
 
 	return newUnixfsFile(ctx, ses.dag, nd, "", nil)
 }

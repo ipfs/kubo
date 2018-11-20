@@ -141,6 +141,8 @@ The JSON output contains type information.
 					Hash:  paths[i],
 					Links: outputLinks,
 				}
+
+				api.Provider().Provide(dagnode.Cid())
 			}
 
 			return cmds.EmitOnce(res, &LsOutput{output})
@@ -177,6 +179,8 @@ The JSON output contains type information.
 					return err
 				}
 			}
+
+			api.Provider().Provide(dagnode.Cid())
 		}
 		return nil
 	},

@@ -66,6 +66,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
+		}
+
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -90,6 +95,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		default:
 			return err
 		}
+
+		api.Provider().Provide(dn.Cid())
 
 		archive, _ := req.Options[archiveOptionName].(bool)
 		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)

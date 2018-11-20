@@ -39,6 +39,11 @@ represent it.
 		cmdkit.FileArg("file", true, false, "Tar file to add.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
+		}
+
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -56,6 +61,9 @@ represent it.
 
 		c := node.Cid()
 
+		api.Provider().Provide(c)
+
+		// TODO: why is this here?
 		fi.FileName()
 		return cmds.EmitOnce(res, &coreiface.AddEvent{
 			Name: fi.FileName(),

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"io"
 	"strings"
 
@@ -73,6 +74,11 @@ NOTE: List all references recursively by using the flag '-r'.
 			return err
 		}
 
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
+		}
+
 		ctx := req.Context
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -97,7 +103,7 @@ NOTE: List all references recursively by using the flag '-r'.
 			format = "<src> -> <dst>"
 		}
 
-		objs, err := objectsForPaths(ctx, n, req.Arguments)
+		objs, err := objectsForPaths(ctx, n, api, req.Arguments)
 		if err != nil {
 			return err
 		}
@@ -159,7 +165,7 @@ Displays the hashes of all local objects.
 	Type:     RefWrapper{},
 }
 
-func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]ipld.Node, error) {
+func objectsForPaths(ctx context.Context, n *core.IpfsNode, api coreiface.CoreAPI, paths []string) ([]ipld.Node, error) {
 	objects := make([]ipld.Node, len(paths))
 	for i, sp := range paths {
 		p, err := path.ParsePath(sp)
@@ -171,6 +177,9 @@ func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]i
 		if err != nil {
 			return nil, err
 		}
+
+		api.Provider().Provide(o.Cid())
+
 		objects[i] = o
 	}
 	return objects, nil

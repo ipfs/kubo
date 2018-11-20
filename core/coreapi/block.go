@@ -48,6 +48,8 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
+	api.core().Provider().Provide(b.Cid())
+
 	return &BlockStat{path: coreiface.IpldPath(b.Cid()), size: len(data)}, nil
 }
 
@@ -61,6 +63,8 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 	if err != nil {
 		return nil, err
 	}
+
+	api.core().Provider().Provide(rp.Cid())
 
 	return bytes.NewReader(b.RawData()), nil
 }
@@ -113,6 +117,8 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 	if err != nil {
 		return nil, err
 	}
+
+	api.core().Provider().Provide(b.Cid())
 
 	return &BlockStat{
 		path: coreiface.IpldPath(b.Cid()),

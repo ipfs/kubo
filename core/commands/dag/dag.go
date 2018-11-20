@@ -63,6 +63,11 @@ into an object of the specified format.
 		cmdkit.StringOption("hash", "Hash function to use").WithDefault(""),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
+		}
+
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -138,7 +143,11 @@ into an object of the specified format.
 				return err
 			}
 		}
-		return nil
+
+		return cids.ForEach(func(cid cid.Cid) error {
+			api.Provider().Provide(cid)
+			return nil
+		})
 	},
 	Type: OutputObject{},
 	Encoders: cmds.EncoderMap{
@@ -161,6 +170,11 @@ format.
 		cmdkit.StringArg("ref", true, false, "The object to get").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
+		}
+
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -179,6 +193,8 @@ format.
 		if err != nil {
 			return err
 		}
+
+		api.Provider().Provide(obj.Cid())
 
 		var out interface{} = obj
 		if len(rem) > 0 {
@@ -204,6 +220,11 @@ var DagResolveCmd = &cmds.Command{
 		cmdkit.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
+		}
+
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -218,6 +239,8 @@ var DagResolveCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+
+		api.Provider().Provide(lastCid)
 
 		return cmds.EmitOnce(res, &ResolveOutput{
 			Cid:     lastCid,

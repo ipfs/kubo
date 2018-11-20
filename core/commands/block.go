@@ -184,6 +184,8 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		}
 
 		return cmds.EmitOnce(res, &BlockStat{
+			// TODO be careful checking ErrNotFound. If the underlying
+			// implementation changes, this will break.
 			Key:  p.Path().Cid().String(),
 			Size: p.Size(),
 		})

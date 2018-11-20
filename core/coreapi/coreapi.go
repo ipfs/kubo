@@ -15,8 +15,7 @@ package coreapi
 
 import (
 	"context"
-
-	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
@@ -85,6 +84,10 @@ func (api *CoreAPI) Swarm() coreiface.SwarmAPI {
 // PubSub returns the PubSubAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 	return (*PubSubAPI)(api)
+}
+
+func (api *CoreAPI) Provider() coreiface.ProviderAPI {
+	return (*ProviderAPI)(api)
 }
 
 // getSession returns new api backed by the same node with a read-only session DAG
