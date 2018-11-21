@@ -28,7 +28,7 @@ func GetApi(env cmds.Environment) (coreiface.CoreAPI, error) {
 		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)
 	}
 
-	return ctx.GetApi()
+	return ctx.GetAPI()
 }
 
 // GetConfig extracts the config from the environment.
