@@ -11,6 +11,16 @@ import (
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 )
 
+// IsOnline extracts the node status from the environment.
+func IsOnline(env interface{}) (bool, error) {
+	ctx, ok := env.(*commands.Context)
+	if !ok {
+		return false, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)
+	}
+
+	return ctx.Online, nil
+}
+
 // GetNode extracts the node from the environment.
 func GetNode(env interface{}) (*core.IpfsNode, error) {
 	ctx, ok := env.(*commands.Context)

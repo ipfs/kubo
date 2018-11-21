@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	commands "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
@@ -52,8 +52,13 @@ func ExternalBinary() *cmds.Command {
 			osenv := os.Environ()
 
 			// Get the node iff already defined.
-			if cctx, ok := env.(*commands.Context); ok && cctx.Online {
-				nd, err := cctx.GetNode()
+			online, err := cmdenv.IsOnline(env)
+			if err != nil {
+				return err
+			}
+
+			if online {
+				nd, err := cmdenv.GetNode(env)
 				if err != nil {
 					return fmt.Errorf("failed to start ipfs node: %s", err)
 				}

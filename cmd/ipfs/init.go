@@ -13,6 +13,7 @@ import (
 	assets "github.com/ipfs/go-ipfs/assets"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
@@ -73,11 +74,16 @@ environment variable:
 		return nil
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cctx := env.(*oldcmds.Context)
-		if cctx.Online {
+		online, err := cmdenv.IsOnline(env)
+		if err != nil {
+			return err
+		}
+
+		if online {
 			return cmdkit.Error{Message: "init must be run offline only"}
 		}
 
+		cctx := env.(*oldcmds.Context)
 		empty, _ := req.Options["empty-repo"].(bool)
 		nBitsForKeypair, _ := req.Options["bits"].(int)
 
