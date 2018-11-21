@@ -40,6 +40,7 @@ func TestParseRequest(t *testing.T) {
 
 var invalidtestCases = []string{
 	"http://localhost:5001/p2p/http/foobar",
+	"http://localhost:5001/p2p/QmT8JtU54XSmC38xSb1XHFSMm775VuTeajg7LWWWTAwzxT/x/custom/foobar",
 }
 
 func TestParseRequestInvalidPath(t *testing.T) {
