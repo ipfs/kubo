@@ -225,11 +225,6 @@ You can now check what blocks have been created by:
 			outChan := make(chan interface{})
 			req := res.Request()
 
-			err := cmdenv.ProcCidBaseClientSide(req)
-			if err != nil {
-				return err
-			}
-
 			sizeFile, ok := req.Files.(files.SizeFile)
 			if ok {
 				// Could be slow.

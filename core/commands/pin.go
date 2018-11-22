@@ -17,6 +17,7 @@ import (
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	bserv "gx/ipfs/QmVDTbzzTwnuBwNbJdhW3u7LoBQp46bezm9yp4z1RoEepM/go-blockservice"
+	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	"gx/ipfs/QmYMQuypUbgsdNHmuCBSUJV6wdQVsBHRivNAp3efHJwZJD/go-verifcid"
 	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
@@ -39,11 +40,11 @@ var PinCmd = &cmds.Command{
 }
 
 type PinOutput struct {
-	Pins []string
+	Pins []apicid.Hash
 }
 
 type AddPinOutput struct {
-	Pins     []string
+	Pins     []apicid.Hash
 	Progress int `json:",omitempty"`
 }
 
@@ -92,7 +93,7 @@ var addPinCmd = &cmds.Command{
 			if err != nil {
 				return err
 			}
-			return cmds.EmitOnce(res, &AddPinOutput{Pins: cidsToStrings(added)})
+			return cmds.EmitOnce(res, &AddPinOutput{Pins: toAPICids(added)})
 		}
 
 		v := new(dag.ProgressTracker)
@@ -124,7 +125,7 @@ var addPinCmd = &cmds.Command{
 						return err
 					}
 				}
-				return res.Emit(&AddPinOutput{Pins: cidsToStrings(val.pins)})
+				return res.Emit(&AddPinOutput{Pins: toAPICids(val.pins)})
 			case <-ticker.C:
 				if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
 					return err
@@ -220,7 +221,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{cidsToStrings(removed)})
+		return cmds.EmitOnce(res, &PinOutput{toAPICids(removed)})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
@@ -311,7 +312,7 @@ Example:
 			return err
 		}
 
-		var keys map[string]RefKeyObject
+		var keys map[apicid.Hash]RefKeyObject
 
 		if len(req.Arguments) > 0 {
 			keys, err = pinLsKeys(req.Context, req.Arguments, typeStr, n, api)
@@ -347,6 +348,10 @@ const (
 	pinUnpinOptionName = "unpin"
 )
 
+type UpdatePinOutput struct {
+	Pins []string // really paths
+}
+
 var updatePinCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Update a recursive pin",
@@ -364,7 +369,7 @@ new pin and removing the old one.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
 	},
-	Type: PinOutput{},
+	Type: UpdatePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env)
 		if err != nil {
@@ -388,10 +393,10 @@ new pin and removing the old one.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{Pins: []string{from.String(), to.String()}})
+		return cmds.EmitOnce(res, &UpdatePinOutput{Pins: []string{from.String(), to.String()}})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *UpdatePinOutput) error {
 			fmt.Fprintf(w, "updated %s to %s\n", out.Pins[0], out.Pins[1])
 			return nil
 		}),
@@ -452,17 +457,17 @@ type RefKeyObject struct {
 }
 
 type RefKeyList struct {
-	Keys map[string]RefKeyObject
+	Keys map[apicid.Hash]RefKeyObject
 }
 
-func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, api iface.CoreAPI) (map[string]RefKeyObject, error) {
+func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, api iface.CoreAPI) (map[apicid.Hash]RefKeyObject, error) {
 
 	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
 		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[apicid.Hash]RefKeyObject)
 
 	for _, p := range args {
 		pth, err := iface.ParsePath(p)
@@ -489,7 +494,7 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[c.Cid().String()] = RefKeyObject{
+		keys[apicid.FromCid(c.Cid())] = RefKeyObject{
 			Type: pinType,
 		}
 	}
@@ -497,13 +502,13 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 	return keys, nil
 }
 
-func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[apicid.Hash]RefKeyObject, error) {
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[apicid.Hash]RefKeyObject)
 
 	AddToResultKeys := func(keyList []cid.Cid, typeStr string) {
 		for _, c := range keyList {
-			keys[c.String()] = RefKeyObject{
+			keys[apicid.FromCid(c)] = RefKeyObject{
 				Type: typeStr,
 			}
 		}
@@ -531,7 +536,7 @@ func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
 type PinVerifyRes struct {
-	Cid string
+	Cid apicid.Hash
 	PinStatus
 }
 
@@ -543,7 +548,7 @@ type PinStatus struct {
 
 // BadNode is used in PinVerifyRes
 type BadNode struct {
-	Cid string
+	Cid apicid.Hash
 	Err string
 }
 
@@ -553,7 +558,7 @@ type pinVerifyOpts struct {
 }
 
 func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
-	visited := make(map[string]PinStatus)
+	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
@@ -562,7 +567,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
-		key := root.String()
+		key := root
 		if status, ok := visited[key]; ok {
 			return status
 		}
@@ -570,7 +575,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err := verifcid.ValidateCid(root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: apicid.FromCid(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -580,7 +585,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: apicid.FromCid(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -606,7 +611,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 			pinStatus := checkPin(cid)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{cid.String(), pinStatus}:
+				case out <- &PinVerifyRes{apicid.FromCid(cid), pinStatus}:
 				case <-ctx.Done():
 					return
 				}
@@ -629,10 +634,10 @@ func (r PinVerifyRes) Format(out io.Writer) {
 	}
 }
 
-func cidsToStrings(cs []cid.Cid) []string {
-	out := make([]string, 0, len(cs))
+func toAPICids(cs []cid.Cid) []apicid.Hash {
+	out := make([]apicid.Hash, 0, len(cs))
 	for _, c := range cs {
-		out = append(out, c.String())
+		out = append(out, apicid.FromCid(c))
 	}
 	return out
 }

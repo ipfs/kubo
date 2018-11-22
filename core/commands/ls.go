@@ -14,6 +14,7 @@ import (
 	uio "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/io"
 	unixfspb "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/pb"
 	blockservice "gx/ipfs/QmVDTbzzTwnuBwNbJdhW3u7LoBQp46bezm9yp4z1RoEepM/go-blockservice"
+	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	merkledag "gx/ipfs/QmcGt25mrjuB2kKW2zhPbXVZNHc4yoTDQ65NA8m6auP2f1/go-merkledag"
@@ -23,9 +24,10 @@ import (
 
 // LsLink contains printable data for a single ipld link in ls output
 type LsLink struct {
-	Name, Hash string
-	Size       uint64
-	Type       unixfspb.Data_DataType
+	Name string
+	Hash apicid.Hash
+	Size uint64
+	Type unixfspb.Data_DataType
 }
 
 // LsObject is an element of LsOutput
@@ -250,7 +252,7 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ip
 	}
 	return &LsLink{
 		Name: link.Name,
-		Hash: link.Cid.String(),
+		Hash: apicid.FromCid(link.Cid),
 		Size: link.Size,
 		Type: t,
 	}, nil

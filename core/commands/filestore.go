@@ -11,6 +11,7 @@ import (
 	filestore "github.com/ipfs/go-ipfs/filestore"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -175,6 +176,11 @@ For ERROR entries the error will also be printed to stderr.
 	Type: filestore.ListRes{},
 }
 
+type FilestoreDupsOutput struct {
+	Ref apicid.Hash
+	Err string
+}
+
 var dupsFileStore = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List blocks that are both in the filestore and standard block storage.",
@@ -192,10 +198,10 @@ var dupsFileStore = &cmds.Command{
 		for cid := range ch {
 			have, err := fs.MainBlockstore().Has(cid)
 			if err != nil {
-				return res.Emit(&RefWrapper{Err: err.Error()})
+				return res.Emit(&FilestoreDupsOutput{Err: err.Error()})
 			}
 			if have {
-				if err := res.Emit(&RefWrapper{Ref: cid.String()}); err != nil {
+				if err := res.Emit(&FilestoreDupsOutput{Ref: apicid.FromCid(cid)}); err != nil {
 					return err
 				}
 			}
@@ -203,8 +209,17 @@ var dupsFileStore = &cmds.Command{
 
 		return nil
 	},
-	Encoders: refsEncoderMap,
-	Type:     RefWrapper{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *FilestoreDupsOutput) error {
+			if out.Err != "" {
+				return fmt.Errorf(out.Err)
+			}
+			fmt.Fprintln(w, out.Ref)
+
+			return nil
+		}),
+	},
+	Type: FilestoreDupsOutput{},
 }
 
 func getFilestore(env cmds.Environment) (*core.IpfsNode, *filestore.Filestore, error) {

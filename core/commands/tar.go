@@ -66,11 +66,6 @@ represent it.
 	Type: coreiface.AddEvent{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *coreiface.AddEvent) error {
-			err := cmdenv.ProcCidBaseClientSide(req)
-			if err != nil {
-				return err
-			}
-
 			fmt.Fprintln(w, out.Hash)
 			return nil
 		}),

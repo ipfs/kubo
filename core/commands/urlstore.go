@@ -13,6 +13,7 @@ import (
 	balanced "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/importer/balanced"
 	ihelper "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/importer/helpers"
 	trickle "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/importer/trickle"
+	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
@@ -22,6 +23,11 @@ var urlStoreCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"add": urlAdd,
 	},
+}
+
+type UrlstoreAddOutput struct {
+	Key  apicid.Hash
+	Size int
 }
 
 var urlAdd = &cmds.Command{
@@ -50,7 +56,7 @@ time.
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("url", true, false, "URL to add to IPFS"),
 	},
-	Type: &BlockStat{},
+	Type: &UrlstoreAddOutput{},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		url := req.Arguments[0]
@@ -107,13 +113,13 @@ time.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &BlockStat{
-			Key:  root.Cid().String(),
+		return cmds.EmitOnce(res, &UrlstoreAddOutput{
+			Key:  apicid.FromCid(root.Cid()),
 			Size: int(hres.ContentLength),
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, bs *BlockStat) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, bs *UrlstoreAddOutput) error {
 			_, err := fmt.Fprintln(w, bs.Key)
 			return err
 		}),

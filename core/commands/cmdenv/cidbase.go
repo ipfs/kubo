@@ -24,9 +24,7 @@ func ProcCidBase(req *cmds.Request) (cidenc.Encoder, error) {
 		if err != nil {
 			return e, err
 		}
-		if !upgradeDefined {
-			e.Upgrade = true
-		}
+		e.Upgrade = true
 	}
 
 	if upgradeDefined {
@@ -36,13 +34,7 @@ func ProcCidBase(req *cmds.Request) (cidenc.Encoder, error) {
 	return e, nil
 }
 
-// ProcCidBaseClientSide processes the `cid-base` and `output-cidv1`
-// options and sets the default encoder based on those options
-func ProcCidBaseClientSide(req *cmds.Request) error {
-	enc, err := ProcCidBase(req)
-	if err != nil {
-		return err
-	}
-	cidenc.Default = enc
-	return nil
+func CidBaseDefined(req *cmds.Request) bool {
+	base, _ := req.Options["cid-base"].(string)
+	return base != ""
 }
