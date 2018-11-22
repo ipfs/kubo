@@ -11,10 +11,10 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/core/coreunix"
 
+	mfs "gx/ipfs/QmQr1qYm6Ww3ePruqLs2QhSZAHHsW2CzePNTEp48AT3Mg1/go-mfs"
 	bstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
 	ft "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs"
 	uio "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/io"
-	mfs "gx/ipfs/QmV8mXUh1M9qztax7vVdL1Apuz4c1eJZC5YactGxaJfWom/go-mfs"
 	blockservice "gx/ipfs/QmVDTbzzTwnuBwNbJdhW3u7LoBQp46bezm9yp4z1RoEepM/go-blockservice"
 	cidutil "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil"
 	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"

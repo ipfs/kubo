@@ -14,6 +14,7 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/pin"
 
+	mfs "gx/ipfs/QmQr1qYm6Ww3ePruqLs2QhSZAHHsW2CzePNTEp48AT3Mg1/go-mfs"
 	chunker "gx/ipfs/QmR4QQVkBZsZENRjYFVi8dEtPL3daZRNKk24m4r6WKJHNm/go-ipfs-chunker"
 	posinfo "gx/ipfs/QmR6YMs8EkXQLXNwQKxLnQp2VBZSepoEJ8KCZAyanJHhJu/go-ipfs-posinfo"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
@@ -22,7 +23,6 @@ import (
 	balanced "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/importer/balanced"
 	ihelper "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/importer/helpers"
 	trickle "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs/importer/trickle"
-	mfs "gx/ipfs/QmV8mXUh1M9qztax7vVdL1Apuz4c1eJZC5YactGxaJfWom/go-mfs"
 	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	dag "gx/ipfs/QmcGt25mrjuB2kKW2zhPbXVZNHc4yoTDQ65NA8m6auP2f1/go-merkledag"

@@ -15,10 +15,11 @@ import (
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
+	mfs "gx/ipfs/QmQr1qYm6Ww3ePruqLs2QhSZAHHsW2CzePNTEp48AT3Mg1/go-mfs"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	ft "gx/ipfs/QmUnHNqhSB1JgzVCxL1Kz3yb4bdyB4q1Z9AD5AUBVmt3fZ/go-unixfs"
-	mfs "gx/ipfs/QmV8mXUh1M9qztax7vVdL1Apuz4c1eJZC5YactGxaJfWom/go-mfs"
 	bservice "gx/ipfs/QmVDTbzzTwnuBwNbJdhW3u7LoBQp46bezm9yp4z1RoEepM/go-blockservice"
+	apicid "gx/ipfs/QmVjZoEZg2oxXGFGjbD28x3gGN6ALHAW6BN2LKRUcaJ21i/go-cidutil/apicid"
 	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	dag "gx/ipfs/QmcGt25mrjuB2kKW2zhPbXVZNHc4yoTDQ65NA8m6auP2f1/go-merkledag"
@@ -76,7 +77,7 @@ var hashOption = cmdkit.StringOption(filesHashOptionName, "Hash function to use.
 var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
 type statOutput struct {
-	Hash           string
+	Hash           apicid.Hash
 	Size           uint64
 	CumulativeSize uint64
 	Blocks         int
@@ -172,7 +173,7 @@ var filesStatCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *statOutput) error {
 			s, _ := statGetFormatOptions(req)
-			s = strings.Replace(s, "<hash>", out.Hash, -1)
+			s = strings.Replace(s, "<hash>", out.Hash.String(), -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
@@ -243,7 +244,7 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 		}
 
 		return &statOutput{
-			Hash:           c.String(),
+			Hash:           apicid.FromCid(c),
 			Blocks:         len(nd.Links()),
 			Size:           d.FileSize(),
 			CumulativeSize: cumulsize,
@@ -251,7 +252,7 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 		}, nil
 	case *dag.RawNode:
 		return &statOutput{
-			Hash:           c.String(),
+			Hash:           apicid.FromCid(c),
 			Blocks:         0,
 			Size:           cumulsize,
 			CumulativeSize: cumulsize,
@@ -470,7 +471,7 @@ Examples:
 				if err != nil {
 					return err
 				}
-				out.Entries[0].Hash = nd.Cid().String()
+				out.Entries[0].Hash = apicid.FromCid(nd.Cid())
 			}
 			return cmds.EmitOnce(res, out)
 		default:
