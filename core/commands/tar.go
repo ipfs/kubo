@@ -43,6 +43,11 @@ represent it.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		it := req.Files.Entries()
 		file, err := cmdenv.GetFileArg(it)
 		if err != nil {
@@ -58,7 +63,7 @@ represent it.
 
 		return cmds.EmitOnce(res, &AddEvent{
 			Name: it.Name(),
-			Hash: c.String(),
+			Hash: enc.Encode(c),
 		})
 	},
 	Type: AddEvent{},

@@ -66,15 +66,18 @@ type ListRes struct {
 	Size     uint64
 }
 
-// FormatLong returns a human readable string for a ListRes object.
-func (r *ListRes) FormatLong() string {
+// FormatLong returns a human readable string for a ListRes object
+func (r *ListRes) FormatLong(enc func(cid.Cid) string) string {
+	if enc == nil {
+		enc = (cid.Cid).String
+	}
 	switch {
 	case !r.Key.Defined():
 		return "<corrupt key>"
 	case r.FilePath == "":
 		return r.Key.String()
 	default:
-		return fmt.Sprintf("%-50s %6d %s %d", r.Key, r.Size, r.FilePath, r.Offset)
+		return fmt.Sprintf("%-50s %6d %s %d", enc(r.Key), r.Size, r.FilePath, r.Offset)
 	}
 }
 

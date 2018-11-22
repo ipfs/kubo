@@ -144,7 +144,11 @@ into an object of the specified format.
 	Type: OutputObject{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *OutputObject) error {
-			fmt.Fprintln(w, out.Cid.String())
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(w, enc.Encode(out.Cid))
 			return nil
 		}),
 	},
@@ -227,7 +231,14 @@ var DagResolveCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ResolveOutput) error {
-			p := out.Cid.String()
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
+			}
+			if !cmdenv.CidBaseDefined(req) {
+				enc, _ = cmdenv.CidEncoderFromPath(enc, req.Arguments[0])
+			}
+			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
 				p = path.Join([]string{p, out.RemPath})
 			}

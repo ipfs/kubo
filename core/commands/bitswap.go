@@ -74,12 +74,15 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *KeyList) error {
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
+			}
 			// sort the keys first
 			cidutil.Sort(out.Keys)
 			for _, key := range out.Keys {
-				fmt.Fprintln(w, key)
+				fmt.Fprintln(w, enc.Encode(key))
 			}
-
 			return nil
 		}),
 	},
@@ -115,6 +118,10 @@ var bitswapStatCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s *bitswap.Stat) error {
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
+			}
 			fmt.Fprintln(w, "bitswap status")
 			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", s.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(w, "\tblocks received: %d\n", s.BlocksReceived)
@@ -125,7 +132,7 @@ var bitswapStatCmd = &cmds.Command{
 			fmt.Fprintf(w, "\tdup data received: %s\n", humanize.Bytes(s.DupDataReceived))
 			fmt.Fprintf(w, "\twantlist [%d keys]\n", len(s.Wantlist))
 			for _, k := range s.Wantlist {
-				fmt.Fprintf(w, "\t\t%s\n", k.String())
+				fmt.Fprintf(w, "\t\t%s\n", enc.Encode(k))
 			}
 			fmt.Fprintf(w, "\tpartners [%d]\n", len(s.Peers))
 			for _, p := range s.Peers {

@@ -174,6 +174,11 @@ You can now check what blocks have been created by:
 			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		events := make(chan interface{}, adderOutChanSize)
 
 		opts := []options.UnixfsAddOption{
@@ -226,7 +231,7 @@ You can now check what blocks have been created by:
 
 			h := ""
 			if output.Path != nil {
-				h = output.Path.Cid().String()
+				h = enc.Encode(output.Path.Cid())
 			}
 
 			res.Emit(&AddEvent{

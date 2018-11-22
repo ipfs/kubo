@@ -272,6 +272,36 @@ test_add_cat_file() {
     echo "added QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1 test_current_dir" > expected
     test_cmp expected actual
   '
+
+  # --cid-base=base32
+
+  test_expect_success "ipfs add --cid-base=base32 succeeds" '
+    echo "Hello Worlds!" >mountdir/hello.txt &&
+    ipfs add --cid-base=base32 mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add output looks good" '
+    HASH="bafybeidpq7lcjx4w5c6yr4vuthzvlav54hgxsremwk73to5ferdc2rxhai" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --cid-base=base32 --only-hash succeeds" '
+    ipfs add --cid-base=base32 --only-hash mountdir/hello.txt > oh_actual
+  '
+
+  test_expect_success "ipfs add --only-hash output looks good" '
+    test_cmp expected oh_actual
+  '
+
+  test_expect_success "ipfs cat succeeds" '
+    ipfs cat "$HASH" >actual
+  '
+
+  test_expect_success "ipfs cat output looks good" '
+    echo "Hello Worlds!" >expected &&
+    test_cmp expected actual
+  '
 }
 
 test_add_cat_5MB() {
@@ -311,6 +341,25 @@ test_add_cat_5MB() {
 
   test_expect_success FUSE "cat ipfs/bigfile looks good" '
     test_cmp mountdir/bigfile actual
+  '
+
+  test_expect_success "get base32 version of CID" '
+    ipfs cid base32 $EXP_HASH > base32_cid &&
+    BASE32_HASH=`cat base32_cid`
+  '
+
+  test_expect_success "ipfs add --cid-base=base32 bigfile' succeeds" '
+    ipfs add $ADD_FLAGS --cid-base=base32 mountdir/bigfile >actual ||
+    test_fsh cat daemon_err
+  '
+
+  test_expect_success "'ipfs add bigfile --cid-base=base32' output looks good" '
+    echo "added $BASE32_HASH bigfile" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "'ipfs cat $BASE32_HASH' succeeds" '
+    ipfs cat "$BASE32_HASH" >actual
   '
 }
 

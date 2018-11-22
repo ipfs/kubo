@@ -119,6 +119,11 @@ multihash.
 			return err
 		}
 
+		enc, err := cmdenv.GetLowLevelCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		path, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -137,14 +142,14 @@ multihash.
 		outLinks := make([]Link, len(links))
 		for i, link := range links {
 			outLinks[i] = Link{
-				Hash: link.Cid.String(),
+				Hash: enc.Encode(link.Cid),
 				Name: link.Name,
 				Size: link.Size,
 			}
 		}
 
 		out := &Object{
-			Hash:  rp.Cid().String(),
+			Hash:  enc.Encode(rp.Cid()),
 			Links: outLinks,
 		}
 
@@ -209,6 +214,11 @@ Supported values are:
 			return err
 		}
 
+		enc, err := cmdenv.GetLowLevelCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		path, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -246,7 +256,7 @@ Supported values are:
 
 		for i, link := range nd.Links() {
 			node.Links[i] = Link{
-				Hash: link.Cid.String(),
+				Hash: enc.Encode(link.Cid),
 				Name: link.Name,
 				Size: link.Size,
 			}
@@ -299,6 +309,11 @@ var ObjectStatCmd = &cmds.Command{
 			return err
 		}
 
+		enc, err := cmdenv.GetLowLevelCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		path, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -310,7 +325,7 @@ var ObjectStatCmd = &cmds.Command{
 		}
 
 		oldStat := &ipld.NodeStat{
-			Hash:           ns.Cid.String(),
+			Hash:           enc.Encode(ns.Cid),
 			NumLinks:       ns.NumLinks,
 			BlockSize:      ns.BlockSize,
 			LinksSize:      ns.LinksSize,
@@ -391,6 +406,11 @@ And then run:
 			return err
 		}
 
+		enc, err := cmdenv.GetLowLevelCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
 			return err
@@ -419,7 +439,7 @@ And then run:
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(p.Cid())})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
@@ -464,6 +484,11 @@ Available templates:
 			return err
 		}
 
+		enc, err := cmdenv.GetLowLevelCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		template := "empty"
 		if len(req.Arguments) == 1 {
 			template = req.Arguments[0]
@@ -474,7 +499,7 @@ Available templates:
 			return err
 		}
 
-		return cmds.EmitOnce(res, &Object{Hash: nd.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: enc.Encode(nd.Cid())})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
