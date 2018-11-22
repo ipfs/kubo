@@ -181,7 +181,10 @@ Modify your ipfs config:
 ipfs config --json Experimental.FilestoreEnabled true
 ```
 
-And then pass the `--nocopy` flag when running `ipfs add`
+Restart ipfs node. Otherwise `ipfs add` will not complain and `ipfs filestore`
+will raise error.
+
+Then pass the `--nocopy` flag when running `ipfs add`
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.
