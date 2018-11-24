@@ -85,7 +85,7 @@ environment variable:
 
 		f := req.Files
 		if f != nil {
-			it, _ := req.Files.Entries()
+			it := req.Files.Entries()
 			if !it.Next() && it.Err() != nil {
 				return it.Err()
 			}

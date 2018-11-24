@@ -153,7 +153,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 			return err
 		}
 
-		it, _ := req.Files.Entries()
+		it := req.Files.Entries()
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}

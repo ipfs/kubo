@@ -60,7 +60,7 @@ the limit will not be respected by the network.
 			return err
 		}
 
-		it, _ := req.Files.Entries()
+		it := req.Files.Entries()
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}
@@ -110,7 +110,7 @@ Example:
 			return err
 		}
 
-		it, _ := req.Files.Entries()
+		it := req.Files.Entries()
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}

@@ -567,8 +567,8 @@ func TestAdd(t *testing.T) {
 					return
 				}
 
-				origIt, _ := orig.(files.Directory).Entries()
-				gotIt, _ := got.(files.Directory).Entries()
+				origIt := orig.(files.Directory).Entries()
+				gotIt := got.(files.Directory).Entries()
 
 				for {
 					if origIt.Next() {

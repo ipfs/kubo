@@ -79,7 +79,7 @@ func (d *ufsDirectory) Close() error {
 	return nil
 }
 
-func (d *ufsDirectory) Entries() (files.DirIterator, error) {
+func (d *ufsDirectory) Entries() files.DirIterator {
 	fileCh := make(chan *ipld.Link, prefetchFiles)
 	go func() {
 		d.dir.ForEachLink(d.ctx, func(link *ipld.Link) error {
@@ -98,7 +98,7 @@ func (d *ufsDirectory) Entries() (files.DirIterator, error) {
 		ctx:   d.ctx,
 		files: fileCh,
 		dserv: d.dserv,
-	}, nil
+	}
 }
 
 func (d *ufsDirectory) Size() (int64, error) {

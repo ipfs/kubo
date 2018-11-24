@@ -769,7 +769,7 @@ stat' on the file or any of its ancestors.
 			return err
 		}
 
-		it, _ := req.Files.Entries()
+		it := req.Files.Entries()
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}

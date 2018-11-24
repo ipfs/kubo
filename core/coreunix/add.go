@@ -416,10 +416,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		// Iterate over each top-level file and add individually. Otherwise the
 		// single files.File f is treated as a directory, affecting hidden file
 		// semantics.
-		it, err := tf.Entries()
-		if err != nil {
-			return nil, err
-		}
+		it := tf.Entries()
 		for it.Next() {
 			if err := adder.addFile(it.Name(), it.Node()); err != nil {
 				return nil, err
@@ -537,7 +534,7 @@ func (adder *Adder) addDir(path string, dir files.Directory) error {
 		return err
 	}
 
-	it, _ := dir.Entries()
+	it := dir.Entries()
 	for it.Next() {
 		fpath := gopath.Join(path, it.Name())
 

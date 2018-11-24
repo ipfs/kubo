@@ -92,7 +92,7 @@ into an object of the specified format.
 			defer nd.Blockstore.PinLock().Unlock()
 		}
 
-		it, _ := req.Files.Entries()
+		it := req.Files.Entries()
 		for it.Next() {
 			if it.File() == nil {
 				return fmt.Errorf("expected a regular file")
