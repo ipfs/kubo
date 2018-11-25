@@ -237,12 +237,13 @@ test_expect_success "some are no longer there" '
   test_must_fail ipfs ls "$HASH_DIR3"
 '
 
-test_expect_success "recursive pin fails without objects" '
-  ipfs pin rm -r=false "$HASH_DIR1" &&
-  test_must_fail ipfs pin add -r "$HASH_DIR1" 2>err_expected8 &&
-  grep "pin: merkledag: not found" err_expected8 ||
-  test_fsh cat err_expected8
-'
+## FIXME: hangs see https://github.com/ipfs/go-ipfs/issues/5793
+# test_expect_success "recursive pin fails without objects" '
+#  ipfs pin rm -r=false "$HASH_DIR1" &&
+#  test_must_fail ipfs pin add -r "$HASH_DIR1" 2>err_expected8 &&
+#  grep "pin: merkledag: not found" err_expected8 ||
+#  test_fsh cat err_expected8
+#'
 
 test_expect_success "test add nopin file" '
   echo "test nopin data" > test_nopin_data &&
