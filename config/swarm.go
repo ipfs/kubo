@@ -7,6 +7,12 @@ type SwarmConfig struct {
 	DisableRelay            bool
 	EnableRelayHop          bool
 
+	// autorelay functionality
+	// if true, then the libp2p host will be constructed with autorelay functionality.
+	EnableAutoRelay bool
+	// if true, then an AutoNATService will be instantiated to facilitate autorelay
+	EnableAutoNATService bool
+
 	ConnMgr ConnMgr
 }
 
