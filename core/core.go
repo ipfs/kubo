@@ -297,6 +297,10 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 	if follow {
 		n.Namecache = namecache.NewNameCache(ctx, n.Namesys, n.Pinning, n.DAG, n.Blockstore)
+		n.Namecache, err = namecache.NewPersistentCache(n.Namecache, n.Repo.Datastore())
+		if err != nil {
+			return err
+		}
 	}
 
 	// setup local discovery

@@ -105,7 +105,7 @@ func (nc *nameCache) ListFollows() []string {
 	defer nc.mx.Unlock()
 
 	follows := make([]string, 0, len(nc.follows))
-	for name, _ := range nc.follows {
+	for name := range nc.follows {
 		follows = append(follows, name)
 	}
 
