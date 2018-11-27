@@ -15,8 +15,8 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
+	config "gx/ipfs/QmXctaABKwgzmQgNM4bucMJf7zJnxxvhmPM1Pw95dxUfB5/go-ipfs-config"
 	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
-	config "gx/ipfs/QmbK4EmM2Xx5fmbqK38TGP3PpY66r3tkXLZTcc7dF9mFwM/go-ipfs-config"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
