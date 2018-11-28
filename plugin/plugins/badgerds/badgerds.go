@@ -41,6 +41,7 @@ func (*badgerdsPlugin) DatastoreTypeName() string {
 type datastoreConfig struct {
 	path       string
 	syncWrites bool
+	truncate   bool
 
 	vlogFileSize int64
 }
@@ -65,6 +66,17 @@ func (*badgerdsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 				c.syncWrites = swb
 			} else {
 				return nil, fmt.Errorf("'syncWrites' field was not a boolean")
+			}
+		}
+
+		truncate, ok := params["truncate"]
+		if !ok {
+			c.truncate = true
+		} else {
+			if truncate, ok := truncate.(bool); ok {
+				c.truncate = truncate
+			} else {
+				return nil, fmt.Errorf("'truncate' field was not a boolean")
 			}
 		}
 
@@ -108,6 +120,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 
 	defopts := badgerds.DefaultOptions
 	defopts.SyncWrites = c.syncWrites
+	defopts.Truncate = c.truncate
 	defopts.ValueLogFileSize = c.vlogFileSize
 
 	return badgerds.NewDatastore(p, &defopts)
