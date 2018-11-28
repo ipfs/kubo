@@ -11,11 +11,13 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	config "gx/ipfs/QmXctaABKwgzmQgNM4bucMJf7zJnxxvhmPM1Pw95dxUfB5/go-ipfs-config"
-	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
 	"gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 )
 
+var log = logging.Logger("command")
+
+// Context represents request context
 type Context struct {
 	Online     bool
 	ConfigRoot string
@@ -55,9 +57,9 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 	return c.node, err
 }
 
-// GetApi returns CoreAPI instance backed by ipfs node.
+// GetAPI returns CoreAPI instance backed by ipfs node.
 // It may construct the node with the provided function
-func (c *Context) GetApi() (coreiface.CoreAPI, error) {
+func (c *Context) GetAPI() (coreiface.CoreAPI, error) {
 	if c.api == nil {
 		n, err := c.GetNode()
 		if err != nil {
@@ -108,17 +110,4 @@ func (c *Context) Close() {
 		log.Info("Shutting down node...")
 		c.node.Close()
 	}
-}
-
-// Request represents a call to a command from a consumer
-type Request interface {
-	Path() []string
-	Option(name string) *cmdkit.OptionValue
-	Options() cmdkit.OptMap
-	Arguments() []string
-	StringArguments() []string
-	Files() files.File
-	Context() context.Context
-	InvocContext() *Context
-	Command() *Command
 }
