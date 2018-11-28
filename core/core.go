@@ -260,11 +260,13 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	// enable routing and autorelay
-	libp2pOpts = append(libp2pOpts, libp2p.Routing(func(h p2phost.Host) (routing.PeerRouting, error) {
-		r, err := routingOption(ctx, h, n.Repo.Datastore(), n.RecordValidator)
-		n.Routing = r
-		return r, err
-	}))
+	if cfg.Swarm.EnableAutoRelay {
+		libp2pOpts = append(libp2pOpts, libp2p.Routing(func(h p2phost.Host) (routing.PeerRouting, error) {
+			r, err := routingOption(ctx, h, n.Repo.Datastore(), n.RecordValidator)
+			n.Routing = r
+			return r, err
+		}))
+	}
 
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, libp2pOpts...)
 
@@ -505,8 +507,9 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		n.PubSub = service
 	}
 
-	// sadly, this code is necessary just for tests:
-	// it is necessary for mock network constructions that ignore the libp2p options
+	// this code is necessary as the host is constructed with routing only if autorelay
+	// is enabled.
+	// it is also necessary for tests: mock network constructions ignore the libp2p options
 	// that actually construct the routing!
 	if n.Routing == nil {
 		r, err := routingOption(ctx, host, n.Repo.Datastore(), n.RecordValidator)
