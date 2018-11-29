@@ -479,7 +479,12 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	}
 
 	if cfg.Swarm.EnableAutoNATService {
-		svc, err := autonat.NewAutoNATService(ctx, host)
+		var opts []libp2p.Option
+		if cfg.Experimental.QUIC {
+			opts = append(opts, libp2p.DefaultTransports, libp2p.Transport(quic.NewTransport))
+		}
+
+		svc, err := autonat.NewAutoNATService(ctx, host, opts...)
 		if err != nil {
 			return err
 		}
