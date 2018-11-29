@@ -24,23 +24,32 @@ function show_logs() {
     cat $REMOTE_SERVER_LOG
 }
 
-function serve_http_once() {
-    #
-    # one shot http server (via nc) with static body
-    #
-    local body=$1
-    local status_code=${2:-"200 OK"}
-    local length=$((1 + ${#body}))
+function start_http_server() {
     REMOTE_SERVER_LOG="server.log"
-    rm $REMOTE_SERVER_LOG
-    echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" | nc -l $WEB_SERVE_PORT 2>&1 > $REMOTE_SERVER_LOG &
-    test_wait_for_file 30 100ms $REMOTE_SERVER_LOG
+    rm -f $REMOTE_SERVER_LOG server_stdin
+
+    mkfifo server_stdin
+    nc -k -l 127.0.0.1 $WEB_SERVE_PORT 2>&1 > $REMOTE_SERVER_LOG < server_stdin &
     REMOTE_SERVER_PID=$!
+    exec 7>server_stdin
+    rm server_stdin
+
+    while ! nc -z 127.0.0.1 $WEB_SERVE_PORT; do
+        go-sleep 100ms
+    done
 }
 
 function teardown_remote_server() {
-    kill -9 $REMOTE_SERVER_PID > /dev/null 2>&1
-    sleep 5
+    exec 7<&-
+    kill $REMOTE_SERVER_PID > /dev/null 2>&1
+    wait $REMOTE_SERVER_PID || true
+}
+
+function serve_content() {
+    local body=$1
+    local status_code=${2:-"200 OK"}
+    local length=$((1 + ${#body}))
+    echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" >&7
 }
 
 function curl_check_response_code() {
@@ -97,7 +106,7 @@ function curl_send_multipart_form_request() {
     #
     # send multipart form request
     #
-    STATUS_CODE="$(curl -v -F file=@$FILE_PATH  $SENDER_GATEWAY/p2p/$RECEIVER_ID/http/index.txt)"
+    STATUS_CODE="$(curl -o /dev/null -s -F file=@$FILE_PATH --write-out %{http_code} $SENDER_GATEWAY/p2p/$RECEIVER_ID/http/index.txt)"
     #
     # check status code
     #
@@ -148,21 +157,23 @@ test_expect_success 'setup environment' '
     RECEIVER_ID="$(iptb attr get 1 id)"
 '
 
-test_expect_success 'handle proxy http request propogates error response from remote' '
-    serve_http_once "SORRY GUYS, I LOST IT" "404 Not Found" &&
-    curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
-'
-teardown_remote_server
-
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
     curl_send_proxy_request_and_check_response 502 ""
 '
 
+test_expect_success 'start http server' '
+    start_http_server
+'
+
+test_expect_success 'handle proxy http request propogates error response from remote' '
+    serve_content "SORRY GUYS, I LOST IT" "404 Not Found" &&
+    curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
+'
+
 test_expect_success 'handle proxy http request ' '
-    serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
+    serve_content "THE WOODS ARE LOVELY DARK AND DEEP" &&
     curl_send_proxy_request_and_check_response 200 "THE WOODS ARE LOVELY DARK AND DEEP"
 '
-teardown_remote_server
 
 test_expect_success 'handle proxy http request invalid request' '
     curl_check_response_code 400 p2p/DERPDERPDERP
@@ -173,26 +184,27 @@ test_expect_success 'handle proxy http request unknown proxy peer ' '
 '
 
 test_expect_success 'handle proxy http request to custom protocol' '
-    serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
+    serve_content "THE WOODS ARE LOVELY DARK AND DEEP" &&
     curl_check_response_code 200 p2p/$RECEIVER_ID/x/custom/http/index.txt
 '
-teardown_remote_server
 
 test_expect_success 'handle proxy http request to missing protocol' '
-    serve_http_once "THE WOODS ARE LOVELY DARK AND DEEP" &&
+    serve_content "THE WOODS ARE LOVELY DARK AND DEEP" &&
     curl_check_response_code 502 p2p/$RECEIVER_ID/x/missing/http/index.txt
 '
-teardown_remote_server
 
 test_expect_success 'handle proxy http request missing the /http' '
     curl_check_response_code 400 p2p/$RECEIVER_ID/x/custom/index.txt
 '
 
 test_expect_success 'handle multipart/form-data http request' '
-    serve_http_once "OK" &&
-    curl_send_multipart_form_request
+    serve_content "OK" &&
+    curl_send_multipart_form_request 200
 '
-teardown_remote_server
+
+test_expect_success 'stop http server' '
+    teardown_remote_server
+'
 
 test_expect_success 'stop nodes' '
     iptb stop
