@@ -119,7 +119,7 @@ into an object of the specified format.
 			}
 		}
 		if it.Err() != nil {
-			return err
+			return it.Err()
 		}
 
 		if err := b.Commit(); err != nil {
