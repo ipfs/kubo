@@ -592,6 +592,12 @@
       "hash": "QmTqLBwme9BusYWdACqL62NFb8WV2Q72gXLsQVfC7vmCr4",
       "name": "iptb-plugins",
       "version": "1.0.5"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "QmcLYfmHLsaVRKGMZQovwEYhHAjWtRjg1Lij3pnzw5UkRD",
+      "name": "go-libp2p-http",
+      "version": "1.1.8"
     }
   ],
   "gxVersion": "0.10.0",

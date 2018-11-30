@@ -21,6 +21,7 @@ the above issue.
 - [BadgerDB datastore](#badger-datastore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
+- [p2p http proxy](#p2p-http-proxy)
 - [Circuit Relay](#circuit-relay)
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding-hamt)
@@ -379,6 +380,87 @@ with `ssh [user]@127.0.0.1 -p 2222`.
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
 - [ ] Support other protocols (e.g, unix domain sockets, websockets, etc.)
+
+---
+
+## p2p http proxy
+
+Allows proxying of HTTP requests over p2p streams. This allows serving any standard http app over p2p streams.
+
+### State
+
+Experimental
+
+### In Version
+
+master, 0.4.19
+
+### How to enable
+
+The `p2p` command needs to be enabled in config:
+
+```sh
+> ipfs config --json Experimental.Libp2pStreamMounting true
+```
+
+On the client, the p2p http proxy needs to be enabled in the config:
+
+```sh
+> ipfs config --json Experimental.P2pHttpProxy true
+```
+
+### How to use
+
+**Netcat example:**
+
+First, pick a protocol name for your application. Think of the protocol name as
+a port number, just significantly more user-friendly. In this example, we're
+going to use `/http`.
+
+***Setup:***
+
+1. A "server" node with peer ID `$SERVER_ID`
+2. A "client" node.
+
+***On the "server" node:***
+
+First, start your application and have it listen for TCP connections on
+port `$APP_PORT`.
+
+Then, configure the p2p listener by running:
+
+```sh
+> ipfs p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$APP_PORT
+```
+
+This will configure IPFS to forward all incoming `/http` streams to
+`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per incoming stream.
+
+***On the "client" node:***
+
+Next, have your application make a http request to `127.0.0.1:8080/p2p/$SERVER_ID/http/$FORWARDED_PATH`. This
+connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
+the remote machine (which needs to be a http server!) with path `$FORWARDED_PATH`. You can test it with netcat:
+
+***On "server" node:***
+```sh
+> echo -e "HTTP/1.1 200\nContent-length: 11\n\nIPFS rocks!" | nc -l -p $APP_PORT
+```
+
+***On "client" node:***
+```sh
+> curl http://localhost:8080/p2p/$SERVER_ID/http/
+```
+
+You should now see the resulting http response: IPFS rocks!
+
+### Custom protocol names
+We also support use of protocol names of the form /x/$NAME/http where $NAME doesn't contain any "/"'s
+
+### Road to being a real feature
+- [ ] Needs p2p streams to graduate from experiments
+- [ ] Needs more people to use and report on how well it works / fits use cases
+- [ ] More documentation
 
 ---
 
