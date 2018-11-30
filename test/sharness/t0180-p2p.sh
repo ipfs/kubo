@@ -299,6 +299,49 @@ test_expect_success "'ipfs p2p close' closes by listen addr" '
   test_must_be_empty actual
 '
 
+# Peer reporting
+
+test_expect_success 'start p2p listener reporting peer' '
+  ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 --report-peer-id 2>&1 > listener-stdouterr.log
+'
+
+test_expect_success 'C->S Spawn receiving server' '
+  ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 > server.out &
+
+  test_wait_for_file 30 100ms listener.pid &&
+  kill -0 $(cat listener.pid)
+'
+
+test_expect_success 'C->S Setup client side' '
+  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
+'
+
+test_expect_success 'C->S Connect and receive data' '
+  ma-pipe-unidir send /ip4/127.0.0.1/tcp/10102 < test1.bin
+'
+
+test_expect_success 'C->S Ensure server finished' '
+  go-sleep 250ms &&
+  test ! -f listener.pid
+'
+
+test_expect_success 'C->S Output looks good' '
+  echo ${PEERID_1} > expected &&
+  cat test1.bin >> expected &&
+  test_cmp server.out expected
+'
+
+test_expect_success 'C->S Close listeners' '
+  ipfsi 1 p2p close -p /x/p2p-test &&
+  ipfsi 0 p2p close -p /x/p2p-test &&
+
+  ipfsi 0 p2p ls > actual &&
+  test_must_be_empty actual &&
+
+  ipfsi 1 p2p ls > actual &&
+  test_must_be_empty actual
+'
+
 test_expect_success "non /x/ scoped protocols are not allowed" '
   test_must_fail ipfsi 0 p2p listen /its/not/a/x/path /ip4/127.0.0.1/tcp/10101 2> actual &&
   echo "Error: protocol name must be within '"'"'/x/'"'"' namespace" > expected
