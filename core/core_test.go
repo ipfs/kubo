@@ -7,9 +7,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 
-	config "gx/ipfs/QmQSG7YCizeUH2bWatzp6uK9Vm3m7LA5jpxGa9QqgpNKw4/go-ipfs-config"
-	datastore "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
-	syncds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/sync"
+	config "gx/ipfs/QmXctaABKwgzmQgNM4bucMJf7zJnxxvhmPM1Pw95dxUfB5/go-ipfs-config"
+	datastore "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
+	syncds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore/sync"
 )
 
 func TestInitialization(t *testing.T) {
@@ -21,7 +21,7 @@ func TestInitialization(t *testing.T) {
 			Identity: id,
 			Addresses: config.Addresses{
 				Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
-				API:   "/ip4/127.0.0.1/tcp/8000",
+				API:   []string{"/ip4/127.0.0.1/tcp/8000"},
 			},
 		},
 
@@ -29,7 +29,7 @@ func TestInitialization(t *testing.T) {
 			Identity: id,
 			Addresses: config.Addresses{
 				Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
-				API:   "/ip4/127.0.0.1/tcp/8000",
+				API:   []string{"/ip4/127.0.0.1/tcp/8000"},
 			},
 		},
 	}

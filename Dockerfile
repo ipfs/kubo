@@ -1,5 +1,5 @@
 # Go base image
-ARG base=golang:1.10-stretch
+ARG base=golang:1.11-stretch
 # Busybox base image
 ARG busybox_base=busybox:1-glibc
 FROM $base
@@ -60,11 +60,13 @@ COPY --from=0 /etc/ssl/certs /etc/ssl/certs
 ARG glibc_shared_lib_arch=x86_64-linux-gnu
 COPY --from=0 /lib/${glibc_shared_lib_arch}/libdl-2.24.so /lib/libdl.so.2
 
-# Ports for Swarm TCP, Swarm uTP, API, Gateway, Swarm Websockets
+# Swarm TCP; should be exposed to the public
 EXPOSE 4001
-EXPOSE 4002/udp
+# Daemon API; must not be exposed publicly but to client services under you control
 EXPOSE 5001
+# Web Gateway; can be exposed publicly with a proxy, e.g. as https://ipfs.example.org
 EXPOSE 8080
+# Swarm Websockets; must be exposed publicly when the node is listening using the websocket transport (/ipX/.../tcp/8081/ws).
 EXPOSE 8081
 
 # Create the fs-repo directory and switch to a non-privileged user.

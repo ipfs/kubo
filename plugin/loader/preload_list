@@ -4,3 +4,7 @@
 # name             go-path                  number of the sub-plugin
 
 ipldgit github.com/ipfs/go-ipfs/plugin/plugins/git 0
+
+badgerds github.com/ipfs/go-ipfs/plugin/plugins/badgerds 0
+flatfs github.com/ipfs/go-ipfs/plugin/plugins/flatfs 0
+levelds github.com/ipfs/go-ipfs/plugin/plugins/levelds 0

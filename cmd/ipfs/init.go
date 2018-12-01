@@ -16,9 +16,9 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit"
-	"gx/ipfs/QmQSG7YCizeUH2bWatzp6uK9Vm3m7LA5jpxGa9QqgpNKw4/go-ipfs-config"
-	"gx/ipfs/QmUQb3xtNzkQCgTj2NjaqcJZNv2nfSSub2QAdy9DtQMRBT/go-ipfs-cmds"
+	"gx/ipfs/QmXctaABKwgzmQgNM4bucMJf7zJnxxvhmPM1Pw95dxUfB5/go-ipfs-config"
+	"gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 const (
@@ -72,11 +72,10 @@ environment variable:
 
 		return nil
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		if cctx.Online {
-			res.SetError(errors.New("init must be run offline only"), cmdkit.ErrNormal)
-			return
+			return cmdkit.Error{Message: "init must be run offline only"}
 		}
 
 		empty, _ := req.Options["empty-repo"].(bool)
@@ -88,14 +87,12 @@ environment variable:
 		if f != nil {
 			confFile, err := f.NextFile()
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 
 			conf = &config.Config{}
 			if err := json.NewDecoder(confFile).Decode(conf); err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
@@ -106,10 +103,7 @@ environment variable:
 			profiles = strings.Split(profile, ",")
 		}
 
-		if err := doInit(os.Stdout, cctx.ConfigRoot, empty, nBitsForKeypair, profiles, conf); err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		return doInit(os.Stdout, cctx.ConfigRoot, empty, nBitsForKeypair, profiles, conf)
 	},
 }
 

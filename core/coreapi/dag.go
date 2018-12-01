@@ -12,8 +12,8 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 
-	cid "gx/ipfs/QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV/go-cid"
-	ipld "gx/ipfs/QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P/go-ipld-format"
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 )
 
 type DagAPI CoreAPI
@@ -31,7 +31,7 @@ type dagBatch struct {
 func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.ResolvedPath, error) {
 	nd, err := getNode(src, opts...)
 
-	err = api.node.DAG.Add(ctx, nd)
+	err = api.dag.Add(ctx, nd)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (b *dagBatch) Commit(ctx context.Context) error {
 		b.toPut = nil
 	}()
 
-	return b.api.node.DAG.AddMany(ctx, b.toPut)
+	return b.api.dag.AddMany(ctx, b.toPut)
 }
 
 func getNode(src io.Reader, opts ...caopts.DagPutOption) (ipld.Node, error) {

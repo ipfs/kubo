@@ -6,7 +6,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/plugin"
 
-	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
+	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 )
 
 var log = logging.Logger("plugin/loader")
@@ -22,20 +22,22 @@ func LoadPlugins(pluginDir string) ([]plugin.Plugin, error) {
 		plMap[v.Name()] = v
 	}
 
-	newPls, err := loadDynamicPlugins(pluginDir)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, pl := range newPls {
-		if ppl, ok := plMap[pl.Name()]; ok {
-			// plugin is already preloaded
-			return nil, fmt.Errorf(
-				"plugin: %s, is duplicated in version: %s, "+
-					"while trying to load dynamically: %s",
-				ppl.Name(), ppl.Version(), pl.Version())
+	if pluginDir != "" {
+		newPls, err := loadDynamicPlugins(pluginDir)
+		if err != nil {
+			return nil, err
 		}
-		plMap[pl.Name()] = pl
+
+		for _, pl := range newPls {
+			if ppl, ok := plMap[pl.Name()]; ok {
+				// plugin is already preloaded
+				return nil, fmt.Errorf(
+					"plugin: %s, is duplicated in version: %s, "+
+						"while trying to load dynamically: %s",
+					ppl.Name(), ppl.Version(), pl.Version())
+			}
+			plMap[pl.Name()] = pl
+		}
 	}
 
 	pls := make([]plugin.Plugin, 0, len(plMap))
@@ -43,7 +45,7 @@ func LoadPlugins(pluginDir string) ([]plugin.Plugin, error) {
 		pls = append(pls, v)
 	}
 
-	err = initialize(pls)
+	err := initialize(pls)
 	if err != nil {
 		return nil, err
 	}

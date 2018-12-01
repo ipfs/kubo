@@ -3,15 +3,16 @@ package coreapi
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sort"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	ipfspath "gx/ipfs/QmWMcvZbNvk5codeqbm7L89C9kqSwka4KaHnDb8HRnxsSL/go-path"
 
-	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	peer "gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
+	crypto "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
+	ipfspath "gx/ipfs/QmQtg7N4XjAk2ZYpBjjv8B6gQprsRekabHBCnF6i46JYKJ/go-path"
+	peer "gx/ipfs/QmcqU6QUDSXprb1518vYDGczrTJTyGwLG9eUa5iNX4xUtS/go-libp2p-peer"
 )
 
 type KeyAPI CoreAPI
@@ -159,6 +160,12 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 		return nil, false, err
 	}
 
+	// This is important, because future code will delete key `oldName`
+	// even if it is the same as newName.
+	if newName == oldName {
+		return &key{oldName, pid}, false, nil
+	}
+
 	overwrite := false
 	if options.Force {
 		exist, err := ks.Has(newName)
@@ -209,4 +216,12 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (coreiface.Key, erro
 	}
 
 	return &key{"", pid}, nil
+}
+
+func (api *KeyAPI) Self(ctx context.Context) (coreiface.Key, error) {
+	if api.node.Identity == "" {
+		return nil, errors.New("identity not loaded")
+	}
+
+	return &key{"self", api.node.Identity}, nil
 }

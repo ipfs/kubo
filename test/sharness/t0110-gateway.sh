@@ -31,6 +31,11 @@ test_expect_success "GET IPFS path succeeds" '
   curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH"
 '
 
+test_expect_success "GET IPFS path with explicit filename succeeds with proper header" "
+  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест' &&
+  grep -F \"Content-Disposition: inline; filename*=UTF-8''test%D1%82%D0%B5%D1%81%D1%82\" actual_headers
+"
+
 test_expect_success "GET IPFS path output looks good" '
   test_cmp expected actual &&
   rm actual
@@ -57,7 +62,7 @@ test_expect_success "GET IPFS non existent file returns code expected (404)" '
 '
 
 test_expect_failure "GET IPNS path succeeds" '
-  ipfs name publish "$HASH" &&
+  ipfs name publish --allow-offline "$HASH" &&
   PEERID=$(ipfs config Identity.PeerID) &&
   test_check_peerid "$PEERID" &&
   curl -sfo actual "http://127.0.0.1:$port/ipns/$PEERID"
@@ -100,6 +105,21 @@ test_expect_success "output only has one transfer encoding header" '
   echo "1" > tecount_exp &&
   test_cmp tecount_out tecount_exp
 '
+
+curl_pprofmutex() {
+  curl -f -X POST "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=$1"
+}
+
+test_expect_success "set mutex fraction for pprof (negative so it doesn't enable)" '
+  curl_pprofmutex -1
+'
+
+test_expect_success "test failure conditions of mutex pprof endpoint" '
+  test_must_fail curl_pprofmutex &&
+    test_must_fail curl_pprofmutex that_is_string &&
+    test_must_fail curl -f -X GET "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=-1"
+'
+
 
 test_expect_success "setup index hash" '
   mkdir index &&

@@ -11,21 +11,22 @@ import (
 	"strconv"
 
 	core "github.com/ipfs/go-ipfs/core"
-	mfs "github.com/ipfs/go-ipfs/mfs"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/pin"
-	dag "gx/ipfs/QmQzSpSjkdGHW6WFBhUG6P3t9K8yv7iucucT1cQaqJ6tgd/go-merkledag"
-	unixfs "gx/ipfs/QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk/go-unixfs"
-	balanced "gx/ipfs/QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk/go-unixfs/importer/trickle"
 
-	files "gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit/files"
-	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
-	chunker "gx/ipfs/QmWbCAB5f3LDumj4ncz1UCHSiyXrXxkMxZB6Wv35xi4P8z/go-ipfs-chunker"
-	bstore "gx/ipfs/QmYBEfMSquSGnuxBthUoBJNs3F6p4VAPPvAgxq6XXGvTPh/go-ipfs-blockstore"
-	cid "gx/ipfs/QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV/go-cid"
-	ipld "gx/ipfs/QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P/go-ipld-format"
-	posinfo "gx/ipfs/QmdBpJ5VTfL79VwKDU93z7fyZJ3mm4UaBHrE73CWRw2Bjd/go-ipfs-posinfo"
+	chunker "gx/ipfs/QmR4QQVkBZsZENRjYFVi8dEtPL3daZRNKk24m4r6WKJHNm/go-ipfs-chunker"
+	posinfo "gx/ipfs/QmR6YMs8EkXQLXNwQKxLnQp2VBZSepoEJ8KCZAyanJHhJu/go-ipfs-posinfo"
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	bstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
+	unixfs "gx/ipfs/QmXAFxWtAB9YAMzMy9op6m95hWYu2CC5rmTsijkYL12Kvu/go-unixfs"
+	balanced "gx/ipfs/QmXAFxWtAB9YAMzMy9op6m95hWYu2CC5rmTsijkYL12Kvu/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmXAFxWtAB9YAMzMy9op6m95hWYu2CC5rmTsijkYL12Kvu/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmXAFxWtAB9YAMzMy9op6m95hWYu2CC5rmTsijkYL12Kvu/go-unixfs/importer/trickle"
+	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	mfs "gx/ipfs/QmZw3dco7GvZkuZ9pEHTHJ2DNXFxTtquraF3d2JYa5vP6q/go-mfs"
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
+	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
+	dag "gx/ipfs/QmdURv6Sbob8TVW2tFFve9vcEWrSUgwPqeqnXyvYhLrkyd/go-merkledag"
 )
 
 var log = logging.Logger("coreunix")
@@ -46,20 +47,16 @@ type Object struct {
 	Size  string
 }
 
-type AddedObject struct {
-	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
-}
-
 // NewAdder Returns a new Adder used for a file add operation.
 func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds ipld.DAGService) (*Adder, error) {
+	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
+
 	return &Adder{
 		ctx:        ctx,
 		pinning:    p,
 		blockstore: bs,
 		dagService: ds,
+		bufferedDS: bufferedDS,
 		Progress:   false,
 		Hidden:     true,
 		Pin:        true,
@@ -75,7 +72,8 @@ type Adder struct {
 	pinning    pin.Pinner
 	blockstore bstore.GCBlockstore
 	dagService ipld.DAGService
-	Out        chan interface{}
+	bufferedDS *ipld.BufferedDAG
+	Out        chan<- interface{}
 	Progress   bool
 	Hidden     bool
 	Pin        bool
@@ -83,12 +81,13 @@ type Adder struct {
 	RawLeaves  bool
 	Silent     bool
 	Wrap       bool
+	Name       string
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
-	tempRoot   *cid.Cid
+	tempRoot   cid.Cid
 	CidBuilder cid.Builder
 	liveNodes  uint64
 }
@@ -119,8 +118,11 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 		return nil, err
 	}
 
+	// Make sure all added nodes are written when done.
+	defer adder.bufferedDS.Commit()
+
 	params := ihelper.DagBuilderParams{
-		Dagserv:    adder.dagService,
+		Dagserv:    adder.bufferedDS,
 		RawLeaves:  adder.RawLeaves,
 		Maxlinks:   ihelper.DefaultLinksPerBlock,
 		NoCopy:     adder.NoCopy,
@@ -182,7 +184,7 @@ func (adder *Adder) PinRoot() error {
 		return err
 	}
 
-	if adder.tempRoot != nil {
+	if adder.tempRoot.Defined() {
 		err := adder.pinning.Unpin(adder.ctx, adder.tempRoot, true)
 		if err != nil {
 			return err
@@ -397,8 +399,8 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	return nil
 }
 
-// AddFile adds the given file while respecting the adder.
-func (adder *Adder) AddFile(file files.File) error {
+// AddAllAndPin adds the given request's files and pin them.
+func (adder *Adder) AddAllAndPin(file files.File) (ipld.Node, error) {
 	if adder.Pin {
 		adder.unlocker = adder.blockstore.PinLock()
 	}
@@ -408,7 +410,41 @@ func (adder *Adder) AddFile(file files.File) error {
 		}
 	}()
 
-	return adder.addFile(file)
+	switch {
+	case file.IsDirectory():
+		// Iterate over each top-level file and add individually. Otherwise the
+		// single files.File f is treated as a directory, affecting hidden file
+		// semantics.
+		for {
+			f, err := file.NextFile()
+			if err == io.EOF {
+				// Finished the list of files.
+				break
+			} else if err != nil {
+				return nil, err
+			}
+			if err := adder.addFile(f); err != nil {
+				return nil, err
+			}
+		}
+		break
+	default:
+		if err := adder.addFile(file); err != nil {
+			return nil, err
+		}
+		break
+	}
+
+	// copy intermediary nodes from editor to our actual dagservice
+	nd, err := adder.Finalize()
+	if err != nil {
+		return nil, err
+	}
+
+	if !adder.Pin {
+		return nd, nil
+	}
+	return nd, adder.PinRoot()
 }
 
 func (adder *Adder) addFile(file files.File) error {
@@ -470,8 +506,16 @@ func (adder *Adder) addFile(file files.File) error {
 		return err
 	}
 
+	addFileName := file.FileName()
+	addFileInfo, ok := file.(files.FileInfo)
+	if ok {
+		if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
+			addFileName = adder.Name
+			adder.Name = ""
+		}
+	}
 	// patch it into the root
-	return adder.addNode(dagnode, file.FileName())
+	return adder.addNode(dagnode, addFileName)
 }
 
 func (adder *Adder) addDir(dir files.File) error {
@@ -527,7 +571,7 @@ func (adder *Adder) maybePauseForGC() error {
 }
 
 // outputDagnode sends dagnode info over the output channel
-func outputDagnode(out chan interface{}, name string, dn ipld.Node) error {
+func outputDagnode(out chan<- interface{}, name string, dn ipld.Node) error {
 	if out == nil {
 		return nil
 	}
@@ -537,7 +581,7 @@ func outputDagnode(out chan interface{}, name string, dn ipld.Node) error {
 		return err
 	}
 
-	out <- &AddedObject{
+	out <- &coreiface.AddEvent{
 		Hash: o.Hash,
 		Name: name,
 		Size: o.Size,
@@ -572,7 +616,7 @@ func getOutput(dagnode ipld.Node) (*Object, error) {
 
 type progressReader struct {
 	file         files.File
-	out          chan interface{}
+	out          chan<- interface{}
 	bytes        int64
 	lastProgress int64
 }
@@ -583,7 +627,7 @@ func (i *progressReader) Read(p []byte) (int, error) {
 	i.bytes += int64(n)
 	if i.bytes-i.lastProgress >= progressReaderIncrement || err == io.EOF {
 		i.lastProgress = i.bytes
-		i.out <- &AddedObject{
+		i.out <- &coreiface.AddEvent{
 			Name:  i.file.FileName(),
 			Bytes: i.bytes,
 		}

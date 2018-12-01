@@ -5,7 +5,6 @@ package node
 import (
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -16,8 +15,8 @@ import (
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
-	offroute "gx/ipfs/QmRr8DpNhQMzsoqAitUrw43D82pyPXZkyUqarhSAfkrdaQ/go-ipfs-routing/offline"
-	ci "gx/ipfs/QmXG74iiKQnDstVQq9fPFQEB6JTNSWBbAWE1qsq6L4E5sR/go-testutil/ci"
+	ci "gx/ipfs/QmZXjR5X1p4KrQ967cTsy4MymMzUM8mZECF3PV8UcN4o3g/go-testutil/ci"
+	offroute "gx/ipfs/QmdxhyAwBrnmJFsYPK6tyHh4Yy3gK8gbULErX1dRnpUMqu/go-ipfs-routing/offline"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -77,24 +76,21 @@ func TestExternalUnmount(t *testing.T) {
 	}
 
 	// Run shell command to externally unmount the directory
-	cmd := "fusermount"
-	args := []string{"-u", ipnsDir}
-	if err := exec.Command(cmd, args...).Run(); err != nil {
+	cmd, err := mount.UnmountCmd(ipfsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cmd.Run(); err != nil {
 		t.Fatal(err)
 	}
 
 	// TODO(noffle): it takes a moment for the goroutine that's running fs.Serve to be notified and do its cleanup.
 	time.Sleep(time.Millisecond * 100)
 
-	// Attempt to unmount IPNS; check that it was already unmounted.
-	err = node.Mounts.Ipns.Unmount()
-	if err != mount.ErrNotMounted {
-		t.Fatal("Unmount should have failed")
-	}
-
 	// Attempt to unmount IPFS; it should unmount successfully.
 	err = node.Mounts.Ipfs.Unmount()
-	if err != nil {
-		t.Fatal(err)
+	if err != mount.ErrNotMounted {
+		t.Fatal("Unmount should have failed")
 	}
 }

@@ -15,7 +15,7 @@ setup_iptb() {
   bound=$(expr "$num_nodes" - 1)
 
   test_expect_success "iptb init" '
-    iptb init -n $num_nodes --bootstrap none --port 0
+    iptb testbed create -type localipfs -count $num_nodes -init
   '
 
   for i in $(test_seq 0 "$bound")
@@ -31,7 +31,7 @@ setup_iptb() {
 
 teardown_iptb() {
   test_expect_success "shut down nodes" '
-    iptb kill
+    iptb stop
   '
 }
 

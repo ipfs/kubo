@@ -16,10 +16,10 @@ import (
 	"github.com/ipfs/go-ipfs/dagutils"
 	"github.com/ipfs/go-ipfs/pin"
 
-	dag "gx/ipfs/QmQzSpSjkdGHW6WFBhUG6P3t9K8yv7iucucT1cQaqJ6tgd/go-merkledag"
-	ft "gx/ipfs/QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk/go-unixfs"
-	cid "gx/ipfs/QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV/go-cid"
-	ipld "gx/ipfs/QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P/go-ipld-format"
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	ft "gx/ipfs/QmXAFxWtAB9YAMzMy9op6m95hWYu2CC5rmTsijkYL12Kvu/go-unixfs"
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
+	dag "gx/ipfs/QmdURv6Sbob8TVW2tFFve9vcEWrSUgwPqeqnXyvYhLrkyd/go-merkledag"
 )
 
 const inputLimit = 2 << 20
@@ -50,7 +50,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 		n = ft.EmptyDirNode()
 	}
 
-	err = api.node.DAG.Add(ctx, n)
+	err = api.dag.Add(ctx, n)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		defer api.node.Blockstore.PinLock().Unlock()
 	}
 
-	err = api.node.DAG.Add(ctx, dagnode)
+	err = api.dag.Add(ctx, dagnode)
 	if err != nil {
 		return nil, err
 	}
@@ -219,14 +219,14 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name str
 		createfunc = ft.EmptyDirNode
 	}
 
-	e := dagutils.NewDagEditor(basePb, api.node.DAG)
+	e := dagutils.NewDagEditor(basePb, api.dag)
 
 	err = e.InsertNodeAtPath(ctx, name, childNd, createfunc)
 	if err != nil {
 		return nil, err
 	}
 
-	nnode, err := e.Finalize(ctx, api.node.DAG)
+	nnode, err := e.Finalize(ctx, api.dag)
 	if err != nil {
 		return nil, err
 	}
@@ -245,14 +245,14 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link stri
 		return nil, dag.ErrNotProtobuf
 	}
 
-	e := dagutils.NewDagEditor(basePb, api.node.DAG)
+	e := dagutils.NewDagEditor(basePb, api.dag)
 
 	err = e.RmLink(ctx, link)
 	if err != nil {
 		return nil, err
 	}
 
-	nnode, err := e.Finalize(ctx, api.node.DAG)
+	nnode, err := e.Finalize(ctx, api.dag)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 	}
 	pbnd.SetData(data)
 
-	err = api.node.DAG.Add(ctx, pbnd)
+	err = api.dag.Add(ctx, pbnd)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +308,7 @@ func (api *ObjectAPI) Diff(ctx context.Context, before coreiface.Path, after cor
 		return nil, err
 	}
 
-	changes, err := dagutils.Diff(ctx, api.node.DAG, beforeNd, afterNd)
+	changes, err := dagutils.Diff(ctx, api.dag, beforeNd, afterNd)
 	if err != nil {
 		return nil, err
 	}
@@ -320,11 +320,11 @@ func (api *ObjectAPI) Diff(ctx context.Context, before coreiface.Path, after cor
 			Path: change.Path,
 		}
 
-		if change.Before != nil {
+		if change.Before.Defined() {
 			out[i].Before = coreiface.IpfsPath(change.Before)
 		}
 
-		if change.After != nil {
+		if change.After.Defined() {
 			out[i].After = coreiface.IpfsPath(change.After)
 		}
 	}

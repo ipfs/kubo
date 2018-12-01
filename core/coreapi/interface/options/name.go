@@ -2,6 +2,8 @@ package options
 
 import (
 	"time"
+
+	ropts "github.com/ipfs/go-ipfs/namesys/opts"
 )
 
 const (
@@ -11,12 +13,17 @@ const (
 type NamePublishSettings struct {
 	ValidTime time.Duration
 	Key       string
+
+	TTL *time.Duration
+
+	AllowOffline bool
 }
 
 type NameResolveSettings struct {
-	Recursive bool
-	Local     bool
-	Cache     bool
+	Local bool
+	Cache bool
+
+	ResolveOpts []ropts.ResolveOpt
 }
 
 type NamePublishOption func(*NamePublishSettings) error
@@ -26,6 +33,8 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 	options := &NamePublishSettings{
 		ValidTime: DefaultNameValidTime,
 		Key:       "self",
+
+		AllowOffline: false,
 	}
 
 	for _, opt := range opts {
@@ -40,9 +49,8 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 
 func NameResolveOptions(opts ...NameResolveOption) (*NameResolveSettings, error) {
 	options := &NameResolveSettings{
-		Recursive: false,
-		Local:     false,
-		Cache:     true,
+		Local: false,
+		Cache: true,
 	}
 
 	for _, opt := range opts {
@@ -80,11 +88,20 @@ func (nameOpts) Key(key string) NamePublishOption {
 	}
 }
 
-// Recursive is an option for Name.Resolve which specifies whether to perform a
-// recursive lookup. Default value is false
-func (nameOpts) Recursive(recursive bool) NameResolveOption {
-	return func(settings *NameResolveSettings) error {
-		settings.Recursive = recursive
+// AllowOffline is an option for Name.Publish which specifies whether to allow
+// publishing when the node is offline. Default value is false
+func (nameOpts) AllowOffline(allow bool) NamePublishOption {
+	return func(settings *NamePublishSettings) error {
+		settings.AllowOffline = allow
+		return nil
+	}
+}
+
+// TTL is an option for Name.Publish which specifies the time duration the
+// published record should be cached for (caution: experimental).
+func (nameOpts) TTL(ttl time.Duration) NamePublishOption {
+	return func(settings *NamePublishSettings) error {
+		settings.TTL = &ttl
 		return nil
 	}
 }
@@ -103,6 +120,14 @@ func (nameOpts) Local(local bool) NameResolveOption {
 func (nameOpts) Cache(cache bool) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.Cache = cache
+		return nil
+	}
+}
+
+//
+func (nameOpts) ResolveOption(opt ropts.ResolveOpt) NameResolveOption {
+	return func(settings *NameResolveSettings) error {
+		settings.ResolveOpts = append(settings.ResolveOpts, opt)
 		return nil
 	}
 }

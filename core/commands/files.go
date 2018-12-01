@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,26 +10,22 @@ import (
 	"sort"
 	"strings"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	core "github.com/ipfs/go-ipfs/core"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	mfs "github.com/ipfs/go-ipfs/mfs"
-	dag "gx/ipfs/QmQzSpSjkdGHW6WFBhUG6P3t9K8yv7iucucT1cQaqJ6tgd/go-merkledag"
-	bservice "gx/ipfs/QmTZZrpd9o4vpYr9TEADW2EoJ9fzUtAgpXqjxZHbKR2T15/go-blockservice"
-	path "gx/ipfs/QmWMcvZbNvk5codeqbm7L89C9kqSwka4KaHnDb8HRnxsSL/go-path"
-	resolver "gx/ipfs/QmWMcvZbNvk5codeqbm7L89C9kqSwka4KaHnDb8HRnxsSL/go-path/resolver"
-	ft "gx/ipfs/QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk/go-unixfs"
-	uio "gx/ipfs/QmWv8MYwgPK4zXYv1et1snWJ6FWGqaL6xY2y9X1bRSKBxk/go-unixfs/io"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cmdkit "gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	logging "gx/ipfs/QmRREK2CAZ5Re2Bd9zZFG6FeYDppUWt5cMgsoUEp3ktgSr/go-log"
-	cmds "gx/ipfs/QmUQb3xtNzkQCgTj2NjaqcJZNv2nfSSub2QAdy9DtQMRBT/go-ipfs-cmds"
-	offline "gx/ipfs/QmVozMmsgK2PYyaHQsrcWLBYigb1m6mW8YhCBG2Cb4Uxq9/go-ipfs-exchange-offline"
-	cid "gx/ipfs/QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV/go-cid"
-	ipld "gx/ipfs/QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P/go-ipld-format"
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	bservice "gx/ipfs/QmVDTbzzTwnuBwNbJdhW3u7LoBQp46bezm9yp4z1RoEepM/go-blockservice"
+	ft "gx/ipfs/QmXAFxWtAB9YAMzMy9op6m95hWYu2CC5rmTsijkYL12Kvu/go-unixfs"
+	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
+	mfs "gx/ipfs/QmZw3dco7GvZkuZ9pEHTHJ2DNXFxTtquraF3d2JYa5vP6q/go-mfs"
+	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
+	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
+	dag "gx/ipfs/QmdURv6Sbob8TVW2tFFve9vcEWrSUgwPqeqnXyvYhLrkyd/go-merkledag"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
 var flog = logging.Logger("cmds/files")
@@ -54,24 +49,29 @@ operations.
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("f", "flush", "Flush target and ancestors after write.").WithDefault(true),
+		cmdkit.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
-		"read":  lgc.NewCommand(filesReadCmd),
+		"read":  filesReadCmd,
 		"write": filesWriteCmd,
-		"mv":    lgc.NewCommand(filesMvCmd),
-		"cp":    lgc.NewCommand(filesCpCmd),
-		"ls":    lgc.NewCommand(filesLsCmd),
-		"mkdir": lgc.NewCommand(filesMkdirCmd),
+		"mv":    filesMvCmd,
+		"cp":    filesCpCmd,
+		"ls":    filesLsCmd,
+		"mkdir": filesMkdirCmd,
 		"stat":  filesStatCmd,
-		"rm":    lgc.NewCommand(filesRmCmd),
-		"flush": lgc.NewCommand(filesFlushCmd),
-		"chcid": lgc.NewCommand(filesChcidCmd),
+		"rm":    filesRmCmd,
+		"flush": filesFlushCmd,
+		"chcid": filesChcidCmd,
 	},
 }
 
-var cidVersionOption = cmdkit.IntOption("cid-version", "cid-ver", "Cid version to use. (experimental)")
-var hashOption = cmdkit.StringOption("hash", "Hash function to use. Will set Cid version to 1 if used. (experimental)")
+const (
+	filesCidVersionOptionName = "cid-version"
+	filesHashOptionName       = "hash"
+)
+
+var cidVersionOption = cmdkit.IntOption(filesCidVersionOptionName, "cid-ver", "Cid version to use. (experimental)")
+var hashOption = cmdkit.StringOption(filesHashOptionName, "Hash function to use. Will set Cid version to 1 if used. (experimental)")
 
 var errFormat = errors.New("format was set by multiple options. Only one format option is allowed")
 
@@ -86,11 +86,16 @@ type statOutput struct {
 	SizeLocal      uint64 `json:",omitempty"`
 }
 
-const defaultStatFormat = `<hash>
+const (
+	defaultStatFormat = `<hash>
 Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
 Type: <type>`
+	filesFormatOptionName    = "format"
+	filesSizeOptionName      = "size"
+	filesWithLocalOptionName = "with-local"
+)
 
 var filesStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -101,32 +106,35 @@ var filesStatCmd = &cmds.Command{
 		cmdkit.StringArg("path", true, false, "Path to node to stat."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "Print statistics in given format. Allowed tokens: "+
+		cmdkit.StringOption(filesFormatOptionName, "Print statistics in given format. Allowed tokens: "+
 			"<hash> <size> <cumulsize> <type> <childs>. Conflicts with other format options.").WithDefault(defaultStatFormat),
-		cmdkit.BoolOption("hash", "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
-		cmdkit.BoolOption("size", "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
-		cmdkit.BoolOption("with-local", "Compute the amount of the dag that is local, and if possible the total size"),
+		cmdkit.BoolOption(filesHashOptionName, "Print only hash. Implies '--format=<hash>'. Conflicts with other format options."),
+		cmdkit.BoolOption(filesSizeOptionName, "Print only size. Implies '--format=<cumulsize>'. Conflicts with other format options."),
+		cmdkit.BoolOption(filesWithLocalOptionName, "Compute the amount of the dag that is local, and if possible the total size"),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 
 		_, err := statGetFormatOptions(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrClient)
+			return cmdkit.Errorf(cmdkit.ErrClient, err.Error())
 		}
 
-		node, err := GetNode(env)
+		node, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+
+		api, err := cmdenv.GetApi(env)
+		if err != nil {
+			return err
 		}
 
 		path, err := checkPath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		withLocal, _ := req.Options["with-local"].(bool)
+		withLocal, _ := req.Options[filesWithLocalOptionName].(bool)
 
 		var dagserv ipld.DAGService
 		if withLocal {
@@ -139,21 +147,18 @@ var filesStatCmd = &cmds.Command{
 			dagserv = node.DAG
 		}
 
-		nd, err := getNodeFromPath(req.Context, node, dagserv, path)
+		nd, err := getNodeFromPath(req.Context, node, api, path)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		o, err := statNode(nd)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !withLocal {
-			cmds.EmitOnce(res, o)
-			return
+			return cmds.EmitOnce(res, o)
 		}
 
 		local, sizeLocal, err := walkBlock(req.Context, dagserv, nd)
@@ -162,15 +167,10 @@ var filesStatCmd = &cmds.Command{
 		o.Local = local
 		o.SizeLocal = sizeLocal
 
-		cmds.EmitOnce(res, o)
+		return cmds.EmitOnce(res, o)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			out, ok := v.(*statOutput)
-			if !ok {
-				return e.TypeErr(out, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *statOutput) error {
 			s, _ := statGetFormatOptions(req)
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
@@ -200,9 +200,9 @@ func moreThanOne(a, b, c bool) bool {
 
 func statGetFormatOptions(req *cmds.Request) (string, error) {
 
-	hash, _ := req.Options["hash"].(bool)
-	size, _ := req.Options["size"].(bool)
-	format, _ := req.Options["format"].(string)
+	hash, _ := req.Options[filesHashOptionName].(bool)
+	size, _ := req.Options[filesSizeOptionName].(bool)
+	format, _ := req.Options[filesFormatOptionName].(string)
 
 	if moreThanOne(hash, size, format != defaultStatFormat) {
 		return "", errFormat
@@ -227,25 +227,25 @@ func statNode(nd ipld.Node) (*statOutput, error) {
 
 	switch n := nd.(type) {
 	case *dag.ProtoNode:
-		d, err := ft.FromBytes(n.Data())
+		d, err := ft.FSNodeFromBytes(n.Data())
 		if err != nil {
 			return nil, err
 		}
 
 		var ndtype string
-		switch d.GetType() {
+		switch d.Type() {
 		case ft.TDirectory, ft.THAMTShard:
 			ndtype = "directory"
 		case ft.TFile, ft.TMetadata, ft.TRaw:
 			ndtype = "file"
 		default:
-			return nil, fmt.Errorf("unrecognized node type: %s", d.GetType())
+			return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
 		}
 
 		return &statOutput{
 			Hash:           c.String(),
 			Blocks:         len(nd.Links()),
-			Size:           d.GetFilesize(),
+			Size:           d.FileSize(),
 			CumulativeSize: cumulsize,
 			Type:           ndtype,
 		}, nil
@@ -294,7 +294,7 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 	return local, sizeLocal, nil
 }
 
-var filesCpCmd = &oldcmds.Command{
+var filesCpCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Copy files into mfs.",
 	},
@@ -302,70 +302,64 @@ var filesCpCmd = &oldcmds.Command{
 		cmdkit.StringArg("source", true, false, "Source object to copy."),
 		cmdkit.StringArg("dest", true, false, "Destination to copy object to."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		node, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		flush, _, _ := req.Option("flush").Bool()
-
-		src, err := checkPath(req.Arguments()[0])
+		api, err := cmdenv.GetApi(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+
+		flush, _ := req.Options[filesFlushOptionName].(bool)
+
+		src, err := checkPath(req.Arguments[0])
+		if err != nil {
+			return err
 		}
 		src = strings.TrimRight(src, "/")
 
-		dst, err := checkPath(req.Arguments()[1])
+		dst, err := checkPath(req.Arguments[1])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if dst[len(dst)-1] == '/' {
 			dst += gopath.Base(src)
 		}
 
-		nd, err := getNodeFromPath(req.Context(), node, node.DAG, src)
+		node, err := getNodeFromPath(req.Context, nd, api, src)
 		if err != nil {
-			res.SetError(fmt.Errorf("cp: cannot get node from path %s: %s", src, err), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
 		}
 
-		err = mfs.PutNode(node.FilesRoot, dst, nd)
+		err = mfs.PutNode(nd.FilesRoot, dst, node)
 		if err != nil {
-			res.SetError(fmt.Errorf("cp: cannot put node in path %s: %s", dst, err), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cp: cannot put node in path %s: %s", dst, err)
 		}
 
 		if flush {
-			err := mfs.FlushPath(node.FilesRoot, dst)
+			err := mfs.FlushPath(nd.FilesRoot, dst)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
 			}
 		}
 
-		res.SetOutput(nil)
+		return nil
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, dagservice ipld.DAGService, p string) (ipld.Node, error) {
+func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
-		np, err := path.ParsePath(p)
+		np, err := iface.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
 
-		resolver := &resolver.Resolver{
-			DAG:         dagservice,
-			ResolveOnce: uio.ResolveUnixfsOnce,
-		}
-
-		return core.Resolve(ctx, node.Namesys, resolver, np)
+		return api.ResolveNode(ctx, np)
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {
@@ -380,7 +374,12 @@ type filesLsOutput struct {
 	Entries []mfs.NodeListing
 }
 
-var filesLsCmd = &oldcmds.Command{
+const (
+	longOptionName     = "l"
+	dontSortOptionName = "U"
+)
+
+var filesLsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List directories in the local mutable namespace.",
 		ShortDescription: `
@@ -405,46 +404,42 @@ Examples:
 		cmdkit.StringArg("path", false, false, "Path to show listing for. Defaults to '/'."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("l", "Use long listing format."),
-		cmdkit.BoolOption("U", "Do not sort; list entries in directory order."),
+		cmdkit.BoolOption(longOptionName, "Use long listing format."),
+		cmdkit.BoolOption(dontSortOptionName, "Do not sort; list entries in directory order."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		var arg string
 
-		if len(req.Arguments()) == 0 {
+		if len(req.Arguments) == 0 {
 			arg = "/"
 		} else {
-			arg = req.Arguments()[0]
+			arg = req.Arguments[0]
 		}
 
 		path, err := checkPath(arg)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		nd, err := req.InvocContext().GetNode()
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		fsn, err := mfs.Lookup(nd.FilesRoot, path)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		long, _, _ := req.Option("l").Bool()
+		long, _ := req.Options[longOptionName].(bool)
 
 		switch fsn := fsn.(type) {
 		case *mfs.Directory:
 			if !long {
 				var output []mfs.NodeListing
-				names, err := fsn.ListNames(req.Context())
+				names, err := fsn.ListNames(req.Context)
 				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
+					return err
 				}
 
 				for _, name := range names {
@@ -452,78 +447,69 @@ Examples:
 						Name: name,
 					})
 				}
-				res.SetOutput(&filesLsOutput{output})
-			} else {
-				listing, err := fsn.List(req.Context())
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
-				}
-				res.SetOutput(&filesLsOutput{listing})
+				return cmds.EmitOnce(res, &filesLsOutput{output})
 			}
-			return
+			listing, err := fsn.List(req.Context)
+			if err != nil {
+				return err
+			}
+			return cmds.EmitOnce(res, &filesLsOutput{listing})
 		case *mfs.File:
 			_, name := gopath.Split(path)
-			out := &filesLsOutput{[]mfs.NodeListing{mfs.NodeListing{Name: name}}}
+			out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
 			if long {
 				out.Entries[0].Type = int(fsn.Type())
 
 				size, err := fsn.Size()
 				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
+					return err
 				}
 				out.Entries[0].Size = size
 
 				nd, err := fsn.GetNode()
 				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
+					return err
 				}
 				out.Entries[0].Hash = nd.Cid().String()
 			}
-			res.SetOutput(out)
-			return
+			return cmds.EmitOnce(res, out)
 		default:
-			res.SetError(errors.New("unrecognized type"), cmdkit.ErrNormal)
+			return errors.New("unrecognized type")
 		}
 	},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			out, ok := v.(*filesLsOutput)
-			if !ok {
-				return nil, e.TypeErr(out, v)
-			}
-
-			buf := new(bytes.Buffer)
-
-			noSort, _, _ := res.Request().Option("U").Bool()
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filesLsOutput) error {
+			noSort, _ := req.Options[dontSortOptionName].(bool)
 			if !noSort {
 				sort.Slice(out.Entries, func(i, j int) bool {
 					return strings.Compare(out.Entries[i].Name, out.Entries[j].Name) < 0
 				})
 			}
 
-			long, _, _ := res.Request().Option("l").Bool()
+			long, _ := req.Options[longOptionName].(bool)
 			for _, o := range out.Entries {
 				if long {
-					fmt.Fprintf(buf, "%s\t%s\t%d\n", o.Name, o.Hash, o.Size)
+					if o.Type == int(mfs.TDir) {
+						o.Name += "/"
+					}
+					fmt.Fprintf(w, "%s\t%s\t%d\n", o.Name, o.Hash, o.Size)
 				} else {
-					fmt.Fprintf(buf, "%s\n", o.Name)
+					fmt.Fprintf(w, "%s\n", o.Name)
 				}
 			}
-			return buf, nil
-		},
+
+			return nil
+		}),
 	},
 	Type: filesLsOutput{},
 }
 
-var filesReadCmd = &oldcmds.Command{
+const (
+	filesOffsetOptionName = "offset"
+	filesCountOptionName  = "count"
+)
+
+var filesReadCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Read a file in a given mfs.",
 		ShortDescription: `
@@ -541,84 +527,65 @@ Examples:
 		cmdkit.StringArg("path", true, false, "Path to file to be read."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("offset", "o", "Byte offset to begin reading from."),
-		cmdkit.IntOption("count", "n", "Maximum number of bytes to read."),
+		cmdkit.Int64Option(filesOffsetOptionName, "o", "Byte offset to begin reading from."),
+		cmdkit.Int64Option(filesCountOptionName, "n", "Maximum number of bytes to read."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		path, err := checkPath(req.Arguments()[0])
+		path, err := checkPath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		fsn, err := mfs.Lookup(n.FilesRoot, path)
+		fsn, err := mfs.Lookup(nd.FilesRoot, path)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		fi, ok := fsn.(*mfs.File)
 		if !ok {
-			res.SetError(fmt.Errorf("%s was not a file", path), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("%s was not a file", path)
 		}
 
 		rfd, err := fi.Open(mfs.OpenReadOnly, false)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		defer rfd.Close()
 
-		offset, _, err := req.Option("offset").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		offset, _ := req.Options[offsetOptionName].(int64)
 		if offset < 0 {
-			res.SetError(fmt.Errorf("cannot specify negative offset"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot specify negative offset")
 		}
 
 		filen, err := rfd.Size()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if int64(offset) > filen {
-			res.SetError(fmt.Errorf("offset was past end of file (%d > %d)", offset, filen), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("offset was past end of file (%d > %d)", offset, filen)
 		}
 
 		_, err = rfd.Seek(int64(offset), io.SeekStart)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		var r io.Reader = &contextReaderWrapper{R: rfd, ctx: req.Context()}
-		count, found, err := req.Option("count").Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		var r io.Reader = &contextReaderWrapper{R: rfd, ctx: req.Context}
+		count, found := req.Options[filesCountOptionName].(int64)
 		if found {
 			if count < 0 {
-				res.SetError(fmt.Errorf("cannot specify negative 'count'"), cmdkit.ErrNormal)
-				return
+				return fmt.Errorf("cannot specify negative 'count'")
 			}
 			r = io.LimitReader(r, int64(count))
 		}
-
-		res.SetOutput(r)
+		return res.Emit(r)
 	},
 }
 
@@ -635,7 +602,7 @@ func (crw *contextReaderWrapper) Read(b []byte) (int, error) {
 	return crw.R.CtxReadFull(crw.ctx, b)
 }
 
-var filesMvCmd = &oldcmds.Command{
+var filesMvCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Move files.",
 		ShortDescription: `
@@ -652,33 +619,32 @@ Example:
 		cmdkit.StringArg("source", true, false, "Source file to move."),
 		cmdkit.StringArg("dest", true, false, "Destination path for file to be moved to."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		src, err := checkPath(req.Arguments()[0])
+		src, err := checkPath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-		dst, err := checkPath(req.Arguments()[1])
+		dst, err := checkPath(req.Arguments[1])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = mfs.Mv(n.FilesRoot, src, dst)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(nil)
+		return mfs.Mv(nd.FilesRoot, src, dst)
 	},
 }
+
+const (
+	filesCreateOptionName    = "create"
+	filesParentsOptionName   = "parents"
+	filesTruncateOptionName  = "truncate"
+	filesRawLeavesOptionName = "raw-leaves"
+	filesFlushOptionName     = "flush"
+)
 
 var filesWriteCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
@@ -719,48 +685,52 @@ stat' on the file or any of its ancestors.
 		cmdkit.FileArg("data", true, false, "Data to write.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("offset", "o", "Byte offset to begin writing at."),
-		cmdkit.BoolOption("create", "e", "Create the file if it does not exist."),
-		cmdkit.BoolOption("truncate", "t", "Truncate the file to size zero before writing."),
-		cmdkit.IntOption("count", "n", "Maximum number of bytes to read."),
-		cmdkit.BoolOption("raw-leaves", "Use raw blocks for newly created leaf nodes. (experimental)"),
+		cmdkit.Int64Option(filesOffsetOptionName, "o", "Byte offset to begin writing at."),
+		cmdkit.BoolOption(filesCreateOptionName, "e", "Create the file if it does not exist."),
+		cmdkit.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
+		cmdkit.BoolOption(filesTruncateOptionName, "t", "Truncate the file to size zero before writing."),
+		cmdkit.Int64Option(filesCountOptionName, "n", "Maximum number of bytes to read."),
+		cmdkit.BoolOption(filesRawLeavesOptionName, "Use raw blocks for newly created leaf nodes. (experimental)"),
 		cidVersionOption,
 		hashOption,
 	},
-	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) {
+	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (retErr error) {
 		path, err := checkPath(req.Arguments[0])
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		create, _ := req.Options["create"].(bool)
-		trunc, _ := req.Options["truncate"].(bool)
-		flush, _ := req.Options["flush"].(bool)
-		rawLeaves, rawLeavesDef := req.Options["raw-leaves"].(bool)
+		create, _ := req.Options[filesCreateOptionName].(bool)
+		mkParents, _ := req.Options[filesParentsOptionName].(bool)
+		trunc, _ := req.Options[filesTruncateOptionName].(bool)
+		flush, _ := req.Options[filesFlushOptionName].(bool)
+		rawLeaves, rawLeavesDef := req.Options[filesRawLeavesOptionName].(bool)
 
 		prefix, err := getPrefixNew(req)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		nd, err := GetNode(env)
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		offset, _ := req.Options["offset"].(int)
+		offset, _ := req.Options[filesOffsetOptionName].(int64)
 		if offset < 0 {
-			re.SetError(fmt.Errorf("cannot have negative write offset"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot have negative write offset")
+		}
+
+		if mkParents {
+			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix)
+			if err != nil {
+				return err
+			}
 		}
 
 		fi, err := getFileHandle(nd.FilesRoot, path, create, prefix)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		if rawLeavesDef {
 			fi.RawLeaves = rawLeaves
@@ -768,41 +738,40 @@ stat' on the file or any of its ancestors.
 
 		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		defer func() {
 			err := wfd.Close()
 			if err != nil {
-				re.SetError(err, cmdkit.ErrNormal)
+				if retErr == nil {
+					retErr = err
+				} else {
+					log.Error("files: error closing file mfs file descriptor", err)
+				}
 			}
 		}()
 
 		if trunc {
 			if err := wfd.Truncate(0); err != nil {
-				re.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 		}
 
-		count, countfound := req.Options["count"].(int)
+		count, countfound := req.Options[filesCountOptionName].(int64)
 		if countfound && count < 0 {
-			re.SetError(fmt.Errorf("cannot have negative byte count"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot have negative byte count")
 		}
 
 		_, err = wfd.Seek(int64(offset), io.SeekStart)
 		if err != nil {
 			flog.Error("seekfail: ", err)
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		input, err := req.Files.NextFile()
 		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		var r io.Reader = input
@@ -811,14 +780,11 @@ stat' on the file or any of its ancestors.
 		}
 
 		_, err = io.Copy(wfd, r)
-		if err != nil {
-			re.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		return err
 	},
 }
 
-var filesMkdirCmd = &oldcmds.Command{
+var filesMkdirCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Make directories.",
 		ShortDescription: `
@@ -840,30 +806,27 @@ Examples:
 		cmdkit.StringArg("path", true, false, "Path to dir to make."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("parents", "p", "No error if existing, make parent directories as needed."),
+		cmdkit.BoolOption(filesParentsOptionName, "p", "No error if existing, make parent directories as needed."),
 		cidVersionOption,
 		hashOption,
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		dashp, _, _ := req.Option("parents").Bool()
-		dirtomake, err := checkPath(req.Arguments()[0])
+		dashp, _ := req.Options[filesParentsOptionName].(bool)
+		dirtomake, err := checkPath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		flush, _, _ := req.Option("flush").Bool()
+		flush, _ := req.Options[filesFlushOptionName].(bool)
 
 		prefix, err := getPrefix(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		root := n.FilesRoot
 
@@ -872,16 +835,12 @@ Examples:
 			Flush:      flush,
 			CidBuilder: prefix,
 		})
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
 
-		res.SetOutput(nil)
+		return err
 	},
 }
 
-var filesFlushCmd = &oldcmds.Command{
+var filesFlushCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Flush a given path's data to disk.",
 		ShortDescription: `
@@ -892,29 +851,22 @@ are run with the '--flush=false'.
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("path", false, false, "Path to flush. Default: '/'."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		path := "/"
-		if len(req.Arguments()) > 0 {
-			path = req.Arguments()[0]
+		if len(req.Arguments) > 0 {
+			path = req.Arguments[0]
 		}
 
-		err = mfs.FlushPath(nd.FilesRoot, path)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(nil)
+		return mfs.FlushPath(nd.FilesRoot, path)
 	},
 }
 
-var filesChcidCmd = &oldcmds.Command{
+var filesChcidCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Change the cid version or hash function of the root node of a given path.",
 		ShortDescription: `
@@ -928,33 +880,25 @@ Change the cid version or hash function of the root node of a given path.
 		cidVersionOption,
 		hashOption,
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		path := "/"
-		if len(req.Arguments()) > 0 {
-			path = req.Arguments()[0]
+		if len(req.Arguments) > 0 {
+			path = req.Arguments[0]
 		}
 
-		flush, _, _ := req.Option("flush").Bool()
+		flush, _ := req.Options[filesFlushOptionName].(bool)
 
 		prefix, err := getPrefix(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = updatePath(nd.FilesRoot, path, prefix, flush)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(nil)
+		return updatePath(nd.FilesRoot, path, prefix, flush)
 	},
 }
 
@@ -982,7 +926,7 @@ func updatePath(rt *mfs.Root, pth string, builder cid.Builder, flush bool) error
 	return nil
 }
 
-var filesRmCmd = &oldcmds.Command{
+var filesRmCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove a file.",
 		ShortDescription: `
@@ -1001,26 +945,22 @@ Remove files or directories.
 		cmdkit.StringArg("path", true, true, "File to remove."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("recursive", "r", "Recursively remove directories."),
+		cmdkit.BoolOption(recursiveOptionName, "r", "Recursively remove directories."),
+		cmdkit.BoolOption(forceOptionName, "Forcibly remove target at path; implies -r for directories"),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		defer res.SetOutput(nil)
-
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		path, err := checkPath(req.Arguments()[0])
+		path, err := checkPath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if path == "/" {
-			res.SetError(fmt.Errorf("cannot delete root"), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("cannot delete root")
 		}
 
 		// 'rm a/b/c/' will fail unless we trim the slash at the end
@@ -1031,66 +971,54 @@ Remove files or directories.
 		dir, name := gopath.Split(path)
 		parent, err := mfs.Lookup(nd.FilesRoot, dir)
 		if err != nil {
-			res.SetError(fmt.Errorf("parent lookup: %s", err), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("parent lookup: %s", err)
 		}
 
 		pdir, ok := parent.(*mfs.Directory)
 		if !ok {
-			res.SetError(fmt.Errorf("no such file or directory: %s", path), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("no such file or directory: %s", path)
 		}
 
-		dashr, _, _ := req.Option("r").Bool()
-
-		var success bool
-		defer func() {
-			if success {
-				err := pdir.Flush()
-				if err != nil {
-					res.SetError(err, cmdkit.ErrNormal)
-					return
-				}
-			}
-		}()
-
-		// if '-r' specified, don't check file type (in bad scenarios, the block may not exist)
-		if dashr {
+		// if '--force' specified, it will remove anything else,
+		// including file, directory, corrupted node, etc
+		force, _ := req.Options[forceOptionName].(bool)
+		if force {
 			err := pdir.Unlink(name)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
 
-			success = true
-			return
+			return pdir.Flush()
 		}
 
-		childi, err := pdir.Child(name)
+		// get child node by name, when the node is corrupted and nonexistent,
+		// it will return specific error.
+		child, err := pdir.Child(name)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		switch childi.(type) {
+		dashr, _ := req.Options[recursiveOptionName].(bool)
+
+		switch child.(type) {
 		case *mfs.Directory:
-			res.SetError(fmt.Errorf("%s is a directory, use -r to remove directories", path), cmdkit.ErrNormal)
-			return
-		default:
-			err := pdir.Unlink(name)
-			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+			if !dashr {
+				return fmt.Errorf("%s is a directory, use -r to remove directories", path)
 			}
-
-			success = true
 		}
+
+		err = pdir.Unlink(name)
+		if err != nil {
+			return err
+		}
+
+		return pdir.Flush()
 	},
 }
 
 func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
-	cidVer, cidVerSet := req.Options["cid-version"].(int)
-	hashFunStr, hashFunSet := req.Options["hash"].(string)
+	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
+	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
 
 	if !cidVerSet && !hashFunSet {
 		return nil, nil
@@ -1117,9 +1045,9 @@ func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
 	return &prefix, nil
 }
 
-func getPrefix(req oldcmds.Request) (cid.Builder, error) {
-	cidVer, cidVerSet, _ := req.Option("cid-version").Int()
-	hashFunStr, hashFunSet, _ := req.Option("hash").String()
+func getPrefix(req *cmds.Request) (cid.Builder, error) {
+	cidVer, cidVerSet := req.Options[filesCidVersionOptionName].(int)
+	hashFunStr, hashFunSet := req.Options[filesHashOptionName].(string)
 
 	if !cidVerSet && !hashFunSet {
 		return nil, nil
@@ -1144,6 +1072,19 @@ func getPrefix(req oldcmds.Request) (cid.Builder, error) {
 	}
 
 	return &prefix, nil
+}
+
+func ensureContainingDirectoryExists(r *mfs.Root, path string, builder cid.Builder) error {
+	dirtomake := gopath.Dir(path)
+
+	if dirtomake == "/" {
+		return nil
+	}
+
+	return mfs.Mkdir(r, dirtomake, mfs.MkdirOpts{
+		Mkparents:  true,
+		CidBuilder: builder,
+	})
 }
 
 func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (*mfs.File, error) {

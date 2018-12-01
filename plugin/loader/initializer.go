@@ -3,9 +3,10 @@ package loader
 import (
 	"github.com/ipfs/go-ipfs/core/coredag"
 	"github.com/ipfs/go-ipfs/plugin"
-	"gx/ipfs/QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo/opentracing-go"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	ipld "gx/ipfs/QmaA8GkXUYinkkndvg7T6Tx7gYXemhxjaxLisEPes7Rf1P/go-ipld-format"
+	"gx/ipfs/QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo/opentracing-go"
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 )
 
 func initialize(plugins []plugin.Plugin) error {
@@ -29,6 +30,11 @@ func run(plugins []plugin.Plugin) error {
 			}
 		case plugin.PluginTracer:
 			err := runTracerPlugin(pl)
+			if err != nil {
+				return err
+			}
+		case plugin.PluginDatastore:
+			err := fsrepo.AddDatastoreConfigHandler(pl.DatastoreTypeName(), pl.DatastoreConfigParser())
 			if err != nil {
 				return err
 			}

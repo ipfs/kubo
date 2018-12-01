@@ -57,6 +57,7 @@ test_expect_success "make sure hashes are different" '
 '
 
 test_expect_success "get files via urlstore" '
+  rm -f file1.actual file2.actual &&
   ipfs get $HASH1 -o file1.actual &&
   test_cmp file1 file1.actual &&
   ipfs get $HASH2 -o file2.actual &&
@@ -111,6 +112,11 @@ test_expect_success "files can not be retrieved via the urlstore" '
   test_must_fail ipfs cat $HASH2 > /dev/null
 '
 
+test_expect_success "remove broken files" '
+  ipfs pin rm $HASH1 $HASH2 &&
+  ipfs repo gc > /dev/null
+'
+
 test_expect_success "add large file using gateway address via url store" '
   HASH3=$(ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH3a)
 '
@@ -120,6 +126,7 @@ test_expect_success "make sure hashes are different" '
 '
 
 test_expect_success "get large file via urlstore" '
+  rm -f file3.actual &&
   ipfs get $HASH3 -o file3.actual &&
   test_cmp file3 file3.actual
 '

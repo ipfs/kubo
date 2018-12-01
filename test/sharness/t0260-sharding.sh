@@ -84,6 +84,12 @@ test_expect_success "gateway can resolve sharded dirs" '
   test_cmp expected actual
 '
 
+test_expect_success "'ipfs resolve' can resolve sharded dirs" '
+  echo /ipfs/QmZ3RfWk1u5LEGYLHA633B5TNJy3Du27K6Fny9wcxpowGS > expected &&
+  ipfs resolve "/ipfs/$SHARDED/file100" > actual &&
+  test_cmp expected actual
+'
+
 test_kill_ipfs_daemon
 
 test_add_large_dir_v1() {

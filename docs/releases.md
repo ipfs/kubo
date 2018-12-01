@@ -9,7 +9,7 @@ will be allowed up to release day.
 ## Release Candidate Checklist
 - [ ] CHANGELOG.md has been updated
   - use `./bin/mkreleaselog` to generate a nice starter list
-- [ ] version string in `repo/version.go` has been updated
+- [ ] version string in `version.go` has been updated
 - [ ] tag commit with vX.Y.Z-rcN
 - [ ] publish gx version with `gx publish`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
   - you will have to manually adjust the gx version to 'rc'
@@ -23,11 +23,11 @@ will be allowed up to release day.
 - [ ] CHANGELOG.md has been updated
   - use `./bin/mkreleaselog` to generate a nice starter list
 - [ ] version string in `repo/version.go` has been updated
+- [ ] publish gx version with `gx release`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
 - [ ] tag commit with vX.Y.Z
-- [ ] update release branch to point to release commit
+- [ ] update release branch to point to release commit (`git merge vX.Y.Z`).
 - [ ] publish dist.ipfs.io
 - [ ] publish next version to https://github.com/ipfs/npm-go-ipfs
-- [ ] publish gx version with `gx release`, as per [gx release guidelines](https://github.com/whyrusleeping/gx#publishing-and-releasing)
 
 ## Post-Release
 - [ ] Bump version string in `repo/version.go` to `vX.Y.Z-dev`

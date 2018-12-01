@@ -5,7 +5,7 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
+	"gx/ipfs/QmcqU6QUDSXprb1518vYDGczrTJTyGwLG9eUa5iNX4xUtS/go-libp2p-peer"
 )
 
 // Key specifies the interface to Keys in KeyAPI Keystore
@@ -32,6 +32,9 @@ type KeyAPI interface {
 
 	// List lists keys stored in keystore
 	List(ctx context.Context) ([]Key, error)
+
+	// Self returns the 'main' node key
+	Self(ctx context.Context) (Key, error)
 
 	// Remove removes keys from keystore. Returns ipns path of the removed key
 	Remove(ctx context.Context, name string) (Key, error)

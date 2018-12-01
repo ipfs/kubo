@@ -20,6 +20,8 @@ SUPPORTED_PLATFORMS += linux-amd64
 SUPPORTED_PLATFORMS += darwin-386
 SUPPORTED_PLATFORMS += darwin-amd64
 
+SUPPORTED_PLATFORMS += freebsd-amd64
+
 space:=
 space+=
 comma:=,

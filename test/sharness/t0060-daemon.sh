@@ -42,9 +42,11 @@ test_expect_success "ipfs gateway works with the correct allowed origin port" '
 test_expect_success "ipfs daemon output looks good" '
   STARTFILE="ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme" &&
   echo "Initializing daemon..." >expected_daemon &&
+  ipfs version --all >> expected_daemon &&
   sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
   sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
   echo "API server listening on '$API_MADDR'" >>expected_daemon &&
+  echo "WebUI: http://'$API_ADDR'/webui" >>expected_daemon &&
   echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon

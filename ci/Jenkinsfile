@@ -35,7 +35,7 @@ def setupStep(nodeLabel, f) {
     def ps = nodeLabel != 'windows' ? '/' : '\\'
     def psep = nodeLabel != 'windows' ? ':' : ';'
 
-    def root = tool name: '1.10.2', type: 'go'
+    def root = tool name: '1.11', type: 'go'
     def jobNameArr = "${JOB_NAME}"
     def jobName = jobNameArr.split("/")[0..1].join(nodeLabel != 'windows' ? '/' : '\\\\').toLowerCase()
     def subName = jobNameArr.split("/")[2].toLowerCase()

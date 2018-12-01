@@ -14,17 +14,26 @@ Interfaces here aren't yet completely stable.
 package coreapi
 
 import (
+	"context"
+
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+
+	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
+	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
+	dag "gx/ipfs/QmdURv6Sbob8TVW2tFFve9vcEWrSUgwPqeqnXyvYhLrkyd/go-merkledag"
 )
+
+var log = logging.Logger("core/coreapi")
 
 type CoreAPI struct {
 	node *core.IpfsNode
+	dag  ipld.DAGService
 }
 
 // NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node.
 func NewCoreAPI(n *core.IpfsNode) coreiface.CoreAPI {
-	api := &CoreAPI{n}
+	api := &CoreAPI{n, n.DAG}
 	return api
 }
 
@@ -61,4 +70,25 @@ func (api *CoreAPI) Object() coreiface.ObjectAPI {
 // Pin returns the PinAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Pin() coreiface.PinAPI {
 	return (*PinAPI)(api)
+}
+
+// Dht returns the DhtAPI interface implementation backed by the go-ipfs node
+func (api *CoreAPI) Dht() coreiface.DhtAPI {
+	return (*DhtAPI)(api)
+}
+
+// Swarm returns the SwarmAPI interface implementation backed by the go-ipfs node
+func (api *CoreAPI) Swarm() coreiface.SwarmAPI {
+	return (*SwarmAPI)(api)
+}
+
+// PubSub returns the PubSubAPI interface implementation backed by the go-ipfs node
+func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
+	return (*PubSubAPI)(api)
+}
+
+// getSession returns new api backed by the same node with a read-only session DAG
+func (api *CoreAPI) getSession(ctx context.Context) *CoreAPI {
+	ng := dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
+	return &CoreAPI{api.node, ng}
 }

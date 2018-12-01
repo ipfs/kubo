@@ -12,7 +12,7 @@ import (
 
 func TestManageFdLimit(t *testing.T) {
 	t.Log("Testing file descriptor count")
-	if err := ManageFdLimit(); err != nil {
+	if _, _, err := ManageFdLimit(); err != nil {
 		t.Errorf("Cannot manage file descriptors")
 	}
 
@@ -41,7 +41,7 @@ func TestManageInvalidNFds(t *testing.T) {
 	// call to check and set the maximum file descriptor from the env
 	setMaxFds()
 
-	if err = ManageFdLimit(); err == nil {
+	if _, _, err := ManageFdLimit(); err == nil {
 		t.Errorf("ManageFdLimit should return an error")
 	} else if err != nil {
 		flag := strings.Contains(err.Error(),
@@ -79,7 +79,7 @@ func TestManageFdLimitWithEnvSet(t *testing.T) {
 		t.Errorf("The maxfds is not set from IPFS_FD_MAX")
 	}
 
-	if err = ManageFdLimit(); err != nil {
+	if _, _, err = ManageFdLimit(); err != nil {
 		t.Errorf("Cannot manage file descriptor count")
 	}
 

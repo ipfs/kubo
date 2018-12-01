@@ -11,19 +11,20 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/pin/gc"
 	"github.com/ipfs/go-ipfs/repo"
 
-	files "gx/ipfs/QmPVqQHEfLpqK7JLCsUkyam7rhuV3MAeZ9gueQQCrBwCta/go-ipfs-cmdkit/files"
-	config "gx/ipfs/QmQSG7YCizeUH2bWatzp6uK9Vm3m7LA5jpxGa9QqgpNKw4/go-ipfs-config"
-	dag "gx/ipfs/QmQzSpSjkdGHW6WFBhUG6P3t9K8yv7iucucT1cQaqJ6tgd/go-merkledag"
-	blocks "gx/ipfs/QmR54CzE4UcdFAZDehj6HFyy3eSHhVsJUpjfnhCmscuStS/go-block-format"
-	"gx/ipfs/QmTZZrpd9o4vpYr9TEADW2EoJ9fzUtAgpXqjxZHbKR2T15/go-blockservice"
-	datastore "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore"
-	syncds "gx/ipfs/QmVG5gxteQNEMhrS8prJSmU2C9rebtFuTd3SYZ5kE3YZ5k/go-datastore/sync"
-	blockstore "gx/ipfs/QmYBEfMSquSGnuxBthUoBJNs3F6p4VAPPvAgxq6XXGvTPh/go-ipfs-blockstore"
-	cid "gx/ipfs/QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV/go-cid"
-	pi "gx/ipfs/QmdBpJ5VTfL79VwKDU93z7fyZJ3mm4UaBHrE73CWRw2Bjd/go-ipfs-posinfo"
+	pi "gx/ipfs/QmR6YMs8EkXQLXNwQKxLnQp2VBZSepoEJ8KCZAyanJHhJu/go-ipfs-posinfo"
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	blockstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
+	"gx/ipfs/QmVDTbzzTwnuBwNbJdhW3u7LoBQp46bezm9yp4z1RoEepM/go-blockservice"
+	blocks "gx/ipfs/QmWoXtvgC8inqFkAATB7cp2Dax7XBi9VDvSg9RCCZufmRk/go-block-format"
+	config "gx/ipfs/QmXctaABKwgzmQgNM4bucMJf7zJnxxvhmPM1Pw95dxUfB5/go-ipfs-config"
+	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	dag "gx/ipfs/QmdURv6Sbob8TVW2tFFve9vcEWrSUgwPqeqnXyvYhLrkyd/go-merkledag"
+	datastore "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
+	syncds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore/sync"
 )
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
@@ -85,7 +86,7 @@ func TestAddGCLive(t *testing.T) {
 	go func() {
 		defer close(addDone)
 		defer close(out)
-		err := adder.AddFile(slf)
+		_, err := adder.AddAllAndPin(slf)
 
 		if err != nil {
 			t.Fatal(err)
@@ -96,7 +97,7 @@ func TestAddGCLive(t *testing.T) {
 	addedHashes := make(map[string]struct{})
 	select {
 	case o := <-out:
-		addedHashes[o.(*AddedObject).Hash] = struct{}{}
+		addedHashes[o.(*coreiface.AddEvent).Hash] = struct{}{}
 	case <-addDone:
 		t.Fatal("add shouldnt complete yet")
 	}
@@ -124,7 +125,7 @@ func TestAddGCLive(t *testing.T) {
 
 	// receive next object from adder
 	o := <-out
-	addedHashes[o.(*AddedObject).Hash] = struct{}{}
+	addedHashes[o.(*coreiface.AddEvent).Hash] = struct{}{}
 
 	<-gcstarted
 
@@ -137,10 +138,10 @@ func TestAddGCLive(t *testing.T) {
 		}
 	}
 
-	var last *cid.Cid
+	var last cid.Cid
 	for a := range out {
 		// wait for it to finish
-		c, err := cid.Decode(a.(*AddedObject).Hash)
+		c, err := cid.Decode(a.(*coreiface.AddEvent).Hash)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,7 +179,8 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adder.Out = make(chan interface{})
+	out := make(chan interface{})
+	adder.Out = out
 	adder.Progress = true
 	adder.RawLeaves = rawLeaves
 	adder.NoCopy = true
@@ -191,12 +193,12 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 
 	go func() {
 		defer close(adder.Out)
-		err = adder.AddFile(file)
+		_, err = adder.AddAllAndPin(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
-	for range adder.Out {
+	for range out {
 	}
 
 	exp := 0

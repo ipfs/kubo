@@ -1,5 +1,5 @@
 # Go base image
-ARG base=golang:1.10-stretch
+ARG base=golang:1.11-stretch
 FROM $base
 FROM $base
 MAINTAINER Lars Gierth <lgierth@ipfs.io>

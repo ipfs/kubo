@@ -260,6 +260,13 @@ test_files_api() {
     verify_dir_contents /cats/this/is/a/dir
   '
 
+  test_expect_success "dir has correct name" '
+    DIR_HASH=$(ipfs files stat /cats/this --hash) &&
+    echo "this/	$DIR_HASH	0" > ls_dir_expected &&
+    ipfs files ls -l /cats | grep this/ > ls_dir_actual &&
+    test_cmp ls_dir_expected ls_dir_actual
+  '
+
   test_expect_success "can copy file into new dir $EXTRA" '
     ipfs files cp /ipfs/$FILE3 /cats/this/is/a/dir/file3
   '
@@ -597,9 +604,29 @@ test_files_api() {
     ipfs files ls /adir | grep foobar
   '
 
+  test_expect_success "should fail to write file and create intermediate directories with no --parents flag set $EXTRA" '
+    echo "ipfs rocks" | test_must_fail ipfs files write --create /parents/foo/ipfs.txt
+  '
+
+  test_expect_success "can write file and create intermediate directories $EXTRA" '
+    echo "ipfs rocks" | ipfs files write --create --parents /parents/foo/bar/baz/ipfs.txt &&
+    ipfs files stat "/parents/foo/bar/baz/ipfs.txt" | grep -q "^Type: file"
+  '
+
+  test_expect_success "can write file and create intermediate directories with short flags $EXTRA" '
+    echo "ipfs rocks" | ipfs files write -e -p /parents/foo/bar/baz/qux/quux/garply/ipfs.txt &&
+    ipfs files stat "/parents/foo/bar/baz/qux/quux/garply/ipfs.txt" | grep -q "^Type: file"
+  '
+
+  test_expect_success "can write another file in the same directory with -e -p $EXTRA" '
+    echo "ipfs rocks" | ipfs files write -e -p /parents/foo/bar/baz/qux/quux/garply/ipfs2.txt &&
+    ipfs files stat "/parents/foo/bar/baz/qux/quux/garply/ipfs2.txt" | grep -q "^Type: file"
+  '
+
   test_expect_success "clean up $EXTRA" '
     ipfs files rm -r /foobar &&
-    ipfs files rm -r /adir
+    ipfs files rm -r /adir &&
+    ipfs files rm -r /parents
   '
 
   test_expect_success "root mfs entry is empty $EXTRA" '
@@ -608,6 +635,20 @@ test_files_api() {
 
   test_expect_success "repo gc $EXTRA" '
     ipfs repo gc
+  '
+
+  # test rm
+
+  test_expect_success "remove file forcibly" '
+    echo "hello world" | ipfs files write --create /forcibly &&
+    ipfs files rm --force /forcibly &&
+    verify_dir_contents /
+  '
+
+  test_expect_success "remove directory forcibly" '
+    ipfs files mkdir /forcibly-dir &&
+    ipfs files rm --force /forcibly-dir &&
+    verify_dir_contents /
   '
 }
 

@@ -1,9 +1,9 @@
 package iface
 
 import (
-	ipfspath "gx/ipfs/QmWMcvZbNvk5codeqbm7L89C9kqSwka4KaHnDb8HRnxsSL/go-path"
+	ipfspath "gx/ipfs/QmQtg7N4XjAk2ZYpBjjv8B6gQprsRekabHBCnF6i46JYKJ/go-path"
 
-	cid "gx/ipfs/QmYjnkEL7i731PirfVH1sis89evN7jt4otSHw5D2xXXwUV/go-cid"
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 )
 
 //TODO: merge with ipfspath so we don't depend on it
@@ -65,7 +65,7 @@ type ResolvedPath interface {
 	//   * Calling Cid() will return `cidB`
 	//   * Calling Root() will return `cidRoot`
 	//   * Calling Remainder() will return `foo/bar`
-	Cid() *cid.Cid
+	Cid() cid.Cid
 
 	// Root returns the CID of the root object of the path
 	//
@@ -74,7 +74,7 @@ type ResolvedPath interface {
 	// "/ipfs/QmRoot/A/B", the Root method will return the CID of object QmRoot
 	//
 	// For more examples see the documentation of Cid() method
-	Root() *cid.Cid
+	Root() cid.Cid
 
 	// Remainder returns unresolved part of the path
 	//
@@ -100,13 +100,13 @@ type path struct {
 // resolvedPath implements coreiface.resolvedPath
 type resolvedPath struct {
 	path
-	cid       *cid.Cid
-	root      *cid.Cid
+	cid       cid.Cid
+	root      cid.Cid
 	remainder string
 }
 
 // IpfsPath creates new /ipfs path from the provided CID
-func IpfsPath(c *cid.Cid) ResolvedPath {
+func IpfsPath(c cid.Cid) ResolvedPath {
 	return &resolvedPath{
 		path:      path{ipfspath.Path("/ipfs/" + c.String())},
 		cid:       c,
@@ -116,7 +116,7 @@ func IpfsPath(c *cid.Cid) ResolvedPath {
 }
 
 // IpldPath creates new /ipld path from the provided CID
-func IpldPath(c *cid.Cid) ResolvedPath {
+func IpldPath(c cid.Cid) ResolvedPath {
 	return &resolvedPath{
 		path:      path{ipfspath.Path("/ipld/" + c.String())},
 		cid:       c,
@@ -138,7 +138,7 @@ func ParsePath(p string) (Path, error) {
 // NewResolvedPath creates new ResolvedPath. This function performs no checks
 // and is intended to be used by resolver implementations. Incorrect inputs may
 // cause panics. Handle with care.
-func NewResolvedPath(ipath ipfspath.Path, c *cid.Cid, root *cid.Cid, remainder string) ResolvedPath {
+func NewResolvedPath(ipath ipfspath.Path, c cid.Cid, root cid.Cid, remainder string) ResolvedPath {
 	return &resolvedPath{
 		path:      path{ipath},
 		cid:       c,
@@ -163,11 +163,11 @@ func (p *path) Mutable() bool {
 	return p.Namespace() == "ipns"
 }
 
-func (p *resolvedPath) Cid() *cid.Cid {
+func (p *resolvedPath) Cid() cid.Cid {
 	return p.cid
 }
 
-func (p *resolvedPath) Root() *cid.Cid {
+func (p *resolvedPath) Root() cid.Cid {
 	return p.root
 }
 

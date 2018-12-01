@@ -38,9 +38,9 @@ test_expect_success "gc okay after adding incomplete node -- prep" '
 '
 
 test_expect_success "gc okay after adding incomplete node" '
-  ipfs refs $ADIR_HASH &&
+  ipfs object stat $ADIR_HASH &&
   ipfs repo gc &&
-  ipfs refs $ADIR_HASH
+  ipfs object stat $ADIR_HASH
 '
 
 test_expect_success "add directory with direct pin" '
