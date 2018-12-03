@@ -25,6 +25,7 @@ import (
 	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 	dag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	files "gx/ipfs/QmeaQRmnRog7NxLEWHP9zSTkics4cbgwBVa7q49LmBowDr/go-ipfs-files"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
@@ -773,11 +774,11 @@ stat' on the file or any of its ancestors.
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}
-		if it.File() == nil {
+		if files.FileFrom(it) == nil {
 			return fmt.Errorf("expected a regular file")
 		}
 
-		var r io.Reader = it.File()
+		var r io.Reader = files.FileFrom(it)
 		if countfound {
 			r = io.LimitReader(r, int64(count))
 		}

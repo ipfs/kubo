@@ -13,6 +13,7 @@ import (
 	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
 	dag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	files "gx/ipfs/QmeaQRmnRog7NxLEWHP9zSTkics4cbgwBVa7q49LmBowDr/go-ipfs-files"
 )
 
 var TarCmd = &cmds.Command{
@@ -48,11 +49,11 @@ represent it.
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}
-		if it.File() == nil {
+		if files.FileFrom(it) == nil {
 			return fmt.Errorf("expected a regular file")
 		}
 
-		node, err := tar.ImportTar(req.Context, it.File(), nd.DAG)
+		node, err := tar.ImportTar(req.Context, files.FileFrom(it), nd.DAG)
 		if err != nil {
 			return err
 		}

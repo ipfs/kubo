@@ -42,16 +42,6 @@ func (it *ufsIterator) Node() files.Node {
 	return it.curFile
 }
 
-func (it *ufsIterator) File() files.File {
-	f, _ := it.curFile.(files.File)
-	return f
-}
-
-func (it *ufsIterator) Dir() files.Directory {
-	d, _ := it.curFile.(files.Directory)
-	return d
-}
-
 func (it *ufsIterator) Next() bool {
 	l, ok := <-it.files
 	if !ok {

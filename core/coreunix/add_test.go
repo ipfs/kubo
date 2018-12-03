@@ -71,20 +71,18 @@ func TestAddGCLive(t *testing.T) {
 	}
 	adder.Out = out
 
-	dataa := ioutil.NopCloser(bytes.NewBufferString("testfileA"))
-	rfa := files.NewReaderFile(dataa, nil)
+	rfa := files.FileFrom([]byte("testfileA"))
 
 	// make two files with pipes so we can 'pause' the add for timing of the test
 	piper, pipew := io.Pipe()
-	hangfile := files.NewReaderFile(piper, nil)
+	hangfile := files.FileFrom(piper)
 
-	datad := ioutil.NopCloser(bytes.NewBufferString("testfileD"))
-	rfd := files.NewReaderFile(datad, nil)
+	rfd := files.FileFrom([]byte("testfileD"))
 
-	slf := files.NewSliceFile([]files.DirEntry{
-		files.FileEntry("a", rfa),
-		files.FileEntry("b", hangfile),
-		files.FileEntry("d", rfd),
+	slf := files.DirFrom(map[string]files.Node{
+		"a": rfa,
+		"b": hangfile,
+		"d": rfd,
 	})
 
 	addDone := make(chan struct{})

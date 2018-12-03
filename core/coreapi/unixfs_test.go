@@ -136,34 +136,34 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
 
 func strFile(data string) func() files.Node {
 	return func() files.Node {
-		return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(data)), nil)
+		return files.FileFrom([]byte(data))
 	}
 }
 
 func twoLevelDir() func() files.Node {
 	return func() files.Node {
-		return files.NewSliceFile([]files.DirEntry{
-			files.FileEntry("abc", files.NewSliceFile([]files.DirEntry{
-				files.FileEntry("def", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("world")), nil)),
-			})),
+		return files.DirFrom(map[string]files.Node{
+			"abc": files.DirFrom(map[string]files.Node{
+				"def": files.FileFrom([]byte("world")),
+			}),
 
-			files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
-			files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
+			"bar": files.FileFrom([]byte("hello2")),
+			"foo": files.FileFrom([]byte("hello1")),
 		})
 	}
 }
 
 func flatDir() files.Node {
-	return files.NewSliceFile([]files.DirEntry{
-		files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
-		files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
+	return files.DirFrom(map[string]files.Node{
+		"bar": files.FileFrom([]byte("hello2")),
+		"foo": files.FileFrom([]byte("hello1")),
 	})
 }
 
 func wrapped(name string) func(f files.Node) files.Node {
 	return func(f files.Node) files.Node {
-		return files.NewSliceFile([]files.DirEntry{
-			files.FileEntry(name, f),
+		return files.DirFrom(map[string]files.Node{
+			name: f,
 		})
 	}
 }
@@ -296,7 +296,7 @@ func TestAdd(t *testing.T) {
 			name: "addWrapped",
 			path: "/ipfs/QmVE9rNpj5doj7XHzp5zMUxD7BJgXEqx4pe3xZ3JBReWHE",
 			data: func() files.Node {
-				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+				return files.FileFrom([]byte(helloStr))
 			},
 			wrap:   "foo",
 			expect: wrapped("foo"),
@@ -306,7 +306,7 @@ func TestAdd(t *testing.T) {
 			name: "addNotWrappedDirFile",
 			path: hello,
 			data: func() files.Node {
-				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+				return files.FileFrom([]byte(helloStr))
 			},
 			wrap: "foo",
 		},
@@ -314,11 +314,11 @@ func TestAdd(t *testing.T) {
 			name: "stdinWrapped",
 			path: "/ipfs/QmU3r81oZycjHS9oaSHw37ootMFuFUw1DvMLKXPsezdtqU",
 			data: func() files.Node {
-				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+				return files.FileFrom([]byte(helloStr))
 			},
 			expect: func(files.Node) files.Node {
-				return files.NewSliceFile([]files.DirEntry{
-					files.FileEntry("QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)),
+				return files.DirFrom(map[string]files.Node{
+					"QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk": files.FileFrom([]byte(helloStr)),
 				})
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
@@ -335,8 +335,8 @@ func TestAdd(t *testing.T) {
 				return rf
 			},
 			expect: func(files.Node) files.Node {
-				return files.NewSliceFile([]files.DirEntry{
-					files.FileEntry("test", files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)),
+				return files.DirFrom(map[string]files.Node{
+					"test": files.FileFrom([]byte(helloStr)),
 				})
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.StdinName("test")},
@@ -361,10 +361,10 @@ func TestAdd(t *testing.T) {
 		{
 			name: "hiddenFiles",
 			data: func() files.Node {
-				return files.NewSliceFile([]files.DirEntry{
-					files.FileEntry(".bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
-					files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
-					files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
+				return files.DirFrom(map[string]files.Node{
+					".bar": files.FileFrom([]byte("hello2")),
+					"bar":  files.FileFrom([]byte("hello2")),
+					"foo":  files.FileFrom([]byte("hello1")),
 				})
 			},
 			wrap: "t",
@@ -374,7 +374,7 @@ func TestAdd(t *testing.T) {
 		{
 			name: "hiddenFileAlwaysAdded",
 			data: func() files.Node {
-				return files.NewReaderFile(ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+				return files.FileFrom([]byte(helloStr))
 			},
 			wrap: ".foo",
 			path: hello,
@@ -382,10 +382,10 @@ func TestAdd(t *testing.T) {
 		{
 			name: "hiddenFilesNotAdded",
 			data: func() files.Node {
-				return files.NewSliceFile([]files.DirEntry{
-					files.FileEntry(".bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
-					files.FileEntry("bar", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello2")), nil)),
-					files.FileEntry("foo", files.NewReaderFile(ioutil.NopCloser(strings.NewReader("hello1")), nil)),
+				return files.DirFrom(map[string]files.Node{
+					".bar": files.FileFrom([]byte("hello2")),
+					"bar":  files.FileFrom([]byte("hello2")),
+					"foo":  files.FileFrom([]byte("hello1")),
 				})
 			},
 			expect: func(files.Node) files.Node {
@@ -432,8 +432,7 @@ func TestAdd(t *testing.T) {
 		{
 			name: "progress1M",
 			data: func() files.Node {
-				r := bytes.NewReader(bytes.Repeat([]byte{0}, 1000000))
-				return files.NewReaderFile(ioutil.NopCloser(r), nil)
+				return files.FileFrom(bytes.NewReader(bytes.Repeat([]byte{0}, 1000000)))
 			},
 			path: "/ipfs/QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD",
 			events: []coreiface.AddEvent{

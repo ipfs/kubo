@@ -19,6 +19,7 @@ import (
 	"gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
 	"gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"gx/ipfs/QmeaQRmnRog7NxLEWHP9zSTkics4cbgwBVa7q49LmBowDr/go-ipfs-files"
 )
 
 const (
@@ -89,12 +90,12 @@ environment variable:
 			if !it.Next() && it.Err() != nil {
 				return it.Err()
 			}
-			if it.File() == nil {
+			if files.FileFrom(it) == nil {
 				return fmt.Errorf("expected a regular file")
 			}
 
 			conf = &config.Config{}
-			if err := json.NewDecoder(it.File()).Decode(conf); err != nil {
+			if err := json.NewDecoder(files.FileFrom(it)).Decode(conf); err != nil {
 				return err
 			}
 		}
