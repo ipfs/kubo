@@ -115,7 +115,7 @@ $ sudo snap install ipfs
 
 #### Install Go
 
-The build process for ipfs requires Go 1.10 or higher. If you don't have it: [Download Go 1.10+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.11 or higher. If you don't have it: [Download Go 1.11+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
