@@ -8,7 +8,7 @@ import (
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	bserv "gx/ipfs/QmVDTbzzTwnuBwNbJdhW3u7LoBQp46bezm9yp4z1RoEepM/go-blockservice"
-	merkledag "gx/ipfs/QmcGt25mrjuB2kKW2zhPbXVZNHc4yoTDQ65NA8m6auP2f1/go-merkledag"
+	merkledag "gx/ipfs/QmdURv6Sbob8TVW2tFFve9vcEWrSUgwPqeqnXyvYhLrkyd/go-merkledag"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
@@ -116,7 +116,7 @@ func (n *badNode) Err() error {
 }
 
 func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, error) {
-	visited := make(map[string]*pinStatus)
+	visited := make(map[cid.Cid]*pinStatus)
 	bs := api.node.Blocks.Blockstore()
 	DAG := merkledag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := merkledag.GetLinksWithDAG(DAG)
@@ -124,8 +124,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 
 	var checkPin func(root cid.Cid) *pinStatus
 	checkPin = func(root cid.Cid) *pinStatus {
-		key := root.String()
-		if status, ok := visited[key]; ok {
+		if status, ok := visited[root]; ok {
 			return status
 		}
 
@@ -133,7 +132,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 		if err != nil {
 			status := &pinStatus{ok: false, cid: root}
 			status.badNodes = []coreiface.BadPinNode{&badNode{path: coreiface.IpldPath(root), err: err}}
-			visited[key] = status
+			visited[root] = status
 			return status
 		}
 
@@ -146,7 +145,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 			}
 		}
 
-		visited[key] = status
+		visited[root] = status
 		return status
 	}
 
@@ -176,11 +175,11 @@ func (p *pinInfo) Type() string {
 
 func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pin, error) {
 
-	keys := make(map[string]*pinInfo)
+	keys := make(map[cid.Cid]*pinInfo)
 
 	AddToResultKeys := func(keyList []cid.Cid, typeStr string) {
 		for _, c := range keyList {
-			keys[c.String()] = &pinInfo{
+			keys[c] = &pinInfo{
 				pinType: typeStr,
 				path:    coreiface.IpldPath(c),
 			}

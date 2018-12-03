@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	path "gx/ipfs/QmVi2uUygezqaMTqs3Yzt5FcZFHJoYD4B7jQ2BELjj7ZuY/go-path"
+	path "gx/ipfs/QmQtg7N4XjAk2ZYpBjjv8B6gQprsRekabHBCnF6i46JYKJ/go-path"
 
 	ipns "gx/ipfs/QmR9UpasSQR4Mqq1qiJAfnY4SVBxJn7r639CxiLjx8dYGm/go-ipns"
 	testutil "gx/ipfs/QmZXjR5X1p4KrQ967cTsy4MymMzUM8mZECF3PV8UcN4o3g/go-testutil"

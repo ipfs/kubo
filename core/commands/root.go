@@ -3,7 +3,6 @@ package commands
 import (
 	"errors"
 
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	name "github.com/ipfs/go-ipfs/core/commands/name"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
@@ -127,7 +126,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"id":        IDCmd,
 	"key":       KeyCmd,
 	"log":       LogCmd,
-	"ls":        lgc.NewCommand(LsCmd),
+	"ls":        LsCmd,
 	"mount":     MountCmd,
 	"name":      name.NameCmd,
 	"object":    ocmd.ObjectCmd,
@@ -165,7 +164,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	},
 	"get": GetCmd,
 	"dns": DNSCmd,
-	"ls":  lgc.NewCommand(LsCmd),
+	"ls":  LsCmd,
 	"name": {
 		Subcommands: map[string]*cmds.Command{
 			"resolve": name.IpnsCmd,

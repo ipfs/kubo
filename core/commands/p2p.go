@@ -53,6 +53,7 @@ type P2PStreamsOutput struct {
 
 const (
 	allowCustomProtocolOptionName = "allow-custom-protocol"
+	reportPeerIDOptionName        = "report-peer-id"
 )
 
 var resolveTimeout = 10 * time.Second
@@ -183,6 +184,7 @@ Example:
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(allowCustomProtocolOptionName, "Don't require /x/ prefix"),
+		cmdkit.BoolOption(reportPeerIDOptionName, "r", "Send remote base58 peerid to target when a new connection is established"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := p2pGetNode(env)
@@ -206,15 +208,14 @@ Example:
 		}
 
 		allowCustom, _ := req.Options[allowCustomProtocolOptionName].(bool)
-		if err != nil {
-			return err
-		}
+		reportPeerID, _ := req.Options[reportPeerIDOptionName].(bool)
 
 		if !allowCustom && !strings.HasPrefix(string(proto), P2PProtoPrefix) {
 			return errors.New("protocol name must be within '" + P2PProtoPrefix + "' namespace")
 		}
 
-		return forwardRemote(n.Context(), n.P2P, proto, target)
+		_, err = n.P2P.ForwardRemote(n.Context(), proto, target, reportPeerID)
+		return err
 	},
 }
 
@@ -250,13 +251,6 @@ func checkPort(target ma.Multiaddr) error {
 	}
 
 	return nil
-}
-
-// forwardRemote forwards libp2p service connections to a manet address
-func forwardRemote(ctx context.Context, p *p2p.P2P, proto protocol.ID, target ma.Multiaddr) error {
-	// TODO: return some info
-	_, err := p.ForwardRemote(ctx, proto, target)
-	return err
 }
 
 // forwardLocal forwards local connections to a libp2p service
