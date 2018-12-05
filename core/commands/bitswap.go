@@ -88,10 +88,17 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 }
 
+const (
+	bitswapVerboseOptionName = "verbose"
+)
+
 var bitswapStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline:          "Show some diagnostic information on the bitswap agent.",
 		ShortDescription: ``,
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption(bitswapVerboseOptionName, "v", "Print extra information"),
 	},
 	Type: bitswap.Stat{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -122,6 +129,8 @@ var bitswapStatCmd = &cmds.Command{
 			if err != nil {
 				return err
 			}
+			verbose, _ := req.Options[bitswapVerboseOptionName].(bool)
+
 			fmt.Fprintln(w, "bitswap status")
 			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", s.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(w, "\tblocks received: %d\n", s.BlocksReceived)
@@ -134,9 +143,12 @@ var bitswapStatCmd = &cmds.Command{
 			for _, k := range s.Wantlist {
 				fmt.Fprintf(w, "\t\t%s\n", enc.Encode(k))
 			}
+
 			fmt.Fprintf(w, "\tpartners [%d]\n", len(s.Peers))
-			for _, p := range s.Peers {
-				fmt.Fprintf(w, "\t\t%s\n", p)
+			if verbose {
+				for _, p := range s.Peers {
+					fmt.Fprintf(w, "\t\t%s\n", p)
+				}
 			}
 
 			return nil
