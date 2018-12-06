@@ -88,7 +88,7 @@ var addPinCmd = &cmds.Command{
 		}
 
 		if !showProgress {
-			added, err := corerepo.Pin(n, api, req.Context, req.Arguments, recursive)
+			added, err := corerepo.Pin(n.Pinning, api, req.Context, req.Arguments, recursive)
 			if err != nil {
 				return err
 			}
@@ -105,7 +105,7 @@ var addPinCmd = &cmds.Command{
 
 		ch := make(chan pinResult, 1)
 		go func() {
-			added, err := corerepo.Pin(n, api, ctx, req.Arguments, recursive)
+			added, err := corerepo.Pin(n.Pinning, api, ctx, req.Arguments, recursive)
 			ch <- pinResult{pins: added, err: err}
 		}()
 
@@ -215,7 +215,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return err
 		}
 
-		removed, err := corerepo.Unpin(n, api, req.Context, req.Arguments, recursive)
+		removed, err := corerepo.Unpin(n.Pinning, api, req.Context, req.Arguments, recursive)
 		if err != nil {
 			return err
 		}

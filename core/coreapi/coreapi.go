@@ -15,25 +15,103 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	namesys "github.com/ipfs/go-ipfs/namesys"
+	pin "github.com/ipfs/go-ipfs/pin"
+	repo "github.com/ipfs/go-ipfs/repo"
 
+	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
+	exchange "gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"
+	bserv "gx/ipfs/QmPoh3SrQzFBWtdGK6qmHDV4EanKR6kYPj4DD3J2NLoEmZ/go-blockservice"
+	routing "gx/ipfs/QmRASJXJUFygM5qU4YrH7k7jD6S4Hg8nJmgqJ4bYJvLatd/go-libp2p-routing"
+	blockstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
+	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
+	pstore "gx/ipfs/QmZ9zH2FnLcxv1xyzFeUpDUeo55xEhZQHgveZijcxr7TLj/go-libp2p-peerstore"
+	pubsub "gx/ipfs/QmaqGyUhWLsJbVo1QAujSu13mxNjFJ98Kt2VWGSnShGE1Q/go-libp2p-pubsub"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 	dag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
+	record "gx/ipfs/QmfARXVCzpwFXQdepAJZuqyNDgV9doEsMnVCo1ssmuSe1U/go-libp2p-record"
+	p2phost "gx/ipfs/QmfD51tKgJiTMnW9JEiDiPwsCY4mqUoxkhKhBfyW12spTC/go-libp2p-host"
 )
 
 var log = logging.Logger("core/coreapi")
 
 type CoreAPI struct {
-	node *core.IpfsNode
-	dag  ipld.DAGService
+	nctx context.Context
+
+	identity   peer.ID //TODO: check mutable structs
+	privateKey ci.PrivKey
+
+	repo       repo.Repo
+	blockstore blockstore.GCBlockstore
+	baseBlocks blockstore.Blockstore
+	blocks     bserv.BlockService
+	dag        ipld.DAGService
+	pinning    pin.Pinner
+
+	peerstore       pstore.Peerstore
+	peerHost        p2phost.Host
+	namesys         namesys.NameSystem
+	recordValidator record.Validator
+	exchange        exchange.Interface
+
+	routing routing.IpfsRouting
+	pubSub  *pubsub.PubSub
+
+	checkRouting func(bool) error
+
+	// TODO: this can be generalized to all functions when we implement some
+	// api based security mechanism
+	isPublishAllowed func() error
 }
 
 // NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node.
-func NewCoreAPI(n *core.IpfsNode) coreiface.CoreAPI {
-	api := &CoreAPI{n, n.DAG}
+func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) coreiface.CoreAPI {
+	api := &CoreAPI{
+		nctx: n.Context(),
+
+		identity:   n.Identity,
+		privateKey: n.PrivateKey,
+
+		repo:       n.Repo,
+		blockstore: n.Blockstore,
+		baseBlocks: n.BaseBlocks,
+		blocks:     n.Blocks,
+		dag:        n.DAG,
+		pinning:    n.Pinning,
+
+		peerstore:       n.Peerstore,
+		peerHost:        n.PeerHost,
+		namesys:         n.Namesys,
+		recordValidator: n.RecordValidator,
+		exchange:        n.Exchange,
+
+		routing: n.Routing,
+		pubSub:  n.PubSub,
+
+		checkRouting: func(allowOffline bool) error {
+			if !n.OnlineMode() {
+				if !allowOffline {
+					return coreiface.ErrOffline
+				}
+				return n.SetupOfflineRouting()
+			}
+			return nil
+		},
+
+		isPublishAllowed: func() error {
+			if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
+				return errors.New("cannot manually publish while IPNS is mounted")
+			}
+			return nil
+		},
+	}
+
 	return api
 }
 
@@ -89,6 +167,10 @@ func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 
 // getSession returns new api backed by the same node with a read-only session DAG
 func (api *CoreAPI) getSession(ctx context.Context) *CoreAPI {
-	ng := dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
-	return &CoreAPI{api.node, ng}
+	sesApi := *api
+
+	//TODO: we may want to apply this to other things too
+	sesApi.dag = dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
+
+	return &sesApi
 }

@@ -34,9 +34,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, err
 	}
 
-	n := api.node
-
-	cfg, err := n.Repo.Config()
+	cfg, err := api.repo.Config()
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +51,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, filestore.ErrFilestoreNotEnabled
 	}
 
+	addblockstore := api.blockstore
+	if !(settings.FsCache || settings.NoCopy) {
+		addblockstore = bstore.NewGCBlockstore(api.baseBlocks, api.blockstore)
+	}
+	exch := api.exchange
+	pinning := api.pinning
+
 	if settings.OnlyHash {
 		nilnode, err := core.NewNode(ctx, &core.BuildCfg{
 			//TODO: need this to be true or all files
@@ -62,15 +67,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		if err != nil {
 			return nil, err
 		}
-		n = nilnode
+		addblockstore = nilnode.Blockstore
+		exch = nilnode.Exchange
+		pinning = nilnode.Pinning
 	}
 
-	addblockstore := n.Blockstore
-	if !(settings.FsCache || settings.NoCopy) {
-		addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
-	}
-
-	exch := n.Exchange
 	if settings.Local {
 		exch = offline.Exchange(addblockstore)
 	}
@@ -78,7 +79,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
 	dserv := dag.NewDAGService(bserv)
 
-	fileAdder, err := coreunix.NewAdder(ctx, n.Pinning, n.Blockstore, dserv)
+	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, dserv)
 	if err != nil {
 		return nil, err
 	}
