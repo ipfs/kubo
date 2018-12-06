@@ -102,7 +102,10 @@ func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNo
 			return nil, nil, err
 		}
 		nodes[i] = node
-		apis[i] = coreapi.NewCoreAPI(node)
+		apis[i], err = coreapi.NewCoreAPI(node)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	err := mn.LinkAll()

@@ -30,7 +30,8 @@ type pubSubMessage struct {
 }
 
 func (api *PubSubAPI) Ls(ctx context.Context) ([]string, error) {
-	if err := api.checkNode(); err != nil {
+	_, err := api.checkNode()
+	if err != nil {
 		return nil, err
 	}
 
@@ -38,7 +39,8 @@ func (api *PubSubAPI) Ls(ctx context.Context) ([]string, error) {
 }
 
 func (api *PubSubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOption) ([]peer.ID, error) {
-	if err := api.checkNode(); err != nil {
+	_, err := api.checkNode()
+	if err != nil {
 		return nil, err
 	}
 
@@ -58,7 +60,8 @@ func (api *PubSubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 }
 
 func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) error {
-	if err := api.checkNode(); err != nil {
+	_, err := api.checkNode()
+	if err != nil {
 		return err
 	}
 
@@ -68,7 +71,8 @@ func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) er
 func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (coreiface.PubSubSubscription, error) {
 	options, err := caopts.PubSubSubscribeOptions(opts...)
 
-	if err := api.checkNode(); err != nil {
+	r, err := api.checkNode()
+	if err != nil {
 		return nil, err
 	}
 
@@ -87,7 +91,7 @@ func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 				return
 			}
 
-			connectToPubSubPeers(pubctx, api.routing, api.peerHost, blk.Path().Cid())
+			connectToPubSubPeers(pubctx, r, api.peerHost, blk.Path().Cid())
 		}()
 	}
 
@@ -118,16 +122,17 @@ func connectToPubSubPeers(ctx context.Context, r routing.IpfsRouting, ph p2phost
 	wg.Wait()
 }
 
-func (api *PubSubAPI) checkNode() error {
-	if err := api.checkRouting(false); err != nil {
-		return err
-	}
-
+func (api *PubSubAPI) checkNode() (routing.IpfsRouting, error) {
 	if api.pubSub == nil {
-		return errors.New("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use.")
+		return nil, errors.New("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use.")
 	}
 
-	return nil
+	r, err := api.routing(false)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 func (sub *pubSubSubscription) Close() error {

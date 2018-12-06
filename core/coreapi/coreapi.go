@@ -16,26 +16,27 @@ package coreapi
 import (
 	"context"
 	"errors"
-
-	core "github.com/ipfs/go-ipfs/core"
+	"fmt"
+	"github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	namesys "github.com/ipfs/go-ipfs/namesys"
-	pin "github.com/ipfs/go-ipfs/pin"
-	repo "github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/repo"
 
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
-	exchange "gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"
+	"gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"
 	bserv "gx/ipfs/QmPoh3SrQzFBWtdGK6qmHDV4EanKR6kYPj4DD3J2NLoEmZ/go-blockservice"
-	routing "gx/ipfs/QmRASJXJUFygM5qU4YrH7k7jD6S4Hg8nJmgqJ4bYJvLatd/go-libp2p-routing"
-	blockstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
-	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
+	"gx/ipfs/QmRASJXJUFygM5qU4YrH7k7jD6S4Hg8nJmgqJ4bYJvLatd/go-libp2p-routing"
+	"gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
+	"gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
 	pstore "gx/ipfs/QmZ9zH2FnLcxv1xyzFeUpDUeo55xEhZQHgveZijcxr7TLj/go-libp2p-peerstore"
 	pubsub "gx/ipfs/QmaqGyUhWLsJbVo1QAujSu13mxNjFJ98Kt2VWGSnShGE1Q/go-libp2p-pubsub"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 	dag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
-	record "gx/ipfs/QmfARXVCzpwFXQdepAJZuqyNDgV9doEsMnVCo1ssmuSe1U/go-libp2p-record"
+	offlineroute "gx/ipfs/QmdmWkx54g7VfVyxeG8ic84uf4G6Eq1GohuyKA3XDuJ8oC/go-ipfs-routing/offline"
+	"gx/ipfs/QmfARXVCzpwFXQdepAJZuqyNDgV9doEsMnVCo1ssmuSe1U/go-libp2p-record"
 	p2phost "gx/ipfs/QmfD51tKgJiTMnW9JEiDiPwsCY4mqUoxkhKhBfyW12spTC/go-libp2p-host"
 )
 
@@ -50,20 +51,20 @@ type CoreAPI struct {
 	repo       repo.Repo
 	blockstore blockstore.GCBlockstore
 	baseBlocks blockstore.Blockstore
-	blocks     bserv.BlockService
-	dag        ipld.DAGService
 	pinning    pin.Pinner
+
+	blocks bserv.BlockService
+	dag    ipld.DAGService
 
 	peerstore       pstore.Peerstore
 	peerHost        p2phost.Host
-	namesys         namesys.NameSystem
 	recordValidator record.Validator
 	exchange        exchange.Interface
 
-	routing routing.IpfsRouting
-	pubSub  *pubsub.PubSub
+	namesys namesys.NameSystem
+	routing func(bool) (routing.IpfsRouting, error)
 
-	checkRouting func(bool) error
+	pubSub *pubsub.PubSub
 
 	// TODO: this can be generalized to all functions when we implement some
 	// api based security mechanism
@@ -71,7 +72,12 @@ type CoreAPI struct {
 }
 
 // NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node.
-func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) coreiface.CoreAPI {
+func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) (coreiface.CoreAPI, error) {
+	settings, err := options.ApiOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	api := &CoreAPI{
 		nctx: n.Context(),
 
@@ -81,9 +87,10 @@ func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) coreiface.CoreAPI {
 		repo:       n.Repo,
 		blockstore: n.Blockstore,
 		baseBlocks: n.BaseBlocks,
-		blocks:     n.Blocks,
-		dag:        n.DAG,
 		pinning:    n.Pinning,
+
+		blocks: n.Blocks,
+		dag:    n.DAG,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,
@@ -91,28 +98,64 @@ func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) coreiface.CoreAPI {
 		recordValidator: n.RecordValidator,
 		exchange:        n.Exchange,
 
-		routing: n.Routing,
-		pubSub:  n.PubSub,
-
-		checkRouting: func(allowOffline bool) error {
-			if !n.OnlineMode() {
-				if !allowOffline {
-					return coreiface.ErrOffline
-				}
-				return n.SetupOfflineRouting()
-			}
-			return nil
-		},
-
-		isPublishAllowed: func() error {
-			if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
-				return errors.New("cannot manually publish while IPNS is mounted")
-			}
-			return nil
-		},
+		pubSub: n.PubSub,
 	}
 
-	return api
+	api.routing = func(allowOffline bool) (routing.IpfsRouting, error) {
+		if !n.OnlineMode() {
+			if !allowOffline {
+				return nil, coreiface.ErrOffline
+			}
+			if err := n.SetupOfflineRouting(); err != nil {
+				return nil, err
+			}
+			api.privateKey = n.PrivateKey
+			api.namesys = n.Namesys
+			return n.Routing, nil
+		}
+		if !settings.Offline {
+			return n.Routing, nil
+		}
+		if !allowOffline {
+			return nil, coreiface.ErrOffline
+		}
+
+		//todo: might want to cache this
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
+
+		cs := cfg.Ipns.ResolveCacheSize
+		if cs == 0 {
+			cs = 128
+		}
+		if cs < 0 {
+			return nil, fmt.Errorf("cannot specify negative resolve cache size")
+		}
+
+		offroute := offlineroute.NewOfflineRouter(api.repo.Datastore(), api.recordValidator)
+		api.namesys = namesys.NewNameSystem(offroute, api.repo.Datastore(), cs)
+
+		return offroute, nil
+	}
+
+	api.isPublishAllowed = func() error {
+		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
+			return errors.New("cannot manually publish while IPNS is mounted")
+		}
+		return nil
+	}
+
+	if settings.Offline {
+		api.peerstore = nil
+		api.peerHost = nil
+		api.namesys = nil
+		api.recordValidator = nil
+		api.exchange = nil
+	}
+
+	return api, nil
 }
 
 // Unixfs returns the UnixfsAPI interface implementation backed by the go-ipfs node

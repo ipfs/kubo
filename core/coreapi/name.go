@@ -47,7 +47,8 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 		return nil, err
 	}
 
-	if err := api.checkRouting(options.AllowOffline); err != nil {
+	_, err = api.routing(options.AllowOffline)
+	if err != nil {
 		return nil, err
 	}
 
@@ -88,7 +89,8 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		return nil, err
 	}
 
-	if err := api.checkRouting(true); err != nil {
+	r, err := api.routing(true)
+	if err != nil {
 		return nil, err
 	}
 
@@ -98,13 +100,14 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		return nil, errors.New("cannot specify both local and nocache")
 	}
 
+	//TODO: can replaced with api.WithOpt(opts.Api.Offline(true))
 	if options.Local {
 		offroute := offline.NewOfflineRouter(api.repo.Datastore(), api.recordValidator)
 		resolver = namesys.NewIpnsResolver(offroute)
 	}
 
 	if !options.Cache {
-		resolver = namesys.NewNameSystem(api.routing, api.repo.Datastore(), 0)
+		resolver = namesys.NewNameSystem(r, api.repo.Datastore(), 0)
 	}
 
 	if !strings.HasPrefix(name, "/ipns/") {
