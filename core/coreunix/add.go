@@ -446,6 +446,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 }
 
 func (adder *Adder) addFile(path string, file files.Node) error {
+	defer file.Close()
 	err := adder.maybePauseForGC()
 	if err != nil {
 		return err

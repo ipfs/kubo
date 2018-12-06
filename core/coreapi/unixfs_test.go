@@ -830,3 +830,73 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Fatalf("expected 0 links, got %d", len(links))
 	}
 }
+
+type closeTestF struct {
+	files.File
+	closed bool
+
+	t *testing.T
+}
+
+type closeTestD struct {
+	files.Directory
+	closed bool
+
+	t *testing.T
+}
+
+func (f *closeTestD) Close() error {
+	if f.closed {
+		f.t.Fatal("already closed")
+	}
+	f.closed = true
+	return nil
+}
+
+func (f *closeTestF) Close() error {
+	if f.closed {
+		f.t.Fatal("already closed")
+	}
+	f.closed = true
+	return nil
+}
+
+func TestAddCloses(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	n4 := &closeTestF{files.FileFrom([]byte("foo")), false, t}
+	d3 := &closeTestD{files.DirFrom(map[string]files.Node{
+		"sub": n4,
+	}), false, t}
+	n2 := &closeTestF{files.FileFrom([]byte("bar")), false, t}
+	n1 := &closeTestF{files.FileFrom([]byte("baz")), false, t}
+	d0 := &closeTestD{files.DirFrom(map[string]files.Node{
+		"a": d3,
+		"b": n1,
+		"c": n2,
+	}), false, t}
+
+	_, err = api.Unixfs().Add(ctx, d0)
+	if err != nil {
+		t.Error(err)
+	}
+
+	d0.Close() // Adder doesn't close top-level file
+
+	for i, n := range []*closeTestF{n1, n2, n4} {
+		if !n.closed {
+			t.Errorf("file %d not closed!", i)
+		}
+	}
+
+	for i, n := range []*closeTestD{d0, d3} {
+		if !n.closed {
+			t.Errorf("dir %d not closed!", i)
+		}
+	}
+
+}
