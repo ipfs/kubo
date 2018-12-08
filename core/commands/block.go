@@ -240,13 +240,13 @@ It takes a list of base58 encoded multihashes to remove.
 
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
 			if err != nil {
-				err := res.Emit(&util.RemovedBlock{
+				if err := res.Emit(&util.RemovedBlock{
 					Hash:  rp.Cid().String(),
 					Error: err.Error(),
-				})
-				if err != nil {
+				}); err != nil {
 					return err
 				}
+				continue
 			}
 
 			if !quiet {
