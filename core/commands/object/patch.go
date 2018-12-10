@@ -50,7 +50,7 @@ the limit will not be respected by the network.
 		cmdkit.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,7 @@ Example:
 		cmdkit.FileArg("data", true, false, "The data to set the object to.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ Remove a Merkle-link from the given object and return the hash of the result.
 		cmdkit.StringArg("name", true, false, "Name of the link to remove."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -192,7 +192,7 @@ to a file containing 'bar', and returns the hash of the new object.
 		cmdkit.BoolOption("create", "p", "Create intermediary nodes."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}

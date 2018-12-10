@@ -30,7 +30,6 @@ type UnixfsAddSettings struct {
 
 	Pin      bool
 	OnlyHash bool
-	Local    bool
 	FsCache  bool
 	NoCopy   bool
 
@@ -60,7 +59,6 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 
 		Pin:      false,
 		OnlyHash: false,
-		Local:    false,
 		FsCache:  false,
 		NoCopy:   false,
 
@@ -216,16 +214,6 @@ func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
 func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.OnlyHash = hashOnly
-		return nil
-	}
-}
-
-// Local will add the data to blockstore without announcing it to the network
-//
-// Note that this doesn't prevent other nodes from getting this data
-func (unixfsOpts) Local(local bool) UnixfsAddOption {
-	return func(settings *UnixfsAddSettings) error {
-		settings.Local = local
 		return nil
 	}
 }

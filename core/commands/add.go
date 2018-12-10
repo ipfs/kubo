@@ -139,7 +139,7 @@ You can now check what blocks have been created by:
 		return nil
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,6 @@ You can now check what blocks have been created by:
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 		pathName, _ := req.Options[stdinPathName].(string)
-		local, _ := req.Options["local"].(bool)
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
@@ -179,7 +178,6 @@ You can now check what blocks have been created by:
 
 			options.Unixfs.Pin(dopin),
 			options.Unixfs.HashOnly(hash),
-			options.Unixfs.Local(local),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),
 

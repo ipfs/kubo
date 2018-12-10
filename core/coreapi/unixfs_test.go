@@ -183,6 +183,8 @@ func TestAdd(t *testing.T) {
 		data   func() files.Node
 		expect func(files.Node) files.Node
 
+		apiOpts []options.ApiOption
+
 		path string
 		err  string
 
@@ -270,10 +272,10 @@ func TestAdd(t *testing.T) {
 		},
 		// Local
 		{
-			name: "addLocal", // better cases in sharness
-			data: strFile(helloStr),
-			path: hello,
-			opts: []options.UnixfsAddOption{options.Unixfs.Local(true)},
+			name:    "addLocal", // better cases in sharness
+			data:    strFile(helloStr),
+			path:    hello,
+			apiOpts: []options.ApiOption{options.Api.Offline(true)},
 		},
 		{
 			name: "hashOnly", // test (non)fetchability
@@ -511,9 +513,14 @@ func TestAdd(t *testing.T) {
 				}()
 			}
 
+			tapi, err := api.WithOptions(testCase.apiOpts...)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			// Add!
 
-			p, err := api.Unixfs().Add(ctx, data, opts...)
+			p, err := tapi.Unixfs().Add(ctx, data, opts...)
 			close(eventOut)
 			evtWg.Wait()
 			if testCase.err != "" {
@@ -594,7 +601,7 @@ func TestAdd(t *testing.T) {
 				}
 			}
 
-			f, err := api.Unixfs().Get(ctx, p)
+			f, err := tapi.Unixfs().Get(ctx, p)
 			if err != nil {
 				t.Fatal(err)
 			}

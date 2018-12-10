@@ -6,6 +6,7 @@ import (
 	"github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	config "gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
 	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
@@ -22,13 +23,22 @@ func GetNode(env interface{}) (*core.IpfsNode, error) {
 }
 
 // GetApi extracts CoreAPI instance from the environment.
-func GetApi(env cmds.Environment) (coreiface.CoreAPI, error) {
+func GetApi(env cmds.Environment, req *cmds.Request) (coreiface.CoreAPI, error) {
 	ctx, ok := env.(*commands.Context)
 	if !ok {
 		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)
 	}
 
-	return ctx.GetAPI()
+	local, _ := req.Options["local"].(bool)
+	api, err := ctx.GetAPI()
+	if err != nil {
+		return nil, err
+	}
+	if local {
+		return api.WithOptions(options.Api.Offline(local))
+	}
+
+	return api, nil
 }
 
 // GetConfig extracts the config from the environment.
