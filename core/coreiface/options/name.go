@@ -20,7 +20,6 @@ type NamePublishSettings struct {
 }
 
 type NameResolveSettings struct {
-	Local bool
 	Cache bool
 
 	ResolveOpts []ropts.ResolveOpt
@@ -49,7 +48,6 @@ func NamePublishOptions(opts ...NamePublishOption) (*NamePublishSettings, error)
 
 func NameResolveOptions(opts ...NameResolveOption) (*NameResolveSettings, error) {
 	options := &NameResolveSettings{
-		Local: false,
 		Cache: true,
 	}
 
@@ -102,15 +100,6 @@ func (nameOpts) AllowOffline(allow bool) NamePublishOption {
 func (nameOpts) TTL(ttl time.Duration) NamePublishOption {
 	return func(settings *NamePublishSettings) error {
 		settings.TTL = &ttl
-		return nil
-	}
-}
-
-// Local is an option for Name.Resolve which specifies if the lookup should be
-// offline. Default value is false
-func (nameOpts) Local(local bool) NameResolveOption {
-	return func(settings *NameResolveSettings) error {
-		settings.Local = local
 		return nil
 	}
 }
