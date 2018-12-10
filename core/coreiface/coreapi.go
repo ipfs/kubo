@@ -5,6 +5,8 @@ package iface
 import (
 	"context"
 
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 )
 
@@ -46,4 +48,8 @@ type CoreAPI interface {
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
 	ResolveNode(context.Context, Path) (ipld.Node, error)
+
+	// WithOptions creates new instance of CoreAPI based on this instance with
+	// a set of options applied
+	WithOptions(...options.ApiOption) (CoreAPI, error)
 }
