@@ -2,7 +2,6 @@ package coreapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -16,7 +15,6 @@ import (
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
 	"gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
 	ipath "gx/ipfs/QmZErC2Ay6WuGi96CPg316PwitdwgLo6RxZRqVjJjRj2MR/go-path"
-	"gx/ipfs/QmdmWkx54g7VfVyxeG8ic84uf4G6Eq1GohuyKA3XDuJ8oC/go-ipfs-routing/offline"
 )
 
 type NameAPI CoreAPI
@@ -95,16 +93,6 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 	}
 
 	var resolver namesys.Resolver = api.namesys
-
-	if options.Local && !options.Cache { //TODO: rm before offline/local global opt merge
-		return nil, errors.New("cannot specify both local and nocache")
-	}
-
-	//TODO: can replaced with api.WithOpt(opts.Api.Offline(true))
-	if options.Local {
-		offroute := offline.NewOfflineRouter(api.repo.Datastore(), api.recordValidator)
-		resolver = namesys.NewIpnsResolver(offroute)
-	}
 
 	if !options.Cache {
 		resolver = namesys.NewNameSystem(r, api.repo.Datastore(), 0)
