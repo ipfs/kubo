@@ -127,6 +127,8 @@ func TestGenerateSize(t *testing.T) {
 
 func TestGenerateType(t *testing.T) {
 	ctx := context.Background()
+	t.Skip("disabled until libp2p/specs#111 is fixed")
+
 	_, api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
