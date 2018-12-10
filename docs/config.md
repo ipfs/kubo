@@ -1,16 +1,19 @@
 # The go-ipfs config file
 
-The go-ipfs config file is a json document. It is read once at node instantiation,
-either for an offline command, or when starting the daemon. Commands that execute
-on a running daemon do not read the config file at runtime.
+The go-ipfs config file is a JSON document located at `$IPFS_PATH/config`. It
+is read once at node instantiation, either for an offline command, or when
+starting the daemon. Commands that execute on a running daemon do not read the
+config file at runtime.
 
 #### Profiles
+
 Configuration profiles allow to tweak configuration quickly. Profiles can be
-applied with `--profile` flag to `ipfs init` or with `ipfs config profile apply`
-command. When a profile is applied a backup of the configuration file will
-be created in $IPFS_PATH
+applied with `--profile` flag to `ipfs init` or with the `ipfs config profile
+apply` command. When a profile is applied a backup of the configuration file
+will be created in `$IPFS_PATH`.
 
 Available profiles:
+
 - `server`
 
   Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
