@@ -55,9 +55,7 @@ var CatCmd = &cmds.Command{
 		}
 
 		max, found := req.Options[lengthOptionName].(int64)
-		if err != nil {
-			return err
-		}
+
 		if max < 0 {
 			return fmt.Errorf("cannot specify negative length")
 		}
