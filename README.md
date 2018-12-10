@@ -101,7 +101,16 @@ For Linux and MacOSX you can use the purely functional package manager [Nix](htt
 ```
 $ nix-env -i ipfs
 ```
+
 You can also install the Package by using it's attribute name, which is also `ipfs`.
+
+#### Guix
+
+GNU's functional package manager, [Guix](https://www.gnu.org/software/guix/), also provides a go-ipfs package:
+
+```
+$ guix package -i go-ipfs
+```
 
 #### Snap
 
