@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"fmt"
+	"net"
+	"time"
+)
 
 // Transformer is a function which takes configuration and applies some filter to it
 type Transformer func(c *Config) error
@@ -160,6 +164,31 @@ fetching may be degraded.
 			return nil
 		},
 	},
+	"randomports": {
+		Description: `Use a random port number for swarm.`,
+
+		Transform: func(c *Config) error {
+			port, err := getAvailablePort()
+			if err != nil {
+				return err
+			}
+			c.Addresses.Swarm = []string{
+				fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
+				fmt.Sprintf("/ip6/::/tcp/%d", port),
+			}
+			return nil
+		},
+	},
+}
+
+func getAvailablePort() (port int, err error) {
+	ln, err := net.Listen("tcp", "[::]:0")
+	if err != nil {
+		return 0, err
+	}
+	defer ln.Close()
+	port = ln.Addr().(*net.TCPAddr).Port
+	return port, nil
 }
 
 func appendSingle(a []string, b []string) []string {
