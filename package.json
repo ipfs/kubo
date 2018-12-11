@@ -601,9 +601,9 @@
     },
     {
       "author": "vyzo",
-      "hash": "Qma7kuzdE11SExUDhxToEtHfmp93S6Xz8G4Bwj7WezXy3y",
+      "hash": "QmdFdMoDmvuEJYsAKRA2BMobzNaeunmc16DqPxdHHfQ25K",
       "name": "go-libp2p-autonat-svc",
-      "version": "1.0.2"
+      "version": "1.0.3"
     }
   ],
   "gxVersion": "0.10.0",
