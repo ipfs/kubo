@@ -17,6 +17,9 @@
   .ipfs-icon {
     width:16px;
   }
+  .ipfs-hash {
+    color: #999;
+  }
   </style>
   <title>{{ .Path }}</title>
 </head>
@@ -31,6 +34,11 @@
     <div class="panel panel-default">
       <div class="panel-heading">
         <strong>Index of {{ .Path }}</strong>
+        {{ if .Hash }}
+        <div class="ipfs-hash">
+          {{ .Hash }}
+        </div>
+        {{ end }}
       </div>
       <table class="table table-striped">
         <tr>
