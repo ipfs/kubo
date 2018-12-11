@@ -85,6 +85,21 @@ test_expect_success "ipfs filestore verify works with urls" '
   test_cmp verify_expect verify_actual
 '
 
+test_expect_success "garbage collect file1 from the urlstore" '
+  ipfs repo gc > /dev/null
+'
+
+test_expect_success "can no longer retrieve file1 from urlstore" '
+  rm -f file1.actual &&
+  test_must_fail ipfs get $HASH1 -o file1.actual
+'
+
+test_expect_success "can still retrieve file2 from urlstore" '
+  rm -f file2.actual &&
+  ipfs get $HASH2 -o file2.actual &&
+  test_cmp file2 file2.actual
+'
+
 test_expect_success "remove original hashes from local gateway" '
   ipfs pin rm $HASH1a $HASH2a &&
   ipfs repo gc > /dev/null
