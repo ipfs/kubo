@@ -11,6 +11,10 @@ func ApiOptions(opts ...ApiOption) (*ApiSettings, error) {
 		Offline: false,
 	}
 
+	return ApiOptionsTo(options, opts...)
+}
+
+func ApiOptionsTo(options *ApiSettings, opts ...ApiOption) (*ApiSettings, error) {
 	for _, opt := range opts {
 		err := opt(options)
 		if err != nil {
@@ -22,9 +26,9 @@ func ApiOptions(opts ...ApiOption) (*ApiSettings, error) {
 
 type apiOpts struct{}
 
-var Api dagOpts
+var Api apiOpts
 
-func (dagOpts) Offline(offline bool) ApiOption {
+func (apiOpts) Offline(offline bool) ApiOption {
 	return func(settings *ApiSettings) error {
 		settings.Offline = offline
 		return nil
