@@ -73,12 +73,18 @@ type CoreAPI struct {
 	isPublishAllowed func() error
 
 	// ONLY for re-applying options in WithOptions, DO NOT USE ANYWHERE ELSE
-	nd *core.IpfsNode
+	nd         *core.IpfsNode
+	parentOpts options.ApiSettings
 }
 
 // NewCoreAPI creates new instance of IPFS CoreAPI backed by go-ipfs Node.
 func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) (coreiface.CoreAPI, error) {
-	return (&CoreAPI{nd: n}).WithOptions(opts...)
+	parentOpts, err := options.ApiOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	return (&CoreAPI{nd: n, parentOpts: *parentOpts}).WithOptions(opts...)
 }
 
 // Unixfs returns the UnixfsAPI interface implementation backed by the go-ipfs node
@@ -133,7 +139,8 @@ func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 
 // WithOptions returns api with global options applied
 func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, error) {
-	settings, err := options.ApiOptions(opts...)
+	settings := api.parentOpts // make sure to copy
+	_, err := options.ApiOptionsTo(&settings, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +173,8 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 		pubSub: n.PubSub,
 
-		nd: n,
+		nd:         n,
+		parentOpts: settings,
 	}
 
 	subApi.routing = func(allowOffline bool) (routing.IpfsRouting, error) {
