@@ -2,6 +2,7 @@ package cmdenv
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -10,7 +11,10 @@ import (
 
 	config "gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
 	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
+	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 )
+
+var log = logging.Logger("core/commands/cmdenv")
 
 // GetNode extracts the node from the environment.
 func GetNode(env interface{}) (*core.IpfsNode, error) {
@@ -29,13 +33,19 @@ func GetApi(env cmds.Environment, req *cmds.Request) (coreiface.CoreAPI, error) 
 		return nil, fmt.Errorf("expected env to be of type %T, got %T", ctx, env)
 	}
 
-	local, _ := req.Options["local"].(bool)
+	offline, _ := req.Options["offline"].(bool)
+	if !offline {
+		offline, _ = req.Options["local"].(bool)
+		if offline {
+			log.Errorf("Command '%s', --local is deprecated, use --offline instead", strings.Join(req.Path, " "))
+		}
+	}
 	api, err := ctx.GetAPI()
 	if err != nil {
 		return nil, err
 	}
-	if local {
-		return api.WithOptions(options.Api.Offline(local))
+	if offline {
+		return api.WithOptions(options.Api.Offline(offline))
 	}
 
 	return api, nil
