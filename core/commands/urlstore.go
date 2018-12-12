@@ -7,6 +7,7 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	filestore "github.com/ipfs/go-ipfs/filestore"
+	pin "github.com/ipfs/go-ipfs/pin"
 
 	chunk "gx/ipfs/QmR4QQVkBZsZENRjYFVi8dEtPL3daZRNKk24m4r6WKJHNm/go-ipfs-chunker"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
@@ -36,9 +37,6 @@ control.
 The file is added using raw-leaves but otherwise using the default
 settings for 'ipfs add'.
 
-The file is not pinned, so this command should be followed by an 'ipfs
-pin add'.
-
 This command is considered temporary until a better solution can be
 found.  It may disappear or the semantics can change at any
 time.
@@ -46,6 +44,7 @@ time.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("url", true, false, "URL to add to IPFS"),
@@ -73,6 +72,7 @@ time.
 		}
 
 		useTrickledag, _ := req.Options[trickleOptionName].(bool)
+		dopin, _ := req.Options[pinOptionName].(bool)
 
 		hreq, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -85,6 +85,11 @@ time.
 		}
 		if hres.StatusCode != http.StatusOK {
 			return fmt.Errorf("expected code 200, got: %d", hres.StatusCode)
+		}
+
+		if dopin {
+			// Take the pinlock
+			defer n.Blockstore.PinLock().Unlock()
 		}
 
 		chk := chunk.NewSizeSplitter(hres.Body, chunk.DefaultBlockSize)
@@ -102,13 +107,22 @@ time.
 		if useTrickledag {
 			layout = trickle.Layout
 		}
+
 		root, err := layout(dbp.New(chk))
 		if err != nil {
 			return err
 		}
 
+		c := root.Cid()
+		if dopin {
+			n.Pinning.PinWithMode(c, pin.Recursive)
+			if err := n.Pinning.Flush(); err != nil {
+				return err
+			}
+		}
+
 		return cmds.EmitOnce(res, &BlockStat{
-			Key:  root.Cid().String(),
+			Key:  c.String(),
 			Size: int(hres.ContentLength),
 		})
 	},

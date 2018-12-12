@@ -46,9 +46,8 @@ test_expect_success "enable urlstore" '
 test_launch_ipfs_daemon --offline
 
 test_expect_success "add files using gateway address via url store" '
-  HASH1=$(ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH1a) &&
-  HASH2=$(ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH2a) &&
-  ipfs pin add $HASH1 $HASH2
+  HASH1=$(ipfs urlstore add --pin=false http://127.0.0.1:$GWAY_PORT/ipfs/$HASH1a) &&
+  HASH2=$(ipfs urlstore add http://127.0.0.1:$GWAY_PORT/ipfs/$HASH2a)
 '
 
 test_expect_success "make sure hashes are different" '
@@ -86,6 +85,21 @@ test_expect_success "ipfs filestore verify works with urls" '
   test_cmp verify_expect verify_actual
 '
 
+test_expect_success "garbage collect file1 from the urlstore" '
+  ipfs repo gc > /dev/null
+'
+
+test_expect_success "can no longer retrieve file1 from urlstore" '
+  rm -f file1.actual &&
+  test_must_fail ipfs get $HASH1 -o file1.actual
+'
+
+test_expect_success "can still retrieve file2 from urlstore" '
+  rm -f file2.actual &&
+  ipfs get $HASH2 -o file2.actual &&
+  test_cmp file2 file2.actual
+'
+
 test_expect_success "remove original hashes from local gateway" '
   ipfs pin rm $HASH1a $HASH2a &&
   ipfs repo gc > /dev/null
@@ -99,7 +113,6 @@ test_expect_success "gatway no longer has files" '
 cat <<EOF | sort > verify_expect_2
 error   zb2rhX1q5oFFzEkPNsTe1Y8osUdFqSQGjUWRZsqC9fbY6WVSk  262144 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 0
 error   zb2rhYbKFn1UWGHXaAitcdVTkDGTykX8RFpGWzRFuLpoe9VE4  237856 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 262144
-error   zb2rhjddJ5DNzBrFu8G6CP1ApY25BukwCeskXHzN1H18CiVVZ    2222 http://127.0.0.1:$GWAY_PORT/ipfs/QmcHm3BL2cXuQ6rJdKQgPrmT9suqGkfy2KzH3MkXPEBXU6 0
 EOF
 
 test_expect_success "ipfs filestore verify is correct" '
@@ -113,7 +126,7 @@ test_expect_success "files can not be retrieved via the urlstore" '
 '
 
 test_expect_success "remove broken files" '
-  ipfs pin rm $HASH1 $HASH2 &&
+  ipfs pin rm $HASH2 &&
   ipfs repo gc > /dev/null
 '
 
