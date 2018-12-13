@@ -71,7 +71,6 @@ import (
 	merkledag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	ft "gx/ipfs/QmdYvDbHp7qAhZ7GsCj6e1cMo55ND6y2mjWVzwdvcv4f12/go-unixfs"
 	nilrouting "gx/ipfs/QmdmWkx54g7VfVyxeG8ic84uf4G6Eq1GohuyKA3XDuJ8oC/go-ipfs-routing/none"
-	offroute "gx/ipfs/QmdmWkx54g7VfVyxeG8ic84uf4G6Eq1GohuyKA3XDuJ8oC/go-ipfs-routing/offline"
 	yamux "gx/ipfs/Qmdps3CYh5htGQSrPvzg5PHouVexLmtpbuLCqc4vuej8PC/go-smux-yamux"
 	ds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
 	record "gx/ipfs/QmfARXVCzpwFXQdepAJZuqyNDgV9doEsMnVCo1ssmuSe1U/go-libp2p-record"
@@ -158,11 +157,6 @@ type Mounts struct {
 func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex bool) error {
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
-	}
-
-	// load private key
-	if err := n.LoadPrivateKey(); err != nil {
-		return err
 	}
 
 	// get undialable addrs from config
@@ -779,7 +773,8 @@ func (n *IpfsNode) GetKey(name string) (ic.PrivKey, error) {
 	}
 }
 
-func (n *IpfsNode) LoadPrivateKey() error {
+// loadPrivateKey loads the private key *if* available
+func (n *IpfsNode) loadPrivateKey() error {
 	if n.Identity == "" || n.Peerstore == nil {
 		return errors.New("loaded private key out of order")
 	}
@@ -792,6 +787,10 @@ func (n *IpfsNode) LoadPrivateKey() error {
 	cfg, err := n.Repo.Config()
 	if err != nil {
 		return err
+	}
+
+	if cfg.Identity.PrivKey == "" {
+		return nil
 	}
 
 	sk, err := loadPrivateKey(&cfg.Identity, n.Identity)
@@ -861,32 +860,6 @@ func (n *IpfsNode) loadFilesRoot() error {
 	}
 
 	n.FilesRoot = mr
-	return nil
-}
-
-// SetupOfflineRouting instantiates a routing system in offline mode. This is
-// primarily used for offline ipns modifications.
-func (n *IpfsNode) SetupOfflineRouting() error {
-	if n.Routing != nil {
-		// Routing was already set up
-		return nil
-	}
-
-	// TODO: move this somewhere else.
-	err := n.LoadPrivateKey()
-	if err != nil {
-		return err
-	}
-
-	n.Routing = offroute.NewOfflineRouter(n.Repo.Datastore(), n.RecordValidator)
-
-	size, err := n.getCacheSize()
-	if err != nil {
-		return err
-	}
-
-	n.Namesys = namesys.NewNameSystem(n.Routing, n.Repo.Datastore(), size)
-
 	return nil
 }
 
