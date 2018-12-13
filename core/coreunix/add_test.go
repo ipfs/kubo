@@ -71,15 +71,15 @@ func TestAddGCLive(t *testing.T) {
 	}
 	adder.Out = out
 
-	rfa := files.FileFrom([]byte("testfileA"))
+	rfa := files.NewBytesFile([]byte("testfileA"))
 
 	// make two files with pipes so we can 'pause' the add for timing of the test
 	piper, pipew := io.Pipe()
-	hangfile := files.FileFrom(piper)
+	hangfile := files.NewReaderFile(piper)
 
-	rfd := files.FileFrom([]byte("testfileD"))
+	rfd := files.NewBytesFile([]byte("testfileD"))
 
-	slf := files.DirFrom(map[string]files.Node{
+	slf := files.NewMapDirectory(map[string]files.Node{
 		"a": rfa,
 		"b": hangfile,
 		"d": rfd,

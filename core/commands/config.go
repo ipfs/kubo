@@ -15,10 +15,10 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
+	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	config "gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
 	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	files "gx/ipfs/QmeaQRmnRog7NxLEWHP9zSTkics4cbgwBVa7q49LmBowDr/go-ipfs-files"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -285,10 +285,10 @@ can't be undone.
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}
-		if files.FileFrom(it) == nil {
+		if files.FileFromEntry(it) == nil {
 			return fmt.Errorf("expected a regular file")
 		}
-		file := files.FileFrom(it)
+		file := files.FileFromEntry(it)
 		defer file.Close()
 
 		return replaceConfig(r, file)

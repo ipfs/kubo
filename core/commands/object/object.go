@@ -13,11 +13,11 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 	dag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	files "gx/ipfs/QmeaQRmnRog7NxLEWHP9zSTkics4cbgwBVa7q49LmBowDr/go-ipfs-files"
 )
 
 type Node struct {
@@ -396,7 +396,7 @@ And then run:
 		if !it.Next() && it.Err() != nil {
 			return it.Err()
 		}
-		if files.FileFrom(it) == nil {
+		if files.FileFromEntry(it) == nil {
 			return fmt.Errorf("expected a regular file")
 		}
 
@@ -415,7 +415,7 @@ And then run:
 			return err
 		}
 
-		p, err := api.Object().Put(req.Context, files.FileFrom(it),
+		p, err := api.Object().Put(req.Context, files.FileFromEntry(it),
 			options.Object.DataType(datafieldenc),
 			options.Object.InputEnc(inputenc),
 			options.Object.Pin(dopin))
