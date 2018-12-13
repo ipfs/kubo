@@ -176,12 +176,6 @@ func printSelf(node *core.IpfsNode) (interface{}, error) {
 	info := new(IdOutput)
 	info.ID = node.Identity.Pretty()
 
-	if node.PrivateKey == nil {
-		if err := node.LoadPrivateKey(); err != nil {
-			return nil, err
-		}
-	}
-
 	pk := node.PrivateKey.GetPublic()
 	pkb, err := ic.MarshalPublicKey(pk)
 	if err != nil {
