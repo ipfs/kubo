@@ -9,10 +9,10 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 
+	cmds "gx/ipfs/QmPdvMtgpnMuU68mWhGtzCxnddXJoV96tT9aPcNbQsqPaM/go-ipfs-cmds"
 	blockservice "gx/ipfs/QmPoh3SrQzFBWtdGK6qmHDV4EanKR6kYPj4DD3J2NLoEmZ/go-blockservice"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
-	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 	merkledag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	unixfs "gx/ipfs/QmdYvDbHp7qAhZ7GsCj6e1cMo55ND6y2mjWVzwdvcv4f12/go-unixfs"

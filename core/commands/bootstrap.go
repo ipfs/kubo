@@ -9,8 +9,8 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
+	cmds "gx/ipfs/QmPdvMtgpnMuU68mWhGtzCxnddXJoV96tT9aPcNbQsqPaM/go-ipfs-cmds"
 	config "gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
-	cmds "gx/ipfs/Qma6uuSyjkecGhMFFLfzyJDPyoDtNJSHJNweDccZhaWkgU/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
