@@ -43,7 +43,7 @@ type PinAPI interface {
 	Ls(context.Context, ...options.PinLsOption) ([]Pin, error)
 
 	// Rm removes pin for object specified by the path
-	Rm(context.Context, Path) error
+	Rm(context.Context, Path, ...options.PinRmOption) error
 
 	// Update changes one pin to another, skipping checks for matching paths in
 	// the old tree

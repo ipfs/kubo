@@ -8,12 +8,23 @@ type PinLsSettings struct {
 	Type string
 }
 
+// PinRmSettings represents the settings of pin rm command
+type PinRmSettings struct {
+	Recursive bool
+	Force     bool
+}
+
 type PinUpdateSettings struct {
 	Unpin bool
 }
 
 type PinAddOption func(*PinAddSettings) error
-type PinLsOption func(settings *PinLsSettings) error
+
+// PinRmOption pin rm option func
+type PinRmOption func(*PinRmSettings) error
+
+// PinLsOption pin ls option func
+type PinLsOption func(*PinLsSettings) error
 type PinUpdateOption func(*PinUpdateSettings) error
 
 func PinAddOptions(opts ...PinAddOption) (*PinAddSettings, error) {
@@ -24,6 +35,21 @@ func PinAddOptions(opts ...PinAddOption) (*PinAddSettings, error) {
 	for _, opt := range opts {
 		err := opt(options)
 		if err != nil {
+			return nil, err
+		}
+	}
+
+	return options, nil
+}
+
+// PinRmOptions pin rm options
+func PinRmOptions(opts ...PinRmOption) (*PinRmSettings, error) {
+	options := &PinRmSettings{
+		Recursive: true,
+	}
+
+	for _, opt := range opts {
+		if err := opt(options); err != nil {
 			return nil, err
 		}
 	}
@@ -97,6 +123,14 @@ func (pinType) Indirect() PinLsOption {
 // object tree or just one object. Default: true
 func (pinOpts) Recursive(recursive bool) PinAddOption {
 	return func(settings *PinAddSettings) error {
+		settings.Recursive = recursive
+		return nil
+	}
+}
+
+// RmRecursive is an option for Pin.Rm
+func (pinOpts) RmRecursive(recursive bool) PinRmOption {
+	return func(settings *PinRmSettings) error {
 		settings.Recursive = recursive
 		return nil
 	}
