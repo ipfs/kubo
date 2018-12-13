@@ -149,11 +149,11 @@ A boolean value. If set to true, all block reads from disk will be hashed and
 verified. This will cause increased CPU utilization.
 
 - `BloomFilterSize`
-A number representing the size in bytes of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents the feature being disabled.  
+A number representing the size in bytes of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents the feature being disabled.
 
-This site generates useful graphs for various bloom filter values: <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7>  
-You may use it to find a preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the config file.  
-For example, for 1,000,000 blocks, expecting a 1% false positive rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize` we'd want to use 1199120 bytes.  
+This site generates useful graphs for various bloom filter values: <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7>
+You may use it to find a preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the config file.
+For example, for 1,000,000 blocks, expecting a 1% false positive rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize` we'd want to use 1199120 bytes.
 As of writing, [7 hash functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22) are used, so the constant `k` is 7 in the formula.
 
 
@@ -164,7 +164,7 @@ Spec defines the structure of the ipfs datastore. It is a composable structure, 
 
 This can be changed manually, however, if you make any changes that require a different on-disk structure, you will need to run the [ipfs-ds-convert tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new structures.
 
-For more information on possible values for this configuration option, see docs/datastores.md 
+For more information on possible values for this configuration option, see docs/datastores.md
 
 Default:
 ```
@@ -333,6 +333,17 @@ Disables the p2p-circuit relay transport.
 - `EnableRelayHop`
 Enables HOP relay for the node. If this is enabled, the node will act as
 an intermediate (Hop Relay) node in relay circuits for connected peers.
+
+- `EnableAutoRelay`
+Enables automatic relay for this node.
+If the node is a HOP relay (`EnableRelayHop` is true) then it will advertise itself as a relay through the DHT.
+Otherwise, the node will test its own NAT situation (dialability) using passively discovered AutoNAT services.
+If the node is not publicly reachable, then it will seek HOP relays advertised through the DHT and override its public address(es) with relay addresses.
+
+- `EnableAutoNATService`
+Enables the AutoNAT service for this node.
+The service allows peers to discover their NAT situation by requesting dial backs to their public addresses.
+This should only be enabled on publicly reachable nodes.
 
 ### `ConnMgr`
 
