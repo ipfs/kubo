@@ -10,9 +10,9 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	pin "github.com/ipfs/go-ipfs/pin"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
@@ -88,30 +88,26 @@ var addPinCmd = &cmds.Command{
 			return err
 		}
 
-		enc, err := cmdenv.GetCidEncoder(req)
-		if err != nil {
-			return err
-		}
-
 		if !showProgress {
-			added, err := corerepo.Pin(n.Pinning, api, req.Context, req.Arguments, recursive)
+			added, err := pinAddMany(req.Context, api, req.Arguments, recursive)
 			if err != nil {
 				return err
 			}
-			return cmds.EmitOnce(res, &AddPinOutput{Pins: cidsToStrings(added, enc)})
+
+			return cmds.EmitOnce(res, &AddPinOutput{Pins: added})
 		}
 
 		v := new(dag.ProgressTracker)
 		ctx := v.DeriveContext(req.Context)
 
 		type pinResult struct {
-			pins []cid.Cid
+			pins []string
 			err  error
 		}
 
 		ch := make(chan pinResult, 1)
 		go func() {
-			added, err := corerepo.Pin(n.Pinning, api, ctx, req.Arguments, recursive)
+			added, err := pinAddMany(req.Context, api, req.Arguments, recursive)
 			ch <- pinResult{pins: added, err: err}
 		}()
 
@@ -130,7 +126,7 @@ var addPinCmd = &cmds.Command{
 						return err
 					}
 				}
-				return res.Emit(&AddPinOutput{Pins: cidsToStrings(val.pins, enc)})
+				return res.Emit(&AddPinOutput{Pins: val.pins})
 			case <-ticker.C:
 				if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
 					return err
@@ -187,6 +183,28 @@ var addPinCmd = &cmds.Command{
 	},
 }
 
+func pinAddMany(ctx context.Context, api coreiface.CoreAPI, paths []string, recursive bool) ([]string, error) {
+	added := make([]string, len(paths))
+	for i, b := range paths {
+		p, err := coreiface.ParsePath(b)
+		if err != nil {
+			return nil, err
+		}
+
+		rp, err := api.ResolvePath(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := api.Pin().Add(ctx, p, options.Pin.Recursive(recursive)); err != nil {
+			return nil, err
+		}
+		added[i] = rp.Cid().String()
+	}
+
+	return added, nil
+}
+
 var rmPinCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove pinned objects from local storage.",
@@ -204,11 +222,6 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 	},
 	Type: PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		n, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
@@ -226,20 +239,62 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return err
 		}
 
-		removed, err := corerepo.Unpin(n.Pinning, api, req.Context, req.Arguments, recursive)
-		if err != nil {
-			return err
+		for _, b := range req.Arguments {
+			p, err := coreiface.ParsePath(b)
+			if err != nil {
+				return err
+			}
+
+			rp, err := api.ResolvePath(req.Context, p)
+			if err != nil {
+				return err
+			}
+
+			if err := api.Pin().Rm(req.Context, rp, options.Pin.RmRecursive(recursive)); err != nil {
+				if err := res.Emit(&PinOutput{
+					Pins:  []string{rp.Cid().String()},
+					Error: err.Error(),
+				}); err != nil {
+					return err
+				}
+				continue
+			}
+
+			if err := res.Emit(&PinOutput{
+				Pins: []string{rp.Cid().String()},
+			}); err != nil {
+				return err
+			}
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{cidsToStrings(removed, enc)})
+		return nil
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
-			for _, k := range out.Pins {
-				fmt.Fprintf(w, "unpinned %s\n", k)
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			failed := false
+			for {
+				out, err := res.Next()
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					return err
+				}
+				r := out.(*PinOutput)
+				if r.Pins == nil && r.Error != "" {
+					return fmt.Errorf("aborted: %s", r.Error)
+				} else if r.Error != "" {
+					failed = true
+					fmt.Fprintf(os.Stderr, "cannot unpin %s: %s\n", r.Pins[0], r.Error)
+				} else {
+					fmt.Fprintf(os.Stdout, "unpinned %s\n", r.Pins[0])
+				}
+			}
+
+			if failed {
+				return fmt.Errorf("some hash not unpinned")
 			}
 			return nil
-		}),
+		},
 	},
 }
 
@@ -651,12 +706,4 @@ func (r PinVerifyRes) Format(out io.Writer) {
 			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 		}
 	}
-}
-
-func cidsToStrings(cs []cid.Cid, enc cidenc.Encoder) []string {
-	out := make([]string, 0, len(cs))
-	for _, c := range cs {
-		out = append(out, enc.Encode(c))
-	}
-	return out
 }
