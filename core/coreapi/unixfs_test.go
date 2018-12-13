@@ -707,23 +707,6 @@ func TestGetNonUnixfs(t *testing.T) {
 	}
 }
 
-func TestCatOffline(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
-	if err != nil {
-		t.Error(err)
-	}
-
-	p, err := coreiface.ParsePath("/ipns/Qmfoobar")
-	if err != nil {
-		t.Error(err)
-	}
-	_, err = api.Unixfs().Get(ctx, p)
-	if err != coreiface.ErrOffline {
-		t.Fatalf("expected ErrOffline, got: %s", err)
-	}
-}
-
 func TestLs(t *testing.T) {
 	ctx := context.Background()
 	node, api, err := makeAPI(ctx)
