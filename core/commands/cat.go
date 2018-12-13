@@ -33,20 +33,9 @@ var CatCmd = &cmds.Command{
 		cmdkit.Int64Option(lengthOptionName, "l", "Maximum number of bytes to read."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		node, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
 		api, err := cmdenv.GetApi(env)
 		if err != nil {
 			return err
-		}
-
-		if !node.OnlineMode() {
-			if err := node.SetupOfflineRouting(); err != nil {
-				return err
-			}
 		}
 
 		offset, _ := req.Options[offsetOptionName].(int64)

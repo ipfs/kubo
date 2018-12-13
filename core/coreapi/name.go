@@ -48,9 +48,11 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 		if !options.AllowOffline {
 			return nil, coreiface.ErrOffline
 		}
-		err := n.SetupOfflineRouting()
-		if err != nil {
-			return nil, err
+		if n.PrivateKey == nil {
+			err = n.LoadPrivateKey()
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -96,13 +98,6 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 	}
 
 	n := api.node
-
-	if !n.OnlineMode() {
-		err := n.SetupOfflineRouting()
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	var resolver namesys.Resolver = n.Namesys
 

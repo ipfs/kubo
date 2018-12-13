@@ -237,9 +237,11 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	}
 	defer nd.Close()
 
-	err = nd.SetupOfflineRouting()
-	if err != nil {
-		return err
+	if nd.PrivateKey == nil {
+		err = nd.LoadPrivateKey()
+		if err != nil {
+			return err
+		}
 	}
 
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
