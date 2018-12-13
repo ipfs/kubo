@@ -79,18 +79,6 @@ Resolve the value of an IPFS DAG path:
 			return err
 		}
 
-		n, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
-		if !n.OnlineMode() {
-			err := n.SetupOfflineRouting()
-			if err != nil {
-				return err
-			}
-		}
-
 		name := req.Arguments[0]
 		recursive, _ := req.Options[resolveRecursiveOptionName].(bool)
 
