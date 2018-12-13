@@ -281,7 +281,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 
 	n.PeerHost = peerhost
 
-	if err := n.startOnlineServicesWithHost(ctx, peerhost, routingOption, pubsub, ipnsps); err != nil {
+	if err := n.startOnlineServicesWithHost(ctx, routingOption, pubsub, ipnsps); err != nil {
 		return err
 	}
 
@@ -475,7 +475,7 @@ func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
-func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption, enablePubsub bool, enableIpnsps bool) error {
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOption RoutingOption, enablePubsub bool, enableIpnsps bool) error {
 	cfg, err := n.Repo.Config()
 	if err != nil {
 		return err
@@ -487,7 +487,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 			opts = append(opts, libp2p.DefaultTransports, libp2p.Transport(quic.NewTransport))
 		}
 
-		svc, err := autonat.NewAutoNATService(ctx, host, opts...)
+		svc, err := autonat.NewAutoNATService(ctx, n.PeerHost, opts...)
 		if err != nil {
 			return err
 		}
@@ -510,10 +510,10 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		case "":
 			fallthrough
 		case "floodsub":
-			service, err = pubsub.NewFloodSub(ctx, host, pubsubOptions...)
+			service, err = pubsub.NewFloodSub(ctx, n.PeerHost, pubsubOptions...)
 
 		case "gossipsub":
-			service, err = pubsub.NewGossipSub(ctx, host, pubsubOptions...)
+			service, err = pubsub.NewGossipSub(ctx, n.PeerHost, pubsubOptions...)
 
 		default:
 			err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)
@@ -525,15 +525,15 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		n.PubSub = service
 	}
 
-	// this code is necessary as the host is necessary for tests: mock network constructions
-	// ignore the libp2p options that actually construct the routing!
+	// this code is necessary just for tests: mock network constructions
+	// ignore the libp2p constructor options that actually construct the routing!
 	if n.Routing == nil {
-		r, err := routingOption(ctx, host, n.Repo.Datastore(), n.RecordValidator)
+		r, err := routingOption(ctx, n.PeerHost, n.Repo.Datastore(), n.RecordValidator)
 		if err != nil {
 			return err
 		}
 		n.Routing = r
-		n.PeerHost = rhost.Wrap(host, n.Routing)
+		n.PeerHost = rhost.Wrap(n.PeerHost, n.Routing)
 	}
 
 	// TODO: I'm not a fan of type assertions like this but the
@@ -556,7 +556,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	if enableIpnsps {
 		n.PSRouter = psrouter.NewPubsubValueStore(
 			ctx,
-			host,
+			n.PeerHost,
 			n.Routing,
 			n.PubSub,
 			n.RecordValidator,
