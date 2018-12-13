@@ -17,7 +17,8 @@ const (
 	provideOutgoingTimeout  = time.Second * 15
 )
 
-type Strategy func(context.Context, chan cid.Cid, cid.Cid)
+type AnchorStrategy func(context.Context, chan cid.Cid, cid.Cid)
+type EligibleStrategy func(cid.Cid) bool
 
 type Provider struct {
 	ctx context.Context
@@ -27,18 +28,22 @@ type Provider struct {
 	// cids we are working on providing now
 	outgoing chan cid.Cid
 
-	// strategy for deciding which cids, given a cid, should be provided
-	strategy Strategy
+	// strategy for deciding which cids, given a cid, should be provided, the so-called "anchors"
+	anchors AnchorStrategy
+
+	// strategy for deciding which cids are eligible to be provided
+	eligible EligibleStrategy
 
 	contentRouting routing.ContentRouting // TODO: temp, maybe
 }
 
-func NewProvider(ctx context.Context, strategy Strategy, contentRouting routing.ContentRouting) *Provider {
+func NewProvider(ctx context.Context, anchors AnchorStrategy, eligible EligibleStrategy, contentRouting routing.ContentRouting) *Provider {
 	return &Provider{
 		ctx: ctx,
 		outgoing: make(chan cid.Cid),
 		incoming: make(chan cid.Cid),
-		strategy: strategy,
+		anchors: anchors,
+		eligible: eligible,
 		contentRouting: contentRouting,
 	}
 }
@@ -51,7 +56,11 @@ func (p *Provider) Run() {
 
 // Provider the given cid using specified strategy.
 func (p *Provider) Provide(root cid.Cid) {
-	p.strategy(p.ctx, p.incoming, root)
+	if !p.eligible(root) {
+		return
+	}
+
+	p.anchors(p.ctx, p.incoming, root)
 }
 
 // Announce to the world that a block is provided.
