@@ -159,6 +159,10 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		return errors.New("node already online")
 	}
 
+	if n.PrivateKey == nil {
+		return fmt.Errorf("private key not available")
+	}
+
 	// get undialable addrs from config
 	cfg, err := n.Repo.Config()
 	if err != nil {
@@ -767,6 +771,9 @@ func (n *IpfsNode) loadID() error {
 // GetKey will return a key from the Keystore with name `name`.
 func (n *IpfsNode) GetKey(name string) (ic.PrivKey, error) {
 	if name == "self" {
+		if n.PrivateKey == nil {
+			return nil, fmt.Errorf("private key not available")
+		}
 		return n.PrivateKey, nil
 	} else {
 		return n.Repo.Keystore().Get(name)
