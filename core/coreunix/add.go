@@ -322,7 +322,7 @@ func AddR(n *core.IpfsNode, root string) (key string, err error) {
 		return "", err
 	}
 
-	err = fileAdder.addFile(filepath.Base(root), f)
+	err = fileAdder.addFileNode(filepath.Base(root), f)
 	if err != nil {
 		return "", err
 	}
@@ -348,7 +348,7 @@ func AddWrapped(n *core.IpfsNode, r io.Reader, filename string) (string, ipld.No
 
 	defer n.Blockstore.PinLock().Unlock()
 
-	err = fileAdder.addFile(filename, files.NewReaderFile(r))
+	err = fileAdder.addFileNode(filename, files.NewReaderFile(r))
 	if err != nil {
 		return "", nil, err
 	}
@@ -416,7 +416,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		// semantics.
 		it := tf.Entries()
 		for it.Next() {
-			if err := adder.addFile(it.Name(), it.Node()); err != nil {
+			if err := adder.addFileNode(it.Name(), it.Node()); err != nil {
 				return nil, err
 			}
 		}
@@ -425,7 +425,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		}
 		break
 	default:
-		if err := adder.addFile("", file); err != nil {
+		if err := adder.addFileNode("", file); err != nil {
 			return nil, err
 		}
 		break
@@ -443,7 +443,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	return nd, adder.PinRoot()
 }
 
-func (adder *Adder) addFile(path string, file files.Node) error {
+func (adder *Adder) addFileNode(path string, file files.Node) error {
 	defer file.Close()
 	err := adder.maybePauseForGC()
 	if err != nil {
@@ -464,34 +464,38 @@ func (adder *Adder) addFile(path string, file files.Node) error {
 	}
 	adder.liveNodes++
 
-	if dir, ok := file.(files.Directory); ok {
-		return adder.addDir(path, dir)
+	switch f := file.(type) {
+	case files.Directory:
+		return adder.addDir(path, f)
+	case *files.Symlink:
+		return adder.addSymlink(path, f)
+	case files.File:
+		return adder.addFile(path, f)
+	default:
+		return errors.New("unknown file type")
+	}
+}
+
+func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
+	sdata, err := unixfs.SymlinkData(l.Target)
+	if err != nil {
+		return err
 	}
 
-	// case for symlink
-	if s, ok := file.(*files.Symlink); ok {
-		sdata, err := unixfs.SymlinkData(s.Target)
-		if err != nil {
-			return err
-		}
-
-		dagnode := dag.NodeWithData(sdata)
-		dagnode.SetCidBuilder(adder.CidBuilder)
-		err = adder.dagService.Add(adder.ctx, dagnode)
-		if err != nil {
-			return err
-		}
-
-		return adder.addNode(dagnode, path)
+	dagnode := dag.NodeWithData(sdata)
+	dagnode.SetCidBuilder(adder.CidBuilder)
+	err = adder.dagService.Add(adder.ctx, dagnode)
+	if err != nil {
+		return err
 	}
 
-	// case for regular file
+	return adder.addNode(dagnode, path)
+}
+
+func (adder *Adder) addFile(path string, file files.File) error {
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
-	reader, ok := file.(io.Reader)
-	if !ok {
-		return errors.New("file doesn't support reading")
-	}
+	var reader io.Reader = file
 	if adder.Progress {
 		rdr := &progressReader{file: reader, path: path, out: adder.Out}
 		if fi, ok := file.(files.FileInfo); ok {
@@ -542,7 +546,7 @@ func (adder *Adder) addDir(path string, dir files.Directory) error {
 			log.Infof("%s is hidden, skipping", fpath)
 			continue
 		}
-		err = adder.addFile(fpath, it.Node())
+		err = adder.addFileNode(fpath, it.Node())
 		if err != nil {
 			return err
 		}
