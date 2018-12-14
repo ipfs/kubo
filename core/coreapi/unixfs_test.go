@@ -776,6 +776,53 @@ func TestLs(t *testing.T) {
 	}
 }
 
+func TestEntriesExpired(t *testing.T) {
+	ctx := context.Background()
+	node, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	r := strings.NewReader("content-of-file")
+	k, _, err := coreunix.AddWrapped(node, r, "name-of-file")
+	if err != nil {
+		t.Error(err)
+	}
+	parts := strings.Split(k, "/")
+	if len(parts) != 2 {
+		t.Errorf("unexpected path: %s", k)
+	}
+	p, err := coreiface.ParsePath("/ipfs/" + parts[0])
+	if err != nil {
+		t.Error(err)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+
+	nd, err := api.Unixfs().Get(ctx, p)
+	if err != nil {
+		t.Error(err)
+	}
+	cancel()
+
+	it := files.ToDir(nd).Entries()
+	if it == nil {
+		t.Fatal("it was nil")
+	}
+
+	if it.Next() {
+		t.Fatal("Next succeeded")
+	}
+
+	if it.Err() != context.Canceled {
+		t.Fatalf("unexpected error %s", it.Err())
+	}
+
+	if it.Next() {
+		t.Fatal("Next succeeded")
+	}
+}
+
 func TestLsEmptyDir(t *testing.T) {
 	ctx := context.Background()
 	node, api, err := makeAPI(ctx)

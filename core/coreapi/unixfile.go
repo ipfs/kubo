@@ -31,7 +31,8 @@ type ufsIterator struct {
 	curName string
 	curFile files.Node
 
-	err error
+	err   error
+	errCh chan error
 }
 
 func (it *ufsIterator) Name() string {
@@ -43,9 +44,29 @@ func (it *ufsIterator) Node() files.Node {
 }
 
 func (it *ufsIterator) Next() bool {
-	l, ok := <-it.files
-	if !ok {
+	if it.err != nil {
 		return false
+	}
+
+	var l *ipld.Link
+	var ok bool
+	for !ok {
+		if it.files == nil && it.errCh == nil {
+			return false
+		}
+		select {
+		case l, ok = <-it.files:
+			if !ok {
+				it.files = nil
+			}
+		case err := <-it.errCh:
+			it.errCh = nil
+			it.err = err
+
+			if err != nil {
+				return false
+			}
+		}
 	}
 
 	it.curFile = nil
@@ -71,8 +92,12 @@ func (d *ufsDirectory) Close() error {
 
 func (d *ufsDirectory) Entries() files.DirIterator {
 	fileCh := make(chan *ipld.Link, prefetchFiles)
+	errCh := make(chan error, 1)
 	go func() {
-		d.dir.ForEachLink(d.ctx, func(link *ipld.Link) error {
+		errCh <- d.dir.ForEachLink(d.ctx, func(link *ipld.Link) error {
+			if d.ctx.Err() != nil {
+				return d.ctx.Err()
+			}
 			select {
 			case fileCh <- link:
 			case <-d.ctx.Done():
@@ -81,12 +106,14 @@ func (d *ufsDirectory) Entries() files.DirIterator {
 			return nil
 		})
 
+		close(errCh)
 		close(fileCh)
 	}()
 
 	return &ufsIterator{
 		ctx:   d.ctx,
 		files: fileCh,
+		errCh: errCh,
 		dserv: d.dserv,
 	}
 }
