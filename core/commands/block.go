@@ -11,7 +11,6 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
@@ -154,12 +153,9 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 			return err
 		}
 
-		it := req.Files.Entries()
-		if !it.Next() && it.Err() != nil {
-			return it.Err()
-		}
-		if files.FileFromEntry(it) == nil {
-			return fmt.Errorf("expected a regular file")
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
 		}
 
 		mhtype, _ := req.Options[mhtypeOptionName].(string)
@@ -182,7 +178,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 			}
 		}
 
-		p, err := api.Block().Put(req.Context, files.FileFromEntry(it), options.Block.Hash(mhtval, mhlen), options.Block.Format(format))
+		p, err := api.Block().Put(req.Context, file, options.Block.Hash(mhtval, mhlen), options.Block.Format(format))
 		if err != nil {
 			return err
 		}

@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"io"
 
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	tar "github.com/ipfs/go-ipfs/tar"
 
-	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	"gx/ipfs/QmZErC2Ay6WuGi96CPg316PwitdwgLo6RxZRqVjJjRj2MR/go-path"
-	cmds "gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
+	"gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
 	dag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var TarCmd = &cmds.Command{
@@ -46,14 +45,12 @@ represent it.
 		}
 
 		it := req.Files.Entries()
-		if !it.Next() && it.Err() != nil {
-			return it.Err()
-		}
-		if files.FileFromEntry(it) == nil {
-			return fmt.Errorf("expected a regular file")
+		file, err := cmdenv.GetFileArg(it)
+		if err != nil {
+			return err
 		}
 
-		node, err := tar.ImportTar(req.Context, files.FileFromEntry(it), nd.DAG)
+		node, err := tar.ImportTar(req.Context, file, nd.DAG)
 		if err != nil {
 			return err
 		}

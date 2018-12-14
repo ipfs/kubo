@@ -547,11 +547,8 @@ func (adder *Adder) addDir(path string, dir files.Directory) error {
 			return err
 		}
 	}
-	if it.Err() != nil {
-		return it.Err()
-	}
 
-	return nil
+	return it.Err()
 }
 
 func (adder *Adder) maybePauseForGC() error {

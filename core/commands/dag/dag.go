@@ -95,10 +95,11 @@ into an object of the specified format.
 
 		it := req.Files.Entries()
 		for it.Next() {
-			if files.FileFromEntry(it) == nil {
+			file := files.FileFromEntry(it)
+			if file == nil {
 				return fmt.Errorf("expected a regular file")
 			}
-			nds, err := coredag.ParseInputs(ienc, format, files.FileFromEntry(it), mhType, -1)
+			nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
 			if err != nil {
 				return err
 			}
