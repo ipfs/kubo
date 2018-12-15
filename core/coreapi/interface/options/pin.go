@@ -11,7 +11,6 @@ type PinLsSettings struct {
 // PinRmSettings represents the settings of pin rm command
 type PinRmSettings struct {
 	Recursive bool
-	Force     bool
 }
 
 type PinUpdateSettings struct {
