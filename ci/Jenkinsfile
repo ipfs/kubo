@@ -61,8 +61,6 @@ def setupStep(nodeLabel, f) {
 def gobuild_step = { list ->
   setupStep('linux') { run ->
     timeout(time: build_timeout, unit: 'MINUTES') {
-      run "make gx-deps"
-
       list.each { platform ->
         timeout(time: check_timeout, unit: 'MINUTES') {
           withEnv(["GOOS=${platform[0]}", "GOARCH=${platform[1]}"]) {
@@ -78,8 +76,6 @@ def gobuild_step = { list ->
 
 def sharness_step = { run, osname, makeargs, ignore ->
   timeout(time: sharness_timeout, unit: 'MINUTES') {
-    run "make gx-deps"
-
     try {
       run "make -j12 ${makeargs} test/sharness/test-results/sharness.xml CONTINUE_ON_S_FAILURE=1 TEST_NO_FUSE=1 TEST_NO_DOCKER=1"
 
