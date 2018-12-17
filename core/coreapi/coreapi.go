@@ -17,7 +17,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/ipfs/go-ipfs/core"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
@@ -26,11 +25,11 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
-	exchange "gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"
+	"gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"
 	bserv "gx/ipfs/QmPoh3SrQzFBWtdGK6qmHDV4EanKR6kYPj4DD3J2NLoEmZ/go-blockservice"
-	routing "gx/ipfs/QmRASJXJUFygM5qU4YrH7k7jD6S4Hg8nJmgqJ4bYJvLatd/go-libp2p-routing"
-	blockstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
-	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
+	"gx/ipfs/QmRASJXJUFygM5qU4YrH7k7jD6S4Hg8nJmgqJ4bYJvLatd/go-libp2p-routing"
+	"gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
+	"gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
 	offlinexch "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
 	pstore "gx/ipfs/QmZ9zH2FnLcxv1xyzFeUpDUeo55xEhZQHgveZijcxr7TLj/go-libp2p-peerstore"
 	pubsub "gx/ipfs/QmaqGyUhWLsJbVo1QAujSu13mxNjFJ98Kt2VWGSnShGE1Q/go-libp2p-pubsub"
@@ -64,13 +63,14 @@ type CoreAPI struct {
 	exchange        exchange.Interface
 
 	namesys namesys.NameSystem
-	routing func(bool) (routing.IpfsRouting, error)
+	routing routing.IpfsRouting
 
 	pubSub *pubsub.PubSub
 
 	// TODO: this can be generalized to all functions when we implement some
 	// api based security mechanism
 	isPublishAllowed func() error
+	isOnline         func(allowOffline bool) error
 
 	// ONLY for re-applying options in WithOptions, DO NOT USE ANYWHERE ELSE
 	nd         *core.IpfsNode
@@ -170,6 +170,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		namesys:         n.Namesys,
 		recordValidator: n.RecordValidator,
 		exchange:        n.Exchange,
+		routing:         n.Routing,
 
 		pubSub: n.PubSub,
 
@@ -177,25 +178,21 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		parentOpts: settings,
 	}
 
-	subApi.routing = func(allowOffline bool) (routing.IpfsRouting, error) {
-		if !n.OnlineMode() {
-			if !allowOffline {
-				return nil, coreiface.ErrOffline
-			}
-			if err := n.SetupOfflineRouting(); err != nil {
-				return nil, err
-			}
-			subApi.privateKey = n.PrivateKey
-			subApi.namesys = n.Namesys
-			return n.Routing, nil
+	subApi.isOnline = func(allowOffline bool) error {
+		if !n.OnlineMode() && !allowOffline {
+			return coreiface.ErrOffline
 		}
-		if !settings.Offline {
-			return n.Routing, nil
-		}
-		if !allowOffline {
-			return nil, coreiface.ErrOffline
-		}
+		return nil
+	}
 
+	subApi.isPublishAllowed = func() error {
+		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
+			return errors.New("cannot manually publish while IPNS is mounted")
+		}
+		return nil
+	}
+
+	if settings.Offline {
 		cfg, err := n.Repo.Config()
 		if err != nil {
 			return nil, err
@@ -209,20 +206,9 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 			return nil, fmt.Errorf("cannot specify negative resolve cache size")
 		}
 
-		offroute := offlineroute.NewOfflineRouter(subApi.repo.Datastore(), subApi.recordValidator)
-		subApi.namesys = namesys.NewNameSystem(offroute, subApi.repo.Datastore(), cs)
+		subApi.routing = offlineroute.NewOfflineRouter(subApi.repo.Datastore(), subApi.recordValidator)
+		subApi.namesys = namesys.NewNameSystem(subApi.routing, subApi.repo.Datastore(), cs)
 
-		return offroute, nil
-	}
-
-	subApi.isPublishAllowed = func() error {
-		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
-			return errors.New("cannot manually publish while IPNS is mounted")
-		}
-		return nil
-	}
-
-	if settings.Offline {
 		subApi.peerstore = nil
 		subApi.peerHost = nil
 		subApi.namesys = nil
@@ -231,6 +217,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		subApi.exchange = offlinexch.Exchange(subApi.blockstore)
 		subApi.blocks = bserv.New(api.blockstore, subApi.exchange)
 		subApi.dag = dag.NewDAGService(subApi.blocks)
+
 	}
 
 	return subApi, nil

@@ -21,12 +21,12 @@ import (
 type DhtAPI CoreAPI
 
 func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, error) {
-	r, err := api.routing(false)
+	err := api.isOnline(false)
 	if err != nil {
 		return pstore.PeerInfo{}, err
 	}
 
-	pi, err := r.FindPeer(ctx, peer.ID(p))
+	pi, err := api.routing.FindPeer(ctx, peer.ID(p))
 	if err != nil {
 		return pstore.PeerInfo{}, err
 	}
@@ -40,7 +40,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...
 		return nil, err
 	}
 
-	r, err := api.routing(false)
+	err = api.isOnline(false)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...
 		return nil, fmt.Errorf("number of providers must be greater than 0")
 	}
 
-	pchan := r.FindProvidersAsync(ctx, rp.Cid(), numProviders)
+	pchan := api.routing.FindProvidersAsync(ctx, rp.Cid(), numProviders)
 	return pchan, nil
 }
 
@@ -65,7 +65,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 		return err
 	}
 
-	r, err := api.routing(false)
+	err = api.isOnline(false)
 	if err != nil {
 		return err
 	}
@@ -87,9 +87,9 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 	}
 
 	if settings.Recursive {
-		err = provideKeysRec(ctx, r, api.blockstore, []cid.Cid{c})
+		err = provideKeysRec(ctx, api.routing, api.blockstore, []cid.Cid{c})
 	} else {
-		err = provideKeys(ctx, r, []cid.Cid{c})
+		err = provideKeys(ctx, api.routing, []cid.Cid{c})
 	}
 	if err != nil {
 		return err

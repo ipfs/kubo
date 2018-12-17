@@ -45,7 +45,7 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 		return nil, err
 	}
 
-	_, err = api.routing(options.AllowOffline)
+	err = api.isOnline(options.AllowOffline)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		return nil, err
 	}
 
-	r, err := api.routing(true)
+	err = api.isOnline(true)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 	var resolver namesys.Resolver = api.namesys
 
 	if !options.Cache {
-		resolver = namesys.NewNameSystem(r, api.repo.Datastore(), 0)
+		resolver = namesys.NewNameSystem(api.routing, api.repo.Datastore(), 0)
 	}
 
 	if !strings.HasPrefix(name, "/ipns/") {

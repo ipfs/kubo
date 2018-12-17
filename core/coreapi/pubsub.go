@@ -127,12 +127,12 @@ func (api *PubSubAPI) checkNode() (routing.IpfsRouting, error) {
 		return nil, errors.New("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use.")
 	}
 
-	r, err := api.routing(false)
+	err := api.isOnline(false)
 	if err != nil {
 		return nil, err
 	}
 
-	return r, nil
+	return api.routing, nil
 }
 
 func (sub *pubSubSubscription) Close() error {
