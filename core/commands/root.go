@@ -94,7 +94,7 @@ The CLI will exit with one of the following values:
 		cmdkit.BoolOption(cmds.OptLongHelp, "Show the full command help text."),
 		cmdkit.BoolOption(cmds.OptShortHelp, "Show a short version of the command help text."),
 		cmdkit.BoolOption(LocalOption, "L", "Run the command locally, instead of using the daemon. DEPRECATED: use --offline."),
-		cmdkit.BoolOption(OfflineOption, "O", "Run the command offline."),
+		cmdkit.BoolOption(OfflineOption, "Run the command offline."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 
 		// global options, added to every command
