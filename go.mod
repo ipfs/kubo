@@ -21,11 +21,13 @@ require (
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/fd/go-nat v1.0.0 // indirect
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gogo/protobuf v1.2.0
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/uuid v1.1.0 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gxed/client_golang v0.9.0-pre1 // indirect
+	github.com/gxed/go-shellwords v1.0.3 // indirect
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
 	github.com/gxed/pubsub v0.0.0-20180201040156-26ebdf44f824 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
@@ -40,6 +42,7 @@ require (
 	github.com/ipfs/go-cid v0.9.1-0.20181102235123-033594dcd620
 	github.com/ipfs/go-cidutil v0.1.2-0.20181102235650-fe89746dc953
 	github.com/ipfs/go-datastore v2.4.1-0.20181109225543-277eeb2fded2+incompatible
+	github.com/ipfs/go-detect-race v1.0.1
 	github.com/ipfs/go-ds-badger v1.4.11-0.20181109230345-4a093545f2f6
 	github.com/ipfs/go-ds-flatfs v1.3.3
 	github.com/ipfs/go-ds-leveldb v1.2.1
@@ -76,8 +79,12 @@ require (
 	github.com/ipfs/go-todocounter v1.0.1 // indirect
 	github.com/ipfs/go-unixfs v1.1.16-0.20181213224303-cef0e21141db
 	github.com/ipfs/go-verifcid v0.0.5-0.20181102235604-8909da14ac6d
+	github.com/ipfs/iptb v1.3.8-0.20181112175249-5e6d8226eed0
+	github.com/ipfs/iptb-plugins v0.0.0-20181214001730-b91ac6a447c7
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
+	github.com/jbenet/go-fuse-version v0.0.0-20160322195114-6d4c97bcf253 // indirect
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0
+	github.com/jbenet/go-random v0.0.0-20150829044232-384f606e91f5
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8
 	github.com/libp2p/go-addr-util v2.0.7+incompatible // indirect
@@ -109,7 +116,7 @@ require (
 	github.com/libp2p/go-libp2p-record v4.1.7+incompatible
 	github.com/libp2p/go-libp2p-routing v2.7.1+incompatible
 	github.com/libp2p/go-libp2p-routing-helpers v0.3.8
-	github.com/libp2p/go-libp2p-secio v2.0.17+incompatible // indirect
+	github.com/libp2p/go-libp2p-secio v2.0.17+incompatible
 	github.com/libp2p/go-libp2p-swarm v3.0.22+incompatible
 	github.com/libp2p/go-libp2p-transport v3.0.15+incompatible // indirect
 	github.com/libp2p/go-libp2p-transport-upgrader v0.1.16 // indirect
@@ -121,7 +128,7 @@ require (
 	github.com/libp2p/go-sockaddr v1.0.3 // indirect
 	github.com/libp2p/go-stream-muxer v3.0.1+incompatible
 	github.com/libp2p/go-tcp-transport v2.0.16+incompatible // indirect
-	github.com/libp2p/go-testutil v1.2.10 // indirect
+	github.com/libp2p/go-testutil v1.2.10
 	github.com/libp2p/go-ws-transport v2.0.15+incompatible // indirect
 	github.com/lucas-clemente/aes12 v0.0.0-20171027163421-cd47fb39b79f // indirect
 	github.com/lucas-clemente/quic-go v0.10.0 // indirect
@@ -150,9 +157,11 @@ require (
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
 	github.com/syndtr/goleveldb v0.0.0-20181128100959-b001fa50d6b2
 	github.com/texttheater/golang-levenshtein v0.0.0-20180516184445-d188e65d659e // indirect
+	github.com/urfave/cli v1.20.0 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect
+	github.com/whyrusleeping/go-ctrlnet v0.0.0-20180313164037-f564fbbdaa95 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	github.com/whyrusleeping/go-libp2p-pubsub v0.0.0-20160422011506-e44babf62e59 // indirect
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc // indirect
@@ -164,6 +173,7 @@ require (
 	github.com/whyrusleeping/mafmt v1.2.8 // indirect
 	github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30 // indirect
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
+	github.com/whyrusleeping/stump v0.0.0-20160611222256-206f8f13aae1 // indirect
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee // indirect
 	github.com/whyrusleeping/yamux v1.1.2 // indirect
