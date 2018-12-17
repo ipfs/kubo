@@ -11,10 +11,10 @@ import (
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
-	cmds "gx/ipfs/QmPdvMtgpnMuU68mWhGtzCxnddXJoV96tT9aPcNbQsqPaM/go-ipfs-cmds"
-	path "gx/ipfs/QmZErC2Ay6WuGi96CPg316PwitdwgLo6RxZRqVjJjRj2MR/go-path"
-	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	logging "github.com/ipfs/go-log"
+	path "github.com/ipfs/go-path"
 )
 
 var log = logging.Logger("core/commands/ipns")

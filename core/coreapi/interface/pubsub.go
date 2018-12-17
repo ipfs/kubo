@@ -6,7 +6,7 @@ import (
 
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // PubSubSubscription is an active PubSub subscription

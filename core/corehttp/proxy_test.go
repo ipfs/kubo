@@ -7,7 +7,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/thirdparty/assert"
 
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 )
 
 type TestCase struct {

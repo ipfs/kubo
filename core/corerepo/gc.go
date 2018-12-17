@@ -10,10 +10,10 @@ import (
 	gc "github.com/ipfs/go-ipfs/pin/gc"
 	repo "github.com/ipfs/go-ipfs/repo"
 
-	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
-	mfs "gx/ipfs/QmYnp3EVZqLjzm8NYigcB3aHqDLFmAVUvtaUdYb3nFDtK6/go-mfs"
-	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
+	humanize "github.com/dustin/go-humanize"
+	cid "github.com/ipfs/go-cid"
+	logging "github.com/ipfs/go-log"
+	mfs "github.com/ipfs/go-mfs"
 )
 
 var log = logging.Logger("corerepo")

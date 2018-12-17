@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 
-	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
+	ci "github.com/libp2p/go-libp2p-crypto"
 )
 
 type rr struct{}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // DagOps groups operations that can be batched together

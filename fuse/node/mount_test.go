@@ -14,7 +14,7 @@ import (
 	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 
-	ci "gx/ipfs/QmPuhRE325DR8ChNcFtgd6F1eANCHy1oohXZPpYop4xsK6/go-testutil/ci"
+	ci "github.com/libp2p/go-testutil/ci"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
