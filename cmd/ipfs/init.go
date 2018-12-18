@@ -87,15 +87,19 @@ environment variable:
 		f := req.Files
 		if f != nil {
 			it := req.Files.Entries()
-			if !it.Next() && it.Err() != nil {
-				return it.Err()
+			if !it.Next() {
+				if it.Err() != nil {
+					return it.Err()
+				}
+				return fmt.Errorf("file argument was nil")
 			}
-			if files.FileFromEntry(it) == nil {
+			file := files.FileFromEntry(it)
+			if file == nil {
 				return fmt.Errorf("expected a regular file")
 			}
 
 			conf = &config.Config{}
-			if err := json.NewDecoder(files.FileFromEntry(it)).Decode(conf); err != nil {
+			if err := json.NewDecoder(file).Decode(conf); err != nil {
 				return err
 			}
 		}
