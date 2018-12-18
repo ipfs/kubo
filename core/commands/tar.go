@@ -6,7 +6,6 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	tar "github.com/ipfs/go-ipfs/tar"
 
 	"gx/ipfs/QmZErC2Ay6WuGi96CPg316PwitdwgLo6RxZRqVjJjRj2MR/go-path"
@@ -57,14 +56,14 @@ represent it.
 
 		c := node.Cid()
 
-		return cmds.EmitOnce(res, &coreiface.AddEvent{
+		return cmds.EmitOnce(res, &AddEvent{
 			Name: it.Name(),
 			Hash: c.String(),
 		})
 	},
-	Type: coreiface.AddEvent{},
+	Type: AddEvent{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *coreiface.AddEvent) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddEvent) error {
 			fmt.Fprintln(w, out.Hash)
 			return nil
 		}),
