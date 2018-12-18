@@ -27,6 +27,7 @@ the above issue.
 - [Directory Sharding / HAMT](#directory-sharding-hamt)
 - [IPNS PubSub](#ipns-pubsub)
 - [QUIC](#quic)
+- [AutoRelay](#autorelay)
 
 ---
 
@@ -649,3 +650,33 @@ For listening on a QUIC address, add it the swarm addresses, e.g. `/ip4/0.0.0.0/
 - [ ] Make sure QUIC connections work reliably
 - [ ] Make sure QUIC connection offer equal or better performance than TCP connections on real world networks
 - [ ] Finalize libp2p-TLS handshake spec.
+
+
+## AutoRelay
+
+### In Version
+
+0.4.19-dev
+
+### State
+
+Experimental, disabled by default.
+
+Automatically discovers relays and advertises relay addresses when the node is behind an impenetrable NAT.
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Swarm.EnableAutoRelay true
+```
+
+Bootstrappers (and other public nodes) need to also enable the AutoNATService:
+```
+ipfs config --json Swarm.EnableAutoNATService true
+```
+
+### Road to being a real feature
+
+- [ ] needs testing

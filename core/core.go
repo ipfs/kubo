@@ -68,6 +68,7 @@ import (
 	metrics "gx/ipfs/QmbYN6UmTJn5UUQdi5CTsU86TXVBSrTcRk5UmyA36Qx2J6/go-libp2p-metrics"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
+	autonat "gx/ipfs/QmdFdMoDmvuEJYsAKRA2BMobzNaeunmc16DqPxdHHfQ25K/go-libp2p-autonat-svc"
 	merkledag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	ft "gx/ipfs/QmdYvDbHp7qAhZ7GsCj6e1cMo55ND6y2mjWVzwdvcv4f12/go-unixfs"
 	nilrouting "gx/ipfs/QmdmWkx54g7VfVyxeG8ic84uf4G6Eq1GohuyKA3XDuJ8oC/go-ipfs-routing/none"
@@ -134,6 +135,7 @@ type IpfsNode struct {
 	Reprovider   *rp.Reprovider      // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
+	AutoNAT  *autonat.AutoNATService
 	PubSub   *pubsub.PubSub
 	PSRouter *psrouter.PubsubValueStore
 	DHT      *dht.IpfsDHT
@@ -259,13 +261,27 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 		libp2pOpts = append(libp2pOpts, libp2p.Transport(quic.NewTransport))
 	}
 
+	// enable routing
+	libp2pOpts = append(libp2pOpts, libp2p.Routing(func(h p2phost.Host) (routing.PeerRouting, error) {
+		r, err := routingOption(ctx, h, n.Repo.Datastore(), n.RecordValidator)
+		n.Routing = r
+		return r, err
+	}))
+
+	// enable autorelay
+	if cfg.Swarm.EnableAutoRelay {
+		libp2pOpts = append(libp2pOpts, libp2p.EnableAutoRelay())
+	}
+
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, libp2pOpts...)
 
 	if err != nil {
 		return err
 	}
 
-	if err := n.startOnlineServicesWithHost(ctx, peerhost, routingOption, pubsub, ipnsps); err != nil {
+	n.PeerHost = peerhost
+
+	if err := n.startOnlineServicesWithHost(ctx, routingOption, pubsub, ipnsps); err != nil {
 		return err
 	}
 
@@ -459,13 +475,26 @@ func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
-func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost.Host, routingOption RoutingOption, enablePubsub bool, enableIpnsps bool) error {
-	if enablePubsub || enableIpnsps {
-		cfg, err := n.Repo.Config()
+func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOption RoutingOption, enablePubsub bool, enableIpnsps bool) error {
+	cfg, err := n.Repo.Config()
+	if err != nil {
+		return err
+	}
+
+	if cfg.Swarm.EnableAutoNATService {
+		var opts []libp2p.Option
+		if cfg.Experimental.QUIC {
+			opts = append(opts, libp2p.DefaultTransports, libp2p.Transport(quic.NewTransport))
+		}
+
+		svc, err := autonat.NewAutoNATService(ctx, n.PeerHost, opts...)
 		if err != nil {
 			return err
 		}
+		n.AutoNAT = svc
+	}
 
+	if enablePubsub || enableIpnsps {
 		var service *pubsub.PubSub
 
 		var pubsubOptions []pubsub.Option
@@ -481,10 +510,10 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		case "":
 			fallthrough
 		case "floodsub":
-			service, err = pubsub.NewFloodSub(ctx, host, pubsubOptions...)
+			service, err = pubsub.NewFloodSub(ctx, n.PeerHost, pubsubOptions...)
 
 		case "gossipsub":
-			service, err = pubsub.NewGossipSub(ctx, host, pubsubOptions...)
+			service, err = pubsub.NewGossipSub(ctx, n.PeerHost, pubsubOptions...)
 
 		default:
 			err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)
@@ -496,12 +525,16 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 		n.PubSub = service
 	}
 
-	// setup routing service
-	r, err := routingOption(ctx, host, n.Repo.Datastore(), n.RecordValidator)
-	if err != nil {
-		return err
+	// this code is necessary just for tests: mock network constructions
+	// ignore the libp2p constructor options that actually construct the routing!
+	if n.Routing == nil {
+		r, err := routingOption(ctx, n.PeerHost, n.Repo.Datastore(), n.RecordValidator)
+		if err != nil {
+			return err
+		}
+		n.Routing = r
+		n.PeerHost = rhost.Wrap(n.PeerHost, n.Routing)
 	}
-	n.Routing = r
 
 	// TODO: I'm not a fan of type assertions like this but the
 	// `RoutingOption` system doesn't currently provide access to the
@@ -516,14 +549,14 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 	//    PSRouter case below.
 	// 3. Introduce some kind of service manager? (my personal favorite but
 	//    that requires a fair amount of work).
-	if dht, ok := r.(*dht.IpfsDHT); ok {
+	if dht, ok := n.Routing.(*dht.IpfsDHT); ok {
 		n.DHT = dht
 	}
 
 	if enableIpnsps {
 		n.PSRouter = psrouter.NewPubsubValueStore(
 			ctx,
-			host,
+			n.PeerHost,
 			n.Routing,
 			n.PubSub,
 			n.RecordValidator,
@@ -542,9 +575,6 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, host p2phost
 			Validator: n.RecordValidator,
 		}
 	}
-
-	// Wrap standard peer host with routing system to allow unknown peer lookups
-	n.PeerHost = rhost.Wrap(host, n.Routing)
 
 	// setup exchange service
 	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)

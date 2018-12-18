@@ -598,6 +598,12 @@
       "hash": "QmWGnBLJhzZ3xV5YQuS6CqczN143YmGAFQTMAdJ31msoK5",
       "name": "go-libp2p-http",
       "version": "1.1.8"
+    },
+    {
+      "author": "vyzo",
+      "hash": "QmdFdMoDmvuEJYsAKRA2BMobzNaeunmc16DqPxdHHfQ25K",
+      "name": "go-libp2p-autonat-svc",
+      "version": "1.0.3"
     }
   ],
   "gxVersion": "0.10.0",
@@ -606,4 +612,3 @@
   "name": "go-ipfs",
   "version": "0.4.18"
 }
-
