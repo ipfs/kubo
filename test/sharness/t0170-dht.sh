@@ -91,6 +91,15 @@ test_dht() {
   test_expect_success 'stop iptb' '
     iptb stop
   '
+
+  test_expect_success "dht commands fail when offline" '
+    test_must_fail ipfsi 0 dht findprovs "$HASH" 2>err_findprovs &&
+    test_must_fail ipfsi 0 dht findpeer "$HASH" 2>err_findpeer &&
+    test_must_fail ipfsi 0 dht put "$TEST_DHT_PATH" "$TEST_DHT_VALUE" 2>err_put &&
+    test_should_contain "this command must be run in online mode" err_findprovs &&
+    test_should_contain "this command must be run in online mode" err_findpeer &&
+    test_should_contain "this command must be run in online mode" err_put
+  '
 }
 
 test_dht

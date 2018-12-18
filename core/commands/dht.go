@@ -141,7 +141,7 @@ var findProvidersDhtCmd = &cmds.Command{
 			return err
 		}
 
-		if n.Routing == nil {
+		if !n.OnlineMode() {
 			return ErrNotOnline
 		}
 
@@ -235,7 +235,7 @@ var provideRefDhtCmd = &cmds.Command{
 			return err
 		}
 
-		if nd.Routing == nil {
+		if !nd.OnlineMode() {
 			return ErrNotOnline
 		}
 
@@ -364,7 +364,7 @@ var findPeerDhtCmd = &cmds.Command{
 			return err
 		}
 
-		if nd.Routing == nil {
+		if !nd.OnlineMode() {
 			return ErrNotOnline
 		}
 
@@ -446,7 +446,7 @@ Different key types can specify other 'best' rules.
 			return err
 		}
 
-		if nd.Routing == nil {
+		if !nd.OnlineMode() {
 			return ErrNotOnline
 		}
 
@@ -538,7 +538,7 @@ NOTE: A value may not exceed 2048 bytes.
 			return err
 		}
 
-		if nd.Routing == nil {
+		if !nd.OnlineMode() {
 			return ErrNotOnline
 		}
 
