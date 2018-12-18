@@ -9,12 +9,11 @@ import (
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 )
 
-// TODO: ideas on making this more coreapi-ish without breaking the http API?
 type AddEvent struct {
 	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
+	Path  ResolvedPath `json:",omitempty"`
+	Bytes int64        `json:",omitempty"`
+	Size  string       `json:",omitempty"`
 }
 
 // UnixfsAPI is the basic interface to immutable files in IPFS
