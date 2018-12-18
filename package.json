@@ -605,6 +605,12 @@
       "hash": "QmRmMbeY5QC5iMsuW16wchtFt8wmYTv2suWb8t9MV8dsxm",
       "name": "go-libp2p-autonat-svc",
       "version": "1.0.5"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmZmPKg1RKY2Cy5czKEBJTfDYzenbGww2pFNQKxLSKrPRB",
+      "name": "sql-datastore",
+      "version": "1.0.2"
     }
   ],
   "gxVersion": "0.10.0",
