@@ -51,6 +51,33 @@ const (
 	heapProfile        = "ipfs.memprof"
 )
 
+func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
+	pluginpath := filepath.Join(repoPath, "plugins")
+
+	// check if repo is accessible before loading plugins
+	var plugins *loader.PluginLoader
+	ok, err := checkPermissions(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		pluginpath = ""
+	}
+	plugins, err = loader.NewPluginLoader(pluginpath)
+	if err != nil {
+		log.Error("error loading plugins: ", err)
+	}
+
+	if err := plugins.Initialize(); err != nil {
+		log.Error("error initializing plugins: ", err)
+	}
+
+	if err := plugins.Run(); err != nil {
+		log.Error("error running plugins: ", err)
+	}
+	return plugins, nil
+}
+
 // main roadmap:
 // - parse the commandline to get a cmdInvocation
 // - if user requests help, print it and exit.
@@ -116,12 +143,18 @@ func mainRet() int {
 		}
 		log.Debugf("config path is %s", repoPath)
 
+		plugins, err := loadPlugins(repoPath)
+		if err != nil {
+			return nil, err
+		}
+
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
 		return &oldcmds.Context{
 			ConfigRoot: repoPath,
 			LoadConfig: loadConfig,
 			ReqLog:     &oldcmds.ReqLog{},
+			Plugins:    plugins,
 			ConstructNode: func() (n *core.IpfsNode, err error) {
 				if req == nil {
 					return nil, errors.New("constructing node without a request")
@@ -179,21 +212,6 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	if client != nil && !req.Command.External {
 		exctr = client.(cmds.Executor)
 	} else {
-		cctx := env.(*oldcmds.Context)
-		pluginpath := filepath.Join(cctx.ConfigRoot, "plugins")
-
-		// check if repo is accessible before loading plugins
-		ok, err := checkPermissions(cctx.ConfigRoot)
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
-			pluginpath = ""
-		}
-		if _, err := loader.LoadPlugins(pluginpath); err != nil {
-			log.Error("error loading plugins: ", err)
-		}
-
 		exctr = cmds.NewExecutor(req.Root)
 	}
 

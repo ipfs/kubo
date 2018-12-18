@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core"
+	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	loader "github.com/ipfs/go-ipfs/plugin/loader"
 
 	"gx/ipfs/QmPdvMtgpnMuU68mWhGtzCxnddXJoV96tT9aPcNbQsqPaM/go-ipfs-cmds"
 	config "gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
@@ -22,6 +23,8 @@ type Context struct {
 	Online     bool
 	ConfigRoot string
 	ReqLog     *ReqLog
+
+	Plugins *loader.PluginLoader
 
 	config     *config.Config
 	LoadConfig func(path string) (*config.Config, error)
