@@ -21,7 +21,7 @@ setup_iptb() {
   for i in $(test_seq 0 "$bound")
   do
     test_expect_success "set configs up for node $i" '
-      ipfsi "$i" config Ipns.RepublishPeriod 20s &&
+      ipfsi "$i" config Ipns.RepublishPeriod 40s &&
       ipfsi "$i" config --json Ipns.ResolveCacheSize 0
     '
   done
@@ -64,9 +64,7 @@ verify_cannot_resolve() {
   for node in $(test_seq 0 "$bound")
   do
     test_expect_success "$msg: resolution fails on node $node" '
-      # TODO: this should work without the timeout option
-      # but it currently hangs for some reason every so often
-      test_expect_code 1 ipfsi "$node" name resolve --timeout=300ms "$name"
+      test_expect_code 1 ipfsi "$node" name resolve "$name"
     '
   done
 }
@@ -77,7 +75,7 @@ setup_iptb "$num_test_nodes"
 
 test_expect_success "publish succeeds" '
   HASH=$(echo "foobar" | ipfsi 1 add -q) &&
-  ipfsi 1 name publish -t 5s $HASH
+  ipfsi 1 name publish -t 10s $HASH
 '
 
 test_expect_success "get id succeeds" '
@@ -86,13 +84,13 @@ test_expect_success "get id succeeds" '
 
 verify_can_resolve "$num_test_nodes" "$id" "$HASH" "just after publishing"
 
-go-sleep 5s
+go-sleep 10s
 
-verify_cannot_resolve "$num_test_nodes" "$id" "after five seconds, records are invalid"
+verify_cannot_resolve "$num_test_nodes" "$id" "after 10 seconds, records are invalid"
 
-go-sleep 15s
+go-sleep 30s
 
-verify_can_resolve "$num_test_nodes" "$id" "$HASH" "republisher fires after twenty seconds"
+verify_can_resolve "$num_test_nodes" "$id" "$HASH" "republisher fires after 30 seconds"
 
 #
 
@@ -102,16 +100,16 @@ KEY2=`ipfsi 1 key gen beepboop --type ed25519`
 
 test_expect_success "publish with new key succeeds" '
   HASH=$(echo "barfoo" | ipfsi 1 add -q) &&
-  ipfsi 1 name publish -t 5s -k "$KEY2" $HASH
+  ipfsi 1 name publish -t 10s -k "$KEY2" $HASH
 '
 
 verify_can_resolve "$num_test_nodes" "$KEY2" "$HASH" "new key just after publishing"
 
-go-sleep 5s
+go-sleep 10s
 
-verify_cannot_resolve "$num_test_nodes" "$KEY2" "new key cannot resolve after 5 seconds"
+verify_cannot_resolve "$num_test_nodes" "$KEY2" "new key cannot resolve after 10 seconds"
 
-go-sleep 15s
+go-sleep 30s
 
 verify_can_resolve "$num_test_nodes" "$KEY2" "$HASH" "new key can resolve again after republish"
 
