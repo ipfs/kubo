@@ -36,7 +36,7 @@ func (e *ipnsEntry) Value() coreiface.Path {
 
 // Publish announces new IPNS name and returns the new IPNS entry.
 func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopts.NamePublishOption) (coreiface.IpnsEntry, error) {
-	if err := api.isPublishAllowed(); err != nil {
+	if err := api.checkPublishAllowed(); err != nil {
 		return nil, err
 	}
 
@@ -45,7 +45,7 @@ func (api *NameAPI) Publish(ctx context.Context, p coreiface.Path, opts ...caopt
 		return nil, err
 	}
 
-	err = api.isOnline(options.AllowOffline)
+	err = api.checkOnline(options.AllowOffline)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		return nil, err
 	}
 
-	err = api.isOnline(true)
+	err = api.checkOnline(true)
 	if err != nil {
 		return nil, err
 	}

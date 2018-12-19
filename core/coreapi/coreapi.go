@@ -67,10 +67,8 @@ type CoreAPI struct {
 
 	pubSub *pubsub.PubSub
 
-	// TODO: this can be generalized to all functions when we implement some
-	// api based security mechanism
-	isPublishAllowed func() error
-	isOnline         func(allowOffline bool) error
+	checkPublishAllowed func() error
+	checkOnline         func(allowOffline bool) error
 
 	// ONLY for re-applying options in WithOptions, DO NOT USE ANYWHERE ELSE
 	nd         *core.IpfsNode
@@ -178,14 +176,14 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		parentOpts: settings,
 	}
 
-	subApi.isOnline = func(allowOffline bool) error {
+	subApi.checkOnline = func(allowOffline bool) error {
 		if !n.OnlineMode() && !allowOffline {
 			return coreiface.ErrOffline
 		}
 		return nil
 	}
 
-	subApi.isPublishAllowed = func() error {
+	subApi.checkPublishAllowed = func() error {
 		if n.Mounts.Ipns != nil && n.Mounts.Ipns.IsActive() {
 			return errors.New("cannot manually publish while IPNS is mounted")
 		}

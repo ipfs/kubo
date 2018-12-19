@@ -21,7 +21,7 @@ import (
 type DhtAPI CoreAPI
 
 func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, error) {
-	err := api.isOnline(false)
+	err := api.checkOnline(false)
 	if err != nil {
 		return pstore.PeerInfo{}, err
 	}
@@ -40,7 +40,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...
 		return nil, err
 	}
 
-	err = api.isOnline(false)
+	err = api.checkOnline(false)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 		return err
 	}
 
-	err = api.isOnline(false)
+	err = api.checkOnline(false)
 	if err != nil {
 		return err
 	}
