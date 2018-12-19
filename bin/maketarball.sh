@@ -5,7 +5,11 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-OUTPUT="$(readlink -f "${1:-go-ipfs-source.tar.gz}")"
+# readlink doesn't work on macos
+OUTPUT="${1:-go-ipfs-source.tar.gz}"
+if ! [[ "$OUTPUT" = /* ]]; then
+    OUTPUT="$PWD/$OUTPUT"
+fi
 
 TMPDIR="$(mktemp -d)"
 NEWIPFS="$TMPDIR/src/github.com/ipfs/go-ipfs"
