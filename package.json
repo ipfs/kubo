@@ -136,7 +136,7 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmXdvAAZtD13sDU7BAtdR629rsqY7PUG7BbwrhfXdEpTgX",
+      "hash": "QmfZuoe973XBPt4AUQEQtcj3XhycT3cGufFnivLfpWUxMt",
       "name": "go-ds-flatfs",
       "version": "1.3.5"
     },
@@ -362,9 +362,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmZNGvvTqtVtGzVxkhRCu5nuwbytdRdtHtJbWLGxeMYAkt",
+      "hash": "QmWJBngogUPF87Xz788NotnwfYS1B5oanKew82zuMwUkQu",
       "name": "go-libp2p-connmgr",
-      "version": "0.3.28"
+      "version": "0.3.29"
     },
     {
       "author": "why",
@@ -458,9 +458,9 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmYNjCcTvz65dj9GbsmLKsVDkAiJNGHdWBMCRJamxKTrqB",
+      "hash": "QmXvWpPZMuWbwoDV393Y1ADVwuJsrVAvct4gKdLAkjvbhH",
       "name": "go-libp2p-pubsub-router",
-      "version": "0.5.8"
+      "version": "0.5.9"
     },
     {
       "author": "Stebalien",
@@ -583,9 +583,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmaTfHazBrintpyALv8MzmCvGyGg3XWY7vDrsVfGVnpd1j",
+      "hash": "QmaqGyUhWLsJbVo1QAujSu13mxNjFJ98Kt2VWGSnShGE1Q",
       "name": "go-libp2p-pubsub",
-      "version": "0.11.8"
+      "version": "0.11.9"
     },
     {
       "author": "travisperson",
@@ -612,3 +612,4 @@
   "name": "go-ipfs",
   "version": "0.4.18"
 }
+
