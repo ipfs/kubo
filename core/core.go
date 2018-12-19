@@ -473,6 +473,14 @@ func (n *IpfsNode) HandlePeerFound(p pstore.PeerInfo) {
 	}
 }
 
+type readOnlyProvider struct {
+	routing.ContentRouting
+}
+
+func (r readOnlyProvider) Provide(context.Context, cid.Cid, bool) error {
+	return nil
+}
+
 // startOnlineServicesWithHost  is the set of services which need to be
 // initialized with the host and _before_ we start listening.
 func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOption RoutingOption, enablePubsub bool, enableIpnsps bool) error {
@@ -577,7 +585,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOptio
 	}
 
 	// setup exchange service
-	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, n.Routing)
+	bitswapNetwork := bsnet.NewFromIpfsHost(n.PeerHost, readOnlyProvider{n.Routing})
 	n.Exchange = bitswap.New(ctx, bitswapNetwork, n.Blockstore)
 
 	size, err := n.getCacheSize()
