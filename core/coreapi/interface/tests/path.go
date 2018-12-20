@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -8,6 +8,14 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+func TestPath(t *testing.T) {
+	t.Run("TestMutablePath", TestMutablePath)
+	t.Run("TestPathRemainder", TestPathRemainder)
+	t.Run("TestEmptyPathRemainder", TestEmptyPathRemainder)
+	t.Run("TestInvalidPathRemainder", TestInvalidPathRemainder)
+	t.Run("TestPathRoot", TestPathRoot)
+}
 
 func TestMutablePath(t *testing.T) {
 	ctx := context.Background()

@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -11,6 +11,14 @@ import (
 
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
+
+func TestDag(t *testing.T) {
+	t.Run("TestPut", TestPut)
+	t.Run("TestPutWithHash", TestPutWithHash)
+	t.Run("TestPath", TestDagPath)
+	t.Run("TestTree", TestTree)
+	t.Run("TestBatch", TestBatch)
+}
 
 var (
 	treeExpected = map[string]struct{}{
@@ -56,7 +64,7 @@ func TestPutWithHash(t *testing.T) {
 	}
 }
 
-func TestPath(t *testing.T) {
+func TestDagPath(t *testing.T) {
 	ctx := context.Background()
 	api, err := makeAPI(ctx)
 	if err != nil {

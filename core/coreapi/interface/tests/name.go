@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -14,6 +14,11 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+func TestName(t *testing.T) {
+	t.Run("TestPublishResolve", TestPublishResolve)
+	t.Run("TestBasicPublishResolveKey", TestBasicPublishResolveKey)
+}
 
 var rnd = rand.New(rand.NewSource(0x62796532303137))
 
