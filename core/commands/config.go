@@ -15,8 +15,8 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
-	"gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
 	"gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
+	"gx/ipfs/QmcZfkbgwwwH5ZLTQRHkSQBDiDqd3skY2eU6MZRgWuXcse/go-ipfs-config"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -401,15 +401,18 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 	}
 	defer r.Close()
 
-	cfg, err := r.Config()
+	oldCfg, err := r.Config()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// make a copy to avoid updating repo's config unintentionally
-	oldCfg := *cfg
-	newCfg := oldCfg
-	err = transformer(&newCfg)
+	newCfg, err := oldCfg.Clone()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = transformer(newCfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -420,13 +423,13 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 			return nil, nil, err
 		}
 
-		err = r.SetConfig(&newCfg)
+		err = r.SetConfig(newCfg)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
-	return &oldCfg, &newCfg, nil
+	return oldCfg, newCfg, nil
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
