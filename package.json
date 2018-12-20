@@ -8,8 +8,11 @@
     "goversion": "1.5.2"
   },
   "gxDependencies": [],
-  "version": "1.0.3",
+  "gxVersion": "0.14.0",
   "language": "go",
   "license": "MIT",
-  "name": "dir-index-html"
+  "name": "dir-index-html",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "1.0.4"
 }
+
