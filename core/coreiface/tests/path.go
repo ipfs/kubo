@@ -18,7 +18,8 @@ func (tp *provider) TestPath(t *testing.T) {
 }
 
 func (tp *provider) TestMutablePath(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +46,8 @@ func (tp *provider) TestMutablePath(t *testing.T) {
 }
 
 func (tp *provider) TestPathRemainder(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -72,7 +74,8 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 }
 
 func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -103,7 +106,8 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 }
 
 func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -126,7 +130,8 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 }
 
 func (tp *provider) TestPathRoot(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
