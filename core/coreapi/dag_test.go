@@ -24,7 +24,7 @@ var (
 
 func TestPut(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -41,7 +41,7 @@ func TestPut(t *testing.T) {
 
 func TestPutWithHash(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -58,7 +58,7 @@ func TestPutWithHash(t *testing.T) {
 
 func TestPath(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -90,7 +90,7 @@ func TestPath(t *testing.T) {
 
 func TestTree(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -119,7 +119,7 @@ func TestTree(t *testing.T) {
 
 func TestBatch(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}

@@ -14,7 +14,7 @@ import (
 
 func TestBlockPut(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,7 +31,7 @@ func TestBlockPut(t *testing.T) {
 
 func TestBlockPutFormat(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +48,7 @@ func TestBlockPutFormat(t *testing.T) {
 
 func TestBlockPutHash(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +65,7 @@ func TestBlockPutHash(t *testing.T) {
 
 func TestBlockGet(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,7 +105,7 @@ func TestBlockGet(t *testing.T) {
 
 func TestBlockRm(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -158,7 +158,7 @@ func TestBlockRm(t *testing.T) {
 
 func TestBlockStat(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}

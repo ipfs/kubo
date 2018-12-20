@@ -30,6 +30,9 @@ type dagBatch struct {
 // Returns the path of the inserted data.
 func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (coreiface.ResolvedPath, error) {
 	nd, err := getNode(src, opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	err = api.dag.Add(ctx, nd)
 	if err != nil {

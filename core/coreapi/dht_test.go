@@ -3,24 +3,24 @@ package coreapi_test
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-
-	blocks "gx/ipfs/QmWoXtvgC8inqFkAATB7cp2Dax7XBi9VDvSg9RCCZufmRk/go-block-format"
-	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
 )
 
 func TestDhtFindPeer(t *testing.T) {
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pi, err := apis[2].Dht().FindPeer(ctx, peer.ID(nds[0].Identity))
+	self0, err := apis[0].Key().Self(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pi, err := apis[2].Dht().FindPeer(ctx, self0.ID())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,12 @@ func TestDhtFindPeer(t *testing.T) {
 		t.Errorf("got unexpected address from FindPeer: %s", pi.Addrs[0].String())
 	}
 
-	pi, err = apis[1].Dht().FindPeer(ctx, peer.ID(nds[2].Identity))
+	self2, err := apis[2].Key().Self(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pi, err = apis[1].Dht().FindPeer(ctx, self2.ID())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +46,7 @@ func TestDhtFindPeer(t *testing.T) {
 
 func TestDhtFindProviders(t *testing.T) {
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,27 +63,34 @@ func TestDhtFindProviders(t *testing.T) {
 
 	provider := <-out
 
-	if provider.ID.String() != nds[0].Identity.String() {
-		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), nds[0].Identity.String())
+	self0, err := apis[0].Key().Self(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if provider.ID.String() != self0.ID().String() {
+		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
 	}
 }
 
 func TestDhtProvide(t *testing.T) {
 	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := makeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// TODO: replace once there is local add on unixfs or somewhere
-	data, err := ioutil.ReadAll(&io.LimitedReader{R: rnd, N: 4092})
+	off0, err := apis[0].WithOptions(options.Api.Offline(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	b := blocks.NewBlock(data)
-	nds[0].Blockstore.Put(b)
-	p := iface.IpfsPath(b.Cid())
+	s, err := off0.Block().Put(ctx, &io.LimitedReader{R: rnd, N: 4092})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := s.Path()
 
 	out, err := apis[2].Dht().FindProviders(ctx, p, options.Dht.NumProviders(1))
 	if err != nil {
@@ -87,8 +99,13 @@ func TestDhtProvide(t *testing.T) {
 
 	provider := <-out
 
+	self0, err := apis[0].Key().Self(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if provider.ID.String() != "<peer.ID >" {
-		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), nds[0].Identity.String())
+		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
 	}
 
 	err = apis[0].Dht().Provide(ctx, p)
@@ -103,7 +120,7 @@ func TestDhtProvide(t *testing.T) {
 
 	provider = <-out
 
-	if provider.ID.String() != nds[0].Identity.String() {
-		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), nds[0].Identity.String())
+	if provider.ID.String() != self0.ID().String() {
+		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
 	}
 }

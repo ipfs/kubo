@@ -10,7 +10,7 @@ import (
 
 func TestListSelf(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -38,7 +38,7 @@ func TestListSelf(t *testing.T) {
 
 func TestRenameSelf(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -65,7 +65,7 @@ func TestRenameSelf(t *testing.T) {
 
 func TestRemoveSelf(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -83,7 +83,7 @@ func TestRemoveSelf(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,7 +105,7 @@ func TestGenerate(t *testing.T) {
 
 func TestGenerateSize(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -129,7 +129,7 @@ func TestGenerateType(t *testing.T) {
 	ctx := context.Background()
 	t.Skip("disabled until libp2p/specs#111 is fixed")
 
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -152,7 +152,7 @@ func TestGenerateType(t *testing.T) {
 
 func TestGenerateExisting(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -184,7 +184,7 @@ func TestGenerateExisting(t *testing.T) {
 
 func TestList(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -229,7 +229,7 @@ func TestList(t *testing.T) {
 
 func TestRename(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -257,7 +257,7 @@ func TestRename(t *testing.T) {
 
 func TestRenameToSelf(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -280,7 +280,7 @@ func TestRenameToSelf(t *testing.T) {
 
 func TestRenameToSelfForce(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -303,7 +303,7 @@ func TestRenameToSelfForce(t *testing.T) {
 
 func TestRenameOverwriteNoForce(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -332,7 +332,7 @@ func TestRenameOverwriteNoForce(t *testing.T) {
 
 func TestRenameOverwrite(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -370,7 +370,7 @@ func TestRenameOverwrite(t *testing.T) {
 
 func TestRenameSameNameNoForce(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -398,7 +398,7 @@ func TestRenameSameNameNoForce(t *testing.T) {
 
 func TestRenameSameName(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -426,7 +426,7 @@ func TestRenameSameName(t *testing.T) {
 
 func TestRemove(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}

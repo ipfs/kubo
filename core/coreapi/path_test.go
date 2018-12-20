@@ -11,7 +11,7 @@ import (
 
 func TestMutablePath(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestMutablePath(t *testing.T) {
 
 func TestPathRemainder(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestPathRemainder(t *testing.T) {
 
 func TestEmptyPathRemainder(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestEmptyPathRemainder(t *testing.T) {
 
 func TestInvalidPathRemainder(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestInvalidPathRemainder(t *testing.T) {
 
 func TestPathRoot(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

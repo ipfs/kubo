@@ -14,7 +14,7 @@ import (
 
 func TestNew(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestNew(t *testing.T) {
 
 func TestObjectPut(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestObjectPut(t *testing.T) {
 
 func TestObjectGet(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestObjectGet(t *testing.T) {
 
 func TestObjectData(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestObjectData(t *testing.T) {
 
 func TestObjectLinks(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func TestObjectLinks(t *testing.T) {
 
 func TestObjectStat(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestObjectStat(t *testing.T) {
 
 func TestObjectAddLink(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestObjectAddLink(t *testing.T) {
 
 func TestObjectAddLinkCreate(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestObjectAddLinkCreate(t *testing.T) {
 
 func TestObjectRmLink(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +331,7 @@ func TestObjectRmLink(t *testing.T) {
 
 func TestObjectAddData(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func TestObjectAddData(t *testing.T) {
 
 func TestObjectSetData(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -389,7 +389,7 @@ func TestObjectSetData(t *testing.T) {
 
 func TestDiffTest(t *testing.T) {
 	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+	api, err := makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
