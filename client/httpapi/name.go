@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
