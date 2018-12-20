@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmPdvMtgpnMuU68mWhGtzCxnddXJoV96tT9aPcNbQsqPaM/go-ipfs-cmds"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"gx/ipfs/QmaAP56JAwdjwisPTu4yx17whcjTr6y5JCSCF77Y1rahWV/go-ipfs-cmds"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var ObjectPatchCmd = &cmds.Command{
@@ -60,12 +60,12 @@ the limit will not be respected by the network.
 			return err
 		}
 
-		data, err := req.Files.NextFile()
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
 			return err
 		}
 
-		p, err := api.Object().AppendData(req.Context, root, data)
+		p, err := api.Object().AppendData(req.Context, root, file)
 		if err != nil {
 			return err
 		}
@@ -107,12 +107,12 @@ Example:
 			return err
 		}
 
-		data, err := req.Files.NextFile()
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
 			return err
 		}
 
-		p, err := api.Object().SetData(req.Context, root, data)
+		p, err := api.Object().SetData(req.Context, root, file)
 		if err != nil {
 			return err
 		}

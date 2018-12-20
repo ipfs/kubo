@@ -26,12 +26,12 @@ import (
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
 	mocknet "gx/ipfs/QmRBaUEQEeFWywfrZJ64QgsmvcqgLSK3VbvGMR2NM2Edpf/go-libp2p/p2p/net/mock"
 	cbor "gx/ipfs/QmRoARq3nkUb13HSKZGepCZSWe5GrVPwx7xURJGZ7KWv9V/go-ipld-cbor"
+	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
 	config "gx/ipfs/QmYyzmMnhNTtoXx5ttgUaRdHHckYnQWjPL98hgLAR2QLDD/go-ipfs-config"
 	pstore "gx/ipfs/QmZ9zH2FnLcxv1xyzFeUpDUeo55xEhZQHgveZijcxr7TLj/go-libp2p-peerstore"
-	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	unixfs "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs"
 	mdag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
-	unixfs "gx/ipfs/QmdYvDbHp7qAhZ7GsCj6e1cMo55ND6y2mjWVzwdvcv4f12/go-unixfs"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 	datastore "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
 	syncds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore/sync"
@@ -134,35 +134,38 @@ func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
 	return nd[0], api[0], nil
 }
 
-func strFile(data string) func() files.File {
-	return func() files.File {
-		return files.NewReaderFile("", "", ioutil.NopCloser(strings.NewReader(data)), nil)
+func strFile(data string) func() files.Node {
+	return func() files.Node {
+		return files.NewBytesFile([]byte(data))
 	}
 }
 
-func twoLevelDir() func() files.File {
-	return func() files.File {
-		return files.NewSliceFile("t", "t", []files.File{
-			files.NewSliceFile("t/abc", "t/abc", []files.File{
-				files.NewReaderFile("t/abc/def", "t/abc/def", ioutil.NopCloser(strings.NewReader("world")), nil),
+func twoLevelDir() func() files.Node {
+	return func() files.Node {
+		return files.NewMapDirectory(map[string]files.Node{
+			"abc": files.NewMapDirectory(map[string]files.Node{
+				"def": files.NewBytesFile([]byte("world")),
 			}),
-			files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
-			files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+
+			"bar": files.NewBytesFile([]byte("hello2")),
+			"foo": files.NewBytesFile([]byte("hello1")),
 		})
 	}
 }
 
-func flatDir() files.File {
-	return files.NewSliceFile("t", "t", []files.File{
-		files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
-		files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+func flatDir() files.Node {
+	return files.NewMapDirectory(map[string]files.Node{
+		"bar": files.NewBytesFile([]byte("hello2")),
+		"foo": files.NewBytesFile([]byte("hello1")),
 	})
 }
 
-func wrapped(f files.File) files.File {
-	return files.NewSliceFile("", "", []files.File{
-		f,
-	})
+func wrapped(name string) func(f files.Node) files.Node {
+	return func(f files.Node) files.Node {
+		return files.NewMapDirectory(map[string]files.Node{
+			name: f,
+		})
+	}
 }
 
 func TestAdd(t *testing.T) {
@@ -174,13 +177,13 @@ func TestAdd(t *testing.T) {
 
 	cases := []struct {
 		name   string
-		data   func() files.File
-		expect func(files.File) files.File
+		data   func() files.Node
+		expect func(files.Node) files.Node
 
 		path string
 		err  string
 
-		recursive bool
+		wrap string
 
 		events []coreiface.AddEvent
 
@@ -277,36 +280,45 @@ func TestAdd(t *testing.T) {
 		},
 		// multi file
 		{
-			name:      "simpleDir",
-			data:      flatDir,
-			recursive: true,
-			path:      "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+			name: "simpleDir",
+			data: flatDir,
+			wrap: "t",
+			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
 		},
 		{
-			name:      "twoLevelDir",
-			data:      twoLevelDir(),
-			recursive: true,
-			path:      "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+			name: "twoLevelDir",
+			data: twoLevelDir(),
+			wrap: "t",
+			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
 		},
 		// wrapped
 		{
 			name: "addWrapped",
 			path: "/ipfs/QmVE9rNpj5doj7XHzp5zMUxD7BJgXEqx4pe3xZ3JBReWHE",
-			data: func() files.File {
-				return files.NewReaderFile("foo", "foo", ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			data: func() files.Node {
+				return files.NewBytesFile([]byte(helloStr))
 			},
-			expect: wrapped,
+			wrap:   "foo",
+			expect: wrapped("foo"),
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name: "addNotWrappedDirFile",
+			path: hello,
+			data: func() files.Node {
+				return files.NewBytesFile([]byte(helloStr))
+			},
+			wrap: "foo",
 		},
 		{
 			name: "stdinWrapped",
 			path: "/ipfs/QmU3r81oZycjHS9oaSHw37ootMFuFUw1DvMLKXPsezdtqU",
-			data: func() files.File {
-				return files.NewReaderFile("", os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			data: func() files.Node {
+				return files.NewBytesFile([]byte(helloStr))
 			},
-			expect: func(files.File) files.File {
-				return files.NewSliceFile("", "", []files.File{
-					files.NewReaderFile("QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", "QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk", ioutil.NopCloser(strings.NewReader(helloStr)), nil),
+			expect: func(files.Node) files.Node {
+				return files.NewMapDirectory(map[string]files.Node{
+					"QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk": files.NewBytesFile([]byte(helloStr)),
 				})
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
@@ -314,69 +326,74 @@ func TestAdd(t *testing.T) {
 		{
 			name: "stdinNamed",
 			path: "/ipfs/QmQ6cGBmb3ZbdrQW1MRm1RJnYnaxCqfssz7CrTa9NEhQyS",
-			data: func() files.File {
-				return files.NewReaderFile("", os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			data: func() files.Node {
+				rf, err := files.NewReaderPathFile(os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+				if err != nil {
+					panic(err)
+				}
+
+				return rf
 			},
-			expect: func(files.File) files.File {
-				return files.NewSliceFile("", "", []files.File{
-					files.NewReaderFile("test", "test", ioutil.NopCloser(strings.NewReader(helloStr)), nil),
+			expect: func(files.Node) files.Node {
+				return files.NewMapDirectory(map[string]files.Node{
+					"test": files.NewBytesFile([]byte(helloStr)),
 				})
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.StdinName("test")},
 		},
 		{
-			name:      "twoLevelDirWrapped",
-			data:      twoLevelDir(),
-			recursive: true,
-			expect:    wrapped,
-			path:      "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
-			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+			name:   "twoLevelDirWrapped",
+			data:   twoLevelDir(),
+			wrap:   "t",
+			expect: wrapped("t"),
+			path:   "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
+			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
 		},
 		{
-			name:      "twoLevelInlineHash",
-			data:      twoLevelDir(),
-			recursive: true,
-			expect:    wrapped,
-			path:      "/ipfs/zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi",
-			opts:      []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
+			name:   "twoLevelInlineHash",
+			data:   twoLevelDir(),
+			wrap:   "t",
+			expect: wrapped("t"),
+			path:   "/ipfs/zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi",
+			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
 		},
 		// hidden
 		{
 			name: "hiddenFiles",
-			data: func() files.File {
-				return files.NewSliceFile("t", "t", []files.File{
-					files.NewReaderFile("t/.bar", "t/.bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
-					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
-					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+			data: func() files.Node {
+				return files.NewMapDirectory(map[string]files.Node{
+					".bar": files.NewBytesFile([]byte("hello2")),
+					"bar":  files.NewBytesFile([]byte("hello2")),
+					"foo":  files.NewBytesFile([]byte("hello1")),
 				})
 			},
-			recursive: true,
-			path:      "/ipfs/QmehGvpf2hY196MzDFmjL8Wy27S4jbgGDUAhBJyvXAwr3g",
-			opts:      []options.UnixfsAddOption{options.Unixfs.Hidden(true)},
+			wrap: "t",
+			path: "/ipfs/QmehGvpf2hY196MzDFmjL8Wy27S4jbgGDUAhBJyvXAwr3g",
+			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(true)},
 		},
 		{
 			name: "hiddenFileAlwaysAdded",
-			data: func() files.File {
-				return files.NewReaderFile(".foo", ".foo", ioutil.NopCloser(strings.NewReader(helloStr)), nil)
+			data: func() files.Node {
+				return files.NewBytesFile([]byte(helloStr))
 			},
-			recursive: true,
-			path:      hello,
+			wrap: ".foo",
+			path: hello,
 		},
 		{
 			name: "hiddenFilesNotAdded",
-			data: func() files.File {
-				return files.NewSliceFile("t", "t", []files.File{
-					files.NewReaderFile("t/.bar", "t/.bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
-					files.NewReaderFile("t/bar", "t/bar", ioutil.NopCloser(strings.NewReader("hello2")), nil),
-					files.NewReaderFile("t/foo", "t/foo", ioutil.NopCloser(strings.NewReader("hello1")), nil),
+			data: func() files.Node {
+				return files.NewMapDirectory(map[string]files.Node{
+					".bar": files.NewBytesFile([]byte("hello2")),
+					"bar":  files.NewBytesFile([]byte("hello2")),
+					"foo":  files.NewBytesFile([]byte("hello1")),
 				})
 			},
-			expect: func(files.File) files.File {
+			expect: func(files.Node) files.Node {
 				return flatDir()
 			},
-			recursive: true,
-			path:      "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
-			opts:      []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
+			wrap: "t",
+			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
 		},
 		// Events / Progress
 		{
@@ -396,8 +413,8 @@ func TestAdd(t *testing.T) {
 				{Name: "t/abc", Hash: "QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt", Size: "62"},
 				{Name: "t", Hash: "QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr", Size: "229"},
 			},
-			recursive: true,
-			opts:      []options.UnixfsAddOption{options.Unixfs.Silent(true)},
+			wrap: "t",
+			opts: []options.UnixfsAddOption{options.Unixfs.Silent(true)},
 		},
 		{
 			name: "dirAddEvents",
@@ -410,13 +427,12 @@ func TestAdd(t *testing.T) {
 				{Name: "t/abc", Hash: "QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt", Size: "62"},
 				{Name: "t", Hash: "QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr", Size: "229"},
 			},
-			recursive: true,
+			wrap: "t",
 		},
 		{
 			name: "progress1M",
-			data: func() files.File {
-				r := bytes.NewReader(bytes.Repeat([]byte{0}, 1000000))
-				return files.NewReaderFile("", "", ioutil.NopCloser(r), nil)
+			data: func() files.Node {
+				return files.NewReaderFile(bytes.NewReader(bytes.Repeat([]byte{0}, 1000000)))
 			},
 			path: "/ipfs/QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD",
 			events: []coreiface.AddEvent{
@@ -426,8 +442,8 @@ func TestAdd(t *testing.T) {
 				{Name: "", Bytes: 1000000},
 				{Name: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Hash: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Size: "1000256"},
 			},
-			recursive: true,
-			opts:      []options.UnixfsAddOption{options.Unixfs.Progress(true)},
+			wrap: "",
+			opts: []options.UnixfsAddOption{options.Unixfs.Progress(true)},
 		},
 	}
 
@@ -439,9 +455,9 @@ func TestAdd(t *testing.T) {
 			// recursive logic
 
 			data := testCase.data()
-			if testCase.recursive {
-				data = files.NewSliceFile("", "", []files.File{
-					data,
+			if testCase.wrap != "" {
+				data = files.NewMapDirectory(map[string]files.Node{
+					testCase.wrap: data,
 				})
 			}
 
@@ -516,22 +532,29 @@ func TestAdd(t *testing.T) {
 
 			// compare file structure with Unixfs().Get
 
-			var cmpFile func(orig files.File, got files.File)
-			cmpFile = func(orig files.File, got files.File) {
-				if orig.IsDirectory() != got.IsDirectory() {
+			var cmpFile func(origName string, orig files.Node, gotName string, got files.Node)
+			cmpFile = func(origName string, orig files.Node, gotName string, got files.Node) {
+				_, origDir := orig.(files.Directory)
+				_, gotDir := got.(files.Directory)
+
+				if origDir != gotDir {
 					t.Fatal("file type mismatch")
 				}
 
-				if !orig.IsDirectory() {
+				if origName != gotName {
+					t.Errorf("file name mismatch, orig='%s', got='%s'", origName, gotName)
+				}
+
+				if !gotDir {
 					defer orig.Close()
 					defer got.Close()
 
-					do, err := ioutil.ReadAll(orig)
+					do, err := ioutil.ReadAll(orig.(files.File))
 					if err != nil {
 						t.Fatal(err)
 					}
 
-					dg, err := ioutil.ReadAll(got)
+					dg, err := ioutil.ReadAll(got.(files.File))
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -543,21 +566,28 @@ func TestAdd(t *testing.T) {
 					return
 				}
 
+				origIt := orig.(files.Directory).Entries()
+				gotIt := got.(files.Directory).Entries()
+
 				for {
-					fo, err := orig.NextFile()
-					fg, err2 := got.NextFile()
-
-					if err != nil {
-						if err == io.EOF && err2 == io.EOF {
-							break
+					if origIt.Next() {
+						if !gotIt.Next() {
+							t.Fatal("gotIt out of entries before origIt")
 						}
-						t.Fatal(err)
-					}
-					if err2 != nil {
-						t.Fatal(err)
+					} else {
+						if gotIt.Next() {
+							t.Fatal("origIt out of entries before gotIt")
+						}
+						break
 					}
 
-					cmpFile(fo, fg)
+					cmpFile(origIt.Name(), origIt.Node(), gotIt.Name(), gotIt.Node())
+				}
+				if origIt.Err() != nil {
+					t.Fatal(origIt.Err())
+				}
+				if gotIt.Err() != nil {
+					t.Fatal(gotIt.Err())
 				}
 			}
 
@@ -571,7 +601,7 @@ func TestAdd(t *testing.T) {
 				orig = testCase.expect(orig)
 			}
 
-			cmpFile(orig, f)
+			cmpFile("", orig, "", f)
 		})
 	}
 }
@@ -646,7 +676,7 @@ func TestGetEmptyFile(t *testing.T) {
 	}
 
 	buf := make([]byte, 1) // non-zero so that Read() actually tries to read
-	n, err := io.ReadFull(r, buf)
+	n, err := io.ReadFull(r.(files.File), buf)
 	if err != nil && err != io.EOF {
 		t.Error(err)
 	}
@@ -682,9 +712,8 @@ func TestGetDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = r.Read(make([]byte, 2))
-	if err != files.ErrNotReader {
-		t.Fatalf("expected ErrIsDir, got: %s", err)
+	if _, ok := r.(files.Directory); !ok {
+		t.Fatalf("expected a directory")
 	}
 }
 
@@ -747,6 +776,53 @@ func TestLs(t *testing.T) {
 	}
 }
 
+func TestEntriesExpired(t *testing.T) {
+	ctx := context.Background()
+	node, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	r := strings.NewReader("content-of-file")
+	k, _, err := coreunix.AddWrapped(node, r, "name-of-file")
+	if err != nil {
+		t.Error(err)
+	}
+	parts := strings.Split(k, "/")
+	if len(parts) != 2 {
+		t.Errorf("unexpected path: %s", k)
+	}
+	p, err := coreiface.ParsePath("/ipfs/" + parts[0])
+	if err != nil {
+		t.Error(err)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+
+	nd, err := api.Unixfs().Get(ctx, p)
+	if err != nil {
+		t.Error(err)
+	}
+	cancel()
+
+	it := files.ToDir(nd).Entries()
+	if it == nil {
+		t.Fatal("it was nil")
+	}
+
+	if it.Next() {
+		t.Fatal("Next succeeded")
+	}
+
+	if it.Err() != context.Canceled {
+		t.Fatalf("unexpected error %s", it.Err())
+	}
+
+	if it.Next() {
+		t.Fatal("Next succeeded")
+	}
+}
+
 func TestLsEmptyDir(t *testing.T) {
 	ctx := context.Background()
 	node, api, err := makeAPI(ctx)
@@ -800,4 +876,74 @@ func TestLsNonUnixfs(t *testing.T) {
 	if len(links) != 0 {
 		t.Fatalf("expected 0 links, got %d", len(links))
 	}
+}
+
+type closeTestF struct {
+	files.File
+	closed bool
+
+	t *testing.T
+}
+
+type closeTestD struct {
+	files.Directory
+	closed bool
+
+	t *testing.T
+}
+
+func (f *closeTestD) Close() error {
+	if f.closed {
+		f.t.Fatal("already closed")
+	}
+	f.closed = true
+	return nil
+}
+
+func (f *closeTestF) Close() error {
+	if f.closed {
+		f.t.Fatal("already closed")
+	}
+	f.closed = true
+	return nil
+}
+
+func TestAddCloses(t *testing.T) {
+	ctx := context.Background()
+	_, api, err := makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	n4 := &closeTestF{files.NewBytesFile([]byte("foo")), false, t}
+	d3 := &closeTestD{files.NewMapDirectory(map[string]files.Node{
+		"sub": n4,
+	}), false, t}
+	n2 := &closeTestF{files.NewBytesFile([]byte("bar")), false, t}
+	n1 := &closeTestF{files.NewBytesFile([]byte("baz")), false, t}
+	d0 := &closeTestD{files.NewMapDirectory(map[string]files.Node{
+		"a": d3,
+		"b": n1,
+		"c": n2,
+	}), false, t}
+
+	_, err = api.Unixfs().Add(ctx, d0)
+	if err != nil {
+		t.Error(err)
+	}
+
+	d0.Close() // Adder doesn't close top-level file
+
+	for i, n := range []*closeTestF{n1, n2, n4} {
+		if !n.closed {
+			t.Errorf("file %d not closed!", i)
+		}
+	}
+
+	for i, n := range []*closeTestD{d0, d3} {
+		if !n.closed {
+			t.Errorf("dir %d not closed!", i)
+		}
+	}
+
 }

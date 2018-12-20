@@ -3,18 +3,12 @@ package coreapi
 import (
 	"context"
 	"errors"
-	"io"
-	"os"
-	gopath "path"
-	"time"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-
-	files "gx/ipfs/QmZMWMvWMVKCbHetJ4RgndbuEF1io2UpUxwQwtNjtYPzSC/go-ipfs-files"
+	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
+	ft "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs"
+	uio "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs/io"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
 	dag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
-	ft "gx/ipfs/QmdYvDbHp7qAhZ7GsCj6e1cMo55ND6y2mjWVzwdvcv4f12/go-unixfs"
-	uio "gx/ipfs/QmdYvDbHp7qAhZ7GsCj6e1cMo55ND6y2mjWVzwdvcv4f12/go-unixfs/io"
 )
 
 // Number to file to prefetch in directories
@@ -23,152 +17,134 @@ const prefetchFiles = 4
 
 // TODO: this probably belongs in go-unixfs (and could probably replace a chunk of it's interface in the long run)
 
-type sizeInfo struct {
-	size    int64
-	name    string
-	modTime time.Time
-}
-
-func (s *sizeInfo) Name() string {
-	return s.name
-}
-
-func (s *sizeInfo) Size() int64 {
-	return s.size
-}
-
-func (s *sizeInfo) Mode() os.FileMode {
-	return 0444 // all read
-}
-
-func (s *sizeInfo) ModTime() time.Time {
-	return s.modTime
-}
-
-func (s *sizeInfo) IsDir() bool {
-	return false
-}
-
-func (s *sizeInfo) Sys() interface{} {
-	return nil
-}
-
 type ufsDirectory struct {
 	ctx   context.Context
 	dserv ipld.DAGService
+	dir   uio.Directory
+}
 
+type ufsIterator struct {
+	ctx   context.Context
 	files chan *ipld.Link
+	dserv ipld.DAGService
 
-	name string
-	path string
+	curName string
+	curFile files.Node
+
+	err   error
+	errCh chan error
+}
+
+func (it *ufsIterator) Name() string {
+	return it.curName
+}
+
+func (it *ufsIterator) Node() files.Node {
+	return it.curFile
+}
+
+func (it *ufsIterator) Next() bool {
+	if it.err != nil {
+		return false
+	}
+
+	var l *ipld.Link
+	var ok bool
+	for !ok {
+		if it.files == nil && it.errCh == nil {
+			return false
+		}
+		select {
+		case l, ok = <-it.files:
+			if !ok {
+				it.files = nil
+			}
+		case err := <-it.errCh:
+			it.errCh = nil
+			it.err = err
+
+			if err != nil {
+				return false
+			}
+		}
+	}
+
+	it.curFile = nil
+
+	nd, err := l.GetNode(it.ctx, it.dserv)
+	if err != nil {
+		it.err = err
+		return false
+	}
+
+	it.curName = l.Name
+	it.curFile, it.err = newUnixfsFile(it.ctx, it.dserv, nd)
+	return it.err == nil
+}
+
+func (it *ufsIterator) Err() error {
+	return it.err
 }
 
 func (d *ufsDirectory) Close() error {
-	return files.ErrNotReader
+	return nil
 }
 
-func (d *ufsDirectory) Read(_ []byte) (int, error) {
-	return 0, files.ErrNotReader
-}
+func (d *ufsDirectory) Entries() files.DirIterator {
+	fileCh := make(chan *ipld.Link, prefetchFiles)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- d.dir.ForEachLink(d.ctx, func(link *ipld.Link) error {
+			if d.ctx.Err() != nil {
+				return d.ctx.Err()
+			}
+			select {
+			case fileCh <- link:
+			case <-d.ctx.Done():
+				return d.ctx.Err()
+			}
+			return nil
+		})
 
-func (d *ufsDirectory) FileName() string {
-	return d.name
-}
+		close(errCh)
+		close(fileCh)
+	}()
 
-func (d *ufsDirectory) FullPath() string {
-	return d.path
-}
-
-func (d *ufsDirectory) IsDirectory() bool {
-	return true
-}
-
-func (d *ufsDirectory) NextFile() (files.File, error) {
-	l, ok := <-d.files
-	if !ok {
-		return nil, io.EOF
+	return &ufsIterator{
+		ctx:   d.ctx,
+		files: fileCh,
+		errCh: errCh,
+		dserv: d.dserv,
 	}
-
-	nd, err := l.GetNode(d.ctx, d.dserv)
-	if err != nil {
-		return nil, err
-	}
-
-	return newUnixfsFile(d.ctx, d.dserv, nd, l.Name, d)
 }
 
 func (d *ufsDirectory) Size() (int64, error) {
-	return 0, files.ErrNotReader
-}
-
-func (d *ufsDirectory) Seek(offset int64, whence int) (int64, error) {
-	return 0, files.ErrNotReader
+	return 0, files.ErrNotSupported
 }
 
 type ufsFile struct {
 	uio.DagReader
-
-	name string
-	path string
-}
-
-func (f *ufsFile) IsDirectory() bool {
-	return false
-}
-
-func (f *ufsFile) NextFile() (files.File, error) {
-	return nil, files.ErrNotDirectory
-}
-
-func (f *ufsFile) FileName() string {
-	return f.name
-}
-
-func (f *ufsFile) FullPath() string {
-	return f.path
 }
 
 func (f *ufsFile) Size() (int64, error) {
 	return int64(f.DagReader.Size()), nil
 }
 
-func newUnixfsDir(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, name string, path string) (iface.UnixfsFile, error) {
+func newUnixfsDir(ctx context.Context, dserv ipld.DAGService, nd ipld.Node) (files.Directory, error) {
 	dir, err := uio.NewDirectoryFromNode(dserv, nd)
 	if err != nil {
 		return nil, err
 	}
 
-	fileCh := make(chan *ipld.Link, prefetchFiles)
-	go func() {
-		dir.ForEachLink(ctx, func(link *ipld.Link) error {
-			select {
-			case fileCh <- link:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-			return nil
-		})
-
-		close(fileCh)
-	}()
-
 	return &ufsDirectory{
 		ctx:   ctx,
 		dserv: dserv,
 
-		files: fileCh,
-
-		name: name,
-		path: path,
+		dir: dir,
 	}, nil
 }
 
-func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, name string, parent files.File) (iface.UnixfsFile, error) {
-	path := name
-	if parent != nil {
-		path = gopath.Join(parent.FullPath(), name)
-	}
-
+func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node) (files.Node, error) {
 	switch dn := nd.(type) {
 	case *dag.ProtoNode:
 		fsn, err := ft.FSNodeFromBytes(dn.Data())
@@ -176,7 +152,7 @@ func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, nam
 			return nil, err
 		}
 		if fsn.IsDir() {
-			return newUnixfsDir(ctx, dserv, nd, name, path)
+			return newUnixfsDir(ctx, dserv, nd)
 		}
 
 	case *dag.RawNode:
@@ -191,10 +167,8 @@ func newUnixfsFile(ctx context.Context, dserv ipld.DAGService, nd ipld.Node, nam
 
 	return &ufsFile{
 		DagReader: dr,
-
-		name: name,
-		path: path,
 	}, nil
 }
 
-var _ os.FileInfo = &sizeInfo{}
+var _ files.Directory = &ufsDirectory{}
+var _ files.File = &ufsFile{}
