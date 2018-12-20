@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -7,6 +7,23 @@ import (
 
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+func TestKey(t *testing.T) {
+	t.Run("TestListSelf", TestListSelf)
+	t.Run("TestRenameSelf", TestRenameSelf)
+	t.Run("TestRemoveSelf", TestRemoveSelf)
+	t.Run("TestGenerateSize", TestGenerateSize)
+	t.Run("TestGenerateExisting", TestGenerateExisting)
+	t.Run("TestList", TestList)
+	t.Run("TestRename", TestRename)
+	t.Run("TestRenameToSelf", TestRenameToSelf)
+	t.Run("TestRenameToSelfForce", TestRenameToSelfForce)
+	t.Run("TestRenameOverwriteNoForce", TestRenameOverwriteNoForce)
+	t.Run("TestRenameOverwrite", TestRenameOverwrite)
+	t.Run("TestRenameSameNameNoForce", TestRenameSameNameNoForce)
+	t.Run("TestRenameSameName", TestRenameSameName)
+	t.Run("TestRemove", TestRemove)
+}
 
 func TestListSelf(t *testing.T) {
 	ctx := context.Background()

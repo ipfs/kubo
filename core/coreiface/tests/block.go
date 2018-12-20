@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -11,6 +11,15 @@ import (
 
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
+
+func TestBlock(t *testing.T) {
+	t.Run("TestBlockPut", TestBlockPut)
+	t.Run("TestBlockPutFormat", TestBlockPutFormat)
+	t.Run("TestBlockPutHash", TestBlockPutHash)
+	t.Run("TestBlockGet", TestBlockGet)
+	t.Run("TestBlockRm", TestBlockRm)
+	t.Run("TestBlockStat", TestBlockStat)
+}
 
 func TestBlockPut(t *testing.T) {
 	ctx := context.Background()

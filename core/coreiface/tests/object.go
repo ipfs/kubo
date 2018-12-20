@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"bytes"
@@ -11,6 +11,21 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+func TestObject(t *testing.T) {
+	t.Run("TestNew", TestNew)
+	t.Run("TestObjectPut", TestObjectPut)
+	t.Run("TestObjectGet", TestObjectGet)
+	t.Run("TestObjectData", TestObjectData)
+	t.Run("TestObjectLinks", TestObjectLinks)
+	t.Run("TestObjectStat", TestObjectStat)
+	t.Run("TestObjectAddLink", TestObjectAddLink)
+	t.Run("TestObjectAddLinkCreate", TestObjectAddLinkCreate)
+	t.Run("TestObjectRmLink", TestObjectRmLink)
+	t.Run("TestObjectAddData", TestObjectAddData)
+	t.Run("TestObjectSetData", TestObjectSetData)
+	t.Run("TestDiffTest", TestDiffTest)
+}
 
 func TestNew(t *testing.T) {
 	ctx := context.Background()

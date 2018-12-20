@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -7,6 +7,12 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+func TestDht(t *testing.T) {
+	t.Run("TestDhtFindPeer", TestDhtFindPeer)
+	t.Run("TestDhtFindProviders", TestDhtFindProviders)
+	t.Run("TestDhtProvide", TestDhtProvide)
+}
 
 func TestDhtFindPeer(t *testing.T) {
 	ctx := context.Background()

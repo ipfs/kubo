@@ -1,11 +1,8 @@
-package tests_test
+package tests
 
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"fmt"
-	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	"io"
 	"io/ioutil"
 	"math"
@@ -15,27 +12,30 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	mock "github.com/ipfs/go-ipfs/core/mock"
-	"github.com/ipfs/go-ipfs/keystore"
-	"github.com/ipfs/go-ipfs/repo"
 
-	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
-	"gx/ipfs/QmRBaUEQEeFWywfrZJ64QgsmvcqgLSK3VbvGMR2NM2Edpf/go-libp2p/p2p/net/mock"
+	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	cbor "gx/ipfs/QmRoARq3nkUb13HSKZGepCZSWe5GrVPwx7xURJGZ7KWv9V/go-ipld-cbor"
 	"gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
-	"gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
-	pstore "gx/ipfs/QmZ9zH2FnLcxv1xyzFeUpDUeo55xEhZQHgveZijcxr7TLj/go-libp2p-peerstore"
 	"gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs"
-	"gx/ipfs/QmcZfkbgwwwH5ZLTQRHkSQBDiDqd3skY2eU6MZRgWuXcse/go-ipfs-config"
 	mdag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-	"gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
-	syncds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore/sync"
 )
+
+func TestUnixfs(t *testing.T) {
+	t.Run("TestAdd", TestAdd)
+	t.Run("TestAddPinned", TestAddPinned)
+	t.Run("TestAddHashOnly", TestAddHashOnly)
+	t.Run("TestGetEmptyFile", TestGetEmptyFile)
+	t.Run("TestGetDir", TestGetDir)
+	t.Run("TestGetNonUnixfs", TestGetNonUnixfs)
+	t.Run("TestLs", TestLs)
+	t.Run("TestEntriesExpired", TestEntriesExpired)
+	t.Run("TestLsEmptyDir", TestLsEmptyDir)
+	t.Run("TestLsNonUnixfs", TestLsNonUnixfs)
+	t.Run("TestAddCloses", TestAddCloses)
+}
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
@@ -45,97 +45,6 @@ var helloStr = "hello, world!"
 
 // `echo -n | ipfs add`
 var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
-
-func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error) {
-	mn := mocknet.New(ctx)
-
-	nodes := make([]*core.IpfsNode, n)
-	apis := make([]coreiface.CoreAPI, n)
-
-	for i := 0; i < n; i++ {
-		var ident config.Identity
-		if fullIdentity {
-			sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
-			if err != nil {
-				return nil, err
-			}
-
-			id, err := peer.IDFromPublicKey(pk)
-			if err != nil {
-				return nil, err
-			}
-
-			kbytes, err := sk.Bytes()
-			if err != nil {
-				return nil, err
-			}
-
-			ident = config.Identity{
-				PeerID:  id.Pretty(),
-				PrivKey: base64.StdEncoding.EncodeToString(kbytes),
-			}
-		} else {
-			ident = config.Identity{
-				PeerID: testPeerID,
-			}
-		}
-
-		c := config.Config{}
-		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.%d.1/tcp/4001", i)}
-		c.Identity = ident
-
-		r := &repo.Mock{
-			C: c,
-			D: syncds.MutexWrap(datastore.NewMapDatastore()),
-			K: keystore.NewMemKeystore(),
-		}
-
-		node, err := core.NewNode(ctx, &core.BuildCfg{
-			Repo:   r,
-			Host:   mock.MockHostOption(mn),
-			Online: fullIdentity,
-			ExtraOpts: map[string]bool{
-				"pubsub": true,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-		nodes[i] = node
-		apis[i], err = coreapi.NewCoreAPI(node)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err := mn.LinkAll()
-	if err != nil {
-		return nil, err
-	}
-
-	bsinf := core.BootstrapConfigWithPeers(
-		[]pstore.PeerInfo{
-			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
-		},
-	)
-
-	for _, n := range nodes[1:] {
-		if err := n.Bootstrap(bsinf); err != nil {
-			return nil, err
-		}
-	}
-
-	return apis, nil
-}
-
-func makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
-	api, err := makeAPISwarm(ctx, false, 1)
-	if err != nil {
-		return nil, err
-	}
-
-	return api[0], nil
-}
 
 func strFile(data string) func() files.Node {
 	return func() files.Node {

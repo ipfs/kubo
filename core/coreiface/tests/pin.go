@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -7,6 +7,12 @@ import (
 
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+func TestPin(t *testing.T) {
+	t.Run("TestPinAdd", TestPinAdd)
+	t.Run("TestPinSimple", TestPinSimple)
+	t.Run("TestPinRecursive", TestPinRecursive)
+}
 
 func TestPinAdd(t *testing.T) {
 	ctx := context.Background()

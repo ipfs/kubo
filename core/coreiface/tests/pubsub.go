@@ -1,4 +1,4 @@
-package tests_test
+package tests
 
 import (
 	"context"
@@ -6,6 +6,10 @@ import (
 	"testing"
 	"time"
 )
+
+func TestPubSub(t *testing.T) {
+	t.Run("TestBasicPubSub", TestBasicPubSub)
+}
 
 func TestBasicPubSub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
