@@ -71,7 +71,7 @@ var swarmPeersCmd = &cmds.Command{
 		cmdkit.BoolOption(swarmDirectionOptionName, "Also list information about the direction of connection"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ var swarmAddrsCmd = &cmds.Command{
 		"listen": swarmAddrsListenCmd,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -275,7 +275,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 		cmdkit.BoolOption("id", "Show peer ID in addresses."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -316,7 +316,7 @@ var swarmAddrsListenCmd = &cmds.Command{
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -355,7 +355,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 		cmdkit.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -403,7 +403,7 @@ it will reconnect.
 		cmdkit.StringArg("address", true, true, "Address of peer to disconnect from.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}

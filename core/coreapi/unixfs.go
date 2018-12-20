@@ -15,7 +15,6 @@ import (
 	bstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
 	mfs "gx/ipfs/QmU3iDRUrxyTYdV2j5MuWLFvP1k7w98vD66PLnNChgvUmZ/go-mfs"
 	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
-	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
 	cidutil "gx/ipfs/QmbfKu17LbMWyGUxHEUns9Wf5Dkm8PT6be4uPhTkk4YvaV/go-cidutil"
 	ft "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs"
 	uio "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs/io"
@@ -34,9 +33,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, err
 	}
 
-	n := api.node
-
-	cfg, err := n.Repo.Config()
+	cfg, err := api.repo.Config()
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +50,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, filestore.ErrFilestoreNotEnabled
 	}
 
+	addblockstore := api.blockstore
+	if !(settings.FsCache || settings.NoCopy) {
+		addblockstore = bstore.NewGCBlockstore(api.baseBlocks, api.blockstore)
+	}
+	exch := api.exchange
+	pinning := api.pinning
+
 	if settings.OnlyHash {
 		nilnode, err := core.NewNode(ctx, &core.BuildCfg{
 			//TODO: need this to be true or all files
@@ -62,23 +66,15 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		if err != nil {
 			return nil, err
 		}
-		n = nilnode
-	}
-
-	addblockstore := n.Blockstore
-	if !(settings.FsCache || settings.NoCopy) {
-		addblockstore = bstore.NewGCBlockstore(n.BaseBlocks, n.GCLocker)
-	}
-
-	exch := n.Exchange
-	if settings.Local {
-		exch = offline.Exchange(addblockstore)
+		addblockstore = nilnode.Blockstore
+		exch = nilnode.Exchange
+		pinning = nilnode.Pinning
 	}
 
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
 	dserv := dag.NewDAGService(bserv)
 
-	fileAdder, err := coreunix.NewAdder(ctx, n.Pinning, n.Blockstore, dserv)
+	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, dserv)
 	if err != nil {
 		return nil, err
 	}

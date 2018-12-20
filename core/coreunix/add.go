@@ -48,13 +48,13 @@ type Object struct {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds ipld.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
 	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
 
 	return &Adder{
 		ctx:        ctx,
 		pinning:    p,
-		blockstore: bs,
+		gcLocker:   bs,
 		dagService: ds,
 		bufferedDS: bufferedDS,
 		Progress:   false,
@@ -70,7 +70,7 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCBlockstore, ds ipld
 type Adder struct {
 	ctx        context.Context
 	pinning    pin.Pinner
-	blockstore bstore.GCBlockstore
+	gcLocker   bstore.GCLocker
 	dagService ipld.DAGService
 	bufferedDS *ipld.BufferedDAG
 	Out        chan<- interface{}
@@ -401,7 +401,7 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 // AddAllAndPin adds the given request's files and pin them.
 func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	if adder.Pin {
-		adder.unlocker = adder.blockstore.PinLock()
+		adder.unlocker = adder.gcLocker.PinLock()
 	}
 	defer func() {
 		if adder.unlocker != nil {
@@ -556,14 +556,14 @@ func (adder *Adder) addDir(path string, dir files.Directory) error {
 }
 
 func (adder *Adder) maybePauseForGC() error {
-	if adder.unlocker != nil && adder.blockstore.GCRequested() {
+	if adder.unlocker != nil && adder.gcLocker.GCRequested() {
 		err := adder.PinRoot()
 		if err != nil {
 			return err
 		}
 
 		adder.unlocker.Unlock()
-		adder.unlocker = adder.blockstore.PinLock()
+		adder.unlocker = adder.gcLocker.PinLock()
 	}
 	return nil
 }

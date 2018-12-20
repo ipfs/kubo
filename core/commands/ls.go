@@ -74,7 +74,7 @@ The JSON output contains type information.
 			return err
 		}
 
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}

@@ -82,6 +82,7 @@ const IpnsValidatorTag = "ipns"
 
 const kReprovideFrequency = time.Hour * 12
 const discoveryConnTimeout = time.Second * 30
+const DefaultIpnsCacheSize = 128
 
 var log = logging.Logger("core")
 
@@ -601,7 +602,7 @@ func (n *IpfsNode) getCacheSize() (int, error) {
 
 	cs := cfg.Ipns.ResolveCacheSize
 	if cs == 0 {
-		cs = 128
+		cs = DefaultIpnsCacheSize
 	}
 	if cs < 0 {
 		return 0, fmt.Errorf("cannot specify negative resolve cache size")

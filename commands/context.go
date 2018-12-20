@@ -68,7 +68,10 @@ func (c *Context) GetAPI() (coreiface.CoreAPI, error) {
 		if err != nil {
 			return nil, err
 		}
-		c.api = coreapi.NewCoreAPI(n)
+		c.api, err = coreapi.NewCoreAPI(n)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return c.api, nil
 }

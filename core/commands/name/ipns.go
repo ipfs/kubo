@@ -80,13 +80,12 @@ Resolve the value of a dnslink:
 		cmdkit.BoolOption(streamOptionName, "s", "Stream entries as they are found."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
 		nocache, _ := req.Options["nocache"].(bool)
-		local, _ := req.Options["local"].(bool)
 
 		var name string
 		if len(req.Arguments) == 0 {
@@ -105,7 +104,6 @@ Resolve the value of a dnslink:
 		stream, _ := req.Options[streamOptionName].(bool)
 
 		opts := []options.NameResolveOption{
-			options.Name.Local(local),
 			options.Name.Cache(!nocache),
 		}
 

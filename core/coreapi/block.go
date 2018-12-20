@@ -43,7 +43,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
-	err = api.node.Blocks.AddBlock(b)
+	err = api.blocks.AddBlock(b)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 		return nil, err
 	}
 
-	b, err := api.node.Blocks.GetBlock(ctx, rp.Cid())
+	b, err := api.blocks.GetBlock(ctx, rp.Cid())
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 	cids := []cid.Cid{rp.Cid()}
 	o := util.RmBlocksOpts{Force: settings.Force}
 
-	out, err := util.RmBlocks(api.node.Blockstore, api.node.Pinning, cids, o)
+	out, err := util.RmBlocks(api.blockstore, api.pinning, cids, o)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 		return nil, err
 	}
 
-	b, err := api.node.Blocks.GetBlock(ctx, rp.Cid())
+	b, err := api.blocks.GetBlock(ctx, rp.Cid())
 	if err != nil {
 		return nil, err
 	}

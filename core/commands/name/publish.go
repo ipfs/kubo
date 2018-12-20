@@ -83,7 +83,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}

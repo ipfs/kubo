@@ -18,10 +18,11 @@ var log = logging.Logger("core/commands")
 var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
 
 const (
-	ConfigOption = "config"
-	DebugOption  = "debug"
-	LocalOption  = "local"
-	ApiOption    = "api"
+	ConfigOption  = "config"
+	DebugOption   = "debug"
+	LocalOption   = "local" // DEPRECATED: use OfflineOption
+	OfflineOption = "offline"
+	ApiOption     = "api"
 )
 
 var Root = &cmds.Command{
@@ -92,7 +93,8 @@ The CLI will exit with one of the following values:
 		cmdkit.BoolOption(DebugOption, "D", "Operate in debug mode."),
 		cmdkit.BoolOption(cmds.OptLongHelp, "Show the full command help text."),
 		cmdkit.BoolOption(cmds.OptShortHelp, "Show a short version of the command help text."),
-		cmdkit.BoolOption(LocalOption, "L", "Run the command locally, instead of using the daemon."),
+		cmdkit.BoolOption(LocalOption, "L", "Run the command locally, instead of using the daemon. DEPRECATED: use --offline."),
+		cmdkit.BoolOption(OfflineOption, "Run the command offline."),
 		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 
 		// global options, added to every command

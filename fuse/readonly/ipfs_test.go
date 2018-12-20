@@ -118,7 +118,10 @@ func TestIpfsStressRead(t *testing.T) {
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
-	api := coreapi.NewCoreAPI(nd)
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var nodes []ipld.Node
 	var paths []string

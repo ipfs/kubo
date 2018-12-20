@@ -60,7 +60,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -148,7 +148,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		cmdkit.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -218,7 +218,7 @@ It takes a list of base58 encoded multihashes to remove.
 		cmdkit.BoolOption(blockQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}

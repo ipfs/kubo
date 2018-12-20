@@ -55,7 +55,7 @@ Example:
 		cmdkit.BoolOption(verboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}

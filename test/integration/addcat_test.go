@@ -120,7 +120,10 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 	defer catter.Close()
 
-	catterApi := coreapi.NewCoreAPI(catter)
+	catterApi, err := coreapi.NewCoreAPI(catter)
+	if err != nil {
+		return err
+	}
 
 	err = mn.LinkAll()
 	if err != nil {

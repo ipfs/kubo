@@ -2,7 +2,6 @@ package coreapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
@@ -22,7 +21,12 @@ import (
 type DhtAPI CoreAPI
 
 func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, error) {
-	pi, err := api.node.Routing.FindPeer(ctx, peer.ID(p))
+	err := api.checkOnline(false)
+	if err != nil {
+		return pstore.PeerInfo{}, err
+	}
+
+	pi, err := api.routing.FindPeer(ctx, peer.ID(p))
 	if err != nil {
 		return pstore.PeerInfo{}, err
 	}
@@ -32,6 +36,11 @@ func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, er
 
 func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...caopts.DhtFindProvidersOption) (<-chan pstore.PeerInfo, error) {
 	settings, err := caopts.DhtFindProvidersOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	err = api.checkOnline(false)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +55,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...
 		return nil, fmt.Errorf("number of providers must be greater than 0")
 	}
 
-	pchan := api.node.Routing.FindProvidersAsync(ctx, rp.Cid(), numProviders)
+	pchan := api.routing.FindProvidersAsync(ctx, rp.Cid(), numProviders)
 	return pchan, nil
 }
 
@@ -56,8 +65,9 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 		return err
 	}
 
-	if api.node.Routing == nil {
-		return errors.New("cannot provide in offline mode")
+	err = api.checkOnline(false)
+	if err != nil {
+		return err
 	}
 
 	rp, err := api.core().ResolvePath(ctx, path)
@@ -67,7 +77,7 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 
 	c := rp.Cid()
 
-	has, err := api.node.Blockstore.Has(c)
+	has, err := api.blockstore.Has(c)
 	if err != nil {
 		return err
 	}
@@ -77,9 +87,9 @@ func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...cao
 	}
 
 	if settings.Recursive {
-		err = provideKeysRec(ctx, api.node.Routing, api.node.Blockstore, []cid.Cid{c})
+		err = provideKeysRec(ctx, api.routing, api.blockstore, []cid.Cid{c})
 	} else {
-		err = provideKeys(ctx, api.node.Routing, []cid.Cid{c})
+		err = provideKeys(ctx, api.routing, []cid.Cid{c})
 	}
 	if err != nil {
 		return err

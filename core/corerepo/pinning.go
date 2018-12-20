@@ -16,14 +16,14 @@ package corerepo
 import (
 	"context"
 	"fmt"
+	"github.com/ipfs/go-ipfs/pin"
 
-	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 )
 
-func Pin(n *core.IpfsNode, api iface.CoreAPI, ctx context.Context, paths []string, recursive bool) ([]cid.Cid, error) {
+func Pin(pinning pin.Pinner, api iface.CoreAPI, ctx context.Context, paths []string, recursive bool) ([]cid.Cid, error) {
 	out := make([]cid.Cid, len(paths))
 
 	for i, fpath := range paths {
@@ -36,14 +36,14 @@ func Pin(n *core.IpfsNode, api iface.CoreAPI, ctx context.Context, paths []strin
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
-		err = n.Pinning.Pin(ctx, dagnode, recursive)
+		err = pinning.Pin(ctx, dagnode, recursive)
 		if err != nil {
 			return nil, fmt.Errorf("pin: %s", err)
 		}
 		out[i] = dagnode.Cid()
 	}
 
-	err := n.Pinning.Flush()
+	err := pinning.Flush()
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func Pin(n *core.IpfsNode, api iface.CoreAPI, ctx context.Context, paths []strin
 	return out, nil
 }
 
-func Unpin(n *core.IpfsNode, api iface.CoreAPI, ctx context.Context, paths []string, recursive bool) ([]cid.Cid, error) {
+func Unpin(pinning pin.Pinner, api iface.CoreAPI, ctx context.Context, paths []string, recursive bool) ([]cid.Cid, error) {
 	unpinned := make([]cid.Cid, len(paths))
 
 	for i, p := range paths {
@@ -65,14 +65,14 @@ func Unpin(n *core.IpfsNode, api iface.CoreAPI, ctx context.Context, paths []str
 			return nil, err
 		}
 
-		err = n.Pinning.Unpin(ctx, k.Cid(), recursive)
+		err = pinning.Unpin(ctx, k.Cid(), recursive)
 		if err != nil {
 			return nil, err
 		}
 		unpinned[i] = k.Cid()
 	}
 
-	err := n.Pinning.Flush()
+	err := pinning.Flush()
 	if err != nil {
 		return nil, err
 	}
