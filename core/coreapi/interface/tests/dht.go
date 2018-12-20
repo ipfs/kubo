@@ -15,7 +15,8 @@ func (tp *provider) TestDht(t *testing.T) {
 }
 
 func (tp *provider) TestDhtFindPeer(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +52,8 @@ func (tp *provider) TestDhtFindPeer(t *testing.T) {
 }
 
 func (tp *provider) TestDhtFindProviders(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +82,8 @@ func (tp *provider) TestDhtFindProviders(t *testing.T) {
 }
 
 func (tp *provider) TestDhtProvide(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)

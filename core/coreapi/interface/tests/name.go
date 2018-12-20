@@ -36,7 +36,8 @@ func appendPath(p coreiface.Path, sub string) coreiface.Path {
 }
 
 func (tp *provider) TestPublishResolve(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	init := func() (coreiface.CoreAPI, coreiface.Path) {
 		apis, err := tp.MakeAPISwarm(ctx, true, 5)
 		if err != nil {
@@ -185,7 +186,8 @@ func (tp *provider) TestPublishResolve(t *testing.T) {
 }
 
 func (tp *provider) TestBasicPublishResolveKey(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +230,8 @@ func (tp *provider) TestBasicPublishResolveKey(t *testing.T) {
 func (tp *provider) TestBasicPublishResolveTimeout(t *testing.T) {
 	t.Skip("ValidTime doesn't appear to work at this time resolution")
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)

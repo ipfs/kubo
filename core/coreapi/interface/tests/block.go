@@ -22,7 +22,8 @@ func (tp *provider) TestBlock(t *testing.T) {
 }
 
 func (tp *provider) TestBlockPut(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
@@ -39,7 +40,8 @@ func (tp *provider) TestBlockPut(t *testing.T) {
 }
 
 func (tp *provider) TestBlockPutFormat(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
@@ -56,7 +58,8 @@ func (tp *provider) TestBlockPutFormat(t *testing.T) {
 }
 
 func (tp *provider) TestBlockPutHash(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
@@ -73,7 +76,8 @@ func (tp *provider) TestBlockPutHash(t *testing.T) {
 }
 
 func (tp *provider) TestBlockGet(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
@@ -113,7 +117,8 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 }
 
 func (tp *provider) TestBlockRm(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
@@ -166,7 +171,8 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 }
 
 func (tp *provider) TestBlockStat(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)

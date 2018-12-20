@@ -15,7 +15,8 @@ func (tp *provider) TestPin(t *testing.T) {
 }
 
 func (tp *provider) TestPinAdd(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
@@ -33,7 +34,8 @@ func (tp *provider) TestPinAdd(t *testing.T) {
 }
 
 func (tp *provider) TestPinSimple(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
@@ -82,7 +84,8 @@ func (tp *provider) TestPinSimple(t *testing.T) {
 }
 
 func (tp *provider) TestPinRecursive(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
