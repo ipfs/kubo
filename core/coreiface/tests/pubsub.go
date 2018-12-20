@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-func TestPubSub(t *testing.T) {
-	t.Run("TestBasicPubSub", TestBasicPubSub)
+func (tp *provider) TestPubSub(t *testing.T) {
+	t.Run("TestBasicPubSub", tp.TestBasicPubSub)
 }
 
-func TestBasicPubSub(t *testing.T) {
+func (tp *provider) TestBasicPubSub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	apis, err := makeAPISwarm(ctx, true, 2)
+	apis, err := tp.MakeAPISwarm(ctx, true, 2)
 	if err != nil {
 		t.Fatal(err)
 	}

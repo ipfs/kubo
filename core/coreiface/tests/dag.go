@@ -12,12 +12,12 @@ import (
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
-func TestDag(t *testing.T) {
-	t.Run("TestPut", TestPut)
-	t.Run("TestPutWithHash", TestPutWithHash)
-	t.Run("TestPath", TestDagPath)
-	t.Run("TestTree", TestTree)
-	t.Run("TestBatch", TestBatch)
+func (tp *provider) TestDag(t *testing.T) {
+	t.Run("TestPut", tp.TestPut)
+	t.Run("TestPutWithHash", tp.TestPutWithHash)
+	t.Run("TestPath", tp.TestDagPath)
+	t.Run("TestTree", tp.TestTree)
+	t.Run("TestBatch", tp.TestBatch)
 }
 
 var (
@@ -30,9 +30,9 @@ var (
 	}
 )
 
-func TestPut(t *testing.T) {
+func (tp *provider) TestPut(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,9 +47,9 @@ func TestPut(t *testing.T) {
 	}
 }
 
-func TestPutWithHash(t *testing.T) {
+func (tp *provider) TestPutWithHash(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,9 +64,9 @@ func TestPutWithHash(t *testing.T) {
 	}
 }
 
-func TestDagPath(t *testing.T) {
+func (tp *provider) TestDagPath(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -96,9 +96,9 @@ func TestDagPath(t *testing.T) {
 	}
 }
 
-func TestTree(t *testing.T) {
+func (tp *provider) TestTree(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -125,9 +125,9 @@ func TestTree(t *testing.T) {
 	}
 }
 
-func TestBatch(t *testing.T) {
+func (tp *provider) TestBatch(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}

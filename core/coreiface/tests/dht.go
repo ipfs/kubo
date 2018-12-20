@@ -8,15 +8,15 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
-func TestDht(t *testing.T) {
-	t.Run("TestDhtFindPeer", TestDhtFindPeer)
-	t.Run("TestDhtFindProviders", TestDhtFindProviders)
-	t.Run("TestDhtProvide", TestDhtProvide)
+func (tp *provider) TestDht(t *testing.T) {
+	t.Run("TestDhtFindPeer", tp.TestDhtFindPeer)
+	t.Run("TestDhtFindProviders", tp.TestDhtFindProviders)
+	t.Run("TestDhtProvide", tp.TestDhtProvide)
 }
 
-func TestDhtFindPeer(t *testing.T) {
+func (tp *provider) TestDhtFindPeer(t *testing.T) {
 	ctx := context.Background()
-	apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,9 +50,9 @@ func TestDhtFindPeer(t *testing.T) {
 	}
 }
 
-func TestDhtFindProviders(t *testing.T) {
+func (tp *provider) TestDhtFindProviders(t *testing.T) {
 	ctx := context.Background()
-	apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,9 +79,9 @@ func TestDhtFindProviders(t *testing.T) {
 	}
 }
 
-func TestDhtProvide(t *testing.T) {
+func (tp *provider) TestDhtProvide(t *testing.T) {
 	ctx := context.Background()
-	apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}

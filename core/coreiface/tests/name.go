@@ -15,9 +15,10 @@ import (
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
-func TestName(t *testing.T) {
-	t.Run("TestPublishResolve", TestPublishResolve)
-	t.Run("TestBasicPublishResolveKey", TestBasicPublishResolveKey)
+func (tp *provider) TestName(t *testing.T) {
+	t.Run("TestPublishResolve", tp.TestPublishResolve)
+	t.Run("TestBasicPublishResolveKey", tp.TestBasicPublishResolveKey)
+	t.Run("TestBasicPublishResolveTimeout", tp.TestBasicPublishResolveTimeout)
 }
 
 var rnd = rand.New(rand.NewSource(0x62796532303137))
@@ -34,10 +35,10 @@ func appendPath(p coreiface.Path, sub string) coreiface.Path {
 	return p
 }
 
-func TestPublishResolve(t *testing.T) {
+func (tp *provider) TestPublishResolve(t *testing.T) {
 	ctx := context.Background()
 	init := func() (coreiface.CoreAPI, coreiface.Path) {
-		apis, err := makeAPISwarm(ctx, true, 5)
+		apis, err := tp.MakeAPISwarm(ctx, true, 5)
 		if err != nil {
 			t.Fatal(err)
 			return nil, nil
@@ -183,9 +184,9 @@ func TestPublishResolve(t *testing.T) {
 	})
 }
 
-func TestBasicPublishResolveKey(t *testing.T) {
+func (tp *provider) TestBasicPublishResolveKey(t *testing.T) {
 	ctx := context.Background()
-	apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,11 +225,11 @@ func TestBasicPublishResolveKey(t *testing.T) {
 	}
 }
 
-func TestBasicPublishResolveTimeout(t *testing.T) {
+func (tp *provider) TestBasicPublishResolveTimeout(t *testing.T) {
 	t.Skip("ValidTime doesn't appear to work at this time resolution")
 
 	ctx := context.Background()
-	apis, err := makeAPISwarm(ctx, true, 5)
+	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
 	}

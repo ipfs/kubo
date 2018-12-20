@@ -23,21 +23,19 @@ import (
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
-func TestUnixfs(t *testing.T) {
-	t.Run("TestAdd", TestAdd)
-	t.Run("TestAddPinned", TestAddPinned)
-	t.Run("TestAddHashOnly", TestAddHashOnly)
-	t.Run("TestGetEmptyFile", TestGetEmptyFile)
-	t.Run("TestGetDir", TestGetDir)
-	t.Run("TestGetNonUnixfs", TestGetNonUnixfs)
-	t.Run("TestLs", TestLs)
-	t.Run("TestEntriesExpired", TestEntriesExpired)
-	t.Run("TestLsEmptyDir", TestLsEmptyDir)
-	t.Run("TestLsNonUnixfs", TestLsNonUnixfs)
-	t.Run("TestAddCloses", TestAddCloses)
+func (tp *provider) TestUnixfs(t *testing.T) {
+	t.Run("TestAdd", tp.TestAdd)
+	t.Run("TestAddPinned", tp.TestAddPinned)
+	t.Run("TestAddHashOnly", tp.TestAddHashOnly)
+	t.Run("TestGetEmptyFile", tp.TestGetEmptyFile)
+	t.Run("TestGetDir", tp.TestGetDir)
+	t.Run("TestGetNonUnixfs", tp.TestGetNonUnixfs)
+	t.Run("TestLs", tp.TestLs)
+	t.Run("TestEntriesExpired", tp.TestEntriesExpired)
+	t.Run("TestLsEmptyDir", tp.TestLsEmptyDir)
+	t.Run("TestLsNonUnixfs", tp.TestLsNonUnixfs)
+	t.Run("TestAddCloses", tp.TestAddCloses)
 }
-
-const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
 // `echo -n 'hello, world!' | ipfs add`
 var hello = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
@@ -80,9 +78,9 @@ func wrapped(name string) func(f files.Node) files.Node {
 	}
 }
 
-func TestAdd(t *testing.T) {
+func (tp *provider) TestAdd(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -537,9 +535,9 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-func TestAddPinned(t *testing.T) {
+func (tp *provider) TestAddPinned(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -559,9 +557,9 @@ func TestAddPinned(t *testing.T) {
 	}
 }
 
-func TestAddHashOnly(t *testing.T) {
+func (tp *provider) TestAddHashOnly(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -584,9 +582,9 @@ func TestAddHashOnly(t *testing.T) {
 	}
 }
 
-func TestGetEmptyFile(t *testing.T) {
+func (tp *provider) TestGetEmptyFile(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -616,9 +614,9 @@ func TestGetEmptyFile(t *testing.T) {
 	}
 }
 
-func TestGetDir(t *testing.T) {
+func (tp *provider) TestGetDir(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -648,9 +646,9 @@ func TestGetDir(t *testing.T) {
 	}
 }
 
-func TestGetNonUnixfs(t *testing.T) {
+func (tp *provider) TestGetNonUnixfs(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -667,9 +665,9 @@ func TestGetNonUnixfs(t *testing.T) {
 	}
 }
 
-func TestLs(t *testing.T) {
+func (tp *provider) TestLs(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -703,9 +701,9 @@ func TestLs(t *testing.T) {
 	}
 }
 
-func TestEntriesExpired(t *testing.T) {
+func (tp *provider) TestEntriesExpired(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -746,9 +744,9 @@ func TestEntriesExpired(t *testing.T) {
 	}
 }
 
-func TestLsEmptyDir(t *testing.T) {
+func (tp *provider) TestLsEmptyDir(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -774,9 +772,9 @@ func TestLsEmptyDir(t *testing.T) {
 }
 
 // TODO(lgierth) this should test properly, with len(links) > 0
-func TestLsNonUnixfs(t *testing.T) {
+func (tp *provider) TestLsNonUnixfs(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -831,9 +829,9 @@ func (f *closeTestF) Close() error {
 	return nil
 }
 
-func TestAddCloses(t *testing.T) {
+func (tp *provider) TestAddCloses(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
