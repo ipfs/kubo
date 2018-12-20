@@ -12,24 +12,24 @@ import (
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
-func TestObject(t *testing.T) {
-	t.Run("TestNew", TestNew)
-	t.Run("TestObjectPut", TestObjectPut)
-	t.Run("TestObjectGet", TestObjectGet)
-	t.Run("TestObjectData", TestObjectData)
-	t.Run("TestObjectLinks", TestObjectLinks)
-	t.Run("TestObjectStat", TestObjectStat)
-	t.Run("TestObjectAddLink", TestObjectAddLink)
-	t.Run("TestObjectAddLinkCreate", TestObjectAddLinkCreate)
-	t.Run("TestObjectRmLink", TestObjectRmLink)
-	t.Run("TestObjectAddData", TestObjectAddData)
-	t.Run("TestObjectSetData", TestObjectSetData)
-	t.Run("TestDiffTest", TestDiffTest)
+func (tp *provider) TestObject(t *testing.T) {
+	t.Run("TestNew", tp.TestNew)
+	t.Run("TestObjectPut", tp.TestObjectPut)
+	t.Run("TestObjectGet", tp.TestObjectGet)
+	t.Run("TestObjectData", tp.TestObjectData)
+	t.Run("TestObjectLinks", tp.TestObjectLinks)
+	t.Run("TestObjectStat", tp.TestObjectStat)
+	t.Run("TestObjectAddLink", tp.TestObjectAddLink)
+	t.Run("TestObjectAddLinkCreate", tp.TestObjectAddLinkCreate)
+	t.Run("TestObjectRmLink", tp.TestObjectRmLink)
+	t.Run("TestObjectAddData", tp.TestObjectAddData)
+	t.Run("TestObjectSetData", tp.TestObjectSetData)
+	t.Run("TestDiffTest", tp.TestDiffTest)
 }
 
-func TestNew(t *testing.T) {
+func (tp *provider) TestNew(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,9 +53,9 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestObjectPut(t *testing.T) {
+func (tp *provider) TestObjectPut(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,9 +93,9 @@ func TestObjectPut(t *testing.T) {
 	}
 }
 
-func TestObjectGet(t *testing.T) {
+func (tp *provider) TestObjectGet(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,9 +115,9 @@ func TestObjectGet(t *testing.T) {
 	}
 }
 
-func TestObjectData(t *testing.T) {
+func (tp *provider) TestObjectData(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,9 +142,9 @@ func TestObjectData(t *testing.T) {
 	}
 }
 
-func TestObjectLinks(t *testing.T) {
+func (tp *provider) TestObjectLinks(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,9 +177,9 @@ func TestObjectLinks(t *testing.T) {
 	}
 }
 
-func TestObjectStat(t *testing.T) {
+func (tp *provider) TestObjectStat(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,9 +224,9 @@ func TestObjectStat(t *testing.T) {
 	}
 }
 
-func TestObjectAddLink(t *testing.T) {
+func (tp *provider) TestObjectAddLink(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,9 +264,9 @@ func TestObjectAddLink(t *testing.T) {
 	}
 }
 
-func TestObjectAddLinkCreate(t *testing.T) {
+func (tp *provider) TestObjectAddLinkCreate(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,9 +312,9 @@ func TestObjectAddLinkCreate(t *testing.T) {
 	}
 }
 
-func TestObjectRmLink(t *testing.T) {
+func (tp *provider) TestObjectRmLink(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,9 +344,9 @@ func TestObjectRmLink(t *testing.T) {
 	}
 }
 
-func TestObjectAddData(t *testing.T) {
+func (tp *provider) TestObjectAddData(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,9 +373,9 @@ func TestObjectAddData(t *testing.T) {
 	}
 }
 
-func TestObjectSetData(t *testing.T) {
+func (tp *provider) TestObjectSetData(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -402,9 +402,9 @@ func TestObjectSetData(t *testing.T) {
 	}
 }
 
-func TestDiffTest(t *testing.T) {
+func (tp *provider) TestDiffTest(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

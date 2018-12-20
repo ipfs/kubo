@@ -12,18 +12,18 @@ import (
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
-func TestBlock(t *testing.T) {
-	t.Run("TestBlockPut", TestBlockPut)
-	t.Run("TestBlockPutFormat", TestBlockPutFormat)
-	t.Run("TestBlockPutHash", TestBlockPutHash)
-	t.Run("TestBlockGet", TestBlockGet)
-	t.Run("TestBlockRm", TestBlockRm)
-	t.Run("TestBlockStat", TestBlockStat)
+func (tp *provider) TestBlock(t *testing.T) {
+	t.Run("TestBlockPut", tp.TestBlockPut)
+	t.Run("TestBlockPutFormat", tp.TestBlockPutFormat)
+	t.Run("TestBlockPutHash", tp.TestBlockPutHash)
+	t.Run("TestBlockGet", tp.TestBlockGet)
+	t.Run("TestBlockRm", tp.TestBlockRm)
+	t.Run("TestBlockStat", tp.TestBlockStat)
 }
 
-func TestBlockPut(t *testing.T) {
+func (tp *provider) TestBlockPut(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,9 +38,9 @@ func TestBlockPut(t *testing.T) {
 	}
 }
 
-func TestBlockPutFormat(t *testing.T) {
+func (tp *provider) TestBlockPutFormat(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -55,9 +55,9 @@ func TestBlockPutFormat(t *testing.T) {
 	}
 }
 
-func TestBlockPutHash(t *testing.T) {
+func (tp *provider) TestBlockPutHash(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -72,9 +72,9 @@ func TestBlockPutHash(t *testing.T) {
 	}
 }
 
-func TestBlockGet(t *testing.T) {
+func (tp *provider) TestBlockGet(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -112,9 +112,9 @@ func TestBlockGet(t *testing.T) {
 	}
 }
 
-func TestBlockRm(t *testing.T) {
+func (tp *provider) TestBlockRm(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -165,9 +165,9 @@ func TestBlockRm(t *testing.T) {
 	}
 }
 
-func TestBlockStat(t *testing.T) {
+func (tp *provider) TestBlockStat(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}

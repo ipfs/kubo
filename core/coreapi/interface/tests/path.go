@@ -9,17 +9,17 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
-func TestPath(t *testing.T) {
-	t.Run("TestMutablePath", TestMutablePath)
-	t.Run("TestPathRemainder", TestPathRemainder)
-	t.Run("TestEmptyPathRemainder", TestEmptyPathRemainder)
-	t.Run("TestInvalidPathRemainder", TestInvalidPathRemainder)
-	t.Run("TestPathRoot", TestPathRoot)
+func (tp *provider) TestPath(t *testing.T) {
+	t.Run("TestMutablePath", tp.TestMutablePath)
+	t.Run("TestPathRemainder", tp.TestPathRemainder)
+	t.Run("TestEmptyPathRemainder", tp.TestEmptyPathRemainder)
+	t.Run("TestInvalidPathRemainder", tp.TestInvalidPathRemainder)
+	t.Run("TestPathRoot", tp.TestPathRoot)
 }
 
-func TestMutablePath(t *testing.T) {
+func (tp *provider) TestMutablePath(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,9 +44,9 @@ func TestMutablePath(t *testing.T) {
 	}
 }
 
-func TestPathRemainder(t *testing.T) {
+func (tp *provider) TestPathRemainder(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,9 +71,9 @@ func TestPathRemainder(t *testing.T) {
 	}
 }
 
-func TestEmptyPathRemainder(t *testing.T) {
+func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,9 +102,9 @@ func TestEmptyPathRemainder(t *testing.T) {
 	}
 }
 
-func TestInvalidPathRemainder(t *testing.T) {
+func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,9 +125,9 @@ func TestInvalidPathRemainder(t *testing.T) {
 	}
 }
 
-func TestPathRoot(t *testing.T) {
+func (tp *provider) TestPathRoot(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

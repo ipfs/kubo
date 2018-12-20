@@ -8,15 +8,15 @@ import (
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
-func TestPin(t *testing.T) {
-	t.Run("TestPinAdd", TestPinAdd)
-	t.Run("TestPinSimple", TestPinSimple)
-	t.Run("TestPinRecursive", TestPinRecursive)
+func (tp *provider) TestPin(t *testing.T) {
+	t.Run("TestPinAdd", tp.TestPinAdd)
+	t.Run("TestPinSimple", tp.TestPinSimple)
+	t.Run("TestPinRecursive", tp.TestPinRecursive)
 }
 
-func TestPinAdd(t *testing.T) {
+func (tp *provider) TestPinAdd(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -32,9 +32,9 @@ func TestPinAdd(t *testing.T) {
 	}
 }
 
-func TestPinSimple(t *testing.T) {
+func (tp *provider) TestPinSimple(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,9 +81,9 @@ func TestPinSimple(t *testing.T) {
 	}
 }
 
-func TestPinRecursive(t *testing.T) {
+func (tp *provider) TestPinRecursive(t *testing.T) {
 	ctx := context.Background()
-	api, err := makeAPI(ctx)
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
