@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -76,6 +77,10 @@ func NewApiWithClient(url string, c *gohttp.Client) *HttpApi {
 		url:     url,
 		httpcli: c,
 	}
+}
+
+func (api *HttpApi) WithOptions(...options.ApiOption) (iface.CoreAPI, error) {
+	return nil, ErrNotImplemented
 }
 
 func (api *HttpApi) request(command string, args ...string) *RequestBuilder {
