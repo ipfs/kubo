@@ -32,27 +32,30 @@ Datastore plugins add support for additional datastore backends.
 
 ## Available Plugins
 
-| Name                                                                            | Type      | Built-In | Description                                    |
-|---------------------------------------------------------------------------------|-----------|----------|------------------------------------------------|
-| [git](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/git)           | IPLD      | x        | An IPLD format for git objects.                |
-| [badgerds](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/badgerds) | Datastore | x        | A high performance but experimental datastore. |
-| [flatfs](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/flatfs)     | Datastore | x        | A stable filesystem-based datastore.           |
-| [levelds](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/levelds)   | Datastore | x        | A stable, flexible datastore backend.          |
+| Name                                                                            | Type      | Preloaded | Description                                    |
+|---------------------------------------------------------------------------------|-----------|-----------|------------------------------------------------|
+| [git](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/git)           | IPLD      | x         | An IPLD format for git objects.                |
+| [badgerds](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/badgerds) | Datastore | x         | A high performance but experimental datastore. |
+| [flatfs](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/flatfs)     | Datastore | x         | A stable filesystem-based datastore.           |
+| [levelds](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/levelds)   | Datastore | x         | A stable, flexible datastore backend.          |
 
-* **Built-In** plugins are built into the go-ipfs binary and do not need to be
-  installed separately. At the moment, all *known* plugins are built-in as
-  they're mature and have proven themselves to be useful.
+* **Preloaded** plugins are built into the go-ipfs binary and do not need to be
+  installed separately. At the moment, all in-tree plugins are preloaded.
 
 ## Installing Plugins
 
-External plugins must be installed in `$IPFS_PATH/plugins/` (usually
-`~/.ipfs/plugins/`). Alternatively, plugins can be preloaded and built into the
-go-ipfs binary itself.
+Go-ipfs supports two types of plugins: External and Preloaded.
+
+* External plugins must be installed in `$IPFS_PATH/plugins/` (usually
+`~/.ipfs/plugins/`).
+* Preloaded plugins are built-into the go-ipfs when it's compiled.
 
 ### External Plugin
 
-At the moment, this method is only supported on Linux and MacOS. Users of other
-operating systems should follow the instructions for preloaded plugins.
+The advantage of an external plugin is that it can be built, packaged, and
+installed independently of go-ipfs. Unfortunately, this method is only supported
+on Linux and MacOS at the moment. Users of other operating systems should follow
+the instructions for preloaded plugins.
 
 #### In-tree
 
@@ -91,6 +94,11 @@ Finally, as with in-tree plugins:
 3. Restart your IPFS daemon (if running).
 
 ### Preloaded Plugins
+
+The advantages of preloaded plugins are:
+
+1. They're bundled with the go-ipfs binary.
+2. They work on all platforms.
 
 To preload a go-ipfs plugin:
 
