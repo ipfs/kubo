@@ -3,47 +3,114 @@
 Since 0.4.11 go-ipfs has an experimental plugin system that allows augmenting
 the daemons functionality without recompiling.
 
-When an IPFS node is created, it will load plugins from the `$IPFS_PATH/plugins`
+When an IPFS node is started, it will load plugins from the `$IPFS_PATH/plugins`
 directory (by default `~/.ipfs/plugins`).
 
-### Plugin types
+**Table of Contents**
 
-#### IPLD
+- [Plugin Types](#plugin-types)
+    - [IPLD](#ipld)
+    - [Datastore](#datastore)
+- [Available Plugins](#available-plugins)
+- [Installing Plugins](#installing-plugins)
+    - [External Plugin](#external-plugin)
+        - [In-tree](#in-tree)
+        - [Out-of-tree](#out-of-tree)
+    - [Preloaded Plugins](#preloaded-plugins)
+- [Creating A Plugin](#creating-a-plugin)
+
+## Plugin Types
+
+### IPLD
+
 IPLD plugins add support for additional formats to `ipfs dag` and other IPLD
 related commands.
 
-### Supported plugins
+### Datastore
 
-| Name | Type |
-|------|------|
-|  git | IPLD |
+Datastore plugins add support for additional datastore backends.
 
-#### Installation
+## Available Plugins
 
-##### Linux
+| Name                                                                            | Type      | Preloaded | Description                                    |
+|---------------------------------------------------------------------------------|-----------|-----------|------------------------------------------------|
+| [git](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/git)           | IPLD      | x         | An IPLD format for git objects.                |
+| [badgerds](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/badgerds) | Datastore | x         | A high performance but experimental datastore. |
+| [flatfs](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/flatfs)     | Datastore | x         | A stable filesystem-based datastore.           |
+| [levelds](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins/levelds)   | Datastore | x         | A stable, flexible datastore backend.          |
 
-1. Build included plugins:
+* **Preloaded** plugins are built into the go-ipfs binary and do not need to be
+  installed separately. At the moment, all in-tree plugins are preloaded.
+
+## Installing Plugins
+
+Go-ipfs supports two types of plugins: External and Preloaded.
+
+* External plugins must be installed in `$IPFS_PATH/plugins/` (usually
+`~/.ipfs/plugins/`).
+* Preloaded plugins are built-into the go-ipfs when it's compiled.
+
+### External Plugin
+
+The advantage of an external plugin is that it can be built, packaged, and
+installed independently of go-ipfs. Unfortunately, this method is only supported
+on Linux and MacOS at the moment. Users of other operating systems should follow
+the instructions for preloaded plugins.
+
+#### In-tree
+
+To build plugins included in
+[plugin/plugins](https://github.com/ipfs/go-ipfs/tree/master/plugin/plugins),
+run:
+
 ```bash
 go-ipfs$ make build_plugins
 go-ipfs$ ls plugin/plugins/*.so
 ```
 
-3. Copy desired plugins to `$IPFS_PATH/plugins`
+To install, copy desired plugins to `$IPFS_PATH/plugins`. For example:
+
 ```bash
 go-ipfs$ mkdir -p ~/.ipfs/plugins/
 go-ipfs$ cp plugin/plugins/git.so ~/.ipfs/plugins/
 go-ipfs$ chmod +x ~/.ipfs/plugins/git.so # ensure plugin is executable
 ```
 
-4. Restart daemon if it is running
+Finally, restart daemon if it is running.
 
-##### Other
+#### Out-of-tree
 
-Go currently only supports plugins on Linux, for other platforms you will need
-to compile them into IPFS binary.
+To build out-of-tree plugins, use the plugin's Makefile if provided. Otherwise,
+you can manually build the plugin by running:
 
-1. Uncomment plugin entries in `plugin/loader/preload_list`
+```bash
+myplugin$ go build -buildmode=plugin -i -o myplugin.so myplugin.go
+```
+
+Finally, as with in-tree plugins:
+
+1. Install the plugin in `$IPFS_PATH/plugins`.
+2. Mark the plugin as executable (`chmod +x $IPFS_PATH/plugins/myplugin.so`).
+3. Restart your IPFS daemon (if running).
+
+### Preloaded Plugins
+
+The advantages of preloaded plugins are:
+
+1. They're bundled with the go-ipfs binary.
+2. They work on all platforms.
+
+To preload a go-ipfs plugin:
+
+1. Add the plugin to the preload list: `plugin/loader/preload_list`
 2. Build ipfs
 ```bash
 go-ipfs$ make build
 ```
+
+## Creating A Plugin
+
+To create your own out-of-tree plugin, use the [example
+plugin](https://github.com/ipfs/go-ipfs-example-plugin/) as a starting point.
+When you're ready, submit a PR adding it to the list of [available
+plugins](#available-plugins).
