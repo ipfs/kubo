@@ -35,7 +35,11 @@ func NewLocalApi() iface.CoreAPI {
 		baseDir = DefaultPathRoot
 	}
 
-	baseDir, err := homedir.Expand(baseDir)
+	return NewPathApi(baseDir)
+}
+
+func NewPathApi(p string) iface.CoreAPI {
+	baseDir, err := homedir.Expand(p)
 	if err != nil {
 		return nil
 	}
@@ -51,10 +55,15 @@ func NewLocalApi() iface.CoreAPI {
 		return nil
 	}
 
-	return NewApi(strings.TrimSpace(string(api)))
+	maddr, err := ma.NewMultiaddr(strings.TrimSpace(string(api)))
+	if err != nil {
+		return nil
+	}
+
+	return NewApi(maddr)
 }
 
-func NewApi(url string) *HttpApi {
+func NewApi(a ma.Multiaddr) *HttpApi { // TODO: should be MAddr?
 	c := &gohttp.Client{
 		Transport: &gohttp.Transport{
 			Proxy:             gohttp.ProxyFromEnvironment,
@@ -62,10 +71,15 @@ func NewApi(url string) *HttpApi {
 		},
 	}
 
-	return NewApiWithClient(url, c)
+	return NewApiWithClient(a, c)
 }
 
-func NewApiWithClient(url string, c *gohttp.Client) *HttpApi {
+func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) *HttpApi {
+	_, url, err := manet.DialArgs(a)
+	if err != nil {
+		return nil // TODO: return that error
+	}
+
 	if a, err := ma.NewMultiaddr(url); err == nil {
 		_, host, err := manet.DialArgs(a)
 		if err == nil {
