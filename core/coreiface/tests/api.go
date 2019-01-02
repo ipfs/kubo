@@ -71,7 +71,7 @@ func TestApi(p Provider) func(t *testing.T) {
 			select {
 			case <-zeroRunning:
 			case <-time.After(time.Second):
-				t.Errorf("%d node(s) not closed", running)
+				t.Errorf("%d test swarms(s) not closed", running)
 			}
 		})
 	}
