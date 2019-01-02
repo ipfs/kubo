@@ -40,7 +40,7 @@ func (tp *provider) TestPut(t *testing.T) {
 
 	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if res.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
@@ -58,7 +58,7 @@ func (tp *provider) TestPutWithHash(t *testing.T) {
 
 	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`), opt.Dag.Hash(mh.ID, -1))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if res.Cid().String() != "z5hRLNd2sv4z1c" {
@@ -76,12 +76,12 @@ func (tp *provider) TestDagPath(t *testing.T) {
 
 	sub, err := api.Dag().Put(ctx, strings.NewReader(`"foo"`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+sub.Cid().String()+`"}}`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p, err := coreiface.ParsePath(path.Join(res.Cid().String(), "lnk"))
@@ -109,7 +109,7 @@ func (tp *provider) TestTree(t *testing.T) {
 
 	c, err := api.Dag().Put(ctx, strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Dag().Get(ctx, c)
@@ -141,7 +141,7 @@ func (tp *provider) TestBatch(t *testing.T) {
 
 	c, err := batch.Put(ctx, strings.NewReader(`"Hello"`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if c.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {

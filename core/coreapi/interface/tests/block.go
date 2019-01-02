@@ -26,12 +26,12 @@ func (tp *provider) TestBlockPut(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if res.Path().Cid().String() != "QmPyo15ynbVrSTVdJL9th7JysHaAbXt9dM9tXk1bMHbRtk" {
@@ -49,7 +49,7 @@ func (tp *provider) TestBlockPutFormat(t *testing.T) {
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Format("cbor"))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if res.Path().Cid().String() != "zdpuAn4amuLWo8Widi5v6VQpuo2dnpnwbVE3oB6qqs7mDSeoa" {
@@ -85,7 +85,7 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Hash(mh.KECCAK_512, -1))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	r, err := api.Block().Get(ctx, res.Path())
@@ -126,7 +126,7 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	r, err := api.Block().Get(ctx, res.Path())
@@ -180,7 +180,7 @@ func (tp *provider) TestBlockStat(t *testing.T) {
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	stat, err := api.Block().Stat(ctx, res.Path())
