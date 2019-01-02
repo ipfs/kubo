@@ -209,7 +209,6 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 		subApi.peerstore = nil
 		subApi.peerHost = nil
-		subApi.namesys = nil
 		subApi.recordValidator = nil
 
 		subApi.exchange = offlinexch.Exchange(subApi.blockstore)
