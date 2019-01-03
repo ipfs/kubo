@@ -20,6 +20,9 @@ import (
 )
 
 var urlStoreCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Interact with urlstore.",
+	},
 	Subcommands: map[string]*cmds.Command{
 		"add": urlAdd,
 	},
