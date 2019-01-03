@@ -190,6 +190,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		"Content-Range",
 		"X-Chunked-Output",
 		"X-Stream-Output",
+		"content-type"
 	}
 
 	var allowedHeaders = strings.Join(allowedHeadersArr, ", ")
