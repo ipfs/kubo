@@ -46,6 +46,7 @@ type ResolvedPath interface {
 	// cidRoot := {"A": {"/": cidA }}
 	//
 	// And resolve paths:
+	//
 	// * "/ipfs/${cidRoot}"
 	//   * Calling Cid() will return `cidRoot`
 	//   * Calling Root() will return `cidRoot`

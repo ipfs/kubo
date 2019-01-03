@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	"io"
 	"io/ioutil"
 	"math"
@@ -176,6 +177,14 @@ func TestAdd(t *testing.T) {
 	_, api, err := makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
+	}
+
+	p := func(h string) coreiface.ResolvedPath {
+		c, err := cid.Parse(h)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return coreiface.IpfsPath(c)
 	}
 
 	cases := []struct {
@@ -406,7 +415,7 @@ func TestAdd(t *testing.T) {
 			data: strFile(helloStr),
 			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
 			events: []coreiface.AddEvent{
-				{Name: "zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd", Hash: "zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd", Size: strconv.Itoa(len(helloStr))},
+				{Name: "zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd", Path: p("zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd"), Size: strconv.Itoa(len(helloStr))},
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.RawLeaves(true)},
 		},
@@ -415,8 +424,8 @@ func TestAdd(t *testing.T) {
 			data: twoLevelDir(),
 			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
 			events: []coreiface.AddEvent{
-				{Name: "t/abc", Hash: "QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt", Size: "62"},
-				{Name: "t", Hash: "QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr", Size: "229"},
+				{Name: "t/abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
+				{Name: "t", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
 			},
 			wrap: "t",
 			opts: []options.UnixfsAddOption{options.Unixfs.Silent(true)},
@@ -426,11 +435,11 @@ func TestAdd(t *testing.T) {
 			data: twoLevelDir(),
 			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
 			events: []coreiface.AddEvent{
-				{Name: "t/abc/def", Hash: "QmNyJpQkU1cEkBwMDhDNFstr42q55mqG5GE5Mgwug4xyGk", Size: "13"},
-				{Name: "t/bar", Hash: "QmS21GuXiRMvJKHos4ZkEmQDmRBqRaF5tQS2CQCu2ne9sY", Size: "14"},
-				{Name: "t/foo", Hash: "QmfAjGiVpTN56TXi6SBQtstit5BEw3sijKj1Qkxn6EXKzJ", Size: "14"},
-				{Name: "t/abc", Hash: "QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt", Size: "62"},
-				{Name: "t", Hash: "QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr", Size: "229"},
+				{Name: "t/abc/def", Path: p("QmNyJpQkU1cEkBwMDhDNFstr42q55mqG5GE5Mgwug4xyGk"), Size: "13"},
+				{Name: "t/bar", Path: p("QmS21GuXiRMvJKHos4ZkEmQDmRBqRaF5tQS2CQCu2ne9sY"), Size: "14"},
+				{Name: "t/foo", Path: p("QmfAjGiVpTN56TXi6SBQtstit5BEw3sijKj1Qkxn6EXKzJ"), Size: "14"},
+				{Name: "t/abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
+				{Name: "t", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
 			},
 			wrap: "t",
 		},
@@ -445,7 +454,7 @@ func TestAdd(t *testing.T) {
 				{Name: "", Bytes: 524288},
 				{Name: "", Bytes: 786432},
 				{Name: "", Bytes: 1000000},
-				{Name: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Hash: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Size: "1000256"},
+				{Name: "QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD", Path: p("QmXXNNbwe4zzpdMg62ZXvnX1oU7MwSrQ3vAEtuwFKCm1oD"), Size: "1000256"},
 			},
 			wrap: "",
 			opts: []options.UnixfsAddOption{options.Unixfs.Progress(true)},
@@ -497,8 +506,12 @@ func TestAdd(t *testing.T) {
 							t.Errorf("Event.Name didn't match, %s != %s", expected[0].Name, event.Name)
 						}
 
-						if expected[0].Hash != event.Hash {
-							t.Errorf("Event.Hash didn't match, %s != %s", expected[0].Hash, event.Hash)
+						if expected[0].Path != nil && event.Path != nil {
+							if expected[0].Path.Cid().String() != event.Path.Cid().String() {
+								t.Errorf("Event.Hash didn't match, %s != %s", expected[0].Path, event.Path)
+							}
+						} else if event.Path != expected[0].Path {
+							t.Errorf("Event.Hash didn't match, %s != %s", expected[0].Path, event.Path)
 						}
 						if expected[0].Bytes != event.Bytes {
 							t.Errorf("Event.Bytes didn't match, %d != %d", expected[0].Bytes, event.Bytes)
