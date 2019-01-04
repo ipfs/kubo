@@ -70,16 +70,16 @@ func (c *Context) GetAPI() (coreiface.CoreAPI, error) {
 		if err != nil {
 			return nil, err
 		}
-		offline := false
+		fetchBlocks := true
 		if c.Gateway {
 			cfg, err := c.GetConfig()
 			if err != nil {
 				return nil, err
 			}
-			offline = cfg.Gateway.NoFetch
+			fetchBlocks = !cfg.Gateway.NoFetch
 		}
 
-		c.api, err = coreapi.NewCoreAPI(n, options.Api.Offline(offline))
+		c.api, err = coreapi.NewCoreAPI(n, options.Api.FetchBlocks(fetchBlocks))
 		if err != nil {
 			return nil, err
 		}

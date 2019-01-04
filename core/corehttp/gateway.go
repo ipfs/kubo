@@ -26,7 +26,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			return nil, err
 		}
 
-		api, err := coreapi.NewCoreAPI(n, options.Api.Offline(cfg.Gateway.NoFetch))
+		api, err := coreapi.NewCoreAPI(n, options.Api.FetchBlocks(!cfg.Gateway.NoFetch))
 		if err != nil {
 			return nil, err
 		}

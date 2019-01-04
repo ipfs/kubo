@@ -244,13 +244,13 @@ test_expect_success "try fetching not present ipns key from node 0" '
 '
 
 test_expect_success "try fetching present key from from node 0" '
-  BAR=$(ipfsi 0 add -Q > bar.hash) &&
+  BAR=$(echo "bar" | ipfsi 0 add -Q) &&
   curl -f "http://127.0.0.1:$GWPORT/ipfs/$BAR"
 '
 
 test_expect_success "try fetching present ipns key from node 0" '
   ipfsi 1 name publish /ipfs/$BAR &&
-  test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipns/$PEERID_1"
+  curl "http://127.0.0.1:$GWPORT/ipns/$PEERID_1"
 '
 
 test_expect_success "stop testbed" '
