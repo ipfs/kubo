@@ -348,7 +348,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	}
 
 	var hash string
-	if !strings.Contains(originalUrlPath, "ipfs") {
+	if !strings.HasPrefix(originalUrlPath, ipfsPathPrefix) {
 		hash = resolvedPath.Cid().String()
 	}
 
