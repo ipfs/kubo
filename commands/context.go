@@ -9,6 +9,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 
 	config "gx/ipfs/QmRd5T3VmYoX6jaNoZovFRQcwWHJqHgTVQTs1Qz92ELJ7C/go-ipfs-config"
@@ -29,6 +30,7 @@ type Context struct {
 	config     *config.Config
 	LoadConfig func(path string) (*config.Config, error)
 
+	Gateway       bool
 	api           coreiface.CoreAPI
 	node          *core.IpfsNode
 	ConstructNode func() (*core.IpfsNode, error)
@@ -68,7 +70,16 @@ func (c *Context) GetAPI() (coreiface.CoreAPI, error) {
 		if err != nil {
 			return nil, err
 		}
-		c.api, err = coreapi.NewCoreAPI(n)
+		offline := false
+		if c.Gateway {
+			cfg, err := c.GetConfig()
+			if err != nil {
+				return nil, err
+			}
+			offline = cfg.Gateway.NoFetch
+		}
+
+		c.api, err = coreapi.NewCoreAPI(n, options.Api.Offline(offline))
 		if err != nil {
 			return nil, err
 		}
