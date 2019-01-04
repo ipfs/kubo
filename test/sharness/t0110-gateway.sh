@@ -233,14 +233,14 @@ test_expect_success "start ipfs nodes" '
 '
 
 test_expect_success "try fetching not present key from node 0" '
-  echo "hi" | ipfsi 1 add -Q > hi.hash &&
-  test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipfs/$(cat hi.hash)"
+  echo "foo" | ipfsi 1 add -Q > foo.hash &&
+  test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipfs/$(cat foo.hash)"
 '
 
 test_expect_success "try fetching present key from from node 0" '
-  echo "hi" | ipfsi 0 add -Q > hi.hash &&
+  echo "bar" | ipfsi 0 add -Q > bar.hash &&
   PORT1=$(ipfs config Addresses.Gateway | cut -d/ -f 5) &&
-  curl -f "http://127.0.0.1:$GWPORT/ipfs/$(cat hi.hash)"
+  curl -f "http://127.0.0.1:$GWPORT/ipfs/$(cat bar.hash)"
 '
 
 test_expect_success "stop testbed" '

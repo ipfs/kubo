@@ -119,7 +119,12 @@ func (d *ufsDirectory) Entries() files.DirIterator {
 }
 
 func (d *ufsDirectory) Size() (int64, error) {
-	return 0, files.ErrNotSupported
+	n, err := d.dir.GetNode()
+	if err != nil {
+		return 0, err
+	}
+	s, err := n.Size()
+	return int64(s), err
 }
 
 type ufsFile struct {

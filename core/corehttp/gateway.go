@@ -2,13 +2,13 @@ package corehttp
 
 import (
 	"fmt"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"net"
 	"net/http"
 
 	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	id "gx/ipfs/QmRBaUEQEeFWywfrZJ64QgsmvcqgLSK3VbvGMR2NM2Edpf/go-libp2p/p2p/protocol/identify"
 )

@@ -15,6 +15,7 @@ func (tp *provider) TestPath(t *testing.T) {
 	t.Run("TestEmptyPathRemainder", tp.TestEmptyPathRemainder)
 	t.Run("TestInvalidPathRemainder", tp.TestInvalidPathRemainder)
 	t.Run("TestPathRoot", tp.TestPathRoot)
+	t.Run("TestPathJoin", tp.TestPathJoin)
 }
 
 func (tp *provider) TestMutablePath(t *testing.T) {
@@ -163,5 +164,16 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 
 	if rp.Cid().String() != blk.Path().Cid().String() {
 		t.Error("unexpected path cid")
+	}
+}
+
+func (tp *provider) TestPathJoin(t *testing.T) {
+	p1, err := coreiface.ParsePath("/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if coreiface.Join(p1, "foo").String() != "/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz/foo" {
+		t.Error("unexpected path")
 	}
 }
