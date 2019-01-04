@@ -1,11 +1,8 @@
-package coreapi_test
+package tests
 
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"fmt"
-	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	"io"
 	"io/ioutil"
 	"math"
@@ -15,30 +12,30 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	mock "github.com/ipfs/go-ipfs/core/mock"
-	"github.com/ipfs/go-ipfs/keystore"
-	"github.com/ipfs/go-ipfs/repo"
 
-	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
-	mocknet "gx/ipfs/QmRBaUEQEeFWywfrZJ64QgsmvcqgLSK3VbvGMR2NM2Edpf/go-libp2p/p2p/net/mock"
+	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	cbor "gx/ipfs/QmRoARq3nkUb13HSKZGepCZSWe5GrVPwx7xURJGZ7KWv9V/go-ipld-cbor"
-	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
-	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
-	pstore "gx/ipfs/QmZ9zH2FnLcxv1xyzFeUpDUeo55xEhZQHgveZijcxr7TLj/go-libp2p-peerstore"
-	unixfs "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs"
-	config "gx/ipfs/QmcZfkbgwwwH5ZLTQRHkSQBDiDqd3skY2eU6MZRgWuXcse/go-ipfs-config"
+	"gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
+	"gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs"
 	mdag "gx/ipfs/QmdV35UHnL1FM52baPkeUo6u7Fxm2CRUkPTLRPxeF8a4Ap/go-merkledag"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-	datastore "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
-	syncds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore/sync"
 )
 
-const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
+func (tp *provider) TestUnixfs(t *testing.T) {
+	t.Run("TestAdd", tp.TestAdd)
+	t.Run("TestAddPinned", tp.TestAddPinned)
+	t.Run("TestAddHashOnly", tp.TestAddHashOnly)
+	t.Run("TestGetEmptyFile", tp.TestGetEmptyFile)
+	t.Run("TestGetDir", tp.TestGetDir)
+	t.Run("TestGetNonUnixfs", tp.TestGetNonUnixfs)
+	t.Run("TestLs", tp.TestLs)
+	t.Run("TestEntriesExpired", tp.TestEntriesExpired)
+	t.Run("TestLsEmptyDir", tp.TestLsEmptyDir)
+	t.Run("TestLsNonUnixfs", tp.TestLsNonUnixfs)
+	t.Run("TestAddCloses", tp.TestAddCloses)
+}
 
 // `echo -n 'hello, world!' | ipfs add`
 var hello = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
@@ -46,97 +43,6 @@ var helloStr = "hello, world!"
 
 // `echo -n | ipfs add`
 var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
-
-func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNode, []coreiface.CoreAPI, error) {
-	mn := mocknet.New(ctx)
-
-	nodes := make([]*core.IpfsNode, n)
-	apis := make([]coreiface.CoreAPI, n)
-
-	for i := 0; i < n; i++ {
-		var ident config.Identity
-		if fullIdentity {
-			sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			id, err := peer.IDFromPublicKey(pk)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			kbytes, err := sk.Bytes()
-			if err != nil {
-				return nil, nil, err
-			}
-
-			ident = config.Identity{
-				PeerID:  id.Pretty(),
-				PrivKey: base64.StdEncoding.EncodeToString(kbytes),
-			}
-		} else {
-			ident = config.Identity{
-				PeerID: testPeerID,
-			}
-		}
-
-		c := config.Config{}
-		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.%d.1/tcp/4001", i)}
-		c.Identity = ident
-
-		r := &repo.Mock{
-			C: c,
-			D: syncds.MutexWrap(datastore.NewMapDatastore()),
-			K: keystore.NewMemKeystore(),
-		}
-
-		node, err := core.NewNode(ctx, &core.BuildCfg{
-			Repo:   r,
-			Host:   mock.MockHostOption(mn),
-			Online: fullIdentity,
-			ExtraOpts: map[string]bool{
-				"pubsub": true,
-			},
-		})
-		if err != nil {
-			return nil, nil, err
-		}
-		nodes[i] = node
-		apis[i], err = coreapi.NewCoreAPI(node)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	err := mn.LinkAll()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	bsinf := core.BootstrapConfigWithPeers(
-		[]pstore.PeerInfo{
-			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
-		},
-	)
-
-	for _, n := range nodes[1:] {
-		if err := n.Bootstrap(bsinf); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return nodes, apis, nil
-}
-
-func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
-	nd, api, err := makeAPISwarm(ctx, false, 1)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nd[0], api[0], nil
-}
 
 func strFile(data string) func() files.Node {
 	return func() files.Node {
@@ -172,9 +78,10 @@ func wrapped(name string) func(f files.Node) files.Node {
 	}
 }
 
-func TestAdd(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestAdd(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -629,9 +536,10 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-func TestAddPinned(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestAddPinned(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -651,9 +559,10 @@ func TestAddPinned(t *testing.T) {
 	}
 }
 
-func TestAddHashOnly(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestAddHashOnly(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -676,14 +585,15 @@ func TestAddHashOnly(t *testing.T) {
 	}
 }
 
-func TestGetEmptyFile(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
+func (tp *provider) TestGetEmptyFile(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = coreunix.Add(node, strings.NewReader(""))
+	_, err = api.Unixfs().Add(ctx, files.NewBytesFile([]byte{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -708,14 +618,15 @@ func TestGetEmptyFile(t *testing.T) {
 	}
 }
 
-func TestGetDir(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
+func (tp *provider) TestGetDir(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 	edir := unixfs.EmptyDirNode()
-	err = node.DAG.Add(ctx, edir)
+	_, err = api.Dag().Put(ctx, bytes.NewReader(edir.RawData()), options.Dag.Codec(cid.DagProtobuf), options.Dag.InputEnc("raw"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -740,15 +651,16 @@ func TestGetDir(t *testing.T) {
 	}
 }
 
-func TestGetNonUnixfs(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
+func (tp *provider) TestGetNonUnixfs(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
 	nd := new(mdag.ProtoNode)
-	err = node.DAG.Add(ctx, nd)
+	_, err = api.Dag().Put(ctx, bytes.NewReader(nd.RawData()), options.Dag.Codec(nd.CidBuilder().GetCodec()), options.Dag.InputEnc("raw"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -759,23 +671,20 @@ func TestGetNonUnixfs(t *testing.T) {
 	}
 }
 
-func TestLs(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
+func (tp *provider) TestLs(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
 	r := strings.NewReader("content-of-file")
-	k, _, err := coreunix.AddWrapped(node, r, "name-of-file")
-	if err != nil {
-		t.Error(err)
-	}
-	parts := strings.Split(k, "/")
-	if len(parts) != 2 {
-		t.Errorf("unexpected path: %s", k)
-	}
-	p, err := coreiface.ParsePath("/ipfs/" + parts[0])
+	p, err := api.Unixfs().Add(ctx, files.NewMapDirectory(map[string]files.Node{
+		"0": files.NewMapDirectory(map[string]files.Node{
+			"name-of-file": files.NewReaderFile(r),
+		}),
+	}))
 	if err != nil {
 		t.Error(err)
 	}
@@ -799,28 +708,25 @@ func TestLs(t *testing.T) {
 	}
 }
 
-func TestEntriesExpired(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
+func (tp *provider) TestEntriesExpired(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
 	r := strings.NewReader("content-of-file")
-	k, _, err := coreunix.AddWrapped(node, r, "name-of-file")
-	if err != nil {
-		t.Error(err)
-	}
-	parts := strings.Split(k, "/")
-	if len(parts) != 2 {
-		t.Errorf("unexpected path: %s", k)
-	}
-	p, err := coreiface.ParsePath("/ipfs/" + parts[0])
+	p, err := api.Unixfs().Add(ctx, files.NewMapDirectory(map[string]files.Node{
+		"0": files.NewMapDirectory(map[string]files.Node{
+			"name-of-file": files.NewReaderFile(r),
+		}),
+	}))
 	if err != nil {
 		t.Error(err)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel = context.WithCancel(ctx)
 
 	nd, err := api.Unixfs().Get(ctx, p)
 	if err != nil {
@@ -846,14 +752,15 @@ func TestEntriesExpired(t *testing.T) {
 	}
 }
 
-func TestLsEmptyDir(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
+func (tp *provider) TestLsEmptyDir(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = node.DAG.Add(ctx, unixfs.EmptyDirNode())
+	_, err = api.Unixfs().Add(ctx, files.NewMapDirectory(map[string]files.Node{"0": files.NewSliceDirectory([]files.DirEntry{})}))
 	if err != nil {
 		t.Error(err)
 	}
@@ -874,9 +781,10 @@ func TestLsEmptyDir(t *testing.T) {
 }
 
 // TODO(lgierth) this should test properly, with len(links) > 0
-func TestLsNonUnixfs(t *testing.T) {
-	ctx := context.Background()
-	node, api, err := makeAPI(ctx)
+func (tp *provider) TestLsNonUnixfs(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -886,7 +794,7 @@ func TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = node.DAG.Add(ctx, nd)
+	_, err = api.Dag().Put(ctx, bytes.NewReader(nd.RawData()), options.Dag.Codec(cid.DagCBOR), options.Dag.InputEnc("raw"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -931,9 +839,10 @@ func (f *closeTestF) Close() error {
 	return nil
 }
 
-func TestAddCloses(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestAddCloses(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}

@@ -1,20 +1,25 @@
-package coreapi_test
+package tests
 
 import (
 	"context"
-	"github.com/ipfs/go-ipfs/core"
 	"io"
 	"math/rand"
 	"path"
 	"testing"
 	"time"
 
-	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
+	"gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	ipath "gx/ipfs/QmZErC2Ay6WuGi96CPg316PwitdwgLo6RxZRqVjJjRj2MR/go-path"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
+
+func (tp *provider) TestName(t *testing.T) {
+	t.Run("TestPublishResolve", tp.TestPublishResolve)
+	t.Run("TestBasicPublishResolveKey", tp.TestBasicPublishResolveKey)
+	t.Run("TestBasicPublishResolveTimeout", tp.TestBasicPublishResolveTimeout)
+}
 
 var rnd = rand.New(rand.NewSource(0x62796532303137))
 
@@ -30,36 +35,40 @@ func appendPath(p coreiface.Path, sub string) coreiface.Path {
 	return p
 }
 
-func TestPublishResolve(t *testing.T) {
-	ctx := context.Background()
-	init := func() (*core.IpfsNode, coreiface.CoreAPI, coreiface.Path) {
-		nds, apis, err := makeAPISwarm(ctx, true, 5)
+func (tp *provider) TestPublishResolve(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	init := func() (coreiface.CoreAPI, coreiface.Path) {
+		apis, err := tp.MakeAPISwarm(ctx, true, 5)
 		if err != nil {
 			t.Fatal(err)
-			return nil, nil, nil
+			return nil, nil
 		}
-		n := nds[0]
 		api := apis[0]
 
 		p, err := addTestObject(ctx, api)
 		if err != nil {
 			t.Fatal(err)
-			return nil, nil, nil
+			return nil, nil
 		}
-		return n, api, p
+		return api, p
 	}
 
 	run := func(t *testing.T, ropts []opt.NameResolveOption) {
 		t.Run("basic", func(t *testing.T) {
-			n, api, p := init()
+			api, p := init()
 			e, err := api.Name().Publish(ctx, p)
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
-			if e.Name() != n.Identity.Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", n.Identity.Pretty(), e.Name())
+			self, err := api.Key().Self(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if e.Name() != self.ID().Pretty() {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
 			}
 
 			if e.Value().String() != p.String() {
@@ -69,7 +78,6 @@ func TestPublishResolve(t *testing.T) {
 			resPath, err := api.Name().Resolve(ctx, e.Name(), ropts...)
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
 			if resPath.String() != p.String() {
@@ -78,15 +86,19 @@ func TestPublishResolve(t *testing.T) {
 		})
 
 		t.Run("publishPath", func(t *testing.T) {
-			n, api, p := init()
+			api, p := init()
 			e, err := api.Name().Publish(ctx, appendPath(p, "/test"))
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
-			if e.Name() != n.Identity.Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", n.Identity.Pretty(), e.Name())
+			self, err := api.Key().Self(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if e.Name() != self.ID().Pretty() {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
 			}
 
 			if e.Value().String() != p.String()+"/test" {
@@ -96,7 +108,6 @@ func TestPublishResolve(t *testing.T) {
 			resPath, err := api.Name().Resolve(ctx, e.Name(), ropts...)
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
 			if resPath.String() != p.String()+"/test" {
@@ -105,15 +116,19 @@ func TestPublishResolve(t *testing.T) {
 		})
 
 		t.Run("revolvePath", func(t *testing.T) {
-			n, api, p := init()
+			api, p := init()
 			e, err := api.Name().Publish(ctx, p)
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
-			if e.Name() != n.Identity.Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", n.Identity.Pretty(), e.Name())
+			self, err := api.Key().Self(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if e.Name() != self.ID().Pretty() {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
 			}
 
 			if e.Value().String() != p.String() {
@@ -123,7 +138,6 @@ func TestPublishResolve(t *testing.T) {
 			resPath, err := api.Name().Resolve(ctx, e.Name()+"/test", ropts...)
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
 			if resPath.String() != p.String()+"/test" {
@@ -132,15 +146,19 @@ func TestPublishResolve(t *testing.T) {
 		})
 
 		t.Run("publishRevolvePath", func(t *testing.T) {
-			n, api, p := init()
+			api, p := init()
 			e, err := api.Name().Publish(ctx, appendPath(p, "/a"))
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
-			if e.Name() != n.Identity.Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", n.Identity.Pretty(), e.Name())
+			self, err := api.Key().Self(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if e.Name() != self.ID().Pretty() {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
 			}
 
 			if e.Value().String() != p.String()+"/a" {
@@ -150,7 +168,6 @@ func TestPublishResolve(t *testing.T) {
 			resPath, err := api.Name().Resolve(ctx, e.Name()+"/b", ropts...)
 			if err != nil {
 				t.Fatal(err)
-				return
 			}
 
 			if resPath.String() != p.String()+"/a/b" {
@@ -168,31 +185,28 @@ func TestPublishResolve(t *testing.T) {
 	})
 }
 
-func TestBasicPublishResolveKey(t *testing.T) {
-	ctx := context.Background()
-	_, apis, err := makeAPISwarm(ctx, true, 5)
+func (tp *provider) TestBasicPublishResolveKey(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
 	api := apis[0]
 
 	k, err := api.Key().Generate(ctx, "foo")
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
 
 	p, err := addTestObject(ctx, api)
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
 
 	e, err := api.Name().Publish(ctx, p, opt.Name.Key(k.Name()))
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
 
 	if ipath.Join([]string{"/ipns", e.Name()}) != k.Path().String() {
@@ -206,7 +220,6 @@ func TestBasicPublishResolveKey(t *testing.T) {
 	resPath, err := api.Name().Resolve(ctx, e.Name())
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
 
 	if resPath.String() != p.String() {
@@ -214,31 +227,33 @@ func TestBasicPublishResolveKey(t *testing.T) {
 	}
 }
 
-func TestBasicPublishResolveTimeout(t *testing.T) {
+func (tp *provider) TestBasicPublishResolveTimeout(t *testing.T) {
 	t.Skip("ValidTime doesn't appear to work at this time resolution")
 
-	ctx := context.Background()
-	nds, apis, err := makeAPISwarm(ctx, true, 5)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	apis, err := tp.MakeAPISwarm(ctx, true, 5)
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
-	n := nds[0]
 	api := apis[0]
 	p, err := addTestObject(ctx, api)
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
 
 	e, err := api.Name().Publish(ctx, p, opt.Name.ValidTime(time.Millisecond*100))
 	if err != nil {
 		t.Fatal(err)
-		return
 	}
 
-	if e.Name() != n.Identity.Pretty() {
-		t.Errorf("expected e.Name to equal '%s', got '%s'", n.Identity.Pretty(), e.Name())
+	self, err := api.Key().Self(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if e.Name() != self.ID().Pretty() {
+		t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
 	}
 
 	if e.Value().String() != p.String() {
@@ -250,7 +265,6 @@ func TestBasicPublishResolveTimeout(t *testing.T) {
 	_, err = api.Name().Resolve(ctx, e.Name())
 	if err == nil {
 		t.Fatal("Expected an error")
-		return
 	}
 }
 

@@ -1,4 +1,4 @@
-package coreapi_test
+package tests
 
 import (
 	"context"
@@ -7,11 +7,15 @@ import (
 	"time"
 )
 
-func TestBasicPubSub(t *testing.T) {
+func (tp *provider) TestPubSub(t *testing.T) {
+	t.Run("TestBasicPubSub", tp.TestBasicPubSub)
+}
+
+func (tp *provider) TestBasicPubSub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	nds, apis, err := makeAPISwarm(ctx, true, 2)
+	apis, err := tp.MakeAPISwarm(ctx, true, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +50,12 @@ func TestBasicPubSub(t *testing.T) {
 		t.Errorf("got invalid data: %s", string(m.Data()))
 	}
 
-	if m.From() != nds[1].Identity {
+	self1, err := apis[1].Key().Self(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if m.From() != self1.ID() {
 		t.Errorf("m.From didn't match")
 	}
 
@@ -59,7 +68,12 @@ func TestBasicPubSub(t *testing.T) {
 		t.Fatalf("got incorrect number of peers: %d", len(peers))
 	}
 
-	if peers[0] != nds[0].Identity {
+	self0, err := apis[0].Key().Self(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if peers[0] != self0.ID() {
 		t.Errorf("peer didn't match")
 	}
 

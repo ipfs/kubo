@@ -1,4 +1,4 @@
-package coreapi_test
+package tests
 
 import (
 	"context"
@@ -12,6 +12,14 @@ import (
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
+func (tp *provider) TestDag(t *testing.T) {
+	t.Run("TestPut", tp.TestPut)
+	t.Run("TestPutWithHash", tp.TestPutWithHash)
+	t.Run("TestPath", tp.TestDagPath)
+	t.Run("TestTree", tp.TestTree)
+	t.Run("TestBatch", tp.TestBatch)
+}
+
 var (
 	treeExpected = map[string]struct{}{
 		"a":   {},
@@ -22,16 +30,17 @@ var (
 	}
 )
 
-func TestPut(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestPut(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
 	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if res.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
@@ -39,16 +48,17 @@ func TestPut(t *testing.T) {
 	}
 }
 
-func TestPutWithHash(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestPutWithHash(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
 	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`), opt.Dag.Hash(mh.ID, -1))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if res.Cid().String() != "z5hRLNd2sv4z1c" {
@@ -56,21 +66,22 @@ func TestPutWithHash(t *testing.T) {
 	}
 }
 
-func TestPath(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestDagPath(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
 	sub, err := api.Dag().Put(ctx, strings.NewReader(`"foo"`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+sub.Cid().String()+`"}}`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p, err := coreiface.ParsePath(path.Join(res.Cid().String(), "lnk"))
@@ -88,16 +99,17 @@ func TestPath(t *testing.T) {
 	}
 }
 
-func TestTree(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestTree(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
 
 	c, err := api.Dag().Put(ctx, strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Dag().Get(ctx, c)
@@ -117,9 +129,10 @@ func TestTree(t *testing.T) {
 	}
 }
 
-func TestBatch(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestBatch(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -128,7 +141,7 @@ func TestBatch(t *testing.T) {
 
 	c, err := batch.Put(ctx, strings.NewReader(`"Hello"`))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if c.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {

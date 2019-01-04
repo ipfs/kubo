@@ -1,4 +1,4 @@
-package coreapi_test
+package tests
 
 import (
 	"context"
@@ -9,9 +9,18 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
-func TestMutablePath(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestPath(t *testing.T) {
+	t.Run("TestMutablePath", tp.TestMutablePath)
+	t.Run("TestPathRemainder", tp.TestPathRemainder)
+	t.Run("TestEmptyPathRemainder", tp.TestEmptyPathRemainder)
+	t.Run("TestInvalidPathRemainder", tp.TestInvalidPathRemainder)
+	t.Run("TestPathRoot", tp.TestPathRoot)
+}
+
+func (tp *provider) TestMutablePath(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,9 +45,10 @@ func TestMutablePath(t *testing.T) {
 	}
 }
 
-func TestPathRemainder(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestPathRemainder(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,9 +73,10 @@ func TestPathRemainder(t *testing.T) {
 	}
 }
 
-func TestEmptyPathRemainder(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,9 +105,10 @@ func TestEmptyPathRemainder(t *testing.T) {
 	}
 }
 
-func TestInvalidPathRemainder(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,9 +129,10 @@ func TestInvalidPathRemainder(t *testing.T) {
 	}
 }
 
-func TestPathRoot(t *testing.T) {
-	ctx := context.Background()
-	_, api, err := makeAPI(ctx)
+func (tp *provider) TestPathRoot(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
