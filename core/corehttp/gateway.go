@@ -53,7 +53,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 
 		headers := make(map[string][]string, len(cfg.Gateway.HTTPHeaders))
 		for h, v := range cfg.Gateway.HTTPHeaders {
-			headers[h] = v
+			headers[http.CanonicalHeaderKey(h)] = v
 		}
 
 		// Hard-coded headers.
