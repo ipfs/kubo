@@ -347,11 +347,17 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		}
 	}
 
+	var hash string
+	if !strings.HasPrefix(originalUrlPath, ipfsPathPrefix) {
+		hash = resolvedPath.Cid().String()
+	}
+
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
 		Listing:  dirListing,
 		Path:     originalUrlPath,
 		BackLink: backLink,
+		Hash:     hash,
 	}
 	err = listingTemplate.Execute(w, tplData)
 	if err != nil {
