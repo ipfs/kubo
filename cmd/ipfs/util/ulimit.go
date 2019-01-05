@@ -22,7 +22,7 @@ var (
 )
 
 // maxFds is the maximum number of file descriptors that go-ipfs
-// can use. The default value is 1024. This can be overwritten by the
+// can use. The default value is 2048. This can be overwritten by the
 // IPFS_FD_MAX env variable
 var maxFds = uint64(2048)
 
