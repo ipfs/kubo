@@ -260,8 +260,8 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	}
 
 	idx, err := i.api.Unixfs().Get(ctx, coreiface.Join(resolvedPath, "index.html"))
-	switch {
-	case err == nil:
+	switch err.(type) {
+	case nil:
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
 		goget := r.URL.Query().Get("go-get") == "1"
 		if dirwithoutslash && !goget {
@@ -279,10 +279,9 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		// write to request
 		http.ServeContent(w, r, "index.html", modtime, f)
 		return
+	case resolver.ErrNoLink:
+		// no index.html; noop
 	default:
-		if _, ok := err.(resolver.ErrNoLink); ok {
-			break
-		}
 		internalWebError(w, err)
 		return
 	}
