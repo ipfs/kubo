@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -287,7 +288,11 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 			lastObjectHash = object.Hash
 		}
 
+		reg, _ := regexp.Compile("[^\x20-\x7F]")
+
 		for _, link := range object.Links {
+			link.Name = reg.ReplaceAllString(link.Name, "")
+
 			if link.Type == unixfs.TDirectory {
 				link.Name += "/"
 			}
