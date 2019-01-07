@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 	"fmt"
-	"github.com/ipfs/iptb/testbed/interfaces"
 	"io/ioutil"
 	"os"
 	"path"
@@ -16,6 +15,7 @@ import (
 	local "github.com/ipfs/iptb-plugins/local"
 	"github.com/ipfs/iptb/cli"
 	"github.com/ipfs/iptb/testbed"
+	"github.com/ipfs/iptb/testbed/interfaces"
 )
 
 type NodeProvider struct{}
@@ -39,7 +39,14 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 	}
 
 	c := cli.NewCli()
-	if err := c.Run([]string{"iptb", "--IPTB_ROOT", dir, "auto", "-type", "localipfs", "-count", strconv.FormatInt(int64(n), 10), "--start"}); err != nil {
+
+	initArgs := []string{"iptb", "--IPTB_ROOT", dir, "auto", "-type", "localipfs", "-count", strconv.FormatInt(int64(n), 10)}
+	if err := c.Run(initArgs); err != nil {
+		return nil, err
+	}
+
+	startArgs := []string{"iptb", "--IPTB_ROOT", dir, "start", "-wait", "--", "--offline=" + strconv.FormatBool(n == 1)}
+	if err := c.Run(startArgs); err != nil {
 		return nil, err
 	}
 

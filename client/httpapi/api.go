@@ -118,7 +118,7 @@ func (api *HttpApi) Dag() iface.DagAPI {
 }
 
 func (api *HttpApi) Name() iface.NameAPI {
-	return (*NameAPI)(api)
+	return nil
 }
 
 func (api *HttpApi) Key() iface.KeyAPI {

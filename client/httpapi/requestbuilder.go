@@ -5,8 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"github.com/ipfs/go-ipfs-files"
 )
 
 // RequestBuilder is an IPFS commands request builder.
@@ -39,6 +42,15 @@ func (r *RequestBuilder) BodyBytes(body []byte) *RequestBuilder {
 // Body sets the request body to the given reader.
 func (r *RequestBuilder) Body(body io.Reader) *RequestBuilder {
 	r.body = body
+	return r
+}
+
+// FileBody sets the request body to the given reader wrapped into multipartreader.
+func (r *RequestBuilder) FileBody(body io.Reader) *RequestBuilder {
+	pr, _ := files.NewReaderPathFile("/dev/stdin", ioutil.NopCloser(body), nil)
+	d := files.NewMapDirectory(map[string]files.Node{"": pr})
+	r.body = files.NewMultiFileReader(d, false)
+
 	return r
 }
 
