@@ -560,13 +560,16 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		listeners = append(listeners, gwLis)
 	}
 
+	cmdctx := *cctx
+	cmdctx.Gateway = true
+
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("gateway"),
 		corehttp.IPNSHostnameOption(),
 		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
 		corehttp.VersionOption(),
 		corehttp.CheckVersionOption(),
-		corehttp.CommandsROOption(*cctx),
+		corehttp.CommandsROOption(cmdctx),
 	}
 
 	if cfg.Experimental.P2pHttpProxy {

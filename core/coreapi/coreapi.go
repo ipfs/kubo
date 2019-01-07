@@ -210,11 +210,12 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		subApi.peerstore = nil
 		subApi.peerHost = nil
 		subApi.recordValidator = nil
+	}
 
+	if settings.Offline || !settings.FetchBlocks {
 		subApi.exchange = offlinexch.Exchange(subApi.blockstore)
-		subApi.blocks = bserv.New(api.blockstore, subApi.exchange)
+		subApi.blocks = bserv.New(subApi.blockstore, subApi.exchange)
 		subApi.dag = dag.NewDAGService(subApi.blocks)
-
 	}
 
 	return subApi, nil
