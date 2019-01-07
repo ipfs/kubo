@@ -363,11 +363,11 @@ test_object_cmd() {
     test_cmp expected_putOut actual_putOut
   '
 
-  test_expect_success "'ipfs object put file.json --cid-base=base32 --output-cidv1=true' succeeds" '
-    ipfs object put --cid-base=base32 --output-cidv1=true ../t0051-object-data/testPut.json > actual_putOut
+  test_expect_success "'ipfs object put file.json --cid-base=base32 --force-cid-base=true' succeeds" '
+    ipfs object put --cid-base=base32 --force-cid-base=true ../t0051-object-data/testPut.json > actual_putOut
   '
 
-  test_expect_success "'ipfs object put file.json --cid-base=base32 --output-cidv1=true' output looks good" '
+  test_expect_success "'ipfs object put file.json --cid-base=base32 --force-cid-base=true' output looks good" '
     HASH=$(ipfs cid base32 "QmUTSAdDi2xsNkDtLqjFgQDMEn5di3Ab9eqbrt4gaiNbUD") &&
     printf "added $HASH\n" > expected_putOut &&
     test_cmp expected_putOut actual_putOut
@@ -394,8 +394,8 @@ test_object_cmd() {
     grep -q $(ipfs cid base32 $HASHv1) mixed.actual
   '
 
-  test_expect_success "ipfs object links --cid-base=base32 --output-cidv1=true converts both links" '
-    ipfs object links --cid-base=base32 --output-cidv1=true $MIXED | awk "{print \$1}" | sort > links.actual &&
+  test_expect_success "ipfs object links --cid-base=base32 --force-cid-base=true converts both links" '
+    ipfs object links --cid-base=base32 --force-cid-base=true $MIXED | awk "{print \$1}" | sort > links.actual &&
     echo $(ipfs cid base32 $HASHv1) > links.expected
     echo $(ipfs cid base32 $HASHv0) >> links.expected
     test_cmp links.actual links.expected

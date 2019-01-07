@@ -10,7 +10,7 @@ import (
 )
 
 var OptionCidBase = cmdkit.StringOption("cid-base", "Multibase encoding used for version 1 CIDs in output.")
-var OptionOutputCidV1 = cmdkit.BoolOption("output-cidv1", "Upgrade CID version 0 to version 1 in output.")
+var OptionForceCidBase = cmdkit.BoolOption("force-cid-base", "Force multibase prefix by upgrading CIDv0 to CIDv1.")
 
 // GetCidEncoder processes the `cid-base` and `output-cidv1` options and
 // returns a encoder to use based on those parameters.
@@ -26,8 +26,8 @@ func GetLowLevelCidEncoder(req *cmds.Request) (cidenc.Encoder, error) {
 }
 
 func getCidBase(req *cmds.Request, autoUpgrade bool) (cidenc.Encoder, error) {
-	base, _ := req.Options["cid-base"].(string)
-	upgrade, upgradeDefined := req.Options["output-cidv1"].(bool)
+	base, _ := req.Options[OptionCidBase.Name()].(string)
+	upgrade, upgradeDefined := req.Options[OptionForceCidBase.Name()].(bool)
 
 	e := cidenc.Default()
 
