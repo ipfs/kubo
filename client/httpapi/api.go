@@ -106,7 +106,7 @@ func (api *HttpApi) request(command string, args ...string) *RequestBuilder {
 }
 
 func (api *HttpApi) Unixfs() iface.UnixfsAPI {
-	return nil
+	return (*UnixfsAPI)(api)
 }
 
 func (api *HttpApi) Block() iface.BlockAPI {
@@ -118,7 +118,7 @@ func (api *HttpApi) Dag() iface.DagAPI {
 }
 
 func (api *HttpApi) Name() iface.NameAPI {
-	return nil
+	return (*NameAPI)(api)
 }
 
 func (api *HttpApi) Key() iface.KeyAPI {
