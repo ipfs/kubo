@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"strings"
 	"testing"
 
@@ -9,6 +10,13 @@ import (
 )
 
 func (tp *provider) TestPin(t *testing.T) {
+	tp.hasApi(t, func(api iface.CoreAPI) error {
+		if api.Pin() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestPinAdd", tp.TestPinAdd)
 	t.Run("TestPinSimple", tp.TestPinSimple)
 	t.Run("TestPinRecursive", tp.TestPinRecursive)

@@ -13,6 +13,13 @@ import (
 )
 
 func (tp *provider) TestDag(t *testing.T) {
+	tp.hasApi(t, func(api coreiface.CoreAPI) error {
+		if api.Dag() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestPut", tp.TestPut)
 	t.Run("TestPutWithHash", tp.TestPutWithHash)
 	t.Run("TestPath", tp.TestDagPath)

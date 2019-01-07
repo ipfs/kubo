@@ -2,12 +2,20 @@ package tests
 
 import (
 	"context"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"testing"
 	"time"
 )
 
 func (tp *provider) TestPubSub(t *testing.T) {
+	tp.hasApi(t, func(api iface.CoreAPI) error {
+		if api.PubSub() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestBasicPubSub", tp.TestBasicPubSub)
 }
 

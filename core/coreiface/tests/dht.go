@@ -5,10 +5,18 @@ import (
 	"io"
 	"testing"
 
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 )
 
 func (tp *provider) TestDht(t *testing.T) {
+	tp.hasApi(t, func(api iface.CoreAPI) error {
+		if api.Dht() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestDhtFindPeer", tp.TestDhtFindPeer)
 	t.Run("TestDhtFindProviders", tp.TestDhtFindProviders)
 	t.Run("TestDhtProvide", tp.TestDhtProvide)

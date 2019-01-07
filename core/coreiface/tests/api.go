@@ -2,11 +2,14 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 )
+
+var apiNotImplemented = errors.New("api not implemented")
 
 func (tp *provider) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
 	api, err := tp.MakeAPISwarm(ctx, false, 1)
@@ -74,5 +77,18 @@ func TestApi(p Provider) func(t *testing.T) {
 				t.Errorf("%d test swarms(s) not closed", running)
 			}
 		})
+	}
+}
+
+func (tp *provider) hasApi(t *testing.T, tf func(coreiface.CoreAPI) error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := tf(api); err != nil {
+		t.Fatal(api)
 	}
 }
