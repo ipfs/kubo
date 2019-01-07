@@ -16,6 +16,13 @@ import (
 )
 
 func (tp *provider) TestName(t *testing.T) {
+	tp.hasApi(t, func(api coreiface.CoreAPI) error {
+		if api.Name() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestPublishResolve", tp.TestPublishResolve)
 	t.Run("TestBasicPublishResolveKey", tp.TestBasicPublishResolveKey)
 	t.Run("TestBasicPublishResolveTimeout", tp.TestBasicPublishResolveTimeout)

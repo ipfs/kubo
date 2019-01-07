@@ -13,6 +13,13 @@ import (
 )
 
 func (tp *provider) TestObject(t *testing.T) {
+	tp.hasApi(t, func(api iface.CoreAPI) error {
+		if api.Object() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestNew", tp.TestNew)
 	t.Run("TestObjectPut", tp.TestObjectPut)
 	t.Run("TestObjectGet", tp.TestObjectGet)

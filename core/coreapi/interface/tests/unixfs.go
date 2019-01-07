@@ -24,6 +24,13 @@ import (
 )
 
 func (tp *provider) TestUnixfs(t *testing.T) {
+	tp.hasApi(t, func(api coreiface.CoreAPI) error {
+		if api.Unixfs() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestAdd", tp.TestAdd)
 	t.Run("TestAddPinned", tp.TestAddPinned)
 	t.Run("TestAddHashOnly", tp.TestAddHashOnly)
