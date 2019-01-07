@@ -7,4 +7,5 @@ type Gateway struct {
 	Writable     bool
 	PathPrefixes []string
 	APICommands  []string
+	NoFetch      bool
 }

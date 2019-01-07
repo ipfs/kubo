@@ -60,6 +60,7 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 		Gateway: Gateway{
 			RootRedirect: "",
 			Writable:     false,
+			NoFetch:      false,
 			PathPrefixes: []string{},
 			HTTPHeaders: map[string][]string{
 				"Access-Control-Allow-Origin":  []string{"*"},
