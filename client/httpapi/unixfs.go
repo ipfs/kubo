@@ -85,10 +85,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	return iface.IpfsPath(c), nil
 }
 
-func (api *UnixfsAPI) Get(context.Context, iface.Path) (files.Node, error) {
-	panic("implement me")
-}
-
 type lsLink struct {
 	Name, Hash string
 	Size       uint64
