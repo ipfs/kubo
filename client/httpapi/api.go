@@ -135,7 +135,7 @@ func (api *HttpApi) Key() iface.KeyAPI {
 }
 
 func (api *HttpApi) Pin() iface.PinAPI {
-	return nil
+	return (*PinAPI)(api)
 }
 
 func (api *HttpApi) Object() iface.ObjectAPI {

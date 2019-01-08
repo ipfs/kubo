@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/tests"
 
 	local "github.com/ipfs/iptb-plugins/local"
@@ -39,7 +40,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
-	c := cli.NewCli()
+	c := cli.NewCli() //TODO: is there a better way?
 
 	initArgs := []string{"iptb", "--IPTB_ROOT", dir, "auto", "-type", "localipfs", "-count", strconv.FormatInt(int64(n), 10)}
 	if err := c.Run(initArgs); err != nil {
@@ -100,6 +101,19 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 			},
 		}
 		apis[i] = NewApiWithClient(a, c)
+
+		// node cleanup
+		// TODO: pass --empty-repo somehow (how?)
+		pins, err := apis[i].Pin().Ls(ctx, options.Pin.Type.Recursive())
+		if err != nil {
+			return nil, err
+		}
+		for _, pin := range pins { //TODO: parallel
+			if err := apis[i].Pin().Rm(ctx, pin.Path()); err != nil {
+				return nil, err
+			}
+		}
+
 	}
 
 	return apis, nil
