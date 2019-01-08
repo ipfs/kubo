@@ -11,8 +11,8 @@ import (
 
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipld-format"
+	unixfspb "github.com/ipfs/go-unixfs/pb"
 	mh "github.com/multiformats/go-multihash"
-	unixfspb "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs/pb"
 )
 
 type addEvent struct {
