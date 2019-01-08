@@ -26,7 +26,20 @@ func (tp *provider) TestMutablePath(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	blk, err := api.Block().Put(ctx, strings.NewReader(`foo`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if blk.Path().Mutable() {
+		t.Error("expected /ipld path to be immutable")
+	}
+
 	// get self /ipns path
+	if api.Key() == nil {
+		t.Fatal(".Key not implemented")
+	}
+
 	keys, err := api.Key().List(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -34,15 +47,6 @@ func (tp *provider) TestMutablePath(t *testing.T) {
 
 	if !keys[0].Path().Mutable() {
 		t.Error("expected self /ipns path to be mutable")
-	}
-
-	blk, err := api.Block().Put(ctx, strings.NewReader(`foo`))
-	if err != nil {
-		t.Error(err)
-	}
-
-	if blk.Path().Mutable() {
-		t.Error("expected /ipld path to be immutable")
 	}
 }
 
@@ -52,6 +56,10 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if api.Dag() == nil {
+		t.Fatal(".Dag not implemented")
 	}
 
 	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"bar": "baz"}}`))
@@ -80,6 +88,10 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if api.Dag() == nil {
+		t.Fatal(".Dag not implemented")
 	}
 
 	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"bar": "baz"}}`))
@@ -114,6 +126,10 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if api.Dag() == nil {
+		t.Fatal(".Dag not implemented")
+	}
+
 	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"bar": "baz"}}`))
 	if err != nil {
 		t.Fatal(err)
@@ -138,9 +154,17 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if api.Block() == nil {
+		t.Fatal(".Block not implemented")
+	}
+
 	blk, err := api.Block().Put(ctx, strings.NewReader(`foo`), options.Block.Format("raw"))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+
+	if api.Dag() == nil {
+		t.Fatal(".Dag not implemented")
 	}
 
 	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"/": "`+blk.Path().Cid().String()+`"}}`))

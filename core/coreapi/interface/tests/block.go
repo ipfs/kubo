@@ -13,6 +13,13 @@ import (
 )
 
 func (tp *provider) TestBlock(t *testing.T) {
+	tp.hasApi(t, func(api coreiface.CoreAPI) error {
+		if api.Block() == nil {
+			return apiNotImplemented
+		}
+		return nil
+	})
+
 	t.Run("TestBlockPut", tp.TestBlockPut)
 	t.Run("TestBlockPutFormat", tp.TestBlockPutFormat)
 	t.Run("TestBlockPutHash", tp.TestBlockPutHash)
