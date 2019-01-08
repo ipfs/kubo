@@ -211,12 +211,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	cctx := env.(*oldcmds.Context)
 
-	go func() {
-		<-req.Context.Done()
-		fmt.Println("Received interrupt signal, shutting down...")
-		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
-	}()
-
 	// check transport encryption flag.
 	unencrypted, _ := req.Options[unencryptTransportKwd].(bool)
 	if unencrypted {
@@ -393,6 +387,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	fmt.Printf("Daemon is ready\n")
+
+	// Give the user some immediate feedback when they hit C-c
+	go func() {
+		<-req.Context.Done()
+		fmt.Println("Received interrupt signal, shutting down...")
+		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
+	}()
+
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
 	for err := range merge(apiErrc, gwErrc, gcErrc) {
