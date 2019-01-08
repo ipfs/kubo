@@ -33,7 +33,19 @@ func (r *Response) Decode(dec interface{}) error {
 		return r.Error
 	}
 
-	return json.NewDecoder(r.Output).Decode(dec)
+	n := 0
+	var err error
+	for {
+		err = json.NewDecoder(r.Output).Decode(dec)
+		if err != nil {
+			break
+		}
+		n++
+	}
+	if n > 0 && err == io.EOF {
+		err = nil
+	}
+	return err
 }
 
 type Error struct {

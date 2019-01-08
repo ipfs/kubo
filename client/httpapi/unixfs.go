@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ipfs/go-cid"
+	"github.com/pkg/errors"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
@@ -11,6 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipld-format"
 	mh "github.com/multiformats/go-multihash"
+	unixfspb "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs/pb"
 )
 
 type addEvent struct {
@@ -87,8 +89,45 @@ func (api *UnixfsAPI) Get(context.Context, iface.Path) (files.Node, error) {
 	panic("implement me")
 }
 
-func (api *UnixfsAPI) Ls(context.Context, iface.Path) ([]*format.Link, error) {
-	panic("implement me")
+type lsLink struct {
+	Name, Hash string
+	Size       uint64
+	Type       unixfspb.Data_DataType
+}
+
+type lsObject struct {
+	Hash  string
+	Links []lsLink
+}
+
+type lsOutput struct {
+	Objects []lsObject
+}
+
+func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path) ([]*format.Link, error) {
+	var out lsOutput
+	err := api.core().request("ls", p.String()).Exec(ctx, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(out.Objects) != 1 {
+		return nil, errors.New("unexpected objects len")
+	}
+
+	links := make([]*format.Link, len(out.Objects[0].Links))
+	for i, l := range out.Objects[0].Links {
+		c, err := cid.Parse(l.Hash)
+		if err != nil {
+			return nil, err
+		}
+		links[i] = &format.Link{
+			Name: l.Name,
+			Size: l.Size,
+			Cid: c,
+		}
+	}
+	return links, nil
 }
 
 func (api *UnixfsAPI) core() *HttpApi {
