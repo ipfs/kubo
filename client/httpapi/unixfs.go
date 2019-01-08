@@ -66,7 +66,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	case files.Directory:
 		req.Body(files.NewMultiFileReader(c, false))
 	case files.File:
-		req.Body(c)
+		d := files.NewMapDirectory(map[string]files.Node{"": c}) // unwrapped on the other side
+		req.Body(files.NewMultiFileReader(d, false))
 	}
 
 	var out addEvent
