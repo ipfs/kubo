@@ -44,6 +44,7 @@ type LsOutput struct {
 const (
 	lsHeadersOptionNameTime = "headers"
 	lsResolveTypeOptionName = "resolve-type"
+	lsResolveSizeOptionName = "resolve-size"
 	lsStreamOptionName      = "stream"
 )
 
@@ -66,6 +67,7 @@ The JSON output contains type information.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(lsHeadersOptionNameTime, "v", "Print table headers (Hash, Size, Name)."),
 		cmdkit.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
+		cmdkit.BoolOption(lsResolveSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(false),
 		cmdkit.BoolOption(lsStreamOptionName, "s", "Enable exprimental streaming of directory entries as they are traversed."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -79,9 +81,10 @@ The JSON output contains type information.
 			return err
 		}
 
-		resolve, _ := req.Options[lsResolveTypeOptionName].(bool)
+		resolveType, _ := req.Options[lsResolveTypeOptionName].(bool)
+		resolveSize, _ := req.Options[lsResolveSizeOptionName].(bool)
 		dserv := nd.DAG
-		if !resolve {
+		if !resolveType && !resolveSize {
 			offlineexch := offline.Exchange(nd.Blockstore)
 			bserv := blockservice.New(nd.Blockstore, offlineexch)
 			dserv = merkledag.NewDAGService(bserv)
@@ -131,7 +134,7 @@ The JSON output contains type information.
 				}
 				outputLinks := make([]LsLink, len(links))
 				for j, link := range links {
-					lsLink, err := makeLsLink(req, dserv, resolve, link)
+					lsLink, err := makeLsLink(req, dserv, resolveType, resolveSize, link)
 					if err != nil {
 						return err
 					}
@@ -165,7 +168,7 @@ The JSON output contains type information.
 					return linkResult.Err
 				}
 				link := linkResult.Link
-				lsLink, err := makeLsLink(req, dserv, resolve, link)
+				lsLink, err := makeLsLink(req, dserv, resolveType, resolveSize, link)
 				if err != nil {
 					return err
 				}
@@ -224,8 +227,9 @@ func makeDagNodeLinkResults(req *cmds.Request, dagnode ipld.Node) <-chan unixfs.
 	return linkResults
 }
 
-func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ipld.Link) (*LsLink, error) {
+func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolveType bool, resolveSize bool, link *ipld.Link) (*LsLink, error) {
 	t := unixfspb.Data_DataType(-1)
+	size := link.Size
 
 	switch link.Cid.Type() {
 	case cid.Raw:
@@ -233,7 +237,7 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ip
 		t = unixfs.TFile
 	case cid.DagProtobuf:
 		linkNode, err := link.GetNode(req.Context, dserv)
-		if err == ipld.ErrNotFound && !resolve {
+		if err == ipld.ErrNotFound && !resolveType && !resolveSize {
 			// not an error
 			linkNode = nil
 		} else if err != nil {
@@ -245,13 +249,18 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ip
 			if err != nil {
 				return nil, err
 			}
-			t = d.Type()
+			if resolveType {
+				t = d.Type()
+			}
+			if d.Type() == unixfs.TFile && resolveSize {
+				size = d.FileSize()
+			}
 		}
 	}
 	return &LsLink{
 		Name: link.Name,
 		Hash: link.Cid.String(),
-		Size: link.Size,
+		Size: size,
 		Type: t,
 	}, nil
 }
