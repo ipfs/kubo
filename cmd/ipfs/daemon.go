@@ -200,12 +200,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	managefd, _ := req.Options[adjustFDLimitKwd].(bool)
 	if managefd {
-		if changedFds, newFdsLimit, err := utilmain.ManageFdLimit(); err != nil {
+		if _, _, err := utilmain.ManageFdLimit(); err != nil {
 			log.Errorf("setting file descriptor limit: %s", err)
-		} else {
-			if changedFds {
-				fmt.Printf("Successfully raised file descriptor limit to %d.\n", newFdsLimit)
-			}
 		}
 	}
 
