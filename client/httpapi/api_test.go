@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	gohttp "net/http"
 	"os"
 	"path"
 	"strconv"
@@ -50,6 +51,13 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
+	if n > 1 {
+		connectArgs := []string{"iptb", "--IPTB_ROOT", dir, "connect", fmt.Sprintf("[1-%d]", n - 1), "0"}
+		if err := c.Run(connectArgs); err != nil {
+			return nil, err
+		}
+	}
+
 	go func() {
 		<-ctx.Done()
 
@@ -80,7 +88,18 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 			return nil, err
 		}
 
-		apis[i] = NewPathApi(pth)
+		a := ApiAddr(pth)
+		if a == nil {
+			return nil, fmt.Errorf("nil addr for node")
+		}
+		c := &gohttp.Client{
+			Transport: &gohttp.Transport{
+				Proxy:             gohttp.ProxyFromEnvironment,
+				DisableKeepAlives: true,
+				DisableCompression: true,
+			},
+		}
+		apis[i] = NewApiWithClient(a, c)
 	}
 
 	return apis, nil
