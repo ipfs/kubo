@@ -29,6 +29,7 @@ type HttpApi struct {
 	httpcli *gohttp.Client
 }
 
+//TODO: Return errors here
 func NewLocalApi() iface.CoreAPI {
 	baseDir := os.Getenv(EnvDir)
 	if baseDir == "" {
@@ -39,6 +40,14 @@ func NewLocalApi() iface.CoreAPI {
 }
 
 func NewPathApi(p string) iface.CoreAPI {
+	a := ApiAddr(p)
+	if a == nil {
+		return nil
+	}
+	return NewApi(a)
+}
+
+func ApiAddr(p string) ma.Multiaddr {
 	baseDir, err := homedir.Expand(p)
 	if err != nil {
 		return nil
@@ -60,7 +69,7 @@ func NewPathApi(p string) iface.CoreAPI {
 		return nil
 	}
 
-	return NewApi(maddr)
+	return maddr
 }
 
 func NewApi(a ma.Multiaddr) *HttpApi { // TODO: should be MAddr?
@@ -122,7 +131,7 @@ func (api *HttpApi) Name() iface.NameAPI {
 }
 
 func (api *HttpApi) Key() iface.KeyAPI {
-	return nil
+	return (*KeyAPI)(api)
 }
 
 func (api *HttpApi) Pin() iface.PinAPI {
