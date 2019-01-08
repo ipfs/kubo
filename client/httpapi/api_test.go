@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/tests"
 
 	local "github.com/ipfs/iptb-plugins/local"
@@ -104,7 +104,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 
 		// node cleanup
 		// TODO: pass --empty-repo somehow (how?)
-		pins, err := apis[i].Pin().Ls(ctx, options.Pin.Type.Recursive())
+		pins, err := apis[i].Pin().Ls(ctx, caopts.Pin.Type.Recursive())
 		if err != nil {
 			return nil, err
 		}

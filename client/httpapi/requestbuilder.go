@@ -86,6 +86,8 @@ func (r *RequestBuilder) Header(name, value string) *RequestBuilder {
 
 // Send sends the request and return the response.
 func (r *RequestBuilder) Send(ctx context.Context) (*Response, error) {
+	r.shell.applyGlobal(r)
+
 	req := NewRequest(ctx, r.shell.url, r.command, r.args...)
 	req.Opts = r.opts
 	req.Headers = r.headers

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -27,6 +27,8 @@ var ErrNotImplemented = errors.New("not implemented")
 type HttpApi struct {
 	url     string
 	httpcli *gohttp.Client
+
+	applyGlobal func(*RequestBuilder)
 }
 
 //TODO: Return errors here
@@ -99,11 +101,24 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) *HttpApi {
 	return &HttpApi{
 		url:     url,
 		httpcli: c,
+		applyGlobal: func(*RequestBuilder) {},
 	}
 }
 
-func (api *HttpApi) WithOptions(...options.ApiOption) (iface.CoreAPI, error) {
-	return nil, ErrNotImplemented
+func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error) {
+	options, err := caopts.ApiOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	subApi := *api
+	subApi.applyGlobal = func(req *RequestBuilder) {
+		if options.Offline {
+			req.Option("offline", options.Offline)
+		}
+	}
+
+	return &subApi, nil
 }
 
 func (api *HttpApi) request(command string, args ...string) *RequestBuilder {

@@ -21,7 +21,7 @@ type Response struct {
 func (r *Response) Close() error {
 	if r.Output != nil {
 		// always drain output (response body)
-		ioutil.ReadAll(r.Output)
+		//ioutil.ReadAll(r.Output) // TODO: might not be a good idea in case there is a lot of data
 		return r.Output.Close()
 	}
 	return nil
