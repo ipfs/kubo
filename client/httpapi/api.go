@@ -138,7 +138,7 @@ func (api *HttpApi) Block() iface.BlockAPI {
 }
 
 func (api *HttpApi) Dag() iface.DagAPI {
-	return nil
+	return (*DagAPI)(api)
 }
 
 func (api *HttpApi) Name() iface.NameAPI {
