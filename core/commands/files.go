@@ -551,7 +551,7 @@ Examples:
 			return fmt.Errorf("%s was not a file", path)
 		}
 
-		rfd, err := fi.Open(mfs.OpenReadOnly, false)
+		rfd, err := fi.Open(mfs.Flags{Read: true})
 		if err != nil {
 			return err
 		}
@@ -736,7 +736,7 @@ stat' on the file or any of its ancestors.
 			fi.RawLeaves = rawLeaves
 		}
 
-		wfd, err := fi.Open(mfs.OpenWriteOnly, flush)
+		wfd, err := fi.Open(mfs.Flags{Write: true, Sync: flush})
 		if err != nil {
 			return err
 		}
