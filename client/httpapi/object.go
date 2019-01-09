@@ -14,7 +14,7 @@ import (
 type ObjectAPI HttpApi
 
 type objectOut struct {
-	Hash  string
+	Hash string
 }
 
 func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (format.Node, error) {

@@ -99,8 +99,8 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) *HttpApi {
 	}
 
 	return &HttpApi{
-		url:     url,
-		httpcli: c,
+		url:         url,
+		httpcli:     c,
 		applyGlobal: func(*RequestBuilder) {},
 	}
 }

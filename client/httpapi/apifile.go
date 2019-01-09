@@ -22,12 +22,12 @@ func (api *UnixfsAPI) Get(ctx context.Context, p iface.Path) (files.Node, error)
 		}
 	}
 
-	var stat struct{
+	var stat struct {
 		Hash string
 		Type string
 		Size int64 // unixfs size
 	}
-	err := api.core().request("files/stat", p.String()).	Exec(ctx, &stat)
+	err := api.core().request("files/stat", p.String()).Exec(ctx, &stat)
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +43,12 @@ func (api *UnixfsAPI) Get(ctx context.Context, p iface.Path) (files.Node, error)
 }
 
 type apiFile struct {
-	ctx context.Context
+	ctx  context.Context
 	core *HttpApi
 	size int64
 	path iface.Path
 
-	r io.ReadCloser
+	r  io.ReadCloser
 	at int64
 }
 
@@ -96,7 +96,7 @@ func (f *apiFile) Size() (int64, error) {
 
 func (api *UnixfsAPI) getFile(ctx context.Context, p iface.Path, size int64) (files.Node, error) {
 	f := &apiFile{
-		ctx: ctx,
+		ctx:  ctx,
 		core: api.core(),
 		size: size,
 		path: p,
@@ -106,14 +106,14 @@ func (api *UnixfsAPI) getFile(ctx context.Context, p iface.Path, size int64) (fi
 }
 
 type apiIter struct {
-	ctx context.Context
+	ctx  context.Context
 	core *UnixfsAPI
 
 	err error
 
-	dec *json.Decoder
+	dec     *json.Decoder
 	curFile files.Node
-	cur lsLink
+	cur     lsLink
 }
 
 func (it *apiIter) Err() error {
@@ -179,7 +179,7 @@ func (it *apiIter) Node() files.Node {
 }
 
 type apiDir struct {
-	ctx context.Context
+	ctx  context.Context
 	core *UnixfsAPI
 	size int64
 	path iface.Path
@@ -197,9 +197,9 @@ func (d *apiDir) Size() (int64, error) {
 
 func (d *apiDir) Entries() files.DirIterator {
 	return &apiIter{
-		ctx: d.ctx,
+		ctx:  d.ctx,
 		core: d.core,
-		dec: d.dec,
+		dec:  d.dec,
 	}
 }
 
@@ -216,7 +216,7 @@ func (api *UnixfsAPI) getDir(ctx context.Context, p iface.Path, size int64) (fil
 	}
 
 	d := &apiDir{
-		ctx: ctx,
+		ctx:  ctx,
 		core: api,
 		size: size,
 		path: p,

@@ -16,7 +16,7 @@ import (
 type BlockAPI HttpApi
 
 type blockStat struct {
-	Key  string
+	Key   string
 	BSize int `json:"Size"`
 }
 

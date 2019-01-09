@@ -22,9 +22,9 @@ type ipldNode struct {
 
 func (a *HttpApi) nodeFromPath(ctx context.Context, p iface.ResolvedPath) ipld.Node {
 	return &ipldNode{
-		ctx: ctx,
+		ctx:  ctx,
 		path: p,
-		api: a,
+		api:  a,
 	}
 }
 

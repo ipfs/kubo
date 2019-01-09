@@ -20,7 +20,7 @@ type pinRefKeyList struct {
 
 type pin struct {
 	path iface.ResolvedPath
-	typ string
+	typ  string
 }
 
 func (p *pin) Path() iface.ResolvedPath {
@@ -30,7 +30,6 @@ func (p *pin) Path() iface.ResolvedPath {
 func (p *pin) Type() string {
 	return p.typ
 }
-
 
 func (api *PinAPI) Add(context.Context, iface.Path, ...caopts.PinAddOption) error {
 	panic("implement me")

@@ -53,7 +53,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 	}
 
 	if n > 1 {
-		connectArgs := []string{"iptb", "--IPTB_ROOT", dir, "connect", fmt.Sprintf("[1-%d]", n - 1), "0"}
+		connectArgs := []string{"iptb", "--IPTB_ROOT", dir, "connect", fmt.Sprintf("[1-%d]", n-1), "0"}
 		if err := c.Run(connectArgs); err != nil {
 			return nil, err
 		}
@@ -95,8 +95,8 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		}
 		c := &gohttp.Client{
 			Transport: &gohttp.Transport{
-				Proxy:             gohttp.ProxyFromEnvironment,
-				DisableKeepAlives: true,
+				Proxy:              gohttp.ProxyFromEnvironment,
+				DisableKeepAlives:  true,
 				DisableCompression: true,
 			},
 		}

@@ -13,7 +13,7 @@ type KeyAPI HttpApi
 
 type keyOutput struct {
 	JName string `json:"Name"`
-	Id   string
+	Id    string
 }
 
 func (k *keyOutput) Name() string {
@@ -34,7 +34,6 @@ func (k *keyOutput) valid() error {
 	_, err := peer.IDB58Decode(k.Id)
 	return err
 }
-
 
 func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (iface.Key, error) {
 	options, err := caopts.KeyGenerateOptions(opts...)
@@ -65,7 +64,7 @@ func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
 }
 
 func (api *KeyAPI) Self(ctx context.Context) (iface.Key, error) {
-	var id struct{ID string}
+	var id struct{ ID string }
 	if err := api.core().request("id").Exec(ctx, &id); err != nil {
 		return nil, err
 	}

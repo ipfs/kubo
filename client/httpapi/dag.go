@@ -31,7 +31,7 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPut
 		return nil, fmt.Errorf("setting hash len is not supported yet")
 	}
 
-	var out struct{
+	var out struct {
 		Cid cid.Cid
 	}
 	req := api.core().request("dag/put").

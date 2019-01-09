@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-cid"
 	"github.com/pkg/errors"
+	"io"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
@@ -39,7 +41,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		Option("hash", mht).
 		Option("chunker", options.Chunker).
 		Option("cid-version", options.CidVersion).
-		//Option("", options.Events).
 		Option("fscache", options.FsCache).
 		Option("hidden", options.Hidden).
 		Option("inline", options.Inline).
@@ -47,11 +48,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		Option("nocopy", options.NoCopy).
 		Option("only-hash", options.OnlyHash).
 		Option("pin", options.Pin).
-		//Option("", options.Progress).
 		Option("silent", options.Silent).
 		Option("stdin-name", options.StdinName).
 		Option("wrap-with-directory", options.Wrap).
-		Option("quieter", true) // TODO: rm after event impl
+		Option("progress", options.Progress)
 
 	if options.RawLeavesSet {
 		req.Option("raw-leaves", options.RawLeaves)
@@ -73,8 +73,49 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 	}
 
 	var out addEvent
-	if err := req.Exec(ctx, &out); err != nil { //TODO: ndjson events
+	resp, err := req.Send(ctx)
+	if err != nil {
 		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	defer resp.Output.Close()
+	dec := json.NewDecoder(resp.Output)
+loop:
+	for {
+		var evt addEvent
+		switch err := dec.Decode(&evt); err {
+		case nil:
+		case io.EOF:
+			break loop
+		default:
+			return nil, err
+		}
+		out = evt
+
+		if options.Events != nil {
+			ifevt := &iface.AddEvent{
+				Name:  out.Name,
+				Size:  out.Size,
+				Bytes: out.Bytes,
+			}
+
+			if out.Hash != "" {
+				c, err := cid.Parse(out.Hash)
+				if err != nil {
+					return nil, err
+				}
+
+				ifevt.Path = iface.IpfsPath(c)
+			}
+
+			select {
+			case options.Events <- ifevt:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
 	}
 
 	c, err := cid.Parse(out.Hash)
@@ -120,7 +161,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path) ([]*format.Link, err
 		links[i] = &format.Link{
 			Name: l.Name,
 			Size: l.Size,
-			Cid: c,
+			Cid:  c,
 		}
 	}
 	return links, nil
