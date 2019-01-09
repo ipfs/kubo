@@ -292,20 +292,20 @@ test_add_cat_file() {
     test_cmp expected oh_actual
   '
 
-  test_expect_success "ipfs add --cid-base=base32 --force-cid-base=false succeeds" '
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false succeeds" '
     echo "base32 test" >mountdir/base32-test.txt &&
-    ipfs add --cid-base=base32 --force-cid-base=false mountdir/base32-test.txt >actual
+    ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false mountdir/base32-test.txt >actual
   '
-  test_expect_success "ipfs add --cid-base=base32 --force-cid-base=false output looks good" '
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false output looks good" '
     HASHv0=$(cid-fmt -v 0 -b z %s "$HASHb32") &&
     echo "added $HASHv0 base32-test.txt" >expected &&
     test_cmp expected actual
   '
 
-  test_expect_success "ipfs add --cid-base=base32 --force-cid-base=false --only-hash succeeds" '
-    ipfs add --cid-base=base32 --force-cid-base=false --only-hash mountdir/base32-test.txt > oh_actual
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false --only-hash succeeds" '
+    ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false --only-hash mountdir/base32-test.txt > oh_actual
   '
-  test_expect_success "ipfs add --cid-base=base32 --force-cid-base=false --only-hash output looks good" '
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false --only-hash output looks good" '
     test_cmp expected oh_actual
   '
 

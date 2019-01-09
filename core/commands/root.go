@@ -100,7 +100,7 @@ The CLI will exit with one of the following values:
 
 		// global options, added to every command
 		cmdenv.OptionCidBase,
-		cmdenv.OptionForceCidBase,
+		cmdenv.OptionUpgradeCidV0InOutput,
 
 		cmds.OptionEncodingType,
 		cmds.OptionStreamChannels,
