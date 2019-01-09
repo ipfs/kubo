@@ -20,6 +20,14 @@ type ipldNode struct {
 	api  *HttpApi
 }
 
+func (a *HttpApi) nodeFromPath(ctx context.Context, p iface.ResolvedPath) ipld.Node {
+	return &ipldNode{
+		ctx: ctx,
+		path: p,
+		api: a,
+	}
+}
+
 func (n *ipldNode) RawData() []byte {
 	r, err := n.api.Block().Get(n.ctx, n.path)
 	if err != nil {

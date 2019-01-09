@@ -154,7 +154,7 @@ func (api *HttpApi) Pin() iface.PinAPI {
 }
 
 func (api *HttpApi) Object() iface.ObjectAPI {
-	return nil
+	return (*ObjectAPI)(api)
 }
 
 func (api *HttpApi) Dht() iface.DhtAPI {
