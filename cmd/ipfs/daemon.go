@@ -185,7 +185,7 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
-func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (_err error) {
 	// Inject metrics before we do anything
 	err := mprome.Inject()
 	if err != nil {
@@ -195,27 +195,26 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
+	defer func() {
+		if _err != nil {
+			// Print an extra line before any errors. This could go
+			// in the commands lib but doesn't really make sense for
+			// all commands.
+			fmt.Println()
+		}
+	}()
+
 	// print the ipfs version
 	printVersion()
 
 	managefd, _ := req.Options[adjustFDLimitKwd].(bool)
 	if managefd {
-		if changedFds, newFdsLimit, err := utilmain.ManageFdLimit(); err != nil {
+		if _, _, err := utilmain.ManageFdLimit(); err != nil {
 			log.Errorf("setting file descriptor limit: %s", err)
-		} else {
-			if changedFds {
-				fmt.Printf("Successfully raised file descriptor limit to %d.\n", newFdsLimit)
-			}
 		}
 	}
 
 	cctx := env.(*oldcmds.Context)
-
-	go func() {
-		<-req.Context.Done()
-		fmt.Println("Received interrupt signal, shutting down...")
-		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
-	}()
 
 	// check transport encryption flag.
 	unencrypted, _ := req.Options[unencryptTransportKwd].(bool)
@@ -393,6 +392,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	fmt.Printf("Daemon is ready\n")
+
+	// Give the user some immediate feedback when they hit C-c
+	go func() {
+		<-req.Context.Done()
+		fmt.Println("Received interrupt signal, shutting down...")
+		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
+	}()
+
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesnt follow this pattern for graceful shutdown
 	for err := range merge(apiErrc, gwErrc, gcErrc) {
