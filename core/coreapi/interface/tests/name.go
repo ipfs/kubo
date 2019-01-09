@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	ipath "gx/ipfs/QmNYPETsdAu2uQ1k9q9S1jYEGURaLHV6cbYRSVFVRftpF8/go-path"
 	"gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
-	ipath "gx/ipfs/QmZErC2Ay6WuGi96CPg316PwitdwgLo6RxZRqVjJjRj2MR/go-path"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"

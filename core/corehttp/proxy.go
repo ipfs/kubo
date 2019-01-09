@@ -10,7 +10,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 
-	p2phttp "gx/ipfs/QmWGnBLJhzZ3xV5YQuS6CqczN143YmGAFQTMAdJ31msoK5/go-libp2p-http"
+	p2phttp "gx/ipfs/QmQz2LTeFhCwFthG1r28ETquLtVk9oNzqPdB4DnTaya4eH/go-libp2p-http"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 

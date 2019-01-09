@@ -11,8 +11,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreunix"
+	uio "gx/ipfs/QmQXze9tG878pa4Euya4rrDpyTNX3kQe4dhCaBzBozGgpe/go-unixfs/io"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
-	uio "gx/ipfs/Qmbvw7kpSM2p6rbQ57WGRhhqNfCiNGW6EKH4xgHLw4bsnB/go-unixfs/io"
 
 	// this import keeps gx from thinking the dep isn't used
 	_ "gx/ipfs/QmT1jwrqzSMjSjLG5oBd9w4P9vXPKQksWuf5ghsE3Q88ZV/dir-index-html"

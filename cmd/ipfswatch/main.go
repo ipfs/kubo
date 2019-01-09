@@ -15,8 +15,8 @@ import (
 	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	config "gx/ipfs/QmRd5T3VmYoX6jaNoZovFRQcwWHJqHgTVQTs1Qz92ELJ7C/go-ipfs-config"
 	process "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
+	config "gx/ipfs/QmcRKBUqc2p3L1ZraoJjbXfs9E6xzvEuyK9iypb5RGwfsr/go-ipfs-config"
 	homedir "gx/ipfs/QmdcULN1WCzgoQmcCaUAmEhwcxHYsDrbZ2LvRJKCL8dMrK/go-homedir"
 	fsnotify "gx/ipfs/QmfNjggF4Pt6erqg3NDafD3MdvDHk1qqCVr8pL5hnPucS8/fsnotify"
 )

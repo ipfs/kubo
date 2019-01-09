@@ -15,7 +15,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 
 	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
-	ci "gx/ipfs/QmPuhRE325DR8ChNcFtgd6F1eANCHy1oohXZPpYop4xsK6/go-testutil/ci"
+	ci "gx/ipfs/QmNvHv84aH2qZafDuSdKJCQ1cvPZ1kmQmyD4YtzjUHuk9v/go-testutil/ci"
 	fstest "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs/fstestutil"
 	racedet "gx/ipfs/Qmf7HqcW7LtCi1W8y2bdx2eJpze74jkbKqpByxgXikdbLF/go-detect-race"
 )

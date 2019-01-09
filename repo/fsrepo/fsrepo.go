@@ -18,10 +18,10 @@ import (
 	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
+	ma "gx/ipfs/QmNTCey11oxhb1AxDnQBRHtdhap6Ctud872NjAYPYYXPuc/go-multiaddr"
 	util "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
-	ma "gx/ipfs/QmRKLtwMw131aK7ugC3G7ybpumMz78YrJe5dzneyindvG1/go-multiaddr"
-	config "gx/ipfs/QmRd5T3VmYoX6jaNoZovFRQcwWHJqHgTVQTs1Qz92ELJ7C/go-ipfs-config"
-	serialize "gx/ipfs/QmRd5T3VmYoX6jaNoZovFRQcwWHJqHgTVQTs1Qz92ELJ7C/go-ipfs-config/serialize"
+	config "gx/ipfs/QmcRKBUqc2p3L1ZraoJjbXfs9E6xzvEuyK9iypb5RGwfsr/go-ipfs-config"
+	serialize "gx/ipfs/QmcRKBUqc2p3L1ZraoJjbXfs9E6xzvEuyK9iypb5RGwfsr/go-ipfs-config/serialize"
 	lockfile "gx/ipfs/QmcWjZkQxyPMkgZRpda4hqWwaD6E1yqCvcxZfxbt98CEAK/go-fs-lock"
 	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 	measure "gx/ipfs/QmdCQgMgoMjur6D15ZB3z1LodiSP3L6EBHMyVx4ekqzRWA/go-ds-measure"
