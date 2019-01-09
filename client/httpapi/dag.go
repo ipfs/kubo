@@ -3,28 +3,23 @@ package httpapi
 import (
 	"context"
 	"fmt"
-	"github.com/ipfs/go-cid"
 	"io"
+	"math"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipld-format"
 	mh "github.com/multiformats/go-multihash"
 )
 
 type DagAPI HttpApi
 
-func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...options.DagPutOption) (iface.ResolvedPath, error) {
+func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.DagPutOption) (iface.ResolvedPath, error) {
 	options, err := caopts.DagPutOptions(opts...)
 	if err != nil {
 		return nil, err
-	}
-
-	mht, ok := mh.Codes[options.MhType]
-	if !ok {
-		return nil, fmt.Errorf("unknowm mhType %d", options.MhType)
 	}
 
 	codec, ok := cid.CodecToStr[options.Codec]
@@ -39,12 +34,19 @@ func (api *DagAPI) Put(ctx context.Context, src io.Reader, opts ...options.DagPu
 	var out struct{
 		Cid cid.Cid
 	}
-	err = api.core().request("dht/put").
-		Option("hash", mht).
+	req := api.core().request("dag/put").
 		Option("format", codec).
-		Option("input-enc", options.InputEnc).
-		FileBody(src).
-		Exec(ctx, &out)
+		Option("input-enc", options.InputEnc)
+
+	if options.MhType != math.MaxUint64 {
+		mht, ok := mh.Codes[options.MhType]
+		if !ok {
+			return nil, fmt.Errorf("unknowm mhType %d", options.MhType)
+		}
+		req.Option("hash", mht)
+	}
+
+	err = req.FileBody(src).Exec(ctx, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +58,7 @@ func (api *DagAPI) Get(ctx context.Context, path iface.Path) (format.Node, error
 	panic("implement me")
 }
 
-func (api *DagAPI) Tree(ctx context.Context, path iface.Path, opts ...options.DagTreeOption) ([]iface.Path, error) {
+func (api *DagAPI) Tree(ctx context.Context, path iface.Path, opts ...caopts.DagTreeOption) ([]iface.Path, error) {
 	panic("implement me")
 }
 
