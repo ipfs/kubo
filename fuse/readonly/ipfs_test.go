@@ -173,7 +173,7 @@ func TestIpfsStressRead(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				relpath := strings.Replace(item.String(), "/ipfs/", "/", 1)
+				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
 				fname := path.Join(mnt.Dir, relpath)
 
 				rbuf, err := ioutil.ReadFile(fname)
