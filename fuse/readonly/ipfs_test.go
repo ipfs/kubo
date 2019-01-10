@@ -4,13 +4,14 @@ package readonly
 
 import (
 	"bytes"
-	"errors"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
-	"sync"
+	"strconv"
+	"strings"
 	"testing"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -162,49 +163,45 @@ func TestIpfsStressRead(t *testing.T) {
 		paths = append(paths, npaths...)
 	}
 
-	// Now read a bunch, concurrently
-	wg := sync.WaitGroup{}
-	errs := make(chan error)
+	t.Parallel()
 
 	for s := 0; s < 4; s++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
+		t.Run(strconv.Itoa(s), func(t *testing.T) {
 			for i := 0; i < 2000; i++ {
-				item, _ := iface.ParsePath(paths[rand.Intn(len(paths))])
-				fname := path.Join(mnt.Dir, item.String())
-				rbuf, err := ioutil.ReadFile(fname)
+				item, err := iface.ParsePath(paths[rand.Intn(len(paths))])
 				if err != nil {
-					errs <- err
+					t.Fatal(err)
 				}
 
-				read, err := api.Unixfs().Get(nd.Context(), item)
+				relpath := strings.Replace(item.String(), "/ipfs/", "/", 1)
+				fname := path.Join(mnt.Dir, relpath)
+
+				rbuf, err := ioutil.ReadFile(fname)
 				if err != nil {
-					errs <- err
+					t.Fatal(err)
+				}
+
+				//nd.Context() is never closed which leads to
+				//hitting 8128 goroutine limit in go test -race mode
+				ctx, cancelFunc := context.WithCancel(context.Background())
+
+				read, err := api.Unixfs().Get(ctx, item)
+				if err != nil {
+					t.Fatal(err)
 				}
 
 				data, err := ioutil.ReadAll(read.(files.File))
 				if err != nil {
-					errs <- err
+					t.Fatal(err)
 				}
+
+				cancelFunc()
 
 				if !bytes.Equal(rbuf, data) {
-					errs <- errors.New("incorrect read")
+					t.Fatal("incorrect read")
 				}
 			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	for err := range errs {
-		if err != nil {
-			t.Fatal(err)
-		}
+		})
 	}
 }
 
