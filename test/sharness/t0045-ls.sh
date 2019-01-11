@@ -45,33 +45,10 @@ EOF
   test_expect_success "'ipfs ls <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss 246  d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy 1143 d2/
-QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 13   f1
-QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 13   f2
-
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
-QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1035 1024
-QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 14   a
-
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
-QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 139 128
-QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 14  a
-EOF
-    test_cmp expected_ls actual_ls
-  '
-
-  test_expect_success "'ipfs ls --resolve-size <three dir hashes>' succeeds" '
-    ipfs ls --resolve-size QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls
-  '
-
-  test_expect_success "'ipfs ls <three dir hashes>' output looks good" '
-    cat <<-\EOF >expected_ls &&
-QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss 246  d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy 1143 d2/
-QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5    f1
-QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5    f2
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss   d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy   d2/
+QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5 f1
+QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5 f2
 
 QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
 QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024 1024
@@ -84,6 +61,29 @@ EOF
     test_cmp expected_ls actual_ls
   '
 
+  test_expect_success "'ipfs ls --size=false <three dir hashes>' succeeds" '
+    ipfs ls --resolve-size QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls
+  '
+
+  test_expect_success "'ipfs ls <three dir hashes>' output looks good" '
+    cat <<-\EOF >expected_ls &&
+QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy d2/
+QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH f1
+QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M f2
+
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
+QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024
+QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL a
+
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
+QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128
+QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN a
+EOF
+    test_cmp expected_ls actual_ls
+  '
+
   test_expect_success "'ipfs ls --headers <three dir hashes>' succeeds" '
     ipfs ls --headers QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls_headers
   '
@@ -92,20 +92,20 @@ EOF
     cat <<-\EOF >expected_ls_headers &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
 Hash                                           Size Name
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss 246  d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy 1143 d2/
-QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 13   f1
-QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 13   f2
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss      d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy      d2/
+QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5    f1
+QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5    f2
 
 QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
 Hash                                           Size Name
-QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1035 1024
-QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 14   a
+QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024 1024
+QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6    a
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
 Hash                                           Size Name
-QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 139  128
-QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 14   a
+QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128  128
+QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 6    a
 EOF
     test_cmp expected_ls_headers actual_ls_headers
   '
@@ -147,41 +147,41 @@ EOF
   test_expect_success "'ipfs ls --stream <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_stream &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss 246       d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy 1143      d2/
-QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 13        f1
-QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 13        f2
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss   d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy   d2/
+QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5 f1
+QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5 f2
 
 QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
-QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1035      1024
-QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 14        a
+QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024 1024
+QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6    a
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
-QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 139       128
-QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 14        a
+QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128 128
+QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 6   a
 EOF
     test_cmp expected_ls_stream actual_ls_stream
   '
 
-  test_expect_success "'ipfs ls --resolve-size --stream <three dir hashes>' succeeds" '
+  test_expect_success "'ipfs ls --size=false --stream <three dir hashes>' succeeds" '
     ipfs ls --resolve-size --stream QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss >actual_ls_stream
   '
 
-  test_expect_success "'ipfs ls --stream <three dir hashes>' output looks good" '
+  test_expect_success "'ipfs ls --size=false --stream <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_stream &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss 246       d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy 1143      d2/
-QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5         f1
-QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5         f2
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy d2/
+QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH f1
+QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M f2
 
 QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
-QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024      1024
-QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 6         a
+QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1024
+QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL a
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
-QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128       128
-QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 6         a
+QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 128
+QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN a
 EOF
     test_cmp expected_ls_stream actual_ls_stream
   '
@@ -193,21 +193,21 @@ EOF
   test_expect_success "'ipfs ls --stream --headers  <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_stream_headers &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-Hash                                           Size      Name
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss 246       d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy 1143      d2/
-QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 13        f1
-QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 13        f2
+Hash                                           Size Name
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss      d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy      d2/
+QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 13   f1
+QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 13   f2
 
 QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy:
-Hash                                           Size      Name
-QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1035      1024
-QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 14        a
+Hash                                           Size Name
+QmbQBUSRL9raZtNXfpTDeaxQapibJEG6qEY8WqAN22aUzd 1035 1024
+QmaRGe7bVmVaLmxbrMiVNXqW4pRNNp3xq7hFtyRKA3mtJL 14   a
 
 QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss:
-Hash                                           Size      Name
-QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 139       128
-QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 14        a
+Hash                                           Size Name
+QmQNd6ubRXaNG6Prov8o6vk3bn6eWsj9FxLGrAVDUAGkGe 139  128
+QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN 14   a
 EOF
     test_cmp expected_ls_stream_headers actual_ls_stream_headers
   '
@@ -282,30 +282,30 @@ test_expect_success "remove a file in dir" '
   ipfs block rm $FILE
 '
 
-test_expect_success "'ipfs ls --resolve-type=false ' ok" '
-  ipfs ls --resolve-type=false $DIR > /dev/null
+test_expect_success "'ipfs ls --resolve-type=false ' fails" '
+  test_must_fail ipfs ls --resolve-type=false $DIR > /dev/null
 '
 
 test_expect_success "'ipfs ls' fails" '
   test_must_fail ipfs ls $DIR
 '
 
-test_expect_success "'ipfs ls --resolve-type=false --resolve-size=true' fails" '
-  test_must_fail ipfs ls --resolve-type=false --resolve-size=true $DIR
+test_expect_success "'ipfs ls --resolve-type=true --size=false' fails" '
+  test_must_fail ipfs ls --resolve-type=true --size=false $DIR
 '
 
 test_launch_ipfs_daemon --offline
 
-test_expect_success "'ipfs ls --resolve-type=false' ok" '
-  ipfs ls --resolve-type=false $DIR > /dev/null
+test_expect_success "'ipfs ls --resolve-type=false --size=false' ok" '
+  ipfs ls --resolve-type=false --size=false $DIR > /dev/null
 '
 
 test_expect_success "'ipfs ls' fails" '
   test_must_fail ipfs ls $DIR
 '
 
-test_expect_success "'ipfs ls --resolve-type=false --resolve-size=true' fails" '
-  test_must_fail ipfs ls --resolve-type=false --resolve-size=true $DIR
+test_expect_success "'ipfs ls --resolve-type=false --size=true' fails" '
+  test_must_fail ipfs ls --resolve-type=false --size=true $DIR
 '
 
 test_kill_ipfs_daemon

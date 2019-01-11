@@ -44,7 +44,7 @@ type LsOutput struct {
 const (
 	lsHeadersOptionNameTime = "headers"
 	lsResolveTypeOptionName = "resolve-type"
-	lsResolveSizeOptionName = "resolve-size"
+	lsSizeOptionName        = "size"
 	lsStreamOptionName      = "stream"
 )
 
@@ -67,7 +67,7 @@ The JSON output contains type information.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(lsHeadersOptionNameTime, "v", "Print table headers (Hash, Size, Name)."),
 		cmdkit.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
-		cmdkit.BoolOption(lsResolveSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(false),
+		cmdkit.BoolOption(lsSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(true),
 		cmdkit.BoolOption(lsStreamOptionName, "s", "Enable exprimental streaming of directory entries as they are traversed."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -82,7 +82,7 @@ The JSON output contains type information.
 		}
 
 		resolveType, _ := req.Options[lsResolveTypeOptionName].(bool)
-		resolveSize, _ := req.Options[lsResolveSizeOptionName].(bool)
+		resolveSize, _ := req.Options[lsSizeOptionName].(bool)
 		dserv := nd.DAG
 		if !resolveType && !resolveSize {
 			offlineexch := offline.Exchange(nd.Blockstore)
@@ -229,7 +229,7 @@ func makeDagNodeLinkResults(req *cmds.Request, dagnode ipld.Node) <-chan unixfs.
 
 func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolveType bool, resolveSize bool, link *ipld.Link) (*LsLink, error) {
 	t := unixfspb.Data_DataType(-1)
-	size := link.Size
+	var size uint64
 
 	switch link.Cid.Type() {
 	case cid.Raw:
