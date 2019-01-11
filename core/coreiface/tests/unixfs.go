@@ -704,8 +704,8 @@ func (tp *provider) TestLs(t *testing.T) {
 	if len(links) != 1 {
 		t.Fatalf("expected 1 link, got %d", len(links))
 	}
-	if links[0].Size != 23 {
-		t.Fatalf("expected size = 23, got %d", links[0].Size)
+	if links[0].Size != 15 {
+		t.Fatalf("expected size = 15, got %d", links[0].Size)
 	}
 	if links[0].Name != "name-of-file" {
 		t.Fatalf("expected name = name-of-file, got %s", links[0].Name)
