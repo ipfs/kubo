@@ -65,29 +65,31 @@ Our focus will be on the simplest case, a single file, handled by `Adder.addFile
 
         Assuming the directory already exists in the MFS file system, (if it doesn't exist it will be created using `mfs.Mkdir()`), the **root** __DAG__ node is added to the `MFS` File system using the `mfs.PutNode()` function.
 
-        - **[MFS] [`PutNode(mfs.Root, path, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/master/ops.go#L101)** - *Insert node at path into given `MFS`*
+        - **[MFS] [`PutNode(mfs.Root, path, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/ops.go#L86)** - *Insert node at path into given `MFS`*
 
             The `path` param is used to determine the `MFS Directory`, which is first looked up in the `MFS` using `lookupDir()` function. This is followed by adding the **root** __DAG__ node (`ipld.Node`) in to this `Directory` using `directory.AddChild()` method.
 
         - **[MFS] Add Child To `UnixFS`**
-          - **[`directory.AddChild(filename, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/master/dir.go#L374)** - *Add **root** __DAG__ node under this directory*
+          - **[`directory.AddChild(filename, ipld.Node)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/dir.go#L350)** - *Add **root** __DAG__ node under this directory*
 
               Within this method the node is added to the `Directory`'s __DAG service__ using the `dserv.Add()` method, followed by adding the **root** __DAG__ node with the given name, in the `directory.addUnixFSChild(directory.child{name, ipld.Node})` method.
 
-          - **[MFS] [`directory.addUnixFSChild(child)`](https://github.com/ipfs/go-mfs/blob/master/dir.go#L374)** - *Add child to inner UnixFS Directory*
+          - **[MFS] [`directory.addUnixFSChild(child)`](https://github.com/ipfs/go-mfs/blob/v0.1.18/dir.go#L375)** - *Add child to inner UnixFS Directory*
 
               The node is then added as a child to the inner `UnixFS` directory using the `(BasicDirectory).AddChild()` method.
 
               > NOTE: This is not to be confused with the `directory.AddChild(filename, ipld.Node)`, as this operates on the `UnixFS` `BasicDirectory` object only.
 
-          - **[UnixFS] [`(BasicDirectory).AddChild(ctx, name, ipld.Node)`](https://github.com/ipfs/go-unixfs/blob/master/io/directory.go#L142)** - *Add child to `BasicDirectory`*
+          - **[UnixFS] [`(BasicDirectory).AddChild(ctx, name, ipld.Node)`](https://github.com/ipfs/go-unixfs/blob/v1.1.16/io/directory.go#L137)** - *Add child to `BasicDirectory`*
 
               > IMPORTANT: It should be noted that the `BasicDirectory` struct of the `UnixFS` package, encasulates a node object of type `ProtoNode`, which is a different format from the `ipld.Node` we have been working on throughout this document.
 
               This method first attempts to remove any old links (`ProtoNode.RemoveNodeLink(name)`) to the `ProtoNode` prior to adding a link to the newly added `ipld.Node`, using `ProtoNode.AddNodeLink(name, ipld.Node)`.
 
-              - **[Merkledag] [`AddNodeLink()`](https://github.com/ipfs/go-unixfs/blob/master/io/directory.go#L142)**
+              - **[Merkledag] [`AddNodeLink()`](https://github.com/ipfs/go-merkledag/blob/v1.1.13/node.go#L99)**
 
+                **HELP: The go-merkledag version is supposed to v1.1.15 for this example, however that version has not been added to the [releases](https://github.com/ipfs/go-merkledag/releases)**
+                
                 The `AddNodeLink()` method is where an `ipld.Link` is created with the `ipld.Node`'s `CID` and size in the `ipld.MakeLink(ipld.Node)` method, and is then appended to the `ProtoNode`'s links in the `ProtoNode.AddRawLink(name)` method.
 
 - **[`adder.Finalize()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L200)** - *Fetch and return the __DAG__ **root** from the `MFS` and `UnixFS` directory*
