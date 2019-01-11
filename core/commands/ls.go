@@ -235,6 +235,7 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolveType bool, reso
 	case cid.Raw:
 		// No need to check with raw leaves
 		t = unixfs.TFile
+		size = link.Size
 	case cid.DagProtobuf:
 		linkNode, err := link.GetNode(req.Context, dserv)
 		if err == ipld.ErrNotFound && !resolveType && !resolveSize {
@@ -268,6 +269,7 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolveType bool, reso
 func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash string, ignoreBreaks bool) string {
 	headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
 	stream, _ := req.Options[lsStreamOptionName].(bool)
+	size, _ := req.Options[lsSizeOptionName].(bool)
 	// in streaming mode we can't automatically align the tabs
 	// so we take a best guess
 	var minTabWidth int
@@ -291,17 +293,28 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				fmt.Fprintf(tw, "%s:\n", object.Hash)
 			}
 			if headers {
-				fmt.Fprintln(tw, "Hash\tSize\tName")
+				s := "Hash\tName"
+				if size {
+					s = "Hash\tSize\tName"
+				}
+				fmt.Fprintln(tw, s)
 			}
 			lastObjectHash = object.Hash
 		}
 
 		for _, link := range object.Links {
-			if link.Type == unixfs.TDirectory {
-				link.Name += "/"
+			s := "%[1]s\t%[3]s\n"
+
+			switch {
+			case link.Type == unixfs.TDirectory && size:
+				s = "%[1]s\t\t%[3]s/\n"
+			case link.Type == unixfs.TDirectory && !size:
+				s = "%[1]s\t%[3]s/\n"
+			case size:
+				s = "%s\t%v\t%s\n"
 			}
 
-			fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
+			fmt.Fprintf(tw, s, link.Hash, link.Size, link.Name)
 		}
 	}
 	tw.Flush()
