@@ -307,7 +307,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 
 			switch {
 			case link.Type == unixfs.TDirectory && size:
-				s = "%[1]s\t\t%[3]s/\n"
+				s = "%[1]s\t-\t%[3]s/\n"
 			case link.Type == unixfs.TDirectory && !size:
 				s = "%[1]s\t%[3]s/\n"
 			case size:

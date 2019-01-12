@@ -45,8 +45,8 @@ EOF
   test_expect_success "'ipfs ls <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss   d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy   d2/
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss - d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy - d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5 f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5 f2
 
@@ -92,8 +92,8 @@ EOF
     cat <<-\EOF >expected_ls_headers &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
 Hash                                           Size Name
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss      d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy      d2/
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss -    d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy -    d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5    f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5    f2
 
@@ -147,8 +147,8 @@ EOF
   test_expect_success "'ipfs ls --stream <three dir hashes>' output looks good" '
     cat <<-\EOF >expected_ls_stream &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss           d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy           d2/
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss -         d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy -         d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5         f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5         f2
 
@@ -194,8 +194,8 @@ EOF
     cat <<-\EOF >expected_ls_stream_headers &&
 QmfNy183bXiRVyrhyWtq3TwHn79yHEkiAGFr18P7YNzESj:
 Hash                                           Size      Name
-QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss           d1/
-QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy           d2/
+QmSix55yz8CzWXf5ZVM9vgEvijnEeeXiTSarVtsqiiCJss -         d1/
+QmR3jhV4XpxxPjPT3Y8vNnWvWNvakdcT3H6vqpRBsX1MLy -         d2/
 QmeomffUNfmQy76CQGy9NdmqEnnHU9soCexBnGU3ezPHVH 5         f1
 QmNtocSs7MoDkJMc1RkyisCSKvLadujPsfJfSdJ3e1eA1M 5         f2
 
