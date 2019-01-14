@@ -5,13 +5,14 @@ package readonly
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
-	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -163,22 +164,24 @@ func TestIpfsStressRead(t *testing.T) {
 		paths = append(paths, npaths...)
 	}
 
-	t.Parallel()
+	// Now read a bunch, concurrently
+	wg := sync.WaitGroup{}
+	errs := make(chan error)
 
 	for s := 0; s < 4; s++ {
-		t.Run(strconv.Itoa(s), func(t *testing.T) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
 			for i := 0; i < 2000; i++ {
-				item, err := iface.ParsePath(paths[rand.Intn(len(paths))])
-				if err != nil {
-					t.Fatal(err)
-				}
+				item, _ := iface.ParsePath(paths[rand.Intn(len(paths))])
 
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
 				fname := path.Join(mnt.Dir, relpath)
 
 				rbuf, err := ioutil.ReadFile(fname)
 				if err != nil {
-					t.Fatal(err)
+					errs <- err
 				}
 
 				//nd.Context() is never closed which leads to
@@ -187,21 +190,32 @@ func TestIpfsStressRead(t *testing.T) {
 
 				read, err := api.Unixfs().Get(ctx, item)
 				if err != nil {
-					t.Fatal(err)
+					errs <- err
 				}
 
 				data, err := ioutil.ReadAll(read.(files.File))
 				if err != nil {
-					t.Fatal(err)
+					errs <- err
 				}
 
 				cancelFunc()
 
 				if !bytes.Equal(rbuf, data) {
-					t.Fatal("incorrect read")
+					errs <- errors.New("incorrect read")
 				}
 			}
-		})
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
