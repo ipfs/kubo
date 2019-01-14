@@ -10,8 +10,8 @@ import (
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	cmds "gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
 	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
-	bitswap "gx/ipfs/QmYoGLuLwTUv1SYBmsw1EVNC9MyLVUxwxzXYtKgAGHyEfw/go-bitswap"
-	decision "gx/ipfs/QmYoGLuLwTUv1SYBmsw1EVNC9MyLVUxwxzXYtKgAGHyEfw/go-bitswap/decision"
+	bitswap "gx/ipfs/QmYokQouMdEuZjNQop75Bwm6ZV9CxJDcxvZHeSy4Ttzrtp/go-bitswap"
+	decision "gx/ipfs/QmYokQouMdEuZjNQop75Bwm6ZV9CxJDcxvZHeSy4Ttzrtp/go-bitswap/decision"
 	cidutil "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
