@@ -101,6 +101,34 @@ func (tp *provider) TestAdd(t *testing.T) {
 		return coreiface.IpfsPath(c)
 	}
 
+	rf, err := ioutil.TempFile(os.TempDir(), "unixfs-add-real")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rfp := rf.Name()
+
+	if _, err := rf.Write([]byte(helloStr)); err != nil {
+		t.Fatal(err)
+	}
+
+	stat, err := rf.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := rf.Close(); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(rfp)
+
+	realFile := func() files.Node {
+		n, err := files.NewReaderPathFile(rfp, ioutil.NopCloser(strings.NewReader(helloStr)), stat)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+
 	cases := []struct {
 		name   string
 		data   func() files.Node
@@ -322,6 +350,20 @@ func (tp *provider) TestAdd(t *testing.T) {
 			wrap: "t",
 			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
 			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
+		},
+		// NoCopy
+		{
+			name: "simpleNoCopy",
+			data: realFile,
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true)},
+		},
+		{
+			name: "noCopyNoRaw",
+			data: realFile,
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true), options.Unixfs.RawLeaves(false)},
+			err:  "nocopy option requires '--raw-leaves' to be enabled as well",
 		},
 		// Events / Progress
 		{
