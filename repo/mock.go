@@ -17,6 +17,7 @@ type Mock struct {
 	C config.Config
 	D Datastore
 	K keystore.Keystore
+	F *filestore.FileManager
 }
 
 func (m *Mock) Config() (*config.Config, error) {
@@ -54,4 +55,4 @@ func (m *Mock) SwarmKey() ([]byte, error) {
 	return nil, nil
 }
 
-func (m *Mock) FileManager() *filestore.FileManager { return nil }
+func (m *Mock) FileManager() *filestore.FileManager { return m.F }
