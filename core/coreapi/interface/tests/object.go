@@ -300,7 +300,7 @@ func (tp *provider) TestObjectAddLinkCreate(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error")
 	}
-	if err.Error() != "no link by that name" {
+	if !strings.Contains(err.Error(), "no link by that name") {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
