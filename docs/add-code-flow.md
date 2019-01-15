@@ -1,8 +1,6 @@
 # IPFS : The `Add` command demystified
 
-https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/commands/add.go#L208-L213
-
-The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some datastructures and packages like `ipld.Node` (aka `dagnode`, `FSNode`, `MFS`, etc.
+The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some datastructures and packages like `ipld.Node` (aka `dagnode`), `FSNode`, `MFS`, etc.
 
 **Try this yourself**
 > 
@@ -42,11 +40,11 @@ Within the function, a new `Adder` is created with the configured `Blockstore` a
 - **[`adder.AddAllAndPin(files)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L403)** - *Entrypoint to the `Add` logic*
     encapsulates a lot of the underlying functionality that will be investigated in the following sections. 
 
-    Our focus will be on the simplest case, a single file, handled by `Adder.addFileNode(path, file)` handled by `Adder.addFile(pathm files.File)`. 
+    Our focus will be on the simplest case, a single file, handled by `Adder.addFile(file files.File)`. 
 
-  - **[`adder.addFile(path, files.File)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L450)** - *Create the _DAG_ and add to `MFS`*
+  - **[`adder.addFile(file files.File)`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L450)** - *Create the _DAG_ and add to `MFS`*
 
-      The `addFile(file)` method takes the data and converts it into a __DAG__ tree and adds the root of the tree in to the `MFS`.
+      The `addFile(file)` method takes the data and converts it into a __DAG__ tree and adds the root of the tree into the `MFS`.
 
       https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L508-L521
 
@@ -80,18 +78,16 @@ Within the function, a new `Adder` is created with the configured `Blockstore` a
 
                 The node is then added as a child to the inner `UnixFS` directory using the `(BasicDirectory).AddChild()` method.
 
-                > NOTE: This is not to be confused with the `directory.AddChild(filename, ipld.Node)`, as this operates on the `UnixFS` `BasicDirectory` object only.
+                > NOTE: This is not to be confused with the `directory.AddChild(filename, ipld.Node)`, as this operates on the `UnixFS` `BasicDirectory` object.
 
             - **[UnixFS] [`(BasicDirectory).AddChild(ctx, name, ipld.Node)`](https://github.com/ipfs/go-unixfs/blob/v1.1.16/io/directory.go#L137)** - *Add child to `BasicDirectory`*
 
-                > IMPORTANT: It should be noted that the `BasicDirectory` struct of the `UnixFS` package, encasulates a node object of type `ProtoNode`, which is a different format from the `ipld.Node` we have been working on throughout this document.
+                > IMPORTANT: It should be noted that the `BasicDirectory` object uses the `ProtoNode` type object which is an implementation of the `ipld.Node` interface, seen and used throughout this document. Ideally the `ipld.Node` should always be used, unless we need access tp specific functions from `ProtoNode` (like `Copy()`) that are not available in the interface.
 
                 This method first attempts to remove any old links (`ProtoNode.RemoveNodeLink(name)`) to the `ProtoNode` prior to adding a link to the newly added `ipld.Node`, using `ProtoNode.AddNodeLink(name, ipld.Node)`.
 
-                - **[Merkledag] [`AddNodeLink()`](https://github.com/ipfs/go-merkledag/blob/v1.1.13/node.go#L99)**
+                - **[Merkledag] [`AddNodeLink()`](https://github.com/ipfs/go-merkledag/blob/v1.1.15/node.go#L99)**
 
-                  **HELP: The go-merkledag version is supposed to v1.1.15 for this example, however that version has not been added to the [releases](https://github.com/ipfs/go-merkledag/releases)**
-                  
                   The `AddNodeLink()` method is where an `ipld.Link` is created with the `ipld.Node`'s `CID` and size in the `ipld.MakeLink(ipld.Node)` method, and is then appended to the `ProtoNode`'s links in the `ProtoNode.AddRawLink(name)` method.
 
   - **[`adder.Finalize()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L200)** - *Fetch and return the __DAG__ **root** from the `MFS` and `UnixFS` directory*
@@ -101,3 +97,7 @@ Within the function, a new `Adder` is created with the configured `Blockstore` a
   - **[`adder.PinRoot()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L171)** - *Pin all files under the `MFS` **root***
 
     The whole process ends with `PinRoot` recursively pinning all the files under the `MFS` **root**
+
+# Also see
+1. https://github.com/ipfs/go-ipfs/#development
+2. [Concept document about files](https://github.com/ipfs/docs/issues/133)
