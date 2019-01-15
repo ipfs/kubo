@@ -35,12 +35,20 @@ func (tp *provider) TestDhtFindPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	laddrs0, err := apis[0].Swarm().LocalAddrs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(laddrs0) != 1 {
+		t.Fatal("unexpected number of local addrs")
+	}
+
 	pi, err := apis[2].Dht().FindPeer(ctx, self0.ID())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if pi.Addrs[0].String() != "/ip4/127.0.0.1/tcp/4001" {
+	if pi.Addrs[0].String() != laddrs0[0].String() {
 		t.Errorf("got unexpected address from FindPeer: %s", pi.Addrs[0].String())
 	}
 
@@ -54,7 +62,15 @@ func (tp *provider) TestDhtFindPeer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if pi.Addrs[0].String() != "/ip4/127.0.2.1/tcp/4001" {
+	laddrs2, err := apis[2].Swarm().LocalAddrs(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(laddrs2) != 1 {
+		t.Fatal("unexpected number of local addrs")
+	}
+
+	if pi.Addrs[0].String() != laddrs2[0].String() {
 		t.Errorf("got unexpected address from FindPeer: %s", pi.Addrs[0].String())
 	}
 }
