@@ -158,7 +158,7 @@ func (api *HttpApi) Object() iface.ObjectAPI {
 }
 
 func (api *HttpApi) Dht() iface.DhtAPI {
-	return nil
+	return (*DhtAPI)(api)
 }
 
 func (api *HttpApi) Swarm() iface.SwarmAPI {
