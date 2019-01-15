@@ -162,7 +162,7 @@ func (api *HttpApi) Dht() iface.DhtAPI {
 }
 
 func (api *HttpApi) Swarm() iface.SwarmAPI {
-	return nil
+	return (*SwarmAPI)(api)
 }
 
 func (api *HttpApi) PubSub() iface.PubSubAPI {
