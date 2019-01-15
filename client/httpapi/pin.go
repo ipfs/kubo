@@ -83,8 +83,8 @@ func (api *PinAPI) Update(ctx context.Context, from iface.Path, to iface.Path, o
 }
 
 type pinVerifyRes struct {
-	Cid      string
-	JOk       bool `json:"Ok"`
+	Cid       string
+	JOk       bool       `json:"Ok"`
 	JBadNodes []*badNode `json:"BadNodes,omitempty"`
 }
 
@@ -101,7 +101,7 @@ func (r *pinVerifyRes) BadNodes() []iface.BadPinNode {
 }
 
 type badNode struct {
-	Cid string
+	Cid  string
 	JErr string `json:"Err"`
 }
 

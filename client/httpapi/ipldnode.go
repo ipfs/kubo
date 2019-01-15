@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"strconv"
 
@@ -20,11 +19,11 @@ type ipldNode struct {
 	api  *HttpApi
 }
 
-func (a *HttpApi) nodeFromPath(ctx context.Context, p iface.ResolvedPath) ipld.Node {
+func (api *HttpApi) nodeFromPath(ctx context.Context, p iface.ResolvedPath) ipld.Node {
 	return &ipldNode{
 		ctx:  ctx,
 		path: p,
-		api:  a,
+		api:  api,
 	}
 }
 
@@ -47,7 +46,7 @@ func (n *ipldNode) Cid() cid.Cid {
 }
 
 func (n *ipldNode) String() string {
-	return fmt.Sprintf("[Block %s]", n.Cid())
+	return n.Cid().String()
 }
 
 func (n *ipldNode) Loggable() map[string]interface{} {

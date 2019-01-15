@@ -59,10 +59,10 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 		return nil, false, err
 	}
 
-	var out struct{
-		Was string
-		Now string
-		Id string
+	var out struct {
+		Was       string
+		Now       string
+		Id        string
 		Overwrite bool
 	}
 	err = api.core().request("key/rename", oldName, newName).
