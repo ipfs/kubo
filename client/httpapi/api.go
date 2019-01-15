@@ -166,5 +166,5 @@ func (api *HttpApi) Swarm() iface.SwarmAPI {
 }
 
 func (api *HttpApi) PubSub() iface.PubSubAPI {
-	return nil
+	return (*PubsubAPI)(api)
 }

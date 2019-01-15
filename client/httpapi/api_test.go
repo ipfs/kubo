@@ -47,7 +47,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
-	startArgs := []string{"iptb", "--IPTB_ROOT", dir, "start", "-wait", "--", "--offline=" + strconv.FormatBool(n == 1)}
+	startArgs := []string{"iptb", "--IPTB_ROOT", dir, "start", "-wait", "--", "--enable-pubsub-experiment", "--offline=" + strconv.FormatBool(n == 1)}
 	if err := c.Run(startArgs); err != nil {
 		return nil, err
 	}
