@@ -119,11 +119,10 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 
 	return &pubsubSub{
 		Closer: resp,
-		dec: json.NewDecoder(resp.Output),
+		dec:    json.NewDecoder(resp.Output),
 	}, nil
 }
 
 func (api *PubsubAPI) core() *HttpApi {
 	return (*HttpApi)(api)
 }
-

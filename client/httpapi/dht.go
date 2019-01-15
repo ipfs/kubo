@@ -42,7 +42,13 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p iface.Path, opts ...caop
 	if err != nil {
 		return nil, err
 	}
-	resp, err := api.core().request("dht/findprovs", p.String()).
+
+	rp, err := api.core().ResolvePath(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := api.core().request("dht/findprovs", rp.Cid().String()).
 		Option("num-providers", options.NumProviders).
 		Send(ctx)
 	if err != nil {
@@ -60,12 +66,17 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p iface.Path, opts ...caop
 
 		for {
 			var out struct {
+				Extra     string
 				Type      notif.QueryEventType
 				Responses []peerstore.PeerInfo
 			}
 
 			if err := dec.Decode(&out); err != nil {
 				return // todo: handle this somehow
+			}
+			if out.Type == notif.QueryError {
+				return // usually a 'not found' error
+				// todo: handle other errors
 			}
 			if out.Type == notif.Provider {
 				for _, pi := range out.Responses {
@@ -88,7 +99,12 @@ func (api *DhtAPI) Provide(ctx context.Context, p iface.Path, opts ...caopts.Dht
 		return err
 	}
 
-	return api.core().request("dht/provide", p.String()).
+	rp, err := api.core().ResolvePath(ctx, p)
+	if err != nil {
+		return err
+	}
+
+	return api.core().request("dht/provide", rp.Cid().String()).
 		Option("recursive", options.Recursive).
 		Exec(ctx, nil)
 }
