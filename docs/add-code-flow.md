@@ -2,6 +2,11 @@
 
 The goal of this document is to capture the code flow for adding a file (see the `coreapi` package) using the IPFS CLI, in the process exploring some datastructures and packages like `ipld.Node` (aka `dagnode`), `FSNode`, `MFS`, etc.
 
+## Concepts
+- [Files](https://github.com/ipfs/docs/issues/133)
+
+--- 
+
 **Try this yourself**
 > 
 > ```
@@ -28,9 +33,7 @@ The goal of this document is to capture the code flow for adding a file (see the
 > # Hello World
 > ```
 
----
-
-# Code Flow
+## Code Flow
 
 **[`UnixfsAPI.Add()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreapi/unixfs.go#L31)** - *Entrypoint into the `Unixfs` package*
 
@@ -82,7 +85,7 @@ Within the function, a new `Adder` is created with the configured `Blockstore` a
 
             - **[UnixFS] [`(BasicDirectory).AddChild(ctx, name, ipld.Node)`](https://github.com/ipfs/go-unixfs/blob/v1.1.16/io/directory.go#L137)** - *Add child to `BasicDirectory`*
 
-                > IMPORTANT: It should be noted that the `BasicDirectory` object uses the `ProtoNode` type object which is an implementation of the `ipld.Node` interface, seen and used throughout this document. Ideally the `ipld.Node` should always be used, unless we need access tp specific functions from `ProtoNode` (like `Copy()`) that are not available in the interface.
+                > IMPORTANT: It should be noted that the `BasicDirectory` object uses the `ProtoNode` type object which is an implementation of the `ipld.Node` interface, seen and used throughout this document. Ideally the `ipld.Node` should always be used, unless we need access to specific functions from `ProtoNode` (like `Copy()`) that are not available in the interface.
 
                 This method first attempts to remove any old links (`ProtoNode.RemoveNodeLink(name)`) to the `ProtoNode` prior to adding a link to the newly added `ipld.Node`, using `ProtoNode.AddNodeLink(name, ipld.Node)`.
 
@@ -97,7 +100,3 @@ Within the function, a new `Adder` is created with the configured `Blockstore` a
   - **[`adder.PinRoot()`](https://github.com/ipfs/go-ipfs/blob/v0.4.18/core/coreunix/add.go#L171)** - *Pin all files under the `MFS` **root***
 
     The whole process ends with `PinRoot` recursively pinning all the files under the `MFS` **root**
-
-# Also see
-1. https://github.com/ipfs/go-ipfs/#development
-2. [Concept document about files](https://github.com/ipfs/docs/issues/133)
