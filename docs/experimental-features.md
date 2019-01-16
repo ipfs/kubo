@@ -183,7 +183,10 @@ Modify your ipfs config:
 ipfs config --json Experimental.FilestoreEnabled true
 ```
 
-And then pass the `--nocopy` flag when running `ipfs add`
+Then restart your IPFS node to reload your config.
+
+Finally, when adding files with ipfs add, pass the --nocopy flag to use the
+filestore instead of copying the files into your local IPFS repo.
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.
