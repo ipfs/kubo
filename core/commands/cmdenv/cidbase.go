@@ -1,9 +1,8 @@
 package cmdenv
 
 import (
-	"errors"
+	"strings"
 
-	path "gx/ipfs/QmNYPETsdAu2uQ1k9q9S1jYEGURaLHV6cbYRSVFVRftpF8/go-path"
 	cmds "gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
 	cidenc "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil/cidenc"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
@@ -64,10 +63,7 @@ func CidBaseDefined(req *cmds.Request) bool {
 // the base encoder is returned.  If you don't care about the error
 // condition, it is safe to ignore the error returned.
 func CidEncoderFromPath(enc cidenc.Encoder, p string) (cidenc.Encoder, error) {
-	v, err := extractCidString(p)
-	if err != nil {
-		return enc, err
-	}
+	v := extractCidString(p)
 	if cidVer(v) == 0 {
 		return cidenc.Encoder{Base: enc.Base, Upgrade: false}, nil
 	}
@@ -78,16 +74,12 @@ func CidEncoderFromPath(enc cidenc.Encoder, p string) (cidenc.Encoder, error) {
 	return cidenc.Encoder{Base: e, Upgrade: true}, nil
 }
 
-func extractCidString(str string) (string, error) {
-	p, err := path.ParsePath(str)
-	if err != nil {
-		return "", err
+func extractCidString(str string) string {
+	parts := strings.Split(str, "/")
+	if len(parts) > 2 && (parts[1] == "ipfs" || parts[1] == "ipld") {
+		return parts[2]
 	}
-	segs := p.Segments()
-	if segs[0] == "ipfs" || segs[0] == "ipld" {
-		return segs[1], nil
-	}
-	return "", errors.New("no CID found")
+	return str
 }
 
 func cidVer(v string) int {
