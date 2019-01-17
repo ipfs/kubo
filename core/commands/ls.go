@@ -44,6 +44,7 @@ type LsOutput struct {
 const (
 	lsHeadersOptionNameTime = "headers"
 	lsResolveTypeOptionName = "resolve-type"
+	lsSizeOptionName        = "size"
 	lsStreamOptionName      = "stream"
 )
 
@@ -66,6 +67,7 @@ The JSON output contains type information.
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(lsHeadersOptionNameTime, "v", "Print table headers (Hash, Size, Name)."),
 		cmdkit.BoolOption(lsResolveTypeOptionName, "Resolve linked objects to find out their types.").WithDefault(true),
+		cmdkit.BoolOption(lsSizeOptionName, "Resolve linked objects to find out their file size.").WithDefault(true),
 		cmdkit.BoolOption(lsStreamOptionName, "s", "Enable exprimental streaming of directory entries as they are traversed."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -79,9 +81,10 @@ The JSON output contains type information.
 			return err
 		}
 
-		resolve, _ := req.Options[lsResolveTypeOptionName].(bool)
+		resolveType, _ := req.Options[lsResolveTypeOptionName].(bool)
+		resolveSize, _ := req.Options[lsSizeOptionName].(bool)
 		dserv := nd.DAG
-		if !resolve {
+		if !resolveType && !resolveSize {
 			offlineexch := offline.Exchange(nd.Blockstore)
 			bserv := blockservice.New(nd.Blockstore, offlineexch)
 			dserv = merkledag.NewDAGService(bserv)
@@ -131,7 +134,7 @@ The JSON output contains type information.
 				}
 				outputLinks := make([]LsLink, len(links))
 				for j, link := range links {
-					lsLink, err := makeLsLink(req, dserv, resolve, link)
+					lsLink, err := makeLsLink(req, dserv, resolveType, resolveSize, link)
 					if err != nil {
 						return err
 					}
@@ -165,7 +168,7 @@ The JSON output contains type information.
 					return linkResult.Err
 				}
 				link := linkResult.Link
-				lsLink, err := makeLsLink(req, dserv, resolve, link)
+				lsLink, err := makeLsLink(req, dserv, resolveType, resolveSize, link)
 				if err != nil {
 					return err
 				}
@@ -224,16 +227,18 @@ func makeDagNodeLinkResults(req *cmds.Request, dagnode ipld.Node) <-chan unixfs.
 	return linkResults
 }
 
-func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ipld.Link) (*LsLink, error) {
+func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolveType bool, resolveSize bool, link *ipld.Link) (*LsLink, error) {
 	t := unixfspb.Data_DataType(-1)
+	var size uint64
 
 	switch link.Cid.Type() {
 	case cid.Raw:
 		// No need to check with raw leaves
 		t = unixfs.TFile
+		size = link.Size
 	case cid.DagProtobuf:
 		linkNode, err := link.GetNode(req.Context, dserv)
-		if err == ipld.ErrNotFound && !resolve {
+		if err == ipld.ErrNotFound && !resolveType && !resolveSize {
 			// not an error
 			linkNode = nil
 		} else if err != nil {
@@ -245,13 +250,18 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ip
 			if err != nil {
 				return nil, err
 			}
-			t = d.Type()
+			if resolveType {
+				t = d.Type()
+			}
+			if d.Type() == unixfs.TFile && resolveSize {
+				size = d.FileSize()
+			}
 		}
 	}
 	return &LsLink{
 		Name: link.Name,
 		Hash: link.Cid.String(),
-		Size: link.Size,
+		Size: size,
 		Type: t,
 	}, nil
 }
@@ -259,6 +269,7 @@ func makeLsLink(req *cmds.Request, dserv ipld.DAGService, resolve bool, link *ip
 func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash string, ignoreBreaks bool) string {
 	headers, _ := req.Options[lsHeadersOptionNameTime].(bool)
 	stream, _ := req.Options[lsStreamOptionName].(bool)
+	size, _ := req.Options[lsSizeOptionName].(bool)
 	// in streaming mode we can't automatically align the tabs
 	// so we take a best guess
 	var minTabWidth int
@@ -282,17 +293,28 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				fmt.Fprintf(tw, "%s:\n", object.Hash)
 			}
 			if headers {
-				fmt.Fprintln(tw, "Hash\tSize\tName")
+				s := "Hash\tName"
+				if size {
+					s = "Hash\tSize\tName"
+				}
+				fmt.Fprintln(tw, s)
 			}
 			lastObjectHash = object.Hash
 		}
 
 		for _, link := range object.Links {
-			if link.Type == unixfs.TDirectory {
-				link.Name += "/"
+			s := "%[1]s\t%[3]s\n"
+
+			switch {
+			case link.Type == unixfs.TDirectory && size:
+				s = "%[1]s\t-\t%[3]s/\n"
+			case link.Type == unixfs.TDirectory && !size:
+				s = "%[1]s\t%[3]s/\n"
+			case size:
+				s = "%s\t%v\t%s\n"
 			}
 
-			fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
+			fmt.Fprintf(tw, s, link.Hash, link.Size, link.Name)
 		}
 	}
 	tw.Flush()

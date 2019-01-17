@@ -292,7 +292,7 @@ test_object_cmd() {
   '
 
   test_expect_success "output looks good" '
-    echo "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn 4 foo/" > patched_exp &&
+    echo "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn - foo/" > patched_exp &&
     test_cmp patched_exp patched_output
   '
 
