@@ -159,7 +159,7 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 	if err == nil {
 		t.Error("expected err to exist")
 	}
-	if err.Error() != "blockservice: key not found" {
+	if !strings.Contains(err.Error(), "blockservice: key not found") {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 
@@ -167,7 +167,7 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 	if err == nil {
 		t.Error("expected err to exist")
 	}
-	if err.Error() != "blockstore: block not found" {
+	if !strings.Contains(err.Error(), "blockstore: block not found") {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 

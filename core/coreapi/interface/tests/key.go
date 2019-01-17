@@ -82,7 +82,7 @@ func (tp *provider) TestRenameSelf(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "cannot rename key with name 'self'" {
+		if !strings.Contains(err.Error(), "cannot rename key with name 'self'") {
 			t.Fatalf("expected error 'cannot rename key with name 'self'', got '%s'", err.Error())
 		}
 	}
@@ -91,7 +91,7 @@ func (tp *provider) TestRenameSelf(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "cannot rename key with name 'self'" {
+		if !strings.Contains(err.Error(), "cannot rename key with name 'self'") {
 			t.Fatalf("expected error 'cannot rename key with name 'self'', got '%s'", err.Error())
 		}
 	}
@@ -110,7 +110,7 @@ func (tp *provider) TestRemoveSelf(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "cannot remove key with name 'self'" {
+		if !strings.Contains(err.Error(), "cannot remove key with name 'self'") {
 			t.Fatalf("expected error 'cannot remove key with name 'self'', got '%s'", err.Error())
 		}
 	}
@@ -206,7 +206,7 @@ func (tp *provider) TestGenerateExisting(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "key with name 'foo' already exists" {
+		if !strings.Contains(err.Error(), "key with name 'foo' already exists") {
 			t.Fatalf("expected error 'key with name 'foo' already exists', got '%s'", err.Error())
 		}
 	}
@@ -215,7 +215,7 @@ func (tp *provider) TestGenerateExisting(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "cannot create key with name 'self'" {
+		if !strings.Contains(err.Error(), "cannot create key with name 'self'") {
 			t.Fatalf("expected error 'cannot create key with name 'self'', got '%s'", err.Error())
 		}
 	}
@@ -314,7 +314,7 @@ func (tp *provider) TestRenameToSelf(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "cannot overwrite key with name 'self'" {
+		if !strings.Contains(err.Error(), "cannot overwrite key with name 'self'") {
 			t.Fatalf("expected error 'cannot overwrite key with name 'self'', got '%s'", err.Error())
 		}
 	}
@@ -338,7 +338,7 @@ func (tp *provider) TestRenameToSelfForce(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "cannot overwrite key with name 'self'" {
+		if !strings.Contains(err.Error(), "cannot overwrite key with name 'self'") {
 			t.Fatalf("expected error 'cannot overwrite key with name 'self'', got '%s'", err.Error())
 		}
 	}
@@ -368,7 +368,7 @@ func (tp *provider) TestRenameOverwriteNoForce(t *testing.T) {
 	if err == nil {
 		t.Error("expected error to not be nil")
 	} else {
-		if err.Error() != "key by that name already exists, refusing to overwrite" {
+		if !strings.Contains(err.Error(), "key by that name already exists, refusing to overwrite") {
 			t.Fatalf("expected error 'key by that name already exists, refusing to overwrite', got '%s'", err.Error())
 		}
 	}
