@@ -36,6 +36,15 @@ type Object struct {
 
 var ErrDataEncoding = errors.New("unkown data field encoding")
 
+const (
+	headersOptionName      = "headers"
+	encodingOptionName     = "data-encoding"
+	inputencOptionName     = "inputenc"
+	datafieldencOptionName = "datafieldenc"
+	pinOptionName          = "pin"
+	quietOptionName        = "quiet"
+)
+
 var ObjectCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Interact with IPFS objects.",
@@ -111,7 +120,7 @@ multihash.
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("headers", "v", "Print table headers (Hash, Size, Name)."),
+		cmdkit.BoolOption(headersOptionName, "v", "Print table headers (Hash, Size, Name)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -158,7 +167,7 @@ multihash.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
 			tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
-			headers, _ := req.Options["headers"].(bool)
+			headers, _ := req.Options[headersOptionName].(bool)
 			if headers {
 				fmt.Fprintln(tw, "Hash\tSize\tName")
 			}
@@ -206,7 +215,7 @@ Supported values are:
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("data-encoding", "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
+		cmdkit.StringOption(encodingOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -224,7 +233,7 @@ Supported values are:
 			return err
 		}
 
-		datafieldenc, _ := req.Options["data-encoding"].(string)
+		datafieldenc, _ := req.Options[encodingOptionName].(string)
 		if err != nil {
 			return err
 		}
@@ -395,10 +404,10 @@ And then run:
 		cmdkit.FileArg("data", true, false, "Data to be stored as a DAG object.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption("inputenc", "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").WithDefault("json"),
-		cmdkit.StringOption("datafieldenc", "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
-		cmdkit.BoolOption("pin", "Pin this object when adding."),
-		cmdkit.BoolOption("quiet", "q", "Write minimal output."),
+		cmdkit.StringOption(inputencOptionName, "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").WithDefault("json"),
+		cmdkit.StringOption(datafieldencOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
+		cmdkit.BoolOption(pinOptionName, "Pin this object when adding."),
+		cmdkit.BoolOption(quietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -416,17 +425,17 @@ And then run:
 			return err
 		}
 
-		inputenc, _ := req.Options["inputenc"].(string)
+		inputenc, _ := req.Options[inputencOptionName].(string)
 		if err != nil {
 			return err
 		}
 
-		datafieldenc, _ := req.Options["datafieldenc"].(string)
+		datafieldenc, _ := req.Options[datafieldencOptionName].(string)
 		if err != nil {
 			return err
 		}
 
-		dopin, _ := req.Options["pin"].(bool)
+		dopin, _ := req.Options[pinOptionName].(bool)
 		if err != nil {
 			return err
 		}
@@ -443,7 +452,7 @@ And then run:
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
-			quiet, _ := req.Options["quiet"].(bool)
+			quiet, _ := req.Options[quietOptionName].(bool)
 
 			o := out.Hash
 			if !quiet {
