@@ -10,6 +10,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+
+	"github.com/ipfs/go-ipld-format"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
@@ -137,8 +139,8 @@ func (api *HttpApi) Block() iface.BlockAPI {
 	return (*BlockAPI)(api)
 }
 
-func (api *HttpApi) Dag() iface.DagAPI {
-	return (*DagAPI)(api)
+func (api *HttpApi) Dag() format.DAGService {
+	return (*HttpDagServ)(api)
 }
 
 func (api *HttpApi) Name() iface.NameAPI {

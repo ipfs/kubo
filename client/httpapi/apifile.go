@@ -125,6 +125,11 @@ func (it *apiIter) Name() string {
 }
 
 func (it *apiIter) Next() bool {
+	if it.ctx.Err() != nil {
+		it.err = it.ctx.Err()
+		return false
+	}
+
 	var out lsOutput
 	if err := it.dec.Decode(&out); err != nil {
 		if err != io.EOF {
