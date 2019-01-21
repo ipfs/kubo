@@ -151,7 +151,7 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 	}
 
 	_, err = api.ResolvePath(ctx, p1)
-	if err == nil || err.Error() != "no such link found" {
+	if err == nil || !strings.Contains(err.Error(), "no such link found") {
 		t.Fatalf("unexpected error: %s", err)
 	}
 }

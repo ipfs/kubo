@@ -185,7 +185,7 @@ func (tp *provider) TestBatch(t *testing.T) {
 	}
 
 	_, err = api.Dag().Get(ctx, nds[0].Cid())
-	if err == nil || err.Error() != "merkledag: not found" {
+	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Error(err)
 	}
 
