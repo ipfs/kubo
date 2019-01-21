@@ -21,6 +21,7 @@ import (
 	"gx/ipfs/QmYMQuypUbgsdNHmuCBSUJV6wdQVsBHRivNAp3efHJwZJD/go-verifcid"
 	bserv "gx/ipfs/QmYPZzd9VqmJDwxUnThfeSbV1Y5o53aVPDijTB7j7rS9Ep/go-blockservice"
 	offline "gx/ipfs/QmYZwey1thDTynSrvd6qQkX24UpTka6TFhQ2v569UpoqxD/go-ipfs-exchange-offline"
+	cidenc "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil/cidenc"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -87,12 +88,17 @@ var addPinCmd = &cmds.Command{
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		if !showProgress {
 			added, err := corerepo.Pin(n.Pinning, api, req.Context, req.Arguments, recursive)
 			if err != nil {
 				return err
 			}
-			return cmds.EmitOnce(res, &AddPinOutput{Pins: cidsToStrings(added)})
+			return cmds.EmitOnce(res, &AddPinOutput{Pins: cidsToStrings(added, enc)})
 		}
 
 		v := new(dag.ProgressTracker)
@@ -124,7 +130,7 @@ var addPinCmd = &cmds.Command{
 						return err
 					}
 				}
-				return res.Emit(&AddPinOutput{Pins: cidsToStrings(val.pins)})
+				return res.Emit(&AddPinOutput{Pins: cidsToStrings(val.pins, enc)})
 			case <-ticker.C:
 				if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
 					return err
@@ -215,12 +221,17 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		removed, err := corerepo.Unpin(n.Pinning, api, req.Context, req.Arguments, recursive)
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{cidsToStrings(removed)})
+		return cmds.EmitOnce(res, &PinOutput{cidsToStrings(removed, enc)})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
@@ -311,19 +322,27 @@ Example:
 			return err
 		}
 
-		var keys map[string]RefKeyObject
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
 
+		var keys map[cid.Cid]RefKeyObject
 		if len(req.Arguments) > 0 {
 			keys, err = pinLsKeys(req.Context, req.Arguments, typeStr, n, api)
 		} else {
 			keys, err = pinLsAll(req.Context, typeStr, n)
 		}
-
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &RefKeyList{Keys: keys})
+		refKeys := make(map[string]RefKeyObject, len(keys))
+		for k, v := range keys {
+			refKeys[enc.Encode(k)] = v
+		}
+
+		return cmds.EmitOnce(res, &RefKeyList{Keys: refKeys})
 	},
 	Type: RefKeyList{},
 	Encoders: cmds.EncoderMap{
@@ -423,11 +442,16 @@ var verifyPinCmd = &cmds.Command{
 			return fmt.Errorf("the --verbose and --quiet options can not be used at the same time")
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		opts := pinVerifyOpts{
 			explain:   !quiet,
 			includeOk: verbose,
 		}
-		out := pinVerify(req.Context, n, opts)
+		out := pinVerify(req.Context, n, opts, enc)
 
 		return res.Emit(out)
 	},
@@ -455,14 +479,14 @@ type RefKeyList struct {
 	Keys map[string]RefKeyObject
 }
 
-func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, api iface.CoreAPI) (map[string]RefKeyObject, error) {
+func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, api iface.CoreAPI) (map[cid.Cid]RefKeyObject, error) {
 
 	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
 		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[cid.Cid]RefKeyObject)
 
 	for _, p := range args {
 		pth, err := iface.ParsePath(p)
@@ -489,7 +513,7 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[c.Cid().String()] = RefKeyObject{
+		keys[c.Cid()] = RefKeyObject{
 			Type: pinType,
 		}
 	}
@@ -497,13 +521,13 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 	return keys, nil
 }
 
-func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[cid.Cid]RefKeyObject, error) {
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[cid.Cid]RefKeyObject)
 
 	AddToResultKeys := func(keyList []cid.Cid, typeStr string) {
 		for _, c := range keyList {
-			keys[c.String()] = RefKeyObject{
+			keys[c] = RefKeyObject{
 				Type: typeStr,
 			}
 		}
@@ -552,8 +576,8 @@ type pinVerifyOpts struct {
 	includeOk bool
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
-	visited := make(map[string]PinStatus)
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) <-chan interface{} {
+	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
@@ -562,7 +586,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
-		key := root.String()
+		key := root
 		if status, ok := visited[key]; ok {
 			return status
 		}
@@ -570,7 +594,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err := verifcid.ValidateCid(root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -580,7 +604,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -606,7 +630,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 			pinStatus := checkPin(cid)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{cid.String(), pinStatus}:
+				case out <- &PinVerifyRes{enc.Encode(cid), pinStatus}:
 				case <-ctx.Done():
 					return
 				}
@@ -629,10 +653,10 @@ func (r PinVerifyRes) Format(out io.Writer) {
 	}
 }
 
-func cidsToStrings(cs []cid.Cid) []string {
+func cidsToStrings(cs []cid.Cid, enc cidenc.Encoder) []string {
 	out := make([]string, 0, len(cs))
 	for _, c := range cs {
-		out = append(out, c.String())
+		out = append(out, enc.Encode(c))
 	}
 	return out
 }

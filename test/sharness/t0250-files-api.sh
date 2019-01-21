@@ -202,6 +202,12 @@ test_files_api() {
     test_cmp ls_l_expected ls_l_actual
   '
 
+  test_expect_success "file has correct hash and size listed with -l --cid-base=base32" '
+    echo "file1	`cid-fmt -v 1 -b base32 %s $FILE1`	4" > ls_l_expected &&
+    ipfs files ls --cid-base=base32 -l /cats/file1 > ls_l_actual &&
+    test_cmp ls_l_expected ls_l_actual
+  '
+
   test_expect_success "file shows up with the correct name" '
     echo "file1" > ls_l_expected &&
     ipfs files ls /cats/file1 > ls_l_actual &&
@@ -215,6 +221,19 @@ test_files_api() {
   test_expect_success "stat output looks good" '
     grep -v CumulativeSize: file1stat_orig > file1stat_actual &&
     echo "$FILE1" > file1stat_expect &&
+    echo "Size: 4" >> file1stat_expect &&
+    echo "ChildBlocks: 0" >> file1stat_expect &&
+    echo "Type: file" >> file1stat_expect &&
+    test_cmp file1stat_expect file1stat_actual
+  '
+
+  test_expect_success "can stat file with --cid-base=base32 $EXTRA" '
+    ipfs files stat --cid-base=base32 /cats/file1 > file1stat_orig
+  '
+
+  test_expect_success "stat output looks good with --cid-base=base32" '
+    grep -v CumulativeSize: file1stat_orig > file1stat_actual &&
+    echo `cid-fmt -v 1 -b base32 %s $FILE1` > file1stat_expect &&
     echo "Size: 4" >> file1stat_expect &&
     echo "ChildBlocks: 0" >> file1stat_expect &&
     echo "Type: file" >> file1stat_expect &&

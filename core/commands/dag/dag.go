@@ -14,6 +14,7 @@ import (
 	cmds "gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
 	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 	ipld "gx/ipfs/QmcKKBwfz6FyQdHR2jsXrrF6XeSBXYL86anmWNewpFpoF5/go-ipld-format"
+	cidenc "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil/cidenc"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
@@ -144,7 +145,11 @@ into an object of the specified format.
 	Type: OutputObject{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *OutputObject) error {
-			fmt.Fprintln(w, out.Cid.String())
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintln(w, enc.Encode(out.Cid))
 			return nil
 		}),
 	},
@@ -227,7 +232,26 @@ var DagResolveCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ResolveOutput) error {
-			p := out.Cid.String()
+			var (
+				enc cidenc.Encoder
+				err error
+			)
+			switch {
+			case !cmdenv.CidBaseDefined(req):
+				// Not specified, check the path.
+				enc, err = cmdenv.CidEncoderFromPath(req.Arguments[0])
+				if err == nil {
+					break
+				}
+				// Nope, fallback on the default.
+				fallthrough
+			default:
+				enc, err = cmdenv.GetLowLevelCidEncoder(req)
+				if err != nil {
+					return err
+				}
+			}
+			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
 				p = path.Join([]string{p, out.RemPath})
 			}
