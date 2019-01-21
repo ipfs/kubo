@@ -78,12 +78,16 @@ You can now refer to the added file in a gateway, like so:
 
 The chunker option, '-s', specifies the chunking strategy that dictates
 how to break files into blocks. Blocks with same content can
-be deduplicated. The default is a fixed block size of
+be deduplicated. Different chunking strategies will produce different
+hashes for the same file. The default is a fixed block size of
 256 * 1024 bytes, 'size-262144'. Alternatively, you can use the
-rabin chunker for content defined chunking by specifying
-rabin-[min]-[avg]-[max] (where min/avg/max refer to the resulting
-chunk sizes). Using other chunking strategies will produce
-different hashes for the same file.
+Rabin fingerprint chunker for content defined chunking by specifying
+rabin-[min]-[avg]-[max] (where min/avg/max refer to the desired
+chunk sizes in bytes), e.g. 'rabin-262144-524288-1048576'.
+
+The following examples use very small byte sizes to demonstrate the
+properties of the different chunkers on a small file. You'll likely
+want to use a 1024 times larger chunk sizes for most files.
 
   > ipfs add --chunker=size-2048 ipfs-logo.svg
   added QmafrLBfzRLV4XSH1XcaMMeaXEUhDJjmtDfsYU95TrWG87 ipfs-logo.svg
