@@ -1,8 +1,10 @@
 package cmdenv
 
 import (
+	"fmt"
 	"strings"
 
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	cmds "gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
 	cidenc "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil/cidenc"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
@@ -59,32 +61,47 @@ func CidBaseDefined(req *cmds.Request) bool {
 // CidEncoderFromPath creates a new encoder that is influenced from
 // the encoded Cid in a Path.  For CidV0 the multibase from the base
 // encoder is used and automatic upgrades are disabled.  For CidV1 the
-// multibase from the CID is used and upgrades are eneabled.  On error
-// the base encoder is returned.  If you don't care about the error
-// condition, it is safe to ignore the error returned.
-func CidEncoderFromPath(enc cidenc.Encoder, p string) (cidenc.Encoder, error) {
-	v := extractCidString(p)
-	if cidVer(v) == 0 {
-		return cidenc.Encoder{Base: enc.Base, Upgrade: false}, nil
+// multibase from the CID is used and upgrades are enabled.
+//
+// This logic is intentionally fuzzy and will match anything of the form
+// `CidLike`, `CidLike/...`, or `/namespace/CidLike/...`.
+//
+// For example:
+//
+// * Qm...
+// * Qm.../...
+// * /ipfs/Qm...
+// * /ipns/bafybeiahnxfi7fpmr5wtxs2imx4abnyn7fdxeiox7xxjem6zuiioqkh6zi/...
+// * /bzz/bafybeiahnxfi7fpmr5wtxs2imx4abnyn7fdxeiox7xxjem6zuiioqkh6zi/...
+func CidEncoderFromPath(p string) (cidenc.Encoder, error) {
+	components := strings.SplitN(p, "/", 4)
+
+	var maybeCid string
+	if components[0] != "" {
+		// No leading slash, first component is likely CID-like.
+		maybeCid = components[0]
+	} else if len(components) < 3 {
+		// Not enough components to include a CID.
+		return cidenc.Encoder{}, fmt.Errorf("no cid in path: %s", p)
+	} else {
+		maybeCid = components[2]
 	}
-	e, err := mbase.NewEncoder(mbase.Encoding(v[0]))
+	c, err := cid.Decode(maybeCid)
 	if err != nil {
-		return enc, err
+		// Ok, not a CID-like thing. Keep the current encoder.
+		return cidenc.Encoder{}, fmt.Errorf("no cid in path: %s", p)
 	}
-	return cidenc.Encoder{Base: e, Upgrade: true}, nil
-}
+	if c.Version() == 0 {
+		// Version 0, use the base58 non-upgrading encoder.
+		return cidenc.Default(), nil
+	}
 
-func extractCidString(str string) string {
-	parts := strings.Split(str, "/")
-	if len(parts) > 2 && (parts[1] == "ipfs" || parts[1] == "ipld") {
-		return parts[2]
+	// Version 1+, extract multibase encoding.
+	encoding, _, err := mbase.Decode(maybeCid)
+	if err != nil {
+		// This should be impossible, we've already decoded the cid.
+		panic(fmt.Sprintf("BUG: failed to get multibase decoder for CID %s", maybeCid))
 	}
-	return str
-}
 
-func cidVer(v string) int {
-	if len(v) == 46 && v[:2] == "Qm" {
-		return 0
-	}
-	return 1
+	return cidenc.Encoder{Base: mbase.MustNewEncoder(encoding), Upgrade: true}, nil
 }
