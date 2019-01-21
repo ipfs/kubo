@@ -403,6 +403,7 @@ Some places to get you started on the codebase:
   - libp2p: https://github.com/libp2p/go-libp2p
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
   - PubSub: https://github.com/libp2p/go-libp2p-pubsub
+- [IPFS : The `Add` command demystified](https://github.com/ipfs/go-ipfs/tree/master/docs/add-code-flow.md)
 
 ### CLI, HTTP-API, Architecture Diagram
 
