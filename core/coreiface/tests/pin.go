@@ -2,11 +2,13 @@ package tests
 
 import (
 	"context"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"math"
 	"strings"
 	"testing"
 
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coredag"
 )
 
 func (tp *provider) TestPin(t *testing.T) {
@@ -109,22 +111,26 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Error(err)
 	}
 
-	p2, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+p0.Cid().String()+`"}}`))
+	nd2, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"lnk": {"/": "`+p0.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	p3, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+p1.Cid().String()+`"}}`))
+	nd3, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"lnk": {"/": "`+p1.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Pin().Add(ctx, p2)
+	if err := api.Dag().AddMany(ctx, append(nd2, nd3...)); err != nil {
+		t.Fatal(err)
+	}
+
+	err = api.Pin().Add(ctx, iface.IpldPath(nd2[0].Cid()))
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Pin().Add(ctx, p3, opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, iface.IpldPath(nd3[0].Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Error(err)
 	}
@@ -147,8 +153,8 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != p3.String() {
-		t.Error("unexpected path")
+	if list[0].Path().String() != iface.IpldPath(nd3[0].Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpfsPath(nd2[0].Cid()).String())
 	}
 
 	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Recursive())
@@ -160,8 +166,8 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != p2.String() {
-		t.Error("unexpected path")
+	if list[0].Path().String() != iface.IpldPath(nd2[0].Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpldPath(nd3[0].Cid()).String())
 	}
 
 	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Indirect())

@@ -2,12 +2,13 @@ package tests
 
 import (
 	"context"
+	"math"
 	"path"
 	"strings"
 	"testing"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	coredag "github.com/ipfs/go-ipfs/core/coredag"
 
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
@@ -45,13 +46,18 @@ func (tp *provider) TestPut(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"Hello"`), math.MaxUint64, -1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = api.Dag().Add(ctx, nds[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if res.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
-		t.Errorf("got wrong cid: %s", res.Cid().String())
+	if nds[0].Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", nds[0].Cid().String())
 	}
 }
 
@@ -63,13 +69,18 @@ func (tp *provider) TestPutWithHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	res, err := api.Dag().Put(ctx, strings.NewReader(`"Hello"`), opt.Dag.Hash(mh.ID, -1))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"Hello"`), mh.ID, -1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = api.Dag().Add(ctx, nds[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if res.Cid().String() != "z5hRLNd2sv4z1c" {
-		t.Errorf("got wrong cid: %s", res.Cid().String())
+	if nds[0].Cid().String() != "z5hRLNd2sv4z1c" {
+		t.Errorf("got wrong cid: %s", nds[0].Cid().String())
 	}
 }
 
@@ -81,28 +92,43 @@ func (tp *provider) TestDagPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	sub, err := api.Dag().Put(ctx, strings.NewReader(`"foo"`))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	res, err := api.Dag().Put(ctx, strings.NewReader(`{"lnk": {"/": "`+sub.Cid().String()+`"}}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	p, err := coreiface.ParsePath(path.Join(res.Cid().String(), "lnk"))
+	snds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"foo"`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	nd, err := api.Dag().Get(ctx, p)
+	err = api.Dag().Add(ctx, snds[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"lnk": {"/": "`+snds[0].Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if nd.Cid().String() != sub.Cid().String() {
-		t.Errorf("got unexpected cid %s, expected %s", nd.Cid().String(), sub.Cid().String())
+	err = api.Dag().Add(ctx, nds[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := coreiface.ParsePath(path.Join(nds[0].Cid().String(), "lnk"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	rp, err := api.ResolvePath(ctx, p)
+	if err != nil {
+		t.Error(err)
+	}
+
+	nd, err := api.Dag().Get(ctx, rp.Cid())
+	if err != nil {
+		t.Error(err)
+	}
+
+	if nd.Cid().String() != snds[0].Cid().String() {
+		t.Errorf("got unexpected cid %s, expected %s", nd.Cid().String(), snds[0].Cid().String())
 	}
 }
 
@@ -114,12 +140,17 @@ func (tp *provider) TestTree(t *testing.T) {
 		t.Error(err)
 	}
 
-	c, err := api.Dag().Put(ctx, strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`), math.MaxUint64, -1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = api.Dag().Add(ctx, nds[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := api.Dag().Get(ctx, c)
+	res, err := api.Dag().Get(ctx, nds[0].Cid())
 	if err != nil {
 		t.Error(err)
 	}
@@ -144,27 +175,25 @@ func (tp *provider) TestBatch(t *testing.T) {
 		t.Error(err)
 	}
 
-	batch := api.Dag().Batch(ctx)
-
-	c, err := batch.Put(ctx, strings.NewReader(`"Hello"`))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"Hello"`), math.MaxUint64, -1)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
-	if c.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
-		t.Errorf("got wrong cid: %s", c.Cid().String())
+	if nds[0].Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", nds[0].Cid().String())
 	}
 
-	_, err = api.Dag().Get(ctx, c)
+	_, err = api.Dag().Get(ctx, nds[0].Cid())
 	if err == nil || err.Error() != "merkledag: not found" {
 		t.Error(err)
 	}
 
-	if err := batch.Commit(ctx); err != nil {
+	if err := api.Dag().AddMany(ctx, nds); err != nil {
 		t.Error(err)
 	}
 
-	_, err = api.Dag().Get(ctx, c)
+	_, err = api.Dag().Get(ctx, nds[0].Cid())
 	if err != nil {
 		t.Error(err)
 	}
