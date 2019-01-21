@@ -4,12 +4,14 @@ package readonly
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"testing"
 
@@ -173,13 +175,20 @@ func TestIpfsStressRead(t *testing.T) {
 
 			for i := 0; i < 2000; i++ {
 				item, _ := iface.ParsePath(paths[rand.Intn(len(paths))])
-				fname := path.Join(mnt.Dir, item.String())
+
+				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
+				fname := path.Join(mnt.Dir, relpath)
+
 				rbuf, err := ioutil.ReadFile(fname)
 				if err != nil {
 					errs <- err
 				}
 
-				read, err := api.Unixfs().Get(nd.Context(), item)
+				//nd.Context() is never closed which leads to
+				//hitting 8128 goroutine limit in go test -race mode
+				ctx, cancelFunc := context.WithCancel(context.Background())
+
+				read, err := api.Unixfs().Get(ctx, item)
 				if err != nil {
 					errs <- err
 				}
@@ -188,6 +197,8 @@ func TestIpfsStressRead(t *testing.T) {
 				if err != nil {
 					errs <- err
 				}
+
+				cancelFunc()
 
 				if !bytes.Equal(rbuf, data) {
 					errs <- errors.New("incorrect read")
