@@ -587,7 +587,7 @@ func (tp *provider) TestAddHashOnly(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error")
 	}
-	if err.Error() != "blockservice: key not found" {
+	if !strings.Contains(err.Error(), "blockservice: key not found") {
 		t.Errorf("unxepected error: %s", err.Error())
 	}
 }
