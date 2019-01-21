@@ -2,11 +2,13 @@ package tests
 
 import (
 	"context"
+	"math"
 	"strings"
 	"testing"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/coredag"
 )
 
 func (tp *provider) TestPath(t *testing.T) {
@@ -62,12 +64,16 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"bar": "baz"}}`))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
+		t.Error(err)
+	}
+
+	if err := api.Dag().AddMany(ctx, nds); err != nil {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath(obj.String() + "/foo/bar")
+	p1, err := coreiface.ParsePath(nds[0].String() + "/foo/bar")
 	if err != nil {
 		t.Error(err)
 	}
@@ -94,16 +100,16 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"bar": "baz"}}`))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
+		t.Error(err)
+	}
+
+	if err := api.Dag().AddMany(ctx, nds); err != nil {
 		t.Fatal(err)
 	}
 
-	if obj.Remainder() != "" {
-		t.Error("expected the resolved path to not have a remainder")
-	}
-
-	p1, err := coreiface.ParsePath(obj.String())
+	p1, err := coreiface.ParsePath(nds[0].Cid().String())
 	if err != nil {
 		t.Error(err)
 	}
@@ -130,12 +136,16 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"bar": "baz"}}`))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
+		t.Error(err)
+	}
+
+	if err := api.Dag().AddMany(ctx, nds); err != nil {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath(obj.String() + "/bar/baz")
+	p1, err := coreiface.ParsePath("/ipld/" + nds[0].Cid().String() + "/bar/baz")
 	if err != nil {
 		t.Error(err)
 	}
@@ -167,12 +177,16 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	obj, err := api.Dag().Put(ctx, strings.NewReader(`{"foo": {"/": "`+blk.Path().Cid().String()+`"}}`))
+	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"/": "`+blk.Path().Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
+		t.Error(err)
+	}
+
+	if err := api.Dag().AddMany(ctx, nds); err != nil {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath(obj.String() + "/foo")
+	p1, err := coreiface.ParsePath("/ipld/" + nds[0].Cid().String() + "/foo")
 	if err != nil {
 		t.Error(err)
 	}
@@ -182,7 +196,7 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if rp.Root().String() != obj.Cid().String() {
+	if rp.Root().String() != nds[0].Cid().String() {
 		t.Error("unexpected path root")
 	}
 

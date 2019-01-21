@@ -96,8 +96,8 @@ func (api *CoreAPI) Block() coreiface.BlockAPI {
 }
 
 // Dag returns the DagAPI interface implementation backed by the go-ipfs node
-func (api *CoreAPI) Dag() coreiface.DagAPI {
-	return (*DagAPI)(api)
+func (api *CoreAPI) Dag() ipld.DAGService {
+	return api.dag
 }
 
 // Name returns the NameAPI interface implementation backed by the go-ipfs node

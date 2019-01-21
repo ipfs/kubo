@@ -633,7 +633,7 @@ func (tp *provider) TestGetDir(t *testing.T) {
 		t.Error(err)
 	}
 	edir := unixfs.EmptyDirNode()
-	_, err = api.Dag().Put(ctx, bytes.NewReader(edir.RawData()), options.Dag.Codec(cid.DagProtobuf), options.Dag.InputEnc("raw"))
+	err = api.Dag().Add(ctx, edir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -667,7 +667,7 @@ func (tp *provider) TestGetNonUnixfs(t *testing.T) {
 	}
 
 	nd := new(mdag.ProtoNode)
-	_, err = api.Dag().Put(ctx, bytes.NewReader(nd.RawData()), options.Dag.Codec(nd.CidBuilder().GetCodec()), options.Dag.InputEnc("raw"))
+	err = api.Dag().Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}
@@ -801,7 +801,7 @@ func (tp *provider) TestLsNonUnixfs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = api.Dag().Put(ctx, bytes.NewReader(nd.RawData()), options.Dag.Codec(cid.DagCBOR), options.Dag.InputEnc("raw"))
+	err = api.Dag().Add(ctx, nd)
 	if err != nil {
 		t.Error(err)
 	}

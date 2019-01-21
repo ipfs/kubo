@@ -19,7 +19,7 @@ type CoreAPI interface {
 	Block() BlockAPI
 
 	// Dag returns an implementation of Dag API
-	Dag() DagAPI
+	Dag() ipld.DAGService
 
 	// Name returns an implementation of Name API
 	Name() NameAPI
