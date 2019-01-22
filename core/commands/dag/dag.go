@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coredag"
-	"github.com/ipfs/go-ipfs/pin"
 
 	path "gx/ipfs/QmNYPETsdAu2uQ1k9q9S1jYEGURaLHV6cbYRSVFVRftpF8/go-path"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
@@ -65,7 +66,7 @@ into an object of the specified format.
 		cmdkit.StringOption("hash", "Hash function to use").WithDefault(""),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -87,12 +88,11 @@ into an object of the specified format.
 			}
 		}
 
-		cids := cid.NewSet()
-		b := ipld.NewBatch(req.Context, nd.DAG)
-
+		var adder ipld.NodeAdder = api.Dag()
 		if dopin {
-			defer nd.Blockstore.PinLock().Unlock()
+			adder = api.Dag().Pinning()
 		}
+		b := ipld.NewBatch(req.Context, adder)
 
 		it := req.Files.Entries()
 		for it.Next() {
@@ -116,7 +116,6 @@ into an object of the specified format.
 			}
 
 			cid := nds[0].Cid()
-			cids.Add(cid)
 			if err := res.Emit(&OutputObject{Cid: cid}); err != nil {
 				return err
 			}
@@ -129,17 +128,6 @@ into an object of the specified format.
 			return err
 		}
 
-		if dopin {
-			cids.ForEach(func(c cid.Cid) error {
-				nd.Pinning.PinWithMode(c, pin.Recursive)
-				return nil
-			})
-
-			err := nd.Pinning.Flush()
-			if err != nil {
-				return err
-			}
-		}
 		return nil
 	},
 	Type: OutputObject{},
@@ -167,27 +155,29 @@ format.
 		cmdkit.StringArg("ref", true, false, "The object to get").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		p, err := path.ParsePath(req.Arguments[0])
+		p, err := iface.ParsePath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
 
-		lastCid, rem, err := nd.Resolver.ResolveToLastNode(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, p)
 		if err != nil {
 			return err
 		}
-		obj, err := nd.DAG.Get(req.Context, lastCid)
+
+		obj, err := api.Dag().Get(req.Context, rp.Cid())
 		if err != nil {
 			return err
 		}
 
 		var out interface{} = obj
-		if len(rem) > 0 {
+		if len(rp.Remainder()) > 0 {
+			rem := strings.Split(rp.Remainder(), "/")
 			final, _, err := obj.Resolve(rem)
 			if err != nil {
 				return err
@@ -210,24 +200,24 @@ var DagResolveCmd = &cmds.Command{
 		cmdkit.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		p, err := path.ParsePath(req.Arguments[0])
+		p, err := iface.ParsePath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
 
-		lastCid, rem, err := nd.Resolver.ResolveToLastNode(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, p)
 		if err != nil {
 			return err
 		}
 
 		return cmds.EmitOnce(res, &ResolveOutput{
-			Cid:     lastCid,
-			RemPath: path.Join(rem),
+			Cid:     rp.Cid(),
+			RemPath: rp.Remainder(),
 		})
 	},
 	Encoders: cmds.EncoderMap{
