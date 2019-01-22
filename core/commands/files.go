@@ -636,6 +636,8 @@ Example:
 			return err
 		}
 
+		flush, _ := req.Options[filesFlushOptionName].(bool)
+
 		src, err := checkPath(req.Arguments[0])
 		if err != nil {
 			return err
@@ -645,7 +647,11 @@ Example:
 			return err
 		}
 
-		return mfs.Mv(nd.FilesRoot, src, dst)
+		err = mfs.Mv(nd.FilesRoot, src, dst)
+		if err == nil && flush {
+			err = mfs.FlushPath(nd.FilesRoot, "/")
+		}
+		return err
 	},
 }
 
@@ -908,11 +914,15 @@ Change the cid version or hash function of the root node of a given path.
 			return err
 		}
 
-		return updatePath(nd.FilesRoot, path, prefix, flush)
+		err = updatePath(nd.FilesRoot, path, prefix)
+		if err == nil && flush {
+			err = mfs.FlushPath(nd.FilesRoot, path)
+		}
+		return err
 	},
 }
 
-func updatePath(rt *mfs.Root, pth string, builder cid.Builder, flush bool) error {
+func updatePath(rt *mfs.Root, pth string, builder cid.Builder) error {
 	if builder == nil {
 		return nil
 	}
@@ -927,10 +937,6 @@ func updatePath(rt *mfs.Root, pth string, builder cid.Builder, flush bool) error
 		n.SetCidBuilder(builder)
 	default:
 		return fmt.Errorf("can only update directories")
-	}
-
-	if flush {
-		nd.Flush()
 	}
 
 	return nil
