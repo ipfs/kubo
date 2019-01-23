@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/tests"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/tests"
+	"github.com/ipfs/go-ipfs/filestore"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
@@ -64,11 +68,14 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		c := config.Config{}
 		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.%d.1/tcp/4001", i)}
 		c.Identity = ident
+		c.Experimental.FilestoreEnabled = true
 
+		ds := datastore.NewMapDatastore()
 		r := &repo.Mock{
 			C: c,
-			D: syncds.MutexWrap(datastore.NewMapDatastore()),
+			D: syncds.MutexWrap(ds),
 			K: keystore.NewMemKeystore(),
+			F: filestore.NewFileManager(ds, filepath.Dir(os.TempDir())),
 		}
 
 		node, err := core.NewNode(ctx, &core.BuildCfg{

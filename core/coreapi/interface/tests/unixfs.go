@@ -15,11 +15,12 @@ import (
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	"gx/ipfs/QmQXze9tG878pa4Euya4rrDpyTNX3kQe4dhCaBzBozGgpe/go-unixfs"
 	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
-	cbor "gx/ipfs/QmRoARq3nkUb13HSKZGepCZSWe5GrVPwx7xURJGZ7KWv9V/go-ipld-cbor"
-	mdag "gx/ipfs/QmTQdH4848iTVCJmKXYyRiK72HufWTLYQQ8iN3JaQ8K1Hq/go-merkledag"
+	cbor "gx/ipfs/QmRZxJ7oybgnnwriuRub9JXp5YdFM9wiGSyRq38QC7swpS/go-ipld-cbor"
+	"gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs"
+	"gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs/importer/helpers"
 	"gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
+	mdag "gx/ipfs/Qmb2UEG2TAeVrEJSjqsZF7Y2he7wRDkrdt6c3bECxwZf4k/go-merkledag"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
@@ -99,6 +100,34 @@ func (tp *provider) TestAdd(t *testing.T) {
 			t.Fatal(err)
 		}
 		return coreiface.IpfsPath(c)
+	}
+
+	rf, err := ioutil.TempFile(os.TempDir(), "unixfs-add-real")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rfp := rf.Name()
+
+	if _, err := rf.Write([]byte(helloStr)); err != nil {
+		t.Fatal(err)
+	}
+
+	stat, err := rf.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := rf.Close(); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(rfp)
+
+	realFile := func() files.Node {
+		n, err := files.NewReaderPathFile(rfp, ioutil.NopCloser(strings.NewReader(helloStr)), stat)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return n
 	}
 
 	cases := []struct {
@@ -322,6 +351,27 @@ func (tp *provider) TestAdd(t *testing.T) {
 			wrap: "t",
 			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
 			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
+		},
+		// NoCopy
+		{
+			name: "simpleNoCopy",
+			data: realFile,
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true)},
+		},
+		{
+			name: "noCopyNoRaw",
+			data: realFile,
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true), options.Unixfs.RawLeaves(false)},
+			err:  "nocopy option requires '--raw-leaves' to be enabled as well",
+		},
+		{
+			name: "noCopyNoPath",
+			data: strFile(helloStr),
+			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true)},
+			err:  helpers.ErrMissingFsRef.Error(),
 		},
 		// Events / Progress
 		{
