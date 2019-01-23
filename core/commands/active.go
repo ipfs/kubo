@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	verboseOptionName = "v"
+	verboseOptionName = "verbose"
 )
 
 var ActiveReqsCmd = &cmds.Command{
@@ -29,7 +29,7 @@ Lists running and recently run commands.
 		return cmds.EmitOnce(res, ctx.ReqLog.Report())
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("verbose", verboseOptionName, "Print extra information."),
+		cmdkit.BoolOption(verboseOptionName, "v", "Print extra information."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"clear":    clearInactiveCmd,
