@@ -18,11 +18,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ipfs/go-ipfs/core"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
+
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
 	"gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"
@@ -96,8 +97,11 @@ func (api *CoreAPI) Block() coreiface.BlockAPI {
 }
 
 // Dag returns the DagAPI interface implementation backed by the go-ipfs node
-func (api *CoreAPI) Dag() ipld.DAGService {
-	return api.dag
+func (api *CoreAPI) Dag() coreiface.APIDagService {
+	return &dagAPI{
+		api.dag,
+		api,
+	}
 }
 
 // Name returns the NameAPI interface implementation backed by the go-ipfs node
