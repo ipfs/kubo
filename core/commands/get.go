@@ -9,16 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	tar "gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"
+	"gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"
 	uarchive "gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs/archive"
 	"gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
-	path "gx/ipfs/QmWqh9oob7ZHQRwU5CdTqpnC8ip8BEkFNrwXRxeNo5Y7vA/go-path"
 	"gx/ipfs/QmYWB8oH6o7qftxoyqTTZhzLrhKCVT7NYahECQTwTtqbgj/pb"
-	dag "gx/ipfs/Qmb2UEG2TAeVrEJSjqsZF7Y2he7wRDkrdt6c3bECxwZf4k/go-merkledag"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -66,33 +64,30 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
-		node, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-		p := path.Path(req.Arguments[0])
-		ctx := req.Context
-		dn, err := core.Resolve(ctx, node.Namesys, node.Resolver, p)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		switch dn := dn.(type) {
-		case *dag.ProtoNode:
-			size, err := dn.Size()
-			if err != nil {
-				return err
-			}
-
-			res.SetLength(size)
-		case *dag.RawNode:
-			res.SetLength(uint64(len(dn.RawData())))
-		default:
+		p, err := iface.ParsePath(req.Arguments[0])
+		if err != nil {
 			return err
 		}
+
+		file, err := api.Unixfs().Get(req.Context, p)
+		if err != nil {
+			return err
+		}
+
+		size, err := file.Size()
+		if err != nil {
+			return err
+		}
+
+		res.SetLength(uint64(size))
 
 		archive, _ := req.Options[archiveOptionName].(bool)
-		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
+		reader, err := uarchive.FileArchive(file, p.String(), archive, cmplvl)
 		if err != nil {
 			return err
 		}
