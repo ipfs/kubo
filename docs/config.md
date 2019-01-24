@@ -52,6 +52,10 @@ Available profiles:
   Reduces daemon overhead on the system. May affect node functionality,
   performance of content discovery and data fetching may be degraded.
 
+- `randomports`
+
+  Generate random port for swarm.
+
 ## Table of Contents
 
 - [`Addresses`](#addresses)
