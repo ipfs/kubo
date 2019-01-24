@@ -30,26 +30,6 @@ import (
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
-func TestAddRecursive(t *testing.T) {
-	r := &repo.Mock{
-		C: config.Config{
-			Identity: config.Identity{
-				PeerID: testPeerID, // required by offline node
-			},
-		},
-		D: syncds.MutexWrap(datastore.NewMapDatastore()),
-	}
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if k, err := AddR(node, "test/data"); err != nil {
-		t.Fatal(err)
-	} else if k != "QmWCCga8AbTyfAQ7pTnGT6JgmRMAB3Qp8ZmTEFi5q5o8jC" {
-		t.Fatal("keys do not match: ", k)
-	}
-}
-
 func TestAddGCLive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{

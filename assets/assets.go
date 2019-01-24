@@ -4,15 +4,17 @@
 package assets
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
-	uio "gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs/io"
+	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
 
 	// this import keeps gx from thinking the dep isn't used
 	_ "gx/ipfs/QmT1jwrqzSMjSjLG5oBd9w4P9vXPKQksWuf5ghsE3Q88ZV/dir-index-html"
@@ -45,7 +47,17 @@ func SeedInitDirIndex(nd *core.IpfsNode) (cid.Cid, error) {
 }
 
 func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
-	dirb := uio.NewDirectory(nd.DAG)
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		return cid.Cid{}, err
+	}
+
+	dirb, err := api.Object().New(nd.Context(), options.Object.Type("unixfs-dir"))
+	if err != nil {
+		return cid.Cid{}, err
+	}
+
+	basePath := iface.IpfsPath(dirb.Cid())
 
 	for _, p := range l {
 		d, err := Asset(p)
@@ -53,40 +65,22 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 			return cid.Cid{}, fmt.Errorf("assets: could load Asset '%s': %s", p, err)
 		}
 
-		s, err := coreunix.Add(nd, bytes.NewBuffer(d))
+		fp, err := api.Unixfs().Add(nd.Context(), files.NewBytesFile(d))
 		if err != nil {
-			return cid.Cid{}, fmt.Errorf("assets: could not Add '%s': %s", p, err)
+			return cid.Cid{}, err
 		}
 
 		fname := filepath.Base(p)
 
-		c, err := cid.Decode(s)
+		basePath, err = api.Object().AddLink(nd.Context(), basePath, fname, fp)
 		if err != nil {
 			return cid.Cid{}, err
-		}
-
-		node, err := nd.DAG.Get(nd.Context(), c)
-		if err != nil {
-			return cid.Cid{}, err
-		}
-
-		if err := dirb.AddChild(nd.Context(), fname, node); err != nil {
-			return cid.Cid{}, fmt.Errorf("assets: could not add '%s' as a child: %s", fname, err)
 		}
 	}
 
-	dir, err := dirb.GetNode()
-	if err != nil {
+	if err := api.Pin().Add(nd.Context(), basePath); err != nil {
 		return cid.Cid{}, err
 	}
 
-	if err := nd.Pinning.Pin(nd.Context(), dir, true); err != nil {
-		return cid.Cid{}, fmt.Errorf("assets: Pinning on init-docu failed: %s", err)
-	}
-
-	if err := nd.Pinning.Flush(); err != nil {
-		return cid.Cid{}, fmt.Errorf("assets: Pinning flush failed: %s", err)
-	}
-
-	return dir.Cid(), nil
+	return basePath.Cid(), nil
 }
