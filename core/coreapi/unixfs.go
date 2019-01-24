@@ -15,6 +15,7 @@ import (
 	mfs "gx/ipfs/QmRg4joNWApLL7yuvLjmKwZaqZX2d7AY7TU35kPmviRoMY/go-mfs"
 	bstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
 	ft "gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs"
+	unixfile "gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs/file"
 	uio "gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs/io"
 	blockservice "gx/ipfs/QmVKQHuzni68SWByzJgBUCwHvvr4TWiXfutNWWwpZpp4rE/go-blockservice"
 	files "gx/ipfs/QmXWZCd8jfaHmt4UDSnjKmGcrQMw95bDGWqEeVLVJjoANX/go-ipfs-files"
@@ -137,7 +138,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 		return nil, err
 	}
 
-	return newUnixfsFile(ctx, ses.dag, nd)
+	return unixfile.NewUnixfsFile(ctx, ses.dag, nd)
 }
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
