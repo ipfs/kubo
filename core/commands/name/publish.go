@@ -72,7 +72,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmdkit.StringArg(ipfsPathOptionName, true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption(resolveOptionName, "Resolve given path before publishing.").WithDefault(true),
+		cmdkit.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
 		cmdkit.StringOption(lifeTimeOptionName, "t",
 			`Time duration that the record will be valid for. <<default>>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
