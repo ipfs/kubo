@@ -24,6 +24,9 @@ import (
 
 const (
 	nBitsForKeypairDefault = 2048
+	bitsOptionName         = "bits"
+	emptyRepoOptionName    = "empty-repo"
+	profileOptionName      = "profile"
 )
 
 var initCmd = &cmds.Command{
@@ -48,9 +51,9 @@ environment variable:
 		cmdkit.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.IntOption("bits", "b", "Number of bits to use in the generated RSA private key.").WithDefault(nBitsForKeypairDefault),
-		cmdkit.BoolOption("empty-repo", "e", "Don't add and pin help files to the local storage."),
-		cmdkit.StringOption("profile", "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
+		cmdkit.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key.").WithDefault(nBitsForKeypairDefault),
+		cmdkit.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
+		cmdkit.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -79,8 +82,8 @@ environment variable:
 			return cmdkit.Error{Message: "init must be run offline only"}
 		}
 
-		empty, _ := req.Options["empty-repo"].(bool)
-		nBitsForKeypair, _ := req.Options["bits"].(int)
+		empty, _ := req.Options[emptyRepoOptionName].(bool)
+		nBitsForKeypair, _ := req.Options[bitsOptionName].(int)
 
 		var conf *config.Config
 
@@ -104,7 +107,7 @@ environment variable:
 			}
 		}
 
-		profile, _ := req.Options["profile"].(string)
+		profile, _ := req.Options[profileOptionName].(string)
 
 		var profiles []string
 		if profile != "" {
