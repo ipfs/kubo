@@ -32,8 +32,9 @@ type ConfigField struct {
 }
 
 const (
-	configBoolOptionName = "bool"
-	configJSONOptionName = "json"
+	configBoolOptionName   = "bool"
+	configJSONOptionName   = "json"
+	configDryRunOptionName = "dry-run"
 )
 
 var ConfigCmd = &cmds.Command{
@@ -82,7 +83,7 @@ Set the value of the 'Datastore.Path' key:
 		// This is a temporary fix until we move the private key out of the config file
 		switch strings.ToLower(key) {
 		case "identity", "identity.privkey":
-			return fmt.Errorf("cannot show or change private key through API")
+			return errors.New("cannot show or change private key through API")
 		default:
 		}
 
@@ -207,7 +208,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 	for _, k := range key[:len(key)-1] {
 		foundk, val, ok := find(cur, k)
 		if !ok {
-			return fmt.Errorf("failed to find specified key")
+			return errors.New("failed to find specified key")
 		}
 
 		if foundk != k {
@@ -309,7 +310,7 @@ var configProfileApplyCmd = &cmds.Command{
 		Tagline: "Apply profile to config.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("dry-run", "print difference between the current config and the config that would be generated"),
+		cmdkit.BoolOption(configDryRunOptionName, "print difference between the current config and the config that would be generated"),
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
@@ -320,7 +321,7 @@ var configProfileApplyCmd = &cmds.Command{
 			return fmt.Errorf("%s is not a profile", req.Arguments[0])
 		}
 
-		dryRun, _ := req.Options["dry-run"].(bool)
+		dryRun, _ := req.Options[configDryRunOptionName].(bool)
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
 			return err
@@ -473,12 +474,12 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 
 	keyF, err := getConfig(r, config.PrivKeySelector)
 	if err != nil {
-		return fmt.Errorf("failed to get PrivKey")
+		return errors.New("failed to get PrivKey")
 	}
 
 	pkstr, ok := keyF.Value.(string)
 	if !ok {
-		return fmt.Errorf("private key in config was not a string")
+		return errors.New("private key in config was not a string")
 	}
 
 	cfg.Identity.PrivKey = pkstr
