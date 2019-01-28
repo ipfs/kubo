@@ -61,66 +61,66 @@ func TestDnsEntryParsing(t *testing.T) {
 func newMockDNS() *mockDNS {
 	return &mockDNS{
 		entries: map[string][]string{
-			"multihash.example.com": []string{
+			"multihash.example.com.": []string{
 				"dnslink=QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
 			},
-			"ipfs.example.com": []string{
+			"ipfs.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
 			},
-			"_dnslink.dipfs.example.com": []string{
+			"_dnslink.dipfs.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
 			},
-			"dns1.example.com": []string{
+			"dns1.example.com.": []string{
 				"dnslink=/ipns/ipfs.example.com",
 			},
-			"dns2.example.com": []string{
+			"dns2.example.com.": []string{
 				"dnslink=/ipns/dns1.example.com",
 			},
-			"multi.example.com": []string{
+			"multi.example.com.": []string{
 				"some stuff",
 				"dnslink=/ipns/dns1.example.com",
 				"masked dnslink=/ipns/example.invalid",
 			},
-			"equals.example.com": []string{
+			"equals.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/=equals",
 			},
-			"loop1.example.com": []string{
+			"loop1.example.com.": []string{
 				"dnslink=/ipns/loop2.example.com",
 			},
-			"loop2.example.com": []string{
+			"loop2.example.com.": []string{
 				"dnslink=/ipns/loop1.example.com",
 			},
-			"_dnslink.dloop1.example.com": []string{
+			"_dnslink.dloop1.example.com.": []string{
 				"dnslink=/ipns/loop2.example.com",
 			},
-			"_dnslink.dloop2.example.com": []string{
+			"_dnslink.dloop2.example.com.": []string{
 				"dnslink=/ipns/loop1.example.com",
 			},
-			"bad.example.com": []string{
+			"bad.example.com.": []string{
 				"dnslink=",
 			},
-			"withsegment.example.com": []string{
+			"withsegment.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/sub/segment",
 			},
-			"withrecsegment.example.com": []string{
+			"withrecsegment.example.com.": []string{
 				"dnslink=/ipns/withsegment.example.com/subsub",
 			},
-			"withtrailing.example.com": []string{
+			"withtrailing.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD/sub/",
 			},
-			"withtrailingrec.example.com": []string{
+			"withtrailingrec.example.com.": []string{
 				"dnslink=/ipns/withtrailing.example.com/segment/",
 			},
-			"double.example.com": []string{
+			"double.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
 			},
-			"_dnslink.double.example.com": []string{
+			"_dnslink.double.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
 			},
-			"double.conflict.com": []string{
+			"double.conflict.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD",
 			},
-			"_dnslink.conflict.example.com": []string{
+			"_dnslink.conflict.example.com.": []string{
 				"dnslink=/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjE",
 			},
 		},
