@@ -2,10 +2,13 @@ package loader
 
 import (
 	"fmt"
-	"github.com/ipfs/go-ipfs/core/coredag"
-	"github.com/ipfs/go-ipfs/plugin"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"os"
+	"strings"
+
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	coredag "github.com/ipfs/go-ipfs/core/coredag"
+	plugin "github.com/ipfs/go-ipfs/plugin"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	opentracing "gx/ipfs/QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo/opentracing-go"
@@ -102,6 +105,45 @@ func (loader *PluginLoader) Inject() error {
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+// Start starts all long-running plugins.
+func (loader *PluginLoader) Start(iface coreiface.CoreAPI) error {
+	for i, pl := range loader.plugins {
+		if pl, ok := pl.(plugin.PluginDaemon); ok {
+			err := pl.Start(iface)
+			if err != nil {
+				closePlugins(loader.plugins[i:])
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// StopDaemon stops all long-running plugins.
+func (loader *PluginLoader) Close() error {
+	return closePlugins(loader.plugins)
+}
+
+func closePlugins(plugins []plugin.Plugin) error {
+	var errs []string
+	for _, pl := range plugins {
+		if pl, ok := pl.(plugin.PluginDaemon); ok {
+			err := pl.Close()
+			if err != nil {
+				errs = append(errs, fmt.Sprintf(
+					"error closing plugin %s: %s",
+					pl.Name(),
+					err.Error(),
+				))
+			}
+		}
+	}
+	if errs != nil {
+		return fmt.Errorf(strings.Join(errs, "\n"))
 	}
 	return nil
 }
