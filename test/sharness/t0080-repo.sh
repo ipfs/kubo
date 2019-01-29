@@ -93,7 +93,7 @@ test_expect_success "pinning directly should fail now" '
 '
 
 test_expect_success "'ipfs pin rm -r=false <hash>' should fail" '
-  echo "Error: $HASH is pinned recursively" >expected4 &&
+  echo "Error: $HASH is pinned recursively" >expected4
   test_must_fail ipfs pin rm -r=false "$HASH" 2>actual4 &&
   test_cmp expected4 actual4
 '
