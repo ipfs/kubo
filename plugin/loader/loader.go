@@ -69,7 +69,7 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 	return loadPluginsFunc(pluginDir)
 }
 
-//Initialize all loaded plugins
+// Initialize initializes all loaded plugins
 func (loader *PluginLoader) Initialize() error {
 	for _, p := range loader.plugins {
 		err := p.Init()
@@ -81,33 +81,36 @@ func (loader *PluginLoader) Initialize() error {
 	return nil
 }
 
-//Run the plugins
-func (loader *PluginLoader) Run() error {
+// Inject hooks all the plugins into the appropriate subsystems.
+func (loader *PluginLoader) Inject() error {
 	for _, pl := range loader.plugins {
-		switch pl := pl.(type) {
-		case plugin.PluginIPLD:
-			err := runIPLDPlugin(pl)
+		if pl, ok := pl.(plugin.PluginIPLD); ok {
+			err := injectIPLDPlugin(pl)
 			if err != nil {
 				return err
 			}
-		case plugin.PluginTracer:
-			err := runTracerPlugin(pl)
+		}
+		if pl, ok := pl.(plugin.PluginTracer); ok {
+			err := injectTracerPlugin(pl)
 			if err != nil {
 				return err
 			}
-		case plugin.PluginDatastore:
-			err := fsrepo.AddDatastoreConfigHandler(pl.DatastoreTypeName(), pl.DatastoreConfigParser())
+		}
+		if pl, ok := pl.(plugin.PluginDatastore); ok {
+			err := injectDatastorePlugin(pl)
 			if err != nil {
 				return err
 			}
-		default:
-			panic(pl)
 		}
 	}
 	return nil
 }
 
-func runIPLDPlugin(pl plugin.PluginIPLD) error {
+func injectDatastorePlugin(pl plugin.PluginDatastore) error {
+	return fsrepo.AddDatastoreConfigHandler(pl.DatastoreTypeName(), pl.DatastoreConfigParser())
+}
+
+func injectIPLDPlugin(pl plugin.PluginIPLD) error {
 	err := pl.RegisterBlockDecoders(ipld.DefaultBlockDecoder)
 	if err != nil {
 		return err
@@ -115,7 +118,7 @@ func runIPLDPlugin(pl plugin.PluginIPLD) error {
 	return pl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
 }
 
-func runTracerPlugin(pl plugin.PluginTracer) error {
+func injectTracerPlugin(pl plugin.PluginTracer) error {
 	tracer, err := pl.InitTracer()
 	if err != nil {
 		return err
