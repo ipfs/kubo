@@ -3,9 +3,11 @@ package tests
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -43,6 +45,7 @@ func (tp *provider) TestUnixfs(t *testing.T) {
 	t.Run("TestLsEmptyDir", tp.TestLsEmptyDir)
 	t.Run("TestLsNonUnixfs", tp.TestLsNonUnixfs)
 	t.Run("TestAddCloses", tp.TestAddCloses)
+	t.Run("TestGetSeek", tp.TestGetSeek)
 }
 
 // `echo -n 'hello, world!' | ipfs add`
@@ -934,5 +937,107 @@ func (tp *provider) TestAddCloses(t *testing.T) {
 			t.Errorf("dir %d not closed!", i)
 		}
 	}
+}
 
+func (tp *provider) TestGetSeek(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	dataSize := int64(100000)
+	tf := files.NewReaderFile(io.LimitReader(rand.New(rand.NewSource(1403768328)), dataSize))
+
+	p, err := api.Unixfs().Add(ctx, tf, options.Unixfs.Chunker("size-100"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := api.Unixfs().Get(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f := files.ToFile(r)
+	if f == nil {
+		t.Fatal("not a file")
+	}
+
+	orig := make([]byte, dataSize)
+	if _, err := f.Read(orig); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	origR := bytes.NewReader(orig)
+
+	r, err = api.Unixfs().Get(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f = files.ToFile(r)
+	if f == nil {
+		t.Fatal("not a file")
+	}
+
+	test := func(offset int64, whence int, read int, expect int64, shouldEof bool) {
+		t.Run(fmt.Sprintf("seek%d+%d-r%d-%d", whence, offset, read, expect), func(t *testing.T) {
+			n, err := f.Seek(offset, whence)
+			if err != nil {
+				t.Fatal(err)
+			}
+			origN, err := origR.Seek(offset, whence)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if n != origN {
+				t.Fatalf("offsets didn't match, expected %d, got %d", origN, n)
+			}
+
+			buf := make([]byte, read)
+			origBuf := make([]byte, read)
+			origRead, err := origR.Read(origBuf)
+			if err != nil {
+				t.Fatalf("orig: %s", err)
+			}
+			r, err := f.Read(buf)
+			switch {
+			case shouldEof && err != nil && err != io.EOF:
+				fallthrough
+			case !shouldEof && err != nil:
+				t.Fatalf("f: %s", err)
+			case shouldEof:
+				_, err := f.Read([]byte{0})
+				if err != io.EOF {
+					t.Fatal("expected EOF")
+				}
+				_, err = origR.Read([]byte{0})
+				if err != io.EOF {
+					t.Fatal("expected EOF (orig)")
+				}
+			}
+
+			if int64(r) != expect {
+				t.Fatal("read wrong amount of data")
+			}
+			if r != origRead {
+				t.Fatal("read different amount of data than bytes.Reader")
+			}
+			if !bytes.Equal(buf, origBuf) {
+				t.Fatal("data didn't match")
+			}
+		})
+	}
+
+	test(3, io.SeekCurrent, 10, 10, false)
+	test(3, io.SeekCurrent, 10, 10, false)
+	test(500, io.SeekCurrent, 10, 10, false)
+	test(350, io.SeekStart, 100, 100, false)
+	test(-123, io.SeekCurrent, 100, 100, false)
+	test(dataSize-50, io.SeekStart, 100, 50, true)
+	test(-5, io.SeekEnd, 100, 5, true)
 }
