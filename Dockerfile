@@ -64,7 +64,7 @@ EXPOSE 8081
 ENV IPFS_PATH /data/ipfs
 RUN mkdir -p $IPFS_PATH \
   && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
-  && chown ipfs:users $IPFS_PATH
+  && chown -R ipfs:users $IPFS_PATH
 
 # Switch to a non-privileged user
 USER ipfs
