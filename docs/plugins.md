@@ -30,6 +30,21 @@ related commands.
 
 Datastore plugins add support for additional datastore backends.
 
+### Tracer
+
+(experimental)
+
+Tracer plugins allow injecting an opentracing backend into go-ipfs.
+
+### Daemon
+
+Daemon plugins are started when the go-ipfs daemon is started and are given an
+instance of the CoreAPI. This should make it possible to build an ipfs-based
+application without IPC and without forking go-ipfs.
+
+Note: We eventually plan to make go-ipfs usable as a library. However, this
+plugin type is likely the best interim solution.
+
 ## Available Plugins
 
 | Name                                                                            | Type      | Preloaded | Description                                    |
