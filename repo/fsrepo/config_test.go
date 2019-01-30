@@ -84,7 +84,7 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = loader.Run()
+	err = loader.Inject()
 	if err != nil {
 		t.Fatal(err)
 	}

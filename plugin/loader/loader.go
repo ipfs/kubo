@@ -2,10 +2,13 @@ package loader
 
 import (
 	"fmt"
-	"github.com/ipfs/go-ipfs/core/coredag"
-	"github.com/ipfs/go-ipfs/plugin"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"os"
+	"strings"
+
+	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	coredag "github.com/ipfs/go-ipfs/core/coredag"
+	plugin "github.com/ipfs/go-ipfs/plugin"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	opentracing "gx/ipfs/QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo/opentracing-go"
@@ -69,7 +72,7 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 	return loadPluginsFunc(pluginDir)
 }
 
-//Initialize all loaded plugins
+// Initialize initializes all loaded plugins
 func (loader *PluginLoader) Initialize() error {
 	for _, p := range loader.plugins {
 		err := p.Init()
@@ -81,33 +84,75 @@ func (loader *PluginLoader) Initialize() error {
 	return nil
 }
 
-//Run the plugins
-func (loader *PluginLoader) Run() error {
+// Inject hooks all the plugins into the appropriate subsystems.
+func (loader *PluginLoader) Inject() error {
 	for _, pl := range loader.plugins {
-		switch pl := pl.(type) {
-		case plugin.PluginIPLD:
-			err := runIPLDPlugin(pl)
+		if pl, ok := pl.(plugin.PluginIPLD); ok {
+			err := injectIPLDPlugin(pl)
 			if err != nil {
 				return err
 			}
-		case plugin.PluginTracer:
-			err := runTracerPlugin(pl)
+		}
+		if pl, ok := pl.(plugin.PluginTracer); ok {
+			err := injectTracerPlugin(pl)
 			if err != nil {
 				return err
 			}
-		case plugin.PluginDatastore:
-			err := fsrepo.AddDatastoreConfigHandler(pl.DatastoreTypeName(), pl.DatastoreConfigParser())
+		}
+		if pl, ok := pl.(plugin.PluginDatastore); ok {
+			err := injectDatastorePlugin(pl)
 			if err != nil {
 				return err
 			}
-		default:
-			panic(pl)
 		}
 	}
 	return nil
 }
 
-func runIPLDPlugin(pl plugin.PluginIPLD) error {
+// Start starts all long-running plugins.
+func (loader *PluginLoader) Start(iface coreiface.CoreAPI) error {
+	for i, pl := range loader.plugins {
+		if pl, ok := pl.(plugin.PluginDaemon); ok {
+			err := pl.Start(iface)
+			if err != nil {
+				closePlugins(loader.plugins[i:])
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// StopDaemon stops all long-running plugins.
+func (loader *PluginLoader) Close() error {
+	return closePlugins(loader.plugins)
+}
+
+func closePlugins(plugins []plugin.Plugin) error {
+	var errs []string
+	for _, pl := range plugins {
+		if pl, ok := pl.(plugin.PluginDaemon); ok {
+			err := pl.Close()
+			if err != nil {
+				errs = append(errs, fmt.Sprintf(
+					"error closing plugin %s: %s",
+					pl.Name(),
+					err.Error(),
+				))
+			}
+		}
+	}
+	if errs != nil {
+		return fmt.Errorf(strings.Join(errs, "\n"))
+	}
+	return nil
+}
+
+func injectDatastorePlugin(pl plugin.PluginDatastore) error {
+	return fsrepo.AddDatastoreConfigHandler(pl.DatastoreTypeName(), pl.DatastoreConfigParser())
+}
+
+func injectIPLDPlugin(pl plugin.PluginIPLD) error {
 	err := pl.RegisterBlockDecoders(ipld.DefaultBlockDecoder)
 	if err != nil {
 		return err
@@ -115,7 +160,7 @@ func runIPLDPlugin(pl plugin.PluginIPLD) error {
 	return pl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
 }
 
-func runTracerPlugin(pl plugin.PluginTracer) error {
+func injectTracerPlugin(pl plugin.PluginTracer) error {
 	tracer, err := pl.InitTracer()
 	if err != nil {
 		return err
