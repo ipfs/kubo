@@ -1,24 +1,24 @@
 package commands
 
 import (
+	"bufio"
 	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
-	tar "gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"
-	uarchive "gx/ipfs/QmSMJ4rZbCJaih3y82Ebq7BZqK6vU2FHsKcWKQiE1DPTpS/go-unixfs/archive"
-	"gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
-	path "gx/ipfs/QmWqh9oob7ZHQRwU5CdTqpnC8ip8BEkFNrwXRxeNo5Y7vA/go-path"
+	"gx/ipfs/QmQine7gvHncNevKtG9QXxf3nXcwSj6aDDmMm52mHofEEp/tar-utils"
+	"gx/ipfs/QmR77mMvvh8mJBBWQmBfQBu8oD38NUN4KE9SL2gDgAQNc6/go-ipfs-cmds"
 	"gx/ipfs/QmYWB8oH6o7qftxoyqTTZhzLrhKCVT7NYahECQTwTtqbgj/pb"
-	dag "gx/ipfs/Qmb2UEG2TAeVrEJSjqsZF7Y2he7wRDkrdt6c3bECxwZf4k/go-merkledag"
+	"gx/ipfs/QmaXvvAVAQ5ABqM5xtjYmV85xmN5MkWAZsX9H9Fwo4FVXp/go-ipfs-files"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -66,33 +66,30 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
-		node, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-		p := path.Path(req.Arguments[0])
-		ctx := req.Context
-		dn, err := core.Resolve(ctx, node.Namesys, node.Resolver, p)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		switch dn := dn.(type) {
-		case *dag.ProtoNode:
-			size, err := dn.Size()
-			if err != nil {
-				return err
-			}
-
-			res.SetLength(size)
-		case *dag.RawNode:
-			res.SetLength(uint64(len(dn.RawData())))
-		default:
+		p, err := iface.ParsePath(req.Arguments[0])
+		if err != nil {
 			return err
 		}
+
+		file, err := api.Unixfs().Get(req.Context, p)
+		if err != nil {
+			return err
+		}
+
+		size, err := file.Size()
+		if err != nil {
+			return err
+		}
+
+		res.SetLength(uint64(size))
 
 		archive, _ := req.Options[archiveOptionName].(bool)
-		reader, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, archive, cmplvl)
+		reader, err := fileArchive(file, p.String(), archive, cmplvl)
 		if err != nil {
 			return err
 		}
@@ -251,4 +248,95 @@ func getCompressOptions(req *cmds.Request) (int, error) {
 		return gzip.NoCompression, ErrInvalidCompressionLevel
 	}
 	return cmplvl, nil
+}
+
+// DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
+// TODO: does this need to be configurable?
+var DefaultBufSize = 1048576
+
+type identityWriteCloser struct {
+	w io.Writer
+}
+
+func (i *identityWriteCloser) Write(p []byte) (int, error) {
+	return i.w.Write(p)
+}
+
+func (i *identityWriteCloser) Close() error {
+	return nil
+}
+
+func fileArchive(f files.Node, name string, archive bool, compression int) (io.Reader, error) {
+	cleaned := path.Clean(name)
+	_, filename := path.Split(cleaned)
+
+	// need to connect a writer to a reader
+	piper, pipew := io.Pipe()
+	checkErrAndClosePipe := func(err error) bool {
+		if err != nil {
+			pipew.CloseWithError(err)
+			return true
+		}
+		return false
+	}
+
+	// use a buffered writer to parallelize task
+	bufw := bufio.NewWriterSize(pipew, DefaultBufSize)
+
+	// compression determines whether to use gzip compression.
+	maybeGzw, err := newMaybeGzWriter(bufw, compression)
+	if checkErrAndClosePipe(err) {
+		return nil, err
+	}
+
+	closeGzwAndPipe := func() {
+		if err := maybeGzw.Close(); checkErrAndClosePipe(err) {
+			return
+		}
+		if err := bufw.Flush(); checkErrAndClosePipe(err) {
+			return
+		}
+		pipew.Close() // everything seems to be ok.
+	}
+
+	if !archive && compression != gzip.NoCompression {
+		// the case when the node is a file
+		r := files.ToFile(f)
+		if r == nil {
+			return nil, errors.New("file is not regular")
+		}
+
+		go func() {
+			if _, err := io.Copy(maybeGzw, r); checkErrAndClosePipe(err) {
+				return
+			}
+			closeGzwAndPipe() // everything seems to be ok
+		}()
+	} else {
+		// the case for 1. archive, and 2. not archived and not compressed, in which tar is used anyway as a transport format
+
+		// construct the tar writer
+		w, err := files.NewTarWriter(maybeGzw)
+		if checkErrAndClosePipe(err) {
+			return nil, err
+		}
+
+		go func() {
+			// write all the nodes recursively
+			if err := w.WriteFile(f, filename); checkErrAndClosePipe(err) {
+				return
+			}
+			w.Close()         // close tar writer
+			closeGzwAndPipe() // everything seems to be ok
+		}()
+	}
+
+	return piper, nil
+}
+
+func newMaybeGzWriter(w io.Writer, compression int) (io.WriteCloser, error) {
+	if compression != gzip.NoCompression {
+		return gzip.NewWriterLevel(w, compression)
+	}
+	return &identityWriteCloser{w}, nil
 }
