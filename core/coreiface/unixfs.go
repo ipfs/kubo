@@ -31,5 +31,5 @@ type UnixfsAPI interface {
 	Get(context.Context, Path) (files.Node, error)
 
 	// Ls returns the list of links in a directory
-	Ls(context.Context, Path) ([]*ipld.Link, error)
+	Ls(context.Context, Path) (<-chan *ipld.Link, error)
 }

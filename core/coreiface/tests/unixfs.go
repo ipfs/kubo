@@ -754,18 +754,20 @@ func (tp *provider) TestLs(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(links) != 1 {
-		t.Fatalf("expected 1 link, got %d", len(links))
+	link := <- links
+	if link.Size != 23 {
+		t.Fatalf("expected size = 23, got %d", link.Size)
 	}
-	if links[0].Size != 23 {
-		t.Fatalf("expected size = 23, got %d", links[0].Size)
+	if link.Name != "name-of-file" {
+		t.Fatalf("expected name = name-of-file, got %s", link.Name)
 	}
-	if links[0].Name != "name-of-file" {
-		t.Fatalf("expected name = name-of-file, got %s", links[0].Name)
+	if link.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
+		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", link.Cid)
 	}
-	if links[0].Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
-		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", links[0].Cid)
+	if _, ok := <-links; ok {
+		t.Errorf("didn't expect a second link")
 	}
+
 }
 
 func (tp *provider) TestEntriesExpired(t *testing.T) {
