@@ -151,24 +151,27 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.
 		return nil, err
 	}
 
-	dagnode, err := api.core().ResolveNode(ctx, p)
+	ses := api.core().getSession(ctx)
+	uses := (*UnixfsAPI)(ses)
+
+	dagnode, err := ses.ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	dir, err := uio.NewDirectoryFromNode(api.dag, dagnode)
+	dir, err := uio.NewDirectoryFromNode(ses.dag, dagnode)
 	if err == uio.ErrNotADir {
-		return api.lsFromLinks(ctx, dagnode.Links(), settings)
+		return uses.lsFromLinks(ctx, dagnode.Links(), settings)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if !settings.Async {
-		return api.lsFromDir(ctx, dir, settings)
+		return uses.lsFromDir(ctx, dir, settings)
 	}
 
-	return api.lsFromLinksAsync(ctx, dir, settings)
+	return uses.lsFromLinksAsync(ctx, dir, settings)
 }
 
 func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.LsLink {

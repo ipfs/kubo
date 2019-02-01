@@ -133,6 +133,9 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 func UnixfsLsOptions(opts ...UnixfsLsOption) (*UnixfsLsSettings, error) {
 	options := &UnixfsLsSettings{
 		Async: true,
+
+		ResolveSize: true,
+		ResolveType: true,
 	}
 
 	for _, opt := range opts {
@@ -333,7 +336,7 @@ func (unixfsOpts) ResolveSize(resolve bool) UnixfsLsOption {
 
 func (unixfsOpts) ResolveType(resolve bool) UnixfsLsOption {
 	return func(settings *UnixfsLsSettings) error {
-		settings.ResolveSize = resolve
+		settings.ResolveType = resolve
 		return nil
 	}
 }
