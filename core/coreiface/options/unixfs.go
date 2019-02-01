@@ -44,6 +44,9 @@ type UnixfsAddSettings struct {
 
 type UnixfsLsSettings struct {
 	Async bool
+
+	ResolveType bool
+	ResolveSize bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -317,6 +320,20 @@ func (unixfsOpts) Nocopy(enable bool) UnixfsAddOption {
 func (unixfsOpts) Async(async bool) UnixfsLsOption {
 	return func(settings *UnixfsLsSettings) error {
 		settings.Async = async
+		return nil
+	}
+}
+
+func (unixfsOpts) ResolveSize(resolve bool) UnixfsLsOption {
+	return func(settings *UnixfsLsSettings) error {
+		settings.ResolveSize = resolve
+		return nil
+	}
+}
+
+func (unixfsOpts) ResolveType(resolve bool) UnixfsLsOption {
+	return func(settings *UnixfsLsSettings) error {
+		settings.ResolveSize = resolve
 		return nil
 	}
 }
