@@ -15,11 +15,13 @@ import (
 	unixfile "gx/ipfs/QmQ1JnYpnzkaurjW1yxkQxC2w3K1PorNE1nv1vaP5Le7sq/go-unixfs/file"
 	uio "gx/ipfs/QmQ1JnYpnzkaurjW1yxkQxC2w3K1PorNE1nv1vaP5Le7sq/go-unixfs/io"
 	mfs "gx/ipfs/QmR66iEqVtNMbbZxTHPY3F6W5QLFqZEDbFD7gzbE9HpYXU/go-mfs"
+	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	bstore "gx/ipfs/QmS2aqUZLJp8kF1ihE5rvDGE5LvmKDPnx32w9Z1BW9xLV5/go-ipfs-blockstore"
 	blockservice "gx/ipfs/QmVKQHuzni68SWByzJgBUCwHvvr4TWiXfutNWWwpZpp4rE/go-blockservice"
 	files "gx/ipfs/QmaXvvAVAQ5ABqM5xtjYmV85xmN5MkWAZsX9H9Fwo4FVXp/go-ipfs-files"
 	dag "gx/ipfs/Qmb2UEG2TAeVrEJSjqsZF7Y2he7wRDkrdt6c3bECxwZf4k/go-merkledag"
+	merkledag "gx/ipfs/Qmb2UEG2TAeVrEJSjqsZF7Y2he7wRDkrdt6c3bECxwZf4k/go-merkledag"
 	dagtest "gx/ipfs/Qmb2UEG2TAeVrEJSjqsZF7Y2he7wRDkrdt6c3bECxwZf4k/go-merkledag/test"
 	cidutil "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil"
 )
@@ -143,7 +145,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
-func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.UnixfsLsOption) (<-chan ft.LinkResult, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.LsLink, error) {
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -156,36 +158,93 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.
 
 	dir, err := uio.NewDirectoryFromNode(api.dag, dagnode)
 	if err == uio.ErrNotADir {
-		return lsFromLinks(dagnode.Links())
+		return api.lsFromLinks(ctx, dagnode.Links(), settings)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if !settings.Async {
-		return lsFromDir(ctx, dir)
+		return api.lsFromDir(ctx, dir, settings)
 	}
 
-	return lsFromLinksAsync(ctx, dir)
+	return api.lsFromLinksAsync(ctx, dir, settings)
 }
 
-func lsFromLinksAsync(ctx context.Context, dir uio.Directory) (<-chan ft.LinkResult, error) {
+func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.LsLink {
+	lnk := coreiface.LsLink{
+		Link: linkres.Link,
+		Err:  linkres.Err,
+	}
+	if lnk.Err != nil {
+		return lnk
+	}
 
-	return dir.EnumLinksAsync(ctx), nil
+	switch lnk.Link.Cid.Type() {
+	case cid.Raw:
+		// No need to check with raw leaves
+		lnk.Type = ft.TFile
+		lnk.Size = lnk.Link.Size
+	case cid.DagProtobuf:
+		if !settings.ResolveSize && !settings.ResolveType {
+			break
+		}
+
+		linkNode, err := lnk.Link.GetNode(ctx, api.dag)
+		if err != nil {
+			lnk.Err = err
+			break
+		}
+
+		if pn, ok := linkNode.(*merkledag.ProtoNode); ok {
+			d, err := ft.FSNodeFromBytes(pn.Data())
+			if err != nil {
+				lnk.Err = err
+				break
+			}
+			if settings.ResolveType {
+				lnk.Type = d.Type()
+			}
+			if d.Type() == ft.TFile && settings.ResolveSize {
+				lnk.Size = d.FileSize()
+			}
+		}
+	}
+
+	return lnk
 }
 
-func lsFromDir(ctx context.Context, dir uio.Directory) (<-chan ft.LinkResult, error) {
+func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.LsLink, error) {
+	out := make(chan coreiface.LsLink)
+
+	go func() {
+		defer close(out)
+		for l := range dir.EnumLinksAsync(ctx) {
+			select {
+			case out <- api.processLink(ctx, l, settings): //TODO: perf: processing can be done in background and in parallel
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return out, nil
+}
+
+func (api *UnixfsAPI) lsFromDir(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.LsLink, error) {
 	l, err := dir.Links(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return lsFromLinks(l)
+	return api.lsFromLinks(ctx, l, settings)
 }
 
-func lsFromLinks(ndlinks []*ipld.Link) (<-chan ft.LinkResult, error) {
-	links := make(chan ft.LinkResult, len(ndlinks))
+func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.LsLink, error) {
+	links := make(chan coreiface.LsLink, len(ndlinks))
 	for _, l := range ndlinks {
-		links <- ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
+		lr := ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
+
+		links <- api.processLink(ctx, lr, settings) //TODO: can be parallel if settings.Async
 	}
 	close(links)
 	return links, nil
