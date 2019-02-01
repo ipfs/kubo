@@ -5,8 +5,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
-	files "gx/ipfs/QmaXvvAVAQ5ABqM5xtjYmV85xmN5MkWAZsX9H9Fwo4FVXp/go-ipfs-files"
+	ft "gx/ipfs/QmQ1JnYpnzkaurjW1yxkQxC2w3K1PorNE1nv1vaP5Le7sq/go-unixfs"
+	"gx/ipfs/QmaXvvAVAQ5ABqM5xtjYmV85xmN5MkWAZsX9H9Fwo4FVXp/go-ipfs-files"
 )
 
 type AddEvent struct {
@@ -31,5 +31,5 @@ type UnixfsAPI interface {
 	Get(context.Context, Path) (files.Node, error)
 
 	// Ls returns the list of links in a directory
-	Ls(context.Context, Path) (<-chan *ipld.Link, error)
+	Ls(context.Context, Path, ...options.UnixfsLsOption) (<-chan ft.LinkResult, error)
 }
