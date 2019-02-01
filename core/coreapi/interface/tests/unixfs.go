@@ -749,12 +749,12 @@ func (tp *provider) TestLs(t *testing.T) {
 		t.Error(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, p)
+	links, err := api.Unixfs().Ls(ctx, p, options.Unixfs.Async(false))
 	if err != nil {
 		t.Error(err)
 	}
 
-	link := <- links
+	link := (<-links).Link
 	if link.Size != 23 {
 		t.Fatalf("expected size = 23, got %d", link.Size)
 	}
@@ -768,6 +768,24 @@ func (tp *provider) TestLs(t *testing.T) {
 		t.Errorf("didn't expect a second link")
 	}
 
+	links, err = api.Unixfs().Ls(ctx, p, options.Unixfs.Async(true))
+	if err != nil {
+		t.Error(err)
+	}
+
+	link = (<-links).Link
+	if link.Size != 23 {
+		t.Fatalf("expected size = 23, got %d", link.Size)
+	}
+	if link.Name != "name-of-file" {
+		t.Fatalf("expected name = name-of-file, got %s", link.Name)
+	}
+	if link.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
+		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", link.Cid)
+	}
+	if _, ok := <-links; ok {
+		t.Errorf("didn't expect a second link")
+	}
 }
 
 func (tp *provider) TestEntriesExpired(t *testing.T) {

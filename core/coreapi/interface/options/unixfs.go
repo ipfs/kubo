@@ -42,7 +42,12 @@ type UnixfsAddSettings struct {
 	Progress bool
 }
 
+type UnixfsLsSettings struct {
+	Async bool
+}
+
 type UnixfsAddOption func(*UnixfsAddSettings) error
+type UnixfsLsOption func(*UnixfsLsSettings) error
 
 func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, error) {
 	options := &UnixfsAddSettings{
@@ -120,6 +125,21 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 	prefix.MhLength = -1
 
 	return options, prefix, nil
+}
+
+func UnixfsLsOptions(opts ...UnixfsLsOption) (*UnixfsLsSettings, error) {
+	options := &UnixfsLsSettings{
+		Async: true,
+	}
+
+	for _, opt := range opts {
+		err := opt(options)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return options, nil
 }
 
 type unixfsOpts struct{}
@@ -287,6 +307,16 @@ func (unixfsOpts) FsCache(enable bool) UnixfsAddOption {
 func (unixfsOpts) Nocopy(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.NoCopy = enable
+		return nil
+	}
+}
+
+// Async tells ls to return results as soon as they are available, which can be
+// useful for listing HAMT directories. When this option is set to true returned
+// results won't be returned in order
+func (unixfsOpts) Async(async bool) UnixfsLsOption {
+	return func(settings *UnixfsLsSettings) error {
+		settings.Async = async
 		return nil
 	}
 }

@@ -143,30 +143,49 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
-func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) (<-chan *ipld.Link, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.UnixfsLsOption) (<-chan ft.LinkResult, error) {
+	settings, err := options.UnixfsLsOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
 	}
 
-	var ndlinks []*ipld.Link
 	dir, err := uio.NewDirectoryFromNode(api.dag, dagnode)
-	switch err {
-	case nil:
-		l, err := dir.Links(ctx)
-		if err != nil {
-			return nil, err
-		}
-		ndlinks = l
-	case uio.ErrNotADir:
-		ndlinks = dagnode.Links()
-	default:
+	if err == uio.ErrNotADir {
+		return lsFromLinks(dagnode.Links())
+	}
+	if err != nil {
 		return nil, err
 	}
 
-	links := make(chan *ipld.Link, len(ndlinks))
+	if !settings.Async {
+		return lsFromDir(ctx, dir)
+	}
+
+	return lsFromLinksAsync(ctx, dir)
+}
+
+func lsFromLinksAsync(ctx context.Context, dir uio.Directory) (<-chan ft.LinkResult, error) {
+
+	return dir.EnumLinksAsync(ctx), nil
+}
+
+func lsFromDir(ctx context.Context, dir uio.Directory) (<-chan ft.LinkResult, error) {
+	l, err := dir.Links(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return lsFromLinks(l)
+}
+
+func lsFromLinks(ndlinks []*ipld.Link) (<-chan ft.LinkResult, error) {
+	links := make(chan ft.LinkResult, len(ndlinks))
 	for _, l := range ndlinks {
-		links <- &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}
+		links <- ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
 	}
 	close(links)
 	return links, nil
