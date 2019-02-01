@@ -143,7 +143,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
-func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*ipld.Link, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) (<-chan *ipld.Link, error) {
 	dagnode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return nil, err
@@ -164,10 +164,11 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path) ([]*ipld.Link, e
 		return nil, err
 	}
 
-	links := make([]*ipld.Link, len(ndlinks))
-	for i, l := range ndlinks {
-		links[i] = &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}
+	links := make(chan *ipld.Link, len(ndlinks))
+	for _, l := range ndlinks {
+		links <- &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}
 	}
+	close(links)
 	return links, nil
 }
 
