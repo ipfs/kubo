@@ -43,8 +43,7 @@ type UnixfsAddSettings struct {
 }
 
 type UnixfsLsSettings struct {
-	ResolveType bool
-	ResolveSize bool
+	ResolveChildren bool
 }
 
 type UnixfsAddOption func(*UnixfsAddSettings) error
@@ -130,8 +129,7 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 
 func UnixfsLsOptions(opts ...UnixfsLsOption) (*UnixfsLsSettings, error) {
 	options := &UnixfsLsSettings{
-		ResolveSize: true,
-		ResolveType: true,
+		ResolveChildren: true,
 	}
 
 	for _, opt := range opts {
@@ -313,16 +311,9 @@ func (unixfsOpts) Nocopy(enable bool) UnixfsAddOption {
 	}
 }
 
-func (unixfsOpts) ResolveSize(resolve bool) UnixfsLsOption {
+func (unixfsOpts) ResolveChildren(resolve bool) UnixfsLsOption {
 	return func(settings *UnixfsLsSettings) error {
-		settings.ResolveSize = resolve
-		return nil
-	}
-}
-
-func (unixfsOpts) ResolveType(resolve bool) UnixfsLsOption {
-	return func(settings *UnixfsLsSettings) error {
-		settings.ResolveType = resolve
+		settings.ResolveChildren = resolve
 		return nil
 	}
 }
