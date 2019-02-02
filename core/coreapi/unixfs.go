@@ -185,7 +185,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 		lnk.Type = ft.TFile
 		lnk.Size = lnk.Link.Size
 	case cid.DagProtobuf:
-		if !settings.ResolveSize && !settings.ResolveType {
+		if !settings.ResolveChildren {
 			break
 		}
 
@@ -201,12 +201,8 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 				lnk.Err = err
 				break
 			}
-			if settings.ResolveType {
-				lnk.Type = d.Type()
-			}
-			if d.Type() == ft.TFile && settings.ResolveSize {
-				lnk.Size = d.FileSize()
-			}
+			lnk.Type = d.Type()
+			lnk.Size = d.FileSize()
 		}
 	}
 

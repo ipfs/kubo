@@ -136,8 +136,7 @@ The JSON output contains type information.
 			}
 
 			results, err := api.Unixfs().Ls(req.Context, p,
-				options.Unixfs.ResolveType(resolveType),
-				options.Unixfs.ResolveSize(resolveSize))
+				options.Unixfs.ResolveChildren(resolveSize || resolveType))
 			if err != nil {
 				return err
 			}
