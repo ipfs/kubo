@@ -182,7 +182,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 	switch lnk.Link.Cid.Type() {
 	case cid.Raw:
 		// No need to check with raw leaves
-		lnk.Type = ft.TFile
+		lnk.Type = coreiface.TFile
 		lnk.Size = lnk.Link.Size
 	case cid.DagProtobuf:
 		if !settings.ResolveChildren {
@@ -201,7 +201,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 				lnk.Err = err
 				break
 			}
-			lnk.Type = d.Type()
+			lnk.Type = coreiface.FileType(d.Type())
 			lnk.Size = d.FileSize()
 		}
 	}

@@ -11,8 +11,6 @@ import (
 	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	unixfs "gx/ipfs/QmQ1JnYpnzkaurjW1yxkQxC2w3K1PorNE1nv1vaP5Le7sq/go-unixfs"
-	unixfspb "gx/ipfs/QmQ1JnYpnzkaurjW1yxkQxC2w3K1PorNE1nv1vaP5Le7sq/go-unixfs/pb"
 	cmds "gx/ipfs/QmR77mMvvh8mJBBWQmBfQBu8oD38NUN4KE9SL2gDgAQNc6/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
@@ -21,7 +19,7 @@ import (
 type LsLink struct {
 	Name, Hash string
 	Size       uint64
-	Type       unixfspb.Data_DataType
+	Type       iface.FileType
 }
 
 // LsObject is an element of LsOutput
@@ -232,9 +230,9 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 			s := "%[1]s\t%[3]s\n"
 
 			switch {
-			case link.Type == unixfs.TDirectory && size:
+			case link.Type == iface.TDirectory && size:
 				s = "%[1]s\t-\t%[3]s/\n"
-			case link.Type == unixfs.TDirectory && !size:
+			case link.Type == iface.TDirectory && !size:
 				s = "%[1]s\t%[3]s/\n"
 			case size:
 				s = "%s\t%v\t%s\n"
