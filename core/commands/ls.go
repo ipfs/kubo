@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -112,6 +113,10 @@ The JSON output contains type information.
 						return nil
 					}, func(i int) {
 						// after each dir
+						sort.Slice(outputLinks, func(i, j int) bool {
+							return outputLinks[i].Name < outputLinks[j].Name
+						})
+
 						output[i] = LsObject{
 							Hash:  paths[i],
 							Links: outputLinks,
@@ -131,7 +136,6 @@ The JSON output contains type information.
 			}
 
 			results, err := api.Unixfs().Ls(req.Context, p,
-				options.Unixfs.Async(stream),
 				options.Unixfs.ResolveType(resolveType),
 				options.Unixfs.ResolveSize(resolveSize))
 			if err != nil {
@@ -156,11 +160,7 @@ The JSON output contains type information.
 			}
 			dirDone(i)
 		}
-		if err := done(); err != nil {
-			return err
-		}
-
-		return nil
+		return done()
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {

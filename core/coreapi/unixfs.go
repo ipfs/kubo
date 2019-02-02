@@ -167,10 +167,6 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.
 		return nil, err
 	}
 
-	if !settings.Async {
-		return uses.lsFromDir(ctx, dir, settings)
-	}
-
 	return uses.lsFromLinksAsync(ctx, dir, settings)
 }
 
@@ -232,14 +228,6 @@ func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, s
 	}()
 
 	return out, nil
-}
-
-func (api *UnixfsAPI) lsFromDir(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.LsLink, error) {
-	l, err := dir.Links(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return api.lsFromLinks(ctx, l, settings)
 }
 
 func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.LsLink, error) {

@@ -38,6 +38,7 @@ type UnixfsAPI interface {
 	// to operations performed on the returned file
 	Get(context.Context, Path) (files.Node, error)
 
-	// Ls returns the list of links in a directory
+	// Ls returns the list of links in a directory. Links aren't guaranteed to be
+	// returned in order
 	Ls(context.Context, Path, ...options.UnixfsLsOption) (<-chan LsLink, error)
 }

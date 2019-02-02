@@ -43,8 +43,6 @@ type UnixfsAddSettings struct {
 }
 
 type UnixfsLsSettings struct {
-	Async bool
-
 	ResolveType bool
 	ResolveSize bool
 }
@@ -132,8 +130,6 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 
 func UnixfsLsOptions(opts ...UnixfsLsOption) (*UnixfsLsSettings, error) {
 	options := &UnixfsLsSettings{
-		Async: true,
-
 		ResolveSize: true,
 		ResolveType: true,
 	}
@@ -313,16 +309,6 @@ func (unixfsOpts) FsCache(enable bool) UnixfsAddOption {
 func (unixfsOpts) Nocopy(enable bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.NoCopy = enable
-		return nil
-	}
-}
-
-// Async tells ls to return results as soon as they are available, which can be
-// useful for listing HAMT directories. When this option is set to true returned
-// results won't be returned in order
-func (unixfsOpts) Async(async bool) UnixfsLsOption {
-	return func(settings *UnixfsLsSettings) error {
-		settings.Async = async
 		return nil
 	}
 }
