@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"github.com/ipfs/go-cid"
 	"io"
+	"io/ioutil"
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 
 	"github.com/ipfs/go-ipfs-files"
-	unixfspb "github.com/ipfs/go-unixfs/pb"
 )
+
+const forwardSeekLimit = 1 << 14 //16k
 
 func (api *UnixfsAPI) Get(ctx context.Context, p iface.Path) (files.Node, error) {
 	if p.Mutable() { // use resolved path in case we are dealing with IPNS / MFS
@@ -80,7 +82,24 @@ func (f *apiFile) Read(p []byte) (int, error) {
 }
 
 func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
-	panic("implement me") //TODO
+	switch whence {
+	case io.SeekEnd:
+		offset = f.size + offset
+	case io.SeekCurrent:
+		offset = f.at + offset
+	}
+	if f.at == offset { //noop
+		return offset, nil
+	}
+
+	if f.at < offset && offset - f.at < forwardSeekLimit { //forward skip
+		r, err := io.CopyN(ioutil.Discard, f.r, offset - f.at)
+
+		f.at += r
+		return f.at, err
+	}
+	f.at = offset
+	return f.at, f.reset()
 }
 
 func (f *apiFile) Close() error {
@@ -156,17 +175,17 @@ func (it *apiIter) Next() bool {
 	}
 
 	switch it.cur.Type {
-	case unixfspb.Data_HAMTShard:
+	case iface.THAMTShard:
 		fallthrough
-	case unixfspb.Data_Metadata:
+	case iface.TMetadata:
 		fallthrough
-	case unixfspb.Data_Directory:
+	case iface.TDirectory:
 		it.curFile, err = it.core.getDir(it.ctx, iface.IpfsPath(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false
 		}
-	case unixfspb.Data_File:
+	case iface.TFile:
 		it.curFile, err = it.core.getFile(it.ctx, iface.IpfsPath(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
