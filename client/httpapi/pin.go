@@ -68,8 +68,15 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]iface.
 	return pins, nil
 }
 
-func (api *PinAPI) Rm(ctx context.Context, p iface.Path) error {
-	return api.core().request("pin/rm", p.String()).Exec(ctx, nil)
+func (api *PinAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.PinRmOption) error {
+	options, err := caopts.PinRmOptions(opts...)
+	if err != nil {
+		return err
+	}
+
+	return api.core().request("pin/rm", p.String()).
+		Option("recursive", options.Recursive).
+		Exec(ctx, nil)
 }
 
 func (api *PinAPI) Update(ctx context.Context, from iface.Path, to iface.Path, opts ...caopts.PinUpdateOption) error {
