@@ -53,6 +53,7 @@ func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockP
 		Option("mhtype", mht).
 		Option("mhlen", options.MhLength).
 		Option("format", options.Codec).
+		Option("pin", options.Pin).
 		FileBody(r)
 
 	var out blockStat
