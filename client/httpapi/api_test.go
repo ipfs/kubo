@@ -47,6 +47,11 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
+	filestoreArgs := []string{"iptb", "--IPTB_ROOT", dir, "run", fmt.Sprintf("[0-%d]", n-1), "--", "ipfs", "config", "--json", "Experimental.FilestoreEnabled", "true"}
+	if err := c.Run(filestoreArgs); err != nil {
+		return nil, err
+	}
+
 	startArgs := []string{"iptb", "--IPTB_ROOT", dir, "start", "-wait", "--", "--enable-pubsub-experiment", "--offline=" + strconv.FormatBool(n == 1)}
 	if err := c.Run(startArgs); err != nil {
 		return nil, err
