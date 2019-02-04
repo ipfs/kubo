@@ -15,7 +15,9 @@ import (
 	"github.com/ipfs/go-ipld-format"
 )
 
-type HttpDagServ HttpApi
+type httpNodeAdder HttpApi
+type HttpDagServ httpNodeAdder
+type pinningHttpNodeAdder httpNodeAdder
 
 func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	r, err := api.core().Block().Get(ctx, iface.IpldPath(c))
@@ -56,7 +58,7 @@ func (api *HttpDagServ) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 	return out
 }
 
-func (api *HttpDagServ) Add(ctx context.Context, nd format.Node) error {
+func (api *httpNodeAdder) add(ctx context.Context, nd format.Node, pin bool) error {
 	c := nd.Cid()
 	prefix := c.Prefix()
 	format := cid.CodecToStr[prefix.Codec]
@@ -65,7 +67,9 @@ func (api *HttpDagServ) Add(ctx context.Context, nd format.Node) error {
 	}
 
 	stat, err := api.core().Block().Put(ctx, bytes.NewReader(nd.RawData()),
-		options.Block.Hash(prefix.MhType, prefix.MhLength), options.Block.Format(format))
+		options.Block.Hash(prefix.MhType, prefix.MhLength),
+		options.Block.Format(format),
+		options.Block.Pin(pin))
 	if err != nil {
 		return err
 	}
@@ -75,14 +79,34 @@ func (api *HttpDagServ) Add(ctx context.Context, nd format.Node) error {
 	return nil
 }
 
-func (api *HttpDagServ) AddMany(ctx context.Context, nds []format.Node) error {
+func (api *httpNodeAdder) addMany(ctx context.Context, nds []format.Node, pin bool) error {
 	for _, nd := range nds {
 		// TODO: optimize
-		if err := api.Add(ctx, nd); err != nil {
+		if err := api.add(ctx, nd, pin); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (api *HttpDagServ) AddMany(ctx context.Context, nds []format.Node) error {
+	return (*httpNodeAdder)(api).addMany(ctx, nds, false)
+}
+
+func (api *HttpDagServ) Add(ctx context.Context, nd format.Node) error {
+	return (*httpNodeAdder)(api).add(ctx, nd, false)
+}
+
+func (api *pinningHttpNodeAdder) Add(ctx context.Context, nd format.Node) error {
+	return (*httpNodeAdder)(api).add(ctx, nd, true)
+}
+
+func (api *pinningHttpNodeAdder) AddMany(ctx context.Context, nds []format.Node) error {
+	return (*httpNodeAdder)(api).addMany(ctx, nds, true)
+}
+
+func (api *HttpDagServ) Pinning() format.NodeAdder {
+	return (*pinningHttpNodeAdder)(api)
 }
 
 func (api *HttpDagServ) Remove(ctx context.Context, c cid.Cid) error {
@@ -97,6 +121,10 @@ func (api *HttpDagServ) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 		}
 	}
 	return nil
+}
+
+func (api *httpNodeAdder) core() *HttpApi {
+	return (*HttpApi)(api)
 }
 
 func (api *HttpDagServ) core() *HttpApi {
