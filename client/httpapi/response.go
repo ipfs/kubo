@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,24 @@ import (
 
 	files "github.com/ipfs/go-ipfs-files"
 )
+
+type trailerReader struct {
+	resp *http.Response
+}
+
+func (r *trailerReader) Read(b []byte) (int, error) {
+	n, err := r.resp.Body.Read(b)
+	if err != nil {
+		if e := r.resp.Trailer.Get("X-Stream-Error"); e != "" {
+			err = errors.New(e)
+		}
+	}
+	return n, err
+}
+
+func (r *trailerReader) Close() error {
+	return r.resp.Body.Close()
+}
 
 type Response struct {
 	Output io.ReadCloser
@@ -56,9 +75,6 @@ type Error struct {
 
 func (e *Error) Error() string {
 	var out string
-	if e.Command != "" {
-		out = e.Command + ": "
-	}
 	if e.Code != 0 {
 		out = fmt.Sprintf("%s%d: ", out, e.Code)
 	}
@@ -93,7 +109,7 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 
 	nresp := new(Response)
 
-	nresp.Output = resp.Body
+	nresp.Output = &trailerReader{resp}
 	if resp.StatusCode >= http.StatusBadRequest {
 		e := &Error{
 			Command: r.Command,
