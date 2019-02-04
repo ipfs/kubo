@@ -13,7 +13,6 @@ import (
 
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipld-format"
-	unixfspb "github.com/ipfs/go-unixfs/pb"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -129,7 +128,7 @@ loop:
 type lsLink struct {
 	Name, Hash string
 	Size       uint64
-	Type       unixfspb.Data_DataType
+	Type       iface.FileType
 }
 
 type lsObject struct {
@@ -141,30 +140,87 @@ type lsOutput struct {
 	Objects []lsObject
 }
 
-func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path) ([]*format.Link, error) {
-	var out lsOutput
-	err := api.core().request("ls", p.String()).Exec(ctx, &out)
+func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.LsLink, error) {
+	options, err := caopts.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(out.Objects) != 1 {
-		return nil, errors.New("unexpected objects len")
+	resp, err := api.core().request("ls", p.String()).
+		Option("resolve-type", options.ResolveChildren).
+		Option("size", options.ResolveChildren).
+		Option("stream", true).
+		Send(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
 	}
 
-	links := make([]*format.Link, len(out.Objects[0].Links))
-	for i, l := range out.Objects[0].Links {
-		c, err := cid.Parse(l.Hash)
-		if err != nil {
-			return nil, err
+	dec := json.NewDecoder(resp.Output)
+	out := make(chan iface.LsLink)
+
+	go func() {
+		defer resp.Close()
+		defer close(out)
+
+		for {
+			var link lsOutput
+			if err := dec.Decode(&link); err != nil {
+				if err == io.EOF {
+					return
+				}
+				select {
+				case out <- iface.LsLink{Err: err}:
+				case <-ctx.Done():
+				}
+				return
+			}
+
+			if len(link.Objects) != 1 {
+				select {
+				case out <- iface.LsLink{Err: errors.New("unexpected Objects len")}:
+				case <-ctx.Done():
+				}
+				return
+			}
+
+			if len(link.Objects[0].Links) != 1 {
+				select {
+				case out <- iface.LsLink{Err: errors.New("unexpected Links len")}:
+				case <-ctx.Done():
+				}
+				return
+			}
+
+			l0 := link.Objects[0].Links[0]
+
+			c, err := cid.Decode(l0.Hash)
+			if err != nil {
+				select {
+				case out <- iface.LsLink{Err: err}:
+				case <-ctx.Done():
+				}
+				return
+			}
+
+			select {
+			case out <- iface.LsLink{
+				Link: &format.Link{
+					Cid: c,
+					Name: l0.Name,
+					Size: l0.Size,
+				},
+				Size: l0.Size,
+				Type: l0.Type,
+			}:
+			case <-ctx.Done():
+			}
 		}
-		links[i] = &format.Link{
-			Name: l.Name,
-			Size: l.Size,
-			Cid:  c,
-		}
-	}
-	return links, nil
+	}()
+
+	return out, nil
 }
 
 func (api *UnixfsAPI) core() *HttpApi {
