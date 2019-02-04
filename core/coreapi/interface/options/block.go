@@ -10,6 +10,7 @@ type BlockPutSettings struct {
 	Codec    string
 	MhType   uint64
 	MhLength int
+	Pin      bool
 }
 
 type BlockRmSettings struct {
@@ -24,6 +25,7 @@ func BlockPutOptions(opts ...BlockPutOption) (*BlockPutSettings, cid.Prefix, err
 		Codec:    "",
 		MhType:   mh.SHA2_256,
 		MhLength: -1,
+		Pin:      false,
 	}
 
 	for _, opt := range opts {
@@ -101,6 +103,15 @@ func (blockOpts) Hash(mhType uint64, mhLen int) BlockPutOption {
 	return func(settings *BlockPutSettings) error {
 		settings.MhType = mhType
 		settings.MhLength = mhLen
+		return nil
+	}
+}
+
+// Pin is an option for Block.Put which specifies whether to (recursively) pin
+// added blocks
+func (blockOpts) Pin(pin bool) BlockPutOption {
+	return func(settings *BlockPutSettings) error {
+		settings.Pin = pin
 		return nil
 	}
 }

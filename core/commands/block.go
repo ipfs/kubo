@@ -146,6 +146,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		cmdkit.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
 		cmdkit.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
 		cmdkit.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
+		cmdkit.BoolOption(pinOptionName, "pin added blocks recursively").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -178,7 +179,12 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 			}
 		}
 
-		p, err := api.Block().Put(req.Context, file, options.Block.Hash(mhtval, mhlen), options.Block.Format(format))
+		pin, _ := req.Options[pinOptionName].(bool)
+
+		p, err := api.Block().Put(req.Context, file,
+			options.Block.Hash(mhtval, mhlen),
+			options.Block.Format(format),
+			options.Block.Pin(pin))
 		if err != nil {
 			return err
 		}

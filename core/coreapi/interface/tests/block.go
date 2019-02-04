@@ -26,6 +26,7 @@ func (tp *provider) TestBlock(t *testing.T) {
 	t.Run("TestBlockGet", tp.TestBlockGet)
 	t.Run("TestBlockRm", tp.TestBlockRm)
 	t.Run("TestBlockStat", tp.TestBlockStat)
+	t.Run("TestBlockPin", tp.TestBlockPin)
 }
 
 func (tp *provider) TestBlockPut(t *testing.T) {
@@ -201,5 +202,42 @@ func (tp *provider) TestBlockStat(t *testing.T) {
 
 	if stat.Size() != len("Hello") {
 		t.Error("length doesn't match")
+	}
+}
+
+func (tp *provider) TestBlockPin(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = api.Block().Put(ctx, strings.NewReader(`Hello`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if pins, err := api.Pin().Ls(ctx); err != nil || len(pins) != 0 {
+		t.Fatal("expected 0 pins")
+	}
+
+	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Pin(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pins, err := api.Pin().Ls(ctx)
+	if err != nil {
+		return
+	}
+	if len(pins) != 1 {
+		t.Fatal("expected 1 pin")
+	}
+	if pins[0].Type() != "recursive" {
+		t.Error("expected a recursive pin")
+	}
+	if pins[0].Path().String() != res.Path().String() {
+		t.Error("pin path didn't match")
 	}
 }
