@@ -341,7 +341,7 @@ func APIAddr(repoPath string) (ma.Multiaddr, error) {
 		return nil, err
 	}
 	if len(buf) == 2048 {
-		return nil, fmt.Errorf("API file too large, must be <2048 bytes long: %s", apiFilePath)
+		return nil, fmt.Errorf("aPI file too large, must be <2048 bytes long: %s", apiFilePath)
 	}
 
 	s := string(buf)

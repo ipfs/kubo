@@ -33,7 +33,7 @@ import (
 func bindataRead(data []byte, name string) ([]byte, error) {
 	gz, err := gzip.NewReader(bytes.NewBuffer(data))
 	if err != nil {
-		return nil, fmt.Errorf("Read %q: %v", name, err)
+		return nil, fmt.Errorf("read %q: %v", name, err)
 	}
 
 	var buf bytes.Buffer
@@ -41,7 +41,7 @@ func bindataRead(data []byte, name string) ([]byte, error) {
 	clErr := gz.Close()
 
 	if err != nil {
-		return nil, fmt.Errorf("Read %q: %v", name, err)
+		return nil, fmt.Errorf("read %q: %v", name, err)
 	}
 	if clErr != nil {
 		return nil, err
@@ -369,11 +369,11 @@ func Asset(name string) ([]byte, error) {
 	if f, ok := _bindata[cannonicalName]; ok {
 		a, err := f()
 		if err != nil {
-			return nil, fmt.Errorf("Asset %s can't read by error: %v", name, err)
+			return nil, fmt.Errorf("asset %s can't read by error: %v", name, err)
 		}
 		return a.bytes, nil
 	}
-	return nil, fmt.Errorf("Asset %s not found", name)
+	return nil, fmt.Errorf("asset %s not found", name)
 }
 
 // MustAsset is like Asset but panics when Asset would return an error.
@@ -395,11 +395,11 @@ func AssetInfo(name string) (os.FileInfo, error) {
 	if f, ok := _bindata[cannonicalName]; ok {
 		a, err := f()
 		if err != nil {
-			return nil, fmt.Errorf("AssetInfo %s can't read by error: %v", name, err)
+			return nil, fmt.Errorf("assetInfo %s can't read by error: %v", name, err)
 		}
 		return a.info, nil
 	}
-	return nil, fmt.Errorf("AssetInfo %s not found", name)
+	return nil, fmt.Errorf("assetInfo %s not found", name)
 }
 
 // AssetNames returns the names of the assets.
@@ -450,12 +450,12 @@ func AssetDir(name string) ([]string, error) {
 		for _, p := range pathList {
 			node = node.Children[p]
 			if node == nil {
-				return nil, fmt.Errorf("Asset %s not found", name)
+				return nil, fmt.Errorf("asset %s not found", name)
 			}
 		}
 	}
 	if node.Func != nil {
-		return nil, fmt.Errorf("Asset %s not found", name)
+		return nil, fmt.Errorf("asset %s not found", name)
 	}
 	rv := make([]string, 0, len(node.Children))
 	for childName := range node.Children {

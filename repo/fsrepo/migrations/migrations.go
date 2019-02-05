@@ -196,7 +196,7 @@ func httpFetch(url string) (io.ReadCloser, error) {
 			return nil, fmt.Errorf("error reading error body: %s", err)
 		}
 
-		return nil, fmt.Errorf("GET %s error: %s: %s", url, resp.Status, string(mes))
+		return nil, fmt.Errorf("gET %s error: %s: %s", url, resp.Status, string(mes))
 	}
 
 	return resp.Body, nil

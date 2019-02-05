@@ -517,7 +517,7 @@ func (n *IpfsNode) startOnlineServicesWithHost(ctx context.Context, routingOptio
 			service, err = pubsub.NewGossipSub(ctx, n.PeerHost, pubsubOptions...)
 
 		default:
-			err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)
+			err = fmt.Errorf("unknown pubsub router %s", cfg.Pubsub.Router)
 		}
 
 		if err != nil {
