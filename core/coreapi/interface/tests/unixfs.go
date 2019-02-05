@@ -3,6 +3,7 @@ package tests
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -754,9 +755,13 @@ func (tp *provider) TestLs(t *testing.T) {
 		t.Error(err)
 	}
 
-	link := (<-links).Link
-	if link.Size != 23 {
-		t.Fatalf("expected size = 23, got %d", link.Size)
+	linkRes := <-links
+	if linkRes.Err != nil {
+		t.Fatal(linkRes.Err)
+	}
+	link := linkRes.Link
+	if linkRes.Size != 15 {
+		t.Fatalf("expected size = 15, got %d", link.Size)
 	}
 	if link.Name != "name-of-file" {
 		t.Fatalf("expected name = name-of-file, got %s", link.Name)
@@ -764,8 +769,11 @@ func (tp *provider) TestLs(t *testing.T) {
 	if link.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
 		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", link.Cid)
 	}
-	if _, ok := <-links; ok {
+	if l, ok := <-links; ok {
 		t.Errorf("didn't expect a second link")
+		if l.Err != nil {
+			t.Error(l.Err)
+		}
 	}
 }
 
@@ -967,7 +975,7 @@ func (tp *provider) TestGetSeek(t *testing.T) {
 	}
 
 	orig := make([]byte, dataSize)
-	if _, err := f.Read(orig); err != nil {
+	if _, err := io.ReadFull(f, orig); err != nil {
 		t.Fatal(err)
 	}
 	f.Close()
@@ -1005,9 +1013,9 @@ func (tp *provider) TestGetSeek(t *testing.T) {
 			if err != nil {
 				t.Fatalf("orig: %s", err)
 			}
-			r, err := f.Read(buf)
+			r, err := io.ReadFull(f, buf)
 			switch {
-			case shouldEof && err != nil && err != io.EOF:
+			case shouldEof && err != nil && err != io.ErrUnexpectedEOF:
 				fallthrough
 			case !shouldEof && err != nil:
 				t.Fatalf("f: %s", err)
@@ -1029,6 +1037,8 @@ func (tp *provider) TestGetSeek(t *testing.T) {
 				t.Fatal("read different amount of data than bytes.Reader")
 			}
 			if !bytes.Equal(buf, origBuf) {
+				fmt.Fprintf(os.Stderr, "original:\n%s\n", hex.Dump(origBuf))
+				fmt.Fprintf(os.Stderr, "got:\n%s\n", hex.Dump(buf))
 				t.Fatal("data didn't match")
 			}
 		})
@@ -1039,6 +1049,7 @@ func (tp *provider) TestGetSeek(t *testing.T) {
 	test(500, io.SeekCurrent, 10, 10, false)
 	test(350, io.SeekStart, 100, 100, false)
 	test(-123, io.SeekCurrent, 100, 100, false)
+	test(0, io.SeekStart, int(dataSize), dataSize, false)
 	test(dataSize-50, io.SeekStart, 100, 50, true)
 	test(-5, io.SeekEnd, 100, 5, true)
 }
