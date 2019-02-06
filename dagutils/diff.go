@@ -99,7 +99,7 @@ func ApplyChange(ctx context.Context, ds ipld.DAGService, nd *dag.ProtoNode, cs 
 // 1. two node's links number are greater than 0.
 // 2. both of two nodes are ProtoNode.
 // Otherwise, it compares the cid and emits a Mod change object.
-func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, error) {
+func Diff(ctx context.Context, ds ipld.NodeGetter, a, b ipld.Node) ([]*Change, error) {
 	// Base case where both nodes are leaves, just compare
 	// their CIDs.
 	if len(a.Links()) == 0 && len(b.Links()) == 0 {

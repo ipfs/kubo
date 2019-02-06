@@ -296,7 +296,7 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	n.P2P = p2p.NewP2P(n.Identity, n.PeerHost, n.Peerstore)
 
 	if follow {
-		n.Namecache = namecache.NewNameCache(ctx, n.Namesys, n.Pinning, n.DAG, n.Blockstore)
+		n.Namecache = namecache.NewNameCache(ctx, n.Namesys, n.DAG)
 		n.Namecache, err = namecache.NewPersistentCache(n.Namecache, n.Repo.Datastore())
 		if err != nil {
 			return err
