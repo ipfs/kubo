@@ -92,7 +92,7 @@ func (r *RequestBuilder) Send(ctx context.Context) (*Response, error) {
 	req.Opts = r.opts
 	req.Headers = r.headers
 	req.Body = r.body
-	return req.Send(r.shell.httpcli)
+	return req.Send(&r.shell.httpcli)
 }
 
 // Exec sends the request a request and decodes the response.

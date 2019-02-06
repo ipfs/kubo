@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	gohttp "net/http"
 	"os"
@@ -27,7 +28,7 @@ var ErrNotImplemented = errors.New("not implemented")
 
 type HttpApi struct {
 	url     string
-	httpcli *gohttp.Client
+	httpcli gohttp.Client
 
 	applyGlobal func(*RequestBuilder)
 }
@@ -50,8 +51,8 @@ func NewPathApi(p string) iface.CoreAPI {
 	return NewApi(a)
 }
 
-func ApiAddr(p string) ma.Multiaddr {
-	baseDir, err := homedir.Expand(p)
+func ApiAddr(ipfspath string) ma.Multiaddr {
+	baseDir, err := homedir.Expand(ipfspath)
 	if err != nil {
 		return nil
 	}
@@ -99,11 +100,18 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) *HttpApi {
 		}
 	}
 
-	return &HttpApi{
+	api := &HttpApi{
 		url:         url,
-		httpcli:     c,
+		httpcli:     *c,
 		applyGlobal: func(*RequestBuilder) {},
 	}
+
+	// We don't support redirects.
+	api.httpcli.CheckRedirect = func(_ *gohttp.Request, _ []*gohttp.Request) error {
+		return fmt.Errorf("unexpected redirect")
+	}
+
+	return api
 }
 
 func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error) {
