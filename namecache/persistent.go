@@ -20,7 +20,7 @@ type persistent struct {
 }
 
 type follow struct {
-	Pin bool
+	Prefetch bool
 	Deadline time.Time
 }
 
@@ -37,7 +37,7 @@ func NewPersistentCache(base NameCache, d ds.Datastore) (NameCache, error) {
 		if err := json.Unmarshal(e.Value, &f); err != nil {
 			return nil, err
 		}
-		if err := base.Follow(e.Key, f.Pin, time.Now().Sub(f.Deadline)); err != nil {
+		if err := base.Follow(e.Key, f.Prefetch, time.Now().Sub(f.Deadline)); err != nil {
 			return nil, err
 		}
 	}
@@ -49,16 +49,16 @@ func NewPersistentCache(base NameCache, d ds.Datastore) (NameCache, error) {
 	}, nil
 }
 
-func (p *persistent) Follow(name string, dopin bool, followInterval time.Duration) error {
+func (p *persistent) Follow(name string, prefetch bool, followInterval time.Duration) error {
 	b, err := json.Marshal(&follow{
-		Pin: dopin,
+		Prefetch: prefetch,
 		Deadline: time.Now().Add(followInterval),
 	})
 	if err != nil {
 		return err
 	}
 
-	if err := p.NameCache.Follow(name, dopin, followInterval); err != nil {
+	if err := p.NameCache.Follow(name, prefetch, followInterval); err != nil {
 		return err
 	}
 	return p.ds.Put(ds.NewKey(name), b)

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	pin "github.com/ipfs/go-ipfs/pin"
 
 	uio "gx/ipfs/QmQ1JnYpnzkaurjW1yxkQxC2w3K1PorNE1nv1vaP5Le7sq/go-unixfs/io"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
@@ -29,8 +28,8 @@ var log = logging.Logger("namecache")
 
 // NameCache represents a following cache of names
 type NameCache interface {
-	// Follow starts following name, pinning it if dopin is true
-	Follow(name string, dopin bool, followInterval time.Duration) error
+	// Follow starts following name
+	Follow(name string, prefetch bool, followInterval time.Duration) error
 	// Unofollow cancels a follow
 	Unfollow(name string) error
 	// ListFollows returns a list of followed names
@@ -39,7 +38,6 @@ type NameCache interface {
 
 type nameCache struct {
 	nsys    namesys.NameSystem
-	pinning pin.Pinner
 	dag     ipld.NodeGetter
 	bstore  bstore.GCBlockstore
 
@@ -48,11 +46,10 @@ type nameCache struct {
 	mx      sync.Mutex
 }
 
-func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinner, dag ipld.NodeGetter, bstore bstore.GCBlockstore) NameCache {
+func NewNameCache(ctx context.Context, nsys namesys.NameSystem, dag ipld.NodeGetter, bstore bstore.GCBlockstore) NameCache {
 	return &nameCache{
 		ctx:     ctx,
 		nsys:    nsys,
-		pinning: pinning,
 		dag:     dag,
 		bstore:  bstore,
 		follows: make(map[string]func()),
@@ -61,7 +58,7 @@ func NewNameCache(ctx context.Context, nsys namesys.NameSystem, pinning pin.Pinn
 
 // Follow spawns a goroutine that periodically resolves a name
 // and (when dopin is true) pins it in the background
-func (nc *nameCache) Follow(name string, dopin bool, followInterval time.Duration) error {
+func (nc *nameCache) Follow(name string, prefetch bool, followInterval time.Duration) error {
 	nc.mx.Lock()
 	defer nc.mx.Unlock()
 
@@ -74,7 +71,7 @@ func (nc *nameCache) Follow(name string, dopin bool, followInterval time.Duratio
 	}
 
 	ctx, cancel := context.WithCancel(nc.ctx)
-	go nc.followName(ctx, name, dopin, followInterval)
+	go nc.followName(ctx, name, prefetch, followInterval)
 	nc.follows[name] = cancel
 
 	return nil
@@ -112,10 +109,9 @@ func (nc *nameCache) ListFollows() []string {
 	return follows
 }
 
-func (nc *nameCache) followName(ctx context.Context, name string, dopin bool, followInterval time.Duration) {
-	// if cid != nil, we have created a new pin that is updated on changes and
-	// unpinned on cancel
-	c, err := nc.resolveAndPin(ctx, name, dopin)
+func (nc *nameCache) followName(ctx context.Context, name string, prefetch bool, followInterval time.Duration) {
+	// if cid != nil, we have prefetched data under the node
+	c, err := nc.resolveAndFetch(ctx, name, prefetch)
 	if err != nil {
 		log.Errorf("Error following %s: %s", name, err.Error())
 	}
@@ -129,7 +125,7 @@ func (nc *nameCache) followName(ctx context.Context, name string, dopin bool, fo
 			if c != cid.Undef {
 				c, err = nc.resolveAndUpdate(ctx, name, c)
 			} else {
-				c, err = nc.resolveAndPin(ctx, name, dopin)
+				c, err = nc.resolveAndFetch(ctx, name, prefetch)
 			}
 
 			if err != nil {
@@ -137,24 +133,18 @@ func (nc *nameCache) followName(ctx context.Context, name string, dopin bool, fo
 			}
 
 		case <-ctx.Done():
-			if c != cid.Undef {
-				err = nc.unpin(c)
-				if err != nil {
-					log.Errorf("Error unpinning %s: %s", name, err.Error())
-				}
-			}
 			return
 		}
 	}
 }
 
-func (nc *nameCache) resolveAndPin(ctx context.Context, name string, dopin bool) (cid.Cid, error) {
+func (nc *nameCache) resolveAndFetch(ctx context.Context, name string, prefetch bool) (cid.Cid, error) {
 	ptr, err := nc.resolve(ctx, name)
 	if err != nil {
 		return cid.Undef, err
 	}
 
-	if !dopin {
+	if !prefetch {
 		return cid.Undef, nil
 	}
 
@@ -165,30 +155,15 @@ func (nc *nameCache) resolveAndPin(ctx context.Context, name string, dopin bool)
 
 	defer nc.bstore.PinLock().Unlock()
 
-	_, pinned, err := nc.pinning.IsPinned(c)
-	if pinned || err != nil {
-		return cid.Undef, err
-	}
-
 	n, err := nc.pathToNode(ctx, ptr)
 	if err != nil {
 		return cid.Undef, err
 	}
 
-	log.Debugf("pinning %s", c.String())
-
-	err = nc.pinning.Pin(ctx, n, true)
-	if err != nil {
-		return cid.Undef, err
-	}
-
-	err = nc.pinning.Flush()
-
 	return c, err
 }
 
 func (nc *nameCache) resolveAndUpdate(ctx context.Context, name string, oldcid cid.Cid) (cid.Cid, error) {
-
 	ptr, err := nc.resolve(ctx, name)
 	if err != nil {
 		return cid.Undef, err
@@ -203,29 +178,9 @@ func (nc *nameCache) resolveAndUpdate(ctx context.Context, name string, oldcid c
 		return oldcid, nil
 	}
 
-	defer nc.bstore.PinLock().Unlock()
-
-	log.Debugf("Updating pin %s -> %s", oldcid.String(), newcid.String())
-
-	err = nc.pinning.Update(ctx, oldcid, newcid, true)
-	if err != nil {
-		return oldcid, err
-	}
-
-	err = nc.pinning.Flush()
+	// TODO: handle prefetching
 
 	return newcid, err
-}
-
-func (nc *nameCache) unpin(cid cid.Cid) error {
-	defer nc.bstore.PinLock().Unlock()
-
-	err := nc.pinning.Unpin(nc.ctx, cid, true)
-	if err != nil {
-		return err
-	}
-
-	return nc.pinning.Flush()
 }
 
 func (nc *nameCache) resolve(ctx context.Context, name string) (path.Path, error) {
@@ -240,6 +195,8 @@ func (nc *nameCache) resolve(ctx context.Context, name string) (path.Path, error
 	}
 
 	log.Debugf("resolved %s to %s", name, p)
+
+	// TODO: handle prefetching
 
 	return p, nil
 }
