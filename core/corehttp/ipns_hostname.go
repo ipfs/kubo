@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
+	nsopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options/namesys"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
 )

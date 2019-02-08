@@ -7,7 +7,7 @@ import (
 
 	path "gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
+	opts "github.com/ipfs/go-ipfs/core/coreapi/interface/options/namesys"
 
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
 	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"

@@ -5,8 +5,8 @@ import (
 	"io"
 
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
+	nsopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options/namesys"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
 	cmds "gx/ipfs/QmR77mMvvh8mJBBWQmBfQBu8oD38NUN4KE9SL2gDgAQNc6/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
