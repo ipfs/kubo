@@ -128,7 +128,7 @@ func (tp *provider) TestDagPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	if nd.Cid().String() != snd.Cid().String() {
+	if ndd.Cid().String() != snd.Cid().String() {
 		t.Errorf("got unexpected cid %s, expected %s", ndd.Cid().String(), snd.Cid().String())
 	}
 }
