@@ -8,8 +8,9 @@ import (
 	"testing"
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	coredag "github.com/ipfs/go-ipfs/core/coredag"
 
+	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
+	ipldcbor "gx/ipfs/QmRZxJ7oybgnnwriuRub9JXp5YdFM9wiGSyRq38QC7swpS/go-ipld-cbor"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
@@ -46,18 +47,18 @@ func (tp *provider) TestPut(t *testing.T) {
 		t.Error(err)
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"Hello"`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Dag().Add(ctx, nds[0])
+	err = api.Dag().Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if nds[0].Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
-		t.Errorf("got wrong cid: %s", nds[0].Cid().String())
+	if nd.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", nd.Cid().String())
 	}
 }
 
@@ -69,18 +70,18 @@ func (tp *provider) TestPutWithHash(t *testing.T) {
 		t.Error(err)
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"Hello"`), mh.ID, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), mh.ID, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Dag().Add(ctx, nds[0])
+	err = api.Dag().Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if nds[0].Cid().String() != "z5hRLNd2sv4z1c" {
-		t.Errorf("got wrong cid: %s", nds[0].Cid().String())
+	if nd.Cid().String() != "z5hRLNd2sv4z1c" {
+		t.Errorf("got wrong cid: %s", nd.Cid().String())
 	}
 }
 
@@ -92,27 +93,27 @@ func (tp *provider) TestDagPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	snds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"foo"`), math.MaxUint64, -1)
+	snd, err := ipldcbor.FromJSON(strings.NewReader(`"foo"`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Dag().Add(ctx, snds[0])
+	err = api.Dag().Add(ctx, snd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"lnk": {"/": "`+snds[0].Cid().String()+`"}}`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+snd.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Dag().Add(ctx, nds[0])
+	err = api.Dag().Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	p, err := coreiface.ParsePath(path.Join(nds[0].Cid().String(), "lnk"))
+	p, err := coreiface.ParsePath(path.Join(nd.Cid().String(), "lnk"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -122,13 +123,13 @@ func (tp *provider) TestDagPath(t *testing.T) {
 		t.Error(err)
 	}
 
-	nd, err := api.Dag().Get(ctx, rp.Cid())
+	ndd, err := api.Dag().Get(ctx, rp.Cid())
 	if err != nil {
 		t.Error(err)
 	}
 
-	if nd.Cid().String() != snds[0].Cid().String() {
-		t.Errorf("got unexpected cid %s, expected %s", nd.Cid().String(), snds[0].Cid().String())
+	if nd.Cid().String() != snd.Cid().String() {
+		t.Errorf("got unexpected cid %s, expected %s", ndd.Cid().String(), snd.Cid().String())
 	}
 }
 
@@ -140,17 +141,17 @@ func (tp *provider) TestTree(t *testing.T) {
 		t.Error(err)
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Dag().Add(ctx, nds[0])
+	err = api.Dag().Add(ctx, nd)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := api.Dag().Get(ctx, nds[0].Cid())
+	res, err := api.Dag().Get(ctx, nd.Cid())
 	if err != nil {
 		t.Error(err)
 	}
@@ -175,25 +176,25 @@ func (tp *provider) TestBatch(t *testing.T) {
 		t.Error(err)
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`"Hello"`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if nds[0].Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
-		t.Errorf("got wrong cid: %s", nds[0].Cid().String())
+	if nd.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+		t.Errorf("got wrong cid: %s", nd.Cid().String())
 	}
 
-	_, err = api.Dag().Get(ctx, nds[0].Cid())
+	_, err = api.Dag().Get(ctx, nd.Cid())
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Error(err)
 	}
 
-	if err := api.Dag().AddMany(ctx, nds); err != nil {
+	if err := api.Dag().AddMany(ctx, []ipld.Node{nd}); err != nil {
 		t.Error(err)
 	}
 
-	_, err = api.Dag().Get(ctx, nds[0].Cid())
+	_, err = api.Dag().Get(ctx, nd.Cid())
 	if err != nil {
 		t.Error(err)
 	}

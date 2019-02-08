@@ -8,7 +8,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/coreapi/interface"
 	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	"github.com/ipfs/go-ipfs/core/coredag"
+
+	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
+	ipldcbor "gx/ipfs/QmRZxJ7oybgnnwriuRub9JXp5YdFM9wiGSyRq38QC7swpS/go-ipld-cbor"
 )
 
 func (tp *provider) TestPin(t *testing.T) {
@@ -111,26 +113,26 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Error(err)
 	}
 
-	nd2, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"lnk": {"/": "`+p0.Cid().String()+`"}}`), math.MaxUint64, -1)
+	nd2, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p0.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	nd3, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"lnk": {"/": "`+p1.Cid().String()+`"}}`), math.MaxUint64, -1)
+	nd3, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p1.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := api.Dag().AddMany(ctx, append(nd2, nd3...)); err != nil {
+	if err := api.Dag().AddMany(ctx, []ipld.Node{nd2, nd3}); err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, iface.IpldPath(nd2[0].Cid()))
+	err = api.Pin().Add(ctx, iface.IpldPath(nd2.Cid()))
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = api.Pin().Add(ctx, iface.IpldPath(nd3[0].Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, iface.IpldPath(nd3.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Error(err)
 	}
@@ -153,8 +155,8 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != iface.IpldPath(nd3[0].Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpfsPath(nd2[0].Cid()).String())
+	if list[0].Path().String() != iface.IpldPath(nd3.Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpfsPath(nd2.Cid()).String())
 	}
 
 	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Recursive())
@@ -166,8 +168,8 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != iface.IpldPath(nd2[0].Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpldPath(nd3[0].Cid()).String())
+	if list[0].Path().String() != iface.IpldPath(nd2.Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpldPath(nd3.Cid()).String())
 	}
 
 	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Indirect())
