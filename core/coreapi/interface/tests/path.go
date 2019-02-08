@@ -8,7 +8,8 @@ import (
 
 	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	"github.com/ipfs/go-ipfs/core/coredag"
+
+	ipldcbor "gx/ipfs/QmRZxJ7oybgnnwriuRub9JXp5YdFM9wiGSyRq38QC7swpS/go-ipld-cbor"
 )
 
 func (tp *provider) TestPath(t *testing.T) {
@@ -37,7 +38,8 @@ func (tp *provider) TestMutablePath(t *testing.T) {
 		t.Error("expected /ipld path to be immutable")
 	}
 
-	// get self /ipns path
+	// get self /ipns path	ipldcbor "gx/ipfs/QmRZxJ7oybgnnwriuRub9JXp5YdFM9wiGSyRq38QC7swpS/go-ipld-cbor"
+
 	if api.Key() == nil {
 		t.Fatal(".Key not implemented")
 	}
@@ -64,16 +66,16 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := api.Dag().AddMany(ctx, nds); err != nil {
+	if err := api.Dag().Add(ctx, nd); err != nil {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath(nds[0].String() + "/foo/bar")
+	p1, err := coreiface.ParsePath(nd.String() + "/foo/bar")
 	if err != nil {
 		t.Error(err)
 	}
@@ -100,16 +102,16 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := api.Dag().AddMany(ctx, nds); err != nil {
+	if err := api.Dag().Add(ctx, nd); err != nil {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath(nds[0].Cid().String())
+	p1, err := coreiface.ParsePath(nd.Cid().String())
 	if err != nil {
 		t.Error(err)
 	}
@@ -136,16 +138,16 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := api.Dag().AddMany(ctx, nds); err != nil {
+	if err := api.Dag().Add(ctx, nd); err != nil {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath("/ipld/" + nds[0].Cid().String() + "/bar/baz")
+	p1, err := coreiface.ParsePath("/ipld/" + nd.Cid().String() + "/bar/baz")
 	if err != nil {
 		t.Error(err)
 	}
@@ -177,16 +179,16 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 		t.Fatal(".Dag not implemented")
 	}
 
-	nds, err := coredag.ParseInputs("json", "dag-cbor", strings.NewReader(`{"foo": {"/": "`+blk.Path().Cid().String()+`"}}`), math.MaxUint64, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"/": "`+blk.Path().Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := api.Dag().AddMany(ctx, nds); err != nil {
+	if err := api.Dag().Add(ctx, nd); err != nil {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath("/ipld/" + nds[0].Cid().String() + "/foo")
+	p1, err := coreiface.ParsePath("/ipld/" + nd.Cid().String() + "/foo")
 	if err != nil {
 		t.Error(err)
 	}
@@ -196,7 +198,7 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if rp.Root().String() != nds[0].Cid().String() {
+	if rp.Root().String() != nd.Cid().String() {
 		t.Error("unexpected path root")
 	}
 
