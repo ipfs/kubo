@@ -108,5 +108,5 @@ func TestRSAPublisher(t *testing.T) {
 }
 
 func TestEd22519Publisher(t *testing.T) {
-	testNamekeyPublisher(t, ci.Ed25519, nil, true)
+	testNamekeyPublisher(t, ci.Ed25519, ds.ErrNotFound, false)
 }
