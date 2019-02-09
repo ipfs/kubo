@@ -9,7 +9,7 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	options "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core/options"
 
 	id "gx/ipfs/QmSgtf5vHyugoxcwMbyNy6bZ9qPDDTJSYEED2GkWjLwitZ/go-libp2p/p2p/protocol/identify"
 )

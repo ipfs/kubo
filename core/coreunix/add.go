@@ -9,8 +9,8 @@ import (
 	gopath "path"
 	"strconv"
 
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/pin"
+	coreiface "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core"
 
 	chunker "gx/ipfs/QmR4QQVkBZsZENRjYFVi8dEtPL3daZRNKk24m4r6WKJHNm/go-ipfs-chunker"
 	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"

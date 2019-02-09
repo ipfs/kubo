@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	"github.com/ipfs/go-ipfs/dagutils"
+	coreiface "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core"
 
 	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
 	"gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path"

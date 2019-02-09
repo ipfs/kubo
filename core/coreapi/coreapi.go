@@ -22,8 +22,8 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
 
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	coreiface "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core"
+	"gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core/options"
 
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
 	"gx/ipfs/QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H/go-ipfs-exchange-interface"

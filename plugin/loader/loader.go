@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	coreiface "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core"
 
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	opentracing "gx/ipfs/QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo/opentracing-go"

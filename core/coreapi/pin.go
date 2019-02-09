@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 	merkledag "gx/ipfs/QmUtsx89yiCY6F8mbpP6ecXckiSzCBH7EvkKZuZEHBcr1m/go-merkledag"
+	coreiface "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core"
+	caopts "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core/options"
 	bserv "gx/ipfs/QmbgbNxC1PMyS2gbx7nf2jKNG7bZAfYJJebdK4ptBBWCz1/go-blockservice"
 
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"

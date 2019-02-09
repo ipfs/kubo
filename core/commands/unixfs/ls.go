@@ -7,7 +7,7 @@ import (
 	"text/tabwriter"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	iface "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core"
 
 	cmds "gx/ipfs/QmR77mMvvh8mJBBWQmBfQBu8oD38NUN4KE9SL2gDgAQNc6/go-ipfs-cmds"
 	merkledag "gx/ipfs/QmUtsx89yiCY6F8mbpP6ecXckiSzCBH7EvkKZuZEHBcr1m/go-merkledag"

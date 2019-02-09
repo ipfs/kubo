@@ -9,11 +9,11 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	nsopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options/namesys"
 	ns "github.com/ipfs/go-ipfs/namesys"
 	path "gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path"
+	coreiface "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core"
+	options "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core/options"
+	nsopts "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core/options/namesys"
 
 	cmds "gx/ipfs/QmR77mMvvh8mJBBWQmBfQBu8oD38NUN4KE9SL2gDgAQNc6/go-ipfs-cmds"
 	cidenc "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil/cidenc"
