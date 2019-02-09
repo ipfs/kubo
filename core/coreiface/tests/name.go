@@ -11,8 +11,8 @@ import (
 	ipath "gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path"
 	"gx/ipfs/QmaXvvAVAQ5ABqM5xtjYmV85xmN5MkWAZsX9H9Fwo4FVXp/go-ipfs-files"
 
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	opt "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	opt "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 func (tp *provider) TestName(t *testing.T) {

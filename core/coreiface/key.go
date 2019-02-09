@@ -3,7 +3,7 @@ package iface
 import (
 	"context"
 
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 
 	"gx/ipfs/QmPJxxDsX2UbchSHobbYuvz7qnyJTFKvaKMzE2rZWJ4x5B/go-libp2p-peer"
 )

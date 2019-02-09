@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	ipldcbor "gx/ipfs/QmRZxJ7oybgnnwriuRub9JXp5YdFM9wiGSyRq38QC7swpS/go-ipld-cbor"

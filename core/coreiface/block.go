@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 // BlockStat contains information about a block

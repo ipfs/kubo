@@ -2,7 +2,7 @@ package iface
 
 import (
 	"context"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	"gx/ipfs/QmZArMcsVDsXdcLbUx4844CuqKXBpbxdeiryM4cnmGTNRq/go-unixfs"

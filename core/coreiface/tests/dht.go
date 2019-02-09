@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 func (tp *provider) TestDht(t *testing.T) {
