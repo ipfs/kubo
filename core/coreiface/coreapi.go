@@ -7,7 +7,7 @@ import (
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
-	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // CoreAPI defines an unified interface to IPFS for Go programs

@@ -18,13 +18,13 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
-	"gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
-	cbor "gx/ipfs/QmRZxJ7oybgnnwriuRub9JXp5YdFM9wiGSyRq38QC7swpS/go-ipld-cbor"
-	mdag "gx/ipfs/QmUtsx89yiCY6F8mbpP6ecXckiSzCBH7EvkKZuZEHBcr1m/go-merkledag"
-	"gx/ipfs/QmZArMcsVDsXdcLbUx4844CuqKXBpbxdeiryM4cnmGTNRq/go-unixfs"
-	"gx/ipfs/QmZArMcsVDsXdcLbUx4844CuqKXBpbxdeiryM4cnmGTNRq/go-unixfs/importer/helpers"
-	"gx/ipfs/QmaXvvAVAQ5ABqM5xtjYmV85xmN5MkWAZsX9H9Fwo4FVXp/go-ipfs-files"
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
+	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs-files"
+	cbor "github.com/ipfs/go-ipld-cbor"
+	mdag "github.com/ipfs/go-merkledag"
+	"github.com/ipfs/go-unixfs"
+	"github.com/ipfs/go-unixfs/importer/helpers"
+	mh "github.com/multiformats/go-multihash"
 )
 
 func (tp *provider) TestUnixfs(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
 
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
+	mh "github.com/multiformats/go-multihash"
 )
 
 func (tp *provider) TestBlock(t *testing.T) {

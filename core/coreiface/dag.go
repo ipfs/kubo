@@ -1,7 +1,7 @@
 package iface
 
 import (
-	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // APIDagService extends ipld.DAGService

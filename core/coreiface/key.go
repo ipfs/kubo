@@ -5,7 +5,7 @@ import (
 
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 
-	"gx/ipfs/QmPJxxDsX2UbchSHobbYuvz7qnyJTFKvaKMzE2rZWJ4x5B/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peer"
 )
 
 // Key specifies the interface to Keys in KeyAPI Keystore
