@@ -29,8 +29,8 @@ def build_platforms = [
 ]
 
 /* js-* tests */
-def js_api_commit = '7543c06a1105f6de4fe7c549790d58ac4cf75326' // 25.0.0 - log pr
-def interop_commit = 'e63c532e58af7b6d9924f4ebdbdc26cc317c15e5'
+def js_api_commit = 'v29.1.0'
+def interop_commit = 'master'
 
 def js_api_platforms = ['linux', 'macos']
 def js_api_node_versions = ['8.11.3', '10.4.1']
