@@ -78,7 +78,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("24h"),
 		cmdkit.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
-		cmdkit.StringOption(ttlOptionName, "Time duration this record should be cached for (caution: experimental)."),
+		cmdkit.StringOption(ttlOptionName, "Time duration this record should be cached for. Uses the same syntax as the lifetime option. (caution: experimental)"),
 		cmdkit.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
 		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 	},
