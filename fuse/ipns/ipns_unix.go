@@ -15,15 +15,15 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	path "gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path"
 	dag "gx/ipfs/QmUtsx89yiCY6F8mbpP6ecXckiSzCBH7EvkKZuZEHBcr1m/go-merkledag"
-	ft "gx/ipfs/QmZArMcsVDsXdcLbUx4844CuqKXBpbxdeiryM4cnmGTNRq/go-unixfs"
+	ft "gx/ipfs/QmetDvVkKzbr8PYuBV6S48q5DU9EUQktYjo9KdkA3zbQgK/go-unixfs"
 
 	ci "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
 	peer "gx/ipfs/QmPJxxDsX2UbchSHobbYuvz7qnyJTFKvaKMzE2rZWJ4x5B/go-libp2p-peer"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	fuse "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse"
 	fs "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs"
-	mfs "gx/ipfs/QmVBXaQqupXCFtS62xtr9EsKGkbK9LviqCKSzwcqzwvX9U/go-mfs"
 	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
+	mfs "gx/ipfs/Qmf85FxdHYCFXehfBLWeSnAbGCJ5JkVLHwgtLLk5cuZArW/go-mfs"
 )
 
 func init() {

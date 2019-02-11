@@ -25,7 +25,7 @@ import (
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
 	ma "gx/ipfs/QmNTCey11oxhb1AxDnQBRHtdhap6Ctud872NjAYPYYXPuc/go-multiaddr"
-	cmds "gx/ipfs/QmR77mMvvh8mJBBWQmBfQBu8oD38NUN4KE9SL2gDgAQNc6/go-ipfs-cmds"
+	cmds "gx/ipfs/QmPHTMcFRnDfyF8mk7RXHoZXNQ3uvBHDmuLgvkG7RLwN6t/go-ipfs-cmds"
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	"gx/ipfs/QmTQuFQWHAWy4wMH6ZyPfGiawA5u9T8rs79FENoV8yXaoS/client_golang/prometheus"
 	mprome "gx/ipfs/QmVMcMs6duiwLzvhF6xWM3yc4GgjpNoctKFhvtBch5tpgo/go-metrics-prometheus"

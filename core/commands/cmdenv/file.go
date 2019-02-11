@@ -3,7 +3,7 @@ package cmdenv
 import (
 	"fmt"
 
-	files "gx/ipfs/QmaXvvAVAQ5ABqM5xtjYmV85xmN5MkWAZsX9H9Fwo4FVXp/go-ipfs-files"
+	files "gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
 )
 
 // GetFileArg returns the next file from the directory or an error

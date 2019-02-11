@@ -10,9 +10,9 @@ import (
 	path "gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path"
 	pstoremem "gx/ipfs/QmQFFp4ntkd4C14sP3FaH9WJyBuetuGUVo6dShNHvnoEvC/go-libp2p-peerstore/pstoremem"
 	offroute "gx/ipfs/QmRJvdmKJoDcQEhhTt5NYXJPQFnJYPo1kfapxtjZLfDDqH/go-ipfs-routing/offline"
+	opts "gx/ipfs/QmVSbopkxvLSRFuUn1SeHoEcArhCLn2okUbVpLvhQ1pm1X/interface-go-ipfs-core/options/namesys"
 	ipns "gx/ipfs/QmVpC4PPSaoqZzWYEnQURnsQagimcWEzNKZouZyd7sNJdZ/go-ipns"
-	opts "gx/ipfs/QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH/interface-go-ipfs-core/options/namesys"
-	"gx/ipfs/QmZArMcsVDsXdcLbUx4844CuqKXBpbxdeiryM4cnmGTNRq/go-unixfs"
+	"gx/ipfs/QmetDvVkKzbr8PYuBV6S48q5DU9EUQktYjo9KdkA3zbQgK/go-unixfs"
 	ds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
 	dssync "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore/sync"
 )
