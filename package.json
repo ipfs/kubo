@@ -605,6 +605,12 @@
       "hash": "QmTFYSU3zLMVpJdrz5FfAfNRnaPH7TZSyG5sxoJhCQdjAg",
       "name": "go-libp2p-autonat-svc",
       "version": "1.0.6"
+    },
+    {
+      "author": "magik6k",
+      "hash": "QmWqb6eEpQ2qtu2jmcDWJXebP7YS14fwor8562g795ZxjH",
+      "name": "interface-go-ipfs-core",
+      "version": "0.1.0"
     }
   ],
   "gxVersion": "0.10.0",
