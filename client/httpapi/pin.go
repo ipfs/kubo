@@ -3,11 +3,11 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
-	"github.com/ipfs/go-cid"
-	"github.com/pkg/errors"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-cid"
+	"github.com/ipfs/interface-go-ipfs-core"
+	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/pkg/errors"
 )
 
 type PinAPI HttpApi

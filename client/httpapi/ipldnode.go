@@ -6,11 +6,10 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
+	"github.com/ipfs/interface-go-ipfs-core"
 )
 
 type ipldNode struct {

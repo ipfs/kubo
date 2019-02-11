@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-
+	"github.com/ipfs/interface-go-ipfs-core"
+	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/libp2p/go-libp2p-peer"
 )
 

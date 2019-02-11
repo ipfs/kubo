@@ -10,10 +10,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/tests"
-
+	"github.com/ipfs/interface-go-ipfs-core"
+	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/tests"
 	local "github.com/ipfs/iptb-plugins/local"
 	"github.com/ipfs/iptb/cli"
 	"github.com/ipfs/iptb/testbed"

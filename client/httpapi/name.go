@@ -3,10 +3,10 @@ package httpapi
 import (
 	"context"
 	"fmt"
-	"github.com/ipfs/go-ipfs/namesys/opts"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/interface-go-ipfs-core"
+	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/options/namesys"
 )
 
 type NameAPI HttpApi

@@ -3,11 +3,10 @@ package httpapi
 import (
 	"context"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-
 	cid "github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
+	"github.com/ipfs/interface-go-ipfs-core"
 )
 
 func (api *HttpApi) ResolvePath(ctx context.Context, path iface.Path) (iface.ResolvedPath, error) {

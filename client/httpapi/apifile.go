@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-cid"
 	"io"
 	"io/ioutil"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/interface-go-ipfs-core"
 )
 
 const forwardSeekLimit = 1 << 14 //16k
@@ -92,8 +91,8 @@ func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
 		return offset, nil
 	}
 
-	if f.at < offset && offset - f.at < forwardSeekLimit { //forward skip
-		r, err := io.CopyN(ioutil.Discard, f.r, offset - f.at)
+	if f.at < offset && offset-f.at < forwardSeekLimit { //forward skip
+		r, err := io.CopyN(ioutil.Discard, f.r, offset-f.at)
 
 		f.at += r
 		return f.at, err

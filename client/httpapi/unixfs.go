@@ -3,16 +3,15 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/ipfs/go-cid"
-	"github.com/pkg/errors"
 	"io"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/interface-go-ipfs-core"
+	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -208,7 +207,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.Unixf
 			select {
 			case out <- iface.LsLink{
 				Link: &format.Link{
-					Cid: c,
+					Cid:  c,
 					Name: l0.Name,
 					Size: l0.Size,
 				},

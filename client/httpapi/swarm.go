@@ -2,14 +2,13 @@ package httpapi
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-protocol"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-
+	"github.com/ipfs/interface-go-ipfs-core"
 	inet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-protocol"
 	"github.com/multiformats/go-multiaddr"
 )
 
