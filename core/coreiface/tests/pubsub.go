@@ -38,7 +38,7 @@ func (tp *provider) TestBasicPubSub(t *testing.T) {
 		tick := time.Tick(100 * time.Millisecond)
 
 		for {
-			err = apis[1].PubSub().Publish(ctx, "testch", []byte("hello world"))
+			err := apis[1].PubSub().Publish(ctx, "testch", []byte("hello world"))
 			if err != nil {
 				t.Fatal(err)
 			}
