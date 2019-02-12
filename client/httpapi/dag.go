@@ -44,7 +44,7 @@ func (api *HttpDagServ) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 
 	for _, c := range cids {
 		// TODO: Consider limiting concurrency of this somehow
-		go func() {
+		go func(c cid.Cid) {
 			defer wg.Done()
 			n, err := api.Get(ctx, c)
 
@@ -52,7 +52,7 @@ func (api *HttpDagServ) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 			case out <- &format.NodeOption{Node: n, Err: err}:
 			case <-ctx.Done():
 			}
-		}()
+		}(c)
 	}
 	return out
 }
