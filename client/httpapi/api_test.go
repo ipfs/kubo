@@ -19,9 +19,7 @@ import (
 	"github.com/ipfs/iptb/testbed/interfaces"
 )
 
-type NodeProvider struct{}
-
-func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]iface.CoreAPI, error) {
+func init() {
 	_, err := testbed.RegisterPlugin(testbed.IptbPlugin{
 		From:        "<builtin>",
 		NewNode:     local.NewNode,
@@ -31,8 +29,13 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		BuiltIn:     true,
 	}, false)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
+}
+
+type NodeProvider struct{}
+
+func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]iface.CoreAPI, error) {
 
 	dir, err := ioutil.TempDir("", "httpapi-tb-")
 	if err != nil {
