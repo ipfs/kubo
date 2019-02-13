@@ -524,6 +524,14 @@ test_files_api() {
     ipfs files mv /cats/this/is /cats/
   '
 
+  test_expect_success "can mv dir and dest dir is / $EXTRA" '
+    ipfs files mv /cats/is /
+  '
+
+  test_expect_success "can mv dir and dest dir path has no trailing slash $EXTRA" '
+    ipfs files mv /is /cats
+  '
+
   test_expect_success "mv worked $EXTRA" '
     verify_dir_contents /cats file1 ipfs this is walrus &&
     verify_dir_contents /cats/this
