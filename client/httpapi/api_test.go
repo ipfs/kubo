@@ -2,22 +2,22 @@ package httpapi
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	gohttp "net/http"
 	"os"
-	"path"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
 	local "github.com/ipfs/iptb-plugins/local"
-	"github.com/ipfs/iptb/cli"
 	"github.com/ipfs/iptb/testbed"
 	"github.com/ipfs/iptb/testbed/interfaces"
+	ma "github.com/multiformats/go-multiaddr"
 )
+
+const parallelSpeculativeNodes = 15 // 15 seems to work best
 
 func init() {
 	_, err := testbed.RegisterPlugin(testbed.IptbPlugin{
@@ -33,38 +33,144 @@ func init() {
 	}
 }
 
-type NodeProvider struct{}
+type NodeProvider struct {
+	simple <-chan func(context.Context) ([]iface.CoreAPI, error)
+}
 
-func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]iface.CoreAPI, error) {
+func newNodeProvider(ctx context.Context) *NodeProvider {
+	simpleNodes := make(chan func(context.Context) ([]iface.CoreAPI, error), parallelSpeculativeNodes)
+
+	np := &NodeProvider{
+		simple: simpleNodes,
+	}
+
+	// start basic nodes speculatively in parallel
+	for i := 0; i < parallelSpeculativeNodes; i++ {
+		go func() {
+			for {
+				ctx, cancel := context.WithCancel(ctx)
+
+				snd, err := np.makeAPISwarm(ctx, false, 1)
+
+				res := func(ctx context.Context) ([]iface.CoreAPI, error) {
+					if err != nil {
+						return nil, err
+					}
+
+					go func() {
+						<-ctx.Done()
+						cancel()
+					}()
+
+					return snd, nil
+				}
+
+				select {
+				case simpleNodes <- res:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	return np
+}
+
+func (np *NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]iface.CoreAPI, error) {
+	if !fullIdentity && n == 1 {
+		return (<-np.simple)(ctx)
+	}
+	return np.makeAPISwarm(ctx, fullIdentity, n)
+}
+
+func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]iface.CoreAPI, error) {
 
 	dir, err := ioutil.TempDir("", "httpapi-tb-")
 	if err != nil {
 		return nil, err
 	}
 
-	c := cli.NewCli() //TODO: is there a better way?
+	tb := testbed.NewTestbed(dir)
 
-	initArgs := []string{"iptb", "--IPTB_ROOT", dir, "auto", "-type", "localipfs", "-count", strconv.FormatInt(int64(n), 10)}
-	if err := c.Run(initArgs); err != nil {
+	specs, err := testbed.BuildSpecs(tb.Dir(), n, "localipfs", nil)
+	if err != nil {
 		return nil, err
 	}
 
-	filestoreArgs := []string{"iptb", "--IPTB_ROOT", dir, "run", fmt.Sprintf("[0-%d]", n-1), "--", "ipfs", "config", "--json", "Experimental.FilestoreEnabled", "true"}
-	if err := c.Run(filestoreArgs); err != nil {
+	if err := testbed.WriteNodeSpecs(tb.Dir(), specs); err != nil {
 		return nil, err
 	}
 
-	startArgs := []string{"iptb", "--IPTB_ROOT", dir, "start", "-wait", "--", "--enable-pubsub-experiment", "--offline=" + strconv.FormatBool(n == 1)}
-	if err := c.Run(startArgs); err != nil {
+	nodes, err := tb.Nodes()
+	if err != nil {
 		return nil, err
 	}
 
-	if n > 1 {
-		connectArgs := []string{"iptb", "--IPTB_ROOT", dir, "connect", fmt.Sprintf("[1-%d]", n-1), "0"}
-		if err := c.Run(connectArgs); err != nil {
-			return nil, err
-		}
+	apis := make([]iface.CoreAPI, n)
+
+	wg := sync.WaitGroup{}
+	zero := sync.WaitGroup{}
+
+	wg.Add(len(nodes))
+	zero.Add(1)
+
+	for i, nd := range nodes {
+		go func(i int, nd testbedi.Core) {
+			defer wg.Done()
+
+			if _, err := nd.Init(ctx, "--empty-repo"); err != nil {
+				panic(err)
+			}
+
+			if _, err := nd.RunCmd(ctx, nil, "ipfs", "config", "--json", "Experimental.FilestoreEnabled", "true"); err != nil {
+				panic(err)
+			}
+
+			if _, err := nd.Start(ctx, true, "--enable-pubsub-experiment", "--offline="+strconv.FormatBool(n == 1)); err != nil {
+				panic(err)
+			}
+
+			if i > 0 {
+				zero.Wait()
+				if err := nd.Connect(ctx, nodes[0]); err != nil {
+					panic(err)
+				}
+			} else {
+				zero.Done()
+			}
+
+			addr, err := nd.APIAddr()
+			if err != nil {
+				panic(err)
+			}
+
+			maddr, err := ma.NewMultiaddr(addr)
+			if err != nil {
+				panic(err)
+			}
+
+			c := &gohttp.Client{
+				Transport: &gohttp.Transport{
+					Proxy:              gohttp.ProxyFromEnvironment,
+					DisableKeepAlives:  true,
+					DisableCompression: true,
+				},
+			}
+			apis[i] = NewApiWithClient(maddr, c)
+
+			// empty node is pinned even with --empty-repo, we don't want that
+			emptyNode, err := iface.ParsePath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
+			if err != nil {
+				panic(err)
+			}
+			if err := apis[i].Pin().Rm(ctx, emptyNode); err != nil {
+				panic(err)
+			}
+		}(i, nd)
 	}
+
+	wg.Wait()
 
 	go func() {
 		<-ctx.Done()
@@ -72,60 +178,18 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		defer os.Remove(dir)
 
 		defer func() {
-			_ = c.Run([]string{"iptb", "--IPTB_ROOT", dir, "stop"})
+			for _, nd := range nodes {
+				_ = nd.Stop(context.Background())
+			}
 		}()
 	}()
-
-	apis := make([]iface.CoreAPI, n)
-
-	for i := range apis {
-		tb := testbed.NewTestbed(path.Join(dir, "testbeds", "default"))
-
-		node, err := tb.Node(i)
-		if err != nil {
-			return nil, err
-		}
-
-		attrNode, ok := node.(testbedi.Attribute)
-		if !ok {
-			return nil, fmt.Errorf("node does not implement attributes")
-		}
-
-		pth, err := attrNode.Attr("path")
-		if err != nil {
-			return nil, err
-		}
-
-		a := ApiAddr(pth)
-		if a == nil {
-			return nil, fmt.Errorf("nil addr for node")
-		}
-		c := &gohttp.Client{
-			Transport: &gohttp.Transport{
-				Proxy:              gohttp.ProxyFromEnvironment,
-				DisableKeepAlives:  true,
-				DisableCompression: true,
-			},
-		}
-		apis[i] = NewApiWithClient(a, c)
-
-		// node cleanup
-		// TODO: pass --empty-repo somehow (how?)
-		pins, err := apis[i].Pin().Ls(ctx, caopts.Pin.Type.Recursive())
-		if err != nil {
-			return nil, err
-		}
-		for _, pin := range pins { //TODO: parallel
-			if err := apis[i].Pin().Rm(ctx, pin.Path()); err != nil {
-				return nil, err
-			}
-		}
-
-	}
 
 	return apis, nil
 }
 
 func TestHttpApi(t *testing.T) {
-	tests.TestApi(&NodeProvider{})(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tests.TestApi(newNodeProvider(ctx))(t)
 }
