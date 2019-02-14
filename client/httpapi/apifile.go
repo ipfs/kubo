@@ -157,12 +157,12 @@ func (it *apiIter) Next() bool {
 	}
 
 	if len(out.Objects) != 1 {
-		it.err = fmt.Errorf("len(out.Objects) != 1 (is %d)", len(out.Objects))
+		it.err = fmt.Errorf("ls returned more objects than expected (%d)", len(out.Objects))
 		return false
 	}
 
 	if len(out.Objects[0].Links) != 1 {
-		it.err = fmt.Errorf("len(out.Objects[0].Links) != 1 (is %d)", len(out.Objects[0].Links))
+		it.err = fmt.Errorf("ls returned more links than expected (%d)", len(out.Objects[0].Links))
 		return false
 	}
 
