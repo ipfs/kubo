@@ -39,13 +39,10 @@ func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error)
 
 func (api *HttpDagServ) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
 	out := make(chan *format.NodeOption)
-	wg := sync.WaitGroup{}
-	wg.Add(len(cids))
 
 	for _, c := range cids {
 		// TODO: Consider limiting concurrency of this somehow
 		go func(c cid.Cid) {
-			defer wg.Done()
 			n, err := api.Get(ctx, c)
 
 			select {
