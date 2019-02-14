@@ -3,12 +3,15 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
+	dag "github.com/ipfs/go-merkledag"
+	ft "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 )
@@ -19,24 +22,23 @@ type objectOut struct {
 	Hash string
 }
 
-func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (format.Node, error) {
+func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (ipld.Node, error) {
 	options, err := caopts.ObjectNewOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	var out objectOut
-	err = api.core().request("object/new", options.Type).Exec(ctx, &out)
-	if err != nil {
-		return nil, err
+	var n ipld.Node
+	switch options.Type {
+	case "empty":
+		n = new(dag.ProtoNode)
+	case "unixfs-dir":
+		n = ft.EmptyDirNode()
+	default:
+		return nil, fmt.Errorf("unknown object type: %s", options.Type)
 	}
 
-	c, err := cid.Parse(out.Hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return api.core().nodeFromPath(ctx, iface.IpfsPath(c)), nil
+	return n, nil
 }
 
 func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.ObjectPutOption) (iface.ResolvedPath, error) {
@@ -64,7 +66,7 @@ func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.Objec
 	return iface.IpfsPath(c), nil
 }
 
-func (api *ObjectAPI) Get(ctx context.Context, p iface.Path) (format.Node, error) {
+func (api *ObjectAPI) Get(ctx context.Context, p iface.Path) (ipld.Node, error) {
 	r, err := api.core().Block().Get(ctx, p)
 	if err != nil {
 		return nil, err
@@ -96,7 +98,7 @@ func (api *ObjectAPI) Data(ctx context.Context, p iface.Path) (io.Reader, error)
 	return b, nil
 }
 
-func (api *ObjectAPI) Links(ctx context.Context, p iface.Path) ([]*format.Link, error) {
+func (api *ObjectAPI) Links(ctx context.Context, p iface.Path) ([]*ipld.Link, error) {
 	var out struct {
 		Links []struct {
 			Name string
@@ -107,14 +109,14 @@ func (api *ObjectAPI) Links(ctx context.Context, p iface.Path) ([]*format.Link, 
 	if err := api.core().request("object/links", p.String()).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
-	res := make([]*format.Link, len(out.Links))
+	res := make([]*ipld.Link, len(out.Links))
 	for i, l := range out.Links {
 		c, err := cid.Parse(l.Hash)
 		if err != nil {
 			return nil, err
 		}
 
-		res[i] = &format.Link{
+		res[i] = &ipld.Link{
 			Cid:  c,
 			Name: l.Name,
 			Size: l.Size,

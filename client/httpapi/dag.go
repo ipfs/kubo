@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"sync"
 
 	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
