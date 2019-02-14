@@ -12,11 +12,11 @@ import (
 	cmds "gx/ipfs/QmPHTMcFRnDfyF8mk7RXHoZXNQ3uvBHDmuLgvkG7RLwN6t/go-ipfs-cmds"
 	chunk "gx/ipfs/QmR4QQVkBZsZENRjYFVi8dEtPL3daZRNKk24m4r6WKJHNm/go-ipfs-chunker"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	balanced "gx/ipfs/QmSygPSC63Uka8z9PYokAS4thiMAor17vhXUTi4qmKHh6P/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmSygPSC63Uka8z9PYokAS4thiMAor17vhXUTi4qmKHh6P/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmSygPSC63Uka8z9PYokAS4thiMAor17vhXUTi4qmKHh6P/go-unixfs/importer/trickle"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-	balanced "gx/ipfs/QmetDvVkKzbr8PYuBV6S48q5DU9EUQktYjo9KdkA3zbQgK/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/QmetDvVkKzbr8PYuBV6S48q5DU9EUQktYjo9KdkA3zbQgK/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/QmetDvVkKzbr8PYuBV6S48q5DU9EUQktYjo9KdkA3zbQgK/go-unixfs/importer/trickle"
 )
 
 var urlStoreCmd = &cmds.Command{

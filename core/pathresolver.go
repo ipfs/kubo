@@ -7,8 +7,8 @@ import (
 
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
-	path "gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path"
-	resolver "gx/ipfs/QmQ3YSqfxunT5QBg6KBVskKyRE26q6hjSMyhpxchpm7jEN/go-path/resolver"
+	path "gx/ipfs/QmQiXYqcxU5AvpAJkfbXUEZgUYKog1Pd2Cv3WBiW2Hpe8M/go-path"
+	resolver "gx/ipfs/QmQiXYqcxU5AvpAJkfbXUEZgUYKog1Pd2Cv3WBiW2Hpe8M/go-path/resolver"
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	logging "gx/ipfs/QmcuXC5cxs79ro2cUuHs4HQ2bkDLJUYokwL8aivcX6HW3C/go-log"
 )
