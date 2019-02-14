@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	gohttp "net/http"
@@ -22,8 +21,6 @@ const (
 	DefaultApiFile  = "api"
 	EnvDir          = "IPFS_PATH"
 )
-
-var ErrNotImplemented = errors.New("not implemented")
 
 type HttpApi struct {
 	url     string

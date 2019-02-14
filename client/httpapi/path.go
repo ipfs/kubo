@@ -42,6 +42,11 @@ func (api *HttpApi) ResolvePath(ctx context.Context, path iface.Path) (iface.Res
 	return iface.NewResolvedPath(ipath, out.Cid, root, out.RemPath), nil
 }
 
-func (api *HttpApi) ResolveNode(context.Context, iface.Path) (ipld.Node, error) {
-	return nil, ErrNotImplemented
+func (api *HttpApi) ResolveNode(ctx context.Context, p iface.Path) (ipld.Node, error) {
+	rp, err := api.ResolvePath(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return api.Dag().Get(ctx, rp.Cid())
 }
