@@ -66,16 +66,12 @@ type pubsubMessage struct {
 	JData     []byte   `json:"data,omitempty"`
 	JSeqno    []byte   `json:"seqno,omitempty"`
 	JTopicIDs []string `json:"topicIDs,omitempty"`
-}
 
-func (msg *pubsubMessage) valid() error {
-	_, err := peer.IDFromBytes(msg.JFrom)
-	return err
+	from peer.ID
 }
 
 func (msg *pubsubMessage) From() peer.ID {
-	id, _ := peer.IDFromBytes(msg.JFrom)
-	return id
+	return msg.from
 }
 
 func (msg *pubsubMessage) Data() []byte {
@@ -97,7 +93,9 @@ func (s *pubsubSub) Next(ctx context.Context) (iface.PubSubMessage, error) {
 	if err := s.dec.Decode(&msg); err != nil {
 		return nil, err
 	}
-	return &msg, msg.valid()
+	var err error
+	msg.from, err = peer.IDFromBytes(msg.JFrom)
+	return &msg, err
 }
 
 func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (iface.PubSubSubscription, error) {

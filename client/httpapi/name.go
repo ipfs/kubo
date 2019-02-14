@@ -16,10 +16,8 @@ type NameAPI HttpApi
 type ipnsEntry struct {
 	JName  string `json:"Name"`
 	JValue string `json:"Value"`
-}
 
-func (e *ipnsEntry) valid() (iface.Path, error) {
-	return iface.ParsePath(e.JValue)
+	path iface.Path
 }
 
 func (e *ipnsEntry) Name() string {
@@ -27,8 +25,7 @@ func (e *ipnsEntry) Name() string {
 }
 
 func (e *ipnsEntry) Value() iface.Path {
-	p, _ := e.valid()
-	return p
+	return e.path
 }
 
 func (api *NameAPI) Publish(ctx context.Context, p iface.Path, opts ...caopts.NamePublishOption) (iface.IpnsEntry, error) {
@@ -51,11 +48,8 @@ func (api *NameAPI) Publish(ctx context.Context, p iface.Path, opts ...caopts.Na
 	if err := req.Exec(ctx, &out); err != nil {
 		return nil, err
 	}
-	if _, err := out.valid(); err != nil {
-		return nil, err
-	}
-
-	return &out, nil
+	out.path, err = iface.ParsePath(out.JValue)
+	return &out, err
 }
 
 func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.NameResolveOption) (<-chan iface.IpnsResult, error) {

@@ -14,6 +14,8 @@ type KeyAPI HttpApi
 type keyOutput struct {
 	JName string `json:"Name"`
 	Id    string
+
+	pid peer.ID
 }
 
 func (k *keyOutput) Name() string {
@@ -26,13 +28,7 @@ func (k *keyOutput) Path() iface.Path {
 }
 
 func (k *keyOutput) ID() peer.ID {
-	p, _ := peer.IDB58Decode(k.Id)
-	return p
-}
-
-func (k *keyOutput) valid() error {
-	_, err := peer.IDB58Decode(k.Id)
-	return err
+	return k.pid
 }
 
 func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (iface.Key, error) {
@@ -49,7 +45,8 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	if err != nil {
 		return nil, err
 	}
-	return &out, out.valid()
+	out.pid, err = peer.IDB58Decode(out.Id)
+	return &out, err
 }
 
 func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, opts ...caopts.KeyRenameOption) (iface.Key, bool, error) {
@@ -72,7 +69,8 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 	}
 
 	id := &keyOutput{JName: out.Now, Id: out.Id}
-	return id, out.Overwrite, id.valid()
+	id.pid, err = peer.IDB58Decode(id.Id)
+	return id, out.Overwrite, err
 }
 
 func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
@@ -83,7 +81,9 @@ func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
 
 	res := make([]iface.Key, len(out.Keys))
 	for i, k := range out.Keys {
-		if err := k.valid(); err != nil {
+		var err error
+		k.pid, err = peer.IDB58Decode(k.Id)
+		if err != nil {
 			return nil, err
 		}
 		res[i] = k
@@ -98,8 +98,10 @@ func (api *KeyAPI) Self(ctx context.Context) (iface.Key, error) {
 		return nil, err
 	}
 
+	var err error
 	out := keyOutput{JName: "self", Id: id.ID}
-	return &out, out.valid()
+	out.pid, err = peer.IDB58Decode(out.Id)
+	return &out, err
 }
 
 func (api *KeyAPI) Remove(ctx context.Context, name string) (iface.Key, error) {
@@ -111,7 +113,9 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (iface.Key, error) {
 		return nil, errors.New("got unexpected number of keys back")
 	}
 
-	return &out.Keys[0], out.Keys[0].valid()
+	var err error
+	out.Keys[0].pid, err = peer.IDB58Decode(out.Keys[0].Id)
+	return &out.Keys[0], err
 }
 
 func (api *KeyAPI) core() *HttpApi {

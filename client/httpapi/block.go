@@ -18,24 +18,16 @@ type BlockAPI HttpApi
 type blockStat struct {
 	Key   string
 	BSize int `json:"Size"`
+
+	cid cid.Cid
 }
 
 func (s *blockStat) Size() int {
 	return s.BSize
 }
 
-func (s *blockStat) valid() (iface.ResolvedPath, error) {
-	c, err := cid.Parse(s.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	return iface.IpldPath(c), nil
-}
-
 func (s *blockStat) Path() iface.ResolvedPath {
-	p, _ := s.valid()
-	return p
+	return iface.IpldPath(s.cid)
 }
 
 func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockPutOption) (iface.BlockStat, error) {
@@ -60,7 +52,8 @@ func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockP
 	if err := req.Exec(ctx, &out); err != nil {
 		return nil, err
 	}
-	if _, err := out.valid(); err != nil {
+	out.cid, err = cid.Parse(out.Key)
+	if err != nil {
 		return nil, err
 	}
 
@@ -118,7 +111,8 @@ func (api *BlockAPI) Stat(ctx context.Context, p iface.Path) (iface.BlockStat, e
 	if err != nil {
 		return nil, err
 	}
-	if _, err := out.valid(); err != nil {
+	out.cid, err = cid.Parse(out.Key)
+	if err != nil {
 		return nil, err
 	}
 
