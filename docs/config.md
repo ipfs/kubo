@@ -224,6 +224,12 @@ Valid modes are:
 ## `Gateway`
 Options for the HTTP gateway.
 
+- `NoFetch`
+When set to true, the gateway will only serve content already in the local repo
+and will not fetch files from the network.
+
+Default: `false`
+
 - `HTTPHeaders`
 Headers to set on gateway responses.
 
