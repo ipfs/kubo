@@ -2,7 +2,7 @@ include mk/header.mk
 
 # TODO: target disabling all incompatible plugins
 
-$(d)/ipfs.wasm:
+$(d)/ipfs.wasm: deps
 	GOOS=js GOARCH=wasm $(GOCC) build -tags="nofuse purego" -ldflags="-X "github.com/ipfs/go-ipfs".CurrentCommit=47e9466ac" -o "$@" "github.com/ipfs/go-ipfs/misc/wasm"
 
 .PHONY: $(d)/ipfs.wasm
