@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gx/ipfs/QmQVUtnrNGtCRkCMpXgpApfzQjc8FDaDVxHqWH8cnZQeh5/go-multiaddr-net"
+	"gx/ipfs/QmZcLBXKaFe8ND5YHPkJRAwmhJGrVsi1JqDZNyJ4nRK5Mj/go-multiaddr-net"
 	"io"
 	"net"
 	"syscall/js"
 	"time"
 
-	ma "gx/ipfs/QmRKLtwMw131aK7ugC3G7ybpumMz78YrJe5dzneyindvG1/go-multiaddr"
-	"gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
-	ws "gx/ipfs/QmZJpaENuYSCLnV4gWjrWhN2LMJWgTp3u2b6XZx3C12rNF/go-ws-transport"
-	"gx/ipfs/Qmb3qartY8DSgRaBA3Go4EEjY1ZbXhCcvmc4orsBKMjgRg/go-libp2p-transport"
-	tptu "gx/ipfs/Qmc9KUyhx1adPnHX2TBjEWvKej2Gg2kvisAFoQ74UiWYhd/go-libp2p-transport-upgrader"
+	ma "gx/ipfs/QmNTCey11oxhb1AxDnQBRHtdhap6Ctud872NjAYPYYXPuc/go-multiaddr"
+	"gx/ipfs/QmPJxxDsX2UbchSHobbYuvz7qnyJTFKvaKMzE2rZWJ4x5B/go-libp2p-peer"
+	tptu "gx/ipfs/QmQwvsMzMDTW2K8ySZYgnTVCkzQXVDxmGB5upvVFwdumJV/go-libp2p-transport-upgrader"
+	ws "gx/ipfs/QmTPHQHPgmoJtmhMSpVhRPeb23kXGgkUEDKfn9ZndnaQmy/go-ws-transport"
+	"gx/ipfs/QmUDtgnEr7FFrtK2LQM2dFzTNWghnrApBDcU3iHEJz8eQS/go-libp2p-transport"
 )
 
 const (
