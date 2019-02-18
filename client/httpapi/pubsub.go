@@ -59,7 +59,7 @@ func (api *PubsubAPI) Publish(ctx context.Context, topic string, message []byte)
 type pubsubSub struct {
 	messages chan pubsubMessage
 
-	done chan struct{}
+	done    chan struct{}
 	rcloser io.Closer
 }
 
@@ -70,7 +70,7 @@ type pubsubMessage struct {
 	JTopicIDs []string `json:"topicIDs,omitempty"`
 
 	from peer.ID
-	err error
+	err  error
 }
 
 func (msg *pubsubMessage) From() peer.ID {
@@ -124,7 +124,7 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 
 	sub := &pubsubSub{
 		messages: make(chan pubsubMessage),
-		done: make(chan struct{}),
+		done:     make(chan struct{}),
 	}
 
 	dec := json.NewDecoder(resp.Output)
@@ -154,7 +154,7 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 	return sub, nil
 }
 
-func (s*pubsubSub) Close() error {
+func (s *pubsubSub) Close() error {
 	if s.done != nil {
 		close(s.done)
 		s.done = nil

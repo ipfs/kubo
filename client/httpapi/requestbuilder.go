@@ -14,11 +14,11 @@ import (
 
 // RequestBuilder is an IPFS commands request builder.
 type RequestBuilder struct {
-	command string
-	args    []string
-	opts    map[string]string
-	headers map[string]string
-	body    io.Reader
+	command  string
+	args     []string
+	opts     map[string]string
+	headers  map[string]string
+	body     io.Reader
 	drainOut bool
 
 	shell *HttpApi

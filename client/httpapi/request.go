@@ -7,12 +7,12 @@ import (
 )
 
 type Request struct {
-	ApiBase string
-	Command string
-	Args    []string
-	Opts    map[string]string
-	Body    io.Reader
-	Headers map[string]string
+	ApiBase  string
+	Command  string
+	Args     []string
+	Opts     map[string]string
+	Body     io.Reader
+	Headers  map[string]string
 	DrainOut bool // if set, resp.Close will read all remaining data
 }
 
@@ -26,11 +26,11 @@ func NewRequest(ctx context.Context, url, command string, args ...string) *Reque
 		"stream-channels": "true",
 	}
 	return &Request{
-		ApiBase: url + "/api/v0",
-		Command: command,
-		Args:    args,
-		Opts:    opts,
-		Headers: make(map[string]string),
+		ApiBase:  url + "/api/v0",
+		Command:  command,
+		Args:     args,
+		Opts:     opts,
+		Headers:  make(map[string]string),
 		DrainOut: true,
 	}
 }
