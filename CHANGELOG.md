@@ -18,10 +18,10 @@ TODO: WRITE THIS
 There are two new "offline" features in this release: a global `--offline` flag
 and an option to configure the gateway to not fetch files.
 
-All go-ipfs commands now support the `--offline` flag. This causes IPFS to avoid
+Most go-ipfs commands now support the `--offline` flag. This causes IPFS to avoid
 network operations when performing the requested operation. If you've ever used
-the `--local` flag, the `--offline` flag is the universally supported
-replacement (it works everywhere).
+the `--local` flag, the `--offline` flag is the (almost) universally supported
+replacement.
 
 For example:
 
@@ -31,6 +31,9 @@ For example:
 * `ipfs cat --offline Qm...` won't fetch any blocks from the network.
 * `ipfs block stat --offline Qm...` is a great way to tell if a block is locally
   available.
+
+Note: It doesn't _yet_ work with the `refs`, `urlstore`, or `tar` commands
+([#6002](https://github.com/ipfs/go-ipfs/issues/6002)).
 
 On to the gateway, there's a new `Gateway.NoFetch` option to configure the
 gateway to only serve locally present files. This makes it possible to run an
