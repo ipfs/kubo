@@ -131,6 +131,7 @@ func (api *HttpApi) request(command string, args ...string) *RequestBuilder {
 		command: command,
 		args:    args,
 		shell:   api,
+		drainOut: true,
 	}
 }
 

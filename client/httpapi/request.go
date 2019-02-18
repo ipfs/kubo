@@ -13,6 +13,7 @@ type Request struct {
 	Opts    map[string]string
 	Body    io.Reader
 	Headers map[string]string
+	DrainOut bool // if set, resp.Close will read all remaining data
 }
 
 func NewRequest(ctx context.Context, url, command string, args ...string) *Request {
@@ -30,5 +31,6 @@ func NewRequest(ctx context.Context, url, command string, args ...string) *Reque
 		Args:    args,
 		Opts:    opts,
 		Headers: make(map[string]string),
+		DrainOut: true,
 	}
 }

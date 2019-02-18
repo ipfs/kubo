@@ -19,6 +19,7 @@ type RequestBuilder struct {
 	opts    map[string]string
 	headers map[string]string
 	body    io.Reader
+	drainOut bool
 
 	shell *HttpApi
 }
@@ -81,6 +82,12 @@ func (r *RequestBuilder) Header(name, value string) *RequestBuilder {
 		r.headers = make(map[string]string, 1)
 	}
 	r.headers[name] = value
+	return r
+}
+
+// NoDrain disables output draining in response closer
+func (r *RequestBuilder) NoDrain() *RequestBuilder {
+	r.drainOut = false
 	return r
 }
 

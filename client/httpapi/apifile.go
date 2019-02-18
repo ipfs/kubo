@@ -57,7 +57,7 @@ func (f *apiFile) reset() error {
 	if f.r != nil {
 		f.r.Close()
 	}
-	req := f.core.request("cat", f.path.String())
+	req := f.core.request("cat", f.path.String()).NoDrain()
 	if f.at != 0 {
 		req.Option("offset", f.at)
 	}

@@ -113,8 +113,8 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 	}
 
 	resp, err := api.core().request("pubsub/sub", topic).
-		Option("discover", options.Discover).
-		Send(ctx)
+		Option("discover", options.Discover).NoDrain().Send(ctx)
+
 	if err != nil {
 		return nil, err
 	}
