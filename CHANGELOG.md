@@ -34,8 +34,8 @@ For example:
 
 On to the gateway, there's a new `Gateway.NoFetch` option to configure the
 gateway to only serve locally present files. This makes it possible to run an
-IPFS node as a gateway to serve content of _your_ choosing (i.e., stuff you've
-pinned locally) but no other content.
+IPFS node as a gateway to serve content of _your_ choosing without acting like a
+public proxy.
 
 #### Adding And Pinning Content
 
