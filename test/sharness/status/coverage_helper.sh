@@ -45,7 +45,7 @@ die "could not 'mktemp -d /tmp/coverage_helper.$DATE.XXXXXX'"
 
 log "Grep the sharness tests for ipfs commands"
 CMD_RAW="$TMPDIR/ipfs_cmd_raw.txt"
-git grep -n -E '\Wipfs\W' -- sharness/t*-*.sh >"$CMD_RAW" ||
+git grep -n -E '\Wipfs\W' -- ../t*-*.sh >"$CMD_RAW" ||
 die "Could not grep ipfs in the sharness tests"
 
 grep_out() {
@@ -147,7 +147,7 @@ process_command() {
 	fi
 
 	egrep "$PATTERN" "$CMD_RES" >"$CMD_OUT.txt"
-	reverse "$CMD_OUT.txt" | sed -e 's/^sharness\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
+	reverse "$CMD_OUT.txt" | sed -e 's/^\.\.\///' | cut -d- -f1 | uniq -c >>"$GLOBAL_REV"
     fi
 }
 
