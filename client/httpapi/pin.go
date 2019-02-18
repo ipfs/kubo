@@ -110,22 +110,17 @@ func (r *pinVerifyRes) BadNodes() []iface.BadPinNode {
 type badNode struct {
 	Cid  string
 	JErr string `json:"Err"`
+
+	cid cid.Cid
 }
 
 func (n *badNode) Path() iface.ResolvedPath {
-	c, err := cid.Parse(n.Cid)
-	if err != nil {
-		return nil // todo: handle this better
-	}
-	return iface.IpldPath(c)
+	return iface.IpldPath(n.cid)
 }
 
 func (n *badNode) Err() error {
 	if n.JErr != "" {
 		return errors.New(n.JErr)
-	}
-	if _, err := cid.Parse(n.Cid); err != nil {
-		return err
 	}
 	return nil
 }
@@ -148,6 +143,13 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
 			var out pinVerifyRes
 			if err := dec.Decode(&out); err != nil {
 				return // todo: handle non io.EOF somehow
+			}
+
+			for i, n := range out.JBadNodes {
+				out.JBadNodes[i].cid, err = cid.Decode(n.Cid)
+				if err != nil {
+					return
+				}
 			}
 
 			select {
