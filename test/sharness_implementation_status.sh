@@ -167,5 +167,7 @@ do
 	fi
 done <"$TMP_MD_STATUS_4" >>"$TMP_MD_STATUS_5"
 
+printf "\n" >>"$TMP_MD_STATUS_5"
+
 # Output
 cat "$TMP_MD_STATUS_5"
