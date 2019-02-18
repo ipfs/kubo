@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	humanize "gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	badgerds "gx/ipfs/QmVoK2ivqzp5ZgWiEdBNFbKH7nzf9C4wPYr8cH7CGPMHtC/go-ds-badger"
+	badgerds "gx/ipfs/QmTNJogwkhnbHeRmAXWtzvN2KgVko2oNmHHQN1ggHVhF91/go-ds-badger"
 )
 
 // Plugins is exported list of plugins that will be loaded
