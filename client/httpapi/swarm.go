@@ -15,16 +15,14 @@ import (
 type SwarmAPI HttpApi
 
 func (api *SwarmAPI) Connect(ctx context.Context, pi peerstore.PeerInfo) error {
+	pidma, err := multiaddr.NewComponent("p2p", pi.ID.Pretty())
+	if err != nil {
+		return err
+	}
+
 	saddrs := make([]string, len(pi.Addrs))
 	for i, addr := range pi.Addrs {
-		if _, err := addr.ValueForProtocol(multiaddr.P_P2P); err == multiaddr.ErrProtocolNotFound {
-			pidma, err := multiaddr.NewComponent("p2p", pi.ID.Pretty())
-			if err != nil {
-				return err
-			}
-			addr = addr.Encapsulate(pidma)
-		}
-		saddrs[i] = addr.String()
+		saddrs[i] = addr.Encapsulate(pidma).String()
 	}
 
 	return api.core().request("swarm/connect", saddrs...).Exec(ctx, nil)
