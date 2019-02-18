@@ -139,7 +139,7 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 		nresp.Output = nil
 
 		// drain body and close
-		ioutil.ReadAll(resp.Body)
+		io.Copy(ioutil.Discard, resp.Body)
 		resp.Body.Close()
 	}
 
