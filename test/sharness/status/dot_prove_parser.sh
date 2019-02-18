@@ -30,6 +30,7 @@ usage() {
 # $ cd test/sharness
 # $ rm -f .prove
 # $ prove --state=save t0250-files-api.sh t0275-cid-security.sh
+# $ cd status
 # $ ./sharness_dot_prove_parser.sh
 # t0250 failures
 # t0275 passes
@@ -63,7 +64,7 @@ while [ "$#" -gt "0" ]; do
 done
 
 log "Check that the .prove file exists"
-PROVE_FILE="sharness/.prove"
+PROVE_FILE="../.prove"
 test -e "$PROVE_FILE" || die "could not find '$PROVE_FILE'"
 test -f "$PROVE_FILE" || die "'$PROVE_FILE' is not a file"
 
