@@ -57,8 +57,10 @@ func (api *PubsubAPI) Publish(ctx context.Context, topic string, message []byte)
 }
 
 type pubsubSub struct {
-	io.Closer
-	dec *json.Decoder
+	messages chan pubsubMessage
+
+	done chan struct{}
+	rcloser io.Closer
 }
 
 type pubsubMessage struct {
@@ -68,6 +70,7 @@ type pubsubMessage struct {
 	JTopicIDs []string `json:"topicIDs,omitempty"`
 
 	from peer.ID
+	err error
 }
 
 func (msg *pubsubMessage) From() peer.ID {
@@ -87,15 +90,20 @@ func (msg *pubsubMessage) Topics() []string {
 }
 
 func (s *pubsubSub) Next(ctx context.Context) (iface.PubSubMessage, error) {
-	// TODO: handle ctx
-
-	var msg pubsubMessage
-	if err := s.dec.Decode(&msg); err != nil {
-		return nil, err
+	select {
+	case msg, ok := <-s.messages:
+		if !ok {
+			return nil, io.EOF
+		}
+		if msg.err != nil {
+			return nil, msg.err
+		}
+		var err error
+		msg.from, err = peer.IDFromBytes(msg.JFrom)
+		return &msg, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	var err error
-	msg.from, err = peer.IDFromBytes(msg.JFrom)
-	return &msg, err
 }
 
 func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (iface.PubSubSubscription, error) {
@@ -114,10 +122,44 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 		return nil, resp.Error
 	}
 
-	return &pubsubSub{
-		Closer: resp,
-		dec:    json.NewDecoder(resp.Output),
-	}, nil
+	sub := &pubsubSub{
+		messages: make(chan pubsubMessage),
+		done: make(chan struct{}),
+	}
+
+	dec := json.NewDecoder(resp.Output)
+
+	go func() {
+		defer close(sub.messages)
+
+		for {
+			var msg pubsubMessage
+			if err := dec.Decode(&msg); err != nil {
+				if err == io.EOF {
+					return
+				}
+				msg.err = err
+			}
+
+			select {
+			case sub.messages <- msg:
+			case <-sub.done:
+				return
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return sub, nil
+}
+
+func (s*pubsubSub) Close() error {
+	if s.done != nil {
+		close(s.done)
+		s.done = nil
+	}
+	return s.rcloser.Close()
 }
 
 func (api *PubsubAPI) core() *HttpApi {
