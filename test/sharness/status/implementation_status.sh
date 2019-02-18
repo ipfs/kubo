@@ -4,8 +4,8 @@ USAGE="$0 [-h] [-v]"
 
 usage() {
 	echo "$USAGE"
-	echo "	Use sharness_dot_prove_parser.sh and sharness_test_coverage_helper.sh"
-	echo "	to generate a status file that show which ipfs commands are working, not"
+	echo "	Use dot_prove_parser.sh and coverage_helper.sh to generate"
+	echo "	a status file that show which ipfs commands are working, not"
 	echo "	working, or not tested according to sharness tests."
 	echo "	Options:"
 	echo "		-h|--help: print this usage message and exit"
@@ -52,14 +52,14 @@ TMPDIR=$(mktemp -d "$TMP_TMPL") ||
 export VERBOSE
 
 log "Parse .prove file"
-DOT_PROVE_PARSER='sharness_dot_prove_parser.sh'
+DOT_PROVE_PARSER='dot_prove_parser.sh'
 test -f "$DOT_PROVE_PARSER" || die "could not find '$DOT_PROVE_PARSER'"
 TMP_CLEANED="$TMPDIR/cleaned_dot_prove"
 ./"$DOT_PROVE_PARSER" >"$TMP_CLEANED" || exit
 
 
 log "Get command coverage report"
-COVERAGE_HELPER='sharness_test_coverage_helper.sh'
+COVERAGE_HELPER='coverage_helper.sh'
 test -f "$COVERAGE_HELPER" || die "could not find '$COVERAGE_HELPER'"
 TMP_COVERAGE="$TMPDIR/test_coverage"
 ./"$COVERAGE_HELPER" >"$TMP_COVERAGE" || exit
