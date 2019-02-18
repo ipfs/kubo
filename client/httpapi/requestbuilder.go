@@ -103,11 +103,11 @@ func (r *RequestBuilder) Exec(ctx context.Context, res interface{}) error {
 	}
 
 	if res == nil {
-		httpRes.Close()
+		lateErr := httpRes.Close()
 		if httpRes.Error != nil {
 			return httpRes.Error
 		}
-		return nil
+		return lateErr
 	}
 
 	return httpRes.Decode(res)

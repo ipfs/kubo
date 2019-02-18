@@ -39,9 +39,14 @@ type Response struct {
 
 func (r *Response) Close() error {
 	if r.Output != nil {
-		// always drain output (response body)
-		//ioutil.ReadAll(r.Output) // TODO: might not be a good idea in case there is a lot of data
-		return r.Output.Close()
+
+		// always drain output (response body) //TODO: make optional for things like cat
+		_, err1 := io.Copy(ioutil.Discard, r.Output)
+		err2 := r.Output.Close()
+		if err1 != nil {
+			return err1
+		}
+		return err2
 	}
 	return nil
 }
