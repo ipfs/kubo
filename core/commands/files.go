@@ -14,11 +14,11 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	"gx/ipfs/QmNuVxikLRanHXwpw3sy58Vt5yMd4K5BRmWsUqYCctRRVE/interface-go-ipfs-core"
-	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
+	"gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
+	"gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
 	ipld "gx/ipfs/QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s/go-ipld-format"
 	"gx/ipfs/QmSz8kAe2JCKp2dWSG8gHSWnwSmne8YfRXTeK5HBmc9L7t/go-ipfs-exchange-offline"
-	"gx/ipfs/QmUkb7H2WRutVR91pzoHZPwhbAMFgZMiuGZ2CZ3StuWsJ1/go-ipfs-cmds"
 	"gx/ipfs/QmZNLCLH3arRfvNPJRy5Hgs3cUywnhio1dVZmEadBzDS4g/go-mfs"
 	bservice "gx/ipfs/QmZsGVGCqMCNzHLNMB6q4F6yyvomqf1VxwhJwSfgo1NGaF/go-blockservice"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"

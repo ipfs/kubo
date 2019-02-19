@@ -11,7 +11,7 @@ import (
 
 	coreiface "gx/ipfs/QmNuVxikLRanHXwpw3sy58Vt5yMd4K5BRmWsUqYCctRRVE/interface-go-ipfs-core"
 	options "gx/ipfs/QmNuVxikLRanHXwpw3sy58Vt5yMd4K5BRmWsUqYCctRRVE/interface-go-ipfs-core/options"
-	cmds "gx/ipfs/QmUkb7H2WRutVR91pzoHZPwhbAMFgZMiuGZ2CZ3StuWsJ1/go-ipfs-cmds"
+	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	pb "gx/ipfs/QmYWB8oH6o7qftxoyqTTZhzLrhKCVT7NYahECQTwTtqbgj/pb"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"

@@ -12,7 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
 	config "gx/ipfs/QmRLDpfN3yCpHx4C6wwTkrFFK6bNxzBkgDbJPRsb5VLMQ2/go-ipfs-config"
-	random "gx/ipfs/QmSJ9n2s9NUoA9D849W5jj5SJ94nMcZpj1jCgQJieiNqSt/go-random"
+	random "gx/ipfs/QmXMnwKWAFBk8kgH8gjoG5P9Pj5aASPvQA2kHdu6gRwyj5/go-random"
 )
 
 func main() {
