@@ -22,6 +22,11 @@ const (
 	EnvDir          = "IPFS_PATH"
 )
 
+// HttpApi implements github.com/ipfs/interface-go-ipfs-core/CoreAPI using
+// IPFS HTTP API.
+//
+// For interface docs see
+// https://godoc.org/github.com/ipfs/interface-go-ipfs-core#CoreAPI
 type HttpApi struct {
 	url     string
 	httpcli gohttp.Client
@@ -29,6 +34,11 @@ type HttpApi struct {
 	applyGlobal func(*RequestBuilder)
 }
 
+// NewLocalApi tries to construct new HttpApi instance communicating with local
+// IPFS daemon
+//
+// Daemon api address is pulled from the $IPFS_PATH/api file.
+// If $IPFS_PATH env var is not present, it defaults to ~/.ipfs
 func NewLocalApi() (iface.CoreAPI, error) {
 	baseDir := os.Getenv(EnvDir)
 	if baseDir == "" {
@@ -38,8 +48,10 @@ func NewLocalApi() (iface.CoreAPI, error) {
 	return NewPathApi(baseDir)
 }
 
-func NewPathApi(p string) (iface.CoreAPI, error) {
-	a, err := ApiAddr(p)
+// NewPathApi constructs new HttpApi by pulling api address from specified
+// ipfspath. Api file should be located at $ipfspath/api
+func NewPathApi(ipfspath string) (iface.CoreAPI, error) {
+	a, err := ApiAddr(ipfspath)
 	if err != nil {
 		if err == os.ErrNotExist {
 			err = nil
@@ -49,6 +61,7 @@ func NewPathApi(p string) (iface.CoreAPI, error) {
 	return NewApi(a)
 }
 
+// ApiAddr reads api file in specified ipfs path
 func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
 	baseDir, err := homedir.Expand(ipfspath)
 	if err != nil {
@@ -65,6 +78,7 @@ func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
 	return ma.NewMultiaddr(strings.TrimSpace(string(api)))
 }
 
+// NewApi constructs HttpApi with specified endpoint
 func NewApi(a ma.Multiaddr) (*HttpApi, error) {
 	c := &gohttp.Client{
 		Transport: &gohttp.Transport{
@@ -76,6 +90,7 @@ func NewApi(a ma.Multiaddr) (*HttpApi, error) {
 	return NewApiWithClient(a, c)
 }
 
+// NewApiWithClient constructs HttpApi with specified endpoint and custom http client
 func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) (*HttpApi, error) {
 	_, url, err := manet.DialArgs(a)
 	if err != nil {
