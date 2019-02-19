@@ -71,6 +71,9 @@ func (r *Response) Decode(dec interface{}) error {
 		}
 		n++
 	}
+
+	// Decode expects at least one result. For calls where zero results are valid,
+	// use Send and construct json Decoder manually.
 	if n > 0 && err == io.EOF {
 		err = nil
 	}
