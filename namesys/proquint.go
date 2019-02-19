@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	opts "gx/ipfs/QmNt8iUv3uJoVrJ3Ls4cgMLk124V4Bt1JxuUMWbjULt9ns/interface-go-ipfs-core/options/namesys"
+	opts "gx/ipfs/QmNuVxikLRanHXwpw3sy58Vt5yMd4K5BRmWsUqYCctRRVE/interface-go-ipfs-core/options/namesys"
 	path "gx/ipfs/QmXgYy6EgbKrpXFtfdHumWsEMd1HrsqGXtovrfBnMgbpfy/go-path"
 	proquint "gx/ipfs/QmYnf27kzqR2cxt6LFZdrAFJuQd6785fTkBvMuEj9EeRxM/proquint"
 )
