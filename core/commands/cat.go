@@ -128,8 +128,14 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 			return nil, 0, err
 		}
 
-		file, ok := f.(files.File)
-		if !ok {
+		var file files.File
+		switch f := f.(type) {
+		case files.File:
+			file = f
+		case files.Directory:
+			return nil, 0, iface.ErrIsDir
+		default:
+			// TODO: Consider returning "error not supported" for symlinks.
 			return nil, 0, iface.ErrNotFile
 		}
 
