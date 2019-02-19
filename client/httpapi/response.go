@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs-files"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
-
-	files "github.com/ipfs/go-ipfs-files"
 )
 
 type trailerReader struct {
@@ -116,9 +115,11 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 		return nil, err
 	}
 
-	contentType := resp.Header.Get("Content-Type")
-	parts := strings.Split(contentType, ";")
-	contentType = parts[0]
+
+	contentType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, err
+	}
 
 	nresp := new(Response)
 
