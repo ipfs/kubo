@@ -90,27 +90,20 @@ func (api *PinAPI) Update(ctx context.Context, from iface.Path, to iface.Path, o
 }
 
 type pinVerifyRes struct {
-	Cid       string
-	JOk       bool       `json:"Ok"`
-	JBadNodes []*badNode `json:"BadNodes,omitempty"`
+	ok       bool
+	badNodes []iface.BadPinNode
 }
 
 func (r *pinVerifyRes) Ok() bool {
-	return r.JOk
+	return r.ok
 }
 
 func (r *pinVerifyRes) BadNodes() []iface.BadPinNode {
-	out := make([]iface.BadPinNode, len(r.JBadNodes))
-	for i, n := range r.JBadNodes {
-		out[i] = n
-	}
-	return out
+	return r.badNodes
 }
 
 type badNode struct {
-	Cid  string
-	JErr string `json:"Err"`
-
+	err error
 	cid cid.Cid
 }
 
@@ -119,10 +112,7 @@ func (n *badNode) Path() iface.ResolvedPath {
 }
 
 func (n *badNode) Err() error {
-	if n.JErr != "" {
-		return errors.New(n.JErr)
-	}
-	return nil
+	return n.err
 }
 
 func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
@@ -140,20 +130,45 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
 		defer close(res)
 		dec := json.NewDecoder(resp.Output)
 		for {
-			var out pinVerifyRes
+			var out struct {
+				Cid string
+				Ok bool
+
+				BadNodes []struct{
+					Cid string
+					Err string
+				}
+			}
 			if err := dec.Decode(&out); err != nil {
 				return // todo: handle non io.EOF somehow
 			}
 
-			for i, n := range out.JBadNodes {
-				out.JBadNodes[i].cid, err = cid.Decode(n.Cid)
+			badNodes := make([]iface.BadPinNode, len(out.BadNodes))
+			for i, n := range out.BadNodes {
+				c, err := cid.Decode(n.Cid)
 				if err != nil {
-					return
+					badNodes[i] = &badNode{
+						cid: c,
+						err: err,
+					}
+					continue
+				}
+
+				if n.Err != "" {
+					err = errors.New(n.Err)
+				}
+				badNodes[i] = &badNode{
+					cid: c,
+					err: err,
 				}
 			}
 
 			select {
-			case res <- &out:
+			case res <- &pinVerifyRes{
+				ok: out.Ok,
+
+				badNodes: badNodes,
+			}:
 			case <-ctx.Done():
 				return
 			}
