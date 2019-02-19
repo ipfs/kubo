@@ -120,7 +120,7 @@ Set the value of the 'Datastore.Path' key:
 			return err
 		}
 
-		return res.Emit(output)
+		return cmds.EmitOnce(res, output)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ConfigField) error {
