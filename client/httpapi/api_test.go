@@ -157,7 +157,10 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 					DisableCompression: true,
 				},
 			}
-			apis[i] = NewApiWithClient(maddr, c)
+			apis[i], err = NewApiWithClient(maddr, c)
+			if err != nil {
+				panic(err)
+			}
 
 			// empty node is pinned even with --empty-repo, we don't want that
 			emptyNode, err := iface.ParsePath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")

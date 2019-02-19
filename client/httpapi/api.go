@@ -29,8 +29,7 @@ type HttpApi struct {
 	applyGlobal func(*RequestBuilder)
 }
 
-//TODO: Return errors here
-func NewLocalApi() iface.CoreAPI {
+func NewLocalApi() (iface.CoreAPI, error) {
 	baseDir := os.Getenv(EnvDir)
 	if baseDir == "" {
 		baseDir = DefaultPathRoot
@@ -39,40 +38,34 @@ func NewLocalApi() iface.CoreAPI {
 	return NewPathApi(baseDir)
 }
 
-func NewPathApi(p string) iface.CoreAPI {
-	a := ApiAddr(p)
-	if a == nil {
-		return nil
+func NewPathApi(p string) (iface.CoreAPI, error) {
+	a, err := ApiAddr(p)
+	if err != nil {
+		if err == os.ErrNotExist {
+			err = nil
+		}
+		return nil, err
 	}
 	return NewApi(a)
 }
 
-func ApiAddr(ipfspath string) ma.Multiaddr {
+func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
 	baseDir, err := homedir.Expand(ipfspath)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	apiFile := path.Join(baseDir, DefaultApiFile)
 
-	if _, err := os.Stat(apiFile); err != nil {
-		return nil
-	}
-
 	api, err := ioutil.ReadFile(apiFile)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	maddr, err := ma.NewMultiaddr(strings.TrimSpace(string(api)))
-	if err != nil {
-		return nil
-	}
-
-	return maddr
+	return ma.NewMultiaddr(strings.TrimSpace(string(api)))
 }
 
-func NewApi(a ma.Multiaddr) *HttpApi { // TODO: should be MAddr?
+func NewApi(a ma.Multiaddr) (*HttpApi, error) {
 	c := &gohttp.Client{
 		Transport: &gohttp.Transport{
 			Proxy:             gohttp.ProxyFromEnvironment,
@@ -83,10 +76,10 @@ func NewApi(a ma.Multiaddr) *HttpApi { // TODO: should be MAddr?
 	return NewApiWithClient(a, c)
 }
 
-func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) *HttpApi {
+func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) (*HttpApi, error) {
 	_, url, err := manet.DialArgs(a)
 	if err != nil {
-		return nil // TODO: return that error
+		return nil, err
 	}
 
 	if a, err := ma.NewMultiaddr(url); err == nil {
@@ -107,7 +100,7 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) *HttpApi {
 		return fmt.Errorf("unexpected redirect")
 	}
 
-	return api
+	return api, nil
 }
 
 func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error) {
