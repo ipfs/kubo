@@ -7,11 +7,49 @@ important fixes and a slew of new and improved features. Please upgrade ASAP.
 
 ### Features
 
-#### Autorelay
+#### Initializing With Random Ports
 
-This release pulls in a new feature from libp2p land.
+Go-ipfs can now be configured to listen on a random but _stable_ (across
+restarts) port using the new `randomports` configuration profile. This should be
+helpful when testing and/or running multiple go-ipfs instances on a single
+machine.
 
-TODO: WRITE THIS
+To initialize a go-ipfs instance with a randomly chosen port, run:
+
+```bash
+> ipfs init --profile=randomports
+```
+
+#### Gateway Directory Listing
+
+IPNS (and/or DNSLink) directory listings on the gateway, e.g.
+https://ipfs.io/ipns/dist.ipfs.io/go-ipfs/, will now display the _ipfs_ hash of
+the current directory. This way users can more easily create permanent links to
+otherwise mutable data.
+
+#### AutoRelay and AutoNAT
+
+This release introduces two new experimental features (courtesy of libp2p):
+AutoRelay and AutoNAT.
+
+AutoRelay is a new service that automatically chooses a public relay when it
+detects that the go-ipfs node is behind a NAT. While relaying connections
+through a third-party node isn't the most efficient way to route around NATs,
+it's a reliable fallback.
+
+To enable `AutoRelay`, set the `Swarm.EnableAutoRelay` option in the config.
+
+AutoNAT is the service AutoRelay uses to detect if the node is behind a NAT.
+It's enabled by default when you enable `AutoRelay` so you don't have to do
+anything.
+
+In this same config section, you may also notice options like `EnableRelayHop`,
+`EnableAutoNATService`, etc. You _do not_ need to enable these:
+
+* `EnableRelayHop` -- Allow _other_ nodes to use _your_ node as a relay
+  (disabled by default).
+* `EnableAutoNATService` -- Help _other_ nodes detect if they're behind a NAT
+  (disabled by default).
 
 #### Offline Operation
 
@@ -169,7 +207,19 @@ In the past, our first suggestion to anyone experiencing weird resource or
 connectivity issues was to disable `REUSEPORT` (set `IPFS_REUSEPORT` to false).
 This should no longer be necessary.
 
-####
+#### Badger Datastore
+
+[Badger has reached 1.0][badger-release]. This release brings an audit and
+numerous reliability fixes. We are now reasonably confident that badger will
+become the default datastore in a future release.
+
+[badger-release]: https://blog.dgraph.io/post/releasing-v1.0/
+
+This release also adds a new `Truncate` configuration option for the badger
+datastore (enabled by default for new IPFS nodes). When enabled, badger will
+_delete_ any un-synced data on start instead of simply refusing to start. This
+should be safe on all filesystems where the `sync` operation is safe and removes
+the need for manual intervention when restarting an IPFS node after a crash.
 
 ### Refactors and Endeavors
 
