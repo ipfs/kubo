@@ -32,74 +32,81 @@ func (api *SwarmAPI) Disconnect(ctx context.Context, addr multiaddr.Multiaddr) e
 	return api.core().request("swarm/disconnect", addr.String()).Exec(ctx, nil)
 }
 
-type streamInfo struct {
-	Protocol string
-}
-
 type connInfo struct {
-	Addr       string
-	Peer       string
-	JLatency   time.Duration `json:"Latency"`
-	Muxer      string
-	JDirection inet.Direction `json:"Direction"`
-	JStreams   []streamInfo   `json:"Streams"`
-}
-
-func (c *connInfo) valid() error {
-	_, err := multiaddr.NewMultiaddr(c.Addr)
-	if err != nil {
-		return err
-	}
-
-	_, err = peer.IDB58Decode(c.Peer)
-	return err
+	addr       multiaddr.Multiaddr
+	peer       peer.ID
+	latency   time.Duration
+	muxer      string
+	direction inet.Direction
+	streams   []protocol.ID
 }
 
 func (c *connInfo) ID() peer.ID {
-	id, _ := peer.IDB58Decode(c.Peer)
-	return id
+	return c.peer
 }
 
 func (c *connInfo) Address() multiaddr.Multiaddr {
-	a, _ := multiaddr.NewMultiaddr(c.Addr)
-	return a
+	return c.addr
 }
 
 func (c *connInfo) Direction() inet.Direction {
-	return c.JDirection
+	return c.direction
 }
 
 func (c *connInfo) Latency() (time.Duration, error) {
-	return c.JLatency, nil
+	return c.latency, nil
 }
 
 func (c *connInfo) Streams() ([]protocol.ID, error) {
-	res := make([]protocol.ID, len(c.JStreams))
-	for i, stream := range c.JStreams {
-		res[i] = protocol.ID(stream.Protocol)
-	}
-	return res, nil
+	return c.streams, nil
 }
 
 func (api *SwarmAPI) Peers(ctx context.Context) ([]iface.ConnectionInfo, error) {
-	var out struct {
-		Peers []*connInfo
+	var resp struct {
+		Peers []struct{
+			Addr       string
+			Peer       string
+			Latency   time.Duration
+			Muxer      string
+			Direction inet.Direction
+			Streams   []struct {
+				Protocol string
+			}
+		}
 	}
 
 	err := api.core().request("swarm/peers").
 		Option("streams", true).
 		Option("latency", true).
-		Exec(ctx, &out)
+		Exec(ctx, &resp)
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]iface.ConnectionInfo, len(out.Peers))
-	for i, conn := range out.Peers {
-		if err := conn.valid(); err != nil {
+	res := make([]iface.ConnectionInfo, len(resp.Peers))
+	for i, conn := range resp.Peers {
+		out := &connInfo{
+			latency: conn.Latency,
+			muxer: conn.Muxer,
+			direction: conn.Direction,
+		}
+
+		out.peer, err = peer.IDB58Decode(conn.Peer)
+		if err != nil {
 			return nil, err
 		}
-		res[i] = conn
+
+		out.addr, err = multiaddr.NewMultiaddr(conn.Addr)
+		if err != nil {
+			return nil, err
+		}
+
+		out.streams = make([]protocol.ID, len(conn.Streams))
+		for i, p := range conn.Streams {
+			out.streams[i] = protocol.ID(p.Protocol)
+		}
+
+		res[i] = out
 	}
 
 	return res, nil

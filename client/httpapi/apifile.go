@@ -49,15 +49,15 @@ type apiFile struct {
 	size int64
 	path iface.Path
 
-	r  io.ReadCloser
+	r  *Response
 	at int64
 }
 
 func (f *apiFile) reset() error {
 	if f.r != nil {
-		f.r.Close()
+		f.r.Cancel()
 	}
-	req := f.core.request("cat", f.path.String()).NoDrain()
+	req := f.core.request("cat", f.path.String())
 	if f.at != 0 {
 		req.Option("offset", f.at)
 	}
@@ -68,12 +68,12 @@ func (f *apiFile) reset() error {
 	if resp.Error != nil {
 		return resp.Error
 	}
-	f.r = resp.Output
+	f.r = resp
 	return nil
 }
 
 func (f *apiFile) Read(p []byte) (int, error) {
-	n, err := f.r.Read(p)
+	n, err := f.r.Output.Read(p)
 	if n > 0 {
 		f.at += int64(n)
 	}
@@ -92,7 +92,7 @@ func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	if f.at < offset && offset-f.at < forwardSeekLimit { //forward skip
-		r, err := io.CopyN(ioutil.Discard, f.r, offset-f.at)
+		r, err := io.CopyN(ioutil.Discard, f.r.Output, offset-f.at)
 
 		f.at += r
 		return f.at, err
@@ -103,7 +103,7 @@ func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
 
 func (f *apiFile) Close() error {
 	if f.r != nil {
-		return f.r.Close()
+		return f.r.Cancel()
 	}
 	return nil
 }

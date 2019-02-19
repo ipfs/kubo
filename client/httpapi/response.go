@@ -34,24 +34,28 @@ func (r *trailerReader) Close() error {
 type Response struct {
 	Output io.ReadCloser
 	Error  *Error
-
-	drainOutput bool
 }
 
 func (r *Response) Close() error {
 	if r.Output != nil {
 
-		// always drain output (response body)
-		var err1 error
-		if r.drainOutput {
-			_, err1 = io.Copy(ioutil.Discard, r.Output)
-		}
+		// drain output (response body)
+		_, err1 := io.Copy(ioutil.Discard, r.Output)
 		err2 := r.Output.Close()
 		if err1 != nil {
 			return err1
 		}
 		return err2
 	}
+	return nil
+}
+
+// Cancel aborts running request (without draining request body)
+func (r *Response) Cancel() error {
+	if r.Output != nil {
+		return r.Output.Close()
+	}
+
 	return nil
 }
 
@@ -123,7 +127,6 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 
 	nresp := new(Response)
 
-	nresp.drainOutput = r.DrainOut
 	nresp.Output = &trailerReader{resp}
 	if resp.StatusCode >= http.StatusBadRequest {
 		e := &Error{

@@ -60,7 +60,7 @@ type pubsubSub struct {
 	messages chan pubsubMessage
 
 	done    chan struct{}
-	rcloser io.Closer
+	rcloser func() error
 }
 
 type pubsubMessage struct {
@@ -113,7 +113,7 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 	}
 
 	resp, err := api.core().request("pubsub/sub", topic).
-		Option("discover", options.Discover).NoDrain().Send(ctx)
+		Option("discover", options.Discover).Send(ctx)
 
 	if err != nil {
 		return nil, err
@@ -125,6 +125,9 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 	sub := &pubsubSub{
 		messages: make(chan pubsubMessage),
 		done:     make(chan struct{}),
+		rcloser: func() error {
+			return resp.Cancel()
+		},
 	}
 
 	dec := json.NewDecoder(resp.Output)
@@ -159,7 +162,7 @@ func (s *pubsubSub) Close() error {
 		close(s.done)
 		s.done = nil
 	}
-	return s.rcloser.Close()
+	return s.rcloser()
 }
 
 func (api *PubsubAPI) core() *HttpApi {
