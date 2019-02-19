@@ -33,10 +33,10 @@ func (api *SwarmAPI) Disconnect(ctx context.Context, addr multiaddr.Multiaddr) e
 }
 
 type connInfo struct {
-	addr       multiaddr.Multiaddr
-	peer       peer.ID
+	addr      multiaddr.Multiaddr
+	peer      peer.ID
 	latency   time.Duration
-	muxer      string
+	muxer     string
 	direction inet.Direction
 	streams   []protocol.ID
 }
@@ -63,11 +63,11 @@ func (c *connInfo) Streams() ([]protocol.ID, error) {
 
 func (api *SwarmAPI) Peers(ctx context.Context) ([]iface.ConnectionInfo, error) {
 	var resp struct {
-		Peers []struct{
-			Addr       string
-			Peer       string
+		Peers []struct {
+			Addr      string
+			Peer      string
 			Latency   time.Duration
-			Muxer      string
+			Muxer     string
 			Direction inet.Direction
 			Streams   []struct {
 				Protocol string
@@ -86,8 +86,8 @@ func (api *SwarmAPI) Peers(ctx context.Context) ([]iface.ConnectionInfo, error) 
 	res := make([]iface.ConnectionInfo, len(resp.Peers))
 	for i, conn := range resp.Peers {
 		out := &connInfo{
-			latency: conn.Latency,
-			muxer: conn.Muxer,
+			latency:   conn.Latency,
+			muxer:     conn.Muxer,
 			direction: conn.Direction,
 		}
 

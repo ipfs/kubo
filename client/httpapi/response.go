@@ -119,7 +119,6 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 		return nil, err
 	}
 
-
 	contentType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil {
 		return nil, err

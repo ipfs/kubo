@@ -132,9 +132,9 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
 		for {
 			var out struct {
 				Cid string
-				Ok bool
+				Ok  bool
 
-				BadNodes []struct{
+				BadNodes []struct {
 					Cid string
 					Err string
 				}

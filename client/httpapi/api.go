@@ -136,9 +136,9 @@ func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error)
 
 func (api *HttpApi) request(command string, args ...string) *RequestBuilder {
 	return &RequestBuilder{
-		command:  command,
-		args:     args,
-		shell:    api,
+		command: command,
+		args:    args,
+		shell:   api,
 	}
 }
 
