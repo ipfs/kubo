@@ -212,7 +212,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 
 			input, perr := config.ParseBootstrapPeers(req.Arguments)
 			if perr != nil {
-				return err
+				return perr
 			}
 
 			removed, err = bootstrapRemove(r, cfg, input)
