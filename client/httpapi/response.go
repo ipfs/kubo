@@ -61,12 +61,17 @@ func (r *Response) Cancel() error {
 
 // Decode reads request body and decodes it as json
 func (r *Response) decode(dec interface{}) error {
-	defer r.Close()
 	if r.Error != nil {
 		return r.Error
 	}
 
-	return json.NewDecoder(r.Output).Decode(dec)
+	err := json.NewDecoder(r.Output).Decode(dec)
+	err2 := r.Close()
+	if err != nil {
+		return err
+	}
+
+	return err2
 }
 
 type Error struct {
