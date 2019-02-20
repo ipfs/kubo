@@ -110,5 +110,5 @@ func (r *RequestBuilder) Exec(ctx context.Context, res interface{}) error {
 		return lateErr
 	}
 
-	return httpRes.Decode(res)
+	return httpRes.decode(res)
 }

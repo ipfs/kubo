@@ -59,28 +59,14 @@ func (r *Response) Cancel() error {
 	return nil
 }
 
-func (r *Response) Decode(dec interface{}) error {
+// Decode reads request body and decodes it as json
+func (r *Response) decode(dec interface{}) error {
 	defer r.Close()
 	if r.Error != nil {
 		return r.Error
 	}
 
-	n := 0
-	var err error
-	for {
-		err = json.NewDecoder(r.Output).Decode(dec)
-		if err != nil {
-			break
-		}
-		n++
-	}
-
-	// Decode expects at least one result. For calls where zero results are valid,
-	// use Send and construct json Decoder manually.
-	if n > 0 && err == io.EOF {
-		err = nil
-	}
-	return err
+	return json.NewDecoder(r.Output).Decode(dec)
 }
 
 type Error struct {

@@ -53,7 +53,7 @@ func NewLocalApi() (iface.CoreAPI, error) {
 func NewPathApi(ipfspath string) (iface.CoreAPI, error) {
 	a, err := ApiAddr(ipfspath)
 	if err != nil {
-		if err == os.ErrNotExist {
+		if os.IsNotExist(err) {
 			err = nil
 		}
 		return nil, err
