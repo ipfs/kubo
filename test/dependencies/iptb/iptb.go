@@ -7,7 +7,7 @@ import (
 	cli "gx/ipfs/QmckeQ2zrYLAXoSHYTGn5BDdb22BqbUoHEHm8KZ9YWRxd1/iptb/cli"
 	testbed "gx/ipfs/QmckeQ2zrYLAXoSHYTGn5BDdb22BqbUoHEHm8KZ9YWRxd1/iptb/testbed"
 
-	plugin "gx/ipfs/QmQ9wZuV1iWxdSR9gQNLn3T6AYH1jJquGxxQhvsGSPPRTn/iptb-plugins/local"
+	plugin "gx/ipfs/Qmambv7SUxgzz2UimJy6kTBtLtvz4DwwHy6xBomWxTEtdK/iptb-plugins/local"
 )
 
 func init() {
