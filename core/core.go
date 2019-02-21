@@ -357,38 +357,6 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 	n.Reprovider = provider.NewReprovider(ctx, rq, tracker, reproviderInterval, n.Blockstore, n.Routing)
 	n.Reprovider.Run()
 
-	/*
-	// Reprovider - old
-
-	var keyProvider rp.KeyChanFunc
-
-	switch cfg.Reprovider.Strategy {
-	case "all":
-		fallthrough
-	case "":
-		keyProvider = rp.NewBlockstoreProvider(n.Blockstore)
-	case "roots":
-		keyProvider = rp.NewPinnedProvider(n.Pinning, n.DAG, true)
-	case "pinned":
-		keyProvider = rp.NewPinnedProvider(n.Pinning, n.DAG, false)
-	default:
-		return fmt.Errorf("unknown reprovider strategy '%s'", cfg.Reprovider.Strategy)
-	}
-	n.Reprovider = rp.NewReprovider(ctx, n.Routing, keyProvider)
-
-	reproviderInterval := kReprovideFrequency
-	if cfg.Reprovider.Interval != "" {
-		dur, err := time.ParseDuration(cfg.Reprovider.Interval)
-		if err != nil {
-			return err
-		}
-
-		reproviderInterval = dur
-	}
-
-	go n.Reprovider.Run(reproviderInterval)
-	*/
-
 	return nil
 }
 
