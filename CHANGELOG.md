@@ -37,11 +37,10 @@ detects that the go-ipfs node is behind a NAT. While relaying connections
 through a third-party node isn't the most efficient way to route around NATs,
 it's a reliable fallback.
 
-To enable `AutoRelay`, set the `Swarm.EnableAutoRelay` option in the config.
+To enable AutoRelay, set the `Swarm.EnableAutoRelay` option in the config.
 
-AutoNAT is the service AutoRelay uses to detect if the node is behind a NAT.
-It's enabled by default when you enable `AutoRelay` so you don't have to do
-anything.
+AutoNAT is the service AutoRelay uses to detect if the node is behind a NAT. You
+don't have to set any special config flags to enable it.
 
 In this same config section, you may also notice options like `EnableRelayHop`,
 `EnableAutoNATService`, etc. You _do not_ need to enable these:
