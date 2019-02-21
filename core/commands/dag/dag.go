@@ -194,7 +194,7 @@ format.
 			return err
 		}
 
-		nd.Provider.Provide(obj.Cid())
+		//nd.Provider.Provide(obj.Cid())
 
 		var out interface{} = obj
 		if len(rp.Remainder()) > 0 {
@@ -236,7 +236,7 @@ var DagResolveCmd = &cmds.Command{
 			return err
 		}
 
-		nd.Provider.Provide(lastCid)
+		//nd.Provider.Provide(lastCid)
 
 		return cmds.EmitOnce(res, &ResolveOutput{
 			Cid:     rp.Cid(),

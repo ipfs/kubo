@@ -75,7 +75,7 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 		return nil, err
 	}
 
-	api.node.Provider.Provide(rp.Cid())
+	//api.node.Provider.Provide(rp.Cid())
 
 	return bytes.NewReader(b.RawData()), nil
 }
@@ -129,7 +129,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 		return nil, err
 	}
 
-	api.node.Provider.Provide(b.Cid())
+	//api.node.Provider.Provide(b.Cid())
 
 	return &BlockStat{
 		path: coreiface.IpldPath(b.Cid()),

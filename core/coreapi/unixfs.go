@@ -130,9 +130,9 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, err
 	}
 
-	if !settings.Local {
-		api.node.Provider.Provide(nd.Cid())
-	}
+	//if !settings.Local {
+	//	api.node.Provider.Provide(nd.Cid())
+	//}
 
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
