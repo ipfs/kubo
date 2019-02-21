@@ -16,8 +16,8 @@ import (
 
 	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	cmdsHttp "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds/http"
+	path "gx/ipfs/QmR3bNAtBoTN6xZ2HQNqpRQARcDoazH9jU6zKUNjFyQKWS/go-path"
 	config "gx/ipfs/QmRLDpfN3yCpHx4C6wwTkrFFK6bNxzBkgDbJPRsb5VLMQ2/go-ipfs-config"
-	path "gx/ipfs/QmaVydE6qtiiMhRUraPrzL6dvtfHPNR6Y9JJZcTwDAw9dY/go-path"
 )
 
 var (

@@ -10,10 +10,10 @@ import (
 	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
 	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	peer "gx/ipfs/QmTu65MVbemtUxJEWgsTtzv9Zv9P8rvmqNA4eG9TrTRGYc/go-libp2p-peer"
-	bitswap "gx/ipfs/QmWrFN5orKeEgYif8LX9KUGceb55PeNXoXfzsgqhs2fsC7/go-bitswap"
-	decision "gx/ipfs/QmWrFN5orKeEgYif8LX9KUGceb55PeNXoXfzsgqhs2fsC7/go-bitswap/decision"
-	cidutil "gx/ipfs/QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX/go-cidutil"
+	bitswap "gx/ipfs/QmXckKH4fiPT966YPPxoqXJFof7ovxwGxBdhM3CRpGzgDa/go-bitswap"
+	decision "gx/ipfs/QmXckKH4fiPT966YPPxoqXJFof7ovxwGxBdhM3CRpGzgDa/go-bitswap/decision"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cidutil "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil"
 )
 
 var BitswapCmd = &cmds.Command{

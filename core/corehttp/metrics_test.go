@@ -9,7 +9,7 @@ import (
 
 	inet "gx/ipfs/QmTGxDz2CjBucFzPNTiWwzQmTWdrBnzqbqrMucDYMsjuPb/go-libp2p-net"
 	swarmt "gx/ipfs/QmU7iTrsNaJfu1Rf5DrvaJLH9wJtQwmP4Dj8oPduprAU68/go-libp2p-swarm/testing"
-	bhost "gx/ipfs/QmcNGX5RaxPPCYwa6yGXM1EcUbrreTTinixLcYGmMwf1sx/go-libp2p/p2p/host/basic"
+	bhost "gx/ipfs/QmcZUhA1xQo8meuYBFLcTHqQb2ogpDCTZUTfTrko7PUeHs/go-libp2p/p2p/host/basic"
 )
 
 // This test is based on go-libp2p/p2p/net/swarm.TestConnectednessCorrect

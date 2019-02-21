@@ -11,9 +11,9 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
-	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	mfs "gx/ipfs/QmaAvPYDfQ9CqJA2UUXqfFjnYuyGb342xrDLsHCrey1BEq/go-mfs"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	mfs "gx/ipfs/QmcLYrvWrcvMzVvytagD3Rn3eRqd8wSSbC74cJu6navaci/go-mfs"
 )
 
 var log = logging.Logger("corerepo")

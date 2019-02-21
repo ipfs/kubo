@@ -124,15 +124,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcNGX5RaxPPCYwa6yGXM1EcUbrreTTinixLcYGmMwf1sx",
+      "hash": "QmcZUhA1xQo8meuYBFLcTHqQb2ogpDCTZUTfTrko7PUeHs",
       "name": "go-libp2p",
-      "version": "6.0.35"
+      "version": "6.0.36"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw",
+      "hash": "QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN",
       "name": "go-cid",
-      "version": "0.9.1"
+      "version": "0.9.3"
     },
     {
       "author": "whyrusleeping",
@@ -171,9 +171,9 @@
       "version": "0.2.0"
     },
     {
-      "hash": "QmbMXtieVFmFfT5AzVEP9RUbq7dYiWCZjz8KWa5hsr8kSE",
+      "hash": "QmbKppYPA1bmEGpqmA4QGZZNRGFcJo2Z4KjYRQWJDzbD8P",
       "name": "go-libp2p-kad-dht",
-      "version": "4.4.27"
+      "version": "4.4.28"
     },
     {
       "author": "whyrusleeping",
@@ -183,15 +183,15 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmRL22E4paat7ky7vx9MLpR97JHHbFPrg3ytFQw6qp1y1s",
+      "hash": "QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy",
       "name": "go-ipld-format",
-      "version": "0.8.0"
+      "version": "0.8.1"
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmcZLyosDwMKdB6NLRsiss9HXzDPhVhhRtPy67JFKTDQDX",
+      "hash": "QmVwsD9oGSAKcCoD4BGi3Hx8XRo4jNy6aMzsjDHVTgYv2D",
       "name": "go-ipld-cbor",
-      "version": "1.5.9"
+      "version": "1.5.10"
     },
     {
       "author": "lgierth",
@@ -323,20 +323,20 @@
     },
     {
       "author": "stebalien",
-      "hash": "QmWoXtvgC8inqFkAATB7cp2Dax7XBi9VDvSg9RCCZufmRk",
+      "hash": "QmYYLnAzR28nAQ4U5MFniLprnktu6eTFKibeNt96V21EZK",
       "name": "go-block-format",
-      "version": "0.2.1"
+      "version": "0.2.2"
     },
     {
-      "hash": "QmWaDSNoSdSXU9b6udyaq9T8y6LkzMwqWxECznFqvtcTsk",
+      "hash": "QmcxZXMqFu4vjLQRfG2tAcg6DPQNurgZ2SQ5iQVk6dXQjn",
       "name": "go-libp2p-routing",
-      "version": "2.7.10"
+      "version": "2.7.11"
     },
     {
       "author": "whyrusleeping",
-      "hash": "Qma8zJtXZGoWY4WHFEFvMeZTQsMGkk8WRdfTMJNFcPDSCZ",
+      "hash": "QmQFmr7d1V38H5E8T6pBLoZvZNH1bVvtJSaCkRVHgRpFXu",
       "name": "go-ipld-git",
-      "version": "0.3.5"
+      "version": "0.3.6"
     },
     {
       "hash": "QmQgSnRC74nHoXrN9CShvfWUUSrgAMJ4unjbnuBVsxk2mw",
@@ -393,15 +393,15 @@
     },
     {
       "author": "hector",
-      "hash": "QmUhHBdzfNb9FQPDtKwhghVoR3zwkbXzFJ1uJyEMYUpFSd",
+      "hash": "QmdiZuFuiFD1Gbuu8PdqmsfrCR3z4QKSR2bN1NAvnJgTY7",
       "name": "go-ipfs-posinfo",
-      "version": "0.1.4"
+      "version": "0.1.5"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmXivYDjgMqNQXbEQVC7TMuZnRADCa71ABQUQxWPZPTLbd",
+      "hash": "QmYmZ81dU5nnmBFy5MmktXLZpt8QCWhRJd6M1uxVF6vke8",
       "name": "go-ipfs-chunker",
-      "version": "0.1.5"
+      "version": "0.1.6"
     },
     {
       "author": "jbenet",
@@ -411,21 +411,21 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmXx5R5qwsVxbhFogLNzU8A2tch9SZpJJgMUinfpHZsC9C",
+      "hash": "QmXSEqXLCzpCByJU4wqbJ37TcBEj77FKMUWUP1qLh56847",
       "name": "go-ipfs-ds-help",
-      "version": "0.1.6"
-    },
-    {
-      "author": "hsanjuan",
-      "hash": "QmcjqHcsk8E1Gd8RbuaUawWC7ogDtaVcdjLvZF8ysCCiPn",
-      "name": "go-ipfs-routing",
-      "version": "0.1.16"
-    },
-    {
-      "author": "hsanjuan",
-      "hash": "QmRu7tiRnFk9mMPpVECQTBQJqXtmG132jJxA1w9A7TtpBz",
-      "name": "go-ipfs-blockstore",
       "version": "0.1.7"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "QmbRWQPxtwacR1M8phDY5Y2jJbS96HXZAsK5dKD7s12Wob",
+      "name": "go-ipfs-routing",
+      "version": "0.1.17"
+    },
+    {
+      "author": "hsanjuan",
+      "hash": "QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA",
+      "name": "go-ipfs-blockstore",
+      "version": "0.1.8"
     },
     {
       "author": "whyrusleeping",
@@ -447,27 +447,27 @@
     },
     {
       "author": "hsanjuan",
-      "hash": "QmP2g3VxmC7g7fyRJDj1VJ72KHZbJ9UW24YjSWEj1XTb4H",
+      "hash": "QmWokDcQdSZCxrNxgaRzQDDBofALhActzNBaxRLtiRkUHg",
       "name": "go-ipfs-exchange-interface",
-      "version": "0.1.2"
+      "version": "0.1.3"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmSz8kAe2JCKp2dWSG8gHSWnwSmne8YfRXTeK5HBmc9L7t",
+      "hash": "Qmb9fkAWgcyVRnFdXGqA6jcWGFj6q35oJjwRAYRhfEboGS",
       "name": "go-ipfs-exchange-offline",
-      "version": "0.1.6"
+      "version": "0.1.7"
     },
     {
       "author": "stebalien",
-      "hash": "QmZgxxBAUCkv6ZTeWRW7snK2zrNyeH1T1eV7CCGAikoqp7",
+      "hash": "QmRSEtYF4v2Kaqge9aSYRo3wEnej3nsgke5WDisMHKkSZF",
       "name": "go-libp2p-pubsub-router",
-      "version": "0.5.13"
+      "version": "0.5.14"
     },
     {
       "author": "Stebalien",
-      "hash": "QmXbwsfN4DMCLEn8pa4rNDiEzGcTLFcJEuKg1QGmoLYoKF",
+      "hash": "QmXvXSeExnM6pAVEqFFgS7UxKcRduh7dsBKJS6AngPULn4",
       "name": "go-libp2p-routing-helpers",
-      "version": "0.3.17"
+      "version": "0.3.18"
     },
     {
       "author": "fsnotify",
@@ -489,33 +489,33 @@
     },
     {
       "author": "why",
-      "hash": "QmWrFN5orKeEgYif8LX9KUGceb55PeNXoXfzsgqhs2fsC7",
+      "hash": "QmXckKH4fiPT966YPPxoqXJFof7ovxwGxBdhM3CRpGzgDa",
       "name": "go-bitswap",
-      "version": "1.1.26"
+      "version": "1.1.27"
     },
     {
       "author": "why",
-      "hash": "QmRCLtpTSWPmh4QK3TJ4rHCBSH7thYNZMWZG2PZvVrb8KJ",
+      "hash": "QmXBjp9iatjaiEpRqrEZpUuKVWTc71vuSUYoPQ5rRQ3SUU",
       "name": "go-blockservice",
-      "version": "1.1.26"
+      "version": "1.1.27"
     },
     {
       "author": "why",
-      "hash": "QmUsnWBZaqpZ8i2wX37V2wC5hcB7VWB3zsUcNsyQ1Be5AX",
+      "hash": "QmScf5hnTEK8fDpRJAbcdMnKXpKUp1ytdymzXUbXDCFssp",
       "name": "go-merkledag",
-      "version": "1.1.34"
+      "version": "1.1.35"
     },
     {
       "author": "why",
-      "hash": "QmaVydE6qtiiMhRUraPrzL6dvtfHPNR6Y9JJZcTwDAw9dY",
+      "hash": "QmR3bNAtBoTN6xZ2HQNqpRQARcDoazH9jU6zKUNjFyQKWS",
       "name": "go-path",
-      "version": "1.1.36"
+      "version": "1.1.37"
     },
     {
       "author": "why",
-      "hash": "QmfKmRac17N7UmsV16vifHtB5Eqz3hTyKcu22Qb2oFoZyR",
+      "hash": "QmVytt7Vtb9jbGN2uNfEm15t78pBUjw1SS72nkJFcWYZwe",
       "name": "go-unixfs",
-      "version": "1.3.9"
+      "version": "1.3.10"
     },
     {
       "author": "magik6k",
@@ -525,21 +525,21 @@
     },
     {
       "author": "why",
-      "hash": "QmYMQuypUbgsdNHmuCBSUJV6wdQVsBHRivNAp3efHJwZJD",
+      "hash": "QmcVd2ApQdbfaYPKhCjj4WoQuxk4CMxPqmNpijKmFLh6qa",
       "name": "go-verifcid",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmcLYrvWrcvMzVvytagD3Rn3eRqd8wSSbC74cJu6navaci",
+      "hash": "QmaAvPYDfQ9CqJA2UUXqfFjnYuyGb342xrDLsHCrey1BEq",
       "name": "go-mfs",
-      "version": "0.1.46"
+      "version": "0.1.47"
     },
     {
       "author": "kevina",
-      "hash": "QmdPQx9fvN5ExVwMhRmh7YpCQJzJrFhd1AjVBwJmRMFJeX",
+      "hash": "Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G",
       "name": "go-cidutil",
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "author": "lgierth",
@@ -590,27 +590,27 @@
     },
     {
       "author": "travisperson",
-      "hash": "QmQ9wZuV1iWxdSR9gQNLn3T6AYH1jJquGxxQhvsGSPPRTn",
+      "hash": "Qmambv7SUxgzz2UimJy6kTBtLtvz4DwwHy6xBomWxTEtdK",
       "name": "iptb-plugins",
-      "version": "1.0.16"
+      "version": "1.0.17"
     },
     {
       "author": "hsanjuan",
-      "hash": "QmYZJAgzELw6KpnLQL4GL67NGgSjX125BgfVa3tTF7JJeX",
+      "hash": "Qmb5UdtFV53eNv3SgLWi7oT5sWcMDvvW3v5GZnCo1SYtYg",
       "name": "go-libp2p-http",
-      "version": "1.1.14"
+      "version": "1.1.15"
     },
     {
       "author": "vyzo",
-      "hash": "QmceTjrpdhYXocRzx9hMEwztLyWUEvyDdRqrkSjLQeq6pE",
+      "hash": "QmQUQF7PYkAiXMoYmbusq8mEtXSokuj3uUgzE6ampYx5Np",
       "name": "go-libp2p-autonat-svc",
-      "version": "1.0.10"
+      "version": "1.0.11"
     },
     {
       "author": "magik6k",
-      "hash": "QmUM3JbzMPPVpsUvUcfCdmeU2tssrdVPnUn5E6RawFjDLC",
+      "hash": "QmeWKXQfEqbtUDCiQBAHzSZDja9br5LdPgk8eHu86oJxgr",
       "name": "interface-go-ipfs-core",
-      "version": "0.1.8"
+      "version": "0.1.9"
     }
   ],
   "gxVersion": "0.10.0",
