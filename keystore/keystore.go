@@ -9,6 +9,7 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
+	base32 "github.com/whyrusleeping/base32"
 )
 
 var log = logging.Logger("keystore")
@@ -50,6 +51,22 @@ func validateName(name string) error {
 	}
 
 	return nil
+}
+
+// NewKeystore is a factory for getting instance of Keystore interface implementation
+func NewKeystore(dir string) (Keystore, error) {
+	return NewEncodedFSKeystore(dir)
+}
+
+// NewEncodedFSKeystore is a factory for getting instance of EncodedFSKeystore
+func NewEncodedFSKeystore(dir string) (*EncodedFSKeystore, error) {
+	keystore, err := NewFSKeystore(dir)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &EncodedFSKeystore{keystore}, nil
 }
 
 func NewFSKeystore(dir string) (*FSKeystore, error) {
@@ -169,6 +186,109 @@ func (ks *FSKeystore) List() ([]string, error) {
 			list = append(list, name)
 		} else {
 			log.Warnf("Ignoring the invalid keyfile: %s", name)
+		}
+	}
+
+	return list, nil
+}
+
+const keyFilenamePrefix = "key_"
+
+func encode(name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("key name must be at least one character")
+	}
+
+	encodedName := base32.RawStdEncoding.EncodeToString([]byte(name))
+	log.Debugf("Encoded key name: %s to: %s", name, encodedName)
+
+	return keyFilenamePrefix + strings.ToLower(encodedName), nil
+}
+
+func decode(name string) (string, error) {
+	if !strings.HasPrefix(name, keyFilenamePrefix) {
+		return "", fmt.Errorf("key's filename has unexpected format")
+	}
+
+	nameWithoutPrefix := strings.ToUpper(name[len(keyFilenamePrefix):])
+	data, err := base32.RawStdEncoding.DecodeString(nameWithoutPrefix)
+
+	if err != nil {
+		return "", err
+	}
+
+	decodedName := string(data[:])
+
+	log.Debugf("Decoded key name: %s to: %s", name, decodedName)
+
+	return decodedName, nil
+}
+
+// EncodedFSKeystore is extension of FSKeystore that encodes the key filenames in base32
+type EncodedFSKeystore struct {
+	*FSKeystore
+}
+
+// Has indicates if key is in keystore
+func (ks *EncodedFSKeystore) Has(name string) (bool, error) {
+	encodedName, err := encode(name)
+
+	if err != nil {
+		return false, err
+	}
+
+	return ks.FSKeystore.Has(encodedName)
+}
+
+// Put places key into the keystore
+func (ks *EncodedFSKeystore) Put(name string, k ci.PrivKey) error {
+	encodedName, err := encode(name)
+
+	if err != nil {
+		return err
+	}
+
+	return ks.FSKeystore.Put(encodedName, k)
+}
+
+// Get retrieves key by its name from the keystore
+func (ks *EncodedFSKeystore) Get(name string) (ci.PrivKey, error) {
+	encodedName, err := encode(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ks.FSKeystore.Get(encodedName)
+}
+
+// Delete removes key from the keystore
+func (ks *EncodedFSKeystore) Delete(name string) error {
+	encodedName, err := encode(name)
+
+	if err != nil {
+		return err
+	}
+
+	return ks.FSKeystore.Delete(encodedName)
+}
+
+// List returns list of all keys in keystore
+func (ks *EncodedFSKeystore) List() ([]string, error) {
+	dirs, err := ks.FSKeystore.List()
+
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]string, 0, len(dirs))
+
+	for _, name := range dirs {
+		decodedName, err := decode(name)
+		if err == nil {
+			list = append(list, decodedName)
+		} else {
+			log.Warningf("Ignoring keyfile with invalid encoded filename: %s", name)
 		}
 	}
 
