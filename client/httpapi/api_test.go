@@ -114,27 +114,32 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 
 	wg.Add(len(nodes))
 	zero.Add(1)
+	errs := make(chan error, len(nodes))
 
 	for i, nd := range nodes {
 		go func(i int, nd testbedi.Core) {
 			defer wg.Done()
 
 			if _, err := nd.Init(ctx, "--empty-repo"); err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 
 			if _, err := nd.RunCmd(ctx, nil, "ipfs", "config", "--json", "Experimental.FilestoreEnabled", "true"); err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 
 			if _, err := nd.Start(ctx, true, "--enable-pubsub-experiment", "--offline="+strconv.FormatBool(n == 1)); err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 
 			if i > 0 {
 				zero.Wait()
 				if err := nd.Connect(ctx, nodes[0]); err != nil {
-					panic(err)
+					errs <- err
+					return
 				}
 			} else {
 				zero.Done()
@@ -142,12 +147,14 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 
 			addr, err := nd.APIAddr()
 			if err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 
 			maddr, err := ma.NewMultiaddr(addr)
 			if err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 
 			c := &gohttp.Client{
@@ -159,16 +166,19 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 			}
 			apis[i], err = NewApiWithClient(maddr, c)
 			if err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 
 			// empty node is pinned even with --empty-repo, we don't want that
 			emptyNode, err := iface.ParsePath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
 			if err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 			if err := apis[i].Pin().Rm(ctx, emptyNode); err != nil {
-				panic(err)
+				errs <- err
+				return
 			}
 		}(i, nd)
 	}
@@ -187,7 +197,12 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		}()
 	}()
 
-	return apis, nil
+	select {
+	case err = <-errs:
+	default:
+	}
+
+	return apis, err
 }
 
 func TestHttpApi(t *testing.T) {
