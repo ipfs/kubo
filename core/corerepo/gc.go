@@ -12,8 +12,8 @@ import (
 
 	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
 	cid "gx/ipfs/QmR8BauakNcBa3RbE4nbQu76PDiJgoQgz8AJdhJuiU4TAw/go-cid"
-	mfs "gx/ipfs/QmZNLCLH3arRfvNPJRy5Hgs3cUywnhio1dVZmEadBzDS4g/go-mfs"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
+	mfs "gx/ipfs/QmcLYrvWrcvMzVvytagD3Rn3eRqd8wSSbC74cJu6navaci/go-mfs"
 )
 
 var log = logging.Logger("corerepo")
