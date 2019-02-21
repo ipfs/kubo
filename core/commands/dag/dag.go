@@ -128,7 +128,26 @@ into an object of the specified format.
 			return err
 		}
 
+//<<<<<<< HEAD
 		return nil
+//=======
+//		if dopin {
+//			cids.ForEach(func(c cid.Cid) error {
+//				nd.Pinning.PinWithMode(c, pin.Recursive)
+//				return nil
+//			})
+//
+//			err := nd.Pinning.Flush()
+//			if err != nil {
+//				return err
+//			}
+//		}
+//
+//		return cids.ForEach(func(cid cid.Cid) error {
+//			nd.Provider.Provide(cid)
+//			return nil
+//		})
+//>>>>>>> Add provider to ipfs and provide when adding/fetching
 	},
 	Type: OutputObject{},
 	Encoders: cmds.EncoderMap{
@@ -175,6 +194,8 @@ format.
 			return err
 		}
 
+		nd.Provider.Provide(obj.Cid())
+
 		var out interface{} = obj
 		if len(rp.Remainder()) > 0 {
 			rem := strings.Split(rp.Remainder(), "/")
@@ -214,6 +235,8 @@ var DagResolveCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+
+		nd.Provider.Provide(lastCid)
 
 		return cmds.EmitOnce(res, &ResolveOutput{
 			Cid:     rp.Cid(),

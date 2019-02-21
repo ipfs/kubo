@@ -86,7 +86,11 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
+//<<<<<<< HEAD
 		res.SetLength(uint64(size))
+//=======
+//		node.Provider.Provide(dn.Cid())
+//>>>>>>> Add provider to ipfs and provide when adding/fetching
 
 		archive, _ := req.Options[archiveOptionName].(bool)
 		reader, err := fileArchive(file, p.String(), archive, cmplvl)

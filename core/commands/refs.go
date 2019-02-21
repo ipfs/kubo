@@ -177,6 +177,9 @@ func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]i
 		if err != nil {
 			return nil, err
 		}
+
+		n.Provider.Provide(o.Cid())
+
 		objects[i] = o
 	}
 	return objects, nil

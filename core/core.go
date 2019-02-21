@@ -21,13 +21,13 @@ import (
 	"time"
 
 	version "github.com/ipfs/go-ipfs"
-	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	p2p "github.com/ipfs/go-ipfs/p2p"
 	pin "github.com/ipfs/go-ipfs/pin"
+	provider "github.com/ipfs/go-ipfs/provider"
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	bitswap "github.com/ipfs/go-bitswap"
@@ -124,7 +124,8 @@ type IpfsNode struct {
 	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
-	Reprovider   *rp.Reprovider      // the value reprovider system
+	Reprovider   *provider.Reprovider      // the value reprovider system
+	Provider     *provider.Provider  // the value provider system
 	IpnsRepub    *ipnsrp.Republisher
 
 	AutoNAT  *autonat.AutoNATService
@@ -324,6 +325,41 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 		return err
 	}
 
+	// Provider
+
+	// TODO: Specify strategy in cfg
+	strategy := provider.NewProvideAllStrategy(n.DAG)
+	tracker := provider.NewTracker(n.Repo.Datastore())
+	queue, err := provider.NewQueue("provider", ctx, n.Repo.Datastore())
+	if err != nil {
+		return err
+	}
+	n.Provider = provider.NewProvider(ctx, strategy, tracker, queue, n.Blockstore, n.Routing)
+	go n.Provider.Run()
+
+	// Reprovider - new
+
+	rq, err := provider.NewQueue("reprovider", ctx, n.Repo.Datastore())
+	if err != nil {
+		return err
+	}
+
+	reproviderInterval := kReprovideFrequency
+	if cfg.Reprovider.Interval != "" {
+		dur, err := time.ParseDuration(cfg.Reprovider.Interval)
+		if err != nil {
+			return err
+		}
+
+		reproviderInterval = dur
+	}
+
+	n.Reprovider = provider.NewReprovider(ctx, rq, tracker, reproviderInterval, n.Blockstore, n.Routing)
+	n.Reprovider.Run()
+
+	/*
+	// Reprovider - old
+
 	var keyProvider rp.KeyChanFunc
 
 	switch cfg.Reprovider.Strategy {
@@ -351,6 +387,7 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 	}
 
 	go n.Reprovider.Run(reproviderInterval)
+	*/
 
 	return nil
 }

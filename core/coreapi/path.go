@@ -27,6 +27,9 @@ func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (ipld.Nod
 	if err != nil {
 		return nil, err
 	}
+
+	api.node.Provider.Provide(node.Cid())
+
 	return node, nil
 }
 

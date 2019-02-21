@@ -61,9 +61,18 @@ represent it.
 
 		c := node.Cid()
 
+//<<<<<<< HEAD
 		return cmds.EmitOnce(res, &AddEvent{
 			Name: it.Name(),
 			Hash: enc.Encode(c),
+//=======
+//		nd.Provider.Provide(c)
+//
+//		fi.FileName()
+//		return cmds.EmitOnce(res, &coreiface.AddEvent{
+//			Name: fi.FileName(),
+//			Hash: c.String(),
+//>>>>>>> Add provider to ipfs and provide when adding/fetching
 		})
 	},
 	Type: AddEvent{},

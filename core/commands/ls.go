@@ -120,6 +120,17 @@ The JSON output contains type information.
 							Links: outputLinks,
 						}
 					}
+//<<<<<<< HEAD
+//=======
+//					outputLinks[j] = *lsLink
+//				}
+//				output[i] = LsObject{
+//					Hash:  paths[i],
+//					Links: outputLinks,
+//				}
+//
+//				nd.Provider.Provide(dagnode.Cid())
+//>>>>>>> Add provider to ipfs and provide when adding/fetching
 			}
 
 			done = func() error {
@@ -155,7 +166,12 @@ The JSON output contains type information.
 					return err
 				}
 			}
+//<<<<<<< HEAD
 			dirDone(i)
+//=======
+//
+//			nd.Provider.Provide(dagnode.Cid())
+//>>>>>>> Add provider to ipfs and provide when adding/fetching
 		}
 		return done()
 	},

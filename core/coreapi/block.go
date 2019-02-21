@@ -53,9 +53,13 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
+//<<<<<<< HEAD
 	if settings.Pin {
 		api.pinning.PinWithMode(b.Cid(), pin.Recursive)
 	}
+//=======
+//	api.node.Provider.Provide(b.Cid())
+//>>>>>>> Add provider to ipfs and provide when adding/fetching
 
 	return &BlockStat{path: coreiface.IpldPath(b.Cid()), size: len(data)}, nil
 }
@@ -70,6 +74,8 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 	if err != nil {
 		return nil, err
 	}
+
+	api.node.Provider.Provide(rp.Cid())
 
 	return bytes.NewReader(b.RawData()), nil
 }
@@ -122,6 +128,8 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 	if err != nil {
 		return nil, err
 	}
+
+	api.node.Provider.Provide(b.Cid())
 
 	return &BlockStat{
 		path: coreiface.IpldPath(b.Cid()),
