@@ -72,6 +72,7 @@ TOOL COMMANDS
   update        Download and apply go-ipfs updates
   commands      List all available commands
   cid           Convert and discover properties of CIDs
+  log           Manage and show logs of running daemon
 
 Use 'ipfs <command> --help' to learn more about each command.
 
