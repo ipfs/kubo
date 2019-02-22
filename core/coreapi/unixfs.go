@@ -130,9 +130,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, err
 	}
 
-	//if !settings.Local {
-	//	api.node.Provider.Provide(nd.Cid())
-	//}
+	api.provider.Provide(nd.Cid())
 
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
@@ -145,13 +143,8 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 		return nil, err
 	}
 
-//<<<<<<< HEAD
+    api.provider.Provide(nd.Cid())
 	return unixfile.NewUnixfsFile(ctx, ses.dag, nd)
-//=======
-//	api.node.Provider.Provide(nd.Cid())
-//
-//	return newUnixfsFile(ctx, ses.dag, nd, "", nil)
-//>>>>>>> Add provider to ipfs and provide when adding/fetching
 }
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:

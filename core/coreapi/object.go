@@ -55,7 +55,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 		return nil, err
 	}
 
-	//api.node.Provider.Provide(n.Cid())
+	api.provider.Provide(n.Cid())
 
 	return n, nil
 }
@@ -137,7 +137,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		}
 	}
 
-	//api.node.Provider.Provide(dagnode.Cid())
+	api.provider.Provide(dagnode.Cid())
 
 	return coreiface.IpfsPath(dagnode.Cid()), nil
 }
@@ -236,7 +236,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base coreiface.Path, name str
 		return nil, err
 	}
 
-	//api.node.Provider.Provide(nnode.Cid())
+	api.provider.Provide(nnode.Cid())
 
 	return coreiface.IpfsPath(nnode.Cid()), nil
 }
@@ -264,7 +264,7 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base coreiface.Path, link stri
 		return nil, err
 	}
 
-	//api.node.Provider.Provide(nnode.Cid())
+	api.provider.Provide(nnode.Cid())
 
 	return coreiface.IpfsPath(nnode.Cid()), nil
 }
@@ -303,7 +303,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, path coreiface.Path, r io.R
 		return nil, err
 	}
 
-	//api.node.Provider.Provide(pbnd.Cid())
+	api.provider.Provide(pbnd.Cid())
 
 	return coreiface.IpfsPath(pbnd.Cid()), nil
 }
