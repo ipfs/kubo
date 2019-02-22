@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/provider"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
@@ -67,6 +68,9 @@ type CoreAPI struct {
 	routing routing.IpfsRouting
 
 	pubSub *pubsub.PubSub
+
+	provider *provider.Provider
+	reprovider *provider.Reprovider
 
 	checkPublishAllowed func() error
 	checkOnline         func(allowOffline bool) error
@@ -139,6 +143,10 @@ func (api *CoreAPI) PubSub() coreiface.PubSubAPI {
 	return (*PubSubAPI)(api)
 }
 
+func (api *CoreAPI) Provider() coreiface.ProviderAPI {
+	return (*ProviderAPI)(api)
+}
+
 // WithOptions returns api with global options applied
 func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, error) {
 	settings := api.parentOpts // make sure to copy
@@ -175,6 +183,9 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		routing:         n.Routing,
 
 		pubSub: n.PubSub,
+
+		provider: n.Provider,
+		reprovider: n.Reprovider,
 
 		nd:         n,
 		parentOpts: settings,
