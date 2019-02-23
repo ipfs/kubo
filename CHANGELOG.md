@@ -149,7 +149,7 @@ want to wait for that command to finish, Wikipedia has a _lot_ of entries. 😉
 
 This release sees a new (experimental) feature contributed by our friends at
 [Peergos](https://peergos.org): HTTP proxy over libp2p. When enabled, the local
-gateway can act as an HTTP proxy and forward HTTP requests libp2p peers. When
+gateway can act as an HTTP proxy and forward HTTP requests to libp2p peers. When
 combined with the `ipfs p2p` command, users can use this to expose HTTP services
 to other go-ipfs nodes via their gateways. For details, check out the
 [documentation](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#p2p-http-proxy).
