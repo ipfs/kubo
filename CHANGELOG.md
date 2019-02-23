@@ -3,14 +3,14 @@
 ## 0.4.19 2018-02-14 (unreleased)
 
 We're happy to announce go 0.4.19. This release contains a bunch of important
-fixes and a slew of new and improved features. Please upgrade ASAP.
+fixes and a slew of new and improved features. Get pumped and upgrade ASAP to benefit from all the new goodies! 🎁
 
 ### Features
 
-#### Initializing With Random Ports
+#### 🔌 Initializing With Random Ports
 
-Go-ipfs can now be configured to listen on a random but _stable_ (across
-restarts) port using the new `randomports` configuration profile. This should be
+Go-ipfs can now be configured to listen on a random but _stable_ port (across
+restarts) using the new `randomports` configuration profile. This should be
 helpful when testing and/or running multiple go-ipfs instances on a single
 machine.
 
@@ -20,14 +20,14 @@ To initialize a go-ipfs instance with a randomly chosen port, run:
 > ipfs init --profile=randomports
 ```
 
-#### Gateway Directory Listing
+#### 👂 Gateway Directory Listing
 
 IPNS (and/or DNSLink) directory listings on the gateway, e.g.
 https://ipfs.io/ipns/dist.ipfs.io/go-ipfs/, will now display the _ipfs_ hash of
 the current directory. This way users can more easily create permanent links to
 otherwise mutable data.
 
-#### AutoRelay and AutoNAT
+#### 📡 AutoRelay and AutoNAT
 
 This release introduces two new experimental features (courtesy of libp2p):
 AutoRelay and AutoNAT.
@@ -50,7 +50,7 @@ In this same config section, you may also notice options like `EnableRelayHop`,
 * `EnableAutoNATService` -- Help _other_ nodes detect if they're behind a NAT
   (disabled by default).
 
-#### Offline Operation
+#### 📵 Offline Operation
 
 There are two new "offline" features in this release: a global `--offline` flag
 and an option to configure the gateway to not fetch files.
@@ -75,9 +75,9 @@ Note: It doesn't _yet_ work with the `refs`, `urlstore`, or `tar` commands
 On to the gateway, there's a new `Gateway.NoFetch` option to configure the
 gateway to only serve locally present files. This makes it possible to run an
 IPFS node as a gateway to serve content of _your_ choosing without acting like a
-public proxy.
+public proxy. 🤫
 
-#### Adding And Pinning Content
+#### 📍 Adding And Pinning Content
 
 There's a new `--pin` flag for both `ipfs block put` and `ipfs urlstore add` to
 match the `--pin` flag in `ipfs add`. This allows one to atomically add and pin
@@ -92,7 +92,7 @@ pinning content after adding it, it isn't pinned and running the garbage
 collector will delete it. While technically documented in the `ipfs urlstore
 add` helptext, this behavior was non-obvious and bears mentioning.
 
-#### File Listing
+#### 🗂 File Listing
 
 The `ipfs ls` command has two significant changes this release: it reports
 _file_ sizes instead of _dag_ sizes and has gained a new `--stream` flag.
@@ -129,7 +129,7 @@ total 28
 ```
 
 This is now no longer the case. `ipfs ls` and `ls -l` now return the _same_
-sizes.
+sizes. 🙌
 
 Second up, `ipfs ls` now has a new `--stream` flag. In IPFS, very large
 directories (e.g., Wikipedia) are split up into multiple chunks (shards) as
@@ -143,9 +143,9 @@ However, the new `--stream` flag makes it possible to stream a directory listing
 as new chunks are fetched from the network. To test this, you can run `ipfs ls
 --stream --size=false --resolve-type=false
 /ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki`. You probably won't
-want to wait for that command to finish, Wikipedia has a _lot_ of entries.
+want to wait for that command to finish, Wikipedia has a _lot_ of entries. 😉
 
-#### HTTP Proxy
+#### 🔁 HTTP Proxy
 
 This release sees a new (experimental) feature contributed by our friends at
 [Peergos](https://peergos.org): HTTP proxy over libp2p. When enabled, the local
@@ -159,7 +159,7 @@ to other go-ipfs nodes via their gateways. For details, check out the
 This release introduces quite a few performance/reliability improvements and, as
 usual, fixes several memory leaks. Below is a non-exhaustive list of noticeable changes.
 
-#### DHT
+#### 📞 DHT
 
 This release includes an important DHT fix that should significantly:
 
@@ -172,7 +172,7 @@ entire IPFS network. Yikes!
 
 Relevant PR: https://github.com/libp2p/go-libp2p-kad-dht/pull/237
 
-#### Bitswap
+#### 🕸 Bitswap
 
 Bitswap sessions have improved and are now used for _all_ requests. Sessions
 allow us to group related content and ask peers most likely to _have_ the
@@ -189,13 +189,13 @@ us two significant benefits:
    peers). We had to do this because we had to assume that _most_ peers didn't
    have the requested block.
 
-#### Pubsub
+#### ‼️ Pubsub
 
 This release includes some significant reliability improvements in pubsub
 subscription handling. If you've previously had issues with connected pubsub
 peers _not_ seeing each-other's messages, please upgrade ASAP.
 
-#### Reuseport
+#### ♻️ Reuseport
 
 In this release, we've rewritten our previously error-prone `go-reuseport`
 library to _not_ duplicate a significant portion of Go's low-level networking
@@ -206,11 +206,11 @@ In the past, our first suggestion to anyone experiencing weird resource or
 connectivity issues was to disable `REUSEPORT` (set `IPFS_REUSEPORT` to false).
 This should no longer be necessary.
 
-#### Badger Datastore
+#### 🐺 Badger Datastore
 
 [Badger has reached 1.0][badger-release]. This release brings an audit and
 numerous reliability fixes. We are now reasonably confident that badger will
-become the default datastore in a future release.
+become the default datastore in a future release. 👍
 
 [badger-release]: https://blog.dgraph.io/post/releasing-v1.0/
 
@@ -222,12 +222,12 @@ the need for manual intervention when restarting an IPFS node after a crash.
 
 ### Refactors and Endeavors
 
-#### Commands Library
+#### 🕹 Commands Library
 
 The legacy commands library shim has now been completely removed. This won't
 mean much for many users but the go-ipfs team is happy to have this behind them.
 
-#### Base32 CIDs
+#### 🌐 Base32 CIDs
 
 This release can now encode CIDs in responses in bases other than base58. This
 is primarily useful for web-browser integration as it allows us to (a) encode
@@ -245,7 +245,7 @@ Specifically, this release adds two flags:
    changes the _binary_ representation of the CIDs (which could have unintended
    consequences).
 
-#### CoreAPI
+#### 🎛 CoreAPI
 
 The work on the CoreAPI refactor ([ipfs/go-ipfs#4498][]) has progressed leaps and
 bounds this release. The CoreAPI is a comprehensive programmatic interface
