@@ -95,6 +95,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.Name = settings.StdinName
 	fileAdder.CidBuilder = prefix
+	fileAdder.TopHidden = settings.TopHidden
 
 	switch settings.Layout {
 	case options.BalancedLayout:
