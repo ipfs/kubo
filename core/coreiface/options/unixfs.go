@@ -35,6 +35,7 @@ type UnixfsAddSettings struct {
 
 	Wrap      bool
 	Hidden    bool
+	TopHidden bool
 	StdinName string
 
 	Events   chan<- interface{}
@@ -69,6 +70,7 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 
 		Wrap:      false,
 		Hidden:    false,
+		TopHidden: false,
 		StdinName: "",
 
 		Events:   nil,
@@ -251,6 +253,15 @@ func (unixfsOpts) Wrap(wrap bool) UnixfsAddOption {
 func (unixfsOpts) Hidden(hidden bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Hidden = hidden
+		return nil
+	}
+}
+
+// TopHidden enables adding of hidden files in top-level directory (files
+// prefixed with '.')
+func (unixfsOpts) TopHidden(hidden bool) UnixfsAddOption {
+	return func(settings *UnixfsAddSettings) error {
+		settings.TopHidden = hidden
 		return nil
 	}
 }

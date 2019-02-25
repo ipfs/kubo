@@ -82,11 +82,14 @@ func flatDir() files.Node {
 	})
 }
 
-func wrapped(name string) func(f files.Node) files.Node {
+func wrapped(names ...string) func(f files.Node) files.Node {
 	return func(f files.Node) files.Node {
-		return files.NewMapDirectory(map[string]files.Node{
-			name: f,
-		})
+		for i := range names {
+			f = files.NewMapDirectory(map[string]files.Node{
+				names[len(names)-i-1]: f,
+			})
+		}
+		return f
 	}
 }
 
@@ -241,16 +244,30 @@ func (tp *provider) TestAdd(t *testing.T) {
 		},
 		// multi file
 		{
-			name: "simpleDir",
+			name: "simpleDirNoWrap",
 			data: flatDir,
-			wrap: "t",
 			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
 		},
 		{
-			name: "twoLevelDir",
-			data: twoLevelDir(),
-			wrap: "t",
-			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
+			name:   "simpleDirWrap",
+			data:   flatDir,
+			expect: wrapped("QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp"),
+			path:   "/ipfs/QmXxCaQkC8Z6Qws1nTkTQfCsL9y4XvWXnrPokp9bhmjC1L",
+			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
+		},
+		{
+			name:   "simpleDir",
+			data:   flatDir,
+			wrap:   "t",
+			expect: wrapped("t"),
+			path:   "/ipfs/Qmc3nGXm1HtUVCmnXLQHvWcNwfdZGpfg2SRm1CxLf7Q2Rm",
+		},
+		{
+			name:   "twoLevelDir",
+			data:   twoLevelDir(),
+			wrap:   "t",
+			expect: wrapped("t"),
+			path:   "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
 		},
 		// wrapped
 		{
@@ -261,15 +278,6 @@ func (tp *provider) TestAdd(t *testing.T) {
 			},
 			wrap:   "foo",
 			expect: wrapped("foo"),
-			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
-		},
-		{
-			name: "addNotWrappedDirFile",
-			path: hello,
-			data: func() files.Node {
-				return files.NewBytesFile([]byte(helloStr))
-			},
-			wrap: "foo",
 		},
 		{
 			name: "stdinWrapped",
@@ -306,16 +314,16 @@ func (tp *provider) TestAdd(t *testing.T) {
 			name:   "twoLevelDirWrapped",
 			data:   twoLevelDir(),
 			wrap:   "t",
-			expect: wrapped("t"),
-			path:   "/ipfs/QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg",
+			expect: wrapped("QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg", "t"),
+			path:   "/ipfs/QmXzZwAh34pmNjuKsVGZfpbByis5S5qeZjCCUxa1ajZqzH",
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
 		},
 		{
 			name:   "twoLevelInlineHash",
 			data:   twoLevelDir(),
 			wrap:   "t",
-			expect: wrapped("t"),
-			path:   "/ipfs/zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi",
+			expect: wrapped("zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi", "t"),
+			path:   "/ipfs/QmUX6GykDGHTMtLmDkfjqs48QwQK82vou51xwaY9TSU7Zo",
 			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
 		},
 		// hidden
@@ -328,17 +336,20 @@ func (tp *provider) TestAdd(t *testing.T) {
 					"foo":  files.NewBytesFile([]byte("hello1")),
 				})
 			},
-			wrap: "t",
-			path: "/ipfs/QmehGvpf2hY196MzDFmjL8Wy27S4jbgGDUAhBJyvXAwr3g",
-			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(true)},
+			wrap:   "t",
+			expect: wrapped("t"),
+			path:   "/ipfs/QmPXLSBX382vJDLrGakcbrZDkU3grfkjMox7EgSC9KFbtQ",
+			opts:   []options.UnixfsAddOption{options.Unixfs.Hidden(true)},
 		},
 		{
-			name: "hiddenFileAlwaysAdded",
+			name: "topHiddenFileAdded",
 			data: func() files.Node {
 				return files.NewBytesFile([]byte(helloStr))
 			},
-			wrap: ".foo",
-			path: hello,
+			wrap:   ".foo",
+			expect: wrapped(".foo"),
+			path:   "/ipfs/QmciAVG3krCbvzUaK9gr6jUgfEjQtYmuuXi1n67teQ4Ni2",
+			opts:   []options.UnixfsAddOption{options.Unixfs.TopHidden(true)},
 		},
 		{
 			name: "hiddenFilesNotAdded",
@@ -352,8 +363,23 @@ func (tp *provider) TestAdd(t *testing.T) {
 			expect: func(files.Node) files.Node {
 				return flatDir()
 			},
-			wrap: "t",
 			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
+			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
+		},
+		{
+			name: "hiddenFilesWrappedNotAdded",
+			data: func() files.Node {
+				return files.NewMapDirectory(map[string]files.Node{
+					".bar": files.NewBytesFile([]byte("hello2")),
+					"bar":  files.NewBytesFile([]byte("hello2")),
+					"foo":  files.NewBytesFile([]byte("hello1")),
+				})
+			},
+			expect: func(files.Node) files.Node {
+				return wrapped("t")(flatDir())
+			},
+			wrap: "t",
+			path: "/ipfs/Qmc3nGXm1HtUVCmnXLQHvWcNwfdZGpfg2SRm1CxLf7Q2Rm",
 			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
 		},
 		// NoCopy
@@ -392,10 +418,9 @@ func (tp *provider) TestAdd(t *testing.T) {
 			data: twoLevelDir(),
 			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
 			events: []coreiface.AddEvent{
-				{Name: "t/abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
-				{Name: "t", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
+				{Name: "abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
+				{Name: "", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
 			},
-			wrap: "t",
 			opts: []options.UnixfsAddOption{options.Unixfs.Silent(true)},
 		},
 		{
@@ -403,13 +428,12 @@ func (tp *provider) TestAdd(t *testing.T) {
 			data: twoLevelDir(),
 			path: "/ipfs/QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr",
 			events: []coreiface.AddEvent{
-				{Name: "t/abc/def", Path: p("QmNyJpQkU1cEkBwMDhDNFstr42q55mqG5GE5Mgwug4xyGk"), Size: "13"},
-				{Name: "t/bar", Path: p("QmS21GuXiRMvJKHos4ZkEmQDmRBqRaF5tQS2CQCu2ne9sY"), Size: "14"},
-				{Name: "t/foo", Path: p("QmfAjGiVpTN56TXi6SBQtstit5BEw3sijKj1Qkxn6EXKzJ"), Size: "14"},
-				{Name: "t/abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
-				{Name: "t", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
+				{Name: "abc/def", Path: p("QmNyJpQkU1cEkBwMDhDNFstr42q55mqG5GE5Mgwug4xyGk"), Size: "13"},
+				{Name: "bar", Path: p("QmS21GuXiRMvJKHos4ZkEmQDmRBqRaF5tQS2CQCu2ne9sY"), Size: "14"},
+				{Name: "foo", Path: p("QmfAjGiVpTN56TXi6SBQtstit5BEw3sijKj1Qkxn6EXKzJ"), Size: "14"},
+				{Name: "abc", Path: p("QmU7nuGs2djqK99UNsNgEPGh6GV4662p6WtsgccBNGTDxt"), Size: "62"},
+				{Name: "", Path: p("QmVG2ZYCkV1S4TK8URA3a4RupBF17A8yAr4FqsRDXVJASr"), Size: "229"},
 			},
-			wrap: "t",
 		},
 		{
 			name: "progress1M",
@@ -528,12 +552,12 @@ func (tp *provider) TestAdd(t *testing.T) {
 				_, origDir := orig.(files.Directory)
 				_, gotDir := got.(files.Directory)
 
-				if origDir != gotDir {
-					t.Fatal("file type mismatch")
-				}
-
 				if origName != gotName {
 					t.Errorf("file name mismatch, orig='%s', got='%s'", origName, gotName)
+				}
+
+				if origDir != gotDir {
+					t.Fatalf("file type mismatch on %s", origName)
 				}
 
 				if !gotDir {
@@ -804,9 +828,7 @@ func (tp *provider) TestEntriesExpired(t *testing.T) {
 
 	r := strings.NewReader("content-of-file")
 	p, err := api.Unixfs().Add(ctx, files.NewMapDirectory(map[string]files.Node{
-		"0": files.NewMapDirectory(map[string]files.Node{
-			"name-of-file": files.NewReaderFile(r),
-		}),
+		"name-of-file": files.NewReaderFile(r),
 	}))
 	if err != nil {
 		t.Error(err)
@@ -846,7 +868,7 @@ func (tp *provider) TestLsEmptyDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = api.Unixfs().Add(ctx, files.NewMapDirectory(map[string]files.Node{"0": files.NewSliceDirectory([]files.DirEntry{})}))
+	_, err = api.Unixfs().Add(ctx, files.NewSliceDirectory([]files.DirEntry{}))
 	if err != nil {
 		t.Error(err)
 	}
