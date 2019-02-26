@@ -57,6 +57,7 @@ ADVANCED COMMANDS
   stats         Various operational stats
   p2p           Libp2p stream mounting
   filestore     Manage the filestore (experimental)
+  provider      Manage the provider system
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
@@ -140,6 +141,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"pin":       PinCmd,
 	"ping":      PingCmd,
 	"p2p":       P2PCmd,
+	"provider":  ProviderCmd,
 	"refs":      RefsCmd,
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,
