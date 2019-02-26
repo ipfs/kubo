@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.19 2018-02-14 (unreleased)
+## 0.4.19 2018-03-01
 
 We're happy to announce go 0.4.19. This release contains a bunch of important
 fixes and a slew of new and improved features. Get pumped and upgrade ASAP to benefit from all the new goodies! 🎁
