@@ -11,8 +11,6 @@ var (
 	reprovideOutgoingWorkerLimit = 8
 )
 
-type doneFunc func(error)
-
 type Reprovider struct {
 	ctx context.Context
 	queue *Queue
@@ -20,7 +18,7 @@ type Reprovider struct {
 	tick time.Duration
 	blockstore blockstore.Blockstore
 	contentRouting routing.ContentRouting
-	trigger chan doneFunc
+	trigger chan struct{}
 }
 
 // Reprovider periodically re-announces the cids that have been provided. These
@@ -34,7 +32,7 @@ func NewReprovider(ctx context.Context, queue *Queue, tracker *Tracker, tick tim
 		tick: tick,
 		blockstore: blockstore,
 		contentRouting: contentRouting,
-		trigger: make(chan doneFunc),
+		trigger: make(chan struct{}),
 	}
 }
 
@@ -49,6 +47,7 @@ func (rp *Reprovider) Run() {
 func (rp *Reprovider) Reprovide() error {
 	cids, err := rp.tracker.Tracking(rp.ctx)
 	if err != nil {
+		log.Warningf("error obtaining tracking information: %s", err)
 		return err
 	}
 	for c := range cids {
@@ -62,29 +61,12 @@ func (rp *Reprovider) Reprovide() error {
 
 // Trigger causes a reprovide
 func (rp *Reprovider) Trigger(ctx context.Context) error {
-	pctx, cancel := context.WithTimeout(ctx, time.Minute)
-	var err error
-	done := func(e error) {
-		err = e
-		cancel()
-	}
-
 	select {
 	case <-rp.ctx.Done():
 		return rp.ctx.Err()
-	case <-pctx.Done():
-		return pctx.Err()
-	case rp.trigger <- done:
-		select {
-		case <-pctx.Done():
-			if err != nil || pctx.Err() == context.Canceled {
-				return err
-			} else {
-				return pctx.Err()
-			}
-		case <-rp.ctx.Done():
-			return rp.ctx.Err()
-		}
+	case <-ctx.Done():
+		return ctx.Err()
+	case rp.trigger <- struct{}{}:
 	}
 	return nil
 }
@@ -94,7 +76,6 @@ func (rp *Reprovider) handleTriggers() {
 	// may have just started the daemon and shutting it down immediately.
 	// probability( up another minute | uptime ) increases with uptime.
 	after := time.After(time.Minute)
-	var done doneFunc
 	for {
 		if rp.tick == 0 {
 			after = nil
@@ -103,17 +84,13 @@ func (rp *Reprovider) handleTriggers() {
 		select {
 		case <-rp.ctx.Done():
 			return
-		case done = <-rp.trigger:
+		case <-rp.trigger:
 		case <-after:
 		}
 
 		err := rp.Reprovide()
 		if err != nil {
 			log.Debug(err)
-		}
-
-		if done != nil {
-			done(err)
 		}
 
 		after = time.After(rp.tick)
