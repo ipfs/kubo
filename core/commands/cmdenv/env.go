@@ -7,8 +7,8 @@ import (
 	"github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 
-	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	config "gx/ipfs/QmRLDpfN3yCpHx4C6wwTkrFFK6bNxzBkgDbJPRsb5VLMQ2/go-ipfs-config"
+	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
 	coreiface "gx/ipfs/QmeWKXQfEqbtUDCiQBAHzSZDja9br5LdPgk8eHu86oJxgr/interface-go-ipfs-core"
 	options "gx/ipfs/QmeWKXQfEqbtUDCiQBAHzSZDja9br5LdPgk8eHu86oJxgr/interface-go-ipfs-core/options"

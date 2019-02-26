@@ -8,8 +8,8 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
-	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	peer "gx/ipfs/QmTu65MVbemtUxJEWgsTtzv9Zv9P8rvmqNA4eG9TrTRGYc/go-libp2p-peer"
+	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
 	bitswap "gx/ipfs/QmXckKH4fiPT966YPPxoqXJFof7ovxwGxBdhM3CRpGzgDa/go-bitswap"
 	decision "gx/ipfs/QmXckKH4fiPT966YPPxoqXJFof7ovxwGxBdhM3CRpGzgDa/go-bitswap/decision"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"

@@ -9,11 +9,11 @@ import (
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 	balanced "gx/ipfs/QmVytt7Vtb9jbGN2uNfEm15t78pBUjw1SS72nkJFcWYZwe/go-unixfs/importer/balanced"
 	ihelper "gx/ipfs/QmVytt7Vtb9jbGN2uNfEm15t78pBUjw1SS72nkJFcWYZwe/go-unixfs/importer/helpers"
 	trickle "gx/ipfs/QmVytt7Vtb9jbGN2uNfEm15t78pBUjw1SS72nkJFcWYZwe/go-unixfs/importer/trickle"
+	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
 	chunk "gx/ipfs/QmYmZ81dU5nnmBFy5MmktXLZpt8QCWhRJd6M1uxVF6vke8/go-ipfs-chunker"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"

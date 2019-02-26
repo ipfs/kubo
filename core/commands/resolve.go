@@ -11,8 +11,8 @@ import (
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	ns "github.com/ipfs/go-ipfs/namesys"
 
-	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	path "gx/ipfs/QmR3bNAtBoTN6xZ2HQNqpRQARcDoazH9jU6zKUNjFyQKWS/go-path"
+	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	coreiface "gx/ipfs/QmeWKXQfEqbtUDCiQBAHzSZDja9br5LdPgk8eHu86oJxgr/interface-go-ipfs-core"
 	options "gx/ipfs/QmeWKXQfEqbtUDCiQBAHzSZDja9br5LdPgk8eHu86oJxgr/interface-go-ipfs-core/options"

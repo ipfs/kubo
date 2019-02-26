@@ -8,9 +8,9 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	tar "github.com/ipfs/go-ipfs/tar"
 
-	"gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
 	"gx/ipfs/QmR3bNAtBoTN6xZ2HQNqpRQARcDoazH9jU6zKUNjFyQKWS/go-path"
 	dag "gx/ipfs/QmScf5hnTEK8fDpRJAbcdMnKXpKUp1ytdymzXUbXDCFssp/go-merkledag"
+	"gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
