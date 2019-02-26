@@ -220,6 +220,10 @@ _delete_ any un-synced data on start instead of simply refusing to start. This
 should be safe on all filesystems where the `sync` operation is safe and removes
 the need for manual intervention when restarting an IPFS node after a crash.
 
+Assuming you initialized your badger repo with `ipfs init --profile=badgerds`,
+you can enable truncate on an existing repo by running: `ipfs config --json
+"Datastore.Spec.child.truncate" true`.
+
 ### Refactors and Endeavors
 
 #### 🕹 Commands Library
