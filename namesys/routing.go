@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	dht "gx/ipfs/QmNqZEo6SByQ5zMn8FuWPKo17pGn26D8fruHxpRcog8usL/go-libp2p-kad-dht"
 	path "gx/ipfs/QmQ8Y8pKbrdAFuoHnnduWp81qS5LESWATnjmUEqhopRbJo/go-path"
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	dht "gx/ipfs/QmUTc27ifFbaTWZBCKFxuMfWfB1jy88MtYtB37vZ9saaXo/go-libp2p-kad-dht"
 	ipns "gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns"
 	pb "gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns/pb"
 	opts "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core/options/namesys"

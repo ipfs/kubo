@@ -31,8 +31,6 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
-	dht "gx/ipfs/QmNqZEo6SByQ5zMn8FuWPKo17pGn26D8fruHxpRcog8usL/go-libp2p-kad-dht"
-	dhtopts "gx/ipfs/QmNqZEo6SByQ5zMn8FuWPKo17pGn26D8fruHxpRcog8usL/go-libp2p-kad-dht/opts"
 	merkledag "gx/ipfs/QmP9i4G9nRcfKBnpk1A7CwU7ppLkSn2j6vJeWn2AJ8rfcN/go-merkledag"
 	autonat "gx/ipfs/QmPrMFLkxutgFbutfxK77uWzb8Nj7LGcZqALXPZyTiujFT/go-libp2p-autonat-svc"
 	mplex "gx/ipfs/QmQ4TZxzazF9dfqiH52ygGGU4BHQQTR9aCGMgHt4tCRdEA/go-smux-multiplex"
@@ -51,6 +49,8 @@ import (
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
 	pnet "gx/ipfs/QmTwDsJUPioMKoiuXkAmiPxL1i4tjuG5vkxJgNpiHpXb3Y/go-libp2p-pnet"
 	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
+	dht "gx/ipfs/QmUTc27ifFbaTWZBCKFxuMfWfB1jy88MtYtB37vZ9saaXo/go-libp2p-kad-dht"
+	dhtopts "gx/ipfs/QmUTc27ifFbaTWZBCKFxuMfWfB1jy88MtYtB37vZ9saaXo/go-libp2p-kad-dht/opts"
 	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
 	smux "gx/ipfs/QmVtV1y2e8W4eQgzsP6qfSpCCZ6zWYE4m6NzJjB7iswwrT/go-stream-muxer"
 	libp2p "gx/ipfs/QmWRUZmLb9qEpwuHTtrzbdE5LQxm64qftncw5o8tBVPobL/go-libp2p"

@@ -171,9 +171,9 @@
       "version": "0.2.0"
     },
     {
-      "hash": "QmNqZEo6SByQ5zMn8FuWPKo17pGn26D8fruHxpRcog8usL",
+      "hash": "QmUTc27ifFbaTWZBCKFxuMfWfB1jy88MtYtB37vZ9saaXo",
       "name": "go-libp2p-kad-dht",
-      "version": "4.4.29"
+      "version": "4.4.30"
     },
     {
       "author": "whyrusleeping",
@@ -590,9 +590,9 @@
     },
     {
       "author": "travisperson",
-      "hash": "QmWewdsXnr77QjC2q8VhQ9jDL3LAv4ZvxYtyaVMtagCTA3",
+      "hash": "QmRpqyhvhEm343yVhyjGMHKphJFCt3noSohWjbtUDC3WXA",
       "name": "iptb-plugins",
-      "version": "1.0.18"
+      "version": "1.0.19"
     },
     {
       "author": "hsanjuan",
