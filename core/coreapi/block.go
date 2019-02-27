@@ -11,8 +11,8 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	coreiface "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core"
-	caopts "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core/options"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	caopts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
 	blocks "gx/ipfs/QmYYLnAzR28nAQ4U5MFniLprnktu6eTFKibeNt96V21EZK/go-block-format"
 )
 

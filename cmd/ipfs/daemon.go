@@ -27,7 +27,7 @@ import (
 	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
 	"gx/ipfs/QmTQuFQWHAWy4wMH6ZyPfGiawA5u9T8rs79FENoV8yXaoS/client_golang/prometheus"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
+	cmds "gx/ipfs/QmX6AchyJgso1WNamTJMdxfzGiWuYu94K6tF9MJ66rRhAu/go-ipfs-cmds"
 	"gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mprome "gx/ipfs/QmfHYMtNSntM6qFhHzLDCyqTX7NNpsfwFgvicJv7L5saAP/go-metrics-prometheus"

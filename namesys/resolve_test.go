@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	path "gx/ipfs/QmQ8Y8pKbrdAFuoHnnduWp81qS5LESWATnjmUEqhopRbJo/go-path"
+	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
 	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
 	dssync "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/sync"
 	ipns "gx/ipfs/QmUwMnKKjH3JwGKNVZ3TcP37W93xzqNA4ECFFiMo6sXkkc/go-ipns"

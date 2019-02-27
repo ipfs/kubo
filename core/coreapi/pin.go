@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	merkledag "gx/ipfs/QmP9i4G9nRcfKBnpk1A7CwU7ppLkSn2j6vJeWn2AJ8rfcN/go-merkledag"
+	merkledag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
 	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	coreiface "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core"
-	caopts "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core/options"
+	bserv "gx/ipfs/QmUEXNytX2q9g9xtdfHRVYfsvjw5V9FQ32vE9ZRYFAxFoy/go-blockservice"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	caopts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
 	offline "gx/ipfs/Qmb9fkAWgcyVRnFdXGqA6jcWGFj6q35oJjwRAYRhfEboGS/go-ipfs-exchange-offline"
-	bserv "gx/ipfs/Qmdvbc3xsufJasP1idu6dZKiLLfEzuaLpuriCyUK7Aukje/go-blockservice"
 )
 
 type PinAPI CoreAPI

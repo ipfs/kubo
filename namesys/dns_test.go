@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	opts "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core/options/namesys"
+	opts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options/namesys"
 )
 
 type mockDNS struct {

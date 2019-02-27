@@ -8,7 +8,7 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
+	cmds "gx/ipfs/QmX6AchyJgso1WNamTJMdxfzGiWuYu94K6tF9MJ66rRhAu/go-ipfs-cmds"
 	manet "gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
 	sysi "gx/ipfs/QmcoYsZJDtyDTij5dNo7KQCHR3Z6nhPxLkVKg77zg1TL8e/go-sysinfo"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"

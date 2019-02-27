@@ -7,12 +7,12 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 
-	ipfspath "gx/ipfs/QmQ8Y8pKbrdAFuoHnnduWp81qS5LESWATnjmUEqhopRbJo/go-path"
-	"gx/ipfs/QmQ8Y8pKbrdAFuoHnnduWp81qS5LESWATnjmUEqhopRbJo/go-path/resolver"
-	uio "gx/ipfs/QmSbCXEwpsog4vBf53YntmGk9uHsgZNuU5oBKv3o2kkTSe/go-unixfs/io"
+	ipfspath "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	"gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path/resolver"
 	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	coreiface "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
 	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
+	uio "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/io"
 )
 
 // ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the

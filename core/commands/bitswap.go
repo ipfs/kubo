@@ -8,11 +8,11 @@ import (
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
-	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
+	cmds "gx/ipfs/QmX6AchyJgso1WNamTJMdxfzGiWuYu94K6tF9MJ66rRhAu/go-ipfs-cmds"
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	bitswap "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap"
+	decision "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap/decision"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	bitswap "gx/ipfs/Qme6N5aHZgAk5t9vg3XpusbxRjnWY2YvsfFmdmcSvResT1/go-bitswap"
-	decision "gx/ipfs/Qme6N5aHZgAk5t9vg3XpusbxRjnWY2YvsfFmdmcSvResT1/go-bitswap/decision"
 	cidutil "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil"
 )
 

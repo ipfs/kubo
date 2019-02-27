@@ -10,8 +10,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 
-	options "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core/options"
-	id "gx/ipfs/QmWRUZmLb9qEpwuHTtrzbdE5LQxm64qftncw5o8tBVPobL/go-libp2p/p2p/protocol/identify"
+	id "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p/p2p/protocol/identify"
+	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
 )
 
 type GatewayConfig struct {

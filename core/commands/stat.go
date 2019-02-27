@@ -10,7 +10,7 @@ import (
 
 	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
 	metrics "gx/ipfs/QmSwVwKUWzdf3ppM3FbBbpuqHUNtUFJPQQdfvKmgZoz2gR/go-libp2p-metrics"
-	cmds "gx/ipfs/QmWmn1Fo7ECXJYGAUf6wFWd677wVuryWePqUD678Dkt4ok/go-ipfs-cmds"
+	cmds "gx/ipfs/QmX6AchyJgso1WNamTJMdxfzGiWuYu94K6tF9MJ66rRhAu/go-ipfs-cmds"
 	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"

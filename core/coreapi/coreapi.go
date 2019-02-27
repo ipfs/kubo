@@ -23,11 +23,13 @@ import (
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
 
-	dag "gx/ipfs/QmP9i4G9nRcfKBnpk1A7CwU7ppLkSn2j6vJeWn2AJ8rfcN/go-merkledag"
+	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
 	ci "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-	coreiface "gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core"
-	"gx/ipfs/QmVzvYWRABgGEv4iu3M9wivWbZKTW29qsU4VTZ2iZEoExX/interface-go-ipfs-core/options"
+	bserv "gx/ipfs/QmUEXNytX2q9g9xtdfHRVYfsvjw5V9FQ32vE9ZRYFAxFoy/go-blockservice"
+	pubsub "gx/ipfs/QmVzLBPPg4gdyX3XFnNaNDkK4V81ptT5X6WZVFzTUECXMa/go-libp2p-pubsub"
 	"gx/ipfs/QmWokDcQdSZCxrNxgaRzQDDBofALhActzNBaxRLtiRkUHg/go-ipfs-exchange-interface"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
 	"gx/ipfs/QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA/go-ipfs-blockstore"
 	"gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
 	p2phost "gx/ipfs/QmYrWiWM4qtrnCeT3R14jY3ZZyirDNJgwK57q4qFYePgbd/go-libp2p-host"
@@ -38,8 +40,6 @@ import (
 	offlinexch "gx/ipfs/Qmb9fkAWgcyVRnFdXGqA6jcWGFj6q35oJjwRAYRhfEboGS/go-ipfs-exchange-offline"
 	record "gx/ipfs/QmbeHtaBy9nZsW4cHRcvgVY4CnDhXudE2Dr6qDxS7yg9rX/go-libp2p-record"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	pubsub "gx/ipfs/Qmdmn9FrkJbz6SdmxceJs4nXFRzbM9iAefyQwveGSBejXT/go-libp2p-pubsub"
-	bserv "gx/ipfs/Qmdvbc3xsufJasP1idu6dZKiLLfEzuaLpuriCyUK7Aukje/go-blockservice"
 )
 
 var log = logging.Logger("core/coreapi")
