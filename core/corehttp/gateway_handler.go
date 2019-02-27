@@ -88,12 +88,11 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
 		i.getOrHeadHandler(ctx, w, r)
 		return
-	}
-
-	if r.Method == http.MethodOptions {
+	case http.MethodOptions:
 		i.optionsHandler(w, r)
 		return
 	}
