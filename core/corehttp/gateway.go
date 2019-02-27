@@ -69,7 +69,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 		}
 		if _, ok := headers[ACAMethodsName]; !ok {
 			// Default to GET
-			headers[ACAMethodsName] = []string{"GET"}
+			headers[ACAMethodsName] = []string{http.MethodGet}
 		}
 
 		headers[ACAHeadersName] = cleanHeaderSet(

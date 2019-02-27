@@ -26,7 +26,7 @@ var validtestCases = []TestCase{
 func TestParseRequest(t *testing.T) {
 	for _, tc := range validtestCases {
 		url := tc.urlprefix + "/p2p/" + tc.target + tc.name + "/" + tc.path
-		req, _ := http.NewRequest("GET", url, strings.NewReader(""))
+		req, _ := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 
 		parsed, err := parseRequest(req)
 		if err != nil {
@@ -46,7 +46,7 @@ var invalidtestCases = []string{
 func TestParseRequestInvalidPath(t *testing.T) {
 	for _, tc := range invalidtestCases {
 		url := tc
-		req, _ := http.NewRequest("GET", url, strings.NewReader(""))
+		req, _ := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 
 		_, err := parseRequest(req)
 		if err == nil {

@@ -202,7 +202,7 @@ func TestGatewayGet(t *testing.T) {
 		{"example.man", "/", http.StatusOK, "fnord"},
 	} {
 		var c http.Client
-		r, err := http.NewRequest("GET", ts.URL+test.path, nil)
+		r, err := http.NewRequest(http.MethodGet, ts.URL+test.path, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -262,7 +262,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	ns["/ipns/example.net"] = path.FromString(k.String())
 
 	// make request to directory containing index.html
-	req, err := http.NewRequest("GET", ts.URL+"/foo", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/foo", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +285,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	}
 
 	// make request with prefix to directory containing index.html
-	req, err = http.NewRequest("GET", ts.URL+"/foo", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/foo", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	}
 
 	// make sure /version isn't exposed
-	req, err = http.NewRequest("GET", ts.URL+"/version", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/version", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +365,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	ns["/ipns/example.net"] = path.FromString(k.String())
 
 	// make request to directory listing
-	req, err := http.NewRequest("GET", ts.URL+"/foo%3F%20%23%3C%27/", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/foo%3F%20%23%3C%27/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +398,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing at root
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +431,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing
-	req, err = http.NewRequest("GET", ts.URL+"/foo%3F%20%23%3C%27/bar/", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/foo%3F%20%23%3C%27/bar/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,7 +464,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing with prefix
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -498,7 +498,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing with illegal prefix
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -506,7 +506,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	req.Header.Set("X-Ipfs-Gateway-Prefix", "/bad-prefix")
 
 	// make request to directory listing with evil prefix
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -545,7 +545,7 @@ func TestCacheControlImmutable(t *testing.T) {
 	t.Logf("test server url: %s", ts.URL)
 	defer ts.Close()
 
-	req, err := http.NewRequest("GET", ts.URL+emptyDir+"/", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+emptyDir+"/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -572,7 +572,7 @@ func TestGoGetSupport(t *testing.T) {
 	defer ts.Close()
 
 	// mimic go-get
-	req, err := http.NewRequest("GET", ts.URL+emptyDir+"?go-get=1", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+emptyDir+"?go-get=1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -595,7 +595,7 @@ func TestVersion(t *testing.T) {
 	t.Logf("test server url: %s", ts.URL)
 	defer ts.Close()
 
-	req, err := http.NewRequest("GET", ts.URL+"/version", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/version", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -212,7 +212,7 @@ func (f *FileManager) readURLDataObj(c cid.Cid, d *pb.DataObj) ([]byte, error) {
 		return nil, ErrUrlstoreNotEnabled
 	}
 
-	req, err := http.NewRequest("GET", d.GetFilePath(), nil)
+	req, err := http.NewRequest(http.MethodGet, d.GetFilePath(), nil)
 	if err != nil {
 		return nil, err
 	}

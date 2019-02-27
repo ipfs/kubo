@@ -91,7 +91,7 @@ func addCORSDefaults(c *cmdsHttp.ServerConfig) {
 
 	// by default, use GET, PUT, POST
 	if len(c.AllowedMethods()) == 0 {
-		c.SetAllowedMethods("GET", "POST", "PUT")
+		c.SetAllowedMethods(http.MethodGet, http.MethodPost, http.MethodPut)
 	}
 }
 
@@ -123,7 +123,7 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
 		cfg := cmdsHttp.NewServerConfig()
-		cfg.SetAllowedMethods("GET", "POST", "PUT")
+		cfg.SetAllowedMethods(http.MethodGet, http.MethodPost, http.MethodPut)
 		cfg.APIPath = APIPath
 		rcfg, err := n.Repo.Config()
 		if err != nil {

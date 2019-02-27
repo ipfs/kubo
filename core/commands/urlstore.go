@@ -82,7 +82,7 @@ time.
 			return err
 		}
 
-		hreq, err := http.NewRequest("GET", url, nil)
+		hreq, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return err
 		}

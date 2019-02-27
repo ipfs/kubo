@@ -169,7 +169,7 @@ func GetLatestVersion(ipfspath, dist string) (string, error) {
 }
 
 func httpGet(url string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("http.NewRequest error: %s", err)
 	}
