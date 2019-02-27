@@ -281,6 +281,7 @@ The next steps are:
 ### Changelogs
 
 - github.com/ipfs/go-ipfs:
+  - fix: show interactive output from install.sh ([ipfs/go-ipfs#6024](https://github.com/ipfs/go-ipfs/pull/6024))
   - fix: return the shortest, completely resolved path in the resolve command ([ipfs/go-ipfs#5704](https://github.com/ipfs/go-ipfs/pull/5704))
   - fix a few interop test issues ([ipfs/go-ipfs#6004](https://github.com/ipfs/go-ipfs/pull/6004))
   - fix HAMT bookmark ln ([ipfs/go-ipfs#6005](https://github.com/ipfs/go-ipfs/pull/6005))
@@ -401,6 +402,8 @@ The next steps are:
 - github.com/libp2p/go-addr-util:
   - Improve test coverage ([libp2p/go-addr-util#14](https://github.com/libp2p/go-addr-util/pull/14))
 - github.com/ipfs/go-bitswap:
+  - fix(prq): fix a bunch of goroutine leaks and deadlocks ([ipfs/go-bitswap#87](https://github.com/ipfs/go-bitswap/pull/87))
+  - remove allocations round two ([ipfs/go-bitswap#84](https://github.com/ipfs/go-bitswap/pull/84))
   - fix(bitswap): remove CancelWants function ([ipfs/go-bitswap#80](https://github.com/ipfs/go-bitswap/pull/80))
   - Avoid allocating for wantlist entries ([ipfs/go-bitswap#79](https://github.com/ipfs/go-bitswap/pull/79))
   - ci(Jenkins): remove Jenkinsfile ([ipfs/go-bitswap#83](https://github.com/ipfs/go-bitswap/pull/83))
@@ -461,6 +464,8 @@ The next steps are:
   - Expose Datastore type ([ipfs/go-ds-leveldb#20](https://github.com/ipfs/go-ds-leveldb/pull/20))
   - fix application or ordering for interface change ([ipfs/go-ds-leveldb#23](https://github.com/ipfs/go-ds-leveldb/pull/23))
 - github.com/ipfs/go-ipfs-cmds:
+  - fix sync error with go1.12 on darwin ([ipfs/go-ipfs-cmds#147](https://github.com/ipfs/go-ipfs-cmds/pull/147))
+  - cli: fix ignoring std{out,err} sync errors on windows ([ipfs/go-ipfs-cmds#146](https://github.com/ipfs/go-ipfs-cmds/pull/146))
   - roundup of cleanup fixes ([ipfs/go-ipfs-cmds#144](https://github.com/ipfs/go-ipfs-cmds/pull/144))
   - Update cors library ([ipfs/go-ipfs-cmds#139](https://github.com/ipfs/go-ipfs-cmds/pull/139))
   - expand on the api error ([ipfs/go-ipfs-cmds#138](https://github.com/ipfs/go-ipfs-cmds/pull/138))
@@ -542,8 +547,10 @@ The next steps are:
 - github.com/libp2p/go-libp2p-host:
   - Helper to get PeerInfo from Host ([libp2p/go-libp2p-host#20](https://github.com/libp2p/go-libp2p-host/pull/20))
 - github.com/libp2p/go-libp2p-kad-dht:
+  - fix(dialQueue): account for failed dials ([libp2p/go-libp2p-kad-dht#277](https://github.com/libp2p/go-libp2p-kad-dht/pull/277))
   - Fix Bootstrap sub-queries ([libp2p/go-libp2p-kad-dht#264](https://github.com/libp2p/go-libp2p-kad-dht/pull/264))
   - dial queue: fix possible goroutine leak ([libp2p/go-libp2p-kad-dht#262](https://github.com/libp2p/go-libp2p-kad-dht/pull/262))
+  - Alter some logging ([libp2p/go-libp2p-kad-dht#269](https://github.com/libp2p/go-libp2p-kad-dht/pull/269))
   - Revert #236: Test go mod in travis and use major versioning in import paths ([libp2p/go-libp2p-kad-dht#259](https://github.com/libp2p/go-libp2p-kad-dht/pull/259))
   - fix tests on freebsd ([libp2p/go-libp2p-kad-dht#255](https://github.com/libp2p/go-libp2p-kad-dht/pull/255))
   - Fix "no protocol with name dnsaddr" error ([libp2p/go-libp2p-kad-dht#247](https://github.com/libp2p/go-libp2p-kad-dht/pull/247))
@@ -611,6 +618,8 @@ The next steps are:
   - uglify the (event) logs ([ipfs/go-log#53](https://github.com/ipfs/go-log/pull/53))
   - add environment variable for writing tracing information to a file ([ipfs/go-log#52](https://github.com/ipfs/go-log/pull/52))
   - correctly display the line number when FinishWithErr fails ([ipfs/go-log#51](https://github.com/ipfs/go-log/pull/51))
+- github.com/libp2p/go-maddr-filter:
+  - test: extend test to improve coverage ([libp2p/go-maddr-filter#7](https://github.com/libp2p/go-maddr-filter/pull/7))
 - github.com/ipfs/go-merkledag:
   - Increase FetchGraphConcurrency to 32 ([ipfs/go-merkledag#29](https://github.com/ipfs/go-merkledag/pull/29))
   - Enable CI ([ipfs/go-merkledag#9](https://github.com/ipfs/go-merkledag/pull/9))
@@ -629,6 +638,7 @@ The next steps are:
   - [WIP] documentation notes ([ipfs/go-mfs#27](https://github.com/ipfs/go-mfs/pull/27))
   - feat(inode): add inode struct ([ipfs/go-mfs#12](https://github.com/ipfs/go-mfs/pull/12))
 - github.com/libp2p/go-mplex:
+  - fix deadlock ([libp2p/go-mplex#39](https://github.com/libp2p/go-mplex/pull/39))
   - When a stream is closed, cancel pending writes ([libp2p/go-mplex#35](https://github.com/libp2p/go-mplex/pull/35))
   - make sure to but the buffer back in the pool ([libp2p/go-mplex#34](https://github.com/libp2p/go-mplex/pull/34))
   - reduce the packet count ([libp2p/go-mplex#29](https://github.com/libp2p/go-mplex/pull/29))
