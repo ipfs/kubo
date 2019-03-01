@@ -136,9 +136,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmP7duPBaJLxZuVmKDmhRuqrfUsVN9vF8aF8FRPRdTwYEi",
+      "hash": "QmcjM6sfVtgGFBCCJaZo33HNi7K4rPkrUQAzLewgWTNkeg",
       "name": "go-ds-flatfs",
-      "version": "1.3.6"
+      "version": "1.3.7"
     },
     {
       "author": "whyrusleeping",
@@ -295,9 +295,9 @@
       "version": "3.0.34"
     },
     {
-      "hash": "QmX6AchyJgso1WNamTJMdxfzGiWuYu94K6tF9MJ66rRhAu",
+      "hash": "QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs",
       "name": "go-ipfs-cmds",
-      "version": "2.0.17"
+      "version": "2.0.18"
     },
     {
       "hash": "Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg",
