@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.19 2018-02-14 (unreleased)
+## 0.4.19 2018-03-01
 
 We're happy to announce go 0.4.19. This release contains a bunch of important
 fixes and a slew of new and improved features. Get pumped and upgrade ASAP to benefit from all the new goodies! 🎁
@@ -219,6 +219,10 @@ datastore (enabled by default for new IPFS nodes). When enabled, badger will
 _delete_ any un-synced data on start instead of simply refusing to start. This
 should be safe on all filesystems where the `sync` operation is safe and removes
 the need for manual intervention when restarting an IPFS node after a crash.
+
+Assuming you initialized your badger repo with `ipfs init --profile=badgerds`,
+you can enable truncate on an existing repo by running: `ipfs config --json
+"Datastore.Spec.child.truncate" true`.
 
 ### Refactors and Endeavors
 
