@@ -1,4 +1,4 @@
-// +build !windows,nofuse
+// +build nofuse
 
 package commands
 

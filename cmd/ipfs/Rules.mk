@@ -7,6 +7,13 @@ CLEAN += $(IPFS_BIN_$(d))
 
 PATH := $(realpath $(d)):$(PATH)
 
+#TODO: review; probably a more elegant way to do this; alternative is fork cgofuse, removing cgo invocations
+ifeq ($(WINDOWS),1)
+    ifeq ($(origin CPATH), undefined)
+    export CGO_ENABLED = 0
+    endif
+endif
+
 # disabled for now
 # depend on *.pb.go files in the repo as Order Only (as they shouldn't be rebuilt if exist)
 # DPES_OO_$(d) := diagnostics/pb/diagnostics.pb.go exchange/bitswap/message/pb/message.pb.go

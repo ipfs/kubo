@@ -8,6 +8,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"sync"
@@ -17,10 +18,10 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	mount "github.com/ipfs/go-ipfs/core/commands/mount"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
@@ -28,8 +29,8 @@ import (
 	"gx/ipfs/QmTQuFQWHAWy4wMH6ZyPfGiawA5u9T8rs79FENoV8yXaoS/client_golang/prometheus"
 	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
 	cmds "gx/ipfs/QmX6AchyJgso1WNamTJMdxfzGiWuYu94K6tF9MJ66rRhAu/go-ipfs-cmds"
-	"gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	manet "gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 	mprome "gx/ipfs/QmfHYMtNSntM6qFhHzLDCyqTX7NNpsfwFgvicJv7L5saAP/go-metrics-prometheus"
 )
 
@@ -39,7 +40,6 @@ const (
 	initOptionKwd             = "init"
 	initProfileOptionKwd      = "init-profile"
 	ipfsMountKwd              = "mount-ipfs"
-	ipnsMountKwd              = "mount-ipns"
 	migrateKwd                = "migrate"
 	mountKwd                  = "mount"
 	offlineKwd                = "offline" // global option
@@ -158,7 +158,6 @@ Headers.
 		cmdkit.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
 		cmdkit.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmdkit.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
-		cmdkit.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmdkit.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
 		cmdkit.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
 		cmdkit.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
@@ -377,9 +376,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// construct fuse mountpoints - if the user provided the --mount flag
 	mount, _ := req.Options[mountKwd].(bool)
-	if mount && offline {
-		return cmdkit.Errorf(cmdkit.ErrClient, "mount is not currently supported in offline mode")
-	}
 	if mount {
 		if err := mountFuse(req, cctx); err != nil {
 			return err
@@ -632,27 +628,40 @@ func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 		return fmt.Errorf("mountFuse: GetConfig() failed: %s", err)
 	}
 
-	fsdir, found := req.Options[ipfsMountKwd].(string)
+	//FIXME: on MacOS supplying --ipfs-mount="~/ipfs-mount" creates a relative directory "./~/ipfs-mount"
+	mountPoint, found := req.Options[ipfsMountKwd].(string)
 	if !found {
-		fsdir = cfg.Mounts.IPFS
+		mountPoint = cfg.Mounts.IPFS
 	}
 
-	nsdir, found := req.Options[ipnsMountKwd].(string)
-	if !found {
-		nsdir = cfg.Mounts.IPNS
-	}
-
-	node, err := cctx.ConstructNode()
+	daemon, err := cctx.ConstructNode()
 	if err != nil {
 		return fmt.Errorf("mountFuse: ConstructNode() failed: %s", err)
 	}
 
-	err = nodeMount.Mount(node, fsdir, nsdir)
-	if err != nil {
-		return err
+	//TODO: remove this when done debugging
+	if daemon.Mount != nil {
+		return fmt.Errorf("Programmer error detected; daemon is initializing but mountpoint is already set: {%p}%q", daemon.Mount, daemon.Mount.Where())
 	}
-	fmt.Printf("IPFS mounted at: %s\n", fsdir)
-	fmt.Printf("IPNS mounted at: %s\n", nsdir)
+
+	api, err := coreapi.NewCoreAPI(daemon)
+	if err != nil {
+		return fmt.Errorf("mountFuse: NewCoreAPI() failed: %s", err)
+	}
+
+	fsi, err := mount.InvokeMount(mountPoint, daemon.FilesRoot, api, cctx.Context())
+	if err != nil {
+		return fmt.Errorf("mountFuse: InvokeMount() failed: %s", err)
+	}
+
+	daemon.Mount = fsi
+
+	absMount, err := filepath.Abs(mountPoint)
+	if err != nil {
+		absMount = mountPoint
+	}
+
+	fmt.Printf("IPFS mounted at: %s\n", absMount)
 	return nil
 }
 

@@ -21,9 +21,9 @@ import (
 	"time"
 
 	version "github.com/ipfs/go-ipfs"
+	mount "github.com/ipfs/go-ipfs/core/commands/mount/interface"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
-	mount "github.com/ipfs/go-ipfs/fuse/mount"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	p2p "github.com/ipfs/go-ipfs/p2p"
@@ -108,10 +108,10 @@ type IpfsNode struct {
 	Repo repo.Repo
 
 	// Local node
-	Pinning         pin.Pinner // the pinning manager
-	Mounts          Mounts     // current mount state, if any.
-	PrivateKey      ic.PrivKey // the local node's private Key
-	PNetFingerprint []byte     // fingerprint of private network
+	Pinning         pin.Pinner      // the pinning manager
+	Mount           mount.Interface // current mount state, if any.
+	PrivateKey      ic.PrivKey      // the local node's private Key
+	PNetFingerprint []byte          // fingerprint of private network
 
 	// Services
 	Peerstore       pstore.Peerstore     // storage for other Peer instances
@@ -147,14 +147,6 @@ type IpfsNode struct {
 
 	mode         mode
 	localModeSet bool
-}
-
-// Mounts defines what the node's mount state is. This should
-// perhaps be moved to the daemon or mount. It's here because
-// it needs to be accessible across daemon requests.
-type Mounts struct {
-	Ipfs mount.Mount
-	Ipns mount.Mount
 }
 
 func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex bool) error {
@@ -683,11 +675,8 @@ func (n *IpfsNode) teardown() error {
 		closers = append(closers, n.Exchange)
 	}
 
-	if n.Mounts.Ipfs != nil && !n.Mounts.Ipfs.IsActive() {
-		closers = append(closers, mount.Closer(n.Mounts.Ipfs))
-	}
-	if n.Mounts.Ipns != nil && !n.Mounts.Ipns.IsActive() {
-		closers = append(closers, mount.Closer(n.Mounts.Ipns))
+	if n.Mount != nil {
+		closers = append(closers, n.Mount)
 	}
 
 	if n.DHT != nil {

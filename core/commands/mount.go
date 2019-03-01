@@ -1,27 +1,22 @@
-// +build !windows,!nofuse
+// +build !nofuse
 
 package commands
 
 import (
+	"errors"
 	"fmt"
-	"io"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	mount "github.com/ipfs/go-ipfs/core/commands/mount"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 
-	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
 	cmds "gx/ipfs/QmX6AchyJgso1WNamTJMdxfzGiWuYu94K6tF9MJ66rRhAu/go-ipfs-cmds"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
-const (
-	mountIPFSPathOptionName = "ipfs-path"
-	mountIPNSPathOptionName = "ipns-path"
-)
-
 var MountCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Mounts IPFS to the filesystem (read-only).",
+		Tagline: "Mounts IPFS to the filesystem.",
 		ShortDescription: `
 Mount IPFS at a read-only mountpoint on the OS (default: /ipfs and /ipns).
 All IPFS objects will be accessible under that directory. Note that the
@@ -77,53 +72,60 @@ baz
 `,
 	},
 	Options: []cmdkit.Option{
-		cmdkit.StringOption(mountIPFSPathOptionName, "f", "The path where IPFS should be mounted."),
-		cmdkit.StringOption(mountIPNSPathOptionName, "n", "The path where IPNS should be mounted."),
+		cmdkit.StringOption("ipfs-path", "f", "The path where IPFS should be mounted."),
+		//TODO: this should probably be an argument not an option; or possibly its own command `ipfs unmount [-f --timeout]`
+		cmdkit.BoolOption("unmount", "u", "Destroy existing mount."),
 	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cfg, err := cmdenv.GetConfig(env)
+
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) (err error) {
+		defer res.Close()
+
+		daemon, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
 		}
 
-		nd, err := cmdenv.GetNode(env)
+		destroy, _ := req.Options["unmount"].(bool)
+		if destroy {
+			if daemon.Mount == nil {
+				return errors.New("IPFS is not mounted")
+			}
+			whence := daemon.Mount.Where()
+			ret := daemon.Mount.Close()
+			if ret == nil {
+				cmds.EmitOnce(res, fmt.Sprintf("Successfully unmounted %#q", whence))
+				daemon.Mount = nil
+			}
+
+			return ret
+		}
+
+		if daemon.Mount != nil {
+			//TODO: introduce `mount -f` to automatically do this?
+			//problem: '-f' overlaps with ipfs-path short param
+			return fmt.Errorf("IPFS already mounted at: %#q use `ipfs mount -u`", daemon.Mount.Where())
+		}
+
+		api, err := coreapi.NewCoreAPI(daemon)
 		if err != nil {
 			return err
 		}
 
-		// error if we aren't running node in online mode
-		if nd.LocalMode() {
-			return ErrNotOnline
-		}
-
-		fsdir, found := req.Options[mountIPFSPathOptionName].(string)
-		if !found {
-			fsdir = cfg.Mounts.IPFS // use default value
-		}
-
-		// get default mount points
-		nsdir, found := req.Options[mountIPNSPathOptionName].(string)
-		if !found {
-			nsdir = cfg.Mounts.IPNS // NB: be sure to not redeclare!
-		}
-
-		err = nodeMount.Mount(nd, fsdir, nsdir)
+		conf, err := cmdenv.GetConfig(env)
 		if err != nil {
 			return err
 		}
 
-		var output config.Mounts
-		output.IPFS = fsdir
-		output.IPNS = nsdir
-		return cmds.EmitOnce(res, &output)
-	},
-	Type: config.Mounts{},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, mounts *config.Mounts) error {
-			fmt.Fprintf(w, "IPFS mounted at: %s\n", mounts.IPFS)
-			fmt.Fprintf(w, "IPNS mounted at: %s\n", mounts.IPNS)
+		daemonCtx := daemon.Context()
+		mountPoint := conf.Mounts.IPFS
+		filesRoot := daemon.FilesRoot
 
-			return nil
-		}),
+		fsi, err := mount.InvokeMount(mountPoint, filesRoot, api, daemonCtx)
+		if err != nil {
+			return err
+		}
+		daemon.Mount = fsi
+		cmds.EmitOnce(res, fmt.Sprintf("mounted at: %#q", daemon.Mount.Where()))
+		return nil
 	},
 }
