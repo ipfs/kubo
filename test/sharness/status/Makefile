@@ -22,7 +22,7 @@ results/dot_prove.txt: ../.prove
 
 status: results/status.md
 
-results/status.md:
+results/status.md: results/coverage.txt results/dot_prove.txt
 	@./implementation_status.sh >$@
 	@echo "results written in '$@'"
 

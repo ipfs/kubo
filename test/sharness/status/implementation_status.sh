@@ -4,9 +4,10 @@ USAGE="$0 [-h] [-v]"
 
 usage() {
 	echo "$USAGE"
-	echo "	Use dot_prove_parser.sh and coverage_helper.sh to generate"
-	echo "	a status file that show which ipfs commands are working, not"
-	echo "	working, or not tested according to sharness tests."
+	echo "	Use result files from dot_prove_parser.sh and "
+	echo "	coverage_helper.sh to generate a status file "
+	echo "	that show which ipfs commands are working, not "
+	echo "  working, or not tested according to sharness tests."
 	echo "	Options:"
 	echo "		-h|--help: print this usage message and exit"
 	echo "		-v|--verbose: print logs of what happens"
@@ -51,31 +52,27 @@ TMPDIR=$(mktemp -d "$TMP_TMPL") ||
 
 export VERBOSE
 
-log "Parse .prove file"
-DOT_PROVE_PARSER='dot_prove_parser.sh'
-test -f "$DOT_PROVE_PARSER" || die "could not find '$DOT_PROVE_PARSER'"
-TMP_CLEANED="$TMPDIR/cleaned_dot_prove"
-./"$DOT_PROVE_PARSER" >"$TMP_CLEANED" || exit
+PARSED_DOT_PROVE='results/dot_prove.txt'
 
+test -f "$PARSED_DOT_PROVE" ||
+	die "could not find '$PARSED_DOT_PROVE'"
 
-log "Get command coverage report"
-COVERAGE_HELPER='coverage_helper.sh'
-test -f "$COVERAGE_HELPER" || die "could not find '$COVERAGE_HELPER'"
-TMP_COVERAGE="$TMPDIR/test_coverage"
-./"$COVERAGE_HELPER" >"$TMP_COVERAGE" || exit
+COVERAGE_RESULTS='results/coverage.txt'
 
+test -f "$COVERAGE_RESULTS" ||
+	die "could not find '$COVERAGE_RESULTS'"
 
 log "Generate implementation status"
 TMP_STATUS="$TMPDIR/impl_status"
-cp "$TMP_COVERAGE" "$TMP_STATUS" ||
-	die "could not cp '$TMP_COVERAGE' into '$TMP_STATUS'"
+cp "$COVERAGE_RESULTS" "$TMP_STATUS" ||
+	die "could not cp '$COVERAGE_RESULTS' into '$TMP_STATUS'"
 while read -r tst status
 do
 	out="GOOD:$tst"
 	test "$status" = "failures" && out="BAD:$tst"
 	perl -pi -e "s/$tst/$out/" "$TMP_STATUS" ||
 		die "could not substitute '$tst' in '$TMP_STATUS'"
-done < "$TMP_CLEANED"
+done < "$PARSED_DOT_PROVE"
 
 test -z "$NO_MARKDOWN" || {
 	cat "$TMP_STATUS"
