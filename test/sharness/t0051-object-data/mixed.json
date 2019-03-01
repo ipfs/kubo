@@ -1,0 +1,5 @@
+{"Data": "another",
+ "Links": [
+   {"Name": "some link", "Hash": "QmXg9Pp2ytZ14xgmQjYEiHjVjMFXzCVVEcRTWJBmLgR39V", "Size": 8},
+   {"Name": "inlined", "Hash": "z4CrgyEyhm4tAw1pgzQtNNuP7", "Size": 14}
+]}

@@ -83,6 +83,10 @@ test_bootstrap_cmd() {
     test_cmp rm_expected rm_actual
   '
 
+  test_expect_success "'ipfs bootstrap rm' fails on bad peers" '
+    test_expect_code 1 ipfs bootstrap rm "foo/bar"
+  '
+
   test_bootstrap_list_cmd $BP2
 
   test_expect_success "'ipfs bootstrap add --default' succeeds" '

@@ -1,21 +1,33 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
+	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cidenc "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil/cidenc"
 )
+
+var refsEncoderMap = cmds.EncoderMap{
+	cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefWrapper) error {
+		if out.Err != "" {
+			return fmt.Errorf(out.Err)
+		}
+		fmt.Fprintln(w, out.Ref)
+
+		return nil
+	}),
+}
 
 // KeyList is a general type for outputting lists of keys
 type KeyList struct {
@@ -30,25 +42,7 @@ const (
 	refsMaxDepthOptionName  = "max-depth"
 )
 
-// KeyListTextMarshaler outputs a KeyList as plaintext, one key per line
-func KeyListTextMarshaler(res cmds.Response) (io.Reader, error) {
-	out, err := unwrapOutput(res.Output())
-	if err != nil {
-		return nil, err
-	}
-
-	output, ok := out.(*KeyList)
-	if !ok {
-		return nil, e.TypeErr(output, out)
-	}
-
-	buf := new(bytes.Buffer)
-	for _, key := range output.Keys {
-		buf.WriteString(key.String() + "\n")
-	}
-	return buf, nil
-}
-
+// RefsCmd is the `ipfs refs` command
 var RefsCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "List links (references) from an object.",
@@ -74,91 +68,67 @@ NOTE: List all references recursively by using the flag '-r'.
 		cmdkit.BoolOption(refsRecursiveOptionName, "r", "Recursively list links of child nodes."),
 		cmdkit.IntOption(refsMaxDepthOptionName, "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context()
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		err := req.ParseBodyArgs()
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		unique, _, err := req.Option(refsUniqueOptionName).Bool()
+		ctx := req.Context
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		recursive, _, err := req.Option(refsRecursiveOptionName).Bool()
+		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		maxDepth, _, err := req.Option(refsMaxDepthOptionName).Int()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		unique, _ := req.Options[refsUniqueOptionName].(bool)
+		recursive, _ := req.Options[refsRecursiveOptionName].(bool)
+		maxDepth, _ := req.Options[refsMaxDepthOptionName].(int)
+		edges, _ := req.Options[refsEdgesOptionName].(bool)
+		format, _ := req.Options[refsFormatOptionName].(string)
 
 		if !recursive {
 			maxDepth = 1 // write only direct refs
 		}
 
-		format, _, err := req.Option(refsFormatOptionName).String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		edges, _, err := req.Option(refsEdgesOptionName).Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
 		if edges {
 			if format != "<dst>" {
-				res.SetError(errors.New("using format argument with edges is not allowed"),
-					cmdkit.ErrClient)
-				return
+				return errors.New("using format argument with edges is not allowed")
 			}
 
 			format = "<src> -> <dst>"
 		}
 
-		objs, err := objectsForPaths(ctx, n, req.Arguments())
+		objs, err := objectsForPaths(ctx, n, req.Arguments)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		out := make(chan interface{})
-		res.SetOutput((<-chan interface{})(out))
+		rw := RefWriter{
+			res:      res,
+			DAG:      n.DAG,
+			Ctx:      ctx,
+			Unique:   unique,
+			PrintFmt: format,
+			MaxDepth: maxDepth,
+		}
 
-		go func() {
-			defer close(out)
-
-			rw := RefWriter{
-				out:      out,
-				DAG:      n.DAG,
-				Ctx:      ctx,
-				Unique:   unique,
-				PrintFmt: format,
-				MaxDepth: maxDepth,
-			}
-
-			for _, o := range objs {
-				if _, err := rw.WriteRefs(o); err != nil {
-					select {
-					case out <- &RefWrapper{Err: err.Error()}:
-					case <-ctx.Done():
-					}
-					return
+		for _, o := range objs {
+			if _, err := rw.WriteRefs(o, enc); err != nil {
+				if err := res.Emit(&RefWrapper{Err: err.Error()}); err != nil {
+					return err
 				}
 			}
-		}()
+		}
+
+		return nil
 	},
-	Marshalers: refsMarshallerMap,
-	Type:       RefWrapper{},
+	Encoders: refsEncoderMap,
+	Type:     RefWrapper{},
 }
 
 var RefsLocalCmd = &cmds.Command{
@@ -169,58 +139,30 @@ Displays the hashes of all local objects.
 `,
 	},
 
-	Run: func(req cmds.Request, res cmds.Response) {
-		ctx := req.Context()
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := req.Context
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		// todo: make async
 		allKeys, err := n.Blockstore.AllKeysChan(ctx)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		out := make(chan interface{})
-		res.SetOutput((<-chan interface{})(out))
-
-		go func() {
-			defer close(out)
-
-			for k := range allKeys {
-				select {
-				case out <- &RefWrapper{Ref: k.String()}:
-				case <-req.Context().Done():
-					return
-				}
+		for k := range allKeys {
+			err := res.Emit(&RefWrapper{Ref: k.String()})
+			if err != nil {
+				return err
 			}
-		}()
+		}
+
+		return nil
 	},
-	Marshalers: refsMarshallerMap,
-	Type:       RefWrapper{},
-}
-
-var refsMarshallerMap = cmds.MarshalerMap{
-	cmds.Text: func(res cmds.Response) (io.Reader, error) {
-		v, err := unwrapOutput(res.Output())
-		if err != nil {
-			return nil, err
-		}
-
-		obj, ok := v.(*RefWrapper)
-		if !ok {
-			return nil, e.TypeErr(obj, v)
-		}
-
-		if obj.Err != "" {
-			return nil, errors.New(obj.Err)
-		}
-
-		return strings.NewReader(obj.Ref + "\n"), nil
-	},
+	Encoders: refsEncoderMap,
+	Type:     RefWrapper{},
 }
 
 func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]ipld.Node, error) {
@@ -246,7 +188,7 @@ type RefWrapper struct {
 }
 
 type RefWriter struct {
-	out chan interface{}
+	res cmds.ResponseEmitter
 	DAG ipld.DAGService
 	Ctx context.Context
 
@@ -258,12 +200,11 @@ type RefWriter struct {
 }
 
 // WriteRefs writes refs of the given object to the underlying writer.
-func (rw *RefWriter) WriteRefs(n ipld.Node) (int, error) {
-	return rw.writeRefsRecursive(n, 0)
-
+func (rw *RefWriter) WriteRefs(n ipld.Node, enc cidenc.Encoder) (int, error) {
+	return rw.writeRefsRecursive(n, 0, enc)
 }
 
-func (rw *RefWriter) writeRefsRecursive(n ipld.Node, depth int) (int, error) {
+func (rw *RefWriter) writeRefsRecursive(n ipld.Node, depth int, enc cidenc.Encoder) (int, error) {
 	nc := n.Cid()
 
 	var count int
@@ -293,7 +234,7 @@ func (rw *RefWriter) writeRefsRecursive(n ipld.Node, depth int) (int, error) {
 
 		// Write this node if not done before (or !Unique)
 		if shouldWrite {
-			if err := rw.WriteEdge(nc, lc, n.Links()[i].Name); err != nil {
+			if err := rw.WriteEdge(nc, lc, n.Links()[i].Name, enc); err != nil {
 				return count, err
 			}
 			count++
@@ -305,7 +246,7 @@ func (rw *RefWriter) writeRefsRecursive(n ipld.Node, depth int) (int, error) {
 		// Note when !Unique, branches are always considered
 		// unexplored and only depth limits apply.
 		if goDeeper {
-			c, err := rw.writeRefsRecursive(nd, depth+1)
+			c, err := rw.writeRefsRecursive(nd, depth+1, enc)
 			count += c
 			if err != nil {
 				return count, err
@@ -374,7 +315,7 @@ func (rw *RefWriter) visit(c cid.Cid, depth int) (bool, bool) {
 }
 
 // Write one edge
-func (rw *RefWriter) WriteEdge(from, to cid.Cid, linkname string) error {
+func (rw *RefWriter) WriteEdge(from, to cid.Cid, linkname string, enc cidenc.Encoder) error {
 	if rw.Ctx != nil {
 		select {
 		case <-rw.Ctx.Done(): // just in case.
@@ -387,13 +328,12 @@ func (rw *RefWriter) WriteEdge(from, to cid.Cid, linkname string) error {
 	switch {
 	case rw.PrintFmt != "":
 		s = rw.PrintFmt
-		s = strings.Replace(s, "<src>", from.String(), -1)
-		s = strings.Replace(s, "<dst>", to.String(), -1)
+		s = strings.Replace(s, "<src>", enc.Encode(from), -1)
+		s = strings.Replace(s, "<dst>", enc.Encode(to), -1)
 		s = strings.Replace(s, "<linkname>", linkname, -1)
 	default:
-		s += to.String()
+		s += enc.Encode(to)
 	}
 
-	rw.out <- &RefWrapper{Ref: s}
-	return nil
+	return rw.res.Emit(&RefWrapper{Ref: s})
 }

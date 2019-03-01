@@ -8,12 +8,12 @@ NUM_NODES=6
 
 init_strategy() {
   test_expect_success 'init iptb' '
-    iptb init -f -n $NUM_NODES --bootstrap=none --port=0
+    iptb testbed create -type localipfs -force -count $NUM_NODES -init
   '
 
   test_expect_success 'peer ids' '
-    PEERID_0=$(iptb get id 0) &&
-    PEERID_1=$(iptb get id 1)
+    PEERID_0=$(iptb attr get 0 id) &&
+    PEERID_1=$(iptb attr get 1 id)
   '
 
   test_expect_success 'use pinning startegy for reprovider' '
@@ -123,12 +123,12 @@ test_expect_success 'stop peer 1' '
 
 # Test reprovider working with ticking disabled
 test_expect_success 'init iptb' '
-  iptb init -f -n $NUM_NODES --bootstrap=none --port=0
+  iptb testbed create -type localipfs -force -count $NUM_NODES -init
 '
 
 test_expect_success 'peer ids' '
-  PEERID_0=$(iptb get id 0) &&
-  PEERID_1=$(iptb get id 1)
+  PEERID_0=$(iptb attr get 0 id) &&
+  PEERID_1=$(iptb attr get 1 id)
 '
 
 test_expect_success 'Disable reprovider ticking' '

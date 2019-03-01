@@ -53,14 +53,18 @@ EXPOSE 5001
 EXPOSE 8080
 EXPOSE 8081
 
-# Create the fs-repo directory and switch to a non-privileged user.
+# Create the fs-repo directory
 ENV IPFS_PATH /data/ipfs
 RUN mkdir -p $IPFS_PATH \
   && useradd -s /usr/sbin/nologin -d $IPFS_PATH -u 1000 -G users ipfs \
   && chown ipfs:users $IPFS_PATH
 
+# Switch to a non-privileged user
+USER ipfs
+
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.
+# Important this happens after the USER directive so permission are correct.
 VOLUME $IPFS_PATH
 
 # The default logging level

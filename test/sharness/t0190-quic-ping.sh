@@ -8,7 +8,7 @@ test_init_ipfs
 
 # start iptb + wait for peering
 test_expect_success 'init iptb' '
-  iptb init -n 2 --bootstrap=none --port=0
+  iptb testbed create -type localipfs -count 2 -init
 '
 
 test_expect_success "enable QUIC experiment" '
@@ -26,8 +26,8 @@ test_expect_success "add QUIC swarm addresses" '
 startup_cluster 2
 
 test_expect_success 'peer ids' '
-  PEERID_0=$(iptb get id 0) &&
-  PEERID_1=$(iptb get id 1)
+  PEERID_0=$(iptb attr get 0 id) &&
+  PEERID_1=$(iptb attr get 1 id)
 '
 
 test_expect_success "test ping other" '

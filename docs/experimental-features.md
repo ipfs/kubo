@@ -21,11 +21,13 @@ the above issue.
 - [BadgerDB datastore](#badger-datastore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
+- [p2p http proxy](#p2p-http-proxy)
 - [Circuit Relay](#circuit-relay)
 - [Plugins](#plugins)
-- [Directory Sharding / HAMT](#directory-sharding-hamt)
+- [Directory Sharding / HAMT](#directory-sharding--hamt)
 - [IPNS PubSub](#ipns-pubsub)
 - [QUIC](#quic)
+- [AutoRelay](#autorelay)
 
 ---
 
@@ -181,7 +183,10 @@ Modify your ipfs config:
 ipfs config --json Experimental.FilestoreEnabled true
 ```
 
-And then pass the `--nocopy` flag when running `ipfs add`
+Then restart your IPFS node to reload your config.
+
+Finally, when adding files with ipfs add, pass the --nocopy flag to use the
+filestore instead of copying the files into your local IPFS repo.
 
 ### Road to being a real feature
 - [ ] Needs more people to use and report on how well it works.
@@ -382,6 +387,87 @@ with `ssh [user]@127.0.0.1 -p 2222`.
 
 ---
 
+## p2p http proxy
+
+Allows proxying of HTTP requests over p2p streams. This allows serving any standard http app over p2p streams.
+
+### State
+
+Experimental
+
+### In Version
+
+master, 0.4.19
+
+### How to enable
+
+The `p2p` command needs to be enabled in config:
+
+```sh
+> ipfs config --json Experimental.Libp2pStreamMounting true
+```
+
+On the client, the p2p http proxy needs to be enabled in the config:
+
+```sh
+> ipfs config --json Experimental.P2pHttpProxy true
+```
+
+### How to use
+
+**Netcat example:**
+
+First, pick a protocol name for your application. Think of the protocol name as
+a port number, just significantly more user-friendly. In this example, we're
+going to use `/http`.
+
+***Setup:***
+
+1. A "server" node with peer ID `$SERVER_ID`
+2. A "client" node.
+
+***On the "server" node:***
+
+First, start your application and have it listen for TCP connections on
+port `$APP_PORT`.
+
+Then, configure the p2p listener by running:
+
+```sh
+> ipfs p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$APP_PORT
+```
+
+This will configure IPFS to forward all incoming `/http` streams to
+`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per incoming stream.
+
+***On the "client" node:***
+
+Next, have your application make a http request to `127.0.0.1:8080/p2p/$SERVER_ID/http/$FORWARDED_PATH`. This
+connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
+the remote machine (which needs to be a http server!) with path `$FORWARDED_PATH`. You can test it with netcat:
+
+***On "server" node:***
+```sh
+> echo -e "HTTP/1.1 200\nContent-length: 11\n\nIPFS rocks!" | nc -l -p $APP_PORT
+```
+
+***On "client" node:***
+```sh
+> curl http://localhost:8080/p2p/$SERVER_ID/http/
+```
+
+You should now see the resulting http response: IPFS rocks!
+
+### Custom protocol names
+We also support use of protocol names of the form /x/$NAME/http where $NAME doesn't contain any "/"'s
+
+### Road to being a real feature
+- [ ] Needs p2p streams to graduate from experiments
+- [ ] Needs more people to use and report on how well it works / fits use cases
+- [ ] More documentation
+
+---
+
 ## Circuit Relay
 
 Allows peers to connect through an intermediate relay node when there
@@ -567,3 +653,33 @@ For listening on a QUIC address, add it the swarm addresses, e.g. `/ip4/0.0.0.0/
 - [ ] Make sure QUIC connections work reliably
 - [ ] Make sure QUIC connection offer equal or better performance than TCP connections on real world networks
 - [ ] Finalize libp2p-TLS handshake spec.
+
+
+## AutoRelay
+
+### In Version
+
+0.4.19-dev
+
+### State
+
+Experimental, disabled by default.
+
+Automatically discovers relays and advertises relay addresses when the node is behind an impenetrable NAT.
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Swarm.EnableAutoRelay true
+```
+
+Bootstrappers (and other public nodes) need to also enable the AutoNATService:
+```
+ipfs config --json Swarm.EnableAutoNATService true
+```
+
+### Road to being a real feature
+
+- [ ] needs testing

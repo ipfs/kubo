@@ -6,11 +6,11 @@ import (
 
 	pb "github.com/ipfs/go-ipfs/filestore/pb"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	dshelp "gx/ipfs/QmS73grfbWgWrNztd8Lns9GCG3jjRNDfcPYg2VYQzKDZSt/go-ipfs-ds-help"
-	ds "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore"
-	dsq "gx/ipfs/QmaRb5yNXKonhbkpNxNawoydk4N6es6b4fPj19sjEKsh5D/go-datastore/query"
-	blockstore "gx/ipfs/QmcDDgAXDbpDUpadCJKLr49KYR4HuL7T8Z1dZTHt6ixsoR/go-ipfs-blockstore"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
+	dsq "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/query"
+	dshelp "gx/ipfs/QmXSEqXLCzpCByJU4wqbJ37TcBEj77FKMUWUP1qLh56847/go-ipfs-ds-help"
+	blockstore "gx/ipfs/QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA/go-ipfs-blockstore"
 )
 
 // Status is used to identify the state of the block data referenced
@@ -66,15 +66,18 @@ type ListRes struct {
 	Size     uint64
 }
 
-// FormatLong returns a human readable string for a ListRes object.
-func (r *ListRes) FormatLong() string {
+// FormatLong returns a human readable string for a ListRes object
+func (r *ListRes) FormatLong(enc func(cid.Cid) string) string {
+	if enc == nil {
+		enc = (cid.Cid).String
+	}
 	switch {
 	case !r.Key.Defined():
 		return "<corrupt key>"
 	case r.FilePath == "":
 		return r.Key.String()
 	default:
-		return fmt.Sprintf("%-50s %6d %s %d", r.Key, r.Size, r.FilePath, r.Offset)
+		return fmt.Sprintf("%-50s %6d %s %d", enc(r.Key), r.Size, r.FilePath, r.Offset)
 	}
 }
 

@@ -1,26 +1,27 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	pin "github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	dag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
-	offline "gx/ipfs/QmT6dHGp3UYd3vUMpy7rzX2CXQv7HLcj42Vtq8qwwjgASb/go-ipfs-exchange-offline"
-	"gx/ipfs/QmVkMRSkXrpjqrroEXWuYBvDBnXCdMMY6gsKicBGVGUqKT/go-verifcid"
-	bserv "gx/ipfs/QmWfhv1D18DRSiSm73r4QGcByspzPtxxRTcmHW3axFXZo8/go-blockservice"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	bserv "gx/ipfs/QmUEXNytX2q9g9xtdfHRVYfsvjw5V9FQ32vE9ZRYFAxFoy/go-blockservice"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	offline "gx/ipfs/Qmb9fkAWgcyVRnFdXGqA6jcWGFj6q35oJjwRAYRhfEboGS/go-ipfs-exchange-offline"
+	verifcid "gx/ipfs/QmcVd2ApQdbfaYPKhCjj4WoQuxk4CMxPqmNpijKmFLh6qa/go-verifcid"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cidenc "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil/cidenc"
 )
 
 var PinCmd = &cmds.Command{
@@ -65,119 +66,140 @@ var addPinCmd = &cmds.Command{
 		cmdkit.BoolOption(pinProgressOptionName, "Show progress"),
 	},
 	Type: AddPinOutput{},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-
-		api, err := req.InvocContext().GetApi()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		defer n.Blockstore.PinLock().Unlock()
 
 		// set recursive flag
-		recursive, _, err := req.Option(pinRecursiveOptionName).Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+		recursive, _ := req.Options[pinRecursiveOptionName].(bool)
+		showProgress, _ := req.Options[pinProgressOptionName].(bool)
+
+		if err := req.ParseBodyArgs(); err != nil {
+			return err
 		}
-		showProgress, _, _ := req.Option(pinProgressOptionName).Bool()
+
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
 
 		if !showProgress {
-			added, err := corerepo.Pin(n, api, req.Context(), req.Arguments(), recursive)
+			added, err := pinAddMany(req.Context, api, enc, req.Arguments, recursive)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
-			res.SetOutput(&AddPinOutput{Pins: cidsToStrings(added)})
-			return
+
+			return cmds.EmitOnce(res, &AddPinOutput{Pins: added})
 		}
 
-		out := make(chan interface{})
-		res.SetOutput((<-chan interface{})(out))
 		v := new(dag.ProgressTracker)
-		ctx := v.DeriveContext(req.Context())
+		ctx := v.DeriveContext(req.Context)
 
 		type pinResult struct {
-			pins []cid.Cid
+			pins []string
 			err  error
 		}
+
 		ch := make(chan pinResult, 1)
 		go func() {
-			added, err := corerepo.Pin(n, api, ctx, req.Arguments(), recursive)
+			added, err := pinAddMany(ctx, api, enc, req.Arguments, recursive)
 			ch <- pinResult{pins: added, err: err}
 		}()
 
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
-		defer close(out)
+
 		for {
 			select {
 			case val := <-ch:
 				if val.err != nil {
-					res.SetError(val.err, cmdkit.ErrNormal)
-					return
+					return val.err
 				}
 
 				if pv := v.Value(); pv != 0 {
-					out <- &AddPinOutput{Progress: v.Value()}
+					if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+						return err
+					}
 				}
-				out <- &AddPinOutput{Pins: cidsToStrings(val.pins)}
-				return
+				return res.Emit(&AddPinOutput{Pins: val.pins})
 			case <-ticker.C:
-				out <- &AddPinOutput{Progress: v.Value()}
+				if err := res.Emit(&AddPinOutput{Progress: v.Value()}); err != nil {
+					return err
+				}
 			case <-ctx.Done():
 				log.Error(ctx.Err())
-				res.SetError(ctx.Err(), cmdkit.ErrNormal)
-				return
+				return ctx.Err()
 			}
 		}
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			var added []string
-
-			switch out := v.(type) {
-			case *AddPinOutput:
-				if out.Pins != nil {
-					added = out.Pins
-				} else {
-					// this can only happen if the progress option is set
-					fmt.Fprintf(res.Stderr(), "Fetched/Processed %d nodes\r", out.Progress)
-				}
-
-				if res.Error() != nil {
-					return nil, res.Error()
-				}
-			default:
-				return nil, e.TypeErr(out, v)
-			}
-
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddPinOutput) error {
+			rec, found := req.Options["recursive"].(bool)
 			var pintype string
-			rec, found, _ := res.Request().Option("recursive").Bool()
 			if rec || !found {
 				pintype = "recursively"
 			} else {
 				pintype = "directly"
 			}
 
-			buf := new(bytes.Buffer)
-			for _, k := range added {
-				fmt.Fprintf(buf, "pinned %s %s\n", k, pintype)
+			for _, k := range out.Pins {
+				fmt.Fprintf(w, "pinned %s %s\n", k, pintype)
 			}
-			return buf, nil
+
+			return nil
+		}),
+	},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						return nil
+					}
+					return err
+				}
+
+				out, ok := v.(*AddPinOutput)
+				if !ok {
+					return e.TypeErr(out, v)
+				}
+				if out.Pins == nil {
+					// this can only happen if the progress option is set
+					fmt.Fprintf(os.Stderr, "Fetched/Processed %d nodes\r", out.Progress)
+				} else {
+					err = re.Emit(out)
+					if err != nil {
+						return err
+					}
+				}
+			}
 		},
 	},
+}
+
+func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
+	added := make([]string, len(paths))
+	for i, b := range paths {
+		p, err := coreiface.ParsePath(b)
+		if err != nil {
+			return nil, err
+		}
+
+		rp, err := api.ResolvePath(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
+			return nil, err
+		}
+		added[i] = enc.Encode(rp.Cid())
+	}
+
+	return added, nil
 }
 
 var rmPinCmd = &cmds.Command{
@@ -196,52 +218,53 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 		cmdkit.BoolOption(pinRecursiveOptionName, "r", "Recursively unpin the object linked to by the specified object(s).").WithDefault(true),
 	},
 	Type: PinOutput{},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		api, err := req.InvocContext().GetApi()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		// set recursive flag
-		recursive, _, err := req.Option(pinRecursiveOptionName).Bool()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+		recursive, _ := req.Options[pinRecursiveOptionName].(bool)
+
+		if err := req.ParseBodyArgs(); err != nil {
+			return err
 		}
 
-		removed, err := corerepo.Unpin(n, api, req.Context(), req.Arguments(), recursive)
+		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&PinOutput{cidsToStrings(removed)})
-	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
+		pins := make([]string, 0, len(req.Arguments))
+		for _, b := range req.Arguments {
+			p, err := coreiface.ParsePath(b)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
-			added, ok := v.(*PinOutput)
-			if !ok {
-				return nil, e.TypeErr(added, v)
+			rp, err := api.ResolvePath(req.Context, p)
+			if err != nil {
+				return err
 			}
 
-			buf := new(bytes.Buffer)
-			for _, k := range added.Pins {
-				fmt.Fprintf(buf, "unpinned %s\n", k)
+			id := enc.Encode(rp.Cid())
+			pins = append(pins, id)
+			if err := api.Pin().Rm(req.Context, rp, options.Pin.RmRecursive(recursive)); err != nil {
+				return err
 			}
-			return buf, nil
-		},
+		}
+
+		return cmds.EmitOnce(res, &PinOutput{pins})
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
+			for _, k := range out.Pins {
+				fmt.Fprintf(w, "unpinned %s\n", k)
+			}
+
+			return nil
+		}),
 	},
 }
 
@@ -301,74 +324,66 @@ Example:
 		cmdkit.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmdkit.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		api, err := req.InvocContext().GetApi()
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		typeStr, _, err := req.Option(pinTypeOptionName).String()
+		typeStr, _ := req.Options[pinTypeOptionName].(string)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
 		default:
 			err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-			res.SetError(err, cmdkit.ErrClient)
-			return
+			return err
 		}
 
-		var keys map[string]RefKeyObject
-
-		if len(req.Arguments()) > 0 {
-			keys, err = pinLsKeys(req.Context(), req.Arguments(), typeStr, n, api)
-		} else {
-			keys, err = pinLsAll(req.Context(), typeStr, n)
-		}
-
+		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-		} else {
-			res.SetOutput(&RefKeyList{Keys: keys})
+			return err
 		}
+
+		var keys map[cid.Cid]RefKeyObject
+		if len(req.Arguments) > 0 {
+			keys, err = pinLsKeys(req.Context, req.Arguments, typeStr, n, api)
+		} else {
+			keys, err = pinLsAll(req.Context, typeStr, n)
+		}
+		if err != nil {
+			return err
+		}
+
+		refKeys := make(map[string]RefKeyObject, len(keys))
+		for k, v := range keys {
+			refKeys[enc.Encode(k)] = v
+		}
+
+		return cmds.EmitOnce(res, &RefKeyList{Keys: refKeys})
 	},
 	Type: RefKeyList{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RefKeyList) error {
+			quiet, _ := req.Options[pinQuietOptionName].(bool)
 
-			quiet, _, err := res.Request().Option(pinQuietOptionName).Bool()
-			if err != nil {
-				return nil, err
-			}
-
-			keys, ok := v.(*RefKeyList)
-			if !ok {
-				return nil, e.TypeErr(keys, v)
-			}
-			out := new(bytes.Buffer)
-			for k, v := range keys.Keys {
+			for k, v := range out.Keys {
 				if quiet {
-					fmt.Fprintf(out, "%s\n", k)
+					fmt.Fprintf(w, "%s\n", k)
 				} else {
-					fmt.Fprintf(out, "%s %s\n", k, v.Type)
+					fmt.Fprintf(w, "%s %s\n", k, v.Type)
 				}
 			}
-			return out, nil
-		},
+
+			return nil
+		}),
 	},
 }
 
@@ -394,54 +409,36 @@ new pin and removing the old one.
 		cmdkit.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
 	},
 	Type: PinOutput{},
-	Run: func(req cmds.Request, res cmds.Response) {
-		api, err := req.InvocContext().GetApi()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		unpin, _, err := req.Option(pinUnpinOptionName).Bool()
+		unpin, _ := req.Options[pinUnpinOptionName].(bool)
+
+		from, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		from, err := iface.ParsePath(req.Arguments()[0])
+		to, err := coreiface.ParsePath(req.Arguments[1])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		to, err := iface.ParsePath(req.Arguments()[1])
+		err = api.Pin().Update(req.Context, from, to, options.Pin.Unpin(unpin))
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = api.Pin().Update(req.Context(), from, to, options.Pin.Unpin(unpin))
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
-
-		res.SetOutput(&PinOutput{Pins: []string{from.String(), to.String()}})
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{from.String(), to.String()}})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-			added, ok := v.(*PinOutput)
-			if !ok {
-				return nil, e.TypeErr(added, v)
-			}
-
-			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "updated %s to %s\n", added.Pins[0], added.Pins[1])
-			return buf, nil
-		},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
+			fmt.Fprintf(w, "updated %s to %s\n", out.Pins[0], out.Pins[1])
+			return nil
+		}),
 	},
 }
 
@@ -457,51 +454,45 @@ var verifyPinCmd = &cmds.Command{
 		cmdkit.BoolOption(pinVerboseOptionName, "Also write the hashes of non-broken pins."),
 		cmdkit.BoolOption(pinQuietOptionName, "q", "Write just hashes of broken pins."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		n, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		n, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		verbose, _, _ := res.Request().Option(pinVerboseOptionName).Bool()
-		quiet, _, _ := res.Request().Option(pinQuietOptionName).Bool()
+		verbose, _ := req.Options[pinVerboseOptionName].(bool)
+		quiet, _ := req.Options[pinQuietOptionName].(bool)
 
 		if verbose && quiet {
-			res.SetError(fmt.Errorf("the --verbose and --quiet options can not be used at the same time"), cmdkit.ErrNormal)
+			return fmt.Errorf("the --verbose and --quiet options can not be used at the same time")
+		}
+
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
 		}
 
 		opts := pinVerifyOpts{
 			explain:   !quiet,
 			includeOk: verbose,
 		}
-		out := pinVerify(req.Context(), n, opts)
+		out := pinVerify(req.Context, n, opts, enc)
 
-		res.SetOutput(out)
+		return res.Emit(out)
 	},
 	Type: PinVerifyRes{},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			quiet, _, _ := res.Request().Option(pinQuietOptionName).Bool()
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinVerifyRes) error {
+			quiet, _ := req.Options[pinQuietOptionName].(bool)
 
-			out, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-			r, ok := out.(*PinVerifyRes)
-			if !ok {
-				return nil, e.TypeErr(r, out)
-			}
-
-			buf := &bytes.Buffer{}
-			if quiet && !r.Ok {
-				fmt.Fprintf(buf, "%s\n", r.Cid)
+			if quiet && !out.Ok {
+				fmt.Fprintf(w, "%s\n", out.Cid)
 			} else if !quiet {
-				r.Format(buf)
+				out.Format(w)
 			}
 
-			return buf, nil
-		},
+			return nil
+		}),
 	},
 }
 
@@ -513,17 +504,17 @@ type RefKeyList struct {
 	Keys map[string]RefKeyObject
 }
 
-func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, api iface.CoreAPI) (map[string]RefKeyObject, error) {
+func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, api coreiface.CoreAPI) (map[cid.Cid]RefKeyObject, error) {
 
 	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
 		return nil, fmt.Errorf("invalid pin mode '%s'", typeStr)
 	}
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[cid.Cid]RefKeyObject)
 
 	for _, p := range args {
-		pth, err := iface.ParsePath(p)
+		pth, err := coreiface.ParsePath(p)
 		if err != nil {
 			return nil, err
 		}
@@ -547,7 +538,7 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 		default:
 			pinType = "indirect through " + pinType
 		}
-		keys[c.Cid().String()] = RefKeyObject{
+		keys[c.Cid()] = RefKeyObject{
 			Type: pinType,
 		}
 	}
@@ -555,13 +546,13 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 	return keys, nil
 }
 
-func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[string]RefKeyObject, error) {
+func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode) (map[cid.Cid]RefKeyObject, error) {
 
-	keys := make(map[string]RefKeyObject)
+	keys := make(map[cid.Cid]RefKeyObject)
 
 	AddToResultKeys := func(keyList []cid.Cid, typeStr string) {
 		for _, c := range keyList {
-			keys[c.String()] = RefKeyObject{
+			keys[c] = RefKeyObject{
 				Type: typeStr,
 			}
 		}
@@ -610,8 +601,8 @@ type pinVerifyOpts struct {
 	includeOk bool
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan interface{} {
-	visited := make(map[string]PinStatus)
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) <-chan interface{} {
+	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
@@ -620,7 +611,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
-		key := root.String()
+		key := root
 		if status, ok := visited[key]; ok {
 			return status
 		}
@@ -628,7 +619,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err := verifcid.ValidateCid(root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -638,7 +629,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: key, Err: err.Error()}}
+				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -664,7 +655,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts) <-chan
 			pinStatus := checkPin(cid)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{cid.String(), pinStatus}:
+				case out <- &PinVerifyRes{enc.Encode(cid), pinStatus}:
 				case <-ctx.Done():
 					return
 				}
@@ -685,12 +676,4 @@ func (r PinVerifyRes) Format(out io.Writer) {
 			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 		}
 	}
-}
-
-func cidsToStrings(cs []cid.Cid) []string {
-	out := make([]string, 0, len(cs))
-	for _, c := range cs {
-		out = append(out, c.String())
-	}
-	return out
 }

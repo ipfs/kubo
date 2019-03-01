@@ -1,21 +1,19 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	bitswap "gx/ipfs/QmNkxFCmPtr2RQxjZNRCNryLud4L9wMEiBJsLgF14MqTHj/go-bitswap"
-	decision "gx/ipfs/QmNkxFCmPtr2RQxjZNRCNryLud4L9wMEiBJsLgF14MqTHj/go-bitswap/decision"
 
-	"gx/ipfs/QmPSBJL4momYnE7DcUyk2DVhD6rH488ZmHBGLbxNdhU44K/go-humanize"
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
+	bitswap "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap"
+	decision "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap/decision"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cidutil "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -26,9 +24,9 @@ var BitswapCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"stat":      bitswapStatCmd,
-		"wantlist":  lgc.NewCommand(showWantlistCmd),
-		"ledger":    lgc.NewCommand(ledgerCmd),
-		"reprovide": lgc.NewCommand(reprovideCmd),
+		"wantlist":  showWantlistCmd,
+		"ledger":    ledgerCmd,
+		"reprovide": reprovideCmd,
 	},
 }
 
@@ -36,7 +34,7 @@ const (
 	peerOptionName = "peer"
 )
 
-var showWantlistCmd = &oldcmds.Command{
+var showWantlistCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show blocks currently on the wantlist.",
 		ShortDescription: `
@@ -46,47 +44,47 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 		cmdkit.StringOption(peerOptionName, "p", "Specify which peer to show wantlist for. Default: self."),
 	},
 	Type: KeyList{},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(ErrNotOnline, cmdkit.ErrClient)
-			return
+			return ErrNotOnline
 		}
 
 		bs, ok := nd.Exchange.(*bitswap.Bitswap)
 		if !ok {
-			res.SetError(e.TypeErr(bs, nd.Exchange), cmdkit.ErrNormal)
-			return
+			return e.TypeErr(bs, nd.Exchange)
 		}
 
-		pstr, found, err := req.Option(peerOptionName).String()
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		pstr, found := req.Options[peerOptionName].(string)
 		if found {
 			pid, err := peer.IDB58Decode(pstr)
 			if err != nil {
-				res.SetError(err, cmdkit.ErrNormal)
-				return
+				return err
 			}
-			if pid == nd.Identity {
-				res.SetOutput(&KeyList{bs.GetWantlist()})
-				return
+			if pid != nd.Identity {
+				return cmds.EmitOnce(res, &KeyList{bs.WantlistForPeer(pid)})
 			}
-
-			res.SetOutput(&KeyList{bs.WantlistForPeer(pid)})
-		} else {
-			res.SetOutput(&KeyList{bs.GetWantlist()})
 		}
+
+		return cmds.EmitOnce(res, &KeyList{bs.GetWantlist()})
 	},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: KeyListTextMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *KeyList) error {
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
+			}
+			// sort the keys first
+			cidutil.Sort(out.Keys)
+			for _, key := range out.Keys {
+				fmt.Fprintln(w, enc.Encode(key))
+			}
+			return nil
+		}),
 	},
 }
 
@@ -119,26 +117,25 @@ var bitswapStatCmd = &cmds.Command{
 		return cmds.EmitOnce(res, st)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			out, ok := v.(*bitswap.Stat)
-			if !ok {
-				return e.TypeErr(out, v)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s *bitswap.Stat) error {
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
 			}
-
 			fmt.Fprintln(w, "bitswap status")
-			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", out.ProvideBufLen, bitswap.HasBlockBufferSize)
-			fmt.Fprintf(w, "\tblocks received: %d\n", out.BlocksReceived)
-			fmt.Fprintf(w, "\tblocks sent: %d\n", out.BlocksSent)
-			fmt.Fprintf(w, "\tdata received: %d\n", out.DataReceived)
-			fmt.Fprintf(w, "\tdata sent: %d\n", out.DataSent)
-			fmt.Fprintf(w, "\tdup blocks received: %d\n", out.DupBlksReceived)
-			fmt.Fprintf(w, "\tdup data received: %s\n", humanize.Bytes(out.DupDataReceived))
-			fmt.Fprintf(w, "\twantlist [%d keys]\n", len(out.Wantlist))
-			for _, k := range out.Wantlist {
-				fmt.Fprintf(w, "\t\t%s\n", k.String())
+			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", s.ProvideBufLen, bitswap.HasBlockBufferSize)
+			fmt.Fprintf(w, "\tblocks received: %d\n", s.BlocksReceived)
+			fmt.Fprintf(w, "\tblocks sent: %d\n", s.BlocksSent)
+			fmt.Fprintf(w, "\tdata received: %d\n", s.DataReceived)
+			fmt.Fprintf(w, "\tdata sent: %d\n", s.DataSent)
+			fmt.Fprintf(w, "\tdup blocks received: %d\n", s.DupBlksReceived)
+			fmt.Fprintf(w, "\tdup data received: %s\n", humanize.Bytes(s.DupDataReceived))
+			fmt.Fprintf(w, "\twantlist [%d keys]\n", len(s.Wantlist))
+			for _, k := range s.Wantlist {
+				fmt.Fprintf(w, "\t\t%s\n", enc.Encode(k))
 			}
-			fmt.Fprintf(w, "\tpartners [%d]\n", len(out.Peers))
-			for _, p := range out.Peers {
+			fmt.Fprintf(w, "\tpartners [%d]\n", len(s.Peers))
+			for _, p := range s.Peers {
 				fmt.Fprintf(w, "\t\t%s\n", p)
 			}
 
@@ -147,7 +144,7 @@ var bitswapStatCmd = &cmds.Command{
 	},
 }
 
-var ledgerCmd = &oldcmds.Command{
+var ledgerCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Show the current ledger for a peer.",
 		ShortDescription: `
@@ -160,81 +157,64 @@ prints the ledger associated with a given peer.
 		cmdkit.StringArg("peer", true, false, "The PeerID (B58) of the ledger to inspect."),
 	},
 	Type: decision.Receipt{},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(ErrNotOnline, cmdkit.ErrClient)
-			return
+			return ErrNotOnline
 		}
 
 		bs, ok := nd.Exchange.(*bitswap.Bitswap)
 		if !ok {
-			res.SetError(e.TypeErr(bs, nd.Exchange), cmdkit.ErrNormal)
-			return
+			return e.TypeErr(bs, nd.Exchange)
 		}
 
-		partner, err := peer.IDB58Decode(req.Arguments()[0])
+		partner, err := peer.IDB58Decode(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrClient)
-			return
+			return err
 		}
-		res.SetOutput(bs.LedgerForPeer(partner))
+
+		return cmds.EmitOnce(res, bs.LedgerForPeer(partner))
 	},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: func(res oldcmds.Response) (io.Reader, error) {
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			out, ok := v.(*decision.Receipt)
-			if !ok {
-				return nil, e.TypeErr(out, v)
-			}
-
-			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "Ledger for %s\n"+
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *decision.Receipt) error {
+			fmt.Fprintf(w, "Ledger for %s\n"+
 				"Debt ratio:\t%f\n"+
 				"Exchanges:\t%d\n"+
 				"Bytes sent:\t%d\n"+
 				"Bytes received:\t%d\n\n",
 				out.Peer, out.Value, out.Exchanged,
 				out.Sent, out.Recv)
-			return buf, nil
-		},
+			return nil
+		}),
 	},
 }
 
-var reprovideCmd = &oldcmds.Command{
+var reprovideCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Trigger reprovider.",
 		ShortDescription: `
 Trigger reprovider to announce our data to network.
 `,
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		nd, err := req.InvocContext().GetNode()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		if !nd.OnlineMode() {
-			res.SetError(ErrNotOnline, cmdkit.ErrClient)
-			return
+			return ErrNotOnline
 		}
 
-		err = nd.Reprovider.Trigger(req.Context())
+		err = nd.Reprovider.Trigger(req.Context)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(nil)
+		return nil
 	},
 }

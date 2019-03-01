@@ -41,16 +41,6 @@ test_expect_success "ipfs version --all has all required fields" '
   grep "Golang version" version_all.txt
 '
 
-test_expect_success "ipfs help succeeds" '
-  ipfs help >help.txt
-'
-
-test_expect_success "ipfs help output looks good" '
-  egrep -i "^Usage" help.txt >/dev/null &&
-  egrep "ipfs <command>" help.txt >/dev/null ||
-  test_fsh cat help.txt
-'
-
 test_expect_success "'ipfs commands' succeeds" '
   ipfs commands >commands.txt
 '
@@ -59,6 +49,21 @@ test_expect_success "'ipfs commands' output looks good" '
   grep "ipfs add" commands.txt &&
   grep "ipfs daemon" commands.txt &&
   grep "ipfs update" commands.txt
+'
+
+test_expect_success "All sub-commands accept help" '
+  echo 0 > fail
+  while read -r cmd
+  do
+    ${cmd:0:4} help ${cmd:5} >/dev/null ||
+      { echo "$cmd doesnt accept --help"; echo 1 > fail; }
+    echo stuff | $cmd --help >/dev/null ||
+      { echo "$cmd doesnt accept --help when using stdin"; echo 1 > fail; }
+  done <commands.txt
+
+  if [ $(cat fail) = 1 ]; then
+    return 1
+  fi
 '
 
 test_expect_success "All commands accept --help" '

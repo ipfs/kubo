@@ -34,15 +34,15 @@ pnet_key > "${IPFS_PATH}/swarm.key"
 LIBP2P_FORCE_PNET=1 test_launch_ipfs_daemon
 
 test_expect_success "set up iptb testbed" '
-  iptb init -n 5 -p 0 -f --bootstrap=none  &&
-  iptb for-each ipfs config --json Addresses.Swarm  '"'"'["/ip4/127.0.0.1/tcp/0"]'"'"'
+  iptb testbed create -type localipfs -count 5 -force -init &&
+  iptb run -- ipfs config --json Addresses.Swarm  '"'"'["/ip4/127.0.0.1/tcp/0"]'"'"'
 '
 
 set_key() {
   node="$1"
   keyfile="$2"
 
-  cp "$keyfile" "${IPTB_ROOT}/${node}/swarm.key"
+  cp "$keyfile" "${IPTB_ROOT}/testbeds/default/${node}/swarm.key"
 }
 
 pnet_key > key1
@@ -57,7 +57,7 @@ set_key 4 key2
 unset LIBP2P_FORCE_PNET
 
 test_expect_success "start nodes" '
-  iptb start [0-4]
+  iptb start -wait [0-4]
 '
 
 test_expect_success "try connecting node in public network with priv networks" '

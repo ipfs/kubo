@@ -158,7 +158,41 @@ test_expect_success "'ipfs name publish --help' succeeds" '
   ipfs name publish --help
 '
 
+# test offline resolve
+
+test_expect_success "'ipfs name resolve --offline' succeeds" '
+  ipfs name resolve --offline "$PEERID" >output
+'
+test_expect_success "resolve output looks good" '
+  printf "/ipld/%s/thing\n" "$OBJECT_HASH" >expected4 &&
+  test_cmp expected4 output
+'
+
+test_expect_success "'ipfs name resolve --offline -n' succeeds" '
+  ipfs name resolve --offline -n "$PEERID" >output
+'
+test_expect_success "resolve output looks good" '
+  printf "/ipld/%s/thing\n" "$OBJECT_HASH" >expected4 &&
+  test_cmp expected4 output
+'
+
 test_launch_ipfs_daemon
+
+test_expect_success "'ipfs name resolve --offline' succeeds" '
+  ipfs name resolve --offline "$PEERID" >output
+'
+test_expect_success "resolve output looks good" '
+  printf "/ipld/%s/thing\n" "$OBJECT_HASH" >expected4 &&
+  test_cmp expected4 output
+'
+
+test_expect_success "'ipfs name resolve --offline -n' succeeds" '
+  ipfs name resolve --offline -n "$PEERID" >output
+'
+test_expect_success "resolve output looks good" '
+  printf "/ipld/%s/thing\n" "$OBJECT_HASH" >expected4 &&
+  test_cmp expected4 output
+'
 
 test_expect_success "empty request to name publish doesn't panic and returns error" '
   curl "http://$API_ADDR/api/v0/name/publish" > curl_out || true &&

@@ -58,7 +58,7 @@ If the issue is a protocol weakness that cannot be immediately exploited or some
 
 ## Install
 
-The canonical download instructions for IPFS are over at: http://ipfs.io/docs/install/. It is **highly suggested** you follow those instructions if you are not interested in working on IPFS development.
+The canonical download instructions for IPFS are over at: https://docs.ipfs.io/introduction/install/. It is **highly suggested** you follow those instructions if you are not interested in working on IPFS development.
 
 ### System Requirements
 
@@ -101,7 +101,16 @@ For Linux and MacOSX you can use the purely functional package manager [Nix](htt
 ```
 $ nix-env -i ipfs
 ```
+
 You can also install the Package by using it's attribute name, which is also `ipfs`.
+
+#### Guix
+
+GNU's functional package manager, [Guix](https://www.gnu.org/software/guix/), also provides a go-ipfs package:
+
+```
+$ guix package -i go-ipfs
+```
 
 #### Snap
 
@@ -115,7 +124,7 @@ $ sudo snap install ipfs
 
 #### Install Go
 
-The build process for ipfs requires Go 1.10 or higher. If you don't have it: [Download Go 1.10+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.11 or higher. If you don't have it: [Download Go 1.11+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -317,6 +326,10 @@ Stop the running container:
 
     docker stop ipfs_host
 
+When starting a container running ipfs for the first time with an empty data directory, it will call `ipfs init` to initialize configuration files and generate a new keypair. At this time, you can choose which profile to apply using the `IPFS_PROFILE` environment variable:
+
+    docker run -d --name ipfs_host -e IPFS_PROFILE=server -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
+
 ### Troubleshooting
 
 If you have previously installed IPFS before and you are running into problems getting a newer version to work, try deleting (or backing up somewhere else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`. This will reinitialize the config file to its defaults and clear out the local datastore of any bad entries.
@@ -390,6 +403,7 @@ Some places to get you started on the codebase:
   - libp2p: https://github.com/libp2p/go-libp2p
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
   - PubSub: https://github.com/libp2p/go-libp2p-pubsub
+- [IPFS : The `Add` command demystified](https://github.com/ipfs/go-ipfs/tree/master/docs/add-code-flow.md)
 
 ### CLI, HTTP-API, Architecture Diagram
 
@@ -415,7 +429,7 @@ Find more documentation for developers on [docs](./docs)
 
 ## Contributing
 
-[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/contributing.md)
+[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md)
 
 We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what it is without you! If you want to help out, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 

@@ -46,6 +46,7 @@ test_expect_success "ipfs daemon output looks good" '
   sed "s/^/Swarm listening on /" listen_addrs >>expected_daemon &&
   sed "s/^/Swarm announcing /" local_addrs >>expected_daemon &&
   echo "API server listening on '$API_MADDR'" >>expected_daemon &&
+  echo "WebUI: http://'$API_ADDR'/webui" >>expected_daemon &&
   echo "Gateway (readonly) server listening on '$GWAY_MADDR'" >>expected_daemon &&
   echo "Daemon is ready" >>expected_daemon &&
   test_cmp expected_daemon actual_daemon
@@ -132,7 +133,7 @@ TEST_ULIMIT_PRESET=1
 test_launch_ipfs_daemon
 
 test_expect_success "daemon raised its fd limit" '
-  grep "raised file descriptor limit to 2048." actual_daemon > /dev/null
+  grep -v "setting file descriptor limit" actual_daemon > /dev/null
 '
 
 test_expect_success "daemon actually can handle 2048 file descriptors" '

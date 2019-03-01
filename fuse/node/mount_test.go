@@ -13,10 +13,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
-	namesys "github.com/ipfs/go-ipfs/namesys"
 
-	ci "gx/ipfs/Qma6ESRQTf1ZLPgzpCwDTqQJefPnU6uLvMjP18vK8EWp8L/go-testutil/ci"
-	offroute "gx/ipfs/QmcjvUP25nLSwELgUeqWe854S3XVbtsntTr7kZxG63yKhe/go-ipfs-routing/offline"
+	ci "gx/ipfs/QmWapVoHjtKhn4MhvKNoPTkJKADFGACfXPFnt7combwp5W/go-testutil/ci"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -45,14 +43,6 @@ func TestExternalUnmount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	err = node.LoadPrivateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	node.Routing = offroute.NewOfflineRouter(node.Repo.Datastore(), node.RecordValidator)
-	node.Namesys = namesys.NewNameSystem(node.Routing, node.Repo.Datastore(), 0)
 
 	err = ipns.InitializeKeyspace(node, node.PrivateKey)
 	if err != nil {

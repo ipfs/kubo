@@ -11,7 +11,7 @@ test_description="Test ipfs repo operations"
 num_nodes=4
 
 test_expect_success "set up an iptb cluster" '
-  iptb init -n $num_nodes -p 0 -f --bootstrap=none
+  iptb testbed create -type localipfs -count $num_nodes -force -init
 '
 
 startup_cluster $num_nodes
@@ -26,12 +26,12 @@ test_expect_success "publish that object as an ipns entry" '
 '
 
 test_expect_success "add an entry on another node pointing to that one" '
-  NODE1_ID=$(iptb get id 1) &&
+  NODE1_ID=$(iptb attr get 1 id) &&
   ipfsi 2 name publish /ipns/$NODE1_ID
 '
 
 test_expect_success "cat that entry on a third node" '
-  NODE2_ID=$(iptb get id 2) &&
+  NODE2_ID=$(iptb attr get 2 id) &&
   ipfsi 3 cat /ipns/$NODE2_ID > output
 '
 

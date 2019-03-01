@@ -6,9 +6,8 @@ import (
 	"net"
 	"strings"
 
-	opts "github.com/ipfs/go-ipfs/namesys/opts"
-
-	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
+	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	opts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options/namesys"
 	isd "gx/ipfs/QmZmmuAXgX73UQmX1jRKjTGmjzq24Jinqkq8vzkBtno4uX/go-is-domain"
 )
 
@@ -45,6 +44,7 @@ type lookupRes struct {
 // TXT records for a given domain name should contain a b58
 // encoded multihash.
 func (r *DNSResolver) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+	var fqdn string
 	out := make(chan onceResult, 1)
 	segments := strings.SplitN(name, "/", 2)
 	domain := segments[0]
@@ -56,11 +56,17 @@ func (r *DNSResolver) resolveOnceAsync(ctx context.Context, name string, options
 	}
 	log.Debugf("DNSResolver resolving %s", domain)
 
+	if strings.HasSuffix(domain, ".") {
+		fqdn = domain
+	} else {
+		fqdn = domain + "."
+	}
+
 	rootChan := make(chan lookupRes, 1)
-	go workDomain(r, domain, rootChan)
+	go workDomain(r, fqdn, rootChan)
 
 	subChan := make(chan lookupRes, 1)
-	go workDomain(r, "_dnslink."+domain, subChan)
+	go workDomain(r, "_dnslink."+fqdn, subChan)
 
 	appendPath := func(p path.Path) (path.Path, error) {
 		if len(segments) > 1 {

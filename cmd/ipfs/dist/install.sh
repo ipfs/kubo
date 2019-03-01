@@ -13,11 +13,11 @@ binpaths="/usr/local/bin /usr/bin"
 is_write_perm_missing=""
 
 for binpath in $binpaths; do
-  if mv "$bin" "$binpath/$bin" 2> /dev/null; then
+  if mv "$bin" "$binpath/$bin" ; then
     echo "Moved $bin to $binpath"
     exit 0
   else
-    if [ -d "$binpath" -a ! -w "$binpath" ]; then
+    if [ -d "$binpath" ] && [ ! -w "$binpath" ]; then
       is_write_perm_missing=1
     fi
   fi

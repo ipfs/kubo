@@ -215,4 +215,46 @@ test_expect_success "GET compact blocks succeeds" '
 
 test_kill_ipfs_daemon
 
+
+GWPORT=32563
+
+test_expect_success "set up iptb testbed" '
+  iptb testbed create -type localipfs -count 5 -force -init &&
+  ipfsi 0 config Addresses.Gateway /ip4/127.0.0.1/tcp/$GWPORT &&
+  PEERID_1=$(iptb attr get 1 id)
+'
+
+test_expect_success "set NoFetch to true in config of node 0" '
+  ipfsi 0 config --bool=true Gateway.NoFetch true
+'
+
+test_expect_success "start ipfs nodes" '
+  iptb start -wait &&
+  iptb connect 0 1
+'
+
+test_expect_success "try fetching not present key from node 0" '
+  FOO=$(echo "foo" | ipfsi 1 add -Q) &&
+  test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipfs/$FOO"
+'
+
+test_expect_success "try fetching not present ipns key from node 0" '
+  ipfsi 1 name publish /ipfs/$FOO &&
+  test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipns/$PEERID_1"
+'
+
+test_expect_success "try fetching present key from from node 0" '
+  BAR=$(echo "bar" | ipfsi 0 add -Q) &&
+  curl -f "http://127.0.0.1:$GWPORT/ipfs/$BAR"
+'
+
+test_expect_success "try fetching present ipns key from node 0" '
+  ipfsi 1 name publish /ipfs/$BAR &&
+  curl "http://127.0.0.1:$GWPORT/ipns/$PEERID_1"
+'
+
+test_expect_success "stop testbed" '
+  iptb stop
+'
+
 test_done

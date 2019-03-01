@@ -8,11 +8,12 @@ import (
 	"io/ioutil"
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	caopts "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	pin "github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	blocks "gx/ipfs/QmRcHuYzAyswytBuMF78rj3LTChYszomRFXNg4685ZN1WM/go-block-format"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	caopts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	blocks "gx/ipfs/QmYYLnAzR28nAQ4U5MFniLprnktu6eTFKibeNt96V21EZK/go-block-format"
 )
 
 type BlockAPI CoreAPI
@@ -23,7 +24,7 @@ type BlockStat struct {
 }
 
 func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.BlockPutOption) (coreiface.BlockStat, error) {
-	_, pref, err := caopts.BlockPutOptions(opts...)
+	settings, pref, err := caopts.BlockPutOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +44,17 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
-	err = api.node.Blocks.AddBlock(b)
+	if settings.Pin {
+		defer api.blockstore.PinLock().Unlock()
+	}
+
+	err = api.blocks.AddBlock(b)
 	if err != nil {
 		return nil, err
+	}
+
+	if settings.Pin {
+		api.pinning.PinWithMode(b.Cid(), pin.Recursive)
 	}
 
 	return &BlockStat{path: coreiface.IpldPath(b.Cid()), size: len(data)}, nil
@@ -57,7 +66,7 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 		return nil, err
 	}
 
-	b, err := api.node.Blocks.GetBlock(ctx, rp.Cid())
+	b, err := api.blocks.GetBlock(ctx, rp.Cid())
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +87,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 	cids := []cid.Cid{rp.Cid()}
 	o := util.RmBlocksOpts{Force: settings.Force}
 
-	out, err := util.RmBlocks(api.node.Blockstore, api.node.Pinning, cids, o)
+	out, err := util.RmBlocks(api.blockstore, api.pinning, cids, o)
 	if err != nil {
 		return err
 	}
@@ -109,7 +118,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 		return nil, err
 	}
 
-	b, err := api.node.Blocks.GetBlock(ctx, rp.Cid())
+	b, err := api.blocks.GetBlock(ctx, rp.Cid())
 	if err != nil {
 		return nil, err
 	}

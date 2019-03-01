@@ -7,18 +7,22 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	filestore "github.com/ipfs/go-ipfs/filestore"
+	pin "github.com/ipfs/go-ipfs/pin"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	chunk "gx/ipfs/QmTUTG9Jg9ZRA1EzTPGTDvnwfcfKhDMnqANnP9fe4rSjMR/go-ipfs-chunker"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	chunk "gx/ipfs/QmYmZ81dU5nnmBFy5MmktXLZpt8QCWhRJd6M1uxVF6vke8/go-ipfs-chunker"
+	balanced "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/importer/balanced"
+	ihelper "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/importer/helpers"
+	trickle "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/importer/trickle"
 	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	balanced "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/importer/balanced"
-	ihelper "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/importer/helpers"
-	trickle "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/importer/trickle"
+	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
 )
 
 var urlStoreCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Interact with urlstore.",
+	},
 	Subcommands: map[string]*cmds.Command{
 		"add": urlAdd,
 	},
@@ -36,9 +40,6 @@ control.
 The file is added using raw-leaves but otherwise using the default
 settings for 'ipfs add'.
 
-The file is not pinned, so this command should be followed by an 'ipfs
-pin add'.
-
 This command is considered temporary until a better solution can be
 found.  It may disappear or the semantics can change at any
 time.
@@ -46,6 +47,7 @@ time.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("url", true, false, "URL to add to IPFS"),
@@ -73,6 +75,12 @@ time.
 		}
 
 		useTrickledag, _ := req.Options[trickleOptionName].(bool)
+		dopin, _ := req.Options[pinOptionName].(bool)
+
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
 
 		hreq, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -85,6 +93,11 @@ time.
 		}
 		if hres.StatusCode != http.StatusOK {
 			return fmt.Errorf("expected code 200, got: %d", hres.StatusCode)
+		}
+
+		if dopin {
+			// Take the pinlock
+			defer n.Blockstore.PinLock().Unlock()
 		}
 
 		chk := chunk.NewSizeSplitter(hres.Body, chunk.DefaultBlockSize)
@@ -102,13 +115,26 @@ time.
 		if useTrickledag {
 			layout = trickle.Layout
 		}
-		root, err := layout(dbp.New(chk))
+
+		db, err := dbp.New(chk)
+		if err != nil {
+			return err
+		}
+		root, err := layout(db)
 		if err != nil {
 			return err
 		}
 
+		c := root.Cid()
+		if dopin {
+			n.Pinning.PinWithMode(c, pin.Recursive)
+			if err := n.Pinning.Flush(); err != nil {
+				return err
+			}
+		}
+
 		return cmds.EmitOnce(res, &BlockStat{
-			Key:  root.Cid().String(),
+			Key:  enc.Encode(c),
 			Size: int(hres.ContentLength),
 		})
 	},

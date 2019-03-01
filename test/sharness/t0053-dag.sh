@@ -26,6 +26,23 @@ test_expect_success "make an ipld object in json" '
 '
 
 test_dag_cmd() {
+  test_expect_success "can add an ipld object using protobuf" '
+    IPLDHASH=$(cat ipld_object | ipfs dag put -f protobuf)
+  '
+
+  test_expect_success "output looks correct" '
+    EXPHASH="QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n"
+    test $EXPHASH = $IPLDHASH
+  '
+
+  test_expect_success "can add an ipld object using protobuf and --cid=base=base32" '
+    IPLDHASHb32=$(cat ipld_object | ipfs dag put -f protobuf --cid-base=base32)
+  '
+
+  test_expect_success "output looks correct (does not upgrade to CIDv1)" '
+    test $EXPHASH = $IPLDHASHb32
+  '
+
   test_expect_success "can add an ipld object" '
     IPLDHASH=$(cat ipld_object | ipfs dag put)
   '
@@ -33,6 +50,14 @@ test_dag_cmd() {
   test_expect_success "output looks correct" '
     EXPHASH="zdpuAsXfkHapxohc8LtsCzYiAsy84ESqKRD8eWuY64tt9r2CE"
     test $EXPHASH = $IPLDHASH
+  '
+
+  test_expect_success "can add an ipld object using --cid-base=base32" '
+    IPLDHASHb32=$(cat ipld_object | ipfs dag put --cid-base=base32)
+  '
+
+  test_expect_success "output looks correct" '
+    test $(ipfs cid base32 $EXPHASH) = $IPLDHASHb32
   '
 
   test_expect_success "various path traversals work" '
@@ -201,6 +226,43 @@ test_dag_cmd() {
     printf $HASH > resolve_hash_exp &&
     printf $NESTED_HASH > resolve_obj_exp &&
     printf $NESTED_HASH/data > resolve_data_exp &&
+
+    test_cmp resolve_hash_exp resolve_hash &&
+    test_cmp resolve_obj_exp resolve_obj &&
+    test_cmp resolve_data_exp resolve_data
+  '
+
+  test_expect_success "get base32 version of hashes for testing" '
+    HASHb32=$(ipfs cid base32 $HASH) &&
+    NESTED_HASHb32=$(ipfs cid base32 $NESTED_HASH)
+  '
+
+  test_expect_success "dag resolve some things with --cid-base=base32" '
+    ipfs dag resolve $HASH --cid-base=base32 > resolve_hash &&
+    ipfs dag resolve ${HASH}/obj --cid-base=base32 > resolve_obj &&
+    ipfs dag resolve ${HASH}/obj/data --cid-base=base32 > resolve_data
+  '
+
+  test_expect_success "dag resolve output looks good with --cid-base=base32" '
+    printf $HASHb32 > resolve_hash_exp &&
+    printf $NESTED_HASHb32 > resolve_obj_exp &&
+    printf $NESTED_HASHb32/data > resolve_data_exp &&
+
+    test_cmp resolve_hash_exp resolve_hash &&
+    test_cmp resolve_obj_exp resolve_obj &&
+    test_cmp resolve_data_exp resolve_data
+  '
+
+  test_expect_success "dag resolve some things with base32 hash" '
+    ipfs dag resolve $HASHb32 > resolve_hash &&
+    ipfs dag resolve ${HASHb32}/obj  > resolve_obj &&
+    ipfs dag resolve ${HASHb32}/obj/data > resolve_data
+  '
+
+  test_expect_success "dag resolve output looks good with base32 hash" '
+    printf $HASHb32 > resolve_hash_exp &&
+    printf $NESTED_HASHb32 > resolve_obj_exp &&
+    printf $NESTED_HASHb32/data > resolve_data_exp &&
 
     test_cmp resolve_hash_exp resolve_hash &&
     test_cmp resolve_obj_exp resolve_obj &&

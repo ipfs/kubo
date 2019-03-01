@@ -4,28 +4,31 @@ package readonly
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"testing"
 
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
 
-	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
+	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
+	files "gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
 	fstest "gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs/fstestutil"
-	dag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
-	chunker "gx/ipfs/QmTUTG9Jg9ZRA1EzTPGTDvnwfcfKhDMnqANnP9fe4rSjMR/go-ipfs-chunker"
-	ci "gx/ipfs/Qma6ESRQTf1ZLPgzpCwDTqQJefPnU6uLvMjP18vK8EWp8L/go-testutil/ci"
-	importer "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/importer"
-	uio "gx/ipfs/QmfB3oNXGGq9S4B2a9YeCajoATms3Zw2VvDm8fK7VeLSV8/go-unixfs/io"
+	ci "gx/ipfs/QmWapVoHjtKhn4MhvKNoPTkJKADFGACfXPFnt7combwp5W/go-testutil/ci"
+	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	chunker "gx/ipfs/QmYmZ81dU5nnmBFy5MmktXLZpt8QCWhRJd6M1uxVF6vke8/go-ipfs-chunker"
+	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
+	importer "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/importer"
+	uio "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/io"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -117,7 +120,10 @@ func TestIpfsStressRead(t *testing.T) {
 	nd, mnt := setupIpfsTest(t, nil)
 	defer mnt.Close()
 
-	api := coreapi.NewCoreAPI(nd)
+	api, err := coreapi.NewCoreAPI(nd)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var nodes []ipld.Node
 	var paths []string
@@ -169,21 +175,30 @@ func TestIpfsStressRead(t *testing.T) {
 
 			for i := 0; i < 2000; i++ {
 				item, _ := iface.ParsePath(paths[rand.Intn(len(paths))])
-				fname := path.Join(mnt.Dir, item.String())
+
+				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
+				fname := path.Join(mnt.Dir, relpath)
+
 				rbuf, err := ioutil.ReadFile(fname)
 				if err != nil {
 					errs <- err
 				}
 
-				read, err := api.Unixfs().Get(nd.Context(), item)
+				//nd.Context() is never closed which leads to
+				//hitting 8128 goroutine limit in go test -race mode
+				ctx, cancelFunc := context.WithCancel(context.Background())
+
+				read, err := api.Unixfs().Get(ctx, item)
 				if err != nil {
 					errs <- err
 				}
 
-				data, err := ioutil.ReadAll(read)
+				data, err := ioutil.ReadAll(read.(files.File))
 				if err != nil {
 					errs <- err
 				}
+
+				cancelFunc()
 
 				if !bytes.Equal(rbuf, data) {
 					errs <- errors.New("incorrect read")

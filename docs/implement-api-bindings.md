@@ -29,7 +29,7 @@ handled for you by writes to the request body blocking.)
 
 Like with everything else, IPFS aims to be flexible regarding the API transports.
 Currently, the [go-ipfs](https://github.com/ipfs/go-ipfs) implementation supports
-both an in-process API and an HTTP api. More can be added easily, by mapping the
+both an in-process API and an HTTP API. More can be added easily, by mapping the
 API functions over a transport. (This is similar to how gRPC is also _mapped on
 top of transports_, like HTTP).
 

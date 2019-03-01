@@ -10,14 +10,13 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface"
-	coreunix "github.com/ipfs/go-ipfs/core/coreunix"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
-	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	mocknet "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/net/mock"
-	testutil "gx/ipfs/Qma6ESRQTf1ZLPgzpCwDTqQJefPnU6uLvMjP18vK8EWp8L/go-testutil"
+	files "gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
+	mocknet "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p/p2p/net/mock"
+	testutil "gx/ipfs/QmWapVoHjtKhn4MhvKNoPTkJKADFGACfXPFnt7combwp5W/go-testutil"
+	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
 )
 
 func BenchmarkCat1MB(b *testing.B) { benchmarkVarCat(b, unit.MB*1) }
@@ -66,7 +65,15 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 	}
 	defer catter.Close()
 
-	catterApi := coreapi.NewCoreAPI(catter)
+	adderApi, err := coreapi.NewCoreAPI(adder)
+	if err != nil {
+		return err
+	}
+
+	catterApi, err := coreapi.NewCoreAPI(catter)
+	if err != nil {
+		return err
+	}
 
 	err = mn.LinkAll()
 	if err != nil {
@@ -83,25 +90,20 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	added, err := coreunix.Add(adder, bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
-
-	ap, err := iface.ParsePath(added)
+	added, err := adderApi.Unixfs().Add(ctx, files.NewBytesFile(data))
 	if err != nil {
 		return err
 	}
 
 	b.StartTimer()
-	readerCatted, err := catterApi.Unixfs().Get(ctx, ap)
+	readerCatted, err := catterApi.Unixfs().Get(ctx, added)
 	if err != nil {
 		return err
 	}
 
 	// verify
 	bufout := new(bytes.Buffer)
-	io.Copy(bufout, readerCatted)
+	io.Copy(bufout, readerCatted.(io.Reader))
 	if 0 != bytes.Compare(bufout.Bytes(), data) {
 		return errors.New("catted data does not match added data")
 	}

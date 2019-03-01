@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,13 +10,13 @@ import (
 	"os/exec"
 	"strings"
 
-	cmds "github.com/ipfs/go-ipfs/commands"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	repo "github.com/ipfs/go-ipfs/repo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
-	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
+	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	"gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
 	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
@@ -33,8 +32,9 @@ type ConfigField struct {
 }
 
 const (
-	configBoolOptionName = "bool"
-	configJSONOptionName = "json"
+	configBoolOptionName   = "bool"
+	configJSONOptionName   = "json"
+	configDryRunOptionName = "dry-run"
 )
 
 var ConfigCmd = &cmds.Command{
@@ -60,7 +60,12 @@ Set the value of the 'Datastore.Path' key:
   $ ipfs config Datastore.Path ~/.ipfs/datastore
 `,
 	},
-
+	Subcommands: map[string]*cmds.Command{
+		"show":    configShowCmd,
+		"edit":    configEditCmd,
+		"replace": configReplaceCmd,
+		"profile": configProfileCmd,
+	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")."),
 		cmdkit.StringArg("value", false, false, "The value to set the config entry to."),
@@ -69,46 +74,40 @@ Set the value of the 'Datastore.Path' key:
 		cmdkit.BoolOption(configBoolOptionName, "Set a boolean value."),
 		cmdkit.BoolOption(configJSONOptionName, "Parse stringified JSON."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		args := req.Arguments()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		args := req.Arguments
 		key := args[0]
 
 		var output *ConfigField
-		defer func() {
-			if output != nil {
-				res.SetOutput(output)
-			} else {
-				res.SetOutput(nil)
-			}
-		}()
 
 		// This is a temporary fix until we move the private key out of the config file
 		switch strings.ToLower(key) {
 		case "identity", "identity.privkey":
-			res.SetError(fmt.Errorf("cannot show or change private key through API"), cmdkit.ErrNormal)
-			return
+			return errors.New("cannot show or change private key through API")
 		default:
 		}
 
-		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+		r, err := fsrepo.Open(cfgRoot)
+		if err != nil {
+			return err
 		}
 		defer r.Close()
 		if len(args) == 2 {
 			value := args[1]
 
-			if parseJSON, _, _ := req.Option(configJSONOptionName).Bool(); parseJSON {
+			if parseJSON, _ := req.Options[configJSONOptionName].(bool); parseJSON {
 				var jsonVal interface{}
 				if err := json.Unmarshal([]byte(value), &jsonVal); err != nil {
 					err = fmt.Errorf("failed to unmarshal json. %s", err)
-					res.SetError(err, cmdkit.ErrNormal)
-					return
+					return err
 				}
 
 				output, err = setConfig(r, key, jsonVal)
-			} else if isbool, _, _ := req.Option(configBoolOptionName).Bool(); isbool {
+			} else if isbool, _ := req.Options[configBoolOptionName].(bool); isbool {
 				output, err = setConfig(r, key, value == "true")
 			} else {
 				output, err = setConfig(r, key, value)
@@ -116,46 +115,30 @@ Set the value of the 'Datastore.Path' key:
 		} else {
 			output, err = getConfig(r, key)
 		}
+
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
+
+		return cmds.EmitOnce(res, output)
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			if len(res.Request().Arguments()) == 2 {
-				return nil, nil // dont output anything
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ConfigField) error {
+			if len(req.Arguments) == 2 {
+				return nil
 			}
 
-			if res.Error() != nil {
-				return nil, res.Error()
-			}
-
-			v, err := unwrapOutput(res.Output())
+			buf, err := config.HumanOutput(out.Value)
 			if err != nil {
-				return nil, err
-			}
-
-			vf, ok := v.(*ConfigField)
-			if !ok {
-				return nil, e.TypeErr(vf, v)
-			}
-
-			buf, err := config.HumanOutput(vf.Value)
-			if err != nil {
-				return nil, err
+				return err
 			}
 			buf = append(buf, byte('\n'))
-			return bytes.NewReader(buf), nil
-		},
+
+			w.Write(buf)
+			return nil
+		}),
 	},
 	Type: ConfigField{},
-	Subcommands: map[string]*cmds.Command{
-		"show":    configShowCmd,
-		"edit":    configEditCmd,
-		"replace": configReplaceCmd,
-		"profile": configProfileCmd,
-	},
 }
 
 var configShowCmd = &cmds.Command{
@@ -166,57 +149,46 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 `,
 	},
 	Type: map[string]interface{}{},
-	Run: func(req cmds.Request, res cmds.Response) {
-		cfgPath := req.InvocContext().ConfigRoot
-		fname, err := config.Filename(cfgPath)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+
+		fname, err := config.Filename(cfgRoot)
+		if err != nil {
+			return err
 		}
 
 		data, err := ioutil.ReadFile(fname)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		var cfg map[string]interface{}
 		err = json.Unmarshal(data, &cfg)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
-		res.SetOutput(&cfg)
+
+		return cmds.EmitOnce(res, &cfg)
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			if res.Error() != nil {
-				return nil, res.Error()
-			}
-
-			v, err := unwrapOutput(res.Output())
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
+			buf, err := config.HumanOutput(out)
 			if err != nil {
-				return nil, err
-			}
-
-			cfg, ok := v.(*map[string]interface{})
-			if !ok {
-				return nil, e.TypeErr(cfg, v)
-			}
-
-			buf, err := config.HumanOutput(cfg)
-			if err != nil {
-				return nil, err
+				return err
 			}
 			buf = append(buf, byte('\n'))
-			return bytes.NewReader(buf), nil
-		},
+			w.Write(buf)
+
+			return nil
+		}),
 	},
 }
 
@@ -236,7 +208,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 	for _, k := range key[:len(key)-1] {
 		foundk, val, ok := find(cur, k)
 		if !ok {
-			return fmt.Errorf("failed to find specified key")
+			return errors.New("failed to find specified key")
 		}
 
 		if foundk != k {
@@ -270,17 +242,18 @@ variable set to your preferred text editor.
 `,
 	},
 
-	Run: func(req cmds.Request, res cmds.Response) {
-		filename, err := config.Filename(req.InvocContext().ConfigRoot)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		err = editConfig(filename)
+		filename, err := config.Filename(cfgRoot)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
+			return err
 		}
+
+		return editConfig(filename)
 	},
 }
 
@@ -296,29 +269,25 @@ can't be undone.
 	Arguments: []cmdkit.Argument{
 		cmdkit.FileArg("file", true, false, "The file to use as the new config."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		// has to be called
-		res.SetOutput(nil)
-
-		r, err := fsrepo.Open(req.InvocContext().ConfigRoot)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
+		if err != nil {
+			return err
 		}
 		defer r.Close()
 
-		file, err := req.Files().NextFile()
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 		defer file.Close()
 
-		err = replaceConfig(r, file)
-		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
-		}
+		return replaceConfig(r, file)
 	},
 }
 
@@ -341,63 +310,52 @@ var configProfileApplyCmd = &cmds.Command{
 		Tagline: "Apply profile to config.",
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("dry-run", "print difference between the current config and the config that would be generated"),
+		cmdkit.BoolOption(configDryRunOptionName, "print difference between the current config and the config that would be generated"),
 	},
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
-	Run: func(req cmds.Request, res cmds.Response) {
-		profile, ok := config.Profiles[req.Arguments()[0]]
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		profile, ok := config.Profiles[req.Arguments[0]]
 		if !ok {
-			res.SetError(fmt.Errorf("%s is not a profile", req.Arguments()[0]), cmdkit.ErrNormal)
-			return
+			return fmt.Errorf("%s is not a profile", req.Arguments[0])
 		}
 
-		dryRun, _, _ := req.Option("dry-run").Bool()
-		oldCfg, newCfg, err := transformConfig(req.InvocContext().ConfigRoot, req.Arguments()[0], profile.Transform, dryRun)
+		dryRun, _ := req.Options[configDryRunOptionName].(bool)
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
+		}
+
+		oldCfg, newCfg, err := transformConfig(cfgRoot, req.Arguments[0], profile.Transform, dryRun)
+		if err != nil {
+			return err
 		}
 
 		oldCfgMap, err := scrubPrivKey(oldCfg)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
 		newCfgMap, err := scrubPrivKey(newCfg)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&ConfigUpdateOutput{
+		return cmds.EmitOnce(res, &ConfigUpdateOutput{
 			OldCfg: oldCfgMap,
 			NewCfg: newCfgMap,
 		})
 	},
-	Marshalers: cmds.MarshalerMap{
-		cmds.Text: func(res cmds.Response) (io.Reader, error) {
-			if res.Error() != nil {
-				return nil, res.Error()
-			}
-
-			v, err := unwrapOutput(res.Output())
-			if err != nil {
-				return nil, err
-			}
-
-			apply, ok := v.(*ConfigUpdateOutput)
-			if !ok {
-				return nil, e.TypeErr(apply, v)
-			}
-
-			diff := jsondiff.Compare(apply.OldCfg, apply.NewCfg)
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ConfigUpdateOutput) error {
+			diff := jsondiff.Compare(out.OldCfg, out.NewCfg)
 			buf := jsondiff.Format(diff)
 
-			return strings.NewReader(string(buf)), nil
-		},
+			w.Write(buf)
+
+			return nil
+		}),
 	},
 	Type: ConfigUpdateOutput{},
 }
@@ -444,15 +402,18 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 	}
 	defer r.Close()
 
-	cfg, err := r.Config()
+	oldCfg, err := r.Config()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// make a copy to avoid updating repo's config unintentionally
-	oldCfg := *cfg
-	newCfg := oldCfg
-	err = transformer(&newCfg)
+	newCfg, err := oldCfg.Clone()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = transformer(newCfg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -463,13 +424,13 @@ func transformConfig(configRoot string, configName string, transformer config.Tr
 			return nil, nil, err
 		}
 
-		err = r.SetConfig(&newCfg)
+		err = r.SetConfig(newCfg)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
-	return &oldCfg, &newCfg, nil
+	return oldCfg, newCfg, nil
 }
 
 func getConfig(r repo.Repo, key string) (*ConfigField, error) {
@@ -513,12 +474,12 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 
 	keyF, err := getConfig(r, config.PrivKeySelector)
 	if err != nil {
-		return fmt.Errorf("failed to get PrivKey")
+		return errors.New("failed to get PrivKey")
 	}
 
 	pkstr, ok := keyF.Value.(string)
 	if !ok {
-		return fmt.Errorf("private key in config was not a string")
+		return errors.New("private key in config was not a string")
 	}
 
 	cfg.Identity.PrivKey = pkstr

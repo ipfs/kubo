@@ -11,8 +11,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
-	config "gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
-	random "gx/ipfs/QmSJ9n2s9NUoA9D849W5jj5SJ94nMcZpj1jCgQJieiNqSt/go-random"
+	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
+	random "gx/ipfs/QmXMnwKWAFBk8kgH8gjoG5P9Pj5aASPvQA2kHdu6gRwyj5/go-random"
 )
 
 func main() {

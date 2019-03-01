@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"io"
 
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	tar "github.com/ipfs/go-ipfs/tar"
 
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	dag "gx/ipfs/QmSei8kFMfqdJq7Q68d2LMnHbTWKKg2daA29ezUYFAUNgc/go-merkledag"
-	"gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
+	"gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var TarCmd = &cmds.Command{
@@ -44,27 +43,32 @@ represent it.
 			return err
 		}
 
-		fi, err := req.Files.NextFile()
+		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
 			return err
 		}
 
-		node, err := tar.ImportTar(req.Context, fi, nd.DAG)
+		it := req.Files.Entries()
+		file, err := cmdenv.GetFileArg(it)
+		if err != nil {
+			return err
+		}
+
+		node, err := tar.ImportTar(req.Context, file, nd.DAG)
 		if err != nil {
 			return err
 		}
 
 		c := node.Cid()
 
-		fi.FileName()
-		return cmds.EmitOnce(res, &coreiface.AddEvent{
-			Name: fi.FileName(),
-			Hash: c.String(),
+		return cmds.EmitOnce(res, &AddEvent{
+			Name: it.Name(),
+			Hash: enc.Encode(c),
 		})
 	},
-	Type: coreiface.AddEvent{},
+	Type: AddEvent{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *coreiface.AddEvent) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddEvent) error {
 			fmt.Fprintln(w, out.Hash)
 			return nil
 		}),

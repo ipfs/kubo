@@ -10,12 +10,21 @@ test_description="Test add and cat commands"
 
 test_add_cat_file() {
   test_expect_success "ipfs add --help works" '
-    ipfs add --help 2> add_help_err > /dev/null
+    ipfs add --help 2> add_help_err1 > /dev/null
   '
 
   test_expect_success "stdin reading message doesnt show up" '
-    test_expect_code 1 grep "ipfs: Reading from" add_help_err &&
-    test_expect_code 1 grep "send Ctrl-d to stop." add_help_err
+    test_expect_code 1 grep "ipfs: Reading from" add_help_err1 &&
+    test_expect_code 1 grep "send Ctrl-d to stop." add_help_err1
+  '
+
+  test_expect_success "ipfs help add works" '
+    ipfs help add 2> add_help_err2 > /dev/null
+  '
+
+  test_expect_success "stdin reading message doesnt show up" '
+    test_expect_code 1 grep "ipfs: Reading from" add_help_err2 &&
+    test_expect_code 1 grep "send Ctrl-d to stop." add_help_err2
   '
 
   test_expect_success "ipfs add succeeds" '
@@ -263,6 +272,59 @@ test_add_cat_file() {
     echo "added QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1 test_current_dir" > expected
     test_cmp expected actual
   '
+
+  # --cid-base=base32
+
+  test_expect_success "ipfs add --cid-base=base32 succeeds" '
+    echo "base32 test" >mountdir/base32-test.txt &&
+    ipfs add --cid-base=base32 mountdir/base32-test.txt >actual
+  '
+  test_expect_success "ipfs add --cid-base=base32 output looks good" '
+    HASHb32="bafybeibyosqxljd2eptb4ebbtvk7pb4aoxzqa6ttdsflty6rsslz5y6i34" &&
+    echo "added $HASHb32 base32-test.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --cid-base=base32 --only-hash succeeds" '
+    ipfs add --cid-base=base32 --only-hash mountdir/base32-test.txt > oh_actual
+  '
+  test_expect_success "ipfs add --cid-base=base32 --only-hash output looks good" '
+    test_cmp expected oh_actual
+  '
+
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false succeeds" '
+    echo "base32 test" >mountdir/base32-test.txt &&
+    ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false mountdir/base32-test.txt >actual
+  '
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false output looks good" '
+    HASHv0=$(cid-fmt -v 0 -b z %s "$HASHb32") &&
+    echo "added $HASHv0 base32-test.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false --only-hash succeeds" '
+    ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false --only-hash mountdir/base32-test.txt > oh_actual
+  '
+  test_expect_success "ipfs add --cid-base=base32 --upgrade-cidv0-in-output=false --only-hash output looks good" '
+    test_cmp expected oh_actual
+  '
+
+  test_expect_success "ipfs cat with base32 hash succeeds" '
+    ipfs cat "$HASHb32" >actual
+  '
+  test_expect_success "ipfs cat with base32 hash output looks good" '
+    echo "base32 test" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs cat using CIDv0 hash succeeds" '
+    ipfs cat "$HASHv0" >actual
+  '
+  test_expect_success "ipfs cat using CIDv0 hash looks good" '
+    echo "base32 test" >expected &&
+    test_cmp expected actual
+  '
+
 }
 
 test_add_cat_5MB() {
@@ -303,6 +365,30 @@ test_add_cat_5MB() {
   test_expect_success FUSE "cat ipfs/bigfile looks good" '
     test_cmp mountdir/bigfile actual
   '
+
+  test_expect_success "remove hash" '
+    ipfs pin rm "$EXP_HASH" &&
+    ipfs block rm "$EXP_HASH"
+  '
+
+  test_expect_success "get base32 version of CID" '
+    ipfs cid base32 $EXP_HASH > base32_cid &&
+    BASE32_HASH=`cat base32_cid`
+  '
+
+  test_expect_success "ipfs add --cid-base=base32 bigfile' succeeds" '
+    ipfs add $ADD_FLAGS --cid-base=base32 mountdir/bigfile >actual ||
+    test_fsh cat daemon_err
+  '
+
+  test_expect_success "'ipfs add bigfile --cid-base=base32' output looks good" '
+    echo "added $BASE32_HASH bigfile" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "'ipfs cat $BASE32_HASH' succeeds" '
+    ipfs cat "$BASE32_HASH" >actual
+  '
 }
 
 test_add_cat_raw() {
@@ -335,6 +421,19 @@ test_add_cat_raw() {
 
   test_expect_success "make sure it looks good" '
     test_cmp zero-length-file zero-length-file_out
+  '
+}
+
+test_add_cat_derefargs() {
+  test_expect_success "create and hash zero length file" '
+    touch zero-length-file &&
+    ZEROHASH=$(ipfs add -q -n zero-length-file)
+  '
+
+  test_expect_success "create symlink and add with dereferenced arguments" '
+    ln -s zero-length-file symlink-to-zero &&
+    HASH=$(ipfs add -q -n --dereference-args symlink-to-zero) &&
+    test $HASH = $ZEROHASH
   '
 }
 
@@ -391,7 +490,7 @@ test_add_named_pipe() {
     test_expect_code 1 ipfs add named-pipe 2>actual &&
     STAT=$(generic_stat named-pipe) &&
     rm named-pipe &&
-    grep "Error: Unrecognized file type for named-pipe: $STAT" actual &&
+    grep "Error: unrecognized file type for named-pipe: $STAT" actual &&
     grep USAGE actual &&
     grep "ipfs add" actual
   '
@@ -401,7 +500,7 @@ test_add_named_pipe() {
     mkfifo named-pipe-dir/named-pipe &&
     STAT=$(generic_stat named-pipe-dir/named-pipe) &&
     test_expect_code 1 ipfs add -r named-pipe-dir 2>actual &&
-    printf "Error:$err_prefix Unrecognized file type for named-pipe-dir/named-pipe: $STAT\n" >expected &&
+    printf "Error:$err_prefix unrecognized file type for named-pipe-dir/named-pipe: $STAT\n" >expected &&
     rm named-pipe-dir/named-pipe &&
     rmdir named-pipe-dir &&
     test_cmp expected actual
@@ -431,11 +530,29 @@ test_expect_success "'ipfs add --help' output looks good" '
   test_fsh cat actual
 '
 
+test_expect_success "'ipfs help add' succeeds" '
+  ipfs help add >actual
+'
+
+test_expect_success "'ipfs help add' output looks good" '
+  egrep "ipfs add.*<path>" actual >/dev/null ||
+  test_fsh cat actual
+'
+
 test_expect_success "'ipfs cat --help' succeeds" '
   ipfs cat --help >actual
 '
 
 test_expect_success "'ipfs cat --help' output looks good" '
+  egrep "ipfs cat.*<ipfs-path>" actual >/dev/null ||
+  test_fsh cat actual
+'
+
+test_expect_success "'ipfs help cat' succeeds" '
+  ipfs help cat >actual
+'
+
+test_expect_success "'ipfs help cat' output looks good" '
   egrep "ipfs cat.*<ipfs-path>" actual >/dev/null ||
   test_fsh cat actual
 '
@@ -692,6 +809,8 @@ test_add_cat_raw
 test_expect_success "ipfs add --only-hash succeeds" '
   echo "unknown content for only-hash" | ipfs add --only-hash -q > oh_hash
 '
+
+test_add_cat_derefargs
 
 #TODO: this doesn't work when online hence separated out from test_add_cat_file
 test_expect_success "ipfs cat file fails" '

@@ -5,17 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math/rand"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"runtime/pprof"
 	"strings"
-	"sync"
-	"syscall"
 	"time"
 
+	util "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	corecmds "github.com/ipfs/go-ipfs/core/commands"
@@ -24,17 +21,17 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmPEpj17FDRpc7K1aArKZp3RsHtzRMKykeK9GVgn4WQGPR/go-ipfs-config"
-	u "gx/ipfs/QmPdKqUcHGFdeSpvjVoaTRPPstGif9GBZb5Q56RVw9o69A/go-ipfs-util"
-	"gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	"gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds/cli"
-	"gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds/http"
-	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
-	loggables "gx/ipfs/QmVrDtvvQCUeMZaY9UFkae6c85kdQ1GvVEhPrjPTdjxRLv/go-libp2p-loggables"
+	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
+	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds/cli"
+	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds/http"
+	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
+	madns "gx/ipfs/QmU98UaAEh4WJAcir2qjfztU77JQ14kAwHNFkjUXHZA3Vy/go-multiaddr-dns"
+	"gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
+	loggables "gx/ipfs/QmUbSLukzZYZvEYxynj9Dtd1WrGLxxg9R4U68vCMPWHmRU/go-libp2p-loggables"
 	osh "gx/ipfs/QmXuBJ7DR6k3rmUEKtvVMhwjmXDuJgXXPUt4LQXKBMsU93/go-os-helper"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	manet "gx/ipfs/Qmaabb1tJZ2CX5cp6MuuiGgns71NYoxdgQP6Xdid1dVceC/go-multiaddr-net"
-	madns "gx/ipfs/QmeHJXPqCNzSFbVkYM1uQLuM2L5FyJB9zukQ7EeqRP8ZC9/go-multiaddr-dns"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
+	manet "gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
 )
 
 // log is the command logger
@@ -50,6 +47,33 @@ const (
 	cpuProfile         = "ipfs.cpuprof"
 	heapProfile        = "ipfs.memprof"
 )
+
+func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
+	pluginpath := filepath.Join(repoPath, "plugins")
+
+	// check if repo is accessible before loading plugins
+	var plugins *loader.PluginLoader
+	ok, err := checkPermissions(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		pluginpath = ""
+	}
+	plugins, err = loader.NewPluginLoader(pluginpath)
+	if err != nil {
+		log.Error("error loading plugins: ", err)
+	}
+
+	if err := plugins.Initialize(); err != nil {
+		log.Error("error initializing plugins: ", err)
+	}
+
+	if err := plugins.Inject(); err != nil {
+		log.Error("error running plugins: ", err)
+	}
+	return plugins, nil
+}
 
 // main roadmap:
 // - parse the commandline to get a cmdInvocation
@@ -79,15 +103,28 @@ func mainRet() int {
 	}
 	defer stopFunc() // to be executed as late as possible
 
-	intrh, ctx := setupInterruptHandler(ctx)
+	intrh, ctx := util.SetupInterruptHandler(ctx)
 	defer intrh.Close()
 
-	// Handle `ipfs help'
-	if len(os.Args) == 2 {
-		if os.Args[1] == "help" {
-			os.Args[1] = "-h"
-		} else if os.Args[1] == "--version" {
+	// Handle `ipfs version` or `ipfs help`
+	if len(os.Args) > 1 {
+		// Handle `ipfs --version'
+		if os.Args[1] == "--version" {
 			os.Args[1] = "version"
+		}
+
+		//Handle `ipfs help` and `ipfs help <sub-command>`
+		if os.Args[1] == "help" {
+			if len(os.Args) > 2 {
+				os.Args = append(os.Args[:1], os.Args[2:]...)
+				// Handle `ipfs help --help`
+				// append `--help`,when the command is not `ipfs help --help`
+				if os.Args[1] != "--help" {
+					os.Args = append(os.Args, "--help")
+				}
+			} else {
+				os.Args[1] = "--help"
+			}
 		}
 	}
 
@@ -103,12 +140,18 @@ func mainRet() int {
 		}
 		log.Debugf("config path is %s", repoPath)
 
+		plugins, err := loadPlugins(repoPath)
+		if err != nil {
+			return nil, err
+		}
+
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
 		return &oldcmds.Context{
 			ConfigRoot: repoPath,
 			LoadConfig: loadConfig,
 			ReqLog:     &oldcmds.ReqLog{},
+			Plugins:    plugins,
 			ConstructNode: func() (n *core.IpfsNode, err error) {
 				if req == nil {
 					return nil, errors.New("constructing node without a request")
@@ -166,20 +209,6 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	if client != nil && !req.Command.External {
 		exctr = client.(cmds.Executor)
 	} else {
-		cctx := env.(*oldcmds.Context)
-		pluginpath := filepath.Join(cctx.ConfigRoot, "plugins")
-
-		// check if repo is accessible before loading plugins
-		ok, err := checkPermissions(cctx.ConfigRoot)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			if _, err := loader.LoadPlugins(pluginpath); err != nil {
-				log.Error("error loading plugins: ", err)
-			}
-		}
-
 		exctr = cmds.NewExecutor(req.Root)
 	}
 
@@ -321,70 +350,6 @@ func writeHeapProfileToFile() error {
 	}
 	defer mprof.Close() // _after_ writing the heap profile
 	return pprof.WriteHeapProfile(mprof)
-}
-
-// IntrHandler helps set up an interrupt handler that can
-// be cleanly shut down through the io.Closer interface.
-type IntrHandler struct {
-	sig chan os.Signal
-	wg  sync.WaitGroup
-}
-
-func NewIntrHandler() *IntrHandler {
-	ih := &IntrHandler{}
-	ih.sig = make(chan os.Signal, 1)
-	return ih
-}
-
-func (ih *IntrHandler) Close() error {
-	close(ih.sig)
-	ih.wg.Wait()
-	return nil
-}
-
-// Handle starts handling the given signals, and will call the handler
-// callback function each time a signal is catched. The function is passed
-// the number of times the handler has been triggered in total, as
-// well as the handler itself, so that the handling logic can use the
-// handler's wait group to ensure clean shutdown when Close() is called.
-func (ih *IntrHandler) Handle(handler func(count int, ih *IntrHandler), sigs ...os.Signal) {
-	signal.Notify(ih.sig, sigs...)
-	ih.wg.Add(1)
-	go func() {
-		defer ih.wg.Done()
-		count := 0
-		for range ih.sig {
-			count++
-			handler(count, ih)
-		}
-		signal.Stop(ih.sig)
-	}()
-}
-
-func setupInterruptHandler(ctx context.Context) (io.Closer, context.Context) {
-	intrh := NewIntrHandler()
-	ctx, cancelFunc := context.WithCancel(ctx)
-
-	handlerFunc := func(count int, ih *IntrHandler) {
-		switch count {
-		case 1:
-			fmt.Println() // Prevent un-terminated ^C character in terminal
-
-			ih.wg.Add(1)
-			go func() {
-				defer ih.wg.Done()
-				cancelFunc()
-			}()
-
-		default:
-			fmt.Println("Received another interrupt before graceful shutdown, terminating...")
-			os.Exit(-1)
-		}
-	}
-
-	intrh.Handle(handlerFunc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
-
-	return intrh, ctx
 }
 
 func profileIfEnabled() (func(), error) {

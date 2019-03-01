@@ -1,16 +1,19 @@
 # The go-ipfs config file
 
-The go-ipfs config file is a json document. It is read once at node instantiation,
-either for an offline command, or when starting the daemon. Commands that execute
-on a running daemon do not read the config file at runtime.
+The go-ipfs config file is a JSON document located at `$IPFS_PATH/config`. It
+is read once at node instantiation, either for an offline command, or when
+starting the daemon. Commands that execute on a running daemon do not read the
+config file at runtime.
 
 #### Profiles
+
 Configuration profiles allow to tweak configuration quickly. Profiles can be
-applied with `--profile` flag to `ipfs init` or with `ipfs config profile apply`
-command. When a profile is applied a backup of the configuration file will
-be created in $IPFS_PATH
+applied with `--profile` flag to `ipfs init` or with the `ipfs config profile
+apply` command. When a profile is applied a backup of the configuration file
+will be created in `$IPFS_PATH`.
 
 Available profiles:
+
 - `server`
 
   Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
@@ -48,6 +51,10 @@ Available profiles:
 
   Reduces daemon overhead on the system. May affect node functionality,
   performance of content discovery and data fetching may be degraded.
+
+- `randomports`
+
+  Generate random port for swarm.
 
 ## Table of Contents
 
@@ -146,11 +153,11 @@ A boolean value. If set to true, all block reads from disk will be hashed and
 verified. This will cause increased CPU utilization.
 
 - `BloomFilterSize`
-A number representing the size in bytes of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents the feature being disabled.  
+A number representing the size in bytes of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents the feature being disabled.
 
-This site generates useful graphs for various bloom filter values: <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7>  
-You may use it to find a preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the config file.  
-For example, for 1,000,000 blocks, expecting a 1% false positive rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize` we'd want to use 1199120 bytes.  
+This site generates useful graphs for various bloom filter values: <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7>
+You may use it to find a preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the config file.
+For example, for 1,000,000 blocks, expecting a 1% false positive rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize` we'd want to use 1199120 bytes.
 As of writing, [7 hash functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22) are used, so the constant `k` is 7 in the formula.
 
 
@@ -161,7 +168,7 @@ Spec defines the structure of the ipfs datastore. It is a composable structure, 
 
 This can be changed manually, however, if you make any changes that require a different on-disk structure, you will need to run the [ipfs-ds-convert tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new structures.
 
-For more information on possible values for this configuration option, see docs/datastores.md 
+For more information on possible values for this configuration option, see docs/datastores.md
 
 Default:
 ```
@@ -216,6 +223,12 @@ Valid modes are:
 
 ## `Gateway`
 Options for the HTTP gateway.
+
+- `NoFetch`
+When set to true, the gateway will only serve content already in the local repo
+and will not fetch files from the network.
+
+Default: `false`
 
 - `HTTPHeaders`
 Headers to set on gateway responses.
@@ -308,6 +321,7 @@ Tells reprovider what should be announced. Valid strategies are:
   - "roots" - only announce directly pinned keys and root keys of recursive pins
 
 ## `Swarm`
+
 Options for configuring the swarm.
 
 - `AddrFilters`
@@ -330,16 +344,53 @@ Disables the p2p-circuit relay transport.
 Enables HOP relay for the node. If this is enabled, the node will act as
 an intermediate (Hop Relay) node in relay circuits for connected peers.
 
+- `EnableAutoRelay`
+Enables automatic relay for this node.
+If the node is a HOP relay (`EnableRelayHop` is true) then it will advertise itself as a relay through the DHT.
+Otherwise, the node will test its own NAT situation (dialability) using passively discovered AutoNAT services.
+If the node is not publicly reachable, then it will seek HOP relays advertised through the DHT and override its public address(es) with relay addresses.
+
+- `EnableAutoNATService`
+Enables the AutoNAT service for this node.
+The service allows peers to discover their NAT situation by requesting dial backs to their public addresses.
+This should only be enabled on publicly reachable nodes.
+
 ### `ConnMgr`
-Connection manager configuration.
+
+The connection manager determines which and how many connections to keep and can be configured to keep.
 
 - `Type`
-Sets the type of connection manager to use, options are: `"none"` and `"basic"`.
+Sets the type of connection manager to use, options are: `"none"` (no connection management) and `"basic"`.
+
+#### Basic Connection Manager
 
 - `LowWater`
 LowWater is the minimum number of connections to maintain.
 
 - `HighWater`
 HighWater is the number of connections that, when exceeded, will trigger a connection GC operation.
+
 - `GracePeriod`
 GracePeriod is a time duration that new connections are immune from being closed by the connection manager.
+
+The "basic" connection manager tries to keep between `LowWater` and `HighWater` connections. It works by:
+
+1. Keeping all connections until `HighWater` connections is reached.
+2. Once `HighWater` is reached, it closes connections until `LowWater` is reached.
+3. To prevent thrashing, it never closes connections established within the `GracePeriod`.
+
+**Example:**
+
+
+```json
+{
+  "Swarm": {
+    "ConnMgr": {
+      "Type": "basic",
+      "LowWater": 100,
+      "HighWater": 200,
+      "GracePeriod": "30s"
+    }
+  }
+}
+```

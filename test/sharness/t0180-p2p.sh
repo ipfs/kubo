@@ -6,7 +6,7 @@ test_description="Test experimental p2p commands"
 
 # start iptb + wait for peering
 test_expect_success 'init iptb' '
-  iptb init -n 3 --bootstrap=none --port=0
+  iptb testbed create -type localipfs --count 3 --init
 '
 
 test_expect_success 'generate test data' '
@@ -17,8 +17,8 @@ test_expect_success 'generate test data' '
 startup_cluster 3
 
 test_expect_success 'peer ids' '
-  PEERID_0=$(iptb get id 0) &&
-  PEERID_1=$(iptb get id 1)
+  PEERID_0=$(iptb attr get 0 id) &&
+  PEERID_1=$(iptb attr get 1 id)
 '
 check_test_ports() {
   test_expect_success "test ports are closed" '
@@ -296,6 +296,49 @@ check_test_ports
 test_expect_success "'ipfs p2p close' closes by listen addr" '
   ipfsi 0 p2p close -l /ipfs/$PEERID_0 &&
   ipfsi 0 p2p ls > actual &&
+  test_must_be_empty actual
+'
+
+# Peer reporting
+
+test_expect_success 'start p2p listener reporting peer' '
+  ipfsi 0 p2p listen /x/p2p-test /ip4/127.0.0.1/tcp/10101 --report-peer-id 2>&1 > listener-stdouterr.log
+'
+
+test_expect_success 'C->S Spawn receiving server' '
+  ma-pipe-unidir --listen --pidFile=listener.pid recv /ip4/127.0.0.1/tcp/10101 > server.out &
+
+  test_wait_for_file 30 100ms listener.pid &&
+  kill -0 $(cat listener.pid)
+'
+
+test_expect_success 'C->S Setup client side' '
+  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10102 /ipfs/${PEERID_0} 2>&1 > dialer-stdouterr.log
+'
+
+test_expect_success 'C->S Connect and receive data' '
+  ma-pipe-unidir send /ip4/127.0.0.1/tcp/10102 < test1.bin
+'
+
+test_expect_success 'C->S Ensure server finished' '
+  go-sleep 250ms &&
+  test ! -f listener.pid
+'
+
+test_expect_success 'C->S Output looks good' '
+  echo ${PEERID_1} > expected &&
+  cat test1.bin >> expected &&
+  test_cmp server.out expected
+'
+
+test_expect_success 'C->S Close listeners' '
+  ipfsi 1 p2p close -p /x/p2p-test &&
+  ipfsi 0 p2p close -p /x/p2p-test &&
+
+  ipfsi 0 p2p ls > actual &&
+  test_must_be_empty actual &&
+
+  ipfsi 1 p2p ls > actual &&
   test_must_be_empty actual
 '
 

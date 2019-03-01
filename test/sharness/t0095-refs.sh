@@ -71,8 +71,12 @@ test_expect_success "create and add folders for refs" '
     [[ "$root" == "$refsroot" ]]
 '
 
-test_expect_success "ipfs refs -r" '
-  cat <<EOF > expected.txt
+test_refs_output() {
+  ARGS=$1
+  FILTER=$2
+
+  test_expect_success "ipfs refs $ARGS -r" '
+    cat <<EOF | $FILTER > expected.txt
 QmdytmR4wULMd3SLo6ePF4s3WcRHWcpnJZ7bHhoj3QB13v
 QmNkQvpiyAEtbeLviC7kqfifYoK1GXPcsSxTpP1yS3ykLa
 QmdytmR4wULMd3SLo6ePF4s3WcRHWcpnJZ7bHhoj3QB13v
@@ -87,13 +91,13 @@ QmSanP5DpxpqfDdS4yekHY1MqrVge47gtxQcp2e2yZ4UwS
 QmSFxnK675wQ9Kc1uqWKyJUaNxvSc2BP5DbXCD3x93oq61
 EOF
 
-  ipfs refs -r $refsroot > refsr.txt
-  test_cmp expected.txt refsr.txt
-'
+    ipfs refs $ARGS -r $refsroot > refsr.txt
+    test_cmp expected.txt refsr.txt
+  '
 
-# Unique is like above but removing duplicates
-test_expect_success "ipfs refs -r --unique" '
-  cat <<EOF > expected.txt
+  # Unique is like above but removing duplicates
+  test_expect_success "ipfs refs $ARGS -r --unique" '
+    cat <<EOF | $FILTER > expected.txt
 QmdytmR4wULMd3SLo6ePF4s3WcRHWcpnJZ7bHhoj3QB13v
 QmNkQvpiyAEtbeLviC7kqfifYoK1GXPcsSxTpP1yS3ykLa
 QmSanP5DpxpqfDdS4yekHY1MqrVge47gtxQcp2e2yZ4UwS
@@ -101,40 +105,40 @@ QmSFxnK675wQ9Kc1uqWKyJUaNxvSc2BP5DbXCD3x93oq61
 QmXXazTjeNCKFnpW1D65vTKsTs8fbgkCWTv8Em4pdK2coH
 EOF
 
-  ipfs refs -r --unique $refsroot > refsr.txt
-  test_cmp expected.txt refsr.txt
-'
+    ipfs refs $ARGS -r --unique $refsroot > refsr.txt
+    test_cmp expected.txt refsr.txt
+  '
 
-# First level is 1.txt, B, C, D
-test_expect_success "ipfs refs" '
-  cat <<EOF > expected.txt
+  # First level is 1.txt, B, C, D
+  test_expect_success "ipfs refs $ARGS" '
+    cat <<EOF | $FILTER > expected.txt
 QmdytmR4wULMd3SLo6ePF4s3WcRHWcpnJZ7bHhoj3QB13v
 QmNkQvpiyAEtbeLviC7kqfifYoK1GXPcsSxTpP1yS3ykLa
 QmXXazTjeNCKFnpW1D65vTKsTs8fbgkCWTv8Em4pdK2coH
 QmSanP5DpxpqfDdS4yekHY1MqrVge47gtxQcp2e2yZ4UwS
 EOF
-  ipfs refs $refsroot > refs.txt
-  test_cmp expected.txt refs.txt
-'
+    ipfs refs $ARGS $refsroot > refs.txt
+    test_cmp expected.txt refs.txt
+  '
 
-# max-depth=0 should return an empty list
-test_expect_success "ipfs refs -r --max-depth=0" '
-  cat <<EOF > expected.txt
+  # max-depth=0 should return an empty list
+  test_expect_success "ipfs refs $ARGS -r --max-depth=0" '
+    cat <<EOF > expected.txt
 EOF
-  ipfs refs -r --max-depth=0 $refsroot > refs.txt
-  test_cmp expected.txt refs.txt
-'
+    ipfs refs $ARGS -r --max-depth=0 $refsroot > refs.txt
+    test_cmp expected.txt refs.txt
+  '
 
-# max-depth=1 should be equivalent to running without -r
-test_expect_success "ipfs refs -r --max-depth=1" '
-  ipfs refs -r --max-depth=1 $refsroot > refsr.txt
-  ipfs refs $refsroot > refs.txt
-  test_cmp refsr.txt refs.txt
-'
+  # max-depth=1 should be equivalent to running without -r
+  test_expect_success "ipfs refs $ARGS -r --max-depth=1" '
+    ipfs refs $ARGS -r --max-depth=1 $refsroot > refsr.txt
+    ipfs refs $ARGS $refsroot > refs.txt
+    test_cmp refsr.txt refs.txt
+  '
 
-# We should see the depth limit engage at level 2
-test_expect_success "ipfs refs -r --max-depth=2" '
-  cat <<EOF > expected.txt
+  # We should see the depth limit engage at level 2
+  test_expect_success "ipfs refs $ARGS -r --max-depth=2" '
+    cat <<EOF | $FILTER > expected.txt
 QmdytmR4wULMd3SLo6ePF4s3WcRHWcpnJZ7bHhoj3QB13v
 QmNkQvpiyAEtbeLviC7kqfifYoK1GXPcsSxTpP1yS3ykLa
 QmdytmR4wULMd3SLo6ePF4s3WcRHWcpnJZ7bHhoj3QB13v
@@ -144,33 +148,38 @@ QmNkQvpiyAEtbeLviC7kqfifYoK1GXPcsSxTpP1yS3ykLa
 QmSanP5DpxpqfDdS4yekHY1MqrVge47gtxQcp2e2yZ4UwS
 QmSFxnK675wQ9Kc1uqWKyJUaNxvSc2BP5DbXCD3x93oq61
 EOF
-  ipfs refs -r --max-depth=2 $refsroot > refsr.txt
-  test_cmp refsr.txt expected.txt
-'
+    ipfs refs $ARGS -r --max-depth=2 $refsroot > refsr.txt
+    test_cmp refsr.txt expected.txt
+  '
 
-# Here branch pruning and re-exploration come into place
-# At first it should see D at level 2 and don't go deeper.
-# But then after doing C it will see D at level 1 and go deeper
-# so that it outputs the hash for 2.txt (-q61).
-# We also see that C/B is pruned as it's been shown before.
-#
-# Excerpt from diagram above:
-#
-# L0-         _______ A_________
-#            /        |     \   \
-# L1-      B          C      D   1.txt
-#         / \         |      |
-# L2-   D   1.txt     B     2.txt
-test_expect_success "ipfs refs -r --unique --max-depth=2" '
-  cat <<EOF > expected.txt
+  # Here branch pruning and re-exploration come into place
+  # At first it should see D at level 2 and don't go deeper.
+  # But then after doing C it will see D at level 1 and go deeper
+  # so that it outputs the hash for 2.txt (-q61).
+  # We also see that C/B is pruned as it's been shown before.
+  #
+  # Excerpt from diagram above:
+  #
+  # L0-         _______ A_________
+  #            /        |     \   \
+  # L1-      B          C      D   1.txt
+  #         / \         |      |
+  # L2-   D   1.txt     B     2.txt
+  test_expect_success "ipfs refs $ARGS -r --unique --max-depth=2" '
+    cat <<EOF | $FILTER > expected.txt
 QmdytmR4wULMd3SLo6ePF4s3WcRHWcpnJZ7bHhoj3QB13v
 QmNkQvpiyAEtbeLviC7kqfifYoK1GXPcsSxTpP1yS3ykLa
 QmSanP5DpxpqfDdS4yekHY1MqrVge47gtxQcp2e2yZ4UwS
 QmXXazTjeNCKFnpW1D65vTKsTs8fbgkCWTv8Em4pdK2coH
 QmSFxnK675wQ9Kc1uqWKyJUaNxvSc2BP5DbXCD3x93oq61
 EOF
-  ipfs refs -r --unique --max-depth=2 $refsroot > refsr.txt
-  test_cmp refsr.txt expected.txt
-'
+    ipfs refs $ARGS -r --unique --max-depth=2 $refsroot > refsr.txt
+    test_cmp refsr.txt expected.txt
+  '
+}
+
+test_refs_output '' 'cat'
+
+test_refs_output '--cid-base=base32' 'ipfs cid base32'
 
 test_done

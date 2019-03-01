@@ -7,12 +7,11 @@ import (
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	iface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var (
@@ -73,18 +72,18 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmdkit.StringArg(ipfsPathOptionName, true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption(resolveOptionName, "Resolve given path before publishing.").WithDefault(true),
+		cmdkit.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
 		cmdkit.StringOption(lifeTimeOptionName, "t",
 			`Time duration that the record will be valid for. <<default>>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("24h"),
 		cmdkit.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
-		cmdkit.StringOption(ttlOptionName, "Time duration this record should be cached for (caution: experimental)."),
-		cmdkit.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'. Default: <<default>>.").WithDefault("self"),
+		cmdkit.StringOption(ttlOptionName, "Time duration this record should be cached for. Uses the same syntax as the lifetime option. (caution: experimental)"),
+		cmdkit.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
 		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -139,18 +138,13 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			entry, ok := v.(*IpnsEntry)
-			if !ok {
-				return e.TypeErr(entry, v)
-			}
-
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ie *IpnsEntry) error {
 			var err error
 			quieter, _ := req.Options[quieterOptionName].(bool)
 			if quieter {
-				_, err = fmt.Fprintln(w, entry.Name)
+				_, err = fmt.Fprintln(w, ie.Name)
 			} else {
-				_, err = fmt.Fprintf(w, "Published to %s: %s\n", entry.Name, entry.Value)
+				_, err = fmt.Fprintf(w, "Published to %s: %s\n", ie.Name, ie.Value)
 			}
 			return err
 		}),

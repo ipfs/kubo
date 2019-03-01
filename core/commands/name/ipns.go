@@ -8,14 +8,13 @@ import (
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
-	nsopts "github.com/ipfs/go-ipfs/namesys/opts"
 
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	path "gx/ipfs/QmT3rzed1ppXefourpmoZ7tyVQfsGPQZ1pHDngLmCvXxd3/go-path"
-	logging "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
+	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	nsopts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options/namesys"
+	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
+	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var log = logging.Logger("core/commands/ipns")
@@ -81,13 +80,12 @@ Resolve the value of a dnslink:
 		cmdkit.BoolOption(streamOptionName, "s", "Stream entries as they are found."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
 		nocache, _ := req.Options["nocache"].(bool)
-		local, _ := req.Options["local"].(bool)
 
 		var name string
 		if len(req.Arguments) == 0 {
@@ -106,7 +104,6 @@ Resolve the value of a dnslink:
 		stream, _ := req.Options[streamOptionName].(bool)
 
 		opts := []options.NameResolveOption{
-			options.Name.Local(local),
 			options.Name.Cache(!nocache),
 		}
 
@@ -158,12 +155,8 @@ Resolve the value of a dnslink:
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeEncoder(func(req *cmds.Request, w io.Writer, v interface{}) error {
-			output, ok := v.(*ResolvedPath)
-			if !ok {
-				return e.TypeErr(output, v)
-			}
-			_, err := fmt.Fprintln(w, output.Path)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, rp *ResolvedPath) error {
+			_, err := fmt.Fprintln(w, rp.Path)
 			return err
 		}),
 	},

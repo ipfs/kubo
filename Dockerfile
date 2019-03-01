@@ -60,11 +60,14 @@ EXPOSE 8080
 # Swarm Websockets; must be exposed publicly when the node is listening using the websocket transport (/ipX/.../tcp/8081/ws).
 EXPOSE 8081
 
-# Create the fs-repo directory and switch to a non-privileged user.
+# Create the fs-repo directory
 ENV IPFS_PATH /data/ipfs
 RUN mkdir -p $IPFS_PATH \
   && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
   && chown ipfs:users $IPFS_PATH
+
+# Switch to a non-privileged user
+USER ipfs
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.

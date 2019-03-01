@@ -3,17 +3,13 @@ package objectcmd
 import (
 	"fmt"
 	"io"
-	"strings"
 
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	lgc "github.com/ipfs/go-ipfs/commands/legacy"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmSXUokcP4TJpFfqozT69AVAYRtzXVMUjzQVkYX41R9Svs/go-ipfs-cmds"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
+	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
+	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
+	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
 )
 
 var ObjectPatchCmd = &cmds.Command{
@@ -28,24 +24,10 @@ result. This is the Merkle-DAG version of modifying an object.
 	Arguments: []cmdkit.Argument{},
 	Subcommands: map[string]*cmds.Command{
 		"append-data": patchAppendDataCmd,
-		"add-link":    lgc.NewCommand(patchAddLinkCmd),
-		"rm-link":     lgc.NewCommand(patchRmLinkCmd),
-		"set-data":    lgc.NewCommand(patchSetDataCmd),
+		"add-link":    patchAddLinkCmd,
+		"rm-link":     patchRmLinkCmd,
+		"set-data":    patchSetDataCmd,
 	},
-}
-
-func objectMarshaler(res oldcmds.Response) (io.Reader, error) {
-	v, err := unwrapOutput(res.Output())
-	if err != nil {
-		return nil, err
-	}
-
-	o, ok := v.(*Object)
-	if !ok {
-		return nil, e.TypeErr(o, v)
-	}
-
-	return strings.NewReader(o.Hash + "\n"), nil
 }
 
 var patchAppendDataCmd = &cmds.Command{
@@ -67,8 +49,8 @@ the limit will not be respected by the network.
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.FileArg("data", true, false, "Data to append.").EnableStdin(),
 	},
-	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env)
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -78,17 +60,17 @@ the limit will not be respected by the network.
 			return err
 		}
 
-		data, err := req.Files.NextFile()
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
 			return err
 		}
 
-		p, err := api.Object().AppendData(req.Context, root, data)
+		p, err := api.Object().AppendData(req.Context, root, file)
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(re, &Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: &Object{},
 	Encoders: cmds.EncoderMap{
@@ -99,7 +81,7 @@ the limit will not be respected by the network.
 	},
 }
 
-var patchSetDataCmd = &oldcmds.Command{
+var patchSetDataCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Set the data field of an IPFS object.",
 		ShortDescription: `
@@ -114,36 +96,39 @@ Example:
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.FileArg("data", true, false, "The data to set the object to.").EnableStdin(),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		api, err := req.InvocContext().GetApi()
-
-		root, err := coreiface.ParsePath(req.StringArguments()[0])
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		data, err := req.Files().NextFile()
+		root, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		p, err := api.Object().SetData(req.Context(), root, data)
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&Object{Hash: p.Cid().String()})
+		p, err := api.Object().SetData(req.Context, root, file)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: objectMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
+			fmt.Fprintln(w, out.Hash)
+			return nil
+		}),
 	},
 }
 
-var patchRmLinkCmd = &oldcmds.Command{
+var patchRmLinkCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Remove a link from a given object.",
 		ShortDescription: `
@@ -154,35 +139,39 @@ Remove a Merkle-link from the given object and return the hash of the result.
 		cmdkit.StringArg("root", true, false, "The hash of the node to modify."),
 		cmdkit.StringArg("name", true, false, "Name of the link to remove."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		api, err := req.InvocContext().GetApi()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		root, err := coreiface.ParsePath(req.Arguments()[0])
+		root, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		name := req.Arguments()[1]
-		p, err := api.Object().RmLink(req.Context(), root, name)
+		name := req.Arguments[1]
+		p, err := api.Object().RmLink(req.Context, root, name)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: objectMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
+			fmt.Fprintln(w, out.Hash)
+			return nil
+		}),
 	},
 }
 
-var patchAddLinkCmd = &oldcmds.Command{
+const (
+	createOptionName = "create"
+)
+
+var patchAddLinkCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Add a link to a given object.",
 		ShortDescription: `
@@ -204,46 +193,44 @@ to a file containing 'bar', and returns the hash of the new object.
 		cmdkit.StringArg("ref", true, false, "IPFS object to add link to."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption("create", "p", "Create intermediary nodes."),
+		cmdkit.BoolOption(createOptionName, "p", "Create intermediary nodes."),
 	},
-	Run: func(req oldcmds.Request, res oldcmds.Response) {
-		api, err := req.InvocContext().GetApi()
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		root, err := coreiface.ParsePath(req.Arguments()[0])
+		root, err := coreiface.ParsePath(req.Arguments[0])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		name := req.Arguments()[1]
+		name := req.Arguments[1]
 
-		child, err := coreiface.ParsePath(req.Arguments()[2])
+		child, err := coreiface.ParsePath(req.Arguments[2])
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		create, _, err := req.Option("create").Bool()
+		create, _ := req.Options[createOptionName].(bool)
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		p, err := api.Object().AddLink(req.Context(), root, name, child,
+		p, err := api.Object().AddLink(req.Context, root, name, child,
 			options.Object.Create(create))
 		if err != nil {
-			res.SetError(err, cmdkit.ErrNormal)
-			return
+			return err
 		}
 
-		res.SetOutput(&Object{Hash: p.Cid().String()})
+		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
-	Marshalers: oldcmds.MarshalerMap{
-		oldcmds.Text: objectMarshaler,
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Object) error {
+			fmt.Fprintln(w, out.Hash)
+			return nil
+		}),
 	},
 }
