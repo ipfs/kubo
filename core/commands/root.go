@@ -29,7 +29,7 @@ const (
 var Root = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline:  "Global p2p merkle-dag filesystem.",
-		Synopsis: "ipfs [--config=<config> | -c] [--debug | -D] [--help] [-h] [--local | -L] [--api=<api>] [--offline] [--cid-base=<base>] [--upgrade-cidv0-in-output] [--encoding=<encoding> | --enc] [--stream-channels] [--timeout=<timeout>] <command> ...",
+		Synopsis: "ipfs [--config=<config> | -c] [--debug | -D] [--help] [-h] [--api=<api>] [--offline] [--cid-base=<base>] [--upgrade-cidv0-in-output] [--encoding=<encoding> | --enc] [--timeout=<timeout>] <command> ...",
 		Subcommands: `
 BASIC COMMANDS
   init          Initialize ipfs local configuration
