@@ -6,7 +6,7 @@ package pb
 import (
 	encoding_binary "encoding/binary"
 	fmt "fmt"
-	proto "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 )

@@ -10,8 +10,8 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	p2phttp "gx/ipfs/QmeXGHY2ntPsXLX28oGD2ufJB9EdvByz41Tt2sWrYPC7JJ/go-libp2p-http"
+	p2phttp "github.com/hsanjuan/go-libp2p-http"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 )
 
 // ProxyOption is an endpoint for proxying a HTTP request to another ipfs peer
