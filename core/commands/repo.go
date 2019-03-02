@@ -286,11 +286,11 @@ This command can only run when the ipfs daemon is not running.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption("confirm", "Really perform operation."),
-		cmdkit.BoolOption("remove-local-root", "Remove even if the root exists locally."),
+		cmdkit.BoolOption("remove-existing-root", "Remove even if it root exists locally."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		confirm, _ := req.Options["confirm"].(bool)
-		removeLocalRoot, _ := req.Options["remove-local-root"].(bool)
+		removeExistingRoot, _ := req.Options["remove-existing-root"].(bool)
 
 		if !confirm {
 			return fmt.Errorf("this is a potentially dangerous operation please pass --confirm to proceed")
@@ -328,10 +328,8 @@ This command can only run when the ipfs daemon is not running.
 			cidStr = b58.Encode(val)
 		}
 
-		if have && !removeLocalRoot {
-			return fmt.Errorf("root %s exists locally. Are you sure you want to unlink this? Pass --remove-local-root to continue", cidStr)
-		} else if !have && removeLocalRoot {
-			return fmt.Errorf("root does not %s exists locally. Please remove --remove-local-root to continue", cidStr)
+		if have && !removeExistingRoot {
+			return fmt.Errorf("root %s exists locally. Are you sure you want to unlink this? Pass --remove-existing-root to continue", cidStr)
 		}
 
 		err = repo.Datastore().Delete(core.FilesRootKey)

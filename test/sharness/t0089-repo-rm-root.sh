@@ -18,14 +18,14 @@ test_expect_success "ipfs repo rm-root fails without --confirm" '
   fgrep -q "please pass --confirm to proceed" err
 '
 
-test_expect_success "ipfs repo rm-root fails to remove existing root without --remove-local-root" '
+test_expect_success "ipfs repo rm-root fails to remove existing root without --remove-existing-root" '
   test_must_fail ipfs repo rm-root --confirm 2> err &&
   cat err &&
   fgrep -q "Are you sure you want to unlink this?" err
 '
 
 test_expect_success "ipfs repo rm-root" '
-  ipfs repo rm-root --confirm --remove-local-root | tee rm-root.actual &&
+  ipfs repo rm-root --confirm --remove-existing-root | tee rm-root.actual &&
   echo "Unlinked files API root.  Root hash was $ROOT_HASH." > rm-root.expected &&
   test_cmp rm-root.expected rm-root.actual
 '
