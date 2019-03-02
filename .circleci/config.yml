@@ -4,6 +4,7 @@ defaults: &defaults
   working_directory: ~/ipfs/go-ipfs
   shell: /bin/bash --login
   environment:
+    GO11MODULE: on
     TEST_NO_FUSE: 1
     GOPATH: $HOME/.go_workspace
     CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
