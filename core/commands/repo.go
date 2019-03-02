@@ -313,8 +313,7 @@ This command can only run when the ipfs daemon is not running.
 		// Get the old root and display it to the user so that they can
 		// can do something to prevent from being garbage collected,
 		// such as pin it
-		dsk := core.FilesRootKey()
-		val, err := repo.Datastore().Get(dsk)
+		val, err := repo.Datastore().Get(core.FilesRootKey)
 		if err == ds.ErrNotFound || val == nil {
 			return cmds.EmitOnce(res, &MessageOutput{"Files API root not found.\n"})
 		}
@@ -335,7 +334,7 @@ This command can only run when the ipfs daemon is not running.
 			return fmt.Errorf("root does not %s exists locally. Please remove --remove-local-root to continue", cidStr)
 		}
 
-		err = repo.Datastore().Delete(dsk)
+		err = repo.Datastore().Delete(core.FilesRootKey)
 		if err != nil {
 			return fmt.Errorf("unable to remove API root: %s.  Root hash was %s", err.Error(), cidStr)
 		}
