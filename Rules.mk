@@ -85,7 +85,7 @@ test: $(TEST)
 test_short: $(TEST_SHORT)
 .PHONY: test_short
 
-deps: gx-deps
+deps:
 .PHONY: deps
 
 nofuse: GOTAGS += nofuse
