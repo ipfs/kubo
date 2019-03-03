@@ -13,6 +13,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gogo/protobuf v1.2.1
+	github.com/gxed/go-is-domain v0.0.0-20160921144106-bcb935f9c56d
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hsanjuan/go-libp2p-gostream v0.0.0-20190227195646-68f5153d3e40 // indirect
 	github.com/hsanjuan/go-libp2p-http v0.0.0-20190227195650-43dc52949539

@@ -72,6 +72,8 @@ github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 h1:EGx4pi6eqNxGa
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/gxed/go-is-domain v0.0.0-20160921144106-bcb935f9c56d h1:eIqPbEsH4GABu64Vsbe1OzTrHD3z3SKaL9vEG9FnW6I=
+github.com/gxed/go-is-domain v0.0.0-20160921144106-bcb935f9c56d/go.mod h1:cCBMcTE/W8VcVst8Jz0NZl7F3VPUTbmExWqGH0onVqk=
 github.com/gxed/go-shellwords v1.0.3 h1:2TP32H4TAklZUdz84oj95BJhVnIrRasyx2j1cqH5K38=
 github.com/gxed/go-shellwords v1.0.3/go.mod h1:N7paucT91ByIjmVJHhvoarjoQnmsi3Jd3vH7VqgtMxQ=
 github.com/gxed/hashland/keccakpg v0.0.1 h1:wrk3uMNaMxbXiHibbPO4S0ymqJMm41WiudyFSs7UnsU=

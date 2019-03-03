@@ -9,8 +9,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
+	isd "github.com/gxed/go-is-domain"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
-	isd "github.com/jbenet/go-is-domain"
 )
 
 // IPNSHostnameOption rewrites an incoming request if its Host: header contains
