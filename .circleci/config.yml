@@ -1,12 +1,12 @@
-version: 2
+version: 2.0
 
 defaults: &defaults
   working_directory: ~/ipfs/go-ipfs
-  shell: /bin/bash --login
   environment:
-    GO11MODULE: on
+    GO111MODULE: "on"
     TEST_NO_FUSE: 1
-    GOPATH: $HOME/.go_workspace
+    TEST_NO_DOCKER: 1
+    GOPATH: /home/circleci/.go_workspace
     CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
     CIRCLE: 1
     SERVICE: circle-ci
@@ -17,8 +17,7 @@ defaults: &defaults
     IMPORT_PATH: github.com/ipfs/go-ipfs
 
   docker:
-  - image: circleci/build-image:ubuntu-14.04-XXL-upstart-1189-5614f37
-    command: /sbin/init
+    - image: circleci/golang:1.11
 
 jobs:
   gotest:
@@ -26,27 +25,20 @@ jobs:
     steps:
     - checkout
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    - run: 'sudo docker info >/dev/null 2>&1 || sudo service docker start; '
-    - run: sudo rm -rf /usr/local/go
-    - run: if [ ! -e go1.11.linux-amd64.tar.gz ]; then curl -o go1.11.linux-amd64.tar.gz https://storage.googleapis.com/golang/go1.11.linux-amd64.tar.gz; fi
-    - run: sudo tar -C /usr/local -xzf go1.11.linux-amd64.tar.gz
-
     - restore_cache:
         keys:
-        - v1-dep-{{ .Branch }}-
-        - v1-dep-master-
+        - v2-dep-{{ .Branch }}-
+        - v2-dep-master-
 
-    - run: sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0 net.ipv6.conf.default.disable_ipv6=0 net.ipv6.conf.all.disable_ipv6=0
     - run: rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make deps
 
     - save_cache:
-        key: v1-dep-{{ .Branch }}-{{ epoch }}
+        key: v2-dep-{{ .Branch }}-{{ epoch }}
         paths:
         - ~/.go_workspace
-        - ~/go1.11.linux-amd64.tar.gz
         - ~/.go_workspace/src/gx/ipfs
         - ./node_modules
 
@@ -67,24 +59,18 @@ jobs:
     steps:
     - checkout
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    - run: 'sudo docker info >/dev/null 2>&1 || sudo service docker start; '
-    - run: sudo rm -rf /usr/local/go
-    - run: if [ ! -e go1.11.linux-amd64.tar.gz ]; then curl -o go1.11.linux-amd64.tar.gz https://storage.googleapis.com/golang/go1.11.linux-amd64.tar.gz; fi
-    - run: sudo tar -C /usr/local -xzf go1.11.linux-amd64.tar.gz
-
     - restore_cache:
         keys:
-        - v1-dep-{{ .Branch }}-
-        - v1-dep-master-
+        - v2-dep-{{ .Branch }}-
+        - v2-dep-master-
 
-    - run: sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0 net.ipv6.conf.default.disable_ipv6=0 net.ipv6.conf.all.disable_ipv6=0
     - run: rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make deps
 
     - save_cache:
-        key: v1-dep-{{ .Branch }}-{{ epoch }}
+        key: v2-dep-{{ .Branch }}-{{ epoch }}
         paths:
         - ~/.go_workspace
         - ~/go1.11.linux-amd64.tar.gz
