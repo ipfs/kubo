@@ -4,8 +4,8 @@ $(d)/coverage_deps: $$(DEPS_GO)
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
 ifneq ($(IPFS_SKIP_COVER_BINS),1)
-	go get -u github.com/Kubuxu/gocovmerge
-	go get -u golang.org/x/tools/cmd/cover
+	go install github.com/Kubuxu/gocovmerge
+	go install golang.org/x/tools/cmd/cover
 endif
 .PHONY: $(d)/coverage_deps
 

@@ -3,6 +3,7 @@ module github.com/ipfs/go-ipfs
 require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
 	github.com/Kubuxu/go-os-helper v0.0.1
+	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
 	github.com/cenkalti/backoff v2.1.1+incompatible
@@ -106,5 +107,6 @@ require (
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	golang.org/x/sys v0.0.0-20190302025703-b6889370fb10
+	golang.org/x/tools v0.0.0-20180221164845-07fd8470d635
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 )

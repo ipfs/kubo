@@ -11,6 +11,7 @@ GOTFLAGS ?=
 
 # match Go's default GOPATH behaviour
 export GOPATH ?= $(shell $(GOCC) env GOPATH)
+export GOBIN = $(abspath bin)
 
 DEPS_GO :=
 TEST_GO :=
