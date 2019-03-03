@@ -26,7 +26,7 @@ go-pkgs=$(shell $(GOCC) list github.com/ipfs/go-ipfs/...)
 go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 go-flags-with-tags=$(GOFLAGS)$(go-tags)
 
-define go-build
+define go-build-relative
 $(GOCC) build $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
 endef
 

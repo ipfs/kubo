@@ -3,27 +3,27 @@ include mk/header.mk
 TGTS_$(d) :=
 
 $(d)/pollEndpoint: thirdparty/pollEndpoint
-	$(go-build)
+	$(go-build-relative)
 TGTS_$(d) += $(d)/pollEndpoint
 
 $(d)/go-sleep: test/dependencies/go-sleep
-	$(go-build)
+	$(go-build-relative)
 TGTS_$(d) += $(d)/go-sleep
 
 $(d)/go-timeout: test/dependencies/go-timeout
-	$(go-build)
+	$(go-build-relative)
 TGTS_$(d) += $(d)/go-timeout
 
 $(d)/iptb: test/dependencies/iptb
-	$(go-build)
+	$(go-build-relative)
 TGTS_$(d) += $(d)/iptb
 
 $(d)/ma-pipe-unidir: test/dependencies/ma-pipe-unidir
-	$(go-build)
+	$(go-build-relative)
 TGTS_$(d) += $(d)/ma-pipe-unidir
 
 $(d)/json-to-junit: test/dependencies/json-to-junit
-	$(go-build)
+	$(go-build-relative)
 TGTS_$(d) += $(d)/json-to-junit
 
 TGTS_GX_$(d) := hang-fds

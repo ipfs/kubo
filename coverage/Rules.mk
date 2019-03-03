@@ -32,7 +32,7 @@ TGTS_$(d) := $(d)/unit_tests.coverprofile
 # sharness tests coverage
 $(d)/ipfs: GOTAGS += testrunmain
 $(d)/ipfs: $(d)/main
-	$(go-build)
+	$(go-build-relative)
 
 CLEAN += $(d)/ipfs
 
