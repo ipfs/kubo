@@ -54,11 +54,13 @@ require (
 	github.com/ipfs/go-path v0.0.1
 	github.com/ipfs/go-unixfs v0.0.1
 	github.com/ipfs/go-verifcid v0.0.1
+	github.com/ipfs/hang-fds v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.0.1
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.0.1
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
+	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8
 	github.com/libp2p/go-libp2p v0.0.1

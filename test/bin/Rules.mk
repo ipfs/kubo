@@ -26,32 +26,24 @@ $(d)/json-to-junit: test/dependencies/json-to-junit
 	$(go-build-relative)
 TGTS_$(d) += $(d)/json-to-junit
 
-TGTS_GX_$(d) := hang-fds
-TGTS_GX_$(d) := $(addprefix $(d)/,$(TGTS_GX_$(d)))
+$(d)/hang-fds:
+	$(call go-build,github.com/ipfs/hang-fds)
+TGTS_$(d) += $(d)/hang-fds
 
-$(TGTS_GX_$(d)):
-	go build $(go-flags-with-tags) -o "$@" "$(call gx-path,$(notdir $@))"
-
-TGTS_$(d) += $(TGTS_GX_$(d))
-
-# multihash is special
 $(d)/multihash:
-	go build $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-multihash)/go-multihash/multihash"
+	$(call go-build,github.com/multiformats/go-multihash/multihash)
 TGTS_$(d) += $(d)/multihash
 
-# cid-fmt is also special
 $(d)/cid-fmt:
-	go build $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-cidutil)/go-cidutil/cid-fmt"
+	$(call go-build,github.com/ipfs/go-cidutil/cid-fmt)
 TGTS_$(d) += $(d)/cid-fmt
 
-# random is also special
 $(d)/random:
-	go build -i $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-random)/go-random/random"
+	$(call go-build,github.com/jbenet/go-random/random)
 TGTS_$(d) += $(d)/random
 
-# random-files is also special
 $(d)/random-files:
-	go build -i $(go-flags-with-tags) -o "$@" "gx/ipfs/$(shell gx deps find go-random-files)/go-random-files/random-files"
+	$(call go-build,github.com/jbenet/go-random-files/random-files)
 TGTS_$(d) += $(d)/random-files
 
 

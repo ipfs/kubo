@@ -185,6 +185,8 @@ github.com/ipfs/go-unixfs v0.0.1 h1:CTTGqLxU5+PRkkeA+w1peStqRWFD1Kya+yZgIT4Xy1w=
 github.com/ipfs/go-unixfs v0.0.1/go.mod h1:ZlB83nMtxNMx4DAAE5/GixeKN1qHC+xspBksI7Q5NeI=
 github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2E=
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
+github.com/ipfs/hang-fds v0.0.1 h1:KGAxiGtJPT3THVRNT6yxgpdFPeX4ZemUjENOt6NlOn4=
+github.com/ipfs/hang-fds v0.0.1/go.mod h1:U4JNbzwTpk/qP2Ms4VgrZ4HcgJGVosBJqMXvwe4udSY=
 github.com/ipfs/interface-go-ipfs-core v0.0.1 h1:IlAKkUPyw77UECt25WymL72A4KO+BGCMULKfMfc2R5g=
 github.com/ipfs/interface-go-ipfs-core v0.0.1/go.mod h1:CbFOGVGV8B4NCA0fAO2VVZ1Jt/ZQYE3FzTC6nLVqiAE=
 github.com/ipfs/iptb v1.4.0 h1:YFYTrCkLMRwk/35IMyC6+yjoQSHTEcNcefBStLJzgvo=
@@ -203,6 +205,8 @@ github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0 h1:qxMncUW0TzV
 github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0/go.mod h1:I9DYFcJAixF5f9iOu/9oC451/bq+QDTaLGznkcJPWgg=
 github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c h1:uUx61FiAa1GI6ZmVd2wf2vULeQZIKG66eybjNXKYCz4=
 github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c/go.mod h1:sdx1xVM9UuLw1tXnhJWN3piypTUO3vCIHYmG15KE/dU=
+github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded h1:fHCa28iw+qaRWZK4IqrntHxXALD5kKr/ESrpOCRRdrg=
+github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded/go.mod h1:FKvZrl5nnaGnTAMewcq0i7wM5zHD75e0lwlnF8q46uo=
 github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2 h1:vhC1OXXiT9R2pczegwz6moDvuRpggaroAXhPIseh57A=
 github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2/go.mod h1:8GXXJV31xl8whumTzdZsTt3RnUIiPqzkyf7mxToRCMs=
 github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8 h1:bspPhN+oKYFk5fcGNuQzp6IGzYQSenLEgH3s6jkXrWw=
