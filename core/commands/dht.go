@@ -146,9 +146,6 @@ var findProvidersDhtCmd = &cmds.Command{
 		}
 
 		numProviders, _ := req.Options[numProvidersOptionName].(int)
-		if err != nil {
-			return err
-		}
 		if numProviders < 1 {
 			return fmt.Errorf("number of providers must be greater than 0")
 		}
