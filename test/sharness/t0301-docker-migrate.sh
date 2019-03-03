@@ -39,7 +39,7 @@ test_expect_success "setup http response" '
 '
 
 pretend_server() {
-  cat vers_resp | nc -l -i 1 -p 17233
+    socat tcp-listen:17233,fork,bind=127.0.0.1,reuseaddr 'SYSTEM:cat cers_resp'!!STDERR &
 }
 
 test_expect_success "startup fake dists server" '

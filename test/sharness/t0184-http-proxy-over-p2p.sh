@@ -26,17 +26,14 @@ function show_logs() {
 
 function start_http_server() {
     REMOTE_SERVER_LOG="server.log"
-    rm -f $REMOTE_SERVER_LOG server_stdin
+    rm -f $REMOTE_SERVER_LOG
 
-    mkfifo server_stdin
-    nc -k -l 127.0.0.1 $WEB_SERVE_PORT 2>&1 > $REMOTE_SERVER_LOG < server_stdin &
+    touch response
+    socat tcp-listen:$WEB_SERVE_PORT,fork,bind=127.0.0.1,reuseaddr 'SYSTEM:cat response'!!CREATE:$REMOTE_SERVER_LOG &
     REMOTE_SERVER_PID=$!
-    exec 7>server_stdin
-    rm server_stdin
 
-    while ! nc -z 127.0.0.1 $WEB_SERVE_PORT; do
-        go-sleep 100ms
-    done
+    socat /dev/null tcp:127.0.01:$WEB_SERVE_PORT,retry=10
+    return $?
 }
 
 function teardown_remote_server() {
@@ -49,7 +46,7 @@ function serve_content() {
     local body=$1
     local status_code=${2:-"200 OK"}
     local length=$((1 + ${#body}))
-    echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" >&7
+    echo -e "HTTP/1.1 $status_code\nContent-length: $length\n\n$body" > response
 }
 
 function curl_check_response_code() {
@@ -82,6 +79,7 @@ function curl_send_proxy_request_and_check_response() {
     if [[ "$STATUS_CODE" -ne "$expected_status_code" ]];
     then
         echo -e "Found status-code "$STATUS_CODE", expected "$expected_status_code
+        show_logs
         return 1
     fi
 
