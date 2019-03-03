@@ -41,6 +41,7 @@ jobs:
         - ~/.go_workspace
         - ~/.go_workspace/src/gx/ipfs
         - ./node_modules
+        - ~/.go_workspace/pkg/mod
 
 
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && curl -s https://codecov.io/bash > codecov
@@ -75,7 +76,7 @@ jobs:
         - ~/.go_workspace
         - ~/go1.11.linux-amd64.tar.gz
         - ~/.go_workspace/src/gx/ipfs
-        - ./node_modules
+        - ~/.go_workspace/pkg/mod
 
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && curl -s https://codecov.io/bash > codecov
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
