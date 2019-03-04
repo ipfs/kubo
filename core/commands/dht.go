@@ -267,18 +267,18 @@ var provideRefDhtCmd = &cmds.Command{
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := notif.RegisterForQueryEvents(ctx)
 
+		var provideErr error
 		go func() {
 			defer cancel()
-			var err error
 			if rec {
-				err = provideKeysRec(ctx, nd.Routing, nd.DAG, cids)
+				provideErr = provideKeysRec(ctx, nd.Routing, nd.DAG, cids)
 			} else {
-				err = provideKeys(ctx, nd.Routing, cids)
+				provideErr = provideKeys(ctx, nd.Routing, cids)
 			}
-			if err != nil {
+			if provideErr != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
-					Extra: err.Error(),
+					Extra: provideErr.Error(),
 				})
 			}
 		}()
@@ -289,7 +289,7 @@ var provideRefDhtCmd = &cmds.Command{
 			}
 		}
 
-		return nil
+		return provideErr
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
@@ -376,13 +376,15 @@ var findPeerDhtCmd = &cmds.Command{
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := notif.RegisterForQueryEvents(ctx)
 
+		var findPeerErr error
 		go func() {
 			defer cancel()
-			pi, err := nd.Routing.FindPeer(ctx, pid)
-			if err != nil {
+			var pi pstore.PeerInfo
+			pi, findPeerErr = nd.Routing.FindPeer(ctx, pid)
+			if findPeerErr != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
-					Extra: err.Error(),
+					Extra: findPeerErr.Error(),
 				})
 				return
 			}
@@ -399,7 +401,7 @@ var findPeerDhtCmd = &cmds.Command{
 			}
 		}
 
-		return nil
+		return findPeerErr
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
@@ -458,13 +460,15 @@ Different key types can specify other 'best' rules.
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := notif.RegisterForQueryEvents(ctx)
 
+		var getErr error
 		go func() {
 			defer cancel()
-			val, err := nd.Routing.GetValue(ctx, dhtkey)
-			if err != nil {
+			var val []byte
+			val, getErr = nd.Routing.GetValue(ctx, dhtkey)
+			if getErr != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
-					Extra: err.Error(),
+					Extra: getErr.Error(),
 				})
 			} else {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
@@ -480,7 +484,7 @@ Different key types can specify other 'best' rules.
 			}
 		}
 
-		return nil
+		return getErr
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
@@ -552,13 +556,14 @@ NOTE: A value may not exceed 2048 bytes.
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := notif.RegisterForQueryEvents(ctx)
 
+		var putErr error
 		go func() {
 			defer cancel()
-			err := nd.Routing.PutValue(ctx, key, []byte(data))
-			if err != nil {
+			putErr = nd.Routing.PutValue(ctx, key, []byte(data))
+			if putErr != nil {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.QueryError,
-					Extra: err.Error(),
+					Extra: putErr.Error(),
 				})
 			}
 		}()
@@ -569,7 +574,7 @@ NOTE: A value may not exceed 2048 bytes.
 			}
 		}
 
-		return nil
+		return putErr
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
