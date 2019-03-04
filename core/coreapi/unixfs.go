@@ -94,6 +94,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	fileAdder.RawLeaves = settings.RawLeaves
 	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.Name = settings.StdinName
+	fileAdder.BaseName = settings.BaseName
 	fileAdder.CidBuilder = prefix
 	fileAdder.TopHidden = settings.TopHidden
 

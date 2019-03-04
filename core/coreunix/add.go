@@ -75,6 +75,7 @@ type Adder struct {
 	Silent     bool
 	Wrap       bool
 	Name       string
+	BaseName   string
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
@@ -230,6 +231,9 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 
 func (adder *Adder) addNode(node ipld.Node, path string) error {
 	// patch it into the root
+	if adder.BaseName != "" {
+		path = gopath.Join(adder.BaseName, path)
+	}
 	if path == "" {
 		path = node.Cid().String()
 	}
@@ -351,7 +355,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 			return nil, err
 		}
 
-		if err := outputDagnode(adder.Out, "", nd); err != nil {
+		if err := outputDagnode(adder.Out, adder.BaseName, nd); err != nil {
 			return nil, err
 		}
 	}
