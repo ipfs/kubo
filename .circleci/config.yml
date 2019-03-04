@@ -58,6 +58,7 @@ jobs:
   sharness:
     <<: *defaults
     steps:
+    - run: sudo apt install socat
     - checkout
     - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
     - restore_cache:
