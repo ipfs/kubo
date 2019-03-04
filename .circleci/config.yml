@@ -1,19 +1,36 @@
 version: 2.0
 
+aliases:
+  make_out_dirs: &make_out_dirs
+    run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS/{unit,sharness}
+  restore_gomod: &restore_gomod
+    restore_cache:
+      keys:
+        - v3-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        - v3-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
+        - v3-dep-{{ .Branch }}-
+        - v3-dep-master-
+  store_gomod: &store_gomod
+      save_cache:
+        key: v3-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        paths:
+          - ~/go/pkg/mod
+          - ~/.cache/go-build/
+
+
 defaults: &defaults
   working_directory: ~/ipfs/go-ipfs
   environment:
     GO111MODULE: "on"
     TEST_NO_DOCKER: 1
     TEST_NO_FUSE: 1
-    GOPATH: /home/circleci/.go_workspace
+    GOPATH: /home/circleci/go
     CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
     CIRCLE: 1
     SERVICE: circle-ci
     CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
     TEST_VERBOSE: 1
     TRAVIS: 1
-    IMPORT_PATH: github.com/ipfs/go-ipfs
 
   docker:
     - image: circleci/golang:1.11
@@ -23,32 +40,22 @@ jobs:
     <<: *defaults
     steps:
     - checkout
-    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    - restore_cache:
-        keys:
-        - v2-dep-{{ .Branch }}-
-        - v2-dep-master-
+    - *make_out_dirs
+    - *restore_gomod
 
-    - run: rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && go mod download
-
-    - save_cache:
-        key: v2-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}
-        paths:
-        - ~/.go_workspace/pkg/mod
-
-
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && curl -s https://codecov.io/bash > codecov
     - run: |
-        cd "$HOME/.go_workspace/src/$IMPORT_PATH" \
-        && make -j 1 test/unit/gotest.junit.xml \
+        make -j 1 test/unit/gotest.junit.xml \
         && [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && bash codecov -cF unittests -X search -f coverage/unit_tests.coverprofile
+    - run: 
+        when: always
+        command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
+
     - run:
         when: always
-        command: mv "$HOME/.go_workspace/src/${IMPORT_PATH}/test/unit/gotest.junit.xml" /tmp/circleci-test-results
+        command: mv "test/unit/gotest.junit.xml" /tmp/circleci-test-results/unit
+
+    - *store_gomod
+
     - store_test_results:
         path: /tmp/circleci-test-results
     # Save artifacts
@@ -61,29 +68,21 @@ jobs:
     steps:
     - run: sudo apt install socat
     - checkout
-    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    - restore_cache:
-        keys:
-        - v2-dep-{{ .Branch }}-
-        - v2-dep-master-
+    - *make_out_dirs
+    - *restore_gomod
 
-    - run: rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && go mod download
+    - run: make -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
 
-    - save_cache:
-        key: v2-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}
-        paths:
-        - ~/.go_workspace/pkg/mod
+    - run:
+        when: always
+        command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
 
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && curl -s https://codecov.io/bash > codecov
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && bash codecov -cF sharness -X search -f coverage/sharness_tests.coverprofile
-    - run: mv "$HOME/.go_workspace/src/${IMPORT_PATH}/test/sharness/test-results/sharness.xml" /tmp/circleci-test-results
-
+    - run: mv "test/sharness/test-results/sharness.xml" /tmp/circleci-test-results/sharness
     # make sure we fail if there are test failures
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && ls test/sharness/test-results/t*-*.sh.*.counts | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
+    - run: find test/sharness/test-results -name 't*-*.sh.*.counts' | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
+
+    - *store_gomod
+
     - store_test_results:
         path: /tmp/circleci-test-results
     # Save artifacts
