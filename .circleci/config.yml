@@ -4,13 +4,12 @@ defaults: &defaults
   working_directory: ~/ipfs/go-ipfs
   environment:
     GO111MODULE: "on"
-    TEST_NO_FUSE: 1
     TEST_NO_DOCKER: 1
+    TEST_NO_FUSE: 1
     GOPATH: /home/circleci/.go_workspace
     CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
     CIRCLE: 1
     SERVICE: circle-ci
-    TEST_NO_DOCKER: 1
     CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
     TEST_VERBOSE: 1
     TRAVIS: 1
