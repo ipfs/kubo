@@ -33,7 +33,7 @@ jobs:
     - run: rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make deps
+    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && go mod download
 
     - save_cache:
         key: v2-dep-{{ .Branch }}-{{ epoch }}
@@ -69,7 +69,7 @@ jobs:
     - run: rm -rf "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: mkdir -p "$HOME/.go_workspace/src/$IMPORT_PATH"
     - run: cp -aT . "$HOME/.go_workspace/src/$IMPORT_PATH"
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make deps
+    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && go mod download
 
     - save_cache:
         key: v2-dep-{{ .Branch }}-{{ epoch }}
