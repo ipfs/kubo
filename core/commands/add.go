@@ -9,12 +9,12 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	pb "github.com/cheggaaa/pb"
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
+	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
