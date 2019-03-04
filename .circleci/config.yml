@@ -36,11 +36,8 @@ jobs:
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && go mod download
 
     - save_cache:
-        key: v2-dep-{{ .Branch }}-{{ epoch }}
+        key: v2-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}
         paths:
-        - ~/.go_workspace
-        - ~/.go_workspace/src/gx/ipfs
-        - ./node_modules
         - ~/.go_workspace/pkg/mod
 
 
@@ -77,11 +74,8 @@ jobs:
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && go mod download
 
     - save_cache:
-        key: v2-dep-{{ .Branch }}-{{ epoch }}
+        key: v2-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}
         paths:
-        - ~/.go_workspace
-        - ~/go1.11.linux-amd64.tar.gz
-        - ~/.go_workspace/src/gx/ipfs
         - ~/.go_workspace/pkg/mod
 
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && curl -s https://codecov.io/bash > codecov
