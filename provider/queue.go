@@ -2,15 +2,15 @@ package provider
 
 import (
 	"context"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	namespace "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/namespace"
-	query "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/query"
-	errors "gx/ipfs/QmVmDhyTTUcQXFD1rRQ64fGLMSAoaQvNH3hwuaCFAPq2hy/errors"
+	"errors"
 	"math"
 	"strconv"
 	"strings"
 	"sync"
+	cid "github.com/ipfs/go-cid"
+	ds "github.com/ipfs/go-datastore"
+	namespace "github.com/ipfs/go-datastore/namespace"
+	query "github.com/ipfs/go-datastore/query"
 )
 
 // Entry allows for the durability in the queue. When a cid is dequeued it is

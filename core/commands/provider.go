@@ -3,8 +3,8 @@ package commands
 import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmQtQrtNioesAWtrx8csBvfY37gTe94d6wQ3VikZUjxD39/go-ipfs-cmds"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 )
 
 var ProviderCmd = &cmds.Command{
@@ -31,7 +31,7 @@ Trigger reprovider to announce our data to network.
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 

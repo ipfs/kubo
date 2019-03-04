@@ -1,7 +1,7 @@
 package coreapi
 
 import (
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
+	cid "github.com/ipfs/go-cid"
 )
 
 type ProviderAPI CoreAPI

@@ -2,10 +2,10 @@ package provider
 
 import (
 	"context"
-	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/namespace"
-	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/query"
+	"github.com/ipfs/go-cid"
+	ds "github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/namespace"
+	"github.com/ipfs/go-datastore/query"
 )
 
 const providerTrackingPrefix = "/provider/tracking/"

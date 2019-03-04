@@ -2,8 +2,8 @@ package provider
 
 import (
 	"context"
-	"gx/ipfs/QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA/go-ipfs-blockstore"
-	"gx/ipfs/QmcxZXMqFu4vjLQRfG2tAcg6DPQNurgZ2SQ5iQVk6dXQjn/go-libp2p-routing"
+	"github.com/ipfs/go-ipfs-blockstore"
+	"github.com/libp2p/go-libp2p-routing"
 	"time"
 )
 

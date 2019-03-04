@@ -6,10 +6,10 @@ package provider
 import (
 	"context"
 	"fmt"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	bstore "gx/ipfs/QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA/go-ipfs-blockstore"
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	"gx/ipfs/QmcxZXMqFu4vjLQRfG2tAcg6DPQNurgZ2SQ5iQVk6dXQjn/go-libp2p-routing"
+	cid "github.com/ipfs/go-cid"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
+	logging "github.com/ipfs/go-log"
+	"github.com/libp2p/go-libp2p-routing"
 	"time"
 )
 

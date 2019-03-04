@@ -5,9 +5,9 @@ package provider
 
 import (
 	"context"
-	"gx/ipfs/QmScf5hnTEK8fDpRJAbcdMnKXpKUp1ytdymzXUbXDCFssp/go-merkledag"
-	"gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
+	"github.com/ipfs/go-merkledag"
+	"github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 func NewProvideAllStrategy(dag ipld.DAGService) Strategy {
