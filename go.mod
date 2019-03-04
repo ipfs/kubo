@@ -14,8 +14,7 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/gxed/go-is-domain v0.0.0-20160921144106-bcb935f9c56d
 	github.com/hashicorp/golang-lru v0.5.1
-	github.com/hsanjuan/go-libp2p-gostream v0.0.0-20190227195646-68f5153d3e40 // indirect
-	github.com/hsanjuan/go-libp2p-http v0.0.0-20190227195650-43dc52949539
+	github.com/hsanjuan/go-libp2p-http v0.0.1
 	github.com/ipfs/dir-index-html v1.0.3
 	github.com/ipfs/go-bitswap v0.0.1
 	github.com/ipfs/go-block-format v0.0.2

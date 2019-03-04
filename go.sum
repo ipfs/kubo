@@ -89,10 +89,10 @@ github.com/hashicorp/golang-lru v0.5.1 h1:0hERBMJE1eitiLkihrMvRVBYAkpHzc/J3QdDN+
 github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
-github.com/hsanjuan/go-libp2p-gostream v0.0.0-20190227195646-68f5153d3e40 h1:HpM/bJDj+YqixNa3nLIyjROsY28iQRsnfdx73nkWdVo=
-github.com/hsanjuan/go-libp2p-gostream v0.0.0-20190227195646-68f5153d3e40/go.mod h1:UYhQHuYJ0UqGSHxq9WbHlDz2qjDcz+upv5KlUY/OLUg=
-github.com/hsanjuan/go-libp2p-http v0.0.0-20190227195650-43dc52949539 h1:mzj5mOyQZm7gGIDFQ7OxyyRQwUbtD6RxBBUMFaeAb6I=
-github.com/hsanjuan/go-libp2p-http v0.0.0-20190227195650-43dc52949539/go.mod h1:LuGDcGhleWngqrV/D6y9CwEEiuWohImgdAbf/hBtN9s=
+github.com/hsanjuan/go-libp2p-gostream v0.0.30 h1:8vNjVW55G0i2fw17+Pl+76UG3IQd68jJOiCfTW5JOCQ=
+github.com/hsanjuan/go-libp2p-gostream v0.0.30/go.mod h1:jfrdMwo5DXvVXruRjg33ELnc9loyQrLhonOrDZnka2M=
+github.com/hsanjuan/go-libp2p-http v0.0.1 h1:BIT66H0+XwuHAqlTP6EUBZ27MwZwBy1Cxx0gEPf7q2Y=
+github.com/hsanjuan/go-libp2p-http v0.0.1/go.mod h1:x7UoBuLChSOHvfs2TivH8j7vDy2EQAGU6QQYdRlkbm0=
 github.com/huin/goupnp v0.0.0-20180415215157-1395d1447324 h1:PV190X5/DzQ/tbFFG5YpT5mH6q+cHlfgqI5JuRnH9oE=
 github.com/huin/goupnp v0.0.0-20180415215157-1395d1447324/go.mod h1:MZ2ZmwcBpvOoJ22IJsc7va19ZwoheaBk43rKg12SKag=
 github.com/ipfs/bbloom v0.0.1 h1:s7KkiBPfxCeDVo47KySjK0ACPc5GJRUxFpdyWEuDjhw=
