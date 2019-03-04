@@ -288,8 +288,8 @@ github.com/libp2p/go-libp2p-protocol v0.0.1 h1:+zkEmZ2yFDi5adpVE3t9dqh/N9TbpFWyw
 github.com/libp2p/go-libp2p-protocol v0.0.1/go.mod h1:Af9n4PiruirSDjHycM1QuiMi/1VZNHYcK8cLgFJLZ4s=
 github.com/libp2p/go-libp2p-pubsub v0.0.1 h1:iJWpvBDZiZOoRBGqEifu9yUHti9ptnSODHt6tgrBC6c=
 github.com/libp2p/go-libp2p-pubsub v0.0.1/go.mod h1:fYKlZBOF2yrJzYlgeEVFSbYWfbS+E8Zix6gMZ0A6WgE=
-github.com/libp2p/go-libp2p-pubsub-router v0.0.1 h1:XRlxDTsgMfFNCISO8ec+qsQMl5JcexEPG6g95T5xHkY=
-github.com/libp2p/go-libp2p-pubsub-router v0.0.1/go.mod h1:DPXylpit/s3jB6V1BIeGcI01BXOb7FLt+/dZP3urYuA=
+github.com/libp2p/go-libp2p-pubsub-router v0.0.2 h1:akEMDPfxX/yiBF7YJ7txUTAqCOMmGp/LbzPhTzGNMDY=
+github.com/libp2p/go-libp2p-pubsub-router v0.0.2/go.mod h1:h5z0kyMFRu2J46tt15eEuLHKEmu1MrFghsGHqTc/iII=
 github.com/libp2p/go-libp2p-quic-transport v0.0.0-20190301030811-862195d91de1/go.mod h1:bw/6H57fSVn44ldP1Js6hnzpoiUm9YgBDKSv+ch+hWc=
 github.com/libp2p/go-libp2p-quic-transport v0.0.1 h1:j+0WO2EIBBC/ZUuWXvcZt8DGxIgSojZcyRw4Igcr+ts=
 github.com/libp2p/go-libp2p-quic-transport v0.0.1/go.mod h1:cvXrDn4PqAGKwQoxy7Xx2aVcO9TB1/thWZpz+eD5vAQ=
@@ -297,8 +297,8 @@ github.com/libp2p/go-libp2p-record v0.0.1 h1:zN7AS3X46qmwsw5JLxdDuI43cH5UYwovKxH
 github.com/libp2p/go-libp2p-record v0.0.1/go.mod h1:grzqg263Rug/sRex85QrDOLntdFAymLDLm7lxMgU79Q=
 github.com/libp2p/go-libp2p-routing v0.0.1 h1:hPMAWktf9rYi3ME4MG48qE7dq1ofJxiQbfdvpNntjhc=
 github.com/libp2p/go-libp2p-routing v0.0.1/go.mod h1:N51q3yTr4Zdr7V8Jt2JIktVU+3xBBylx1MZeVA6t1Ys=
-github.com/libp2p/go-libp2p-routing-helpers v0.0.1 h1:fl02yxCXoPxt3tIRUC5yxKEIkKfJoZVkAkm+JN97SFE=
-github.com/libp2p/go-libp2p-routing-helpers v0.0.1/go.mod h1:zf1ook9HoOQpfnVXrF4gGorkPrGGf1g25vgH5+4SRNU=
+github.com/libp2p/go-libp2p-routing-helpers v0.0.2 h1:SLX7eDQE8Xo197NwNM/hM7WnH3w6fSGY9+G9HkiYwqQ=
+github.com/libp2p/go-libp2p-routing-helpers v0.0.2/go.mod h1:zf1ook9HoOQpfnVXrF4gGorkPrGGf1g25vgH5+4SRNU=
 github.com/libp2p/go-libp2p-secio v0.0.1 h1:CqE/RdsizOwItdgLe632iyft/w0tshDLmZGAiKDcUAI=
 github.com/libp2p/go-libp2p-secio v0.0.1/go.mod h1:IdG6iQybdcYmbTzxp4J5dwtUEDTOvZrT0opIDVNPrJs=
 github.com/libp2p/go-libp2p-swarm v0.0.1 h1:Vne+hjaDwXqzgNwQ2vb2YKbnbOTyXjtS47stT66Apc4=
