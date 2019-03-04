@@ -253,7 +253,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		}),
 	})
 
-	k, err := api.Unixfs().Add(ctx, f1, options.Unixfs.Wrap(true))
+	k, err := api.Unixfs().Add(ctx, f1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +346,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	})
 
 	// create /ipns/example.net/foo/
-	k, err := api.Unixfs().Add(ctx, f1, options.Unixfs.Wrap(true))
+	k, err := api.Unixfs().Add(ctx, f1)
 	if err != nil {
 		t.Fatal(err)
 	}
