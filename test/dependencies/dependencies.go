@@ -3,6 +3,7 @@
 package tools
 
 import (
+	_ "gotest.tools/gotestsum"
 	_ "github.com/multiformats/go-multihash/multihash"
 	_ "github.com/jbenet/go-random-files/random-files"
 	_ "github.com/ipfs/hang-fds"

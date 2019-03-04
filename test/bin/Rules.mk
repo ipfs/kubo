@@ -26,6 +26,10 @@ $(d)/json-to-junit: test/dependencies/json-to-junit
 	$(go-build-relative)
 TGTS_$(d) += $(d)/json-to-junit
 
+$(d)/gotestsum:
+	$(call go-build,gotest.tools/gotestsum)
+TGTS_$(d) += $(d)/gotestsum
+
 $(d)/hang-fds:
 	$(call go-build,github.com/ipfs/hang-fds)
 TGTS_$(d) += $(d)/hang-fds

@@ -45,9 +45,14 @@ jobs:
 
 
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && curl -s https://codecov.io/bash > codecov
-    - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && make -j 1 test/unit/gotest.junit.xml
+    - run: |
+        cd "$HOME/.go_workspace/src/$IMPORT_PATH" \
+        && make -j 1 test/unit/gotest.junit.xml \
+        && [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
     - run: cd "$HOME/.go_workspace/src/$IMPORT_PATH" && bash codecov -cF unittests -X search -f coverage/unit_tests.coverprofile
-    - run: mv "$HOME/.go_workspace/src/${IMPORT_PATH}/test/unit/gotest.junit.xml" /tmp/circleci-test-results
+    - run:
+        when: always
+        command: mv "$HOME/.go_workspace/src/${IMPORT_PATH}/test/unit/gotest.junit.xml" /tmp/circleci-test-results
     - store_test_results:
         path: /tmp/circleci-test-results
     # Save artifacts
