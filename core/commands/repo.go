@@ -39,12 +39,12 @@ var RepoCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"stat":    repoStatCmd,
-		"gc":      repoGcCmd,
-		"fsck":    repoFsckCmd,
-		"version": repoVersionCmd,
-		"verify":  repoVerifyCmd,
-		"rm-root": repoRmRootCmd,
+		"stat":          repoStatCmd,
+		"gc":            repoGcCmd,
+		"fsck":          repoFsckCmd,
+		"version":       repoVersionCmd,
+		"verify":        repoVerifyCmd,
+		"rm-files-root": repoRmFilesRootCmd,
 	},
 }
 
@@ -266,11 +266,11 @@ daemons are running.
 	},
 }
 
-var repoRmRootCmd = &cmds.Command{
+var repoRmFilesRootCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Unlink the root used by the files API.",
+		Tagline: "Unlink the root used by the `ipfs files` comands.",
 		ShortDescription: `
-'ipfs repo rm-root' will unlink the root used by the files API ('ipfs
+'ipfs repo rm-files-root' will unlink the root used by the files API ('ipfs
 files' commands) without trying to read the root itself.  The root and
 its children will be removed the next time the garbage collector runs,
 unless pinned.
@@ -315,7 +315,7 @@ This command can only run when the ipfs daemon is not running.
 		// such as pin it
 		val, err := repo.Datastore().Get(core.FilesRootKey)
 		if err == ds.ErrNotFound || val == nil {
-			return cmds.EmitOnce(res, &MessageOutput{"Files API root not found.\n"})
+			return cmds.EmitOnce(res, &MessageOutput{"`ipfs files` root not found.\n"})
 		}
 
 		var cidStr string
@@ -329,12 +329,12 @@ This command can only run when the ipfs daemon is not running.
 		}
 
 		if have && !removeExistingRoot {
-			return fmt.Errorf("root %s exists locally. Are you sure you want to unlink this? Pass --remove-existing-root to continue", cidStr)
+			return fmt.Errorf("`ipfs files` root %s exists locally. Are you sure you want to unlink this? Pass --remove-existing-root to continue", cidStr)
 		}
 
 		err = repo.Datastore().Delete(core.FilesRootKey)
 		if err != nil {
-			return fmt.Errorf("unable to remove API root: %s.  Root hash was %s", err.Error(), cidStr)
+			return fmt.Errorf("unable to remove `ipfs files` root: %s.  Root hash was %s", err.Error(), cidStr)
 		}
 		return cmds.EmitOnce(res, &MessageOutput{
 			fmt.Sprintf("Unlinked files API root.  Root hash was %s.\n", cidStr),

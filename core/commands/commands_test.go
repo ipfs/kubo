@@ -188,7 +188,7 @@ func TestCommands(t *testing.T) {
 		"/repo/stat",
 		"/repo/verify",
 		"/repo/version",
-		"/repo/rm-root",
+		"/repo/rm-files-root",
 		"/resolve",
 		"/shutdown",
 		"/stats",
