@@ -30,7 +30,7 @@ results/status.txt: results/coverage.txt results/dot_prove.txt
 markdown: results/status.md
 
 results/status.md: results/status.txt
-	@./markdown_status.sh >$@
+	@./markdown_status.sh $^ >$@
 	@echo "results written in '$@'"
 
 .PHONY: help coverage parse status

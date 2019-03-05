@@ -1,6 +1,6 @@
 #!/bin/sh
 
-USAGE="$0 [-h] [-v]"
+USAGE="$0 [-h] [-v] <files>"
 
 usage() {
 	echo "$USAGE"
@@ -23,45 +23,103 @@ die() {
 	exit 1
 }
 
+# get user options
+while [ "$#" -gt "0" ]; do
+	# get options
+	arg="$1"
+
+	case "$arg" in
+		-h|--help)
+			usage ;;
+		-v|--verbose)
+			VERBOSE=1
+			shift
+			;;
+		-*)
+			die "unrecognised option: '$arg'\n$USAGE" ;;
+		*)
+			break ;;
+	esac
+done
+
+for TXT_STATUS in "$@"
+do
+	test -f "$TXT_STATUS" ||
+		die "could not find file '$TXT_STATUS'"
+done
+
 log "Create temporary directory"
 DATE=$(date +"%Y-%m-%dT%H:%M:%SZ")
 TMP_TMPL="/tmp/markdown_status.$DATE.XXXXXX"
 TMPDIR=$(mktemp -d "$TMP_TMPL") ||
 	die "could not 'mktemp -d $TMP_TMPL'"
 
-TXT_STATUS='results/status.txt'
-
-test -f "$TXT_STATUS" ||
-	die "could not find '$TXT_STATUS'"
+# TODO: improve by parsing argument or something
+get_legend() {
+	echo "$(basename $1)"
+}
 
 log "Generate markdown impl status"
 MD_STATUS="$TMPDIR/markdown_impl_status"
+
+# Header
 cat <<EOF >"$MD_STATUS"
 # IPFS Implementation Status
 
 > Legend: :green_apple: Done &nbsp; :lemon: In Progress &nbsp; :tomato: Missing &nbsp; :chestnut: Not planned
 
-| Command                                      | Go Impl                                      |
-| -------------------------------------------- | :------------------------------------------: |
 EOF
 
-while read -r line
+# 1st line of the table
+printf "| Command                                      |" >>"$MD_STATUS"
+for TXT_STATUS in "$@"
 do
-	if expr "$line" : "^ipfs " >/dev/null
-	then
-		#echo "ipfs line: $line"
-		printf "| %*s |" 44 "$line"
-	elif test -n "$line"
-	then
-		#echo "other line: $line"
-		printf " %*s |" 44 "$line"
-	else
-		#echo "empty line: $line"
-		printf "\n"
-	fi
-done <"$TXT_STATUS" >>"$MD_STATUS"
+	printf " %*s |" 44 "$(get_legend $TXT_STATUS)" >>"$MD_STATUS"
+done
+echo >>"$MD_STATUS"
 
-printf "\n" >>"$MD_STATUS"
+# 2nd line of the table
+printf "| -------------------------------------------- |" >>"$MD_STATUS"
+for TXT_STATUS in "$@"
+do
+	printf " :------------------------------------------: |" >>"$MD_STATUS"
+done
+echo >>"$MD_STATUS"
+
+# Rest of the table
+perl -e '
+
+use strict;
+use warnings;
+
+my %hm;
+
+# Reading files
+for my $i (0..$#ARGV) {
+	open(my $fh, "<", $ARGV[$i]) or die "Could not open \"$ARGV[$i]\": $!";
+
+	my $key;
+	while (my $row = <$fh>) {
+	      chomp $row;
+	      if ($row =~ m/^ipfs/) {
+	            $key = $row;
+	      } elsif ($row ne "") {
+	            $hm{$key}[$i] = $row;
+	      }
+	}
+}
+
+# Printing
+for my $k (sort keys %hm) {
+	printf("| %*s |", 44, $k);
+	for my $i (0..$#ARGV) {
+		printf (" %*s |", 44, $hm{$k}[$i]);
+	}
+	print "\n";
+}
+
+
+' "$@" >>"$MD_STATUS"
 
 # Output
 cat "$MD_STATUS"
