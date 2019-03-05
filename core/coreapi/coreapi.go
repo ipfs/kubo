@@ -181,7 +181,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 	}
 
 	subApi.checkOnline = func(allowOffline bool) error {
-		if !n.OnlineMode() && !allowOffline {
+		if !n.IsOnline && !allowOffline {
 			return coreiface.ErrOffline
 		}
 		return nil

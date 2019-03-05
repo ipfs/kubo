@@ -21,7 +21,6 @@ var log = logging.Logger("command")
 
 // Context represents request context
 type Context struct {
-	Online     bool
 	ConfigRoot string
 	ReqLog     *ReqLog
 

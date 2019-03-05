@@ -141,7 +141,7 @@ var findProvidersDhtCmd = &cmds.Command{
 			return err
 		}
 
-		if !n.OnlineMode() {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -232,7 +232,7 @@ var provideRefDhtCmd = &cmds.Command{
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -361,7 +361,7 @@ var findPeerDhtCmd = &cmds.Command{
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -445,7 +445,7 @@ Different key types can specify other 'best' rules.
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -539,7 +539,7 @@ NOTE: A value may not exceed 2048 bytes.
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 

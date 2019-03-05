@@ -535,7 +535,7 @@ func p2pGetNode(env cmds.Environment) (*core.IpfsNode, error) {
 		return nil, errors.New("libp2p stream mounting not enabled")
 	}
 
-	if !nd.OnlineMode() {
+	if !nd.IsOnline {
 		return nil, ErrNotOnline
 	}
 

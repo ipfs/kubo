@@ -47,7 +47,7 @@ Prints out information about your computer to aid in easier debugging.
 			return err
 		}
 
-		err = netInfo(nd.OnlineMode(), info)
+		err = netInfo(nd.IsOnline, info)
 		if err != nil {
 			return err
 		}

@@ -94,7 +94,7 @@ Example:
 		}
 
 		// Must be online!
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return cmdkit.Errorf(cmdkit.ErrClient, ErrNotOnline.Error())
 		}
 

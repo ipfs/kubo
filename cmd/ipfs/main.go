@@ -171,7 +171,6 @@ func mainRet() int {
 					return nil, err
 				}
 
-				n.SetLocal(true)
 				return n, nil
 			},
 		}, nil

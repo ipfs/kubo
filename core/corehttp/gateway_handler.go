@@ -155,7 +155,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 
 	// Resolve path to the final DAG node for the ETag
 	resolvedPath, err := i.api.ResolvePath(ctx, parsedPath)
-	if err == coreiface.ErrOffline && !i.node.OnlineMode() {
+	if err == coreiface.ErrOffline && !i.node.IsOnline {
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
 		return
 	} else if err != nil {
