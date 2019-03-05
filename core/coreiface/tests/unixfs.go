@@ -737,22 +737,23 @@ func (tp *provider) TestLs(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	r := strings.NewReader("content-of-file")
 	p, err := api.Unixfs().Add(ctx, files.NewMapDirectory(map[string]files.Node{
 		"0": files.NewMapDirectory(map[string]files.Node{
-			"name-of-file": files.NewReaderFile(r),
+			"name-of-file":    files.NewReaderFile(r),
+			"name-of-symlink": files.NewLinkFile("/foo/bar", nil),
 		}),
 	}))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	entries, err := api.Unixfs().Ls(ctx, p)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	entry := <-entries
@@ -760,13 +761,33 @@ func (tp *provider) TestLs(t *testing.T) {
 		t.Fatal(entry.Err)
 	}
 	if entry.Size != 15 {
-		t.Fatalf("expected size = 15, got %d", entry.Size)
+		t.Errorf("expected size = 15, got %d", entry.Size)
 	}
 	if entry.Name != "name-of-file" {
-		t.Fatalf("expected name = name-of-file, got %s", entry.Name)
+		t.Errorf("expected name = name-of-file, got %s", entry.Name)
+	}
+	if entry.Type != coreiface.TFile {
+		t.Errorf("wrong type %s", entry.Type)
 	}
 	if entry.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
-		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", entry.Cid)
+		t.Errorf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", entry.Cid)
+	}
+	entry = <-entries
+	if entry.Err != nil {
+		t.Fatal(entry.Err)
+	}
+	if entry.Type != coreiface.TSymlink {
+		t.Errorf("wrong type %s", entry.Type)
+	}
+	if entry.Name != "name-of-symlink" {
+		t.Errorf("expected name = name-of-symlink, got %s", entry.Name)
+	}
+	if entry.Target.String() != "/foo/bar" {
+		t.Errorf("expected symlink target to be /foo/bar, got %s", entry.Target)
+	}
+
+	if int(entry.Size) != len(entry.Target.String()) {
+		t.Errorf("expected size = %d, got %d", len(entry.Target.String()), entry.Size)
 	}
 	if l, ok := <-entries; ok {
 		t.Errorf("didn't expect a second link")
