@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
-	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -41,7 +40,8 @@ func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.Re
 	}
 	depth := cfg.Depth
 	if depth == nsopts.UnlimitedDepth {
-		depth = math.MaxUint64
+		// max uint
+		depth = ^uint(0)
 	}
 	for strings.HasPrefix(name, "/ipns/") {
 		if depth <= 0 {
