@@ -145,7 +145,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
-func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.LsLink, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -170,26 +170,27 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.
 	return uses.lsFromLinksAsync(ctx, dir, settings)
 }
 
-func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.LsLink {
-	lnk := coreiface.LsLink{
-		Link: linkres.Link,
+func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
+	lnk := coreiface.DirEntry{
+		Name: linkres.Link.Name,
+		Cid:  linkres.Link.Cid,
 		Err:  linkres.Err,
 	}
 	if lnk.Err != nil {
 		return lnk
 	}
 
-	switch lnk.Link.Cid.Type() {
+	switch lnk.Cid.Type() {
 	case cid.Raw:
 		// No need to check with raw leaves
 		lnk.Type = coreiface.TFile
-		lnk.Size = lnk.Link.Size
+		lnk.Size = linkres.Link.Size
 	case cid.DagProtobuf:
 		if !settings.ResolveChildren {
 			break
 		}
 
-		linkNode, err := lnk.Link.GetNode(ctx, api.dag)
+		linkNode, err := linkres.Link.GetNode(ctx, api.dag)
 		if err != nil {
 			lnk.Err = err
 			break
@@ -201,7 +202,14 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 				lnk.Err = err
 				break
 			}
-			lnk.Type = coreiface.FileType(d.Type())
+			switch d.Type() {
+			case ft.TFile, ft.TRaw:
+				lnk.Type = coreiface.TFile
+			case ft.THAMTShard, ft.TDirectory, ft.TMetadata:
+				lnk.Type = coreiface.TDirectory
+			case ft.TSymlink:
+				lnk.Type = coreiface.TSymlink
+			}
 			lnk.Size = d.FileSize()
 		}
 	}
@@ -209,8 +217,8 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 	return lnk
 }
 
-func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.LsLink, error) {
-	out := make(chan coreiface.LsLink)
+func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
+	out := make(chan coreiface.DirEntry)
 
 	go func() {
 		defer close(out)
@@ -226,8 +234,8 @@ func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, s
 	return out, nil
 }
 
-func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.LsLink, error) {
-	links := make(chan coreiface.LsLink, len(ndlinks))
+func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
+	links := make(chan coreiface.DirEntry, len(ndlinks))
 	for _, l := range ndlinks {
 		lr := ft.LinkResult{Link: &ipld.Link{Name: l.Name, Size: l.Size, Cid: l.Cid}}
 
