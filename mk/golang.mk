@@ -1,5 +1,6 @@
 # golang utilities
 GO_MIN_VERSION = 1.11
+export GO111MODULE=on
 
 
 # pre-definitions
