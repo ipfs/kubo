@@ -750,26 +750,25 @@ func (tp *provider) TestLs(t *testing.T) {
 		t.Error(err)
 	}
 
-	links, err := api.Unixfs().Ls(ctx, p)
+	entries, err := api.Unixfs().Ls(ctx, p)
 	if err != nil {
 		t.Error(err)
 	}
 
-	linkRes := <-links
-	if linkRes.Err != nil {
-		t.Fatal(linkRes.Err)
+	entry := <-entries
+	if entry.Err != nil {
+		t.Fatal(entry.Err)
 	}
-	link := linkRes.Link
-	if linkRes.Size != 15 {
-		t.Fatalf("expected size = 15, got %d", link.Size)
+	if entry.Size != 15 {
+		t.Fatalf("expected size = 15, got %d", entry.Size)
 	}
-	if link.Name != "name-of-file" {
-		t.Fatalf("expected name = name-of-file, got %s", link.Name)
+	if entry.Name != "name-of-file" {
+		t.Fatalf("expected name = name-of-file, got %s", entry.Name)
 	}
-	if link.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
-		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", link.Cid)
+	if entry.Cid.String() != "QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr" {
+		t.Fatalf("expected cid = QmX3qQVKxDGz3URVC3861Z3CKtQKGBn6ffXRBBWGMFz9Lr, got %s", entry.Cid)
 	}
-	if l, ok := <-links; ok {
+	if l, ok := <-entries; ok {
 		t.Errorf("didn't expect a second link")
 		if l.Err != nil {
 			t.Error(l.Err)

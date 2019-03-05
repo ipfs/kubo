@@ -4,9 +4,8 @@ import (
 	"context"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
-	"github.com/ipfs/go-ipfs-files"
-	ipld "github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/go-unixfs"
+	cid "github.com/ipfs/go-cid"
+	files "github.com/ipfs/go-ipfs-files"
 )
 
 type AddEvent struct {
@@ -16,21 +15,30 @@ type AddEvent struct {
 	Size  string       `json:",omitempty"`
 }
 
+// FileType is an enum of possible UnixFS file types.
 type FileType int32
 
 const (
-	TRaw       = FileType(unixfs.TRaw)
-	TFile      = FileType(unixfs.TFile)
-	TDirectory = FileType(unixfs.TDirectory)
-	TMetadata  = FileType(unixfs.TMetadata)
-	TSymlink   = FileType(unixfs.TSymlink)
-	THAMTShard = FileType(unixfs.THAMTShard)
+	// TUnknown means the file type isn't known (e.g., it hasn't been
+	// resolved).
+	TUnknown FileType = iota
+	// TFile is a regular file.
+	TFile
+	// TDirectory is a directory.
+	TDirectory
+	// TSymlink is a symlink.
+	TSymlink
 )
 
-type LsLink struct {
-	Link *ipld.Link
-	Size uint64
-	Type FileType
+// DirEntry is a directory entry returned by `Ls`.
+type DirEntry struct {
+	Name string
+	Cid  cid.Cid
+
+	// Only filled when asked to resolve the directory entry.
+	Size   uint64   // The size of the file in bytes (or the size of the symlink).
+	Type   FileType // The type of the file.
+	Target Path     // The symlink target (if a symlink).
 
 	Err error
 }
@@ -51,5 +59,5 @@ type UnixfsAPI interface {
 
 	// Ls returns the list of links in a directory. Links aren't guaranteed to be
 	// returned in order
-	Ls(context.Context, Path, ...options.UnixfsLsOption) (<-chan LsLink, error)
+	Ls(context.Context, Path, ...options.UnixfsLsOption) (<-chan DirEntry, error)
 }
