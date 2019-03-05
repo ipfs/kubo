@@ -160,9 +160,6 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.
 	}
 
 	dir, err := uio.NewDirectoryFromNode(ses.dag, dagnode)
-	if err == uio.ErrNotADir {
-		return uses.lsFromLinks(ctx, dagnode.Links(), settings)
-	}
 	if err != nil {
 		return nil, err
 	}
