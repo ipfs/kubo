@@ -53,7 +53,7 @@ type DirEntry struct {
 	// Only filled when asked to resolve the directory entry.
 	Size   uint64   // The size of the file in bytes (or the size of the symlink).
 	Type   FileType // The type of the file.
-	Target Path     // The symlink target (if a symlink).
+	Target string   // The symlink target (if a symlink).
 
 	Err error
 }
