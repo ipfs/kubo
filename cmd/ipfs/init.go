@@ -78,10 +78,6 @@ environment variable:
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
-		if cctx.Online {
-			return cmdkit.Error{Message: "init must be run offline only"}
-		}
-
 		empty, _ := req.Options[emptyRepoOptionName].(bool)
 		nBitsForKeypair, _ := req.Options[bitsOptionName].(int)
 
