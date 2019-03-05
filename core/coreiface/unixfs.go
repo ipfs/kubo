@@ -30,6 +30,21 @@ const (
 	TSymlink
 )
 
+func (t FileType) String() string {
+	switch t {
+	case TUnknown:
+		return "unknown"
+	case TFile:
+		return "file"
+	case TDirectory:
+		return "directory"
+	case TSymlink:
+		return "symlink"
+	default:
+		return "<unknown file type>"
+	}
+}
+
 // DirEntry is a directory entry returned by `Ls`.
 type DirEntry struct {
 	Name string
