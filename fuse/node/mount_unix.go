@@ -75,7 +75,7 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 		fsmount, err1 = rofs.Mount(node, fsdir)
 	}()
 
-	if node.OnlineMode() {
+	if node.IsOnline {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

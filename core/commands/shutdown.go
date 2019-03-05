@@ -17,7 +17,7 @@ var daemonShutdownCmd = &cmds.Command{
 			return err
 		}
 
-		if nd.LocalMode() {
+		if !nd.IsDaemon {
 			return cmdkit.Errorf(cmdkit.ErrClient, "daemon not running")
 		}
 

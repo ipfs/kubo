@@ -86,15 +86,6 @@ const DefaultIpnsCacheSize = 128
 
 var log = logging.Logger("core")
 
-type mode int
-
-const (
-	// zero value is not a valid mode, must be explicitly set
-	localMode mode = iota
-	offlineMode
-	onlineMode
-)
-
 func init() {
 	identify.ClientVersion = "go-ipfs/" + version.CurrentVersionNumber + "/" + version.CurrentCommit
 }
@@ -145,8 +136,9 @@ type IpfsNode struct {
 	proc goprocess.Process
 	ctx  context.Context
 
-	mode         mode
-	localModeSet bool
+	// Flags
+	IsOnline bool // Online is set when networking is enabled.
+	IsDaemon bool // Daemon is set when running on a long-running daemon.
 }
 
 // Mounts defines what the node's mount state is. This should
@@ -719,28 +711,6 @@ func (n *IpfsNode) teardown() error {
 		return errs[0]
 	}
 	return nil
-}
-
-// OnlineMode returns whether or not the IpfsNode is in OnlineMode.
-func (n *IpfsNode) OnlineMode() bool {
-	return n.mode == onlineMode
-}
-
-// SetLocal will set the IpfsNode to local mode
-func (n *IpfsNode) SetLocal(isLocal bool) {
-	if isLocal {
-		n.mode = localMode
-	}
-	n.localModeSet = true
-}
-
-// LocalMode returns whether or not the IpfsNode is in LocalMode
-func (n *IpfsNode) LocalMode() bool {
-	if !n.localModeSet {
-		// programmer error should not happen
-		panic("local mode not set")
-	}
-	return n.mode == localMode
 }
 
 // Bootstrap will set and call the IpfsNodes bootstrap function.

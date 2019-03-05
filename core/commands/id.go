@@ -92,7 +92,7 @@ EXAMPLE:
 		}
 
 		// TODO handle offline mode with polymorphism instead of conditionals
-		if !n.OnlineMode() {
+		if !n.IsOnline {
 			return errors.New(offlineIdErrorMessage)
 		}
 

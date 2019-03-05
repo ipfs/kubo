@@ -50,7 +50,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -100,7 +100,7 @@ var bitswapStatCmd = &cmds.Command{
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return cmdkit.Errorf(cmdkit.ErrClient, ErrNotOnline.Error())
 		}
 
@@ -163,7 +163,7 @@ prints the ledger associated with a given peer.
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -206,7 +206,7 @@ Trigger reprovider to announce our data to network.
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 

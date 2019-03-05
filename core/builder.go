@@ -142,7 +142,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	ctx = metrics.CtxScope(ctx, "ipfs")
 
 	n := &IpfsNode{
-		mode:      offlineMode,
+		IsOnline:  cfg.Online,
 		Repo:      cfg.Repo,
 		ctx:       ctx,
 		Peerstore: pstoremem.NewPeerstore(),
@@ -151,10 +151,6 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	n.RecordValidator = record.NamespacedValidator{
 		"pk":   record.PublicKeyValidator{},
 		"ipns": ipns.Validator{KeyBook: n.Peerstore},
-	}
-
-	if cfg.Online {
-		n.mode = onlineMode
 	}
 
 	// TODO: this is a weird circular-ish dependency, rework it

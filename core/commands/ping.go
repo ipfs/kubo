@@ -56,7 +56,7 @@ trip latency information.
 		}
 
 		// Must be online!
-		if !n.OnlineMode() {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 

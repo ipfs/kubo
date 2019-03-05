@@ -92,7 +92,7 @@ baz
 		}
 
 		// error if we aren't running node in online mode
-		if nd.LocalMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
