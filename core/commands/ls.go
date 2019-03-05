@@ -22,6 +22,7 @@ type LsLink struct {
 	Name, Hash string
 	Size       uint64
 	Type       unixfs_pb.Data_DataType
+	Target     string
 }
 
 // LsObject is an element of LsOutput
@@ -159,8 +160,9 @@ The JSON output contains type information.
 					Name: link.Name,
 					Hash: enc.Encode(link.Cid),
 
-					Size: link.Size,
-					Type: ftype,
+					Size:   link.Size,
+					Type:   ftype,
+					Target: link.Target,
 				}
 				if err := processLink(paths[i], lsLink); err != nil {
 					return err

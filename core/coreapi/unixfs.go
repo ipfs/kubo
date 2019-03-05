@@ -209,6 +209,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 				lnk.Type = coreiface.TDirectory
 			case ft.TSymlink:
 				lnk.Type = coreiface.TSymlink
+				lnk.Target = string(d.Data())
 			}
 			lnk.Size = d.FileSize()
 		}
