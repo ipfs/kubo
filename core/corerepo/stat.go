@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 )
 
 // SizeStat wraps information about the repository size and its limit.

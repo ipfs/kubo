@@ -1,5 +1,6 @@
 # golang utilities
 GO_MIN_VERSION = 1.11
+export GO111MODULE=on
 
 
 # pre-definitions
@@ -11,6 +12,7 @@ GOTFLAGS ?=
 
 # match Go's default GOPATH behaviour
 export GOPATH ?= $(shell $(GOCC) env GOPATH)
+export GOBIN = $(abspath bin)
 
 DEPS_GO :=
 TEST_GO :=
@@ -25,8 +27,12 @@ go-pkgs=$(shell $(GOCC) list github.com/ipfs/go-ipfs/...)
 go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 go-flags-with-tags=$(GOFLAGS)$(go-tags)
 
-define go-build
+define go-build-relative
 $(GOCC) build $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
+endef
+
+define go-build
+$(GOCC) build $(go-flags-with-tags) -o "$@" "$(1)"
 endef
 
 define go-try-build
@@ -65,11 +71,6 @@ check_go_version:
 	bin/check_go_version $(GO_MIN_VERSION)
 .PHONY: check_go_version
 DEPS_GO += check_go_version
-
-check_go_path:
-	GOPATH="$(GOPATH)" bin/check_go_path github.com/ipfs/go-ipfs
-.PHONY: check_go_path
-DEPS_GO += check_go_path
 
 TEST += $(TEST_GO)
 TEST_SHORT += test_go_fmt test_go_short

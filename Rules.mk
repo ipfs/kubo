@@ -12,7 +12,6 @@ include mk/git.mk # has to be before tarball.mk
 include mk/tarball.mk
 include mk/util.mk
 include mk/golang.mk
-include mk/gx.mk
 
 # -------------------- #
 #   extra properties   #
@@ -86,7 +85,7 @@ test: $(TEST)
 test_short: $(TEST_SHORT)
 .PHONY: test_short
 
-deps: gx-deps
+deps:
 .PHONY: deps
 
 nofuse: GOTAGS += nofuse

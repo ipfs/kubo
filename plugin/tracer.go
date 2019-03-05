@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"gx/ipfs/QmWLWmRVSiagqP15jczsGME1qpob6HDbtbHAY2he9W5iUo/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 )
 
 // PluginTracer is an interface that can be implemented to add a tracer
