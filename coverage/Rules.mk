@@ -3,10 +3,11 @@ include mk/header.mk
 $(d)/coverage_deps: $$(DEPS_GO)
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
+
 ifneq ($(IPFS_SKIP_COVER_BINS),1)
-	go install github.com/Kubuxu/gocovmerge
-	go install golang.org/x/tools/cmd/cover
+$(d)/coverage_deps: test/bin/gocovmerge
 endif
+
 .PHONY: $(d)/coverage_deps
 
 # unit tests coverage

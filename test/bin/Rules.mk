@@ -50,6 +50,10 @@ $(d)/random-files:
 	$(call go-build,github.com/jbenet/go-random-files/random-files)
 TGTS_$(d) += $(d)/random-files
 
+$(d)/gocovmerge:
+	$(call go-build,github.com/Kubuxu/gocovmerge)
+TGTS_$(d) += $(d)/gocovmerge
+
 
 $(TGTS_$(d)): $$(DEPS_GO)
 
