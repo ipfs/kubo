@@ -4,152 +4,78 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	gopath "path"
 	"strings"
+	"unsafe"
 
-	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	coreoptions "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-	mfs "gx/ipfs/Qmb74fRYPgpjYzoBV7PAVNmP3DQaRrh8dHdKE4PwnF3cRx/go-mfs"
+	unixfs "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs"
+
+	"github.com/billziss-gh/cgofuse/fuse"
 )
 
 const (
-	invalidIndex = ^uint64(0)
-
-	filesNamespace  = "files"
-	filesRootPath   = "/" + filesNamespace
-	filesRootPrefix = filesRootPath + "/"
-	frs             = len(filesRootPath)
-)
-
-//TODO: remove alias
-type typeToken = uint64
-
-//TODO: cleanup
-const (
-	tMountRoot typeToken = iota
-	tIPFSRoot
-	tIPNSRoot
-	tFilesRoot
-	tRoots
+	tRoot typeToken = iota
+	tIPNSKey
+	tFAPI
 	tIPFS
 	tIPLD
-	tImmutable
 	tIPNS
-	tIPNSKey
-	tMFS
-	tMutable
 	tUnknown
 )
 
-func resolveMFS(filesRoot *mfs.Root, path string) (ipld.Node, error) {
-	mfsNd, err := mfs.Lookup(filesRoot, path)
-	if err != nil {
-		return nil, err
-	}
-	ipldNode, err := mfsNd.GetNode()
-	if err != nil {
-		return nil, err
-	}
-	return ipldNode, nil
-}
-
-func (fs *FUSEIPFS) resolveIpns(path string) (string, error) {
-	pathKey, remainder, err := ipnsSplit(path)
-	if err != nil {
-		return "", err
-	}
-
-	oAPI, err := fs.core.WithOptions(coreoptions.Api.Offline(true))
-	if err != nil {
-		log.Errorf("API error: %v", err)
-		return "", err
-	}
-
-	var nameAPI coreiface.NameAPI
-	globalPath := path
-	coreKey, err := resolveKeyName(fs.ctx, oAPI.Key(), pathKey)
-	switch err {
-	case nil: // locally owned keys are resolved offline
-		globalPath = gopath.Join(coreKey.Path().String(), remainder)
-		nameAPI = oAPI.Name()
-
-	case errNoKey: // paths without named keys are valid, but looked up via network instead of locally
-		nameAPI = fs.core.Name()
-
-	case ds.ErrNotFound: // a key was generated, but not published to / initialized
-		return "", fmt.Errorf("IPNS key %q has no value", pathKey)
-	default:
-		return "", err
-	}
-
-	//NOTE: the returned path is not guaranteed to exist
-	resolvedPath, err := nameAPI.Resolve(fs.ctx, globalPath)
-	if err != nil {
-		return "", err
-	}
-	//log.Errorf("dbg: %q -> %q -> %q", path, globalPath, resolvedPath)
-	return resolvedPath.String(), nil
-}
-
-//TODO: see how IPLD selectors handle this kind of parsing
 func parsePathType(path string) typeToken {
+
+	slashCount := len(strings.Split(path, "/"))
 	switch {
-	case path == "/":
-		return tMountRoot
-	case path == "/ipfs":
-		return tIPFSRoot
-	case path == "/ipns":
-		return tIPNSRoot
-	case path == filesRootPath:
-		return tFilesRoot
+	case slashCount == 1: // `/`, `/ipfs`, ...
+		return tRoot
 	case strings.HasPrefix(path, "/ipld/"):
 		return tIPLD
 	case strings.HasPrefix(path, "/ipfs/"):
 		return tIPFS
 	case strings.HasPrefix(path, filesRootPrefix):
-		return tMFS
+		return tFAPI
 	case strings.HasPrefix(path, "/ipns/"):
-		if len(strings.Split(path, "/")) == 3 {
-			return tIPNSKey
-		}
 		return tIPNS
-		/* NIY
-		    case strings.HasPrefix(path, "/api/"):
-			return tAPI
-		*/
 	}
 
 	return tUnknown
 }
 
-//operator, operator!
-func parseLocalPath(path string) (fusePath, error) {
-	switch parsePathType(path) {
-	case tMountRoot:
-		return &mountRoot{rootBase: rootBase{
-			recordBase: crb("/")}}, nil
-	case tIPFSRoot:
-		return &ipfsRoot{rootBase: rootBase{
-			recordBase: crb("/ipfs")}}, nil
-	case tIPNSRoot:
-		return &ipnsRoot{rootBase: rootBase{
-			recordBase: crb("/ipns")}}, nil
-	case tFilesRoot:
-		return &mfsRoot{rootBase: rootBase{
-			recordBase: crb(filesRootPath)}}, nil
+func parseFusePath(fs *FUSEIPFS, subsystemType typeToken, path string) (fusePath, error) {
+	switch subsystemType {
 	case tIPFS, tIPLD:
 		return &ipfsNode{recordBase: crb(path)}, nil
-	case tMFS:
-		return &mfsNode{mutableBase: mutableBase{
-			recordBase: crb(path)}}, nil
-	case tIPNSKey:
-		return &ipnsKey{ipnsNode{mutableBase: mutableBase{
-			recordBase: crb(path)}}}, nil
+	case tFAPI:
+		return &filesAPINode{mfsNode{root: fs.filesRoot, recordBase: crb(path[len(filesRootPath):])}}, nil
 	case tIPNS:
-		return &ipnsNode{mutableBase: mutableBase{
-			recordBase: crb(path)}}, nil
+		nn := &ipnsNode{ipfsNode: ipfsNode{recordBase: crb(path)}}
+
+		//NOTE: path is assumed valid because of tIPNS from previous parser
+		keyComponent := strings.Split(path, "/")[2]
+		index := strings.Index(path, keyComponent) + len(keyComponent)
+		subPath := path[index:]
+
+		callContext, cancel := deriveCallContext(fs.ctx)
+		defer cancel()
+		var err error
+		switch nn.key, err = resolveKeyName(callContext, fs.core.Key(), keyComponent); err {
+		case nil: // key is owned and found, use mfs methods internally for write access
+			//nn.ipfsNode.recordBase.path = subPath // mfs expects paths relative to its own root
+			//nn.subsystem = nn.mfsNode
+		case errNoKey:
+			// non-owned keys are valid, but read only
+			//nn.subsystem = nn.ipfsNode
+			break
+		default:
+			return nil, err
+		}
+
+		if nn.key != nil && len(subPath) == 0 { // promote `/ipns/ownedKey` to subroot "/"
+			//nn.path = path[:1]
+			return &ipnsSubroot{ipnsNode: *nn}, nil
+		}
+		return nn, nil
+
 	case tUnknown:
 		switch strings.Count(path, "/") {
 		case 0:
@@ -165,138 +91,12 @@ func parseLocalPath(path string) (fusePath, error) {
 }
 
 func crb(path string) recordBase {
-	return recordBase{path: path, handles: &[]uint64{}}
+	return recordBase{path: path, ioHandles: make(nodeHandles)}
 }
 
-func (fs *FUSEIPFS) parent(node fusePath) (fusePath, error) {
-	if _, ok := node.(*mountRoot); ok {
-		return node, nil
-	}
-
-	path := node.String()
-	i := len(path) - 1
-	for i != 0 && path[i] != '/' {
-		i--
-	}
-	if i == 0 {
-		return fs.LookupPath("/")
-	}
-
-	return fs.LookupPath(path[:i])
-}
-
-func (fs *FUSEIPFS) resolveToGlobal(node fusePath) (fusePath, error) {
-	switch node.(type) {
-	case *mfsNode:
-		//contacts API node
-		ipldNode, err := resolveMFS(fs.filesRoot, node.String()[frs:])
-		if err != nil {
-			return nil, err
-		}
-
-		if cachedNode := fs.cc.Request(ipldNode.Cid()); cachedNode != nil {
-			return cachedNode, nil
-		}
-
-		//TODO: will ipld always be valid here? is there a better way to retrieve the path?
-		globalNode, err := fs.LookupPath(gopath.Join("/ipld/", ipldNode.String()))
-		if err != nil {
-			return nil, err
-		}
-
-		fs.cc.Add(ipldNode.Cid(), globalNode)
-		return globalNode, nil
-
-	case *ipnsNode, *ipnsKey:
-		resolvedPath, err := fs.resolveIpns(node.String()) //contacts API node
-		if err != nil {
-			return nil, err
-		}
-
-		//TODO: test if the core handles recursion protection here; IPNS->IPNS->...
-		return fs.LookupPath(resolvedPath)
-	}
-
-	return nil, fmt.Errorf("unexpected reference-node type %T", node)
-}
-
-func isReference(fsNode fusePath) bool {
-	switch fsNode.(type) {
-	case *mfsNode, *ipnsNode, *ipnsKey:
-		return true
-	default:
-		return false
-	}
-}
-
-func isDevice(fsNode fusePath) bool {
-	switch fsNode.(type) {
-	case *mountRoot, *ipfsRoot, *ipnsRoot, *mfsRoot:
-		return true
-	default:
-		return false
-	}
-}
-
+//FIXME: implicit locks
 //NOTE: caller should retain FS (R)Lock
-func (fs *FUSEIPFS) LookupFileHandle(fh uint64) (handle *fileHandle, err error) {
-	err = errInvalidHandle
-	if fh == invalidIndex {
-		return
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Errorf("Lookup recovered from panic, likely invalid handle: %v", r)
-			handle = nil
-			err = errInvalidHandle
-		}
-	}()
-
-	//TODO: enable when stable
-	//L0 direct cast 🤠
-	//return (*fileHandle)(unsafe.Pointer(uintptr(fh))), nil
-
-	//L1 handle -> lookup -> node
-	if hs, ok := fs.fileHandles[fh]; ok {
-		if hs.record != nil {
-			return hs, nil
-		}
-		//TODO: return separate error? handleInvalidated (handle was active but became bad) vs handleInvalid (never existed in the first place)
-	}
-	return nil, errInvalidHandle
-}
-
-//NOTE: caller should retain FS (R)Lock
-func (fs *FUSEIPFS) LookupDirHandle(fh uint64) (handle *dirHandle, err error) {
-	err = errInvalidHandle
-	if fh == invalidIndex {
-		return
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Errorf("Lookup recovered from panic, likely invalid handle: %v", r)
-			handle = nil
-			err = errInvalidHandle
-		}
-	}()
-
-	//TODO: enable when stable
-	//L0 direct cast 🤠
-	//return (*dirHandle)(unsafe.Pointer(uintptr(fh))), nil
-
-	//L1 handle -> lookup -> node
-	if hs, ok := fs.dirHandles[fh]; ok {
-		if hs.record != nil {
-			return hs, nil
-		}
-	}
-	return nil, errInvalidHandle
-}
-
-//NOTE: caller should retain FS (R)Lock
-func (fs *FUSEIPFS) LookupPath(path string) (fusePath, error) {
+func (fs *FUSEIPFS) shallowLookupPath(path string) (fusePath, error) {
 	if path == "" {
 		return nil, errInvalidArg
 	}
@@ -304,40 +104,106 @@ func (fs *FUSEIPFS) LookupPath(path string) (fusePath, error) {
 	//L1 path -> cid -> cache -?> record
 	pathCid, err := fs.cc.Hash(path)
 	if err != nil {
-		log.Errorf("cache: %s", err)
+		log.Errorf("cache: %s", err) //TODO: remove; debug
 	} else if cachedNode := fs.cc.Request(pathCid); cachedNode != nil {
+		//TODO: check record TTL conditions here
+		//FIXME if expired, reset IO, drop through to parse logic
 		return cachedNode, nil
 	}
 
-	//L2 path -> full parse+construction
-	parsedNode, err := parseLocalPath(path)
-	if err != nil {
+	//L2 check open handles for active paths
+	//TODO/FIXME: important; shared mutex is required
+
+	//L3 parse string path, construct typed-node
+	var parsedNode fusePath
+	switch apiType := parsePathType(path); apiType {
+	case tRoot:
+		if parsedNode, err = parseRootPath(fs, path); err != nil {
+			return nil, err
+		}
+	default:
+		if parsedNode, err = parseFusePath(fs, apiType, path); err != nil {
+			return nil, err
+		}
+
+	case tUnknown:
+		return nil, errUnexpected
+	}
+
+	// populate node's required data
+	callContext, cancel := deriveCallContext(fs.ctx)
+	defer cancel()
+	if nodeStat, err := parsedNode.InitMetadata(callContext); err != nil {
+		if err == os.ErrNotExist { // NOTE: non-existent nodes are still valid for creation operations
+			return parsedNode, err
+		}
 		return nil, err
 	}
 
-	if !isDevice(parsedNode) {
-		if !fs.exists(parsedNode) {
-			return parsedNode, os.ErrNotExist //NOTE: node is still a valid structure ready for use (i.e. useful for creation/type inspection)
-		}
-	}
-
 	fs.cc.Add(pathCid, parsedNode)
-	return parsedNode, nil
+	return parsedNode, err
 }
 
-func (fs *FUSEIPFS) exists(parsedNode fusePath) bool {
-	globalNode := parsedNode
-	var err error
-	if isReference(parsedNode) {
-
-		globalNode, err = fs.resolveToGlobal(parsedNode)
+const linkRecurseLimit = 255 //FIXME: arbitrary debug value
+func (fs *FUSEIPFS) LookupPath(path string) (fsNode fusePath, err error) {
+	targetPath := path
+	for depth := 0; depth != linkRecurseLimit; depth++ {
+		fsNode, err = fs.shallowLookupPath(targetPath)
 		if err != nil {
-			return false
+			return
 		}
-	}
-	if _, err = fs.core.ResolvePath(fs.ctx, globalNode); err != nil { //contacts API node and possibly the network
-		return false
-	}
+		var nodeStat *fuse.Stat_t
+		nodeStat, err = fsNode.Stat()
+		if err != nil {
+			return
+		}
 
-	return true
+		if nodeStat.Mode&fuse.S_IFMT != fuse.S_IFLNK {
+			return
+		}
+
+		// if node is link, resolve to its target
+		var targetNode fusePath
+		callContext, cancel := deriveCallContext(fs.ctx)
+		defer cancel()
+		ioIf, ioErr := fsNode.YieldIo(callContext, unixfs.TSymlink)
+		if ioErr != nil {
+			err = ioErr
+			return
+		}
+
+		targetPath := ioIf.(FsLink).Target()
+	}
+	err = errRecurse
+	return
 }
+
+func invertedLookup(fh uint64) (fp fusePath, io interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("invertedLookup recovered from panic, likely invalid handle: %v", r)
+			fp = nil
+			io = nil
+			err = errInvalidHandle
+		}
+	}()
+
+	if io, ok := (*(*interface{})(unsafe.Pointer(uintptr(fh)))).(FsRecord); ok {
+		fp = io.Record()
+		return fp, io, nil
+	}
+	err = errUnexpected
+	return
+}
+
+/*
+func updateStale(ctx context.Context, fsNode fusePath) error {
+	//check if node.metadata == stale
+	/* if is
+	   store type bits
+	   re-init with Stat()
+	   if non-exist or type bits changed; return err
+	   for each node handle
+	   fh = fsNode.YieldIo(unixType)
+}
+*/

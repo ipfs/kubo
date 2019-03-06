@@ -4,6 +4,7 @@ import (
 	"github.com/billziss-gh/cgofuse/fuse"
 
 	mfs "gx/ipfs/Qmb74fRYPgpjYzoBV7PAVNmP3DQaRrh8dHdKE4PwnF3cRx/go-mfs"
+	unixfs "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs"
 )
 
 /* TODO
@@ -102,38 +103,51 @@ func (fs *FUSEIPFS) Truncate(path string, size int64, fh uint64) int {
 	    }
 	*/
 
-	if h, err := fs.LookupFileHandle(fh); err == nil {
-		h.record.Lock()
-		defer h.record.Unlock()
-		fErr, gErr := h.io.Truncate(size)
-		if gErr != nil {
-			log.Errorf("Truncate - [%X]%q:%s", fh, path, gErr)
-		} else {
-			h.record.Stat().Size = size
+	callContext, cancel := deriveCallContext(fs.ctx)
+	defer cancel()
+
+	var fsNode fusePath
+	var ioIf interface{}
+	ioIf, err = fs.getIo(fh, unixfs.TFile)
+	switch err {
+	case nil:
+		fsNode = ioIf.(FsFile).Record()
+	case errInvalidHandle: // truncate() is allowed on paths that are not open; create temporary io
+		if fsNode, err = fs.LookupPath(path); err != nil {
+			log.Errorf("Truncate - %q:%s", path, err)
+			return -fuse.ENOENT
+
 		}
-		return fErr
+		ioIf, err = fsNode.YieldIo(callContext, unixfs.TFile)
+		switch err {
+		case nil:
+			break
+		case errIOType:
+			log.Errorf("Truncate - [%X]%q:%s", fh, path, errIOType)
+			return -fuse.EISDIR
+		default:
+			log.Errorf("Truncate - [%X]%q:%s", fh, path, err)
+			return -fuse.EIO
+		}
+	default:
+		log.Errorf("Truncate - [%X]%q:%s", fh, path, err)
+		return -fuse.EIO
 	}
-
-	fsNode, err := fs.LookupPath(path)
-	if err != nil {
-		log.Errorf("Truncate - %q:%s", path, err)
-		return -fuse.ENOENT
-	}
-
 	fsNode.Lock()
 	defer fsNode.Unlock()
 
-	io, err := fs.yieldFileIO(fsNode)
-	if err != nil {
-		log.Errorf("Truncate - %q:%s", path, err)
-		return -fuse.EIO
-	}
-
-	fErr, gErr := io.Truncate(size)
+	fErr, gErr := ioIf.(FsFile).Truncate(size)
 	if gErr != nil {
-		log.Errorf("Truncate - %q:%s", path, gErr)
+		log.Errorf("Truncate - [%X]%q:%s", fh, path, gErr)
 	} else {
-		fsNode.Stat().Size = size
+		nodeStat, err := fsNode.Stat(callContext)
+		if err != nil {
+			log.Errorf("Truncate - [%X]%q:%s", fh, path, err)
+			return -fuse.EIO
+		}
+		now := fuse.Now()
+		nodeStat.Size = size
+		nodeStat.Mtim, nodeStat.Ctim, nodeStat.Atim = now, now, now // calm down
 	}
 	return fErr
 }

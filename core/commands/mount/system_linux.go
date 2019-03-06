@@ -6,6 +6,11 @@ import (
 	"github.com/billziss-gh/cgofuse/fuse"
 )
 
+const (
+	O_DIRECTORY = syscall.O_DIRECTORY
+	O_NOFOLLOW  = syscall.O_NOFOLLOW
+)
+
 func (fs *FUSEIPFS) fuseFreeSize(fStatfs *fuse.Statfs_t, path string) error {
 	sysStat := &syscall.Statfs_t{}
 	if err := syscall.Statfs(path, sysStat); err != nil {

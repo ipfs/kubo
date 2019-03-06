@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	gopath "path"
 	"sync"
 	"time"
 
@@ -18,8 +19,9 @@ import (
 
 //TODO: rename? directoryStreamHandle
 type directoryStream struct {
-	record  fusePath
-	entries []directoryEntry
+	record fusePath
+	//entries []directoryEntry
+	entries []fusePath
 	err     error
 	init    *sync.Cond
 
@@ -28,18 +30,27 @@ type directoryStream struct {
 	//stream     <-chan DirectoryMessage
 }
 
-//TODO: better name; AsyncDirEntry?
-// API format bridge
-type DirectoryMessage struct {
-	directoryEntry
+// API format bridges
+type directoryStringEntry struct {
+	string
+	error
+}
+type directoryFuseEntry struct {
+	fusePath
 	error
 }
 
-//NOTE: purpose is to be cached and updated when needed instead of re-initialized each call for path; thread safe as a consequent
-type directoryEntry struct {
-	//sync.RWMutex
-	label string
-	stat  *fuse.Stat_t
+func (ds *directoryStream) Record() fusePath {
+	return ds.record
+}
+
+func (ds *directoryStream) Lock() {
+	//TODO: figure out who calls this; I think we need it for re-init of shared array
+	ds.record.Lock()
+}
+
+func (ds *directoryStream) Unlock() {
+	ds.record.Unlock()
 }
 
 func (fs *FUSEIPFS) Readdir(path string,
@@ -53,7 +64,7 @@ func (fs *FUSEIPFS) Readdir(path string,
 		return -fuse.EINVAL
 	}
 
-	dh, err := fs.LookupDirHandle(fh)
+	ioIf, err := fs.getIo(fh, unixfs.TDirectory)
 	if err != nil {
 		fs.RUnlock()
 		log.Errorf("Readdir - [%X]%q: %s", fh, path, err)
@@ -62,87 +73,124 @@ func (fs *FUSEIPFS) Readdir(path string,
 		}
 		return -fuse.EIO
 	}
-	dh.record.RLock()
+	dio := ioIf.(FsDirectory)
+	dio.Lock()
+	defer dio.Unlock()
 	fs.RUnlock()
-	defer dh.record.RUnlock()
 
-	if dh.io.Entries() == 0 {
-		//TODO: reconsider/discuss this behaviour; dots are not actually required in POSIX or FUSE
-		// not having them on empty directories causes things like `dir` and `ls` to fail since they look for the dot, but maybe they should since IPFS does not store dot entries in its directories
-		fill(".", dh.record.Stat(), -1)
+	//NOTE: dots are not required in the standard; we only fill them for compatibility with programs that don't expect truly empty directories
+	if dio.Entries() == 0 {
+		fStat, err := dio.Record().Stat()
+		if err != nil {
+			log.Errorf("Readdir - %q can't fetch metadata: %s", path, err)
+			return -fuse.EBADF // node must be invalid in some way
+		}
+		fill(".", fStat, -1)
 		return fuseSuccess
 	}
 
-	for {
-		select {
-		case <-fs.ctx.Done():
-			return -fuse.EBADF
-		case msg := <-dh.io.Read(ofst):
-			err = msg.error
-			label := msg.directoryEntry.label
-			stat := msg.directoryEntry.stat
+	ctx, cancel := context.WithCancel(fs.ctx)
+	defer cancel()
+	for msg := range dio.Read(ctx, ofst) {
+		if msg.error != nil && msg.error != io.EOF {
+			log.Errorf("Readdir - %q entry err: %s", path, msg.error)
+			return -fuse.ENOENT
+		}
 
-			if err != nil {
-				if err == io.EOF {
-					fill(label, stat, -1)
-					return fuseSuccess
-				}
-				log.Errorf("Readdir - %q list err: %s", path, err)
-				return -fuse.ENOENT
-			}
+		label := gopath.Base(msg.fusePath.String())
+		fStat, err := msg.fusePath.Stat()
+		if err != nil {
+			log.Errorf("Readdir - %q can't fetch metadata for %q: %s", path, label, err)
+			return -fuse.ENOENT
+		}
 
-			ofst++
-			if !fill(label, stat, ofst) {
-				return fuseSuccess
-			}
+		ofst++
+		if !fill(label, fStat, ofst) {
+			return fuseSuccess // fill signaled an early exit
 		}
 	}
+	return fuseSuccess
 }
 
-func (ds *directoryStream) Read(ofst int64) <-chan DirectoryMessage {
-	msgChan := make(chan DirectoryMessage, 1)
-	if int64(cap(ds.entries)) <= ofst {
-		msgChan <- DirectoryMessage{error: fmt.Errorf("invalid offset %d <= %d", cap(ds.entries), ofst)}
+func (ds *directoryStream) Read(ctx context.Context, ofst int64) <-chan directoryFuseEntry {
+	msgChan := make(chan directoryFuseEntry, 1)
+	entCap := cap(ds.entries)
+	if int(ofst) > entCap {
+		msgChan <- directoryFuseEntry{error: fmt.Errorf("invalid offset:%d entries:%d", ofst, entCap)}
 		return msgChan
 	}
 
-	if ds.init != nil {
-		ds.init.L.Lock()
-		for int64(len(ds.entries)) < ofst || ds.err == nil {
-			ds.init.Wait()
+	//FIXME: we need to be able to cancel this
+	go func() {
+	out:
+		for i := int(ofst); i != entCap; i++ {
+			if ds.err != io.EOF { // directory isn't fully populated
+				ds.init.L.Lock()
+				for len(ds.entries) < i || ds.err == nil {
+					ds.init.Wait() // wait until offset is populated or error
+				}
+
+				switch ds.err {
+				case io.EOF:
+					// all entries are ready; init is nil
+					break
+				case nil:
+					// entry at offset is ready, but spool is not finished yet
+					ds.init.L.Unlock()
+					break
+				default:
+					// spool reported an error
+					ds.init.L.Unlock()
+					msgChan <- directoryFuseEntry{error: ds.err}
+					return
+				}
+			}
+
+			msg := directoryFuseEntry{fusePath: ds.entries[i-1]}
+			if i == entCap {
+				msg.error = io.EOF
+			}
+
+			select {
+			case <-ctx.Done():
+				msg.error = ctx.Err()
+				msgChan <- msg
+				break out
+			case msgChan <- msg:
+				continue
+			}
 		}
-
-		switch ds.err {
-		case io.EOF:
-			ds.init = nil
-			ds.err = nil
-		default:
-			msgChan <- DirectoryMessage{error: ds.err}
-			return msgChan
-		}
-	}
-
-	// NOTE: it it assumed that if len(entries) == ofst and EOF is set, that the entry slot is populated
-	// if the spooler lies, we'll likely panic
-	// index change 0 -> 1
-	if ofst+1 == int64(len(ds.entries)) {
-		msgChan <- DirectoryMessage{directoryEntry: ds.entries[ofst], error: io.EOF}
-	} else {
-		msgChan <- DirectoryMessage{directoryEntry: ds.entries[ofst]}
-	}
-
+		close(msgChan)
+	}()
 	return msgChan
 }
 
-//TODO: [readdirplus] stats
 //TODO: name: pulse -> timeoutExtender? signalCallback? entryEvent?
-//TODO: document/handle this is only intended to be used with non-empty directories; length must be checked by caller
-func (ds *directoryStream) spool(ctx context.Context, inStream <-chan DirectoryMessage, pulse func()) {
-	defer pulse()
+func (ds *directoryStream) spool(tctx timerContext, inStream <-chan directoryStringEntry, pulse func()) {
+	defer tctx.Cancel()
+	defer func() {
+		if ds.err != io.EOF {
+			pulse()
+		}
+	}()
+
+	lf := tctx.Value(lookupKey{})
+	if lf == nil {
+		ds.err = fmt.Errorf("lookup function not provided (via context) to directory spooler")
+		return
+	}
+	lookup, ok := lf.(lookupFn)
+	if !ok {
+		ds.err = fmt.Errorf("provided lookup function does not match signature")
+		return
+	}
+
+	var wg sync.WaitGroup
 	entCap := cap(ds.entries)
 	for i := 0; i != entCap; i++ {
 		select {
-		case <-ctx.Done():
+		case <-tctx.Done():
+			ds.err = tctx.Err()
 			return
 		case msg := <-inStream:
 			if msg.error != nil {
@@ -150,45 +198,55 @@ func (ds *directoryStream) spool(ctx context.Context, inStream <-chan DirectoryM
 				return
 			}
 
-			if msg.directoryEntry.label == "" {
+			label := msg.string
+
+			if label == "" {
 				ds.err = fmt.Errorf("directory contains empty entry label")
 				return
 			}
 
-			if fReaddirPlus && msg.directoryEntry.stat == nil {
-				ds.err = fmt.Errorf("Readdir - stat for %q is not initialized", msg.directoryEntry.label)
-				return
-			}
-
-			ds.entries = append(ds.entries, msg.directoryEntry)
-			pulse()
+			wg.Add(1) // fan out
+			go func(i int) {
+				defer wg.Done()
+				fsNode, err := lookup(label)
+				if err != nil {
+					ds.err = fmt.Errorf("directory entry %q lookup err: %s", label, err)
+					return
+				}
+				ds.init.L.Lock()
+				ds.entries = append(ds.entries, fsNode)
+				if i == entCap-1 {
+					ds.err = io.EOF
+				}
+				ds.init.L.Unlock()
+				pulse()
+			}(i)
 		}
 	}
-	ds.err = io.EOF
+	wg.Wait()
+	ds.init = nil
 }
 
 func (ds *directoryStream) Entries() int {
 	return cap(ds.entries)
 }
 
-func coreMux(cc <-chan coreiface.LsLink) <-chan DirectoryMessage {
-	msgChan := make(chan DirectoryMessage)
+func coreMux(cc <-chan coreiface.LsLink) <-chan directoryStringEntry {
+	msgChan := make(chan directoryStringEntry)
 	go func() {
 		for m := range cc {
-			ent := directoryEntry{label: m.Link.Name}
-			msgChan <- DirectoryMessage{directoryEntry: ent, error: m.Err}
+			msgChan <- directoryStringEntry{string: m.Link.Name, error: m.Err}
 		}
 		close(msgChan)
 	}()
 	return msgChan
 }
 
-func mfsMux(uc <-chan unixfs.LinkResult) <-chan DirectoryMessage {
-	msgChan := make(chan DirectoryMessage)
+func mfsMux(uc <-chan unixfs.LinkResult) <-chan directoryStringEntry {
+	msgChan := make(chan directoryStringEntry)
 	go func() {
 		for m := range uc {
-			ent := directoryEntry{label: m.Link.Name}
-			msgChan <- DirectoryMessage{directoryEntry: ent, error: m.Err}
+			msgChan <- directoryStringEntry{string: m.Link.Name, error: m.Err}
 		}
 		close(msgChan)
 	}()
@@ -201,140 +259,60 @@ func activeDir(fsNode fusePath) FsDirectory {
 	return nil
 }
 
-func (fs *FUSEIPFS) yieldDirIO(fsNode fusePath) (FsDirectory, error) {
-	dirStream := &directoryStream{record: fsNode}
-	switch fsNode.(type) {
-	default:
-		return nil, errors.New("unexpected type")
+func mfsYieldDirIO(ctx context.Context, mRoot *mfs.Root, mPath string, entryTimeout time.Duration) (FsDirectory, error) {
+	//NOTE: this special timeout context is extended in backgroundDir
+	asyncContext := deriveTimerContext(ctx, entryTimeout)
 
-	case *mountRoot:
-		dirStream.entries = fs.roots
-
-	case *ipfsRoot:
-		pins, err := fs.core.Pin().Ls(fs.ctx, coreoptions.Pin.Type.Recursive())
-		if err != nil {
-			log.Errorf("ipfsRoot - Ls err: %v", err)
-			return nil, err
-		}
-
-		ents := make([]directoryEntry, 0, len(pins))
-		for _, pin := range pins {
-			//TODO: [readdirplus] stats
-			ents = append(ents, directoryEntry{label: pin.Path().Cid().String()})
-		}
-		dirStream.entries = ents
-
-	case *ipnsRoot:
-		dirStream.entries = fs.ipnsRootSubnodes()
+	mfsChan, entryCount, err := mfsSubNodes(asyncContext, mRoot, mPath)
+	if err != nil {
+		return nil, err
 	}
 
-	return dirStream, nil
+	return backgroundDir(asyncContext, entryCount, mfsChan)
 }
 
-func (fs *FUSEIPFS) yieldAsyncDirIO(ctx context.Context, timeoutGrace time.Duration, fsNode fusePath) (FsDirectory, error) {
-	if cached := activeDir(fsNode); cached != nil {
-		return cached, nil
+func coreYieldDirIO(ctx context.Context, corePath coreiface.Path, core coreiface.CoreAPI, entryTimeout time.Duration) (FsDirectory, error) {
+	callContext, cancel := deriveCallContext(ctx)
+	oStat, err := core.Object().Stat(callContext, corePath)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	cancel()
+
+	//NOTE: this special timeout context is extended in backgroundDir
+	asyncContext := deriveTimerContext(ctx, entryTimeout)
+	coreChan, err := core.Unixfs().Ls(asyncContext, corePath, coreoptions.Unixfs.ResolveChildren(false))
+	if err != nil {
+		return nil, err
 	}
 
-	var inputChan <-chan DirectoryMessage
-	var entryCount int
+	return backgroundDir(asyncContext, oStat.NumLinks, coreMux(coreChan))
+}
 
-	switch fsNode.(type) {
-	default:
-		return nil, errors.New("unexpected type")
-	case *ipfsNode, *ipnsNode:
-		globalNode := fsNode
-		if isReference(fsNode) {
-			var err error
-			globalNode, err = fs.resolveToGlobal(fsNode)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		//TODO: [readdirplus] stats
-		coreChan, err := fs.core.Unixfs().Ls(ctx, globalNode, coreoptions.Unixfs.ResolveChildren(false))
-		if err != nil {
-			return nil, err
-		}
-
-		oStat, err := fs.core.Object().Stat(ctx, globalNode)
-		if err != nil {
-			return nil, err
-		}
-
-		entryCount = oStat.NumLinks
-		if entryCount != 0 {
-			inputChan = coreMux(coreChan)
-		}
-
-	case *mfsNode, *mfsRoot, *ipnsKey:
-		var ( //XXX: there's probably a better way to handle this; go prevents a nice fallthrough
-			mRoot *mfs.Root
-			mPath string
-		)
-		if _, ok := fsNode.(*ipnsKey); ok {
-			var err error
-			if mRoot, mPath, err = fs.ipnsMFSSplit(fsNode.String()); err != nil {
-				return nil, err
-			}
-		} else {
-			mRoot = fs.filesRoot
-			mPath = fsNode.String()[frs:]
-		}
-
-		mfsChan, count, err := fs.mfsSubNodes(mRoot, mPath)
-		if err != nil {
-			return nil, err
-		}
-		entryCount = count
-		if entryCount != 0 {
-			inputChan = mfsMux(mfsChan)
-		}
-	}
-
-	//TODO: move this to doc.go or something
-	/* Opendir() -> .spool() -> Readdir() real-time, cross thread synchronization
-	- .init: use to .init.Wait() in reader, until entry slot N or .err is populated
-		set .init to nil in waiting thread after processing error|EOF
-	- .spool(): responsible for populating directory entries list and directory's error value
-		set .err to io.EOF when finished without errors
-	- timeout.AfterFunc(): responsible for reporting timeout to directory,
-		cleaning up resources, and sending wake-up event.
-		Basically an object with this capability:
-		context.WithDeadline(deadline, func()).Reset(duration)
-	- pulser(): responsible for extending timeout and sending wake-up event
-	*/
-
-	backgroundDir := &directoryStream{record: fsNode, entries: make([]directoryEntry, 0, entryCount)}
+//TODO: refine docs
+/* backgroundDir documentation, real-time based failure, intended to be initialized once in the background and shared, reset upon change
+- .init: use to .init.Wait() in reader, until entry slot N or .err is populated
+	if .err == io.EOF then .init == nil and should not be used (even if Wait() was previously called)
+- .spool(): responsible for populating .entries and .err
+	set .err to io.EOF when all entries are processed
+- entryCallback(): called after entry is processed and immediately before .init is freed
+*/
+func backgroundDir(tctx timerContext, entryCount int, inputChan <-chan directoryStringEntry) (FsDirectory, error) {
+	backgroundDir := &directoryStream{entries: make([]fusePath, 0, entryCount)}
 	if entryCount == 0 {
-		backgroundDir.err = io.EOF
+		backgroundDir.err = errors.New("empty directory stream")
+		tctx.Cancel()
 		return backgroundDir, nil
 	}
 
 	backgroundDir.init = sync.NewCond(&sync.Mutex{})
-	callContext, cancel := context.WithCancel(ctx)
-	cancelClosure := func() {
-		if backgroundDir.err == nil { // don't overwrite error if it existed before the timeout
-			backgroundDir.err = errors.New("timed out")
-		}
-		cancel()
-	}
-
-	timeout := time.AfterFunc(timeoutGrace, cancelClosure)
 	pulser := func() {
-		defer backgroundDir.init.Broadcast()
-		if backgroundDir.err != nil {
-			return
-		}
-
-		if !timeout.Stop() {
-			<-timeout.C
-		}
-		timeout.Reset(timeoutGrace)
+		tctx.Reset()                   // extend context timeout
+		backgroundDir.init.Broadcast() // wake up .Read() if it's waiting
 	}
 
-	backgroundDir.spool(callContext, inputChan, pulser)
+	backgroundDir.spool(tctx, inputChan, pulser)
 
 	return backgroundDir, nil
 }

@@ -4,18 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"os"
+	gopath "path"
 	"runtime"
 	"sync"
+	"time"
+	"unsafe"
 
 	"github.com/billziss-gh/cgofuse/fuse"
 	mi "github.com/ipfs/go-ipfs/core/commands/mount/interface"
 
-	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
 	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
 	coreoptions "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
 	mfs "gx/ipfs/Qmb74fRYPgpjYzoBV7PAVNmP3DQaRrh8dHdKE4PwnF3cRx/go-mfs"
 	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
+	unixfs "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs"
+	upb "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs/pb"
 )
 
 // NOTE: readdirplus isn't supported on all platforms, being aware of this reduces duplicate metadata construction
@@ -28,15 +32,47 @@ var (
 	mfsSync         = false
 	cidCacheEnabled = true
 
-	errNoLink        = errors.New("not a symlink")
-	errInvalidHandle = errors.New("invalid handle")
-	errNoKey         = errors.New("key not found")
-	errInvalidPath   = errors.New("invalid path")
-	errInvalidArg    = errors.New("invalid argument")
-	errReadOnly      = errors.New("read only section")
+	//TODO: replace errNoLink (likely with errIOType)
+	errNoLink         = errors.New("not a symlink")
+	errInvalidHandle  = errors.New("invalid handle")
+	errNoKey          = errors.New("key not found")
+	errInvalidPath    = errors.New("invalid path")
+	errInvalidArg     = errors.New("invalid argument")
+	errReadOnly       = errors.New("read only section")
+	errIOType         = errors.New("requested IO for node does not match node type")
+	errUnexpected     = errors.New("unexpected node type")
+	errNotInitialized = errors.New("node metadata is not initialized")
+	errRoot           = errors.New("root initialization exception")
+	errRecurse        = errors.New("hit recursion limit")
 )
 
-const fuseSuccess = 0
+type typeToken = uint
+type FsType = upb.Data_DataType
+
+const (
+	fuseSuccess = 0
+)
+
+const (
+	invalidIndex = ^uint64(0)
+
+	filesNamespace  = "files"
+	filesRootPath   = "/" + filesNamespace
+	filesRootPrefix = filesRootPath + "/"
+	frs             = len(filesRootPath) //TODO: remove this; makes purpose less obvious where used
+)
+
+//TODO: configurable
+const (
+	callTimeout  = 10 * time.Second
+	entryTimeout = callTimeout
+	ipnsTTL      = 30 * time.Second
+)
+
+//context key tokens
+type lookupKey struct{}
+type dagKey struct{}
+type lookupFn func(string) (fusePath, error)
 
 //TODO: platform specific routine mountArgs()
 func InvokeMount(mountPoint string, filesRoot *mfs.Root, api coreiface.CoreAPI, ctx context.Context) (fsi mi.Interface, err error) {
@@ -107,14 +143,35 @@ type FUSEIPFS struct {
 	// set in init
 	active    bool
 	ctx       context.Context
-	roots     []directoryEntry
+	nameRoots nameRootIndex
+	handles   fsHandles
+	//TODO: ipnsKeys map[string:keyname]{fusePath,IoType?}
 	cc        cidCache
 	mountTime fuse.Timespec
 
 	// NOTE: heap equivalent; prevent Go gc claiming our objects between FS operations
-	fileHandles map[uint64]*fileHandle
-	dirHandles  map[uint64]*dirHandle
-	nameRoots   map[string]*mfs.Root //TODO: see note on nameYieldFileIO
+	//nameRoots map[string]*mfs.Root //TODO: see note on nameYieldFileIO
+
+	/* implementation note
+	Handles are addresses of IO objects/interfaces
+	to assure they're not garbage collected, we store the IO's record in the filesystem scope during Open()
+	the record itself stores the IO object on it
+	in a map who's index is the same int (address of the IO object)
+	*/
+	/*
+		Open(){
+		    inode, iointerface, err := record.YieldIo(type) {
+			io, err := yieldIo(record)
+			inode := &io
+			record.handles[
+		    }
+		    fs.handles[inode] = record
+		}
+		Read(){
+		    io, err := record.GetIo(fh)
+		    io.Read()
+		}
+	*/
 }
 
 /*
@@ -151,12 +208,15 @@ func (fs *FUSEIPFS) Init() {
 		return
 	}
 
-	fs.roots = []directoryEntry{
-		directoryEntry{label: "ipfs"},
-		directoryEntry{label: "ipns"},
-		directoryEntry{label: filesNamespace},
+	var subroots = [...]string{"/ipfs", "/ipns", filesRootPrefix}
+	//TODO + keycount + ipns keys
+	var ipnsKeys []coreiface.Key
+	if ipnsKeys, chanErr = fs.core.Key().List(fs.ctx); chanErr != nil {
+		log.Errorf("[FATAL] ipns keys could not be initialized: %s", chanErr)
+		return
 	}
 
+	//TODO: shadow var check; must assign to chanErr
 	oAPI, chanErr := fs.core.WithOptions(coreoptions.Api.Offline(true))
 	if chanErr != nil {
 		log.Errorf("[FATAL] offline API could not be initialized: %s", chanErr)
@@ -169,49 +229,11 @@ func (fs *FUSEIPFS) Init() {
 		return
 	}
 
-	fs.nameRoots = make(map[string]*mfs.Root)
-	for _, key := range nameKeys {
-		keyNode, scopedErr := oAPI.ResolveNode(fs.ctx, key.Path())
-		if scopedErr != nil {
-			log.Warning("IPNS key %q could not be resolved: %s", key.Name(), scopedErr)
-			fs.nameRoots[key.Name()] = nil
-			continue
-		}
-
-		pbNode, ok := keyNode.(*dag.ProtoNode)
-		if !ok {
-			log.Warningf("IPNS key %q has incompatible type %T", key.Name(), keyNode)
-			fs.nameRoots[key.Name()] = nil
-			continue
-		}
-
-		keyRoot, scopedErr := mfs.NewRoot(fs.ctx, fs.core.Dag(), pbNode, ipnsPublisher(key.Name(), oAPI.Name()))
-		if scopedErr != nil {
-			log.Warningf("IPNS key %q could not be mapped to MFS root: %s", key.Name(), scopedErr)
-			fs.nameRoots[key.Name()] = nil
-			continue
-		}
-		fs.nameRoots[key.Name()] = keyRoot
-	}
-
-	fs.fileHandles = make(map[uint64]*fileHandle)
-	fs.dirHandles = make(map[uint64]*dirHandle)
-
+	fs.nameRoots = &mfsSharedIndex{roots: make(map[string]*mfsReference, len(nameKeys)+1)} // +Files API
+	fs.handles = make(fsHandles)
 	fs.mountTime = fuse.Now()
 
-	//TODO: implement for real
-	go fs.dbgBackgroundRoutine()
-	log.Debug("init finished")
-}
-
-type fileHandle struct {
-	record fusePath
-	io     FsFile
-}
-
-type dirHandle struct {
-	record fusePath
-	io     FsDirectory
+	log.Debug("init finished: %s", fs.mountTime)
 }
 
 func (fs *FUSEIPFS) Open(path string, flags int) (int, uint64) {
@@ -219,26 +241,72 @@ func (fs *FUSEIPFS) Open(path string, flags int) (int, uint64) {
 	defer fs.Unlock()
 	log.Debugf("Open - Request {%X}%q", flags, path)
 
-	if fs.AvailableHandles(aFiles) == 0 {
+	if fs.AvailableHandles() == 0 {
 		log.Error("Open - all handle slots are filled")
 		return -fuse.ENFILE, invalidIndex
 	}
 
-	if flags&fuse.O_CREAT != 0 {
-		if flags&fuse.O_EXCL != 0 {
-			_, err := fs.LookupPath(path)
-			if err == nil {
-				log.Errorf("Open/Create - exclusive flag provided but %q already exists", path)
-				return -fuse.EEXIST, invalidIndex
-			}
-		}
-		fErr, gErr := fs.mknod(path)
-		if gErr != nil {
-			log.Errorf("Open/Create - %q: %s", path, gErr)
-			return fErr, invalidIndex
+lookup:
+	fsNode, indexErr := fs.shallowLookupPath(path)
+	var nodeStat *fuse.Stat_t
+	if indexErr == nil {
+		var err error
+		nodeStat, err = fsNode.Stat()
+		if err != nil {
+			log.Errorf("Open - %q: %s", path, err)
+			return -fuse.EACCES, invalidIndex
 		}
 	}
 
+	// POSIX specifications
+	if flags&O_NOFOLLOW != 0 {
+		if indexErr == nil {
+			if nodeStat.Mode&fuse.S_IFMT == fuse.S_IFLNK {
+				log.Errorf("Open - nofollow requested but %q is a link", path)
+				return -fuse.ELOOP, invalidIndex
+			}
+		}
+	}
+
+	if flags&fuse.O_CREAT != 0 {
+		switch indexErr {
+		case os.ErrNotExist:
+			nodeType := unixfs.TFile
+			if flags&O_DIRECTORY != 0 {
+				nodeType = unixfs.TDirectory
+			}
+
+			callContext, cancel := deriveCallContext(fs.ctx)
+			defer cancel()
+			fErr, gErr := fsNode.Create(callContext, nodeType)
+			if gErr != nil {
+				log.Errorf("Create - %q: %s", path, gErr)
+				return fErr, invalidIndex
+			}
+			// node was created API side, clear create bits, jump back, and open it FS side
+			// respecting link restrictions
+			flags &^= (fuse.O_EXCL | fuse.O_CREAT)
+			goto lookup
+
+		case nil:
+			if flags&fuse.O_EXCL != 0 {
+				log.Errorf("Create - exclusive flag provided but %q already exists", path)
+				return -fuse.EEXIST, invalidIndex
+			}
+
+			if nodeStat.Mode&fuse.S_IFMT == fuse.S_IFDIR {
+				if flags&O_DIRECTORY == 0 {
+					log.Error("Create - regular file requested but %q resolved to an existing directory", path)
+					return -fuse.EISDIR, invalidIndex
+				}
+			}
+		default:
+			log.Errorf("Create - unexpected %q: %s", path, indexErr)
+			return -fuse.EACCES, invalidIndex
+		}
+	}
+
+	// Open proper -- resolves reference nodes
 	fsNode, err := fs.LookupPath(path)
 	if err != nil {
 		log.Errorf("Open - path err: %s", err)
@@ -247,14 +315,49 @@ func (fs *FUSEIPFS) Open(path string, flags int) (int, uint64) {
 	fsNode.Lock()
 	defer fsNode.Unlock()
 
-	fh, err := fs.newFileHandle(fsNode) //TODO: flags
+	nodeStat, err = fsNode.Stat()
 	if err != nil {
-		log.Errorf("Open - sunk %q:%s", fsNode.String(), err)
+		log.Errorf("Open - node %q not initialized", path)
+		return -fuse.EACCES, invalidIndex
+	}
+
+	if nodeStat.Mode&fuse.S_IFMT != fuse.S_IFLNK {
+		return -fuse.ELOOP, invalidIndex //NOTE: this should never happen, lookup should resolve all
+	}
+
+	// if request is dir but node is dir
+	if (flags&O_DIRECTORY != 0) && (nodeStat.Mode&fuse.S_IFMT != fuse.S_IFDIR) {
+		log.Error("Open - Directory requested but %q does not resolve to a directory", path)
+		return -fuse.ENOTDIR, invalidIndex
+	}
+
+	// if request was file but node is dir
+	if (flags&O_DIRECTORY == 0) && (nodeStat.Mode&fuse.S_IFMT == fuse.S_IFDIR) {
+		log.Error("Open - regular file requested but %q resolved to a directory", path)
+		return -fuse.EISDIR, invalidIndex
+	}
+
+	callContext, cancel := deriveCallContext(fs.ctx)
+	defer cancel()
+
+	// io is an interface that points to a struct (generic/void*)
+	io, err := fsNode.YieldIo(callContext, unixfs.TFile)
+	if err != nil {
+		log.Errorf("Open - IO err %q %s", path, err)
 		return -fuse.EIO, invalidIndex
 	}
 
-	log.Debugf("Open - Assigned [%X]%q", fh, fsNode)
-	return fuseSuccess, fh
+	// the address of io itself must remain the same across calls
+	// as we are sharing it with the OS
+	// we use the interface structure itself so that
+	// on our side we can change data sources
+	// without invalidating handles on the OS/client side
+	ifPtr := &io                                     // void *ifPtr = (FsFile*) io;
+	handle := uint64(uintptr(unsafe.Pointer(ifPtr))) // uint64_t handle = &ifPtr;
+	fsNode.Handles()[handle] = ifPtr                 //GC prevention of our double pointer; free upon Release()
+
+	log.Debugf("Open - Assigned [%X]%q", handle, fsNode)
+	return fuseSuccess, handle
 }
 
 func (fs *FUSEIPFS) Opendir(path string) (int, uint64) {
@@ -262,7 +365,7 @@ func (fs *FUSEIPFS) Opendir(path string) (int, uint64) {
 	defer fs.Unlock()
 	log.Debugf("Opendir - Request %q", path)
 
-	if fs.AvailableHandles(aDirectories) == 0 {
+	if fs.AvailableHandles() == 0 {
 		log.Error("Opendir - all handle slots are filled")
 		return -fuse.ENFILE, invalidIndex
 	}
@@ -275,32 +378,61 @@ func (fs *FUSEIPFS) Opendir(path string) (int, uint64) {
 	fsNode.Lock()
 	defer fsNode.Unlock()
 
-	if !fReaddirPlus {
-		fh, err := fs.newDirHandle(fsNode)
-		if err != nil {
-			log.Errorf("Opendir - %s", err)
-			return -fuse.ENOENT, invalidIndex
-		}
-		log.Debugf("Opendir - Assigned [%X]%q", fh, fsNode)
-		return fuseSuccess, fh
+	lookupFn := func(child string) (fusePath, error) {
+		//return fs.LookupPath(gopath.Join(path, child))
+		return fs.shallowLookupPath(gopath.Join(path, child))
 	}
 
-	return -fuse.EACCES, invalidIndex
+	directoryContext := context.WithValue(fs.ctx, lookupKey{}, lookupFn)
+	io, err := fsNode.YieldIo(directoryContext, unixfs.TDirectory)
+	if err != nil {
+		log.Errorf("Opendir - IO err %q %s", path, err)
+		return -fuse.EACCES, invalidIndex
+	}
+
+	ifPtr := &io // see comments on Open()
+	handle := uint64(uintptr(unsafe.Pointer(ifPtr)))
+	fsNode.Handles()[handle] = ifPtr
+	return fuseSuccess, handle
 }
 
-//TODO: [educational/compiler] how costly is defer vs {ret = x; unlock; return ret}
 func (fs *FUSEIPFS) Release(path string, fh uint64) int {
 	log.Debugf("Release - [%X]%q", fh, path)
 	fs.Lock()
 	defer fs.Unlock()
-	return fs.releaseFileHandle(fh)
+
+	fsNode, ok := fs.handles[fh]
+	if !ok {
+		log.Errorf("Release - handle %X is invalid", fh)
+		return -fuse.EBADF
+	}
+	fErr, gErr := fsNode.DestroyIo(fh, unixfs.TFile)
+	if gErr != nil {
+		log.Errorf("Release - %s", gErr)
+	}
+
+	// invalidate/free handle regardless of grace
+	delete(fs.handles, fh)
+	return fErr
 }
 
 func (fs *FUSEIPFS) Releasedir(path string, fh uint64) int {
 	log.Debugf("Releasedir - [%X]%q", fh, path)
 	fs.Lock()
 	defer fs.Unlock()
-	return fs.releaseDirHandle(fh)
+	fsNode, ok := fs.handles[fh]
+	if !ok {
+		log.Errorf("Releasedir - handle %X is invalid", fh)
+		return -fuse.EBADF
+	}
+	fErr, gErr := fsNode.DestroyIo(fh, unixfs.TDirectory)
+	if gErr != nil {
+		log.Errorf("Releasedir - %s", gErr)
+	}
+
+	// invalidate/free handle regardless of grace
+	delete(fs.handles, fh)
+	return fErr
 }
 
 //TODO: implement
@@ -310,7 +442,6 @@ func (fs *FUSEIPFS) Chmod(path string, mode uint32) int {
 }
 
 func (fs *FUSEIPFS) Chown(path string, uid, gid uint32) int {
-
 	log.Errorf("Chmod [%d:%d]%q", uid, gid, path)
 	return 0
 }
@@ -332,84 +463,79 @@ func (fs *FUSEIPFS) Destroy() {
 	}
 
 	//TODO: close our context
+	//TODO: close all handles
 }
 
 func (fs *FUSEIPFS) Flush(path string, fh uint64) int {
-	fs.RLock()
+	fs.Lock()
+	defer fs.Unlock()
 	log.Debugf("Flush - Request [%X]%q", fh, path)
 
-	h, err := fs.LookupFileHandle(fh)
-	if err != nil {
-		fs.RUnlock()
-		log.Errorf("Flush - bad request [%X]%q: %s", fh, path, err)
-		if err == errInvalidHandle {
-			return -fuse.EBADF //TODO: we might want to change this to EIO since Flush is called on Close which implies the handle should have been valid
-		}
-		return -fuse.EIO
+	fErr, gErr := syncWrap(fh, 0, true) //XXX: optional parameter 0 is ignored from flush
+	if gErr != nil {
+		log.Errorf("Flush - [%X]%q: %s", fh, path, gErr)
 	}
-	h.record.Lock()
-	fs.RUnlock()
-	defer h.record.Unlock()
-
-	if !h.record.Mutable() {
-		return fuseSuccess
-	}
-
-	return h.io.Sync()
+	return fErr
 }
 
 func (fs *FUSEIPFS) Fsync(path string, datasync bool, fh uint64) int {
-	fs.RLock()
+	fs.Lock()
+	defer fs.Unlock()
 	log.Debugf("Fsync - Request [%X]%q", fh, path)
 
-	h, err := fs.LookupFileHandle(fh)
-	if err != nil {
-		fs.RUnlock()
-		log.Errorf("Fsync - bad request [%X]%q: %s", fh, path, err)
-		if err == errInvalidHandle {
-			return -fuse.EBADF
-		}
-		return -fuse.EIO
+	fErr, gErr := syncWrap(fh, unixfs.TFile, false)
+	if gErr != nil {
+		log.Errorf("Fsync - [%X]%q: %s", fh, path, gErr)
 	}
-
-	h.record.Lock()
-	fs.RUnlock()
-	defer h.record.Unlock()
-
-	return h.io.Sync()
+	return fErr
 }
 
 func (fs *FUSEIPFS) Fsyncdir(path string, datasync bool, fh uint64) int {
-	fs.RLock()
+	fs.Lock()
+	defer fs.Unlock()
 	log.Errorf("Fsyncdir - Request [%X]%q", fh, path)
 
-	fsDirNode, err := fs.LookupDirHandle(fh)
-	if err != nil {
-		fs.RUnlock()
-		log.Errorf("Fsyncdir - [%X]%q: %s", fh, path, err)
-		if err == errInvalidHandle {
-			return -fuse.EBADF
-		}
-		return -fuse.EIO
+	fErr, gErr := syncWrap(fh, unixfs.TDirectory, false)
+	if gErr != nil {
+		log.Errorf("Fsyncdir - [%X]%q: %s", fh, path, gErr)
 	}
-	fsDirNode.record.Lock()
-	fs.RUnlock()
-	defer fsDirNode.record.Unlock()
+	return fErr
+}
 
-	/* FIXME: not implemented
-	fsDirNode, err := dirFromHandle(fh)
+func syncWrap(fh uint64, nodeType FsType, isFlush bool) (int, error) {
+	fsNode, io, err := invertedLookup(fh)
 	if err != nil {
-		fs.Unlock()
-		log.Errorf("Fsyncdir - [%X]%q: %s", fh, path, err)
 		if err == errInvalidHandle {
-			return -fuse.EBADF
+			return -fuse.EBADF, err
 		}
-		return -fuse.EIO
+		return -fuse.EIO, err
+	}
+	fsNode.Lock()
+	defer fsNode.Unlock()
+	if !fsNode.Mutable() {
+		return fuseSuccess, nil
 	}
 
-	return fsDirNode.Sync()
-	*/
-	return fuseSuccess
+	fStat, err := fsNode.Stat()
+	if err != nil {
+		return -fuse.EIO, err
+	}
+
+	if !isFlush { // flush is an untyped request
+		if !typeCheck(fStat.Mode, nodeType) {
+			return -fuse.EINVAL, errIOType
+		}
+	}
+
+	switch nodeType {
+	case unixfs.TFile:
+		return io.(FsFile).Sync()
+	case unixfs.TDirectory:
+		//NOOP
+		return fuseSuccess, nil
+	default:
+		return -fuse.EIO, errUnexpected
+	}
 }
 
 func (fs *FUSEIPFS) Getxattr(path, name string) (int, []byte) {
@@ -446,74 +572,105 @@ func (fs *FUSEIPFS) Readlink(path string) (int, string) {
 	fs.RUnlock()
 	defer fsNode.RUnlock()
 
-	if isDevice(fsNode) {
-		return -fuse.EINVAL, ""
-	}
+	//TODO:
+	//lIo, err := fsNode.YieldIo(nil, unixfs.TSymlink)
+	//
 
-	if isReference(fsNode) {
-		var err error
-		fsNode, err = fs.resolveToGlobal(fsNode)
-		if err != nil {
-			log.Errorf("Readlink - node resolution error: %s", err)
-			return -fuse.EIO, ""
-		}
-	}
-
-	target, err := fs.fuseReadlink(fsNode)
+	fStat, err := fsNode.Stat()
 	if err != nil {
-		if err == errNoLink {
-			log.Errorf("Readlink - %q is not a symlink", path)
-			return -fuse.EINVAL, ""
-		}
-		log.Errorf("Readlink - unexpected link resolution error: %s", err)
+		log.Errorf("Readlink - %q: %s", path, err)
 		return -fuse.EIO, ""
 	}
 
-	return len(target), target
+	if !typeCheck(fStat.Mode, unixfs.TSymlink) {
+		log.Errorf("Readlink - %q is not a symlink", path)
+		return -fuse.EINVAL, ""
+	}
+
+	//TODO: need global path for core
+
+	callContext, cancel := deriveCallContext(fs.ctx)
+	defer cancel()
+	ipldNode, err := fs.core.ResolveNode(callContext, fsNode)
+	if err != nil {
+		log.Errorf("Readlink - node resolution error: %s", err)
+		return 0, ""
+	}
+
+	ufsNode, err := unixfs.ExtractFSNode(ipldNode)
+	if err != nil {
+		return -fuse.EIO, ""
+	}
+
+	target := string(ufsNode.Data())
+	tLen := len(target)
+	if tLen != int(fStat.Size) {
+		log.Errorf("Readlink - target size mismatched node:%d != target:%d", fStat.Size, tLen)
+		return -fuse.EIO, ""
+	}
+
+	return tLen, target
 }
 
-type handleErrorPair struct {
-	fhi uint64
-	err error
-}
-
-//TODO: test this
-func (fs *FUSEIPFS) refreshFileSiblings(fh uint64, h *fileHandle) (failed []handleErrorPair) {
-	handles := *h.record.Handles()
-	if len(handles) == 1 && handles[0] == fh {
+//NOTE: caller should retain FS (R)Lock
+// caller need not do asserting check; it's rolled into an error
+func (fs *FUSEIPFS) getIo(fh uint64, ioType FsType) (io interface{}, err error) {
+	err = errInvalidHandle
+	if fh == invalidIndex {
 		return
 	}
 
-	for _, fhi := range handles {
-		if fhi == fh {
-			continue
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("getIo recovered from panic, likely invalid handle: %v", r)
+			io = nil
+			err = errInvalidHandle
 		}
-		curFh, err := fs.LookupFileHandle(fhi)
-		if err != nil {
-			failed = append(failed, handleErrorPair{fhi, err})
-			continue
-		}
+	}()
 
-		oCur, err := curFh.io.Seek(0, io.SeekCurrent)
-		if err != nil {
-			failed = append(failed, handleErrorPair{fhi, err})
-			continue
+	// L0 dereference address; equivalent to io = *fh with trap
+	// uint -> cast to untyped pointer -> pointer is dereferenced -> type is checked
+	switch ioType {
+	case unixfs.TFile:
+		if io, ok := (*(*interface{})(unsafe.Pointer(uintptr(fh)))).(FsFile); ok {
+			return io, nil
 		}
-		err = curFh.io.Close()
-		if err != nil {
-			failed = append(failed, handleErrorPair{fhi, err})
-			continue
-		}
-		curFh.io = nil
+		return nil, errIOType
+	case unixfs.TDirectory:
+		if io, ok := (*(*interface{})(unsafe.Pointer(uintptr(fh)))).(FsDirectory); ok {
 
-		posixIo, err := fs.yieldFileIO(h.record)
-		if err != nil {
-			failed = append(failed, handleErrorPair{fhi, err})
-			continue
+			return io, nil
 		}
-
-		posixIo.Seek(oCur, io.SeekStart)
-		curFh.io = posixIo
+		return nil, errIOType
+	case unixfs.TSymlink:
+		if io, ok := (*(*interface{})(unsafe.Pointer(uintptr(fh)))).(FsLink); ok {
+			return io, nil
+		}
+		return nil, errIOType
+	default:
+		return nil, errUnexpected
 	}
-	return
+
+	// L1 double map lookup
+	// record lookup -> io lookup -> io
+	/*
+		if record, ok := fs.handles[fh]; ok {
+			if io, ok := record.Handles()[fh]; ok {
+				switch ioType {
+				case unixfs.TFile:
+					if _, ok := io.(FsFile); ok {
+						return io, nil
+					}
+					return nil, errIOType
+				case unixfs.TDirectory:
+					if _, ok := io.(FsDirectory); ok {
+						return io, nil
+					}
+					return nil, errIOType
+				default:
+					return nil, errUnexpected
+				}
+			}
+		}
+	*/
 }

@@ -9,7 +9,11 @@ import (
 )
 
 //try to extract these into other pkg(s)
-const LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x00000800
+const (
+	LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x00000800
+	O_DIRECTORY                  = 0x00000001 // Nt FILE_DIRECTORY_FILE
+	O_NOFOLLOW                   = 0          // TODO: check WINAPI for equivalent
+)
 
 func loadSystemDLL(name string) (*windows.DLL, error) {
 	modHandle, err := windows.LoadLibraryEx(name, 0, LOAD_LIBRARY_SEARCH_SYSTEM32)
