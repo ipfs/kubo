@@ -1,5 +1,5 @@
 # golang utilities
-GO_MIN_VERSION = 1.11
+GO_MIN_VERSION = 1.11.4
 export GO111MODULE=on
 
 
@@ -68,6 +68,7 @@ test_go_megacheck:
 test_go: $(TEST_GO)
 
 check_go_version:
+	@go version
 	bin/check_go_version $(GO_MIN_VERSION)
 .PHONY: check_go_version
 DEPS_GO += check_go_version
