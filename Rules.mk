@@ -88,6 +88,16 @@ test_short: $(TEST_SHORT)
 deps:
 .PHONY: deps
 
+gxdeps:
+	@echo "installing gx"
+	gx    -v || go get -v -u github.com/whyrusleeping/gx
+	gx-go -v || go get -v -u github.com/whyrusleeping/gx-go
+	@echo check gx and gx-go
+	gx -v && gx-go -v
+	@echo downloading dependencies
+	gx install --global
+.PHONY: gxdeps
+
 nofuse: GOTAGS += nofuse
 nofuse: build
 .PHONY: nofuse
@@ -95,15 +105,8 @@ nofuse: build
 install: cmd/ipfs-install
 .PHONY: install
 
-install_unsupported:
+install_unsupported: gxdeps
 	@echo "note: this command has yet to be tested to build in the system you are using"
-	@echo "installing gx"
-	go get -v -u github.com/whyrusleeping/gx
-	go get -v -u github.com/whyrusleeping/gx-go
-	@echo check gx and gx-go
-	gx -v && gx-go -v
-	@echo downloading dependencies
-	gx install --global
 	@echo "installing go-ipfs"
 	go install -v -tags nofuse ./cmd/ipfs
 .PHONY: install_unsupported
