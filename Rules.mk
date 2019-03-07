@@ -95,17 +95,12 @@ nofuse: build
 install: cmd/ipfs-install
 .PHONY: install
 
-install_unsupported:
-	@echo "note: this command has yet to be tested to build in the system you are using"
-	@echo "installing gx"
-	go get -v -u github.com/whyrusleeping/gx
-	go get -v -u github.com/whyrusleeping/gx-go
-	@echo check gx and gx-go
-	gx -v && gx-go -v
-	@echo downloading dependencies
-	gx install --global
-	@echo "installing go-ipfs"
-	go install -v -tags nofuse ./cmd/ipfs
+install_unsupported: install
+	@echo "/=======================================================================\\"
+	@echo '|                                                                       |'
+	@echo '| `make install_unsupported` is deprecated, use `make install` instead. |'
+	@echo '|                                                                       |'
+	@echo "\\=======================================================================/"
 .PHONY: install_unsupported
 
 uninstall:
