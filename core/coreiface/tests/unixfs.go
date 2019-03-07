@@ -786,9 +786,6 @@ func (tp *provider) TestLs(t *testing.T) {
 		t.Errorf("expected symlink target to be /foo/bar, got %s", entry.Target)
 	}
 
-	if int(entry.Size) != len(entry.Target) {
-		t.Errorf("expected size = %d, got %d", len(entry.Target), entry.Size)
-	}
 	if l, ok := <-entries; ok {
 		t.Errorf("didn't expect a second link")
 		if l.Err != nil {
