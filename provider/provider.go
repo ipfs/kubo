@@ -8,7 +8,6 @@ import (
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-routing"
-	"time"
 )
 
 var (
@@ -17,7 +16,6 @@ var (
 
 const (
 	provideOutgoingWorkerLimit = 8
-	provideOutgoingTimeout     = 15 * time.Second
 )
 
 // Provider announces blocks to the network, tracks which blocks are
@@ -75,14 +73,11 @@ func (p *Provider) handleAnnouncements() {
 func doProvide(ctx context.Context, contentRouting routing.ContentRouting, key cid.Cid) error {
 	// announce
 	log.Info("announce - start - ", key)
-	ctx, cancel := context.WithTimeout(ctx, provideOutgoingTimeout)
 	if err := contentRouting.Provide(ctx, key, true); err != nil {
 		log.Warningf("Failed to provide cid: %s", err)
 		// TODO: Maybe put these failures onto a failures queue?
-		cancel()
 		return err
 	}
-	cancel()
 	log.Info("announce - end - ", key)
 	return nil
 }
