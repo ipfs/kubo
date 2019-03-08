@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"github.com/ipfs/go-ipfs/provider"
 	"os"
 	"syscall"
 	"time"
@@ -274,6 +275,13 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		n.Pinning = pin.NewPinner(n.Repo.Datastore(), n.DAG, internalDag)
 	}
 	n.Resolver = resolver.NewBasicResolver(n.DAG)
+
+	// Provider
+	queue, err := provider.NewQueue("provider-v1", ctx, n.Repo.Datastore())
+	if err != nil {
+		return err
+	}
+	n.Provider = provider.NewProvider(ctx, queue, n.Routing)
 
 	if cfg.Online {
 		if err := n.startLateOnlineServices(ctx); err != nil {

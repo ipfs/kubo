@@ -20,6 +20,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/provider"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
 
@@ -65,6 +66,8 @@ type CoreAPI struct {
 
 	namesys namesys.NameSystem
 	routing routing.IpfsRouting
+
+	provider *provider.Provider
 
 	pubSub *pubsub.PubSub
 
@@ -173,6 +176,8 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		recordValidator: n.RecordValidator,
 		exchange:        n.Exchange,
 		routing:         n.Routing,
+
+		provider: n.Provider,
 
 		pubSub: n.PubSub,
 
