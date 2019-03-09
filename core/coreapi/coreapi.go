@@ -20,8 +20,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/namesys"
-	"github.com/ipfs/go-ipfs/provider"
 	"github.com/ipfs/go-ipfs/pin"
+	"github.com/ipfs/go-ipfs/provider"
 	"github.com/ipfs/go-ipfs/repo"
 
 	bserv "github.com/ipfs/go-blockservice"

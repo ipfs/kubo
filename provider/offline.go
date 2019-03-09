@@ -2,8 +2,9 @@ package provider
 
 import "github.com/ipfs/go-cid"
 
-type offlineProvider struct {}
+type offlineProvider struct{}
 
+// NewOfflineProvider creates a Provider that does nothing
 func NewOfflineProvider() Provider {
 	return &offlineProvider{}
 }

@@ -277,7 +277,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	n.Resolver = resolver.NewBasicResolver(n.DAG)
 
 	// Provider
-	queue, err := provider.NewQueue("provider-v1", ctx, n.Repo.Datastore())
+	queue, err := provider.NewQueue(ctx, "provider-v1", n.Repo.Datastore())
 	if err != nil {
 		return err
 	}

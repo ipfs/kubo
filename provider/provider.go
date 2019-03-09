@@ -18,13 +18,12 @@ const (
 	provideOutgoingWorkerLimit = 8
 )
 
+// Provider announces blocks to the network
 type Provider interface {
 	Run()
 	Provide(cid.Cid) error
 }
 
-// Provider announces blocks to the network, tracks which blocks are
-// being provided, and untracks blocks when they're no longer in the blockstore.
 type provider struct {
 	ctx context.Context
 	// the CIDs for which provide announcements should be made
@@ -33,6 +32,7 @@ type provider struct {
 	contentRouting routing.ContentRouting
 }
 
+// NewProvider creates a provider that announces blocks to the network using a content router
 func NewProvider(ctx context.Context, queue *Queue, contentRouting routing.ContentRouting) Provider {
 	return &provider{
 		ctx:            ctx,
