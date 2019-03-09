@@ -18,9 +18,14 @@ const (
 	provideOutgoingWorkerLimit = 8
 )
 
+type Provider interface {
+	Run()
+	Provide(cid.Cid) error
+}
+
 // Provider announces blocks to the network, tracks which blocks are
 // being provided, and untracks blocks when they're no longer in the blockstore.
-type Provider struct {
+type provider struct {
 	ctx context.Context
 	// the CIDs for which provide announcements should be made
 	queue *Queue
@@ -28,8 +33,8 @@ type Provider struct {
 	contentRouting routing.ContentRouting
 }
 
-func NewProvider(ctx context.Context, queue *Queue, contentRouting routing.ContentRouting) *Provider {
-	return &Provider{
+func NewProvider(ctx context.Context, queue *Queue, contentRouting routing.ContentRouting) Provider {
+	return &provider{
 		ctx:            ctx,
 		queue:          queue,
 		contentRouting: contentRouting,
@@ -37,18 +42,18 @@ func NewProvider(ctx context.Context, queue *Queue, contentRouting routing.Conte
 }
 
 // Start workers to handle provide requests.
-func (p *Provider) Run() {
+func (p *provider) Run() {
 	p.queue.Run()
 	p.handleAnnouncements()
 }
 
 // Provide the given cid using specified strategy.
-func (p *Provider) Provide(root cid.Cid) error {
+func (p *provider) Provide(root cid.Cid) error {
 	return p.queue.Enqueue(root)
 }
 
 // Handle all outgoing cids by providing (announcing) them
-func (p *Provider) handleAnnouncements() {
+func (p *provider) handleAnnouncements() {
 	for workers := 0; workers < provideOutgoingWorkerLimit; workers++ {
 		go func() {
 			for {
