@@ -6,6 +6,8 @@ github.com/Kubuxu/go-os-helper v0.0.1 h1:EJiD2VUQyh5A9hWJLmc6iWg6yIcJ7jpBcwC8GMG
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd h1:HNhzThEtZW714v8Eda8sWWRcu9WSzJC+oCyjRjvZgRA=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd/go.mod h1:bqoB8kInrTeEtYAwaIXoSRqdwnjQmFhsfusnzyui6yY=
+github.com/Songmu/prompter v0.0.0-20181014095714-d227c68538bd h1:WPP3dYxBYZBo0q3t14UIvD0Myr848agWCVSlScH17E0=
+github.com/Songmu/prompter v0.0.0-20181014095714-d227c68538bd/go.mod h1:fNhSFBGC+sg+dZ7AqDHgq+xYiom23TeTESzUbO7PIrE=
 github.com/Stebalien/go-bitfield v0.0.0-20180330043415-076a62f9ce6e h1:2Z+EBRrOJsA3psnUPcEWMIH2EIga1xHflQcr/EZslx8=
 github.com/Stebalien/go-bitfield v0.0.0-20180330043415-076a62f9ce6e/go.mod h1:3oM7gXIttpYDAJXpVNnSCiUMYBLIZ6cb1t+Ip982MRo=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
@@ -139,6 +141,8 @@ github.com/ipfs/go-ipfs-cmdkit v0.0.1 h1:X6YXEAjUljTzevE6DPUKXSqcgf+4FXzcn5B957F
 github.com/ipfs/go-ipfs-cmdkit v0.0.1/go.mod h1:9FtbMdUabcSqv/G4/8WCxSLxkZxn/aZEFrxxqnVcRbg=
 github.com/ipfs/go-ipfs-cmds v0.0.1 h1:wPTynLMa+JImcTsPaVmrUDP8mJ3S8HQVUWixnKi7+k4=
 github.com/ipfs/go-ipfs-cmds v0.0.1/go.mod h1:k7I8PptE2kCJchR3ta546LRyxl4/uBYbLQHOJM0sUQ8=
+github.com/ipfs/go-ipfs-config v0.0.0-20190309024316-a0bdc3f74854 h1:/egI93XR8dai8cn+W2epdY0rCppfFsGjt8UQ741Qhy8=
+github.com/ipfs/go-ipfs-config v0.0.0-20190309024316-a0bdc3f74854/go.mod h1:yqJG+KMcBiqX2v2EhxeTi30T0lLGZx6uY3f5B3gD4HI=
 github.com/ipfs/go-ipfs-config v0.0.1 h1:6ED08emzI1imdsAjixFi2pEyZxTVD5ECKtCOxLBx+Uc=
 github.com/ipfs/go-ipfs-config v0.0.1/go.mod h1:KDbHjNyg4e6LLQSQpkgQMBz6Jf4LXiWAcmnkcwmH0DU=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -182,6 +186,10 @@ github.com/ipfs/go-mfs v0.0.1 h1:EcQeaxW2DO3LmRXEtbWCGxhZ7YmMR+X7nzjYChBzG8s=
 github.com/ipfs/go-mfs v0.0.1/go.mod h1:rUT0dKNWkKa1T+MobpBL2zANn7p8Y6unXANC0PV2FLk=
 github.com/ipfs/go-path v0.0.1 h1:6UskTq8xYVs3zVnHjXDvoCqw22dKWK1BwD1cy1cuHyc=
 github.com/ipfs/go-path v0.0.1/go.mod h1:ztzG4iSBN2/CJa93rtHAv/I+mpK+BGALeUoJzhclhw0=
+github.com/ipfs/go-prompt v0.0.0-20190309021543-60746b51630e h1:rClV9cZC54BQr25YltQRNc3a1GSxiCZSF7jwEWltFVU=
+github.com/ipfs/go-prompt v0.0.0-20190309021543-60746b51630e/go.mod h1:9sBllkC9Vc4oYBP/S8iR8IRPbyVSwottiVgKsKA1atE=
+github.com/ipfs/go-prompt v0.0.1 h1:yWWyaH5YKSkU9Gejgg8d41wzh5onvckStxK6CuLGSEo=
+github.com/ipfs/go-prompt v0.0.1/go.mod h1:9sBllkC9Vc4oYBP/S8iR8IRPbyVSwottiVgKsKA1atE=
 github.com/ipfs/go-todocounter v0.0.1 h1:kITWA5ZcQZfrUnDNkRn04Xzh0YFaDFXsoO2A81Eb6Lw=
 github.com/ipfs/go-todocounter v0.0.1/go.mod h1:l5aErvQc8qKE2r7NDMjmq5UNAvuZy0rC8BHOplkWvZ4=
 github.com/ipfs/go-unixfs v0.0.1 h1:CTTGqLxU5+PRkkeA+w1peStqRWFD1Kya+yZgIT4Xy1w=
@@ -342,6 +350,8 @@ github.com/mattn/go-colorable v0.1.1/go.mod h1:FuOcm+DKB9mbwrcAfNl7/TZVBZ6rcncea
 github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
 github.com/mattn/go-isatty v0.0.5 h1:tHXDdz1cpzGaovsTB+TVB8q90WEokoVmfMqoVcrLUgw=
 github.com/mattn/go-isatty v0.0.5/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hdxcsrc5s=
+github.com/mattn/go-isatty v0.0.6 h1:SrwhHcpV4nWrMGdNcC2kXpMfcBVYGDuTArqyhocJgvA=
+github.com/mattn/go-isatty v0.0.6/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hdxcsrc5s=
 github.com/mattn/go-runewidth v0.0.4 h1:2BvfKmzob6Bmd4YsL0zygOqfdFnK7GR4QL06Do4/p7Y=
 github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
@@ -461,6 +471,8 @@ golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67/go.mod h1:6SG95UA2DQfeDnf
 golang.org/x/crypto v0.0.0-20190225124518-7f87c0fbb88b/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 h1:jsG6UpNLt9iAsb0S2AGW28DveNzzgmbXR+ENoPjUeIU=
 golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 h1:VklqNMn3ovrHsnt90PveolxSbWFaJdECFbxSq0Mqo2M=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20180524181706-dfa909b99c79/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20180906233101-161cd47e91fd/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181102091132-c10e9556a7bc/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
