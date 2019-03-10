@@ -389,7 +389,7 @@ func (r *FSRepo) openKeystore() error {
 		spec = map[string]interface{}{"type": "files", "path": "keystore"}
 	}
 
-	ksType, ok := spec["type"]
+	ksType, ok := spec["type"].(string)
 	if !ok {
 		return fmt.Errorf("keystore config lacks a type")
 	}
