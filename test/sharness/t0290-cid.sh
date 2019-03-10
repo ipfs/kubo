@@ -71,6 +71,7 @@ test_expect_success "cid format -v 1 -b base58btc works from stdin" '
 
 cat <<EOF > bases_expect
       0  identity
+0    48  base2
 b    98  base32
 B    66  base32upper
 c    99  base32pad

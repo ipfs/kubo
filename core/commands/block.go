@@ -8,12 +8,12 @@ import (
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	coreiface "github.com/ipfs/go-ipfs/core/coreapi/interface"
-	"github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
+	mh "github.com/multiformats/go-multihash"
 )
 
 type BlockStat struct {
@@ -146,6 +146,7 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 		cmdkit.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
 		cmdkit.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
 		cmdkit.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
+		cmdkit.BoolOption(pinOptionName, "pin added blocks recursively").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -178,7 +179,12 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 			}
 		}
 
-		p, err := api.Block().Put(req.Context, file, options.Block.Hash(mhtval, mhlen), options.Block.Format(format))
+		pin, _ := req.Options[pinOptionName].(bool)
+
+		p, err := api.Block().Put(req.Context, file,
+			options.Block.Hash(mhtval, mhlen),
+			options.Block.Format(format),
+			options.Block.Pin(pin))
 		if err != nil {
 			return err
 		}

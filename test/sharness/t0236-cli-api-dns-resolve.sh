@@ -13,14 +13,12 @@ test_init_ipfs
 test_expect_success "start nc" '
   rm -f nc_out nc_outp nc_inp && mkfifo nc_inp nc_outp
 
-  nc -k -l 127.0.0.1 5006 <nc_inp >nc_outp &
+  socat PIPE:nc_inp!!PIPE:nc_outp tcp-listen:5006,fork,max-children=1,bind=127.0.0.1 &
   NCPID=$!
 
   exec 6>nc_inp 7<nc_outp
 
-  while ! nc -z 127.0.0.1 5006; do
-    go-sleep 100ms
-  done
+  socat /dev/null tcp:127.0.01:5006,retry=10
 '
 
 test_expect_success "can make http request against dns resolved nc server" '

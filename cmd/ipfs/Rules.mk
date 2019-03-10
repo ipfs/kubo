@@ -19,7 +19,7 @@ $(d)-try-build $(IPFS_BIN_$(d)): GOFLAGS += $(cmd/ipfs_flags)
 
 # uses second expansion to collect all $(DEPS_GO)
 $(IPFS_BIN_$(d)): $(d) $$(DEPS_GO) ALWAYS #| $(DEPS_OO_$(d))
-	$(go-build)
+	$(go-build-relative)
 
 TRY_BUILD_$(d)=$(addprefix $(d)-try-build-,$(SUPPORTED_PLATFORMS))
 $(d)-try-build: $(TRY_BUILD_$(d))

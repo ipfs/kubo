@@ -24,7 +24,7 @@ the above issue.
 - [p2p http proxy](#p2p-http-proxy)
 - [Circuit Relay](#circuit-relay)
 - [Plugins](#plugins)
-- [Directory Sharding / HAMT](#directory-sharding-hamt)
+- [Directory Sharding / HAMT](#directory-sharding--hamt)
 - [IPNS PubSub](#ipns-pubsub)
 - [QUIC](#quic)
 - [AutoRelay](#autorelay)

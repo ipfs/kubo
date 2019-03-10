@@ -8,9 +8,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 
-	"gx/ipfs/QmdCQgMgoMjur6D15ZB3z1LodiSP3L6EBHMyVx4ekqzRWA/go-ds-measure"
-	ds "gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore"
-	"gx/ipfs/Qmf4xQhNomPNhrtZc67qSnfJSjxjXs9LWvknJtSXwimPrM/go-datastore/mount"
+	ds "github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/mount"
+	"github.com/ipfs/go-ds-measure"
 )
 
 // ConfigFromMap creates a new datastore config from a map

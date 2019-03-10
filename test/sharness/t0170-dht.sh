@@ -51,15 +51,15 @@ test_dht() {
     test_fsh cat putted
   '
   
-  test_expect_failure 'put with bad keys returns error (issue #4611)' '
-    ! ipfsi 0 dht put "foo" "bar" &&
-    ! ipfsi 0 dht put "/pk/foo" "bar" &&
-    ! ipfsi 0 dht put "/ipns/foo" "bar"
+  test_expect_success 'put with bad keys returns error (issue #4611)' '
+    test_must_fail ipfsi 0 dht put "foo" "bar" &&
+    test_must_fail ipfsi 0 dht put "/pk/foo" "bar" &&
+    test_must_fail ipfsi 0 dht put "/ipns/foo" "bar"
   '
   
-  test_expect_failure 'get with bad keys (issue #4611)' '
-    ! ipfsi 0 dht get "foo" &&
-    ! ipfsi 0 dht get "/pk/foo"
+  test_expect_success 'get with bad keys (issue #4611)' '
+    test_must_fail ipfsi 0 dht get "foo" &&
+    test_must_fail ipfsi 0 dht get "/pk/foo"
   '
   
   test_expect_success "add a ref so we can find providers for it" '

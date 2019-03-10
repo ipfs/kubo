@@ -9,10 +9,10 @@ import (
 	"sort"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	options "github.com/ipfs/go-ipfs/core/coreapi/interface/options"
 
-	cmds "gx/ipfs/QmWGm4AbZEbnmdgVTza52MSNpEmBdFVqzmAysRbjrRyGbH/go-ipfs-cmds"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 var PubsubCmd = &cmds.Command{

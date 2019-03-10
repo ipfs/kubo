@@ -62,6 +62,10 @@ findprovs_empty '$HASH_0'
 reprovide
 findprovs_expect '$HASH_0' '$PEERID_0'
 
+test_expect_success 'Stop iptb' '
+  iptb stop
+'
+
 # Test 'pinned' strategy
 init_strategy 'pinned'
 
@@ -86,8 +90,8 @@ findprovs_empty '$HASH_FOO'
 findprovs_expect '$HASH_BAR' '$PEERID_0'
 findprovs_expect '$HASH_BAR_DIR' '$PEERID_0'
 
-test_expect_success 'stop peer 1' '
-  iptb stop 1
+test_expect_success 'Stop iptb' '
+  iptb stop
 '
 
 # Test 'roots' strategy
@@ -117,8 +121,8 @@ findprovs_empty '$HASH_BAR'
 findprovs_expect '$HASH_BAZ' '$PEERID_0'
 findprovs_expect '$HASH_BAR_DIR' '$PEERID_0'
 
-test_expect_success 'stop peer 1' '
-  iptb stop 1
+test_expect_success 'Stop iptb' '
+  iptb stop
 '
 
 # Test reprovider working with ticking disabled
@@ -149,5 +153,9 @@ test_expect_success 'resolve object $HASH_0' '
   HASH_WITH_PREFIX=$(ipfsi 1 resolve $HASH_0)
 '
 findprovs_expect '$HASH_WITH_PREFIX' '$PEERID_0'
+
+test_expect_success 'Stop iptb' '
+  iptb stop
+'
 
 test_done

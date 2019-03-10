@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmcRKBUqc2p3L1ZraoJjbXfs9E6xzvEuyK9iypb5RGwfsr/go-ipfs-config"
+	"github.com/ipfs/go-ipfs-config"
 )
 
 // note: to test sorting of the mountpoints in the disk spec they are
@@ -84,7 +84,7 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = loader.Run()
+	err = loader.Inject()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestLevelDbConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if typ := reflect.TypeOf(ds).String(); typ != "*leveldb.datastore" {
+	if typ := reflect.TypeOf(ds).String(); typ != "*leveldb.Datastore" {
 		t.Errorf("expected '*leveldb.datastore' got '%s'", typ)
 	}
 }
