@@ -328,7 +328,7 @@ func (tp *provider) TestAdd(t *testing.T) {
 		},
 		// hidden
 		{
-			name: "hiddenFiles",
+			name: "hiddenFilesAdded",
 			data: func() files.Node {
 				return files.NewMapDirectory(map[string]files.Node{
 					".bar": files.NewBytesFile([]byte("hello2")),
@@ -339,48 +339,6 @@ func (tp *provider) TestAdd(t *testing.T) {
 			wrap:   "t",
 			expect: wrapped("t"),
 			path:   "/ipfs/QmPXLSBX382vJDLrGakcbrZDkU3grfkjMox7EgSC9KFbtQ",
-			opts:   []options.UnixfsAddOption{options.Unixfs.Hidden(true)},
-		},
-		{
-			name: "topHiddenFileAdded",
-			data: func() files.Node {
-				return files.NewBytesFile([]byte(helloStr))
-			},
-			wrap:   ".foo",
-			expect: wrapped(".foo"),
-			path:   "/ipfs/QmciAVG3krCbvzUaK9gr6jUgfEjQtYmuuXi1n67teQ4Ni2",
-			opts:   []options.UnixfsAddOption{options.Unixfs.TopHidden(true)},
-		},
-		{
-			name: "hiddenFilesNotAdded",
-			data: func() files.Node {
-				return files.NewMapDirectory(map[string]files.Node{
-					".bar": files.NewBytesFile([]byte("hello2")),
-					"bar":  files.NewBytesFile([]byte("hello2")),
-					"foo":  files.NewBytesFile([]byte("hello1")),
-				})
-			},
-			expect: func(files.Node) files.Node {
-				return flatDir()
-			},
-			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
-			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
-		},
-		{
-			name: "hiddenFilesWrappedNotAdded",
-			data: func() files.Node {
-				return files.NewMapDirectory(map[string]files.Node{
-					".bar": files.NewBytesFile([]byte("hello2")),
-					"bar":  files.NewBytesFile([]byte("hello2")),
-					"foo":  files.NewBytesFile([]byte("hello1")),
-				})
-			},
-			expect: func(files.Node) files.Node {
-				return wrapped("t")(flatDir())
-			},
-			wrap: "t",
-			path: "/ipfs/Qmc3nGXm1HtUVCmnXLQHvWcNwfdZGpfg2SRm1CxLf7Q2Rm",
-			opts: []options.UnixfsAddOption{options.Unixfs.Hidden(false)},
 		},
 		// NoCopy
 		{
