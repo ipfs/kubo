@@ -87,16 +87,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		fileAdder.Out = settings.Events
 		fileAdder.Progress = settings.Progress
 	}
-	fileAdder.Hidden = settings.Hidden
 	fileAdder.Wrap = settings.Wrap
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
 	fileAdder.NoCopy = settings.NoCopy
 	fileAdder.Name = settings.StdinName
-	fileAdder.BaseName = settings.BaseName
 	fileAdder.CidBuilder = prefix
-	fileAdder.TopHidden = settings.TopHidden
 
 	switch settings.Layout {
 	case options.BalancedLayout:

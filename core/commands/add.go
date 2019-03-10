@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -12,7 +13,8 @@ import (
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/go-ipfs-files"
 	mh "github.com/multiformats/go-multihash"
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
@@ -160,7 +162,7 @@ You can now check what blocks have been created by:
 		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
 		hash, _ := req.Options[onlyHashOptionName].(bool)
-		hidden, _ := req.Options[hiddenOptionName].(bool)
+		//hidden, _ := req.Options[hiddenOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
@@ -186,7 +188,7 @@ You can now check what blocks have been created by:
 		events := make(chan interface{}, adderOutChanSize)
 
 		var toadd files.Node = req.Files
-		addName := ""
+		name := ""
 		if !wrap {
 			it := req.Files.Entries()
 			if !it.Next() {
@@ -197,8 +199,12 @@ You can now check what blocks have been created by:
 				return err
 			}
 
-			addName = it.Name()
 			toadd = it.Node()
+			name = it.Name()
+		}
+		_, dir := toadd.(files.Directory)
+		if !dir && pathName != "" {
+			name = pathName
 		}
 
 		opts := []options.UnixfsAddOption{
@@ -214,13 +220,11 @@ You can now check what blocks have been created by:
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),
 
-			options.Unixfs.Hidden(hidden),
 			options.Unixfs.StdinName(pathName),
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
 			options.Unixfs.Events(events),
-			options.Unixfs.BaseName(addName),
 		}
 
 		if cidVerSet {
@@ -252,6 +256,12 @@ You can now check what blocks have been created by:
 			h := ""
 			if output.Path != nil {
 				h = enc.Encode(output.Path.Cid())
+			}
+
+			if !dir && name != "" {
+				output.Name = name
+			} else {
+				output.Name = path.Join(name, output.Name)
 			}
 
 			res.Emit(&AddEvent{

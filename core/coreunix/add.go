@@ -50,7 +50,6 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		dagService: ds,
 		bufferedDS: bufferedDS,
 		Progress:   false,
-		Hidden:     true,
 		Pin:        true,
 		Trickle:    false,
 		Wrap:       false,
@@ -67,15 +66,12 @@ type Adder struct {
 	bufferedDS *ipld.BufferedDAG
 	Out        chan<- interface{}
 	Progress   bool
-	Hidden     bool
-	TopHidden  bool
 	Pin        bool
 	Trickle    bool
 	RawLeaves  bool
 	Silent     bool
 	Wrap       bool
 	Name       string
-	BaseName   string
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
@@ -231,9 +227,6 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 
 func (adder *Adder) addNode(node ipld.Node, path string) error {
 	// patch it into the root
-	if adder.BaseName != "" {
-		path = gopath.Join(adder.BaseName, path)
-	}
 	if path == "" {
 		path = node.Cid().String()
 	}
@@ -279,25 +272,8 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		}
 	}()
 
-	d, dir := file.(files.Directory)
-	if !dir || !adder.TopHidden {
-		d = files.NewSliceDirectory([]files.DirEntry{
-			files.FileEntry("", file),
-		})
-	}
-
-
-	// Iterate over each top-level file and add individually. Otherwise the
-	// single files.File f is treated as a directory, affecting hidden file
-	// semantics.
-	it := d.Entries()
-	for it.Next() {
-		if err := adder.addFileNode(it.Name(), it.Node(), true); err != nil {
-			return nil, err
-		}
-	}
-	if it.Err() != nil {
-		return nil, it.Err()
+	if err := adder.addFileNode("", file, true); err != nil {
+		return nil, err
 	}
 
 	mr, err := adder.mfsRoot()
@@ -313,6 +289,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		return nil, err
 	}
 
+	_, dir := file.(files.Directory)
 	var name string
 	if !adder.Wrap && !dir {
 		children, err := rootdir.ListNames(adder.ctx)
@@ -355,7 +332,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 			return nil, err
 		}
 
-		if err := outputDagnode(adder.Out, adder.BaseName, nd); err != nil {
+		if err := outputDagnode(adder.Out, "", nd); err != nil {
 			return nil, err
 		}
 	}
@@ -473,12 +450,6 @@ func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) erro
 	it := dir.Entries()
 	for it.Next() {
 		fpath := gopath.Join(path, it.Name())
-
-		// Skip hidden files when adding recursively, unless Hidden is enabled.
-		if files.IsHidden(fpath, it.Node()) && !adder.Hidden {
-			log.Infof("%s is hidden, skipping", fpath)
-			continue
-		}
 		err := adder.addFileNode(fpath, it.Node(), false)
 		if err != nil {
 			return err
