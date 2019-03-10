@@ -384,8 +384,23 @@ func (r *FSRepo) openConfig() error {
 }
 
 func (r *FSRepo) openKeystore() error {
-	ksp := filepath.Join(r.path, "keystore")
-	ks, err := keystore.NewFSKeystore(ksp)
+	spec := r.config.Keystore
+	if spec == nil {
+		spec = map[string]interface{}{"type": "files", "path": "keystore"}
+	}
+
+	ksType, ok := spec["type"]
+	if !ok {
+		return fmt.Errorf("keystore config lacks a type")
+	}
+
+	ksCtor, ok := keystores[ksType]
+	if !ok {
+		return fmt.Errorf("couldn't find keystore of type %q", ksType)
+	}
+
+	// TODO: feed through a prompter.
+	ks, err := ksCtor(r.path, spec, nil)
 	if err != nil {
 		return err
 	}
