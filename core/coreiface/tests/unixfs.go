@@ -724,10 +724,8 @@ func (tp *provider) TestLs(t *testing.T) {
 
 	r := strings.NewReader("content-of-file")
 	p, err := api.Unixfs().Add(ctx, files.NewMapDirectory(map[string]files.Node{
-		"0": files.NewMapDirectory(map[string]files.Node{
-			"name-of-file":    files.NewReaderFile(r),
-			"name-of-symlink": files.NewLinkFile("/foo/bar", nil),
-		}),
+		"name-of-file":    files.NewReaderFile(r),
+		"name-of-symlink": files.NewLinkFile("/foo/bar", nil),
 	}))
 	if err != nil {
 		t.Fatal(err)
