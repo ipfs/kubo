@@ -128,8 +128,8 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	return balanced.Layout(db)
 }
 
-// RootNode returns the root node of the Added.
-func (adder *Adder) RootNode() (ipld.Node, error) {
+// RootNode returns the mfs root node
+func (adder *Adder) curRootNode() (ipld.Node, error) {
 	// for memoizing
 	if adder.root != nil {
 		return adder.root, nil
@@ -160,18 +160,14 @@ func (adder *Adder) RootNode() (ipld.Node, error) {
 
 // Recursively pins the root node of Adder and
 // writes the pin state to the backing datastore.
-func (adder *Adder) PinRoot() error {
-	root, err := adder.RootNode()
-	if err != nil {
-		return err
-	}
+func (adder *Adder) PinRoot(root ipld.Node) error {
 	if !adder.Pin {
 		return nil
 	}
 
 	rnk := root.Cid()
 
-	err = adder.dagService.Add(adder.ctx, root)
+	err := adder.dagService.Add(adder.ctx, root)
 	if err != nil {
 		return err
 	}
@@ -274,6 +270,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		return nil, err
 	}
 
+	// get root
 	mr, err := adder.mfsRoot()
 	if err != nil {
 		return nil, err
@@ -287,6 +284,8 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		return nil, err
 	}
 
+	// if adding a file without wrapping, swap the root to it (when adding a
+	// directory, mfs root is the directory)
 	_, dir := file.(files.Directory)
 	var name string
 	if !adder.Wrap && !dir {
@@ -317,6 +316,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		return nil, err
 	}
 
+	// when adding wrapped directory, manually wrap here
 	if adder.Wrap && dir {
 		name = nd.Cid().String()
 
@@ -335,6 +335,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		}
 	}
 
+	// output directory events
 	err = adder.outputDirs(name, root)
 	if err != nil {
 		return nil, err
@@ -343,7 +344,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	if !adder.Pin {
 		return nd, nil
 	}
-	return nd, adder.PinRoot()
+	return nd, adder.PinRoot(nd)
 }
 
 func (adder *Adder) addFileNode(path string, file files.Node, toplevel bool) error {
@@ -452,7 +453,12 @@ func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) erro
 
 func (adder *Adder) maybePauseForGC() error {
 	if adder.unlocker != nil && adder.gcLocker.GCRequested() {
-		err := adder.PinRoot()
+		rn, err := adder.curRootNode()
+		if err != nil {
+			return err
+		}
+
+		err = adder.PinRoot(rn)
 		if err != nil {
 			return err
 		}
