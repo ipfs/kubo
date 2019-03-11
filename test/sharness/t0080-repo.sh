@@ -30,8 +30,7 @@ test_expect_success "'ipfs repo gc' succeeds" '
 '
 
 test_expect_success "'ipfs repo gc' looks good (patch root)" '
-  PATCH_ROOT=QmQXirSbubiySKnqaFyfs5YzziXRB5JEVQVjU6xsd7innr &&
-  grep "removed $PATCH_ROOT" gc_out_actual
+  grep -v "removed $HASH" gc_out_actual
 '
 
 test_expect_success "'ipfs repo gc' doesnt remove file" '
@@ -113,8 +112,7 @@ test_expect_success "remove direct pin" '
 
 test_expect_success "'ipfs repo gc' removes file" '
   ipfs repo gc >actual7 &&
-  grep "removed $HASH" actual7 &&
-  grep "removed $PATCH_ROOT" actual7
+  grep "removed $HASH" actual7
 '
 
 test_expect_success "'ipfs refs local' no longer shows file" '
@@ -123,8 +121,7 @@ test_expect_success "'ipfs refs local' no longer shows file" '
   grep "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y" actual8 &&
   grep "$EMPTY_DIR" actual8 &&
   grep "$HASH_WELCOME_DOCS" actual8 &&
-  test_must_fail grep "$HASH" actual8 &&
-  test_must_fail grep "$PATCH_ROOT" actual8
+  test_must_fail grep "$HASH" actual8
 '
 
 test_expect_success "adding multiblock random file succeeds" '
