@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	gopath "path"
 	"strconv"
 
@@ -71,7 +70,6 @@ type Adder struct {
 	RawLeaves  bool
 	Silent     bool
 	Wrap       bool
-	Name       string
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
@@ -418,13 +416,6 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		return err
 	}
 
-	addFileInfo, ok := file.(files.FileInfo)
-	if ok {
-		if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
-			path = adder.Name
-			adder.Name = ""
-		}
-	}
 	// patch it into the root
 	return adder.addNode(dagnode, path)
 }

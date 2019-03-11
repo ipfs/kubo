@@ -92,7 +92,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
 	fileAdder.NoCopy = settings.NoCopy
-	fileAdder.Name = settings.StdinName
 	fileAdder.CidBuilder = prefix
 
 	switch settings.Layout {

@@ -189,7 +189,7 @@ You can now check what blocks have been created by:
 
 		var toadd files.Node = req.Files
 		name := ""
-		if !wrap {
+		if !wrap || pathName != "" {
 			it := req.Files.Entries()
 			if !it.Next() {
 				err := it.Err()
@@ -204,7 +204,13 @@ You can now check what blocks have been created by:
 		}
 		_, dir := toadd.(files.Directory)
 		if !dir && pathName != "" {
-			name = pathName
+			if wrap {
+				toadd = files.NewSliceDirectory([]files.DirEntry{
+					files.FileEntry(pathName, toadd),
+				})
+			} else {
+				name = pathName
+			}
 		}
 
 		opts := []options.UnixfsAddOption{
@@ -219,8 +225,6 @@ You can now check what blocks have been created by:
 			options.Unixfs.HashOnly(hash),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),
-
-			options.Unixfs.StdinName(pathName),
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
