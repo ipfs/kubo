@@ -293,24 +293,6 @@ func (tp *provider) TestAdd(t *testing.T) {
 			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
 		},
 		{
-			name: "stdinNamed",
-			path: "/ipfs/QmQ6cGBmb3ZbdrQW1MRm1RJnYnaxCqfssz7CrTa9NEhQyS",
-			data: func() files.Node {
-				rf, err := files.NewReaderPathFile(os.Stdin.Name(), ioutil.NopCloser(strings.NewReader(helloStr)), nil)
-				if err != nil {
-					panic(err)
-				}
-
-				return rf
-			},
-			expect: func(files.Node) files.Node {
-				return files.NewMapDirectory(map[string]files.Node{
-					"test": files.NewBytesFile([]byte(helloStr)),
-				})
-			},
-			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.StdinName("test")},
-		},
-		{
 			name:   "twoLevelDirWrapped",
 			data:   twoLevelDir(),
 			wrap:   "t",
