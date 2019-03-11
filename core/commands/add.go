@@ -12,9 +12,9 @@ import (
 
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/go-ipfs-files"
 	mh "github.com/multiformats/go-multihash"
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
