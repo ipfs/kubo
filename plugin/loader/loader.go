@@ -105,6 +105,12 @@ func (loader *PluginLoader) Inject() error {
 				return err
 			}
 		}
+		if pl, ok := pl.(plugin.PluginKeystore); ok {
+			err := injectKeystorePlugin(pl)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -158,6 +164,10 @@ func injectIPLDPlugin(pl plugin.PluginIPLD) error {
 		return err
 	}
 	return pl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
+}
+
+func injectKeystorePlugin(pl plugin.PluginKeystore) error {
+	return fsrepo.AddKeystore(pl.KeystoreTypeName(), pl.Open)
 }
 
 func injectTracerPlugin(pl plugin.PluginTracer) error {

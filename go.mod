@@ -9,6 +9,7 @@ require (
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
+	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gogo/protobuf v1.2.1
@@ -33,7 +34,7 @@ require (
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmdkit v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.0.1
-	github.com/ipfs/go-ipfs-config v0.0.1
+	github.com/ipfs/go-ipfs-config v0.0.0-20190309024316-a0bdc3f74854
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
@@ -51,12 +52,12 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.0.1
 	github.com/ipfs/go-mfs v0.0.1
 	github.com/ipfs/go-path v0.0.1
+	github.com/ipfs/go-prompt v0.0.1
 	github.com/ipfs/go-unixfs v0.0.1
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.0.2
 	github.com/ipfs/iptb v1.4.0
-	github.com/ipfs/iptb-plugins v0.0.1
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
@@ -67,6 +68,7 @@ require (
 	github.com/libp2p/go-libp2p-circuit v0.0.1
 	github.com/libp2p/go-libp2p-connmgr v0.0.1
 	github.com/libp2p/go-libp2p-crypto v0.0.1
+	github.com/libp2p/go-libp2p-daemon v0.0.1 // indirect
 	github.com/libp2p/go-libp2p-host v0.0.1
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.1
 	github.com/libp2p/go-libp2p-kad-dht v0.0.3
@@ -102,6 +104,7 @@ require (
 	github.com/prometheus/client_golang v0.9.2
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
+	github.com/whyrusleeping/go-ctrlnet v0.0.0-20180313164037-f564fbbdaa95 // indirect
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible
 	github.com/whyrusleeping/go-smux-yamux v2.0.8+incompatible
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
