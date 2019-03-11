@@ -7,6 +7,8 @@ help:
 	@echo '  parse        - Parses .prove result file'
 	@echo '  status       - Compute implementation status'
 	@echo '  markdown     - Generate Markdown implementation status'
+	@echo '  add          - Add current status info into results/store/'
+	@echo '  dashboard    - Generate a dashboard from info in results/store/'
 	@echo
 
 coverage: results/coverage.txt
@@ -33,4 +35,14 @@ results/status.md: results/status.txt
 	@./markdown_status.sh $^ >$@
 	@echo "results written in '$@'"
 
-.PHONY: help coverage parse status
+add: results/status.txt
+	@mv $^ results/store/"status_test_$$(date "+%Y_%m_%d").txt"
+	@echo "results added in 'results/store/'"
+
+dashboard: results/dashboard.md
+
+results/dashboard.md:
+	@./markdown_status.sh results/store/status_test_*.txt > $@
+	@echo "dashboard written in '$@'"
+
+.PHONY: help coverage parse status add dashboard
