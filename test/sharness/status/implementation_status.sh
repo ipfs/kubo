@@ -73,17 +73,17 @@ log "Reduce number of ipfs lines"
 TMP_TXT_STATUS_1="$TMPDIR/text_impl_status_1"
 cp "$TMP_STATUS" "$TMP_TXT_STATUS_1" ||
 	die "could not cp '$TMP_STATUS' into '$TMP_TXT_STATUS_1'"
-perl -pi -e 'BEGIN{undef $/;} s/ipfs (\w+) ([\w-]+ )*--([\w-]+)\nipfs \w+ ([\w-]+ )*-(\w)/ipfs $1 $2-$5|--$3/smg' "$TMP_TXT_STATUS_1" ||
+perl -pi -e 'BEGIN{undef $/;} s/ipfs (\w+) ([\w-]+ )*--([\w-]+)\nipfs \w+ ([\w-]+ )*-(\w)/ipfs $1 $2-$5\/--$3/smg' "$TMP_TXT_STATUS_1" ||
 	die "could not reduce number of ipfs lines in '$TMP_TXT_STATUS_1'"
 TMP_TXT_STATUS_2="$TMPDIR/text_impl_status_2"
 cp "$TMP_TXT_STATUS_1" "$TMP_TXT_STATUS_2" ||
 	die "could not cp '$TMP_TXT_STATUS_1' into '$TMP_TXT_STATUS_2'"
-perl -pi -e 'BEGIN{undef $/;} s/ipfs (\w+) ([\w-]+ )*-(\w)\nipfs \w+ ([\w-]+ )*-([\w-]+)/ipfs $1 $2-$3|--$5/smg' "$TMP_TXT_STATUS_2" ||
+perl -pi -e 'BEGIN{undef $/;} s/ipfs (\w+) ([\w-]+ )*-(\w)\nipfs \w+ ([\w-]+ )*-([\w-]+)/ipfs $1 $2-$3\/--$5/smg' "$TMP_TXT_STATUS_2" ||
 	die "could not reduce number of ipfs lines in '$TMP_TXT_STATUS_2'"
 TMP_TXT_STATUS_3="$TMPDIR/text_impl_status_3"
 cp "$TMP_TXT_STATUS_2" "$TMP_TXT_STATUS_3" ||
 	die "could not cp '$TMP_TXT_STATUS_2' into '$TMP_TXT_STATUS_3'"
-perl -pi -e 'BEGIN{undef $/;} s/ipfs (\w+) ([\w-]+ )*--([\w-]+)\nipfs \w+ ([\w-]+ )*--([\w-]+)/ipfs $1 $2-$5|--$3/smg' "$TMP_TXT_STATUS_3" ||
+perl -pi -e 'BEGIN{undef $/;} s/ipfs (\w+) ([\w-]+ )*--([\w-]+)\nipfs \w+ ([\w-]+ )*--([\w-]+)/ipfs $1 $2-$5\/--$3/smg' "$TMP_TXT_STATUS_3" ||
 	die "could not reduce number of ipfs lines in '$TMP_TXT_STATUS_3'"
 
 log "Reduce number of test lines"
