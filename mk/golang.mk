@@ -10,6 +10,10 @@ unexport GOFLAGS
 GOFLAGS ?=
 GOTFLAGS ?=
 
+ifeq ($(tarball-is),1)
+	GOFLAGS += -mod=vendor
+endif
+
 # match Go's default GOPATH behaviour
 export GOPATH ?= $(shell $(GOCC) env GOPATH)
 
