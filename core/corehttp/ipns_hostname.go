@@ -28,7 +28,6 @@ func IPNSHostnameOption() ServeOption {
 				name := "/ipns/" + host
 				_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
 				if err == nil || err == namesys.ErrResolveRecursion {
-					r.Header.Set("X-Ipns-Original-Path", r.URL.Path)
 					r.URL.Path = name + r.URL.Path
 				}
 			}
