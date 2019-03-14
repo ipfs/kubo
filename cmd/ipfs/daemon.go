@@ -595,7 +595,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if cfg.Experimental.P2pHttpProxy {
-		opts = append(opts, corehttp.ProxyOption())
+		opts = append(opts, corehttp.P2PProxyOption())
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
