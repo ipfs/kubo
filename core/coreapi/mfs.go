@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/ipfs/go-mfs"
 	"github.com/pkg/errors"
+	"io"
 	"os"
 	gopath "path"
+	"sync"
 	"time"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -53,8 +55,99 @@ func (api *MfsAPI) Open(ctx context.Context, path coreiface.MfsPath) (coreiface.
 	return api.OpenFile(ctx, path, os.O_RDWR, defaultFilePerm)
 }
 
-func (api *MfsAPI) OpenFile(ctx context.Context, path coreiface.MfsPath, flag int, perm os.FileMode) (coreiface.File, error) {
+type mfsFile struct {
+	mfs.FileDescriptor
+	lk sync.Mutex // Only needed for ReadAt, remove when it's in go-mfs
+}
+
+func (f *mfsFile) Read(p []byte) (n int, err error) {
+	f.lk.Lock()
+	defer f.lk.Unlock()
+	return f.FileDescriptor.Read(p)
+}
+
+func (f *mfsFile) Write(p []byte) (n int, err error) {
+	f.lk.Lock()
+	defer f.lk.Unlock()
+	return f.FileDescriptor.Write(p)
+}
+
+func (f *mfsFile) Seek(offset int64, whence int) (int64, error) {
+	f.lk.Lock()
+	defer f.lk.Unlock()
+	return f.FileDescriptor.Seek(offset, whence)
+}
+
+func (f *mfsFile) Close() error {
+	f.lk.Lock()
+	defer f.lk.Unlock()
+	return f.FileDescriptor.Close()
+}
+
+
+func (f *mfsFile) ReadAt(p []byte, off int64) (int, error) {
+	// TODO: implement in MFS with less locking
+	f.lk.Lock()
+	defer f.lk.Unlock()
+
+	cur, err := f.FileDescriptor.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return 0, err
+	}
+
+	so, err := f.FileDescriptor.Seek(off, io.SeekStart)
+	if err != nil {
+		return 0, err
+	}
+
+	if so != off {
+		return 0, errors.New("seek to wrong offset")
+	}
+
+	n, err := f.FileDescriptor.Read(p)
+	if err != nil {
+		return n, err
+	}
+
+	off, err = f.FileDescriptor.Seek(cur, io.SeekStart)
+	if err != nil {
+		return n, err
+	}
+
+	if cur != off {
+		return n, errors.New("seek to wrong offset")
+	}
+
+	return n, nil
+}
+
+func (f *mfsFile) Name() coreiface.MfsPath {
 	panic("implement me")
+}
+
+func (api *MfsAPI) OpenFile(ctx context.Context, path coreiface.MfsPath, flag int, perm os.FileMode) (coreiface.File, error) {
+	fsn, err := mfs.Lookup(api.filesRoot, path.String())
+	if err != nil {
+		return nil, err
+	}
+
+	fn, ok := fsn.(*mfs.File)
+	if !ok {
+		return nil, fmt.Errorf("cannot open %s: not a file", path.String())
+	}
+
+	flags := mfs.Flags{
+		Read: flag & os.O_WRONLY == 0,
+		Write: flag & (os.O_WRONLY | os.O_RDWR) != 0,
+		Sync: flag & os.O_SYNC != 0,
+	}
+
+	_, err = fn.Open(flags)
+	if err != nil {
+		return nil, err
+	}
+
+	return &mfsFile{}, nil
 }
 
 func (api *MfsAPI) Stat(ctx context.Context, path coreiface.MfsPath) (os.FileInfo, error) {
@@ -155,7 +248,7 @@ func (api *MfsAPI) ReadDir(ctx context.Context, path coreiface.MfsPath) ([]os.Fi
 	}
 }
 
-func (api *MfsAPI) MkdirAll(path coreiface.MfsPath, perm os.FileMode) error {
+func (api *MfsAPI) MkdirAll(ctx context.Context, path coreiface.MfsPath, perm os.FileMode) error {
 	return mfs.Mkdir(api.filesRoot, path.String(), mfs.MkdirOpts{
 		Mkparents:  true,
 		Flush:      false,
