@@ -5,9 +5,10 @@ package provider
 
 import (
 	"context"
-	"github.com/ipfs/go-cid"
+
+	cid "github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
-	"github.com/libp2p/go-libp2p-routing"
+	routing "github.com/libp2p/go-libp2p-routing"
 )
 
 var (
