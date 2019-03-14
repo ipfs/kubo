@@ -2,15 +2,15 @@ package coreapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/ipfs/go-mfs"
-	"github.com/pkg/errors"
 	"io"
 	"os"
 	gopath "path"
 	"sync"
 	"time"
 
+	"github.com/ipfs/go-mfs"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 )
 
@@ -19,7 +19,7 @@ const defaultDirPerm = 0755
 
 type MfsAPI CoreAPI
 
-type fileNodeInfo struct{
+type fileNodeInfo struct {
 	l mfs.NodeListing
 }
 
@@ -48,7 +48,7 @@ func (i *fileNodeInfo) Sys() interface{} {
 }
 
 func (api *MfsAPI) Create(ctx context.Context, path coreiface.MfsPath) (coreiface.File, error) {
-	return api.OpenFile(ctx, path, os.O_CREATE | os.O_WRONLY, defaultFilePerm)
+	return api.OpenFile(ctx, path, os.O_CREATE|os.O_WRONLY, defaultFilePerm)
 }
 
 func (api *MfsAPI) Open(ctx context.Context, path coreiface.MfsPath) (coreiface.File, error) {
@@ -83,7 +83,6 @@ func (f *mfsFile) Close() error {
 	defer f.lk.Unlock()
 	return f.FileDescriptor.Close()
 }
-
 
 func (f *mfsFile) ReadAt(p []byte, off int64) (int, error) {
 	// TODO: implement in MFS with less locking
@@ -137,9 +136,9 @@ func (api *MfsAPI) OpenFile(ctx context.Context, path coreiface.MfsPath, flag in
 	}
 
 	flags := mfs.Flags{
-		Read: flag & os.O_WRONLY == 0,
-		Write: flag & (os.O_WRONLY | os.O_RDWR) != 0,
-		Sync: flag & os.O_SYNC != 0,
+		Read:  flag&os.O_WRONLY == 0,
+		Write: flag&(os.O_WRONLY|os.O_RDWR) != 0,
+		Sync:  flag&os.O_SYNC != 0,
 	}
 
 	_, err = fn.Open(flags)
@@ -250,8 +249,8 @@ func (api *MfsAPI) ReadDir(ctx context.Context, path coreiface.MfsPath) ([]os.Fi
 
 func (api *MfsAPI) MkdirAll(ctx context.Context, path coreiface.MfsPath, perm os.FileMode) error {
 	return mfs.Mkdir(api.filesRoot, path.String(), mfs.MkdirOpts{
-		Mkparents:  true,
-		Flush:      false,
+		Mkparents: true,
+		Flush:     false,
 		//CidBuilder: prefix, TODO
 	})
 }

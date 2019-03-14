@@ -72,7 +72,7 @@ type CoreAPI struct {
 	checkPublishAllowed func() error
 	checkOnline         func(allowOffline bool) error
 
-	filesRoot       *mfs.Root // TODO: option filtering
+	filesRoot *mfs.Root // TODO: option filtering
 
 	// ONLY for re-applying options in WithOptions, DO NOT USE ANYWHERE ELSE
 	nd         *core.IpfsNode
