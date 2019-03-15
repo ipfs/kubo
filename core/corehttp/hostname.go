@@ -10,14 +10,51 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
+	config "github.com/ipfs/go-ipfs-config"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	isd "github.com/jbenet/go-is-domain"
 )
+
+var defaultGatewaySpec = config.GatewaySpec{
+	PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
+	UseSubdomains: false,
+}
+
+var defaultKnownGateways = map[string]config.GatewaySpec{
+	"ipfs.io":         defaultGatewaySpec,
+	"gateway.ipfs.io": defaultGatewaySpec,
+	"dweb.link": config.GatewaySpec{
+		PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix},
+		UseSubdomains: true,
+	},
+}
 
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		childMux := http.NewServeMux()
+
+		cfg, err := n.Repo.Config()
+		if err != nil {
+			return nil, err
+		}
+		knownGateways := make(
+			map[string]config.GatewaySpec,
+			len(defaultKnownGateways)+len(cfg.Gateway.PublicGateways),
+		)
+		for host, gw := range defaultKnownGateways {
+			knownGateways[host] = gw
+		}
+		for host, gw := range cfg.Gateway.PublicGateways {
+			if gw == nil {
+				// Allows the user to remove gateways but _also_
+				// allows us to continuously update the list.
+				delete(knownGateways, host)
+			} else {
+				knownGateways[host] = *gw
+			}
+		}
+
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithCancel(n.Context())
 			defer cancel()
@@ -38,7 +75,7 @@ func HostnameOption() ServeOption {
 			// would "just work". Should we try this?
 
 			// Is this one of our "known gateways"?
-			if gw, ok := KnownGateways[r.Host]; ok {
+			if gw, ok := knownGateways[r.Host]; ok {
 				// This is a known gateway but we're not using
 				// the subdomain feature.
 
@@ -63,7 +100,7 @@ func HostnameOption() ServeOption {
 				// Looks like we're using subdomains.
 
 				// Again, is this a known gateway that supports subdomains?
-				if gw, ok := KnownGateways[host]; ok && gw.UseSubdomains {
+				if gw, ok := knownGateways[host]; ok && gw.UseSubdomains {
 
 					// Yes, serve the request (and rewrite the path to not use subdomains).
 					r.URL.Path = pathPrefix + r.URL.Path
