@@ -2,26 +2,14 @@ package provider
 
 import (
 	"context"
-	"errors"
+	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/namespace"
+	"github.com/ipfs/go-datastore/query"
 	"math"
 	"strconv"
 	"strings"
-	"sync"
-
-	cid "github.com/ipfs/go-cid"
-	datastore "github.com/ipfs/go-datastore"
-	namespace "github.com/ipfs/go-datastore/namespace"
-	query "github.com/ipfs/go-datastore/query"
 )
-
-// Entry allows for the durability in the queue. When a cid is dequeued it is
-// not removed from the datastore until you call Complete() on the entry you
-// receive.
-type Entry struct {
-	cid   cid.Cid
-	key   datastore.Key
-	queue *Queue
-}
 
 // Queue provides a durable, FIFO interface to the datastore for storing cids
 //
@@ -32,17 +20,15 @@ type Queue struct {
 	// used to differentiate queues in datastore
 	// e.g. provider vs reprovider
 	name string
-
 	ctx context.Context
 
 	tail uint64
 	head uint64
 
-	enqueueLock sync.Mutex
 	ds          datastore.Datastore // Must be threadsafe
 
-	dequeue  chan *Entry
-	added chan struct{}
+	dequeue chan cid.Cid
+	enqueue chan cid.Cid
 }
 
 // NewQueue creates a queue for cids
@@ -57,122 +43,83 @@ func NewQueue(ctx context.Context, name string, ds datastore.Datastore) (*Queue,
 		ctx:         ctx,
 		head:        head,
 		tail:        tail,
-		enqueueLock: sync.Mutex{},
 		ds:          namespaced,
-		dequeue:     make(chan *Entry),
-		added:       make(chan struct{}),
+		dequeue:     make(chan cid.Cid),
+		enqueue:     make(chan cid.Cid),
 	}
+	q.work()
 	return q, nil
 }
 
 // Enqueue puts a cid in the queue
-func (q *Queue) Enqueue(cid cid.Cid) error {
-	q.enqueueLock.Lock()
-	defer q.enqueueLock.Unlock()
-
-	nextKey := q.queueKey(q.tail)
-
-	if err := q.ds.Put(nextKey, cid.Bytes()); err != nil {
-		return err
-	}
-
-	q.tail++
-
+func (q *Queue) Enqueue(cid cid.Cid) {
 	select {
-		case q.added <- struct{}{}:
+		case q.enqueue <- cid:
 		case <-q.ctx.Done():
-		default:
 	}
-
-	return nil
 }
 
 // Dequeue returns a channel that if listened to will remove entries from the queue
-func (q *Queue) Dequeue() <-chan *Entry {
+func (q *Queue) Dequeue() <-chan cid.Cid {
 	return q.dequeue
 }
 
-// IsEmpty returns whether or not the queue has any items
-func (q *Queue) IsEmpty() bool {
-	return (q.tail - q.head) == 0
-}
-
-// Run dequeues items when the dequeue channel is available to
-// be written to.
-func (q *Queue) Run() {
+// Run dequeues and enqueues when available.
+func (q *Queue) work() {
 	go func() {
 		for {
-			if q.IsEmpty() {
-				select {
-				case <-q.ctx.Done():
-					return
-				case <-q.added:
+			var c cid.Cid = cid.Undef
+			var key datastore.Key
+			var dequeue chan cid.Cid
+
+			// If we're not empty dequeue a cid and ship it
+			if q.head < q.tail {
+				key = q.queueKey(q.head)
+				value, err := q.ds.Get(key)
+
+				if err == datastore.ErrNotFound {
+					log.Warningf("Missing entry in queue: %s", err)
+					q.head++
+					continue
+				} else if err != nil {
+					log.Warningf("Error fetching from queue: %s", err)
+					continue
+				}
+
+				c, err = cid.Parse(value)
+				if err != nil {
+					log.Warningf("Error marshalling Cid from queue: ", err)
+					q.head++
+					err = q.ds.Delete(key)
+					continue
 				}
 			}
 
-			entry, err := q.next()
-			if err != nil {
-				log.Warningf("Error Dequeue()-ing: %s, %s", entry, err)
-				continue
+			if c != cid.Undef {
+				dequeue = q.dequeue
 			}
 
 			select {
+			case toQueue := <-q.enqueue:
+				nextKey := q.queueKey(q.tail)
+
+				if err := q.ds.Put(nextKey, toQueue.Bytes()); err != nil {
+					log.Errorf("Failed to enqueue cid: %s", err)
+				}
+
+				q.tail++
+			case dequeue <- c:
+				q.head++
+				err := q.ds.Delete(key)
+
+				if err != nil {
+					log.Errorf("Failed to delete queued cid: %s", err)
+				}
 			case <-q.ctx.Done():
 				return
-			case q.dequeue <- entry:
-				q.head++
-				err = q.ds.Delete(entry.key)
 			}
 		}
 	}()
-}
-
-// Find the next item in the queue, crawl forward if an entry is not
-// found in the next spot.
-func (q *Queue) next() (*Entry, error) {
-	var key datastore.Key
-	var value []byte
-	var err error
-	for {
-		if q.head >= q.tail {
-			return nil, errors.New("next: no more entries in queue returning")
-		}
-		select {
-		case <-q.ctx.Done():
-			return nil, nil
-		default:
-		}
-		key = q.queueKey(q.head)
-
-		value, err = q.ds.Get(key)
-
-		value, err = q.ds.Get(key)
-		if err == datastore.ErrNotFound {
-			q.head++
-			continue
-		} else if err != nil {
-			return nil, err
-		} else {
-			break
-		}
-	}
-
-	id, err := cid.Parse(value)
-	if err != nil {
-		return nil, err
-	}
-
-	entry := &Entry{
-		cid:   id,
-		key:   key,
-		queue: q,
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return entry, nil
 }
 
 func (q *Queue) queueKey(id uint64) datastore.Key {
@@ -190,11 +137,6 @@ func getQueueHeadTail(ctx context.Context, name string, datastore datastore.Data
 	var tail uint64
 	var head uint64 = math.MaxUint64
 	for entry := range results.Next() {
-		select {
-		case <-ctx.Done():
-			return 0, 0, nil
-		default:
-		}
 		trimmed := strings.TrimPrefix(entry.Key, "/")
 		id, err := strconv.ParseUint(trimmed, 10, 64)
 		if err != nil {

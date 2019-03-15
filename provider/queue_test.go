@@ -11,7 +11,7 @@ import (
 )
 
 func makeCids(n int) []cid.Cid {
-	cids := make([]cid.Cid, 0, 10)
+	cids := make([]cid.Cid, 0, n)
 	for i := 0; i < 10; i++ {
 		c := blockGenerator.Next().Cid()
 		cids = append(cids, c)
@@ -23,8 +23,8 @@ func assertOrdered(cids []cid.Cid, q *Queue, t *testing.T) {
 	for _, c := range cids {
 		select {
 		case dequeued := <- q.dequeue:
-			if c != dequeued.cid {
-				t.Fatalf("Error in ordering of CIDs retrieved from queue. Expected: %s, got: %s", c, dequeued.cid)
+			if c != dequeued {
+				t.Fatalf("Error in ordering of CIDs retrieved from queue. Expected: %s, got: %s", c, dequeued)
 			}
 
 		case <-time.After(time.Second * 1):
@@ -42,15 +42,11 @@ func TestBasicOperation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	queue.Run()
 
 	cids := makeCids(10)
 
 	for _, c := range cids {
-		err = queue.Enqueue(c)
-		if err != nil {
-			t.Fatal("Failed to enqueue CID")
-		}
+		queue.Enqueue(c)
 	}
 
 	assertOrdered(cids, queue, t)
@@ -65,15 +61,11 @@ func TestInitialization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	queue.Run()
 
 	cids := makeCids(10)
 
 	for _, c := range cids {
-		err = queue.Enqueue(c)
-		if err != nil {
-			t.Fatal("Failed to enqueue CID")
-		}
+		queue.Enqueue(c)
 	}
 
 	assertOrdered(cids[:5], queue, t)
@@ -83,7 +75,6 @@ func TestInitialization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	queue.Run()
 
 	assertOrdered(cids[5:], queue, t)
 }

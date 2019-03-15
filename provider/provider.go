@@ -11,13 +11,9 @@ import (
 	routing "github.com/libp2p/go-libp2p-routing"
 )
 
-var (
-	log = logging.Logger("provider")
-)
+var	log = logging.Logger("provider")
 
-const (
-	provideOutgoingWorkerLimit = 8
-)
+const provideOutgoingWorkerLimit = 8
 
 // Provider announces blocks to the network
 type Provider interface {
@@ -44,13 +40,13 @@ func NewProvider(ctx context.Context, queue *Queue, contentRouting routing.Conte
 
 // Start workers to handle provide requests.
 func (p *provider) Run() {
-	p.queue.Run()
 	p.handleAnnouncements()
 }
 
 // Provide the given cid using specified strategy.
 func (p *provider) Provide(root cid.Cid) error {
-	return p.queue.Enqueue(root)
+	p.queue.Enqueue(root)
+	return nil
 }
 
 // Handle all outgoing cids by providing (announcing) them
@@ -61,12 +57,12 @@ func (p *provider) handleAnnouncements() {
 				select {
 				case <-p.ctx.Done():
 					return
-				case entry := <-p.queue.Dequeue():
-					log.Info("announce - start - ", entry.cid)
-					if err := p.contentRouting.Provide(p.ctx, entry.cid, true); err != nil {
-						log.Warningf("Unable to provide entry: %s, %s", entry.cid, err)
+				case c := <-p.queue.Dequeue():
+					log.Info("announce - start - ", c)
+					if err := p.contentRouting.Provide(p.ctx, c, true); err != nil {
+						log.Warningf("Unable to provide entry: %s, %s", c, err)
 					}
-					log.Info("announce - end - ", entry.cid)
+					log.Info("announce - end - ", c)
 				}
 			}
 		}()

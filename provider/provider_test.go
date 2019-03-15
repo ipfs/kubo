@@ -42,7 +42,7 @@ func TestAnnouncement(t *testing.T) {
 
 	cids := cid.NewSet()
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1000; i++ {
 		c := blockGenerator.Next().Cid()
 		cids.Add(c)
 	}
@@ -63,7 +63,7 @@ func TestAnnouncement(t *testing.T) {
 					t.Fatal("Wrong CID provided")
 				}
 				cids.Remove(cp)
-			case <-time.After(time.Second * 1):
+			case <-time.After(time.Second * 5):
 				t.Fatal("Timeout waiting for cids to be provided.")
 		}
 	}
