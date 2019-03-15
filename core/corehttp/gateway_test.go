@@ -138,7 +138,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, iface
 
 	dh.Handler, err = makeHandler(n,
 		ts.Listener,
-		IPNSHostnameOption(),
+		HostnameOption(),
 		GatewayOption(false, "/ipfs", "/ipns"),
 		VersionOption(),
 	)
@@ -184,12 +184,12 @@ func TestGatewayGet(t *testing.T) {
 		status int
 		text   string
 	}{
-		{"localhost:5001", "/", http.StatusNotFound, "404 page not found\n"},
-		{"localhost:5001", "/" + k.Cid().String(), http.StatusNotFound, "404 page not found\n"},
-		{"localhost:5001", k.String(), http.StatusOK, "fnord"},
-		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"localhost:5001", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
+		{"127.0.0.1:8080", "/", http.StatusNotFound, "404 page not found\n"},
+		{"127.0.0.1:8080", "/" + k.Cid().String(), http.StatusNotFound, "404 page not found\n"},
+		{"127.0.0.1:8080", k.String(), http.StatusOK, "fnord"},
+		{"127.0.0.1:8080", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"127.0.0.1:8080", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"127.0.0.1:8080", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 
 		{"working.example.com", "/", http.StatusOK, "fnord"},
@@ -381,7 +381,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
@@ -447,7 +447,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/bar/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/file.txt\">") {

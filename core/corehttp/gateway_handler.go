@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-mfs"
-	"github.com/ipfs/go-path"
+	mfs "github.com/ipfs/go-mfs"
+	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -142,7 +142,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	// IPNSHostnameOption might have constructed an IPNS path using the Host header.
+	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
 	// In this case, we need the original path for constructing redirects
 	// and links that match the requested URL.
 	// For example, http://example.net would become /ipns/example.net, and
@@ -150,6 +150,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	requestURI, err := url.ParseRequestURI(r.RequestURI)
 	if err != nil {
 		webError(w, "failed to parse request path", err, http.StatusInternalServerError)
+		return
 	}
 	originalUrlPath := prefix + requestURI.Path
 

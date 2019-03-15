@@ -84,7 +84,7 @@ Default: https://ipfs.io/ipfs/$something (depends on the IPFS version)
 
 ## `IPFS_NS_MAP`
 
-Prewarms namesys cache with static records for deteministic tests and debugging.
+Adds static namesys records for deteministic tests and debugging.
 Useful for testing things like DNSLink without real DNS lookup.
 
 Example:

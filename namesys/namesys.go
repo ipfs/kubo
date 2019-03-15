@@ -2,11 +2,13 @@ package namesys
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -14,7 +16,6 @@ import (
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	routing "github.com/libp2p/go-libp2p-core/routing"
-	mh "github.com/multiformats/go-multihash"
 )
 
 // mpns (a multi-protocol NameSystem) implements generic IPFS naming.
@@ -133,12 +134,28 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 	}
 
 	// Resolver selection:
-	// 1. if it is a multihash resolve through "ipns".
+	// 1. if it is a PeerID/CID/multihash resolve through "ipns".
 	// 2. if it is a domain name, resolve through "dns"
 	// 3. otherwise resolve through the "proquint" resolver
 
 	var res resolver
-	if _, err := mh.FromB58String(key); err == nil {
+	_, err := peer.Decode(key)
+
+	// CIDs in IPNS are expected to have libp2p-key multicodec
+	// We ease the transition by returning a more meaningful error with a valid CID
+	if err != nil && err.Error() == "can't convert CID of type protobuf to a peer ID" {
+		ipnsCid, cidErr := cid.Decode(key)
+		if cidErr == nil && ipnsCid.Version() == 1 && ipnsCid.Type() != cid.Libp2pKey {
+			fixedCid := cid.NewCidV1(cid.Libp2pKey, ipnsCid.Hash()).String()
+			codecErr := fmt.Errorf("peer ID represented as CIDv1 require libp2p-key multicodec: retry with /ipns/%s", fixedCid)
+			log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", key, codecErr)
+			out <- onceResult{err: codecErr}
+			close(out)
+			return out
+		}
+	}
+
+	if err == nil {
 		res = ns.ipnsResolver
 	} else if isd.IsDomain(key) {
 		res = ns.dnsResolver
