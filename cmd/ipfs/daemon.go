@@ -588,7 +588,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	var opts = []corehttp.ServeOption{
 		corehttp.ProxyOption(), // Proxies all CONNECT requests to self. Always put this first.
 		corehttp.MetricsCollectionOption("gateway"),
-		corehttp.IPNSHostnameOption(),
+		corehttp.HostnameOption(),
 		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
 		corehttp.VersionOption(),
 		corehttp.CheckVersionOption(),

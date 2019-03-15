@@ -34,6 +34,28 @@ const (
 	ipnsPathPrefix = "/ipns/"
 )
 
+type GatewaySpec struct {
+	// PathPrefixes list the set of path prefixes that should be handled by
+	// the gateway logic.
+	PathPrefixes []string
+
+	// SupportsSubdomains indicates whether or not this gateway supports
+	// requests of the form http://CID.ipfs.GATEWAY/...
+	SupportsSubdomains bool
+}
+
+var DefaultGatewaySpec = GatewaySpec{
+	PathPrefixes:       []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
+	SupportsSubdomains: true,
+}
+
+// TODO(steb): Configurable
+var KnownGateways = map[string]GatewaySpec{
+	"ipfs.io":         DefaultGatewaySpec,
+	"gateway.ipfs.io": DefaultGatewaySpec,
+	"localhost:8080":  DefaultGatewaySpec,
+}
+
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
@@ -133,7 +155,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		}
 	}
 
-	// IPNSHostnameOption might have constructed an IPNS path using the Host header.
+	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
 	// In this case, we need the original path for constructing redirects
 	// and links that match the requested URL.
 	// For example, http://example.net would become /ipns/example.net, and
