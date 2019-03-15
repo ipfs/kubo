@@ -2,7 +2,6 @@
   "columns": [
     "Name",
     "CI/Travis",
-    "CI/Jenkins",
     "Coverage",
     "Description"
   ],
