@@ -2,13 +2,15 @@ package provider
 
 import (
 	"context"
-	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-ipfs-blocksutil"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	"math/rand"
 	"testing"
 	"time"
+
+	blocksutil "github.com/ipfs/go-ipfs-blocksutil"
+	cid "github.com/ipfs/go-cid"
+	datastore "github.com/ipfs/go-datastore"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	sync "github.com/ipfs/go-datastore/sync"
 )
 
 var blockGenerator = blocksutil.NewBlockGenerator()
@@ -25,11 +27,10 @@ func mockContentRouting() *mockRouting {
 
 func TestAnnouncement(t *testing.T) {
 	ctx := context.Background()
-	defer func() {
-		ctx.Done()
-	}()
+	defer ctx.Done()
 
-	queue, err := NewQueue(ctx, "test", datastore.NewMapDatastore())
+	ds := sync.MutexWrap(datastore.NewMapDatastore())
+	queue, err := NewQueue(ctx, "test", ds)
 	if err != nil {
 		t.Fatal(err)
 	}

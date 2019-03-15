@@ -62,28 +62,13 @@ func (p *provider) handleAnnouncements() {
 				case <-p.ctx.Done():
 					return
 				case entry := <-p.queue.Dequeue():
-					if err := doProvide(p.ctx, p.contentRouting, entry.cid); err != nil {
+					log.Info("announce - start - ", entry.cid)
+					if err := p.contentRouting.Provide(p.ctx, entry.cid, true); err != nil {
 						log.Warningf("Unable to provide entry: %s, %s", entry.cid, err)
 					}
-
-					if err := entry.Complete(); err != nil {
-						log.Warningf("Unable to complete queue entry when providing: %s, %s", entry.cid, err)
-					}
+					log.Info("announce - end - ", entry.cid)
 				}
 			}
 		}()
 	}
-}
-
-// TODO: better document this provide logic
-func doProvide(ctx context.Context, contentRouting routing.ContentRouting, key cid.Cid) error {
-	// announce
-	log.Info("announce - start - ", key)
-	if err := contentRouting.Provide(ctx, key, true); err != nil {
-		log.Warningf("Failed to provide cid: %s", err)
-		// TODO: Maybe put these failures onto a failures queue?
-		return err
-	}
-	log.Info("announce - end - ", key)
-	return nil
 }
