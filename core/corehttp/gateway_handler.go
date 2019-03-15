@@ -39,14 +39,20 @@ type GatewaySpec struct {
 	// the gateway logic.
 	PathPrefixes []string
 
-	// SupportsSubdomains indicates whether or not this gateway supports
-	// requests of the form http://CID.ipfs.GATEWAY/...
-	SupportsSubdomains bool
+	// UseSubdomains indicates whether or not this gateway uses subdomains
+	// for IPFS resources instead of paths. That is: http://CID.ipfs.GATEWAY/...
+	//
+	// If this flag is set, any /ipns/$id and/or /ipfs/$id paths in PathPrefixes
+	// will be permanently redirected to http://$id.[ipns|ipfs].$gateway/.
+	//
+	// We do not support using both paths and subdomains for a single domain
+	// for security reasons.
+	UseSubdomains bool
 }
 
 var DefaultGatewaySpec = GatewaySpec{
-	PathPrefixes:       []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
-	SupportsSubdomains: true,
+	PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
+	UseSubdomains: false,
 }
 
 // TODO(steb): Configurable
