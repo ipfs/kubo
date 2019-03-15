@@ -34,34 +34,6 @@ const (
 	ipnsPathPrefix = "/ipns/"
 )
 
-type GatewaySpec struct {
-	// PathPrefixes list the set of path prefixes that should be handled by
-	// the gateway logic.
-	PathPrefixes []string
-
-	// UseSubdomains indicates whether or not this gateway uses subdomains
-	// for IPFS resources instead of paths. That is: http://CID.ipfs.GATEWAY/...
-	//
-	// If this flag is set, any /ipns/$id and/or /ipfs/$id paths in PathPrefixes
-	// will be permanently redirected to http://$id.[ipns|ipfs].$gateway/.
-	//
-	// We do not support using both paths and subdomains for a single domain
-	// for security reasons.
-	UseSubdomains bool
-}
-
-var DefaultGatewaySpec = GatewaySpec{
-	PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
-	UseSubdomains: false,
-}
-
-// TODO(steb): Configurable
-var KnownGateways = map[string]GatewaySpec{
-	"ipfs.io":         DefaultGatewaySpec,
-	"gateway.ipfs.io": DefaultGatewaySpec,
-	"localhost:8080":  DefaultGatewaySpec,
-}
-
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
