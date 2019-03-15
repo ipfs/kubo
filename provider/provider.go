@@ -11,7 +11,7 @@ import (
 	routing "github.com/libp2p/go-libp2p-routing"
 )
 
-var	log = logging.Logger("provider")
+var log = logging.Logger("provider")
 
 const provideOutgoingWorkerLimit = 8
 

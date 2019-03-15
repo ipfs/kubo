@@ -22,7 +22,7 @@ func makeCids(n int) []cid.Cid {
 func assertOrdered(cids []cid.Cid, q *Queue, t *testing.T) {
 	for _, c := range cids {
 		select {
-		case dequeued := <- q.dequeue:
+		case dequeued := <-q.dequeue:
 			if c != dequeued {
 				t.Fatalf("Error in ordering of CIDs retrieved from queue. Expected: %s, got: %s", c, dequeued)
 			}

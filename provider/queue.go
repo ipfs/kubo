@@ -19,14 +19,11 @@ import (
 type Queue struct {
 	// used to differentiate queues in datastore
 	// e.g. provider vs reprovider
-	name string
-	ctx context.Context
-
-	tail uint64
-	head uint64
-
-	ds          datastore.Datastore // Must be threadsafe
-
+	name    string
+	ctx     context.Context
+	tail    uint64
+	head    uint64
+	ds      datastore.Datastore // Must be threadsafe
 	dequeue chan cid.Cid
 	enqueue chan cid.Cid
 }
@@ -39,13 +36,13 @@ func NewQueue(ctx context.Context, name string, ds datastore.Datastore) (*Queue,
 		return nil, err
 	}
 	q := &Queue{
-		name:        name,
-		ctx:         ctx,
-		head:        head,
-		tail:        tail,
-		ds:          namespaced,
-		dequeue:     make(chan cid.Cid),
-		enqueue:     make(chan cid.Cid),
+		name:    name,
+		ctx:     ctx,
+		head:    head,
+		tail:    tail,
+		ds:      namespaced,
+		dequeue: make(chan cid.Cid),
+		enqueue: make(chan cid.Cid),
 	}
 	q.work()
 	return q, nil
@@ -54,8 +51,8 @@ func NewQueue(ctx context.Context, name string, ds datastore.Datastore) (*Queue,
 // Enqueue puts a cid in the queue
 func (q *Queue) Enqueue(cid cid.Cid) {
 	select {
-		case q.enqueue <- cid:
-		case <-q.ctx.Done():
+	case q.enqueue <- cid:
+	case <-q.ctx.Done():
 	}
 }
 

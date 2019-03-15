@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	blocksutil "github.com/ipfs/go-ipfs-blocksutil"
 	cid "github.com/ipfs/go-cid"
 	datastore "github.com/ipfs/go-datastore"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	sync "github.com/ipfs/go-datastore/sync"
+	blocksutil "github.com/ipfs/go-ipfs-blocksutil"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 var blockGenerator = blocksutil.NewBlockGenerator()
@@ -58,13 +58,13 @@ func TestAnnouncement(t *testing.T) {
 
 	for cids.Len() > 0 {
 		select {
-			case cp := <-r.provided:
-				if !cids.Has(cp) {
-					t.Fatal("Wrong CID provided")
-				}
-				cids.Remove(cp)
-			case <-time.After(time.Second * 5):
-				t.Fatal("Timeout waiting for cids to be provided.")
+		case cp := <-r.provided:
+			if !cids.Has(cp) {
+				t.Fatal("Wrong CID provided")
+			}
+			cids.Remove(cp)
+		case <-time.After(time.Second * 5):
+			t.Fatal("Timeout waiting for cids to be provided.")
 		}
 	}
 }
