@@ -59,5 +59,5 @@ type Repo interface {
 // Datastore is the interface required from a datastore to be
 // acceptable to FSRepo.
 type Datastore interface {
-	ds.Batching // should be threadsafe, just be careful
+	ds.Batching // must be thread-safe
 }

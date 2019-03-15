@@ -10,6 +10,7 @@ import (
 
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/mount"
+	dssync "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ds-measure"
 )
 
@@ -174,7 +175,7 @@ func (c *memDatastoreConfig) DiskSpec() DiskSpec {
 }
 
 func (c *memDatastoreConfig) Create(string) (repo.Datastore, error) {
-	return ds.NewMapDatastore(), nil
+	return dssync.MutexWrap(ds.NewMapDatastore()), nil
 }
 
 type logDatastoreConfig struct {
