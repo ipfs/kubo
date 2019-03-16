@@ -71,10 +71,7 @@ The resolver can recursively resolve:
 		}
 
 		output, err := resolver.Resolve(req.Context, name, ropts...)
-		if err == namesys.ErrResolveFailed {
-			return err
-		}
-		if err != nil {
+		if err != nil && (recursive || err != namesys.ErrResolveRecursion) {
 			return err
 		}
 		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: output})

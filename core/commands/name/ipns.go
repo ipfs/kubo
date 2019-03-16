@@ -8,6 +8,7 @@ import (
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	namesys "github.com/ipfs/go-ipfs/namesys"
 
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -130,7 +131,7 @@ Resolve the value of a dnslink:
 
 		if !stream {
 			output, err := api.Name().Resolve(req.Context, name, opts...)
-			if err != nil {
+			if err != nil && (recursive || err != namesys.ErrResolveRecursion) {
 				return err
 			}
 
@@ -143,8 +144,8 @@ Resolve the value of a dnslink:
 		}
 
 		for v := range output {
-			if v.Err != nil {
-				return err
+			if v.Err != nil && (recursive || v.Err != namesys.ErrResolveRecursion) {
+				return v.Err
 			}
 			if err := res.Emit(&ResolvedPath{path.FromString(v.Path.String())}); err != nil {
 				return err
