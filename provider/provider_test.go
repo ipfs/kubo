@@ -19,6 +19,15 @@ type mockRouting struct {
 	provided chan cid.Cid
 }
 
+func (r *mockRouting) Provide(ctx context.Context, cid cid.Cid, recursive bool) error {
+	r.provided <- cid
+	return nil
+}
+
+func (r *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, timeout int) <-chan pstore.PeerInfo {
+	return nil
+}
+
 func mockContentRouting() *mockRouting {
 	r := mockRouting{}
 	r.provided = make(chan cid.Cid)
@@ -67,14 +76,4 @@ func TestAnnouncement(t *testing.T) {
 			t.Fatal("Timeout waiting for cids to be provided.")
 		}
 	}
-}
-
-func (r *mockRouting) Provide(ctx context.Context, cid cid.Cid, recursive bool) error {
-	r.provided <- cid
-	return nil
-}
-
-// Search for peers who are able to provide a given key
-func (r *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, timeout int) <-chan pstore.PeerInfo {
-	return nil
 }

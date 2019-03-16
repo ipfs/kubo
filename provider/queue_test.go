@@ -52,6 +52,58 @@ func TestBasicOperation(t *testing.T) {
 	assertOrdered(cids, queue, t)
 }
 
+func TestSparseDatastore(t *testing.T) {
+	ctx := context.Background()
+	defer ctx.Done()
+
+	ds := sync.MutexWrap(datastore.NewMapDatastore())
+	queue, err := NewQueue(ctx, "test", ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cids := makeCids(10)
+	for _, c := range cids {
+		queue.Enqueue(c)
+	}
+
+	// remove entries in the middle
+	err = queue.ds.Delete(queue.queueKey(5))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = queue.ds.Delete(queue.queueKey(6))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := append(cids[:5], cids[7:]...)
+	assertOrdered(expected, queue, t)
+}
+
+func TestMangledData(t *testing.T) {
+	ctx := context.Background()
+	defer ctx.Done()
+
+	ds := sync.MutexWrap(datastore.NewMapDatastore())
+	queue, err := NewQueue(ctx, "test", ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cids := makeCids(10)
+	for _, c := range cids {
+		queue.Enqueue(c)
+	}
+
+	// remove entries in the middle
+	err = queue.ds.Put(queue.queueKey(5), []byte("borked"))
+
+	expected := append(cids[:5], cids[6:]...)
+	assertOrdered(expected, queue, t)
+}
+
 func TestInitialization(t *testing.T) {
 	ctx := context.Background()
 	defer ctx.Done()
@@ -63,7 +115,6 @@ func TestInitialization(t *testing.T) {
 	}
 
 	cids := makeCids(10)
-
 	for _, c := range cids {
 		queue.Enqueue(c)
 	}
