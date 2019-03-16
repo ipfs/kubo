@@ -73,7 +73,7 @@ Resolve the value of a dnslink:
 		cmdkit.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption(recursiveOptionName, "r", "Resolve until the result is not an IPNS name."),
+		cmdkit.BoolOption(recursiveOptionName, "r", "Resolve until the result is not an IPNS name.").WithDefault(true),
 		cmdkit.BoolOption(nocacheOptionName, "n", "Do not use cached entries."),
 		cmdkit.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
 		cmdkit.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
