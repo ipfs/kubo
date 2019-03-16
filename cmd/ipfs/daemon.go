@@ -55,6 +55,7 @@ const (
 	enablePubSubKwd           = "enable-pubsub-experiment"
 	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
 	enableMultiplexKwd        = "enable-mplex-experiment"
+	enableFollowKwd           = "enable-follow-experiment"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -167,6 +168,7 @@ Headers.
 		cmdkit.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 		cmdkit.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
 		cmdkit.BoolOption(enableMultiplexKwd, "Add the experimental 'go-multiplex' stream muxer to libp2p on construction.").WithDefault(true),
+		cmdkit.BoolOption(enableFollowKwd, "Enable IPNS name following."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmdkit.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -287,6 +289,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
 	pubsub, _ := req.Options[enablePubSubKwd].(bool)
 	mplex, _ := req.Options[enableMultiplexKwd].(bool)
+	follow, _ := req.Options[enableFollowKwd].(bool)
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
@@ -298,6 +301,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			"pubsub": pubsub,
 			"ipnsps": ipnsps,
 			"mplex":  mplex,
+			"follow": follow,
 		},
 		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}

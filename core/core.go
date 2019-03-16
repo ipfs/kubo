@@ -24,6 +24,7 @@ import (
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
+	namecache "github.com/ipfs/go-ipfs/namecache"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	p2p "github.com/ipfs/go-ipfs/p2p"
@@ -124,7 +125,8 @@ type IpfsNode struct {
 	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
-	Reprovider   *rp.Reprovider      // the value reprovider system
+	Namecache    namecache.NameCache // the name system follower cache
+	Reprovider   *rp.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
 	AutoNAT  *autonat.AutoNATService
@@ -149,7 +151,7 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex bool) error {
+func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption RoutingOption, hostOption HostOption, do DiscoveryOption, pubsub, ipnsps, mplex, follow bool) error {
 	if n.PeerHost != nil { // already online.
 		return errors.New("node already online")
 	}
@@ -284,6 +286,14 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	}
 
 	n.P2P = p2p.NewP2P(n.Identity, n.PeerHost, n.Peerstore)
+
+	if follow {
+		n.Namecache = namecache.NewNameCache(ctx, n.Namesys, n.DAG)
+		n.Namecache, err = namecache.NewPersistentCache(n.Namecache, n.Repo.Datastore())
+		if err != nil {
+			return err
+		}
+	}
 
 	// setup local discovery
 	if do != nil {
