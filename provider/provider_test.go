@@ -42,7 +42,7 @@ func TestAnnouncement(t *testing.T) {
 
 	cids := cid.NewSet()
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		c := blockGenerator.Next().Cid()
 		cids.Add(c)
 	}
