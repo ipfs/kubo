@@ -16,9 +16,9 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hsanjuan/go-libp2p-http v0.0.1
 	github.com/ipfs/dir-index-html v1.0.3
-	github.com/ipfs/go-bitswap v0.0.1
+	github.com/ipfs/go-bitswap v0.0.2
 	github.com/ipfs/go-block-format v0.0.2
-	github.com/ipfs/go-blockservice v0.0.1
+	github.com/ipfs/go-blockservice v0.0.2
 	github.com/ipfs/go-cid v0.0.1
 	github.com/ipfs/go-cidutil v0.0.1
 	github.com/ipfs/go-datastore v0.0.1
@@ -46,15 +46,15 @@ require (
 	github.com/ipfs/go-ipld-git v0.0.1
 	github.com/ipfs/go-ipns v0.0.1
 	github.com/ipfs/go-log v0.0.1
-	github.com/ipfs/go-merkledag v0.0.1
+	github.com/ipfs/go-merkledag v0.0.2
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.1
-	github.com/ipfs/go-mfs v0.0.1
-	github.com/ipfs/go-path v0.0.1
-	github.com/ipfs/go-unixfs v0.0.1
+	github.com/ipfs/go-mfs v0.0.2
+	github.com/ipfs/go-path v0.0.2
+	github.com/ipfs/go-unixfs v0.0.2
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.0.2
+	github.com/ipfs/interface-go-ipfs-core v0.0.3
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.0.1
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0
