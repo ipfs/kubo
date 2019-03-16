@@ -21,27 +21,26 @@ test_expect_success "resolve: prepare dag" '
   dag_hash=$(ipfs dag put <<<"{\"i\": {\"j\": {\"k\": \"asdfasdfasdf\"}}}")
 '
 
-test_resolve_setup_name() {
-  ref=$1
+test_expect_success "resolve: prepare keys" '
+    self_hash=$(ipfs id -f="<id>") &&
+    alt_hash=$(ipfs key gen -t rsa alt)
+'
 
-  test_expect_success "resolve: prepare name" '
-    id_hash=$(ipfs id -f="<id>") &&
-    ipfs name publish --allow-offline "$ref" &&
-    printf "$ref\n" >expected_nameval &&
-    ipfs name resolve >actual_nameval &&
-    test_cmp expected_nameval actual_nameval
+test_resolve_setup_name() {
+  local key="$1"
+  local ref="$2"
+
+  test_expect_success "resolve: prepare $key" '
+    ipfs name publish --key="$key" --allow-offline "$ref"
   '
 }
 
 test_resolve_setup_name_fail() {
-  ref=$1
+  local key="$1"
+  local ref="$2"
 
-  test_expect_failure "resolve: prepare name" '
-    id_hash=$(ipfs id -f="<id>") &&
-    ipfs name publish --allow-offline "$ref" &&
-    printf "$ref" >expected_nameval &&
-    ipfs name resolve >actual_nameval &&
-    test_cmp expected_nameval actual_nameval
+  test_expect_failure "resolve: prepare $key" '
+    ipfs name publish --key="$key" --allow-offline "$ref"
   '
 }
 
@@ -51,7 +50,7 @@ test_resolve() {
   extra=$3
 
   test_expect_success "resolve succeeds: $src" '
-    ipfs resolve $extra -r "$src" >actual
+    ipfs resolve $extra "$src" >actual
   '
 
   test_expect_success "resolved correctly: $src -> $dst" '
@@ -69,17 +68,31 @@ test_resolve_cmd() {
   test_resolve "/ipld/$dag_hash/i/j" "/ipld/$dag_hash/i/j"
   test_resolve "/ipld/$dag_hash/i" "/ipld/$dag_hash/i"
 
-  test_resolve_setup_name "/ipfs/$a_hash"
-  test_resolve "/ipns/$id_hash" "/ipfs/$a_hash"
-  test_resolve "/ipns/$id_hash/b" "/ipfs/$b_hash"
-  test_resolve "/ipns/$id_hash/b/c" "/ipfs/$c_hash"
+  test_resolve_setup_name "self" "/ipfs/$a_hash"
+  test_resolve "/ipns/$self_hash" "/ipfs/$a_hash"
+  test_resolve "/ipns/$self_hash/b" "/ipfs/$b_hash"
+  test_resolve "/ipns/$self_hash/b/c" "/ipfs/$c_hash"
 
-  test_resolve_setup_name "/ipfs/$b_hash"
-  test_resolve "/ipns/$id_hash" "/ipfs/$b_hash"
-  test_resolve "/ipns/$id_hash/c" "/ipfs/$c_hash"
+  test_resolve_setup_name "self" "/ipfs/$b_hash"
+  test_resolve "/ipns/$self_hash" "/ipfs/$b_hash"
+  test_resolve "/ipns/$self_hash/c" "/ipfs/$c_hash"
 
-  test_resolve_setup_name "/ipfs/$c_hash"
-  test_resolve "/ipns/$id_hash" "/ipfs/$c_hash"
+  test_resolve_setup_name "self" "/ipfs/$c_hash"
+  test_resolve "/ipns/$self_hash" "/ipfs/$c_hash"
+
+  # simple recursion succeeds
+  test_resolve_setup_name "alt" "/ipns/$self_hash"
+  test_resolve "/ipns/$alt_hash" "/ipfs/$c_hash"
+
+  # partial resolve succeeds
+  test_resolve "/ipns/$alt_hash" "/ipns/$self_hash" -r=false
+
+  # infinite recursion fails
+  test_resolve_setup_name "self" "/ipns/$self_hash"
+  test_expect_success "recursive resolve terminates" '
+    test_expect_code 1 ipfs resolve /ipns/$self_hash 2>recursion_error &&
+    grep "recursion limit exceeded" recursion_error
+  '
 }
 
 test_resolve_cmd_b32() {
@@ -92,17 +105,17 @@ test_resolve_cmd_b32() {
 
   # flags needed passed in path does not contain cid to derive base
 
-  test_resolve_setup_name "/ipfs/$a_hash_b32"
-  test_resolve "/ipns/$id_hash" "/ipfs/$a_hash_b32" --cid-base=base32
-  test_resolve "/ipns/$id_hash/b" "/ipfs/$b_hash_b32" --cid-base=base32
-  test_resolve "/ipns/$id_hash/b/c" "/ipfs/$c_hash_b32" --cid-base=base32
+  test_resolve_setup_name "self" "/ipfs/$a_hash_b32"
+  test_resolve "/ipns/$self_hash" "/ipfs/$a_hash_b32" --cid-base=base32
+  test_resolve "/ipns/$self_hash/b" "/ipfs/$b_hash_b32" --cid-base=base32
+  test_resolve "/ipns/$self_hash/b/c" "/ipfs/$c_hash_b32" --cid-base=base32
 
-  test_resolve_setup_name "/ipfs/$b_hash_b32" --cid-base=base32
-  test_resolve "/ipns/$id_hash" "/ipfs/$b_hash_b32" --cid-base=base32
-  test_resolve "/ipns/$id_hash/c" "/ipfs/$c_hash_b32" --cid-base=base32
+  test_resolve_setup_name "self" "/ipfs/$b_hash_b32" --cid-base=base32
+  test_resolve "/ipns/$self_hash" "/ipfs/$b_hash_b32" --cid-base=base32
+  test_resolve "/ipns/$self_hash/c" "/ipfs/$c_hash_b32" --cid-base=base32
 
-  test_resolve_setup_name "/ipfs/$c_hash_b32"
-  test_resolve "/ipns/$id_hash" "/ipfs/$c_hash_b32" --cid-base=base32
+  test_resolve_setup_name "self" "/ipfs/$c_hash_b32"
+  test_resolve "/ipns/$self_hash" "/ipfs/$c_hash_b32" --cid-base=base32
 }
 
 
@@ -131,17 +144,17 @@ test_resolve_cmd_fail() {
   test_resolve "/ipld/$dag_hash/i/j" "/ipld/$dag_hash/i/j"
   test_resolve "/ipld/$dag_hash/i" "/ipld/$dag_hash/i"
 
-  test_resolve_setup_name_fail "/ipfs/$a_hash"
-  test_resolve_fail "/ipns/$id_hash" "/ipfs/$a_hash"
-  test_resolve_fail "/ipns/$id_hash/b" "/ipfs/$b_hash"
-  test_resolve_fail "/ipns/$id_hash/b/c" "/ipfs/$c_hash"
+  test_resolve_setup_name_fail "self" "/ipfs/$a_hash"
+  test_resolve_fail "/ipns/$self_hash" "/ipfs/$a_hash"
+  test_resolve_fail "/ipns/$self_hash/b" "/ipfs/$b_hash"
+  test_resolve_fail "/ipns/$self_hash/b/c" "/ipfs/$c_hash"
 
-  test_resolve_setup_name_fail "/ipfs/$b_hash"
-  test_resolve_fail "/ipns/$id_hash" "/ipfs/$b_hash"
-  test_resolve_fail "/ipns/$id_hash/c" "/ipfs/$c_hash"
+  test_resolve_setup_name_fail "self" "/ipfs/$b_hash"
+  test_resolve_fail "/ipns/$self_hash" "/ipfs/$b_hash"
+  test_resolve_fail "/ipns/$self_hash/c" "/ipfs/$c_hash"
 
-  test_resolve_setup_name_fail "/ipfs/$c_hash"
-  test_resolve_fail "/ipns/$id_hash" "/ipfs/$c_hash"
+  test_resolve_setup_name_fail "self" "/ipfs/$c_hash"
+  test_resolve_fail "/ipns/$self_hash" "/ipfs/$c_hash"
 }
 
 # should work offline
