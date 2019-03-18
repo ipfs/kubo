@@ -60,13 +60,13 @@ get_legend() {
 }
 
 log "Generate markdown impl status"
-MD_STATUS="$TMPDIR/markdown_impl_status"
+MD_STATUS="$TMPDIR/markdown_impl_status.md"
 
 # Header
 cat <<EOF >"$MD_STATUS"
 # IPFS Implementation Status
 
-> Legend: :green_apple: Done &nbsp; :lemon: In Progress &nbsp; :tomato: Missing &nbsp; :chestnut: Not planned
+> Legend: :green_apple: Passed &nbsp; :lemon: Didn't run &nbsp; :tomato: Failed &nbsp; :chestnut: No test implemented
 
 EOF
 
@@ -121,5 +121,16 @@ for my $k (sort keys %hm) {
 
 ' "$@" >>"$MD_STATUS"
 
+MD_FINAL_STATUS="$TMPDIR/markdown_final_status.md"
+
+perl -pe '
+
+	s/GOOD/:green_apple:/g;
+	s/XXX/:lemon:/g;
+	s/BAD/:tomato:/g;
+	s/\?\?\?/:chestnut:/g;
+
+' <"$MD_STATUS" >"$MD_FINAL_STATUS"
+
 # Output
-cat "$MD_STATUS"
+cat "$MD_FINAL_STATUS"
