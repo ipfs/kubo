@@ -143,8 +143,6 @@ github.com/ipfs/go-ipfs-chunker v0.0.1 h1:cHUUxKFQ99pozdahi+uSC/3Y6HeRpi9oTeUHbE
 github.com/ipfs/go-ipfs-chunker v0.0.1/go.mod h1:tWewYK0we3+rMbOh7pPFGDyypCtvGcBFymgY4rSDLAw=
 github.com/ipfs/go-ipfs-cmdkit v0.0.1 h1:X6YXEAjUljTzevE6DPUKXSqcgf+4FXzcn5B957F5MXo=
 github.com/ipfs/go-ipfs-cmdkit v0.0.1/go.mod h1:9FtbMdUabcSqv/G4/8WCxSLxkZxn/aZEFrxxqnVcRbg=
-github.com/ipfs/go-ipfs-cmds v0.0.1 h1:wPTynLMa+JImcTsPaVmrUDP8mJ3S8HQVUWixnKi7+k4=
-github.com/ipfs/go-ipfs-cmds v0.0.1/go.mod h1:k7I8PptE2kCJchR3ta546LRyxl4/uBYbLQHOJM0sUQ8=
 github.com/ipfs/go-ipfs-cmds v0.0.2 h1:wbyUvMGAsQLz8KUeYLK+Q6vX1MStR51O3a3vsgtf/Pk=
 github.com/ipfs/go-ipfs-cmds v0.0.2/go.mod h1:k7I8PptE2kCJchR3ta546LRyxl4/uBYbLQHOJM0sUQ8=
 github.com/ipfs/go-ipfs-config v0.0.1 h1:6ED08emzI1imdsAjixFi2pEyZxTVD5ECKtCOxLBx+Uc=
@@ -188,8 +186,8 @@ github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fG
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-metrics-prometheus v0.0.1 h1:5iY3WO20WFSOErZyyYemHsbGm0V+a8YNEaOvle7kNvI=
 github.com/ipfs/go-metrics-prometheus v0.0.1/go.mod h1:ELLU99AQQNi+zX6GCGm2lAgnzdSH3u5UVlCdqSXnEks=
-github.com/ipfs/go-mfs v0.0.2 h1:hIolmX+1bBpRqVfBUVg2BdcXIcefrIqRdA7adQh+lbw=
-github.com/ipfs/go-mfs v0.0.2/go.mod h1:rUT0dKNWkKa1T+MobpBL2zANn7p8Y6unXANC0PV2FLk=
+github.com/ipfs/go-mfs v0.0.3 h1:gFBlZw9DpZXaxqeto1H9uLkg+qzE8EVbCIVD2yuKUU4=
+github.com/ipfs/go-mfs v0.0.3/go.mod h1:rUT0dKNWkKa1T+MobpBL2zANn7p8Y6unXANC0PV2FLk=
 github.com/ipfs/go-path v0.0.1 h1:6UskTq8xYVs3zVnHjXDvoCqw22dKWK1BwD1cy1cuHyc=
 github.com/ipfs/go-path v0.0.1/go.mod h1:ztzG4iSBN2/CJa93rtHAv/I+mpK+BGALeUoJzhclhw0=
 github.com/ipfs/go-path v0.0.2 h1:Nm9g9GCo3XoSASPh2cGEW9eGPt8xh0QzA1VNO69NTMs=

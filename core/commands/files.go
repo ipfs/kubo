@@ -347,7 +347,7 @@ var filesCpCmd = &cmds.Command{
 		}
 
 		if flush {
-			err := mfs.FlushPath(nd.FilesRoot, dst)
+			err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
 			if err != nil {
 				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
 			}
@@ -649,7 +649,7 @@ Example:
 
 		err = mfs.Mv(nd.FilesRoot, src, dst)
 		if err == nil && flush {
-			err = mfs.FlushPath(nd.FilesRoot, "/")
+			err = mfs.FlushPath(req.Context, nd.FilesRoot, "/")
 		}
 		return err
 	},
@@ -878,7 +878,7 @@ are run with the '--flush=false'.
 			path = req.Arguments[0]
 		}
 
-		return mfs.FlushPath(nd.FilesRoot, path)
+		return mfs.FlushPath(req.Context, nd.FilesRoot, path)
 	},
 }
 
@@ -916,7 +916,7 @@ Change the cid version or hash function of the root node of a given path.
 
 		err = updatePath(nd.FilesRoot, path, prefix)
 		if err == nil && flush {
-			err = mfs.FlushPath(nd.FilesRoot, path)
+			err = mfs.FlushPath(req.Context, nd.FilesRoot, path)
 		}
 		return err
 	},
