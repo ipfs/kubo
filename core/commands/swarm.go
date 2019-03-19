@@ -529,16 +529,16 @@ func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, erro
 				resolveErrC <- err
 				return
 			}
-			if len(raddrs) == 0 {
-				resolveErrC <- fmt.Errorf("non-resolvable multiaddr about %v", maddr)
-				return
-			}
 			// filter out addresses that still doesn't end in `ipfs/Qm...`
+			found := 0
 			for _, raddr := range raddrs {
 				if _, last := ma.SplitLast(raddr); last.Protocol().Code == ma.P_IPFS {
 					maddrC <- raddr
-					continue
+					found++
 				}
+			}
+			if found == 0 {
+				resolveErrC <- fmt.Errorf("non-resolvable multiaddr about %v", maddr)
 			}
 		}(maddr)
 	}
