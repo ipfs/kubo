@@ -370,7 +370,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 		addrs := req.Arguments
 
-		pis, err := peersWithAddresses(addrs)
+		pis, err := peersWithAddresses(req.Context, addrs)
 		if err != nil {
 			return err
 		}
@@ -467,9 +467,9 @@ func parseMultiaddrs(maddrs []ma.Multiaddr) (iaddrs []iaddr.IPFSAddr, err error)
 
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
+func peersWithAddresses(ctx context.Context, addrs []string) ([]pstore.PeerInfo, error) {
 	// resolve addresses
-	maddrs, err := resolveAddresses(addrs)
+	maddrs, err := resolveAddresses(ctx, addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +500,10 @@ func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 }
 
 // resolveAddresses resolves addresses parallelly
-func resolveAddresses(addrs []string) ([]ma.Multiaddr, error) {
+func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, error) {
+	ctx, cancel := context.WithTimeout(ctx, dnsResolveTimeout)
+	defer cancel()
+
 	var maddrs []ma.Multiaddr
 	var wg sync.WaitGroup
 	resolveErrC := make(chan error, len(addrs))
@@ -532,9 +535,7 @@ func resolveAddresses(addrs []string) ([]ma.Multiaddr, error) {
 		wg.Add(1)
 		go func(maddr ma.Multiaddr) {
 			defer wg.Done()
-			ctx, cancel := context.WithTimeout(context.Background(), dnsResolveTimeout)
 			raddrs, err := madns.Resolve(ctx, maddr)
-			cancel()
 			if err != nil {
 				resolveErrC <- err
 				return
