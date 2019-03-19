@@ -509,17 +509,6 @@ func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, erro
 	resolveErrC := make(chan error, len(addrs))
 
 	maddrC := make(chan ma.Multiaddr)
-	go func() {
-		for {
-			select {
-			case maddr, ok := <-maddrC:
-				if !ok {
-					return
-				}
-				maddrs = append(maddrs, maddr)
-			}
-		}
-	}()
 
 	for _, addr := range addrs {
 		maddr, err := ma.NewMultiaddr(addr)
@@ -553,10 +542,14 @@ func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, erro
 			}
 		}(maddr)
 	}
-	// wait for address resolving
-	wg.Wait()
-	// close the channel of collecting multiaddr
-	close(maddrC)
+	go func() {
+		wg.Wait()
+		close(maddrC)
+	}()
+
+	for maddr := range maddrC {
+		maddrs = append(maddrs, maddr)
+	}
 
 	select {
 	case err := <-resolveErrC:
