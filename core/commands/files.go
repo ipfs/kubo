@@ -347,7 +347,7 @@ var filesCpCmd = &cmds.Command{
 		}
 
 		if flush {
-			err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
+			_, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
 			if err != nil {
 				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
 			}
@@ -649,7 +649,7 @@ Example:
 
 		err = mfs.Mv(nd.FilesRoot, src, dst)
 		if err == nil && flush {
-			err = mfs.FlushPath(req.Context, nd.FilesRoot, "/")
+			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, "/")
 		}
 		return err
 	},
@@ -856,6 +856,10 @@ Examples:
 	},
 }
 
+type flushRes struct {
+	Cid string
+}
+
 var filesFlushCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Flush a given path's data to disk.",
@@ -873,13 +877,24 @@ are run with the '--flush=false'.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		path := "/"
 		if len(req.Arguments) > 0 {
 			path = req.Arguments[0]
 		}
 
-		return mfs.FlushPath(req.Context, nd.FilesRoot, path)
+		n, err := mfs.FlushPath(req.Context, nd.FilesRoot, path)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &flushRes{enc.Encode(n.Cid())})
 	},
+	Type: flushRes{},
 }
 
 var filesChcidCmd = &cmds.Command{
@@ -916,7 +931,7 @@ Change the cid version or hash function of the root node of a given path.
 
 		err = updatePath(nd.FilesRoot, path, prefix)
 		if err == nil && flush {
-			err = mfs.FlushPath(req.Context, nd.FilesRoot, path)
+			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, path)
 		}
 		return err
 	},
