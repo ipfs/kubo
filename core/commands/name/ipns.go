@@ -8,6 +8,7 @@ import (
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	namesys "github.com/ipfs/go-ipfs/namesys"
 
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -73,7 +74,7 @@ Resolve the value of a dnslink:
 		cmdkit.StringArg("name", false, false, "The IPNS name to resolve. Defaults to your node's peerID."),
 	},
 	Options: []cmdkit.Option{
-		cmdkit.BoolOption(recursiveOptionName, "r", "Resolve until the result is not an IPNS name."),
+		cmdkit.BoolOption(recursiveOptionName, "r", "Resolve until the result is not an IPNS name.").WithDefault(true),
 		cmdkit.BoolOption(nocacheOptionName, "n", "Do not use cached entries."),
 		cmdkit.UintOption(dhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
 		cmdkit.StringOption(dhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
@@ -130,7 +131,7 @@ Resolve the value of a dnslink:
 
 		if !stream {
 			output, err := api.Name().Resolve(req.Context, name, opts...)
-			if err != nil {
+			if err != nil && (recursive || err != namesys.ErrResolveRecursion) {
 				return err
 			}
 
@@ -143,8 +144,8 @@ Resolve the value of a dnslink:
 		}
 
 		for v := range output {
-			if v.Err != nil {
-				return err
+			if v.Err != nil && (recursive || v.Err != namesys.ErrResolveRecursion) {
+				return v.Err
 			}
 			if err := res.Emit(&ResolvedPath{path.FromString(v.Path.String())}); err != nil {
 				return err
