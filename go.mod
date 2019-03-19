@@ -49,7 +49,7 @@ require (
 	github.com/ipfs/go-merkledag v0.0.2
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.1
-	github.com/ipfs/go-mfs v0.0.3
+	github.com/ipfs/go-mfs v0.0.4
 	github.com/ipfs/go-path v0.0.2
 	github.com/ipfs/go-unixfs v0.0.2
 	github.com/ipfs/go-verifcid v0.0.1
