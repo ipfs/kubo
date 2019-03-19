@@ -538,7 +538,7 @@ func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, erro
 				}
 			}
 			if found == 0 {
-				resolveErrC <- fmt.Errorf("non-resolvable multiaddr about %v", maddr)
+				resolveErrC <- fmt.Errorf("found no ipfs peers at %s", maddr)
 			}
 		}(maddr)
 	}
