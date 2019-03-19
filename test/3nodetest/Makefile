@@ -24,7 +24,7 @@ data/filerand: ../bin/random
 # just build it every time... this part isn't
 # even the lengthy part, and it decreases pain.
 docker_ipfs_image:
-	docker build -t $(IMAGE_NAME) -f Dockerfile.fast .
+	docker build -t $(IMAGE_NAME) -f Dockerfile .
 	docker images | grep $(IMAGE_NAME)
 
 clean:
