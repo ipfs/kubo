@@ -14,11 +14,11 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/gxed/go-is-domain v0.0.0-20160921144106-bcb935f9c56d
 	github.com/hashicorp/golang-lru v0.5.1
-	github.com/hsanjuan/go-libp2p-http v0.0.1
+	github.com/hsanjuan/go-libp2p-http v0.0.2
 	github.com/ipfs/dir-index-html v1.0.3
-	github.com/ipfs/go-bitswap v0.0.2
+	github.com/ipfs/go-bitswap v0.0.3
 	github.com/ipfs/go-block-format v0.0.2
-	github.com/ipfs/go-blockservice v0.0.2
+	github.com/ipfs/go-blockservice v0.0.3
 	github.com/ipfs/go-cid v0.0.1
 	github.com/ipfs/go-cidutil v0.0.1
 	github.com/ipfs/go-datastore v0.0.1
@@ -47,30 +47,30 @@ require (
 	github.com/ipfs/go-ipld-git v0.0.1
 	github.com/ipfs/go-ipns v0.0.1
 	github.com/ipfs/go-log v0.0.1
-	github.com/ipfs/go-merkledag v0.0.2
+	github.com/ipfs/go-merkledag v0.0.3
 	github.com/ipfs/go-metrics-interface v0.0.1
-	github.com/ipfs/go-metrics-prometheus v0.0.1
+	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.0.4
-	github.com/ipfs/go-path v0.0.2
-	github.com/ipfs/go-unixfs v0.0.2
+	github.com/ipfs/go-path v0.0.3
+	github.com/ipfs/go-unixfs v0.0.3
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.0.3
 	github.com/ipfs/iptb v1.4.0
-	github.com/ipfs/iptb-plugins v0.0.1
+	github.com/ipfs/iptb-plugins v0.0.2
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8
-	github.com/libp2p/go-libp2p v0.0.1
-	github.com/libp2p/go-libp2p-autonat-svc v0.0.1
+	github.com/libp2p/go-libp2p v0.0.2
+	github.com/libp2p/go-libp2p-autonat-svc v0.0.2
 	github.com/libp2p/go-libp2p-circuit v0.0.1
 	github.com/libp2p/go-libp2p-connmgr v0.0.1
 	github.com/libp2p/go-libp2p-crypto v0.0.1
 	github.com/libp2p/go-libp2p-host v0.0.1
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.1
-	github.com/libp2p/go-libp2p-kad-dht v0.0.3
+	github.com/libp2p/go-libp2p-kad-dht v0.0.5
 	github.com/libp2p/go-libp2p-kbucket v0.0.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
@@ -80,7 +80,7 @@ require (
 	github.com/libp2p/go-libp2p-pnet v0.0.1
 	github.com/libp2p/go-libp2p-protocol v0.0.1
 	github.com/libp2p/go-libp2p-pubsub v0.0.1
-	github.com/libp2p/go-libp2p-pubsub-router v0.0.2
+	github.com/libp2p/go-libp2p-pubsub-router v0.0.3
 	github.com/libp2p/go-libp2p-quic-transport v0.0.1
 	github.com/libp2p/go-libp2p-record v0.0.1
 	github.com/libp2p/go-libp2p-routing v0.0.1
@@ -104,7 +104,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible
-	github.com/whyrusleeping/go-smux-yamux v2.0.8+incompatible
+	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
