@@ -5,10 +5,9 @@ package provider
 
 import (
 	"context"
-
-	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
-	routing "github.com/libp2p/go-libp2p-routing"
+	"github.com/libp2p/go-libp2p-routing"
 )
 
 var log = logging.Logger("provider")
@@ -17,7 +16,9 @@ const provideOutgoingWorkerLimit = 8
 
 // Provider announces blocks to the network
 type Provider interface {
+	// Run is used to begin processing the provider work
 	Run()
+	// Provide takes a cid and makes an attempt to announce it to the network
 	Provide(cid.Cid) error
 }
 
@@ -53,7 +54,7 @@ func (p *provider) Provide(root cid.Cid) error {
 func (p *provider) handleAnnouncements() {
 	for workers := 0; workers < provideOutgoingWorkerLimit; workers++ {
 		go func() {
-			for {
+			for p.ctx.Err() == nil {
 				select {
 				case <-p.ctx.Done():
 					return
