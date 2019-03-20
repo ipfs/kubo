@@ -28,6 +28,7 @@ import (
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	p2p "github.com/ipfs/go-ipfs/p2p"
 	pin "github.com/ipfs/go-ipfs/pin"
+	provider "github.com/ipfs/go-ipfs/provider"
 	repo "github.com/ipfs/go-ipfs/repo"
 
 	bitswap "github.com/ipfs/go-bitswap"
@@ -124,6 +125,7 @@ type IpfsNode struct {
 	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
+	Provider     provider.Provider   // the value provider system
 	Reprovider   *rp.Reprovider      // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
@@ -323,6 +325,12 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Provider
+
+	n.Provider.Run()
+
+	// Reprovider
 
 	var keyProvider rp.KeyChanFunc
 

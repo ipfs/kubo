@@ -129,6 +129,11 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	if err != nil {
 		return nil, err
 	}
+
+	if err := api.provider.Provide(nd.Cid()); err != nil {
+		return nil, err
+	}
+
 	return coreiface.IpfsPath(nd.Cid()), nil
 }
 
