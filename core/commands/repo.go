@@ -12,6 +12,7 @@ import (
 	"sync"
 	"text/tabwriter"
 
+	humanize "github.com/dustin/go-humanize"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
@@ -148,7 +149,7 @@ Version         string The repo version.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(repoSizeOnlyOptionName, "Only report RepoSize and StorageMax."),
-		cmdkit.BoolOption(repoHumanOptionName, "Output sizes in MiB."),
+		cmdkit.BoolOption(repoHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -185,12 +186,12 @@ Version         string The repo version.
 			sizeOnly, _ := req.Options[repoSizeOnlyOptionName].(bool)
 
 			printSize := func(name string, size uint64) {
-				sizeInMiB := size / (1024 * 1024)
-				if human && sizeInMiB > 0 {
-					fmt.Fprintf(wtr, "%s (MiB):\t%d\n", name, sizeInMiB)
-				} else {
-					fmt.Fprintf(wtr, "%s:\t%d\n", name, size)
+				sizeStr := fmt.Sprintf("%d", size)
+				if human {
+					sizeStr = humanize.Bytes(size)
 				}
+
+				fmt.Fprintf(wtr, "%s:\t%s\n", name, sizeStr)
 			}
 
 			if !sizeOnly {
