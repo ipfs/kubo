@@ -33,7 +33,7 @@ require (
 	github.com/ipfs/go-ipfs-blocksutil v0.0.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmdkit v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.2
+	github.com/ipfs/go-ipfs-cmds v0.0.3-0.20190321234425-a55e11146b91
 	github.com/ipfs/go-ipfs-config v0.0.1
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
@@ -55,7 +55,7 @@ require (
 	github.com/ipfs/go-unixfs v0.0.3
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.0.3
+	github.com/ipfs/interface-go-ipfs-core v0.0.4-0.20190321181734-8d779e2c4b9e
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.0.2
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0
