@@ -1,14 +1,16 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
+	"runtime/debug"
 
 	version "github.com/ipfs/go-ipfs"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"github.com/ipfs/go-ipfs-cmdkit"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
@@ -31,6 +33,9 @@ var VersionCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline:          "Show ipfs version information.",
 		ShortDescription: "Returns the current version of ipfs and exits.",
+	},
+	Subcommands: map[string]*cmds.Command{
+		"deps": depsVersionCommand,
 	},
 
 	Options: []cmdkit.Option{
@@ -82,4 +87,51 @@ var VersionCmd = &cmds.Command{
 		}),
 	},
 	Type: VersionOutput{},
+}
+
+type Dependency struct {
+	Path       string
+	Version    string
+	ReplacedBy string
+	Sum        string
+}
+
+var depsVersionCommand = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Shows information about dependencies used for build",
+		ShortDescription: `
+Print out all dependencies and their versions.`,
+	},
+	Type: Dependency{},
+
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		info, ok := debug.ReadBuildInfo()
+		if !ok {
+			return errors.New("no embedded dependency information")
+		}
+		toDependency := func(mod *debug.Module) (dep Dependency) {
+			dep.Path = mod.Path
+			dep.Version = mod.Version
+			dep.Sum = mod.Sum
+			if repl := mod.Replace; repl != nil {
+				dep.ReplacedBy = fmt.Sprintf("%s@%s", repl.Path, repl.Version)
+			}
+			return
+		}
+		res.Emit(toDependency(&info.Main))
+		for _, dep := range info.Deps {
+			res.Emit(toDependency(dep))
+		}
+		return nil
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, dep Dependency) error {
+			fmt.Fprintf(w, "%s@%s", dep.Path, dep.Version)
+			if dep.ReplacedBy != "" {
+				fmt.Fprintf(w, " => %s", dep.ReplacedBy)
+			}
+			fmt.Fprintf(w, "\n")
+			return errors.New("test")
+		}),
+	},
 }
