@@ -237,12 +237,26 @@ get_field_num() {
 test_expect_success "'ipfs repo stat' succeeds" '
   ipfs repo stat > repo-stats
 '
+
 test_expect_success "repo stats came out correct" '
   grep "RepoPath" repo-stats &&
   grep "RepoSize" repo-stats &&
   grep "NumObjects" repo-stats &&
   grep "Version" repo-stats &&
   grep "StorageMax" repo-stats
+'
+
+test_expect_success "'ipfs repo stat --human' succeeds" '
+  ipfs repo stat --human > repo-stats-human
+'
+
+test_expect_success "repo stats --human came out correct" '
+  grep "RepoPath" repo-stats-human &&
+  grep -P "RepoSize:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human &&
+  grep "NumObjects" repo-stats-human &&
+  grep "Version" repo-stats-human &&
+  grep -P "StorageMax:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human ||
+  test_fsh cat repo-stats-human
 '
 
 test_expect_success "'ipfs repo stat' after adding a file" '
