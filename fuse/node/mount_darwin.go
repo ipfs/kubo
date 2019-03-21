@@ -74,7 +74,7 @@ Please install it yourself by running:
 You can also stop ipfs from running these checks and use whatever OSXFUSE
 version you have by running:
 
-	ipfs --json config %s true
+	ipfs config --bool %s true
 
 [1]: https://github.com/ipfs/go-ipfs/issues/177
 [2]: https://github.com/ipfs/go-ipfs/pull/533
@@ -104,7 +104,7 @@ You should see something like this:
 Just make sure the number is 2.7.2 or higher. You can then stop ipfs from
 trying to run these checks with:
 
-	ipfs config %s true
+	ipfs config --bool %s true
 
 [1]: https://github.com/ipfs/go-ipfs/issues/177
 [2]: https://github.com/ipfs/go-ipfs/pull/533
@@ -114,7 +114,7 @@ trying to run these checks with:
 var errStrFixConfig = `config key invalid: %s %v
 You may be able to get this error to go away by setting it again:
 
-	ipfs config %s true
+	ipfs config --bool %s true
 
 Either way, please tell us at: http://github.com/ipfs/go-ipfs/issues
 `
