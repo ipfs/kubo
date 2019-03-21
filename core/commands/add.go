@@ -200,7 +200,6 @@ You can now check what blocks have been created by:
 		}
 		_, dir := toadd.(files.Directory)
 
-
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
 
