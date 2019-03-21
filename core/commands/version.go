@@ -118,9 +118,13 @@ Print out all dependencies and their versions.`,
 			}
 			return
 		}
-		res.Emit(toDependency(&info.Main))
+		if err := res.Emit(toDependency(&info.Main)); err != nil {
+			return err
+		}
 		for _, dep := range info.Deps {
-			res.Emit(toDependency(dep))
+			if err := res.Emit(toDependency(dep)); err != nil {
+				return err
+			}
 		}
 		return nil
 	},
@@ -131,7 +135,7 @@ Print out all dependencies and their versions.`,
 				fmt.Fprintf(w, " => %s", dep.ReplacedBy)
 			}
 			fmt.Fprintf(w, "\n")
-			return errors.New("test")
+			return nil
 		}),
 	},
 }
