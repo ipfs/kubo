@@ -36,8 +36,6 @@ const (
 	progressOptionName    = "progress"
 	trickleOptionName     = "trickle"
 	wrapOptionName        = "wrap-with-directory"
-	stdinPathName         = "stdin-name"
-	hiddenOptionName      = "hidden"
 	onlyHashOptionName    = "only-hash"
 	chunkerOptionName     = "chunker"
 	pinOptionName         = "pin"
@@ -114,6 +112,8 @@ You can now check what blocks have been created by:
 	Options: []cmdkit.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
+		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
+		cmds.OptionHidden,
 		cmdkit.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmdkit.BoolOption(silentOptionName, "Write no output."),
@@ -121,8 +121,6 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmdkit.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmdkit.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmdkit.StringOption(stdinPathName, "Assign a name if the file source is stdin."),
-		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
 		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 		cmdkit.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
@@ -162,7 +160,6 @@ You can now check what blocks have been created by:
 		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
 		hash, _ := req.Options[onlyHashOptionName].(bool)
-		//hidden, _ := req.Options[hiddenOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
@@ -173,7 +170,6 @@ You can now check what blocks have been created by:
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
-		pathName, _ := req.Options[stdinPathName].(string)
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
@@ -189,7 +185,7 @@ You can now check what blocks have been created by:
 
 		var toadd files.Node = req.Files
 		name := ""
-		if !wrap || pathName != "" {
+		if !wrap {
 			it := req.Files.Entries()
 			if !it.Next() {
 				err := it.Err()
@@ -203,15 +199,7 @@ You can now check what blocks have been created by:
 			name = it.Name()
 		}
 		_, dir := toadd.(files.Directory)
-		if !dir && pathName != "" {
-			if wrap {
-				toadd = files.NewSliceDirectory([]files.DirEntry{
-					files.FileEntry(pathName, toadd),
-				})
-			} else {
-				name = pathName
-			}
-		}
+
 
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
