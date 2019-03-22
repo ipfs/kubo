@@ -249,13 +249,6 @@ func (tp *provider) TestAdd(t *testing.T) {
 			path: "/ipfs/QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp",
 		},
 		{
-			name:   "simpleDirWrap",
-			data:   flatDir,
-			expect: wrapped("QmRKGpFfR32FVXdvJiHfo4WJ5TDYBsM1P9raAp1p6APWSp"),
-			path:   "/ipfs/QmXxCaQkC8Z6Qws1nTkTQfCsL9y4XvWXnrPokp9bhmjC1L",
-			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
-		},
-		{
 			name:   "simpleDir",
 			data:   flatDir,
 			wrap:   "t",
@@ -278,35 +271,6 @@ func (tp *provider) TestAdd(t *testing.T) {
 			},
 			wrap:   "foo",
 			expect: wrapped("foo"),
-		},
-		{
-			name: "stdinWrapped",
-			path: "/ipfs/QmU3r81oZycjHS9oaSHw37ootMFuFUw1DvMLKXPsezdtqU",
-			data: func() files.Node {
-				return files.NewBytesFile([]byte(helloStr))
-			},
-			expect: func(files.Node) files.Node {
-				return files.NewMapDirectory(map[string]files.Node{
-					"QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk": files.NewBytesFile([]byte(helloStr)),
-				})
-			},
-			opts: []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
-		},
-		{
-			name:   "twoLevelDirWrapped",
-			data:   twoLevelDir(),
-			wrap:   "t",
-			expect: wrapped("QmPwsL3T5sWhDmmAWZHAzyjKtMVDS9a11aHNRqb3xoVnmg", "t"),
-			path:   "/ipfs/QmXzZwAh34pmNjuKsVGZfpbByis5S5qeZjCCUxa1ajZqzH",
-			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true)},
-		},
-		{
-			name:   "twoLevelInlineHash",
-			data:   twoLevelDir(),
-			wrap:   "t",
-			expect: wrapped("zBunoruKoyCHKkALNSWxDvj4L7yuQnMgQ4hUa9j1Z64tVcDEcu6Zdetyu7eeFCxMPfxb7YJvHeFHoFoHMkBUQf6vfdhmi", "t"),
-			path:   "/ipfs/QmUX6GykDGHTMtLmDkfjqs48QwQK82vou51xwaY9TSU7Zo",
-			opts:   []options.UnixfsAddOption{options.Unixfs.Wrap(true), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true), options.Unixfs.Hash(mh.SHA3)},
 		},
 		// hidden
 		{
