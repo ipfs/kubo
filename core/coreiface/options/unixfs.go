@@ -33,9 +33,7 @@ type UnixfsAddSettings struct {
 	FsCache  bool
 	NoCopy   bool
 
-	Wrap      bool
-	Hidden    bool
-	StdinName string
+	Wrap bool
 
 	Events   chan<- interface{}
 	Silent   bool
@@ -67,9 +65,7 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		FsCache:  false,
 		NoCopy:   false,
 
-		Wrap:      false,
-		Hidden:    false,
-		StdinName: "",
+		Wrap: false,
 
 		Events:   nil,
 		Silent:   false,
@@ -243,23 +239,6 @@ func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 func (unixfsOpts) Wrap(wrap bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.Wrap = wrap
-		return nil
-	}
-}
-
-// Hidden enables adding of hidden files (files prefixed with '.')
-func (unixfsOpts) Hidden(hidden bool) UnixfsAddOption {
-	return func(settings *UnixfsAddSettings) error {
-		settings.Hidden = hidden
-		return nil
-	}
-}
-
-// StdinName is the name set for files which don specify FilePath as
-// os.Stdin.Name()
-func (unixfsOpts) StdinName(name string) UnixfsAddOption {
-	return func(settings *UnixfsAddSettings) error {
-		settings.StdinName = name
 		return nil
 	}
 }
