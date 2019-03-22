@@ -42,15 +42,11 @@ type Link struct {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
-	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
-
+func NewAdder(p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
 	return &Adder{
-		ctx:        ctx,
 		pinning:    p,
 		gcLocker:   bs,
 		dagService: ds,
-		bufferedDS: bufferedDS,
 		Progress:   false,
 		Pin:        true,
 		Trickle:    false,
@@ -60,12 +56,10 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 
 // Adder holds the switches passed to the `add` command.
 type Adder struct {
-	ctx        context.Context
 	pinning    pin.Pinner
 	gcLocker   bstore.GCLocker
 	dagService ipld.DAGService
-	bufferedDS *ipld.BufferedDAG
-	Out        chan<- interface{}
+
 	Progress   bool
 	Pin        bool
 	Trickle    bool
@@ -73,15 +67,22 @@ type Adder struct {
 	Silent     bool
 	NoCopy     bool
 	Chunker    string
+	CidBuilder cid.Builder
+	Out        chan<- interface{}
+}
+
+type adderJob struct {
+	*Adder
+	ctx        context.Context
+	bufferedDS *ipld.BufferedDAG
 	root       ipld.Node
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   cid.Cid
-	CidBuilder cid.Builder
 	liveNodes  uint64
 }
 
-func (adder *Adder) mfsRoot() (*mfs.Root, error) {
+func (adder *adderJob) mfsRoot() (*mfs.Root, error) {
 	if adder.mroot != nil {
 		return adder.mroot, nil
 	}
@@ -95,13 +96,8 @@ func (adder *Adder) mfsRoot() (*mfs.Root, error) {
 	return adder.mroot, nil
 }
 
-// SetMfsRoot sets `r` as the root for Adder.
-func (adder *Adder) SetMfsRoot(r *mfs.Root) {
-	adder.mroot = r
-}
-
 // Constructs a node from reader's data, and adds it. Doesn't pin.
-func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
+func (adder *adderJob) add(reader io.Reader) (ipld.Node, error) {
 	chnk, err := chunker.FromString(reader, adder.Chunker)
 	if err != nil {
 		return nil, err
@@ -130,7 +126,7 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 }
 
 // RootNode returns the mfs root node
-func (adder *Adder) curRootNode() (ipld.Node, error) {
+func (adder *adderJob) curRootNode() (ipld.Node, error) {
 	// for memoizing
 	if adder.root != nil {
 		return adder.root, nil
@@ -151,7 +147,7 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 
 // Recursively pins the root node of Adder and
 // writes the pin state to the backing datastore.
-func (adder *Adder) PinRoot(root ipld.Node) error {
+func (adder *adderJob) pinRoot(root ipld.Node) error {
 	if !adder.Pin {
 		return nil
 	}
@@ -175,7 +171,7 @@ func (adder *Adder) PinRoot(root ipld.Node) error {
 	return adder.pinning.Flush()
 }
 
-func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
+func (adder *adderJob) outputDirs(path string, fsn mfs.FSNode) error {
 	switch fsn := fsn.(type) {
 	case *mfs.File:
 		return nil
@@ -210,7 +206,7 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 	}
 }
 
-func (adder *Adder) addNode(node ipld.Node, path string) error {
+func (adder *adderJob) addNode(node ipld.Node, path string) error {
 	if pi, ok := node.(*posinfo.FilestoreNode); ok {
 		node = pi.Node
 	}
@@ -241,23 +237,32 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 	return nil
 }
 
-// AddAllAndPin adds the given request's files and pin them.
-func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
+// AddAllAndPin adds the given request's files and pin them (if applicable).
+func (adder *Adder) Add(ctx context.Context, file files.Node) (ipld.Node, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	job := &adderJob{
+		Adder:      adder,
+		ctx:        ctx,
+		bufferedDS: ipld.NewBufferedDAG(ctx, adder.dagService),
+	}
+
 	if adder.Pin {
-		adder.unlocker = adder.gcLocker.PinLock()
+		job.unlocker = adder.gcLocker.PinLock()
 	}
 	defer func() {
-		if adder.unlocker != nil {
-			adder.unlocker.Unlock()
+		if job.unlocker != nil {
+			job.unlocker.Unlock()
 		}
 	}()
 
-	if err := adder.addFileNode(rootFileName, file); err != nil {
+	if err := job.addFileNode(rootFileName, file); err != nil {
 		return nil, err
 	}
 
 	// get root
-	mr, err := adder.mfsRoot()
+	mr, err := job.mfsRoot()
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +281,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	}
 
 	// output directory events
-	err = adder.outputDirs(rootFileName, root)
+	err = job.outputDirs(rootFileName, root)
 	if err != nil {
 		return nil, err
 	}
@@ -284,10 +289,10 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	if !adder.Pin {
 		return nd, nil
 	}
-	return nd, adder.PinRoot(nd)
+	return nd, job.pinRoot(nd)
 }
 
-func (adder *Adder) addFileNode(path string, file files.Node) error {
+func (adder *adderJob) addFileNode(path string, file files.Node) error {
 	err := adder.maybePauseForGC()
 	if err != nil {
 		return err
@@ -319,7 +324,7 @@ func (adder *Adder) addFileNode(path string, file files.Node) error {
 	}
 }
 
-func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
+func (adder *adderJob) addSymlink(path string, l *files.Symlink) error {
 	sdata, err := unixfs.SymlinkData(l.Target)
 	if err != nil {
 		return err
@@ -335,7 +340,7 @@ func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
 	return adder.addNode(dagnode, path)
 }
 
-func (adder *Adder) addFile(path string, file files.File) error {
+func (adder *adderJob) addFile(path string, file files.File) error {
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
@@ -357,7 +362,7 @@ func (adder *Adder) addFile(path string, file files.File) error {
 	return adder.addNode(dagnode, path)
 }
 
-func (adder *Adder) addDir(path string, dir files.Directory) error {
+func (adder *adderJob) addDir(path string, dir files.Directory) error {
 	log.Infof("adding directory: %s", path)
 
 	mr, err := adder.mfsRoot()
@@ -388,14 +393,14 @@ func (adder *Adder) addDir(path string, dir files.Directory) error {
 	return it.Err()
 }
 
-func (adder *Adder) maybePauseForGC() error {
+func (adder *adderJob) maybePauseForGC() error {
 	if adder.unlocker != nil && adder.gcLocker.GCRequested() {
 		rn, err := adder.curRootNode()
 		if err != nil {
 			return err
 		}
 
-		err = adder.PinRoot(rn)
+		err = adder.pinRoot(rn)
 		if err != nil {
 			return err
 		}

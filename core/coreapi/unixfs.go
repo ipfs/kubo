@@ -17,8 +17,6 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	merkledag "github.com/ipfs/go-merkledag"
-	dagtest "github.com/ipfs/go-merkledag/test"
-	mfs "github.com/ipfs/go-mfs"
 	ft "github.com/ipfs/go-unixfs"
 	unixfile "github.com/ipfs/go-unixfs/file"
 	uio "github.com/ipfs/go-unixfs/io"
@@ -77,7 +75,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, file files.Node, opts ...options.
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
 	dserv := dag.NewDAGService(bserv)
 
-	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, dserv)
+	fileAdder, err := coreunix.NewAdder(pinning, addblockstore, dserv)
 	if err != nil {
 		return nil, err
 	}
@@ -109,20 +107,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, file files.Node, opts ...options.
 		}
 	}
 
-	if settings.OnlyHash {
-		md := dagtest.Mock()
-		emptyDirNode := ft.EmptyDirNode()
-		// Use the same prefix for the "empty" MFS root as for the file adder.
-		emptyDirNode.SetCidBuilder(fileAdder.CidBuilder)
-		mr, err := mfs.NewRoot(ctx, md, emptyDirNode, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		fileAdder.SetMfsRoot(mr)
-	}
-
-	nd, err := fileAdder.AddAllAndPin(file)
+	nd, err := fileAdder.Add(ctx, file)
 	if err != nil {
 		return nil, err
 	}

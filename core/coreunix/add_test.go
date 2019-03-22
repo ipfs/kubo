@@ -45,7 +45,7 @@ func TestAddGCLive(t *testing.T) {
 	}
 
 	out := make(chan interface{})
-	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
+	adder, err := NewAdder(node.Pinning, node.Blockstore, node.DAG)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestAddGCLive(t *testing.T) {
 	go func() {
 		defer close(addDone)
 		defer close(out)
-		_, err := adder.AddAllAndPin(slf)
+		_, err := adder.Add(context.Background(), slf)
 
 		if err != nil {
 			t.Fatal(err)
@@ -158,7 +158,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	bs := &testBlockstore{GCBlockstore: node.Blockstore, expectedPath: filepath.Join(os.TempDir(), "foo.txt"), t: t}
 	bserv := blockservice.New(bs, node.Exchange)
 	dserv := dag.NewDAGService(bserv)
-	adder, err := NewAdder(context.Background(), node.Pinning, bs, dserv)
+	adder, err := NewAdder(node.Pinning, bs, dserv)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 
 	go func() {
 		defer close(adder.Out)
-		_, err = adder.AddAllAndPin(file)
+		_, err = adder.Add(context.Background(), file)
 		if err != nil {
 			t.Fatal(err)
 		}
