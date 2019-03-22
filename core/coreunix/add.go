@@ -265,17 +265,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	rootdir := mr.GetDirectory()
 	root = rootdir
 
-	err = root.Flush()
-	if err != nil {
-		return nil, err
-	}
-
 	root, err = rootdir.Child(rootFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mr.Close()
 	if err != nil {
 		return nil, err
 	}
