@@ -7,14 +7,15 @@ import (
 	"io"
 	gopath "path"
 	"strconv"
+	"strings"
 
 	"github.com/ipfs/go-ipfs/pin"
 
 	"github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs-posinfo"
+	files "github.com/ipfs/go-ipfs-files"
+	posinfo "github.com/ipfs/go-ipfs-posinfo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
@@ -30,6 +31,8 @@ var log = logging.Logger("coreunix")
 
 // how many bytes of progress to wait before sending a progress update message
 const progressReaderIncrement = 1024 * 256
+
+const rootFileName = "root"
 
 var liveCacheSize = uint64(256 << 10)
 
@@ -51,7 +54,6 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		Progress:   false,
 		Pin:        true,
 		Trickle:    false,
-		Wrap:       false,
 		Chunker:    "",
 	}, nil
 }
@@ -69,7 +71,6 @@ type Adder struct {
 	Trickle    bool
 	RawLeaves  bool
 	Silent     bool
-	Wrap       bool
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
@@ -144,16 +145,6 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 		return nil, err
 	}
 
-	// if not wrapping, AND one root file, use that hash as root.
-	if !adder.Wrap && len(root.Links()) == 1 {
-		nd, err := root.Links()[0].GetNode(adder.ctx, adder.dagService)
-		if err != nil {
-			return nil, err
-		}
-
-		root = nd
-	}
-
 	adder.root = root
 	return root, err
 }
@@ -220,11 +211,6 @@ func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
 }
 
 func (adder *Adder) addNode(node ipld.Node, path string) error {
-	// patch it into the root
-	if path == "" {
-		path = node.Cid().String()
-	}
-
 	if pi, ok := node.(*posinfo.FilestoreNode); ok {
 		node = pi.Node
 	}
@@ -266,7 +252,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		}
 	}()
 
-	if err := adder.addFileNode("", file); err != nil {
+	if err := adder.addFileNode(rootFileName, file); err != nil {
 		return nil, err
 	}
 
@@ -284,26 +270,9 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		return nil, err
 	}
 
-	// if adding a file without wrapping, swap the root to it (when adding a
-	// directory, mfs root is the directory)
-	_, dir := file.(files.Directory)
-	var name string
-	if !adder.Wrap && !dir {
-		children, err := rootdir.ListNames(adder.ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(children) == 0 {
-			return nil, fmt.Errorf("expected at least one child dir, got none")
-		}
-
-		// Replace root with the first child
-		name = children[0]
-		root, err = rootdir.Child(name)
-		if err != nil {
-			return nil, err
-		}
+	root, err = rootdir.Child(rootFileName)
+	if err != nil {
+		return nil, err
 	}
 
 	err = mr.Close()
@@ -316,27 +285,8 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		return nil, err
 	}
 
-	// when adding wrapped directory, manually wrap here
-	if adder.Wrap && dir {
-		name = nd.Cid().String()
-
-		end := unixfs.EmptyDirNode()
-		if err := end.AddNodeLink(nd.Cid().String(), nd); err != nil {
-			return nil, err
-		}
-		nd = end
-
-		if err := adder.dagService.Add(adder.ctx, end); err != nil {
-			return nil, err
-		}
-
-		if err := outputDagnode(adder.Out, "", nd); err != nil {
-			return nil, err
-		}
-	}
-
 	// output directory events
-	err = adder.outputDirs(name, root)
+	err = adder.outputDirs(rootFileName, root)
 	if err != nil {
 		return nil, err
 	}
@@ -476,6 +426,9 @@ func outputDagnode(out chan<- interface{}, name string, dn ipld.Node) error {
 	if err != nil {
 		return err
 	}
+
+	name = strings.TrimPrefix(name, rootFileName)
+	name = strings.TrimLeft(name, "/")
 
 	out <- &coreiface.AddEvent{
 		Path: o.Path,

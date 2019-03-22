@@ -12,7 +12,7 @@ import (
 
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-files"
+	files "github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
@@ -198,7 +198,6 @@ You can now check what blocks have been created by:
 			toadd = it.Node()
 			name = it.Name()
 		}
-		_, dir := toadd.(files.Directory)
 
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
@@ -249,10 +248,14 @@ You can now check what blocks have been created by:
 				h = enc.Encode(output.Path.Cid())
 			}
 
-			if !dir && name != "" {
-				output.Name = name
-			} else {
+			if name != "" {
 				output.Name = path.Join(name, output.Name)
+			}
+
+			if !wrap && output.Name == "" {
+				// We name the unnamed root file iff we're not
+				// wrapping. Don't ask me why.
+				output.Name = h
 			}
 
 			res.Emit(&AddEvent{
