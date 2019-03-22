@@ -266,7 +266,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		}
 	}()
 
-	if err := adder.addFileNode("", file, true); err != nil {
+	if err := adder.addFileNode("", file); err != nil {
 		return nil, err
 	}
 
@@ -347,11 +347,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	return nd, adder.PinRoot(nd)
 }
 
-func (adder *Adder) addFileNode(path string, file files.Node, toplevel bool) error {
-	if !toplevel {
-		defer file.Close()
-	}
-
+func (adder *Adder) addFileNode(path string, file files.Node) error {
 	err := adder.maybePauseForGC()
 	if err != nil {
 		return err
@@ -373,7 +369,7 @@ func (adder *Adder) addFileNode(path string, file files.Node, toplevel bool) err
 
 	switch f := file.(type) {
 	case files.Directory:
-		return adder.addDir(path, f, toplevel)
+		return adder.addDir(path, f)
 	case *files.Symlink:
 		return adder.addSymlink(path, f)
 	case files.File:
@@ -421,28 +417,29 @@ func (adder *Adder) addFile(path string, file files.File) error {
 	return adder.addNode(dagnode, path)
 }
 
-func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) error {
+func (adder *Adder) addDir(path string, dir files.Directory) error {
 	log.Infof("adding directory: %s", path)
 
-	if !(toplevel && path == "") {
-		mr, err := adder.mfsRoot()
-		if err != nil {
-			return err
-		}
-		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
-			Mkparents:  true,
-			Flush:      false,
-			CidBuilder: adder.CidBuilder,
-		})
-		if err != nil {
-			return err
-		}
+	mr, err := adder.mfsRoot()
+	if err != nil {
+		return err
+	}
+	opts := mfs.MkdirOpts{
+		Mkparents:  true,
+		Flush:      false,
+		CidBuilder: adder.CidBuilder,
+	}
+	err = mfs.Mkdir(mr, path, opts)
+	if err != nil {
+		return err
 	}
 
 	it := dir.Entries()
 	for it.Next() {
 		fpath := gopath.Join(path, it.Name())
-		err := adder.addFileNode(fpath, it.Node(), false)
+		node := it.Node()
+		err := adder.addFileNode(fpath, node)
+		node.Close()
 		if err != nil {
 			return err
 		}
