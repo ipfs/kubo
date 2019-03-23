@@ -399,10 +399,13 @@ func (adder *dirAdderJob) addDir(path string, dir files.Directory) error {
 	for it.Next() {
 		fpath := gopath.Join(path, it.Name())
 		node := it.Node()
-		err := adder.addFileNode(fpath, node)
-		node.Close()
-		if err != nil {
-			return err
+		err1 := adder.addFileNode(fpath, node)
+		err2 := node.Close()
+		switch {
+		case err1 != nil:
+			return err1
+		case err2 != nil:
+			return err2
 		}
 	}
 
