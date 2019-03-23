@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/filestore"
+	pin "github.com/ipfs/go-ipfs/pin"
 
 	"github.com/ipfs/go-ipfs/core/coreunix"
 
@@ -51,29 +51,25 @@ func (api *UnixfsAPI) Add(ctx context.Context, file files.Node, opts ...options.
 		return nil, filestore.ErrFilestoreNotEnabled
 	}
 
-	addblockstore := api.blockstore
-	if !(settings.FsCache || settings.NoCopy) {
-		addblockstore = bstore.NewGCBlockstore(api.baseBlocks, api.blockstore)
-	}
-	exch := api.exchange
-	pinning := api.pinning
+	var (
+		pinning       pin.Pinner
+		dserv         ipld.DAGService
+		addblockstore bstore.GCBlockstore
+	)
 
-	if settings.OnlyHash {
-		nilnode, err := core.NewNode(ctx, &core.BuildCfg{
-			//TODO: need this to be true or all files
-			// hashed will be stored in memory!
-			NilRepo: true,
-		})
-		if err != nil {
-			return nil, err
+	if !settings.OnlyHash {
+		addblockstore = api.blockstore
+		if !(settings.FsCache || settings.NoCopy) {
+			// XXX: Why do we need this?
+			addblockstore = bstore.NewGCBlockstore(api.baseBlocks, addblockstore)
 		}
-		addblockstore = nilnode.Blockstore
-		exch = nilnode.Exchange
-		pinning = nilnode.Pinning
-	}
+		if settings.Pin {
+			pinning = api.pinning
+		}
 
-	bserv := blockservice.New(addblockstore, exch) // hash security 001
-	dserv := dag.NewDAGService(bserv)
+		bserv := blockservice.New(addblockstore, api.exchange) // hash security 001
+		dserv = dag.NewDAGService(bserv)
+	}
 
 	fileAdder, err := coreunix.NewAdder(pinning, addblockstore, dserv)
 	if err != nil {
@@ -85,7 +81,6 @@ func (api *UnixfsAPI) Add(ctx context.Context, file files.Node, opts ...options.
 		fileAdder.Out = settings.Events
 		fileAdder.Progress = settings.Progress
 	}
-	fileAdder.Pin = settings.Pin && !settings.OnlyHash
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
 	fileAdder.NoCopy = settings.NoCopy

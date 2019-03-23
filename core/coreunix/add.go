@@ -7,7 +7,6 @@ import (
 	"io"
 	gopath "path"
 	"strconv"
-	"strings"
 
 	"github.com/ipfs/go-ipfs/pin"
 
@@ -19,6 +18,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
+	mdutils "github.com/ipfs/go-merkledag/test"
 	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-unixfs"
 	"github.com/ipfs/go-unixfs/importer/balanced"
@@ -32,8 +32,6 @@ var log = logging.Logger("coreunix")
 // how many bytes of progress to wait before sending a progress update message
 const progressReaderIncrement = 1024 * 256
 
-const rootFileName = "root"
-
 var liveCacheSize = uint64(256 << 10)
 
 type Link struct {
@@ -41,14 +39,34 @@ type Link struct {
 	Size       uint64
 }
 
+type noopDagService struct{}
+
+func (noopDagService) Add(_ context.Context, _ ipld.Node) error       { return nil }
+func (noopDagService) AddMany(_ context.Context, _ []ipld.Node) error { return nil }
+func (noopDagService) Get(_ context.Context, _ cid.Cid) (ipld.Node, error) {
+	return nil, ipld.ErrNotFound
+}
+func (noopDagService) GetMany(_ context.Context, _ []cid.Cid) <-chan *ipld.NodeOption {
+	ch := make(chan *ipld.NodeOption)
+	close(ch)
+	return ch
+}
+func (noopDagService) Remove(_ context.Context, _ cid.Cid) error       { return nil }
+func (noopDagService) RemoveMany(_ context.Context, _ []cid.Cid) error { return nil }
+
 // NewAdder Returns a new Adder used for a file add operation.
+//
+// * If the pinner is non-nil, the adder will recursively pin the root.
+// * If the bs is non-nil, the adder will lock the garbage collector when
+//   pinning.
+// * If the dagservice is nil, all intermediate nodes but the root will be
+//   discarded (useful for hashing).
 func NewAdder(p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
 	return &Adder{
 		pinning:    p,
 		gcLocker:   bs,
 		dagService: ds,
 		Progress:   false,
-		Pin:        true,
 		Trickle:    false,
 		Chunker:    "",
 	}, nil
@@ -61,7 +79,6 @@ type Adder struct {
 	dagService ipld.DAGService
 
 	Progress   bool
-	Pin        bool
 	Trickle    bool
 	RawLeaves  bool
 	Silent     bool
@@ -71,29 +88,39 @@ type Adder struct {
 	Out        chan<- interface{}
 }
 
+// The base "adder" job.
 type adderJob struct {
 	*Adder
 	ctx        context.Context
 	bufferedDS *ipld.BufferedDAG
-	root       ipld.Node
-	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   cid.Cid
-	liveNodes  uint64
 }
 
-func (adder *adderJob) mfsRoot() (*mfs.Root, error) {
-	if adder.mroot != nil {
-		return adder.mroot, nil
-	}
+// The adder job for adding directories.
+type dirAdderJob struct {
+	*adderJob
+	mroot     *mfs.Root
+	liveNodes uint64
+}
+
+func newDirAdderJob(job *adderJob) *dirAdderJob {
 	rnode := unixfs.EmptyDirNode()
-	rnode.SetCidBuilder(adder.CidBuilder)
-	mr, err := mfs.NewRoot(adder.ctx, adder.dagService, rnode, nil)
-	if err != nil {
-		return nil, err
+	rnode.SetCidBuilder(job.CidBuilder)
+	ds := job.dagService
+	if ds == nil {
+		ds = mdutils.Mock()
 	}
-	adder.mroot = mr
-	return adder.mroot, nil
+
+	mr, err := mfs.NewRoot(job.ctx, ds, rnode, nil)
+	if err != nil {
+		// impossible.
+		panic(err)
+	}
+	return &dirAdderJob{
+		adderJob: job,
+		mroot:    mr,
+	}
 }
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
@@ -125,30 +152,10 @@ func (adder *adderJob) add(reader io.Reader) (ipld.Node, error) {
 	return balanced.Layout(db)
 }
 
-// RootNode returns the mfs root node
-func (adder *adderJob) curRootNode() (ipld.Node, error) {
-	// for memoizing
-	if adder.root != nil {
-		return adder.root, nil
-	}
-
-	mr, err := adder.mfsRoot()
-	if err != nil {
-		return nil, err
-	}
-	root, err := mr.GetDirectory().GetNode()
-	if err != nil {
-		return nil, err
-	}
-
-	adder.root = root
-	return root, err
-}
-
 // Recursively pins the root node of Adder and
 // writes the pin state to the backing datastore.
 func (adder *adderJob) pinRoot(root ipld.Node) error {
-	if !adder.Pin {
+	if adder.pinning == nil || adder.dagService == nil {
 		return nil
 	}
 
@@ -171,7 +178,7 @@ func (adder *adderJob) pinRoot(root ipld.Node) error {
 	return adder.pinning.Flush()
 }
 
-func (adder *adderJob) outputDirs(path string, fsn mfs.FSNode) error {
+func (adder *dirAdderJob) outputDirs(path string, fsn mfs.FSNode) error {
 	switch fsn := fsn.(type) {
 	case *mfs.File:
 		return nil
@@ -206,15 +213,11 @@ func (adder *adderJob) outputDirs(path string, fsn mfs.FSNode) error {
 	}
 }
 
-func (adder *adderJob) addNode(node ipld.Node, path string) error {
+func (adder *dirAdderJob) linkNode(node ipld.Node, path string) error {
 	if pi, ok := node.(*posinfo.FilestoreNode); ok {
 		node = pi.Node
 	}
 
-	mr, err := adder.mfsRoot()
-	if err != nil {
-		return err
-	}
 	dir := gopath.Dir(path)
 	if dir != "." {
 		opts := mfs.MkdirOpts{
@@ -222,18 +225,15 @@ func (adder *adderJob) addNode(node ipld.Node, path string) error {
 			Flush:      false,
 			CidBuilder: adder.CidBuilder,
 		}
-		if err := mfs.Mkdir(mr, dir, opts); err != nil {
+		if err := mfs.Mkdir(adder.mroot, dir, opts); err != nil {
 			return err
 		}
 	}
 
-	if err := mfs.PutNode(mr, path, node); err != nil {
+	if err := mfs.PutNode(adder.mroot, path, node); err != nil {
 		return err
 	}
 
-	if !adder.Silent {
-		return outputDagnode(adder.Out, path, node)
-	}
 	return nil
 }
 
@@ -242,57 +242,60 @@ func (adder *Adder) Add(ctx context.Context, file files.Node) (ipld.Node, error)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	job := &adderJob{
-		Adder:      adder,
-		ctx:        ctx,
-		bufferedDS: ipld.NewBufferedDAG(ctx, adder.dagService),
+	baseJob := &adderJob{
+		Adder: adder,
+		ctx:   ctx,
 	}
+	ds := adder.dagService
+	if ds == nil {
+		ds = noopDagService{}
+	}
+	baseJob.bufferedDS = ipld.NewBufferedDAG(ctx, ds)
 
-	if adder.Pin {
-		job.unlocker = adder.gcLocker.PinLock()
+	if adder.pinning != nil && adder.gcLocker != nil {
+		baseJob.unlocker = adder.gcLocker.PinLock()
 	}
 	defer func() {
-		if job.unlocker != nil {
-			job.unlocker.Unlock()
+		if baseJob.unlocker != nil {
+			baseJob.unlocker.Unlock()
 		}
 	}()
 
-	if err := job.addFileNode(rootFileName, file); err != nil {
-		return nil, err
-	}
+	var (
+		nd  ipld.Node
+		err error
+	)
+	switch file := file.(type) {
+	case files.File:
+		nd, err = baseJob.addFile("", file)
+	case *files.Symlink:
+		nd, err = baseJob.addSymlink("", file)
+	case files.Directory:
+		job := newDirAdderJob(baseJob)
 
-	// get root
-	mr, err := job.mfsRoot()
+		// Add the directory
+		err = job.addFileNode("", file)
+		if err != nil {
+			break
+		}
+
+		// get root
+		root := job.mroot.GetDirectory()
+		nd, err = root.GetNode()
+		if err != nil {
+			break
+		}
+
+		// output directory events
+		err = job.outputDirs("", root)
+	}
 	if err != nil {
 		return nil, err
 	}
-	var root mfs.FSNode
-	rootdir := mr.GetDirectory()
-	root = rootdir
-
-	root, err = rootdir.Child(rootFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	nd, err := root.GetNode()
-	if err != nil {
-		return nil, err
-	}
-
-	// output directory events
-	err = job.outputDirs(rootFileName, root)
-	if err != nil {
-		return nil, err
-	}
-
-	if !adder.Pin {
-		return nd, nil
-	}
-	return nd, job.pinRoot(nd)
+	return nd, baseJob.pinRoot(nd)
 }
 
-func (adder *adderJob) addFileNode(path string, file files.Node) error {
+func (adder *dirAdderJob) addFileNode(path string, file files.Node) error {
 	err := adder.maybePauseForGC()
 	if err != nil {
 		return err
@@ -300,11 +303,7 @@ func (adder *adderJob) addFileNode(path string, file files.Node) error {
 
 	if adder.liveNodes >= liveCacheSize {
 		// TODO: A smarter cache that uses some sort of lru cache with an eviction handler
-		mr, err := adder.mfsRoot()
-		if err != nil {
-			return err
-		}
-		if err := mr.FlushMemFree(adder.ctx); err != nil {
+		if err := adder.mroot.FlushMemFree(adder.ctx); err != nil {
 			return err
 		}
 
@@ -324,23 +323,33 @@ func (adder *adderJob) addFileNode(path string, file files.Node) error {
 	}
 }
 
-func (adder *adderJob) addSymlink(path string, l *files.Symlink) error {
+func (adder *adderJob) addSymlink(path string, l *files.Symlink) (ipld.Node, error) {
 	sdata, err := unixfs.SymlinkData(l.Target)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dagnode := dag.NodeWithData(sdata)
 	dagnode.SetCidBuilder(adder.CidBuilder)
-	err = adder.dagService.Add(adder.ctx, dagnode)
+	if adder.dagService != nil {
+		err = adder.dagService.Add(adder.ctx, dagnode)
+	}
+	if err == nil && !adder.Silent {
+		err = outputDagnode(adder.Out, path, dagnode)
+	}
+	return dagnode, err
+}
+
+func (adder *dirAdderJob) addSymlink(path string, l *files.Symlink) error {
+	dagnode, err := adder.adderJob.addSymlink(path, l)
 	if err != nil {
 		return err
 	}
 
-	return adder.addNode(dagnode, path)
+	return adder.linkNode(dagnode, path)
 }
 
-func (adder *adderJob) addFile(path string, file files.File) error {
+func (adder *adderJob) addFile(path string, file files.File) (ipld.Node, error) {
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
 	var reader io.Reader = file
@@ -353,30 +362,37 @@ func (adder *adderJob) addFile(path string, file files.File) error {
 		}
 	}
 
-	dagnode, err := adder.add(reader)
+	nd, err := adder.add(reader)
+	if err == nil && !adder.Silent {
+		err = outputDagnode(adder.Out, path, nd)
+	}
+
+	return nd, err
+}
+
+func (adder *dirAdderJob) addFile(path string, file files.File) error {
+	dagnode, err := adder.adderJob.addFile(path, file)
 	if err != nil {
 		return err
 	}
 
 	// patch it into the root
-	return adder.addNode(dagnode, path)
+	return adder.linkNode(dagnode, path)
 }
 
-func (adder *adderJob) addDir(path string, dir files.Directory) error {
+func (adder *dirAdderJob) addDir(path string, dir files.Directory) error {
 	log.Infof("adding directory: %s", path)
 
-	mr, err := adder.mfsRoot()
-	if err != nil {
-		return err
-	}
-	opts := mfs.MkdirOpts{
-		Mkparents:  true,
-		Flush:      false,
-		CidBuilder: adder.CidBuilder,
-	}
-	err = mfs.Mkdir(mr, path, opts)
-	if err != nil {
-		return err
+	if path != "" {
+		opts := mfs.MkdirOpts{
+			Mkparents:  true,
+			Flush:      false,
+			CidBuilder: adder.CidBuilder,
+		}
+		err := mfs.Mkdir(adder.mroot, path, opts)
+		if err != nil {
+			return err
+		}
 	}
 
 	it := dir.Entries()
@@ -393,9 +409,9 @@ func (adder *adderJob) addDir(path string, dir files.Directory) error {
 	return it.Err()
 }
 
-func (adder *adderJob) maybePauseForGC() error {
+func (adder *dirAdderJob) maybePauseForGC() error {
 	if adder.unlocker != nil && adder.gcLocker.GCRequested() {
-		rn, err := adder.curRootNode()
+		rn, err := adder.mroot.GetDirectory().GetNode()
 		if err != nil {
 			return err
 		}
@@ -421,9 +437,6 @@ func outputDagnode(out chan<- interface{}, name string, dn ipld.Node) error {
 	if err != nil {
 		return err
 	}
-
-	name = strings.TrimPrefix(name, rootFileName)
-	name = strings.TrimLeft(name, "/")
 
 	out <- &coreiface.AddEvent{
 		Path: o.Path,
