@@ -75,9 +75,9 @@ test_expect_success 'prepare test files' '
 '
 
 test_expect_success 'add test objects' '
-  HASH_FOO=$(ipfsi 0 add -q --local --pin=false f1) &&
-  HASH_BAR=$(ipfsi 0 add -q --local --pin=false f2) &&
-  HASH_BAR_DIR=$(ipfsi 0 add -q --local -w f2)
+  HASH_FOO=$(ipfsi 0 add -q --offline --pin=false f1) &&
+  HASH_BAR=$(ipfsi 0 add -q --offline --pin=false f2) &&
+  HASH_BAR_DIR=$(ipfsi 0 add -q --offline -w f2)
 '
 
 findprovs_empty '$HASH_FOO'
@@ -104,10 +104,10 @@ test_expect_success 'prepare test files' '
 '
 
 test_expect_success 'add test objects' '
-  HASH_FOO=$(ipfsi 0 add -q --local --pin=false f1) &&
-  HASH_BAR=$(ipfsi 0 add -q --local --pin=false f2) &&
-  HASH_BAZ=$(ipfsi 0 add -q --local f3) &&
-  HASH_BAR_DIR=$(ipfsi 0 add -q --local -w f2 | tail -1)
+  HASH_FOO=$(ipfsi 0 add -q --offline --pin=false f1) &&
+  HASH_BAR=$(ipfsi 0 add -q --offline --pin=false f2) &&
+  HASH_BAZ=$(ipfsi 0 add -q --offline f3) &&
+  HASH_BAR_DIR=$(ipfsi 0 add -q --offline -w f2 | tail -1)
 '
 
 findprovs_empty '$HASH_FOO'
@@ -142,7 +142,7 @@ test_expect_success 'Disable reprovider ticking' '
 startup_cluster ${NUM_NODES}
 
 test_expect_success 'add test object' '
-  HASH_0=$(echo "foo" | ipfsi 0 add -q --local)
+  HASH_0=$(echo "foo" | ipfsi 0 add -q --offline)
 '
 
 findprovs_empty '$HASH_0'

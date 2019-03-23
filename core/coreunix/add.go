@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	gopath "path"
 	"strconv"
 
@@ -50,7 +49,6 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		dagService: ds,
 		bufferedDS: bufferedDS,
 		Progress:   false,
-		Hidden:     true,
 		Pin:        true,
 		Trickle:    false,
 		Wrap:       false,
@@ -67,13 +65,11 @@ type Adder struct {
 	bufferedDS *ipld.BufferedDAG
 	Out        chan<- interface{}
 	Progress   bool
-	Hidden     bool
 	Pin        bool
 	Trickle    bool
 	RawLeaves  bool
 	Silent     bool
 	Wrap       bool
-	Name       string
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
@@ -132,8 +128,8 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	return balanced.Layout(db)
 }
 
-// RootNode returns the root node of the Added.
-func (adder *Adder) RootNode() (ipld.Node, error) {
+// RootNode returns the mfs root node
+func (adder *Adder) curRootNode() (ipld.Node, error) {
 	// for memoizing
 	if adder.root != nil {
 		return adder.root, nil
@@ -164,18 +160,14 @@ func (adder *Adder) RootNode() (ipld.Node, error) {
 
 // Recursively pins the root node of Adder and
 // writes the pin state to the backing datastore.
-func (adder *Adder) PinRoot() error {
-	root, err := adder.RootNode()
-	if err != nil {
-		return err
-	}
+func (adder *Adder) PinRoot(root ipld.Node) error {
 	if !adder.Pin {
 		return nil
 	}
 
 	rnk := root.Cid()
 
-	err = adder.dagService.Add(adder.ctx, root)
+	err := adder.dagService.Add(adder.ctx, root)
 	if err != nil {
 		return err
 	}
@@ -190,53 +182,6 @@ func (adder *Adder) PinRoot() error {
 
 	adder.pinning.PinWithMode(rnk, pin.Recursive)
 	return adder.pinning.Flush()
-}
-
-// Finalize flushes the mfs root directory and returns the mfs root node.
-func (adder *Adder) Finalize() (ipld.Node, error) {
-	mr, err := adder.mfsRoot()
-	if err != nil {
-		return nil, err
-	}
-	var root mfs.FSNode
-	rootdir := mr.GetDirectory()
-	root = rootdir
-
-	err = root.Flush()
-	if err != nil {
-		return nil, err
-	}
-
-	var name string
-	if !adder.Wrap {
-		children, err := rootdir.ListNames(adder.ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(children) == 0 {
-			return nil, fmt.Errorf("expected at least one child dir, got none")
-		}
-
-		// Replace root with the first child
-		name = children[0]
-		root, err = rootdir.Child(name)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = adder.outputDirs(name, root)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mr.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	return root.GetNode()
 }
 
 func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
@@ -321,30 +266,77 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 		}
 	}()
 
-	switch tf := file.(type) {
-	case files.Directory:
-		// Iterate over each top-level file and add individually. Otherwise the
-		// single files.File f is treated as a directory, affecting hidden file
-		// semantics.
-		it := tf.Entries()
-		for it.Next() {
-			if err := adder.addFileNode(it.Name(), it.Node()); err != nil {
-				return nil, err
-			}
-		}
-		if it.Err() != nil {
-			return nil, it.Err()
-		}
-		break
-	default:
-		if err := adder.addFileNode("", file); err != nil {
-			return nil, err
-		}
-		break
+	if err := adder.addFileNode("", file, true); err != nil {
+		return nil, err
 	}
 
-	// copy intermediary nodes from editor to our actual dagservice
-	nd, err := adder.Finalize()
+	// get root
+	mr, err := adder.mfsRoot()
+	if err != nil {
+		return nil, err
+	}
+	var root mfs.FSNode
+	rootdir := mr.GetDirectory()
+	root = rootdir
+
+	err = root.Flush()
+	if err != nil {
+		return nil, err
+	}
+
+	// if adding a file without wrapping, swap the root to it (when adding a
+	// directory, mfs root is the directory)
+	_, dir := file.(files.Directory)
+	var name string
+	if !adder.Wrap && !dir {
+		children, err := rootdir.ListNames(adder.ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(children) == 0 {
+			return nil, fmt.Errorf("expected at least one child dir, got none")
+		}
+
+		// Replace root with the first child
+		name = children[0]
+		root, err = rootdir.Child(name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = mr.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	nd, err := root.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	// when adding wrapped directory, manually wrap here
+	if adder.Wrap && dir {
+		name = nd.Cid().String()
+
+		end := unixfs.EmptyDirNode()
+		if err := end.AddNodeLink(nd.Cid().String(), nd); err != nil {
+			return nil, err
+		}
+		nd = end
+
+		if err := adder.dagService.Add(adder.ctx, end); err != nil {
+			return nil, err
+		}
+
+		if err := outputDagnode(adder.Out, "", nd); err != nil {
+			return nil, err
+		}
+	}
+
+	// output directory events
+	err = adder.outputDirs(name, root)
 	if err != nil {
 		return nil, err
 	}
@@ -352,11 +344,14 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	if !adder.Pin {
 		return nd, nil
 	}
-	return nd, adder.PinRoot()
+	return nd, adder.PinRoot(nd)
 }
 
-func (adder *Adder) addFileNode(path string, file files.Node) error {
-	defer file.Close()
+func (adder *Adder) addFileNode(path string, file files.Node, toplevel bool) error {
+	if !toplevel {
+		defer file.Close()
+	}
+
 	err := adder.maybePauseForGC()
 	if err != nil {
 		return err
@@ -378,7 +373,7 @@ func (adder *Adder) addFileNode(path string, file files.Node) error {
 
 	switch f := file.(type) {
 	case files.Directory:
-		return adder.addDir(path, f)
+		return adder.addDir(path, f, toplevel)
 	case *files.Symlink:
 		return adder.addSymlink(path, f)
 	case files.File:
@@ -422,43 +417,32 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		return err
 	}
 
-	addFileInfo, ok := file.(files.FileInfo)
-	if ok {
-		if addFileInfo.AbsPath() == os.Stdin.Name() && adder.Name != "" {
-			path = adder.Name
-			adder.Name = ""
-		}
-	}
 	// patch it into the root
 	return adder.addNode(dagnode, path)
 }
 
-func (adder *Adder) addDir(path string, dir files.Directory) error {
+func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) error {
 	log.Infof("adding directory: %s", path)
 
-	mr, err := adder.mfsRoot()
-	if err != nil {
-		return err
-	}
-	err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
-		Mkparents:  true,
-		Flush:      false,
-		CidBuilder: adder.CidBuilder,
-	})
-	if err != nil {
-		return err
+	if !(toplevel && path == "") {
+		mr, err := adder.mfsRoot()
+		if err != nil {
+			return err
+		}
+		err = mfs.Mkdir(mr, path, mfs.MkdirOpts{
+			Mkparents:  true,
+			Flush:      false,
+			CidBuilder: adder.CidBuilder,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	it := dir.Entries()
 	for it.Next() {
 		fpath := gopath.Join(path, it.Name())
-
-		// Skip hidden files when adding recursively, unless Hidden is enabled.
-		if files.IsHidden(fpath, it.Node()) && !adder.Hidden {
-			log.Infof("%s is hidden, skipping", fpath)
-			continue
-		}
-		err = adder.addFileNode(fpath, it.Node())
+		err := adder.addFileNode(fpath, it.Node(), false)
 		if err != nil {
 			return err
 		}
@@ -469,7 +453,12 @@ func (adder *Adder) addDir(path string, dir files.Directory) error {
 
 func (adder *Adder) maybePauseForGC() error {
 	if adder.unlocker != nil && adder.gcLocker.GCRequested() {
-		err := adder.PinRoot()
+		rn, err := adder.curRootNode()
+		if err != nil {
+			return err
+		}
+
+		err = adder.PinRoot(rn)
 		if err != nil {
 			return err
 		}

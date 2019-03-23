@@ -32,12 +32,12 @@ require (
 	github.com/ipfs/go-ipfs-blocksutil v0.0.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmdkit v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.2
+	github.com/ipfs/go-ipfs-cmds v0.0.4
 	github.com/ipfs/go-ipfs-config v0.0.1
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
-	github.com/ipfs/go-ipfs-files v0.0.1
+	github.com/ipfs/go-ipfs-files v0.0.2
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-routing v0.0.1
 	github.com/ipfs/go-ipfs-util v0.0.1
@@ -54,7 +54,7 @@ require (
 	github.com/ipfs/go-unixfs v0.0.3
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.0.3
+	github.com/ipfs/interface-go-ipfs-core v0.0.4
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.0.2
 	github.com/jbenet/go-is-domain v1.0.2
@@ -108,6 +108,7 @@ require (
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	golang.org/x/sys v0.0.0-20190302025703-b6889370fb10
+	golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect

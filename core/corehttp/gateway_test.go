@@ -22,7 +22,6 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	path "github.com/ipfs/go-path"
 	iface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	ci "github.com/libp2p/go-libp2p-crypto"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
@@ -253,7 +252,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		}),
 	})
 
-	k, err := api.Unixfs().Add(ctx, f1, options.Unixfs.Wrap(true))
+	k, err := api.Unixfs().Add(ctx, f1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +345,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	})
 
 	// create /ipns/example.net/foo/
-	k, err := api.Unixfs().Add(ctx, f1, options.Unixfs.Wrap(true))
+	k, err := api.Unixfs().Add(ctx, f1)
 	if err != nil {
 		t.Fatal(err)
 	}
