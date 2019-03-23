@@ -266,10 +266,10 @@ func (adder *Adder) Add(ctx context.Context, file files.Node) (ipld.Node, error)
 		err error
 	)
 	switch file := file.(type) {
-	case files.File:
-		nd, err = baseJob.addFile("", file)
 	case *files.Symlink:
 		nd, err = baseJob.addSymlink("", file)
+	case files.File:
+		nd, err = baseJob.addFile("", file)
 	case files.Directory:
 		job := newDirAdderJob(baseJob)
 
