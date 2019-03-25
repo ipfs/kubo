@@ -4,6 +4,7 @@ package iface
 
 import (
 	"context"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
@@ -43,11 +44,11 @@ type CoreAPI interface {
 	PubSub() PubSubAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
-	ResolvePath(context.Context, Path) (ResolvedPath, error)
+	ResolvePath(context.Context, path.Path) (path.ResolvedPath, error)
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
-	ResolveNode(context.Context, Path) (ipld.Node, error)
+	ResolveNode(context.Context, path.Path) (ipld.Node, error)
 
 	// WithOptions creates new instance of CoreAPI based on this instance with
 	// a set of options applied

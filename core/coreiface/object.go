@@ -2,11 +2,12 @@ package iface
 
 import (
 	"context"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"io"
 
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 
-	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 )
 
@@ -58,11 +59,11 @@ type ObjectChange struct {
 
 	// Before holds the link path before the change. Note that when a link is
 	// added, this will be nil.
-	Before ResolvedPath
+	Before path.ResolvedPath
 
 	// After holds the link path after the change. Note that when a link is
 	// removed, this will be nil.
-	After ResolvedPath
+	After path.ResolvedPath
 }
 
 // ObjectAPI specifies the interface to MerkleDAG and contains useful utilities
@@ -72,35 +73,35 @@ type ObjectAPI interface {
 	New(context.Context, ...options.ObjectNewOption) (ipld.Node, error)
 
 	// Put imports the data into merkledag
-	Put(context.Context, io.Reader, ...options.ObjectPutOption) (ResolvedPath, error)
+	Put(context.Context, io.Reader, ...options.ObjectPutOption) (path.ResolvedPath, error)
 
 	// Get returns the node for the path
-	Get(context.Context, Path) (ipld.Node, error)
+	Get(context.Context, path.Path) (ipld.Node, error)
 
 	// Data returns reader for data of the node
-	Data(context.Context, Path) (io.Reader, error)
+	Data(context.Context, path.Path) (io.Reader, error)
 
 	// Links returns lint or links the node contains
-	Links(context.Context, Path) ([]*ipld.Link, error)
+	Links(context.Context, path.Path) ([]*ipld.Link, error)
 
 	// Stat returns information about the node
-	Stat(context.Context, Path) (*ObjectStat, error)
+	Stat(context.Context, path.Path) (*ObjectStat, error)
 
 	// AddLink adds a link under the specified path. child path can point to a
 	// subdirectory within the patent which must be present (can be overridden
 	// with WithCreate option).
-	AddLink(ctx context.Context, base Path, name string, child Path, opts ...options.ObjectAddLinkOption) (ResolvedPath, error)
+	AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...options.ObjectAddLinkOption) (path.ResolvedPath, error)
 
 	// RmLink removes a link from the node
-	RmLink(ctx context.Context, base Path, link string) (ResolvedPath, error)
+	RmLink(ctx context.Context, base path.Path, link string) (path.ResolvedPath, error)
 
 	// AppendData appends data to the node
-	AppendData(context.Context, Path, io.Reader) (ResolvedPath, error)
+	AppendData(context.Context, path.Path, io.Reader) (path.ResolvedPath, error)
 
 	// SetData sets the data contained in the node
-	SetData(context.Context, Path, io.Reader) (ResolvedPath, error)
+	SetData(context.Context, path.Path, io.Reader) (path.ResolvedPath, error)
 
 	// Diff returns a set of changes needed to transform the first object into the
 	// second.
-	Diff(context.Context, Path, Path) ([]ObjectChange, error)
+	Diff(context.Context, path.Path, path.Path) ([]ObjectChange, error)
 }

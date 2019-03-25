@@ -2,8 +2,9 @@ package iface
 
 import (
 	"context"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 
 	"github.com/libp2p/go-libp2p-peer"
 )
@@ -14,7 +15,7 @@ type Key interface {
 	Name() string
 
 	// Path returns key path
-	Path() Path
+	Path() path.Path
 
 	// ID returns key PeerID
 	ID() peer.ID

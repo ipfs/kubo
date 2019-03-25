@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -110,7 +111,7 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 		t.Error("didn't get correct data back")
 	}
 
-	p := coreiface.ParsePath("/ipfs/" + res.Path().Cid().String())
+	p := path.ParsePath("/ipfs/" + res.Path().Cid().String())
 
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {

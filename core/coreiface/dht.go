@@ -2,10 +2,11 @@ package iface
 
 import (
 	"context"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
@@ -19,8 +20,8 @@ type DhtAPI interface {
 
 	// FindProviders finds peers in the DHT who can provide a specific value
 	// given a key.
-	FindProviders(context.Context, Path, ...options.DhtFindProvidersOption) (<-chan pstore.PeerInfo, error)
+	FindProviders(context.Context, path.Path, ...options.DhtFindProvidersOption) (<-chan pstore.PeerInfo, error)
 
 	// Provide announces to the network that you are providing given values
-	Provide(context.Context, Path, ...options.DhtProvideOption) error
+	Provide(context.Context, path.Path, ...options.DhtProvideOption) error
 }

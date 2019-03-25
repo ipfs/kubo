@@ -3,16 +3,17 @@ package iface
 import (
 	"context"
 	"github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 
-	cid "github.com/ipfs/go-cid"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs-files"
 )
 
 type AddEvent struct {
 	Name  string
-	Path  ResolvedPath `json:",omitempty"`
-	Bytes int64        `json:",omitempty"`
-	Size  string       `json:",omitempty"`
+	Path  path.ResolvedPath `json:",omitempty"`
+	Bytes int64              `json:",omitempty"`
+	Size  string             `json:",omitempty"`
 }
 
 // FileType is an enum of possible UnixFS file types.
@@ -64,15 +65,15 @@ type UnixfsAPI interface {
 	// Add imports the data from the reader into merkledag file
 	//
 	// TODO: a long useful comment on how to use this for many different scenarios
-	Add(context.Context, files.Node, ...options.UnixfsAddOption) (ResolvedPath, error)
+	Add(context.Context, files.Node, ...options.UnixfsAddOption) (path.ResolvedPath, error)
 
 	// Get returns a read-only handle to a file tree referenced by a path
 	//
 	// Note that some implementations of this API may apply the specified context
 	// to operations performed on the returned file
-	Get(context.Context, Path) (files.Node, error)
+	Get(context.Context, path.Path) (files.Node, error)
 
 	// Ls returns the list of links in a directory. Links aren't guaranteed to be
 	// returned in order
-	Ls(context.Context, Path, ...options.UnixfsLsOption) (<-chan DirEntry, error)
+	Ls(context.Context, path.Path, ...options.UnixfsLsOption) (<-chan DirEntry, error)
 }
