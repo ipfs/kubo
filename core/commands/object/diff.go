@@ -60,18 +60,8 @@ Example:
 			return err
 		}
 
-		a := req.Arguments[0]
-		b := req.Arguments[1]
-
-		pa, err := coreiface.ParsePath(a)
-		if err != nil {
-			return err
-		}
-
-		pb, err := coreiface.ParsePath(b)
-		if err != nil {
-			return err
-		}
+		pa := coreiface.ParsePath(req.Arguments[0])
+		pb := coreiface.ParsePath(req.Arguments[1])
 
 		changes, err := api.Object().Diff(req.Context, pa, pb)
 		if err != nil {

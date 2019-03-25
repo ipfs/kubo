@@ -55,10 +55,7 @@ the limit will not be respected by the network.
 			return err
 		}
 
-		root, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		root := coreiface.ParsePath(req.Arguments[0])
 
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
@@ -102,10 +99,7 @@ Example:
 			return err
 		}
 
-		root, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		root := coreiface.ParsePath(req.Arguments[0])
 
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
@@ -145,10 +139,7 @@ Remove a Merkle-link from the given object and return the hash of the result.
 			return err
 		}
 
-		root, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		root := coreiface.ParsePath(req.Arguments[0])
 
 		name := req.Arguments[1]
 		p, err := api.Object().RmLink(req.Context, root, name)
@@ -201,17 +192,9 @@ to a file containing 'bar', and returns the hash of the new object.
 			return err
 		}
 
-		root, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
+		root := coreiface.ParsePath(req.Arguments[0])
 		name := req.Arguments[1]
-
-		child, err := coreiface.ParsePath(req.Arguments[2])
-		if err != nil {
-			return err
-		}
+		child := coreiface.ParsePath(req.Arguments[2])
 
 		create, _ := req.Options[createOptionName].(bool)
 		if err != nil {

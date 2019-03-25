@@ -184,7 +184,7 @@ func TestIpfsStressRead(t *testing.T) {
 			defer wg.Done()
 
 			for i := 0; i < 2000; i++ {
-				item, _ := iface.ParsePath(paths[rand.Intn(len(paths))])
+				item := iface.ParsePath(paths[rand.Intn(len(paths))])
 
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
 				fname := path.Join(mnt.Dir, relpath)

@@ -28,12 +28,7 @@ func (k *key) Name() string {
 
 // Path returns the path of the key.
 func (k *key) Path() coreiface.Path {
-	path, err := coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
-	if err != nil {
-		panic("error parsing path: " + err.Error())
-	}
-
-	return path
+	return coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
 }
 
 // ID returns key PeerID

@@ -147,8 +147,8 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		ipnsHostname = true
 	}
 
-	parsedPath, err := coreiface.ParsePath(urlPath)
-	if err != nil {
+	parsedPath := coreiface.ParsePath(urlPath)
+	if err := parsedPath.IsValid(); err != nil {
 		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
 		return
 	}

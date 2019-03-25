@@ -36,6 +36,9 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 	if _, ok := p.(coreiface.ResolvedPath); ok {
 		return p.(coreiface.ResolvedPath), nil
 	}
+	if err := p.IsValid(); err != nil {
+		return nil, err
+	}
 
 	ipath := ipfspath.Path(p.String())
 	ipath, err := core.ResolveIPNS(ctx, api.namesys, ipath)

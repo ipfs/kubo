@@ -106,10 +106,8 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 	go func() {
 		defer close(out)
 		for res := range resolver.ResolveAsync(ctx, name, options.ResolveOpts...) {
-			p, _ := coreiface.ParsePath(res.Path.String())
-
 			select {
-			case out <- coreiface.IpnsResult{Path: p, Err: res.Err}:
+			case out <- coreiface.IpnsResult{Path: coreiface.ParsePath(res.Path.String()), Err: res.Err}:
 			case <-ctx.Done():
 				return
 			}

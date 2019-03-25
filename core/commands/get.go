@@ -71,10 +71,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		p := iface.ParsePath(req.Arguments[0])
 
 		file, err := api.Unixfs().Get(req.Context, p)
 		if err != nil {

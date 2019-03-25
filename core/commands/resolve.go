@@ -130,12 +130,7 @@ Resolve the value of an IPFS DAG path:
 		}
 
 		// else, ipfs path or ipns with recursive flag
-		p, err := coreiface.ParsePath(name)
-		if err != nil {
-			return err
-		}
-
-		rp, err := api.ResolvePath(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, coreiface.ParsePath(name))
 		if err != nil {
 			return err
 		}

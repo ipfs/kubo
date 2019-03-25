@@ -96,12 +96,7 @@ possible, please use 'ipfs ls' instead.
 		for _, p := range paths {
 			ctx := req.Context
 
-			fpath, err := iface.ParsePath(p)
-			if err != nil {
-				return err
-			}
-
-			merkleNode, err := api.ResolveNode(ctx, fpath)
+			merkleNode, err := api.ResolveNode(ctx, iface.ParsePath(p))
 			if err != nil {
 				return err
 			}

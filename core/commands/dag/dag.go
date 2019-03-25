@@ -160,12 +160,7 @@ format.
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		rp, err := api.ResolvePath(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, iface.ParsePath(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -205,12 +200,7 @@ var DagResolveCmd = &cmds.Command{
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		rp, err := api.ResolvePath(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, iface.ParsePath(req.Arguments[0]))
 		if err != nil {
 			return err
 		}

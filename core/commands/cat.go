@@ -118,12 +118,7 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 		return nil, 0, nil
 	}
 	for _, p := range paths {
-		fpath, err := iface.ParsePath(p)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		f, err := api.Unixfs().Get(ctx, fpath)
+		f, err := api.Unixfs().Get(ctx, iface.ParsePath(p))
 		if err != nil {
 			return nil, 0, err
 		}
