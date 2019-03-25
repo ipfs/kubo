@@ -33,8 +33,6 @@ type UnixfsAddSettings struct {
 	FsCache  bool
 	NoCopy   bool
 
-	Wrap bool
-
 	Events   chan<- interface{}
 	Silent   bool
 	Progress bool
@@ -64,8 +62,6 @@ func UnixfsAddOptions(opts ...UnixfsAddOption) (*UnixfsAddSettings, cid.Prefix, 
 		OnlyHash: false,
 		FsCache:  false,
 		NoCopy:   false,
-
-		Wrap: false,
 
 		Events:   nil,
 		Silent:   false,
@@ -230,15 +226,6 @@ func (unixfsOpts) Pin(pin bool) UnixfsAddOption {
 func (unixfsOpts) HashOnly(hashOnly bool) UnixfsAddOption {
 	return func(settings *UnixfsAddSettings) error {
 		settings.OnlyHash = hashOnly
-		return nil
-	}
-}
-
-// Wrap tells the adder to wrap the added file structure with an additional
-// directory.
-func (unixfsOpts) Wrap(wrap bool) UnixfsAddOption {
-	return func(settings *UnixfsAddSettings) error {
-		settings.Wrap = wrap
 		return nil
 	}
 }
