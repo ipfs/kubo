@@ -51,7 +51,6 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		Progress:   false,
 		Pin:        true,
 		Trickle:    false,
-		Wrap:       false,
 		Chunker:    "",
 	}, nil
 }
@@ -69,7 +68,6 @@ type Adder struct {
 	Trickle    bool
 	RawLeaves  bool
 	Silent     bool
-	Wrap       bool
 	NoCopy     bool
 	Chunker    string
 	root       ipld.Node
@@ -144,8 +142,8 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 		return nil, err
 	}
 
-	// if not wrapping, AND one root file, use that hash as root.
-	if !adder.Wrap && len(root.Links()) == 1 {
+	// if one root file, use that hash as root.
+	if len(root.Links()) == 1 {
 		nd, err := root.Links()[0].GetNode(adder.ctx, adder.dagService)
 		if err != nil {
 			return nil, err
@@ -288,7 +286,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	// directory, mfs root is the directory)
 	_, dir := file.(files.Directory)
 	var name string
-	if !adder.Wrap && !dir {
+	if !dir {
 		children, err := rootdir.ListNames(adder.ctx)
 		if err != nil {
 			return nil, err
@@ -314,25 +312,6 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	nd, err := root.GetNode()
 	if err != nil {
 		return nil, err
-	}
-
-	// when adding wrapped directory, manually wrap here
-	if adder.Wrap && dir {
-		name = nd.Cid().String()
-
-		end := unixfs.EmptyDirNode()
-		if err := end.AddNodeLink(nd.Cid().String(), nd); err != nil {
-			return nil, err
-		}
-		nd = end
-
-		if err := adder.dagService.Add(adder.ctx, end); err != nil {
-			return nil, err
-		}
-
-		if err := outputDagnode(adder.Out, "", nd); err != nil {
-			return nil, err
-		}
 	}
 
 	// output directory events
