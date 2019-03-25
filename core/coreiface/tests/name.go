@@ -35,11 +35,7 @@ func addTestObject(ctx context.Context, api coreiface.CoreAPI) (coreiface.Path, 
 }
 
 func appendPath(p coreiface.Path, sub string) coreiface.Path {
-	p, err := coreiface.ParsePath(path.Join(p.String(), sub))
-	if err != nil {
-		panic(err)
-	}
-	return p
+	return coreiface.ParsePath(path.Join(p.String(), sub))
 }
 
 func (tp *provider) TestPublishResolve(t *testing.T) {

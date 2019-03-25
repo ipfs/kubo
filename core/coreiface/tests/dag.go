@@ -113,10 +113,7 @@ func (tp *provider) TestDagPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p, err := coreiface.ParsePath(path.Join(nd.Cid().String(), "lnk"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := coreiface.ParsePath(path.Join(nd.Cid().String(), "lnk"))
 
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {

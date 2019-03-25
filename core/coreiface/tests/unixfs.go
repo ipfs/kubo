@@ -592,10 +592,7 @@ func (tp *provider) TestGetEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	emptyFilePath, err := coreiface.ParsePath(emptyFile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	emptyFilePath := coreiface.ParsePath(emptyFile)
 
 	r, err := api.Unixfs().Get(ctx, emptyFilePath)
 	if err != nil {

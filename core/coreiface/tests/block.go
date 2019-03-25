@@ -110,10 +110,7 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 		t.Error("didn't get correct data back")
 	}
 
-	p, err := coreiface.ParsePath("/ipfs/" + res.Path().Cid().String())
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := coreiface.ParsePath("/ipfs/" + res.Path().Cid().String())
 
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {
