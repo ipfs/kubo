@@ -296,7 +296,7 @@ func (tp *provider) TestObjectAddLinkCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p3, err := api.Object().AddLink(ctx, p2, "abc/d", p2)
+	_, err = api.Object().AddLink(ctx, p2, "abc/d", p2)
 	if err == nil {
 		t.Fatal("expected an error")
 	}
@@ -304,7 +304,7 @@ func (tp *provider) TestObjectAddLinkCreate(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	p3, err = api.Object().AddLink(ctx, p2, "abc/d", p2, opt.Object.Create(true))
+	p3, err := api.Object().AddLink(ctx, p2, "abc/d", p2, opt.Object.Create(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,6 +384,9 @@ func (tp *provider) TestObjectAddData(t *testing.T) {
 	}
 
 	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if string(data) != "foobar" {
 		t.Error("unexpected data")
@@ -414,6 +417,9 @@ func (tp *provider) TestObjectSetData(t *testing.T) {
 	}
 
 	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if string(data) != "bar" {
 		t.Error("unexpected data")
