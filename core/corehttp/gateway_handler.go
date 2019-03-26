@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	gopath "path"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -25,6 +27,7 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	ft "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/go-unixfs/importer"
+	uio "github.com/ipfs/go-unixfs/io"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/libp2p/go-libp2p-routing"
 	"github.com/multiformats/go-multibase"
@@ -344,6 +347,144 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	if err != nil {
 		internalWebError(w, err)
 		return
+	}
+}
+
+func (i *gatewayHandler) secureGetHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	urlPath := r.URL.Path
+	escapedURLPath := r.URL.EscapedPath()
+
+	// If the gateway is behind a reverse proxy and mounted at a sub-path,
+	// the prefix header can be set to signal this sub-path.
+	// It will be prepended to links in directory listings and the index.html redirect.
+	prefix := ""
+	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); len(prfx) > 0 {
+		for _, p := range i.config.PathPrefixes {
+			if prfx == p || strings.HasPrefix(prfx, p+"/") {
+				prefix = prfx
+				break
+			}
+		}
+	}
+
+	// IPNSHostnameOption might have constructed an IPNS path using the Host header.
+	// In this case, we need the original path for constructing redirects
+	// and links that match the requested URL.
+	// For example, http://example.net would become /ipns/example.net, and
+	// the redirects and links would end up as http://example.net/ipns/example.net
+	originalUrlPath := prefix + urlPath
+	if hdr := r.Header.Get("X-Ipns-Original-Path"); len(hdr) > 0 {
+		originalUrlPath = prefix + hdr
+	}
+
+	parsedPath, err := coreiface.ParsePath(urlPath)
+	if err != nil {
+		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
+		return
+	}
+
+	// Resolve path to the final DAG node for the ETag
+	preamble := &proofBuffer{}
+	resolvedPath, err := i.api.ResolvePath(context.WithValue(ctx, "proxy-preamble", preamble), parsedPath)
+	if err == coreiface.ErrOffline && !i.node.IsOnline {
+		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
+		return
+	} else if err != nil {
+		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
+		return
+	}
+
+	// Check etag send back to us
+	etag := "\"" + resolvedPath.Cid().String() + "\""
+	if r.Header.Get("If-None-Match") == etag || r.Header.Get("If-None-Match") == "W/"+etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+
+	pr, err := i.api.Unixfs().GetWithProof(ctx, resolvedPath)
+	if err == uio.ErrIsDir {
+		http.Redirect(w, r, gopath.Join(originalUrlPath, "index.html"), 302)
+		return
+	} else if err != nil {
+		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
+		return
+	}
+	defer pr.Close()
+
+	i.addUserHeaders(w) // ok, _now_ write user's headers.
+	w.Header().Set("X-IPFS-Path", urlPath)
+	w.Header().Set("Etag", etag)
+
+	if strings.HasPrefix(urlPath, ipfsPathPrefix) {
+		w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
+	}
+	if contentType := mime.TypeByExtension(gopath.Ext(urlPath)); contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	} else {
+		w.Header().Set("Content-Type", "text/html")
+	}
+
+	if err := copyChunks(w, preamble); err != nil {
+		log.Warningf("error writing response preamble: %v", err)
+	} else if err := copyChunks(w, pr); err != nil {
+		log.Warningf("error writing response body: %v", err)
+	}
+}
+
+// proofBuffer is an in-memory implementation of ProofWriter and ProofReader for
+// the gateway's preamble, where proofs of name resolution are provided.
+type proofBuffer struct {
+	mu   sync.Mutex
+	buff [][]byte
+}
+
+func (pb *proofBuffer) WriteChunk(data []byte) error {
+	pb.mu.Lock()
+	defer pb.mu.Unlock()
+
+	pb.buff = append(pb.buff, data)
+	return nil
+}
+
+func (pb *proofBuffer) ReadChunk() ([]byte, error) {
+	pb.mu.Lock()
+	defer pb.mu.Unlock()
+
+	if len(pb.buff) == 0 {
+		return nil, io.EOF
+	}
+	out := pb.buff[0]
+	pb.buff = pb.buff[1:]
+	return out, nil
+}
+
+func (pb *proofBuffer) Close() error {
+	pb.mu.Lock()
+	defer pb.mu.Unlock()
+
+	pb.buff = nil
+	return nil
+}
+
+func copyChunks(w io.Writer, pr coreiface.ProofReader) error {
+	for {
+		chunk, err := pr.ReadChunk()
+		if err == io.EOF {
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		l := make([]byte, 3)
+		l[0] = byte(len(chunk) >> 16)
+		l[1] = byte(len(chunk) >> 8)
+		l[2] = byte(len(chunk))
+
+		if _, err := w.Write(l); err != nil {
+			return err
+		} else if _, err := w.Write(chunk); err != nil {
+			return err
+		}
 	}
 }
 

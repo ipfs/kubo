@@ -67,13 +67,13 @@ func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.R
 	res := make(chan Result, 1)
 	if strings.HasPrefix(name, "/ipfs/") {
 		p, err := path.ParsePath(name)
-		res <- Result{p, err}
+		res <- Result{p, nil, err}
 		return res
 	}
 
 	if !strings.HasPrefix(name, "/") {
 		p, err := path.ParsePath("/ipfs/" + name)
-		res <- Result{p, err}
+		res <- Result{p, nil, err}
 		return res
 	}
 
@@ -81,7 +81,7 @@ func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.R
 }
 
 // resolveOnce implements resolver.
-func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, needsProof bool, options opts.ResolveOpts) <-chan onceResult {
 	out := make(chan onceResult, 1)
 
 	if !strings.HasPrefix(name, ipnsPrefix) {
@@ -97,16 +97,16 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 
 	key := segments[2]
 
-	if p, ok := ns.cacheGet(key); ok {
+	if p, proof, ok := ns.cacheGet(key); ok && (!needsProof || proof != nil) {
 		if len(segments) > 3 {
 			var err error
 			p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
 			if err != nil {
-				emitOnceResult(ctx, out, onceResult{value: p, err: err})
+				emitOnceResult(ctx, out, onceResult{value: p, proof: proof, err: err})
 			}
 		}
 
-		out <- onceResult{value: p}
+		out <- onceResult{value: p, proof: proof}
 		close(out)
 		return out
 	}
@@ -125,34 +125,35 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 		res = ns.proquintResolver
 	}
 
-	resCh := res.resolveOnceAsync(ctx, key, options)
-	var best onceResult
+	resCh := res.resolveOnceAsync(ctx, key, needsProof, options)
+	var best *onceResult
 	go func() {
 		defer close(out)
 		for {
 			select {
 			case res, ok := <-resCh:
 				if !ok {
-					if best != (onceResult{}) {
-						ns.cacheSet(key, best.value, best.ttl)
+					if best != nil {
+						ns.cacheSet(key, best.value, best.proof, best.ttl)
 					}
 					return
 				}
 				if res.err == nil {
-					best = res
+					best = &onceResult{}
+					*best = res
 				}
-				p := res.value
+				p, proof := res.value, res.proof
 
 				// Attach rest of the path
 				if len(segments) > 3 {
 					var err error
 					p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
 					if err != nil {
-						emitOnceResult(ctx, out, onceResult{value: p, ttl: res.ttl, err: err})
+						emitOnceResult(ctx, out, onceResult{value: p, proof: proof, ttl: res.ttl, err: err})
 					}
 				}
 
-				emitOnceResult(ctx, out, onceResult{value: p, ttl: res.ttl, err: res.err})
+				emitOnceResult(ctx, out, onceResult{value: p, proof: proof, ttl: res.ttl, err: res.err})
 			case <-ctx.Done():
 				return
 			}
@@ -186,6 +187,6 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 	if ttEol := eol.Sub(time.Now()); ttEol < ttl {
 		ttl = ttEol
 	}
-	ns.cacheSet(peer.IDB58Encode(id), value, ttl)
+	ns.cacheSet(peer.IDB58Encode(id), value, nil, ttl)
 	return nil
 }

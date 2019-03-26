@@ -48,7 +48,7 @@ func (r *IpnsResolver) ResolveAsync(ctx context.Context, name string, options ..
 
 // resolveOnce implements resolver. Uses the IPFS routing system to
 // resolve SFS-like names.
-func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, needsProof bool, options opts.ResolveOpts) <-chan onceResult {
 	out := make(chan onceResult, 1)
 	log.Debugf("RoutingResolver resolving %s", name)
 	cancel := func() {}
@@ -150,7 +150,11 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 					return
 				}
 
-				emitOnceResult(ctx, out, onceResult{value: p, ttl: ttl})
+				proof := make([]byte, 1+len(val))
+				proof[0] = 1
+				copy(proof[1:], val)
+
+				emitOnceResult(ctx, out, onceResult{value: p, proof: [][]byte{proof}, ttl: ttl})
 			case <-ctx.Done():
 				return
 			}

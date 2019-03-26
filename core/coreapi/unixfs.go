@@ -145,6 +145,17 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 	return unixfile.NewUnixfsFile(ctx, ses.dag, nd)
 }
 
+func (api *UnixfsAPI) GetWithProof(ctx context.Context, p coreiface.Path) (coreiface.ProofReader, error) {
+	ses := api.core().getSession(ctx)
+
+	nd, err := ses.ResolveNode(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	return uio.NewDagReaderWithProof(ctx, nd, ses.dag)
+}
+
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
 func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {

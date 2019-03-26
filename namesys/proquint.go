@@ -17,7 +17,7 @@ func (r *ProquintResolver) Resolve(ctx context.Context, name string, options ...
 }
 
 // resolveOnce implements resolver. Decodes the proquint string.
-func (r *ProquintResolver) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+func (r *ProquintResolver) resolveOnceAsync(ctx context.Context, name string, needsProof bool, options opts.ResolveOpts) <-chan onceResult {
 	out := make(chan onceResult, 1)
 	defer close(out)
 

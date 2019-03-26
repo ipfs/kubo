@@ -36,7 +36,7 @@ func testResolution(t *testing.T, resolver Resolver, name string, depth uint, ex
 	}
 }
 
-func (r *mockResolver) resolveOnceAsync(ctx context.Context, name string, options opts.ResolveOpts) <-chan onceResult {
+func (r *mockResolver) resolveOnceAsync(ctx context.Context, name string, needsProof bool, options opts.ResolveOpts) <-chan onceResult {
 	p, err := path.ParsePath(r.entries[name])
 	out := make(chan onceResult, 1)
 	out <- onceResult{value: p, err: err}

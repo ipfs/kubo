@@ -6,14 +6,14 @@ import (
 	path "github.com/ipfs/go-path"
 )
 
-func (ns *mpns) cacheGet(name string) (path.Path, bool) {
+func (ns *mpns) cacheGet(name string) (path.Path, [][]byte, bool) {
 	if ns.cache == nil {
-		return "", false
+		return "", nil, false
 	}
 
 	ientry, ok := ns.cache.Get(name)
 	if !ok {
-		return "", false
+		return "", nil, false
 	}
 
 	entry, ok := ientry.(cacheEntry)
@@ -23,25 +23,27 @@ func (ns *mpns) cacheGet(name string) (path.Path, bool) {
 	}
 
 	if time.Now().Before(entry.eol) {
-		return entry.val, true
+		return entry.val, entry.proof, true
 	}
 
 	ns.cache.Remove(name)
 
-	return "", false
+	return "", nil, false
 }
 
-func (ns *mpns) cacheSet(name string, val path.Path, ttl time.Duration) {
+func (ns *mpns) cacheSet(name string, val path.Path, proof [][]byte, ttl time.Duration) {
 	if ns.cache == nil || ttl <= 0 {
 		return
 	}
 	ns.cache.Add(name, cacheEntry{
-		val: val,
-		eol: time.Now().Add(ttl),
+		val:   val,
+		proof: proof,
+		eol:   time.Now().Add(ttl),
 	})
 }
 
 type cacheEntry struct {
-	val path.Path
-	eol time.Time
+	val   path.Path
+	proof [][]byte
+	eol   time.Time
 }
