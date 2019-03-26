@@ -147,8 +147,8 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 		nresp.Output = nil
 
 		// drain body and close
-		io.Copy(ioutil.Discard, resp.Body)
-		resp.Body.Close()
+		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_ = resp.Body.Close()
 	}
 
 	return nresp, nil
