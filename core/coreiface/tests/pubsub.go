@@ -40,7 +40,9 @@ func (tp *provider) TestBasicPubSub(t *testing.T) {
 		for {
 			err := apis[1].PubSub().Publish(ctx, "testch", []byte("hello world"))
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
+				cancel()
+				return
 			}
 			select {
 			case <-tick:

@@ -423,11 +423,13 @@ func (tp *provider) TestAdd(t *testing.T) {
 					for evt := range eventOut {
 						event, ok := evt.(*coreiface.AddEvent)
 						if !ok {
-							t.Fatal("unexpected event type")
+							t.Error("unexpected event type")
+							continue
 						}
 
 						if len(expected) < 1 {
-							t.Fatal("got more events than expected")
+							t.Error("got more events than expected")
+							continue
 						}
 
 						if expected[0].Size != event.Size {
@@ -453,7 +455,7 @@ func (tp *provider) TestAdd(t *testing.T) {
 					}
 
 					if len(expected) > 0 {
-						t.Fatalf("%d event(s) didn't arrive", len(expected))
+						t.Errorf("%d event(s) didn't arrive", len(expected))
 					}
 				}()
 			}
