@@ -9,7 +9,7 @@ import (
 
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (
@@ -60,8 +60,8 @@ Example:
 			return err
 		}
 
-		pa := coreiface.ParsePath(req.Arguments[0])
-		pb := coreiface.ParsePath(req.Arguments[1])
+		pa := path.ParsePath(req.Arguments[0])
+		pb := path.ParsePath(req.Arguments[1])
 
 		changes, err := api.Object().Diff(req.Context, pa, pb)
 		if err != nil {

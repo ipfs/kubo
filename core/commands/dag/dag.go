@@ -15,8 +15,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	path "github.com/ipfs/go-path"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -160,7 +159,7 @@ format.
 			return err
 		}
 
-		rp, err := api.ResolvePath(req.Context, iface.ParsePath(req.Arguments[0]))
+		rp, err := api.ResolvePath(req.Context, path.ParsePath(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -200,7 +199,7 @@ var DagResolveCmd = &cmds.Command{
 			return err
 		}
 
-		rp, err := api.ResolvePath(req.Context, iface.ParsePath(req.Arguments[0]))
+		rp, err := api.ResolvePath(req.Context, path.ParsePath(req.Arguments[0]))
 		if err != nil {
 			return err
 		}

@@ -26,6 +26,7 @@ import (
 	ft "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/go-unixfs/importer"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-routing"
 	"github.com/multiformats/go-multibase"
 )
@@ -147,7 +148,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		ipnsHostname = true
 	}
 
-	parsedPath := coreiface.ParsePath(urlPath)
+	parsedPath := ipath.ParsePath(urlPath)
 	if err := parsedPath.IsValid(); err != nil {
 		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
 		return
@@ -246,7 +247,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	idx, err := i.api.Unixfs().Get(ctx, coreiface.Join(resolvedPath, "index.html"))
+	idx, err := i.api.Unixfs().Get(ctx, ipath.Join(resolvedPath, "index.html"))
 	switch err.(type) {
 	case nil:
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'

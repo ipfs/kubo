@@ -24,6 +24,7 @@ import (
 	ihelper "github.com/ipfs/go-unixfs/importer/helpers"
 	"github.com/ipfs/go-unixfs/importer/trickle"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var log = logging.Logger("coreunix")
@@ -478,7 +479,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 	}
 
 	output := &coreiface.AddEvent{
-		Path: coreiface.IpfsPath(c),
+		Path: path.IpfsPath(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 

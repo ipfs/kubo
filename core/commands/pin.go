@@ -22,6 +22,7 @@ import (
 	verifcid "github.com/ipfs/go-verifcid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var PinCmd = &cmds.Command{
@@ -183,7 +184,7 @@ var addPinCmd = &cmds.Command{
 func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
-		rp, err := api.ResolvePath(ctx, coreiface.ParsePath(b))
+		rp, err := api.ResolvePath(ctx, path.ParsePath(b))
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +234,7 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 
 		pins := make([]string, 0, len(req.Arguments))
 		for _, b := range req.Arguments {
-			rp, err := api.ResolvePath(req.Context, coreiface.ParsePath(b))
+			rp, err := api.ResolvePath(req.Context, path.ParsePath(b))
 			if err != nil {
 				return err
 			}
@@ -407,8 +408,8 @@ new pin and removing the old one.
 
 		unpin, _ := req.Options[pinUnpinOptionName].(bool)
 
-		from := coreiface.ParsePath(req.Arguments[0])
-		to := coreiface.ParsePath(req.Arguments[1])
+		from := path.ParsePath(req.Arguments[0])
+		to := path.ParsePath(req.Arguments[1])
 
 		err = api.Pin().Update(req.Context, from, to, options.Pin.Unpin(unpin))
 		if err != nil {
@@ -497,7 +498,7 @@ func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsN
 	keys := make(map[cid.Cid]RefKeyObject)
 
 	for _, p := range args {
-		c, err := api.ResolvePath(ctx, coreiface.ParsePath(p))
+		c, err := api.ResolvePath(ctx, path.ParsePath(p))
 		if err != nil {
 			return nil, err
 		}

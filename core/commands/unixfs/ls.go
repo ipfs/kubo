@@ -12,7 +12,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	merkledag "github.com/ipfs/go-merkledag"
 	unixfs "github.com/ipfs/go-unixfs"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type LsLink struct {
@@ -96,7 +96,7 @@ possible, please use 'ipfs ls' instead.
 		for _, p := range paths {
 			ctx := req.Context
 
-			merkleNode, err := api.ResolveNode(ctx, iface.ParsePath(p))
+			merkleNode, err := api.ResolveNode(ctx, path.ParsePath(p))
 			if err != nil {
 				return err
 			}

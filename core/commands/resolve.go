@@ -14,10 +14,10 @@ import (
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	path "github.com/ipfs/go-path"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	ipfspath "github.com/ipfs/go-path"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (
@@ -126,11 +126,11 @@ Resolve the value of an IPFS DAG path:
 			if err != nil && err != ns.ErrResolveRecursion {
 				return err
 			}
-			return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path(p.String())})
+			return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: ipfspath.Path(p.String())})
 		}
 
 		// else, ipfs path or ipns with recursive flag
-		rp, err := api.ResolvePath(req.Context, coreiface.ParsePath(name))
+		rp, err := api.ResolvePath(req.Context, path.ParsePath(name))
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ Resolve the value of an IPFS DAG path:
 			encoded += "/" + remainder
 		}
 
-		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: path.Path(encoded)})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: ipfspath.Path(encoded)})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, rp *ncmd.ResolvedPath) error {

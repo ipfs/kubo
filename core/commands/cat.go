@@ -12,6 +12,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (
@@ -118,7 +119,7 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 		return nil, 0, nil
 	}
 	for _, p := range paths {
-		f, err := api.Unixfs().Get(ctx, iface.ParsePath(p))
+		f, err := api.Unixfs().Get(ctx, path.ParsePath(p))
 		if err != nil {
 			return nil, 0, err
 		}

@@ -10,6 +10,7 @@ import (
 	ipfspath "github.com/ipfs/go-path"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 )
@@ -27,8 +28,8 @@ func (k *key) Name() string {
 }
 
 // Path returns the path of the key.
-func (k *key) Path() coreiface.Path {
-	return coreiface.ParsePath(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
+func (k *key) Path() path.Path {
+	return path.ParsePath(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
 }
 
 // ID returns key PeerID

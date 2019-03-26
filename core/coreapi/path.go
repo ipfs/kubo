@@ -13,11 +13,12 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	uio "github.com/ipfs/go-unixfs/io"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 // ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the
 // resolved Node.
-func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (ipld.Node, error) {
+func (api *CoreAPI) ResolveNode(ctx context.Context, p path.Path) (ipld.Node, error) {
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
@@ -32,9 +33,9 @@ func (api *CoreAPI) ResolveNode(ctx context.Context, p coreiface.Path) (ipld.Nod
 
 // ResolvePath resolves the path `p` using Unixfs resolver, returns the
 // resolved path.
-func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreiface.ResolvedPath, error) {
-	if _, ok := p.(coreiface.ResolvedPath); ok {
-		return p.(coreiface.ResolvedPath), nil
+func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.ResolvedPath, error) {
+	if _, ok := p.(path.ResolvedPath); ok {
+		return p.(path.ResolvedPath), nil
 	}
 	if err := p.IsValid(); err != nil {
 		return nil, err
@@ -74,5 +75,5 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 		return nil, err
 	}
 
-	return coreiface.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
+	return path.NewResolvedPath(ipath, node, root, gopath.Join(rest...)), nil
 }
