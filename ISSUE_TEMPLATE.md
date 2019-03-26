@@ -1,6 +1,6 @@
 <!-- 🔥❓If you have a *QUESTION* about IPFS, please ask on our forum at https://discuss.ipfs.io 🔥❓
 
-The go-ipfs issues are *only* for bug reports and directly actionable feature requests. Please direct all other questions, ideas, or suggestions to our discuss forum. Remember to search the issue tracker for an existing report concerning your issue before posting, and see https://github.com/ipfs/go-ipfs/blob/master/docs/github-issue-guide.md if you are not sure how to fill in this issue. If you want to discuss a design idea related to ipfs but not directly related to the go implementation, please file an issue at https://github.com/ipfs/ipfs.
+The go-ipfs issues are *only* for bug reports and directly actionable feature requests. Please direct all other questions, ideas, or suggestions to our discuss forum. Remember to search the issue tracker for an existing report concerning your issue before posting. If you want to discuss a design idea related to ipfs but not directly related to the go implementation, please file an issue at https://github.com/ipfs/ipfs.
 -->
 
 #### Version information:
