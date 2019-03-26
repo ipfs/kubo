@@ -204,6 +204,8 @@ github.com/ipfs/go-unixfs v0.0.3 h1:09koecZaoJVoYy6Wkd/vo1lyQ4AdgAe83eJylQ7gAZw=
 github.com/ipfs/go-unixfs v0.0.3/go.mod h1:FX/6aS/Xg95JRc6UMyiMdZeNn+N5VkD8/yfLNwKW0Ks=
 github.com/ipfs/go-unixfs v0.0.4 h1:IApzQ+SnY0tfjqM7aU2b80CFYLZNHvhLmEZDIWr4e/E=
 github.com/ipfs/go-unixfs v0.0.4/go.mod h1:eIo/p9ADu/MFOuyxzwU+Th8D6xoxU//r590vUpWyfz8=
+github.com/ipfs/go-unixfs v0.0.5-0.20190326013806-f9e9b27cc2bb h1:0jADgQuAWDo2nyCg/oS82btTJ1FZuRo8sf0kdgSMU4k=
+github.com/ipfs/go-unixfs v0.0.5-0.20190326013806-f9e9b27cc2bb/go.mod h1:3xZc6JK+AWFYDnuLWPL4PX7MccwW3pc09oG8QE58JOI=
 github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2E=
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/hang-fds v0.0.1 h1:KGAxiGtJPT3THVRNT6yxgpdFPeX4ZemUjENOt6NlOn4=
@@ -214,6 +216,8 @@ github.com/ipfs/interface-go-ipfs-core v0.0.5-0.20190325175850-33e0648669fb h1:k
 github.com/ipfs/interface-go-ipfs-core v0.0.5-0.20190325175850-33e0648669fb/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
 github.com/ipfs/interface-go-ipfs-core v0.0.5 h1:lePQnz+SqDupeDrVWtzEIjZlcYAbG8tJLrttQWRmGRg=
 github.com/ipfs/interface-go-ipfs-core v0.0.5/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
+github.com/ipfs/interface-go-ipfs-core v0.0.6-0.20190326010311-c4e66131e60c h1:caBRZYmSPNCrAoFjlg0pEQyVzsWEc2bY3lQddV7Hz7c=
+github.com/ipfs/interface-go-ipfs-core v0.0.6-0.20190326010311-c4e66131e60c/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
 github.com/ipfs/iptb v1.4.0 h1:YFYTrCkLMRwk/35IMyC6+yjoQSHTEcNcefBStLJzgvo=
 github.com/ipfs/iptb v1.4.0/go.mod h1:1rzHpCYtNp87/+hTxG5TfCVn/yMY3dKnLn8tBiMfdmg=
 github.com/ipfs/iptb-plugins v0.0.2 h1:JZp4h/+7f00dY4Epr8gzF+VqKITXmVGsZabvmZp7E9I=

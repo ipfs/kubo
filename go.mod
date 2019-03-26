@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gogo/protobuf v1.2.1
+	github.com/golang/protobuf v1.3.0
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hsanjuan/go-libp2p-http v0.0.2
 	github.com/ipfs/dir-index-html v1.0.3
@@ -51,10 +52,10 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.0.4
 	github.com/ipfs/go-path v0.0.3
-	github.com/ipfs/go-unixfs v0.0.4
+	github.com/ipfs/go-unixfs v0.0.5-0.20190326013806-f9e9b27cc2bb
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.0.5
+	github.com/ipfs/interface-go-ipfs-core v0.0.6-0.20190326010311-c4e66131e60c
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.0.2
 	github.com/jbenet/go-is-domain v1.0.2
@@ -91,6 +92,7 @@ require (
 	github.com/libp2p/go-testutil v0.0.1
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
+	github.com/miekg/dns v1.1.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.0
 	github.com/multiformats/go-multiaddr v0.0.1
