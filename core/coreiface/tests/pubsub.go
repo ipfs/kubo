@@ -35,7 +35,8 @@ func (tp *provider) TestBasicPubSub(t *testing.T) {
 	}
 
 	go func() {
-		tick := time.Tick(100 * time.Millisecond)
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
 
 		for {
 			err := apis[1].PubSub().Publish(ctx, "testch", []byte("hello world"))
@@ -45,7 +46,7 @@ func (tp *provider) TestBasicPubSub(t *testing.T) {
 				return
 			}
 			select {
-			case <-tick:
+			case <-ticker.C:
 			case <-ctx.Done():
 				return
 			}
