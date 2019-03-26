@@ -8,8 +8,9 @@ import (
 	"io/ioutil"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/interface-go-ipfs-core"
+	files "github.com/ipfs/go-ipfs-files"
+	unixfs "github.com/ipfs/go-unixfs"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 )
 
 const forwardSeekLimit = 1 << 14 //16k
@@ -174,17 +175,13 @@ func (it *apiIter) Next() bool {
 	}
 
 	switch it.cur.Type {
-	case iface.THAMTShard:
-		fallthrough
-	case iface.TMetadata:
-		fallthrough
-	case iface.TDirectory:
+	case unixfs.THAMTShard, unixfs.TMetadata, unixfs.TDirectory:
 		it.curFile, err = it.core.getDir(it.ctx, iface.IpfsPath(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false
 		}
-	case iface.TFile:
+	case unixfs.TFile:
 		it.curFile, err = it.core.getFile(it.ctx, iface.IpfsPath(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
