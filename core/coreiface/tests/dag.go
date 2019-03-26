@@ -44,12 +44,12 @@ func (tp *provider) TestPut(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Dag().Add(ctx, nd)
@@ -67,12 +67,12 @@ func (tp *provider) TestPutWithHash(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), mh.ID, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Dag().Add(ctx, nd)
@@ -90,12 +90,12 @@ func (tp *provider) TestDagPath(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	snd, err := ipldcbor.FromJSON(strings.NewReader(`"foo"`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Dag().Add(ctx, snd)
@@ -105,7 +105,7 @@ func (tp *provider) TestDagPath(t *testing.T) {
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+snd.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Dag().Add(ctx, nd)
@@ -115,17 +115,17 @@ func (tp *provider) TestDagPath(t *testing.T) {
 
 	p, err := coreiface.ParsePath(path.Join(nd.Cid().String(), "lnk"))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	ndd, err := api.Dag().Get(ctx, rp.Cid())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if ndd.Cid().String() != snd.Cid().String() {
@@ -138,12 +138,12 @@ func (tp *provider) TestTree(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"a": 123, "b": "foo", "c": {"d": 321, "e": 111}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Dag().Add(ctx, nd)
@@ -153,7 +153,7 @@ func (tp *provider) TestTree(t *testing.T) {
 
 	res, err := api.Dag().Get(ctx, nd.Cid())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	lst := res.Tree("", -1)
@@ -173,12 +173,12 @@ func (tp *provider) TestBatch(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if nd.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
@@ -187,15 +187,15 @@ func (tp *provider) TestBatch(t *testing.T) {
 
 	_, err = api.Dag().Get(ctx, nd.Cid())
 	if err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if err := api.Dag().AddMany(ctx, []ipld.Node{nd}); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Dag().Get(ctx, nd.Cid())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
