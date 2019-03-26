@@ -36,7 +36,7 @@ func addTestObject(ctx context.Context, api coreiface.CoreAPI) (path.Path, error
 }
 
 func appendPath(p path.Path, sub string) path.Path {
-	return path.ParsePath(gopath.Join(p.String(), sub))
+	return path.New(gopath.Join(p.String(), sub))
 }
 
 func (tp *provider) TestPublishResolve(t *testing.T) {

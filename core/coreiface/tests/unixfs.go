@@ -102,7 +102,7 @@ func (tp *provider) TestAdd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := func(h string) path.ResolvedPath {
+	p := func(h string) path.Resolved {
 		c, err := cid.Parse(h)
 		if err != nil {
 			t.Fatal(err)
@@ -593,7 +593,7 @@ func (tp *provider) TestGetEmptyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	emptyFilePath := path.ParsePath(emptyFile)
+	emptyFilePath := path.New(emptyFile)
 
 	r, err := api.Unixfs().Get(ctx, emptyFilePath)
 	if err != nil {

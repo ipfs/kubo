@@ -59,11 +59,11 @@ type ObjectChange struct {
 
 	// Before holds the link path before the change. Note that when a link is
 	// added, this will be nil.
-	Before path.ResolvedPath
+	Before path.Resolved
 
 	// After holds the link path after the change. Note that when a link is
 	// removed, this will be nil.
-	After path.ResolvedPath
+	After path.Resolved
 }
 
 // ObjectAPI specifies the interface to MerkleDAG and contains useful utilities
@@ -73,7 +73,7 @@ type ObjectAPI interface {
 	New(context.Context, ...options.ObjectNewOption) (ipld.Node, error)
 
 	// Put imports the data into merkledag
-	Put(context.Context, io.Reader, ...options.ObjectPutOption) (path.ResolvedPath, error)
+	Put(context.Context, io.Reader, ...options.ObjectPutOption) (path.Resolved, error)
 
 	// Get returns the node for the path
 	Get(context.Context, path.Path) (ipld.Node, error)
@@ -90,16 +90,16 @@ type ObjectAPI interface {
 	// AddLink adds a link under the specified path. child path can point to a
 	// subdirectory within the patent which must be present (can be overridden
 	// with WithCreate option).
-	AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...options.ObjectAddLinkOption) (path.ResolvedPath, error)
+	AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...options.ObjectAddLinkOption) (path.Resolved, error)
 
 	// RmLink removes a link from the node
-	RmLink(ctx context.Context, base path.Path, link string) (path.ResolvedPath, error)
+	RmLink(ctx context.Context, base path.Path, link string) (path.Resolved, error)
 
 	// AppendData appends data to the node
-	AppendData(context.Context, path.Path, io.Reader) (path.ResolvedPath, error)
+	AppendData(context.Context, path.Path, io.Reader) (path.Resolved, error)
 
 	// SetData sets the data contained in the node
-	SetData(context.Context, path.Path, io.Reader) (path.ResolvedPath, error)
+	SetData(context.Context, path.Path, io.Reader) (path.Resolved, error)
 
 	// Diff returns a set of changes needed to transform the first object into the
 	// second.

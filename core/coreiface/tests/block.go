@@ -111,7 +111,7 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 		t.Error("didn't get correct data back")
 	}
 
-	p := path.ParsePath("/ipfs/" + res.Path().Cid().String())
+	p := path.New("/ipfs/" + res.Path().Cid().String())
 
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {

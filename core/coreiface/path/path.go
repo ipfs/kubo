@@ -39,9 +39,9 @@ type Path interface {
 	IsValid() error
 }
 
-// ResolvedPath is a path which was resolved to the last resolvable node.
+// Resolved is a path which was resolved to the last resolvable node.
 // ResolvedPaths are guaranteed to return nil from `IsValid`
-type ResolvedPath interface {
+type Resolved interface {
 	// Cid returns the CID of the node referenced by the path. Remainder of the
 	// path is guaranteed to be within the node.
 	//
@@ -120,7 +120,7 @@ func Join(base Path, a ...string) Path {
 }
 
 // IpfsPath creates new /ipfs path from the provided CID
-func IpfsPath(c cid.Cid) ResolvedPath {
+func IpfsPath(c cid.Cid) Resolved {
 	return &resolvedPath{
 		path:      path{"/ipfs/" + c.String()},
 		cid:       c,
@@ -130,7 +130,7 @@ func IpfsPath(c cid.Cid) ResolvedPath {
 }
 
 // IpldPath creates new /ipld path from the provided CID
-func IpldPath(c cid.Cid) ResolvedPath {
+func IpldPath(c cid.Cid) Resolved {
 	return &resolvedPath{
 		path:      path{"/ipld/" + c.String()},
 		cid:       c,
@@ -139,8 +139,8 @@ func IpldPath(c cid.Cid) ResolvedPath {
 	}
 }
 
-// ParsePath parses string path to a Path
-func ParsePath(p string) Path {
+// New parses string path to a Path
+func New(p string) Path {
 	if pp, err := ipfspath.ParsePath(p); err == nil {
 		p = pp.String()
 	}
@@ -148,10 +148,10 @@ func ParsePath(p string) Path {
 	return &path{path: p}
 }
 
-// NewResolvedPath creates new ResolvedPath. This function performs no checks
+// NewResolvedPath creates new Resolved path. This function performs no checks
 // and is intended to be used by resolver implementations. Incorrect inputs may
 // cause panics. Handle with care.
-func NewResolvedPath(ipath ipfspath.Path, c cid.Cid, root cid.Cid, remainder string) ResolvedPath {
+func NewResolvedPath(ipath ipfspath.Path, c cid.Cid, root cid.Cid, remainder string) Resolved {
 	return &resolvedPath{
 		path:      path{ipath.String()},
 		cid:       c,

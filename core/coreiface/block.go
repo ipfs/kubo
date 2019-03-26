@@ -14,7 +14,7 @@ type BlockStat interface {
 	Size() int
 
 	// Path returns path to the block
-	Path() path.ResolvedPath
+	Path() path.Resolved
 }
 
 // BlockAPI specifies the interface to the block layer

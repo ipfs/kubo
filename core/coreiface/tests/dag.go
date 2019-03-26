@@ -114,7 +114,7 @@ func (tp *provider) TestDagPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p := path.ParsePath(gopath.Join(nd.Cid().String(), "lnk"))
+	p := path.New(gopath.Join(nd.Cid().String(), "lnk"))
 
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {

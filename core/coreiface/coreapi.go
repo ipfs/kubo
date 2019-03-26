@@ -44,7 +44,7 @@ type CoreAPI interface {
 	PubSub() PubSubAPI
 
 	// ResolvePath resolves the path using Unixfs resolver
-	ResolvePath(context.Context, path.Path) (path.ResolvedPath, error)
+	ResolvePath(context.Context, path.Path) (path.Resolved, error)
 
 	// ResolveNode resolves the path (if not resolved already) using Unixfs
 	// resolver, gets and returns the resolved Node
