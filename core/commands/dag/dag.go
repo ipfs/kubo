@@ -15,6 +15,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
+	ipfspath "github.com/ipfs/go-path"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -232,7 +233,7 @@ var DagResolveCmd = &cmds.Command{
 			}
 			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
-				p = path.Join([]string{p, out.RemPath})
+				p = ipfspath.Join([]string{p, out.RemPath})
 			}
 
 			fmt.Fprint(w, p)
