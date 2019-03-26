@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	gohttp "net/http"
@@ -21,6 +22,9 @@ const (
 	DefaultApiFile  = "api"
 	EnvDir          = "IPFS_PATH"
 )
+
+// ErrApiNotFound if we fail to find a running daemon.
+var ErrApiNotFound = errors.New("ipfs api address could not be found")
 
 // HttpApi implements github.com/ipfs/interface-go-ipfs-core/CoreAPI using
 // IPFS HTTP API.
@@ -54,7 +58,7 @@ func NewPathApi(ipfspath string) (*HttpApi, error) {
 	a, err := ApiAddr(ipfspath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = nil
+			err = ErrApiNotFound
 		}
 		return nil, err
 	}
