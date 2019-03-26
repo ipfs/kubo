@@ -60,8 +60,8 @@ Example:
 			return err
 		}
 
-		pa := path.ParsePath(req.Arguments[0])
-		pb := path.ParsePath(req.Arguments[1])
+		pa := path.New(req.Arguments[0])
+		pb := path.New(req.Arguments[1])
 
 		changes, err := api.Object().Diff(req.Context, pa, pb)
 		if err != nil {

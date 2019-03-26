@@ -113,7 +113,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			opts = append(opts, options.Name.TTL(d))
 		}
 
-		p := path.ParsePath(req.Arguments[0])
+		p := path.New(req.Arguments[0])
 
 		if verifyExists, _ := req.Options[resolveOptionName].(bool); verifyExists {
 			_, err := api.ResolveNode(req.Context, p)

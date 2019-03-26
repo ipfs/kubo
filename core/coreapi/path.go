@@ -33,9 +33,9 @@ func (api *CoreAPI) ResolveNode(ctx context.Context, p path.Path) (ipld.Node, er
 
 // ResolvePath resolves the path `p` using Unixfs resolver, returns the
 // resolved path.
-func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.ResolvedPath, error) {
-	if _, ok := p.(path.ResolvedPath); ok {
-		return p.(path.ResolvedPath), nil
+func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved, error) {
+	if _, ok := p.(path.Resolved); ok {
+		return p.(path.Resolved), nil
 	}
 	if err := p.IsValid(); err != nil {
 		return nil, err

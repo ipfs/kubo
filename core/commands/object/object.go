@@ -91,7 +91,7 @@ is the raw data of the object.
 			return err
 		}
 
-		path := path.ParsePath(req.Arguments[0])
+		path := path.New(req.Arguments[0])
 
 		data, err := api.Object().Data(req.Context, path)
 		if err != nil {
@@ -130,7 +130,7 @@ multihash.
 			return err
 		}
 
-		path := path.ParsePath(req.Arguments[0])
+		path := path.New(req.Arguments[0])
 
 		rp, err := api.ResolvePath(req.Context, path)
 		if err != nil {
@@ -222,7 +222,7 @@ Supported values are:
 			return err
 		}
 
-		path := path.ParsePath(req.Arguments[0])
+		path := path.New(req.Arguments[0])
 
 		datafieldenc, _ := req.Options[encodingOptionName].(string)
 		if err != nil {
@@ -314,7 +314,7 @@ var ObjectStatCmd = &cmds.Command{
 			return err
 		}
 
-		ns, err := api.Object().Stat(req.Context, path.ParsePath(req.Arguments[0]))
+		ns, err := api.Object().Stat(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}

@@ -29,7 +29,7 @@ func (k *key) Name() string {
 
 // Path returns the path of the key.
 func (k *key) Path() path.Path {
-	return path.ParsePath(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
+	return path.New(ipfspath.Join([]string{"/ipns", k.peerID.Pretty()}))
 }
 
 // ID returns key PeerID

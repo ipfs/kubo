@@ -20,7 +20,7 @@ import (
 type BlockAPI CoreAPI
 
 type BlockStat struct {
-	path path.ResolvedPath
+	path path.Resolved
 	size int
 }
 
@@ -134,7 +134,7 @@ func (bs *BlockStat) Size() int {
 	return bs.size
 }
 
-func (bs *BlockStat) Path() path.ResolvedPath {
+func (bs *BlockStat) Path() path.Resolved {
 	return bs.path
 }
 

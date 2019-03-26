@@ -364,7 +364,7 @@ var filesCpCmd = &cmds.Command{
 func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
-		return api.ResolveNode(ctx, path.ParsePath(p))
+		return api.ResolveNode(ctx, path.New(p))
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {

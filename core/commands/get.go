@@ -71,7 +71,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
-		p := path.ParsePath(req.Arguments[0])
+		p := path.New(req.Arguments[0])
 
 		file, err := api.Unixfs().Get(req.Context, p)
 		if err != nil {

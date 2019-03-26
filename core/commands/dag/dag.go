@@ -159,7 +159,7 @@ format.
 			return err
 		}
 
-		rp, err := api.ResolvePath(req.Context, path.ParsePath(req.Arguments[0]))
+		rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -199,7 +199,7 @@ var DagResolveCmd = &cmds.Command{
 			return err
 		}
 
-		rp, err := api.ResolvePath(req.Context, path.ParsePath(req.Arguments[0]))
+		rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}

@@ -58,7 +58,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	return n, nil
 }
 
-func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (ipath.ResolvedPath, error) {
+func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.ObjectPutOption) (ipath.Resolved, error) {
 	options, err := caopts.ObjectPutOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ func (api *ObjectAPI) Stat(ctx context.Context, path ipath.Path) (*coreiface.Obj
 	return out, nil
 }
 
-func (api *ObjectAPI) AddLink(ctx context.Context, base ipath.Path, name string, child ipath.Path, opts ...caopts.ObjectAddLinkOption) (ipath.ResolvedPath, error) {
+func (api *ObjectAPI) AddLink(ctx context.Context, base ipath.Path, name string, child ipath.Path, opts ...caopts.ObjectAddLinkOption) (ipath.Resolved, error) {
 	options, err := caopts.ObjectAddLinkOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -235,7 +235,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base ipath.Path, name string,
 	return ipath.IpfsPath(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base ipath.Path, link string) (ipath.ResolvedPath, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base ipath.Path, link string) (ipath.Resolved, error) {
 	baseNd, err := api.core().ResolveNode(ctx, base)
 	if err != nil {
 		return nil, err
@@ -261,15 +261,15 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base ipath.Path, link string) 
 	return ipath.IpfsPath(nnode.Cid()), nil
 }
 
-func (api *ObjectAPI) AppendData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.ResolvedPath, error) {
+func (api *ObjectAPI) AppendData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.Resolved, error) {
 	return api.patchData(ctx, path, r, true)
 }
 
-func (api *ObjectAPI) SetData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.ResolvedPath, error) {
+func (api *ObjectAPI) SetData(ctx context.Context, path ipath.Path, r io.Reader) (ipath.Resolved, error) {
 	return api.patchData(ctx, path, r, false)
 }
 
-func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reader, appendData bool) (ipath.ResolvedPath, error) {
+func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reader, appendData bool) (ipath.Resolved, error) {
 	nd, err := api.core().ResolveNode(ctx, path)
 	if err != nil {
 		return nil, err

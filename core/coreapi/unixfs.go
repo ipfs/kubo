@@ -30,7 +30,7 @@ type UnixfsAPI CoreAPI
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
-func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.ResolvedPath, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.Resolved, error) {
 	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err

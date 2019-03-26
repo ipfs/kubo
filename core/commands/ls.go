@@ -132,7 +132,7 @@ The JSON output contains type information.
 		}
 
 		for i, fpath := range paths {
-			results, err := api.Unixfs().Ls(req.Context, path.ParsePath(fpath),
+			results, err := api.Unixfs().Ls(req.Context, path.New(fpath),
 				options.Unixfs.ResolveChildren(resolveSize || resolveType))
 			if err != nil {
 				return err

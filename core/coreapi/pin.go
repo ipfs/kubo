@@ -108,7 +108,7 @@ type pinStatus struct {
 
 // BadNode is used in PinVerifyRes
 type badNode struct {
-	path path.ResolvedPath
+	path path.Resolved
 	err  error
 }
 
@@ -120,7 +120,7 @@ func (s *pinStatus) BadNodes() []coreiface.BadPinNode {
 	return s.badNodes
 }
 
-func (n *badNode) Path() path.ResolvedPath {
+func (n *badNode) Path() path.Resolved {
 	return n.path
 }
 
@@ -175,10 +175,10 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 
 type pinInfo struct {
 	pinType string
-	path    path.ResolvedPath
+	path    path.Resolved
 }
 
-func (p *pinInfo) Path() path.ResolvedPath {
+func (p *pinInfo) Path() path.Resolved {
 	return p.path
 }
 
