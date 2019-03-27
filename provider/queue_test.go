@@ -12,7 +12,7 @@ import (
 
 func makeCids(n int) []cid.Cid {
 	cids := make([]cid.Cid, 0, n)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < n; i++ {
 		c := blockGenerator.Next().Cid()
 		cids = append(cids, c)
 	}
@@ -128,4 +128,28 @@ func TestInitialization(t *testing.T) {
 	}
 
 	assertOrdered(cids[5:], queue, t)
+}
+
+func TestInitializationWithManyCids(t *testing.T) {
+	ctx := context.Background()
+	defer ctx.Done()
+
+	ds := sync.MutexWrap(datastore.NewMapDatastore())
+	queue, err := NewQueue(ctx, "test", ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cids := makeCids(25)
+	for _, c := range cids {
+		queue.Enqueue(c)
+	}
+
+	// make a new queue, same data
+	queue, err = NewQueue(ctx, "test", ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertOrdered(cids, queue, t)
 }

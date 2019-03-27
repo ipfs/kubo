@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"math"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -32,7 +32,7 @@ type Queue struct {
 // NewQueue creates a queue for cids
 func NewQueue(ctx context.Context, name string, ds datastore.Datastore) (*Queue, error) {
 	namespaced := namespace.Wrap(ds, datastore.NewKey("/"+name+"/queue/"))
-	head, tail, err := getQueueHeadTail(ctx, name, namespaced)
+	head, tail, err := getQueueHeadTail(ctx, namespaced)
 	if err != nil {
 		return nil, err
 	}
@@ -142,40 +142,52 @@ func (q *Queue) work() {
 }
 
 func (q *Queue) queueKey(id uint64) datastore.Key {
-	return datastore.NewKey(strconv.FormatUint(id, 10))
+	s := fmt.Sprintf("%016X", id)
+	return datastore.NewKey(s)
 }
 
-// crawl over the queue entries to find the head and tail
-func getQueueHeadTail(ctx context.Context, name string, datastore datastore.Datastore) (uint64, uint64, error) {
-	q := query.Query{}
-	results, err := datastore.Query(q)
+func getQueueHeadTail(ctx context.Context, datastore datastore.Datastore) (uint64, uint64, error) {
+	head, err := getQueueHead(datastore)
 	if err != nil {
 		return 0, 0, err
 	}
-
-	var tail uint64
-	var head uint64 = math.MaxUint64
-	for entry := range results.Next() {
-		trimmed := strings.TrimPrefix(entry.Key, "/")
-		id, err := strconv.ParseUint(trimmed, 10, 64)
-		if err != nil {
-			return 0, 0, err
-		}
-
-		if id < head {
-			head = id
-		}
-
-		if (id + 1) > tail {
-			tail = (id + 1)
-		}
-	}
-	if err := results.Close(); err != nil {
+	tail, err := getQueueTail(datastore)
+	if err != nil {
 		return 0, 0, err
 	}
-	if head == math.MaxUint64 {
-		head = 0
-	}
-
 	return head, tail, nil
+}
+
+func getQueueHead(ds datastore.Datastore) (uint64, error) {
+	return getFirstIDByOrder(ds, query.OrderByKey{})
+}
+
+func getQueueTail(ds datastore.Datastore) (uint64, error) {
+	tail, err := getFirstIDByOrder(ds, query.OrderByKeyDescending{})
+	if err != nil {
+		return 0, err
+	}
+	if tail > 0 {
+		tail++
+	}
+	return tail, nil
+}
+
+func getFirstIDByOrder(ds datastore.Datastore, order query.Order) (uint64, error) {
+	q := query.Query{Orders: []query.Order{order}}
+	results, err := ds.Query(q)
+	if err != nil {
+		return 0, err
+	}
+	defer results.Close()
+	r, ok := results.NextSync()
+	if !ok {
+		return 0, nil
+	}
+	trimmed := strings.TrimPrefix(r.Key, "/")
+	id, err := strconv.ParseUint(trimmed, 16, 64)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }
