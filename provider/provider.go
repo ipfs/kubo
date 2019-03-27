@@ -28,15 +28,18 @@ type provider struct {
 	ctx context.Context
 	// the CIDs for which provide announcements should be made
 	queue *Queue
+	// keeps track of what has been provided
+	tracker *Tracker
 	// used to announce providing to the network
 	contentRouting routing.ContentRouting
 }
 
 // NewProvider creates a provider that announces blocks to the network using a content router
-func NewProvider(ctx context.Context, queue *Queue, contentRouting routing.ContentRouting) Provider {
+func NewProvider(ctx context.Context, queue *Queue, tracker *Tracker, contentRouting routing.ContentRouting) Provider {
 	return &provider{
 		ctx:            ctx,
 		queue:          queue,
+		tracker:		tracker,
 		contentRouting: contentRouting,
 	}
 }
@@ -52,7 +55,7 @@ func (p *provider) Run() {
 	p.handleAnnouncements()
 }
 
-// Provide the given cid using specified strategy.
+// Provide the given cid
 func (p *provider) Provide(root cid.Cid) error {
 	p.queue.Enqueue(root)
 	return nil
@@ -67,11 +70,23 @@ func (p *provider) handleAnnouncements() {
 				case <-p.ctx.Done():
 					return
 				case c := <-p.queue.Dequeue():
+					isTracked, err := p.tracker.IsTracking(c)
+					if err != nil {
+                        log.Warningf("Unable to determine if tracking: %s, %s", c, err)
+					}
+					if isTracked {
+						continue
+					}
+
 					log.Info("announce - start - ", c)
 					if err := p.contentRouting.Provide(p.ctx, c, true); err != nil {
 						log.Warningf("Unable to provide entry: %s, %s", c, err)
 					}
 					log.Info("announce - end - ", c)
+
+					if err := p.tracker.Track(c); err != nil {
+						log.Warningf("Unable to track entry: %s, %s", c, err)
+					}
 				}
 			}
 		}()

@@ -148,7 +148,7 @@ func TestUntracksBlocksNoLongerInBlockstore(t *testing.T) {
 	select {
 	case <-r.provided:
 		t.Fatal("should not have provided anything, but did")
-	case <-time.After(time.Second * 1):
+	case <-time.After(time.Second):
 		// this is good, nothing was provided
 	}
 }

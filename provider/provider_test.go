@@ -44,9 +44,11 @@ func TestAnnouncement(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	tracker := NewTracker(ds)
+
 	r := mockContentRouting()
 
-	provider := NewProvider(ctx, queue, r)
+	provider := NewProvider(ctx, queue, tracker, r)
 	provider.Run()
 
 	cids := cid.NewSet()
@@ -75,5 +77,47 @@ func TestAnnouncement(t *testing.T) {
 		case <-time.After(time.Second * 5):
 			t.Fatal("Timeout waiting for cids to be provided.")
 		}
+	}
+}
+
+func TestAnnouncementWhenAlreadyAnnounced(t *testing.T) {
+	ctx := context.Background()
+	defer ctx.Done()
+
+	ds := sync.MutexWrap(datastore.NewMapDatastore())
+	queue, err := NewQueue(ctx, "test", ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tracker := NewTracker(ds)
+
+	r := mockContentRouting()
+
+	provider := NewProvider(ctx, queue, tracker, r)
+	provider.Run()
+
+	c := blockGenerator.Next().Cid()
+
+	err = provider.Provide(c)
+	if err != nil { t.Fatal(err) }
+
+	// give time to provide and track
+	time.Sleep(time.Millisecond * 10)
+
+	// provide the same cid again
+	err = provider.Provide(c)
+	if err != nil { t.Fatal(err) }
+
+	cp := <-r.provided
+	if c != cp {
+		t.Fatalf("expected %s to be provided, but %s was instead", c.String(), cp.String())
+	}
+
+	select {
+	case rc := <-r.provided:
+		t.Fatalf("expected nothing to be provided, but %s was", rc.String())
+	case <-time.After(time.Second):
+		// this is good, nothing should have been provided
 	}
 }
