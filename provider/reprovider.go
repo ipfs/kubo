@@ -119,6 +119,7 @@ func (rp *Reprovider) handleAnnouncements() {
 					log.Info("reannounce - start - ", c)
 					if err := rp.contentRouting.Provide(rp.ctx, c, true); err != nil {
 						log.Warningf("Unable to provide entry: %s, %s", c, err)
+						continue
 					}
 					log.Info("reannounce - end - ", c)
 				}

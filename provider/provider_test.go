@@ -100,14 +100,18 @@ func TestAnnouncementWhenAlreadyAnnounced(t *testing.T) {
 	c := blockGenerator.Next().Cid()
 
 	err = provider.Provide(c)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// give time to provide and track
 	time.Sleep(time.Millisecond * 10)
 
 	// provide the same cid again
 	err = provider.Provide(c)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cp := <-r.provided
 	if c != cp {

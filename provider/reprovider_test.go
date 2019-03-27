@@ -136,12 +136,14 @@ func TestUntracksBlocksNoLongerInBlockstore(t *testing.T) {
 	// allow small amount of time for entries to be removed
 	time.Sleep(time.Millisecond * 10)
 
-	for k, _ := range blocks {
+	for k := range blocks {
 		isTracking, err := tr.IsTracking(k)
-		if err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if isTracking {
-			t.Fatalf("should not be tracking %s, but is", k.String())
+			t.Fatalf("should not track %s, but did", k.String())
 		}
 	}
 
