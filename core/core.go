@@ -21,7 +21,6 @@ import (
 	"time"
 
 	version "github.com/ipfs/go-ipfs"
-	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 	namesys "github.com/ipfs/go-ipfs/namesys"
@@ -120,13 +119,13 @@ type IpfsNode struct {
 	RecordValidator record.Validator
 
 	// Online
-	PeerHost     p2phost.Host        // the network host (server+client)
-	Bootstrapper io.Closer           // the periodic bootstrapper
-	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
-	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
-	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
-	Provider     provider.Provider   // the value provider system
-	Reprovider   *rp.Reprovider      // the value reprovider system
+	PeerHost     p2phost.Host         // the network host (server+client)
+	Bootstrapper io.Closer            // the periodic bootstrapper
+	Routing      routing.IpfsRouting  // the routing system. recommend ipfs-dht
+	Exchange     exchange.Interface   // the block exchange + strategy (bitswap)
+	Namesys      namesys.NameSystem   // the name system, resolves paths to hashes
+	Provider     provider.Provider    // the value provider system
+	Reprovider   *provider.Reprovider // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
 	AutoNAT  *autonat.AutoNATService
@@ -321,44 +320,13 @@ func constructConnMgr(cfg config.ConnMgr) (ifconnmgr.ConnManager, error) {
 }
 
 func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
-	cfg, err := n.Repo.Config()
-	if err != nil {
-		return err
-	}
-
 	// Provider
 
 	n.Provider.Run()
 
 	// Reprovider
 
-	var keyProvider rp.KeyChanFunc
-
-	switch cfg.Reprovider.Strategy {
-	case "all":
-		fallthrough
-	case "":
-		keyProvider = rp.NewBlockstoreProvider(n.Blockstore)
-	case "roots":
-		keyProvider = rp.NewPinnedProvider(n.Pinning, n.DAG, true)
-	case "pinned":
-		keyProvider = rp.NewPinnedProvider(n.Pinning, n.DAG, false)
-	default:
-		return fmt.Errorf("unknown reprovider strategy '%s'", cfg.Reprovider.Strategy)
-	}
-	n.Reprovider = rp.NewReprovider(ctx, n.Routing, keyProvider)
-
-	reproviderInterval := kReprovideFrequency
-	if cfg.Reprovider.Interval != "" {
-		dur, err := time.ParseDuration(cfg.Reprovider.Interval)
-		if err != nil {
-			return err
-		}
-
-		reproviderInterval = dur
-	}
-
-	go n.Reprovider.Run(reproviderInterval)
+	n.Reprovider.Run()
 
 	return nil
 }

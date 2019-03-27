@@ -16,8 +16,8 @@ type Reprovider struct {
 	ctx            context.Context
 	queue          *Queue
 	tracker        *Tracker
-	tick           time.Duration
 	initialTick    time.Duration
+	tick           time.Duration
 	blockstore     blockstore.Blockstore
 	contentRouting routing.ContentRouting
 	trigger        chan struct{}
@@ -28,13 +28,13 @@ type Reprovider struct {
 // Reprovider periodically re-announces the cids that have been provided. These
 // reprovides can be run on an interval and/or manually. Reprovider also untracks
 // cids that are no longer in the blockstore.
-func NewReprovider(ctx context.Context, queue *Queue, tracker *Tracker, tick time.Duration, initialTick time.Duration, blockstore blockstore.Blockstore, contentRouting routing.ContentRouting) *Reprovider {
+func NewReprovider(ctx context.Context, queue *Queue, tracker *Tracker, initialTick time.Duration, tick time.Duration, blockstore blockstore.Blockstore, contentRouting routing.ContentRouting) *Reprovider {
 	return &Reprovider{
 		ctx:            ctx,
 		queue:          queue,
 		tracker:        tracker,
-		tick:           tick,
 		initialTick:    initialTick,
+		tick:           tick,
 		blockstore:     blockstore,
 		contentRouting: contentRouting,
 		trigger:        make(chan struct{}),
