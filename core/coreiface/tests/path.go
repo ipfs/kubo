@@ -68,7 +68,7 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if err := api.Dag().Add(ctx, nd); err != nil {
@@ -77,7 +77,7 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 
 	p1, err := coreiface.ParsePath(nd.String() + "/foo/bar")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	rp1, err := api.ResolvePath(ctx, p1)
@@ -104,7 +104,7 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if err := api.Dag().Add(ctx, nd); err != nil {
@@ -113,7 +113,7 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 
 	p1, err := coreiface.ParsePath(nd.Cid().String())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	rp1, err := api.ResolvePath(ctx, p1)
@@ -140,7 +140,7 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"bar": "baz"}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if err := api.Dag().Add(ctx, nd); err != nil {
@@ -149,7 +149,7 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 
 	p1, err := coreiface.ParsePath("/ipld/" + nd.Cid().String() + "/bar/baz")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.ResolvePath(ctx, p1)
@@ -181,7 +181,7 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 
 	nd, err := ipldcbor.FromJSON(strings.NewReader(`{"foo": {"/": "`+blk.Path().Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if err := api.Dag().Add(ctx, nd); err != nil {
@@ -190,7 +190,7 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 
 	p1, err := coreiface.ParsePath("/ipld/" + nd.Cid().String() + "/foo")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	rp, err := api.ResolvePath(ctx, p1)
@@ -210,7 +210,7 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 func (tp *provider) TestPathJoin(t *testing.T) {
 	p1, err := coreiface.ParsePath("/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if coreiface.Join(p1, "foo").String() != "/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz/foo" {

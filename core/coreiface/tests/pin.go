@@ -31,17 +31,17 @@ func (tp *provider) TestPinAdd(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p, err := api.Unixfs().Add(ctx, strFile("foo")())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Pin().Add(ctx, p)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
 
@@ -50,17 +50,17 @@ func (tp *provider) TestPinSimple(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p, err := api.Unixfs().Add(ctx, strFile("foo")())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Pin().Add(ctx, p)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	list, err := api.Pin().Ls(ctx)
@@ -100,27 +100,27 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p0, err := api.Unixfs().Add(ctx, strFile("foo")())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p1, err := api.Unixfs().Add(ctx, strFile("bar")())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd2, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p0.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd3, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+p1.Cid().String()+`"}}`), math.MaxUint64, -1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if err := api.Dag().AddMany(ctx, []ipld.Node{nd2, nd3}); err != nil {
@@ -129,12 +129,12 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 
 	err = api.Pin().Add(ctx, iface.IpldPath(nd2.Cid()))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = api.Pin().Add(ctx, iface.IpldPath(nd3.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	list, err := api.Pin().Ls(ctx)

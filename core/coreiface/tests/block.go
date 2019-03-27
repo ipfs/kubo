@@ -52,7 +52,7 @@ func (tp *provider) TestBlockPutFormat(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Format("cbor"))
@@ -70,7 +70,7 @@ func (tp *provider) TestBlockPutHash(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Hash(mh.KECCAK_512, -1))
@@ -88,7 +88,7 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`), opt.Block.Hash(mh.KECCAK_512, -1))
@@ -98,12 +98,12 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 
 	r, err := api.Block().Get(ctx, res.Path())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	d, err := ioutil.ReadAll(r)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if string(d) != "Hello" {
@@ -112,7 +112,7 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 
 	p, err := coreiface.ParsePath("/ipfs/" + res.Path().Cid().String())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	rp, err := api.ResolvePath(ctx, p)
@@ -129,7 +129,7 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`))
@@ -139,12 +139,12 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 
 	r, err := api.Block().Get(ctx, res.Path())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	d, err := ioutil.ReadAll(r)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if string(d) != "Hello" {
@@ -153,7 +153,7 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 
 	err = api.Block().Rm(ctx, res.Path())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Block().Get(ctx, res.Path())
@@ -174,7 +174,7 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 
 	err = api.Block().Rm(ctx, res.Path(), opt.Block.Force(true))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
 
@@ -183,7 +183,7 @@ func (tp *provider) TestBlockStat(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	res, err := api.Block().Put(ctx, strings.NewReader(`Hello`))
@@ -193,7 +193,7 @@ func (tp *provider) TestBlockStat(t *testing.T) {
 
 	stat, err := api.Block().Stat(ctx, res.Path())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if stat.Path().String() != res.Path().String() {
@@ -210,7 +210,7 @@ func (tp *provider) TestBlockPin(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Block().Put(ctx, strings.NewReader(`Hello`))

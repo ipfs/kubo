@@ -98,7 +98,7 @@ func (tp *provider) TestAdd(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p := func(h string) coreiface.ResolvedPath {
@@ -387,11 +387,13 @@ func (tp *provider) TestAdd(t *testing.T) {
 					for evt := range eventOut {
 						event, ok := evt.(*coreiface.AddEvent)
 						if !ok {
-							t.Fatal("unexpected event type")
+							t.Error("unexpected event type")
+							continue
 						}
 
 						if len(expected) < 1 {
-							t.Fatal("got more events than expected")
+							t.Error("got more events than expected")
+							continue
 						}
 
 						if expected[0].Size != event.Size {
@@ -417,7 +419,7 @@ func (tp *provider) TestAdd(t *testing.T) {
 					}
 
 					if len(expected) > 0 {
-						t.Fatalf("%d event(s) didn't arrive", len(expected))
+						t.Errorf("%d event(s) didn't arrive", len(expected))
 					}
 				}()
 			}
@@ -530,15 +532,18 @@ func (tp *provider) TestAddPinned(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.Pin(true))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	pins, err := api.Pin().Ls(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(pins) != 1 {
 		t.Fatalf("expected 1 pin, got %d", len(pins))
 	}
@@ -553,12 +558,12 @@ func (tp *provider) TestAddHashOnly(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	p, err := api.Unixfs().Add(ctx, strFile(helloStr)(), options.Unixfs.HashOnly(true))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if p.String() != hello {
@@ -612,18 +617,18 @@ func (tp *provider) TestGetDir(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	edir := unixfs.EmptyDirNode()
 	err = api.Dag().Add(ctx, edir)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	p := coreiface.IpfsPath(edir.Cid())
 
 	emptyDir, err := api.Object().New(ctx, options.Object.Type("unixfs-dir"))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if p.String() != coreiface.IpfsPath(emptyDir.Cid()).String() {
@@ -632,7 +637,7 @@ func (tp *provider) TestGetDir(t *testing.T) {
 
 	r, err := api.Unixfs().Get(ctx, coreiface.IpfsPath(emptyDir.Cid()))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if _, ok := r.(files.Directory); !ok {
@@ -645,13 +650,13 @@ func (tp *provider) TestGetNonUnixfs(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd := new(mdag.ProtoNode)
 	err = api.Dag().Add(ctx, nd)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Unixfs().Get(ctx, coreiface.IpfsPath(nd.Cid()))
@@ -725,7 +730,7 @@ func (tp *provider) TestEntriesExpired(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	r := strings.NewReader("content-of-file")
@@ -733,14 +738,14 @@ func (tp *provider) TestEntriesExpired(t *testing.T) {
 		"name-of-file": files.NewReaderFile(r),
 	}))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	ctx, cancel = context.WithCancel(ctx)
 
 	nd, err := api.Unixfs().Get(ctx, p)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	cancel()
 
@@ -767,22 +772,22 @@ func (tp *provider) TestLsEmptyDir(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Unixfs().Add(ctx, files.NewSliceDirectory([]files.DirEntry{}))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	emptyDir, err := api.Object().New(ctx, options.Object.Type("unixfs-dir"))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	links, err := api.Unixfs().Ls(ctx, coreiface.IpfsPath(emptyDir.Cid()))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(links) != 0 {
@@ -796,7 +801,7 @@ func (tp *provider) TestLsNonUnixfs(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	nd, err := cbor.WrapObject(map[string]interface{}{"foo": "bar"}, math.MaxUint64, -1)
@@ -806,12 +811,12 @@ func (tp *provider) TestLsNonUnixfs(t *testing.T) {
 
 	err = api.Dag().Add(ctx, nd)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	links, err := api.Unixfs().Ls(ctx, coreiface.IpfsPath(nd.Cid()))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(links) != 0 {
@@ -854,7 +859,7 @@ func (tp *provider) TestAddCloses(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	n4 := &closeTestF{files.NewBytesFile([]byte("foo")), false, t}
@@ -871,7 +876,7 @@ func (tp *provider) TestAddCloses(t *testing.T) {
 
 	_, err = api.Unixfs().Add(ctx, d0)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	d0.Close() // Adder doesn't close top-level file
@@ -894,7 +899,7 @@ func (tp *provider) TestGetSeek(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	dataSize := int64(100000)

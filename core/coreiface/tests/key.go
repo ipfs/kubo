@@ -121,7 +121,7 @@ func (tp *provider) TestGenerate(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	k, err := api.Key().Generate(ctx, "foo")
@@ -144,7 +144,7 @@ func (tp *provider) TestGenerateSize(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	k, err := api.Key().Generate(ctx, "foo", opt.Key.Size(1024))
@@ -169,7 +169,7 @@ func (tp *provider) TestGenerateType(t *testing.T) {
 
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	k, err := api.Key().Generate(ctx, "bar", opt.Key.Type(opt.Ed25519Key))
@@ -193,7 +193,7 @@ func (tp *provider) TestGenerateExisting(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -226,7 +226,7 @@ func (tp *provider) TestList(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -272,7 +272,7 @@ func (tp *provider) TestRename(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -301,7 +301,7 @@ func (tp *provider) TestRenameToSelf(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -325,7 +325,7 @@ func (tp *provider) TestRenameToSelfForce(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -349,7 +349,7 @@ func (tp *provider) TestRenameOverwriteNoForce(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -379,7 +379,7 @@ func (tp *provider) TestRenameOverwrite(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	kfoo, err := api.Key().Generate(ctx, "foo")
@@ -418,7 +418,7 @@ func (tp *provider) TestRenameSameNameNoForce(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -447,7 +447,7 @@ func (tp *provider) TestRenameSameName(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	_, err = api.Key().Generate(ctx, "foo")
@@ -476,7 +476,7 @@ func (tp *provider) TestRemove(t *testing.T) {
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	k, err := api.Key().Generate(ctx, "foo")
