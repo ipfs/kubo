@@ -281,7 +281,10 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	if err != nil {
 		return err
 	}
-	n.Provider = provider.NewProvider(ctx, queue, n.Routing)
+
+	tracker := provider.NewTracker(n.Repo.Datastore())
+
+	n.Provider = provider.NewProvider(ctx, queue, tracker, n.Routing)
 
 	if cfg.Online {
 		if err := n.startLateOnlineServices(ctx); err != nil {
