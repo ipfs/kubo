@@ -5,6 +5,7 @@ package node
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -22,10 +23,10 @@ func init() {
 
 // dontCheckOSXFUSEConfigKey is a key used to let the user tell us to
 // skip fuse checks.
-var dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
+const dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
 
 // fuseVersionPkg is the go pkg url for fuse-version
-var fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
+const fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 
 // errStrFuseRequired is returned when we're sure the user does not have fuse.
 var errStrFuseRequired = `OSXFUSE not found.
@@ -58,7 +59,12 @@ For more help, see:
 	https://github.com/ipfs/go-ipfs/issues/177
 `
 
-var errStrNeedFuseVersion = `unable to check fuse version.
+type errNeedFuseVersion struct {
+	cause string
+}
+
+func (me errNeedFuseVersion) Error() string {
+	return fmt.Sprintf(`unable to check fuse version.
 
 Dear User,
 
@@ -79,7 +85,8 @@ version you have by running:
 [1]: https://github.com/ipfs/go-ipfs/issues/177
 [2]: https://github.com/ipfs/go-ipfs/pull/533
 [3]: %s
-`
+`, fuseVersionPkg, dontCheckOSXFUSEConfigKey, me.cause)
+}
 
 var errStrFailedToRunFuseVersion = `unable to check fuse version.
 
@@ -211,13 +218,13 @@ func ensureFuseVersionIsInstalled() error {
 
 		log.Debug("fuse-version: failed to install.")
 		s := err.Error() + "\n" + cmdoutstr
-		return fmt.Errorf(errStrNeedFuseVersion, fuseVersionPkg, dontCheckOSXFUSEConfigKey, s)
+		return errNeedFuseVersion{s}
 	}
 
 	// ok, try again...
 	if _, err := exec.LookPath("fuse-version"); err != nil {
 		log.Debug("fuse-version: failed to install?")
-		return fmt.Errorf(errStrNeedFuseVersion, fuseVersionPkg, dontCheckOSXFUSEConfigKey, err)
+		return errNeedFuseVersion{err.Error()}
 	}
 
 	log.Debug("fuse-version: install success")

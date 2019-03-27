@@ -15,6 +15,8 @@ import (
 	"sync"
 	"testing"
 
+	"bazil.org/fuse"
+
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
@@ -50,6 +52,7 @@ func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 }
 
 func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.Mount) {
+	t.Helper()
 	maybeSkipFuseTests(t)
 
 	var err error
@@ -62,8 +65,11 @@ func setupIpfsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *fstest.M
 
 	fs := NewFileSystem(node)
 	mnt, err := fstest.MountedT(t, fs, nil)
+	if err == fuse.ErrOSXFUSENotFound {
+		t.Skip(err)
+	}
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("error mounting temporary directory: %v", err)
 	}
 
 	return node, mnt

@@ -12,6 +12,8 @@ import (
 	"sync"
 	"testing"
 
+	"bazil.org/fuse"
+
 	core "github.com/ipfs/go-ipfs/core"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
@@ -106,6 +108,7 @@ func (m *mountWrap) Close() error {
 }
 
 func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWrap) {
+	t.Helper()
 	maybeSkipFuseTests(t)
 
 	var err error
@@ -126,8 +129,11 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		t.Fatal(err)
 	}
 	mnt, err := fstest.MountedT(t, fs, nil)
+	if err == fuse.ErrOSXFUSENotFound {
+		t.Skip(err)
+	}
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("error mounting at temporary directory: %v", err)
 	}
 
 	return node, &mountWrap{
