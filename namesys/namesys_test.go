@@ -15,6 +15,7 @@ import (
 	ci "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	record "github.com/libp2p/go-libp2p-record"
 )
 
 type mockResolver struct {
@@ -97,7 +98,10 @@ func TestPublishWithCache0(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	routing := offroute.NewOfflineRouter(dst, ipns.Validator{KeyBook: ps})
+	routing := offroute.NewOfflineRouter(dst, record.NamespacedValidator{
+		"ipns": ipns.Validator{KeyBook: ps},
+		"pk":   record.PublicKeyValidator{},
+	})
 
 	nsys := NewNameSystem(routing, dst, 0)
 	p, err := path.ParsePath(unixfs.EmptyDirNode().Cid().String())
