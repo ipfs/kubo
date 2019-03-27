@@ -72,7 +72,7 @@ func TestReAnnouncementTick(t *testing.T) {
 
 	tr := NewTracker(ds)
 
-	tick := time.Millisecond * 10
+	tick := time.Second
 	reprovider := NewReprovider(ctx, q, tr, tick, tick, bs, r)
 	reprovider.Run()
 
@@ -89,10 +89,9 @@ func TestReAnnouncementTick(t *testing.T) {
 		t.Fatal("no test blocks to compare to, issue with test data")
 	}
 
-	//time.Sleep(time.Millisecond * 10)
-
 	for len(blocks) > 0 {
 		select {
+		// test waits tick worth of time here
 		case cp := <-r.provided:
 			b, ok := blocks[cp]
 			if !ok {
@@ -102,6 +101,55 @@ func TestReAnnouncementTick(t *testing.T) {
 		case <-time.After(time.Second * 5):
 			t.Fatal("Timeout waiting for cids to be provided.")
 		}
+	}
+}
+
+func TestUntracksBlocksNoLongerInBlockstore(t *testing.T) {
+	ctx := context.Background()
+	defer ctx.Done()
+
+	ds := sync.MutexWrap(datastore.NewMapDatastore())
+	q, err := NewQueue(ctx, "test", ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := mockContentRouting()
+	bs := newMapBlockstore()
+
+	tr := NewTracker(ds)
+
+	tick := time.Hour
+	reprovider := NewReprovider(ctx, q, tr, tick, tick, bs, r)
+	reprovider.Run()
+
+	blocks := make(map[cid.Cid]blocks.Block, 0)
+	for i := 0; i < 100; i++ {
+		b := blockGenerator.Next()
+		blocks[b.Cid()] = b
+
+		tr.Track(b.Cid())
+	}
+
+	reprovider.Trigger(ctx)
+
+	// allow small amount of time for entries to be removed
+	time.Sleep(time.Millisecond * 10)
+
+	for k, _ := range blocks {
+		isTracking, err := tr.IsTracking(k)
+		if err != nil { t.Fatal(err) }
+
+		if isTracking {
+			t.Fatalf("should not be tracking %s, but is", k.String())
+		}
+	}
+
+	select {
+	case <-r.provided:
+		t.Fatal("should not have provided anything, but did")
+	case <-time.After(time.Second * 1):
+		// this is good, nothing was provided
 	}
 }
 

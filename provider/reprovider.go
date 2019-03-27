@@ -106,6 +106,16 @@ func (rp *Reprovider) handleAnnouncements() {
 				case <-rp.ctx.Done():
 					return
 				case c := <-rp.queue.Dequeue():
+					hasBlock, err := rp.blockstore.Has(c)
+					if err != nil {
+						log.Warning(err)
+						continue
+					}
+					if !hasBlock {
+						rp.tracker.Untrack(c)
+						continue
+					}
+
 					log.Info("reannounce - start - ", c)
 					if err := rp.contentRouting.Provide(rp.ctx, c, true); err != nil {
 						log.Warningf("Unable to provide entry: %s, %s", c, err)
