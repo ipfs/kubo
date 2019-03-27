@@ -204,7 +204,7 @@ func ensureFuseVersionIsInstalled() error {
 
 	// try installing it...
 	log.Debug("fuse-version: no fuse-version. attempting to install.")
-	cmd := exec.Command("go", "get", "github.com/jbenet/go-fuse-version/fuse-version")
+	cmd := exec.Command("go", "install", "github.com/jbenet/go-fuse-version/fuse-version")
 	cmdout := new(bytes.Buffer)
 	cmd.Stdout = cmdout
 	cmd.Stderr = cmdout
