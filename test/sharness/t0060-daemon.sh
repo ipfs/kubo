@@ -71,6 +71,16 @@ test_expect_success "ipfs version output looks good" '
   test_fsh cat version.txt
 '
 
+test_expect_success "ipfs version deps succeeds" '
+  ipfs version deps >deps.txt
+'
+
+test_expect_success "ipfs version deps output looks good" '
+  head -1 deps.txt | grep "go-ipfs@(devel)" &&
+  [[ $(tail -n +2 deps.txt | egrep -v -c "^[^ @]+@v[^ @]+( => [^ @]+@v[^ @]+)?$") -eq 0 ]] ||
+  test_fsh cat deps.txt
+'
+
 test_expect_success "ipfs help succeeds" '
   ipfs help >help.txt
 '

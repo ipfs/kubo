@@ -96,6 +96,8 @@ type Dependency struct {
 	Sum        string
 }
 
+const pkgVersionFmt = "%s@%s"
+
 var depsVersionCommand = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Shows information about dependencies used for build",
@@ -114,7 +116,7 @@ Print out all dependencies and their versions.`,
 			dep.Version = mod.Version
 			dep.Sum = mod.Sum
 			if repl := mod.Replace; repl != nil {
-				dep.ReplacedBy = fmt.Sprintf("%s@%s", repl.Path, repl.Version)
+				dep.ReplacedBy = fmt.Sprintf(pkgVersionFmt, repl.Path, repl.Version)
 			}
 			return
 		}
@@ -130,7 +132,7 @@ Print out all dependencies and their versions.`,
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, dep Dependency) error {
-			fmt.Fprintf(w, "%s@%s", dep.Path, dep.Version)
+			fmt.Fprintf(w, pkgVersionFmt, dep.Path, dep.Version)
 			if dep.ReplacedBy != "" {
 				fmt.Fprintf(w, " => %s", dep.ReplacedBy)
 			}
