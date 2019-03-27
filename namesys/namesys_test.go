@@ -104,5 +104,8 @@ func TestPublishWithCache0(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nsys.Publish(context.Background(), priv, p)
+	err = nsys.Publish(context.Background(), priv, p)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

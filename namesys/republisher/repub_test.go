@@ -41,7 +41,9 @@ func TestRepublish(t *testing.T) {
 		nodes = append(nodes, nd)
 	}
 
-	mn.LinkAll()
+	if err := mn.LinkAll(); err != nil {
+		t.Fatal(err)
+	}
 
 	bsinf := core.BootstrapConfigWithPeers(
 		[]pstore.PeerInfo{

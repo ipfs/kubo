@@ -35,10 +35,12 @@ func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 	// if the user said "Mount", then there must be something wrong.
 	// so, close them and try again.
 	if node.Mounts.Ipfs != nil && node.Mounts.Ipfs.IsActive() {
-		node.Mounts.Ipfs.Unmount()
+		// best effort
+		_ = node.Mounts.Ipfs.Unmount()
 	}
 	if node.Mounts.Ipns != nil && node.Mounts.Ipns.IsActive() {
-		node.Mounts.Ipns.Unmount()
+		// best effort
+		_ = node.Mounts.Ipns.Unmount()
 	}
 
 	if err := platformFuseChecks(node); err != nil {
@@ -95,10 +97,10 @@ func doMount(node *core.IpfsNode, fsdir, nsdir string) error {
 
 	if err1 != nil || err2 != nil {
 		if fsmount != nil {
-			fsmount.Unmount()
+			_ = fsmount.Unmount()
 		}
 		if nsmount != nil {
-			nsmount.Unmount()
+			_ = nsmount.Unmount()
 		}
 
 		if err1 != nil {

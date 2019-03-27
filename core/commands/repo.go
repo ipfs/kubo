@@ -98,7 +98,10 @@ order to reclaim hard disk space.
 			}
 		} else {
 			err := corerepo.CollectResult(req.Context, gcOutChan, func(k cid.Cid) {
-				re.Emit(&GcResult{Key: k})
+				// Nothing to do with this error, really. This
+				// most likely means that the client is gone but
+				// we still need to let the GC finish.
+				_ = re.Emit(&GcResult{Key: k})
 			})
 			if err != nil {
 				return err
@@ -163,10 +166,9 @@ Version         string The repo version.
 			if err != nil {
 				return err
 			}
-			cmds.EmitOnce(res, &corerepo.Stat{
+			return cmds.EmitOnce(res, &corerepo.Stat{
 				SizeStat: sizeStat,
 			})
-			return nil
 		}
 
 		stat, err := corerepo.RepoStat(req.Context, n)
@@ -396,9 +398,9 @@ var repoVersionCmd = &cmds.Command{
 			quiet, _ := req.Options[repoQuietOptionName].(bool)
 
 			if quiet {
-				fmt.Fprintf(w, fmt.Sprintf("fs-repo@%s\n", out.Version))
+				fmt.Fprintf(w, "fs-repo@%s\n", out.Version)
 			} else {
-				fmt.Fprintf(w, fmt.Sprintf("ipfs repo version fs-repo@%s\n", out.Version))
+				fmt.Fprintf(w, "ipfs repo version fs-repo@%s\n", out.Version)
 			}
 			return nil
 		}),

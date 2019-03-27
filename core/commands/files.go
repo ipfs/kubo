@@ -168,6 +168,9 @@ var filesStatCmd = &cmds.Command{
 		}
 
 		local, sizeLocal, err := walkBlock(req.Context, dagserv, nd)
+		if err != nil {
+			return err
+		}
 
 		o.WithLocality = true
 		o.Local = local

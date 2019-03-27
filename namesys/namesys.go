@@ -183,7 +183,7 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 		return err
 	}
 	ttl := DefaultResolverCacheTTL
-	if ttEol := eol.Sub(time.Now()); ttEol < ttl {
+	if ttEol := time.Until(eol); ttEol < ttl {
 		ttl = ttEol
 	}
 	ns.cacheSet(peer.IDB58Encode(id), value, ttl)

@@ -139,8 +139,8 @@ func Diff(ctx context.Context, ds ipld.DAGService, a, b ipld.Node) ([]*Change, e
 					out = append(out, subc)
 				}
 			}
-			cleanA.RemoveNodeLink(l.Name)
-			cleanB.RemoveNodeLink(l.Name)
+			_ = cleanA.RemoveNodeLink(l.Name)
+			_ = cleanB.RemoveNodeLink(l.Name)
 		}
 	}
 

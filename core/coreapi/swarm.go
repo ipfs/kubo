@@ -23,9 +23,8 @@ type connInfo struct {
 	conn      net.Conn
 	dir       net.Direction
 
-	addr  ma.Multiaddr
-	peer  peer.ID
-	muxer string
+	addr ma.Multiaddr
+	peer peer.ID
 }
 
 func (api *SwarmAPI) Connect(ctx context.Context, pi pstore.PeerInfo) error {
@@ -83,9 +82,7 @@ func (api *SwarmAPI) KnownAddrs(context.Context) (map[peer.ID][]ma.Multiaddr, er
 	addrs := make(map[peer.ID][]ma.Multiaddr)
 	ps := api.peerHost.Network().Peerstore()
 	for _, p := range ps.Peers() {
-		for _, a := range ps.Addrs(p) {
-			addrs[p] = append(addrs[p], a)
-		}
+		addrs[p] = append(addrs[p], ps.Addrs(p)...)
 		sort.Slice(addrs[p], func(i, j int) bool {
 			return addrs[p][i].String() < addrs[p][j].String()
 		})

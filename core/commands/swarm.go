@@ -256,7 +256,7 @@ var swarmAddrsCmd = &cmds.Command{
 			for p := range am.Addrs {
 				ids = append(ids, p)
 			}
-			sort.Sort(sort.StringSlice(ids))
+			sort.Strings(ids)
 
 			for _, p := range ids {
 				paddrs := am.Addrs[p]
@@ -307,7 +307,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 			}
 			addrs = append(addrs, saddr)
 		}
-		sort.Sort(sort.StringSlice(addrs))
+		sort.Strings(addrs)
 		return cmds.EmitOnce(res, &stringList{addrs})
 	},
 	Type: stringList{},
@@ -338,7 +338,7 @@ var swarmAddrsListenCmd = &cmds.Command{
 		for _, addr := range maddrs {
 			addrs = append(addrs, addr.String())
 		}
-		sort.Sort(sort.StringSlice(addrs))
+		sort.Strings(addrs)
 
 		return cmds.EmitOnce(res, &stringList{addrs})
 	},

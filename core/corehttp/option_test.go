@@ -52,7 +52,9 @@ func TestCheckVersionOption(t *testing.T) {
 			if !tc.shouldHandle {
 				t.Error("handler was called even though version didn't match")
 			} else {
-				io.WriteString(w, "check!")
+				if _, err := io.WriteString(w, "check!"); err != nil {
+					t.Error(err)
+				}
 			}
 		})
 

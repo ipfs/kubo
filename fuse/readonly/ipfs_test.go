@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -41,7 +42,10 @@ func maybeSkipFuseTests(t *testing.T) {
 
 func randObj(t *testing.T, nd *core.IpfsNode, size int64) (ipld.Node, []byte) {
 	buf := make([]byte, size)
-	u.NewTimeSeededRand().Read(buf)
+	_, err := io.ReadFull(u.NewTimeSeededRand(), buf)
+	if err != nil {
+		t.Fatal(err)
+	}
 	read := bytes.NewReader(buf)
 	obj, err := importer.BuildTrickleDagFromReader(nd.DAG, chunker.DefaultSplitter(read))
 	if err != nil {

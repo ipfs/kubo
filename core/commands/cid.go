@@ -239,8 +239,7 @@ var basesCmd = &cmds.Command{
 		for code, name := range mbase.EncodingToStr {
 			res = append(res, CodeAndName{int(code), name})
 		}
-		cmds.EmitOnce(resp, res)
-		return nil
+		return cmds.EmitOnce(resp, res)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, val []CodeAndName) error {
@@ -287,8 +286,7 @@ var codecsCmd = &cmds.Command{
 		for code, name := range cid.CodecToStr {
 			res = append(res, CodeAndName{int(code), name})
 		}
-		cmds.EmitOnce(resp, res)
-		return nil
+		return cmds.EmitOnce(resp, res)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, val []CodeAndName) error {
@@ -321,8 +319,7 @@ var hashesCmd = &cmds.Command{
 			}
 			res = append(res, CodeAndName{int(code), name})
 		}
-		cmds.EmitOnce(resp, res)
-		return nil
+		return cmds.EmitOnce(resp, res)
 	},
 	Encoders: codecsCmd.Encoders,
 	Type:     codecsCmd.Type,

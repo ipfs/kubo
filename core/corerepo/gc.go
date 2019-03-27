@@ -40,11 +40,15 @@ func NewGC(n *core.IpfsNode) (*GC, error) {
 	// TODO: there should be a general check for all of the cfg fields
 	// maybe distinguish between user config file and default struct?
 	if cfg.Datastore.StorageMax == "" {
-		r.SetConfigKey("Datastore.StorageMax", "10GB")
+		if err := r.SetConfigKey("Datastore.StorageMax", "10GB"); err != nil {
+			return nil, err
+		}
 		cfg.Datastore.StorageMax = "10GB"
 	}
 	if cfg.Datastore.StorageGCWatermark == 0 {
-		r.SetConfigKey("Datastore.StorageGCWatermark", 90)
+		if err := r.SetConfigKey("Datastore.StorageGCWatermark", 90); err != nil {
+			return nil, err
+		}
 		cfg.Datastore.StorageGCWatermark = 90
 	}
 

@@ -37,8 +37,6 @@ import (
 // log is the command logger
 var log = logging.Logger("cmd/ipfs")
 
-var errRequestCanceled = errors.New("request canceled")
-
 // declared as a var for testing purposes
 var dnsResolver = madns.DefaultResolver
 
@@ -325,7 +323,11 @@ func startProfiling() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	pprof.StartCPUProfile(ofi)
+	err = pprof.StartCPUProfile(ofi)
+	if err != nil {
+		ofi.Close()
+		return nil, err
+	}
 	go func() {
 		for range time.NewTicker(time.Second * 30).C {
 			err := writeHeapProfileToFile()

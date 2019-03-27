@@ -48,14 +48,7 @@ func (api *PubSubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 		return nil, err
 	}
 
-	peers := api.pubSub.ListPeers(settings.Topic)
-	out := make([]peer.ID, len(peers))
-
-	for i, peer := range peers {
-		out[i] = peer
-	}
-
-	return out, nil
+	return api.pubSub.ListPeers(settings.Topic), nil
 }
 
 func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) error {
@@ -69,6 +62,9 @@ func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) er
 
 func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (coreiface.PubSubSubscription, error) {
 	options, err := caopts.PubSubSubscribeOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	r, err := api.checkNode()
 	if err != nil {

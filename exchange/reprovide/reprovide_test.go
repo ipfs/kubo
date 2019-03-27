@@ -30,11 +30,14 @@ func TestReprovide(t *testing.T) {
 	bstore := blockstore.NewBlockstore(dssync.MutexWrap(ds.NewMapDatastore()))
 
 	blk := blocks.NewBlock([]byte("this is a test"))
-	bstore.Put(blk)
+	err := bstore.Put(blk)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	keyProvider := NewBlockstoreProvider(bstore)
 	reprov := NewReprovider(ctx, clA, keyProvider)
-	err := reprov.Reprovide()
+	err = reprov.Reprovide()
 	if err != nil {
 		t.Fatal(err)
 	}

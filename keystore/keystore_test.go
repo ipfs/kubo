@@ -198,7 +198,7 @@ func TestInvalidKeyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if exist, err = ks.Has(".invalid"); err == nil {
+	if _, err = ks.Has(".invalid"); err == nil {
 		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
 	}
 }

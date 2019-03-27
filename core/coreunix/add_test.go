@@ -72,7 +72,7 @@ func TestAddGCLive(t *testing.T) {
 		_, err := adder.AddAllAndPin(slf)
 
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 	}()
@@ -93,7 +93,9 @@ func TestAddGCLive(t *testing.T) {
 	}()
 
 	// gc shouldnt start until we let the add finish its current file.
-	pipew.Write([]byte("some data for file b"))
+	if _, err := pipew.Write([]byte("some data for file b")); err != nil {
+		t.Fatal(err)
+	}
 
 	select {
 	case <-gcstarted:
@@ -178,7 +180,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 		defer close(adder.Out)
 		_, err = adder.AddAllAndPin(file)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	}()
 	for range out {
@@ -227,7 +229,7 @@ func (bs *testBlockstore) PutMany(blocks []blocks.Block) error {
 	return bs.GCBlockstore.PutMany(blocks)
 }
 
-func (bs *testBlockstore) CheckForPosInfo(block blocks.Block) error {
+func (bs *testBlockstore) CheckForPosInfo(block blocks.Block) {
 	fsn, ok := block.(*pi.FilestoreNode)
 	if ok {
 		posInfo := fsn.PosInfo
@@ -240,7 +242,6 @@ func (bs *testBlockstore) CheckForPosInfo(block blocks.Block) error {
 			bs.countAtOffsetNonZero += 1
 		}
 	}
-	return nil
 }
 
 type dummyFileInfo struct {

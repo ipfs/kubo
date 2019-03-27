@@ -80,7 +80,10 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 			}
 			defer os.Remove(f.Name())
 
-			random.WritePseudoRandomBytes(amount, f, seed)
+			if err := random.WritePseudoRandomBytes(amount, f, seed); err != nil {
+				benchmarkError = err
+				b.Fatal(err)
+			}
 			if err := f.Close(); err != nil {
 				benchmarkError = err
 				b.Fatal(err)
@@ -95,8 +98,10 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 						benchmarkError = err
 						b.Fatal(err)
 					}
-					defer daemonCmd.Wait()
-					defer daemonCmd.Process.Signal(os.Interrupt)
+					defer func() {
+						_ = daemonCmd.Process.Signal(os.Interrupt)
+						_ = daemonCmd.Wait()
+					}()
 				}
 
 				b.StartTimer()

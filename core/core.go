@@ -399,7 +399,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 		var out []ma.Multiaddr
 		for _, maddr := range addrs {
 			// check for exact matches
-			ok, _ := noAnnAddrs[maddr.String()]
+			ok := noAnnAddrs[maddr.String()]
 			// check for /ipcidr matches
 			if !ok && !filters.AddrBlocked(maddr) {
 				out = append(out, maddr)
@@ -815,8 +815,12 @@ func (n *IpfsNode) loadPrivateKey() error {
 	}
 
 	n.PrivateKey = sk
-	n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey)
-	n.Peerstore.AddPubKey(n.Identity, sk.GetPublic())
+	if err := n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey); err != nil {
+		return err
+	}
+	if err := n.Peerstore.AddPubKey(n.Identity, sk.GetPublic()); err != nil {
+		return err
+	}
 	return nil
 }
 

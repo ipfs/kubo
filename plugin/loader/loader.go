@@ -115,7 +115,7 @@ func (loader *PluginLoader) Start(iface coreiface.CoreAPI) error {
 		if pl, ok := pl.(plugin.PluginDaemon); ok {
 			err := pl.Start(iface)
 			if err != nil {
-				closePlugins(loader.plugins[i:])
+				_ = closePlugins(loader.plugins[i:])
 				return err
 			}
 		}

@@ -56,7 +56,7 @@ func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bo
 
 	// launch the mounting process.
 	if err := m.mount(); err != nil {
-		m.Unmount() // just in case.
+		_ = m.Unmount() // just in case.
 		return nil, err
 	}
 

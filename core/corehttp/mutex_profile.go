@@ -20,7 +20,7 @@ func MutexFractionOption(path string) ServeOption {
 			}
 			if err := r.ParseForm(); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(err.Error()))
+				_, _ = w.Write([]byte(err.Error()))
 				return
 			}
 
@@ -33,7 +33,7 @@ func MutexFractionOption(path string) ServeOption {
 			fr, err := strconv.Atoi(asfr)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(err.Error()))
+				_, _ = w.Write([]byte(err.Error()))
 				return
 			}
 			log.Infof("Setting MutexProfileFraction to %d", fr)
