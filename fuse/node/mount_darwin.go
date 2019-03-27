@@ -5,7 +5,6 @@ package node
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
