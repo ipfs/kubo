@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
+	"go.uber.org/fx"
 	"os"
 	"syscall"
 	"time"
@@ -25,19 +27,15 @@ import (
 	cfg "github.com/ipfs/go-ipfs-config"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
-	ipns "github.com/ipfs/go-ipns"
 	dag "github.com/ipfs/go-merkledag"
 	metrics "github.com/ipfs/go-metrics-interface"
 	resolver "github.com/ipfs/go-path/resolver"
 	uio "github.com/ipfs/go-unixfs/io"
-	goprocessctx "github.com/jbenet/goprocess/context"
 	libp2p "github.com/libp2p/go-libp2p"
 	ci "github.com/libp2p/go-libp2p-crypto"
 	p2phost "github.com/libp2p/go-libp2p-host"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
-	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
-	record "github.com/libp2p/go-libp2p-record"
 )
 
 type BuildCfg struct {
@@ -55,7 +53,7 @@ type BuildCfg struct {
 	// DO NOT SET THIS UNLESS YOU'RE TESTING.
 	DisableEncryptedConnections bool
 
-	// If NilRepo is set, a repo backed by a nil datastore will be constructed
+	// If NilRepo is set, a Repo backed by a nil datastore will be constructed
 	NilRepo bool
 
 	Routing RoutingOption
@@ -73,7 +71,7 @@ func (cfg *BuildCfg) getOpt(key string) bool {
 
 func (cfg *BuildCfg) fillDefaults() error {
 	if cfg.Repo != nil && cfg.NilRepo {
-		return errors.New("cannot set a repo and specify nilrepo at the same time")
+		return errors.New("cannot set a Repo and specify nilrepo at the same time")
 	}
 
 	if cfg.Repo == nil {
@@ -142,7 +140,66 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 
 	ctx = metrics.CtxScope(ctx, "ipfs")
 
+	repoOption := fx.Provide(func(lc fx.Lifecycle) repo.Repo {
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return cfg.Repo.Close()
+			},
+		})
+
+		return cfg.Repo
+	})
+
+	// TODO: Remove this, use only for passing node config
+	cfgOption := fx.Provide(func() *BuildCfg {
+		return cfg
+	})
+
 	n := &IpfsNode{
+		ctx: ctx,
+	}
+
+	app := fx.New(
+		repoOption,
+		cfgOption,
+
+		fx.Provide(repoConfig),
+		fx.Provide(identity),
+		fx.Provide(privateKey),
+
+		fx.Provide(peerstore),
+		fx.Provide(baseBlockstoreCtor),
+		fx.Provide(gcBlockstoreCtor),
+
+		fx.Provide(recordValidator),
+
+		ipfsp2p,
+
+		fx.Invoke(setupSharding),
+
+		fx.Provide(onlineExchangeCtor), // TODO: offline
+		fx.Provide(onlineNamesysCtor),  // TODO: ^^
+		fx.Provide(bserv.New),
+		fx.Provide(onlineDagCtor),
+		fx.Provide(resolver.NewBasicResolver),
+
+		fx.Provide(pinning),
+		fx.Provide(files),
+
+		fx.Provide(providerQueue),
+		fx.Provide(providerCtor),
+		fx.Provide(reproviderCtor),
+		fx.Invoke(reprovider),
+
+		fx.Provide(p2p.NewP2P),
+
+		fx.Invoke(ipnsRepublisher),
+		fx.Invoke(provider.Provider.Run),
+
+		fx.Extract(n),
+	)
+
+/*	n := &IpfsNode{
 		IsOnline:  cfg.Online,
 		Repo:      cfg.Repo,
 		ctx:       ctx,
@@ -153,16 +210,19 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		"pk":   record.PublicKeyValidator{},
 		"ipns": ipns.Validator{KeyBook: n.Peerstore},
 	}
+*/
+	// TODO: port to lifetimes
+	// n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
 
-	// TODO: this is a weird circular-ish dependency, rework it
-	n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
-
-	if err := setupNode(ctx, n, cfg); err != nil {
+	/*if err := setupNode(ctx, n, cfg); err != nil {
 		n.Close()
 		return nil, err
-	}
+	}*/
+  if app.Err() != nil {
+	return nil, app.Err()
+  }
 
-	return n, nil
+	return n, app.Start(ctx)
 }
 
 func isTooManyFDError(err error) bool {
@@ -247,6 +307,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		hostOption = func(ctx context.Context, id peer.ID, ps pstore.Peerstore, options ...libp2p.Option) (p2phost.Host, error) {
 			return innerHostOption(ctx, id, ps, append(options, libp2p.NoSecurity)...)
 		}
+		// TODO: shouldn't this be Errorf to guarantee visibility?
 		log.Warningf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.
 		You will not be able to connect to any nodes configured to use encrypted connections`)
 	}

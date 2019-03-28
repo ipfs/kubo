@@ -79,8 +79,6 @@ import (
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
 
-const IpnsValidatorTag = "ipns"
-
 const kReprovideFrequency = time.Hour * 12
 const discoveryConnTimeout = time.Second * 30
 const DefaultIpnsCacheSize = 128
@@ -101,9 +99,9 @@ type IpfsNode struct {
 
 	// Local node
 	Pinning         pin.Pinner // the pinning manager
-	Mounts          Mounts     // current mount state, if any.
+	Mounts          Mounts     `optional:"true"` // current mount state, if any.
 	PrivateKey      ic.PrivKey // the local node's private Key
-	PNetFingerprint []byte     // fingerprint of private network
+	PNetFingerprint PNetFingerprint     // fingerprint of private network
 
 	// Services
 	Peerstore       pstore.Peerstore     // storage for other Peer instances
@@ -115,21 +113,21 @@ type IpfsNode struct {
 	DAG             ipld.DAGService      // the merkle dag service, get/add objects.
 	Resolver        *resolver.Resolver   // the path resolution system
 	Reporter        metrics.Reporter
-	Discovery       discovery.Service
+	Discovery       discovery.Service `optional:"true"`
 	FilesRoot       *mfs.Root
 	RecordValidator record.Validator
 
 	// Online
 	PeerHost     p2phost.Host        // the network host (server+client)
-	Bootstrapper io.Closer           // the periodic bootstrapper
+	Bootstrapper io.Closer           `optional:"true"` // the periodic bootstrapper
 	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
 	Provider     provider.Provider   // the value provider system
 	Reprovider   *rp.Reprovider      // the value reprovider system
-	IpnsRepub    *ipnsrp.Republisher
+	IpnsRepub    *ipnsrp.Republisher `optional:"true"`
 
-	AutoNAT  *autonat.AutoNATService
+	AutoNAT  *autonat.AutoNATService `optional:"true"`
 	PubSub   *pubsub.PubSub
 	PSRouter *psrouter.PubsubValueStore
 	DHT      *dht.IpfsDHT
@@ -139,8 +137,8 @@ type IpfsNode struct {
 	ctx  context.Context
 
 	// Flags
-	IsOnline bool // Online is set when networking is enabled.
-	IsDaemon bool // Daemon is set when running on a long-running daemon.
+	IsOnline bool `optional:"true"`  // Online is set when networking is enabled.
+	IsDaemon bool `optional:"true"`  // Daemon is set when running on a long-running daemon.
 }
 
 // Mounts defines what the node's mount state is. This should
