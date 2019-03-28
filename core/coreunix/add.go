@@ -104,9 +104,6 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 		return nil, err
 	}
 
-	// Make sure all added nodes are written when done.
-	defer adder.bufferedDS.Commit()
-
 	params := ihelper.DagBuilderParams{
 		Dagserv:    adder.bufferedDS,
 		RawLeaves:  adder.RawLeaves,
@@ -119,11 +116,17 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	var nd ipld.Node
 	if adder.Trickle {
-		return trickle.Layout(db)
+		nd, err = trickle.Layout(db)
+	} else {
+		nd, err = balanced.Layout(db)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return balanced.Layout(db)
+	return nd, adder.bufferedDS.Commit()
 }
 
 // RootNode returns the mfs root node
