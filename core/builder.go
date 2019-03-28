@@ -162,6 +162,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 
 	storage := fx.Options(
 		fx.Provide(repoConfig),
+		fx.Provide(datastoreCtor),
 		fx.Provide(baseBlockstoreCtor),
 		fx.Provide(gcBlockstoreCtor),
 	)
@@ -169,10 +170,20 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	ident := fx.Options(
 		fx.Provide(identity),
 		fx.Provide(privateKey),
+		fx.Provide(peerstore),
 	)
 
 	ipns := fx.Options(
 		fx.Provide(recordValidator),
+	)
+
+	providers := fx.Options(
+		fx.Provide(providerQueue),
+		fx.Provide(providerCtor),
+		fx.Provide(reproviderCtor),
+
+		fx.Invoke(reprovider),
+		fx.Invoke(provider.Provider.Run),
 	)
 
 	online := fx.Options(
@@ -180,12 +191,18 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		fx.Provide(onlineNamesysCtor),
 
 		fx.Invoke(ipnsRepublisher),
-		fx.Invoke(provider.Provider.Run),
+
+		fx.Provide(p2p.NewP2P),
+
+		ipfsp2p,
+		providers,
 	)
 	if !cfg.Online {
 		online = fx.Options(
 			fx.Provide(offline.Exchange),
 			fx.Provide(offlineNamesysCtor),
+			fx.Provide(offroute.NewOfflineRouter),
+			fx.Provide(provider.NewOfflineProvider),
 		)
 	}
 
@@ -197,13 +214,6 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		fx.Provide(files),
 	)
 
-	providers := fx.Options(
-		fx.Provide(providerQueue),
-		fx.Provide(providerCtor),
-		fx.Provide(reproviderCtor),
-		fx.Invoke(reprovider),
-	)
-
 	n := &IpfsNode{
 		ctx: ctx,
 	}
@@ -212,21 +222,18 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		params,
 		storage,
 		ident,
-		ipfsp2p,
 		ipns,
 		online,
 
 		fx.Invoke(setupSharding),
 
 		core,
-		providers,
-
-		fx.Provide(p2p.NewP2P),
 
 		fx.Extract(n),
 	)
 
 	n.IsOnline = cfg.Online
+	n.app = app
 
 /*	n := &IpfsNode{
 		IsOnline:  cfg.Online,

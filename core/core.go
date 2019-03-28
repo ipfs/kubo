@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/fx"
+
 	version "github.com/ipfs/go-ipfs"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	filestore "github.com/ipfs/go-ipfs/filestore"
@@ -101,10 +103,10 @@ type IpfsNode struct {
 	Pinning         pin.Pinner // the pinning manager
 	Mounts          Mounts     `optional:"true"` // current mount state, if any.
 	PrivateKey      ic.PrivKey // the local node's private Key
-	PNetFingerprint PNetFingerprint     // fingerprint of private network
+	PNetFingerprint PNetFingerprint `optional:"true"`     // fingerprint of private network
 
 	// Services
-	Peerstore       pstore.Peerstore     // storage for other Peer instances
+	Peerstore       pstore.Peerstore `optional:"true"`     // storage for other Peer instances
 	Blockstore      bstore.GCBlockstore  // the block store (lower level)
 	Filestore       *filestore.Filestore // the filestore blockstore
 	BaseBlocks      bstore.Blockstore    // the raw blockstore, no filestore wrapping
@@ -112,29 +114,31 @@ type IpfsNode struct {
 	Blocks          bserv.BlockService   // the block service, get/add blocks.
 	DAG             ipld.DAGService      // the merkle dag service, get/add objects.
 	Resolver        *resolver.Resolver   // the path resolution system
-	Reporter        metrics.Reporter
+	Reporter        metrics.Reporter `optional:"true"`
 	Discovery       discovery.Service `optional:"true"`
 	FilesRoot       *mfs.Root
 	RecordValidator record.Validator
 
 	// Online
-	PeerHost     p2phost.Host        // the network host (server+client)
+	PeerHost     p2phost.Host `optional:"true"`        // the network host (server+client)
 	Bootstrapper io.Closer           `optional:"true"` // the periodic bootstrapper
-	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
+	Routing      routing.IpfsRouting `optional:"true"` // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
-	Provider     provider.Provider   // the value provider system
-	Reprovider   *rp.Reprovider      // the value reprovider system
+	Provider     provider.Provider  // the value provider system
+	Reprovider   *rp.Reprovider  `optional:"true"`     // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher `optional:"true"`
 
 	AutoNAT  *autonat.AutoNATService `optional:"true"`
-	PubSub   *pubsub.PubSub
-	PSRouter *psrouter.PubsubValueStore
-	DHT      *dht.IpfsDHT
-	P2P      *p2p.P2P
+	PubSub   *pubsub.PubSub `optional:"true"`
+	PSRouter *psrouter.PubsubValueStore `optional:"true"`
+	DHT      *dht.IpfsDHT `optional:"true"`
+	P2P      *p2p.P2P `optional:"true"`
 
-	proc goprocess.Process
+	proc goprocess.Process //TODO: remove
 	ctx  context.Context
+
+	app *fx.App
 
 	// Flags
 	IsOnline bool `optional:"true"`  // Online is set when networking is enabled.
@@ -648,9 +652,9 @@ func (n *IpfsNode) Process() goprocess.Process {
 	return n.proc
 }
 
-// Close calls Close() on the Process object
+// Close calls Close() on the App object
 func (n *IpfsNode) Close() error {
-	return n.proc.Close()
+	return n.app.Stop(n.ctx)
 }
 
 // Context returns the IpfsNode context

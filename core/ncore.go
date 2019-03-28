@@ -111,6 +111,10 @@ func privateKey(cfg *iconfig.Config, id peer.ID) (ic.PrivKey, error) {
 	return sk, nil
 }
 
+func datastoreCtor(repo repo.Repo) ds.Datastore {
+	return repo.Datastore()
+}
+
 func baseBlockstoreCtor(repo repo.Repo, cfg *iconfig.Config, bcfg *BuildCfg, lc fx.Lifecycle) (bs bstore.Blockstore, err error) {
 	rds := &retry.Datastore{
 		Batching:    repo.Datastore(),
@@ -180,8 +184,6 @@ func recordValidator(ps pstore.Peerstore) record.Validator {
 // libp2p
 
 var ipfsp2p = fx.Options(
-	fx.Provide(peerstore),
-
 	fx.Provide(p2pAddrFilters),
 	fx.Provide(p2pBandwidthCounter),
 	fx.Provide(p2pPNet),
@@ -411,6 +413,9 @@ func p2pHost(lc fx.Lifecycle, params p2pHostIn) (out p2pHostOut, err error) {
 	}))
 
 	out.Host, err = params.HostOption(ctx, params.ID, params.Peerstore, opts...)
+	if err != nil {
+		return p2pHostOut{}, err
+	}
 
 	// this code is necessary just for tests: mock network constructions
 	// ignore the libp2p constructor options that actually construct the routing!
@@ -758,14 +763,14 @@ func lifecycleCtx(lc fx.Lifecycle) context.Context {
 }
 
 func lcGoProc(lc fx.Lifecycle, processFunc goprocess.ProcessFunc) {
-	proc := goprocess.Background()
+	proc := make(chan goprocess.Process, 1)
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			proc.Go(processFunc)
+			proc <- goprocess.Go(processFunc)
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			return proc.Close() // todo: respect ctx
+			return (<-proc).Close() // todo: respect ctx
 		},
 	})
 }
