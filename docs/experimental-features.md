@@ -550,7 +550,7 @@ See [Plugin docs](./plugins.md)
  ```
  $ ipfs init --profile=badgerds
  ```
- or
+ or install https://github.com/ipfs/ipfs-ds-convert/ and
  ```
  [BACKUP ~/.ipfs]
  $ ipfs config profile apply badgerds
