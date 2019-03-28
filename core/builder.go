@@ -155,7 +155,6 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		return cfg
 	})
 
-
 	params := fx.Options(
 		repoOption,
 		cfgOption,
@@ -226,6 +225,8 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 
 		fx.Extract(n),
 	)
+
+	n.IsOnline = cfg.Online
 
 /*	n := &IpfsNode{
 		IsOnline:  cfg.Online,
