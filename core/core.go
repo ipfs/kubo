@@ -814,13 +814,13 @@ func (n *IpfsNode) loadPrivateKey() error {
 		return err
 	}
 
-	n.PrivateKey = sk
-	if err := n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey); err != nil {
+	if err := n.Peerstore.AddPrivKey(n.Identity, sk); err != nil {
 		return err
 	}
 	if err := n.Peerstore.AddPubKey(n.Identity, sk.GetPublic()); err != nil {
 		return err
 	}
+	n.PrivateKey = sk
 	return nil
 }
 
