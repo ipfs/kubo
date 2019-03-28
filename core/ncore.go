@@ -180,6 +180,8 @@ func recordValidator(ps pstore.Peerstore) record.Validator {
 // libp2p
 
 var ipfsp2p = fx.Options(
+	fx.Provide(peerstore),
+
 	fx.Provide(p2pAddrFilters),
 	fx.Provide(p2pBandwidthCounter),
 	fx.Provide(p2pPNet),
@@ -564,7 +566,7 @@ func pinning(bstore bstore.Blockstore, ds format.DAGService, repo repo.Repo) (pi
 	return pinning, nil
 }
 
-func onlineDagCtor(bs bserv.BlockService) format.DAGService {
+func dagCtor(bs bserv.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
 }
 

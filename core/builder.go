@@ -155,46 +155,74 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		return cfg
 	})
 
+
+	params := fx.Options(
+		repoOption,
+		cfgOption,
+	)
+
+	storage := fx.Options(
+		fx.Provide(repoConfig),
+		fx.Provide(baseBlockstoreCtor),
+		fx.Provide(gcBlockstoreCtor),
+	)
+
+	ident := fx.Options(
+		fx.Provide(identity),
+		fx.Provide(privateKey),
+	)
+
+	ipns := fx.Options(
+		fx.Provide(recordValidator),
+	)
+
+	online := fx.Options(
+		fx.Provide(onlineExchangeCtor),
+		fx.Provide(onlineNamesysCtor),
+
+		fx.Invoke(ipnsRepublisher),
+		fx.Invoke(provider.Provider.Run),
+	)
+	if !cfg.Online {
+		online = fx.Options(
+			fx.Provide(offline.Exchange),
+			fx.Provide(offlineNamesysCtor),
+		)
+	}
+
+	core := fx.Options(
+		fx.Provide(bserv.New),
+		fx.Provide(dagCtor),
+		fx.Provide(resolver.NewBasicResolver),
+		fx.Provide(pinning),
+		fx.Provide(files),
+	)
+
+	providers := fx.Options(
+		fx.Provide(providerQueue),
+		fx.Provide(providerCtor),
+		fx.Provide(reproviderCtor),
+		fx.Invoke(reprovider),
+	)
+
 	n := &IpfsNode{
 		ctx: ctx,
 	}
 
 	app := fx.New(
-		repoOption,
-		cfgOption,
-
-		fx.Provide(repoConfig),
-		fx.Provide(identity),
-		fx.Provide(privateKey),
-
-		fx.Provide(peerstore),
-		fx.Provide(baseBlockstoreCtor),
-		fx.Provide(gcBlockstoreCtor),
-
-		fx.Provide(recordValidator),
-
+		params,
+		storage,
+		ident,
 		ipfsp2p,
+		ipns,
+		online,
 
 		fx.Invoke(setupSharding),
 
-		fx.Provide(onlineExchangeCtor), // TODO: offline
-		fx.Provide(onlineNamesysCtor),  // TODO: ^^
-		fx.Provide(bserv.New),
-		fx.Provide(onlineDagCtor),
-		fx.Provide(resolver.NewBasicResolver),
-
-		fx.Provide(pinning),
-		fx.Provide(files),
-
-		fx.Provide(providerQueue),
-		fx.Provide(providerCtor),
-		fx.Provide(reproviderCtor),
-		fx.Invoke(reprovider),
+		core,
+		providers,
 
 		fx.Provide(p2p.NewP2P),
-
-		fx.Invoke(ipnsRepublisher),
-		fx.Invoke(provider.Provider.Run),
 
 		fx.Extract(n),
 	)
