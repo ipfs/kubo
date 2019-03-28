@@ -253,7 +253,7 @@ A url to redirect requests for `/` to.
 
 Default: `""`
 
-- `Writeable`
+- `Writable`
 A boolean to configure whether the gateway is writeable or not.
 
 Default: `false`
