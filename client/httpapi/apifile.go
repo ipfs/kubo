@@ -56,7 +56,8 @@ type apiFile struct {
 
 func (f *apiFile) reset() error {
 	if f.r != nil {
-		f.r.Cancel()
+		_ = f.r.Cancel()
+		f.r = nil
 	}
 	req := f.core.request("cat", f.path.String())
 	if f.at != 0 {
