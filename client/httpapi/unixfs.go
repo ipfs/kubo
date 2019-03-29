@@ -8,9 +8,10 @@ import (
 	"io"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/interface-go-ipfs-core"
+	files "github.com/ipfs/go-ipfs-files"
+	unixfs "github.com/ipfs/go-unixfs"
+	unixfs_pb "github.com/ipfs/go-unixfs/pb"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -40,15 +41,12 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		Option("chunker", options.Chunker).
 		Option("cid-version", options.CidVersion).
 		Option("fscache", options.FsCache).
-		Option("hidden", options.Hidden).
 		Option("inline", options.Inline).
 		Option("inline-limit", options.InlineLimit).
 		Option("nocopy", options.NoCopy).
 		Option("only-hash", options.OnlyHash).
 		Option("pin", options.Pin).
 		Option("silent", options.Silent).
-		Option("stdin-name", options.StdinName).
-		Option("wrap-with-directory", options.Wrap).
 		Option("progress", options.Progress)
 
 	if options.RawLeavesSet {
@@ -62,13 +60,8 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		req.Option("trickle", true)
 	}
 
-	switch c := f.(type) {
-	case files.Directory:
-		req.Body(files.NewMultiFileReader(c, false))
-	case files.File:
-		d := files.NewMapDirectory(map[string]files.Node{"": c}) // unwrapped on the other side
-		req.Body(files.NewMultiFileReader(d, false))
-	}
+	d := files.NewMapDirectory(map[string]files.Node{"": f}) // unwrapped on the other side
+	req.Body(files.NewMultiFileReader(d, false))
 
 	var out addEvent
 	resp, err := req.Send(ctx)
@@ -127,7 +120,8 @@ loop:
 type lsLink struct {
 	Name, Hash string
 	Size       uint64
-	Type       iface.FileType
+	Type       unixfs_pb.Data_DataType
+	Target     string
 }
 
 type lsObject struct {
@@ -139,7 +133,7 @@ type lsOutput struct {
 	Objects []lsObject
 }
 
-func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.LsLink, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.DirEntry, error) {
 	options, err := caopts.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -158,7 +152,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.Unixf
 	}
 
 	dec := json.NewDecoder(resp.Output)
-	out := make(chan iface.LsLink)
+	out := make(chan iface.DirEntry)
 
 	go func() {
 		defer resp.Close()
@@ -171,7 +165,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.Unixf
 					return
 				}
 				select {
-				case out <- iface.LsLink{Err: err}:
+				case out <- iface.DirEntry{Err: err}:
 				case <-ctx.Done():
 				}
 				return
@@ -179,7 +173,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.Unixf
 
 			if len(link.Objects) != 1 {
 				select {
-				case out <- iface.LsLink{Err: errors.New("unexpected Objects len")}:
+				case out <- iface.DirEntry{Err: errors.New("unexpected Objects len")}:
 				case <-ctx.Done():
 				}
 				return
@@ -187,7 +181,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.Unixf
 
 			if len(link.Objects[0].Links) != 1 {
 				select {
-				case out <- iface.LsLink{Err: errors.New("unexpected Links len")}:
+				case out <- iface.DirEntry{Err: errors.New("unexpected Links len")}:
 				case <-ctx.Done():
 				}
 				return
@@ -198,21 +192,29 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.Unixf
 			c, err := cid.Decode(l0.Hash)
 			if err != nil {
 				select {
-				case out <- iface.LsLink{Err: err}:
+				case out <- iface.DirEntry{Err: err}:
 				case <-ctx.Done():
 				}
 				return
 			}
 
+			var ftype iface.FileType
+			switch l0.Type {
+			case unixfs.TRaw, unixfs.TFile:
+				ftype = iface.TFile
+			case unixfs.THAMTShard, unixfs.TDirectory, unixfs.TMetadata:
+				ftype = iface.TDirectory
+			case unixfs.TSymlink:
+				ftype = iface.TSymlink
+			}
+
 			select {
-			case out <- iface.LsLink{
-				Link: &format.Link{
-					Cid:  c,
-					Name: l0.Name,
-					Size: l0.Size,
-				},
-				Size: l0.Size,
-				Type: l0.Type,
+			case out <- iface.DirEntry{
+				Name:   l0.Name,
+				Cid:    c,
+				Size:   l0.Size,
+				Type:   ftype,
+				Target: l0.Target,
 			}:
 			case <-ctx.Done():
 			}
