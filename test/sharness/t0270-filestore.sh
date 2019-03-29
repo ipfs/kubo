@@ -68,13 +68,24 @@ init_ipfs_filestore() {
 
   test_init_ipfs
 
+  # Check the _early_ error message
   test_expect_success "nocopy add errors and has right message" '
+    test_must_fail ipfs add --nocopy -r somedir 2> add_out &&
+      grep "either the filestore or the urlstore must be enabled" add_out
+  '
+
+  test_expect_success "enable urlstore config setting" '
+    ipfs config --json Experimental.UrlstoreEnabled true
+  '
+
+  # Check the _late_ error message
+  test_expect_success "nocopy add errors and has right message when the urlstore is enabled" '
     test_must_fail ipfs add --nocopy -r somedir 2> add_out &&
       grep "filestore is not enabled" add_out
   '
 
-
   test_expect_success "enable filestore config setting" '
+    ipfs config --json Experimental.UrlstoreEnabled true &&
     ipfs config --json Experimental.FilestoreEnabled true
   '
 }
