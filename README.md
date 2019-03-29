@@ -9,12 +9,6 @@
 [![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs)
 [![Build Status](https://travis-ci.com/ipfs/go-ipfs.svg?branch=master)](https://travis-ci.com/ipfs/go-ipfs)
 
-## Project Status
-
-[![Throughput Graph](https://graphs.waffle.io/ipfs/go-ipfs/throughput.svg)](https://waffle.io/ipfs/go-ipfs/metrics/throughput)
-
-[**`Weekly Core Dev Calls`**](https://github.com/ipfs/pm/issues/674)
-
 ## What is IPFS?
 
 IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built in. You can also mount the world at /ipfs.
@@ -432,6 +426,9 @@ Find more documentation for developers on [docs](./docs)
 We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what it is without you! If you want to help out, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
+
+You can contact us on the freenode #ipfs-dev channel or attend one of our
+[weekly calls](https://github.com/ipfs/team-mgmt/issues/674).
 
 ## License
 
