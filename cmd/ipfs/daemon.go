@@ -372,7 +372,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if err != nil {
 		return err
 	}
-	node.Process().AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
+	node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
 
 	// construct api endpoint - every time
 	apiErrc, err := serveHTTPApi(req, cctx)

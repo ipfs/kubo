@@ -135,7 +135,7 @@ type IpfsNode struct {
 	DHT      *dht.IpfsDHT `optional:"true"`
 	P2P      *p2p.P2P `optional:"true"`
 
-	proc goprocess.Process //TODO: remove
+	Process goprocess.Process
 	ctx  context.Context
 
 	app *fx.App
@@ -206,9 +206,9 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 							log.Warning("This might be configuration mistake.")
 						}
 					}
-				case <-n.Process().Closing():
-					t.Stop()
-					return
+				//case <-n.Process().Closing():
+				//	t.Stop()
+				//	return
 				}
 			}
 		}()
@@ -642,14 +642,9 @@ func (n *IpfsNode) setupIpnsRepublisher() error {
 		n.IpnsRepub.RecordLifetime = d
 	}
 
-	n.Process().Go(n.IpnsRepub.Run)
+	//n.Process().Go(n.IpnsRepub.Run)
 
 	return nil
-}
-
-// Process returns the Process object
-func (n *IpfsNode) Process() goprocess.Process {
-	return n.proc
 }
 
 // Close calls Close() on the App object

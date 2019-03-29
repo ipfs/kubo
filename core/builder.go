@@ -5,12 +5,14 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"github.com/ipfs/go-ipfs/p2p"
-	"github.com/ipfs/go-ipfs/provider"
-	"go.uber.org/fx"
 	"os"
 	"syscall"
 	"time"
+
+	"go.uber.org/fx"
+
+	"github.com/ipfs/go-ipfs/p2p"
+	"github.com/ipfs/go-ipfs/provider"
 
 	filestore "github.com/ipfs/go-ipfs/filestore"
 	namesys "github.com/ipfs/go-ipfs/namesys"
@@ -219,6 +221,8 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	}
 
 	app := fx.New(
+		fx.Provide(baseProcess),
+
 		params,
 		storage,
 		ident,
@@ -226,11 +230,17 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		online,
 
 		fx.Invoke(setupSharding),
+		fx.NopLogger,
 
 		core,
 
 		fx.Extract(n),
 	)
+
+	go func() {
+		<-ctx.Done()
+		app.Stop(context.Background())
+	}()
 
 	n.IsOnline = cfg.Online
 	n.app = app

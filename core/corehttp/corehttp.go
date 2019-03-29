@@ -85,7 +85,7 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	}
 
 	select {
-	case <-node.Process().Closing():
+	case <-node.Process.Closing():
 		return fmt.Errorf("failed to start server, process closing")
 	default:
 	}
@@ -95,7 +95,7 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	}
 
 	var serverError error
-	serverProc := node.Process().Go(func(p goprocess.Process) {
+	serverProc := node.Process.Go(func(p goprocess.Process) {
 		serverError = server.Serve(lis)
 	})
 
@@ -103,7 +103,7 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	select {
 	case <-serverProc.Closed():
 	// if node being closed before server exits, close server
-	case <-node.Process().Closing():
+	case <-node.Process.Closing():
 		log.Infof("server at %s terminating...", addr)
 
 		warnProc := periodicproc.Tick(5*time.Second, func(_ goprocess.Process) {

@@ -591,7 +591,7 @@ func onlineNamesysCtor(rt routing.IpfsRouting, repo repo.Repo, cfg *iconfig.Conf
 	return namesys.NewNameSystem(rt, repo.Datastore(), cs), nil
 }
 
-func ipnsRepublisher(lc fx.Lifecycle, cfg *iconfig.Config, namesys namesys.NameSystem, repo repo.Repo, privKey ic.PrivKey) error {
+func ipnsRepublisher(lc lcProcess, cfg *iconfig.Config, namesys namesys.NameSystem, repo repo.Repo, privKey ic.PrivKey) error {
 	repub := ipnsrp.NewRepublisher(namesys, repo.Datastore(), privKey, repo.Keystore())
 
 	if cfg.Ipns.RepublishPeriod != "" {
@@ -616,7 +616,7 @@ func ipnsRepublisher(lc fx.Lifecycle, cfg *iconfig.Config, namesys namesys.NameS
 		repub.RecordLifetime = d
 	}
 
-	lcGoProc(lc, repub.Run)
+	lc.Run(repub.Run)
 	return nil
 }
 
@@ -762,17 +762,34 @@ func lifecycleCtx(lc fx.Lifecycle) context.Context {
 	return ctx
 }
 
-func lcGoProc(lc fx.Lifecycle, processFunc goprocess.ProcessFunc) {
+type lcProcess struct {
+	fx.In
+
+	LC fx.Lifecycle
+	Proc goprocess.Process
+}
+
+func (lp *lcProcess) Run(f goprocess.ProcessFunc) {
 	proc := make(chan goprocess.Process, 1)
-	lc.Append(fx.Hook{
+	lp.LC.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			proc <- goprocess.Go(processFunc)
+			proc <- lp.Proc.Go(f)
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
 			return (<-proc).Close() // todo: respect ctx
 		},
 	})
+}
+
+func baseProcess(lc fx.Lifecycle) goprocess.Process {
+	p := goprocess.WithParent(goprocess.Background())
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			return p.Close()
+		},
+	})
+	return p
 }
 
 func setupSharding(cfg *iconfig.Config) {
