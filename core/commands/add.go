@@ -230,7 +230,7 @@ You can now check what blocks have been created by:
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
-		errCh := make(chan error)
+		errCh := make(chan error, 1)
 		go func() {
 			var err error
 			defer func() { errCh <- err }()
@@ -255,12 +255,14 @@ You can now check what blocks have been created by:
 				output.Name = path.Join(name, output.Name)
 			}
 
-			res.Emit(&AddEvent{
+			if err := res.Emit(&AddEvent{
 				Name:  output.Name,
 				Hash:  h,
 				Bytes: output.Bytes,
 				Size:  output.Size,
-			})
+			}); err != nil {
+				return err
+			}
 		}
 
 		return <-errCh

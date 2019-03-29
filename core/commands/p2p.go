@@ -149,8 +149,11 @@ func parseIpfsAddr(addr string) ([]ipfsaddr.IPFSAddr, error) {
 	}
 	// resolve mutiladdr whose protocol is not ma.P_IPFS
 	ctx, cancel := context.WithTimeout(context.Background(), resolveTimeout)
+	defer cancel()
 	addrs, err := madns.Resolve(ctx, mutiladdr)
-	cancel()
+	if err != nil {
+		return nil, err
+	}
 	if len(addrs) == 0 {
 		return nil, errors.New("fail to resolve the multiaddr:" + mutiladdr.String())
 	}

@@ -99,6 +99,9 @@ func TestMangledData(t *testing.T) {
 
 	// remove entries in the middle
 	err = queue.ds.Put(queue.queueKey(5), []byte("borked"))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	expected := append(cids[:5], cids[6:]...)
 	assertOrdered(expected, queue, t)

@@ -81,10 +81,13 @@ func app() int {
 	defer conn.Close()
 	switch mode {
 	case "recv":
-		io.Copy(os.Stdout, conn)
+		_, err = io.Copy(os.Stdout, conn)
 	case "send":
-		io.Copy(conn, os.Stdin)
+		_, err = io.Copy(conn, os.Stdin)
 	default:
+		return 1
+	}
+	if err != nil {
 		return 1
 	}
 	return 0

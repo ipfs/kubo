@@ -274,7 +274,7 @@ func fileArchive(f files.Node, name string, archive bool, compression int) (io.R
 	piper, pipew := io.Pipe()
 	checkErrAndClosePipe := func(err error) bool {
 		if err != nil {
-			pipew.CloseWithError(err)
+			_ = pipew.CloseWithError(err)
 			return true
 		}
 		return false

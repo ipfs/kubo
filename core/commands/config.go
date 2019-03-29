@@ -134,8 +134,8 @@ Set the value of the 'Datastore.Path' key:
 			}
 			buf = append(buf, byte('\n'))
 
-			w.Write(buf)
-			return nil
+			_, err = w.Write(buf)
+			return err
 		}),
 	},
 	Type: ConfigField{},
@@ -185,9 +185,8 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 				return err
 			}
 			buf = append(buf, byte('\n'))
-			w.Write(buf)
-
-			return nil
+			_, err = w.Write(buf)
+			return err
 		}),
 	},
 }
@@ -352,9 +351,8 @@ var configProfileApplyCmd = &cmds.Command{
 			diff := jsondiff.Compare(out.OldCfg, out.NewCfg)
 			buf := jsondiff.Format(diff)
 
-			w.Write(buf)
-
-			return nil
+			_, err := w.Write(buf)
+			return err
 		}),
 	},
 	Type: ConfigUpdateOutput{},

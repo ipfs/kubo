@@ -35,7 +35,10 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		nodes = append(nodes, n)
 	}
 
-	mn.LinkAll()
+	err := mn.LinkAll()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// connect them
 	for _, n1 := range nodes {

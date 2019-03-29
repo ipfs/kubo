@@ -137,7 +137,7 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 				case ipns.ErrUnrecognizedValidity:
 					// No EOL.
 				case nil:
-					ttEol := eol.Sub(time.Now())
+					ttEol := time.Until(eol)
 					if ttEol < 0 {
 						// It *was* valid when we first resolved it.
 						ttl = 0

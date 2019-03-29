@@ -62,7 +62,10 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 			}
 			defer os.Remove(f.Name())
 
-			random.WritePseudoRandomBytes(amount, f, seed)
+			err = random.WritePseudoRandomBytes(amount, f, seed)
+			if err != nil {
+				b.Fatal(err)
+			}
 			if err := f.Close(); err != nil {
 				b.Fatal(err)
 			}

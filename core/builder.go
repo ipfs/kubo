@@ -78,10 +78,10 @@ func (cfg *BuildCfg) fillDefaults() error {
 
 	if cfg.Repo == nil {
 		var d ds.Datastore
-		d = ds.NewMapDatastore()
-
 		if cfg.NilRepo {
 			d = ds.NewNullDatastore()
+		} else {
+			d = ds.NewMapDatastore()
 		}
 		r, err := defaultRepo(dsync.MutexWrap(d))
 		if err != nil {

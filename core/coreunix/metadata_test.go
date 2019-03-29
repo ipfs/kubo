@@ -3,6 +3,7 @@ package coreunix
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
 	"testing"
 
@@ -35,7 +36,10 @@ func TestMetadata(t *testing.T) {
 	// Make some random node
 	ds := getDagserv(t)
 	data := make([]byte, 1000)
-	u.NewTimeSeededRand().Read(data)
+	_, err := io.ReadFull(u.NewTimeSeededRand(), data)
+	if err != nil {
+		t.Fatal(err)
+	}
 	r := bytes.NewReader(data)
 	nd, err := importer.BuildDagFromReader(ds, chunker.DefaultSplitter(r))
 	if err != nil {

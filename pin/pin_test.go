@@ -2,6 +2,7 @@ package pin
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -21,7 +22,10 @@ var rand = util.NewTimeSeededRand()
 func randNode() (*mdag.ProtoNode, cid.Cid) {
 	nd := new(mdag.ProtoNode)
 	nd.SetData(make([]byte, 32))
-	rand.Read(nd.Data())
+	_, err := io.ReadFull(rand, nd.Data())
+	if err != nil {
+		panic(err)
+	}
 	k := nd.Cid()
 	return nd, k
 }
@@ -111,11 +115,11 @@ func TestPinnerBasic(t *testing.T) {
 	assertPinned(t, p, bk, "Recursively pinned node not found..")
 
 	d, _ := randNode()
-	d.AddNodeLink("a", a)
-	d.AddNodeLink("c", c)
+	_ = d.AddNodeLink("a", a)
+	_ = d.AddNodeLink("c", c)
 
 	e, _ := randNode()
-	d.AddNodeLink("e", e)
+	_ = d.AddNodeLink("e", e)
 
 	// Must be in dagserv for unpin to work
 	err = dserv.Add(ctx, e)
@@ -385,8 +389,12 @@ func TestPinUpdate(t *testing.T) {
 	n1, c1 := randNode()
 	n2, c2 := randNode()
 
-	dserv.Add(ctx, n1)
-	dserv.Add(ctx, n2)
+	if err := dserv.Add(ctx, n1); err != nil {
+		t.Fatal(err)
+	}
+	if err := dserv.Add(ctx, n2); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := p.Pin(ctx, n1, true); err != nil {
 		t.Fatal(err)

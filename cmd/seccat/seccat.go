@@ -129,8 +129,14 @@ func setupPeer(a args) (peer.ID, pstore.Peerstore, error) {
 	}
 
 	ps := pstoremem.NewPeerstore()
-	ps.AddPrivKey(p, sk)
-	ps.AddPubKey(p, pk)
+	err = ps.AddPrivKey(p, sk)
+	if err != nil {
+		return "", nil, err
+	}
+	err = ps.AddPubKey(p, pk)
+	if err != nil {
+		return "", nil, err
+	}
 
 	out("local peer id: %s", p)
 	return p, ps, nil

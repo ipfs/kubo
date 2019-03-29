@@ -62,11 +62,6 @@ func (q *Queue) Dequeue() <-chan cid.Cid {
 	return q.dequeue
 }
 
-type entry struct {
-	cid cid.Cid
-	key datastore.Key
-}
-
 // Look for next Cid in the queue and return it. Skip over gaps and mangled data
 func (q *Queue) nextEntry() (datastore.Key, cid.Cid) {
 	for {
@@ -91,6 +86,9 @@ func (q *Queue) nextEntry() (datastore.Key, cid.Cid) {
 			log.Warningf("Error marshalling Cid from queue: ", err)
 			q.head++
 			err = q.ds.Delete(key)
+			if err != nil {
+				log.Warningf("Provider queue failed to delete: %s", key)
+			}
 			continue
 		}
 

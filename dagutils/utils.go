@@ -183,7 +183,7 @@ func (e *Editor) rmLink(ctx context.Context, root *dag.ProtoNode, path []string)
 		return nil, err
 	}
 
-	e.tmp.Remove(ctx, root.Cid())
+	_ = e.tmp.Remove(ctx, root.Cid())
 
 	_ = root.RemoveNodeLink(path[0])
 	err = root.AddNodeLink(path[0], nnode)
