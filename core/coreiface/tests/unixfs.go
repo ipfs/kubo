@@ -839,6 +839,7 @@ type closeTestD struct {
 }
 
 func (f *closeTestD) Close() error {
+	f.t.Helper()
 	if f.closed {
 		f.t.Fatal("already closed")
 	}
@@ -878,8 +879,6 @@ func (tp *provider) TestAddCloses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	d0.Close() // Adder doesn't close top-level file
 
 	for i, n := range []*closeTestF{n1, n2, n4} {
 		if !n.closed {
