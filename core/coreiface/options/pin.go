@@ -127,7 +127,9 @@ func (pinOpts) Recursive(recursive bool) PinAddOption {
 	}
 }
 
-// RmRecursive is an option for Pin.Rm
+// RmRecursive is an option for Pin.Rm which specifies whether to recursively
+// unpin the object linked to by the specified object(s). This does not remove
+// indirect pins referenced by other recursive pins.
 func (pinOpts) RmRecursive(recursive bool) PinRmOption {
 	return func(settings *PinRmSettings) error {
 		settings.Recursive = recursive
