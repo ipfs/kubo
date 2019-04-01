@@ -452,11 +452,11 @@ func p2pHost(lc fx.Lifecycle, params p2pHostIn) (out p2pHostOut, err error) {
 type p2pRoutingIn struct {
 	fx.In
 
-	BCfg       *BuildCfg
-	Repo       repo.Repo
-	Validator  record.Validator
-	Host p2phost.Host
-	PubSub *pubsub.PubSub
+	BCfg      *BuildCfg
+	Repo      repo.Repo
+	Validator record.Validator
+	Host      p2phost.Host
+	PubSub    *pubsub.PubSub
 
 	BaseRouting BaseRouting
 }
@@ -553,7 +553,6 @@ func offlineNamesysCtor(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSys
 	return namesys.NewNameSystem(rt, repo.Datastore(), 0), nil
 }
 
-
 ////////////
 // IPFS services
 
@@ -621,7 +620,7 @@ func ipnsRepublisher(lc lcProcess, cfg *iconfig.Config, namesys namesys.NameSyst
 }
 
 type discoveryHandler struct {
-	ctx context.Context
+	ctx  context.Context
 	host p2phost.Host
 }
 
@@ -636,7 +635,7 @@ func (dh *discoveryHandler) HandlePeerFound(p pstore.PeerInfo) {
 
 func newDiscoveryHandler(lc fx.Lifecycle, host p2phost.Host) *discoveryHandler {
 	return &discoveryHandler{
-		ctx: lifecycleCtx(lc),
+		ctx:  lifecycleCtx(lc),
 		host: host,
 	}
 }
@@ -739,11 +738,6 @@ func files(lc fx.Lifecycle, repo repo.Repo, dag format.DAGService) (*mfs.Root, e
 	return mfs.NewRoot(ctx, dag, nd, pf)
 }
 
-// TODO !!!!!!!!
-func bootstrap(n IpfsNode) error {
-  return n.Bootstrap(DefaultBootstrapConfig)
-}
-
 ////////////
 // Hacks
 
@@ -765,7 +759,7 @@ func lifecycleCtx(lc fx.Lifecycle) context.Context {
 type lcProcess struct {
 	fx.In
 
-	LC fx.Lifecycle
+	LC   fx.Lifecycle
 	Proc goprocess.Process
 }
 

@@ -100,13 +100,13 @@ type IpfsNode struct {
 	Repo repo.Repo
 
 	// Local node
-	Pinning         pin.Pinner // the pinning manager
-	Mounts          Mounts     `optional:"true"` // current mount state, if any.
-	PrivateKey      ic.PrivKey // the local node's private Key
-	PNetFingerprint PNetFingerprint `optional:"true"`     // fingerprint of private network
+	Pinning         pin.Pinner      // the pinning manager
+	Mounts          Mounts          `optional:"true"` // current mount state, if any.
+	PrivateKey      ic.PrivKey      // the local node's private Key
+	PNetFingerprint PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
-	Peerstore       pstore.Peerstore `optional:"true"`     // storage for other Peer instances
+	Peerstore       pstore.Peerstore     `optional:"true"` // storage for other Peer instances
 	Blockstore      bstore.GCBlockstore  // the block store (lower level)
 	Filestore       *filestore.Filestore // the filestore blockstore
 	BaseBlocks      bstore.Blockstore    // the raw blockstore, no filestore wrapping
@@ -114,35 +114,35 @@ type IpfsNode struct {
 	Blocks          bserv.BlockService   // the block service, get/add blocks.
 	DAG             ipld.DAGService      // the merkle dag service, get/add objects.
 	Resolver        *resolver.Resolver   // the path resolution system
-	Reporter        metrics.Reporter `optional:"true"`
-	Discovery       discovery.Service `optional:"true"`
+	Reporter        metrics.Reporter     `optional:"true"`
+	Discovery       discovery.Service    `optional:"true"`
 	FilesRoot       *mfs.Root
 	RecordValidator record.Validator
 
 	// Online
-	PeerHost     p2phost.Host `optional:"true"`        // the network host (server+client)
+	PeerHost     p2phost.Host        `optional:"true"` // the network host (server+client)
 	Bootstrapper io.Closer           `optional:"true"` // the periodic bootstrapper
 	Routing      routing.IpfsRouting `optional:"true"` // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
-	Provider     provider.Provider  // the value provider system
-	Reprovider   *rp.Reprovider  `optional:"true"`     // the value reprovider system
+	Provider     provider.Provider   // the value provider system
+	Reprovider   *rp.Reprovider      `optional:"true"` // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher `optional:"true"`
 
-	AutoNAT  *autonat.AutoNATService `optional:"true"`
-	PubSub   *pubsub.PubSub `optional:"true"`
+	AutoNAT  *autonat.AutoNATService    `optional:"true"`
+	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
-	DHT      *dht.IpfsDHT `optional:"true"`
-	P2P      *p2p.P2P `optional:"true"`
+	DHT      *dht.IpfsDHT               `optional:"true"`
+	P2P      *p2p.P2P                   `optional:"true"`
 
 	Process goprocess.Process
-	ctx  context.Context
+	ctx     context.Context
 
 	app *fx.App
 
 	// Flags
-	IsOnline bool `optional:"true"`  // Online is set when networking is enabled.
-	IsDaemon bool `optional:"true"`  // Daemon is set when running on a long-running daemon.
+	IsOnline bool `optional:"true"` // Online is set when networking is enabled.
+	IsDaemon bool `optional:"true"` // Daemon is set when running on a long-running daemon.
 }
 
 // Mounts defines what the node's mount state is. This should
@@ -206,9 +206,9 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 							log.Warning("This might be configuration mistake.")
 						}
 					}
-				//case <-n.Process().Closing():
-				//	t.Stop()
-				//	return
+					//case <-n.Process().Closing():
+					//	t.Stop()
+					//	return
 				}
 			}
 		}()

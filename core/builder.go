@@ -245,18 +245,18 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	n.IsOnline = cfg.Online
 	n.app = app
 
-/*	n := &IpfsNode{
-		IsOnline:  cfg.Online,
-		Repo:      cfg.Repo,
-		ctx:       ctx,
-		Peerstore: pstoremem.NewPeerstore(),
-	}
+	/*	n := &IpfsNode{
+			IsOnline:  cfg.Online,
+			Repo:      cfg.Repo,
+			ctx:       ctx,
+			Peerstore: pstoremem.NewPeerstore(),
+		}
 
-	n.RecordValidator = record.NamespacedValidator{
-		"pk":   record.PublicKeyValidator{},
-		"ipns": ipns.Validator{KeyBook: n.Peerstore},
-	}
-*/
+		n.RecordValidator = record.NamespacedValidator{
+			"pk":   record.PublicKeyValidator{},
+			"ipns": ipns.Validator{KeyBook: n.Peerstore},
+		}
+	*/
 	// TODO: port to lifetimes
 	// n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
 
@@ -264,11 +264,20 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		n.Close()
 		return nil, err
 	}*/
-  if app.Err() != nil {
-	return nil, app.Err()
-  }
+	if app.Err() != nil {
+		return nil, app.Err()
+	}
 
-	return n, app.Start(ctx)
+	if err := app.Start(ctx); err != nil {
+		return nil, err
+	}
+
+	// TODO: DI-ify bootstrap
+	if !cfg.Online {
+		return n, nil
+	}
+
+	return n, n.Bootstrap(DefaultBootstrapConfig)
 }
 
 func isTooManyFDError(err error) bool {
