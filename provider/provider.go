@@ -81,14 +81,12 @@ func (p *provider) handleAnnouncements() {
 
 					log.Info("announce - start - ", c)
 					if err := p.contentRouting.Provide(p.ctx, c, true); err != nil {
-						log.Warningf("Unable to provide entry: %s, %s", c, err)
-						continue
+						log.Warningf("Error providing entry: %s, %s", c, err)
 					}
 					log.Info("announce - end - ", c)
 
 					if err := p.tracker.Track(c); err != nil {
 						log.Warningf("Unable to track entry: %s, %s", c, err)
-						continue
 					}
 				}
 			}
