@@ -115,7 +115,9 @@ func datastoreCtor(repo repo.Repo) ds.Datastore {
 	return repo.Datastore()
 }
 
-func baseBlockstoreCtor(repo repo.Repo, cfg *iconfig.Config, bcfg *BuildCfg, lc fx.Lifecycle) (bs bstore.Blockstore, err error) {
+type BaseBlocks bstore.Blockstore
+
+func baseBlockstoreCtor(repo repo.Repo, cfg *iconfig.Config, bcfg *BuildCfg, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 	rds := &retry.Datastore{
 		Batching:    repo.Datastore(),
 		Delay:       time.Millisecond * 200,
@@ -157,16 +159,17 @@ func baseBlockstoreCtor(repo repo.Repo, cfg *iconfig.Config, bcfg *BuildCfg, lc 
 	return
 }
 
-func gcBlockstoreCtor(repo repo.Repo, bs bstore.Blockstore, cfg *iconfig.Config) (gclocker bstore.GCLocker, gcbs bstore.GCBlockstore, fstore *filestore.Filestore) {
+func gcBlockstoreCtor(repo repo.Repo, bb BaseBlocks, cfg *iconfig.Config) (gclocker bstore.GCLocker, gcbs bstore.GCBlockstore, bs bstore.Blockstore, fstore *filestore.Filestore) {
 	gclocker = bstore.NewGCLocker()
-	gcbs = bstore.NewGCBlockstore(bs, gclocker)
+	gcbs = bstore.NewGCBlockstore(bb, gclocker)
 
 	if cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled {
 		// hash security
-		fstore = filestore.NewFilestore(bs, repo.FileManager()) //TODO: mark optional
+		fstore = filestore.NewFilestore(bb, repo.FileManager()) //TODO: mark optional
 		gcbs = bstore.NewGCBlockstore(fstore, gclocker)
 		gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
 	}
+	bs = gcbs
 	return
 }
 
@@ -574,7 +577,7 @@ func dagCtor(bs bserv.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
 }
 
-func onlineExchangeCtor(lc fx.Lifecycle, host p2phost.Host, rt routing.IpfsRouting, bs bstore.Blockstore) exchange.Interface {
+func onlineExchangeCtor(lc fx.Lifecycle, host p2phost.Host, rt routing.IpfsRouting, bs bstore.GCBlockstore) exchange.Interface {
 	bitswapNetwork := bsnet.NewFromIpfsHost(host, rt)
 	return bitswap.New(lifecycleCtx(lc), bitswapNetwork, bs)
 }
@@ -664,7 +667,7 @@ func providerCtor(lc fx.Lifecycle, queue *provider.Queue, rt routing.IpfsRouting
 	return provider.NewProvider(lifecycleCtx(lc), queue, rt)
 }
 
-func reproviderCtor(lc fx.Lifecycle, cfg *iconfig.Config, bs bstore.Blockstore, ds format.DAGService, pinning pin.Pinner, rt routing.IpfsRouting) (*rp.Reprovider, error) {
+func reproviderCtor(lc fx.Lifecycle, cfg *iconfig.Config, bs BaseBlocks, ds format.DAGService, pinning pin.Pinner, rt routing.IpfsRouting) (*rp.Reprovider, error) {
 	var keyProvider rp.KeyChanFunc
 
 	switch cfg.Reprovider.Strategy {

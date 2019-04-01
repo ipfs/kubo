@@ -109,7 +109,7 @@ type IpfsNode struct {
 	Peerstore       pstore.Peerstore     `optional:"true"` // storage for other Peer instances
 	Blockstore      bstore.GCBlockstore  // the block store (lower level)
 	Filestore       *filestore.Filestore // the filestore blockstore
-	BaseBlocks      bstore.Blockstore    // the raw blockstore, no filestore wrapping
+	BaseBlocks      BaseBlocks           // the raw blockstore, no filestore wrapping
 	GCLocker        bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks          bserv.BlockService   // the block service, get/add blocks.
 	DAG             ipld.DAGService      // the merkle dag service, get/add objects.
