@@ -31,6 +31,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-autonat-svc"
 	circuit "github.com/libp2p/go-libp2p-circuit"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-metrics"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -329,12 +330,30 @@ func p2pAddrsFactory(cfg *iconfig.Config) (opts libp2pOpts, err error) {
 }
 
 func p2pConnectionManager(cfg *iconfig.Config) (opts libp2pOpts, err error) {
-	connm, err := constructConnMgr(cfg.Swarm.ConnMgr)
-	if err != nil {
-		return opts, err
+	grace := iconfig.DefaultConnMgrGracePeriod
+	low := iconfig.DefaultConnMgrHighWater
+	high := iconfig.DefaultConnMgrHighWater
+
+	switch cfg.Swarm.ConnMgr.Type {
+	case "":
+		// 'default' value is the basic connection manager
+		return
+	case "none":
+		return opts, nil
+	case "basic":
+		grace, err = time.ParseDuration(cfg.Swarm.ConnMgr.GracePeriod)
+		if err != nil {
+			return opts, fmt.Errorf("parsing Swarm.ConnMgr.GracePeriod: %s", err)
+		}
+
+		low = cfg.Swarm.ConnMgr.LowWater
+		high = cfg.Swarm.ConnMgr.HighWater
+	default:
+		return opts, fmt.Errorf("unrecognized ConnMgr.Type: %q", cfg.Swarm.ConnMgr.Type)
 	}
 
-	opts.Opts = append(opts.Opts, libp2p.ConnectionManager(connm))
+	cm := connmgr.NewConnManager(low, high, grace)
+	opts.Opts = append(opts.Opts, libp2p.ConnectionManager(cm))
 	return
 }
 
