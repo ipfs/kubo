@@ -684,10 +684,10 @@ func (n *IpfsNode) teardown() error {
 		closers = append(closers, n.Exchange)
 	}
 
-	if n.Mounts.Ipfs != nil && !n.Mounts.Ipfs.IsActive() {
+	if n.Mounts.Ipfs != nil && !n.Mounts.Ipfs.IsActive() { //TODO
 		closers = append(closers, mount.Closer(n.Mounts.Ipfs))
 	}
-	if n.Mounts.Ipns != nil && !n.Mounts.Ipns.IsActive() {
+	if n.Mounts.Ipns != nil && !n.Mounts.Ipns.IsActive() { // TODO
 		closers = append(closers, mount.Closer(n.Mounts.Ipns))
 	}
 

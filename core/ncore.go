@@ -159,7 +159,7 @@ func baseBlockstoreCtor(mctx MetricsCtx, repo repo.Repo, cfg *iconfig.Config, bc
 	return
 }
 
-func gcBlockstoreCtor(repo repo.Repo, bb BaseBlocks, cfg *iconfig.Config) (gclocker bstore.GCLocker, gcbs bstore.GCBlockstore, bs bstore.Blockstore, fstore *filestore.Filestore) {
+func gcBlockstoreCtor(lc fx.Lifecycle, repo repo.Repo, bb BaseBlocks, cfg *iconfig.Config) (gclocker bstore.GCLocker, gcbs bstore.GCBlockstore, bs bstore.Blockstore, fstore *filestore.Filestore) {
 	gclocker = bstore.NewGCLocker()
 	gcbs = bstore.NewGCBlockstore(bb, gclocker)
 
@@ -171,6 +171,18 @@ func gcBlockstoreCtor(repo repo.Repo, bb BaseBlocks, cfg *iconfig.Config) (gcloc
 	}
 	bs = gcbs
 	return
+}
+
+func blockServiceCtor(lc fx.Lifecycle, bs bstore.Blockstore, rem exchange.Interface) bserv.BlockService {
+	bsvc := bserv.New(bs, rem)
+
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return bsvc.Close()
+		},
+	})
+
+	return bsvc
 }
 
 func recordValidator(ps pstore.Peerstore) record.Validator {
@@ -431,6 +443,12 @@ func p2pHost(mctx MetricsCtx, lc fx.Lifecycle, params p2pHostIn) (out p2pHostOut
 		out.Host = rhost.Wrap(out.Host, out.Routing)
 	}
 
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return out.Host.Close()
+		},
+	})
+
 	// TODO: break this up into more DI units
 	// TODO: I'm not a fan of type assertions like this but the
 	// `RoutingOption` system doesn't currently provide access to the
@@ -447,6 +465,12 @@ func p2pHost(mctx MetricsCtx, lc fx.Lifecycle, params p2pHostIn) (out p2pHostOut
 	//    that requires a fair amount of work).
 	if dht, ok := out.Routing.(*dht.IpfsDHT); ok {
 		out.IpfsDHT = dht
+
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return out.IpfsDHT.Close()
+			},
+		})
 	}
 
 	return out, err
@@ -579,7 +603,13 @@ func dagCtor(bs bserv.BlockService) format.DAGService {
 
 func onlineExchangeCtor(mctx MetricsCtx, lc fx.Lifecycle, host p2phost.Host, rt routing.IpfsRouting, bs bstore.GCBlockstore) exchange.Interface {
 	bitswapNetwork := bsnet.NewFromIpfsHost(host, rt)
-	return bitswap.New(lifecycleCtx(mctx, lc), bitswapNetwork, bs)
+	exch := bitswap.New(lifecycleCtx(mctx, lc), bitswapNetwork, bs)
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return exch.Close()
+		},
+	})
+	return exch
 }
 
 func onlineNamesysCtor(rt routing.IpfsRouting, repo repo.Repo, cfg *iconfig.Config) (namesys.NameSystem, error) {
@@ -738,7 +768,15 @@ func files(mctx MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGServi
 		return nil, err
 	}
 
-	return mfs.NewRoot(ctx, dag, nd, pf)
+	root, err := mfs.NewRoot(ctx, dag, nd, pf)
+
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return root.Close()
+		},
+	})
+
+	return root, err
 }
 
 ////////////

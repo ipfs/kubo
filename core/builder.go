@@ -216,7 +216,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	}
 
 	core := fx.Options(
-		fx.Provide(bserv.New),
+		fx.Provide(blockServiceCtor),
 		fx.Provide(dagCtor),
 		fx.Provide(resolver.NewBasicResolver),
 		fx.Provide(pinning),
