@@ -129,6 +129,8 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 	}, nil
 }
 
+type MetricsCtx context.Context
+
 // NewNode constructs and returns an IpfsNode using the given cfg.
 func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	if cfg == nil {
@@ -157,9 +159,14 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		return cfg
 	})
 
+	metricsCtx := fx.Provide(func() MetricsCtx {
+		return MetricsCtx(ctx)
+	})
+
 	params := fx.Options(
 		repoOption,
 		cfgOption,
+		metricsCtx,
 	)
 
 	storage := fx.Options(
