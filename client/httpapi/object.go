@@ -48,7 +48,7 @@ func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.Objec
 	}
 
 	var out objectOut
-	err = api.core().request("object/put").
+	err = api.core().Request("object/put").
 		Option("inputenc", options.InputEnc).
 		Option("datafieldenc", options.DataType).
 		Option("pin", options.Pin).
@@ -80,7 +80,7 @@ func (api *ObjectAPI) Get(ctx context.Context, p iface.Path) (ipld.Node, error) 
 }
 
 func (api *ObjectAPI) Data(ctx context.Context, p iface.Path) (io.Reader, error) {
-	resp, err := api.core().request("object/data", p.String()).Send(ctx)
+	resp, err := api.core().Request("object/data", p.String()).Send(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (api *ObjectAPI) Links(ctx context.Context, p iface.Path) ([]*ipld.Link, er
 			Size uint64
 		}
 	}
-	if err := api.core().request("object/links", p.String()).Exec(ctx, &out); err != nil {
+	if err := api.core().Request("object/links", p.String()).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 	res := make([]*ipld.Link, len(out.Links))
@@ -135,7 +135,7 @@ func (api *ObjectAPI) Stat(ctx context.Context, p iface.Path) (*iface.ObjectStat
 		DataSize       int
 		CumulativeSize int
 	}
-	if err := api.core().request("object/stat", p.String()).Exec(ctx, &out); err != nil {
+	if err := api.core().Request("object/stat", p.String()).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 
@@ -161,7 +161,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base iface.Path, name string,
 	}
 
 	var out objectOut
-	err = api.core().request("object/patch/add-link", base.String(), name, child.String()).
+	err = api.core().Request("object/patch/add-link", base.String(), name, child.String()).
 		Option("create", options.Create).
 		Exec(ctx, &out)
 	if err != nil {
@@ -178,7 +178,7 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base iface.Path, name string,
 
 func (api *ObjectAPI) RmLink(ctx context.Context, base iface.Path, link string) (iface.ResolvedPath, error) {
 	var out objectOut
-	err := api.core().request("object/patch/rm-link", base.String(), link).
+	err := api.core().Request("object/patch/rm-link", base.String(), link).
 		Exec(ctx, &out)
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base iface.Path, link string) 
 
 func (api *ObjectAPI) AppendData(ctx context.Context, p iface.Path, r io.Reader) (iface.ResolvedPath, error) {
 	var out objectOut
-	err := api.core().request("object/patch/append-data", p.String()).
+	err := api.core().Request("object/patch/append-data", p.String()).
 		FileBody(r).
 		Exec(ctx, &out)
 	if err != nil {
@@ -211,7 +211,7 @@ func (api *ObjectAPI) AppendData(ctx context.Context, p iface.Path, r io.Reader)
 
 func (api *ObjectAPI) SetData(ctx context.Context, p iface.Path, r io.Reader) (iface.ResolvedPath, error) {
 	var out objectOut
-	err := api.core().request("object/patch/set-data", p.String()).
+	err := api.core().Request("object/patch/set-data", p.String()).
 		FileBody(r).
 		Exec(ctx, &out)
 	if err != nil {
@@ -237,7 +237,7 @@ func (api *ObjectAPI) Diff(ctx context.Context, a iface.Path, b iface.Path) ([]i
 	var out struct {
 		Changes []change
 	}
-	if err := api.core().request("object/diff", a.String(), b.String()).Exec(ctx, &out); err != nil {
+	if err := api.core().Request("object/diff", a.String(), b.String()).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 	res := make([]iface.ObjectChange, len(out.Changes))

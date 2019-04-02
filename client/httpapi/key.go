@@ -38,7 +38,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	}
 
 	var out keyOutput
-	err = api.core().request("key/gen", name).
+	err = api.core().Request("key/gen", name).
 		Option("type", options.Algorithm).
 		Option("size", options.Size).
 		Exec(ctx, &out)
@@ -61,7 +61,7 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 		Id        string
 		Overwrite bool
 	}
-	err = api.core().request("key/rename", oldName, newName).
+	err = api.core().Request("key/rename", oldName, newName).
 		Option("force", options.Force).
 		Exec(ctx, &out)
 	if err != nil {
@@ -75,7 +75,7 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 
 func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
 	var out struct{ Keys []*keyOutput }
-	if err := api.core().request("key/list").Exec(ctx, &out); err != nil {
+	if err := api.core().Request("key/list").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 
@@ -94,7 +94,7 @@ func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
 
 func (api *KeyAPI) Self(ctx context.Context) (iface.Key, error) {
 	var id struct{ ID string }
-	if err := api.core().request("id").Exec(ctx, &id); err != nil {
+	if err := api.core().Request("id").Exec(ctx, &id); err != nil {
 		return nil, err
 	}
 
@@ -106,7 +106,7 @@ func (api *KeyAPI) Self(ctx context.Context) (iface.Key, error) {
 
 func (api *KeyAPI) Remove(ctx context.Context, name string) (iface.Key, error) {
 	var out struct{ Keys []keyOutput }
-	if err := api.core().request("key/rm", name).Exec(ctx, &out); err != nil {
+	if err := api.core().Request("key/rm", name).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 	if len(out.Keys) != 1 {

@@ -34,7 +34,7 @@ func (api *NameAPI) Publish(ctx context.Context, p iface.Path, opts ...caopts.Na
 		return nil, err
 	}
 
-	req := api.core().request("name/publish", p.String()).
+	req := api.core().Request("name/publish", p.String()).
 		Option("key", options.Key).
 		Option("allow-offline", options.AllowOffline).
 		Option("lifetime", options.ValidTime).
@@ -63,7 +63,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", nsopts.DefaultDepthLimit)
 	}
 
-	req := api.core().request("name/resolve", name).
+	req := api.core().Request("name/resolve", name).
 		Option("nocache", !options.Cache).
 		Option("recursive", ropts.Depth != 1).
 		Option("dht-record-count", ropts.DhtRecordCount).
@@ -120,7 +120,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, fmt.Errorf("Name.Resolve: depth other than 1 or %d not supported", nsopts.DefaultDepthLimit)
 	}
 
-	req := api.core().request("name/resolve", name).
+	req := api.core().Request("name/resolve", name).
 		Option("nocache", !options.Cache).
 		Option("recursive", ropts.Depth != 1).
 		Option("dht-record-count", ropts.DhtRecordCount).

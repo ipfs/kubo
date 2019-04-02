@@ -41,7 +41,7 @@ func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockP
 		return nil, fmt.Errorf("unknowm mhType %d", options.MhType)
 	}
 
-	req := api.core().request("block/put").
+	req := api.core().Request("block/put").
 		Option("mhtype", mht).
 		Option("mhlen", options.MhLength).
 		Option("format", options.Codec).
@@ -61,7 +61,7 @@ func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockP
 }
 
 func (api *BlockAPI) Get(ctx context.Context, p iface.Path) (io.Reader, error) {
-	resp, err := api.core().request("block/get", p.String()).Send(ctx)
+	resp, err := api.core().Request("block/get", p.String()).Send(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.BlockR
 		Error string `json:",omitempty"`
 	}{}
 
-	req := api.core().request("block/rm").
+	req := api.core().Request("block/rm").
 		Option("force", options.Force).
 		Arguments(p.String())
 
@@ -107,7 +107,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.BlockR
 
 func (api *BlockAPI) Stat(ctx context.Context, p iface.Path) (iface.BlockStat, error) {
 	var out blockStat
-	err := api.core().request("block/stat", p.String()).Exec(ctx, &out)
+	err := api.core().Request("block/stat", p.String()).Exec(ctx, &out)
 	if err != nil {
 		return nil, err
 	}

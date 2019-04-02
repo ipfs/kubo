@@ -138,7 +138,7 @@ func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error)
 	return &subApi, nil
 }
 
-func (api *HttpApi) request(command string, args ...string) *RequestBuilder {
+func (api *HttpApi) Request(command string, args ...string) *RequestBuilder {
 	return &RequestBuilder{
 		command: command,
 		args:    args,
