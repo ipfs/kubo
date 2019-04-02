@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -46,6 +47,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
+	confirmOptionName     = "confirm"
 )
 
 const adderOutChanSize = 8
@@ -130,8 +132,15 @@ You can now check what blocks have been created by:
 		cmdkit.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmdkit.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmdkit.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmdkit.BoolOption(confirmOptionName, "Manually confirm when adding.").WithDefault(false),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
+		confirm, _ := req.Options[confirmOptionName].(bool)
+		if !confirm {
+			if !isConfirmAdd() {
+				return errors.New("Cancel adding")
+			}
+		}
 		quiet, _ := req.Options[quietOptionName].(bool)
 		quieter, _ := req.Options[quieterOptionName].(bool)
 		quiet = quiet || quieter
@@ -408,4 +417,21 @@ You can now check what blocks have been created by:
 		},
 	},
 	Type: AddEvent{},
+}
+
+func isConfirmAdd() bool {
+	fmt.Println("Do you want to continue? [Y/n]")
+	pass := make(chan bool)
+
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		t := scanner.Text()
+		if t == "Y" || t == "" || t == "y" {
+			pass <- true
+		} else {
+			pass <- false
+		}
+	}()
+	return <-pass
 }
