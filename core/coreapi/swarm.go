@@ -27,6 +27,10 @@ type connInfo struct {
 	peer peer.ID
 }
 
+// tag used in the connection manager when explicitly connecting to a peer.
+const connectionManagerTag = "user-connect"
+const connectionManagerWeight = 100
+
 func (api *SwarmAPI) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 	if api.peerHost == nil {
 		return coreiface.ErrOffline
@@ -36,7 +40,12 @@ func (api *SwarmAPI) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 		swrm.Backoff().Clear(pi.ID)
 	}
 
-	return api.peerHost.Connect(ctx, pi)
+	if err := api.peerHost.Connect(ctx, pi); err == nil {
+		return err
+	}
+
+	api.peerHost.ConnManager().TagPeer(pi.ID, connectionManagerTag, connectionManagerWeight)
+	return nil
 }
 
 func (api *SwarmAPI) Disconnect(ctx context.Context, addr ma.Multiaddr) error {
