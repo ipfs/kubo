@@ -9,6 +9,7 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/namesys/resolve"
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
@@ -173,7 +174,7 @@ func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]i
 			return nil, err
 		}
 
-		o, err := core.Resolve(ctx, n.Namesys, n.Resolver, p)
+		o, err := resolve.Resolve(ctx, n.Namesys, n.Resolver, p)
 		if err != nil {
 			return nil, err
 		}

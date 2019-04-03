@@ -5,7 +5,7 @@ import (
 	"fmt"
 	gopath "path"
 
-	"github.com/ipfs/go-ipfs/core"
+	node2 "github.com/ipfs/go-ipfs/namesys/resolve"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -42,8 +42,8 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 	}
 
 	ipath := ipfspath.Path(p.String())
-	ipath, err := core.ResolveIPNS(ctx, api.namesys, ipath)
-	if err == core.ErrNoNamesys {
+	ipath, err := node2.ResolveIPNS(ctx, api.namesys, ipath)
+	if err == node2.ErrNoNamesys {
 		return nil, coreiface.ErrOffline
 	} else if err != nil {
 		return nil, err

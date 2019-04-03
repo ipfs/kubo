@@ -14,6 +14,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/dagutils"
+	"github.com/ipfs/go-ipfs/namesys/resolve"
 
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
@@ -423,7 +424,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newcid cid.Cid
-	rnode, err := core.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
+	rnode, err := resolve.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
 	switch ev := err.(type) {
 	case resolver.ErrNoLink:
 		// ev.Node < node where resolve failed

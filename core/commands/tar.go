@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/namesys/resolve"
 	tar "github.com/ipfs/go-ipfs/tar"
 
 	"github.com/ipfs/go-ipfs-cmdkit"
@@ -97,7 +97,7 @@ var tarCatCmd = &cmds.Command{
 			return err
 		}
 
-		root, err := core.Resolve(req.Context, nd.Namesys, nd.Resolver, p)
+		root, err := resolve.Resolve(req.Context, nd.Namesys, nd.Resolver, p)
 		if err != nil {
 			return err
 		}

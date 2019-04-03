@@ -13,6 +13,8 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	node2 "github.com/ipfs/go-ipfs/namesys/resolve"
+
 	dag "github.com/ipfs/go-merkledag"
 	path "github.com/ipfs/go-path"
 	ft "github.com/ipfs/go-unixfs"
@@ -96,7 +98,7 @@ func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string
 		return nil, err
 	}
 
-	node, err := core.Resolve(ctx, ipfs.Namesys, ipfs.Resolver, p)
+	node, err := node2.Resolve(ctx, ipfs.Namesys, ipfs.Resolver, p)
 	switch err {
 	case nil:
 	case namesys.ErrResolveFailed:
