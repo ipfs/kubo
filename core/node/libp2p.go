@@ -320,9 +320,11 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 	return libp2p.ChainOptions(opts...)
 }
 
-func P2PSmuxTransport(bcfg *BuildCfg) (opts Libp2pOpts, err error) {
-	opts.Opts = append(opts.Opts, makeSmuxTransportOption(bcfg.getOpt("mplex")))
-	return
+func P2PSmuxTransport(mplex bool) func() (opts Libp2pOpts, err error) {
+	return func() (opts Libp2pOpts, err error) {
+		opts.Opts = append(opts.Opts, makeSmuxTransportOption(mplex))
+		return
+	}
 }
 
 func P2PNatPortMap(cfg *config.Config) (opts Libp2pOpts, err error) {
@@ -366,15 +368,23 @@ func P2PQUIC(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
+func P2PNoSecurity() (opts Libp2pOpts) {
+	opts.Opts = append(opts.Opts, libp2p.NoSecurity)
+	// TODO: shouldn't this be Errorf to guarantee visibility?
+	log.Warningf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.
+		You will not be able to connect to any nodes configured to use encrypted connections`)
+	return opts
+}
+
 type P2PHostIn struct {
 	fx.In
 
-	BCfg       *BuildCfg
-	Repo       repo.Repo
-	Validator  record.Validator
-	HostOption HostOption
-	ID         peer.ID
-	Peerstore  peerstore.Peerstore
+	Repo          repo.Repo
+	Validator     record.Validator
+	HostOption    HostOption
+	RoutingOption RoutingOption
+	ID            peer.ID
+	Peerstore     peerstore.Peerstore
 
 	Opts [][]libp2p.Option `group:"libp2p"`
 }
@@ -404,7 +414,7 @@ func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut
 	})
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
-		r, err := params.BCfg.Routing(ctx, h, params.Repo.Datastore(), params.Validator)
+		r, err := params.RoutingOption(ctx, h, params.Repo.Datastore(), params.Validator)
 		out.Routing = r
 		return r, err
 	}))
@@ -417,7 +427,7 @@ func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut
 	// this code is necessary just for tests: mock network constructions
 	// ignore the libp2p constructor options that actually construct the routing!
 	if out.Routing == nil {
-		r, err := params.BCfg.Routing(ctx, out.Host, params.Repo.Datastore(), params.Validator)
+		r, err := params.RoutingOption(ctx, out.Host, params.Repo.Datastore(), params.Validator)
 		if err != nil {
 			return P2PHostOut{}, err
 		}
@@ -461,11 +471,10 @@ func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut
 type p2pRoutingIn struct {
 	fx.In
 
-	BCfg      *BuildCfg
 	Repo      repo.Repo
 	Validator record.Validator
 	Host      host.Host
-	PubSub    *pubsub.PubSub
+	PubSub    *pubsub.PubSub `optional:"true"`
 
 	BaseRouting BaseRouting
 }
@@ -474,36 +483,38 @@ type p2pRoutingOut struct {
 	fx.Out
 
 	IpfsRouting routing.IpfsRouting
-	PSRouter    *namesys.PubsubValueStore // TODO: optional
+	PSRouter    *namesys.PubsubValueStore
 }
 
-func P2POnlineRouting(mctx MetricsCtx, lc fx.Lifecycle, in p2pRoutingIn) (out p2pRoutingOut) {
-	out.IpfsRouting = in.BaseRouting
+func P2POnlineRouting(ipnsps bool) func(mctx MetricsCtx, lc fx.Lifecycle, in p2pRoutingIn) (out p2pRoutingOut) {
+	return func(mctx MetricsCtx, lc fx.Lifecycle, in p2pRoutingIn) (out p2pRoutingOut) {
+		out.IpfsRouting = in.BaseRouting
 
-	if in.BCfg.getOpt("ipnsps") {
-		out.PSRouter = namesys.NewPubsubValueStore(
-			lifecycleCtx(mctx, lc),
-			in.Host,
-			in.BaseRouting,
-			in.PubSub,
-			in.Validator,
-		)
-
-		out.IpfsRouting = routinghelpers.Tiered{
-			Routers: []routing.IpfsRouting{
-				// Always check pubsub first.
-				&routinghelpers.Compose{
-					ValueStore: &routinghelpers.LimitedValueStore{
-						ValueStore: out.PSRouter,
-						Namespaces: []string{"ipns"},
-					},
-				},
+		if ipnsps {
+			out.PSRouter = namesys.NewPubsubValueStore(
+				lifecycleCtx(mctx, lc),
+				in.Host,
 				in.BaseRouting,
-			},
-			Validator: in.Validator,
+				in.PubSub,
+				in.Validator,
+			)
+
+			out.IpfsRouting = routinghelpers.Tiered{
+				Routers: []routing.IpfsRouting{
+					// Always check pubsub first.
+					&routinghelpers.Compose{
+						ValueStore: &routinghelpers.LimitedValueStore{
+							ValueStore: out.PSRouter,
+							Namespaces: []string{"ipns"},
+						},
+					},
+					in.BaseRouting,
+				},
+				Validator: in.Validator,
+			}
 		}
+		return out
 	}
-	return out
 }
 
 func AutoNATService(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {
@@ -519,11 +530,7 @@ func AutoNATService(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host h
 	return err
 }
 
-func Pubsub(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, bcfg *BuildCfg, cfg *config.Config) (service *pubsub.PubSub, err error) {
-	if !(bcfg.getOpt("pubsub") || bcfg.getOpt("ipnsps")) {
-		return nil, nil // TODO: mark optional
-	}
-
+func Pubsub(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, cfg *config.Config) (service *pubsub.PubSub, err error) {
 	var pubsubOptions []pubsub.Option
 	if cfg.Pubsub.DisableSigning {
 		pubsubOptions = append(pubsubOptions, pubsub.WithMessageSigning(false))
@@ -580,18 +587,4 @@ func StartListening(host host.Host, cfg *config.Config) error {
 	}
 	log.Infof("Swarm listening at: %s", addrs)
 	return nil
-}
-
-func P2PHostOption(bcfg *BuildCfg) (hostOption HostOption, err error) {
-	hostOption = bcfg.Host
-	if bcfg.DisableEncryptedConnections {
-		innerHostOption := hostOption
-		hostOption = func(ctx context.Context, id peer.ID, ps peerstore.Peerstore, options ...libp2p.Option) (host.Host, error) {
-			return innerHostOption(ctx, id, ps, append(options, libp2p.NoSecurity)...)
-		}
-		// TODO: shouldn't this be Errorf to guarantee visibility?
-		log.Warningf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.
-		You will not be able to connect to any nodes configured to use encrypted connections`)
-	}
-	return hostOption, nil
 }

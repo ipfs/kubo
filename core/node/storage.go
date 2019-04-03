@@ -37,46 +37,48 @@ func DatastoreCtor(repo repo.Repo) datastore.Datastore {
 
 type BaseBlocks blockstore.Blockstore
 
-func BaseBlockstoreCtor(mctx MetricsCtx, repo repo.Repo, cfg *config.Config, bcfg *BuildCfg, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	rds := &retrystore.Datastore{
-		Batching:    repo.Datastore(),
-		Delay:       time.Millisecond * 200,
-		Retries:     6,
-		TempErrFunc: isTooManyFDError,
-	}
-	// hash security
-	bs = blockstore.NewBlockstore(rds)
-	bs = &verifbs.VerifBS{Blockstore: bs}
-
-	opts := blockstore.DefaultCacheOpts()
-	opts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
-	if !bcfg.Permanent {
-		opts.HasBloomFilterSize = 0
-	}
-
-	if !bcfg.NilRepo {
-		ctx, cancel := context.WithCancel(mctx)
-
-		lc.Append(fx.Hook{
-			OnStop: func(context context.Context) error {
-				cancel()
-				return nil
-			},
-		})
-		bs, err = blockstore.CachedBlockstore(ctx, bs, opts)
-		if err != nil {
-			return nil, err
+func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+		rds := &retrystore.Datastore{
+			Batching:    repo.Datastore(),
+			Delay:       time.Millisecond * 200,
+			Retries:     6,
+			TempErrFunc: isTooManyFDError,
 		}
+		// hash security
+		bs = blockstore.NewBlockstore(rds)
+		bs = &verifbs.VerifBS{Blockstore: bs}
+
+		opts := blockstore.DefaultCacheOpts()
+		opts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
+		if !permanent {
+			opts.HasBloomFilterSize = 0
+		}
+
+		if !nilRepo {
+			ctx, cancel := context.WithCancel(mctx)
+
+			lc.Append(fx.Hook{
+				OnStop: func(context context.Context) error {
+					cancel()
+					return nil
+				},
+			})
+			bs, err = blockstore.CachedBlockstore(ctx, bs, opts)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		bs = blockstore.NewIdStore(bs)
+		bs = cidv0v1.NewBlockstore(bs)
+
+		if cfg.Datastore.HashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
+			bs.HashOnRead(true)
+		}
+
+		return
 	}
-
-	bs = blockstore.NewIdStore(bs)
-	bs = cidv0v1.NewBlockstore(bs)
-
-	if cfg.Datastore.HashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
-		bs.HashOnRead(true)
-	}
-
-	return
 }
 
 func GcBlockstoreCtor(repo repo.Repo, bb BaseBlocks, cfg *config.Config) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {

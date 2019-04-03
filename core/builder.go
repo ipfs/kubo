@@ -105,18 +105,22 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		return cfg.Repo
 	})
 
-	// TODO: Remove this, use only for passing node config
-	cfgOption := fx.Provide(func() *node.BuildCfg {
-		return (*node.BuildCfg)(cfg)
-	})
-
 	metricsCtx := fx.Provide(func() node.MetricsCtx {
 		return node.MetricsCtx(ctx)
 	})
 
+	hostOption := fx.Provide(func() node.HostOption {
+		return cfg.Host
+	})
+
+	routingOption := fx.Provide(func() node.RoutingOption {
+		return cfg.Routing
+	})
+
 	params := fx.Options(
 		repoOption,
-		cfgOption,
+		hostOption,
+		routingOption,
 		metricsCtx,
 	)
 
@@ -137,10 +141,10 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		fx.Provide(baseProcess),
 
 		params,
-		node.Storage,
+		node.Storage((*node.BuildCfg)(cfg)),
 		node.Identity,
 		node.IPNS,
-		node.Networked(cfg.Online),
+		node.Networked((*node.BuildCfg)(cfg)),
 
 		fx.Invoke(setupSharding),
 

@@ -9,24 +9,20 @@ import (
 	"github.com/ipfs/go-ipfs/provider"
 )
 
-var LibP2P = fx.Options(
+var BaseLibP2P = fx.Options(
 	fx.Provide(P2PAddrFilters),
 	fx.Provide(P2PBandwidthCounter),
 	fx.Provide(P2PPNet),
 	fx.Provide(P2PAddrsFactory),
 	fx.Provide(P2PConnectionManager),
-	fx.Provide(P2PSmuxTransport),
 	fx.Provide(P2PNatPortMap),
 	fx.Provide(P2PRelay),
 	fx.Provide(P2PAutoRealy),
 	fx.Provide(P2PDefaultTransports),
 	fx.Provide(P2PQUIC),
 
-	fx.Provide(P2PHostOption),
 	fx.Provide(P2PHost),
-	fx.Provide(P2POnlineRouting),
 
-	fx.Provide(Pubsub),
 	fx.Provide(NewDiscoveryHandler),
 
 	fx.Invoke(AutoNATService),
@@ -35,12 +31,26 @@ var LibP2P = fx.Options(
 	fx.Invoke(SetupDiscovery),
 )
 
-var Storage = fx.Options(
-	fx.Provide(RepoConfig),
-	fx.Provide(DatastoreCtor),
-	fx.Provide(BaseBlockstoreCtor),
-	fx.Provide(GcBlockstoreCtor),
-)
+func LibP2P(cfg *BuildCfg) fx.Option {
+	return fx.Options(
+		BaseLibP2P,
+
+		MaybeProvide(P2PNoSecurity, cfg.DisableEncryptedConnections),
+		MaybeProvide(Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
+
+		fx.Provide(P2PSmuxTransport(cfg.getOpt("mplex"))),
+		fx.Provide(P2POnlineRouting(cfg.getOpt("ipnsps"))),
+	)
+}
+
+func Storage(cfg *BuildCfg) fx.Option {
+	return fx.Options(
+		fx.Provide(RepoConfig),
+		fx.Provide(DatastoreCtor),
+		fx.Provide(BaseBlockstoreCtor(cfg.Permanent, cfg.NilRepo)),
+		fx.Provide(GcBlockstoreCtor),
+	)
+}
 
 var Identity = fx.Options(
 	fx.Provide(PeerID),
@@ -61,18 +71,19 @@ var Providers = fx.Options(
 	fx.Invoke(provider.Provider.Run),
 )
 
-var Online = fx.Options(
-	fx.Provide(OnlineExchangeCtor),
-	fx.Provide(OnlineNamesysCtor),
+func Online(cfg *BuildCfg) fx.Option {
+	return fx.Options(
+		fx.Provide(OnlineExchangeCtor),
+		fx.Provide(OnlineNamesysCtor),
 
-	fx.Invoke(IpnsRepublisher),
+		fx.Invoke(IpnsRepublisher),
 
-	fx.Provide(p2p.NewP2P),
+		fx.Provide(p2p.NewP2P),
 
-	LibP2P,
-	Providers,
-)
-
+		LibP2P(cfg),
+		Providers,
+	)
+}
 var Offline = fx.Options(
 	fx.Provide(offline.Exchange),
 	fx.Provide(OfflineNamesysCtor),
@@ -80,9 +91,16 @@ var Offline = fx.Options(
 	fx.Provide(provider.NewOfflineProvider),
 )
 
-func Networked(online bool) fx.Option {
-	if online {
-		return Online
+func Networked(cfg *BuildCfg) fx.Option {
+	if cfg.Online {
+		return Online(cfg)
 	}
 	return Offline
+}
+
+func MaybeProvide(opt interface{}, enable bool) fx.Option {
+	if enable {
+		return fx.Provide(opt)
+	}
+	return fx.Options()
 }
