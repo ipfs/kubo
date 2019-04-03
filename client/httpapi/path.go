@@ -24,7 +24,7 @@ func (api *HttpApi) ResolvePath(ctx context.Context, path iface.Path) (iface.Res
 		}
 	}
 
-	if err := api.request("dag/resolve", path.String()).Exec(ctx, &out); err != nil {
+	if err := api.Request("dag/resolve", path.String()).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 

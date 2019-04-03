@@ -18,7 +18,7 @@ func (api *PubsubAPI) Ls(ctx context.Context) ([]string, error) {
 		Strings []string
 	}
 
-	if err := api.core().request("pubsub/ls").Exec(ctx, &out); err != nil {
+	if err := api.core().Request("pubsub/ls").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 
@@ -35,7 +35,7 @@ func (api *PubsubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 		Strings []string
 	}
 
-	if err := api.core().request("pubsub/peers", options.Topic).Exec(ctx, &out); err != nil {
+	if err := api.core().Request("pubsub/peers", options.Topic).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 
@@ -51,7 +51,7 @@ func (api *PubsubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 }
 
 func (api *PubsubAPI) Publish(ctx context.Context, topic string, message []byte) error {
-	return api.core().request("pubsub/pub", topic).
+	return api.core().Request("pubsub/pub", topic).
 		FileBody(bytes.NewReader(message)).
 		Exec(ctx, nil)
 }
@@ -112,7 +112,7 @@ func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 		return nil, err
 	}
 
-	resp, err := api.core().request("pubsub/sub", topic).
+	resp, err := api.core().Request("pubsub/sub", topic).
 		Option("discover", options.Discover).Send(ctx)
 
 	if err != nil {

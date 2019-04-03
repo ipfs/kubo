@@ -25,11 +25,11 @@ func (api *SwarmAPI) Connect(ctx context.Context, pi peerstore.PeerInfo) error {
 		saddrs[i] = addr.Encapsulate(pidma).String()
 	}
 
-	return api.core().request("swarm/connect", saddrs...).Exec(ctx, nil)
+	return api.core().Request("swarm/connect", saddrs...).Exec(ctx, nil)
 }
 
 func (api *SwarmAPI) Disconnect(ctx context.Context, addr multiaddr.Multiaddr) error {
-	return api.core().request("swarm/disconnect", addr.String()).Exec(ctx, nil)
+	return api.core().Request("swarm/disconnect", addr.String()).Exec(ctx, nil)
 }
 
 type connInfo struct {
@@ -75,7 +75,7 @@ func (api *SwarmAPI) Peers(ctx context.Context) ([]iface.ConnectionInfo, error) 
 		}
 	}
 
-	err := api.core().request("swarm/peers").
+	err := api.core().Request("swarm/peers").
 		Option("streams", true).
 		Option("latency", true).
 		Exec(ctx, &resp)
@@ -116,7 +116,7 @@ func (api *SwarmAPI) KnownAddrs(ctx context.Context) (map[peer.ID][]multiaddr.Mu
 	var out struct {
 		Addrs map[string][]string
 	}
-	if err := api.core().request("swarm/addrs").Exec(ctx, &out); err != nil {
+	if err := api.core().Request("swarm/addrs").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 	res := map[peer.ID][]multiaddr.Multiaddr{}
@@ -147,7 +147,7 @@ func (api *SwarmAPI) LocalAddrs(ctx context.Context) ([]multiaddr.Multiaddr, err
 		Strings []string
 	}
 
-	if err := api.core().request("swarm/addrs/local").Exec(ctx, &out); err != nil {
+	if err := api.core().Request("swarm/addrs/local").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 
@@ -167,7 +167,7 @@ func (api *SwarmAPI) ListenAddrs(ctx context.Context) ([]multiaddr.Multiaddr, er
 		Strings []string
 	}
 
-	if err := api.core().request("swarm/addrs/listen").Exec(ctx, &out); err != nil {
+	if err := api.core().Request("swarm/addrs/listen").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 

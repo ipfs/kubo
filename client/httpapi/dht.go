@@ -18,7 +18,7 @@ func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (peerstore.PeerInfo,
 		Type      notif.QueryEventType
 		Responses []peerstore.PeerInfo
 	}
-	resp, err := api.core().request("dht/findpeer", p.Pretty()).Send(ctx)
+	resp, err := api.core().Request("dht/findpeer", p.Pretty()).Send(ctx)
 	if err != nil {
 		return peerstore.PeerInfo{}, err
 	}
@@ -48,7 +48,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p iface.Path, opts ...caop
 		return nil, err
 	}
 
-	resp, err := api.core().request("dht/findprovs", rp.Cid().String()).
+	resp, err := api.core().Request("dht/findprovs", rp.Cid().String()).
 		Option("num-providers", options.NumProviders).
 		Send(ctx)
 	if err != nil {
@@ -104,7 +104,7 @@ func (api *DhtAPI) Provide(ctx context.Context, p iface.Path, opts ...caopts.Dht
 		return err
 	}
 
-	return api.core().request("dht/provide", rp.Cid().String()).
+	return api.core().Request("dht/provide", rp.Cid().String()).
 		Option("recursive", options.Recursive).
 		Exec(ctx, nil)
 }

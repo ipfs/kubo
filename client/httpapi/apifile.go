@@ -29,7 +29,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p iface.Path) (files.Node, error)
 		Type string
 		Size int64 // unixfs size
 	}
-	err := api.core().request("files/stat", p.String()).Exec(ctx, &stat)
+	err := api.core().Request("files/stat", p.String()).Exec(ctx, &stat)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (f *apiFile) reset() error {
 		_ = f.r.Cancel()
 		f.r = nil
 	}
-	req := f.core.request("cat", f.path.String())
+	req := f.core.Request("cat", f.path.String())
 	if f.at != 0 {
 		req.Option("offset", f.at)
 	}
@@ -225,7 +225,7 @@ func (d *apiDir) Entries() files.DirIterator {
 }
 
 func (api *UnixfsAPI) getDir(ctx context.Context, p iface.Path, size int64) (files.Node, error) {
-	resp, err := api.core().request("ls", p.String()).
+	resp, err := api.core().Request("ls", p.String()).
 		Option("resolve-size", true).
 		Option("stream", true).Send(ctx)
 

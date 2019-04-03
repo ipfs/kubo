@@ -39,7 +39,7 @@ func (api *PinAPI) Add(ctx context.Context, p iface.Path, opts ...caopts.PinAddO
 		return err
 	}
 
-	return api.core().request("pin/add", p.String()).
+	return api.core().Request("pin/add", p.String()).
 		Option("recursive", options.Recursive).Exec(ctx, nil)
 }
 
@@ -50,7 +50,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]iface.
 	}
 
 	var out pinRefKeyList
-	err = api.core().request("pin/ls").
+	err = api.core().Request("pin/ls").
 		Option("type", options.Type).Exec(ctx, &out)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (api *PinAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.PinRmOpt
 		return err
 	}
 
-	return api.core().request("pin/rm", p.String()).
+	return api.core().Request("pin/rm", p.String()).
 		Option("recursive", options.Recursive).
 		Exec(ctx, nil)
 }
@@ -85,7 +85,7 @@ func (api *PinAPI) Update(ctx context.Context, from iface.Path, to iface.Path, o
 		return err
 	}
 
-	return api.core().request("pin/update").
+	return api.core().Request("pin/update").
 		Option("unpin", options.Unpin).Exec(ctx, nil)
 }
 
@@ -116,7 +116,7 @@ func (n *badNode) Err() error {
 }
 
 func (api *PinAPI) Verify(ctx context.Context) (<-chan iface.PinStatus, error) {
-	resp, err := api.core().request("pin/verify").Option("verbose", true).Send(ctx)
+	resp, err := api.core().Request("pin/verify").Option("verbose", true).Send(ctx)
 	if err != nil {
 		return nil, err
 	}

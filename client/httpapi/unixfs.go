@@ -36,7 +36,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.Unix
 		return nil, fmt.Errorf("unknowm mhType %d", options.MhType)
 	}
 
-	req := api.core().request("add").
+	req := api.core().Request("add").
 		Option("hash", mht).
 		Option("chunker", options.Chunker).
 		Option("cid-version", options.CidVersion).
@@ -139,7 +139,7 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.Unixf
 		return nil, err
 	}
 
-	resp, err := api.core().request("ls", p.String()).
+	resp, err := api.core().Request("ls", p.String()).
 		Option("resolve-type", options.ResolveChildren).
 		Option("size", options.ResolveChildren).
 		Option("stream", true).
