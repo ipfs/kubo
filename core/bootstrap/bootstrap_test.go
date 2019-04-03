@@ -1,4 +1,4 @@
-package core
+package bootstrap
 
 import (
 	"fmt"
@@ -49,7 +49,7 @@ func TestMultipleAddrsPerPeer(t *testing.T) {
 		bsps = append(bsps, bsp1, bsp2)
 	}
 
-	pinfos := toPeerInfos(bsps)
+	pinfos := Peers.ToPeerInfos(bsps)
 	if len(pinfos) != len(bsps)/2 {
 		t.Fatal("expected fewer peers")
 	}

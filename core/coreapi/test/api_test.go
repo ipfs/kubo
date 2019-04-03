@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/filestore"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -101,7 +102,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
-	bsinf := core.BootstrapConfigWithPeers(
+	bsinf := bootstrap.BootstrapConfigWithPeers(
 		[]pstore.PeerInfo{
 			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
 		},

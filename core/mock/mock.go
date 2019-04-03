@@ -5,6 +5,7 @@ import (
 
 	commands "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/repo"
 
 	datastore "github.com/ipfs/go-datastore"
@@ -29,7 +30,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 	})
 }
 
-func MockHostOption(mn mocknet.Mocknet) core.HostOption {
+func MockHostOption(mn mocknet.Mocknet) node.HostOption {
 	return func(ctx context.Context, id peer.ID, ps pstore.Peerstore, _ ...libp2p.Option) (host.Host, error) {
 		return mn.AddPeerWithPeerstore(id, ps)
 	}

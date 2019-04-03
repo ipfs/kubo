@@ -11,16 +11,13 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
-	"strings"
-	"time"
 
 	"go.uber.org/fx"
 
 	version "github.com/ipfs/go-ipfs"
+	"github.com/ipfs/go-ipfs/core/bootstrap"
+	"github.com/ipfs/go-ipfs/core/node"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/fuse/mount"
@@ -32,27 +29,18 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 
 	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-cid"
-	ds "github.com/ipfs/go-datastore"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
-	config "github.com/ipfs/go-ipfs-config"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	nilrouting "github.com/ipfs/go-ipfs-routing/none"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-path/resolver"
-	ft "github.com/ipfs/go-unixfs"
 	"github.com/jbenet/goprocess"
-	"github.com/libp2p/go-libp2p"
 	autonat "github.com/libp2p/go-libp2p-autonat-svc"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	ic "github.com/libp2p/go-libp2p-crypto"
 	p2phost "github.com/libp2p/go-libp2p-host"
 	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	dhtopts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -63,17 +51,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
-	mafilter "github.com/libp2p/go-maddr-filter"
-	smux "github.com/libp2p/go-stream-muxer"
-	ma "github.com/multiformats/go-multiaddr"
-	mplex "github.com/whyrusleeping/go-smux-multiplex"
-	yamux "github.com/whyrusleeping/go-smux-yamux"
-	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
-
-const kReprovideFrequency = time.Hour * 12
-const discoveryConnTimeout = time.Second * 30
-const DefaultIpnsCacheSize = 128
 
 var log = logging.Logger("core")
 
@@ -90,16 +68,16 @@ type IpfsNode struct {
 	Repo repo.Repo
 
 	// Local node
-	Pinning         pin.Pinner      // the pinning manager
-	Mounts          Mounts          `optional:"true"` // current mount state, if any.
-	PrivateKey      ic.PrivKey      // the local node's private Key
-	PNetFingerprint PNetFingerprint `optional:"true"` // fingerprint of private network
+	Pinning         pin.Pinner           // the pinning manager
+	Mounts          Mounts               `optional:"true"` // current mount state, if any.
+	PrivateKey      ic.PrivKey           // the local node's private Key
+	PNetFingerprint node.PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
 	Peerstore       pstore.Peerstore     `optional:"true"` // storage for other Peer instances
 	Blockstore      bstore.GCBlockstore  // the block store (lower level)
 	Filestore       *filestore.Filestore // the filestore blockstore
-	BaseBlocks      BaseBlocks           // the raw blockstore, no filestore wrapping
+	BaseBlocks      node.BaseBlocks      // the raw blockstore, no filestore wrapping
 	GCLocker        bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks          bserv.BlockService   // the block service, get/add blocks.
 	DAG             ipld.DAGService      // the merkle dag service, get/add objects.
@@ -143,94 +121,6 @@ type Mounts struct {
 	Ipns mount.Mount
 }
 
-func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
-	var annAddrs []ma.Multiaddr
-	for _, addr := range cfg.Announce {
-		maddr, err := ma.NewMultiaddr(addr)
-		if err != nil {
-			return nil, err
-		}
-		annAddrs = append(annAddrs, maddr)
-	}
-
-	filters := mafilter.NewFilters()
-	noAnnAddrs := map[string]bool{}
-	for _, addr := range cfg.NoAnnounce {
-		f, err := mamask.NewMask(addr)
-		if err == nil {
-			filters.AddDialFilter(f)
-			continue
-		}
-		maddr, err := ma.NewMultiaddr(addr)
-		if err != nil {
-			return nil, err
-		}
-		noAnnAddrs[maddr.String()] = true
-	}
-
-	return func(allAddrs []ma.Multiaddr) []ma.Multiaddr {
-		var addrs []ma.Multiaddr
-		if len(annAddrs) > 0 {
-			addrs = annAddrs
-		} else {
-			addrs = allAddrs
-		}
-
-		var out []ma.Multiaddr
-		for _, maddr := range addrs {
-			// check for exact matches
-			ok := noAnnAddrs[maddr.String()]
-			// check for /ipcidr matches
-			if !ok && !filters.AddrBlocked(maddr) {
-				out = append(out, maddr)
-			}
-		}
-		return out
-	}, nil
-}
-
-func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
-	const yamuxID = "/yamux/1.0.0"
-	const mplexID = "/mplex/6.7.0"
-
-	ymxtpt := &yamux.Transport{
-		AcceptBacklog:          512,
-		ConnectionWriteTimeout: time.Second * 10,
-		KeepAliveInterval:      time.Second * 30,
-		EnableKeepAlive:        true,
-		MaxStreamWindowSize:    uint32(16 * 1024 * 1024), // 16MiB
-		LogOutput:              ioutil.Discard,
-	}
-
-	if os.Getenv("YAMUX_DEBUG") != "" {
-		ymxtpt.LogOutput = os.Stderr
-	}
-
-	muxers := map[string]smux.Transport{yamuxID: ymxtpt}
-	if mplexExp {
-		muxers[mplexID] = mplex.DefaultTransport
-	}
-
-	// Allow muxer preference order overriding
-	order := []string{yamuxID, mplexID}
-	if prefs := os.Getenv("LIBP2P_MUX_PREFS"); prefs != "" {
-		order = strings.Fields(prefs)
-	}
-
-	opts := make([]libp2p.Option, 0, len(order))
-	for _, id := range order {
-		tpt, ok := muxers[id]
-		if !ok {
-			log.Warning("unknown or duplicate muxer in LIBP2P_MUX_PREFS: %s", id)
-			continue
-		}
-		delete(muxers, id)
-		opts = append(opts, libp2p.Muxer(id, tpt))
-	}
-
-	return libp2p.ChainOptions(opts...)
-}
-
 // Close calls Close() on the App object
 func (n *IpfsNode) Close() error {
 	return n.app.Stop(n.ctx)
@@ -245,7 +135,7 @@ func (n *IpfsNode) Context() context.Context {
 }
 
 // Bootstrap will set and call the IpfsNodes bootstrap function.
-func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
+func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 	// TODO what should return value be when in offlineMode?
 	if n.Routing == nil {
 		return nil
@@ -269,7 +159,7 @@ func (n *IpfsNode) Bootstrap(cfg BootstrapConfig) error {
 	}
 
 	var err error
-	n.Bootstrapper, err = Bootstrap(n, cfg)
+	n.Bootstrapper, err = bootstrap.Bootstrap(n.Identity, n.PeerHost, n.Routing, cfg)
 	return err
 }
 
@@ -283,20 +173,7 @@ func (n *IpfsNode) loadBootstrapPeers() ([]pstore.PeerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return toPeerInfos(parsed), nil
-}
-
-func listenAddresses(cfg *config.Config) ([]ma.Multiaddr, error) {
-	var listen []ma.Multiaddr
-	for _, addr := range cfg.Addresses.Swarm {
-		maddr, err := ma.NewMultiaddr(addr)
-		if err != nil {
-			return nil, fmt.Errorf("failure to parse config.Addresses.Swarm: %s", cfg.Addresses.Swarm)
-		}
-		listen = append(listen, maddr)
-	}
-
-	return listen, nil
+	return bootstrap.Peers.ToPeerInfos(parsed), nil
 }
 
 type ConstructPeerHostOpts struct {
@@ -306,81 +183,3 @@ type ConstructPeerHostOpts struct {
 	EnableRelayHop    bool
 	ConnectionManager ifconnmgr.ConnManager
 }
-
-type HostOption func(ctx context.Context, id peer.ID, ps pstore.Peerstore, options ...libp2p.Option) (p2phost.Host, error)
-
-var DefaultHostOption HostOption = constructPeerHost
-
-// isolates the complex initialization steps
-func constructPeerHost(ctx context.Context, id peer.ID, ps pstore.Peerstore, options ...libp2p.Option) (p2phost.Host, error) {
-	pkey := ps.PrivKey(id)
-	if pkey == nil {
-		return nil, fmt.Errorf("missing private key for node ID: %s", id.Pretty())
-	}
-	options = append([]libp2p.Option{libp2p.Identity(pkey), libp2p.Peerstore(ps)}, options...)
-	return libp2p.New(ctx, options...)
-}
-
-func filterRelayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
-	var raddrs []ma.Multiaddr
-	for _, addr := range addrs {
-		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
-		if err == nil {
-			continue
-		}
-		raddrs = append(raddrs, addr)
-	}
-	return raddrs
-}
-
-func composeAddrsFactory(f, g p2pbhost.AddrsFactory) p2pbhost.AddrsFactory {
-	return func(addrs []ma.Multiaddr) []ma.Multiaddr {
-		return f(g(addrs))
-	}
-}
-
-// startListening on the network addresses
-func startListening(host p2phost.Host, cfg *config.Config) error {
-	listenAddrs, err := listenAddresses(cfg)
-	if err != nil {
-		return err
-	}
-
-	// Actually start listening:
-	if err := host.Network().Listen(listenAddrs...); err != nil {
-		return err
-	}
-
-	// list out our addresses
-	addrs, err := host.Network().InterfaceListenAddresses()
-	if err != nil {
-		return err
-	}
-	log.Infof("Swarm listening at: %s", addrs)
-	return nil
-}
-
-func constructDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.Batching, validator record.Validator) (routing.IpfsRouting, error) {
-	return dht.New(
-		ctx, host,
-		dhtopts.Datastore(dstore),
-		dhtopts.Validator(validator),
-	)
-}
-
-func constructClientDHTRouting(ctx context.Context, host p2phost.Host, dstore ds.Batching, validator record.Validator) (routing.IpfsRouting, error) {
-	return dht.New(
-		ctx, host,
-		dhtopts.Client(true),
-		dhtopts.Datastore(dstore),
-		dhtopts.Validator(validator),
-	)
-}
-
-type RoutingOption func(context.Context, p2phost.Host, ds.Batching, record.Validator) (routing.IpfsRouting, error)
-
-type DiscoveryOption func(context.Context, p2phost.Host) (discovery.Service, error)
-
-var DHTOption RoutingOption = constructDHTRouting
-var DHTClientOption RoutingOption = constructClientDHTRouting
-var NilRouterOption RoutingOption = nilrouting.ConstructNilRouting
