@@ -32,9 +32,7 @@ func (api *PinAPI) Add(ctx context.Context, p coreiface.Path, opts ...caopts.Pin
 		return fmt.Errorf("pin: %s", err)
 	}
 
-	if err := api.provider.Provide(dagNode.Cid()); err != nil {
-		return err
-	}
+	api.provider.Provide(dagNode.Cid())
 
 	return api.pinning.Flush()
 }

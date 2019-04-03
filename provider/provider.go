@@ -19,7 +19,7 @@ type Provider interface {
 	// Run is used to begin processing the provider work
 	Run()
 	// Provide takes a cid and makes an attempt to announce it to the network
-	Provide(cid.Cid) error
+	Provide(cid.Cid)
 	// Close stops the provider
 	Close() error
 }
@@ -56,9 +56,8 @@ func (p *provider) Run() {
 }
 
 // Provide the given cid
-func (p *provider) Provide(root cid.Cid) error {
+func (p *provider) Provide(root cid.Cid) {
 	p.queue.Enqueue(root)
-	return nil
 }
 
 // Handle all outgoing cids by providing (announcing) them

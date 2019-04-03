@@ -8,6 +8,6 @@ import (
 type ProviderAPI CoreAPI
 
 // Provide the given cid using the current provider
-func (api *ProviderAPI) Provide(cid cid.Cid) error {
-	return api.provider.Provide(cid)
+func (api *ProviderAPI) Provide(cid cid.Cid) {
+	api.provider.Provide(cid)
 }

@@ -60,7 +60,7 @@ func TestAnnouncement(t *testing.T) {
 
 	go func() {
 		for _, c := range cids.Keys() {
-			err = provider.Provide(c)
+			provider.Provide(c)
 			// A little goroutine stirring to exercise some different states
 			r := rand.Intn(10)
 			time.Sleep(time.Microsecond * time.Duration(r))
@@ -99,7 +99,7 @@ func TestAnnouncementWhenAlreadyAnnounced(t *testing.T) {
 
 	c := blockGenerator.Next().Cid()
 
-	err = provider.Provide(c)
+	provider.Provide(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestAnnouncementWhenAlreadyAnnounced(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 
 	// provide the same cid again
-	err = provider.Provide(c)
+	provider.Provide(c)
 	if err != nil {
 		t.Fatal(err)
 	}
