@@ -40,7 +40,7 @@ func (api *SwarmAPI) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 		swrm.Backoff().Clear(pi.ID)
 	}
 
-	if err := api.peerHost.Connect(ctx, pi); err == nil {
+	if err := api.peerHost.Connect(ctx, pi); err != nil {
 		return err
 	}
 
