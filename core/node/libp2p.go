@@ -122,7 +122,7 @@ type Libp2pOpts struct {
 	Opts []libp2p.Option `group:"libp2p"`
 }
 
-type PNetFingerprint []byte // TODO: find some better place
+type PNetFingerprint []byte
 func P2PPNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
 	swarmkey, err := repo.SwarmKey()
 	if err != nil || swarmkey == nil {

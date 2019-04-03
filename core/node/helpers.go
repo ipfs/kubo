@@ -3,6 +3,8 @@ package node
 import (
 	"context"
 
+	config "github.com/ipfs/go-ipfs-config"
+	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/jbenet/goprocess"
 	"go.uber.org/fx"
 )
@@ -40,4 +42,26 @@ func (lp *lcProcess) Run(f goprocess.ProcessFunc) {
 			return (<-proc).Close() // todo: respect ctx, somehow
 		},
 	})
+}
+
+func maybeProvide(opt interface{}, enable bool) fx.Option {
+	if enable {
+		return fx.Provide(opt)
+	}
+	return fx.Options()
+}
+
+func setupSharding(cfg *config.Config) {
+	// TEMP: setting global sharding switch here
+	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
+}
+
+func baseProcess(lc fx.Lifecycle) goprocess.Process {
+	p := goprocess.WithParent(goprocess.Background())
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			return p.Close()
+		},
+	})
+	return p
 }

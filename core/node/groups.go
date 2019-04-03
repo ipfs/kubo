@@ -1,12 +1,17 @@
 package node
 
 import (
+	"context"
+
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-metrics-interface"
+	"github.com/ipfs/go-path/resolver"
 	"go.uber.org/fx"
 
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
+	"github.com/ipfs/go-ipfs/repo"
 )
 
 var BaseLibP2P = fx.Options(
@@ -35,8 +40,8 @@ func LibP2P(cfg *BuildCfg) fx.Option {
 	return fx.Options(
 		BaseLibP2P,
 
-		MaybeProvide(P2PNoSecurity, cfg.DisableEncryptedConnections),
-		MaybeProvide(Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
+		maybeProvide(P2PNoSecurity, cfg.DisableEncryptedConnections),
+		maybeProvide(Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
 
 		fx.Provide(P2PSmuxTransport(cfg.getOpt("mplex"))),
 		fx.Provide(P2POnlineRouting(cfg.getOpt("ipnsps"))),
@@ -84,11 +89,20 @@ func Online(cfg *BuildCfg) fx.Option {
 		Providers,
 	)
 }
+
 var Offline = fx.Options(
 	fx.Provide(offline.Exchange),
 	fx.Provide(OfflineNamesysCtor),
 	fx.Provide(offroute.NewOfflineRouter),
 	fx.Provide(provider.NewOfflineProvider),
+)
+
+var Core = fx.Options(
+	fx.Provide(BlockServiceCtor),
+	fx.Provide(DagCtor),
+	fx.Provide(resolver.NewBasicResolver),
+	fx.Provide(Pinning),
+	fx.Provide(Files),
 )
 
 func Networked(cfg *BuildCfg) fx.Option {
@@ -98,9 +112,57 @@ func Networked(cfg *BuildCfg) fx.Option {
 	return Offline
 }
 
-func MaybeProvide(opt interface{}, enable bool) fx.Option {
-	if enable {
-		return fx.Provide(opt)
+func IPFS(ctx context.Context, cfg *BuildCfg) fx.Option {
+	if cfg == nil {
+		cfg = new(BuildCfg)
 	}
-	return fx.Options()
+
+	err := cfg.fillDefaults()
+	if err != nil {
+		return fx.Error(err)
+	}
+
+	ctx = metrics.CtxScope(ctx, "ipfs")
+
+	repoOption := fx.Provide(func(lc fx.Lifecycle) repo.Repo {
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return cfg.Repo.Close()
+			},
+		})
+
+		return cfg.Repo
+	})
+
+	metricsCtx := fx.Provide(func() MetricsCtx {
+		return MetricsCtx(ctx)
+	})
+
+	hostOption := fx.Provide(func() HostOption {
+		return cfg.Host
+	})
+
+	routingOption := fx.Provide(func() RoutingOption {
+		return cfg.Routing
+	})
+
+	params := fx.Options(
+		repoOption,
+		hostOption,
+		routingOption,
+		metricsCtx,
+	)
+
+	return fx.Options(
+		params,
+		fx.Provide(baseProcess),
+		fx.Invoke(setupSharding),
+
+		Storage(cfg),
+		Identity,
+		IPNS,
+		Networked(cfg),
+
+		Core,
+	)
 }

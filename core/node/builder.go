@@ -1,6 +1,16 @@
 package node
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
+
+	ds "github.com/ipfs/go-datastore"
+	dsync "github.com/ipfs/go-datastore/sync"
+	cfg "github.com/ipfs/go-ipfs-config"
+	ci "github.com/libp2p/go-libp2p-crypto"
+	peer "github.com/libp2p/go-libp2p-peer"
+
 	"github.com/ipfs/go-ipfs/repo"
 )
 
@@ -33,4 +43,62 @@ func (cfg *BuildCfg) getOpt(key string) bool {
 	}
 
 	return cfg.ExtraOpts[key]
+}
+
+func (cfg *BuildCfg) fillDefaults() error {
+	if cfg.Repo != nil && cfg.NilRepo {
+		return errors.New("cannot set a Repo and specify nilrepo at the same time")
+	}
+
+	if cfg.Repo == nil {
+		var d ds.Datastore
+		if cfg.NilRepo {
+			d = ds.NewNullDatastore()
+		} else {
+			d = ds.NewMapDatastore()
+		}
+		r, err := defaultRepo(dsync.MutexWrap(d))
+		if err != nil {
+			return err
+		}
+		cfg.Repo = r
+	}
+
+	if cfg.Routing == nil {
+		cfg.Routing = DHTOption
+	}
+
+	if cfg.Host == nil {
+		cfg.Host = DefaultHostOption
+	}
+
+	return nil
+}
+
+func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
+	c := cfg.Config{}
+	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+
+	pid, err := peer.IDFromPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+
+	privkeyb, err := priv.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	c.Bootstrap = cfg.DefaultBootstrapAddresses
+	c.Addresses.Swarm = []string{"/ip4/0.0.0.0/tcp/4001"}
+	c.Identity.PeerID = pid.Pretty()
+	c.Identity.PrivKey = base64.StdEncoding.EncodeToString(privkeyb)
+
+	return &repo.Mock{
+		D: dstore,
+		C: c,
+	}, nil
 }
