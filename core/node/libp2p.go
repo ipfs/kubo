@@ -123,6 +123,7 @@ type Libp2pOpts struct {
 }
 
 type PNetFingerprint []byte
+
 func P2PPNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
 	swarmkey, err := repo.SwarmKey()
 	if err != nil || swarmkey == nil {

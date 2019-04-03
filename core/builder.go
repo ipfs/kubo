@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 
+	"github.com/ipfs/go-metrics-interface"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
@@ -13,6 +14,8 @@ type BuildCfg = node.BuildCfg // Alias for compatibility until we properly refac
 
 // NewNode constructs and returns an IpfsNode using the given cfg.
 func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
+	ctx = metrics.CtxScope(ctx, "ipfs")
+
 	n := &IpfsNode{
 		ctx: ctx,
 	}

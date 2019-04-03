@@ -1,17 +1,20 @@
 package node
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+
+	"go.uber.org/fx"
+
+	"github.com/ipfs/go-ipfs/repo"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	cfg "github.com/ipfs/go-ipfs-config"
 	ci "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
-
-	"github.com/ipfs/go-ipfs/repo"
 )
 
 type BuildCfg struct {
@@ -73,6 +76,42 @@ func (cfg *BuildCfg) fillDefaults() error {
 	}
 
 	return nil
+}
+
+func (cfg *BuildCfg) options(ctx context.Context) fx.Option {
+	err := cfg.fillDefaults()
+	if err != nil {
+		return fx.Error(err)
+	}
+
+	repoOption := fx.Provide(func(lc fx.Lifecycle) repo.Repo {
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return cfg.Repo.Close()
+			},
+		})
+
+		return cfg.Repo
+	})
+
+	metricsCtx := fx.Provide(func() MetricsCtx {
+		return MetricsCtx(ctx)
+	})
+
+	hostOption := fx.Provide(func() HostOption {
+		return cfg.Host
+	})
+
+	routingOption := fx.Provide(func() RoutingOption {
+		return cfg.Routing
+	})
+
+	return fx.Options(
+		repoOption,
+		hostOption,
+		routingOption,
+		metricsCtx,
+	)
 }
 
 func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {

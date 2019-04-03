@@ -3,15 +3,13 @@ package node
 import (
 	"context"
 
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	"github.com/ipfs/go-metrics-interface"
-	"github.com/ipfs/go-path/resolver"
-	"go.uber.org/fx"
-
-	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
-	"github.com/ipfs/go-ipfs/repo"
+
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	offroute "github.com/ipfs/go-ipfs-routing/offline"
+	"github.com/ipfs/go-path/resolver"
+	"go.uber.org/fx"
 )
 
 var BaseLibP2P = fx.Options(
@@ -117,44 +115,9 @@ func IPFS(ctx context.Context, cfg *BuildCfg) fx.Option {
 		cfg = new(BuildCfg)
 	}
 
-	err := cfg.fillDefaults()
-	if err != nil {
-		return fx.Error(err)
-	}
-
-	ctx = metrics.CtxScope(ctx, "ipfs")
-
-	repoOption := fx.Provide(func(lc fx.Lifecycle) repo.Repo {
-		lc.Append(fx.Hook{
-			OnStop: func(ctx context.Context) error {
-				return cfg.Repo.Close()
-			},
-		})
-
-		return cfg.Repo
-	})
-
-	metricsCtx := fx.Provide(func() MetricsCtx {
-		return MetricsCtx(ctx)
-	})
-
-	hostOption := fx.Provide(func() HostOption {
-		return cfg.Host
-	})
-
-	routingOption := fx.Provide(func() RoutingOption {
-		return cfg.Routing
-	})
-
-	params := fx.Options(
-		repoOption,
-		hostOption,
-		routingOption,
-		metricsCtx,
-	)
-
 	return fx.Options(
-		params,
+		cfg.options(ctx),
+
 		fx.Provide(baseProcess),
 		fx.Invoke(setupSharding),
 
