@@ -278,6 +278,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		break
 	}
 
+	// The node will also close the repo but there are many places we could
+	// fail before we get to that. It can't hurt to close it twice.
+	defer repo.Close()
+
 	cfg, err := cctx.GetConfig()
 	if err != nil {
 		return err
