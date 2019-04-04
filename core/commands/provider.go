@@ -9,21 +9,22 @@ import (
 	"io"
 )
 
+// ProviderCmd provides command line access to the provider system
 var ProviderCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: "Interact with the provider subsystem",
+		Tagline:          "Interact with the provider subsystem",
 		ShortDescription: "",
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"tracking": trackingProviderCmd,
+		"tracking":  trackingProviderCmd,
 		"reprovide": reprovideCmd,
 	},
 }
 
 var trackingProviderCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
-		Tagline: 	 "List the cids being tracked by the provider system.",
+		Tagline: "List the cids being tracked by the provider system.",
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
@@ -46,7 +47,7 @@ var trackingProviderCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, c cid.Cid) error {
-            fmt.Fprintf(w, "%s\n", c.String())
+			fmt.Fprintf(w, "%s\n", c.String())
 			return nil
 		}),
 	},

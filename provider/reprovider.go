@@ -69,7 +69,6 @@ func (rp *Reprovider) reprovide() error {
 	return nil
 }
 
-
 func (rp *Reprovider) handleTriggers() {
 	// dont reprovide immediately.
 	// may have just started the daemon and shutting it down immediately.
