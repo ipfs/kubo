@@ -70,7 +70,7 @@ require (
 	github.com/libp2p/go-libp2p-crypto v0.0.1
 	github.com/libp2p/go-libp2p-host v0.0.1
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.1
-	github.com/libp2p/go-libp2p-kad-dht v0.0.5
+	github.com/libp2p/go-libp2p-kad-dht v0.0.7
 	github.com/libp2p/go-libp2p-kbucket v0.0.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1

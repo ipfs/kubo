@@ -204,18 +204,12 @@ github.com/ipfs/go-todocounter v0.0.1 h1:kITWA5ZcQZfrUnDNkRn04Xzh0YFaDFXsoO2A81E
 github.com/ipfs/go-todocounter v0.0.1/go.mod h1:l5aErvQc8qKE2r7NDMjmq5UNAvuZy0rC8BHOplkWvZ4=
 github.com/ipfs/go-unixfs v0.0.1 h1:CTTGqLxU5+PRkkeA+w1peStqRWFD1Kya+yZgIT4Xy1w=
 github.com/ipfs/go-unixfs v0.0.1/go.mod h1:ZlB83nMtxNMx4DAAE5/GixeKN1qHC+xspBksI7Q5NeI=
-github.com/ipfs/go-unixfs v0.0.3 h1:09koecZaoJVoYy6Wkd/vo1lyQ4AdgAe83eJylQ7gAZw=
-github.com/ipfs/go-unixfs v0.0.3/go.mod h1:FX/6aS/Xg95JRc6UMyiMdZeNn+N5VkD8/yfLNwKW0Ks=
 github.com/ipfs/go-unixfs v0.0.4 h1:IApzQ+SnY0tfjqM7aU2b80CFYLZNHvhLmEZDIWr4e/E=
 github.com/ipfs/go-unixfs v0.0.4/go.mod h1:eIo/p9ADu/MFOuyxzwU+Th8D6xoxU//r590vUpWyfz8=
 github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2E=
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/hang-fds v0.0.1 h1:KGAxiGtJPT3THVRNT6yxgpdFPeX4ZemUjENOt6NlOn4=
 github.com/ipfs/hang-fds v0.0.1/go.mod h1:U4JNbzwTpk/qP2Ms4VgrZ4HcgJGVosBJqMXvwe4udSY=
-github.com/ipfs/interface-go-ipfs-core v0.0.4 h1:bMsRGLkttV8Y5C1VyeSePVxEatRGwS9pRdhNkWOt+cY=
-github.com/ipfs/interface-go-ipfs-core v0.0.4/go.mod h1:AOUhAfBqYu3G6Ocn+Y6rgWUWjp2zdPZiCLr8QS1TEKg=
-github.com/ipfs/interface-go-ipfs-core v0.0.5-0.20190325175850-33e0648669fb h1:kMcvq1emnbfUoWoHuq+m7JGO+rsuiN8jjuNB7bsR0WI=
-github.com/ipfs/interface-go-ipfs-core v0.0.5-0.20190325175850-33e0648669fb/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
 github.com/ipfs/interface-go-ipfs-core v0.0.5 h1:lePQnz+SqDupeDrVWtzEIjZlcYAbG8tJLrttQWRmGRg=
 github.com/ipfs/interface-go-ipfs-core v0.0.5/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
 github.com/ipfs/iptb v1.4.0 h1:YFYTrCkLMRwk/35IMyC6+yjoQSHTEcNcefBStLJzgvo=
@@ -268,6 +262,7 @@ github.com/libp2p/go-libp2p v0.0.1 h1:oEjzhRzymY7NILTMzOKNVOpNZGpcQHrHriWw91pbJN
 github.com/libp2p/go-libp2p v0.0.1/go.mod h1:bmRs8I0vwn6iRaVssZnJx/epY6WPSKiLoK1vyle4EX0=
 github.com/libp2p/go-libp2p v0.0.2 h1:+jvgi0Zy3y4TKXJKApchCk3pCBPZf1T54z3+vKie3gw=
 github.com/libp2p/go-libp2p v0.0.2/go.mod h1:Qu8bWqFXiocPloabFGUcVG4kk94fLvfC8mWTDdFC9wE=
+github.com/libp2p/go-libp2p v0.0.4/go.mod h1:B9yfFVwbsEmGPlyJROAoqrjumbMB2n0YrgNm1intDOY=
 github.com/libp2p/go-libp2p v0.0.5 h1:FMhqcHs20Ca7vnf5+g1Potg8KSTa/9WQxy3Cx0y70ko=
 github.com/libp2p/go-libp2p v0.0.5/go.mod h1:IPMB1Wrj2VboCCJ7KK1FXpuWrXwHPu39QRsrOeoBSSI=
 github.com/libp2p/go-libp2p-autonat v0.0.1 h1:d5eskFxeJ4ag1ekhMC3yLTK+z+6RTw9W1Yv8HQma75k=
@@ -298,8 +293,8 @@ github.com/libp2p/go-libp2p-interface-connmgr v0.0.1/go.mod h1:GarlRLH0LdeWcLnYM
 github.com/libp2p/go-libp2p-interface-pnet v0.0.1 h1:7GnzRrBTJHEsofi1ahFdPN9Si6skwXQE9UqR2S+Pkh8=
 github.com/libp2p/go-libp2p-interface-pnet v0.0.1/go.mod h1:el9jHpQAXK5dnTpKA4yfCNBZXvrzdOU75zz+C6ryp3k=
 github.com/libp2p/go-libp2p-kad-dht v0.0.4/go.mod h1:oaBflOQcuC8H+SVV0YN26H6AS+wcUEJyjUGV66vXuSY=
-github.com/libp2p/go-libp2p-kad-dht v0.0.5 h1:jTDMs438T3ng6F7Gtjau40T2vgB8y9E7sbalPjR7fdY=
-github.com/libp2p/go-libp2p-kad-dht v0.0.5/go.mod h1:oaBflOQcuC8H+SVV0YN26H6AS+wcUEJyjUGV66vXuSY=
+github.com/libp2p/go-libp2p-kad-dht v0.0.7 h1:06CbmDaYeQ5Hj+s48WCeev7wJPx3VcpJNOe9NytSXOc=
+github.com/libp2p/go-libp2p-kad-dht v0.0.7/go.mod h1:X90f4pG3MNZN9VeCX0rcH8AY9g3AspA2x5EJ9AvU/gM=
 github.com/libp2p/go-libp2p-kbucket v0.0.1 h1:7H5hM851hkEpLOFjrVNSrrxo6J4bWrUQxxv+z1JW9xk=
 github.com/libp2p/go-libp2p-kbucket v0.0.1/go.mod h1:Y0iQDHRTk/ZgM8PC4jExoF+E4j+yXWwRkdldkMa5Xm4=
 github.com/libp2p/go-libp2p-loggables v0.0.1 h1:HVww9oAnINIxbt69LJNkxD8lnbfgteXR97Xm4p3l9ps=
