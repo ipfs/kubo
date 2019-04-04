@@ -132,28 +132,13 @@ export PATH=$PATH:$GOPATH/bin
 #### Download and Compile IPFS
 
 ```
-$ go get -u -d github.com/ipfs/go-ipfs
+$ git https://github.com/ipfs/go-ipfs.git
 
-$ cd $GOPATH/src/github.com/ipfs/go-ipfs
+$ cd go-ipfs
 $ make install
 ```
 
 If you are building on FreeBSD instead of `make install` use `gmake install`.
-
-#### Building on less common systems
-
-If your operating system isn't officially supported, but you still want to try
-building ipfs anyways (it should work fine in most cases), you can do the
-following instead of `make install`:
-
-```
-$ make install_unsupported
-```
-
-Note: This process may break if [gx](https://github.com/whyrusleeping/gx)
-(used for dependency management) or any of its dependencies break as `go get`
-will always select the latest code for every dependency, often resulting in
-mismatched APIs.
 
 #### Troubleshooting
 
