@@ -132,7 +132,7 @@ export PATH=$PATH:$GOPATH/bin
 #### Download and Compile IPFS
 
 ```
-$ git https://github.com/ipfs/go-ipfs.git
+$ git clone https://github.com/ipfs/go-ipfs.git
 
 $ cd go-ipfs
 $ make install
