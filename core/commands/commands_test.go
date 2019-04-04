@@ -38,7 +38,6 @@ func TestROCommands(t *testing.T) {
 		"/refs",
 		"/resolve",
 		"/version",
-		"/version/deps",
 	}
 
 	cmdSet := make(map[string]struct{})
