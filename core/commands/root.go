@@ -160,6 +160,9 @@ var CommandsDaemonROCmd = CommandsCmd(RootRO)
 // RefsROCmd is `ipfs refs` command
 var RefsROCmd = &cmds.Command{}
 
+// VersionROCmd is `ipfs version` command (without deps).
+var VersionROCmd = &cmds.Command{}
+
 var rootROSubcommands = map[string]*cmds.Command{
 	"commands": CommandsDaemonROCmd,
 	"cat":      CatCmd,
@@ -192,24 +195,27 @@ var rootROSubcommands = map[string]*cmds.Command{
 		},
 	},
 	"resolve": ResolveCmd,
-	"version": VersionCmd,
 }
 
 func init() {
 	Root.ProcessHelp()
 	*RootRO = *Root
 
-	// sanitize readonly refs command
-	*RefsROCmd = *RefsCmd
-	RefsROCmd.Subcommands = map[string]*cmds.Command{}
-
 	// this was in the big map definition above before,
 	// but if we leave it there lgc.NewCommand will be executed
 	// before the value is updated (:/sanitize readonly refs command/)
+
+	// sanitize readonly refs command
+	*RefsROCmd = *RefsCmd
+	RefsROCmd.Subcommands = map[string]*cmds.Command{}
 	rootROSubcommands["refs"] = RefsROCmd
 
-	Root.Subcommands = rootSubcommands
+	// sanitize readonly version command (no need to expose precise deps)
+	*VersionROCmd = *VersionCmd
+	VersionROCmd.Subcommands = map[string]*cmds.Command{}
+	rootROSubcommands["version"] = VersionROCmd
 
+	Root.Subcommands = rootSubcommands
 	RootRO.Subcommands = rootROSubcommands
 }
 
