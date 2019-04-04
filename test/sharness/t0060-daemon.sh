@@ -128,6 +128,11 @@ test_expect_success "daemon with pipe eventually becomes live" '
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
 
+test_expect_success "'ipfs daemon' cleans up when it fails to start" '
+  test_must_fail ipfs daemon --routing=foobar &&
+  test ! -e "$IPFS_PATH/repo.lock"
+'
+
 ulimit -S -n 512
 TEST_ULIMIT_PRESET=1
 test_launch_ipfs_daemon
