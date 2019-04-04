@@ -56,6 +56,7 @@ ADVANCED COMMANDS
   repo          Manipulate the IPFS repository
   stats         Various operational stats
   p2p           Libp2p stream mounting
+  provider      Interact withh the provider system
   filestore     Manage the filestore (experimental)
 
 NETWORK COMMANDS
@@ -140,6 +141,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"pin":       PinCmd,
 	"ping":      PingCmd,
 	"p2p":       P2PCmd,
+	"provider":  ProviderCmd,
 	"refs":      RefsCmd,
 	"resolve":   ResolveCmd,
 	"swarm":     SwarmCmd,

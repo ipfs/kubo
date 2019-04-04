@@ -22,6 +22,8 @@ type Provider interface {
 	Provide(cid.Cid)
 	// Close stops the provider
 	Close() error
+	// Tracking returns the cids being tracked by the provider system
+	Tracking() (<-chan cid.Cid, error)
 }
 
 type provider struct {
@@ -58,6 +60,10 @@ func (p *provider) Run() {
 // Provide the given cid
 func (p *provider) Provide(root cid.Cid) {
 	p.queue.Enqueue(root)
+}
+
+func (p *provider) Tracking() (<-chan cid.Cid, error) {
+	return p.tracker.Tracking(p.ctx)
 }
 
 // Handle all outgoing cids by providing (announcing) them

@@ -1,0 +1,53 @@
+package commands
+
+import (
+	"fmt"
+	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"io"
+)
+
+var ProviderCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Interact with the provider subsystem",
+		ShortDescription: "",
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"tracking": trackingProviderCmd,
+	},
+}
+
+var trackingProviderCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: 	 "List the cids being tracked by the provider system.",
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return nil
+		}
+
+		cids, err := node.Provider.Tracking()
+		if err != nil {
+			res.CloseWithError(err)
+			return err
+		}
+
+		for c := range cids {
+			res.Emit(c)
+		}
+
+		res.Close()
+		return nil
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, c cid.Cid) error {
+            fmt.Fprintf(w, "%s\n", c.String())
+			return nil
+		}),
+	},
+	Type: cid.Cid{},
+}
