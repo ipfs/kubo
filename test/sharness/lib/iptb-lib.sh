@@ -154,6 +154,6 @@ has_peer() {
 
 reprovide() {
     test_expect_success "reprovide" "
-        ipfsi $1 bitswap reprovide
+        ipfsi $1 provider reprovide
     "
 }

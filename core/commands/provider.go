@@ -17,6 +17,7 @@ var ProviderCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"tracking": trackingProviderCmd,
+		"reprovide": reprovideCmd,
 	},
 }
 
@@ -50,4 +51,30 @@ var trackingProviderCmd = &cmds.Command{
 		}),
 	},
 	Type: cid.Cid{},
+}
+
+var reprovideCmd = &cmds.Command{
+	Helptext: cmdkit.HelpText{
+		Tagline: "Trigger reprovider.",
+		ShortDescription: `
+Trigger reprovider to announce tracked cids to the network.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if !nd.IsOnline {
+			return ErrNotOnline
+		}
+
+		err = nd.Reprovider.Trigger(req.Context)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
