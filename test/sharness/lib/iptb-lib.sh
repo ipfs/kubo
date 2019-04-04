@@ -104,12 +104,6 @@ connect_peers() {
     "
 }
 
-peer_id() {
-    test_expect_success "peer id $1" "
-        peer$1=$(iptb attr get $1 id)
-    "
-}
-
 not_find_provs() {
     test_expect_success "findprovs "$2" succeeds" "
         ipfsi $1 dht findprovs -n 1 "$2" > findprovs_$2
