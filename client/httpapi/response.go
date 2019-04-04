@@ -95,6 +95,8 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 		return nil, err
 	}
 
+	req = req.WithContext(r.Ctx)
+
 	// Add any headers that were supplied via the RequestBuilder.
 	for k, v := range r.Headers {
 		req.Header.Add(k, v)
