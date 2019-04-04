@@ -7,9 +7,7 @@ import (
 	"time"
 )
 
-var (
-	reprovideOutgoingWorkerLimit = 8
-)
+const reprovideOutgoingWorkerLimit = 8
 
 // Reprovider reannounces blocks to the network
 type Reprovider struct {
@@ -47,19 +45,6 @@ func (rp *Reprovider) Run() {
 	go rp.handleAnnouncements()
 }
 
-// Reprovide adds all the cids in the tracker to the reprovide queue
-func (rp *Reprovider) Reprovide() error {
-	cids, err := rp.tracker.Tracking(rp.ctx)
-	if err != nil {
-		log.Warningf("error obtaining tracking information: %s", err)
-		return err
-	}
-	for c := range cids {
-		rp.queue.Enqueue(c)
-	}
-	return nil
-}
-
 // Trigger causes a reprovide
 func (rp *Reprovider) Trigger(ctx context.Context) error {
 	select {
@@ -71,6 +56,19 @@ func (rp *Reprovider) Trigger(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (rp *Reprovider) reprovide() error {
+	cids, err := rp.tracker.Tracking(rp.ctx)
+	if err != nil {
+		log.Warningf("error obtaining tracking information: %s", err)
+		return err
+	}
+	for c := range cids {
+		rp.queue.Enqueue(c)
+	}
+	return nil
+}
+
 
 func (rp *Reprovider) handleTriggers() {
 	// dont reprovide immediately.
@@ -89,7 +87,7 @@ func (rp *Reprovider) handleTriggers() {
 		case <-after:
 		}
 
-		err := rp.Reprovide()
+		err := rp.reprovide()
 		if err != nil {
 			log.Debug(err)
 		}
