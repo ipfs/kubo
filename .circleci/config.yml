@@ -34,6 +34,7 @@ defaults: &defaults
 
   docker:
     - image: circleci/golang:1.12
+  resource_class: large
 
 jobs:
   gotest:
