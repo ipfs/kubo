@@ -14,3 +14,7 @@ func (op *offlineProvider) Run() {}
 func (op *offlineProvider) Provide(cid cid.Cid) error {
 	return nil
 }
+
+func (op *offlineProvider) Close() error {
+	return nil
+}

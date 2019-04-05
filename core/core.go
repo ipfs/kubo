@@ -675,6 +675,10 @@ func (n *IpfsNode) teardown() error {
 	// needs to use another during its shutdown/cleanup process, it should be
 	// closed before that other object
 
+	if n.Provider != nil {
+		closers = append(closers, n.Provider)
+	}
+
 	if n.FilesRoot != nil {
 		closers = append(closers, n.FilesRoot)
 	}
