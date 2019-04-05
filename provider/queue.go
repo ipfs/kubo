@@ -72,12 +72,13 @@ func (q *Queue) nextEntry() (datastore.Key, cid.Cid) {
 		key := q.queueKey(q.head)
 		value, err := q.ds.Get(key)
 
-		if err == datastore.ErrNotFound {
-			log.Warningf("Error missing entry in queue: %s", key)
+		if err != nil {
+			if err == datastore.ErrNotFound {
+				log.Warningf("Error missing entry in queue: %s", key)
+			} else {
+				log.Errorf("Error fetching from queue: %s", err)
+			}
 			q.head++ // move on
-			continue
-		} else if err != nil {
-			log.Warningf("Error fetching from queue: %s", err)
 			continue
 		}
 
