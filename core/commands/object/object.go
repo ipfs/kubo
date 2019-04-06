@@ -347,8 +347,10 @@ var ObjectStatCmd = &cmds.Command{
 	Type: ipld.NodeStat{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ipld.NodeStat) error {
+			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+			defer wtr.Flush()
 			fw := func(s string, n int) {
-				fmt.Fprintf(w, "%s: %d\n", s, n)
+				fmt.Fprintf(wtr, "%s:\t%d\n", s, n)
 			}
 			fw("NumLinks", out.NumLinks)
 			fw("BlockSize", out.BlockSize)
