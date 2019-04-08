@@ -20,8 +20,6 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-routing"
-
-	"github.com/ipfs/go-ipfs/thirdparty/math2"
 )
 
 var log = logging.Logger("bootstrap")
@@ -208,13 +206,13 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peerstore.PeerI
 }
 
 func randomSubsetOfPeers(in []peerstore.PeerInfo, max int) []peerstore.PeerInfo {
-	n := math2.IntMin(max, len(in))
-	var out []peerstore.PeerInfo
-	for _, val := range rand.Perm(len(in)) {
-		out = append(out, in[val])
-		if len(out) >= n {
-			break
-		}
+	if max > len(in) {
+		max = len(in)
+	}
+
+	out := make([]peerstore.PeerInfo, max)
+	for i, val := range rand.Perm(len(in))[:max] {
+		out[i] = in[val]
 	}
 	return out
 }
