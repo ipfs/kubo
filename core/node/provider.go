@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -22,7 +23,16 @@ func ProviderQueue(mctx MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (*provider.
 }
 
 func ProviderCtor(mctx MetricsCtx, lc fx.Lifecycle, queue *provider.Queue, rt routing.IpfsRouting) provider.Provider {
-	return provider.NewProvider(lifecycleCtx(mctx, lc), queue, rt)
+	p := provider.NewProvider(lifecycleCtx(mctx, lc), queue, rt)
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			p.Run()
+			return nil
+		},
+	})
+
+	return p
 }
 
 func ReproviderCtor(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, bs BaseBlocks, ds format.DAGService, pinning pin.Pinner, rt routing.IpfsRouting) (*reprovide.Reprovider, error) {

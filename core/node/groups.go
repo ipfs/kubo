@@ -71,7 +71,6 @@ var Providers = fx.Options(
 	fx.Provide(ReproviderCtor),
 
 	fx.Invoke(Reprovider),
-	fx.Invoke(provider.Provider.Run),
 )
 
 func Online(cfg *BuildCfg) fx.Option {
