@@ -66,6 +66,6 @@ func IpnsRepublisher(lc lcProcess, cfg *config.Config, namesys namesys.NameSyste
 		repub.RecordLifetime = d
 	}
 
-	lc.Run(repub.Run)
+	lc.Append(repub.Run)
 	return nil
 }
