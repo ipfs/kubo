@@ -152,6 +152,8 @@ func P2PPNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
 		OnStart: func(_ context.Context) error {
 			go func() {
 				t := time.NewTicker(30 * time.Second)
+				defer t.Stop()
+
 				<-t.C // swallow one tick
 				for {
 					select {
@@ -406,13 +408,7 @@ func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut
 		opts = append(opts, o...)
 	}
 
-	ctx, cancel := context.WithCancel(mctx)
-	lc.Append(fx.Hook{
-		OnStop: func(_ context.Context) error {
-			cancel()
-			return nil
-		},
-	})
+	ctx := lifecycleCtx(mctx, lc)
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		r, err := params.RoutingOption(ctx, h, params.Repo.Datastore(), params.Validator)
