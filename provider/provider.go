@@ -20,6 +20,8 @@ type Provider interface {
 	Run()
 	// Provide takes a cid and makes an attempt to announce it to the network
 	Provide(cid.Cid) error
+	// Close stops the provider
+	Close() error
 }
 
 type provider struct {
@@ -37,6 +39,12 @@ func NewProvider(ctx context.Context, queue *Queue, contentRouting routing.Conte
 		queue:          queue,
 		contentRouting: contentRouting,
 	}
+}
+
+// Close stops the provider
+func (p *provider) Close() error {
+	p.queue.Close()
+	return nil
 }
 
 // Start workers to handle provide requests.

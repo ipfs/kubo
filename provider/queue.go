@@ -27,6 +27,8 @@ type Queue struct {
 	ds      datastore.Datastore // Must be threadsafe
 	dequeue chan cid.Cid
 	enqueue chan cid.Cid
+	close   context.CancelFunc
+	closed  chan struct{}
 }
 
 // NewQueue creates a queue for cids
@@ -36,17 +38,27 @@ func NewQueue(ctx context.Context, name string, ds datastore.Datastore) (*Queue,
 	if err != nil {
 		return nil, err
 	}
+	cancelCtx, cancel := context.WithCancel(ctx)
 	q := &Queue{
 		name:    name,
-		ctx:     ctx,
+		ctx:     cancelCtx,
 		head:    head,
 		tail:    tail,
 		ds:      namespaced,
 		dequeue: make(chan cid.Cid),
 		enqueue: make(chan cid.Cid),
+		close:   cancel,
+		closed:  make(chan struct{}, 1),
 	}
 	q.work()
 	return q, nil
+}
+
+// Close stops the queue
+func (q *Queue) Close() error {
+	q.close()
+	<-q.closed
+	return nil
 }
 
 // Enqueue puts a cid in the queue
@@ -102,6 +114,10 @@ func (q *Queue) work() {
 	go func() {
 		var k datastore.Key = datastore.Key{}
 		var c cid.Cid = cid.Undef
+
+		defer func() {
+			close(q.closed)
+		}()
 
 		for {
 			if c == cid.Undef {
