@@ -325,8 +325,8 @@ github.com/libp2p/go-libp2p-pubsub v0.0.1/go.mod h1:fYKlZBOF2yrJzYlgeEVFSbYWfbS+
 github.com/libp2p/go-libp2p-pubsub-router v0.0.3 h1:2EF+8nueIsA9Unpj1MxdlS9+dX29kwCxSttchMMfXsI=
 github.com/libp2p/go-libp2p-pubsub-router v0.0.3/go.mod h1:h5z0kyMFRu2J46tt15eEuLHKEmu1MrFghsGHqTc/iII=
 github.com/libp2p/go-libp2p-quic-transport v0.0.0-20190301030811-862195d91de1/go.mod h1:bw/6H57fSVn44ldP1Js6hnzpoiUm9YgBDKSv+ch+hWc=
-github.com/libp2p/go-libp2p-quic-transport v0.0.2 h1:KPy2kTilIvu+RJQ/wXPPxIQOxgEw2kbdvj87jvmo0aY=
-github.com/libp2p/go-libp2p-quic-transport v0.0.2/go.mod h1:WPGNGcANN//ZqykGZNHIZ7NPV5gOadA0721/jFMYQ2E=
+github.com/libp2p/go-libp2p-quic-transport v0.0.3 h1:FGEPXsjpY9K6P3iMtJQPKGl45eXickBY1+xSJ84lVVI=
+github.com/libp2p/go-libp2p-quic-transport v0.0.3/go.mod h1:v2oVuaFLkxlFpkFbXUty3dfEYSlNb0sCzvf8cRi1m/k=
 github.com/libp2p/go-libp2p-record v0.0.1 h1:zN7AS3X46qmwsw5JLxdDuI43cH5UYwovKxHPjKBYQxw=
 github.com/libp2p/go-libp2p-record v0.0.1/go.mod h1:grzqg263Rug/sRex85QrDOLntdFAymLDLm7lxMgU79Q=
 github.com/libp2p/go-libp2p-routing v0.0.1 h1:hPMAWktf9rYi3ME4MG48qE7dq1ofJxiQbfdvpNntjhc=
@@ -372,8 +372,8 @@ github.com/lucas-clemente/aes12 v0.0.0-20171027163421-cd47fb39b79f h1:sSeNEkJrs+
 github.com/lucas-clemente/aes12 v0.0.0-20171027163421-cd47fb39b79f/go.mod h1:JpH9J1c9oX6otFSgdUHwUBUizmKlrMjxWnIAjff4m04=
 github.com/lucas-clemente/quic-go v0.10.0 h1:xEF+pSHYAOcu+U10Meunf+DTtc8vhQDRqlA0BJ6hufc=
 github.com/lucas-clemente/quic-go v0.10.0/go.mod h1:wuD+2XqEx8G9jtwx5ou2BEYBsE+whgQmlj0Vz/77PrY=
-github.com/lucas-clemente/quic-go v0.11.0 h1:R7uxGrBWWSp817cdhkrunFsOA26vadf4EI9slWzkjlQ=
-github.com/lucas-clemente/quic-go v0.11.0/go.mod h1:PpMmPfPKO9nKJ/psF49ESTAGQSdfXxlg1otPbEB2nOw=
+github.com/lucas-clemente/quic-go v0.11.1 h1:zasajC848Dqq/+WqfqBCkmPw+YHNe1MBts/z7y7nXf4=
+github.com/lucas-clemente/quic-go v0.11.1/go.mod h1:PpMmPfPKO9nKJ/psF49ESTAGQSdfXxlg1otPbEB2nOw=
 github.com/lucas-clemente/quic-go-certificates v0.0.0-20160823095156-d2f86524cced h1:zqEC1GJZFbGZA0tRyNZqRjep92K5fujFtFsu5ZW7Aug=
 github.com/lucas-clemente/quic-go-certificates v0.0.0-20160823095156-d2f86524cced/go.mod h1:NCcRLrOTZbzhZvixZLlERbJtDtYsmMw8Jc4vS8Z0g58=
 github.com/marten-seemann/qtls v0.2.3 h1:0yWJ43C62LsZt08vuQJDK1uC1czUc3FJeCLPoNAI4vA=
