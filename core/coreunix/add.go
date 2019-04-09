@@ -330,9 +330,7 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 }
 
 func (adder *Adder) addFileNode(path string, file files.Node, toplevel bool) error {
-	if !toplevel {
-		defer file.Close()
-	}
+	defer file.Close()
 
 	err := adder.maybePauseForGC()
 	if err != nil {
