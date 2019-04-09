@@ -212,8 +212,6 @@ github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/hang-fds v0.0.1 h1:KGAxiGtJPT3THVRNT6yxgpdFPeX4ZemUjENOt6NlOn4=
 github.com/ipfs/hang-fds v0.0.1/go.mod h1:U4JNbzwTpk/qP2Ms4VgrZ4HcgJGVosBJqMXvwe4udSY=
-github.com/ipfs/interface-go-ipfs-core v0.0.5 h1:lePQnz+SqDupeDrVWtzEIjZlcYAbG8tJLrttQWRmGRg=
-github.com/ipfs/interface-go-ipfs-core v0.0.5/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
 github.com/ipfs/interface-go-ipfs-core v0.0.6 h1:yf9D2cMLVgBMXHL+gs/HepDc/M7ZXQXYdoN0eXl7z9c=
 github.com/ipfs/interface-go-ipfs-core v0.0.6/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
 github.com/ipfs/iptb v1.4.0 h1:YFYTrCkLMRwk/35IMyC6+yjoQSHTEcNcefBStLJzgvo=
@@ -267,8 +265,8 @@ github.com/libp2p/go-libp2p v0.0.1/go.mod h1:bmRs8I0vwn6iRaVssZnJx/epY6WPSKiLoK1
 github.com/libp2p/go-libp2p v0.0.2 h1:+jvgi0Zy3y4TKXJKApchCk3pCBPZf1T54z3+vKie3gw=
 github.com/libp2p/go-libp2p v0.0.2/go.mod h1:Qu8bWqFXiocPloabFGUcVG4kk94fLvfC8mWTDdFC9wE=
 github.com/libp2p/go-libp2p v0.0.4/go.mod h1:B9yfFVwbsEmGPlyJROAoqrjumbMB2n0YrgNm1intDOY=
-github.com/libp2p/go-libp2p v0.0.7 h1:aUdsTdmZoj4ygFq54Ck3vMCP1MRaBC9WlU/mRsSYcaU=
-github.com/libp2p/go-libp2p v0.0.7/go.mod h1:GVha4XFiH3FvfC6QQYoryplldfKcucp0ThtenF+z9oU=
+github.com/libp2p/go-libp2p v0.0.8 h1:mNJts5fIU9bVQxPWmLooOzCqrc1xBcwCKLBNFluj4yA=
+github.com/libp2p/go-libp2p v0.0.8/go.mod h1:GVha4XFiH3FvfC6QQYoryplldfKcucp0ThtenF+z9oU=
 github.com/libp2p/go-libp2p-autonat v0.0.1 h1:d5eskFxeJ4ag1ekhMC3yLTK+z+6RTw9W1Yv8HQma75k=
 github.com/libp2p/go-libp2p-autonat v0.0.1/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat v0.0.2 h1:ilo9QPzNPf1hMkqaPG55yzvhILf5ZtijstJhcii+l3s=
