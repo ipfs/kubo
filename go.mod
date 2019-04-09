@@ -33,7 +33,7 @@ require (
 	github.com/ipfs/go-ipfs-blocksutil v0.0.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmdkit v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.4
+	github.com/ipfs/go-ipfs-cmds v0.0.5
 	github.com/ipfs/go-ipfs-config v0.0.1
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
