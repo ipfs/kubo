@@ -21,11 +21,11 @@ require (
 	github.com/ipfs/go-blockservice v0.0.3
 	github.com/ipfs/go-cid v0.0.1
 	github.com/ipfs/go-cidutil v0.0.1
-	github.com/ipfs/go-datastore v0.0.2
+	github.com/ipfs/go-datastore v0.0.3
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.0.3
 	github.com/ipfs/go-ds-flatfs v0.0.2
-	github.com/ipfs/go-ds-leveldb v0.0.1
+	github.com/ipfs/go-ds-leveldb v0.0.2
 	github.com/ipfs/go-ds-measure v0.0.1
 	github.com/ipfs/go-fs-lock v0.0.1
 	github.com/ipfs/go-ipfs-addr v0.0.1
@@ -63,15 +63,15 @@ require (
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8
-	github.com/libp2p/go-libp2p v0.0.5
+	github.com/libp2p/go-libp2p v0.0.7
 	github.com/libp2p/go-libp2p-autonat-svc v0.0.4
-	github.com/libp2p/go-libp2p-circuit v0.0.1
+	github.com/libp2p/go-libp2p-circuit v0.0.2
 	github.com/libp2p/go-libp2p-connmgr v0.0.1
 	github.com/libp2p/go-libp2p-crypto v0.0.1
 	github.com/libp2p/go-libp2p-host v0.0.1
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.1
 	github.com/libp2p/go-libp2p-kad-dht v0.0.7
-	github.com/libp2p/go-libp2p-kbucket v0.0.1
+	github.com/libp2p/go-libp2p-kbucket v0.1.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
 	github.com/libp2p/go-libp2p-net v0.0.1
