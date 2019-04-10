@@ -151,8 +151,8 @@ github.com/ipfs/go-ipfs-chunker v0.0.1 h1:cHUUxKFQ99pozdahi+uSC/3Y6HeRpi9oTeUHbE
 github.com/ipfs/go-ipfs-chunker v0.0.1/go.mod h1:tWewYK0we3+rMbOh7pPFGDyypCtvGcBFymgY4rSDLAw=
 github.com/ipfs/go-ipfs-cmdkit v0.0.1 h1:X6YXEAjUljTzevE6DPUKXSqcgf+4FXzcn5B957F5MXo=
 github.com/ipfs/go-ipfs-cmdkit v0.0.1/go.mod h1:9FtbMdUabcSqv/G4/8WCxSLxkZxn/aZEFrxxqnVcRbg=
-github.com/ipfs/go-ipfs-cmds v0.0.4 h1:Iq4I8irWw5TmHe/4pjSyYJLbYkkdMOgHVe8ofJmPa4k=
-github.com/ipfs/go-ipfs-cmds v0.0.4/go.mod h1:1QVgxSgenZvOMGVC/XUTC7tJxRBGPLxYvpgPpCi3DUk=
+github.com/ipfs/go-ipfs-cmds v0.0.5 h1:+blTEnA0MzkQO86WnpfGnchdojrY5wJLhsbby3/JXEM=
+github.com/ipfs/go-ipfs-cmds v0.0.5/go.mod h1:1QVgxSgenZvOMGVC/XUTC7tJxRBGPLxYvpgPpCi3DUk=
 github.com/ipfs/go-ipfs-config v0.0.1 h1:6ED08emzI1imdsAjixFi2pEyZxTVD5ECKtCOxLBx+Uc=
 github.com/ipfs/go-ipfs-config v0.0.1/go.mod h1:KDbHjNyg4e6LLQSQpkgQMBz6Jf4LXiWAcmnkcwmH0DU=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -273,10 +273,12 @@ github.com/libp2p/go-libp2p-autonat v0.0.2 h1:ilo9QPzNPf1hMkqaPG55yzvhILf5Ztijst
 github.com/libp2p/go-libp2p-autonat v0.0.2/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat v0.0.3 h1:PUD+pAx8Qs9hh+Bowzxq8RCkg/Vwrz5oCFC4peixXQk=
 github.com/libp2p/go-libp2p-autonat v0.0.3/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
+github.com/libp2p/go-libp2p-autonat v0.0.4 h1:cZzdB9KW1ZkHnSjLCB6aFNw47XS4r+SecCVMuVB1xgo=
+github.com/libp2p/go-libp2p-autonat v0.0.4/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat-svc v0.0.2 h1:beAUwqt3wHWlguz1EYdG+bVOKyf5SIQpXfTSnfGoW7k=
 github.com/libp2p/go-libp2p-autonat-svc v0.0.2/go.mod h1:j4iMiw0d3diRm5iB0noXumtb0mPvWrM1qAyh640cp8w=
-github.com/libp2p/go-libp2p-autonat-svc v0.0.4 h1:MVNWg0Oh6oxmY6FE+ICKIWJKtdWZVPoxkPSE9b9TnMg=
-github.com/libp2p/go-libp2p-autonat-svc v0.0.4/go.mod h1:6aLiQelA0CKEcPR0TvE9bqJ7U8Mc0nVdwCoho3ROdck=
+github.com/libp2p/go-libp2p-autonat-svc v0.0.5 h1:bTom7QFAkJMXiA8ibSsKQ2+LKEHsXZz2IAWYolg/YYg=
+github.com/libp2p/go-libp2p-autonat-svc v0.0.5/go.mod h1:6aLiQelA0CKEcPR0TvE9bqJ7U8Mc0nVdwCoho3ROdck=
 github.com/libp2p/go-libp2p-blankhost v0.0.1 h1:/mZuuiwntNR8RywnCFlGHLKrKLYne+qciBpQXWqp5fk=
 github.com/libp2p/go-libp2p-blankhost v0.0.1/go.mod h1:Ibpbw/7cPPYwFb7PACIWdvxxv0t0XCCI10t7czjAjTc=
 github.com/libp2p/go-libp2p-circuit v0.0.1 h1:DYbjyQ5ZY3QVAVYZWG4uzBQ6Wmcd1C82Bk8Q/pJlM1I=

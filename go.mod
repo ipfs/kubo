@@ -33,7 +33,7 @@ require (
 	github.com/ipfs/go-ipfs-blocksutil v0.0.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmdkit v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.4
+	github.com/ipfs/go-ipfs-cmds v0.0.5
 	github.com/ipfs/go-ipfs-config v0.0.1
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
@@ -64,7 +64,8 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8
 	github.com/libp2p/go-libp2p v0.0.8
-	github.com/libp2p/go-libp2p-autonat-svc v0.0.4
+	github.com/libp2p/go-libp2p-autonat v0.0.4 // indirect
+	github.com/libp2p/go-libp2p-autonat-svc v0.0.5
 	github.com/libp2p/go-libp2p-circuit v0.0.2
 	github.com/libp2p/go-libp2p-connmgr v0.0.1
 	github.com/libp2p/go-libp2p-crypto v0.0.1
