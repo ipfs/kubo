@@ -48,8 +48,7 @@ func NewProvider(ctx context.Context, queue *Queue, tracker *Tracker, contentRou
 
 // Close stops the provider
 func (p *provider) Close() error {
-	p.queue.Close()
-	return nil
+	return p.queue.Close()
 }
 
 // Start workers to handle provide requests.
