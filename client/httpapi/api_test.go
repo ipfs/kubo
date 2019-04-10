@@ -9,11 +9,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
 	local "github.com/ipfs/iptb-plugins/local"
 	"github.com/ipfs/iptb/testbed"
-	"github.com/ipfs/iptb/testbed/interfaces"
+	testbedi "github.com/ipfs/iptb/testbed/interfaces"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -210,4 +210,25 @@ func TestHttpApi(t *testing.T) {
 	defer cancel()
 
 	tests.TestApi(newNodeProvider(ctx))(t)
+}
+
+func TestDirectAPI(t *testing.T) {
+	type args struct {
+		url, header, value string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{"Success", args{"http://127.0.0.1:5001/foo/bar/api/v0", "Authorization", "Bearer token"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			api, err := NewDirectAPIClient(tt.args.url)
+			if err != nil {
+				t.Fatal(err)
+			}
+			api = api.WithAuthorization(tt.args.header, tt.args.value)
+		})
+	}
 }
