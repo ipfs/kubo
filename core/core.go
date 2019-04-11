@@ -119,13 +119,12 @@ type IpfsNode struct {
 	RecordValidator record.Validator
 
 	// Online
-	PeerHost     p2phost.Host         // the network host (server+client)
-	Bootstrapper io.Closer            // the periodic bootstrapper
-	Routing      routing.IpfsRouting  // the routing system. recommend ipfs-dht
-	Exchange     exchange.Interface   // the block exchange + strategy (bitswap)
-	Namesys      namesys.NameSystem   // the name system, resolves paths to hashes
-	Provider     provider.Provider    // the value provider system
-	Reprovider   *provider.Reprovider // the value reprovider system
+	PeerHost     p2phost.Host             // the network host (server+client)
+	Bootstrapper io.Closer                // the periodic bootstrapper
+	Routing      routing.IpfsRouting      // the routing system. recommend ipfs-dht
+	Exchange     exchange.Interface       // the block exchange + strategy (bitswap)
+	Namesys      namesys.NameSystem       // the name system, resolves paths to hashes
+	Provider     *provider.ProviderSystem // the value provider system
 	IpnsRepub    *ipnsrp.Republisher
 
 	AutoNAT  *autonat.AutoNATService
@@ -321,12 +320,7 @@ func constructConnMgr(cfg config.ConnMgr) (ifconnmgr.ConnManager, error) {
 
 func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 	// Provider
-
 	n.Provider.Run()
-
-	// Reprovider
-
-	n.Reprovider.Run()
 
 	return nil
 }

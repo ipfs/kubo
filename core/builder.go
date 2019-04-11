@@ -276,22 +276,20 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 	n.Resolver = resolver.NewBasicResolver(n.DAG)
 
-	// Provider
+	// Provider System
 	queueP, err := provider.NewQueue(ctx, "provider-v1", n.Repo.Datastore())
+	if err != nil {
+		return err
+	}
+	queueR, err := provider.NewQueue(ctx, "reprovider-v1", n.Repo.Datastore())
 	if err != nil {
 		return err
 	}
 	tracker := provider.NewTracker(n.Repo.Datastore())
 	n.Provider = provider.NewProviderSystem(
 		provider.NewProvider(ctx, queueP, tracker, n.Routing),
+		provider.NewReprovider(ctx, queueR, tracker, time.Minute, time.Hour*12, n.Blockstore, n.Routing),
 	)
-
-	// Reprovider
-	queueR, err := provider.NewQueue(ctx, "reprovider-v1", n.Repo.Datastore())
-	if err != nil {
-		return err
-	}
-	n.Reprovider = provider.NewReprovider(ctx, queueR, tracker, time.Minute, time.Hour*12, n.Blockstore, n.Routing)
 
 	if cfg.Online {
 		if err := n.startLateOnlineServices(ctx); err != nil {
