@@ -282,7 +282,9 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 		return err
 	}
 	tracker := provider.NewTracker(n.Repo.Datastore())
-	n.Provider = provider.NewProvider(ctx, queueP, tracker, n.Routing)
+	n.Provider = provider.NewProviderSystem(
+		provider.NewProvider(ctx, queueP, tracker, n.Routing),
+	)
 
 	// Reprovider
 	queueR, err := provider.NewQueue(ctx, "reprovider-v1", n.Repo.Datastore())
