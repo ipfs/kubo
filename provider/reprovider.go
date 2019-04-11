@@ -45,6 +45,11 @@ func (rp *Reprovider) Run() {
 	go rp.handleAnnouncements()
 }
 
+// Close stops thhe reprovider
+func (rp *Reprovider) Close() error  {
+	return rp.queue.Close()
+}
+
 // Trigger causes a reprovide
 func (rp *Reprovider) Trigger(ctx context.Context) error {
 	select {
