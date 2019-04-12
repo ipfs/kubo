@@ -5,29 +5,29 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-// ProviderSystem bundles together provider and reprovider behavior
+// System bundles together provider and reprovider behavior
 // into one system
-type ProviderSystem struct {
+type System struct {
 	provider   Provider
 	reprovider *Reprovider
 }
 
-// NewProviderSystem creates a new ProviderSystem
-func NewProviderSystem(p Provider, r *Reprovider) *ProviderSystem {
-	return &ProviderSystem{
+// NewSystem creates a new System
+func NewSystem(p Provider, r *Reprovider) *System {
+	return &System{
 		provider:   p,
 		reprovider: r,
 	}
 }
 
 // Run starts the provider system loops
-func (ps *ProviderSystem) Run() {
+func (ps *System) Run() {
 	ps.provider.Run()
 	ps.reprovider.Run()
 }
 
 // Close stops the provider system loops
-func (ps *ProviderSystem) Close() error {
+func (ps *System) Close() error {
 	var errs []error
 
 	if err := ps.provider.Close(); err != nil {
@@ -45,17 +45,17 @@ func (ps *ProviderSystem) Close() error {
 }
 
 // Provide a cid by announcing it to the network
-func (ps *ProviderSystem) Provide(cid cid.Cid) {
+func (ps *System) Provide(cid cid.Cid) {
 	ps.provider.Provide(cid)
 }
 
 // Tracking returns all cids that are currently being tracked and reprovided
 // by the provider system.
-func (ps *ProviderSystem) Tracking() (<-chan cid.Cid, error) {
+func (ps *System) Tracking() (<-chan cid.Cid, error) {
 	return ps.provider.Tracking()
 }
 
 // Reprovide triggers a reprovide
-func (ps *ProviderSystem) Reprovide(ctx context.Context) error {
+func (ps *System) Reprovide(ctx context.Context) error {
 	return ps.reprovider.Trigger(ctx)
 }

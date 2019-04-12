@@ -119,12 +119,12 @@ type IpfsNode struct {
 	RecordValidator record.Validator
 
 	// Online
-	PeerHost     p2phost.Host             // the network host (server+client)
-	Bootstrapper io.Closer                // the periodic bootstrapper
-	Routing      routing.IpfsRouting      // the routing system. recommend ipfs-dht
-	Exchange     exchange.Interface       // the block exchange + strategy (bitswap)
-	Namesys      namesys.NameSystem       // the name system, resolves paths to hashes
-	Provider     *provider.ProviderSystem // the value provider system
+	PeerHost     p2phost.Host        // the network host (server+client)
+	Bootstrapper io.Closer           // the periodic bootstrapper
+	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
+	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
+	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
+	Provider     *provider.System    // the value provider system
 	IpnsRepub    *ipnsrp.Republisher
 
 	AutoNAT  *autonat.AutoNATService
