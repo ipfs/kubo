@@ -57,5 +57,5 @@ func (ps *System) Tracking() (<-chan cid.Cid, error) {
 
 // Reprovide triggers a reprovide
 func (ps *System) Reprovide(ctx context.Context) error {
-	return ps.reprovider.Trigger(ctx)
+	return ps.reprovider.Reprovide(ctx)
 }

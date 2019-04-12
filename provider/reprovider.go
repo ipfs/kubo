@@ -50,8 +50,8 @@ func (rp *Reprovider) Close() error {
 	return rp.queue.Close()
 }
 
-// Trigger causes a reprovide
-func (rp *Reprovider) Trigger(ctx context.Context) error {
+// Reprovide causes a reprovide
+func (rp *Reprovider) Reprovide(ctx context.Context) error {
 	select {
 	case <-rp.ctx.Done():
 		return rp.ctx.Err()
