@@ -288,6 +288,7 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	tracker := provider.NewTracker(n.Repo.Datastore())
 	n.Provider = provider.NewProviderSystem(
 		provider.NewProvider(ctx, queueP, tracker, n.Routing),
+		// TODO: configure time.Minute and time.Hour*12
 		provider.NewReprovider(ctx, queueR, tracker, time.Minute, time.Hour*12, n.Blockstore, n.Routing),
 	)
 

@@ -45,8 +45,8 @@ func (rp *Reprovider) Run() {
 	go rp.handleAnnouncements()
 }
 
-// Close stops thhe reprovider
-func (rp *Reprovider) Close() error  {
+// Close stops the reprovider
+func (rp *Reprovider) Close() error {
 	return rp.queue.Close()
 }
 
