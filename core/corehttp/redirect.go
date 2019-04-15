@@ -10,7 +10,11 @@ import (
 func RedirectOption(path string, redirect string) ServeOption {
 	handler := &redirectHandler{redirect}
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		mux.Handle("/"+path+"/", handler)
+		if len(path) > 0 {
+			mux.Handle("/"+path+"/", handler)
+		} else {
+			mux.Handle("/", handler)
+		}
 		return mux, nil
 	}
 }
