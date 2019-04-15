@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -398,10 +399,8 @@ type P2PHostOut struct {
 
 	Host    host.Host
 	Routing BaseRouting
-	IpfsDHT *dht.IpfsDHT
 }
 
-// TODO: move some of this into params struct
 func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut, err error) {
 	opts := []libp2p.Option{libp2p.NoListenAddrs}
 	for _, o := range params.Opts {
@@ -438,80 +437,95 @@ func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut
 		},
 	})
 
-	// TODO: break this up into more DI units
-	// TODO: I'm not a fan of type assertions like this but the
-	// `RoutingOption` system doesn't currently provide access to the
-	// IpfsNode.
-	//
-	// Ideally, we'd do something like:
-	//
-	// 1. Add some fancy method to introspect into tiered routers to extract
-	//    things like the pubsub router or the DHT (complicated, messy,
-	//    probably not worth it).
-	// 2. Pass the IpfsNode into the RoutingOption (would also remove the
-	//    PSRouter case below.
-	// 3. Introduce some kind of service manager? (my personal favorite but
-	//    that requires a fair amount of work).
-	if dht, ok := out.Routing.(*dht.IpfsDHT); ok {
-		out.IpfsDHT = dht
+	return out, err
+}
+
+type Router struct {
+	routing.IpfsRouting
+
+	Priority int // less = more important
+}
+
+type p2pRouterOut struct {
+	fx.Out
+
+	Router Router `group:"routers"`
+}
+
+func P2PBaseRouting(lc fx.Lifecycle, in BaseRouting) (out p2pRouterOut, dr *dht.IpfsDHT) {
+	if dht, ok := in.(*dht.IpfsDHT); ok {
+		dr = dht
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				return out.IpfsDHT.Close()
+				return dr.Close()
 			},
 		})
 	}
 
-	return out, err
+	return p2pRouterOut{
+		Router: Router{
+			Priority:    1000,
+			IpfsRouting: in,
+		},
+	}, dr
 }
 
-type p2pRoutingIn struct {
+type p2pOnlineRoutingIn struct {
 	fx.In
 
-	Repo      repo.Repo
+	Routers   []Router `group:"routers"`
 	Validator record.Validator
-	Host      host.Host
-	PubSub    *pubsub.PubSub `optional:"true"`
+}
+
+func P2PRouting(in p2pOnlineRoutingIn) routing.IpfsRouting {
+	routers := in.Routers
+
+	sort.SliceStable(routers, func(i, j int) bool {
+		return routers[i].Priority < routers[j].Priority
+	})
+
+	irouters := make([]routing.IpfsRouting, len(routers))
+	for i, v := range routers {
+		irouters[i] = v.IpfsRouting
+	}
+
+	return routinghelpers.Tiered{
+		Routers:   irouters,
+		Validator: in.Validator,
+	}
+}
+
+type p2pPSRoutingIn struct {
+	fx.In
 
 	BaseRouting BaseRouting
+	Repo        repo.Repo
+	Validator   record.Validator
+	Host        host.Host
+	PubSub      *pubsub.PubSub `optional:"true"`
 }
 
-type p2pRoutingOut struct {
-	fx.Out
+func P2PPubsubRouter(mctx MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
+	psRouter := namesys.NewPubsubValueStore(
+		lifecycleCtx(mctx, lc),
+		in.Host,
+		in.BaseRouting,
+		in.PubSub,
+		in.Validator,
+	)
 
-	IpfsRouting routing.IpfsRouting
-	PSRouter    *namesys.PubsubValueStore
-}
-
-func P2POnlineRouting(ipnsps bool) func(mctx MetricsCtx, lc fx.Lifecycle, in p2pRoutingIn) (out p2pRoutingOut) {
-	return func(mctx MetricsCtx, lc fx.Lifecycle, in p2pRoutingIn) (out p2pRoutingOut) {
-		out.IpfsRouting = in.BaseRouting
-
-		if ipnsps {
-			out.PSRouter = namesys.NewPubsubValueStore(
-				lifecycleCtx(mctx, lc),
-				in.Host,
-				in.BaseRouting,
-				in.PubSub,
-				in.Validator,
-			)
-
-			out.IpfsRouting = routinghelpers.Tiered{
-				Routers: []routing.IpfsRouting{
-					// Always check pubsub first.
-					&routinghelpers.Compose{
-						ValueStore: &routinghelpers.LimitedValueStore{
-							ValueStore: out.PSRouter,
-							Namespaces: []string{"ipns"},
-						},
-					},
-					in.BaseRouting,
+	return p2pRouterOut{
+		Router: Router{
+			IpfsRouting: &routinghelpers.Compose{
+				ValueStore: &routinghelpers.LimitedValueStore{
+					ValueStore: psRouter,
+					Namespaces: []string{"ipns"},
 				},
-				Validator: in.Validator,
-			}
-		}
-		return out
-	}
+			},
+			Priority: 100,
+		},
+	}, psRouter
 }
 
 func AutoNATService(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {

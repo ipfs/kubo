@@ -35,15 +35,19 @@ var BaseLibP2P = fx.Options(
 )
 
 func LibP2P(cfg *BuildCfg) fx.Option {
-	return fx.Options(
+	opts := fx.Options(
 		BaseLibP2P,
 
 		maybeProvide(P2PNoSecurity, cfg.DisableEncryptedConnections),
 		maybeProvide(Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
 
 		fx.Provide(P2PSmuxTransport(cfg.getOpt("mplex"))),
-		fx.Provide(P2POnlineRouting(cfg.getOpt("ipnsps"))),
+		fx.Provide(P2PRouting),
+		fx.Provide(P2PBaseRouting),
+		maybeProvide(P2PPubsubRouter, cfg.getOpt("ipnsps")),
 	)
+
+	return opts
 }
 
 func Storage(cfg *BuildCfg) fx.Option {
