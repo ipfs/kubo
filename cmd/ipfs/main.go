@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"contrib.go.opencensus.io/exporter/stackdriver"
+	"go.opencensus.io/trace"
+
 	util "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
@@ -25,7 +28,7 @@ import (
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
 	"github.com/ipfs/go-ipfs-cmds/http"
-	"github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs-config"
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	loggables "github.com/libp2p/go-libp2p-loggables"
@@ -80,7 +83,33 @@ func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 // - output the response
 // - if anything fails, print error, maybe with help
 func main() {
-	os.Exit(mainRet())
+	exitCode := 1
+	withStackdriverTracing(func() {
+		exitCode = mainRet()
+	})
+	os.Exit(exitCode)
+}
+
+func withStackdriverTracing(f func()) {
+	sd, err := stackdriver.NewExporter(stackdriver.Options{
+		Location:  "anacrolix-mbp",
+		ProjectID: os.Getenv("GOOGLE_CLOUD_PROJECT"),
+	})
+	if err != nil {
+		log.Warningf("error creating the stackdriver exporter: %v", err)
+		goto noExporter
+	}
+	// It is imperative to invoke flush before your main function exits
+	defer sd.Flush()
+
+	trace.ApplyConfig(trace.Config{
+		DefaultSampler: trace.AlwaysSample(),
+	})
+
+	// Register it as a trace exporter
+	trace.RegisterExporter(sd)
+noExporter:
+	f()
 }
 
 func mainRet() int {

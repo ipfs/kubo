@@ -2,6 +2,7 @@ module github.com/ipfs/go-ipfs
 
 require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
+	contrib.go.opencensus.io/exporter/stackdriver v0.10.2
 	github.com/Kubuxu/go-os-helper v0.0.1
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/blang/semver v3.5.1+incompatible
@@ -110,6 +111,7 @@ require (
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
+	go.opencensus.io v0.20.2
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/dig v1.7.0 // indirect
 	go.uber.org/fx v1.9.0
