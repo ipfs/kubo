@@ -17,7 +17,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-autonat-svc"
 	"github.com/libp2p/go-libp2p-circuit"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-host"
@@ -229,29 +228,8 @@ func P2PAddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
 	if err != nil {
 		return opts, err
 	}
-	if !cfg.Swarm.DisableRelay {
-		addrsFactory = composeAddrsFactory(addrsFactory, filterRelayAddrs)
-	}
 	opts.Opts = append(opts.Opts, libp2p.AddrsFactory(addrsFactory))
 	return
-}
-
-func filterRelayAddrs(addrs []ma.Multiaddr) []ma.Multiaddr {
-	var raddrs []ma.Multiaddr
-	for _, addr := range addrs {
-		_, err := addr.ValueForProtocol(circuit.P_CIRCUIT)
-		if err == nil {
-			continue
-		}
-		raddrs = append(raddrs, addr)
-	}
-	return raddrs
-}
-
-func composeAddrsFactory(f, g p2pbhost.AddrsFactory) p2pbhost.AddrsFactory {
-	return func(addrs []ma.Multiaddr) []ma.Multiaddr {
-		return f(g(addrs))
-	}
 }
 
 func P2PConnectionManager(cfg *config.Config) (opts Libp2pOpts, err error) {
