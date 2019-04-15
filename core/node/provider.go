@@ -30,6 +30,9 @@ func ProviderCtor(mctx MetricsCtx, lc fx.Lifecycle, queue *provider.Queue, rt ro
 			p.Run()
 			return nil
 		},
+		OnStop: func(ctx context.Context) error {
+			return p.Close()
+		},
 	})
 
 	return p
