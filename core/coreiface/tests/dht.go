@@ -130,15 +130,15 @@ func (tp *provider) TestDhtProvide(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	provider := <-out
+	_, ok := <-out
+
+	if ok {
+		t.Fatal("did not expect to find any providers")
+	}
 
 	self0, err := apis[0].Key().Self(ctx)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if provider.ID.String() != "<peer.ID >" {
-		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
 	}
 
 	err = apis[0].Dht().Provide(ctx, p)
@@ -151,7 +151,7 @@ func (tp *provider) TestDhtProvide(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	provider = <-out
+	provider := <-out
 
 	if provider.ID.String() != self0.ID().String() {
 		t.Errorf("got wrong provider: %s != %s", provider.ID.String(), self0.ID().String())
