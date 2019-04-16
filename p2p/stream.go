@@ -4,12 +4,12 @@ import (
 	"io"
 	"sync"
 
-	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	ifconnmgr "gx/ipfs/QmXa6sgzUvP5bgF5CyyV36bZYv5VDRwttggQYUPvFybLVd/go-libp2p-interface-connmgr"
-	net "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	manet "gx/ipfs/Qmc85NSvmSG4Frn9Vb2cBc1rMyULH6D3TNVEfCzSKoUpip/go-multiaddr-net"
+	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	net "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
 )
 
 const cmgrTag = "stream-fwd"
@@ -31,15 +31,13 @@ type Stream struct {
 }
 
 // close stream endpoints and deregister it
-func (s *Stream) close() error {
+func (s *Stream) close() {
 	s.Registry.Close(s)
-	return nil
 }
 
 // reset closes stream endpoints and deregisters it
-func (s *Stream) reset() error {
+func (s *Stream) reset() {
 	s.Registry.Reset(s)
-	return nil
 }
 
 func (s *Stream) startStreaming() {
@@ -108,17 +106,15 @@ func (r *StreamRegistry) Deregister(streamID uint64) {
 }
 
 // Close stream endpoints and deregister it
-func (r *StreamRegistry) Close(s *Stream) error {
-	s.Local.Close()
-	s.Remote.Close()
+func (r *StreamRegistry) Close(s *Stream) {
+	_ = s.Local.Close()
+	_ = s.Remote.Close()
 	s.Registry.Deregister(s.id)
-	return nil
 }
 
 // Reset closes stream endpoints and deregisters it
-func (r *StreamRegistry) Reset(s *Stream) error {
-	s.Local.Close()
-	s.Remote.Reset()
+func (r *StreamRegistry) Reset(s *Stream) {
+	_ = s.Local.Close()
+	_ = s.Remote.Reset()
 	s.Registry.Deregister(s.id)
-	return nil
 }

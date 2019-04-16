@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 
-	ci "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
+	ci "github.com/libp2p/go-libp2p-crypto"
 )
 
 type rr struct{}
@@ -198,7 +198,7 @@ func TestInvalidKeyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if exist, err = ks.Has(".invalid"); err == nil {
+	if _, err = ks.Has(".invalid"); err == nil {
 		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
 	}
 }

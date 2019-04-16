@@ -12,10 +12,8 @@ import (
 	"sort"
 	"strings"
 
-	e "github.com/ipfs/go-ipfs/core/commands/e"
-
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
 type commandEncoder struct {
@@ -129,26 +127,8 @@ func cmdPathStrings(cmd *Command, showOptions bool) []string {
 	}
 
 	recurse("", cmd)
-	sort.Sort(sort.StringSlice(cmds))
+	sort.Strings(cmds)
 	return cmds
-}
-
-// changes here will also need to be applied at
-// - ./dag/dag.go
-// - ./object/object.go
-// - ./files/files.go
-// - ./unixfs/unixfs.go
-func unwrapOutput(i interface{}) (interface{}, error) {
-	var (
-		ch <-chan interface{}
-		ok bool
-	)
-
-	if ch, ok = i.(<-chan interface{}); !ok {
-		return nil, e.TypeErr(ch, i)
-	}
-
-	return <-ch, nil
 }
 
 type nonFatalError string

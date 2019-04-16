@@ -8,9 +8,10 @@ import (
 
 	"github.com/ipfs/go-ipfs/repo"
 
-	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	"gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/mount"
-	"gx/ipfs/QmafCXHpwUKGUrt6eQF97U1ornFxTicsw7iyYSAhu9aXgc/go-ds-measure"
+	ds "github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/mount"
+	dssync "github.com/ipfs/go-datastore/sync"
+	"github.com/ipfs/go-ds-measure"
 )
 
 // ConfigFromMap creates a new datastore config from a map
@@ -174,7 +175,7 @@ func (c *memDatastoreConfig) DiskSpec() DiskSpec {
 }
 
 func (c *memDatastoreConfig) Create(string) (repo.Datastore, error) {
-	return ds.NewMapDatastore(), nil
+	return dssync.MutexWrap(ds.NewMapDatastore()), nil
 }
 
 type logDatastoreConfig struct {

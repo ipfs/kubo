@@ -28,54 +28,55 @@ import (
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	p2p "github.com/ipfs/go-ipfs/p2p"
 	pin "github.com/ipfs/go-ipfs/pin"
+	provider "github.com/ipfs/go-ipfs/provider"
 	repo "github.com/ipfs/go-ipfs/repo"
 
-	u "gx/ipfs/QmNohiVssaPw3KVLZik59DBVGTSm2dGvYT9eoXt5DQ36Yz/go-ipfs-util"
-	merkledag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
-	quic "gx/ipfs/QmQ4hhhYzrEoyPxcVQyBqhf3sshsATKX3D3VJUAGuHzaSD/go-libp2p-quic-transport"
-	resolver "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path/resolver"
-	rhelpers "gx/ipfs/QmRCrPXk2oUwpK1Cj2FXrUotRpddUxz56setkny2gz13Cx/go-libp2p-routing-helpers"
-	psrouter "gx/ipfs/QmRj3VMHa484MktgWaWr4KYys9AtxBBiFUhhEFKs9EvPiw/go-libp2p-pubsub-router"
-	libp2p "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p"
-	discovery "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p/p2p/discovery"
-	p2pbhost "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p/p2p/host/basic"
-	rhost "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p/p2p/host/routed"
-	identify "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p/p2p/protocol/identify"
-	goprocess "gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
-	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
-	connmgr "gx/ipfs/QmSTKY2v62v9RjcfTMCFKMVAWvVjWGixkYWEi68iG7e1TT/go-libp2p-connmgr"
-	metrics "gx/ipfs/QmSwVwKUWzdf3ppM3FbBbpuqHUNtUFJPQQdfvKmgZoz2gR/go-libp2p-metrics"
-	mafilter "gx/ipfs/QmT6C5ebDy92zyRzdmSNyda5q7zkNXy68X47RDJiHpvaxd/go-maddr-filter"
-	ic "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	pnet "gx/ipfs/QmTwDsJUPioMKoiuXkAmiPxL1i4tjuG5vkxJgNpiHpXb3Y/go-libp2p-pnet"
-	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	bserv "gx/ipfs/QmUEXNytX2q9g9xtdfHRVYfsvjw5V9FQ32vE9ZRYFAxFoy/go-blockservice"
-	ds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	smux "gx/ipfs/QmVtV1y2e8W4eQgzsP6qfSpCCZ6zWYE4m6NzJjB7iswwrT/go-stream-muxer"
-	pubsub "gx/ipfs/QmVzLBPPg4gdyX3XFnNaNDkK4V81ptT5X6WZVFzTUECXMa/go-libp2p-pubsub"
-	exchange "gx/ipfs/QmWokDcQdSZCxrNxgaRzQDDBofALhActzNBaxRLtiRkUHg/go-ipfs-exchange-interface"
-	ifconnmgr "gx/ipfs/QmXa6sgzUvP5bgF5CyyV36bZYv5VDRwttggQYUPvFybLVd/go-libp2p-interface-connmgr"
-	bstore "gx/ipfs/QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA/go-ipfs-blockstore"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	p2phost "gx/ipfs/QmYrWiWM4qtrnCeT3R14jY3ZZyirDNJgwK57q4qFYePgbd/go-libp2p-host"
-	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
-	nilrouting "gx/ipfs/QmZ22s3UgNi5vvYNH79jWJ63NPyQGiv4mdNaWCz4WKqMTZ/go-ipfs-routing/none"
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-	circuit "gx/ipfs/QmZBfqr863PYD7BKbmCFSNmzsqYmtr2DKgzubsQaiTQkMc/go-libp2p-circuit"
-	autonat "gx/ipfs/QmZpe6RmiGLMD7boFBEP9hNkhdPQVkdjNSWPGccYk2GoFy/go-libp2p-autonat-svc"
-	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
-	mplex "gx/ipfs/QmaJvNdDccVkTELQLCGXWrLxgaQ14aMdhzZx1EiHPXKbDc/go-smux-multiplex"
-	mfs "gx/ipfs/Qmb74fRYPgpjYzoBV7PAVNmP3DQaRrh8dHdKE4PwnF3cRx/go-mfs"
-	record "gx/ipfs/QmbeHtaBy9nZsW4cHRcvgVY4CnDhXudE2Dr6qDxS7yg9rX/go-libp2p-record"
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	bitswap "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap"
-	bsnet "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap/network"
-	yamux "gx/ipfs/QmcVFwGS6sjfxVico2bd1gQGRu5A2ymwZunVmMdeV5zEYb/go-smux-yamux"
-	ft "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs"
-	dht "gx/ipfs/QmdR6WN3TUEAVQ9KWE2UiFJikWTbUvgBJay6mjB4yUJebq/go-libp2p-kad-dht"
-	dhtopts "gx/ipfs/QmdR6WN3TUEAVQ9KWE2UiFJikWTbUvgBJay6mjB4yUJebq/go-libp2p-kad-dht/opts"
+	bitswap "github.com/ipfs/go-bitswap"
+	bsnet "github.com/ipfs/go-bitswap/network"
+	bserv "github.com/ipfs/go-blockservice"
+	cid "github.com/ipfs/go-cid"
+	ds "github.com/ipfs/go-datastore"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
+	config "github.com/ipfs/go-ipfs-config"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	nilrouting "github.com/ipfs/go-ipfs-routing/none"
+	u "github.com/ipfs/go-ipfs-util"
+	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
+	merkledag "github.com/ipfs/go-merkledag"
+	mfs "github.com/ipfs/go-mfs"
+	resolver "github.com/ipfs/go-path/resolver"
+	ft "github.com/ipfs/go-unixfs"
+	goprocess "github.com/jbenet/goprocess"
+	libp2p "github.com/libp2p/go-libp2p"
+	autonat "github.com/libp2p/go-libp2p-autonat-svc"
+	circuit "github.com/libp2p/go-libp2p-circuit"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
+	ic "github.com/libp2p/go-libp2p-crypto"
+	p2phost "github.com/libp2p/go-libp2p-host"
+	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	dhtopts "github.com/libp2p/go-libp2p-kad-dht/opts"
+	metrics "github.com/libp2p/go-libp2p-metrics"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	pnet "github.com/libp2p/go-libp2p-pnet"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
+	quic "github.com/libp2p/go-libp2p-quic-transport"
+	record "github.com/libp2p/go-libp2p-record"
+	routing "github.com/libp2p/go-libp2p-routing"
+	rhelpers "github.com/libp2p/go-libp2p-routing-helpers"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
+	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	mafilter "github.com/libp2p/go-maddr-filter"
+	smux "github.com/libp2p/go-stream-muxer"
+	ma "github.com/multiformats/go-multiaddr"
+	mplex "github.com/whyrusleeping/go-smux-multiplex"
+	yamux "github.com/whyrusleeping/go-smux-yamux"
+	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
 
 const IpnsValidatorTag = "ipns"
@@ -85,15 +86,6 @@ const discoveryConnTimeout = time.Second * 30
 const DefaultIpnsCacheSize = 128
 
 var log = logging.Logger("core")
-
-type mode int
-
-const (
-	// zero value is not a valid mode, must be explicitly set
-	localMode mode = iota
-	offlineMode
-	onlineMode
-)
 
 func init() {
 	identify.ClientVersion = "go-ipfs/" + version.CurrentVersionNumber + "/" + version.CurrentCommit
@@ -133,6 +125,7 @@ type IpfsNode struct {
 	Routing      routing.IpfsRouting // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
+	Provider     provider.Provider   // the value provider system
 	Reprovider   *rp.Reprovider      // the value reprovider system
 	IpnsRepub    *ipnsrp.Republisher
 
@@ -145,8 +138,9 @@ type IpfsNode struct {
 	proc goprocess.Process
 	ctx  context.Context
 
-	mode         mode
-	localModeSet bool
+	// Flags
+	IsOnline bool // Online is set when networking is enabled.
+	IsDaemon bool // Daemon is set when running on a long-running daemon.
 }
 
 // Mounts defines what the node's mount state is. This should
@@ -332,6 +326,12 @@ func (n *IpfsNode) startLateOnlineServices(ctx context.Context) error {
 		return err
 	}
 
+	// Provider
+
+	n.Provider.Run()
+
+	// Reprovider
+
 	var keyProvider rp.KeyChanFunc
 
 	switch cfg.Reprovider.Strategy {
@@ -399,7 +399,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 		var out []ma.Multiaddr
 		for _, maddr := range addrs {
 			// check for exact matches
-			ok, _ := noAnnAddrs[maddr.String()]
+			ok := noAnnAddrs[maddr.String()]
 			// check for /ipcidr matches
 			if !ok && !filters.AddrBlocked(maddr) {
 				out = append(out, maddr)
@@ -418,7 +418,7 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 		ConnectionWriteTimeout: time.Second * 10,
 		KeepAliveInterval:      time.Second * 30,
 		EnableKeepAlive:        true,
-		MaxStreamWindowSize:    uint32(1024 * 512),
+		MaxStreamWindowSize:    uint32(16 * 1024 * 1024), // 16MiB
 		LogOutput:              ioutil.Discard,
 	}
 
@@ -675,6 +675,10 @@ func (n *IpfsNode) teardown() error {
 	// needs to use another during its shutdown/cleanup process, it should be
 	// closed before that other object
 
+	if n.Provider != nil {
+		closers = append(closers, n.Provider)
+	}
+
 	if n.FilesRoot != nil {
 		closers = append(closers, n.FilesRoot)
 	}
@@ -719,28 +723,6 @@ func (n *IpfsNode) teardown() error {
 		return errs[0]
 	}
 	return nil
-}
-
-// OnlineMode returns whether or not the IpfsNode is in OnlineMode.
-func (n *IpfsNode) OnlineMode() bool {
-	return n.mode == onlineMode
-}
-
-// SetLocal will set the IpfsNode to local mode
-func (n *IpfsNode) SetLocal(isLocal bool) {
-	if isLocal {
-		n.mode = localMode
-	}
-	n.localModeSet = true
-}
-
-// LocalMode returns whether or not the IpfsNode is in LocalMode
-func (n *IpfsNode) LocalMode() bool {
-	if !n.localModeSet {
-		// programmer error should not happen
-		panic("local mode not set")
-	}
-	return n.mode == localMode
 }
 
 // Bootstrap will set and call the IpfsNodes bootstrap function.
@@ -836,9 +818,13 @@ func (n *IpfsNode) loadPrivateKey() error {
 		return err
 	}
 
+	if err := n.Peerstore.AddPrivKey(n.Identity, sk); err != nil {
+		return err
+	}
+	if err := n.Peerstore.AddPubKey(n.Identity, sk.GetPublic()); err != nil {
+		return err
+	}
 	n.PrivateKey = sk
-	n.Peerstore.AddPrivKey(n.Identity, n.PrivateKey)
-	n.Peerstore.AddPubKey(n.Identity, sk.GetPublic())
 	return nil
 }
 

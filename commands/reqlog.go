@@ -44,8 +44,6 @@ func (rl *ReqLog) AddEntry(rle *ReqLogEntry) {
 	if rle == nil || !rle.Active {
 		rl.maybeCleanup()
 	}
-
-	return
 }
 
 // ClearInactive removes stale entries

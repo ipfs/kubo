@@ -13,20 +13,20 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	dag "gx/ipfs/QmPJNbVw8o3ohC43ppSXyNXwYKsWShG4zygnirHptfbHri/go-merkledag"
-	"gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
-	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	bservice "gx/ipfs/QmUEXNytX2q9g9xtdfHRVYfsvjw5V9FQ32vE9ZRYFAxFoy/go-blockservice"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	ipld "gx/ipfs/QmZ6nzCLwGLVfRzYLpD7pW6UNuBDKEcA2imJtVpbEx2rxy/go-ipld-format"
-	"gx/ipfs/Qmb74fRYPgpjYzoBV7PAVNmP3DQaRrh8dHdKE4PwnF3cRx/go-mfs"
-	"gx/ipfs/Qmb9fkAWgcyVRnFdXGqA6jcWGFj6q35oJjwRAYRhfEboGS/go-ipfs-exchange-offline"
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	ft "gx/ipfs/QmcYUTQ7tBZeH1CLsZM2S3xhMEZdvUgXvbjhpMsLDpk3oJ/go-unixfs"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
-	cidenc "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil/cidenc"
+	"github.com/dustin/go-humanize"
+	bservice "github.com/ipfs/go-blockservice"
+	cid "github.com/ipfs/go-cid"
+	cidenc "github.com/ipfs/go-cidutil/cidenc"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-exchange-offline"
+	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
+	dag "github.com/ipfs/go-merkledag"
+	"github.com/ipfs/go-mfs"
+	ft "github.com/ipfs/go-unixfs"
+	"github.com/ipfs/interface-go-ipfs-core"
+	mh "github.com/multiformats/go-multihash"
 )
 
 var flog = logging.Logger("cmds/files")
@@ -168,6 +168,9 @@ var filesStatCmd = &cmds.Command{
 		}
 
 		local, sizeLocal, err := walkBlock(req.Context, dagserv, nd)
+		if err != nil {
+			return err
+		}
 
 		o.WithLocality = true
 		o.Local = local
@@ -347,7 +350,7 @@ var filesCpCmd = &cmds.Command{
 		}
 
 		if flush {
-			err := mfs.FlushPath(nd.FilesRoot, dst)
+			_, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
 			if err != nil {
 				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
 			}
@@ -649,7 +652,7 @@ Example:
 
 		err = mfs.Mv(nd.FilesRoot, src, dst)
 		if err == nil && flush {
-			err = mfs.FlushPath(nd.FilesRoot, "/")
+			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, "/")
 		}
 		return err
 	},
@@ -856,6 +859,10 @@ Examples:
 	},
 }
 
+type flushRes struct {
+	Cid string
+}
+
 var filesFlushCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Flush a given path's data to disk.",
@@ -873,13 +880,24 @@ are run with the '--flush=false'.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		path := "/"
 		if len(req.Arguments) > 0 {
 			path = req.Arguments[0]
 		}
 
-		return mfs.FlushPath(nd.FilesRoot, path)
+		n, err := mfs.FlushPath(req.Context, nd.FilesRoot, path)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &flushRes{enc.Encode(n.Cid())})
 	},
+	Type: flushRes{},
 }
 
 var filesChcidCmd = &cmds.Command{
@@ -916,7 +934,7 @@ Change the cid version or hash function of the root node of a given path.
 
 		err = updatePath(nd.FilesRoot, path, prefix)
 		if err == nil && flush {
-			err = mfs.FlushPath(nd.FilesRoot, path)
+			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, path)
 		}
 		return err
 	},

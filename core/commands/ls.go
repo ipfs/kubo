@@ -9,17 +9,20 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	iface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	unixfs "github.com/ipfs/go-unixfs"
+	unixfs_pb "github.com/ipfs/go-unixfs/pb"
+	iface "github.com/ipfs/interface-go-ipfs-core"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 // LsLink contains printable data for a single ipld link in ls output
 type LsLink struct {
 	Name, Hash string
 	Size       uint64
-	Type       iface.FileType
+	Type       unixfs_pb.Data_DataType
+	Target     string
 }
 
 // LsObject is an element of LsOutput
@@ -144,12 +147,22 @@ The JSON output contains type information.
 				if link.Err != nil {
 					return link.Err
 				}
+				var ftype unixfs_pb.Data_DataType
+				switch link.Type {
+				case iface.TFile:
+					ftype = unixfs.TFile
+				case iface.TDirectory:
+					ftype = unixfs.TDirectory
+				case iface.TSymlink:
+					ftype = unixfs.TSymlink
+				}
 				lsLink := LsLink{
-					Name: link.Link.Name,
-					Hash: enc.Encode(link.Link.Cid),
+					Name: link.Name,
+					Hash: enc.Encode(link.Cid),
 
-					Size: link.Size,
-					Type: link.Type,
+					Size:   link.Size,
+					Type:   ftype,
+					Target: link.Target,
 				}
 				if err := processLink(paths[i], lsLink); err != nil {
 					return err
@@ -227,15 +240,20 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 		}
 
 		for _, link := range object.Links {
-			s := "%[1]s\t%[3]s\n"
-
-			switch {
-			case link.Type == iface.TDirectory && size:
-				s = "%[1]s\t-\t%[3]s/\n"
-			case link.Type == iface.TDirectory && !size:
-				s = "%[1]s\t%[3]s/\n"
-			case size:
-				s = "%s\t%v\t%s\n"
+			var s string
+			switch link.Type {
+			case unixfs.TDirectory, unixfs.THAMTShard, unixfs.TMetadata:
+				if size {
+					s = "%[1]s\t-\t%[3]s/\n"
+				} else {
+					s = "%[1]s\t%[3]s/\n"
+				}
+			default:
+				if size {
+					s = "%s\t%v\t%s\n"
+				} else {
+					s = "%[1]s\t%[3]s\n"
+				}
 			}
 
 			fmt.Fprintf(tw, s, link.Hash, link.Size, link.Name)

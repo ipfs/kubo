@@ -9,8 +9,8 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
-	badgerds "gx/ipfs/QmTNJogwkhnbHeRmAXWtzvN2KgVko2oNmHHQN1ggHVhF91/go-ds-badger"
+	humanize "github.com/dustin/go-humanize"
+	badgerds "github.com/ipfs/go-ds-badger"
 )
 
 // Plugins is exported list of plugins that will be loaded

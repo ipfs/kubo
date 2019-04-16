@@ -3,8 +3,8 @@ package commands
 import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
 var daemonShutdownCmd = &cmds.Command{
@@ -17,7 +17,7 @@ var daemonShutdownCmd = &cmds.Command{
 			return err
 		}
 
-		if nd.LocalMode() {
+		if !nd.IsDaemon {
 			return cmdkit.Errorf(cmdkit.ErrClient, "daemon not running")
 		}
 

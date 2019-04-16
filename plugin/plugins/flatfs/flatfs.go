@@ -8,7 +8,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	flatfs "gx/ipfs/QmcjM6sfVtgGFBCCJaZo33HNi7K4rPkrUQAzLewgWTNkeg/go-ds-flatfs"
+	flatfs "github.com/ipfs/go-ds-flatfs"
 )
 
 // Plugins is exported list of plugins that will be loaded

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	logging "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log"
-	lwriter "gx/ipfs/QmbkT7eMTyXfpeyB3ZMxxcxg7XH8t6uXp49jqzz4HB7BGF/go-log/writer"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	logging "github.com/ipfs/go-log"
+	lwriter "github.com/ipfs/go-log/writer"
 )
 
 // Golang os.Args overrides * and replaces the character argument with
@@ -22,6 +22,11 @@ var LogCmd = &cmds.Command{
 		ShortDescription: `
 'ipfs log' contains utility commands to affect or read the logging
 output of a running daemon.
+
+There are also two environmental variables that direct the logging 
+system (not just for the daemon logs, but all commands):
+    IPFS_LOGGING - sets the level of verbosity of the logging. One of: debug, info, warning, error, critical
+    IPFS_LOGGING_FMT - sets formatting of the log output. One of: color, nocolor
 `,
 	},
 

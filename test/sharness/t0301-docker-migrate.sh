@@ -21,7 +21,7 @@ TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
 APP_ROOT_DIR=$(dirname "$TEST_TESTS_DIR")
 
 test_expect_success "docker image build succeeds" '
-  docker_build "$TEST_TESTS_DIR/../Dockerfile.fast" "$APP_ROOT_DIR" >actual &&
+  docker_build "$TEST_TESTS_DIR/../Dockerfile" "$APP_ROOT_DIR" >actual &&
   IMAGE_ID=$(tail -n1 actual | cut -d " " -f 3)
 '
 
@@ -39,7 +39,7 @@ test_expect_success "setup http response" '
 '
 
 pretend_server() {
-  cat vers_resp | nc -l -i 1 -p 17233
+    socat tcp-listen:17233,fork,bind=127.0.0.1,reuseaddr 'SYSTEM:cat cers_resp'!!STDERR &
 }
 
 test_expect_success "startup fake dists server" '

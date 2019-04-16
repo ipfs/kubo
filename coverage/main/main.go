@@ -43,15 +43,26 @@ func main() {
 		Pdeathsig: syscall.SIGTERM,
 	}
 
-	sig := make(chan os.Signal, 1)
+	sig := make(chan os.Signal, 10)
+	start := make(chan struct{})
 	go func() {
+		<-start
 		for {
 			p.Process.Signal(<-sig)
 		}
 	}()
+
 	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 
-	err = p.Run()
+	err = p.Start()
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	close(start)
+
+	err = p.Wait()
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)

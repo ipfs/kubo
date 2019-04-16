@@ -1,2 +1,15 @@
+# Default to text
+* text eol=lf
+
+# True text
+*.md text eol=auto
+LICENSE text eol=auto
+
+# Known binary types
+*.png binary
+*.tar binary
+*.gz binary
+
+# Binary assets
 assets/init-doc/*          binary
 core/coreunix/test_data/** binary

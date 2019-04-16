@@ -3,10 +3,11 @@ include mk/header.mk
 $(d)/coverage_deps: $$(DEPS_GO)
 	rm -rf $(@D)/unitcover && mkdir $(@D)/unitcover
 	rm -rf $(@D)/sharnesscover && mkdir $(@D)/sharnesscover
+
 ifneq ($(IPFS_SKIP_COVER_BINS),1)
-	go get -u github.com/Kubuxu/gocovmerge
-	go get -u golang.org/x/tools/cmd/cover
+$(d)/coverage_deps: test/bin/gocovmerge
 endif
+
 .PHONY: $(d)/coverage_deps
 
 # unit tests coverage
@@ -32,7 +33,7 @@ TGTS_$(d) := $(d)/unit_tests.coverprofile
 # sharness tests coverage
 $(d)/ipfs: GOTAGS += testrunmain
 $(d)/ipfs: $(d)/main
-	$(go-build)
+	$(go-build-relative)
 
 CLEAN += $(d)/ipfs
 

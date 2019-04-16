@@ -5,15 +5,15 @@ import (
 	"sort"
 	"time"
 
-	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
-	net "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	swarm "gx/ipfs/Qma3Xp3FXFSP4prirEiRYHJ2tgGE8EAx9i6JLziPLpAQjq/go-libp2p-swarm"
-	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
-	iaddr "gx/ipfs/Qmdf1djucJ1jX5RMF1bDbFg5ybZnupmSAeETQQ3ZV7z6dU/go-ipfs-addr"
+	iaddr "github.com/ipfs/go-ipfs-addr"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	inet "github.com/libp2p/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	swarm "github.com/libp2p/go-libp2p-swarm"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 type SwarmAPI CoreAPI
@@ -23,10 +23,13 @@ type connInfo struct {
 	conn      net.Conn
 	dir       net.Direction
 
-	addr  ma.Multiaddr
-	peer  peer.ID
-	muxer string
+	addr ma.Multiaddr
+	peer peer.ID
 }
+
+// tag used in the connection manager when explicitly connecting to a peer.
+const connectionManagerTag = "user-connect"
+const connectionManagerWeight = 100
 
 func (api *SwarmAPI) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 	if api.peerHost == nil {
@@ -37,7 +40,12 @@ func (api *SwarmAPI) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 		swrm.Backoff().Clear(pi.ID)
 	}
 
-	return api.peerHost.Connect(ctx, pi)
+	if err := api.peerHost.Connect(ctx, pi); err != nil {
+		return err
+	}
+
+	api.peerHost.ConnManager().TagPeer(pi.ID, connectionManagerTag, connectionManagerWeight)
+	return nil
 }
 
 func (api *SwarmAPI) Disconnect(ctx context.Context, addr ma.Multiaddr) error {
@@ -83,9 +91,7 @@ func (api *SwarmAPI) KnownAddrs(context.Context) (map[peer.ID][]ma.Multiaddr, er
 	addrs := make(map[peer.ID][]ma.Multiaddr)
 	ps := api.peerHost.Network().Peerstore()
 	for _, p := range ps.Peers() {
-		for _, a := range ps.Addrs(p) {
-			addrs[p] = append(addrs[p], a)
-		}
+		addrs[p] = append(addrs[p], ps.Addrs(p)...)
 		sort.Slice(addrs[p], func(i, j int) bool {
 			return addrs[p][i].String() < addrs[p][j].String()
 		})

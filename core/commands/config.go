@@ -14,10 +14,10 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"gx/ipfs/QmP2i47tnU23ijdshrZtuvrSkQPtf9HhsMb9fwGVe8owj2/jsondiff"
-	"gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	"gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	"gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	"github.com/elgris/jsondiff"
+	"github.com/ipfs/go-ipfs-cmdkit"
+	"github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-config"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -134,8 +134,8 @@ Set the value of the 'Datastore.Path' key:
 			}
 			buf = append(buf, byte('\n'))
 
-			w.Write(buf)
-			return nil
+			_, err = w.Write(buf)
+			return err
 		}),
 	},
 	Type: ConfigField{},
@@ -185,9 +185,8 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 				return err
 			}
 			buf = append(buf, byte('\n'))
-			w.Write(buf)
-
-			return nil
+			_, err = w.Write(buf)
+			return err
 		}),
 	},
 }
@@ -352,9 +351,8 @@ var configProfileApplyCmd = &cmds.Command{
 			diff := jsondiff.Compare(out.OldCfg, out.NewCfg)
 			buf := jsondiff.Format(diff)
 
-			w.Write(buf)
-
-			return nil
+			_, err := w.Write(buf)
+			return err
 		}),
 	},
 	Type: ConfigUpdateOutput{},

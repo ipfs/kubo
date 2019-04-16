@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	options "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
-	pb "gx/ipfs/QmYWB8oH6o7qftxoyqTTZhzLrhKCVT7NYahECQTwTtqbgj/pb"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	mh "gx/ipfs/QmerPMzPk1mJVowm8KgmoknWa4yCYvvugMPsgWmDNUvDLW/go-multihash"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-files"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/options"
+	mh "github.com/multiformats/go-multihash"
+	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
@@ -34,8 +36,6 @@ const (
 	progressOptionName    = "progress"
 	trickleOptionName     = "trickle"
 	wrapOptionName        = "wrap-with-directory"
-	stdinPathName         = "stdin-name"
-	hiddenOptionName      = "hidden"
 	onlyHashOptionName    = "only-hash"
 	chunkerOptionName     = "chunker"
 	pinOptionName         = "pin"
@@ -112,6 +112,8 @@ You can now check what blocks have been created by:
 	Options: []cmdkit.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
+		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
+		cmds.OptionHidden,
 		cmdkit.BoolOption(quietOptionName, "q", "Write minimal output."),
 		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 		cmdkit.BoolOption(silentOptionName, "Write no output."),
@@ -119,8 +121,6 @@ You can now check what blocks have been created by:
 		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmdkit.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmdkit.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmdkit.StringOption(stdinPathName, "Assign a name if the file source is stdin."),
-		cmdkit.BoolOption(hiddenOptionName, "H", "Include files that are hidden. Only takes effect on recursive add."),
 		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
 		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 		cmdkit.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
@@ -160,7 +160,6 @@ You can now check what blocks have been created by:
 		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
 		hash, _ := req.Options[onlyHashOptionName].(bool)
-		hidden, _ := req.Options[hiddenOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
@@ -171,7 +170,6 @@ You can now check what blocks have been created by:
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
-		pathName, _ := req.Options[stdinPathName].(string)
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
@@ -185,6 +183,23 @@ You can now check what blocks have been created by:
 
 		events := make(chan interface{}, adderOutChanSize)
 
+		var toadd files.Node = req.Files
+		name := ""
+		if !wrap {
+			it := req.Files.Entries()
+			if !it.Next() {
+				err := it.Err()
+				if err == nil {
+					return fmt.Errorf("expected a file argument")
+				}
+				return err
+			}
+
+			toadd = it.Node()
+			name = it.Name()
+		}
+		_, dir := toadd.(files.Directory)
+
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
 
@@ -197,10 +212,6 @@ You can now check what blocks have been created by:
 			options.Unixfs.HashOnly(hash),
 			options.Unixfs.FsCache(fscache),
 			options.Unixfs.Nocopy(nocopy),
-
-			options.Unixfs.Wrap(wrap),
-			options.Unixfs.Hidden(hidden),
-			options.Unixfs.StdinName(pathName),
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
@@ -219,12 +230,12 @@ You can now check what blocks have been created by:
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
-		errCh := make(chan error)
+		errCh := make(chan error, 1)
 		go func() {
 			var err error
 			defer func() { errCh <- err }()
 			defer close(events)
-			_, err = api.Unixfs().Add(req.Context, req.Files, opts...)
+			_, err = api.Unixfs().Add(req.Context, toadd, opts...)
 		}()
 
 		for event := range events {
@@ -238,12 +249,20 @@ You can now check what blocks have been created by:
 				h = enc.Encode(output.Path.Cid())
 			}
 
-			res.Emit(&AddEvent{
+			if !dir && name != "" {
+				output.Name = name
+			} else {
+				output.Name = path.Join(name, output.Name)
+			}
+
+			if err := res.Emit(&AddEvent{
 				Name:  output.Name,
 				Hash:  h,
 				Bytes: output.Bytes,
 				Size:  output.Size,
-			})
+			}); err != nil {
+				return err
+			}
 		}
 
 		return <-errCh

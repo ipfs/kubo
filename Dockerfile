@@ -1,22 +1,19 @@
-FROM golang:1.11-stretch
+FROM golang:1.12-stretch
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
-# There is a copy of this Dockerfile called Dockerfile.fast,
-# which is optimized for build time, instead of image size.
-#
-# Please keep these two Dockerfiles in sync.
+ENV SRC_DIR /go-ipfs
 
-ENV GX_IPFS ""
-ENV SRC_DIR /go/src/github.com/ipfs/go-ipfs
+# Download packages first so they can be cached.
+COPY go.mod go.sum $SRC_DIR/
+RUN cd $SRC_DIR \
+  && go mod download
 
 COPY . $SRC_DIR
 
 # Build the thing.
 # Also: fix getting HEAD commit hash via git rev-parse.
-# Also: allow using a custom IPFS API endpoint.
 RUN cd $SRC_DIR \
   && mkdir .git/objects \
-  && ([ -z "$GX_IPFS" ] || echo $GX_IPFS > /root/.ipfs/api) \
   && make build
 
 # Get su-exec, a very minimal tool for dropping privileges,
@@ -41,7 +38,7 @@ FROM busybox:1-glibc
 MAINTAINER Lars Gierth <lgierth@ipfs.io>
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
-ENV SRC_DIR /go/src/github.com/ipfs/go-ipfs
+ENV SRC_DIR /go-ipfs
 COPY --from=0 $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
 COPY --from=0 /tmp/su-exec/su-exec /sbin/su-exec
@@ -60,14 +57,11 @@ EXPOSE 8080
 # Swarm Websockets; must be exposed publicly when the node is listening using the websocket transport (/ipX/.../tcp/8081/ws).
 EXPOSE 8081
 
-# Create the fs-repo directory
+# Create the fs-repo directory and switch to a non-privileged user.
 ENV IPFS_PATH /data/ipfs
 RUN mkdir -p $IPFS_PATH \
   && adduser -D -h $IPFS_PATH -u 1000 -G users ipfs \
   && chown ipfs:users $IPFS_PATH
-
-# Switch to a non-privileged user
-USER ipfs
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.

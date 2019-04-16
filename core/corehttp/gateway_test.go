@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
-	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,16 +16,15 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	repo "github.com/ipfs/go-ipfs/repo"
 
-	path "gx/ipfs/QmQAgv6Gaoe2tQpcabqwKXKChp2MZ7i3UXv9DqTTaxCaTR/go-path"
-	files "gx/ipfs/QmQmhotPUzVrMEWNK3x1R5jQ5ZHWyL7tVUrmRPjrBrvyCb/go-ipfs-files"
-	id "gx/ipfs/QmRxk6AUaGaKCfzS1xSNRojiAPd7h2ih8GuCdjJBF3Y6GK/go-libp2p/p2p/protocol/identify"
-	ci "gx/ipfs/QmTW4SdgBWq9GjsBsHeUx8WuGxzhgzAf88UMH2w62PC8yK/go-libp2p-crypto"
-	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	datastore "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore"
-	syncds "gx/ipfs/QmUadX5EcvrBmxAV9sE7wUWtWSqxns5K84qKJBixmcT1w9/go-datastore/sync"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	"gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
-	nsopts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options/namesys"
+	datastore "github.com/ipfs/go-datastore"
+	syncds "github.com/ipfs/go-datastore/sync"
+	config "github.com/ipfs/go-ipfs-config"
+	files "github.com/ipfs/go-ipfs-files"
+	path "github.com/ipfs/go-path"
+	iface "github.com/ipfs/interface-go-ipfs-core"
+	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	ci "github.com/libp2p/go-libp2p-crypto"
+	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 // `ipfs object new unixfs-dir`
@@ -41,10 +39,11 @@ func (m mockNamesys) Resolve(ctx context.Context, name string, opts ...nsopts.Re
 	}
 	depth := cfg.Depth
 	if depth == nsopts.UnlimitedDepth {
-		depth = math.MaxUint64
+		// max uint
+		depth = ^uint(0)
 	}
 	for strings.HasPrefix(name, "/ipns/") {
-		if depth <= 0 {
+		if depth == 0 {
 			return value, namesys.ErrResolveRecursion
 		}
 		depth--
@@ -219,11 +218,12 @@ func TestGatewayGet(t *testing.T) {
 		if contentType != "text/plain; charset=utf-8" {
 			t.Errorf("expected content type to be text/plain, got %s", contentType)
 		}
+		body, err := ioutil.ReadAll(resp.Body)
 		if resp.StatusCode != test.status {
 			t.Errorf("(%d) got %d, expected %d from %s", i, resp.StatusCode, test.status, urlstr)
+			t.Errorf("Body: %s", body)
 			continue
 		}
-		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatalf("error reading response from %s: %s", urlstr, err)
 		}
@@ -235,9 +235,6 @@ func TestGatewayGet(t *testing.T) {
 }
 
 func TestIPNSHostnameRedirect(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	ns := mockNamesys{}
 	ts, api, ctx := newTestServerAndNode(t, ns)
 	t.Logf("test server url: %s", ts.URL)
@@ -252,7 +249,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		}),
 	})
 
-	k, err := api.Unixfs().Add(ctx, f1, options.Unixfs.Wrap(true))
+	k, err := api.Unixfs().Add(ctx, f1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,9 +323,6 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 }
 
 func TestIPNSHostnameBacklinks(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	ns := mockNamesys{}
 	ts, api, ctx := newTestServerAndNode(t, ns)
 	t.Logf("test server url: %s", ts.URL)
@@ -345,7 +339,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	})
 
 	// create /ipns/example.net/foo/
-	k, err := api.Unixfs().Add(ctx, f1, options.Unixfs.Wrap(true))
+	k, err := api.Unixfs().Add(ctx, f1)
 	if err != nil {
 		t.Fatal(err)
 	}

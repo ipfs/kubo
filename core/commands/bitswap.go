@@ -7,13 +7,13 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
-	humanize "gx/ipfs/QmQMxG9D52TirZd9eLA37nxiNspnMRkKbyPWrVAa1gvtSy/go-humanize"
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	bitswap "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap"
-	decision "gx/ipfs/QmcSPuzpSbVLU6UHU4e5PwZpm4fHbCn5SbNR5ZNL6Mj63G/go-bitswap/decision"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	cidutil "gx/ipfs/Qmf3gRH2L1QZy92gJHJEwKmBJKJGVf8RpN2kPPD2NQWg8G/go-cidutil"
+	humanize "github.com/dustin/go-humanize"
+	bitswap "github.com/ipfs/go-bitswap"
+	decision "github.com/ipfs/go-bitswap/decision"
+	cidutil "github.com/ipfs/go-cidutil"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -50,7 +50,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -88,10 +88,17 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
 }
 
+const (
+	bitswapVerboseOptionName = "verbose"
+)
+
 var bitswapStatCmd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline:          "Show some diagnostic information on the bitswap agent.",
 		ShortDescription: ``,
+	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption(bitswapVerboseOptionName, "v", "Print extra information"),
 	},
 	Type: bitswap.Stat{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -100,7 +107,7 @@ var bitswapStatCmd = &cmds.Command{
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return cmdkit.Errorf(cmdkit.ErrClient, ErrNotOnline.Error())
 		}
 
@@ -122,6 +129,8 @@ var bitswapStatCmd = &cmds.Command{
 			if err != nil {
 				return err
 			}
+			verbose, _ := req.Options[bitswapVerboseOptionName].(bool)
+
 			fmt.Fprintln(w, "bitswap status")
 			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", s.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(w, "\tblocks received: %d\n", s.BlocksReceived)
@@ -134,9 +143,12 @@ var bitswapStatCmd = &cmds.Command{
 			for _, k := range s.Wantlist {
 				fmt.Fprintf(w, "\t\t%s\n", enc.Encode(k))
 			}
+
 			fmt.Fprintf(w, "\tpartners [%d]\n", len(s.Peers))
-			for _, p := range s.Peers {
-				fmt.Fprintf(w, "\t\t%s\n", p)
+			if verbose {
+				for _, p := range s.Peers {
+					fmt.Fprintf(w, "\t\t%s\n", p)
+				}
 			}
 
 			return nil
@@ -163,7 +175,7 @@ prints the ledger associated with a given peer.
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -206,7 +218,7 @@ Trigger reprovider to announce our data to network.
 			return err
 		}
 
-		if !nd.OnlineMode() {
+		if !nd.IsOnline {
 			return ErrNotOnline
 		}
 

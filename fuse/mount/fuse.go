@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"gx/ipfs/QmSF8fPo3jgVBAy8fpdjjYqgG87dkJgUprRBHRd2tmfgpP/goprocess"
-	"gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse"
-	"gx/ipfs/QmSJBsmLP1XMjv8hxYg2rUMdPDB7YUpyBo9idjrJ6Cmq6F/fuse/fs"
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	"github.com/jbenet/goprocess"
 )
 
 var ErrNotMounted = errors.New("not mounted")
@@ -56,7 +56,7 @@ func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bo
 
 	// launch the mounting process.
 	if err := m.mount(); err != nil {
-		m.Unmount() // just in case.
+		_ = m.Unmount() // just in case.
 		return nil, err
 	}
 

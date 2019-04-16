@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	pubsub "gx/ipfs/QmVzLBPPg4gdyX3XFnNaNDkK4V81ptT5X6WZVFzTUECXMa/go-libp2p-pubsub"
-	coreiface "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core"
-	caopts "gx/ipfs/QmXLwxifxwfc2bAwq6rdjbYqAsGzWsDE9RM5TWMGtykyj6/interface-go-ipfs-core/options"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	p2phost "gx/ipfs/QmYrWiWM4qtrnCeT3R14jY3ZZyirDNJgwK57q4qFYePgbd/go-libp2p-host"
-	routing "gx/ipfs/QmYxUdYY9S6yg5tSPVin5GFTvtfsLauVcr7reHDD3dM8xf/go-libp2p-routing"
-	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
+	cid "github.com/ipfs/go-cid"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	p2phost "github.com/libp2p/go-libp2p-host"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	routing "github.com/libp2p/go-libp2p-routing"
 )
 
 type PubSubAPI CoreAPI
@@ -48,14 +48,7 @@ func (api *PubSubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 		return nil, err
 	}
 
-	peers := api.pubSub.ListPeers(settings.Topic)
-	out := make([]peer.ID, len(peers))
-
-	for i, peer := range peers {
-		out[i] = peer
-	}
-
-	return out, nil
+	return api.pubSub.ListPeers(settings.Topic), nil
 }
 
 func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) error {
@@ -69,6 +62,9 @@ func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) er
 
 func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (coreiface.PubSubSubscription, error) {
 	options, err := caopts.PubSubSubscribeOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	r, err := api.checkNode()
 	if err != nil {

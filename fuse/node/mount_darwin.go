@@ -11,8 +11,8 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 
-	unix "gx/ipfs/QmVGjyM9i2msKvLXwh9VosCTgP4mL91kC7hDmqnwTTx6Hu/sys/unix"
-	"gx/ipfs/QmYRGECuvQnRX73fcvPnGbYijBcGN2HbKZQ7jh26qmLiHG/semver"
+	"github.com/blang/semver"
+	unix "golang.org/x/sys/unix"
 )
 
 func init() {
@@ -22,10 +22,10 @@ func init() {
 
 // dontCheckOSXFUSEConfigKey is a key used to let the user tell us to
 // skip fuse checks.
-var dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
+const dontCheckOSXFUSEConfigKey = "DontCheckOSXFUSE"
 
 // fuseVersionPkg is the go pkg url for fuse-version
-var fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
+const fuseVersionPkg = "github.com/jbenet/go-fuse-version/fuse-version"
 
 // errStrFuseRequired is returned when we're sure the user does not have fuse.
 var errStrFuseRequired = `OSXFUSE not found.
@@ -58,7 +58,12 @@ For more help, see:
 	https://github.com/ipfs/go-ipfs/issues/177
 `
 
-var errStrNeedFuseVersion = `unable to check fuse version.
+type errNeedFuseVersion struct {
+	cause string
+}
+
+func (me errNeedFuseVersion) Error() string {
+	return fmt.Sprintf(`unable to check fuse version.
 
 Dear User,
 
@@ -74,12 +79,13 @@ Please install it yourself by running:
 You can also stop ipfs from running these checks and use whatever OSXFUSE
 version you have by running:
 
-	ipfs --json config %s true
+	ipfs config --bool %s true
 
 [1]: https://github.com/ipfs/go-ipfs/issues/177
 [2]: https://github.com/ipfs/go-ipfs/pull/533
 [3]: %s
-`
+`, fuseVersionPkg, dontCheckOSXFUSEConfigKey, me.cause)
+}
 
 var errStrFailedToRunFuseVersion = `unable to check fuse version.
 
@@ -104,7 +110,7 @@ You should see something like this:
 Just make sure the number is 2.7.2 or higher. You can then stop ipfs from
 trying to run these checks with:
 
-	ipfs config %s true
+	ipfs config --bool %s true
 
 [1]: https://github.com/ipfs/go-ipfs/issues/177
 [2]: https://github.com/ipfs/go-ipfs/pull/533
@@ -114,7 +120,7 @@ trying to run these checks with:
 var errStrFixConfig = `config key invalid: %s %v
 You may be able to get this error to go away by setting it again:
 
-	ipfs config %s true
+	ipfs config --bool %s true
 
 Either way, please tell us at: http://github.com/ipfs/go-ipfs/issues
 `
@@ -197,7 +203,7 @@ func ensureFuseVersionIsInstalled() error {
 
 	// try installing it...
 	log.Debug("fuse-version: no fuse-version. attempting to install.")
-	cmd := exec.Command("go", "get", "github.com/jbenet/go-fuse-version/fuse-version")
+	cmd := exec.Command("go", "install", "github.com/jbenet/go-fuse-version/fuse-version")
 	cmdout := new(bytes.Buffer)
 	cmd.Stdout = cmdout
 	cmd.Stderr = cmdout
@@ -211,13 +217,13 @@ func ensureFuseVersionIsInstalled() error {
 
 		log.Debug("fuse-version: failed to install.")
 		s := err.Error() + "\n" + cmdoutstr
-		return fmt.Errorf(errStrNeedFuseVersion, fuseVersionPkg, dontCheckOSXFUSEConfigKey, s)
+		return errNeedFuseVersion{s}
 	}
 
 	// ok, try again...
 	if _, err := exec.LookPath("fuse-version"); err != nil {
 		log.Debug("fuse-version: failed to install?")
-		return fmt.Errorf(errStrNeedFuseVersion, fuseVersionPkg, dontCheckOSXFUSEConfigKey, err)
+		return errNeedFuseVersion{err.Error()}
 	}
 
 	log.Debug("fuse-version: install success")

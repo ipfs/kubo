@@ -12,15 +12,16 @@ import (
 	"sync"
 	"text/tabwriter"
 
+	humanize "github.com/dustin/go-humanize"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	cid "gx/ipfs/QmTbxNB1NwDesLmKTscr4udL2tVP7MaxvXnD1D9yX7g3PN/go-cid"
-	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	bstore "gx/ipfs/QmXjKkjMDTtXAiLBwstVexofB8LeruZmE2eBd85GwGFFLA/go-ipfs-blockstore"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
+	cid "github.com/ipfs/go-cid"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	config "github.com/ipfs/go-ipfs-config"
 )
 
 type RepoVersion struct {
@@ -97,7 +98,10 @@ order to reclaim hard disk space.
 			}
 		} else {
 			err := corerepo.CollectResult(req.Context, gcOutChan, func(k cid.Cid) {
-				re.Emit(&GcResult{Key: k})
+				// Nothing to do with this error, really. This
+				// most likely means that the client is gone but
+				// we still need to let the GC finish.
+				_ = re.Emit(&GcResult{Key: k})
 			})
 			if err != nil {
 				return err
@@ -148,7 +152,7 @@ Version         string The repo version.
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(repoSizeOnlyOptionName, "Only report RepoSize and StorageMax."),
-		cmdkit.BoolOption(repoHumanOptionName, "Output sizes in MiB."),
+		cmdkit.BoolOption(repoHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -162,10 +166,9 @@ Version         string The repo version.
 			if err != nil {
 				return err
 			}
-			cmds.EmitOnce(res, &corerepo.Stat{
+			return cmds.EmitOnce(res, &corerepo.Stat{
 				SizeStat: sizeStat,
 			})
-			return nil
 		}
 
 		stat, err := corerepo.RepoStat(req.Context, n)
@@ -185,12 +188,12 @@ Version         string The repo version.
 			sizeOnly, _ := req.Options[repoSizeOnlyOptionName].(bool)
 
 			printSize := func(name string, size uint64) {
-				sizeInMiB := size / (1024 * 1024)
-				if human && sizeInMiB > 0 {
-					fmt.Fprintf(wtr, "%s (MiB):\t%d\n", name, sizeInMiB)
-				} else {
-					fmt.Fprintf(wtr, "%s:\t%d\n", name, size)
+				sizeStr := fmt.Sprintf("%d", size)
+				if human {
+					sizeStr = humanize.Bytes(size)
 				}
+
+				fmt.Fprintf(wtr, "%s:\t%s\n", name, sizeStr)
 			}
 
 			if !sizeOnly {
@@ -395,9 +398,9 @@ var repoVersionCmd = &cmds.Command{
 			quiet, _ := req.Options[repoQuietOptionName].(bool)
 
 			if quiet {
-				fmt.Fprintf(w, fmt.Sprintf("fs-repo@%s\n", out.Version))
+				fmt.Fprintf(w, "fs-repo@%s\n", out.Version)
 			} else {
-				fmt.Fprintf(w, fmt.Sprintf("ipfs repo version fs-repo@%s\n", out.Version))
+				fmt.Fprintf(w, "ipfs repo version fs-repo@%s\n", out.Version)
 			}
 			return nil
 		}),

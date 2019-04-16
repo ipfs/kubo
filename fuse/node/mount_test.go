@@ -8,13 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"bazil.org/fuse"
+
 	"context"
 
 	core "github.com/ipfs/go-ipfs/core"
 	ipns "github.com/ipfs/go-ipfs/fuse/ipns"
 	mount "github.com/ipfs/go-ipfs/fuse/mount"
 
-	ci "gx/ipfs/QmWapVoHjtKhn4MhvKNoPTkJKADFGACfXPFnt7combwp5W/go-testutil/ci"
+	ci "github.com/libp2p/go-testutil/ci"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -61,8 +63,11 @@ func TestExternalUnmount(t *testing.T) {
 	mkdir(t, ipnsDir)
 
 	err = Mount(node, ipfsDir, ipnsDir)
+	if _, ok := err.(errNeedFuseVersion); ok || err == fuse.ErrOSXFUSENotFound {
+		t.Skip(err)
+	}
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("error mounting: %v", err)
 	}
 
 	// Run shell command to externally unmount the directory

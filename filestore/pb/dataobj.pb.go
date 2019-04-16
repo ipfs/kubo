@@ -5,7 +5,7 @@ package datastore_pb
 
 import (
 	fmt "fmt"
-	proto "gx/ipfs/QmddjPSGZb3ieihSseFeCfVRpZzcqczPNsD2DvarSwnjJB/gogo-protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 )

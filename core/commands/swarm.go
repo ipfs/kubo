@@ -1,27 +1,35 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"path"
 	"sort"
+	"sync"
+	"time"
 
 	commands "github.com/ipfs/go-ipfs/commands"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmds "gx/ipfs/QmQkW9fnCsg9SLHdViiAh6qfBppodsPZVpU92dZLqYtEfs/go-ipfs-cmds"
-	mafilter "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
-	ma "gx/ipfs/QmTZBfrPJmjWsCvHEtX5FE6KimVJhsJg5sBbqEFYf4UZtL/go-multiaddr"
-	config "gx/ipfs/QmUAuYuiafnJRZxDDX7MuruMNsicYNuyub5vUeAcupUBNs/go-ipfs-config"
-	inet "gx/ipfs/QmY3ArotKMKaL7YGfbQfyDrib6RVraLqZYWXZvVgZktBxp/go-libp2p-net"
-	peer "gx/ipfs/QmYVXrKrKHDC9FobgmcmshCDyWwdrfwfanNQN4oxJ9Fk3h/go-libp2p-peer"
-	swarm "gx/ipfs/Qma3Xp3FXFSP4prirEiRYHJ2tgGE8EAx9i6JLziPLpAQjq/go-libp2p-swarm"
-	pstore "gx/ipfs/QmaCTz9RkrU13bm9kMB54f7atgqM4qkjDZpRwRoJiWXEqs/go-libp2p-peerstore"
-	cmdkit "gx/ipfs/Qmde5VP1qUkyQXKCfmEUA7bP64V2HAptbJ7phuPp7jXWwg/go-ipfs-cmdkit"
-	iaddr "gx/ipfs/Qmdf1djucJ1jX5RMF1bDbFg5ybZnupmSAeETQQ3ZV7z6dU/go-ipfs-addr"
+	iaddr "github.com/ipfs/go-ipfs-addr"
+	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	config "github.com/ipfs/go-ipfs-config"
+	inet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	swarm "github.com/libp2p/go-libp2p-swarm"
+	ma "github.com/multiformats/go-multiaddr"
+	madns "github.com/multiformats/go-multiaddr-dns"
+	mafilter "github.com/whyrusleeping/multiaddr-filter"
+)
+
+const (
+	dnsResolveTimeout = 10 * time.Second
 )
 
 type stringList struct {
@@ -248,7 +256,7 @@ var swarmAddrsCmd = &cmds.Command{
 			for p := range am.Addrs {
 				ids = append(ids, p)
 			}
-			sort.Sort(sort.StringSlice(ids))
+			sort.Strings(ids)
 
 			for _, p := range ids {
 				paddrs := am.Addrs[p]
@@ -299,7 +307,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 			}
 			addrs = append(addrs, saddr)
 		}
-		sort.Sort(sort.StringSlice(addrs))
+		sort.Strings(addrs)
 		return cmds.EmitOnce(res, &stringList{addrs})
 	},
 	Type: stringList{},
@@ -330,7 +338,7 @@ var swarmAddrsListenCmd = &cmds.Command{
 		for _, addr := range maddrs {
 			addrs = append(addrs, addr.String())
 		}
-		sort.Sort(sort.StringSlice(addrs))
+		sort.Strings(addrs)
 
 		return cmds.EmitOnce(res, &stringList{addrs})
 	},
@@ -362,7 +370,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 		addrs := req.Arguments
 
-		pis, err := peersWithAddresses(addrs)
+		pis, err := peersWithAddresses(req.Context, addrs)
 		if err != nil {
 			return err
 		}
@@ -444,10 +452,29 @@ func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
 	return
 }
 
+// parseMultiaddrs is a function that takes in a slice of peer multiaddr
+// and returns slices of multiaddrs and peerids
+func parseMultiaddrs(maddrs []ma.Multiaddr) (iaddrs []iaddr.IPFSAddr, err error) {
+	iaddrs = make([]iaddr.IPFSAddr, len(maddrs))
+	for i, maddr := range maddrs {
+		iaddrs[i], err = iaddr.ParseMultiaddr(maddr)
+		if err != nil {
+			return nil, cmds.ClientError("invalid peer address: " + err.Error())
+		}
+	}
+	return
+}
+
 // peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
-	iaddrs, err := parseAddresses(addrs)
+func peersWithAddresses(ctx context.Context, addrs []string) ([]pstore.PeerInfo, error) {
+	// resolve addresses
+	maddrs, err := resolveAddresses(ctx, addrs)
+	if err != nil {
+		return nil, err
+	}
+
+	iaddrs, err := parseMultiaddrs(maddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -470,6 +497,67 @@ func peersWithAddresses(addrs []string) ([]pstore.PeerInfo, error) {
 		})
 	}
 	return pis, nil
+}
+
+// resolveAddresses resolves addresses parallelly
+func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, error) {
+	ctx, cancel := context.WithTimeout(ctx, dnsResolveTimeout)
+	defer cancel()
+
+	var maddrs []ma.Multiaddr
+	var wg sync.WaitGroup
+	resolveErrC := make(chan error, len(addrs))
+
+	maddrC := make(chan ma.Multiaddr)
+
+	for _, addr := range addrs {
+		maddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		// check whether address ends in `ipfs/Qm...`
+		if _, last := ma.SplitLast(maddr); last.Protocol().Code == ma.P_IPFS {
+			maddrs = append(maddrs, maddr)
+			continue
+		}
+		wg.Add(1)
+		go func(maddr ma.Multiaddr) {
+			defer wg.Done()
+			raddrs, err := madns.Resolve(ctx, maddr)
+			if err != nil {
+				resolveErrC <- err
+				return
+			}
+			// filter out addresses that still doesn't end in `ipfs/Qm...`
+			found := 0
+			for _, raddr := range raddrs {
+				if _, last := ma.SplitLast(raddr); last.Protocol().Code == ma.P_IPFS {
+					maddrC <- raddr
+					found++
+				}
+			}
+			if found == 0 {
+				resolveErrC <- fmt.Errorf("found no ipfs peers at %s", maddr)
+			}
+		}(maddr)
+	}
+	go func() {
+		wg.Wait()
+		close(maddrC)
+	}()
+
+	for maddr := range maddrC {
+		maddrs = append(maddrs, maddr)
+	}
+
+	select {
+	case err := <-resolveErrC:
+		return nil, err
+	default:
+	}
+
+	return maddrs, nil
 }
 
 var swarmFiltersCmd = &cmds.Command{
