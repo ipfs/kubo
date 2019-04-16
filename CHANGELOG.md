@@ -18,8 +18,8 @@ As of this release, it's now much easier to run arbitrary IPFS commands within
 the docker container:
 
 ```bash
-> docker run ipfs/go-ipfs config profile apply server # apply the server profile
-> docker run ipfs/go-ipfs # start the daemon
+> docker run --name my-ipfs ipfs/go-ipfs:v0.4.20 config profile apply server # apply the server profile
+> docker start my-ipfs # start the daemon
 ```
 
 This release also [reverts](https://github.com/ipfs/go-ipfs/pull/6040) a change that
