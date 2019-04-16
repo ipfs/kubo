@@ -161,7 +161,7 @@ running a public gateway, upgrading to 0.4.20 will likely fix them.
 #### Relays
 
 After AutoRelay was introduced in go-ipfs 0.4.19, the number of peers connecting
-through relays ski-rocketed to over 120K concurrent peers. This highlighted some
+through relays skyrocketed to over 120K concurrent peers. This highlighted some
 performance issues that we've now fixed in this release. Specifically:
 
 * We've significantly reduced the amount of memory allocated per-peer.
@@ -172,10 +172,10 @@ performance issues that we've now fixed in this release. Specifically:
   rapidly forming new connections. This will actually help _all_ nodes but will
   especially help relays.
   
-If you've enabled relays in go-ipfs 0.4.19 and it hasn't burned down your
-machine yet, this release should improve things significantly. However, relays
-are still under heavy load so running an open relay will continue to be resource
-intensive.
+If you've enabled relay _hop_ (`Swarm.EnableRelayHop`) in go-ipfs 0.4.19 and it
+hasn't burned down your machine yet, this release should improve things
+significantly. However, relays are still under heavy load so running an open
+relay will continue to be resource intensive.
 
 We're continuing to investigate this issue and have a few more patches on the
 way that, unfortunately, won't make it into this release.
