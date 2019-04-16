@@ -66,9 +66,9 @@ def gobuild_step = { list ->
       list.each { platform ->
         timeout(time: check_timeout, unit: 'MINUTES') {
           withEnv(["GOOS=${platform[0]}", "GOARCH=${platform[1]}"]) {
-            run "go build -i -ldflags=\"-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=${env.SUBNAME}-${env.BUILD_NUMBER}\"  -o cmd/ipfs/ipfs github.com/ipfs/go-ipfs/cmd/ipfs"
-            run "cp cmd/ipfs/ipfs cmd/ipfs/dist; cd cmd/ipfs/dist; tar -czvf ../go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz ."
-            archiveArtifacts artifacts: "cmd/ipfs/go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz", fingerprint: true
+            run "go build -i -ldflags=\"-X github.com/ipfs/go-ipfs/repo/config.CurrentCommit=${env.SUBNAME}-${env.BUILD_NUMBER}\"  -o cmd/btfs/ipfs github.com/ipfs/go-ipfs/cmd/btfs"
+            run "cp cmd/btfs/ipfs cmd/btfs/dist; cd cmd/btfs/dist; tar -czvf ../go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz ."
+            archiveArtifacts artifacts: "cmd/btfs/go-ipfs_${env.GOOS}-${env.GOARCH}-${env.SUBNAME}-${env.BUILD_NUMBER}.tar.gz", fingerprint: true
           }
         }
       }

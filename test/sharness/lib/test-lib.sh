@@ -11,7 +11,7 @@
 # add current directory to path, for ipfs tool.
 if test "$MAKE_SKIP_PATH" != "1"; then
   BIN=$(cd .. && echo `pwd`/bin)
-  BIN2=$(cd ../.. && echo `pwd`/cmd/ipfs)
+  BIN2=$(cd ../.. && echo `pwd`/cmd/btfs)
   PATH=${BIN2}:${BIN}:${PATH}
 
   # assert the `ipfs` we're using is the right one.

@@ -41,6 +41,6 @@ COPY . $SRC_PATH
 RUN chown -R user:user $GOPATH
 USER user
 # mkdir .git/objects is required for git to detect repo
-RUN mkdir .git/objects && make cmd/ipfs/ipfs #populate go cache
+RUN mkdir .git/objects && make cmd/btfs/ipfs #populate go cache
 
 CMD ["/bin/bash", "-c", "trap : TERM INT; sleep infinity & wait"]

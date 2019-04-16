@@ -35,13 +35,13 @@ include $(dir)/Rules.mk
 dir := test
 include $(dir)/Rules.mk
 
-dir := cmd/ipfs
+dir := cmd/btfs
 include $(dir)/Rules.mk
 
 # include this file only if coverage target is executed
 # it is quite expensive
 ifneq ($(filter coverage% clean distclean test/unit/gotest.junit.xml,$(MAKECMDGOALS)),)
-	# has to be after cmd/ipfs due to PATH
+	# has to be after cmd/btfs due to PATH
 	dir := coverage
 	include $(dir)/Rules.mk
 endif
@@ -92,7 +92,7 @@ nofuse: GOTAGS += nofuse
 nofuse: build
 .PHONY: nofuse
 
-install: cmd/ipfs-install
+install: cmd/btfs-install
 .PHONY: install
 
 install_unsupported: install
@@ -104,7 +104,7 @@ install_unsupported: install
 .PHONY: install_unsupported
 
 uninstall:
-	go clean -i ./cmd/ipfs
+	go clean -i ./cmd/btfs
 .PHONY: uninstall
 
 help:
@@ -116,10 +116,10 @@ help:
 	@echo 'BUILD TARGETS:'
 	@echo ''
 	@echo '  all          - print this help message'
-	@echo '  build        - Build binary at ./cmd/ipfs/ipfs'
+	@echo '  build        - Build binary at ./cmd/btfs/ipfs'
 	@echo '  nofuse       - Build binary with no fuse support'
 	@echo '  install      - Build binary and install into $$GOPATH/bin'
-#	@echo '  dist_install - TODO: c.f. ./cmd/ipfs/dist/README.md'
+#	@echo '  dist_install - TODO: c.f. ./cmd/btfs/dist/README.md'
 	@echo ''
 	@echo 'CLEANING TARGETS:'
 	@echo ''

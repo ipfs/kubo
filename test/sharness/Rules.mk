@@ -8,7 +8,7 @@ DEPS_$(d) := test/bin/random test/bin/multihash test/bin/pollEndpoint \
 	   test/bin/iptb test/bin/go-sleep test/bin/random-files \
 	   test/bin/go-timeout test/bin/hang-fds test/bin/ma-pipe-unidir \
 	   test/bin/cid-fmt
-DEPS_$(d) += cmd/ipfs/ipfs
+DEPS_$(d) += cmd/btfs/ipfs
 DEPS_$(d) += $(d)/clean-test-results
 DEPS_$(d) += $(SHARNESS_$(d))
 

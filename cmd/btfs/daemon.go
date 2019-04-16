@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	version "github.com/ipfs/go-ipfs"
-	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
+	utilmain "github.com/ipfs/go-ipfs/cmd/btfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"

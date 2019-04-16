@@ -373,7 +373,7 @@ For brevity, we've omitted go-libp2p and go-ipld packages. These package tables 
 
 Some places to get you started on the codebase:
 
-- Main file: [./cmd/ipfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/ipfs/main.go)
+- Main file: [./cmd/btfs/main.go](https://github.com/ipfs/go-ipfs/blob/master/cmd/btfs/main.go)
 - CLI Commands: [./core/commands/](https://github.com/ipfs/go-ipfs/tree/master/core/commands)
 - Bitswap (the data trading engine): [go-bitswap](https://github.com/ipfs/go-bitswap)
 - libp2p
