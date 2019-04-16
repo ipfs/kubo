@@ -64,8 +64,8 @@ it doesn't think it's being used.
 
 It can now resolve `/dnsaddr` addresses that _don't_ end in a peer ID. For
 example, you can now run `ipfs swarm connect /dnsaddr/bootstrap.libp2p.io` to
-connect to one of the bootstrap peers at random. NOTE: This is could connect you
-to an _arbitrary_ peer as DNS is not secure (by default). Please do not rely on
+connect to one of the bootstrap peers at random. NOTE: This could connect you to
+an _arbitrary_ peer as DNS is not secure (by default). Please do not rely on
 this except for testing or unless you know what you're doing.
 
 Finally, `ipfs swarm connect` now returns _all_ errors on failure. This should
