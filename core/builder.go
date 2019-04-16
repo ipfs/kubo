@@ -5,7 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"github.com/ipfs/go-ipfs/provider"
+	"fmt"
+
 	"os"
 	"syscall"
 	"time"
@@ -15,7 +16,7 @@ import (
 	pin "github.com/ipfs/go-ipfs/pin"
 	repo "github.com/ipfs/go-ipfs/repo"
 	cidv0v1 "github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
-	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
+	verifbs "github.com/ipfs/go-ipfs/thirdparty/verifbs"
 
 	bserv "github.com/ipfs/go-blockservice"
 	ds "github.com/ipfs/go-datastore"
@@ -25,6 +26,7 @@ import (
 	cfg "github.com/ipfs/go-ipfs-config"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
+	provider "github.com/ipfs/go-ipfs/provider"
 	ipns "github.com/ipfs/go-ipns"
 	dag "github.com/ipfs/go-merkledag"
 	metrics "github.com/ipfs/go-metrics-interface"
@@ -36,6 +38,7 @@ import (
 	p2phost "github.com/libp2p/go-libp2p-host"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
+	pstoreds "github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	record "github.com/libp2p/go-libp2p-record"
 )
@@ -130,23 +133,33 @@ func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 }
 
 // NewNode constructs and returns an IpfsNode using the given cfg.
-func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
-	if cfg == nil {
-		cfg = new(BuildCfg)
+func NewNode(ctx context.Context, bcfg *BuildCfg) (*IpfsNode, error) {
+	if bcfg == nil {
+		bcfg = new(BuildCfg)
 	}
 
-	err := cfg.fillDefaults()
+	err := bcfg.fillDefaults()
 	if err != nil {
 		return nil, err
 	}
 
 	ctx = metrics.CtxScope(ctx, "ipfs")
 
+	config, err := bcfg.Repo.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	ps, err := setupPeerstore(ctx, bcfg.Repo.Datastore(), &config.Experimental.Peerstore)
+	if err != nil {
+		return nil, fmt.Errorf("failed while creating peerstore: %s", err)
+	}
+
 	n := &IpfsNode{
-		IsOnline:  cfg.Online,
-		Repo:      cfg.Repo,
+		IsOnline:  bcfg.Online,
+		Repo:      bcfg.Repo,
 		ctx:       ctx,
-		Peerstore: pstoremem.NewPeerstore(),
+		Peerstore: ps,
 	}
 
 	n.RecordValidator = record.NamespacedValidator{
@@ -157,7 +170,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	// TODO: this is a weird circular-ish dependency, rework it
 	n.proc = goprocessctx.WithContextAndTeardown(ctx, n.teardown)
 
-	if err := setupNode(ctx, n, cfg); err != nil {
+	if err := setupNode(ctx, n, bcfg); err != nil {
 		n.Close()
 		return nil, err
 	}
@@ -290,4 +303,40 @@ func setupNode(ctx context.Context, n *IpfsNode, cfg *BuildCfg) error {
 	}
 
 	return n.loadFilesRoot()
+}
+
+func setupPeerstore(ctx context.Context, dstore repo.Datastore, pcfg *cfg.Peerstore) (pstore.Peerstore, error) {
+	switch pcfg.Type {
+	case "", cfg.PeerstoreMemory:
+		return pstoremem.NewPeerstore(), nil
+
+	case cfg.PeerstoreDatastore:
+		dcfg := pcfg.Datastore
+		opts := pstoreds.DefaultOpts()
+		opts.GCLookaheadInterval = 0 // ensure lookahead is disabled.
+
+		if dcfg.Cache.Disable {
+			opts.CacheSize = 0
+		} else if dcfg.Cache.Size > 0 {
+			opts.CacheSize = uint(dcfg.Cache.Size)
+		}
+
+		if dcfg.GC.Disable {
+			opts.GCPurgeInterval = 0
+		} else if dcfg.GC.PurgeIntervalMillis > 0 {
+			opts.GCPurgeInterval = time.Duration(dcfg.GC.PurgeIntervalMillis) * time.Millisecond
+		}
+
+		if dcfg.GC.LookaheadIntervalMillis > 0 {
+			opts.GCLookaheadInterval = time.Duration(dcfg.GC.LookaheadIntervalMillis) * time.Millisecond
+		}
+
+		if dcfg.GC.InitDelayMillis != nil {
+			opts.GCInitialDelay = time.Duration(*dcfg.GC.InitDelayMillis) * time.Millisecond
+		}
+
+		return pstoreds.NewPeerstore(ctx, dstore, opts)
+	}
+
+	return nil, fmt.Errorf("unsupported peerstore type: %s", pcfg.Type)
 }
