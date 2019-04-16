@@ -4,6 +4,6 @@ package ipfs
 var CurrentCommit string
 
 // CurrentVersionNumber is the current application's version literal
-const CurrentVersionNumber = "0.4.20"
+const CurrentVersionNumber = "0.4.21-dev"
 
 const ApiVersion = "/go-ipfs/" + CurrentVersionNumber + "/"
