@@ -40,7 +40,6 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	mplex "github.com/whyrusleeping/go-smux-multiplex"
 	yamux "github.com/whyrusleeping/go-smux-yamux"
-	"github.com/whyrusleeping/multiaddr-filter"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 	"go.uber.org/fx"
 
@@ -98,7 +97,7 @@ func Peerstore(id peer.ID, sk crypto.PrivKey) peerstore.Peerstore {
 
 func P2PAddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
 	for _, s := range cfg.Swarm.AddrFilters {
-		f, err := mask.NewMask(s)
+		f, err := mamask.NewMask(s)
 		if err != nil {
 			return opts, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
 		}
