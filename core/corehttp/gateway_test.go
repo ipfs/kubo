@@ -176,6 +176,7 @@ func TestGatewayGet(t *testing.T) {
 	// Unfortunately, this may not work on all platforms as file type
 	// detection is platform dependent.
 	ns["/ipns/example.man"] = path.FromString(k.String())
+	ns["/ipns/example.man/file"] = path.FromString(k.String())
 
 	t.Log(ts.URL)
 	for i, test := range []struct {
@@ -190,6 +191,7 @@ func TestGatewayGet(t *testing.T) {
 		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"localhost:5001", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
+		{"localhost:5001", "/ipns%2Fexample.com", http.StatusBadRequest, "invalid ipfs path: invalid 'ipfs ref' path\n"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 
 		{"working.example.com", "/", http.StatusOK, "fnord"},
@@ -614,5 +616,63 @@ func TestVersion(t *testing.T) {
 
 	if !strings.Contains(s, "Protocol Version: "+id.LibP2PVersion) {
 		t.Fatalf("response doesn't contain protocol version:\n%s", s)
+	}
+}
+
+func TestUnescapePath(t *testing.T) {
+	type testCase struct {
+		in  string
+		out string
+		err bool
+	}
+
+	testCases := []testCase{
+		testCase{
+			in:  "",
+			out: "",
+		},
+		testCase{
+			in:  "/AC%2FDC/",
+			out: "/AC%2FDC/",
+		},
+		testCase{
+			in:  "/AC%2FDC/sad%20sad",
+			out: "/AC%2FDC/sad sad",
+		},
+		testCase{
+			in:  "%",
+			out: "",
+			err: true,
+		},
+		testCase{
+			in:  "/",
+			out: "/",
+		},
+		testCase{
+			in:  "Fran%C3%A7ois",
+			out: "François",
+		},
+		testCase{
+			in:  "/foo%3F%2F%20%23%3C%27/",
+			out: "/foo?%2F #<'/",
+		},
+		testCase{
+			in:  "%2F",
+			out: "%2F",
+		},
+	}
+
+	for _, testCase := range testCases {
+		out, err := unescapePath(testCase.in)
+		if out != testCase.out {
+			t.Fatalf("test case failed {in: %s, out: %s, err: %t} but got: `%s', err: `%v'",
+				testCase.in, testCase.out, testCase.err, out, err,
+			)
+		}
+		if testCase.err != (err != nil) {
+			t.Fatalf("test case failed {in: %s, out: %s, err: %t} but got: `%s', err: `%v'",
+				testCase.in, testCase.out, testCase.err, out, err,
+			)
+		}
 	}
 }

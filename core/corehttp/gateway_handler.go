@@ -18,7 +18,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	"github.com/ipfs/go-ipfs-files"
+	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-path"
@@ -27,13 +27,14 @@ import (
 	"github.com/ipfs/go-unixfs/importer"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/libp2p/go-libp2p-routing"
+	routing "github.com/libp2p/go-libp2p-routing"
 	"github.com/multiformats/go-multibase"
 )
 
 const (
 	ipfsPathPrefix = "/ipfs/"
 	ipnsPathPrefix = "/ipns/"
+	escapedSlash   = "%2F"
 )
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
@@ -105,7 +106,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		errmsg = errmsg + "read only access"
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
-		errmsg = errmsg + "bad request for " + r.URL.Path
+		errmsg = errmsg + "bad request for " + r.URL.EscapedPath()
 	}
 	fmt.Fprint(w, errmsg)
 }
@@ -120,8 +121,12 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
+	urlPath, err := unescapePath(escapedURLPath)
+	if err != nil {
+		webError(w, "cant unescapePath "+escapedURLPath, err, http.StatusBadRequest)
+		return
+	}
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
@@ -389,11 +394,18 @@ func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter,
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
+	escapedURLPath := r.URL.EscapedPath()
+	urlPath, err := unescapePath(escapedURLPath)
+	if err != nil {
+		webError(w, "cant unescapePath "+escapedURLPath, err, http.StatusBadRequest)
+		return
+	}
+
 	// TODO(cryptix): move me to ServeHTTP and pass into all handlers
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
-	rootPath, err := path.ParsePath(r.URL.Path)
+	rootPath, err := path.ParsePath(urlPath)
 	if err != nil {
 		webError(w, "putHandler: IPFS path not valid", err, http.StatusBadRequest)
 		return
@@ -496,7 +508,13 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
-	urlPath := r.URL.Path
+	escapedURLPath := r.URL.EscapedPath()
+	urlPath, err := unescapePath(escapedURLPath)
+	if err != nil {
+		webError(w, "cant unescapePath "+escapedURLPath, err, http.StatusBadRequest)
+		return
+	}
+
 	ctx, cancel := context.WithCancel(i.node.Context())
 	defer cancel()
 
@@ -610,4 +628,23 @@ func getFilename(s string) string {
 		return ""
 	}
 	return gopath.Base(s)
+}
+
+// unescapePath escapes an original path as usual expect escaped slashes
+func unescapePath(originalPath string) (string, error) {
+	pathSegments := strings.Split(originalPath, escapedSlash)
+
+	unescapedPathSegments := make([]string, 0, len(pathSegments))
+	for _, pathSegment := range pathSegments {
+		unescapedPathSegment, err := url.PathUnescape(pathSegment)
+		if err != nil {
+			return "", fmt.Errorf("cant unescape segment (%s) from path (%s)",
+				originalPath, pathSegment,
+			)
+		}
+
+		unescapedPathSegments = append(unescapedPathSegments, unescapedPathSegment)
+	}
+
+	return strings.Join(unescapedPathSegments, escapedSlash), nil
 }
