@@ -15,6 +15,7 @@ import (
 	unixfs_pb "github.com/ipfs/go-unixfs/pb"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 // LsLink contains printable data for a single ipld link in ls output
@@ -131,12 +132,7 @@ The JSON output contains type information.
 		}
 
 		for i, fpath := range paths {
-			p, err := iface.ParsePath(fpath)
-			if err != nil {
-				return err
-			}
-
-			results, err := api.Unixfs().Ls(req.Context, p,
+			results, err := api.Unixfs().Ls(req.Context, path.New(fpath),
 				options.Unixfs.ResolveChildren(resolveSize || resolveType))
 			if err != nil {
 				return err

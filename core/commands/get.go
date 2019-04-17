@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	gopath "path"
 	"path/filepath"
 	"strings"
 
@@ -17,7 +17,7 @@ import (
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/whyrusleeping/tar-utils"
 	"gopkg.in/cheggaaa/pb.v1"
 )
@@ -71,10 +71,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		p := path.New(req.Arguments[0])
 
 		file, err := api.Unixfs().Get(req.Context, p)
 		if err != nil {
@@ -267,8 +264,8 @@ func (i *identityWriteCloser) Close() error {
 }
 
 func fileArchive(f files.Node, name string, archive bool, compression int) (io.Reader, error) {
-	cleaned := path.Clean(name)
-	_, filename := path.Split(cleaned)
+	cleaned := gopath.Clean(name)
+	_, filename := gopath.Split(cleaned)
 
 	// need to connect a writer to a reader
 	piper, pipew := io.Pipe()

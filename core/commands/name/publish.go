@@ -12,6 +12,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var (
@@ -112,10 +113,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			opts = append(opts, options.Name.TTL(d))
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		p := path.New(req.Arguments[0])
 
 		if verifyExists, _ := req.Options[resolveOptionName].(bool); verifyExists {
 			_, err := api.ResolveNode(req.Context, p)

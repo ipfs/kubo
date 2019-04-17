@@ -22,14 +22,15 @@ import (
 	unixfile "github.com/ipfs/go-unixfs/file"
 	uio "github.com/ipfs/go-unixfs/io"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type UnixfsAPI CoreAPI
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
-func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (coreiface.ResolvedPath, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options.UnixfsAddOption) (path.Resolved, error) {
 	settings, prefix, err := options.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -130,10 +131,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, err
 	}
 
-	return coreiface.IpfsPath(nd.Cid()), nil
+	return path.IpfsPath(nd.Cid()), nil
 }
 
-func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, error) {
+func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {
 	ses := api.core().getSession(ctx)
 
 	nd, err := ses.ResolveNode(ctx, p)
@@ -146,7 +147,7 @@ func (api *UnixfsAPI) Get(ctx context.Context, p coreiface.Path) (files.Node, er
 
 // Ls returns the contents of an IPFS or IPNS object(s) at path p, with the format:
 // `<link base58 hash> <link size in bytes> <link name>`
-func (api *UnixfsAPI) Ls(ctx context.Context, p coreiface.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.UnixfsLsOption) (<-chan coreiface.DirEntry, error) {
 	settings, err := options.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err

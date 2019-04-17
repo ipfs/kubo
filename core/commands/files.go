@@ -26,6 +26,7 @@ import (
 	"github.com/ipfs/go-mfs"
 	ft "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/interface-go-ipfs-core"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -363,12 +364,7 @@ var filesCpCmd = &cmds.Command{
 func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
 	switch {
 	case strings.HasPrefix(p, "/ipfs/"):
-		np, err := iface.ParsePath(p)
-		if err != nil {
-			return nil, err
-		}
-
-		return api.ResolveNode(ctx, np)
+		return api.ResolveNode(ctx, path.New(p))
 	default:
 		fsn, err := mfs.Lookup(node.FilesRoot, p)
 		if err != nil {

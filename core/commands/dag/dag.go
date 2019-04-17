@@ -15,8 +15,8 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	path "github.com/ipfs/go-path"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	ipfspath "github.com/ipfs/go-path"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -160,12 +160,7 @@ format.
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		rp, err := api.ResolvePath(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -205,12 +200,7 @@ var DagResolveCmd = &cmds.Command{
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		rp, err := api.ResolvePath(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -243,7 +233,7 @@ var DagResolveCmd = &cmds.Command{
 			}
 			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
-				p = path.Join([]string{p, out.RemPath})
+				p = ipfspath.Join([]string{p, out.RemPath})
 			}
 
 			fmt.Fprint(w, p)

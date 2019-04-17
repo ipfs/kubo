@@ -11,8 +11,8 @@ import (
 
 	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -65,12 +65,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 			return err
 		}
 
-		p, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		b, err := api.Block().Stat(req.Context, p)
+		b, err := api.Block().Stat(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -107,12 +102,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 			return err
 		}
 
-		p, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		r, err := api.Block().Get(req.Context, p)
+		r, err := api.Block().Get(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -234,15 +224,7 @@ It takes a list of base58 encoded multihashes to remove.
 
 		// TODO: use batching coreapi when done
 		for _, b := range req.Arguments {
-			p, err := coreiface.ParsePath(b)
-			if err != nil {
-				return err
-			}
-
-			rp, err := api.ResolvePath(req.Context, p)
-			if err != nil {
-				return err
-			}
+			rp, err := api.ResolvePath(req.Context, path.New(b))
 
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
 			if err != nil {

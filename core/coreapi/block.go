@@ -14,12 +14,13 @@ import (
 	cid "github.com/ipfs/go-cid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type BlockAPI CoreAPI
 
 type BlockStat struct {
-	path coreiface.ResolvedPath
+	path path.Resolved
 	size int
 }
 
@@ -57,10 +58,10 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		api.pinning.PinWithMode(b.Cid(), pin.Recursive)
 	}
 
-	return &BlockStat{path: coreiface.IpldPath(b.Cid()), size: len(data)}, nil
+	return &BlockStat{path: path.IpldPath(b.Cid()), size: len(data)}, nil
 }
 
-func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, error) {
+func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
 	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
@@ -74,7 +75,7 @@ func (api *BlockAPI) Get(ctx context.Context, p coreiface.Path) (io.Reader, erro
 	return bytes.NewReader(b.RawData()), nil
 }
 
-func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.BlockRmOption) error {
+func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRmOption) error {
 	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return err
@@ -112,7 +113,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.Bl
 	}
 }
 
-func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.BlockStat, error) {
+func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (coreiface.BlockStat, error) {
 	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return nil, err
@@ -124,7 +125,7 @@ func (api *BlockAPI) Stat(ctx context.Context, p coreiface.Path) (coreiface.Bloc
 	}
 
 	return &BlockStat{
-		path: coreiface.IpldPath(b.Cid()),
+		path: path.IpldPath(b.Cid()),
 		size: len(b.RawData()),
 	}, nil
 }
@@ -133,7 +134,7 @@ func (bs *BlockStat) Size() int {
 	return bs.size
 }
 
-func (bs *BlockStat) Path() coreiface.ResolvedPath {
+func (bs *BlockStat) Path() path.Resolved {
 	return bs.path
 }
 

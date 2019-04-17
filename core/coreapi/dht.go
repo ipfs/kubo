@@ -12,6 +12,7 @@ import (
 	dag "github.com/ipfs/go-merkledag"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	routing "github.com/libp2p/go-libp2p-routing"
@@ -33,7 +34,7 @@ func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (pstore.PeerInfo, er
 	return pi, nil
 }
 
-func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...caopts.DhtFindProvidersOption) (<-chan pstore.PeerInfo, error) {
+func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopts.DhtFindProvidersOption) (<-chan pstore.PeerInfo, error) {
 	settings, err := caopts.DhtFindProvidersOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -58,7 +59,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p coreiface.Path, opts ...
 	return pchan, nil
 }
 
-func (api *DhtAPI) Provide(ctx context.Context, path coreiface.Path, opts ...caopts.DhtProvideOption) error {
+func (api *DhtAPI) Provide(ctx context.Context, path path.Path, opts ...caopts.DhtProvideOption) error {
 	settings, err := caopts.DhtProvideOptions(opts...)
 	if err != nil {
 		return err

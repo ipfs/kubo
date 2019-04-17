@@ -15,8 +15,8 @@ import (
 	"github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type Node struct {
@@ -91,10 +91,7 @@ is the raw data of the object.
 			return err
 		}
 
-		path, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		path := path.New(req.Arguments[0])
 
 		data, err := api.Object().Data(req.Context, path)
 		if err != nil {
@@ -133,10 +130,7 @@ multihash.
 			return err
 		}
 
-		path, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		path := path.New(req.Arguments[0])
 
 		rp, err := api.ResolvePath(req.Context, path)
 		if err != nil {
@@ -228,10 +222,7 @@ Supported values are:
 			return err
 		}
 
-		path, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		path := path.New(req.Arguments[0])
 
 		datafieldenc, _ := req.Options[encodingOptionName].(string)
 		if err != nil {
@@ -323,12 +314,7 @@ var ObjectStatCmd = &cmds.Command{
 			return err
 		}
 
-		path, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		ns, err := api.Object().Stat(req.Context, path)
+		ns, err := api.Object().Stat(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
