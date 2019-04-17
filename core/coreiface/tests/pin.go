@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"math"
 	"strings"
 	"testing"
@@ -127,12 +128,12 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, iface.IpldPath(nd2.Cid()))
+	err = api.Pin().Add(ctx, path.IpldPath(nd2.Cid()))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = api.Pin().Add(ctx, iface.IpldPath(nd3.Cid()), opt.Pin.Recursive(false))
+	err = api.Pin().Add(ctx, path.IpldPath(nd3.Cid()), opt.Pin.Recursive(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,8 +156,8 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != iface.IpldPath(nd3.Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpfsPath(nd2.Cid()).String())
+	if list[0].Path().String() != path.IpldPath(nd3.Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpfsPath(nd2.Cid()).String())
 	}
 
 	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Recursive())
@@ -168,8 +169,8 @@ func (tp *provider) TestPinRecursive(t *testing.T) {
 		t.Errorf("unexpected pin list len: %d", len(list))
 	}
 
-	if list[0].Path().String() != iface.IpldPath(nd2.Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), iface.IpldPath(nd3.Cid()).String())
+	if list[0].Path().String() != path.IpldPath(nd2.Cid()).String() {
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpldPath(nd3.Cid()).String())
 	}
 
 	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Indirect())

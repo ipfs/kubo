@@ -2,8 +2,9 @@ package tests
 
 import (
 	"context"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"math"
-	"path"
+	gopath "path"
 	"strings"
 	"testing"
 
@@ -113,10 +114,7 @@ func (tp *provider) TestDagPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p, err := coreiface.ParsePath(path.Join(nd.Cid().String(), "lnk"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	p := path.New(gopath.Join(nd.Cid().String(), "lnk"))
 
 	rp, err := api.ResolvePath(ctx, p)
 	if err != nil {

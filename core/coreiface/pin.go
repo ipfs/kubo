@@ -2,14 +2,15 @@ package iface
 
 import (
 	"context"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 // Pin holds information about pinned resource
 type Pin interface {
 	// Path to the pinned object
-	Path() ResolvedPath
+	Path() path.Resolved
 
 	// Type of the pin
 	Type() string
@@ -27,7 +28,7 @@ type PinStatus interface {
 // BadPinNode is a node that has been marked as bad by Pin.Verify
 type BadPinNode interface {
 	// Path is the path of the node
-	Path() ResolvedPath
+	Path() path.Resolved
 
 	// Err is the reason why the node has been marked as bad
 	Err() error
@@ -37,17 +38,17 @@ type BadPinNode interface {
 type PinAPI interface {
 	// Add creates new pin, be default recursive - pinning the whole referenced
 	// tree
-	Add(context.Context, Path, ...options.PinAddOption) error
+	Add(context.Context, path.Path, ...options.PinAddOption) error
 
 	// Ls returns list of pinned objects on this node
 	Ls(context.Context, ...options.PinLsOption) ([]Pin, error)
 
 	// Rm removes pin for object specified by the path
-	Rm(context.Context, Path, ...options.PinRmOption) error
+	Rm(context.Context, path.Path, ...options.PinRmOption) error
 
 	// Update changes one pin to another, skipping checks for matching paths in
 	// the old tree
-	Update(ctx context.Context, from Path, to Path, opts ...options.PinUpdateOption) error
+	Update(ctx context.Context, from path.Path, to path.Path, opts ...options.PinUpdateOption) error
 
 	// Verify verifies the integrity of pinned objects
 	Verify(context.Context) (<-chan PinStatus, error)

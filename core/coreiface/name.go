@@ -3,8 +3,9 @@ package iface
 import (
 	"context"
 	"errors"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 var ErrResolveFailed = errors.New("could not resolve name")
@@ -14,11 +15,11 @@ type IpnsEntry interface {
 	// Name returns IpnsEntry name
 	Name() string
 	// Value returns IpnsEntry value
-	Value() Path
+	Value() path.Path
 }
 
 type IpnsResult struct {
-	Path
+	path.Path
 	Err error
 }
 
@@ -32,10 +33,10 @@ type IpnsResult struct {
 // You can use .Key API to list and generate more names and their respective keys.
 type NameAPI interface {
 	// Publish announces new IPNS name
-	Publish(ctx context.Context, path Path, opts ...options.NamePublishOption) (IpnsEntry, error)
+	Publish(ctx context.Context, path path.Path, opts ...options.NamePublishOption) (IpnsEntry, error)
 
 	// Resolve attempts to resolve the newest version of the specified name
-	Resolve(ctx context.Context, name string, opts ...options.NameResolveOption) (Path, error)
+	Resolve(ctx context.Context, name string, opts ...options.NameResolveOption) (path.Path, error)
 
 	// Search is a version of Resolve which outputs paths as they are discovered,
 	// reducing the time to first entry

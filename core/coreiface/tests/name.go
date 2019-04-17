@@ -2,9 +2,10 @@ package tests
 
 import (
 	"context"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"io"
 	"math/rand"
-	"path"
+	gopath "path"
 	"testing"
 	"time"
 
@@ -30,22 +31,18 @@ func (tp *provider) TestName(t *testing.T) {
 
 var rnd = rand.New(rand.NewSource(0x62796532303137))
 
-func addTestObject(ctx context.Context, api coreiface.CoreAPI) (coreiface.Path, error) {
+func addTestObject(ctx context.Context, api coreiface.CoreAPI) (path.Path, error) {
 	return api.Unixfs().Add(ctx, files.NewReaderFile(&io.LimitedReader{R: rnd, N: 4092}))
 }
 
-func appendPath(p coreiface.Path, sub string) coreiface.Path {
-	p, err := coreiface.ParsePath(path.Join(p.String(), sub))
-	if err != nil {
-		panic(err)
-	}
-	return p
+func appendPath(p path.Path, sub string) path.Path {
+	return path.New(gopath.Join(p.String(), sub))
 }
 
 func (tp *provider) TestPublishResolve(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	init := func() (coreiface.CoreAPI, coreiface.Path) {
+	init := func() (coreiface.CoreAPI, path.Path) {
 		apis, err := tp.MakeAPISwarm(ctx, true, 5)
 		if err != nil {
 			t.Fatal(err)
@@ -60,7 +57,6 @@ func (tp *provider) TestPublishResolve(t *testing.T) {
 		}
 		return api, p
 	}
-
 	run := func(t *testing.T, ropts []opt.NameResolveOption) {
 		t.Run("basic", func(t *testing.T) {
 			api, p := init()

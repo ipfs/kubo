@@ -2,11 +2,11 @@ package tests
 
 import (
 	"context"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"math"
 	"strings"
 	"testing"
 
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
 	ipldcbor "github.com/ipfs/go-ipld-cbor"
@@ -75,12 +75,7 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath(nd.String() + "/foo/bar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rp1, err := api.ResolvePath(ctx, p1)
+	rp1, err := api.ResolvePath(ctx, path.New(nd.String()+"/foo/bar"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,12 +106,7 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath(nd.Cid().String())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rp1, err := api.ResolvePath(ctx, p1)
+	rp1, err := api.ResolvePath(ctx, path.New(nd.Cid().String()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,12 +137,7 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath("/ipld/" + nd.Cid().String() + "/bar/baz")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = api.ResolvePath(ctx, p1)
+	_, err = api.ResolvePath(ctx, path.New("/ipld/"+nd.Cid().String()+"/bar/baz"))
 	if err == nil || !strings.Contains(err.Error(), "no such link found") {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -188,12 +173,7 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, err := coreiface.ParsePath("/ipld/" + nd.Cid().String() + "/foo")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rp, err := api.ResolvePath(ctx, p1)
+	rp, err := api.ResolvePath(ctx, path.New("/ipld/"+nd.Cid().String()+"/foo"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,12 +188,9 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 }
 
 func (tp *provider) TestPathJoin(t *testing.T) {
-	p1, err := coreiface.ParsePath("/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz")
-	if err != nil {
-		t.Fatal(err)
-	}
+	p1 := path.New("/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz")
 
-	if coreiface.Join(p1, "foo").String() != "/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz/foo" {
+	if path.Join(p1, "foo").String() != "/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz/foo" {
 		t.Error("unexpected path")
 	}
 }

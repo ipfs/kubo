@@ -1,11 +1,11 @@
-package iface
+package path
 
 import (
-	"github.com/ipfs/go-cid"
+	"strings"
+
+	cid "github.com/ipfs/go-cid"
 	ipfspath "github.com/ipfs/go-path"
 )
-
-//TODO: merge with ipfspath so we don't depend on it
 
 // Path is a generic wrapper for paths used in the API. A path can be resolved
 // to a CID using one of Resolve functions in the API.
@@ -23,6 +23,9 @@ type Path interface {
 	// Namespace returns the first component of the path.
 	//
 	// For example path "/ipfs/QmHash", calling Namespace() will return "ipfs"
+	//
+	// Calling this method on invalid paths (IsValid() != nil) will result in
+	// empty string
 	Namespace() string
 
 	// Mutable returns false if the data pointed to by this path in guaranteed
@@ -30,10 +33,15 @@ type Path interface {
 	//
 	// Note that resolved mutable path can be immutable.
 	Mutable() bool
+
+	// IsValid checks if this path is a valid ipfs Path, returning nil iff it is
+	// valid
+	IsValid() error
 }
 
-// ResolvedPath is a path which was resolved to the last resolvable node
-type ResolvedPath interface {
+// Resolved is a path which was resolved to the last resolvable node.
+// ResolvedPaths are guaranteed to return nil from `IsValid`
+type Resolved interface {
 	// Cid returns the CID of the node referenced by the path. Remainder of the
 	// path is guaranteed to be within the node.
 	//
@@ -94,7 +102,7 @@ type ResolvedPath interface {
 
 // path implements coreiface.Path
 type path struct {
-	path ipfspath.Path
+	path string
 }
 
 // resolvedPath implements coreiface.resolvedPath
@@ -107,14 +115,14 @@ type resolvedPath struct {
 
 // Join appends provided segments to the base path
 func Join(base Path, a ...string) Path {
-	s := ipfspath.Join(append([]string{base.String()}, a...))
-	return &path{path: ipfspath.FromString(s)}
+	s := strings.Join(append([]string{base.String()}, a...), "/")
+	return &path{path: s}
 }
 
 // IpfsPath creates new /ipfs path from the provided CID
-func IpfsPath(c cid.Cid) ResolvedPath {
+func IpfsPath(c cid.Cid) Resolved {
 	return &resolvedPath{
-		path:      path{ipfspath.Path("/ipfs/" + c.String())},
+		path:      path{"/ipfs/" + c.String()},
 		cid:       c,
 		root:      c,
 		remainder: "",
@@ -122,31 +130,30 @@ func IpfsPath(c cid.Cid) ResolvedPath {
 }
 
 // IpldPath creates new /ipld path from the provided CID
-func IpldPath(c cid.Cid) ResolvedPath {
+func IpldPath(c cid.Cid) Resolved {
 	return &resolvedPath{
-		path:      path{ipfspath.Path("/ipld/" + c.String())},
+		path:      path{"/ipld/" + c.String()},
 		cid:       c,
 		root:      c,
 		remainder: "",
 	}
 }
 
-// ParsePath parses string path to a Path
-func ParsePath(p string) (Path, error) {
-	pp, err := ipfspath.ParsePath(p)
-	if err != nil {
-		return nil, err
+// New parses string path to a Path
+func New(p string) Path {
+	if pp, err := ipfspath.ParsePath(p); err == nil {
+		p = pp.String()
 	}
 
-	return &path{path: pp}, nil
+	return &path{path: p}
 }
 
-// NewResolvedPath creates new ResolvedPath. This function performs no checks
+// NewResolvedPath creates new Resolved path. This function performs no checks
 // and is intended to be used by resolver implementations. Incorrect inputs may
 // cause panics. Handle with care.
-func NewResolvedPath(ipath ipfspath.Path, c cid.Cid, root cid.Cid, remainder string) ResolvedPath {
+func NewResolvedPath(ipath ipfspath.Path, c cid.Cid, root cid.Cid, remainder string) Resolved {
 	return &resolvedPath{
-		path:      path{ipath},
+		path:      path{ipath.String()},
 		cid:       c,
 		root:      root,
 		remainder: remainder,
@@ -154,19 +161,29 @@ func NewResolvedPath(ipath ipfspath.Path, c cid.Cid, root cid.Cid, remainder str
 }
 
 func (p *path) String() string {
-	return p.path.String()
+	return p.path
 }
 
 func (p *path) Namespace() string {
-	if len(p.path.Segments()) < 1 {
-		panic("path without namespace") //this shouldn't happen under any scenario
+	ip, err := ipfspath.ParsePath(p.path)
+	if err != nil {
+		return ""
 	}
-	return p.path.Segments()[0]
+
+	if len(ip.Segments()) < 1 {
+		panic("path without namespace") // this shouldn't happen under any scenario
+	}
+	return ip.Segments()[0]
 }
 
 func (p *path) Mutable() bool {
-	//TODO: MFS: check for /local
+	// TODO: MFS: check for /local
 	return p.Namespace() == "ipns"
+}
+
+func (p *path) IsValid() error {
+	_, err := ipfspath.ParsePath(p.path)
+	return err
 }
 
 func (p *resolvedPath) Cid() cid.Cid {
