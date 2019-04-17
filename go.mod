@@ -75,7 +75,7 @@ require (
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
 	github.com/libp2p/go-libp2p-net v0.0.2
-	github.com/libp2p/go-libp2p-peer v0.0.1
+	github.com/libp2p/go-libp2p-peer v0.1.0
 	github.com/libp2p/go-libp2p-peerstore v0.0.2
 	github.com/libp2p/go-libp2p-pnet v0.0.1
 	github.com/libp2p/go-libp2p-protocol v0.0.1
@@ -87,6 +87,7 @@ require (
 	github.com/libp2p/go-libp2p-routing-helpers v0.0.2
 	github.com/libp2p/go-libp2p-secio v0.0.1
 	github.com/libp2p/go-libp2p-swarm v0.0.2
+	github.com/libp2p/go-libp2p-tls v0.0.1
 	github.com/libp2p/go-maddr-filter v0.0.1
 	github.com/libp2p/go-stream-muxer v0.0.1
 	github.com/libp2p/go-testutil v0.0.1
@@ -94,11 +95,11 @@ require (
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.0
-	github.com/multiformats/go-multiaddr v0.0.1
+	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multiaddr-dns v0.0.2
 	github.com/multiformats/go-multiaddr-net v0.0.1
 	github.com/multiformats/go-multibase v0.0.1
-	github.com/multiformats/go-multihash v0.0.1
+	github.com/multiformats/go-multihash v0.0.2
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.2
@@ -110,10 +111,11 @@ require (
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	go.uber.org/atomic v1.3.2 // indirect
-	go.uber.org/dig v1.7.0
+	go.uber.org/dig v1.7.0 // indirect
 	go.uber.org/fx v1.9.0
+	go.uber.org/goleak v0.10.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
-	golang.org/x/sys v0.0.0-20190302025703-b6889370fb10
+	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
 	golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
