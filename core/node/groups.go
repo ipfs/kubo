@@ -14,12 +14,10 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/p2p"
-	"github.com/ipfs/go-ipfs/provider"
-	"github.com/ipfs/go-ipfs/reprovide"
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
+	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-path/resolver"
 	uio "github.com/ipfs/go-unixfs/io"
 	"go.uber.org/fx"
@@ -186,42 +184,6 @@ var IPNS = fx.Options(
 	fx.Provide(RecordValidator),
 )
 
-// Providers groups units managing provider routing records
-func Providers(cfg *config.Config) fx.Option {
-	reproviderInterval := kReprovideFrequency
-	if cfg.Reprovider.Interval != "" {
-		dur, err := time.ParseDuration(cfg.Reprovider.Interval)
-		if err != nil {
-			return fx.Error(err)
-		}
-
-		reproviderInterval = dur
-	}
-
-	var keyProvider fx.Option
-	switch cfg.Reprovider.Strategy {
-	case "all":
-		fallthrough
-	case "":
-		keyProvider = fx.Provide(reprovide.NewBlockstoreProvider)
-	case "roots":
-		keyProvider = fx.Provide(reprovide.NewPinnedProvider(true))
-	case "pinned":
-		keyProvider = fx.Provide(reprovide.NewPinnedProvider(false))
-	default:
-		return fx.Error(fmt.Errorf("unknown reprovider strategy '%s'", cfg.Reprovider.Strategy))
-	}
-
-	return fx.Options(
-		fx.Provide(ProviderQueue),
-		fx.Provide(ProviderCtor),
-		fx.Provide(ReproviderCtor(reproviderInterval)),
-		keyProvider,
-
-		fx.Invoke(Reprovider),
-	)
-}
-
 // Online groups online-only units
 func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
@@ -270,17 +232,19 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(p2p.New),
 
 		LibP2P(bcfg, cfg),
-		Providers(cfg),
+		OnlineProviders(cfg),
 	)
 }
 
 // Offline groups offline alternatives to Online units
-var Offline = fx.Options(
-	fx.Provide(offline.Exchange),
-	fx.Provide(Namesys(0)),
-	fx.Provide(offroute.NewOfflineRouter),
-	fx.Provide(provider.NewOfflineProvider),
-)
+func Offline(cfg *config.Config) fx.Option {
+	return fx.Options(
+		fx.Provide(offline.Exchange),
+		fx.Provide(Namesys(0)),
+		fx.Provide(offroute.NewOfflineRouter),
+		OfflineProviders(cfg),
+	)
+}
 
 // Core groups basic IPFS services
 var Core = fx.Options(
@@ -295,7 +259,7 @@ func Networked(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	if bcfg.Online {
 		return Online(bcfg, cfg)
 	}
-	return Offline
+	return Offline(cfg)
 }
 
 // IPFS builds a group of fx Options based on the passed BuildCfg

@@ -68,7 +68,7 @@ type CoreAPI struct {
 	namesys namesys.NameSystem
 	routing routing.IpfsRouting
 
-	provider provider.Provider
+	provider provider.System
 
 	pubSub *pubsub.PubSub
 

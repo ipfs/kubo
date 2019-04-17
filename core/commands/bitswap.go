@@ -233,7 +233,7 @@ Trigger reprovider to announce our data to network.
 			return ErrNotOnline
 		}
 
-		err = nd.Reprovider.Trigger(req.Context)
+		err = nd.Provider.Reprovide(req.Context)
 		if err != nil {
 			return err
 		}
