@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/bootstrap"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
@@ -45,7 +46,7 @@ func TestRepublish(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bsinf := core.BootstrapConfigWithPeers(
+	bsinf := bootstrap.BootstrapConfigWithPeers(
 		[]pstore.PeerInfo{
 			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
 		},

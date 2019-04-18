@@ -100,6 +100,7 @@ require (
 	github.com/multiformats/go-multibase v0.0.1
 	github.com/multiformats/go-multihash v0.0.1
 	github.com/opentracing/opentracing-go v1.0.2
+	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.2
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
@@ -108,6 +109,10 @@ require (
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
+	go.uber.org/atomic v1.3.2 // indirect
+	go.uber.org/dig v1.7.0
+	go.uber.org/fx v1.9.0
+	go.uber.org/multierr v1.1.0 // indirect
 	golang.org/x/sys v0.0.0-20190302025703-b6889370fb10
 	golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect

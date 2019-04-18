@@ -30,6 +30,8 @@ var platformFuseChecks = func(*core.IpfsNode) error {
 	return nil
 }
 
+type errNeedFuseVersion error // used in tests, needed in OSX
+
 func Mount(node *core.IpfsNode, fsdir, nsdir string) error {
 	// check if we already have live mounts.
 	// if the user said "Mount", then there must be something wrong.

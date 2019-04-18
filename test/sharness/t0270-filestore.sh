@@ -74,6 +74,8 @@ init_ipfs_filestore() {
       grep "either the filestore or the urlstore must be enabled" add_out
   '
 
+  assert_repo_size_less_than 1000000
+
   test_expect_success "enable urlstore config setting" '
     ipfs config --json Experimental.UrlstoreEnabled true
   '
@@ -83,6 +85,8 @@ init_ipfs_filestore() {
     test_must_fail ipfs add --nocopy -r somedir 2> add_out &&
       grep "filestore is not enabled" add_out
   '
+
+  assert_repo_size_less_than 1000000
 
   test_expect_success "enable filestore config setting" '
     ipfs config --json Experimental.UrlstoreEnabled true &&

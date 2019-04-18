@@ -1,10 +1,11 @@
-package core_test
+package resolve_test
 
 import (
 	"testing"
 
-	core "github.com/ipfs/go-ipfs/core"
 	coremock "github.com/ipfs/go-ipfs/core/mock"
+	"github.com/ipfs/go-ipfs/namesys/resolve"
+
 	path "github.com/ipfs/go-path"
 )
 
@@ -14,17 +15,17 @@ func TestResolveNoComponents(t *testing.T) {
 		t.Fatal("Should have constructed a mock node", err)
 	}
 
-	_, err = core.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/ipns/"))
+	_, err = resolve.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/ipns/"))
 	if err != path.ErrNoComponents {
 		t.Fatal("Should error with no components (/ipns/).", err)
 	}
 
-	_, err = core.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/ipfs/"))
+	_, err = resolve.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/ipfs/"))
 	if err != path.ErrNoComponents {
 		t.Fatal("Should error with no components (/ipfs/).", err)
 	}
 
-	_, err = core.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/../.."))
+	_, err = resolve.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/../.."))
 	if err != path.ErrBadPath {
 		t.Fatal("Should error with invalid path.", err)
 	}

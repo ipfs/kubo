@@ -10,6 +10,7 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
+	bootstrap2 "github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
@@ -118,7 +119,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	bis := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
-	bcfg := core.BootstrapConfigWithPeers([]pstore.PeerInfo{bis})
+	bcfg := bootstrap2.BootstrapConfigWithPeers([]pstore.PeerInfo{bis})
 	if err := adder.Bootstrap(bcfg); err != nil {
 		return err
 	}

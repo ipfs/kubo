@@ -21,7 +21,7 @@ var daemonShutdownCmd = &cmds.Command{
 			return cmdkit.Errorf(cmdkit.ErrClient, "daemon not running")
 		}
 
-		if err := nd.Process().Close(); err != nil {
+		if err := nd.Close(); err != nil {
 			log.Error("error while shutting down ipfs daemon:", err)
 		}
 
