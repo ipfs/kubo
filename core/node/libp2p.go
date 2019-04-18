@@ -84,15 +84,19 @@ var DHTOption RoutingOption = constructDHTRouting
 var DHTClientOption RoutingOption = constructClientDHTRouting
 var NilRouterOption RoutingOption = nilrouting.ConstructNilRouting
 
-func Peerstore(id peer.ID, sk crypto.PrivKey) peerstore.Peerstore {
+func Peerstore(id peer.ID, sk crypto.PrivKey) (peerstore.Peerstore, error) {
 	ps := pstoremem.NewPeerstore()
 
 	if sk != nil {
-		ps.AddPrivKey(id, sk)
-		ps.AddPubKey(id, sk.GetPublic())
+		if err := ps.AddPubKey(id, sk.GetPublic()); err != nil {
+			return nil, err
+		}
+		if err := ps.AddPrivKey(id, sk); err != nil {
+			return nil, err
+		}
 	}
 
-	return ps
+	return ps, nil
 }
 
 func P2PAddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
@@ -198,7 +202,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 		if err != nil {
 			return nil, err
 		}
-		noAnnAddrs[maddr.String()] = true
+		noAnnAddrs[string(maddr.Bytes())] = true
 	}
 
 	return func(allAddrs []ma.Multiaddr) []ma.Multiaddr {
@@ -212,7 +216,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 		var out []ma.Multiaddr
 		for _, maddr := range addrs {
 			// check for exact matches
-			ok := noAnnAddrs[maddr.String()]
+			ok := noAnnAddrs[string(maddr.Bytes())]
 			// check for /ipcidr matches
 			if !ok && !filters.AddrBlocked(maddr) {
 				out = append(out, maddr)
