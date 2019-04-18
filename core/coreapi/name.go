@@ -98,8 +98,8 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		resolver = namesys.NewNameSystem(api.routing, api.repo.Datastore(), 0)
 	}
 
-	if !strings.HasPrefix(name, "/ipns/") {
-		name = "/ipns/" + name
+	if !strings.HasPrefix(name, "/btns/") {
+		name = "/btns/" + name
 	}
 
 	out := make(chan coreiface.IpnsResult)

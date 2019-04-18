@@ -90,7 +90,7 @@ func ipnsPubFunc(ipfs *core.IpfsNode, k ci.PrivKey) mfs.PubFunc {
 }
 
 func loadRoot(ctx context.Context, rt *keyRoot, ipfs *core.IpfsNode, name string) (fs.Node, error) {
-	p, err := path.ParsePath("/ipns/" + name)
+	p, err := path.ParsePath("/btns/" + name)
 	if err != nil {
 		log.Errorf("mkpath %s: %s", name, err)
 		return nil, err
@@ -196,10 +196,10 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	// other links go through ipns resolution and are symlinked into the ipfs mountpoint
-	ipnsName := "/ipns/" + name
+	ipnsName := "/btns/" + name
 	resolved, err := s.Ipfs.Namesys.Resolve(s.Ipfs.Context(), ipnsName)
 	if err != nil {
-		log.Warningf("ipns: namesys resolve error: %s", err)
+		log.Warningf("btns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
 	}
 
@@ -210,7 +210,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	log.Error("Invalid path.Path: ", resolved)
-	return nil, errors.New("invalid path from ipns record")
+	return nil, errors.New("invalid path from btns record")
 }
 
 func (r *Root) Close() error {

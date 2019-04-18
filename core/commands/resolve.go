@@ -101,7 +101,7 @@ Resolve the value of an IPFS DAG path:
 		}
 
 		// the case when ipns is resolved step by step
-		if strings.HasPrefix(name, "/ipns/") && !recursive {
+		if strings.HasPrefix(name, "/btns/") && !recursive {
 			rc, rcok := req.Options[resolveDhtRecordCountOptionName].(uint)
 			dhtt, dhttok := req.Options[resolveDhtTimeoutOptionName].(string)
 			ropts := []options.NameResolveOption{

@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	ipfsPathPrefix = "/ipfs/"
-	ipnsPathPrefix = "/ipns/"
+	ipfsPathPrefix = "/btfs/"
+	ipnsPathPrefix = "/btns/"
 )
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
@@ -156,16 +156,16 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	// Resolve path to the final DAG node for the ETag
 	resolvedPath, err := i.api.ResolvePath(ctx, parsedPath)
 	if err == coreiface.ErrOffline && !i.node.IsOnline {
-		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
+		webError(w, "btfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
 		return
 	} else if err != nil {
-		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
+		webError(w, "btfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
 
 	dr, err := i.api.Unixfs().Get(ctx, resolvedPath)
 	if err != nil {
-		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
+		webError(w, "btfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
 

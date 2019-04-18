@@ -48,7 +48,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p coreiface.Path) (coreifac
 	var resolveOnce resolver.ResolveOnce
 
 	switch ipath.Segments()[0] {
-	case "ipfs":
+	case "btfs":
 		resolveOnce = uio.ResolveUnixfsOnce
 	case "ipld":
 		resolveOnce = resolver.ResolveSingle

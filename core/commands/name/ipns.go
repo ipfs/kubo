@@ -125,8 +125,8 @@ Resolve the value of a dnslink:
 			opts = append(opts, options.Name.ResolveOption(nsopts.DhtTimeout(d)))
 		}
 
-		if !strings.HasPrefix(name, "/ipns/") {
-			name = "/ipns/" + name
+		if !strings.HasPrefix(name, "/btns/") {
+			name = "/btns/" + name
 		}
 
 		if !stream {

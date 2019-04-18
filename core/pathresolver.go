@@ -20,7 +20,7 @@ var ErrNoNamesys = errors.New(
 
 // ResolveIPNS resolves /ipns paths
 func ResolveIPNS(ctx context.Context, nsys namesys.NameSystem, p path.Path) (path.Path, error) {
-	if strings.HasPrefix(p.String(), "/ipns/") {
+	if strings.HasPrefix(p.String(), "/btns/") {
 		evt := log.EventBegin(ctx, "resolveIpnsPath")
 		defer evt.Done()
 		// resolve ipns paths

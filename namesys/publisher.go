@@ -21,7 +21,7 @@ import (
 	base32 "github.com/whyrusleeping/base32"
 )
 
-const ipnsPrefix = "/ipns/"
+const ipnsPrefix = "/btns/"
 
 const PublishPutValTimeout = time.Minute
 const DefaultRecordEOL = 24 * time.Hour
@@ -52,7 +52,7 @@ func (p *IpnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Pa
 }
 
 func IpnsDsKey(id peer.ID) ds.Key {
-	return ds.NewKey("/ipns/" + base32.RawStdEncoding.EncodeToString([]byte(id)))
+	return ds.NewKey("/btns/" + base32.RawStdEncoding.EncodeToString([]byte(id)))
 }
 
 // PublishedNames returns the latest IPNS records published by this node and
@@ -92,7 +92,7 @@ func (p *IpnsPublisher) ListPublished(ctx context.Context) (map[peer.ID]*pb.Ipns
 			k := result.Key[len(ipnsPrefix):]
 			pid, err := base32.RawStdEncoding.DecodeString(k)
 			if err != nil {
-				log.Errorf("ipns ds key invalid: %s", result.Key)
+				log.Errorf("btns ds key invalid: %s", result.Key)
 				continue
 			}
 			records[peer.ID(pid)] = e

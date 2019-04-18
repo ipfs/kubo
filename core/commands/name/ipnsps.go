@@ -94,7 +94,7 @@ var ipnspsSubsCmd = &cmds.Command{
 				log.Errorf("ipns key not a valid peer ID: %s", err)
 				continue
 			}
-			paths = append(paths, "/ipns/"+peer.IDB58Encode(pid))
+			paths = append(paths, "/btns/"+peer.IDB58Encode(pid))
 		}
 
 		return cmds.EmitOnce(res, &stringList{paths})
@@ -120,13 +120,13 @@ var ipnspsCancelCmd = &cmds.Command{
 		}
 
 		name := req.Arguments[0]
-		name = strings.TrimPrefix(name, "/ipns/")
+		name = strings.TrimPrefix(name, "/btns/")
 		pid, err := peer.IDB58Decode(name)
 		if err != nil {
 			return cmdkit.Errorf(cmdkit.ErrClient, err.Error())
 		}
 
-		ok, err := n.PSRouter.Cancel("/ipns/" + string(pid))
+		ok, err := n.PSRouter.Cancel("/btns/" + string(pid))
 		if err != nil {
 			return err
 		}
