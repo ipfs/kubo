@@ -198,7 +198,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 		if err != nil {
 			return nil, err
 		}
-		noAnnAddrs[maddr.String()] = true
+		noAnnAddrs[string(maddr.Bytes())] = true
 	}
 
 	return func(allAddrs []ma.Multiaddr) []ma.Multiaddr {
@@ -212,7 +212,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 		var out []ma.Multiaddr
 		for _, maddr := range addrs {
 			// check for exact matches
-			ok := noAnnAddrs[maddr.String()]
+			ok := noAnnAddrs[string(maddr.Bytes())]
 			// check for /ipcidr matches
 			if !ok && !filters.AddrBlocked(maddr) {
 				out = append(out, maddr)
