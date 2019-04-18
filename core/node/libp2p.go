@@ -84,59 +84,57 @@ var DHTOption RoutingOption = constructDHTRouting
 var DHTClientOption RoutingOption = constructClientDHTRouting
 var NilRouterOption RoutingOption = nilrouting.ConstructNilRouting
 
-func Peerstore(id peer.ID, sk crypto.PrivKey) peerstore.Peerstore {
+func Peerstore(id peer.ID, sk crypto.PrivKey) (peerstore.Peerstore, error) {
 	ps := pstoremem.NewPeerstore()
 
 	if sk != nil {
-		ps.AddPrivKey(id, sk)
-		ps.AddPubKey(id, sk.GetPublic())
+		if err := ps.AddPrivKey(id, sk); err != nil {
+			return nil, err
+		}
+		if err := ps.AddPubKey(id, sk.GetPublic()); err != nil {
+			return nil, err
+		}
 	}
 
-	return ps
+	return ps, nil
 }
 
-func P2PAddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
+func P2PAddrFilters(cfg *config.Config) (libp2p.Option, error) {
+	var opts []libp2p.Option
 	for _, s := range cfg.Swarm.AddrFilters {
 		f, err := mamask.NewMask(s)
 		if err != nil {
-			return opts, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
+			return nil, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
 		}
-		opts.Opts = append(opts.Opts, libp2p.FilterAddresses(f))
+		opts = append(opts, libp2p.FilterAddresses(f))
 	}
-	return opts, nil
+	return libp2p.ChainOptions(opts...), nil
 }
 
-func P2PBandwidthCounter(cfg *config.Config) (opts Libp2pOpts, reporter metrics.Reporter) {
-	reporter = metrics.NewBandwidthCounter()
-
-	if !cfg.Swarm.DisableBandwidthMetrics {
-		opts.Opts = append(opts.Opts, libp2p.BandwidthReporter(reporter))
+func P2PBandwidthCounter(cfg *config.Config) (libp2p.Option, metrics.Reporter) {
+	if cfg.Swarm.DisableBandwidthMetrics {
+		return nil, nil
 	}
-	return opts, reporter
-}
-
-type Libp2pOpts struct {
-	fx.Out
-
-	Opts []libp2p.Option `group:"libp2p"`
+	reporter := metrics.NewBandwidthCounter()
+	return libp2p.BandwidthReporter(reporter), reporter
 }
 
 type PNetFingerprint []byte
 
-func P2PPNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
+func P2PPNet(repo repo.Repo) (libp2p.Option, PNetFingerprint, error) {
 	swarmkey, err := repo.SwarmKey()
-	if err != nil || swarmkey == nil {
-		return opts, nil, err
+	if err != nil {
+		return nil, nil, err
+	}
+	if swarmkey == nil {
+		return nil, nil, nil
 	}
 
 	protec, err := pnet.NewProtector(bytes.NewReader(swarmkey))
 	if err != nil {
-		return opts, nil, fmt.Errorf("failed to configure private network: %s", err)
+		return nil, nil, fmt.Errorf("failed to configure private network: %s", err)
 	}
-	fp = protec.Fingerprint()
-
-	opts.Opts = append(opts.Opts, libp2p.PrivateNetwork(protec))
-	return opts, fp, nil
+	return libp2p.PrivateNetwork(protec), protec.Fingerprint(), nil
 }
 
 func P2PPNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
@@ -222,16 +220,15 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 	}, nil
 }
 
-func P2PAddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
+func P2PAddrsFactory(cfg *config.Config) (libp2p.Option, error) {
 	addrsFactory, err := makeAddrsFactory(cfg.Addresses)
 	if err != nil {
-		return opts, err
+		return nil, err
 	}
-	opts.Opts = append(opts.Opts, libp2p.AddrsFactory(addrsFactory))
-	return
+	return libp2p.AddrsFactory(addrsFactory), nil
 }
 
-func P2PConnectionManager(cfg *config.Config) (opts Libp2pOpts, err error) {
+func P2PConnectionManager(cfg *config.Config) (libp2p.Option, error) {
 	grace := config.DefaultConnMgrGracePeriod
 	low := config.DefaultConnMgrHighWater
 	high := config.DefaultConnMgrHighWater
@@ -239,24 +236,22 @@ func P2PConnectionManager(cfg *config.Config) (opts Libp2pOpts, err error) {
 	switch cfg.Swarm.ConnMgr.Type {
 	case "":
 		// 'default' value is the basic connection manager
-		return
 	case "none":
-		return opts, nil
+		return nil, nil
 	case "basic":
+		var err error
 		grace, err = time.ParseDuration(cfg.Swarm.ConnMgr.GracePeriod)
 		if err != nil {
-			return opts, fmt.Errorf("parsing Swarm.ConnMgr.GracePeriod: %s", err)
+			return nil, fmt.Errorf("parsing Swarm.ConnMgr.GracePeriod: %s", err)
 		}
 
 		low = cfg.Swarm.ConnMgr.LowWater
 		high = cfg.Swarm.ConnMgr.HighWater
 	default:
-		return opts, fmt.Errorf("unrecognized ConnMgr.Type: %q", cfg.Swarm.ConnMgr.Type)
+		return nil, fmt.Errorf("unrecognized ConnMgr.Type: %q", cfg.Swarm.ConnMgr.Type)
 	}
 
-	cm := connmgr.NewConnManager(low, high, grace)
-	opts.Opts = append(opts.Opts, libp2p.ConnectionManager(cm))
-	return
+	return libp2p.ConnectionManager(connmgr.NewConnManager(low, high, grace)), nil
 }
 
 func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
@@ -301,60 +296,55 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 	return libp2p.ChainOptions(opts...)
 }
 
-func P2PSmuxTransport(mplex bool) func() (opts Libp2pOpts, err error) {
-	return func() (opts Libp2pOpts, err error) {
-		opts.Opts = append(opts.Opts, makeSmuxTransportOption(mplex))
-		return
+func P2PSmuxTransport(mplex bool) func() libp2p.Option {
+	return func() libp2p.Option {
+		return makeSmuxTransportOption(mplex)
 	}
 }
 
-func P2PNatPortMap(cfg *config.Config) (opts Libp2pOpts, err error) {
+func P2PNatPortMap(cfg *config.Config) libp2p.Option {
 	if !cfg.Swarm.DisableNatPortMap {
-		opts.Opts = append(opts.Opts, libp2p.NATPortMap())
+		return libp2p.NATPortMap()
 	}
-	return
+	return nil
 }
 
-func P2PRelay(cfg *config.Config) (opts Libp2pOpts, err error) {
+func P2PRelay(cfg *config.Config) libp2p.Option {
 	if cfg.Swarm.DisableRelay {
 		// Enabled by default.
-		opts.Opts = append(opts.Opts, libp2p.DisableRelay())
-	} else {
-		relayOpts := []relay.RelayOpt{relay.OptDiscovery}
-		if cfg.Swarm.EnableRelayHop {
-			relayOpts = append(relayOpts, relay.OptHop)
-		}
-		opts.Opts = append(opts.Opts, libp2p.EnableRelay(relayOpts...))
+		return libp2p.DisableRelay()
 	}
-	return
+	relayOpts := []relay.RelayOpt{relay.OptDiscovery}
+	if cfg.Swarm.EnableRelayHop {
+		relayOpts = append(relayOpts, relay.OptHop)
+	}
+	return libp2p.EnableRelay(relayOpts...)
 }
 
-func P2PAutoRealy(cfg *config.Config) (opts Libp2pOpts, err error) {
+func P2PAutoRealy(cfg *config.Config) libp2p.Option {
 	// enable autorelay
 	if cfg.Swarm.EnableAutoRelay {
-		opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay())
+		return libp2p.EnableAutoRelay()
 	}
-	return
+	return nil
 }
 
-func P2PDefaultTransports() (opts Libp2pOpts, err error) {
-	opts.Opts = append(opts.Opts, libp2p.DefaultTransports)
-	return
+func P2PDefaultTransports() libp2p.Option {
+	return libp2p.DefaultTransports
 }
 
-func P2PQUIC(cfg *config.Config) (opts Libp2pOpts, err error) {
+func P2PQUIC(cfg *config.Config) libp2p.Option {
 	if cfg.Experimental.QUIC {
-		opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport))
+		return libp2p.Transport(libp2pquic.NewTransport)
 	}
-	return
+	return nil
 }
 
-func P2PNoSecurity() (opts Libp2pOpts) {
-	opts.Opts = append(opts.Opts, libp2p.NoSecurity)
+func P2PNoSecurity() libp2p.Option {
 	// TODO: shouldn't this be Errorf to guarantee visibility?
 	log.Warningf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.
 		You will not be able to connect to any nodes configured to use encrypted connections`)
-	return opts
+	return libp2p.NoSecurity
 }
 
 type P2PHostIn struct {

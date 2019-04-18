@@ -63,7 +63,7 @@ require (
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8
-	github.com/libp2p/go-libp2p v0.0.12
+	github.com/libp2p/go-libp2p v0.0.14
 	github.com/libp2p/go-libp2p-autonat-svc v0.0.5
 	github.com/libp2p/go-libp2p-circuit v0.0.4
 	github.com/libp2p/go-libp2p-connmgr v0.0.1
@@ -110,8 +110,9 @@ require (
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	go.uber.org/atomic v1.3.2 // indirect
-	go.uber.org/dig v1.7.0
+	go.uber.org/dig v1.7.0 // indirect
 	go.uber.org/fx v1.9.0
+	go.uber.org/goleak v0.10.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	golang.org/x/sys v0.0.0-20190302025703-b6889370fb10
 	golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e // indirect
