@@ -683,3 +683,22 @@ ipfs config --json Swarm.EnableAutoNATService true
 ### Road to being a real feature
 
 - [ ] needs testing
+
+
+## TLS 1.3 as default handshake protocol
+
+### State
+
+Every node accepts secio and TLS 1.3 connections, but prefers secio over TLS when dialing.
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.PreferTLS true
+```
+
+### Road to being a real feature
+
+- [ ] needs testing

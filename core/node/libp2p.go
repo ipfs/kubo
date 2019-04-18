@@ -362,7 +362,11 @@ func P2PSecurity(enabled bool) interface{} {
 		}
 	}
 	return func(cfg *config.Config) (opts Libp2pOpts) {
-		opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(secio.ID, secio.New), libp2p.Security(tls.ID, tls.New)))
+		if cfg.Experimental.PreferTLS {
+			opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(tls.ID, tls.New), libp2p.Security(secio.ID, secio.New)))
+		} else {
+			opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(secio.ID, secio.New), libp2p.Security(tls.ID, tls.New)))
+		}
 		return opts
 	}
 }
