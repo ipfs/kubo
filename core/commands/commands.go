@@ -68,7 +68,7 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 			cmdkit.BoolOption(flagsOptionName, "f", "Show command flags"),
 		},
 		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-			rootCmd := cmd2outputCmd("ipfs", root)
+			rootCmd := cmd2outputCmd("btfs", root)
 			rootCmd.showOpts, _ = req.Options[flagsOptionName].(bool)
 			return cmds.EmitOnce(res, &rootCmd)
 		},
