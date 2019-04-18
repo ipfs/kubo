@@ -35,16 +35,16 @@ var initCmd = &cmds.Command{
 		ShortDescription: `
 Initializes ipfs configuration files and generates a new keypair.
 
-If you are going to run IPFS in server environment, you may want to
+If you are going to run BTFS in server environment, you may want to
 initialize it using 'server' profile.
 
 For the list of available profiles see 'ipfs config profile --help'
 
 ipfs uses a repository in the local file system. By default, the repo is
-located at ~/.ipfs. To change the repo location, set the $IPFS_PATH
+located at ~/.btfs. To change the repo location, set the $BTFS_PATH
 environment variable:
 
-    export IPFS_PATH=/path/to/ipfsrepo
+    export BTFS_PATH=/path/to/btfsrepo
 `,
 	},
 	Arguments: []cmdkit.Argument{
@@ -114,7 +114,7 @@ environment variable:
 	},
 }
 
-var errRepoExists = errors.New(`ipfs configuration file already exists!
+var errRepoExists = errors.New(`btfs configuration file already exists!
 Reinitializing would overwrite your keys.
 `)
 

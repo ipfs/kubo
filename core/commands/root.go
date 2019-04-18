@@ -77,10 +77,10 @@ TOOL COMMANDS
 Use 'btfs <command> --help' to learn more about each command.
 
 btfs uses a repository in the local file system. By default, the repo is
-located at ~/.btfs. To change the repo location, set the $IPFS_PATH
+located at ~/.btfs. To change the repo location, set the $BTFS_PATH
 environment variable:
 
-  export IPFS_PATH=/path/to/btfsrepo
+  export BTFS_PATH=/path/to/btfsrepo
 
 EXIT STATUS
 

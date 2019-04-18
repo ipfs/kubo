@@ -23,7 +23,7 @@ import (
 )
 
 var http = flag.Bool("http", false, "expose IPFS HTTP API")
-var repoPath = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
+var repoPath = flag.String("repo", os.Getenv("BTFS_PATH"), "BTFS_PATH to use")
 var watchPath = flag.String("path", ".", "the path to watch")
 
 func main() {
