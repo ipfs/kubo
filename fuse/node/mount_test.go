@@ -5,6 +5,7 @@ package node
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,7 +64,7 @@ func TestExternalUnmount(t *testing.T) {
 	mkdir(t, ipnsDir)
 
 	err = Mount(node, ipfsDir, ipnsDir)
-	if _, ok := err.(errNeedFuseVersion); ok || err == fuse.ErrOSXFUSENotFound {
+	if strings.Contains(err.Error(), "unable to check fuse version") || err == fuse.ErrOSXFUSENotFound {
 		t.Skip(err)
 	}
 	if err != nil {
