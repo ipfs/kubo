@@ -33,6 +33,8 @@ import (
 	"github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p-routing"
 	"github.com/libp2p/go-libp2p-routing-helpers"
+	secio "github.com/libp2p/go-libp2p-secio"
+	tls "github.com/libp2p/go-libp2p-tls"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-libp2p/p2p/host/routed"
 	mafilter "github.com/libp2p/go-maddr-filter"
@@ -353,12 +355,24 @@ func P2PQUIC(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
-func P2PNoSecurity() (opts Libp2pOpts) {
-	opts.Opts = append(opts.Opts, libp2p.NoSecurity)
-	// TODO: shouldn't this be Errorf to guarantee visibility?
-	log.Warningf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.
+func P2PSecurity(enabled bool) interface{} {
+	if !enabled {
+		return func() (opts Libp2pOpts) {
+			// TODO: shouldn't this be Errorf to guarantee visibility?
+			log.Warningf(`Your IPFS node has been configured to run WITHOUT ENCRYPTED CONNECTIONS.
 		You will not be able to connect to any nodes configured to use encrypted connections`)
-	return opts
+			opts.Opts = append(opts.Opts, libp2p.NoSecurity)
+			return opts
+		}
+	}
+	return func(cfg *config.Config) (opts Libp2pOpts) {
+		if cfg.Experimental.PreferTLS {
+			opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(tls.ID, tls.New), libp2p.Security(secio.ID, secio.New)))
+		} else {
+			opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(secio.ID, secio.New), libp2p.Security(tls.ID, tls.New)))
+		}
+		return opts
+	}
 }
 
 type P2PHostIn struct {

@@ -38,7 +38,7 @@ func LibP2P(cfg *BuildCfg) fx.Option {
 	opts := fx.Options(
 		BaseLibP2P,
 
-		maybeProvide(P2PNoSecurity, cfg.DisableEncryptedConnections),
+		fx.Provide(P2PSecurity(!cfg.DisableEncryptedConnections)),
 		maybeProvide(Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
 
 		fx.Provide(P2PSmuxTransport(cfg.getOpt("mplex"))),

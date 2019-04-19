@@ -683,3 +683,25 @@ ipfs config --json Swarm.EnableAutoNATService true
 ### Road to being a real feature
 
 - [ ] needs testing
+
+
+## TLS 1.3 as default handshake protocol
+
+### State
+
+Every go-ipfs node (>=0.4.21) accepts secio and TLS 1.3 connections but prefers
+secio over TLS when dialing. To prefer TLS when dialing, you'll have to enable
+this feature.
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.PreferTLS true
+```
+
+### Road to being a real feature
+
+- [ ] needs testing
+- [ ] needs adoption
