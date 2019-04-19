@@ -689,7 +689,9 @@ ipfs config --json Swarm.EnableAutoNATService true
 
 ### State
 
-Every node accepts secio and TLS 1.3 connections, but prefers secio over TLS when dialing.
+Every go-ipfs node (>=0.4.21) accepts secio and TLS 1.3 connections but prefers
+secio over TLS when dialing. To prefer TLS when dialing, you'll have to enable
+this feature.
 
 ### How to enable
 
@@ -702,3 +704,4 @@ ipfs config --json Experimental.PreferTLS true
 ### Road to being a real feature
 
 - [ ] needs testing
+- [ ] needs adoption
