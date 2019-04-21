@@ -285,6 +285,20 @@ test_object_cmd() {
     test_cmp obj_stat_exp obj_stat_out
   '
 
+  test_expect_success "'ipfs object stat --human' succeeds" '
+    ipfs object stat $(cat multi_patch)/a --human > obj_stat_human_out
+  '
+  
+  test_expect_success "ipfs object stat --human output looks good" '
+    echo "NumLinks:       1" > obj_stat_human_exp &&
+    echo "BlockSize:      47" >> obj_stat_human_exp &&
+    echo "LinksSize:      45" >> obj_stat_human_exp &&
+    echo "DataSize:       2" >> obj_stat_human_exp &&
+    echo "CumulativeSize: 114 B" >> obj_stat_human_exp &&
+
+    test_cmp obj_stat_human_exp obj_stat_human_out
+  '
+
   test_expect_success "should have created dir within a dir" '
     ipfs ls $OUTPUT > patched_output
   '
