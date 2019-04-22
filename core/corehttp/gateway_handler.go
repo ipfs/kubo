@@ -19,7 +19,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	"github.com/ipfs/go-ipfs-files"
+	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-path"
@@ -28,7 +28,7 @@ import (
 	"github.com/ipfs/go-unixfs/importer"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/libp2p/go-libp2p-routing"
+	routing "github.com/libp2p/go-libp2p-routing"
 	"github.com/multiformats/go-multibase"
 )
 
@@ -67,6 +67,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// the hour is a hard fallback, we don't expect it to happen, but just in case
 	ctx, cancel := context.WithTimeout(r.Context(), time.Hour)
 	defer cancel()
+	r = r.WithContext(ctx)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -79,7 +80,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if i.config.Writable {
 		switch r.Method {
 		case "POST":
-			i.postHandler(ctx, w, r)
+			i.postHandler(w, r)
 			return
 		case "PUT":
 			i.putHandler(w, r)
@@ -91,7 +92,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" || r.Method == "HEAD" {
-		i.getOrHeadHandler(ctx, w, r)
+		i.getOrHeadHandler(w, r)
 		return
 	}
 
@@ -120,7 +121,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 	i.addUserHeaders(w) // return all custom headers (including CORS ones, if set)
 }
 
-func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
 
@@ -156,7 +157,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 	}
 
 	// Resolve path to the final DAG node for the ETag
-	resolvedPath, err := i.api.ResolvePath(ctx, parsedPath)
+	resolvedPath, err := i.api.ResolvePath(r.Context(), parsedPath)
 	if err == coreiface.ErrOffline && !i.node.IsOnline {
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
 		return
@@ -165,7 +166,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	dr, err := i.api.Unixfs().Get(ctx, resolvedPath)
+	dr, err := i.api.Unixfs().Get(r.Context(), resolvedPath)
 	if err != nil {
 		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
@@ -248,7 +249,7 @@ func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWr
 		return
 	}
 
-	idx, err := i.api.Unixfs().Get(ctx, ipath.Join(resolvedPath, "index.html"))
+	idx, err := i.api.Unixfs().Get(r.Context(), ipath.Join(resolvedPath, "index.html"))
 	switch err.(type) {
 	case nil:
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
@@ -377,8 +378,8 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 	http.ServeContent(w, req, name, modtime, content)
 }
 
-func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	p, err := i.api.Unixfs().Add(ctx, files.NewReaderFile(r.Body))
+func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
+	p, err := i.api.Unixfs().Add(r.Context(), files.NewReaderFile(r.Body))
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -390,10 +391,6 @@ func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter,
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO(cryptix): move me to ServeHTTP and pass into all handlers
-	ctx, cancel := context.WithCancel(i.node.Context())
-	defer cancel()
-
 	rootPath, err := path.ParsePath(r.URL.Path)
 	if err != nil {
 		webError(w, "putHandler: IPFS path not valid", err, http.StatusBadRequest)
@@ -424,7 +421,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newcid cid.Cid
-	rnode, err := resolve.Resolve(ctx, i.node.Namesys, i.node.Resolver, rootPath)
+	rnode, err := resolve.Resolve(r.Context(), i.node.Namesys, i.node.Resolver, rootPath)
 	switch ev := err.(type) {
 	case resolver.ErrNoLink:
 		// ev.Node < node where resolve failed
@@ -436,7 +433,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rnode, err := i.node.DAG.Get(ctx, c)
+		rnode, err := i.node.DAG.Get(r.Context(), c)
 		if err != nil {
 			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
 			return
@@ -449,13 +446,13 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
-		err = e.InsertNodeAtPath(ctx, newPath, newnode, ft.EmptyDirNode)
+		err = e.InsertNodeAtPath(r.Context(), newPath, newnode, ft.EmptyDirNode)
 		if err != nil {
 			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
 			return
 		}
 
-		nnode, err := e.Finalize(ctx, i.node.DAG)
+		nnode, err := e.Finalize(r.Context(), i.node.DAG)
 		if err != nil {
 			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
 			return
@@ -480,7 +477,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		pbnd.SetData(pbnewnode.Data())
 
 		newcid = pbnd.Cid()
-		err = i.node.DAG.Add(ctx, pbnd)
+		err = i.node.DAG.Add(r.Context(), pbnd)
 		if err != nil {
 			nnk := newnode.Cid()
 			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), newcid.String()), err, http.StatusInternalServerError)
@@ -498,8 +495,6 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
-	ctx, cancel := context.WithCancel(i.node.Context())
-	defer cancel()
 
 	p, err := path.ParsePath(urlPath)
 	if err != nil {
@@ -513,17 +508,9 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, c)
+	pathNodes, err := i.resolvePathComponents(r.Context(), c, components)
 	if err != nil {
-		webError(w, "Could not resolve root object", err, http.StatusBadRequest)
-		return
-	}
-
-	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
-	if err != nil {
-		webError(w, "Could not resolve parent object", err, http.StatusBadRequest)
+		webError(w, "Could not resolve path components", err, http.StatusBadRequest)
 		return
 	}
 
@@ -542,7 +529,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newnode *dag.ProtoNode = pbnd
 	for j := len(pathNodes) - 2; j >= 0; j-- {
-		if err := i.node.DAG.Add(ctx, newnode); err != nil {
+		if err := i.node.DAG.Add(r.Context(), newnode); err != nil {
 			webError(w, "Could not add node", err, http.StatusInternalServerError)
 			return
 		}
@@ -560,7 +547,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := i.node.DAG.Add(ctx, newnode); err != nil {
+	if err := i.node.DAG.Add(r.Context(), newnode); err != nil {
 		webError(w, "Could not add root node", err, http.StatusInternalServerError)
 		return
 	}
@@ -571,6 +558,27 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", ncid.String())
 	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
+}
+
+func (i *gatewayHandler) resolvePathComponents(
+	ctx context.Context,
+	c cid.Cid,
+	components []string,
+) ([]ipld.Node, error) {
+	tctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	rootnd, err := i.node.Resolver.DAG.Get(tctx, c)
+	if err != nil {
+		return nil, fmt.Errorf("Could not resolve root object: %s", err)
+	}
+
+	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
+	if err != nil {
+		return nil, fmt.Errorf("Could not resolve parent object: %s", err)
+	}
+
+	return pathNodes, nil
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
