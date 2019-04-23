@@ -70,7 +70,7 @@ require (
 	github.com/libp2p/go-libp2p-crypto v0.0.1
 	github.com/libp2p/go-libp2p-host v0.0.1
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.1
-	github.com/libp2p/go-libp2p-kad-dht v0.0.9
+	github.com/libp2p/go-libp2p-kad-dht v0.0.10-0.20190423053654-33dc9eda5233
 	github.com/libp2p/go-libp2p-kbucket v0.1.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
@@ -110,6 +110,7 @@ require (
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
+	go.opencensus.io v0.20.2
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/dig v1.7.0 // indirect
 	go.uber.org/fx v1.9.0

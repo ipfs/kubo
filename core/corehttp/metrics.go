@@ -6,14 +6,27 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 
+	dhtMetrics "github.com/libp2p/go-libp2p-kad-dht/metrics"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
+	ocProm "go.opencensus.io/exporter/prometheus"
+	"go.opencensus.io/stats/view"
 )
 
 // This adds the scraping endpoint which Prometheus uses to fetch metrics.
 func MetricsScrapingOption(path string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		mux.Handle(path, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}))
+		pe, err := ocProm.NewExporter(ocProm.Options{
+			Registry: prometheus.DefaultGatherer.(*prometheus.Registry),
+		})
+		if err != nil {
+			return mux, err
+		}
+		view.RegisterExporter(pe)
+		if err := view.Register(dhtMetrics.Views...); err != nil {
+			return mux, err
+		}
+		mux.Handle(path, pe)
 		return mux, nil
 	}
 }
