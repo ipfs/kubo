@@ -1,8 +1,7 @@
-package reprovide_test
+package reprovide
 
 import (
 	"context"
-	"github.com/ipfs/go-ipfs"
 	"testing"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -34,9 +33,9 @@ func TestReprovide(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	keyProvider := ipfs.NewBlockstoreProvider(bstore)
-	reprov := ipfs.NewReprovider(ctx, clA, keyProvider)
-	err = reprov.Reprovide()
+	keyProvider := NewBlockstoreProvider(bstore)
+	reprov := NewReprovider(ctx, 0, clA, keyProvider)
+	err = reprov.reprovide(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
