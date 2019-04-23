@@ -9,6 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 )
 
+// PeerID loads peer identity form config
 func PeerID(cfg *config.Config) (peer.ID, error) {
 	cid := cfg.Identity.PeerID
 	if cid == "" {
@@ -26,6 +27,7 @@ func PeerID(cfg *config.Config) (peer.ID, error) {
 	return id, nil
 }
 
+// PrivateKey loads the private key from config
 func PrivateKey(cfg *config.Config, id peer.ID) (crypto.PrivKey, error) {
 	if cfg.Identity.PrivKey == "" {
 		return nil, nil

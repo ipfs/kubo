@@ -83,6 +83,7 @@ func (cfg *BuildCfg) fillDefaults() error {
 	return nil
 }
 
+// options creates fx option group from this build config
 func (cfg *BuildCfg) options(ctx context.Context) fx.Option {
 	err := cfg.fillDefaults()
 	if err != nil {

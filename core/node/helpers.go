@@ -50,6 +50,7 @@ func setupSharding(cfg *config.Config) {
 	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
 }
 
+// baseProcess creates a goprocess which is closed when the lifecycle signals it to stop
 func baseProcess(lc fx.Lifecycle) goprocess.Process {
 	p := goprocess.WithParent(goprocess.Background())
 	lc.Append(fx.Hook{

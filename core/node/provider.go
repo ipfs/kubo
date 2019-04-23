@@ -19,10 +19,12 @@ import (
 
 const kReprovideFrequency = time.Hour * 12
 
+// ProviderQueue creates new datastore backed provider queue
 func ProviderQueue(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (*provider.Queue, error) {
 	return provider.NewQueue(helpers.LifecycleCtx(mctx, lc), "provider-v1", repo.Datastore())
 }
 
+// ProviderCtor creates new record provider
 func ProviderCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *provider.Queue, rt routing.IpfsRouting) provider.Provider {
 	p := provider.NewProvider(helpers.LifecycleCtx(mctx, lc), queue, rt)
 
@@ -39,6 +41,7 @@ func ProviderCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *provider.Queu
 	return p
 }
 
+// ReproviderCtor creates new reprovider
 func ReproviderCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, bs BaseBlocks, ds format.DAGService, pinning pin.Pinner, rt routing.IpfsRouting) (*reprovide.Reprovider, error) {
 	var keyProvider reprovide.KeyChanFunc
 
@@ -57,6 +60,7 @@ func ReproviderCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config
 	return reprovide.NewReprovider(helpers.LifecycleCtx(mctx, lc), rt, keyProvider), nil
 }
 
+// Reprovider runs the reprovider service
 func Reprovider(cfg *config.Config, reprovider *reprovide.Reprovider) error {
 	reproviderInterval := kReprovideFrequency
 	if cfg.Reprovider.Interval != "" {
@@ -68,6 +72,6 @@ func Reprovider(cfg *config.Config, reprovider *reprovide.Reprovider) error {
 		reproviderInterval = dur
 	}
 
-	go reprovider.Run(reproviderInterval)
+	go reprovider.Run(reproviderInterval) // TODO: refactor reprovider to have Start/Stop, use lifecycle
 	return nil
 }

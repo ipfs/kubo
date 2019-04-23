@@ -25,7 +25,8 @@ import (
 	"go.uber.org/fx"
 )
 
-func BlockServiceCtor(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
+// BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
+func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
 	bsvc := blockservice.New(bs, rem)
 
 	lc.Append(fx.Hook{
@@ -37,6 +38,7 @@ func BlockServiceCtor(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.In
 	return bsvc
 }
 
+// Pinning creates new pinner which tells GC which blocks should be kept
 func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo) (pin.Pinner, error) {
 	internalDag := merkledag.NewDAGService(blockservice.New(bstore, offline.Exchange(bstore)))
 	pinning, err := pin.LoadPinner(repo.Datastore(), ds, internalDag)
@@ -51,11 +53,13 @@ func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo)
 	return pinning, nil
 }
 
-func DagCtor(bs blockservice.BlockService) format.DAGService {
+// Dag creates new DAGService
+func Dag(bs blockservice.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
 }
 
-func OnlineExchangeCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
+// OnlineExchange creates new LibP2P backed block exchange (BitSwap)
+func OnlineExchange(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
 	bitswapNetwork := network.NewFromIpfsHost(host, rt)
 	exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs)
 	lc.Append(fx.Hook{
@@ -66,6 +70,7 @@ func OnlineExchangeCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host
 	return exch
 }
 
+// Files loads persisted MFS root
 func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService) (*mfs.Root, error) {
 	dsk := datastore.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, c cid.Cid) error {

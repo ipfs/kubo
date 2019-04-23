@@ -19,6 +19,7 @@ import (
 
 const DefaultIpnsCacheSize = 128
 
+// RecordValidator provides namesys compatible routing record validator
 func RecordValidator(ps peerstore.Peerstore) record.Validator {
 	return record.NamespacedValidator{
 		"pk":   record.PublicKeyValidator{},
@@ -26,11 +27,13 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 	}
 }
 
-func OfflineNamesysCtor(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSystem, error) {
+// OfflineNamesys creates namesys setup for offline operation
+func OfflineNamesys(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSystem, error) {
 	return namesys.NewNameSystem(rt, repo.Datastore(), 0), nil
 }
 
-func OnlineNamesysCtor(rt routing.IpfsRouting, repo repo.Repo, cfg *config.Config) (namesys.NameSystem, error) {
+// OnlineNamesys createn new namesys setup for online operation
+func OnlineNamesys(rt routing.IpfsRouting, repo repo.Repo, cfg *config.Config) (namesys.NameSystem, error) {
 	cs := cfg.Ipns.ResolveCacheSize
 	if cs == 0 {
 		cs = DefaultIpnsCacheSize
@@ -41,6 +44,7 @@ func OnlineNamesysCtor(rt routing.IpfsRouting, repo repo.Repo, cfg *config.Confi
 	return namesys.NewNameSystem(rt, repo.Datastore(), cs), nil
 }
 
+// IpnsRepublisher runs new IPNS republisher service
 func IpnsRepublisher(lc lcProcess, cfg *config.Config, namesys namesys.NameSystem, repo repo.Repo, privKey crypto.PrivKey) error {
 	repub := republisher.NewRepublisher(namesys, repo.Datastore(), privKey, repo.Keystore())
 
