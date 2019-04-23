@@ -14,23 +14,23 @@ import (
 )
 
 var BaseLibP2P = fx.Options(
-	fx.Provide(libp2p.P2PAddrFilters),
-	fx.Provide(libp2p.P2PBandwidthCounter),
-	fx.Provide(libp2p.P2PPNet),
-	fx.Provide(libp2p.P2PAddrsFactory),
-	fx.Provide(libp2p.P2PConnectionManager),
-	fx.Provide(libp2p.P2PNatPortMap),
-	fx.Provide(libp2p.P2PRelay),
-	fx.Provide(libp2p.P2PAutoRealy),
-	fx.Provide(libp2p.P2PDefaultTransports),
-	fx.Provide(libp2p.P2PQUIC),
+	fx.Provide(libp2p.AddrFilters),
+	fx.Provide(libp2p.BandwidthCounter),
+	fx.Provide(libp2p.PNet),
+	fx.Provide(libp2p.AddrsFactory),
+	fx.Provide(libp2p.ConnectionManager),
+	fx.Provide(libp2p.NatPortMap),
+	fx.Provide(libp2p.Relay),
+	fx.Provide(libp2p.AutoRealy),
+	fx.Provide(libp2p.DefaultTransports),
+	fx.Provide(libp2p.QUIC),
 
-	fx.Provide(libp2p.P2PHost),
+	fx.Provide(libp2p.Host),
 
-	fx.Provide(libp2p.NewDiscoveryHandler),
+	fx.Provide(libp2p.DiscoveryHandler),
 
 	fx.Invoke(libp2p.AutoNATService),
-	fx.Invoke(libp2p.P2PPNetChecker),
+	fx.Invoke(libp2p.PNetChecker),
 	fx.Invoke(libp2p.StartListening),
 	fx.Invoke(libp2p.SetupDiscovery),
 )
@@ -39,13 +39,13 @@ func LibP2P(cfg *BuildCfg) fx.Option {
 	opts := fx.Options(
 		BaseLibP2P,
 
-		fx.Provide(libp2p.P2PSecurity(!cfg.DisableEncryptedConnections)),
+		fx.Provide(libp2p.Security(!cfg.DisableEncryptedConnections)),
 		maybeProvide(libp2p.Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
 
-		fx.Provide(libp2p.P2PSmuxTransport(cfg.getOpt("mplex"))),
-		fx.Provide(libp2p.P2PRouting),
-		fx.Provide(libp2p.P2PBaseRouting),
-		maybeProvide(libp2p.P2PPubsubRouter, cfg.getOpt("ipnsps")),
+		fx.Provide(libp2p.SmuxTransport(cfg.getOpt("mplex"))),
+		fx.Provide(libp2p.Routing),
+		fx.Provide(libp2p.BaseRouting),
+		maybeProvide(libp2p.PubsubRouter, cfg.getOpt("ipnsps")),
 	)
 
 	return opts
@@ -85,7 +85,7 @@ func Online(cfg *BuildCfg) fx.Option {
 
 		fx.Invoke(IpnsRepublisher),
 
-		fx.Provide(p2p.NewP2P),
+		fx.Provide(p2p.New),
 
 		LibP2P(cfg),
 		Providers,

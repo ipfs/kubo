@@ -102,7 +102,7 @@ func Peerstore(id peer.ID, sk crypto.PrivKey) (peerstore.Peerstore, error) {
 	return ps, nil
 }
 
-func P2PAddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
+func AddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
 	for _, s := range cfg.Swarm.AddrFilters {
 		f, err := mamask.NewMask(s)
 		if err != nil {
@@ -113,7 +113,7 @@ func P2PAddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return opts, nil
 }
 
-func P2PBandwidthCounter(cfg *config.Config) (opts Libp2pOpts, reporter metrics.Reporter) {
+func BandwidthCounter(cfg *config.Config) (opts Libp2pOpts, reporter metrics.Reporter) {
 	reporter = metrics.NewBandwidthCounter()
 
 	if !cfg.Swarm.DisableBandwidthMetrics {
@@ -130,7 +130,7 @@ type Libp2pOpts struct {
 
 type PNetFingerprint []byte
 
-func P2PPNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
+func PNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
 	swarmkey, err := repo.SwarmKey()
 	if err != nil || swarmkey == nil {
 		return opts, nil, err
@@ -146,7 +146,7 @@ func P2PPNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
 	return opts, fp, nil
 }
 
-func P2PPNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
+func PNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
 	// TODO: better check?
 	swarmkey, err := repo.SwarmKey()
 	if err != nil || swarmkey == nil {
@@ -229,7 +229,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 	}, nil
 }
 
-func P2PAddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
+func AddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
 	addrsFactory, err := makeAddrsFactory(cfg.Addresses)
 	if err != nil {
 		return opts, err
@@ -238,7 +238,7 @@ func P2PAddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
-func P2PConnectionManager(cfg *config.Config) (opts Libp2pOpts, err error) {
+func ConnectionManager(cfg *config.Config) (opts Libp2pOpts, err error) {
 	grace := config.DefaultConnMgrGracePeriod
 	low := config.DefaultConnMgrHighWater
 	high := config.DefaultConnMgrHighWater
@@ -308,21 +308,21 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 	return libp2p.ChainOptions(opts...)
 }
 
-func P2PSmuxTransport(mplex bool) func() (opts Libp2pOpts, err error) {
+func SmuxTransport(mplex bool) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
 		opts.Opts = append(opts.Opts, makeSmuxTransportOption(mplex))
 		return
 	}
 }
 
-func P2PNatPortMap(cfg *config.Config) (opts Libp2pOpts, err error) {
+func NatPortMap(cfg *config.Config) (opts Libp2pOpts, err error) {
 	if !cfg.Swarm.DisableNatPortMap {
 		opts.Opts = append(opts.Opts, libp2p.NATPortMap())
 	}
 	return
 }
 
-func P2PRelay(cfg *config.Config) (opts Libp2pOpts, err error) {
+func Relay(cfg *config.Config) (opts Libp2pOpts, err error) {
 	if cfg.Swarm.DisableRelay {
 		// Enabled by default.
 		opts.Opts = append(opts.Opts, libp2p.DisableRelay())
@@ -336,7 +336,7 @@ func P2PRelay(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
-func P2PAutoRealy(cfg *config.Config) (opts Libp2pOpts, err error) {
+func AutoRealy(cfg *config.Config) (opts Libp2pOpts, err error) {
 	// enable autorelay
 	if cfg.Swarm.EnableAutoRelay {
 		opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay())
@@ -344,19 +344,19 @@ func P2PAutoRealy(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
-func P2PDefaultTransports() (opts Libp2pOpts, err error) {
+func DefaultTransports() (opts Libp2pOpts, err error) {
 	opts.Opts = append(opts.Opts, libp2p.DefaultTransports)
 	return
 }
 
-func P2PQUIC(cfg *config.Config) (opts Libp2pOpts, err error) {
+func QUIC(cfg *config.Config) (opts Libp2pOpts, err error) {
 	if cfg.Experimental.QUIC {
 		opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport))
 	}
 	return
 }
 
-func P2PSecurity(enabled bool) interface{} {
+func Security(enabled bool) interface{} {
 	if !enabled {
 		return func() (opts Libp2pOpts) {
 			// TODO: shouldn't this be Errorf to guarantee visibility?
@@ -389,15 +389,15 @@ type P2PHostIn struct {
 	Opts [][]libp2p.Option `group:"libp2p"`
 }
 
-type BaseRouting routing.IpfsRouting
+type BaseIpfsRouting routing.IpfsRouting
 type P2PHostOut struct {
 	fx.Out
 
 	Host    host.Host
-	Routing BaseRouting
+	Routing BaseIpfsRouting
 }
 
-func P2PHost(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut, err error) {
+func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut, err error) {
 	opts := []libp2p.Option{libp2p.NoListenAddrs}
 	for _, o := range params.Opts {
 		opts = append(opts, o...)
@@ -448,7 +448,7 @@ type p2pRouterOut struct {
 	Router Router `group:"routers"`
 }
 
-func P2PBaseRouting(lc fx.Lifecycle, in BaseRouting) (out p2pRouterOut, dr *dht.IpfsDHT) {
+func BaseRouting(lc fx.Lifecycle, in BaseIpfsRouting) (out p2pRouterOut, dr *dht.IpfsDHT) {
 	if dht, ok := in.(*dht.IpfsDHT); ok {
 		dr = dht
 
@@ -474,7 +474,7 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
-func P2PRouting(in p2pOnlineRoutingIn) routing.IpfsRouting {
+func Routing(in p2pOnlineRoutingIn) routing.IpfsRouting {
 	routers := in.Routers
 
 	sort.SliceStable(routers, func(i, j int) bool {
@@ -495,14 +495,14 @@ func P2PRouting(in p2pOnlineRoutingIn) routing.IpfsRouting {
 type p2pPSRoutingIn struct {
 	fx.In
 
-	BaseRouting BaseRouting
+	BaseRouting BaseIpfsRouting
 	Repo        repo.Repo
 	Validator   record.Validator
 	Host        host.Host
 	PubSub      *pubsub.PubSub `optional:"true"`
 }
 
-func P2PPubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
+func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
 	psRouter := namesys.NewPubsubValueStore(
 		helpers.LifecycleCtx(mctx, lc),
 		in.Host,

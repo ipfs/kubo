@@ -20,8 +20,8 @@ type P2P struct {
 	peerstore pstore.Peerstore
 }
 
-// NewP2P creates new P2P struct
-func NewP2P(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore) *P2P {
+// New creates new P2P struct
+func New(identity peer.ID, peerHost p2phost.Host, peerstore pstore.Peerstore) *P2P {
 	return &P2P{
 		identity:  identity,
 		peerHost:  peerHost,

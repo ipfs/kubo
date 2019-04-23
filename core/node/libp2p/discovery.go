@@ -28,7 +28,7 @@ func (dh *discoveryHandler) HandlePeerFound(p peerstore.PeerInfo) {
 	}
 }
 
-func NewDiscoveryHandler(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host) *discoveryHandler {
+func DiscoveryHandler(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host) *discoveryHandler {
 	return &discoveryHandler{
 		ctx:  helpers.LifecycleCtx(mctx, lc),
 		host: host,
