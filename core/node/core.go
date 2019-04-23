@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
 
@@ -54,9 +55,9 @@ func DagCtor(bs blockservice.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
 }
 
-func OnlineExchangeCtor(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
+func OnlineExchangeCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
 	bitswapNetwork := network.NewFromIpfsHost(host, rt)
-	exch := bitswap.New(lifecycleCtx(mctx, lc), bitswapNetwork, bs)
+	exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs)
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
 			return exch.Close()
@@ -65,7 +66,7 @@ func OnlineExchangeCtor(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, rt rou
 	return exch
 }
 
-func Files(mctx MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService) (*mfs.Root, error) {
+func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService) (*mfs.Root, error) {
 	dsk := datastore.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, c cid.Cid) error {
 		return repo.Datastore().Put(dsk, c.Bytes())
@@ -73,7 +74,7 @@ func Files(mctx MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGServi
 
 	var nd *merkledag.ProtoNode
 	val, err := repo.Datastore().Get(dsk)
-	ctx := lifecycleCtx(mctx, lc)
+	ctx := helpers.LifecycleCtx(mctx, lc)
 
 	switch {
 	case err == datastore.ErrNotFound || val == nil:
@@ -114,4 +115,3 @@ func Files(mctx MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGServi
 	return root, err
 }
 
-type MetricsCtx context.Context

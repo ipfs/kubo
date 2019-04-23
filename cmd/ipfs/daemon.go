@@ -20,7 +20,7 @@ import (
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	"github.com/ipfs/go-ipfs/core/node"
+	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
@@ -324,11 +324,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
 	case routingOptionDHTClientKwd:
-		ncfg.Routing = node.DHTClientOption
+		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
-		ncfg.Routing = node.DHTOption
+		ncfg.Routing = libp2p.DHTOption
 	case routingOptionNoneKwd:
-		ncfg.Routing = node.NilRouterOption
+		ncfg.Routing = libp2p.NilRouterOption
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}

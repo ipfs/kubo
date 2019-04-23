@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
 
@@ -13,38 +14,38 @@ import (
 )
 
 var BaseLibP2P = fx.Options(
-	fx.Provide(P2PAddrFilters),
-	fx.Provide(P2PBandwidthCounter),
-	fx.Provide(P2PPNet),
-	fx.Provide(P2PAddrsFactory),
-	fx.Provide(P2PConnectionManager),
-	fx.Provide(P2PNatPortMap),
-	fx.Provide(P2PRelay),
-	fx.Provide(P2PAutoRealy),
-	fx.Provide(P2PDefaultTransports),
-	fx.Provide(P2PQUIC),
+	fx.Provide(libp2p.P2PAddrFilters),
+	fx.Provide(libp2p.P2PBandwidthCounter),
+	fx.Provide(libp2p.P2PPNet),
+	fx.Provide(libp2p.P2PAddrsFactory),
+	fx.Provide(libp2p.P2PConnectionManager),
+	fx.Provide(libp2p.P2PNatPortMap),
+	fx.Provide(libp2p.P2PRelay),
+	fx.Provide(libp2p.P2PAutoRealy),
+	fx.Provide(libp2p.P2PDefaultTransports),
+	fx.Provide(libp2p.P2PQUIC),
 
-	fx.Provide(P2PHost),
+	fx.Provide(libp2p.P2PHost),
 
-	fx.Provide(NewDiscoveryHandler),
+	fx.Provide(libp2p.NewDiscoveryHandler),
 
-	fx.Invoke(AutoNATService),
-	fx.Invoke(P2PPNetChecker),
-	fx.Invoke(StartListening),
-	fx.Invoke(SetupDiscovery),
+	fx.Invoke(libp2p.AutoNATService),
+	fx.Invoke(libp2p.P2PPNetChecker),
+	fx.Invoke(libp2p.StartListening),
+	fx.Invoke(libp2p.SetupDiscovery),
 )
 
 func LibP2P(cfg *BuildCfg) fx.Option {
 	opts := fx.Options(
 		BaseLibP2P,
 
-		fx.Provide(P2PSecurity(!cfg.DisableEncryptedConnections)),
-		maybeProvide(Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
+		fx.Provide(libp2p.P2PSecurity(!cfg.DisableEncryptedConnections)),
+		maybeProvide(libp2p.Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
 
-		fx.Provide(P2PSmuxTransport(cfg.getOpt("mplex"))),
-		fx.Provide(P2PRouting),
-		fx.Provide(P2PBaseRouting),
-		maybeProvide(P2PPubsubRouter, cfg.getOpt("ipnsps")),
+		fx.Provide(libp2p.P2PSmuxTransport(cfg.getOpt("mplex"))),
+		fx.Provide(libp2p.P2PRouting),
+		fx.Provide(libp2p.P2PBaseRouting),
+		maybeProvide(libp2p.P2PPubsubRouter, cfg.getOpt("ipnsps")),
 	)
 
 	return opts
@@ -62,7 +63,7 @@ func Storage(cfg *BuildCfg) fx.Option {
 var Identity = fx.Options(
 	fx.Provide(PeerID),
 	fx.Provide(PrivateKey),
-	fx.Provide(Peerstore),
+	fx.Provide(libp2p.Peerstore),
 )
 
 var IPNS = fx.Options(

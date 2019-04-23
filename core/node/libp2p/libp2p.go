@@ -1,4 +1,4 @@
-package node
+package libp2p
 
 import (
 	"bytes"
@@ -45,10 +45,11 @@ import (
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/repo"
 )
 
-var log = logging.Logger("node")
+var log = logging.Logger("p2pnode")
 
 type HostOption func(ctx context.Context, id peer.ID, ps peerstore.Peerstore, options ...libp2p.Option) (host.Host, error)
 type RoutingOption func(context.Context, host.Host, datastore.Batching, record.Validator) (routing.IpfsRouting, error)
@@ -396,13 +397,13 @@ type P2PHostOut struct {
 	Routing BaseRouting
 }
 
-func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut, err error) {
+func P2PHost(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut, err error) {
 	opts := []libp2p.Option{libp2p.NoListenAddrs}
 	for _, o := range params.Opts {
 		opts = append(opts, o...)
 	}
 
-	ctx := lifecycleCtx(mctx, lc)
+	ctx := helpers.LifecycleCtx(mctx, lc)
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		r, err := params.RoutingOption(ctx, h, params.Repo.Datastore(), params.Validator)
@@ -501,9 +502,9 @@ type p2pPSRoutingIn struct {
 	PubSub      *pubsub.PubSub `optional:"true"`
 }
 
-func P2PPubsubRouter(mctx MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
+func P2PPubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
 	psRouter := namesys.NewPubsubValueStore(
-		lifecycleCtx(mctx, lc),
+		helpers.LifecycleCtx(mctx, lc),
 		in.Host,
 		in.BaseRouting,
 		in.PubSub,
@@ -523,7 +524,7 @@ func P2PPubsubRouter(mctx MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRo
 	}, psRouter
 }
 
-func AutoNATService(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {
+func AutoNATService(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {
 	if !cfg.Swarm.EnableAutoNATService {
 		return nil
 	}
@@ -532,11 +533,11 @@ func AutoNATService(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host h
 		opts = append(opts, libp2p.DefaultTransports, libp2p.Transport(libp2pquic.NewTransport))
 	}
 
-	_, err := autonat.NewAutoNATService(lifecycleCtx(mctx, lc), host, opts...)
+	_, err := autonat.NewAutoNATService(helpers.LifecycleCtx(mctx, lc), host, opts...)
 	return err
 }
 
-func Pubsub(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, cfg *config.Config) (service *pubsub.PubSub, err error) {
+func Pubsub(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, cfg *config.Config) (service *pubsub.PubSub, err error) {
 	var pubsubOptions []pubsub.Option
 	if cfg.Pubsub.DisableSigning {
 		pubsubOptions = append(pubsubOptions, pubsub.WithMessageSigning(false))
@@ -550,10 +551,10 @@ func Pubsub(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, cfg *config.Config
 	case "":
 		fallthrough
 	case "floodsub":
-		service, err = pubsub.NewFloodSub(lifecycleCtx(mctx, lc), host, pubsubOptions...)
+		service, err = pubsub.NewFloodSub(helpers.LifecycleCtx(mctx, lc), host, pubsubOptions...)
 
 	case "gossipsub":
-		service, err = pubsub.NewGossipSub(lifecycleCtx(mctx, lc), host, pubsubOptions...)
+		service, err = pubsub.NewGossipSub(helpers.LifecycleCtx(mctx, lc), host, pubsubOptions...)
 
 	default:
 		err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)

@@ -12,6 +12,7 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
@@ -37,8 +38,8 @@ func DatastoreCtor(repo repo.Repo) datastore.Datastore {
 
 type BaseBlocks blockstore.Blockstore
 
-func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	return func(mctx MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx helpers.MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx helpers.MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 		rds := &retrystore.Datastore{
 			Batching:    repo.Datastore(),
 			Delay:       time.Millisecond * 200,
