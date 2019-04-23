@@ -11,10 +11,10 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/exchange/reprovide"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/provider"
 	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/reprovide"
 )
 
 const kReprovideFrequency = time.Hour * 12
