@@ -10,6 +10,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs-cmdkit"
 	"github.com/ipfs/go-ipfs-cmds"
@@ -43,6 +44,7 @@ const (
 	datafieldencOptionName = "datafieldenc"
 	pinOptionName          = "pin"
 	quietOptionName        = "quiet"
+	humanOptionName        = "human"
 )
 
 var ObjectCmd = &cmds.Command{
@@ -303,6 +305,9 @@ var ObjectStatCmd = &cmds.Command{
 	Arguments: []cmdkit.Argument{
 		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
+	Options: []cmdkit.Option{
+		cmdkit.BoolOption(humanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
@@ -338,11 +343,16 @@ var ObjectStatCmd = &cmds.Command{
 			fw := func(s string, n int) {
 				fmt.Fprintf(wtr, "%s:\t%d\n", s, n)
 			}
+			human, _ := req.Options[humanOptionName].(bool)
 			fw("NumLinks", out.NumLinks)
 			fw("BlockSize", out.BlockSize)
 			fw("LinksSize", out.LinksSize)
 			fw("DataSize", out.DataSize)
-			fw("CumulativeSize", out.CumulativeSize)
+			if human {
+				fmt.Fprintf(wtr, "%s:\t%s\n", "CumulativeSize", humanize.Bytes(uint64(out.CumulativeSize)))
+			} else {
+				fw("CumulativeSize", out.CumulativeSize)
+			}
 
 			return nil
 		}),
