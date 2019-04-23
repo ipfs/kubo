@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-routing"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/exchange/reprovide"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/provider"
@@ -18,12 +19,14 @@ import (
 
 const kReprovideFrequency = time.Hour * 12
 
-func ProviderQueue(mctx MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (*provider.Queue, error) {
-	return provider.NewQueue(lifecycleCtx(mctx, lc), "provider-v1", repo.Datastore())
+// ProviderQueue creates new datastore backed provider queue
+func ProviderQueue(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (*provider.Queue, error) {
+	return provider.NewQueue(helpers.LifecycleCtx(mctx, lc), "provider-v1", repo.Datastore())
 }
 
-func ProviderCtor(mctx MetricsCtx, lc fx.Lifecycle, queue *provider.Queue, rt routing.IpfsRouting) provider.Provider {
-	p := provider.NewProvider(lifecycleCtx(mctx, lc), queue, rt)
+// ProviderCtor creates new record provider
+func ProviderCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *provider.Queue, rt routing.IpfsRouting) provider.Provider {
+	p := provider.NewProvider(helpers.LifecycleCtx(mctx, lc), queue, rt)
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
@@ -38,7 +41,8 @@ func ProviderCtor(mctx MetricsCtx, lc fx.Lifecycle, queue *provider.Queue, rt ro
 	return p
 }
 
-func ReproviderCtor(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, bs BaseBlocks, ds format.DAGService, pinning pin.Pinner, rt routing.IpfsRouting) (*reprovide.Reprovider, error) {
+// ReproviderCtor creates new reprovider
+func ReproviderCtor(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, bs BaseBlocks, ds format.DAGService, pinning pin.Pinner, rt routing.IpfsRouting) (*reprovide.Reprovider, error) {
 	var keyProvider reprovide.KeyChanFunc
 
 	switch cfg.Reprovider.Strategy {
@@ -53,9 +57,10 @@ func ReproviderCtor(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, bs Bas
 	default:
 		return nil, fmt.Errorf("unknown reprovider strategy '%s'", cfg.Reprovider.Strategy)
 	}
-	return reprovide.NewReprovider(lifecycleCtx(mctx, lc), rt, keyProvider), nil
+	return reprovide.NewReprovider(helpers.LifecycleCtx(mctx, lc), rt, keyProvider), nil
 }
 
+// Reprovider runs the reprovider service
 func Reprovider(cfg *config.Config, reprovider *reprovide.Reprovider) error {
 	reproviderInterval := kReprovideFrequency
 	if cfg.Reprovider.Interval != "" {
@@ -67,6 +72,6 @@ func Reprovider(cfg *config.Config, reprovider *reprovide.Reprovider) error {
 		reproviderInterval = dur
 	}
 
-	go reprovider.Run(reproviderInterval)
+	go reprovider.Run(reproviderInterval) // TODO: refactor reprovider to have Start/Stop, use lifecycle
 	return nil
 }

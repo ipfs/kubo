@@ -18,6 +18,7 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	rp "github.com/ipfs/go-ipfs/exchange/reprovide"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/fuse/mount"
@@ -68,10 +69,10 @@ type IpfsNode struct {
 	Repo repo.Repo
 
 	// Local node
-	Pinning         pin.Pinner           // the pinning manager
-	Mounts          Mounts               `optional:"true"` // current mount state, if any.
-	PrivateKey      ic.PrivKey           // the local node's private Key
-	PNetFingerprint node.PNetFingerprint `optional:"true"` // fingerprint of private network
+	Pinning         pin.Pinner                               // the pinning manager
+	Mounts          Mounts               `optional:"true"`   // current mount state, if any.
+	PrivateKey      ic.PrivKey                               // the local node's private Key
+	PNetFingerprint libp2p.PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
 	Peerstore       pstore.Peerstore     `optional:"true"` // storage for other Peer instances

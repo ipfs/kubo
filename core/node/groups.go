@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
 
@@ -13,62 +14,66 @@ import (
 )
 
 var BaseLibP2P = fx.Options(
-	fx.Provide(P2PAddrFilters),
-	fx.Provide(P2PBandwidthCounter),
-	fx.Provide(P2PPNet),
-	fx.Provide(P2PAddrsFactory),
-	fx.Provide(P2PConnectionManager),
-	fx.Provide(P2PNatPortMap),
-	fx.Provide(P2PRelay),
-	fx.Provide(P2PAutoRealy),
-	fx.Provide(P2PDefaultTransports),
-	fx.Provide(P2PQUIC),
+	fx.Provide(libp2p.AddrFilters),
+	fx.Provide(libp2p.BandwidthCounter),
+	fx.Provide(libp2p.PNet),
+	fx.Provide(libp2p.AddrsFactory),
+	fx.Provide(libp2p.ConnectionManager),
+	fx.Provide(libp2p.NatPortMap),
+	fx.Provide(libp2p.Relay),
+	fx.Provide(libp2p.AutoRealy),
+	fx.Provide(libp2p.DefaultTransports),
+	fx.Provide(libp2p.QUIC),
 
-	fx.Provide(P2PHost),
+	fx.Provide(libp2p.Host),
 
-	fx.Provide(NewDiscoveryHandler),
+	fx.Provide(libp2p.DiscoveryHandler),
 
-	fx.Invoke(AutoNATService),
-	fx.Invoke(P2PPNetChecker),
-	fx.Invoke(StartListening),
-	fx.Invoke(SetupDiscovery),
+	fx.Invoke(libp2p.AutoNATService),
+	fx.Invoke(libp2p.PNetChecker),
+	fx.Invoke(libp2p.StartListening),
+	fx.Invoke(libp2p.SetupDiscovery),
 )
 
 func LibP2P(cfg *BuildCfg) fx.Option {
 	opts := fx.Options(
 		BaseLibP2P,
 
-		fx.Provide(P2PSecurity(!cfg.DisableEncryptedConnections)),
-		maybeProvide(Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
+		fx.Provide(libp2p.Security(!cfg.DisableEncryptedConnections)),
+		maybeProvide(libp2p.Pubsub, cfg.getOpt("pubsub") || cfg.getOpt("ipnsps")),
 
-		fx.Provide(P2PSmuxTransport(cfg.getOpt("mplex"))),
-		fx.Provide(P2PRouting),
-		fx.Provide(P2PBaseRouting),
-		maybeProvide(P2PPubsubRouter, cfg.getOpt("ipnsps")),
+		fx.Provide(libp2p.SmuxTransport(cfg.getOpt("mplex"))),
+		fx.Provide(libp2p.Routing),
+		fx.Provide(libp2p.BaseRouting),
+		maybeProvide(libp2p.PubsubRouter, cfg.getOpt("ipnsps")),
 	)
 
 	return opts
 }
 
+// Storage groups units which setup datastore based persistence and blockstore layers
 func Storage(cfg *BuildCfg) fx.Option {
 	return fx.Options(
 		fx.Provide(RepoConfig),
-		fx.Provide(DatastoreCtor),
+		fx.Provide(Datastore),
 		fx.Provide(BaseBlockstoreCtor(cfg.Permanent, cfg.NilRepo)),
 		fx.Provide(GcBlockstoreCtor),
 	)
 }
 
+// Identity groups units providing cryptographic identity
 var Identity = fx.Options(
 	fx.Provide(PeerID),
 	fx.Provide(PrivateKey),
-	fx.Provide(Peerstore),
+	fx.Provide(libp2p.Peerstore),
 )
 
+// IPNS groups namesys related units
 var IPNS = fx.Options(
 	fx.Provide(RecordValidator),
 )
 
+// Providers groups units managing provider routing records
 var Providers = fx.Options(
 	fx.Provide(ProviderQueue),
 	fx.Provide(ProviderCtor),
@@ -77,30 +82,33 @@ var Providers = fx.Options(
 	fx.Invoke(Reprovider),
 )
 
+// Online groups online-only units
 func Online(cfg *BuildCfg) fx.Option {
 	return fx.Options(
-		fx.Provide(OnlineExchangeCtor),
-		fx.Provide(OnlineNamesysCtor),
+		fx.Provide(OnlineExchange),
+		fx.Provide(OnlineNamesys),
 
 		fx.Invoke(IpnsRepublisher),
 
-		fx.Provide(p2p.NewP2P),
+		fx.Provide(p2p.New),
 
 		LibP2P(cfg),
 		Providers,
 	)
 }
 
+// Offline groups offline alternatives to Online units
 var Offline = fx.Options(
 	fx.Provide(offline.Exchange),
-	fx.Provide(OfflineNamesysCtor),
+	fx.Provide(OfflineNamesys),
 	fx.Provide(offroute.NewOfflineRouter),
 	fx.Provide(provider.NewOfflineProvider),
 )
 
+// Core groups basic IPFS services
 var Core = fx.Options(
-	fx.Provide(BlockServiceCtor),
-	fx.Provide(DagCtor),
+	fx.Provide(BlockService),
+	fx.Provide(Dag),
 	fx.Provide(resolver.NewBasicResolver),
 	fx.Provide(Pinning),
 	fx.Provide(Files),
@@ -113,6 +121,7 @@ func Networked(cfg *BuildCfg) fx.Option {
 	return Offline
 }
 
+// IPFS builds a group of fx Options based on the passed BuildCfg
 func IPFS(ctx context.Context, cfg *BuildCfg) fx.Option {
 	if cfg == nil {
 		cfg = new(BuildCfg)

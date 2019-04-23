@@ -8,14 +8,19 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/repo"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	cfg "github.com/ipfs/go-ipfs-config"
+	logging "github.com/ipfs/go-log"
 	ci "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 )
+
+var log = logging.Logger("node")
 
 type BuildCfg struct {
 	// If online is set, the node will have networking enabled
@@ -35,8 +40,8 @@ type BuildCfg struct {
 	// If NilRepo is set, a Repo backed by a nil datastore will be constructed
 	NilRepo bool
 
-	Routing RoutingOption
-	Host    HostOption
+	Routing libp2p.RoutingOption
+	Host    libp2p.HostOption
 	Repo    repo.Repo
 }
 
@@ -68,16 +73,17 @@ func (cfg *BuildCfg) fillDefaults() error {
 	}
 
 	if cfg.Routing == nil {
-		cfg.Routing = DHTOption
+		cfg.Routing = libp2p.DHTOption
 	}
 
 	if cfg.Host == nil {
-		cfg.Host = DefaultHostOption
+		cfg.Host = libp2p.DefaultHostOption
 	}
 
 	return nil
 }
 
+// options creates fx option group from this build config
 func (cfg *BuildCfg) options(ctx context.Context) fx.Option {
 	err := cfg.fillDefaults()
 	if err != nil {
@@ -94,15 +100,15 @@ func (cfg *BuildCfg) options(ctx context.Context) fx.Option {
 		return cfg.Repo
 	})
 
-	metricsCtx := fx.Provide(func() MetricsCtx {
-		return MetricsCtx(ctx)
+	metricsCtx := fx.Provide(func() helpers.MetricsCtx {
+		return helpers.MetricsCtx(ctx)
 	})
 
-	hostOption := fx.Provide(func() HostOption {
+	hostOption := fx.Provide(func() libp2p.HostOption {
 		return cfg.Host
 	})
 
-	routingOption := fx.Provide(func() RoutingOption {
+	routingOption := fx.Provide(func() libp2p.RoutingOption {
 		return cfg.Routing
 	})
 

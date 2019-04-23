@@ -12,6 +12,7 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
@@ -27,18 +28,22 @@ func isTooManyFDError(err error) bool {
 	return false
 }
 
+// RepoConfig loads configuration from the repo
 func RepoConfig(repo repo.Repo) (*config.Config, error) {
 	return repo.Config()
 }
 
-func DatastoreCtor(repo repo.Repo) datastore.Datastore {
+// Datastore provides the datastore
+func Datastore(repo repo.Repo) datastore.Datastore {
 	return repo.Datastore()
 }
 
+// BaseBlocks is the lower level blockstore without GC or Filestore layers
 type BaseBlocks blockstore.Blockstore
 
-func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	return func(mctx MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+// BaseBlockstoreCtor creates cached blockstore backed by the provided datastore
+func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx helpers.MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx helpers.MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 		rds := &retrystore.Datastore{
 			Batching:    repo.Datastore(),
 			Delay:       time.Millisecond * 200,
@@ -81,6 +86,7 @@ func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx MetricsCtx, repo
 	}
 }
 
+// GcBlockstoreCtor wraps the base blockstore with GC and Filestore layers
 func GcBlockstoreCtor(repo repo.Repo, bb BaseBlocks, cfg *config.Config) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
 	gclocker = blockstore.NewGCLocker()
 	gcbs = blockstore.NewGCBlockstore(bb, gclocker)

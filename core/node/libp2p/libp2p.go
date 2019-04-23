@@ -1,4 +1,4 @@
-package node
+package libp2p
 
 import (
 	"bytes"
@@ -45,10 +45,11 @@ import (
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/repo"
 )
 
-var log = logging.Logger("node")
+var log = logging.Logger("p2pnode")
 
 type HostOption func(ctx context.Context, id peer.ID, ps peerstore.Peerstore, options ...libp2p.Option) (host.Host, error)
 type RoutingOption func(context.Context, host.Host, datastore.Batching, record.Validator) (routing.IpfsRouting, error)
@@ -101,7 +102,7 @@ func Peerstore(id peer.ID, sk crypto.PrivKey) (peerstore.Peerstore, error) {
 	return ps, nil
 }
 
-func P2PAddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
+func AddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
 	for _, s := range cfg.Swarm.AddrFilters {
 		f, err := mamask.NewMask(s)
 		if err != nil {
@@ -112,7 +113,7 @@ func P2PAddrFilters(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return opts, nil
 }
 
-func P2PBandwidthCounter(cfg *config.Config) (opts Libp2pOpts, reporter metrics.Reporter) {
+func BandwidthCounter(cfg *config.Config) (opts Libp2pOpts, reporter metrics.Reporter) {
 	reporter = metrics.NewBandwidthCounter()
 
 	if !cfg.Swarm.DisableBandwidthMetrics {
@@ -129,7 +130,7 @@ type Libp2pOpts struct {
 
 type PNetFingerprint []byte
 
-func P2PPNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
+func PNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
 	swarmkey, err := repo.SwarmKey()
 	if err != nil || swarmkey == nil {
 		return opts, nil, err
@@ -145,7 +146,7 @@ func P2PPNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
 	return opts, fp, nil
 }
 
-func P2PPNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
+func PNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
 	// TODO: better check?
 	swarmkey, err := repo.SwarmKey()
 	if err != nil || swarmkey == nil {
@@ -228,7 +229,7 @@ func makeAddrsFactory(cfg config.Addresses) (p2pbhost.AddrsFactory, error) {
 	}, nil
 }
 
-func P2PAddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
+func AddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
 	addrsFactory, err := makeAddrsFactory(cfg.Addresses)
 	if err != nil {
 		return opts, err
@@ -237,7 +238,7 @@ func P2PAddrsFactory(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
-func P2PConnectionManager(cfg *config.Config) (opts Libp2pOpts, err error) {
+func ConnectionManager(cfg *config.Config) (opts Libp2pOpts, err error) {
 	grace := config.DefaultConnMgrGracePeriod
 	low := config.DefaultConnMgrHighWater
 	high := config.DefaultConnMgrHighWater
@@ -307,21 +308,21 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 	return libp2p.ChainOptions(opts...)
 }
 
-func P2PSmuxTransport(mplex bool) func() (opts Libp2pOpts, err error) {
+func SmuxTransport(mplex bool) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
 		opts.Opts = append(opts.Opts, makeSmuxTransportOption(mplex))
 		return
 	}
 }
 
-func P2PNatPortMap(cfg *config.Config) (opts Libp2pOpts, err error) {
+func NatPortMap(cfg *config.Config) (opts Libp2pOpts, err error) {
 	if !cfg.Swarm.DisableNatPortMap {
 		opts.Opts = append(opts.Opts, libp2p.NATPortMap())
 	}
 	return
 }
 
-func P2PRelay(cfg *config.Config) (opts Libp2pOpts, err error) {
+func Relay(cfg *config.Config) (opts Libp2pOpts, err error) {
 	if cfg.Swarm.DisableRelay {
 		// Enabled by default.
 		opts.Opts = append(opts.Opts, libp2p.DisableRelay())
@@ -335,7 +336,7 @@ func P2PRelay(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
-func P2PAutoRealy(cfg *config.Config) (opts Libp2pOpts, err error) {
+func AutoRealy(cfg *config.Config) (opts Libp2pOpts, err error) {
 	// enable autorelay
 	if cfg.Swarm.EnableAutoRelay {
 		opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay())
@@ -343,19 +344,19 @@ func P2PAutoRealy(cfg *config.Config) (opts Libp2pOpts, err error) {
 	return
 }
 
-func P2PDefaultTransports() (opts Libp2pOpts, err error) {
+func DefaultTransports() (opts Libp2pOpts, err error) {
 	opts.Opts = append(opts.Opts, libp2p.DefaultTransports)
 	return
 }
 
-func P2PQUIC(cfg *config.Config) (opts Libp2pOpts, err error) {
+func QUIC(cfg *config.Config) (opts Libp2pOpts, err error) {
 	if cfg.Experimental.QUIC {
 		opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport))
 	}
 	return
 }
 
-func P2PSecurity(enabled bool) interface{} {
+func Security(enabled bool) interface{} {
 	if !enabled {
 		return func() (opts Libp2pOpts) {
 			// TODO: shouldn't this be Errorf to guarantee visibility?
@@ -388,21 +389,21 @@ type P2PHostIn struct {
 	Opts [][]libp2p.Option `group:"libp2p"`
 }
 
-type BaseRouting routing.IpfsRouting
+type BaseIpfsRouting routing.IpfsRouting
 type P2PHostOut struct {
 	fx.Out
 
 	Host    host.Host
-	Routing BaseRouting
+	Routing BaseIpfsRouting
 }
 
-func P2PHost(mctx MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut, err error) {
+func Host(mctx helpers.MetricsCtx, lc fx.Lifecycle, params P2PHostIn) (out P2PHostOut, err error) {
 	opts := []libp2p.Option{libp2p.NoListenAddrs}
 	for _, o := range params.Opts {
 		opts = append(opts, o...)
 	}
 
-	ctx := lifecycleCtx(mctx, lc)
+	ctx := helpers.LifecycleCtx(mctx, lc)
 
 	opts = append(opts, libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
 		r, err := params.RoutingOption(ctx, h, params.Repo.Datastore(), params.Validator)
@@ -447,7 +448,7 @@ type p2pRouterOut struct {
 	Router Router `group:"routers"`
 }
 
-func P2PBaseRouting(lc fx.Lifecycle, in BaseRouting) (out p2pRouterOut, dr *dht.IpfsDHT) {
+func BaseRouting(lc fx.Lifecycle, in BaseIpfsRouting) (out p2pRouterOut, dr *dht.IpfsDHT) {
 	if dht, ok := in.(*dht.IpfsDHT); ok {
 		dr = dht
 
@@ -473,7 +474,7 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
-func P2PRouting(in p2pOnlineRoutingIn) routing.IpfsRouting {
+func Routing(in p2pOnlineRoutingIn) routing.IpfsRouting {
 	routers := in.Routers
 
 	sort.SliceStable(routers, func(i, j int) bool {
@@ -494,16 +495,16 @@ func P2PRouting(in p2pOnlineRoutingIn) routing.IpfsRouting {
 type p2pPSRoutingIn struct {
 	fx.In
 
-	BaseRouting BaseRouting
+	BaseRouting BaseIpfsRouting
 	Repo        repo.Repo
 	Validator   record.Validator
 	Host        host.Host
 	PubSub      *pubsub.PubSub `optional:"true"`
 }
 
-func P2PPubsubRouter(mctx MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
+func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
 	psRouter := namesys.NewPubsubValueStore(
-		lifecycleCtx(mctx, lc),
+		helpers.LifecycleCtx(mctx, lc),
 		in.Host,
 		in.BaseRouting,
 		in.PubSub,
@@ -523,7 +524,7 @@ func P2PPubsubRouter(mctx MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRo
 	}, psRouter
 }
 
-func AutoNATService(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {
+func AutoNATService(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {
 	if !cfg.Swarm.EnableAutoNATService {
 		return nil
 	}
@@ -532,11 +533,11 @@ func AutoNATService(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host h
 		opts = append(opts, libp2p.DefaultTransports, libp2p.Transport(libp2pquic.NewTransport))
 	}
 
-	_, err := autonat.NewAutoNATService(lifecycleCtx(mctx, lc), host, opts...)
+	_, err := autonat.NewAutoNATService(helpers.LifecycleCtx(mctx, lc), host, opts...)
 	return err
 }
 
-func Pubsub(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, cfg *config.Config) (service *pubsub.PubSub, err error) {
+func Pubsub(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, cfg *config.Config) (service *pubsub.PubSub, err error) {
 	var pubsubOptions []pubsub.Option
 	if cfg.Pubsub.DisableSigning {
 		pubsubOptions = append(pubsubOptions, pubsub.WithMessageSigning(false))
@@ -550,10 +551,10 @@ func Pubsub(mctx MetricsCtx, lc fx.Lifecycle, host host.Host, cfg *config.Config
 	case "":
 		fallthrough
 	case "floodsub":
-		service, err = pubsub.NewFloodSub(lifecycleCtx(mctx, lc), host, pubsubOptions...)
+		service, err = pubsub.NewFloodSub(helpers.LifecycleCtx(mctx, lc), host, pubsubOptions...)
 
 	case "gossipsub":
-		service, err = pubsub.NewGossipSub(lifecycleCtx(mctx, lc), host, pubsubOptions...)
+		service, err = pubsub.NewGossipSub(helpers.LifecycleCtx(mctx, lc), host, pubsubOptions...)
 
 	default:
 		err = fmt.Errorf("Unknown pubsub router %s", cfg.Pubsub.Router)

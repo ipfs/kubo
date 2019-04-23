@@ -6,11 +6,10 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/mock"
-	"github.com/ipfs/go-ipfs/core/node"
-
-	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
@@ -27,7 +26,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		n, err := core.NewNode(ctx, &core.BuildCfg{
 			Online:  true,
 			Host:    coremock.MockHostOption(mn),
-			Routing: node.NilRouterOption, // no routing
+			Routing: libp2p.NilRouterOption, // no routing
 		})
 		if err != nil {
 			t.Fatal(err)

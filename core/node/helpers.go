@@ -10,21 +10,6 @@ import (
 	"go.uber.org/fx"
 )
 
-// lifecycleCtx creates a context which will be cancelled when lifecycle stops
-//
-// This is a hack which we need because most of our services use contexts in a
-// wrong way
-func lifecycleCtx(mctx MetricsCtx, lc fx.Lifecycle) context.Context {
-	ctx, cancel := context.WithCancel(mctx)
-	lc.Append(fx.Hook{
-		OnStop: func(_ context.Context) error {
-			cancel()
-			return nil
-		},
-	})
-	return ctx
-}
-
 type lcProcess struct {
 	fx.In
 
@@ -65,6 +50,7 @@ func setupSharding(cfg *config.Config) {
 	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
 }
 
+// baseProcess creates a goprocess which is closed when the lifecycle signals it to stop
 func baseProcess(lc fx.Lifecycle) goprocess.Process {
 	p := goprocess.WithParent(goprocess.Background())
 	lc.Append(fx.Hook{

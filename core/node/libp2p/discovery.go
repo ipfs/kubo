@@ -1,10 +1,11 @@
-package node
+package libp2p
 
 import (
 	"context"
 	"time"
 
 	"github.com/ipfs/go-ipfs-config"
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/libp2p/go-libp2p-host"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
@@ -27,20 +28,20 @@ func (dh *discoveryHandler) HandlePeerFound(p peerstore.PeerInfo) {
 	}
 }
 
-func NewDiscoveryHandler(mctx MetricsCtx, lc fx.Lifecycle, host host.Host) *discoveryHandler {
+func DiscoveryHandler(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host) *discoveryHandler {
 	return &discoveryHandler{
-		ctx:  lifecycleCtx(mctx, lc),
+		ctx:  helpers.LifecycleCtx(mctx, lc),
 		host: host,
 	}
 }
 
-func SetupDiscovery(mctx MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host, handler *discoveryHandler) error {
+func SetupDiscovery(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host, handler *discoveryHandler) error {
 	if cfg.Discovery.MDNS.Enabled {
 		mdns := cfg.Discovery.MDNS
 		if mdns.Interval == 0 {
 			mdns.Interval = 5
 		}
-		service, err := discovery.NewMdnsService(lifecycleCtx(mctx, lc), host, time.Duration(mdns.Interval)*time.Second, discovery.ServiceTag)
+		service, err := discovery.NewMdnsService(helpers.LifecycleCtx(mctx, lc), host, time.Duration(mdns.Interval)*time.Second, discovery.ServiceTag)
 		if err != nil {
 			log.Error("mdns error: ", err)
 			return nil
