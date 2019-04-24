@@ -1,4 +1,4 @@
-package reprovide_test
+package reprovide
 
 import (
 	"context"
@@ -10,9 +10,7 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	mock "github.com/ipfs/go-ipfs-routing/mock"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
-	testutil "github.com/libp2p/go-testutil"
-
-	. "github.com/ipfs/go-ipfs/exchange/reprovide"
+	"github.com/libp2p/go-testutil"
 )
 
 func TestReprovide(t *testing.T) {
@@ -36,8 +34,8 @@ func TestReprovide(t *testing.T) {
 	}
 
 	keyProvider := NewBlockstoreProvider(bstore)
-	reprov := NewReprovider(ctx, clA, keyProvider)
-	err = reprov.Reprovide()
+	reprov := NewReprovider(ctx, 0, clA, keyProvider)
+	err = reprov.reprovide(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

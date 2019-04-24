@@ -119,4 +119,3 @@ func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.
 
 	return root, err
 }
-
