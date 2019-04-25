@@ -181,24 +181,12 @@ You can now check what blocks have been created by:
 			return err
 		}
 
-		events := make(chan interface{}, adderOutChanSize)
-
-		var toadd files.Node = req.Files
-		name := ""
-		if !wrap {
-			it := req.Files.Entries()
-			if !it.Next() {
-				err := it.Err()
-				if err == nil {
-					return fmt.Errorf("expected a file argument")
-				}
-				return err
-			}
-
-			toadd = it.Node()
-			name = it.Name()
+		toadd := req.Files
+		if wrap {
+			toadd = files.NewSliceDirectory([]files.DirEntry{
+				files.FileEntry("", req.Files),
+			})
 		}
-		_, dir := toadd.(files.Directory)
 
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
@@ -215,7 +203,6 @@ You can now check what blocks have been created by:
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
-			options.Unixfs.Events(events),
 		}
 
 		if cidVerSet {
@@ -230,42 +217,61 @@ You can now check what blocks have been created by:
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
-		errCh := make(chan error, 1)
-		go func() {
-			var err error
-			defer func() { errCh <- err }()
-			defer close(events)
-			_, err = api.Unixfs().Add(req.Context, toadd, opts...)
-		}()
+		opts = append(opts, nil) // events option placeholder
 
-		for event := range events {
-			output, ok := event.(*coreiface.AddEvent)
-			if !ok {
-				return errors.New("unknown event type")
+		var added int
+		addit := toadd.Entries()
+		for addit.Next() {
+			_, dir := addit.Node().(files.Directory)
+			errCh := make(chan error, 1)
+			events := make(chan interface{}, adderOutChanSize)
+			opts[len(opts)-1] = options.Unixfs.Events(events)
+
+			go func() {
+				var err error
+				defer close(events)
+				_, err = api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				errCh <- err
+			}()
+
+			for event := range events {
+				output, ok := event.(*coreiface.AddEvent)
+				if !ok {
+					return errors.New("unknown event type")
+				}
+
+				h := ""
+				if output.Path != nil {
+					h = enc.Encode(output.Path.Cid())
+				}
+
+				if !dir && addit.Name() != "" {
+					output.Name = addit.Name()
+				} else {
+					output.Name = path.Join(addit.Name(), output.Name)
+				}
+
+				if err := res.Emit(&AddEvent{
+					Name:  output.Name,
+					Hash:  h,
+					Bytes: output.Bytes,
+					Size:  output.Size,
+				}); err != nil {
+					return err
+				}
 			}
 
-			h := ""
-			if output.Path != nil {
-				h = enc.Encode(output.Path.Cid())
-			}
-
-			if !dir && name != "" {
-				output.Name = name
-			} else {
-				output.Name = path.Join(name, output.Name)
-			}
-
-			if err := res.Emit(&AddEvent{
-				Name:  output.Name,
-				Hash:  h,
-				Bytes: output.Bytes,
-				Size:  output.Size,
-			}); err != nil {
+			if err := <-errCh; err != nil {
 				return err
 			}
+			added++
 		}
 
-		return <-errCh
+		if added == 0 {
+			return fmt.Errorf("expected a file argument")
+		}
+
+		return nil
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
