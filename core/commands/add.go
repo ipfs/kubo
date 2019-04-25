@@ -181,24 +181,26 @@ You can now check what blocks have been created by:
 			return err
 		}
 
-		events := make(chan interface{}, adderOutChanSize)
-
-		var toadd files.Node = req.Files
-		name := ""
+		toadd := []files.Node{req.Files}
+		name := []string{""}
 		if !wrap {
+			toadd, name = nil, nil
+
+			// process all entries in case user adds multiple files
 			it := req.Files.Entries()
-			if !it.Next() {
-				err := it.Err()
-				if err == nil {
-					return fmt.Errorf("expected a file argument")
-				}
+			for it.Next() {
+				toadd = append(toadd, it.Node())
+				name = append(name, it.Name())
+			}
+
+			if err := it.Err(); err != nil {
 				return err
 			}
 
-			toadd = it.Node()
-			name = it.Name()
+			if len(toadd) == 0 {
+				return fmt.Errorf("expected a file argument")
+			}
 		}
-		_, dir := toadd.(files.Directory)
 
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
@@ -215,7 +217,8 @@ You can now check what blocks have been created by:
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
-			options.Unixfs.Events(events),
+
+			nil, // reserved for events, must be last
 		}
 
 		if cidVerSet {
@@ -230,42 +233,51 @@ You can now check what blocks have been created by:
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
-		errCh := make(chan error, 1)
-		go func() {
-			var err error
-			defer func() { errCh <- err }()
-			defer close(events)
-			_, err = api.Unixfs().Add(req.Context, toadd, opts...)
-		}()
+		for i := range toadd {
+			_, dir := toadd[i].(files.Directory)
+			errCh := make(chan error, 1)
+			events := make(chan interface{}, adderOutChanSize)
+			opts[len(opts)-1] = options.Unixfs.Events(events)
 
-		for event := range events {
-			output, ok := event.(*coreiface.AddEvent)
-			if !ok {
-				return errors.New("unknown event type")
+			go func() {
+				var err error
+				defer func() { errCh <- err }()
+				defer close(events)
+				_, err = api.Unixfs().Add(req.Context, toadd[i], opts...)
+			}()
+
+			for event := range events {
+				output, ok := event.(*coreiface.AddEvent)
+				if !ok {
+					return errors.New("unknown event type")
+				}
+
+				h := ""
+				if output.Path != nil {
+					h = enc.Encode(output.Path.Cid())
+				}
+
+				if !dir && name[i] != "" {
+					output.Name = name[i]
+				} else {
+					output.Name = path.Join(name[i], output.Name)
+				}
+
+				if err := res.Emit(&AddEvent{
+					Name:  output.Name,
+					Hash:  h,
+					Bytes: output.Bytes,
+					Size:  output.Size,
+				}); err != nil {
+					return err
+				}
 			}
 
-			h := ""
-			if output.Path != nil {
-				h = enc.Encode(output.Path.Cid())
-			}
-
-			if !dir && name != "" {
-				output.Name = name
-			} else {
-				output.Name = path.Join(name, output.Name)
-			}
-
-			if err := res.Emit(&AddEvent{
-				Name:  output.Name,
-				Hash:  h,
-				Bytes: output.Bytes,
-				Size:  output.Size,
-			}); err != nil {
-				return err
+			if err := <-errCh; err != nil {
+				return nil
 			}
 		}
-
-		return <-errCh
+		return nil
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
