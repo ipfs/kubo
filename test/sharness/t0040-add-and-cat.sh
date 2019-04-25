@@ -325,6 +325,16 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
+  test_expect_success "ipfs add with multiple files succeeds" '
+    echo "Helloo Worlds!" >mountdir/hello2.txt &&
+    ipfs add mountdir/hello.txt mountdir/hello2.txt >actual
+  '
+
+  test_expect_success "ipfs add with multiple files output looks good" '
+    echo "added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH hello.txt" >expected &&
+    echo "added Qmf35k66MZNW2GijohUmXQEWKZU4cCGTCwK6idfnt152wJ hello2.txt" >> expected &&
+    test_cmp expected actual
+  '
 }
 
 test_add_cat_5MB() {
