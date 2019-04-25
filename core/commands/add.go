@@ -188,6 +188,8 @@ You can now check what blocks have been created by:
 			})
 		}
 
+		events := make(chan interface{}, adderOutChanSize)
+
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
 
@@ -203,6 +205,7 @@ You can now check what blocks have been created by:
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
+			options.Unixfs.Events(events),
 		}
 
 		if cidVerSet {
@@ -217,27 +220,32 @@ You can now check what blocks have been created by:
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
-		opts = append(opts, nil) // events option placeholder
-
 		var added int
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
 			errCh := make(chan error, 1)
-			events := make(chan interface{}, adderOutChanSize)
-			opts[len(opts)-1] = options.Unixfs.Events(events)
 
 			go func() {
-				var err error
-				defer close(events)
-				_, err = api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				_, err := api.Unixfs().Add(req.Context, addit.Node(), opts...)
 				errCh <- err
 			}()
 
-			for event := range events {
-				output, ok := event.(*coreiface.AddEvent)
-				if !ok {
-					return errors.New("unknown event type")
+		eventLoop:
+			for {
+				var output *coreiface.AddEvent
+				select {
+				case err := <-errCh:
+					if err != nil {
+						return err
+					}
+					break eventLoop
+				case event := <-events:
+					var ok bool
+					output, ok = event.(*coreiface.AddEvent)
+					if !ok {
+						return errors.New("unknown event type")
+					}
 				}
 
 				h := ""
@@ -261,9 +269,6 @@ You can now check what blocks have been created by:
 				}
 			}
 
-			if err := <-errCh; err != nil {
-				return err
-			}
 			added++
 		}
 
