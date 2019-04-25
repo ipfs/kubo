@@ -181,25 +181,11 @@ You can now check what blocks have been created by:
 			return err
 		}
 
-		toadd := []files.Node{req.Files}
-		name := []string{""}
-		if !wrap {
-			toadd, name = nil, nil
-
-			// process all entries in case user adds multiple files
-			it := req.Files.Entries()
-			for it.Next() {
-				toadd = append(toadd, it.Node())
-				name = append(name, it.Name())
-			}
-
-			if err := it.Err(); err != nil {
-				return err
-			}
-
-			if len(toadd) == 0 {
-				return fmt.Errorf("expected a file argument")
-			}
+		toadd := req.Files
+		if wrap {
+			toadd = files.NewSliceDirectory([]files.DirEntry{
+				files.FileEntry("", req.Files),
+			})
 		}
 
 		opts := []options.UnixfsAddOption{
@@ -217,8 +203,6 @@ You can now check what blocks have been created by:
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
-
-			nil, // reserved for events, must be last
 		}
 
 		if cidVerSet {
@@ -233,17 +217,21 @@ You can now check what blocks have been created by:
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
 		}
 
-		for i := range toadd {
-			_, dir := toadd[i].(files.Directory)
+		opts = append(opts, nil) // events option placeholder
+
+		var added int
+		addit := toadd.Entries()
+		for addit.Next() {
+			_, dir := addit.Node().(files.Directory)
 			errCh := make(chan error, 1)
 			events := make(chan interface{}, adderOutChanSize)
 			opts[len(opts)-1] = options.Unixfs.Events(events)
 
 			go func() {
 				var err error
-				defer func() { errCh <- err }()
 				defer close(events)
-				_, err = api.Unixfs().Add(req.Context, toadd[i], opts...)
+				_, err = api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				errCh <- err
 			}()
 
 			for event := range events {
@@ -257,10 +245,10 @@ You can now check what blocks have been created by:
 					h = enc.Encode(output.Path.Cid())
 				}
 
-				if !dir && name[i] != "" {
-					output.Name = name[i]
+				if !dir && addit.Name() != "" {
+					output.Name = addit.Name()
 				} else {
-					output.Name = path.Join(name[i], output.Name)
+					output.Name = path.Join(addit.Name(), output.Name)
 				}
 
 				if err := res.Emit(&AddEvent{
@@ -274,9 +262,15 @@ You can now check what blocks have been created by:
 			}
 
 			if err := <-errCh; err != nil {
-				return nil
+				return err
 			}
+			added++
 		}
+
+		if added == 0 {
+			return fmt.Errorf("expected a file argument")
+		}
+
 		return nil
 	},
 	PostRun: cmds.PostRunMap{
