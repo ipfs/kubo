@@ -524,16 +524,23 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 	}, psRouter
 }
 
-func AutoNATService(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {
+func AutoNATService(repo repo.Repo, mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host) error {
 	if !cfg.Swarm.EnableAutoNATService {
 		return nil
 	}
-	var opts []libp2p.Option
-	if cfg.Experimental.QUIC {
-		opts = append(opts, libp2p.DefaultTransports, libp2p.Transport(libp2pquic.NewTransport))
+
+	// collect private net option in case swarm.key is presented
+	opts, _, err := PNet(repo)
+	if err != nil {
+		// swarm key exists but was failed to decode
+		return err
 	}
 
-	_, err := autonat.NewAutoNATService(helpers.LifecycleCtx(mctx, lc), host, opts...)
+	if cfg.Experimental.QUIC {
+		opts.Opts = append(opts.Opts, libp2p.DefaultTransports, libp2p.Transport(libp2pquic.NewTransport))
+	}
+
+	_, err = autonat.NewAutoNATService(helpers.LifecycleCtx(mctx, lc), host, opts.Opts...)
 	return err
 }
 
