@@ -104,50 +104,18 @@ bandwidth than the others, but is lacking on congestion control and backpressure
 logic. It is available to try out and experiment with.
 
 ### State
-Experimental
+Stable
 
 ### In Version
 0.4.5
 
 ### How to enable
-run your daemon with `--enable-mplex-experiment`
 
 To make it the default stream muxer, set the environment variable
 `LIBP2P_MUX_PREFS` as follows:
 ```
 export LIBP2P_MUX_PREFS="/mplex/6.7.0 /yamux/1.0.0 /spdy/3.1.0"
 ```
-
-To check which stream muxer is being used between any two given peers, check the
-json output of the `ipfs swarm peers` command, you'll see something like this:
-```
-$ ipfs swarm peers -v --enc=json | jq .
-{
-  "Peers": [
-    {
-      "Addr": "/ip4/104.131.131.82/tcp/4001",
-      "Peer": "QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-      "Latency": "46.032624ms",
-      "Muxer": "*peerstream_multiplex.conn",
-      "Streams": [
-        {
-          "Protocol": "/ipfs/bitswap/1.1.0"
-        },
-        {
-          "Protocol": "/ipfs/kad/1.0.0"
-        },
-        {
-          "Protocol": "/ipfs/kad/1.0.0"
-        }
-      ]
-    },
-    {
-...
-```
-
-### Road to being a real feature
-- [ ] Significant real world testing and performance metrics across a wide
-      variety of workloads showing that it works well.
 
 ---
 
