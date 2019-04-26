@@ -58,15 +58,6 @@ settings for 'ipfs add'.
 			return err
 		}
 
-		cfg, err := cmdenv.GetConfig(env)
-		if err != nil {
-			return err
-		}
-
-		if !cfg.Experimental.UrlstoreEnabled {
-			return filestore.ErrUrlstoreNotEnabled
-		}
-
 		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
 			return err
