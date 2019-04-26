@@ -27,6 +27,8 @@ var urlAdd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Add URL via urlstore.",
 		LongDescription: `
+DEPRECATED: Use 'ipfs add --nocopy URL'.
+
 Add URLs to ipfs without storing the data locally.
 
 The URL provided must be stable and ideally on a web server under your
@@ -34,10 +36,6 @@ control.
 
 The file is added using raw-leaves but otherwise using the default
 settings for 'ipfs add'.
-
-This command is considered temporary until a better solution can be
-found.  It may disappear or the semantics can change at any
-time.
 `,
 	},
 	Options: []cmdkit.Option{
