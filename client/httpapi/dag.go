@@ -9,8 +9,8 @@ import (
 	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type httpNodeAdder HttpApi
@@ -18,7 +18,7 @@ type HttpDagServ httpNodeAdder
 type pinningHttpNodeAdder httpNodeAdder
 
 func (api *HttpDagServ) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
-	r, err := api.core().Block().Get(ctx, iface.IpldPath(c))
+	r, err := api.core().Block().Get(ctx, path.IpldPath(c))
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (api *HttpDagServ) Pinning() format.NodeAdder {
 }
 
 func (api *HttpDagServ) Remove(ctx context.Context, c cid.Cid) error {
-	return api.core().Block().Rm(ctx, iface.IpldPath(c)) //TODO: should we force rm?
+	return api.core().Block().Rm(ctx, path.IpldPath(c)) //TODO: should we force rm?
 }
 
 func (api *HttpDagServ) RemoveMany(ctx context.Context, cids []cid.Cid) error {

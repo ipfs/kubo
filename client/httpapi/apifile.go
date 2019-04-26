@@ -10,12 +10,12 @@ import (
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	unixfs "github.com/ipfs/go-unixfs"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const forwardSeekLimit = 1 << 14 //16k
 
-func (api *UnixfsAPI) Get(ctx context.Context, p iface.Path) (files.Node, error) {
+func (api *UnixfsAPI) Get(ctx context.Context, p path.Path) (files.Node, error) {
 	if p.Mutable() { // use resolved path in case we are dealing with IPNS / MFS
 		var err error
 		p, err = api.core().ResolvePath(ctx, p)
@@ -48,7 +48,7 @@ type apiFile struct {
 	ctx  context.Context
 	core *HttpApi
 	size int64
-	path iface.Path
+	path path.Path
 
 	r  *Response
 	at int64
@@ -114,7 +114,7 @@ func (f *apiFile) Size() (int64, error) {
 	return f.size, nil
 }
 
-func (api *UnixfsAPI) getFile(ctx context.Context, p iface.Path, size int64) (files.Node, error) {
+func (api *UnixfsAPI) getFile(ctx context.Context, p path.Path, size int64) (files.Node, error) {
 	f := &apiFile{
 		ctx:  ctx,
 		core: api.core(),
@@ -177,13 +177,13 @@ func (it *apiIter) Next() bool {
 
 	switch it.cur.Type {
 	case unixfs.THAMTShard, unixfs.TMetadata, unixfs.TDirectory:
-		it.curFile, err = it.core.getDir(it.ctx, iface.IpfsPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getDir(it.ctx, path.IpfsPath(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false
 		}
 	case unixfs.TFile:
-		it.curFile, err = it.core.getFile(it.ctx, iface.IpfsPath(c), int64(it.cur.Size))
+		it.curFile, err = it.core.getFile(it.ctx, path.IpfsPath(c), int64(it.cur.Size))
 		if err != nil {
 			it.err = err
 			return false
@@ -203,7 +203,7 @@ type apiDir struct {
 	ctx  context.Context
 	core *UnixfsAPI
 	size int64
-	path iface.Path
+	path path.Path
 
 	dec *json.Decoder
 }
@@ -224,7 +224,7 @@ func (d *apiDir) Entries() files.DirIterator {
 	}
 }
 
-func (api *UnixfsAPI) getDir(ctx context.Context, p iface.Path, size int64) (files.Node, error) {
+func (api *UnixfsAPI) getDir(ctx context.Context, p path.Path, size int64) (files.Node, error) {
 	resp, err := api.core().Request("ls", p.String()).
 		Option("resolve-size", true).
 		Option("stream", true).Send(ctx)

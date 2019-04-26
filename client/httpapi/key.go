@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-peer"
 )
 
@@ -22,9 +23,8 @@ func (k *keyOutput) Name() string {
 	return k.JName
 }
 
-func (k *keyOutput) Path() iface.Path {
-	p, _ := iface.ParsePath("/ipns/" + k.Id)
-	return p
+func (k *keyOutput) Path() path.Path {
+	return path.New("/ipns/" + k.Id)
 }
 
 func (k *keyOutput) ID() peer.ID {
