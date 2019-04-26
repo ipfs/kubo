@@ -9,6 +9,7 @@ import (
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
+	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/ipfs/go-path/resolver"
 	"go.uber.org/fx"
 )
@@ -122,21 +123,33 @@ func Networked(cfg *BuildCfg) fx.Option {
 }
 
 // IPFS builds a group of fx Options based on the passed BuildCfg
-func IPFS(ctx context.Context, cfg *BuildCfg) fx.Option {
-	if cfg == nil {
-		cfg = new(BuildCfg)
+func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
+	if bcfg == nil {
+		bcfg = new(BuildCfg)
 	}
 
+	bcfgOpts, cfg := bcfg.options(ctx)
+	if cfg == nil {
+		return bcfgOpts // error
+	}
+
+	// TEMP: setting global sharding switch here
+	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
+
+
+
+
+
+
 	return fx.Options(
-		cfg.options(ctx),
+		bcfgOpts,
 
 		fx.Provide(baseProcess),
-		fx.Invoke(setupSharding),
 
-		Storage(cfg),
+		Storage(bcfg),
 		Identity,
 		IPNS,
-		Networked(cfg),
+		Networked(bcfg),
 
 		Core,
 	)
