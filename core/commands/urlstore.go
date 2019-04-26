@@ -27,7 +27,7 @@ var urlAdd = &cmds.Command{
 	Helptext: cmdkit.HelpText{
 		Tagline: "Add URL via urlstore.",
 		LongDescription: `
-DEPRECATED: Use 'ipfs add --nocopy URL'.
+DEPRECATED: Use 'ipfs add --nocopy --cid-version=1 URL'.
 
 Add URLs to ipfs without storing the data locally.
 
@@ -48,6 +48,8 @@ settings for 'ipfs add'.
 	Type: &BlockStat{},
 
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		log.Error("The 'ipfs urlstore' command is deprecated, please use 'ipfs add --nocopy --cid-version=1")
+
 		urlString := req.Arguments[0]
 		if !filestore.IsURL(req.Arguments[0]) {
 			return fmt.Errorf("unsupported url syntax: %s", urlString)
