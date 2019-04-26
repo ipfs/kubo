@@ -38,7 +38,7 @@ require (
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
-	github.com/ipfs/go-ipfs-files v0.0.2
+	github.com/ipfs/go-ipfs-files v0.0.3
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-routing v0.0.1
 	github.com/ipfs/go-ipfs-util v0.0.1
@@ -50,9 +50,9 @@ require (
 	github.com/ipfs/go-merkledag v0.0.3
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
-	github.com/ipfs/go-mfs v0.0.4
+	github.com/ipfs/go-mfs v0.0.5
 	github.com/ipfs/go-path v0.0.3
-	github.com/ipfs/go-unixfs v0.0.4
+	github.com/ipfs/go-unixfs v0.0.5
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.0.7
@@ -66,10 +66,10 @@ require (
 	github.com/libp2p/go-libp2p v0.0.18
 	github.com/libp2p/go-libp2p-autonat-svc v0.0.5
 	github.com/libp2p/go-libp2p-circuit v0.0.4
-	github.com/libp2p/go-libp2p-connmgr v0.0.1
+	github.com/libp2p/go-libp2p-connmgr v0.0.3
 	github.com/libp2p/go-libp2p-crypto v0.0.1
-	github.com/libp2p/go-libp2p-host v0.0.1
-	github.com/libp2p/go-libp2p-interface-connmgr v0.0.1
+	github.com/libp2p/go-libp2p-host v0.0.2
+	github.com/libp2p/go-libp2p-interface-connmgr v0.0.3
 	github.com/libp2p/go-libp2p-kad-dht v0.0.10
 	github.com/libp2p/go-libp2p-kbucket v0.1.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
@@ -91,18 +91,23 @@ require (
 	github.com/libp2p/go-maddr-filter v0.0.1
 	github.com/libp2p/go-stream-muxer v0.0.1
 	github.com/libp2p/go-testutil v0.0.1
+	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
+	github.com/miekg/dns v1.1.8 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mr-tron/base58 v1.1.0
+	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multiaddr-dns v0.0.2
 	github.com/multiformats/go-multiaddr-net v0.0.1
 	github.com/multiformats/go-multibase v0.0.1
-	github.com/multiformats/go-multihash v0.0.2
+	github.com/multiformats/go-multihash v0.0.4
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829
+	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
+	github.com/prometheus/common v0.3.0 // indirect
+	github.com/prometheus/procfs v0.0.0-20190425082905-87a4384529e0 // indirect
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
 	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible
@@ -115,9 +120,13 @@ require (
 	go.uber.org/fx v1.9.0
 	go.uber.org/goleak v0.10.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
-	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
+	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6 // indirect
+	golang.org/x/sys v0.0.0-20190426135247-a129542de9ae
+	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/tools v0.0.0-20190425222832-ad9eeb80039a // indirect
+	golang.org/x/xerrors v0.0.0-20190410155217-1f06c39b4373 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
-	gotest.tools/gotestsum v0.3.3
+	gotest.tools/gotestsum v0.3.4
 )
 
 go 1.12
