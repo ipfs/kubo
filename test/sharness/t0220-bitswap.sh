@@ -24,7 +24,7 @@ bitswap status
   data received: 0
   data sent: 0
   dup blocks received: 0
-  dup data received: 0 B
+  dup data received: 0
   wantlist [0 keys]
   partners [0]
 EOF
@@ -62,7 +62,7 @@ bitswap status
   data received: 0
   data sent: 0
   dup blocks received: 0
-  dup data received: 0 B
+  dup data received: 0
   wantlist [0 keys]
   partners [0]
 EOF
@@ -75,6 +75,27 @@ test_expect_success "'ipfs bitswap wantlist -p' works" '
 
 test_expect_success "'ipfs bitswap wantlist -p' output looks good" '
   test_cmp wantlist_out wantlist_p_out
+'
+
+test_expect_success "'ipfs bitswap stat --human' succeeds" '
+  ipfs bitswap stat --human >stat_out_human
+'
+
+
+test_expect_success "'ipfs bitswap stat --human' output looks good" '
+  cat <<EOF | unexpand -t2 >expected &&
+bitswap status
+  provides buffer: 0 / 256
+  blocks received: 0
+  blocks sent: 0
+  data received: 0 B
+  data sent: 0 B
+  dup blocks received: 0
+  dup data received: 0 B
+  wantlist [0 keys]
+  partners [0]
+EOF
+  test_cmp expected stat_out_human
 '
 
 test_kill_ipfs_daemon

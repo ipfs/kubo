@@ -90,6 +90,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 
 const (
 	bitswapVerboseOptionName = "verbose"
+	bitswapHumanOptionName   = "human"
 )
 
 var bitswapStatCmd = &cmds.Command{
@@ -99,6 +100,7 @@ var bitswapStatCmd = &cmds.Command{
 	},
 	Options: []cmdkit.Option{
 		cmdkit.BoolOption(bitswapVerboseOptionName, "v", "Print extra information"),
+		cmdkit.BoolOption(bitswapHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
 	},
 	Type: bitswap.Stat{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -130,15 +132,25 @@ var bitswapStatCmd = &cmds.Command{
 				return err
 			}
 			verbose, _ := req.Options[bitswapVerboseOptionName].(bool)
+			human, _ := req.Options[bitswapHumanOptionName].(bool)
 
 			fmt.Fprintln(w, "bitswap status")
 			fmt.Fprintf(w, "\tprovides buffer: %d / %d\n", s.ProvideBufLen, bitswap.HasBlockBufferSize)
 			fmt.Fprintf(w, "\tblocks received: %d\n", s.BlocksReceived)
 			fmt.Fprintf(w, "\tblocks sent: %d\n", s.BlocksSent)
-			fmt.Fprintf(w, "\tdata received: %d\n", s.DataReceived)
-			fmt.Fprintf(w, "\tdata sent: %d\n", s.DataSent)
+			if human {
+				fmt.Fprintf(w, "\tdata received: %s\n", humanize.Bytes(s.DataReceived))
+				fmt.Fprintf(w, "\tdata sent: %s\n", humanize.Bytes(s.DataSent))
+			} else {
+				fmt.Fprintf(w, "\tdata received: %d\n", s.DataReceived)
+				fmt.Fprintf(w, "\tdata sent: %d\n", s.DataSent)
+			}
 			fmt.Fprintf(w, "\tdup blocks received: %d\n", s.DupBlksReceived)
-			fmt.Fprintf(w, "\tdup data received: %s\n", humanize.Bytes(s.DupDataReceived))
+			if human {
+				fmt.Fprintf(w, "\tdup data received: %s\n", humanize.Bytes(s.DupDataReceived))
+			} else {
+				fmt.Fprintf(w, "\tdup data received: %d\n", s.DupDataReceived)
+			}
 			fmt.Fprintf(w, "\twantlist [%d keys]\n", len(s.Wantlist))
 			for _, k := range s.Wantlist {
 				fmt.Fprintf(w, "\t\t%s\n", enc.Encode(k))
