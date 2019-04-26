@@ -299,6 +299,8 @@ github.com/libp2p/go-conn-security v0.0.1 h1:4kMMrqrt9EUNCNjX1xagSJC+bq16uqjMe9l
 github.com/libp2p/go-conn-security v0.0.1/go.mod h1:bGmu51N0KU9IEjX7kl2PQjgZa40JQWnayTvNMgD/vyk=
 github.com/libp2p/go-conn-security-multistream v0.0.1 h1:XefjAQRHcnUaxKb26RGupToucx3uU4ecbOZ3aACXlDU=
 github.com/libp2p/go-conn-security-multistream v0.0.1/go.mod h1:nc9vud7inQ+d6SO0I/6dSWrdMnHnzZNHeyUQqrAJulE=
+github.com/libp2p/go-conn-security-multistream v0.0.2 h1:Ykz0lnNjxk+0SdslUmlLNyrleqdpS1S/VW+dxFdt74Y=
+github.com/libp2p/go-conn-security-multistream v0.0.2/go.mod h1:nc9vud7inQ+d6SO0I/6dSWrdMnHnzZNHeyUQqrAJulE=
 github.com/libp2p/go-flow-metrics v0.0.1 h1:0gxuFd2GuK7IIP5pKljLwps6TvcuYgvG7Atqi3INF5s=
 github.com/libp2p/go-flow-metrics v0.0.1/go.mod h1:Iv1GH0sG8DtYN3SVJ2eG221wMiNpZxBdp967ls1g+k8=
 github.com/libp2p/go-libp2p v0.0.1 h1:oEjzhRzymY7NILTMzOKNVOpNZGpcQHrHriWw91pbJNM=
@@ -307,8 +309,8 @@ github.com/libp2p/go-libp2p v0.0.2 h1:+jvgi0Zy3y4TKXJKApchCk3pCBPZf1T54z3+vKie3g
 github.com/libp2p/go-libp2p v0.0.2/go.mod h1:Qu8bWqFXiocPloabFGUcVG4kk94fLvfC8mWTDdFC9wE=
 github.com/libp2p/go-libp2p v0.0.12 h1:UbZO296s6/Cvoz4LmymvL7LrXtHkD58Xtt8Iddx/N+I=
 github.com/libp2p/go-libp2p v0.0.12/go.mod h1:l8kmLMc4DToz2TtA0aWEaE4/jVMALRKw8Kv2WTR0LHc=
-github.com/libp2p/go-libp2p v0.0.16 h1:RnhLD0rKomQtfYkQbGMtC77/7I09yiuh0Z4Yf/cgVmc=
-github.com/libp2p/go-libp2p v0.0.16/go.mod h1:lMX+0+6rniTpb/Sy5kN8HHfKnJn/Y8FUuTmEYQ7jcic=
+github.com/libp2p/go-libp2p v0.0.18 h1:ppSfhwpHz7OTp+q+fOpzBVk91HkgC49P1Ei8hgsoWik=
+github.com/libp2p/go-libp2p v0.0.18/go.mod h1:VHOCpLJKpsBCFImjI0moE8le68TJ/W52omgqrpOpbms=
 github.com/libp2p/go-libp2p-autonat v0.0.1 h1:d5eskFxeJ4ag1ekhMC3yLTK+z+6RTw9W1Yv8HQma75k=
 github.com/libp2p/go-libp2p-autonat v0.0.1/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat v0.0.2 h1:ilo9QPzNPf1hMkqaPG55yzvhILf5ZtijstJhcii+l3s=
@@ -413,6 +415,8 @@ github.com/libp2p/go-libp2p-transport v0.0.4 h1:/CPHQMN75/IQwkhBxxIo6p6PtL3rwFZt
 github.com/libp2p/go-libp2p-transport v0.0.4/go.mod h1:StoY3sx6IqsP6XKoabsPnHCwqKXWUMWU7Rfcsubee/A=
 github.com/libp2p/go-libp2p-transport-upgrader v0.0.1 h1:rNtXkY6dty46mxYOHHAZQchI7gQdJStF683FhVnei/k=
 github.com/libp2p/go-libp2p-transport-upgrader v0.0.1/go.mod h1:NJpUAgQab/8K6K0m+JmZCe5RUXG10UMEx4kWe9Ipj5c=
+github.com/libp2p/go-libp2p-transport-upgrader v0.0.2 h1:VygEEnAyTPZxVkEOVsmLp0vGLGBEn4W1UBHcy9cEywg=
+github.com/libp2p/go-libp2p-transport-upgrader v0.0.2/go.mod h1:NJpUAgQab/8K6K0m+JmZCe5RUXG10UMEx4kWe9Ipj5c=
 github.com/libp2p/go-maddr-filter v0.0.1 h1:apvYTg0aIxxQyBX+XHKOR+0+lYhGs1Yv+JmTH9nyl5I=
 github.com/libp2p/go-maddr-filter v0.0.1/go.mod h1:6eT12kSQMA9x2pvFQa+xesMKUBlj9VImZbj3B9FBH/Q=
 github.com/libp2p/go-mplex v0.0.1 h1:dn2XGSrUxLtz3/8u85bGrwhUEKPX8MOF3lpmcWBZCWc=
