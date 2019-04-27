@@ -9,6 +9,7 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type NameAPI HttpApi
@@ -17,18 +18,18 @@ type ipnsEntry struct {
 	JName  string `json:"Name"`
 	JValue string `json:"Value"`
 
-	path iface.Path
+	path path.Path
 }
 
 func (e *ipnsEntry) Name() string {
 	return e.JName
 }
 
-func (e *ipnsEntry) Value() iface.Path {
+func (e *ipnsEntry) Value() path.Path {
 	return e.path
 }
 
-func (api *NameAPI) Publish(ctx context.Context, p iface.Path, opts ...caopts.NamePublishOption) (iface.IpnsEntry, error) {
+func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (iface.IpnsEntry, error) {
 	options, err := caopts.NamePublishOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -48,8 +49,8 @@ func (api *NameAPI) Publish(ctx context.Context, p iface.Path, opts ...caopts.Na
 	if err := req.Exec(ctx, &out); err != nil {
 		return nil, err
 	}
-	out.path, err = iface.ParsePath(out.JValue)
-	return &out, err
+	out.path = path.New(out.JValue)
+	return &out, out.path.IsValid()
 }
 
 func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.NameResolveOption) (<-chan iface.IpnsResult, error) {
@@ -93,7 +94,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 			}
 			var ires iface.IpnsResult
 			if err == nil {
-				ires.Path, err = iface.ParsePath(out.Path)
+				ires.Path = path.New(out.Path)
 			}
 
 			select {
@@ -109,7 +110,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 	return res, nil
 }
 
-func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (iface.Path, error) {
+func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.NameResolveOption) (path.Path, error) {
 	options, err := caopts.NameResolveOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -131,7 +132,7 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 		return nil, err
 	}
 
-	return iface.ParsePath(out.Path)
+	return path.New(out.Path), nil
 }
 
 func (api *NameAPI) core() *HttpApi {

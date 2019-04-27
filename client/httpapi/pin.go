@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/pkg/errors"
 )
 
@@ -21,11 +22,11 @@ type pinRefKeyList struct {
 }
 
 type pin struct {
-	path iface.ResolvedPath
+	path path.Resolved
 	typ  string
 }
 
-func (p *pin) Path() iface.ResolvedPath {
+func (p *pin) Path() path.Resolved {
 	return p.path
 }
 
@@ -33,7 +34,7 @@ func (p *pin) Type() string {
 	return p.typ
 }
 
-func (api *PinAPI) Add(ctx context.Context, p iface.Path, opts ...caopts.PinAddOption) error {
+func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOption) error {
 	options, err := caopts.PinAddOptions(opts...)
 	if err != nil {
 		return err
@@ -62,13 +63,13 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]iface.
 		if err != nil {
 			return nil, err
 		}
-		pins = append(pins, &pin{typ: p.Type, path: iface.IpldPath(c)})
+		pins = append(pins, &pin{typ: p.Type, path: path.IpldPath(c)})
 	}
 
 	return pins, nil
 }
 
-func (api *PinAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.PinRmOption) error {
+func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOption) error {
 	options, err := caopts.PinRmOptions(opts...)
 	if err != nil {
 		return err
@@ -79,7 +80,7 @@ func (api *PinAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.PinRmOpt
 		Exec(ctx, nil)
 }
 
-func (api *PinAPI) Update(ctx context.Context, from iface.Path, to iface.Path, opts ...caopts.PinUpdateOption) error {
+func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opts ...caopts.PinUpdateOption) error {
 	options, err := caopts.PinUpdateOptions(opts...)
 	if err != nil {
 		return err
@@ -107,8 +108,8 @@ type badNode struct {
 	cid cid.Cid
 }
 
-func (n *badNode) Path() iface.ResolvedPath {
-	return iface.IpldPath(n.cid)
+func (n *badNode) Path() path.Resolved {
+	return path.IpldPath(n.cid)
 }
 
 func (n *badNode) Err() error {

@@ -13,6 +13,7 @@ import (
 	unixfs_pb "github.com/ipfs/go-unixfs/pb"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -25,7 +26,7 @@ type addEvent struct {
 
 type UnixfsAPI HttpApi
 
-func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.UnixfsAddOption) (iface.ResolvedPath, error) {
+func (api *UnixfsAPI) Add(ctx context.Context, f files.Node, opts ...caopts.UnixfsAddOption) (path.Resolved, error) {
 	options, _, err := caopts.UnixfsAddOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ loop:
 					return nil, err
 				}
 
-				ifevt.Path = iface.IpfsPath(c)
+				ifevt.Path = path.IpfsPath(c)
 			}
 
 			select {
@@ -114,7 +115,7 @@ loop:
 		return nil, err
 	}
 
-	return iface.IpfsPath(c), nil
+	return path.IpfsPath(c), nil
 }
 
 type lsLink struct {
@@ -133,7 +134,7 @@ type lsOutput struct {
 	Objects []lsObject
 }
 
-func (api *UnixfsAPI) Ls(ctx context.Context, p iface.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.DirEntry, error) {
+func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...caopts.UnixfsLsOption) (<-chan iface.DirEntry, error) {
 	options, err := caopts.UnixfsLsOptions(opts...)
 	if err != nil {
 		return nil, err

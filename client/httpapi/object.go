@@ -14,6 +14,7 @@ import (
 	ft "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type ObjectAPI HttpApi
@@ -41,7 +42,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	return n, nil
 }
 
-func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.ObjectPutOption) (iface.ResolvedPath, error) {
+func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.ObjectPutOption) (path.Resolved, error) {
 	options, err := caopts.ObjectPutOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -63,10 +64,10 @@ func (api *ObjectAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.Objec
 		return nil, err
 	}
 
-	return iface.IpfsPath(c), nil
+	return path.IpfsPath(c), nil
 }
 
-func (api *ObjectAPI) Get(ctx context.Context, p iface.Path) (ipld.Node, error) {
+func (api *ObjectAPI) Get(ctx context.Context, p path.Path) (ipld.Node, error) {
 	r, err := api.core().Block().Get(ctx, p)
 	if err != nil {
 		return nil, err
@@ -79,7 +80,7 @@ func (api *ObjectAPI) Get(ctx context.Context, p iface.Path) (ipld.Node, error) 
 	return merkledag.DecodeProtobuf(b)
 }
 
-func (api *ObjectAPI) Data(ctx context.Context, p iface.Path) (io.Reader, error) {
+func (api *ObjectAPI) Data(ctx context.Context, p path.Path) (io.Reader, error) {
 	resp, err := api.core().Request("object/data", p.String()).Send(ctx)
 	if err != nil {
 		return nil, err
@@ -98,7 +99,7 @@ func (api *ObjectAPI) Data(ctx context.Context, p iface.Path) (io.Reader, error)
 	return b, nil
 }
 
-func (api *ObjectAPI) Links(ctx context.Context, p iface.Path) ([]*ipld.Link, error) {
+func (api *ObjectAPI) Links(ctx context.Context, p path.Path) ([]*ipld.Link, error) {
 	var out struct {
 		Links []struct {
 			Name string
@@ -126,7 +127,7 @@ func (api *ObjectAPI) Links(ctx context.Context, p iface.Path) ([]*ipld.Link, er
 	return res, nil
 }
 
-func (api *ObjectAPI) Stat(ctx context.Context, p iface.Path) (*iface.ObjectStat, error) {
+func (api *ObjectAPI) Stat(ctx context.Context, p path.Path) (*iface.ObjectStat, error) {
 	var out struct {
 		Hash           string
 		NumLinks       int
@@ -154,7 +155,7 @@ func (api *ObjectAPI) Stat(ctx context.Context, p iface.Path) (*iface.ObjectStat
 	}, nil
 }
 
-func (api *ObjectAPI) AddLink(ctx context.Context, base iface.Path, name string, child iface.Path, opts ...caopts.ObjectAddLinkOption) (iface.ResolvedPath, error) {
+func (api *ObjectAPI) AddLink(ctx context.Context, base path.Path, name string, child path.Path, opts ...caopts.ObjectAddLinkOption) (path.Resolved, error) {
 	options, err := caopts.ObjectAddLinkOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -173,10 +174,10 @@ func (api *ObjectAPI) AddLink(ctx context.Context, base iface.Path, name string,
 		return nil, err
 	}
 
-	return iface.IpfsPath(c), nil
+	return path.IpfsPath(c), nil
 }
 
-func (api *ObjectAPI) RmLink(ctx context.Context, base iface.Path, link string) (iface.ResolvedPath, error) {
+func (api *ObjectAPI) RmLink(ctx context.Context, base path.Path, link string) (path.Resolved, error) {
 	var out objectOut
 	err := api.core().Request("object/patch/rm-link", base.String(), link).
 		Exec(ctx, &out)
@@ -189,10 +190,10 @@ func (api *ObjectAPI) RmLink(ctx context.Context, base iface.Path, link string) 
 		return nil, err
 	}
 
-	return iface.IpfsPath(c), nil
+	return path.IpfsPath(c), nil
 }
 
-func (api *ObjectAPI) AppendData(ctx context.Context, p iface.Path, r io.Reader) (iface.ResolvedPath, error) {
+func (api *ObjectAPI) AppendData(ctx context.Context, p path.Path, r io.Reader) (path.Resolved, error) {
 	var out objectOut
 	err := api.core().Request("object/patch/append-data", p.String()).
 		FileBody(r).
@@ -206,10 +207,10 @@ func (api *ObjectAPI) AppendData(ctx context.Context, p iface.Path, r io.Reader)
 		return nil, err
 	}
 
-	return iface.IpfsPath(c), nil
+	return path.IpfsPath(c), nil
 }
 
-func (api *ObjectAPI) SetData(ctx context.Context, p iface.Path, r io.Reader) (iface.ResolvedPath, error) {
+func (api *ObjectAPI) SetData(ctx context.Context, p path.Path, r io.Reader) (path.Resolved, error) {
 	var out objectOut
 	err := api.core().Request("object/patch/set-data", p.String()).
 		FileBody(r).
@@ -223,7 +224,7 @@ func (api *ObjectAPI) SetData(ctx context.Context, p iface.Path, r io.Reader) (i
 		return nil, err
 	}
 
-	return iface.IpfsPath(c), nil
+	return path.IpfsPath(c), nil
 }
 
 type change struct {
@@ -233,7 +234,7 @@ type change struct {
 	After  cid.Cid
 }
 
-func (api *ObjectAPI) Diff(ctx context.Context, a iface.Path, b iface.Path) ([]iface.ObjectChange, error) {
+func (api *ObjectAPI) Diff(ctx context.Context, a path.Path, b path.Path) ([]iface.ObjectChange, error) {
 	var out struct {
 		Changes []change
 	}
@@ -247,10 +248,10 @@ func (api *ObjectAPI) Diff(ctx context.Context, a iface.Path, b iface.Path) ([]i
 			Path: ch.Path,
 		}
 		if ch.Before != cid.Undef {
-			res[i].Before = iface.IpfsPath(ch.Before)
+			res[i].Before = path.IpfsPath(ch.Before)
 		}
 		if ch.After != cid.Undef {
-			res[i].After = iface.IpfsPath(ch.After)
+			res[i].After = path.IpfsPath(ch.After)
 		}
 	}
 	return res, nil

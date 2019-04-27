@@ -10,6 +10,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -26,8 +27,8 @@ func (s *blockStat) Size() int {
 	return s.BSize
 }
 
-func (s *blockStat) Path() iface.ResolvedPath {
-	return iface.IpldPath(s.cid)
+func (s *blockStat) Path() path.Resolved {
+	return path.IpldPath(s.cid)
 }
 
 func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockPutOption) (iface.BlockStat, error) {
@@ -60,7 +61,7 @@ func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockP
 	return &out, nil
 }
 
-func (api *BlockAPI) Get(ctx context.Context, p iface.Path) (io.Reader, error) {
+func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
 	resp, err := api.core().Request("block/get", p.String()).Send(ctx)
 	if err != nil {
 		return nil, err
@@ -79,7 +80,7 @@ func (api *BlockAPI) Get(ctx context.Context, p iface.Path) (io.Reader, error) {
 	return b, nil
 }
 
-func (api *BlockAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.BlockRmOption) error {
+func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRmOption) error {
 	options, err := caopts.BlockRmOptions(opts...)
 	if err != nil {
 		return err
@@ -105,7 +106,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p iface.Path, opts ...caopts.BlockR
 	return nil
 }
 
-func (api *BlockAPI) Stat(ctx context.Context, p iface.Path) (iface.BlockStat, error) {
+func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (iface.BlockStat, error) {
 	var out blockStat
 	err := api.core().Request("block/stat", p.String()).Exec(ctx, &out)
 	if err != nil {

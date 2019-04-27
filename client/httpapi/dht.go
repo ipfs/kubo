@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	notif "github.com/libp2p/go-libp2p-routing/notifications"
@@ -37,7 +37,7 @@ func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (peerstore.PeerInfo,
 	}
 }
 
-func (api *DhtAPI) FindProviders(ctx context.Context, p iface.Path, opts ...caopts.DhtFindProvidersOption) (<-chan peerstore.PeerInfo, error) {
+func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopts.DhtFindProvidersOption) (<-chan peerstore.PeerInfo, error) {
 	options, err := caopts.DhtFindProvidersOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p iface.Path, opts ...caop
 	return res, nil
 }
 
-func (api *DhtAPI) Provide(ctx context.Context, p iface.Path, opts ...caopts.DhtProvideOption) error {
+func (api *DhtAPI) Provide(ctx context.Context, p path.Path, opts ...caopts.DhtProvideOption) error {
 	options, err := caopts.DhtProvideOptions(opts...)
 	if err != nil {
 		return err

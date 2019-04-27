@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
 	local "github.com/ipfs/iptb-plugins/local"
 	"github.com/ipfs/iptb/testbed"
@@ -171,11 +172,7 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 			}
 
 			// empty node is pinned even with --empty-repo, we don't want that
-			emptyNode, err := iface.ParsePath("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
-			if err != nil {
-				errs <- err
-				return
-			}
+			emptyNode := path.New("/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn")
 			if err := apis[i].Pin().Rm(ctx, emptyNode); err != nil {
 				errs <- err
 				return
