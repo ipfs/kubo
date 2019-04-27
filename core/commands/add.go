@@ -267,6 +267,10 @@ You can now check what blocks have been created by:
 			added++
 		}
 
+		if addit.Err() != nil {
+			return addit.Err()
+		}
+
 		if added == 0 {
 			return fmt.Errorf("expected a file argument")
 		}
