@@ -39,6 +39,7 @@ require (
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.2
+	github.com/ipfs/go-ipfs-http-client v0.0.1
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-routing v0.0.1
 	github.com/ipfs/go-ipfs-util v0.0.1
@@ -121,3 +122,5 @@ require (
 )
 
 go 1.12
+
+replace github.com/ipfs/go-ipfs-cmds => /home/magik6k/gohack/github.com/ipfs/go-ipfs-cmds
