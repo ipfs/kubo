@@ -7,6 +7,7 @@ import (
 )
 
 type Request struct {
+	Ctx     context.Context
 	ApiBase string
 	Command string
 	Args    []string
@@ -25,6 +26,7 @@ func NewRequest(ctx context.Context, url, command string, args ...string) *Reque
 		"stream-channels": "true",
 	}
 	return &Request{
+		Ctx:     ctx,
 		ApiBase: url + "/api/v0",
 		Command: command,
 		Args:    args,
