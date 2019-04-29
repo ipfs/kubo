@@ -280,16 +280,16 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 	return libp2p.ChainOptions(opts...)
 }
 
+var NatPortMap = simpleOpt(libp2p.NATPortMap())
+var AutoRealy = simpleOpt(libp2p.EnableAutoRelay())
+var DefaultTransports = simpleOpt(libp2p.DefaultTransports)
+var QUIC = simpleOpt(libp2p.Transport(libp2pquic.NewTransport))
+
 func SmuxTransport(mplex bool) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
 		opts.Opts = append(opts.Opts, makeSmuxTransportOption(mplex))
 		return
 	}
-}
-
-func NatPortMap() (opts Libp2pOpts, err error) {
-	opts.Opts = append(opts.Opts, libp2p.NATPortMap())
-	return
 }
 
 func Relay(disable, enableHop bool) func() (opts Libp2pOpts, err error) {
@@ -306,21 +306,6 @@ func Relay(disable, enableHop bool) func() (opts Libp2pOpts, err error) {
 		}
 		return
 	}
-}
-
-func AutoRealy() (opts Libp2pOpts, err error) {
-	opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay())
-	return
-}
-
-func DefaultTransports() (opts Libp2pOpts, err error) {
-	opts.Opts = append(opts.Opts, libp2p.DefaultTransports)
-	return
-}
-
-func QUIC() (opts Libp2pOpts, err error) {
-	opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport))
-	return
 }
 
 func Security(enabled, preferTLS bool) interface{} {
@@ -553,5 +538,12 @@ func StartListening(addresses []string) func(host host.Host) error {
 		}
 		log.Infof("Swarm listening at: %s", addrs)
 		return nil
+	}
+}
+
+func simpleOpt(opt libp2p.Option) func() (opts Libp2pOpts, err error) {
+	return func() (opts Libp2pOpts, err error) {
+		opts.Opts = append(opts.Opts, opt)
+		return
 	}
 }
