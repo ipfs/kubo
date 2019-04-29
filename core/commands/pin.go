@@ -406,17 +406,29 @@ new pin and removing the old one.
 			return err
 		}
 
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
 		unpin, _ := req.Options[pinUnpinOptionName].(bool)
 
-		from := path.New(req.Arguments[0])
-		to := path.New(req.Arguments[1])
+		// Resolve the paths ahead of time so we can return the actual CIDs
+		from, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
+		if err != nil {
+			return err
+		}
+		to, err := api.ResolvePath(req.Context, path.New(req.Arguments[1]))
+		if err != nil {
+			return err
+		}
 
 		err = api.Pin().Update(req.Context, from, to, options.Pin.Unpin(unpin))
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{Pins: []string{from.String(), to.String()}})
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.Cid()), enc.Encode(to.Cid())}})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
