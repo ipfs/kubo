@@ -3,8 +3,6 @@ package node
 import (
 	"context"
 
-	config "github.com/ipfs/go-ipfs-config"
-	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/jbenet/goprocess"
 	"github.com/pkg/errors"
 	"go.uber.org/fx"
@@ -43,11 +41,6 @@ func maybeProvide(opt interface{}, enable bool) fx.Option {
 		return fx.Provide(opt)
 	}
 	return fx.Options()
-}
-
-func setupSharding(cfg *config.Config) {
-	// TEMP: setting global sharding switch here
-	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
 }
 
 // baseProcess creates a goprocess which is closed when the lifecycle signals it to stop

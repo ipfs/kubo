@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/ipfs/go-ipfs-config"
-	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/libp2p/go-libp2p-host"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"go.uber.org/fx"
+
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 )
 
 const discoveryConnTimeout = time.Second * 30
@@ -35,18 +35,19 @@ func DiscoveryHandler(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host) 
 	}
 }
 
-func SetupDiscovery(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host, handler *discoveryHandler) error {
-	if cfg.Discovery.MDNS.Enabled {
-		mdns := cfg.Discovery.MDNS
-		if mdns.Interval == 0 {
-			mdns.Interval = 5
+func SetupDiscovery(mdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.Lifecycle, host.Host, *discoveryHandler) error {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, handler *discoveryHandler) error {
+		if mdns {
+			if mdnsInterval == 0 {
+				mdnsInterval = 5
+			}
+			service, err := discovery.NewMdnsService(helpers.LifecycleCtx(mctx, lc), host, time.Duration(mdnsInterval)*time.Second, discovery.ServiceTag)
+			if err != nil {
+				log.Error("mdns error: ", err)
+				return nil
+			}
+			service.RegisterNotifee(handler)
 		}
-		service, err := discovery.NewMdnsService(helpers.LifecycleCtx(mctx, lc), host, time.Duration(mdns.Interval)*time.Second, discovery.ServiceTag)
-		if err != nil {
-			log.Error("mdns error: ", err)
-			return nil
-		}
-		service.RegisterNotifee(handler)
+		return nil
 	}
-	return nil
 }

@@ -84,10 +84,10 @@ func (cfg *BuildCfg) fillDefaults() error {
 }
 
 // options creates fx option group from this build config
-func (cfg *BuildCfg) options(ctx context.Context) fx.Option {
+func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 	err := cfg.fillDefaults()
 	if err != nil {
-		return fx.Error(err)
+		return fx.Error(err), nil
 	}
 
 	repoOption := fx.Provide(func(lc fx.Lifecycle) repo.Repo {
@@ -112,12 +112,17 @@ func (cfg *BuildCfg) options(ctx context.Context) fx.Option {
 		return cfg.Routing
 	})
 
+	conf, err := cfg.Repo.Config()
+	if err != nil {
+		return fx.Error(err), nil
+	}
+
 	return fx.Options(
 		repoOption,
 		hostOption,
 		routingOption,
 		metricsCtx,
-	)
+	), conf
 }
 
 func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {

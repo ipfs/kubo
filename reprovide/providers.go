@@ -20,27 +20,29 @@ func NewBlockstoreProvider(bstore blocks.Blockstore) KeyChanFunc {
 }
 
 // NewPinnedProvider returns provider supplying pinned keys
-func NewPinnedProvider(pinning pin.Pinner, dag ipld.DAGService, onlyRoots bool) KeyChanFunc {
-	return func(ctx context.Context) (<-chan cid.Cid, error) {
-		set, err := pinSet(ctx, pinning, dag, onlyRoots)
-		if err != nil {
-			return nil, err
-		}
-
-		outCh := make(chan cid.Cid)
-		go func() {
-			defer close(outCh)
-			for c := range set.New {
-				select {
-				case <-ctx.Done():
-					return
-				case outCh <- c:
-				}
+func NewPinnedProvider(onlyRoots bool) func(pinning pin.Pinner, dag ipld.DAGService) KeyChanFunc {
+	return func(pinning pin.Pinner, dag ipld.DAGService) KeyChanFunc {
+		return func(ctx context.Context) (<-chan cid.Cid, error) {
+			set, err := pinSet(ctx, pinning, dag, onlyRoots)
+			if err != nil {
+				return nil, err
 			}
 
-		}()
+			outCh := make(chan cid.Cid)
+			go func() {
+				defer close(outCh)
+				for c := range set.New {
+					select {
+					case <-ctx.Done():
+						return
+					case outCh <- c:
+					}
+				}
 
-		return outCh, nil
+			}()
+
+			return outCh, nil
+		}
 	}
 }
 

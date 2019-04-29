@@ -42,8 +42,8 @@ func Datastore(repo repo.Repo) datastore.Datastore {
 type BaseBlocks blockstore.Blockstore
 
 // BaseBlockstoreCtor creates cached blockstore backed by the provided datastore
-func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx helpers.MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-	return func(mctx helpers.MetricsCtx, repo repo.Repo, cfg *config.Config, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, nilRepo bool, hashOnRead bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
+	return func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 		rds := &retrystore.Datastore{
 			Batching:    repo.Datastore(),
 			Delay:       time.Millisecond * 200,
@@ -54,12 +54,6 @@ func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx helpers.MetricsC
 		bs = blockstore.NewBlockstore(rds)
 		bs = &verifbs.VerifBS{Blockstore: bs}
 
-		opts := blockstore.DefaultCacheOpts()
-		opts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
-		if !permanent {
-			opts.HasBloomFilterSize = 0
-		}
-
 		if !nilRepo {
 			ctx, cancel := context.WithCancel(mctx)
 
@@ -69,7 +63,7 @@ func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx helpers.MetricsC
 					return nil
 				},
 			})
-			bs, err = blockstore.CachedBlockstore(ctx, bs, opts)
+			bs, err = blockstore.CachedBlockstore(ctx, bs, cacheOpts)
 			if err != nil {
 				return nil, err
 			}
@@ -78,7 +72,7 @@ func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx helpers.MetricsC
 		bs = blockstore.NewIdStore(bs)
 		bs = cidv0v1.NewBlockstore(bs)
 
-		if cfg.Datastore.HashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
+		if hashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
 			bs.HashOnRead(true)
 		}
 
@@ -87,16 +81,23 @@ func BaseBlockstoreCtor(permanent bool, nilRepo bool) func(mctx helpers.MetricsC
 }
 
 // GcBlockstoreCtor wraps the base blockstore with GC and Filestore layers
-func GcBlockstoreCtor(repo repo.Repo, bb BaseBlocks, cfg *config.Config) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+func GcBlockstoreCtor(bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore) {
 	gclocker = blockstore.NewGCLocker()
 	gcbs = blockstore.NewGCBlockstore(bb, gclocker)
 
-	if cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled {
-		// hash security
-		fstore = filestore.NewFilestore(bb, repo.FileManager()) // TODO: mark optional
-		gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
-		gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
-	}
+	bs = gcbs
+	return
+}
+
+// GcBlockstoreCtor wraps GcBlockstore and adds Filestore support
+func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
+	gclocker, gcbs, bs = GcBlockstoreCtor(bb)
+
+	// hash security
+	fstore = filestore.NewFilestore(bb, repo.FileManager())
+	gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
+	gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
+
 	bs = gcbs
 	return
 }
