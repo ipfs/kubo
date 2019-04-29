@@ -38,7 +38,6 @@ var BaseLibP2P = fx.Options(
 )
 
 func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
-
 	// parse ConnMgr config
 
 	grace := config.DefaultConnMgrGracePeriod
