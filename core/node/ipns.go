@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-ipns"
 	"github.com/libp2p/go-libp2p-crypto"
@@ -27,49 +26,31 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 	}
 }
 
-// OfflineNamesys creates namesys setup for offline operation
-func OfflineNamesys(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSystem, error) {
-	return namesys.NewNameSystem(rt, repo.Datastore(), 0), nil
-}
-
-// OnlineNamesys createn new namesys setup for online operation
-func OnlineNamesys(rt routing.IpfsRouting, repo repo.Repo, cfg *config.Config) (namesys.NameSystem, error) {
-	cs := cfg.Ipns.ResolveCacheSize
-	if cs == 0 {
-		cs = DefaultIpnsCacheSize
+// Namesys creates new name system
+func Namesys(cacheSize int) func(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSystem, error) {
+	return func(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSystem, error) {
+		return namesys.NewNameSystem(rt, repo.Datastore(), cacheSize), nil
 	}
-	if cs < 0 {
-		return nil, fmt.Errorf("cannot specify negative resolve cache size")
-	}
-	return namesys.NewNameSystem(rt, repo.Datastore(), cs), nil
 }
 
 // IpnsRepublisher runs new IPNS republisher service
-func IpnsRepublisher(lc lcProcess, cfg *config.Config, namesys namesys.NameSystem, repo repo.Repo, privKey crypto.PrivKey) error {
-	repub := republisher.NewRepublisher(namesys, repo.Datastore(), privKey, repo.Keystore())
+func IpnsRepublisher(repubPeriod time.Duration, recordLifetime time.Duration) func(lcProcess, namesys.NameSystem, repo.Repo, crypto.PrivKey) error {
+	return func(lc lcProcess, namesys namesys.NameSystem, repo repo.Repo, privKey crypto.PrivKey) error {
+		repub := republisher.NewRepublisher(namesys, repo.Datastore(), privKey, repo.Keystore())
 
-	if cfg.Ipns.RepublishPeriod != "" {
-		d, err := time.ParseDuration(cfg.Ipns.RepublishPeriod)
-		if err != nil {
-			return fmt.Errorf("failure to parse config setting IPNS.RepublishPeriod: %s", err)
+		if repubPeriod != 0 {
+			if !util.Debug && (repubPeriod < time.Minute || repubPeriod > (time.Hour*24)) {
+				return fmt.Errorf("config setting IPNS.RepublishPeriod is not between 1min and 1day: %s", repubPeriod)
+			}
+
+			repub.Interval = repubPeriod
 		}
 
-		if !util.Debug && (d < time.Minute || d > (time.Hour*24)) {
-			return fmt.Errorf("config setting IPNS.RepublishPeriod is not between 1min and 1day: %s", d)
+		if recordLifetime != 0 {
+			repub.RecordLifetime = recordLifetime
 		}
 
-		repub.Interval = d
+		lc.Append(repub.Run)
+		return nil
 	}
-
-	if cfg.Ipns.RecordLifetime != "" {
-		d, err := time.ParseDuration(cfg.Ipns.RecordLifetime)
-		if err != nil {
-			return fmt.Errorf("failure to parse config setting IPNS.RecordLifetime: %s", err)
-		}
-
-		repub.RecordLifetime = d
-	}
-
-	lc.Append(repub.Run)
-	return nil
 }

@@ -71,13 +71,13 @@ type IpfsNode struct {
 	// Local node
 	Pinning         pin.Pinner             // the pinning manager
 	Mounts          Mounts                 `optional:"true"` // current mount state, if any.
-	PrivateKey      ic.PrivKey             // the local node's private Key
+	PrivateKey      ic.PrivKey             `optional:"true"` // the local node's private Key
 	PNetFingerprint libp2p.PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
 	Peerstore       pstore.Peerstore     `optional:"true"` // storage for other Peer instances
 	Blockstore      bstore.GCBlockstore  // the block store (lower level)
-	Filestore       *filestore.Filestore // the filestore blockstore
+	Filestore       *filestore.Filestore `optional:"true"` // the filestore blockstore
 	BaseBlocks      node.BaseBlocks      // the raw blockstore, no filestore wrapping
 	GCLocker        bstore.GCLocker      // the locker used to protect the blockstore during gc
 	Blocks          bserv.BlockService   // the block service, get/add blocks.
