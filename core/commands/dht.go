@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -469,7 +470,7 @@ Different key types can specify other 'best' rules.
 			} else {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.Value,
-					Extra: string(val),
+					Extra: base64.StdEncoding.EncodeToString(val),
 				})
 			}
 		}()
@@ -489,7 +490,11 @@ Different key types can specify other 'best' rules.
 					if verbose {
 						fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
 					} else {
-						fmt.Fprintln(out, obj.Extra)
+						res, err := base64.StdEncoding.DecodeString(obj.Extra)
+						if err != nil {
+							return err
+						}
+						out.Write(res)
 					}
 					return nil
 				},
