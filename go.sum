@@ -301,8 +301,8 @@ github.com/libp2p/go-libp2p v0.0.2 h1:+jvgi0Zy3y4TKXJKApchCk3pCBPZf1T54z3+vKie3g
 github.com/libp2p/go-libp2p v0.0.2/go.mod h1:Qu8bWqFXiocPloabFGUcVG4kk94fLvfC8mWTDdFC9wE=
 github.com/libp2p/go-libp2p v0.0.12 h1:UbZO296s6/Cvoz4LmymvL7LrXtHkD58Xtt8Iddx/N+I=
 github.com/libp2p/go-libp2p v0.0.12/go.mod h1:l8kmLMc4DToz2TtA0aWEaE4/jVMALRKw8Kv2WTR0LHc=
-github.com/libp2p/go-libp2p v0.0.20 h1:10E+N3rNvweUl38Nc72ES44fhJIu7s9MlBIMzhSv+78=
-github.com/libp2p/go-libp2p v0.0.20/go.mod h1:Gqc+8/1bWNjLDeXW0iCdWiatL+dN2u7YLuOmWEQY5Vo=
+github.com/libp2p/go-libp2p v0.0.21 h1:Mc8T1G/5DsDe83/vc5wVliyiRWNVJsUowKOMLHjcJyQ=
+github.com/libp2p/go-libp2p v0.0.21/go.mod h1:fwhRaZJcLTSAga5HwobjX20lO2pOBx4vQSiKrZv6i/A=
 github.com/libp2p/go-libp2p-autonat v0.0.2 h1:ilo9QPzNPf1hMkqaPG55yzvhILf5ZtijstJhcii+l3s=
 github.com/libp2p/go-libp2p-autonat v0.0.2/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat v0.0.3 h1:PUD+pAx8Qs9hh+Bowzxq8RCkg/Vwrz5oCFC4peixXQk=
@@ -501,6 +501,8 @@ github.com/multiformats/go-multihash v0.0.5 h1:1wxmCvTXAifAepIMyF39vZinRw5sbqjPs
 github.com/multiformats/go-multihash v0.0.5/go.mod h1:lt/HCbqlQwlPBz7lv0sQCdtfcMtlJvakRUn/0Ual8po=
 github.com/multiformats/go-multistream v0.0.1 h1:JV4VfSdY9n7ECTtY59/TlSyFCzRILvYx4T4Ws8ZgihU=
 github.com/multiformats/go-multistream v0.0.1/go.mod h1:fJTiDfXJVmItycydCnNx4+wSzZ5NwG2FEVAI30fiovg=
+github.com/multiformats/go-multistream v0.0.2 h1:uWy8f8Icfo9t/U80+CR5oqM84gSgNqh8xLB7rVslfcw=
+github.com/multiformats/go-multistream v0.0.2/go.mod h1:fJTiDfXJVmItycydCnNx4+wSzZ5NwG2FEVAI30fiovg=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0 h1:WSHQ+IS43OoUrWtD1/bbclrwK8TTH5hzp+umCiuxHgs=
