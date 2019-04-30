@@ -39,6 +39,7 @@ type Result struct {
 // The routine then iterates over every block in the blockstore and
 // deletes any block that is not found in the marked set.
 func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []cid.Cid) <-chan Result {
+	ctx, cancel := context.WithCancel(ctx)
 
 	elock := log.EventBegin(ctx, "GC.lockWait")
 	unlocker := bs.GCLock()
@@ -52,6 +53,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	output := make(chan Result, 128)
 
 	go func() {
+		defer cancel()
 		defer close(output)
 		defer unlocker.Unlock()
 		defer elock.Done()
