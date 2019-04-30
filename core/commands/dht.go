@@ -241,6 +241,13 @@ var provideRefDhtCmd = &cmds.Command{
 			return errors.New("cannot provide, no connected peers")
 		}
 
+		// Needed to parse stdin args.
+		// TODO: Lazy Load
+		err = req.ParseBodyArgs()
+		if err != nil {
+			return err
+		}
+
 		rec, _ := req.Options[recursiveOptionName].(bool)
 
 		var cids []cid.Cid
@@ -538,6 +545,12 @@ NOTE: A value may not exceed 2048 bytes.
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		// Needed to parse stdin args.
+		err = req.ParseBodyArgs()
 		if err != nil {
 			return err
 		}
