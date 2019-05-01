@@ -109,19 +109,7 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) (*HttpApi, error) {
 		}
 	}
 
-	api := &HttpApi{
-		url:         url,
-		httpcli:     *c,
-		Headers:     make(map[string][]string),
-		applyGlobal: func(*RequestBuilder) {},
-	}
-
-	// We don't support redirects.
-	api.httpcli.CheckRedirect = func(_ *gohttp.Request, _ []*gohttp.Request) error {
-		return fmt.Errorf("unexpected redirect")
-	}
-
-	return api, nil
+	return NewURLApiWithClient(url, c)
 }
 
 func NewURLApiWithClient(url string, c *gohttp.Client) (*HttpApi, error) {
