@@ -71,7 +71,6 @@ type Adder struct {
 	Silent     bool
 	NoCopy     bool
 	Chunker    string
-	root       ipld.Node
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   cid.Cid
@@ -132,11 +131,6 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 
 // RootNode returns the mfs root node
 func (adder *Adder) curRootNode() (ipld.Node, error) {
-	// for memoizing
-	if adder.root != nil {
-		return adder.root, nil
-	}
-
 	mr, err := adder.mfsRoot()
 	if err != nil {
 		return nil, err
@@ -156,7 +150,6 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 		root = nd
 	}
 
-	adder.root = root
 	return root, err
 }
 
