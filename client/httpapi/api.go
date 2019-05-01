@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	gohttp "net/http"
 	"os"
 	"path"
@@ -32,9 +33,9 @@ var ErrApiNotFound = errors.New("ipfs api address could not be found")
 // For interface docs see
 // https://godoc.org/github.com/ipfs/interface-go-ipfs-core#CoreAPI
 type HttpApi struct {
-	url     string
-	httpcli gohttp.Client
-
+	url         string
+	httpcli     gohttp.Client
+	Headers     http.Header
 	applyGlobal func(*RequestBuilder)
 }
 
@@ -175,10 +176,17 @@ func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error)
 }
 
 func (api *HttpApi) Request(command string, args ...string) *RequestBuilder {
+	var headers map[string]string
+	if api.Headers != nil {
+		for k := range api.Headers {
+			headers[k] = api.Headers.Get(k)
+		}
+	}
 	return &RequestBuilder{
 		command: command,
 		args:    args,
 		shell:   api,
+		headers: headers,
 	}
 }
 
