@@ -3,11 +3,13 @@ package httpapi
 import (
 	"context"
 	"io/ioutil"
+	"net/http"
 	gohttp "net/http"
 	"os"
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
@@ -212,23 +214,51 @@ func TestHttpApi(t *testing.T) {
 	tests.TestApi(newNodeProvider(ctx))(t)
 }
 
-func TestDirectAPI(t *testing.T) {
-	type args struct {
-		url, header, value string
+func Test_NewURLApiWithClient(t *testing.T) {
+	t.Skip()
+	var (
+		url                 = "127.0.0.1:65501"
+		headerToTest        = "Test-Header"
+		expectedHeaderValue = "thisisaheadertest"
+	)
+	server, err := testHTTPServer(url, headerToTest, expectedHeaderValue)
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{"Success", args{"http://127.0.0.1:5001/foo/bar/api/v0", "Authorization", "Bearer token"}},
+	defer server.Close()
+	go func() {
+		server.ListenAndServe()
+	}()
+	time.Sleep(time.Second * 2)
+	api, err := NewURLApiWithClient(url, &http.Client{
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			api, err := NewDirectAPIClient(tt.args.url)
-			if err != nil {
-				t.Fatal(err)
-			}
-			api = api.WithAuthorization(tt.args.header, tt.args.value)
-		})
+	api.Headers.Set(headerToTest, expectedHeaderValue)
+	if _, err := api.Pin().Ls(context.Background()); err != nil {
+		t.Fatal(err)
 	}
+}
+
+/// testHTTPServer spins up a test go http server
+// used to check headers
+func testHTTPServer(url, headerToTest, expectedHeaderValue string) (*http.Server, error) {
+	r := http.NewServeMux()
+	r.HandleFunc("/api/v0/pin/ls", func(w http.ResponseWriter, r *http.Request) {
+		val := r.Header.Get(headerToTest)
+		if val == expectedHeaderValue {
+			w.WriteHeader(400)
+			return
+		}
+		w.WriteHeader(200)
+	})
+	return &http.Server{
+		Handler: r,
+		Addr:    url,
+	}, nil
 }
