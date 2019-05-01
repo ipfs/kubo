@@ -5,13 +5,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	gohttp "net/http"
+	"net/http/httptest"
 	"os"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 
 	"github.com/ipfs/interface-go-ipfs-core/tests"
@@ -212,23 +213,24 @@ func TestHttpApi(t *testing.T) {
 	tests.TestApi(newNodeProvider(ctx))(t)
 }
 
-func Test_NewURLApiWithClient(t *testing.T) {
-	t.Skip()
+func Test_NewURLApiWithClient_With_Headers(t *testing.T) {
 	var (
-		url                 = "127.0.0.1:65501"
 		headerToTest        = "Test-Header"
 		expectedHeaderValue = "thisisaheadertest"
 	)
-	server, err := testHTTPServer(url, headerToTest, expectedHeaderValue)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer server.Close()
-	go func() {
-		server.ListenAndServe()
-	}()
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			val := r.Header.Get(headerToTest)
+			if val == expectedHeaderValue {
+				w.WriteHeader(400)
+				return
+			}
+			w.WriteHeader(200)
+		}),
+	)
+	defer ts.Close()
 	time.Sleep(time.Second * 2)
-	api, err := NewURLApiWithClient(url, &http.Client{
+	api, err := NewURLApiWithClient(ts.URL, &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
@@ -241,22 +243,4 @@ func Test_NewURLApiWithClient(t *testing.T) {
 	if _, err := api.Pin().Ls(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-}
-
-/// testHTTPServer spins up a test go http server
-// used to check headers
-func testHTTPServer(url, headerToTest, expectedHeaderValue string) (*http.Server, error) {
-	r := http.NewServeMux()
-	r.HandleFunc("/api/v0/pin/ls", func(w http.ResponseWriter, r *http.Request) {
-		val := r.Header.Get(headerToTest)
-		if val == expectedHeaderValue {
-			w.WriteHeader(400)
-			return
-		}
-		w.WriteHeader(200)
-	})
-	return &http.Server{
-		Handler: r,
-		Addr:    url,
-	}, nil
 }
