@@ -209,7 +209,7 @@ test_config_cmd() {
 
   test_expect_success "'ipfs config Swarm.AddrFilters' looks good with server profile" '
     ipfs config Swarm.AddrFilters > actual_config &&
-    test $(cat actual_config | wc -l) = 17
+    test $(cat actual_config | wc -l) = 22
   '
 
   test_expect_success "'ipfs config profile apply local-discovery' works" '

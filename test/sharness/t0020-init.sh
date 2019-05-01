@@ -141,7 +141,7 @@ test_expect_success "'ipfs init --profile' succeeds" '
 
 test_expect_success "'ipfs config Swarm.AddrFilters' looks good" '
   ipfs config Swarm.AddrFilters > actual_config &&
-  test $(cat actual_config | wc -l) = 17
+  test $(cat actual_config | wc -l) = 22
 '
 
 test_expect_success "clean up ipfs dir" '
