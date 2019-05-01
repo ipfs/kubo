@@ -55,6 +55,9 @@ RUN chmod 4755 /usr/local/bin/fusermount
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
 COPY --from=0 /lib/x86_64-linux-gnu/libdl-2.24.so /lib/libdl.so.2
 
+RUN wget -q -O /usr/local/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 \
+  && chmod +x /usr/local/bin/jq
+
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
 # Daemon API; must not be exposed publicly but to client services under you control
