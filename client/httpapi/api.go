@@ -112,6 +112,7 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) (*HttpApi, error) {
 	api := &HttpApi{
 		url:         url,
 		httpcli:     *c,
+		Headers:     make(map[string][]string),
 		applyGlobal: func(*RequestBuilder) {},
 	}
 
@@ -123,20 +124,11 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) (*HttpApi, error) {
 	return api, nil
 }
 
-// NewDirectAPIClient is used to instantiate a HttpApi client
-// that connects to an endpoint which leverages additional http paths.
-//
-// If you need to connect to a IPFS HTTP API located at https://foo.bar/baz/api/v0
-// you should use NewDirectAPIClient.
-func NewDirectAPIClient(url string) (*HttpApi, error) {
+func NewURLApiWithClient(url string, c *gohttp.Client) (*HttpApi, error) {
 	api := &HttpApi{
-		url: url,
-		httpcli: gohttp.Client{
-			Transport: &gohttp.Transport{
-				Proxy:             gohttp.ProxyFromEnvironment,
-				DisableKeepAlives: true,
-			},
-		},
+		url:         url,
+		httpcli:     *c,
+		Headers:     make(map[string][]string),
 		applyGlobal: func(*RequestBuilder) {},
 	}
 
@@ -144,19 +136,7 @@ func NewDirectAPIClient(url string) (*HttpApi, error) {
 	api.httpcli.CheckRedirect = func(_ *gohttp.Request, _ []*gohttp.Request) error {
 		return fmt.Errorf("unexpected redirect")
 	}
-
 	return api, nil
-}
-
-// WithAuthorization is used to wrap an instance of HttpApi
-// with an authenticated transport, such as JWT
-func (api *HttpApi) WithAuthorization(header, value string) *HttpApi {
-	return &HttpApi{
-		url: api.url,
-		httpcli: gohttp.Client{
-			Transport: newAuthenticatedTransport(api.httpcli.Transport, header, value),
-		},
-	}
 }
 
 func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error) {
@@ -176,7 +156,7 @@ func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error)
 }
 
 func (api *HttpApi) Request(command string, args ...string) *RequestBuilder {
-	var headers map[string]string
+	headers := make(map[string]string)
 	if api.Headers != nil {
 		for k := range api.Headers {
 			headers[k] = api.Headers.Get(k)
