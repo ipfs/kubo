@@ -1,5 +1,38 @@
 #!/bin/sh
 set -e
+
+envToConfig() {
+  ipfsPrefix="IPFS_CONFIG"
+  configFile="$IPFS_PATH/config"
+  configFileTmp="$(mktemp)"
+
+  env |
+    while IFS='=' read -r name value
+    do
+      case "$name" in
+        "$ipfsPrefix"*)
+          parsedName=${name#$ipfsPrefix*}
+          jsonName=${parsedName//_/.}
+          case "$value" in
+            [*)
+               # encode as json array
+               arr=$(echo "$value" |tr -d '[]' | tr ', ' '\n')
+               jsonValue=$(jq -nr --arg value "$arr" '$value|split("\n")')
+               ;;
+             *)
+               # ensure value is json-quoted if needed
+               jsonValue=$(jq -nr --argjson value "${value}" '$value|tojson'  2>/dev/null || jq -nr --arg value "${value}" '$value|tojson' 2>/dev/null)
+               ;;
+          esac
+
+          jqStr="$(printf '%s = %s' "$jsonName" "$jsonValue")"
+          jq --arg jqStr "$jqStr" ".| $jqStr" < "$configFile" > "$configFileTmp" && mv "$configFileTmp" "$configFile"
+          ;;
+      esac
+    done
+}
+
+
 user=ipfs
 repo="$IPFS_PATH"
 
@@ -22,6 +55,7 @@ else
     *) INIT_ARGS="--profile=$IPFS_PROFILE" ;;
   esac
   ipfs init $INIT_ARGS
+  envToConfig
   ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 fi
