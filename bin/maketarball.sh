@@ -11,11 +11,13 @@ if ! [[ "$OUTPUT" = /* ]]; then
   OUTPUT="$PWD/$OUTPUT"
 fi
 
+GOCC=${GOCC=go}
+
 TMPDIR="$(mktemp -d)"
 cp -r . "$TMPDIR"
 ( cd "$TMPDIR" &&
   echo $PWD &&
-  go mod vendor &&
+  $GOCC mod vendor &&
   (git describe --always --match=NeVeRmAtCh --dirty 2>/dev/null || true) > .tarball &&
   chmod -R u=rwX,go=rX "$TMPDIR" # normalize permissions
   tar -czf "$OUTPUT" --exclude="./.git" .

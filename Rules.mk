@@ -4,6 +4,7 @@ COVERAGE :=
 DISTCLEAN :=
 TEST :=
 TEST_SHORT :=
+GOCC ?= go
 
 all: help    # all has to be first defined target
 .PHONY: all
@@ -104,7 +105,7 @@ install_unsupported: install
 .PHONY: install_unsupported
 
 uninstall:
-	go clean -i ./cmd/ipfs
+	$(GOCC) clean -i ./cmd/ipfs
 .PHONY: uninstall
 
 help:

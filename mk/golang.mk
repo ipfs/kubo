@@ -73,7 +73,7 @@ test_go_megacheck:
 test_go: $(TEST_GO)
 
 check_go_version:
-	@go version
+	@$(GOCC) version
 	bin/check_go_version $(GO_MIN_VERSION)
 .PHONY: check_go_version
 DEPS_GO += check_go_version
