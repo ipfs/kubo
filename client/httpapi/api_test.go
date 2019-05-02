@@ -3,18 +3,23 @@ package httpapi
 import (
 	"context"
 	"io/ioutil"
+	"net/http"
 	gohttp "net/http"
+	"net/http/httptest"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+
 	"github.com/ipfs/interface-go-ipfs-core/tests"
 	local "github.com/ipfs/iptb-plugins/local"
 	"github.com/ipfs/iptb/testbed"
-	"github.com/ipfs/iptb/testbed/interfaces"
+	testbedi "github.com/ipfs/iptb/testbed/interfaces"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -207,4 +212,35 @@ func TestHttpApi(t *testing.T) {
 	defer cancel()
 
 	tests.TestApi(newNodeProvider(ctx))(t)
+}
+
+func Test_NewURLApiWithClient_With_Headers(t *testing.T) {
+	var (
+		headerToTest        = "Test-Header"
+		expectedHeaderValue = "thisisaheadertest"
+	)
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			val := r.Header.Get(headerToTest)
+			if val != expectedHeaderValue {
+				w.WriteHeader(400)
+				return
+			}
+			http.ServeContent(w, r, "", time.Now(), strings.NewReader("test"))
+		}),
+	)
+	defer ts.Close()
+	api, err := NewURLApiWithClient(ts.URL, &http.Client{
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	api.Headers.Set(headerToTest, expectedHeaderValue)
+	if err := api.Pin().Rm(context.Background(), path.New("/ipfs/QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv")); err != nil {
+		t.Fatal(err)
+	}
 }
