@@ -42,7 +42,7 @@ func TestExternalUnmount(t *testing.T) {
 	// TODO: needed?
 	maybeSkipFuseTests(t)
 
-	node, err := core.NewNode(context.Background(), nil)
+	node, err := core.NewNode(context.Background(), &core.BuildCfg{})
 	if err != nil {
 		t.Fatal(err)
 	}

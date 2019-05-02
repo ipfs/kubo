@@ -104,7 +104,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 
 	var err error
 	if node == nil {
-		node, err = core.NewNode(context.Background(), nil)
+		node, err = core.NewNode(context.Background(), &core.BuildCfg{})
 		if err != nil {
 			t.Fatal(err)
 		}
