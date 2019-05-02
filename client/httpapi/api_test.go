@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -221,15 +222,14 @@ func Test_NewURLApiWithClient_With_Headers(t *testing.T) {
 	ts := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			val := r.Header.Get(headerToTest)
-			if val == expectedHeaderValue {
+			if val != expectedHeaderValue {
 				w.WriteHeader(400)
 				return
 			}
-			w.WriteHeader(200)
+			http.ServeContent(w, r, "", time.Now(), strings.NewReader("test"))
 		}),
 	)
 	defer ts.Close()
-	time.Sleep(time.Second * 2)
 	api, err := NewURLApiWithClient(ts.URL, &http.Client{
 		Transport: &http.Transport{
 			Proxy:             http.ProxyFromEnvironment,
@@ -240,7 +240,7 @@ func Test_NewURLApiWithClient_With_Headers(t *testing.T) {
 		t.Fatal(err)
 	}
 	api.Headers.Set(headerToTest, expectedHeaderValue)
-	if _, err := api.Pin().Ls(context.Background()); err != nil {
+	if err := api.Pin().Rm(context.Background(), path.New("/ipfs/QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv")); err != nil {
 		t.Fatal(err)
 	}
 }
