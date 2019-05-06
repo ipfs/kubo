@@ -56,24 +56,12 @@ func SimpleOfflineProviderSys(p provider.Provider, r provider.Reprovider) provid
 	return provider.NewSystem(p, r)
 }
 
-// STRATEGIC
-
-// StrategicProviderSys creates new provider system
-func StrategicProviderSys() provider.System {
-	return provider.NewOfflineProvider()
-}
-
-// StrategicOfflineProviderSys creates a new offline provider system
-func StrategicOfflineProviderSys() provider.System {
-	return provider.NewOfflineProvider()
-}
-
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
 func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
 	if useStrategicProviding {
-		return fx.Provide(StrategicProviderSys)
+		return fx.Provide(provider.NewOfflineProvider)
 	}
 
 	return fx.Options(
@@ -85,7 +73,7 @@ func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, repro
 // OfflineProviders groups units managing provider routing records offline
 func OfflineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
 	if useStrategicProviding {
-		return fx.Provide(StrategicOfflineProviderSys)
+		return fx.Provide(provider.NewOfflineProvider)
 	}
 
 	return fx.Options(
