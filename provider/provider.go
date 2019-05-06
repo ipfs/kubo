@@ -6,13 +6,7 @@ import (
 	logging "github.com/ipfs/go-log"
 )
 
-var (
-	// StrategicProvidingEnabled toggles between the original providing mechanism
-	// and the new strategic providing system
-	StrategicProvidingEnabled = false
-
-	log = logging.Logger("provider")
-)
+var log = logging.Logger("provider")
 
 // Provider announces blocks to the network
 type Provider interface {
