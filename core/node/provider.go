@@ -30,7 +30,7 @@ func SimpleProvider(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *q.Queue, rt
 }
 
 // SimpleReprovider creates new reprovider
-func SimpleReprovider(reproviderInterval time.Duration) func(helpers.MetricsCtx, fx.Lifecycle, routing.IpfsRouting, simple.KeyChanFunc) (provider.Reprovider, error) {
+func SimpleReprovider(reproviderInterval time.Duration) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, rt routing.IpfsRouting, keyProvider simple.KeyChanFunc) (provider.Reprovider, error) {
 		return simple.NewReprovider(helpers.LifecycleCtx(mctx, lc), reproviderInterval, rt, keyProvider), nil
 	}
