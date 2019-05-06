@@ -19,10 +19,10 @@ func (op *offlineProvider) Close() error {
 	return nil
 }
 
-func (op *offlineProvider) Provide(_ cid.Cid) error {
+func (op *offlineProvider) Provide(cid.Cid) error {
 	return nil
 }
 
-func (op *offlineProvider) Reprovide(_ context.Context) error {
+func (op *offlineProvider) Reprovide(context.Context) error {
 	return nil
 }
