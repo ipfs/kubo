@@ -43,17 +43,17 @@ const (
 	mountKwd                  = "mount"
 	offlineKwd                = "offline" // global option
 	routingOptionKwd          = "routing"
-	routingOptionSupernodeKwd = "supernode"
-	routingOptionDHTClientKwd = "dhtclient"
-	routingOptionDHTKwd       = "dht"
-	routingOptionNoneKwd      = "none"
-	routingOptionDefaultKwd   = "default"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
 	writableKwd               = "writable"
 	enablePubSubKwd           = "enable-pubsub-experiment"
 	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
 	enableMultiplexKwd        = "enable-mplex-experiment"
+
+	routingOptionDHTClientKwd = "dhtclient"
+	routingOptionDHTKwd       = "dht"
+	routingOptionNoneKwd      = "none"
+	routingOptionDefaultKwd   = "default"
 )
 
 var daemonCmd = &cmds.Command{
@@ -299,8 +299,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 	switch routingOption {
-	case routingOptionSupernodeKwd:
-		return errors.New("supernode routing was never fully implemented and has been removed")
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
