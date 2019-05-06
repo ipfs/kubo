@@ -4,8 +4,6 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
-	"net"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
@@ -175,17 +173,6 @@ Headers.
 	},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
-}
-
-// defaultMux tells mux to serve path using the default muxer. This is
-// mostly useful to hook up things that register in the default muxer,
-// and don't provide a convenient http.Handler entry point, such as
-// expvar and http/pprof.
-func defaultMux(path string) corehttp.ServeOption {
-	return func(node *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		mux.Handle(path, http.DefaultServeMux)
-		return mux, nil
-	}
 }
 
 func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (_err error) {
@@ -482,8 +469,8 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		corehttp.WebUIOption,
 		gatewayOpt,
 		corehttp.VersionOption(),
-		defaultMux("/debug/vars"),
-		defaultMux("/debug/pprof/"),
+		corehttp.DefaultMux("/debug/vars"),
+		corehttp.DefaultMux("/debug/pprof/"),
 		corehttp.MutexFractionOption("/debug/pprof-mutex/"),
 		corehttp.MetricsScrapingOption("/debug/metrics/prometheus"),
 		corehttp.LogOption(),

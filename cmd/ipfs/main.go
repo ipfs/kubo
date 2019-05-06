@@ -114,7 +114,9 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	return exctr, nil
 }
 
-// buildEnv provides the environment to makeExecutor and commands
+// buildEnv provides the environment to makeExecutor and commands.
+//
+// It's called before makeExecutor, and provides it's `env` argument
 func buildEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
 	checkDebug(req)
 	repoPath, err := getRepoPath(req)
@@ -135,28 +137,37 @@ func buildEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) 
 		LoadConfig: fsrepo.ConfigAt,
 		ReqLog:     &oldcmds.ReqLog{},
 		Plugins:    plugins,
-		ConstructNode: func() (n *core.IpfsNode, err error) {
-			if req == nil {
-				return nil, errors.New("constructing node without a request")
-			}
-
-			r, err := fsrepo.Open(repoPath)
-			if err != nil { // repo is owned by the node
-				return nil, err
-			}
-
-			// ok everything is good. set it on the invocation (for ownership)
-			// and return it.
-			n, err = core.NewNode(ctx, &core.BuildCfg{
-				Repo: r,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			return n, nil
-		},
+		ConstructNode: buildNode(ctx, req, repoPath),
 	}, nil
+}
+
+func buildNode(ctx context.Context, req *cmds.Request, repoPath string) func() (*core.IpfsNode, error) {
+	return func() (n *core.IpfsNode, err error) {
+		// This builds an ephemeral node when the daemon is not running.
+		//
+		// Note that when api endpoint is defined (maybeApiClient returns a
+		// client) or user runs `ipfs daemon`, this method won't be called
+
+		if req == nil {
+			return nil, errors.New("constructing node without a request")
+		}
+
+		r, err := fsrepo.Open(repoPath)
+		if err != nil { // repo is owned by the node
+			return nil, err
+		}
+
+		// ok everything is good. set it on the invocation (for ownership)
+		// and return it.
+		n, err = core.NewNode(ctx, &core.BuildCfg{
+			Repo: r,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return n, nil
+	}
 }
 
 // commandDetails returns a command's details for the command given by |path|.
