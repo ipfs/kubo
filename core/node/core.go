@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
@@ -60,16 +59,19 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(mctx helpers.MetricsCtx, lc fx.Lifecycle, cfg *config.Config, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
-	bitswapNetwork := network.NewFromIpfsHost(host, rt)
-	bitswap.ProvideEnabled = !cfg.Experimental.StrategicProviding
-	exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs)
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return exch.Close()
-		},
-	})
-	return exch
+func OnlineExchange(provide bool) interface{} {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
+		bitswapNetwork := network.NewFromIpfsHost(host, rt)
+		bitswap.ProvideEnabled = provide
+		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs)
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return exch.Close()
+			},
+		})
+		return exch
+
+	}
 }
 
 // Files loads persisted MFS root

@@ -224,7 +224,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	}
 
 	return fx.Options(
-		fx.Provide(OnlineExchange),
+		fx.Provide(OnlineExchange(!cfg.Experimental.StrategicProviding)),
 		fx.Provide(Namesys(ipnsCacheSize)),
 
 		fx.Invoke(IpnsRepublisher(repubPeriod, recordLifetime)),
