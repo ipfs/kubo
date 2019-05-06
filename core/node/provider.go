@@ -37,23 +37,24 @@ func SimpleReprovider(reproviderInterval time.Duration) interface{} {
 }
 
 // SimpleProviderSys creates new provider system
-func SimpleProviderSys(lc fx.Lifecycle, p provider.Provider, r provider.Reprovider) provider.System {
-	sys := provider.NewSystem(p, r)
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			sys.Run()
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			return sys.Close()
-		},
-	})
-	return sys
-}
+func SimpleProviderSys(isOnline bool) interface{} {
+	return func(lc fx.Lifecycle, p provider.Provider, r provider.Reprovider) provider.System {
+		sys := provider.NewSystem(p, r)
 
-// SimpleOfflineProviderSys creates a new offline provider system
-func SimpleOfflineProviderSys(p provider.Provider, r provider.Reprovider) provider.System {
-	return provider.NewSystem(p, r)
+		if isOnline {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					sys.Run()
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					return sys.Close()
+				},
+			})
+		}
+
+		return sys
+	}
 }
 
 // ONLINE/OFFLINE
@@ -66,7 +67,7 @@ func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, repro
 
 	return fx.Options(
 		SimpleProviders(reprovideStrategy, reprovideInterval),
-		fx.Provide(SimpleProviderSys),
+		fx.Provide(SimpleProviderSys(true)),
 	)
 }
 
@@ -78,7 +79,7 @@ func OfflineProviders(useStrategicProviding bool, reprovideStrategy string, repr
 
 	return fx.Options(
 		SimpleProviders(reprovideStrategy, reprovideInterval),
-		fx.Provide(SimpleOfflineProviderSys),
+		fx.Provide(SimpleProviderSys(false)),
 	)
 }
 
