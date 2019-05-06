@@ -130,6 +130,11 @@ func buildEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) 
 		return nil, err
 	}
 
+	builder := &nodeBuilder{
+		ctx: ctx,
+		repoPath: repoPath,
+	}
+
 	// this sets up the function that will initialize the node
 	// this is so that we can construct the node lazily.
 	return &oldcmds.Context{
@@ -137,37 +142,14 @@ func buildEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) 
 		LoadConfig: fsrepo.ConfigAt,
 		ReqLog:     &oldcmds.ReqLog{},
 		Plugins:    plugins,
-		ConstructNode: buildNode(ctx, req, repoPath),
+		ConstructNode: func() (*core.IpfsNode, error) {
+			if req == nil {
+				return nil, errors.New("constructing node without a request")
+			}
+
+			return builder.buildNode()
+		},
 	}, nil
-}
-
-func buildNode(ctx context.Context, req *cmds.Request, repoPath string) func() (*core.IpfsNode, error) {
-	return func() (n *core.IpfsNode, err error) {
-		// This builds an ephemeral node when the daemon is not running.
-		//
-		// Note that when api endpoint is defined (maybeApiClient returns a
-		// client) or user runs `ipfs daemon`, this method won't be called
-
-		if req == nil {
-			return nil, errors.New("constructing node without a request")
-		}
-
-		r, err := fsrepo.Open(repoPath)
-		if err != nil { // repo is owned by the node
-			return nil, err
-		}
-
-		// ok everything is good. set it on the invocation (for ownership)
-		// and return it.
-		n, err = core.NewNode(ctx, &core.BuildCfg{
-			Repo: r,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		return n, nil
-	}
 }
 
 // commandDetails returns a command's details for the command given by |path|.

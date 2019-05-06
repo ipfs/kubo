@@ -211,7 +211,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// running in an uninitialized state.
 	initialize, _ := req.Options[initOptionKwd].(bool)
 	if initialize {
-
 		if !fsrepo.IsInitialized(cctx.RepoPath) {
 			profiles, _ := req.Options[initProfileOptionKwd].(string)
 
