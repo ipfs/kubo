@@ -7,7 +7,6 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/provider"
 	q "github.com/ipfs/go-ipfs/provider/queue"
@@ -72,34 +71,34 @@ func StrategicOfflineProviderSysCtor() provider.System {
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(cfg *config.Config) fx.Option {
-	if cfg.Experimental.StrategicProviding {
+func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
+	if useStrategicProviding {
 		return fx.Provide(StrategicProviderSysCtor)
 	}
 
 	return fx.Options(
-		SimpleProviders(cfg),
+		SimpleProviders(reprovideStrategy, reprovideInterval),
 		fx.Provide(SimpleProviderSysCtor),
 	)
 }
 
 // OfflineProviders groups units managing provider routing records offline
-func OfflineProviders(cfg *config.Config) fx.Option {
-	if cfg.Experimental.StrategicProviding {
+func OfflineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
+	if useStrategicProviding {
 		return fx.Provide(StrategicOfflineProviderSysCtor)
 	}
 
 	return fx.Options(
-		SimpleProviders(cfg),
+		SimpleProviders(reprovideStrategy, reprovideInterval),
 		fx.Provide(SimpleOfflineProviderSysCtor),
 	)
 }
 
 // SimpleProviders creates the simple provider/reprovider dependencies
-func SimpleProviders(cfg *config.Config) fx.Option {
+func SimpleProviders(reprovideStrategy string, reprovideInterval string) fx.Option {
 	reproviderInterval := kReprovideFrequency
-	if cfg.Reprovider.Interval != "" {
-		dur, err := time.ParseDuration(cfg.Reprovider.Interval)
+	if reprovideInterval != "" {
+		dur, err := time.ParseDuration(reprovideInterval)
 		if err != nil {
 			return fx.Error(err)
 		}
@@ -108,7 +107,7 @@ func SimpleProviders(cfg *config.Config) fx.Option {
 	}
 
 	var keyProvider fx.Option
-	switch cfg.Reprovider.Strategy {
+	switch reprovideStrategy {
 	case "all":
 		fallthrough
 	case "":
@@ -118,7 +117,7 @@ func SimpleProviders(cfg *config.Config) fx.Option {
 	case "pinned":
 		keyProvider = fx.Provide(simple.NewPinnedProvider(false))
 	default:
-		return fx.Error(fmt.Errorf("unknown reprovider strategy '%s'", cfg.Reprovider.Strategy))
+		return fx.Error(fmt.Errorf("unknown reprovider strategy '%s'", reprovideStrategy))
 	}
 
 	return fx.Options(
