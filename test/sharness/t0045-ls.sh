@@ -227,7 +227,7 @@ test_ls_cmd_raw_leaves() {
     echo bar > somedir/foo &&
     ipfs add --raw-leaves -r somedir/ > /dev/null &&
     ipfs ls '$1' QmThNTdtKaVoCVrYmM5EBS6U3S5vfKFue2TxbxxAxRcKKE > ls-actual
-    echo "zb2rhf6GzX4ckKZtjy8yy8iyq1KttCrRyqDedD6xubhY3sw2F 4 foo" > ls-expect
+    echo "bafkreid5qzpjlgzem2iyzgddv7fjilipxcoxzgwazgn27q3usucn5wlxga 4 foo" > ls-expect
     test_cmp ls-actual ls-expect
   '
 }

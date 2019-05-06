@@ -145,8 +145,10 @@ github.com/ipfs/go-blockservice v0.0.3 h1:40OvwrxeudTAlUGUAKNYnNPcwQeLtXedjzTWec
 github.com/ipfs/go-blockservice v0.0.3/go.mod h1:/NNihwTi6V2Yr6g8wBI+BSwPuURpBRMtYNGrlxZ8KuI=
 github.com/ipfs/go-cid v0.0.1 h1:GBjWPktLnNyX0JiQCNFpUuUSoMw5KMyqrsejHYlILBE=
 github.com/ipfs/go-cid v0.0.1/go.mod h1:GHWU/WuQdMPmIosc4Yn1bcCT7dSeX4lBafM7iqUPQvM=
-github.com/ipfs/go-cidutil v0.0.1 h1:UpDQI2LrihqOGY2mHaMhjrhh1DJ14N/58BQb7lKXvlQ=
-github.com/ipfs/go-cidutil v0.0.1/go.mod h1:/0H649ymJksNEZvBAkM18HIctk7tkONH9tspTeLok48=
+github.com/ipfs/go-cid v0.0.2 h1:tuuKaZPU1M6HcejsO3AcYWW8sZ8MTvyxfc4uqB4eFE8=
+github.com/ipfs/go-cid v0.0.2/go.mod h1:GHWU/WuQdMPmIosc4Yn1bcCT7dSeX4lBafM7iqUPQvM=
+github.com/ipfs/go-cidutil v0.0.2 h1:CNOboQf1t7Qp0nuNh8QMmhJs0+Q//bRL1axtCnIB1Yo=
+github.com/ipfs/go-cidutil v0.0.2/go.mod h1:ewllrvrxG6AMYStla3GD7Cqn+XYSLqjK0vc+086tB6s=
 github.com/ipfs/go-datastore v0.0.1 h1:AW/KZCScnBWlSb5JbnEnLKFWXL224LBEh/9KXXOrUms=
 github.com/ipfs/go-datastore v0.0.1/go.mod h1:d4KVXhMt913cLBEI/PXAy6ko+W7e9AhyAKBGh803qeE=
 github.com/ipfs/go-datastore v0.0.3 h1:/eP3nMDmLzMJNoWSSYvEkmMTTrm9FFCN+JraP9NdlwU=
@@ -237,8 +239,8 @@ github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/hang-fds v0.0.1 h1:KGAxiGtJPT3THVRNT6yxgpdFPeX4ZemUjENOt6NlOn4=
 github.com/ipfs/hang-fds v0.0.1/go.mod h1:U4JNbzwTpk/qP2Ms4VgrZ4HcgJGVosBJqMXvwe4udSY=
-github.com/ipfs/interface-go-ipfs-core v0.0.7 h1:KfPVykJTT2viS/NdIC7xUEmnS9jDufl3FXivatAxtZM=
-github.com/ipfs/interface-go-ipfs-core v0.0.7/go.mod h1:VceUOYu+kPEy8Ev/gAhzXFTIfc/7xILKnL4fgZg8tZM=
+github.com/ipfs/interface-go-ipfs-core v0.0.8 h1:nmEYOfK6QRf3VIdggoZ4rmbKXcC2g6cEdU13Z1CvmL4=
+github.com/ipfs/interface-go-ipfs-core v0.0.8/go.mod h1:RU+DSZXV+JdA7Yagu3OrSoB6hngSmMtK1w6ENOqmfQ8=
 github.com/ipfs/iptb v1.4.0 h1:YFYTrCkLMRwk/35IMyC6+yjoQSHTEcNcefBStLJzgvo=
 github.com/ipfs/iptb v1.4.0/go.mod h1:1rzHpCYtNp87/+hTxG5TfCVn/yMY3dKnLn8tBiMfdmg=
 github.com/ipfs/iptb-plugins v0.0.2 h1:JZp4h/+7f00dY4Epr8gzF+VqKITXmVGsZabvmZp7E9I=

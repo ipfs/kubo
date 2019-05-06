@@ -19,8 +19,8 @@ require (
 	github.com/ipfs/go-bitswap v0.0.4
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.0.3
-	github.com/ipfs/go-cid v0.0.1
-	github.com/ipfs/go-cidutil v0.0.1
+	github.com/ipfs/go-cid v0.0.2
+	github.com/ipfs/go-cidutil v0.0.2
 	github.com/ipfs/go-datastore v0.0.5
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.0.3
@@ -54,7 +54,7 @@ require (
 	github.com/ipfs/go-unixfs v0.0.5
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.0.7
+	github.com/ipfs/interface-go-ipfs-core v0.0.8
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.0.2
 	github.com/jbenet/go-is-domain v1.0.2

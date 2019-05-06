@@ -18,14 +18,14 @@ test_gc_robust_part1() {
 
   HASH1FILE=.ipfs/blocks/L3/CIQNIPL4GP62ZMNNSLZ2G33Z3T5VAN3YHCJTGT5FG45XWH5FGZRXL3A.data
 
-  LEAF1=zb2rhZWKCMcHCfCym41ocwE5BhNQsEVLrwBkLEQaxJzRHHZch
+  LEAF1=bafkreibkrcw7hf6nhr6dvwecqxc5rqc7u7pkhkti53byyznqp23dk5fc2y
   LEAF1FILE=.ipfs/blocks/C2/AFKREIBKRCW7HF6NHR6DVWECQXC5RQC7U7PKHKTI53BYYZNQP23DK5FC2Y.data
 
-  LEAF2=zb2rhdUpCuyoQPRtvBW8JhAEfPaNd9dBb3QQCMMWYS1V8hjBR
+  LEAF2=bafkreidfsuir43gjphndxxqa45gjvnrzbet3crpumyjcblk3rtn7zamq6q
   LEAF2FILE=.ipfs/blocks/Q6/BAFKREIDFSUIR43GJPHNDXXQA45GJVNRZBET3CRPUMYJCBLK3RTN7ZAMQ6Q
 
-  LEAF3=zb2rhnwyvreekPqEMAbKqs35KYHxkNi7pXED7L2TfJKveTTva
-  LEAF4=zb2rhnvAVvfDDnndcfQkwqNgUm94ba3zBSXyJKCfVXwU4FXx2
+  LEAF3=bafkreihsipwnaj3mrc5plg24lpy6dw2bpixl2pe5iapzvc6ct2n33uhqjm
+  LEAF4=bafkreihrzs3rh4yxel4olv54vxettu5hv6wxy3krh6huzwhjub7kusnen4
 
   test_expect_success "remove a leaf node from the repo manually" '
     rm "$LEAF1FILE"

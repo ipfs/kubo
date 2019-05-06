@@ -400,7 +400,7 @@ test_object_cmd() {
   '
 
   HASHv0=QmXg9Pp2ytZ14xgmQjYEiHjVjMFXzCVVEcRTWJBmLgR39V
-  HASHv1=z4CrgyEyhm4tAw1pgzQtNNuP7
+  HASHv1=bafkqadsimvwgy3zajb2w2yloeefau
 
   test_expect_success "ipfs object get with --cid-base=base32 uses base32 for CidV1 link only" '
     ipfs object get --cid-base=base32 $MIXED > mixed.actual &&
