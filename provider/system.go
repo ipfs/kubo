@@ -32,8 +32,20 @@ func (s *system) Run() {
 
 // Close the provider and reprovider
 func (s *system) Close() error {
-	// TODO: Close reprovider here
-	return s.provider.Close()
+	var errs []error
+
+	if err := s.provider.Close(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := s.reprovider.Close(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return errs[0]
+	}
+	return nil
 }
 
 // Provide a value

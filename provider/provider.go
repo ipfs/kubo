@@ -30,4 +30,6 @@ type Reprovider interface {
 	Run()
 	// Trigger a reprovide
 	Trigger(context.Context) error
+	// Close stops the reprovider
+	Close() error
 }
