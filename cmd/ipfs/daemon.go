@@ -231,11 +231,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	initialize, _ := req.Options[initOptionKwd].(bool)
 	if initialize {
 
-		cfg := cctx.ConfigRoot
-		if !fsrepo.IsInitialized(cfg) {
+		if !fsrepo.IsInitialized(cctx.RepoPath) {
 			profiles, _ := req.Options[initProfileOptionKwd].(string)
 
-			err := initWithDefaults(os.Stdout, cfg, profiles)
+			err := initWithDefaults(os.Stdout, cctx.RepoPath, profiles)
 			if err != nil {
 				return err
 			}
@@ -244,7 +243,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(cctx.ConfigRoot)
+	repo, err := fsrepo.Open(cctx.RepoPath)
 	switch err {
 	default:
 		return err
@@ -271,7 +270,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return err
 		}
 
-		repo, err = fsrepo.Open(cctx.ConfigRoot)
+		repo, err = fsrepo.Open(cctx.RepoPath)
 		if err != nil {
 			return err
 		}

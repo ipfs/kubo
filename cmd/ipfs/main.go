@@ -131,7 +131,7 @@ func buildEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) 
 	// this sets up the function that will initialize the node
 	// this is so that we can construct the node lazily.
 	return &oldcmds.Context{
-		ConfigRoot: repoPath,
+		RepoPath:   repoPath,
 		LoadConfig: fsrepo.ConfigAt,
 		ReqLog:     &oldcmds.ReqLog{},
 		Plugins:    plugins,
@@ -198,7 +198,7 @@ func maybeApiClient(details cmdDetails, req *cmds.Request, cctx *oldcmds.Context
 	// did user specify an api to use for this command?
 	apiAddrOpt, _ := req.Options[corecmds.ApiOption].(string)
 
-	client, err := getAPIClient(req.Context, cctx.ConfigRoot, apiAddrOpt)
+	client, err := getAPIClient(req.Context, cctx.RepoPath, apiAddrOpt)
 	if err == repo.ErrApiNotRunning {
 		if apiAddrOpt != "" && req.Command != daemonCmd {
 			// if user SPECIFIED an api, and this cmd is not daemon
@@ -215,7 +215,7 @@ func maybeApiClient(details cmdDetails, req *cmds.Request, cctx *oldcmds.Context
 		if details.cannotRunOnDaemon {
 			// check if daemon locked. legacy error text, for now.
 			log.Debugf("Command cannot run on daemon. Checking if daemon is locked")
-			if daemonLocked, _ := fsrepo.LockedByOtherProcess(cctx.ConfigRoot); daemonLocked {
+			if daemonLocked, _ := fsrepo.LockedByOtherProcess(cctx.RepoPath); daemonLocked {
 				return nil, cmds.ClientError("ipfs daemon is running. please stop it to run this command")
 			}
 			return nil, nil

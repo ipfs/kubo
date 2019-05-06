@@ -63,7 +63,7 @@ func MockCmdsCtx() (commands.Context, error) {
 	}
 
 	return commands.Context{
-		ConfigRoot: "/tmp/.mockipfsconfig",
+		RepoPath: "/tmp/.mockipfsconfig",
 		LoadConfig: func(path string) (*config.Config, error) {
 			return &conf, nil
 		},
