@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
+	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 )
@@ -29,26 +30,19 @@ type nodeBuilder struct {
 	daemon bool
 }
 
-func (b *nodeBuilder) buildNode() (*core.IpfsNode, error) {
-	if b.unencrypted {
-		log.Errorf(`Running with --%s: All connections are UNENCRYPTED.
-		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
-	}
-
-	// acquire the repo lock _before_ constructing a node. we need to make
-	// sure we are permitted to access the resources (datastore, etc.)
-	repo, err := fsrepo.Open(b.repoPath)
+func openRepo(path string, askMigrate, doMigrate bool) (repo.Repo, error) {
+	repo, err := fsrepo.Open(path)
 	switch err {
 	default:
 		return nil, err
 	case fsrepo.ErrNeedMigration:
 		fmt.Println("Found outdated fs-repo, migrations need to be run.")
 
-		if !b.userMigrate {
-			b.migrate = YesNoPrompt("Run migrations now? [y/N]")
+		if askMigrate {
+			doMigrate = YesNoPrompt("Run migrations now? [y/N]")
 		}
 
-		if !b.migrate {
+		if !doMigrate {
 			fmt.Println("Not running migrations of fs-repo now.")
 			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.io")
 			return nil, fmt.Errorf("fs-repo requires migration")
@@ -63,12 +57,25 @@ func (b *nodeBuilder) buildNode() (*core.IpfsNode, error) {
 			return nil, err
 		}
 
-		repo, err = fsrepo.Open(b.repoPath)
+		repo, err = fsrepo.Open(path)
 		if err != nil {
 			return nil, err
 		}
 	case nil:
 		break
+	}
+	return repo, nil
+}
+
+func (b *nodeBuilder) buildNode() (*core.IpfsNode, error) {
+	if b.unencrypted {
+		log.Errorf(`Running with --%s: All connections are UNENCRYPTED.
+		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
+	}
+
+	repo, err := openRepo(b.repoPath, !b.userMigrate, b.migrate)
+	if err != nil {
+		return nil, err
 	}
 
 	var routing libp2p.RoutingOption
