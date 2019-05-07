@@ -48,4 +48,3 @@ func checkPermissions(path string) (bool, error) {
 
 	return true, nil
 }
-

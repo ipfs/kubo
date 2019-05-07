@@ -131,8 +131,14 @@ func buildEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) 
 	}
 
 	builder := &nodeBuilder{
-		ctx: ctx,
+		ctx:      ctx,
 		repoPath: repoPath,
+
+		migrate:     false,
+		userMigrate: true,  // don't ask for migrations
+		offline: true,
+
+		routing: "default",
 	}
 
 	// this sets up the function that will initialize the node

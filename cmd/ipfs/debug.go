@@ -10,7 +10,6 @@ import (
 	logging "github.com/ipfs/go-log"
 )
 
-
 func checkDebug(req *cmds.Request) {
 	// check if user wants to debug. option OR env var.
 	debug, _ := req.Options["debug"].(bool)

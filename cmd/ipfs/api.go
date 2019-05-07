@@ -96,4 +96,3 @@ func resolveAddr(ctx context.Context, addr ma.Multiaddr) (ma.Multiaddr, error) {
 
 	return addrs[0], nil
 }
-
