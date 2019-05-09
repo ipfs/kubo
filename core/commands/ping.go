@@ -91,7 +91,7 @@ trip latency information.
 			p, err := n.Routing.FindPeer(ctx, pid)
 			cancel()
 			if err != nil {
-				return res.Emit(&PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)})
+				return fmt.Errorf("peer lookup failed: %s", err)
 			}
 			n.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
 		}
@@ -144,7 +144,7 @@ trip latency information.
 			}
 		}
 		if count == 0 {
-			return nil
+			return fmt.Errorf("ping failed")
 		}
 		averagems := total.Seconds() * 1000 / float64(count)
 		return res.Emit(&PingResult{
