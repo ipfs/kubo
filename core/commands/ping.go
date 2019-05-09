@@ -153,6 +153,44 @@ trip latency information.
 		})
 	},
 	Type: PingResult{},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			var (
+				total time.Duration
+				count int
+			)
+
+			for {
+				event, err := res.Next()
+				switch err {
+				case nil:
+				case io.EOF:
+					return nil
+				case context.Canceled, context.DeadlineExceeded:
+					if count == 0 {
+						return err
+					}
+					averagems := total.Seconds() * 1000 / float64(count)
+					return re.Emit(&PingResult{
+						Success: true,
+						Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
+					})
+				default:
+					return err
+				}
+
+				pr := event.(*PingResult)
+				if pr.Success && pr.Text == "" {
+					total += pr.Time
+					count++
+				}
+				err = re.Emit(event)
+				if err != nil {
+					return err
+				}
+			}
+		},
+	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PingResult) error {
 			if len(out.Text) > 0 {
