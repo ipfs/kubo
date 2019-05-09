@@ -27,8 +27,8 @@ test_expect_success "test ping other" '
 
 test_expect_success "test ping unreachable peer" '
   printf "Looking up peer %s\n" "$BAD_PEER" > bad_ping_exp &&
-  printf "Peer lookup error: routing: not found\n" >> bad_ping_exp &&
-  ipfsi 0 ping -n2 -- "$BAD_PEER" > bad_ping_actual &&
+  printf "Error: peer lookup failed: routing: not found\n" >> bad_ping_exp &&
+  ! ipfsi 0 ping -n2 -- "$BAD_PEER" > bad_ping_actual 2>&1 &&
   test_cmp bad_ping_exp bad_ping_actual
 '
 
@@ -42,8 +42,13 @@ test_expect_success "test ping 0" '
   ! ipfsi 1 ping -n0 -- "$PEERID_0"
 '
 
+test_expect_success "test ping offline" '
+  iptb stop 1 &&
+  ! ipfsi 0 ping -n2 -- "$PEERID_1"
+'
+
 test_expect_success 'stop iptb' '
-  iptb stop
+  iptb stop 0
 '
 
 test_done
