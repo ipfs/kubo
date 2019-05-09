@@ -75,7 +75,7 @@ trip latency information.
 
 		numPings, _ := req.Options[pingCountOptionName].(int)
 		if numPings <= 0 {
-			return fmt.Errorf("error: ping count must be greater than 0, was %d", numPings)
+			return fmt.Errorf("ping count must be greater than 0, was %d", numPings)
 		}
 
 		if len(n.Peerstore.Addrs(pid)) == 0 {
