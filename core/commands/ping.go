@@ -105,31 +105,37 @@ trip latency information.
 
 		ctx, cancel := context.WithTimeout(req.Context, kPingTimeout*time.Duration(numPings))
 		defer cancel()
-		pings, err := ping.Ping(ctx, n.PeerHost, pid)
-		if err != nil {
-			return res.Emit(&PingResult{
-				Success: false,
-				Text:    fmt.Sprintf("Ping error: %s", err),
-			})
-		}
+		pings := ping.Ping(ctx, n.PeerHost, pid)
 
-		var total time.Duration
+		var (
+			count int
+			total time.Duration
+		)
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
+
 		for i := 0; i < numPings; i++ {
-			t, ok := <-pings
+			r, ok := <-pings
 			if !ok {
 				break
 			}
 
-			if err := res.Emit(&PingResult{
-				Success: true,
-				Time:    t,
-			}); err != nil {
+			if r.Error != nil {
+				err = res.Emit(&PingResult{
+					Success: false,
+					Text:    fmt.Sprintf("Ping error: %s", r.Error),
+				})
+			} else {
+				count++
+				total += r.RTT
+				err = res.Emit(&PingResult{
+					Success: true,
+					Time:    r.RTT,
+				})
+			}
+			if err != nil {
 				return err
 			}
-
-			total += t
 
 			select {
 			case <-ticker.C:
@@ -137,7 +143,10 @@ trip latency information.
 				return ctx.Err()
 			}
 		}
-		averagems := total.Seconds() * 1000 / float64(numPings)
+		if count == 0 {
+			return nil
+		}
+		averagems := total.Seconds() * 1000 / float64(count)
 		return res.Emit(&PingResult{
 			Success: true,
 			Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
