@@ -263,32 +263,24 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 }
 
 // ErrNotPinned is returned when trying to unpin items which are not pinned.
-var ErrNotPinned = fmt.Errorf("not pinned")
+var ErrNotPinned = fmt.Errorf("not pinned or pinned indirectly")
 
 // Unpin a given key
 func (p *pinner) Unpin(ctx context.Context, c cid.Cid, recursive bool) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	reason, pinned, err := p.isPinnedWithType(c, Any)
-	if err != nil {
-		return err
-	}
-	if !pinned {
-		return ErrNotPinned
-	}
-	switch reason {
-	case "recursive":
-		if recursive {
-			p.recursePin.Remove(c)
-			return nil
+	if p.recursePin.Has(c) {
+		if !recursive {
+			return fmt.Errorf("%s is pinned recursively", c)
 		}
-		return fmt.Errorf("%s is pinned recursively", c)
-	case "direct":
+		p.recursePin.Remove(c)
+		return nil
+	}
+	if p.directPin.Has(c) {
 		p.directPin.Remove(c)
 		return nil
-	default:
-		return fmt.Errorf("%s is pinned indirectly under %s", c, reason)
 	}
+	return ErrNotPinned
 }
 
 func (p *pinner) isInternalPin(c cid.Cid) bool {
