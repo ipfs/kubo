@@ -62,7 +62,7 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
-	github.com/jbenet/goprocess v0.1.2
+	github.com/jbenet/goprocess v0.1.3
 	github.com/libp2p/go-libp2p v0.0.23
 	github.com/libp2p/go-libp2p-autonat-svc v0.0.5
 	github.com/libp2p/go-libp2p-circuit v0.0.6
