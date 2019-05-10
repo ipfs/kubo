@@ -36,7 +36,7 @@ type HttpApi struct {
 	url         string
 	httpcli     gohttp.Client
 	Headers     http.Header
-	applyGlobal func(*RequestBuilder)
+	applyGlobal func(*requestBuilder)
 }
 
 // NewLocalApi tries to construct new HttpApi instance communicating with local
@@ -117,7 +117,7 @@ func NewURLApiWithClient(url string, c *gohttp.Client) (*HttpApi, error) {
 		url:         url,
 		httpcli:     *c,
 		Headers:     make(map[string][]string),
-		applyGlobal: func(*RequestBuilder) {},
+		applyGlobal: func(*requestBuilder) {},
 	}
 
 	// We don't support redirects.
@@ -134,7 +134,7 @@ func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error)
 	}
 
 	subApi := *api
-	subApi.applyGlobal = func(req *RequestBuilder) {
+	subApi.applyGlobal = func(req *requestBuilder) {
 		if options.Offline {
 			req.Option("offline", options.Offline)
 		}
@@ -143,14 +143,14 @@ func (api *HttpApi) WithOptions(opts ...caopts.ApiOption) (iface.CoreAPI, error)
 	return &subApi, nil
 }
 
-func (api *HttpApi) Request(command string, args ...string) *RequestBuilder {
+func (api *HttpApi) Request(command string, args ...string) RequestBuilder {
 	headers := make(map[string]string)
 	if api.Headers != nil {
 		for k := range api.Headers {
 			headers[k] = api.Headers.Get(k)
 		}
 	}
-	return &RequestBuilder{
+	return &requestBuilder{
 		command: command,
 		args:    args,
 		shell:   api,
