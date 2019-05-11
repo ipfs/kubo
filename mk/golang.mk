@@ -65,10 +65,9 @@ test_go_fmt:
 .PHONY: test_go_fmt
 TEST_GO += test_go_fmt
 
-test_go_megacheck:
-	@$(GOCC) get honnef.co/go/tools/cmd/megacheck
-	@for pkg in $(go-pkgs); do megacheck "$$pkg"; done
-.PHONY: megacheck
+test_go_lint: test/bin/golangci-lint
+	golangci-lint run ./...
+.PHONY: test_go_lint
 
 test_go: $(TEST_GO)
 
