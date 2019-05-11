@@ -12,7 +12,6 @@ import (
 	ns "github.com/ipfs/go-ipfs/namesys"
 
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipfspath "github.com/ipfs/go-path"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
@@ -27,7 +26,7 @@ const (
 )
 
 var ResolveCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Resolve the value of names to IPFS.",
 		ShortDescription: `
 There are a number of mutable name protocols that can link among
@@ -66,13 +65,13 @@ Resolve the value of an IPFS DAG path:
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, false, "The name to resolve.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(resolveRecursiveOptionName, "r", "Resolve until the result is an IPFS name.").WithDefault(true),
-		cmdkit.IntOption(resolveDhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
-		cmdkit.StringOption(resolveDhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
+	Options: []cmds.Option{
+		cmds.BoolOption(resolveRecursiveOptionName, "r", "Resolve until the result is an IPFS name.").WithDefault(true),
+		cmds.IntOption(resolveDhtRecordCountOptionName, "dhtrc", "Number of records to request for DHT resolution."),
+		cmds.StringOption(resolveDhtTimeoutOptionName, "dhtt", "Max time to collect values during DHT resolution eg \"30s\". Pass 0 for no timeout."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

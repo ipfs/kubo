@@ -8,7 +8,6 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
@@ -30,7 +29,7 @@ const (
 )
 
 var PublishCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Publish IPNS names.",
 		ShortDescription: `
 IPNS is a PKI namespace, where names are the hashes of public keys, and
@@ -69,19 +68,19 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg(ipfsPathOptionName, true, false, "ipfs path of the object to be published.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg(ipfsPathOptionName, true, false, "ipfs path of the object to be published.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
-		cmdkit.StringOption(lifeTimeOptionName, "t",
+	Options: []cmds.Option{
+		cmds.BoolOption(resolveOptionName, "Check if the given path can be resolved before publishing.").WithDefault(true),
+		cmds.StringOption(lifeTimeOptionName, "t",
 			`Time duration that the record will be valid for. <<default>>
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("24h"),
-		cmdkit.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
-		cmdkit.StringOption(ttlOptionName, "Time duration this record should be cached for. Uses the same syntax as the lifetime option. (caution: experimental)"),
-		cmdkit.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
-		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
+		cmds.BoolOption(allowOfflineOptionName, "When offline, save the IPNS record to the the local datastore without broadcasting to the network instead of simply failing."),
+		cmds.StringOption(ttlOptionName, "Time duration this record should be cached for. Uses the same syntax as the lifetime option. (caution: experimental)"),
+		cmds.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
+		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

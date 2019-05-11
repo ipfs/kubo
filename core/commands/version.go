@@ -10,7 +10,6 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
@@ -30,7 +29,7 @@ const (
 )
 
 var VersionCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Show ipfs version information.",
 		ShortDescription: "Returns the current version of ipfs and exits.",
 	},
@@ -38,11 +37,11 @@ var VersionCmd = &cmds.Command{
 		"deps": depsVersionCommand,
 	},
 
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(versionNumberOptionName, "n", "Only show the version number."),
-		cmdkit.BoolOption(versionCommitOptionName, "Show the commit hash."),
-		cmdkit.BoolOption(versionRepoOptionName, "Show repo version."),
-		cmdkit.BoolOption(versionAllOptionName, "Show all version information"),
+	Options: []cmds.Option{
+		cmds.BoolOption(versionNumberOptionName, "n", "Only show the version number."),
+		cmds.BoolOption(versionCommitOptionName, "Show the commit hash."),
+		cmds.BoolOption(versionRepoOptionName, "Show repo version."),
+		cmds.BoolOption(versionAllOptionName, "Show all version information"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		return cmds.EmitOnce(res, &VersionOutput{
@@ -99,7 +98,7 @@ type Dependency struct {
 const pkgVersionFmt = "%s@%s"
 
 var depsVersionCommand = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Shows information about dependencies used for build",
 		ShortDescription: `
 Print out all dependencies and their versions.`,

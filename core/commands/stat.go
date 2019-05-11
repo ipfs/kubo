@@ -9,7 +9,6 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -17,7 +16,7 @@ import (
 )
 
 var StatsCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Query IPFS statistics.",
 		ShortDescription: `'ipfs stats' is a set of commands to help look at statistics
 for your IPFS node.
@@ -41,7 +40,7 @@ const (
 )
 
 var statBwCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Print ipfs bandwidth information.",
 		ShortDescription: `'ipfs stats bw' prints bandwidth information for the ipfs daemon.
 It displays: TotalIn, TotalOut, RateIn, RateOut.
@@ -77,11 +76,11 @@ Example:
     RateOut: 0B/s
 `,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(statPeerOptionName, "p", "Specify a peer to print bandwidth for."),
-		cmdkit.StringOption(statProtoOptionName, "t", "Specify a protocol to print bandwidth for."),
-		cmdkit.BoolOption(statPollOptionName, "Print bandwidth at an interval."),
-		cmdkit.StringOption(statIntervalOptionName, "i", `Time interval to wait between updating output, if 'poll' is true.
+	Options: []cmds.Option{
+		cmds.StringOption(statPeerOptionName, "p", "Specify a peer to print bandwidth for."),
+		cmds.StringOption(statProtoOptionName, "t", "Specify a protocol to print bandwidth for."),
+		cmds.BoolOption(statPollOptionName, "Print bandwidth at an interval."),
+		cmds.StringOption(statIntervalOptionName, "i", `Time interval to wait between updating output, if 'poll' is true.
 
     This accepts durations such as "300s", "1.5h" or "2h45m". Valid time units are:
     "ns", "us" (or "µs"), "ms", "s", "m", "h".`).WithDefault("1s"),
@@ -95,7 +94,7 @@ Example:
 
 		// Must be online!
 		if !nd.IsOnline {
-			return cmdkit.Errorf(cmdkit.ErrClient, ErrNotOnline.Error())
+			return cmds.Errorf(cmds.ErrClient, ErrNotOnline.Error())
 		}
 
 		if nd.Reporter == nil {
@@ -105,7 +104,7 @@ Example:
 		pstr, pfound := req.Options[statPeerOptionName].(string)
 		tstr, tfound := req.Options["proto"].(string)
 		if pfound && tfound {
-			return cmdkit.Errorf(cmdkit.ErrClient, "please only specify peer OR protocol")
+			return cmds.Errorf(cmds.ErrClient, "please only specify peer OR protocol")
 		}
 
 		var pid peer.ID

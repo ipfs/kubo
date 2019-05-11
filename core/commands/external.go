@@ -8,14 +8,13 @@ import (
 	"os/exec"
 	"strings"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
 func ExternalBinary() *cmds.Command {
 	return &cmds.Command{
-		Arguments: []cmdkit.Argument{
-			cmdkit.StringArg("args", false, true, "Arguments for subcommand."),
+		Arguments: []cmds.Argument{
+			cmds.StringArg("args", false, true, "Arguments for subcommand."),
 		},
 		External: true,
 		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

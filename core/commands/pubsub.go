@@ -10,13 +10,12 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 var PubsubCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "An experimental publish-subscribe system on ipfs.",
 		ShortDescription: `
 ipfs pubsub allows you to publish messages to a given topic, and also to
@@ -48,7 +47,7 @@ type pubsubMessage struct {
 }
 
 var PubsubSubCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Subscribe to messages on a given topic.",
 		ShortDescription: `
 ipfs pubsub sub subscribes to messages on a given topic.
@@ -71,11 +70,11 @@ This command outputs data in the following encodings:
 (Specified by the "--encoding" or "--enc" flag)
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("topic", true, false, "String name of topic to subscribe to."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("topic", true, false, "String name of topic to subscribe to."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(pubsubDiscoverOptionName, "try to discover other peers subscribed to the same topic"),
+	Options: []cmds.Option{
+		cmds.BoolOption(pubsubDiscoverOptionName, "try to discover other peers subscribed to the same topic"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -137,7 +136,7 @@ This command outputs data in the following encodings:
 }
 
 var PubsubPubCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Publish a message to a given pubsub topic.",
 		ShortDescription: `
 ipfs pubsub pub publishes a message to a specified topic.
@@ -148,9 +147,9 @@ to be used in a production environment.
 To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("topic", true, false, "Topic to publish to."),
-		cmdkit.StringArg("data", true, true, "Payload of message to publish.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("topic", true, false, "Topic to publish to."),
+		cmds.StringArg("data", true, true, "Payload of message to publish.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -176,7 +175,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 }
 
 var PubsubLsCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List subscribed topics by name.",
 		ShortDescription: `
 ipfs pubsub ls lists out the names of topics you are currently subscribed to.
@@ -217,7 +216,7 @@ func stringListEncoder(req *cmds.Request, w io.Writer, list *stringList) error {
 }
 
 var PubsubPeersCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List peers we are currently pubsubbing with.",
 		ShortDescription: `
 ipfs pubsub peers with no arguments lists out the pubsub peers you are
@@ -230,8 +229,8 @@ to be used in a production environment.
 To use, the daemon must be run with '--enable-pubsub-experiment'.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("topic", false, false, "topic to list connected peers of"),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("topic", false, false, "topic to list connected peers of"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

@@ -9,7 +9,6 @@ import (
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 
-	"github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 )
@@ -27,7 +26,7 @@ const (
 )
 
 var Root = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:  "Global p2p merkle-dag filesystem.",
 		Synopsis: "ipfs [--config=<config> | -c] [--debug | -D] [--help] [-h] [--api=<api>] [--offline] [--cid-base=<base>] [--upgrade-cidv0-in-output] [--encoding=<encoding> | --enc] [--timeout=<timeout>] <command> ...",
 		Subcommands: `
@@ -90,14 +89,14 @@ The CLI will exit with one of the following values:
 1     Failed executions.
 `,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(ConfigOption, "c", "Path to the configuration file to use."),
-		cmdkit.BoolOption(DebugOption, "D", "Operate in debug mode."),
-		cmdkit.BoolOption(cmds.OptLongHelp, "Show the full command help text."),
-		cmdkit.BoolOption(cmds.OptShortHelp, "Show a short version of the command help text."),
-		cmdkit.BoolOption(LocalOption, "L", "Run the command locally, instead of using the daemon. DEPRECATED: use --offline."),
-		cmdkit.BoolOption(OfflineOption, "Run the command offline."),
-		cmdkit.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
+	Options: []cmds.Option{
+		cmds.StringOption(ConfigOption, "c", "Path to the configuration file to use."),
+		cmds.BoolOption(DebugOption, "D", "Operate in debug mode."),
+		cmds.BoolOption(cmds.OptLongHelp, "Show the full command help text."),
+		cmds.BoolOption(cmds.OptShortHelp, "Show a short version of the command help text."),
+		cmds.BoolOption(LocalOption, "L", "Run the command locally, instead of using the daemon. DEPRECATED: use --offline."),
+		cmds.BoolOption(OfflineOption, "Run the command offline."),
+		cmds.StringOption(ApiOption, "Use a specific API instance (defaults to /ip4/127.0.0.1/tcp/5001)"),
 
 		// global options, added to every command
 		cmdenv.OptionCidBase,

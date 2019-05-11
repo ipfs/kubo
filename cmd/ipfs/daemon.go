@@ -26,8 +26,7 @@ import (
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/ipfs/go-ipfs-cmdkit"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
@@ -62,7 +61,7 @@ const (
 )
 
 var daemonCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Run a network-connected IPFS node.",
 		ShortDescription: `
 'ipfs daemon' runs a persistent ipfs daemon that can serve commands
@@ -153,26 +152,26 @@ Headers.
 `,
 	},
 
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
-		cmdkit.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
-		cmdkit.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
-		cmdkit.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
-		cmdkit.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
-		cmdkit.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
-		cmdkit.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
-		cmdkit.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
-		cmdkit.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
-		cmdkit.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
-		cmdkit.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
-		cmdkit.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmdkit.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
-		cmdkit.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
-		cmdkit.BoolOption(enableMultiplexKwd, "Add the experimental 'go-multiplex' stream muxer to libp2p on construction.").WithDefault(true),
+	Options: []cmds.Option{
+		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
+		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
+		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
+		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
+		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
+		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
+		cmds.BoolOption(unrestrictedApiAccessKwd, "Allow API access to unlisted hashes"),
+		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
+		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
+		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
+		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
+		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
+		cmds.BoolOption(enableMultiplexKwd, "Add the experimental 'go-multiplex' stream muxer to libp2p on construction.").WithDefault(true),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
-		// cmdkit.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
-		// cmdkit.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
+		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
+		// cmds.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
 	},
 	Subcommands: map[string]*cmds.Command{},
 	Run:         daemonFunc,
@@ -384,7 +383,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// construct fuse mountpoints - if the user provided the --mount flag
 	mount, _ := req.Options[mountKwd].(bool)
 	if mount && offline {
-		return cmdkit.Errorf(cmdkit.ErrClient, "mount is not currently supported in offline mode")
+		return cmds.Errorf(cmds.ErrClient, "mount is not currently supported in offline mode")
 	}
 	if mount {
 		if err := mountFuse(req, cctx); err != nil {

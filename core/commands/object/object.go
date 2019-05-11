@@ -12,7 +12,6 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-cmdkit"
 	"github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
@@ -48,7 +47,7 @@ const (
 )
 
 var ObjectCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Interact with IPFS objects.",
 		ShortDescription: `
 'ipfs object' is a plumbing command used to manipulate DAG objects
@@ -69,7 +68,7 @@ directly.`,
 
 // ObjectDataCmd object data command
 var ObjectDataCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Output the raw bytes of an IPFS object.",
 		ShortDescription: `
 'ipfs object data' is a plumbing command for retrieving the raw bytes stored
@@ -84,8 +83,8 @@ is the raw data of the object.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -106,7 +105,7 @@ is the raw data of the object.
 
 // ObjectLinksCmd object links command
 var ObjectLinksCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Output the links pointed to by the specified object.",
 		ShortDescription: `
 'ipfs object links' is a plumbing command for retrieving the links from
@@ -115,11 +114,11 @@ multihash.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(headersOptionName, "v", "Print table headers (Hash, Size, Name)."),
+	Options: []cmds.Option{
+		cmds.BoolOption(headersOptionName, "v", "Print table headers (Hash, Size, Name)."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -180,7 +179,7 @@ multihash.
 
 // ObjectGetCmd object get command
 var ObjectGetCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Get and serialize the DAG node named by <key>.",
 		ShortDescription: `
 'ipfs object get' is a plumbing command for retrieving DAG nodes.
@@ -207,11 +206,11 @@ Supported values are:
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(encodingOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
+	Options: []cmds.Option{
+		cmds.StringOption(encodingOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -288,7 +287,7 @@ Supported values are:
 
 // ObjectStatCmd object stat command
 var ObjectStatCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Get stats for the DAG node named by <key>.",
 		ShortDescription: `
 'ipfs object stat' is a plumbing command to print DAG node statistics.
@@ -302,11 +301,11 @@ var ObjectStatCmd = &cmds.Command{
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(humanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+	Options: []cmds.Option{
+		cmds.BoolOption(humanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -361,7 +360,7 @@ var ObjectStatCmd = &cmds.Command{
 
 // ObjectPutCmd object put command
 var ObjectPutCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Store input as a DAG object, print its key.",
 		ShortDescription: `
 'ipfs object put' is a plumbing command for storing DAG nodes.
@@ -398,14 +397,14 @@ And then run:
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.FileArg("data", true, false, "Data to be stored as a DAG object.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "Data to be stored as a DAG object.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(inputencOptionName, "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").WithDefault("json"),
-		cmdkit.StringOption(datafieldencOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
-		cmdkit.BoolOption(pinOptionName, "Pin this object when adding."),
-		cmdkit.BoolOption(quietOptionName, "q", "Write minimal output."),
+	Options: []cmds.Option{
+		cmds.StringOption(inputencOptionName, "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").WithDefault("json"),
+		cmds.StringOption(datafieldencOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding."),
+		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -467,7 +466,7 @@ And then run:
 
 // ObjectNewCmd object new command
 var ObjectNewCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Create a new object from an ipfs template.",
 		ShortDescription: `
 'ipfs object new' is a plumbing command for creating new DAG nodes.
@@ -482,8 +481,8 @@ Available templates:
 	* unixfs-dir
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("template", false, false, "Template to use. Optional."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("template", false, false, "Template to use. Optional."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

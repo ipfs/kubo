@@ -8,14 +8,13 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	manet "github.com/multiformats/go-multiaddr-net"
 	sysi "github.com/whyrusleeping/go-sysinfo"
 )
 
 var sysDiagCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Print system diagnostic information.",
 		ShortDescription: `
 Prints out information about your computer to aid in easier debugging.

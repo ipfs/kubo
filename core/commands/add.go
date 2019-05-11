@@ -10,7 +10,6 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -51,7 +50,7 @@ const (
 const adderOutChanSize = 8
 
 var AddCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Add a file or directory to ipfs.",
 		ShortDescription: `
 Adds contents of <path> to ipfs. Use -r to add directories (recursively).
@@ -106,30 +105,30 @@ You can now check what blocks have been created by:
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.FileArg("path", true, true, "The path to a file to be added to ipfs.").EnableRecursive().EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.FileArg("path", true, true, "The path to a file to be added to ipfs.").EnableRecursive().EnableStdin(),
 	},
-	Options: []cmdkit.Option{
+	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
 		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
 		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
 		cmds.OptionHidden,
-		cmdkit.BoolOption(quietOptionName, "q", "Write minimal output."),
-		cmdkit.BoolOption(quieterOptionName, "Q", "Write only final hash."),
-		cmdkit.BoolOption(silentOptionName, "Write no output."),
-		cmdkit.BoolOption(progressOptionName, "p", "Stream progress data."),
-		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
-		cmdkit.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
-		cmdkit.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmdkit.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
-		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
-		cmdkit.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
-		cmdkit.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
-		cmdkit.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
-		cmdkit.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. (experimental)"),
-		cmdkit.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
-		cmdkit.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
-		cmdkit.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
+		cmds.BoolOption(silentOptionName, "Write no output."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data."),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
+		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
+		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
+		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
+		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. (experimental)"),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
+		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)

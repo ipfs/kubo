@@ -11,7 +11,6 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	iaddr "github.com/ipfs/go-ipfs-addr"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -35,7 +34,7 @@ const (
 var ErrPingSelf = errors.New("error: can't ping self")
 
 var PingCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Send echo request packets to IPFS hosts.",
 		ShortDescription: `
 'ipfs ping' is a tool to test sending data to other nodes. It finds nodes
@@ -43,11 +42,11 @@ via the routing system, sends pings, waits for pongs, and prints out round-
 trip latency information.
 		`,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.IntOption(pingCountOptionName, "n", "Number of ping messages to send.").WithDefault(10),
+	Options: []cmds.Option{
+		cmds.IntOption(pingCountOptionName, "n", "Number of ping messages to send.").WithDefault(10),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)

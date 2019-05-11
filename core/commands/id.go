@@ -11,11 +11,10 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	"github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ic "github.com/libp2p/go-libp2p-crypto"
 	kb "github.com/libp2p/go-libp2p-kbucket"
-	"github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
@@ -42,7 +41,7 @@ const (
 )
 
 var IDCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Show ipfs node id info.",
 		ShortDescription: `
 Prints out information about the specified peer.
@@ -60,11 +59,11 @@ EXAMPLE:
     ipfs id Qmece2RkXhsKe5CRooNisBTh4SK119KrXXGmoK6V3kb8aH -f="<addrs>\n"
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peerid", false, false, "Peer.ID of node to look up."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peerid", false, false, "Peer.ID of node to look up."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(formatOptionName, "f", "Optional output format."),
+	Options: []cmds.Option{
+		cmds.StringOption(formatOptionName, "f", "Optional output format."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)

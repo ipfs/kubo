@@ -3,12 +3,11 @@
 package commands
 
 import (
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
 var MountCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Mounts ipfs to the filesystem (disabled).",
 		ShortDescription: `
 This version of ipfs is compiled without fuse support, which is required

@@ -9,7 +9,6 @@ import (
 
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
@@ -18,7 +17,7 @@ const (
 )
 
 var ActiveReqsCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List commands run on this IPFS node.",
 		ShortDescription: `
 Lists running and recently run commands.
@@ -28,8 +27,8 @@ Lists running and recently run commands.
 		ctx := env.(*oldcmds.Context)
 		return cmds.EmitOnce(res, ctx.ReqLog.Report())
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(verboseOptionName, "v", "Print extra information."),
+	Options: []cmds.Option{
+		cmds.BoolOption(verboseOptionName, "v", "Print extra information."),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"clear":    clearInactiveCmd,
@@ -86,7 +85,7 @@ Lists running and recently run commands.
 }
 
 var clearInactiveCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Clear inactive requests from the log.",
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -97,11 +96,11 @@ var clearInactiveCmd = &cmds.Command{
 }
 
 var setRequestClearCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Set how long to keep inactive requests in the log.",
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("time", true, false, "Time to keep inactive requests in log."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("time", true, false, "Time to keep inactive requests in log."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		tval, err := time.ParseDuration(req.Arguments[0])
