@@ -51,6 +51,15 @@ jobs:
         environment:
           TEST_NO_FUSE: 1
     - *store_gomod
+  golint:
+    <<: *defaults
+    steps:
+    - checkout
+    - *make_out_dirs
+    - *restore_gomod
+    - run: |
+        make -O test_go_lint
+    - *store_gomod
   gotest:
     <<: *defaults
     steps:
