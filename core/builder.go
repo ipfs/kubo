@@ -31,7 +31,10 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		// Note that some services use contexts to signal shutting down, which is
 		// very suboptimal. This needs to be here until that's addressed somehow
 		<-ctx.Done()
-		app.Stop(context.Background())
+		err := app.Stop(context.Background())
+		if err != nil {
+			log.Error("failure on stop: ", err)
+		}
 	}()
 
 	n.IsOnline = cfg.Online

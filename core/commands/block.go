@@ -224,6 +224,9 @@ It takes a list of base58 encoded multihashes to remove.
 		// TODO: use batching coreapi when done
 		for _, b := range req.Arguments {
 			rp, err := api.ResolvePath(req.Context, path.New(b))
+			if err != nil {
+				return err
+			}
 
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
 			if err != nil {

@@ -281,7 +281,7 @@ func (f *FileManager) putTo(b *posinfo.FilestoreNode, to putter) error {
 		if !f.AllowFiles {
 			return ErrFilestoreNotEnabled
 		}
-		if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) {
+		if !filepath.HasPrefix(b.PosInfo.FullPath, f.root) { //nolint:staticcheck
 			return fmt.Errorf("cannot add filestore references outside ipfs root (%s)", f.root)
 		}
 
