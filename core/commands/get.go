@@ -14,7 +14,6 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/interface-go-ipfs-core/path"
@@ -32,7 +31,7 @@ const (
 )
 
 var GetCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Download IPFS objects.",
 		ShortDescription: `
 Stores to disk the data contained an IPFS or IPNS object(s) at the given path.
@@ -47,14 +46,14 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(outputOptionName, "o", "The path where the output should be stored."),
-		cmdkit.BoolOption(archiveOptionName, "a", "Output a TAR archive."),
-		cmdkit.BoolOption(compressOptionName, "C", "Compress the output with GZIP compression."),
-		cmdkit.IntOption(compressionLevelOptionName, "l", "The level of compression (1-9)."),
+	Options: []cmds.Option{
+		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
+		cmds.BoolOption(archiveOptionName, "a", "Output a TAR archive."),
+		cmds.BoolOption(compressOptionName, "C", "Compress the output with GZIP compression."),
+		cmds.IntOption(compressionLevelOptionName, "l", "The level of compression (1-9)."),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		_, err := getCompressOptions(req)

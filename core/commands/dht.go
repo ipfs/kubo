@@ -10,7 +10,6 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cid "github.com/ipfs/go-cid"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
@@ -28,7 +27,7 @@ var ErrNotDHT = errors.New("routing service is not a DHT")
 // Everything *except `query` goes into `ipfs routing`.
 
 var DhtCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Issue commands directly through the DHT.",
 		ShortDescription: ``,
 	},
@@ -48,16 +47,16 @@ const (
 )
 
 var queryDhtCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Find the closest Peer IDs to a given Peer ID by querying the DHT.",
 		ShortDescription: "Outputs a list of newline-delimited Peer IDs.",
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peerID", true, true, "The peerID to run the query against."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peerID", true, true, "The peerID to run the query against."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+	Options: []cmds.Option{
+		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
@@ -123,17 +122,17 @@ const (
 )
 
 var findProvidersDhtCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Find peers that can provide a specific value, given a key.",
 		ShortDescription: "Outputs a list of newline-delimited provider Peer IDs.",
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, true, "The key to find providers for."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "The key to find providers for."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
-		cmdkit.IntOption(numProvidersOptionName, "n", "The number of providers to find.").WithDefault(20),
+	Options: []cmds.Option{
+		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+		cmds.IntOption(numProvidersOptionName, "n", "The number of providers to find.").WithDefault(20),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -215,16 +214,16 @@ const (
 )
 
 var provideRefDhtCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Announce to the network that you are providing given values.",
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "The key[s] to send provide records for.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
-		cmdkit.BoolOption(recursiveOptionName, "r", "Recursively provide entire graph."),
+	Options: []cmds.Option{
+		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+		cmds.BoolOption(recursiveOptionName, "r", "Recursively provide entire graph."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
@@ -344,16 +343,16 @@ func provideKeysRec(ctx context.Context, r routing.IpfsRouting, dserv ipld.DAGSe
 }
 
 var findPeerDhtCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Find the multiaddresses associated with a Peer ID.",
 		ShortDescription: "Outputs a list of newline-delimited multiaddresses.",
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peerID", true, true, "The ID of the peer to search for."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peerID", true, true, "The ID of the peer to search for."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+	Options: []cmds.Option{
+		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
@@ -420,7 +419,7 @@ var findPeerDhtCmd = &cmds.Command{
 }
 
 var getValueDhtCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Given a key, query the routing system for its best value.",
 		ShortDescription: `
 Outputs the best value for the given key.
@@ -433,11 +432,11 @@ Different key types can specify other 'best' rules.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, true, "The key to find a value for."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, true, "The key to find a value for."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+	Options: []cmds.Option{
+		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
@@ -505,7 +504,7 @@ Different key types can specify other 'best' rules.
 }
 
 var putValueDhtCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `
 Given a key of the form /foo/bar and a value of any form, this will write that
@@ -526,12 +525,12 @@ NOTE: A value may not exceed 2048 bytes.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "The key to store the value at."),
-		cmdkit.StringArg("value", true, false, "The value to store.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The key to store the value at."),
+		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
+	Options: []cmds.Option{
+		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)

@@ -11,13 +11,12 @@ import (
 	bitswap "github.com/ipfs/go-bitswap"
 	decision "github.com/ipfs/go-bitswap/decision"
 	cidutil "github.com/ipfs/go-cidutil"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 var BitswapCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Interact with the bitswap agent.",
 		ShortDescription: ``,
 	},
@@ -35,13 +34,13 @@ const (
 )
 
 var showWantlistCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Show blocks currently on the wantlist.",
 		ShortDescription: `
 Print out all blocks currently on the bitswap wantlist for the local peer.`,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(peerOptionName, "p", "Specify which peer to show wantlist for. Default: self."),
+	Options: []cmds.Option{
+		cmds.StringOption(peerOptionName, "p", "Specify which peer to show wantlist for. Default: self."),
 	},
 	Type: KeyList{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -94,13 +93,13 @@ const (
 )
 
 var bitswapStatCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Show some diagnostic information on the bitswap agent.",
 		ShortDescription: ``,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(bitswapVerboseOptionName, "v", "Print extra information"),
-		cmdkit.BoolOption(bitswapHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+	Options: []cmds.Option{
+		cmds.BoolOption(bitswapVerboseOptionName, "v", "Print extra information"),
+		cmds.BoolOption(bitswapHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
 	},
 	Type: bitswap.Stat{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -110,7 +109,7 @@ var bitswapStatCmd = &cmds.Command{
 		}
 
 		if !nd.IsOnline {
-			return cmdkit.Errorf(cmdkit.ErrClient, ErrNotOnline.Error())
+			return cmds.Errorf(cmds.ErrClient, ErrNotOnline.Error())
 		}
 
 		bs, ok := nd.Exchange.(*bitswap.Bitswap)
@@ -169,7 +168,7 @@ var bitswapStatCmd = &cmds.Command{
 }
 
 var ledgerCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Show the current ledger for a peer.",
 		ShortDescription: `
 The Bitswap decision engine tracks the number of bytes exchanged between IPFS
@@ -177,8 +176,8 @@ nodes, and stores this information as a collection of ledgers. This command
 prints the ledger associated with a given peer.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peer", true, false, "The PeerID (B58) of the ledger to inspect."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peer", true, false, "The PeerID (B58) of the ledger to inspect."),
 	},
 	Type: decision.Receipt{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -218,7 +217,7 @@ prints the ledger associated with a given peer.
 }
 
 var reprovideCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Trigger reprovider.",
 		ShortDescription: `
 Trigger reprovider to announce our data to network.

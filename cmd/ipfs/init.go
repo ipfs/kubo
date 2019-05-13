@@ -16,7 +16,6 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"github.com/ipfs/go-ipfs-cmdkit"
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs-files"
@@ -30,7 +29,7 @@ const (
 )
 
 var initCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Initializes ipfs config file.",
 		ShortDescription: `
 Initializes ipfs configuration files and generates a new keypair.
@@ -47,18 +46,18 @@ environment variable:
     export IPFS_PATH=/path/to/ipfsrepo
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key.").WithDefault(nBitsForKeypairDefault),
-		cmdkit.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
-		cmdkit.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
+	Options: []cmds.Option{
+		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key.").WithDefault(nBitsForKeypairDefault),
+		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
+		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
 		// name of the file?
-		// TODO cmdkit.StringOption("event-logs", "l", "Location for machine-readable event logs."),
+		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs."),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)

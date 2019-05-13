@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
 	lwriter "github.com/ipfs/go-log/writer"
@@ -17,7 +16,7 @@ import (
 var logAllKeyword = "all"
 
 var LogCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Interact with the daemon log output.",
 		ShortDescription: `
 'ipfs log' contains utility commands to affect or read the logging
@@ -38,7 +37,7 @@ system (not just for the daemon logs, but all commands):
 }
 
 var logLevelCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Change the logging level.",
 		ShortDescription: `
 Change the verbosity of one or all subsystems log output. This does not affect
@@ -46,11 +45,11 @@ the event log.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
+	Arguments: []cmds.Argument{
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
-		cmdkit.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
-		cmdkit.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'critical' the least verbose.
+		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
+		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'critical' the least verbose.
 			One of: debug, info, warning, error, critical.
 		`),
 	},
@@ -81,7 +80,7 @@ the event log.
 }
 
 var logLsCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List the logging subsystems.",
 		ShortDescription: `
 'ipfs log ls' is a utility command used to list the logging
@@ -103,7 +102,7 @@ subsystems of a running daemon.
 }
 
 var logTailCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Read the event log.",
 		ShortDescription: `
 Outputs event log messages (not other log messages) as they are generated.

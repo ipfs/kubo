@@ -8,14 +8,13 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	filestore "github.com/ipfs/go-ipfs/filestore"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 var urlStoreCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Interact with urlstore.",
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -24,7 +23,7 @@ var urlStoreCmd = &cmds.Command{
 }
 
 var urlAdd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Add URL via urlstore.",
 		LongDescription: `
 DEPRECATED: Use 'ipfs add --nocopy --cid-version=1 URL'.
@@ -38,12 +37,12 @@ The file is added using raw-leaves but otherwise using the default
 settings for 'ipfs add'.
 `,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
-		cmdkit.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
+	Options: []cmds.Option{
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("url", true, false, "URL to add to IPFS"),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("url", true, false, "URL to add to IPFS"),
 	},
 	Type: &BlockStat{},
 

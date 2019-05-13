@@ -7,13 +7,12 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 var KeyCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Create and list IPNS name keypairs",
 		ShortDescription: `
 'ipfs key gen' generates a new keypair for usage with IPNS and 'ipfs name
@@ -60,15 +59,15 @@ const (
 )
 
 var keyGenCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Create a new keypair",
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(keyStoreTypeOptionName, "t", "type of the key to create [rsa, ed25519]"),
-		cmdkit.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
+	Options: []cmds.Option{
+		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create [rsa, ed25519]"),
+		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "name of key to create"),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, false, "name of key to create"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -114,11 +113,11 @@ var keyGenCmd = &cmds.Command{
 }
 
 var keyListCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List all local keypairs",
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption("l", "Show extra information about keys."),
+	Options: []cmds.Option{
+		cmds.BoolOption("l", "Show extra information about keys."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -150,15 +149,15 @@ const (
 )
 
 var keyRenameCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Rename a keypair",
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, false, "name of key to rename"),
-		cmdkit.StringArg("newName", true, false, "new name of the key"),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, false, "name of key to rename"),
+		cmds.StringArg("newName", true, false, "new name of the key"),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(keyStoreForceOptionName, "f", "Allow to overwrite an existing key."),
+	Options: []cmds.Option{
+		cmds.BoolOption(keyStoreForceOptionName, "f", "Allow to overwrite an existing key."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -196,14 +195,14 @@ var keyRenameCmd = &cmds.Command{
 }
 
 var keyRmCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Remove a keypair",
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("name", true, true, "names of keys to remove").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, true, "names of keys to remove").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption("l", "Show extra information about keys."),
+	Options: []cmds.Option{
+		cmds.BoolOption("l", "Show extra information about keys."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

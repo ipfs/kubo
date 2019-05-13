@@ -7,7 +7,6 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/dagutils"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
@@ -21,7 +20,7 @@ type Changes struct {
 }
 
 var ObjectDiffCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Display the diff between two ipfs objects.",
 		ShortDescription: `
 'ipfs object diff' is a command used to show the differences between
@@ -47,12 +46,12 @@ Example:
    Changed "bar" from QmNgd5cz2jNftnAHBhcRUGdtiaMzb5Rhjqd4etondHHST8 to QmRfFVsjSXkhFxrfWnLpMae2M4GBVsry6VAuYYcji5MiZb.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("obj_a", true, false, "Object to diff against."),
-		cmdkit.StringArg("obj_b", true, false, "Object to diff."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("obj_a", true, false, "Object to diff against."),
+		cmds.StringArg("obj_b", true, false, "Object to diff."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(verboseOptionName, "v", "Print extra information."),
+	Options: []cmds.Option{
+		cmds.BoolOption(verboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)

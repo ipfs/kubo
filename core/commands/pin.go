@@ -15,7 +15,6 @@ import (
 	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	dag "github.com/ipfs/go-merkledag"
@@ -26,7 +25,7 @@ import (
 )
 
 var PinCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Pin (and unpin) objects to local storage.",
 	},
 
@@ -54,17 +53,17 @@ const (
 )
 
 var addPinCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Pin objects to local storage.",
 		ShortDescription: "Stores an IPFS object(s) from a given path locally to disk.",
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
-		cmdkit.BoolOption(pinProgressOptionName, "Show progress"),
+	Options: []cmds.Option{
+		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
+		cmds.BoolOption(pinProgressOptionName, "Show progress"),
 	},
 	Type: AddPinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -199,7 +198,7 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 }
 
 var rmPinCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Remove pinned objects from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
@@ -207,11 +206,11 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(pinRecursiveOptionName, "r", "Recursively unpin the object linked to by the specified object(s).").WithDefault(true),
+	Options: []cmds.Option{
+		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively unpin the object linked to by the specified object(s).").WithDefault(true),
 	},
 	Type: PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -265,7 +264,7 @@ const (
 )
 
 var listPinCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List objects pinned to local storage.",
 		ShortDescription: `
 Returns a list of objects that are pinned locally.
@@ -308,12 +307,12 @@ Example:
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", false, true, "Path to object(s) to be listed."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
-		cmdkit.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
+	Options: []cmds.Option{
+		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
+		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -383,7 +382,7 @@ const (
 )
 
 var updatePinCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Update a recursive pin",
 		ShortDescription: `
 Updates one pin to another, making sure that all objects in the new pin are
@@ -392,12 +391,12 @@ new pin and removing the old one.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("from-path", true, false, "Path to old object."),
-		cmdkit.StringArg("to-path", true, false, "Path to new object to be pinned."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("from-path", true, false, "Path to old object."),
+		cmds.StringArg("to-path", true, false, "Path to new object to be pinned."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
+	Options: []cmds.Option{
+		cmds.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
 	},
 	Type: PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -443,12 +442,12 @@ const (
 )
 
 var verifyPinCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Verify that recursive pins are complete.",
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(pinVerboseOptionName, "Also write the hashes of non-broken pins."),
-		cmdkit.BoolOption(pinQuietOptionName, "q", "Write just hashes of broken pins."),
+	Options: []cmds.Option{
+		cmds.BoolOption(pinVerboseOptionName, "Also write the hashes of non-broken pins."),
+		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of broken pins."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
