@@ -59,7 +59,7 @@ func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 		return false, 0, err
 	}
 
-	if maxFds <= soft {
+	if targetLimit <= soft {
 		return false, 0, nil
 	}
 
