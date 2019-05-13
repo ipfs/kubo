@@ -69,9 +69,9 @@ test_urlstore() {
   '
 
   cat <<EOF | sort > ls_expect
-zb2rhX1q5oFFzEkPNsTe1Y8osUdFqSQGjUWRZsqC9fbY6WVSk  262144 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 0
-zb2rhYbKFn1UWGHXaAitcdVTkDGTykX8RFpGWzRFuLpoe9VE4  237856 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 262144
-zb2rhjddJ5DNzBrFu8G6CP1ApY25BukwCeskXHzN1H18CiVVZ    2222 http://127.0.0.1:$GWAY_PORT/ipfs/QmcHm3BL2cXuQ6rJdKQgPrmT9suqGkfy2KzH3MkXPEBXU6 0
+bafkreiafqvawjpukk4achpu7edu4d6x5dbzwgigl6nxunjif3ser6bnfpu 262144 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 0
+bafkreia46t3jwchosehfcq7kponx26shcjkatxek4m2tzzd67i6o3frpou 237856 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 262144
+bafkreiga7ukbxrxs26fiseijjd7zdd6gmlrmnxhalwfbagxwjv7ck4o34a   2222 http://127.0.0.1:$GWAY_PORT/ipfs/QmcHm3BL2cXuQ6rJdKQgPrmT9suqGkfy2KzH3MkXPEBXU6 0
 EOF
 
   test_expect_success "ipfs filestore ls works with urls" '
@@ -80,9 +80,9 @@ EOF
   '
 
   cat <<EOF | sort > verify_expect
-ok      zb2rhX1q5oFFzEkPNsTe1Y8osUdFqSQGjUWRZsqC9fbY6WVSk  262144 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 0
-ok      zb2rhYbKFn1UWGHXaAitcdVTkDGTykX8RFpGWzRFuLpoe9VE4  237856 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 262144
-ok      zb2rhjddJ5DNzBrFu8G6CP1ApY25BukwCeskXHzN1H18CiVVZ    2222 http://127.0.0.1:$GWAY_PORT/ipfs/QmcHm3BL2cXuQ6rJdKQgPrmT9suqGkfy2KzH3MkXPEBXU6 0
+ok      bafkreiafqvawjpukk4achpu7edu4d6x5dbzwgigl6nxunjif3ser6bnfpu 262144 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 0
+ok      bafkreia46t3jwchosehfcq7kponx26shcjkatxek4m2tzzd67i6o3frpou 237856 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 262144
+ok      bafkreiga7ukbxrxs26fiseijjd7zdd6gmlrmnxhalwfbagxwjv7ck4o34a   2222 http://127.0.0.1:$GWAY_PORT/ipfs/QmcHm3BL2cXuQ6rJdKQgPrmT9suqGkfy2KzH3MkXPEBXU6 0
 EOF
   
   test_expect_success "ipfs filestore verify works with urls" '
@@ -116,8 +116,8 @@ EOF
   '
 
   cat <<EOF | sort > verify_expect_2
-error   zb2rhX1q5oFFzEkPNsTe1Y8osUdFqSQGjUWRZsqC9fbY6WVSk  262144 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 0
-error   zb2rhYbKFn1UWGHXaAitcdVTkDGTykX8RFpGWzRFuLpoe9VE4  237856 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 262144
+error   bafkreiafqvawjpukk4achpu7edu4d6x5dbzwgigl6nxunjif3ser6bnfpu 262144 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 0
+error   bafkreia46t3jwchosehfcq7kponx26shcjkatxek4m2tzzd67i6o3frpou 237856 http://127.0.0.1:$GWAY_PORT/ipfs/QmUow2T4P69nEsqTQDZCt8yg9CPS8GFmpuDAr5YtsPhTdM 262144
 EOF
   
   test_expect_success "ipfs filestore verify is correct" '

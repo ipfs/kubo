@@ -30,7 +30,7 @@ test_expect_success "error reason is pointed out" '
 test_cat_get() {
 
   test_expect_success "ipfs cat fails with unsafe hash function" '
-    test_must_fail ipfs cat zDvnoLcPKWR 2>ipfs_cat
+    test_must_fail ipfs cat bafksebhh7d53e 2>ipfs_cat
   '
 
 
@@ -40,7 +40,7 @@ test_cat_get() {
 
 
   test_expect_success "ipfs get fails with too short function" '
-    test_must_fail ipfs get z2ba5YhCCFNFxLtxMygQwjBjYSD8nUeN 2>ipfs_get
+    test_must_fail ipfs get bafkreez3itiri7ghbbf6lzej7paxyxy2qznpw 2>ipfs_get
 
     '
 
@@ -58,7 +58,7 @@ test_gc() {
 
   test_expect_success "gc works" 'ipfs repo gc > gc_out'
   test_expect_success "gc removed bad block" '
-    grep zDvnoGUyhEq gc_out
+    grep bafksebcgpujze gc_out
   '
 }
 
