@@ -58,7 +58,7 @@ func (tp *provider) TestPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if nd.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+	if nd.Cid().String() != "bafyreicnga62zhxnmnlt6ymq5hcbsg7gdhqdu6z4ehu3wpjhvqnflfy6nm" {
 		t.Errorf("got wrong cid: %s", nd.Cid().String())
 	}
 }
@@ -81,7 +81,7 @@ func (tp *provider) TestPutWithHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if nd.Cid().String() != "z5hRLNd2sv4z1c" {
+	if nd.Cid().String() != "bafyqabtfjbswy3dp" {
 		t.Errorf("got wrong cid: %s", nd.Cid().String())
 	}
 }
@@ -179,7 +179,7 @@ func (tp *provider) TestBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if nd.Cid().String() != "zdpuAqckYF3ToF3gcJNxPZXmnmGuXd3gxHCXhq81HGxBejEvv" {
+	if nd.Cid().String() != "bafyreicnga62zhxnmnlt6ymq5hcbsg7gdhqdu6z4ehu3wpjhvqnflfy6nm" {
 		t.Errorf("got wrong cid: %s", nd.Cid().String())
 	}
 

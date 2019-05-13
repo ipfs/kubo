@@ -61,7 +61,7 @@ func (tp *provider) TestBlockPutFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if res.Path().Cid().String() != "zdpuAn4amuLWo8Widi5v6VQpuo2dnpnwbVE3oB6qqs7mDSeoa" {
+	if res.Path().Cid().String() != "bafyreiayl6g3gitr7ys7kyng7sjywlrgimdoymco3jiyab6rozecmoazne" {
 		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
 	}
 }
@@ -79,7 +79,7 @@ func (tp *provider) TestBlockPutHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if res.Path().Cid().String() != "zBurKB9YZkcDf6xa53WBE8CFX4ydVqAyf9KPXBFZt5stJzEstaS8Hukkhu4gwpMtc1xHNDbzP7sPtQKyWsP3C8fbhkmrZ" {
+	if res.Path().Cid().String() != "bafyb2qgdh7w6dcq24u65xbtdoehyavegnpvxcqce7ttvs6ielgmwdfxrahmu37d33atik57x5y6s7d7qz32aasuwgirh3ocn6ywswqdifvu6e" {
 		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
 	}
 }

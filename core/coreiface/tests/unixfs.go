@@ -170,20 +170,20 @@ func (tp *provider) TestAdd(t *testing.T) {
 		{
 			name: "addCidV1",
 			data: strFile(helloStr),
-			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			path: "/ipfs/bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa",
 			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(1)},
 		},
 		{
 			name: "addCidV1NoLeaves",
 			data: strFile(helloStr),
-			path: "/ipfs/zdj7WY4GbN8NDbTW1dfCShAQNVovams2xhq9hVCx5vXcjvT8g",
+			path: "/ipfs/bafybeibhbcn7k7o2m6xsqkrlfiokod3nxwe47viteynhruh6uqx7hvkjfu",
 			opts: []options.UnixfsAddOption{options.Unixfs.CidVersion(1), options.Unixfs.RawLeaves(false)},
 		},
 		// Non sha256 hash vs CID
 		{
 			name: "addCidSha3",
 			data: strFile(helloStr),
-			path: "/ipfs/zb2wwnYtXBxpndNABjtYxWAPt3cwWNRnc11iT63fvkYV78iRb",
+			path: "/ipfs/bafkrmichjflejeh6aren53o7pig7zk3m3vxqcoc2i5dv326k3x6obh7jry",
 			opts: []options.UnixfsAddOption{options.Unixfs.Hash(mh.SHA3_256)},
 		},
 		{
@@ -196,25 +196,25 @@ func (tp *provider) TestAdd(t *testing.T) {
 		{
 			name: "addInline",
 			data: strFile(helloStr),
-			path: "/ipfs/zaYomJdLndMku8P9LHngHB5w2CQ7NenLbv",
+			path: "/ipfs/bafyaafikcmeaeeqnnbswy3dpfqqho33snrsccgan",
 			opts: []options.UnixfsAddOption{options.Unixfs.Inline(true)},
 		},
 		{
 			name: "addInlineLimit",
 			data: strFile(helloStr),
-			path: "/ipfs/zaYomJdLndMku8P9LHngHB5w2CQ7NenLbv",
+			path: "/ipfs/bafyaafikcmeaeeqnnbswy3dpfqqho33snrsccgan",
 			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true)},
 		},
 		{
 			name: "addInlineZero",
 			data: strFile(""),
-			path: "/ipfs/z2yYDV",
+			path: "/ipfs/bafkqaaa",
 			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(0), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
 		},
 		{ //TODO: after coreapi add is used in `ipfs add`, consider making this default for inline
 			name: "addInlineRaw",
 			data: strFile(helloStr),
-			path: "/ipfs/zj7Gr8AcBreqGEfrnR5kPFe",
+			path: "/ipfs/bafkqadlimvwgy3zmeb3w64tmmqqq",
 			opts: []options.UnixfsAddOption{options.Unixfs.InlineLimit(32), options.Unixfs.Inline(true), options.Unixfs.RawLeaves(true)},
 		},
 		// Chunker / Layout
@@ -291,20 +291,20 @@ func (tp *provider) TestAdd(t *testing.T) {
 		{
 			name: "simpleNoCopy",
 			data: realFile,
-			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			path: "/ipfs/bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa",
 			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true)},
 		},
 		{
 			name: "noCopyNoRaw",
 			data: realFile,
-			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			path: "/ipfs/bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa",
 			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true), options.Unixfs.RawLeaves(false)},
 			err:  "nocopy option requires '--raw-leaves' to be enabled as well",
 		},
 		{
 			name: "noCopyNoPath",
 			data: strFile(helloStr),
-			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			path: "/ipfs/bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa",
 			opts: []options.UnixfsAddOption{options.Unixfs.Nocopy(true)},
 			err:  helpers.ErrMissingFsRef.Error(),
 		},
@@ -312,9 +312,9 @@ func (tp *provider) TestAdd(t *testing.T) {
 		{
 			name: "simpleAddEvent",
 			data: strFile(helloStr),
-			path: "/ipfs/zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd",
+			path: "/ipfs/bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa",
 			events: []coreiface.AddEvent{
-				{Name: "zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd", Path: p("zb2rhdhmJjJZs9qkhQCpCQ7VREFkqWw3h1r8utjVvQugwHPFd"), Size: strconv.Itoa(len(helloStr))},
+				{Name: "bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa", Path: p("bafkreidi4zlleupgp2bvrpxyja5lbvi4mym7hz5bvhyoowby2qp7g2hxfa"), Size: strconv.Itoa(len(helloStr))},
 			},
 			opts: []options.UnixfsAddOption{options.Unixfs.RawLeaves(true)},
 		},
