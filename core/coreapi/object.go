@@ -78,12 +78,6 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 			return nil, err
 		}
 
-		// check that we have data in the Node to add
-		// otherwise we will add the empty object without raising an error
-		if nodeEmpty(node) {
-			return nil, errors.New("no data or links in this node")
-		}
-
 		dagnode, err = deserializeNode(node, options.DataType)
 		if err != nil {
 			return nil, err
@@ -97,12 +91,6 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		err = xml.Unmarshal(data, node)
 		if err != nil {
 			return nil, err
-		}
-
-		// check that we have data in the Node to add
-		// otherwise we will add the empty object without raising an error
-		if nodeEmpty(node) {
-			return nil, errors.New("no data or links in this node")
 		}
 
 		dagnode, err = deserializeNode(node, options.DataType)
@@ -367,8 +355,4 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 	dagnode.SetLinks(links)
 
 	return dagnode, nil
-}
-
-func nodeEmpty(node *Node) bool {
-	return node.Data == "" && len(node.Links) == 0
 }
