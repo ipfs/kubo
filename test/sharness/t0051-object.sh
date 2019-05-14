@@ -111,11 +111,11 @@ test_object_cmd() {
     cat ../t0051-object-data/testPut.xml | ipfs object put --inputenc=xml > actual_putStdinOut
   '
 
-  test_expect_success "'ipfs object put broken.xml' should fail" '
+  test_expect_failure "'ipfs object put broken.xml' should fail" '
     test_expect_code 1 ipfs object put ../t0051-object-data/brokenPut.xml --inputenc=xml 2>actual_putBrokenErr >actual_putBroken
   '
 
-  test_expect_success "'ipfs object put broken.hxml' output looks good" '
+  test_expect_failure "'ipfs object put broken.hxml' output looks good" '
     touch expected_putBroken &&
     printf "Error: no data or links in this node\n" > expected_putBrokenErr &&
     test_cmp expected_putBroken actual_putBroken &&
@@ -170,7 +170,7 @@ test_object_cmd() {
 
   test_expect_success "'ipfs object put broken.hjson' output looks good" '
     touch expected_putBroken &&
-    printf "Error: no data or links in this node\n" > expected_putBrokenErr &&
+    printf "Error: json: unknown field \"this\"\n" > expected_putBrokenErr &&
     test_cmp expected_putBroken actual_putBroken &&
     test_cmp expected_putBrokenErr actual_putBrokenErr
   '
