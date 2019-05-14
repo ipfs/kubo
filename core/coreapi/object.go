@@ -73,7 +73,9 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 	switch options.InputEnc {
 	case "json":
 		node := new(Node)
-		err = json.Unmarshal(data, node)
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		decoder.DisallowUnknownFields()
+		err = decoder.Decode(node)
 		if err != nil {
 			return nil, err
 		}
