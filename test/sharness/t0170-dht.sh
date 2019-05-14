@@ -35,6 +35,12 @@ test_dht() {
     [ -s putted ] ||
     test_fsh cat putted
   '
+
+  test_expect_success 'put round trips' '
+    echo -n "$TEST_DHT_VALUE" >expected &&
+    ipfsi 0 dht get "$TEST_DHT_PATH" >actual &&
+    test_cmp actual expected
+  '
   
   # ipfs dht get <key>
   test_expect_success 'get with good keys' '

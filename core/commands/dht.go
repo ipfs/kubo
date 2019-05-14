@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -103,15 +104,15 @@ var queryDhtCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
-				notif.PeerResponse: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.PeerResponse: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					for _, p := range obj.Responses {
 						fmt.Fprintf(out, "%s\n", p.ID.Pretty())
 					}
+					return nil
 				},
 			}
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			printEvent(out, w, verbose, pfm)
-			return nil
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
 	Type: notif.QueryEvent{},
@@ -181,12 +182,13 @@ var findProvidersDhtCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
-				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
 						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
 					}
+					return nil
 				},
-				notif.Provider: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.Provider: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					prov := obj.Responses[0]
 					if verbose {
 						fmt.Fprintf(out, "provider: ")
@@ -197,13 +199,12 @@ var findProvidersDhtCmd = &cmds.Command{
 							fmt.Fprintf(out, "\t%s\n", a)
 						}
 					}
+					return nil
 				},
 			}
 
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			printEvent(out, w, verbose, pfm)
-
-			return nil
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
 	Type: notif.QueryEvent{},
@@ -237,6 +238,13 @@ var provideRefDhtCmd = &cmds.Command{
 
 		if len(nd.PeerHost.Network().Conns()) == 0 {
 			return errors.New("cannot provide, no connected peers")
+		}
+
+		// Needed to parse stdin args.
+		// TODO: Lazy Load
+		err = req.ParseBodyArgs()
+		if err != nil {
+			return err
 		}
 
 		rec, _ := req.Options[recursiveOptionName].(bool)
@@ -290,17 +298,16 @@ var provideRefDhtCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
-				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
 						fmt.Fprintf(out, "sending provider record to peer %s\n", obj.ID)
 					}
+					return nil
 				},
 			}
 
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			printEvent(out, w, verbose, pfm)
-
-			return nil
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
 	Type: notif.QueryEvent{},
@@ -402,17 +409,17 @@ var findPeerDhtCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
-				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					pi := obj.Responses[0]
 					for _, a := range pi.Addrs {
 						fmt.Fprintf(out, "%s\n", a)
 					}
+					return nil
 				},
 			}
 
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			printEvent(out, w, verbose, pfm)
-			return nil
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
 	Type: notif.QueryEvent{},
@@ -469,7 +476,7 @@ Different key types can specify other 'best' rules.
 			} else {
 				notif.PublishQueryEvent(ctx, &notif.QueryEvent{
 					Type:  notif.Value,
-					Extra: string(val),
+					Extra: base64.StdEncoding.EncodeToString(val),
 				})
 			}
 		}()
@@ -485,19 +492,22 @@ Different key types can specify other 'best' rules.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
-				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
 						fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
 					} else {
-						fmt.Fprintln(out, obj.Extra)
+						res, err := base64.StdEncoding.DecodeString(obj.Extra)
+						if err != nil {
+							return err
+						}
+						out.Write(res)
 					}
+					return nil
 				},
 			}
 
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			printEvent(out, w, verbose, pfm)
-
-			return nil
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
 	Type: notif.QueryEvent{},
@@ -534,6 +544,12 @@ NOTE: A value may not exceed 2048 bytes.
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		// Needed to parse stdin args.
+		err = req.ParseBodyArgs()
 		if err != nil {
 			return err
 		}
@@ -575,38 +591,37 @@ NOTE: A value may not exceed 2048 bytes.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *notif.QueryEvent) error {
 			pfm := pfuncMap{
-				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.FinalPeer: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
 						fmt.Fprintf(out, "* closest peer %s\n", obj.ID)
 					}
+					return nil
 				},
-				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) {
+				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					fmt.Fprintf(out, "%s\n", obj.ID.Pretty())
+					return nil
 				},
 			}
 
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
 
-			printEvent(out, w, verbose, pfm)
-
-			return nil
+			return printEvent(out, w, verbose, pfm)
 		}),
 	},
 	Type: notif.QueryEvent{},
 }
 
-type printFunc func(obj *notif.QueryEvent, out io.Writer, verbose bool)
+type printFunc func(obj *notif.QueryEvent, out io.Writer, verbose bool) error
 type pfuncMap map[notif.QueryEventType]printFunc
 
-func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfuncMap) {
+func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfuncMap) error {
 	if verbose {
 		fmt.Fprintf(out, "%s: ", time.Now().Format("15:04:05.000"))
 	}
 
 	if override != nil {
 		if pf, ok := override[obj.Type]; ok {
-			pf(obj, out, verbose)
-			return
+			return pf(obj, out, verbose)
 		}
 	}
 
@@ -647,6 +662,7 @@ func printEvent(obj *notif.QueryEvent, out io.Writer, verbose bool, override pfu
 			fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
 		}
 	}
+	return nil
 }
 
 func escapeDhtKey(s string) (string, error) {
