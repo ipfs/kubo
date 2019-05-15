@@ -108,6 +108,11 @@ uninstall:
 	$(GOCC) clean -i ./cmd/ipfs
 .PHONY: uninstall
 
+supported:
+	@echo "Currently supported platforms:"
+	@for p in ${SUPPORTED_PLATFORMS}; do echo $$p; done
+.PHONY: supported
+
 help:
 	@echo 'DEPENDENCY TARGETS:'
 	@echo ''
