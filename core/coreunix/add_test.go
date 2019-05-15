@@ -68,7 +68,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 
 	go func() {
 		defer close(out)
-		adder.AddAllAndPin(slf)
+		_, _ = adder.AddAllAndPin(slf)
 		// Ignore errors for clarity - the real bug would be gc'ing files while adding them, not this resultant error
 	}()
 

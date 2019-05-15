@@ -54,6 +54,9 @@ $(d)/gocovmerge:
 	$(call go-build,github.com/Kubuxu/gocovmerge)
 TGTS_$(d) += $(d)/gocovmerge
 
+$(d)/golangci-lint:
+	$(call go-build,github.com/golangci/golangci-lint/cmd/golangci-lint)
+TGTS_$(d) += $(d)/golangci-lint
 
 $(TGTS_$(d)): $$(DEPS_GO)
 

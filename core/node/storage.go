@@ -91,7 +91,7 @@ func GcBlockstoreCtor(bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockst
 
 // GcBlockstoreCtor wraps GcBlockstore and adds Filestore support
 func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
-	gclocker, gcbs, bs = GcBlockstoreCtor(bb)
+	gclocker = blockstore.NewGCLocker()
 
 	// hash security
 	fstore = filestore.NewFilestore(bb, repo.FileManager())

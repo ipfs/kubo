@@ -61,10 +61,8 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 	if acam := nc.API.HTTPHeaders[cmdsHttp.ACAMethods]; acam != nil {
 		c.SetAllowedMethods(acam...)
 	}
-	if acac := nc.API.HTTPHeaders[cmdsHttp.ACACredentials]; acac != nil {
-		for _, v := range acac {
-			c.SetAllowCredentials(strings.ToLower(v) == "true")
-		}
+	for _, v := range nc.API.HTTPHeaders[cmdsHttp.ACACredentials] {
+		c.SetAllowCredentials(strings.ToLower(v) == "true")
 	}
 
 	c.Headers = make(map[string][]string, len(nc.API.HTTPHeaders)+1)

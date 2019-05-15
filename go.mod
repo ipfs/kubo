@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gogo/protobuf v1.2.1
+	github.com/golangci/golangci-lint v1.16.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hsanjuan/go-libp2p-http v0.0.2
@@ -120,9 +121,9 @@ require (
 	go.uber.org/goleak v0.10.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	golang.org/x/net v0.0.0-20190424112056-4829fb13d2c6 // indirect
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/sys v0.0.0-20190426135247-a129542de9ae
 	golang.org/x/text v0.3.2 // indirect
-	golang.org/x/tools v0.0.0-20190425222832-ad9eeb80039a // indirect
 	golang.org/x/xerrors v0.0.0-20190410155217-1f06c39b4373 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gotest.tools/gotestsum v0.3.4

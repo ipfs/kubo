@@ -15,12 +15,9 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	cfg "github.com/ipfs/go-ipfs-config"
-	logging "github.com/ipfs/go-log"
 	ci "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 )
-
-var log = logging.Logger("node")
 
 type BuildCfg struct {
 	// If online is set, the node will have networking enabled
