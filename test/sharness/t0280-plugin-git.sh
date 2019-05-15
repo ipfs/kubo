@@ -8,13 +8,6 @@ test_description="Test git plugin"
 
 . lib/test-lib.sh
 
-# if in travis CI, dont test mount (no fuse)
-if ! test_have_prereq PLUGIN; then
-  skip_all='skipping git plugin tests, plugins not available'
-
-  test_done
-fi
-
 test_init_ipfs
 
 # from https://github.com/ipfs/go-ipld-git/blob/master/make-test-repo.sh
