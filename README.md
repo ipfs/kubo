@@ -138,12 +138,15 @@ $ cd go-ipfs
 $ make install
 ```
 
-If you are building on FreeBSD instead of `make install` use `gmake install`.
+If you are building on a non-GNU system, use `gmake` in place of `make`.  
+Unsupported platforms (run `(g)make supported` for a list) will also need to set the `nofuse` gotag during build.
+```
+$ GOTAGS=nofuse (g)make install
+```
 
 #### Troubleshooting
 
 - Separate [instructions are available for building on Windows](docs/windows.md).
-- Also, [instructions for OpenBSD](docs/openbsd.md).
 - `git` is required in order for `go get` to fetch all dependencies.
 - Package managers often contain out-of-date `golang` packages.
   Ensure that `go version` reports at least 1.10. See above for how to install go.
