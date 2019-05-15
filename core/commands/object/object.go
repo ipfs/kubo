@@ -278,9 +278,8 @@ Supported values are:
 			if err != nil {
 				return err
 			}
-			fmt.Fprint(w, marshaled)
-
-			return nil
+			_, err = w.Write(marshaled)
+			return err
 		}),
 	},
 }
