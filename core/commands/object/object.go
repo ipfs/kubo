@@ -1,7 +1,6 @@
 package objectcmd
 
 import (
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -21,7 +20,7 @@ import (
 
 type Node struct {
 	Links []Link
-	Data  string
+	Data  []byte
 }
 
 type Link struct {
@@ -197,12 +196,7 @@ This command outputs data in the following encodings:
   * "xml"
 (Specified by the "--encoding" or "--enc" flag)
 
-The encoding of the object's data field can be specifed by using the
---data-encoding flag
-
-Supported values are:
-	* "text" (default)
-	* "base64"
+When encoded as JSON or XML, the Data section will be base64 encoded.
 `,
 	},
 
@@ -225,11 +219,6 @@ Supported values are:
 
 		path := path.New(req.Arguments[0])
 
-		datafieldenc, _ := req.Options[encodingOptionName].(string)
-		if err != nil {
-			return err
-		}
-
 		nd, err := api.Object().Get(req.Context, path)
 		if err != nil {
 			return err
@@ -245,14 +234,9 @@ Supported values are:
 			return err
 		}
 
-		out, err := encodeData(data, datafieldenc)
-		if err != nil {
-			return err
-		}
-
 		node := &Node{
 			Links: make([]Link, len(nd.Links())),
-			Data:  out,
+			Data:  data,
 		}
 
 		for i, link := range nd.Links() {
@@ -269,7 +253,7 @@ Supported values are:
 	Encoders: cmds.EncoderMap{
 		cmds.Protobuf: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Node) error {
 			// deserialize the Data field as text as this was the standard behaviour
-			object, err := deserializeNode(out, "text")
+			object, err := deserializeNode(out)
 			if err != nil {
 				return nil
 			}
@@ -517,20 +501,9 @@ Available templates:
 }
 
 // converts the Node object into a real dag.ProtoNode
-func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error) {
+func deserializeNode(nd *Node) (*dag.ProtoNode, error) {
 	dagnode := new(dag.ProtoNode)
-	switch dataFieldEncoding {
-	case "text":
-		dagnode.SetData([]byte(nd.Data))
-	case "base64":
-		data, err := base64.StdEncoding.DecodeString(nd.Data)
-		if err != nil {
-			return nil, err
-		}
-		dagnode.SetData(data)
-	default:
-		return nil, ErrDataEncoding
-	}
+	dagnode.SetData(nd.Data)
 
 	links := make([]*ipld.Link, len(nd.Links))
 	for i, link := range nd.Links {
@@ -547,15 +520,4 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 	dagnode.SetLinks(links)
 
 	return dagnode, nil
-}
-
-func encodeData(data []byte, encoding string) (string, error) {
-	switch encoding {
-	case "text":
-		return string(data), nil
-	case "base64":
-		return base64.StdEncoding.EncodeToString(data), nil
-	}
-
-	return "", ErrDataEncoding
 }
