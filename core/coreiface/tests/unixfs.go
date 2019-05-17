@@ -28,7 +28,7 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
-func (tp *provider) TestUnixfs(t *testing.T) {
+func (tp *TestSuite) TestUnixfs(t *testing.T) {
 	tp.hasApi(t, func(api coreiface.CoreAPI) error {
 		if api.Unixfs() == nil {
 			return apiNotImplemented
@@ -94,7 +94,7 @@ func wrapped(names ...string) func(f files.Node) files.Node {
 	}
 }
 
-func (tp *provider) TestAdd(t *testing.T) {
+func (tp *TestSuite) TestAdd(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -528,7 +528,7 @@ func (tp *provider) TestAdd(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestAddPinned(t *testing.T) {
+func (tp *TestSuite) TestAddPinned(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -554,7 +554,7 @@ func (tp *provider) TestAddPinned(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestAddHashOnly(t *testing.T) {
+func (tp *TestSuite) TestAddHashOnly(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -580,7 +580,7 @@ func (tp *provider) TestAddHashOnly(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGetEmptyFile(t *testing.T) {
+func (tp *TestSuite) TestGetEmptyFile(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -610,7 +610,7 @@ func (tp *provider) TestGetEmptyFile(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGetDir(t *testing.T) {
+func (tp *TestSuite) TestGetDir(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -643,7 +643,7 @@ func (tp *provider) TestGetDir(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGetNonUnixfs(t *testing.T) {
+func (tp *TestSuite) TestGetNonUnixfs(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -663,7 +663,7 @@ func (tp *provider) TestGetNonUnixfs(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestLs(t *testing.T) {
+func (tp *TestSuite) TestLs(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -723,7 +723,7 @@ func (tp *provider) TestLs(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestEntriesExpired(t *testing.T) {
+func (tp *TestSuite) TestEntriesExpired(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -765,7 +765,7 @@ func (tp *provider) TestEntriesExpired(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestLsEmptyDir(t *testing.T) {
+func (tp *TestSuite) TestLsEmptyDir(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -794,7 +794,7 @@ func (tp *provider) TestLsEmptyDir(t *testing.T) {
 }
 
 // TODO(lgierth) this should test properly, with len(links) > 0
-func (tp *provider) TestLsNonUnixfs(t *testing.T) {
+func (tp *TestSuite) TestLsNonUnixfs(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -853,7 +853,7 @@ func (f *closeTestF) Close() error {
 	return nil
 }
 
-func (tp *provider) TestAddCloses(t *testing.T) {
+func (tp *TestSuite) TestAddCloses(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -891,7 +891,7 @@ func (tp *provider) TestAddCloses(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGetSeek(t *testing.T) {
+func (tp *TestSuite) TestGetSeek(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)

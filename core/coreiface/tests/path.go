@@ -12,7 +12,7 @@ import (
 	ipldcbor "github.com/ipfs/go-ipld-cbor"
 )
 
-func (tp *provider) TestPath(t *testing.T) {
+func (tp *TestSuite) TestPath(t *testing.T) {
 	t.Run("TestMutablePath", tp.TestMutablePath)
 	t.Run("TestPathRemainder", tp.TestPathRemainder)
 	t.Run("TestEmptyPathRemainder", tp.TestEmptyPathRemainder)
@@ -21,7 +21,7 @@ func (tp *provider) TestPath(t *testing.T) {
 	t.Run("TestPathJoin", tp.TestPathJoin)
 }
 
-func (tp *provider) TestMutablePath(t *testing.T) {
+func (tp *TestSuite) TestMutablePath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -54,7 +54,7 @@ func (tp *provider) TestMutablePath(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestPathRemainder(t *testing.T) {
+func (tp *TestSuite) TestPathRemainder(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -85,7 +85,7 @@ func (tp *provider) TestPathRemainder(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
+func (tp *TestSuite) TestEmptyPathRemainder(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -116,7 +116,7 @@ func (tp *provider) TestEmptyPathRemainder(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
+func (tp *TestSuite) TestInvalidPathRemainder(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -143,7 +143,7 @@ func (tp *provider) TestInvalidPathRemainder(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestPathRoot(t *testing.T) {
+func (tp *TestSuite) TestPathRoot(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -187,7 +187,7 @@ func (tp *provider) TestPathRoot(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestPathJoin(t *testing.T) {
+func (tp *TestSuite) TestPathJoin(t *testing.T) {
 	p1 := path.New("/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz")
 
 	if path.Join(p1, "foo").String() != "/ipfs/QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6/bar/baz/foo" {

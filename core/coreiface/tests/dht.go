@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
-func (tp *provider) TestDht(t *testing.T) {
+func (tp *TestSuite) TestDht(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.Dht() == nil {
 			return apiNotImplemented
@@ -22,7 +22,7 @@ func (tp *provider) TestDht(t *testing.T) {
 	t.Run("TestDhtProvide", tp.TestDhtProvide)
 }
 
-func (tp *provider) TestDhtFindPeer(t *testing.T) {
+func (tp *TestSuite) TestDhtFindPeer(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
@@ -75,7 +75,7 @@ func (tp *provider) TestDhtFindPeer(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestDhtFindProviders(t *testing.T) {
+func (tp *TestSuite) TestDhtFindProviders(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
@@ -105,7 +105,7 @@ func (tp *provider) TestDhtFindProviders(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestDhtProvide(t *testing.T) {
+func (tp *TestSuite) TestDhtProvide(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)

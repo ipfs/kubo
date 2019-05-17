@@ -14,7 +14,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 )
 
-func (tp *provider) TestPin(t *testing.T) {
+func (tp *TestSuite) TestPin(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.Pin() == nil {
 			return apiNotImplemented
@@ -27,7 +27,7 @@ func (tp *provider) TestPin(t *testing.T) {
 	t.Run("TestPinRecursive", tp.TestPinRecursive)
 }
 
-func (tp *provider) TestPinAdd(t *testing.T) {
+func (tp *TestSuite) TestPinAdd(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -46,7 +46,7 @@ func (tp *provider) TestPinAdd(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestPinSimple(t *testing.T) {
+func (tp *TestSuite) TestPinSimple(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -96,7 +96,7 @@ func (tp *provider) TestPinSimple(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestPinRecursive(t *testing.T) {
+func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
