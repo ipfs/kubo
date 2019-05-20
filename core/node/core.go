@@ -62,8 +62,7 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 func OnlineExchange(provide bool) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
-		bitswap.ProvideEnabled = provide
-		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs)
+		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, bitswap.ProvideEnabled(provide))
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
 				return exch.Close()
