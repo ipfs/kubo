@@ -16,6 +16,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
+	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/reprovide"
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -136,8 +137,8 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	}
 
 	return fx.Options(
-		fx.Provide(RepoConfig),
-		fx.Provide(Datastore),
+		fx.Provide(repo.Repo.Config),
+		fx.Provide(repo.Repo.Datastore),
 		fx.Provide(BaseBlockstoreCtor(cacheOpts, bcfg.NilRepo, cfg.Datastore.HashOnRead)),
 		finalBstore,
 	)
@@ -327,3 +328,42 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		Core,
 	)
 }
+
+/*
+
+TODO: Turn this into a doc
+
+// ipfsNode, err := New(...core.Option) (*core.API, error)
+// var _ iface.CoreAPI = ipfsNode
+// var _ *core.Node = ipfsNode.Node() // use for low-level access, a bit like .Request() in go-ipfs-http-client
+
+// TODO: auto client mode? (like fallback-ipfs-shell), or should we keep this separate?
+
+New() // new with defaults (offline)
+
+New(Online()) // new online node
+
+New(Ctx(ctx)) // with context
+
+New(Repo(r)) // with repo, use in-repo config
+
+New(Repo(r), Blockstore(mybstore)) // with repo, use repo config, override blockstore
+
+import nodep2p "github.com/ipfs/go-ipfs/core/node/libp2p"
+New(Repo(r), Online(LibP2P(nodep2p.RelayHop(false)))) // with repo, use repo config, force no hop
+
+New(Repo(r, Config(cfg))) // with repo, override config
+
+New(Invoke(funcToFxInvoke))
+New(Provide(funcToFxProvide))
+
+- Provide can't override existing stuff, use special functions like the ones
+  above for that
+  - Doing this would either require rather deep changes in uber/dig
+  - It wouldn't be typesafe at all (if we'd change some type and users didn't notice,
+    their stuff would break)
+- It's flexible enough to take advantage of DI
+- Doesn't expose fx on the fnterface (well, it exposes lifecycles, and might be
+  quite specific, but still provides us with easier migration path if we ever need one)
+
+*/

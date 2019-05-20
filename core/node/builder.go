@@ -122,7 +122,7 @@ func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 	), conf
 }
 
-func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
+func defaultRepo(dstore ds.Batching) (repo.Repo, error) {
 	c := cfg.Config{}
 	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, rand.Reader)
 	if err != nil {

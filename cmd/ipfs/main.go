@@ -135,8 +135,8 @@ func buildEnv(ctx context.Context, req *cmds.Request) (cmds.Environment, error) 
 		repoPath: repoPath,
 
 		migrate:     false,
-		userMigrate: true,  // don't ask for migrations
-		offline: true,
+		userMigrate: true, // don't ask for migrations
+		offline:     true,
 
 		routing: "default",
 	}

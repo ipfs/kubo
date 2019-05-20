@@ -40,7 +40,6 @@ import (
 	autonat "github.com/libp2p/go-libp2p-autonat-svc"
 	ic "github.com/libp2p/go-libp2p-crypto"
 	p2phost "github.com/libp2p/go-libp2p-host"
-	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	metrics "github.com/libp2p/go-libp2p-metrics"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -50,7 +49,6 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	routing "github.com/libp2p/go-libp2p-routing"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
-	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
@@ -177,10 +175,11 @@ func (n *IpfsNode) loadBootstrapPeers() ([]pstore.PeerInfo, error) {
 	return bootstrap.Peers.ToPeerInfos(parsed), nil
 }
 
-type ConstructPeerHostOpts struct {
-	AddrsFactory      p2pbhost.AddrsFactory
-	DisableNatPortMap bool
-	DisableRelay      bool
-	EnableRelayHop    bool
-	ConnectionManager ifconnmgr.ConnManager
+func (n *IpfsNode) SetupCtx(ctx context.Context, app *fx.App) *IpfsNode {
+	if n.ctx != nil {
+		panic("ctx already present")
+	}
+	n.ctx = ctx
+	n.app = app
+	return n
 }

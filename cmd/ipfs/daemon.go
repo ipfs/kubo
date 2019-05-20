@@ -212,8 +212,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	builder := &nodeBuilder{
-		ctx: req.Context,
-		repoPath: cctx.RepoPath,
+		ctx:       req.Context,
+		repoPath:  cctx.RepoPath,
 		permanent: true,
 	}
 

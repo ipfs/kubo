@@ -27,7 +27,7 @@ type nodeBuilder struct {
 	mplex   bool
 
 	permanent bool // only used for bloom filter in blockstore
-	daemon bool
+	daemon    bool
 }
 
 func openRepo(path string, askMigrate, doMigrate bool) (repo.Repo, error) {
@@ -110,8 +110,8 @@ func (b *nodeBuilder) buildNode() (*core.IpfsNode, error) {
 		Repo: repo,
 
 		DisableEncryptedConnections: b.unencrypted,
-		Permanent: true, // It is temporary way to signify that node is permanent
-		Online:    !b.offline,
+		Permanent:                   true, // It is temporary way to signify that node is permanent
+		Online:                      !b.offline,
 
 		Routing: routing,
 

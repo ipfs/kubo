@@ -130,3 +130,5 @@ require (
 )
 
 go 1.12
+
+replace github.com/ipfs/interface-go-ipfs-core => /home/magik6k/gohack/github.com/ipfs/interface-go-ipfs-core

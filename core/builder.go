@@ -17,7 +17,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	ctx = metrics.CtxScope(ctx, "ipfs")
 
 	n := &IpfsNode{
-		ctx: ctx,
+		//ctx: ctx,
 	}
 
 	app := fx.New(
@@ -38,7 +38,7 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 	}()
 
 	n.IsOnline = cfg.Online
-	n.app = app
+	//n.app = app
 
 	if app.Err() != nil {
 		return nil, app.Err()
