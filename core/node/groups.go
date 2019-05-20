@@ -41,7 +41,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// parse ConnMgr config
 
 	grace := config.DefaultConnMgrGracePeriod
-	low := config.DefaultConnMgrHighWater
+	low := config.DefaultConnMgrLowWater
 	high := config.DefaultConnMgrHighWater
 
 	connmgr := fx.Options()
