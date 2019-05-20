@@ -72,13 +72,11 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	ps := fx.Options()
 	if bcfg.getOpt("pubsub") || bcfg.getOpt("ipnsps") {
 		var pubsubOptions []pubsub.Option
-		if cfg.Pubsub.DisableSigning {
-			pubsubOptions = append(pubsubOptions, pubsub.WithMessageSigning(false))
-		}
-
-		if cfg.Pubsub.StrictSignatureVerification {
-			pubsubOptions = append(pubsubOptions, pubsub.WithStrictSignatureVerification(true))
-		}
+		pubsubOptions = append(
+			pubsubOptions,
+			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
+			pubsub.WithStrictSignatureVerification(cfg.Pubsub.StrictSignatureVerification),
+		)
 
 		switch cfg.Pubsub.Router {
 		case "":
