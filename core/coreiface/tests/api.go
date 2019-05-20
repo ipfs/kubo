@@ -11,7 +11,7 @@ import (
 
 var apiNotImplemented = errors.New("api not implemented")
 
-func (tp *provider) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
+func (tp *TestSuite) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
 	api, err := tp.MakeAPISwarm(ctx, false, 1)
 	if err != nil {
 		return nil, err
@@ -25,17 +25,19 @@ type Provider interface {
 	MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error)
 }
 
-func (tp *provider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error) {
-	tp.apis <- 1
-	go func() {
-		<-ctx.Done()
-		tp.apis <- -1
-	}()
+func (tp *TestSuite) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error) {
+	if tp.apis != nil {
+		tp.apis <- 1
+		go func() {
+			<-ctx.Done()
+			tp.apis <- -1
+		}()
+	}
 
 	return tp.Provider.MakeAPISwarm(ctx, fullIdentity, n)
 }
 
-type provider struct {
+type TestSuite struct {
 	Provider
 
 	apis chan int
@@ -55,7 +57,7 @@ func TestApi(p Provider) func(t *testing.T) {
 		}
 	}()
 
-	tp := &provider{Provider: p, apis: apis}
+	tp := &TestSuite{Provider: p, apis: apis}
 
 	return func(t *testing.T) {
 		t.Run("Block", tp.TestBlock)
@@ -80,7 +82,7 @@ func TestApi(p Provider) func(t *testing.T) {
 	}
 }
 
-func (tp *provider) hasApi(t *testing.T, tf func(coreiface.CoreAPI) error) {
+func (tp *TestSuite) hasApi(t *testing.T, tf func(coreiface.CoreAPI) error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)

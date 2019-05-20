@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
-func (tp *provider) TestPubSub(t *testing.T) {
+func (tp *TestSuite) TestPubSub(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.PubSub() == nil {
 			return apiNotImplemented
@@ -20,7 +20,7 @@ func (tp *provider) TestPubSub(t *testing.T) {
 	t.Run("TestBasicPubSub", tp.TestBasicPubSub)
 }
 
-func (tp *provider) TestBasicPubSub(t *testing.T) {
+func (tp *TestSuite) TestBasicPubSub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

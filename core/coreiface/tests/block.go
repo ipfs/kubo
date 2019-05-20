@@ -13,7 +13,7 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
-func (tp *provider) TestBlock(t *testing.T) {
+func (tp *TestSuite) TestBlock(t *testing.T) {
 	tp.hasApi(t, func(api coreiface.CoreAPI) error {
 		if api.Block() == nil {
 			return apiNotImplemented
@@ -30,7 +30,7 @@ func (tp *provider) TestBlock(t *testing.T) {
 	t.Run("TestBlockPin", tp.TestBlockPin)
 }
 
-func (tp *provider) TestBlockPut(t *testing.T) {
+func (tp *TestSuite) TestBlockPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -48,7 +48,7 @@ func (tp *provider) TestBlockPut(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBlockPutFormat(t *testing.T) {
+func (tp *TestSuite) TestBlockPutFormat(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -66,7 +66,7 @@ func (tp *provider) TestBlockPutFormat(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBlockPutHash(t *testing.T) {
+func (tp *TestSuite) TestBlockPutHash(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -84,7 +84,7 @@ func (tp *provider) TestBlockPutHash(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBlockGet(t *testing.T) {
+func (tp *TestSuite) TestBlockGet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -122,7 +122,7 @@ func (tp *provider) TestBlockGet(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBlockRm(t *testing.T) {
+func (tp *TestSuite) TestBlockRm(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -176,7 +176,7 @@ func (tp *provider) TestBlockRm(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBlockStat(t *testing.T) {
+func (tp *TestSuite) TestBlockStat(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -203,7 +203,7 @@ func (tp *provider) TestBlockStat(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBlockPin(t *testing.T) {
+func (tp *TestSuite) TestBlockPin(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)

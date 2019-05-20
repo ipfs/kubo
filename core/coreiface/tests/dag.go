@@ -15,7 +15,7 @@ import (
 	mh "github.com/multiformats/go-multihash"
 )
 
-func (tp *provider) TestDag(t *testing.T) {
+func (tp *TestSuite) TestDag(t *testing.T) {
 	tp.hasApi(t, func(api coreiface.CoreAPI) error {
 		if api.Dag() == nil {
 			return apiNotImplemented
@@ -40,7 +40,7 @@ var (
 	}
 )
 
-func (tp *provider) TestPut(t *testing.T) {
+func (tp *TestSuite) TestPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -63,7 +63,7 @@ func (tp *provider) TestPut(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestPutWithHash(t *testing.T) {
+func (tp *TestSuite) TestPutWithHash(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -86,7 +86,7 @@ func (tp *provider) TestPutWithHash(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestDagPath(t *testing.T) {
+func (tp *TestSuite) TestDagPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -131,7 +131,7 @@ func (tp *provider) TestDagPath(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestTree(t *testing.T) {
+func (tp *TestSuite) TestTree(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -166,7 +166,7 @@ func (tp *provider) TestTree(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBatch(t *testing.T) {
+func (tp *TestSuite) TestBatch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)

@@ -9,7 +9,7 @@ import (
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
-func (tp *provider) TestKey(t *testing.T) {
+func (tp *TestSuite) TestKey(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.Key() == nil {
 			return apiNotImplemented
@@ -35,7 +35,7 @@ func (tp *provider) TestKey(t *testing.T) {
 	t.Run("TestRemove", tp.TestRemove)
 }
 
-func (tp *provider) TestListSelf(t *testing.T) {
+func (tp *TestSuite) TestListSelf(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -69,7 +69,7 @@ func (tp *provider) TestListSelf(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRenameSelf(t *testing.T) {
+func (tp *TestSuite) TestRenameSelf(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -97,7 +97,7 @@ func (tp *provider) TestRenameSelf(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRemoveSelf(t *testing.T) {
+func (tp *TestSuite) TestRemoveSelf(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -116,7 +116,7 @@ func (tp *provider) TestRemoveSelf(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGenerate(t *testing.T) {
+func (tp *TestSuite) TestGenerate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -139,7 +139,7 @@ func (tp *provider) TestGenerate(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGenerateSize(t *testing.T) {
+func (tp *TestSuite) TestGenerateSize(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -162,7 +162,7 @@ func (tp *provider) TestGenerateSize(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGenerateType(t *testing.T) {
+func (tp *TestSuite) TestGenerateType(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	t.Skip("disabled until libp2p/specs#111 is fixed")
@@ -188,7 +188,7 @@ func (tp *provider) TestGenerateType(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestGenerateExisting(t *testing.T) {
+func (tp *TestSuite) TestGenerateExisting(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -221,7 +221,7 @@ func (tp *provider) TestGenerateExisting(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestList(t *testing.T) {
+func (tp *TestSuite) TestList(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -267,7 +267,7 @@ func (tp *provider) TestList(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRename(t *testing.T) {
+func (tp *TestSuite) TestRename(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -296,7 +296,7 @@ func (tp *provider) TestRename(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRenameToSelf(t *testing.T) {
+func (tp *TestSuite) TestRenameToSelf(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -320,7 +320,7 @@ func (tp *provider) TestRenameToSelf(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRenameToSelfForce(t *testing.T) {
+func (tp *TestSuite) TestRenameToSelfForce(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -344,7 +344,7 @@ func (tp *provider) TestRenameToSelfForce(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRenameOverwriteNoForce(t *testing.T) {
+func (tp *TestSuite) TestRenameOverwriteNoForce(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -374,7 +374,7 @@ func (tp *provider) TestRenameOverwriteNoForce(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRenameOverwrite(t *testing.T) {
+func (tp *TestSuite) TestRenameOverwrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -413,7 +413,7 @@ func (tp *provider) TestRenameOverwrite(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRenameSameNameNoForce(t *testing.T) {
+func (tp *TestSuite) TestRenameSameNameNoForce(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -442,7 +442,7 @@ func (tp *provider) TestRenameSameNameNoForce(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRenameSameName(t *testing.T) {
+func (tp *TestSuite) TestRenameSameName(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -471,7 +471,7 @@ func (tp *provider) TestRenameSameName(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestRemove(t *testing.T) {
+func (tp *TestSuite) TestRemove(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)

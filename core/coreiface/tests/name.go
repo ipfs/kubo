@@ -16,7 +16,7 @@ import (
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
-func (tp *provider) TestName(t *testing.T) {
+func (tp *TestSuite) TestName(t *testing.T) {
 	tp.hasApi(t, func(api coreiface.CoreAPI) error {
 		if api.Name() == nil {
 			return apiNotImplemented
@@ -39,7 +39,7 @@ func appendPath(p path.Path, sub string) path.Path {
 	return path.New(gopath.Join(p.String(), sub))
 }
 
-func (tp *provider) TestPublishResolve(t *testing.T) {
+func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	init := func() (coreiface.CoreAPI, path.Path) {
@@ -188,7 +188,7 @@ func (tp *provider) TestPublishResolve(t *testing.T) {
 	})
 }
 
-func (tp *provider) TestBasicPublishResolveKey(t *testing.T) {
+func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apis, err := tp.MakeAPISwarm(ctx, true, 5)
@@ -230,7 +230,7 @@ func (tp *provider) TestBasicPublishResolveKey(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestBasicPublishResolveTimeout(t *testing.T) {
+func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
 	t.Skip("ValidTime doesn't appear to work at this time resolution")
 
 	ctx, cancel := context.WithCancel(context.Background())

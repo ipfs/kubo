@@ -12,7 +12,7 @@ import (
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
-func (tp *provider) TestObject(t *testing.T) {
+func (tp *TestSuite) TestObject(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.Object() == nil {
 			return apiNotImplemented
@@ -34,7 +34,7 @@ func (tp *provider) TestObject(t *testing.T) {
 	t.Run("TestDiffTest", tp.TestDiffTest)
 }
 
-func (tp *provider) TestNew(t *testing.T) {
+func (tp *TestSuite) TestNew(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -61,7 +61,7 @@ func (tp *provider) TestNew(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectPut(t *testing.T) {
+func (tp *TestSuite) TestObjectPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -102,7 +102,7 @@ func (tp *provider) TestObjectPut(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectGet(t *testing.T) {
+func (tp *TestSuite) TestObjectGet(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -125,7 +125,7 @@ func (tp *provider) TestObjectGet(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectData(t *testing.T) {
+func (tp *TestSuite) TestObjectData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -153,7 +153,7 @@ func (tp *provider) TestObjectData(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectLinks(t *testing.T) {
+func (tp *TestSuite) TestObjectLinks(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -189,7 +189,7 @@ func (tp *provider) TestObjectLinks(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectStat(t *testing.T) {
+func (tp *TestSuite) TestObjectStat(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -237,7 +237,7 @@ func (tp *provider) TestObjectStat(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectAddLink(t *testing.T) {
+func (tp *TestSuite) TestObjectAddLink(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -278,7 +278,7 @@ func (tp *provider) TestObjectAddLink(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectAddLinkCreate(t *testing.T) {
+func (tp *TestSuite) TestObjectAddLinkCreate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -327,7 +327,7 @@ func (tp *provider) TestObjectAddLinkCreate(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectRmLink(t *testing.T) {
+func (tp *TestSuite) TestObjectRmLink(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -360,7 +360,7 @@ func (tp *provider) TestObjectRmLink(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectAddData(t *testing.T) {
+func (tp *TestSuite) TestObjectAddData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -393,7 +393,7 @@ func (tp *provider) TestObjectAddData(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestObjectSetData(t *testing.T) {
+func (tp *TestSuite) TestObjectSetData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -426,7 +426,7 @@ func (tp *provider) TestObjectSetData(t *testing.T) {
 	}
 }
 
-func (tp *provider) TestDiffTest(t *testing.T) {
+func (tp *TestSuite) TestDiffTest(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
