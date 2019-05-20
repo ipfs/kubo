@@ -357,14 +357,22 @@ var p2pCloseCmd = &cmds.Command{
 
 		proto := protocol.ID(protoOpt)
 
-		listen, err := ma.NewMultiaddr(listenOpt)
-		if err != nil {
-			return err
+		var (
+			target, listen ma.Multiaddr
+		)
+
+		if l {
+			listen, err = ma.NewMultiaddr(listenOpt)
+			if err != nil {
+				return err
+			}
 		}
 
-		target, err := ma.NewMultiaddr(targetOpt)
-		if err != nil {
-			return err
+		if t {
+			target, err = ma.NewMultiaddr(targetOpt)
+			if err != nil {
+				return err
+			}
 		}
 
 		if !(closeAll || p || l || t) {
