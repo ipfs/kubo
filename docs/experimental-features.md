@@ -29,6 +29,7 @@ the above issue.
 - [QUIC](#quic)
 - [AutoRelay](#autorelay)
 - [TLS 1.3 Handshake](#tls-13-as-default-handshake-protocol)
+- [Strategic Providing](#strategic-providing)
 
 ---
 
@@ -674,3 +675,31 @@ ipfs config --json Experimental.PreferTLS true
 
 - [ ] needs testing
 - [ ] needs adoption
+
+---
+
+## Strategic Providing
+
+### State
+
+Experimental, disabled by default.
+
+Replaces the existing provide mechanism with a robust, strategic provider system.
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.StrategicProviding true
+```
+
+### Road to being a real feature
+
+- [ ] needs real world testing
+- [ ] needs adoption
+- [ ] needs to support all providing features
+    - [X] provide nothing
+    - [ ] provide roots
+    - [ ] provide all
+    - [ ] provide strategic
