@@ -8,4 +8,5 @@ type Experiments struct {
 	P2pHttpProxy         bool
 	QUIC                 bool
 	PreferTLS            bool
+	StrategicProviding   bool
 }
