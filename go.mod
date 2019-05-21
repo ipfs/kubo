@@ -63,17 +63,18 @@ require (
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
-	github.com/libp2p/go-libp2p v0.0.24
+	github.com/libp2p/go-libp2p v0.0.28
 	github.com/libp2p/go-libp2p-autonat-svc v0.0.5
-	github.com/libp2p/go-libp2p-circuit v0.0.6
-	github.com/libp2p/go-libp2p-connmgr v0.0.4
+	github.com/libp2p/go-libp2p-circuit v0.0.8
+	github.com/libp2p/go-libp2p-connmgr v0.0.5
 	github.com/libp2p/go-libp2p-crypto v0.0.2
 	github.com/libp2p/go-libp2p-host v0.0.3
-	github.com/libp2p/go-libp2p-interface-connmgr v0.0.4
-	github.com/libp2p/go-libp2p-kad-dht v0.0.11
+	github.com/libp2p/go-libp2p-interface-connmgr v0.0.5
+	github.com/libp2p/go-libp2p-kad-dht v0.0.13
 	github.com/libp2p/go-libp2p-kbucket v0.1.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
+	github.com/libp2p/go-libp2p-mplex v0.1.1
 	github.com/libp2p/go-libp2p-net v0.0.2
 	github.com/libp2p/go-libp2p-peer v0.1.1
 	github.com/libp2p/go-libp2p-peerstore v0.0.6
@@ -86,16 +87,15 @@ require (
 	github.com/libp2p/go-libp2p-routing v0.0.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.0.2
 	github.com/libp2p/go-libp2p-secio v0.0.3
-	github.com/libp2p/go-libp2p-swarm v0.0.3
+	github.com/libp2p/go-libp2p-swarm v0.0.6
 	github.com/libp2p/go-libp2p-tls v0.0.1
+	github.com/libp2p/go-libp2p-yamux v0.1.2
 	github.com/libp2p/go-maddr-filter v0.0.4
-	github.com/libp2p/go-mplex v0.0.2 // indirect
 	github.com/libp2p/go-stream-muxer v0.0.1
 	github.com/libp2p/go-testutil v0.0.1
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
-	github.com/miekg/dns v1.1.10 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.4
@@ -103,15 +103,12 @@ require (
 	github.com/multiformats/go-multiaddr-net v0.0.1
 	github.com/multiformats/go-multibase v0.0.1
 	github.com/multiformats/go-multihash v0.0.5
-	github.com/multiformats/go-multistream v0.0.4 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3
 	github.com/prometheus/procfs v0.0.0-20190519111021-9935e8e0588d // indirect
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
-	github.com/whyrusleeping/go-smux-multiplex v3.0.16+incompatible
-	github.com/whyrusleeping/go-smux-yamux v2.0.9+incompatible
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
