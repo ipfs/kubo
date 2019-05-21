@@ -22,9 +22,10 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
+	mafilter "github.com/libp2p/go-maddr-filter"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
-	mafilter "github.com/whyrusleeping/multiaddr-filter"
+	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
 
 const (
@@ -599,8 +600,8 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 		}
 
 		var output []string
-		for _, f := range swrm.Filters.Filters() {
-			s, err := mafilter.ConvertIPNet(f)
+		for _, f := range swrm.Filters.FiltersForAction(mafilter.ActionDeny) {
+			s, err := mamask.ConvertIPNet(&f)
 			if err != nil {
 				return err
 			}
@@ -657,12 +658,12 @@ add your filters to the ipfs config file.
 		}
 
 		for _, arg := range req.Arguments {
-			mask, err := mafilter.NewMask(arg)
+			mask, err := mamask.NewMask(arg)
 			if err != nil {
 				return err
 			}
 
-			swrm.Filters.AddDialFilter(mask)
+			swrm.Filters.AddFilter(*mask, mafilter.ActionDeny)
 		}
 
 		added, err := filtersAdd(r, cfg, req.Arguments)
@@ -716,9 +717,9 @@ remove your filters from the ipfs config file.
 		}
 
 		if req.Arguments[0] == "all" || req.Arguments[0] == "*" {
-			fs := swrm.Filters.Filters()
+			fs := swrm.Filters.FiltersForAction(mafilter.ActionDeny)
 			for _, f := range fs {
-				swrm.Filters.Remove(f)
+				swrm.Filters.RemoveLiteral(f)
 			}
 
 			removed, err := filtersRemoveAll(r, cfg)
@@ -730,12 +731,12 @@ remove your filters from the ipfs config file.
 		}
 
 		for _, arg := range req.Arguments {
-			mask, err := mafilter.NewMask(arg)
+			mask, err := mamask.NewMask(arg)
 			if err != nil {
 				return err
 			}
 
-			swrm.Filters.Remove(mask)
+			swrm.Filters.RemoveLiteral(*mask)
 		}
 
 		removed, err := filtersRemove(r, cfg, req.Arguments)

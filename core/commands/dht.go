@@ -494,15 +494,15 @@ Different key types can specify other 'best' rules.
 			pfm := pfuncMap{
 				notif.Value: func(obj *notif.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
-						fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
-					} else {
-						res, err := base64.StdEncoding.DecodeString(obj.Extra)
-						if err != nil {
-							return err
-						}
-						out.Write(res)
+						_, err := fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
+						return err
 					}
-					return nil
+					res, err := base64.StdEncoding.DecodeString(obj.Extra)
+					if err != nil {
+						return err
+					}
+					_, err = out.Write(res)
+					return err
 				},
 			}
 
