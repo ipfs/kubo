@@ -16,17 +16,17 @@ func TestResolveNoComponents(t *testing.T) {
 	}
 
 	_, err = resolve.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/ipns/"))
-	if err != path.ErrNoComponents {
-		t.Fatal("Should error with no components (/ipns/).", err)
+	if err.Error() != "invalid path \"/ipns/\": ipns path missing IPNS ID" {
+		t.Error("Should error with no components (/ipns/).", err)
 	}
 
 	_, err = resolve.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/ipfs/"))
-	if err != path.ErrNoComponents {
-		t.Fatal("Should error with no components (/ipfs/).", err)
+	if err.Error() != "invalid path \"/ipfs/\": not enough path components" {
+		t.Error("Should error with no components (/ipfs/).", err)
 	}
 
 	_, err = resolve.Resolve(n.Context(), n.Namesys, n.Resolver, path.Path("/../.."))
-	if err != path.ErrBadPath {
-		t.Fatal("Should error with invalid path.", err)
+	if err.Error() != "invalid path \"/../..\": unknown namespace \"..\"" {
+		t.Error("Should error with invalid path.", err)
 	}
 }

@@ -39,7 +39,7 @@ func makeAddrsFactory(announce []string, noAnnounce []string) (p2pbhost.AddrsFac
 	for _, addr := range noAnnounce {
 		f, err := mamask.NewMask(addr)
 		if err == nil {
-			filters.AddDialFilter(f)
+			filters.AddFilter(*f, mafilter.ActionDeny)
 			continue
 		}
 		maddr, err := ma.NewMultiaddr(addr)

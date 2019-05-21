@@ -120,5 +120,6 @@ workflows:
   test:
     jobs:
     - gobuild
+    - golint
     - gotest
     - sharness
