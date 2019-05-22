@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	ds "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
@@ -14,16 +15,23 @@ import (
 	"github.com/ipfs/go-metrics-interface"
 	"github.com/ipfs/go-path/resolver"
 	"github.com/jbenet/goprocess"
+	ci "github.com/libp2p/go-libp2p-crypto"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	"github.com/pkg/errors"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/keystore"
+	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
 	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/reprovide"
 )
 
 const (
@@ -39,13 +47,20 @@ const (
 	BlockstoreFinal
 
 	Peerid
+	Identity
 	Peerstore
 
 	Validator
 	Router
+	Namesys
+	IpnsRepublisher
+
+	ProviderKeys
+	ProviderQueue
+	Reprovider
+	ReproviderSvc
 	Provider
 	Exchange
-	Namesys
 
 	Blockservice
 	Dag
@@ -53,7 +68,36 @@ const (
 	Files
 	Resolver
 
+	P2PTunnel
+
 	FxLogger
+
+	Libp2pPrivateNetwork
+	Libp2pPrivateNetworkChecker
+	Libp2pDefaultTransports
+	Libp2pHost
+	Libp2pDiscoveryHandler
+
+	Libp2pAddrFilters
+	Libp2pMDNS         // SetupDiscovery
+	Libp2pAddrsFactory // TODO: better name?
+	Libp2pSmuxTransport
+	Libp2pRelay
+	Libp2pStartListening
+
+	Libp2pSecurity
+
+	Libp2pRouting
+	Libp2pBaseRouting
+	Libp2pPubsubRouter
+
+	Libp2pBandwidthCounter
+	Libp2pNatPortMap
+	Libp2pAutoRealy
+	Libp2pQUIC
+	Libp2pAutoNATService
+	Libp2pConnectionManager
+	Libp2pPubsub
 
 	nComponents // MUST be last
 )
@@ -65,6 +109,8 @@ type settings struct {
 	userFx     []fx.Option
 
 	ctx context.Context
+
+	online bool // TODO: migrate to components fully
 }
 
 type Option func(*settings) error
@@ -79,11 +125,18 @@ func Provide(i interface{}) Option {
 	}
 }
 
-func Override(c component, replacement interface{}) Option {
+func Override(c component, replacement interface{}, pf ...func(...interface{}) fx.Option) Option {
 	return func(s *settings) error {
-		s.components[c] = fx.Provide(replacement)
+		if len(pf) == 0 {
+			pf = []func(...interface{}) fx.Option{fx.Provide}
+		}
+		if len(pf) != 1 {
+			return errors.New("Invalid number of Override args")
+		}
 
-		// TODO: might do type checking with reflaction, but probably not worth it
+		s.components[c] = pf[0](replacement)
+
+		// TODO: might do type checking with reflection, but it's probably not worth it
 		return nil
 	}
 }
@@ -96,6 +149,22 @@ func Options(opts ...Option) Option {
 			}
 		}
 		return nil
+	}
+}
+
+// ifNil checks if a component is already set, and if not, applies options
+func ifNil(c component, f ...Option) Option {
+	return func(s *settings) error {
+		if s.components[c] == nil {
+			return Options(f...)(s)
+		}
+		return nil
+	}
+}
+
+func errOpt(msg error) Option {
+	return func(_ *settings) error {
+		return msg
 	}
 }
 
@@ -112,13 +181,66 @@ func Ctx(ctx context.Context) Option {
 // ////////// //
 // User options
 
-//TODO: won't need this after https://github.com/uber-go/fx/issues/673
-func nullDs() ds.Batching {
-	return ds.NewNullDatastore()
-}
 
 func NilRepo() Option {
-	return Override(BatchDatastore, nullDs)
+	return Override(BatchDatastore, as(ds.NewNullDatastore, new(ds.Batching)))
+}
+
+func Online() Option {
+	lgcOnline := func(s *settings) error {
+		s.online = true
+		return nil
+	}
+
+	return Options(lgcOnline,
+		ifNil(Identity,
+			RandomIdentity(),
+		),
+
+		Override(Exchange, node.OnlineExchange),
+
+		Override(Namesys, node.Namesys(node.DefaultIpnsCacheSize)),
+		Override(IpnsRepublisher, node.IpnsRepublisher(0, 0), fx.Invoke), // TODO: verify defaults (might be set in go-ipfs-config)
+
+		Override(P2PTunnel, p2p.New),
+
+		Override(Provider, node.ProviderCtor),
+		Override(ProviderQueue, node.ProviderQueue),
+		Override(ProviderKeys, reprovide.NewBlockstoreProvider),
+		Override(Reprovider, node.ReproviderCtor(node.DefaultReprovideFrequency)),
+		Override(ReproviderSvc, node.Reprovider, fx.Invoke),
+
+		// LibP2P
+
+		Override(Libp2pDefaultTransports, libp2p.DefaultTransports),
+		Override(Libp2pHost, libp2p.Host),
+
+		Override(Libp2pDiscoveryHandler, libp2p.DiscoveryHandler),
+		Override(Libp2pAddrsFactory, libp2p.AddrsFactory),
+		Override(Libp2pSmuxTransport, libp2p.SmuxTransport(true)),
+		Override(Libp2pRelay, libp2p.Relay(true, false)), // TODO: should we enable by default?
+		Override(Libp2pStartListening, libp2p.StartListening, fx.Invoke),
+		Override(Libp2pSecurity, libp2p.Security(true, false)), // enabled, prefer secio
+		Override(Router, libp2p.Routing),
+		Override(Libp2pBaseRouting, libp2p.BaseRouting),
+		Override(Libp2pNatPortMap, libp2p.NatPortMap),
+		Override(Libp2pConnectionManager, libp2p.ConnectionManager(config.DefaultConnMgrLowWater, config.DefaultConnMgrHighWater, config.DefaultConnMgrGracePeriod)),
+	)
+}
+
+// ////////// //
+// Misc / test options
+
+func RandomIdentity() Option {
+	sk, _, err := ci.GenerateKeyPair(ci.RSA, 512)
+	if err != nil {
+		return errOpt(err)
+	}
+
+	return Options(
+		Override(Identity, as(sk, new(ci.PrivKey))),
+		Override(Peerid, peer.IDFromPublicKey),
+	)
 }
 
 // ////////// //
@@ -169,10 +291,16 @@ func New(opts ...Option) (*CoreAPI, error) {
 	ctx := metrics.CtxScope(settings.ctx, "ipfs")
 	fxOpts := make([]fx.Option, len(settings.userFx)+len(settings.components)+2)
 	for i, opt := range settings.userFx {
+		if opt == nil {
+			opt = fx.Options()
+		}
 		fxOpts[i] = opt
 	}
 
 	for i, opt := range settings.components {
+		if opt == nil {
+			opt = fx.Options()
+		}
 		fxOpts[i+len(settings.userFx)] = opt
 	}
 
@@ -199,6 +327,12 @@ func New(opts ...Option) (*CoreAPI, error) {
 
 	// TEMP: setting global sharding switch here
 	//TODO uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
+
+	if settings.online { // TODO: use components
+		if err := n.Bootstrap(bootstrap.DefaultBootstrapConfig); err != nil {
+			return nil, err
+		}
+	}
 
 	return NewCoreAPI(n)
 }
@@ -231,4 +365,56 @@ func baseProcess(lc fx.Lifecycle) goprocess.Process {
 		},
 	})
 	return p
+}
+
+// as casts input constructor to a given interface (if a value is given, it
+// wraps it into a constructor).
+//
+// Note: this method may look like a hack, and in fact it is one.
+// This is here only because https://github.com/uber-go/fx/issues/673 wasn't
+// released yet
+//
+// Note 2: when making changes here, make sure this method stays at
+// 100% coverage. This makes it less likely it will be terribly broken
+func as(in interface{}, as interface{}) interface{} {
+	outType := reflect.TypeOf(as)
+
+	if outType.Kind() != reflect.Ptr {
+		panic("outType is not a pointer")
+	}
+
+	if reflect.TypeOf(in).Kind() != reflect.Func {
+		ctype := reflect.FuncOf(nil, []reflect.Type{outType.Elem()}, false)
+
+		return reflect.MakeFunc(ctype, func(args []reflect.Value) (results []reflect.Value) {
+			out := reflect.New(outType.Elem())
+			out.Elem().Set(reflect.ValueOf(in))
+
+			return []reflect.Value{out.Elem()}
+		}).Interface()
+	}
+
+	inType := reflect.TypeOf(in)
+
+	ins := make([]reflect.Type, inType.NumIn())
+	outs :=  make([]reflect.Type, inType.NumOut())
+
+	for i := range ins {
+		ins[i] = inType.In(i)
+	}
+	outs[0] = outType.Elem()
+	for i := range outs[1:] {
+		outs[i + 1] = inType.Out(i + 1)
+	}
+
+	ctype := reflect.FuncOf(ins, outs, false)
+
+	return reflect.MakeFunc(ctype, func(args []reflect.Value) (results []reflect.Value) {
+		outs := reflect.ValueOf(in).Call(args)
+		out := reflect.New(outType.Elem())
+		out.Elem().Set(outs[0])
+		outs[0] = out.Elem()
+
+		return outs
+	}).Interface()
 }

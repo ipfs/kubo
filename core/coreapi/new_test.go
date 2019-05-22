@@ -3,7 +3,10 @@ package coreapi
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+
+	"go.uber.org/fx"
 
 	"github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
@@ -38,6 +41,11 @@ func TestNew(t *testing.T) {
 			name: "default",
 			test: BasicTests,
 		},
+		{
+			name: "online",
+			test: BasicTests,
+			opts: []Option{Online()},
+		},
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
 			f := func() *CoreAPI {
@@ -60,6 +68,100 @@ func TestNew(t *testing.T) {
 			testcase.test(ts, t)
 		})
 	}
+}
+
+type testif interface {
+	test()
+}
+
+type testst struct {
+	i int
+}
+
+func (s *testst) test() {
+	s.i++
+}
+
+func TestAs(t *testing.T) {
+	tstr := &testst{}
+
+	var out struct{
+		T testif
+	}
+
+	// as(struct)
+
+	app := fx.New(fx.Provide(as(tstr, new(testif))), fx.Extract(&out))
+	if err := app.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	out.T.test()
+	if tstr.i != 1 {
+		t.Error("unexpected tstr.i")
+	}
+
+	// as(func()struct)
+
+	tstr = &testst{}
+	ctor1 := func() *testst { return tstr }
+	app = fx.New(fx.Provide(as(ctor1, new(testif))), fx.Extract(&out))
+	if err := app.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	out.T.test()
+	if tstr.i != 1 {
+		t.Error("unexpected tstr.i")
+	}
+
+	// as(func(in)(struct, error))
+
+	tstr = &testst{}
+	ctor2 := func(testStr string) (*testst, error) {
+		if testStr != "test" {
+			t.Fatal(testStr)
+		}
+		return tstr, nil
+	}
+	app = fx.New(
+		fx.Provide(as(ctor2, new(testif))),
+		fx.Provide(func() string {return "test"}),
+		fx.Extract(&out))
+	if err := app.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	out.T.test()
+	if tstr.i != 1 {
+		t.Error("unexpected tstr.i")
+	}
+
+	tstr = &testst{}
+	ctor3 := func(testStr string) (*testst, error) {
+		return nil, errors.New(testStr)
+	}
+	app = fx.New(
+		fx.Provide(as(ctor3, new(testif))),
+		fx.Provide(func() string {return "toast"}),
+		fx.Extract(&out))
+	if err := app.Start(context.Background()); err == nil || !strings.Contains(err.Error(), "toast") {
+		t.Fatal(err)
+	}
+
+	if tstr.i != 0 {
+		t.Error("unexpected tstr.i")
+	}
+
+	// out arg check
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+
+	as(func()int{return 0}, "potato")
 }
 
 var _ tests.Provider = makeSingle(nil)

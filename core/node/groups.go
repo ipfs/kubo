@@ -28,7 +28,6 @@ import (
 
 var BaseLibP2P = fx.Options(
 	fx.Provide(libp2p.PNet),
-	fx.Provide(libp2p.ConnectionManager),
 	fx.Provide(libp2p.DefaultTransports),
 
 	fx.Provide(libp2p.Host),
@@ -42,7 +41,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// parse ConnMgr config
 
 	grace := config.DefaultConnMgrGracePeriod
-	low := config.DefaultConnMgrHighWater
+	low := config.DefaultConnMgrLowWater
 	high := config.DefaultConnMgrHighWater
 
 	connmgr := fx.Options()
@@ -191,7 +190,7 @@ var IPNS = fx.Options(
 
 // Providers groups units managing provider routing records
 func Providers(cfg *config.Config) fx.Option {
-	reproviderInterval := kReprovideFrequency
+	reproviderInterval := DefaultReprovideFrequency
 	if cfg.Reprovider.Interval != "" {
 		dur, err := time.ParseDuration(cfg.Reprovider.Interval)
 		if err != nil {

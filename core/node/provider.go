@@ -13,7 +13,7 @@ import (
 	"github.com/ipfs/go-ipfs/reprovide"
 )
 
-const kReprovideFrequency = time.Hour * 12
+const DefaultReprovideFrequency = time.Hour * 12
 
 // ProviderQueue creates new datastore backed provider queue
 func ProviderQueue(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (*provider.Queue, error) {
