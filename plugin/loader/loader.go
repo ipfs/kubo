@@ -10,12 +10,9 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	opentracing "github.com/opentracing/opentracing-go"
 )
-
-var log = logging.Logger("plugin/loader")
 
 var loadPluginsFunc = func(string) ([]plugin.Plugin, error) {
 	return nil, nil
