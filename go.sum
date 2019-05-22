@@ -531,6 +531,8 @@ github.com/libp2p/go-libp2p-transport-upgrader v0.0.4 h1:uGMOd14BL1oFlfb/cGfOxPj
 github.com/libp2p/go-libp2p-transport-upgrader v0.0.4/go.mod h1:RGq+tupk+oj7PzL2kn/m1w6YXxcIAYJYeI90h6BGgUc=
 github.com/libp2p/go-libp2p-yamux v0.1.2 h1:DgGItlrWi0j9y1OhRMC8qqL4zj2MEPWeKJTHb55R16Q=
 github.com/libp2p/go-libp2p-yamux v0.1.2/go.mod h1:xUoV/RmYkg6BW/qGxA9XJyg+HzXFYkeXbnhjmnYzKp8=
+github.com/libp2p/go-libp2p-yamux v0.1.3 h1:HmKvv2jWJ4GEm3iP7cEKjuw0POa6rK+Hcsu1FBKzpLc=
+github.com/libp2p/go-libp2p-yamux v0.1.3/go.mod h1:VGSQVrqkh6y4nm0189qqxMtvyBft44MOYYPpYKXiVt4=
 github.com/libp2p/go-maddr-filter v0.0.1 h1:apvYTg0aIxxQyBX+XHKOR+0+lYhGs1Yv+JmTH9nyl5I=
 github.com/libp2p/go-maddr-filter v0.0.1/go.mod h1:6eT12kSQMA9x2pvFQa+xesMKUBlj9VImZbj3B9FBH/Q=
 github.com/libp2p/go-maddr-filter v0.0.4 h1:hx8HIuuwk34KePddrp2mM5ivgPkZ09JH4AvsALRbFUs=
