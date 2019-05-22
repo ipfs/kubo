@@ -3,10 +3,7 @@ package provider
 import (
 	"context"
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log"
 )
-
-var log = logging.Logger("provider")
 
 // Provider announces blocks to the network
 type Provider interface {
