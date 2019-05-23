@@ -34,6 +34,12 @@ import (
 	"github.com/ipfs/go-ipfs/reprovide"
 )
 
+// from go-ipfs-config/init.go
+var defaultListenAddrs = []string{ // TODO: we need more than 1, better defaults?
+	"/ip4/0.0.0.0/tcp/4001",
+	"/ip6/::/tcp/4001",
+}
+
 const (
 	// TODO: docstrings on everything
 
@@ -47,8 +53,10 @@ const (
 	BlockstoreFinal
 
 	Peerid
-	Identity
+	PrivKey
+	PubKey
 	Peerstore
+	PeerstoreAddSelf
 
 	Validator
 	Router
@@ -76,6 +84,7 @@ const (
 	Libp2pPrivateNetworkChecker
 	Libp2pDefaultTransports
 	Libp2pHost
+	Libp2pRoutedHost
 	Libp2pDiscoveryHandler
 
 	Libp2pAddrFilters
@@ -137,6 +146,7 @@ func Override(c component, replacement interface{}, pf ...func(...interface{}) f
 		s.components[c] = pf[0](replacement)
 
 		// TODO: might do type checking with reflection, but it's probably not worth it
+		// TODO: it might be actually very useful for documentation purposes
 		return nil
 	}
 }
@@ -193,9 +203,10 @@ func Online() Option {
 	}
 
 	return Options(lgcOnline,
-		ifNil(Identity,
+		ifNil(PrivKey,
 			RandomIdentity(),
 		),
+		Override(PeerstoreAddSelf, libp2p.PstoreAddSelfKeys, fx.Invoke),
 
 		Override(Exchange, node.OnlineExchange),
 
@@ -214,12 +225,14 @@ func Online() Option {
 
 		Override(Libp2pDefaultTransports, libp2p.DefaultTransports),
 		Override(Libp2pHost, libp2p.Host),
+		Override(Libp2pRoutedHost, libp2p.RoutedHost),
+		Override(Libp2pRouting, libp2p.DHTRouting),
 
 		Override(Libp2pDiscoveryHandler, libp2p.DiscoveryHandler),
 		Override(Libp2pAddrsFactory, libp2p.AddrsFactory),
 		Override(Libp2pSmuxTransport, libp2p.SmuxTransport(true)),
 		Override(Libp2pRelay, libp2p.Relay(true, false)), // TODO: should we enable by default?
-		Override(Libp2pStartListening, libp2p.StartListening, fx.Invoke),
+		Override(Libp2pStartListening, libp2p.StartListening(defaultListenAddrs), fx.Invoke),
 		Override(Libp2pSecurity, libp2p.Security(true, false)), // enabled, prefer secio
 		Override(Router, libp2p.Routing),
 		Override(Libp2pBaseRouting, libp2p.BaseRouting),
@@ -232,13 +245,14 @@ func Online() Option {
 // Misc / test options
 
 func RandomIdentity() Option {
-	sk, _, err := ci.GenerateKeyPair(ci.RSA, 512)
+	sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
 	if err != nil {
 		return errOpt(err)
 	}
 
 	return Options(
-		Override(Identity, as(sk, new(ci.PrivKey))),
+		Override(PrivKey, as(sk, new(ci.PrivKey))),
+		Override(PubKey, as(pk, new(ci.PubKey))),
 		Override(Peerid, peer.IDFromPublicKey),
 	)
 }
@@ -342,7 +356,7 @@ func New(opts ...Option) (*CoreAPI, error) {
 
 func memRepo() repo.Repo {
 	c := config.Config{}
-	// c.Identity = ident //TODO, probably
+	// c.PrivKey = ident //TODO, probably
 	c.Experimental.FilestoreEnabled = true
 
 	ds := ds.NewMapDatastore()

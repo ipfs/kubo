@@ -112,7 +112,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
-		maybeProvide(libp2p.AutoRealy, cfg.Swarm.EnableAutoRelay),
+		//maybeProvide(libp2p.AutoRealy, cfg.Swarm.EnableAutoRelay),
 		maybeProvide(libp2p.QUIC, cfg.Experimental.QUIC),
 		maybeInvoke(libp2p.AutoNATService(cfg.Experimental.QUIC), cfg.Swarm.EnableAutoNATService),
 		connmgr,
