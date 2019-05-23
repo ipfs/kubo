@@ -28,6 +28,7 @@ the above issue.
 - [IPNS PubSub](#ipns-pubsub)
 - [QUIC](#quic)
 - [AutoRelay](#autorelay)
+- [TLS 1.3 Handshake](#tls-13-as-default-handshake-protocol)
 
 ---
 

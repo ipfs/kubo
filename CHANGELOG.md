@@ -1,5 +1,278 @@
 # go-ipfs changelog
 
+## 0.4.21 XX-XX-XX
+
+### Commands
+
+#### Fixed: `ipfs add` with multiple files
+
+In version 0.4.20 a bug was introduced preventing `ipfs add fileA fileB` from working.
+This was fixed in ([ipfs/go-ipfs#6255](https://github.com/ipfs/go-ipfs/pull/6255)).
+
+### New: TLS 1.3 handshake
+
+Go-libp2p has gained ability to use TLS 1.3 for connection encryption and authentication.
+Go-ipfs will accept TLS 1.3 handshakes but will still primarily use secio.
+If you want to help testing new handshake, you can enable [experiment](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#tls-13-as-default-handshake-protocol).
+
+### New: Build system `GOCC` variable
+
+Build system now uses `GOCC` environment variable allowing for use of multiple
+go versions during builds.
+
+
+(please point out what should be featured, doesn't have to be go-ipfs).
+
+
+
+### Changelogs:
+- github.com/ipfs/go-ipfs:
+  - fix the wrong path configuration in root redirection ([ipfs/go-ipfs#6215](https://github.com/ipfs/go-ipfs/pull/6215))
+  - coreapi: Drop error from ParsePath ([ipfs/go-ipfs#6122](https://github.com/ipfs/go-ipfs/pull/6122))
+  - DI-based core.NewNode ([ipfs/go-ipfs#6162](https://github.com/ipfs/go-ipfs/pull/6162))
+  - fix two small nits in the go-ipfs constructor ([ipfs/go-ipfs#6234](https://github.com/ipfs/go-ipfs/pull/6234))
+  - add an experiment to prefer TLS 1.3 over secio ([ipfs/go-ipfs#6229](https://github.com/ipfs/go-ipfs/pull/6229))
+  - build: fix macos build with fuse ([ipfs/go-ipfs#6235](https://github.com/ipfs/go-ipfs/pull/6235))
+  - dep: update libp2p, datastore, and the dht ([ipfs/go-ipfs#6240](https://github.com/ipfs/go-ipfs/pull/6240))
+  - Support --human flag in cmd/object-stat ([ipfs/go-ipfs#6241](https://github.com/ipfs/go-ipfs/pull/6241))
+  - constructor: cleanup some things ([ipfs/go-ipfs#6246](https://github.com/ipfs/go-ipfs/pull/6246))
+  - core/corehttp/gateway_handler: pass a request ctx instead of the node ([ipfs/go-ipfs#6244](https://github.com/ipfs/go-ipfs/pull/6244))
+  - reprovider: Use goprocess ([ipfs/go-ipfs#6248](https://github.com/ipfs/go-ipfs/pull/6248))
+  -  add: Fix adding multiple files ([ipfs/go-ipfs#6255](https://github.com/ipfs/go-ipfs/pull/6255))
+  - dep: update libp2p, dht, peerstore, swarm, secio ([ipfs/go-ipfs#6257](https://github.com/ipfs/go-ipfs/pull/6257))
+  - Fix AutoNAT service for private network ([ipfs/go-ipfs#6251](https://github.com/ipfs/go-ipfs/pull/6251))
+  - raise default fd limit to 8192 ([ipfs/go-ipfs#6261](https://github.com/ipfs/go-ipfs/pull/6261))
+  - Revert "raise default fd limit to 8192" ([ipfs/go-ipfs#6265](https://github.com/ipfs/go-ipfs/pull/6265))
+  - attempt to fix concurrent websocket write ([ipfs/go-ipfs#6263](https://github.com/ipfs/go-ipfs/pull/6263))
+  - humanize for ipfs bitswap stat ([ipfs/go-ipfs#6258](https://github.com/ipfs/go-ipfs/pull/6258))
+  - commands(feat): use the coreapi in the urlstore command ([ipfs/go-ipfs#6259](https://github.com/ipfs/go-ipfs/pull/6259))
+  - dep: update many ([ipfs/go-ipfs#6267](https://github.com/ipfs/go-ipfs/pull/6267))
+  - add: Return error from iterator ([ipfs/go-ipfs#6272](https://github.com/ipfs/go-ipfs/pull/6272))
+  - dep: drop leb.io/hashland ([ipfs/go-ipfs#6270](https://github.com/ipfs/go-ipfs/pull/6270))
+  - dep: update go-libp2p ([ipfs/go-ipfs#6273](https://github.com/ipfs/go-ipfs/pull/6273))
+  - docs: document environment variables ([ipfs/go-ipfs#6268](https://github.com/ipfs/go-ipfs/pull/6268))
+  - Invert constructor config handling ([ipfs/go-ipfs#6276](https://github.com/ipfs/go-ipfs/pull/6276))
+  - fix: windows friendly daemon help ([ipfs/go-ipfs#6278](https://github.com/ipfs/go-ipfs/pull/6278))
+  - dep: update multistream ([ipfs/go-ipfs#6280](https://github.com/ipfs/go-ipfs/pull/6280))
+  - gc: cancel context ([ipfs/go-ipfs#6281](https://github.com/ipfs/go-ipfs/pull/6281))
+  - GOCC implementation & fix in make & build scripts ([ipfs/go-ipfs#6282](https://github.com/ipfs/go-ipfs/pull/6282))
+  - dep: update go-ipfs-config ([ipfs/go-ipfs#6285](https://github.com/ipfs/go-ipfs/pull/6285))
+  - Test and fix GC/pin bug ([ipfs/go-ipfs#6288](https://github.com/ipfs/go-ipfs/pull/6288))
+  - core: fix autonat construction ([ipfs/go-ipfs#6289](https://github.com/ipfs/go-ipfs/pull/6289))
+  - commands(pin update): return resolved CIDs instead of paths ([ipfs/go-ipfs#6275](https://github.com/ipfs/go-ipfs/pull/6275))
+  - Go test fix ([ipfs/go-ipfs#6293](https://github.com/ipfs/go-ipfs/pull/6293))
+  - License update to dual MIT and Apache 2 ([ipfs/go-ipfs#6301](https://github.com/ipfs/go-ipfs/pull/6301))
+  - docs: fix Routing section ([ipfs/go-ipfs#6309](https://github.com/ipfs/go-ipfs/pull/6309))
+  - fix(Dockerfile): Allow ipfs mount in Docker container ([ipfs/go-ipfs#5560](https://github.com/ipfs/go-ipfs/pull/5560))
+  - test(coreapi): use a thread-safe datastore everywhere ([ipfs/go-ipfs#6222](https://github.com/ipfs/go-ipfs/pull/6222))
+  - ping: fix a bunch of issues ([ipfs/go-ipfs#6312](https://github.com/ipfs/go-ipfs/pull/6312))
+  - dep: update goprocess ([ipfs/go-ipfs#6316](https://github.com/ipfs/go-ipfs/pull/6316))
+  - Update to latest go-mfs ([ipfs/go-ipfs#6308](https://github.com/ipfs/go-ipfs/pull/6308))
+  - pin: don't walk all pinned blocks when removing a non-existent pin ([ipfs/go-ipfs#6311](https://github.com/ipfs/go-ipfs/pull/6311))
+  - raise default fd limit to 8192 ([ipfs/go-ipfs#6266](https://github.com/ipfs/go-ipfs/pull/6266))
+  - cmdkit -> cmds ([ipfs/go-ipfs#6318](https://github.com/ipfs/go-ipfs/pull/6318))
+  - switch to base32 by default for CIDv1 ([ipfs/go-ipfs#6300](https://github.com/ipfs/go-ipfs/pull/6300))
+  - fix setting ulimit ([ipfs/go-ipfs#6319](https://github.com/ipfs/go-ipfs/pull/6319))
+  - work towards fixing dht commands ([ipfs/go-ipfs#6277](https://github.com/ipfs/go-ipfs/pull/6277))
+  - Update fuse.md ([ipfs/go-ipfs#6332](https://github.com/ipfs/go-ipfs/pull/6332))
+  - object put: Allow empty objects ([ipfs/go-ipfs#6330](https://github.com/ipfs/go-ipfs/pull/6330))
+  - github: turn issue template into a multiple-choice question ([ipfs/go-ipfs#6333](https://github.com/ipfs/go-ipfs/pull/6333))
+  - fix a typo in the issue template ([ipfs/go-ipfs#6335](https://github.com/ipfs/go-ipfs/pull/6335))
+  - fail start when loading a plugin fails ([ipfs/go-ipfs#6339](https://github.com/ipfs/go-ipfs/pull/6339))
+  - fix formatting in object get ([ipfs/go-ipfs#6340](https://github.com/ipfs/go-ipfs/pull/6340))
+  - docs+mk: update guidance for unsupported platforms ([ipfs/go-ipfs#6338](https://github.com/ipfs/go-ipfs/pull/6338))
+  - Add golangci-lint ([ipfs/go-ipfs#6321](https://github.com/ipfs/go-ipfs/pull/6321))
+  - readme: remove mention of DCO ([ipfs/go-ipfs#6344](https://github.com/ipfs/go-ipfs/pull/6344))
+  - Add generation of dependency changes to mkreleaselog ([ipfs/go-ipfs#6348](https://github.com/ipfs/go-ipfs/pull/6348))
+  - doc: remove out of date documentation ([ipfs/go-ipfs#6345](https://github.com/ipfs/go-ipfs/pull/6345))
+  - core: Use correct default for connmgr lowWater ([ipfs/go-ipfs#6352](https://github.com/ipfs/go-ipfs/pull/6352))
+  - fix vendoring dependencies when building the source tarball ([ipfs/go-ipfs#6349](https://github.com/ipfs/go-ipfs/pull/6349))
+  - feat: improve errors when a path fails to parse ([ipfs/go-ipfs#6346](https://github.com/ipfs/go-ipfs/pull/6346))
+  - release v0.4.21-rc1 ([ipfs/go-ipfs#6353](https://github.com/ipfs/go-ipfs/pull/6353))
+  - commands/swarm(fix): handle empty multiaddrs ([ipfs/go-ipfs#6355](https://github.com/ipfs/go-ipfs/pull/6355))
+  - ci: actually enable golangci-lint ([ipfs/go-ipfs#6362](https://github.com/ipfs/go-ipfs/pull/6362))
+  - dep: update go-libp2p ([ipfs/go-ipfs#6361](https://github.com/ipfs/go-ipfs/pull/6361))
+  - dep: update yamux and bitswap ([ipfs/go-ipfs#6364](https://github.com/ipfs/go-ipfs/pull/6364))
+  - remove yamux read buffer ([ipfs/go-ipfs#6365](https://github.com/ipfs/go-ipfs/pull/6365))
+  - release: go-ipfs 0.4.21-rc2 ([ipfs/go-ipfs#6366](https://github.com/ipfs/go-ipfs/pull/6366))
+
+Dependecy updates:
+- github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 => v1.0.0
+- github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32 => v0.0.0-20190427004231-96897255fd17
+- github.com/btcsuite/btcutil v0.0.0-20190207003914-4c204d697803 => v0.0.0-20190425235716-9e5f4b9a998d
+- github.com/btcsuite/goleveldb v0.0.0-20160330041536-7834afc9e8cd => v1.0.0
+- github.com/btcsuite/snappy-go v0.0.0-20151229074030-0bdef8d06723 => v1.0.0
+- github.com/coreos/go-semver v0.2.0 => v0.2.1-0.20180108230905-e214231b295a
+- github.com/golang/protobuf v1.3.0 => v1.3.1
+- github.com/ipfs/go-bitswap v0.0.4 => v0.0.7
+- github.com/ipfs/go-cidutil v0.0.1 => v0.0.2
+- github.com/ipfs/go-cid v0.0.1 => v0.0.2
+- github.com/ipfs/go-datastore v0.0.3 => v0.0.5
+- github.com/ipfs/go-ipfs-cmds v0.0.5 => v0.0.7
+- github.com/ipfs/go-ipfs-config v0.0.1 => v0.0.3
+- github.com/ipfs/go-ipfs-files v0.0.2 => v0.0.3
+- github.com/ipfs/go-ipld-cbor v0.0.1 => v0.0.2
+- github.com/ipfs/go-ipld-format v0.0.1 => v0.0.2
+- github.com/ipfs/go-ipld-git v0.0.1 => v0.0.2
+- github.com/ipfs/go-mfs v0.0.4 => v0.0.7
+- github.com/ipfs/go-path v0.0.3 => v0.0.4
+- github.com/ipfs/go-unixfs v0.0.4 => v0.0.6
+- github.com/ipfs/interface-go-ipfs-core v0.0.6 => v0.0.8
+- github.com/jbenet/go-cienv v0.0.0-20150120210510-1bb1476777ec => v0.1.0
+- github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8 => v0.1.3
+- github.com/jessevdk/go-flags v0.0.0-20141203071132-1679536dcc89 => v1.4.0
+- github.com/kisielk/errcheck v1.1.0 => v1.2.0
+- github.com/kkdai/bstream v0.0.0-20161212061736-f391b8402d23 => v0.0.0-20181106074824-b3251f7901ec
+- github.com/libp2p/go-buffer-pool v0.0.1 => v0.0.2
+- github.com/libp2p/go-conn-security-multistream v0.0.1 => v0.0.2
+- github.com/libp2p/go-libp2p-autonat v0.0.4 => v0.0.6
+- github.com/libp2p/go-libp2p-circuit v0.0.4 => v0.0.8
+- github.com/libp2p/go-libp2p-connmgr v0.0.1 => v0.0.5
+- github.com/libp2p/go-libp2p-crypto v0.0.1 => v0.0.2
+- github.com/libp2p/go-libp2p-discovery v0.0.1 => v0.0.4
+- github.com/libp2p/go-libp2p-host v0.0.1 => v0.0.3
+- github.com/libp2p/go-libp2p-interface-connmgr v0.0.1 => v0.0.5
+- github.com/libp2p/go-libp2p-kad-dht v0.0.7 => v0.0.13
+- github.com/libp2p/go-libp2p-peerstore v0.0.2 => v0.0.6
+- github.com/libp2p/go-libp2p-peer v0.0.1 => v0.1.1
+- github.com/libp2p/go-libp2p-pubsub v0.0.1 => v0.0.3
+- github.com/libp2p/go-libp2p-secio v0.0.1 => v0.0.3
+- github.com/libp2p/go-libp2p-swarm v0.0.2 => v0.0.6
+- github.com/libp2p/go-libp2p-transport-upgrader v0.0.1 => v0.0.4
+- github.com/libp2p/go-libp2p-transport v0.0.4 => v0.0.5
+- github.com/libp2p/go-libp2p v0.0.12 => v0.0.28
+- github.com/libp2p/go-maddr-filter v0.0.1 => v0.0.4
+- github.com/libp2p/go-mplex v0.0.1 => v0.0.3
+- github.com/libp2p/go-msgio v0.0.1 => v0.0.2
+- github.com/libp2p/go-tcp-transport v0.0.2 => v0.0.4
+- github.com/libp2p/go-ws-transport v0.0.2 => v0.0.4
+- github.com/mattn/go-isatty v0.0.5 => v0.0.7
+- github.com/miekg/dns v1.1.4 => v1.1.12
+- github.com/minio/sha256-simd v0.0.0-20190131020904-2d45a736cd16 => v0.0.0-20190328051042-05b4dd3047e5
+- github.com/mr-tron/base58 v1.1.0 => v1.1.2
+- github.com/multiformats/go-multiaddr v0.0.1 => v0.0.4
+- github.com/multiformats/go-multihash v0.0.1 => v0.0.5
+- github.com/multiformats/go-multistream v0.0.1 => v0.0.4
+- github.com/onsi/ginkgo v1.7.0 => v1.8.0
+- github.com/onsi/gomega v1.4.3 => v1.5.0
+- github.com/opentracing/opentracing-go v1.0.2 => v1.1.0
+- github.com/prometheus/client_golang v0.9.2 => v0.9.3
+- github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 => v0.0.0-20190129233127-fd36f4220a90
+- github.com/prometheus/common v0.0.0-20181126121408-4724e9255275 => v0.4.0
+- github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a => v0.0.0-20190519111021-9935e8e0588d
+- github.com/sirupsen/logrus v1.0.5 => v1.2.0
+- github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 => v1.1.0
+- github.com/Stebalien/go-bitfield v0.0.0-20180330043415-076a62f9ce6e => v0.0.1
+- github.com/stretchr/objx v0.1.0 => v0.1.1
+- go4.org v0.0.0-20190218023631-ce4c26f7be8e => v0.0.0-20190313082347-94abd6928b1d
+- golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 => v0.0.0-20190513172903-22d7a77e9e5f
+- golang.org/x/net v0.0.0-20190227160552-c95aed5357e7 => v0.0.0-20190522135303-fa69b94a3b58
+- golang.org/x/sync v0.0.0-20181108010431-42b317875d0f => v0.0.0-20190423024810-112230192c58
+- golang.org/x/sys v0.0.0-20190302025703-b6889370fb10 => v0.0.0-20190522044717-8097e1b27ff5
+- golang.org/x/text v0.3.0 => v0.3.2
+- golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e => v0.0.0-20190521203540-521d6ed310dd
+- golang.org/x/xerrors v0.0.0-20190212162355-a5947ffaace3 => v0.0.0-20190513163551-3ee3066db522
+- google.golang.org/genproto v0.0.0-20180831171423-11092d34479b => v0.0.0-20190307195333-5fe7a883aa19
+- gopkg.in/yaml.v2 v2.2.1 => v2.2.2
+- gotest.tools/gotestsum v0.3.3 => v0.3.4
+- cloud.google.com/go none => v0.26.0
+- github.com/alecthomas/template none => v0.0.0-20160405071501-a0175ee3bccc
+- github.com/alecthomas/units none => v0.0.0-20151022065526-2efee857e7cf
+- github.com/BurntSushi/toml none => v0.3.1
+- github.com/cespare/xxhash none => v1.1.0
+- github.com/client9/misspell none => v0.3.4
+- github.com/dgryski/go-sip13 none => v0.0.0-20181026042036-e10d5fee7954
+- github.com/gobwas/glob none => v0.2.3
+- github.com/go-critic/go-critic none => v0.0.0-20181204210945-ee9bf5809ead
+- github.com/go-kit/kit none => v0.8.0
+- github.com/golangci/check none => v0.0.0-20180506172741-cfe4005ccda2
+- github.com/golangci/dupl none => v0.0.0-20180902072040-3e9179ac440a
+- github.com/golangci/errcheck none => v0.0.0-20181003203344-ef45e06d44b6
+- github.com/golangci/goconst none => v0.0.0-20180610141641-041c5f2b40f3
+- github.com/golangci/gocyclo none => v0.0.0-20180528134321-2becd97e67ee
+- github.com/golangci/gofmt none => v0.0.0-20181105071733-0b8337e80d98
+- github.com/golangci/golangci-lint none => v1.16.1-0.20190425135923-692dacb773b7
+- github.com/golangci/go-misc none => v0.0.0-20180628070357-927a3d87b613
+- github.com/golangci/gosec none => v0.0.0-20180901114220-66fb7fc33547
+- github.com/golangci/go-tools none => v0.0.0-20180109140146-af6baa5dc196
+- github.com/golangci/ineffassign none => v0.0.0-20180808204949-2ee8f2867dde
+- github.com/golangci/lint-1 none => v0.0.0-20180610141402-ee948d087217
+- github.com/golangci/maligned none => v0.0.0-20180506175553-b1d89398deca
+- github.com/golangci/misspell none => v0.0.0-20180809174111-950f5d19e770
+- github.com/golangci/prealloc none => v0.0.0-20180630174525-215b22d4de21
+- github.com/golangci/revgrep none => v0.0.0-20180526074752-d9c87f5ffaf0
+- github.com/golangci/unconvert none => v0.0.0-20180507085042-28b1c447d1f4
+- github.com/golang/glog none => v0.0.0-20160126235308-23def4e6c14b
+- github.com/go-lintpack/lintpack none => v0.5.2
+- github.com/go-logfmt/logfmt none => v0.4.0
+- github.com/go-ole/go-ole none => v1.2.1
+- github.com/go-stack/stack none => v1.8.0
+- github.com/go-toolsmith/astcast none => v0.0.0-20181028201508-b7a89ed70af1
+- github.com/go-toolsmith/astcopy none => v0.0.0-20180903214859-79b422d080c4
+- github.com/go-toolsmith/astequal none => v0.0.0-20180903214952-dcb477bfacd6
+- github.com/go-toolsmith/astfmt none => v0.0.0-20180903215011-8f8ee99c3086
+- github.com/go-toolsmith/astp none => v0.0.0-20180903215135-0af7e3c24f30
+- github.com/go-toolsmith/pkgload none => v0.0.0-20181119091011-e9e65178eee8
+- github.com/go-toolsmith/strparse none => v0.0.0-20180903215201-830b6daa1241
+- github.com/go-toolsmith/typep none => v0.0.0-20181030061450-d63dc7650676
+- github.com/hashicorp/hcl none => v0.0.0-20180404174102-ef8a98b0bbce
+- github.com/inconshreveable/mousetrap none => v1.0.0
+- github.com/ipfs/go-peertaskqueue none => v0.0.4
+- github.com/julienschmidt/httprouter none => v1.2.0
+- github.com/konsorten/go-windows-terminal-sequences none => v1.0.1
+- github.com/kr/logfmt none => v0.0.0-20140226030751-b84e30acd515
+- github.com/libp2p/go-libp2p-mplex none => v0.1.1
+- github.com/libp2p/go-libp2p-tls none => v0.0.1
+- github.com/libp2p/go-libp2p-yamux none => v0.1.3
+- github.com/libp2p/go-stream-muxer-multistream none => v0.1.1
+- github.com/libp2p/go-yamux none => v1.2.2
+- github.com/logrusorgru/aurora none => v0.0.0-20181002194514-a7b3b318ed4e
+- github.com/magiconair/properties none => v1.7.6
+- github.com/mattn/goveralls none => v0.0.2
+- github.com/mitchellh/go-ps none => v0.0.0-20170309133038-4fdf99ab2936
+- github.com/mitchellh/mapstructure none => v0.0.0-20180220230111-00c29f56e238
+- github.com/mozilla/tls-observatory none => v0.0.0-20180409132520-8791a200eb40
+- github.com/mwitkow/go-conntrack none => v0.0.0-20161129095857-cc309e4a2223
+- github.com/nbutton23/zxcvbn-go none => v0.0.0-20171102151520-eafdab6b0663
+- github.com/oklog/ulid none => v1.3.1
+- github.com/OneOfOne/xxhash none => v1.2.2
+- github.com/OpenPeeDeeP/depguard none => v0.0.0-20180806142446-a69c782687b2
+- github.com/pelletier/go-toml none => v1.1.0
+- github.com/prometheus/tsdb none => v0.7.1
+- github.com/rogpeppe/go-internal none => v1.1.0
+- github.com/ryanuber/go-glob none => v0.0.0-20170128012129-256dc444b735
+- github.com/shirou/gopsutil none => v0.0.0-20180427012116-c95755e4bcd7
+- github.com/shirou/w32 none => v0.0.0-20160930032740-bb4de0191aa4
+- github.com/shurcooL/go-goon none => v0.0.0-20170922171312-37c2f522c041
+- github.com/shurcooL/go none => v0.0.0-20180423040247-9e1955d9fb6e
+- github.com/sourcegraph/go-diff none => v0.5.1
+- github.com/spacemonkeygo/openssl none => v0.0.0-20181017203307-c2dcc5cca94a
+- github.com/spacemonkeygo/spacelog none => v0.0.0-20180420211403-2296661a0572
+- github.com/spf13/afero none => v1.1.0
+- github.com/spf13/cast none => v1.2.0
+- github.com/spf13/cobra none => v0.0.2
+- github.com/spf13/jwalterweatherman none => v0.0.0-20180109140146-7c0cea34c8ec
+- github.com/spf13/viper none => v1.0.2
+- github.com/StackExchange/wmi none => v0.0.0-20180116203802-5d049714c4a6
+- golang.org/x/exp none => v0.0.0-20190121172915-509febef88a4
+- golang.org/x/lint none => v0.0.0-20190227174305-5b3e6a55c961
+- golang.org/x/oauth2 none => v0.0.0-20180821212333-d2e6202438be
+- google.golang.org/appengine none => v1.4.0
+- google.golang.org/grpc none => v1.19.0
+- go.opencensus.io none => v0.21.0
+- gopkg.in/alecthomas/kingpin.v2 none => v2.2.6
+- gopkg.in/errgo.v2 none => v2.1.0
+- go.uber.org/atomic none => v1.4.0
+- go.uber.org/dig none => v1.7.0
+- go.uber.org/fx none => v1.9.0
+- go.uber.org/goleak none => v0.10.0
+- go.uber.org/multierr none => v1.1.0
+- honnef.co/go/tools none => v0.0.0-20190102054323-c2f93a96b099
+- mvdan.cc/interfacer none => v0.0.0-20180901003855-c20040233aed
+- mvdan.cc/lint none => v0.0.0-20170908181259-adc824a0674b
+- mvdan.cc/unparam none => v0.0.0-20190124213536-fbb59629db34
+- sourcegraph.com/sqs/pbtypes none => v0.0.0-20180604144634-d3ebe8f20ae4
+
 ## 0.4.20 2019-04-16
 
 We're happy to release go-ipfs 0.4.20. This release includes some critical
