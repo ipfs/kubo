@@ -92,8 +92,10 @@ require (
 	github.com/libp2p/go-libp2p-tls v0.0.1
 	github.com/libp2p/go-libp2p-yamux v0.1.3
 	github.com/libp2p/go-maddr-filter v0.0.4
+	github.com/libp2p/go-mplex v0.0.4 // indirect
 	github.com/libp2p/go-stream-muxer v0.0.1
 	github.com/libp2p/go-testutil v0.0.1
+	github.com/libp2p/go-yamux v1.2.3 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
