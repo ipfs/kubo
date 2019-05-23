@@ -67,7 +67,7 @@ require (
 	github.com/libp2p/go-libp2p v0.0.28
 	github.com/libp2p/go-libp2p-autonat-svc v0.0.5
 	github.com/libp2p/go-libp2p-circuit v0.0.8
-	github.com/libp2p/go-libp2p-connmgr v0.0.5
+	github.com/libp2p/go-libp2p-connmgr v0.0.6
 	github.com/libp2p/go-libp2p-crypto v0.0.2
 	github.com/libp2p/go-libp2p-host v0.0.3
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.5
