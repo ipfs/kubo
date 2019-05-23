@@ -433,8 +433,8 @@ github.com/libp2p/go-libp2p-circuit v0.0.8 h1:vd9vZDy+LDssTvUuxIqnYUOAK2hfHoSQO2
 github.com/libp2p/go-libp2p-circuit v0.0.8/go.mod h1:DFCgZ2DklFGTUIZIhSvbbWXTErUgjyNrJGfDHOrTKIA=
 github.com/libp2p/go-libp2p-connmgr v0.0.1 h1:9KP7UbP4a6fauLw954LhTGfovhkmMwvJsIf8G4CCons=
 github.com/libp2p/go-libp2p-connmgr v0.0.1/go.mod h1:eUBBlbuwBBTd/eim7KV5x0fOD2UHDjSwhzmBL6miIx8=
-github.com/libp2p/go-libp2p-connmgr v0.0.5 h1:EzgFolZ1RHUiuRj22zZRcGu8TJuBkfjeuH9TazbcmP4=
-github.com/libp2p/go-libp2p-connmgr v0.0.5/go.mod h1:uwDfgdgqB5248sQYib1xo603cSsMg9PgAKu0Z+Y65Qk=
+github.com/libp2p/go-libp2p-connmgr v0.0.6 h1:oEUriPO/qWTvfHRPEU4HdNlNhYigdueOs2X3UZCdbYM=
+github.com/libp2p/go-libp2p-connmgr v0.0.6/go.mod h1:uwDfgdgqB5248sQYib1xo603cSsMg9PgAKu0Z+Y65Qk=
 github.com/libp2p/go-libp2p-crypto v0.0.1 h1:JNQd8CmoGTohO/akqrH16ewsqZpci2CbgYH/LmYl8gw=
 github.com/libp2p/go-libp2p-crypto v0.0.1/go.mod h1:yJkNyDmO341d5wwXxDUGO0LykUVT72ImHNUqh5D/dBE=
 github.com/libp2p/go-libp2p-crypto v0.0.2 h1:TTdJ4y6Uoa6NxQcuEaVkQfFRcQeCE2ReDk8Ok4I0Fyw=
