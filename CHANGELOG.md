@@ -13,7 +13,7 @@ This was fixed in ([ipfs/go-ipfs#6255](https://github.com/ipfs/go-ipfs/pull/6255
 
 Go-libp2p has gained ability to use TLS 1.3 for connection encryption and authentication.
 Go-ipfs will accept TLS 1.3 handshakes but will still primarily use secio.
-If you want to help testing new handshake, you can enable [experiment](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#tls-13-as-default-handshake-protocol).
+If you want to help testing the new handshake, you can enable [this experiment](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#tls-13-as-default-handshake-protocol).
 
 ### New: Build system `GOCC` variable
 
