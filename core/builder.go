@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ipfs/go-metrics-interface"
 	"go.uber.org/fx"
@@ -27,18 +28,25 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		fx.Extract(n),
 	)
 
+	var once sync.Once
+	var stopErr error
+	n.stop = func() error {
+		once.Do(func() {
+			stopErr = app.Stop(context.Background())
+		})
+		return stopErr
+	}
+	n.IsOnline = cfg.Online
+
 	go func() {
 		// Note that some services use contexts to signal shutting down, which is
 		// very suboptimal. This needs to be here until that's addressed somehow
 		<-ctx.Done()
-		err := app.Stop(context.Background())
+		err := n.stop()
 		if err != nil {
 			log.Error("failure on stop: ", err)
 		}
 	}()
-
-	n.IsOnline = cfg.Online
-	n.app = app
 
 	if app.Err() != nil {
 		return nil, app.Err()
