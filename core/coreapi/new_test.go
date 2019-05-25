@@ -6,8 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
 )
@@ -32,6 +34,8 @@ func BasicTests(ts *tests.TestSuite, t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	mn := mocknet.New(context.Background())
+
 	for _, testcase := range []struct {
 		name string
 		opts []Option
@@ -44,7 +48,11 @@ func TestNew(t *testing.T) {
 		{
 			name: "online",
 			test: BasicTests,
-			opts: []Option{Online()},
+			opts: []Option{
+				Online(),
+				Override(Libp2pHost, libp2p.MockHost),
+				Provide(func() mocknet.Mocknet {return mn}),
+			},
 		},
 	} {
 		t.Run(testcase.name, func(t *testing.T) {

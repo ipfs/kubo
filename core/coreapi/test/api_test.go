@@ -79,7 +79,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 			F: filestore.NewFileManager(ds, filepath.Dir(os.TempDir())),
 		}
 
-		node, err := core.NewNode(ctx, &core.BuildCfg{
+		/*node, err := core.NewNode(ctx, &core.BuildCfg{
 			Repo:   r,
 			Host:   mock.MockHostOption(mn),
 			Online: fullIdentity,
@@ -89,12 +89,15 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		})
 		if err != nil {
 			return nil, err
-		}
-		nodes[i] = node
-		apis[i], err = coreapi.NewCoreAPI(node)
+		}*/
+
+		api, err := coreapi.New()
 		if err != nil {
 			return nil, err
 		}
+
+		nodes[i] = api.Node()
+		apis[i] = api
 	}
 
 	err := mn.LinkAll()

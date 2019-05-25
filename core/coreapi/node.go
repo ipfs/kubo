@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -42,10 +43,12 @@ var defaultListenAddrs = []string{ // TODO: we need more than 1, better defaults
 
 const (
 	// TODO: docstrings on everything
+	// TODO: think about not exporting some of this (only export stable-ish stuff)
 
 	Goprocess component = iota
 
-	Repo
+	// baseRepo can be overridden externally with the Repo option
+	baseRepo
 	Config
 	BatchDatastore
 	Datastore
@@ -120,6 +123,7 @@ type settings struct {
 	ctx context.Context
 
 	online bool // TODO: migrate to components fully
+	nilRepo bool // TODO: try not to use, somehow (component-internal fields?)
 }
 
 type Option func(*settings) error
@@ -134,6 +138,7 @@ func Provide(i interface{}) Option {
 	}
 }
 
+// TODO: docstring warning that this method is powerful but dangerous
 func Override(c component, replacement interface{}, pf ...func(...interface{}) fx.Option) Option {
 	return func(s *settings) error {
 		if len(pf) == 0 {
@@ -172,9 +177,9 @@ func ifNil(c component, f ...Option) Option {
 	}
 }
 
-func errOpt(msg error) Option {
+func errOpt(err error) Option {
 	return func(_ *settings) error {
-		return msg
+		return err
 	}
 }
 
@@ -191,9 +196,11 @@ func Ctx(ctx context.Context) Option {
 // ////////// //
 // User options
 
-
 func NilRepo() Option {
-	return Override(BatchDatastore, as(ds.NewNullDatastore, new(ds.Batching)))
+	return func(s *settings) error {
+		s.nilRepo = true
+		return Override(BatchDatastore, as(ds.NewNullDatastore, new(ds.Batching)))(s)
+	}
 }
 
 func Online() Option {
@@ -226,7 +233,7 @@ func Online() Option {
 		Override(Libp2pDefaultTransports, libp2p.DefaultTransports),
 		Override(Libp2pHost, libp2p.Host),
 		Override(Libp2pRoutedHost, libp2p.RoutedHost),
-		Override(Libp2pRouting, libp2p.DHTRouting),
+		Override(Libp2pRouting, libp2p.DHTRouting(true)), // default dhtclient
 
 		Override(Libp2pDiscoveryHandler, libp2p.DiscoveryHandler),
 		Override(Libp2pAddrsFactory, libp2p.AddrsFactory),
@@ -239,6 +246,114 @@ func Online() Option {
 		Override(Libp2pNatPortMap, libp2p.NatPortMap),
 		Override(Libp2pConnectionManager, libp2p.ConnectionManager(config.DefaultConnMgrLowWater, config.DefaultConnMgrHighWater, config.DefaultConnMgrGracePeriod)),
 	)
+}
+
+// ////////// //
+// Repo / config
+
+func configIdentity(ident config.Identity) Option {
+	cid := ident.PeerID
+	if cid == "" {
+		return errOpt(errors.New("identity was not set in config (was 'ipfs init' run?)"))
+	}
+	if len(cid) == 0 {
+		return errOpt(errors.New("no peer ID in config! (was 'ipfs init' run?)"))
+	}
+
+	id, err := peer.IDB58Decode(cid)
+	if err != nil {
+		return errOpt(fmt.Errorf("peer ID invalid: %s", err))
+	}
+
+	// Private Key
+
+	if ident.PrivKey == "" {
+		return Options( // No PK (usually in tests)
+			Override(Peerid, as(id, new(peer.ID))),
+		)
+	}
+
+	sk, err := ident.DecodePrivateKey("passphrase todo!")
+	if err != nil {
+		return errOpt(err)
+	}
+
+	return Options(
+		Override(Peerid, as(id, new(peer.ID))),
+		Override(PrivKey, as(sk, new(ci.PrivKey))),
+		Override(PubKey, as(sk.GetPublic(), new(ci.PubKey))),
+	)
+}
+
+func configDatastore(dstore config.Datastore, s *repoSettings) Option {
+	cacheOpts := blockstore.DefaultCacheOpts()
+	cacheOpts.HasBloomFilterSize = dstore.BloomFilterSize
+	if !s.permanent {
+		cacheOpts.HasBloomFilterSize = 0
+	}
+
+	return Options(
+		Override(BlockstoreBasic, node.BaseBlockstoreCtor(cacheOpts, s.nilRepo, dstore.HashOnRead)),
+	)
+}
+
+func configExperimental() {
+	/*
+	finalBstore := fx.Provide(node.GcBlockstoreCtor)
+		if cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled {
+			finalBstore = fx.Provide(node.FilestoreBlockstoreCtor)
+		}
+	*/
+}
+
+func configOptions(cfg *config.Config, s *repoSettings) Option {
+	// Identity
+	return Options(
+		configIdentity(cfg.Identity),
+		configDatastore(cfg.Datastore, s),
+	)
+}
+
+
+type repoSettings struct {
+	parseConfig bool
+	permanent   bool
+	nilRepo bool
+}
+
+type RepoOption func(*repoSettings)
+
+// TODO: should we invert this option (SkipConfig?)
+func ParseConfig(s *repoSettings) {
+	s.parseConfig = true
+}
+
+// TODO: better name? (this is only enabling bloom filter if set in config)
+func Permanent(s *repoSettings) {
+	s.permanent = true
+}
+
+func Repo(repo repo.Repo, opts ...RepoOption) Option {
+	return func(s *settings) error {
+		rs := &repoSettings{
+			nilRepo: s.nilRepo,
+		}
+		for _, opt := range opts {
+			opt(rs)
+		}
+
+		repoOption := Override(baseRepo, repo)
+		if !rs.parseConfig {
+			return repoOption(s)
+		}
+
+		cfg, err := repo.Config()
+		if err != nil {
+			return err
+		}
+
+		return Options(repoOption, configOptions(cfg, rs))(s)
+	}
 }
 
 // ////////// //
@@ -268,7 +383,7 @@ func defaults() settings {
 	}
 
 	out.components[Goprocess] = fx.Provide(baseProcess)
-	out.components[Repo] = fx.Provide(memRepo)
+	out.components[baseRepo] = fx.Provide(memRepo)
 
 	out.components[Config] = fx.Provide(repo.Repo.Config)
 	out.components[BatchDatastore] = fx.Provide(repo.Repo.Datastore)
