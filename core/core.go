@@ -13,8 +13,6 @@ import (
 	"context"
 	"io"
 
-	"go.uber.org/fx"
-
 	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
@@ -107,8 +105,6 @@ type IpfsNode struct {
 	Process goprocess.Process
 	ctx     context.Context
 
-	app *fx.App
-
 	// Flags
 	IsOnline bool `optional:"true"` // Online is set when networking is enabled.
 	IsDaemon bool `optional:"true"` // Daemon is set when running on a long-running daemon.
@@ -124,7 +120,7 @@ type Mounts struct {
 
 // Close calls Close() on the App object
 func (n *IpfsNode) Close() error {
-	return n.app.Stop(n.ctx)
+	return n.Process.Close()
 }
 
 // Context returns the IpfsNode context

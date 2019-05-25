@@ -8,6 +8,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
+	"github.com/jbenet/goprocess/context"
 )
 
 type BuildCfg = node.BuildCfg // Alias for compatibility until we properly refactor the constructor interface
@@ -27,24 +28,19 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		fx.Extract(n),
 	)
 
-	go func() {
-		// Note that some services use contexts to signal shutting down, which is
-		// very suboptimal. This needs to be here until that's addressed somehow
-		<-ctx.Done()
-		err := app.Stop(context.Background())
-		if err != nil {
-			log.Error("failure on stop: ", err)
-		}
-	}()
-
 	n.IsOnline = cfg.Online
-	n.app = app
 
 	if app.Err() != nil {
 		return nil, app.Err()
 	}
 
+	// bind the process to the context so we stop when the context is
+	// canceled
+	goprocessctx.CloseAfterContext(n.Process, ctx)
+
 	if err := app.Start(ctx); err != nil {
+		stopErr := app.Stop(context.Background())
+		log.Error("failure on stop: ", stopErr)
 		return nil, err
 	}
 

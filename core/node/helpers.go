@@ -51,8 +51,13 @@ func maybeInvoke(opt interface{}, enable bool) fx.Option {
 }
 
 // baseProcess creates a goprocess which is closed when the lifecycle signals it to stop
-func baseProcess(lc fx.Lifecycle) goprocess.Process {
-	p := goprocess.WithParent(goprocess.Background())
+func baseProcess(lc fx.Lifecycle, s fx.Shutdowner) goprocess.Process {
+	// process shutdown -> app close
+	p := goprocess.WithTeardown(func() error {
+		return s.Shutdown()
+	})
+
+	// app close -> process shutdown
 	lc.Append(fx.Hook{
 		OnStop: func(_ context.Context) error {
 			return p.Close()
