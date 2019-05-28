@@ -30,7 +30,7 @@ func (f makeSingle) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 
 func BasicTests(ts *tests.TestSuite, t *testing.T) {
 	ts.TestKey(t)
-	ts.TestUnixfs(t)
+	//ts.TestUnixfs(t)
 }
 
 func TestNew(t *testing.T) {

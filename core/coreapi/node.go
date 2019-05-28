@@ -144,6 +144,10 @@ func Provide(i interface{}) Option {
 
 // TODO: docstring warning that this method is powerful but dangerous
 func Override(c component, replacement interface{}, pf ...func(...interface{}) fx.Option) Option {
+	if reflect.TypeOf(replacement).Kind() != reflect.Func {
+		panic("override replacement not a func")
+	}
+
 	return func(s *settings) error {
 		if len(pf) == 0 {
 			pf = []func(...interface{}) fx.Option{fx.Provide}
@@ -175,6 +179,15 @@ func Options(opts ...Option) Option {
 func ifNil(c component, f ...Option) Option {
 	return func(s *settings) error {
 		if s.components[c] == nil {
+			return Options(f...)(s)
+		}
+		return nil
+	}
+}
+
+func ifSet(c component, f ...Option) Option {
+	return func(s *settings) error {
+		if s.components[c] != nil {
 			return Options(f...)(s)
 		}
 		return nil
@@ -309,14 +322,14 @@ func configDatastore(dstore config.Datastore, s *repoSettings) Option {
 }
 
 func configAddresses(addrs config.Addresses) Option {
-	return Options(
+	return ifSet(Libp2pHost,
 		Override(Libp2pStartListening, libp2p.StartListening(addrs.Swarm), fx.Invoke),
 		Override(Libp2pAddrsFactory, libp2p.AddrsFactory(addrs.Announce, addrs.NoAnnounce)),
 	)
 }
 
 func configDiscovery(disc config.Discovery) Option {
-	return Override(Libp2pMDNS, libp2p.SetupDiscovery(disc.MDNS.Enabled, disc.MDNS.Interval))
+	return ifSet(Libp2pHost, Override(Libp2pMDNS, libp2p.SetupDiscovery(disc.MDNS.Enabled, disc.MDNS.Interval), fx.Invoke))
 }
 
 const (
@@ -375,7 +388,7 @@ func configIpns(ipns config.Ipns) Option {
 		recordLifetime = d
 	}
 
-	return Options(
+	return ifSet(Libp2pRouting,
 		Override(Namesys, node.Namesys(ipnsCacheSize)),
 		Override(IpnsRepublisher, node.IpnsRepublisher(repubPeriod, recordLifetime), fx.Invoke),
 	)
@@ -527,7 +540,7 @@ func Permanent(s *repoSettings) {
 	s.permanent = true
 }
 
-func Repo(repo repo.Repo, opts ...RepoOption) Option {
+func Repo(r repo.Repo, opts ...RepoOption) Option {
 	return func(s *settings) error {
 		rs := &repoSettings{
 			nilRepo: s.nilRepo,
@@ -536,12 +549,12 @@ func Repo(repo repo.Repo, opts ...RepoOption) Option {
 			opt(rs)
 		}
 
-		repoOption := Override(baseRepo, repo)
+		repoOption := Override(baseRepo, func() repo.Repo { return r })
 		if !rs.parseConfig {
 			return repoOption(s)
 		}
 
-		cfg, err := repo.Config()
+		cfg, err := r.Config()
 		if err != nil {
 			return err
 		}
