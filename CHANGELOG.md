@@ -81,7 +81,7 @@ DHT to repeatedly load and discard provider records.
 
 #### Improved Connection Management
 
-Go-ipfs uses a service called the "connection manager" to rank connections them
+Go-ipfs uses a service called the "connection manager" to rank connections
 by "usefulness" and close the least-useful ones when go-ipfs collects too many.
 
 TODO: Fixed race condition between handling new connections and tagging them.
