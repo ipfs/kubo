@@ -24,254 +24,188 @@ go versions during builds.
 (please point out what should be featured, doesn't have to be go-ipfs).
 
 
+### Changelog
 
-### Changelogs:
 - github.com/ipfs/go-ipfs:
-  - fix the wrong path configuration in root redirection ([ipfs/go-ipfs#6215](https://github.com/ipfs/go-ipfs/pull/6215))
-  - coreapi: Drop error from ParsePath ([ipfs/go-ipfs#6122](https://github.com/ipfs/go-ipfs/pull/6122))
-  - DI-based core.NewNode ([ipfs/go-ipfs#6162](https://github.com/ipfs/go-ipfs/pull/6162))
-  - fix two small nits in the go-ipfs constructor ([ipfs/go-ipfs#6234](https://github.com/ipfs/go-ipfs/pull/6234))
-  - add an experiment to prefer TLS 1.3 over secio ([ipfs/go-ipfs#6229](https://github.com/ipfs/go-ipfs/pull/6229))
-  - build: fix macos build with fuse ([ipfs/go-ipfs#6235](https://github.com/ipfs/go-ipfs/pull/6235))
-  - dep: update libp2p, datastore, and the dht ([ipfs/go-ipfs#6240](https://github.com/ipfs/go-ipfs/pull/6240))
-  - Support --human flag in cmd/object-stat ([ipfs/go-ipfs#6241](https://github.com/ipfs/go-ipfs/pull/6241))
-  - constructor: cleanup some things ([ipfs/go-ipfs#6246](https://github.com/ipfs/go-ipfs/pull/6246))
-  - core/corehttp/gateway_handler: pass a request ctx instead of the node ([ipfs/go-ipfs#6244](https://github.com/ipfs/go-ipfs/pull/6244))
-  - reprovider: Use goprocess ([ipfs/go-ipfs#6248](https://github.com/ipfs/go-ipfs/pull/6248))
-  -  add: Fix adding multiple files ([ipfs/go-ipfs#6255](https://github.com/ipfs/go-ipfs/pull/6255))
-  - dep: update libp2p, dht, peerstore, swarm, secio ([ipfs/go-ipfs#6257](https://github.com/ipfs/go-ipfs/pull/6257))
-  - Fix AutoNAT service for private network ([ipfs/go-ipfs#6251](https://github.com/ipfs/go-ipfs/pull/6251))
-  - raise default fd limit to 8192 ([ipfs/go-ipfs#6261](https://github.com/ipfs/go-ipfs/pull/6261))
-  - Revert "raise default fd limit to 8192" ([ipfs/go-ipfs#6265](https://github.com/ipfs/go-ipfs/pull/6265))
-  - attempt to fix concurrent websocket write ([ipfs/go-ipfs#6263](https://github.com/ipfs/go-ipfs/pull/6263))
-  - humanize for ipfs bitswap stat ([ipfs/go-ipfs#6258](https://github.com/ipfs/go-ipfs/pull/6258))
-  - commands(feat): use the coreapi in the urlstore command ([ipfs/go-ipfs#6259](https://github.com/ipfs/go-ipfs/pull/6259))
-  - dep: update many ([ipfs/go-ipfs#6267](https://github.com/ipfs/go-ipfs/pull/6267))
-  - add: Return error from iterator ([ipfs/go-ipfs#6272](https://github.com/ipfs/go-ipfs/pull/6272))
-  - dep: drop leb.io/hashland ([ipfs/go-ipfs#6270](https://github.com/ipfs/go-ipfs/pull/6270))
-  - dep: update go-libp2p ([ipfs/go-ipfs#6273](https://github.com/ipfs/go-ipfs/pull/6273))
-  - docs: document environment variables ([ipfs/go-ipfs#6268](https://github.com/ipfs/go-ipfs/pull/6268))
-  - Invert constructor config handling ([ipfs/go-ipfs#6276](https://github.com/ipfs/go-ipfs/pull/6276))
-  - fix: windows friendly daemon help ([ipfs/go-ipfs#6278](https://github.com/ipfs/go-ipfs/pull/6278))
-  - dep: update multistream ([ipfs/go-ipfs#6280](https://github.com/ipfs/go-ipfs/pull/6280))
-  - gc: cancel context ([ipfs/go-ipfs#6281](https://github.com/ipfs/go-ipfs/pull/6281))
-  - GOCC implementation & fix in make & build scripts ([ipfs/go-ipfs#6282](https://github.com/ipfs/go-ipfs/pull/6282))
-  - dep: update go-ipfs-config ([ipfs/go-ipfs#6285](https://github.com/ipfs/go-ipfs/pull/6285))
-  - Test and fix GC/pin bug ([ipfs/go-ipfs#6288](https://github.com/ipfs/go-ipfs/pull/6288))
-  - core: fix autonat construction ([ipfs/go-ipfs#6289](https://github.com/ipfs/go-ipfs/pull/6289))
-  - commands(pin update): return resolved CIDs instead of paths ([ipfs/go-ipfs#6275](https://github.com/ipfs/go-ipfs/pull/6275))
-  - Go test fix ([ipfs/go-ipfs#6293](https://github.com/ipfs/go-ipfs/pull/6293))
-  - License update to dual MIT and Apache 2 ([ipfs/go-ipfs#6301](https://github.com/ipfs/go-ipfs/pull/6301))
-  - docs: fix Routing section ([ipfs/go-ipfs#6309](https://github.com/ipfs/go-ipfs/pull/6309))
-  - fix(Dockerfile): Allow ipfs mount in Docker container ([ipfs/go-ipfs#5560](https://github.com/ipfs/go-ipfs/pull/5560))
-  - test(coreapi): use a thread-safe datastore everywhere ([ipfs/go-ipfs#6222](https://github.com/ipfs/go-ipfs/pull/6222))
-  - ping: fix a bunch of issues ([ipfs/go-ipfs#6312](https://github.com/ipfs/go-ipfs/pull/6312))
-  - dep: update goprocess ([ipfs/go-ipfs#6316](https://github.com/ipfs/go-ipfs/pull/6316))
-  - Update to latest go-mfs ([ipfs/go-ipfs#6308](https://github.com/ipfs/go-ipfs/pull/6308))
-  - pin: don't walk all pinned blocks when removing a non-existent pin ([ipfs/go-ipfs#6311](https://github.com/ipfs/go-ipfs/pull/6311))
-  - raise default fd limit to 8192 ([ipfs/go-ipfs#6266](https://github.com/ipfs/go-ipfs/pull/6266))
-  - cmdkit -> cmds ([ipfs/go-ipfs#6318](https://github.com/ipfs/go-ipfs/pull/6318))
-  - switch to base32 by default for CIDv1 ([ipfs/go-ipfs#6300](https://github.com/ipfs/go-ipfs/pull/6300))
-  - fix setting ulimit ([ipfs/go-ipfs#6319](https://github.com/ipfs/go-ipfs/pull/6319))
-  - work towards fixing dht commands ([ipfs/go-ipfs#6277](https://github.com/ipfs/go-ipfs/pull/6277))
-  - Update fuse.md ([ipfs/go-ipfs#6332](https://github.com/ipfs/go-ipfs/pull/6332))
-  - object put: Allow empty objects ([ipfs/go-ipfs#6330](https://github.com/ipfs/go-ipfs/pull/6330))
-  - github: turn issue template into a multiple-choice question ([ipfs/go-ipfs#6333](https://github.com/ipfs/go-ipfs/pull/6333))
-  - fix a typo in the issue template ([ipfs/go-ipfs#6335](https://github.com/ipfs/go-ipfs/pull/6335))
-  - fail start when loading a plugin fails ([ipfs/go-ipfs#6339](https://github.com/ipfs/go-ipfs/pull/6339))
-  - fix formatting in object get ([ipfs/go-ipfs#6340](https://github.com/ipfs/go-ipfs/pull/6340))
-  - docs+mk: update guidance for unsupported platforms ([ipfs/go-ipfs#6338](https://github.com/ipfs/go-ipfs/pull/6338))
-  - Add golangci-lint ([ipfs/go-ipfs#6321](https://github.com/ipfs/go-ipfs/pull/6321))
-  - readme: remove mention of DCO ([ipfs/go-ipfs#6344](https://github.com/ipfs/go-ipfs/pull/6344))
-  - Add generation of dependency changes to mkreleaselog ([ipfs/go-ipfs#6348](https://github.com/ipfs/go-ipfs/pull/6348))
-  - doc: remove out of date documentation ([ipfs/go-ipfs#6345](https://github.com/ipfs/go-ipfs/pull/6345))
-  - core: Use correct default for connmgr lowWater ([ipfs/go-ipfs#6352](https://github.com/ipfs/go-ipfs/pull/6352))
-  - fix vendoring dependencies when building the source tarball ([ipfs/go-ipfs#6349](https://github.com/ipfs/go-ipfs/pull/6349))
-  - feat: improve errors when a path fails to parse ([ipfs/go-ipfs#6346](https://github.com/ipfs/go-ipfs/pull/6346))
-  - release v0.4.21-rc1 ([ipfs/go-ipfs#6353](https://github.com/ipfs/go-ipfs/pull/6353))
-  - commands/swarm(fix): handle empty multiaddrs ([ipfs/go-ipfs#6355](https://github.com/ipfs/go-ipfs/pull/6355))
+  - core: call app.Stop once ([ipfs/go-ipfs#6380](https://github.com/ipfs/go-ipfs/pull/6380))
+  - explain what dhtclient does ([ipfs/go-ipfs#6375](https://github.com/ipfs/go-ipfs/pull/6375))
   - ci: actually enable golangci-lint ([ipfs/go-ipfs#6362](https://github.com/ipfs/go-ipfs/pull/6362))
-  - dep: update go-libp2p ([ipfs/go-ipfs#6361](https://github.com/ipfs/go-ipfs/pull/6361))
-  - dep: update yamux and bitswap ([ipfs/go-ipfs#6364](https://github.com/ipfs/go-ipfs/pull/6364))
-  - remove yamux read buffer ([ipfs/go-ipfs#6365](https://github.com/ipfs/go-ipfs/pull/6365))
-  - release: go-ipfs 0.4.21-rc2 ([ipfs/go-ipfs#6366](https://github.com/ipfs/go-ipfs/pull/6366))
+  - commands/swarm(fix): handle empty multiaddrs ([ipfs/go-ipfs#6355](https://github.com/ipfs/go-ipfs/pull/6355))
+  - feat: improve errors when a path fails to parse ([ipfs/go-ipfs#6346](https://github.com/ipfs/go-ipfs/pull/6346))
+  - fix vendoring dependencies when building the source tarball ([ipfs/go-ipfs#6349](https://github.com/ipfs/go-ipfs/pull/6349))
+  - core: Use correct default for connmgr lowWater ([ipfs/go-ipfs#6352](https://github.com/ipfs/go-ipfs/pull/6352))
+  - doc: remove out of date documentation ([ipfs/go-ipfs#6345](https://github.com/ipfs/go-ipfs/pull/6345))
+  - Add generation of dependency changes to mkreleaselog ([ipfs/go-ipfs#6348](https://github.com/ipfs/go-ipfs/pull/6348))
+  - readme: remove mention of DCO ([ipfs/go-ipfs#6344](https://github.com/ipfs/go-ipfs/pull/6344))
+  - Add golangci-lint ([ipfs/go-ipfs#6321](https://github.com/ipfs/go-ipfs/pull/6321))
+  - docs+mk: update guidance for unsupported platforms ([ipfs/go-ipfs#6338](https://github.com/ipfs/go-ipfs/pull/6338))
+  - fix formatting in object get ([ipfs/go-ipfs#6340](https://github.com/ipfs/go-ipfs/pull/6340))
+  - fail start when loading a plugin fails ([ipfs/go-ipfs#6339](https://github.com/ipfs/go-ipfs/pull/6339))
+  - fix a typo in the issue template ([ipfs/go-ipfs#6335](https://github.com/ipfs/go-ipfs/pull/6335))
+  - github: turn issue template into a multiple-choice question ([ipfs/go-ipfs#6333](https://github.com/ipfs/go-ipfs/pull/6333))
+  - object put: Allow empty objects ([ipfs/go-ipfs#6330](https://github.com/ipfs/go-ipfs/pull/6330))
+  - Update fuse.md ([ipfs/go-ipfs#6332](https://github.com/ipfs/go-ipfs/pull/6332))
+  - work towards fixing dht commands ([ipfs/go-ipfs#6277](https://github.com/ipfs/go-ipfs/pull/6277))
+  - fix setting ulimit ([ipfs/go-ipfs#6319](https://github.com/ipfs/go-ipfs/pull/6319))
+  - switch to base32 by default for CIDv1 ([ipfs/go-ipfs#6300](https://github.com/ipfs/go-ipfs/pull/6300))
+  - cmdkit -> cmds ([ipfs/go-ipfs#6318](https://github.com/ipfs/go-ipfs/pull/6318))
+  - raise default fd limit to 8192 ([ipfs/go-ipfs#6266](https://github.com/ipfs/go-ipfs/pull/6266))
+  - pin: don't walk all pinned blocks when removing a non-existent pin ([ipfs/go-ipfs#6311](https://github.com/ipfs/go-ipfs/pull/6311))
+  - ping: fix a bunch of issues ([ipfs/go-ipfs#6312](https://github.com/ipfs/go-ipfs/pull/6312))
+  - test(coreapi): use a thread-safe datastore everywhere ([ipfs/go-ipfs#6222](https://github.com/ipfs/go-ipfs/pull/6222))
+  - fix(Dockerfile): Allow ipfs mount in Docker container ([ipfs/go-ipfs#5560](https://github.com/ipfs/go-ipfs/pull/5560))
+  - docs: fix Routing section ([ipfs/go-ipfs#6309](https://github.com/ipfs/go-ipfs/pull/6309))
+  - License update to dual MIT and Apache 2 ([ipfs/go-ipfs#6301](https://github.com/ipfs/go-ipfs/pull/6301))
+  - Go test fix ([ipfs/go-ipfs#6293](https://github.com/ipfs/go-ipfs/pull/6293))
+  - commands(pin update): return resolved CIDs instead of paths ([ipfs/go-ipfs#6275](https://github.com/ipfs/go-ipfs/pull/6275))
+  - core: fix autonat construction ([ipfs/go-ipfs#6289](https://github.com/ipfs/go-ipfs/pull/6289))
+  - Test and fix GC/pin bug ([ipfs/go-ipfs#6288](https://github.com/ipfs/go-ipfs/pull/6288))
+  - GOCC implementation & fix in make & build scripts ([ipfs/go-ipfs#6282](https://github.com/ipfs/go-ipfs/pull/6282))
+  - gc: cancel context ([ipfs/go-ipfs#6281](https://github.com/ipfs/go-ipfs/pull/6281))
+  - fix: windows friendly daemon help ([ipfs/go-ipfs#6278](https://github.com/ipfs/go-ipfs/pull/6278))
+  - Invert constructor config handling  ([ipfs/go-ipfs#6276](https://github.com/ipfs/go-ipfs/pull/6276))
+  - docs: document environment variables ([ipfs/go-ipfs#6268](https://github.com/ipfs/go-ipfs/pull/6268))
+  - add: Return error from iterator ([ipfs/go-ipfs#6272](https://github.com/ipfs/go-ipfs/pull/6272))
+  - commands(feat): use the coreapi in the urlstore command ([ipfs/go-ipfs#6259](https://github.com/ipfs/go-ipfs/pull/6259))
+  - humanize for ipfs bitswap stat ([ipfs/go-ipfs#6258](https://github.com/ipfs/go-ipfs/pull/6258))
+  - Revert "raise default fd limit to 8192" ([ipfs/go-ipfs#6265](https://github.com/ipfs/go-ipfs/pull/6265))
+  - raise default fd limit to 8192 ([ipfs/go-ipfs#6261](https://github.com/ipfs/go-ipfs/pull/6261))
+  - Fix AutoNAT service for private network ([ipfs/go-ipfs#6251](https://github.com/ipfs/go-ipfs/pull/6251))
+  - add: Fix adding multiple files ([ipfs/go-ipfs#6255](https://github.com/ipfs/go-ipfs/pull/6255))
+  - reprovider: Use goprocess ([ipfs/go-ipfs#6248](https://github.com/ipfs/go-ipfs/pull/6248))
+  - core/corehttp/gateway_handler: pass a request ctx instead of the node ([ipfs/go-ipfs#6244](https://github.com/ipfs/go-ipfs/pull/6244))
+  - constructor: cleanup some things ([ipfs/go-ipfs#6246](https://github.com/ipfs/go-ipfs/pull/6246))
+  - Support --human flag in cmd/object-stat ([ipfs/go-ipfs#6241](https://github.com/ipfs/go-ipfs/pull/6241))
+  - build: fix macos build with fuse ([ipfs/go-ipfs#6235](https://github.com/ipfs/go-ipfs/pull/6235))
+  - add an experiment to prefer TLS 1.3 over secio ([ipfs/go-ipfs#6229](https://github.com/ipfs/go-ipfs/pull/6229))
+  - fix two small nits in the go-ipfs constructor ([ipfs/go-ipfs#6234](https://github.com/ipfs/go-ipfs/pull/6234))
+  - DI-based core.NewNode ([ipfs/go-ipfs#6162](https://github.com/ipfs/go-ipfs/pull/6162))
+  - coreapi: Drop error from ParsePath ([ipfs/go-ipfs#6122](https://github.com/ipfs/go-ipfs/pull/6122))
+  - fix the wrong path configuration in root redirection ([ipfs/go-ipfs#6215](https://github.com/ipfs/go-ipfs/pull/6215))
+- github.com/ipfs/go-bitswap (v0.0.4 -> v0.0.7):
+  - feat(engine): tag peers with requests ([ipfs/go-bitswap#128](https://github.com/ipfs/go-bitswap/pull/128))
+  - fix(network): add mutex to avoid data race ([ipfs/go-bitswap#127](https://github.com/ipfs/go-bitswap/pull/127))
+  - Change bitswap provide toggle to not be static ([ipfs/go-bitswap#124](https://github.com/ipfs/go-bitswap/pull/124))
+  - Use shared peer task queue with Graphsync ([ipfs/go-bitswap#119](https://github.com/ipfs/go-bitswap/pull/119))
+  - Add missing godoc comments, refactor to avoid confusion ([ipfs/go-bitswap#117](https://github.com/ipfs/go-bitswap/pull/117))
+  - fix(decision): cleanup request queues ([ipfs/go-bitswap#116](https://github.com/ipfs/go-bitswap/pull/116))
+  - Control provider workers with experiment flag ([ipfs/go-bitswap#110](https://github.com/ipfs/go-bitswap/pull/110))
+  - connmgr: give peers more weight when actively participating in a session ([ipfs/go-bitswap#111](https://github.com/ipfs/go-bitswap/pull/111))
+  - make the WantlistManager own the PeerHandler ([ipfs/go-bitswap#78](https://github.com/ipfs/go-bitswap/pull/78))
+  - remove IPFS_LOW_MEM flag support ([ipfs/go-bitswap#115](https://github.com/ipfs/go-bitswap/pull/115))
+- github.com/ipfs/go-cid (v0.0.1 -> v0.0.2):
+  - default cidv1 to base32 ([ipfs/go-cid#85](https://github.com/ipfs/go-cid/pull/85))
+- github.com/ipfs/go-cidutil (v0.0.1 -> v0.0.2):
+  - default cidv1 to base32 ([ipfs/go-cidutil#13](https://github.com/ipfs/go-cidutil/pull/13))
+- github.com/ipfs/go-datastore (v0.0.3 -> v0.0.5):
+  - MapDatastore: obey KeysOnly ([ipfs/go-datastore#130](https://github.com/ipfs/go-datastore/pull/130))
+  - fix the keytransform datastore's query implementation ([ipfs/go-datastore#127](https://github.com/ipfs/go-datastore/pull/127))
+  - sync: apply entire query while locked ([ipfs/go-datastore#129](https://github.com/ipfs/go-datastore/pull/129))
+  - filter: values are now always bytes ([ipfs/go-datastore#126](https://github.com/ipfs/go-datastore/pull/126))
+  - autobatch: batch deletes ([ipfs/go-datastore#128](https://github.com/ipfs/go-datastore/pull/128))
+- github.com/ipfs/go-ipfs-cmds (v0.0.5 -> v0.0.7):
+  - merge in go-ipfs-cmdkit ([ipfs/go-ipfs-cmds#164](https://github.com/ipfs/go-ipfs-cmds/pull/164))
+  - fix: return the correct error ([ipfs/go-ipfs-cmds#162](https://github.com/ipfs/go-ipfs-cmds/pull/162))
+- github.com/ipfs/go-ipfs-config (v0.0.1 -> v0.0.3):
+  - Closes: #6284 Add appropriate IPv6 ranges to defaultServerFilters ([ipfs/go-ipfs-config#34](https://github.com/ipfs/go-ipfs-config/pull/34))
+  - add an experiment to prefer TLS 1.3 over secio ([ipfs/go-ipfs-config#32](https://github.com/ipfs/go-ipfs-config/pull/32))
+- github.com/ipfs/go-ipfs-files (v0.0.2 -> v0.0.3):
+  - webfile: make Size() work before Read ([ipfs/go-ipfs-files#18](https://github.com/ipfs/go-ipfs-files/pull/18))
+  - check http status code during WebFile reads and return error for non-2XX ([ipfs/go-ipfs-files#17](https://github.com/ipfs/go-ipfs-files/pull/17))
+- github.com/ipfs/go-ipld-cbor (v0.0.1 -> v0.0.2):
+  - switch to base32 by default ([ipfs/go-ipld-cbor#62](https://github.com/ipfs/go-ipld-cbor/pull/62))
+- github.com/ipfs/go-ipld-git (v0.0.1 -> v0.0.2):
+  - switch to base32 by default ([ipfs/go-ipld-git#40](https://github.com/ipfs/go-ipld-git/pull/40))
+- github.com/ipfs/go-mfs (v0.0.4 -> v0.0.7):
+  - Fix directory mv and add tests ([ipfs/go-mfs#76](https://github.com/ipfs/go-mfs/pull/76))
+  - fix: not remove file by mistakes ([ipfs/go-mfs#73](https://github.com/ipfs/go-mfs/pull/73))
+- github.com/ipfs/go-path (v0.0.3 -> v0.0.4):
+  - include the path in path errors ([ipfs/go-path#28](https://github.com/ipfs/go-path/pull/28))
+- github.com/ipfs/go-unixfs (v0.0.4 -> v0.0.6):
+  - chore: remove URL field ([ipfs/go-unixfs#72](https://github.com/ipfs/go-unixfs/pull/72))
+- github.com/ipfs/interface-go-ipfs-core (v0.0.6 -> v0.0.8):
+  - switch to base32 cidv1 by default ([ipfs/interface-go-ipfs-core#29](https://github.com/ipfs/interface-go-ipfs-core/pull/29))
+  - path: drop error from ParsePath ([ipfs/interface-go-ipfs-core#22](https://github.com/ipfs/interface-go-ipfs-core/pull/22))
+  - tests: fix a bunch of small test lints/issues ([ipfs/interface-go-ipfs-core#28](https://github.com/ipfs/interface-go-ipfs-core/pull/28))
+  - Update Pin.RmRecursive docs to clarify shared indirect pins are not removed ([ipfs/interface-go-ipfs-core#26](https://github.com/ipfs/interface-go-ipfs-core/pull/26))
+- github.com/libp2p/go-buffer-pool (v0.0.1 -> v0.0.2):
+  - feat: add buffered writer ([libp2p/go-buffer-pool#9](https://github.com/libp2p/go-buffer-pool/pull/9))
+- github.com/libp2p/go-conn-security-multistream (v0.0.1 -> v0.0.2):
+  - block while writing ([libp2p/go-conn-security-multistream#10](https://github.com/libp2p/go-conn-security-multistream/pull/10))
+- github.com/libp2p/go-libp2p (v0.0.12 -> v0.0.28):
+  - Close the connection manager ([libp2p/go-libp2p#639](https://github.com/libp2p/go-libp2p/pull/639))
+  - Frequent Relay Advertisements ([libp2p/go-libp2p#637](https://github.com/libp2p/go-libp2p/pull/637))
+  - ping: return a stream of results ([libp2p/go-libp2p#626](https://github.com/libp2p/go-libp2p/pull/626))
+  - Use cancelable background context in identify ([libp2p/go-libp2p#624](https://github.com/libp2p/go-libp2p/pull/624))
+  - avoid intermediate allocation in relayAddrs ([libp2p/go-libp2p#609](https://github.com/libp2p/go-libp2p/pull/609))
+  - cache relayAddrs for a short period of time ([libp2p/go-libp2p#608](https://github.com/libp2p/go-libp2p/pull/608))
+  - autorelay: break findRelays into multiple functions and avoid the goto ([libp2p/go-libp2p#606](https://github.com/libp2p/go-libp2p/pull/606))
+  - autorelay: curtail addrsplosion ([libp2p/go-libp2p#598](https://github.com/libp2p/go-libp2p/pull/598))
+  - Periodically schedule identify push if the address set has changed ([libp2p/go-libp2p#597](https://github.com/libp2p/go-libp2p/pull/597))
+  - Replace peer addresses in identify ([libp2p/go-libp2p#599](https://github.com/libp2p/go-libp2p/pull/599))
+- github.com/libp2p/go-libp2p-circuit (v0.0.4 -> v0.0.8):
+  - call Stream.Reset instead of Stream.Close ([libp2p/go-libp2p-circuit#76](https://github.com/libp2p/go-libp2p-circuit/pull/76))
+  - Tag the hop relay when creating stop streams ([libp2p/go-libp2p-circuit#77](https://github.com/libp2p/go-libp2p-circuit/pull/77))
+  - Tag peers with live hop streams ([libp2p/go-libp2p-circuit#75](https://github.com/libp2p/go-libp2p-circuit/pull/75))
+  - Hard Limit the number of hop stream goroutines ([libp2p/go-libp2p-circuit#74](https://github.com/libp2p/go-libp2p-circuit/pull/74))
+  - set deadline for stop handshake ([libp2p/go-libp2p-circuit#73](https://github.com/libp2p/go-libp2p-circuit/pull/73))
+- github.com/libp2p/go-libp2p-connmgr (v0.0.1 -> v0.0.6):
+  - Background trimming ([libp2p/go-libp2p-connmgr#43](https://github.com/libp2p/go-libp2p-connmgr/pull/43))
+  - Implement UpsertTag ([libp2p/go-libp2p-connmgr#38](https://github.com/libp2p/go-libp2p-connmgr/pull/38))
+  - Add peer protection capability (implementation) ([libp2p/go-libp2p-connmgr#36](https://github.com/libp2p/go-libp2p-connmgr/pull/36))
+- github.com/libp2p/go-libp2p-crypto (v0.0.1 -> v0.0.2):
+  - add openssl support ([libp2p/go-libp2p-crypto#61](https://github.com/libp2p/go-libp2p-crypto/pull/61))
+- github.com/libp2p/go-libp2p-discovery (v0.0.1 -> v0.0.4):
+  - More consistent use of options ([libp2p/go-libp2p-discovery#25](https://github.com/libp2p/go-libp2p-discovery/pull/25))
+  - Use 3hrs as routing advertisement ttl ([libp2p/go-libp2p-discovery#23](https://github.com/libp2p/go-libp2p-discovery/pull/23))
+- github.com/libp2p/go-libp2p-interface-connmgr (v0.0.1 -> v0.0.5):
+  - Add Close method to the ConnManager interface ([libp2p/go-libp2p-interface-connmgr#18](https://github.com/libp2p/go-libp2p-interface-connmgr/pull/18))
+  - Add UpsertTag to the interface ([libp2p/go-libp2p-interface-connmgr#17](https://github.com/libp2p/go-libp2p-interface-connmgr/pull/17))
+  - Fix NullConnMgr to respect ConnManager interface ([libp2p/go-libp2p-interface-connmgr#15](https://github.com/libp2p/go-libp2p-interface-connmgr/pull/15))
+  - Add peer protection capability ([libp2p/go-libp2p-interface-connmgr#14](https://github.com/libp2p/go-libp2p-interface-connmgr/pull/14))
+- github.com/libp2p/go-libp2p-kad-dht (v0.0.7 -> v0.0.13):
+  - fix: reduce memory used by buffered writers ([libp2p/go-libp2p-kad-dht#332](https://github.com/libp2p/go-libp2p-kad-dht/pull/332))
+  - query: fix a goroutine leak when the routing table is empty ([libp2p/go-libp2p-kad-dht#329](https://github.com/libp2p/go-libp2p-kad-dht/pull/329))
+  - query: fix error "leak" ([libp2p/go-libp2p-kad-dht#328](https://github.com/libp2p/go-libp2p-kad-dht/pull/328))
+  - providers: run datastore GC concurrently ([libp2p/go-libp2p-kad-dht#326](https://github.com/libp2p/go-libp2p-kad-dht/pull/326))
+  - fix(providers): gc ([libp2p/go-libp2p-kad-dht#325](https://github.com/libp2p/go-libp2p-kad-dht/pull/325))
+  - Remove the old protocol from the defaults ([libp2p/go-libp2p-kad-dht#320](https://github.com/libp2p/go-libp2p-kad-dht/pull/320))
+  - Fix some provider subsystem performance issues ([libp2p/go-libp2p-kad-dht#319](https://github.com/libp2p/go-libp2p-kad-dht/pull/319))
+- github.com/libp2p/go-libp2p-peerstore (v0.0.2 -> v0.0.6):
+  - segment the memory peerstore + granular locks ([libp2p/go-libp2p-peerstore#78](https://github.com/libp2p/go-libp2p-peerstore/pull/78))
+  - don't delete under the read lock ([libp2p/go-libp2p-peerstore#76](https://github.com/libp2p/go-libp2p-peerstore/pull/76))
+  - Read/Write locking ([libp2p/go-libp2p-peerstore#74](https://github.com/libp2p/go-libp2p-peerstore/pull/74))
+  - optimize peerstore memory ([libp2p/go-libp2p-peerstore#71](https://github.com/libp2p/go-libp2p-peerstore/pull/71))
+  - fix unmarshalling of peer IDs ([libp2p/go-libp2p-peerstore#72](https://github.com/libp2p/go-libp2p-peerstore/pull/72))
+  - fix error handling in UpdateAddrs: return on error ([libp2p/go-libp2p-peerstore#70](https://github.com/libp2p/go-libp2p-peerstore/pull/70))
+- github.com/libp2p/go-libp2p-pubsub (v0.0.1 -> v0.0.3):
+  - rework validator pipeline ([libp2p/go-libp2p-pubsub#176](https://github.com/libp2p/go-libp2p-pubsub/pull/176))
+  - Test adversarial signing ([libp2p/go-libp2p-pubsub#181](https://github.com/libp2p/go-libp2p-pubsub/pull/181))
+  - Strict message signing by default ([libp2p/go-libp2p-pubsub#180](https://github.com/libp2p/go-libp2p-pubsub/pull/180))
+- github.com/libp2p/go-libp2p-secio (v0.0.1 -> v0.0.3):
+  - fix buffer size check ([libp2p/go-libp2p-secio#44](https://github.com/libp2p/go-libp2p-secio/pull/44))
+- github.com/libp2p/go-libp2p-swarm (v0.0.2 -> v0.0.6):
+  - dial: return a nice custom dial error ([libp2p/go-libp2p-swarm#121](https://github.com/libp2p/go-libp2p-swarm/pull/121))
+- github.com/libp2p/go-libp2p-tls (null -> v0.0.1):
+  - implement the new handshake ([libp2p/go-libp2p-tls#20](https://github.com/libp2p/go-libp2p-tls/pull/20))
+  - use a prefix when signing the public key ([libp2p/go-libp2p-tls#26](https://github.com/libp2p/go-libp2p-tls/pull/26))
+  - use ChaCha if one of the peers doesn't have AES hardware support ([libp2p/go-libp2p-tls#23](https://github.com/libp2p/go-libp2p-tls/pull/23))
+  - improve peer verification ([libp2p/go-libp2p-tls#17](https://github.com/libp2p/go-libp2p-tls/pull/17))
+  - add an example (mainly for development) ([libp2p/go-libp2p-tls#14](https://github.com/libp2p/go-libp2p-tls/pull/14))
+- github.com/libp2p/go-libp2p-transport-upgrader (v0.0.1 -> v0.0.4):
+  - improve correctness of closing connections on failure ([libp2p/go-libp2p-transport-upgrader#19](https://github.com/libp2p/go-libp2p-transport-upgrader/pull/19))
+- github.com/libp2p/go-mplex (v0.0.1 -> v0.0.4):
+  - fix SetDeadline error conditions ([libp2p/go-mplex#59](https://github.com/libp2p/go-mplex/pull/59))
+  - don't use contexts for deadlines ([libp2p/go-mplex#58](https://github.com/libp2p/go-mplex/pull/58))
+  - don't reset on pathologies, just ignore the data ([libp2p/go-mplex#57](https://github.com/libp2p/go-mplex/pull/57))
+  - read as much as we can in one go ([libp2p/go-mplex#53](https://github.com/libp2p/go-mplex/pull/53))
+  - use timeouts when sending messages for stream open, close, and reset. ([libp2p/go-mplex#52](https://github.com/libp2p/go-mplex/pull/52))
+  - fix: reset a stream even if closed remotely ([libp2p/go-mplex#50](https://github.com/libp2p/go-mplex/pull/50))
+  - downgrade Error log to Warning ([libp2p/go-mplex#46](https://github.com/libp2p/go-mplex/pull/46))
+  - Fix race condition by adding a mutex for deadline access ([libp2p/go-mplex#41](https://github.com/libp2p/go-mplex/pull/41))
+- github.com/libp2p/go-msgio (v0.0.1 -> v0.0.2):
+  - fix: never claim to read more than read ([libp2p/go-msgio#12](https://github.com/libp2p/go-msgio/pull/12))
 
-Dependecy updates:
-- github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 => v1.0.0
-- github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32 => v0.0.0-20190427004231-96897255fd17
-- github.com/btcsuite/btcutil v0.0.0-20190207003914-4c204d697803 => v0.0.0-20190425235716-9e5f4b9a998d
-- github.com/btcsuite/goleveldb v0.0.0-20160330041536-7834afc9e8cd => v1.0.0
-- github.com/btcsuite/snappy-go v0.0.0-20151229074030-0bdef8d06723 => v1.0.0
-- github.com/coreos/go-semver v0.2.0 => v0.2.1-0.20180108230905-e214231b295a
-- github.com/golang/protobuf v1.3.0 => v1.3.1
-- github.com/ipfs/go-bitswap v0.0.4 => v0.0.7
-- github.com/ipfs/go-cidutil v0.0.1 => v0.0.2
-- github.com/ipfs/go-cid v0.0.1 => v0.0.2
-- github.com/ipfs/go-datastore v0.0.3 => v0.0.5
-- github.com/ipfs/go-ipfs-cmds v0.0.5 => v0.0.7
-- github.com/ipfs/go-ipfs-config v0.0.1 => v0.0.3
-- github.com/ipfs/go-ipfs-files v0.0.2 => v0.0.3
-- github.com/ipfs/go-ipld-cbor v0.0.1 => v0.0.2
-- github.com/ipfs/go-ipld-format v0.0.1 => v0.0.2
-- github.com/ipfs/go-ipld-git v0.0.1 => v0.0.2
-- github.com/ipfs/go-mfs v0.0.4 => v0.0.7
-- github.com/ipfs/go-path v0.0.3 => v0.0.4
-- github.com/ipfs/go-unixfs v0.0.4 => v0.0.6
-- github.com/ipfs/interface-go-ipfs-core v0.0.6 => v0.0.8
-- github.com/jbenet/go-cienv v0.0.0-20150120210510-1bb1476777ec => v0.1.0
-- github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8 => v0.1.3
-- github.com/jessevdk/go-flags v0.0.0-20141203071132-1679536dcc89 => v1.4.0
-- github.com/kisielk/errcheck v1.1.0 => v1.2.0
-- github.com/kkdai/bstream v0.0.0-20161212061736-f391b8402d23 => v0.0.0-20181106074824-b3251f7901ec
-- github.com/libp2p/go-buffer-pool v0.0.1 => v0.0.2
-- github.com/libp2p/go-conn-security-multistream v0.0.1 => v0.0.2
-- github.com/libp2p/go-libp2p-autonat v0.0.4 => v0.0.6
-- github.com/libp2p/go-libp2p-circuit v0.0.4 => v0.0.8
-- github.com/libp2p/go-libp2p-connmgr v0.0.1 => v0.0.5
-- github.com/libp2p/go-libp2p-crypto v0.0.1 => v0.0.2
-- github.com/libp2p/go-libp2p-discovery v0.0.1 => v0.0.4
-- github.com/libp2p/go-libp2p-host v0.0.1 => v0.0.3
-- github.com/libp2p/go-libp2p-interface-connmgr v0.0.1 => v0.0.5
-- github.com/libp2p/go-libp2p-kad-dht v0.0.7 => v0.0.13
-- github.com/libp2p/go-libp2p-peerstore v0.0.2 => v0.0.6
-- github.com/libp2p/go-libp2p-peer v0.0.1 => v0.1.1
-- github.com/libp2p/go-libp2p-pubsub v0.0.1 => v0.0.3
-- github.com/libp2p/go-libp2p-secio v0.0.1 => v0.0.3
-- github.com/libp2p/go-libp2p-swarm v0.0.2 => v0.0.6
-- github.com/libp2p/go-libp2p-transport-upgrader v0.0.1 => v0.0.4
-- github.com/libp2p/go-libp2p-transport v0.0.4 => v0.0.5
-- github.com/libp2p/go-libp2p v0.0.12 => v0.0.28
-- github.com/libp2p/go-maddr-filter v0.0.1 => v0.0.4
-- github.com/libp2p/go-mplex v0.0.1 => v0.0.3
-- github.com/libp2p/go-msgio v0.0.1 => v0.0.2
-- github.com/libp2p/go-tcp-transport v0.0.2 => v0.0.4
-- github.com/libp2p/go-ws-transport v0.0.2 => v0.0.4
-- github.com/mattn/go-isatty v0.0.5 => v0.0.7
-- github.com/miekg/dns v1.1.4 => v1.1.12
-- github.com/minio/sha256-simd v0.0.0-20190131020904-2d45a736cd16 => v0.0.0-20190328051042-05b4dd3047e5
-- github.com/mr-tron/base58 v1.1.0 => v1.1.2
-- github.com/multiformats/go-multiaddr v0.0.1 => v0.0.4
-- github.com/multiformats/go-multihash v0.0.1 => v0.0.5
-- github.com/multiformats/go-multistream v0.0.1 => v0.0.4
-- github.com/onsi/ginkgo v1.7.0 => v1.8.0
-- github.com/onsi/gomega v1.4.3 => v1.5.0
-- github.com/opentracing/opentracing-go v1.0.2 => v1.1.0
-- github.com/prometheus/client_golang v0.9.2 => v0.9.3
-- github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 => v0.0.0-20190129233127-fd36f4220a90
-- github.com/prometheus/common v0.0.0-20181126121408-4724e9255275 => v0.4.0
-- github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a => v0.0.0-20190519111021-9935e8e0588d
-- github.com/sirupsen/logrus v1.0.5 => v1.2.0
-- github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 => v1.1.0
-- github.com/Stebalien/go-bitfield v0.0.0-20180330043415-076a62f9ce6e => v0.0.1
-- github.com/stretchr/objx v0.1.0 => v0.1.1
-- go4.org v0.0.0-20190218023631-ce4c26f7be8e => v0.0.0-20190313082347-94abd6928b1d
-- golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25 => v0.0.0-20190513172903-22d7a77e9e5f
-- golang.org/x/net v0.0.0-20190227160552-c95aed5357e7 => v0.0.0-20190522135303-fa69b94a3b58
-- golang.org/x/sync v0.0.0-20181108010431-42b317875d0f => v0.0.0-20190423024810-112230192c58
-- golang.org/x/sys v0.0.0-20190302025703-b6889370fb10 => v0.0.0-20190522044717-8097e1b27ff5
-- golang.org/x/text v0.3.0 => v0.3.2
-- golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e => v0.0.0-20190521203540-521d6ed310dd
-- golang.org/x/xerrors v0.0.0-20190212162355-a5947ffaace3 => v0.0.0-20190513163551-3ee3066db522
-- google.golang.org/genproto v0.0.0-20180831171423-11092d34479b => v0.0.0-20190307195333-5fe7a883aa19
-- gopkg.in/yaml.v2 v2.2.1 => v2.2.2
-- gotest.tools/gotestsum v0.3.3 => v0.3.4
-- cloud.google.com/go none => v0.26.0
-- github.com/alecthomas/template none => v0.0.0-20160405071501-a0175ee3bccc
-- github.com/alecthomas/units none => v0.0.0-20151022065526-2efee857e7cf
-- github.com/BurntSushi/toml none => v0.3.1
-- github.com/cespare/xxhash none => v1.1.0
-- github.com/client9/misspell none => v0.3.4
-- github.com/dgryski/go-sip13 none => v0.0.0-20181026042036-e10d5fee7954
-- github.com/gobwas/glob none => v0.2.3
-- github.com/go-critic/go-critic none => v0.0.0-20181204210945-ee9bf5809ead
-- github.com/go-kit/kit none => v0.8.0
-- github.com/golangci/check none => v0.0.0-20180506172741-cfe4005ccda2
-- github.com/golangci/dupl none => v0.0.0-20180902072040-3e9179ac440a
-- github.com/golangci/errcheck none => v0.0.0-20181003203344-ef45e06d44b6
-- github.com/golangci/goconst none => v0.0.0-20180610141641-041c5f2b40f3
-- github.com/golangci/gocyclo none => v0.0.0-20180528134321-2becd97e67ee
-- github.com/golangci/gofmt none => v0.0.0-20181105071733-0b8337e80d98
-- github.com/golangci/golangci-lint none => v1.16.1-0.20190425135923-692dacb773b7
-- github.com/golangci/go-misc none => v0.0.0-20180628070357-927a3d87b613
-- github.com/golangci/gosec none => v0.0.0-20180901114220-66fb7fc33547
-- github.com/golangci/go-tools none => v0.0.0-20180109140146-af6baa5dc196
-- github.com/golangci/ineffassign none => v0.0.0-20180808204949-2ee8f2867dde
-- github.com/golangci/lint-1 none => v0.0.0-20180610141402-ee948d087217
-- github.com/golangci/maligned none => v0.0.0-20180506175553-b1d89398deca
-- github.com/golangci/misspell none => v0.0.0-20180809174111-950f5d19e770
-- github.com/golangci/prealloc none => v0.0.0-20180630174525-215b22d4de21
-- github.com/golangci/revgrep none => v0.0.0-20180526074752-d9c87f5ffaf0
-- github.com/golangci/unconvert none => v0.0.0-20180507085042-28b1c447d1f4
-- github.com/golang/glog none => v0.0.0-20160126235308-23def4e6c14b
-- github.com/go-lintpack/lintpack none => v0.5.2
-- github.com/go-logfmt/logfmt none => v0.4.0
-- github.com/go-ole/go-ole none => v1.2.1
-- github.com/go-stack/stack none => v1.8.0
-- github.com/go-toolsmith/astcast none => v0.0.0-20181028201508-b7a89ed70af1
-- github.com/go-toolsmith/astcopy none => v0.0.0-20180903214859-79b422d080c4
-- github.com/go-toolsmith/astequal none => v0.0.0-20180903214952-dcb477bfacd6
-- github.com/go-toolsmith/astfmt none => v0.0.0-20180903215011-8f8ee99c3086
-- github.com/go-toolsmith/astp none => v0.0.0-20180903215135-0af7e3c24f30
-- github.com/go-toolsmith/pkgload none => v0.0.0-20181119091011-e9e65178eee8
-- github.com/go-toolsmith/strparse none => v0.0.0-20180903215201-830b6daa1241
-- github.com/go-toolsmith/typep none => v0.0.0-20181030061450-d63dc7650676
-- github.com/hashicorp/hcl none => v0.0.0-20180404174102-ef8a98b0bbce
-- github.com/inconshreveable/mousetrap none => v1.0.0
-- github.com/ipfs/go-peertaskqueue none => v0.0.4
-- github.com/julienschmidt/httprouter none => v1.2.0
-- github.com/konsorten/go-windows-terminal-sequences none => v1.0.1
-- github.com/kr/logfmt none => v0.0.0-20140226030751-b84e30acd515
-- github.com/libp2p/go-libp2p-mplex none => v0.1.1
-- github.com/libp2p/go-libp2p-tls none => v0.0.1
-- github.com/libp2p/go-libp2p-yamux none => v0.1.3
-- github.com/libp2p/go-stream-muxer-multistream none => v0.1.1
-- github.com/libp2p/go-yamux none => v1.2.2
-- github.com/logrusorgru/aurora none => v0.0.0-20181002194514-a7b3b318ed4e
-- github.com/magiconair/properties none => v1.7.6
-- github.com/mattn/goveralls none => v0.0.2
-- github.com/mitchellh/go-ps none => v0.0.0-20170309133038-4fdf99ab2936
-- github.com/mitchellh/mapstructure none => v0.0.0-20180220230111-00c29f56e238
-- github.com/mozilla/tls-observatory none => v0.0.0-20180409132520-8791a200eb40
-- github.com/mwitkow/go-conntrack none => v0.0.0-20161129095857-cc309e4a2223
-- github.com/nbutton23/zxcvbn-go none => v0.0.0-20171102151520-eafdab6b0663
-- github.com/oklog/ulid none => v1.3.1
-- github.com/OneOfOne/xxhash none => v1.2.2
-- github.com/OpenPeeDeeP/depguard none => v0.0.0-20180806142446-a69c782687b2
-- github.com/pelletier/go-toml none => v1.1.0
-- github.com/prometheus/tsdb none => v0.7.1
-- github.com/rogpeppe/go-internal none => v1.1.0
-- github.com/ryanuber/go-glob none => v0.0.0-20170128012129-256dc444b735
-- github.com/shirou/gopsutil none => v0.0.0-20180427012116-c95755e4bcd7
-- github.com/shirou/w32 none => v0.0.0-20160930032740-bb4de0191aa4
-- github.com/shurcooL/go-goon none => v0.0.0-20170922171312-37c2f522c041
-- github.com/shurcooL/go none => v0.0.0-20180423040247-9e1955d9fb6e
-- github.com/sourcegraph/go-diff none => v0.5.1
-- github.com/spacemonkeygo/openssl none => v0.0.0-20181017203307-c2dcc5cca94a
-- github.com/spacemonkeygo/spacelog none => v0.0.0-20180420211403-2296661a0572
-- github.com/spf13/afero none => v1.1.0
-- github.com/spf13/cast none => v1.2.0
-- github.com/spf13/cobra none => v0.0.2
-- github.com/spf13/jwalterweatherman none => v0.0.0-20180109140146-7c0cea34c8ec
-- github.com/spf13/viper none => v1.0.2
-- github.com/StackExchange/wmi none => v0.0.0-20180116203802-5d049714c4a6
-- golang.org/x/exp none => v0.0.0-20190121172915-509febef88a4
-- golang.org/x/lint none => v0.0.0-20190227174305-5b3e6a55c961
-- golang.org/x/oauth2 none => v0.0.0-20180821212333-d2e6202438be
-- google.golang.org/appengine none => v1.4.0
-- google.golang.org/grpc none => v1.19.0
-- go.opencensus.io none => v0.21.0
-- gopkg.in/alecthomas/kingpin.v2 none => v2.2.6
-- gopkg.in/errgo.v2 none => v2.1.0
-- go.uber.org/atomic none => v1.4.0
-- go.uber.org/dig none => v1.7.0
-- go.uber.org/fx none => v1.9.0
-- go.uber.org/goleak none => v0.10.0
-- go.uber.org/multierr none => v1.1.0
-- honnef.co/go/tools none => v0.0.0-20190102054323-c2f93a96b099
-- mvdan.cc/interfacer none => v0.0.0-20180901003855-c20040233aed
-- mvdan.cc/lint none => v0.0.0-20170908181259-adc824a0674b
-- mvdan.cc/unparam none => v0.0.0-20190124213536-fbb59629db34
-- sourcegraph.com/sqs/pbtypes none => v0.0.0-20180604144634-d3ebe8f20ae4
 
 ## 0.4.20 2019-04-16
 
