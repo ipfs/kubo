@@ -12,8 +12,8 @@ import (
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-unixfs"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
-	ci "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	record "github.com/libp2p/go-libp2p-record"
 )

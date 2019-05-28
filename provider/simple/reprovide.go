@@ -14,7 +14,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	merkledag "github.com/ipfs/go-merkledag"
 	verifcid "github.com/ipfs/go-verifcid"
-	routing "github.com/libp2p/go-libp2p-routing"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 )
 
 var logR = logging.Logger("reprovider.simple")

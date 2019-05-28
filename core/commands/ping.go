@@ -12,8 +12,8 @@ import (
 
 	iaddr "github.com/ipfs/go-ipfs-addr"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	ma "github.com/multiformats/go-multiaddr"
 )

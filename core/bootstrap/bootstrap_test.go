@@ -5,20 +5,20 @@ import (
 	"testing"
 
 	config "github.com/ipfs/go-ipfs-config"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	testutil "github.com/libp2p/go-testutil"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/test"
 )
 
 func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {
-	var ps []pstore.PeerInfo
+	var ps []peer.AddrInfo
 	sizeofSlice := 100
 	for i := 0; i < sizeofSlice; i++ {
-		pid, err := testutil.RandPeerID()
+		pid, err := test.RandPeerID()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		ps = append(ps, pstore.PeerInfo{ID: pid})
+		ps = append(ps, peer.AddrInfo{ID: pid})
 	}
 	out := randomSubsetOfPeers(ps, 2*sizeofSlice)
 	if len(out) != len(ps) {
@@ -29,7 +29,7 @@ func TestSubsetWhenMaxIsGreaterThanLengthOfSlice(t *testing.T) {
 func TestMultipleAddrsPerPeer(t *testing.T) {
 	var bsps []config.BootstrapPeer
 	for i := 0; i < 10; i++ {
-		pid, err := testutil.RandPeerID()
+		pid, err := test.RandPeerID()
 		if err != nil {
 			t.Fatal(err)
 		}

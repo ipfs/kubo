@@ -5,16 +5,16 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	nilrouting "github.com/ipfs/go-ipfs-routing/none"
-	host "github.com/libp2p/go-libp2p-host"
+	host "github.com/libp2p/go-libp2p-core/host"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	dhtopts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	record "github.com/libp2p/go-libp2p-record"
-	routing "github.com/libp2p/go-libp2p-routing"
 )
 
-type RoutingOption func(context.Context, host.Host, datastore.Batching, record.Validator) (routing.IpfsRouting, error)
+type RoutingOption func(context.Context, host.Host, datastore.Batching, record.Validator) (routing.Routing, error)
 
-func constructDHTRouting(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.IpfsRouting, error) {
+func constructDHTRouting(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
 	return dht.New(
 		ctx, host,
 		dhtopts.Datastore(dstore),
@@ -22,7 +22,7 @@ func constructDHTRouting(ctx context.Context, host host.Host, dstore datastore.B
 	)
 }
 
-func constructClientDHTRouting(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.IpfsRouting, error) {
+func constructClientDHTRouting(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
 	return dht.New(
 		ctx, host,
 		dhtopts.Client(true),

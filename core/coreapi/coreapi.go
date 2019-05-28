@@ -35,13 +35,13 @@ import (
 	dag "github.com/ipfs/go-merkledag"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	ci "github.com/libp2p/go-libp2p-crypto"
-	p2phost "github.com/libp2p/go-libp2p-host"
-	"github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	p2phost "github.com/libp2p/go-libp2p-core/host"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
-	"github.com/libp2p/go-libp2p-routing"
 )
 
 var log = logging.Logger("core/coreapi")
@@ -66,7 +66,7 @@ type CoreAPI struct {
 	exchange        exchange.Interface
 
 	namesys namesys.NameSystem
-	routing routing.IpfsRouting
+	routing routing.Routing
 
 	provider provider.System
 
