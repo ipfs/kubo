@@ -154,7 +154,7 @@ etc.).
 
 #### Improved Errors
 
-This release improves to types of errors:
+This release improves two types of errors:
 
 1. Commands that take paths/multiaddrs now include the path/multiaddr in the
    error message when it fails to parse.
@@ -214,7 +214,7 @@ To enable openssl support, rebuild go-ipfs with:
 
 The CoreAPI refactor is still underway and we've made significant progress
 towards a usable ipfs-as-a-library constructor. Specifically, we've integrated
-integrating the [fx](https://go.uber.org/fx) dependency injection system and are
+the [fx](https://go.uber.org/fx) dependency injection system and are
 now working on cleaning up our initialization logic. This should make it easier
 to inject new services into a go-ipfs process without messing with the core
 internals.
