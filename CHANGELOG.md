@@ -1,28 +1,228 @@
 # go-ipfs changelog
 
-## 0.4.21 XX-XX-XX
+## 0.4.21 2019-05-28
+
+We're happy to announce go-ipfs 0.4.21. This release has some critical bug fixes
+and a handful of new features so every user should upgrade.
+
+Key bug fixes:
+
+* Too many open file descriptors/too many peers
+  ([#6237](https://github.com/ipfs/go-ipfs/issues/6237)).
+* Adding multiple files at the same time doesn't work
+  ([#6254](https://github.com/ipfs/go-ipfs/pull/6255)).
+* CPU utilization spikes and then holds at 100%
+  ([#5613](https://github.com/ipfs/go-ipfs/issues/5613)).
+
+Key features:
+
+* Experimental TLS1.3 support (to eventually replace secio).
+* OpenSSL support for SECIO handshakes (performance improvement).
+
+**IMPORTANT:** This release fixes a bug in our security transport that could
+potentially drop data from the channel. Note: This issue affects neither the
+privacy nor the integrity of the data with respect to a third-party attacker.
+Only the peer sending us data could trigger this bug.
+
+**ALL USERS MUST UPGRADE.** We intended to introduce a feature this release that,
+unfortunately, [reliably triggered this bug][secio-bug]. To avoid partitioning
+the network, we've decided to postpone this feature for a release or two.
+
+Specifically, we're going to provide a minimum _one month_ upgrade period. After
+that, we'll start testing the impact of deploying the proposed changes.
+
+If you're running the mainline go-ipfs, please upgrade ASAP. If you're building
+a separate app or working on a forked go-ipfs, make sure to upgrade
+github.com/libp2p/go-libp2p-secio to _at least_ v0.0.3.
+
+[secio-bug]: https://github.com/libp2p/go-libp2p/issues/644
+
+### Bug Fixes And Enhancements
+
+This release includes quite a number of critical bug fixes and
+performance/reliability enhancements.
+
+#### Error when adding multiple files
+
+The last release broke the simple command `ipfs add file1 file2`. It turns out
+we simply lacked a test case for this. Both of these issues (the bug and the
+lack of a test case) have now been fixed.
+
+#### SECIO
+
+As noted above, we've fixed a bug that could cause data to be dropped from a
+SECIO connection on read. Specifically, this happens when:
+
+1. The capacity of the read buffer is greater than the length.
+2. The remote peer sent more than the length but less than the capacity in a
+   single secio "frame".
+
+In this case, we'd fill the read buffer to it's capacity instead of its length.
+
+#### Too many open files, too many peers, etc.
+
+Go-ipfs automatically closes the least useful connections when it accumulates
+too many connections. Unfortunately, some relayed connections were blocking in
+`Close()`, halting the entire process.
+
+#### Out of control CPU usage
+
+Many users noted out of control CPU usage this release. This turned out to be a
+long-standing issue with how the DHT handled provider records (records recording
+which peers have what content):
+
+1. It wasn't removing provider records for content until the set of providers
+   completely emptied.
+2. It was loading every provider record into memory whenever we updated the set
+   of providers.
+
+Combined, these two issues were trashing the provider record cache, forcing the
+DHT to repeatedly load and discard provider records.
+
+#### Improved Connection Management
+
+Go-ipfs uses a service called the "connection manager" to rank connections them
+by "usefulness" and close the least-useful ones when go-ipfs collects too many.
+
+TODO: Fixed race condition between handling new connections and tagging them.
+
+#### Improved Bitswap Connection Management
+
+Bitswap now uses the connection manager to mark all peers downloading blocks as
+important (while downloading). Previously, it only marked peers from which _it_
+was downloading blocks.
+
+#### Reduced Memory Usage
+
+The most noticeable memory reduction in this release comes from fixing connection
+closing. However, we've made a few additional improvements:
+
+* Bitswap's "work queue" no longer remembers every peer it has seen
+  indefinitely.
+* The peerstore now interns protocol names.
+* The per-peer goroutine count has been reduced.
+* The DHT now wastes less memory on idle peers by pooling buffered writers and
+  returning them to the pool when not actively using them.
+
+#### Improved Address Freshness
+
+TODO: Push new addresses when they change.
+
+#### Increased File Descriptor Limit
+
+The default file descriptor limit has been raised to 8192 (from 2048).
+Unfortunately, go-ipfs behaves poorly when it runs out of file descriptors and
+it uses a _lot_ of file descriptors.
+
+Luckily, most modern kernels can handle thousands of file descriptors without
+any difficulty.
 
 ### Commands
 
-#### Fixed: `ipfs add` with multiple files
+This release brings no new commands but does introduce a few changes, bugfixes,
+and enhancements. This section is hardly complete but it lists the most
+noticeable changes.
 
-In version 0.4.20 a bug was introduced preventing `ipfs add fileA fileB` from working.
-This was fixed in ([ipfs/go-ipfs#6255](https://github.com/ipfs/go-ipfs/pull/6255)).
+Take note: this release also introduces a few breaking changes.
 
-### New: TLS 1.3 handshake
+#### [DEPRECATION] The URLStore Command Deprecated
 
-Go-libp2p has gained ability to use TLS 1.3 for connection encryption and authentication.
-Go-ipfs will accept TLS 1.3 handshakes but will still primarily use secio.
-If you want to help testing the new handshake, you can enable [this experiment](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#tls-13-as-default-handshake-protocol).
+The experimental `ipfs urlstore` command is now deprecated. Please use `ipfs add
+--nocopy URL` instead.
 
-### New: Build system `GOCC` variable
+#### [BREAKING] The DHT Command Base64 Encodes Values
 
-Build system now uses `GOCC` environment variable allowing for use of multiple
+When responding to an `ipfs dht get` command, the daemon now encodes the
+returned value using base64. The `ipfs` command will automatically decode this
+value before returning it to the user so this change should only affect those
+using the HTTP API directly.
+
+Unfortunately, this change was necessary as DHT records are arbitrary binary
+blobs which can't be directly stored in JSON strings.
+
+#### [BREAKING] Base32 Encoded v1 CIDs By Default
+
+Both js-ipfs and go-ipfs now encode CIDv1 CIDs using base32 by default, instead
+of base58. Unfortunately, base58 is case-sensitive and doesn't play well with
+browsers (see [#4143](https://github.com/ipfs/go-ipfs/issues/4143).
+
+#### Human Readable Numbers
+
+The `ipfs bitswap stat` and and `ipfs object stat` commands now support a
+`--humanize` flag that formats numbers with human-readable units (GiB, MiB,
+etc.).
+
+#### Improved Errors
+
+This release improves to types of errors:
+
+1. Commands that take paths/multiaddrs now include the path/multiaddr in the
+   error message when it fails to parse.
+2. `ipfs swarm connect` now returns a detailed error describing which addresses
+   were tried and why the dial failed.
+
+#### Ping Improvements
+
+The ping command has received some small improvements and fixes:
+
+1. It now exits with a non-zero exit status on failure.
+2. It no longer succeeds with zero successful pings if we have a zombie but
+   non-functional connection to the peer being pinged
+   ([#6298](https://github.com/ipfs/go-ipfs/issues/6298)).
+3. It now prints out the average latency when canceled with `^C` (like the unix
+   `ping` command).
+
+### Features
+
+This release is primarily a bug fix release but it still includes two nice
+features from libp2p.
+
+#### Experimental TLS1.3 support
+
+Go-ipfs now has experimental TLS1.3 support. Currently, libp2p (IPFS's
+networking library) uses a custom TLS-like protocol we call SECIO. However, the
+conventional wisdom concerning custom security transports is "just don't" so we
+are working on replacing it with TLS1.3
+
+To choose this protocol by default, set the `Experimental.PreferTLS` config
+variable:
+
+```bash
+> ipfs config --bool Experimental.PreferTLS true
+```
+
+Why TLS1.3 and not X (noise, etc.)?
+
+1. Libp2p allows negotiating transports so there's no reason not to add noise
+   support to libp2p as well.
+2. TLS has wide language support which should make implementing libp2p for new
+   languages significantly simpler.
+
+#### OpenSSL Support
+
+Go-ipfs can now (optionally) be built with OpenSSL support for improved
+performance when establishing connections. This is primarily useful for nodes
+receiving multiple inbound connections per second.
+
+To enable openssl support, rebuild go-ipfs with:
+
+```bash
+> make build GOFLAGS=-tags=openssl
+```
+
+### CoreAPI
+
+The CoreAPI refactor is still underway and we've made significant progress
+towards a usable ipfs-as-a-library constructor. Specifically, we've integrated
+integrating the [fx](https://go.uber.org/fx) dependency injection system and are
+now working on cleaning up our initialization logic. This should make it easier
+to inject new services into a go-ipfs process without messing with the core
+internals.
+
+### Build: `GOCC` Environment Variable
+
+Build system now uses `GOCC` environment variable allowing for use of specific
 go versions during builds.
-
-
-(please point out what should be featured, doesn't have to be go-ipfs).
-
 
 ### Changelog
 
