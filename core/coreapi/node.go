@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"time"
 
 	ds "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
@@ -13,12 +14,15 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
+	util "github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-metrics-interface"
 	"github.com/ipfs/go-path/resolver"
+	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/jbenet/goprocess"
 	ci "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
 	"go.uber.org/fx"
 
@@ -183,6 +187,13 @@ func errOpt(err error) Option {
 	}
 }
 
+func maybeOpt(cond bool, opt Option) Option {
+	if cond {
+		return opt
+	}
+	return Options()
+}
+
 // ////////// //
 // Core options
 
@@ -236,7 +247,7 @@ func Online() Option {
 		Override(Libp2pRouting, libp2p.DHTRouting(true)), // default dhtclient
 
 		Override(Libp2pDiscoveryHandler, libp2p.DiscoveryHandler),
-		Override(Libp2pAddrsFactory, libp2p.AddrsFactory),
+		Override(Libp2pAddrsFactory, libp2p.AddrsFactory(nil, nil)),
 		Override(Libp2pSmuxTransport, libp2p.SmuxTransport(true)),
 		Override(Libp2pRelay, libp2p.Relay(true, false)), // TODO: should we enable by default?
 		Override(Libp2pStartListening, libp2p.StartListening(defaultListenAddrs), fx.Invoke),
@@ -297,13 +308,189 @@ func configDatastore(dstore config.Datastore, s *repoSettings) Option {
 	)
 }
 
-func configExperimental() {
-	/*
-	finalBstore := fx.Provide(node.GcBlockstoreCtor)
-		if cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled {
-			finalBstore = fx.Provide(node.FilestoreBlockstoreCtor)
+func configAddresses(addrs config.Addresses) Option {
+	return Options(
+		Override(Libp2pStartListening, libp2p.StartListening(addrs.Swarm), fx.Invoke),
+		Override(Libp2pAddrsFactory, libp2p.AddrsFactory(addrs.Announce, addrs.NoAnnounce)),
+	)
+}
+
+func configDiscovery(disc config.Discovery) Option {
+	return Override(Libp2pMDNS, libp2p.SetupDiscovery(disc.MDNS.Enabled, disc.MDNS.Interval))
+}
+
+const (
+	routingOptionDHTClient = "dhtclient"
+	routingOptionDHT       = "dht"
+	routingOptionNone      = "none"
+)
+
+func configRouting(routing config.Routing) Option {
+	switch routing.Type {
+	case "":
+		return Options() // keep default
+	case routingOptionDHT: // default
+		return Override(Libp2pRouting, libp2p.DHTRouting(false))
+	case routingOptionDHTClient:
+		return Override(Libp2pRouting, libp2p.DHTRouting(true))
+	case routingOptionNone:
+		return Override(Libp2pRouting, libp2p.NilRouting)
+	default:
+		return errOpt(errors.New("unknown Routing.Type in config"))
+	}
+}
+
+func configIpns(ipns config.Ipns) Option {
+	ipnsCacheSize := ipns.ResolveCacheSize
+	if ipnsCacheSize == 0 {
+		ipnsCacheSize = node.DefaultIpnsCacheSize
+	}
+	if ipnsCacheSize < 0 {
+		return errOpt(fmt.Errorf("cannot specify negative resolve cache size"))
+	}
+
+	// Republisher params
+
+	var repubPeriod, recordLifetime time.Duration
+
+	if ipns.RepublishPeriod != "" {
+		d, err := time.ParseDuration(ipns.RepublishPeriod)
+		if err != nil {
+			return errOpt(fmt.Errorf("failure to parse config setting IPNS.RepublishPeriod: %s", err))
 		}
-	*/
+
+		if !util.Debug && (d < time.Minute || d > (time.Hour*24)) {
+			return errOpt(fmt.Errorf("config setting IPNS.RepublishPeriod is not between 1min and 1day: %s", d))
+		}
+
+		repubPeriod = d
+	}
+
+	if ipns.RecordLifetime != "" {
+		d, err := time.ParseDuration(ipns.RecordLifetime)
+		if err != nil {
+			return errOpt(fmt.Errorf("failure to parse config setting IPNS.RecordLifetime: %s", err))
+		}
+
+		recordLifetime = d
+	}
+
+	return Options(
+		Override(Namesys, node.Namesys(ipnsCacheSize)),
+		Override(IpnsRepublisher, node.IpnsRepublisher(repubPeriod, recordLifetime), fx.Invoke),
+	)
+}
+
+/*
+TODO: part bootstrap system to new node
+func configBootstrap(bootstrap []string) Option {
+
+}
+*/
+
+func configSwarm(swarm config.SwarmConfig, exp config.Experiments) Option {
+	grace := config.DefaultConnMgrGracePeriod
+	low := config.DefaultConnMgrLowWater
+	high := config.DefaultConnMgrHighWater
+
+	connmgr := Options()
+
+	if swarm.ConnMgr.Type != "none" {
+		switch swarm.ConnMgr.Type {
+		case "":
+			// 'default' value is the basic connection manager
+			break
+		case "basic":
+			var err error
+			grace, err = time.ParseDuration(swarm.ConnMgr.GracePeriod)
+			if err != nil {
+				return errOpt(fmt.Errorf("parsing Swarm.ConnMgr.GracePeriod: %s", err))
+			}
+
+			low = swarm.ConnMgr.LowWater
+			high = swarm.ConnMgr.HighWater
+		default:
+			return errOpt(fmt.Errorf("unrecognized ConnMgr.Type: %q", swarm.ConnMgr.Type))
+		}
+
+		connmgr = Override(Libp2pConnectionManager, libp2p.ConnectionManager(low, high, grace))
+	}
+
+	return Options(
+		Override(Libp2pAddrFilters, libp2p.AddrFilters(swarm.AddrFilters)),
+		maybeOpt(!swarm.DisableBandwidthMetrics, Override(Libp2pBandwidthCounter, libp2p.BandwidthCounter)),
+		maybeOpt(!swarm.DisableNatPortMap, Override(Libp2pNatPortMap, libp2p.NatPortMap)),
+		Override(Libp2pRelay, libp2p.Relay(swarm.DisableRelay, swarm.EnableRelayHop)),
+		maybeOpt(swarm.EnableAutoRelay, Override(Libp2pAutoRealy, libp2p.AutoRelay)),
+		maybeOpt(swarm.EnableAutoNATService, Override(Libp2pAutoRealy, libp2p.AutoNATService(exp.QUIC))),
+		connmgr,
+	)
+}
+
+func configPubsub(ps config.PubsubConfig) Option {
+	var pubsubOptions []pubsub.Option
+	if ps.DisableSigning {
+		pubsubOptions = append(pubsubOptions, pubsub.WithMessageSigning(false))
+	}
+
+	if ps.StrictSignatureVerification {
+		pubsubOptions = append(pubsubOptions, pubsub.WithStrictSignatureVerification(true))
+	}
+
+	switch ps.Router {
+	case "":
+		fallthrough
+	case "floodsub":
+		return Override(Libp2pPubsub ,libp2p.FloodSub(pubsubOptions...))
+	case "gossipsub":
+		return Override(Libp2pPubsub, libp2p.GossipSub(pubsubOptions...))
+	default:
+		return errOpt(fmt.Errorf("unknown pubsub router %s", ps.Router))
+	}
+}
+
+func configReprovider(reprovider config.Reprovider) Option {
+	reproviderInterval := node.DefaultReprovideFrequency
+	if reprovider.Interval != "" {
+		dur, err := time.ParseDuration(reprovider.Interval)
+		if err != nil {
+			return errOpt(err)
+		}
+
+		reproviderInterval = dur
+	}
+
+	var keyProvider interface{}
+	switch reprovider.Strategy {
+	case "all":
+		fallthrough
+	case "":
+		keyProvider = reprovide.NewBlockstoreProvider
+	case "roots":
+		keyProvider = reprovide.NewPinnedProvider(true)
+	case "pinned":
+		keyProvider = reprovide.NewPinnedProvider(false)
+	default:
+		return errOpt(fmt.Errorf("unknown reprovider strategy '%s'", reprovider.Strategy))
+	}
+
+	return Options(
+		Override(Reprovider, node.ReproviderCtor(reproviderInterval)),
+		Override(ProviderKeys, keyProvider),
+	)
+}
+
+func configExperimental(experiments config.Experiments) Option {
+	fsbs := experiments.FilestoreEnabled || experiments.UrlstoreEnabled
+
+	// TODO: Eww
+	uio.UseHAMTSharding = experiments.ShardingEnabled
+
+	return Options(
+		maybeOpt(fsbs, Override(BlockstoreFinal, node.FilestoreBlockstoreCtor)),
+		maybeOpt(experiments.QUIC, Override(Libp2pQUIC, libp2p.QUIC)),
+		Override(Libp2pSecurity, libp2p.Security(true, experiments.PreferTLS)),
+	)
 }
 
 func configOptions(cfg *config.Config, s *repoSettings) Option {
@@ -311,6 +498,14 @@ func configOptions(cfg *config.Config, s *repoSettings) Option {
 	return Options(
 		configIdentity(cfg.Identity),
 		configDatastore(cfg.Datastore, s),
+		configAddresses(cfg.Addresses),
+		configDiscovery(cfg.Discovery),
+		configRouting(cfg.Routing),
+		configIpns(cfg.Ipns),
+		configSwarm(cfg.Swarm, cfg.Experimental),
+		configPubsub(cfg.Pubsub),
+		configReprovider(cfg.Reprovider),
+		configExperimental(cfg.Experimental),
 	)
 }
 
