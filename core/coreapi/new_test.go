@@ -51,7 +51,7 @@ func TestNew(t *testing.T) {
 			opts: []Option{
 				Online(),
 				Override(Libp2pHost, libp2p.MockHost),
-				Provide(func() mocknet.Mocknet {return mn}),
+				Provide(func() mocknet.Mocknet { return mn }),
 			},
 		},
 	} {
@@ -93,7 +93,7 @@ func (s *testst) test() {
 func TestAs(t *testing.T) {
 	tstr := &testst{}
 
-	var out struct{
+	var out struct {
 		T testif
 	}
 
@@ -134,7 +134,7 @@ func TestAs(t *testing.T) {
 	}
 	app = fx.New(
 		fx.Provide(as(ctor2, new(testif))),
-		fx.Provide(func() string {return "test"}),
+		fx.Provide(func() string { return "test" }),
 		fx.Extract(&out))
 	if err := app.Start(context.Background()); err != nil {
 		t.Fatal(err)
@@ -151,7 +151,7 @@ func TestAs(t *testing.T) {
 	}
 	app = fx.New(
 		fx.Provide(as(ctor3, new(testif))),
-		fx.Provide(func() string {return "toast"}),
+		fx.Provide(func() string { return "toast" }),
 		fx.Extract(&out))
 	if err := app.Start(context.Background()); err == nil || !strings.Contains(err.Error(), "toast") {
 		t.Fatal(err)
@@ -169,7 +169,7 @@ func TestAs(t *testing.T) {
 		}
 	}()
 
-	as(func()int{return 0}, "potato")
+	as(func() int { return 0 }, "potato")
 }
 
 var _ tests.Provider = makeSingle(nil)

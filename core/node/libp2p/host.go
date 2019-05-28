@@ -23,8 +23,8 @@ import (
 type P2PHostIn struct {
 	fx.In
 
-	ID            peer.ID
-	Peerstore     peerstore.Peerstore
+	ID        peer.ID
+	Peerstore peerstore.Peerstore
 
 	Opts [][]libp2p.Option `group:"libp2p"`
 }

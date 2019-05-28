@@ -126,7 +126,7 @@ type settings struct {
 
 	ctx context.Context
 
-	online bool // TODO: migrate to components fully
+	online  bool // TODO: migrate to components fully
 	nilRepo bool // TODO: try not to use, somehow (component-internal fields?)
 }
 
@@ -441,7 +441,7 @@ func configPubsub(ps config.PubsubConfig) Option {
 	case "":
 		fallthrough
 	case "floodsub":
-		return Override(Libp2pPubsub ,libp2p.FloodSub(pubsubOptions...))
+		return Override(Libp2pPubsub, libp2p.FloodSub(pubsubOptions...))
 	case "gossipsub":
 		return Override(Libp2pPubsub, libp2p.GossipSub(pubsubOptions...))
 	default:
@@ -509,11 +509,10 @@ func configOptions(cfg *config.Config, s *repoSettings) Option {
 	)
 }
 
-
 type repoSettings struct {
 	parseConfig bool
 	permanent   bool
-	nilRepo bool
+	nilRepo     bool
 }
 
 type RepoOption func(*repoSettings)
@@ -721,14 +720,14 @@ func as(in interface{}, as interface{}) interface{} {
 	inType := reflect.TypeOf(in)
 
 	ins := make([]reflect.Type, inType.NumIn())
-	outs :=  make([]reflect.Type, inType.NumOut())
+	outs := make([]reflect.Type, inType.NumOut())
 
 	for i := range ins {
 		ins[i] = inType.In(i)
 	}
 	outs[0] = outType.Elem()
 	for i := range outs[1:] {
-		outs[i + 1] = inType.Out(i + 1)
+		outs[i+1] = inType.Out(i + 1)
 	}
 
 	ctype := reflect.FuncOf(ins, outs, false)
