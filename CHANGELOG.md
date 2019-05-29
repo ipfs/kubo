@@ -79,12 +79,17 @@ which peers have what content):
 Combined, these two issues were trashing the provider record cache, forcing the
 DHT to repeatedly load and discard provider records.
 
-#### Improved Connection Management
+#### More Reliable Connection Management
 
-Go-ipfs uses a service called the "connection manager" to rank connections
-by "usefulness" and close the least-useful ones when go-ipfs collects too many.
+Go-ipfs has a subsystem called the "connection manager" to close the
+least-useful connections when go-ipfs runs low on resources.
 
-TODO: Fixed race condition between handling new connections and tagging them.
+Unfortunately, other IPFS subsystems may learn about connections _before_ the
+connection manager. Previously, if some IPFS subsystem tried to mark a
+connection as useful before the connection manager learned about it, the
+connection manager would discard this information. We believe this was causing
+[#6271](https://github.com/ipfs/go-ipfs/issues/6271). [It no longer does
+that](https://github.com/libp2p/go-libp2p-connmgr/pull/39).
 
 #### Improved Bitswap Connection Management
 
@@ -103,10 +108,6 @@ closing. However, we've made a few additional improvements:
 * The per-peer goroutine count has been reduced.
 * The DHT now wastes less memory on idle peers by pooling buffered writers and
   returning them to the pool when not actively using them.
-
-#### Improved Address Freshness
-
-TODO: Push new addresses when they change.
 
 #### Increased File Descriptor Limit
 
