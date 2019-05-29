@@ -1,29 +1,119 @@
-#!/usr/bin/env bash
+#!/bin/zsh
 #set -x
 set -euo pipefail
-IFS=$'\n\t'
 export GO111MODULE=on
+export GOPATH="$(go env GOPATH)"
 
-LAST_TAG=$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)
+alias jq="jq --unbuffered"
 
-git log --oneline --merges --reverse $LAST_TAG...master |
-while read MERGE
-do
-	commit=$(echo $MERGE | awk '{ print $1 }')
-	prnum=$(echo $MERGE | awk '{ print $5 }' | tr -d '#')
-	desc=$(git show $commit | sed '8q;d' | sed 's/^    //g')
-	printf "  - %s ([ipfs/go-ipfs#%s](https://github.com/ipfs/go-ipfs/pull/%s))\n" "$desc" "$prnum" "$prnum"
-done
+[[ -n "${REPO_FILTER+x}" ]] || REPO_FILTER="github.com/(ipfs|libp2p|ipld)"
+[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package.json\|\.travis.yml\|go.mod\|go.sum\)$'
 
-TMP_DIR=$(mktemp -d --tmpdir go-ipfs-mkreleaselog-XXXXXX)
-git show "$LAST_TAG:go.mod" > "$TMP_DIR/go.mod"
+msg() {
+    echo "$*" >&2
+}
 
-echo
-echo "Dependecy updates:"
-join -a 2 <(cd "$TMP_DIR" && go list -m all | sort -k 1b,1) <(go list -m all | sort -k 1b,1) | awk \
-	'
-	{ if (NF == 2)
-		printf "2 - %s none => %s\n", $1, $2
-	else if ($2 != $3)
-		printf "1 - %s %s => %s\n", $1, $2, $3 }
-	' | sort | sed 's/[0-9] //'
+# Returns a stream of deps changed between $1 and $2.
+dep_changes() {
+    {
+        <"$1"
+        <"$2"
+    } | jq -s 'JOIN(INDEX(.[0][]; .Path); .[1][]; .Path; {Path: .[0].Path, Old: (.[1] | del(.Path)), New: (.[0] | del(.Path))}) | select(.New.Version != .Old.Version)'
+}
+
+# resolve_commits resolves a git ref for each version.
+resolve_commits() {
+    jq '. + {Ref: (.Version|capture("^((?<ref1>.*)\\+incompatible|v.*-[0-9]{14}-(?<ref2>[a-f0-9]{12})|(?<ref3>v.*))$") | .ref1 // .ref2 // .ref3)}'
+}
+
+# Generate a release log for a range of commits in a single repo.
+release_log() {
+    local repo="$1"
+    local start="$2"
+    local end="${3:-HEAD}"
+    local ghname="${repo##github.com/}"
+    local dir="$GOPATH/src/$repo"
+
+    local commit prnum
+    git -C "$dir" log \
+        --format='tformat:%H %s' \
+        --merges \
+        "$start..$end" |
+        sed -n -e 's/\([a-f0-9]\+\) .*#\([0-9]\+\).*/\1 \2/p' |
+        while read commit prnum; do
+            # Skip gx-only PRs.
+            git -C "$dir" diff-tree --no-commit-id --name-only "$commit^" "$commit" |
+                grep -v "${IGNORED_FILES}" >/dev/null || continue
+
+            local desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
+            printf "- %s ([%s#%s](https://%s/pull/%s))\n" "$desc" "$ghname" "$prnum" "$repo" "$prnum"
+        done
+}
+
+indent() {
+    sed -e 's/^/  /'
+}
+
+mod_deps() {
+    go list -json -m all | jq 'select(.Version != null)'
+}
+
+ensure() {
+    local repo="$1"
+    local commit="$2"
+    local rpath="$GOPATH/src/$repo"
+    if [[ ! -d "$rpath" ]]; then
+        msg "Cloning $repo..."
+        git clone "http://$repo" "$rpath" >&2
+    fi
+
+    if ! git -C "$rpath" rev-parse --verify "$commit" >/dev/null; then
+        msg "Fetching $repo..."
+        git -C "$rpath" fetch --all >&2
+    fi
+
+    git -C "$rpath" rev-parse --verify "$commit" >/dev/null || return 1
+}
+
+recursive_release_log() {
+    local start="${1:-$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)}"
+    local end="${2:-$(git rev-parse HEAD)}"
+    local repo_root="$(git rev-parse --show-toplevel)"
+    local package="$(go list)"
+    (
+        local workspace="$(mktemp -d)"
+        trap "$(printf 'rm -rf "%q"' "$workspace")" INT TERM EXIT
+        cd "$workspace"
+
+        echo "Computing old deps..." >&2
+        git -C "$repo_root" show "$start:go.mod" >go.mod
+        mod_deps | resolve_commits | jq -s > old_deps.json
+
+        echo "Computing new deps..." >&2
+        git -C "$repo_root" show "$end:go.mod" >go.mod
+        mod_deps | resolve_commits | jq -s > new_deps.json
+
+        rm -f go.mod go.sum
+
+        printf "Generating Changelog for %s %s..%s\n" "$package" "$start" "$end" >&2
+
+        printf "- %s:\n" "$package"
+        release_log "$package" "$start" "$end" | indent
+
+
+        dep_changes old_deps.json new_deps.json |
+            jq --arg filter "$REPO_FILTER" 'select(.Path | match($filter))' |
+            # Compute changelogs
+            jq -r '"\(.Path) \(.New.Version) \(.New.Ref) \(.Old.Version) \(.Old.Ref // "")"' |
+            while read repo new new_ref old old_ref; do
+                ensure "$repo" "$new_ref"
+                local changelog="$(release_log "$repo" "$old_ref" "$new_ref")"
+                if [[ -n "$changelog" ]]; then
+                    printf "- %s (%s -> %s):\n" "$repo" "$old" "$new"
+                    echo "$changelog" | indent
+                fi
+            done
+    )
+}
+
+recursive_release_log "$@"
