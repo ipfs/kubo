@@ -200,7 +200,7 @@ func errOpt(err error) Option {
 	}
 }
 
-func maybeOpt(cond bool, opt Option) Option {
+func Opt(cond bool, opt Option) Option {
 	if cond {
 		return opt
 	}
@@ -431,11 +431,11 @@ func configSwarm(swarm config.SwarmConfig, exp config.Experiments) Option {
 
 	return Options(
 		Override(Libp2pAddrFilters, libp2p.AddrFilters(swarm.AddrFilters)),
-		maybeOpt(!swarm.DisableBandwidthMetrics, Override(Libp2pBandwidthCounter, libp2p.BandwidthCounter)),
-		maybeOpt(!swarm.DisableNatPortMap, Override(Libp2pNatPortMap, libp2p.NatPortMap)),
+		Opt(!swarm.DisableBandwidthMetrics, Override(Libp2pBandwidthCounter, libp2p.BandwidthCounter)),
+		Opt(!swarm.DisableNatPortMap, Override(Libp2pNatPortMap, libp2p.NatPortMap)),
 		Override(Libp2pRelay, libp2p.Relay(swarm.DisableRelay, swarm.EnableRelayHop)),
-		maybeOpt(swarm.EnableAutoRelay, Override(Libp2pAutoRealy, libp2p.AutoRelay)),
-		maybeOpt(swarm.EnableAutoNATService, Override(Libp2pAutoRealy, libp2p.AutoNATService(exp.QUIC))),
+		Opt(swarm.EnableAutoRelay, Override(Libp2pAutoRealy, libp2p.AutoRelay)),
+		Opt(swarm.EnableAutoNATService, Override(Libp2pAutoRealy, libp2p.AutoNATService(exp.QUIC))),
 		connmgr,
 	)
 }
@@ -500,8 +500,8 @@ func configExperimental(experiments config.Experiments) Option {
 	uio.UseHAMTSharding = experiments.ShardingEnabled
 
 	return Options(
-		maybeOpt(fsbs, Override(BlockstoreFinal, node.FilestoreBlockstoreCtor)),
-		maybeOpt(experiments.QUIC, Override(Libp2pQUIC, libp2p.QUIC)),
+		Opt(fsbs, Override(BlockstoreFinal, node.FilestoreBlockstoreCtor)),
+		Opt(experiments.QUIC, Override(Libp2pQUIC, libp2p.QUIC)),
 		Override(Libp2pSecurity, libp2p.Security(true, experiments.PreferTLS)),
 	)
 }
@@ -649,6 +649,7 @@ func New(opts ...Option) (*CoreAPI, error) {
 
 	app := fx.New(fxOpts...)
 	n.SetupCtx(ctx, app)
+	n.IsOnline = settings.online
 
 	go func() {
 		// Note that some services use contexts to signal shutting down, which is
