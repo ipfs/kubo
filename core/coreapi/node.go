@@ -257,7 +257,7 @@ func Online() Option {
 		Override(Libp2pDefaultTransports, libp2p.DefaultTransports),
 		Override(Libp2pHost, libp2p.Host),
 		Override(Libp2pRoutedHost, libp2p.RoutedHost),
-		Override(Libp2pRouting, libp2p.DHTRouting(true)), // default dhtclient
+		Override(Libp2pRouting, libp2p.DHTRouting(false)), // default no dht client
 
 		Override(Libp2pDiscoveryHandler, libp2p.DiscoveryHandler),
 		Override(Libp2pAddrsFactory, libp2p.AddrsFactory(nil, nil)),
