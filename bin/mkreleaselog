@@ -9,8 +9,48 @@ alias jq="jq --unbuffered"
 [[ -n "${REPO_FILTER+x}" ]] || REPO_FILTER="github.com/(ipfs|libp2p|ipld)"
 [[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package.json\|\.travis.yml\|go.mod\|go.sum\)$'
 
+NL=$'\n'
+
 msg() {
     echo "$*" >&2
+}
+
+statlog() {
+    rpath="$GOPATH/src/$1"
+    start="${2:-}"
+    end="${3:-HEAD}"
+    git -C "$rpath" log --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" | while 
+        read hash
+        read name
+        read email
+        read _ # empty line
+        read changes
+    do
+        changed=0
+        insertions=0
+        deletions=0
+        while read count event; do
+            if [[ "$event" =~ ^file ]]; then
+                changed=$count
+            elif [[ "$event" =~ ^insertion ]]; then
+                insertions=$count
+            elif [[ "$event" =~ ^deletion ]]; then
+                deletions=$count
+            else
+                echo "unknown event $event" >&2
+                exit 1
+            fi
+        done<<<"${changes//,/$NL}"
+
+        jq -n \
+           --arg "hash" "$hash" \
+           --arg "name" "$name" \
+           --arg "email" "$email" \
+           --argjson "changed" "$changed" \
+           --argjson "insertions" "$insertions" \
+           --argjson "deletions" "$deletions" \
+           '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+    done
 }
 
 # Returns a stream of deps changed between $1 and $2.
@@ -46,7 +86,7 @@ release_log() {
                 grep -v "${IGNORED_FILES}" >/dev/null || continue
 
             local desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
-            printf "- %s ([%s#%s](https://%s/pull/%s))\n" "$desc" "$ghname" "$prnum" "$repo" "$prnum"
+            printf -- "- %s ([%s#%s](https://%s/pull/%s))\n" "$desc" "$ghname" "$prnum" "$repo" "$prnum"
         done
 }
 
@@ -75,6 +115,11 @@ ensure() {
     git -C "$rpath" rev-parse --verify "$commit" >/dev/null || return 1
 }
 
+statsummary() {
+    jq -s 'group_by(.Author)[] | {Author: .[0].Author, Commits: (. | length), Insertions: (map(.Insertions) | add), Deletions: (map(.Deletions) | add), Files: (map(.Files) | add)}' |
+        jq '. + {Lines: (.Deletions + .Insertions)}'
+}
+
 recursive_release_log() {
     local start="${1:-$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)}"
     local end="${2:-$(git rev-parse HEAD)}"
@@ -95,11 +140,13 @@ recursive_release_log() {
 
         rm -f go.mod go.sum
 
-        printf "Generating Changelog for %s %s..%s\n" "$package" "$start" "$end" >&2
+        printf -- "Generating Changelog for %s %s..%s\n" "$package" "$start" "$end" >&2
 
-        printf "- %s:\n" "$package"
+        printf -- "- %s:\n" "$package"
         release_log "$package" "$start" "$end" | indent
 
+
+        statlog "$package" "$start" "$end" > statlog.json
 
         dep_changes old_deps.json new_deps.json |
             jq --arg filter "$REPO_FILTER" 'select(.Path | match($filter))' |
@@ -107,12 +154,23 @@ recursive_release_log() {
             jq -r '"\(.Path) \(.New.Version) \(.New.Ref) \(.Old.Version) \(.Old.Ref // "")"' |
             while read repo new new_ref old old_ref; do
                 ensure "$repo" "$new_ref"
+                statlog "$repo" "$old_ref" "$new_ref" >> statlog.json
                 local changelog="$(release_log "$repo" "$old_ref" "$new_ref")"
                 if [[ -n "$changelog" ]]; then
-                    printf "- %s (%s -> %s):\n" "$repo" "$old" "$new"
+                    printf -- "- %s (%s -> %s):\n" "$repo" "$old" "$new"
                     echo "$changelog" | indent
                 fi
             done
+
+        echo
+        echo "Contributors"
+        echo
+
+        echo "| Contributor | Commits | Lines ± | Files Changed |"
+        echo "|-------------|---------|---------|---------------|"
+        statsummary <statlog.json |
+            jq -s 'sort_by(.Lines) | reverse | .[]' |
+            jq -r '"| \(.Author) | \(.Commits) | +\(.Insertions)/-\(.Deletions) | \(.Files) |"'
     )
 }
 
