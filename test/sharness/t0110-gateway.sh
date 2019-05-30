@@ -187,7 +187,7 @@ done
 
 # This one is different. `local` will be interpreted as a path if the command isn't defined.
 test_expect_success "test gateway api is sanitized: refs/local" '
-    echo "Error: invalid '"'ipfs ref'"' path" > refs_local_expected &&
+    echo "Error: invalid path \"local\": selected encoding not supported" > refs_local_expected &&
     ! ipfs --api /ip4/127.0.0.1/tcp/$port refs local > refs_local_actual 2>&1 &&
     test_cmp refs_local_expected refs_local_actual
   '

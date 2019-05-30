@@ -11,7 +11,6 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	iaddr "github.com/ipfs/go-ipfs-addr"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -35,7 +34,7 @@ const (
 var ErrPingSelf = errors.New("error: can't ping self")
 
 var PingCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Send echo request packets to IPFS hosts.",
 		ShortDescription: `
 'ipfs ping' is a tool to test sending data to other nodes. It finds nodes
@@ -43,11 +42,11 @@ via the routing system, sends pings, waits for pongs, and prints out round-
 trip latency information.
 		`,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peer ID", true, true, "ID of peer to be pinged.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.IntOption(pingCountOptionName, "n", "Number of ping messages to send.").WithDefault(10),
+	Options: []cmds.Option{
+		cmds.IntOption(pingCountOptionName, "n", "Number of ping messages to send.").WithDefault(10),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -75,7 +74,7 @@ trip latency information.
 
 		numPings, _ := req.Options[pingCountOptionName].(int)
 		if numPings <= 0 {
-			return fmt.Errorf("error: ping count must be greater than 0, was %d", numPings)
+			return fmt.Errorf("ping count must be greater than 0, was %d", numPings)
 		}
 
 		if len(n.Peerstore.Addrs(pid)) == 0 {
@@ -91,7 +90,7 @@ trip latency information.
 			p, err := n.Routing.FindPeer(ctx, pid)
 			cancel()
 			if err != nil {
-				return res.Emit(&PingResult{Text: fmt.Sprintf("Peer lookup error: %s", err)})
+				return fmt.Errorf("peer lookup failed: %s", err)
 			}
 			n.Peerstore.AddAddrs(p.ID, p.Addrs, pstore.TempAddrTTL)
 		}
@@ -105,31 +104,37 @@ trip latency information.
 
 		ctx, cancel := context.WithTimeout(req.Context, kPingTimeout*time.Duration(numPings))
 		defer cancel()
-		pings, err := ping.Ping(ctx, n.PeerHost, pid)
-		if err != nil {
-			return res.Emit(&PingResult{
-				Success: false,
-				Text:    fmt.Sprintf("Ping error: %s", err),
-			})
-		}
+		pings := ping.Ping(ctx, n.PeerHost, pid)
 
-		var total time.Duration
+		var (
+			count int
+			total time.Duration
+		)
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
+
 		for i := 0; i < numPings; i++ {
-			t, ok := <-pings
+			r, ok := <-pings
 			if !ok {
 				break
 			}
 
-			if err := res.Emit(&PingResult{
-				Success: true,
-				Time:    t,
-			}); err != nil {
+			if r.Error != nil {
+				err = res.Emit(&PingResult{
+					Success: false,
+					Text:    fmt.Sprintf("Ping error: %s", r.Error),
+				})
+			} else {
+				count++
+				total += r.RTT
+				err = res.Emit(&PingResult{
+					Success: true,
+					Time:    r.RTT,
+				})
+			}
+			if err != nil {
 				return err
 			}
-
-			total += t
 
 			select {
 			case <-ticker.C:
@@ -137,13 +142,54 @@ trip latency information.
 				return ctx.Err()
 			}
 		}
-		averagems := total.Seconds() * 1000 / float64(numPings)
+		if count == 0 {
+			return fmt.Errorf("ping failed")
+		}
+		averagems := total.Seconds() * 1000 / float64(count)
 		return res.Emit(&PingResult{
 			Success: true,
 			Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
 		})
 	},
 	Type: PingResult{},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			var (
+				total time.Duration
+				count int
+			)
+
+			for {
+				event, err := res.Next()
+				switch err {
+				case nil:
+				case io.EOF:
+					return nil
+				case context.Canceled, context.DeadlineExceeded:
+					if count == 0 {
+						return err
+					}
+					averagems := total.Seconds() * 1000 / float64(count)
+					return re.Emit(&PingResult{
+						Success: true,
+						Text:    fmt.Sprintf("Average latency: %.2fms", averagems),
+					})
+				default:
+					return err
+				}
+
+				pr := event.(*PingResult)
+				if pr.Success && pr.Text == "" {
+					total += pr.Time
+					count++
+				}
+				err = re.Emit(event)
+				if err != nil {
+					return err
+				}
+			}
+		},
+	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PingResult) error {
 			if len(out.Text) > 0 {

@@ -138,12 +138,15 @@ $ cd go-ipfs
 $ make install
 ```
 
-If you are building on FreeBSD instead of `make install` use `gmake install`.
+If you are building on a non-GNU system, use `gmake` in place of `make`.  
+Unsupported platforms (run `(g)make supported` for a list) will also need to set the `nofuse` gotag during build.
+```
+$ GOTAGS=nofuse (g)make install
+```
 
 #### Troubleshooting
 
 - Separate [instructions are available for building on Windows](docs/windows.md).
-- Also, [instructions for OpenBSD](docs/openbsd.md).
 - `git` is required in order for `go get` to fetch all dependencies.
 - Package managers often contain out-of-date `golang` packages.
   Ensure that `go version` reports at least 1.10. See above for how to install go.
@@ -353,7 +356,6 @@ Listing of the main packages used in the IPFS ecosystem. There are also three sp
 | [`go-ipfs-blockstore`](//github.com/ipfs/go-ipfs-blockstore) | [![Travis CI](https://travis-ci.com/ipfs/go-ipfs-blockstore.svg?branch=master)](https://travis-ci.com/ipfs/go-ipfs-blockstore) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-blockstore/branch/master/graph/badge.svg)](https://codecov.io/gh/ipfs/go-ipfs-blockstore) | blockstore interfaces and implementations |
 | **Commands** |
 | [`go-ipfs-cmds`](//github.com/ipfs/go-ipfs-cmds) | [![Travis CI](https://travis-ci.com/ipfs/go-ipfs-cmds.svg?branch=master)](https://travis-ci.com/ipfs/go-ipfs-cmds) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-cmds/branch/master/graph/badge.svg)](https://codecov.io/gh/ipfs/go-ipfs-cmds) | CLI & HTTP commands library |
-| [`go-ipfs-cmdkit`](//github.com/ipfs/go-ipfs-cmdkit) | [![Travis CI](https://travis-ci.com/ipfs/go-ipfs-cmdkit.svg?branch=master)](https://travis-ci.com/ipfs/go-ipfs-cmdkit) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-cmdkit/branch/master/graph/badge.svg)](https://codecov.io/gh/ipfs/go-ipfs-cmdkit) | helper types for the commands library |
 | [`go-ipfs-api`](//github.com/ipfs/go-ipfs-api) | [![Travis CI](https://travis-ci.com/ipfs/go-ipfs-api.svg?branch=master)](https://travis-ci.com/ipfs/go-ipfs-api) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-api/branch/master/graph/badge.svg)](https://codecov.io/gh/ipfs/go-ipfs-api) | a shell for the IPFS HTTP API |
 | **Metrics & Logging** |
 | [`go-metrics-interface`](//github.com/ipfs/go-metrics-interface) | [![Travis CI](https://travis-ci.com/ipfs/go-metrics-interface.svg?branch=master)](https://travis-ci.com/ipfs/go-metrics-interface) | [![codecov](https://codecov.io/gh/ipfs/go-metrics-interface/branch/master/graph/badge.svg)](https://codecov.io/gh/ipfs/go-metrics-interface) | metrics collection interfaces |

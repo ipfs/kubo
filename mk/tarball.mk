@@ -8,6 +8,7 @@ tarball-is:=1
 git-hash:=$(shell cat .tarball)
 endif
 
+GOCC ?= go
 
 go-ipfs-source.tar.gz: distclean
-	bin/maketarball.sh $@
+	GOCC=$(GOCC) bin/maketarball.sh $@

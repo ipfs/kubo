@@ -8,7 +8,6 @@ import (
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
 
@@ -17,7 +16,7 @@ const (
 )
 
 var DNSCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Resolve DNS links.",
 		ShortDescription: `
 Multihashes are hard to remember, but domain names are usually easy to
@@ -54,11 +53,11 @@ The resolver can recursively resolve:
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("domain-name", true, false, "The domain-name name to resolve.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("domain-name", true, false, "The domain-name name to resolve.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(dnsRecursiveOptionName, "r", "Resolve until the result is not a DNS link.").WithDefault(true),
+	Options: []cmds.Option{
+		cmds.BoolOption(dnsRecursiveOptionName, "r", "Resolve until the result is not a DNS link.").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		recursive, _ := req.Options[dnsRecursiveOptionName].(bool)

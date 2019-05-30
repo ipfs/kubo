@@ -6,7 +6,7 @@ test_description="Test basic operations with identity hash"
 
 test_init_ipfs
 
-ID_HASH0=z25RnHTQ7DveGAsV6YDSDR8EkWvD
+ID_HASH0=bafkqaedknncdsodknncdsnzvnbvuioak
 ID_HASH0_CONTENTS=jkD98jkD975hkD8
 
 test_expect_success "can fetch random id hash" '

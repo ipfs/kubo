@@ -30,7 +30,7 @@ import (
 	dag "github.com/ipfs/go-merkledag"
 	importer "github.com/ipfs/go-unixfs/importer"
 	uio "github.com/ipfs/go-unixfs/io"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	ci "github.com/libp2p/go-testutil/ci"
 )
 
@@ -184,7 +184,7 @@ func TestIpfsStressRead(t *testing.T) {
 			defer wg.Done()
 
 			for i := 0; i < 2000; i++ {
-				item, _ := iface.ParsePath(paths[rand.Intn(len(paths))])
+				item := ipath.New(paths[rand.Intn(len(paths))])
 
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
 				fname := path.Join(mnt.Dir, relpath)

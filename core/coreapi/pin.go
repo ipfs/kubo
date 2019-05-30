@@ -10,11 +10,12 @@ import (
 	merkledag "github.com/ipfs/go-merkledag"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 type PinAPI CoreAPI
 
-func (api *PinAPI) Add(ctx context.Context, p coreiface.Path, opts ...caopts.PinAddOption) error {
+func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOption) error {
 	dagNode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return fmt.Errorf("pin: %s", err)
@@ -55,7 +56,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]coreif
 }
 
 // Rm pin rm api
-func (api *PinAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.PinRmOption) error {
+func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOption) error {
 	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return err
@@ -73,7 +74,7 @@ func (api *PinAPI) Rm(ctx context.Context, p coreiface.Path, opts ...caopts.PinR
 	return api.pinning.Flush()
 }
 
-func (api *PinAPI) Update(ctx context.Context, from coreiface.Path, to coreiface.Path, opts ...caopts.PinUpdateOption) error {
+func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opts ...caopts.PinUpdateOption) error {
 	settings, err := caopts.PinUpdateOptions(opts...)
 	if err != nil {
 		return err
@@ -107,7 +108,7 @@ type pinStatus struct {
 
 // BadNode is used in PinVerifyRes
 type badNode struct {
-	path coreiface.ResolvedPath
+	path path.Resolved
 	err  error
 }
 
@@ -119,7 +120,7 @@ func (s *pinStatus) BadNodes() []coreiface.BadPinNode {
 	return s.badNodes
 }
 
-func (n *badNode) Path() coreiface.ResolvedPath {
+func (n *badNode) Path() path.Resolved {
 	return n.path
 }
 
@@ -143,7 +144,7 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 		links, err := getLinks(ctx, root)
 		if err != nil {
 			status := &pinStatus{ok: false, cid: root}
-			status.badNodes = []coreiface.BadPinNode{&badNode{path: coreiface.IpldPath(root), err: err}}
+			status.badNodes = []coreiface.BadPinNode{&badNode{path: path.IpldPath(root), err: err}}
 			visited[root] = status
 			return status
 		}
@@ -174,10 +175,10 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 
 type pinInfo struct {
 	pinType string
-	path    coreiface.ResolvedPath
+	path    path.Resolved
 }
 
-func (p *pinInfo) Path() coreiface.ResolvedPath {
+func (p *pinInfo) Path() path.Resolved {
 	return p.path
 }
 
@@ -193,7 +194,7 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pi
 		for _, c := range keyList {
 			keys[c] = &pinInfo{
 				pinType: typeStr,
-				path:    coreiface.IpldPath(c),
+				path:    path.IpldPath(c),
 			}
 		}
 	}

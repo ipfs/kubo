@@ -63,6 +63,7 @@ Available profiles:
 - [`Bootstrap`](#bootstrap)
 - [`Datastore`](#datastore)
 - [`Discovery`](#discovery)
+- [`Routing`](#routing)
 - [`Gateway`](#gateway)
 - [`Identity`](#identity)
 - [`Ipns`](#ipns)
@@ -214,12 +215,27 @@ Default: `true`
   -  `Interval`
 A number of seconds to wait between discovery checks.
 
-- `Routing`
-Content routing mode. Can be overridden with daemon `--routing` flag.
+
+## `Routing`
+Contains options for content routing mechanisms.
+
+- `Type`
+Content routing mode. Can be overridden with daemon `--routing` flag. When set to `dhtclient`, the node won't join the DHT but can still use it to find content.
 Valid modes are:
   - `dht` (default)
   - `dhtclient`
   - `none`
+  
+**Example:**
+
+```json
+{
+  "Routing": {
+    "Type": "dhtclient"
+  }
+}
+```  
+  
 
 ## `Gateway`
 Options for the HTTP gateway.

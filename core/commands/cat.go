@@ -8,10 +8,10 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	"github.com/ipfs/go-ipfs-cmdkit"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (
@@ -21,17 +21,17 @@ const (
 )
 
 var CatCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Show IPFS object data.",
 		ShortDescription: "Displays the data contained by an IPFS or IPNS object(s) at the given path.",
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, true, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.Int64Option(offsetOptionName, "o", "Byte offset to begin reading from."),
-		cmdkit.Int64Option(lengthOptionName, "l", "Maximum number of bytes to read."),
+	Options: []cmds.Option{
+		cmds.Int64Option(offsetOptionName, "o", "Byte offset to begin reading from."),
+		cmds.Int64Option(lengthOptionName, "l", "Maximum number of bytes to read."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -65,7 +65,7 @@ var CatCmd = &cmds.Command{
 
 		/*
 			if err := corerepo.ConditionalGC(req.Context, node, length); err != nil {
-				re.SetError(err, cmdkit.ErrNormal)
+				re.SetError(err, cmds.ErrNormal)
 				return
 			}
 		*/
@@ -118,12 +118,7 @@ func cat(ctx context.Context, api iface.CoreAPI, paths []string, offset int64, m
 		return nil, 0, nil
 	}
 	for _, p := range paths {
-		fpath, err := iface.ParsePath(p)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		f, err := api.Unixfs().Get(ctx, fpath)
+		f, err := api.Unixfs().Get(ctx, path.New(p))
 		if err != nil {
 			return nil, 0, err
 		}

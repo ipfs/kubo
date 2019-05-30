@@ -38,27 +38,27 @@ test_init() {
 EXPHASH="QmRueCuPMYYvdxWz1vWncF7wzCScEx4qasZXo5aVBb1R4V"
 
 cat <<EOF > ls_expect_file_order
-zb2rhbcZ3aUXYcrbhhDH1JyrpDcpdw1KFJ5Xs5covjnvMpxDR    1000 somedir/file1 0
-zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo   10000 somedir/file2 0
-zb2rhe28UqCDm7TFib7PRyQYEkvuq8iahcXA2AbgaxCLvNhfk  262144 somedir/file3 0
-zb2rhebtyTTuHKyTbJPnkDUSruU5Uma4DN8t2EkvYZ6fP36mm  262144 somedir/file3 262144
-zb2rhav4wcdvNXtaKDTWHYAqtUHMEpygT1cxqMsfK7QrDuHxH  262144 somedir/file3 524288
-zb2rhm9VTrX2mfatggYUk8mHLz78XBxVUTTzLvM2N3d6frdAU  213568 somedir/file3 786432
+bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq   1000 somedir/file1 0
+bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey  10000 somedir/file2 0
+bafkreidntk6ciin24oez6yjz4b25fgwecncvi4ua4uhr2tdyenogpzpid4 262144 somedir/file3 0
+bafkreidwie26yauqbhpd2nhhhmod55irq3z372mh6gw4ikl2ifo34c5jra 262144 somedir/file3 262144
+bafkreib7piyesy3dr22sawmycdftrmpyt3z4tmhxrdig2zt5zdp7qwbuay 262144 somedir/file3 524288
+bafkreigxp5k3k6b3i5sldu4r3im74nfxmoptuuubcvq6rg632nfznskglu 213568 somedir/file3 786432
 EOF
 
 sort < ls_expect_file_order > ls_expect_key_order
 
-FILE1_HASH=zb2rhbcZ3aUXYcrbhhDH1JyrpDcpdw1KFJ5Xs5covjnvMpxDR
-FILE2_HASH=zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo
+FILE1_HASH=bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq
+FILE2_HASH=bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey
 FILE3_HASH=QmfE4SDQazxTD7u8VTYs9AJqQL8rrJPUAorLeJXKSZrVf9
 
 cat <<EOF > verify_expect_file_order
-ok      zb2rhbcZ3aUXYcrbhhDH1JyrpDcpdw1KFJ5Xs5covjnvMpxDR    1000 somedir/file1 0
-ok      zb2rhaPkR7ZF9BzSC2BfqbcGivi9QMdauermW9YB6NvS7FZMo   10000 somedir/file2 0
-ok      zb2rhe28UqCDm7TFib7PRyQYEkvuq8iahcXA2AbgaxCLvNhfk  262144 somedir/file3 0
-ok      zb2rhebtyTTuHKyTbJPnkDUSruU5Uma4DN8t2EkvYZ6fP36mm  262144 somedir/file3 262144
-ok      zb2rhav4wcdvNXtaKDTWHYAqtUHMEpygT1cxqMsfK7QrDuHxH  262144 somedir/file3 524288
-ok      zb2rhm9VTrX2mfatggYUk8mHLz78XBxVUTTzLvM2N3d6frdAU  213568 somedir/file3 786432
+ok      bafkreicj3ezgtrh3euw2gyub6w3jydhnouqobxt7stbgtns3mv3iwv6bqq   1000 somedir/file1 0
+ok      bafkreibxwxisv4cld6x76ybqbvf2uwbkoswjqt4hut46af6rps2twme7ey  10000 somedir/file2 0
+ok      bafkreidntk6ciin24oez6yjz4b25fgwecncvi4ua4uhr2tdyenogpzpid4 262144 somedir/file3 0
+ok      bafkreidwie26yauqbhpd2nhhhmod55irq3z372mh6gw4ikl2ifo34c5jra 262144 somedir/file3 262144
+ok      bafkreib7piyesy3dr22sawmycdftrmpyt3z4tmhxrdig2zt5zdp7qwbuay 262144 somedir/file3 524288
+ok      bafkreigxp5k3k6b3i5sldu4r3im74nfxmoptuuubcvq6rg632nfznskglu 213568 somedir/file3 786432
 EOF
 
 sort < verify_expect_file_order > verify_expect_key_order

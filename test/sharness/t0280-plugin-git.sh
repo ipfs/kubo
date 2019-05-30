@@ -8,13 +8,6 @@ test_description="Test git plugin"
 
 . lib/test-lib.sh
 
-# if in travis CI, dont test mount (no fuse)
-if ! test_have_prereq PLUGIN; then
-  skip_all='skipping git plugin tests, plugins not available'
-
-  test_done
-fi
-
 test_init_ipfs
 
 # from https://github.com/ipfs/go-ipld-git/blob/master/make-test-repo.sh
@@ -33,7 +26,7 @@ test_dag_git() {
 
   test_expect_success "path traversals work" '
     echo \"YmxvYiA3ACcsLnB5Zgo=\" > file1 &&
-    ipfs dag get z8mWaJh5RLq16Zwgtd8gZxd63P4hgwNNx/object/parents/0/tree/dir2/hash/f3/hash > out1
+    ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/object/parents/0/tree/dir2/hash/f3/hash > out1
   '
 
   test_expect_success "outputs look correct" '

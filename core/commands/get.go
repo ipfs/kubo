@@ -7,17 +7,16 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	gopath "path"
 	"path/filepath"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/whyrusleeping/tar-utils"
 	"gopkg.in/cheggaaa/pb.v1"
 )
@@ -32,7 +31,7 @@ const (
 )
 
 var GetCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Download IPFS objects.",
 		ShortDescription: `
 Stores to disk the data contained an IPFS or IPNS object(s) at the given path.
@@ -47,14 +46,14 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, false, "The path to the IPFS object(s) to be outputted.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(outputOptionName, "o", "The path where the output should be stored."),
-		cmdkit.BoolOption(archiveOptionName, "a", "Output a TAR archive."),
-		cmdkit.BoolOption(compressOptionName, "C", "Compress the output with GZIP compression."),
-		cmdkit.IntOption(compressionLevelOptionName, "l", "The level of compression (1-9)."),
+	Options: []cmds.Option{
+		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
+		cmds.BoolOption(archiveOptionName, "a", "Output a TAR archive."),
+		cmds.BoolOption(compressOptionName, "C", "Compress the output with GZIP compression."),
+		cmds.IntOption(compressionLevelOptionName, "l", "The level of compression (1-9)."),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		_, err := getCompressOptions(req)
@@ -71,10 +70,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
+		p := path.New(req.Arguments[0])
 
 		file, err := api.Unixfs().Get(req.Context, p)
 		if err != nil {
@@ -267,8 +263,8 @@ func (i *identityWriteCloser) Close() error {
 }
 
 func fileArchive(f files.Node, name string, archive bool, compression int) (io.Reader, error) {
-	cleaned := path.Clean(name)
-	_, filename := path.Split(cleaned)
+	cleaned := gopath.Clean(name)
+	_, filename := gopath.Split(cleaned)
 
 	// need to connect a writer to a reader
 	piper, pipew := io.Pipe()

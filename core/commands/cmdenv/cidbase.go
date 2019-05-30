@@ -6,13 +6,12 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mbase "github.com/multiformats/go-multibase"
 )
 
-var OptionCidBase = cmdkit.StringOption("cid-base", "Multibase encoding used for version 1 CIDs in output.")
-var OptionUpgradeCidV0InOutput = cmdkit.BoolOption("upgrade-cidv0-in-output", "Upgrade version 0 to version 1 CIDs in output.")
+var OptionCidBase = cmds.StringOption("cid-base", "Multibase encoding used for version 1 CIDs in output.")
+var OptionUpgradeCidV0InOutput = cmds.BoolOption("upgrade-cidv0-in-output", "Upgrade version 0 to version 1 CIDs in output.")
 
 // GetCidEncoder processes the `cid-base` and `output-cidv1` options and
 // returns a encoder to use based on those parameters.

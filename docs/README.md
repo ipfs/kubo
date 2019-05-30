@@ -34,5 +34,4 @@ Otherwise, check out the following guides to using and developing IPFS:
 ## Other
 
 - [Thanks to all our contributors ❤️](AUTHORS) (We use the `generate-authors.sh` script to regenerate this list.)
-- Our [Developer Certificate of Origin (DCO)](developer-certificate-of-origin) — when you sign your commits with `Signed-off-by: <your name>`, you are agreeing to this document.
 - [How to file a GitHub Issue](github-issue-guide.md)

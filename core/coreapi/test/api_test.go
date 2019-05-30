@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/filestore"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -70,10 +71,10 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		c.Identity = ident
 		c.Experimental.FilestoreEnabled = true
 
-		ds := datastore.NewMapDatastore()
+		ds := syncds.MutexWrap(datastore.NewMapDatastore())
 		r := &repo.Mock{
 			C: c,
-			D: syncds.MutexWrap(ds),
+			D: ds,
 			K: keystore.NewMemKeystore(),
 			F: filestore.NewFileManager(ds, filepath.Dir(os.TempDir())),
 		}
@@ -101,7 +102,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		return nil, err
 	}
 
-	bsinf := core.BootstrapConfigWithPeers(
+	bsinf := bootstrap.BootstrapConfigWithPeers(
 		[]pstore.PeerInfo{
 			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
 		},

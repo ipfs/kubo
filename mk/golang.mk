@@ -46,6 +46,8 @@ test_go_test: $$(DEPS_GO)
 	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
 .PHONY: test_go_test
 
+test_go_build: $$(TEST_GO_BUILD)
+
 test_go_short: GOTFLAGS += -test.short
 test_go_short: test_go_test
 .PHONY: test_go_short
@@ -54,7 +56,7 @@ test_go_race: GOTFLAGS += -race
 test_go_race: test_go_test
 .PHONY: test_go_race
 
-test_go_expensive: test_go_test $$(TEST_GO_BUILD)
+test_go_expensive: test_go_test test_go_build
 .PHONY: test_go_expensive
 TEST_GO += test_go_expensive
 
@@ -63,15 +65,14 @@ test_go_fmt:
 .PHONY: test_go_fmt
 TEST_GO += test_go_fmt
 
-test_go_megacheck:
-	@$(GOCC) get honnef.co/go/tools/cmd/megacheck
-	@for pkg in $(go-pkgs); do megacheck "$$pkg"; done
-.PHONY: megacheck
+test_go_lint: test/bin/golangci-lint
+	golangci-lint run ./...
+.PHONY: test_go_lint
 
 test_go: $(TEST_GO)
 
 check_go_version:
-	@go version
+	@$(GOCC) version
 	bin/check_go_version $(GO_MIN_VERSION)
 .PHONY: check_go_version
 DEPS_GO += check_go_version

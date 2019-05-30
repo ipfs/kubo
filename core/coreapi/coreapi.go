@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/provider"
@@ -207,7 +208,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 		cs := cfg.Ipns.ResolveCacheSize
 		if cs == 0 {
-			cs = core.DefaultIpnsCacheSize
+			cs = node.DefaultIpnsCacheSize
 		}
 		if cs < 0 {
 			return nil, fmt.Errorf("cannot specify negative resolve cache size")

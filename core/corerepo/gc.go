@@ -84,8 +84,6 @@ func BestEffortRoots(filesRoot *mfs.Root) ([]cid.Cid, error) {
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel() // in case error occurs during operation
 	roots, err := BestEffortRoots(n.FilesRoot)
 	if err != nil {
 		return err

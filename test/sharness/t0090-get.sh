@@ -129,7 +129,7 @@ test_get_cmd() {
   '
 
   test_expect_success "ipfs get ../.. should fail" '
-    echo "Error: invalid 'ipfs ref' path" >expected &&
+    echo "Error: invalid path \"../..\": selected encoding not supported" >expected &&
     test_must_fail ipfs get ../.. 2>actual &&
     test_cmp expected actual
   '

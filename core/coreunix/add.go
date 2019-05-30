@@ -24,6 +24,7 @@ import (
 	ihelper "github.com/ipfs/go-unixfs/importer/helpers"
 	"github.com/ipfs/go-unixfs/importer/trickle"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var log = logging.Logger("coreunix")
@@ -70,7 +71,6 @@ type Adder struct {
 	Silent     bool
 	NoCopy     bool
 	Chunker    string
-	root       ipld.Node
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   cid.Cid
@@ -131,11 +131,6 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 
 // RootNode returns the mfs root node
 func (adder *Adder) curRootNode() (ipld.Node, error) {
-	// for memoizing
-	if adder.root != nil {
-		return adder.root, nil
-	}
-
 	mr, err := adder.mfsRoot()
 	if err != nil {
 		return nil, err
@@ -155,7 +150,6 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 		root = nd
 	}
 
-	adder.root = root
 	return root, err
 }
 
@@ -478,7 +472,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 	}
 
 	output := &coreiface.AddEvent{
-		Path: coreiface.IpfsPath(c),
+		Path: path.IpfsPath(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 

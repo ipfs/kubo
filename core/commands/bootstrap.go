@@ -9,7 +9,6 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
 )
@@ -21,7 +20,7 @@ type BootstrapOutput struct {
 var peerOptionDesc = "A peer to add to the bootstrap list (in the format '<multiaddr>/<peerID>')"
 
 var BootstrapCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Show or edit the list of bootstrap peers.",
 		ShortDescription: `
 Running 'ipfs bootstrap' with no arguments will run 'ipfs bootstrap list'.
@@ -44,19 +43,19 @@ const (
 )
 
 var bootstrapAddCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Add peers to the bootstrap list.",
 		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).
 ` + bootstrapSecurityWarning,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
 
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(defaultOptionName, "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
+	Options: []cmds.Option{
+		cmds.BoolOption(defaultOptionName, "Add default bootstrap nodes. (Deprecated, use 'default' subcommand instead)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"default": bootstrapAddDefaultCmd,
@@ -122,7 +121,7 @@ in the bootstrap list).
 }
 
 var bootstrapAddDefaultCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Add default peers to the bootstrap list.",
 		ShortDescription: `Outputs a list of peers that were added (that weren't already
 in the bootstrap list).`,
@@ -169,17 +168,17 @@ const (
 )
 
 var bootstrapRemoveCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Remove peers from the bootstrap list.",
 		ShortDescription: `Outputs the list of peers that were removed.
 ` + bootstrapSecurityWarning,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("peer", false, true, peerOptionDesc).EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(bootstrapAllOptionName, "Remove all bootstrap peers. (Deprecated, use 'all' subcommand)"),
+	Options: []cmds.Option{
+		cmds.BoolOption(bootstrapAllOptionName, "Remove all bootstrap peers. (Deprecated, use 'all' subcommand)"),
 	},
 	Subcommands: map[string]*cmds.Command{
 		"all": bootstrapRemoveAllCmd,
@@ -232,7 +231,7 @@ var bootstrapRemoveCmd = &cmds.Command{
 }
 
 var bootstrapRemoveAllCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Remove all peers from the bootstrap list.",
 		ShortDescription: `Outputs the list of peers that were removed.`,
 	},
@@ -269,7 +268,7 @@ var bootstrapRemoveAllCmd = &cmds.Command{
 }
 
 var bootstrapListCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline:          "Show peers in the bootstrap list.",
 		ShortDescription: "Peers are output in the format '<multiaddr>/<peerID>'.",
 	},

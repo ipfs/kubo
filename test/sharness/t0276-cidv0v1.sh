@@ -30,7 +30,7 @@ test_expect_success "add file using CIDv0" '
 test_expect_success "check hashes" '
   test "$(cid-fmt %v-%c $AHASHv0)" = "cidv0-protobuf" &&
   test "$(cid-fmt %v-%c $AHASHv1)" = "cidv1-protobuf" &&
-  test "$(cid-fmt -v 0 %s $AHASHv1)" = "$AHASHv0"
+  test "$(cid-fmt -b z -v 0 %s $AHASHv1)" = "$AHASHv0"
 '
 
 test_expect_success "make sure CIDv1 hash really is in the repo" '
@@ -117,7 +117,7 @@ test_expect_success "add bfile using CIDv1 to node 0" '
 '
 
 test_expect_success "get bfile using CIDv0 via node 1" '
-  BHASHv0=$(cid-fmt -v 0 %s $BHASHv1)
+  BHASHv0=$(cid-fmt -b z -v 0 %s $BHASHv1)
   echo $BHASHv1 &&
   iptb -quiet run 1 -- ipfs --timeout=2s cat $BHASHv0 > thefile &&
   test_cmp bfile thefile

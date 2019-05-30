@@ -16,7 +16,7 @@ func TestManageFdLimit(t *testing.T) {
 		t.Errorf("Cannot manage file descriptors")
 	}
 
-	if maxFds != uint64(2048) {
+	if maxFds != uint64(8192) {
 		t.Errorf("Maximum file descriptors default value changed")
 	}
 }
@@ -38,16 +38,15 @@ func TestManageInvalidNFds(t *testing.T) {
 		t.Fatal("Cannot set the IPFS_FD_MAX env variable")
 	}
 
-	// call to check and set the maximum file descriptor from the env
-	setMaxFds()
+	t.Logf("setting ulimit to %d, max %d, cur %d", value, rlimit.Max, rlimit.Cur)
 
-	if _, _, err := ManageFdLimit(); err == nil {
-		t.Errorf("ManageFdLimit should return an error")
-	} else if err != nil {
+	if changed, new, err := ManageFdLimit(); err == nil {
+		t.Errorf("ManageFdLimit should return an error: changed %t, new: %d", changed, new)
+	} else {
 		flag := strings.Contains(err.Error(),
-			"cannot set rlimit, IPFS_FD_MAX is larger than the hard limit")
+			"failed to raise ulimit to IPFS_FD_MAX")
 		if !flag {
-			t.Errorf("ManageFdLimit returned unexpected error")
+			t.Error("ManageFdLimit returned unexpected error", err)
 		}
 	}
 
@@ -72,11 +71,6 @@ func TestManageFdLimitWithEnvSet(t *testing.T) {
 	value := rlimit.Max - rlimit.Cur + 1
 	if err = os.Setenv("IPFS_FD_MAX", fmt.Sprintf("%d", value)); err != nil {
 		t.Fatal("Cannot set the IPFS_FD_MAX env variable")
-	}
-
-	setMaxFds()
-	if maxFds != uint64(value) {
-		t.Errorf("The maxfds is not set from IPFS_FD_MAX")
 	}
 
 	if _, _, err = ManageFdLimit(); err != nil {

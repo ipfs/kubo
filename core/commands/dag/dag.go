@@ -11,17 +11,16 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	path "github.com/ipfs/go-path"
-	iface "github.com/ipfs/interface-go-ipfs-core"
+	ipfspath "github.com/ipfs/go-path"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
 var DagCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Interact with ipld dag objects.",
 		ShortDescription: `
 'ipfs dag' is used for creating and manipulating dag objects.
@@ -49,21 +48,21 @@ type ResolveOutput struct {
 }
 
 var DagPutCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Add a dag node to ipfs.",
 		ShortDescription: `
 'ipfs dag put' accepts input from a file or stdin and parses it
 into an object of the specified format.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.FileArg("object data", true, true, "The object to put").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.FileArg("object data", true, true, "The object to put").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption("format", "f", "Format that the object will be added as.").WithDefault("cbor"),
-		cmdkit.StringOption("input-enc", "Format that the input object will be.").WithDefault("json"),
-		cmdkit.BoolOption("pin", "Pin this object when adding."),
-		cmdkit.StringOption("hash", "Hash function to use").WithDefault(""),
+	Options: []cmds.Option{
+		cmds.StringOption("format", "f", "Format that the object will be added as.").WithDefault("cbor"),
+		cmds.StringOption("input-enc", "Format that the input object will be.").WithDefault("json"),
+		cmds.BoolOption("pin", "Pin this object when adding."),
+		cmds.StringOption("hash", "Hash function to use").WithDefault(""),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -144,15 +143,15 @@ into an object of the specified format.
 }
 
 var DagGetCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Get a dag node from ipfs.",
 		ShortDescription: `
 'ipfs dag get' fetches a dag node from ipfs and prints it out in the specified
 format.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ref", true, false, "The object to get").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ref", true, false, "The object to get").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -160,12 +159,7 @@ format.
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		rp, err := api.ResolvePath(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -190,14 +184,14 @@ format.
 
 // DagResolveCmd returns address of highest block within a path and a path remainder
 var DagResolveCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Resolve ipld block",
 		ShortDescription: `
 'ipfs dag resolve' fetches a dag node from ipfs, prints it's address and remaining path.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ref", true, false, "The path to resolve").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -205,12 +199,7 @@ var DagResolveCmd = &cmds.Command{
 			return err
 		}
 
-		p, err := iface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		rp, err := api.ResolvePath(req.Context, p)
+		rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -243,7 +232,7 @@ var DagResolveCmd = &cmds.Command{
 			}
 			p := enc.Encode(out.Cid)
 			if out.RemPath != "" {
-				p = path.Join([]string{p, out.RemPath})
+				p = ipfspath.Join([]string{p, out.RemPath})
 			}
 
 			fmt.Fprint(w, p)

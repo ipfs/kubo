@@ -3,12 +3,11 @@ package commands
 import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	"github.com/ipfs/go-ipfs-cmdkit"
-	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-cmds"
 )
 
 var daemonShutdownCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Shut down the ipfs daemon",
 	},
 	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
@@ -18,10 +17,10 @@ var daemonShutdownCmd = &cmds.Command{
 		}
 
 		if !nd.IsDaemon {
-			return cmdkit.Errorf(cmdkit.ErrClient, "daemon not running")
+			return cmds.Errorf(cmds.ErrClient, "daemon not running")
 		}
 
-		if err := nd.Process().Close(); err != nil {
+		if err := nd.Close(); err != nil {
 			log.Error("error while shutting down ipfs daemon:", err)
 		}
 

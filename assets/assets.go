@@ -13,8 +13,8 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
-	iface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 
 	// this import keeps gx from thinking the dep isn't used
 	_ "github.com/ipfs/dir-index-html"
@@ -57,7 +57,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		return cid.Cid{}, err
 	}
 
-	basePath := iface.IpfsPath(dirb.Cid())
+	basePath := path.IpfsPath(dirb.Cid())
 
 	for _, p := range l {
 		d, err := Asset(p)

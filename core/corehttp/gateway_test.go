@@ -23,6 +23,7 @@ import (
 	path "github.com/ipfs/go-path"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	ci "github.com/libp2p/go-libp2p-crypto"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
@@ -344,12 +345,12 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k2, err := api.ResolvePath(ctx, iface.Join(k, "foo? #<'"))
+	k2, err := api.ResolvePath(ctx, ipath.Join(k, "foo? #<'"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	k3, err := api.ResolvePath(ctx, iface.Join(k, "foo? #<'/bar"))
+	k3, err := api.ResolvePath(ctx, ipath.Join(k, "foo? #<'/bar"))
 	if err != nil {
 		t.Fatal(err)
 	}

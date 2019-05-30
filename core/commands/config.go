@@ -15,7 +15,6 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"github.com/elgris/jsondiff"
-	"github.com/ipfs/go-ipfs-cmdkit"
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-config"
 )
@@ -38,7 +37,7 @@ const (
 )
 
 var ConfigCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Get and set ipfs config values.",
 		ShortDescription: `
 'ipfs config' controls configuration variables. It works like 'git config'.
@@ -66,13 +65,13 @@ Set the value of the 'Datastore.Path' key:
 		"replace": configReplaceCmd,
 		"profile": configProfileCmd,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")."),
-		cmdkit.StringArg("value", false, false, "The value to set the config entry to."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The key of the config entry (e.g. \"Addresses.API\")."),
+		cmds.StringArg("value", false, false, "The value to set the config entry to."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(configBoolOptionName, "Set a boolean value."),
-		cmdkit.BoolOption(configJSONOptionName, "Parse stringified JSON."),
+	Options: []cmds.Option{
+		cmds.BoolOption(configBoolOptionName, "Set a boolean value."),
+		cmds.BoolOption(configJSONOptionName, "Parse stringified JSON."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		args := req.Arguments
@@ -142,7 +141,7 @@ Set the value of the 'Datastore.Path' key:
 }
 
 var configShowCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Output config file contents.",
 		ShortDescription: `
 NOTE: For security reasons, this command will omit your private key. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
@@ -233,7 +232,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 }
 
 var configEditCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Open the config file for editing in $EDITOR.",
 		ShortDescription: `
 To use 'ipfs config edit', you must have the $EDITOR environment
@@ -257,7 +256,7 @@ variable set to your preferred text editor.
 }
 
 var configReplaceCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Replace the config with <file>.",
 		ShortDescription: `
 Make sure to back up the config file first if necessary, as this operation
@@ -265,8 +264,8 @@ can't be undone.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.FileArg("file", true, false, "The file to use as the new config."),
+	Arguments: []cmds.Argument{
+		cmds.FileArg("file", true, false, "The file to use as the new config."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -291,7 +290,7 @@ can't be undone.
 }
 
 var configProfileCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Apply profiles to config.",
 		ShortDescription: fmt.Sprintf(`
 Available profiles:
@@ -305,14 +304,14 @@ Available profiles:
 }
 
 var configProfileApplyCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Apply profile to config.",
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(configDryRunOptionName, "print difference between the current config and the config that would be generated"),
+	Options: []cmds.Option{
+		cmds.BoolOption(configDryRunOptionName, "print difference between the current config and the config that would be generated"),
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("profile", true, false, "The profile to apply to the config."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("profile", true, false, "The profile to apply to the config."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		profile, ok := config.Profiles[req.Arguments[0]]

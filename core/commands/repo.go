@@ -19,7 +19,6 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
 )
@@ -29,7 +28,7 @@ type RepoVersion struct {
 }
 
 var RepoCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Manipulate the IPFS repo.",
 		ShortDescription: `
 'ipfs repo' is a plumbing command used to manipulate the repo.
@@ -57,7 +56,7 @@ const (
 )
 
 var repoGcCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Perform a garbage collection sweep on the repo.",
 		ShortDescription: `
 'ipfs repo gc' is a plumbing command that will sweep the local
@@ -65,9 +64,9 @@ set of stored objects and remove ones that are not pinned in
 order to reclaim hard disk space.
 `,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(repoStreamErrorsOptionName, "Stream errors."),
-		cmdkit.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
+	Options: []cmds.Option{
+		cmds.BoolOption(repoStreamErrorsOptionName, "Stream errors."),
+		cmds.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -137,7 +136,7 @@ const (
 )
 
 var repoStatCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Get stats for the currently used repo.",
 		ShortDescription: `
 'ipfs repo stat' provides information about the local set of
@@ -150,9 +149,9 @@ RepoPath        string The path to the repo being currently used.
 Version         string The repo version.
 `,
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(repoSizeOnlyOptionName, "Only report RepoSize and StorageMax."),
-		cmdkit.BoolOption(repoHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+	Options: []cmds.Option{
+		cmds.BoolOption(repoSizeOnlyOptionName, "Only report RepoSize and StorageMax."),
+		cmds.BoolOption(repoHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -214,7 +213,7 @@ Version         string The repo version.
 }
 
 var repoFsckCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Remove repo lockfiles.",
 		ShortDescription: `
 'ipfs repo fsck' is a plumbing command that will remove repo and level db
@@ -313,7 +312,7 @@ func verifyResultChan(ctx context.Context, keys <-chan cid.Cid, bs bstore.Blocks
 }
 
 var repoVerifyCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Verify all blocks in repo are not corrupted.",
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -377,15 +376,15 @@ var repoVerifyCmd = &cmds.Command{
 }
 
 var repoVersionCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Show the repo version.",
 		ShortDescription: `
 'ipfs repo version' returns the current repo version.
 `,
 	},
 
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
+	Options: []cmds.Option{
+		cmds.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		return cmds.EmitOnce(res, &RepoVersion{

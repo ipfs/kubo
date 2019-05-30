@@ -30,6 +30,116 @@ import (
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
+func TestAddMultipleGCLive(t *testing.T) {
+	r := &repo.Mock{
+		C: config.Config{
+			Identity: config.Identity{
+				PeerID: testPeerID, // required by offline node
+			},
+		},
+		D: syncds.MutexWrap(datastore.NewMapDatastore()),
+	}
+	node, err := core.NewNode(context.Background(), &core.BuildCfg{Repo: r})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out := make(chan interface{}, 10)
+	adder, err := NewAdder(context.Background(), node.Pinning, node.Blockstore, node.DAG)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adder.Out = out
+
+	// make two files with pipes so we can 'pause' the add for timing of the test
+	piper1, pipew1 := io.Pipe()
+	hangfile1 := files.NewReaderFile(piper1)
+
+	piper2, pipew2 := io.Pipe()
+	hangfile2 := files.NewReaderFile(piper2)
+
+	rfc := files.NewBytesFile([]byte("testfileA"))
+
+	slf := files.NewMapDirectory(map[string]files.Node{
+		"a": hangfile1,
+		"b": hangfile2,
+		"c": rfc,
+	})
+
+	go func() {
+		defer close(out)
+		_, _ = adder.AddAllAndPin(slf)
+		// Ignore errors for clarity - the real bug would be gc'ing files while adding them, not this resultant error
+	}()
+
+	// Start writing the first file but don't close the stream
+	if _, err := pipew1.Write([]byte("some data for file a")); err != nil {
+		t.Fatal(err)
+	}
+
+	var gc1out <-chan gc.Result
+	gc1started := make(chan struct{})
+	go func() {
+		defer close(gc1started)
+		gc1out = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+	}()
+
+	// GC shouldn't get the lock until after the file is completely added
+	select {
+	case <-gc1started:
+		t.Fatal("gc shouldnt have started yet")
+	default:
+	}
+
+	// finish write and unblock gc
+	pipew1.Close()
+
+	// Should have gotten the lock at this point
+	<-gc1started
+
+	removedHashes := make(map[string]struct{})
+	for r := range gc1out {
+		if r.Error != nil {
+			t.Fatal(err)
+		}
+		removedHashes[r.KeyRemoved.String()] = struct{}{}
+	}
+
+	if _, err := pipew2.Write([]byte("some data for file b")); err != nil {
+		t.Fatal(err)
+	}
+
+	var gc2out <-chan gc.Result
+	gc2started := make(chan struct{})
+	go func() {
+		defer close(gc2started)
+		gc2out = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
+	}()
+
+	select {
+	case <-gc2started:
+		t.Fatal("gc shouldnt have started yet")
+	default:
+	}
+
+	pipew2.Close()
+
+	<-gc2started
+
+	for r := range gc2out {
+		if r.Error != nil {
+			t.Fatal(err)
+		}
+		removedHashes[r.KeyRemoved.String()] = struct{}{}
+	}
+
+	for o := range out {
+		if _, ok := removedHashes[o.(*coreiface.AddEvent).Path.Cid().String()]; ok {
+			t.Fatal("gc'ed a hash we just added")
+		}
+	}
+}
+
 func TestAddGCLive(t *testing.T) {
 	r := &repo.Mock{
 		C: config.Config{

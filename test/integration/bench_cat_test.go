@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
@@ -83,10 +84,10 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 	bs1 := []pstore.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)}
 	bs2 := []pstore.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)}
 
-	if err := catter.Bootstrap(core.BootstrapConfigWithPeers(bs1)); err != nil {
+	if err := catter.Bootstrap(bootstrap.BootstrapConfigWithPeers(bs1)); err != nil {
 		return err
 	}
-	if err := adder.Bootstrap(core.BootstrapConfigWithPeers(bs2)); err != nil {
+	if err := adder.Bootstrap(bootstrap.BootstrapConfigWithPeers(bs2)); err != nil {
 		return err
 	}
 

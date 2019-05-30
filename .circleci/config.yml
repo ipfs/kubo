@@ -36,6 +36,30 @@ defaults: &defaults
     - image: circleci/golang:1.12
 
 jobs:
+  gobuild:
+    <<: *defaults
+    steps:
+    - checkout
+    - *make_out_dirs
+    - *restore_gomod
+    - run:
+        command: make cmd/ipfs-try-build
+        environment:
+          TEST_NO_FUSE: 0
+    - run:
+        command: make cmd/ipfs-try-build
+        environment:
+          TEST_NO_FUSE: 1
+    - *store_gomod
+  golint:
+    <<: *defaults
+    steps:
+    - checkout
+    - *make_out_dirs
+    - *restore_gomod
+    - run: |
+        make -O test_go_lint
+    - *store_gomod
   gotest:
     <<: *defaults
     steps:
@@ -43,7 +67,6 @@ jobs:
     - *make_out_dirs
     - *restore_gomod
 
-    - run: make cmd/ipfs-try-build
     - run: |
         make -j 1 test/unit/gotest.junit.xml \
         && [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
@@ -96,5 +119,7 @@ workflows:
   version: 2
   test:
     jobs:
+    - gobuild
+    - golint
     - gotest
     - sharness

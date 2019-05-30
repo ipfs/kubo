@@ -60,15 +60,15 @@ func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	}
 	plugins, err = loader.NewPluginLoader(pluginpath)
 	if err != nil {
-		log.Error("error loading plugins: ", err)
+		return nil, fmt.Errorf("error loading plugins: %s", err)
 	}
 
 	if err := plugins.Initialize(); err != nil {
-		log.Error("error initializing plugins: ", err)
+		return nil, fmt.Errorf("error initializing plugins: %s", err)
 	}
 
 	if err := plugins.Inject(); err != nil {
-		log.Error("error running plugins: ", err)
+		return nil, fmt.Errorf("error initializing plugins: %s", err)
 	}
 	return plugins, nil
 }

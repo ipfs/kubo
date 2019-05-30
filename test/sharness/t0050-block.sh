@@ -203,7 +203,7 @@ test_expect_success "can set multihash type and length on block put" '
 '
 
 test_expect_success "output looks good" '
-  test "z83bYcqyBkbx5fuNAcvbdv4pr5RYQiEpK" = "$HASH"
+  test "bafkrifctrq4xazzixy2v4ezymjcvzpskqdwlxra" = "$HASH"
 '
 
 test_expect_success "can read block with different hash" '
@@ -228,7 +228,7 @@ test_expect_success "can set multihash type and length on block put without form
 '
 
 test_expect_success "output looks good" '
-  test "z8bwYCvQPhyDY7VUTsUdGdE8Evm1ktSPV" = "$HASH"
+  test "bafybifctrq4xazzixy2v4ezymjcvzpskqdwlxra" = "$HASH"
 '
 
 test_expect_success "put with sha3 and cidv0 fails" '

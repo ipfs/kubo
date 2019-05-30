@@ -34,7 +34,7 @@ test_add_symlinks() {
 
   test_expect_success "output looks good" '
     # note this hash implies all internal nodes are stored using CidV1
-    echo zdj7WZDQ2xMmr4qn6aRZTsE9fCUs2KmvPigpHdpssqUobwcWK > filehash_exp &&
+    echo bafybeibyhlx64cklod6isy3h7tsmr4qvam3ae3b74n3hfes5bythjrwyua > filehash_exp &&
     test_cmp filehash_exp filehash_out
   '
 

@@ -4,6 +4,7 @@ COVERAGE :=
 DISTCLEAN :=
 TEST :=
 TEST_SHORT :=
+GOCC ?= go
 
 all: help    # all has to be first defined target
 .PHONY: all
@@ -104,8 +105,13 @@ install_unsupported: install
 .PHONY: install_unsupported
 
 uninstall:
-	go clean -i ./cmd/ipfs
+	$(GOCC) clean -i ./cmd/ipfs
 .PHONY: uninstall
+
+supported:
+	@echo "Currently supported platforms:"
+	@for p in ${SUPPORTED_PLATFORMS}; do echo $$p; done
+.PHONY: supported
 
 help:
 	@echo 'DEPENDENCY TARGETS:'
@@ -135,7 +141,7 @@ help:
 	@echo '  test_go_test            - Run all go tests'
 	@echo '  test_go_expensive       - Run all go tests and compile on all platforms'
 	@echo '  test_go_race            - Run go tests with the race detector enabled'
-	@echo '  test_go_megacheck       - Run the `megacheck` vetting tool'
+	@echo '  test_go_lint            - Run the `golangci-lint` vetting tool'
 	@echo '  test_sharness_short     - Run short sharness tests'
 	@echo '  test_sharness_expensive - Run all sharness tests'
 	@echo '  coverage     - Collects coverage info from unit tests and sharness'

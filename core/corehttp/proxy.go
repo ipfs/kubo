@@ -73,7 +73,5 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 }
 
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
-	w.WriteHeader(code)
-	fmt.Fprintf(w, "%s: %s\n", msg, err)
-	log.Warningf("http proxy error: %s: %s", err)
+	http.Error(w, fmt.Sprintf("%s: %s", msg, err), code)
 }

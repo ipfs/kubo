@@ -48,7 +48,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "output looks correct" '
-    EXPHASH="zdpuAsXfkHapxohc8LtsCzYiAsy84ESqKRD8eWuY64tt9r2CE"
+    EXPHASH="bafyreidjtjfmavdk7epvztob2m5vlm3pxp3gjmpyewro4qlbw5n4f4iz64"
     test $EXPHASH = $IPLDHASH
   '
 
@@ -139,13 +139,13 @@ test_dag_cmd() {
 
   test_expect_success "non-canonical cbor input is normalized" '
     HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=raw) &&
-    test $HASH = "zdpuAmxF8q6iTUtkB3xtEYzmc5Sw762qwQJftt5iW8NTWLtjC" ||
+    test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
     test_fsh echo $HASH
   '
 
   test_expect_success "non-canonical cbor input is normalized with input-enc cbor" '
     HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=cbor) &&
-    test $HASH = "zdpuAmxF8q6iTUtkB3xtEYzmc5Sw762qwQJftt5iW8NTWLtjC" ||
+    test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
     test_fsh echo $HASH
   '
 
@@ -163,7 +163,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "output looks correct" '
-    EXPHASH="zBwWX8u9LYZdCWqaryJW8QsBstghHSPy41nfhhFLY9qw1Vu2BWqnMFtk1jL3qCtEdGd7Kqw1HNPZv5z8LxP2eHGGDCdRE"
+    EXPHASH="bafyriqgae54zjl3bjebmbat2rjem4ewj6vni6jxohandmvk3bibfgv3sioyeidppsghvulryxats43br3b7afa6jy77x6gqzqaicer6ljicck"
     test $EXPHASH = $IPLDHASH
   '
 
@@ -205,8 +205,8 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag put multiple files output looks good" '
-    echo zdpuAoKMEvka7gKGSjF9B3of1F5gE5MyMMywxTC13wCmouQrf > dag_put_exp &&
-    echo zdpuAogmDEvpvGjMFsNTGDEU1JMYe6v69oxR8nG81EurmGHMj >> dag_put_exp &&
+    echo bafyreiblaotetvwobe7cu2uqvnddr6ew2q3cu75qsoweulzku2egca4dxq > dag_put_exp &&
+    echo bafyreibqp7zvp6dvrqhtkbwuzzk7jhtmfmngtiqjajqpm6gtw55o7kqzfi >> dag_put_exp &&
 
     test_cmp dag_put_exp dag_put_out
   '

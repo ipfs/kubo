@@ -9,10 +9,10 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/namesys/resolve"
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	path "github.com/ipfs/go-path"
@@ -44,7 +44,7 @@ const (
 
 // RefsCmd is the `ipfs refs` command
 var RefsCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List links (references) from an object.",
 		ShortDescription: `
 Lists the hashes of all the links an IPFS or IPNS object(s) contains,
@@ -58,15 +58,15 @@ NOTE: List all references recursively by using the flag '-r'.
 	Subcommands: map[string]*cmds.Command{
 		"local": RefsLocalCmd,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, true, "Path to the object(s) to list refs from.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(refsFormatOptionName, "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").WithDefault("<dst>"),
-		cmdkit.BoolOption(refsEdgesOptionName, "e", "Emit edge format: `<from> -> <to>`."),
-		cmdkit.BoolOption(refsUniqueOptionName, "u", "Omit duplicate refs from output."),
-		cmdkit.BoolOption(refsRecursiveOptionName, "r", "Recursively list links of child nodes."),
-		cmdkit.IntOption(refsMaxDepthOptionName, "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
+	Options: []cmds.Option{
+		cmds.StringOption(refsFormatOptionName, "Emit edges with given format. Available tokens: <src> <dst> <linkname>.").WithDefault("<dst>"),
+		cmds.BoolOption(refsEdgesOptionName, "e", "Emit edge format: `<from> -> <to>`."),
+		cmds.BoolOption(refsUniqueOptionName, "u", "Omit duplicate refs from output."),
+		cmds.BoolOption(refsRecursiveOptionName, "r", "Recursively list links of child nodes."),
+		cmds.IntOption(refsMaxDepthOptionName, "Only for recursive refs, limits fetch and listing to the given depth").WithDefault(-1),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		err := req.ParseBodyArgs()
@@ -132,7 +132,7 @@ NOTE: List all references recursively by using the flag '-r'.
 }
 
 var RefsLocalCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "List all local references.",
 		ShortDescription: `
 Displays the hashes of all local objects.
@@ -173,7 +173,7 @@ func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]i
 			return nil, err
 		}
 
-		o, err := core.Resolve(ctx, n.Namesys, n.Resolver, p)
+		o, err := resolve.Resolve(ctx, n.Namesys, n.Resolver, p)
 		if err != nil {
 			return nil, err
 		}

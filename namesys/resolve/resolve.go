@@ -1,17 +1,20 @@
-package core
+package resolve
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
-	namesys "github.com/ipfs/go-ipfs/namesys"
-
-	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	path "github.com/ipfs/go-path"
-	resolver "github.com/ipfs/go-path/resolver"
+	"github.com/ipfs/go-path"
+	"github.com/ipfs/go-path/resolver"
+
+	"github.com/ipfs/go-ipfs/namesys"
 )
+
+var log = logging.Logger("nsresolv")
 
 // ErrNoNamesys is an explicit error for when an IPFS node doesn't
 // (yet) have a name system
@@ -34,8 +37,9 @@ func ResolveIPNS(ctx context.Context, nsys namesys.NameSystem, p path.Path) (pat
 		seg := p.Segments()
 
 		if len(seg) < 2 || seg[1] == "" { // just "/<protocol/>" without further segments
-			evt.Append(logging.LoggableMap{"error": path.ErrNoComponents.Error()})
-			return "", path.ErrNoComponents
+			err := fmt.Errorf("invalid path %q: ipns path missing IPNS ID", p)
+			evt.Append(logging.LoggableMap{"error": err})
+			return "", err
 		}
 
 		extensions := seg[2:]
@@ -64,7 +68,7 @@ func ResolveIPNS(ctx context.Context, nsys namesys.NameSystem, p path.Path) (pat
 // Resolve resolves the given path by parsing out protocol-specific
 // entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
 // entries and returning the final node.
-func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (ipld.Node, error) {
+func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (format.Node, error) {
 	p, err := ResolveIPNS(ctx, nsys, p)
 	if err != nil {
 		return nil, err

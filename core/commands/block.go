@@ -9,10 +9,9 @@ import (
 	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	cmdkit "github.com/ipfs/go-ipfs-cmdkit"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -26,7 +25,7 @@ func (bs BlockStat) String() string {
 }
 
 var BlockCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Interact with raw IPFS blocks.",
 		ShortDescription: `
 'ipfs block' is a plumbing command used to manipulate raw IPFS blocks.
@@ -44,7 +43,7 @@ multihash.
 }
 
 var blockStatCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Print information of a raw IPFS block.",
 		ShortDescription: `
 'ipfs block stat' is a plumbing command for retrieving information
@@ -56,8 +55,8 @@ on raw IPFS blocks. It outputs the following to stdout:
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -65,12 +64,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 			return err
 		}
 
-		p, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		b, err := api.Block().Stat(req.Context, p)
+		b, err := api.Block().Stat(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -90,7 +84,7 @@ on raw IPFS blocks. It outputs the following to stdout:
 }
 
 var blockGetCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Get a raw IPFS block.",
 		ShortDescription: `
 'ipfs block get' is a plumbing command for retrieving raw IPFS blocks.
@@ -98,8 +92,8 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -107,12 +101,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 			return err
 		}
 
-		p, err := coreiface.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		r, err := api.Block().Get(req.Context, p)
+		r, err := api.Block().Get(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -128,7 +117,7 @@ const (
 )
 
 var blockPutCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Store input as an IPFS block.",
 		ShortDescription: `
 'ipfs block put' is a plumbing command for storing raw IPFS blocks.
@@ -139,14 +128,14 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 `,
 	},
 
-	Arguments: []cmdkit.Argument{
-		cmdkit.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
+	Arguments: []cmds.Argument{
+		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
-		cmdkit.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
-		cmdkit.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
-		cmdkit.BoolOption(pinOptionName, "pin added blocks recursively").WithDefault(false),
+	Options: []cmds.Option{
+		cmds.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
+		cmds.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
+		cmds.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
+		cmds.BoolOption(pinOptionName, "pin added blocks recursively").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -209,19 +198,19 @@ const (
 )
 
 var blockRmCmd = &cmds.Command{
-	Helptext: cmdkit.HelpText{
+	Helptext: cmds.HelpText{
 		Tagline: "Remove IPFS block(s).",
 		ShortDescription: `
 'ipfs block rm' is a plumbing command for removing raw ipfs blocks.
 It takes a list of base58 encoded multihashes to remove.
 `,
 	},
-	Arguments: []cmdkit.Argument{
-		cmdkit.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
+	Arguments: []cmds.Argument{
+		cmds.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
 	},
-	Options: []cmdkit.Option{
-		cmdkit.BoolOption(forceOptionName, "f", "Ignore nonexistent blocks."),
-		cmdkit.BoolOption(blockQuietOptionName, "q", "Write minimal output."),
+	Options: []cmds.Option{
+		cmds.BoolOption(forceOptionName, "f", "Ignore nonexistent blocks."),
+		cmds.BoolOption(blockQuietOptionName, "q", "Write minimal output."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -234,12 +223,7 @@ It takes a list of base58 encoded multihashes to remove.
 
 		// TODO: use batching coreapi when done
 		for _, b := range req.Arguments {
-			p, err := coreiface.ParsePath(b)
-			if err != nil {
-				return err
-			}
-
-			rp, err := api.ResolvePath(req.Context, p)
+			rp, err := api.ResolvePath(req.Context, path.New(b))
 			if err != nil {
 				return err
 			}
