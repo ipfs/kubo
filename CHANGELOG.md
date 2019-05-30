@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.21 2019-05-28
+## 0.4.21 2019-05-30
 
 We're happy to announce go-ipfs 0.4.21. This release has some critical bug fixes
 and a handful of new features so every user should upgrade.
@@ -36,6 +36,50 @@ a separate app or working on a forked go-ipfs, make sure to upgrade
 github.com/libp2p/go-libp2p-secio to _at least_ v0.0.3.
 
 [secio-bug]: https://github.com/libp2p/go-libp2p/issues/644
+
+### Contributors
+
+First off, we'd like to give a shout-out to all contributors that participated
+in this release (including contributions to ipld, libp2p, and multiformats):
+
+| Contributor                | Commits | Lines ±     | Files Changed |
+|----------------------------|---------|-------------|---------------|
+| Steven Allen               | 220     | +6078/-4211 | 520           |
+| Łukasz Magiera             | 53      | +5039/-4557 | 274           |
+| vyzo                       | 179     | +2929/-1704 | 238           |
+| Raúl Kripalani             | 44      | +757/-1895  | 134           |
+| hannahhoward               | 11      | +755/-1005  | 49            |
+| Marten Seemann             | 16      | +862/-203   | 44            |
+| keks                       | 10      | +359/-110   | 12            |
+| Jan Winkelmann             | 8       | +368/-26    | 16            |
+| Jakub Sztandera            | 4       | +361/-8     | 7             |
+| Adrian Lanzafame           | 1       | +287/-18    | 5             |
+| Erik Ingenito              | 4       | +247/-28    | 8             |
+| Reid 'arrdem' McKenzie     | 1       | +220/-20    | 3             |
+| Yusef Napora               | 26      | +98/-130    | 26            |
+| Michael Avila              | 3       | +116/-59    | 8             |
+| Raghav Gulati              | 13      | +145/-26    | 13            |
+| tg                         | 1       | +41/-33     | 1             |
+| Matt Joiner                | 6       | +41/-30     | 7             |
+| Cole Brown                 | 1       | +37/-25     | 1             |
+| Dominic Della Valle        | 2       | +12/-40     | 4             |
+| Overbool                   | 1       | +50/-0      | 2             |
+| Christopher Buesser        | 3       | +29/-16     | 10            |
+| myself659                  | 1       | +38/-5      | 2             |
+| Alex Browne                | 3       | +30/-8      | 3             |
+| jmank88                    | 1       | +27/-4      | 2             |
+| Vikram                     | 1       | +25/-1      | 2             |
+| MollyM                     | 7       | +17/-9      | 7             |
+| Marcin Rataj               | 1       | +17/-1      | 1             |
+| requilence                 | 1       | +11/-4      | 1             |
+| Teran McKinney             | 1       | +8/-2       | 1             |
+| Oli Evans                  | 1       | +5/-5       | 1             |
+| Masashi Salvador Mitsuzawa | 1       | +5/-1       | 1             |
+| chenminjian                | 1       | +4/-0       | 1             |
+| Edgar Lee                  | 1       | +3/-1       | 1             |
+| Dirk McCormick             | 1       | +2/-2       | 2             |
+| ia                         | 1       | +1/-1       | 1             |
+| Alan Shaw                  | 1       | +1/-1       | 1             |
 
 ### Bug Fixes And Enhancements
 
