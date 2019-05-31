@@ -23,27 +23,6 @@ init_strategy() {
   startup_cluster ${NUM_NODES}
 }
 
-findprovs_empty() {
-  test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut
-  '
-
-  test_expect_success "findprovs $1 output is empty" '
-    test_must_be_empty findprovsOut
-  '
-}
-
-findprovs_expect() {
-  test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut &&
-    echo '$2' > expected
-  '
-
-  test_expect_success "findprovs $1 output looks good" '
-    test_cmp findprovsOut expected
-  '
-}
-
 reprovide() {
   test_expect_success 'reprovide' '
     # TODO: this hangs, though only after reprovision was done

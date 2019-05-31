@@ -1,4 +1,4 @@
-package provider
+package queue
 
 import (
 	"context"
@@ -8,7 +8,10 @@ import (
 	cid "github.com/ipfs/go-cid"
 	datastore "github.com/ipfs/go-datastore"
 	sync "github.com/ipfs/go-datastore/sync"
+	"github.com/ipfs/go-ipfs-blocksutil"
 )
+
+var blockGenerator = blocksutil.NewBlockGenerator()
 
 func makeCids(n int) []cid.Cid {
 	cids := make([]cid.Cid, 0, n)

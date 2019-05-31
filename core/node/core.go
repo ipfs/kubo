@@ -59,15 +59,18 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
-	bitswapNetwork := network.NewFromIpfsHost(host, rt)
-	exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs)
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return exch.Close()
-		},
-	})
-	return exch
+func OnlineExchange(provide bool) interface{} {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.IpfsRouting, bs blockstore.GCBlockstore) exchange.Interface {
+		bitswapNetwork := network.NewFromIpfsHost(host, rt)
+		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, bitswap.ProvideEnabled(provide))
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return exch.Close()
+			},
+		})
+		return exch
+
+	}
 }
 
 // Files loads persisted MFS root

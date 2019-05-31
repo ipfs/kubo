@@ -1,16 +1,19 @@
-package reprovide
+package simple_test
 
 import (
 	"context"
 	"testing"
+	"time"
 
 	blocks "github.com/ipfs/go-block-format"
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	"github.com/ipfs/go-ipfs-blockstore"
 	mock "github.com/ipfs/go-ipfs-routing/mock"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-testutil"
+
+	. "github.com/ipfs/go-ipfs/provider/simple"
 )
 
 func TestReprovide(t *testing.T) {
@@ -34,8 +37,8 @@ func TestReprovide(t *testing.T) {
 	}
 
 	keyProvider := NewBlockstoreProvider(bstore)
-	reprov := NewReprovider(ctx, 0, clA, keyProvider)
-	err = reprov.reprovide(ctx)
+	reprov := NewReprovider(ctx, time.Hour, clA, keyProvider)
+	err = reprov.Reprovide()
 	if err != nil {
 		t.Fatal(err)
 	}
