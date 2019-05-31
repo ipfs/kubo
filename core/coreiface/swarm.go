@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	net "github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	"github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -26,7 +26,7 @@ type ConnectionInfo interface {
 	Address() ma.Multiaddr
 
 	// Direction returns which way the connection was established
-	Direction() net.Direction
+	Direction() network.Direction
 
 	// Latency returns last known round trip time to the peer
 	Latency() (time.Duration, error)
@@ -38,7 +38,7 @@ type ConnectionInfo interface {
 // SwarmAPI specifies the interface to libp2p swarm
 type SwarmAPI interface {
 	// Connect to a given peer
-	Connect(context.Context, pstore.PeerInfo) error
+	Connect(context.Context, peer.AddrInfo) error
 
 	// Disconnect from a given address
 	Disconnect(context.Context, ma.Multiaddr) error
