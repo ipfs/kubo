@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	iaddr "github.com/ipfs/go-ipfs-addr"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	ma "github.com/multiformats/go-multiaddr"
+
 	// Needs to be imported so that users can import this package directly
 	// and still parse the bootstrap addresses.
 	_ "github.com/multiformats/go-multiaddr-dns"
@@ -32,20 +34,17 @@ var DefaultBootstrapAddresses = []string{
 	"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd", // earth.i.ipfs.io
 }
 
-// BootstrapPeer is a peer used to bootstrap the network.
-type BootstrapPeer iaddr.IPFSAddr
-
 // ErrInvalidPeerAddr signals an address is not a valid peer address.
 var ErrInvalidPeerAddr = errors.New("invalid peer address")
 
-func (c *Config) BootstrapPeers() ([]BootstrapPeer, error) {
+func (c *Config) BootstrapPeers() ([]peer.AddrInfo, error) {
 	return ParseBootstrapPeers(c.Bootstrap)
 }
 
 // DefaultBootstrapPeers returns the (parsed) set of default bootstrap peers.
 // if it fails, it returns a meaningful error for the user.
 // This is here (and not inside cmd/ipfs/init) because of module dependency problems.
-func DefaultBootstrapPeers() ([]BootstrapPeer, error) {
+func DefaultBootstrapPeers() ([]peer.AddrInfo, error) {
 	ps, err := ParseBootstrapPeers(DefaultBootstrapAddresses)
 	if err != nil {
 		return nil, fmt.Errorf(`failed to parse hardcoded bootstrap peers: %s
@@ -54,31 +53,26 @@ This is a problem with the ipfs codebase. Please report it to the dev team.`, er
 	return ps, nil
 }
 
-func (c *Config) SetBootstrapPeers(bps []BootstrapPeer) {
+func (c *Config) SetBootstrapPeers(bps []peer.AddrInfo) {
 	c.Bootstrap = BootstrapPeerStrings(bps)
 }
 
-func ParseBootstrapPeer(addr string) (BootstrapPeer, error) {
-	ia, err := iaddr.ParseString(addr)
-	if err != nil {
-		return nil, err
-	}
-	return BootstrapPeer(ia), err
-}
-
-func ParseBootstrapPeers(addrs []string) ([]BootstrapPeer, error) {
-	peers := make([]BootstrapPeer, len(addrs))
-	var err error
+// ParseBootstrapPeer parses a bootstrap list into a list of AddrInfos.
+func ParseBootstrapPeers(addrs []string) ([]peer.AddrInfo, error) {
+	maddrs := make([]ma.Multiaddr, len(addrs))
 	for i, addr := range addrs {
-		peers[i], err = ParseBootstrapPeer(addr)
+		var err error
+		maddrs[i], err = ma.NewMultiaddr(addr)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return peers, nil
+	return peer.AddrInfosFromP2pAddrs(maddrs...)
 }
 
-func BootstrapPeerStrings(bps []BootstrapPeer) []string {
+// BootstrapPeerStrings formats a list of AddrInfos as a bootstrap peer list
+// suitable for serialization.
+func BootstrapPeerStrings(bps []peer.AddrInfo) []string {
 	bpss := make([]string, len(bps))
 	for i, p := range bps {
 		bpss[i] = p.String()
