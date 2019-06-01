@@ -15,7 +15,6 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	iaddr "github.com/ipfs/go-ipfs-addr"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
 	inet "github.com/libp2p/go-libp2p-core/network"
@@ -369,7 +368,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3
 
 		addrs := req.Arguments
 
-		pis, err := peersWithAddresses(req.Context, addrs)
+		pis, err := parseAddresses(req.Context, addrs)
 		if err != nil {
 			return err
 		}
@@ -415,19 +414,34 @@ it will reconnect.
 			return err
 		}
 
-		iaddrs, err := parseAddresses(req.Arguments)
+		addrs, err := parseAddresses(req.Context, req.Arguments)
 		if err != nil {
 			return err
 		}
 
-		output := make([]string, len(iaddrs))
-		for i, addr := range iaddrs {
-			output[i] = "disconnect " + addr.ID().Pretty()
-
-			if err := api.Swarm().Disconnect(req.Context, addr.Multiaddr()); err != nil {
-				output[i] += " failure: " + err.Error()
-			} else {
-				output[i] += " success"
+		output := make([]string, 0, len(addrs))
+		for _, ainfo := range addrs {
+			maddrs, err := peer.AddrInfoToP2pAddrs(&ainfo)
+			if err != nil {
+				return err
+			}
+			// FIXME: This will print:
+			//
+			//   disconnect QmFoo success
+			//   disconnect QmFoo success
+			//   ...
+			//
+			// Once per address specified. However, I'm not sure of
+			// a good backwards compat solution. Right now, I'm just
+			// preserving the current behavior.
+			for _, addr := range maddrs {
+				msg := "disconnect " + ainfo.ID.Pretty()
+				if err := api.Swarm().Disconnect(req.Context, addr); err != nil {
+					msg += " failure: " + err.Error()
+				} else {
+					msg += " success"
+				}
+				output = append(output, msg)
 			}
 		}
 		return cmds.EmitOnce(res, &stringList{output})
@@ -439,63 +453,15 @@ it will reconnect.
 }
 
 // parseAddresses is a function that takes in a slice of string peer addresses
-// (multiaddr + peerid) and returns slices of multiaddrs and peerids.
-func parseAddresses(addrs []string) (iaddrs []iaddr.IPFSAddr, err error) {
-	iaddrs = make([]iaddr.IPFSAddr, len(addrs))
-	for i, saddr := range addrs {
-		iaddrs[i], err = iaddr.ParseString(saddr)
-		if err != nil {
-			return nil, cmds.ClientError("invalid peer address: " + err.Error())
-		}
-	}
-	return
-}
-
-// parseMultiaddrs is a function that takes in a slice of peer multiaddr
-// and returns slices of multiaddrs and peerids
-func parseMultiaddrs(maddrs []ma.Multiaddr) (iaddrs []iaddr.IPFSAddr, err error) {
-	iaddrs = make([]iaddr.IPFSAddr, len(maddrs))
-	for i, maddr := range maddrs {
-		iaddrs[i], err = iaddr.ParseMultiaddr(maddr)
-		if err != nil {
-			return nil, cmds.ClientError("invalid peer address: " + err.Error())
-		}
-	}
-	return
-}
-
-// peersWithAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func peersWithAddresses(ctx context.Context, addrs []string) ([]peer.AddrInfo, error) {
+func parseAddresses(ctx context.Context, addrs []string) ([]peer.AddrInfo, error) {
 	// resolve addresses
 	maddrs, err := resolveAddresses(ctx, addrs)
 	if err != nil {
 		return nil, err
 	}
 
-	iaddrs, err := parseMultiaddrs(maddrs)
-	if err != nil {
-		return nil, err
-	}
-
-	peers := make(map[peer.ID][]ma.Multiaddr, len(iaddrs))
-	for _, iaddr := range iaddrs {
-		id := iaddr.ID()
-		current, ok := peers[id]
-		if tpt := iaddr.Transport(); tpt != nil {
-			peers[id] = append(current, tpt)
-		} else if !ok {
-			peers[id] = nil
-		}
-	}
-	pis := make([]peer.AddrInfo, 0, len(peers))
-	for id, maddrs := range peers {
-		pis = append(pis, peer.AddrInfo{
-			ID:    id,
-			Addrs: maddrs,
-		})
-	}
-	return pis, nil
+	return peer.AddrInfosFromP2pAddrs(maddrs...)
 }
 
 // resolveAddresses resolves addresses parallelly
@@ -531,7 +497,7 @@ func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, erro
 			// filter out addresses that still doesn't end in `ipfs/Qm...`
 			found := 0
 			for _, raddr := range raddrs {
-				if _, last := ma.SplitLast(raddr); last.Protocol().Code == ma.P_IPFS {
+				if _, last := ma.SplitLast(raddr); last != nil && last.Protocol().Code == ma.P_IPFS {
 					maddrC <- raddr
 					found++
 				}

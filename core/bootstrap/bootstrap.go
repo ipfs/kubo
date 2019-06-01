@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	config "github.com/ipfs/go-ipfs-config"
 	logging "github.com/ipfs/go-log"
 	"github.com/jbenet/goprocess"
 	"github.com/jbenet/goprocess/context"
@@ -215,27 +214,4 @@ func randomSubsetOfPeers(in []peer.AddrInfo, max int) []peer.AddrInfo {
 		out[i] = in[val]
 	}
 	return out
-}
-
-type Peers []config.BootstrapPeer
-
-func (bpeers Peers) ToPeerInfos() []peer.AddrInfo {
-	pinfos := make(map[peer.ID]*peer.AddrInfo)
-	for _, bootstrap := range bpeers {
-		pinfo, ok := pinfos[bootstrap.ID()]
-		if !ok {
-			pinfo = new(peer.AddrInfo)
-			pinfos[bootstrap.ID()] = pinfo
-			pinfo.ID = bootstrap.ID()
-		}
-
-		pinfo.Addrs = append(pinfo.Addrs, bootstrap.Transport())
-	}
-
-	var peers []peer.AddrInfo
-	for _, pinfo := range pinfos {
-		peers = append(peers, *pinfo)
-	}
-
-	return peers
 }

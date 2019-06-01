@@ -166,11 +166,7 @@ func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 		return nil, err
 	}
 
-	parsed, err := cfg.BootstrapPeers()
-	if err != nil {
-		return nil, err
-	}
-	return bootstrap.Peers.ToPeerInfos(parsed), nil
+	return cfg.BootstrapPeers()
 }
 
 type ConstructPeerHostOpts struct {

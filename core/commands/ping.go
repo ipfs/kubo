@@ -10,7 +10,6 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	iaddr "github.com/ipfs/go-ipfs-addr"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
@@ -207,11 +206,15 @@ trip latency information.
 func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 	// Multiaddr
 	if strings.HasPrefix(text, "/") {
-		a, err := iaddr.ParseString(text)
+		maddr, err := ma.NewMultiaddr(text)
 		if err != nil {
 			return nil, "", err
 		}
-		return a.Transport(), a.ID(), nil
+		transport, id := peer.SplitAddr(maddr)
+		if id == "" {
+			return nil, "", peer.ErrInvalidAddr
+		}
+		return transport, id, nil
 	}
 	// Raw peer ID
 	p, err := peer.IDB58Decode(text)

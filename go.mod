@@ -30,12 +30,11 @@ require (
 	github.com/ipfs/go-ds-leveldb v0.0.2
 	github.com/ipfs/go-ds-measure v0.0.1
 	github.com/ipfs/go-fs-lock v0.0.1
-	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/ipfs/go-ipfs-blockstore v0.0.1
 	github.com/ipfs/go-ipfs-blocksutil v0.0.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.0.8
-	github.com/ipfs/go-ipfs-config v0.0.4
+	github.com/ipfs/go-ipfs-config v0.0.5
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
@@ -58,7 +57,7 @@ require (
 	github.com/ipfs/hang-fds v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.1.0
 	github.com/ipfs/iptb v1.4.0
-	github.com/ipfs/iptb-plugins v0.0.2
+	github.com/ipfs/iptb-plugins v0.1.0
 	github.com/jbenet/go-is-domain v1.0.2
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
@@ -68,7 +67,7 @@ require (
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
 	github.com/libp2p/go-libp2p-circuit v0.1.0
 	github.com/libp2p/go-libp2p-connmgr v0.1.0
-	github.com/libp2p/go-libp2p-core v0.0.2
+	github.com/libp2p/go-libp2p-core v0.0.3
 	github.com/libp2p/go-libp2p-kad-dht v0.1.0
 	github.com/libp2p/go-libp2p-kbucket v0.2.0
 	github.com/libp2p/go-libp2p-loggables v0.1.0

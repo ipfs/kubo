@@ -5,7 +5,6 @@ import (
 	"sort"
 	"time"
 
-	iaddr "github.com/ipfs/go-ipfs-addr"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -52,34 +51,29 @@ func (api *SwarmAPI) Disconnect(ctx context.Context, addr ma.Multiaddr) error {
 		return coreiface.ErrOffline
 	}
 
-	ia, err := iaddr.ParseMultiaddr(ma.Multiaddr(addr))
-	if err != nil {
-		return err
+	taddr, id := peer.SplitAddr(addr)
+	if id == "" {
+		return peer.ErrInvalidAddr
 	}
 
-	taddr := ia.Transport()
-	id := ia.ID()
 	net := api.peerHost.Network()
-
 	if taddr == nil {
 		if net.Connectedness(id) != inet.Connected {
 			return coreiface.ErrNotConnected
-		} else if err := net.ClosePeer(id); err != nil {
+		}
+		if err := net.ClosePeer(id); err != nil {
 			return err
 		}
-	} else {
-		for _, conn := range net.ConnsToPeer(id) {
-			if !conn.RemoteMultiaddr().Equal(taddr) {
-				continue
-			}
-
-			return conn.Close()
+		return nil
+	}
+	for _, conn := range net.ConnsToPeer(id) {
+		if !conn.RemoteMultiaddr().Equal(taddr) {
+			continue
 		}
 
-		return coreiface.ErrConnNotFound
+		return conn.Close()
 	}
-
-	return nil
+	return coreiface.ErrConnNotFound
 }
 
 func (api *SwarmAPI) KnownAddrs(context.Context) (map[peer.ID][]ma.Multiaddr, error) {
