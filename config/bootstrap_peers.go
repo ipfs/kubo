@@ -73,9 +73,16 @@ func ParseBootstrapPeers(addrs []string) ([]peer.AddrInfo, error) {
 // BootstrapPeerStrings formats a list of AddrInfos as a bootstrap peer list
 // suitable for serialization.
 func BootstrapPeerStrings(bps []peer.AddrInfo) []string {
-	bpss := make([]string, len(bps))
-	for i, p := range bps {
-		bpss[i] = p.String()
+	bpss := make([]string, 0, len(bps))
+	for _, pi := range bps {
+		addrs, err := peer.AddrInfoToP2pAddrs(&pi)
+		if err != nil {
+			// programmer error.
+			panic(err)
+		}
+		for _, addr := range addrs {
+			bpss = append(bpss, addr.String())
+		}
 	}
 	return bpss
 }
