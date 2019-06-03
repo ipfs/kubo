@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -312,13 +313,19 @@ var provideRefDhtCmd = &cmds.Command{
 }
 
 func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
+	wg := sync.WaitGroup{}
+	var err error
+
 	for _, c := range cids {
-		err := r.Provide(ctx, c, true)
-		if err != nil {
-			return err
-		}
+		wg.Add(1)
+		go func(cid cid.Cid) {
+			defer wg.Done()
+			err = r.Provide(ctx, cid, true)
+		}(c)
 	}
-	return nil
+
+	wg.Wait()
+	return err
 }
 
 func provideKeysRec(ctx context.Context, r routing.Routing, dserv ipld.DAGService, cids []cid.Cid) error {
