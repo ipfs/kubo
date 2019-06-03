@@ -14,7 +14,6 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/repo"
 )
 
 type BaseIpfsRouting routing.Routing
@@ -79,7 +78,6 @@ type p2pPSRoutingIn struct {
 	fx.In
 
 	BaseIpfsRouting BaseIpfsRouting
-	Repo            repo.Repo
 	Validator       record.Validator
 	Host            host.Host
 	PubSub          *pubsub.PubSub `optional:"true"`
