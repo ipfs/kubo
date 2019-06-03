@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/fx"
-
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/provider"
 	q "github.com/ipfs/go-ipfs/provider/queue"
 	"github.com/ipfs/go-ipfs/provider/simple"
 	"github.com/ipfs/go-ipfs/repo"
-	"github.com/libp2p/go-libp2p-routing"
+	"github.com/libp2p/go-libp2p-core/routing"
+	"go.uber.org/fx"
 )
 
 const kReprovideFrequency = time.Hour * 12
@@ -25,13 +24,13 @@ func ProviderQueue(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (*q
 }
 
 // SimpleProvider creates new record provider
-func SimpleProvider(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *q.Queue, rt routing.IpfsRouting) provider.Provider {
+func SimpleProvider(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *q.Queue, rt routing.Routing) provider.Provider {
 	return simple.NewProvider(helpers.LifecycleCtx(mctx, lc), queue, rt)
 }
 
 // SimpleReprovider creates new reprovider
 func SimpleReprovider(reproviderInterval time.Duration) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, rt routing.IpfsRouting, keyProvider simple.KeyChanFunc) (provider.Reprovider, error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, rt routing.Routing, keyProvider simple.KeyChanFunc) (provider.Reprovider, error) {
 		return simple.NewReprovider(helpers.LifecycleCtx(mctx, lc), reproviderInterval, rt, keyProvider), nil
 	}
 }

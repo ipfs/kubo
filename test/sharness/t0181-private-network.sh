@@ -26,7 +26,7 @@ test_expect_success "daemon output incudes info about the reason" '
 pnet_key() {
   echo '/key/swarm/psk/1.0.0/'
   echo '/bin/'
-  random 16
+  random 32
 }
 
 pnet_key > "${IPFS_PATH}/swarm.key"

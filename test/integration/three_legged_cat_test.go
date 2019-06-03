@@ -16,9 +16,9 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
 	files "github.com/ipfs/go-ipfs-files"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	testutil "github.com/libp2p/go-testutil"
 )
 
 func TestThreeLeggedCatTransfer(t *testing.T) {
@@ -119,7 +119,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	bis := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
-	bcfg := bootstrap2.BootstrapConfigWithPeers([]pstore.PeerInfo{bis})
+	bcfg := bootstrap2.BootstrapConfigWithPeers([]peer.AddrInfo{bis})
 	if err := adder.Bootstrap(bcfg); err != nil {
 		return err
 	}

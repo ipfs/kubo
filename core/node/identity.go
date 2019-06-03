@@ -3,8 +3,8 @@ package node
 import (
 	"fmt"
 
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func PeerID(id peer.ID) func() peer.ID {

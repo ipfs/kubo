@@ -4,12 +4,12 @@ import (
 	"context"
 	"sort"
 
-	host "github.com/libp2p/go-libp2p-host"
+	host "github.com/libp2p/go-libp2p-core/host"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-pubsub"
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
-	routing "github.com/libp2p/go-libp2p-routing"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"go.uber.org/fx"
 
@@ -17,10 +17,10 @@ import (
 	"github.com/ipfs/go-ipfs/repo"
 )
 
-type BaseIpfsRouting routing.IpfsRouting
+type BaseIpfsRouting routing.Routing
 
 type Router struct {
-	routing.IpfsRouting
+	routing.Routing
 
 	Priority int // less = more important
 }
@@ -44,8 +44,8 @@ func BaseRouting(lc fx.Lifecycle, in BaseIpfsRouting) (out p2pRouterOut, dr *dht
 
 	return p2pRouterOut{
 		Router: Router{
-			Priority:    1000,
-			IpfsRouting: in,
+			Priority: 1000,
+			Routing:  in,
 		},
 	}, dr
 }
@@ -57,16 +57,16 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
-func Routing(in p2pOnlineRoutingIn) routing.IpfsRouting {
+func Routing(in p2pOnlineRoutingIn) routing.Routing {
 	routers := in.Routers
 
 	sort.SliceStable(routers, func(i, j int) bool {
 		return routers[i].Priority < routers[j].Priority
 	})
 
-	irouters := make([]routing.IpfsRouting, len(routers))
+	irouters := make([]routing.Routing, len(routers))
 	for i, v := range routers {
-		irouters[i] = v.IpfsRouting
+		irouters[i] = v.Routing
 	}
 
 	return routinghelpers.Tiered{
@@ -78,25 +78,25 @@ func Routing(in p2pOnlineRoutingIn) routing.IpfsRouting {
 type p2pPSRoutingIn struct {
 	fx.In
 
-	BaseRouting BaseIpfsRouting
-	Repo        repo.Repo
-	Validator   record.Validator
-	Host        host.Host
-	PubSub      *pubsub.PubSub `optional:"true"`
+	BaseIpfsRouting BaseIpfsRouting
+	Repo            repo.Repo
+	Validator       record.Validator
+	Host            host.Host
+	PubSub          *pubsub.PubSub `optional:"true"`
 }
 
 func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
 	psRouter := namesys.NewPubsubValueStore(
 		helpers.LifecycleCtx(mctx, lc),
 		in.Host,
-		in.BaseRouting,
+		in.BaseIpfsRouting,
 		in.PubSub,
 		in.Validator,
 	)
 
 	return p2pRouterOut{
 		Router: Router{
-			IpfsRouting: &routinghelpers.Compose{
+			Routing: &routinghelpers.Compose{
 				ValueStore: &routinghelpers.LimitedValueStore{
 					ValueStore: psRouter,
 					Namespaces: []string{"ipns"},

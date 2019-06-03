@@ -10,7 +10,7 @@ import (
 	datastore "github.com/ipfs/go-datastore"
 	sync "github.com/ipfs/go-datastore/sync"
 	blocksutil "github.com/ipfs/go-ipfs-blocksutil"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 
 	q "github.com/ipfs/go-ipfs/provider/queue"
 
@@ -28,7 +28,7 @@ func (r *mockRouting) Provide(ctx context.Context, cid cid.Cid, recursive bool) 
 	return nil
 }
 
-func (r *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, timeout int) <-chan pstore.PeerInfo {
+func (r *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, timeout int) <-chan peer.AddrInfo {
 	return nil
 }
 

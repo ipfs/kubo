@@ -9,7 +9,7 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"github.com/ipfs/go-ipfs-config"
 	util "github.com/ipfs/go-ipfs-util"
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 

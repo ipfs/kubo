@@ -28,7 +28,7 @@ import (
 	"github.com/ipfs/go-unixfs/importer"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	routing "github.com/libp2p/go-libp2p-routing"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	"github.com/multiformats/go-multibase"
 )
 

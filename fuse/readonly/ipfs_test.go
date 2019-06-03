@@ -31,7 +31,7 @@ import (
 	importer "github.com/ipfs/go-unixfs/importer"
 	uio "github.com/ipfs/go-unixfs/io"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	ci "github.com/libp2p/go-testutil/ci"
+	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 
 func maybeSkipFuseTests(t *testing.T) {

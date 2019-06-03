@@ -12,9 +12,9 @@ import (
 	logging "github.com/ipfs/go-log"
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	peer "github.com/libp2p/go-libp2p-peer"
-	routing "github.com/libp2p/go-libp2p-routing"
 	mh "github.com/multiformats/go-multihash"
 )
 
