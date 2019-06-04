@@ -120,6 +120,8 @@ func (b *nodeBuilder) buildNode() (*core.IpfsNode, error) {
 	}
 
 	api, err := coreapi.New(
+		coreapi.Ctx(b.ctx),
+
 		coreapi.Online(b.daemon && !b.offline),
 		coreapi.Repo(repo, coreapi.ParseConfig(), coreapi.Permanent(b.daemon)),
 		coreapi.Override(coreapi.Libp2pSecurity, libp2p.Security(!b.unencrypted, cfg.Experimental.PreferTLS)),
