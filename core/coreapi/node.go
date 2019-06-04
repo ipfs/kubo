@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"fmt"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -599,6 +600,13 @@ func RandomIdentity() Option {
 		Override(PrivKey, as(sk, new(ci.PrivKey))),
 		Override(PubKey, as(pk, new(ci.PubKey))),
 		Override(Peerid, peer.IDFromPublicKey),
+	)
+}
+
+func MockHost(mn mocknet.Mocknet) Option {
+	return Options(
+		Override(Libp2pHost, libp2p.MockHost),
+		Provide(func() mocknet.Mocknet { return mn }),
 	)
 }
 

@@ -75,19 +75,17 @@ func run(ipfsPath, watchPath string) error {
 		return err
 	}
 
-	node, err := core.NewNode(context.Background(), &core.BuildCfg{
-		Online: true,
-		Repo:   r,
-	})
-	if err != nil {
-		return err
-	}
-	defer node.Close()
+	api, err := coreapi.New(
+		coreapi.Ctx(context.Background()),
 
-	api, err := coreapi.NewCoreAPI(node)
+		coreapi.Online(),
+		coreapi.Repo(r),
+	)
 	if err != nil {
 		return err
 	}
+	node := api.Node()
+	defer node.Close()
 
 	if *http {
 		addr := "/ip4/127.0.0.1/tcp/5001"

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
@@ -104,10 +105,13 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 
 	var err error
 	if node == nil {
-		node, err = core.NewNode(context.Background(), &core.BuildCfg{})
+		api, err := coreapi.New(
+			coreapi.Ctx(context.Background()),
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
+		node := api.Node()
 
 		err = InitializeKeyspace(node, node.PrivateKey)
 		if err != nil {

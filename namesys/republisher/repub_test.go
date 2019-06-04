@@ -3,17 +3,18 @@ package republisher_test
 import (
 	"context"
 	"errors"
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/core/node"
 	"testing"
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
-	mock "github.com/ipfs/go-ipfs/core/mock"
-	namesys "github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
-	path "github.com/ipfs/go-path"
+	"github.com/ipfs/go-path"
 
-	goprocess "github.com/jbenet/goprocess"
+	"github.com/jbenet/goprocess"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -29,15 +30,17 @@ func TestRepublish(t *testing.T) {
 
 	var nodes []*core.IpfsNode
 	for i := 0; i < 10; i++ {
-		nd, err := core.NewNode(ctx, &core.BuildCfg{
-			Online: true,
-			Host:   mock.MockHostOption(mn),
-		})
+		api, err := coreapi.New(
+			coreapi.Ctx(context.Background()),
+
+			coreapi.MockHost(mn),
+			coreapi.Online(),
+			coreapi.Override(coreapi.Namesys, node.Namesys(0)),
+		)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		nd.Namesys = namesys.NewNameSystem(nd.Routing, nd.Repo.Datastore(), 0)
+		nd := api.Node()
 
 		nodes = append(nodes, nd)
 	}

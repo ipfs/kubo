@@ -8,16 +8,14 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
 	files "github.com/ipfs/go-ipfs-files"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	testutil "github.com/libp2p/go-testutil"
+	"github.com/libp2p/go-testutil"
 )
 
 func BenchmarkCat1MB(b *testing.B) { benchmarkVarCat(b, unit.MB*1) }
@@ -48,33 +46,29 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 		Bandwidth: math.MaxInt32,
 	})
 
-	adder, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	adderApi, err := coreapi.New(
+		coreapi.Ctx(ctx),
+
+		coreapi.Online(),
+		coreapi.MockHost(mn),
+	)
 	if err != nil {
 		return err
 	}
+	adder := adderApi.Node()
 	defer adder.Close()
 
-	catter, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	catterApi, err := coreapi.New(
+		coreapi.Ctx(ctx),
+
+		coreapi.Online(),
+		coreapi.MockHost(mn),
+	)
 	if err != nil {
 		return err
 	}
+	catter := catterApi.Node()
 	defer catter.Close()
-
-	adderApi, err := coreapi.NewCoreAPI(adder)
-	if err != nil {
-		return err
-	}
-
-	catterApi, err := coreapi.NewCoreAPI(catter)
-	if err != nil {
-		return err
-	}
 
 	err = mn.LinkAll()
 	if err != nil {

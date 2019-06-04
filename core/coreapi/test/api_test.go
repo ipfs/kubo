@@ -11,7 +11,6 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo"
@@ -82,9 +81,8 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		api, err := coreapi.New(
 			coreapi.Ctx(ctx),
 			coreapi.Opt(fullIdentity, coreapi.Online()),
-			coreapi.Repo(r, coreapi.ParseConfig),
-			coreapi.Override(coreapi.Libp2pHost, libp2p.MockHost),
-			coreapi.Provide(func() mocknet.Mocknet { return mn }),
+			coreapi.Repo(r, coreapi.ParseConfig()),
+			coreapi.MockHost(mn),
 		)
 		if err != nil {
 			return nil, err
