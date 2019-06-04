@@ -10,11 +10,11 @@ import (
 	"path"
 	"strings"
 
-	assets "github.com/ipfs/go-ipfs/assets"
+	"github.com/ipfs/go-ipfs/assets"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
-	namesys "github.com/ipfs/go-ipfs/namesys"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-config"
@@ -208,10 +208,12 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 		return err
 	}
 
-	nd, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
+	api, err := coreapi.New(coreapi.Ctx(ctx), coreapi.Repo(r, coreapi.ParseConfig()))
 	if err != nil {
 		return err
 	}
+
+	nd := api.Node()
 	defer nd.Close()
 
 	dkey, err := assets.SeedInitDocs(nd)
@@ -237,10 +239,12 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
-	nd, err := core.NewNode(ctx, &core.BuildCfg{Repo: r})
+	api, err := coreapi.New(coreapi.Ctx(ctx), coreapi.Repo(r, coreapi.ParseConfig()))
 	if err != nil {
 		return err
 	}
+
+	nd := api.Node()
 	defer nd.Close()
 
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
