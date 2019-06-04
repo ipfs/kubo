@@ -164,6 +164,13 @@ func Override(c component, replacement interface{}, pf ...func(...interface{}) f
 	}
 }
 
+func Disable(c component) Option {
+	return func(s *settings) error {
+		s.components[c] = fx.Options()
+		return nil
+	}
+}
+
 func Options(opts ...Option) Option {
 	return func(s *settings) error {
 		for _, opt := range opts {
@@ -227,7 +234,11 @@ func NilRepo() Option {
 	}
 }
 
-func Online() Option {
+func Online(enable ...bool) Option {
+	if !boolVA(enable) {
+		return Options()
+	}
+
 	lgcOnline := func(s *settings) error {
 		s.online = true
 		return nil
@@ -531,13 +542,17 @@ type repoSettings struct {
 type RepoOption func(*repoSettings)
 
 // TODO: should we invert this option (SkipConfig?)
-func ParseConfig(s *repoSettings) {
-	s.parseConfig = true
+func ParseConfig(enable ...bool) func(*repoSettings) {
+	return func(s *repoSettings) {
+		s.parseConfig = boolVA(enable)
+	}
 }
 
 // TODO: better name? (this is only enabling bloom filter if set in config)
-func Permanent(s *repoSettings) {
-	s.permanent = true
+func Permanent(enable ...bool) func(*repoSettings) {
+	return func(s *repoSettings) {
+		s.permanent = boolVA(enable)
+	}
 }
 
 func Repo(r repo.Repo, opts ...RepoOption) Option {
@@ -702,6 +717,17 @@ func baseProcess(lc fx.Lifecycle) goprocess.Process {
 		},
 	})
 	return p
+}
+
+func boolVA(a []bool) bool {
+	switch len(a) {
+	case 0:
+		return true
+	case 1:
+		return a[0]
+	default:
+		panic("expected 0 or 1 boolean args")
+	}
 }
 
 // as casts input constructor to a given interface (if a value is given, it

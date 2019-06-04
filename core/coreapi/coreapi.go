@@ -239,7 +239,11 @@ func (api *CoreAPI) withOptions(opts ...options.ApiOption) (*CoreAPI, error) {
 // Node returns the underlying ipfs node object. Don't use unless absolutely
 // necessary. Options applied to CoreAPI won't apply to node returned form this
 // method.
-// Deprecated: This method is likely to be removed
+//
+// If you need to use this method because some functionality is missing from the
+// CoreAPI interfaces, please file an issue in https://github.com/ipfs/go-ipfs/
+//
+// Deprecated: This method will eventually be removed
 func (api *CoreAPI) Node() *core.IpfsNode {
 	return api.nd
 }
