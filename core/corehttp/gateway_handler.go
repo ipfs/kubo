@@ -123,6 +123,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
+	begin := time.Now()
 	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
 
@@ -172,6 +173,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
+	unixfsGetMetric.Observe(time.Since(begin).Seconds())
 
 	defer dr.Close()
 

@@ -97,6 +97,9 @@ var (
 	peersTotalMetric = prometheus.NewDesc(
 		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
 		"Number of connected peers", []string{"transport"}, nil)
+	unixfsGetMetric = prometheus.NewSummary(prometheus.SummaryOpts{
+		Name: "unixfsGet",
+	})
 )
 
 type IpfsNodeCollector struct {
