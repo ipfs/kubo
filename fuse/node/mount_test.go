@@ -44,6 +44,7 @@ func TestExternalUnmount(t *testing.T) {
 
 	api, err := coreapi.New(
 		coreapi.Ctx(context.Background()),
+		coreapi.RandomIdentity(),
 	)
 	if err != nil {
 		t.Fatal(err)

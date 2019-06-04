@@ -33,8 +33,8 @@ func TestRepublish(t *testing.T) {
 		api, err := coreapi.New(
 			coreapi.Ctx(context.Background()),
 
-			coreapi.MockHost(mn),
 			coreapi.Online(),
+			coreapi.MockHost(mn),
 			coreapi.Override(coreapi.Namesys, node.Namesys(0)),
 		)
 		if err != nil {

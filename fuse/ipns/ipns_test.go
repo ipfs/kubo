@@ -107,11 +107,12 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 	if node == nil {
 		api, err := coreapi.New(
 			coreapi.Ctx(context.Background()),
+			coreapi.RandomIdentity(),
 		)
 		if err != nil {
 			t.Fatal(err)
 		}
-		node := api.Node()
+		node = api.Node()
 
 		err = InitializeKeyspace(node, node.PrivateKey)
 		if err != nil {

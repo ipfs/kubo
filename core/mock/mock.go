@@ -7,7 +7,6 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
 )
 
 // NewMockNode constructs an IpfsNode for use in tests.
@@ -17,8 +16,7 @@ func NewMockNode() (*core.IpfsNode, error) {
 	// effectively offline, only peer in its network
 	api, err := coreapi.New(coreapi.Ctx(ctx),
 		coreapi.Online(),
-		coreapi.Override(coreapi.Libp2pHost, libp2p.MockHost),
-		coreapi.Provide(mocknet.New))
+		coreapi.MockHost(mocknet.New(ctx)))
 
 	if err != nil {
 		return nil, err
