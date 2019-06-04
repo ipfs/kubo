@@ -281,6 +281,8 @@ func Online(enable ...bool) Option {
 		Override(Libp2pBaseRouting, libp2p.BaseRouting),
 		Override(Libp2pNatPortMap, libp2p.NatPortMap),
 		Override(Libp2pConnectionManager, libp2p.ConnectionManager(config.DefaultConnMgrLowWater, config.DefaultConnMgrHighWater, config.DefaultConnMgrGracePeriod)),
+		Override(Libp2pPrivateNetwork, libp2p.PNet),
+		Override(Libp2pPrivateNetworkChecker, libp2p.PNetChecker, fx.Invoke),
 	)
 }
 
