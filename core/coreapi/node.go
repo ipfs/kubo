@@ -564,7 +564,15 @@ func Repo(r repo.Repo, opts ...RepoOption) Option {
 			opt(rs)
 		}
 
-		repoOption := Override(baseRepo, func() repo.Repo { return r })
+		repoOption := Override(baseRepo, func(lc fx.Lifecycle) repo.Repo {
+			lc.Append(fx.Hook{
+				OnStop: func(_ context.Context) error {
+					return r.Close()
+				},
+			})
+
+			return r
+		})
 		if !rs.parseConfig {
 			return repoOption(s)
 		}
