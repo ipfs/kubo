@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"os"
 	"syscall"
 	"time"
@@ -55,15 +54,7 @@ func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, nilRepo bool, hashOnRead
 		bs = &verifbs.VerifBS{Blockstore: bs}
 
 		if !nilRepo {
-			ctx, cancel := context.WithCancel(mctx)
-
-			lc.Append(fx.Hook{
-				OnStop: func(context context.Context) error {
-					cancel()
-					return nil
-				},
-			})
-			bs, err = blockstore.CachedBlockstore(ctx, bs, cacheOpts)
+			bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
 			if err != nil {
 				return nil, err
 			}
