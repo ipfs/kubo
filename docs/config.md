@@ -153,6 +153,8 @@ Default: `1h`
 A boolean value. If set to true, all block reads from disk will be hashed and
 verified. This will cause increased CPU utilization.
 
+Default: `false`
+
 - `BloomFilterSize`
 A number representing the size in bytes of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents the feature being disabled.
 
