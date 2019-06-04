@@ -214,7 +214,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	builder := &nodeBuilder{
 		ctx:       req.Context,
 		repoPath:  cctx.RepoPath,
+
 		permanent: true,
+		daemon: true,
 	}
 
 	builder.unencrypted, _ = req.Options[unencryptTransportKwd].(bool)
