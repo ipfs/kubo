@@ -97,8 +97,12 @@ var (
 	peersTotalMetric = prometheus.NewDesc(
 		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
 		"Number of connected peers", []string{"transport"}, nil)
+
 	unixfsGetMetric = prometheus.NewSummary(prometheus.SummaryOpts{
-		Name: "unixfsGet",
+		Namespace: "ipfs",
+		Subsystem: "http",
+		Name:      "unixfs_get_latency_seconds",
+		Help:      "The time till the first block is received when 'getting' a file from the gateway.",
 	})
 )
 
