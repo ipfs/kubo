@@ -2,7 +2,7 @@ version: 2.0
 
 aliases:
   make_out_dirs: &make_out_dirs
-    run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS/{unit,sharness}
+    run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_WORKSPACE $CIRCLE_TEST_REPORTS/{unit,sharness}
   restore_gomod: &restore_gomod
     restore_cache:
       keys:
@@ -29,14 +29,14 @@ defaults: &defaults
     CIRCLE: 1
     SERVICE: circle-ci
     CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+    CIRCLE_WORKSPACE: /tmp/circleci-workspace
     TEST_VERBOSE: 1
     TRAVIS: 1
 
-  docker:
-    - image: circleci/golang:1.12
-
 jobs:
   gobuild:
+    docker:
+      - image: circleci/golang:1.12
     <<: *defaults
     steps:
     - checkout
@@ -53,6 +53,8 @@ jobs:
     - *store_gomod
   golint:
     <<: *defaults
+    docker:
+      - image: circleci/golang:1.12
     steps:
     - checkout
     - *make_out_dirs
@@ -61,6 +63,8 @@ jobs:
         make -O test_go_lint
     - *store_gomod
   gotest:
+    docker:
+      - image: circleci/golang:1.12
     <<: *defaults
     steps:
     - checkout
@@ -88,6 +92,8 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   sharness:
+    docker:
+      - image: circleci/golang:1.12
     <<: *defaults
     steps:
     - run: sudo apt install socat
@@ -114,6 +120,41 @@ jobs:
         path: /tmp/circleci-artifacts
     - store_artifacts:
         path: /tmp/circleci-test-results
+  build-interop:
+    docker:
+      - image: circleci/golang:1.12
+    <<: *defaults
+    steps:
+      - checkout
+      - *make_out_dirs
+      - *restore_gomod
+      - run: make build
+      - run: cp cmd/ipfs/ipfs /tmp/circleci-workspace
+      - persist_to_workspace:
+          root: /tmp/circleci-workspace
+          paths:
+            - ipfs
+      - *store_gomod
+  interop:
+    docker:
+      - image: circleci/node:10
+    <<: *defaults
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run: git clone https://github.com/ipfs/interop.git
+      - run:
+          command: npm install
+          working_directory: ~/ipfs/go-ipfs/interop
+          environment:
+            IPFS_GO_EXEC: /tmp/circleci-workspace/ipfs
+      - run:
+          command: npm test
+          working_directory: ~/ipfs/go-ipfs/interop
+          environment:
+            IPFS_GO_EXEC: /tmp/circleci-workspace/ipfs
+
 
 workflows:
   version: 2
@@ -123,3 +164,7 @@ workflows:
     - golint
     - gotest
     - sharness
+    - build-interop
+    - interop:
+        requires:
+          - build-interop
