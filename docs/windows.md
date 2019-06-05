@@ -1,6 +1,8 @@
 # Building on Windows
 ![](https://ipfs.io/ipfs/QmccXW7JSZMVXidSc7tHsU6aktuaiV923q4yBGHUsdymYo/build.gif)
 
+If you just want to install go-ipfs, please download it from https://dist.ipfs.io/#go-ipfs. This document explains how to build it from source.
+
 ## Install Go
 `go-ipfs` is built on Golang and thus depends on it for all building methods.  
 https://golang.org/doc/install  
