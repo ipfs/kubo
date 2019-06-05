@@ -1,4 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#set -x
+set -euo pipefail
+IFS=$'\n\t'
+export GO111MODULE=on
 
 LAST_TAG=$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)
 
@@ -10,3 +14,16 @@ do
 	desc=$(git show $commit | sed '8q;d' | sed 's/^    //g')
 	printf "  - %s ([ipfs/go-ipfs#%s](https://github.com/ipfs/go-ipfs/pull/%s))\n" "$desc" "$prnum" "$prnum"
 done
+
+TMP_DIR=$(mktemp -d --tmpdir go-ipfs-mkreleaselog-XXXXXX)
+git show "$LAST_TAG:go.mod" > "$TMP_DIR/go.mod"
+
+echo
+echo "Dependecy updates:"
+join -a 2 <(cd "$TMP_DIR" && go list -m all | sort -k 1b,1) <(go list -m all | sort -k 1b,1) | awk \
+	'
+	{ if (NF == 2)
+		printf "2 - %s none => %s\n", $1, $2
+	else if ($2 != $3)
+		printf "1 - %s %s => %s\n", $1, $2, $3 }
+	' | sort | sed 's/[0-9] //'

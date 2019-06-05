@@ -13,14 +13,14 @@ fi
 
 GOCC=${GOCC=go}
 
-TMPDIR="$(mktemp -d)"
-cp -r . "$TMPDIR"
-( cd "$TMPDIR" &&
+TEMP="$(mktemp -d)"
+cp -r . "$TEMP"
+( cd "$TEMP" &&
   echo $PWD &&
   $GOCC mod vendor &&
   (git describe --always --match=NeVeRmAtCh --dirty 2>/dev/null || true) > .tarball &&
-  chmod -R u=rwX,go=rX "$TMPDIR" # normalize permissions
+  chmod -R u=rwX,go=rX "$TEMP" # normalize permissions
   tar -czf "$OUTPUT" --exclude="./.git" .
   )
 
-rm -rf "$TMPDIR"
+rm -rf "$TEMP"

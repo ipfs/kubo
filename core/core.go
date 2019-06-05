@@ -13,8 +13,6 @@ import (
 	"context"
 	"io"
 
-	"go.uber.org/fx"
-
 	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
@@ -105,7 +103,7 @@ type IpfsNode struct {
 	Process goprocess.Process
 	ctx     context.Context
 
-	app *fx.App
+	stop func() error
 
 	// Flags
 	IsOnline bool `optional:"true"` // Online is set when networking is enabled.
@@ -122,7 +120,7 @@ type Mounts struct {
 
 // Close calls Close() on the App object
 func (n *IpfsNode) Close() error {
-	return n.app.Stop(n.ctx)
+	return n.stop()
 }
 
 // Context returns the IpfsNode context
@@ -175,11 +173,11 @@ func (n *IpfsNode) loadBootstrapPeers() ([]pstore.PeerInfo, error) {
 	return bootstrap.Peers.ToPeerInfos(parsed), nil
 }
 
-func (n *IpfsNode) SetupCtx(ctx context.Context, app *fx.App) *IpfsNode {
+func (n *IpfsNode) SetupCtx(ctx context.Context, stop func() error) *IpfsNode {
 	if n.ctx != nil {
 		panic("ctx already present")
 	}
 	n.ctx = ctx
-	n.app = app
+	n.stop = stop
 	return n
 }

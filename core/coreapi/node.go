@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 	"time"
 
 	ds "github.com/ipfs/go-datastore"
@@ -681,15 +682,25 @@ func New(opts ...Option) (*CoreAPI, error) {
 	fxOpts[len(fxOpts)-1] = fx.Extract(n)
 
 	app := fx.New(fxOpts...)
-	n.SetupCtx(ctx, app)
 	n.IsOnline = settings.online
+
+	var once sync.Once
+	var stopErr error
+	stop := func() error {
+		once.Do(func() {
+			stopErr = app.Stop(context.Background())
+		})
+		return stopErr
+	}
 
 	go func() {
 		// Note that some services use contexts to signal shutting down, which is
 		// very suboptimal. This needs to be here until that's addressed somehow
 		<-ctx.Done()
-		app.Stop(context.Background())
+		stop()
 	}()
+
+	n.SetupCtx(ctx, stop)
 
 	if err := app.Start(ctx); err != nil {
 		return nil, err
