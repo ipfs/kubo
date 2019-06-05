@@ -253,15 +253,13 @@ func Online(enable ...bool) Option {
 		),
 		Override(PeerstoreAddSelf, libp2p.PstoreAddSelfKeys, fx.Invoke),
 
-		Override(Exchange, node.OnlineExchange),
+		Override(Exchange, node.OnlineExchange(true)),
 
 		Override(Namesys, node.Namesys(node.DefaultIpnsCacheSize)),
 		Override(IpnsRepublisher, node.IpnsRepublisher(0, 0), fx.Invoke), // TODO: verify defaults (might be set in go-ipfs-config)
 
 		Override(P2PTunnel, p2p.New),
 
-		Override(Provider, node.SimpleProvider),
-		Override(ProviderQueue, node.ProviderQueue),
 		Override(ProviderSystem, node.SimpleProviderSys(true)),
 		Override(ProviderKeys, simple.NewBlockstoreProvider),
 		Override(Reprovider, node.SimpleReprovider(node.DefaultReprovideFrequency)),
@@ -518,6 +516,7 @@ func configExperimental(experiments config.Experiments) Option {
 	return Options(
 		Opt(fsbs, Override(BlockstoreFinal, node.FilestoreBlockstoreCtor)),
 		Opt(experiments.QUIC, Override(Libp2pQUIC, libp2p.QUIC)),
+		Opt(experiments.StrategicProviding, Override(ProviderSystem, provider.NewOfflineProvider)),
 		Override(Libp2pSecurity, libp2p.Security(true, experiments.PreferTLS)),
 	)
 }
@@ -638,7 +637,10 @@ func defaults() settings {
 
 	out.components[Validator] = fx.Provide(node.RecordValidator)
 	out.components[Router] = fx.Provide(offroute.NewOfflineRouter)
-	out.components[Provider] = fx.Provide(provider.NewOfflineProvider)
+
+	out.components[Provider] = fx.Provide(node.SimpleProvider)
+	out.components[ProviderQueue] = fx.Provide(node.ProviderQueue)
+	out.components[ProviderSystem] = fx.Provide(node.SimpleProviderSys(false))
 
 	out.components[Exchange] = fx.Provide(offline.Exchange)
 	out.components[Namesys] = fx.Provide(node.Namesys(0))
