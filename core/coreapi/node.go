@@ -518,7 +518,19 @@ func configExperimental(experiments config.Experiments) Option {
 	return Options(
 		Opt(fsbs, Override(BlockstoreFinal, node.FilestoreBlockstoreCtor)),
 		Opt(experiments.QUIC, Override(Libp2pQUIC, libp2p.QUIC)),
-		Opt(experiments.StrategicProviding, Override(ProviderSystem, provider.NewOfflineProvider)),
+		Opt(experiments.StrategicProviding, Options(
+			Override(ProviderSystem, provider.NewOfflineProvider),
+			Disable(Provider),
+			Disable(ProviderQueue),
+			Disable(ProviderKeys),
+			Disable(Reprovider),
+
+			// disable bitswap providing when StrategicProviding is set
+			// TODO: this is rather ugly, preferably we'd pass provider system into
+			// bitswap somehow
+			ifSet(Libp2pHost, Override(Exchange, node.OnlineExchange(false))),
+		)),
+
 		Override(Libp2pSecurity, libp2p.Security(true, experiments.PreferTLS)),
 	)
 }
