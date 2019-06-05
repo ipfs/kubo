@@ -261,8 +261,6 @@ func Online(enable ...bool) Option {
 		Override(P2PTunnel, p2p.New),
 
 		Override(ProviderSystem, node.SimpleProviderSys(true)),
-		Override(ProviderKeys, simple.NewBlockstoreProvider),
-		Override(Reprovider, node.SimpleReprovider(node.DefaultReprovideFrequency)),
 
 		// LibP2P
 
@@ -641,6 +639,9 @@ func defaults() settings {
 	out.components[Provider] = fx.Provide(node.SimpleProvider)
 	out.components[ProviderQueue] = fx.Provide(node.ProviderQueue)
 	out.components[ProviderSystem] = fx.Provide(node.SimpleProviderSys(false))
+	out.components[ProviderKeys] = fx.Provide(simple.NewBlockstoreProvider)
+	out.components[Reprovider] = fx.Provide(node.SimpleReprovider(node.DefaultReprovideFrequency))
+
 
 	out.components[Exchange] = fx.Provide(offline.Exchange)
 	out.components[Namesys] = fx.Provide(node.Namesys(0))
