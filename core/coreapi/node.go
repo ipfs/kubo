@@ -3,7 +3,6 @@ package coreapi
 import (
 	"context"
 	"fmt"
-	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -25,6 +24,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/pkg/errors"
 	"go.uber.org/fx"
 
@@ -37,8 +37,8 @@ import (
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/provider"
+	"github.com/ipfs/go-ipfs/provider/simple"
 	"github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/reprovide"
 )
 
 // from go-ipfs-config/init.go
@@ -74,9 +74,10 @@ const (
 
 	ProviderKeys
 	ProviderQueue
+	ProviderSystem
 	Reprovider
-	ReproviderSvc
 	Provider
+
 	Exchange
 
 	Blockservice
@@ -259,11 +260,11 @@ func Online(enable ...bool) Option {
 
 		Override(P2PTunnel, p2p.New),
 
-		Override(Provider, node.ProviderCtor),
+		Override(Provider, node.SimpleProvider),
 		Override(ProviderQueue, node.ProviderQueue),
-		Override(ProviderKeys, reprovide.NewBlockstoreProvider),
-		Override(Reprovider, node.ReproviderCtor(node.DefaultReprovideFrequency)),
-		Override(ReproviderSvc, node.Reprovider, fx.Invoke),
+		Override(ProviderSystem, node.SimpleProviderSys(true)),
+		Override(ProviderKeys, simple.NewBlockstoreProvider),
+		Override(Reprovider, node.SimpleReprovider(node.DefaultReprovideFrequency)),
 
 		// LibP2P
 
@@ -493,17 +494,17 @@ func configReprovider(reprovider config.Reprovider) Option {
 	case "all":
 		fallthrough
 	case "":
-		keyProvider = reprovide.NewBlockstoreProvider
+		keyProvider = simple.NewBlockstoreProvider
 	case "roots":
-		keyProvider = reprovide.NewPinnedProvider(true)
+		keyProvider = simple.NewPinnedProvider(true)
 	case "pinned":
-		keyProvider = reprovide.NewPinnedProvider(false)
+		keyProvider = simple.NewPinnedProvider(false)
 	default:
 		return errOpt(fmt.Errorf("unknown reprovider strategy '%s'", reprovider.Strategy))
 	}
 
 	return Options(
-		Override(Reprovider, node.ReproviderCtor(reproviderInterval)),
+		Override(Reprovider, node.SimpleReprovider(reproviderInterval)),
 		Override(ProviderKeys, keyProvider),
 	)
 }
