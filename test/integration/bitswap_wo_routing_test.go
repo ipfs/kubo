@@ -33,6 +33,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// nolint
 		n := api.Node()
 
 		defer n.Close()

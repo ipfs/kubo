@@ -84,6 +84,7 @@ func run(ipfsPath, watchPath string) error {
 	if err != nil {
 		return err
 	}
+	// nolint
 	node := api.Node()
 	defer node.Close()
 

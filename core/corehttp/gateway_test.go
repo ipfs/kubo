@@ -98,6 +98,7 @@ func newNodeWithMockNamesys(ns mockNamesys) (*core.IpfsNode, error) {
 	if err != nil {
 		return nil, err
 	}
+	// nolint
 	n := api.Node()
 
 	return n, nil

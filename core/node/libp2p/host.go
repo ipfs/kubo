@@ -89,8 +89,8 @@ func DHTRouting(client bool) interface{} {
 	}
 }
 
-func NilRouting() (BaseIpfsRouting, error) {
-	return nilrouting.ConstructNilRouting(nil, nil, nil, nil)
+func NilRouting(mctx helpers.MetricsCtx) (BaseIpfsRouting, error) {
+	return nilrouting.ConstructNilRouting(mctx, nil, nil, nil)
 }
 
 func RoutedHost(rh RawHost, r BaseIpfsRouting) host.Host {

@@ -40,6 +40,7 @@ func TestRepublish(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// nolint
 		nd := api.Node()
 
 		nodes = append(nodes, nd)

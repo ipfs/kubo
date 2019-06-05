@@ -112,6 +112,7 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		if err != nil {
 			t.Fatal(err)
 		}
+		// nolint
 		node = api.Node()
 
 		err = InitializeKeyspace(node, node.PrivateKey)

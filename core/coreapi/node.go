@@ -700,7 +700,7 @@ func New(opts ...Option) (*CoreAPI, error) {
 		// Note that some services use contexts to signal shutting down, which is
 		// very suboptimal. This needs to be here until that's addressed somehow
 		<-ctx.Done()
-		stop()
+		_ = stop()
 	}()
 
 	n.SetupCtx(ctx, stop)

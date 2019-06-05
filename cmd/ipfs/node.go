@@ -136,6 +136,7 @@ func (b *nodeBuilder) buildNode() (*core.IpfsNode, error) {
 		return nil, err
 	}
 
+	// nolint
 	node := api.Node()
 	node.IsDaemon = b.daemon
 	return node, nil

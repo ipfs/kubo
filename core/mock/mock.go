@@ -22,5 +22,6 @@ func NewMockNode() (*core.IpfsNode, error) {
 		return nil, err
 	}
 
+	// nolint
 	return api.Node(), nil
 }

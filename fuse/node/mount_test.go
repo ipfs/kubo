@@ -49,6 +49,7 @@ func TestExternalUnmount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// nolint
 	node := api.Node()
 
 	err = ipns.InitializeKeyspace(node, node.PrivateKey)

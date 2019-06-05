@@ -48,6 +48,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// nolint
 	node := api.Node()
 
 	out := make(chan interface{}, 10)
@@ -163,6 +164,7 @@ func TestAddGCLive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// nolint
 	node := api.Node()
 
 	out := make(chan interface{})
@@ -282,6 +284,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// nolint
 	node := api.Node()
 
 	bs := &testBlockstore{GCBlockstore: node.Blockstore, expectedPath: filepath.Join(os.TempDir(), "foo.txt"), t: t}

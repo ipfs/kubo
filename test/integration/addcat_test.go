@@ -12,16 +12,15 @@ import (
 	"time"
 
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/bootstrap"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/thirdparty/unit"
 	logging "github.com/ipfs/go-log"
 	random "github.com/jbenet/go-random"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	"github.com/libp2p/go-testutil"
+
+	"github.com/ipfs/go-ipfs/core/bootstrap"
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/thirdparty/unit"
 )
 
 var log = logging.Logger("epictest")
@@ -113,6 +112,7 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
+	// nolint
 	adder := adderApi.Node()
 	defer adder.Close()
 
@@ -125,6 +125,7 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
+	// nolint
 	catter := catterApi.Node()
 	defer catter.Close()
 

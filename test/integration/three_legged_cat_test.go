@@ -83,6 +83,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
+	// nolint
 	bootstrap := bootstrapApi.Node()
 	defer bootstrap.Close()
 
@@ -95,6 +96,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
+	// nolint
 	adder := adderApi.Node()
 	defer adder.Close()
 
@@ -107,6 +109,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	if err != nil {
 		return err
 	}
+	// nolint
 	catter := catterApi.Node()
 	defer catter.Close()
 

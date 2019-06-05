@@ -213,6 +213,7 @@ func addDefaultAssets(out io.Writer, repoRoot string) error {
 		return err
 	}
 
+	// nolint
 	nd := api.Node()
 	defer nd.Close()
 
@@ -244,6 +245,7 @@ func initializeIpnsKeyspace(repoRoot string) error {
 		return err
 	}
 
+	// nolint
 	nd := api.Node()
 	defer nd.Close()
 
