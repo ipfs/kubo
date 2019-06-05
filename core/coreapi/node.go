@@ -113,6 +113,8 @@ const (
 	Libp2pBandwidthCounter
 	Libp2pNatPortMap
 	Libp2pAutoRealy
+	Libp2pAdvertiseRelay
+	Libp2pDiscovery
 	Libp2pQUIC
 	Libp2pAutoNATService
 	Libp2pConnectionManager
@@ -446,8 +448,10 @@ func configSwarm(swarm config.SwarmConfig, exp config.Experiments) Option {
 		Opt(!swarm.DisableBandwidthMetrics, Override(Libp2pBandwidthCounter, libp2p.BandwidthCounter)),
 		Opt(!swarm.DisableNatPortMap, Override(Libp2pNatPortMap, libp2p.NatPortMap)),
 		Override(Libp2pRelay, libp2p.Relay(swarm.DisableRelay, swarm.EnableRelayHop)),
-		Opt(swarm.EnableAutoRelay, Override(Libp2pAutoRealy, libp2p.AutoRelay)),
-		Opt(swarm.EnableAutoNATService, Override(Libp2pAutoRealy, libp2p.AutoNATService(exp.QUIC))),
+		Opt(swarm.EnableAutoRelay, Override(Libp2pDiscovery, libp2p.Discovery)),
+		Opt(swarm.EnableAutoRelay && !swarm.EnableRelayHop, Override(Libp2pAutoRealy, libp2p.AutoRelay, fx.Invoke)),
+		Opt(swarm.EnableAutoRelay && swarm.EnableRelayHop, Override(Libp2pAdvertiseRelay, libp2p.AdvertiseRelay, fx.Invoke)),
+		Opt(swarm.EnableAutoNATService, Override(Libp2pAutoNATService, libp2p.AutoNATService(exp.QUIC))),
 		connmgr,
 	)
 }
