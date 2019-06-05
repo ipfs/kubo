@@ -1,4 +1,4 @@
-package provider
+package simple_test
 
 import (
 	"context"
@@ -10,7 +10,11 @@ import (
 	datastore "github.com/ipfs/go-datastore"
 	sync "github.com/ipfs/go-datastore/sync"
 	blocksutil "github.com/ipfs/go-ipfs-blocksutil"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+
+	q "github.com/ipfs/go-ipfs/provider/queue"
+
+	. "github.com/ipfs/go-ipfs/provider/simple"
 )
 
 var blockGenerator = blocksutil.NewBlockGenerator()
@@ -24,7 +28,7 @@ func (r *mockRouting) Provide(ctx context.Context, cid cid.Cid, recursive bool) 
 	return nil
 }
 
-func (r *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, timeout int) <-chan pstore.PeerInfo {
+func (r *mockRouting) FindProvidersAsync(ctx context.Context, cid cid.Cid, timeout int) <-chan peer.AddrInfo {
 	return nil
 }
 
@@ -39,15 +43,15 @@ func TestAnnouncement(t *testing.T) {
 	defer ctx.Done()
 
 	ds := sync.MutexWrap(datastore.NewMapDatastore())
-	queue, err := NewQueue(ctx, "test", ds)
+	queue, err := q.NewQueue(ctx, "test", ds)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	r := mockContentRouting()
 
-	provider := NewProvider(ctx, queue, r)
-	provider.Run()
+	prov := NewProvider(ctx, queue, r)
+	prov.Run()
 
 	cids := cid.NewSet()
 
@@ -58,7 +62,7 @@ func TestAnnouncement(t *testing.T) {
 
 	go func() {
 		for _, c := range cids.Keys() {
-			err = provider.Provide(c)
+			err = prov.Provide(c)
 			// A little goroutine stirring to exercise some different states
 			r := rand.Intn(10)
 			time.Sleep(time.Microsecond * time.Duration(r))

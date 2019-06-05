@@ -11,6 +11,7 @@ test_description="Test block command"
 test_init_ipfs
 
 HASH="QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk"
+HASHB="QmdnpnsaEj69isdw5sNzp3h3HkaDz7xKq7BmvFFBzNr5e7"
 
 #
 # "block put tests"
@@ -23,6 +24,18 @@ test_expect_success "'ipfs block put' succeeds" '
 
 test_expect_success "'ipfs block put' output looks good" '
   echo "$HASH" >expected_out &&
+  test_cmp expected_out actual_out
+'
+
+test_expect_success "'ipfs block put' with 2 files succeeds" '
+  echo "Hello Mars!" > a &&
+  echo "Hello Venus!" > b &&
+  ipfs block put a b >actual_out
+'
+
+test_expect_success "'ipfs block put' output looks good" '
+  echo "$HASH" >expected_out &&
+  echo "$HASHB" >>expected_out &&
   test_cmp expected_out actual_out
 '
 

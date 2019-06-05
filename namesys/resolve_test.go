@@ -11,8 +11,10 @@ import (
 	mockrouting "github.com/ipfs/go-ipfs-routing/mock"
 	ipns "github.com/ipfs/go-ipns"
 	path "github.com/ipfs/go-path"
-	peer "github.com/libp2p/go-libp2p-peer"
-	testutil "github.com/libp2p/go-testutil"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	test "github.com/libp2p/go-libp2p-core/test"
+	testutil "github.com/libp2p/go-libp2p-testing/net"
 )
 
 func TestRoutingResolve(t *testing.T) {
@@ -24,7 +26,7 @@ func TestRoutingResolve(t *testing.T) {
 	resolver := NewIpnsResolver(d)
 	publisher := NewIpnsPublisher(d, dstore)
 
-	privk, pubk, err := testutil.RandTestKeyPair(512)
+	privk, pubk, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +59,7 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 	resolver := NewIpnsResolver(d)
 	publisher := NewIpnsPublisher(d, dstore)
 
-	privk, pubk, err := testutil.RandTestKeyPair(512)
+	privk, pubk, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +101,7 @@ func TestPrexistingRecord(t *testing.T) {
 	resolver := NewIpnsResolver(d)
 	publisher := NewIpnsPublisher(d, dstore)
 
-	privk, pubk, err := testutil.RandTestKeyPair(512)
+	privk, pubk, err := test.RandTestKeyPair(ci.RSA, 512)
 	if err != nil {
 		t.Fatal(err)
 	}

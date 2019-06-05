@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
+	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo"
@@ -18,9 +19,10 @@ import (
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipfs-config"
-	ci "github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/tests"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -98,7 +100,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 	}
 
 	bsinf := bootstrap.BootstrapConfigWithPeers(
-		[]pstore.PeerInfo{
+		[]peer.AddrInfo{
 			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
 		},
 	)

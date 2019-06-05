@@ -8,12 +8,13 @@ import (
 	"math"
 	"testing"
 
+	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-
-	files "github.com/ipfs/go-ipfs-files"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/libp2p/go-testutil"
 )
@@ -75,8 +76,8 @@ func benchCat(b *testing.B, data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	bs1 := []pstore.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)}
-	bs2 := []pstore.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)}
+	bs1 := []peer.AddrInfo{adder.Peerstore.PeerInfo(adder.Identity)}
+	bs2 := []peer.AddrInfo{catter.Peerstore.PeerInfo(catter.Identity)}
 
 	if err := catter.Bootstrap(bootstrap.BootstrapConfigWithPeers(bs1)); err != nil {
 		return err

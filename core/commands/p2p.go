@@ -14,10 +14,10 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	p2p "github.com/ipfs/go-ipfs/p2p"
 
-	ipfsaddr "github.com/ipfs/go-ipfs-addr"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 )
@@ -133,37 +133,49 @@ Example:
 }
 
 // parseIpfsAddr is a function that takes in addr string and return ipfsAddrs
-func parseIpfsAddr(addr string) ([]ipfsaddr.IPFSAddr, error) {
-	mutiladdr, err := ma.NewMultiaddr(addr)
+func parseIpfsAddr(addr string) (*peer.AddrInfo, error) {
+	multiaddr, err := ma.NewMultiaddr(addr)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := mutiladdr.ValueForProtocol(ma.P_IPFS); err == nil {
-		iaddrs := make([]ipfsaddr.IPFSAddr, 1)
-		iaddrs[0], err = ipfsaddr.ParseMultiaddr(mutiladdr)
-		if err != nil {
-			return nil, err
-		}
-		return iaddrs, nil
+
+	pi, err := peer.AddrInfoFromP2pAddr(multiaddr)
+	if err == nil {
+		return pi, nil
 	}
-	// resolve mutiladdr whose protocol is not ma.P_IPFS
+
+	// resolve multiaddr whose protocol is not ma.P_IPFS
 	ctx, cancel := context.WithTimeout(context.Background(), resolveTimeout)
 	defer cancel()
-	addrs, err := madns.Resolve(ctx, mutiladdr)
+	addrs, err := madns.Resolve(ctx, multiaddr)
 	if err != nil {
 		return nil, err
 	}
 	if len(addrs) == 0 {
-		return nil, errors.New("fail to resolve the multiaddr:" + mutiladdr.String())
+		return nil, errors.New("fail to resolve the multiaddr:" + multiaddr.String())
 	}
-	iaddrs := make([]ipfsaddr.IPFSAddr, len(addrs))
-	for i, addr := range addrs {
-		iaddrs[i], err = ipfsaddr.ParseMultiaddr(addr)
-		if err != nil {
-			return nil, err
+	var info peer.AddrInfo
+	for _, addr := range addrs {
+		taddr, id := peer.SplitAddr(addr)
+		if id == "" {
+			// not an ipfs addr, skipping.
+			continue
 		}
+		switch info.ID {
+		case "":
+			info.ID = id
+		case id:
+		default:
+			return nil, fmt.Errorf(
+				"ambiguous multiaddr %s could refer to %s or %s",
+				multiaddr,
+				info.ID,
+				id,
+			)
+		}
+		info.Addrs = append(info.Addrs, taddr)
 	}
-	return iaddrs, nil
+	return &info, nil
 }
 
 var p2pListenCmd = &cmds.Command{
@@ -256,14 +268,10 @@ func checkPort(target ma.Multiaddr) error {
 }
 
 // forwardLocal forwards local connections to a libp2p service
-func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto protocol.ID, bindAddr ma.Multiaddr, addrs []ipfsaddr.IPFSAddr) error {
-	for _, addr := range addrs {
-		ps.AddAddr(addr.ID(), addr.Multiaddr(), pstore.TempAddrTTL)
-	}
+func forwardLocal(ctx context.Context, p *p2p.P2P, ps pstore.Peerstore, proto protocol.ID, bindAddr ma.Multiaddr, addr *peer.AddrInfo) error {
+	ps.AddAddrs(addr.ID, addr.Addrs, pstore.TempAddrTTL)
 	// TODO: return some info
-	// the length of the addrs must large than 0
-	// peerIDs in addr must be the same and choose addr[0] to connect
-	_, err := p.ForwardLocal(ctx, addrs[0].ID(), proto, bindAddr)
+	_, err := p.ForwardLocal(ctx, addr.ID, proto, bindAddr)
 	return err
 }
 

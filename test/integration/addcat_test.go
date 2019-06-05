@@ -11,14 +11,15 @@ import (
 	"testing"
 	"time"
 
+	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
-
-	files "github.com/ipfs/go-ipfs-files"
 	logging "github.com/ipfs/go-log"
-	"github.com/jbenet/go-random"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	random "github.com/jbenet/go-random"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/libp2p/go-testutil"
 )
@@ -132,8 +133,8 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 		return err
 	}
 
-	bs1 := []pstore.PeerInfo{adder.Peerstore.PeerInfo(adder.Identity)}
-	bs2 := []pstore.PeerInfo{catter.Peerstore.PeerInfo(catter.Identity)}
+	bs1 := []peer.AddrInfo{adder.Peerstore.PeerInfo(adder.Identity)}
+	bs2 := []peer.AddrInfo{catter.Peerstore.PeerInfo(catter.Identity)}
 
 	if err := catter.Bootstrap(bootstrap.BootstrapConfigWithPeers(bs1)); err != nil {
 		return err

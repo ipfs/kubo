@@ -14,8 +14,8 @@ import (
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
 	"github.com/ipfs/go-path"
 
-	"github.com/jbenet/goprocess"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	goprocess "github.com/jbenet/goprocess"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
@@ -50,7 +50,7 @@ func TestRepublish(t *testing.T) {
 	}
 
 	bsinf := bootstrap.BootstrapConfigWithPeers(
-		[]pstore.PeerInfo{
+		[]peer.AddrInfo{
 			nodes[0].Peerstore.PeerInfo(nodes[0].Identity),
 		},
 	)

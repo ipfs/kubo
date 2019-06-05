@@ -6,9 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peer"
-	mh "github.com/multiformats/go-multihash"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func PeerID(id peer.ID) func() peer.ID {

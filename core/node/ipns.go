@@ -6,10 +6,10 @@ import (
 
 	"github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-ipns"
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/libp2p/go-libp2p-record"
-	"github.com/libp2p/go-libp2p-routing"
 
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/namesys/republisher"
@@ -27,8 +27,8 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 }
 
 // Namesys creates new name system
-func Namesys(cacheSize int) func(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSystem, error) {
-	return func(rt routing.IpfsRouting, repo repo.Repo) (namesys.NameSystem, error) {
+func Namesys(cacheSize int) func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
+	return func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
 		return namesys.NewNameSystem(rt, repo.Datastore(), cacheSize), nil
 	}
 }

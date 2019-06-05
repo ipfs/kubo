@@ -28,7 +28,7 @@ import (
 	"github.com/ipfs/go-unixfs/importer"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	routing "github.com/libp2p/go-libp2p-routing"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	"github.com/multiformats/go-multibase"
 )
 
@@ -102,14 +102,15 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errmsg := "Method " + r.Method + " not allowed: "
+	var status int
 	if !i.config.Writable {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		status = http.StatusMethodNotAllowed
 		errmsg = errmsg + "read only access"
 	} else {
-		w.WriteHeader(http.StatusBadRequest)
+		status = http.StatusBadRequest
 		errmsg = errmsg + "bad request for " + r.URL.Path
 	}
-	fmt.Fprint(w, errmsg)
+	http.Error(w, errmsg, status)
 }
 
 func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -600,9 +601,7 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 }
 
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
-	w.WriteHeader(code)
-
-	fmt.Fprintf(w, "%s: %s\n", message, err)
+	http.Error(w, fmt.Sprintf("%s: %s", message, err), code)
 	if code >= 500 {
 		log.Warningf("server error: %s: %s", err)
 	}
