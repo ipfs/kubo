@@ -498,11 +498,17 @@ func LoadPinner(d ds.Datastore, dserv, internal ipld.DAGService) (Pinner, error)
 
 // DirectKeys returns a slice containing the directly pinned keys
 func (p *pinner) DirectKeys() []cid.Cid {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
 	return p.directPin.Keys()
 }
 
 // RecursiveKeys returns a slice containing the recursively pinned keys
 func (p *pinner) RecursiveKeys() []cid.Cid {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+
 	return p.recursePin.Keys()
 }
 
