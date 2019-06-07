@@ -114,6 +114,18 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 $ sudo snap install ipfs
 ```
 
+### From Windows package managers
+
+- [Chocolatey](#chocolatey)
+
+#### Chocolatey
+
+The package [ipfs](https://chocolatey.org/packages/ipfs) currently points to go-ipfs and is being maintained.
+
+```Powershell
+PS> choco install ipfs
+```
+
 ### Build from Source
 
 #### Install Go
