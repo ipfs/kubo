@@ -98,11 +98,11 @@ const (
 	Libp2pDiscoveryHandler
 
 	Libp2pAddrFilters
-	Libp2pMDNS         // SetupDiscovery
 	Libp2pAddrsFactory // TODO: better name?
 	Libp2pSmuxTransport
 	Libp2pRelay
 	Libp2pStartListening
+	Libp2pMDNS
 
 	Libp2pSecurity
 
