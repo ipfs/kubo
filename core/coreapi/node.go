@@ -457,13 +457,9 @@ func configSwarm(swarm config.SwarmConfig, exp config.Experiments) Option {
 }
 
 func configPubsub(ps config.PubsubConfig) Option {
-	var pubsubOptions []pubsub.Option
-	if ps.DisableSigning {
-		pubsubOptions = append(pubsubOptions, pubsub.WithMessageSigning(false))
-	}
-
-	if ps.StrictSignatureVerification {
-		pubsubOptions = append(pubsubOptions, pubsub.WithStrictSignatureVerification(true))
+	pubsubOptions := []pubsub.Option{
+		pubsub.WithMessageSigning(!ps.DisableSigning),
+		pubsub.WithStrictSignatureVerification(ps.StrictSignatureVerification),
 	}
 
 	switch ps.Router {
@@ -657,7 +653,6 @@ func defaults() settings {
 	out.components[ProviderSystem] = fx.Provide(node.SimpleProviderSys(false))
 	out.components[ProviderKeys] = fx.Provide(simple.NewBlockstoreProvider)
 	out.components[Reprovider] = fx.Provide(node.SimpleReprovider(node.DefaultReprovideFrequency))
-
 
 	out.components[Exchange] = fx.Provide(offline.Exchange)
 	out.components[Namesys] = fx.Provide(node.Namesys(0))
