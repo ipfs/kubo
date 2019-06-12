@@ -56,6 +56,9 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 
 	if settings.Pin {
 		api.pinning.PinWithMode(b.Cid(), pin.Recursive)
+		if err := api.pinning.Flush(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &BlockStat{path: path.IpldPath(b.Cid()), size: len(data)}, nil
