@@ -67,6 +67,10 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 		return err
 	}
 
+	// Note: after unpin the pin sets are flushed to the blockstore, so we need
+	// to take a lock to prevent a concurrent garbage collection
+	defer api.blockstore.PinLock().Unlock()
+
 	if err = api.pinning.Unpin(ctx, rp.Cid(), settings.Recursive); err != nil {
 		return err
 	}
