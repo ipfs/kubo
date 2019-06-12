@@ -121,10 +121,10 @@ var blockPutCmd = &cmds.Command{
 		Tagline: "Store input as an IPFS block.",
 		ShortDescription: `
 'ipfs block put' is a plumbing command for storing raw IPFS blocks.
-It reads from stdin, and <key> is a base58 encoded multihash.
+It reads from stdin, and outputs the block's CID to stdout.
 
-By default CIDv0 is going to be generated. Setting 'mhtype' to anything other
-than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
+Unless specified, this command returns dag-pb CIDv0 CIDs. Setting 'mhtype' to anything
+other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 `,
 	},
 
