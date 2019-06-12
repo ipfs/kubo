@@ -117,6 +117,7 @@ $ sudo snap install ipfs
 ### From Windows package managers
 
 - [Chocolatey](#chocolatey)
+- [Scoop](#scoop)
 
 #### Chocolatey
 
@@ -124,6 +125,14 @@ The package [ipfs](https://chocolatey.org/packages/ipfs) currently points to go-
 
 ```Powershell
 PS> choco install ipfs
+```
+
+#### Scoop
+
+Scoop provides `go-ipfs` in its 'extras' bucket.
+```Powershell
+PS> scoop add bucket extras
+PS> scoop install go-ipfs
 ```
 
 ### Build from Source
