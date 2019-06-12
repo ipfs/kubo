@@ -13,6 +13,48 @@ import (
 	"os"
 )
 
+// Error codes adapted from go-ipfs-cmds. We should find a better solution.
+
+// ErrorType signfies a category of errors
+type ErrorType uint
+
+// ErrorTypes convey what category of error ocurred
+const (
+	// ErrNormal is a normal error. The command failed for some reason that's not a bug.
+	ErrNormal ErrorType = iota
+	// ErrClient means the client made an invalid request.
+	ErrClient
+	// ErrImplementation means there's a bug in the implementation.
+	ErrImplementation
+	// ErrRateLimited is returned when the operation has been rate-limited.
+	ErrRateLimited
+	// ErrForbidden is returned when the client doesn't have permission to
+	// perform the requested operation.
+	ErrForbidden
+)
+
+func (e ErrorType) Error() string {
+	return e.String()
+}
+
+func (e ErrorType) String() string {
+	switch e {
+	case ErrNormal:
+		return "command failed"
+	case ErrClient:
+		return "invalid argument"
+	case ErrImplementation:
+		return "internal error"
+	case ErrRateLimited:
+		return "rate limited"
+	case ErrForbidden:
+		return "request forbidden"
+	default:
+		return "unknown error code"
+	}
+
+}
+
 type trailerReader struct {
 	resp *http.Response
 }
@@ -77,7 +119,13 @@ func (r *Response) decode(dec interface{}) error {
 type Error struct {
 	Command string
 	Message string
-	Code    int
+	Code    ErrorType
+}
+
+// Unwrap returns the base error (an ErrorType). Works with go 1.14 error
+// helpers.
+func (e *Error) Unwrap() error {
+	return e.Code
 }
 
 func (e *Error) Error() string {
@@ -133,11 +181,23 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 				fmt.Fprintf(os.Stderr, "ipfs-shell: warning! response (%d) read error: %s\n", resp.StatusCode, err)
 			}
 			e.Message = string(out)
+
+			// set special status codes.
+			switch resp.StatusCode {
+			case http.StatusNotFound, http.StatusBadRequest:
+				e.Code = ErrClient
+			case http.StatusTooManyRequests:
+				e.Code = ErrRateLimited
+			case http.StatusForbidden:
+				e.Code = ErrForbidden
+			}
 		case contentType == "application/json":
 			if err = json.NewDecoder(resp.Body).Decode(e); err != nil {
 				fmt.Fprintf(os.Stderr, "ipfs-shell: warning! response (%d) unmarshall error: %s\n", resp.StatusCode, err)
 			}
 		default:
+			// This is a server-side bug (probably).
+			e.Code = ErrImplementation
 			fmt.Fprintf(os.Stderr, "ipfs-shell: warning! unhandled response (%d) encoding: %s", resp.StatusCode, contentType)
 			out, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
