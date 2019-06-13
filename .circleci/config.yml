@@ -151,7 +151,7 @@ jobs:
       - *make_out_dirs
       - *restore_gomod
       - run:
-          command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-release.txt
+          command: go test -tags nofuse -run=NONE -bench=. ./... | tee /tmp/circleci-workspace/benchmark-release.txt
           environment:
             IPFS_LOGGING: critical
             CGO_ENABLED: 0
@@ -169,7 +169,7 @@ jobs:
       - *make_out_dirs
       - *restore_gomod
       - run:
-          command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-before.txt
+          command: go test -tags nofuse -run=NONE -bench=. ./... | tee /tmp/circleci-workspace/benchmark-before.txt
           environment:
             IPFS_LOGGING: critical
             CGO_ENABLED: 0
@@ -186,7 +186,7 @@ jobs:
       - *make_out_dirs
       - *restore_gomod
       - run:
-          command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-after.txt
+          command: go test -tags nofuse -run=NONE -bench=. ./... | tee /tmp/circleci-workspace/benchmark-after.txt
           environment:
             IPFS_LOGGING: critical
             CGO_ENABLED: 0
