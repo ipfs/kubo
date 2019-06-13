@@ -4,14 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ipfs/go-ipfs-files"
 	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
 	"os"
+
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
+	files "github.com/ipfs/go-ipfs-files"
 )
+
+type Error = cmds.Error
 
 type trailerReader struct {
 	resp *http.Response
@@ -20,7 +25,7 @@ type trailerReader struct {
 func (r *trailerReader) Read(b []byte) (int, error) {
 	n, err := r.resp.Body.Read(b)
 	if err != nil {
-		if e := r.resp.Trailer.Get("X-Stream-Error"); e != "" {
+		if e := r.resp.Trailer.Get(cmdhttp.StreamErrHeader); e != "" {
 			err = errors.New(e)
 		}
 	}
@@ -74,20 +79,6 @@ func (r *Response) decode(dec interface{}) error {
 	return err2
 }
 
-type Error struct {
-	Command string
-	Message string
-	Code    int
-}
-
-func (e *Error) Error() string {
-	var out string
-	if e.Code != 0 {
-		out = fmt.Sprintf("%s%d: ", out, e.Code)
-	}
-	return out + e.Message
-}
-
 func (r *Request) Send(c *http.Client) (*Response, error) {
 	url := r.getURL()
 	req, err := http.NewRequest("POST", url, r.Body)
@@ -121,9 +112,7 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 
 	nresp.Output = &trailerReader{resp}
 	if resp.StatusCode >= http.StatusBadRequest {
-		e := &Error{
-			Command: r.Command,
-		}
+		e := new(Error)
 		switch {
 		case resp.StatusCode == http.StatusNotFound:
 			e.Message = "command not found"
@@ -133,11 +122,23 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 				fmt.Fprintf(os.Stderr, "ipfs-shell: warning! response (%d) read error: %s\n", resp.StatusCode, err)
 			}
 			e.Message = string(out)
+
+			// set special status codes.
+			switch resp.StatusCode {
+			case http.StatusNotFound, http.StatusBadRequest:
+				e.Code = cmds.ErrClient
+			case http.StatusTooManyRequests:
+				e.Code = cmds.ErrRateLimited
+			case http.StatusForbidden:
+				e.Code = cmds.ErrForbidden
+			}
 		case contentType == "application/json":
 			if err = json.NewDecoder(resp.Body).Decode(e); err != nil {
 				fmt.Fprintf(os.Stderr, "ipfs-shell: warning! response (%d) unmarshall error: %s\n", resp.StatusCode, err)
 			}
 		default:
+			// This is a server-side bug (probably).
+			e.Code = cmds.ErrImplementation
 			fmt.Fprintf(os.Stderr, "ipfs-shell: warning! unhandled response (%d) encoding: %s", resp.StatusCode, contentType)
 			out, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
