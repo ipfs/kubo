@@ -159,6 +159,7 @@ jobs:
           root: /tmp/circleci-workspace
           paths:
             - benchmark-release.txt
+      - *store_gomod
   benchmark-before:
     docker:
       - image: circleci/golang:1.12
@@ -177,6 +178,7 @@ jobs:
           root: /tmp/circleci-workspace
           paths:
             - benchmark-before.txt
+      - *store_gomod
   benchmark-after:
     docker:
       - image: circleci/golang:1.12
@@ -194,6 +196,7 @@ jobs:
           root: /tmp/circleci-workspace
           paths:
             - benchmark-after.txt
+      - *store_gomod
   benchmark-compare:
     docker:
       - image: circleci/golang:1.12
