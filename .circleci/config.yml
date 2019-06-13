@@ -141,6 +141,67 @@ jobs:
           paths:
             - bin/ipfs
       - *store_gomod
+  benchmark-release:
+    docker:
+      - image: circleci/golang:1.12
+    <<: *defaults
+    steps:
+      - checkout
+      - run: git checkout release
+      - *make_out_dirs
+      - *restore_gomod
+      - run:
+          command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-release.txt
+          environment:
+            IPFS_LOGGING: critical
+      - persist_to_workspace:
+          root: /tmp/circleci-workspace
+          paths:
+            - benchmark-release.txt
+  benchmark-before:
+    docker:
+      - image: circleci/golang:1.12
+    <<: *defaults
+    steps:
+      - checkout
+      - run: git checkout master
+      - *make_out_dirs
+      - *restore_gomod
+      - run:
+          command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-before.txt
+          environment:
+            IPFS_LOGGING: critical
+      - persist_to_workspace:
+          root: /tmp/circleci-workspace
+          paths:
+            - benchmark-before.txt
+  benchmark-after:
+    docker:
+      - image: circleci/golang:1.12
+    <<: *defaults
+    steps:
+      - checkout
+      - *make_out_dirs
+      - *restore_gomod
+      - run:
+          command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-after.txt
+          environment:
+            IPFS_LOGGING: critical
+      - persist_to_workspace:
+          root: /tmp/circleci-workspace
+          paths:
+            - benchmark-after.txt
+  benchmark-compare:
+    docker:
+      - image: circleci/golang:1.12
+    <<: *defaults
+    steps:
+      - checkout
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run: bin/diff-benchmarks /tmp/circleci-workspace/benchmark-before.txt /tmp/circleci-workspace/benchmark-after.txt
+      - run: bin/diff-benchmarks /tmp/circleci-workspace/benchmark-release.txt /tmp/circleci-workspace/benchmark-after.txt
   interop:
     docker:
       - image: circleci/node:10
@@ -249,3 +310,11 @@ workflows:
     - go-ipfs-http-client:
         requires:
           - build
+    - benchmark-before
+    - benchmark-after
+    - benchmark-release
+    - benchmark-compare:
+        requires:
+          - benchmark-after
+          - benchmark-before
+          - benchmark-release
