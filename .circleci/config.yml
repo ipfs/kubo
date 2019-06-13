@@ -1,4 +1,4 @@
-version: 2.0
+version: 2.1
 
 aliases:
   make_out_dirs: &make_out_dirs
@@ -16,6 +16,30 @@ aliases:
         paths:
           - ~/go/pkg/mod
           - ~/.cache/go-build/
+
+commands:
+  benchmark:
+    parameters:
+      output:
+        type: string
+      branch:
+        type: string
+        default: HEAD
+    steps:
+      - checkout
+      - run: git checkout << parameters.branch >>
+      - *make_out_dirs
+      - *restore_gomod
+      - run:
+          command: go test -tags nofuse -run=NONE -bench=. ./... | tee /tmp/circleci-workspace/<< parameters.output >>
+          environment:
+            IPFS_LOGGING: critical
+            CGO_ENABLED: 0
+      - persist_to_workspace:
+          root: /tmp/circleci-workspace
+          paths:
+            - << parameters.output >>
+      - *store_gomod
 
 
 defaults: &defaults
@@ -146,57 +170,24 @@ jobs:
       - image: circleci/golang:1.12
     <<: *defaults
     steps:
-      - checkout
-      - run: git checkout release
-      - *make_out_dirs
-      - *restore_gomod
-      - run:
-          command: go test -tags nofuse -run=NONE -bench=. ./... | tee /tmp/circleci-workspace/benchmark-release.txt
-          environment:
-            IPFS_LOGGING: critical
-            CGO_ENABLED: 0
-      - persist_to_workspace:
-          root: /tmp/circleci-workspace
-          paths:
-            - benchmark-release.txt
-      - *store_gomod
+      - benchmark:
+          output: benchmark-release.txt
+          branch: release
   benchmark-before:
     docker:
       - image: circleci/golang:1.12
     <<: *defaults
     steps:
-      - checkout
-      - run: git checkout master
-      - *make_out_dirs
-      - *restore_gomod
-      - run:
-          command: go test -tags nofuse -run=NONE -bench=. ./... | tee /tmp/circleci-workspace/benchmark-before.txt
-          environment:
-            IPFS_LOGGING: critical
-            CGO_ENABLED: 0
-      - persist_to_workspace:
-          root: /tmp/circleci-workspace
-          paths:
-            - benchmark-before.txt
-      - *store_gomod
+      - benchmark:
+          output: benchmark-before.txt
+          branch: master
   benchmark-after:
     docker:
       - image: circleci/golang:1.12
     <<: *defaults
     steps:
-      - checkout
-      - *make_out_dirs
-      - *restore_gomod
-      - run:
-          command: go test -tags nofuse -run=NONE -bench=. ./... | tee /tmp/circleci-workspace/benchmark-after.txt
-          environment:
-            IPFS_LOGGING: critical
-            CGO_ENABLED: 0
-      - persist_to_workspace:
-          root: /tmp/circleci-workspace
-          paths:
-            - benchmark-after.txt
-      - *store_gomod
+      - benchmark:
+          output: benchmark-after.txt
   benchmark-compare:
     docker:
       - image: circleci/golang:1.12
