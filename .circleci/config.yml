@@ -154,6 +154,7 @@ jobs:
           command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-release.txt
           environment:
             IPFS_LOGGING: critical
+            CGO_ENABLED: 0
       - persist_to_workspace:
           root: /tmp/circleci-workspace
           paths:
@@ -171,6 +172,7 @@ jobs:
           command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-before.txt
           environment:
             IPFS_LOGGING: critical
+            CGO_ENABLED: 0
       - persist_to_workspace:
           root: /tmp/circleci-workspace
           paths:
@@ -187,6 +189,7 @@ jobs:
           command: go test -tags nofuse -run=NONE -bench=. ./... > /tmp/circleci-workspace/benchmark-after.txt
           environment:
             IPFS_LOGGING: critical
+            CGO_ENABLED: 0
       - persist_to_workspace:
           root: /tmp/circleci-workspace
           paths:
