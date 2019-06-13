@@ -4,56 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ipfs/go-ipfs-files"
 	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
 	"os"
+
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
+	files "github.com/ipfs/go-ipfs-files"
 )
 
-// Error codes adapted from go-ipfs-cmds. We should find a better solution.
-
-// ErrorType signfies a category of errors
-type ErrorType uint
-
-// ErrorTypes convey what category of error ocurred
-const (
-	// ErrNormal is a normal error. The command failed for some reason that's not a bug.
-	ErrNormal ErrorType = iota
-	// ErrClient means the client made an invalid request.
-	ErrClient
-	// ErrImplementation means there's a bug in the implementation.
-	ErrImplementation
-	// ErrRateLimited is returned when the operation has been rate-limited.
-	ErrRateLimited
-	// ErrForbidden is returned when the client doesn't have permission to
-	// perform the requested operation.
-	ErrForbidden
-)
-
-func (e ErrorType) Error() string {
-	return e.String()
-}
-
-func (e ErrorType) String() string {
-	switch e {
-	case ErrNormal:
-		return "command failed"
-	case ErrClient:
-		return "invalid argument"
-	case ErrImplementation:
-		return "internal error"
-	case ErrRateLimited:
-		return "rate limited"
-	case ErrForbidden:
-		return "request forbidden"
-	default:
-		return "unknown error code"
-	}
-
-}
+type Error = cmds.Error
 
 type trailerReader struct {
 	resp *http.Response
@@ -62,7 +25,7 @@ type trailerReader struct {
 func (r *trailerReader) Read(b []byte) (int, error) {
 	n, err := r.resp.Body.Read(b)
 	if err != nil {
-		if e := r.resp.Trailer.Get("X-Stream-Error"); e != "" {
+		if e := r.resp.Trailer.Get(cmdhttp.StreamErrHeader); e != "" {
 			err = errors.New(e)
 		}
 	}
@@ -116,26 +79,6 @@ func (r *Response) decode(dec interface{}) error {
 	return err2
 }
 
-type Error struct {
-	Command string
-	Message string
-	Code    ErrorType
-}
-
-// Unwrap returns the base error (an ErrorType). Works with go 1.14 error
-// helpers.
-func (e *Error) Unwrap() error {
-	return e.Code
-}
-
-func (e *Error) Error() string {
-	var out string
-	if e.Code != 0 {
-		out = fmt.Sprintf("%s%d: ", out, e.Code)
-	}
-	return out + e.Message
-}
-
 func (r *Request) Send(c *http.Client) (*Response, error) {
 	url := r.getURL()
 	req, err := http.NewRequest("POST", url, r.Body)
@@ -169,9 +112,7 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 
 	nresp.Output = &trailerReader{resp}
 	if resp.StatusCode >= http.StatusBadRequest {
-		e := &Error{
-			Command: r.Command,
-		}
+		e := new(Error)
 		switch {
 		case resp.StatusCode == http.StatusNotFound:
 			e.Message = "command not found"
@@ -185,11 +126,11 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 			// set special status codes.
 			switch resp.StatusCode {
 			case http.StatusNotFound, http.StatusBadRequest:
-				e.Code = ErrClient
+				e.Code = cmds.ErrClient
 			case http.StatusTooManyRequests:
-				e.Code = ErrRateLimited
+				e.Code = cmds.ErrRateLimited
 			case http.StatusForbidden:
-				e.Code = ErrForbidden
+				e.Code = cmds.ErrForbidden
 			}
 		case contentType == "application/json":
 			if err = json.NewDecoder(resp.Body).Decode(e); err != nil {
@@ -197,7 +138,7 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 			}
 		default:
 			// This is a server-side bug (probably).
-			e.Code = ErrImplementation
+			e.Code = cmds.ErrImplementation
 			fmt.Fprintf(os.Stderr, "ipfs-shell: warning! unhandled response (%d) encoding: %s", resp.StatusCode, contentType)
 			out, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
