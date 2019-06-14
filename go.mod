@@ -17,7 +17,7 @@ require (
 	github.com/golangci/golangci-lint v1.16.1-0.20190425135923-692dacb773b7
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.1
-	github.com/ipfs/go-bitswap v0.1.3
+	github.com/ipfs/go-bitswap v0.1.4
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.0
 	github.com/ipfs/go-cid v0.0.2
