@@ -342,10 +342,18 @@ Tells reprovider what should be announced. Valid strategies are:
 
 Options for configuring the swarm.
 
-- `AddrFilters`
-An array of address filters (multiaddr netmasks) to filter dials to.
-See [this issue](https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604) for more
-information.
+- `AddrFilters` An array of address filters (multiaddr netmasks) to filter
+automatic dials to. The ipfs daemon will otherwise attempt to randomly dial
+the default listen port on every IP of the the local network IP range. This
+improves autodiscovery of other daemons in the same network, but may also
+trigger netscan alerts on some hosting providers or cause strain in some
+setups.
+
+The `server` configuration profile fills up this list with sensible defaults,
+preventing scans to most common local network (`10.0.0.0/8` or
+`192.168.0.0/16`), but you should always check settings against your own
+network and/or hosting provider.
+
 
 - `DisableBandwidthMetrics`
 A boolean value that when set to true, will cause ipfs to not keep track of
