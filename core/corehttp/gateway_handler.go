@@ -19,6 +19,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
+	assets "github.com/ipfs/go-ipfs/assets"
 	dag "github.com/ipfs/go-merkledag"
 	mfs "github.com/ipfs/go-mfs"
 	path "github.com/ipfs/go-path"
@@ -222,16 +223,26 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	defer dr.Close()
 
-	// Check etag send back to us
-	etag := "\"" + resolvedPath.Cid().String() + "\""
-	if r.Header.Get("If-None-Match") == etag || r.Header.Get("If-None-Match") == "W/"+etag {
+	var responseEtag string
+
+	// we need to figure out whether this is a directory before doing most of the heavy lifting below
+	_, ok := dr.(files.Directory)
+
+	if ok && assets.BindataVersionHash != "" {
+		responseEtag = `"DirIndex-` + assets.BindataVersionHash + `_CID-` + resolvedPath.Cid().String() + `"`
+	} else {
+		responseEtag = `"` + resolvedPath.Cid().String() + `"`
+	}
+
+	// Check etag sent back to us
+	if r.Header.Get("If-None-Match") == responseEtag || r.Header.Get("If-None-Match") == `W/`+responseEtag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
-	w.Header().Set("Etag", etag)
+	w.Header().Set("Etag", responseEtag)
 
 	// set these headers _after_ the error, for we may just not have it
 	// and don't want the client to cache a 500 response...
