@@ -54,6 +54,8 @@ include $(dir)/Rules.mk
 dir := filestore/pb
 include $(dir)/Rules.mk
 
+dir := assets
+include $(dir)/Rules.mk
 
 # -------------------- #
 #   universal rules    #
