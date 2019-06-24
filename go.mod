@@ -62,11 +62,11 @@ require (
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
-	github.com/libp2p/go-libp2p v0.1.1
+	github.com/libp2p/go-libp2p v0.2.0
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
 	github.com/libp2p/go-libp2p-circuit v0.1.0
 	github.com/libp2p/go-libp2p-connmgr v0.1.0
-	github.com/libp2p/go-libp2p-core v0.0.4
+	github.com/libp2p/go-libp2p-core v0.0.6
 	github.com/libp2p/go-libp2p-http v0.1.2
 	github.com/libp2p/go-libp2p-kad-dht v0.1.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.0
@@ -113,7 +113,5 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gotest.tools/gotestsum v0.3.4
 )
-
-replace github.com/libp2p/go-libp2p-core => github.com/libp2p/go-libp2p-core v0.0.3
 
 go 1.12
