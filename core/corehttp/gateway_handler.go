@@ -32,7 +32,7 @@ import (
 	"github.com/multiformats/go-multibase"
 )
 
-// This is set to the git object id of github.com/ipfs/go-ipfs/assets/bindata.go
+// AssetsBindataBlob is set to the git object id of github.com/ipfs/go-ipfs/assets/bindata.go
 // during build time and is critical during directory-view ETag construction
 var AssetsBindataBlob string
 
@@ -182,26 +182,26 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	defer dr.Close()
 
-	var response_etag string
+	var responseEtag string
 
 	// we need to figure out whether this is a directory before doing most of the heavy lifting below
 	_, ok := dr.(files.Directory)
 
 	if ok && AssetsBindataBlob != "" {
-		response_etag = "\"DirIndex-" + AssetsBindataBlob + "_CID-" + resolvedPath.Cid().String() + "\""
+		responseEtag = "\"DirIndex-" + AssetsBindataBlob + "_CID-" + resolvedPath.Cid().String() + "\""
 	} else {
-		response_etag = "\"" + resolvedPath.Cid().String() + "\""
+		responseEtag = "\"" + resolvedPath.Cid().String() + "\""
 	}
 
 	// Check etag sent back to us
-	if r.Header.Get("If-None-Match") == response_etag || r.Header.Get("If-None-Match") == "W/"+response_etag {
+	if r.Header.Get("If-None-Match") == responseEtag || r.Header.Get("If-None-Match") == "W/"+responseEtag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
-	w.Header().Set("Etag", response_etag)
+	w.Header().Set("Etag", responseEtag)
 
 	// Suborigin header, sandboxes apps from each other in the browser (even
 	// though they are served from the same gateway domain).
