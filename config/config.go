@@ -27,7 +27,7 @@ type Config struct {
 	Swarm     SwarmConfig
 	Pubsub    PubsubConfig
 
-	Provider 	 Provider
+	Provider     Provider
 	Reprovider   Reprovider
 	Experimental Experiments
 }
