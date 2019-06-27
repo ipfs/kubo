@@ -62,9 +62,17 @@ func SimpleProviderSys(isOnline bool) interface{} {
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
+func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string, provideStrategy string) fx.Option {
 	if useStrategicProviding {
-		return fx.Provide(provider.NewOfflineProvider)
+		switch provideStrategy {
+		case "none":
+			return fx.Provide(provider.NewOfflineProvider)
+		case "roots":
+			return fx.Options(
+				SimpleProviders("roots", reprovideInterval),
+				fx.Provide(SimpleProviderSys(true)),
+			)
+		}
 	}
 
 	return fx.Options(
