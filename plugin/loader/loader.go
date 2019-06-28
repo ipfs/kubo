@@ -63,7 +63,15 @@ func (ls loaderState) String() string {
 	}
 }
 
-// PluginLoader keeps track of loaded plugins
+// PluginLoader keeps track of loaded plugins.
+//
+// To use:
+// 1. Load any desired plugins with Load and LoadDirectory. Preloaded plugins
+//    will automatically be loaded.
+// 2. Call Initialize to run all initialization logic.
+// 3. Call Inject to register the plugins.
+// 4. Optionally call Start to start plugins.
+// 5. Call Close to close all plugins.
 type PluginLoader struct {
 	state   loaderState
 	plugins map[string]plugin.Plugin
@@ -96,6 +104,7 @@ func (loader *PluginLoader) transition(from, to loaderState) error {
 	return nil
 }
 
+// Load loads a plugin into the plugin loader.
 func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 	if err := loader.assertState(loaderLoading); err != nil {
 		return err
@@ -113,6 +122,7 @@ func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 	return nil
 }
 
+// LoadDirectory loads a directory of plugins into the plugin loader.
 func (loader *PluginLoader) LoadDirectory(pluginDir string) error {
 	if err := loader.assertState(loaderLoading); err != nil {
 		return err
