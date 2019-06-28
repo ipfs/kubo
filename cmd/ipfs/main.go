@@ -49,18 +49,20 @@ const (
 func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	pluginpath := filepath.Join(repoPath, "plugins")
 
+	plugins, err := loader.NewPluginLoader()
+	if err != nil {
+		return nil, fmt.Errorf("error loading preloaded plugins: %s", err)
+	}
+
 	// check if repo is accessible before loading plugins
-	var plugins *loader.PluginLoader
 	ok, err := checkPermissions(repoPath)
 	if err != nil {
 		return nil, err
 	}
-	if !ok {
-		pluginpath = ""
-	}
-	plugins, err = loader.NewPluginLoader(pluginpath)
-	if err != nil {
-		return nil, fmt.Errorf("error loading plugins: %s", err)
+	if ok {
+		if err := plugins.LoadDirectory(pluginpath); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := plugins.Initialize(); err != nil {
