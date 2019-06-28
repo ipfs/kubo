@@ -374,6 +374,8 @@ github.com/libp2p/go-conn-security-multistream v0.1.0 h1:aqGmto+ttL/uJgX0JtQI0tD
 github.com/libp2p/go-conn-security-multistream v0.1.0/go.mod h1:aw6eD7LOsHEX7+2hJkDxw1MteijaVcI+/eP2/x3J1xc=
 github.com/libp2p/go-eventbus v0.0.2 h1:L9eslON8FjFBJlyUs9fyEZKnxSqZd2AMDUNldPrqmZI=
 github.com/libp2p/go-eventbus v0.0.2/go.mod h1:Hr/yGlwxA/stuLnpMiu82lpNKpvRy3EaJxPu40XYOwk=
+github.com/libp2p/go-eventbus v0.0.3 h1:4sB0NrwnWr6qGeq2RWUp/JG1wNajf6gyILInId72hrw=
+github.com/libp2p/go-eventbus v0.0.3/go.mod h1:Hr/yGlwxA/stuLnpMiu82lpNKpvRy3EaJxPu40XYOwk=
 github.com/libp2p/go-flow-metrics v0.0.1 h1:0gxuFd2GuK7IIP5pKljLwps6TvcuYgvG7Atqi3INF5s=
 github.com/libp2p/go-flow-metrics v0.0.1/go.mod h1:Iv1GH0sG8DtYN3SVJ2eG221wMiNpZxBdp967ls1g+k8=
 github.com/libp2p/go-libp2p v0.0.2/go.mod h1:Qu8bWqFXiocPloabFGUcVG4kk94fLvfC8mWTDdFC9wE=

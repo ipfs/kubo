@@ -62,6 +62,7 @@ require (
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
+	github.com/libp2p/go-eventbus v0.0.3 // indirect
 	github.com/libp2p/go-libp2p v0.2.0
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
 	github.com/libp2p/go-libp2p-circuit v0.1.0
@@ -111,7 +112,6 @@ require (
 	go4.org v0.0.0-20190313082347-94abd6928b1d // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
-	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gotest.tools/gotestsum v0.3.4
 )
