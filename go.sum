@@ -2,12 +2,13 @@ bazil.org/fuse v0.0.0-20180421153158-65cc252bf669 h1:FNCRpXiquG1aoyqcIWVFmpTSKVc
 bazil.org/fuse v0.0.0-20180421153158-65cc252bf669/go.mod h1:Xbm+BRKSBEpa4q4hTSxohYNQpsxXPbPry4JJWOB3LB8=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
-github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 h1:HD8gA2tkByhMAwYaFAX9w2l7vxvBQ5NMoxDrkhqhtn4=
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/AndreasBriese/bbloom v0.0.0-20190823232136-616930265c33 h1:2/E2IVdZoHh/aCBq4Gchy2MGWkTmbReP46/Wnt9qhKs=
 github.com/AndreasBriese/bbloom v0.0.0-20190823232136-616930265c33/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/Kubuxu/go-more-timers v0.0.2 h1:crCnqFrHgX0V5LlCUGN9Z1EpoiOkgukTUSvnP9PA0CA=
+github.com/Kubuxu/go-more-timers v0.0.2/go.mod h1:dtBio+tdzhJCqphlKGXXwP8ykW87aRXJMIurME30E3c=
 github.com/Kubuxu/go-os-helper v0.0.1 h1:EJiD2VUQyh5A9hWJLmc6iWg6yIcJ7jpBcwC8GMGXfDk=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd h1:HNhzThEtZW714v8Eda8sWWRcu9WSzJC+oCyjRjvZgRA=
@@ -391,8 +392,8 @@ github.com/libp2p/go-libp2p v0.0.2/go.mod h1:Qu8bWqFXiocPloabFGUcVG4kk94fLvfC8mW
 github.com/libp2p/go-libp2p v0.0.30/go.mod h1:XWT8FGHlhptAv1+3V/+J5mEpzyui/5bvFsNuWYs611A=
 github.com/libp2p/go-libp2p v0.1.0/go.mod h1:6D/2OBauqLUoqcADOJpn9WbKqvaM07tDw68qHM0BxUM=
 github.com/libp2p/go-libp2p v0.1.1/go.mod h1:I00BRo1UuUSdpuc8Q2mN7yDF/oTUTRAX6JWpTiK9Rp8=
-github.com/libp2p/go-libp2p v0.3.0 h1:XhYEJKmIdi4U4Zbie/ym9k6lqgg3PHM2stGS/cOUDWk=
-github.com/libp2p/go-libp2p v0.3.0/go.mod h1:J7DPB1+zB5VLc8v/kKSD8+u2cbyIGI0Dh/Pf3Wprt+0=
+github.com/libp2p/go-libp2p v0.1.3-0.20190828034358-8077b796691b h1:/UepUo759zVjwosJhtBmT9vAnp1OPRBJb7yRfeTo8Vc=
+github.com/libp2p/go-libp2p v0.1.3-0.20190828034358-8077b796691b/go.mod h1:M+++akFQ1/bAd/YfCxVC1vukTif6+Zgx3CAk1ifnzW8=
 github.com/libp2p/go-libp2p-autonat v0.0.2/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat v0.0.6/go.mod h1:uZneLdOkZHro35xIhpbtTzLlgYturpu4J5+0cZK3MqE=
 github.com/libp2p/go-libp2p-autonat v0.1.0 h1:aCWAu43Ri4nU0ZPO7NyLzUvvfqd0nE3dX0R/ZGYVgOU=
@@ -417,8 +418,9 @@ github.com/libp2p/go-libp2p-core v0.0.3/go.mod h1:j+YQMNz9WNSkNezXOsahp9kwZBKBvx
 github.com/libp2p/go-libp2p-core v0.0.4/go.mod h1:jyuCQP356gzfCFtRKyvAbNkyeuxb7OlyhWZ3nls5d2I=
 github.com/libp2p/go-libp2p-core v0.0.6/go.mod h1:0d9xmaYAVY5qmbp/fcgxHT3ZJsLjYeYPMJAUKpaCHrE=
 github.com/libp2p/go-libp2p-core v0.2.0/go.mod h1:X0eyB0Gy93v0DZtSYbEM7RnMChm9Uv3j7yRXjO77xSI=
-github.com/libp2p/go-libp2p-core v0.2.2 h1:Sv1ggdoMx9c7v7FOFkR7agraHCnAgqYsXrU1ARSRUMs=
 github.com/libp2p/go-libp2p-core v0.2.2/go.mod h1:8fcwTbsG2B+lTgRJ1ICZtiM5GWCWZVoVrLaDRvIRng0=
+github.com/libp2p/go-libp2p-core v0.2.3-0.20190828030537-1d80b0c68851 h1:1VOzrWDD99ghN+VkCvuW8d9eXKWOxLbtOOMdcpDctTg=
+github.com/libp2p/go-libp2p-core v0.2.3-0.20190828030537-1d80b0c68851/go.mod h1:1Muyk4HEeyPytWH5XRiczNC1ghbTq70PNn0uEbcLCxY=
 github.com/libp2p/go-libp2p-crypto v0.0.1/go.mod h1:yJkNyDmO341d5wwXxDUGO0LykUVT72ImHNUqh5D/dBE=
 github.com/libp2p/go-libp2p-crypto v0.0.2/go.mod h1:eETI5OUfBnvARGOHrJz2eWNyTUxEGZnBxMcbUjfIj4I=
 github.com/libp2p/go-libp2p-crypto v0.1.0 h1:k9MFy+o2zGDNGsaoZl0MA3iZ75qXxr9OOoAZF+sD5OQ=
@@ -439,8 +441,8 @@ github.com/libp2p/go-libp2p-interface-connmgr v0.0.4/go.mod h1:GarlRLH0LdeWcLnYM
 github.com/libp2p/go-libp2p-interface-connmgr v0.0.5/go.mod h1:GarlRLH0LdeWcLnYM/SaBykKFl9U5JFnbBGruAk/D5k=
 github.com/libp2p/go-libp2p-interface-pnet v0.0.1/go.mod h1:el9jHpQAXK5dnTpKA4yfCNBZXvrzdOU75zz+C6ryp3k=
 github.com/libp2p/go-libp2p-kad-dht v0.1.0/go.mod h1:EiH74cOsCxcu2Yh1XxQMpf1uHcLNm/hYEJBOIRlzHNE=
-github.com/libp2p/go-libp2p-kad-dht v0.2.0 h1:IMUUbxrQ0wGDh/MfPTsmghxdmd53KRe8SHPp14QdTfg=
-github.com/libp2p/go-libp2p-kad-dht v0.2.0/go.mod h1:TmnCYcbasyFTKJg/P/AIIqJQYQ6+jgtYZTKUCLgu7js=
+github.com/libp2p/go-libp2p-kad-dht v0.1.2-0.20190828035407-b75addd21c5e h1:T97HBgYcQo7tSslJbTGnC6u8QrP9Ir76r6d+9KabyQk=
+github.com/libp2p/go-libp2p-kad-dht v0.1.2-0.20190828035407-b75addd21c5e/go.mod h1:aO5eKziVp6eJltPxTiiLHEbq6iXJjOxahJWtHYYA+tk=
 github.com/libp2p/go-libp2p-kbucket v0.2.0 h1:FB2a0VkOTNGTP5gu/I444u4WabNM9V1zCkQcWb7zajI=
 github.com/libp2p/go-libp2p-kbucket v0.2.0/go.mod h1:JNymBToym3QXKBMKGy3m29+xprg0EVr/GJFHxFEdgh8=
 github.com/libp2p/go-libp2p-loggables v0.0.1/go.mod h1:lDipDlBNYbpyqyPX/KcoO+eq0sJYEVR2JgOexcivchg=
@@ -496,7 +498,6 @@ github.com/libp2p/go-libp2p-secio v0.2.0/go.mod h1:2JdZepB8J5V9mBp79BmwsaPQhRPNN
 github.com/libp2p/go-libp2p-swarm v0.0.1/go.mod h1:mh+KZxkbd3lQnveQ3j2q60BM1Cw2mX36XXQqwfPOShs=
 github.com/libp2p/go-libp2p-swarm v0.0.6/go.mod h1:s5GZvzg9xXe8sbeESuFpjt8CJPTCa8mhEusweJqyFy8=
 github.com/libp2p/go-libp2p-swarm v0.1.0/go.mod h1:wQVsCdjsuZoc730CgOvh5ox6K8evllckjebkdiY5ta4=
-github.com/libp2p/go-libp2p-swarm v0.2.0/go.mod h1:x07b4zkMFo2EvgPV2bMTlNmdQc8i+74Jjio7xGvsTgU=
 github.com/libp2p/go-libp2p-swarm v0.2.1 h1:9A8oQqPIZvbaRyrjViHeDYS7fE7fNtP7BRWdJrBHbe8=
 github.com/libp2p/go-libp2p-swarm v0.2.1/go.mod h1:x07b4zkMFo2EvgPV2bMTlNmdQc8i+74Jjio7xGvsTgU=
 github.com/libp2p/go-libp2p-testing v0.0.1/go.mod h1:gvchhf3FQOtBdr+eFUABet5a4MBLK8jM3V4Zghvmi+E=
@@ -769,7 +770,6 @@ github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1 h1:ctS9An
 github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1/go.mod h1:tKH72zYNt/exx6/5IQO6L9LoQ0rEjd5SbbWaDTs9Zso=
 github.com/whyrusleeping/mafmt v1.2.8 h1:TCghSl5kkwEE0j+sU/gudyhVMRlpBin8fMBBHg59EbA=
 github.com/whyrusleeping/mafmt v1.2.8/go.mod h1:faQJFPbLSxzD9xpA02ttW/tS9vZykNvXwGvqIpk20FA=
-github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30 h1:nMCC9Pwz1pxfC1Y6mYncdk+kq8d5aLx0Q+/gyZGE44M=
 github.com/whyrusleeping/mdns v0.0.0-20180901202407-ef14215e6b30/go.mod h1:j4l84WPFclQPj320J9gp0XwNKBb3U0zt5CBqjPp22G4=
 github.com/whyrusleeping/mdns v0.0.0-20190823211037-23958d6311f0 h1:zKm9f9WqsQZ8tLGCywBIzxox5nOemPc6SbRVF+N/Cw0=
 github.com/whyrusleeping/mdns v0.0.0-20190823211037-23958d6311f0/go.mod h1:j4l84WPFclQPj320J9gp0XwNKBb3U0zt5CBqjPp22G4=
