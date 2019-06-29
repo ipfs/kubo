@@ -247,8 +247,8 @@ github.com/ipfs/go-ipfs-blocksutil v0.0.1 h1:Eh/H4pc1hsvhzsQoMEP3Bke/aW5P5rVM1IW
 github.com/ipfs/go-ipfs-blocksutil v0.0.1/go.mod h1:Yq4M86uIOmxmGPUHv/uI7uKqZNtLb449gwKqXjIsnRk=
 github.com/ipfs/go-ipfs-chunker v0.0.1 h1:cHUUxKFQ99pozdahi+uSC/3Y6HeRpi9oTeUHbE27SEw=
 github.com/ipfs/go-ipfs-chunker v0.0.1/go.mod h1:tWewYK0we3+rMbOh7pPFGDyypCtvGcBFymgY4rSDLAw=
-github.com/ipfs/go-ipfs-cmds v0.0.10 h1:4kA3E94HbDrLb4RZTkX3yXyUjKv50RfPz0Pv9xkP2cA=
-github.com/ipfs/go-ipfs-cmds v0.0.10/go.mod h1:TiK4e7/V31tuEb8YWDF8lN3qrnDH+BS7ZqWIeYJlAs8=
+github.com/ipfs/go-ipfs-cmds v0.1.0 h1:0CEde9EcxByej8+L6d1PST57J4ambRPyCTjLG5Ymou8=
+github.com/ipfs/go-ipfs-cmds v0.1.0/go.mod h1:TiK4e7/V31tuEb8YWDF8lN3qrnDH+BS7ZqWIeYJlAs8=
 github.com/ipfs/go-ipfs-config v0.0.5 h1:D9ek19anOzm8iYPvezeeamSg5mzwqKPb2jyAyJZT/4A=
 github.com/ipfs/go-ipfs-config v0.0.5/go.mod h1:IGkVTacurWv9WFKc7IBPjHGM/7hi6+PEClqUb/l2BIM=
 github.com/ipfs/go-ipfs-config v0.0.6 h1:jzK9Tl8S0oWBir3F5ObtGgnHRPdqQ0MYiCmwXtV3Ps4=
