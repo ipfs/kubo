@@ -52,7 +52,7 @@ If the issue is a protocol weakness that cannot be immediately exploited or some
 
 ## Install
 
-The canonical download instructions for IPFS are over at: https://docs.ipfs.io/introduction/install/. It is **highly suggested** you follow those instructions if you are not interested in working on IPFS development.
+The canonical download instructions for IPFS are over at: https://docs.ipfs.io/guides/guides/install/. It is **highly suggested** you follow those instructions if you are not interested in working on IPFS development.
 
 ### System Requirements
 
@@ -117,6 +117,7 @@ $ sudo snap install ipfs
 ### From Windows package managers
 
 - [Chocolatey](#chocolatey)
+- [Scoop](#scoop)
 
 #### Chocolatey
 
@@ -126,11 +127,19 @@ The package [ipfs](https://chocolatey.org/packages/ipfs) currently points to go-
 PS> choco install ipfs
 ```
 
+#### Scoop
+
+Scoop provides `go-ipfs` in its 'extras' bucket.
+```Powershell
+PS> scoop add bucket extras
+PS> scoop install go-ipfs
+```
+
 ### Build from Source
 
 #### Install Go
 
-The build process for ipfs requires Go 1.11 or higher. If you don't have it: [Download Go 1.11+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.12 or higher. If you don't have it: [Download Go 1.12+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 

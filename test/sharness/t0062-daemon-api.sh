@@ -32,7 +32,7 @@ test_client_must_fail() {
   opts="$@"
   echo "OPTS = " $opts
   test_expect_success "client should fail $state" '
-    echo "Error: cannot connect to the api. Is the deamon running? To run as a standalone CLI command remove the api file in \`\$IPFS_PATH/api\`" >expected_err &&
+    echo "Error: cannot connect to the api. Is the daemon running? To run as a standalone CLI command remove the api file in \`\$IPFS_PATH/api\`" >expected_err &&
     test_must_fail ipfs id -f="<id>" $opts >actual 2>actual_err &&
     test_cmp expected_err actual_err
   '
