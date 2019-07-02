@@ -110,7 +110,8 @@ func (q *Queue) work() {
 
 			select {
 			case toQueue := <-q.enqueue:
-				nextKey := datastore.NewKey(fmt.Sprintf("%d", time.Now().UnixNano()))
+				keyPath := fmt.Sprintf("%d/%s", time.Now().UnixNano(), c.String())
+				nextKey := datastore.NewKey(keyPath)
 
 				if err := q.ds.Put(nextKey, toQueue.Bytes()); err != nil {
 					log.Errorf("Failed to enqueue cid: %s", err)
