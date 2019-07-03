@@ -23,12 +23,12 @@ import (
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/provider"
 	"github.com/ipfs/go-ipfs/repo"
 
 	bserv "github.com/ipfs/go-blockservice"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	"github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	mfs "github.com/ipfs/go-mfs"
