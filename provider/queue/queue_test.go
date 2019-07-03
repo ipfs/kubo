@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	cid "github.com/ipfs/go-cid"
-	datastore "github.com/ipfs/go-datastore"
-	sync "github.com/ipfs/go-datastore/sync"
+	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-ipfs-blocksutil"
 )
 
@@ -55,36 +55,6 @@ func TestBasicOperation(t *testing.T) {
 	assertOrdered(cids, queue, t)
 }
 
-func TestSparseDatastore(t *testing.T) {
-	ctx := context.Background()
-	defer ctx.Done()
-
-	ds := sync.MutexWrap(datastore.NewMapDatastore())
-	queue, err := NewQueue(ctx, "test", ds)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cids := makeCids(10)
-	for _, c := range cids {
-		queue.Enqueue(c)
-	}
-
-	// remove entries in the middle
-	err = queue.ds.Delete(queue.queueKey(5))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = queue.ds.Delete(queue.queueKey(6))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := append(cids[:5], cids[7:]...)
-	assertOrdered(expected, queue, t)
-}
-
 func TestMangledData(t *testing.T) {
 	ctx := context.Background()
 	defer ctx.Done()
@@ -100,13 +70,15 @@ func TestMangledData(t *testing.T) {
 		queue.Enqueue(c)
 	}
 
-	// remove entries in the middle
-	err = queue.ds.Put(queue.queueKey(5), []byte("borked"))
+	// put bad data in the queue
+	queueKey := datastore.NewKey("/test/0")
+	err = queue.ds.Put(queueKey, []byte("borked"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := append(cids[:5], cids[6:]...)
+	// expect to only see the valid cids we entered
+	expected := cids
 	assertOrdered(expected, queue, t)
 }
 

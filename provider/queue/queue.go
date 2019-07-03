@@ -3,8 +3,7 @@ package queue
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
+	"time"
 
 	cid "github.com/ipfs/go-cid"
 	datastore "github.com/ipfs/go-datastore"
@@ -25,8 +24,6 @@ type Queue struct {
 	// e.g. provider vs reprovider
 	name    string
 	ctx     context.Context
-	tail    uint64
-	head    uint64
 	ds      datastore.Datastore // Must be threadsafe
 	dequeue chan cid.Cid
 	enqueue chan cid.Cid
@@ -37,16 +34,10 @@ type Queue struct {
 // NewQueue creates a queue for cids
 func NewQueue(ctx context.Context, name string, ds datastore.Datastore) (*Queue, error) {
 	namespaced := namespace.Wrap(ds, datastore.NewKey("/"+name+"/queue/"))
-	head, tail, err := getQueueHeadTail(ctx, namespaced)
-	if err != nil {
-		return nil, err
-	}
 	cancelCtx, cancel := context.WithCancel(ctx)
 	q := &Queue{
 		name:    name,
 		ctx:     cancelCtx,
-		head:    head,
-		tail:    tail,
 		ds:      namespaced,
 		dequeue: make(chan cid.Cid),
 		enqueue: make(chan cid.Cid),
@@ -77,41 +68,6 @@ func (q *Queue) Dequeue() <-chan cid.Cid {
 	return q.dequeue
 }
 
-// Look for next Cid in the queue and return it. Skip over gaps and mangled data
-func (q *Queue) nextEntry() (datastore.Key, cid.Cid) {
-	for {
-		if q.head >= q.tail {
-			return datastore.Key{}, cid.Undef
-		}
-
-		key := q.queueKey(q.head)
-		value, err := q.ds.Get(key)
-
-		if err != nil {
-			if err == datastore.ErrNotFound {
-				log.Warningf("Error missing entry in queue: %s", key)
-			} else {
-				log.Errorf("Error fetching from queue: %s", err)
-			}
-			q.head++ // move on
-			continue
-		}
-
-		c, err := cid.Parse(value)
-		if err != nil {
-			log.Warningf("Error marshalling Cid from queue: ", err)
-			q.head++
-			err = q.ds.Delete(key)
-			if err != nil {
-				log.Warningf("Provider queue failed to delete: %s", key)
-			}
-			continue
-		}
-
-		return key, c
-	}
-}
-
 // Run dequeues and enqueues when available.
 func (q *Queue) work() {
 	go func() {
@@ -124,7 +80,26 @@ func (q *Queue) work() {
 
 		for {
 			if c == cid.Undef {
-				k, c = q.nextEntry()
+				head, e := q.getQueueHead()
+
+				if e != nil {
+					log.Errorf("error querying for head of queue: %s, stopping provider", e)
+					return
+				} else if head != nil {
+					k = datastore.NewKey(head.Key)
+					c, e = cid.Parse(head.Value)
+					if e != nil {
+						log.Warningf("error parsing queue entry cid with key (%s), removing it from queue: %s", head.Key, e)
+						err := q.ds.Delete(k)
+						if err != nil {
+							log.Errorf("error deleting queue entry with key (%s), due to error (%s), stopping provider", head.Key, err)
+							return
+						}
+						continue
+					}
+				} else {
+					c = cid.Undef
+				}
 			}
 
 			// If c != cid.Undef set dequeue and attempt write, otherwise wait for enqueue
@@ -135,14 +110,13 @@ func (q *Queue) work() {
 
 			select {
 			case toQueue := <-q.enqueue:
-				nextKey := q.queueKey(q.tail)
+				keyPath := fmt.Sprintf("%d/%s", time.Now().UnixNano(), c.String())
+				nextKey := datastore.NewKey(keyPath)
 
 				if err := q.ds.Put(nextKey, toQueue.Bytes()); err != nil {
 					log.Errorf("Failed to enqueue cid: %s", err)
 					continue
 				}
-
-				q.tail++
 			case dequeue <- c:
 				err := q.ds.Delete(k)
 
@@ -151,7 +125,6 @@ func (q *Queue) work() {
 					continue
 				}
 				c = cid.Undef
-				q.head++
 			case <-q.ctx.Done():
 				return
 			}
@@ -159,53 +132,17 @@ func (q *Queue) work() {
 	}()
 }
 
-func (q *Queue) queueKey(id uint64) datastore.Key {
-	s := fmt.Sprintf("%016X", id)
-	return datastore.NewKey(s)
-}
-
-func getQueueHeadTail(ctx context.Context, datastore datastore.Datastore) (uint64, uint64, error) {
-	head, err := getQueueHead(datastore)
+func (q *Queue) getQueueHead() (*query.Result, error) {
+	qry := query.Query{Orders: []query.Order{query.OrderByKey{}}, Limit: 1}
+	results, err := q.ds.Query(qry)
 	if err != nil {
-		return 0, 0, err
-	}
-	tail, err := getQueueTail(datastore)
-	if err != nil {
-		return 0, 0, err
-	}
-	return head, tail, nil
-}
-
-func getQueueHead(ds datastore.Datastore) (uint64, error) {
-	return getFirstIDByOrder(ds, query.OrderByKey{})
-}
-
-func getQueueTail(ds datastore.Datastore) (uint64, error) {
-	tail, err := getFirstIDByOrder(ds, query.OrderByKeyDescending{})
-	if err != nil {
-		return 0, err
-	}
-	if tail > 0 {
-		tail++
-	}
-	return tail, nil
-}
-
-func getFirstIDByOrder(ds datastore.Datastore, order query.Order) (uint64, error) {
-	q := query.Query{Orders: []query.Order{order}}
-	results, err := ds.Query(q)
-	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer results.Close()
 	r, ok := results.NextSync()
 	if !ok {
-		return 0, nil
+		return nil, nil
 	}
-	trimmed := strings.TrimPrefix(r.Key, "/")
-	id, err := strconv.ParseUint(trimmed, 16, 64)
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
+
+	return &r, nil
 }
