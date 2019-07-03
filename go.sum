@@ -272,6 +272,8 @@ github.com/ipfs/go-ipfs-pq v0.0.1 h1:zgUotX8dcAB/w/HidJh1zzc1yFq6Vm8J7T2F4itj/RU
 github.com/ipfs/go-ipfs-pq v0.0.1/go.mod h1:LWIqQpqfRG3fNc5XsnIhz/wQ2XXGyugQwls7BgUmUfY=
 github.com/ipfs/go-ipfs-provider v0.1.0 h1:lYSVVxWpL0KJw1PLj3+DAn0zuVfc+z93wzUXS09ZjZk=
 github.com/ipfs/go-ipfs-provider v0.1.0/go.mod h1:gzVZZXC4zhr2r+MkNR21/+FS54oc7VfTKtDT2mdDxD8=
+github.com/ipfs/go-ipfs-provider v0.1.1 h1:nsC6oWr6bDJ4H7pZfZJqAk6oXaHsrqnwhpQIqTdSDic=
+github.com/ipfs/go-ipfs-provider v0.1.1/go.mod h1:gzVZZXC4zhr2r+MkNR21/+FS54oc7VfTKtDT2mdDxD8=
 github.com/ipfs/go-ipfs-routing v0.0.1/go.mod h1:k76lf20iKFxQTjcJokbPM9iBXVXVZhcOwc360N4nuKs=
 github.com/ipfs/go-ipfs-routing v0.1.0 h1:gAJTT1cEeeLj6/DlLX6t+NxD9fQe2ymTO6qWRDI/HQQ=
 github.com/ipfs/go-ipfs-routing v0.1.0/go.mod h1:hYoUkJLyAUKhF58tysKpids8RNDPO42BVMgK5dNsoqY=
