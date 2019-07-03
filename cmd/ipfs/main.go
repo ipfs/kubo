@@ -21,7 +21,6 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	osh "github.com/Kubuxu/go-os-helper"
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
 	"github.com/ipfs/go-ipfs-cmds/http"
@@ -195,21 +194,90 @@ func checkDebug(req *cmds.Request) {
 	}
 }
 
+func apiAddrOption(req *cmds.Request) (ma.Multiaddr, error) {
+	apiAddrStr, apiSpecified := req.Options[corecmds.ApiOption].(string)
+	if !apiSpecified {
+		return nil, nil
+	}
+	return ma.NewMultiaddr(apiAddrStr)
+}
+
 func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
+	exe := cmds.NewExecutor(req.Root)
+	cctx := env.(*oldcmds.Context)
 	details := commandDetails(req.Path)
-	client, err := commandShouldRunOnDaemon(*details, req, env.(*oldcmds.Context))
+
+	// Check if the command is disabled.
+	if details.cannotRunOnClient && details.cannotRunOnDaemon {
+		return nil, fmt.Errorf("command disabled: %v", req.Path)
+	}
+
+	// Can we just run this locally?
+	if !details.cannotRunOnClient && details.doesNotUseRepo {
+		return exe, nil
+	}
+
+	// Get the API option from the commandline.
+	apiAddr, err := apiAddrOption(req)
 	if err != nil {
 		return nil, err
 	}
 
-	var exctr cmds.Executor
-	if client != nil && !req.Command.External {
-		exctr = client.(cmds.Executor)
-	} else {
-		exctr = cmds.NewExecutor(req.Root)
+	// Require that the command be run on the daemon when the API flag is
+	// passed (unless we're trying to _run_ the daemon).
+	daemonRequested := apiAddr != nil && req.Command != daemonCmd
+
+	// Run this on the client if required.
+	if details.cannotRunOnDaemon || req.Command.External {
+		if daemonRequested {
+			// User requested that the command be run on the daemon but we can't.
+			// NOTE: We drop this check for the `ipfs daemon` command.
+			return nil, errors.New("api flag specified but command cannot be run on the daemon")
+		}
+		return exe, nil
 	}
 
-	return exctr, nil
+	// Finally, look in the repo for an API file.
+	if apiAddr == nil {
+		var err error
+		apiAddr, err = fsrepo.APIAddr(cctx.ConfigRoot)
+		switch err {
+		case nil, repo.ErrApiNotRunning:
+		default:
+			return nil, err
+		}
+	}
+
+	// Still no api specified? Run it on the client or fail.
+	if apiAddr == nil {
+		if details.cannotRunOnClient {
+			return nil, fmt.Errorf("command must be run on the daemon: %v", req.Path)
+		}
+		return exe, nil
+	}
+
+	// Resolve the API addr.
+	apiAddr, err = resolveAddr(req.Context, apiAddr)
+	if err != nil {
+		return nil, err
+	}
+	_, host, err := manet.DialArgs(apiAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Construct the executor.
+	opts := []http.ClientOpt{
+		http.ClientWithAPIPrefix(corehttp.APIPath),
+	}
+
+	// Fallback on a local executor if we (a) have a repo and (b) aren't
+	// forcing a daemon.
+	if !daemonRequested && fsrepo.IsInitialized(cctx.ConfigRoot) {
+		opts = append(opts, http.ClientWithFallback(exe))
+	}
+
+	return http.NewClient(host, opts...), nil
 }
 
 func checkPermissions(path string) (bool, error) {
@@ -227,7 +295,11 @@ func checkPermissions(path string) (bool, error) {
 }
 
 // commandDetails returns a command's details for the command given by |path|.
-func commandDetails(path []string) *cmdDetails {
+func commandDetails(path []string) cmdDetails {
+	if len(path) == 0 {
+		// special case root command
+		return cmdDetails{doesNotUseRepo: true}
+	}
 	var details cmdDetails
 	// find the last command in path that has a cmdDetailsMap entry
 	for i := range path {
@@ -235,67 +307,7 @@ func commandDetails(path []string) *cmdDetails {
 			details = cmdDetails
 		}
 	}
-	return &details
-}
-
-// commandShouldRunOnDaemon determines, from command details, whether a
-// command ought to be executed on an ipfs daemon.
-//
-// It returns a client if the command should be executed on a daemon and nil if
-// it should be executed on a client. It returns an error if the command must
-// NOT be executed on either.
-func commandShouldRunOnDaemon(details cmdDetails, req *cmds.Request, cctx *oldcmds.Context) (http.Client, error) {
-	path := req.Path
-	// root command.
-	if len(path) < 1 {
-		return nil, nil
-	}
-
-	if details.cannotRunOnClient && details.cannotRunOnDaemon {
-		return nil, fmt.Errorf("command disabled: %s", path[0])
-	}
-
-	if details.doesNotUseRepo && details.canRunOnClient() {
-		return nil, nil
-	}
-
-	// at this point need to know whether api is running. we defer
-	// to this point so that we don't check unnecessarily
-
-	// did user specify an api to use for this command?
-	apiAddrStr, _ := req.Options[corecmds.ApiOption].(string)
-
-	client, err := getAPIClient(req.Context, cctx.ConfigRoot, apiAddrStr)
-	if err == repo.ErrApiNotRunning {
-		if apiAddrStr != "" && req.Command != daemonCmd {
-			// if user SPECIFIED an api, and this cmd is not daemon
-			// we MUST use it. so error out.
-			return nil, err
-		}
-
-		// ok for api not to be running
-	} else if err != nil { // some other api error
-		return nil, err
-	}
-
-	if client != nil {
-		if details.cannotRunOnDaemon {
-			// check if daemon locked. legacy error text, for now.
-			log.Debugf("Command cannot run on daemon. Checking if daemon is locked")
-			if daemonLocked, _ := fsrepo.LockedByOtherProcess(cctx.ConfigRoot); daemonLocked {
-				return nil, cmds.ClientError("ipfs daemon is running. please stop it to run this command")
-			}
-			return nil, nil
-		}
-
-		return client, nil
-	}
-
-	if details.cannotRunOnClient {
-		return nil, cmds.ClientError("must run on the ipfs daemon")
-	}
-
-	return nil, nil
+	return details
 }
 
 func getRepoPath(req *cmds.Request) (string, error) {
@@ -364,67 +376,6 @@ func profileIfEnabled() (func(), error) {
 		return stopProfilingFunc, nil
 	}
 	return func() {}, nil
-}
-
-var apiFileErrorFmt string = `Failed to parse '%[1]s/api' file.
-	error: %[2]s
-If you're sure go-ipfs isn't running, you can just delete it.
-`
-var checkIPFSUnixFmt = "Otherwise check:\n\tps aux | grep ipfs"
-var checkIPFSWinFmt = "Otherwise check:\n\ttasklist | findstr ipfs"
-
-// getAPIClient checks the repo, and the given options, checking for
-// a running API service. if there is one, it returns a client.
-// otherwise, it returns errApiNotRunning, or another error.
-func getAPIClient(ctx context.Context, repoPath, apiAddrStr string) (http.Client, error) {
-	var apiErrorFmt string
-	switch {
-	case osh.IsUnix():
-		apiErrorFmt = apiFileErrorFmt + checkIPFSUnixFmt
-	case osh.IsWindows():
-		apiErrorFmt = apiFileErrorFmt + checkIPFSWinFmt
-	default:
-		apiErrorFmt = apiFileErrorFmt
-	}
-
-	var addr ma.Multiaddr
-	var err error
-	if len(apiAddrStr) != 0 {
-		addr, err = ma.NewMultiaddr(apiAddrStr)
-		if err != nil {
-			return nil, err
-		}
-		if len(addr.Protocols()) == 0 {
-			return nil, fmt.Errorf("multiaddr doesn't provide any protocols")
-		}
-	} else {
-		addr, err = fsrepo.APIAddr(repoPath)
-		if err == repo.ErrApiNotRunning {
-			return nil, err
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf(apiErrorFmt, repoPath, err.Error())
-		}
-	}
-	if len(addr.Protocols()) == 0 {
-		return nil, fmt.Errorf(apiErrorFmt, repoPath, "multiaddr doesn't provide any protocols")
-	}
-	return apiClientForAddr(ctx, addr)
-}
-
-func apiClientForAddr(ctx context.Context, addr ma.Multiaddr) (http.Client, error) {
-	addr, err := resolveAddr(ctx, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	_, host, err := manet.DialArgs(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	return http.NewClient(host, http.ClientWithAPIPrefix(corehttp.APIPath)), nil
 }
 
 func resolveAddr(ctx context.Context, addr ma.Multiaddr) (ma.Multiaddr, error) {
