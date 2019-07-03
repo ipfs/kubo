@@ -223,13 +223,13 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		return nil, err
 	}
 
-	// Force the daemon when the API flag is passed (unless we're trying to
-	// _run_ the daemon).
-	daemonForced := apiAddr != nil && req.Command != daemonCmd
+	// Require that the command be run on the daemon when the API flag is
+	// passed (unless we're trying to _run_ the daemon).
+	daemonRequested := apiAddr != nil && req.Command != daemonCmd
 
 	// Run this on the client if required.
 	if details.cannotRunOnDaemon || req.Command.External {
-		if daemonForced {
+		if daemonRequested {
 			// User requested that the command be run on the daemon but we can't.
 			// NOTE: We drop this check for the `ipfs daemon` command.
 			return nil, errors.New("api flag specified but command cannot be run on the daemon")
@@ -273,7 +273,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 
 	// Fallback on a local executor if we (a) have a repo and (b) aren't
 	// forcing a daemon.
-	if !daemonForced && fsrepo.IsInitialized(cctx.ConfigRoot) {
+	if !daemonRequested && fsrepo.IsInitialized(cctx.ConfigRoot) {
 		opts = append(opts, http.ClientWithFallback(exe))
 	}
 
