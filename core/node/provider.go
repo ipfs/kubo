@@ -6,10 +6,13 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/provider"
-	q "github.com/ipfs/go-ipfs/provider/queue"
-	"github.com/ipfs/go-ipfs/provider/simple"
+	"github.com/ipfs/go-ipfs/pin"
 	"github.com/ipfs/go-ipfs/repo"
+
+	"github.com/ipfs/go-ipfs-provider"
+	q "github.com/ipfs/go-ipfs-provider/queue"
+	"github.com/ipfs/go-ipfs-provider/simple"
+	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
 )
@@ -101,9 +104,9 @@ func SimpleProviders(reprovideStrategy string, reprovideInterval string) fx.Opti
 	case "":
 		keyProvider = fx.Provide(simple.NewBlockstoreProvider)
 	case "roots":
-		keyProvider = fx.Provide(simple.NewPinnedProvider(true))
+		keyProvider = fx.Provide(pinnedProviderStrategy(true))
 	case "pinned":
-		keyProvider = fx.Provide(simple.NewPinnedProvider(false))
+		keyProvider = fx.Provide(pinnedProviderStrategy(false))
 	default:
 		return fx.Error(fmt.Errorf("unknown reprovider strategy '%s'", reprovideStrategy))
 	}
@@ -114,4 +117,10 @@ func SimpleProviders(reprovideStrategy string, reprovideInterval string) fx.Opti
 		keyProvider,
 		fx.Provide(SimpleReprovider(reproviderInterval)),
 	)
+}
+
+func pinnedProviderStrategy(onlyRoots bool) interface{} {
+	return func(pinner pin.Pinner, dag ipld.DAGService) simple.KeyChanFunc {
+		return simple.NewPinnedProvider(onlyRoots, pinner, dag)
+	}
 }
