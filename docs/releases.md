@@ -147,7 +147,7 @@ The best place to ask your questions about IPFS, how it works and what you can d
 
 ## Release Version Numbers (aka semver)
 
-Until `go-ipfs` 0.4.X, `go-ipfs` was not using semver to communicate the type of relase
+Until `go-ipfs` 0.4.X, `go-ipfs` was not using semver to communicate the type of release
 
 Post `go-ipfs` 0.5.X, `go-ipfs` will use semver. This means that patch releases will not contain any breaking changes nor new features. Minor releases might contain breaking changes and always contain some new feature
 
