@@ -9,7 +9,7 @@
 
 ## Release Philosophy
 
-`go-ipfs` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages of Release Candidates (RC) that gives us the opportunity to test the new version against our test envinronments, production envinronments, IPFS apps (e.g. Desktop and WebUI) and with our close partners that have IPFS running in Production, by leveraging their own test infrastructure.
+`go-ipfs` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages of Release Candidates (RC) that gives us the opportunity to test the new version against our test environments (unit, interop, integration), QA in our current production environmment, IPFS apps (e.g. Desktop and WebUI) and with our _early testers_<sup>[1]</sup> that have IPFS running in Production, by leveraging their own test infrastructure and QA systems.
 
 We might expand the six week release schedule in case of:
 - No new updates to be added
@@ -20,7 +20,7 @@ We might expand the six week release schedule in case of:
 `go-ipfs` releases come in 4 stages:
 
 - **Release Stage 1 - Internal testing** - Test the Release against our testing infrastructure, including interoperability, integration, test lab, multiple runtimes and the apps we've built (WebUI, Desktop, NPM on IPFS, HTTP Client Libraries). The intent is to make this stage fully automated (and somewhat is already), until then, we manually check a list and ensure that all tests have been run
-- **Release Stage 2 - Invite IPFS partners to test** - Reach out to our partners (i.e. projects that have volunteered to support `go-ipfs` by using their own test infrastructure and tell us the results)
+- **Release Stage 2 - Invite _early testers_ to try it out** - Reach out to our _early testers_ (i.e. projects that have volunteered to support `go-ipfs` by using their own test infrastructure and tell us the results)
 - **Release Stage 3 - Announce to the broader community** - Communicate to the community that a new Release Candidate is ready and that everyone is welcome to test it with us
 - **Release Stage 4 - Complete the Release** - Finalize the release, start the next release.
 
@@ -45,7 +45,7 @@ The first step is for the `Lead Maintainer` for `go-ipfs` to open an issue with 
 
 # 🔦 Highlights
 
-<List of items with PRs and/or Issues to be considered for this release>
+<List of items with PRs and/or Issues included for this release>
 
 # 🏗 API Changes
 
@@ -83,12 +83,12 @@ When Release Stage 1, there is a features freeze for the release branch.
   - [ ] IPFS Companion
   - [ ] NPM on IPFS
 
-### Release Stage 2 - Invite IPFS partners to test
+### Release Stage 2 - Invite _early testers_ to try it out
 
-- [ ] Reach out to the following IPFS partners for testing this release (check when no more problems have been reported):
+- [ ] Reach out to the following IPFS _early testers_ for testing this release (check when no more problems have been reported):
   - [ ] Infura
   - [ ] Textila
-  - [ ] Open Bazaar
+  - [ ] Pinata
   - [ ] QRI
 - [ ] Run tests available in the following repos with the latest RC (check when all tests pass):
   - [ ] [orbit-db](https://github.com/orbitdb/orbit-db)
@@ -105,10 +105,9 @@ PSA: If you are a heavy user of `go-ipfs`, have developed a solid test infrastru
 - [ ] Invite the community through (link to the release issue):
   - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
   - [ ] Twitter
+  - [ ] IRC
 
 ### Release Stage 4 - Complete the Release
-
-- Take a snapshot between of everyone that has contributed to this release (including its subdeps in IPFS, libp2p, IPLD and multiformats) using [`name-your-contributors`](https://www.npmjs.com/package/name-your-contributors). Generate a nice markdown list with [this script](https://gist.github.com/alanshaw/5a2d9465c5a05b201d949551bdb1fcc3). Add it to this issue.
 
 - [ ] Final preparation
   - [ ] Verify that version string in `repo/version.go` has been updated
@@ -142,7 +141,7 @@ Would you like to contribute to the IPFS project and don't know how? Well, there
 
 # ⁉️ Do you have questions?
 
-The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode.
+The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
 ```
 
 ## Release Version Numbers (aka semver)
@@ -155,3 +154,7 @@ Post `go-ipfs` 1.X.X (future), `go-ipfs` will use semver. This means that only m
 
 We do not yet retroactively apply fixes to older releases (no Long Term Support releases for now), which means that we always recommend users to update to the latest, whenever possible.
 TBW
+
+----------------------------
+
+- <sup>**[1]**</sup> - _early testers_ is an IPFS program in which members of the community can self-volunteer to help test `go-ipfs` Release Candidates. You find more info about it at [EARLY_TESTERS.md](./EARLY_TESTERS.md)
