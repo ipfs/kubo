@@ -1,5 +1,35 @@
 # go-ipfs changelog
 
+## 0.4.22 2019-07-05
+
+We're releasing a PATCH release of go-ipfs based on 0.4.21 containing some
+critical fixes while we improve our release process and testing procedures.
+
+The past several releases have been shaky so we're cutting a patch release to
+fix some critical issues in the 0.4.22 while we re-evaluate our release process
+and improve our testing.
+
+This release includes fixes for the following regressions:
+
+1. A major bitswap throughput regression introduced in 0.4.21
+   ([ipfs/go-ipfs#6442](https://github.com/ipfs/go-ipfs/issues/6442)).
+2. High bitswap CPU usage when connected to many (e.g., 10,000) peers. See
+   [ipfs/go-bitswap#154](https://github.com/ipfs/go-bitswap/issues/154).
+2. The local network discovery service sometimes initializing before the
+   networking module, causing it to announce the wrong addresses and sometimes
+   complain about not being able to determine the IP address)
+   ([ipfs/go-ipfs#6415](https://github.com/ipfs/go-ipfs/pull/6415)).
+   
+It also includes fixes for:
+
+1. Pins not being persisted after `ipfs block add --pin`
+   ([ipfs/go-ipfs#6441](https://github.com/ipfs/go-ipfs/pull/6441)).
+2. Concurrent map access on GC due to the pinner
+   ([ipfs/go-ipfs#6419](https://github.com/ipfs/go-ipfs/pull/6419)).
+3. Potential pin-set corruption given a concurrent `ipfs repo gc` and `ipfs pin
+   rm` ([ipfs/go-ipfs#6444](https://github.com/ipfs/go-ipfs/pull/6444)).
+4. Build failure due to a deleted git tag in one of our dependencies.
+
 ## 0.4.21 2019-05-30
 
 We're happy to announce go-ipfs 0.4.21. This release has some critical bug fixes
