@@ -28,7 +28,15 @@ It also includes fixes for:
    ([ipfs/go-ipfs#6419](https://github.com/ipfs/go-ipfs/pull/6419)).
 3. Potential pin-set corruption given a concurrent `ipfs repo gc` and `ipfs pin
    rm` ([ipfs/go-ipfs#6444](https://github.com/ipfs/go-ipfs/pull/6444)).
-4. Build failure due to a deleted git tag in one of our dependencies.
+4. Build failure due to a deleted git tag in one of our dependencies
+   ([ipfs/go-ds-badger#64](https://github.com/ipfs/go-ds-badger/pull/65)).
+
+
+Thanks to:
+
+* @hannahoward for fixing both bitswap issues.
+* @sanderpick for catching and fixing the local discovery bug.
+* @campoy for fixing the build issue.
 
 ## 0.4.21 2019-05-30
 
