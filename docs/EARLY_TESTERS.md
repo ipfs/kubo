@@ -6,8 +6,11 @@
 
 ## Who has signed up?
 
-- Infura
-- Textile
+- [ ] Infura (@MichaelMure)
+- [ ] Textile (@sanderpick)
+- [ ] Pinata (@obo20)
+- [ ] RTrade (@postables)
+- [ ] QRI (@b5)
 
 ## How to sign up?
 

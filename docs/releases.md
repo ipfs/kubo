@@ -86,10 +86,10 @@ When Release Stage 1, there is a features freeze for the release branch.
 ### Release Stage 2 - Invite _early testers_ to try it out
 
 - [ ] Reach out to the following IPFS _early testers_ for testing this release (check when no more problems have been reported):
-  - [ ] Infura
-  - [ ] Textila
-  - [ ] Pinata
-  - [ ] QRI
+  - [ ] Infura (@MichaelMure)
+  - [ ] Textile (@sanderpick)
+  - [ ] Pinata (@obo20)
+  - [ ] QRI (@b5)
 - [ ] Run tests available in the following repos with the latest RC (check when all tests pass):
   - [ ] [orbit-db](https://github.com/orbitdb/orbit-db)
 
