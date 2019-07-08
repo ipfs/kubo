@@ -9,7 +9,7 @@
 
 ## Release Philosophy
 
-`go-ipfs` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages of Release Candidates (RC) that gives us the opportunity to test the new version against our test environments (unit, interop, integration), QA in our current production environmment, IPFS apps (e.g. Desktop and WebUI) and with our _early testers_<sup>[1]</sup> that have IPFS running in Production, by leveraging their own test infrastructure and QA systems.
+`go-ipfs` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages of Release Candidates (RC) that gives us the opportunity to test the new version against our test environments (unit, interop, integration), QA in our current production environment, IPFS apps (e.g. Desktop and WebUI) and with our _early testers_<sup>[1]</sup> that have IPFS running in Production, by leveraging their own test infrastructure and QA systems.
 
 We might expand the six week release schedule in case of:
 - No new updates to be added
