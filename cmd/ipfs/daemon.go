@@ -13,6 +13,8 @@ import (
 	"sync"
 
 	version "github.com/ipfs/go-ipfs"
+	config "github.com/ipfs/go-ipfs-config"
+	cserial "github.com/ipfs/go-ipfs-config/serialize"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -26,11 +28,11 @@ import (
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
-	"github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr-net"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -38,6 +40,7 @@ const (
 	adjustFDLimitKwd          = "manage-fdlimit"
 	enableGCKwd               = "enable-gc"
 	initOptionKwd             = "init"
+	initConfigOptionKwd       = "init-config"
 	initProfileOptionKwd      = "init-profile"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
@@ -154,6 +157,7 @@ Headers.
 
 	Options: []cmds.Option{
 		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
+		cmds.StringOption(initConfigOptionKwd, "Path to existing configuration file to be loaded during --init"),
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem"),
@@ -229,16 +233,19 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
 	initialize, _ := req.Options[initOptionKwd].(bool)
-	if initialize {
+	if initialize && !fsrepo.IsInitialized(cctx.ConfigRoot) {
+		cfgLocation, _ := req.Options[initConfigOptionKwd].(string)
+		profiles, _ := req.Options[initProfileOptionKwd].(string)
+		var conf *config.Config
 
-		cfg := cctx.ConfigRoot
-		if !fsrepo.IsInitialized(cfg) {
-			profiles, _ := req.Options[initProfileOptionKwd].(string)
-
-			err := initWithDefaults(os.Stdout, cfg, profiles)
-			if err != nil {
+		if cfgLocation != "" {
+			if conf, err = cserial.Load(cfgLocation); err != nil {
 				return err
 			}
+		}
+
+		if err = doInit(os.Stdout, cctx.ConfigRoot, false, nBitsForKeypairDefault, profiles, conf); err != nil {
+			return err
 		}
 	}
 
