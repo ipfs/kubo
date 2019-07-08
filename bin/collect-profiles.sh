@@ -8,6 +8,11 @@ tmpdir=$(mktemp -d)
 export PPROF_TMPDIR="$tmpdir"
 pushd "$tmpdir"
 
+IPFS_BIN=$(which ipfs)
+if [[ -e "$IPFS_BIN" ]]; then
+    cp "$IPFS_BIN" ipfs
+fi
+
 echo Collecting goroutine stacks
 curl -o goroutines.stacks "http://$HTTP_API"'/debug/pprof/goroutine?debug=2'
 
