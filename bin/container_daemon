@@ -2,6 +2,8 @@
 set -e
 user=ipfs
 repo="$IPFS_PATH"
+: ${addr_api:=/ip4/0.0.0.0/tcp/5001}
+: ${addr_gw:=/ip4/0.0.0.0/tcp/8080}
 
 if [ `id -u` -eq 0 ]; then
   echo "Changing user to $user"
@@ -22,8 +24,8 @@ else
     *) INIT_ARGS="--profile=$IPFS_PROFILE" ;;
   esac
   ipfs init $INIT_ARGS
-  ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
-  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+  ipfs config Addresses.API $addr_api
+  ipfs config Addresses.Gateway $addr_gw
 fi
 
 exec ipfs "$@"
