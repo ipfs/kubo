@@ -150,11 +150,19 @@ jobs:
       - attach_workspace:
           at: /tmp/circleci-workspace
       - run: git clone https://github.com/ipfs/interop.git
+      - restore_cache:
+          keys:
+            - v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+            - v1-interop-
       - run:
           command: npm install
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
+      - save_cache:
+          key: v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+          paths:
+            - ~/ipfs/go-ipfs/interop/node_modules
       - run:
           command: npm test
           working_directory: ~/ipfs/go-ipfs/interop
@@ -168,9 +176,11 @@ jobs:
       - *make_out_dirs
       - attach_workspace:
           at: /tmp/circleci-workspace
-      - run: git clone https://github.com/ipfs/go-ipfs-api.git
       - run:
-          name: IPFS Daemon
+          name: Cloning
+          command: git clone https://github.com/ipfs/go-ipfs-api.git
+      - run:
+          name: Starting the daemon
           command: /tmp/circleci-workspace/bin/ipfs daemon --init --enable-namesys-pubsub
           background: true
       - run:
@@ -180,9 +190,21 @@ jobs:
             while ! /tmp/circleci-workspace/bin/ipfs id --api=/ip4/127.0.0.1/tcp/5001 2>/dev/null; do
               sleep 1
             done
+      - restore_cache:
+          keys:
+            - v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+            - v1-go-api-
       - run:
           command: go test -v ./...
           working_directory: ~/ipfs/go-ipfs/go-ipfs-api
+      - save_cache:
+          key: v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+          paths:
+            - ~/go/pkg/mod
+            - ~/.cache/go-build/
+      - run:
+          name: Stopping the daemon
+          command: /tmp/circleci-workspace/bin/ipfs shutdown
   go-ipfs-http-client:
     docker:
       - image: circleci/golang:1.12
@@ -191,15 +213,24 @@ jobs:
       - *make_out_dirs
       - attach_workspace:
           at: /tmp/circleci-workspace
-      - run: git clone https://github.com/ipfs/go-ipfs-http-client.git
       - run:
+          name: Cloning
+          command: git clone https://github.com/ipfs/go-ipfs-http-client.git
+      - restore_cache:
+          keys:
+            - v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+            - v1-http-client-
+      - run:
+          name: go test -v ./...
           command: |
             export PATH=/tmp/circleci-workspace/bin:$PATH
             go test -v ./...
           working_directory: ~/ipfs/go-ipfs/go-ipfs-http-client
-      - run:
-          command: /tmp/circleci-workspace/bin/ipfs shutdown
-
+      - save_cache:
+          key: v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+          paths:
+            - ~/go/pkg/mod
+            - ~/.cache/go-build/
 workflows:
   version: 2
   test:
