@@ -494,6 +494,12 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 			return err
 		}
 	}
+	if typeStr == "recursive" || typeStr == "all" {
+		err := AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
+		if err != nil {
+			return err
+		}
+	}
 	if typeStr == "indirect" || typeStr == "all" {
 		for _, k := range n.Pinning.RecursiveKeys() {
 			var visitErr error
@@ -519,12 +525,6 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 			if err != nil {
 				return err
 			}
-		}
-	}
-	if typeStr == "recursive" || typeStr == "all" {
-		err := AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
-		if err != nil {
-			return err
 		}
 	}
 
