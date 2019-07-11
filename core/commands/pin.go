@@ -314,7 +314,7 @@ Example:
 	Options: []cmds.Option{
 		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
-		cmds.BoolOption(pinStreamOptionName, "s", "Don't buffer pins before sending."),
+		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -349,9 +349,9 @@ Example:
 		}
 
 		if len(req.Arguments) > 0 {
-			err = pinLsKeys(req.Context, req.Arguments, typeStr, n, api, emit)
+			err = pinLsKeys(req, typeStr, n, api, emit)
 		} else {
-			err = pinLsAll(req.Context, typeStr, n, emit)
+			err = pinLsAll(req, typeStr, n, emit)
 		}
 		if err != nil {
 			return err
@@ -391,6 +391,140 @@ Example:
 			return nil
 		}),
 	},
+}
+
+type RefKeyObject struct {
+	Cid  string `json:",omitempty"`
+	Type string `json:",omitempty"`
+}
+
+type RefObject struct {
+	Type string
+}
+
+type RefKeyList struct {
+	Keys map[string]RefObject `json:",omitempty"`
+}
+
+// Pin ls needs to output two different type depending on if it's streamed or not.
+// We use this to bypass the cmds lib refusing to have interface{}
+type PinLsOutputWrapper struct {
+	RefKeyList
+	RefKeyObject
+}
+
+func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+	mode, ok := pin.StringToMode(typeStr)
+	if !ok {
+		return fmt.Errorf("invalid pin mode '%s'", typeStr)
+	}
+
+	enc, err := cmdenv.GetCidEncoder(req)
+	if err != nil {
+		return err
+	}
+
+	for _, p := range req.Arguments {
+		c, err := api.ResolvePath(req.Context, path.New(p))
+		if err != nil {
+			return err
+		}
+
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(c.Cid(), mode)
+		if err != nil {
+			return err
+		}
+
+		if !pinned {
+			return fmt.Errorf("path '%s' is not pinned", p)
+		}
+
+		switch pinType {
+		case "direct", "indirect", "recursive", "internal":
+		default:
+			pinType = "indirect through " + pinType
+		}
+
+		err = emit(&PinLsOutputWrapper{
+			RefKeyObject: RefKeyObject{
+				Type: pinType,
+				Cid:  enc.Encode(c.Cid()),
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(value interface{}) error) error {
+	enc, err := cmdenv.GetCidEncoder(req)
+	if err != nil {
+		return err
+	}
+
+	keys := cid.NewSet()
+
+	AddToResultKeys := func(keyList []cid.Cid, typeStr string) error {
+		for _, c := range keyList {
+			if keys.Visit(c) {
+				err := emit(&PinLsOutputWrapper{
+					RefKeyObject: RefKeyObject{
+						Type: typeStr,
+						Cid:  enc.Encode(c),
+					},
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+
+	if typeStr == "direct" || typeStr == "all" {
+		err := AddToResultKeys(n.Pinning.DirectKeys(), "direct")
+		if err != nil {
+			return err
+		}
+	}
+	if typeStr == "indirect" || typeStr == "all" {
+		for _, k := range n.Pinning.RecursiveKeys() {
+			var visitErr error
+			err := dag.EnumerateChildren(req.Context, dag.GetLinksWithDAG(n.DAG), k, func(c cid.Cid) bool {
+				r := keys.Visit(c)
+				if r {
+					err := emit(&PinLsOutputWrapper{
+						RefKeyObject: RefKeyObject{
+							Type: typeStr,
+							Cid:  enc.Encode(c),
+						},
+					})
+					if err != nil {
+						visitErr = err
+					}
+				}
+				return r
+			})
+
+			if visitErr != nil {
+				return visitErr
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if typeStr == "recursive" || typeStr == "all" {
+		err := AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 const (
@@ -505,130 +639,6 @@ var verifyPinCmd = &cmds.Command{
 			return nil
 		}),
 	},
-}
-
-type RefKeyObject struct {
-	Cid  string
-	Type string
-}
-
-type RefObject struct {
-	Type string
-}
-
-type RefKeyList struct {
-	Keys map[string]RefObject
-}
-
-// Pin ls needs to output two different type depending on if it's streamed or not.
-// We use this to bypass the cmds lib refusing to have interface{}
-type PinLsOutputWrapper struct {
-	RefKeyList
-	RefKeyObject
-}
-
-func pinLsKeys(ctx context.Context, args []string, typeStr string, n *core.IpfsNode, api coreiface.CoreAPI, emit func(value interface{}) error) error {
-	mode, ok := pin.StringToMode(typeStr)
-	if !ok {
-		return fmt.Errorf("invalid pin mode '%s'", typeStr)
-	}
-
-	for _, p := range args {
-		c, err := api.ResolvePath(ctx, path.New(p))
-		if err != nil {
-			return err
-		}
-
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(c.Cid(), mode)
-		if err != nil {
-			return err
-		}
-
-		if !pinned {
-			return fmt.Errorf("path '%s' is not pinned", p)
-		}
-
-		switch pinType {
-		case "direct", "indirect", "recursive", "internal":
-		default:
-			pinType = "indirect through " + pinType
-		}
-
-		err = emit(&PinLsOutputWrapper{
-			RefKeyObject: RefKeyObject{
-				Type: pinType,
-				Cid:  c.Cid().String(),
-			},
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func pinLsAll(ctx context.Context, typeStr string, n *core.IpfsNode, emit func(value interface{}) error) error {
-	keys := cid.NewSet()
-
-	AddToResultKeys := func(keyList []cid.Cid, typeStr string) error {
-		for _, c := range keyList {
-			if keys.Visit(c) {
-				err := emit(&PinLsOutputWrapper{
-					RefKeyObject: RefKeyObject{
-						Type: typeStr,
-						Cid:  c.String(),
-					},
-				})
-				if err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-
-	if typeStr == "direct" || typeStr == "all" {
-		err := AddToResultKeys(n.Pinning.DirectKeys(), "direct")
-		if err != nil {
-			return err
-		}
-	}
-	if typeStr == "recursive" || typeStr == "all" {
-		err := AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
-		if err != nil {
-			return err
-		}
-	}
-	if typeStr == "indirect" || typeStr == "all" {
-		for _, k := range n.Pinning.RecursiveKeys() {
-			var visitErr error
-			err := dag.EnumerateChildren(ctx, dag.GetLinksWithDAG(n.DAG), k, func(c cid.Cid) bool {
-				r := keys.Visit(c)
-				if r {
-					err := emit(&PinLsOutputWrapper{
-						RefKeyObject: RefKeyObject{
-							Type: "indirect",
-							Cid:  c.String(),
-						},
-					})
-					if err != nil {
-						visitErr = err
-					}
-				}
-				return r
-			})
-
-			if visitErr != nil {
-				return visitErr
-			}
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
