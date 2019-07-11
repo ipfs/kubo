@@ -339,11 +339,11 @@ Example:
 
 		// For backward compatibility, we accumulate the pins in the same output type as before.
 		emit := res.Emit
-		lgcList := map[string]RefObject{}
+		lgcList := map[string]PinLsType{}
 		if !stream {
 			emit = func(v interface{}) error {
 				obj := v.(*PinLsOutputWrapper)
-				lgcList[obj.RefKeyObject.Cid] = RefObject{Type: obj.RefKeyObject.Type}
+				lgcList[obj.PinLsObject.Cid] = PinLsType{Type: obj.PinLsObject.Type}
 				return nil
 			}
 		}
@@ -359,7 +359,7 @@ Example:
 
 		if !stream {
 			return cmds.EmitOnce(res, &PinLsOutputWrapper{
-				RefKeyList: RefKeyList{Keys: lgcList},
+				PinLsList: PinLsList{Keys: lgcList},
 			})
 		}
 
@@ -373,14 +373,14 @@ Example:
 
 			if stream {
 				if quiet {
-					fmt.Fprintf(w, "%s\n", out.RefKeyObject.Cid)
+					fmt.Fprintf(w, "%s\n", out.PinLsObject.Cid)
 				} else {
-					fmt.Fprintf(w, "%s %s\n", out.RefKeyObject.Cid, out.RefKeyObject.Type)
+					fmt.Fprintf(w, "%s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type)
 				}
 				return nil
 			}
 
-			for k, v := range out.RefKeyList.Keys {
+			for k, v := range out.PinLsList.Keys {
 				if quiet {
 					fmt.Fprintf(w, "%s\n", k)
 				} else {
@@ -393,24 +393,24 @@ Example:
 	},
 }
 
-type RefKeyObject struct {
+type PinLsObject struct {
 	Cid  string `json:",omitempty"`
 	Type string `json:",omitempty"`
 }
 
-type RefObject struct {
+type PinLsType struct {
 	Type string
 }
 
-type RefKeyList struct {
-	Keys map[string]RefObject `json:",omitempty"`
+type PinLsList struct {
+	Keys map[string]PinLsType `json:",omitempty"`
 }
 
 // Pin ls needs to output two different type depending on if it's streamed or not.
 // We use this to bypass the cmds lib refusing to have interface{}
 type PinLsOutputWrapper struct {
-	RefKeyList
-	RefKeyObject
+	PinLsList
+	PinLsObject
 }
 
 func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreiface.CoreAPI, emit func(value interface{}) error) error {
@@ -446,7 +446,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreifac
 		}
 
 		err = emit(&PinLsOutputWrapper{
-			RefKeyObject: RefKeyObject{
+			PinLsObject: PinLsObject{
 				Type: pinType,
 				Cid:  enc.Encode(c.Cid()),
 			},
@@ -471,7 +471,7 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 		for _, c := range keyList {
 			if keys.Visit(c) {
 				err := emit(&PinLsOutputWrapper{
-					RefKeyObject: RefKeyObject{
+					PinLsObject: PinLsObject{
 						Type: typeStr,
 						Cid:  enc.Encode(c),
 					},
@@ -497,7 +497,7 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 				r := keys.Visit(c)
 				if r {
 					err := emit(&PinLsOutputWrapper{
-						RefKeyObject: RefKeyObject{
+						PinLsObject: PinLsObject{
 							Type: typeStr,
 							Cid:  enc.Encode(c),
 						},
