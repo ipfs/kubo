@@ -508,7 +508,7 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 				if r {
 					err := emit(&PinLsOutputWrapper{
 						PinLsObject: PinLsObject{
-							Type: typeStr,
+							Type: "indirect",
 							Cid:  enc.Encode(c),
 						},
 					})
