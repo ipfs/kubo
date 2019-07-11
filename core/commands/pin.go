@@ -393,24 +393,28 @@ Example:
 	},
 }
 
-type PinLsObject struct {
-	Cid  string `json:",omitempty"`
-	Type string `json:",omitempty"`
-}
-
-type PinLsType struct {
-	Type string
-}
-
-type PinLsList struct {
-	Keys map[string]PinLsType `json:",omitempty"`
-}
-
+// PinLsOutputWrapper is the output type of the pin ls command.
 // Pin ls needs to output two different type depending on if it's streamed or not.
 // We use this to bypass the cmds lib refusing to have interface{}
 type PinLsOutputWrapper struct {
 	PinLsList
 	PinLsObject
+}
+
+// PinLsList is a set of pins with their type
+type PinLsList struct {
+	Keys map[string]PinLsType `json:",omitempty"`
+}
+
+// PinLsType contains the type of a pin
+type PinLsType struct {
+	Type string
+}
+
+// PinLsObject contains the description of a pin
+type PinLsObject struct {
+	Cid  string `json:",omitempty"`
+	Type string `json:",omitempty"`
 }
 
 func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreiface.CoreAPI, emit func(value interface{}) error) error {
