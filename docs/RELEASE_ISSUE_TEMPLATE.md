@@ -48,10 +48,10 @@ Checklist:
     - [ ] Deploy new version to a subset of Preload nodes
     - [ ] Collect metrics every day. Work with the Infrastructure team to learn of any hiccup
   - [ ] IPFS Application Testing -  Run the tests of the following applications:
-    - [ ] WebUI
-    - [ ] IPFS Desktop
-    - [ ] IPFS Companion
-    - [ ] NPM on IPFS
+    - [ ] [WebUI](https://github.com/ipfs-shipyard/ipfs-webui) - @olizilla
+    - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) - @hacdias
+    - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion) - @lidel
+    - [ ] [NPM on IPFS](https://github.com/ipfs-shipyard/npm-on-ipfs) - @achingbrain
 - [ ] **Stage 2 - Public Beta**
   - [ ] Reach out to the IPFS _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) for testing this release (check when no more problems have been reported). If you'd like to be added to this list, please file a PR.
   - [ ] Reach out to on IRC for beta testers.
