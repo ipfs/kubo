@@ -2,12 +2,15 @@
 
 ## 0.4.22 2019-07-05
 
-We're releasing a PATCH release of go-ipfs based on 0.4.21 containing some
-critical fixes while we improve our release process and testing procedures.
+We're releasing a PATCH release of go-ipfs based on 0.4.21 containing some critical fixes.
 
-The past several releases have been shaky so we're cutting a patch release to
-fix some critical issues in the 0.4.22 while we re-evaluate our release process
-and improve our testing.
+The past several releases have been shaky and the network has scaled to the
+point where where small changes can have a wide-reaching impact on the entire
+network. To keep this situation from escalating, we've put a hold on releasing
+new features until we can improve our [release
+process](https://github.com/ipfs/go-ipfs/pull/6482) (which we will be trialing
+in this release) and [testing
+procedures](https://github.com/ipfs/go-ipfs/issues/6483).
 
 This release includes fixes for the following regressions:
 
