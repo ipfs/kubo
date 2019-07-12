@@ -343,9 +343,18 @@ Tells reprovider what should be announced. Valid strategies are:
 Options for configuring the swarm.
 
 - `AddrFilters`
-An array of address filters (multiaddr netmasks) to filter dials to.
-See [this issue](https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604) for more
-information.
+An array of addresses (multiaddr netmasks) to not dial. By default, IPFS nodes advertise
+_all_ addresses, even internal ones. This makes it easier for nodes on the same
+network to reach each other. Unfortunately, this means that an IPFS node will
+try to connect to one or more private IP addresses whenever dialing another
+node, even if this other node is on a different network. This may may trigger
+netscan alerts on some hosting providers or cause strain in some setups.
+
+The `server` configuration profile fills up this list with sensible defaults,
+preventing dials to all non-routable IP addresses (e.g., `192.168.0.0/16`) but
+you should always check settings against your own network and/or hosting
+provider.
+
 
 - `DisableBandwidthMetrics`
 A boolean value that when set to true, will cause ipfs to not keep track of
