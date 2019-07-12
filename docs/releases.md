@@ -53,7 +53,7 @@ At this stage, the release is "battle hardened" and ready for wide deployment.
 
 ## Performing a Release
 
-The first step is for the `Lead Maintainer` for `go-ipfs` to open an issue with Title `go-ipfs <version> Release` and a c&p of the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md)
+The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md). Then, the 4 stages will be followed until the release is done.
 
 ## Release Version Numbers (aka semver)
 
