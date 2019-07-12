@@ -40,7 +40,7 @@ func DiffEnumerate(ctx context.Context, dserv ipld.NodeGetter, from, to cid.Cid)
 			if sset.Has(c.aft) {
 				continue
 			}
-			err := mdag.EnumerateChildrenAsync(ctx, mdag.GetLinksDirect(dserv), c.aft, sset.Visit)
+			err := mdag.WalkParallel(ctx, mdag.GetLinksDirect(dserv), c.aft, sset.Visit)
 			if err != nil {
 				return err
 			}
