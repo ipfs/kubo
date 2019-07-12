@@ -28,15 +28,15 @@ Checklist:
 - [ ] **Stage 1 - Internal Testing**
   - [ ] Feature freeze. If any "non-trivial" changes (see the footnotes of [docs/releases.md](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md) for a definition) get added to the release, uncheck all the checkboxes and return to this stage.
   - [ ] CHANGELOG.md has been updated
-    - use `./bin/mkreleaselog` to generate a nice starter list
+    - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
   - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
     - [ ] unit
     - [ ] sharness
     - [ ] [interop](https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs)
-    - [ ] go-ipfs-api
-    - [ ] go-ipfs-http-client
+    - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
+    - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
   - [ ] Network Testing:
-    - [ ] test lab things
+    - [ ] test lab things - TBD
   - [ ] Infrastructure Testing:
     - [ ] Deploy new version to a subset of Bootstrappers
     - [ ] Deploy new version to a subset of Gateways
@@ -48,35 +48,35 @@ Checklist:
     - [ ] IPFS Companion
     - [ ] NPM on IPFS
 - [ ] **Stage 2 - Public Beta**
-  - [ ] Reach out to the IPFS _early testers_ listed in `docs/EARLY_TESTERS.md` for testing this release (check when no more problems have been reported). If you'd like to be added to this list, please file a PR.
+  - [ ] Reach out to the IPFS _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) for testing this release (check when no more problems have been reported). If you'd like to be added to this list, please file a PR.
   - [ ] Reach out to on IRC for beta testers.
   - [ ] Run tests available in the following repos with the latest beta (check when all tests pass):
     - [ ] [orbit-db](https://github.com/orbitdb/orbit-db)
 - [ ] **Stage 3 - Soft Release**
   - [ ] Documentation
-    - [ ] Ensure that CHANGELOG.md is up to date
-    - [ ] Ensure that README.md is up to date
+    - [ ] Ensure that [CHANGELOG.md](https://github.com/ipfs/go-ipfs/tree/master/CHANGELOG.md) is up to date
+    - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
     - [ ] Ensure that all the examples we have produced for go-ipfs run without problems
     - [ ] Update HTTP-API Documentation on the Website using https://github.com/ipfs/http-api-docs
-  - [ ] Invite the IPFS _early testers_ to deploy the release to part of their production infrastructure.
+  - [ ] Invite the IPFS [_early testers_](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) to deploy the release to part of their production infrastructure.
   - [ ] Invite the wider community through (link to the release issue):
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
     - [ ] Twitter
     - [ ] IRC
 - [ ] **Stage 4 - Release**
   - [ ] Final preparation
-    - [ ] Verify that version string in `repo/version.go` has been updated
+    - [ ] Verify that version string in [`repo/version.go`](https://github.com/ipfs/go-ipfs/tree/master/repo/version.go) has been updated
     - [ ] tag commit with vX.Y.Z
     - [ ] update release branch to point to release commit (`git merge vX.Y.Z`).
-    - [ ] publish dist.ipfs.io
-    - [ ] publish next version to https://github.com/ipfs/npm-go-ipfs
+    - [ ] publish [dist.ipfs.io](https://dist.ipfs.io)
+    - [ ] publish next version to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
   - [ ] Publish a Release Blog post (at minimum, a c&p of this release issue with all the highlights, API changes, link to changelog and thank yous)
   - [ ] Broadcasting (link to blog post)
     - [ ] Twitter
     - [ ] IRC
-    - [ ] Reddit
+    - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Announce it on the [IPFS Users mlist](https://groups.google.com/forum/#!forum/ipfs-users)
+    - [ ] Announce it on the [IPFS Users Mailing List](https://groups.google.com/forum/#!forum/ipfs-users)
 
 ## ❤️ Contributors
 
@@ -87,7 +87,7 @@ Would you like to contribute to the IPFS project and don't know how? Well, there
 - Check the issues with the `help wanted` label in the [go-ipfs repo](https://github.com/ipfs/go-ipfs/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
 - Join an IPFS All Hands, introduce yourself and let us know where you would like to contribute - https://github.com/ipfs/team-mgmt/#weekly-ipfs-all-hands
 - Hack with IPFS and show us what you made! The All Hands call is also the perfect venue for demos, join in and show us what you built
-- Join the discussion at http://discuss.ipfs.io/ and help users finding their answers.
+- Join the discussion at [discuss.ipfs.io](https://discuss.ipfs.io/) and help users finding their answers.
 - Join the [Go Core Dev Team Weekly Sync](https://github.com/ipfs/team-mgmt/issues/650) and be part of the Sprint action!
 
 ## ⁉️ Do you have questions?
