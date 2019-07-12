@@ -34,7 +34,7 @@ It also includes fixes for:
 
 Thanks to:
 
-* @hannahoward for fixing both bitswap issues.
+* @hannahhoward for fixing both bitswap issues.
 * @sanderpick for catching and fixing the local discovery bug.
 * @campoy for fixing the build issue.
 
