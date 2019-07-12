@@ -68,8 +68,10 @@ Checklist:
     - [ ] Verify that version string in [`repo/version.go`](https://github.com/ipfs/go-ipfs/tree/master/repo/version.go) has been updated
     - [ ] tag commit with vX.Y.Z
     - [ ] update release branch to point to release commit (`git merge vX.Y.Z`).
-    - [ ] publish [dist.ipfs.io](https://dist.ipfs.io)
-    - [ ] publish next version to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
+    - [ ] Release published
+      - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
+      - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
+      - [ ] to [chocolatey](https://chocolatey.org/packages/ipfs)
   - [ ] Publish a Release Blog post (at minimum, a c&p of this release issue with all the highlights, API changes, link to changelog and thank yous)
   - [ ] Broadcasting (link to blog post)
     - [ ] Twitter
