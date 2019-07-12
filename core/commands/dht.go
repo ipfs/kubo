@@ -326,7 +326,7 @@ func provideKeysRec(ctx context.Context, r routing.Routing, dserv ipld.DAGServic
 	for _, c := range cids {
 		kset := cid.NewSet()
 
-		err := dag.EnumerateChildrenAsync(ctx, dag.GetLinksDirect(dserv), c, kset.Visit)
+		err := dag.WalkParallel(ctx, dag.GetLinksDirect(dserv), c, kset.Visit)
 		if err != nil {
 			return err
 		}

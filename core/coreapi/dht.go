@@ -114,7 +114,7 @@ func provideKeysRec(ctx context.Context, r routing.Routing, bs blockstore.Blocks
 	go func() {
 		dserv := dag.NewDAGService(blockservice.New(bs, offline.Exchange(bs)))
 		for _, c := range cids {
-			err := dag.EnumerateChildrenAsync(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx))
+			err := dag.WalkParallel(ctx, dag.GetLinksDirect(dserv), c, provided.Visitor(ctx))
 			if err != nil {
 				errCh <- err
 			}
