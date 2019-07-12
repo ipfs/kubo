@@ -539,15 +539,20 @@ var updatePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Update a recursive pin",
 		ShortDescription: `
-Updates one pin to another, making sure that all objects in the new pin are
-local.  Then removes the old pin. This is an optimized version of adding the
-new pin and removing the old one.
+Efficiently pins a new object based on differences from an existing one and,
+by default, removes the old pin.
+
+This commands is useful when the new pin contains many similarities or is a
+derivate of an existing one, particuarly for large objects. This allows a more
+efficient DAG-traversal which fully skips already-pinned branches from the old
+object. As a requirement, the old object needs to be an existing recursive
+pin.
 `,
 	},
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("from-path", true, false, "Path to old object."),
-		cmds.StringArg("to-path", true, false, "Path to new object to be pinned."),
+		cmds.StringArg("to-path", true, false, "Path to a new object to be pinned."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
