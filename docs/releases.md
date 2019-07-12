@@ -64,7 +64,6 @@ Post `go-ipfs` 0.5.X, `go-ipfs` will use semver. This means that patch releases 
 Post `go-ipfs` 1.X.X (future), `go-ipfs` will use semver. This means that only major releases will contain breaking changes, minors will be reserved for new features and patches for bug fixes.
 
 We do not yet retroactively apply fixes to older releases (no Long Term Support releases for now), which means that we always recommend users to update to the latest, whenever possible.
-TBW
 
 ----------------------------
 
