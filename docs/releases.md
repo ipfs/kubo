@@ -24,14 +24,12 @@ We might expand the six week release schedule in case of:
 Before this stage, we expect _all_ tests (interop, testlab, performance, etc.) to pass.
 
 At this stage, we'll:
-
-1. Start a partial-rollout to our own infrastructure.
-2. Test against ipfs and ipfs-shipyard applications.
+- 1. Start a partial-rollout to our own infrastructure.
+- 2. Test against ipfs and ipfs-shipyard applications.
 
 **Goal(s):**
-
-1. Make sure we haven't introduced any obvious regressions.
-2. Test the release in an environment we can monitor and easily roll back (i.e., our own infra).
+- 1. Make sure we haven't introduced any obvious regressions.
+- 2. Test the release in an environment we can monitor and easily roll back (i.e., our own infra).
 
 ### Stage 2 - Public Beta
 
@@ -55,84 +53,7 @@ At this stage, the release is "battle hardened" and ready for wide deployment.
 
 ## Performing a Release
 
-The first step is for the `Lead Maintainer` for `go-ipfs` to open an issue with Title `go-ipfs <version> Release` and a c&p of the following template:
-
-```
-> <short tl;dr; of the release>
-
-# 🗺 What's left for release
-
-<List of items with PRs and/or Issues to be considered for this release>
-
-# 🔦 Highlights
-
-<List of items with PRs and/or Issues included for this release>
-
-# 🏗 API Changes
-
-<List of API changes, if any>
-
-# ✅ Release Checklist
-
-For each RC published in each stage:
-
-- version string in `version.go` has been updated
-- tag commit with vX.Y.Z-rcN
-
-- [ ] Stage 1 - Internal Testing
-  - [ ] Feature freeze. If any non-trivial features get added to the release, uncheck all the checkboxes and return to this stage.
-  - [ ] CHANGELOG.md has been updated
-    - use `./bin/mkreleaselog` to generate a nice starter list
-    - use `./doc/RELEASE_TEMPLATE.md` as a template
-  - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
-    - [ ] unit
-    - [ ] sharness
-    - [ ] [interop](https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs)
-    - [ ] go-ipfs-api
-    - [ ] go-ipfs-http-client
-  - [ ] Network Testing:
-    - [ ] test lab things
-  - [ ] Infrastructure Testing:
-    - [ ] Deploy new version to a subset of Bootstrappers
-    - [ ] Deploy new version to a subset of Gateways
-    - [ ] Deploy new version to a subset of Preload nodes
-    - [ ] Collect metrics every day. Work with the Infrastructure team to learn of any hiccup
-  - [ ] IPFS Application Testing -  Run the tests of the following applications:
-    - [ ] WebUI
-    - [ ] IPFS Desktop
-    - [ ] IPFS Companion
-    - [ ] NPM on IPFS
-- [ ] Stage 2 - Public Beta
-  - [ ] Reach out to the IPFS _early testers_ listed in `docs/EARLY_TESTERS.md` for testing this release (check when no more problems have been reported). If you'd like to be added to this list, please file a PR.
-  - [ ] Reach out to on IRC for beta testers.
-  - [ ] Run tests available in the following repos with the latest beta (check when all tests pass):
-    - [ ] [orbit-db](https://github.com/orbitdb/orbit-db)
-- [ ] Stage 3 - Soft Release
-  - [ ] Documentation
-    - [ ] Ensure that CHANGELOG.md is up to date
-    - [ ] Ensure that README.md is up to date
-    - [ ] Ensure that all the examples we have produced for go-ipfs run without problems
-    - [ ] Update HTTP-API Documentation on the Website using https://github.com/ipfs/http-api-docs
-  - [ ] Invite the IPFS _early testers_ to deploy the release to part of their production infrastructure.
-  - [ ] Invite the wider community through (link to the release issue):
-    - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Twitter
-    - [ ] IRC
-- [ ] Stage 4 - Release
-  - [ ] Final preparation
-    - [ ] Verify that version string in `repo/version.go` has been updated
-    - [ ] tag commit with vX.Y.Z
-    - [ ] update release branch to point to release commit (`git merge vX.Y.Z`).
-    - [ ] publish dist.ipfs.io
-    - [ ] publish next version to https://github.com/ipfs/npm-go-ipfs
-  - [ ] Publish a Release Blog post (at minimum, a c&p of this release issue with all the highlights, API changes, link to changelog and thank yous)
-  - [ ] Broadcasting (link to blog post)
-    - [ ] Twitter
-    - [ ] IRC
-    - [ ] Reddit
-    - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Announce it on the [IPFS Users mlist](https://groups.google.com/forum/#!forum/ipfs-users)
-```
+The first step is for the `Lead Maintainer` for `go-ipfs` to open an issue with Title `go-ipfs <version> Release` and a c&p of the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md)
 
 ## Release Version Numbers (aka semver)
 
