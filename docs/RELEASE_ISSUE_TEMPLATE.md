@@ -22,6 +22,9 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated
 - tag commit with vX.Y.Z-rcN
+
+Checklist:
+
 - [ ] **Stage 1 - Internal Testing**
   - [ ] Feature freeze. If any non-trivial features get added to the release, uncheck all the checkboxes and return to this stage.
   - [ ] CHANGELOG.md has been updated
