@@ -49,7 +49,7 @@ For each RC published in each stage:
   - [ ] Reach out to on IRC for beta testers.
   - [ ] Run tests available in the following repos with the latest beta (check when all tests pass):
     - [ ] [orbit-db](https://github.com/orbitdb/orbit-db)
-- [ ] Stage 3 - Soft Release
+- [ ] **Stage 3 - Soft Release**
   - [ ] Documentation
     - [ ] Ensure that CHANGELOG.md is up to date
     - [ ] Ensure that README.md is up to date
