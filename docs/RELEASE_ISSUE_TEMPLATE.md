@@ -22,6 +22,11 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated
 - tag commit with vX.Y.Z-rcN
+- upload to dist.ipfs.io
+  1. Build: https://github.com/ipfs/distributions#usage.
+  2. Pin the resulting release.
+  3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
+  4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
 
 Checklist:
 
