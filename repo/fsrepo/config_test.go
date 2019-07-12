@@ -75,7 +75,7 @@ var measureConfig = []byte(`{
 }`)
 
 func TestDefaultDatastoreConfig(t *testing.T) {
-	loader, err := loader.NewPluginLoader("")
+	loader, err := loader.NewPluginLoader()
 	if err != nil {
 		t.Fatal(err)
 	}
