@@ -1,8 +1,7 @@
 ---
 name: 'Feature'
 about: 'Suggest a new feature in go-ipfs.'
-labels:
-  - feature
+labels: feature
 ---
 
 <!--
