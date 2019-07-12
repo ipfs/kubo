@@ -26,7 +26,6 @@ For each RC published in each stage:
   - [ ] Feature freeze. If any non-trivial features get added to the release, uncheck all the checkboxes and return to this stage.
   - [ ] CHANGELOG.md has been updated
     - use `./bin/mkreleaselog` to generate a nice starter list
-    - use `./doc/RELEASE_TEMPLATE.md` as a template
   - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
     - [ ] unit
     - [ ] sharness
