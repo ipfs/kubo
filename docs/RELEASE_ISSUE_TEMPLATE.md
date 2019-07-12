@@ -44,7 +44,7 @@ For each RC published in each stage:
     - [ ] IPFS Desktop
     - [ ] IPFS Companion
     - [ ] NPM on IPFS
-- [ ] Stage 2 - Public Beta
+- [ ] **Stage 2 - Public Beta**
   - [ ] Reach out to the IPFS _early testers_ listed in `docs/EARLY_TESTERS.md` for testing this release (check when no more problems have been reported). If you'd like to be added to this list, please file a PR.
   - [ ] Reach out to on IRC for beta testers.
   - [ ] Run tests available in the following repos with the latest beta (check when all tests pass):
