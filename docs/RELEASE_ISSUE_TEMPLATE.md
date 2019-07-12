@@ -26,7 +26,7 @@ For each RC published in each stage:
 Checklist:
 
 - [ ] **Stage 1 - Internal Testing**
-  - [ ] Feature freeze. If any non-trivial features get added to the release, uncheck all the checkboxes and return to this stage.
+  - [ ] Feature freeze. If any "non-trivial" changes (see the footnotes of [docs/releases.md](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md) for a definition) get added to the release, uncheck all the checkboxes and return to this stage.
   - [ ] CHANGELOG.md has been updated
     - use `./bin/mkreleaselog` to generate a nice starter list
   - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:

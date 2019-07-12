@@ -17,7 +17,7 @@ We might expand the six week release schedule in case of:
 
 ## Release Flow
 
-`go-ipfs` releases come in 4 stages designed to gradually roll out changes and reduce the impact of any regressions that may have been introduced. If we need to merge non-trivial features/fixes during the process, we start over at stage 1.
+`go-ipfs` releases come in 4 stages designed to gradually roll out changes and reduce the impact of any regressions that may have been introduced. If we need to merge non-trivial<sup>[2]</sup> changes during the process, we start over at stage 1.
 
 ### Stage 1 - Internal Testing
 
@@ -68,3 +68,4 @@ We do not yet retroactively apply fixes to older releases (no Long Term Support 
 ----------------------------
 
 - <sup>**[1]**</sup> - _early testers_ is an IPFS programme in which members of the community can self-volunteer to help test `go-ipfs` Release Candidates. You find more info about it at [EARLY_TESTERS.md](./EARLY_TESTERS.md)
+- <sup>**[2]**</sup> - A non-trivial change is any change that could potentially introduce an issue not trivially caught by automated testing. This is up to the discretion of the Lead Maintainer but the assumption is that every change is non-trivial unless proven otherwise.
