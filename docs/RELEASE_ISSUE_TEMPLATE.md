@@ -72,6 +72,7 @@ Checklist:
       - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
       - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
       - [ ] to [chocolatey](https://chocolatey.org/packages/ipfs)
+      - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
   - [ ] Publish a Release Blog post (at minimum, a c&p of this release issue with all the highlights, API changes, link to changelog and thank yous)
   - [ ] Broadcasting (link to blog post)
     - [ ] Twitter
