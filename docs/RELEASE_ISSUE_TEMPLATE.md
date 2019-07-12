@@ -30,8 +30,8 @@ Checklist:
   - [ ] CHANGELOG.md has been updated
     - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
   - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
-    - [ ] unit
-    - [ ] sharness
+    - [ ] unit, sharness, cross-build, etc (`make test`)
+    - [ ] lint (`make test_go_lint`)
     - [ ] [interop](https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs)
     - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
     - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
