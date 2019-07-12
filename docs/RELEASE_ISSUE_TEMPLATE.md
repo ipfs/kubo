@@ -60,7 +60,7 @@ For each RC published in each stage:
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
     - [ ] Twitter
     - [ ] IRC
-- [ ] Stage 4 - Release
+- [ ] **Stage 4 - Release**
   - [ ] Final preparation
     - [ ] Verify that version string in `repo/version.go` has been updated
     - [ ] tag commit with vX.Y.Z
