@@ -45,7 +45,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
-	reviveOptionName      = "revive"
+	reconstructOptionName = "reconstruct"
 )
 
 const adderOutChanSize = 8
@@ -130,7 +130,7 @@ You can now check what blocks have been created by:
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
-		cmds.StringOption(reviveOptionName, "Iterate through known params to revive a CID from a file (experimental)"),
+		cmds.StringOption(reconstructOptionName, "Iterate through known params to reconstruct a CID from a file (experimental)"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -220,9 +220,9 @@ You can now check what blocks have been created by:
 
 		opts = append(opts, nil) // events option placeholder
 
-		revival_target_cid, _ := req.Options[reviveOptionName].(string)
+		revivalTargetCid, _ := req.Options[reconstructOptionName].(string)
 
-		var default_options = []cmds.OptMap{
+		var defaultOptions = []cmds.OptMap{
 			cmds.OptMap{
 				"inline-limit": 32,
 				"chunker":      "size-262144",
@@ -239,22 +239,22 @@ You can now check what blocks have been created by:
 			},
 		}
 
-		if revival_target_cid != "" {
+		if revivalTargetCid != "" {
 
-			for index, default_opts := range default_options {
+			for _, defaultOpts := range defaultOptions {
 				special := req.Files
-				fmt.Println("\n - - - - - ", index, "\n")
-				fmt.Println(default_opts)
+				// fmt.Println("\n - - - - - ", index, "\n")
+				fmt.Println(defaultOpts)
 
-				inlineLimit, _ := default_opts[inlineLimitOptionName].(int)
-				chunker, _ := default_opts[chunkerOptionName].(string)
-				hashFunStr, _ := default_opts[hashOptionName].(string)
+				inlineLimit, _ := defaultOpts[inlineLimitOptionName].(int)
+				chunker, _ := defaultOpts[chunkerOptionName].(string)
+				hashFunStr, _ := defaultOpts[hashOptionName].(string)
 				hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 
 				if !ok {
 					return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
 				}
-				my_opts := []options.UnixfsAddOption{
+				myOpts := []options.UnixfsAddOption{
 					options.Unixfs.Hash(hashFunCode),
 					options.Unixfs.Inline(inline),
 					options.Unixfs.InlineLimit(inlineLimit),
@@ -270,20 +270,20 @@ You can now check what blocks have been created by:
 				}
 
 				if cidVerSet {
-					my_opts = append(my_opts, options.Unixfs.CidVersion(cidVer))
+					myOpts = append(myOpts, options.Unixfs.CidVersion(cidVer))
 				}
 
 				if rbset {
-					my_opts = append(my_opts, options.Unixfs.RawLeaves(rawblks))
+					myOpts = append(myOpts, options.Unixfs.RawLeaves(rawblks))
 				}
 
 				if trickle {
-					my_opts = append(my_opts, options.Unixfs.Layout(options.TrickleLayout))
+					myOpts = append(myOpts, options.Unixfs.Layout(options.TrickleLayout))
 				}
 
-				my_opts = append(my_opts, nil) // events option placeholder
+				myOpts = append(myOpts, nil) // events option placeholder
 
-				fmt.Println(my_opts)
+				fmt.Println(myOpts)
 
 				// var added int
 				addit := special.Entries()
@@ -291,9 +291,9 @@ You can now check what blocks have been created by:
 				for addit.Next() {
 					fmt.Println("In Loop")
 					events := make(chan interface{}, adderOutChanSize)
-					my_opts[len(my_opts)-1] = options.Unixfs.Events(events)
+					myOpts[len(myOpts)-1] = options.Unixfs.Events(events)
 
-					v, _ := api.Unixfs().Add(req.Context, addit.Node(), my_opts...)
+					v, _ := api.Unixfs().Add(req.Context, addit.Node(), myOpts...)
 					h := enc.Encode(v.Cid())
 
 					// if err := res.Emit(&AddEvent{
@@ -306,7 +306,7 @@ You can now check what blocks have been created by:
 					// }
 
 					fmt.Println("Hash: ", h)
-					if h == revival_target_cid {
+					if h == revivalTargetCid {
 						fmt.Println("SUCCESS!!")
 						return nil
 					}
