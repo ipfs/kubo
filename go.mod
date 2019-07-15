@@ -26,7 +26,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.0.2
 	github.com/ipfs/go-ds-leveldb v0.0.2
 	github.com/ipfs/go-ds-measure v0.0.1
-	github.com/ipfs/go-filestore v0.0.1
+	github.com/ipfs/go-filestore v0.0.2
 	github.com/ipfs/go-fs-lock v0.0.1
 	github.com/ipfs/go-ipfs-blockstore v0.0.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1
@@ -45,7 +45,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.0.2
 	github.com/ipfs/go-ipns v0.0.1
 	github.com/ipfs/go-log v0.0.1
-	github.com/ipfs/go-merkledag v0.2.0
+	github.com/ipfs/go-merkledag v0.1.0
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.0
