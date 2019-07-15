@@ -131,7 +131,7 @@ PS> choco install ipfs
 
 Scoop provides `go-ipfs` in its 'extras' bucket.
 ```Powershell
-PS> scoop add bucket extras
+PS> scoop bucket add extras
 PS> scoop install go-ipfs
 ```
 
