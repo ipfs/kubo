@@ -26,7 +26,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.0.2
 	github.com/ipfs/go-ds-leveldb v0.0.2
 	github.com/ipfs/go-ds-measure v0.0.1
-	github.com/ipfs/go-filestore v0.0.1 // indirect
+	github.com/ipfs/go-filestore v0.0.1
 	github.com/ipfs/go-fs-lock v0.0.1
 	github.com/ipfs/go-ipfs-blockstore v0.0.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1

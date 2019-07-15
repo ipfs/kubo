@@ -11,8 +11,8 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-filestore"
 	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
 	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
