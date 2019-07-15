@@ -13,11 +13,11 @@ import (
 	"context"
 	"io"
 
+	"github.com/ipfs/go-filestore"
 	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/fuse/mount"
 	"github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
