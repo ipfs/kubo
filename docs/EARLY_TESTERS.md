@@ -28,6 +28,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] RTrade (@postables)
 - [ ] QRI (@b5)
 - [ ] Siderus (@koalalorenzo)
+- [ ] Jorropo (@Jorropo)
 
 ## How to sign up?
 
