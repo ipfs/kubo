@@ -209,7 +209,13 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pi
 	if typeStr == "indirect" || typeStr == "all" {
 		set := cid.NewSet()
 		for _, k := range api.pinning.RecursiveKeys() {
-			err := merkledag.EnumerateChildren(ctx, merkledag.GetLinksWithDAG(api.dag), k, set.Visit)
+			err := merkledag.WalkDepth(
+				ctx, merkledag.GetLinksWithDAG(api.dag), k, 0,
+				func(c cid.Cid, depth int) bool {
+					// don't visit the root node, that doesn't count.
+					return depth == 0 || set.Visit(c)
+				},
+			)
 			if err != nil {
 				return nil, err
 			}
