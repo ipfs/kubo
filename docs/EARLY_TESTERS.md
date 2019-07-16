@@ -27,6 +27,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] Pinata (@obo20)
 - [ ] RTrade (@postables)
 - [ ] QRI (@b5)
+- [ ] Siderus (@koalalorenzo)
 
 ## How to sign up?
 
