@@ -2,7 +2,7 @@
 
 ## What is it?
 
-The early testers programme allows members of the community to self-volunteer to help test `go-ipfs` release candidates. While we invite the _entire_ community to help test releases, members of the early testers program are expected to participate directly and actively in every release.
+The early testers programme allows groups using go-ipfs in production to self-volunteer to help test `go-ipfs` release candidates to ensure that no regressions that might affect production systems make it into the final release. While we invite the _entire_ community to help test releases, members of the early testers program are expected to participate directly and actively in every release.
 
 ## What are the expectations?
 
