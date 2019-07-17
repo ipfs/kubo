@@ -202,6 +202,12 @@ test_files_api() {
     test_cmp ls_l_expected ls_l_actual
   '
 
+  test_expect_success "file has correct hash and size listed with --long" '
+    echo "file1	$FILE1	4" > ls_l_expected &&
+    ipfs files ls --long /cats/file1 > ls_l_actual &&
+    test_cmp ls_l_expected ls_l_actual
+  '
+
   test_expect_success "file has correct hash and size listed with -l --cid-base=base32" '
     echo "file1	`cid-fmt -v 1 -b base32 %s $FILE1`	4" > ls_l_expected &&
     ipfs files ls --cid-base=base32 -l /cats/file1 > ls_l_actual &&
@@ -436,7 +442,7 @@ test_files_api() {
   test_expect_success "file hash correct $EXTRA" '
     echo $FILE_HASH > filehash_expected &&
     ipfs files stat --hash /cats/ipfs > filehash &&
-    test_cmp filehash_expected filehash 
+    test_cmp filehash_expected filehash
   '
 
   test_expect_success "cant write to negative offset $EXTRA" '
