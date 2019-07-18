@@ -23,6 +23,7 @@ var WebUIPaths = []string{
 	"/ipfs/QmRyWyKWmphamkMRnJVjUTzSFSAAZowYP4rnbgnfMXC9Mr",
 	"/ipfs/QmU3o9bvfenhTKhxUakbYrLDnZU7HezAVxPM6Ehjw9Xjqy",
 	"/ipfs/QmPhnvn747LqwPYMJmQVorMaGbMSgA7mRRoyyZYz3DoZRQ",
+	"/ipns/webui.ipfs.io",
 }
 
 var WebUIOption = RedirectOption("webui", WebUIPath)
