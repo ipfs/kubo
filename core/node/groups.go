@@ -79,10 +79,10 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		switch cfg.Pubsub.Router {
 		case "":
 			fallthrough
-		case "floodsub":
-			ps = fx.Provide(libp2p.FloodSub(pubsubOptions...))
 		case "gossipsub":
 			ps = fx.Provide(libp2p.GossipSub(pubsubOptions...))
+		case "floodsub":
+			ps = fx.Provide(libp2p.FloodSub(pubsubOptions...))
 		default:
 			return fx.Error(fmt.Errorf("unknown pubsub router %s", cfg.Pubsub.Router))
 		}
