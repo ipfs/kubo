@@ -169,7 +169,7 @@ jobs:
           paths:
             - ~/ipfs/go-ipfs/interop/node_modules
       - run:
-          command: npm test
+          command: npm run test:node
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
