@@ -6,38 +6,37 @@ import (
 
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
-	notif "github.com/libp2p/go-libp2p-routing/notifications"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/routing"
 )
 
 type DhtAPI HttpApi
 
-func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (peerstore.PeerInfo, error) {
+func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (peer.AddrInfo, error) {
 	var out struct {
-		Type      notif.QueryEventType
-		Responses []peerstore.PeerInfo
+		Type      routing.QueryEventType
+		Responses []peer.AddrInfo
 	}
 	resp, err := api.core().Request("dht/findpeer", p.Pretty()).Send(ctx)
 	if err != nil {
-		return peerstore.PeerInfo{}, err
+		return peer.AddrInfo{}, err
 	}
 	if resp.Error != nil {
-		return peerstore.PeerInfo{}, resp.Error
+		return peer.AddrInfo{}, resp.Error
 	}
 	defer resp.Close()
 	dec := json.NewDecoder(resp.Output)
 	for {
 		if err := dec.Decode(&out); err != nil {
-			return peerstore.PeerInfo{}, err
+			return peer.AddrInfo{}, err
 		}
-		if out.Type == notif.FinalPeer {
+		if out.Type == routing.FinalPeer {
 			return out.Responses[0], nil
 		}
 	}
 }
 
-func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopts.DhtFindProvidersOption) (<-chan peerstore.PeerInfo, error) {
+func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopts.DhtFindProvidersOption) (<-chan peer.AddrInfo, error) {
 	options, err := caopts.DhtFindProvidersOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -57,7 +56,7 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopt
 	if resp.Error != nil {
 		return nil, resp.Error
 	}
-	res := make(chan peerstore.PeerInfo)
+	res := make(chan peer.AddrInfo)
 
 	go func() {
 		defer resp.Close()
@@ -67,18 +66,18 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopt
 		for {
 			var out struct {
 				Extra     string
-				Type      notif.QueryEventType
-				Responses []peerstore.PeerInfo
+				Type      routing.QueryEventType
+				Responses []peer.AddrInfo
 			}
 
 			if err := dec.Decode(&out); err != nil {
 				return // todo: handle this somehow
 			}
-			if out.Type == notif.QueryError {
+			if out.Type == routing.QueryError {
 				return // usually a 'not found' error
 				// todo: handle other errors
 			}
-			if out.Type == notif.Provider {
+			if out.Type == routing.Provider {
 				for _, pi := range out.Responses {
 					select {
 					case res <- pi:
