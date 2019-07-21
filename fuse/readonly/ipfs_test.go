@@ -1,4 +1,4 @@
-// +build !nofuse
+// +build !nofuse,!openbsd
 
 package readonly
 

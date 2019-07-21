@@ -1,4 +1,4 @@
-// +build !nofuse
+// +build !openbsd,!nofuse
 
 package node
 
