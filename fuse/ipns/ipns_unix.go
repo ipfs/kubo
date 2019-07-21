@@ -1,4 +1,4 @@
-// +build !nofuse
+// +build !nofuse,!openbsd
 
 // package fuse/ipns implements a fuse filesystem that interfaces
 // with ipns, the naming system for ipfs.
