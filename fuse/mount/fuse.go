@@ -1,4 +1,4 @@
-// +build !nofuse,!windows,!openbsd
+// +build !nofuse,!windows,!openbsd,!netbsd
 
 package mount
 

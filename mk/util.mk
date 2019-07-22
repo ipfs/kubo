@@ -26,6 +26,9 @@ SUPPORTED_PLATFORMS += freebsd-amd64
 SUPPORTED_PLATFORMS += openbsd-386
 SUPPORTED_PLATFORMS += openbsd-amd64
 
+SUPPORTED_PLATFORMS += netbsd-386
+SUPPORTED_PLATFORMS += netbsd-amd64
+
 space:=
 space+=
 comma:=,
