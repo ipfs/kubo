@@ -503,7 +503,7 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 	if typeStr == "indirect" || typeStr == "all" {
 		for _, k := range n.Pinning.RecursiveKeys() {
 			var visitErr error
-			err := dag.WalkDepth(req.Context, dag.GetLinksWithDAG(n.DAG), k, 0, func(c cid.Cid, depth int) bool {
+			err := dag.WalkParallelDepth(req.Context, dag.GetLinksWithDAG(n.DAG), k, 0, func(c cid.Cid, depth int) bool {
 				if depth == 0 {
 					// skip it without visiting it.
 					return true
