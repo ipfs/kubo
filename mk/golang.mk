@@ -11,7 +11,7 @@ GOFLAGS ?=
 GOTFLAGS ?=
 
 # Try to make building as reproducible as possible by stripping the go path.
-GOFLAGS += -asmflags=all=-trimpath="$(GOPATH)" -gcflags=all=-trimpath="$(GOPATH)"
+GOFLAGS += "-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
 
 ifeq ($(tarball-is),1)
 	GOFLAGS += -mod=vendor
