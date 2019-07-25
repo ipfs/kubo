@@ -171,7 +171,7 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 	for _, c := range roots {
 		// Walk recursively walks the dag and adds the keys to the given set
-		err := dag.Walk(ctx, verifyGetLinks, c, set.Visit)
+		err := dag.WalkParallel(ctx, verifyGetLinks, c, set.Visit)
 
 		if err != nil {
 			err = verboseCidError(err)
