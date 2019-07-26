@@ -54,6 +54,11 @@ test_expect_success "We can HTTP GET file just created" '
   test_cmp infile outfile
 '
 
+test_expect_success "We got the correct hash" '
+  ADD_HASH="/ipfs/$(ipfs add -q infile)" &&
+  test "x$ADD_HASH" = "x$HASH" || test_fsh echo "$ADD_HASH != $HASH"
+'
+
 test_expect_success "HTTP GET empty directory" '
   URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/" &&
   echo "GET $URL" &&
