@@ -2,30 +2,23 @@ package corehttp
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	gopath "path"
 	"runtime/debug"
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/dagutils"
-	"github.com/ipfs/go-ipfs/namesys/resolve"
-
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
-	chunker "github.com/ipfs/go-ipfs-chunker"
 	files "github.com/ipfs/go-ipfs-files"
-	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
+	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
-	ft "github.com/ipfs/go-unixfs"
-	"github.com/ipfs/go-unixfs/importer"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
@@ -40,27 +33,36 @@ const (
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	node   *core.IpfsNode
 	config GatewayConfig
 	api    coreiface.CoreAPI
 }
 
-func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
+func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 	i := &gatewayHandler{
-		node:   n,
 		config: c,
 		api:    api,
 	}
 	return i
 }
 
-// TODO(cryptix):  find these helpers somewhere else
-func (i *gatewayHandler) newDagFromReader(r io.Reader) (ipld.Node, error) {
-	// TODO(cryptix): change and remove this helper once PR1136 is merged
-	// return ufs.AddFromReader(i.node, r.Body)
-	return importer.BuildDagFromReader(
-		i.node.DAG,
-		chunker.DefaultSplitter(r))
+func parseIpfsPath(p string) (cid.Cid, string, error) {
+	rootPath, err := path.ParsePath(p)
+	if err != nil {
+		return cid.Cid{}, "", err
+	}
+
+	// Check the path.
+	rsegs := rootPath.Segments()
+	if rsegs[0] != "ipfs" {
+		return cid.Cid{}, "", fmt.Errorf("WritableGateway: only ipfs paths supported")
+	}
+
+	rootCid, err := cid.Decode(rsegs[1])
+	if err != nil {
+		return cid.Cid{}, "", err
+	}
+
+	return rootCid, path.Join(rsegs[2:]), nil
 }
 
 func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -160,10 +162,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	// Resolve path to the final DAG node for the ETag
 	resolvedPath, err := i.api.ResolvePath(r.Context(), parsedPath)
-	if err == coreiface.ErrOffline && !i.node.IsOnline {
+	switch err {
+	case nil:
+	case coreiface.ErrOffline:
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
 		return
-	} else if err != nil {
+	default:
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
@@ -395,102 +399,91 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
-	rootPath, err := path.ParsePath(r.URL.Path)
+	ctx := r.Context()
+	ds := i.api.Dag()
+
+	// Parse the path
+	rootCid, newPath, err := parseIpfsPath(r.URL.Path)
 	if err != nil {
-		webError(w, "putHandler: IPFS path not valid", err, http.StatusBadRequest)
+		webError(w, "WritableGateway: failed to parse the path", err, http.StatusBadRequest)
+		return
+	}
+	if newPath == "" || newPath == "/" {
+		http.Error(w, "WritableGateway: empty path", http.StatusBadRequest)
+		return
+	}
+	newDirectory, newFileName := gopath.Split(newPath)
+
+	// Resolve the old root.
+
+	rnode, err := ds.Get(ctx, rootCid)
+	if err != nil {
+		webError(w, "WritableGateway: Could not create DAG from request", err, http.StatusInternalServerError)
 		return
 	}
 
-	rsegs := rootPath.Segments()
-	if rsegs[0] == ipnsPathPrefix {
-		webError(w, "putHandler: updating named entries not supported", errors.New("WritableGateway: ipns put not supported"), http.StatusBadRequest)
+	pbnd, ok := rnode.(*dag.ProtoNode)
+	if !ok {
+		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
 		return
 	}
 
-	var newnode ipld.Node
-	if rsegs[len(rsegs)-1] == "QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn" {
-		newnode = ft.EmptyDirNode()
-	} else {
-		putNode, err := i.newDagFromReader(r.Body)
-		if err != nil {
-			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-			return
-		}
-		newnode = putNode
+	// Create the new file.
+	newFilePath, err := i.api.Unixfs().Add(ctx, files.NewReaderFile(r.Body))
+	if err != nil {
+		webError(w, "WritableGateway: could not create DAG from request", err, http.StatusInternalServerError)
+		return
 	}
 
-	var newPath string
-	if len(rsegs) > 1 {
-		newPath = path.Join(rsegs[2:])
+	newFile, err := ds.Get(ctx, newFilePath.Cid())
+	if err != nil {
+		webError(w, "WritableGateway: failed to resolve new file", err, http.StatusInternalServerError)
+		return
 	}
 
-	var newcid cid.Cid
-	rnode, err := resolve.Resolve(r.Context(), i.node.Namesys, i.node.Resolver, rootPath)
-	switch ev := err.(type) {
-	case resolver.ErrNoLink:
-		// ev.Node < node where resolve failed
-		// ev.Name < new link
-		// but we need to patch from the root
-		c, err := cid.Decode(rsegs[1])
+	// Patch the new file into the old root.
+
+	root, err := mfs.NewRoot(ctx, ds, pbnd, nil)
+	if err != nil {
+		webError(w, "WritableGateway: failed to create MFS root", err, http.StatusBadRequest)
+		return
+	}
+
+	if newDirectory != "" {
+		err := mfs.Mkdir(root, newDirectory, mfs.MkdirOpts{Mkparents: true, Flush: false})
 		if err != nil {
-			webError(w, "putHandler: bad input path", err, http.StatusBadRequest)
+			webError(w, "WritableGateway: failed to create MFS directory", err, http.StatusInternalServerError)
 			return
 		}
-
-		rnode, err := i.node.DAG.Get(r.Context(), c)
-		if err != nil {
-			webError(w, "putHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-			return
-		}
-
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		e := dagutils.NewDagEditor(pbnd, i.node.DAG)
-		err = e.InsertNodeAtPath(r.Context(), newPath, newnode, ft.EmptyDirNode)
-		if err != nil {
-			webError(w, "putHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
-			return
-		}
-
-		nnode, err := e.Finalize(r.Context(), i.node.DAG)
-		if err != nil {
-			webError(w, "putHandler: could not get node", err, http.StatusInternalServerError)
-			return
-		}
-
-		newcid = nnode.Cid()
-
-	case nil:
-		pbnd, ok := rnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		pbnewnode, ok := newnode.(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		// object set-data case
-		pbnd.SetData(pbnewnode.Data())
-
-		newcid = pbnd.Cid()
-		err = i.node.DAG.Add(r.Context(), pbnd)
-		if err != nil {
-			nnk := newnode.Cid()
-			webError(w, fmt.Sprintf("putHandler: Could not add newnode(%q) to root(%q)", nnk.String(), newcid.String()), err, http.StatusInternalServerError)
-			return
-		}
+	}
+	dirNode, err := mfs.Lookup(root, newDirectory)
+	if err != nil {
+		webError(w, "WritableGateway: failed to lookup directory", err, http.StatusInternalServerError)
+		return
+	}
+	dir, ok := dirNode.(*mfs.Directory)
+	if !ok {
+		http.Error(w, "WritableGateway: target directory is not a directory", http.StatusBadRequest)
+		return
+	}
+	err = dir.Unlink(newFileName)
+	switch err {
+	case os.ErrNotExist, nil:
 	default:
-		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
+		webError(w, "WritableGateway: failed to replace existing file", err, http.StatusBadRequest)
 		return
 	}
+	err = dir.AddChild(newFileName, newFile)
+	if err != nil {
+		webError(w, "WritableGateway: failed to link file into directory", err, http.StatusInternalServerError)
+		return
+	}
+	nnode, err := root.GetDirectory().GetNode()
+	if err != nil {
+		webError(w, "WritableGateway: failed to finalize", err, http.StatusInternalServerError)
+		return
+	}
+	newcid := nnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
@@ -498,91 +491,75 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
-	urlPath := r.URL.Path
+	ctx := r.Context()
 
-	p, err := path.ParsePath(urlPath)
+	// parse the path
+
+	rootCid, newPath, err := parseIpfsPath(r.URL.Path)
 	if err != nil {
-		webError(w, "failed to parse path", err, http.StatusBadRequest)
+		webError(w, "WritableGateway: failed to parse the path", err, http.StatusBadRequest)
 		return
 	}
-
-	c, components, err := path.SplitAbsPath(p)
-	if err != nil {
-		webError(w, "Could not split path", err, http.StatusInternalServerError)
+	if newPath == "" || newPath == "/" {
+		http.Error(w, "WritableGateway: empty path", http.StatusBadRequest)
 		return
 	}
+	directory, filename := gopath.Split(newPath)
 
-	pathNodes, err := i.resolvePathComponents(r.Context(), c, components)
+	// lookup the root
+
+	rootNodeIPLD, err := i.api.Dag().Get(ctx, rootCid)
 	if err != nil {
-		webError(w, "Could not resolve path components", err, http.StatusBadRequest)
+		webError(w, "WritableGateway: failed to resolve root CID", err, http.StatusInternalServerError)
 		return
 	}
-
-	pbnd, ok := pathNodes[len(pathNodes)-1].(*dag.ProtoNode)
+	rootNode, ok := rootNodeIPLD.(*dag.ProtoNode)
 	if !ok {
-		webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
+		http.Error(w, "WritableGateway: empty path", http.StatusInternalServerError)
 		return
 	}
 
-	// TODO(cyrptix): assumes len(pathNodes) > 1 - not found is an error above?
-	err = pbnd.RemoveNodeLink(components[len(components)-1])
+	// construct the mfs root
+
+	root, err := mfs.NewRoot(ctx, i.api.Dag(), rootNode, nil)
 	if err != nil {
-		webError(w, "Could not delete link", err, http.StatusBadRequest)
+		webError(w, "WritableGateway: failed to construct the MFS root", err, http.StatusBadRequest)
 		return
 	}
 
-	var newnode *dag.ProtoNode = pbnd
-	for j := len(pathNodes) - 2; j >= 0; j-- {
-		if err := i.node.DAG.Add(r.Context(), newnode); err != nil {
-			webError(w, "Could not add node", err, http.StatusInternalServerError)
-			return
-		}
+	// lookup the parent directory
 
-		pathpb, ok := pathNodes[j].(*dag.ProtoNode)
-		if !ok {
-			webError(w, "Cannot read non protobuf nodes through gateway", dag.ErrNotProtobuf, http.StatusBadRequest)
-			return
-		}
-
-		newnode, err = pathpb.UpdateNodeLink(components[j], newnode)
-		if err != nil {
-			webError(w, "Could not update node links", err, http.StatusInternalServerError)
-			return
-		}
-	}
-
-	if err := i.node.DAG.Add(r.Context(), newnode); err != nil {
-		webError(w, "Could not add root node", err, http.StatusInternalServerError)
+	parentNode, err := mfs.Lookup(root, directory)
+	if err != nil {
+		webError(w, "WritableGateway: failed to look up parent", err, http.StatusInternalServerError)
 		return
 	}
 
-	// Redirect to new path
-	ncid := newnode.Cid()
+	parent, ok := parentNode.(*mfs.Directory)
+	if !ok {
+		http.Error(w, "WritableGateway: parent is not a directory", http.StatusInternalServerError)
+		return
+	}
+
+	// delete the file
+
+	switch parent.Unlink(filename) {
+	case nil, os.ErrNotExist:
+	default:
+		webError(w, "WritableGateway: failed to remove file", err, http.StatusInternalServerError)
+		return
+	}
+
+	nnode, err := root.GetDirectory().GetNode()
+	if err != nil {
+		webError(w, "WritableGateway: failed to finalize", err, http.StatusInternalServerError)
+	}
+	ncid := nnode.Cid()
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", ncid.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), path.Join(components[:len(components)-1])), http.StatusCreated)
-}
-
-func (i *gatewayHandler) resolvePathComponents(
-	ctx context.Context,
-	c cid.Cid,
-	components []string,
-) ([]ipld.Node, error) {
-	tctx, cancel := context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-
-	rootnd, err := i.node.Resolver.DAG.Get(tctx, c)
-	if err != nil {
-		return nil, fmt.Errorf("Could not resolve root object: %s", err)
-	}
-
-	pathNodes, err := i.node.Resolver.ResolveLinks(tctx, rootnd, components[:len(components)-1])
-	if err != nil {
-		return nil, fmt.Errorf("Could not resolve parent object: %s", err)
-	}
-
-	return pathNodes, nil
+	// note: StatusCreated is technically correct here as we created a new resource.
+	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), directory), http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
