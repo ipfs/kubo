@@ -118,6 +118,14 @@ test_expect_success "We can HTTP GET file just put over a directory" '
   test_cmp infile3 outfile3
 '
 
+test_expect_success "HTTP PUT to /ipns fails" '
+  PEERID=`ipfs id --format="<id>"` &&
+  URL="http://localhost:$port/ipns/$PEERID/test.txt" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile1 "$URL" 2>curl_putIpns.out &&
+  grep "HTTP/1.1 400 Bad Request" curl_putIpns.out
+'
+
 
 test_kill_ipfs_daemon
 
