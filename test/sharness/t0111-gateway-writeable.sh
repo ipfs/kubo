@@ -54,17 +54,8 @@ test_expect_success "We can HTTP GET file just created" '
   test_cmp infile outfile
 '
 
-test_expect_success "HTTP PUT empty directory" '
-  URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/" &&
-  echo "PUT $URL" &&
-  curl -svX PUT "$URL" 2>curl_putEmpty.out &&
-  cat curl_putEmpty.out &&
-  grep "Ipfs-Hash: $HASH_EMPTY_DIR" curl_putEmpty.out &&
-  grep "Location: /ipfs/$HASH_EMPTY_DIR" curl_putEmpty.out &&
-  grep "HTTP/1.1 201 Created" curl_putEmpty.out
-'
-
 test_expect_success "HTTP GET empty directory" '
+  URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/" &&
   echo "GET $URL" &&
   curl -so outfile "$URL" 2>curl_getEmpty.out &&
   grep "Index of /ipfs/$HASH_EMPTY_DIR/" outfile
@@ -104,6 +95,24 @@ test_expect_success "We can HTTP GET file just updated" '
   curl -svo outfile2 "$URL" 2>curl_getAgain.out &&
   test_cmp infile2 outfile2
 '
+
+test_expect_success "HTTP PUT to replace a directory" '
+  echo "$RANDOM" >infile3 &&
+  URL="http://localhost:$port/ipfs/$HASH/test" &&
+  echo "PUT $URL" &&
+  curl -svX PUT --data-binary @infile3 "$URL" 2>curl_putOverDirectory.out &&
+  grep "HTTP/1.1 201 Created" curl_putOverDirectory.out &&
+  LOCATION=$(grep Location curl_putOverDirectory.out) &&
+  HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test")
+'
+
+test_expect_success "We can HTTP GET file just put over a directory" '
+  URL="http://localhost:$port/ipfs/$HASH/test" &&
+  echo "GET $URL" &&
+  curl -svo outfile3 "$URL" 2>curl_getOverDirectory.out &&
+  test_cmp infile3 outfile3
+'
+
 
 test_kill_ipfs_daemon
 
