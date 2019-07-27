@@ -87,7 +87,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 				"X-Stream-Output",
 			}, headers[ACEHeadersName]...))
 
-		gateway := newGatewayHandler(n, GatewayConfig{
+		gateway := newGatewayHandler(GatewayConfig{
 			Headers:      headers,
 			Writable:     writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,

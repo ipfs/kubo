@@ -301,6 +301,8 @@ github.com/ipfs/go-merkledag v0.1.0 h1:CAEXjRFEDPvealQj3TgEjV1IJckwjvmxAqtq5QSXJ
 github.com/ipfs/go-merkledag v0.1.0/go.mod h1:SQiXrtSts3KGNmgOzMICy5c0POOpUNQLvB3ClKnBAlk=
 github.com/ipfs/go-merkledag v0.2.0 h1:EAjIQCgZ6/DnOAlKY3+59j72FD9BsYtNaCRSmN0xIbU=
 github.com/ipfs/go-merkledag v0.2.0/go.mod h1:SQiXrtSts3KGNmgOzMICy5c0POOpUNQLvB3ClKnBAlk=
+github.com/ipfs/go-merkledag v0.2.3 h1:aMdkK9G1hEeNvn3VXfiEMLY0iJnbiQQUHnM0HFJREsE=
+github.com/ipfs/go-merkledag v0.2.3/go.mod h1:SQiXrtSts3KGNmgOzMICy5c0POOpUNQLvB3ClKnBAlk=
 github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fGD6n0jO4kdg=
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZaGVF1CUVdE+s=
@@ -320,8 +322,8 @@ github.com/ipfs/go-todocounter v0.0.1/go.mod h1:l5aErvQc8qKE2r7NDMjmq5UNAvuZy0rC
 github.com/ipfs/go-unixfs v0.0.4/go.mod h1:eIo/p9ADu/MFOuyxzwU+Th8D6xoxU//r590vUpWyfz8=
 github.com/ipfs/go-unixfs v0.0.8 h1:AHahQ+gdNZd9BhKVLf8XP1EWeKa78eTzYgCygp7N/Pg=
 github.com/ipfs/go-unixfs v0.0.8/go.mod h1:cK2vDJ7L4YnWB6oLefpVNesgx0x/zPTRVDw6B4Y+03U=
-github.com/ipfs/go-unixfs v0.2.0 h1:mfdI8rgsEifWfhLECrH2WphHvslNoPbdvlmsJ05Fu0M=
-github.com/ipfs/go-unixfs v0.2.0/go.mod h1:sy/j20FKUxdUYOl6GZb3wsQ593C2xk5r1i8U7W+5iio=
+github.com/ipfs/go-unixfs v0.2.1 h1:g51t9ODICFZ3F51FPivm8dE7NzYcdAQNUL9wGP5AYa0=
+github.com/ipfs/go-unixfs v0.2.1/go.mod h1:IwAAgul1UQIcNZzKPYZWOCijryFBeCV79cNubPzol+k=
 github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2E=
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/hang-fds v0.0.1 h1:KGAxiGtJPT3THVRNT6yxgpdFPeX4ZemUjENOt6NlOn4=
