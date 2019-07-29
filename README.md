@@ -56,7 +56,12 @@ The canonical download instructions for IPFS are over at: https://docs.ipfs.io/g
 
 ### System Requirements
 
-IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 2 GB of RAM (it’ll do fine with only one CPU core), but it should run fine with as little as 1 GB of RAM. On systems with less memory, it may not be completely stable.
+IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 2 GB of RAM and 2 CPU cores (go-ipfs is highly parallel). On systems with less memory, it may not be completely stable.
+
+If your system is resource constrained, we recommend:
+
+1. Installing OpenSSL and rebuilding go-ipfs manually with `make build GOFLAGS=-tags=openssl`. See the [download and compile](#download-and-compile-ipfs) section for more information on compiling go-ipfs.
+2. Initializing your daemon with `ipfs init --profile=lowpower`
 
 ### Install prebuilt packages
 
