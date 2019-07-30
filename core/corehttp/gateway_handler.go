@@ -28,6 +28,7 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
+	prometheus "github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -62,6 +63,8 @@ type redirectTemplateData struct {
 type gatewayHandler struct {
 	config GatewayConfig
 	api    coreiface.CoreAPI
+
+	unixfsGetMetric *prometheus.SummaryVec
 }
 
 // StatusResponseWriter enables us to override HTTP Status Code passed to
@@ -84,9 +87,27 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 }
 
 func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
+	unixfsGetMetric := prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "ipfs",
+			Subsystem: "http",
+			Name:      "unixfs_get_latency_seconds",
+			Help:      "The time till the first block is received when 'getting' a file from the gateway.",
+		},
+		[]string{"gateway"},
+	)
+	if err := prometheus.Register(unixfsGetMetric); err != nil {
+		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			unixfsGetMetric = are.ExistingCollector.(*prometheus.SummaryVec)
+		} else {
+			log.Errorf("failed to register unixfsGetMetric: %v", err)
+		}
+	}
+
 	i := &gatewayHandler{
-		config: c,
-		api:    api,
+		config:          c,
+		api:             api,
+		unixfsGetMetric: unixfsGetMetric,
 	}
 	return i
 }
@@ -271,7 +292,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
+	i.unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
 
 	defer dr.Close()
 
