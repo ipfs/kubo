@@ -10,7 +10,7 @@ import (
 	promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// This adds the scraping endpoint which Prometheus uses to fetch metrics.
+// MetricsScrapingOption adds the scraping endpoint which Prometheus uses to fetch metrics.
 func MetricsScrapingOption(path string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.Handle(path, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}))
@@ -18,7 +18,7 @@ func MetricsScrapingOption(path string) ServeOption {
 	}
 }
 
-// This adds collection of net/http-related metrics
+// MetricsCollectionOption adds collection of net/http-related metrics.
 func MetricsCollectionOption(handlerName string) ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		// Adapted from github.com/prometheus/client_golang/prometheus/http.go
@@ -27,6 +27,16 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 			Subsystem:   "http",
 			ConstLabels: prometheus.Labels{"handler": handlerName},
 			Objectives:  map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		}
+
+		if handlerName == "gateway" {
+			if err := prometheus.Register(unixfsGetMetric); err != nil {
+				if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+					unixfsGetMetric = are.ExistingCollector.(*prometheus.SummaryVec)
+				} else {
+					return nil, err
+				}
+			}
 		}
 
 		reqCnt := prometheus.NewCounterVec(
@@ -96,14 +106,20 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 var (
 	peersTotalMetric = prometheus.NewDesc(
 		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
-		"Number of connected peers", []string{"transport"}, nil)
+		"Number of connected peers",
+		[]string{"transport"},
+		nil,
+	)
 
-	unixfsGetMetric = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace: "ipfs",
-		Subsystem: "http",
-		Name:      "unixfs_get_latency_seconds",
-		Help:      "The time till the first block is received when 'getting' a file from the gateway.",
-	}, []string{"namespace"})
+	unixfsGetMetric = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "ipfs",
+			Subsystem: "http",
+			Name:      "unixfs_get_latency_seconds",
+			Help:      "The time till the first block is received when 'getting' a file from the gateway.",
+		},
+		[]string{"gateway"},
+	)
 )
 
 type IpfsNodeCollector struct {
