@@ -15,7 +15,7 @@ require (
 	github.com/golangci/golangci-lint v1.16.1-0.20190425135923-692dacb773b7
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.1
-	github.com/ipfs/go-bitswap v0.1.5
+	github.com/ipfs/go-bitswap v0.1.6
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.0
 	github.com/ipfs/go-cid v0.0.2
@@ -109,7 +109,6 @@ require (
 	go.uber.org/goleak v0.10.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go4.org v0.0.0-20190313082347-94abd6928b1d // indirect
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gotest.tools/gotestsum v0.3.4

@@ -209,8 +209,8 @@ github.com/ipfs/go-bitswap v0.0.9/go.mod h1:kAPf5qgn2W2DrgAcscZ3HrM9qh4pH+X8Fkk3
 github.com/ipfs/go-bitswap v0.1.0 h1:28YsHYw9ut6wootnImPXH0WpnU5Dbo3qm6cvQ6e6wYY=
 github.com/ipfs/go-bitswap v0.1.0/go.mod h1:FFJEf18E9izuCqUtHxbWEvq+reg7o4CW5wSAE1wsxj0=
 github.com/ipfs/go-bitswap v0.1.2/go.mod h1:qxSWS4NXGs7jQ6zQvoPY3+NmOfHHG47mhkiLzBpJQIs=
-github.com/ipfs/go-bitswap v0.1.5 h1:pgajlrTCFbbPgYJ234M1pssneLuIsVuxtfpx1I4cz3Y=
-github.com/ipfs/go-bitswap v0.1.5/go.mod h1:TOWoxllhccevbWFUR2N7B1MTSVVge1s6XSMiCSA4MzM=
+github.com/ipfs/go-bitswap v0.1.6 h1:3jj6/69bsqAFmNViEXU8MWUDE8iE1mrqVPaKaIChu7k=
+github.com/ipfs/go-bitswap v0.1.6/go.mod h1:oRNdV7SkA9glUUMHd6O2ztSwimBDLFdIF0fYIuDEzVo=
 github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/baNLgayt4pFc=
 github.com/ipfs/go-block-format v0.0.2 h1:qPDvcP19izTjU8rgo6p7gTXZlkMkF5bz5G3fqIsSCPE=
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
@@ -903,6 +903,8 @@ golang.org/x/tools v0.0.0-20190311212946-11955173bddd/go.mod h1:LCzVGOaR6xXOjkQ3
 golang.org/x/tools v0.0.0-20190328211700-ab21143f2384/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
 golang.org/x/tools v0.0.0-20190420000508-685fecacd0a0 h1:pa1CyBALPFjblgkNQp7T7gEcFcG/GOG5Ck8IcnSVWGs=
 golang.org/x/tools v0.0.0-20190420000508-685fecacd0a0/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
+golang.org/x/tools v0.0.0-20190621195816-6e04913cbbac h1:MQEvx39qSf8vyrx3XRaOe+j1UDIzKwkYOVObRgGPVqI=
+golang.org/x/tools v0.0.0-20190621195816-6e04913cbbac/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
 golang.org/x/xerrors v0.0.0-20190513163551-3ee3066db522 h1:bhOzK9QyoD0ogCnFro1m2mz41+Ib0oOhfJnBp5MR4K4=
 golang.org/x/xerrors v0.0.0-20190513163551-3ee3066db522/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 google.golang.org/appengine v1.1.0/go.mod h1:EbEs0AVv82hx2wNQdGPgUI5lhzA/G0D9YwlJXL52JkM=
