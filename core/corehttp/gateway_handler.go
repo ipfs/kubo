@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/dagutils"
 	"github.com/ipfs/go-ipfs/namesys/resolve"
+	prometheus "github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
@@ -43,13 +44,33 @@ type gatewayHandler struct {
 	node   *core.IpfsNode
 	config GatewayConfig
 	api    coreiface.CoreAPI
+
+	unixfsGetMetric *prometheus.SummaryVec
 }
 
 func newGatewayHandler(n *core.IpfsNode, c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
+	unixfsGetMetric := prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "ipfs",
+			Subsystem: "http",
+			Name:      "unixfs_get_latency_seconds",
+			Help:      "The time till the first block is received when 'getting' a file from the gateway.",
+		},
+		[]string{"gateway"},
+	)
+	if err := prometheus.Register(unixfsGetMetric); err != nil {
+		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			unixfsGetMetric = are.ExistingCollector.(*prometheus.SummaryVec)
+		} else {
+			log.Errorf("failed to register unixfsGetMetric: %v", err)
+		}
+	}
+
 	i := &gatewayHandler{
-		node:   n,
-		config: c,
-		api:    api,
+		node:            n,
+		config:          c,
+		api:             api,
+		unixfsGetMetric: unixfsGetMetric,
 	}
 	return i
 }
@@ -174,7 +195,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
+	i.unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
 
 	defer dr.Close()
 

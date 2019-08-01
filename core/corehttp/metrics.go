@@ -29,16 +29,6 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 			Objectives:  map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}
 
-		if handlerName == "gateway" {
-			if err := prometheus.Register(unixfsGetMetric); err != nil {
-				if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
-					unixfsGetMetric = are.ExistingCollector.(*prometheus.SummaryVec)
-				} else {
-					return nil, err
-				}
-			}
-		}
-
 		reqCnt := prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace:   opts.Namespace,
@@ -109,16 +99,6 @@ var (
 		"Number of connected peers",
 		[]string{"transport"},
 		nil,
-	)
-
-	unixfsGetMetric = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: "ipfs",
-			Subsystem: "http",
-			Name:      "unixfs_get_latency_seconds",
-			Help:      "The time till the first block is received when 'getting' a file from the gateway.",
-		},
-		[]string{"gateway"},
 	)
 )
 
