@@ -30,16 +30,17 @@ For each RC published in each stage:
 
 Checklist:
 
-- [ ] **Stage 1 - Internal Testing**
+- [ ] **Stage 0 - Automated Testing**
   - [ ] Feature freeze. If any "non-trivial" changes (see the footnotes of [docs/releases.md](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md) for a definition) get added to the release, uncheck all the checkboxes and return to this stage.
-  - [ ] CHANGELOG.md has been updated
-    - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
   - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
     - [ ] unit, sharness, cross-build, etc (`make test`)
     - [ ] lint (`make test_go_lint`)
     - [ ] [interop](https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs)
     - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
     - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
+- [ ] **Stage 1 - Internal Testing**
+  - [ ] CHANGELOG.md has been updated
+    - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
   - [ ] Network Testing:
     - [ ] test lab things - TBD
   - [ ] Infrastructure Testing:
@@ -52,12 +53,12 @@ Checklist:
     - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) - @hacdias
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion) - @lidel
     - [ ] [NPM on IPFS](https://github.com/ipfs-shipyard/npm-on-ipfs) - @achingbrain
-- [ ] **Stage 2 - Public Beta**
+- [ ] **Stage 2 - Community Dev Testing**
   - [ ] Reach out to the IPFS _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) for testing this release (check when no more problems have been reported). If you'd like to be added to this list, please file a PR.
   - [ ] Reach out to on IRC for beta testers.
   - [ ] Run tests available in the following repos with the latest beta (check when all tests pass):
     - [ ] [orbit-db](https://github.com/orbitdb/orbit-db)
-- [ ] **Stage 3 - Soft Release**
+- [ ] **Stage 3 - Community Prod Testing**
   - [ ] Documentation
     - [ ] Ensure that [CHANGELOG.md](https://github.com/ipfs/go-ipfs/tree/master/CHANGELOG.md) is up to date
     - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
