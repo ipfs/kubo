@@ -61,7 +61,7 @@ A full release process should take about 3 weeks, a week per stage 1-3. We will 
 
 Patch releases will usually follow a compressed release cycle and should take 2-3 days. In a patch release:
 
-1. Internal testing will be compressed to a few hours to a day.
+1. Internal testing will be compressed into a few hours - ideally less than a day.
 2. Stage 2 will be skipped.
 3. Community production testing will be shortened to 1-2 days of opt-in testing in production (early testers can choose to pass).
 
