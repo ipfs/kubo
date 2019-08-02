@@ -27,6 +27,7 @@ For each RC published in each stage:
   2. Pin the resulting release.
   3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
   4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
+- cut a pre-release on [github](https://github.com/ipfs/go-ipfs/releases) and upload the result of the ipfs/distributions build in the previous step.
 
 Checklist:
 
