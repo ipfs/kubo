@@ -53,6 +53,20 @@ At this stage, we consider the release to be "production ready" and ask will ask
 
 At this stage, the release is "battle hardened" and ready for wide deployment.
 
+## Release Cycle
+
+A full release process should take about 3 weeks, a week per stage 1-3. We will start a new process every 6 weeks, regardless of when the previous release landed unless it's still ongoing.
+
+## Patch Releases
+
+Patch releases will usually follow a compressed release cycle and should take 2-3 days. In a patch release:
+
+1. Internal testing will be compressed to a few hours to a day.
+2. Stage 2 will be skipped.
+3. Community production testing will be shortened to 1-2 days of opt-in testing in production (early testers can choose to pass).
+
+Some patch releases, especially ones fixing one or more complex bugs, may undergo the full release process.
+
 ## Performing a Release
 
 The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md). Then, the 5 stages will be followed until the release is done.
