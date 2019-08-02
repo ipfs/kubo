@@ -57,7 +57,9 @@ At this stage, the release is "battle hardened" and ready for wide deployment.
 
 A full release process should take about 3 weeks, a week per stage 1-3. We will start a new process every 6 weeks, regardless of when the previous release landed unless it's still ongoing.
 
-## Patch Releases
+### Patch Releases
+
+If we encounter a serious bug in the stable latest release, we will create a patch release based on this release. For now, bug fixes will _not_ be backported to previous releases.
 
 Patch releases will usually follow a compressed release cycle and should take 2-3 days. In a patch release:
 
