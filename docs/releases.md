@@ -71,7 +71,7 @@ Some patch releases, especially ones fixing one or more complex bugs, may underg
 
 ## Performing a Release
 
-The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md). Then, the 5 stages will be followed until the release is done.
+The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md). This issue will be pinned and labeled with the ["release"](https://github.com/ipfs/go-ipfs/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aopen+label%3Arelease) tag. Then, the 5 stages will be followed until the release is done.
 
 ## Release Version Numbers (aka semver)
 
