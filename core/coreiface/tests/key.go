@@ -147,7 +147,7 @@ func (tp *TestSuite) TestGenerateSize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	k, err := api.Key().Generate(ctx, "foo", opt.Key.Size(1024))
+	k, err := api.Key().Generate(ctx, "foo", opt.Key.Size(2048))
 	if err != nil {
 		t.Fatal(err)
 		return
