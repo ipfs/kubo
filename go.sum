@@ -314,8 +314,8 @@ github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/hang-fds v0.0.1 h1:KGAxiGtJPT3THVRNT6yxgpdFPeX4ZemUjENOt6NlOn4=
 github.com/ipfs/hang-fds v0.0.1/go.mod h1:U4JNbzwTpk/qP2Ms4VgrZ4HcgJGVosBJqMXvwe4udSY=
-github.com/ipfs/interface-go-ipfs-core v0.1.0 h1:4LD2TJThswXVMJgAji9k9PyPsOGNtmdcx7U9RM1xH84=
-github.com/ipfs/interface-go-ipfs-core v0.1.0/go.mod h1:h1zJvvfh9dcNU0bK+Jag516LputHLKQkHsDP+z0dz4A=
+github.com/ipfs/interface-go-ipfs-core v0.2.0 h1:Rd/TEvCXLlX97PKtxDstXcvLg+haULSJmlD964X+u8U=
+github.com/ipfs/interface-go-ipfs-core v0.2.0/go.mod h1:r4aDX0CTcI0pvqGqy4JxlwiTOGuIyDSpVKs0qZKqIMI=
 github.com/ipfs/iptb v1.4.0 h1:YFYTrCkLMRwk/35IMyC6+yjoQSHTEcNcefBStLJzgvo=
 github.com/ipfs/iptb v1.4.0/go.mod h1:1rzHpCYtNp87/+hTxG5TfCVn/yMY3dKnLn8tBiMfdmg=
 github.com/ipfs/iptb-plugins v0.1.0 h1:9/PTKJX+rB2qqXkaX/3IDxLSHTBwMMvFrYEf7g2mFo8=

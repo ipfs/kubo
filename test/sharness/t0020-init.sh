@@ -98,7 +98,7 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_expect_success "'ipfs init --empty-repo' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --empty-repo >actual_init
 '
 
@@ -128,14 +128,14 @@ test_expect_success "clean up ipfs dir" '
 
 # test init profiles
 test_expect_success "'ipfs init --profile' with invalid profile fails" '
-  BITS="1024" &&
+  BITS="2048" &&
   test_must_fail ipfs init --bits="$BITS" --profile=nonexistent_profile 2> invalid_profile_out
   EXPECT="Error: invalid configuration profile: nonexistent_profile" &&
   grep "$EXPECT" invalid_profile_out
 '
 
 test_expect_success "'ipfs init --profile' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --profile=server
 '
 
@@ -149,7 +149,7 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_expect_success "'ipfs init --profile=test' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --profile=test
 '
 
@@ -168,7 +168,7 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_expect_success "'ipfs init --profile=lowpower' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --profile=lowpower
 '
 

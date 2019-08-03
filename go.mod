@@ -52,7 +52,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.1
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.1.0
+	github.com/ipfs/interface-go-ipfs-core v0.2.0
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.1.0
 	github.com/jbenet/go-is-domain v1.0.2
