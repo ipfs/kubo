@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/test"
+
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
 	mockrouting "github.com/ipfs/go-ipfs-routing/mock"
 	offline "github.com/ipfs/go-ipfs-routing/offline"
-	u "github.com/ipfs/go-ipfs-util"
 	ipns "github.com/ipfs/go-ipns"
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -137,19 +138,15 @@ func TestResolverValidation(t *testing.T) {
 }
 
 func genKeys(t *testing.T) (ci.PrivKey, peer.ID, string, string) {
-	sr := u.NewTimeSeededRand()
-	priv, _, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, sr)
+	sk, pk, err := test.RandTestKeyPair(ci.RSA, 2048)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// Create entry with expiry in one hour
-	pid, err := peer.IDFromPrivateKey(priv)
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	return priv, pid, PkKeyForID(pid), ipns.RecordKey(pid)
+	return sk, id, PkKeyForID(id), ipns.RecordKey(id)
 }
 
 type mockValueStore struct {

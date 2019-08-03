@@ -88,7 +88,7 @@ func TestNamesysResolution(t *testing.T) {
 
 func TestPublishWithCache0(t *testing.T) {
 	dst := dssync.MutexWrap(ds.NewMapDatastore())
-	priv, _, err := ci.GenerateKeyPair(ci.RSA, 1024)
+	priv, _, err := ci.GenerateKeyPair(ci.RSA, 2048)
 	if err != nil {
 		t.Fatal(err)
 	}
