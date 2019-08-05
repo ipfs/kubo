@@ -17,11 +17,13 @@ We might expand the six week release schedule in case of:
 
 ## Release Flow
 
-`go-ipfs` releases come in 4 stages designed to gradually roll out changes and reduce the impact of any regressions that may have been introduced. If we need to merge non-trivial<sup>[2]</sup> changes during the process, we start over at stage 1.
+`go-ipfs` releases come in 5 stages designed to gradually roll out changes and reduce the impact of any regressions that may have been introduced. If we need to merge non-trivial<sup>[2]</sup> changes during the process, we start over at stage 0.
+
+### Stage 0 - Automated Testing
+
+At this stage, we expect _all_ automated tests (interop, testlab, performance, etc.) to pass.
 
 ### Stage 1 - Internal Testing
-
-Before this stage, we expect _all_ tests (interop, testlab, performance, etc.) to pass.
 
 At this stage, we'll:
 - 1. Start a partial-rollout to our own infrastructure.
@@ -31,13 +33,13 @@ At this stage, we'll:
 - 1. Make sure we haven't introduced any obvious regressions.
 - 2. Test the release in an environment we can monitor and easily roll back (i.e., our own infra).
 
-### Stage 2 - Public Beta
+### Stage 2 - Community Dev Testing
 
 At this stage, we'll announce the impending release to the community and ask for beta testers.
 
 **Goal:** Test the release in as many non-production environments as possible. This is relatively low-risk but gives us a _breadth_ of testing internal testing can't.
 
-### Stage 3 - Soft Release
+### Stage 3 - Community Prod Testing
 
 At this stage, we consider the release to be "production ready" and ask will ask the community and our early testers to (partially) deploy the release to their production infrastructure.
 
@@ -51,9 +53,25 @@ At this stage, we consider the release to be "production ready" and ask will ask
 
 At this stage, the release is "battle hardened" and ready for wide deployment.
 
+## Release Cycle
+
+A full release process should take about 3 weeks, a week per stage 1-3. We will start a new process every 6 weeks, regardless of when the previous release landed unless it's still ongoing.
+
+### Patch Releases
+
+If we encounter a serious bug in the stable latest release, we will create a patch release based on this release. For now, bug fixes will _not_ be backported to previous releases.
+
+Patch releases will usually follow a compressed release cycle and should take 2-3 days. In a patch release:
+
+1. Automated and internal testing (stage 0 and 1) will be compressed into a few hours - ideally less than a day.
+2. Stage 2 will be skipped.
+3. Community production testing will be shortened to 1-2 days of opt-in testing in production (early testers can choose to pass).
+
+Some patch releases, especially ones fixing one or more complex bugs, may undergo the full release process.
+
 ## Performing a Release
 
-The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md). Then, the 4 stages will be followed until the release is done.
+The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md). This issue will be pinned and labeled with the ["release"](https://github.com/ipfs/go-ipfs/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aopen+label%3Arelease) tag. Then, the 5 stages will be followed until the release is done.
 
 ## Release Version Numbers (aka semver)
 
