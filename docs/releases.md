@@ -63,7 +63,7 @@ If we encounter a serious bug in the stable latest release, we will create a pat
 
 Patch releases will usually follow a compressed release cycle and should take 2-3 days. In a patch release:
 
-1. Internal testing will be compressed into a few hours - ideally less than a day.
+1. Automated and internal testing (stage 0 and 1) will be compressed into a few hours - ideally less than a day.
 2. Stage 2 will be skipped.
 3. Community production testing will be shortened to 1-2 days of opt-in testing in production (early testers can choose to pass).
 
