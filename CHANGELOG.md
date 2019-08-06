@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.22 2019-07-05
+## 0.4.22 2019-08-06
 
 We're releasing a PATCH release of go-ipfs based on 0.4.21 containing some critical fixes.
 
