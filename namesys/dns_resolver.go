@@ -44,7 +44,7 @@ var cache = cacheLib.New(dnsCachePurgeInterval, dnsCachePurgeInterval)
 func (d *customDNS) LookupTXT(name string) (txt []string, err error) {
 	// Check if the record is available in cache
 	if msgI, found := cache.Get(name); found {
-		fmt.Println("Responding from cache")
+		log.Debugf("Responding from cache\n")
 		msg := msgI.(*dns.Msg)
 		// We already checked and are sure that this response exists
 		t := msg.Answer[0].(*dns.TXT)
@@ -118,7 +118,7 @@ func (d *customDNS) ExchangeDNSRequest(msg *dns.Msg, name string) (in *dns.Msg, 
 
 	// Address
 	addr := fmt.Sprintf("%s:%d", d.Address, port)
-	fmt.Println("Resolving TXT for", name, "using server", addr)
+	log.Debugf("Resolving TXT for %s using server %s\n", name, addr)
 
 	// Send the request
 	var rtt time.Duration
@@ -126,7 +126,7 @@ func (d *customDNS) ExchangeDNSRequest(msg *dns.Msg, name string) (in *dns.Msg, 
 	if err != nil {
 		return
 	}
-	fmt.Println("Request took", rtt)
+	log.Debugf("Request took %d\n", rtt)
 	return
 }
 
