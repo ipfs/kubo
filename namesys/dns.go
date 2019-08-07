@@ -25,9 +25,10 @@ func NewDNSResolver(cfg *config.Config) *DNSResolver {
 	// Check if we're using a custom DNS server
 	if cfg.DNS.CustomResolver {
 		dns := &customDNS{
-			Address:          "1.1.1.1",
-			Protocol:         "dns-over-https",
-			DNSoverHTTPSHost: "cloudflare-dns.com",
+			Address:          cfg.DNS.Address,
+			Port:             cfg.DNS.Port,
+			Protocol:         cfg.DNS.Protocol,
+			DNSoverHTTPSHost: cfg.DNS.DNSoverHTTPSHost,
 		}
 		return &DNSResolver{lookupTXT: dns.LookupTXT}
 	}
