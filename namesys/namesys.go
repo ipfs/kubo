@@ -7,6 +7,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	ds "github.com/ipfs/go-datastore"
+	config "github.com/ipfs/go-ipfs-config"
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	isd "github.com/jbenet/go-is-domain"
@@ -33,14 +34,14 @@ type mpns struct {
 }
 
 // NewNameSystem will construct the IPFS naming system based on Routing
-func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSystem {
+func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int, cfg *config.Config) NameSystem {
 	var cache *lru.Cache
 	if cachesize > 0 {
 		cache, _ = lru.New(cachesize)
 	}
 
 	return &mpns{
-		dnsResolver:      NewDNSResolver(),
+		dnsResolver:      NewDNSResolver(cfg),
 		proquintResolver: new(ProquintResolver),
 		ipnsResolver:     NewIpnsResolver(r),
 		ipnsPublisher:    NewIpnsPublisher(r, ds),

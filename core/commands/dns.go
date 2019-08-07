@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -60,9 +61,15 @@ The resolver can recursively resolve:
 		cmds.BoolOption(dnsRecursiveOptionName, "r", "Resolve until the result is not a DNS link.").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cctx := env.(*oldcmds.Context)
+		cfg, err := cctx.GetConfig()
+		if err != nil {
+			return err
+		}
+
 		recursive, _ := req.Options[dnsRecursiveOptionName].(bool)
 		name := req.Arguments[0]
-		resolver := namesys.NewDNSResolver()
+		resolver := namesys.NewDNSResolver(cfg)
 
 		var routing []nsopts.ResolveOpt
 		if !recursive {

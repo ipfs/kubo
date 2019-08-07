@@ -215,7 +215,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		}
 
 		subApi.routing = offlineroute.NewOfflineRouter(subApi.repo.Datastore(), subApi.recordValidator)
-		subApi.namesys = namesys.NewNameSystem(subApi.routing, subApi.repo.Datastore(), cs)
+		subApi.namesys = namesys.NewNameSystem(subApi.routing, subApi.repo.Datastore(), cs, cfg)
 		subApi.provider = provider.NewOfflineProvider()
 
 		subApi.peerstore = nil

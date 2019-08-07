@@ -29,7 +29,11 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 // Namesys creates new name system
 func Namesys(cacheSize int) func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
 	return func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
-		return namesys.NewNameSystem(rt, repo.Datastore(), cacheSize), nil
+		cfg, err := repo.Config()
+		if err != nil {
+			return nil, err
+		}
+		return namesys.NewNameSystem(rt, repo.Datastore(), cacheSize, cfg), nil
 	}
 }
 
