@@ -3,7 +3,6 @@ package namesys
 import (
 	"context"
 	"errors"
-	"net"
 	"strings"
 
 	path "github.com/ipfs/go-path"
@@ -11,18 +10,24 @@ import (
 	isd "github.com/jbenet/go-is-domain"
 )
 
+// LookupTXTFunc is the interface for the lookupTXT property of DNSResolver
 type LookupTXTFunc func(name string) (txt []string, err error)
 
 // DNSResolver implements a Resolver on DNS domains
 type DNSResolver struct {
 	lookupTXT LookupTXTFunc
-	// TODO: maybe some sort of caching?
-	// cache would need a timeout
 }
 
 // NewDNSResolver constructs a name resolver using DNS TXT records.
 func NewDNSResolver() *DNSResolver {
-	return &DNSResolver{lookupTXT: net.LookupTXT}
+	dns := &customDNS{
+		Address:          "1.1.1.1",
+		Protocol:         "dns-over-https",
+		DNSoverHTTPSHost: "cloudflare-dns.com",
+	}
+
+	return &DNSResolver{lookupTXT: dns.LookupTXT}
+	//return &DNSResolver{lookupTXT: net.LookupTXT}
 }
 
 // Resolve implements Resolver.

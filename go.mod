@@ -87,6 +87,7 @@ require (
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
+	github.com/miekg/dns v1.1.12
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.4
@@ -95,6 +96,7 @@ require (
 	github.com/multiformats/go-multibase v0.0.1
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/opentracing/opentracing-go v1.1.0
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3
 	github.com/prometheus/procfs v0.0.0-20190519111021-9935e8e0588d // indirect
@@ -109,7 +111,9 @@ require (
 	go.uber.org/goleak v0.10.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go4.org v0.0.0-20190313082347-94abd6928b1d // indirect
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gotest.tools/gotestsum v0.3.4
 )
