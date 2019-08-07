@@ -37,6 +37,9 @@ const reqTimeout = 5 * time.Second
 // Interval between DNS cache purges
 const dnsCachePurgeInterval = 5 * time.Minute
 
+// Maximum TTL allowed for DNS records (to keep cache leaner)
+const maxTTL = 6 * time.Hour
+
 // Initialize the cache
 var cache = cacheLib.New(dnsCachePurgeInterval, dnsCachePurgeInterval)
 
@@ -204,6 +207,9 @@ func (d *customDNS) ExchangeDoHRequest(msg *dns.Msg, name string) (in *dns.Msg, 
 }
 
 func (d *customDNS) cacheResult(name string, msg *dns.Msg) {
-	ttl := time.Duration(msg.Answer[0].Header().Ttl)
-	cache.Set(name, msg, ttl*time.Second)
+	ttl := time.Duration(msg.Answer[0].Header().Ttl) * time.Second
+	if ttl > maxTTL {
+		ttl = maxTTL
+	}
+	cache.Set(name, msg, ttl)
 }
