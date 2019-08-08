@@ -42,23 +42,6 @@ func NewDNSResolver(cfg *config.Config) (*DNSResolver, error) {
 			return nil, fmt.Errorf("Invalid DNS Resolver address: %q (Not enough components)", cfg.DNS.Resolver)
 		}
 
-		/*for _, proto := range resolverMaddr.Protocols() {
-			// Address
-			if proto.Code == ma.P_IP4 || proto.Code == ma.P_IP6 {
-				dns.Address =
-			}
-		}*/
-		/*ma.ForEach(resolverMaddr, func(c ma.Component) bool {
-			for _, proto := range c.Protocols() {
-				val, err := c.ValueForProtocol(proto.Code)
-				if err != nil {
-					return false
-				}
-				fmt.Println(proto, val)
-			}
-			return true
-		})*/
-
 		// First component should be the IP or DNS
 		if proto[0].Code == ma.P_IP4 || proto[0].Code == ma.P_IP6 {
 			val, err := resolverMaddr.ValueForProtocol(proto[0].Code)
