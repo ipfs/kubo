@@ -99,7 +99,10 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		if err != nil {
 			return nil, err
 		}
-		resolver = namesys.NewNameSystem(api.routing, api.repo.Datastore(), 0, cfg)
+		resolver, err = namesys.NewNameSystem(api.routing, api.repo.Datastore(), 0, cfg)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !strings.HasPrefix(name, "/ipns/") {

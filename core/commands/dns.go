@@ -69,7 +69,10 @@ The resolver can recursively resolve:
 
 		recursive, _ := req.Options[dnsRecursiveOptionName].(bool)
 		name := req.Arguments[0]
-		resolver := namesys.NewDNSResolver(cfg)
+		resolver, err := namesys.NewDNSResolver(cfg)
+		if err != nil {
+			return err
+		}
 
 		var routing []nsopts.ResolveOpt
 		if !recursive {

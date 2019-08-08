@@ -107,7 +107,10 @@ func TestPublishWithCache0(t *testing.T) {
 		"pk":   record.PublicKeyValidator{},
 	})
 
-	nsys := NewNameSystem(routing, dst, 0)
+	nsys, err := NewNameSystem(routing, dst, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
 	p, err := path.ParsePath(unixfs.EmptyDirNode().Cid().String())
 	if err != nil {
 		t.Fatal(err)

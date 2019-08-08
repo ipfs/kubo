@@ -37,7 +37,10 @@ func TestRepublish(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		nd.Namesys = namesys.NewNameSystem(nd.Routing, nd.Repo.Datastore(), 0)
+		nd.Namesys, err = namesys.NewNameSystem(nd.Routing, nd.Repo.Datastore(), 0)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		nodes = append(nodes, nd)
 	}

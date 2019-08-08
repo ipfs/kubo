@@ -33,7 +33,11 @@ func Namesys(cacheSize int) func(rt routing.Routing, repo repo.Repo) (namesys.Na
 		if err != nil {
 			return nil, err
 		}
-		return namesys.NewNameSystem(rt, repo.Datastore(), cacheSize, cfg), nil
+		ns, err := namesys.NewNameSystem(rt, repo.Datastore(), cacheSize, cfg)
+		if err != nil {
+			return nil, err
+		}
+		return ns, nil
 	}
 }
 

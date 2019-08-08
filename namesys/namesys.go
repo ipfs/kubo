@@ -34,19 +34,24 @@ type mpns struct {
 }
 
 // NewNameSystem will construct the IPFS naming system based on Routing
-func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int, cfg *config.Config) NameSystem {
+func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int, cfg *config.Config) (NameSystem, error) {
 	var cache *lru.Cache
 	if cachesize > 0 {
 		cache, _ = lru.New(cachesize)
 	}
 
+	resolver, err := NewDNSResolver(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &mpns{
-		dnsResolver:      NewDNSResolver(cfg),
+		dnsResolver:      resolver,
 		proquintResolver: new(ProquintResolver),
 		ipnsResolver:     NewIpnsResolver(r),
 		ipnsPublisher:    NewIpnsPublisher(r, ds),
 		cache:            cache,
-	}
+	}, nil
 }
 
 const DefaultResolverCacheTTL = time.Minute
