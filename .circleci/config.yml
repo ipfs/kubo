@@ -1,8 +1,8 @@
-version: 2.0
+version: 2.1
 
 aliases:
   make_out_dirs: &make_out_dirs
-    run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_WORKSPACE $CIRCLE_TEST_REPORTS/{unit,sharness}
+    run: mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/{unit,sharness}
   restore_gomod: &restore_gomod
     restore_cache:
       keys:
@@ -17,28 +17,36 @@ aliases:
           - ~/go/pkg/mod
           - ~/.cache/go-build/
 
+default_environment: &default_environment
+  SERVICE: circle-ci
+  TRAVIS: 1
+  CIRCLE: 1
+  CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+  CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+  GIT_PAGER: cat
 
-defaults: &defaults
-  working_directory: ~/ipfs/go-ipfs
-  environment:
-    GIT_PAGER: cat
-    GO111MODULE: "on"
-    TEST_NO_DOCKER: 1
-    TEST_NO_FUSE: 1
-    GOPATH: /home/circleci/go
-    CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
-    CIRCLE: 1
-    SERVICE: circle-ci
-    CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
-    CIRCLE_WORKSPACE: /tmp/circleci-workspace
-    TEST_VERBOSE: 1
-    TRAVIS: 1
+executors:
+  golang:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
+      GO111MODULE: "on"
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      GOPATH: /home/circleci/go
+      TEST_VERBOSE: 1
+  node:
+    docker:
+      - image: circleci/node:10
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
 
 jobs:
   gobuild:
-    docker:
-      - image: circleci/golang:1.12
-    <<: *defaults
+    executor: golang
     steps:
     - checkout
     - *make_out_dirs
@@ -53,9 +61,7 @@ jobs:
           TEST_NO_FUSE: 1
     - *store_gomod
   golint:
-    <<: *defaults
-    docker:
-      - image: circleci/golang:1.12
+    executor: golang
     steps:
     - checkout
     - *make_out_dirs
@@ -64,9 +70,7 @@ jobs:
         make -O test_go_lint
     - *store_gomod
   gotest:
-    docker:
-      - image: circleci/golang:1.12
-    <<: *defaults
+    executor: golang
     steps:
     - checkout
     - *make_out_dirs
@@ -93,9 +97,7 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   sharness:
-    docker:
-      - image: circleci/golang:1.12
-    <<: *defaults
+    executor: golang
     steps:
     - run: sudo apt install socat
     - checkout
@@ -122,9 +124,7 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   build:
-    docker:
-      - image: circleci/golang:1.12
-    <<: *defaults
+    executor: golang
     steps:
       - checkout
       - *make_out_dirs
@@ -143,9 +143,9 @@ jobs:
             - bin/ipfs
       - *store_gomod
   interop:
-    docker:
-      - image: circleci/node:10
-    <<: *defaults
+    executor: node
+    environment:
+      IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -162,8 +162,6 @@ jobs:
       - run:
           command: npm install
           working_directory: ~/ipfs/go-ipfs/interop
-          environment:
-            IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
       - save_cache:
           key: v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
           paths:
@@ -171,12 +169,8 @@ jobs:
       - run:
           command: npm run test:node
           working_directory: ~/ipfs/go-ipfs/interop
-          environment:
-            IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
   go-ipfs-api:
-    docker:
-      - image: circleci/golang:1.12
-    <<: *defaults
+    executor: golang
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -213,9 +207,7 @@ jobs:
           name: Stopping the daemon
           command: /tmp/circleci-workspace/bin/ipfs shutdown
   go-ipfs-http-client:
-    docker:
-      - image: circleci/golang:1.12
-    <<: *defaults
+    executor: golang
     steps:
       - *make_out_dirs
       - attach_workspace:
