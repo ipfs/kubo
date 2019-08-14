@@ -4,42 +4,41 @@
 
 We're releasing a PATCH release of go-ipfs based on 0.4.21 containing some critical fixes.
 
-The past several releases have been shaky and the network has scaled to the
-point where where small changes can have a wide-reaching impact on the entire
-network. To keep this situation from escalating, we've put a hold on releasing
-new features until we can improve our [release
-process](https://github.com/ipfs/go-ipfs/pull/6482) (which we will be trialing
-in this release) and [testing
+The IPFS network has scaled to the point where small changes can have a
+wide-reaching impact on the entire network. To keep this situation from
+escalating, we've put a hold on releasing new features until we can improve our
+[release process](https://github.com/ipfs/go-ipfs/blob/master/docs/releases.md)
+(which we've trialed in this release) and [testing
 procedures](https://github.com/ipfs/go-ipfs/issues/6483).
 
 This release includes fixes for the following regressions:
 
 1. A major bitswap throughput regression introduced in 0.4.21
    ([ipfs/go-ipfs#6442](https://github.com/ipfs/go-ipfs/issues/6442)).
-2. High bitswap CPU usage when connected to many (e.g., 10,000) peers. See
+2. High bitswap CPU usage when connected to many (e.g. 10,000) peers. See
    [ipfs/go-bitswap#154](https://github.com/ipfs/go-bitswap/issues/154).
-2. The local network discovery service sometimes initializing before the
+2. The local network discovery service sometimes initializes before the
    networking module, causing it to announce the wrong addresses and sometimes
-   complain about not being able to determine the IP address)
+   complain about not being able to determine the IP address
    ([ipfs/go-ipfs#6415](https://github.com/ipfs/go-ipfs/pull/6415)).
    
 It also includes fixes for:
 
 1. Pins not being persisted after `ipfs block add --pin`
    ([ipfs/go-ipfs#6441](https://github.com/ipfs/go-ipfs/pull/6441)).
-2. Concurrent map access on GC due to the pinner
-   ([ipfs/go-ipfs#6419](https://github.com/ipfs/go-ipfs/pull/6419)).
+2. Panic due to concurrent map access when adding and listing pins at the same
+   time ([ipfs/go-ipfs#6419](https://github.com/ipfs/go-ipfs/pull/6419)).
 3. Potential pin-set corruption given a concurrent `ipfs repo gc` and `ipfs pin
    rm` ([ipfs/go-ipfs#6444](https://github.com/ipfs/go-ipfs/pull/6444)).
 4. Build failure due to a deleted git tag in one of our dependencies
    ([ipfs/go-ds-badger#64](https://github.com/ipfs/go-ds-badger/pull/65)).
 
-
 Thanks to:
 
-* @hannahhoward for fixing both bitswap issues.
-* @sanderpick for catching and fixing the local discovery bug.
-* @campoy for fixing the build issue.
+* [@hannahhoward](https://github.com/hannahhoward) for fixing both bitswap issues.
+* [@sanderpick](https://github.com/sanderpick) for catching and fixing the local
+  discovery bug.
+* [@campoy](https://github.com/campoy) for fixing the build issue.
 
 ## 0.4.21 2019-05-30
 
