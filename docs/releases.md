@@ -53,6 +53,8 @@ At this stage, we consider the release to be "production ready" and ask will ask
 
 At this stage, the release is "battle hardened" and ready for wide deployment.
 
+![go-ipfs-release-process-illustration](https://user-images.githubusercontent.com/618519/62986422-653fee00-bdf0-11e9-8f61-197117b61da2.png)
+
 ## Release Cycle
 
 A full release process should take about 3 weeks, a week per stage 1-3. We will start a new process every 6 weeks, regardless of when the previous release landed unless it's still ongoing.
