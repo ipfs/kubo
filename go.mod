@@ -121,4 +121,6 @@ require (
 
 replace github.com/golangci/golangci-lint => github.com/mhutchinson/golangci-lint v1.17.2-0.20190819125825-d18f2136e32b
 
+replace github.com/hugelgupf/p9 => github.com/djdv/p9 v0.0.0-20190814142810-aa6caf006bd3
+
 go 1.12
