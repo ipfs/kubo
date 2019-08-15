@@ -146,6 +146,7 @@ jobs:
     executor: node
     environment:
       IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
+    parallelism: 4
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -160,15 +161,32 @@ jobs:
             - v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
             - v1-interop-
       - run:
-          command: npm install
+          name: Installing dependencies
+          command: |
+            npm install
           working_directory: ~/ipfs/go-ipfs/interop
       - save_cache:
           key: v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
           paths:
             - ~/ipfs/go-ipfs/interop/node_modules
       - run:
-          command: npm run test:node
+          name: Installing reporting tools
+          command: |
+            npm install --save-dev mocha-junit-reporter@1.23.1 mocha-multi-reporters@1.1.0
           working_directory: ~/ipfs/go-ipfs/interop
+      - run:
+          name: Running tests
+          command: |
+            mkdir -p /tmp/test-results/interop/
+            export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
+            echo '{"reporterEnabled": "mocha-junit-reporter, spec"}' > mocha-conf.json
+            node_modules/.bin/mocha -R mocha-multi-reporters --reporter-options "configFile=mocha-conf.json" \
+              $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" test/node.js | circleci tests split)
+          working_directory: ~/ipfs/go-ipfs/interop
+          environment:
+            IPFS_REUSEPORT: false
+      - store_test_results:
+          path: /tmp/test-results
   go-ipfs-api:
     executor: golang
     steps:
