@@ -212,12 +212,12 @@ test_set_address_vars() {
 
 test_launch_ipfs_daemon() {
 
-  args="$@"
+  args=("$@")
 
   test "$TEST_ULIMIT_PRESET" != 1 && ulimit -n 2048
 
   test_expect_success "'ipfs daemon' succeeds" '
-    ipfs daemon $args >actual_daemon 2>daemon_err &
+    ipfs daemon "${args[@]}" >actual_daemon 2>daemon_err &
     IPFS_PID=$!
   '
 
