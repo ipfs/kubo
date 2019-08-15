@@ -163,18 +163,23 @@ jobs:
           name: Installing dependencies
           command: |
             npm install
-            npm install mocha-junit-reporter
           working_directory: ~/ipfs/go-ipfs/interop
       - save_cache:
           key: v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
           paths:
             - ~/ipfs/go-ipfs/interop/node_modules
       - run:
+          name: Installing reporting tools
+          command: |
+            npm install --save mocha-junit-reporter@1.23.1 mocha-multi-reporters@1.1.0
+          working_directory: ~/ipfs/go-ipfs/interop
+      - run:
           name: Running tests
           command: |
             mkdir -p /tmp/test-results/interop/
             export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
-            node_modules/.bin/mocha --reporter=mocha-junit-reporter 'test/node.js'
+            echo '{"reporterEnabled": "mocha-junit-reporter, spec"}' > mocha-conf.json
+            node_modules/.bin/mocha test/node.js -R mocha-multi-reporters --reporter-options "configFile=mocha-conf.json"
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             IPFS_REUSEPORT: false
