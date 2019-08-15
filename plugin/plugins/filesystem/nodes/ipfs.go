@@ -2,7 +2,6 @@ package fsnodes
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -21,14 +20,14 @@ type IPFS struct {
 func initIPFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
 	id := &IPFS{
 		IPFSBase: IPFSBase{
+			Path: newRootPath("/ipfs"),
 			core: core,
 			Base: Base{
 				Logger: logger,
 				Ctx:    ctx,
-				Qid: p9.QID{
-					Type:    p9.TypeDir,
-					Version: 1,
-					Path:    uint64(pIPFSRoot)}}}}
+				Qid:    p9.QID{Type: p9.TypeDir}}}}
+
+	id.Qid.Path = cidToQPath(id.Path.Cid())
 	return id
 }
 
@@ -40,68 +39,62 @@ func (id *IPFS) Attach() (p9.File, error) {
 
 func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	id.Logger.Debugf("ID GetAttr")
-	qid := p9.QID{
-		Type:    p9.TypeDir,
-		Version: 1}
+	id.Logger.Debugf("ID GetAttr path: %v", id.Path)
+
+	if id.Path.Namespace() == nRoot {
+		_, mask := defaultRootAttr()
+		return id.Qid, mask, id.meta, nil
+	}
 
 	var attr p9.Attr
 	var attrMask p9.AttrMask
+	qid := p9.QID{Path: cidToQPath(id.Path.Cid())}
 
-	//TODO: make this impossible; initalize a valid CID for roots
-	if id.Path != nil {
-		qid.Path = cidToQPath(id.Path.Cid())
-		if err := coreGetAttr(id.Ctx, &attr, &attrMask, id.core, id.Path); err != nil {
-			return p9.QID{}, p9.AttrMask{}, p9.Attr{}, err
-		}
-	} else {
-		qid.Path = uint64(pIPFSRoot)
-		attr.Mode = p9.ModeDirectory | p9.Read | p9.Exec
-		attr.RDev, attrMask.RDev = dIPFS, true
+	if err := coreGetAttr(id.Ctx, &attr, &attrMask, id.core, id.Path); err != nil {
+		return p9.QID{}, p9.AttrMask{}, p9.Attr{}, err
 	}
-
 	return qid, attrMask, attr, nil
 }
 
 func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	id.Logger.Debugf("ID Walk names %v", names)
-	id.Logger.Debugf("ID Walk myself: %v", id.Qid)
+	id.Logger.Debugf("ID Walk myself: %s:%v", id.Path, id.Qid)
 
 	if doClone(names) {
 		id.Logger.Debugf("ID Walk cloned")
 		return []p9.QID{id.Qid}, id, nil
 	}
 
-	var ipfsPath corepath.Path
-	var resolvedPath corepath.Resolved
-	var err error
 	qids := make([]p9.QID, 0, len(names))
 
+	//TODO: [spec check] make sure we're not messing things up by doing this instead of mutating
+	walkedNode := &IPFS{} // operate on a copy
+	*walkedNode = *id
+
+	var err error
 	for _, name := range names {
-		//TODO: convert this into however Go deals with do;while
-		if ipfsPath == nil {
-			ipfsPath = corepath.New("/ipfs/" + name)
-		} else {
-			ipfsPath = corepath.Join(ipfsPath, name)
-		}
 		//TODO: timerctx; don't want to hang forever
-		resolvedPath, err = id.core.ResolvePath(id.Ctx, ipfsPath)
+		if walkedNode.Path, err = id.core.ResolvePath(id.Ctx, corepath.Join(walkedNode.Path, name)); err != nil {
+			return qids, nil, err
+		}
+
+		ipldNode, err := id.core.Dag().Get(id.Ctx, walkedNode.Path.Cid())
 		if err != nil {
-			return nil, nil, err
+			return qids, nil, err
 		}
 
-		//XXX: generate QID more directly
+		//TODO: this is too opague; we want core path => qid, dirent isn't necessary
 		dirEnt := &p9.Dirent{}
-		if err = coreStat(id.Ctx, dirEnt, id.core, ipfsPath); err != nil {
-			return nil, nil, err
+		if err = ipldStat(dirEnt, ipldNode); err != nil {
+			return qids, nil, err
 		}
 
-		qids = append(qids, dirEnt.QID)
+		walkedNode.Qid = dirEnt.QID
+		qids = append(qids, walkedNode.Qid)
 	}
 
-	id.Path = resolvedPath
-
-	id.Logger.Debugf("ID Walk reg ret %v, %v", qids, id)
-	return qids, id, nil
+	id.Logger.Debugf("ID Walk ret %v, %v", qids, walkedNode)
+	return qids, walkedNode, err
 }
 
 func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
@@ -112,6 +105,8 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	id.Logger.Debugf("ID Readdir")
 
+	//FIXME: we read the entire directory for each readdir call; this is very wasteful with small requests (Unix `ls`)
+	//TODO [quick hack]: append only entry list stored on id; likely going to be problematic for large directories (test: Wikipedia)
 	entChan, err := coreLs(id.Ctx, id.Path, id.core)
 	if err != nil {
 		return nil, err
@@ -119,9 +114,8 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 
 	var ents []p9.Dirent
 
-	var off uint64 = 0
+	var off uint64 = 1
 	for ent := range entChan {
-		id.Logger.Debugf("got ent: %v\n", ent)
 		if ent.Err != nil {
 			return nil, err
 		}
@@ -136,8 +130,20 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		}
 	}
 
-	id.Logger.Debugf("ID Readdir returning ents:%v", ents)
-	return ents, nil
+	//FIXME: I don't think order is gauranteed from Ls
+	eLen := uint64(len(ents))
+	if offset >= eLen {
+		return nil, nil
+	}
+
+	offsetIndex := ents[offset:]
+	if len(offsetIndex) > int(count) {
+		id.Logger.Debugf("ID Readdir returning [%d]%v\n", count, offsetIndex[:count])
+		return offsetIndex[:count], nil
+	}
+
+	id.Logger.Debugf("ID Readdir returning [%d]%v\n", len(offsetIndex), offsetIndex)
+	return offsetIndex, nil
 }
 
 func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
@@ -156,7 +162,8 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 
 	if fileBound, err := fIo.Size(); err == nil {
 		if int64(offset) >= fileBound {
-			return replaceMe, errors.New("read offset extends past end of file")
+			//NOTE [styx]: If the offset field is greater than or equal to the number of bytes in the file, a count of zero will be returned.
+			return 0, nil
 		}
 	}
 

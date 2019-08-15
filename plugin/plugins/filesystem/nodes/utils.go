@@ -1,16 +1,16 @@
 package fsnodes
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"fmt"
+	"hash/fnv"
 	"time"
 
 	"github.com/hugelgupf/p9/p9"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-unixfs"
+	unixpb "github.com/ipfs/go-unixfs/pb"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -89,7 +89,7 @@ func ipldStat(dirEnt *p9.Dirent, node ipld.Node) error {
 		return err
 	}
 
-	nodeType := coreTypeToQtype(coreiface.FileType(ufsNode.Type())) //eww
+	nodeType := unixfsTypeToQType(ufsNode.Type())
 
 	dirEnt.Type = nodeType
 	dirEnt.QID.Type = nodeType
@@ -99,13 +99,12 @@ func ipldStat(dirEnt *p9.Dirent, node ipld.Node) error {
 	return nil
 }
 
-func cidToQPath(cid cid.Cid) (path uint64) {
-	buf := bytes.NewReader(cid.Bytes())
-	err := binary.Read(buf, binary.LittleEndian, &path)
-	if err != nil {
+func cidToQPath(cid cid.Cid) uint64 {
+	hasher := fnv.New64a()
+	if _, err := hasher.Write(cid.Bytes()); err != nil {
 		panic(err)
 	}
-	return
+	return hasher.Sum64()
 }
 
 func coreLs(ctx context.Context, corePath corepath.Path, core coreiface.CoreAPI) (<-chan coreiface.DirEntry, error) {
@@ -151,20 +150,33 @@ func coreLs(ctx context.Context, corePath corepath.Path, core coreiface.CoreAPI)
 	return relayChan, err
 }
 
-func coreTypeToQtype(ct coreiface.FileType) p9.QIDType {
+func coreTypeToQType(ct coreiface.FileType) p9.QIDType {
 	switch ct {
-	// case coreiface.TDirectory, unixfs.THAMTShard: Should we account for this?
+	// case coreiface.TDirectory, unixfs.THAMTShard // Should we account for this?
 	case coreiface.TDirectory:
 		return p9.TypeDir
 	case coreiface.TSymlink:
 		return p9.TypeSymlink
-	default:
+	default: //TODO: probably a bad assumption to make
+		return p9.TypeRegular
+	}
+}
+
+//TODO: see if we can remove the need for this; rely only on the core if we can
+func unixfsTypeToQType(ut unixpb.Data_DataType) p9.QIDType {
+	switch ut {
+	// case unixpb.Data_DataDirectory, unixpb.Data_DataHAMTShard // Should we account for this?
+	case unixpb.Data_Directory:
+		return p9.TypeDir
+	case unixpb.Data_Symlink:
+		return p9.TypeSymlink
+	default: //TODO: probably a bad assumption to make
 		return p9.TypeRegular
 	}
 }
 
 func coreEntTo9Ent(coreEnt coreiface.DirEntry) p9.Dirent {
-	entType := coreTypeToQtype(coreEnt.Type)
+	entType := coreTypeToQType(coreEnt.Type)
 
 	return p9.Dirent{
 		Name: coreEnt.Name,
@@ -211,4 +223,40 @@ func deriveTimerContext(ctx context.Context, grace time.Duration) timerContext {
 		timer:  *timer}
 
 	return tctx
+}
+
+func defaultRootAttr() (p9.Attr, p9.AttrMask) {
+	now := time.Now()
+
+	return p9.Attr{
+			//Mode: p9.ModeDirectory,
+			Mode: p9.ModeDirectory | p9.Read | p9.Exec,
+			//NLink:            1,
+			RDev: dMemory,
+			//UID:              p9.NoUID,
+			//GID:              p9.NoGID,
+			ATimeSeconds:     uint64(now.Nanosecond()),
+			ATimeNanoSeconds: uint64(now.Second()),
+			MTimeSeconds:     uint64(now.Nanosecond()),
+			MTimeNanoSeconds: uint64(now.Second()),
+			CTimeSeconds:     uint64(now.Nanosecond()),
+			CTimeNanoSeconds: uint64(now.Second()),
+			BTimeSeconds:     uint64(now.Nanosecond()),
+			BTimeNanoSeconds: uint64(now.Second()),
+		}, p9.AttrMask{
+			Mode:  true,
+			NLink: true,
+			//UID:         true,
+			//GID:         true,
+			RDev:        true,
+			ATime:       true,
+			MTime:       true,
+			CTime:       true,
+			INo:         true,
+			Size:        true,
+			Blocks:      true,
+			BTime:       true,
+			Gen:         true,
+			DataVersion: true,
+		}
 }

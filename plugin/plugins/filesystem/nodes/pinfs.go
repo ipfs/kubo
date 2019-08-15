@@ -18,14 +18,14 @@ type PinFS struct {
 func initPinFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
 	pd := &PinFS{
 		IPFSBase: IPFSBase{
+			Path: newRootPath("/ipfs"),
 			core: core,
 			Base: Base{
 				Logger: logger,
 				Ctx:    ctx,
-				Qid: p9.QID{
-					Type:    p9.TypeDir,
-					Version: 1,
-					Path:    uint64(pPinRoot)}}}}
+				Qid: p9.QID{Type: p9.TypeDir}}}}
+
+	pd.Qid.Path = cidToQPath(pd.Path.Cid())
 	return pd
 }
 
@@ -43,16 +43,7 @@ func (pd *PinFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) 
 		Path:    uint64(pPinRoot),
 	}
 
-	//TODO: [metadata] quick hack; revise
-	attr := p9.Attr{
-		Mode: p9.ModeDirectory,
-		RDev: dMemory,
-	}
-
-	attrMask := p9.AttrMask{
-		Mode: true,
-		RDev: true,
-	}
+	attr, attrMask := defaultRootAttr()
 
 	return qid, attrMask, attr, nil
 }
@@ -66,21 +57,12 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return []p9.QID{pd.Qid}, pd, nil
 	}
 
-//NOTE: if doClone is false, it implies len(names) > 0
-	var tailFile p9.File = pd
-	var subQids []p9.QID
-	qids := make([]p9.QID, 0, len(names))
+	ipfsDir, err := initIPFS(pd.Ctx, pd.core, pd.Logger).Attach()
+	if err != nil {
+		return nil, nil, err
+	}
 
-		ipfsDir, err := initIPFS(pd.Ctx, pd.core, pd.Logger).Attach()
-		if err != nil {
-			return nil,nil,err
-		}
-		if subQids, tailFile, err = ipfsDir.Walk(names); err != nil {
-			return nil, nil, err
-		}
-		qids = append(qids, subQids...)
-	pd.Logger.Debugf("PD Walk reg ret %v, %v", qids, tailFile)
-	return qids, tailFile, nil
+	return ipfsDir.Walk(names)
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
@@ -96,15 +78,22 @@ func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, err
 	}
 
-	if count < uint32(len(pins)) {
-		pins = pins[:count]
+	pLen := uint64(len(pins))
+	if offset >= pLen {
+		return nil, nil
 	}
-	ents := make([]p9.Dirent, 0, len(pins))
 
-	for i, pin := range pins {
+	//TODO: we should initialize and store entries during Open() to assure order is maintained through read calls
+	offsetIndex := pins[offset:]
+	if len(offsetIndex) > int(count) {
+		offsetIndex = offsetIndex[:count]
+	}
+
+	ents := make([]p9.Dirent, 0, len(offsetIndex))
+	for i, pin := range offsetIndex {
 		dirEnt := &p9.Dirent{
 			Name:   gopath.Base(pin.Path().String()),
-			Offset: uint64(i),
+			Offset: uint64(i + 1),
 		}
 
 		if err = coreStat(pd.Ctx, dirEnt, pd.core, pin.Path()); err != nil {
