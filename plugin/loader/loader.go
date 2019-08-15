@@ -15,6 +15,13 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 )
 
+var preloadPlugins []plugin.Plugin
+
+// Preload adds one or more plugins to the preload list. This should _only_ be called during init.
+func Preload(plugins ...plugin.Plugin) {
+	preloadPlugins = append(preloadPlugins, plugins...)
+}
+
 var log = logging.Logger("plugin/loader")
 
 var loadPluginsFunc = func(string) ([]plugin.Plugin, error) {
