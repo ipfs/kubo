@@ -1,6 +1,6 @@
 ---
 name: 'Question/Support'
-about: 'DO NOT SELECT THIS OPTION: Ask questions on discuss.ipfs.io.'
+about: 'DO NOT SELECT THIS OPTION: Ask questions on discuss.ipfs.io, IRC (#ipfs on freenode), or Matrix (#ipfs:matrix.org)'
 labels: question
 ---
 
