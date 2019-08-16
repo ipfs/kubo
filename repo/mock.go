@@ -45,7 +45,7 @@ func (m *Mock) Datastore() Datastore { return m.D }
 
 func (m *Mock) GetStorageUsage() (uint64, error) { return 0, nil }
 
-func (m *Mock) Close() error { return errTODO }
+func (m *Mock) Close() error { return m.D.Close() }
 
 func (m *Mock) SetAPIAddr(addr ma.Multiaddr) error { return errTODO }
 
