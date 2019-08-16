@@ -1,8 +1,10 @@
 ---
 name: 'Question/Support'
-about: 'Ask a question about go-ipfs or request support.'
-labels: question, invalid
+about: 'DO NOT SELECT THIS OPTION: Ask questions on discuss.ipfs.io.'
+labels: question
 ---
+
+DO NOT ASK QUESTIONS HERE
 
 This bug tracker is only for actionable bug reports and feature requests. Please direct any questions to https://discuss.ipfs.io or to our Matrix (#ipfs:matrix.org) or IRC (#ipfs on freenode) channels.
 
