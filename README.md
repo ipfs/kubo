@@ -366,6 +366,8 @@ Basic proof of 'ipfs working' locally:
     # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
     ipfs cat <that hash>
 
+To perform a custom initialization and configuration step, one can create or mount a `/container-init.d` directory containing `.sh` scripts. These scripts are executed if they have `+x` permission, otherwise they are just sourced. The scripts may also depend on environment variables set by the `docker run` command or in `docker-compose.yml`. The custom initialization step is **only** performed during IPFS initialization and is executed **after** the swarm key is copied to the IPFS data directory.
+
 ### Troubleshooting
 
 If you have previously installed IPFS before and you are running into problems getting a newer version to work, try deleting (or backing up somewhere else) your IPFS config directory (~/.ipfs by default) and rerunning `ipfs init`. This will reinitialize the config file to its defaults and clear out the local datastore of any bad entries.
