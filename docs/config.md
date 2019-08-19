@@ -166,6 +166,11 @@ As of writing, [7 hash functions](https://github.com/ipfs/go-ipfs-blockstore/blo
 
 Default: `0`
 
+- `ARCCacheSize`
+A number representing the number of entries of the blockstore's [ARC cache](https://en.wikipedia.org/wiki/Adaptive_replacement_cache). A value of zero represents the feature being disabled.
+
+Default: `65536`
+
 - `Spec`
 Spec defines the structure of the ipfs datastore. It is a composable structure, where each datastore is represented by a json object. Datastores can wrap other datastores to provide extra functionality (eg metrics, logging, or caching).
 

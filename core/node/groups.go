@@ -122,6 +122,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	cacheOpts := blockstore.DefaultCacheOpts()
 	cacheOpts.HasBloomFilterSize = cfg.Datastore.BloomFilterSize
+	cacheOpts.HasARCCacheSize = cfg.Datastore.ARCCacheSize
 	if !bcfg.Permanent {
 		cacheOpts.HasBloomFilterSize = 0
 	}
