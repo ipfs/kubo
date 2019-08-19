@@ -259,9 +259,10 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 }
 
 const (
-	pinTypeOptionName   = "type"
-	pinQuietOptionName  = "quiet"
-	pinStreamOptionName = "stream"
+	pinTypeOptionName         = "type"
+	pinQuietOptionName        = "quiet"
+	pinStreamOptionName       = "stream"
+	pinIgnoreErrorsOptionName = "ignore-errors"
 )
 
 var listPinCmd = &cmds.Command{
@@ -315,6 +316,7 @@ Example:
 		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
+		cmds.BoolOption(pinIgnoreErrorsOptionName, "Continue listing pins if an error happen"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -418,6 +420,8 @@ type PinLsObject struct {
 }
 
 func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+	ignoreErrors, _ := req.Options[pinIgnoreErrorsOptionName].(bool)
+
 	mode, ok := pin.StringToMode(typeStr)
 	if !ok {
 		return fmt.Errorf("invalid pin mode '%s'", typeStr)
@@ -431,6 +435,9 @@ func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreifac
 	for _, p := range req.Arguments {
 		c, err := api.ResolvePath(req.Context, path.New(p))
 		if err != nil {
+			if !ignoreErrors {
+				continue
+			}
 			return err
 		}
 
@@ -464,6 +471,8 @@ func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreifac
 }
 
 func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(value interface{}) error) error {
+	ignoreErrors, _ := req.Options[pinIgnoreErrorsOptionName].(bool)
+
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -501,6 +510,10 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 		}
 	}
 	if typeStr == "indirect" || typeStr == "all" {
+		walkOptions := []dag.WalkOption{dag.SkipRoot(), dag.Concurrent()}
+		if ignoreErrors {
+			walkOptions = append(walkOptions, dag.IgnoreErrors())
+		}
 		for _, k := range n.Pinning.RecursiveKeys() {
 			var visitErr error
 			err := dag.Walk(req.Context, dag.GetLinksWithDAG(n.DAG), k, func(c cid.Cid) bool {
@@ -517,7 +530,7 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 					}
 				}
 				return r
-			}, dag.SkipRoot(), dag.Concurrent())
+			}, walkOptions...)
 
 			if visitErr != nil {
 				return visitErr
