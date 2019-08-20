@@ -28,7 +28,7 @@ require (
 	github.com/ipfs/go-ds-measure v0.0.1
 	github.com/ipfs/go-filestore v0.0.2
 	github.com/ipfs/go-fs-lock v0.0.1
-	github.com/ipfs/go-ipfs-blockstore v0.0.1
+	github.com/ipfs/go-ipfs-blockstore v0.0.2
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.1.0
 	github.com/ipfs/go-ipfs-config v0.0.6
@@ -110,6 +110,7 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go4.org v0.0.0-20190313082347-94abd6928b1d // indirect
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gotest.tools/gotestsum v0.3.4
 )
