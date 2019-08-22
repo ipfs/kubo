@@ -7,15 +7,14 @@ import (
 	"io"
 	"strings"
 
-	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/namesys/resolve"
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
-	path "github.com/ipfs/go-path"
+	iface "github.com/ipfs/interface-go-ipfs-core"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var refsEncoderMap = cmds.EncoderMap{
@@ -75,7 +74,7 @@ NOTE: List all references recursively by using the flag '-r'.
 		}
 
 		ctx := req.Context
-		n, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -103,14 +102,14 @@ NOTE: List all references recursively by using the flag '-r'.
 			format = "<src> -> <dst>"
 		}
 
-		objs, err := objectsForPaths(ctx, n, req.Arguments)
+		objs, err := objectsForPaths(ctx, api, req.Arguments)
 		if err != nil {
 			return err
 		}
 
 		rw := RefWriter{
 			res:      res,
-			DAG:      n.DAG,
+			DAG:      api.Dag(),
 			Ctx:      ctx,
 			Unique:   unique,
 			PrintFmt: format,
@@ -165,15 +164,10 @@ Displays the hashes of all local objects.
 	Type:     RefWrapper{},
 }
 
-func objectsForPaths(ctx context.Context, n *core.IpfsNode, paths []string) ([]ipld.Node, error) {
+func objectsForPaths(ctx context.Context, n iface.CoreAPI, paths []string) ([]ipld.Node, error) {
 	objects := make([]ipld.Node, len(paths))
 	for i, sp := range paths {
-		p, err := path.ParsePath(sp)
-		if err != nil {
-			return nil, err
-		}
-
-		o, err := resolve.Resolve(ctx, n.Namesys, n.Resolver, p)
+		o, err := n.ResolveNode(ctx, path.New(sp))
 		if err != nil {
 			return nil, err
 		}
