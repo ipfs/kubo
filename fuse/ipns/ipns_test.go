@@ -16,6 +16,7 @@ import (
 	"bazil.org/fuse"
 
 	core "github.com/ipfs/go-ipfs/core"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
@@ -115,7 +116,12 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		}
 	}
 
-	fs, err := NewFileSystem(node, node.PrivateKey, "", "")
+	coreApi, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fs, err := NewFileSystem(node.Context(), coreApi, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
