@@ -23,8 +23,7 @@ var _ plugin.PluginDaemon = (*FileSystemPlugin)(nil)
 type FileSystemPlugin struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-	root   string
-	addr   string
+	addr   string //TODO: populate with value the server is listening on
 }
 
 func (*FileSystemPlugin) Name() string {

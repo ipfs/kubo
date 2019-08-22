@@ -18,16 +18,8 @@ type IPFS struct {
 
 //TODO: [review] check fields; better wrappers around inheritance init, etc.
 func initIPFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
-	id := &IPFS{
-		IPFSBase: IPFSBase{
-			Path: newRootPath("/ipfs"),
-			core: core,
-			Base: Base{
-				Logger: logger,
-				Ctx:    ctx,
-				Qid:    p9.QID{Type: p9.TypeDir}}}}
-
-	id.Qid.Path = cidToQPath(id.Path.Cid())
+	id := &IPFS{IPFSBase: newIPFSBase(ctx, newRootPath("/ipfs"), p9.TypeDir, core, logger)}
+	id.meta, id.metaMask = defaultRootAttr()
 	return id
 }
 
@@ -42,9 +34,7 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	id.Logger.Debugf("ID GetAttr path: %v", id.Path)
 
 	if id.Path.Namespace() == nRoot {
-		id.Logger.Errorf("impossible")
-		_, mask := defaultRootAttr()
-		return id.Qid, mask, id.meta, nil
+		return id.Qid, id.metaMask, id.meta, nil
 	}
 
 	var attrMask p9.AttrMask
@@ -52,7 +42,7 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 		return p9.QID{}, p9.AttrMask{}, p9.Attr{}, err
 	}
 	timeStamp(&id.meta, &attrMask)
-	id.Qid.Type = p9.QIDType(id.meta.Mode.FileType()) //TODO [review]: conversion sanity check
+	id.Qid.Type = id.meta.Mode.QIDType()
 
 	return id.Qid, attrMask, id.meta, nil
 }

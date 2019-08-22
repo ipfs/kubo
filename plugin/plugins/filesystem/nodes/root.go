@@ -23,7 +23,7 @@ type rootNode string
 func (rn rootNode) String() string { return string(rn) }
 func (rootNode) Namespace() string { return nRoot }
 func (rootNode) Mutable() bool     { return true }
-func (rootNode) IsValid() error    { return nil }
+func (rootNode) IsValid() error    { return nil } //TODO: should return ENotImpl
 func (rn rootNode) Cid() cid.Cid {
 	prefix := cid.V1Builder{Codec: cid.DagCBOR, MhType: multihash.BLAKE2B_MIN}
 	c, err := prefix.Sum([]byte(rn))
@@ -42,25 +42,17 @@ func (rootNode) Root() cid.Cid { //TODO: this should probably reference a packag
 }
 func (rootNode) Remainder() string { return "" }
 
-//
-
 type RootIndex struct {
 	IPFSBase
 	subsystems []p9.Dirent
 }
 
 func NewRoot(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) (*RootIndex, error) {
-	//XXX: syntax abuse below, try not to look here
-	ri := &RootIndex{
-		IPFSBase: IPFSBase{
-			Path: newRootPath("/"),
-			core: core,
-			Base: Base{
-				Ctx:    ctx,
-				Logger: logger,
-				Qid:    p9.QID{Type: p9.TypeDir}}},
+	ri := &RootIndex{IPFSBase: newIPFSBase(ctx, newRootPath("/"), p9.TypeDir, core, logger),
 		subsystems: make([]p9.Dirent, 0, 1)} //TODO: [const]: dirent count
 	ri.Qid.Path = cidToQPath(ri.Path.Cid())
+
+	ri.meta, ri.metaMask = defaultRootAttr()
 
 	rootDirTemplate := p9.Dirent{
 		Type: p9.TypeDir,
@@ -91,17 +83,9 @@ func (ri *RootIndex) Attach() (p9.File, error) {
 
 func (ri *RootIndex) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	ri.Logger.Debugf("RI GetAttr")
-	qid := p9.QID{
-		Type:    p9.TypeDir,
-		Version: 1,
-		Path:    uint64(pVirtualRoot),
-	}
-
 	ri.Logger.Debugf("RI mask: %v", req)
 
-	attr, attrMask := defaultRootAttr()
-
-	return qid, attrMask, attr, nil
+	return ri.Qid, ri.metaMask, ri.meta, nil
 }
 func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	ri.Logger.Debugf("RI Walk names %v", names)

@@ -8,6 +8,7 @@ import (
 	"github.com/hugelgupf/p9/p9"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/go-unixfs"
 	unixpb "github.com/ipfs/go-unixfs/pb"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -30,13 +31,12 @@ func doClone(names []string) bool {
 
 //TODO: rename this and/or extend
 // it only does some of the stat and not what people probably expect
-func coreStat(ctx context.Context, dirEnt *p9.Dirent, core coreiface.CoreAPI, path corepath.Path) (err error) {
-	var ipldNode ipld.Node
-	if ipldNode, err = core.ResolveNode(ctx, path); err != nil {
-		return
+func coreStat(ctx context.Context, dirEnt *p9.Dirent, core coreiface.CoreAPI, path corepath.Path) error {
+	if ipldNode, err := core.ResolveNode(ctx, path); err != nil {
+		return err
+	} else {
+		return ipldStat(dirEnt, ipldNode)
 	}
-	err = ipldStat(dirEnt, ipldNode)
-	return
 }
 
 //TODO: consider how we want to use AttrMask
@@ -51,7 +51,7 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask *p9.AttrMask, core
 		return err
 	}
 
-	attr.Mode = IRXA //TODO: this should probably be the callers responsability
+	attr.Mode = IRXA //TODO: this should probably be the callers responsability; just document that permissions should be set afterwards or something
 	attr.Mode |= unixfsTypeTo9Mode(ufsNode.Type())
 	attrMask.Mode = true
 
@@ -69,8 +69,6 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask *p9.AttrMask, core
 		//etc.
 	}
 
-	//TODO: rdev; switch off namespace => dIpfs, dIpns, etc.
-	//Blocks
 	return nil
 }
 
@@ -81,11 +79,10 @@ func ipldStat(dirEnt *p9.Dirent, node ipld.Node) error {
 		return err
 	}
 
-	nodeType := unixfsTypeTo9Mode(ufsNode.Type()).QIDType() 
+	nodeType := unixfsTypeTo9Mode(ufsNode.Type()).QIDType()
 
 	dirEnt.Type = nodeType
 	dirEnt.QID.Type = nodeType
-	//dirEnt.QID.Version = 1
 	dirEnt.QID.Path = cidToQPath(node.Cid())
 
 	return nil
@@ -260,4 +257,17 @@ func timeStamp(attr *p9.Attr, mask *p9.AttrMask) {
 	mask.ATime = true
 	mask.MTime = true
 	mask.CTime = true
+}
+
+//TODO [name]: "new" implies pointer type; this is for embedded consturction
+func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, core coreiface.CoreAPI, logger logging.EventLogger) IPFSBase {
+	return IPFSBase{
+		Path: path,
+		core: core,
+		Base: Base{
+			Logger: logger,
+			Ctx:    ctx,
+			Qid: p9.QID{
+				Type: kind,
+				Path: cidToQPath(path.Cid())}}}
 }
