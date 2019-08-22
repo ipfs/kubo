@@ -58,7 +58,7 @@ func NewRoot(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLo
 			Base: Base{
 				Ctx:    ctx,
 				Logger: logger,
-				Qid: p9.QID{Type: p9.TypeDir}}},
+				Qid:    p9.QID{Type: p9.TypeDir}}},
 		subsystems: make([]p9.Dirent, 0, 1)} //TODO: [const]: dirent count
 	ri.Qid.Path = cidToQPath(ri.Path.Cid())
 
@@ -76,8 +76,8 @@ func NewRoot(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLo
 		pathUnion.Dirent.Offset = uint64(i + 1)
 		pathUnion.Dirent.Name = pathUnion.string
 
-		pathNode := newRootPath("/"+pathUnion.string)
-		pathUnion.Dirent.QID.Path =  cidToQPath(pathNode.Cid())
+		pathNode := newRootPath("/" + pathUnion.string)
+		pathUnion.Dirent.QID.Path = cidToQPath(pathNode.Cid())
 		ri.subsystems = append(ri.subsystems, pathUnion.Dirent)
 	}
 

@@ -2,7 +2,6 @@ package fsnodes
 
 import (
 	"context"
-	"fmt"
 	"hash/fnv"
 	"time"
 
@@ -22,6 +21,7 @@ func doClone(names []string) bool {
 		return true
 	}
 	//TODO: double check the spec to make sure dot handling is correct
+	// we may only want to clone on ".." if we're a root
 	if pc := names[0]; l == 1 && (pc == ".." || pc == "." || pc == "") {
 		return true
 	}
@@ -50,17 +50,9 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask *p9.AttrMask, core
 	if err != nil {
 		return err
 	}
-	attr.Mode = p9.Read | p9.Exec
-	switch t := ufsNode.Type(); t {
-	case unixfs.TFile:
-		attr.Mode |= p9.ModeRegular
-	case unixfs.TDirectory, unixfs.THAMTShard:
-		attr.Mode |= p9.ModeDirectory
-	case unixfs.TSymlink:
-		attr.Mode |= p9.ModeSymlink
-	default:
-		return fmt.Errorf("unexpected node type %d", t)
-	}
+
+	attr.Mode = IRXA //TODO: this should probably be the callers responsability
+	attr.Mode |= unixfsTypeTo9Mode(ufsNode.Type())
 	attrMask.Mode = true
 
 	if bs := ufsNode.BlockSizes(); len(bs) != 0 {
@@ -89,11 +81,11 @@ func ipldStat(dirEnt *p9.Dirent, node ipld.Node) error {
 		return err
 	}
 
-	nodeType := unixfsTypeToQType(ufsNode.Type())
+	nodeType := unixfsTypeTo9Mode(ufsNode.Type()).QIDType() 
 
 	dirEnt.Type = nodeType
 	dirEnt.QID.Type = nodeType
-	dirEnt.QID.Version = 1
+	//dirEnt.QID.Version = 1
 	dirEnt.QID.Path = cidToQPath(node.Cid())
 
 	return nil
@@ -150,41 +142,40 @@ func coreLs(ctx context.Context, corePath corepath.Path, core coreiface.CoreAPI)
 	return relayChan, err
 }
 
-func coreTypeToQType(ct coreiface.FileType) p9.QIDType {
+func coreTypeTo9Mode(ct coreiface.FileType) p9.FileMode {
 	switch ct {
 	// case coreiface.TDirectory, unixfs.THAMTShard // Should we account for this?
 	case coreiface.TDirectory:
-		return p9.TypeDir
+		return p9.ModeDirectory
 	case coreiface.TSymlink:
-		return p9.TypeSymlink
+		return p9.ModeSymlink
 	default: //TODO: probably a bad assumption to make
-		return p9.TypeRegular
+		return p9.ModeRegular
 	}
 }
 
 //TODO: see if we can remove the need for this; rely only on the core if we can
-func unixfsTypeToQType(ut unixpb.Data_DataType) p9.QIDType {
+func unixfsTypeTo9Mode(ut unixpb.Data_DataType) p9.FileMode {
 	switch ut {
 	// case unixpb.Data_DataDirectory, unixpb.Data_DataHAMTShard // Should we account for this?
 	case unixpb.Data_Directory:
-		return p9.TypeDir
+		return p9.ModeDirectory
 	case unixpb.Data_Symlink:
-		return p9.TypeSymlink
+		return p9.ModeSymlink
 	default: //TODO: probably a bad assumption to make
-		return p9.TypeRegular
+		return p9.ModeRegular
 	}
 }
 
 func coreEntTo9Ent(coreEnt coreiface.DirEntry) p9.Dirent {
-	entType := coreTypeToQType(coreEnt.Type)
+	entType := coreTypeTo9Mode(coreEnt.Type).QIDType()
 
 	return p9.Dirent{
 		Name: coreEnt.Name,
 		Type: entType,
 		QID: p9.QID{
-			Type:    entType,
-			Version: 1,
-			Path:    cidToQPath(coreEnt.Cid)}}
+			Type: entType,
+			Path: cidToQPath(coreEnt.Cid)}}
 }
 
 type timerContextActual struct {
@@ -225,38 +216,48 @@ func deriveTimerContext(ctx context.Context, grace time.Duration) timerContext {
 	return tctx
 }
 
-func defaultRootAttr() (p9.Attr, p9.AttrMask) {
-	now := time.Now()
+const ( // pedantic POSIX stuff
+	S_IROTH p9.FileMode = p9.Read
+	S_IWOTH             = p9.Write
+	S_IXOTH             = p9.Exec
 
-	return p9.Attr{
-			//Mode: p9.ModeDirectory,
-			Mode: p9.ModeDirectory | p9.Read | p9.Exec,
-			//NLink:            1,
-			RDev: dMemory,
-			//UID:              p9.NoUID,
-			//GID:              p9.NoGID,
-			ATimeSeconds:     uint64(now.Nanosecond()),
-			ATimeNanoSeconds: uint64(now.Second()),
-			MTimeSeconds:     uint64(now.Nanosecond()),
-			MTimeNanoSeconds: uint64(now.Second()),
-			CTimeSeconds:     uint64(now.Nanosecond()),
-			CTimeNanoSeconds: uint64(now.Second()),
-			BTimeSeconds:     uint64(now.Nanosecond()),
-			BTimeNanoSeconds: uint64(now.Second()),
-		}, p9.AttrMask{
-			Mode:  true,
-			NLink: true,
-			//UID:         true,
-			//GID:         true,
-			RDev:        true,
-			ATime:       true,
-			MTime:       true,
-			CTime:       true,
-			INo:         true,
-			Size:        true,
-			Blocks:      true,
-			BTime:       true,
-			Gen:         true,
-			DataVersion: true,
-		}
+	S_IRGRP = S_IROTH << 3
+	S_IWGRP = S_IWOTH << 3
+	S_IXGRP = S_IXOTH << 3
+
+	S_IRUSR = S_IRGRP << 3
+	S_IWUSR = S_IWGRP << 3
+	S_IXUSR = S_IXGRP << 3
+
+	S_IRWXO = S_IROTH | S_IWOTH | S_IXOTH
+	S_IRWXG = S_IRGRP | S_IWGRP | S_IXGRP
+	S_IRWXU = S_IRUSR | S_IWUSR | S_IXUSR
+
+	IRWXA = S_IRWXU | S_IRWXG | S_IRWXO            // 0777
+	IRXA  = IRWXA &^ (S_IWUSR | S_IWGRP | S_IWOTH) // 0555
+//03664
+)
+
+func defaultRootAttr() (attr p9.Attr, attrMask p9.AttrMask) {
+	attr.Mode = p9.ModeDirectory | IRXA
+	attr.RDev = dMemory
+	attrMask.Mode = true
+	attrMask.RDev = true
+	attrMask.Size = true
+	timeStamp(&attr, &attrMask)
+	return attr, attrMask
+}
+
+func timeStamp(attr *p9.Attr, mask *p9.AttrMask) {
+	now := time.Now()
+	attr.ATimeSeconds = uint64(now.Unix())
+	attr.ATimeNanoSeconds = uint64(now.UnixNano())
+	attr.MTimeSeconds = uint64(now.Unix())
+	attr.MTimeNanoSeconds = uint64(now.UnixNano())
+	attr.CTimeSeconds = uint64(now.Unix())
+	attr.CTimeNanoSeconds = uint64(now.UnixNano())
+
+	mask.ATime = true
+	mask.MTime = true
+	mask.CTime = true
 }

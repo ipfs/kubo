@@ -42,18 +42,19 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	id.Logger.Debugf("ID GetAttr path: %v", id.Path)
 
 	if id.Path.Namespace() == nRoot {
+		id.Logger.Errorf("impossible")
 		_, mask := defaultRootAttr()
 		return id.Qid, mask, id.meta, nil
 	}
 
-	var attr p9.Attr
 	var attrMask p9.AttrMask
-	qid := p9.QID{Path: cidToQPath(id.Path.Cid())}
-
-	if err := coreGetAttr(id.Ctx, &attr, &attrMask, id.core, id.Path); err != nil {
+	if err := coreGetAttr(id.Ctx, &id.meta, &attrMask, id.core, id.Path); err != nil {
 		return p9.QID{}, p9.AttrMask{}, p9.Attr{}, err
 	}
-	return qid, attrMask, attr, nil
+	timeStamp(&id.meta, &attrMask)
+	id.Qid.Type = p9.QIDType(id.meta.Mode.FileType()) //TODO [review]: conversion sanity check
+
+	return id.Qid, attrMask, id.meta, nil
 }
 
 func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
@@ -68,6 +69,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	qids := make([]p9.QID, 0, len(names))
 
 	//TODO: [spec check] make sure we're not messing things up by doing this instead of mutating
+	// ^ Does internal library expect fid to mutate on success or does newfid clobber some external state anyway
 	walkedNode := &IPFS{} // operate on a copy
 	*walkedNode = *id
 
@@ -90,6 +92,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		}
 
 		walkedNode.Qid = dirEnt.QID
+		//
 		qids = append(qids, walkedNode.Qid)
 	}
 

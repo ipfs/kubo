@@ -23,7 +23,7 @@ func initPinFS(ctx context.Context, core coreiface.CoreAPI, logger logging.Event
 			Base: Base{
 				Logger: logger,
 				Ctx:    ctx,
-				Qid: p9.QID{Type: p9.TypeDir}}}}
+				Qid:    p9.QID{Type: p9.TypeDir}}}}
 
 	pd.Qid.Path = cidToQPath(pd.Path.Cid())
 	return pd
@@ -37,15 +37,9 @@ func (pd *PinFS) Attach() (p9.File, error) {
 
 func (pd *PinFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	pd.Logger.Debugf("PD GetAttr")
-	qid := p9.QID{
-		Type:    p9.TypeDir,
-		Version: 1,
-		Path:    uint64(pPinRoot),
-	}
-
 	attr, attrMask := defaultRootAttr()
 
-	return qid, attrMask, attr, nil
+	return pd.Qid, attrMask, attr, nil
 }
 
 func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
