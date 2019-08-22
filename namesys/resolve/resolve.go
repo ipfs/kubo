@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-path"
-	"github.com/ipfs/go-path/resolver"
 
 	"github.com/ipfs/go-ipfs/namesys"
 )
@@ -51,17 +49,4 @@ func ResolveIPNS(ctx context.Context, nsys namesys.NameSystem, p path.Path) (pat
 		}
 	}
 	return p, nil
-}
-
-// Resolve resolves the given path by parsing out protocol-specific
-// entries (e.g. /ipns/<node-key>) and then going through the /ipfs/
-// entries and returning the final node.
-func Resolve(ctx context.Context, nsys namesys.NameSystem, r *resolver.Resolver, p path.Path) (format.Node, error) {
-	p, err := ResolveIPNS(ctx, nsys, p)
-	if err != nil {
-		return nil, err
-	}
-
-	// ok, we have an IPFS path now (or what we'll treat as one)
-	return r.ResolvePath(ctx, p)
 }
