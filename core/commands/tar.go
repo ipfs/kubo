@@ -5,12 +5,11 @@ import (
 	"io"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/namesys/resolve"
 	tar "github.com/ipfs/go-ipfs/tar"
 
 	"github.com/ipfs/go-ipfs-cmds"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-path"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var TarCmd = &cmds.Command{
@@ -37,7 +36,7 @@ represent it.
 		cmds.FileArg("file", true, false, "Tar file to add.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -53,7 +52,7 @@ represent it.
 			return err
 		}
 
-		node, err := tar.ImportTar(req.Context, file, nd.DAG)
+		node, err := tar.ImportTar(req.Context, file, api.Dag())
 		if err != nil {
 			return err
 		}
@@ -86,17 +85,12 @@ var tarCatCmd = &cmds.Command{
 		cmds.StringArg("path", true, false, "ipfs path of archive to export.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		nd, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		p, err := path.ParsePath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		root, err := resolve.Resolve(req.Context, nd.Namesys, nd.Resolver, p)
+		root, err := api.ResolveNode(req.Context, path.New(req.Arguments[0]))
 		if err != nil {
 			return err
 		}
@@ -106,7 +100,7 @@ var tarCatCmd = &cmds.Command{
 			return dag.ErrNotProtobuf
 		}
 
-		r, err := tar.ExportTar(req.Context, rootpb, nd.DAG)
+		r, err := tar.ExportTar(req.Context, rootpb, api.Dag())
 		if err != nil {
 			return err
 		}
