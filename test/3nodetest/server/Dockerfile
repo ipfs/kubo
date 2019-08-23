@@ -1,6 +1,6 @@
 FROM zaqwsx_ipfs-test-img
 
-RUN ipfs init -b=1024
+RUN ipfs init -b=2048
 ADD . /tmp/test
 RUN mv -f /tmp/test/config /root/.ipfs/config
 RUN ipfs id

@@ -113,8 +113,8 @@ func main() {
 }
 
 func setupPeer(a args) (peer.ID, pstore.Peerstore, error) {
-	if a.keybits < 1024 {
-		return "", nil, errors.New("bitsize less than 1024 is considered unsafe")
+	if a.keybits < 2048 {
+		return "", nil, errors.New("bitsize less than 2048 is considered unsafe")
 	}
 
 	out("generating key pair...")
