@@ -71,7 +71,7 @@ func (tp *TestSuite) TestPutWithHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), mh.ID, -1)
+	nd, err := ipldcbor.FromJSON(strings.NewReader(`"Hello"`), mh.SHA3_256, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func (tp *TestSuite) TestPutWithHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if nd.Cid().String() != "bafyqabtfjbswy3dp" {
+	if nd.Cid().String() != "bafyrmifu7haikttpqqgc5ewvmp76z3z4ebp7h2ph4memw7dq4nt6btmxny" {
 		t.Errorf("got wrong cid: %s", nd.Cid().String())
 	}
 }
