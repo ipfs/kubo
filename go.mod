@@ -2,6 +2,7 @@ module github.com/ipfs/go-ipfs
 
 require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
+	github.com/AndreasBriese/bbloom v0.0.0-20190823232136-616930265c33 // indirect
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
