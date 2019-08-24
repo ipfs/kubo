@@ -30,13 +30,13 @@ test_dht() {
   '
   
   # ipfs dht put <key> <value>
-  test_expect_success 'put with good keys' '
+  test_expect_failure 'put with good keys (#3124)' '
     ipfsi 0 dht put "$TEST_DHT_PATH" "$TEST_DHT_VALUE" | sort >putted &&
     [ -s putted ] ||
     test_fsh cat putted
   '
 
-  test_expect_success 'put round trips' '
+  test_expect_failure 'put round trips (#3124)' '
     echo -n "$TEST_DHT_VALUE" >expected &&
     ipfsi 0 dht get "$TEST_DHT_PATH" >actual &&
     test_cmp actual expected

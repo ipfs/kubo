@@ -39,7 +39,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 	for i := 0; i < n; i++ {
 		var ident config.Identity
 		if fullIdentity {
-			sk, pk, err := ci.GenerateKeyPair(ci.RSA, 512)
+			sk, pk, err := ci.GenerateKeyPair(ci.RSA, 2048)
 			if err != nil {
 				return nil, err
 			}

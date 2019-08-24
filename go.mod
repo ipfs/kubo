@@ -13,11 +13,11 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golangci/golangci-lint v1.17.1
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/hashicorp/golang-lru v0.5.1
+	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-bitswap v0.1.6
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.0
-	github.com/ipfs/go-cid v0.0.2
+	github.com/ipfs/go-cid v0.0.3
 	github.com/ipfs/go-cidutil v0.0.2
 	github.com/ipfs/go-datastore v0.0.5
 	github.com/ipfs/go-detect-race v0.0.1
@@ -52,7 +52,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.1
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/hang-fds v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.1.0
+	github.com/ipfs/interface-go-ipfs-core v0.2.2
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.1.0
 	github.com/jbenet/go-is-domain v1.0.2
@@ -60,39 +60,38 @@ require (
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
-	github.com/libp2p/go-eventbus v0.0.3 // indirect
-	github.com/libp2p/go-libp2p v0.2.0
+	github.com/libp2p/go-eventbus v0.1.0 // indirect
+	github.com/libp2p/go-libp2p v0.3.0
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
-	github.com/libp2p/go-libp2p-circuit v0.1.0
+	github.com/libp2p/go-libp2p-circuit v0.1.1
 	github.com/libp2p/go-libp2p-connmgr v0.1.1
-	github.com/libp2p/go-libp2p-core v0.0.6
+	github.com/libp2p/go-libp2p-core v0.2.2
 	github.com/libp2p/go-libp2p-http v0.1.2
-	github.com/libp2p/go-libp2p-kad-dht v0.1.1
+	github.com/libp2p/go-libp2p-kad-dht v0.2.0
 	github.com/libp2p/go-libp2p-kbucket v0.2.0
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.1
-	github.com/libp2p/go-libp2p-peerstore v0.1.2-0.20190621130618-cfa9bb890c1a
+	github.com/libp2p/go-libp2p-peerstore v0.1.3
 	github.com/libp2p/go-libp2p-pnet v0.1.0
 	github.com/libp2p/go-libp2p-pubsub v0.1.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.1.0
 	github.com/libp2p/go-libp2p-quic-transport v0.1.1
-	github.com/libp2p/go-libp2p-record v0.1.0
+	github.com/libp2p/go-libp2p-record v0.1.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.1.0
-	github.com/libp2p/go-libp2p-secio v0.1.0
-	github.com/libp2p/go-libp2p-swarm v0.1.1
-	github.com/libp2p/go-libp2p-testing v0.0.4
+	github.com/libp2p/go-libp2p-secio v0.2.0
+	github.com/libp2p/go-libp2p-swarm v0.2.0
+	github.com/libp2p/go-libp2p-testing v0.1.0
 	github.com/libp2p/go-libp2p-tls v0.1.0
 	github.com/libp2p/go-libp2p-yamux v0.2.1
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/mattn/go-runewidth v0.0.4 // indirect
-	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/multiformats/go-multiaddr-dns v0.0.3
 	github.com/multiformats/go-multiaddr-net v0.0.1
 	github.com/multiformats/go-multibase v0.0.1
-	github.com/multiformats/go-multihash v0.0.5
+	github.com/multiformats/go-multihash v0.0.7
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3
