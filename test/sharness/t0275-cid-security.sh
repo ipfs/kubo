@@ -11,11 +11,11 @@ test_description="Cid Security"
 test_init_ipfs
 
 test_expect_success "adding using unsafe function fails with error" '
-  echo foo | test_must_fail ipfs add --hash murmur3 2>add_out
+  echo foo | test_must_fail ipfs add --hash murmur3-128 2>add_out
 '
 
 test_expect_success "error reason is pointed out" '
-  grep "insecure hash functions not allowed" add_out
+  grep "insecure hash functions not allowed" add_out || test_fsh cat add_out
 '
 
 test_expect_success "adding using too short of a hash function gives out an error" '
