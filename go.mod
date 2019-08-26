@@ -2,6 +2,7 @@ module github.com/ipfs/go-ipfs
 
 require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
+	github.com/AndreasBriese/bbloom v0.0.0-20190823232136-616930265c33 // indirect
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
@@ -19,15 +20,15 @@ require (
 	github.com/ipfs/go-blockservice v0.1.0
 	github.com/ipfs/go-cid v0.0.3
 	github.com/ipfs/go-cidutil v0.0.2
-	github.com/ipfs/go-datastore v0.0.5
+	github.com/ipfs/go-datastore v0.1.0
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.0.5
-	github.com/ipfs/go-ds-flatfs v0.0.2
-	github.com/ipfs/go-ds-leveldb v0.0.2
+	github.com/ipfs/go-ds-flatfs v0.1.0
+	github.com/ipfs/go-ds-leveldb v0.1.0
 	github.com/ipfs/go-ds-measure v0.0.1
 	github.com/ipfs/go-filestore v0.0.2
 	github.com/ipfs/go-fs-lock v0.0.1
-	github.com/ipfs/go-ipfs-blockstore v0.0.3
+	github.com/ipfs/go-ipfs-blockstore v0.1.0
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-cmds v0.1.0
 	github.com/ipfs/go-ipfs-config v0.0.6
@@ -79,7 +80,7 @@ require (
 	github.com/libp2p/go-libp2p-record v0.1.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.1.0
 	github.com/libp2p/go-libp2p-secio v0.2.0
-	github.com/libp2p/go-libp2p-swarm v0.2.0
+	github.com/libp2p/go-libp2p-swarm v0.2.1
 	github.com/libp2p/go-libp2p-testing v0.1.0
 	github.com/libp2p/go-libp2p-tls v0.1.0
 	github.com/libp2p/go-libp2p-yamux v0.2.1
@@ -99,6 +100,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
+	github.com/whyrusleeping/mdns v0.0.0-20190823211037-23958d6311f0 // indirect
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	go.uber.org/atomic v1.4.0 // indirect
