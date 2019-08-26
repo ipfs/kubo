@@ -119,6 +119,10 @@ require (
 
 replace github.com/golangci/golangci-lint => github.com/mhutchinson/golangci-lint v1.17.2-0.20190819125825-d18f2136e32b
 
-replace github.com/hugelgupf/p9 => github.com/djdv/p9 v0.0.0-20190822034506-af913a6d8082
-
 go 1.12
+
+// TODO: merge things and use proper repo references
+replace (
+    github.com/hugelgupf/p9 => github.com/djdv/p9 diff
+    github.com/ipfs/go-ipfs-config => github.com/djdv/go-ipfs-config experiment/filesystem
+)

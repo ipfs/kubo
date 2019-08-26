@@ -72,8 +72,12 @@ github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f/go.mod h1:SqUrOPUn
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 h1:tdlZCpZ/P9DhczCTSixgIKmwPv6+wP5DGjqLYw5SUiA=
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
-github.com/djdv/p9 v0.0.0-20190822034506-af913a6d8082 h1:Ml5E7tP7gL/A9CdCc7iRZf5cNIWFVDc9WeMYMP3F4ck=
-github.com/djdv/p9 v0.0.0-20190822034506-af913a6d8082/go.mod h1:akLqomEjJslbyK2h+TEXmVabYavEatmOdB6iektRfEM=
+github.com/djdv/go-ipfs-config v0.0.8-0.20190828150305-9817c5842355 h1:jDE4uGhU9c/fa01Mrkk9JnmVKcAPnQIYL5774iajBeI=
+github.com/djdv/go-ipfs-config v0.0.8-0.20190828150305-9817c5842355/go.mod h1:ribou1kTrjMvMNeU7wQN4vjaFSaXPBKkSKx1dPxe3eM=
+github.com/djdv/go-ipfs-config v0.0.8-0.20190828212302-95198d79d7c9 h1:SjcUvZEJ9VwMW58QJO0YRqAqr9CL4t4hixSnFpaJbDY=
+github.com/djdv/go-ipfs-config v0.0.8-0.20190828212302-95198d79d7c9/go.mod h1:ribou1kTrjMvMNeU7wQN4vjaFSaXPBKkSKx1dPxe3eM=
+github.com/djdv/p9 v0.0.0-20190828183744-eaad8e85066c h1:PhV3zAWDlk3FjvaF+vW3SVc5xg1eBWT/z6NZ+AHiD0Q=
+github.com/djdv/p9 v0.0.0-20190828183744-eaad8e85066c/go.mod h1:akLqomEjJslbyK2h+TEXmVabYavEatmOdB6iektRfEM=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302 h1:QV0ZrfBLpFc2KDk+a4LJefDczXnonRwrYrQJY/9L4dA=
