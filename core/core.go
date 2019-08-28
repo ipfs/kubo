@@ -12,6 +12,7 @@ package core
 import (
 	"context"
 	"io"
+	"path"
 
 	"github.com/ipfs/go-filestore"
 	version "github.com/ipfs/go-ipfs"
@@ -54,7 +55,7 @@ import (
 var log = logging.Logger("core")
 
 func init() {
-	identify.ClientVersion = "go-ipfs/" + version.CurrentVersionNumber + "/" + version.CurrentCommit
+	identify.ClientVersion = path.Join("go-ipfs", version.CurrentVersionNumber, version.CurrentCommit)
 }
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
