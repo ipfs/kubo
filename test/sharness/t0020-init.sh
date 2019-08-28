@@ -163,6 +163,20 @@ test_expect_success "'ipfs config Addresses.API' looks good" '
   test $(cat actual_config) = "/ip4/127.0.0.1/tcp/0"
 '
 
+test_expect_success "ipfs init from existing config succeeds" '
+  export ORIG_PATH=$IPFS_PATH
+  export IPFS_PATH=$(pwd)/.ipfs-clone
+
+  ipfs init "$ORIG_PATH/config" &&
+  ipfs config Addresses.API > actual_config &&
+  test $(cat actual_config) = "/ip4/127.0.0.1/tcp/0"
+'
+
+test_expect_success "clean up ipfs clone dir and reset IPFS_PATH" '
+  rm -rf "$IPFS_PATH" &&
+  export IPFS_PATH=$ORIG_PATH
+'
+
 test_expect_success "clean up ipfs dir" '
   rm -rf "$IPFS_PATH"
 '
