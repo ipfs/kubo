@@ -726,7 +726,11 @@ func YesNoPrompt(prompt string) bool {
 }
 
 func printVersion() {
-	fmt.Printf("go-ipfs version: %s-%s\n", version.CurrentVersionNumber, version.CurrentCommit)
+	v := version.CurrentVersionNumber
+	if version.CurrentCommit != "" {
+		v += "-" + version.CurrentCommit
+	}
+	fmt.Printf("go-ipfs version: %s\n", v)
 	fmt.Printf("Repo version: %d\n", fsrepo.RepoVersion)
 	fmt.Printf("System version: %s\n", runtime.GOARCH+"/"+runtime.GOOS)
 	fmt.Printf("Golang version: %s\n", runtime.Version())
