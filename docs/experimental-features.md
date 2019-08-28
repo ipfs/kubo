@@ -507,27 +507,29 @@ See [Plugin docs](./plugins.md)
 - [ ] More plugins and plugin types
 - [ ] Feedback on stability
 
- ## Badger datastore
+## Badger datastore
 
- ### In Version
- 0.4.11
+### In Version
 
- Badger-ds is new datastore implementation based on
- https://github.com/dgraph-io/badger
+0.4.11
 
- ### Basic Usage
+Badger-ds is new datastore implementation based on
+https://github.com/dgraph-io/badger.
+ 
 
- ```
- $ ipfs init --profile=badgerds
- ```
- or install https://github.com/ipfs/ipfs-ds-convert/ and
- ```
- [BACKUP ~/.ipfs]
- $ ipfs config profile apply badgerds
- $ ipfs-ds-convert convert
- ```
+### Basic Usage
 
-###
+```
+$ ipfs init --profile=badgerds
+```
+or install https://github.com/ipfs/ipfs-ds-convert/ and
+```
+[BACKUP ~/.ipfs]
+$ ipfs config profile apply badgerds
+$ ipfs-ds-convert convert
+```
+
+You can read more in the [datastore](./datastores.md#badgerds) documentation.
 
 ### Road to being a real feature
 

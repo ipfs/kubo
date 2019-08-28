@@ -38,13 +38,13 @@ Uses a leveldb database to store key value pairs.
 ## badgerds
 Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
 
-* `syncWrites`: Synchronize every write to disk.
-* `truncate`: Truncate the DB if a corrupted sector is found (otherwise Badger won't start). This option is always set to `true` in Windows if `syncWrites` is set.
+* `syncWrites`: Flush every write to disk before continuing. Disabling this option may leave your datastore in an inconsistent state after a crash.
+* `truncate`: Truncate the DB if a partially written sector is found (defaults to true). This only happens if a IPFS crashes half-way through a write so this option is usually safe to leave on.
 
 ```json
 {
 	"type": "badgerds",
-	"path": "<location of badger inside repo",
+	"path": "<location of badger inside repo>",
 	"syncWrites": true|false,
 	"truncate": true|false,
 }
