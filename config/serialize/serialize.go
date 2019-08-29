@@ -11,13 +11,19 @@ import (
 	"github.com/ipfs/go-ipfs-config"
 
 	"github.com/facebookgo/atomicfile"
-	"github.com/ipfs/go-ipfs-util"
 )
+
+// ErrNotInitialized is returned when we fail to read the config because the
+// repo doesn't exist.
+var ErrNotInitialized = errors.New("ipfs not initialized, please run 'ipfs init'")
 
 // ReadConfigFile reads the config from `filename` into `cfg`.
 func ReadConfigFile(filename string, cfg interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
+		if os.IsNotExist(err) {
+			err = ErrNotInitialized
+		}
 		return err
 	}
 	defer f.Close()
@@ -56,11 +62,6 @@ func encode(w io.Writer, value interface{}) error {
 
 // Load reads given file and returns the read config, or error.
 func Load(filename string) (*config.Config, error) {
-	// if nothing is there, fail. User must run 'ipfs init'
-	if !util.FileExists(filename) {
-		return nil, errors.New("ipfs not initialized, please run 'ipfs init'")
-	}
-
 	var cfg config.Config
 	err := ReadConfigFile(filename, &cfg)
 	if err != nil {
