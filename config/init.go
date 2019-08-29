@@ -152,8 +152,8 @@ func DefaultDatastoreConfig() Datastore {
 func identityConfig(out io.Writer, nbits int) (Identity, error) {
 	// TODO guard higher up
 	ident := Identity{}
-	if nbits < 1024 {
-		return ident, errors.New("bitsize less than 1024 is considered unsafe")
+	if nbits < 2048 {
+		return ident, errors.New("bitsize less than 2048 is considered unsafe")
 	}
 
 	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
