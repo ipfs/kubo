@@ -1,11 +1,11 @@
 package config
 
 type Plugins struct {
-	Plugins map[string]Plugin `json:",omitempty"`
+	Plugins map[string]Plugin
 	// TODO: Loader Path? Leaving that out for now due to security concerns.
 }
 
 type Plugin struct {
-	Disabled bool        `json:",omitempty"`
-	Config   interface{} `json:",omitempty"`
+	Disabled bool
+	Config   interface{}
 }
