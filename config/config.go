@@ -30,6 +30,7 @@ type Config struct {
 	Provider     Provider
 	Reprovider   Reprovider
 	Experimental Experiments
+	Plugins      Plugins
 }
 
 const (
