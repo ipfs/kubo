@@ -122,7 +122,4 @@ replace github.com/golangci/golangci-lint => github.com/mhutchinson/golangci-lin
 go 1.12
 
 // TODO: merge things and use proper repo references
-replace (
-    github.com/hugelgupf/p9 => github.com/djdv/p9 diff
-    github.com/ipfs/go-ipfs-config => github.com/djdv/go-ipfs-config experiment/filesystem
-)
+replace github.com/hugelgupf/p9 => github.com/djdv/p9 v0.0.0-20190828183744-eaad8e85066c

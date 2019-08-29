@@ -9,6 +9,7 @@ import (
 	fsnodes "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 )
 
@@ -29,11 +30,11 @@ type FileSystemPlugin struct {
 }
 
 func (*FileSystemPlugin) Name() string {
-	return "filesystem"
+	return PluginName
 }
 
 func (*FileSystemPlugin) Version() string {
-	return "0.0.1"
+	return PluginVersion
 }
 
 func (fs *FileSystemPlugin) Init() error {
@@ -52,38 +53,46 @@ func init() {
 
 func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 	logger.Info("Initialising 9p resource server...")
+	fs.disabled = true
 
-	la, err := GetListener()
+	serviceConfig, err := XXX_GetFSConf()
 	if err != nil {
 		if err == errDisabled {
-			fs.disabled = true
-			logger.Info(err)
+			logger.Warning(errDisabled)
 			return nil
 		}
+		return err
+	}
+
+	ma, err := multiaddr.NewMultiaddr(serviceConfig.Service[DefaultService])
+	if err != nil {
+		logger.Errorf("9P multiaddr error: %s\n", err)
+		return err
+	}
+
+	if fs.listener, err = manet.Listen(ma); err != nil {
 		logger.Errorf("9P listen error: %s\n", err)
 		return err
 	}
 
-	fs.listener = la
-
 	// construct 9p resource server
 	p9pFSS, err := fsnodes.NewRoot(fs.ctx, core, logger)
 	if err != nil {
-		logger.Errorf("9P server error: %s\n", err)
+		logger.Errorf("9P construction error: %s\n", err)
 		return err
 	}
 
 	// Run the server.
 	s := p9.NewServer(p9pFSS)
 	go func() {
-		if err := s.Serve(manet.NetListener(la)); err != nil {
+		if err := s.Serve(manet.NetListener(fs.listener)); err != nil {
 			logger.Errorf("9P server error: %s\n", err)
 			return
 		}
 	}()
 
-	//TODO: confirm start actually succeeded, etc.
-	logger.Infof("9P service started on %s\n", la.Addr())
+	fs.disabled = false
+	logger.Infof("9P service started on %s\n", fs.listener.Addr())
 	return nil
 }
 

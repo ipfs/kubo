@@ -1,20 +1,16 @@
 package p9client
 
 import (
-	gopath "path"
-	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/hugelgupf/p9/p9"
-	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/plugin/plugins/filesystem"
 	logging "github.com/ipfs/go-log"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 )
 
-var logger logging.EventLogger = logging.Logger("9p")
+var logger logging.EventLogger = logging.Logger("9P")
 
 func Dial(options ...Option) (*p9.Client, error) {
 	ops := &Options{
@@ -27,19 +23,13 @@ func Dial(options ...Option) (*p9.Client, error) {
 	}
 
 	if ops.address == filesystem.DefaultListenAddress {
-		// expand $IPFS_PATH, using default if not exist
-		target, err := config.Path("", "filesystem.9p.sock")
+		// TODO: kludge
+		serviceConf, err := filesystem.XXX_GetFSConf()
 		if err != nil {
 			return nil, err
 		}
-		//TODO [manet]: doesn't like drive letters
-		//XXX: so for now we decap drive-spec-like paths and use the current working drive letter, relatively
-		if runtime.GOOS == "windows" {
-			if target, err = windowsToUnixFriendly(target); err != nil {
-				return nil, err
-			}
-		}
-		ops.address = gopath.Join("/unix", target)
+
+		ops.address = serviceConf.Service[filesystem.DefaultService]
 	}
 
 	ma, err := multiaddr.NewMultiaddr(ops.address)
@@ -47,25 +37,13 @@ func Dial(options ...Option) (*p9.Client, error) {
 		return nil, err
 	}
 
+	//TODO [investigate;who's bug] on Windows, dialing a unix domain socket that doesn't exist will create it
 	conn, err := manet.Dial(ma)
 	if err != nil {
 		return nil, err
 	}
 
 	return p9.NewClient(conn, filesystem.DefaultMSize, filesystem.DefaultVersion)
-	/*
-		client, err := p9.NewClient(conn, filesystem.DefaultMSize, filesystem.DefaultVersion)
-		if err != nil {
-			return nil, err
-		}
-		logger.Infof("Connected to server supporting version:\n%v\n\n", client.Version())
-
-		rootRef, err := client.Attach("")
-		if err != nil {
-			return nil, err
-		}
-		logger.Debugf("Attached to root:\n%#v\n\n", rootRef)
-	*/
 }
 
 func ReadDir(path string, fsRef p9.File, offset uint64) ([]p9.Dirent, error) {
@@ -160,19 +138,3 @@ func Read(path string, openedRef p9.File) {
 	logger.Debugf("%q closed:\n%#v\n\n", path, targetRef)
 }
 */
-
-func windowsToUnixFriendly(target string) (string, error) {
-	if !filepath.IsAbs(target) {
-		var err error
-		if target, err = filepath.Abs(target); err != nil {
-			return target, err
-		}
-	}
-
-	//TODO [manet]: doesn't like drive letters
-	//XXX: so for now we decap drive-spec-like paths and use the current working drive letter, relatively
-	if len(target) > 3 && target[1] == ':' {
-		target = target[3:]
-	}
-	return filepath.ToSlash(target), nil
-}
