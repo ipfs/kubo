@@ -26,7 +26,6 @@ Otherwise, check out the following guides to using and developing IPFS:
 
 - Building on…
     - [Windows](windows.md)
-    - [OpenBSD](openbsd.md)
 - [Performance Debugging Guidelines](debug-guide.md)
 - [Release Checklist](releases.md)
 
