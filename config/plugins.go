@@ -6,6 +6,6 @@ type Plugins struct {
 }
 
 type Plugin struct {
-	Disabled bool
-	Config   interface{}
+	Disabled bool        `json:",omitempty"`
+	Config   interface{} `json:",omitempty"`
 }
