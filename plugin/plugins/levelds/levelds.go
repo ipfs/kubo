@@ -29,7 +29,7 @@ func (*leveldsPlugin) Version() string {
 	return "0.1.0"
 }
 
-func (*leveldsPlugin) Init() error {
+func (*leveldsPlugin) Init(_ *plugin.Environment) error {
 	return nil
 }
 
