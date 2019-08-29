@@ -164,12 +164,6 @@ $ cd go-ipfs
 $ make install
 ```
 
-If you are building on a non-GNU system, use `gmake` in place of `make`.  
-Unsupported platforms (run `(g)make supported` for a list) will also need to set the `nofuse` gotag during build.
-```
-$ GOTAGS=nofuse (g)make install
-```
-
 #### Troubleshooting
 
 - Separate [instructions are available for building on Windows](docs/windows.md).
