@@ -1,9 +1,13 @@
 package p9client
 
 import (
+	gopath "path"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/hugelgupf/p9/p9"
+	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/plugin/plugins/filesystem"
 	logging "github.com/ipfs/go-log"
 	"github.com/multiformats/go-multiaddr"
@@ -22,14 +26,12 @@ func Dial(options ...Option) (*p9.Client, error) {
 		op(ops)
 	}
 
+	//TODO: this should probably be the callers responsibility
 	if ops.address == filesystem.DefaultListenAddress {
-		// TODO: kludge
-		serviceConf, err := filesystem.XXX_GetFSConf()
-		if err != nil {
+		var err error
+		if ops.address, err = expandDefault(); err != nil {
 			return nil, err
 		}
-
-		ops.address = serviceConf.Service[filesystem.DefaultService]
 	}
 
 	ma, err := multiaddr.NewMultiaddr(ops.address)
@@ -44,6 +46,32 @@ func Dial(options ...Option) (*p9.Client, error) {
 	}
 
 	return p9.NewClient(conn, filesystem.DefaultMSize, filesystem.DefaultVersion)
+}
+
+func expandDefault() (string, error) {
+	_, sockName := gopath.Split(filesystem.DefaultListenAddress)
+	target, err := config.Path("", sockName)
+	if err != nil {
+		return target, err
+	}
+
+	if !filepath.IsAbs(target) {
+		if target, err = filepath.Abs(target); err != nil {
+			return target, err
+		}
+	}
+
+	if runtime.GOOS == "windows" {
+		//TODO [manet]: doesn't like drive letters
+		//XXX: so for now we decap drive-spec-like paths and use the current working drive letter, relatively
+		if len(target) > 2 && target[1] == ':' {
+			target = target[2:]
+		}
+		target = filepath.ToSlash(target)
+	}
+
+	target = gopath.Join("/unix", target)
+	return target, nil
 }
 
 func ReadDir(path string, fsRef p9.File, offset uint64) ([]p9.Dirent, error) {

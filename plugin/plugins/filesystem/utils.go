@@ -1,13 +1,9 @@
 package filesystem
 
 import (
-	"os"
 	gopath "path"
 	"path/filepath"
 	"runtime"
-
-	config "github.com/ipfs/go-ipfs-config"
-	cserial "github.com/ipfs/go-ipfs-config/serialize"
 )
 
 const (
@@ -33,76 +29,23 @@ type Config struct { // NOTE: unstable/experimental
 	Service map[string]string
 }
 
-func defaultConfig() (*Config, error) {
+func defaultConfig(storagePath string) *Config {
 	serviceMap := make(map[string]string)
-	target, err := config.Path("", sockName)
-	if err != nil {
-		return nil, err
-	}
 
+	sockTarget := gopath.Join(storagePath, sockName)
 	if runtime.GOOS == "windows" {
-		if target, err = windowsToUnixFriendly(target); err != nil {
-			return nil, err
-		}
+		sockTarget = windowsToUnixFriendly(sockTarget)
 	}
 
-	serviceMap["9P"] = gopath.Join("/unix", target)
-	return &Config{serviceMap}, nil
+	serviceMap[DefaultService] = gopath.Join("/unix", sockTarget)
+	return &Config{serviceMap}
 }
 
-//TODO: better name
-func XXX_GetFSConf() (*Config, error) {
-	return configFromPlugin(PluginName)
-}
-
-func windowsToUnixFriendly(target string) (string, error) {
-	if !filepath.IsAbs(target) {
-		var err error
-		if target, err = filepath.Abs(target); err != nil {
-			return target, err
-		}
-	}
-
+func windowsToUnixFriendly(target string) string {
 	//TODO [manet]: doesn't like drive letters
 	//XXX: so for now we decap drive-spec-like paths and use the current working drive letter, relatively
-	if len(target) > 3 && target[1] == ':' {
-		target = target[3:]
+	if len(target) > 2 && target[1] == ':' {
+		target = target[2:]
 	}
-	return filepath.ToSlash(target), nil
-}
-
-func configFromPlugin(pluginName string) (*Config, error) {
-	//TODO: after experiment, make sure this is populated from conf file, not initialised here
-	cfgPath, err := config.Filename("")
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := cserial.Load(cfgPath)
-	if err != nil {
-		return nil, err
-	}
-
-	pluginCfg := cfg.Plugins.Plugins[PluginName]
-	if pluginCfg.Disabled {
-		return nil, errDisabled
-	}
-
-	serviceConfig, ok := pluginCfg.Config.(*Config)
-	if !ok {
-		if serviceConfig, err = defaultConfig(); err != nil {
-			return nil, err
-		}
-	}
-
-	if addr := os.Getenv(EnvAddr); addr != "" {
-		serviceConfig.Service[DefaultService] = addr
-	}
-
-	// assume user supplied env vars are set and expand them as-is
-	for service, target := range serviceConfig.Service {
-		serviceConfig.Service[service] = os.ExpandEnv(target)
-	}
-
-	return serviceConfig, nil
+	return filepath.ToSlash(target)
 }

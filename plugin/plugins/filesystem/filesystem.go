@@ -2,7 +2,8 @@ package filesystem
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
+	"path/filepath"
 
 	"github.com/hugelgupf/p9/p9"
 	plugin "github.com/ipfs/go-ipfs/plugin"
@@ -22,11 +23,11 @@ var Plugins = []plugin.Plugin{
 var _ plugin.PluginDaemon = (*FileSystemPlugin)(nil)
 
 type FileSystemPlugin struct {
-	ctx      context.Context
-	cancel   context.CancelFunc
-	listener manet.Listener
+	ctx    context.Context
+	cancel context.CancelFunc
 
-	disabled bool
+	addr     multiaddr.Multiaddr
+	listener manet.Listener
 }
 
 func (*FileSystemPlugin) Name() string {
@@ -37,14 +38,42 @@ func (*FileSystemPlugin) Version() string {
 	return PluginVersion
 }
 
-func (fs *FileSystemPlugin) Init() error {
+func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
+	logger.Info("Initialising 9p resource server...")
+	if !filepath.IsAbs(env.Repo) {
+		absRepo, err := filepath.Abs(env.Repo)
+		if err != nil {
+			return err
+		}
+		env.Repo = absRepo
+	}
+
+	cfg := &Config{}
+	if env.Config != nil {
+		byteRep, err := json.Marshal(env.Config)
+		if err != nil {
+			return err
+		}
+		if err = json.Unmarshal(byteRep, cfg); err != nil {
+			return err
+		}
+	} else {
+		cfg = defaultConfig(env.Repo)
+	}
+
+	var err error
+	fs.addr, err = multiaddr.NewMultiaddr(cfg.Service[DefaultService])
+	if err != nil {
+		return err
+	}
+
 	fs.ctx, fs.cancel = context.WithCancel(context.Background())
+	logger.Info("9p resource server okay for launch")
 	return nil
 }
 
 var (
-	logger      logging.EventLogger
-	errDisabled = errors.New("this experiment is disabled, enable with `ipfs config --json Experimental.FileSystemEnabled true`")
+	logger logging.EventLogger
 )
 
 func init() {
@@ -52,33 +81,18 @@ func init() {
 }
 
 func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
-	logger.Info("Initialising 9p resource server...")
-	fs.disabled = true
+	logger.Info("Starting 9p resource server...")
 
-	serviceConfig, err := XXX_GetFSConf()
-	if err != nil {
-		if err == errDisabled {
-			logger.Warning(errDisabled)
-			return nil
-		}
-		return err
-	}
-
-	ma, err := multiaddr.NewMultiaddr(serviceConfig.Service[DefaultService])
-	if err != nil {
-		logger.Errorf("9P multiaddr error: %s\n", err)
-		return err
-	}
-
-	if fs.listener, err = manet.Listen(ma); err != nil {
+	var err error
+	if fs.listener, err = manet.Listen(fs.addr); err != nil {
 		logger.Errorf("9P listen error: %s\n", err)
 		return err
 	}
 
-	// construct 9p resource server
+	// construct 9P resource server
 	p9pFSS, err := fsnodes.NewRoot(fs.ctx, core, logger)
 	if err != nil {
-		logger.Errorf("9P construction error: %s\n", err)
+		logger.Errorf("9P root construction error: %s\n", err)
 		return err
 	}
 
@@ -91,16 +105,11 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 		}
 	}()
 
-	fs.disabled = false
-	logger.Infof("9P service started on %s\n", fs.listener.Addr())
+	logger.Infof("9P service is listening on %s\n", fs.listener.Addr())
 	return nil
 }
 
 func (fs *FileSystemPlugin) Close() error {
-	if fs.disabled {
-		return nil
-	}
-
 	//TODO: fmt.Println("Closing file system handles...")
 	logger.Info("9P server requested to close")
 	fs.cancel()
