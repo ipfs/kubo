@@ -39,7 +39,7 @@ func (*FileSystemPlugin) Version() string {
 }
 
 func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
-	logger.Info("Initialising 9p resource server...")
+	logger.Info("Initialising 9P resource server...")
 	if !filepath.IsAbs(env.Repo) {
 		absRepo, err := filepath.Abs(env.Repo)
 		if err != nil {
@@ -68,7 +68,7 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	}
 
 	fs.ctx, fs.cancel = context.WithCancel(context.Background())
-	logger.Info("9p resource server okay for launch")
+	logger.Info("9P resource server okay for launch")
 	return nil
 }
 
@@ -81,7 +81,7 @@ func init() {
 }
 
 func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
-	logger.Info("Starting 9p resource server...")
+	logger.Info("Starting 9P resource server...")
 
 	var err error
 	if fs.listener, err = manet.Listen(fs.addr); err != nil {
