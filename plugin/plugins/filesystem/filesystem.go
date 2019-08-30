@@ -39,7 +39,7 @@ func (*FileSystemPlugin) Version() string {
 }
 
 func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
-	logger.Info("Initialising 9P resource server...")
+	logger.Info("Initializing 9P resource server...")
 	if !filepath.IsAbs(env.Repo) {
 		absRepo, err := filepath.Abs(env.Repo)
 		if err != nil {
