@@ -4,6 +4,13 @@
 
 - [Release Philosophy](#release-philosophy)
 - [Release Flow](#release-flow)
+  - [Stage 0 - Automated Testing](#stage-0--automated-testing)
+  - [Stage 1 - Internal Testing](#stage-1--internal-testing)
+  - [Stage 2 - Community Dev Testing](#stage-2--community-dev-testing)
+  - [Stage 3 - Community Prod Testing](#stage-2--community-prod-testing)
+  - [Stage 4 - Release](#stage-4--release)
+- [Release Cycle](#release-cycle)
+  - [Patch Releases](#patch-releases)
 - [Performing a Release](#performing-a-release)
 - [Release Version Numbers (aka semver)](#release-version-numbers-aka-semver)
 
@@ -12,12 +19,15 @@
 `go-ipfs` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages that gives us the opportunity to test the new version against our test environments (unit, interop, integration), QA in our current production environment, IPFS apps (e.g. Desktop and WebUI) and with our community and _early testers_<sup>[1]</sup> that have IPFS running in production.
 
 We might expand the six week release schedule in case of:
+
 - No new updates to be added
-- In case of a large community event that takes the core team availability away (e.g. IPFS Conf, Dev Meetings, IPFS Camp, etc)
+- In case of a large community event that takes the core team availability away (e.g. IPFS Conf, Dev Meetings, IPFS Camp, etc.)
 
 ## Release Flow
 
 `go-ipfs` releases come in 5 stages designed to gradually roll out changes and reduce the impact of any regressions that may have been introduced. If we need to merge non-trivial<sup>[2]</sup> changes during the process, we start over at stage 0.
+
+![go-ipfs-release-process-illustration](https://user-images.githubusercontent.com/618519/62986422-653fee00-bdf0-11e9-8f61-197117b61da2.png)
 
 ### Stage 0 - Automated Testing
 
@@ -26,24 +36,28 @@ At this stage, we expect _all_ automated tests (interop, testlab, performance, e
 ### Stage 1 - Internal Testing
 
 At this stage, we'll:
-- 1. Start a partial-rollout to our own infrastructure.
-- 2. Test against ipfs and ipfs-shipyard applications.
 
-**Goal(s):**
-- 1. Make sure we haven't introduced any obvious regressions.
-- 2. Test the release in an environment we can monitor and easily roll back (i.e., our own infra).
+1. Start a partial-rollout to our own infrastructure.
+2. Test against ipfs and ipfs-shipyard applications.
+
+**Goals:**
+
+1. Make sure we haven't introduced any obvious regressions.
+2. Test the release in an environment we can monitor and easily roll back (i.e. our own infra).
 
 ### Stage 2 - Community Dev Testing
 
 At this stage, we'll announce the impending release to the community and ask for beta testers.
 
-**Goal:** Test the release in as many non-production environments as possible. This is relatively low-risk but gives us a _breadth_ of testing internal testing can't.
+**Goal:**
+
+Test the release in as many non-production environments as possible. This is relatively low-risk but gives us a _breadth_ of testing internal testing can't.
 
 ### Stage 3 - Community Prod Testing
 
-At this stage, we consider the release to be "production ready" and ask will ask the community and our early testers to (partially) deploy the release to their production infrastructure.
+At this stage, we consider the release to be "production ready" and will ask the community and our early testers to (partially) deploy the release to their production infrastructure.
 
-**Goal(s):**
+**Goals:**
 
 1. Test the release in some production environments with heavy workloads.
 2. Partially roll-out an upgrade to see how it affects the network.
@@ -52,8 +66,6 @@ At this stage, we consider the release to be "production ready" and ask will ask
 ### Stage 4 - Release
 
 At this stage, the release is "battle hardened" and ready for wide deployment.
-
-![go-ipfs-release-process-illustration](https://user-images.githubusercontent.com/618519/62986422-653fee00-bdf0-11e9-8f61-197117b61da2.png)
 
 ## Release Cycle
 
