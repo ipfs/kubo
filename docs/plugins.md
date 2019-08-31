@@ -21,6 +21,9 @@ directory (by default `~/.ipfs/plugins`).
 
 ## Plugin Types
 
+Plugins can implement one or more plugin types, defined in the
+[plugin](https://godoc.org/github.com/ipfs/go-ipfs/plugin) package.
+
 ### IPLD
 
 IPLD plugins add support for additional formats to `ipfs dag` and other IPLD

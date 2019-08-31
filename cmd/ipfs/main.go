@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"runtime/pprof"
 	"strings"
 	"time"
@@ -46,22 +45,9 @@ const (
 )
 
 func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
-	pluginpath := filepath.Join(repoPath, "plugins")
-
-	plugins, err := loader.NewPluginLoader()
+	plugins, err := loader.NewPluginLoader(repoPath)
 	if err != nil {
-		return nil, fmt.Errorf("error loading preloaded plugins: %s", err)
-	}
-
-	// check if repo is accessible before loading plugins
-	ok, err := checkPermissions(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	if ok {
-		if err := plugins.LoadDirectory(pluginpath); err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("error loading plugins: %s", err)
 	}
 
 	if err := plugins.Initialize(); err != nil {
@@ -280,20 +266,6 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	}
 
 	return http.NewClient(host, opts...), nil
-}
-
-func checkPermissions(path string) (bool, error) {
-	_, err := os.Open(path)
-	if os.IsNotExist(err) {
-		// repo does not exist yet - don't load plugins, but also don't fail
-		return false, nil
-	}
-	if os.IsPermission(err) {
-		// repo is not accessible. error out.
-		return false, fmt.Errorf("error opening repository at %s: permission denied", path)
-	}
-
-	return true, nil
 }
 
 // commandDetails returns a command's details for the command given by |path|.

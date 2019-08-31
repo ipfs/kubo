@@ -30,7 +30,7 @@ func (*badgerdsPlugin) Version() string {
 	return "0.1.0"
 }
 
-func (*badgerdsPlugin) Init() error {
+func (*badgerdsPlugin) Init(_ *plugin.Environment) error {
 	return nil
 }
 

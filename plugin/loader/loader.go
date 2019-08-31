@@ -3,8 +3,11 @@ package loader
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
+	config "github.com/ipfs/go-ipfs-config"
+	cserialize "github.com/ipfs/go-ipfs-config/serialize"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
@@ -83,15 +86,31 @@ type PluginLoader struct {
 	state   loaderState
 	plugins map[string]plugin.Plugin
 	started []plugin.Plugin
+	config  config.Plugins
+	repo    string
 }
 
 // NewPluginLoader creates new plugin loader
-func NewPluginLoader() (*PluginLoader, error) {
-	loader := &PluginLoader{plugins: make(map[string]plugin.Plugin, len(preloadPlugins))}
+func NewPluginLoader(repo string) (*PluginLoader, error) {
+	loader := &PluginLoader{plugins: make(map[string]plugin.Plugin, len(preloadPlugins)), repo: repo}
+	if repo != "" {
+		cfg, err := cserialize.Load(filepath.Join(repo, config.DefaultConfigFile))
+		switch err {
+		case cserialize.ErrNotInitialized:
+		case nil:
+			loader.config = cfg.Plugins
+		default:
+			return nil, err
+		}
+	}
 	for _, v := range preloadPlugins {
 		if err := loader.Load(v); err != nil {
 			return nil, err
 		}
+	}
+
+	if err := loader.LoadDirectory(filepath.Join(repo, "plugins")); err != nil {
+		return nil, err
 	}
 	return loader, nil
 }
@@ -124,6 +143,10 @@ func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 			"plugin: %s, is duplicated in version: %s, "+
 				"while trying to load dynamically: %s",
 			name, ppl.Version(), pl.Version())
+	}
+	if loader.config.Plugins[name].Disabled {
+		log.Infof("not loading disabled plugin %s", name)
+		return nil
 	}
 	loader.plugins[name] = pl
 	return nil
@@ -164,8 +187,11 @@ func (loader *PluginLoader) Initialize() error {
 	if err := loader.transition(loaderLoading, loaderInitializing); err != nil {
 		return err
 	}
-	for _, p := range loader.plugins {
-		err := p.Init()
+	for name, p := range loader.plugins {
+		err := p.Init(&plugin.Environment{
+			Repo:   loader.repo,
+			Config: loader.config.Plugins[name].Config,
+		})
 		if err != nil {
 			loader.state = loaderFailed
 			return err
