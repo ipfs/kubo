@@ -8,7 +8,10 @@
 
 > IPFS CoreAPI implementation using HTTP API
 
-This project is WIP, use https://github.com/ipfs/go-ipfs-api for now
+This package is experimental and subject to change. If you need to depend on
+something less likely to change, please use
+[go-ipfs-api](https://github.com/ipfs/go-ipfs-api). If you'd like the latest and
+greatest features, please use _this_ package.
 
 ## Documentation
 
