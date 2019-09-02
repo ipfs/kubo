@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/hugelgupf/p9/p9"
+	"github.com/djdv/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"

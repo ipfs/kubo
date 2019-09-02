@@ -4,7 +4,7 @@ import (
 	"context"
 	gopath "path"
 
-	"github.com/hugelgupf/p9/p9"
+	"github.com/djdv/p9/p9"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"

@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/hugelgupf/p9/p9"
+	"github.com/djdv/p9/p9"
 	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/plugin/plugins/filesystem"
 	logging "github.com/ipfs/go-log"

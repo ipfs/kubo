@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	"github.com/hugelgupf/p9/p9"
+	"github.com/djdv/p9/p9"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	fsnodes "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes"
 	logging "github.com/ipfs/go-log"

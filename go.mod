@@ -6,6 +6,7 @@ require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
+	github.com/djdv/p9 v0.0.0-20190903035542-f10bd070d5fa
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/fatih/color v1.7.0 // indirect
@@ -15,7 +16,6 @@ require (
 	github.com/golangci/golangci-lint v1.17.1
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.3
-	github.com/hugelgupf/p9 v0.0.0-20190806022330-7ba0920fba11
 	github.com/ipfs/go-bitswap v0.1.8
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.0
@@ -110,7 +110,7 @@ require (
 	go.uber.org/goleak v0.10.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go4.org v0.0.0-20190313082347-94abd6928b1d // indirect
-	golang.org/x/sys v0.0.0-20190730183949-1393eb018365
+	golang.org/x/sys v0.0.0-20190903213830-1f305c863dab
 	golang.org/x/tools v0.0.0-20190621195816-6e04913cbbac // indirect
 	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
@@ -120,6 +120,3 @@ require (
 replace github.com/golangci/golangci-lint => github.com/mhutchinson/golangci-lint v1.17.2-0.20190819125825-d18f2136e32b
 
 go 1.12
-
-// TODO: merge things and use proper repo references
-replace github.com/hugelgupf/p9 => github.com/djdv/p9 v0.0.0-20190828183744-eaad8e85066c

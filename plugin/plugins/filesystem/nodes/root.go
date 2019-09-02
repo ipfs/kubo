@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hugelgupf/p9/p9"
+	"github.com/djdv/p9/p9"
 	cid "github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"

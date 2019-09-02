@@ -3,8 +3,8 @@ package fsnodes
 import (
 	"context"
 
-	"github.com/hugelgupf/p9/p9"
-	"github.com/hugelgupf/p9/unimplfs"
+	"github.com/djdv/p9/p9"
+	"github.com/djdv/p9/unimplfs"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
