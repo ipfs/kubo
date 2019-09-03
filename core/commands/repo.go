@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"text/tabwriter"
+	"time"
 
 	humanize "github.com/dustin/go-humanize"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -17,8 +19,11 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	cid "github.com/ipfs/go-cid"
+	dsq "github.com/ipfs/go-datastore/query"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	base32 "github.com/whyrusleeping/base32"
 )
 
 type RepoVersion struct {
@@ -206,6 +211,148 @@ Version         string The repo version.
 			}
 
 			return nil
+		}),
+	},
+}
+
+var repoListCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List values stored in the local repo.",
+		ShortDescription: `
+'ipfs repo list' is a plumbing command used to list values in the local repo.
+
+This command and its subcommands are unstable and may change or go away at any time. Do not rely on them in production code.
+`,
+	},
+	Subcommands: map[string]*cmds.Command{
+		"providers": repoListProvidersCmd,
+	},
+}
+
+type providerRecord struct {
+	Peer    string
+	Cid     string
+	Expires time.Time
+}
+
+func parseProvider(record dsq.Result) (time.Time, cid.Cid, peer.ID, error) {
+	key := record.Key
+	value := record.Value
+
+	const prefix string = "/providers/"
+	if !strings.HasPrefix(key, prefix) {
+		return time.Time{}, cid.Undef, "", fmt.Errorf("not a provider record: %q", key)
+	}
+	components := strings.Split(key[len(prefix):], "/")
+	if len(components) != 2 {
+		return time.Time{}, cid.Undef, "", fmt.Errorf("provider record key invalid: %q", key)
+	}
+	bincid, err := base32.RawStdEncoding.DecodeString(components[0])
+	if err != nil {
+		return time.Time{}, cid.Undef, "", fmt.Errorf("provider record key has mis-encoded CID: %q", key)
+	}
+	c, err := cid.Cast(bincid)
+	if err != nil {
+		return time.Time{}, cid.Undef, "", fmt.Errorf("record key has an invalid CID: %s", key)
+	}
+
+	pid, err := base32.RawStdEncoding.DecodeString(components[1])
+	if err != nil {
+		return time.Time{}, cid.Undef, "", fmt.Errorf("provider record key has a mis-encoded peer ID: %s", key)
+	}
+
+	nsec, n := binary.Varint(value)
+	if n <= 0 {
+		return time.Time{}, cid.Undef, "", fmt.Errorf("failed to parse provider record expiration time: %q", key)
+	}
+
+	return time.Unix(0, nsec), c, peer.ID(pid), nil
+}
+
+var repoListProvidersCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List providers stored in the local datastore.",
+		ShortDescription: `
+'ipfs repo list providers' lists providers in the local datastore or all known providers for a specific key.
+
+Status: Unstable. This command is for debugging and may change or be removed at any time.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("cid", false, true, "Limit providers to the specific CIDs").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		err := req.ParseBodyArgs()
+		if err != nil {
+			return err
+		}
+
+		enc, err := cmdenv.GetLowLevelCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		ds := n.Repo.Datastore()
+
+		doQuery := func(q dsq.Query) error {
+			provs, err := ds.Query(q)
+			if err != nil {
+				return err
+			}
+			defer provs.Close()
+
+			for req.Context.Err() == nil {
+				rec, ok := provs.NextSync()
+				if !ok {
+					return nil
+				}
+				if rec.Error != nil {
+					return cmds.Errorf(cmds.ErrImplementation, "datastore error: %s", rec.Error)
+				}
+
+				t, c, p, err := parseProvider(rec)
+				if err != nil {
+					return cmds.Errorf(cmds.ErrImplementation, "%s", err)
+				}
+
+				err = res.Emit(&providerRecord{
+					Peer:    p.Pretty(),
+					Cid:     enc.Encode(c),
+					Expires: t,
+				})
+				if err != nil {
+					return err
+				}
+			}
+			return req.Context.Err()
+		}
+
+		if len(req.Arguments) == 0 {
+			return doQuery(dsq.Query{Prefix: "/providers/"})
+		} else {
+			for _, arg := range req.Arguments {
+				c, err := cid.Decode(arg)
+				if err != nil {
+					return cmds.Errorf(cmds.ErrClient, "invalid cid: %s", err)
+				}
+				encodedCid := base32.RawStdEncoding.EncodeToString(c.Bytes())
+				err = doQuery(dsq.Query{Prefix: "/providers/" + encodedCid + "/"})
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	},
+	Type: providerRecord{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, prov *providerRecord) error {
+			_, err := fmt.Fprintf(w, "%s\tprovided by\t%s\tuntil%s\n", prov.Cid, prov.Peer, prov.Expires)
+			return err
 		}),
 	},
 }
