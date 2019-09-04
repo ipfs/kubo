@@ -53,7 +53,7 @@ COPY --from=0 /etc/ssl/certs /etc/ssl/certs
 RUN chmod 4755 /usr/local/bin/fusermount
 
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
-COPY --from=0 /lib/x86_64-linux-gnu/libdl-2.24.so /lib/libdl.so.2
+COPY --from=0 /lib/x86_64-linux-gnu/libdl.so.2 /lib/libdl.so.2
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
