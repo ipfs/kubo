@@ -24,9 +24,7 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-func TestRoot(t *testing.T) {}
-func TestPinFS(t *testing.T) { //TODO: breakup
-	//init
+func TestAll(t *testing.T) {
 	ctx := context.TODO()
 	core, err := initCore(ctx)
 	if err != nil {
@@ -34,9 +32,42 @@ func TestPinFS(t *testing.T) { //TODO: breakup
 	}
 
 	logger := logging.Logger("plugin/filesystem")
-	pinAttacher := fsnodes.InitPinFS(ctx, core, logger) // like a sewist?
 
-	root, err := pinAttacher.Attach()
+	t.Run("RootFS", func(t *testing.T) { testRootFS(t, ctx, core, logger) })
+	t.Run("PinFS", func(t *testing.T) { testPinFS(t, ctx, core, logger) })
+}
+
+func testRootFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) {
+	ri, err := fsnodes.NewRoot(ctx, core, logger)
+	if err != nil {
+		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+	}
+
+	nineRoot, err := ri.Attach()
+	_, nineRef, err := nineRoot.Walk(nil)
+	if err != nil {
+		t.Fatalf("Failed to walk root: %s\n", err)
+	}
+	if _, _, err = nineRef.Open(p9.ReadOnly); err != nil {
+		t.Fatalf("Failed to open root: %s\n", err)
+	}
+
+	ents, err := nineRef.Readdir(0, ^uint32(0))
+	if err != nil {
+		t.Fatalf("Failed to read root: %s\n", err)
+	}
+
+	//TODO: currently magic, as subsystems are implemented, rework this part of the test + lib
+	if len(ents) != 1 || ents[0].Name != "ipfs" {
+		t.Fatalf("Failed, root has bad entries:: %v\n", ents)
+	}
+
+	//TODO: type checking
+}
+
+func testPinFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) {
+	//init
+	pinRoot, err := fsnodes.InitPinFS(ctx, core, logger).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P Pin resource: %s\n", err)
 	}
@@ -56,35 +87,31 @@ func TestPinFS(t *testing.T) { //TODO: breakup
 		return true
 	}
 
-	//test default (likely empty) test repo pins
-	basePins, err := pinNames(ctx, core)
-	if err != nil {
-		t.Fatalf("Failed to list IPFS pins: %s\n", err)
-	}
-	p9Pins, err := p9PinNames(root)
-	if err != nil {
-		t.Fatalf("Failed to list 9P pins: %s\n", err)
+	shallowCompare := func() {
+		basePins, err := pinNames(ctx, core)
+		if err != nil {
+			t.Fatalf("Failed to list IPFS pins: %s\n", err)
+		}
+		p9Pins, err := p9PinNames(pinRoot)
+		if err != nil {
+			t.Fatalf("Failed to list 9P pins: %s\n", err)
+		}
+
+		if !same(basePins, p9Pins) {
+			t.Fatalf("Pinsets differ\ncore: %v\n9P: %v\n", basePins, p9Pins)
+		}
 	}
 
-	if !same(basePins, p9Pins) {
-		t.Fatalf("Pinsets differ\ncore: %v\n9P: %v\n", basePins, p9Pins)
-	}
+	//test default (likely empty) test repo pins
+	shallowCompare()
 
 	// test modifying pinset +1; initEnv pins its IPFS envrionment
-	env, iEnv, err := initEnv(ctx, core)
+	env, _, err := initEnv(ctx, core)
 	if err != nil {
 		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
 	}
 	defer os.RemoveAll(env)
-	basePins = append(basePins, gopath.Base(iEnv.String()))
-	p9Pins, err = p9PinNames(root)
-	if err != nil {
-		t.Fatalf("Failed to list 9P pins: %s\n", err)
-	}
-
-	if !same(basePins, p9Pins) {
-		t.Fatalf("Pinsets differ\ncore: %v\n9P: %v\n", basePins, p9Pins)
-	}
+	shallowCompare()
 
 	// test modifying pinset +1 again; generate garbage and pin it
 	{
@@ -92,26 +119,16 @@ func TestPinFS(t *testing.T) { //TODO: breakup
 			t.Fatalf("Failed to generate test data: %s\n", err)
 		}
 
-		iPath, err := pinAddDir(ctx, core, env)
+		_, err := pinAddDir(ctx, core, env)
 		if err != nil {
 			t.Fatalf("Failed to add directory to IPFS: %s\n", err)
 		}
-		basePins = append(basePins, gopath.Base(iPath.String()))
 	}
+	shallowCompare()
 
-	p9Pins, err = p9PinNames(root)
-	if err != nil {
-		t.Fatalf("Failed to list 9P pins: %s\n", err)
-	}
-
-	if !same(basePins, p9Pins) {
-		t.Fatalf("Pinsets differ\ncore: %v\n9P: %v\n", basePins, p9Pins)
-	}
-
-	t.Logf("pinroot contains: %v\n", p9Pins)
+	//TODO: type checking
 }
 func TestIPFS(t *testing.T) {
-	/* TODO
 	ctx := context.TODO()
 	core, err := initCore(ctx)
 	if err != nil {
@@ -125,7 +142,6 @@ func TestIPFS(t *testing.T) {
 
 	t.Logf("env:%v\niEnv:%v\nerr:%s\n", env, iEnv, err)
 	defer os.RemoveAll(env)
-	*/
 }
 
 func initCore(ctx context.Context) (coreiface.CoreAPI, error) {
