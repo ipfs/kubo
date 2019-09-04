@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/djdv/p9/localfs"
 	"github.com/djdv/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
 
@@ -24,6 +25,11 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
+var attrMaskIPFSTest = p9.AttrMask{
+	Mode: true,
+	Size: true,
+}
+
 func TestAll(t *testing.T) {
 	ctx := context.TODO()
 	core, err := initCore(ctx)
@@ -35,6 +41,7 @@ func TestAll(t *testing.T) {
 
 	t.Run("RootFS", func(t *testing.T) { testRootFS(t, ctx, core, logger) })
 	t.Run("PinFS", func(t *testing.T) { testPinFS(t, ctx, core, logger) })
+	t.Run("IPFS", func(t *testing.T) { testIPFS(t, ctx, core, logger) })
 }
 
 func testRootFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) {
@@ -114,34 +121,125 @@ func testPinFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger
 	shallowCompare()
 
 	// test modifying pinset +1 again; generate garbage and pin it
-	{
-		if err := generateGarbage(env); err != nil {
-			t.Fatalf("Failed to generate test data: %s\n", err)
-		}
-
-		_, err := pinAddDir(ctx, core, env)
-		if err != nil {
-			t.Fatalf("Failed to add directory to IPFS: %s\n", err)
-		}
+	if err := generateGarbage(env); err != nil {
+		t.Fatalf("Failed to generate test data: %s\n", err)
+	}
+	if _, err = pinAddDir(ctx, core, env); err != nil {
+		t.Fatalf("Failed to add directory to IPFS: %s\n", err)
 	}
 	shallowCompare()
 
 	//TODO: type checking
 }
-func TestIPFS(t *testing.T) {
-	ctx := context.TODO()
-	core, err := initCore(ctx)
-	if err != nil {
-		t.Fatalf("Failed to construct IPFS node: %s\n", err)
-	}
-
+func testIPFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) {
 	env, iEnv, err := initEnv(ctx, core)
 	if err != nil {
 		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
 	}
-
-	t.Logf("env:%v\niEnv:%v\nerr:%s\n", env, iEnv, err)
 	defer os.RemoveAll(env)
+
+	localEnv, err := localfs.Attacher(env).Attach()
+	if err != nil {
+		t.Fatalf("Failed to attach to local resource %q: %s\n", env, err)
+	}
+
+	ipfsRoot, err := fsnodes.InitIPFS(ctx, core, logger).Attach()
+	if err != nil {
+		t.Fatalf("Failed to attach to IPFS resource: %s\n", err)
+	}
+	_, ipfsEnv, err := ipfsRoot.Walk([]string{gopath.Base(iEnv.String())})
+	if err != nil {
+		t.Fatalf("Failed to walk to IPFS test envrionment: %s\n", err)
+	}
+
+	recursiveCompare(t, localEnv, ipfsEnv)
+}
+
+//TODO: rename
+func recursiveCompare(t *testing.T, f1, f2 p9.File) {
+	var expand func(p9.File) (map[string]p9.Attr, error)
+	expand = func(nineRef p9.File) (map[string]p9.Attr, error) {
+		ents, err := p9Readdir(nineRef)
+		if err != nil {
+			return nil, err
+		}
+
+		//TODO: current
+		// map[string]Stat; ["/sub/incantation"]{...}
+		///from root, walk(name); stat; if dir; recurse
+
+		res := make(map[string]p9.Attr)
+		for _, ent := range ents {
+			_, child, err := nineRef.Walk([]string{ent.Name})
+			if err != nil {
+				return nil, err
+			}
+
+			_, _, attr, err := child.GetAttr(attrMaskIPFSTest)
+			if err != nil {
+				return nil, err
+			}
+			res[ent.Name] = attr
+			//p9.AttrMaskAll
+
+			if ent.Type == p9.TypeDir {
+				subRes, err := expand(child)
+				if err != nil {
+					return nil, err
+				}
+				for name, attr := range subRes {
+					res[gopath.Join(ent.Name, name)] = attr
+				}
+			}
+		}
+		return res, nil
+	}
+
+	f1Map, err := expand(f1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f2Map, err := expand(f2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	same := func(permissionContains p9.FileMode, base, target map[string]p9.Attr) bool {
+		if len(base) != len(target) {
+
+			var baseNames []string
+			var targetNames []string
+			for name, _ := range base {
+				baseNames = append(baseNames, name)
+			}
+			for name, _ := range target {
+				targetNames = append(targetNames, name)
+			}
+
+			t.Fatalf("map lengths don't match:\nbase:%v\ntarget:%v\n", baseNames, targetNames)
+			return false
+		}
+
+		for path, baseAttr := range base {
+			bMode := baseAttr.Mode
+			tMode := target[path].Mode
+
+			if bMode.FileType() != tMode.FileType() {
+				t.Fatalf("type for %q don't match:\nbase:%v\ntarget:%v\n", path, bMode, tMode)
+				return false
+			}
+
+			if ((bMode.Permissions() & permissionContains) & (tMode.Permissions() & permissionContains)) == 0 {
+				t.Fatalf("permissions for %q don't match (unfiltered):\nbase:%v\ntarget:%v\n", path, bMode.Permissions(), tMode.Permissions())
+				return false
+			}
+		}
+		return true
+	}
+	if !same(p9.Read, f1Map, f2Map) {
+		t.Fatalf("contents don't match \nf1:%v\nf2:%v\n", f1Map, f2Map)
+	}
 }
 
 func initCore(ctx context.Context) (coreiface.CoreAPI, error) {
@@ -160,33 +258,41 @@ func initCore(ctx context.Context) (coreiface.CoreAPI, error) {
 const incantation = "May the bits passing through this device somehow help bring peace to this world"
 
 func initEnv(ctx context.Context, core coreiface.CoreAPI) (string, corepath.Resolved, error) {
-	tempDir, err := ioutil.TempDir("", "ipfs-")
+	testDir, err := ioutil.TempDir("", "ipfs-")
 	if err != nil {
 		return "", nil, err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(tempDir, "empty"),
+	if err = ioutil.WriteFile(filepath.Join(testDir, "empty"),
 		[]byte(nil),
 		0644); err != nil {
 		return "", nil, err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(tempDir, "small"),
+	if err = ioutil.WriteFile(filepath.Join(testDir, "small"),
 		[]byte(incantation),
 		0644); err != nil {
 		return "", nil, err
 	}
 
-	if err := generateGarbage(tempDir); err != nil {
+	if err := generateGarbage(testDir); err != nil {
 		return "", nil, err
 	}
 
-	iPath, err := pinAddDir(ctx, core, tempDir)
+	testSubDir, err := ioutil.TempDir(testDir, "ipfs-")
+	if err != nil {
+		return "", nil, err
+	}
+	if err := generateGarbage(testSubDir); err != nil {
+		return "", nil, err
+	}
+
+	iPath, err := pinAddDir(ctx, core, testDir)
 	if err != nil {
 		return "", nil, err
 	}
 
-	return tempDir, iPath, err
+	return testDir, iPath, err
 }
 
 func pinAddDir(ctx context.Context, core coreiface.CoreAPI, path string) (corepath.Resolved, error) {
@@ -240,16 +346,7 @@ func pinNames(ctx context.Context, core coreiface.CoreAPI) ([]string, error) {
 }
 
 func p9PinNames(root p9.File) ([]string, error) {
-	_, rootDir, err := root.Walk(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	_, _, err = rootDir.Open(p9.ReadOnly)
-	if err != nil {
-		return nil, err
-	}
-	ents, err := rootDir.Readdir(0, ^uint32(0))
+	ents, err := p9Readdir(root)
 	if err != nil {
 		return nil, err
 	}
@@ -260,5 +357,34 @@ func p9PinNames(root p9.File) ([]string, error) {
 		names = append(names, ent.Name)
 	}
 
-	return names, rootDir.Close()
+	return names, root.Close()
+}
+
+func p9Readdir(dir p9.File) ([]p9.Dirent, error) {
+	_, dir, err := dir.Walk(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	_, _, err = dir.Open(p9.ReadOnly)
+	if err != nil {
+		return nil, err
+	}
+	defer dir.Close()
+	return dir.Readdir(0, ^uint32(0))
+}
+
+// NOTE: compares a subset of attributes, matching those of IPFS
+func testIPFSCompare(t *testing.T, f1, f2 p9.File) {
+	_, _, f1Attr, err := f1.GetAttr(attrMaskIPFSTest)
+	if err != nil {
+		t.Errorf("Attr(%v) = %v, want nil", f1, err)
+	}
+	_, _, f2Attr, err := f2.GetAttr(attrMaskIPFSTest)
+	if err != nil {
+		t.Errorf("Attr(%v) = %v, want nil", f2, err)
+	}
+	if f1Attr != f2Attr {
+		t.Errorf("Attributes of same files do not match: %v and %v", f1Attr, f2Attr)
+	}
 }

@@ -51,7 +51,7 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return []p9.QID{pd.Qid}, pd, nil
 	}
 
-	ipfsDir, err := initIPFS(pd.Ctx, pd.core, pd.Logger).Attach()
+	ipfsDir, err := InitIPFS(pd.Ctx, pd.core, pd.Logger).Attach()
 	if err != nil {
 		return nil, nil, err
 	}

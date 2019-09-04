@@ -12,7 +12,6 @@ import (
 	"github.com/ipfs/go-unixfs"
 	unixpb "github.com/ipfs/go-unixfs/pb"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
@@ -39,9 +38,7 @@ func coreStat(ctx context.Context, dirEnt *p9.Dirent, core coreiface.CoreAPI, pa
 	}
 }
 
-//TODO: consider how we want to use AttrMask
-// instead of filling it we can use it to only populate requested fields (as is intended)
-func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask *p9.AttrMask, core coreiface.CoreAPI, path corepath.Path) (err error) {
+func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask p9.AttrMask, core coreiface.CoreAPI, path corepath.Path) (err error) {
 	ipldNode, err := core.ResolveNode(ctx, path)
 	if err != nil {
 		return err
@@ -51,16 +48,25 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask *p9.AttrMask, core
 		return err
 	}
 
+	if attrMask.Mode {
 	attr.Mode = IRXA //TODO: this should probably be the callers responsability; just document that permissions should be set afterwards or something
 	attr.Mode |= unixfsTypeTo9Mode(ufsNode.Type())
-	attrMask.Mode = true
+	}
 
+	if attrMask.Blocks{
 	if bs := ufsNode.BlockSizes(); len(bs) != 0 {
 		attr.BlockSize = bs[0] //NOTE: this value is to be used as a hint only; subsequent child block size may differ
 	}
 
-	attr.Size, attrMask.Size = ufsNode.FileSize(), true
+	//TODO [eventualy]: switch off here for handling of time metadata in new format standard
+	timeStamp(attr, attrMask)
+}
 
+if attrMask.Size {
+	attr.Size, attrMask.Size = ufsNode.FileSize(), true
+}
+
+if attrMask.RDev {
 	switch path.Namespace() {
 	case "ipfs":
 		attr.RDev, attrMask.RDev = dIPFS, true
@@ -68,6 +74,7 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask *p9.AttrMask, core
 		//attr.RDev, attrMask.RDev = dIPNS, true
 		//etc.
 	}
+}
 
 	return nil
 }
@@ -102,7 +109,7 @@ func coreLs(ctx context.Context, corePath corepath.Path, core coreiface.CoreAPI)
 	//asyncContext := deriveTimerContext(ctx, 10*time.Second)
 	asyncContext := ctx
 
-	coreChan, err := core.Unixfs().Ls(asyncContext, corePath, coreoptions.Unixfs.ResolveChildren(false))
+	coreChan, err := core.Unixfs().Ls(asyncContext, corePath)
 	if err != nil {
 		//asyncContext.Cancel()
 		return nil, err
@@ -232,7 +239,6 @@ const ( // pedantic POSIX stuff
 
 	IRWXA = S_IRWXU | S_IRWXG | S_IRWXO            // 0777
 	IRXA  = IRWXA &^ (S_IWUSR | S_IWGRP | S_IWOTH) // 0555
-//03664
 )
 
 func defaultRootAttr() (attr p9.Attr, attrMask p9.AttrMask) {
@@ -241,23 +247,22 @@ func defaultRootAttr() (attr p9.Attr, attrMask p9.AttrMask) {
 	attrMask.Mode = true
 	attrMask.RDev = true
 	attrMask.Size = true
-	timeStamp(&attr, &attrMask)
+	//timeStamp(&attr, attrMask)
 	return attr, attrMask
 }
 
-func timeStamp(attr *p9.Attr, mask *p9.AttrMask) {
+func timeStamp(attr *p9.Attr, mask p9.AttrMask) {
 	now := time.Now()
-	attr.ATimeSeconds = uint64(now.Unix())
-	attr.ATimeNanoSeconds = uint64(now.UnixNano())
-	attr.MTimeSeconds = uint64(now.Unix())
-	attr.MTimeNanoSeconds = uint64(now.UnixNano())
-	attr.CTimeSeconds = uint64(now.Unix())
-	attr.CTimeNanoSeconds = uint64(now.UnixNano())
-
-	mask.ATime = true
-	mask.MTime = true
-	mask.CTime = true
-}
+if mask.ATime {
+attr.ATimeSeconds  ,	attr.ATimeNanoSeconds =  uint64(now.Unix()), uint64(now.UnixNano())
+	}
+	if mask.MTime {
+attr.MTimeSeconds  ,	attr.MTimeNanoSeconds =  uint64(now.Unix()), uint64(now.UnixNano())
+	}
+	if mask.CTime {
+attr.CTimeSeconds  ,	attr.CTimeNanoSeconds =  uint64(now.Unix()), uint64(now.UnixNano())
+	}
+		}
 
 //TODO [name]: "new" implies pointer type; this is for embedded consturction
 func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, core coreiface.CoreAPI, logger logging.EventLogger) IPFSBase {

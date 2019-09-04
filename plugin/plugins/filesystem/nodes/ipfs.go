@@ -17,7 +17,7 @@ type IPFS struct {
 }
 
 //TODO: [review] check fields; better wrappers around inheritance init, etc.
-func initIPFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
+func InitIPFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
 	id := &IPFS{IPFSBase: newIPFSBase(ctx, newRootPath("/ipfs"), p9.TypeDir, core, logger)}
 	id.meta, id.metaMask = defaultRootAttr()
 	return id
@@ -37,14 +37,15 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 		return id.Qid, id.metaMask, id.meta, nil
 	}
 
-	var attrMask p9.AttrMask
-	if err := coreGetAttr(id.Ctx, &id.meta, &attrMask, id.core, id.Path); err != nil {
+	if err := coreGetAttr(id.Ctx, &id.meta, req, id.core, id.Path); err != nil {
 		return p9.QID{}, p9.AttrMask{}, p9.Attr{}, err
 	}
-	timeStamp(&id.meta, &attrMask)
 	id.Qid.Type = id.meta.Mode.QIDType()
 
-	return id.Qid, attrMask, id.meta, nil
+	metaClone := id.meta
+	metaClone.Filter(req)
+
+	return id.Qid, req, metaClone, nil
 }
 
 func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
