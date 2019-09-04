@@ -8,6 +8,10 @@ We're happy to announce go-ipfs X.Y.Z, bla bla...
 
 <List of items with PRs and/or Issues to be considered for this release>
 
+# 🚢 Estimated shipping date
+
+<Date this release will ship on if everything goes to plan (week beginning...)>
+
 ## 🔦 Highlights
 
 < top highlights for this release notes >
@@ -103,4 +107,3 @@ Would you like to contribute to the IPFS project and don't know how? Well, there
 ## ⁉️ Do you have questions?
 
 The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
-
