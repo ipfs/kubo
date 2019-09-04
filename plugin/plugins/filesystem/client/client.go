@@ -86,7 +86,7 @@ func ReadDir(path string, fsRef p9.File, offset uint64) ([]p9.Dirent, error) {
 	}
 	logger.Debugf("walked to %q :\nQIDs:%v, FID:%v\n\n", path, qids, targetRef)
 
-	if _, _, err = targetRef.Open(0); err != nil {
+	if _, _, err = targetRef.Open(p9.ReadOnly); err != nil {
 		return nil, err
 	}
 

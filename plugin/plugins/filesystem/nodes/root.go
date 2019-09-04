@@ -99,7 +99,7 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	//NOTE: if doClone is false, it implies len(names) > 0
 	switch names[0] {
 	case "ipfs":
-		pinDir, err := initPinFS(ri.Ctx, ri.core, ri.Logger).Attach()
+		pinDir, err := InitPinFS(ri.Ctx, ri.core, ri.Logger).Attach()
 		if err != nil {
 			return nil, nil, err
 		}

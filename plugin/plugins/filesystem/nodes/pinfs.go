@@ -15,7 +15,7 @@ type PinFS struct {
 }
 
 //TODO: [review] check fields
-func initPinFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
+func InitPinFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
 	pd := &PinFS{
 		IPFSBase: IPFSBase{
 			Path: newRootPath("/ipfs"),
