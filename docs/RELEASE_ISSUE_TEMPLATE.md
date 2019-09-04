@@ -91,6 +91,10 @@ Checklist:
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
     - [ ] Announce it on the [IPFS Users Mailing List](https://groups.google.com/forum/#!forum/ipfs-users)
+- [ ] **Post-Release**
+  - [ ] Bump the version in `version.go` to `vX.(Y+1).0-dev`.
+  - [ ] Create an issue using this release issue template for the _ext_ release.
+  - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
 
 ## ❤️ Contributors
 
