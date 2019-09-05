@@ -72,8 +72,8 @@ github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f/go.mod h1:SqUrOPUn
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 h1:tdlZCpZ/P9DhczCTSixgIKmwPv6+wP5DGjqLYw5SUiA=
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
-github.com/djdv/p9 v0.0.0-20190904195120-79d6235e5781 h1:S4uzVqSytBLRlOp444yimbtrIqm/A31BC7KbyTpgAm8=
-github.com/djdv/p9 v0.0.0-20190904195120-79d6235e5781/go.mod h1:58+5oyIFRxi9jt7uQrdqpmUryJDTsxY8N8GxhnNocLQ=
+github.com/djdv/p9 v0.0.0-20190906032509-18ce8c2eba44 h1:y9wbNe6laqcn1PgVJXKhQlJqMZ3M4kYb0MxPDbZnVmA=
+github.com/djdv/p9 v0.0.0-20190906032509-18ce8c2eba44/go.mod h1:58+5oyIFRxi9jt7uQrdqpmUryJDTsxY8N8GxhnNocLQ=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302 h1:QV0ZrfBLpFc2KDk+a4LJefDczXnonRwrYrQJY/9L4dA=
