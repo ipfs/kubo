@@ -231,7 +231,11 @@ func recursiveCompare(t *testing.T, f1, f2 p9.File) {
 			}
 
 			if ((bMode.Permissions() & permissionContains) & (tMode.Permissions() & permissionContains)) == 0 {
-				t.Fatalf("permissions for %q don't match (unfiltered):\nbase:%v\ntarget:%v\n", path, bMode.Permissions(), tMode.Permissions())
+				t.Fatalf("permissions for %q don't match\n(unfiltered)\nbase:%v\ntarget:%v\n(filtered)\nbase:%v\ntarget:%v\n",
+					path,
+					bMode.Permissions(), tMode.Permissions(),
+					bMode.Permissions()&permissionContains, tMode.Permissions()&permissionContains,
+				)
 				return false
 			}
 		}
@@ -262,6 +266,9 @@ func initEnv(ctx context.Context, core coreiface.CoreAPI) (string, corepath.Reso
 	if err != nil {
 		return "", nil, err
 	}
+	if err := os.Chmod(testDir, 0775); err != nil {
+		return "", nil, err
+	}
 
 	if err = ioutil.WriteFile(filepath.Join(testDir, "empty"),
 		[]byte(nil),
@@ -283,6 +290,10 @@ func initEnv(ctx context.Context, core coreiface.CoreAPI) (string, corepath.Reso
 	if err != nil {
 		return "", nil, err
 	}
+	if err := os.Chmod(testSubDir, 0775); err != nil {
+		return "", nil, err
+	}
+
 	if err := generateGarbage(testSubDir); err != nil {
 		return "", nil, err
 	}

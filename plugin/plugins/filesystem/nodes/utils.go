@@ -49,32 +49,32 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask p9.AttrMask, core 
 	}
 
 	if attrMask.Mode {
-	attr.Mode = IRXA //TODO: this should probably be the callers responsability; just document that permissions should be set afterwards or something
-	attr.Mode |= unixfsTypeTo9Mode(ufsNode.Type())
+		attr.Mode = IRXA //TODO: this should probably be the callers responsability; just document that permissions should be set afterwards or something
+		attr.Mode |= unixfsTypeTo9Mode(ufsNode.Type())
 	}
 
-	if attrMask.Blocks{
-	if bs := ufsNode.BlockSizes(); len(bs) != 0 {
-		attr.BlockSize = bs[0] //NOTE: this value is to be used as a hint only; subsequent child block size may differ
+	if attrMask.Blocks {
+		if bs := ufsNode.BlockSizes(); len(bs) != 0 {
+			attr.BlockSize = bs[0] //NOTE: this value is to be used as a hint only; subsequent child block size may differ
+		}
+
+		//TODO [eventualy]: switch off here for handling of time metadata in new format standard
+		timeStamp(attr, attrMask)
 	}
 
-	//TODO [eventualy]: switch off here for handling of time metadata in new format standard
-	timeStamp(attr, attrMask)
-}
-
-if attrMask.Size {
-	attr.Size, attrMask.Size = ufsNode.FileSize(), true
-}
-
-if attrMask.RDev {
-	switch path.Namespace() {
-	case "ipfs":
-		attr.RDev, attrMask.RDev = dIPFS, true
-		//case "ipns":
-		//attr.RDev, attrMask.RDev = dIPNS, true
-		//etc.
+	if attrMask.Size {
+		attr.Size, attrMask.Size = ufsNode.FileSize(), true
 	}
-}
+
+	if attrMask.RDev {
+		switch path.Namespace() {
+		case "ipfs":
+			attr.RDev, attrMask.RDev = dIPFS, true
+			//case "ipns":
+			//attr.RDev, attrMask.RDev = dIPNS, true
+			//etc.
+		}
+	}
 
 	return nil
 }
@@ -253,16 +253,16 @@ func defaultRootAttr() (attr p9.Attr, attrMask p9.AttrMask) {
 
 func timeStamp(attr *p9.Attr, mask p9.AttrMask) {
 	now := time.Now()
-if mask.ATime {
-attr.ATimeSeconds  ,	attr.ATimeNanoSeconds =  uint64(now.Unix()), uint64(now.UnixNano())
+	if mask.ATime {
+		attr.ATimeSeconds, attr.ATimeNanoSeconds = uint64(now.Unix()), uint64(now.UnixNano())
 	}
 	if mask.MTime {
-attr.MTimeSeconds  ,	attr.MTimeNanoSeconds =  uint64(now.Unix()), uint64(now.UnixNano())
+		attr.MTimeSeconds, attr.MTimeNanoSeconds = uint64(now.Unix()), uint64(now.UnixNano())
 	}
 	if mask.CTime {
-attr.CTimeSeconds  ,	attr.CTimeNanoSeconds =  uint64(now.Unix()), uint64(now.UnixNano())
+		attr.CTimeSeconds, attr.CTimeNanoSeconds = uint64(now.Unix()), uint64(now.UnixNano())
 	}
-		}
+}
 
 //TODO [name]: "new" implies pointer type; this is for embedded consturction
 func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, core coreiface.CoreAPI, logger logging.EventLogger) IPFSBase {
