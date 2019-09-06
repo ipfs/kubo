@@ -75,12 +75,12 @@ Available profiles:
 Contains information about various listener addresses to be used by this node.
 
 - `API`
-Multiaddr describing the address to serve the local HTTP API on.
+Multiaddr or array of multiaddrs describing the address to serve the local HTTP API on.
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
 - `Gateway`
-Multiaddr describing the address to serve the local gateway on.
+Multiaddr or array of multiaddrs describing the address to serve the local gateway on.
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
