@@ -13,14 +13,8 @@ const (
 	//TODO [config]: move elsewhere; related: https://github.com/ipfs/go-ipfs/issues/6526
 	EnvAddr = "IPFS_FS_ADDR" // multiaddr string
 
-	DefaultVersion       = "9P2000.L"
-	DefaultListenAddress = "/unix/$IPFS_PATH/" + sockName
-	DefaultService       = "9P" // (currently 9P2000.L)
-	DefaultMSize         = 64 << 10
-	// TODO: For platforms that don't support UDS (Windows < 17063, non-posix systems), fallback to TCP
-	//FallbackListenAddress = "/ip4/localhost/tcp/564"
-
-	sockName = "filesystem.9P.sock"
+	sockName       = "filesystem.9P.sock"
+	defaultService = "9P" // (currently 9P2000.L)
 )
 
 type Config struct { // NOTE: unstable/experimental
@@ -37,7 +31,7 @@ func defaultConfig(storagePath string) *Config {
 		sockTarget = windowsToUnixFriendly(sockTarget)
 	}
 
-	serviceMap[DefaultService] = gopath.Join("/unix", sockTarget)
+	serviceMap[defaultService] = gopath.Join("/unix", sockTarget)
 	return &Config{serviceMap}
 }
 

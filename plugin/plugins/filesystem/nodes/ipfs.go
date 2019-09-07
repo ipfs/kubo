@@ -12,13 +12,16 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
+// IPFS exposes the IPFS API over a p9.File interface
+// Walk does not expect a namespace, only its path argument
+// e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
 type IPFS struct {
 	IPFSBase
 }
 
-//TODO: [review] check fields; better wrappers around inheritance init, etc.
-func InitIPFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
-	id := &IPFS{IPFSBase: newIPFSBase(ctx, newRootPath("/ipfs"), p9.TypeDir, core, logger)}
+func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
+	id := &IPFS{IPFSBase: newIPFSBase(ctx, newRootPath("/ipfs"), p9.TypeDir,
+		core, logging.Logger("IPFS"))}
 	id.meta, id.metaMask = defaultRootAttr()
 	return id
 }

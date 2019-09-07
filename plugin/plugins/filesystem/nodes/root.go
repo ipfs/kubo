@@ -42,13 +42,18 @@ func (rootNode) Root() cid.Cid { //TODO: this should probably reference a packag
 }
 func (rootNode) Remainder() string { return "" }
 
+// RootIndex is a virtual directory file system, that maps a set of filesystem implementations to a hierarchy
+// Currently: "/":RootIndex, "/ipfs":PinFS, "/ipfs/*:IPFS
 type RootIndex struct {
 	IPFSBase
 	subsystems []p9.Dirent
 }
 
-func NewRoot(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) (*RootIndex, error) {
-	ri := &RootIndex{IPFSBase: newIPFSBase(ctx, newRootPath("/"), p9.TypeDir, core, logger),
+// RootAttacher constructs the default RootIndex file system, providing a means to Attach() to it
+func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
+	ri := &RootIndex{
+		IPFSBase: newIPFSBase(ctx, newRootPath("/"), p9.TypeDir,
+			core, logging.Logger("RootFS")),
 		subsystems: make([]p9.Dirent, 0, 1)} //TODO: [const]: dirent count
 	ri.Qid.Path = cidToQPath(ri.Path.Cid())
 
@@ -73,7 +78,7 @@ func NewRoot(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLo
 		ri.subsystems = append(ri.subsystems, pathUnion.Dirent)
 	}
 
-	return ri, nil
+	return ri
 }
 
 func (ri *RootIndex) Attach() (p9.File, error) {
@@ -87,6 +92,7 @@ func (ri *RootIndex) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, err
 
 	return ri.Qid, ri.metaMask, ri.meta, nil
 }
+
 func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	ri.Logger.Debugf("RI Walk names %v", names)
 	ri.Logger.Debugf("RI Walk myself: %v", ri.Qid)
@@ -99,7 +105,7 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	//NOTE: if doClone is false, it implies len(names) > 0
 	switch names[0] {
 	case "ipfs":
-		pinDir, err := InitPinFS(ri.Ctx, ri.core, ri.Logger).Attach()
+		pinDir, err := PinFSAttacher(ri.Ctx, ri.core).Attach()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -109,8 +115,6 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	}
 }
 
-// TODO: check specs for directory iounit size,
-// if it's undefined we should repurpose it to return the count to the client
 func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	ri.Logger.Debugf("RI Open")
 	return ri.Qid, 0, nil

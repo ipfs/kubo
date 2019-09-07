@@ -264,7 +264,7 @@ func timeStamp(attr *p9.Attr, mask p9.AttrMask) {
 	}
 }
 
-//TODO [name]: "new" implies pointer type; this is for embedded consturction
+//TODO [name]: "new" implies pointer type; this is for embedded construction
 func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, core coreiface.CoreAPI, logger logging.EventLogger) IPFSBase {
 	return IPFSBase{
 		Path: path,

@@ -15,17 +15,9 @@ type PinFS struct {
 }
 
 //TODO: [review] check fields
-func InitPinFS(ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) p9.Attacher {
-	pd := &PinFS{
-		IPFSBase: IPFSBase{
-			Path: newRootPath("/ipfs"),
-			core: core,
-			Base: Base{
-				Logger: logger,
-				Ctx:    ctx,
-				Qid:    p9.QID{Type: p9.TypeDir}}}}
-
-	pd.Qid.Path = cidToQPath(pd.Path.Cid())
+func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI) *PinFS {
+	pd := &PinFS{IPFSBase: newIPFSBase(ctx, newRootPath("/ipfs"), p9.TypeDir,
+		core, logging.Logger("PinFS"))}
 	pd.meta, pd.metaMask = defaultRootAttr()
 	return pd
 }
@@ -51,7 +43,7 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return []p9.QID{pd.Qid}, pd, nil
 	}
 
-	ipfsDir, err := InitIPFS(pd.Ctx, pd.core, pd.Logger).Attach()
+	ipfsDir, err := IPFSAttacher(pd.Ctx, pd.core).Attach()
 	if err != nil {
 		return nil, nil, err
 	}

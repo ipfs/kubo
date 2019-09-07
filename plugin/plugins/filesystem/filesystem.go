@@ -14,13 +14,20 @@ import (
 	manet "github.com/multiformats/go-multiaddr-net"
 )
 
-// Plugins is an exported list of plugins that will be loaded by go-ipfs.
-var Plugins = []plugin.Plugin{
-	&FileSystemPlugin{}, //TODO: individually name implementations: &P9{}
-}
+var (
+	_ plugin.PluginDaemon = (*FileSystemPlugin)(nil) // impl check
 
-// impl check
-var _ plugin.PluginDaemon = (*FileSystemPlugin)(nil)
+	// Plugins is an exported list of plugins that will be loaded by go-ipfs.
+	Plugins = []plugin.Plugin{
+		&FileSystemPlugin{}, //TODO: individually name implementations: &P9{}
+	}
+
+	logger logging.EventLogger
+)
+
+func init() {
+	logger = logging.Logger("plugin/filesystem")
+}
 
 type FileSystemPlugin struct {
 	ctx    context.Context
@@ -62,7 +69,7 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	}
 
 	var err error
-	fs.addr, err = multiaddr.NewMultiaddr(cfg.Service[DefaultService])
+	fs.addr, err = multiaddr.NewMultiaddr(cfg.Service[defaultService])
 	if err != nil {
 		return err
 	}
@@ -70,14 +77,6 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	fs.ctx, fs.cancel = context.WithCancel(context.Background())
 	logger.Info("9P resource server okay for launch")
 	return nil
-}
-
-var (
-	logger logging.EventLogger
-)
-
-func init() {
-	logger = logging.Logger("plugin/filesystem")
 }
 
 func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
@@ -89,15 +88,8 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 		return err
 	}
 
-	// construct 9P resource server
-	p9pFSS, err := fsnodes.NewRoot(fs.ctx, core, logger)
-	if err != nil {
-		logger.Errorf("9P root construction error: %s\n", err)
-		return err
-	}
-
-	// Run the server.
-	s := p9.NewServer(p9pFSS)
+	// construct and run the 9P resource server
+	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core))
 	go func() {
 		if err := s.Serve(manet.NetListener(fs.listener)); err != nil {
 			logger.Errorf("9P server error: %s\n", err)

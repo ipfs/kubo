@@ -19,7 +19,6 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	fsnodes "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes"
-	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -37,20 +36,17 @@ func TestAll(t *testing.T) {
 		t.Fatalf("Failed to construct IPFS node: %s\n", err)
 	}
 
-	logger := logging.Logger("plugin/filesystem")
-
-	t.Run("RootFS", func(t *testing.T) { testRootFS(t, ctx, core, logger) })
-	t.Run("PinFS", func(t *testing.T) { testPinFS(t, ctx, core, logger) })
-	t.Run("IPFS", func(t *testing.T) { testIPFS(t, ctx, core, logger) })
+	t.Run("RootFS", func(t *testing.T) { testRootFS(ctx, t, core) })
+	t.Run("PinFS", func(t *testing.T) { testPinFS(ctx, t, core) })
+	t.Run("IPFS", func(t *testing.T) { testIPFS(ctx, t, core) })
 }
 
-func testRootFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) {
-	ri, err := fsnodes.NewRoot(ctx, core, logger)
+func testRootFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
+	nineRoot, err := fsnodes.RootAttacher(ctx, core).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
 	}
 
-	nineRoot, err := ri.Attach()
 	_, nineRef, err := nineRoot.Walk(nil)
 	if err != nil {
 		t.Fatalf("Failed to walk root: %s\n", err)
@@ -64,7 +60,7 @@ func testRootFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logge
 		t.Fatalf("Failed to read root: %s\n", err)
 	}
 
-	//TODO: currently magic, as subsystems are implemented, rework this part of the test + lib
+	//TODO: currently magic. As subsystems are implemented, rework this part of the test + lib to contain some list
 	if len(ents) != 1 || ents[0].Name != "ipfs" {
 		t.Fatalf("Failed, root has bad entries:: %v\n", ents)
 	}
@@ -72,9 +68,8 @@ func testRootFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logge
 	//TODO: type checking
 }
 
-func testPinFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) {
-	//init
-	pinRoot, err := fsnodes.InitPinFS(ctx, core, logger).Attach()
+func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
+	pinRoot, err := fsnodes.PinFSAttacher(ctx, core).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P Pin resource: %s\n", err)
 	}
@@ -112,7 +107,7 @@ func testPinFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger
 	//test default (likely empty) test repo pins
 	shallowCompare()
 
-	// test modifying pinset +1; initEnv pins its IPFS envrionment
+	// test modifying pinset +1; initEnv pins its IPFS environment
 	env, _, err := initEnv(ctx, core)
 	if err != nil {
 		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
@@ -128,10 +123,9 @@ func testPinFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger
 		t.Fatalf("Failed to add directory to IPFS: %s\n", err)
 	}
 	shallowCompare()
-
-	//TODO: type checking
 }
-func testIPFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger logging.EventLogger) {
+
+func testIPFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 	env, iEnv, err := initEnv(ctx, core)
 	if err != nil {
 		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
@@ -143,30 +137,25 @@ func testIPFS(t *testing.T, ctx context.Context, core coreiface.CoreAPI, logger 
 		t.Fatalf("Failed to attach to local resource %q: %s\n", env, err)
 	}
 
-	ipfsRoot, err := fsnodes.InitIPFS(ctx, core, logger).Attach()
+	ipfsRoot, err := fsnodes.IPFSAttacher(ctx, core).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to IPFS resource: %s\n", err)
 	}
 	_, ipfsEnv, err := ipfsRoot.Walk([]string{gopath.Base(iEnv.String())})
 	if err != nil {
-		t.Fatalf("Failed to walk to IPFS test envrionment: %s\n", err)
+		t.Fatalf("Failed to walk to IPFS test environment: %s\n", err)
 	}
 
-	recursiveCompare(t, localEnv, ipfsEnv)
+	testCompareTreeModes(t, localEnv, ipfsEnv)
 }
 
-//TODO: rename
-func recursiveCompare(t *testing.T, f1, f2 p9.File) {
+func testCompareTreeModes(t *testing.T, f1, f2 p9.File) {
 	var expand func(p9.File) (map[string]p9.Attr, error)
 	expand = func(nineRef p9.File) (map[string]p9.Attr, error) {
 		ents, err := p9Readdir(nineRef)
 		if err != nil {
 			return nil, err
 		}
-
-		//TODO: current
-		// map[string]Stat; ["/sub/incantation"]{...}
-		///from root, walk(name); stat; if dir; recurse
 
 		res := make(map[string]p9.Attr)
 		for _, ent := range ents {
@@ -210,10 +199,10 @@ func recursiveCompare(t *testing.T, f1, f2 p9.File) {
 
 			var baseNames []string
 			var targetNames []string
-			for name, _ := range base {
+			for name := range base {
 				baseNames = append(baseNames, name)
 			}
-			for name, _ := range target {
+			for name := range target {
 				targetNames = append(targetNames, name)
 			}
 
@@ -368,23 +357,24 @@ func p9PinNames(root p9.File) ([]string, error) {
 		names = append(names, ent.Name)
 	}
 
-	return names, root.Close()
+	return names, nil
 }
 
 func p9Readdir(dir p9.File) ([]p9.Dirent, error) {
-	_, dir, err := dir.Walk(nil)
+	_, dirClone, err := dir.Walk(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	_, _, err = dir.Open(p9.ReadOnly)
+	_, _, err = dirClone.Open(p9.ReadOnly)
 	if err != nil {
 		return nil, err
 	}
-	defer dir.Close()
-	return dir.Readdir(0, ^uint32(0))
+	defer dirClone.Close()
+	return dirClone.Readdir(0, ^uint32(0))
 }
 
+//TODO:
 // NOTE: compares a subset of attributes, matching those of IPFS
 func testIPFSCompare(t *testing.T, f1, f2 p9.File) {
 	_, _, f1Attr, err := f1.GetAttr(attrMaskIPFSTest)

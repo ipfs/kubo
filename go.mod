@@ -6,7 +6,7 @@ require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
-	github.com/djdv/p9 v0.0.0-20190906032509-18ce8c2eba44
+	github.com/djdv/p9 v0.0.0-20190907022512-79c201cd4ecc
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/fatih/color v1.7.0 // indirect
