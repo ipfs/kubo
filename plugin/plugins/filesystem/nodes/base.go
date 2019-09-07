@@ -10,12 +10,6 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-type FSNode interface {
-	corepath.Path
-	//RWLocker
-	Stat() (p9.QID, error)
-}
-
 const ( //device
 	dMemory = iota
 	dIPFS
@@ -27,13 +21,13 @@ const ( //FS namespaces
 
 var _ p9.File = (*Base)(nil)
 
-//var _ FSNode = (*Base)(nil)
-
-//TODO: docs
-// Base is a foundational node, intended to be embedded/extended
+// Base is a foundational file system node that provides common file meta data as well as stubs for unimplemented methods
 type Base struct {
+	// Provide stubs for unimplemented methods
 	unimplfs.NoopFile
 	p9.DefaultWalkGetAttr
+
+	// Storage for file's metadata
 	Qid      p9.QID
 	meta     p9.Attr
 	metaMask p9.AttrMask
@@ -42,10 +36,10 @@ type Base struct {
 	Logger logging.EventLogger
 }
 
+// IPFSBase is much like Base but extends it to hold IPFS specific metadata
 type IPFSBase struct {
 	Base
 
-	//Path corepath.Path
 	Path corepath.Resolved
 	core coreiface.CoreAPI
 }
