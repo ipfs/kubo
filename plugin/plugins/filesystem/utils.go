@@ -1,9 +1,13 @@
 package filesystem
 
 import (
+	"os"
 	gopath "path"
 	"path/filepath"
 	"runtime"
+	"strings"
+
+	"github.com/multiformats/go-multiaddr"
 )
 
 const (
@@ -42,4 +46,19 @@ func windowsToUnixFriendly(target string) string {
 		target = target[2:]
 	}
 	return filepath.ToSlash(target)
+}
+
+// removeUnixSockets attempts to remove all unix domain paths from a multiaddr
+// Does not stop on error, returns last encountered error
+func removeUnixSockets(ma multiaddr.Multiaddr) error {
+	var retErr error
+	multiaddr.ForEach(ma, func(comp multiaddr.Component) bool {
+		if comp.Protocol().Code == multiaddr.P_UNIX {
+			if err := os.Remove(strings.TrimPrefix(comp.String(), "/unix")); err != nil {
+				retErr = err
+			}
+		}
+		return false
+	})
+	return retErr
 }

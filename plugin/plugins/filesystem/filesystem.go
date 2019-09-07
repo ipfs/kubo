@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"runtime"
 
 	"github.com/djdv/p9/p9"
 	plugin "github.com/ipfs/go-ipfs/plugin"
@@ -33,8 +34,9 @@ type FileSystemPlugin struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	addr     multiaddr.Multiaddr
-	listener manet.Listener
+	addr      multiaddr.Multiaddr
+	listener  manet.Listener
+	errorChan chan error
 }
 
 func (*FileSystemPlugin) Name() string {
@@ -73,8 +75,15 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	if err != nil {
 		return err
 	}
+	//TODO [manet]: unix sockets are not removed on process death (on Windows)
+	// so for now we just try to remove it before listening on it
+	if runtime.GOOS == "windows" {
+		removeUnixSockets(fs.addr)
+	}
 
 	fs.ctx, fs.cancel = context.WithCancel(context.Background())
+	fs.errorChan = make(chan error)
+
 	logger.Info("9P resource server okay for launch")
 	return nil
 }
@@ -91,10 +100,7 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 	// construct and run the 9P resource server
 	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core))
 	go func() {
-		if err := s.Serve(manet.NetListener(fs.listener)); err != nil {
-			logger.Errorf("9P server error: %s\n", err)
-			return
-		}
+		fs.errorChan <- s.Serve(manet.NetListener(fs.listener))
 	}()
 
 	logger.Infof("9P service is listening on %s\n", fs.listener.Addr())
@@ -102,9 +108,8 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 }
 
 func (fs *FileSystemPlugin) Close() error {
-	//TODO: fmt.Println("Closing file system handles...")
 	logger.Info("9P server requested to close")
 	fs.cancel()
 	fs.listener.Close()
-	return nil
+	return <-fs.errorChan
 }
