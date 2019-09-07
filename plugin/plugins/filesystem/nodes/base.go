@@ -21,7 +21,7 @@ const ( //FS namespaces
 
 var _ p9.File = (*Base)(nil)
 
-// Base is a foundational file system node that provides common file meta data as well as stubs for unimplemented methods
+// Base is a foundational file system node that provides common file metadata as well as stubs for unimplemented methods
 type Base struct {
 	// Provide stubs for unimplemented methods
 	unimplfs.NoopFile
