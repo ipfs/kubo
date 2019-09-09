@@ -143,12 +143,14 @@ out:
 				return nil, entry.Err
 			}
 
-			id.directory.cursor++
+			if offset <= id.directory.cursor {
+				nineEnt := coreEntTo9Ent(entry)
+				nineEnt.Offset = id.directory.cursor
+				ents = append(ents, nineEnt)
+				count--
+			}
 
-			nineEnt := coreEntTo9Ent(entry)
-			nineEnt.Offset = id.directory.cursor
-			ents = append(ents, nineEnt)
-			count--
+			id.directory.cursor++
 
 			if count == 0 {
 				break out
