@@ -716,8 +716,19 @@ Experimental, not included by default.
 This daemon plugin wraps the IPFS node and exposes file system services over a multiaddr listener.
 Currently we use the 9P2000.L protocol, and offer read-only support for `/ipfs` requests. With support for other (writable) systems coming next.
 You may connect to this service using the `v9fs` client used in the Linux kernel.
+By default we listen locally on the machine, using a Unix domain socket.
 `mount -t 9p -o trans=unix $IPFS_PATH/filesystem.9p.sock ~/ipfs-mount`
 To configure the listening address and more, see the [package documentation](https://godoc.org/github.com/ipfs/go-ipfs/plugin/plugins/filesystem)
+See the [v9fs documentation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/Documentation/filesystems/9p.txt) for instructions on using transports, such as TCP.
+i.e.
+```
+> export IPFS_FS_ADDR=/ip4/127.0.0.1/tcp/564
+> ipfs daemon &
+> mount -t 9p 127.0.0.1 ~/ipfs-mount
+> ...
+> umount ~/ipfs-mount
+> ipfs shutdown
+```
 
 
 At the moment, [a modified 9P library](https://github.com/djdv/p9/tree/diff) is being used to connect golang clients to the service.

@@ -6,7 +6,7 @@ By default, we try to expose the IPFS namespace using the 9P2000.L protocol, ove
 (located at $IPFS_PATH/filesystem.9P.sock)
 
 To set the multiaddr listen address, you may use the environment variable $IPFS_FS_ADDR, or set the option in the node's config file
-via `ipfs config --json 'Plugins.Plugins.filesystem.Config "Config":{"Service":{"9P":"/ip4/127.0.0.1/tcp/567"}}'`
+via `ipfs config --json 'Plugins.Plugins.filesystem.Config "Config":{"Service":{"9P":"/ip4/127.0.0.1/tcp/564"}}'`
 To disable this plugin entirely, use: `ipfs config --json Plugins.Plugins.filesystem.Disabled true`
 */
 package filesystem
