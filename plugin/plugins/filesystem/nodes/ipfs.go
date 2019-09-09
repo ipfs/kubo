@@ -17,6 +17,12 @@ import (
 // e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
 type IPFS struct {
 	IPFSBase
+	directory *directoryStream
+}
+
+type directoryStream struct {
+	entryChan <-chan coreiface.DirEntry
+	cursor    uint64
 }
 
 func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
@@ -96,51 +102,68 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	id.Logger.Debugf("ID Open")
+	if id.meta.Mode.IsDir() {
+		c, err := id.core.Unixfs().Ls(id.Ctx, id.Path)
+		if err != nil {
+			return id.Qid, 0, err
+		}
+		id.directory = &directoryStream{
+			entryChan: c,
+		}
+	}
+
 	return id.Qid, 0, nil
 }
 
 func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	id.Logger.Debugf("ID Readdir")
 
-	//FIXME: we read the entire directory for each readdir call; this is very wasteful with small requests (Unix `ls`)
-	//TODO [quick hack]: append only entry list stored on id; likely going to be problematic for large directories (test: Wikipedia)
-	entChan, err := coreLs(id.Ctx, id.Path, id.core)
-	if err != nil {
-		return nil, err
+	if id.directory == nil {
+		return nil, fmt.Errorf("directory %q is not open for reading", id.Path.String())
 	}
 
-	var ents []p9.Dirent
-
-	var off uint64 = 1
-	for ent := range entChan {
-		if ent.Err != nil {
-			return nil, err
-		}
-		off++
-
-		nineEnt := coreEntTo9Ent(ent)
-		nineEnt.Offset = off
-		ents = append(ents, nineEnt)
-
-		if uint32(len(ents)) == count {
-			break
-		}
-	}
-
-	//FIXME: I don't think order is gauranteed from Ls
-	eLen := uint64(len(ents))
-	if offset >= eLen {
+	if count == 0 {
 		return nil, nil
 	}
 
-	offsetIndex := ents[offset:]
-	if len(offsetIndex) > int(count) {
-		id.Logger.Debugf("ID Readdir returning [%d]%v\n", count, offsetIndex[:count])
-		return offsetIndex[:count], nil
+	if offset < id.directory.cursor {
+		return nil, fmt.Errorf("read offset %d is behind current entry %d, seeking backwards in directory streams is not supported", offset, id.directory.cursor)
 	}
 
-	id.Logger.Debugf("ID Readdir returning [%d]%v\n", len(offsetIndex), offsetIndex)
-	return offsetIndex, nil
+	ents := make([]p9.Dirent, 0)
+
+out:
+	for {
+		select {
+		case entry, open := <-id.directory.entryChan:
+			if !open {
+				break out
+			}
+			if entry.Err != nil {
+				return nil, entry.Err
+			}
+
+			id.directory.cursor++
+
+			nineEnt := coreEntTo9Ent(entry)
+			nineEnt.Offset = id.directory.cursor
+			ents = append(ents, nineEnt)
+			count--
+
+			if count == 0 {
+				break out
+			}
+		case <-id.Ctx.Done():
+			return ents, id.Ctx.Err()
+		}
+	}
+
+	if offset > uint64(len(ents)) {
+		return nil, nil //cursor is at end of stream, nothing to return
+	}
+
+	id.Logger.Debugf("ID Readdir returning [%d]%v\n", len(ents), ents)
+	return ents, nil
 }
 
 func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {

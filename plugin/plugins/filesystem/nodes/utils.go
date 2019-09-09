@@ -103,49 +103,6 @@ func cidToQPath(cid cid.Cid) uint64 {
 	return hasher.Sum64()
 }
 
-func coreLs(ctx context.Context, corePath corepath.Path, core coreiface.CoreAPI) (<-chan coreiface.DirEntry, error) {
-
-	//FIXME: asyncContext hangs on reset
-	//asyncContext := deriveTimerContext(ctx, 10*time.Second)
-	asyncContext := ctx
-
-	coreChan, err := core.Unixfs().Ls(asyncContext, corePath)
-	if err != nil {
-		//asyncContext.Cancel()
-		return nil, err
-	}
-
-	oStat, err := core.Object().Stat(asyncContext, corePath)
-	if err != nil {
-		return nil, err
-	}
-
-	relayChan := make(chan coreiface.DirEntry)
-	go func() {
-		//defer asyncContext.Cancel()
-		defer close(relayChan)
-
-		for i := 0; i != oStat.NumLinks; i++ {
-			select {
-			case <-asyncContext.Done():
-				return
-			case msg, ok := <-coreChan:
-				if !ok {
-					return
-				}
-				if msg.Err != nil {
-					relayChan <- msg
-					return
-				}
-				relayChan <- msg
-				//asyncContext.Reset() //reset timeout for each entry we receive successfully
-			}
-		}
-	}()
-
-	return relayChan, err
-}
-
 func coreTypeTo9Mode(ct coreiface.FileType) p9.FileMode {
 	switch ct {
 	// case coreiface.TDirectory, unixfs.THAMTShard // Should we account for this?
@@ -180,44 +137,6 @@ func coreEntTo9Ent(coreEnt coreiface.DirEntry) p9.Dirent {
 		QID: p9.QID{
 			Type: entType,
 			Path: cidToQPath(coreEnt.Cid)}}
-}
-
-type timerContextActual struct {
-	context.Context
-	cancel context.CancelFunc
-	timer  time.Timer
-	grace  time.Duration
-}
-
-func (tctx timerContextActual) Reset() {
-	if !tctx.timer.Stop() {
-		<-tctx.timer.C
-	}
-	tctx.timer.Reset(tctx.grace)
-}
-
-func (tctx timerContextActual) Cancel() {
-	tctx.cancel()
-	if !tctx.timer.Stop() {
-		<-tctx.timer.C
-	}
-}
-
-type timerContext interface {
-	context.Context
-	Reset()
-	Cancel()
-}
-
-func deriveTimerContext(ctx context.Context, grace time.Duration) timerContext {
-	asyncContext, cancel := context.WithCancel(ctx)
-	timer := time.AfterFunc(grace, cancel)
-	tctx := timerContextActual{Context: asyncContext,
-		cancel: cancel,
-		grace:  grace,
-		timer:  *timer}
-
-	return tctx
 }
 
 const ( // pedantic POSIX stuff
