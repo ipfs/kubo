@@ -15,7 +15,7 @@ const (
 	PluginVersion = "0.0.1"
 
 	//TODO [config]: move elsewhere; related: https://github.com/ipfs/go-ipfs/issues/6526
-	EnvAddr = "IPFS_FS_ADDR" // multiaddr string
+	EnvAddr = "$IPFS_FS_ADDR" // multiaddr string
 
 	sockName       = "filesystem.9P.sock"
 	defaultService = "9P" // (currently 9P2000.L)

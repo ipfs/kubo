@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -71,10 +72,15 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	}
 
 	var err error
-	fs.addr, err = multiaddr.NewMultiaddr(cfg.Service[defaultService])
+	if envAddr := os.ExpandEnv(EnvAddr); envAddr == "" {
+		fs.addr, err = multiaddr.NewMultiaddr(cfg.Service[defaultService])
+	} else {
+		fs.addr, err = multiaddr.NewMultiaddr(envAddr)
+	}
 	if err != nil {
 		return err
 	}
+
 	//TODO [manet]: unix sockets are not removed on process death (on Windows)
 	// so for now we just try to remove it before listening on it
 	if runtime.GOOS == "windows" {
