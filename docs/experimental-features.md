@@ -30,7 +30,7 @@ the above issue.
 - [AutoRelay](#autorelay)
 - [TLS 1.3 Handshake](#tls-13-as-default-handshake-protocol)
 - [Strategic Providing](#strategic-providing)
-- [IPFS filesystem API plugin](#filesystem-plugin)
+- [IPFS filesystem API plugin](#filesystem-api-plugin)
 
 ---
 
@@ -736,8 +736,8 @@ In the future, we plan to add a client library that wraps this and provides a st
 
 ### How to enable
 
-See the Plugin documentation [here]https://github.com/ipfs/go-ipfs/blob/master/docs/plugins.md#installing-plugins
-You will likely want to add the plugin to the `go-ipfs` preload list
+See the Plugin documentation [here](https://github.com/ipfs/go-ipfs/blob/master/docs/plugins.md#installing-plugins).
+You will likely want to add the plugin to the `go-ipfs` plugin preload list
 `filesystem github.com/ipfs/go-ipfs/plugin/plugins/filesystem *`
 
 ### Road to being a real feature
