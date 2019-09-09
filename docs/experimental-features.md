@@ -30,6 +30,7 @@ the above issue.
 - [AutoRelay](#autorelay)
 - [TLS 1.3 Handshake](#tls-13-as-default-handshake-protocol)
 - [Strategic Providing](#strategic-providing)
+- [IPFS filesystem API plugin](#filesystem-plugin)
 
 ---
 
@@ -705,3 +706,31 @@ ipfs config --json Experimental.StrategicProviding true
     - [ ] provide roots
     - [ ] provide all
     - [ ] provide strategic
+
+## Filesystem API Plugin
+
+### State
+
+Experimental, not included by default.
+
+This daemon plugin wraps the IPFS node and exposes file system services over a multiaddr listener.
+Currently we use the 9P2000.L protocol, and offer read-only support for `/ipfs` requests. With support for other (writable) systems coming next.
+You may connect to this service using the `v9fs` client used in the Linux kernel.
+`mount -t 9p -o trans=unix $IPFS_PATH/filesystem.9p.sock ~/ipfs-mount`
+To configure the listening address and more, see the [package documentation](https://godoc.org/github.com/ipfs/go-ipfs/plugin/plugins/filesystem)
+
+
+At the moment, [a modified 9P library](https://github.com/djdv/p9/tree/diff) is being used to connect golang clients to the service.
+In the future, we plan to add a client library that wraps this and provides a standard client interface.
+
+### How to enable
+
+See the Plugin documentation [here]https://github.com/ipfs/go-ipfs/blob/master/docs/plugins.md#installing-plugins
+You will likely want to add the plugin to the `go-ipfs` preload list
+`filesystem github.com/ipfs/go-ipfs/plugin/plugins/filesystem *`
+
+### Road to being a real feature
+
+- [ ] needs testing
+    - Technically correct (`go test`, sharness, etc.)
+    - Practically/API correct (does this service provide clients with what they need)
