@@ -82,6 +82,25 @@ func (f *apiFile) Read(p []byte) (int, error) {
 	return n, err
 }
 
+func (f *apiFile) ReadAt(p []byte, off int64) (int, error) {
+	// Always make a new request. This method should be parallel-safe.
+	resp, err := f.core.Request("cat", f.path.String()).
+		Option("offset", off).Option("length", len(p)).Send(f.ctx)
+	if err != nil {
+		return 0, err
+	}
+	if resp.Error != nil {
+		return 0, resp.Error
+	}
+	defer resp.Output.Close()
+
+	n, err := io.ReadFull(resp.Output, p)
+	if err == io.ErrUnexpectedEOF {
+		err = io.EOF
+	}
+	return n, err
+}
+
 func (f *apiFile) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekEnd:
