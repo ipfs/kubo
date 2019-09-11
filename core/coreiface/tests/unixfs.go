@@ -48,6 +48,7 @@ func (tp *TestSuite) TestUnixfs(t *testing.T) {
 	t.Run("TestLsNonUnixfs", tp.TestLsNonUnixfs)
 	t.Run("TestAddCloses", tp.TestAddCloses)
 	t.Run("TestGetSeek", tp.TestGetSeek)
+	t.Run("TestGetReadAt", tp.TestGetReadAt)
 }
 
 // `echo -n 'hello, world!' | ipfs add`
@@ -995,4 +996,85 @@ func (tp *TestSuite) TestGetSeek(t *testing.T) {
 	test(0, io.SeekStart, int(dataSize), dataSize, false)
 	test(dataSize-50, io.SeekStart, 100, 50, true)
 	test(-5, io.SeekEnd, 100, 5, true)
+}
+
+func (tp *TestSuite) TestGetReadAt(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dataSize := int64(100000)
+	tf := files.NewReaderFile(io.LimitReader(rand.New(rand.NewSource(1403768328)), dataSize))
+
+	p, err := api.Unixfs().Add(ctx, tf, options.Unixfs.Chunker("size-100"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := api.Unixfs().Get(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, ok := r.(interface {
+		files.File
+		io.ReaderAt
+	})
+	if !ok {
+		t.Skip("ReaderAt not implemented")
+	}
+
+	orig := make([]byte, dataSize)
+	if _, err := io.ReadFull(f, orig); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	origR := bytes.NewReader(orig)
+
+	r, err = api.Unixfs().Get(ctx, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	test := func(offset int64, read int, expect int64, shouldEof bool) {
+		t.Run(fmt.Sprintf("readat%d-r%d-%d", offset, read, expect), func(t *testing.T) {
+			origBuf := make([]byte, read)
+			origRead, err := origR.ReadAt(origBuf, offset)
+			if err != nil && err != io.EOF {
+				t.Fatalf("orig: %s", err)
+			}
+			buf := make([]byte, read)
+			r, err := f.ReadAt(buf, offset)
+			if shouldEof {
+				if err != io.EOF {
+					t.Fatal("expected EOF, got: ", err)
+				}
+			} else if err != nil {
+				t.Fatal("got: ", err)
+			}
+
+			if int64(r) != expect {
+				t.Fatal("read wrong amount of data")
+			}
+			if r != origRead {
+				t.Fatal("read different amount of data than bytes.Reader")
+			}
+			if !bytes.Equal(buf, origBuf) {
+				fmt.Fprintf(os.Stderr, "original:\n%s\n", hex.Dump(origBuf))
+				fmt.Fprintf(os.Stderr, "got:\n%s\n", hex.Dump(buf))
+				t.Fatal("data didn't match")
+			}
+		})
+	}
+
+	test(3, 10, 10, false)
+	test(13, 10, 10, false)
+	test(513, 10, 10, false)
+	test(350, 100, 100, false)
+	test(0, int(dataSize), dataSize, false)
+	test(dataSize-50, 100, 50, true)
 }
