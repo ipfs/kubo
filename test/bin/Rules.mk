@@ -2,60 +2,80 @@ include mk/header.mk
 
 TGTS_$(d) :=
 
-$(d)/pollEndpoint: thirdparty/pollEndpoint
-	$(go-build-relative)
+define go-build-testdep
+	OUT="$(CURDIR)/$@" ; \
+	cd "test/dependencies" ; \
+	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<"
+endef
+
+.PHONY: github.com/ipfs/go-ipfs/test/dependencies/pollEndpoint
+$(d)/pollEndpoint: github.com/ipfs/go-ipfs/test/dependencies/pollEndpoint
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/pollEndpoint
 
-$(d)/go-sleep: test/dependencies/go-sleep
-	$(go-build-relative)
+.PHONY: github.com/ipfs/go-ipfs/test/dependencies/go-sleep
+$(d)/go-sleep: github.com/ipfs/go-ipfs/test/dependencies/go-sleep
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/go-sleep
 
-$(d)/go-timeout: test/dependencies/go-timeout
-	$(go-build-relative)
+.PHONY: github.com/ipfs/go-ipfs/test/dependencies/go-timeout
+$(d)/go-timeout: github.com/ipfs/go-ipfs/test/dependencies/go-timeout
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/go-timeout
 
-$(d)/iptb: test/dependencies/iptb
-	$(go-build-relative)
+.PHONY: github.com/ipfs/go-ipfs/test/dependencies/iptb
+$(d)/iptb: github.com/ipfs/go-ipfs/test/dependencies/iptb
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/iptb
 
-$(d)/ma-pipe-unidir: test/dependencies/ma-pipe-unidir
-	$(go-build-relative)
+.PHONY: github.com/ipfs/go-ipfs/test/dependencies/ma-pipe-unidir
+$(d)/ma-pipe-unidir: github.com/ipfs/go-ipfs/test/dependencies/ma-pipe-unidir
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/ma-pipe-unidir
 
-$(d)/json-to-junit: test/dependencies/json-to-junit
-	$(go-build-relative)
+.PHONY: github.com/ipfs/go-ipfs/test/dependencies/json-to-junit
+$(d)/json-to-junit: github.com/ipfs/go-ipfs/test/dependencies/json-to-junit
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/json-to-junit
 
-$(d)/gotestsum:
-	$(call go-build,gotest.tools/gotestsum)
+.PHONY: gotest.tools/gotestsum
+$(d)/gotestsum: gotest.tools/gotestsum
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/gotestsum
 
-$(d)/hang-fds:
-	$(call go-build,github.com/ipfs/hang-fds)
+.PHONY: github.com/ipfs/hang-fds
+$(d)/hang-fds: github.com/ipfs/hang-fds
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/hang-fds
 
-$(d)/multihash:
-	$(call go-build,github.com/multiformats/go-multihash/multihash)
+.PHONY: github.com/multiformats/go-multihash/multihash
+$(d)/multihash: github.com/multiformats/go-multihash/multihash
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/multihash
 
-$(d)/cid-fmt:
-	$(call go-build,github.com/ipfs/go-cidutil/cid-fmt)
+.PHONY: github.com/ipfs/go-cidutil/cid-fmt
+$(d)/cid-fmt: github.com/ipfs/go-cidutil/cid-fmt
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/cid-fmt
 
-$(d)/random:
-	$(call go-build,github.com/jbenet/go-random/random)
+.PHONY: github.com/jbenet/go-random/random
+$(d)/random: github.com/jbenet/go-random/random
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/random
 
-$(d)/random-files:
-	$(call go-build,github.com/jbenet/go-random-files/random-files)
+.PHONY: github.com/jbenet/go-random-files/random-files
+$(d)/random-files: github.com/jbenet/go-random-files/random-files
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/random-files
 
-$(d)/gocovmerge:
-	$(call go-build,github.com/Kubuxu/gocovmerge)
+.PHONY: github.com/Kubuxu/gocovmerge
+$(d)/gocovmerge: github.com/Kubuxu/gocovmerge
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/gocovmerge
 
-$(d)/golangci-lint:
-	$(call go-build,github.com/golangci/golangci-lint/cmd/golangci-lint)
+.PHONY: github.com/golangci/golangci-lint/cmd/golangci-lint
+$(d)/golangci-lint: github.com/golangci/golangci-lint/cmd/golangci-lint
+	$(go-build-testdep)
 TGTS_$(d) += $(d)/golangci-lint
 
 $(TGTS_$(d)): $$(DEPS_GO)
