@@ -2,7 +2,10 @@ package fsnodes
 
 import (
 	"context"
+	"crypto/rand"
+	"fmt"
 	"hash/fnv"
+	"io"
 	"time"
 
 	"github.com/djdv/p9/p9"
@@ -15,17 +18,26 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-func doClone(names []string) bool {
-	l := len(names)
-	if l < 1 {
-		return true
+var salt []byte
+
+func init() {
+	salt = make([]byte, 2048) //XXX: size is arbitrary
+	_, err := io.ReadFull(rand.Reader, salt)
+	if err != nil {
+		panic(err)
 	}
-	//TODO: double check the spec to make sure dot handling is correct
-	// we may only want to clone on ".." if we're a root
-	if pc := names[0]; l == 1 && (pc == ".." || pc == "." || pc == "") {
+}
+
+func shouldClone(names []string) bool {
+	switch len(names) {
+	case 0: // empty path
 		return true
+	case 1: // self?
+		pc := names[0]
+		return pc == ".." || pc == "." || pc == "."
+	default:
+		return false
 	}
-	return false
 }
 
 //TODO: rename this and/or extend
@@ -50,7 +62,11 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask p9.AttrMask, core 
 
 	if attrMask.Mode {
 		attr.Mode = IRXA //TODO: this should probably be the callers responsability; just document that permissions should be set afterwards or something
-		attr.Mode |= unixfsTypeTo9Mode(ufsNode.Type())
+		tBits, err := unixfsTypeTo9Type(ufsNode.Type())
+		if err != nil {
+			return err
+		}
+		attr.Mode |= tBits
 	}
 
 	if attrMask.Blocks {
@@ -86,10 +102,13 @@ func ipldStat(dirEnt *p9.Dirent, node ipld.Node) error {
 		return err
 	}
 
-	nodeType := unixfsTypeTo9Mode(ufsNode.Type()).QIDType()
+	nineType, err := unixfsTypeTo9Type(ufsNode.Type())
+	if err != nil {
+		return err
+	}
 
-	dirEnt.Type = nodeType
-	dirEnt.QID.Type = nodeType
+	dirEnt.Type = nineType.QIDType()
+	dirEnt.QID.Type = nineType.QIDType()
 	dirEnt.QID.Path = cidToQPath(node.Cid())
 
 	return nil
@@ -97,46 +116,59 @@ func ipldStat(dirEnt *p9.Dirent, node ipld.Node) error {
 
 func cidToQPath(cid cid.Cid) uint64 {
 	hasher := fnv.New64a()
+	if _, err := hasher.Write(salt); err != nil {
+		panic(err)
+	}
 	if _, err := hasher.Write(cid.Bytes()); err != nil {
 		panic(err)
 	}
 	return hasher.Sum64()
 }
 
-func coreTypeTo9Mode(ct coreiface.FileType) p9.FileMode {
+//NOTE [2019.09.11]: IPFS CoreAPI abstracts over HAMT structures; Unixfs returns raw type
+
+func coreTypeTo9Type(ct coreiface.FileType) (p9.FileMode, error) {
 	switch ct {
-	// case coreiface.TDirectory, unixfs.THAMTShard // Should we account for this?
 	case coreiface.TDirectory:
-		return p9.ModeDirectory
+		return p9.ModeDirectory, nil
 	case coreiface.TSymlink:
-		return p9.ModeSymlink
-	default: //TODO: probably a bad assumption to make
-		return p9.ModeRegular
+		return p9.ModeSymlink, nil
+	case coreiface.TFile:
+		return p9.ModeRegular, nil
+	default:
+		return p9.ModeRegular, fmt.Errorf("CoreAPI data type %q was not expected, treating as regular file", ct)
 	}
 }
 
 //TODO: see if we can remove the need for this; rely only on the core if we can
-func unixfsTypeTo9Mode(ut unixpb.Data_DataType) p9.FileMode {
+func unixfsTypeTo9Type(ut unixpb.Data_DataType) (p9.FileMode, error) {
 	switch ut {
-	// case unixpb.Data_DataDirectory, unixpb.Data_DataHAMTShard // Should we account for this?
-	case unixpb.Data_Directory:
-		return p9.ModeDirectory
+	//TODO: directories and hamt shards are not synonymous; HAMTs may need special handling
+	case unixpb.Data_Directory, unixpb.Data_HAMTShard:
+		return p9.ModeDirectory, nil
 	case unixpb.Data_Symlink:
-		return p9.ModeSymlink
-	default: //TODO: probably a bad assumption to make
-		return p9.ModeRegular
+		return p9.ModeSymlink, nil
+	case unixpb.Data_File:
+		return p9.ModeRegular, nil
+	default:
+		return p9.ModeRegular, fmt.Errorf("UFS data type %q was not expected, treating as regular file", ut)
 	}
 }
 
-func coreEntTo9Ent(coreEnt coreiface.DirEntry) p9.Dirent {
-	entType := coreTypeTo9Mode(coreEnt.Type).QIDType()
+func coreEntTo9Ent(coreEnt coreiface.DirEntry) (p9.Dirent, error) {
+	entType, err := coreTypeTo9Type(coreEnt.Type)
+	if err != nil {
+		return p9.Dirent{}, err
+	}
 
 	return p9.Dirent{
 		Name: coreEnt.Name,
-		Type: entType,
+		Type: entType.QIDType(),
 		QID: p9.QID{
-			Type: entType,
-			Path: cidToQPath(coreEnt.Cid)}}
+			Type: entType.QIDType(),
+			Path: cidToQPath(coreEnt.Cid),
+		},
+	}, nil
 }
 
 const ( // pedantic POSIX stuff
@@ -193,5 +225,8 @@ func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, c
 			Ctx:    ctx,
 			Qid: p9.QID{
 				Type: kind,
-				Path: cidToQPath(path.Cid())}}}
+				Path: cidToQPath(path.Cid()),
+			},
+		},
+	}
 }

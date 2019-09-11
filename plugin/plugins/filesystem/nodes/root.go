@@ -97,7 +97,7 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	ri.Logger.Debugf("RI Walk names %v", names)
 	ri.Logger.Debugf("RI Walk myself: %v", ri.Qid)
 
-	if doClone(names) {
+	if shouldClone(names) {
 		ri.Logger.Debugf("RI Walk cloned")
 		return []p9.QID{ri.Qid}, ri, nil
 	}

@@ -732,9 +732,6 @@ i.e.
 > ipfs shutdown
 ```
 
-At the moment, [a modified 9P library](https://github.com/djdv/p9/tree/diff) is being used to connect golang clients to the service.
-In the future, we plan to add a client library that wraps this and provides a standard client interface.
-
 ### How to enable
 
 See the Plugin documentation [here](https://github.com/ipfs/go-ipfs/blob/master/docs/plugins.md#installing-plugins).

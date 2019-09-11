@@ -38,7 +38,7 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	pd.Logger.Debugf("PD Walk names %v", names)
 	pd.Logger.Debugf("PD Walk myself: %v", pd.Qid)
 
-	if doClone(names) {
+	if shouldClone(names) {
 		pd.Logger.Debugf("PD Walk cloned")
 		return []p9.QID{pd.Qid}, pd, nil
 	}

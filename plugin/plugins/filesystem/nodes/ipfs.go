@@ -61,7 +61,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	id.Logger.Debugf("ID Walk names %v", names)
 	id.Logger.Debugf("ID Walk myself: %s:%v", id.Path, id.Qid)
 
-	if doClone(names) {
+	if shouldClone(names) {
 		id.Logger.Debugf("ID Walk cloned")
 		return []p9.QID{id.Qid}, id, nil
 	}
@@ -144,7 +144,10 @@ out:
 			}
 
 			if offset <= id.directory.cursor {
-				nineEnt := coreEntTo9Ent(entry)
+				nineEnt, err := coreEntTo9Ent(entry)
+				if err != nil {
+					return nil, err
+				}
 				nineEnt.Offset = id.directory.cursor
 				ents = append(ents, nineEnt)
 				count--

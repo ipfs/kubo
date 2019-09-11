@@ -1,11 +1,13 @@
 package fsnodes
 
 import (
-	"bytes"
 	"strings"
 
 	"github.com/djdv/p9/p9"
 )
+
+//TODO: compiler legal examples so Go tools don't get mad; needs client wrappers to look nice
+// `Output:` comments too
 
 func ExampleRootIndex() {
 	root, err := fsnodes.RootAttacher(ctx, coreAPI).Attach()

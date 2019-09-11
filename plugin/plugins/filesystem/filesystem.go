@@ -88,7 +88,7 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	}
 
 	fs.ctx, fs.cancel = context.WithCancel(context.Background())
-	fs.errorChan = make(chan error)
+	fs.errorChan = make(chan error, 1)
 
 	logger.Info("9P resource server okay for launch")
 	return nil
