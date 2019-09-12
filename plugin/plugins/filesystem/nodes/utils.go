@@ -23,7 +23,14 @@ import (
 // for more context see: https://github.com/ipfs/go-ipfs/pull/6612#discussion_r321038649
 var salt []byte
 
-const saltSize = 32
+const (
+	// TODO [2019.09.12; anyone]
+	// Start a discussion around block sizes
+	// should we use the de-facto standard of 4KiB or use our own of 256KiB?
+	// context: https://github.com/ipfs/go-ipfs/pull/6612/files#r322989041
+	ipfsBlockSize = 256 << 10
+	saltSize      = 32
+)
 
 func init() {
 	salt = make([]byte, saltSize)
@@ -75,9 +82,8 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask p9.AttrMask, core 
 	}
 
 	if attrMask.Blocks {
-		if bs := ufsNode.BlockSizes(); len(bs) != 0 {
-			attr.BlockSize = bs[0] //NOTE: this value is to be used as a hint only; subsequent child block size may differ
-		}
+		//TODO: when/if UFS supports this metadata field, use it instead
+		attr.BlockSize = ipfsBlockSize
 	}
 
 	if attrMask.Size {

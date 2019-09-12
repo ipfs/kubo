@@ -112,7 +112,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 		}
 	}
 
-	return id.Qid, 0, nil
+	return id.Qid, ipfsBlockSize, nil
 }
 
 func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
