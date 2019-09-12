@@ -15,11 +15,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/multiformats/go-multiaddr-net v0.0.1
 	github.com/multiformats/go-multihash v0.0.7
+	github.com/ultraware/funlen v0.0.2 // indirect
+	golang.org/x/tools v0.0.0-20190912185636-87d9f09c5d89 // indirect
 	gotest.tools/gotestsum v0.3.5
-)
-
-// golangci-lint likes replace directives.
-replace (
-	github.com/ultraware/funlen => github.com/golangci/funlen v0.0.0-20190909161642-5e59b9546114
-	golang.org/x/tools => github.com/golangci/tools v0.0.0-20190910062050-3540c026601b
 )
