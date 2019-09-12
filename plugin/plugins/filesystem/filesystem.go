@@ -84,6 +84,13 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 		return err
 	}
 
+	logger.Info("9P resource server okay for launch")
+	return nil
+}
+
+func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
+	logger.Info("Starting 9P resource server...")
+
 	//TODO [manet]: unix sockets are not removed on process death (on Windows)
 	// so for now we just try to remove it before listening on it
 	if runtime.GOOS == "windows" {
@@ -92,13 +99,6 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 
 	fs.ctx, fs.cancel = context.WithCancel(context.Background())
 	fs.errorChan = make(chan error, 1)
-
-	logger.Info("9P resource server okay for launch")
-	return nil
-}
-
-func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
-	logger.Info("Starting 9P resource server...")
 
 	var err error
 	if fs.listener, err = manet.Listen(fs.addr); err != nil {
