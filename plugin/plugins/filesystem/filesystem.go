@@ -118,7 +118,7 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 
 func (fs *FileSystemPlugin) Close() error {
 	logger.Info("9P server requested to close")
-	fs.cancel()
 	fs.listener.Close()
+	fs.cancel()
 	return <-fs.errorChan
 }
