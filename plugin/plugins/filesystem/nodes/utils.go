@@ -18,10 +18,15 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
+// NOTE [2019.09.12]: QID's have a high collision probability
+// as a result we add a salt to hashes to attempt to mitigate this
+// for more context see: https://github.com/ipfs/go-ipfs/pull/6612#discussion_r321038649
 var salt []byte
 
+const saltSize = 32
+
 func init() {
-	salt = make([]byte, 2048) //XXX: size is arbitrary
+	salt = make([]byte, saltSize)
 	_, err := io.ReadFull(rand.Reader, salt)
 	if err != nil {
 		panic(err)
