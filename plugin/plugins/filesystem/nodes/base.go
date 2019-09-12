@@ -10,12 +10,14 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-const ( //device
-	dMemory = iota
-	dIPFS
-)
+const ( //device - attempts to comply with standard multicodec table
+	dMemory = 0x2f
+	dIPFS   = 0xe4
+	dIPNS   = 0xe5
+	//TODO: decide what MFS/Files API should be; IPLD?
+	//dFiles = 0xe2
 
-const ( //FS namespaces
+	//TODO: obviate this
 	nRoot = "root"
 )
 
