@@ -10,7 +10,6 @@ import (
 	"github.com/ipfs/go-ipfs-config"
 	util "github.com/ipfs/go-ipfs-util"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
@@ -161,7 +160,7 @@ func Identity(cfg *config.Config) fx.Option {
 	if cfg.Identity.PrivKey == "" {
 		return fx.Options( // No PK (usually in tests)
 			fx.Provide(PeerID(id)),
-			fx.Provide(pstoremem.NewPeerstore),
+			fx.Provide(libp2p.Peerstore),
 		)
 	}
 
@@ -173,7 +172,7 @@ func Identity(cfg *config.Config) fx.Option {
 	return fx.Options( // Full identity
 		fx.Provide(PeerID(id)),
 		fx.Provide(PrivateKey(sk)),
-		fx.Provide(pstoremem.NewPeerstore),
+		fx.Provide(libp2p.Peerstore),
 
 		fx.Invoke(libp2p.PstoreAddSelfKeys),
 	)
