@@ -78,9 +78,6 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask p9.AttrMask, core 
 		if bs := ufsNode.BlockSizes(); len(bs) != 0 {
 			attr.BlockSize = bs[0] //NOTE: this value is to be used as a hint only; subsequent child block size may differ
 		}
-
-		//TODO [eventualy]: switch off here for handling of time metadata in new format standard
-		timeStamp(attr, attrMask)
 	}
 
 	if attrMask.Size {
@@ -96,6 +93,8 @@ func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask p9.AttrMask, core 
 			//etc.
 		}
 	}
+
+	//TODO [eventually]: switch off here for handling of time metadata in new UFS format standard
 
 	return nil
 }
