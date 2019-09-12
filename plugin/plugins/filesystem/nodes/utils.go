@@ -39,7 +39,7 @@ func shouldClone(names []string) bool {
 		return true
 	case 1: // self?
 		pc := names[0]
-		return pc == ".." || pc == "." || pc == "."
+		return pc == ".." || pc == "." || pc == ""
 	default:
 		return false
 	}
