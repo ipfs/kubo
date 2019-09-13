@@ -17,6 +17,7 @@ import (
 // e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
 type IPFS struct {
 	IPFSBase
+	file      files.File
 	directory *directoryStream
 }
 
@@ -108,9 +109,22 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 		if err != nil {
 			return id.Qid, 0, err
 		}
+
 		id.directory = &directoryStream{
 			entryChan: c,
 		}
+		return id.Qid, 0, nil
+	}
+
+	// else treat as a file
+	apiNode, err := id.core.Unixfs().Get(id.Ctx, id.Path)
+	if err != nil {
+		return id.Qid, 0, err
+	}
+
+	var ok bool
+	if id.file, ok = apiNode.(files.File); !ok {
+		return id.Qid, 0, fmt.Errorf("%q does not appear to be a file: %T", id.Path.String(), apiNode)
 	}
 
 	return id.Qid, ipfsBlockSize, nil
@@ -179,19 +193,12 @@ out:
 
 func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 	id.Logger.Debugf("ID ReadAt")
-	const replaceMe = -1 //TODO [upstream/p9]: add constants for error 9P2000.L/Linux error values
 
-	apiNode, err := id.core.Unixfs().Get(id.Ctx, id.Path)
-	if err != nil {
-		return replaceMe, err
+	if id.file == nil {
+		return -1, fmt.Errorf("file %q is not open for reading", id.Path.String())
 	}
 
-	fIo, ok := apiNode.(files.File)
-	if !ok {
-		return replaceMe, fmt.Errorf("%q is not a file", id.Path.String())
-	}
-
-	if fileBound, err := fIo.Size(); err == nil {
+	if fileBound, err := id.file.Size(); err == nil {
 		if int64(offset) >= fileBound {
 			//NOTE [styx]: If the offset field is greater than or equal to the number of bytes in the file, a count of zero will be returned.
 			return 0, io.EOF
@@ -199,15 +206,14 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 	}
 
 	if offset != 0 {
-		_, err = fIo.Seek(int64(offset), io.SeekStart)
-		if err != nil {
-			return replaceMe, fmt.Errorf("Read - seek error: %s", err)
+		if _, err := id.file.Seek(int64(offset), io.SeekStart); err != nil {
+			return -1, fmt.Errorf("Read - seek error: %s", err)
 		}
 	}
 
-	readBytes, err := fIo.Read(p)
+	readBytes, err := id.file.Read(p)
 	if err != nil && err != io.EOF {
-		return replaceMe, err
+		return -1, err
 	}
-	return readBytes, nil
+	return readBytes, err
 }
