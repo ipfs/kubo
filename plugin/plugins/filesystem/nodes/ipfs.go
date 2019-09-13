@@ -122,8 +122,8 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, fmt.Errorf("directory %q is not open for reading", id.Path.String())
 	}
 
-	if count == 0 {
-		return nil, nil
+	if offset < 0 {
+		return nil, fmt.Errorf("offset %d can't be negative", offset)
 	}
 
 	if offset < id.directory.cursor {
