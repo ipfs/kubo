@@ -740,6 +740,8 @@ You will likely want to add the plugin to the `go-ipfs` plugin preload list
 
 ### Road to being a real feature
 
-- [ ] needs testing
+- [ ] Needs testing
     - Technically correct (`go test`, sharness, etc.)
-    - Practically/API correct (does this service provide clients with what they need)
+- [ ] Needs finalizing
+    - Config structure and environment variable names become stable/frozen
+    - Practically/API correct (does this service fulfill the practical needs of users/clients?)
