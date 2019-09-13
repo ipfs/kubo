@@ -23,6 +23,7 @@ type IPFS struct {
 type directoryStream struct {
 	entryChan <-chan coreiface.DirEntry
 	cursor    uint64
+	eos       bool // have seen end of stream?
 }
 
 func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
@@ -116,7 +117,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 }
 
 func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
-	id.Logger.Debugf("ID Readdir")
+	id.Logger.Debugf("ID Readdir %d %d", offset, count)
 
 	if id.directory == nil {
 		return nil, fmt.Errorf("directory %q is not open for reading", id.Path.String())
@@ -126,26 +127,38 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, fmt.Errorf("offset %d can't be negative", offset)
 	}
 
+	if id.directory.eos {
+		if offset == id.directory.cursor-1 {
+			return nil, nil // valid end of stream request
+		}
+	}
+
+	if id.directory.eos && offset == id.directory.cursor-1 {
+		return nil, nil // valid end of stream request
+	}
+
 	if offset < id.directory.cursor {
 		return nil, fmt.Errorf("read offset %d is behind current entry %d, seeking backwards in directory streams is not supported", offset, id.directory.cursor)
 	}
 
 	ents := make([]p9.Dirent, 0)
-
 out:
 	for len(ents) < int(count) {
 		select {
 		case entry, open := <-id.directory.entryChan:
 			if !open {
+				id.directory.eos = true
 				break out
 			}
 			if entry.Err != nil {
+				id.directory = nil
 				return nil, entry.Err
 			}
 
 			if offset <= id.directory.cursor {
 				nineEnt, err := coreEntTo9Ent(entry)
 				if err != nil {
+					id.directory = nil
 					return nil, err
 				}
 				nineEnt.Offset = id.directory.cursor
@@ -155,6 +168,7 @@ out:
 			id.directory.cursor++
 
 		case <-id.Ctx.Done():
+			id.directory = nil
 			return ents, id.Ctx.Err()
 		}
 	}
