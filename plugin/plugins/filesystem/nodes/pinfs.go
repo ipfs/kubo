@@ -61,9 +61,13 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	pd.Logger.Debugf("PD Open")
 
+	handleContext, cancel := context.WithCancel(pd.Ctx)
+	pd.cancel = cancel
+
 	// IPFS core representation
-	pins, err := pd.core.Pin().Ls(pd.Ctx, coreoptions.Pin.Type.Recursive())
+	pins, err := pd.core.Pin().Ls(handleContext, coreoptions.Pin.Type.Recursive())
 	if err != nil {
+		cancel()
 		return pd.Qid, ipfsBlockSize, err
 	}
 
@@ -79,7 +83,8 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 			Offset: uint64(i + 1),
 		}
 
-		if err = coreStat(pd.Ctx, dirEnt, pd.core, pin.Path()); err != nil {
+		if err = coreStat(handleContext, dirEnt, pd.core, pin.Path()); err != nil {
+			cancel()
 			return pd.Qid, 0, err
 		}
 		pd.directory.ents = append(pd.directory.ents, *dirEnt)

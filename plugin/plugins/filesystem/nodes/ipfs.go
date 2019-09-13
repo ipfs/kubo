@@ -17,6 +17,7 @@ import (
 // e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
 type IPFS struct {
 	IPFSBase
+
 	file      files.File
 	directory *directoryStream
 }
@@ -104,9 +105,17 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	id.Logger.Debugf("ID Open")
+
+	// set up  handle amenities
+	var handleContext context.Context
+	handleContext, cancel := context.WithCancel(id.Ctx)
+	id.cancel = cancel
+
+	// handle directories
 	if id.meta.Mode.IsDir() {
-		c, err := id.core.Unixfs().Ls(id.Ctx, id.Path)
+		c, err := id.core.Unixfs().Ls(handleContext, id.Path)
 		if err != nil {
+			cancel()
 			return id.Qid, 0, err
 		}
 
@@ -116,14 +125,16 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 		return id.Qid, 0, nil
 	}
 
-	// else treat as a file
-	apiNode, err := id.core.Unixfs().Get(id.Ctx, id.Path)
+	// handle files
+	apiNode, err := id.core.Unixfs().Get(handleContext, id.Path)
 	if err != nil {
+		cancel()
 		return id.Qid, 0, err
 	}
 
 	var ok bool
 	if id.file, ok = apiNode.(files.File); !ok {
+		cancel()
 		return id.Qid, 0, fmt.Errorf("%q does not appear to be a file: %T", id.Path.String(), apiNode)
 	}
 
