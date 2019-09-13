@@ -133,7 +133,7 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	ents := make([]p9.Dirent, 0)
 
 out:
-	for {
+	for len(ents) < int(count) {
 		select {
 		case entry, open := <-id.directory.entryChan:
 			if !open {
@@ -150,21 +150,13 @@ out:
 				}
 				nineEnt.Offset = id.directory.cursor
 				ents = append(ents, nineEnt)
-				count--
 			}
 
 			id.directory.cursor++
 
-			if count == 0 {
-				break out
-			}
 		case <-id.Ctx.Done():
 			return ents, id.Ctx.Err()
 		}
-	}
-
-	if offset > uint64(len(ents)) {
-		return nil, nil //cursor is at end of stream, nothing to return
 	}
 
 	id.Logger.Debugf("ID Readdir returning [%d]%v\n", len(ents), ents)
@@ -173,7 +165,7 @@ out:
 
 func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 	id.Logger.Debugf("ID ReadAt")
-	const replaceMe = -1 //TODO: proper error codes
+	const replaceMe = -1 //TODO [upstream/p9]: add constants for error 9P2000.L/Linux error values
 
 	apiNode, err := id.core.Unixfs().Get(id.Ctx, id.Path)
 	if err != nil {
@@ -188,7 +180,7 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 	if fileBound, err := fIo.Size(); err == nil {
 		if int64(offset) >= fileBound {
 			//NOTE [styx]: If the offset field is greater than or equal to the number of bytes in the file, a count of zero will be returned.
-			return 0, nil
+			return 0, io.EOF
 		}
 	}
 
