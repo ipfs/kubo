@@ -16,9 +16,6 @@ const ( //device - attempts to comply with standard multicodec table
 	dIPNS   = 0xe5
 	//TODO: decide what MFS/Files API should be; IPLD?
 	//dFiles = 0xe2
-
-	//TODO: obviate this
-	nRoot = "root"
 )
 
 var _ p9.File = (*Base)(nil)

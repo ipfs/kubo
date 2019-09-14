@@ -8,55 +8,53 @@ import (
 	cid "github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/multiformats/go-multihash"
 )
 
+const nRoot = "" // root namespace is intentionally left blank
 var _ p9.File = (*RootIndex)(nil)
 
-func newRootPath(path string) corepath.Resolved {
-	return rootNode(path)
-}
+type rootPath string
 
-type rootNode string
-
-func (rn rootNode) String() string { return string(rn) }
-func (rootNode) Namespace() string { return nRoot }
-func (rootNode) Mutable() bool     { return true }
-func (rootNode) IsValid() error    { return nil } //TODO: should return ENotImpl
-func (rn rootNode) Cid() cid.Cid {
+func (rp rootPath) String() string { return string(rp) }
+func (rootPath) Namespace() string { return nRoot }
+func (rp rootPath) Mutable() bool  { return true }
+func (rp rootPath) IsValid() error { return nil }
+func (rootPath) Root() cid.Cid     { return cid.Cid{} } //TODO: reference the root CID when overlay is finished
+func (rootPath) Remainder() string { return "" }
+func (rp rootPath) Cid() cid.Cid {
 	prefix := cid.V1Builder{Codec: cid.DagCBOR, MhType: multihash.BLAKE2B_MIN}
-	c, err := prefix.Sum([]byte(rn))
+	c, err := prefix.Sum([]byte(rp))
 	if err != nil {
 		panic(err) //invalid root
 	}
 	return c
 }
-func (rootNode) Root() cid.Cid { //TODO: this should probably reference a package variable set during init `rootCid`
-	prefix := cid.V1Builder{Codec: cid.DagCBOR, MhType: multihash.BLAKE2B_MIN}
-	c, err := prefix.Sum([]byte("/"))
-	if err != nil {
-		panic(err) //invalid root
-	}
-	return c
-}
-func (rootNode) Remainder() string { return "" }
 
-// RootIndex is a virtual directory file system, that maps a set of filesystem implementations to a hierarchy
+// RootIndex is a virtual directory file system, that maps a set of file system implementations to a hierarchy
 // Currently: "/":RootIndex, "/ipfs":PinFS, "/ipfs/*:IPFS
 type RootIndex struct {
-	IPFSBase
+	Base
+
 	subsystems []p9.Dirent
+
+	core coreiface.CoreAPI
 }
 
 // RootAttacher constructs the default RootIndex file system, providing a means to Attach() to it
 func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 	ri := &RootIndex{
-		IPFSBase: newIPFSBase(ctx, newRootPath("/"), p9.TypeDir,
-			core, logging.Logger("RootFS")),
-		subsystems: make([]p9.Dirent, 0, 1)} //TODO: [const]: dirent count
-	ri.Qid.Path = cidToQPath(ri.Path.Cid())
-
+		core:       core,
+		subsystems: make([]p9.Dirent, 0, 1), //NOTE: capacity should be tied to root child count
+		Base: Base{
+			Logger: logging.Logger("RootFS"),
+			Ctx:    ctx,
+			Qid: p9.QID{
+				Type: p9.TypeDir,
+				Path: cidToQPath(rootPath("/").Cid()),
+			},
+		},
+	}
 	ri.meta, ri.metaMask = defaultRootAttr()
 
 	rootDirTemplate := p9.Dirent{
@@ -73,7 +71,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 		pathUnion.Dirent.Offset = uint64(i + 1)
 		pathUnion.Dirent.Name = pathUnion.string
 
-		pathNode := newRootPath("/" + pathUnion.string)
+		pathNode := rootPath("/" + pathUnion.string)
 		pathUnion.Dirent.QID.Path = cidToQPath(pathNode.Cid())
 		ri.subsystems = append(ri.subsystems, pathUnion.Dirent)
 	}
@@ -102,7 +100,6 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return []p9.QID{ri.Qid}, ri, nil
 	}
 
-	//NOTE: if doClone is false, it implies len(names) > 0
 	switch names[0] {
 	case "ipfs":
 		pinDir, err := PinFSAttacher(ri.Ctx, ri.core).Attach()
@@ -122,10 +119,10 @@ func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 
 func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	ri.Logger.Debugf("RI Readdir {%d}", count)
-	sLen := uint64(len(ri.subsystems))
 
-	if offset >= sLen {
-		return nil, nil //TODO: [spec] should we error here?
+	shouldExit, err := boundCheck(offset, len(ri.subsystems))
+	if shouldExit {
+		return nil, err
 	}
 
 	offsetIndex := ri.subsystems[offset:]

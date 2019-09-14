@@ -23,7 +23,7 @@ type directoryStorage struct {
 
 //TODO: [review] check fields
 func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI) *PinFS {
-	pd := &PinFS{IPFSBase: newIPFSBase(ctx, newRootPath("/ipfs"), p9.TypeDir,
+	pd := &PinFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
 		core, logging.Logger("PinFS"))}
 	pd.meta, pd.metaMask = defaultRootAttr()
 	return pd
@@ -100,12 +100,9 @@ func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, fmt.Errorf("directory %q is not open for reading", pd.Path.String())
 	}
 
-	if offset < 0 {
-		return nil, fmt.Errorf("offset %d can't be negative", offset)
-	}
-
-	if entCount := uint64(len(pd.directory.ents)); offset > entCount {
-		return nil, fmt.Errorf("offset %d extends beyond directory bound %d", offset, entCount)
+	shouldExit, err := boundCheck(offset, len(pd.directory.ents))
+	if shouldExit {
+		return nil, err
 	}
 
 	subSlice := pd.directory.ents[offset:]

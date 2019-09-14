@@ -18,11 +18,6 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-// NOTE [2019.09.12]: QID's have a high collision probability
-// as a result we add a salt to hashes to attempt to mitigate this
-// for more context see: https://github.com/ipfs/go-ipfs/pull/6612#discussion_r321038649
-var salt []byte
-
 const (
 	// TODO [2019.09.12; anyone]
 	// Start a discussion around block sizes
@@ -31,6 +26,11 @@ const (
 	ipfsBlockSize = 256 << 10
 	saltSize      = 32
 )
+
+// NOTE [2019.09.12]: QID's have a high collision probability
+// as a result we add a salt to hashes to attempt to mitigate this
+// for more context see: https://github.com/ipfs/go-ipfs/pull/6612#discussion_r321038649
+var salt []byte
 
 func init() {
 	salt = make([]byte, saltSize)
@@ -225,7 +225,6 @@ func timeStamp(attr *p9.Attr, mask p9.AttrMask) {
 	}
 }
 
-//TODO [name]: "new" implies pointer type; this is for embedded construction
 func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, core coreiface.CoreAPI, logger logging.EventLogger) IPFSBase {
 	return IPFSBase{
 		Path: path,
@@ -238,5 +237,19 @@ func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, c
 				Path: cidToQPath(path.Cid()),
 			},
 		},
+	}
+}
+
+func boundCheck(offset uint64, length int) (shouldReturn bool, err error) {
+	switch {
+	case offset < 0:
+		return true, fmt.Errorf("offset %d can't be negative", offset)
+	case offset == uint64(length):
+		return true, nil // EOS
+	case offset > uint64(length):
+		return true, fmt.Errorf("offset %d extends beyond directory bound %d", offset, length)
+	default:
+		// not at end of stream and okay to continue
+		return false, nil
 	}
 }

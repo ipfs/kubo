@@ -29,7 +29,7 @@ type directoryStream struct {
 }
 
 func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
-	id := &IPFS{IPFSBase: newIPFSBase(ctx, newRootPath("/ipfs"), p9.TypeDir,
+	id := &IPFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
 		core, logging.Logger("IPFS"))}
 	id.meta, id.metaMask = defaultRootAttr()
 	return id
@@ -45,7 +45,7 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	id.Logger.Debugf("ID GetAttr")
 	id.Logger.Debugf("ID GetAttr path: %v", id.Path)
 
-	if id.Path.Namespace() == nRoot {
+	if id.Path.Namespace() == nRoot { // metadata should have been initialized by attacher, don't consult CoreAPI
 		return id.Qid, id.metaMask, id.meta, nil
 	}
 
