@@ -24,6 +24,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		// Adapted from github.com/prometheus/client_golang/prometheus/http.go
 		// Work around https://github.com/prometheus/client_golang/pull/311
 		opts := prometheus.SummaryOpts{
+			Namespace:   "ipfs",
 			Subsystem:   "http",
 			ConstLabels: prometheus.Labels{"handler": handlerName},
 			Objectives:  map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
@@ -31,7 +32,6 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 
 		reqCnt := prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace:   opts.Namespace,
 				Subsystem:   opts.Subsystem,
 				Name:        "requests_total",
 				Help:        "Total number of HTTP requests made.",
