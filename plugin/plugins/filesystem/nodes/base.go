@@ -5,6 +5,7 @@ import (
 
 	"github.com/djdv/p9/p9"
 	"github.com/djdv/p9/unimplfs"
+	files "github.com/ipfs/go-ipfs-files"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -35,6 +36,9 @@ type Base struct {
 	// and used to derive call specific contexts from
 	Ctx    context.Context
 	Logger logging.EventLogger
+
+	parent walkRef // parent should be set and used to handle ".." requests
+	child  walkRef // child is an optional field, used to hand off child requests to another file system
 }
 
 // IPFSBase is much like Base but extends it to hold IPFS specific metadata
@@ -56,4 +60,38 @@ func (ib *IPFSBase) Close() error {
 		ib.cancel()
 	}
 	return nil
+}
+
+type ipfsHandle struct {
+	file      files.File
+	directory *directoryStream
+}
+
+type directoryStream struct {
+	entryChan <-chan coreiface.DirEntry
+	cursor    uint64
+	eos       bool // have seen end of stream?
+}
+
+type walkRef interface {
+	p9.File
+	QID() p9.QID
+	Parent() walkRef
+	Child() walkRef
+}
+
+func (b Base) Self() walkRef {
+	return b
+}
+
+func (b Base) Parent() walkRef {
+	return b.parent
+}
+
+func (b Base) Child() walkRef {
+	return b.child
+}
+
+func (b Base) QID() p9.QID {
+	return b.Qid
 }

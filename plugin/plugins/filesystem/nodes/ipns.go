@@ -12,28 +12,29 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-// IPFS exposes the IPFS API over a p9.File interface
+// IPNS exposes the IPNS API over a p9.File interface
 // Walk does not expect a namespace, only its path argument
-// e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
-type IPFS struct {
+// e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipns", "Qm...", "subdir")`
+type IPNS struct {
 	IPFSBase
 	ipfsHandle
+	key coreiface.Key
 }
 
-func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
-	id := &IPFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
-		core, logging.Logger("IPFS"))}
+func IPNSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPNS {
+	id := &IPNS{IPFSBase: newIPFSBase(ctx, rootPath("/ipns"), p9.TypeDir,
+		core, logging.Logger("IPNS"))}
 	id.meta, id.metaMask = defaultRootAttr()
 	return id
 }
 
-func (id *IPFS) Attach() (p9.File, error) {
+func (id *IPNS) Attach() (p9.File, error) {
 	id.Logger.Debugf("ID Attach")
 	//TODO: check core connection here
 	return id, nil
 }
 
-func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
+func (id *IPNS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	id.Logger.Debugf("ID GetAttr")
 	id.Logger.Debugf("ID GetAttr path: %v", id.Path)
 
@@ -52,7 +53,7 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	return id.Qid, req, metaClone, nil
 }
 
-func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
+func (id *IPNS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	id.Logger.Debugf("ID Walk names %v", names)
 	id.Logger.Debugf("ID Walk myself: %s:%v", id.Path, id.Qid)
 
@@ -63,7 +64,9 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	qids := make([]p9.QID, 0, len(names))
 
-	walkedNode := &IPFS{} // operate on a copy
+	//TODO: [spec check] make sure we're not messing things up by doing this instead of mutating
+	// ^ Does internal library expect fid to mutate on success or does newfid clobber some external state anyway
+	walkedNode := &IPNS{} // operate on a copy
 	*walkedNode = *id
 
 	var err error
@@ -93,8 +96,8 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	return qids, walkedNode, err
 }
 
-func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	id.Logger.Debugf("ID Open %q", id.Path)
+func (id *IPNS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
+	id.Logger.Debugf("ID Open")
 
 	// set up  handle amenities
 	var handleContext context.Context
@@ -105,7 +108,6 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	if id.meta.Mode.IsDir() {
 		c, err := id.core.Unixfs().Ls(handleContext, id.Path)
 		if err != nil {
-			id.Logger.Errorf("hit\n%q\n%#v\n", id.Path, err)
 			cancel()
 			return id.Qid, 0, err
 		}
@@ -119,7 +121,6 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	// handle files
 	apiNode, err := id.core.Unixfs().Get(handleContext, id.Path)
 	if err != nil {
-		id.Logger.Errorf("hit\n%q\n%#v\n", id.Path, err)
 		cancel()
 		return id.Qid, 0, err
 	}
@@ -133,7 +134,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	return id.Qid, ipfsBlockSize, nil
 }
 
-func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
+func (id *IPNS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	id.Logger.Debugf("ID Readdir %d %d", offset, count)
 
 	if id.directory == nil {
@@ -194,7 +195,7 @@ out:
 	return ents, nil
 }
 
-func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
+func (id *IPNS) ReadAt(p []byte, offset uint64) (int, error) {
 	id.Logger.Debugf("ID ReadAt")
 
 	if id.file == nil {

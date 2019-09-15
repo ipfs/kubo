@@ -3,6 +3,7 @@ package fsnodes
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -240,7 +241,9 @@ func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, c
 	}
 }
 
-func boundCheck(offset uint64, length int) (shouldReturn bool, err error) {
+// boundCheck assures operation arguments are valid
+// returns true if the caller should return immediately with our values
+func boundCheck(offset uint64, length int) (bool, error) {
 	switch {
 	case offset < 0:
 		return true, fmt.Errorf("offset %d can't be negative", offset)
@@ -252,4 +255,79 @@ func boundCheck(offset uint64, length int) (shouldReturn bool, err error) {
 		// not at end of stream and okay to continue
 		return false, nil
 	}
+}
+
+// walker acts as a dispatcher for intermediate filesystems
+// sending path component requests to their appropriate system
+func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
+	// clone requests go right back to the caller
+	if shouldClone(names) {
+		return []p9.QID{ref.QID()}, ref, nil
+	}
+
+	var (
+		qids, subQids     []p9.QID
+		lastFile, curFile p9.File
+		err               error
+	)
+
+	var i int
+	for len(names) != 0 {
+		if names[0] == ".." { // climb to parent / leftwards requests
+			p := ref.Parent()
+			if p == nil {
+				return []p9.QID{ref.QID()}, ref, errors.New("parent not assigned")
+			}
+
+			subQids, curFile, err = p.Walk(names)
+		} else { // handle remainder / rightward requests
+			c := ref.Child()
+			if c == nil {
+				return []p9.QID{ref.QID()}, ref, errors.New("child not assigned")
+			}
+
+			subQids, curFile, err = c.Walk(names)
+		}
+
+		if err != nil {
+			return qids, lastFile, err
+		}
+
+		qids = append(qids, subQids...)
+		lastFile = curFile
+		names = names[1:]
+		i++
+	}
+
+	return qids, lastFile, nil
+}
+
+func getKeys(ctx context.Context, core coreiface.CoreAPI) ([]p9.Dirent, error) {
+	keys, err := core.Key().List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ents := make([]p9.Dirent, 0, len(keys))
+
+	var offset = 1
+	for _, key := range keys {
+		dirEnt := &p9.Dirent{
+			Name:   key.Name(),
+			Offset: uint64(offset),
+		}
+
+		if err = coreStat(ctx, dirEnt, core, key.Path()); err != nil {
+			//FIXME: bug in either the CoreAPI, http client, or somewhere else
+			//if err == coreiface.ErrResolveFailed {
+			//HACK:
+			if err.Error() == coreiface.ErrResolveFailed.Error() {
+				continue // skip unresolvable
+			}
+			return nil, err
+		}
+		ents = append(ents, *dirEnt)
+		offset++
+	}
+	return ents, nil
 }

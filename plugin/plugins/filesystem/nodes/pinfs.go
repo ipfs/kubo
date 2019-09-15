@@ -13,25 +13,31 @@ import (
 
 type PinFS struct {
 	IPFSBase
-	directory *directoryStorage
+	ents []p9.Dirent
 }
 
-type directoryStorage struct {
-	ents   []p9.Dirent
-	cursor uint64
-}
-
-//TODO: [review] check fields
 func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI) *PinFS {
 	pd := &PinFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
 		core, logging.Logger("PinFS"))}
 	pd.meta, pd.metaMask = defaultRootAttr()
+
 	return pd
 }
 
 func (pd *PinFS) Attach() (p9.File, error) {
 	pd.Logger.Debugf("PD Attach")
-	//TODO: check core connection here
+
+	var subSystem walkRef = IPFSAttacher(pd.Ctx, pd.core)
+	attacher, ok := subSystem.(p9.Attacher)
+	if !ok {
+		return nil, fmt.Errorf("subsystem %T is not a valid file system", subSystem)
+	}
+
+	if _, err := attacher.Attach(); err != nil {
+		return nil, err
+	}
+	pd.child = subSystem
+
 	return pd, nil
 }
 
@@ -45,17 +51,7 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	pd.Logger.Debugf("PD Walk names %v", names)
 	pd.Logger.Debugf("PD Walk myself: %v", pd.Qid)
 
-	if shouldClone(names) {
-		pd.Logger.Debugf("PD Walk cloned")
-		return []p9.QID{pd.Qid}, pd, nil
-	}
-
-	ipfsDir, err := IPFSAttacher(pd.Ctx, pd.core).Attach()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return ipfsDir.Walk(names)
+	return walker(pd, names)
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
@@ -72,9 +68,7 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	}
 
 	// 9P representation
-	pd.directory = &directoryStorage{
-		ents: make([]p9.Dirent, 0, len(pins)),
-	}
+	pd.ents = make([]p9.Dirent, 0, len(pins))
 
 	// actual conversion
 	for i, pin := range pins {
@@ -87,7 +81,7 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 			cancel()
 			return pd.Qid, 0, err
 		}
-		pd.directory.ents = append(pd.directory.ents, *dirEnt)
+		pd.ents = append(pd.ents, *dirEnt)
 	}
 
 	return pd.Qid, ipfsBlockSize, nil
@@ -96,16 +90,16 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	pd.Logger.Debugf("PD Readdir")
 
-	if pd.directory == nil {
+	if pd.ents == nil {
 		return nil, fmt.Errorf("directory %q is not open for reading", pd.Path.String())
 	}
 
-	shouldExit, err := boundCheck(offset, len(pd.directory.ents))
+	shouldExit, err := boundCheck(offset, len(pd.ents))
 	if shouldExit {
 		return nil, err
 	}
 
-	subSlice := pd.directory.ents[offset:]
+	subSlice := pd.ents[offset:]
 	if len(subSlice) > int(count) {
 		subSlice = subSlice[:count]
 	}

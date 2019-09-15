@@ -66,7 +66,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 		p9.Dirent
 	}{
 		{"ipfs", rootDirTemplate},
-		//{"ipns", rootDirTemplate},
+		{"ipns", rootDirTemplate},
 	} {
 		pathUnion.Dirent.Offset = uint64(i + 1)
 		pathUnion.Dirent.Name = pathUnion.string
@@ -81,6 +81,8 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 
 func (ri *RootIndex) Attach() (p9.File, error) {
 	ri.Logger.Debugf("RI Attach")
+
+	ri.parent = ri
 	return ri, nil
 }
 
@@ -100,16 +102,32 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return []p9.QID{ri.Qid}, ri, nil
 	}
 
+	var (
+		subSystem walkRef
+		err       error
+	)
+
 	switch names[0] {
 	case "ipfs":
-		pinDir, err := PinFSAttacher(ri.Ctx, ri.core).Attach()
-		if err != nil {
-			return nil, nil, err
-		}
-		return pinDir.Walk(names[1:])
+		subSystem = PinFSAttacher(ri.Ctx, ri.core)
+	case "ipns":
+		subSystem = KeyFSAttacher(ri.Ctx, ri.core)
 	default:
-		return nil, nil, fmt.Errorf("%q is not provided by us", names[0]) //TODO: Err vars
+		return nil, nil, fmt.Errorf("%q is not provided by us", names[0])
 	}
+
+	attacher, ok := subSystem.(p9.Attacher)
+	if !ok {
+		return nil, nil, fmt.Errorf("%q is not a valid file system", names[0])
+	}
+
+	if _, err = attacher.Attach(); err != nil {
+		return nil, nil, err
+	}
+
+	ri.child = subSystem
+
+	return walker(subSystem, names[1:])
 }
 
 func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
