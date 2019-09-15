@@ -298,7 +298,7 @@ func InitializeKeyspace(ctx context.Context, pub Publisher, pins pin.Pinner, key
 		return err
 	}
 
-	err = pins.Flush()
+	err = pins.Flush(ctx)
 	if err != nil {
 		return err
 	}

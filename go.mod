@@ -108,3 +108,5 @@ require (
 )
 
 go 1.13
+
+replace github.com/ipfs/go-ipfs-provider => github.com/MichaelMure/go-ipfs-provider v0.2.2-0.20191017161655-f2597dc7065a

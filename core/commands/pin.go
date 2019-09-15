@@ -446,7 +446,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreifac
 			return err
 		}
 
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(c.Cid(), mode)
+		pinType, pinned, err := n.Pinning.IsPinnedWithType(req.Context, c.Cid(), mode)
 		if err != nil {
 			return err
 		}
@@ -501,19 +501,31 @@ func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(val
 	}
 
 	if typeStr == "direct" || typeStr == "all" {
-		err := AddToResultKeys(n.Pinning.DirectKeys(), "direct")
+		dkeys, err := n.Pinning.DirectKeys(req.Context)
+		if err != nil {
+			return err
+		}
+		err = AddToResultKeys(dkeys, "direct")
 		if err != nil {
 			return err
 		}
 	}
 	if typeStr == "recursive" || typeStr == "all" {
-		err := AddToResultKeys(n.Pinning.RecursiveKeys(), "recursive")
+		rkeys, err := n.Pinning.RecursiveKeys(req.Context)
+		if err != nil {
+			return err
+		}
+		err = AddToResultKeys(rkeys, "recursive")
 		if err != nil {
 			return err
 		}
 	}
 	if typeStr == "indirect" || typeStr == "all" {
-		for _, k := range n.Pinning.RecursiveKeys() {
+		rkeys, err := n.Pinning.RecursiveKeys(req.Context)
+		if err != nil {
+			return err
+		}
+		for _, k := range rkeys {
 			var visitErr error
 			err := dag.Walk(req.Context, dag.GetLinksWithDAG(n.DAG), k, func(c cid.Cid) bool {
 				r := keys.Visit(c)
@@ -642,8 +654,10 @@ var verifyPinCmd = &cmds.Command{
 			explain:   !quiet,
 			includeOk: verbose,
 		}
-		out := pinVerify(req.Context, n, opts, enc)
-
+		out, err := pinVerify(req.Context, n, opts, enc)
+		if err != nil {
+			return err
+		}
 		return res.Emit(out)
 	},
 	Type: PinVerifyRes{},
@@ -685,13 +699,16 @@ type pinVerifyOpts struct {
 	includeOk bool
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) <-chan interface{} {
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan interface{}, error) {
 	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := dag.GetLinksWithDAG(DAG)
-	recPins := n.Pinning.RecursiveKeys()
+	recPins, err := n.Pinning.RecursiveKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
@@ -747,7 +764,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		}
 	}()
 
-	return out
+	return out, nil
 }
 
 // Format formats PinVerifyRes

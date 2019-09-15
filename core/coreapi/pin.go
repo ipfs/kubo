@@ -37,7 +37,7 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 		return err
 	}
 
-	return api.pinning.Flush()
+	return api.pinning.Flush(ctx)
 }
 
 func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]coreiface.Pin, error) {
@@ -75,7 +75,7 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 		return err
 	}
 
-	return api.pinning.Flush()
+	return api.pinning.Flush(ctx)
 }
 
 func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opts ...caopts.PinUpdateOption) error {
@@ -101,7 +101,7 @@ func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opt
 		return err
 	}
 
-	return api.pinning.Flush()
+	return api.pinning.Flush(ctx)
 }
 
 type pinStatus struct {
@@ -137,7 +137,10 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 	bs := api.blockstore
 	DAG := merkledag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := merkledag.GetLinksWithDAG(DAG)
-	recPins := api.pinning.RecursiveKeys()
+	recPins, err := api.pinning.RecursiveKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	var checkPin func(root cid.Cid) *pinStatus
 	checkPin = func(root cid.Cid) *pinStatus {
@@ -204,11 +207,19 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pi
 	}
 
 	if typeStr == "direct" || typeStr == "all" {
-		AddToResultKeys(api.pinning.DirectKeys(), "direct")
+		dkeys, err := api.pinning.DirectKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		AddToResultKeys(dkeys, "direct")
 	}
 	if typeStr == "indirect" || typeStr == "all" {
 		set := cid.NewSet()
-		for _, k := range api.pinning.RecursiveKeys() {
+		rkeys, err := api.pinning.RecursiveKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range rkeys {
 			err := merkledag.Walk(
 				ctx, merkledag.GetLinksWithDAG(api.dag), k,
 				set.Visit,
@@ -221,7 +232,11 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) ([]coreiface.Pi
 		AddToResultKeys(set.Keys(), "indirect")
 	}
 	if typeStr == "recursive" || typeStr == "all" {
-		AddToResultKeys(api.pinning.RecursiveKeys(), "recursive")
+		rkeys, err := api.pinning.RecursiveKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		AddToResultKeys(rkeys, "recursive")
 	}
 
 	out := make([]coreiface.Pin, 0, len(keys))

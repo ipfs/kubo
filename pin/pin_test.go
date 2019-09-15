@@ -31,7 +31,7 @@ func randNode() (*mdag.ProtoNode, cid.Cid) {
 }
 
 func assertPinned(t *testing.T, p Pinner, c cid.Cid, failmsg string) {
-	_, pinned, err := p.IsPinned(c)
+	_, pinned, err := p.IsPinned(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func assertPinned(t *testing.T, p Pinner, c cid.Cid, failmsg string) {
 }
 
 func assertUnpinned(t *testing.T, p Pinner, c cid.Cid, failmsg string) {
-	_, pinned, err := p.IsPinned(c)
+	_, pinned, err := p.IsPinned(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestPinnerBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = p.Flush()
+	err = p.Flush(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +327,7 @@ func TestFlush(t *testing.T) {
 	_, k := randNode()
 
 	p.PinWithMode(k, Recursive)
-	if err := p.Flush(); err != nil {
+	if err := p.Flush(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	assertPinned(t, p, k, "expected key to still be pinned")

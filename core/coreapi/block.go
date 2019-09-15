@@ -56,7 +56,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 
 	if settings.Pin {
 		api.pinning.PinWithMode(b.Cid(), pin.Recursive)
-		if err := api.pinning.Flush(); err != nil {
+		if err := api.pinning.Flush(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -91,7 +91,7 @@ func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRm
 	cids := []cid.Cid{rp.Cid()}
 	o := util.RmBlocksOpts{Force: settings.Force}
 
-	out, err := util.RmBlocks(api.blockstore, api.pinning, cids, o)
+	out, err := util.RmBlocks(ctx, api.blockstore, api.pinning, cids, o)
 	if err != nil {
 		return err
 	}
