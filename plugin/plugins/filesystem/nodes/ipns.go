@@ -21,9 +21,12 @@ type IPNS struct {
 	key coreiface.Key
 }
 
-func IPNSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPNS {
-	id := &IPNS{IPFSBase: newIPFSBase(ctx, rootPath("/ipns"), p9.TypeDir,
-		core, logging.Logger("IPNS"))}
+func IPNSAttacher(ctx context.Context, core coreiface.CoreAPI, key coreiface.Key) *IPNS {
+	id := &IPNS{
+		key: key,
+		IPFSBase: newIPFSBase(ctx, rootPath("/ipns"), p9.TypeDir,
+			core, logging.Logger("IPNS")),
+	}
 	id.meta, id.metaMask = defaultRootAttr()
 	return id
 }
@@ -68,6 +71,34 @@ func (id *IPNS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	// ^ Does internal library expect fid to mutate on success or does newfid clobber some external state anyway
 	walkedNode := &IPNS{} // operate on a copy
 	*walkedNode = *id
+
+	id.Logger.Errorf("self:\n%#v\nkey path:%q", id, id.key.Path())
+
+	// first child requests will take care to translate the key's string name into a valid global path
+	// this path will act as a subroot for further child requests
+	if id.Path.Namespace() == "" && id.key != nil {
+		//TODO [refactor]: repetition
+		var err error
+		if walkedNode.Path, err = id.core.ResolvePath(id.Ctx, id.key.Path()); err != nil {
+			return qids, nil, err
+		}
+
+		ipldNode, err := id.core.Dag().Get(id.Ctx, walkedNode.Path.Cid())
+		if err != nil {
+			return qids, nil, err
+		}
+
+		//TODO: this is too opague; we want core path => qid, dirent isn't necessary
+		dirEnt := &p9.Dirent{}
+		if err = ipldStat(dirEnt, ipldNode); err != nil {
+			return qids, nil, err
+		}
+
+		walkedNode.Qid = dirEnt.QID
+		//
+		qids = append(qids, walkedNode.Qid)
+		names = names[1:]
+	}
 
 	var err error
 	for _, name := range names {

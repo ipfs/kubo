@@ -64,7 +64,7 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	pins, err := pd.core.Pin().Ls(handleContext, coreoptions.Pin.Type.Recursive())
 	if err != nil {
 		cancel()
-		return pd.Qid, ipfsBlockSize, err
+		return pd.Qid, 0, err
 	}
 
 	// 9P representation
