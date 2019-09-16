@@ -28,14 +28,14 @@ func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
 }
 
 func (id *IPFS) Attach() (p9.File, error) {
-	id.Logger.Debugf("ID Attach")
+	id.Logger.Debugf("Attach")
 	//TODO: check core connection here
 	return id, nil
 }
 
 func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	id.Logger.Debugf("ID GetAttr")
-	id.Logger.Debugf("ID GetAttr path: %v", id.Path)
+	id.Logger.Debugf("GetAttr")
+	id.Logger.Debugf("GetAttr path: %v", id.Path)
 
 	if id.Path.Namespace() == nRoot { // metadata should have been initialized by attacher, don't consult CoreAPI
 		return id.Qid, id.metaMask, id.meta, nil
@@ -53,11 +53,11 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 }
 
 func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
-	id.Logger.Debugf("ID Walk names %v", names)
-	id.Logger.Debugf("ID Walk myself: %s:%v", id.Path, id.Qid)
+	id.Logger.Debugf("Walk names %v", names)
+	id.Logger.Debugf("Walk myself: %s:%v", id.Path, id.Qid)
 
 	if shouldClone(names) {
-		id.Logger.Debugf("ID Walk cloned")
+		id.Logger.Debugf("Walk cloned")
 		return []p9.QID{id.Qid}, id, nil
 	}
 
@@ -89,12 +89,12 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		qids = append(qids, walkedNode.Qid)
 	}
 
-	id.Logger.Debugf("ID Walk ret %v, %v", qids, walkedNode)
+	id.Logger.Debugf("Walk ret %v, %v", qids, walkedNode)
 	return qids, walkedNode, err
 }
 
 func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	id.Logger.Debugf("ID Open %q", id.Path)
+	id.Logger.Debugf("Open %q", id.Path)
 
 	// set up  handle amenities
 	var handleContext context.Context
@@ -134,7 +134,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 }
 
 func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
-	id.Logger.Debugf("ID Readdir %d %d", offset, count)
+	id.Logger.Debugf("Readdir %d %d", offset, count)
 
 	if id.directory == nil {
 		return nil, fmt.Errorf("directory %q is not open for reading", id.Path.String())
@@ -190,12 +190,12 @@ out:
 		}
 	}
 
-	id.Logger.Debugf("ID Readdir returning [%d]%v\n", len(ents), ents)
+	id.Logger.Debugf("Readdir returning [%d]%v\n", len(ents), ents)
 	return ents, nil
 }
 
 func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
-	id.Logger.Debugf("ID ReadAt")
+	id.Logger.Debugf("ReadAt")
 
 	if id.file == nil {
 		return -1, fmt.Errorf("file %q is not open for reading", id.Path.String())

@@ -271,7 +271,6 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 		err               error
 	)
 
-	var i int
 	for len(names) != 0 {
 		if names[0] == ".." { // climb to parent / leftwards requests
 			p := ref.Parent()
@@ -296,7 +295,6 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 		qids = append(qids, subQids...)
 		lastFile = curFile
 		names = names[1:]
-		i++
 	}
 
 	return qids, lastFile, nil
@@ -311,13 +309,11 @@ func getKeys(ctx context.Context, core coreiface.CoreAPI) ([]entPair, error) {
 	ents := make([]entPair, 0, len(keys))
 
 	var offset = 1
-	for i, key := range keys {
+	for _, key := range keys {
 		dirEnt := &p9.Dirent{
 			Name:   key.Name(),
 			Offset: uint64(offset),
 		}
-
-		fmt.Printf("[%d] %q:%q\n", i, key.Name(), key.Path())
 
 		if err = coreStat(ctx, dirEnt, core, key.Path()); err != nil {
 			//FIXME: bug in either the CoreAPI, http client, or somewhere else

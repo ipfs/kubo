@@ -80,25 +80,25 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 }
 
 func (ri *RootIndex) Attach() (p9.File, error) {
-	ri.Logger.Debugf("RI Attach")
+	ri.Logger.Debugf("Attach")
 
 	ri.parent = ri
 	return ri, nil
 }
 
 func (ri *RootIndex) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	ri.Logger.Debugf("RI GetAttr")
-	ri.Logger.Debugf("RI mask: %v", req)
+	ri.Logger.Debugf("GetAttr")
+	ri.Logger.Debugf("mask: %v", req)
 
 	return ri.Qid, ri.metaMask, ri.meta, nil
 }
 
 func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
-	ri.Logger.Debugf("RI Walk names %v", names)
-	ri.Logger.Debugf("RI Walk myself: %v", ri.Qid)
+	ri.Logger.Debugf("Walk names %v", names)
+	ri.Logger.Debugf("Walk myself: %v", ri.Qid)
 
 	if shouldClone(names) {
-		ri.Logger.Debugf("RI Walk cloned")
+		ri.Logger.Debugf("Walk cloned")
 		return []p9.QID{ri.Qid}, ri, nil
 	}
 
@@ -131,12 +131,12 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 }
 
 func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	ri.Logger.Debugf("RI Open")
+	ri.Logger.Debugf("Open")
 	return ri.Qid, 0, nil
 }
 
 func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
-	ri.Logger.Debugf("RI Readdir {%d}", count)
+	ri.Logger.Debugf("Readdir {%d}", count)
 
 	shouldExit, err := boundCheck(offset, len(ri.subsystems))
 	if shouldExit {
@@ -145,10 +145,10 @@ func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 
 	offsetIndex := ri.subsystems[offset:]
 	if len(offsetIndex) > int(count) {
-		ri.Logger.Debugf("RI Readdir returning [%d]%v\n", count, offsetIndex[:count])
+		ri.Logger.Debugf("Readdir returning [%d]%v\n", count, offsetIndex[:count])
 		return offsetIndex[:count], nil
 	}
 
-	ri.Logger.Debugf("RI Readdir returning [%d]%v\n", len(offsetIndex), offsetIndex)
+	ri.Logger.Debugf("Readdir returning [%d]%v\n", len(offsetIndex), offsetIndex)
 	return offsetIndex, nil
 }

@@ -32,14 +32,14 @@ func IPNSAttacher(ctx context.Context, core coreiface.CoreAPI, key coreiface.Key
 }
 
 func (id *IPNS) Attach() (p9.File, error) {
-	id.Logger.Debugf("ID Attach")
+	id.Logger.Debugf("Attach")
 	//TODO: check core connection here
 	return id, nil
 }
 
 func (id *IPNS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	id.Logger.Debugf("ID GetAttr")
-	id.Logger.Debugf("ID GetAttr path: %v", id.Path)
+	id.Logger.Debugf("GetAttr")
+	id.Logger.Debugf("GetAttr path: %v", id.Path)
 
 	if id.Path.Namespace() == nRoot { // metadata should have been initialized by attacher, don't consult CoreAPI
 		return id.Qid, id.metaMask, id.meta, nil
@@ -57,11 +57,11 @@ func (id *IPNS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 }
 
 func (id *IPNS) Walk(names []string) ([]p9.QID, p9.File, error) {
-	id.Logger.Debugf("ID Walk names %v", names)
-	id.Logger.Debugf("ID Walk myself: %s:%v", id.Path, id.Qid)
+	id.Logger.Debugf("Walk names %v", names)
+	id.Logger.Debugf("Walk myself: %s:%v", id.Path, id.Qid)
 
 	if shouldClone(names) {
-		id.Logger.Debugf("ID Walk cloned")
+		id.Logger.Debugf("Walk cloned")
 		return []p9.QID{id.Qid}, id, nil
 	}
 
@@ -71,8 +71,6 @@ func (id *IPNS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	// ^ Does internal library expect fid to mutate on success or does newfid clobber some external state anyway
 	walkedNode := &IPNS{} // operate on a copy
 	*walkedNode = *id
-
-	id.Logger.Errorf("self:\n%#v\nkey path:%q", id, id.key.Path())
 
 	// first child requests will take care to translate the key's string name into a valid global path
 	// this path will act as a subroot for further child requests
@@ -123,12 +121,12 @@ func (id *IPNS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		qids = append(qids, walkedNode.Qid)
 	}
 
-	id.Logger.Debugf("ID Walk ret %v, %v", qids, walkedNode)
+	id.Logger.Debugf("Walk ret %v, %v", qids, walkedNode)
 	return qids, walkedNode, err
 }
 
 func (id *IPNS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	id.Logger.Debugf("ID Open")
+	id.Logger.Debugf("Open")
 
 	// set up  handle amenities
 	var handleContext context.Context
@@ -166,7 +164,7 @@ func (id *IPNS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 }
 
 func (id *IPNS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
-	id.Logger.Debugf("ID Readdir %d %d", offset, count)
+	id.Logger.Debugf("Readdir %d %d", offset, count)
 
 	if id.directory == nil {
 		return nil, fmt.Errorf("directory %q is not open for reading", id.Path.String())
@@ -222,12 +220,12 @@ out:
 		}
 	}
 
-	id.Logger.Debugf("ID Readdir returning [%d]%v\n", len(ents), ents)
+	id.Logger.Debugf("Readdir returning [%d]%v\n", len(ents), ents)
 	return ents, nil
 }
 
 func (id *IPNS) ReadAt(p []byte, offset uint64) (int, error) {
-	id.Logger.Debugf("ID ReadAt")
+	id.Logger.Debugf("ReadAt")
 
 	if id.file == nil {
 		return -1, fmt.Errorf("file %q is not open for reading", id.Path.String())

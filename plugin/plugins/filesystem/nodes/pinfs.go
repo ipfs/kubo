@@ -25,7 +25,7 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI) *PinFS {
 }
 
 func (pd *PinFS) Attach() (p9.File, error) {
-	pd.Logger.Debugf("PD Attach")
+	pd.Logger.Debugf("Attach")
 
 	var subSystem walkRef = IPFSAttacher(pd.Ctx, pd.core)
 	attacher, ok := subSystem.(p9.Attacher)
@@ -42,20 +42,20 @@ func (pd *PinFS) Attach() (p9.File, error) {
 }
 
 func (pd *PinFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	pd.Logger.Debugf("PD GetAttr")
+	pd.Logger.Debugf("GetAttr")
 
 	return pd.Qid, pd.metaMask, pd.meta, nil
 }
 
 func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
-	pd.Logger.Debugf("PD Walk names %v", names)
-	pd.Logger.Debugf("PD Walk myself: %v", pd.Qid)
+	pd.Logger.Debugf("Walk names %v", names)
+	pd.Logger.Debugf("Walk myself: %v", pd.Qid)
 
 	return walker(pd, names)
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	pd.Logger.Debugf("PD Open")
+	pd.Logger.Debugf("Open")
 
 	handleContext, cancel := context.WithCancel(pd.Ctx)
 	pd.cancel = cancel
@@ -88,7 +88,7 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 }
 
 func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
-	pd.Logger.Debugf("PD Readdir")
+	pd.Logger.Debugf("Readdir")
 
 	if pd.ents == nil {
 		return nil, fmt.Errorf("directory %q is not open for reading", pd.Path.String())
@@ -104,6 +104,6 @@ func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		subSlice = subSlice[:count]
 	}
 
-	pd.Logger.Debugf("PD Readdir returning ents: %v", subSlice)
+	pd.Logger.Debugf("Readdir returning ents: %v", subSlice)
 	return subSlice, nil
 }

@@ -28,7 +28,7 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI) *KeyFS {
 }
 
 func (kd *KeyFS) Attach() (p9.File, error) {
-	kd.Logger.Debugf("KD Attach")
+	kd.Logger.Debugf("Attach")
 
 	var subSystem walkRef = IPFSAttacher(kd.Ctx, kd.core)
 	attacher, ok := subSystem.(p9.Attacher)
@@ -45,17 +45,17 @@ func (kd *KeyFS) Attach() (p9.File, error) {
 }
 
 func (kd *KeyFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	kd.Logger.Debugf("KD GetAttr")
+	kd.Logger.Debugf("GetAttr")
 
 	return kd.Qid, kd.metaMask, kd.meta, nil
 }
 
 func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {
-	kd.Logger.Debugf("KD Walk names %v", names)
-	kd.Logger.Debugf("KD Walk myself: %v", kd.Qid)
+	kd.Logger.Debugf("Walk names %v", names)
+	kd.Logger.Debugf("Walk myself: %v", kd.Qid)
 
 	if shouldClone(names) {
-		kd.Logger.Debugf("KD Walk cloned")
+		kd.Logger.Debugf("Walk cloned")
 		return []p9.QID{kd.Qid}, kd, nil
 	}
 
@@ -85,7 +85,7 @@ func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 }
 
 func (kd *KeyFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	kd.Logger.Debugf("KD Open")
+	kd.Logger.Debugf("Open")
 
 	handleContext, cancel := context.WithCancel(kd.Ctx)
 	kd.cancel = cancel
@@ -96,13 +96,11 @@ func (kd *KeyFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 		return kd.Qid, 0, err
 	}
 
-	kd.Logger.Errorf("key ents:%#v", kd.keyEnts)
-
 	return kd.Qid, ipfsBlockSize, nil
 }
 
 func (kd *KeyFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
-	kd.Logger.Debugf("KD Readdir")
+	kd.Logger.Debugf("Readdir")
 
 	if kd.keyEnts == nil {
 		return nil, fmt.Errorf("directory %q is not open for reading", kd.Path.String())
@@ -123,6 +121,6 @@ func (kd *KeyFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		nineEnts = append(nineEnts, pair.ent)
 	}
 
-	kd.Logger.Debugf("KD Readdir returning ents: %v", nineEnts)
+	kd.Logger.Debugf("Readdir returning ents: %v", nineEnts)
 	return nineEnts, nil
 }
