@@ -66,7 +66,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 		p9.Dirent
 	}{
 		{"ipfs", rootDirTemplate},
-		{"ipns", rootDirTemplate},
+		//{"ipns", rootDirTemplate},
 	} {
 		pathUnion.Dirent.Offset = uint64(i + 1)
 		pathUnion.Dirent.Name = pathUnion.string

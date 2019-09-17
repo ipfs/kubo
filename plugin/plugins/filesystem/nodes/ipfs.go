@@ -63,7 +63,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	qids := make([]p9.QID, 0, len(names))
 
-	walkedNode := &IPFS{} // operate on a copy
+	walkedNode := &IPFS{} // [walk(5)] id represents fid, walkedNode represents newfid
 	*walkedNode = *id
 
 	var err error

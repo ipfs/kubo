@@ -3,7 +3,6 @@ package fsnodes
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -257,47 +256,58 @@ func boundCheck(offset uint64, length int) (bool, error) {
 	}
 }
 
-// walker acts as a dispatcher for intermediate filesystems
-// sending path component requests to their appropriate system
+// walker acts as a dispatcher for intermediate file systems
+// sending individual path component requests to their appropriate target system
+// regardless of (file system request) origin
 func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
+	l := logging.Logger("walker")
+	l.Errorf("req: %v\n%v\n", ref, names)
+
 	// clone requests go right back to the caller
 	if shouldClone(names) {
 		return []p9.QID{ref.QID()}, ref, nil
 	}
 
 	var (
-		qids, subQids     []p9.QID
-		lastFile, curFile p9.File
-		err               error
+		nextRef       walkRef
+		qids, subQids []p9.QID
+		curFile       p9.File
+		err           error
 	)
 
+	var i int
 	for len(names) != 0 {
+		l.Errorf("[%d] loop: %v\n%v\n", i, ref, names)
+
+		//prepare to step into next component
 		if names[0] == ".." { // climb to parent / leftwards requests
-			p := ref.Parent()
-			if p == nil {
-				return []p9.QID{ref.QID()}, ref, errors.New("parent not assigned")
-			}
-
-			subQids, curFile, err = p.Walk(names)
+			nextRef = ref.Parent()
 		} else { // handle remainder / rightward requests
-			c := ref.Child()
-			if c == nil {
-				return []p9.QID{ref.QID()}, ref, errors.New("child not assigned")
-			}
-
-			subQids, curFile, err = c.Walk(names)
+			nextRef = ref.Child()
+		}
+		if nextRef == nil {
+			return []p9.QID{ref.QID()}, nil, fmt.Errorf("system for target %q is not assigned", names[0])
 		}
 
-		if err != nil {
-			return qids, lastFile, err
+		// attempt the step
+		if subQids, curFile, err = nextRef.Walk(names); err != nil {
+			return qids, nil, err
 		}
 
+		// we walked forward, prepare for next step
 		qids = append(qids, subQids...)
-		lastFile = curFile
 		names = names[1:]
-	}
+		ref = nextRef
 
-	return qids, lastFile, nil
+		if len(names) != 0 {
+			curFile.Close() // we're not referencing this anymore
+		} // leave the last reference alive, for the caller to close
+	}
+	i++
+
+	l.Errorf("walker ret: %v\n%v\n", qids, curFile)
+
+	return qids, curFile, nil
 }
 
 func getKeys(ctx context.Context, core coreiface.CoreAPI) ([]entPair, error) {
