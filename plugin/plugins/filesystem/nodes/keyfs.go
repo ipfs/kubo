@@ -88,7 +88,7 @@ func (kd *KeyFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	kd.Logger.Debugf("Open")
 
 	handleContext, cancel := context.WithCancel(kd.Ctx)
-	kd.cancel = cancel
+	kd.operationsCancel = cancel
 
 	var err error
 	if kd.keyEnts, err = getKeys(handleContext, kd.core); err != nil {

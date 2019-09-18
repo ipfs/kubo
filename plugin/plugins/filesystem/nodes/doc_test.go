@@ -1,14 +1,9 @@
 package fsnodes
 
-import (
-	"strings"
-
-	"github.com/djdv/p9/p9"
-)
-
 //TODO: compiler legal examples so Go tools don't get mad; needs client wrappers to look nice
 // `Output:` comments too
 
+/*
 func ExampleRootIndex() {
 	root, err := fsnodes.RootAttacher(ctx, coreAPI).Attach()
 	_, file, err := root.Walk(strings.Split("ipfs/Qm.../subdir/file", "/"))
@@ -31,3 +26,4 @@ func ExamplePinFS() {
 	_, _, err := dir.Open(p9.ReadOnly)
 	entries, err := dirClone.Readdir(offset, entryReturnCount)
 }
+*/

@@ -100,11 +100,12 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 	fs.ctx, fs.cancel = context.WithCancel(context.Background())
 	fs.errorChan = make(chan error, 1)
 
-	var err error
-	if fs.listener, err = manet.Listen(fs.addr); err != nil {
+	listener, err := manet.Listen(fs.addr)
+	if err != nil {
 		logger.Errorf("9P listen error: %s\n", err)
 		return err
 	}
+	fs.listener = listener
 
 	// construct and run the 9P resource server
 	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core))

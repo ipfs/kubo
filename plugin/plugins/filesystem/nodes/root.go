@@ -3,6 +3,7 @@ package fsnodes
 import (
 	"context"
 	"fmt"
+	"syscall"
 
 	"github.com/djdv/p9/p9"
 	cid "github.com/ipfs/go-cid"
@@ -113,7 +114,8 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	case "ipns":
 		subSystem = KeyFSAttacher(ri.Ctx, ri.core)
 	default:
-		return nil, nil, fmt.Errorf("%q is not provided by us", names[0])
+		ri.Logger.Errorf("%q is not provided by us", names[0])
+		return nil, nil, syscall.ENOENT //TODO: migrate to platform independant value
 	}
 
 	attacher, ok := subSystem.(p9.Attacher)
@@ -121,7 +123,13 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return nil, nil, fmt.Errorf("%q is not a valid file system", names[0])
 	}
 
-	if _, err = attacher.Attach(); err != nil {
+	// poke the filesystem to make sure it's alive, but don't do anything with it
+	tempReference, err := attacher.Attach()
+	if err != nil {
+		return nil, nil, err
+	}
+	//[p9-lib] "Close must be called even when Open has not been called."
+	if err = tempReference.Close(); err != nil {
 		return nil, nil, err
 	}
 

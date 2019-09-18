@@ -58,7 +58,7 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	pd.Logger.Debugf("Open")
 
 	handleContext, cancel := context.WithCancel(pd.Ctx)
-	pd.cancel = cancel
+	pd.operationsCancel = cancel
 
 	// IPFS core representation
 	pins, err := pd.core.Pin().Ls(handleContext, coreoptions.Pin.Type.Recursive())

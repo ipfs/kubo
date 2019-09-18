@@ -32,7 +32,7 @@ type Base struct {
 	meta     p9.Attr
 	metaMask p9.AttrMask
 
-	// The base context should be derived from a long running context (like Background)
+	// The base context should be valid for the lifetime of the file system
 	// and used to derive call specific contexts from
 	Ctx    context.Context
 	Logger logging.EventLogger
@@ -52,12 +52,18 @@ type IPFSBase struct {
 	// use it with the CoreAPI for something
 	// and cancel it in another operation (like Close)
 	// that pointer should be stored here between calls
-	cancel context.CancelFunc
+	operationsCancel context.CancelFunc
 }
 
 func (ib *IPFSBase) Close() error {
-	if ib.cancel != nil {
-		ib.cancel()
+	if ib.operationsCancel != nil {
+		ib.operationsCancel()
+	}
+	if ib.parent != nil {
+		ib.parent.Close()
+	}
+	if ib.child != nil {
+		ib.child.Close()
 	}
 	return nil
 }
@@ -71,6 +77,7 @@ type directoryStream struct {
 	entryChan <-chan coreiface.DirEntry
 	cursor    uint64
 	eos       bool // have seen end of stream?
+	err       error
 }
 
 type walkRef interface {

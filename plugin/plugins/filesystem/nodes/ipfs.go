@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/djdv/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
@@ -61,36 +62,42 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return []p9.QID{id.Qid}, id, nil
 	}
 
-	qids := make([]p9.QID, 0, len(names))
+	var (
+		qids   = make([]p9.QID, 0, len(names))
+		newFid = &IPFS{IPFSBase: newIPFSBase(id.Ctx, id.Path, 0, id.core, id.Logger)}
+		err    error
+	)
 
-	walkedNode := &IPFS{} // [walk(5)] id represents fid, walkedNode represents newfid
-	*walkedNode = *id
-
-	var err error
 	for _, name := range names {
-		//TODO: timerctx; don't want to hang forever
-		if walkedNode.Path, err = id.core.ResolvePath(id.Ctx, corepath.Join(walkedNode.Path, name)); err != nil {
+		callCtx, cancel := context.WithTimeout(id.Ctx, 30*time.Second)
+		defer cancel()
+
+		if newFid.Path, err = id.core.ResolvePath(callCtx, corepath.Join(newFid.Path, name)); err != nil {
+			cancel()
+			//TODO: switch off error, return appropriate errno (likely ENOENT)
 			return qids, nil, err
 		}
 
-		ipldNode, err := id.core.Dag().Get(id.Ctx, walkedNode.Path.Cid())
+		ipldNode, err := id.core.Dag().Get(callCtx, newFid.Path.Cid())
 		if err != nil {
+			cancel()
 			return qids, nil, err
 		}
 
-		//TODO: this is too opague; we want core path => qid, dirent isn't necessary
+		//TODO: this is too opaque; we want core path => qid, Dirent isn't /really/ necessary
 		dirEnt := &p9.Dirent{}
 		if err = ipldStat(dirEnt, ipldNode); err != nil {
+			cancel()
 			return qids, nil, err
 		}
 
-		walkedNode.Qid = dirEnt.QID
+		newFid.Qid = dirEnt.QID
 		//
-		qids = append(qids, walkedNode.Qid)
+		qids = append(qids, newFid.Qid)
 	}
 
-	id.Logger.Debugf("Walk ret %v, %v", qids, walkedNode)
-	return qids, walkedNode, err
+	id.Logger.Debugf("Walk ret %v, %v", qids, newFid)
+	return qids, newFid, err
 }
 
 func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
@@ -98,15 +105,13 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 
 	// set up  handle amenities
 	var handleContext context.Context
-	handleContext, cancel := context.WithCancel(id.Ctx)
-	id.cancel = cancel
+	handleContext, id.operationsCancel = context.WithCancel(id.Ctx)
 
 	// handle directories
 	if id.meta.Mode.IsDir() {
 		c, err := id.core.Unixfs().Ls(handleContext, id.Path)
 		if err != nil {
-			id.Logger.Errorf("hit\n%q\n%#v\n", id.Path, err)
-			cancel()
+			id.operationsCancel()
 			return id.Qid, 0, err
 		}
 
@@ -119,16 +124,16 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	// handle files
 	apiNode, err := id.core.Unixfs().Get(handleContext, id.Path)
 	if err != nil {
-		id.Logger.Errorf("hit\n%q\n%#v\n", id.Path, err)
-		cancel()
+		id.operationsCancel()
 		return id.Qid, 0, err
 	}
 
-	var ok bool
-	if id.file, ok = apiNode.(files.File); !ok {
-		cancel()
+	fileNode, ok := apiNode.(files.File)
+	if !ok {
+		id.operationsCancel()
 		return id.Qid, 0, fmt.Errorf("%q does not appear to be a file: %T", id.Path.String(), apiNode)
 	}
+	id.file = fileNode
 
 	return id.Qid, ipfsBlockSize, nil
 }
@@ -140,18 +145,14 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, fmt.Errorf("directory %q is not open for reading", id.Path.String())
 	}
 
-	if offset < 0 {
-		return nil, fmt.Errorf("offset %d can't be negative", offset)
+	if id.directory.err != nil { // previous request must have failed
+		return nil, id.directory.err
 	}
 
 	if id.directory.eos {
 		if offset == id.directory.cursor-1 {
-			return nil, nil // valid end of stream request
+			return nil, nil // this is the only exception to offset being behind the cursor
 		}
-	}
-
-	if id.directory.eos && offset == id.directory.cursor-1 {
-		return nil, nil // valid end of stream request
 	}
 
 	if offset < id.directory.cursor {
@@ -159,23 +160,24 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	}
 
 	ents := make([]p9.Dirent, 0)
-out:
+
 	for len(ents) < int(count) {
 		select {
 		case entry, open := <-id.directory.entryChan:
 			if !open {
+				id.operationsCancel()
 				id.directory.eos = true
-				break out
+				return ents, nil
 			}
 			if entry.Err != nil {
-				id.directory = nil
+				id.directory.err = entry.Err
 				return nil, entry.Err
 			}
 
 			if offset <= id.directory.cursor {
 				nineEnt, err := coreEntTo9Ent(entry)
 				if err != nil {
-					id.directory = nil
+					id.directory.err = err
 					return nil, err
 				}
 				nineEnt.Offset = id.directory.cursor
@@ -185,8 +187,8 @@ out:
 			id.directory.cursor++
 
 		case <-id.Ctx.Done():
-			id.directory = nil
-			return ents, id.Ctx.Err()
+			id.directory.err = id.Ctx.Err()
+			return ents, id.directory.err
 		}
 	}
 
