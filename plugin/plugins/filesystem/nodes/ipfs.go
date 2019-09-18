@@ -8,6 +8,7 @@ import (
 
 	"github.com/djdv/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
+	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -30,27 +31,14 @@ func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
 
 func (id *IPFS) Attach() (p9.File, error) {
 	id.Logger.Debugf("Attach")
-	//TODO: check core connection here
 	return id, nil
 }
 
 func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	id.Logger.Debugf("GetAttr")
 	id.Logger.Debugf("GetAttr path: %v", id.Path)
 
-	if id.Path.Namespace() == nRoot { // metadata should have been initialized by attacher, don't consult CoreAPI
-		return id.Qid, id.metaMask, id.meta, nil
-	}
-
-	if err := coreGetAttr(id.Ctx, &id.meta, req, id.core, id.Path); err != nil {
-		return p9.QID{}, p9.AttrMask{}, p9.Attr{}, err
-	}
-	id.Qid.Type = id.meta.Mode.QIDType()
-
-	metaClone := id.meta
-	metaClone.Filter(req)
-
-	return id.Qid, req, metaClone, nil
+	// For IPFS, we set this up front in Walk
+	return id.Qid, id.metaMask, id.meta, nil
 }
 
 func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
@@ -63,9 +51,15 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	}
 
 	var (
+		// returned
 		qids   = make([]p9.QID, 0, len(names))
 		newFid = &IPFS{IPFSBase: newIPFSBase(id.Ctx, id.Path, 0, id.core, id.Logger)}
-		err    error
+		// temporary
+		attr        = &p9.Attr{}
+		requestType = p9.AttrMask{Mode: true}
+		err         error
+		// last-set value is used
+		ipldNode ipld.Node
 	)
 
 	for _, name := range names {
@@ -78,23 +72,31 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 			return qids, nil, err
 		}
 
-		ipldNode, err := id.core.Dag().Get(callCtx, newFid.Path.Cid())
+		ipldNode, err = id.core.Dag().Get(callCtx, newFid.Path.Cid())
 		if err != nil {
 			cancel()
 			return qids, nil, err
 		}
 
-		//TODO: this is too opaque; we want core path => qid, Dirent isn't /really/ necessary
-		dirEnt := &p9.Dirent{}
-		if err = ipldStat(dirEnt, ipldNode); err != nil {
+		err, _ := ipldStat(callCtx, attr, ipldNode, requestType)
+		if err != nil {
 			cancel()
 			return qids, nil, err
 		}
 
-		newFid.Qid = dirEnt.QID
-		//
+		newFid.Qid.Type = attr.Mode.QIDType()
+		newFid.Qid.Path = cidToQPath(ipldNode.Cid())
 		qids = append(qids, newFid.Qid)
 	}
+
+	// stat up front for our returned file
+	err, filled := ipldStat(id.Ctx, &newFid.meta, ipldNode, p9.AttrMaskAll)
+	if err != nil {
+		return qids, nil, err
+	}
+	newFid.metaMask = filled
+	newFid.meta.Mode |= IRXA
+	newFid.meta.RDev, id.metaMask.RDev = dIPFS, true
 
 	id.Logger.Debugf("Walk ret %v, %v", qids, newFid)
 	return qids, newFid, err
@@ -108,7 +110,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	handleContext, id.operationsCancel = context.WithCancel(id.Ctx)
 
 	// handle directories
-	if id.meta.Mode.IsDir() {
+	if id.meta.Mode.IsDir() { //FIXME: meta is not being set anywhere
 		c, err := id.core.Unixfs().Ls(handleContext, id.Path)
 		if err != nil {
 			id.operationsCancel()

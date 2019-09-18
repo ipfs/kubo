@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	gopath "path"
 	"time"
 
 	"github.com/djdv/p9/p9"
@@ -52,76 +53,34 @@ func shouldClone(names []string) bool {
 	}
 }
 
-//TODO: rename this and/or extend
-// it only does some of the stat and not what people probably expect
-func coreStat(ctx context.Context, dirEnt *p9.Dirent, core coreiface.CoreAPI, path corepath.Path) error {
-	if ipldNode, err := core.ResolveNode(ctx, path); err != nil {
-		return err
-	} else {
-		return ipldStat(dirEnt, ipldNode)
-	}
-}
-
-func coreGetAttr(ctx context.Context, attr *p9.Attr, attrMask p9.AttrMask, core coreiface.CoreAPI, path corepath.Path) (err error) {
-	ipldNode, err := core.ResolveNode(ctx, path)
+func ipldStat(ctx context.Context, attr *p9.Attr, node ipld.Node, mask p9.AttrMask) (error, p9.AttrMask) {
+	var filledAttrs p9.AttrMask
+	ufsNode, err := unixfs.ExtractFSNode(node)
 	if err != nil {
-		return err
-	}
-	ufsNode, err := unixfs.ExtractFSNode(ipldNode)
-	if err != nil {
-		return err
+		return err, filledAttrs
 	}
 
-	if attrMask.Mode {
-		attr.Mode = IRXA //TODO: this should probably be the callers responsability; just document that permissions should be set afterwards or something
+	if mask.Mode {
 		tBits, err := unixfsTypeTo9Type(ufsNode.Type())
 		if err != nil {
-			return err
+			return err, filledAttrs
 		}
 		attr.Mode |= tBits
+		filledAttrs.Mode = true
 	}
 
-	if attrMask.Blocks {
+	if mask.Blocks {
 		//TODO: when/if UFS supports this metadata field, use it instead
-		attr.BlockSize = ipfsBlockSize
+		attr.BlockSize, filledAttrs.Blocks = ipfsBlockSize, true
 	}
 
-	if attrMask.Size {
-		attr.Size, attrMask.Size = ufsNode.FileSize(), true
+	if mask.Size {
+		attr.Size, filledAttrs.Size = ufsNode.FileSize(), true
 	}
 
-	if attrMask.RDev {
-		switch path.Namespace() {
-		case "ipfs":
-			attr.RDev, attrMask.RDev = dIPFS, true
-			//case "ipns":
-			//attr.RDev, attrMask.RDev = dIPNS, true
-			//etc.
-		}
-	}
+	//TODO [eventually]: handle time metadata in new UFS format standard
 
-	//TODO [eventually]: switch off here for handling of time metadata in new UFS format standard
-
-	return nil
-}
-
-func ipldStat(dirEnt *p9.Dirent, node ipld.Node) error {
-	ufsNode, err := unixfs.ExtractFSNode(node)
-
-	if err != nil {
-		return err
-	}
-
-	nineType, err := unixfsTypeTo9Type(ufsNode.Type())
-	if err != nil {
-		return err
-	}
-
-	dirEnt.Type = nineType.QIDType()
-	dirEnt.QID.Type = nineType.QIDType()
-	dirEnt.QID.Path = cidToQPath(node.Cid())
-
-	return nil
+	return nil, filledAttrs
 }
 
 func cidToQPath(cid cid.Cid) uint64 {
@@ -318,25 +277,38 @@ func getKeys(ctx context.Context, core coreiface.CoreAPI) ([]entPair, error) {
 
 	ents := make([]entPair, 0, len(keys))
 
-	var offset = 1
-	for _, key := range keys {
-		dirEnt := &p9.Dirent{
-			Name:   key.Name(),
-			Offset: uint64(offset),
-		}
+	// temporary conversion storage
+	attr := &p9.Attr{}
+	requestType := p9.AttrMask{Mode: true}
 
-		if err = coreStat(ctx, dirEnt, core, key.Path()); err != nil {
+	var offset uint64 = 1
+	for _, key := range keys {
+		//
+		ipldNode, err := core.ResolveNode(ctx, key.Path())
+		if err != nil {
 			//FIXME: bug in either the CoreAPI, http client, or somewhere else
 			//if err == coreiface.ErrResolveFailed {
 			//HACK:
 			if err.Error() == coreiface.ErrResolveFailed.Error() {
-				continue // skip unresolvable
+				continue // skip unresolvable keys (typical when a key exists but hasn't been published to
 			}
 			return nil, err
 		}
+		if err, _ = ipldStat(ctx, attr, ipldNode, requestType); err != nil {
+			return nil, err
+		}
 
-		pair := entPair{ent: *dirEnt, key: key}
-		ents = append(ents, pair)
+		ents = append(ents, entPair{
+			ent: p9.Dirent{
+				Name:   gopath.Base(key.Path().String()),
+				Offset: offset,
+				QID: p9.QID{
+					Type: attr.Mode.QIDType(),
+					Path: cidToQPath(ipldNode.Cid()),
+				},
+			},
+			key: key,
+		})
 		offset++
 	}
 	return ents, nil

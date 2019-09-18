@@ -70,18 +70,30 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	// 9P representation
 	pd.ents = make([]p9.Dirent, 0, len(pins))
 
+	// temporary conversion storage
+	attr := &p9.Attr{}
+	requestType := p9.AttrMask{Mode: true}
+
 	// actual conversion
 	for i, pin := range pins {
-		dirEnt := &p9.Dirent{
-			Name:   gopath.Base(pin.Path().String()),
-			Offset: uint64(i + 1),
-		}
-
-		if err = coreStat(handleContext, dirEnt, pd.core, pin.Path()); err != nil {
+		ipldNode, err := pd.core.ResolveNode(handleContext, pin.Path())
+		if err != nil {
 			pd.operationsCancel()
 			return pd.Qid, 0, err
 		}
-		pd.ents = append(pd.ents, *dirEnt)
+		if err, _ = ipldStat(handleContext, attr, ipldNode, requestType); err != nil {
+			pd.operationsCancel()
+			return pd.Qid, 0, err
+		}
+
+		pd.ents = append(pd.ents, p9.Dirent{
+			Name:   gopath.Base(pin.Path().String()),
+			Offset: uint64(i + 1),
+			QID: p9.QID{
+				Type: attr.Mode.QIDType(),
+				Path: cidToQPath(ipldNode.Cid()),
+			},
+		})
 	}
 
 	return pd.Qid, ipfsBlockSize, nil
