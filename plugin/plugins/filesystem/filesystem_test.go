@@ -61,7 +61,7 @@ func testRootFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 	}
 
 	//TODO: currently magic. As subsystems are implemented, rework this part of the test + lib to contain some list
-	if len(ents) != 2 || ents[0].Name != "ipfs" || ents[1].Name != "ipns" {
+	if len(ents) != 1 || ents[0].Name != "ipfs" {
 		t.Fatalf("Failed, root has bad entries:: %v\n", ents)
 	}
 

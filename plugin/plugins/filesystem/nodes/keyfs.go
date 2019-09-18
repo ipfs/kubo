@@ -87,12 +87,12 @@ func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 func (kd *KeyFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	kd.Logger.Debugf("Open")
 
-	handleContext, cancel := context.WithCancel(kd.Ctx)
-	kd.operationsCancel = cancel
+	var handleContext context.Context
+	handleContext, kd.operationsCancel = context.WithCancel(kd.Ctx)
 
 	var err error
 	if kd.keyEnts, err = getKeys(handleContext, kd.core); err != nil {
-		cancel()
+		kd.operationsCancel()
 		return kd.Qid, 0, err
 	}
 
