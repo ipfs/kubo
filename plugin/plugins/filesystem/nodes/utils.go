@@ -203,8 +203,6 @@ func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, c
 // returns true if the caller should return immediately with our values
 func boundCheck(offset uint64, length int) (bool, error) {
 	switch {
-	case offset < 0:
-		return true, fmt.Errorf("offset %d can't be negative", offset)
 	case offset == uint64(length):
 		return true, nil // EOS
 	case offset > uint64(length):
@@ -234,10 +232,7 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 		err           error
 	)
 
-	var i int
 	for len(names) != 0 {
-		l.Errorf("[%d] loop: %v\n%v\n", i, ref, names)
-
 		//prepare to step into next component
 		if names[0] == ".." { // climb to parent / leftwards requests
 			nextRef = ref.Parent()
@@ -262,7 +257,6 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 			curFile.Close() // we're not referencing this anymore
 		} // leave the last reference alive, for the caller to close
 	}
-	i++
 
 	l.Errorf("walker ret: %v\n%v\n", qids, curFile)
 
