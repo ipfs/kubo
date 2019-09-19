@@ -3,7 +3,6 @@ package filesystem
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -60,17 +59,15 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	}
 
 	cfg := &Config{}
-	// config not being set is okay and will load defalts
-	// config being set with malformed data is not okay and will instruct the daemon to halt-and-catch-fire
-	rawConf, ok := (env.Config).(json.RawMessage)
-	if ok {
-		if err := json.Unmarshal(rawConf, cfg); err != nil {
+	if env.Config != nil {
+		byteRep, err := json.Marshal(env.Config)
+		if err != nil {
+			return err
+		}
+		if err = json.Unmarshal(byteRep, cfg); err != nil {
 			return err
 		}
 	} else {
-		if env.Config != nil {
-			return fmt.Errorf("plugin config does not appear to be correctly formatted: %#v", env.Config)
-		}
 		cfg = defaultConfig(env.Repo)
 	}
 
