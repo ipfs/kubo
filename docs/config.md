@@ -362,7 +362,12 @@ bandwidth metrics. Disabling bandwidth metrics can lead to a slight performance
 improvement, as well as a reduction in memory usage.
 
 - `DisableNatPortMap`
-Disable NAT discovery.
+Disable automatic NAT port forwarding.
+
+When not disabled (default), go-ipfs asks NAT devices (e.g., routers), to open
+up an external port and forward it to the port go-ipfs is running on. When this
+works (i.e., when your router supports NAT port forwarding), it makes the local
+go-ipfs node accessible from the public internet.
 
 - `DisableRelay`
 Disables the p2p-circuit relay transport.
