@@ -19,7 +19,6 @@ import (
 // e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
 type IPFS struct {
 	IPFSBase
-	ipfsHandle
 }
 
 func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
@@ -66,11 +65,15 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		callCtx, cancel := context.WithTimeout(id.Ctx, 30*time.Second)
 		defer cancel()
 
-		if newFid.Path, err = id.core.ResolvePath(callCtx, corepath.Join(newFid.Path, name)); err != nil {
+		corePath, err := id.core.ResolvePath(callCtx, corepath.Join(newFid.Path, name))
+		if err != nil {
 			cancel()
-			//TODO: switch off error, return appropriate errno (likely ENOENT)
+			//TODO: switch off error, return appropriate errno (ENOENT is going to be common here)
+			// ref: https://github.com/hugelgupf/p9/pull/12#discussion_r324991695
 			return qids, nil, err
 		}
+
+		newFid.Path = corePath
 
 		ipldNode, err = id.core.Dag().Get(callCtx, newFid.Path.Cid())
 		if err != nil {
@@ -78,7 +81,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 			return qids, nil, err
 		}
 
-		err, _ := ipldStat(callCtx, attr, ipldNode, requestType)
+		err, _ = ipldStat(callCtx, attr, ipldNode, requestType)
 		if err != nil {
 			cancel()
 			return qids, nil, err

@@ -12,11 +12,8 @@ import (
 )
 
 const ( //device - attempts to comply with standard multicodec table
-	dMemory = 0x2f
+	dMemory = 0x2f // generic "path"
 	dIPFS   = 0xe4
-	dIPNS   = 0xe5
-	//TODO: decide what MFS/Files API should be; IPLD?
-	//dFiles = 0xe2
 )
 
 var _ p9.File = (*Base)(nil)
@@ -53,24 +50,40 @@ type IPFSBase struct {
 	// and cancel it in another operation (like Close)
 	// that pointer should be stored here between calls
 	operationsCancel context.CancelFunc
+
+	// operation handle storage
+	file      files.File
+	directory *directoryStream
 }
 
-func (ib *IPFSBase) Close() error {
-	if ib.operationsCancel != nil {
-		ib.operationsCancel()
+func (b Base) Close() error {
+	if b.child != nil {
+		return b.child.Close()
 	}
-	if ib.parent != nil {
-		ib.parent.Close()
-	}
-	if ib.child != nil {
-		ib.child.Close()
-	}
+
 	return nil
 }
 
-type ipfsHandle struct {
-	file      files.File
-	directory *directoryStream
+func (ib *IPFSBase) Close() error {
+	var lastErr error
+
+	if err := ib.Base.Close(); err != nil {
+		ib.Logger.Errorf("base close: %s", err)
+		lastErr = err
+	}
+
+	if ib.file != nil {
+		if err := ib.file.Close(); err != nil {
+			ib.Logger.Errorf("files.File close: %s", err)
+			lastErr = err
+		}
+	}
+
+	if ib.operationsCancel != nil {
+		ib.operationsCancel()
+	}
+
+	return lastErr
 }
 
 type directoryStream struct {

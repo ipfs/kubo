@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
-	gopath "path"
 	"time"
 
 	"github.com/djdv/p9/p9"
@@ -261,49 +260,4 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 	l.Errorf("walker ret: %v\n%v\n", qids, curFile)
 
 	return qids, curFile, nil
-}
-
-func getKeys(ctx context.Context, core coreiface.CoreAPI) ([]entPair, error) {
-	keys, err := core.Key().List(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	ents := make([]entPair, 0, len(keys))
-
-	// temporary conversion storage
-	attr := &p9.Attr{}
-	requestType := p9.AttrMask{Mode: true}
-
-	var offset uint64 = 1
-	for _, key := range keys {
-		//
-		ipldNode, err := core.ResolveNode(ctx, key.Path())
-		if err != nil {
-			//FIXME: bug in either the CoreAPI, http client, or somewhere else
-			//if err == coreiface.ErrResolveFailed {
-			//HACK:
-			if err.Error() == coreiface.ErrResolveFailed.Error() {
-				continue // skip unresolvable keys (typical when a key exists but hasn't been published to
-			}
-			return nil, err
-		}
-		if err, _ = ipldStat(ctx, attr, ipldNode, requestType); err != nil {
-			return nil, err
-		}
-
-		ents = append(ents, entPair{
-			ent: p9.Dirent{
-				Name:   gopath.Base(key.Path().String()),
-				Offset: offset,
-				QID: p9.QID{
-					Type: attr.Mode.QIDType(),
-					Path: cidToQPath(ipldNode.Cid()),
-				},
-			},
-			key: key,
-		})
-		offset++
-	}
-	return ents, nil
 }

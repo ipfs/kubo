@@ -67,7 +67,6 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 		p9.Dirent
 	}{
 		{"ipfs", rootDirTemplate},
-		//{"ipns", rootDirTemplate},
 	} {
 		pathUnion.Dirent.Offset = uint64(i + 1)
 		pathUnion.Dirent.Name = pathUnion.string
@@ -111,8 +110,9 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	switch names[0] {
 	case "ipfs":
 		subSystem = PinFSAttacher(ri.Ctx, ri.core)
-	case "ipns":
-		subSystem = KeyFSAttacher(ri.Ctx, ri.core)
+	/* case "ipns":
+	subSystem = KeyFSAttacher(ri.Ctx, ri.core)
+	*/
 	default:
 		ri.Logger.Errorf("%q is not provided by us", names[0])
 		return nil, nil, syscall.ENOENT //TODO: migrate to platform independant value
