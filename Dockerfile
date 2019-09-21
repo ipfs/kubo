@@ -1,5 +1,5 @@
-FROM golang:1.12-stretch
-MAINTAINER Lars Gierth <lgierth@ipfs.io>
+FROM golang:1.12.9-buster
+MAINTAINER Steven Allen <steven@stebalien.com>
 
 ENV SRC_DIR /go-ipfs
 
@@ -37,8 +37,8 @@ RUN apt-get update && apt-get install -y ca-certificates
 RUN apt-get update && apt-get install -y fuse
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM busybox:1-glibc
-MAINTAINER Lars Gierth <lgierth@ipfs.io>
+FROM busybox:1.31.0-glibc
+MAINTAINER Steven Allen <stven@stebalien.com>
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /go-ipfs
@@ -53,7 +53,7 @@ COPY --from=0 /etc/ssl/certs /etc/ssl/certs
 RUN chmod 4755 /usr/local/bin/fusermount
 
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
-COPY --from=0 /lib/x86_64-linux-gnu/libdl-2.24.so /lib/libdl.so.2
+COPY --from=0 /lib/x86_64-linux-gnu/libdl.so.2 /lib/libdl.so.2
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001

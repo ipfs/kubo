@@ -170,10 +170,8 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	}
 
 	for _, c := range roots {
-		set.Add(c)
-
-		// EnumerateChildren recursively walks the dag and adds the keys to the given set
-		err := dag.EnumerateChildren(ctx, verifyGetLinks, c, set.Visit)
+		// Walk recursively walks the dag and adds the keys to the given set
+		err := dag.Walk(ctx, verifyGetLinks, c, set.Visit, dag.Concurrent())
 
 		if err != nil {
 			err = verboseCidError(err)

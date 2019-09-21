@@ -12,43 +12,41 @@ package core
 import (
 	"context"
 	"io"
+	"path"
 
-	"go.uber.org/fx"
-
+	"github.com/ipfs/go-filestore"
 	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/fuse/mount"
 	"github.com/ipfs/go-ipfs/namesys"
 	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/provider"
 	"github.com/ipfs/go-ipfs/repo"
-	rp "github.com/ipfs/go-ipfs/reprovide"
 
 	bserv "github.com/ipfs/go-blockservice"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	"github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	"github.com/ipfs/go-mfs"
-	"github.com/ipfs/go-path/resolver"
-	"github.com/jbenet/goprocess"
+	mfs "github.com/ipfs/go-mfs"
+	resolver "github.com/ipfs/go-path/resolver"
+	goprocess "github.com/jbenet/goprocess"
 	autonat "github.com/libp2p/go-libp2p-autonat-svc"
-	ic "github.com/libp2p/go-libp2p-crypto"
-	p2phost "github.com/libp2p/go-libp2p-host"
-	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	connmgr "github.com/libp2p/go-libp2p-core/connmgr"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
+	p2phost "github.com/libp2p/go-libp2p-core/host"
+	metrics "github.com/libp2p/go-libp2p-core/metrics"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	metrics "github.com/libp2p/go-libp2p-metrics"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
-	routing "github.com/libp2p/go-libp2p-routing"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
@@ -57,7 +55,7 @@ import (
 var log = logging.Logger("core")
 
 func init() {
-	identify.ClientVersion = "go-ipfs/" + version.CurrentVersionNumber + "/" + version.CurrentCommit
+	identify.ClientVersion = path.Join("go-ipfs", version.CurrentVersionNumber, version.CurrentCommit)
 }
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
@@ -91,11 +89,10 @@ type IpfsNode struct {
 	// Online
 	PeerHost     p2phost.Host        `optional:"true"` // the network host (server+client)
 	Bootstrapper io.Closer           `optional:"true"` // the periodic bootstrapper
-	Routing      routing.IpfsRouting `optional:"true"` // the routing system. recommend ipfs-dht
+	Routing      routing.Routing     `optional:"true"` // the routing system. recommend ipfs-dht
 	Exchange     exchange.Interface  // the block exchange + strategy (bitswap)
 	Namesys      namesys.NameSystem  // the name system, resolves paths to hashes
-	Provider     provider.Provider   // the value provider system
-	Reprovider   *rp.Reprovider      `optional:"true"` // the value reprovider system
+	Provider     provider.System     // the value provider system
 	IpnsRepub    *ipnsrp.Republisher `optional:"true"`
 
 	AutoNAT  *autonat.AutoNATService    `optional:"true"`
@@ -107,7 +104,7 @@ type IpfsNode struct {
 	Process goprocess.Process
 	ctx     context.Context
 
-	app *fx.App
+	stop func() error
 
 	// Flags
 	IsOnline bool `optional:"true"` // Online is set when networking is enabled.
@@ -124,7 +121,7 @@ type Mounts struct {
 
 // Close calls Close() on the App object
 func (n *IpfsNode) Close() error {
-	return n.app.Stop(n.ctx)
+	return n.stop()
 }
 
 // Context returns the IpfsNode context
@@ -149,7 +146,7 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 	// if the caller did not specify a bootstrap peer function, get the
 	// freshest bootstrap peers from config. this responds to live changes.
 	if cfg.BootstrapPeers == nil {
-		cfg.BootstrapPeers = func() []pstore.PeerInfo {
+		cfg.BootstrapPeers = func() []peer.AddrInfo {
 			ps, err := n.loadBootstrapPeers()
 			if err != nil {
 				log.Warning("failed to parse bootstrap peers from config")
@@ -164,17 +161,13 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 	return err
 }
 
-func (n *IpfsNode) loadBootstrapPeers() ([]pstore.PeerInfo, error) {
+func (n *IpfsNode) loadBootstrapPeers() ([]peer.AddrInfo, error) {
 	cfg, err := n.Repo.Config()
 	if err != nil {
 		return nil, err
 	}
 
-	parsed, err := cfg.BootstrapPeers()
-	if err != nil {
-		return nil, err
-	}
-	return bootstrap.Peers.ToPeerInfos(parsed), nil
+	return cfg.BootstrapPeers()
 }
 
 type ConstructPeerHostOpts struct {
@@ -182,5 +175,5 @@ type ConstructPeerHostOpts struct {
 	DisableNatPortMap bool
 	DisableRelay      bool
 	EnableRelayHop    bool
-	ConnectionManager ifconnmgr.ConnManager
+	ConnectionManager connmgr.ConnManager
 }

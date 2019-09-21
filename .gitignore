@@ -15,6 +15,7 @@ gx-workspace-update.json
 
 .ipfs
 bin/gx
+bin/protoc-*
 bin/gx*
 bin/tmp
 bin/gocovmerge

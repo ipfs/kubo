@@ -75,12 +75,12 @@ Available profiles:
 Contains information about various listener addresses to be used by this node.
 
 - `API`
-Multiaddr describing the address to serve the local HTTP API on.
+Multiaddr or array of multiaddrs describing the address to serve the local HTTP API on.
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
 - `Gateway`
-Multiaddr describing the address to serve the local gateway on.
+Multiaddr or array of multiaddrs describing the address to serve the local gateway on.
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
@@ -153,6 +153,8 @@ Default: `1h`
 A boolean value. If set to true, all block reads from disk will be hashed and
 verified. This will cause increased CPU utilization.
 
+Default: `false`
+
 - `BloomFilterSize`
 A number representing the size in bytes of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents the feature being disabled.
 
@@ -220,7 +222,7 @@ A number of seconds to wait between discovery checks.
 Contains options for content routing mechanisms.
 
 - `Type`
-Content routing mode. Can be overridden with daemon `--routing` flag.
+Content routing mode. Can be overridden with daemon `--routing` flag. When set to `dhtclient`, the node won't join the DHT but can still use it to find content.
 Valid modes are:
   - `dht` (default)
   - `dhtclient`
@@ -341,9 +343,18 @@ Tells reprovider what should be announced. Valid strategies are:
 Options for configuring the swarm.
 
 - `AddrFilters`
-An array of address filters (multiaddr netmasks) to filter dials to.
-See [this issue](https://github.com/ipfs/go-ipfs/issues/1226#issuecomment-120494604) for more
-information.
+An array of addresses (multiaddr netmasks) to not dial. By default, IPFS nodes advertise
+_all_ addresses, even internal ones. This makes it easier for nodes on the same
+network to reach each other. Unfortunately, this means that an IPFS node will
+try to connect to one or more private IP addresses whenever dialing another
+node, even if this other node is on a different network. This may may trigger
+netscan alerts on some hosting providers or cause strain in some setups.
+
+The `server` configuration profile fills up this list with sensible defaults,
+preventing dials to all non-routable IP addresses (e.g., `192.168.0.0/16`) but
+you should always check settings against your own network and/or hosting
+provider.
+
 
 - `DisableBandwidthMetrics`
 A boolean value that when set to true, will cause ipfs to not keep track of

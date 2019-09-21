@@ -1,4 +1,5 @@
 // +build !noplugin
+// +build linux,cgo darwin,cgo
 
 package loader
 

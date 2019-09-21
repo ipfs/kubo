@@ -28,7 +28,7 @@ func (*flatfsPlugin) Version() string {
 	return "0.1.0"
 }
 
-func (*flatfsPlugin) Init() error {
+func (*flatfsPlugin) Init(_ *plugin.Environment) error {
 	return nil
 }
 

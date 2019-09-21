@@ -379,7 +379,7 @@ type filesLsOutput struct {
 }
 
 const (
-	longOptionName     = "l"
+	longOptionName     = "long"
 	dontSortOptionName = "U"
 )
 
@@ -408,7 +408,7 @@ Examples:
 		cmds.StringArg("path", false, false, "Path to show listing for. Defaults to '/'."),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(longOptionName, "Use long listing format."),
+		cmds.BoolOption(longOptionName, "l", "Use long listing format."),
 		cmds.BoolOption(dontSortOptionName, "Do not sort; list entries in directory order."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

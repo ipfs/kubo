@@ -15,9 +15,9 @@ import (
 	pb "github.com/ipfs/go-ipns/pb"
 	path "github.com/ipfs/go-path"
 	ft "github.com/ipfs/go-unixfs"
-	ci "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
-	routing "github.com/libp2p/go-libp2p-routing"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	base32 "github.com/whyrusleeping/base32"
 )
 

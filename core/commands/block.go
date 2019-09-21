@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 
+	files "github.com/ipfs/go-ipfs-files"
+
 	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
@@ -121,15 +123,15 @@ var blockPutCmd = &cmds.Command{
 		Tagline: "Store input as an IPFS block.",
 		ShortDescription: `
 'ipfs block put' is a plumbing command for storing raw IPFS blocks.
-It reads from stdin, and <key> is a base58 encoded multihash.
+It reads from stdin, and outputs the block's CID to stdout.
 
-By default CIDv0 is going to be generated. Setting 'mhtype' to anything other
-than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
+Unless specified, this command returns dag-pb CIDv0 CIDs. Setting 'mhtype' to anything
+other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "The data to be stored as an IPFS block.").EnableStdin(),
+		cmds.FileArg("data", true, true, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
@@ -139,11 +141,6 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
-		if err != nil {
-			return err
-		}
-
-		file, err := cmdenv.GetFileArg(req.Files.Entries())
 		if err != nil {
 			return err
 		}
@@ -170,18 +167,31 @@ than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
 
 		pin, _ := req.Options[pinOptionName].(bool)
 
-		p, err := api.Block().Put(req.Context, file,
-			options.Block.Hash(mhtval, mhlen),
-			options.Block.Format(format),
-			options.Block.Pin(pin))
-		if err != nil {
-			return err
+		it := req.Files.Entries()
+		for it.Next() {
+			file := files.FileFromEntry(it)
+			if file == nil {
+				return errors.New("expected a file")
+			}
+
+			p, err := api.Block().Put(req.Context, file,
+				options.Block.Hash(mhtval, mhlen),
+				options.Block.Format(format),
+				options.Block.Pin(pin))
+			if err != nil {
+				return err
+			}
+
+			err = res.Emit(&BlockStat{
+				Key:  p.Path().Cid().String(),
+				Size: p.Size(),
+			})
+			if err != nil {
+				return err
+			}
 		}
 
-		return cmds.EmitOnce(res, &BlockStat{
-			Key:  p.Path().Cid().String(),
-			Size: p.Size(),
-		})
+		return it.Err()
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, bs *BlockStat) error {
@@ -224,6 +234,9 @@ It takes a list of base58 encoded multihashes to remove.
 		// TODO: use batching coreapi when done
 		for _, b := range req.Arguments {
 			rp, err := api.ResolvePath(req.Context, path.New(b))
+			if err != nil {
+				return err
+			}
 
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
 			if err != nil {

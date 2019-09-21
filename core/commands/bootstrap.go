@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sort"
 
@@ -11,6 +12,8 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 type BootstrapOutput struct {
@@ -64,26 +67,13 @@ in the bootstrap list).
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		deflt, _ := req.Options[defaultOptionName].(bool)
 
-		var inputPeers []config.BootstrapPeer
-		if deflt {
-			// parse separately for meaningful, correct error.
-			defltPeers, err := config.DefaultBootstrapPeers()
-			if err != nil {
-				return err
-			}
-
-			inputPeers = defltPeers
-		} else {
+		inputPeers := config.DefaultBootstrapAddresses
+		if !deflt {
 			if err := req.ParseBodyArgs(); err != nil {
 				return err
 			}
 
-			parsedPeers, err := config.ParseBootstrapPeers(req.Arguments)
-			if err != nil {
-				return err
-			}
-
-			inputPeers = parsedPeers
+			inputPeers = req.Arguments
 		}
 
 		if len(inputPeers) == 0 {
@@ -110,7 +100,7 @@ in the bootstrap list).
 			return err
 		}
 
-		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(added)})
+		return cmds.EmitOnce(res, &BootstrapOutput{added})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -127,11 +117,6 @@ var bootstrapAddDefaultCmd = &cmds.Command{
 in the bootstrap list).`,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		defltPeers, err := config.DefaultBootstrapPeers()
-		if err != nil {
-			return err
-		}
-
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
 			return err
@@ -148,12 +133,12 @@ in the bootstrap list).`,
 			return err
 		}
 
-		added, err := bootstrapAdd(r, cfg, defltPeers)
+		added, err := bootstrapAdd(r, cfg, config.DefaultBootstrapAddresses)
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(added)})
+		return cmds.EmitOnce(res, &BootstrapOutput{added})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -201,26 +186,20 @@ var bootstrapRemoveCmd = &cmds.Command{
 			return err
 		}
 
-		var removed []config.BootstrapPeer
+		var removed []string
 		if all {
 			removed, err = bootstrapRemoveAll(r, cfg)
 		} else {
 			if err := req.ParseBodyArgs(); err != nil {
 				return err
 			}
-
-			input, perr := config.ParseBootstrapPeers(req.Arguments)
-			if perr != nil {
-				return perr
-			}
-
-			removed, err = bootstrapRemove(r, cfg, input)
+			removed, err = bootstrapRemove(r, cfg, req.Arguments)
 		}
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(removed)})
+		return cmds.EmitOnce(res, &BootstrapOutput{removed})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -257,7 +236,7 @@ var bootstrapRemoveAllCmd = &cmds.Command{
 			return err
 		}
 
-		return cmds.EmitOnce(res, &BootstrapOutput{config.BootstrapPeerStrings(removed)})
+		return cmds.EmitOnce(res, &BootstrapOutput{removed})
 	},
 	Type: BootstrapOutput{},
 	Encoders: cmds.EncoderMap{
@@ -315,23 +294,36 @@ func bootstrapWritePeers(w io.Writer, prefix string, peers []string) error {
 	return nil
 }
 
-func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
+func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []string) ([]string, error) {
+	for _, p := range peers {
+		m, err := ma.NewMultiaddr(p)
+		if err != nil {
+			return nil, err
+		}
+		tpt, p2ppart := ma.SplitLast(m)
+		if p2ppart == nil || p2ppart.Protocol().Code != ma.P_P2P {
+			return nil, fmt.Errorf("invalid bootstrap address: %s", p)
+		}
+		if tpt == nil {
+			return nil, fmt.Errorf("bootstrap address without a transport: %s", p)
+		}
+	}
+
 	addedMap := map[string]struct{}{}
-	addedList := make([]config.BootstrapPeer, 0, len(peers))
+	addedList := make([]string, 0, len(peers))
 
 	// re-add cfg bootstrap peers to rm dupes
 	bpeers := cfg.Bootstrap
 	cfg.Bootstrap = nil
 
 	// add new peers
-	for _, peer := range peers {
-		s := peer.String()
+	for _, s := range peers {
 		if _, found := addedMap[s]; found {
 			continue
 		}
 
 		cfg.Bootstrap = append(cfg.Bootstrap, s)
-		addedList = append(addedList, peer)
+		addedList = append(addedList, s)
 		addedMap[s] = struct{}{}
 	}
 
@@ -352,27 +344,56 @@ func bootstrapAdd(r repo.Repo, cfg *config.Config, peers []config.BootstrapPeer)
 	return addedList, nil
 }
 
-func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.BootstrapPeer) ([]config.BootstrapPeer, error) {
-	removed := make([]config.BootstrapPeer, 0, len(toRemove))
-	keep := make([]config.BootstrapPeer, 0, len(cfg.Bootstrap))
+func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []string) ([]string, error) {
+	removed := make([]peer.AddrInfo, 0, len(toRemove))
+	keep := make([]peer.AddrInfo, 0, len(cfg.Bootstrap))
+
+	toRemoveAddr, err := config.ParseBootstrapPeers(toRemove)
+	if err != nil {
+		return nil, err
+	}
+	toRemoveMap := make(map[peer.ID][]ma.Multiaddr, len(toRemoveAddr))
+	for _, addr := range toRemoveAddr {
+		toRemoveMap[addr.ID] = addr.Addrs
+	}
 
 	peers, err := cfg.BootstrapPeers()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, peer := range peers {
-		found := false
-		for _, peer2 := range toRemove {
-			if peer.Equal(peer2) {
-				found = true
-				removed = append(removed, peer)
-				break
+	for _, p := range peers {
+		addrs, ok := toRemoveMap[p.ID]
+		// not in the remove set?
+		if !ok {
+			keep = append(keep, p)
+			continue
+		}
+		// remove the entire peer?
+		if len(addrs) == 0 {
+			removed = append(removed, p)
+			continue
+		}
+		var (
+			keptAddrs, removedAddrs []ma.Multiaddr
+		)
+		// remove specific addresses
+	filter:
+		for _, addr := range p.Addrs {
+			for _, addr2 := range addrs {
+				if addr.Equal(addr2) {
+					removedAddrs = append(removedAddrs, addr)
+					continue filter
+				}
 			}
+			keptAddrs = append(keptAddrs, addr)
+		}
+		if len(removedAddrs) > 0 {
+			removed = append(removed, peer.AddrInfo{ID: p.ID, Addrs: removedAddrs})
 		}
 
-		if !found {
-			keep = append(keep, peer)
+		if len(keptAddrs) > 0 {
+			keep = append(keep, peer.AddrInfo{ID: p.ID, Addrs: keptAddrs})
 		}
 	}
 	cfg.SetBootstrapPeers(keep)
@@ -381,10 +402,10 @@ func bootstrapRemove(r repo.Repo, cfg *config.Config, toRemove []config.Bootstra
 		return nil, err
 	}
 
-	return removed, nil
+	return config.BootstrapPeerStrings(removed), nil
 }
 
-func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]config.BootstrapPeer, error) {
+func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]string, error) {
 	removed, err := cfg.BootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -394,8 +415,7 @@ func bootstrapRemoveAll(r repo.Repo, cfg *config.Config) ([]config.BootstrapPeer
 	if err := r.SetConfig(cfg); err != nil {
 		return nil, err
 	}
-
-	return removed, nil
+	return config.BootstrapPeerStrings(removed), nil
 }
 
 const bootstrapSecurityWarning = `

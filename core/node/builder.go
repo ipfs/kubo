@@ -15,12 +15,9 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	cfg "github.com/ipfs/go-ipfs-config"
-	logging "github.com/ipfs/go-log"
-	ci "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
-
-var log = logging.Logger("node")
 
 type BuildCfg struct {
 	// If online is set, the node will have networking enabled
@@ -127,7 +124,7 @@ func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 
 func defaultRepo(dstore repo.Datastore) (repo.Repo, error) {
 	c := cfg.Config{}
-	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 1024, rand.Reader)
+	priv, pub, err := ci.GenerateKeyPairWithReader(ci.RSA, 2048, rand.Reader)
 	if err != nil {
 		return nil, err
 	}

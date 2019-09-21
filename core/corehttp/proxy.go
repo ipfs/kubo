@@ -10,8 +10,8 @@ import (
 
 	core "github.com/ipfs/go-ipfs/core"
 
-	p2phttp "github.com/hsanjuan/go-libp2p-http"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	p2phttp "github.com/libp2p/go-libp2p-http"
 )
 
 // ProxyOption is an endpoint for proxying a HTTP request to another ipfs peer
@@ -73,7 +73,5 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 }
 
 func handleError(w http.ResponseWriter, msg string, err error, code int) {
-	w.WriteHeader(code)
-	fmt.Fprintf(w, "%s: %s\n", msg, err)
-	log.Warningf("http proxy error: %s: %s", err)
+	http.Error(w, fmt.Sprintf("%s: %s", msg, err), code)
 }

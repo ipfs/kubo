@@ -2,8 +2,8 @@ include mk/header.mk
 
 dist_root_$(d)="/ipfs/QmPrXH9jRVwvd7r5MC5e6nV4uauQGzLk1i2647Ye9Vbbwe"
 
-TGTS_$(d) := $(d)/gx $(d)/gx-go
-DISTCLEAN += $(wildcard $(d)/gx-v*) $(wildcard $(d)/gx-go-v*) $(d)/tmp
+TGTS_$(d) := $(d)/protoc
+DISTCLEAN += $(d)/protoc $(d)/tmp
 
 PATH := $(realpath $(d)):$(PATH)
 
@@ -14,6 +14,9 @@ ifeq ($(WINDOWS),1)
 else
 	ln -s $(notdir $^) $@
 endif
+
+bin/protoc-gen-gogofaster:
+	$(call go-build,github.com/gogo/protobuf/protoc-gen-gogofaster)
 
 CLEAN += $(TGTS_$(d))
 include mk/footer.mk

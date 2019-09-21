@@ -20,9 +20,9 @@ import (
 	"syscall"
 
 	logging "github.com/ipfs/go-log"
-	ci "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	secio "github.com/libp2p/go-libp2p-secio"
 )
@@ -113,8 +113,8 @@ func main() {
 }
 
 func setupPeer(a args) (peer.ID, pstore.Peerstore, error) {
-	if a.keybits < 1024 {
-		return "", nil, errors.New("bitsize less than 1024 is considered unsafe")
+	if a.keybits < 2048 {
+		return "", nil, errors.New("bitsize less than 2048 is considered unsafe")
 	}
 
 	out("generating key pair...")

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	host "github.com/libp2p/go-libp2p-host"
+	host "github.com/libp2p/go-libp2p-core/host"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	mafilter "github.com/libp2p/go-maddr-filter"
 	ma "github.com/multiformats/go-multiaddr"
@@ -39,7 +39,7 @@ func makeAddrsFactory(announce []string, noAnnounce []string) (p2pbhost.AddrsFac
 	for _, addr := range noAnnounce {
 		f, err := mamask.NewMask(addr)
 		if err == nil {
-			filters.AddDialFilter(f)
+			filters.AddFilter(*f, mafilter.ActionDeny)
 			continue
 		}
 		maddr, err := ma.NewMultiaddr(addr)

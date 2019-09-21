@@ -17,7 +17,8 @@ Install `fuse` with your favorite package manager:
 sudo apt-get install fuse
 ```
 
-Add the user which will be running IPFS daemon to the `fuse` group:
+On some older Linux distributions, you may need to add yourself to the `fuse` group.  
+(If no such group exists, you can probably skip this step)
 ```sh
 sudo usermod -a -G fuse <username>
 ```

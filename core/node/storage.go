@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"os"
 	"syscall"
 	"time"
@@ -12,8 +11,8 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-filestore"
 	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
 	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
@@ -55,15 +54,7 @@ func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, nilRepo bool, hashOnRead
 		bs = &verifbs.VerifBS{Blockstore: bs}
 
 		if !nilRepo {
-			ctx, cancel := context.WithCancel(mctx)
-
-			lc.Append(fx.Hook{
-				OnStop: func(context context.Context) error {
-					cancel()
-					return nil
-				},
-			})
-			bs, err = blockstore.CachedBlockstore(ctx, bs, cacheOpts)
+			bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
 			if err != nil {
 				return nil, err
 			}
@@ -91,7 +82,7 @@ func GcBlockstoreCtor(bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockst
 
 // GcBlockstoreCtor wraps GcBlockstore and adds Filestore support
 func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, fstore *filestore.Filestore) {
-	gclocker, gcbs, bs = GcBlockstoreCtor(bb)
+	gclocker = blockstore.NewGCLocker()
 
 	// hash security
 	fstore = filestore.NewFilestore(bb, repo.FileManager())

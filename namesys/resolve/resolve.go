@@ -3,6 +3,7 @@ package resolve
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/ipfs/go-ipld-format"
@@ -36,8 +37,9 @@ func ResolveIPNS(ctx context.Context, nsys namesys.NameSystem, p path.Path) (pat
 		seg := p.Segments()
 
 		if len(seg) < 2 || seg[1] == "" { // just "/<protocol/>" without further segments
-			evt.Append(logging.LoggableMap{"error": path.ErrNoComponents.Error()})
-			return "", path.ErrNoComponents
+			err := fmt.Errorf("invalid path %q: ipns path missing IPNS ID", p)
+			evt.Append(logging.LoggableMap{"error": err})
+			return "", err
 		}
 
 		extensions := seg[2:]

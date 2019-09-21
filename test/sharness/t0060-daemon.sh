@@ -8,6 +8,43 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
+test_expect_success "test environment initialized" '
+  export ORIG_IPFS_PATH="$IPFS_PATH"
+
+  export ORIG_PATH="$(pwd)/.ipfs"
+  export IPFS_PATH="$ORIG_PATH"
+  export CLONE_PATH="$(pwd)/.ipfs-clone"
+  ipfs init --profile=badgerds > /dev/null
+'
+
+export IPFS_PATH=$CLONE_PATH
+test_launch_ipfs_daemon --init --init-config="$ORIG_PATH/config"
+test_kill_ipfs_daemon
+
+test_expect_success "daemon initialization with existing config works" '
+  ipfs config "Datastore.Spec.child.path" >actual &&
+  test $(cat actual) = "badgerds"
+'
+
+test_expect_success "clean up daemon clone" '
+  rm -rf "$CLONE_PATH"
+'
+test_launch_ipfs_daemon --init --init-config="$ORIG_PATH/config" --init-profile=randomports
+test_kill_ipfs_daemon
+
+test_expect_failure "daemon initialization with existing config + profiles works" '
+  ipfs config Addresses >clone_conf &&
+  IPFS_PATH=$ORIG_PATH &&
+  ipfs config Addresses >orig_conf &&
+  test_cmp clone_conf orig_conf
+'
+
+test_expect_success "clean up test environment" '
+  rm -rf "$CLONE_PATH"
+  rm -rf "$ORIG_PATH"
+
+  export IPFS_PATH=$ORIG_IPFS_PATH
+'
 
 test_init_ipfs
 test_launch_ipfs_daemon

@@ -115,7 +115,7 @@ cat <<EOF > codecs_expect
 EOF
 
 cat <<EOF > hashes_expect
-    0  id
+    0  identity
    17  sha1
    18  sha2-256
    19  sha2-512

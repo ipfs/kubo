@@ -28,6 +28,8 @@ the above issue.
 - [IPNS PubSub](#ipns-pubsub)
 - [QUIC](#quic)
 - [AutoRelay](#autorelay)
+- [TLS 1.3 Handshake](#tls-13-as-default-handshake-protocol)
+- [Strategic Providing](#strategic-providing)
 
 ---
 
@@ -505,27 +507,29 @@ See [Plugin docs](./plugins.md)
 - [ ] More plugins and plugin types
 - [ ] Feedback on stability
 
- ## Badger datastore
+## Badger datastore
 
- ### In Version
- 0.4.11
+### In Version
 
- Badger-ds is new datastore implementation based on
- https://github.com/dgraph-io/badger
+0.4.11
 
- ### Basic Usage
+Badger-ds is new datastore implementation based on
+https://github.com/dgraph-io/badger.
+ 
 
- ```
- $ ipfs init --profile=badgerds
- ```
- or install https://github.com/ipfs/ipfs-ds-convert/ and
- ```
- [BACKUP ~/.ipfs]
- $ ipfs config profile apply badgerds
- $ ipfs-ds-convert convert
- ```
+### Basic Usage
 
-###
+```
+$ ipfs init --profile=badgerds
+```
+or install https://github.com/ipfs/ipfs-ds-convert/ and
+```
+[BACKUP ~/.ipfs]
+$ ipfs config profile apply badgerds
+$ ipfs-ds-convert convert
+```
+
+You can read more in the [datastore](./datastores.md#badgerds) documentation.
 
 ### Road to being a real feature
 
@@ -673,3 +677,31 @@ ipfs config --json Experimental.PreferTLS true
 
 - [ ] needs testing
 - [ ] needs adoption
+
+---
+
+## Strategic Providing
+
+### State
+
+Experimental, disabled by default.
+
+Replaces the existing provide mechanism with a robust, strategic provider system.
+
+### How to enable
+
+Modify your ipfs config:
+
+```
+ipfs config --json Experimental.StrategicProviding true
+```
+
+### Road to being a real feature
+
+- [ ] needs real world testing
+- [ ] needs adoption
+- [ ] needs to support all providing features
+    - [X] provide nothing
+    - [ ] provide roots
+    - [ ] provide all
+    - [ ] provide strategic

@@ -1,43 +1,52 @@
-version: 2.0
+version: 2.1
 
 aliases:
   make_out_dirs: &make_out_dirs
-    run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS/{unit,sharness}
+    run: mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/{unit,sharness}
   restore_gomod: &restore_gomod
     restore_cache:
       keys:
-        - v3-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
-        - v3-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
-        - v3-dep-{{ .Branch }}-
-        - v3-dep-master-
+        - v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        - v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
+        - v4-dep-{{ .Branch }}-
+        - v4-dep-master-
   store_gomod: &store_gomod
       save_cache:
-        key: v3-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        key: v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
         paths:
           - ~/go/pkg/mod
           - ~/.cache/go-build/
 
+default_environment: &default_environment
+  SERVICE: circle-ci
+  TRAVIS: 1
+  CIRCLE: 1
+  CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+  CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+  GIT_PAGER: cat
 
-defaults: &defaults
-  working_directory: ~/ipfs/go-ipfs
-  environment:
-    GO111MODULE: "on"
-    TEST_NO_DOCKER: 1
-    TEST_NO_FUSE: 1
-    GOPATH: /home/circleci/go
-    CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
-    CIRCLE: 1
-    SERVICE: circle-ci
-    CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
-    TEST_VERBOSE: 1
-    TRAVIS: 1
-
-  docker:
-    - image: circleci/golang:1.12
+executors:
+  golang:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
+      GO111MODULE: "on"
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      GOPATH: /home/circleci/go
+      TEST_VERBOSE: 1
+  node:
+    docker:
+      - image: circleci/node:10
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
 
 jobs:
   gobuild:
-    <<: *defaults
+    executor: golang
     steps:
     - checkout
     - *make_out_dirs
@@ -51,8 +60,17 @@ jobs:
         environment:
           TEST_NO_FUSE: 1
     - *store_gomod
+  golint:
+    executor: golang
+    steps:
+    - checkout
+    - *make_out_dirs
+    - *restore_gomod
+    - run: |
+        make -O test_go_lint
+    - *store_gomod
   gotest:
-    <<: *defaults
+    executor: golang
     steps:
     - checkout
     - *make_out_dirs
@@ -79,7 +97,7 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   sharness:
-    <<: *defaults
+    executor: golang
     steps:
     - run: sudo apt install socat
     - checkout
@@ -105,11 +123,148 @@ jobs:
         path: /tmp/circleci-artifacts
     - store_artifacts:
         path: /tmp/circleci-test-results
-
+  build:
+    executor: golang
+    steps:
+      - checkout
+      - *make_out_dirs
+      - *restore_gomod
+      - run:
+          name: Building
+          command: make build
+      - run:
+          name: Storing
+          command: |
+            mkdir -p /tmp/circleci-workspace/bin
+            cp cmd/ipfs/ipfs /tmp/circleci-workspace/bin
+      - persist_to_workspace:
+          root: /tmp/circleci-workspace
+          paths:
+            - bin/ipfs
+      - *store_gomod
+  interop:
+    executor: node
+    environment:
+      IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
+    parallelism: 4
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Cloning
+          command: |
+            git clone https://github.com/ipfs/interop.git
+            git -C interop log -1
+      - restore_cache:
+          keys:
+            - v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+            - v1-interop-
+      - run:
+          name: Installing dependencies
+          command: |
+            npm install
+          working_directory: ~/ipfs/go-ipfs/interop
+      - save_cache:
+          key: v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+          paths:
+            - ~/ipfs/go-ipfs/interop/node_modules
+      - run:
+          name: Installing reporting tools
+          command: |
+            npm install --save-dev mocha-junit-reporter@1.23.1 mocha-multi-reporters@1.1.0
+          working_directory: ~/ipfs/go-ipfs/interop
+      - run:
+          name: Running tests
+          command: |
+            mkdir -p /tmp/test-results/interop/
+            export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
+            echo '{"reporterEnabled": "mocha-junit-reporter, spec"}' > mocha-conf.json
+            node_modules/.bin/mocha -R mocha-multi-reporters --reporter-options "configFile=mocha-conf.json" \
+              $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" test/node.js | circleci tests split)
+          working_directory: ~/ipfs/go-ipfs/interop
+          environment:
+            IPFS_REUSEPORT: false
+      - store_test_results:
+          path: /tmp/test-results
+  go-ipfs-api:
+    executor: golang
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Cloning
+          command: |
+            git clone https://github.com/ipfs/go-ipfs-api.git
+            git -C go-ipfs-api log -1
+      - run:
+          name: Starting the daemon
+          command: /tmp/circleci-workspace/bin/ipfs daemon --init --enable-namesys-pubsub
+          background: true
+      - run:
+          name: Waiting for the daemon
+          no_output_timeout: 10s
+          command: |
+            while ! /tmp/circleci-workspace/bin/ipfs id --api=/ip4/127.0.0.1/tcp/5001 2>/dev/null; do
+              sleep 1
+            done
+      - restore_cache:
+          keys:
+            - v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+            - v1-go-api-
+      - run:
+          command: go test -v ./...
+          working_directory: ~/ipfs/go-ipfs/go-ipfs-api
+      - save_cache:
+          key: v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+          paths:
+            - ~/go/pkg/mod
+            - ~/.cache/go-build/
+      - run:
+          name: Stopping the daemon
+          command: /tmp/circleci-workspace/bin/ipfs shutdown
+  go-ipfs-http-client:
+    executor: golang
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Cloning
+          command: |
+            git clone https://github.com/ipfs/go-ipfs-http-client.git
+            git -C go-ipfs-http-client log -1
+      - restore_cache:
+          keys:
+            - v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+            - v1-http-client-
+      - run:
+          name: go test -v ./...
+          command: |
+            export PATH=/tmp/circleci-workspace/bin:$PATH
+            go test -v ./...
+          working_directory: ~/ipfs/go-ipfs/go-ipfs-http-client
+      - save_cache:
+          key: v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+          paths:
+            - ~/go/pkg/mod
+            - ~/.cache/go-build/
 workflows:
   version: 2
   test:
     jobs:
     - gobuild
+    - golint
     - gotest
     - sharness
+    - build
+    - interop:
+        requires:
+          - build
+    - go-ipfs-api:
+        requires:
+          - build
+    - go-ipfs-http-client:
+        requires:
+          - build

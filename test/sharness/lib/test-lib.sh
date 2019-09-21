@@ -148,7 +148,7 @@ test_init_ipfs() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init --profile=test -b=1024 > /dev/null
+    ipfs init --profile=test -b=2048 > /dev/null
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -212,12 +212,12 @@ test_set_address_vars() {
 
 test_launch_ipfs_daemon() {
 
-  args="$@"
+  args=("$@")
 
   test "$TEST_ULIMIT_PRESET" != 1 && ulimit -n 2048
 
   test_expect_success "'ipfs daemon' succeeds" '
-    ipfs daemon $args >actual_daemon 2>daemon_err &
+    ipfs daemon "${args[@]}" >actual_daemon 2>daemon_err &
     IPFS_PID=$!
   '
 
@@ -436,4 +436,25 @@ convert_tcp_maddr() {
 
 port_from_maddr() {
   echo $1 | awk -F'/' '{ print $NF }'
+}
+
+findprovs_empty() {
+  test_expect_success 'findprovs '$1' succeeds' '
+    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut
+  '
+
+  test_expect_success "findprovs $1 output is empty" '
+    test_must_be_empty findprovsOut
+  '
+}
+
+findprovs_expect() {
+  test_expect_success 'findprovs '$1' succeeds' '
+    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut &&
+    echo '$2' > expected
+  '
+
+  test_expect_success "findprovs $1 output looks good" '
+    test_cmp findprovsOut expected
+  '
 }
