@@ -216,9 +216,6 @@ func boundCheck(offset uint64, length int) (bool, error) {
 // sending individual path component requests to their appropriate target system
 // regardless of (file system request) origin
 func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
-	l := logging.Logger("walker")
-	l.Errorf("req: %v\n%v\n", ref, names)
-
 	// clone requests go right back to the caller
 	if shouldClone(names) {
 		return []p9.QID{ref.QID()}, ref, nil
@@ -256,8 +253,6 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 			curFile.Close() // we're not referencing this anymore
 		} // leave the last reference alive, for the caller to close
 	}
-
-	l.Errorf("walker ret: %v\n%v\n", qids, curFile)
 
 	return qids, curFile, nil
 }

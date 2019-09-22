@@ -202,28 +202,25 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 }
 
 func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
-	id.Logger.Debugf("ReadAt")
+	id.Logger.Debugf("ReadAt {%d/%d}%q", offset, id.meta.Size, id.Path.String())
 
 	if id.file == nil {
-		return -1, fmt.Errorf("file %q is not open for reading", id.Path.String())
+		return 0, fmt.Errorf("file %q is not open for reading", id.Path.String())
 	}
 
-	if fileBound, err := id.file.Size(); err == nil {
-		if int64(offset) >= fileBound {
-			//NOTE [styx]: If the offset field is greater than or equal to the number of bytes in the file, a count of zero will be returned.
-			return 0, io.EOF
-		}
+	if offset >= id.meta.Size {
+		//NOTE [styx]: If the offset field is greater than or equal to the number of bytes in the file, a count of zero will be returned.
+		return 0, io.EOF
 	}
 
-	if offset != 0 {
-		if _, err := id.file.Seek(int64(offset), io.SeekStart); err != nil {
-			return -1, fmt.Errorf("Read - seek error: %s", err)
-		}
+	if _, err := id.file.Seek(int64(offset), io.SeekStart); err != nil {
+		return 0, fmt.Errorf("Read - seek error: %s", err)
 	}
 
 	readBytes, err := id.file.Read(p)
 	if err != nil && err != io.EOF {
-		return -1, err
+		return 0, err
 	}
+
 	return readBytes, err
 }
