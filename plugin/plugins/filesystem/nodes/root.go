@@ -48,8 +48,8 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 		core:       core,
 		subsystems: make([]p9.Dirent, 0, 1), //NOTE: capacity should be tied to root child count
 		Base: Base{
-			Logger: logging.Logger("RootFS"),
-			Ctx:    ctx,
+			Logger:    logging.Logger("RootFS"),
+			parentCtx: ctx,
 			Qid: p9.QID{
 				Type: p9.TypeDir,
 				Path: cidToQPath(rootPath("/").Cid()),
@@ -81,6 +81,10 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI) *RootIndex {
 
 func (ri *RootIndex) Attach() (p9.File, error) {
 	ri.Logger.Debugf("Attach")
+	_, err := ri.Base.Attach()
+	if err != nil {
+		return nil, err
+	}
 
 	ri.parent = ri
 	return ri, nil
@@ -103,13 +107,17 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	}
 
 	var (
-		subSystem walkRef
+		//subSystem walkRef
+		subSystem p9.File
 		err       error
 	)
 
 	switch names[0] {
 	case "ipfs":
-		subSystem = PinFSAttacher(ri.Ctx, ri.core)
+		subSystem, err = PinFSAttacher(ri.filesystemCtx, ri.core, ri).Attach()
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not attach to subsystem: %s", err)
+		}
 	/* case "ipns":
 	subSystem = KeyFSAttacher(ri.Ctx, ri.core)
 	*/
@@ -118,24 +126,14 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 		return nil, nil, syscall.ENOENT //TODO: migrate to platform independant value
 	}
 
-	attacher, ok := subSystem.(p9.Attacher)
+	walkRef, ok := subSystem.(walkRef)
 	if !ok {
-		return nil, nil, fmt.Errorf("%q is not a valid file system", names[0])
+		return nil, nil, fmt.Errorf("%q does not provide traverals methods", names[0])
 	}
 
-	// poke the filesystem to make sure it's alive, but don't do anything with it
-	tempReference, err := attacher.Attach()
-	if err != nil {
-		return nil, nil, err
-	}
-	//[p9-lib] "Close must be called even when Open has not been called."
-	if err = tempReference.Close(); err != nil {
-		return nil, nil, err
-	}
+	ri.child = walkRef
 
-	ri.child = subSystem
-
-	return walker(subSystem, names[1:])
+	return walker(ri.child, names[1:])
 }
 
 func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {

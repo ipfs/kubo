@@ -16,27 +16,36 @@ type PinFS struct {
 	ents []p9.Dirent
 }
 
-func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI) *PinFS {
+func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) *PinFS {
 	pd := &PinFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
 		core, logging.Logger("PinFS"))}
 	pd.meta, pd.metaMask = defaultRootAttr()
-
+	if parent != nil {
+		pd.parent = parent
+	} else {
+		pd.parent = pd
+	}
 	return pd
 }
 
 func (pd *PinFS) Attach() (p9.File, error) {
 	pd.Logger.Debugf("Attach")
-
-	var subSystem walkRef = IPFSAttacher(pd.Ctx, pd.core)
-	attacher, ok := subSystem.(p9.Attacher)
-	if !ok {
-		return nil, fmt.Errorf("subsystem %T is not a valid file system", subSystem)
-	}
-
-	if _, err := attacher.Attach(); err != nil {
+	_, err := pd.Base.Attach()
+	if err != nil {
 		return nil, err
 	}
-	pd.child = subSystem
+
+	subSystem, err := IPFSAttacher(pd.filesystemCtx, pd.core, pd).Attach()
+	if err != nil {
+		return nil, fmt.Errorf("could not attach to subsystem: %s", err)
+	}
+
+	walkRef, ok := subSystem.(walkRef)
+	if !ok {
+		return nil, fmt.Errorf("%q does not provide traverals methods", "ipfs")
+	}
+
+	pd.child = walkRef
 
 	return pd, nil
 }
@@ -58,7 +67,7 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	pd.Logger.Debugf("Open")
 
 	var handleContext context.Context
-	handleContext, pd.operationsCancel = context.WithCancel(pd.Ctx)
+	handleContext, pd.operationsCancel = context.WithCancel(pd.filesystemCtx)
 
 	// IPFS core representation
 	pins, err := pd.core.Pin().Ls(handleContext, coreoptions.Pin.Type.Recursive())

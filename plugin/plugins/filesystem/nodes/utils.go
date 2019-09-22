@@ -188,8 +188,8 @@ func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, c
 		Path: path,
 		core: core,
 		Base: Base{
-			Logger: logger,
-			Ctx:    ctx,
+			parentCtx: ctx,
+			Logger:    logger,
 			Qid: p9.QID{
 				Type: kind,
 				Path: cidToQPath(path.Cid()),

@@ -2,6 +2,8 @@ package fsnodes
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/djdv/p9/p9"
 	"github.com/djdv/p9/unimplfs"
@@ -30,12 +32,17 @@ type Base struct {
 	metaMask p9.AttrMask
 
 	// The base context should be valid for the lifetime of the file system
-	// and used to derive call specific contexts from
-	Ctx    context.Context
-	Logger logging.EventLogger
+	// and should be derived from the parent context on Attach()
+	// A cancel from either should cascade down, and invalidate all derived operations
+	// A call to fs.Close should leave no operations lingering
+	parentCtx        context.Context
+	filesystemCtx    context.Context
+	filesystemCancel context.CancelFunc
+	Logger           logging.EventLogger
 
 	parent walkRef // parent should be set and used to handle ".." requests
 	child  walkRef // child is an optional field, used to hand off child requests to another file system
+	root   bool    // am I a filesystem root? (as opposed to a file)
 }
 
 // IPFSBase is much like Base but extends it to hold IPFS specific metadata
@@ -56,15 +63,46 @@ type IPFSBase struct {
 	directory *directoryStream
 }
 
-func (b Base) Close() error {
+func (b *Base) Attach() (p9.File, error) {
+	if b.parentCtx == nil {
+		return nil, errors.New("Parent context was not set, no way to derive")
+	}
+
+	select {
+	case <-b.parentCtx.Done():
+		return nil, fmt.Errorf("Parent is done: %s", b.parentCtx.Err())
+	default:
+		break
+	}
+
+	if b.filesystemCtx != nil {
+		return nil, errors.New("Already attached")
+	}
+	b.filesystemCtx, b.filesystemCancel = context.WithCancel(b.parentCtx)
+
+	b.root = true
+
+	return b, nil
+}
+
+func (b *Base) Close() error {
+	/* FIXME: close call ordering is unclear, currently this happens earlier than expected
+	maybe related to core bug?
+
+	if b.root {
+		b.filesystemCancel()
+	}
+
 	if b.child != nil {
 		return b.child.Close()
 	}
+	*/
 
 	return nil
 }
 
 func (ib *IPFSBase) Close() error {
+	ib.Logger.Debugf("Closing:%q", ib.Path.String())
 	var lastErr error
 
 	if err := ib.Base.Close(); err != nil {
@@ -79,9 +117,13 @@ func (ib *IPFSBase) Close() error {
 		}
 	}
 
+	/* FIXME: close call ordering is unclear, currently this happens earlier than expected
+	maybe related to core bug?
+
 	if ib.operationsCancel != nil {
 		ib.operationsCancel()
 	}
+	*/
 
 	return lastErr
 }
@@ -100,18 +142,18 @@ type walkRef interface {
 	Child() walkRef
 }
 
-func (b Base) Self() walkRef {
+func (b *Base) Self() walkRef {
 	return b
 }
 
-func (b Base) Parent() walkRef {
+func (b *Base) Parent() walkRef {
 	return b.parent
 }
 
-func (b Base) Child() walkRef {
+func (b *Base) Child() walkRef {
 	return b.child
 }
 
-func (b Base) QID() p9.QID {
+func (b *Base) QID() p9.QID {
 	return b.Qid
 }

@@ -21,15 +21,25 @@ type IPFS struct {
 	IPFSBase
 }
 
-func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI) *IPFS {
+func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) *IPFS {
 	id := &IPFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
 		core, logging.Logger("IPFS"))}
 	id.meta, id.metaMask = defaultRootAttr()
+	if parent != nil {
+		id.parent = parent
+	} else {
+		id.parent = id
+	}
 	return id
 }
 
 func (id *IPFS) Attach() (p9.File, error) {
 	id.Logger.Debugf("Attach")
+	_, err := id.Base.Attach()
+	if err != nil {
+		return nil, err
+	}
+
 	return id, nil
 }
 
@@ -52,7 +62,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	var (
 		// returned
 		qids   = make([]p9.QID, 0, len(names))
-		newFid = &IPFS{IPFSBase: newIPFSBase(id.Ctx, id.Path, 0, id.core, id.Logger)}
+		newFid = &IPFS{IPFSBase: newIPFSBase(id.parentCtx, id.Path, 0, id.core, id.Logger)}
 		// temporary
 		attr        = &p9.Attr{}
 		requestType = p9.AttrMask{Mode: true}
@@ -60,12 +70,14 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		// last-set value is used
 		ipldNode ipld.Node
 	)
+	//TODO: better construction/context init
+	newFid.filesystemCtx, newFid.filesystemCancel = id.filesystemCtx, id.filesystemCancel
 
 	for _, name := range names {
-		callCtx, cancel := context.WithTimeout(id.Ctx, 30*time.Second)
+		callCtx, cancel := context.WithTimeout(newFid.filesystemCtx, 30*time.Second)
 		defer cancel()
 
-		corePath, err := id.core.ResolvePath(callCtx, corepath.Join(newFid.Path, name))
+		corePath, err := newFid.core.ResolvePath(callCtx, corepath.Join(newFid.Path, name))
 		if err != nil {
 			cancel()
 			//TODO: switch off error, return appropriate errno (ENOENT is going to be common here)
@@ -75,7 +87,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 		newFid.Path = corePath
 
-		ipldNode, err = id.core.Dag().Get(callCtx, newFid.Path.Cid())
+		ipldNode, err = newFid.core.Dag().Get(callCtx, newFid.Path.Cid())
 		if err != nil {
 			cancel()
 			return qids, nil, err
@@ -93,13 +105,13 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	}
 
 	// stat up front for our returned file
-	err, filled := ipldStat(id.Ctx, &newFid.meta, ipldNode, p9.AttrMaskAll)
+	err, filled := ipldStat(newFid.filesystemCtx, &newFid.meta, ipldNode, p9.AttrMaskAll)
 	if err != nil {
 		return qids, nil, err
 	}
 	newFid.metaMask = filled
 	newFid.meta.Mode |= IRXA
-	newFid.meta.RDev, id.metaMask.RDev = dIPFS, true
+	newFid.meta.RDev, newFid.metaMask.RDev = dIPFS, true
 
 	id.Logger.Debugf("Walk ret %v, %v", qids, newFid)
 	return qids, newFid, err
@@ -110,7 +122,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 
 	// set up  handle amenities
 	var handleContext context.Context
-	handleContext, id.operationsCancel = context.WithCancel(id.Ctx)
+	handleContext, id.operationsCancel = context.WithCancel(id.filesystemCtx)
 
 	// handle directories
 	if id.meta.Mode.IsDir() { //FIXME: meta is not being set anywhere
@@ -170,7 +182,7 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		select {
 		case entry, open := <-id.directory.entryChan:
 			if !open {
-				id.operationsCancel()
+				//id.operationsCancel()
 				id.directory.eos = true
 				return ents, nil
 			}
@@ -191,8 +203,8 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 
 			id.directory.cursor++
 
-		case <-id.Ctx.Done():
-			id.directory.err = id.Ctx.Err()
+		case <-id.filesystemCtx.Done():
+			id.directory.err = id.filesystemCtx.Err()
 			return ents, id.directory.err
 		}
 	}
@@ -202,10 +214,16 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 }
 
 func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
-	id.Logger.Debugf("ReadAt {%d/%d}%q", offset, id.meta.Size, id.Path.String())
+	const (
+		readAtFmt    = "ReadAt {%d/%d}%q"
+		readAtFmtErr = readAtFmt + ": %s"
+	)
+	id.Logger.Debugf(readAtFmt, offset, id.meta.Size, id.Path.String())
 
 	if id.file == nil {
-		return 0, fmt.Errorf("file %q is not open for reading", id.Path.String())
+		err := fmt.Errorf("file %q is not open for reading", id.Path.String())
+		id.Logger.Errorf(readAtFmtErr, offset, id.meta.Size, id.Path.String(), err)
+		return 0, err
 	}
 
 	if offset >= id.meta.Size {
@@ -213,12 +231,18 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 		return 0, io.EOF
 	}
 
+	//FIXME: for some reason, the internal CoreAPI context is being canceled
+	// and it breaks everything
 	if _, err := id.file.Seek(int64(offset), io.SeekStart); err != nil {
-		return 0, fmt.Errorf("Read - seek error: %s", err)
+		id.operationsCancel()
+		id.Logger.Errorf(readAtFmtErr, offset, id.meta.Size, id.Path.String(), err)
+		return 0, err
 	}
 
 	readBytes, err := id.file.Read(p)
 	if err != nil && err != io.EOF {
+		id.Logger.Errorf(readAtFmtErr, offset, id.meta.Size, id.Path.String(), err)
+		id.operationsCancel()
 		return 0, err
 	}
 
