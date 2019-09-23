@@ -20,11 +20,11 @@ type discoveryHandler struct {
 }
 
 func (dh *discoveryHandler) HandlePeerFound(p peer.AddrInfo) {
-	log.Warning("trying peer info: ", p)
+	log.Info("connecting to discovered peer: ", p)
 	ctx, cancel := context.WithTimeout(dh.ctx, discoveryConnTimeout)
 	defer cancel()
 	if err := dh.host.Connect(ctx, p); err != nil {
-		log.Warning("Failed to connect to peer found by discovery: ", err)
+		log.Warningf("failed to connect to peer %s found by discovery: %s", p.ID, err)
 	}
 }
 
