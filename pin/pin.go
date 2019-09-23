@@ -516,6 +516,14 @@ func (p *pinner) RecursiveKeys() []cid.Cid {
 // this is more efficient than simply pinning the new one and unpinning the
 // old one
 func (p *pinner) Update(ctx context.Context, from, to cid.Cid, unpin bool) error {
+	if from == to {
+		// Nothing to do. Don't remove this check or we'll end up
+		// _removing_ the pin.
+		//
+		// See #6648
+		return nil
+	}
+
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
