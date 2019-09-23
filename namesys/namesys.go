@@ -183,6 +183,9 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 		return err
 	}
 	ttl := DefaultResolverCacheTTL
+	if setTTL, ok := checkCtxTTL(ctx); ok {
+		ttl = setTTL
+	}
 	if ttEol := time.Until(eol); ttEol < ttl {
 		ttl = ttEol
 	}
