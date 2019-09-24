@@ -36,9 +36,5 @@ echo "Disabling mutex profiling"
 curl -X POST -v "http://$HTTP_API"'/debug/pprof-mutex/?fraction=0'
 
 popd
-tar cvzf "./ipfs-profile-$(uname -n)-$(date -Iseconds).tar.gz" -C "$tmpdir" .
+tar cvzf "./ipfs-profile-$(uname -n)-$(date +'%Y-%m-%dT%H:%M:%S%z').tar.gz" -C "$tmpdir" .
 rm -rf "$tmpdir"
-
-
-
-
