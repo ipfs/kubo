@@ -3,7 +3,7 @@ set -x
 set -euo pipefail
 IFS=$'\n\t'
 
-HTTP_API="${1:-localhost:5001}"
+HTTP_API="${1:-127.0.0.1:5001}"
 tmpdir=$(mktemp -d)
 export PPROF_TMPDIR="$tmpdir"
 pushd "$tmpdir"
