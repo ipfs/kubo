@@ -9,8 +9,11 @@ type Environment struct {
 	Config interface{}
 }
 
-// Plugin is base interface for all kinds of go-ipfs plugins
+// Plugin is the base interface for all kinds of go-ipfs plugins
 // It will be included in interfaces of different Plugins
+//
+// Optionally, Plugins can implement io.Closer if they want to
+// have a termination step when unloading.
 type Plugin interface {
 	// Name should return unique name of the plugin
 	Name() string
