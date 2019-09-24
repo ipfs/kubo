@@ -31,18 +31,21 @@ type Base struct {
 	meta     p9.Attr
 	metaMask p9.AttrMask
 
-	// The base context should be valid for the lifetime of the file system
-	// and should be derived from the parent context on Attach()
-	// A cancel from either should cascade down, and invalidate all derived operations
+	// The parent context should be set prior to calling attach (usually in a consturctor)
+	// The Base filesystemCtx is derived from the parent context during Base.Attach
+	// and should be valid for the lifetime of the file system
+	// The fs context should be used to derive operation specific contexts from during calls
+	// A cancel should cascade down, and invalidate all derived contexts
 	// A call to fs.Close should leave no operations lingering
 	parentCtx        context.Context
 	filesystemCtx    context.Context
 	filesystemCancel context.CancelFunc
 	Logger           logging.EventLogger
 
-	parent walkRef // parent should be set and used to handle ".." requests
-	child  walkRef // child is an optional field, used to hand off child requests to another file system
-	root   bool    // am I a filesystem root? (as opposed to a file)
+	parent p9.File // parent must be set, it is used to handle ".." requests; nodes without a parent must point back to themselves
+	child  p9.File // child is an optional field, used to hand off walk requests to another file system
+	root   bool    // should be set to true on Attach if parent == self, this triggers the filesystemCancel on Close
+	open   bool    // should be set to true on Open and checked during Walk; do not walk open references walk(5)
 }
 
 // IPFSBase is much like Base but extends it to hold IPFS specific metadata
@@ -52,8 +55,8 @@ type IPFSBase struct {
 	Path corepath.Resolved
 	core coreiface.CoreAPI
 
-	// you will typically want to derive a context from the base context within one operation (like Open)
-	// use it with the CoreAPI for something
+	// you will typically want to derive a context from the Base context within one operation (like Open)
+	// use it with the CoreAPI for something (like Get)
 	// and cancel it in another operation (like Close)
 	// that pointer should be stored here between calls
 	operationsCancel context.CancelFunc
@@ -63,6 +66,8 @@ type IPFSBase struct {
 	directory *directoryStream
 }
 
+// Base Attach should be called by all supersets during their Attach
+// to initialize the file system context
 func (b *Base) Attach() (p9.File, error) {
 	if b.parentCtx == nil {
 		return nil, errors.New("Parent context was not set, no way to derive")
@@ -80,50 +85,46 @@ func (b *Base) Attach() (p9.File, error) {
 	}
 	b.filesystemCtx, b.filesystemCancel = context.WithCancel(b.parentCtx)
 
-	b.root = true
-
 	return b, nil
 }
 
+// Base Close should be called in all superset Close methods in order to
+// close child subsystems and cancel the file system context
 func (b *Base) Close() error {
-	/* FIXME: close call ordering is unclear, currently this happens earlier than expected
-	maybe related to core bug?
+	b.Logger.Debugf("closing: {%v}", b.Qid.Path)
 
 	if b.root {
 		b.filesystemCancel()
 	}
 
+	var err error
 	if b.child != nil {
-		return b.child.Close()
+		if err = b.child.Close(); err != nil {
+			b.Logger.Error(err)
+		}
 	}
-	*/
 
-	return nil
+	return err
 }
 
 func (ib *IPFSBase) Close() error {
-	ib.Logger.Debugf("Closing:%q", ib.Path.String())
+	ib.Logger.Debugf("closing:{%v}%q", ib.Qid, ib.Path.String())
 	var lastErr error
+	if ib.operationsCancel != nil {
+		ib.operationsCancel()
+	}
 
 	if err := ib.Base.Close(); err != nil {
-		ib.Logger.Errorf("base close: %s", err)
+		ib.Logger.Error(err)
 		lastErr = err
 	}
 
 	if ib.file != nil {
 		if err := ib.file.Close(); err != nil {
-			ib.Logger.Errorf("files.File close: %s", err)
+			ib.Logger.Error(err)
 			lastErr = err
 		}
 	}
-
-	/* FIXME: close call ordering is unclear, currently this happens earlier than expected
-	maybe related to core bug?
-
-	if ib.operationsCancel != nil {
-		ib.operationsCancel()
-	}
-	*/
 
 	return lastErr
 }
@@ -137,23 +138,14 @@ type directoryStream struct {
 
 type walkRef interface {
 	p9.File
-	QID() p9.QID
-	Parent() walkRef
-	Child() walkRef
+	Parent() p9.File
+	Child() p9.File
 }
 
-func (b *Base) Self() walkRef {
-	return b
-}
-
-func (b *Base) Parent() walkRef {
+func (b *Base) Parent() p9.File {
 	return b.parent
 }
 
-func (b *Base) Child() walkRef {
+func (b *Base) Child() p9.File {
 	return b.child
-}
-
-func (b *Base) QID() p9.QID {
-	return b.Qid
 }

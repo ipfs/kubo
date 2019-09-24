@@ -14,6 +14,9 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
+var _ p9.File = (*IPFS)(nil)
+var _ walkRef = (*IPFS)(nil)
+
 // IPFS exposes the IPFS API over a p9.File interface
 // Walk does not expect a namespace, only its path argument
 // e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
@@ -21,7 +24,7 @@ type IPFS struct {
 	IPFSBase
 }
 
-func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) *IPFS {
+func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) p9.Attacher {
 	id := &IPFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
 		core, logging.Logger("IPFS"))}
 	id.meta, id.metaMask = defaultRootAttr()
@@ -40,6 +43,10 @@ func (id *IPFS) Attach() (p9.File, error) {
 		return nil, err
 	}
 
+	if id.parent == id {
+		id.root = true
+	}
+
 	return id, nil
 }
 
@@ -54,28 +61,31 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	id.Logger.Debugf("Walk names %v", names)
 	id.Logger.Debugf("Walk myself: %s:%v", id.Path, id.Qid)
 
-	if shouldClone(names) {
+	if id.open {
+		return nil, nil, errWalkOpened
+	}
+
+	newFid := new(IPFS)
+	*newFid = *id
+	newFid.root = false
+
+	if shouldClone(names, id.root) {
 		id.Logger.Debugf("Walk cloned")
-		return []p9.QID{id.Qid}, id, nil
+		return []p9.QID{newFid.Qid}, newFid, nil
 	}
 
 	var (
 		// returned
-		qids   = make([]p9.QID, 0, len(names))
-		newFid = &IPFS{IPFSBase: newIPFSBase(id.parentCtx, id.Path, 0, id.core, id.Logger)}
+		qids = make([]p9.QID, 0, len(names))
 		// temporary
-		attr        = &p9.Attr{}
 		requestType = p9.AttrMask{Mode: true}
 		err         error
 		// last-set value is used
 		ipldNode ipld.Node
 	)
-	//TODO: better construction/context init
-	newFid.filesystemCtx, newFid.filesystemCancel = id.filesystemCtx, id.filesystemCancel
 
 	for _, name := range names {
 		callCtx, cancel := context.WithTimeout(newFid.filesystemCtx, 30*time.Second)
-		defer cancel()
 
 		corePath, err := newFid.core.ResolvePath(callCtx, corepath.Join(newFid.Path, name))
 		if err != nil {
@@ -93,6 +103,7 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 			return qids, nil, err
 		}
 
+		attr := &p9.Attr{}
 		err, _ = ipldStat(callCtx, attr, ipldNode, requestType)
 		if err != nil {
 			cancel()
@@ -102,13 +113,19 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 		newFid.Qid.Type = attr.Mode.QIDType()
 		newFid.Qid.Path = cidToQPath(ipldNode.Cid())
 		qids = append(qids, newFid.Qid)
+
+		cancel()
 	}
 
 	// stat up front for our returned file
-	err, filled := ipldStat(newFid.filesystemCtx, &newFid.meta, ipldNode, p9.AttrMaskAll)
+	callCtx, cancel := context.WithTimeout(newFid.filesystemCtx, 30*time.Second)
+	defer cancel()
+	meta := &p9.Attr{}
+	err, filled := ipldStat(callCtx, meta, ipldNode, p9.AttrMaskAll)
 	if err != nil {
 		return qids, nil, err
 	}
+	newFid.meta = *meta
 	newFid.metaMask = filled
 	newFid.meta.Mode |= IRXA
 	newFid.meta.RDev, newFid.metaMask.RDev = dIPFS, true
@@ -218,7 +235,7 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 		readAtFmt    = "ReadAt {%d/%d}%q"
 		readAtFmtErr = readAtFmt + ": %s"
 	)
-	id.Logger.Debugf(readAtFmt, offset, id.meta.Size, id.Path.String())
+	//id.Logger.Debugf(readAtFmt, offset, id.meta.Size, id.Path.String())
 
 	if id.file == nil {
 		err := fmt.Errorf("file %q is not open for reading", id.Path.String())

@@ -3,6 +3,7 @@ package fsnodes
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -25,7 +26,12 @@ const (
 	// context: https://github.com/ipfs/go-ipfs/pull/6612/files#r322989041
 	ipfsBlockSize = 256 << 10
 	saltSize      = 32
+
+	errFmtWalkSubsystem = "could not attach to subsystem: %q"
+	errFmtExternalWalk  = "%q does not provide external fs walk methods"
 )
+
+var errWalkOpened = errors.New("this fid is open")
 
 // NOTE [2019.09.12]: QID's have a high collision probability
 // as a result we add a salt to hashes to attempt to mitigate this
@@ -40,13 +46,13 @@ func init() {
 	}
 }
 
-func shouldClone(names []string) bool {
+func shouldClone(names []string, isRoot bool) bool {
 	switch len(names) {
 	case 0: // empty path
 		return true
 	case 1: // self?
 		pc := names[0]
-		return pc == ".." || pc == "." || pc == ""
+		return pc == "." || pc == "" || (isRoot && pc == "..")
 	default:
 		return false
 	}
@@ -212,46 +218,58 @@ func boundCheck(offset uint64, length int) (bool, error) {
 	}
 }
 
-// walker acts as a dispatcher for intermediate file systems
-// sending individual path component requests to their appropriate target system
-// regardless of (file system request) origin
-func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
-	// clone requests go right back to the caller
-	if shouldClone(names) {
-		return []p9.QID{ref.QID()}, ref, nil
-	}
-
+//TODO: English sanity check; does this make sense without reading the code?
+//TODO: we need to throw a lot of path tests at this; the recursive nature of walk->stepper->walk->stepper may be troublesome as well
+// stepper acts as a dispatcher for intermediate file systems
+// sending path component requests to a separate file system based on the name args
+// clone requests (no names) will return a clone of the attached child
+func stepper(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 	var (
-		nextRef       walkRef
+		nextRef       p9.File
 		qids, subQids []p9.QID
 		curFile       p9.File
 		err           error
+		ok            bool
 	)
 
+	if len(names) == 0 {
+		//return qids, nil, errors.New("no subnames were provided")
+		c := ref.Child()
+		if c == nil {
+			return qids, nil, errors.New("clone requested but child file system attached")
+		}
+
+		return c.Walk(nil)
+	}
+
 	for len(names) != 0 {
-		//prepare to step into next component
-		if names[0] == ".." { // climb to parent / leftwards requests
+		//prepare to step into next component(s)
+		if names[0] == ".." { // climb to parent / leftward requests
 			nextRef = ref.Parent()
-		} else { // handle remainder / rightward requests
+		} else { // descend into remainder / rightward requests
 			nextRef = ref.Child()
 		}
 		if nextRef == nil {
-			return []p9.QID{ref.QID()}, nil, fmt.Errorf("system for target %q is not assigned", names[0])
+			return qids, nil, fmt.Errorf("%q is not attached to another file system", names[0])
 		}
 
-		// attempt the step
-		if subQids, curFile, err = nextRef.Walk(names); err != nil {
+		ref, ok = nextRef.(walkRef) //TODO: see if we can implement this without runtime assertion
+		if !ok {
+			return qids, nil, fmt.Errorf(errFmtExternalWalk, names[0])
+		}
+
+		// attempt the step(s)
+		if subQids, curFile, err = ref.Walk(names); err != nil {
 			return qids, nil, err
 		}
 
-		// we walked forward, prepare for next step
+		// we walked forward, prepare for next step(s)
 		qids = append(qids, subQids...)
-		names = names[1:]
-		ref = nextRef
+		names = names[len(subQids):]
 
-		if len(names) != 0 {
+		if len(names) != 0 { // leave the last reference alive, for the caller to close
 			curFile.Close() // we're not referencing this anymore
-		} // leave the last reference alive, for the caller to close
+		}
 	}
 
 	return qids, curFile, nil

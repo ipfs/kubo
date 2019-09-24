@@ -11,13 +11,16 @@ import (
 	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
+var _ p9.File = (*PinFS)(nil)
+var _ walkRef = (*PinFS)(nil)
+
 type PinFS struct {
 	IPFSBase
 	ents []p9.Dirent
 }
 
-func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) *PinFS {
-	pd := &PinFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
+func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) p9.Attacher {
+	pd := &PinFS{IPFSBase: newIPFSBase(ctx, rootPath("/PinFS"), p9.TypeDir,
 		core, logging.Logger("PinFS"))}
 	pd.meta, pd.metaMask = defaultRootAttr()
 	if parent != nil {
@@ -35,14 +38,14 @@ func (pd *PinFS) Attach() (p9.File, error) {
 		return nil, err
 	}
 
-	subSystem, err := IPFSAttacher(pd.filesystemCtx, pd.core, pd).Attach()
+	subsystem, err := IPFSAttacher(pd.filesystemCtx, pd.core, pd).Attach()
 	if err != nil {
-		return nil, fmt.Errorf("could not attach to subsystem: %s", err)
+		return nil, fmt.Errorf(errFmtWalkSubsystem, err)
 	}
 
-	walkRef, ok := subSystem.(walkRef)
+	walkRef, ok := subsystem.(walkRef)
 	if !ok {
-		return nil, fmt.Errorf("%q does not provide traverals methods", "ipfs")
+		return nil, fmt.Errorf(errFmtExternalWalk, "ipfs")
 	}
 
 	pd.child = walkRef
@@ -60,7 +63,22 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	pd.Logger.Debugf("Walk names %v", names)
 	pd.Logger.Debugf("Walk myself: %v", pd.Qid)
 
-	return walker(pd, names)
+	qids := []p9.QID{pd.Qid}
+
+	if pd.open {
+		return qids, nil, errWalkOpened
+	}
+
+	newFid := new(PinFS)
+	*newFid = *pd
+	newFid.root = false
+
+	if shouldClone(names, pd.root) {
+		pd.Logger.Debugf("Walk cloned")
+		return qids, newFid, nil
+	}
+
+	return stepper(pd, names)
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
