@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
@@ -115,5 +116,53 @@ func TestPublishWithCache0(t *testing.T) {
 	err = nsys.Publish(context.Background(), priv, p)
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestPublishWithTTL(t *testing.T) {
+	dst := dssync.MutexWrap(ds.NewMapDatastore())
+	priv, _, err := ci.GenerateKeyPair(ci.RSA, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps := pstoremem.NewPeerstore()
+	pid, err := peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ps.AddPrivKey(pid, priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	routing := offroute.NewOfflineRouter(dst, record.NamespacedValidator{
+		"ipns": ipns.Validator{KeyBook: ps},
+		"pk":   record.PublicKeyValidator{},
+	})
+
+	nsys := NewNameSystem(routing, dst, 128)
+	p, err := path.ParsePath(unixfs.EmptyDirNode().Cid().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ttl := 1 * time.Second
+	eol := time.Now().Add(2 * time.Second)
+
+	ctx := context.WithValue(context.Background(), "ipns-publish-ttl", ttl)
+	err = nsys.Publish(ctx, priv, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ientry, ok := nsys.(*mpns).cache.Get(pid.Pretty())
+	if !ok {
+		t.Fatal("cache get failed")
+	}
+	entry, ok := ientry.(cacheEntry)
+	if !ok {
+		t.Fatal("bad cache item returned")
+	}
+	if entry.eol.Sub(eol) > 10*time.Millisecond {
+		t.Fatalf("bad cache ttl: expected %s, got %s", eol, entry.eol)
 	}
 }
