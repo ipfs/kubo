@@ -10,5 +10,4 @@ type PluginDaemon interface {
 	Plugin
 
 	Start(coreiface.CoreAPI) error
-	Close() error
 }
