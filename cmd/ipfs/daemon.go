@@ -443,29 +443,35 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: socket activation failed: %s", err)
 	}
 
-	if len(listeners) == 0 {
-		apiAddrs := make([]string, 0, 2)
-		apiAddr, _ := req.Options[commands.ApiOption].(string)
-		if apiAddr == "" {
-			apiAddrs = cfg.Addresses.API
-		} else {
-			apiAddrs = append(apiAddrs, apiAddr)
+	apiAddrs := make([]string, 0, 2)
+	apiAddr, _ := req.Options[commands.ApiOption].(string)
+	if apiAddr == "" {
+		apiAddrs = cfg.Addresses.API
+	} else {
+		apiAddrs = append(apiAddrs, apiAddr)
+	}
+
+	listenerAddrs := make(map[string]bool, len(listeners))
+	for _, listener := range listeners {
+		listenerAddrs[string(listener.Multiaddr().Bytes())] = true
+	}
+
+	for _, addr := range apiAddrs {
+		apiMaddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", apiAddr, err)
+		}
+		if listenerAddrs[string(apiMaddr.Bytes())] {
+			continue
 		}
 
-		listeners := make([]manet.Listener, 0, len(apiAddrs))
-		for _, addr := range apiAddrs {
-			apiMaddr, err := ma.NewMultiaddr(addr)
-			if err != nil {
-				return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", apiAddr, err)
-			}
-
-			apiLis, err := manet.Listen(apiMaddr)
-			if err != nil {
-				return nil, fmt.Errorf("serveHTTPApi: manet.Listen(%s) failed: %s", apiMaddr, err)
-			}
-
-			listeners = append(listeners, apiLis)
+		apiLis, err := manet.Listen(apiMaddr)
+		if err != nil {
+			return nil, fmt.Errorf("serveHTTPApi: manet.Listen(%s) failed: %s", apiMaddr, err)
 		}
+
+		listenerAddrs[string(apiMaddr.Bytes())] = true
+		listeners = append(listeners, apiLis)
 	}
 
 	for _, listener := range listeners {
@@ -577,20 +583,28 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		return nil, fmt.Errorf("serveHTTPGateway: socket activation failed: %s", err)
 	}
 
-	if len(listeners) == 0 {
-		gatewayAddrs := cfg.Addresses.Gateway
-		for _, addr := range gatewayAddrs {
-			gatewayMaddr, err := ma.NewMultiaddr(addr)
-			if err != nil {
-				return nil, fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", addr, err)
-			}
+	listenerAddrs := make(map[string]bool, len(listeners))
+	for _, listener := range listeners {
+		listenerAddrs[string(listener.Multiaddr().Bytes())] = true
+	}
 
-			gwLis, err := manet.Listen(gatewayMaddr)
-			if err != nil {
-				return nil, fmt.Errorf("serveHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
-			}
-			listeners = append(listeners, gwLis)
+	gatewayAddrs := cfg.Addresses.Gateway
+	for _, addr := range gatewayAddrs {
+		gatewayMaddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return nil, fmt.Errorf("serveHTTPGateway: invalid gateway address: %q (err: %s)", addr, err)
 		}
+
+		if listenerAddrs[string(gatewayMaddr.Bytes())] {
+			continue
+		}
+
+		gwLis, err := manet.Listen(gatewayMaddr)
+		if err != nil {
+			return nil, fmt.Errorf("serveHTTPGateway: manet.Listen(%s) failed: %s", gatewayMaddr, err)
+		}
+		listenerAddrs[string(gatewayMaddr.Bytes())] = true
+		listeners = append(listeners, gwLis)
 	}
 
 	// we might have listened to /tcp/0 - lets see what we are listing on
