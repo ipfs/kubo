@@ -3,7 +3,6 @@
 package sockets
 
 import (
-	"net"
 	"sync"
 
 	activation "github.com/coreos/go-systemd/activation"
@@ -43,11 +42,6 @@ func initSockets() {
 		}
 		sockets[name] = mls
 	}
-}
-
-func mapListeners(nls []net.Listener) ([]manet.Listener, error) {
-	mls := make([]manet.Listener, len(nls))
-	return mls, nil
 }
 
 // TakeSockets takes the sockets associated with the given name.
