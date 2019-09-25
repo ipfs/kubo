@@ -81,7 +81,12 @@ func (b *Base) Attach() (p9.File, error) {
 	}
 
 	if b.filesystemCtx != nil {
-		return nil, errors.New("Already attached")
+		select {
+		case <-b.filesystemCtx.Done():
+			break
+		default:
+			return nil, errors.New("Attach was called already and file system is in use")
+		}
 	}
 	b.filesystemCtx, b.filesystemCancel = context.WithCancel(b.parentCtx)
 
