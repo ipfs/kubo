@@ -411,10 +411,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
+	notifyReady()
 
 	// Give the user some immediate feedback when they hit C-c
 	go func() {
 		<-req.Context.Done()
+		notifyStopping()
 		fmt.Println("Received interrupt signal, shutting down...")
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
