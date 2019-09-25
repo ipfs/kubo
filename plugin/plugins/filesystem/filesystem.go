@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/djdv/p9/p9"
 	plugin "github.com/ipfs/go-ipfs/plugin"
@@ -50,7 +51,7 @@ func (*FileSystemPlugin) Version() string {
 func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	logger.Info("Initializing 9P resource server...")
 
-	// stabilise repo path
+	// stabilise repo path; our template depends on this
 	if !filepath.IsAbs(env.Repo) {
 		absRepo, err := filepath.Abs(env.Repo)
 		if err != nil {
@@ -78,7 +79,15 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	}
 
 	// expand string templates and initialize listening addr
-	addrString = os.Expand(addrString, configVarMapper(env.Repo))
+	templateRepoPath := env.Repo
+	if strings.HasPrefix(addrString, "/unix") {
+		// prevent template from expanding to double slashed paths like `/unix//home/...`
+		// but allow it to expand to `/unix/C:\Users...`
+		templateRepoPath = strings.TrimPrefix(templateRepoPath, "/")
+	}
+
+	addrString = os.Expand(addrString, configVarMapper(templateRepoPath))
+
 	ma, err := multiaddr.NewMultiaddr(addrString)
 	if err != nil {
 		return err
