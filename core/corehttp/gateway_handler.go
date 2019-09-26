@@ -372,10 +372,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-type sized interface {
-	Size() (int64, error)
-}
-
 func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
 	size, err := file.Size()
 	if err != nil {
