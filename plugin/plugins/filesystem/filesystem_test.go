@@ -42,7 +42,7 @@ func TestAll(t *testing.T) {
 }
 
 func testRootFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
-	nineRoot, err := fsnodes.RootAttacher(ctx, core, nil).Attach()
+	nineRoot, err := fsnodes.RootAttacher(ctx, core).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
 	}
@@ -69,7 +69,7 @@ func testRootFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 }
 
 func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
-	pinRoot, err := fsnodes.PinFSAttacher(ctx, core, nil).Attach()
+	pinRoot, err := fsnodes.PinFSAttacher(ctx, core).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P Pin resource: %s\n", err)
 	}
@@ -137,7 +137,7 @@ func testIPFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 		t.Fatalf("Failed to attach to local resource %q: %s\n", env, err)
 	}
 
-	ipfsRoot, err := fsnodes.IPFSAttacher(ctx, core, nil).Attach()
+	ipfsRoot, err := fsnodes.IPFSAttacher(ctx, core).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to IPFS resource: %s\n", err)
 	}

@@ -6,6 +6,7 @@ import (
 	gopath "path"
 
 	"github.com/djdv/p9/p9"
+	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
@@ -19,14 +20,17 @@ type PinFS struct {
 	ents []p9.Dirent
 }
 
-func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) p9.Attacher {
+func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.Option) p9.Attacher {
 	pd := &PinFS{IPFSBase: newIPFSBase(ctx, rootPath("/PinFS"), p9.TypeDir,
 		core, logging.Logger("PinFS"))}
 	pd.meta, pd.metaMask = defaultRootAttr()
-	if parent != nil {
-		pd.parent = parent
+
+	options := nodeopts.AttachOps(ops...)
+	if options.Parent != nil {
+		pd.parent = options.Parent
 	} else {
 		pd.parent = pd
+		pd.root = true
 	}
 	return pd
 }
@@ -38,7 +42,9 @@ func (pd *PinFS) Attach() (p9.File, error) {
 		return nil, err
 	}
 
-	subsystem, err := IPFSAttacher(pd.filesystemCtx, pd.core, pd).Attach()
+	opts := []nodeopts.Option{nodeopts.Parent(pd)}
+
+	subsystem, err := IPFSAttacher(pd.filesystemCtx, pd.core, opts...).Attach()
 	if err != nil {
 		return nil, fmt.Errorf(errFmtWalkSubsystem, err)
 	}
@@ -71,14 +77,15 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	newFid := new(PinFS)
 	*newFid = *pd
-	newFid.root = false
 
 	if shouldClone(names, pd.root) {
 		pd.Logger.Debugf("Walk cloned")
 		return qids, newFid, nil
 	}
 
-	return stepper(pd, names)
+	newFid.root = false
+
+	return stepper(newFid, names)
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {

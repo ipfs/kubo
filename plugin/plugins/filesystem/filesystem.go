@@ -119,7 +119,7 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 	fs.listener = listener
 
 	// construct and launch the 9P resource server
-	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core, nil))
+	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core))
 	go func() {
 		fs.errorChan <- s.Serve(manet.NetListener(fs.listener))
 	}()

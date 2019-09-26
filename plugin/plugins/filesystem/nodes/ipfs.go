@@ -8,6 +8,7 @@ import (
 
 	"github.com/djdv/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
+	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -24,14 +25,17 @@ type IPFS struct {
 	IPFSBase
 }
 
-func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, parent walkRef) p9.Attacher {
+func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.Option) p9.Attacher {
 	id := &IPFS{IPFSBase: newIPFSBase(ctx, rootPath("/ipfs"), p9.TypeDir,
 		core, logging.Logger("IPFS"))}
 	id.meta, id.metaMask = defaultRootAttr()
-	if parent != nil {
-		id.parent = parent
+
+	options := nodeopts.AttachOps(ops...)
+	if options.Parent != nil {
+		id.parent = options.Parent
 	} else {
 		id.parent = id
+		id.root = true
 	}
 	return id
 }
@@ -41,10 +45,6 @@ func (id *IPFS) Attach() (p9.File, error) {
 	_, err := id.Base.Attach()
 	if err != nil {
 		return nil, err
-	}
-
-	if id.parent == id {
-		id.root = true
 	}
 
 	return id, nil
@@ -67,12 +67,13 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	newFid := new(IPFS)
 	*newFid = *id
-	newFid.root = false
 
-	if shouldClone(names, id.root) {
+	if shouldClone(names, newFid.root) {
 		id.Logger.Debugf("Walk cloned")
 		return []p9.QID{newFid.Qid}, newFid, nil
 	}
+
+	newFid.root = false
 
 	var (
 		// returned
@@ -130,7 +131,6 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	newFid.meta.Mode |= IRXA
 	newFid.meta.RDev, newFid.metaMask.RDev = dIPFS, true
 
-	id.Logger.Debugf("Walk ret %v, %v", qids, newFid)
 	return qids, newFid, err
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/djdv/p9/p9"
 	cid "github.com/ipfs/go-cid"
+	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/multiformats/go-multihash"
@@ -56,7 +57,7 @@ type RootIndex struct {
 }
 
 // RootAttacher constructs the default RootIndex file system, providing a means to Attach() to it
-func RootAttacher(ctx context.Context, core coreiface.CoreAPI, parent p9.File) p9.Attacher {
+func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.Option) p9.Attacher {
 	ri := &RootIndex{
 		core: core,
 		Base: Base{
@@ -70,33 +71,29 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, parent p9.File) p
 	}
 	ri.meta, ri.metaMask = defaultRootAttr()
 
-	//
 	rootDirent := p9.Dirent{
 		Type: p9.TypeDir,
 		QID:  p9.QID{Type: p9.TypeDir},
 	}
 
-	type subattacher func(context.Context, coreiface.CoreAPI, walkRef) p9.Attacher
+	type subattacher func(context.Context, coreiface.CoreAPI, ...nodeopts.Option) p9.Attacher
 	type attachTuple struct {
 		string
 		subattacher
-		//p9.Dirent
 	}
 	subsystems := [...]attachTuple{
 		{"ipfs", PinFSAttacher},
-		//{"ipns", KeyFsAttacher},
-		//{"files", needs CoreAPI changes},
 	}
 
 	ri.subsystems = make(map[string]systemTuple, len(subsystems))
+	opts := []nodeopts.Option{nodeopts.Parent(ri)}
 
 	for i, subsystem := range subsystems {
-		fs, err := subsystem.subattacher(ctx, core, ri).Attach()
+		fs, err := subsystem.subattacher(ctx, core, opts...).Attach()
 		if err != nil {
 			panic(err) // hard implementation error
 		}
 
-		//for i, pathUnion := range [...]struct {
 		rootDirent.Offset = uint64(i + 1)
 		rootDirent.Name = subsystem.string
 
@@ -108,10 +105,12 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, parent p9.File) p
 		}
 	}
 
-	if parent != nil {
-		ri.parent = parent
+	options := nodeopts.AttachOps(ops...)
+	if options.Parent != nil {
+		ri.parent = options.Parent
 	} else {
 		ri.parent = ri
+		ri.root = true
 	}
 
 	return ri
@@ -119,16 +118,16 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, parent p9.File) p
 
 func (ri *RootIndex) Attach() (p9.File, error) {
 	ri.Logger.Debugf("Attach")
-	_, err := ri.Base.Attach()
+
+	newFid := new(RootIndex)
+	*newFid = *ri
+
+	_, err := newFid.Base.Attach()
 	if err != nil {
 		return nil, err
 	}
 
-	if ri.parent == ri {
-		ri.root = true
-	}
-
-	return ri, nil
+	return newFid, nil
 }
 
 func (ri *RootIndex) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
@@ -150,12 +149,13 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	newFid := new(RootIndex)
 	*newFid = *ri
-	newFid.root = false
 
-	if shouldClone(names, ri.root) {
+	if shouldClone(names, newFid.root) {
 		ri.Logger.Debugf("Walk cloned")
 		return qids, newFid, nil
 	}
+
+	newFid.root = false
 
 	subSys, ok := ri.subsystems[names[0]]
 	if !ok {

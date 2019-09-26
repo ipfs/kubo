@@ -75,19 +75,11 @@ func (b *Base) Attach() (p9.File, error) {
 
 	select {
 	case <-b.parentCtx.Done():
-		return nil, fmt.Errorf("Parent is done: %s", b.parentCtx.Err())
+		return nil, fmt.Errorf("Parent context is done: %s", b.parentCtx.Err())
 	default:
 		break
 	}
 
-	if b.filesystemCtx != nil {
-		select {
-		case <-b.filesystemCtx.Done():
-			break
-		default:
-			return nil, errors.New("Attach was called already and file system is in use")
-		}
-	}
 	b.filesystemCtx, b.filesystemCancel = context.WithCancel(b.parentCtx)
 
 	return b, nil
