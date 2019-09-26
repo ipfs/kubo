@@ -306,14 +306,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var dirListing []directoryItem
 	dirit := dir.Entries()
 	for dirit.Next() {
-		// See comment above where originalUrlPath is declared.
-		s, err := dirit.Node().Size()
-		if err != nil {
-			internalWebError(w, err)
-			return
+		size := "?"
+		if s, err := dirit.Node().Size(); err == nil {
+			// Size may not be defined/supported. Continue anyways.
+			size = humanize.Bytes(uint64(s))
 		}
 
-		di := directoryItem{humanize.Bytes(uint64(s)), dirit.Name(), gopath.Join(originalUrlPath, dirit.Name())}
+		// See comment above where originalUrlPath is declared.
+		di := directoryItem{size, dirit.Name(), gopath.Join(originalUrlPath, dirit.Name())}
 		dirListing = append(dirListing, di)
 	}
 	if dirit.Err() != nil {
