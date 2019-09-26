@@ -372,29 +372,19 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-type sizeReadSeeker interface {
+type sized interface {
 	Size() (int64, error)
-
-	io.ReadSeeker
 }
 
-type sizeSeeker struct {
-	sizeReadSeeker
-}
-
-func (s *sizeSeeker) Seek(offset int64, whence int) (int64, error) {
-	if whence == io.SeekEnd && offset == 0 {
-		return s.Size()
+func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
+	size, err := file.Size()
+	if err != nil {
+		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
+		return
 	}
-
-	return s.sizeReadSeeker.Seek(offset, whence)
-}
-
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
-	if sp, ok := content.(sizeReadSeeker); ok {
-		content = &sizeSeeker{
-			sizeReadSeeker: sp,
-		}
+	content := &lazySeeker{
+		size:   size,
+		reader: file,
 	}
 
 	ctype := mime.TypeByExtension(gopath.Ext(name))
