@@ -289,7 +289,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 
 		// write to request
-		http.ServeContent(w, r, "index.html", modtime, f)
+		i.serveFile(w, r, "index.html", modtime, f)
 		return
 	case resolver.ErrNoLink:
 		// no index.html; noop
