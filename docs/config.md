@@ -77,15 +77,31 @@ Contains information about various listener addresses to be used by this node.
 - `API`
 Multiaddr or array of multiaddrs describing the address to serve the local HTTP API on.
 
+Supported Transports:
+
+* tcp/ip{4,6} - `/ipN/.../tcp/...`
+* unix - `/unix/path/to/socket`
+
 Default: `/ip4/127.0.0.1/tcp/5001`
 
 - `Gateway`
 Multiaddr or array of multiaddrs describing the address to serve the local gateway on.
 
+Supported Transports:
+
+* tcp/ip{4,6} - `/ipN/.../tcp/...`
+* unix - `/unix/path/to/socket`
+
 Default: `/ip4/127.0.0.1/tcp/8080`
 
 - `Swarm`
 Array of multiaddrs describing which addresses to listen on for p2p swarm connections.
+
+Supported Transports:
+
+* tcp/ip{4,6} - `/ipN/.../tcp/...`
+* websocket - `/ipN/.../tcp/.../ws`
+* quic - `/ipN/.../udp/.../quic`
 
 Default:
 ```json
