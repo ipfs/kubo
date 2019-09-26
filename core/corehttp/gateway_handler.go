@@ -382,28 +382,36 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
 		return
 	}
+
 	content := &lazySeeker{
 		size:   size,
 		reader: file,
 	}
 
-	ctype := mime.TypeByExtension(gopath.Ext(name))
-	if ctype == "" {
-		buf := make([]byte, 512)
-		n, _ := io.ReadFull(content, buf[:])
-		ctype = http.DetectContentType(buf[:n])
-		_, err := content.Seek(0, io.SeekStart)
-		if err != nil {
-			http.Error(w, "seeker can't seek", http.StatusInternalServerError)
-			return
+	var ctype string
+	if _, isSymlink := file.(*files.Symlink); isSymlink {
+		// We should be smarter about resolving symlinks but this is the
+		// "most correct" we can be without doing that.
+		ctype = "inode/symlink"
+	} else {
+		ctype = mime.TypeByExtension(gopath.Ext(name))
+		if ctype == "" {
+			buf := make([]byte, 512)
+			n, _ := io.ReadFull(content, buf[:])
+			ctype = http.DetectContentType(buf[:n])
+			_, err := content.Seek(0, io.SeekStart)
+			if err != nil {
+				http.Error(w, "seeker can't seek", http.StatusInternalServerError)
+				return
+			}
 		}
-	}
-	// Strip the encoding from the HTML Content-Type header and let the
-	// browser figure it out.
-	//
-	// Fixes https://github.com/ipfs/go-ipfs/issues/2203
-	if strings.HasPrefix(ctype, "text/html;") {
-		ctype = "text/html"
+		// Strip the encoding from the HTML Content-Type header and let the
+		// browser figure it out.
+		//
+		// Fixes https://github.com/ipfs/go-ipfs/issues/2203
+		if strings.HasPrefix(ctype, "text/html;") {
+			ctype = "text/html"
+		}
 	}
 	w.Header().Set("Content-Type", ctype)
 
