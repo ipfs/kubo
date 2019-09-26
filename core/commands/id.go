@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
@@ -189,6 +190,6 @@ func printSelf(node *core.IpfsNode) (interface{}, error) {
 		}
 	}
 	info.ProtocolVersion = identify.LibP2PVersion
-	info.AgentVersion = identify.ClientVersion
+	info.AgentVersion = version.UserAgent
 	return info, nil
 }
