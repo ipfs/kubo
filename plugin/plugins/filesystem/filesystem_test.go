@@ -36,9 +36,84 @@ func TestAll(t *testing.T) {
 		t.Fatalf("Failed to construct IPFS node: %s\n", err)
 	}
 
+	t.Run("RootFS Attach", func(t *testing.T) { testRootAttacher(ctx, t, core) })
+	t.Run("RootFS Clone", func(t *testing.T) { testRootClones(ctx, t, core) })
 	t.Run("RootFS", func(t *testing.T) { testRootFS(ctx, t, core) })
 	t.Run("PinFS", func(t *testing.T) { testPinFS(ctx, t, core) })
 	t.Run("IPFS", func(t *testing.T) { testIPFS(ctx, t, core) })
+}
+
+func testRootAttacher(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
+	rootAttacher := fsnodes.RootAttacher(ctx, core)
+
+	// 2 individual instances
+	nineRoot, err := rootAttacher.Attach()
+	if err != nil {
+		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+	}
+
+	if err = nineRoot.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+
+	nineRootTheRevenge, err := rootAttacher.Attach()
+	if err != nil {
+		t.Fatalf("Failed to attach to 9P root resource a second time: %s\n", err)
+	}
+
+	if err = nineRootTheRevenge.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+
+	// 2 instances at the same time
+	nineRoot, err = rootAttacher.Attach()
+	if err != nil {
+		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+	}
+
+	nineRootTheRevenge, err = rootAttacher.Attach()
+	if err != nil {
+		t.Fatalf("Failed to attach to 9P root resource a second time: %s\n", err)
+	}
+
+	if err = nineRootTheRevenge.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+
+	if err = nineRoot.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+}
+
+func testRootClones(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
+	nineRoot, err := fsnodes.RootAttacher(ctx, core).Attach()
+	if err != nil {
+		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+	}
+
+	_, nineRef, err := nineRoot.Walk(nil)
+	if err != nil {
+		t.Fatalf("Failed to clone root: %s\n", err)
+	}
+
+	// this shouldn't affect the parent it's derived from
+	if err = nineRef.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+
+	_, anotherNineRef, err := nineRoot.Walk(nil)
+	if err != nil {
+		t.Fatalf("Failed to clone root: %s\n", err)
+	}
+
+	if err = anotherNineRef.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+
+	if err = nineRoot.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+
 }
 
 func testRootFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
