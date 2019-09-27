@@ -49,12 +49,7 @@ func (pd *PinFS) Attach() (p9.File, error) {
 		return nil, fmt.Errorf(errFmtWalkSubsystem, err)
 	}
 
-	walkRef, ok := subsystem.(walkRef)
-	if !ok {
-		return nil, fmt.Errorf(errFmtExternalWalk, "ipfs")
-	}
-
-	pd.child = walkRef
+	pd.child = subsystem
 
 	return pd, nil
 }
