@@ -23,6 +23,7 @@ import (
 )
 
 var BaseLibP2P = fx.Options(
+	fx.Provide(libp2p.UserAgent),
 	fx.Provide(libp2p.PNet),
 	fx.Provide(libp2p.ConnectionManager),
 	fx.Provide(libp2p.DefaultTransports),

@@ -608,7 +608,7 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("response doesn't contain commit:\n%s", s)
 	}
 
-	if !strings.Contains(s, "Client Version: "+id.ClientVersion) {
+	if !strings.Contains(s, "Client Version: "+version.UserAgent) {
 		t.Fatalf("response doesn't contain client version:\n%s", s)
 	}
 
