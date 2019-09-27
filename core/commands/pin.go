@@ -403,7 +403,7 @@ type PinLsOutputWrapper struct {
 
 // PinLsList is a set of pins with their type
 type PinLsList struct {
-	Keys map[string]PinLsType `json:",omitempty"`
+	Keys map[string]PinLsType
 }
 
 // PinLsType contains the type of a pin
