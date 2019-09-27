@@ -79,6 +79,7 @@ require (
 	github.com/libp2p/go-libp2p-tls v0.1.1
 	github.com/libp2p/go-libp2p-yamux v0.2.1
 	github.com/libp2p/go-maddr-filter v0.0.5
+	github.com/libp2p/go-socket-activation v0.0.1
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2

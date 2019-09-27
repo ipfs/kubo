@@ -15,7 +15,6 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	config "github.com/ipfs/go-ipfs-config"
 	cserial "github.com/ipfs/go-ipfs-config/serialize"
-	sockets "github.com/ipfs/go-ipfs/cmd/ipfs/sockets"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
@@ -27,6 +26,7 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	sockets "github.com/libp2p/go-socket-activation"
 
 	"github.com/hashicorp/go-multierror"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -440,7 +440,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: GetConfig() failed: %s", err)
 	}
 
-	listeners, err := sockets.TakeSockets("io.ipfs.api")
+	listeners, err := sockets.TakeListeners("io.ipfs.api")
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPApi: socket activation failed: %s", err)
 	}
@@ -580,7 +580,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		writable = cfg.Gateway.Writable
 	}
 
-	listeners, err := sockets.TakeSockets("io.ipfs.gateway")
+	listeners, err := sockets.TakeListeners("io.ipfs.gateway")
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPGateway: socket activation failed: %s", err)
 	}
