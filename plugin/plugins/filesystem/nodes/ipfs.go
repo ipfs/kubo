@@ -42,12 +42,16 @@ func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.O
 
 func (id *IPFS) Attach() (p9.File, error) {
 	id.Logger.Debugf("Attach")
-	_, err := id.Base.Attach()
+
+	newFid := new(IPFS)
+	*newFid = *id
+
+	_, err := newFid.Base.Attach()
 	if err != nil {
 		return nil, err
 	}
 
-	return id, nil
+	return newFid, nil
 }
 
 func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {

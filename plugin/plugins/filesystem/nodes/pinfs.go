@@ -37,21 +37,25 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 
 func (pd *PinFS) Attach() (p9.File, error) {
 	pd.Logger.Debugf("Attach")
-	_, err := pd.Base.Attach()
+
+	newFid := new(PinFS)
+	*newFid = *pd
+
+	_, err := newFid.Base.Attach()
 	if err != nil {
 		return nil, err
 	}
 
-	opts := []nodeopts.Option{nodeopts.Parent(pd)}
+	opts := []nodeopts.Option{nodeopts.Parent(newFid)}
 
-	subsystem, err := IPFSAttacher(pd.filesystemCtx, pd.core, opts...).Attach()
+	subsystem, err := IPFSAttacher(newFid.filesystemCtx, newFid.core, opts...).Attach()
 	if err != nil {
 		return nil, fmt.Errorf(errFmtWalkSubsystem, err)
 	}
 
-	pd.child = subsystem
+	newFid.child = subsystem
 
-	return pd, nil
+	return newFid, nil
 }
 
 func (pd *PinFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
