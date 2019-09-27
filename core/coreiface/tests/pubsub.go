@@ -34,13 +34,20 @@ func (tp *TestSuite) TestBasicPubSub(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
+
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
 
 		for {
 			err := apis[1].PubSub().Publish(ctx, "testch", []byte("hello world"))
-			if err != nil {
+			switch err {
+			case nil:
+			case context.Canceled:
+				return
+			default:
 				t.Error(err)
 				cancel()
 				return
@@ -51,6 +58,13 @@ func (tp *TestSuite) TestBasicPubSub(t *testing.T) {
 				return
 			}
 		}
+	}()
+
+	// Wait for the sender to finish before we return.
+	// Otherwise, we can get random errors as publish fails.
+	defer func() {
+		cancel()
+		<-done
 	}()
 
 	m, err := sub.Next(ctx)
