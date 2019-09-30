@@ -33,7 +33,8 @@ import (
 	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
-	"github.com/prometheus/client_golang/prometheus"
+	prometheus "github.com/prometheus/client_golang/prometheus"
+	promauto "github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -413,6 +414,18 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return err
 		}
 	}
+
+	// Add ipfs version info to prometheous metrics
+	var ipfsInfoMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "ipfs_info",
+		Help: "IPFS version information.",
+	}, []string{"version", "commit"})
+
+	// Setting to 1 lets us multiply it with other stats to add the version labels
+	ipfsInfoMetric.With(prometheus.Labels{
+		"version": version.CurrentVersionNumber,
+		"commit": version.CurrentCommit,
+	}).Set(1)
 
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
