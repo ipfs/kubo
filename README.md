@@ -269,7 +269,7 @@ SUBCOMMANDS
 
 ## Getting Started
 
-See also: http://ipfs.io/docs/getting-started/
+See also: https://docs.ipfs.io/guides/guides/install
 
 To start using IPFS, you must first initialize IPFS's config files on your
 system, this is done with `ipfs init`. See `ipfs init --help` for information on
