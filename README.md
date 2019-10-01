@@ -13,13 +13,16 @@
 
 ## What is IPFS?
 
-IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built in. You can also mount the world at /ipfs.
+IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from previous systems such Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built in. You can also mount the world at /ipfs.
 
-For more info see: https://github.com/ipfs/ipfs.
+For more info see: https://docs.ipfs.io/introduction/overview/
 
-Please put all issues regarding:
-  - IPFS _design_ in the [ipfs repo issues](https://github.com/ipfs/ipfs/issues).
-  - Go IPFS _implementation_ in [this repo](https://github.com/ipfs/go-ipfs/issues).
+Before opening an issue, consider using one of the following locations to ensure you are opening your thread in the right place:
+  - go-ipfs _implementation_ bugs in [this repo](https://github.com/ipfs/go-ipfs/issues).
+  - Documentation issues in [ipfs/docs issues](https://github.com/ipfs/docs/issues).
+  - IPFS _design_ in [ipfs/specs issues](https://github.com/ipfs/specs/issues).
+  - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
+  - Ask questions and meet the rest of the community at the [IPFS Forum](https://discuss.ipfs.io).
 
 ## Table of Contents
 
