@@ -19,7 +19,7 @@ For more info see: https://docs.ipfs.io/introduction/overview/
 
 Before opening an issue, consider using one of the following locations to ensure you are opening your thread in the right place:
   - go-ipfs _implementation_ bugs in [this repo](https://github.com/ipfs/go-ipfs/issues).
-  - Documentation issues in the [ipfs/docs issues](https://github.com/ipfs/docs/issues).
+  - Documentation issues in [ipfs/docs issues](https://github.com/ipfs/docs/issues).
   - IPFS _design_ in the [ipfs/specs issues](https://github.com/ipfs/specs/issues).
   - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
   - Ask questions and meet the rest of the community at the [IPFS Forum](https://discuss.ipfs.io).
