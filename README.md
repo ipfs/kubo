@@ -17,7 +17,7 @@ IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas fro
 
 For more info see: https://docs.ipfs.io/introduction/overview/
 
-Before opening an issue, consider using one of the following locations to ensure you are opening your thread in the right location:
+Before opening an issue, consider using one of the following locations to ensure you are opening your thread in the right place:
   - go-ipfs _implementation_ bugs in [this repo](https://github.com/ipfs/go-ipfs/issues).
   - Documentation issues in the [ipfs/docs issues](https://github.com/ipfs/docs/issues).
   - IPFS _design_ in the [ipfs/specs issues](https://github.com/ipfs/specs/issues).
