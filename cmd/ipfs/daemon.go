@@ -416,7 +416,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// Setting to 1 lets us multiply it with other stats to add the version labels
 	ipfsInfoMetric.With(prometheus.Labels{
 		"version": version.CurrentVersionNumber,
-		"commit": version.CurrentCommit,
+		"commit":  version.CurrentCommit,
 	}).Set(1)
 
 	// initialize metrics collector
@@ -492,7 +492,11 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - lets see what we are listing on
 		fmt.Printf("API server listening on %s\n", listener.Multiaddr())
-		fmt.Printf("WebUI: http://%s/webui\n", listener.Addr())
+		// Browsers require TCP.
+		switch listener.Addr().Network() {
+		case "tcp", "tcp4", "tcp6":
+			fmt.Printf("WebUI: http://%s/webui\n", listener.Addr())
+		}
 	}
 
 	// by default, we don't let you load arbitrary ipfs objects through the api,

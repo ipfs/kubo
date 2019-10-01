@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
+	"net/http"
 	"os"
 	"runtime/pprof"
 	"strings"
@@ -22,7 +24,7 @@ import (
 
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
-	"github.com/ipfs/go-ipfs-cmds/http"
+	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
 	"github.com/ipfs/go-ipfs-config"
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
@@ -249,23 +251,39 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, host, err := manet.DialArgs(apiAddr)
+	network, host, err := manet.DialArgs(apiAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	// Construct the executor.
-	opts := []http.ClientOpt{
-		http.ClientWithAPIPrefix(corehttp.APIPath),
+	opts := []cmdhttp.ClientOpt{
+		cmdhttp.ClientWithAPIPrefix(corehttp.APIPath),
 	}
 
 	// Fallback on a local executor if we (a) have a repo and (b) aren't
 	// forcing a daemon.
 	if !daemonRequested && fsrepo.IsInitialized(cctx.ConfigRoot) {
-		opts = append(opts, http.ClientWithFallback(exe))
+		opts = append(opts, cmdhttp.ClientWithFallback(exe))
 	}
 
-	return http.NewClient(host, opts...), nil
+	switch network {
+	case "tcp", "tcp4", "tcp6":
+	case "unix":
+		path := host
+		host = "unix"
+		opts = append(opts, cmdhttp.ClientWithHTTPClient(&http.Client{
+			Transport: &http.Transport{
+				DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+					return net.Dial("unix", path)
+				},
+			},
+		}))
+	default:
+		return nil, fmt.Errorf("unsupported API address: %s", apiAddr)
+	}
+
+	return cmdhttp.NewClient(host, opts...), nil
 }
 
 // commandDetails returns a command's details for the command given by |path|.
