@@ -32,15 +32,17 @@ Please put all issues regarding:
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
     - [Troubleshooting](#troubleshooting)
-  - [Development Dependencies](#development-dependencies)
-  - [Updating](#updating-go-ipfs)
-- [Usage](#usage)
+  - [Updating go-ipfs](#updating-go-ipfs)
 - [Getting Started](#getting-started)
   - [Some things to try](#some-things-to-try)
-  - [Docker usage](#docker-usage)
+  - [Usage](#usage)
+  - [Running IPFS inside Docker](#running-ipfs-inside-docker)
   - [Troubleshooting](#troubleshooting-1)
 - [Packages](#packages)
 - [Development](#development)
+  - [CLI, HTTP-API, Architecture Diagram](#cli-http-api-architecture-diagram)
+  - [Testing](#testing)
+  - [Development Dependencies](#development-dependencies)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -215,7 +217,26 @@ $ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-arm.tar.gz
 $ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_windows-amd64.zip # windows 64-bit build
 ```
 
-## Usage
+## Getting Started
+
+See also: https://docs.ipfs.io/guides/guides/install
+
+To start using IPFS, you must first initialize IPFS's config files on your
+system, this is done with `ipfs init`. See `ipfs init --help` for information on
+the optional arguments it takes. After initialization is complete, you can use
+`ipfs mount`, `ipfs add` and any of the other commands to explore!
+
+### Some things to try
+
+Basic proof of 'ipfs working' locally:
+
+	echo "hello world" > hello
+	ipfs add hello
+	# This should output a hash string that looks something like:
+	# QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
+	ipfs cat <that hash>
+
+### Usage
 
 ```
   ipfs - Global p2p merkle-dag filesystem.
@@ -267,27 +288,7 @@ SUBCOMMANDS
     export IPFS_PATH=/path/to/ipfsrepo
 ```
 
-## Getting Started
-
-See also: https://docs.ipfs.io/guides/guides/install
-
-To start using IPFS, you must first initialize IPFS's config files on your
-system, this is done with `ipfs init`. See `ipfs init --help` for information on
-the optional arguments it takes. After initialization is complete, you can use
-`ipfs mount`, `ipfs add` and any of the other commands to explore!
-
-### Some things to try
-
-Basic proof of 'ipfs working' locally:
-
-	echo "hello world" > hello
-	ipfs add hello
-	# This should output a hash string that looks something like:
-	# QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
-	ipfs cat <that hash>
-
-
-### Docker usage
+### Running IPFS inside Docker
 
 An IPFS docker image is hosted at [hub.docker.com/r/ipfs/go-ipfs](https://hub.docker.com/r/ipfs/go-ipfs/).
 To make files visible inside the container you need to mount a host directory
