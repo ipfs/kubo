@@ -113,18 +113,7 @@ func spawnDefaultOrEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
 }
 
 // ----- Writing to disk
-
-// WriteTo writes the given node to the local filesystem at fpath.
-func WriteTo(nd files.Node, fpath string) error {
-	s, err := nd.Size()
-	if err != nil {
-		return err
-	}
-
-	return writeToRec(nd, fpath)
-}
-
-func writeToRec(nd files.Node, fpath string) error {
+func writeTo(nd files.Node, fpath string) error {
 	switch nd := nd.(type) {
 	case *files.Symlink:
 		return os.Symlink(nd.Target, fpath)
@@ -150,7 +139,7 @@ func writeToRec(nd files.Node, fpath string) error {
 		entries := nd.Entries()
 		for entries.Next() {
 			child := filepath.Join(fpath, entries.Name())
-			if err := writeToRec(entries.Node(), child, bar); err != nil {
+			if err := writeTo(entries.Node(), child); err != nil {
 				return err
 			}
 		}
@@ -184,7 +173,7 @@ func main() {
 		return
 	}
 
-	err = WriteTo(out, outputPath)
+	err = writeTo(out, outputPath)
 	if err != nil {
 		fmt.Errorf("Could not write out the fetched CID: %s", err)
 		return
