@@ -43,6 +43,18 @@ your query string to explicitly specify the filename. For example:
 
 > https://ipfs.io/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG?filename=hello_world.txt
 
+## IPNS & DNSLink
+
+The gateway supports resolving IPNS and DNSLink names:
+
+```
+http://127.0.0.1:8080/ipns/Qm...
+http://127.0.0.1:8080/ipns/libp2p.io
+```
+
+Additionally, it's possible to configure a DNSLink domain to ALIAS it to a gateway for
+a nicer looking URL. See [dnslink documentation](http://dnslink.io/#example-ipfs-gateway) for more details.
+
 ## MIME-Types
 
 TODO
