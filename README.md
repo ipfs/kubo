@@ -222,7 +222,7 @@ $ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_windows-amd64.zi
 
 ## Getting Started
 
-See also: https://docs.ipfs.io/guides/guides/install
+See also: https://docs.ipfs.io/introduction/usage/
 
 To start using IPFS, you must first initialize IPFS's config files on your
 system, this is done with `ipfs init`. See `ipfs init --help` for information on
