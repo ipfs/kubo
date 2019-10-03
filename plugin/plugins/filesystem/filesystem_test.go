@@ -24,10 +24,13 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-var attrMaskIPFSTest = p9.AttrMask{
-	Mode: true,
-	Size: true,
-}
+var (
+	attrMaskIPFSTest = p9.AttrMask{
+		Mode: true,
+		Size: true,
+	}
+	rootSubsystems = []string{"ipfs"}
+)
 
 func TestAll(t *testing.T) {
 	ctx := context.TODO()
@@ -135,12 +138,15 @@ func testRootFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 		t.Fatalf("Failed to read root: %s\n", err)
 	}
 
-	//TODO: currently magic. As subsystems are implemented, rework this part of the test + lib to contain some list
-	if len(ents) != 1 || ents[0].Name != "ipfs" {
-		t.Fatalf("Failed, root has bad entries:: %v\n", ents)
+	if len(ents) != len(rootSubsystems) {
+		t.Fatalf("Failed, root has bad entries:\nHave:%v\nWant:%v\n", ents, rootSubsystems)
 	}
-
-	//TODO: type checking
+	for i, name := range rootSubsystems {
+		if ents[i].Name != name {
+			t.Fatalf("Failed, root has bad entries:\nHave:%v\nWant:%v\n", ents, rootSubsystems)
+		}
+	}
+	//TODO: deeper compare than just the names / name order
 }
 
 func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
@@ -225,7 +231,7 @@ func testIPFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 		t.Fatalf("Failed to clone IPFS environment handle: %s\n", err)
 	}
 
-	testCompareTreeModes(t, localEnv, ipfsEnv)
+	testCompareTreeAttrs(t, localEnv, ipfsEnv)
 
 	// test readdir bounds
 	//TODO: compare against a table, not just lengths
@@ -242,7 +248,7 @@ func testIPFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 	}
 }
 
-func testCompareTreeModes(t *testing.T, f1, f2 p9.File) {
+func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 	var expand func(p9.File) (map[string]p9.Attr, error)
 	expand = func(nineRef p9.File) (map[string]p9.Attr, error) {
 		ents, err := p9Readdir(nineRef)
@@ -319,6 +325,15 @@ func testCompareTreeModes(t *testing.T, f1, f2 p9.File) {
 					bMode.Permissions()&permissionContains, tMode.Permissions()&permissionContains,
 				)
 				return false
+			}
+
+			bSize := baseAttr.Size
+			tSize := target[path].Size
+			if bSize != tSize {
+				t.Fatalf("size for %q doesn't match\nbase:%d\ntarget:%d\n",
+					path,
+					bSize,
+					tSize)
 			}
 		}
 		return true

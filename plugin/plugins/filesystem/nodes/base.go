@@ -2,12 +2,12 @@ package fsnodes
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	gopath "path"
+	"time"
 
 	"github.com/djdv/p9/p9"
 	"github.com/djdv/p9/unimplfs"
-	files "github.com/ipfs/go-ipfs-files"
+	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -20,129 +20,155 @@ const ( //device - attempts to comply with standard multicodec table
 
 var _ p9.File = (*Base)(nil)
 
-// Base is a foundational file system node that provides common file metadata as well as stubs for unimplemented methods
+type p9Path = uint64
+
+// Base provides a foundation to build file system nodes which contain file meta data
+// as well as stubs for unimplemented file system methods
 type Base struct {
 	// Provide stubs for unimplemented methods
 	unimplfs.NoopFile
 	p9.DefaultWalkGetAttr
 
+	Trail []string // FS "breadcrumb" trail from node's root
+
 	// Storage for file's metadata
 	Qid      p9.QID
-	meta     p9.Attr
-	metaMask p9.AttrMask
+	meta     *p9.Attr
+	metaMask *p9.AttrMask
+	//open     bool // should be set to true on Open and checked during Walk; cloning while open is allowed, walking open references is not; walk(5)
+	Logger logging.EventLogger
+}
 
-	// The parent context should be set prior to calling attach (usually in a consturctor)
-	// The Base filesystemCtx is derived from the parent context during Base.Attach
-	// and should be valid for the lifetime of the file system
-	// The fs context should be used to derive operation specific contexts from during calls
-	// A cancel should cascade down, and invalidate all derived contexts
-	// A call to fs.Close should leave no operations lingering
-	parentCtx        context.Context
-	filesystemCtx    context.Context
-	filesystemCancel context.CancelFunc
-	Logger           logging.EventLogger
+func (b *Base) QID() p9.QID { return b.Qid }
 
-	parent p9.File // parent must be set, it is used to handle ".." requests; nodes without a parent must point back to themselves
-	child  p9.File // child is an optional field, used to hand off walk requests to another file system
-	root   bool    // should be set to true on Attach if parent == self, this triggers the filesystemCancel on Close
-	open   bool    // should be set to true on Open and checked during Walk; do not walk open references walk(5)
+func (b *Base) NinePath() p9Path { return b.Qid.Path }
+
+func newBase(ops ...nodeopts.AttachOption) Base {
+	options := nodeopts.AttachOps(ops...)
+
+	return Base{
+		Logger:   options.Logger,
+		meta:     new(p9.Attr),
+		metaMask: new(p9.AttrMask),
+	}
+}
+
+func (b *Base) Derive() Base {
+	newFid := newBase(nodeopts.Logger(b.Logger))
+
+	newFid.Qid = b.Qid
+	newFid.meta, newFid.metaMask = b.meta, b.metaMask
+	newFid.Trail = make([]string, len(b.Trail))
+	copy(newFid.Trail, b.Trail)
+
+	return newFid
 }
 
 // IPFSBase is much like Base but extends it to hold IPFS specific metadata
 type IPFSBase struct {
 	Base
+	OverlayFileMeta
 
-	Path corepath.Resolved
-	core coreiface.CoreAPI
+	// The parent context should be set prior to `Attach`
+	//parentCtx context.Context
 
-	// you will typically want to derive a context from the Base context within one operation (like Open)
+	// The file system contex should be derived from the parentCtx during `Attach`
+	// and is expected to be valid for the lifetime of the file system
+	filesystemCtx context.Context
+	// cancel should be called when `Close` is called on the root instance returned from `Attach`
+	filesystemCancel context.CancelFunc
+
+	// Typically you'll want to derive a context from the fs ctx within one operation (like Open)
 	// use it with the CoreAPI for something (like Get)
 	// and cancel it in another operation (like Close)
-	// that pointer should be stored here between calls
-	operationsCancel context.CancelFunc
+	// those pointers should be stored here between operation calls
+	operationsContext context.Context
+	operationsCancel  context.CancelFunc
 
-	// operation handle storage
-	file      files.File
-	directory *directoryStream
+	// Format the namespace as if it were a rooted directory, sans trailing slash
+	// e.g. `/ipfs`
+	// the base relative path is appended to the namespace for core requests upon calling `.CorePath()`
+	coreNamespace string
+	core          coreiface.CoreAPI
 }
 
-// Base Attach should be called by all supersets during their Attach
-// to initialize the file system context
-func (b *Base) Attach() (p9.File, error) {
-	if b.parentCtx == nil {
-		return nil, errors.New("Parent context was not set, no way to derive")
-	}
-
-	select {
-	case <-b.parentCtx.Done():
-		return nil, fmt.Errorf("Parent context is done: %s", b.parentCtx.Err())
-	default:
-		break
-	}
-
-	b.filesystemCtx, b.filesystemCancel = context.WithCancel(b.parentCtx)
-
-	return b, nil
+func (b *Base) StringPath() string {
+	return gopath.Join(b.Trail...)
 }
 
-// Base Close should be called in all superset Close methods in order to
-// close child subsystems and cancel the file system context
+func (ib *IPFSBase) StringPath() string {
+	return gopath.Join(append([]string{ib.coreNamespace}, ib.Base.StringPath())...)
+}
+
+func (ib *IPFSBase) CorePath(names ...string) corepath.Path {
+	return corepath.Join(rootPath(ib.coreNamespace), append(ib.Trail, names...)...)
+}
+
+//func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.FileMode, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) IPFSBase {
+func newIPFSBase(ctx context.Context, coreNamespace string, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) IPFSBase {
+	options := nodeopts.AttachOps(ops...)
+
+	base := IPFSBase{
+		Base:          newBase(ops...),
+		coreNamespace: coreNamespace,
+		core:          core,
+	}
+	base.filesystemCtx, base.filesystemCancel = context.WithCancel(ctx)
+
+	if options.Parent != nil { // parent is optional
+		parentRef, ok := options.Parent.(walkRef) // interface is not
+		if !ok {
+			panic("parent node lacks overlay traversal methods")
+		}
+		base.OverlayFileMeta.parent = parentRef
+	}
+	return base
+}
+
+func (ib *IPFSBase) Derive() IPFSBase {
+	newFid := IPFSBase{
+		Base:            ib.Base.Derive(),
+		OverlayFileMeta: ib.OverlayFileMeta,
+		coreNamespace:   ib.coreNamespace,
+		core:            ib.core,
+	}
+	newFid.filesystemCtx, newFid.filesystemCancel = context.WithCancel(ib.filesystemCtx)
+
+	return newFid
+}
+
+func (b *IPFSBase) Flush() error {
+	b.Logger.Debugf("flushing: {%d}%q", b.Qid.Path, b.StringPath())
+	return nil
+}
+
 func (b *Base) Close() error {
-	b.Logger.Debugf("closing: {%v}", b.Qid.Path)
+	b.Logger.Debugf("closing: {%d}%q", b.Qid.Path, b.StringPath())
+	return nil
+}
 
-	if b.root {
-		b.filesystemCancel()
-	}
+func (ib *IPFSBase) Close() error {
+	ib.Logger.Debugf("closing: {%d}%q", ib.Qid.Path, ib.StringPath())
 
 	var err error
-	if b.child != nil {
-		if err = b.child.Close(); err != nil {
-			b.Logger.Error(err)
+	if ib.filesystemCancel != nil {
+		if ib.proxy != nil {
+			if err = ib.proxy.Close(); err != nil {
+				ib.Logger.Error(err)
+			}
 		}
+		ib.filesystemCancel()
 	}
 
 	return err
 }
 
-func (ib *IPFSBase) Close() error {
-	ib.Logger.Debugf("closing:{%v}%q", ib.Qid, ib.Path.String())
-	var lastErr error
-	if ib.operationsCancel != nil {
-		ib.operationsCancel()
-	}
+func (b *Base) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
+	b.Logger.Debugf("GetAttr")
 
-	if err := ib.Base.Close(); err != nil {
-		ib.Logger.Error(err)
-		lastErr = err
-	}
-
-	if ib.file != nil {
-		if err := ib.file.Close(); err != nil {
-			ib.Logger.Error(err)
-			lastErr = err
-		}
-	}
-
-	return lastErr
+	return b.Qid, *b.metaMask, *b.meta, nil
 }
 
-type directoryStream struct {
-	entryChan <-chan coreiface.DirEntry
-	cursor    uint64
-	eos       bool // have seen end of stream?
-	err       error
-}
-
-type walkRef interface {
-	p9.File
-	Parent() p9.File
-	Child() p9.File
-}
-
-func (b *Base) Parent() p9.File {
-	return b.parent
-}
-
-func (b *Base) Child() p9.File {
-	return b.child
+func (b *IPFSBase) callCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(b.filesystemCtx, 30*time.Second)
 }

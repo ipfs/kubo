@@ -13,10 +13,11 @@ import (
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-unixfs"
 	unixpb "github.com/ipfs/go-unixfs/pb"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	corepath "github.com/ipfs/interface-go-ipfs-core/path"
+	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 const (
@@ -29,14 +30,88 @@ const (
 
 	errFmtWalkSubsystem = "could not attach to subsystem: %q"
 	errFmtExternalWalk  = "%q does not provide external fs walk methods"
+	//errFmtKeyNoLongerExists = "key %q was not found in the key store"
 )
 
 var errWalkOpened = errors.New("this fid is open")
+var errKeyNotInStore = errors.New("requested key was not found in the key store")
 
 // NOTE [2019.09.12]: QID's have a high collision probability
 // as a result we add a salt to hashes to attempt to mitigate this
 // for more context see: https://github.com/ipfs/go-ipfs/pull/6612#discussion_r321038649
 var salt []byte
+
+type directoryStream struct {
+	entryChan <-chan coreiface.DirEntry
+	cursor    uint64
+	eos       bool // have seen end of stream?
+	err       error
+}
+
+type walkRef interface {
+	p9.File
+	// returns the QID of the reference
+	QID() p9.QID // implemented on Base
+
+	// returns a derived instance that is ready to step
+	Derive() walkRef // implemented per filesystem
+
+	// Step should directly modify the node's path, to track its current path + "name"
+	// and assign the passed in node as its parent
+	// returns the node at resulting "name" path
+	Step(name string) (walkRef, error)
+
+	// Backtrack returns a reference to the node's parent
+	Backtrack() (parentRef walkRef, err error)
+}
+
+func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
+	dbgL := logging.Logger("walker") //TODO: remove this or use the reference log, or something
+	dbgL.Debugf("ref: (%p){%T}", ref, ref)
+
+	qids, cloneRequest := allocQids(names, ref.QID())
+	// walk(5)
+	// It is legal for nwname to be zero, in which case newfid will represent the same file as fid
+	//  and the walk will usually succeed
+	if cloneRequest {
+		curRef := ref.Derive()
+		dbgL.Debugf("cloning: %p -> %p", ref, curRef)
+		return qids, curRef, nil
+	}
+
+	curRef := ref
+	var err error
+	for _, name := range names {
+		switch name {
+		default:
+			// step forward
+			curRef, err = curRef.Step(name)
+			dbgL.Debugf("stepped to: %q", name)
+
+		case ".":
+			// stay
+			// qid = qids[len(qids)-1]
+			// continue
+			dbgL.Debugf("dot, staying put")
+
+		case "..":
+			// step back
+			curRef, err = curRef.Backtrack()
+			dbgL.Debugf("backtracking")
+		}
+
+		if err != nil {
+			dbgL.Error(err)
+			return qids, nil, err
+		}
+
+		dbgL.Debugf("currentRef: (%p){%T}", curRef, curRef)
+		qids = append(qids, curRef.QID())
+	}
+
+	dbgL.Debugf("returned ref: (%p){%T}", curRef, curRef)
+	return qids, curRef, nil
+}
 
 func init() {
 	salt = make([]byte, saltSize)
@@ -46,31 +121,31 @@ func init() {
 	}
 }
 
-func shouldClone(names []string, isRoot bool) bool {
+func shouldClone(names []string) bool {
 	switch len(names) {
 	case 0: // empty path
 		return true
 	case 1: // self?
 		pc := names[0]
-		return pc == "." || pc == "" || (isRoot && pc == "..")
+		return pc == "." || pc == ""
 	default:
 		return false
 	}
 }
 
-func ipldStat(ctx context.Context, attr *p9.Attr, node ipld.Node, mask p9.AttrMask) (error, p9.AttrMask) {
+func ipldStat(ctx context.Context, attr *p9.Attr, node ipld.Node, mask p9.AttrMask) (p9.AttrMask, error) {
 	var filledAttrs p9.AttrMask
 	ufsNode, err := unixfs.ExtractFSNode(node)
 	if err != nil {
-		return err, filledAttrs
+		return filledAttrs, err
 	}
 
 	if mask.Mode {
 		tBits, err := unixfsTypeTo9Type(ufsNode.Type())
 		if err != nil {
-			return err, filledAttrs
+			return filledAttrs, err
 		}
-		attr.Mode |= tBits
+		attr.Mode = tBits
 		filledAttrs.Mode = true
 	}
 
@@ -85,7 +160,7 @@ func ipldStat(ctx context.Context, attr *p9.Attr, node ipld.Node, mask p9.AttrMa
 
 	//TODO [eventually]: handle time metadata in new UFS format standard
 
-	return nil, filledAttrs
+	return filledAttrs, nil
 }
 
 func cidToQPath(cid cid.Cid) uint64 {
@@ -145,6 +220,40 @@ func coreEntTo9Ent(coreEnt coreiface.DirEntry) (p9.Dirent, error) {
 	}, nil
 }
 
+func mfsTypeToNineType(nt mfs.NodeType) (entType p9.QIDType, err error) {
+	switch nt {
+	//mfsEnt.Type; mfs.NodeType(t) {
+	case mfs.TFile:
+		entType = p9.TypeRegular
+	case mfs.TDir:
+		entType = p9.TypeDir
+	default:
+		err = fmt.Errorf("unexpected node type %v", nt)
+	}
+	return
+}
+
+func mfsEntTo9Ent(mfsEnt mfs.NodeListing) (p9.Dirent, error) {
+	pathCid, err := cid.Decode(mfsEnt.Hash)
+	if err != nil {
+		return p9.Dirent{}, err
+	}
+
+	t, err := mfsTypeToNineType(mfs.NodeType(mfsEnt.Type))
+	if err != nil {
+		return p9.Dirent{}, err
+	}
+
+	return p9.Dirent{
+		Name: mfsEnt.Name,
+		Type: t,
+		QID: p9.QID{
+			Type: t,
+			Path: cidToQPath(pathCid),
+		},
+	}, nil
+}
+
 const ( // pedantic POSIX stuff
 	S_IROTH p9.FileMode = p9.Read
 	S_IWOTH             = p9.Write
@@ -166,16 +275,6 @@ const ( // pedantic POSIX stuff
 	IRXA  = IRWXA &^ (S_IWUSR | S_IWGRP | S_IWOTH) // 0555
 )
 
-func defaultRootAttr() (attr p9.Attr, attrMask p9.AttrMask) {
-	attr.Mode = p9.ModeDirectory | IRXA
-	attr.RDev = dMemory
-	attrMask.Mode = true
-	attrMask.RDev = true
-	attrMask.Size = true
-	//timeStamp(&attr, attrMask)
-	return attr, attrMask
-}
-
 func timeStamp(attr *p9.Attr, mask p9.AttrMask) {
 	now := time.Now()
 	if mask.ATime {
@@ -189,19 +288,33 @@ func timeStamp(attr *p9.Attr, mask p9.AttrMask) {
 	}
 }
 
-func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.QIDType, core coreiface.CoreAPI, logger logging.EventLogger) IPFSBase {
-	return IPFSBase{
-		Path: path,
-		core: core,
-		Base: Base{
-			parentCtx: ctx,
-			Logger:    logger,
-			Qid: p9.QID{
-				Type: kind,
-				Path: cidToQPath(path.Cid()),
-			},
-		},
+func offlineAPI(core coreiface.CoreAPI) coreiface.CoreAPI {
+	oAPI, err := core.WithOptions(coreoptions.Api.Offline(true))
+	if err != nil {
+		panic(err)
 	}
+	return oAPI
+}
+
+// returns a slice of qid's, and true if this is a clone request
+func allocQids(names []string, self p9.QID) ([]p9.QID, bool) {
+	if shouldClone(names) {
+		return []p9.QID{self}, true
+	}
+	return make([]p9.QID, 0, len(names)), false
+}
+
+func flatReaddir(ents []p9.Dirent, offset uint64, count uint32) ([]p9.Dirent, error) {
+	shouldExit, err := boundCheck(offset, len(ents))
+	if shouldExit {
+		return nil, err
+	}
+
+	subSlice := ents[offset:]
+	if len(subSlice) > int(count) {
+		subSlice = subSlice[:count]
+	}
+	return subSlice, nil
 }
 
 // boundCheck assures operation arguments are valid
@@ -216,61 +329,4 @@ func boundCheck(offset uint64, length int) (bool, error) {
 		// not at end of stream and okay to continue
 		return false, nil
 	}
-}
-
-//TODO: English sanity check; does this make sense without reading the code?
-//TODO: we need to throw a lot of path tests at this; the recursive nature of walk->stepper->walk->stepper may be troublesome as well
-// stepper acts as a dispatcher for intermediate file systems
-// sending path component requests to a separate file system based on the name args
-// clone requests (no names) will return a clone of the attached child
-func stepper(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
-	var (
-		nextRef       p9.File
-		qids, subQids []p9.QID
-		curFile       p9.File
-		err           error
-		ok            bool
-	)
-
-	if len(names) == 0 {
-		//return qids, nil, errors.New("no subnames were provided")
-		c := ref.Child()
-		if c == nil {
-			return qids, nil, errors.New("clone requested but child file system attached")
-		}
-
-		return c.Walk(nil)
-	}
-
-	for len(names) != 0 {
-		//prepare to step into next component(s)
-		if names[0] == ".." { // climb to parent / leftward requests
-			nextRef = ref.Parent()
-		} else { // descend into remainder / rightward requests
-			nextRef = ref.Child()
-		}
-		if nextRef == nil {
-			return qids, nil, fmt.Errorf("%q is not attached to another file system", names[0])
-		}
-
-		ref, ok = nextRef.(walkRef) //TODO: see if we can implement this without runtime assertion
-		if !ok {
-			return qids, nil, fmt.Errorf(errFmtExternalWalk, names[0])
-		}
-
-		// attempt the step(s)
-		if subQids, curFile, err = ref.Walk(names); err != nil {
-			return qids, nil, err
-		}
-
-		// we walked forward, prepare for next step(s)
-		qids = append(qids, subQids...)
-		names = names[len(subQids):]
-
-		if len(names) != 0 { // leave the last reference alive, for the caller to close
-			curFile.Close() // we're not referencing this anymore
-		}
-	}
-
-	return qids, curFile, nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/djdv/p9/p9"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	fsnodes "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes"
+	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/mitchellh/mapstructure"
@@ -119,7 +120,8 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 	fs.listener = listener
 
 	// construct and launch the 9P resource server
-	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core))
+	opts := []nodeopts.AttachOption{nodeopts.Logger(logging.Logger("9root"))}
+	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core, opts...))
 	go func() {
 		fs.errorChan <- s.Serve(manet.NetListener(fs.listener))
 	}()

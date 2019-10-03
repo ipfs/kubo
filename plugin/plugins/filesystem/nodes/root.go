@@ -2,7 +2,6 @@ package fsnodes
 
 import (
 	"context"
-	"sort"
 	"syscall"
 
 	"github.com/djdv/p9/p9"
@@ -36,7 +35,7 @@ func (rp rootPath) Cid() cid.Cid {
 }
 
 type systemTuple struct {
-	file   p9.File
+	file   walkRef
 	dirent p9.Dirent
 }
 
@@ -50,127 +49,118 @@ func (ss systemSlice) Less(i, j int) bool { return ss[i].dirent.Offset < ss[j].d
 // RootIndex is a virtual directory file system, that maps a set of file system implementations to a hierarchy
 // Currently: "/ipfs":PinFS, "/ipfs/*:IPFS
 type RootIndex struct {
-	Base
-	//subsystems []p9.Dirent
+	IPFSBase
 	subsystems map[string]systemTuple
-	core       coreiface.CoreAPI
+}
+
+// OverlayFileMeta holds data relevant to file system nodes themselves
+type OverlayFileMeta struct {
+	// parent may be used to send ".." requests to another file system
+	// during `Backtrack`
+	parent walkRef
+	// proxy may be used to send requests to another file system
+	// during `Step`
+	proxy walkRef
 }
 
 // RootAttacher constructs the default RootIndex file system, providing a means to Attach() to it
-func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.Option) p9.Attacher {
-	ri := &RootIndex{
-		core: core,
-		Base: Base{
-			Logger:    logging.Logger("RootFS"),
-			parentCtx: ctx,
-			Qid: p9.QID{
-				Type: p9.TypeDir,
-				Path: cidToQPath(rootPath("/").Cid()),
-			},
-		},
-	}
-	ri.meta, ri.metaMask = defaultRootAttr()
+func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) p9.Attacher {
+	// construct root node
+	ri := &RootIndex{IPFSBase: newIPFSBase(ctx, "/", core, ops...)}
+	ri.Qid.Type = p9.TypeDir
+	ri.meta.Mode, ri.metaMask.Mode = p9.ModeDirectory|IRXA, true
 
-	rootDirent := p9.Dirent{
+	// attach to subsystems
+	// used for proxying walk requests to other filesystems
+	type subattacher func(context.Context, coreiface.CoreAPI, ...nodeopts.AttachOption) p9.Attacher
+	type attachTuple struct {
+		string
+		subattacher
+		logging.EventLogger
+	}
+
+	// "mount/bind" table:
+	// "path"=>filesystem
+	subsystems := [...]attachTuple{
+		{"ipfs", PinFSAttacher, logging.Logger("PinFS")},
+	}
+
+	// prealloc what we can
+	ri.subsystems = make(map[string]systemTuple, len(subsystems))
+	opts := []nodeopts.AttachOption{nodeopts.Parent(ri)}
+	rootDirent := p9.Dirent{ //template
 		Type: p9.TypeDir,
 		QID:  p9.QID{Type: p9.TypeDir},
 	}
 
-	type subattacher func(context.Context, coreiface.CoreAPI, ...nodeopts.Option) p9.Attacher
-	type attachTuple struct {
-		string
-		subattacher
-	}
-	subsystems := [...]attachTuple{
-		{"ipfs", PinFSAttacher},
-	}
-
-	ri.subsystems = make(map[string]systemTuple, len(subsystems))
-	opts := []nodeopts.Option{nodeopts.Parent(ri)}
-
+	// couple the strings to their implementations
 	for i, subsystem := range subsystems {
-		fs, err := subsystem.subattacher(ctx, core, opts...).Attach()
+		logOpt := nodeopts.Logger(subsystem.EventLogger)
+		// the file system implementation
+		fs, err := subsystem.subattacher(ctx, core, append(opts, logOpt)...).Attach()
 		if err != nil {
 			panic(err) // hard implementation error
 		}
 
+		// create a directory entry for it
 		rootDirent.Offset = uint64(i + 1)
 		rootDirent.Name = subsystem.string
 
 		rootDirent.QID.Path = cidToQPath(rootPath("/" + subsystem.string).Cid())
 
+		// add it as a unionlike thing
 		ri.subsystems[subsystem.string] = systemTuple{
-			file:   fs,
+			file:   fs.(walkRef),
 			dirent: rootDirent,
 		}
-	}
-
-	options := nodeopts.AttachOps(ops...)
-	if options.Parent != nil {
-		ri.parent = options.Parent
-	} else {
-		ri.parent = ri
-		ri.root = true
 	}
 
 	return ri
 }
 
-func (ri *RootIndex) Attach() (p9.File, error) {
-	ri.Logger.Debugf("Attach")
-
-	newFid := new(RootIndex)
-	*newFid = *ri
-
-	_, err := newFid.Base.Attach()
-	if err != nil {
-		return nil, err
+func (ri *RootIndex) Derive() walkRef {
+	newFid := &RootIndex{
+		IPFSBase:   ri.IPFSBase.Derive(),
+		subsystems: ri.subsystems,
 	}
 
-	return newFid, nil
+	return newFid
 }
 
-func (ri *RootIndex) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	ri.Logger.Debugf("GetAttr")
-	//ri.Logger.Debugf("mask: %v", req)
-
-	return ri.Qid, ri.metaMask, ri.meta, nil
+func (ri *RootIndex) Attach() (p9.File, error) {
+	ri.Logger.Debugf("Attach")
+	return ri, nil
 }
 
 func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	ri.Logger.Debugf("Walk names %v", names)
-	ri.Logger.Debugf("Walk myself: %v", ri.Qid)
+	ri.Logger.Debugf("Walk myself: %v", ri.Qid.Path)
 
-	qids := []p9.QID{ri.Qid}
+	return walker(ri, names)
+}
 
-	if ri.open {
-		return qids, nil, errWalkOpened
-	}
-
-	newFid := new(RootIndex)
-	*newFid = *ri
-
-	if shouldClone(names, newFid.root) {
-		ri.Logger.Debugf("Walk cloned")
-		return qids, newFid, nil
-	}
-
-	newFid.root = false
-
-	subSys, ok := ri.subsystems[names[0]]
+// The RootIndex checks if it has attached to "name"
+// derives a node from it, and returns it
+func (ri *RootIndex) Step(name string) (walkRef, error) {
+	// consume fs/access name
+	subSys, ok := ri.subsystems[name]
 	if !ok {
-		ri.Logger.Errorf("%q is not provided by us", names[0])
-		return nil, nil, syscall.ENOENT //TODO: migrate to platform independent value
+		ri.Logger.Errorf("%q is not provided by us", name)
+		return nil, syscall.ENOENT //TODO: migrate to platform independent value
 	}
 
-	newFid.child = subSys.file
+	// create ready to use clone of target
+	target := subSys.file.Derive()
 
-	return stepper(newFid, names[1:])
+	// return the proxied fs/resource
+	return target, nil
 }
 
 func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	ri.Logger.Debugf("Open")
-	ri.open = true
+
+	// we're always storing entries on the instance
+
 	return ri.Qid, 0, nil
 }
 
@@ -184,33 +174,34 @@ func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, err
 	}
 
-	// TODO: [perf] iterating over the map and slot populating an array is probably the least wasted effort
-	// map => ordered set
-	orderedSet := make(systemSlice, 0, subs)
+	relativeEnd := subs - int(offset)
+
+	// use the lesser for allocating the slice
+	var ents []p9.Dirent
+	if count < uint32(relativeEnd) {
+		ents = make([]p9.Dirent, count)
+	} else {
+		ents = make([]p9.Dirent, relativeEnd)
+	}
+
+	// use ents from map within request bounds to populate slice
 	for _, pair := range ri.subsystems {
-		orderedSet = append(orderedSet, pair)
-	}
-	sort.Sort(orderedSet)
-
-	offsetIndex := subs - int(offset)
-
-	// n-tuple => singleton
-	ents := make([]p9.Dirent, 0, offsetIndex)
-	for _, pair := range orderedSet[offset:] {
-		ents = append(ents, pair.dirent)
-	}
-
-	// set => trimmed-set
-	if offsetIndex > int(count) {
-		return ents[:count], nil
+		if count == 0 {
+			break
+		}
+		if pair.dirent.Offset >= offset && pair.dirent.Offset <= uint64(relativeEnd) {
+			ents[pair.dirent.Offset-1] = pair.dirent
+			count--
+		}
 	}
 
 	return ents, nil
 }
 
-func (ri *RootIndex) Close() error {
-	ri.Logger.Debugf("closing: {%v} root", ri.Qid)
-	err := ri.Base.Close()
-	ri.open = false
-	return err
+func (ri *RootIndex) Backtrack() (walkRef, error) {
+	// return our parent, or ourselves if we don't have one
+	if ri.parent != nil {
+		return ri.parent, nil
+	}
+	return ri, nil
 }
