@@ -52,7 +52,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.1
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.2.3
-	github.com/jbenet/go-is-domain v1.0.2
+	github.com/jbenet/go-is-domain v1.0.3
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
