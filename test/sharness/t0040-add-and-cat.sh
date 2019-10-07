@@ -193,6 +193,16 @@ test_add_cat_file() {
     test_expect_code 1 ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
   '
 
+  test_expect_success "ipfs add --chunker buzhash suceeds" '
+    ipfs add --chunker buzhash mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add --chunker buzhahs output looks good" '
+    HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
   test_expect_success "ipfs add on hidden file succeeds" '
     echo "Hello Worlds!" >mountdir/.hello.txt &&
     ipfs add mountdir/.hello.txt >actual
