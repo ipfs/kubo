@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -367,6 +368,17 @@ Example:
 	},
 	Type: &PinLsOutputWrapper{},
 	Encoders: cmds.EncoderMap{
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+			stream, _ := req.Options[pinStreamOptionName].(bool)
+
+			enc := json.NewEncoder(w)
+
+			if stream {
+				return enc.Encode(out.PinLsObject)
+			}
+
+			return enc.Encode(out.PinLsList)
+		}),
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
 			quiet, _ := req.Options[pinQuietOptionName].(bool)
 			stream, _ := req.Options[pinStreamOptionName].(bool)
@@ -403,7 +415,7 @@ type PinLsOutputWrapper struct {
 
 // PinLsList is a set of pins with their type
 type PinLsList struct {
-	Keys map[string]PinLsType `json:",omitempty"`
+	Keys map[string]PinLsType
 }
 
 // PinLsType contains the type of a pin
