@@ -197,7 +197,7 @@ test_add_cat_file() {
     ipfs add --chunker buzhash mountdir/hello.txt >actual
   '
 
-  test_expect_success "ipfs add --chunker buzhahs output looks good" '
+  test_expect_success "ipfs add --chunker buzhash output looks good" '
     HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
     echo "added $HASH hello.txt" >expected &&
     test_cmp expected actual
