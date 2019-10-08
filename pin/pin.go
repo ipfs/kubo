@@ -225,9 +225,6 @@ func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
 			return nil
 		}
 
-		if p.directPin.Has(c) {
-			p.directPin.Remove(c)
-		}
 		p.lock.Unlock()
 		// fetch entire graph
 		err := mdag.FetchGraph(ctx, c, p.dserv)
