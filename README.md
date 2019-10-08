@@ -181,6 +181,8 @@ $ make install
 
 Alternatively, you can run `make build` to build the go-ipfs binary (storing it in `cmd/ipfs/ipfs`) without installing it.
 
+**NOTE:** If you get an error along the lines of "fatal error: stdlib.h: No such file or directory", you're missing a C compiler. Either re-run `make` with `CGO_ENABLED=0` or install GCC.
+
 #### Troubleshooting
 
 - Separate [instructions are available for building on Windows](docs/windows.md).
