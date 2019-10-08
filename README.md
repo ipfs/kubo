@@ -149,6 +149,14 @@ PS> scoop install go-ipfs
 
 ### Build from Source
 
+go-ipfs's build system requires Go 1.12 and some standard POSIX build tools:
+
+* GNU make
+* Git
+* GCC (or some other go compatible C Compiler) (optional)
+
+To build without GCC, build with `CGO_ENABLED=0` (e.g., `make build CGO_ENABLED=0`).
+
 #### Install Go
 
 The build process for ipfs requires Go 1.12 or higher. If you don't have it: [Download Go 1.12+](https://golang.org/dl/).
@@ -170,6 +178,8 @@ $ git clone https://github.com/ipfs/go-ipfs.git
 $ cd go-ipfs
 $ make install
 ```
+
+Alternatively, you can run `make build` to build the go-ipfs binary (storing it in `cmd/ipfs/ipfs`) without installing it.
 
 #### Troubleshooting
 
