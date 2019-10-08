@@ -12,12 +12,31 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iCore "github.com/ipfs/interface-go-ipfs-core"
 	iCorePath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 /// ------ Spawning the node
+
+func setupPlugins(path string) error {
+	// Load plugins. This will skip the repo if not available.
+	plugins, err := loader.NewPluginLoader(filepath.Join(path, "plugins"))
+	if err != nil {
+		return fmt.Errorf("error loading plugins: %s", err)
+	}
+
+	if err := plugins.Initialize(); err != nil {
+		return fmt.Errorf("error initializing plugins: %s", err)
+	}
+
+	if err := plugins.Inject(); err != nil {
+		return fmt.Errorf("error initializing plugins: %s", err)
+	}
+
+	return nil
+}
 
 type CfgOpt func(*config.Config)
 
@@ -152,30 +171,31 @@ func writeTo(nd files.Node, fpath string) error {
 /// -------
 
 func main() {
-	fmt.Printf("Starting")
+	fmt.Println("Starting")
+
+	if err := setupPlugins(""); err != nil {
+		panic(err)
+	}
 
 	ctx, _ := context.WithCancel(context.Background())
 
 	ipfs, err := spawnDefaultOrEphemeral(ctx)
 	if err != nil {
-		fmt.Errorf("failed to spawn node: %s", err)
-		return
+		panic(fmt.Errorf("failed to spawn node: %s", err))
 	}
 
-	fmt.Printf("IPFS node running")
+	fmt.Println("IPFS node running")
 
 	outputPath := "~/Downloads/test-101"
 	testCID := iCorePath.New("QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj")
 
 	out, err := ipfs.Unixfs().Get(ctx, testCID)
 	if err != nil {
-		fmt.Errorf("Could not get CID: %s", err)
-		return
+		panic(fmt.Errorf("Could not get CID: %s", err))
 	}
 
 	err = writeTo(out, outputPath)
 	if err != nil {
-		fmt.Errorf("Could not write out the fetched CID: %s", err)
-		return
+		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
 	}
 }
