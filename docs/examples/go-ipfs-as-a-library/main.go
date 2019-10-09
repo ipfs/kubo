@@ -186,8 +186,9 @@ func main() {
 
 	fmt.Println("IPFS node running")
 
-	outputPath := "~/Downloads/test-101"
-	testCID := iCorePath.New("QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj")
+	testCIDStr := "QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj"
+	outputPath := "/Users/imp/Downloads/test-101/" + testCIDStr
+	testCID := iCorePath.New(testCIDStr)
 
 	out, err := ipfs.Unixfs().Get(ctx, testCID)
 	if err != nil {
