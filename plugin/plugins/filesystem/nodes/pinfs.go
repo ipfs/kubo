@@ -140,7 +140,6 @@ func (pd *PinFS) Flush() error {
 }
 
 func (pd *PinFS) Close() error {
-
 	pd.ents = nil
 	return nil
 }

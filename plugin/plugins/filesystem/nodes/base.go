@@ -35,8 +35,7 @@ type Base struct {
 	Qid      p9.QID
 	meta     *p9.Attr
 	metaMask *p9.AttrMask
-	//open     bool // should be set to true on Open and checked during Walk; cloning while open is allowed, walking open references is not; walk(5)
-	Logger logging.EventLogger
+	Logger   logging.EventLogger
 }
 
 func (b *Base) QID() p9.QID { return b.Qid }
@@ -69,21 +68,26 @@ type IPFSBase struct {
 	Base
 	OverlayFileMeta
 
-	// The parent context should be set prior to `Attach`
-	//parentCtx context.Context
+	/* For file systems,
+	this context should be set prior to `Attach`
 
-	// The file system contex should be derived from the parentCtx during `Attach`
-	// and is expected to be valid for the lifetime of the file system
+	For files,
+	this context should be overwritten with a context derived from the existing fs context
+	during `Walk`
+
+	The context is expected to be valid for the lifetime of the file system / file respectively
+	to be used during operations, such as `Walk`, `Open`, `Read` etc.
+	*/
 	filesystemCtx context.Context
-	// cancel should be called when `Close` is called on the root instance returned from `Attach`
+	// cancel should be called upon `Close`
+	// closing a file system returned from `Attach`
+	// or a derived file previously returned from `Walk`
 	filesystemCancel context.CancelFunc
 
 	// Typically you'll want to derive a context from the fs ctx within one operation (like Open)
 	// use it with the CoreAPI for something (like Get)
 	// and cancel it in another operation (like Close)
 	// those pointers should be stored here between operation calls
-	operationsContext context.Context
-	operationsCancel  context.CancelFunc
 
 	// Format the namespace as if it were a rooted directory, sans trailing slash
 	// e.g. `/ipfs`

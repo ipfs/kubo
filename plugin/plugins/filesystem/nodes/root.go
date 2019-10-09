@@ -83,6 +83,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	// "path"=>filesystem
 	subsystems := [...]attachTuple{
 		{"ipfs", PinFSAttacher, logging.Logger("PinFS")},
+		{"ipns", KeyFSAttacher, logging.Logger("KeyFS")},
 	}
 
 	// prealloc what we can

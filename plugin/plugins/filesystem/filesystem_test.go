@@ -29,7 +29,7 @@ var (
 		Mode: true,
 		Size: true,
 	}
-	rootSubsystems = []string{"ipfs"}
+	rootSubsystems = []string{"ipfs", "ipns"}
 )
 
 func TestAll(t *testing.T) {
