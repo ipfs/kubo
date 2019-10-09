@@ -10,6 +10,7 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
+	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iCore "github.com/ipfs/interface-go-ipfs-core"
@@ -76,7 +77,8 @@ func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
 	node, err := core.NewNode(ctx, &core.BuildCfg{
 		Online: true,
 		// Routing: libp2p.DHTClientOption,
-		Repo: repo,
+		Routing: libp2p.DHTOption,
+		Repo:    repo,
 	})
 	if err != nil {
 		return nil, err
@@ -144,9 +146,14 @@ func main() {
 	outputPath := "/Users/imp/Downloads/test-101/" + testCIDStr
 	testCID := iCorePath.New(testCIDStr)
 
+	_, err = ipfs.ResolveNode(ctx, testCID)
+	if err != nil {
+		panic(fmt.Errorf("Could not resolve CID: %s", err))
+	}
+
 	out, err := ipfs.Unixfs().Get(ctx, testCID)
 	if err != nil {
-		panic(fmt.Errorf("Could not get CID: %s", err))
+		panic(fmt.Errorf("Could not get file with CID: %s", err))
 	}
 
 	err = files.WriteTo(out, outputPath)
