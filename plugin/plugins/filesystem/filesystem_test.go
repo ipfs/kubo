@@ -327,13 +327,16 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 				return false
 			}
 
-			bSize := baseAttr.Size
-			tSize := target[path].Size
-			if bSize != tSize {
-				t.Fatalf("size for %q doesn't match\nbase:%d\ntarget:%d\n",
-					path,
-					bSize,
-					tSize)
+			if bMode.FileType() != p9.ModeDirectory {
+				bSize := baseAttr.Size
+				tSize := target[path].Size
+
+				if bSize != tSize {
+					t.Fatalf("size for %q doesn't match\nbase:%d\ntarget:%d\n",
+						path,
+						bSize,
+						tSize)
+				}
 			}
 		}
 		return true
