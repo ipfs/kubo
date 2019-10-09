@@ -2,7 +2,6 @@ package fsnodes
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/djdv/p9/p9"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
@@ -30,7 +29,7 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 
 	subsystem, err := IPNSAttacher(ctx, core, opts...).Attach()
 	if err != nil {
-		panic(fmt.Errorf(errFmtWalkSubsystem, err))
+		panic(err)
 	}
 
 	kd.proxy = subsystem.(walkRef)
@@ -39,7 +38,9 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 }
 
 func (kd *KeyFS) Derive() walkRef {
-	newFid := &KeyFS{IPFSBase: kd.IPFSBase.Derive()}
+	newFid := &KeyFS{
+		IPFSBase: kd.IPFSBase.Derive(),
+	}
 	return newFid
 }
 
@@ -48,16 +49,16 @@ func (kd *KeyFS) Attach() (p9.File, error) {
 	return kd, nil
 }
 
+func (kd *KeyFS) Step(keyName string) (walkRef, error) {
+	// proxy the request for "keyName" to IPFS root (set on us during construction)
+	return kd.proxy.Step(keyName)
+}
+
 func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	kd.Logger.Debugf("Walk names %v", names)
 	kd.Logger.Debugf("Walk myself: %v", kd.Qid)
 
 	return walker(kd, names)
-}
-
-func (kd *KeyFS) Step(keyName string) (walkRef, error) {
-	// proxy the request for "keyName"
-	return kd.proxy.Step(keyName)
 }
 
 func (kd *KeyFS) Backtrack() (walkRef, error) {

@@ -27,10 +27,6 @@ const (
 	// context: https://github.com/ipfs/go-ipfs/pull/6612/files#r322989041
 	ipfsBlockSize = 256 << 10
 	saltSize      = 32
-
-	errFmtWalkSubsystem = "could not attach to subsystem: %q"
-	errFmtExternalWalk  = "%q does not provide external fs walk methods"
-	//errFmtKeyNoLongerExists = "key %q was not found in the key store"
 )
 
 var errWalkOpened = errors.New("this fid is open")
@@ -56,7 +52,7 @@ type walkRef interface {
 	// returns a derived instance that is ready to step
 	Derive() walkRef // implemented per filesystem
 
-	// Step should try to step to "name" and return a ready to use derivative of the result
+	// Step should try to step to "name", resulting in a ready to use derivative
 	Step(name string) (walkRef, error)
 
 	//TODO: implement on base class
@@ -79,26 +75,25 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 	}
 
 	qids := make([]p9.QID, 0, len(names))
-	//qids = append(qids, curRef.QID())
 
 	var err error
 	for _, name := range names {
 		switch name {
 		default:
 			// step forward
+			dbgL.Debugf("stepping to: %q", name)
 			curRef, err = curRef.Step(name)
-			dbgL.Debugf("stepped to: %q", name)
 
 		case ".":
 			// stay
 			// qid = qids[len(qids)-1]
 			// continue
-			dbgL.Debugf("dot, staying put")
+			dbgL.Debugf(`staying put: "."`)
 
 		case "..":
 			// step back
+			dbgL.Debugf(`backtracking to: ".."`)
 			curRef, err = curRef.Backtrack()
-			dbgL.Debugf("backtracking")
 		}
 
 		if err != nil {
