@@ -53,10 +53,10 @@ func createTempRepo(ctx context.Context) (string, error) {
 	// configure the temporary node
 	// cfg.Routing.Type = "dhtclient"
 	// cfg.Experimental.QUIC = true
-	// cfg.Datastore.Spec = map[string]interface{}{
-	// 	"type": "badgerds",
-	// 	"path": "badger",
-	// }
+	cfg.Datastore.Spec = map[string]interface{}{
+		"type": "mem",
+		"path": "blocks",
+	}
 
 	err = fsrepo.Init(repoPath, cfg)
 	if err != nil {
@@ -114,7 +114,8 @@ func spawnDefault(ctx context.Context) (iCore.CoreAPI, error) {
 	}
 
 	if err := setupPlugins(defaultPath); err != nil {
-		panic(err)
+		return nil, err
+
 	}
 
 	return createNode(ctx, defaultPath)
@@ -125,11 +126,11 @@ func spawnEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
 	// Create a Temporary Repo
 	repoPath, err := createTempRepo(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp repo: ", err)
+		return nil, fmt.Errorf("failed to create temp repo: %s", err)
 	}
 
 	if err := setupPlugins(repoPath); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Spawning an ephemeral IPFS node
