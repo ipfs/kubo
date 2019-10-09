@@ -18,7 +18,7 @@ import (
 	iCorePath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-/// ------ Spawning the node
+type cfgOpt func(*config.Config)
 
 func setupPlugins(path string) error {
 	// Load plugins. This will skip the repo if not available.
@@ -36,28 +36,6 @@ func setupPlugins(path string) error {
 	}
 
 	return nil
-}
-
-type CfgOpt func(*config.Config)
-
-func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
-	// Open the repo
-	repo, err := fsrepo.Open(repoPath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Construct the node
-	node, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		// Routing: libp2p.DHTClientOption,
-		Repo: repo,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return coreapi.NewCoreAPI(node)
 }
 
 func createTempRepo(ctx context.Context) (string, error) {
@@ -88,6 +66,27 @@ func createTempRepo(ctx context.Context) (string, error) {
 	return repoPath, nil
 }
 
+/// ------ Spawning the node
+func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
+	// Open the repo
+	repo, err := fsrepo.Open(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Construct the node
+	node, err := core.NewNode(ctx, &core.BuildCfg{
+		Online: true,
+		// Routing: libp2p.DHTClientOption,
+		Repo: repo,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return coreapi.NewCoreAPI(node)
+}
+
 /*
 func spawnDefault(ctx context.Context) (iface.CoreAPI, error) {
 
@@ -106,25 +105,31 @@ func spawnEphemeral(ctx context.Context) (iface.CoreAPI, error) {
 }
 */
 
-func spawnDefaultOrEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
-	// Attempt to spawn a node in default location, check if repo already exists
+// Spawns a node on the default repo location, if the repo exists
+func spawnDefault(ctx context.Context) (iCore.CoreAPI, error) {
 	defaultPath, err := config.PathRoot()
 	if err != nil {
 		// shouldn't be possible
 		return nil, err
 	}
 
-	ipfs, err := createNode(ctx, defaultPath)
-
-	if err == nil {
-		return ipfs, nil
+	if err := setupPlugins(defaultPath); err != nil {
+		panic(err)
 	}
 
-	// Spawn a node with a tmpRepo
-	repoPath, err := createTempRepo(ctx)
+	return createNode(ctx, defaultPath)
+}
 
+// Spawns a node to be used just for this run (i.e. creates a tmp repo)
+func spawnEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
+	// Create a Temporary Repo
+	repoPath, err := createTempRepo(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temp repo", err)
+		return nil, fmt.Errorf("failed to create temp repo: ", err)
+	}
+
+	if err := setupPlugins(repoPath); err != nil {
+		panic(err)
 	}
 
 	// Spawning an ephemeral IPFS node
@@ -171,17 +176,22 @@ func writeTo(nd files.Node, fpath string) error {
 /// -------
 
 func main() {
-	fmt.Println("Starting")
-
-	if err := setupPlugins(""); err != nil {
-		panic(err)
-	}
+	fmt.Println("Getting an IPFS node running")
 
 	ctx, _ := context.WithCancel(context.Background())
 
-	ipfs, err := spawnDefaultOrEphemeral(ctx)
+	/*
+		fmt.Println("Spawning node on default repo")
+		ipfs, err := spawnDefault(ctx)
+		if err != nil {
+			fmt.Println("No IPFS repo available on the default path")
+		}
+	*/
+
+	fmt.Println("Spawning node on a temporary repo")
+	ipfs, err := spawnEphemeral(ctx)
 	if err != nil {
-		panic(fmt.Errorf("failed to spawn node: %s", err))
+		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
 	}
 
 	fmt.Println("IPFS node running")
