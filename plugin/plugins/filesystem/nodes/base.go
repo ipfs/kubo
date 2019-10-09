@@ -168,11 +168,16 @@ func (ib *IPFSBase) Close() error {
 }
 
 func (b *Base) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	b.Logger.Debugf("GetAttr")
+	b.Logger.Debugf("GetAttr {%d}:%q", b.Qid.Path, b.StringPath())
 
 	return b.Qid, *b.metaMask, *b.meta, nil
 }
 
 func (b *IPFSBase) callCtx() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(b.filesystemCtx, 30*time.Second)
+}
+
+func (b *IPFSBase) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
+	b.Logger.Debugf("Open")
+	return b.Qid, 0, nil
 }

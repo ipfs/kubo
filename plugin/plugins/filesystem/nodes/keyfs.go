@@ -56,10 +56,8 @@ func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 }
 
 func (kd *KeyFS) Step(keyName string) (walkRef, error) {
-	// derive copy of IPFS root
-	p := kd.proxy.Derive()
 	// proxy the request for "keyName"
-	return p.Step(keyName)
+	return kd.proxy.Step(keyName)
 }
 
 func (kd *KeyFS) Backtrack() (walkRef, error) {
@@ -70,11 +68,7 @@ func (kd *KeyFS) Backtrack() (walkRef, error) {
 	return kd, nil
 }
 
-// temporary stubs to allow forwarding requests on empty directory
-func (kd *KeyFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	kd.Logger.Debugf("Open")
-	return kd.Qid, 0, nil
-}
+// temporary stub to allow forwarding requests on empty directory
 func (kd *KeyFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	return nil, nil
 }

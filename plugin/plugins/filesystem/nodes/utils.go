@@ -56,11 +56,10 @@ type walkRef interface {
 	// returns a derived instance that is ready to step
 	Derive() walkRef // implemented per filesystem
 
-	// Step should directly modify the node's path, to track its current path + "name"
-	// and assign the passed in node as its parent
-	// returns the node at resulting "name" path
+	// Step should try to step to "name" and return a ready to use derivative of the result
 	Step(name string) (walkRef, error)
 
+	//TODO: implement on base class
 	// Backtrack returns a reference to the node's parent
 	Backtrack() (parentRef walkRef, err error)
 }
@@ -69,17 +68,19 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 	dbgL := logging.Logger("walker") //TODO: remove this or use the reference log, or something
 	dbgL.Debugf("ref: (%p){%T}", ref, ref)
 
-	qids, cloneRequest := allocQids(names, ref.QID())
+	curRef := ref.Derive()
+
 	// walk(5)
 	// It is legal for nwname to be zero, in which case newfid will represent the same file as fid
 	//  and the walk will usually succeed
-	if cloneRequest {
-		curRef := ref.Derive()
+	if shouldClone(names) {
 		dbgL.Debugf("cloning: %p -> %p", ref, curRef)
-		return qids, curRef, nil
+		return []p9.QID{curRef.QID()}, curRef, nil
 	}
 
-	curRef := ref
+	qids := make([]p9.QID, 0, len(names))
+	//qids = append(qids, curRef.QID())
+
 	var err error
 	for _, name := range names {
 		switch name {
@@ -294,14 +295,6 @@ func offlineAPI(core coreiface.CoreAPI) coreiface.CoreAPI {
 		panic(err)
 	}
 	return oAPI
-}
-
-// returns a slice of qid's, and true if this is a clone request
-func allocQids(names []string, self p9.QID) ([]p9.QID, bool) {
-	if shouldClone(names) {
-		return []p9.QID{self}, true
-	}
-	return make([]p9.QID, 0, len(names)), false
 }
 
 func flatReaddir(ents []p9.Dirent, offset uint64, count uint32) ([]p9.Dirent, error) {

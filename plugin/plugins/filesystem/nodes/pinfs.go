@@ -55,10 +55,8 @@ func (pd *PinFS) Attach() (p9.File, error) {
 
 // PinFS proxies steps to the IPFS root that was set during construction
 func (pd *PinFS) Step(name string) (walkRef, error) {
-	// derive copy of IPFS root
-	p := pd.proxy.Derive()
-	// proxy the request for "name"
-	return p.Step(name)
+	// proxy the request for "name" to IPFS root (set on us during construction)
+	return pd.proxy.Step(name)
 }
 
 func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {

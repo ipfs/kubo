@@ -150,19 +150,8 @@ func (ri *RootIndex) Step(name string) (walkRef, error) {
 		return nil, syscall.ENOENT //TODO: migrate to platform independent value
 	}
 
-	// create ready to use clone of target
-	target := subSys.file.Derive()
-
-	// return the proxied fs/resource
-	return target, nil
-}
-
-func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	ri.Logger.Debugf("Open")
-
-	// we're always storing entries on the instance
-
-	return ri.Qid, 0, nil
+	// return a ready to use derivative of it
+	return subSys.file.Derive(), nil
 }
 
 func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
