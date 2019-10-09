@@ -87,24 +87,6 @@ func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
 	return coreapi.NewCoreAPI(node)
 }
 
-/*
-func spawnDefault(ctx context.Context) (iface.CoreAPI, error) {
-
-}
-*/
-
-/*
-func spawnEphemeral(ctx context.Context) (iface.CoreAPI, error) {
-	defaultPath, err := config.PathRoot()
-	if err != nil {
-		// shouldn't be possible
-		return nil, err
-	}
-
-	return tmpNode(ctx)
-}
-*/
-
 // Spawns a node on the default repo location, if the repo exists
 func spawnDefault(ctx context.Context) (iCore.CoreAPI, error) {
 	defaultPath, err := config.PathRoot()
