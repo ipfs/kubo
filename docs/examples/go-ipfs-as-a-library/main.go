@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	config "github.com/ipfs/go-ipfs-config"
@@ -119,43 +117,6 @@ func spawnEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
 	return createNode(ctx, repoPath)
 }
 
-// ----- Writing to disk
-func writeTo(nd files.Node, fpath string) error {
-	switch nd := nd.(type) {
-	case *files.Symlink:
-		return os.Symlink(nd.Target, fpath)
-	case files.File:
-		f, err := os.Create(fpath)
-		defer f.Close()
-		if err != nil {
-			return err
-		}
-
-		var r io.Reader = nd
-		_, err = io.Copy(f, r)
-		if err != nil {
-			return err
-		}
-		return nil
-	case files.Directory:
-		err := os.Mkdir(fpath, 0777)
-		if err != nil {
-			return err
-		}
-
-		entries := nd.Entries()
-		for entries.Next() {
-			child := filepath.Join(fpath, entries.Name())
-			if err := writeTo(entries.Node(), child); err != nil {
-				return err
-			}
-		}
-		return entries.Err()
-	default:
-		return fmt.Errorf("file type %T at %q is not supported", nd, fpath)
-	}
-}
-
 /// -------
 
 func main() {
@@ -188,7 +149,7 @@ func main() {
 		panic(fmt.Errorf("Could not get CID: %s", err))
 	}
 
-	err = writeTo(out, outputPath)
+	err = files.WriteTo(out, outputPath)
 	if err != nil {
 		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
 	}
