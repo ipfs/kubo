@@ -717,9 +717,8 @@ This daemon plugin wraps the IPFS node and exposes file system services over a m
 Currently we use the 9P2000.L protocol, and offer read-only support for `/ipfs` requests. With support for other (writable) systems coming next.  
 
 You may connect to this service using the [`v9fs`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/Documentation/filesystems/9p.txt) client used in the Linux kernel.
-Of the `v9fs` access modes, we currently only support `any` mode.
-And by default we listen for requests on a Unix domain socket.
-`mount -t 9p -o trans=unix,access=any $IPFS_PATH/filesystem.9p.sock ~/ipfs-mount`
+By default we listen for requests on a Unix domain socket.
+`mount -t 9p -o trans=unix $IPFS_PATH/filesystem.9p.sock ~/ipfs-mount`
 
 To configure the listening address and more, see the [package documentation](https://godoc.org/github.com/ipfs/go-ipfs/plugin/plugins/filesystem)
 See the [v9fs documentation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/Documentation/filesystems/9p.txt) for instructions on using transports, such as TCP.
