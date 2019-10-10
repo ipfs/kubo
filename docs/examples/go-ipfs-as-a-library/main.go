@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
+	"sync"
 
 	config "github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
@@ -15,17 +17,22 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iCore "github.com/ipfs/interface-go-ipfs-core"
 	iCorePath "github.com/ipfs/interface-go-ipfs-core/path"
+
+	peer "github.com/libp2p/go-libp2p-peer"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
-type cfgOpt func(*config.Config)
+/// ------ Setting up the IPFS Repo
 
-func setupPlugins(path string) error {
-	// Load plugins. This will skip the repo if not available.
-	plugins, err := loader.NewPluginLoader(filepath.Join(path, "plugins"))
+func setupPlugins(externalPluginsPath string) error {
+	// Load any external plugins if available on externalPluginsPath
+	plugins, err := loader.NewPluginLoader(filepath.Join(externalPluginsPath, "plugins"))
 	if err != nil {
 		return fmt.Errorf("error loading plugins: %s", err)
 	}
 
+	// Load preloaded and external plugins
 	if err := plugins.Initialize(); err != nil {
 		return fmt.Errorf("error initializing plugins: %s", err)
 	}
@@ -43,44 +50,13 @@ func createTempRepo(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
 	}
 
-	// Set default config with option for 2048 bit key
+	// Create a config with default options and a 2048 bit key
 	cfg, err := config.Init(ioutil.Discard, 2048)
 	if err != nil {
 		return "", err
 	}
 
-	// configure the temporary node
-	// cfg.Routing.Type = "dhtclient"
-	// cfg.Experimental.QUIC = true
-
-	/* This is how you configure flatfs 🤯 */
-	cfg.Datastore.Spec = map[string]interface{}{
-		"type": "mount",
-		"mounts": []interface{}{
-			map[string]interface{}{
-				"mountpoint": "/blocks",
-				"type":       "measure",
-				"prefix":     "flatfs.datastore",
-				"child": map[string]interface{}{
-					"type":      "flatfs",
-					"path":      "blocks",
-					"sync":      true,
-					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
-				},
-			},
-			map[string]interface{}{
-				"mountpoint": "/",
-				"type":       "measure",
-				"prefix":     "leveldb.datastore",
-				"child": map[string]interface{}{
-					"type":        "levelds",
-					"path":        "datastore",
-					"compression": "none",
-				},
-			},
-		},
-	}
-
+	// Create the repo with the config
 	err = fsrepo.Init(repoPath, cfg)
 	if err != nil {
 		return "", fmt.Errorf("failed to init ephemeral node: %s", err)
@@ -90,6 +66,8 @@ func createTempRepo(ctx context.Context) (string, error) {
 }
 
 /// ------ Spawning the node
+
+// Creates an IPFS node and returns its coreAPI
 func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
 	// Open the repo
 	repo, err := fsrepo.Open(repoPath)
@@ -98,12 +76,15 @@ func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
 	}
 
 	// Construct the node
-	node, err := core.NewNode(ctx, &core.BuildCfg{
+
+	nodeOptions := &core.BuildCfg{
 		Online: true,
 		// Routing: libp2p.DHTClientOption,
 		Routing: libp2p.DHTOption,
 		Repo:    repo,
-	})
+	}
+
+	node, err := core.NewNode(ctx, nodeOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -143,9 +124,47 @@ func spawnEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
 	return createNode(ctx, repoPath)
 }
 
+//
+
+func connectToPeers(ctx context.Context, ipfs iCore.CoreAPI, peers []string) error {
+	var wg sync.WaitGroup
+	peerInfos := make(map[peer.ID]*peerstore.PeerInfo, len(peers))
+	for _, addrStr := range peers {
+		addr, err := ma.NewMultiaddr(addrStr)
+		if err != nil {
+			return err
+		}
+		pii, err := peerstore.InfoFromP2pAddr(addr)
+		if err != nil {
+			return err
+		}
+		pi, ok := peerInfos[pii.ID]
+		if !ok {
+			pi = &peerstore.PeerInfo{ID: pii.ID}
+			peerInfos[pi.ID] = pi
+		}
+		pi.Addrs = append(pi.Addrs, pii.Addrs...)
+	}
+
+	wg.Add(len(peerInfos))
+	for _, peerInfo := range peerInfos {
+		go func(peerInfo *peerstore.PeerInfo) {
+			defer wg.Done()
+			err := ipfs.Swarm().Connect(ctx, *peerInfo)
+			if err != nil {
+				log.Printf("failed to connect to %s: %s", peerInfo.ID, err)
+			}
+		}(peerInfo)
+	}
+	wg.Wait()
+	return nil
+}
+
 /// -------
 
 func main() {
+	/// --- Getting a IPFS node running
+
 	fmt.Println("Getting an IPFS node running")
 
 	ctx, _ := context.WithCancel(context.Background())
@@ -166,16 +185,45 @@ func main() {
 
 	fmt.Println("IPFS node running")
 
-	testCIDStr := "QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj"
-	outputPath := "/Users/imp/Downloads/test-101/" + testCIDStr
-	testCID := iCorePath.New(testCIDStr)
+	/// --- Connecting to some nodes in the Network
 
-	/*
-		_, err = ipfs.ResolveNode(ctx, testCID)
-		if err != nil {
-			panic(fmt.Errorf("Could not resolve CID: %s", err))
-		}
-	*/
+	fmt.Println("Going to connect to a few nodes in the Network as bootstrappers")
+
+	bootstrapNodes := []string{
+		// "/ip4/127.0.0.1/tcp/4010/ipfs/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L", // local daemon
+		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+		"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+		"/ip4/128.199.219.111/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
+		"/ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
+		"/ip4/178.62.158.247/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+		"/ip6/2604:a880:1:20::203:d001/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+		"/ip6/2400:6180:0:d0::151:6001/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
+		"/ip6/2604:a880:800:10::4a:5001/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
+		"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+	}
+
+	go connectToPeers(ctx, ipfs, bootstrapNodes)
+
+	/// --- Adding a file and a directory to IPFS
+
+	// TODO
+
+	/// --- Getting the file and directory you added back
+
+	// TODO
+
+	/// --- Getting a file from the IPFS Network
+
+	exampleCIDStr := "QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj"
+
+	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
+
+	outputPath := "/Users/imp/Downloads/test-101/" + exampleCIDStr
+	testCID := iCorePath.New(exampleCIDStr)
 
 	out, err := ipfs.Unixfs().Get(ctx, testCID)
 	if err != nil {
@@ -186,4 +234,8 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
 	}
+
+	fmt.Printf("Wrote the file to %s\n", outputPath)
+
+	fmt.Println("All done! You just finalized your first tutorial on how to use go-ipfs as a library")
 }
