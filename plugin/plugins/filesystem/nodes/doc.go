@@ -11,5 +11,6 @@ The current mapping looks like this:
  - /          - points back to itself, returning the root index
  - /ipfs      - PinFS
  - /ipfs/*    - IPFS
+ - /ipns/*    - IPNS
 */
 package fsnodes
