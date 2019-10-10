@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/plugin/loader"
+	"github.com/ipfs/go-ipfs/plugin/loader" // This package is needed so that all the preloaded plugins are loaded automatically
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	iCore "github.com/ipfs/interface-go-ipfs-core"
 	iCorePath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -52,9 +52,33 @@ func createTempRepo(ctx context.Context) (string, error) {
 	// configure the temporary node
 	// cfg.Routing.Type = "dhtclient"
 	// cfg.Experimental.QUIC = true
+
+	/* This is how you configure flatfs 🤯 */
 	cfg.Datastore.Spec = map[string]interface{}{
-		"type": "mem",
-		"path": "blocks",
+		"type": "mount",
+		"mounts": []interface{}{
+			map[string]interface{}{
+				"mountpoint": "/blocks",
+				"type":       "measure",
+				"prefix":     "flatfs.datastore",
+				"child": map[string]interface{}{
+					"type":      "flatfs",
+					"path":      "blocks",
+					"sync":      true,
+					"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
+				},
+			},
+			map[string]interface{}{
+				"mountpoint": "/",
+				"type":       "measure",
+				"prefix":     "leveldb.datastore",
+				"child": map[string]interface{}{
+					"type":        "levelds",
+					"path":        "datastore",
+					"compression": "none",
+				},
+			},
+		},
 	}
 
 	err = fsrepo.Init(repoPath, cfg)
@@ -105,14 +129,14 @@ func spawnDefault(ctx context.Context) (iCore.CoreAPI, error) {
 
 // Spawns a node to be used just for this run (i.e. creates a tmp repo)
 func spawnEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
+	if err := setupPlugins(""); err != nil {
+		return nil, err
+	}
+
 	// Create a Temporary Repo
 	repoPath, err := createTempRepo(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp repo: %s", err)
-	}
-
-	if err := setupPlugins(repoPath); err != nil {
-		return nil, err
 	}
 
 	// Spawning an ephemeral IPFS node
@@ -146,10 +170,12 @@ func main() {
 	outputPath := "/Users/imp/Downloads/test-101/" + testCIDStr
 	testCID := iCorePath.New(testCIDStr)
 
-	_, err = ipfs.ResolveNode(ctx, testCID)
-	if err != nil {
-		panic(fmt.Errorf("Could not resolve CID: %s", err))
-	}
+	/*
+		_, err = ipfs.ResolveNode(ctx, testCID)
+		if err != nil {
+			panic(fmt.Errorf("Could not resolve CID: %s", err))
+		}
+	*/
 
 	out, err := ipfs.Unixfs().Get(ctx, testCID)
 	if err != nil {
