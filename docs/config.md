@@ -70,6 +70,7 @@ Available profiles:
 - [`Mounts`](#mounts)
 - [`Reprovider`](#reprovider)
 - [`Swarm`](#swarm)
+- [`ConnMgr`](#connmgr)
 
 ## `Addresses`
 Contains information about various listener addresses to be used by this node.
