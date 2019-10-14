@@ -40,7 +40,7 @@ type Base struct {
 
 	closed   bool // set to true upon close; this reference should not be used again for anything
 	modified bool // set to true when the `Trail` has been modified (usually by `Step`)
-	// reset to false when Qid has been populated with the current path in `Trail` (usually by `QID`)
+	// reset to false when `Qid` has been populated with the current path in `Trail` (usually by `QID`)
 
 }
 
@@ -91,7 +91,7 @@ type IPFSBase struct {
 	filesystemCancel context.CancelFunc
 
 	/* During `file.Walk` a new reference to `file` should be created
-	with its op-context +op-cancel populated with one derived from the existing fs context
+	with its op-context + op-cancel populated with one derived from the existing fs context
 	This context is expected to be valid as long as the file is being referenced by a particular FID
 	it should be canceled during `Close`
 
@@ -198,25 +198,32 @@ func (b *Base) Close() error {
 }
 
 func (ib *IPFSBase) Close() error {
-	ib.Logger.Debugf("closing: {%d}%q", ib.Qid.Path, ib.String())
+	lastErr := ib.Base.Close()
+	if lastErr != nil {
+		ib.Logger.Error(lastErr)
+	}
 
-	var err error
 	if ib.filesystemCancel != nil {
+		/* TODO: only do this on the last close to the root
 		if ib.proxy != nil {
-			if err = ib.proxy.Close(); err != nil {
+		    if err := ib.proxy.Close(); err != nil {
 				ib.Logger.Error(err)
 			}
+			lastErr = err
 		}
+		*/
 		ib.filesystemCancel()
 	}
 
-	ib.closed = true
+	if ib.operationsCancel != nil {
+		ib.operationsCancel()
+	}
 
-	return err
+	return lastErr
 }
 
 func (b *Base) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	b.Logger.Debugf("GetAttr {%d}:%q", b.Qid.Path, b.String())
+	//b.Logger.Debugf("GetAttr {%d}:%q", b.Qid.Path, b.String())
 
 	return *b.Qid, *b.metaMask, *b.meta, nil
 }

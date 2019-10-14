@@ -244,11 +244,9 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 }
 
 func (id *IPFS) Close() error {
-	lastErr := id.IPFSBase.Close()
-	if lastErr != nil {
-		id.Logger.Error(lastErr)
-	}
+	var lastErr error
 
+	//TODO: timeout and cancel the context if Close takes too long
 	if id.file != nil {
 		if err := id.file.Close(); err != nil {
 			id.Logger.Error(err)
@@ -257,6 +255,11 @@ func (id *IPFS) Close() error {
 		id.file = nil
 	}
 	id.directory = nil
+
+	lastErr = id.IPFSBase.Close()
+	if lastErr != nil {
+		id.Logger.Error(lastErr)
+	}
 
 	return lastErr
 }

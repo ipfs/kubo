@@ -13,7 +13,6 @@ import (
 	"github.com/djdv/p9/p9"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-unixfs"
 	unixpb "github.com/ipfs/go-unixfs/pb"
@@ -76,18 +75,18 @@ type directoryStream struct {
 type walkRef interface {
 	p9.File
 
-	/* CheckWalk should make sure that the current reference adheard to the restrictions
+	/* CheckWalk should make sure that the current reference adheres to the restrictions
 	of 'walk(5)'
 	In particular the reference must not be open for I/O, or otherwise already closed
 	*/
 	CheckWalk() error
 
-	/* Fork allocates a reference dervied from itself
+	/* Fork allocates a reference derived from itself
 	The returned reference should be at the same path as the existing walkRef
 	the new reference is to act like the starting point `newfid` during `Walk`
 	e.g.
 	`newFid` originally references the same data as the origin `walkRef`
-	but is closed seperatley from the origin
+	but is closed separately from the origin
 	operations such as `Walk` will modify `newFid` without affecting the origin `walkRef`
 	operations such as `Open` should prevent all references to the same path from opening
 	etc. in compliance with 'walk(5)'
@@ -101,7 +100,7 @@ type walkRef interface {
 
 	/* Step should return a reference that is tracking the result of
 	the node's current path + "name"
-	implementaion of this is fs specific
+	implementation of this is fs specific
 	it is valid to return a new reference or the same reference modified
 	within or outside of your own fs boundaries
 	as long as `QID` is ready to be called on the resulting node
@@ -115,61 +114,7 @@ type walkRef interface {
 	Backtrack() (parentRef walkRef, err error)
 }
 
-/*
-func walkerV1(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
-	dbgL := logging.Logger("walker") //TODO: remove this or use the reference log, or something
-	dbgL.Debugf("ref: (%p){%T}", ref, ref)
-
-	curRef := ref.Derive()
-
-	// walk(5)
-	// It is legal for nwname to be zero, in which case newfid will represent the same file as fid
-	//  and the walk will usually succeed
-	if shouldClone(names) {
-		dbgL.Debugf("cloning: %p -> %p", ref, curRef)
-		return []p9.QID{curRef.QID()}, curRef, nil
-	}
-
-	qids := make([]p9.QID, 0, len(names))
-
-	var err error
-	for _, name := range names {
-		switch name {
-		default:
-			// step forward
-			dbgL.Debugf("stepping to: %q", name)
-			curRef, err = curRef.Step(name)
-
-		case ".":
-			// stay
-			// qid = qids[len(qids)-1]
-			// continue
-			dbgL.Debugf(`staying put: "."`)
-
-		case "..":
-			// step back
-			dbgL.Debugf(`backtracking to: ".."`)
-			curRef, err = curRef.Backtrack()
-		}
-
-		if err != nil {
-			dbgL.Error(err)
-			return qids, nil, err
-		}
-
-		dbgL.Debugf("currentRef: (%p){%T}", curRef, curRef)
-		qids = append(qids, curRef.QID())
-	}
-
-	dbgL.Debugf("returned ref: (%p){%T}", curRef, curRef)
-	return qids, curRef, nil
-}
-*/
-
 func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
-	dbgL := logging.Logger("walker") //TODO: remove this or use the reference log, or something
-	dbgL.Debugf("ref: (%p){%T}", ref, ref)
-
 	err := ref.CheckWalk()
 	if err != nil {
 		return nil, nil, err
@@ -184,7 +129,6 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 	// It is legal for nwname to be zero, in which case newfid will represent the same file as fid
 	//  and the walk will usually succeed
 	if shouldClone(names) {
-		dbgL.Debugf("cloning: %p -> %p", ref, curRef)
 		qid, err := ref.QID()
 		if err != nil {
 			return nil, nil, err
@@ -198,38 +142,31 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 		switch name {
 		default:
 			// get ready to step forward; maybe across FS bounds
-			dbgL.Debugf("stepping to: %q", name)
 			curRef, err = curRef.Step(name)
 
 		case ".":
 			// don't prepare to move at all
-			dbgL.Debugf(`staying put: "."`)
 
 		case "..":
 			// get ready to step backwards; maybe across FS bounds
-			dbgL.Debugf(`backtracking to: ".."`)
 			curRef, err = curRef.Backtrack()
 		}
 
 		if err != nil {
-			dbgL.Error(err)
 			return qids, nil, err
 		}
 
 		// commit to the step
 		qid, err := curRef.QID()
 		if err != nil {
-			dbgL.Error(err) // we fell down
 			return qids, nil, err
 		}
 
 		// set on success, we stepped forward
 		qids = append(qids, qid)
 
-		dbgL.Debugf("currentRef: (%p){%T}", curRef, curRef)
 	}
 
-	dbgL.Debugf("returned ref: (%p){%T}", curRef, curRef)
 	return qids, curRef, nil
 }
 
