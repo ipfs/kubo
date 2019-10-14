@@ -80,7 +80,7 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	qid := *pd.Qid
 
 	// IPFS core representation
-	pins, err := pd.core.Pin().Ls(pd.filesystemCtx, coreoptions.Pin.Type.Recursive())
+	pins, err := pd.core.Pin().Ls(pd.operationsCtx, coreoptions.Pin.Type.Recursive())
 	if err != nil {
 		return qid, 0, err
 	}

@@ -115,7 +115,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	// handle directories
 	if qid.Type == p9.TypeDir {
 		//		c, err := id.core.Unixfs().Ls(handleContext, id.CorePath())
-		c, err := id.core.Unixfs().Ls(id.filesystemCtx, id.CorePath())
+		c, err := id.core.Unixfs().Ls(id.operationsCtx, id.CorePath())
 		if err != nil {
 			//id.operationsCancel()
 			return qid, 0, err
@@ -128,7 +128,7 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	}
 
 	// handle files
-	apiNode, err := id.core.Unixfs().Get(id.filesystemCtx, id.CorePath())
+	apiNode, err := id.core.Unixfs().Get(id.operationsCtx, id.CorePath())
 	if err != nil {
 		//id.operationsCancel()
 		return qid, 0, err
