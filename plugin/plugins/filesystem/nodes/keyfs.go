@@ -37,21 +37,30 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 	return kd
 }
 
-func (kd *KeyFS) Derive() walkRef {
-	newFid := &KeyFS{
-		IPFSBase: kd.IPFSBase.Derive(),
-	}
-	return newFid
+func (kd *KeyFS) Fork() (walkRef, error) {
+	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
+	// set new operations context
+	err := newFid.newOperations()
+	return newFid, err
 }
 
 func (kd *KeyFS) Attach() (p9.File, error) {
 	kd.Logger.Debugf("Attach")
-	return kd, nil
+
+	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
+	// set new fs context
+	err := newFid.newFilesystem()
+	return newFid, err
 }
 
-func (kd *KeyFS) Step(keyName string) (walkRef, error) {
-	// proxy the request for "keyName" to IPFS root (set on us during construction)
-	return kd.proxy.Step(keyName)
+// KeyFS forks the IPFS root that was set during construction
+// and calls step on it rather than itself
+func (kd *KeyFS) Step(name string) (walkRef, error) {
+	newFid, err := kd.proxy.Fork()
+	if err != nil {
+		return nil, err
+	}
+	return newFid.Step(name)
 }
 
 func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {

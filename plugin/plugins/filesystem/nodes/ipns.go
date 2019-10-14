@@ -17,5 +17,8 @@ var _ walkRef = (*IPNS)(nil)
 type IPNS = IPFS
 
 func IPNSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) p9.Attacher {
-	return &IPNS{IPFSBase: newIPFSBase(ctx, "/ipns", core, ops...)}
+	id := &IPNS{IPFSBase: newIPFSBase(ctx, "/ipns", core, ops...)}
+	id.Qid.Type = p9.TypeDir
+	id.meta.Mode, id.metaMask.Mode = p9.ModeDirectory|IRXA, true
+	return id
 }

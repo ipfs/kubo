@@ -2,7 +2,6 @@ package fsnodes
 
 import (
 	"context"
-	"syscall"
 
 	"github.com/djdv/p9/p9"
 	cid "github.com/ipfs/go-cid"
@@ -39,12 +38,6 @@ type systemTuple struct {
 	dirent p9.Dirent
 }
 
-type systemSlice []systemTuple
-
-func (ss systemSlice) Len() int           { return len(ss) }
-func (ss systemSlice) Swap(i, j int)      { ss[i], ss[j] = ss[j], ss[i] }
-func (ss systemSlice) Less(i, j int) bool { return ss[i].dirent.Offset < ss[j].dirent.Offset }
-
 //TODO: rename, while this is likely to be the root, it doesn't have to be; maybe "IPFSOverlay"
 // RootIndex is a virtual directory file system, that maps a set of file system implementations to a hierarchy
 // Currently: "/ipfs":PinFS, "/ipfs/*:IPFS
@@ -77,24 +70,27 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 		string
 		subattacher
 		logging.EventLogger
+		// *logging.EventLogger
 	}
 
-	// "mount/bind" table:
-	// "path"=>filesystem
+	// 9P Access names mapped to IPFS attacher functions
 	subsystems := [...]attachTuple{
 		{"ipfs", PinFSAttacher, logging.Logger("PinFS")},
 		{"ipns", KeyFSAttacher, logging.Logger("KeyFS")},
 	}
 
-	// prealloc what we can
+	// allocate root entry pairs
+	// assign inherent options,
+	// and instantiate a template root entry
 	ri.subsystems = make(map[string]systemTuple, len(subsystems))
 	opts := []nodeopts.AttachOption{nodeopts.Parent(ri)}
-	rootDirent := p9.Dirent{ //template
+	rootDirent := p9.Dirent{
 		Type: p9.TypeDir,
 		QID:  p9.QID{Type: p9.TypeDir},
 	}
 
 	// couple the strings to their implementations
+	// "aname"=>{filesystem,entry}
 	for i, subsystem := range subsystems {
 		logOpt := nodeopts.Logger(subsystem.EventLogger)
 		// the file system implementation
@@ -109,7 +105,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 
 		rootDirent.QID.Path = cidToQPath(rootPath("/" + subsystem.string).Cid())
 
-		// add it as a unionlike thing
+		// add the fs+entry to the list of subsystems
 		ri.subsystems[subsystem.string] = systemTuple{
 			file:   fs.(walkRef),
 			dirent: rootDirent,
@@ -119,18 +115,28 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	return ri
 }
 
-func (ri *RootIndex) Derive() walkRef {
+func (ri *RootIndex) Fork() (walkRef, error) {
 	newFid := &RootIndex{
-		IPFSBase:   ri.IPFSBase.Derive(),
+		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
 		subsystems: ri.subsystems,
 	}
 
-	return newFid
+	// set new operations context
+	err := newFid.newOperations()
+	return newFid, err
 }
 
 func (ri *RootIndex) Attach() (p9.File, error) {
 	ri.Logger.Debugf("Attach")
-	return ri, nil
+
+	newFid := &RootIndex{
+		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
+		subsystems: ri.subsystems,
+	}
+
+	// set new fs context
+	err := newFid.newFilesystem()
+	return newFid, err
 }
 
 func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
@@ -147,11 +153,11 @@ func (ri *RootIndex) Step(name string) (walkRef, error) {
 	subSys, ok := ri.subsystems[name]
 	if !ok {
 		ri.Logger.Errorf("%q is not provided by us", name)
-		return nil, syscall.ENOENT //TODO: migrate to platform independent value
+		return nil, ENOENT
 	}
 
 	// return a ready to use derivative of it
-	return subSys.file.Derive(), nil
+	return subSys.file.Fork()
 }
 
 func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {

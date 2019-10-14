@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	"syscall"
 	"time"
 
 	"github.com/djdv/p9/p9"
@@ -18,6 +19,7 @@ import (
 	unixpb "github.com/ipfs/go-unixfs/pb"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
+	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (
@@ -27,15 +29,42 @@ const (
 	// context: https://github.com/ipfs/go-ipfs/pull/6612/files#r322989041
 	ipfsBlockSize = 256 << 10
 	saltSize      = 32
+
+	// TODO: move these
+	// Linux errno values for non-Linux systems; 9p2000.L compliance
+	ENOTDIR = syscall.Errno(0x14)
+	ENOENT  = syscall.ENOENT //TODO: migrate to platform independent value
+
+	// pedantic POSIX stuff
+	S_IROTH p9.FileMode = p9.Read
+	S_IWOTH             = p9.Write
+	S_IXOTH             = p9.Exec
+
+	S_IRGRP = S_IROTH << 3
+	S_IWGRP = S_IWOTH << 3
+	S_IXGRP = S_IXOTH << 3
+
+	S_IRUSR = S_IRGRP << 3
+	S_IWUSR = S_IWGRP << 3
+	S_IXUSR = S_IXGRP << 3
+
+	S_IRWXO = S_IROTH | S_IWOTH | S_IXOTH
+	S_IRWXG = S_IRGRP | S_IWGRP | S_IXGRP
+	S_IRWXU = S_IRUSR | S_IWUSR | S_IXUSR
+
+	IRWXA = S_IRWXU | S_IRWXG | S_IRWXO            // 0777
+	IRXA  = IRWXA &^ (S_IWUSR | S_IWGRP | S_IWOTH) // 0555
 )
 
-var errWalkOpened = errors.New("this fid is open")
-var errKeyNotInStore = errors.New("requested key was not found in the key store")
+var (
+	errWalkOpened    = errors.New("this fid is open")
+	errKeyNotInStore = errors.New("requested key was not found in the key store")
 
-// NOTE [2019.09.12]: QID's have a high collision probability
-// as a result we add a salt to hashes to attempt to mitigate this
-// for more context see: https://github.com/ipfs/go-ipfs/pull/6612#discussion_r321038649
-var salt []byte
+	// NOTE [2019.09.12]: QID's have a high collision probability
+	// as a result we add a salt to hashes to attempt to mitigate this
+	// for more context see: https://github.com/ipfs/go-ipfs/pull/6612#discussion_r321038649
+	salt []byte
+)
 
 type directoryStream struct {
 	entryChan <-chan coreiface.DirEntry
@@ -46,21 +75,48 @@ type directoryStream struct {
 
 type walkRef interface {
 	p9.File
-	// returns the QID of the reference
-	QID() p9.QID // implemented on Base
 
-	// returns a derived instance that is ready to step
-	Derive() walkRef // implemented per filesystem
+	/* CheckWalk should make sure that the current reference adheard to the restrictions
+	of 'walk(5)'
+	In particular the reference must not be open for I/O, or otherwise already closed
+	*/
+	CheckWalk() error
 
-	// Step should try to step to "name", resulting in a ready to use derivative
+	/* Fork allocates a reference dervied from itself
+	The returned reference should be at the same path as the existing walkRef
+	the new reference is to act like the starting point `newfid` during `Walk`
+	e.g.
+	`newFid` originally references the same data as the origin `walkRef`
+	but is closed seperatley from the origin
+	operations such as `Walk` will modify `newFid` without affecting the origin `walkRef`
+	operations such as `Open` should prevent all references to the same path from opening
+	etc. in compliance with 'walk(5)'
+	*/
+	Fork() (walkRef, error)
+
+	/* QID should check that the node's path is walkable
+	by constructing the QID for its path
+	*/
+	QID() (p9.QID, error)
+
+	/* Step should return a reference that is tracking the result of
+	the node's current path + "name"
+	implementaion of this is fs specific
+	it is valid to return a new reference or the same reference modified
+	within or outside of your own fs boundaries
+	as long as `QID` is ready to be called on the resulting node
+	*/
 	Step(name string) (walkRef, error)
 
-	//TODO: implement on base class
-	// Backtrack returns a reference to the node's parent
+	/* Backtrack must handle `..` request
+	returning a reference to the node behind the current node (or itself in the case of the root)
+	the same comment about implementation of `Step` applies here
+	*/
 	Backtrack() (parentRef walkRef, err error)
 }
 
-func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
+/*
+func walkerV1(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 	dbgL := logging.Logger("walker") //TODO: remove this or use the reference log, or something
 	dbgL.Debugf("ref: (%p){%T}", ref, ref)
 
@@ -103,6 +159,74 @@ func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
 
 		dbgL.Debugf("currentRef: (%p){%T}", curRef, curRef)
 		qids = append(qids, curRef.QID())
+	}
+
+	dbgL.Debugf("returned ref: (%p){%T}", curRef, curRef)
+	return qids, curRef, nil
+}
+*/
+
+func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
+	dbgL := logging.Logger("walker") //TODO: remove this or use the reference log, or something
+	dbgL.Debugf("ref: (%p){%T}", ref, ref)
+
+	err := ref.CheckWalk()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	curRef, err := ref.Fork()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// walk(5)
+	// It is legal for nwname to be zero, in which case newfid will represent the same file as fid
+	//  and the walk will usually succeed
+	if shouldClone(names) {
+		dbgL.Debugf("cloning: %p -> %p", ref, curRef)
+		qid, err := ref.QID()
+		if err != nil {
+			return nil, nil, err
+		}
+		return []p9.QID{qid}, curRef, nil
+	}
+
+	qids := make([]p9.QID, 0, len(names))
+
+	for _, name := range names {
+		switch name {
+		default:
+			// get ready to step forward; maybe across FS bounds
+			dbgL.Debugf("stepping to: %q", name)
+			curRef, err = curRef.Step(name)
+
+		case ".":
+			// don't prepare to move at all
+			dbgL.Debugf(`staying put: "."`)
+
+		case "..":
+			// get ready to step backwards; maybe across FS bounds
+			dbgL.Debugf(`backtracking to: ".."`)
+			curRef, err = curRef.Backtrack()
+		}
+
+		if err != nil {
+			dbgL.Error(err)
+			return qids, nil, err
+		}
+
+		// commit to the step
+		qid, err := curRef.QID()
+		if err != nil {
+			dbgL.Error(err) // we fell down
+			return qids, nil, err
+		}
+
+		// set on success, we stepped forward
+		qids = append(qids, qid)
+
+		dbgL.Debugf("currentRef: (%p){%T}", curRef, curRef)
 	}
 
 	dbgL.Debugf("returned ref: (%p){%T}", curRef, curRef)
@@ -250,27 +374,6 @@ func mfsEntTo9Ent(mfsEnt mfs.NodeListing) (p9.Dirent, error) {
 	}, nil
 }
 
-const ( // pedantic POSIX stuff
-	S_IROTH p9.FileMode = p9.Read
-	S_IWOTH             = p9.Write
-	S_IXOTH             = p9.Exec
-
-	S_IRGRP = S_IROTH << 3
-	S_IWGRP = S_IWOTH << 3
-	S_IXGRP = S_IXOTH << 3
-
-	S_IRUSR = S_IRGRP << 3
-	S_IWUSR = S_IWGRP << 3
-	S_IXUSR = S_IXGRP << 3
-
-	S_IRWXO = S_IROTH | S_IWOTH | S_IXOTH
-	S_IRWXG = S_IRGRP | S_IWGRP | S_IXGRP
-	S_IRWXU = S_IRUSR | S_IWUSR | S_IXUSR
-
-	IRWXA = S_IRWXU | S_IRWXG | S_IRWXO            // 0777
-	IRXA  = IRWXA &^ (S_IWUSR | S_IWGRP | S_IWOTH) // 0555
-)
-
 func timeStamp(attr *p9.Attr, mask p9.AttrMask) {
 	now := time.Now()
 	if mask.ATime {
@@ -310,11 +413,31 @@ func flatReaddir(ents []p9.Dirent, offset uint64, count uint32) ([]p9.Dirent, er
 func boundCheck(offset uint64, length int) (bool, error) {
 	switch {
 	case offset == uint64(length):
-		return true, nil // EOS
+		return true, io.EOF // EOS
 	case offset > uint64(length):
 		return true, fmt.Errorf("offset %d extends beyond directory bound %d", offset, length)
 	default:
 		// not at end of stream and okay to continue
 		return false, nil
 	}
+}
+
+func coreToQid(ctx context.Context, path corepath.Path, core coreiface.CoreAPI) (p9.QID, error) {
+	var qid p9.QID
+	// translate from abstract path to CoreAPI resolved path
+	resolvedPath, err := core.ResolvePath(ctx, path)
+	if err != nil {
+		return qid, err
+	}
+
+	// inspected to derive 9P QID
+	attr := new(p9.Attr)
+	_, err = coreAttr(ctx, attr, resolvedPath, core, p9.AttrMask{Mode: true})
+	if err != nil {
+		return qid, err
+	}
+
+	qid.Type = attr.Mode.QIDType()
+	qid.Path = cidToQPath(resolvedPath.Cid())
+	return qid, nil
 }

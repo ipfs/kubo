@@ -41,22 +41,30 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 	return pd
 }
 
-func (pd *PinFS) Derive() walkRef {
-	newFid := &PinFS{
-		IPFSBase: pd.IPFSBase.Derive(),
-	}
-	return newFid
+func (pd *PinFS) Fork() (walkRef, error) {
+	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
+	// set new operations context
+	err := newFid.newOperations()
+	return newFid, err
 }
 
 func (pd *PinFS) Attach() (p9.File, error) {
 	pd.Logger.Debugf("Attach")
-	return pd, nil
+
+	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
+	// set new fs context
+	err := newFid.newFilesystem()
+	return newFid, err
 }
 
-// PinFS proxies steps to the IPFS root that was set during construction
+// PinFS forks the IPFS root that was set during construction
+// and calls step on it rather than itself
 func (pd *PinFS) Step(name string) (walkRef, error) {
-	// proxy the request for "name" to IPFS root (set on us during construction)
-	return pd.proxy.Step(name)
+	newFid, err := pd.proxy.Fork()
+	if err != nil {
+		return nil, err
+	}
+	return newFid.Step(name)
 }
 
 func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
@@ -69,10 +77,12 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	pd.Logger.Debugf("Open")
 
+	qid := *pd.Qid
+
 	// IPFS core representation
 	pins, err := pd.core.Pin().Ls(pd.filesystemCtx, coreoptions.Pin.Type.Recursive())
 	if err != nil {
-		return pd.Qid, 0, err
+		return qid, 0, err
 	}
 
 	// 9P representation
@@ -88,11 +98,11 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 		ipldNode, err := pd.core.ResolveNode(callCtx, pin.Path())
 		if err != nil {
 			cancel()
-			return pd.Qid, 0, err
+			return qid, 0, err
 		}
 		if _, err = ipldStat(callCtx, attr, ipldNode, requestType); err != nil {
 			cancel()
-			return pd.Qid, 0, err
+			return qid, 0, err
 		}
 
 		pd.ents = append(pd.ents, p9.Dirent{
@@ -106,14 +116,14 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 		cancel()
 	}
 
-	return pd.Qid, ipfsBlockSize, nil
+	return qid, ipfsBlockSize, nil
 }
 
 func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	pd.Logger.Debugf("Readdir")
 
 	if pd.ents == nil {
-		return nil, fmt.Errorf("directory %q is not open for reading", pd.StringPath())
+		return nil, fmt.Errorf("directory %q is not open for reading", pd.String())
 	}
 
 	return flatReaddir(pd.ents, offset, count)
@@ -128,13 +138,8 @@ func (pd *PinFS) Backtrack() (walkRef, error) {
 	// otherwise step back
 	pd.Trail = pd.Trail[1:]
 
-	// reset meta
+	// TODO: reset meta
 	return pd, nil
-}
-
-func (pd *PinFS) Flush() error {
-	pd.Logger.Errorf("flushing:%q:%d", pd.StringPath(), pd.NinePath())
-	return nil
 }
 
 func (pd *PinFS) Close() error {

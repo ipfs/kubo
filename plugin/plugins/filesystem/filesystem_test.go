@@ -3,54 +3,60 @@ package filesystem
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	gopath "path"
 	"path/filepath"
-	"sort"
 	"testing"
 	"time"
 
-	"github.com/djdv/p9/localfs"
 	"github.com/djdv/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	fsnodes "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes"
+	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	coreoptions "github.com/ipfs/interface-go-ipfs-core/options"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
-var (
-	attrMaskIPFSTest = p9.AttrMask{
-		Mode: true,
-		Size: true,
-	}
-	rootSubsystems = []string{"ipfs", "ipns"}
-)
+var attrMaskIPFSTest = p9.AttrMask{
+	Mode: true,
+	Size: true,
+}
 
 func TestAll(t *testing.T) {
 	ctx := context.TODO()
-	core, err := initCore(ctx)
+	core, err := InitCore(ctx)
 	if err != nil {
 		t.Fatalf("Failed to construct IPFS node: %s\n", err)
 	}
 
-	t.Run("RootFS Attach", func(t *testing.T) { testRootAttacher(ctx, t, core) })
-	t.Run("RootFS Clone", func(t *testing.T) { testRootClones(ctx, t, core) })
 	t.Run("RootFS", func(t *testing.T) { testRootFS(ctx, t, core) })
 	t.Run("PinFS", func(t *testing.T) { testPinFS(ctx, t, core) })
 	t.Run("IPFS", func(t *testing.T) { testIPFS(ctx, t, core) })
 }
 
-func testRootAttacher(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
-	rootAttacher := fsnodes.RootAttacher(ctx, core)
+type baseAttacher func(context.Context, coreiface.CoreAPI, ...nodeopts.AttachOption) p9.Attacher
 
-	// 2 individual instances
-	nineRoot, err := rootAttacher.Attach()
+func baseLine(ctx context.Context, t *testing.T, core coreiface.CoreAPI, attachFn baseAttacher) {
+	attacher := attachFn(ctx, core)
+
+	t.Run("attacher", func(t *testing.T) { testAttacher(ctx, t, attacher) })
+	root, err := attacher.Attach()
+	if err != nil {
+		t.Fatalf("Attach test passed but attach failed: %s\n", err)
+	}
+	t.Run("walk", func(t *testing.T) { testClones(ctx, t, root) })
+
+}
+
+func testAttacher(ctx context.Context, t *testing.T, attacher p9.Attacher) {
+	// 2 individual instances, one after another
+	nineRoot, err := attacher.Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
 	}
@@ -59,7 +65,7 @@ func testRootAttacher(ctx context.Context, t *testing.T, core coreiface.CoreAPI)
 		t.Fatalf("Close errored: %s\n", err)
 	}
 
-	nineRootTheRevenge, err := rootAttacher.Attach()
+	nineRootTheRevenge, err := attacher.Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P root resource a second time: %s\n", err)
 	}
@@ -69,12 +75,12 @@ func testRootAttacher(ctx context.Context, t *testing.T, core coreiface.CoreAPI)
 	}
 
 	// 2 instances at the same time
-	nineRoot, err = rootAttacher.Attach()
+	nineRoot, err = attacher.Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
 	}
 
-	nineRootTheRevenge, err = rootAttacher.Attach()
+	nineRootTheRevenge, err = attacher.Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P root resource a second time: %s\n", err)
 	}
@@ -86,165 +92,92 @@ func testRootAttacher(ctx context.Context, t *testing.T, core coreiface.CoreAPI)
 	if err = nineRoot.Close(); err != nil {
 		t.Fatalf("Close errored: %s\n", err)
 	}
-}
 
-func testRootClones(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
-	nineRoot, err := fsnodes.RootAttacher(ctx, core).Attach()
+	// final instance
+	nineRoot, err = attacher.Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
-	}
-
-	_, nineRef, err := nineRoot.Walk(nil)
-	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
-	}
-
-	// this shouldn't affect the parent it's derived from
-	if err = nineRef.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
-	}
-
-	_, anotherNineRef, err := nineRoot.Walk(nil)
-	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
-	}
-
-	if err = anotherNineRef.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
 	}
 
 	if err = nineRoot.Close(); err != nil {
 		t.Fatalf("Close errored: %s\n", err)
 	}
-
 }
 
-func testRootFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
-	nineRoot, err := fsnodes.RootAttacher(ctx, core).Attach()
+func testClones(ctx context.Context, t *testing.T, nineRef p9.File) {
+	// clone the node we were passed; 1st generation
+	_, newRef, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+		t.Fatalf("Failed to clone root: %s\n", err)
 	}
 
-	_, nineRef, err := nineRoot.Walk(nil)
+	// this `Close` shouldn't affect the parent it's derived from
+	// only descendants
+	if err = newRef.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
+
+	// remake the clone from the original; 1st generation again
+	_, gen1, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to walk root: %s\n", err)
-	}
-	if _, _, err = nineRef.Open(p9.ReadOnly); err != nil {
-		t.Fatalf("Failed to open root: %s\n", err)
+		t.Fatalf("Failed to clone root: %s\n", err)
 	}
 
-	ents, err := nineRef.Readdir(0, ^uint32(0))
+	// clone a 2nd generation from the 1st
+	_, gen2, err := gen1.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to read root: %s\n", err)
+		t.Fatalf("Failed to clone root: %s\n", err)
 	}
 
-	if len(ents) != len(rootSubsystems) {
-		t.Fatalf("Failed, root has bad entries:\nHave:%v\nWant:%v\n", ents, rootSubsystems)
-	}
-	for i, name := range rootSubsystems {
-		if ents[i].Name != name {
-			t.Fatalf("Failed, root has bad entries:\nHave:%v\nWant:%v\n", ents, rootSubsystems)
-		}
-	}
-	//TODO: deeper compare than just the names / name order
-}
-
-func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
-	pinRoot, err := fsnodes.PinFSAttacher(ctx, core).Attach()
+	// 3rd from the 2nd
+	_, gen3, err := gen2.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P Pin resource: %s\n", err)
+		t.Fatalf("Failed to clone root: %s\n", err)
 	}
 
-	same := func(base, target []string) bool {
-		if len(base) != len(target) {
-			return false
-		}
-		sort.Strings(base)
-		sort.Strings(target)
-
-		for i := len(base) - 1; i >= 0; i-- {
-			if target[i] != base[i] {
-				return false
-			}
-		}
-		return true
+	// close the 2nd reference
+	if err = gen2.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
 	}
 
-	shallowCompare := func() {
-		basePins, err := pinNames(ctx, core)
-		if err != nil {
-			t.Fatalf("Failed to list IPFS pins: %s\n", err)
-		}
-		p9Pins, err := p9PinNames(pinRoot)
-		if err != nil {
-			t.Fatalf("Failed to list 9P pins: %s\n", err)
-		}
-
-		if !same(basePins, p9Pins) {
-			t.Fatalf("Pinsets differ\ncore: %v\n9P: %v\n", basePins, p9Pins)
-		}
+	// try to clone from the 2nd reference
+	// this should fail since we closed it
+	_, undead, err := gen2.Walk(nil)
+	if err == nil {
+		t.Fatalf("Clone (%p)%q succeeded when parent (%p)%q was closed\n", undead, undead, gen2, gen2)
 	}
 
-	//test default (likely empty) test repo pins
-	shallowCompare()
-
-	// test modifying pinset +1; initEnv pins its IPFS environment
-	env, _, err := initEnv(ctx, core)
+	// 4th from  the 3rd
+	// should still succeed regardless of 2's state
+	_, gen4, err := gen3.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
-	}
-	defer os.RemoveAll(env)
-	shallowCompare()
-
-	// test modifying pinset +1 again; generate garbage and pin it
-	if err := generateGarbage(env); err != nil {
-		t.Fatalf("Failed to generate test data: %s\n", err)
-	}
-	if _, err = pinAddDir(ctx, core, env); err != nil {
-		t.Fatalf("Failed to add directory to IPFS: %s\n", err)
-	}
-	shallowCompare()
-}
-
-func testIPFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
-	env, iEnv, err := initEnv(ctx, core)
-	if err != nil {
-		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
-	}
-	defer os.RemoveAll(env)
-
-	localEnv, err := localfs.Attacher(env).Attach()
-	if err != nil {
-		t.Fatalf("Failed to attach to local resource %q: %s\n", env, err)
+		t.Fatalf("Failed to clone root: %s\n", err)
 	}
 
-	ipfsRoot, err := fsnodes.IPFSAttacher(ctx, core).Attach()
-	if err != nil {
-		t.Fatalf("Failed to attach to IPFS resource: %s\n", err)
-	}
-	_, ipfsEnv, err := ipfsRoot.Walk([]string{gopath.Base(iEnv.String())})
-	if err != nil {
-		t.Fatalf("Failed to walk to IPFS test environment: %s\n", err)
-	}
-	_, envClone, err := ipfsEnv.Walk(nil)
-	if err != nil {
-		t.Fatalf("Failed to clone IPFS environment handle: %s\n", err)
+	// close the 3rd reference
+	if err = gen3.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
 	}
 
-	testCompareTreeAttrs(t, localEnv, ipfsEnv)
+	// close the 4th reference
+	if err = gen4.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
+	}
 
-	// test readdir bounds
-	//TODO: compare against a table, not just lengths
-	_, _, err = envClone.Open(p9.ReadOnly)
+	// clone a 2nd generation from the 1st again
+	_, gen2, err = gen1.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to open IPFS test directory: %s\n", err)
+		t.Fatalf("Failed to clone root: %s\n", err)
 	}
-	ents, err := envClone.Readdir(2, 2) // start at ent 2, return max 2
-	if err != nil {
-		t.Fatalf("Failed to read IPFS test directory: %s\n", err)
+
+	// close the 1st
+	if err = gen1.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
 	}
-	if l := len(ents); l == 0 || l > 2 {
-		t.Fatalf("IPFS test directory contents don't match read request: %v\n", ents)
+
+	// close the 2nd
+	if err = gen2.Close(); err != nil {
+		t.Fatalf("Close errored: %s\n", err)
 	}
 }
 
@@ -268,7 +201,6 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 				return nil, err
 			}
 			res[ent.Name] = attr
-			//p9.AttrMaskAll
 
 			if ent.Type == p9.TypeDir {
 				subRes, err := expand(child)
@@ -278,6 +210,9 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 				for name, attr := range subRes {
 					res[gopath.Join(ent.Name, name)] = attr
 				}
+			}
+			if err = child.Close(); err != nil {
+				return nil, err
 			}
 		}
 		return res, nil
@@ -346,7 +281,7 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 	}
 }
 
-func initCore(ctx context.Context) (coreiface.CoreAPI, error) {
+func InitCore(ctx context.Context) (coreiface.CoreAPI, error) {
 	node, err := core.NewNode(ctx, &core.BuildCfg{
 		Online:                      false,
 		Permanent:                   false,
@@ -404,6 +339,39 @@ func initEnv(ctx context.Context, core coreiface.CoreAPI) (string, corepath.Reso
 	}
 
 	return testDir, iPath, err
+}
+
+func p9Readdir(dir p9.File) ([]p9.Dirent, error) {
+	_, dirClone, err := dir.Walk(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	_, _, err = dirClone.Open(p9.ReadOnly)
+	if err != nil {
+		return nil, err
+	}
+	defer dirClone.Close()
+
+	var (
+		offset uint64
+		ents   []p9.Dirent
+	)
+	for {
+		curEnts, err := dirClone.Readdir(offset, ^uint32(0))
+		ents = append(ents, curEnts...)
+		if err != nil {
+			break
+		}
+
+		offset += uint64(len(curEnts))
+	}
+
+	if err == io.EOF {
+		err = nil
+	}
+
+	return ents, err
 }
 
 func pinAddDir(ctx context.Context, core coreiface.CoreAPI, path string) (corepath.Resolved, error) {
@@ -469,20 +437,6 @@ func p9PinNames(root p9.File) ([]string, error) {
 	}
 
 	return names, nil
-}
-
-func p9Readdir(dir p9.File) ([]p9.Dirent, error) {
-	_, dirClone, err := dir.Walk(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	_, _, err = dirClone.Open(p9.ReadOnly)
-	if err != nil {
-		return nil, err
-	}
-	defer dirClone.Close()
-	return dirClone.Readdir(0, ^uint32(0))
 }
 
 //TODO:
