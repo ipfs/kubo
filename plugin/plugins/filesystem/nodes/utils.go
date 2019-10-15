@@ -68,7 +68,6 @@ var (
 type directoryStream struct {
 	entryChan <-chan coreiface.DirEntry
 	cursor    uint64
-	eos       bool // have seen end of stream?
 	err       error
 }
 

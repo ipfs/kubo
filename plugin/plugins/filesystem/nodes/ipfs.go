@@ -160,10 +160,6 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, id.directory.err
 	}
 
-	if id.directory.eos && offset == id.directory.cursor {
-		return nil, nil // EOS
-	}
-
 	if offset < id.directory.cursor {
 		return nil, fmt.Errorf("read offset %d is behind current entry %d, seeking backwards in directory streams is not supported", offset, id.directory.cursor)
 	}
@@ -175,7 +171,6 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		case entry, open := <-id.directory.entryChan:
 			if !open {
 				//id.operationsCancel()
-				id.directory.eos = true
 				return ents, nil
 			}
 			if entry.Err != nil {
@@ -183,17 +178,20 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 				return nil, entry.Err
 			}
 
-			if offset <= id.directory.cursor {
-				nineEnt, err := coreEntTo9Ent(entry)
-				if err != nil {
-					id.directory.err = err
-					return nil, err
-				}
-				nineEnt.Offset = id.directory.cursor + 1
-				ents = append(ents, nineEnt)
-			}
-
+			// we consumed an entry
 			id.directory.cursor++
+
+			// skip processing the entry if its below the request offset
+			if offset > id.directory.cursor {
+				continue
+			}
+			nineEnt, err := coreEntTo9Ent(entry)
+			if err != nil {
+				id.directory.err = err
+				return nil, err
+			}
+			nineEnt.Offset = id.directory.cursor
+			ents = append(ents, nineEnt)
 
 		case <-id.filesystemCtx.Done():
 			id.directory.err = id.filesystemCtx.Err()
