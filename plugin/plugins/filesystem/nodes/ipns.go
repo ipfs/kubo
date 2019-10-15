@@ -3,7 +3,7 @@ package fsnodes
 import (
 	"context"
 
-	"github.com/djdv/p9/p9"
+	"github.com/hugelgupf/p9/p9"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 )

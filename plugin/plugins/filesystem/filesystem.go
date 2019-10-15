@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/djdv/p9/p9"
+	"github.com/hugelgupf/p9/p9"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	fsnodes "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"

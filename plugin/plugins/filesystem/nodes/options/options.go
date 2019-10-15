@@ -1,7 +1,7 @@
 package nodeopts
 
 import (
-	"github.com/djdv/p9/p9"
+	"github.com/hugelgupf/p9/p9"
 	"github.com/jbenet/goprocess"
 
 	"github.com/ipfs/go-cid"

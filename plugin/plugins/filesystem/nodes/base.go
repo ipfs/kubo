@@ -6,8 +6,8 @@ import (
 	gopath "path"
 	"time"
 
-	"github.com/djdv/p9/p9"
-	"github.com/djdv/p9/unimplfs"
+	"github.com/hugelgupf/p9/p9"
+	"github.com/hugelgupf/p9/unimplfs"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"

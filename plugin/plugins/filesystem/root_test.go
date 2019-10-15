@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/djdv/p9/p9"
+	"github.com/hugelgupf/p9/p9"
 	fsnodes "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 )

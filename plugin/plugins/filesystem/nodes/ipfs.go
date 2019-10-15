@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/djdv/p9/p9"
+	"github.com/hugelgupf/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
