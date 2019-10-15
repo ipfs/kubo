@@ -357,7 +357,8 @@ func p9Readdir(dir p9.File) ([]p9.Dirent, error) {
 		ents   []p9.Dirent
 	)
 	for {
-		curEnts, err := dirClone.Readdir(offset, ^uint32(0))
+		var curEnts []p9.Dirent
+		curEnts, err = dirClone.Readdir(offset, ^uint32(0))
 		lEnts := len(curEnts)
 		if err != nil || lEnts == 0 {
 			break
