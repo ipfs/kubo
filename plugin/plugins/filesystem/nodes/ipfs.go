@@ -114,7 +114,6 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 
 	// handle directories
 	if qid.Type == p9.TypeDir {
-		//		c, err := id.core.Unixfs().Ls(handleContext, id.CorePath())
 		c, err := id.core.Unixfs().Ls(id.operationsCtx, id.CorePath())
 		if err != nil {
 			//id.operationsCancel()
@@ -161,10 +160,8 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		return nil, id.directory.err
 	}
 
-	if id.directory.eos {
-		if offset == id.directory.cursor {
-			return nil, io.EOF // this is the only exception to offset being behind the cursor
-		}
+	if id.directory.eos && offset == id.directory.cursor {
+		return nil, nil // EOS
 	}
 
 	if offset < id.directory.cursor {
@@ -179,7 +176,7 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 			if !open {
 				//id.operationsCancel()
 				id.directory.eos = true
-				return ents, io.EOF
+				return ents, nil
 			}
 			if entry.Err != nil {
 				id.directory.err = entry.Err

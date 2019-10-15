@@ -3,7 +3,6 @@ package filesystem
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -359,16 +358,13 @@ func p9Readdir(dir p9.File) ([]p9.Dirent, error) {
 	)
 	for {
 		curEnts, err := dirClone.Readdir(offset, ^uint32(0))
-		ents = append(ents, curEnts...)
-		if err != nil {
+		lEnts := len(curEnts)
+		if err != nil || lEnts == 0 {
 			break
 		}
 
-		offset += uint64(len(curEnts))
-	}
-
-	if err == io.EOF {
-		err = nil
+		ents = append(ents, curEnts...)
+		offset += uint64(lEnts)
 	}
 
 	return ents, err

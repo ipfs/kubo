@@ -350,7 +350,7 @@ func flatReaddir(ents []p9.Dirent, offset uint64, count uint32) ([]p9.Dirent, er
 func boundCheck(offset uint64, length int) (bool, error) {
 	switch {
 	case offset == uint64(length):
-		return true, io.EOF // EOS
+		return true, nil // EOS
 	case offset > uint64(length):
 		return true, fmt.Errorf("offset %d extends beyond directory bound %d", offset, length)
 	default:

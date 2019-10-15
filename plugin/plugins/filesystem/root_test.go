@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"testing"
 
 	"github.com/djdv/p9/p9"
@@ -53,7 +52,7 @@ func testRootDir(ctx context.Context, t *testing.T, root p9.File) {
 		t.Fatal(err)
 	}
 
-	if _, err = root.Readdir(uint64(len(ents)), ^uint32(0)); err != io.EOF {
+	if _, err = root.Readdir(uint64(len(ents)), ^uint32(0)); err != nil {
 		t.Fatal(errors.New("entry count mismatch"))
 	}
 
