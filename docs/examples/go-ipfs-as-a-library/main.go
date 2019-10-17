@@ -170,6 +170,7 @@ func main() {
 	ctx, _ := context.WithCancel(context.Background())
 
 	/*
+		// Spawn a node using the default path (~/.ipfs), assuming that a repo exists there already
 		fmt.Println("Spawning node on default repo")
 		ipfs, err := spawnDefault(ctx)
 		if err != nil {
@@ -177,6 +178,7 @@ func main() {
 		}
 	*/
 
+	// Spawn a node using a temporary path, creating a temporary repo for the run
 	fmt.Println("Spawning node on a temporary repo")
 	ipfs, err := spawnEphemeral(ctx)
 	if err != nil {
@@ -190,11 +192,6 @@ func main() {
 	fmt.Println("Going to connect to a few nodes in the Network as bootstrappers")
 
 	bootstrapNodes := []string{
-		// "/ip4/127.0.0.1/tcp/4010/ipfs/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L", // local daemon
-		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
-		"/dnsaddr/bootstrap.libp2p.io/ipfs/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
 		"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 		"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
 		"/ip4/128.199.219.111/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
@@ -204,6 +201,15 @@ func main() {
 		"/ip6/2400:6180:0:d0::151:6001/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
 		"/ip6/2604:a880:800:10::4a:5001/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
 		"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+
+		// Disabling dnsaddrs until https://github.com/ipfs/go-ipfs/issues/6714 is resolved
+		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+
+		// You can add more nodes here, for example, another IPFS node you might have running locally, mine was:
+		// "/ip4/127.0.0.1/tcp/4010/ipfs/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L",
 	}
 
 	go connectToPeers(ctx, ipfs, bootstrapNodes)
