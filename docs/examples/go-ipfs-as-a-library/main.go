@@ -216,27 +216,64 @@ func main() {
 
 	/// --- Adding a file and a directory to IPFS
 
+	// Add(context.Context, files.Node, ...options.UnixfsAddOption) (path.Resolved, error)
+
+	inputBasePath := "/Users/imp/Downloads/_ipfs-example/"
+	inputPathFile := inputBasePath + "ipfs.paper.draft3.pdf"
+	inputPathDirectory := inputBasePath + "test-dir"
+
+	cidFile, err := ipfs.Unixfs().Add(ctx, someFile)
+	if err != nil {
+		panic(fmt.Errorf("Could not add File: %s", err))
+	}
+
+	cidDirectory, err := ipfs.Unixfs().Add(ctx, someDirectory)
+	if err != nil {
+		panic(fmt.Errorf("Could not add Directory: %s", err))
+	}
+
 	// TODO
 
 	/// --- Getting the file and directory you added back
 
-	// TODO
+	outputBasePath := "/Users/imp/Downloads/_ipfs-example/"
+	outputPathFile := outputBasePath + "FILE_CID"
+	outputPathDirectory := outputBasePath + "DIR_CID"
+
+	rootNodeFile, err := ipfs.Unixfs().Get(ctx, cidFile)
+	if err != nil {
+		panic(fmt.Errorf("Could not get file with CID: %s", err))
+	}
+
+	err = files.WriteTo(rootNodeFile, outputPathFile)
+	if err != nil {
+		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
+	}
+
+	rootNodeDirectory, err := ipfs.Unixfs().Get(ctx, cidDirectory)
+	if err != nil {
+		panic(fmt.Errorf("Could not get file with CID: %s", err))
+	}
+
+	err = files.WriteTo(rootNodeDirectory, outputPathDirectory)
+	if err != nil {
+		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
+	}
 
 	/// --- Getting a file from the IPFS Network
 
 	exampleCIDStr := "QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj"
 
 	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
-
-	outputPath := "/Users/imp/Downloads/test-101/" + exampleCIDStr
+	outputPath := outputBasePath + exampleCIDStr
 	testCID := iCorePath.New(exampleCIDStr)
 
-	out, err := ipfs.Unixfs().Get(ctx, testCID)
+	rootNode, err := ipfs.Unixfs().Get(ctx, testCID)
 	if err != nil {
 		panic(fmt.Errorf("Could not get file with CID: %s", err))
 	}
 
-	err = files.WriteTo(out, outputPath)
+	err = files.WriteTo(rootNode, outputPath)
 	if err != nil {
 		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
 	}
