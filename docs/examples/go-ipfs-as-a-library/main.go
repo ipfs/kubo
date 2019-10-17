@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -18,7 +19,7 @@ import (
 	iCore "github.com/ipfs/interface-go-ipfs-core"
 	iCorePath "github.com/ipfs/interface-go-ipfs-core/path"
 
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -160,6 +161,40 @@ func connectToPeers(ctx context.Context, ipfs iCore.CoreAPI, peers []string) err
 	return nil
 }
 
+func getUnixfsFile(path string) (files.File, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	st, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := files.NewReaderPathFile(path, file, st)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
+func getUnixfsNode(path string) (files.Node, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := files.NewSerialFile(path, false, st)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
 /// -------
 
 func main() {
@@ -216,9 +251,19 @@ func main() {
 	inputPathFile := inputBasePath + "ipfs.paper.draft3.pdf"
 	inputPathDirectory := inputBasePath + "test-dir"
 
+	someFile, err := getUnixfsNode(inputPathFile)
+	if err != nil {
+		panic(fmt.Errorf("Could not get File: %s", err))
+	}
+
 	cidFile, err := ipfs.Unixfs().Add(ctx, someFile)
 	if err != nil {
 		panic(fmt.Errorf("Could not add File: %s", err))
+	}
+
+	someDirectory, err := getUnixfsNode(inputPathDirectory)
+	if err != nil {
+		panic(fmt.Errorf("Could not get File: %s", err))
 	}
 
 	cidDirectory, err := ipfs.Unixfs().Add(ctx, someDirectory)
