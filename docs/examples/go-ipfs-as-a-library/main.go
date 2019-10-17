@@ -202,12 +202,6 @@ func main() {
 		"/ip4/178.62.158.247/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
 		"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
 
-		// Disabling dnsaddrs until https://github.com/ipfs/go-ipfs/issues/6714 is resolved
-		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
-		// "/dnsaddr/bootstrap.libp2p.io/ipfs/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
-
 		// You can add more nodes here, for example, another IPFS node you might have running locally, mine was:
 		// "/ip4/127.0.0.1/tcp/4010/ipfs/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L",
 	}
@@ -216,7 +210,7 @@ func main() {
 
 	/// --- Adding a file and a directory to IPFS
 
-	// Add(context.Context, files.Node, ...options.UnixfsAddOption) (path.Resolved, error)
+	// TODO
 
 	inputBasePath := "/Users/imp/Downloads/_ipfs-example/"
 	inputPathFile := inputBasePath + "ipfs.paper.draft3.pdf"
@@ -231,8 +225,6 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("Could not add Directory: %s", err))
 	}
-
-	// TODO
 
 	/// --- Getting the file and directory you added back
 
