@@ -80,10 +80,10 @@ func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
 	// Construct the node
 
 	nodeOptions := &core.BuildCfg{
-		Online: true,
-		// Routing: libp2p.DHTClientOption,
-		Routing: libp2p.DHTOption,
-		Repo:    repo,
+		Online:  true,
+		Routing: libp2p.DHTOption, // This option sets the node to be a full DHT node (both fetching and storing DHT Records)
+		// Routing: libp2p.DHTClientOption, // This option sets the node to be a client DHT node (only fetching records)
+		Repo: repo,
 	}
 
 	node, err := core.NewNode(ctx, nodeOptions)
@@ -91,6 +91,7 @@ func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
 		return nil, err
 	}
 
+	// Attach the Core API to the constructed node
 	return coreapi.NewCoreAPI(node)
 }
 
