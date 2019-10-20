@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	config "github.com/ipfs/go-ipfs-config"
@@ -198,9 +199,9 @@ func getUnixfsNode(path string) (files.Node, error) {
 /// -------
 
 func main() {
-	/// --- Getting a IPFS node running
+	/// --- Part I: Getting a IPFS node running
 
-	fmt.Println("Getting an IPFS node running")
+	fmt.Println("-- Getting an IPFS node running -- ")
 
 	ctx, _ := context.WithCancel(context.Background())
 
@@ -220,34 +221,13 @@ func main() {
 		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
 	}
 
-	fmt.Println("IPFS node running")
+	fmt.Println("IPFS node is running")
 
-	/// --- Connecting to some nodes in the Network
+	/// --- Part II: Adding a file and a directory to IPFS
 
-	fmt.Println("Going to connect to a few nodes in the Network as bootstrappers")
+	fmt.Println("\n-- Adding and getting back files & directories --")
 
-	bootstrapNodes := []string{
-		"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-		"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-		"/ip6/2604:a880:1:20::203:d001/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-		"/ip4/128.199.219.111/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
-		"/ip6/2400:6180:0:d0::151:6001/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
-		"/ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
-		"/ip6/2604:a880:800:10::4a:5001/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
-		"/ip4/178.62.158.247/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
-		"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
-
-		// You can add more nodes here, for example, another IPFS node you might have running locally, mine was:
-		// "/ip4/127.0.0.1/tcp/4010/ipfs/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L",
-	}
-
-	go connectToPeers(ctx, ipfs, bootstrapNodes)
-
-	/// --- Adding a file and a directory to IPFS
-
-	// TODO
-
-	inputBasePath := "/Users/imp/Downloads/_ipfs-example/"
+	inputBasePath := "./example-folder/"
 	inputPathFile := inputBasePath + "ipfs.paper.draft3.pdf"
 	inputPathDirectory := inputBasePath + "test-dir"
 
@@ -261,6 +241,8 @@ func main() {
 		panic(fmt.Errorf("Could not add File: %s", err))
 	}
 
+	fmt.Printf("Added file to IPFS with CID %s\n", cidFile.String())
+
 	someDirectory, err := getUnixfsNode(inputPathDirectory)
 	if err != nil {
 		panic(fmt.Errorf("Could not get File: %s", err))
@@ -271,11 +253,13 @@ func main() {
 		panic(fmt.Errorf("Could not add Directory: %s", err))
 	}
 
-	/// --- Getting the file and directory you added back
+	fmt.Printf("Added directory to IPFS with CID %s\n", cidDirectory.String())
 
-	outputBasePath := "/Users/imp/Downloads/_ipfs-example/"
-	outputPathFile := outputBasePath + "FILE_CID"
-	outputPathDirectory := outputBasePath + "DIR_CID"
+	/// --- Part III: Getting the file and directory you added back
+
+	outputBasePath := "./example-folder/"
+	outputPathFile := outputBasePath + strings.Split(cidFile.String(), "/")[2]
+	outputPathDirectory := outputBasePath + strings.Split(cidDirectory.String(), "/")[2]
 
 	rootNodeFile, err := ipfs.Unixfs().Get(ctx, cidFile)
 	if err != nil {
@@ -287,6 +271,8 @@ func main() {
 		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
 	}
 
+	fmt.Printf("Got file back from IPFS (IPFS path: %s) and wrote it to %s\n", cidFile.String(), outputPathFile)
+
 	rootNodeDirectory, err := ipfs.Unixfs().Get(ctx, cidDirectory)
 	if err != nil {
 		panic(fmt.Errorf("Could not get file with CID: %s", err))
@@ -297,7 +283,33 @@ func main() {
 		panic(fmt.Errorf("Could not write out the fetched CID: %s", err))
 	}
 
-	/// --- Getting a file from the IPFS Network
+	fmt.Printf("Got directory back from IPFS (IPFS path: %s) and wrote it to %s\n", cidDirectory.String(), outputPathDirectory)
+
+	/// --- Part IV: Getting a file from the IPFS Network
+
+	fmt.Println("\n-- Going to connect to a few nodes in the Network as bootstrappers --")
+
+	bootstrapNodes := []string{
+		// IPFS Pinning nodes
+		// TODO add some here so that the file can be fetched
+
+		// IPFS Bootstrapper nodes. Currently you can't connect to them directly because they don't yet run with 2048 bit keys.
+		// A fix is in progress, see: https://github.com/ipfs/infra/issues/378
+		// "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+		// "/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+		// "/ip6/2604:a880:1:20::203:d001/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+		// "/ip4/128.199.219.111/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
+		// "/ip6/2400:6180:0:d0::151:6001/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
+		// "/ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
+		// "/ip6/2604:a880:800:10::4a:5001/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
+		// "/ip4/178.62.158.247/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+		// "/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+
+		// You can add more nodes here, for example, another IPFS node you might have running locally, mine was:
+		// "/ip4/127.0.0.1/tcp/4010/ipfs/QmZp2fhDLxjYue2RiUvLwT9MWdnbDxam32qYFnGmxZDh5L",
+	}
+
+	go connectToPeers(ctx, ipfs, bootstrapNodes)
 
 	exampleCIDStr := "QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj"
 
@@ -317,5 +329,5 @@ func main() {
 
 	fmt.Printf("Wrote the file to %s\n", outputPath)
 
-	fmt.Println("All done! You just finalized your first tutorial on how to use go-ipfs as a library")
+	fmt.Println("\nAll done! You just finalized your first tutorial on how to use go-ipfs as a library")
 }
