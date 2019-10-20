@@ -63,14 +63,49 @@ All done! You just finalized your first tutorial on how to use go-ipfs as a libr
 
 In this example, we add a file, a directory with files, we get them back from IPFS and then we use the IPFS network to fetch a file that we didn't have in our machines yet.
 
+Each section below has links to lines of code in the file [main.go](./main.go). The code itself will have comments explaining what is happening for you.
+
 ### The `func main() {}`
+
+The [main function](./main.go#L201-L333) is where the magic starts and it is the best place to follow the path of what is happening in the tutorial.
 
 ### Part I: Getting an IPFS node Running
 
+To get [get a node running](./main.go#L217-L222), [as an ephemeral node(that will cease to exist when the run ends)](./main.go#L114-L127) you will need:
+
+- [Prepare and Setup the Plugins](./main.go#L217-L222)
+- [Create an IPFS Repo]()
+- [Construct the IPFS node instance itself]()
+
+As soon as you construct the IPFS node instance, the node will be running.
+
 ### Part II: Adding a file and a directory to IPFS
+
+- [Prepare the file to be added to IPFS]()
+- [Add the file to IPFS]()
+- [Prepare the directory to be added to IPFS]()
+- [Add the directory to IPFS]()
 
 ### Part III: Getting the file and directory you added back
 
+- [Get the file back]()
+- [Write the file into your local filesystem]()
+- [Get the directory back]()
+- [Write the directory into your local filesystem]()
+
 ### Part IV: Getting a file from the IPFS Network
 
+- [Connect to nodes in the network]()
+- [Get the file from the Network]()
+- [Write the file into your local filesystem]()
+
 ### Bonus: Spawn a daemon on your existing IPFS Repo (on the default path ~/.ipfs)
+
+As a bonus, you can also find lines that show you to spawn a node over your default path (~/.ipfs) in case you already had started a node there before. To try it:
+
+- [Comment these lines]()
+- [Uncomment these lines]()
+
+## Voilá! You are now a go-ipfs hacker
+
+You learned how to spawn a go-ipfs node using the go-ipfs Core API. There are many more [methods to experiment next](https://godoc.org/github.com/ipfs/interface-go-ipfs-core). Happy hacking!
