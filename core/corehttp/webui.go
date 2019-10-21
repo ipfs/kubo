@@ -1,7 +1,7 @@
 package corehttp
 
 // TODO: move to IPNS
-const WebUIPath = "/ipfs/QmeSXt32frzhvewLKwA1dePTSjkTfGVwTh55ZcsJxrCSnk"
+const WebUIPath = "/ipfs/QmcjeTciMNgEBe4xXvEaA4TQtwTRkXucx7DmKWViXSmX7m"
 
 // this is a list of all past webUI paths.
 var WebUIPaths = []string{
@@ -29,6 +29,7 @@ var WebUIPaths = []string{
 	"/ipfs/QmYcP4sp1nraBiCYi6i9kqdaKobrK32yyMpTrM5JDA8a2C",
 	"/ipfs/QmUtMmxgHnDvQq4bpH6Y9MaLN1hpfjJz5LZcq941BEqEXs",
 	"/ipfs/QmPURAjo3oneGH53ovt68UZEBvsc8nNmEhQZEpsVEQUMZE",
+	"/ipfs/QmeSXt32frzhvewLKwA1dePTSjkTfGVwTh55ZcsJxrCSnk",
 }
 
 var WebUIOption = RedirectOption("webui", WebUIPath)
