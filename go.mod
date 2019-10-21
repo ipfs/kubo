@@ -122,4 +122,5 @@ replace github.com/golangci/golangci-lint => github.com/mhutchinson/golangci-lin
 
 go 1.12
 
-replace github.com/hugelgupf/p9 => github.com/djdv/p9 v0.0.0-20191015201628-1d10538c99af
+//TODO: remove this replace when upstream merges changes
+replace github.com/hugelgupf/p9 => github.com/djdv/p9 v0.0.0-20191018144345-781c6a62f733

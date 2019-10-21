@@ -2,6 +2,9 @@ package filesystem
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,7 +41,9 @@ type FileSystemPlugin struct {
 
 	addr      multiaddr.Multiaddr
 	listener  manet.Listener
-	errorChan chan error
+	closed    chan struct{}
+	closing   bool //TODO: p9 lib should probably have a `server.Close` that closes the listener and swallows the final `Accept` error instead of us managing it in this pkg
+	serverErr error
 }
 
 func (*FileSystemPlugin) Name() string {
@@ -51,6 +56,9 @@ func (*FileSystemPlugin) Version() string {
 
 func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 	logger.Info("Initializing 9P resource server...")
+	if fs.addr != nil {
+		return fmt.Errorf("already initialized with %s", fs.addr.String())
+	}
 
 	// stabilise repo path; our template depends on this
 	if !filepath.IsAbs(env.Repo) {
@@ -101,15 +109,20 @@ func (fs *FileSystemPlugin) Init(env *plugin.Environment) error {
 
 func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 	logger.Info("Starting 9P resource server...")
+	if fs.addr == nil {
+		return fmt.Errorf("Start called before plugin Init")
+	}
+
+	// make sure we're not in use already
+	if fs.listener != nil {
+		return fmt.Errorf("already started and listening on %s", fs.listener.Addr())
+	}
 
 	// make sure sockets are not in use already (if we're using them)
 	err := removeUnixSockets(fs.addr)
 	if err != nil {
 		return err
 	}
-
-	fs.ctx, fs.cancel = context.WithCancel(context.Background())
-	fs.errorChan = make(chan error, 1)
 
 	// launch the listener
 	listener, err := manet.Listen(fs.addr)
@@ -120,10 +133,24 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 	fs.listener = listener
 
 	// construct and launch the 9P resource server
+	fs.ctx, fs.cancel = context.WithCancel(context.Background())
+	fs.closed = make(chan struct{})
+
 	opts := []nodeopts.AttachOption{nodeopts.Logger(logging.Logger("9root"))}
-	s := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core, opts...))
+	server := p9.NewServer(fsnodes.RootAttacher(fs.ctx, core, opts...))
 	go func() {
-		fs.errorChan <- s.Serve(manet.NetListener(fs.listener))
+		// run the server until the listener closes
+		// store error on the fs object then close our syncing channel (see use in `Close` below)
+		fs.serverErr = server.Serve(manet.NetListener(fs.listener))
+
+		if fs.closing { // we expect `Accept` to fail when `Close` is called
+			var opErr *net.OpError
+			if errors.As(fs.serverErr, &opErr) && opErr.Op == "accept" {
+				fs.serverErr = nil
+			}
+		}
+
+		close(fs.closed)
 	}()
 
 	logger.Infof("9P service is listening on %s\n", fs.listener.Addr())
@@ -132,7 +159,20 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 
 func (fs *FileSystemPlugin) Close() error {
 	logger.Info("9P server requested to close")
-	fs.listener.Close()
-	fs.cancel()
-	return <-fs.errorChan
+	if fs.addr == nil { // forbidden
+		return fmt.Errorf("Close called before plugin Init")
+	}
+
+	// synchronization between plugin interface <-> fs server
+	if fs.closed != nil { // implies `Start` was called prior
+		fs.closing = true   // lets the goroutine know that accept is now allowed to fail
+		fs.listener.Close() // stop accepting actually
+		fs.cancel()         // stop any lingering fs operations
+		<-fs.closed         // wait for the server thread to set the error value
+		fs.closing = false  // reset our own condition
+		fs.listener = nil   // reset `Start` conditions
+		fs.closed = nil
+	}
+	// otherwise we were never started to begin with; default/initial value will be returned
+	return fs.serverErr
 }
