@@ -6,6 +6,7 @@ import (
 	gopath "path"
 
 	"github.com/hugelgupf/p9/p9"
+	"github.com/hugelgupf/p9/unimplfs"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
 	logging "github.com/ipfs/go-log"
@@ -17,6 +18,9 @@ var _ p9.File = (*PinFS)(nil)
 var _ fsutils.WalkRef = (*PinFS)(nil)
 
 type PinFS struct {
+	unimplfs.NoopFile
+	p9.DefaultWalkGetAttr
+
 	IPFSBase
 	ents []p9.Dirent
 }
@@ -42,37 +46,13 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 	return pd
 }
 
-func (pd *PinFS) Fork() (fsutils.WalkRef, error) {
-	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
-	// set new operations context
-	err := newFid.newOperations()
-	return newFid, err
-}
-
 func (pd *PinFS) Attach() (p9.File, error) {
 	pd.Logger.Debugf("Attach")
 
 	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
 	// set new fs context
-	err := newFid.newFilesystem()
+	err := newFid.forkFilesystem()
 	return newFid, err
-}
-
-// PinFS forks the IPFS root that was set during construction
-// and calls step on it rather than itself
-func (pd *PinFS) Step(name string) (fsutils.WalkRef, error) {
-	newFid, err := pd.proxy.Fork()
-	if err != nil {
-		return nil, err
-	}
-	return newFid.Step(name)
-}
-
-func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
-	pd.Logger.Debugf("Walk names %v", names)
-	pd.Logger.Debugf("Walk myself: %v", pd.qid)
-
-	return fsutils.Walker(pd, names)
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
@@ -120,6 +100,11 @@ func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	return qid, ipfsBlockSize, nil
 }
 
+func (pd *PinFS) Close() error {
+	pd.ents = nil
+	return pd.IPFSBase.close()
+}
+
 func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	pd.Logger.Debugf("Readdir")
 
@@ -130,11 +115,34 @@ func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	return flatReaddir(pd.ents, offset, count)
 }
 
-func (pd *PinFS) Backtrack() (fsutils.WalkRef, error) {
-	return pd.IPFSBase.backtrack(pd)
+/* WalkRef relevant */
+
+func (pd *PinFS) Fork() (fsutils.WalkRef, error) {
+	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
+	// set new operations context
+	err := newFid.forkOperations()
+	return newFid, err
 }
 
-func (pd *PinFS) Close() error {
-	pd.ents = nil
-	return nil
+// PinFS forks the IPFS root that was set during construction
+// and calls step on it rather than itself
+func (pd *PinFS) Step(name string) (fsutils.WalkRef, error) {
+	newFid, err := pd.proxy.Fork()
+	if err != nil {
+		return nil, err
+	}
+	return newFid.Step(name)
+}
+
+func (pd *PinFS) CheckWalk() error                    { return pd.Base.checkWalk() }
+func (pd *PinFS) QID() (p9.QID, error)                { return pd.Base.qID() }
+func (pd *PinFS) Backtrack() (fsutils.WalkRef, error) { return pd.IPFSBase.backtrack(pd) }
+
+/* base class boilerplate */
+
+func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
+	pd.Logger.Debugf("Walk names %v", names)
+	pd.Logger.Debugf("Walk myself: %v", pd.qid)
+
+	return fsutils.Walker(pd, names)
 }

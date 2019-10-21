@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hugelgupf/p9/p9"
-	"github.com/hugelgupf/p9/unimplfs"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
 	logging "github.com/ipfs/go-log"
@@ -20,17 +19,11 @@ const ( //device - attempts to comply with standard multicodec table
 	dIPFS   = 0xe4
 )
 
-var _ p9.File = (*Base)(nil)
-
 type p9Path = uint64
 
 // Base provides a foundation to build file system nodes which contain file meta data
-// as well as stubs for unimplemented file system methods
+// as well as some base methods
 type Base struct {
-	// Provide stubs for unimplemented methods
-	unimplfs.NoopFile
-	p9.DefaultWalkGetAttr
-
 	Trail []string // FS "breadcrumb" trail from node's root
 
 	// Storage for file's metadata
@@ -55,27 +48,6 @@ func newBase(ops ...nodeopts.AttachOption) Base {
 		metaMask: new(p9.AttrMask),
 	}
 }
-
-func (b *Base) clone() Base {
-	return *b
-}
-
-func (b *Base) Fork() Base {
-	newFid := b.clone()
-
-	tLen := len(b.Trail)
-	newFid.Trail = b.Trail[:tLen:tLen] // make a new path slice for the new reference
-
-	return newFid
-}
-
-func (b *Base) String() string {
-	return gopath.Join(b.Trail...)
-}
-
-func (b *Base) ninePath() p9Path { return b.qid.Path }
-
-func (b *Base) QID() (p9.QID, error) { return *b.qid, nil }
 
 // IPFSBase is much like Base but extends it to hold IPFS specific metadata
 type IPFSBase struct {
@@ -131,69 +103,57 @@ func newIPFSBase(ctx context.Context, coreNamespace string, core coreiface.CoreA
 	}
 }
 
-func (ib *IPFSBase) clone() IPFSBase {
-	return IPFSBase{
-		Base:            ib.Base.clone(),
-		OverlayFileMeta: ib.OverlayFileMeta,
-		coreNamespace:   ib.coreNamespace,
-		core:            ib.core,
-		filesystemCtx:   ib.filesystemCtx,
-	}
+/* general helpers */
+
+func (b *Base) ninePath() p9Path { return b.qid.Path }
+func (b *Base) String() string   { return gopath.Join(b.Trail...) }
+
+func (ib *IPFSBase) String() string {
+	return gopath.Join(append([]string{ib.coreNamespace}, ib.Base.String())...)
 }
 
-func (ib *IPFSBase) Fork() (IPFSBase, error) {
-	newFid := ib.clone()
-	err := newFid.newOperations()
-
-	return newFid, err
-}
-
-func (ib *IPFSBase) newFilesystem() error {
-	if err := ib.checkFSCtx(); err != nil {
+// see filesystemCtx section in IPFSBase comments
+func (ib *IPFSBase) forkFilesystem() error {
+	if err := ib.filesystemCtx.Err(); err != nil {
 		return err
 	}
 	ib.filesystemCtx, ib.filesystemCancel = context.WithCancel(ib.filesystemCtx)
 	return nil
 }
 
-func (ib *IPFSBase) newOperations() error {
-	if err := ib.checkFSCtx(); err != nil {
+// see operationsCtx section in IPFSBase comments
+func (ib *IPFSBase) forkOperations() error {
+	if err := ib.filesystemCtx.Err(); err != nil {
 		return err
 	}
 	ib.operationsCtx, ib.operationsCancel = context.WithCancel(ib.filesystemCtx)
 	return nil
 }
 
-func (ib *IPFSBase) checkFSCtx() error {
-	select {
-	case <-ib.filesystemCtx.Done():
-		return ib.filesystemCtx.Err()
-	default:
-		return nil
-	}
-}
-
-func (ib *IPFSBase) String() string {
-	return gopath.Join(append([]string{ib.coreNamespace}, ib.Base.String())...)
+func (b *IPFSBase) callCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(b.filesystemCtx, 30*time.Second)
 }
 
 func (ib *IPFSBase) CorePath(names ...string) corepath.Path {
 	return corepath.Join(rootPath(ib.coreNamespace), append(ib.Trail, names...)...)
 }
 
-func (b *IPFSBase) Flush() error {
-	b.Logger.Debugf("flush requested: {%d}%q", b.qid.Path, b.String())
-	return nil
+/* base operation methods to build on */
+
+func (b *Base) getAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
+	//b.Logger.Debugf("GetAttr {%d}:%q", b.qid.Path, b.String())
+
+	return *b.qid, *b.metaMask, *b.meta, nil
 }
 
-func (b *Base) Close() error {
+func (b *Base) close() error {
 	b.Logger.Debugf("closing: {%d}%q", b.qid.Path, b.String())
 	b.closed = true
 	return nil
 }
 
-func (ib *IPFSBase) Close() error {
-	lastErr := ib.Base.Close()
+func (ib *IPFSBase) close() error {
+	lastErr := ib.Base.close()
 	if lastErr != nil {
 		ib.Logger.Error(lastErr)
 	}
@@ -217,19 +177,45 @@ func (ib *IPFSBase) Close() error {
 	return lastErr
 }
 
-func (b *Base) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	//b.Logger.Debugf("GetAttr {%d}:%q", b.qid.Path, b.String())
+/* WalkRef relevant */
 
-	return *b.qid, *b.metaMask, *b.meta, nil
+func (b *Base) checkWalk() error {
+	if b.closed {
+		return errors.New("TODO: already closed msg")
+	}
+	return nil
 }
 
-func (b *IPFSBase) callCtx() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(b.filesystemCtx, 30*time.Second)
+func (b *Base) qID() (p9.QID, error) { return *b.qid, nil }
+func (b *Base) clone() Base          { return *b }
+
+func (ib *IPFSBase) clone() IPFSBase {
+	return IPFSBase{
+		Base:            ib.Base.clone(),
+		OverlayFileMeta: ib.OverlayFileMeta,
+		coreNamespace:   ib.coreNamespace,
+		core:            ib.core,
+		filesystemCtx:   ib.filesystemCtx,
+	}
 }
 
-func (b *IPFSBase) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
-	b.Logger.Debugf("Open")
-	return *b.qid, 0, nil
+func (b *Base) fork() Base {
+	newFid := b.clone()
+
+	tLen := len(b.Trail)
+	newFid.Trail = b.Trail[:tLen:tLen] // make a new path slice for the new reference
+
+	return newFid
+}
+
+func (ib *IPFSBase) fork() (IPFSBase, error) {
+	newFid := ib.clone()
+	err := newFid.forkOperations()
+	if err != nil {
+		return IPFSBase{}, err
+	}
+
+	return newFid, nil
 }
 
 func (b *Base) step(self fsutils.WalkRef, name string) (fsutils.WalkRef, error) {
@@ -260,11 +246,4 @@ func (ib *IPFSBase) backtrack(self fsutils.WalkRef) (fsutils.WalkRef, error) {
 	ib.Trail = ib.Trail[:len(ib.Trail)-1]
 
 	return self, nil
-}
-
-func (b *Base) CheckWalk() error {
-	if b.closed {
-		return errors.New("TODO: already closed msg")
-	}
-	return nil
 }

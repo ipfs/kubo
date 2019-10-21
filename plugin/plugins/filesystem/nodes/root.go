@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/hugelgupf/p9/p9"
+	"github.com/hugelgupf/p9/unimplfs"
 	cid "github.com/ipfs/go-cid"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
@@ -43,6 +44,9 @@ type systemTuple struct {
 // RootIndex is a virtual directory file system, that maps a set of file system implementations to a hierarchy
 // Currently: "/ipfs":PinFS, "/ipfs/*:IPFS
 type RootIndex struct {
+	unimplfs.NoopFile
+	p9.DefaultWalkGetAttr
+
 	IPFSBase
 	subsystems map[string]systemTuple
 }
@@ -115,17 +119,6 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	return ri
 }
 
-func (ri *RootIndex) Fork() (fsutils.WalkRef, error) {
-	newFid := &RootIndex{
-		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
-		subsystems: ri.subsystems,
-	}
-
-	// set new operations context
-	err := newFid.newOperations()
-	return newFid, err
-}
-
 func (ri *RootIndex) Attach() (p9.File, error) {
 	ri.Logger.Debugf("Attach")
 
@@ -135,30 +128,12 @@ func (ri *RootIndex) Attach() (p9.File, error) {
 	}
 
 	// set new fs context
-	err := newFid.newFilesystem()
+	err := newFid.forkFilesystem()
 	return newFid, err
 }
 
-func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
-	ri.Logger.Debugf("Walk names %v", names)
-	ri.Logger.Debugf("Walk myself: %v", ri.qid.Path)
-
-	return fsutils.Walker(ri, names)
-}
-
-// The RootIndex checks if it has attached to "name"
-// derives a node from it, and returns it
-func (ri *RootIndex) Step(name string) (fsutils.WalkRef, error) {
-	// consume fs/access name
-	subSys, ok := ri.subsystems[name]
-	if !ok {
-		ri.Logger.Errorf("%q is not provided by us", name)
-		return nil, ENOENT
-	}
-
-	// return a ready to use derivative of it
-	return subSys.file.Fork()
-}
+func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) { return *ri.qid, 0, nil }
+func (ri *RootIndex) Close() error                                   { return ri.IPFSBase.close() }
 
 func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	ri.Logger.Debugf("Readdir {%d}", count)
@@ -194,6 +169,42 @@ func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	return ents, nil
 }
 
-func (ri *RootIndex) Backtrack() (fsutils.WalkRef, error) {
-	return ri.IPFSBase.backtrack(ri)
+/* WalkRef relevant */
+
+func (ri *RootIndex) Fork() (fsutils.WalkRef, error) {
+	newFid := &RootIndex{
+		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
+		subsystems: ri.subsystems,
+	}
+
+	// set new operations context
+	err := newFid.forkOperations()
+	return newFid, err
+}
+
+// The RootIndex checks if it has attached to "name"
+// derives a node from it, and returns it
+func (ri *RootIndex) Step(name string) (fsutils.WalkRef, error) {
+	// consume fs/access name
+	subSys, ok := ri.subsystems[name]
+	if !ok {
+		ri.Logger.Errorf("%q is not provided by us", name)
+		return nil, ENOENT
+	}
+
+	// return a ready to use derivative of it
+	return subSys.file.Fork()
+}
+
+func (ri *RootIndex) CheckWalk() error                    { return ri.Base.checkWalk() }
+func (ri *RootIndex) QID() (p9.QID, error)                { return ri.Base.qID() }
+func (ri *RootIndex) Backtrack() (fsutils.WalkRef, error) { return ri.IPFSBase.backtrack(ri) }
+
+/* base class boilerplate */
+
+func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
+	ri.Logger.Debugf("Walk names %v", names)
+	ri.Logger.Debugf("Walk myself: %v", ri.qid.Path)
+
+	return fsutils.Walker(ri, names)
 }

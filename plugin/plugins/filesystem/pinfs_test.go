@@ -11,6 +11,8 @@ import (
 )
 
 func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
+	t.Run("Baseline", func(t *testing.T) { baseLine(ctx, t, core, fsnodes.PinFSAttacher) })
+
 	pinRoot, err := fsnodes.PinFSAttacher(ctx, core).Attach()
 	if err != nil {
 		t.Fatalf("Failed to attach to 9P Pin resource: %s\n", err)

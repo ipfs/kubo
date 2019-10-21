@@ -72,6 +72,8 @@ github.com/dgryski/go-farm v0.0.0-20190104051053-3adb47b1fb0f/go.mod h1:SqUrOPUn
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 h1:tdlZCpZ/P9DhczCTSixgIKmwPv6+wP5DGjqLYw5SUiA=
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
+github.com/djdv/p9 v0.0.0-20190730163255-e22b6295de2a h1:crOdRmBZDY7MHBGlOKvrsVfEt72n6FgVWZITGOz7qDM=
+github.com/djdv/p9 v0.0.0-20190730163255-e22b6295de2a/go.mod h1:TCADIMV+5QUCC44hQ6p6HMpgdj7LuxJLzIZR2Fhvns4=
 github.com/djdv/p9 v0.0.0-20191015201628-1d10538c99af h1:Fz2zlKtMYbMpX1BPo4begzCE855g+UGcj+5hmn4Bf04=
 github.com/djdv/p9 v0.0.0-20191015201628-1d10538c99af/go.mod h1:igFKfChBTNZnGzM9Arxcki7QfgT01VJneIZrNY8OqKI=
 github.com/djdv/p9 v0.0.0-20191018144345-781c6a62f733 h1:2jtqdlho/DLOfSxzPs1SM6fpENZwZii2o7lFtvHVhmc=

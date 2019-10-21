@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/hugelgupf/p9/p9"
+	"github.com/hugelgupf/p9/unimplfs"
 	files "github.com/ipfs/go-ipfs-files"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
@@ -20,6 +21,9 @@ var _ fsutils.WalkRef = (*IPFS)(nil)
 // Walk does not expect a namespace, only its path argument
 // e.g. `ipfs.Walk([]string("Qm...", "subdir")` not `ipfs.Walk([]string("ipfs", "Qm...", "subdir")`
 type IPFS struct {
+	unimplfs.NoopFile
+	p9.DefaultWalkGetAttr
+
 	IPFSBase
 	IPFSFileMeta
 }
@@ -37,14 +41,6 @@ func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	return id
 }
 
-func (id *IPFS) Fork() (fsutils.WalkRef, error) {
-	base, err := id.IPFSBase.Fork()
-	if err != nil {
-		return nil, err
-	}
-	return &IPFS{IPFSBase: base}, nil
-}
-
 func (id *IPFS) Attach() (p9.File, error) {
 	id.Logger.Debugf("Attach")
 
@@ -52,15 +48,6 @@ func (id *IPFS) Attach() (p9.File, error) {
 	*newFid = *id
 
 	return newFid, nil
-}
-
-func coreAttr(ctx context.Context, attr *p9.Attr, path corepath.Resolved, core coreiface.CoreAPI, req p9.AttrMask) (p9.AttrMask, error) {
-	ipldNode, err := core.Dag().Get(ctx, path.Cid())
-	if err != nil {
-		return p9.AttrMask{}, err
-	}
-
-	return ipldStat(ctx, attr, ipldNode, req)
 }
 
 func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
@@ -99,13 +86,6 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	}
 
 	return qid, filled, attr, err
-}
-
-func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
-	id.Logger.Debugf("Walk names: %v", names)
-	id.Logger.Debugf("Walk myself: %q:{%d}", id.String(), id.ninePath())
-
-	return fsutils.Walker(id, names)
 }
 
 func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
@@ -148,6 +128,27 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	id.meta.Size, id.metaMask.Size = uint64(s), true
 
 	return qid, ipfsBlockSize, nil
+}
+
+func (id *IPFS) Close() error {
+	var lastErr error
+
+	//TODO: timeout and cancel the context if Close takes too long
+	if id.file != nil {
+		if err := id.file.Close(); err != nil {
+			id.Logger.Error(err)
+			lastErr = err
+		}
+		id.file = nil
+	}
+	id.directory = nil
+
+	lastErr = id.IPFSBase.close()
+	if lastErr != nil {
+		id.Logger.Error(lastErr)
+	}
+
+	return lastErr
 }
 
 func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
@@ -239,25 +240,32 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 	return readBytes, err
 }
 
-func (id *IPFS) Close() error {
-	var lastErr error
-
-	//TODO: timeout and cancel the context if Close takes too long
-	if id.file != nil {
-		if err := id.file.Close(); err != nil {
-			id.Logger.Error(err)
-			lastErr = err
-		}
-		id.file = nil
-	}
-	id.directory = nil
-
-	lastErr = id.IPFSBase.Close()
-	if lastErr != nil {
-		id.Logger.Error(lastErr)
+func coreAttr(ctx context.Context, attr *p9.Attr, path corepath.Resolved, core coreiface.CoreAPI, req p9.AttrMask) (p9.AttrMask, error) {
+	ipldNode, err := core.Dag().Get(ctx, path.Cid())
+	if err != nil {
+		return p9.AttrMask{}, err
 	}
 
-	return lastErr
+	return ipldStat(ctx, attr, ipldNode, req)
+}
+
+func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
+	id.Logger.Debugf("Walk names: %v", names)
+	id.Logger.Debugf("Walk myself: %q:{%d}", id.String(), id.ninePath())
+
+	return fsutils.Walker(id, names)
+}
+
+/* WalkRef relevant */
+
+func (id *IPFS) CheckWalk() error { return id.Base.checkWalk() }
+
+func (id *IPFS) Fork() (fsutils.WalkRef, error) {
+	base, err := id.IPFSBase.fork()
+	if err != nil {
+		return nil, err
+	}
+	return &IPFS{IPFSBase: base}, nil
 }
 
 // IPFS appends "name" to its current path, and returns itself
