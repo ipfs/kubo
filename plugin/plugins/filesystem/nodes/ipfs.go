@@ -143,9 +143,9 @@ func (id *IPFS) Close() error {
 	}
 	id.directory = nil
 
-	lastErr = id.IPFSBase.close()
-	if lastErr != nil {
+	if err := id.IPFSBase.close(); err != nil {
 		id.Logger.Error(lastErr)
+		lastErr = id.IPFSBase.close()
 	}
 
 	return lastErr

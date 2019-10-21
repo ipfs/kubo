@@ -140,12 +140,6 @@ func (ib *IPFSBase) CorePath(names ...string) corepath.Path {
 
 /* base operation methods to build on */
 
-func (b *Base) getAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	//b.Logger.Debugf("GetAttr {%d}:%q", b.qid.Path, b.String())
-
-	return *b.qid, *b.metaMask, *b.meta, nil
-}
-
 func (b *Base) close() error {
 	b.Logger.Debugf("closing: {%d}%q", b.qid.Path, b.String())
 	b.closed = true
@@ -199,6 +193,7 @@ func (ib *IPFSBase) clone() IPFSBase {
 	}
 }
 
+// see fsutils.WalkRef.Fork documentation
 func (b *Base) fork() Base {
 	newFid := b.clone()
 
@@ -218,13 +213,14 @@ func (ib *IPFSBase) fork() (IPFSBase, error) {
 	return newFid, nil
 }
 
+// see fsutils.WalkRef.Step documentation
 func (b *Base) step(self fsutils.WalkRef, name string) (fsutils.WalkRef, error) {
 	if b.qid.Type != p9.TypeDir {
 		return nil, ENOTDIR
 	}
 
-	if b.closed == true {
-		return nil, errors.New("TODO: ref was previously closed err")
+	if b.closed {
+		return nil, errors.New("ref was previously closed") //TODO: use a 9P error value
 	}
 
 	tLen := len(b.Trail)
@@ -233,6 +229,7 @@ func (b *Base) step(self fsutils.WalkRef, name string) (fsutils.WalkRef, error) 
 	return self, nil
 }
 
+// see fsutils.WalkRef.Backtrack documentation
 func (ib *IPFSBase) backtrack(self fsutils.WalkRef) (fsutils.WalkRef, error) {
 	// if we're a root return our parent, or ourselves if we don't have one
 	if len(ib.Trail) == 0 {
