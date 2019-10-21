@@ -12,7 +12,7 @@ import (
 )
 
 var _ p9.File = (*RootIndex)(nil)
-var _ walkRef = (*RootIndex)(nil)
+var _ WalkRef = (*RootIndex)(nil)
 
 const nRoot = "" // root namespace is intentionally left blank
 
@@ -34,7 +34,7 @@ func (rp rootPath) Cid() cid.Cid {
 }
 
 type systemTuple struct {
-	file   walkRef
+	file   WalkRef
 	dirent p9.Dirent
 }
 
@@ -50,10 +50,10 @@ type RootIndex struct {
 type OverlayFileMeta struct {
 	// parent may be used to send ".." requests to another file system
 	// during `Backtrack`
-	parent walkRef
+	parent WalkRef
 	// proxy may be used to send requests to another file system
 	// during `Step`
-	proxy walkRef
+	proxy WalkRef
 }
 
 // RootAttacher constructs the default RootIndex file system, providing a means to Attach() to it
@@ -107,7 +107,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 
 		// add the fs+entry to the list of subsystems
 		ri.subsystems[subsystem.string] = systemTuple{
-			file:   fs.(walkRef),
+			file:   fs.(WalkRef),
 			dirent: rootDirent,
 		}
 	}
@@ -115,7 +115,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	return ri
 }
 
-func (ri *RootIndex) Fork() (walkRef, error) {
+func (ri *RootIndex) Fork() (WalkRef, error) {
 	newFid := &RootIndex{
 		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
 		subsystems: ri.subsystems,
@@ -148,7 +148,7 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 // The RootIndex checks if it has attached to "name"
 // derives a node from it, and returns it
-func (ri *RootIndex) Step(name string) (walkRef, error) {
+func (ri *RootIndex) Step(name string) (WalkRef, error) {
 	// consume fs/access name
 	subSys, ok := ri.subsystems[name]
 	if !ok {
@@ -194,10 +194,6 @@ func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	return ents, nil
 }
 
-func (ri *RootIndex) Backtrack() (walkRef, error) {
-	// return our parent, or ourselves if we don't have one
-	if ri.parent != nil {
-		return ri.parent, nil
-	}
-	return ri, nil
+func (ri *RootIndex) Backtrack() (WalkRef, error) {
+	return ri.IPFSBase.backtrack(ri)
 }

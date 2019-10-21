@@ -71,7 +71,7 @@ type directoryStream struct {
 	err       error
 }
 
-type walkRef interface {
+type WalkRef interface {
 	p9.File
 
 	/* CheckWalk should make sure that the current reference adheres to the restrictions
@@ -90,7 +90,7 @@ type walkRef interface {
 	operations such as `Open` should prevent all references to the same path from opening
 	etc. in compliance with 'walk(5)'
 	*/
-	Fork() (walkRef, error)
+	Fork() (WalkRef, error)
 
 	/* QID should check that the node's path is walkable
 	by constructing the QID for its path
@@ -104,16 +104,16 @@ type walkRef interface {
 	within or outside of your own fs boundaries
 	as long as `QID` is ready to be called on the resulting node
 	*/
-	Step(name string) (walkRef, error)
+	Step(name string) (WalkRef, error)
 
 	/* Backtrack must handle `..` request
 	returning a reference to the node behind the current node (or itself in the case of the root)
 	the same comment about implementation of `Step` applies here
 	*/
-	Backtrack() (parentRef walkRef, err error)
+	Backtrack() (parentRef WalkRef, err error)
 }
 
-func walker(ref walkRef, names []string) ([]p9.QID, p9.File, error) {
+func walker(ref WalkRef, names []string) ([]p9.QID, p9.File, error) {
 	err := ref.CheckWalk()
 	if err != nil {
 		return nil, nil, err

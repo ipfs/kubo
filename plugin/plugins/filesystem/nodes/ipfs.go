@@ -13,7 +13,7 @@ import (
 )
 
 var _ p9.File = (*IPFS)(nil)
-var _ walkRef = (*IPFS)(nil)
+var _ WalkRef = (*IPFS)(nil)
 
 // IPFS exposes the IPFS API over a p9.File interface
 // Walk does not expect a namespace, only its path argument
@@ -36,7 +36,7 @@ func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	return id
 }
 
-func (id *IPFS) Fork() (walkRef, error) {
+func (id *IPFS) Fork() (WalkRef, error) {
 	base, err := id.IPFSBase.Fork()
 	if err != nil {
 		return nil, err
@@ -260,7 +260,7 @@ func (id *IPFS) Close() error {
 }
 
 // IPFS appends "name" to its current path, and returns itself
-func (id *IPFS) Step(name string) (walkRef, error) {
+func (id *IPFS) Step(name string) (WalkRef, error) {
 	return id.step(id, name)
 }
 
@@ -280,6 +280,6 @@ func (id *IPFS) QID() (p9.QID, error) {
 	return *id.Qid, nil
 }
 
-func (id *IPFS) Backtrack() (walkRef, error) {
+func (id *IPFS) Backtrack() (WalkRef, error) {
 	return id.IPFSBase.backtrack(id)
 }

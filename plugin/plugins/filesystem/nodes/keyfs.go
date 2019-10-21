@@ -10,7 +10,7 @@ import (
 )
 
 var _ p9.File = (*KeyFS)(nil)
-var _ walkRef = (*KeyFS)(nil)
+var _ WalkRef = (*KeyFS)(nil)
 
 type KeyFS struct {
 	IPFSBase
@@ -32,12 +32,12 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 		panic(err)
 	}
 
-	kd.proxy = subsystem.(walkRef)
+	kd.proxy = subsystem.(WalkRef)
 
 	return kd
 }
 
-func (kd *KeyFS) Fork() (walkRef, error) {
+func (kd *KeyFS) Fork() (WalkRef, error) {
 	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
 	// set new operations context
 	err := newFid.newOperations()
@@ -55,7 +55,7 @@ func (kd *KeyFS) Attach() (p9.File, error) {
 
 // KeyFS forks the IPFS root that was set during construction
 // and calls step on it rather than itself
-func (kd *KeyFS) Step(name string) (walkRef, error) {
+func (kd *KeyFS) Step(name string) (WalkRef, error) {
 	newFid, err := kd.proxy.Fork()
 	if err != nil {
 		return nil, err
@@ -70,12 +70,8 @@ func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	return walker(kd, names)
 }
 
-func (kd *KeyFS) Backtrack() (walkRef, error) {
-	// return our parent, or ourselves if we don't have one
-	if kd.parent != nil {
-		return kd.parent, nil
-	}
-	return kd, nil
+func (kd *KeyFS) Backtrack() (WalkRef, error) {
+	return kd.IPFSBase.backtrack(kd)
 }
 
 // temporary stub to allow forwarding requests on empty directory

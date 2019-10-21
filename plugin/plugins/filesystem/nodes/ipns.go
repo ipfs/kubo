@@ -9,7 +9,7 @@ import (
 )
 
 var _ p9.File = (*IPNS)(nil)
-var _ walkRef = (*IPNS)(nil)
+var _ WalkRef = (*IPNS)(nil)
 
 // IPNS exposes the IPNS API over a p9.File interface
 // Walk does not expect a namespace, only its path argument

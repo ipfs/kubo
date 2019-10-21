@@ -126,7 +126,7 @@ func newIPFSBase(ctx context.Context, coreNamespace string, core coreiface.CoreA
 
 	options := nodeopts.AttachOps(ops...)
 	if options.Parent != nil { // parent is optional
-		parentRef, ok := options.Parent.(walkRef) // interface is not
+		parentRef, ok := options.Parent.(WalkRef) // interface is not
 		if !ok {
 			panic("parent node lacks overlay traversal methods")
 		}
@@ -237,7 +237,7 @@ func (b *IPFSBase) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	return *b.Qid, 0, nil
 }
 
-func (ib *IPFSBase) step(self walkRef, name string) (walkRef, error) {
+func (ib *IPFSBase) step(self WalkRef, name string) (WalkRef, error) {
 	if ib.Qid.Type != p9.TypeDir {
 		return nil, ENOTDIR
 	}
@@ -251,10 +251,10 @@ func (ib *IPFSBase) step(self walkRef, name string) (walkRef, error) {
 	return self, nil
 }
 
-func (ib *IPFSBase) backtrack(self walkRef) (walkRef, error) {
-	// if we're the root
+// XXX: go receiver type trickery
+func (ib *IPFSBase) backtrack(self WalkRef) (WalkRef, error) {
+	// if we're a root return our parent, or ourselves if we don't have one
 	if len(ib.Trail) == 0 {
-		// return our parent, or ourselves if we don't have one
 		if ib.parent != nil {
 			return ib.parent, nil
 		}

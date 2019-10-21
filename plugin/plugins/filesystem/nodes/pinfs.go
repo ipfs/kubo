@@ -13,7 +13,7 @@ import (
 )
 
 var _ p9.File = (*PinFS)(nil)
-var _ walkRef = (*PinFS)(nil)
+var _ WalkRef = (*PinFS)(nil)
 
 type PinFS struct {
 	IPFSBase
@@ -36,12 +36,12 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 		panic(err)
 	}
 
-	pd.proxy = subsystem.(walkRef)
+	pd.proxy = subsystem.(WalkRef)
 
 	return pd
 }
 
-func (pd *PinFS) Fork() (walkRef, error) {
+func (pd *PinFS) Fork() (WalkRef, error) {
 	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
 	// set new operations context
 	err := newFid.newOperations()
@@ -59,7 +59,7 @@ func (pd *PinFS) Attach() (p9.File, error) {
 
 // PinFS forks the IPFS root that was set during construction
 // and calls step on it rather than itself
-func (pd *PinFS) Step(name string) (walkRef, error) {
+func (pd *PinFS) Step(name string) (WalkRef, error) {
 	newFid, err := pd.proxy.Fork()
 	if err != nil {
 		return nil, err
@@ -129,17 +129,8 @@ func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	return flatReaddir(pd.ents, offset, count)
 }
 
-func (pd *PinFS) Backtrack() (walkRef, error) {
-	// return the parent if we are the root
-	if len(pd.Trail) == 0 {
-		return pd.parent, nil
-	}
-
-	// otherwise step back
-	pd.Trail = pd.Trail[1:]
-
-	// TODO: reset meta
-	return pd, nil
+func (pd *PinFS) Backtrack() (WalkRef, error) {
+	return pd.IPFSBase.backtrack(pd)
 }
 
 func (pd *PinFS) Close() error {
