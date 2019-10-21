@@ -143,7 +143,7 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 		// store error on the fs object then close our syncing channel (see use in `Close` below)
 		fs.serverErr = server.Serve(manet.NetListener(fs.listener))
 
-		if fs.closing { // we expect `Accept` to fail when `Close` is called
+		if fs.closing { //[async] we expect `Accept` to fail while `Close` is in progress
 			var opErr *net.OpError
 			if errors.As(fs.serverErr, &opErr) && opErr.Op == "accept" {
 				fs.serverErr = nil
@@ -169,7 +169,7 @@ func (fs *FileSystemPlugin) Close() error {
 		fs.listener.Close() // stop accepting actually
 		fs.cancel()         // stop any lingering fs operations
 		<-fs.closed         // wait for the server thread to set the error value
-		fs.closing = false  // reset our own condition
+		fs.closing = false  // reset our async condition
 		fs.listener = nil   // reset `Start` conditions
 		fs.closed = nil
 	}
