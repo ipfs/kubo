@@ -103,7 +103,7 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 
 func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	id.Logger.Debugf("Walk names: %v", names)
-	id.Logger.Debugf("Walk myself: %q:{%d}", id.String(), id.NinePath())
+	id.Logger.Debugf("Walk myself: %q:{%d}", id.String(), id.ninePath())
 
 	return fsutils.Walker(id, names)
 }

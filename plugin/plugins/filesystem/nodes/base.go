@@ -73,7 +73,7 @@ func (b *Base) String() string {
 	return gopath.Join(b.Trail...)
 }
 
-func (b *Base) NinePath() p9Path { return b.qid.Path }
+func (b *Base) ninePath() p9Path { return b.qid.Path }
 
 func (b *Base) QID() (p9.QID, error) { return *b.qid, nil }
 
