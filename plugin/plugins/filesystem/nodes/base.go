@@ -9,6 +9,7 @@ import (
 	"github.com/hugelgupf/p9/p9"
 	"github.com/hugelgupf/p9/unimplfs"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
+	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -33,14 +34,14 @@ type Base struct {
 	Trail []string // FS "breadcrumb" trail from node's root
 
 	// Storage for file's metadata
-	Qid      *p9.QID
+	qid      *p9.QID
 	meta     *p9.Attr
 	metaMask *p9.AttrMask
 	Logger   logging.EventLogger
 
 	closed   bool // set to true upon close; this reference should not be used again for anything
 	modified bool // set to true when the `Trail` has been modified (usually by `Step`)
-	// reset to false when `Qid` has been populated with the current path in `Trail` (usually by `QID`)
+	// reset to false when `qid` has been populated with the current path in `Trail` (usually by `QID`)
 
 }
 
@@ -49,7 +50,7 @@ func newBase(ops ...nodeopts.AttachOption) Base {
 
 	return Base{
 		Logger:   options.Logger,
-		Qid:      new(p9.QID),
+		qid:      new(p9.QID),
 		meta:     new(p9.Attr),
 		metaMask: new(p9.AttrMask),
 	}
@@ -61,8 +62,9 @@ func (b *Base) clone() Base {
 
 func (b *Base) Fork() Base {
 	newFid := b.clone()
-	newFid.Trail = make([]string, len(b.Trail)+1) // NOTE: +1 is preallocated space for `Step`; not required
-	copy(newFid.Trail, b.Trail)
+
+	tLen := len(b.Trail)
+	newFid.Trail = b.Trail[:tLen:tLen] // make a new path slice for the new reference
 
 	return newFid
 }
@@ -71,9 +73,9 @@ func (b *Base) String() string {
 	return gopath.Join(b.Trail...)
 }
 
-func (b *Base) NinePath() p9Path { return b.Qid.Path }
+func (b *Base) NinePath() p9Path { return b.qid.Path }
 
-func (b *Base) QID() (p9.QID, error) { return *b.Qid, nil }
+func (b *Base) QID() (p9.QID, error) { return *b.qid, nil }
 
 // IPFSBase is much like Base but extends it to hold IPFS specific metadata
 type IPFSBase struct {
@@ -117,33 +119,26 @@ type IPFSBase struct {
 
 //func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.FileMode, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) IPFSBase {
 func newIPFSBase(ctx context.Context, coreNamespace string, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) IPFSBase {
-	base := IPFSBase{
-		Base:          newBase(ops...),
+	options := nodeopts.AttachOps(ops...)
+	return IPFSBase{
+		Base: newBase(ops...),
+		OverlayFileMeta: OverlayFileMeta{
+			parent: options.Parent,
+		},
 		coreNamespace: coreNamespace,
 		core:          core,
 		filesystemCtx: ctx,
 	}
-
-	options := nodeopts.AttachOps(ops...)
-	if options.Parent != nil { // parent is optional
-		parentRef, ok := options.Parent.(WalkRef) // interface is not
-		if !ok {
-			panic("parent node lacks overlay traversal methods")
-		}
-		base.OverlayFileMeta.parent = parentRef
-	}
-	return base
 }
 
 func (ib *IPFSBase) clone() IPFSBase {
-	newFid := IPFSBase{
+	return IPFSBase{
 		Base:            ib.Base.clone(),
 		OverlayFileMeta: ib.OverlayFileMeta,
 		coreNamespace:   ib.coreNamespace,
 		core:            ib.core,
 		filesystemCtx:   ib.filesystemCtx,
 	}
-	return newFid
 }
 
 func (ib *IPFSBase) Fork() (IPFSBase, error) {
@@ -187,12 +182,12 @@ func (ib *IPFSBase) CorePath(names ...string) corepath.Path {
 }
 
 func (b *IPFSBase) Flush() error {
-	b.Logger.Debugf("flush requested: {%d}%q", b.Qid.Path, b.String())
+	b.Logger.Debugf("flush requested: {%d}%q", b.qid.Path, b.String())
 	return nil
 }
 
 func (b *Base) Close() error {
-	b.Logger.Debugf("closing: {%d}%q", b.Qid.Path, b.String())
+	b.Logger.Debugf("closing: {%d}%q", b.qid.Path, b.String())
 	b.closed = true
 	return nil
 }
@@ -223,9 +218,9 @@ func (ib *IPFSBase) Close() error {
 }
 
 func (b *Base) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	//b.Logger.Debugf("GetAttr {%d}:%q", b.Qid.Path, b.String())
+	//b.Logger.Debugf("GetAttr {%d}:%q", b.qid.Path, b.String())
 
-	return *b.Qid, *b.metaMask, *b.meta, nil
+	return *b.qid, *b.metaMask, *b.meta, nil
 }
 
 func (b *IPFSBase) callCtx() (context.Context, context.CancelFunc) {
@@ -234,25 +229,25 @@ func (b *IPFSBase) callCtx() (context.Context, context.CancelFunc) {
 
 func (b *IPFSBase) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	b.Logger.Debugf("Open")
-	return *b.Qid, 0, nil
+	return *b.qid, 0, nil
 }
 
-func (ib *IPFSBase) step(self WalkRef, name string) (WalkRef, error) {
-	if ib.Qid.Type != p9.TypeDir {
+func (b *Base) step(self fsutils.WalkRef, name string) (fsutils.WalkRef, error) {
+	if b.qid.Type != p9.TypeDir {
 		return nil, ENOTDIR
 	}
 
-	if ib.closed == true {
+	if b.closed == true {
 		return nil, errors.New("TODO: ref was previously closed err")
 	}
 
-	ib.Trail = append(ib.Trail, name)
-	ib.modified = true
+	tLen := len(b.Trail)
+	b.Trail = append(b.Trail[:tLen:tLen], name)
+	b.modified = true
 	return self, nil
 }
 
-// XXX: go receiver type trickery
-func (ib *IPFSBase) backtrack(self WalkRef) (WalkRef, error) {
+func (ib *IPFSBase) backtrack(self fsutils.WalkRef) (fsutils.WalkRef, error) {
 	// if we're a root return our parent, or ourselves if we don't have one
 	if len(ib.Trail) == 0 {
 		if ib.parent != nil {

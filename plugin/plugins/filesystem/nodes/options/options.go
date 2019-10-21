@@ -1,20 +1,16 @@
 package nodeopts
 
 import (
-	"github.com/hugelgupf/p9/p9"
 	"github.com/jbenet/goprocess"
 
 	"github.com/ipfs/go-cid"
+	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
 	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/go-mfs"
 )
 
-//TODO: we're doing runtime hacks to check if this is a walkref
-// we don't use a walkref because import cycle
-// amend this
 type AttachOptions struct {
-	//Parent  fsnodes.walkRef     // node directly behind self
-	Parent     p9.File             // node directly behind self
+	Parent     fsutils.WalkRef     // node directly behind self
 	Logger     logging.EventLogger // what subsystem you are
 	Process    goprocess.Process   // TODO: I documented this somewhere else
 	MFSRoot    *cid.Cid            // required when attaching to MFS
@@ -34,7 +30,7 @@ func AttachOps(options ...AttachOption) *AttachOptions {
 }
 
 // if NOT provided, we assume the file system is to be treated as a root, assigning itself as a parent
-func Parent(p p9.File) AttachOption {
+func Parent(p fsutils.WalkRef) AttachOption {
 	return func(ops *AttachOptions) {
 		ops.Parent = p
 	}

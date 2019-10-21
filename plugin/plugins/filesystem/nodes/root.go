@@ -6,13 +6,14 @@ import (
 	"github.com/hugelgupf/p9/p9"
 	cid "github.com/ipfs/go-cid"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
+	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/multiformats/go-multihash"
 )
 
 var _ p9.File = (*RootIndex)(nil)
-var _ WalkRef = (*RootIndex)(nil)
+var _ fsutils.WalkRef = (*RootIndex)(nil)
 
 const nRoot = "" // root namespace is intentionally left blank
 
@@ -34,7 +35,7 @@ func (rp rootPath) Cid() cid.Cid {
 }
 
 type systemTuple struct {
-	file   WalkRef
+	file   fsutils.WalkRef
 	dirent p9.Dirent
 }
 
@@ -50,17 +51,17 @@ type RootIndex struct {
 type OverlayFileMeta struct {
 	// parent may be used to send ".." requests to another file system
 	// during `Backtrack`
-	parent WalkRef
+	parent fsutils.WalkRef
 	// proxy may be used to send requests to another file system
 	// during `Step`
-	proxy WalkRef
+	proxy fsutils.WalkRef
 }
 
 // RootAttacher constructs the default RootIndex file system, providing a means to Attach() to it
 func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) p9.Attacher {
 	// construct root node
 	ri := &RootIndex{IPFSBase: newIPFSBase(ctx, "/", core, ops...)}
-	ri.Qid.Type = p9.TypeDir
+	ri.qid.Type = p9.TypeDir
 	ri.meta.Mode, ri.metaMask.Mode = p9.ModeDirectory|IRXA, true
 
 	// attach to subsystems
@@ -70,7 +71,6 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 		string
 		subattacher
 		logging.EventLogger
-		// *logging.EventLogger
 	}
 
 	// 9P Access names mapped to IPFS attacher functions
@@ -107,7 +107,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 
 		// add the fs+entry to the list of subsystems
 		ri.subsystems[subsystem.string] = systemTuple{
-			file:   fs.(WalkRef),
+			file:   fs.(fsutils.WalkRef),
 			dirent: rootDirent,
 		}
 	}
@@ -115,7 +115,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	return ri
 }
 
-func (ri *RootIndex) Fork() (WalkRef, error) {
+func (ri *RootIndex) Fork() (fsutils.WalkRef, error) {
 	newFid := &RootIndex{
 		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
 		subsystems: ri.subsystems,
@@ -141,14 +141,14 @@ func (ri *RootIndex) Attach() (p9.File, error) {
 
 func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 	ri.Logger.Debugf("Walk names %v", names)
-	ri.Logger.Debugf("Walk myself: %v", ri.Qid.Path)
+	ri.Logger.Debugf("Walk myself: %v", ri.qid.Path)
 
-	return walker(ri, names)
+	return fsutils.Walker(ri, names)
 }
 
 // The RootIndex checks if it has attached to "name"
 // derives a node from it, and returns it
-func (ri *RootIndex) Step(name string) (WalkRef, error) {
+func (ri *RootIndex) Step(name string) (fsutils.WalkRef, error) {
 	// consume fs/access name
 	subSys, ok := ri.subsystems[name]
 	if !ok {
@@ -194,6 +194,6 @@ func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 	return ents, nil
 }
 
-func (ri *RootIndex) Backtrack() (WalkRef, error) {
+func (ri *RootIndex) Backtrack() (fsutils.WalkRef, error) {
 	return ri.IPFSBase.backtrack(ri)
 }

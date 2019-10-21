@@ -8,12 +8,13 @@ import (
 	"github.com/hugelgupf/p9/p9"
 	files "github.com/ipfs/go-ipfs-files"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
+	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var _ p9.File = (*IPFS)(nil)
-var _ WalkRef = (*IPFS)(nil)
+var _ fsutils.WalkRef = (*IPFS)(nil)
 
 // IPFS exposes the IPFS API over a p9.File interface
 // Walk does not expect a namespace, only its path argument
@@ -31,12 +32,12 @@ type IPFSFileMeta struct {
 
 func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) p9.Attacher {
 	id := &IPFS{IPFSBase: newIPFSBase(ctx, "/ipfs", core, ops...)}
-	id.Qid.Type = p9.TypeDir
+	id.qid.Type = p9.TypeDir
 	id.meta.Mode, id.metaMask.Mode = p9.ModeDirectory|IRXA, true
 	return id
 }
 
-func (id *IPFS) Fork() (WalkRef, error) {
+func (id *IPFS) Fork() (fsutils.WalkRef, error) {
 	base, err := id.IPFSBase.Fork()
 	if err != nil {
 		return nil, err
@@ -72,7 +73,7 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 		attr            p9.Attr
 		filled          p9.AttrMask
 		callCtx, cancel = id.callCtx()
-		qid             = *id.Qid
+		qid             = *id.qid
 	)
 	defer cancel()
 
@@ -94,7 +95,7 @@ func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	if req.Mode {
 		attr.Mode |= IRXA
 		qid.Type = attr.Mode.QIDType()
-		id.Qid.Type = attr.Mode.QIDType()
+		id.qid.Type = attr.Mode.QIDType()
 	}
 
 	return qid, filled, attr, err
@@ -104,13 +105,13 @@ func (id *IPFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 	id.Logger.Debugf("Walk names: %v", names)
 	id.Logger.Debugf("Walk myself: %q:{%d}", id.String(), id.NinePath())
 
-	return walker(id, names)
+	return fsutils.Walker(id, names)
 }
 
 func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 	id.Logger.Debugf("Open: %s", id.String())
 
-	qid := *id.Qid
+	qid := *id.qid
 
 	// handle directories
 	if qid.Type == p9.TypeDir {
@@ -260,7 +261,7 @@ func (id *IPFS) Close() error {
 }
 
 // IPFS appends "name" to its current path, and returns itself
-func (id *IPFS) Step(name string) (WalkRef, error) {
+func (id *IPFS) Step(name string) (fsutils.WalkRef, error) {
 	return id.step(id, name)
 }
 
@@ -274,12 +275,12 @@ func (id *IPFS) QID() (p9.QID, error) {
 			return qid, err
 		}
 		id.modified = false
-		id.Qid = &qid
+		id.qid = &qid
 	}
 
-	return *id.Qid, nil
+	return *id.qid, nil
 }
 
-func (id *IPFS) Backtrack() (WalkRef, error) {
+func (id *IPFS) Backtrack() (fsutils.WalkRef, error) {
 	return id.IPFSBase.backtrack(id)
 }
