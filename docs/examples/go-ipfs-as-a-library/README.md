@@ -71,7 +71,7 @@ The [main function](./main.go#L201-L333) is where the magic starts, and it is th
 
 ### Part 1: Getting an IPFS node running
 
-To get [get a node running](./main.go#L217-L222), [as an ephemeral node(that will cease to exist when the run ends)](./main.go#L114-L127) you will need:
+To get [get a node running](./main.go#L217-L222) as an [ephemeral node](./main.go#L114-L127) (that will cease to exist when the run ends), you will need to:
 
 - [Prepare and Setup the Plugins](./main.go#L217-L222)
 - [Create an IPFS Repo]()
