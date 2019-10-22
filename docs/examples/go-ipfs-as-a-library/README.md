@@ -108,4 +108,4 @@ As a bonus, you can also find lines that show you to spawn a node over your defa
 
 ## Voilá! You are now a go-ipfs hacker
 
-You learned how to spawn a go-ipfs node using the go-ipfs Core API. There are many more [methods to experiment next](https://godoc.org/github.com/ipfs/interface-go-ipfs-core). Happy hacking!
+You've learned how to spawn a go-ipfs node using the go-ipfs core API. There are many more [methods to experiment next](https://godoc.org/github.com/ipfs/interface-go-ipfs-core). Happy hacking!
