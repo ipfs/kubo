@@ -9,7 +9,7 @@ By the end of this Tutorial, you will learn how to:
 - How to add files & directories to IPFS
 - How to retrieve those files and directories using cat and get
 - Connect to other nodes in the network
-- How to retrieve a file that only exists on the Network
+- Retrieve a file that only exists on the network
 - The difference between a node in DHT Client mode and Full DHT mode.
 
 All of this using only golang!
