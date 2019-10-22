@@ -210,3 +210,7 @@ func (ri *RootIndex) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	return fsutils.Walker(ri, names)
 }
+
+func (ri *RootIndex) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
+	return ri.Base.getAttr(req)
+}

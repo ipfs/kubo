@@ -160,8 +160,8 @@ func (ib *IPFSBase) close() error {
 			}
 			lastErr = err
 		}
-		*/
 		ib.filesystemCancel()
+		*/
 	}
 
 	if ib.operationsCancel != nil {
@@ -169,6 +169,12 @@ func (ib *IPFSBase) close() error {
 	}
 
 	return lastErr
+}
+
+func (b *Base) getAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
+	//b.Logger.Debugf("GetAttr {%d}:%q", b.qid.Path, b.String())
+
+	return *b.qid, *b.metaMask, *b.meta, nil
 }
 
 /* WalkRef relevant */

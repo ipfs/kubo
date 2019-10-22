@@ -93,3 +93,7 @@ func (kd *KeyFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	return fsutils.Walker(kd, names)
 }
+
+func (kd *KeyFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
+	return kd.Base.getAttr(req)
+}

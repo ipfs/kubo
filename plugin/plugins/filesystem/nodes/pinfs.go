@@ -147,3 +147,7 @@ func (pd *PinFS) Walk(names []string) ([]p9.QID, p9.File, error) {
 
 	return fsutils.Walker(pd, names)
 }
+
+func (pd *PinFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
+	return pd.Base.getAttr(req)
+}

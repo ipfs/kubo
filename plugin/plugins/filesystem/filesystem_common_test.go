@@ -33,6 +33,9 @@ func baseLine(ctx context.Context, t *testing.T, core coreiface.CoreAPI, attachF
 	}
 	t.Run("walk", func(t *testing.T) { testClones(ctx, t, root) })
 
+	if _, _, _, err = root.GetAttr(p9.AttrMaskAll); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func testAttacher(ctx context.Context, t *testing.T, attacher p9.Attacher) {

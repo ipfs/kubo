@@ -53,6 +53,9 @@ func (id *IPFS) Attach() (p9.File, error) {
 
 func (id *IPFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	id.Logger.Debugf("GetAttr")
+	if len(id.Trail) == 0 {
+		return id.Base.getAttr(req)
+	}
 
 	// TODO: we need to re use storage on id
 	// merge existing members with request members fetched via request
