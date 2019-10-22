@@ -67,7 +67,7 @@ Each section below has links to lines of code in the file [main.go](./main.go). 
 
 ### The `func main() {}`
 
-The [main function](./main.go#L201-L333) is where the magic starts and it is the best place to follow the path of what is happening in the tutorial.
+The [main function](./main.go#L201-L333) is where the magic starts, and it is the best place to follow the path of what is happening in the tutorial.
 
 ### Part I: Getting an IPFS node Running
 
