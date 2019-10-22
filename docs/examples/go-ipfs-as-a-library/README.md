@@ -20,7 +20,7 @@ In order to complete this tutorial, you will need:
 - IPFS Desktop (for convenience) installed and running on your machine. See how at https://github.com/ipfs-shipyard/ipfs-desktop#ipfs-desktop
 
 
-**Disclaimer**: The example code is quite large (over 300 lines of code) and it has been a great way to understand the scope of the [go-ipfs Core API](https://godoc.org/github.com/ipfs/interface-go-ipfs-core) and how it can be improved to further the user experience. You can expect to come back at this example in the future and see how the number of lines of code decreases and how the example becomes simpler, making other go-ipfs programs simpler as well.
+**Disclaimer**: The example code is quite large (more than 300 lines of code) and it has been a great way to understand the scope of the [go-ipfs Core API](https://godoc.org/github.com/ipfs/interface-go-ipfs-core), and how it can be improved to further the user experience. You can expect to be able to come back to this example in the future and see how the number of lines of code have decreased and how the example have become simpler, making other go-ipfs programs simpler as well.
 
 ## Getting started
 
