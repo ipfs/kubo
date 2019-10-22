@@ -96,7 +96,7 @@ As soon as you construct the IPFS node instance, the node will be running.
 ### Part 4: Getting a file from the IPFS network
 
 - [Connect to nodes in the network]()
-- [Get the file from the Network]()
+- [Get the file from the network]()
 - [Write the file to your local filesystem]()
 
 ### Bonus: Spawn a daemon on your existing IPFS repo (on the default path ~/.ipfs)
