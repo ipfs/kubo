@@ -7,7 +7,7 @@ By the end of this tutorial, you will learn how to:
 - Spawn an IPFS node that runs in process (no separate daemon process)
 - Create an IPFS repo
 - How to add files & directories to IPFS
-- How to retrieve those files and directories using cat and get
+- Retrieve those files and directories using ``cat`` and ``get``
 - Connect to other nodes in the network
 - Retrieve a file that only exists on the network
 - The difference between a node in DHT Client mode and Full DHT mode.
