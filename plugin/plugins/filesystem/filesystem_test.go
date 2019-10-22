@@ -26,6 +26,8 @@ func TestAll(t *testing.T) {
 	t.Run("RootFS", func(t *testing.T) { testRootFS(ctx, t, core) })
 	t.Run("PinFS", func(t *testing.T) { testPinFS(ctx, t, core) })
 	t.Run("IPFS", func(t *testing.T) { testIPFS(ctx, t, core) })
+	t.Run("MFS", func(t *testing.T) { testMFS(ctx, t, core) })
+	t.Run("IPNS", func(t *testing.T) { testIPNS(ctx, t, core) })
 
 	pluginEnv := &plugin.Environment{Config: defaultConfig()}
 	t.Run("Plugin", func(t *testing.T) { testPlugin(t, pluginEnv, core) })

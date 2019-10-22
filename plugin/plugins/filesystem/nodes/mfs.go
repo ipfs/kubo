@@ -2,6 +2,7 @@ package fsnodes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	gopath "path"
@@ -43,6 +44,10 @@ type MFSFileMeta struct {
 
 func MFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) p9.Attacher {
 	options := nodeopts.AttachOps(ops...)
+
+	if !options.MFSRoot.Defined() {
+		panic("MFS root cid is required but was not defined in options")
+	}
 
 	mroot, err := cidToMFSRoot(ctx, options.MFSRoot, core, options.MFSPublish)
 	if err != nil {
@@ -385,10 +390,15 @@ func (md *MFS) ResolvedPath(names ...string) (corepath.Path, error) {
 }
 */
 
-func cidToMFSRoot(ctx context.Context, rootCid *cid.Cid, core coreiface.CoreAPI, publish mfs.PubFunc) (*mfs.Root, error) {
+func cidToMFSRoot(ctx context.Context, rootCid cid.Cid, core coreiface.CoreAPI, publish mfs.PubFunc) (*mfs.Root, error) {
+
+	if !rootCid.Defined() {
+		return nil, errors.New("root cid was not defined")
+	}
+
 	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	ipldNode, err := core.Dag().Get(callCtx, *rootCid)
+	ipldNode, err := core.Dag().Get(callCtx, rootCid)
 	if err != nil {
 		return nil, err
 	}

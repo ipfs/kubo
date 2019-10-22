@@ -162,7 +162,7 @@ func (kd *KeyFS) Step(keyName string) (fsutils.WalkRef, error) {
 			opts := []nodeopts.AttachOption{
 				nodeopts.Parent(kd),
 				nodeopts.MFSPublish(ipnsPublisher(key.Name(), offlineAPI(kd.core).Name())),
-				nodeopts.MFSRoot(&cid),
+				nodeopts.MFSRoot(cid),
 				nodeopts.Logger(logging.Logger("IPNS-Key")),
 			}
 

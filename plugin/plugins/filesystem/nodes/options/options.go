@@ -13,7 +13,7 @@ type AttachOptions struct {
 	Parent     fsutils.WalkRef     // node directly behind self
 	Logger     logging.EventLogger // what subsystem you are
 	Process    goprocess.Process   // TODO: I documented this somewhere else
-	MFSRoot    *cid.Cid            // required when attaching to MFS
+	MFSRoot    cid.Cid             // required when attaching to MFS
 	MFSPublish mfs.PubFunc
 }
 
@@ -50,7 +50,7 @@ func Process(p goprocess.Process) AttachOption {
 	}
 }
 
-func MFSRoot(rcid *cid.Cid) AttachOption {
+func MFSRoot(rcid cid.Cid) AttachOption {
 	return func(ops *AttachOptions) {
 		ops.MFSRoot = rcid
 	}
