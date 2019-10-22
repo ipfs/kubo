@@ -1,6 +1,6 @@
 # Using go-ipfs as a Library. Learn to spawn a node and add a file to the IPFS network
 
-> This tutorial is the sister of the [js-ipfs IPFS 101 tutorial](https://github.com/ipfs/js-ipfs/tree/master/examples/ipfs-101).
+> This tutorial is the sibling of the [js-ipfs IPFS 101 tutorial](https://github.com/ipfs/js-ipfs/tree/master/examples/ipfs-101).
 
 By the end of this Tutorial, you will learn how to:
 
