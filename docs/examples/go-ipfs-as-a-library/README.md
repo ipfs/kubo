@@ -16,7 +16,7 @@ All of this using only golang!
 
 In order to complete this tutorial, you will need:
 - golang installed on your machine. See how at https://golang.org/doc/install
-- git installed on your machine so that go can download the repo and the necessary dependencies. See how at https://git-scm.com/downloads
+- git installed on your machine (so that go can download the repo and the necessary dependencies). See how at https://git-scm.com/downloads
 - IPFS Desktop (for convenience) installed and running on your machine. See how at https://github.com/ipfs-shipyard/ipfs-desktop#ipfs-desktop
 
 
