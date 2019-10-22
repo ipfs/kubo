@@ -99,7 +99,7 @@ As soon as you construct the IPFS node instance, the node will be running.
 - [Get the file from the Network]()
 - [Write the file into your local filesystem]()
 
-### Bonus: Spawn a daemon on your existing IPFS Repo (on the default path ~/.ipfs)
+### Bonus: Spawn a daemon on your existing IPFS repo (on the default path ~/.ipfs)
 
 As a bonus, you can also find lines that show you to spawn a node over your default path (~/.ipfs) in case you already had started a node there before. To try it:
 
