@@ -61,7 +61,7 @@ All done! You just finalized your first tutorial on how to use go-ipfs as a libr
 
 ## Understanding the example
 
-In this example, we add a file, a directory with files, we get them back from IPFS and then we use the IPFS network to fetch a file that we didn't have in our machines yet.
+In this example, we add a file and a directory with files; we get them back from IPFS; and then we use the IPFS network to fetch a file that we didn't have in our machines before.
 
 Each section below has links to lines of code in the file [main.go](./main.go). The code itself will have comments explaining what is happening for you.
 
