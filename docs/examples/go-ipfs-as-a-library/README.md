@@ -101,7 +101,7 @@ As soon as you construct the IPFS node instance, the node will be running.
 
 ### Bonus: Spawn a daemon on your existing IPFS repo (on the default path ~/.ipfs)
 
-As a bonus, you can also find lines that show you to spawn a node over your default path (~/.ipfs) in case you already had started a node there before. To try it:
+As a bonus, you can also find lines that show you how to spawn a node over your default path (~/.ipfs) in case you had already started a node there before. To try it:
 
 - [Comment these lines]()
 - [Uncomment these lines]()
