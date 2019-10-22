@@ -24,7 +24,7 @@ In order to complete this tutorial, you will need:
 
 ## Getting started
 
-Download go-ipfs and jump into the example folder
+Download go-ipfs and jump into the example folder:
 
 ```
 > go get -u github.com/ipfs/go-ipfs
