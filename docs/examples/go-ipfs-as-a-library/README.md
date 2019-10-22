@@ -2,7 +2,7 @@
 
 > This tutorial is the sibling of the [js-ipfs IPFS 101 tutorial](https://github.com/ipfs/js-ipfs/tree/master/examples/ipfs-101).
 
-By the end of this Tutorial, you will learn how to:
+By the end of this tutorial, you will learn how to:
 
 - Spawn an IPFS node that runs in process (no separate daemon process)
 - Create an IPFS repo
