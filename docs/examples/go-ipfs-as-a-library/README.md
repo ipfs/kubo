@@ -8,7 +8,7 @@ By the end of this Tutorial, you will learn how to:
 - Create an IPFS repo
 - How to add files & directories to IPFS
 - How to retrieve those files and directories using cat and get
-- How to connect to other nodes in the Network
+- Connect to other nodes in the network
 - How to retrieve a file that only exists on the Network
 - The difference between a node in DHT Client mode and Full DHT mode.
 
