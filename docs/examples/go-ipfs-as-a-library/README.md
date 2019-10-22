@@ -79,7 +79,7 @@ To get [get a node running](./main.go#L217-L222) as an [ephemeral node](./main.g
 
 As soon as you construct the IPFS node instance, the node will be running.
 
-### Part II: Adding a file and a directory to IPFS
+### Part 2: Adding a file and a directory to IPFS
 
 - [Prepare the file to be added to IPFS]()
 - [Add the file to IPFS]()
