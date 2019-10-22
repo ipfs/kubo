@@ -93,7 +93,7 @@ As soon as you construct the IPFS node instance, the node will be running.
 - [Get the directory back]()
 - [Write the directory to your local filesystem]()
 
-### Part IV: Getting a file from the IPFS Network
+### Part 4: Getting a file from the IPFS network
 
 - [Connect to nodes in the network]()
 - [Get the file from the Network]()
