@@ -31,7 +31,7 @@ Download go-ipfs and jump into the example folder:
 cd $GOPATH/src/github.com/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
 ```
 
-## Running the example as is
+## Running the example as-is
 
 To run the example, simply do:
 
