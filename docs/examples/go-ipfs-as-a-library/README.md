@@ -86,7 +86,7 @@ As soon as you construct the IPFS node instance, the node will be running.
 - [Prepare the directory to be added to IPFS]()
 - [Add the directory to IPFS]()
 
-### Part III: Getting the file and directory you added back
+### Part 3: Getting the file and directory you added back
 
 - [Get the file back]()
 - [Write the file into your local filesystem]()
