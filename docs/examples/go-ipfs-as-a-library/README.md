@@ -39,7 +39,7 @@ To run the example, simply do:
 > go run main.go
 ```
 
-You should see as output:
+You should see the following as output:
 
 ```
 -- Getting an IPFS node running --
