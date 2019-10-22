@@ -69,7 +69,7 @@ Each section below has links to lines of code in the file [main.go](./main.go). 
 
 The [main function](./main.go#L201-L333) is where the magic starts, and it is the best place to follow the path of what is happening in the tutorial.
 
-### Part I: Getting an IPFS node Running
+### Part 1: Getting an IPFS node running
 
 To get [get a node running](./main.go#L217-L222), [as an ephemeral node(that will cease to exist when the run ends)](./main.go#L114-L127) you will need:
 
