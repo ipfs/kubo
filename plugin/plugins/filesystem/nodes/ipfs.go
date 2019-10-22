@@ -44,9 +44,10 @@ func IPFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 func (id *IPFS) Attach() (p9.File, error) {
 	id.Logger.Debugf("Attach")
 
-	newFid := new(IPFS)
-	*newFid = *id
-
+	newFid := &IPFS{IPFSBase: id.IPFSBase.clone()}
+	if err := newFid.forkFilesystem(); err != nil {
+		return nil, err
+	}
 	return newFid, nil
 }
 

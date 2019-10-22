@@ -47,8 +47,10 @@ func (kd *KeyFS) Attach() (p9.File, error) {
 
 	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
 	// set new fs context
-	err := newFid.forkFilesystem()
-	return newFid, err
+	if err := newFid.forkFilesystem(); err != nil {
+		return nil, err
+	}
+	return newFid, nil
 }
 
 func (kd *KeyFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) { return *kd.qid, 0, nil }

@@ -128,8 +128,10 @@ func (ri *RootIndex) Attach() (p9.File, error) {
 	}
 
 	// set new fs context
-	err := newFid.forkFilesystem()
-	return newFid, err
+	if err := newFid.forkFilesystem(); err != nil {
+		return nil, err
+	}
+	return newFid, nil
 }
 
 func (ri *RootIndex) Open(mode p9.OpenFlags) (p9.QID, uint32, error) { return *ri.qid, 0, nil }

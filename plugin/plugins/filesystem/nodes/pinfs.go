@@ -49,10 +49,11 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 func (pd *PinFS) Attach() (p9.File, error) {
 	pd.Logger.Debugf("Attach")
 
-	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
-	// set new fs context
-	err := newFid.forkFilesystem()
-	return newFid, err
+	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()}
+	if err := newFid.forkFilesystem(); err != nil {
+		return nil, err
+	}
+	return newFid, nil
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
