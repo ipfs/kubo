@@ -5,7 +5,7 @@
 By the end of this Tutorial, you will learn how to:
 
 - Spawn an IPFS node that runs in process (no separate daemon process)
-- How to create an IPFS Repo
+- Create an IPFS repo
 - How to add files & directories to IPFS
 - How to retrieve those files and directories using cat and get
 - How to connect to other nodes in the Network
