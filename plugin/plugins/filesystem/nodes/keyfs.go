@@ -42,15 +42,19 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 	return kd
 }
 
-func (kd *KeyFS) Attach() (p9.File, error) {
-	kd.Logger.Debugf("Attach")
-
-	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
+// this root has no paths to walk; forking anythign besides the fs doesn't make sense for us
+func (kd *KeyFS) clone() (fsutils.WalkRef, error) {
+	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()}
 	// set new fs context
 	if err := newFid.forkFilesystem(); err != nil {
 		return nil, err
 	}
 	return newFid, nil
+}
+
+func (kd *KeyFS) Attach() (p9.File, error) {
+	kd.Logger.Debugf("Attach")
+	return kd.clone()
 }
 
 func (kd *KeyFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) { return *kd.qid, 0, nil }
@@ -65,10 +69,7 @@ func (kd *KeyFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 /* WalkRef relevant */
 
 func (kd *KeyFS) Fork() (fsutils.WalkRef, error) {
-	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
-	// set new operations context
-	err := newFid.forkOperations()
-	return newFid, err
+	return kd.clone()
 }
 
 // KeyFS forks the IPFS root that was set during construction

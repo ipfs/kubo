@@ -46,14 +46,18 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 	return pd
 }
 
-func (pd *PinFS) Attach() (p9.File, error) {
-	pd.Logger.Debugf("Attach")
-
+// this root has no paths to walk; forking anythign besides the fs doesn't make sense for us
+func (pd *PinFS) clone() (fsutils.WalkRef, error) {
 	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()}
 	if err := newFid.forkFilesystem(); err != nil {
 		return nil, err
 	}
 	return newFid, nil
+}
+
+func (pd *PinFS) Attach() (p9.File, error) {
+	pd.Logger.Debugf("Attach")
+	return pd.clone()
 }
 
 func (pd *PinFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
@@ -119,10 +123,8 @@ func (pd *PinFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 /* WalkRef relevant */
 
 func (pd *PinFS) Fork() (fsutils.WalkRef, error) {
-	newFid := &PinFS{IPFSBase: pd.IPFSBase.clone()} // root has no paths to walk; don't set node up for change
-	// set new operations context
-	err := newFid.forkOperations()
-	return newFid, err
+	// root has no paths to walk; don't set node up for change
+	return pd.clone()
 }
 
 // PinFS forks the IPFS root that was set during construction
