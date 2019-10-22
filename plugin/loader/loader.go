@@ -2,6 +2,7 @@ package loader
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -266,8 +267,8 @@ func (loader *PluginLoader) Close() error {
 	started := loader.started
 	loader.started = nil
 	for _, pl := range started {
-		if pl, ok := pl.(plugin.PluginDaemon); ok {
-			err := pl.Close()
+		if closer, ok := pl.(io.Closer); ok {
+			err := closer.Close()
 			if err != nil {
 				errs = append(errs, fmt.Sprintf(
 					"error closing plugin %s: %s",

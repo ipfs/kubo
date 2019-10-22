@@ -1,0 +1,12 @@
+on: pull_request
+name: Add reviewers/assignees to Pull Requests
+jobs:
+  autoAssign:
+    name: Auto Assign
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Auto Assign
+      uses: ipfs/auto-assign@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

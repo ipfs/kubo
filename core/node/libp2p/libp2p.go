@@ -3,6 +3,8 @@ package libp2p
 import (
 	"time"
 
+	version "github.com/ipfs/go-ipfs"
+
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-connmgr"
@@ -21,6 +23,8 @@ type Libp2pOpts struct {
 }
 
 // Misc options
+
+var UserAgent = simpleOpt(libp2p.UserAgent(version.UserAgent))
 
 func ConnectionManager(low, high int, grace time.Duration) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {

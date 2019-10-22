@@ -193,6 +193,16 @@ test_add_cat_file() {
     test_expect_code 1 ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
   '
 
+  test_expect_success "ipfs add --chunker buzhash suceeds" '
+    ipfs add --chunker buzhash mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add --chunker buzhash output looks good" '
+    HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
+    echo "added $HASH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
   test_expect_success "ipfs add on hidden file succeeds" '
     echo "Hello Worlds!" >mountdir/.hello.txt &&
     ipfs add mountdir/.hello.txt >actual
@@ -494,7 +504,6 @@ test_add_cat_expensive() {
 }
 
 test_add_named_pipe() {
-  err_prefix=$1
   test_expect_success "useful error message when adding a named pipe" '
     mkfifo named-pipe &&
     test_expect_code 1 ipfs add named-pipe 2>actual &&
@@ -510,7 +519,7 @@ test_add_named_pipe() {
     mkfifo named-pipe-dir/named-pipe &&
     STAT=$(generic_stat named-pipe-dir/named-pipe) &&
     test_expect_code 1 ipfs add -r named-pipe-dir 2>actual &&
-    printf "Error:$err_prefix unrecognized file type for named-pipe-dir/named-pipe: $STAT\n" >expected &&
+    printf "Error: unrecognized file type for named-pipe-dir/named-pipe: $STAT\n" >expected &&
     rm named-pipe-dir/named-pipe &&
     rmdir named-pipe-dir &&
     test_cmp expected actual
@@ -796,7 +805,7 @@ test_add_cat_expensive "--cid-version=1" "bafybeidkj5ecbhrqmzrcee2rw7qwsx24z3364
 # encoded with the blake2b-256 hash funtion
 test_add_cat_expensive '--hash=blake2b-256' "bafykbzaceb26fnq5hz5iopzamcb4yqykya5x6a4nvzdmcyuu4rj2akzs3z7r6"
 
-test_add_named_pipe " Post http://$API_ADDR/api/v0/add?chunker=size-262144&encoding=json&hash=sha2-256&inline-limit=32&pin=true&progress=true&recursive=true&stream-channels=true:"
+test_add_named_pipe
 
 test_add_pwd_is_symlink
 
@@ -827,7 +836,7 @@ test_expect_success "ipfs cat file fails" '
   test_must_fail ipfs cat $(cat oh_hash)
 '
 
-test_add_named_pipe ""
+test_add_named_pipe
 
 test_add_pwd_is_symlink
 

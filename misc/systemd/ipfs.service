@@ -1,0 +1,10 @@
+[Unit]
+Description=IPFS Daemon
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/ipfs daemon --init --migrate
+KillSignal=SIGINT
+
+[Install]
+WantedBy=default.target

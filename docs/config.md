@@ -70,6 +70,7 @@ Available profiles:
 - [`Mounts`](#mounts)
 - [`Reprovider`](#reprovider)
 - [`Swarm`](#swarm)
+- [`ConnMgr`](#connmgr)
 
 ## `Addresses`
 Contains information about various listener addresses to be used by this node.
@@ -77,15 +78,31 @@ Contains information about various listener addresses to be used by this node.
 - `API`
 Multiaddr or array of multiaddrs describing the address to serve the local HTTP API on.
 
+Supported Transports:
+
+* tcp/ip{4,6} - `/ipN/.../tcp/...`
+* unix - `/unix/path/to/socket`
+
 Default: `/ip4/127.0.0.1/tcp/5001`
 
 - `Gateway`
 Multiaddr or array of multiaddrs describing the address to serve the local gateway on.
 
+Supported Transports:
+
+* tcp/ip{4,6} - `/ipN/.../tcp/...`
+* unix - `/unix/path/to/socket`
+
 Default: `/ip4/127.0.0.1/tcp/8080`
 
 - `Swarm`
 Array of multiaddrs describing which addresses to listen on for p2p swarm connections.
+
+Supported Transports:
+
+* tcp/ip{4,6} - `/ipN/.../tcp/...`
+* websocket - `/ipN/.../tcp/.../ws`
+* quic - `/ipN/.../udp/.../quic`
 
 Default:
 ```json
@@ -362,7 +379,12 @@ bandwidth metrics. Disabling bandwidth metrics can lead to a slight performance
 improvement, as well as a reduction in memory usage.
 
 - `DisableNatPortMap`
-Disable NAT discovery.
+Disable automatic NAT port forwarding.
+
+When not disabled (default), go-ipfs asks NAT devices (e.g., routers), to open
+up an external port and forward it to the port go-ipfs is running on. When this
+works (i.e., when your router supports NAT port forwarding), it makes the local
+go-ipfs node accessible from the public internet.
 
 - `DisableRelay`
 Disables the p2p-circuit relay transport.

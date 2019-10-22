@@ -12,10 +12,8 @@ package core
 import (
 	"context"
 	"io"
-	"path"
 
 	"github.com/ipfs/go-filestore"
-	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
@@ -49,14 +47,9 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	"github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 var log = logging.Logger("core")
-
-func init() {
-	identify.ClientVersion = path.Join("go-ipfs", version.CurrentVersionNumber, version.CurrentCommit)
-}
 
 // IpfsNode is IPFS Core module. It represents an IPFS instance.
 type IpfsNode struct {

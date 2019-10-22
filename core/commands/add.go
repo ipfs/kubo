@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-files"
+	files "github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
@@ -80,9 +80,9 @@ how to break files into blocks. Blocks with same content can
 be deduplicated. Different chunking strategies will produce different
 hashes for the same file. The default is a fixed block size of
 256 * 1024 bytes, 'size-262144'. Alternatively, you can use the
-Rabin fingerprint chunker for content defined chunking by specifying
-rabin-[min]-[avg]-[max] (where min/avg/max refer to the desired
-chunk sizes in bytes), e.g. 'rabin-262144-524288-1048576'.
+Buzhash or Rabin fingerprint chunker for content defined chunking by
+specifying buzhash or rabin-[min]-[avg]-[max] (where min/avg/max refer
+to the desired chunk sizes in bytes), e.g. 'rabin-262144-524288-1048576'.
 
 The following examples use very small byte sizes to demonstrate the
 properties of the different chunkers on a small file. You'll likely
@@ -120,7 +120,7 @@ You can now check what blocks have been created by:
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
-		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes] or rabin-[min]-[avg]-[max]").WithDefault("size-262144"),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash").WithDefault("size-262144"),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (experimental)"),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),

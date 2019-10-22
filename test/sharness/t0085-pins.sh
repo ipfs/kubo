@@ -101,6 +101,9 @@ test_pins() {
     ipfs pin ls $LS_ARGS $BASE_ARGS > after_update &&
     test_must_fail grep -q "$HASH_A" after_update &&
     test_should_contain "$HASH_B" after_update &&
+    ipfs pin update --unpin=true "$HASH_B" "$HASH_B" &&
+    ipfs pin ls $LS_ARGS $BASE_ARGS > after_idempotent_update &&
+    test_should_contain "$HASH_B" after_idempotent_update &&
     ipfs pin rm "$HASH_B"
   '
 }

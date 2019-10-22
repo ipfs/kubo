@@ -1,0 +1,15 @@
+# Enabling this will *completely override* any API listeners configured in your
+# config.
+
+[Unit]
+Description=IPFS API Socket
+
+[Socket]
+Service=ipfs.service
+FileDescriptorName=io.ipfs.api
+BindIPv6Only=true
+ListenStream=127.0.0.1:5001
+ListenStream=[::1]:5001
+
+[Install]
+WantedBy=sockets.target
