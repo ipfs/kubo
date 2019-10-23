@@ -41,6 +41,7 @@ func baseLine(ctx context.Context, t *testing.T, core coreiface.CoreAPI, attachF
 	}
 
 	t.Run("walk", func(t *testing.T) { testClones(ctx, t, root) })
+	t.Run("open", func(t *testing.T) { testOpen(ctx, t, root) })
 
 	if _, _, _, err = root.GetAttr(p9.AttrMaskAll); err != nil {
 		t.Fatal(err)
@@ -171,6 +172,40 @@ func testClones(ctx context.Context, t *testing.T, nineRef p9.File) {
 
 	// close the 2nd
 	if err = gen2.Close(); err != nil {
+		t.Fatalf(errFmtClose, err)
+	}
+}
+
+func testOpen(ctx context.Context, t *testing.T, nineRef p9.File) {
+	_, newRef, err := nineRef.Walk(nil)
+	if err != nil {
+		t.Fatalf(errFmtClone, err)
+	}
+
+	_, thing1, err := nineRef.Walk(nil)
+	if err != nil {
+		t.Fatalf(errFmtClone, err)
+	}
+	_, thing2, err := nineRef.Walk(nil)
+	if err != nil {
+		t.Fatalf(errFmtClone, err)
+	}
+
+	// a close of one reference should not affect the operation context of another
+	if err = thing1.Close(); err != nil {
+		t.Fatalf(errFmtClose, err)
+	}
+
+	if _, _, err = thing2.Open(0); err != nil {
+		t.Fatalf("could not open reference after unrelated reference was closed: %s\n", err)
+	}
+
+	// cleanup
+	if err = thing2.Close(); err != nil {
+		t.Fatalf(errFmtClose, err)
+	}
+
+	if err = newRef.Close(); err != nil {
 		t.Fatalf(errFmtClose, err)
 	}
 }
