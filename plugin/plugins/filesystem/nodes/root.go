@@ -119,18 +119,24 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 	return ri
 }
 
+func (ri *RootIndex) clone() *RootIndex {
+	return &RootIndex{
+		IPFSBase:   ri.IPFSBase.clone(),
+		subsystems: ri.subsystems, // share the same subsystem reference across all instances
+	}
+}
+
 func (ri *RootIndex) Attach() (p9.File, error) {
 	ri.Logger.Debugf("Attach")
 
-	newFid := &RootIndex{
-		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
-		subsystems: ri.subsystems,
-	}
+	// this root has no paths to walk, so don't allocate anything new
+	newFid := ri.clone()
 
-	// set new fs context
+	// new instance, new context
 	if err := newFid.forkFilesystem(); err != nil {
 		return nil, err
 	}
+
 	return newFid, nil
 }
 
@@ -174,14 +180,16 @@ func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 /* WalkRef relevant */
 
 func (ri *RootIndex) Fork() (fsutils.WalkRef, error) {
-	newFid := &RootIndex{
-		IPFSBase:   ri.IPFSBase.clone(), // root has no paths to walk; don't set node up for change
-		subsystems: ri.subsystems,
+	// this root has no paths to walk, so don't allocate anything new
+	newFid := ri.clone()
+
+	// new instance, new context
+	err := newFid.forkOperations()
+	if err != nil {
+		return nil, err
 	}
 
-	// set new operations context
-	err := newFid.forkOperations()
-	return newFid, err
+	return newFid, nil
 }
 
 // The RootIndex checks if it has attached to "name"
