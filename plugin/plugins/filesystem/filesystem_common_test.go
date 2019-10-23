@@ -21,16 +21,25 @@ import (
 	corepath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
+const (
+	errFmtRoot       = "Failed to attach to 9P root resource: %s\n"
+	errFmtRootSecond = "Failed to attach to 9P root resource a second time: %s\n"
+	errFmtClose      = "Close errored: %s\n"
+	errFmtClone      = "Failed to clone ref: %s\n"
+)
+
 type baseAttacher func(context.Context, coreiface.CoreAPI, ...nodeopts.AttachOption) p9.Attacher
 
 func baseLine(ctx context.Context, t *testing.T, core coreiface.CoreAPI, attachFn baseAttacher) {
 	attacher := attachFn(ctx, core)
 
 	t.Run("attacher", func(t *testing.T) { testAttacher(ctx, t, attacher) })
+
 	root, err := attacher.Attach()
 	if err != nil {
 		t.Fatalf("Attach test passed but attach failed: %s\n", err)
 	}
+
 	t.Run("walk", func(t *testing.T) { testClones(ctx, t, root) })
 
 	if _, _, _, err = root.GetAttr(p9.AttrMaskAll); err != nil {
@@ -42,86 +51,87 @@ func testAttacher(ctx context.Context, t *testing.T, attacher p9.Attacher) {
 	// 2 individual instances, one after another
 	nineRoot, err := attacher.Attach()
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+		t.Fatalf(errFmtRoot, err)
 	}
 
 	if err = nineRoot.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	nineRootTheRevenge, err := attacher.Attach()
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P root resource a second time: %s\n", err)
+		t.Fatalf(errFmtRootSecond, err)
 	}
 
 	if err = nineRootTheRevenge.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	// 2 instances at the same time
 	nineRoot, err = attacher.Attach()
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+		t.Fatalf(errFmtRoot, err)
 	}
 
 	nineRootTheRevenge, err = attacher.Attach()
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P root resource a second time: %s\n", err)
+		t.Fatalf(errFmtRootSecond, err)
 	}
 
 	if err = nineRootTheRevenge.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	if err = nineRoot.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	// final instance
 	nineRoot, err = attacher.Attach()
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P root resource: %s\n", err)
+		t.Fatalf(errFmtRoot, err)
 	}
 
 	if err = nineRoot.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 }
 
 func testClones(ctx context.Context, t *testing.T, nineRef p9.File) {
+
 	// clone the node we were passed; 1st generation
 	_, newRef, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
+		t.Fatalf(errFmtClone, err)
 	}
 
 	// this `Close` shouldn't affect the parent it's derived from
 	// only descendants
 	if err = newRef.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	// remake the clone from the original; 1st generation again
 	_, gen1, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
+		t.Fatalf(errFmtClone, err)
 	}
 
 	// clone a 2nd generation from the 1st
 	_, gen2, err := gen1.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
+		t.Fatalf(errFmtClone, err)
 	}
 
 	// 3rd from the 2nd
 	_, gen3, err := gen2.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
+		t.Fatalf(errFmtClone, err)
 	}
 
 	// close the 2nd reference
 	if err = gen2.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	// try to clone from the 2nd reference
@@ -135,33 +145,33 @@ func testClones(ctx context.Context, t *testing.T, nineRef p9.File) {
 	// should still succeed regardless of 2's state
 	_, gen4, err := gen3.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
+		t.Fatalf(errFmtClone, err)
 	}
 
 	// close the 3rd reference
 	if err = gen3.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	// close the 4th reference
 	if err = gen4.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	// clone a 2nd generation from the 1st again
 	_, gen2, err = gen1.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to clone root: %s\n", err)
+		t.Fatalf(errFmtClone, err)
 	}
 
 	// close the 1st
 	if err = gen1.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 
 	// close the 2nd
 	if err = gen2.Close(); err != nil {
-		t.Fatalf("Close errored: %s\n", err)
+		t.Fatalf(errFmtClose, err)
 	}
 }
 
