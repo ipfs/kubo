@@ -22,7 +22,7 @@ const ( //device - attempts to comply with standard multicodec table
 type p9Path = uint64
 
 // Base provides a foundation to build file system nodes which contain file meta data
-// as well as some base methods
+// as well as some base methods.
 type Base struct {
 	Trail []string // FS "breadcrumb" trail from node's root
 
@@ -49,14 +49,14 @@ func newBase(ops ...nodeopts.AttachOption) Base {
 	}
 }
 
-// IPFSBase is much like Base but extends it to hold IPFS specific metadata
+// IPFSBase is much like Base but extends it to hold IPFS specific metadata.
 type IPFSBase struct {
 	Base
 	OverlayFileMeta
 
-	/* The filesystem context should be set prior to `Attach`
+	/* The filesystem context should be set prior to `Attach`.
 	During `fs.Attach`, a new reference to `fs` should be created
-	with its fs-context + fs-cancel populated with one derived from the existing fs context
+	with its fs-context + fs-cancel populated with one derived from the existing fs context.
 
 	This context is expected to be valid for the lifetime of the file system
 	and canceled on `Close` by references returned from `Attach` only.
@@ -64,32 +64,23 @@ type IPFSBase struct {
 	filesystemCtx    context.Context
 	filesystemCancel context.CancelFunc
 
-	/* During `file.Walk` a new reference to `file` should be created
-	with its op-context + op-cancel populated with one derived from the existing fs context
+	/* The operations context should be unique to the file reference.
+	References derived from `file.Walk` should contain a new context and cancel.
+	(Likely populated with one derived from the existing fs context)
 	This context is expected to be valid as long as the file is being referenced by a particular FID
-	it should be canceled during `Close`
-
-	for the lifetime of the file system
-	to be used during operations, such as `Open`, `Read` etc.
-	and canceled on `Close` by references returned from `Attach` only.
+	and should be canceled during `Close`.
 	*/
-
 	operationsCtx    context.Context
 	operationsCancel context.CancelFunc
 
-	// Typically you'll want to derive a context from the fs ctx within one operation (like Open)
-	// use it with the CoreAPI for something (like Get)
-	// and cancel it in another operation (like Close)
-	// those pointers should be stored here between operation calls
-
-	// Format the namespace as if it were a rooted directory, sans trailing slash
-	// e.g. `/ipfs`
-	// the base relative path is appended to the namespace for core requests upon calling `.CorePath()`
+	/* Format the namespace as if it were a rooted directory, sans trailing slash.
+	e.g. `/ipfs`
+	The base relative path is appended to the namespace for core requests upon calling `.CorePath()`.
+	*/
 	coreNamespace string
 	core          coreiface.CoreAPI
 }
 
-//func newIPFSBase(ctx context.Context, path corepath.Resolved, kind p9.FileMode, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) IPFSBase {
 func newIPFSBase(ctx context.Context, coreNamespace string, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) IPFSBase {
 	options := nodeopts.AttachOps(ops...)
 	return IPFSBase{
@@ -172,8 +163,6 @@ func (ib *IPFSBase) close() error {
 }
 
 func (b *Base) getAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
-	//b.Logger.Debugf("GetAttr {%d}:%q", b.qid.Path, b.String())
-
 	return *b.qid, *b.metaMask, *b.meta, nil
 }
 

@@ -35,14 +35,14 @@ func (rp rootPath) Cid() cid.Cid {
 	return c
 }
 
+// pair a filesystem implementation with directory entry metadata about it
 type systemTuple struct {
 	file   fsutils.WalkRef
 	dirent p9.Dirent
 }
 
 //TODO: rename, while this is likely to be the root, it doesn't have to be; maybe "IPFSOverlay"
-// RootIndex is a virtual directory file system, that maps a set of file system implementations to a hierarchy
-// Currently: "/ipfs":PinFS, "/ipfs/*:IPFS
+// RootIndex is a file system, that maps a set of other file system implementations to a hierarchy.
 type RootIndex struct {
 	unimplfs.NoopFile
 	p9.DefaultWalkGetAttr
@@ -61,15 +61,15 @@ type OverlayFileMeta struct {
 	proxy fsutils.WalkRef
 }
 
-// RootAttacher constructs the default RootIndex file system, providing a means to Attach() to it
+// RootAttacher constructs the default RootIndex file system, and all of its dependants, providing a means to Attach() to it
 func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.AttachOption) p9.Attacher {
-	// construct root node
+	// construct root node actual
 	ri := &RootIndex{IPFSBase: newIPFSBase(ctx, "/", core, ops...)}
 	ri.qid.Type = p9.TypeDir
 	ri.meta.Mode, ri.metaMask.Mode = p9.ModeDirectory|IRXA, true
 
 	// attach to subsystems
-	// used for proxying walk requests to other filesystems
+	// used for proxying walk requests to other file systems
 	type subattacher func(context.Context, coreiface.CoreAPI, ...nodeopts.AttachOption) p9.Attacher
 	type attachTuple struct {
 		string
@@ -77,7 +77,7 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 		logging.EventLogger
 	}
 
-	// 9P Access names mapped to IPFS attacher functions
+	// 9P "Access names" mapped to IPFS attacher functions
 	subsystems := [...]attachTuple{
 		{"ipfs", PinFSAttacher, logging.Logger("PinFS")},
 		{"ipns", KeyFSAttacher, logging.Logger("KeyFS")},
@@ -163,7 +163,7 @@ func (ri *RootIndex) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 		ents = make([]p9.Dirent, relativeEnd)
 	}
 
-	// use ents from map within request bounds to populate slice
+	// use ents from map within request bounds to populate slice slots
 	for _, pair := range ri.subsystems {
 		if count == 0 {
 			break

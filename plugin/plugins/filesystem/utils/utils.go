@@ -2,14 +2,14 @@ package fsutils
 
 import "github.com/hugelgupf/p9/p9"
 
-// WalkRef is used to generalize 9P `Walk` operations within filesystem boundries
+// WalkRef is used to generalize 9P `Walk` operations within file system boundaries
 // and allows for traversal across those boundaries if intended by the implementation
 //
-// The reference root node implementation links filesystems together using a parent/child relation
-// sending the appropriate node back to the caller by using the linakge between nodes
+// The reference root node implementation links file systems together using a parent/child relation
+// sending the appropriate node back to the caller by using the linkage between nodes
 // combined with inspection of a nodes current path
 // it tries its best to avoid copying by modifying a node directly where possible
-// falling back to derived copies when crossing filesystem boundaries during "movement"
+// falling back to derived copies when crossing file system boundaries during "movement"
 type WalkRef interface {
 	p9.File
 
@@ -27,9 +27,9 @@ type WalkRef interface {
 	The returned reference node must "stand" beside the existing `WalkRef`
 	Meaning the node must be "at"/contain the same location/path as the existing reference.
 
-	The returned node must also adhear to 'walk(5)' `newfid` semantics
+	The returned node must also adhere to 'walk(5)' `newfid` semantics
 	Meaning that...
-	`newfid` must be allowed to `Close` seperatley from the original reference
+	`newfid` must be allowed to `Close` separately from the original reference
 	`newfid`'s path may be modified during `Walk` without affecting the original `WalkRef`
 	`Open` must flag all references within the same system, at the same path, as open
 	etc. in compliance with 'walk(5)'
@@ -51,7 +51,7 @@ type WalkRef interface {
 	Step(name string) (WalkRef, error)
 
 	/* Backtrack is the handler for `..` requests
-	it is effectivley the inverse of `Step`
+	it is effectively the inverse of `Step`
 	if called on the root node, the node should return itself
 	*/
 	Backtrack() (parentRef WalkRef, err error)
