@@ -99,6 +99,13 @@ func (id *IPFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 
 	// handle directories
 	if qid.Type == p9.TypeDir {
+
+		// handle the root itself (empty)
+		if len(id.Trail) == 0 {
+			id.directory = &directoryStream{}
+			return qid, 0, nil
+		}
+
 		c, err := id.core.Unixfs().Ls(id.operationsCtx, id.CorePath())
 		if err != nil {
 			//id.operationsCancel()
@@ -164,6 +171,11 @@ func (id *IPFS) Readdir(offset uint64, count uint32) ([]p9.Dirent, error) {
 
 	if id.directory.err != nil { // previous request must have failed
 		return nil, id.directory.err
+	}
+
+	// special case for root
+	if len(id.Trail) == 0 {
+		return nil, nil
 	}
 
 	if offset < id.directory.cursor {
