@@ -2,6 +2,7 @@ package fsnodes
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/hugelgupf/p9/p9"
 	"github.com/hugelgupf/p9/unimplfs"
@@ -38,6 +39,11 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 	}
 
 	kd.proxy = subsystem.(fsutils.WalkRef)
+
+	// detach from our proxied system when we fall out of memory
+	runtime.SetFinalizer(kd, func(keyRoot *KeyFS) {
+		keyRoot.proxy.Close()
+	})
 
 	return kd
 }

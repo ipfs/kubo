@@ -144,15 +144,7 @@ func (ib *IPFSBase) close() error {
 	}
 
 	if ib.filesystemCancel != nil {
-		/* TODO: only do this on the last close to the root
-		if ib.proxy != nil {
-		    if err := ib.proxy.Close(); err != nil {
-				ib.Logger.Error(err)
-			}
-			lastErr = err
-		}
 		ib.filesystemCancel()
-		*/
 	}
 
 	if ib.operationsCancel != nil {

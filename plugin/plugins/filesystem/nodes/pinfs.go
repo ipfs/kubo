@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	gopath "path"
+	"runtime"
 
 	"github.com/hugelgupf/p9/p9"
 	"github.com/hugelgupf/p9/unimplfs"
@@ -42,6 +43,11 @@ func PinFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 	}
 
 	pd.proxy = subsystem.(fsutils.WalkRef)
+
+	// detach from our proxied system when we fall out of memory
+	runtime.SetFinalizer(pd, func(pinRoot *PinFS) {
+		pinRoot.proxy.Close()
+	})
 
 	return pd
 }

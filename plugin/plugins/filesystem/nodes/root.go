@@ -2,6 +2,7 @@ package fsnodes
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/hugelgupf/p9/p9"
 	"github.com/hugelgupf/p9/unimplfs"
@@ -115,6 +116,13 @@ func RootAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.A
 			dirent: rootDirent,
 		}
 	}
+
+	// detach from our proxied systems when we fall out of memory
+	runtime.SetFinalizer(ri, func(root *RootIndex) {
+		for _, ss := range ri.subsystems {
+			ss.file.Close()
+		}
+	})
 
 	return ri
 }
