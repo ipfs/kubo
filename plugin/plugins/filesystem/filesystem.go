@@ -42,7 +42,6 @@ type FileSystemPlugin struct {
 	addr      multiaddr.Multiaddr
 	listener  manet.Listener
 	closed    chan struct{}
-	closing   bool //TODO: p9 lib should probably have a `server.Close` that closes the listener and swallows the final `Accept` error instead of us managing it in this pkg
 	serverErr error
 }
 
@@ -143,7 +142,7 @@ func (fs *FileSystemPlugin) Start(core coreiface.CoreAPI) error {
 		// store error on the fs object then close our syncing channel (see use in `Close` below)
 		fs.serverErr = server.Serve(manet.NetListener(fs.listener))
 
-		if fs.closing { //[async] we expect `Accept` to fail while `Close` is in progress
+		if fs.ctx.Err() != nil { // [async] we expect `Accept` to fail only if the filesystem is canceled
 			var opErr *net.OpError
 			if errors.As(fs.serverErr, &opErr) && opErr.Op == "accept" {
 				fs.serverErr = nil
@@ -165,11 +164,9 @@ func (fs *FileSystemPlugin) Close() error {
 
 	// synchronization between plugin interface <-> fs server
 	if fs.closed != nil { // implies `Start` was called prior
-		fs.closing = true   // lets the goroutine know that accept is now allowed to fail
-		fs.listener.Close() // stop accepting actually
-		fs.cancel()         // stop any lingering fs operations
+		fs.cancel()         // stop and prevent all fs operations, signifies "closing" intent
+		fs.listener.Close() // stop accepting new clients
 		<-fs.closed         // wait for the server thread to set the error value
-		fs.closing = false  // reset our async condition
 		fs.listener = nil   // reset `Start` conditions
 		fs.closed = nil
 	}
