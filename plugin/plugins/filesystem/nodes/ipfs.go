@@ -249,8 +249,6 @@ func (id *IPFS) ReadAt(p []byte, offset uint64) (int, error) {
 	readBytes, err := id.file.Read(p)
 	if err != nil && err != io.EOF {
 		id.Logger.Errorf(readAtFmtErr, offset, id.meta.Size, id.String(), err)
-		//id.operationsCancel()
-		return 0, err
 	}
 
 	return readBytes, err
