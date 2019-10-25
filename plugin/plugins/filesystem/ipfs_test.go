@@ -17,27 +17,32 @@ func testIPFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 
 	rootRef, err := fsnodes.IPFSAttacher(ctx, core).Attach()
 	if err != nil {
-		t.Fatalf("Baseline test passed but attach failed: %s\n", err)
+		t.Logf("Baseline test passed but attach failed: %s\n", err)
+		t.FailNow()
 	}
 
 	env, iEnv, err := initEnv(ctx, core)
 	if err != nil {
-		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
+		t.Logf("Failed to construct IPFS test environment: %s\n", err)
+		t.FailNow()
 	}
 	defer os.RemoveAll(env)
 
 	localEnv, err := localfs.Attacher(env).Attach()
 	if err != nil {
-		t.Fatalf("Failed to attach to local resource %q: %s\n", env, err)
+		t.Logf("Failed to attach to local resource %q: %s\n", env, err)
+		t.FailNow()
 	}
 
 	_, ipfsEnv, err := rootRef.Walk([]string{gopath.Base(iEnv.String())})
 	if err != nil {
-		t.Fatalf("Failed to walk to IPFS test environment: %s\n", err)
+		t.Logf("Failed to walk to IPFS test environment: %s\n", err)
+		t.FailNow()
 	}
 	_, envClone, err := ipfsEnv.Walk(nil)
 	if err != nil {
-		t.Fatalf("Failed to clone IPFS environment handle: %s\n", err)
+		t.Logf("Failed to clone IPFS environment handle: %s\n", err)
+		t.FailNow()
 	}
 
 	testCompareTreeAttrs(t, localEnv, ipfsEnv)
@@ -46,13 +51,16 @@ func testIPFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 	//TODO: compare against a table, not just lengths
 	_, _, err = envClone.Open(p9.ReadOnly)
 	if err != nil {
-		t.Fatalf("Failed to open IPFS test directory: %s\n", err)
+		t.Logf("Failed to open IPFS test directory: %s\n", err)
+		t.FailNow()
 	}
 	ents, err := envClone.Readdir(2, 2) // start at ent 2, return max 2
 	if err != nil {
-		t.Fatalf("Failed to read IPFS test directory: %s\n", err)
+		t.Logf("Failed to read IPFS test directory: %s\n", err)
+		t.FailNow()
 	}
 	if l := len(ents); l == 0 || l > 2 {
-		t.Fatalf("IPFS test directory contents don't match read request: %v\n", ents)
+		t.Logf("IPFS test directory contents don't match read request: %v\n", ents)
+		t.FailNow()
 	}
 }

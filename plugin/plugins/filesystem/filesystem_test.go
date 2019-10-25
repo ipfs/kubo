@@ -19,7 +19,8 @@ func TestAll(t *testing.T) {
 
 	core, err := InitCore(ctx)
 	if err != nil {
-		t.Fatalf("Failed to construct CoreAPI: %s\n", err)
+		t.Logf("Failed to construct CoreAPI: %s\n", err)
+		t.FailNow()
 	}
 
 	t.Run("RootFS", func(t *testing.T) { testRootFS(ctx, t, core) })
@@ -39,54 +40,63 @@ func testPlugin(t *testing.T, pluginEnv *plugin.Environment, core coreiface.Core
 
 	// close and start before init are NOT allowed
 	if err = module.Close(); err == nil {
-		t.Fatal("plugin was not initialized but Close succeeded")
+		t.Logf("plugin was not initialized but Close succeeded")
+		t.FailNow()
 		// also should not hang
 	}
 	if err = module.Start(core); err == nil {
-		t.Fatal("plugin was not initialized but Start succeeded")
+		t.Logf("plugin was not initialized but Start succeeded")
+		t.FailNow()
 		// also should not hang
 	}
 
 	// initialize the module
 	if err = module.Init(pluginEnv); err != nil {
-		t.Fatal("Plugin couldn't be initialized: ", err)
+		t.Logf("Plugin couldn't be initialized: %s", err)
+		t.FailNow()
 	}
 
 	// double init is NOT allowed
 	if err = module.Init(pluginEnv); err == nil {
-		t.Fatal("init isn't intended to succeed twice")
+		t.Logf("init isn't intended to succeed twice")
+		t.FailNow()
 	}
 
 	// close before start is allowed
 	if err = module.Close(); err != nil {
-		t.Fatal("plugin isn't busy, but it can't close: ", err)
+		t.Logf("plugin isn't busy, but it can't close: %s", err)
+		t.FailNow()
 		// also should not hang
 	}
 
 	// double close is allowed
 	if err = module.Close(); err != nil {
-		t.Fatal("plugin couldn't close twice: ", err)
+		t.Logf("plugin couldn't close twice: %s", err)
+		t.FailNow()
 	}
 
 	// start the module
 	if err = module.Start(core); err != nil {
-		t.Fatal("module could not start: ", err)
+		t.Logf("module could not start: %s", err)
+		t.FailNow()
 	}
 
 	// double start is NOT allowed
 	if err = module.Start(core); err == nil {
-		t.Fatal("module is intended to be exclusive but was allowed to start twice")
+		t.Logf("module is intended to be exclusive but was allowed to start twice")
+		t.FailNow()
 	}
 
 	// actual close
 	if err = module.Close(); err != nil {
-		t.Fatalf("plugin isn't busy, but it can't close: %#v", err)
-		t.Fatal("plugin isn't busy, but it can't close: ", err)
+		t.Logf("plugin isn't busy, but it can't close: %s", err)
+		t.FailNow()
 	}
 
 	// another redundant close
 	if err = module.Close(); err != nil {
-		t.Fatal("plugin isn't busy, but it can't close: ", err)
+		t.Logf("plugin isn't busy, but it can't close: %s", err)
+		t.FailNow()
 		// also should not hang
 	}
 }

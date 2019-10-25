@@ -37,14 +37,16 @@ func baseLine(ctx context.Context, t *testing.T, core coreiface.CoreAPI, attachF
 
 	root, err := attacher.Attach()
 	if err != nil {
-		t.Fatalf("Attach test passed but attach failed: %s\n", err)
+		t.Logf("Attach test passed but attach failed: %s\n", err)
+		t.FailNow()
 	}
 
 	t.Run("walk", func(t *testing.T) { testClones(ctx, t, root) })
 	t.Run("open", func(t *testing.T) { testOpen(ctx, t, root) })
 
 	if _, _, _, err = root.GetAttr(p9.AttrMaskAll); err != nil {
-		t.Fatal(err)
+		t.Log(err)
+		t.FailNow()
 	}
 }
 
@@ -52,49 +54,59 @@ func testAttacher(ctx context.Context, t *testing.T, attacher p9.Attacher) {
 	// 2 individual instances, one after another
 	nineRoot, err := attacher.Attach()
 	if err != nil {
-		t.Fatalf(errFmtRoot, err)
+		t.Logf(errFmtRoot, err)
+		t.FailNow()
 	}
 
 	if err = nineRoot.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	nineRootTheRevenge, err := attacher.Attach()
 	if err != nil {
-		t.Fatalf(errFmtRootSecond, err)
+		t.Logf(errFmtRootSecond, err)
+		t.FailNow()
 	}
 
 	if err = nineRootTheRevenge.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	// 2 instances at the same time
 	nineRoot, err = attacher.Attach()
 	if err != nil {
-		t.Fatalf(errFmtRoot, err)
+		t.Logf(errFmtRoot, err)
+		t.FailNow()
 	}
 
 	nineRootTheRevenge, err = attacher.Attach()
 	if err != nil {
-		t.Fatalf(errFmtRootSecond, err)
+		t.Logf(errFmtRootSecond, err)
+		t.FailNow()
 	}
 
 	if err = nineRootTheRevenge.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	if err = nineRoot.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	// final instance
 	nineRoot, err = attacher.Attach()
 	if err != nil {
-		t.Fatalf(errFmtRoot, err)
+		t.Logf(errFmtRoot, err)
+		t.FailNow()
 	}
 
 	if err = nineRoot.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 }
 
@@ -103,110 +115,130 @@ func testClones(ctx context.Context, t *testing.T, nineRef p9.File) {
 	// clone the node we were passed; 1st generation
 	_, newRef, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	// this `Close` shouldn't affect the parent it's derived from
 	// only descendants
 	if err = newRef.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	// remake the clone from the original; 1st generation again
 	_, gen1, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	// clone a 2nd generation from the 1st
 	_, gen2, err := gen1.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	// 3rd from the 2nd
 	_, gen3, err := gen2.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	// close the 2nd reference
 	if err = gen2.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	// try to clone from the 2nd reference
 	// this should fail since we closed it
 	_, undead, err := gen2.Walk(nil)
 	if err == nil {
-		t.Fatalf("Clone (%p)%q succeeded when parent (%p)%q was closed\n", undead, undead, gen2, gen2)
+		t.Logf("Clone (%p)%q succeeded when parent (%p)%q was closed\n", undead, undead, gen2, gen2)
+		t.FailNow()
 	}
 
 	// 4th from  the 3rd
 	// should still succeed regardless of 2's state
 	_, gen4, err := gen3.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	// close the 3rd reference
 	if err = gen3.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	// close the 4th reference
 	if err = gen4.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	// clone a 2nd generation from the 1st again
 	_, gen2, err = gen1.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	// close the 1st
 	if err = gen1.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	// close the 2nd
 	if err = gen2.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 }
 
 func testOpen(ctx context.Context, t *testing.T, nineRef p9.File) {
 	_, newRef, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	_, thing1, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 	_, thing2, err := nineRef.Walk(nil)
 	if err != nil {
-		t.Fatalf(errFmtClone, err)
+		t.Logf(errFmtClone, err)
+		t.FailNow()
 	}
 
 	// a close of one reference should not affect the operation context of another
 	if err = thing1.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	if _, _, err = thing2.Open(0); err != nil {
-		t.Fatalf("could not open reference after unrelated reference was closed: %s\n", err)
+		t.Logf("could not open reference after unrelated reference was closed: %s\n", err)
+		t.FailNow()
 	}
 
 	// cleanup
 	if err = thing2.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 
 	if err = newRef.Close(); err != nil {
-		t.Fatalf(errFmtClose, err)
+		t.Logf(errFmtClose, err)
+		t.FailNow()
 	}
 }
 
@@ -249,12 +281,14 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 
 	f1Map, err := expand(f1)
 	if err != nil {
-		t.Fatal(err)
+		t.Log(err)
+		t.FailNow()
 	}
 
 	f2Map, err := expand(f2)
 	if err != nil {
-		t.Fatal(err)
+		t.Log(err)
+		t.FailNow()
 	}
 
 	same := func(permissionContains p9.FileMode, base, target map[string]p9.Attr) bool {
@@ -269,7 +303,8 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 				targetNames = append(targetNames, name)
 			}
 
-			t.Fatalf("map lengths don't match:\nbase:%v\ntarget:%v\n", baseNames, targetNames)
+			t.Logf("map lengths don't match:\nbase:%v\ntarget:%v\n", baseNames, targetNames)
+			t.FailNow()
 			return false
 		}
 
@@ -278,16 +313,18 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 			tMode := target[path].Mode
 
 			if bMode.FileType() != tMode.FileType() {
-				t.Fatalf("type for %q don't match:\nbase:%v\ntarget:%v\n", path, bMode, tMode)
+				t.Logf("type for %q don't match:\nbase:%v\ntarget:%v\n", path, bMode, tMode)
+				t.FailNow()
 				return false
 			}
 
 			if ((bMode.Permissions() & permissionContains) & (tMode.Permissions() & permissionContains)) == 0 {
-				t.Fatalf("permissions for %q don't match\n(unfiltered)\nbase:%v\ntarget:%v\n(filtered)\nbase:%v\ntarget:%v\n",
+				t.Logf("permissions for %q don't match\n(unfiltered)\nbase:%v\ntarget:%v\n(filtered)\nbase:%v\ntarget:%v\n",
 					path,
 					bMode.Permissions(), tMode.Permissions(),
 					bMode.Permissions()&permissionContains, tMode.Permissions()&permissionContains,
 				)
+				t.FailNow()
 				return false
 			}
 
@@ -296,17 +333,19 @@ func testCompareTreeAttrs(t *testing.T, f1, f2 p9.File) {
 				tSize := target[path].Size
 
 				if bSize != tSize {
-					t.Fatalf("size for %q doesn't match\nbase:%d\ntarget:%d\n",
+					t.Logf("size for %q doesn't match\nbase:%d\ntarget:%d\n",
 						path,
 						bSize,
 						tSize)
+					t.FailNow()
 				}
 			}
 		}
 		return true
 	}
 	if !same(p9.Read, f1Map, f2Map) {
-		t.Fatalf("contents don't match \nf1:%v\nf2:%v\n", f1Map, f2Map)
+		t.Logf("contents don't match \nf1:%v\nf2:%v\n", f1Map, f2Map)
+		t.FailNow()
 	}
 }
 

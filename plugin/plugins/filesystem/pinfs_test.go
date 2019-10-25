@@ -15,7 +15,8 @@ func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 
 	pinRoot, err := fsnodes.PinFSAttacher(ctx, core).Attach()
 	if err != nil {
-		t.Fatalf("Failed to attach to 9P Pin resource: %s\n", err)
+		t.Logf("Failed to attach to 9P Pin resource: %s\n", err)
+		t.FailNow()
 	}
 
 	same := func(base, target []string) bool {
@@ -36,15 +37,18 @@ func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 	shallowCompare := func() {
 		basePins, err := pinNames(ctx, core)
 		if err != nil {
-			t.Fatalf("Failed to list IPFS pins: %s\n", err)
+			t.Logf("Failed to list IPFS pins: %s\n", err)
+			t.FailNow()
 		}
 		p9Pins, err := p9PinNames(pinRoot)
 		if err != nil {
-			t.Fatalf("Failed to list 9P pins: %s\n", err)
+			t.Logf("Failed to list 9P pins: %s\n", err)
+			t.FailNow()
 		}
 
 		if !same(basePins, p9Pins) {
-			t.Fatalf("Pinsets differ\ncore: %v\n9P: %v\n", basePins, p9Pins)
+			t.Logf("Pinsets differ\ncore: %v\n9P: %v\n", basePins, p9Pins)
+			t.FailNow()
 		}
 	}
 
@@ -54,17 +58,20 @@ func testPinFS(ctx context.Context, t *testing.T, core coreiface.CoreAPI) {
 	// test modifying pinset +1; initEnv pins its IPFS environment
 	env, _, err := initEnv(ctx, core)
 	if err != nil {
-		t.Fatalf("Failed to construct IPFS test environment: %s\n", err)
+		t.Logf("Failed to construct IPFS test environment: %s\n", err)
+		t.FailNow()
 	}
 	defer os.RemoveAll(env)
 	shallowCompare()
 
 	// test modifying pinset +1 again; generate garbage and pin it
 	if err := generateGarbage(env); err != nil {
-		t.Fatalf("Failed to generate test data: %s\n", err)
+		t.Logf("Failed to generate test data: %s\n", err)
+		t.FailNow()
 	}
 	if _, err = pinAddDir(ctx, core, env); err != nil {
-		t.Fatalf("Failed to add directory to IPFS: %s\n", err)
+		t.Logf("Failed to add directory to IPFS: %s\n", err)
+		t.FailNow()
 	}
 	shallowCompare()
 }
