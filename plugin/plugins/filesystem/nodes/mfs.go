@@ -569,3 +569,11 @@ func (md *MFS) Mknod(name string, mode p9.FileMode, major uint32, minor uint32, 
 
 	return newRef.QID()
 }
+
+func (md *MFS) UnlinkAt(name string, flags uint32) error {
+	dir, err := md.getDirectory()
+	if err != nil {
+		return err
+	}
+	return dir.Unlink(name)
+}
