@@ -16,6 +16,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
+	"github.com/ipfs/go-unixfs"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 )
 
@@ -472,4 +473,99 @@ func (md *MFS) getAttr(req p9.AttrMask) (p9.Attr, p9.AttrMask, error) {
 		md.Logger.Error(err)
 	}
 	return attr, filled, err
+}
+
+func (md *MFS) Create(name string, flags p9.OpenFlags, permissions p9.FileMode, uid p9.UID, gid p9.GID) (p9.File, p9.QID, uint32, error) {
+	callCtx, cancel := md.callCtx()
+	defer cancel()
+
+	emptyNode, err := emptyNode(callCtx, md.core.Dag())
+	if err != nil {
+		return nil, p9.QID{}, 0, err
+	}
+
+	err = mfs.PutNode(md.mroot, gopath.Join(append(md.Trail, name)...), emptyNode)
+	if err != nil {
+		return nil, p9.QID{}, 0, err
+	}
+
+	newFid, err := md.Fork()
+	if err != nil {
+		return nil, p9.QID{}, 0, err
+	}
+
+	newRef, err := newFid.Step(name)
+	if err != nil {
+		return nil, p9.QID{}, 0, err
+	}
+
+	qid, ioUnit, err := newRef.Open(flags)
+	return newRef, qid, ioUnit, err
+}
+
+func emptyNode(ctx context.Context, dagAPI coreiface.APIDagService) (ipld.Node, error) {
+	eFile := dag.NodeWithData(unixfs.FilePBData(nil, 0))
+	if err := dagAPI.Add(ctx, eFile); err != nil {
+		return nil, err
+	}
+	return eFile, nil
+}
+
+func (md *MFS) Mkdir(name string, permissions p9.FileMode, uid p9.UID, gid p9.GID) (p9.QID, error) {
+	err := mfs.Mkdir(md.mroot, gopath.Join(append(md.Trail, name)...), mfs.MkdirOpts{Flush: true})
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	newFid, err := md.Fork()
+	if err != nil {
+		return p9.QID{}, err
+	}
+	newRef, err := newFid.Step(name)
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	return newRef.QID()
+}
+
+func (md *MFS) parentDir() (*mfs.Directory, error) {
+	parent := gopath.Dir(gopath.Join(md.Trail...))
+
+	mNode, err := mfs.Lookup(md.mroot, parent)
+	if err != nil {
+		return nil, err
+	}
+
+	dir, ok := mNode.(*mfs.Directory)
+	if !ok {
+		return nil, fmt.Errorf("type mismatch %q is %T not a directory", md.StringPath(), mNode)
+	}
+	return dir, nil
+}
+
+func (md *MFS) Mknod(name string, mode p9.FileMode, major uint32, minor uint32, uid p9.UID, gid p9.GID) (p9.QID, error) {
+	callCtx, cancel := md.callCtx()
+	defer cancel()
+
+	emptyNode, err := emptyNode(callCtx, md.core.Dag())
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	err = mfs.PutNode(md.mroot, gopath.Join(append(md.Trail, name)...), emptyNode)
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	newFid, err := md.Fork()
+	if err != nil {
+		return p9.QID{}, err
+	}
+	newRef, err := newFid.Step(name)
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	return newRef.QID()
 }
