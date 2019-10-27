@@ -310,6 +310,9 @@ func (md *MFS) Close() error {
 
 	md.file = nil
 	md.directory = nil
+	if md.mroot != nil {
+		return md.mroot.Flush()
+	}
 	return nil
 }
 
