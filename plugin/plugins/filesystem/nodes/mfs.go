@@ -13,6 +13,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	nodeopts "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/nodes/options"
 	fsutils "github.com/ipfs/go-ipfs/plugin/plugins/filesystem/utils"
+	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -38,7 +39,9 @@ type MFS struct {
 }
 
 type MFSFileMeta struct {
-	file      mfs.FileDescriptor
+	//file      mfs.FileDescriptor
+	openFlags p9.OpenFlags //TODO: move this to IPFSBase; use as open marker
+	file      *mfs.File
 	directory *mfs.Directory
 }
 
@@ -90,20 +93,27 @@ func (md *MFS) GetAttr(req p9.AttrMask) (p9.QID, p9.AttrMask, p9.Attr, error) {
 	md.Logger.Debugf("GetAttr path: %s", md.StringPath())
 	md.Logger.Debugf("%p", md)
 
-	callCtx, cancel := md.callCtx()
-	defer cancel()
-
-	filled, err := mfsAttr(callCtx, md.meta, md.mroot, p9.AttrMaskAll, md.Trail...)
+	qid, err := md.QID()
 	if err != nil {
-		return *md.qid, filled, *md.meta, err
+		return qid, p9.AttrMask{}, p9.Attr{}, err
 	}
 
-	md.meta.Mode |= IRXA | 0220
+	attr, filled, err := md.getAttr(req)
+	if err != nil {
+		return qid, filled, attr, err
+	}
+
 	if req.RDev {
-		md.meta.RDev, filled.RDev = dMemory, true
+		attr.RDev, filled.RDev = dMemory, true
 	}
 
-	return *md.qid, filled, *md.meta, nil
+	if req.Mode {
+		attr.Mode |= IRXA | 0220
+	}
+
+	*md.qid = qid
+
+	return qid, filled, attr, nil
 }
 
 func (md *MFS) Walk(names []string) ([]p9.QID, p9.File, error) {
@@ -121,39 +131,30 @@ func (md *MFS) Open(mode p9.OpenFlags) (p9.QID, uint32, error) {
 		return *md.qid, 0, fmt.Errorf("TODO: message; root not set")
 	}
 
-	//TODO: current: lookup -> mfsnoode -> md.file | md.directory = mfsNode.open(fsctx)
-
-	mNode, err := mfs.Lookup(md.mroot, gopath.Join(md.Trail...))
+	attr, _, err := md.getAttr(p9.AttrMask{Mode: true})
 	if err != nil {
 		return *md.qid, 0, err
 	}
 
-	// handle directories
-	if md.meta.Mode.IsDir() {
-		dir, ok := mNode.(*mfs.Directory)
-		if !ok {
-			return *md.qid, 0, fmt.Errorf("type mismatch %q is %T not a directory", md.StringPath(), mNode)
+	switch {
+	case attr.Mode.IsDir():
+		dir, err := md.getDirectory()
+		if err != nil {
+			return *md.qid, 0, err
 		}
+
 		md.directory = dir
-	} else {
-		mFile, ok := mNode.(*mfs.File)
-		if !ok {
-			return *md.qid, 0, fmt.Errorf("type mismatch %q is %T not a file", md.StringPath(), mNode)
-		}
 
-		openFile, err := mFile.Open(mfs.Flags{Read: true, Write: true})
-		if err != nil {
-			return *md.qid, 0, err
-		}
-		s, err := openFile.Size()
+	case attr.Mode.IsRegular():
+		mFile, err := md.getFile()
 		if err != nil {
 			return *md.qid, 0, err
 		}
 
-		md.file = openFile
-		md.meta.Size, md.metaMask.Size = uint64(s), true
+		md.file = mFile
 	}
 
+	md.openFlags = mode // TODO: convert to MFS native flags
 	return *md.qid, ipfsBlockSize, nil
 }
 
@@ -214,41 +215,55 @@ func (md *MFS) ReadAt(p []byte, offset uint64) (int, error) {
 		return 0, err
 	}
 
-	if offset >= md.meta.Size {
+	attr, _, err := md.getAttr(p9.AttrMask{Size: true})
+	if err != nil {
+		return 0, err
+	}
+
+	if offset >= attr.Size {
 		//NOTE [styx]: If the offset field is greater than or equal to the number of bytes in the file, a count of zero will be returned.
 		return 0, io.EOF
 	}
 
-	if _, err := md.file.Seek(int64(offset), io.SeekStart); err != nil {
-		md.Logger.Errorf(readAtFmtErr, offset, md.meta.Size, md.StringPath(), err)
+	openFile, err := md.file.Open(mfs.Flags{Read: true})
+	if err != nil {
+		return 0, err
+	}
+	defer openFile.Close()
+
+	if _, err := openFile.Seek(int64(offset), io.SeekStart); err != nil {
+		md.Logger.Errorf(readAtFmtErr, offset, attr.Size, md.StringPath(), err)
 		return 0, err
 	}
 
-	//TODO: remove, debug
-
-	nbytes, err := md.file.Read(p)
-	if err != nil {
-		md.Logger.Errorf(readAtFmtErr, offset, md.meta.Size, md.StringPath(), err)
-	}
-
-	return nbytes, err
-	//
-
-	//return md.file.Read(p)
+	return openFile.Read(p)
 }
 
 func (md *MFS) SetAttr(valid p9.SetAttrMask, attr p9.SetAttr) error {
 	md.Logger.Debugf("SetAttr %v %v", valid, attr)
 	md.Logger.Debugf("%p", md)
 
-	if valid.Size && attr.Size < md.meta.Size {
-		if md.file == nil {
-			err := fmt.Errorf("file %q is not open, cannot change size", md.StringPath())
-			md.Logger.Error(err)
-			return err
+	if valid.Size {
+		var target *mfs.File
+
+		if md.file != nil {
+			target = md.file
+		} else {
+			mFile, err := md.getFile()
+			if err != nil {
+				return err
+			}
+
+			target = mFile
 		}
 
-		if err := md.file.Truncate(int64(attr.Size)); err != nil {
+		openFile, err := target.Open(mfs.Flags{Read: true, Write: true})
+		if err != nil {
+			return err
+		}
+		defer openFile.Close()
+
+		if err := openFile.Truncate(int64(attr.Size)); err != nil {
 			return err
 		}
 	}
@@ -268,15 +283,23 @@ func (md *MFS) WriteAt(p []byte, offset uint64) (int, error) {
 		return 0, err
 	}
 
-	//TODO: remove, debug
+	openFile, err := md.file.Open(mfs.Flags{Read: true, Write: true})
+	if err != nil {
+		return 0, err
+	}
+	defer openFile.Close()
 
-	nbytes, err := md.file.WriteAt(p, int64(offset))
+	nbytes, err := openFile.WriteAt(p, int64(offset))
 	if err != nil {
 		md.Logger.Errorf(readAtFmtErr, offset, md.meta.Size, md.StringPath(), err)
+		return nbytes, err
 	}
 
-	return nbytes, err
-	//
+	if err = openFile.Flush(); err != nil {
+		return nbytes, err
+	}
+
+	return nbytes, nil
 
 	//return md.file.WriteAt(p, int64(offset))
 }
@@ -284,13 +307,8 @@ func (md *MFS) WriteAt(p []byte, offset uint64) (int, error) {
 func (md *MFS) Close() error {
 	md.Logger.Debugf("closing: %q:{%d}", md.StringPath(), md.ninePath())
 
-	if md.file != nil {
-		if err := md.file.Close(); err != nil {
-			md.Logger.Error(err)
-			return err
-		}
-	}
-
+	md.file = nil
+	md.directory = nil
 	return nil
 }
 
@@ -313,56 +331,19 @@ func (md *MFS) StringPath() string {
 	return gopath.Join(append([]string{md.coreNamespace, rootNode.Cid().String()}, md.Trail...)...)
 }
 
-func mfsAttr(ctx context.Context, attr *p9.Attr, mroot *mfs.Root, req p9.AttrMask, names ...string) (p9.AttrMask, error) {
-	mfsNode, err := mfs.Lookup(mroot, gopath.Join(names...))
-	if err != nil {
-		return p9.AttrMask{}, err
-	}
-
-	ipldNode, err := mfsNode.GetNode()
-	if err != nil {
-		return p9.AttrMask{}, err
-	}
-
-	return ipldStat(ctx, attr, ipldNode, req)
-}
-
-func mfsToQid(ctx context.Context, mroot *mfs.Root, names ...string) (p9.QID, error) {
-	mNode, err := mfs.Lookup(mroot, gopath.Join(names...))
-	if err != nil {
-		return p9.QID{}, err
-	}
-
-	t, err := mfsTypeToNineType(mNode.Type())
-	if err != nil {
-		return p9.QID{}, err
-	}
-
-	ipldNode, err := mNode.GetNode()
-	if err != nil {
-		return p9.QID{}, err
-	}
-
-	return p9.QID{
-		Type: t,
-		Path: cidToQPath(ipldNode.Cid()),
-	}, nil
-}
-
 func (md *MFS) Step(name string) (fsutils.WalkRef, error) {
-	callCtx, cancel := md.callCtx()
-	defer cancel()
 
-	breadCrumb := append(md.Trail, name)
-	qid, err := mfsToQid(callCtx, md.mroot, breadCrumb...)
+	// FIXME: [in general] Step should return ref, qid, error
+	// obviate CheckWalk + QID and make this implicit via Step
+	qid, err := md.QID()
 	if err != nil {
 		return nil, err
 	}
 
-	// set on success; we stepped
-	md.Trail = breadCrumb
 	*md.qid = qid
-	return md, nil
+	//
+
+	return md.step(md, name)
 }
 
 /*
@@ -414,8 +395,81 @@ func cidToMFSRoot(ctx context.Context, rootCid cid.Cid, core coreiface.CoreAPI, 
 func (md *MFS) CheckWalk() error                    { return md.Base.checkWalk() }
 func (md *MFS) Backtrack() (fsutils.WalkRef, error) { return md.IPFSBase.backtrack(md) }
 func (md *MFS) QID() (p9.QID, error) {
+	mNode, err := mfs.Lookup(md.mroot, gopath.Join(md.Trail...))
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	t, err := mfsTypeToNineType(mNode.Type())
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	ipldNode, err := mNode.GetNode()
+	if err != nil {
+		return p9.QID{}, err
+	}
+
+	return p9.QID{
+		Type: t,
+		Path: cidToQPath(ipldNode.Cid()),
+	}, nil
+}
+
+func (md *MFS) getNode() (ipld.Node, error) {
+	mNode, err := mfs.Lookup(md.mroot, gopath.Join(md.Trail...))
+	if err != nil {
+		return nil, err
+	}
+	return mNode.GetNode()
+}
+
+func (md *MFS) getFile() (*mfs.File, error) {
+	mNode, err := mfs.Lookup(md.mroot, gopath.Join(md.Trail...))
+	if err != nil {
+		return nil, err
+	}
+
+	mFile, ok := mNode.(*mfs.File)
+	if !ok {
+		return nil, fmt.Errorf("type mismatch %q is %T not a file", md.StringPath(), mNode)
+	}
+
+	return mFile, nil
+}
+
+func (md *MFS) getDirectory() (*mfs.Directory, error) {
+	mNode, err := mfs.Lookup(md.mroot, gopath.Join(md.Trail...))
+	if err != nil {
+		return nil, err
+	}
+
+	dir, ok := mNode.(*mfs.Directory)
+	if !ok {
+		return nil, fmt.Errorf("type mismatch %q is %T not a directory", md.StringPath(), mNode)
+	}
+	return dir, nil
+}
+
+func (md *MFS) getAttr(req p9.AttrMask) (p9.Attr, p9.AttrMask, error) {
+	var attr p9.Attr
+
+	mfsNode, err := mfs.Lookup(md.mroot, gopath.Join(md.Trail...))
+	if err != nil {
+		return attr, p9.AttrMask{}, err
+	}
+
+	ipldNode, err := mfsNode.GetNode()
+	if err != nil {
+		return attr, p9.AttrMask{}, err
+	}
+
 	callCtx, cancel := md.callCtx()
 	defer cancel()
 
-	return coreToQid(callCtx, md.CorePath(), md.core)
+	filled, err := ipldStat(callCtx, &attr, ipldNode, req)
+	if err != nil {
+		md.Logger.Error(err)
+	}
+	return attr, filled, err
 }

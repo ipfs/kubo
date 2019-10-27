@@ -72,7 +72,11 @@ func KeyFSAttacher(ctx context.Context, core coreiface.CoreAPI, ops ...nodeopts.
 func (kd *KeyFS) Attach() (p9.File, error) {
 	kd.Logger.Debugf("Attach")
 
-	newFid := &KeyFS{IPFSBase: kd.IPFSBase.clone()}
+	newFid := &KeyFS{
+		IPFSBase: kd.IPFSBase.clone(),
+		mroots:   kd.mroots,
+	}
+
 	// set new fs context
 	if err := newFid.forkFilesystem(); err != nil {
 		return nil, err

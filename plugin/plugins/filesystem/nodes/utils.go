@@ -145,6 +145,8 @@ func unixfsTypeTo9Type(ut unixpb.Data_DataType) (p9.FileMode, error) {
 		return p9.ModeSymlink, nil
 	case unixpb.Data_File:
 		return p9.ModeRegular, nil
+	case unixpb.Data_Raw: //TODO [investigate]: the result of `mfs.WriteAt` produces a file of this type if the contents are small enough
+		return p9.ModeRegular, nil
 	default:
 		return p9.ModeRegular, fmt.Errorf("UFS data type %q was not expected, treating as regular file", ut)
 	}
