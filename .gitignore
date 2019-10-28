@@ -25,4 +25,4 @@ bin/cover
 vendor
 .tarball
 go-ipfs-source.tar.gz
-docs/examples/go-ipfs-as-a-library/example-folder
+docs/examples/go-ipfs-as-a-library/example-folder/Qm*
