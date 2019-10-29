@@ -12,17 +12,17 @@ import (
 
 	config "github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
 	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/plugin/loader" // This package is needed so that all the preloaded plugins are loaded automatically
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	iCore "github.com/ipfs/interface-go-ipfs-core"
-	iCorePath "github.com/ipfs/interface-go-ipfs-core/path"
-
-	"github.com/libp2p/go-libp2p-core/peer"
+	icore "github.com/ipfs/interface-go-ipfs-core"
+	icorepath "github.com/ipfs/interface-go-ipfs-core/path"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
+
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	"github.com/ipfs/go-ipfs/plugin/loader" // This package is needed so that all the preloaded plugins are loaded automatically
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 /// ------ Setting up the IPFS Repo
@@ -70,7 +70,7 @@ func createTempRepo(ctx context.Context) (string, error) {
 /// ------ Spawning the node
 
 // Creates an IPFS node and returns its coreAPI
-func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
+func createNode(ctx context.Context, repoPath string) (icore.CoreAPI, error) {
 	// Open the repo
 	repo, err := fsrepo.Open(repoPath)
 	if err != nil {
@@ -96,7 +96,7 @@ func createNode(ctx context.Context, repoPath string) (iCore.CoreAPI, error) {
 }
 
 // Spawns a node on the default repo location, if the repo exists
-func spawnDefault(ctx context.Context) (iCore.CoreAPI, error) {
+func spawnDefault(ctx context.Context) (icore.CoreAPI, error) {
 	defaultPath, err := config.PathRoot()
 	if err != nil {
 		// shouldn't be possible
@@ -112,7 +112,7 @@ func spawnDefault(ctx context.Context) (iCore.CoreAPI, error) {
 }
 
 // Spawns a node to be used just for this run (i.e. creates a tmp repo)
-func spawnEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
+func spawnEphemeral(ctx context.Context) (icore.CoreAPI, error) {
 	if err := setupPlugins(""); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func spawnEphemeral(ctx context.Context) (iCore.CoreAPI, error) {
 
 //
 
-func connectToPeers(ctx context.Context, ipfs iCore.CoreAPI, peers []string) error {
+func connectToPeers(ctx context.Context, ipfs icore.CoreAPI, peers []string) error {
 	var wg sync.WaitGroup
 	peerInfos := make(map[peer.ID]*peerstore.PeerInfo, len(peers))
 	for _, addrStr := range peers {
@@ -313,7 +313,7 @@ func main() {
 
 	fmt.Printf("Fetching a file from the network with CID %s\n", exampleCIDStr)
 	outputPath := outputBasePath + exampleCIDStr
-	testCID := iCorePath.New(exampleCIDStr)
+	testCID := icorepath.New(exampleCIDStr)
 
 	rootNode, err := ipfs.Unixfs().Get(ctx, testCID)
 	if err != nil {
