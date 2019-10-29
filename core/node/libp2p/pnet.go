@@ -51,8 +51,8 @@ func PNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
 					select {
 					case <-t.C:
 						if len(ph.Network().Peers()) == 0 {
-							log.Warning("We are in private network and have no peers.")
-							log.Warning("This might be configuration mistake.")
+							log.Warn("We are in private network and have no peers.")
+							log.Warn("This might be configuration mistake.")
 						}
 					case <-done:
 						return

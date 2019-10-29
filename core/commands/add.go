@@ -286,7 +286,7 @@ You can now check what blocks have been created by:
 			go func() {
 				size, err := req.Files.Size()
 				if err != nil {
-					log.Warningf("error getting files size: %s", err)
+					log.Warnf("error getting files size: %s", err)
 					// see comment above
 					return
 				}

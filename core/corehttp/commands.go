@@ -47,7 +47,7 @@ var defaultLocalhostOrigins = []string{
 func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 	origin := os.Getenv(originEnvKey)
 	if origin != "" {
-		log.Warning(originEnvKeyDeprecate)
+		log.Warn(originEnvKeyDeprecate)
 		c.AppendAllowedOrigins(origin)
 	}
 }

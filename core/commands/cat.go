@@ -8,9 +8,9 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	"github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/interface-go-ipfs-core"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	files "github.com/ipfs/go-ipfs-files"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
@@ -104,7 +104,7 @@ var CatCmd = &cmds.Command{
 						return err
 					}
 				default:
-					log.Warningf("cat postrun: received unexpected type %T", val)
+					log.Warnf("cat postrun: received unexpected type %T", val)
 				}
 			}
 		},

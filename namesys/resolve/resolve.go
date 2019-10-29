@@ -25,6 +25,7 @@ var ErrNoNamesys = errors.New(
 func ResolveIPNS(ctx context.Context, nsys namesys.NameSystem, p path.Path) (path.Path, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
 		// resolve ipns paths
+		log.Infow("resolving ipns path", "path", p.String())
 
 		// TODO(cryptix): we should be able to query the local cache for the path
 		if nsys == nil {

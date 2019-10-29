@@ -26,7 +26,7 @@ func linuxLoadFunc(pluginDir string) ([]iplugin.Plugin, error) {
 		}
 		if info.IsDir() {
 			if fi != pluginDir {
-				log.Warningf("found directory inside plugins directory: %s", fi)
+				log.Warnf("found directory inside plugins directory: %s", fi)
 			}
 			return nil
 		}
