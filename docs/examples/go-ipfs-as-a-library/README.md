@@ -83,30 +83,30 @@ As soon as you construct the IPFS node instance, the node will be running.
 
 ### Part 2: Adding a file and a directory to IPFS
 
-- [Prepare the file to be added to IPFS](./main.go#L166-L184))
-- [Add the file to IPFS](./main.go#L240-L243))
-- [Prepare the directory to be added to IPFS](./main.go#L186-L198))
-- [Add the directory to IPFS](./main.go#L252-L255))
+- [Prepare the file to be added to IPFS](./main.go#L166-L184)
+- [Add the file to IPFS](./main.go#L240-L243)
+- [Prepare the directory to be added to IPFS](./main.go#L186-L198)
+- [Add the directory to IPFS](./main.go#L252-L255)
 
 ### Part 3: Getting the file and directory you added back
 
-- [Get the file back](./main.go#L265-L268))
-- [Write the file to your local filesystem](./main.go#L270-L273))
-- [Get the directory back](./main.go#L277-L280))
-- [Write the directory to your local filesystem](./main.go#L282-L285))
+- [Get the file back](./main.go#L265-L268)
+- [Write the file to your local filesystem](./main.go#L270-L273)
+- [Get the directory back](./main.go#L277-L280)
+- [Write the directory to your local filesystem](./main.go#L282-L285)
 
 ### Part 4: Getting a file from the IPFS network
 
-- [Connect to nodes in the network](./main.go#L293-L310))
-- [Get the file from the network](./main.go#L318-L321))
-- [Write the file to your local filesystem](./main.go#L323-L326))
+- [Connect to nodes in the network](./main.go#L293-L310)
+- [Get the file from the network](./main.go#L318-L321)
+- [Write the file to your local filesystem](./main.go#L323-L326)
 
 ### Bonus: Spawn a daemon on your existing IPFS repo (on the default path ~/.ipfs)
 
 As a bonus, you can also find lines that show you how to spawn a node over your default path (~/.ipfs) in case you had already started a node there before. To try it:
 
-- [Comment these lines](./main.go#L219-L223))
-- [Uncomment these lines](./main.go#L209-L216))
+- [Comment these lines](./main.go#L219-L223)
+- [Uncomment these lines](./main.go#L209-L216)
 
 ## Voilá! You are now a go-ipfs hacker
 
