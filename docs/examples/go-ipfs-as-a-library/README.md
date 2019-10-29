@@ -24,6 +24,8 @@ In order to complete this tutorial, you will need:
 
 ## Getting started
 
+**Note:** Make sure you have [![](https://img.shields.io/badge/go-%3E%3D1.13.0-blue.svg?style=flat-square)](https://golang.org/dl/) installed.
+
 Download go-ipfs and jump into the example folder:
 
 ```
