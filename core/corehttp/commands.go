@@ -53,7 +53,7 @@ func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 }
 
 func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
-	log.Info("Using API.HTTPHeaders:", nc.API.HTTPHeaders)
+	log.Infow("Using API.HTTPHeaders", "headers", nc.API.HTTPHeaders)
 
 	if acao := nc.API.HTTPHeaders[cmdsHttp.ACAOrigin]; acao != nil {
 		c.SetAllowedOrigins(acao...)

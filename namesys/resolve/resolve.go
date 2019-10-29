@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ipfs/go-ipld-format"
+	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
@@ -24,8 +24,6 @@ var ErrNoNamesys = errors.New(
 // ResolveIPNS resolves /ipns paths
 func ResolveIPNS(ctx context.Context, nsys namesys.NameSystem, p path.Path) (path.Path, error) {
 	if strings.HasPrefix(p.String(), "/ipns/") {
-		evt := log.EventBegin(ctx, "resolveIpnsPath")
-		defer evt.Done()
 		// resolve ipns paths
 
 		// TODO(cryptix): we should be able to query the local cache for the path

@@ -217,7 +217,6 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 
 		// Do GC here
 		log.Info("Watermark exceeded. Starting repo GC...")
-		defer log.EventBegin(ctx, "repoGC").Done()
 
 		if err := GarbageCollect(gc.Node, ctx); err != nil {
 			return err
