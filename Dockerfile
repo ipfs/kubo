@@ -1,5 +1,5 @@
 FROM golang:1.12.9-buster
-MAINTAINER Steven Allen <steven@stebalien.com>
+LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 ENV SRC_DIR /go-ipfs
 
@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y fuse
 
 # Now comes the actual target image, which aims to be as small as possible.
 FROM busybox:1.31.0-glibc
-MAINTAINER Steven Allen <stven@stebalien.com>
+LABEL maintainer="Steven Allen <stven@stebalien.com>"
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /go-ipfs
