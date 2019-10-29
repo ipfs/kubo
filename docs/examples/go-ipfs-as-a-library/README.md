@@ -69,44 +69,44 @@ Each section below has links to lines of code in the file [main.go](./main.go). 
 
 ### The `func main() {}`
 
-The [main function](./main.go#L201-L333) is where the magic starts, and it is the best place to follow the path of what is happening in the tutorial.
+The [main function](./main.go#L202-L331) is where the magic starts, and it is the best place to follow the path of what is happening in the tutorial.
 
 ### Part 1: Getting an IPFS node running
 
-To get [get a node running](./main.go#L217-L222) as an [ephemeral node](./main.go#L114-L127) (that will cease to exist when the run ends), you will need to:
+To get [get a node running](./main.go#L218-L223) as an [ephemeral node](./main.go#L114-L128) (that will cease to exist when the run ends), you will need to:
 
-- [Prepare and set up the plugins](./main.go#L217-L222)
-- [Create an IPFS repo]()
-- [Construct the IPFS node instance itself]()
+- [Prepare and set up the plugins](./main.go#L30-L47)
+- [Create an IPFS repo](./main.go#L49-L68)
+- [Construct the IPFS node instance itself](./main.go#L72-L96)
 
 As soon as you construct the IPFS node instance, the node will be running.
 
 ### Part 2: Adding a file and a directory to IPFS
 
-- [Prepare the file to be added to IPFS]()
-- [Add the file to IPFS]()
-- [Prepare the directory to be added to IPFS]()
-- [Add the directory to IPFS]()
+- [Prepare the file to be added to IPFS](./main.go#L166-L184))
+- [Add the file to IPFS](./main.go#L240-L243))
+- [Prepare the directory to be added to IPFS](./main.go#L186-L198))
+- [Add the directory to IPFS](./main.go#L252-L255))
 
 ### Part 3: Getting the file and directory you added back
 
-- [Get the file back]()
-- [Write the file to your local filesystem]()
-- [Get the directory back]()
-- [Write the directory to your local filesystem]()
+- [Get the file back](./main.go#L265-L268))
+- [Write the file to your local filesystem](./main.go#L270-L273))
+- [Get the directory back](./main.go#L277-L280))
+- [Write the directory to your local filesystem](./main.go#L282-L285))
 
 ### Part 4: Getting a file from the IPFS network
 
-- [Connect to nodes in the network]()
-- [Get the file from the network]()
-- [Write the file to your local filesystem]()
+- [Connect to nodes in the network](./main.go#L293-L310))
+- [Get the file from the network](./main.go#L318-L321))
+- [Write the file to your local filesystem](./main.go#L323-L326))
 
 ### Bonus: Spawn a daemon on your existing IPFS repo (on the default path ~/.ipfs)
 
 As a bonus, you can also find lines that show you how to spawn a node over your default path (~/.ipfs) in case you had already started a node there before. To try it:
 
-- [Comment these lines]()
-- [Uncomment these lines]()
+- [Comment these lines](./main.go#L219-L223))
+- [Uncomment these lines](./main.go#L209-L216))
 
 ## Voilá! You are now a go-ipfs hacker
 
