@@ -183,6 +183,23 @@ Alternatively, you can run `make build` to build the go-ipfs binary (storing it 
 
 **NOTE:** If you get an error along the lines of "fatal error: stdlib.h: No such file or directory", you're missing a C compiler. Either re-run `make` with `CGO_ENABLED=0` or install GCC.
 
+##### Cross Compiling
+
+Compiling for a different platform is as simple as running:
+
+```
+make build GOOS=myTargetOS GOARCH=myTargetArchitecture
+```
+
+##### OpenSSL
+
+To build go-ipfs with OpenSSL support, append `GOFLAGS=-tags=openssl` to your `make` invocation. Building with OpenSSL should significantly reduce the background CPU usage on nodes that frequently make or receive new connections.
+
+Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross compiling. To cross compile with OpenSSL support, you must:
+
+1. Install a compiler toolchain for the target platform.
+2. Set the `CGO_ENABLED=1` environment variable.
+
 #### Troubleshooting
 
 - Separate [instructions are available for building on Windows](docs/windows.md).
