@@ -431,6 +431,10 @@ Some places to get you started on the codebase:
   - PubSub: https://github.com/libp2p/go-libp2p-pubsub
 - [IPFS : The `Add` command demystified](https://github.com/ipfs/go-ipfs/tree/master/docs/add-code-flow.md)
 
+### Map of go-ipfs Subsystems
+**WIP**: This is a high-level architecture diagram of the various sub-systems of go-ipfs. To be updated with how they interact. Anyone who has suggestions is welcome to comment [here](https://docs.google.com/drawings/d/1OVpBT2q-NtSJqlPX3buvjYhOnWfdzb85YEsM_njesME/edit) on how we can improve this!
+<img src="https://docs.google.com/drawings/d/e/2PACX-1vS_n1FvSu6mdmSirkBrIIEib2gqhgtatD9awaP2_WdrGN4zTNeg620XQd9P95WT-IvognSxIIdCM5uE/pub?w=1446&amp;h=1036">
+
 ### CLI, HTTP-API, Architecture Diagram
 
 ![](./docs/cli-http-api-core-diagram.png)
