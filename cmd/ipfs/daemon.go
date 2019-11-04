@@ -36,6 +36,7 @@ import (
 	manet "github.com/multiformats/go-multiaddr-net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
+	promversion "github.com/prometheus/common/version"
 )
 
 const (
@@ -421,6 +422,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
+	prometheus.MustRegister(promversion.NewCollector("go_ipfs"))
 
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
