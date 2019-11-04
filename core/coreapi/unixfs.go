@@ -69,6 +69,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		if err != nil {
 			return nil, err
 		}
+		defer nilnode.Close()
 		addblockstore = nilnode.Blockstore
 		exch = nilnode.Exchange
 		pinning = nilnode.Pinning
