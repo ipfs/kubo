@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -515,8 +516,8 @@ var putValueDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `
-Given a key of the form /foo/bar and a value of any form, this will write that
-value to the routing system with that key.
+Given a key of the form /foo/bar and a valid value for that key, this will write
+that value to the routing system with that key.
 
 Keys have two parts: a keytype (foo) and the key name (bar). IPNS uses the
 /ipns keytype, and expects the key name to be a Peer ID. IPNS entries are
@@ -535,19 +536,13 @@ identified by QmFoo.
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The key to store the value at."),
-		cmds.StringArg("value", true, false, "The value to store.").EnableStdin(),
+		cmds.FileArg("value", true, false, "The value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
-		// Needed to parse stdin args.
-		err = req.ParseBodyArgs()
 		if err != nil {
 			return err
 		}
@@ -561,7 +556,16 @@ identified by QmFoo.
 			return err
 		}
 
-		data := req.Arguments[1]
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err := ioutil.ReadAll(file)
+		if err != nil {
+			return err
+		}
 
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := routing.RegisterForQueryEvents(ctx)
