@@ -383,7 +383,10 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 		}
 	}
 
-	mime := http.DetectContentType(content)
+	buf := make([]byte, 512)
+	_, _ = content.Read(buf)
+	mime := http.DetectContentType(buf)
+	
 	if strings.HasPrefix(mime, "text/html;") {
 		mime = "text/html"
 	}
