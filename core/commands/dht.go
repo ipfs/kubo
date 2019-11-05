@@ -527,9 +527,9 @@ this is only /ipns. Unless you have a relatively deep understanding of the
 go-ipfs routing internals, you likely want to be using 'ipfs name publish' instead
 of this.
 
-Value is arbitrary text. Standard input can be used to provide value.
-
-NOTE: A value may not exceed 2048 bytes.
+The value must be a valid value for the given key type. For example, if the key
+is /ipns/QmFoo, the value must be IPNS record (protobuf) signed with the key
+identified by QmFoo.
 `,
 	},
 
