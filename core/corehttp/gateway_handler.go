@@ -391,7 +391,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 		ctype = http.DetectContentType(buf[:n])
 		_, err := content.Seek(0, io.SeekStart)
 		if err != nil {
-			Error(w, "seeker can't seek", http.StatusInternalServerError)
+			http.Error(w, "seeker can't seek", http.StatusInternalServerError)
 			return
 		}
 	}
