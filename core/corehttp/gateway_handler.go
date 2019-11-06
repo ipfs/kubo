@@ -11,7 +11,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
-
+	"mime"
+	
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
@@ -383,15 +384,23 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 		}
 	}
 
-	buf := make([]byte, 512)
-	_, _ = content.Read(buf)
-	mime := http.DetectContentType(buf)
-	
-	if strings.HasPrefix(mime, "text/html;") {
-		mime = "text/html"
+	ctype := mime.TypeByExtension(gopath.Ext(name))
+	if ctype == "" {
+		buf := make([]byte, 512)
+		n, _ := io.ReadFull(content, buf[:])
+		ctype = http.DetectContentType(buf[:n])
+		_, err := content.Seek(0, io.SeekStart)
+		if err != nil {
+			Error(w, "seeker can't seek", http.StatusInternalServerError)
+			return
+		}
 	}
-	w.Header().Set("Content-Type", mime)
+	if strings.HasPrefix(ctype, "text/html;") {
+		ctype = "text/html"
+	}
+	w.Header().Set("Content-Type", ctype)
 
+	_, _ = content.Seek(0, io.SeekStart)
 	http.ServeContent(w, req, name, modtime, content)
 }
 
