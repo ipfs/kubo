@@ -395,6 +395,10 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 			return
 		}
 	}
+	// Strip the encoding from the HTML Content-Type header and let the
+	// browser figure it out.
+	//
+	// Fixes https://github.com/ipfs/go-ipfs/issues/2203
 	if strings.HasPrefix(ctype, "text/html;") {
 		ctype = "text/html"
 	}
