@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,8 +12,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
-	"mime"
-	
+
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
