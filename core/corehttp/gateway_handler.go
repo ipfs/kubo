@@ -400,7 +400,6 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 	}
 	w.Header().Set("Content-Type", ctype)
 
-	_, _ = content.Seek(0, io.SeekStart)
 	http.ServeContent(w, req, name, modtime, content)
 }
 
