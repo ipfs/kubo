@@ -127,8 +127,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, err
 	}
 
-	if err := api.provider.Provide(nd.Cid()); err != nil {
-		return nil, err
+	if !settings.OnlyHash {
+		if err := api.provider.Provide(nd.Cid()); err != nil {
+			return nil, err
+		}
 	}
 
 	return path.IpfsPath(nd.Cid()), nil
