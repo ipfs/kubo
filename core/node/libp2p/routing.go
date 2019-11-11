@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"sort"
+	"time"
 
 	host "github.com/libp2p/go-libp2p-core/host"
 	routing "github.com/libp2p/go-libp2p-core/routing"
@@ -83,14 +84,18 @@ type p2pPSRoutingIn struct {
 	PubSub          *pubsub.PubSub `optional:"true"`
 }
 
-func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore) {
-	psRouter := namesys.NewPubsubValueStore(
+func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore, error) {
+	psRouter, err := namesys.NewPubsubValueStore(
 		helpers.LifecycleCtx(mctx, lc),
 		in.Host,
-		in.BaseIpfsRouting,
 		in.PubSub,
 		in.Validator,
+		namesys.WithRebroadcastInterval(time.Minute),
 	)
+
+	if err != nil {
+		return p2pRouterOut{}, nil, err
+	}
 
 	return p2pRouterOut{
 		Router: Router{
@@ -102,5 +107,5 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 			},
 			Priority: 100,
 		},
-	}, psRouter
+	}, psRouter, nil
 }
