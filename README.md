@@ -149,7 +149,7 @@ PS> scoop install go-ipfs
 
 ### Build from Source
 
-go-ipfs's build system requires Go 1.12 and some standard POSIX build tools:
+go-ipfs's build system requires Go 1.13 and some standard POSIX build tools:
 
 * GNU make
 * Git
