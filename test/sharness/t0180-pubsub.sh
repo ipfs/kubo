@@ -10,6 +10,10 @@ test_expect_success 'init iptb' '
   iptb testbed create -type localipfs -count $NUM_NODES -init
 '
 
+test_expect_success 'disable the DHT' '
+  iptb run -- ipfs config Routing.Type none
+'
+
 run_pubsub_tests() {
   test_expect_success 'peer ids' '
     PEERID_0=$(iptb attr get 0 id) &&
