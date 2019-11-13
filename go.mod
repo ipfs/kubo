@@ -107,4 +107,4 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
-go 1.12
+go 1.13
