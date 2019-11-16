@@ -21,7 +21,7 @@ require (
 	github.com/ipfs/go-cidutil v0.0.2
 	github.com/ipfs/go-datastore v0.1.1
 	github.com/ipfs/go-detect-race v0.0.1
-	github.com/ipfs/go-ds-badger v0.0.5
+	github.com/ipfs/go-ds-badger v0.0.7
 	github.com/ipfs/go-ds-flatfs v0.1.0
 	github.com/ipfs/go-ds-leveldb v0.1.0
 	github.com/ipfs/go-ds-measure v0.0.2
@@ -57,26 +57,26 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
-	github.com/libp2p/go-libp2p v0.4.0
+	github.com/libp2p/go-libp2p v0.4.2
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
-	github.com/libp2p/go-libp2p-circuit v0.1.3
+	github.com/libp2p/go-libp2p-circuit v0.1.4
 	github.com/libp2p/go-libp2p-connmgr v0.1.1
 	github.com/libp2p/go-libp2p-core v0.2.5
 	github.com/libp2p/go-libp2p-http v0.1.4
-	github.com/libp2p/go-libp2p-kad-dht v0.2.1
+	github.com/libp2p/go-libp2p-kad-dht v0.3.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.1
-	github.com/libp2p/go-libp2p-peerstore v0.1.3
+	github.com/libp2p/go-libp2p-peerstore v0.1.4
 	github.com/libp2p/go-libp2p-pnet v0.1.0
-	github.com/libp2p/go-libp2p-pubsub v0.1.1
+	github.com/libp2p/go-libp2p-pubsub v0.2.4
 	github.com/libp2p/go-libp2p-pubsub-router v0.1.0
 	github.com/libp2p/go-libp2p-quic-transport v0.2.2
-	github.com/libp2p/go-libp2p-record v0.1.1
+	github.com/libp2p/go-libp2p-record v0.1.2
 	github.com/libp2p/go-libp2p-routing-helpers v0.1.0
-	github.com/libp2p/go-libp2p-secio v0.2.0
+	github.com/libp2p/go-libp2p-secio v0.2.1
 	github.com/libp2p/go-libp2p-swarm v0.2.2
-	github.com/libp2p/go-libp2p-testing v0.1.0
+	github.com/libp2p/go-libp2p-testing v0.1.1
 	github.com/libp2p/go-libp2p-tls v0.1.1
 	github.com/libp2p/go-libp2p-yamux v0.2.1
 	github.com/libp2p/go-maddr-filter v0.0.5
@@ -85,10 +85,10 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.1.2
-	github.com/multiformats/go-multiaddr-dns v0.1.0
+	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multiaddr-net v0.1.1
 	github.com/multiformats/go-multibase v0.0.1
-	github.com/multiformats/go-multihash v0.0.8
+	github.com/multiformats/go-multihash v0.0.9
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0
