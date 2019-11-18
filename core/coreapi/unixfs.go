@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/ipfs/go-ipfs/core"
 
@@ -27,6 +28,28 @@ import (
 )
 
 type UnixfsAPI CoreAPI
+
+var nilNode *core.IpfsNode
+var once sync.Once
+
+func getOrCreateNilNode() (*core.IpfsNode,error) {
+	once.Do(func() {
+		if nilNode != nil {
+			return
+		}
+		node, err := core.NewNode(context.Background(), &core.BuildCfg{
+			//TODO: need this to be true or all files
+			// hashed will be stored in memory!
+			NilRepo: true,
+		})
+		if err != nil {
+			panic(err)
+		}
+		nilNode = node
+	})
+
+	return nilNode, nil
+}
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
 // and returns the key representing that node.
@@ -61,18 +84,13 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	pinning := api.pinning
 
 	if settings.OnlyHash {
-		nilnode, err := core.NewNode(ctx, &core.BuildCfg{
-			//TODO: need this to be true or all files
-			// hashed will be stored in memory!
-			NilRepo: true,
-		})
+		node, err := getOrCreateNilNode()
 		if err != nil {
 			return nil, err
 		}
-		defer nilnode.Close()
-		addblockstore = nilnode.Blockstore
-		exch = nilnode.Exchange
-		pinning = nilnode.Pinning
+		addblockstore = node.Blockstore
+		exch = node.Exchange
+		pinning = node.Pinning
 	}
 
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
