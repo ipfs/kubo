@@ -28,42 +28,27 @@ import (
 )
 
 type UnixfsAPI CoreAPI
+
 var nilNode *core.IpfsNode
-var lock sync.Mutex
+var once sync.Once
 
 func getOrCreateNilNode() (*core.IpfsNode,error) {
-	lock.Lock()
-	defer lock.Unlock()
-
-	if nilNode != nil {
-		return nilNode,nil
-	}
-
-	node,err := core.NewNode(context.Background(),  &core.BuildCfg{
-		//TODO: need this to be true or all files
-		// hashed will be stored in memory!
-		NilRepo: true,
+	once.Do(func() {
+		if nilNode != nil {
+			return
+		}
+		node, err := core.NewNode(context.Background(), &core.BuildCfg{
+			//TODO: need this to be true or all files
+			// hashed will be stored in memory!
+			NilRepo: true,
+		})
+		if err != nil {
+			panic(err)
+		}
+		nilNode = node
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	nilNode = node
-	return nilNode,nil
-}
-
-func CloseFakeRepo() error {
-	lock.Lock()
-	defer lock.Unlock()
-
-	if nilNode != nil {
-		if err := nilNode.Close(); err != nil {
-			return err
-		}
-		nilNode = nil
-	}
-	return nil
+	return nilNode, nil
 }
 
 // Add builds a merkledag node from a reader, adds it to the blockstore,
