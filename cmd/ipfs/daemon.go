@@ -354,7 +354,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// We wait for the node to close first, as the node has children
 		// that it will wait for before closing, such as the API server.
 		node.Close()
-		_ = coreapi.CloseFakeRepo()
 
 		select {
 		case <-req.Context.Done():
