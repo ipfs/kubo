@@ -2,6 +2,7 @@
 package blockstoreutil
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -33,7 +34,7 @@ type RmBlocksOpts struct {
 // It returns a channel where objects of type RemovedBlock are placed, when
 // not using the Quiet option. Block removal is asynchronous and will
 // skip any pinned blocks.
-func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
+func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
 	// make the channel large enough to hold any result to avoid
 	// blocking while holding the GCLock
 	out := make(chan interface{}, len(cids))
@@ -43,7 +44,7 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBl
 		unlocker := blocks.GCLock()
 		defer unlocker.Unlock()
 
-		stillOkay := FilterPinned(pins, out, cids)
+		stillOkay := FilterPinned(ctx, pins, out, cids)
 
 		for _, c := range stillOkay {
 			// Kept for backwards compatibility. We may want to
@@ -74,9 +75,9 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBl
 // out channel, with an error which indicates that the Cid is pinned.
 // This function is used in RmBlocks to filter out any blocks which are not
 // to be removed (because they are pinned).
-func FilterPinned(pins pin.Pinner, out chan<- interface{}, cids []cid.Cid) []cid.Cid {
+func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, cids []cid.Cid) []cid.Cid {
 	stillOkay := make([]cid.Cid, 0, len(cids))
-	res, err := pins.CheckIfPinned(cids...)
+	res, err := pins.CheckIfPinned(ctx, cids...)
 	if err != nil {
 		out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
 		return nil

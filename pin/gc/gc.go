@@ -201,7 +201,11 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	err := Descendants(ctx, getLinks, gcs, pn.RecursiveKeys())
+	rkeys, err := pn.RecursiveKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = Descendants(ctx, getLinks, gcs, rkeys)
 	if err != nil {
 		errors = true
 		select {
@@ -233,11 +237,19 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 	}
 
-	for _, k := range pn.DirectKeys() {
+	dkeys, err := pn.DirectKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, k := range dkeys {
 		gcs.Add(k)
 	}
 
-	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
+	ikeys, err := pn.InternalPins(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = Descendants(ctx, getLinks, gcs, ikeys)
 	if err != nil {
 		errors = true
 		select {

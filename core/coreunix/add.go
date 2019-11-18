@@ -176,7 +176,7 @@ func (adder *Adder) PinRoot(root ipld.Node) error {
 	}
 
 	adder.pinning.PinWithMode(rnk, pin.Recursive)
-	return adder.pinning.Flush()
+	return adder.pinning.Flush(adder.ctx)
 }
 
 func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
