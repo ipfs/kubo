@@ -4,9 +4,6 @@ test_description="Test dht command"
 
 . lib/test-lib.sh
 
-TEST_DHT_VALUE="foobar"
-TEST_DHT_PATH="/pk/QmbWTwYGcmdyK9CYfNBcfs9nhZs17a6FQ4Y8oea278xx41"
-
 test_dht() {
   NUM_NODES=5
 
@@ -29,38 +26,35 @@ test_dht() {
     test_cmp actual expected
   '
   
-  # ipfs dht put <key> <value>
-  test_expect_failure 'put with good keys (#3124)' '
-    ipfsi 0 dht put "$TEST_DHT_PATH" "$TEST_DHT_VALUE" | sort >putted &&
+  # ipfs dht get <key>
+  test_expect_success 'get with good keys works' '
+    HASH="$(echo "hello world" | ipfsi 2 add -q)" &&
+    ipfsi 2 name publish "/ipfs/$HASH" &&
+    ipfsi 1 dht get "/ipns/$PEERID_2" >get_result
+  '
+
+  test_expect_success 'get with good keys contains the right value' '
+    cat get_result | grep -aq "/ipfs/$HASH"
+  '
+
+  test_expect_success 'put round trips (#3124)' '
+    ipfsi 0 dht put "/ipns/$PEERID_2" get_result | sort >putted &&
     [ -s putted ] ||
     test_fsh cat putted
   '
-
-  test_expect_failure 'put round trips (#3124)' '
-    echo -n "$TEST_DHT_VALUE" >expected &&
-    ipfsi 0 dht get "$TEST_DHT_PATH" >actual &&
-    test_cmp actual expected
-  '
-  
-  # ipfs dht get <key>
-  test_expect_success 'get with good keys' '
-    HASH="$(echo "hello world" | ipfsi 2 add -q)" &&
-    ipfsi 2 name publish "/ipfs/$HASH" &&
-    ipfsi 1 dht get "/ipns/$PEERID_2" | grep -aq "/ipfs/$HASH"
-  '
   
   test_expect_success 'put with bad keys fails (issue #5113)' '
-    ipfsi 0 dht put "foo" "bar" >putted
-    ipfsi 0 dht put "/pk/foo" "bar" >>putted
-    ipfsi 0 dht put "/ipns/foo" "bar" >>putted
+    ipfsi 0 dht put "foo" <<<bar >putted
+    ipfsi 0 dht put "/pk/foo" <<<bar >>putted
+    ipfsi 0 dht put "/ipns/foo" <<<bar >>putted
     [ ! -s putted ] ||
     test_fsh cat putted
   '
   
   test_expect_success 'put with bad keys returns error (issue #4611)' '
-    test_must_fail ipfsi 0 dht put "foo" "bar" &&
-    test_must_fail ipfsi 0 dht put "/pk/foo" "bar" &&
-    test_must_fail ipfsi 0 dht put "/ipns/foo" "bar"
+    test_must_fail ipfsi 0 dht put "foo" <<<bar &&
+    test_must_fail ipfsi 0 dht put "/pk/foo" <<<bar &&
+    test_must_fail ipfsi 0 dht put "/ipns/foo" <<<bar
   '
   
   test_expect_success 'get with bad keys (issue #4611)' '
@@ -101,7 +95,7 @@ test_dht() {
   test_expect_success "dht commands fail when offline" '
     test_must_fail ipfsi 0 dht findprovs "$HASH" 2>err_findprovs &&
     test_must_fail ipfsi 0 dht findpeer "$HASH" 2>err_findpeer &&
-    test_must_fail ipfsi 0 dht put "$TEST_DHT_PATH" "$TEST_DHT_VALUE" 2>err_put &&
+    test_must_fail ipfsi 0 dht put "/ipns/$PEERID_2" "get_result" 2>err_put &&
     test_should_contain "this command must be run in online mode" err_findprovs &&
     test_should_contain "this command must be run in online mode" err_findpeer &&
     test_should_contain "this command must be run in online mode" err_put
