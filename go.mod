@@ -35,6 +35,7 @@ require (
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.4
+	github.com/ipfs/go-ipfs-pinner v0.0.2
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-provider v0.3.0
 	github.com/ipfs/go-ipfs-routing v0.1.0
@@ -44,7 +45,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.0.2
 	github.com/ipfs/go-ipns v0.0.1
 	github.com/ipfs/go-log v0.0.1
-	github.com/ipfs/go-merkledag v0.2.3
+	github.com/ipfs/go-merkledag v0.3.0
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.1
@@ -107,4 +108,4 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
-go 1.13
+go 1.12
