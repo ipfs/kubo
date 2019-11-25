@@ -2,14 +2,15 @@ package tests
 
 import (
 	"context"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 	"math"
 	"strings"
 	"testing"
 
 	"github.com/ipfs/interface-go-ipfs-core"
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/path"
 
+	"github.com/ipfs/go-cid"
 	ipldcbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
 )
@@ -25,6 +26,8 @@ func (tp *TestSuite) TestPin(t *testing.T) {
 	t.Run("TestPinAdd", tp.TestPinAdd)
 	t.Run("TestPinSimple", tp.TestPinSimple)
 	t.Run("TestPinRecursive", tp.TestPinRecursive)
+	t.Run("TestPinLsIndirect", tp.TestPinLsIndirect)
+	t.Run("TestPinLsPrecedence", tp.TestPinLsPrecedence)
 }
 
 func (tp *TestSuite) TestPinAdd(t *testing.T) {
@@ -237,4 +240,268 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 			t.Errorf("unexpected verify result count: %d", n)
 		}
 	*/
+}
+
+// TestPinLsIndirect verifies that indirect nodes are listed by pin ls even if a parent node is directly pinned
+func (tp *TestSuite) TestPinLsIndirect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "foo")
+
+	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()), opt.Pin.Recursive(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinTypes(t, ctx, api, []cidContainer{grandparent}, []cidContainer{parent}, []cidContainer{leaf})
+}
+
+// TestPinLsPrecedence verifies the precedence of pins (recursive > direct > indirect)
+func (tp *TestSuite) TestPinLsPrecedence(t *testing.T) {
+	// Testing precedence of recursive, direct and indirect pins
+	// Results should be recursive > indirect, direct > indirect, and recursive > direct
+
+	t.Run("TestPinLsPredenceRecursiveIndirect", tp.TestPinLsPredenceRecursiveIndirect)
+	t.Run("TestPinLsPrecedenceDirectIndirect", tp.TestPinLsPrecedenceDirectIndirect)
+	t.Run("TestPinLsPrecedenceRecursiveDirect", tp.TestPinLsPrecedenceRecursiveDirect)
+}
+
+func (tp *TestSuite) TestPinLsPredenceRecursiveIndirect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test recursive > indirect
+	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "recursive > indirect")
+
+	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinTypes(t, ctx, api, []cidContainer{grandparent, parent}, []cidContainer{}, []cidContainer{leaf})
+}
+
+func (tp *TestSuite) TestPinLsPrecedenceDirectIndirect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test direct > indirect
+	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "direct > indirect")
+
+	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()), opt.Pin.Recursive(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinTypes(t, ctx, api, []cidContainer{grandparent}, []cidContainer{parent}, []cidContainer{leaf})
+}
+
+func (tp *TestSuite) TestPinLsPrecedenceRecursiveDirect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test recursive > direct
+	leaf, parent, grandparent := getThreeChainedNodes(t, ctx, api, "recursive + direct = error")
+
+	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = api.Pin().Add(ctx, path.IpldPath(parent.Cid()), opt.Pin.Recursive(false))
+	if err == nil {
+		t.Fatal("expected error directly pinning a recursively pinned node")
+	}
+
+	assertPinTypes(t, ctx, api, []cidContainer{parent}, []cidContainer{}, []cidContainer{leaf})
+
+	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()), opt.Pin.Recursive(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = api.Pin().Add(ctx, path.IpldPath(grandparent.Cid()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinTypes(t, ctx, api, []cidContainer{grandparent, parent}, []cidContainer{}, []cidContainer{leaf})
+}
+
+type cidContainer interface {
+	Cid() cid.Cid
+}
+
+func getThreeChainedNodes(t *testing.T, ctx context.Context, api iface.CoreAPI, leafData string) (cidContainer, cidContainer, cidContainer) {
+	leaf, err := api.Unixfs().Add(ctx, strFile(leafData)())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parent, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+leaf.Cid().String()+`"}}`), math.MaxUint64, -1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	grandparent, err := ipldcbor.FromJSON(strings.NewReader(`{"lnk": {"/": "`+parent.Cid().String()+`"}}`), math.MaxUint64, -1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := api.Dag().AddMany(ctx, []ipld.Node{parent, grandparent}); err != nil {
+		t.Fatal(err)
+	}
+
+	return leaf, parent, grandparent
+}
+
+func assertPinTypes(t *testing.T, ctx context.Context, api iface.CoreAPI, recusive, direct, indirect []cidContainer) {
+	assertPinLsAllConsistency(t, ctx, api)
+
+	list, err := api.Pin().Ls(ctx, opt.Pin.Type.Recursive())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinCids(t, list, recusive...)
+
+	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Direct())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinCids(t, list, direct...)
+
+	list, err = api.Pin().Ls(ctx, opt.Pin.Type.Indirect())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertPinCids(t, list, indirect...)
+}
+
+// assertPinCids verifies that the pins match the expected cids
+func assertPinCids(t *testing.T, pins []iface.Pin, cids ...cidContainer) {
+	t.Helper()
+
+	if expected, actual := len(cids), len(pins); expected != actual {
+		t.Fatalf("expected pin list to have len %d, was %d", expected, actual)
+	}
+
+	cSet := cid.NewSet()
+	for _, c := range cids {
+		cSet.Add(c.Cid())
+	}
+
+	valid := true
+	for _, p := range pins {
+		c := p.Path().Cid()
+		if cSet.Has(c) {
+			cSet.Remove(c)
+		} else {
+			valid = false
+			break
+		}
+	}
+
+	valid = valid && cSet.Len() == 0
+
+	if !valid {
+		pinStrs := make([]string, len(pins))
+		for i, p := range pins {
+			pinStrs[i] = p.Path().Cid().String()
+		}
+		pathStrs := make([]string, len(cids))
+		for i, c := range cids {
+			pathStrs[i] = c.Cid().String()
+		}
+		t.Fatalf("expected: %s \nactual: %s", strings.Join(pathStrs, ", "), strings.Join(pinStrs, ", "))
+	}
+}
+
+// assertPinLsAllConsistency verifies that listing all pins gives the same result as listing the pin types individually
+func assertPinLsAllConsistency(t *testing.T, ctx context.Context, api iface.CoreAPI) {
+	t.Helper()
+	allPins, err := api.Pin().Ls(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type pinTypeProps struct {
+		*cid.Set
+		opt.PinLsOption
+	}
+
+	all, recursive, direct, indirect := cid.NewSet(), cid.NewSet(), cid.NewSet(), cid.NewSet()
+	typeMap := map[string]*pinTypeProps{
+		"recursive": {recursive, opt.Pin.Type.Recursive()},
+		"direct":    {direct, opt.Pin.Type.Direct()},
+		"indirect":  {indirect, opt.Pin.Type.Indirect()},
+	}
+
+	for _, p := range allPins {
+		if !all.Visit(p.Path().Cid()) {
+			t.Fatalf("pin ls returned the same cid multiple times")
+		}
+
+		typeStr := p.Type()
+		if typeSet, ok := typeMap[p.Type()]; ok {
+			typeSet.Add(p.Path().Cid())
+		} else {
+			t.Fatalf("unknown pin type: %s", typeStr)
+		}
+	}
+
+	for typeStr, pinProps := range typeMap {
+		pins, err := api.Pin().Ls(ctx, pinProps.PinLsOption)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if expected, actual := len(pins), pinProps.Set.Len(); expected != actual {
+			t.Fatalf("pin ls all has %d pins of type %s, but pin ls for the type has %d", expected, typeStr, actual)
+		}
+
+		for _, p := range pins {
+			if pinType := p.Type(); pinType != typeStr {
+				t.Fatalf("returned wrong pin type: expected %s, got %s", typeStr, pinType)
+			}
+
+			if c := p.Path().Cid(); !pinProps.Has(c) {
+				t.Fatalf("%s expected to be in pin ls all as type %s", c.String(), typeStr)
+			}
+		}
+	}
 }
