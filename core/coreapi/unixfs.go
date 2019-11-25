@@ -32,7 +32,7 @@ type UnixfsAPI CoreAPI
 var nilNode *core.IpfsNode
 var once sync.Once
 
-func getOrCreateNilNode() (*core.IpfsNode,error) {
+func getOrCreateNilNode() (*core.IpfsNode, error) {
 	once.Do(func() {
 		if nilNode != nil {
 			return

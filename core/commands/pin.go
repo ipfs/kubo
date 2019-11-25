@@ -11,6 +11,7 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	pin "github.com/ipfs/go-ipfs/pin"
 
 	bserv "github.com/ipfs/go-blockservice"
@@ -18,6 +19,7 @@ import (
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	verifcid "github.com/ipfs/go-verifcid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -352,7 +354,7 @@ Example:
 		if len(req.Arguments) > 0 {
 			err = pinLsKeys(req, typeStr, n, api, emit)
 		} else {
-			err = pinLsAll(req, typeStr, n, emit)
+			err = pinLsAll(req, typeStr, n.Pinning, n.DAG, emit)
 		}
 		if err != nil {
 			return err
@@ -475,84 +477,38 @@ func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreifac
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, n *core.IpfsNode, emit func(value interface{}) error) error {
+func pinLsAll(req *cmds.Request, typeStr string, pinning pin.Pinner, dag ipld.DAGService, emit func(value interface{}) error) error {
+	pinCh, errCh := coreapi.PinLsAll(req.Context, typeStr, pinning, dag)
+
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
 	}
 
-	keys := cid.NewSet()
-
-	AddToResultKeys := func(keyList []cid.Cid, typeStr string) error {
-		for _, c := range keyList {
-			if keys.Visit(c) {
-				err := emit(&PinLsOutputWrapper{
-					PinLsObject: PinLsObject{
-						Type: typeStr,
-						Cid:  enc.Encode(c),
-					},
-				})
-				if err != nil {
-					return err
-				}
+	ctx := req.Context
+loop:
+	for {
+		select {
+		case p, ok := <-pinCh:
+			if !ok {
+				break loop
 			}
-		}
-		return nil
-	}
-
-	if typeStr == "direct" || typeStr == "all" {
-		dkeys, err := n.Pinning.DirectKeys(req.Context)
-		if err != nil {
-			return err
-		}
-		err = AddToResultKeys(dkeys, "direct")
-		if err != nil {
-			return err
-		}
-	}
-	if typeStr == "recursive" || typeStr == "all" {
-		rkeys, err := n.Pinning.RecursiveKeys(req.Context)
-		if err != nil {
-			return err
-		}
-		err = AddToResultKeys(rkeys, "recursive")
-		if err != nil {
-			return err
-		}
-	}
-	if typeStr == "indirect" || typeStr == "all" {
-		rkeys, err := n.Pinning.RecursiveKeys(req.Context)
-		if err != nil {
-			return err
-		}
-		for _, k := range rkeys {
-			var visitErr error
-			err := dag.Walk(req.Context, dag.GetLinksWithDAG(n.DAG), k, func(c cid.Cid) bool {
-				r := keys.Visit(c)
-				if r {
-					err := emit(&PinLsOutputWrapper{
-						PinLsObject: PinLsObject{
-							Type: "indirect",
-							Cid:  enc.Encode(c),
-						},
-					})
-					if err != nil {
-						visitErr = err
-					}
-				}
-				return r
-			}, dag.SkipRoot(), dag.Concurrent())
-
-			if visitErr != nil {
-				return visitErr
-			}
-			if err != nil {
+			if err := emit(&PinLsOutputWrapper{
+				PinLsObject: PinLsObject{
+					Type: p.Type(),
+					Cid:  enc.Encode(p.Path().Cid()),
+				},
+			}); err != nil {
 				return err
 			}
+
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 
-	return nil
+	err = <-errCh
+	return err
 }
 
 const (
