@@ -17,14 +17,14 @@ import (
 	bservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
-	"github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-exchange-offline"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	ft "github.com/ipfs/go-unixfs"
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -997,26 +997,33 @@ Remove files or directories.
 			path = path[:len(path)-1]
 		}
 
-		dir, name := gopath.Split(path)
-		parent, err := mfs.Lookup(nd.FilesRoot, dir)
-		if err != nil {
-			return fmt.Errorf("parent lookup: %s", err)
-		}
-
-		pdir, ok := parent.(*mfs.Directory)
-		if !ok {
-			return fmt.Errorf("no such file or directory: %s", path)
-		}
-
 		// if '--force' specified, it will remove anything else,
 		// including file, directory, corrupted node, etc
 		force, _ := req.Options[forceOptionName].(bool)
+
+		dir, name := gopath.Split(path)
+
+		pdir, err := getParentDir(nd.FilesRoot, dir)
+		if err != nil {
+			if force {
+				switch err {
+				case os.ErrNotExist:
+					return nil
+				}
+			}
+			return fmt.Errorf("parent lookup: %s", err)
+		}
+
 		if force {
 			err := pdir.Unlink(name)
 			if err != nil {
-				return err
+				switch err {
+				case os.ErrNotExist:
+					return nil
+				default:
+					return err
+				}
 			}
-
 			return pdir.Flush()
 		}
 
@@ -1133,15 +1140,11 @@ func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (
 
 		// if create is specified and the file doesnt exist, we create the file
 		dirname, fname := gopath.Split(path)
-		pdiri, err := mfs.Lookup(r, dirname)
+		pdir, err := getParentDir(r, dirname)
 		if err != nil {
-			flog.Error("lookupfail ", dirname)
 			return nil, err
 		}
-		pdir, ok := pdiri.(*mfs.Directory)
-		if !ok {
-			return nil, fmt.Errorf("%s was not a directory", dirname)
-		}
+
 		if builder == nil {
 			builder = pdir.GetCidBuilder()
 		}
@@ -1183,4 +1186,17 @@ func checkPath(p string) (string, error) {
 		cleaned += "/"
 	}
 	return cleaned, nil
+}
+
+func getParentDir(root *mfs.Root, dir string) (*mfs.Directory, error) {
+	parent, err := mfs.Lookup(root, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	pdir, ok := parent.(*mfs.Directory)
+	if !ok {
+		return nil, errors.New("expected *mfs.Directory, didnt get it. This is likely a race condition")
+	}
+	return pdir, nil
 }
