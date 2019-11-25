@@ -1005,11 +1005,8 @@ Remove files or directories.
 
 		pdir, err := getParentDir(nd.FilesRoot, dir)
 		if err != nil {
-			if force {
-				switch err {
-				case os.ErrNotExist:
-					return nil
-				}
+			if force && err == os.ErrNotExist {
+				return nil
 			}
 			return fmt.Errorf("parent lookup: %s", err)
 		}
@@ -1017,12 +1014,10 @@ Remove files or directories.
 		if force {
 			err := pdir.Unlink(name)
 			if err != nil {
-				switch err {
-				case os.ErrNotExist:
+				if err == os.ErrNotExist {
 					return nil
-				default:
-					return err
 				}
+				return err
 			}
 			return pdir.Flush()
 		}
