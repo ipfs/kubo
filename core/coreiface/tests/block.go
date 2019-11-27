@@ -225,7 +225,7 @@ func (tp *TestSuite) TestBlockPin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pins, err := api.Pin().Ls(ctx)
+	pins, err := accPins(api.Pin().Ls(ctx))
 	if err != nil {
 		return
 	}
