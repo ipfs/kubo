@@ -227,7 +227,7 @@ func (tp *TestSuite) TestBlockPin(t *testing.T) {
 
 	pins, err := accPins(api.Pin().Ls(ctx))
 	if err != nil {
-		return
+		t.Skip(err)
 	}
 	if len(pins) != 1 {
 		t.Fatal("expected 1 pin")

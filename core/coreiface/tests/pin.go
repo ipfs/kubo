@@ -160,7 +160,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 	}
 
 	if list[0].Path().String() != path.IpldPath(nd3.Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpfsPath(nd2.Cid()).String())
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpfsPath(nd3.Cid()).String())
 	}
 
 	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Type.Recursive()))
@@ -173,7 +173,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 	}
 
 	if list[0].Path().String() != path.IpldPath(nd2.Cid()).String() {
-		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpldPath(nd3.Cid()).String())
+		t.Errorf("unexpected path, %s != %s", list[0].Path().String(), path.IpldPath(nd2.Cid()).String())
 	}
 
 	list, err = accPins(api.Pin().Ls(ctx, opt.Pin.Type.Indirect()))
@@ -186,7 +186,7 @@ func (tp *TestSuite) TestPinRecursive(t *testing.T) {
 	}
 
 	if list[0].Path().Cid().String() != p0.Cid().String() {
-		t.Error("unexpected path")
+		t.Errorf("unexpected path, %s != %s", list[0].Path().Cid().String(), p0.Cid().String())
 	}
 
 	res, err := api.Pin().Verify(ctx)
