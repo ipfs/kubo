@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -382,6 +383,26 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 			sizeReadSeeker: sp,
 		}
 	}
+
+	ctype := mime.TypeByExtension(gopath.Ext(name))
+	if ctype == "" {
+		buf := make([]byte, 512)
+		n, _ := io.ReadFull(content, buf[:])
+		ctype = http.DetectContentType(buf[:n])
+		_, err := content.Seek(0, io.SeekStart)
+		if err != nil {
+			http.Error(w, "seeker can't seek", http.StatusInternalServerError)
+			return
+		}
+	}
+	// Strip the encoding from the HTML Content-Type header and let the
+	// browser figure it out.
+	//
+	// Fixes https://github.com/ipfs/go-ipfs/issues/2203
+	if strings.HasPrefix(ctype, "text/html;") {
+		ctype = "text/html"
+	}
+	w.Header().Set("Content-Type", ctype)
 
 	http.ServeContent(w, req, name, modtime, content)
 }
