@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/repo"
-
+	"github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-provider"
 	q "github.com/ipfs/go-ipfs-provider/queue"
 	"github.com/ipfs/go-ipfs-provider/simple"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
+
+	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/go-ipfs/repo"
 )
 
 const kReprovideFrequency = time.Hour * 12

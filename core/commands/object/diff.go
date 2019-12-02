@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/dagutils"
-
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-merkledag/dagutils"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
+
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 )
 
 const (
@@ -70,7 +70,7 @@ Example:
 		out := make([]*dagutils.Change, len(changes))
 		for i, change := range changes {
 			out[i] = &dagutils.Change{
-				Type: change.Type,
+				Type: dagutils.ChangeType(change.Type),
 				Path: change.Path,
 			}
 
