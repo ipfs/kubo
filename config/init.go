@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -152,8 +151,8 @@ func DefaultDatastoreConfig() Datastore {
 func identityConfig(out io.Writer, nbits int) (Identity, error) {
 	// TODO guard higher up
 	ident := Identity{}
-	if nbits < 2048 {
-		return ident, errors.New("bitsize less than 2048 is considered unsafe")
+	if nbits < ci.MinRsaKeyBits {
+		return ident, ci.ErrRsaKeyTooSmall
 	}
 
 	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
