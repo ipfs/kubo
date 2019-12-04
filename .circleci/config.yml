@@ -144,8 +144,6 @@ jobs:
       - *store_gomod
   interop:
     executor: node
-    environment:
-      IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
     parallelism: 4
     steps:
       - *make_out_dirs
@@ -170,6 +168,11 @@ jobs:
           paths:
             - ~/ipfs/go-ipfs/interop/node_modules
       - run:
+          name: Installing js-ipfs
+          command: |
+            npm install ipfs
+          working_directory: ~/ipfs/go-ipfs/interop
+      - run:
           name: Installing reporting tools
           command: |
             npm install --save-dev mocha-junit-reporter@1.23.1 mocha-multi-reporters@1.1.0
@@ -185,6 +188,8 @@ jobs:
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             IPFS_REUSEPORT: false
+            LIBP2P_ALLOW_WEAK_RSA_KEYS: true
+            IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
       - store_test_results:
           path: /tmp/test-results
   go-ipfs-api:
