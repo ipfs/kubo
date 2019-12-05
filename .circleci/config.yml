@@ -170,7 +170,7 @@ jobs:
       - run:
           name: Installing js-ipfs
           command: |
-            npm install ipfs
+            npm install ipfs ipfs-http-client
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
           name: Installing reporting tools
