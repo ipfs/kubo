@@ -9,7 +9,7 @@ test_description="Test daemon command"
 . lib/test-lib.sh
 
 test_expect_success "create badger config" '
-  ipfs init --profile=badgerds > /dev/null &&
+  ipfs init --profile=badgerds,test > /dev/null &&
   cp "$IPFS_PATH/config" init-config
 '
 
@@ -17,7 +17,7 @@ test_expect_success "cleanup repo" '
   rm -rf "$IPFS_PATH"
 '
 
-test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config"
+test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile=test
 test_kill_ipfs_daemon
 
 test_expect_success "daemon initialization with existing config works" '
@@ -30,7 +30,7 @@ test_expect_success "cleanup repo" '
   rm -rf "$IPFS_PATH"
 '
 
-test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile=randomports
+test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile=test,randomports
 test_kill_ipfs_daemon
 
 test_expect_success "daemon initialization with existing config + profiles works" '
