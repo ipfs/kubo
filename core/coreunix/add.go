@@ -38,6 +38,10 @@ type Link struct {
 	Size       uint64
 }
 
+type syncer interface {
+	Sync() error
+}
+
 // NewAdder Returns a new Adder used for a file add operation.
 func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
 	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
@@ -314,6 +318,13 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	err = adder.outputDirs(name, root)
 	if err != nil {
 		return nil, err
+	}
+
+	if asyncDagService, ok := adder.dagService.(syncer); ok {
+		err = asyncDagService.Sync()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !adder.Pin {

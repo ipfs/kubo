@@ -179,7 +179,11 @@ func (p *IpnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value pa
 	}
 
 	// Put the new record.
-	if err := p.ds.Put(IpnsDsKey(id), data); err != nil {
+	key := IpnsDsKey(id)
+	if err := p.ds.Put(key, data); err != nil {
+		return nil, err
+	}
+	if err := p.ds.Sync(key); err != nil {
 		return nil, err
 	}
 	return entry, nil
