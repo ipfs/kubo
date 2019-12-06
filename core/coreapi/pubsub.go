@@ -56,6 +56,7 @@ func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) er
 		return err
 	}
 
+	//nolint deprecated
 	return api.pubSub.Publish(topic, data)
 }
 
@@ -70,6 +71,7 @@ func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 		return nil, err
 	}
 
+	//nolint deprecated
 	sub, err := api.pubSub.Subscribe(topic)
 	if err != nil {
 		return nil, err

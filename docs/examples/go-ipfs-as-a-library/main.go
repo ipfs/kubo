@@ -204,7 +204,8 @@ func main() {
 
 	fmt.Println("-- Getting an IPFS node running -- ")
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	/*
 		// Spawn a node using the default path (~/.ipfs), assuming that a repo exists there already
