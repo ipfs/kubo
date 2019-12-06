@@ -1,5 +1,7 @@
 module github.com/ipfs/go-ipfs
 
+replace github.com/ipfs/interface-go-ipfs-core v0.2.5 => ../interface-go-ipfs-core
+
 require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
 	github.com/AndreasBriese/bbloom v0.0.0-20190823232136-616930265c33 // indirect
@@ -12,6 +14,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/gogo/protobuf v1.3.1
+	github.com/google/martian v2.1.0+incompatible
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/ipfs/go-bitswap v0.1.10
@@ -53,6 +56,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.1
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.2.5
+	github.com/jbenet/go-fuse-version v0.0.0-20160322195114-6d4c97bcf253 // indirect
 	github.com/jbenet/go-is-domain v1.0.3
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
