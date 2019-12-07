@@ -86,7 +86,7 @@ func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opt
 		return err
 	}
 
-	return api.core().Request("pin/update").
+	return api.core().Request("pin/update", from.String(), to.String()).
 		Option("unpin", options.Unpin).Exec(ctx, nil)
 }
 
