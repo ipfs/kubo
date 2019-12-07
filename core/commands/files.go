@@ -1,30 +1,23 @@
 package commands
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"sort"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/fileshelpers"
 
 	"github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	iface "github.com/ipfs/interface-go-ipfs-core"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
-
-var flog = logging.Logger("cmds/files")
 
 // FilesCmd is the 'ipfs files' command
 var FilesCmd = &cmds.Command{
@@ -213,20 +206,6 @@ var filesCpCmd = &cmds.Command{
 	},
 }
 
-func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI, p string) (ipld.Node, error) {
-	switch {
-	case strings.HasPrefix(p, "/ipfs/"):
-		return api.ResolveNode(ctx, path.New(p))
-	default:
-		fsn, err := mfs.Lookup(node.FilesRoot, p)
-		if err != nil {
-			return nil, err
-		}
-
-		return fsn.GetNode()
-	}
-}
-
 type filesLsOutput struct {
 	Entries []mfs.NodeListing
 }
@@ -369,19 +348,6 @@ Examples:
 
 		return res.Emit(rc)
 	},
-}
-
-type contextReader interface {
-	CtxReadFull(context.Context, []byte) (int, error)
-}
-
-type contextReaderWrapper struct {
-	R   contextReader
-	ctx context.Context
-}
-
-func (crw *contextReaderWrapper) Read(b []byte) (int, error) {
-	return crw.R.CtxReadFull(crw.ctx, b)
 }
 
 var filesMvCmd = &cmds.Command{

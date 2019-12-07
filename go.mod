@@ -112,4 +112,4 @@ require (
 
 go 1.12
 
-replace github.com/ipfs/interface-go-ipfs-core => github.com/hacdias/interface-go-ipfs-core v0.2.6-0.20191207123451-a1a93a6e33e7
+replace github.com/ipfs/interface-go-ipfs-core => github.com/hacdias/interface-go-ipfs-core v0.2.6-0.20191207124604-39489ae2bff1

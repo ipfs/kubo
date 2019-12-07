@@ -54,3 +54,8 @@ func (api *FilesAPI) Write(ctx context.Context, path string, r io.Reader, opts *
 func (api *FilesAPI) ChangeCid(ctx context.Context, path string, opts *coreiface.FilesChangeCidOptions) error {
 	return fileshelpers.ChangeCid(ctx, api.filesRoot, path, opts)
 }
+
+func (api *FilesAPI) Flush(ctx context.Context, path string) error {
+	_, err := mfs.FlushPath(ctx, api.filesRoot, path)
+	return err
+}
