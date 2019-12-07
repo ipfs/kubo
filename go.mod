@@ -1,7 +1,5 @@
 module github.com/ipfs/go-ipfs
 
-replace github.com/ipfs/interface-go-ipfs-core v0.2.5 => ../interface-go-ipfs-core
-
 require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
 	github.com/AndreasBriese/bbloom v0.0.0-20190823232136-616930265c33 // indirect
@@ -113,3 +111,5 @@ require (
 )
 
 go 1.12
+
+replace github.com/ipfs/interface-go-ipfs-core => github.com/hacdias/interface-go-ipfs-core v0.2.6-0.20191207123451-a1a93a6e33e7
