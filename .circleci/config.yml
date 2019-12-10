@@ -209,7 +209,7 @@ jobs:
           background: true
       - run:
           name: Waiting for the daemon
-          no_output_timeout: 10s
+          no_output_timeout: 30s
           command: |
             while ! /tmp/circleci-workspace/bin/ipfs id --api=/ip4/127.0.0.1/tcp/5001 2>/dev/null; do
               sleep 1
