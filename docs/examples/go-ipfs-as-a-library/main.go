@@ -57,6 +57,10 @@ func createTempRepo(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	
+	// Add your custom configuration to the repository config
+	// For example, you can enable sharding with:
+	// cfg.Experimental.ShardingEnabled = true
 
 	// Create the repo with the config
 	err = fsrepo.Init(repoPath, cfg)
