@@ -67,16 +67,16 @@ type IpfsNode struct {
 	PNetFingerprint libp2p.PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
-	Peerstore       pstore.Peerstore     `optional:"true"` // storage for other Peer instances
-	Blockstore      bstore.GCBlockstore  // the block store (lower level)
-	Filestore       *filestore.Filestore `optional:"true"` // the filestore blockstore
-	BaseBlocks      node.BaseBlocks      // the raw blockstore, no filestore wrapping
-	GCLocker        bstore.GCLocker      // the locker used to protect the blockstore during gc
-	Blocks          bserv.BlockService   // the block service, get/add blocks.
-	DAG             ipld.DAGService      // the merkle dag service, get/add objects.
-	Resolver        *resolver.Resolver   // the path resolution system
-	Reporter        metrics.Reporter     `optional:"true"`
-	Discovery       discovery.Service    `optional:"true"`
+	Peerstore       pstore.Peerstore          `optional:"true"` // storage for other Peer instances
+	Blockstore      bstore.GCBlockstore       // the block store (lower level)
+	Filestore       *filestore.Filestore      `optional:"true"` // the filestore blockstore
+	BaseBlocks      node.BaseBlocks           // the raw blockstore, no filestore wrapping
+	GCLocker        bstore.GCLocker           // the locker used to protect the blockstore during gc
+	Blocks          bserv.BlockService        // the block service, get/add blocks.
+	DAG             ipld.DAGService           // the merkle dag service, get/add objects.
+	Resolver        *resolver.Resolver        // the path resolution system
+	Reporter        *metrics.BandwidthCounter `optional:"true"`
+	Discovery       discovery.Service         `optional:"true"`
 	FilesRoot       *mfs.Root
 	RecordValidator record.Validator
 
