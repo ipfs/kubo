@@ -31,7 +31,7 @@ func Security(enabled, preferTLS bool) interface{} {
 	}
 }
 
-func BandwidthCounter() (opts Libp2pOpts, reporter metrics.Reporter) {
+func BandwidthCounter() (opts Libp2pOpts, reporter *metrics.BandwidthCounter) {
 	reporter = metrics.NewBandwidthCounter()
 	opts.Opts = append(opts.Opts, libp2p.BandwidthReporter(reporter))
 	return opts, reporter
