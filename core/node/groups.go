@@ -67,8 +67,10 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 	// parse PubSub config
 
-	ps := fx.Options()
+	ps, disc := fx.Options(), fx.Options()
 	if bcfg.getOpt("pubsub") || bcfg.getOpt("ipnsps") {
+		disc = fx.Provide(libp2p.TopicDiscovery())
+
 		var pubsubOptions []pubsub.Option
 		pubsubOptions = append(
 			pubsubOptions,
@@ -113,6 +115,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		maybeInvoke(libp2p.AutoNATService(cfg.Experimental.QUIC), cfg.Swarm.EnableAutoNATService),
 		connmgr,
 		ps,
+		disc,
 	)
 
 	return opts
