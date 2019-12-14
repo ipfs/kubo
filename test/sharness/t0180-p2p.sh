@@ -22,10 +22,10 @@ test_expect_success 'peer ids' '
 '
 check_test_ports() {
   test_expect_success "test ports are closed" '
-    (! (netstat -lnp | grep "LISTEN" | grep ":10101 ")) &&
-    (! (netstat -lnp | grep "LISTEN" | grep ":10102 "))&&
-    (! (netstat -lnp | grep "LISTEN" | grep ":10103 ")) &&
-    (! (netstat -lnp | grep "LISTEN" | grep ":10104 "))
+    (! (netstat -aln | grep "LISTEN" | grep -E "[.:]10101 ")) &&
+    (! (netstat -aln | grep "LISTEN" | grep -E "[.:]10102 ")) &&
+    (! (netstat -aln | grep "LISTEN" | grep -E "[.:]10103 ")) &&
+    (! (netstat -aln | grep "LISTEN" | grep -E "[.:]10104 "))
   '
 }
 check_test_ports

@@ -21,7 +21,7 @@ test_dag_git() {
   '
 
   test_expect_success "successfully get added objects" '
-    cat hashes | xargs -i ipfs dag get -- {} > /dev/null
+    cat hashes | xargs -I {} ipfs dag get -- {} > /dev/null
   '
 
   test_expect_success "path traversals work" '
