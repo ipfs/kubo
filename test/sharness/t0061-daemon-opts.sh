@@ -17,7 +17,7 @@ gwyaddr=$GWAY_ADDR
 apiaddr=$API_ADDR
 
 # Odd. this fails here, but the inverse works on t0060-daemon.
-test_expect_success 'transport should be unencrypted' '
+test_expect_success SOCAT 'transport should be unencrypted ( needs socat )' '
   socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-ls &&
   grep -q -v "/secio" swarmnc &&
   grep -q "/plaintext" swarmnc ||

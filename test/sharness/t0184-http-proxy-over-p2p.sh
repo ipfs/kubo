@@ -3,6 +3,12 @@
 test_description="Test http proxy over p2p"
 
 . lib/test-lib.sh
+
+if ! test_have_prereq SOCAT; then
+  skip_all="skipping '$test_description': socat is not available"
+  test_done
+fi
+
 WEB_SERVE_PORT=5099
 IPFS_GATEWAY_PORT=5199
 SENDER_GATEWAY="http://127.0.0.1:$IPFS_GATEWAY_PORT"

@@ -124,13 +124,8 @@ test_expect_success "ipfs help output looks good" '
   test_fsh cat help.txt
 '
 
-# netcat (nc) is needed for the following test
-test_expect_success "socat is available" '
-  type socat >/dev/null
-'
-
 # check transport is encrypted
-test_expect_success "transport should be encrypted" '
+test_expect_success SOCAT "transport should be encrypted ( needs socat )" '
   socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-ls &&
   grep -q "/secio" swarmnc &&
   test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||
