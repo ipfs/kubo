@@ -45,8 +45,9 @@ test_expect_success "ipfs version deps succeeds" '
   ipfs version deps >deps.txt
 '
 
-test_expect_success "ipfs version deps output looks good" '
+test_expect_success "ipfs version deps output looks good ( set \$GOIPFSTEST_SKIP_LOCAL_DEVTREE_DEPS_CHECK to skip this test )" '
   head -1 deps.txt | grep "go-ipfs@(devel)" &&
+  [[ "$GOIPFSTEST_SKIP_LOCAL_DEVTREE_DEPS_CHECK" == "1" ]] ||
   [[ $(tail -n +2 deps.txt | egrep -v -c "^[^ @]+@v[^ @]+( => [^ @]+@v[^ @]+)?$") -eq 0 ]] ||
   test_fsh cat deps.txt
 '
