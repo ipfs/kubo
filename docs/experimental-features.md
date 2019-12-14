@@ -229,7 +229,7 @@ ipfs bootstrap add <multiaddr>
 
 For example:
 ```
-ipfs bootstrap add /ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64
+ipfs bootstrap add /ip4/104.236.76.40/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64
 ```
 
 Bootstrap nodes are no different from all other nodes in the network apart from
@@ -302,7 +302,7 @@ connections on `127.0.0.1:SOME_PORT` to the server node listening
 on `/x/kickass/1.0`.
 
 ```sh
-> ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /ipfs/$SERVER_ID
+> ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /p2p/$SERVER_ID
 ```
 
 Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
@@ -343,7 +343,7 @@ ipfs p2p listen /x/ssh /ip4/127.0.0.1/tcp/22
 ***Then, on "client" node:***
 
 ```sh
-ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /ipfs/$SERVER_ID
+ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /p2p/$SERVER_ID
 ```
 
 You should now be able to connect to your ssh server through a libp2p connection
@@ -465,13 +465,13 @@ already online node would have to be restarted.
 In order to connect peers QmA and QmB through a relay node QmRelay:
 
 - Both peers should connect to the relay:
-`ipfs swarm connect /transport/address/ipfs/QmRelay`
+`ipfs swarm connect /transport/address/p2p/QmRelay`
 - Peer QmA can then connect to peer QmB using the relay:
-`ipfs swarm connect /ipfs/QmRelay/p2p-circuit/ipfs/QmB`
+`ipfs swarm connect /p2p/QmRelay/p2p-circuit/p2p/QmB`
 
 Peers can also connect with an unspecific relay address, which will
 try to dial through known relays:
-`ipfs swarm connect /p2p-circuit/ipfs/QmB`
+`ipfs swarm connect /p2p-circuit/p2p/QmB`
 
 Peers can see their (unspecific) relay address in the output of
 `ipfs swarm addrs listen`
