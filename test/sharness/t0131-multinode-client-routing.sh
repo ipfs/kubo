@@ -46,9 +46,11 @@ test_expect_success "set up testbed" '
   iptb testbed create -type localipfs -count $NNODES -force -init
 '
 
+# for some reason starting 8/9 together gets stuck on a wait...
 test_expect_success "start up nodes" '
   iptb start -wait [0-7] &&
-  iptb start -wait [8-9] -- --routing=dhtclient
+  iptb start -wait 8 -- --routing=dhtclient &&
+  iptb start -wait 9 -- --routing=dhtclient
 '
 
 test_expect_success "connect up nodes" '
