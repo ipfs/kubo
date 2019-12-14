@@ -23,10 +23,6 @@ test_expect_success "'docker --version' output looks good" '
   egrep "^Docker version" actual
 '
 
-test_expect_success "current user is in the 'docker' group" '
-  groups | egrep "\bdocker\b"
-'
-
 TEST_TRASH_DIR=$(pwd)
 TEST_SCRIPTS_DIR=$(dirname "$TEST_TRASH_DIR")
 TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
