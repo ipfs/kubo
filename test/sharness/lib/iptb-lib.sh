@@ -26,6 +26,17 @@ iptb() {
         esac
         return 1
     fi
+
+    # If we are looking for clean-start, issue a 'stop' twice for good measure
+    # It sadly doesn't always work :/
+    if test "$GOIPFSTEST_ENSURE_CLEAN_START" = 1 \
+    && test "$#" = 1 \
+    && test "$1" = stop \
+    ; then
+      sleep 1
+      command iptb stop > /dev/null 2>&1 &
+      sleep 1
+    fi
 }
 
 startup_cluster() {
