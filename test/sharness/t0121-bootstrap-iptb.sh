@@ -58,7 +58,7 @@ test_expect_success "reset iptb nodes" '
 
 test_expect_success "set bootstrap addrs" '
   bsn_peer_id=$(ipfs id -f "<id>") &&
-  BADDR="/ip4/127.0.0.1/tcp/$SWARM_PORT/ipfs/$bsn_peer_id" &&
+  BADDR="/ip4/127.0.0.1/tcp/$SWARM_PORT/p2p/$bsn_peer_id" &&
   ipfsi 0 bootstrap add $BADDR &&
   ipfsi 1 bootstrap add $BADDR &&
   ipfsi 2 bootstrap add $BADDR &&

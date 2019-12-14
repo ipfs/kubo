@@ -14,7 +14,7 @@ ipfsi() {
 check_has_connection() {
   node="$1"
   ipfsi "$node" swarm peers >"swarm_peers_$node" &&
-  grep "ipfs" "swarm_peers_$node" >/dev/null
+  grep "p2p" "swarm_peers_$node" >/dev/null
 }
 
 iptb() {
