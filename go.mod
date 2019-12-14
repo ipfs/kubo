@@ -17,7 +17,7 @@ require (
 	github.com/ipfs/go-bitswap v0.1.10
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.2
-	github.com/ipfs/go-cid v0.0.3
+	github.com/ipfs/go-cid v0.0.4
 	github.com/ipfs/go-cidutil v0.0.2
 	github.com/ipfs/go-datastore v0.3.1
 	github.com/ipfs/go-detect-race v0.0.1
@@ -27,7 +27,7 @@ require (
 	github.com/ipfs/go-ds-measure v0.1.0
 	github.com/ipfs/go-filestore v0.0.2
 	github.com/ipfs/go-fs-lock v0.0.1
-	github.com/ipfs/go-ipfs-blockstore v0.1.0
+	github.com/ipfs/go-ipfs-blockstore v0.1.1
 	github.com/ipfs/go-ipfs-chunker v0.0.3
 	github.com/ipfs/go-ipfs-cmds v0.1.1
 	github.com/ipfs/go-ipfs-config v0.0.12
@@ -89,7 +89,7 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multiaddr-net v0.1.1
 	github.com/multiformats/go-multibase v0.0.1
-	github.com/multiformats/go-multihash v0.0.9
+	github.com/multiformats/go-multihash v0.0.10
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0
