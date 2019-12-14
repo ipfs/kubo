@@ -154,7 +154,7 @@ func Identity(cfg *config.Config) fx.Option {
 		return fx.Error(errors.New("no peer ID in config! (was 'ipfs init' run?)"))
 	}
 
-	id, err := peer.IDB58Decode(cid)
+	id, err := peer.Decode(cid)
 	if err != nil {
 		return fx.Error(fmt.Errorf("peer ID invalid: %s", err))
 	}

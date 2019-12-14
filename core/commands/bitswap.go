@@ -60,7 +60,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 
 		pstr, found := req.Options[peerOptionName].(string)
 		if found {
-			pid, err := peer.IDB58Decode(pstr)
+			pid, err := peer.Decode(pstr)
 			if err != nil {
 				return err
 			}
@@ -195,7 +195,7 @@ prints the ledger associated with a given peer.
 			return e.TypeErr(bs, nd.Exchange)
 		}
 
-		partner, err := peer.IDB58Decode(req.Arguments[0])
+		partner, err := peer.Decode(req.Arguments[0])
 		if err != nil {
 			return err
 		}

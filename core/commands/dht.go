@@ -68,7 +68,7 @@ var queryDhtCmd = &cmds.Command{
 			return ErrNotDHT
 		}
 
-		id, err := peer.IDB58Decode(req.Arguments[0])
+		id, err := peer.Decode(req.Arguments[0])
 		if err != nil {
 			return cmds.ClientError("invalid peer ID")
 		}
@@ -370,7 +370,7 @@ var findPeerDhtCmd = &cmds.Command{
 			return ErrNotOnline
 		}
 
-		pid, err := peer.IDB58Decode(req.Arguments[0])
+		pid, err := peer.Decode(req.Arguments[0])
 		if err != nil {
 			return err
 		}
