@@ -55,6 +55,10 @@ test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
 test "$TEST_NO_DOCKER" != 1 && type docker >/dev/null 2>&1 && test_set_prereq DOCKER
 test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
 
+# this may not be available, skip a few dependent tests
+type socat >/dev/null 2>&1 && test_set_prereq SOCAT
+
+
 # Set a prereq as error messages are often different on Windows/Cygwin
 expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
 

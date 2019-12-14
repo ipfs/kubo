@@ -8,6 +8,12 @@ test_description="test http requests made by cli"
 
 . lib/test-lib.sh
 
+if ! test_have_prereq SOCAT; then
+  skip_all="skipping '$test_description': socat is not available"
+  test_done
+fi
+
+
 test_init_ipfs
 
 test_expect_success "start nc" '

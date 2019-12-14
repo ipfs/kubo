@@ -15,6 +15,11 @@ if ! test_have_prereq DOCKER; then
   test_done
 fi
 
+if ! test_have_prereq SOCAT; then
+  skip_all="skipping '$test_description': socat is not available"
+  test_done
+fi
+
 TEST_TRASH_DIR=$(pwd)
 TEST_SCRIPTS_DIR=$(dirname "$TEST_TRASH_DIR")
 TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
