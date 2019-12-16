@@ -130,7 +130,7 @@ Make sure to backup your data frequently.`,
 				"child": map[string]interface{}{
 					"type":       "badgerds",
 					"path":       "badgerds",
-					"syncWrites": true,
+					"syncWrites": false,
 					"truncate":   true,
 				},
 			}
