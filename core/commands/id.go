@@ -75,7 +75,7 @@ EXAMPLE:
 		var id peer.ID
 		if len(req.Arguments) > 0 {
 			var err error
-			id, err = peer.IDB58Decode(req.Arguments[0])
+			id, err = peer.Decode(req.Arguments[0])
 			if err != nil {
 				return fmt.Errorf("invalid peer id")
 			}
