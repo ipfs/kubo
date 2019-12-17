@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	gopath "path"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -149,6 +150,18 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	if hdr := r.Header.Get("X-Ipns-Original-Path"); len(hdr) > 0 {
 		originalUrlPath = prefix + hdr
 		ipnsHostname = true
+	}
+
+	// Service Worker registration request
+	if r.Header.Get("Service-Worker") == "script" {
+		// Disallow Service Worker registration on namespace roots
+		// https://github.com/ipfs/go-ipfs/issues/4025
+		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)
+		if matched {
+			err := fmt.Errorf("registration is not allowed for this scope")
+			webError(w, "navigator.serviceWorker", err, http.StatusBadRequest)
+			return
+		}
 	}
 
 	parsedPath := ipath.New(urlPath)
