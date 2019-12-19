@@ -9,6 +9,7 @@ import (
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-filestore"
 	"github.com/ipfs/go-ipfs-blockstore"
 	"github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/ipfs/go-ipfs-exchange-offline"
@@ -41,16 +42,37 @@ func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interf
 // Pinning creates new pinner which tells GC which blocks should be kept
 func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo) (pin.Pinner, error) {
 	internalDag := merkledag.NewDAGService(blockservice.New(bstore, offline.Exchange(bstore)))
-	pinning, err := pin.LoadPinner(repo.Datastore(), ds, internalDag)
+	rootDS := repo.Datastore()
+
+	syncFn := func() error {
+		if err := rootDS.Sync(blockstore.BlockPrefix); err != nil {
+			return err
+		}
+		return rootDS.Sync(filestore.FilestorePrefix)
+	}
+	syncDs := &syncDagService{ds, syncFn}
+	syncInternalDag := &syncDagService{internalDag, syncFn}
+
+	pinning, err := pin.LoadPinner(rootDS, syncDs, syncInternalDag)
 	if err != nil {
 		// TODO: we should move towards only running 'NewPinner' explicitly on
 		// node init instead of implicitly here as a result of the pinner keys
 		// not being found in the datastore.
 		// this is kinda sketchy and could cause data loss
-		pinning = pin.NewPinner(repo.Datastore(), ds, internalDag)
+		pinning = pin.NewPinner(rootDS, syncDs, syncInternalDag)
 	}
 
 	return pinning, nil
+}
+
+// syncDagService is used by the Pinner to ensure data gets persisted to the underlying datastore
+type syncDagService struct {
+	format.DAGService
+	syncFn func() error
+}
+
+func (s *syncDagService) Sync() error {
+	return s.syncFn()
 }
 
 // Dag creates new DAGService
@@ -77,7 +99,18 @@ func OnlineExchange(provide bool) interface{} {
 func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.DAGService) (*mfs.Root, error) {
 	dsk := datastore.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, c cid.Cid) error {
-		return repo.Datastore().Put(dsk, c.Bytes())
+		rootDS := repo.Datastore()
+		if err := rootDS.Sync(blockstore.BlockPrefix); err != nil {
+			return err
+		}
+		if err := rootDS.Sync(filestore.FilestorePrefix); err != nil {
+			return err
+		}
+
+		if err := rootDS.Put(dsk, c.Bytes()); err != nil {
+			return err
+		}
+		return rootDS.Sync(dsk)
 	}
 
 	var nd *merkledag.ProtoNode
