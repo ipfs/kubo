@@ -28,6 +28,7 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	loggables "github.com/libp2p/go-libp2p-loggables"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
@@ -45,6 +46,13 @@ const (
 	cpuProfile         = "ipfs.cpuprof"
 	heapProfile        = "ipfs.memprof"
 )
+
+func init() {
+	// Allow short keys. Otherwise, we'll refuse connections from the
+	// bootsrappers and break the network.
+	// TODO: Remove this when we shut those bootstrappers down.
+	crypto.MinRsaKeyBits = 1024
+}
 
 func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 	plugins, err := loader.NewPluginLoader(repoPath)
