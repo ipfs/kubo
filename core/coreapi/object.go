@@ -11,12 +11,11 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/ipfs/go-ipfs/dagutils"
-	"github.com/ipfs/go-ipfs/pin"
-
 	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
+	"github.com/ipfs/go-merkledag/dagutils"
 	ft "github.com/ipfs/go-unixfs"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
@@ -119,7 +118,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 
 	if options.Pin {
 		api.pinning.PinWithMode(dagnode.Cid(), pin.Recursive)
-		err = api.pinning.Flush()
+		err = api.pinning.Flush(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -307,7 +306,7 @@ func (api *ObjectAPI) Diff(ctx context.Context, before ipath.Path, after ipath.P
 	out := make([]coreiface.ObjectChange, len(changes))
 	for i, change := range changes {
 		out[i] = coreiface.ObjectChange{
-			Type: change.Type,
+			Type: coreiface.ChangeType(change.Type),
 			Path: change.Path,
 		}
 

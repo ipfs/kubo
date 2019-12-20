@@ -189,6 +189,6 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 	if ttEol := time.Until(eol); ttEol < ttl {
 		ttl = ttEol
 	}
-	ns.cacheSet(peer.IDB58Encode(id), value, ttl)
+	ns.cacheSet(peer.Encode(id), value, ttl)
 	return nil
 }

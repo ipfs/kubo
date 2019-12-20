@@ -3,13 +3,12 @@
 ![banner](https://ipfs.io/ipfs/QmVk7srrwahXLNmcDYvyUEJptyoxpndnRa57YJ11L4jV26/ipfs.go.png)
 
 [![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
-[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](http://ipfs.io/)
 [![Matrix](https://img.shields.io/badge/matrix-%23ipfs%3Amatrix.org-blue.svg?style=flat-square)](https://matrix.to/#/room/#ipfs:matrix.org)
 [![IRC](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
 [![Discord](https://img.shields.io/discord/475789330380488707?color=blueviolet&label=discord&style=flat-square)](https://discord.gg/24fmuwR)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/ipfs/go-ipfs)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-[![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs)
-[![Build Status](https://circleci.com/gh/ipfs/go-ipfs.svg?style=svg)](https://circleci.com/gh/ipfs/go-ipfs)
+[![CircleCI](https://img.shields.io/circleci/build/github/ipfs/go-ipfs?style=flat-square)](https://circleci.com/gh/ipfs/go-ipfs)
 
 ## What is IPFS?
 
@@ -149,7 +148,7 @@ PS> scoop install go-ipfs
 
 ### Build from Source
 
-go-ipfs's build system requires Go 1.12 and some standard POSIX build tools:
+go-ipfs's build system requires Go 1.13 and some standard POSIX build tools:
 
 * GNU make
 * Git
@@ -182,6 +181,23 @@ $ make install
 Alternatively, you can run `make build` to build the go-ipfs binary (storing it in `cmd/ipfs/ipfs`) without installing it.
 
 **NOTE:** If you get an error along the lines of "fatal error: stdlib.h: No such file or directory", you're missing a C compiler. Either re-run `make` with `CGO_ENABLED=0` or install GCC.
+
+##### Cross Compiling
+
+Compiling for a different platform is as simple as running:
+
+```
+make build GOOS=myTargetOS GOARCH=myTargetArchitecture
+```
+
+##### OpenSSL
+
+To build go-ipfs with OpenSSL support, append `GOFLAGS=-tags=openssl` to your `make` invocation. Building with OpenSSL should significantly reduce the background CPU usage on nodes that frequently make or receive new connections.
+
+Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross compiling. To cross compile with OpenSSL support, you must:
+
+1. Install a compiler toolchain for the target platform.
+2. Set the `CGO_ENABLED=1` environment variable.
 
 #### Troubleshooting
 
@@ -430,6 +446,10 @@ Some places to get you started on the codebase:
   - DHT: https://github.com/libp2p/go-libp2p-kad-dht
   - PubSub: https://github.com/libp2p/go-libp2p-pubsub
 - [IPFS : The `Add` command demystified](https://github.com/ipfs/go-ipfs/tree/master/docs/add-code-flow.md)
+
+### Map of go-ipfs Subsystems
+**WIP**: This is a high-level architecture diagram of the various sub-systems of go-ipfs. To be updated with how they interact. Anyone who has suggestions is welcome to comment [here](https://docs.google.com/drawings/d/1OVpBT2q-NtSJqlPX3buvjYhOnWfdzb85YEsM_njesME/edit) on how we can improve this!
+<img src="https://docs.google.com/drawings/d/e/2PACX-1vS_n1FvSu6mdmSirkBrIIEib2gqhgtatD9awaP2_WdrGN4zTNeg620XQd9P95WT-IvognSxIIdCM5uE/pub?w=1446&amp;h=1036">
 
 ### CLI, HTTP-API, Architecture Diagram
 

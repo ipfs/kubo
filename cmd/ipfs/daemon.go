@@ -19,7 +19,6 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
@@ -368,11 +367,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// Start "core" plugins. We want to do this *before* starting the HTTP
 	// API as the user may be relying on these plugins.
-	api, err := coreapi.NewCoreAPI(node)
-	if err != nil {
-		return err
-	}
-	err = cctx.Plugins.Start(api)
+	err = cctx.Plugins.Start(node)
 	if err != nil {
 		return err
 	}

@@ -217,6 +217,6 @@ func ParsePeerParam(text string) (ma.Multiaddr, peer.ID, error) {
 		return transport, id, nil
 	}
 	// Raw peer ID
-	p, err := peer.IDB58Decode(text)
+	p, err := peer.Decode(text)
 	return nil, p, err
 }

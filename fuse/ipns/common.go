@@ -23,7 +23,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 		return err
 	}
 
-	err = n.Pinning.Flush()
+	err = n.Pinning.Flush(ctx)
 	if err != nil {
 		return err
 	}

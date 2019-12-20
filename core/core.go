@@ -14,15 +14,7 @@ import (
 	"io"
 
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs/core/bootstrap"
-	"github.com/ipfs/go-ipfs/core/node"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/fuse/mount"
-	"github.com/ipfs/go-ipfs/namesys"
-	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
-	"github.com/ipfs/go-ipfs/p2p"
-	"github.com/ipfs/go-ipfs/pin"
-	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs-pinner"
 
 	bserv "github.com/ipfs/go-blockservice"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -47,6 +39,15 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+
+	"github.com/ipfs/go-ipfs/core/bootstrap"
+	"github.com/ipfs/go-ipfs/core/node"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
+	"github.com/ipfs/go-ipfs/fuse/mount"
+	"github.com/ipfs/go-ipfs/namesys"
+	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
+	"github.com/ipfs/go-ipfs/p2p"
+	"github.com/ipfs/go-ipfs/repo"
 )
 
 var log = logging.Logger("core")
@@ -66,16 +67,16 @@ type IpfsNode struct {
 	PNetFingerprint libp2p.PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
-	Peerstore       pstore.Peerstore     `optional:"true"` // storage for other Peer instances
-	Blockstore      bstore.GCBlockstore  // the block store (lower level)
-	Filestore       *filestore.Filestore `optional:"true"` // the filestore blockstore
-	BaseBlocks      node.BaseBlocks      // the raw blockstore, no filestore wrapping
-	GCLocker        bstore.GCLocker      // the locker used to protect the blockstore during gc
-	Blocks          bserv.BlockService   // the block service, get/add blocks.
-	DAG             ipld.DAGService      // the merkle dag service, get/add objects.
-	Resolver        *resolver.Resolver   // the path resolution system
-	Reporter        metrics.Reporter     `optional:"true"`
-	Discovery       discovery.Service    `optional:"true"`
+	Peerstore       pstore.Peerstore          `optional:"true"` // storage for other Peer instances
+	Blockstore      bstore.GCBlockstore       // the block store (lower level)
+	Filestore       *filestore.Filestore      `optional:"true"` // the filestore blockstore
+	BaseBlocks      node.BaseBlocks           // the raw blockstore, no filestore wrapping
+	GCLocker        bstore.GCLocker           // the locker used to protect the blockstore during gc
+	Blocks          bserv.BlockService        // the block service, get/add blocks.
+	DAG             ipld.DAGService           // the merkle dag service, get/add objects.
+	Resolver        *resolver.Resolver        // the path resolution system
+	Reporter        *metrics.BandwidthCounter `optional:"true"`
+	Discovery       discovery.Service         `optional:"true"`
 	FilesRoot       *mfs.Root
 	RecordValidator record.Validator
 

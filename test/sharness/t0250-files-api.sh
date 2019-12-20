@@ -683,6 +683,14 @@ test_files_api() {
     ipfs files rm --force /forcibly-dir &&
     verify_dir_contents /
   '
+
+  test_expect_success "remove nonexistant path forcibly" '
+    ipfs files rm --force /nonexistant
+  '
+
+  test_expect_success "remove deeply nonexistant path forcibly" '
+    ipfs files rm --force /deeply/nonexistant
+  '
 }
 
 # test offline and online

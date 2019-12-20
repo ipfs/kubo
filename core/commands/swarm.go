@@ -354,7 +354,7 @@ var swarmConnectCmd = &cmds.Command{
 
 The address format is an IPFS multiaddr:
 
-ipfs swarm connect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -399,7 +399,7 @@ var swarmDisconnectCmd = &cmds.Command{
 'ipfs swarm disconnect' closes a connection to a peer address. The address
 format is an IPFS multiaddr:
 
-ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+ipfs swarm disconnect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 
 The disconnect is not permanent; if ipfs needs to talk to that address later,
 it will reconnect.

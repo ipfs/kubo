@@ -3,6 +3,7 @@ package namesys
 import (
 	"context"
 	"crypto/rand"
+	"github.com/ipfs/go-path"
 	"testing"
 	"time"
 
@@ -109,4 +110,46 @@ func TestRSAPublisher(t *testing.T) {
 
 func TestEd22519Publisher(t *testing.T) {
 	testNamekeyPublisher(t, ci.Ed25519, ds.ErrNotFound, false)
+}
+
+func TestAsyncDS(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	rt := mockrouting.NewServer().Client(testutil.RandIdentityOrFatal(t))
+	ds := &checkSyncDS{
+		Datastore: ds.NewMapDatastore(),
+		syncKeys:  make(map[ds.Key]struct{}),
+	}
+	publisher := NewIpnsPublisher(rt, ds)
+
+	ipnsFakeID := testutil.RandIdentityOrFatal(t)
+	ipnsVal, err := path.ParsePath("/ipns/foo.bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := publisher.Publish(ctx, ipnsFakeID.PrivateKey(), ipnsVal); err != nil {
+		t.Fatal(err)
+	}
+
+	ipnsKey := IpnsDsKey(ipnsFakeID.ID())
+
+	for k := range ds.syncKeys {
+		if k.IsAncestorOf(ipnsKey) || k.Equal(ipnsKey) {
+			return
+		}
+	}
+
+	t.Fatal("ipns key not synced")
+}
+
+type checkSyncDS struct {
+	ds.Datastore
+	syncKeys map[ds.Key]struct{}
+}
+
+func (d *checkSyncDS) Sync(prefix ds.Key) error {
+	d.syncKeys[prefix] = struct{}{}
+	return d.Datastore.Sync(prefix)
 }

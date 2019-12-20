@@ -8,15 +8,14 @@ import (
 	"strings"
 
 	bserv "github.com/ipfs/go-blockservice"
-	pin "github.com/ipfs/go-ipfs/pin"
-	dag "github.com/ipfs/go-merkledag"
-
 	cid "github.com/ipfs/go-cid"
 	dstore "github.com/ipfs/go-datastore"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	pin "github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
+	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-verifcid"
 )
 
@@ -201,7 +200,11 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	err := Descendants(ctx, getLinks, gcs, pn.RecursiveKeys())
+	rkeys, err := pn.RecursiveKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = Descendants(ctx, getLinks, gcs, rkeys)
 	if err != nil {
 		errors = true
 		select {
@@ -233,11 +236,19 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 	}
 
-	for _, k := range pn.DirectKeys() {
+	dkeys, err := pn.DirectKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, k := range dkeys {
 		gcs.Add(k)
 	}
 
-	err = Descendants(ctx, getLinks, gcs, pn.InternalPins())
+	ikeys, err := pn.InternalPins(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = Descendants(ctx, getLinks, gcs, ikeys)
 	if err != nil {
 		errors = true
 		select {
