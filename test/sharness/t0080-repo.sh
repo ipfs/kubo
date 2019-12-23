@@ -247,10 +247,10 @@ test_expect_success "'ipfs repo stat --human' succeeds" '
 
 test_expect_success "repo stats --human came out correct" '
   grep "RepoPath" repo-stats-human &&
-  grep -P "RepoSize:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human &&
+  grep -E "RepoSize:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human &&
   grep "NumObjects" repo-stats-human &&
   grep "Version" repo-stats-human &&
-  grep -P "StorageMax:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human ||
+  grep -E "StorageMax:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human ||
   test_fsh cat repo-stats-human
 '
 
