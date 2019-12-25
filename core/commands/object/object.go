@@ -34,7 +34,7 @@ type Object struct {
 	Links []Link `json:"Links,omitempty"`
 }
 
-var ErrDataEncoding = errors.New("unkown data field encoding")
+var ErrDataEncoding = errors.New("unknown data field encoding")
 
 const (
 	headersOptionName      = "headers"
@@ -197,7 +197,7 @@ This command outputs data in the following encodings:
   * "xml"
 (Specified by the "--encoding" or "--enc" flag)
 
-The encoding of the object's data field can be specifed by using the
+The encoding of the object's data field can be specified by using the
 --data-encoding flag
 
 Supported values are:

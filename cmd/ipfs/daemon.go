@@ -402,7 +402,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	// Add ipfs version info to prometheous metrics
+	// Add ipfs version info to prometheus metrics
 	var ipfsInfoMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "ipfs_info",
 		Help: "IPFS version information.",

@@ -169,7 +169,7 @@ test_expect_success 'start http server' '
     start_http_server
 '
 
-test_expect_success 'handle proxy http request propogates error response from remote' '
+test_expect_success 'handle proxy http request propagates error response from remote' '
     serve_content "SORRY GUYS, I LOST IT" "404 Not Found" &&
     curl_send_proxy_request_and_check_response 404 "SORRY GUYS, I LOST IT"
 '

@@ -35,7 +35,7 @@ You may have to create /ipfs and /ipns before using 'ipfs mount':
 `,
 		LongDescription: `
 Mount IPFS at a read-only mountpoint on the OS. The default, /ipfs and /ipns,
-are set in the configuration file, but can be overriden by the options.
+are set in the configuration file, but can be overridden by the options.
 All IPFS objects will be accessible under this directory. Note that the
 root will not be listable, as it is virtual. Access known paths directly.
 
