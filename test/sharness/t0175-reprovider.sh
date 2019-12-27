@@ -16,7 +16,7 @@ init_strategy() {
     PEERID_1=$(iptb attr get 1 id)
   '
 
-  test_expect_success 'use pinning startegy for reprovider' '
+  test_expect_success 'use pinning strategy for reprovider' '
     ipfsi 0 config Reprovider.Strategy '$1'
   '
 

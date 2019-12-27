@@ -28,7 +28,7 @@ test_urlstore() {
   
   test_launch_ipfs_daemon --offline
   
-  test_expect_success "make sure files can be retrived via the gateway" '
+  test_expect_success "make sure files can be retrieved via the gateway" '
     curl http://127.0.0.1:$GWAY_PORT/ipfs/$HASH1a -o file1.actual &&
     test_cmp file1 file1.actual &&
     curl http://127.0.0.1:$GWAY_PORT/ipfs/$HASH2a -o file2.actual &&

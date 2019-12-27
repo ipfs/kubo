@@ -338,7 +338,7 @@ func deserializeNode(nd *Node, dataFieldEncoding string) (*dag.ProtoNode, error)
 		}
 		dagnode.SetData(data)
 	default:
-		return nil, fmt.Errorf("unkown data field encoding")
+		return nil, fmt.Errorf("unknown data field encoding")
 	}
 
 	links := make([]*ipld.Link, len(nd.Links))

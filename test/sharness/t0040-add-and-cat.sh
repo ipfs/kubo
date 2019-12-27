@@ -193,7 +193,7 @@ test_add_cat_file() {
     test_expect_code 1 ipfs add -Q --chunker rabin-12-512-1024 mountdir/hello.txt
   '
 
-  test_expect_success "ipfs add --chunker buzhash suceeds" '
+  test_expect_success "ipfs add --chunker buzhash succeeds" '
     ipfs add --chunker buzhash mountdir/hello.txt >actual
   '
 
@@ -787,11 +787,11 @@ test_add_cat_5MB '--cid-version=1 --raw-leaves=false' "bafybeieyifrgpjn3yengthr7
 
 # note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
 # the specified hash represents the leaf nodes stored as raw leaves and
-# encoded with the blake2b-256 hash funtion
+# encoded with the blake2b-256 hash function
 test_add_cat_5MB '--hash=blake2b-256' "bafykbzacebnmjcl4sn37b3ehtibvf263oun2w6idghenrvlpehq5w5jqyvhjo"
 
 # the specified hash represents the leaf nodes stored as protoful nodes and
-# encoded with the blake2b-256 hash funtion
+# encoded with the blake2b-256 hash function
 test_add_cat_5MB '--hash=blake2b-256 --raw-leaves=false' "bafykbzaceaxiiykzgpbhnzlecffqm3zbuvhujyvxe5scltksyafagkyw4rjn2"
 
 test_add_cat_expensive "" "QmU9SWAPPmNEKZB8umYMmjYvN7VyHqABNvdA6GUi4MMEz3"
@@ -802,7 +802,7 @@ test_add_cat_expensive "--cid-version=1" "bafybeidkj5ecbhrqmzrcee2rw7qwsx24z3364
 
 # note: --hash=blake2b-256 implies --cid-version=1 which implies --raw-leaves=true
 # the specified hash represents the leaf nodes stored as raw leaves and
-# encoded with the blake2b-256 hash funtion
+# encoded with the blake2b-256 hash function
 test_add_cat_expensive '--hash=blake2b-256' "bafykbzaceb26fnq5hz5iopzamcb4yqykya5x6a4nvzdmcyuu4rj2akzs3z7r6"
 
 test_add_named_pipe
