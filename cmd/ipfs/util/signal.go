@@ -12,6 +12,12 @@ import (
 	"syscall"
 )
 
+type nativeNotifierFunc func(ih *IntrHandler, consumerLine chan os.Signal, requestedSignals ...os.Signal)
+
+// if you need to register platform specific signals not handled by Golang's stdlib
+// define this function and set it during `init`
+var nativeNotifier nativeNotifierFunc
+
 // IntrHandler helps set up an interrupt handler that can
 // be cleanly shut down through the io.Closer interface.
 type IntrHandler struct {
@@ -36,7 +42,16 @@ func (ih *IntrHandler) Close() error {
 // handler's wait group to ensure clean shutdown when Close() is called.
 func (ih *IntrHandler) Handle(handler func(count int, ih *IntrHandler), sigs ...os.Signal) {
 	notify := make(chan os.Signal, 1)
+
+	// register with Golang's stdlib
 	signal.Notify(notify, sigs...)
+
+	// if we have platform specific handler logic
+	// call it so it can inject signals from the OS
+	if nativeNotifier != nil {
+		nativeNotifier(ih, notify, sigs...)
+	}
+
 	ih.wg.Add(1)
 	go func() {
 		defer ih.wg.Done()
