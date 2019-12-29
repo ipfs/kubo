@@ -84,6 +84,7 @@ You can also download go-ipfs from this project's GitHub releases page if you ar
 
 - [Arch Linux](#arch-linux)
 - [Nix](#nix)
+- [Solus](#solus)
 - [Snap](#snap)
 
 #### Arch Linux
@@ -116,6 +117,17 @@ GNU's functional package manager, [Guix](https://www.gnu.org/software/guix/), al
 ```
 $ guix package -i go-ipfs
 ```
+
+#### Solus
+
+In solus, go-ipfs is available in the main repository as
+[go-ipfs](https://dev.getsol.us/source/go-ipfs/repository/master/).
+
+```
+$ sudo eopkg install go-ipfs
+```
+
+You can also install it trough the Solus software center.
 
 #### Snap
 
