@@ -57,14 +57,14 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
-	github.com/libp2p/go-libp2p v0.5.1-0.20191220171104-516fa8289e69
+	github.com/libp2p/go-libp2p v0.5.1-0.20191230184347-6dbc0b2b46ba
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
 	github.com/libp2p/go-libp2p-circuit v0.1.4
 	github.com/libp2p/go-libp2p-connmgr v0.1.1
-	github.com/libp2p/go-libp2p-core v0.3.1-0.20191220170916-98dd5161fa2e
+	github.com/libp2p/go-libp2p-core v0.3.1-0.20191230184106-204a57d1afe1
 	github.com/libp2p/go-libp2p-discovery v0.2.0
 	github.com/libp2p/go-libp2p-http v0.1.4
-	github.com/libp2p/go-libp2p-kad-dht v0.4.2-0.20191220172057-b1a1cf3e255c
+	github.com/libp2p/go-libp2p-kad-dht v0.4.2-0.20191230184437-fd2e9b7e3db2
 	github.com/libp2p/go-libp2p-kbucket v0.2.3
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.1
