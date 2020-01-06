@@ -289,7 +289,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 
 		// write to request
-		http.ServeContent(w, r, "index.html", modtime, f)
+		i.serveFile(w, r, "index.html", modtime, f)
 		return
 	case resolver.ErrNoLink:
 		// no index.html; noop
@@ -306,14 +306,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var dirListing []directoryItem
 	dirit := dir.Entries()
 	for dirit.Next() {
-		// See comment above where originalUrlPath is declared.
-		s, err := dirit.Node().Size()
-		if err != nil {
-			internalWebError(w, err)
-			return
+		size := "?"
+		if s, err := dirit.Node().Size(); err == nil {
+			// Size may not be defined/supported. Continue anyways.
+			size = humanize.Bytes(uint64(s))
 		}
 
-		di := directoryItem{humanize.Bytes(uint64(s)), dirit.Name(), gopath.Join(originalUrlPath, dirit.Name())}
+		// See comment above where originalUrlPath is declared.
+		di := directoryItem{size, dirit.Name(), gopath.Join(originalUrlPath, dirit.Name())}
 		dirListing = append(dirListing, di)
 	}
 	if dirit.Err() != nil {
@@ -372,48 +372,42 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-type sizeReadSeeker interface {
-	Size() (int64, error)
-
-	io.ReadSeeker
-}
-
-type sizeSeeker struct {
-	sizeReadSeeker
-}
-
-func (s *sizeSeeker) Seek(offset int64, whence int) (int64, error) {
-	if whence == io.SeekEnd && offset == 0 {
-		return s.Size()
+func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
+	size, err := file.Size()
+	if err != nil {
+		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
+		return
 	}
 
-	return s.sizeReadSeeker.Seek(offset, whence)
-}
+	content := &lazySeeker{
+		size:   size,
+		reader: file,
+	}
 
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
-	if sp, ok := content.(sizeReadSeeker); ok {
-		content = &sizeSeeker{
-			sizeReadSeeker: sp,
+	var ctype string
+	if _, isSymlink := file.(*files.Symlink); isSymlink {
+		// We should be smarter about resolving symlinks but this is the
+		// "most correct" we can be without doing that.
+		ctype = "inode/symlink"
+	} else {
+		ctype = mime.TypeByExtension(gopath.Ext(name))
+		if ctype == "" {
+			buf := make([]byte, 512)
+			n, _ := io.ReadFull(content, buf[:])
+			ctype = http.DetectContentType(buf[:n])
+			_, err := content.Seek(0, io.SeekStart)
+			if err != nil {
+				http.Error(w, "seeker can't seek", http.StatusInternalServerError)
+				return
+			}
 		}
-	}
-
-	ctype := mime.TypeByExtension(gopath.Ext(name))
-	if ctype == "" {
-		buf := make([]byte, 512)
-		n, _ := io.ReadFull(content, buf[:])
-		ctype = http.DetectContentType(buf[:n])
-		_, err := content.Seek(0, io.SeekStart)
-		if err != nil {
-			http.Error(w, "seeker can't seek", http.StatusInternalServerError)
-			return
+		// Strip the encoding from the HTML Content-Type header and let the
+		// browser figure it out.
+		//
+		// Fixes https://github.com/ipfs/go-ipfs/issues/2203
+		if strings.HasPrefix(ctype, "text/html;") {
+			ctype = "text/html"
 		}
-	}
-	// Strip the encoding from the HTML Content-Type header and let the
-	// browser figure it out.
-	//
-	// Fixes https://github.com/ipfs/go-ipfs/issues/2203
-	if strings.HasPrefix(ctype, "text/html;") {
-		ctype = "text/html"
 	}
 	w.Header().Set("Content-Type", ctype)
 
