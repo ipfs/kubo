@@ -169,10 +169,7 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 			emitErr = resp.Emit(res)
 			continue
 		}
-		base := opts.newBase
-		if base == -1 {
-			base, _ = cid.ExtractEncoding(cidStr)
-		}
+
 		if opts.verConv != nil {
 			c, err = opts.verConv(c)
 			if err != nil {
@@ -181,6 +178,16 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 				continue
 			}
 		}
+
+		base := opts.newBase
+		if base == -1 {
+			if c.Version() == 0 {
+				base = mbase.Base58BTC
+			} else {
+				base, _ = cid.ExtractEncoding(cidStr)
+			}
+		}
+
 		str, err := cidutil.Format(opts.fmtStr, base, c)
 		if _, ok := err.(cidutil.FormatStringError); ok {
 			// no point in continuing if there is a problem with the format string

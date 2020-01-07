@@ -26,6 +26,12 @@ test_expect_success "cid format -v 1 -b base58btc" '
   test_cmp expected actual2
 '
 
+test_expect_success "cid format -v 0" '
+  echo $CIDv0 > expected &&
+  ipfs cid format -v 0 $CIDb32 > actual &&
+  test_cmp expected actual
+'
+
 cat <<EOF > various_cids
 QmZZRTyhDpL5Jgift1cHbAhexeE1m2Hw8x8g7rTcPahDvo
  QmPhk6cJkRcFfZCdYam4c9MKYjFG9V29LswUnbrFNhtk2S
