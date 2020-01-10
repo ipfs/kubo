@@ -83,24 +83,23 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if i.config.Writable {
 		switch r.Method {
-		case "POST":
+		case http.MethodPost:
 			i.postHandler(w, r)
 			return
-		case "PUT":
+		case http.MethodPut:
 			i.putHandler(w, r)
 			return
-		case "DELETE":
+		case http.MethodDelete:
 			i.deleteHandler(w, r)
 			return
 		}
 	}
 
-	if r.Method == "GET" || r.Method == "HEAD" {
+	switch r.Method {
+	case http.MethodGet, http.MethodHead:
 		i.getOrHeadHandler(w, r)
 		return
-	}
-
-	if r.Method == "OPTIONS" {
+	case http.MethodOptions:
 		i.optionsHandler(w, r)
 		return
 	}
@@ -298,7 +297,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if r.Method == "HEAD" {
+	if r.Method == http.MethodHead {
 		return
 	}
 
