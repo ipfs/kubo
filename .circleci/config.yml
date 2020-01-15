@@ -43,6 +43,16 @@ executors:
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
+  node-browsers:
+    docker:
+      - image: circleci/node:10-browsers
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
+      NO_SANDBOX: true
+      IPFS_REUSEPORT: false
+      LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
+      E2E_IPFSD_TYPE: go
 
 jobs:
   gobuild:
@@ -188,7 +198,7 @@ jobs:
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             IPFS_REUSEPORT: false
-            LIBP2P_ALLOW_WEAK_RSA_KEYS: true
+            LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
       - store_test_results:
           path: /tmp/test-results
@@ -255,6 +265,41 @@ jobs:
           paths:
             - ~/go/pkg/mod
             - ~/.cache/go-build/
+  ipfs-webui:
+    executor: node-browsers
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Cloning
+          command: |
+            git clone https://github.com/ipfs-shipyard/ipfs-webui.git
+            git -C ipfs-webui log -1
+      - restore_cache:
+          keys:
+            - v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
+            - v1-ipfs-webui-
+      - run:
+          name: Installing dependencies
+          command: |
+            npm install
+          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+      - run:
+          name: Running upstream tests (finish early if they fail)
+          command: |
+            npm test || circleci-agent step halt
+          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+      - run:
+          name: Running tests with go-ipfs built from current commit
+          command: npm test
+          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+          environment:
+            IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
+      - save_cache:
+          key: v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
+          paths:
+            - ~/ipfs/go-ipfs/ipfs-webui/node_modules
 workflows:
   version: 2
   test:
@@ -271,5 +316,8 @@ workflows:
         requires:
           - build
     - go-ipfs-http-client:
+        requires:
+          - build
+    - ipfs-webui:
         requires:
           - build
