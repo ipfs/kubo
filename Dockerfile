@@ -52,6 +52,9 @@ COPY --from=0 /etc/ssl/certs /etc/ssl/certs
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /usr/local/bin/fusermount
 
+# Fix permissions on start_ipfs (ignore the build machine's permissions)
+RUN chmod 0755 /usr/local/bin/start_ipfs
+
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
 COPY --from=0 /lib/x86_64-linux-gnu/libdl.so.2 /lib/libdl.so.2
 
