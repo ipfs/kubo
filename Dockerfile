@@ -1,4 +1,4 @@
-FROM golang:1.13.4-buster
+FROM golang:1.13.6-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 ENV SRC_DIR /go-ipfs
