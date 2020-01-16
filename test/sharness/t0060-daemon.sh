@@ -108,8 +108,9 @@ test_expect_success "ipfs version deps succeeds" '
   ipfs version deps >deps.txt
 '
 
-test_expect_success "ipfs version deps output looks good" '
+test_expect_success "ipfs version deps output looks good ( set \$GOIPFSTEST_SKIP_LOCAL_DEVTREE_DEPS_CHECK to skip this test )" '
   head -1 deps.txt | grep "go-ipfs@(devel)" &&
+  [[ "$GOIPFSTEST_SKIP_LOCAL_DEVTREE_DEPS_CHECK" == "1" ]] ||
   [[ $(tail -n +2 deps.txt | egrep -v -c "^[^ @]+@v[^ @]+( => [^ @]+@v[^ @]+)?$") -eq 0 ]] ||
   test_fsh cat deps.txt
 '
@@ -124,13 +125,8 @@ test_expect_success "ipfs help output looks good" '
   test_fsh cat help.txt
 '
 
-# netcat (nc) is needed for the following test
-test_expect_success "socat is available" '
-  type socat >/dev/null
-'
-
 # check transport is encrypted
-test_expect_success "transport should be encrypted" '
+test_expect_success SOCAT "transport should be encrypted ( needs socat )" '
   socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-ls &&
   grep -q "/secio" swarmnc &&
   test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||

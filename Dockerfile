@@ -1,5 +1,11 @@
-FROM golang:1.13.4-buster
+FROM golang:1.13.6-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
+
+# Install deps
+RUN apt-get update && apt-get install -y \
+  libssl-dev \
+  ca-certificates \
+  fuse
 
 ENV SRC_DIR /go-ipfs
 
@@ -14,12 +20,12 @@ COPY . $SRC_DIR
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
   && mkdir .git/objects \
-  && make build
+  && make build GOFLAGS=-tags=openssl
 
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
-ENV TINI_VERSION v0.16.1
+ENV TINI_VERSION v0.18.0
 RUN set -x \
   && cd /tmp \
   && git clone https://github.com/ncopa/su-exec.git \
@@ -29,12 +35,6 @@ RUN set -x \
   && cd /tmp \
   && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
   && chmod +x tini
-
-# Get the TLS CA certificates, they're not provided by busybox.
-RUN apt-get update && apt-get install -y ca-certificates
-
-# Install FUSE
-RUN apt-get update && apt-get install -y fuse
 
 # Now comes the actual target image, which aims to be as small as possible.
 FROM busybox:1.31.0-glibc
@@ -52,8 +52,15 @@ COPY --from=0 /etc/ssl/certs /etc/ssl/certs
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /usr/local/bin/fusermount
 
+# Fix permissions on start_ipfs (ignore the build machine's permissions)
+RUN chmod 0755 /usr/local/bin/start_ipfs
+
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
 COPY --from=0 /lib/x86_64-linux-gnu/libdl.so.2 /lib/libdl.so.2
+
+# Copy over SSL libraries.
+COPY --from=0 /usr/lib/x86_64-linux-gnu/libssl.so* /usr/lib/
+COPY --from=0 /usr/lib/x86_64-linux-gnu/libcrypto.so* /usr/lib/
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001

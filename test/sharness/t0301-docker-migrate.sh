@@ -10,8 +10,13 @@ test_description="Test docker image migration"
 
 # if in travis CI on OSX, docker is not available
 if ! test_have_prereq DOCKER; then
-  skip_all='skipping docker tests, docker not available'
+  skip_all='skipping '$test_description', docker not available'
 
+  test_done
+fi
+
+if ! test_have_prereq SOCAT; then
+  skip_all="skipping '$test_description': socat is not available"
   test_done
 fi
 

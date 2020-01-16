@@ -46,7 +46,7 @@ test_expect_success "pin add api looks right - #3753" '
   test_cmp pinrm_out pinrm_exp
 '
 
-test_expect_success "no daemon crash on improper file argument - #4003" '
+test_expect_success SOCAT "no daemon crash on improper file argument - #4003 ( test needs socat )" '
   FNC=$(echo $API_ADDR | awk -F: '\''{ printf "%s:%s", $1, $2 }'\'') &&
   printf "POST /api/v0/add?pin=true HTTP/1.1\r\nHost: $API_ADDR\r\nContent-Type: multipart/form-data; boundary=Pyw9xQLtiLPE6XcI\r\nContent-Length: 22\r\n\r\n\r\n--Pyw9xQLtiLPE6XcI\r\n" | socat STDIO tcp-connect:$FNC | grep -m1 "500 Internal Server Error"
 '

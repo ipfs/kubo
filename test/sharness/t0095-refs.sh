@@ -182,4 +182,6 @@ test_refs_output '' 'cat'
 
 test_refs_output '--cid-base=base32' 'ipfs cid base32'
 
+test_kill_ipfs_daemon
+
 test_done

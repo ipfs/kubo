@@ -132,4 +132,6 @@ test_expect_success "stop testbed" '
   iptb stop
 '
 
+test_kill_ipfs_daemon
+
 test_done
