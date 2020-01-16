@@ -186,7 +186,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		}
 		nd, err := s.Ipfs.DAG.Get(ctx, lnk.Cid)
 		if err != nil {
-			log.Warning("error fetching directory child node: ", err)
+			log.Warn("error fetching directory child node: ", err)
 		}
 
 		t := fuse.DT_Unknown
@@ -195,7 +195,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			t = fuse.DT_File
 		case *mdag.ProtoNode:
 			if fsn, err := ft.FSNodeFromBytes(nd.Data()); err != nil {
-				log.Warning("failed to unmarshal protonode data field:", err)
+				log.Warn("failed to unmarshal protonode data field:", err)
 			} else {
 				switch fsn.Type() {
 				case ft.TDirectory, ft.THAMTShard:

@@ -80,7 +80,7 @@ func Bootstrap(id peer.ID, host host.Host, rt routing.Routing, cfg BootstrapConf
 	if len(cfg.BootstrapPeers()) == 0 {
 		// We *need* to bootstrap but we have no bootstrap peers
 		// configured *at all*, inform the user.
-		log.Warning("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
+		log.Warn("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
 	}
 
 	// the periodic bootstrap function -- the connection supervisor

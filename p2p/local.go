@@ -76,7 +76,7 @@ func (l *localListener) setupStream(local manet.Conn) {
 	remote, err := l.dial(l.ctx)
 	if err != nil {
 		local.Close()
-		log.Warningf("failed to dial to remote %s/%s", l.peer.Pretty(), l.proto)
+		log.Warnf("failed to dial to remote %s/%s", l.peer.Pretty(), l.proto)
 		return
 	}
 

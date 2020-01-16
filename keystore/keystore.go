@@ -168,7 +168,7 @@ func (ks *FSKeystore) List() ([]string, error) {
 		if err == nil {
 			list = append(list, name)
 		} else {
-			log.Warningf("Ignoring the invalid keyfile: %s", name)
+			log.Warnf("Ignoring the invalid keyfile: %s", name)
 		}
 	}
 

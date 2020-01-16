@@ -201,7 +201,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	ipnsName := "/ipns/" + name
 	resolved, err := s.Ipfs.Namesys.Resolve(s.Ipfs.Context(), ipnsName)
 	if err != nil {
-		log.Warningf("ipns: namesys resolve error: %s", err)
+		log.Warnf("ipns: namesys resolve error: %s", err)
 		return nil, fuse.ENOENT
 	}
 
