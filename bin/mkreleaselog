@@ -63,7 +63,7 @@ dep_changes() {
 
 # resolve_commits resolves a git ref for each version.
 resolve_commits() {
-    jq '. + {Ref: (.Version|capture("^((?<ref1>.*)\\+incompatible|v.*-[0-9]{14}-(?<ref2>[a-f0-9]{12})|(?<ref3>v.*))$") | .ref1 // .ref2 // .ref3)}'
+    jq '. + {Ref: (.Version|capture("^((?<ref1>.*)\\+incompatible|v.*-(0\\.)?[0-9]{14}-(?<ref2>[a-f0-9]{12})|(?<ref3>v.*))$") | .ref1 // .ref2 // .ref3)}'
 }
 
 # Generate a release log for a range of commits in a single repo.
