@@ -3,7 +3,7 @@
 package main
 
 import (
-	daemon "github.com/coreos/go-systemd/daemon"
+	daemon "github.com/coreos/go-systemd/v22/daemon"
 )
 
 func notifyReady() {
