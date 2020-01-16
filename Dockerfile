@@ -19,7 +19,7 @@ RUN cd $SRC_DIR \
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
-ENV TINI_VERSION v0.16.1
+ENV TINI_VERSION v0.18.0
 RUN set -x \
   && cd /tmp \
   && git clone https://github.com/ncopa/su-exec.git \
