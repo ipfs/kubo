@@ -27,8 +27,12 @@ default_environment: &default_environment
 
 executors:
   golang:
+    parameters:
+      tag:
+        type: string
+        default: "1.12"
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:<< parameters.tag >>
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -203,7 +207,9 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
   go-ipfs-api:
-    executor: golang
+    executor:
+      name: golang
+      tag: "1.13"
     steps:
       - *make_out_dirs
       - attach_workspace:
