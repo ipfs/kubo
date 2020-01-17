@@ -59,10 +59,11 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2
 	github.com/jbenet/goprocess v0.1.3
-	github.com/libp2p/go-libp2p v0.0.28
+	github.com/libp2p/go-flow-metrics v0.0.3 // indirect
+	github.com/libp2p/go-libp2p v0.0.32
 	github.com/libp2p/go-libp2p-autonat-svc v0.0.5
-	github.com/libp2p/go-libp2p-circuit v0.0.8
-	github.com/libp2p/go-libp2p-connmgr v0.0.6
+	github.com/libp2p/go-libp2p-circuit v0.0.9
+	github.com/libp2p/go-libp2p-connmgr v0.0.7
 	github.com/libp2p/go-libp2p-crypto v0.0.2
 	github.com/libp2p/go-libp2p-host v0.0.3
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.5
@@ -84,12 +85,13 @@ require (
 	github.com/libp2p/go-libp2p-routing-helpers v0.0.2
 	github.com/libp2p/go-libp2p-secio v0.0.3
 	github.com/libp2p/go-libp2p-swarm v0.0.6
-	github.com/libp2p/go-libp2p-tls v0.0.1
+	github.com/libp2p/go-libp2p-tls v0.0.2
 	github.com/libp2p/go-libp2p-yamux v0.1.3
 	github.com/libp2p/go-maddr-filter v0.0.4
 	github.com/libp2p/go-mplex v0.0.4 // indirect
 	github.com/libp2p/go-stream-muxer v0.0.1
 	github.com/libp2p/go-testutil v0.0.1
+	github.com/libp2p/go-ws-transport v0.0.6 // indirect
 	github.com/libp2p/go-yamux v1.2.3 // indirect
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
