@@ -18,7 +18,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/routing"
-	"github.com/libp2p/go-libp2p-loggables"
 )
 
 var log = logging.Logger("bootstrap")
@@ -86,10 +85,8 @@ func Bootstrap(id peer.ID, host host.Host, rt routing.Routing, cfg BootstrapConf
 	// the periodic bootstrap function -- the connection supervisor
 	periodic := func(worker goprocess.Process) {
 		ctx := goprocessctx.OnClosingContext(worker)
-		defer log.EventBegin(ctx, "periodicBootstrap", id).Done()
 
 		if err := bootstrapRound(ctx, host, cfg); err != nil {
-			log.Event(ctx, "bootstrapError", id, loggables.Error(err))
 			log.Debugf("%s bootstrap error: %s", id, err)
 		}
 
@@ -126,7 +123,6 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	// determine how many bootstrap connections to open
 	connected := host.Network().Peers()
 	if len(connected) >= cfg.MinPeerThreshold {
-		log.Event(ctx, "bootstrapSkip", id)
 		log.Debugf("%s core bootstrap skipped -- connected to %d (> %d) nodes",
 			id, len(connected), cfg.MinPeerThreshold)
 		return nil
@@ -150,7 +146,6 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	// connect to a random susbset of bootstrap candidates
 	randSubset := randomSubsetOfPeers(notConnected, numToDial)
 
-	defer log.EventBegin(ctx, "bootstrapStart", id).Done()
 	log.Debugf("%s bootstrapping to %d nodes: %s", id, numToDial, randSubset)
 	return bootstrapConnect(ctx, host, randSubset)
 }
@@ -172,17 +167,14 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []peer.AddrInfo) 
 		wg.Add(1)
 		go func(p peer.AddrInfo) {
 			defer wg.Done()
-			defer log.EventBegin(ctx, "bootstrapDial", ph.ID(), p.ID).Done()
 			log.Debugf("%s bootstrapping to %s", ph.ID(), p.ID)
 
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 			if err := ph.Connect(ctx, p); err != nil {
-				log.Event(ctx, "bootstrapDialFailed", p.ID)
 				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
 				return
 			}
-			log.Event(ctx, "bootstrapDialSuccess", p.ID)
 			log.Infof("bootstrapped with %v", p.ID)
 		}(p)
 	}

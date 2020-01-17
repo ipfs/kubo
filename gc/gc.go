@@ -40,11 +40,7 @@ type Result struct {
 func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []cid.Cid) <-chan Result {
 	ctx, cancel := context.WithCancel(ctx)
 
-	elock := log.EventBegin(ctx, "GC.lockWait")
 	unlocker := bs.GCLock()
-	elock.Done()
-	elock = log.EventBegin(ctx, "GC.locked")
-	emark := log.EventBegin(ctx, "GC.mark")
 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
@@ -55,7 +51,6 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 		defer cancel()
 		defer close(output)
 		defer unlocker.Unlock()
-		defer elock.Done()
 
 		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
 		if err != nil {
@@ -65,12 +60,6 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			}
 			return
 		}
-		emark.Append(logging.LoggableMap{
-			"blackSetSize": fmt.Sprintf("%d", gcs.Len()),
-		})
-		emark.Done()
-		esweep := log.EventBegin(ctx, "GC.sweep")
-
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
 			select {
@@ -113,10 +102,6 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 				break loop
 			}
 		}
-		esweep.Append(logging.LoggableMap{
-			"whiteSetSize": fmt.Sprintf("%d", removed),
-		})
-		esweep.Done()
 		if errors {
 			select {
 			case output <- Result{Error: ErrCannotDeleteSomeBlocks}:
@@ -125,7 +110,6 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			}
 		}
 
-		defer log.EventBegin(ctx, "GC.datastore").Done()
 		gds, ok := dstor.(dstore.GCDatastore)
 		if !ok {
 			return
