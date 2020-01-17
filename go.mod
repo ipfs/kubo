@@ -2,6 +2,7 @@ module github.com/ipfs/go-ipfs
 
 require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669
+	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/Kubuxu/go-os-helper v0.0.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
@@ -14,6 +15,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hsanjuan/go-libp2p-http v0.0.2
+	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/dir-index-html v1.0.3
 	github.com/ipfs/go-bitswap v0.0.8-0.20190704155249-cbb485998356
 	github.com/ipfs/go-block-format v0.0.2
