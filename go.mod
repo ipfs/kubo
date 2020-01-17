@@ -17,7 +17,7 @@ require (
 	github.com/hsanjuan/go-libp2p-http v0.0.2
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/dir-index-html v1.0.3
-	github.com/ipfs/go-bitswap v0.0.8-0.20190704155249-cbb485998356
+	github.com/ipfs/go-bitswap v0.0.8-0.20200117195305-e37498cf10d6
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.0.3
 	github.com/ipfs/go-cid v0.0.4

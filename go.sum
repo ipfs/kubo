@@ -162,8 +162,8 @@ github.com/ipfs/dir-index-html v1.0.3 h1:cKdOjJBKJgewgcv97zOlqsNOle52N91d3nAkbQa
 github.com/ipfs/dir-index-html v1.0.3/go.mod h1:TG9zbaH/+4MnkGel0xF4SLNhk+YZvBNo6jjBkO/LaWc=
 github.com/ipfs/go-bitswap v0.0.3 h1:uFcSI9dkjUn67S7IM60vr2wA27aAvn8o9xYjaQCug3o=
 github.com/ipfs/go-bitswap v0.0.3/go.mod h1:jadAZYsP/tcRMl47ZhFxhaNuDQoXawT8iHMg+iFoQbg=
-github.com/ipfs/go-bitswap v0.0.8-0.20190704155249-cbb485998356 h1:DNc/6p5YnnHWnKab5Lmg6BS4CsRjWyYvapaIsQELAJg=
-github.com/ipfs/go-bitswap v0.0.8-0.20190704155249-cbb485998356/go.mod h1:kYh8QssUH3mAuCwV3WmfcSqwJLhQC4WynKpd1hxt85A=
+github.com/ipfs/go-bitswap v0.0.8-0.20200117195305-e37498cf10d6 h1:ECVkHrFqgeQxEMxIoD+x47+blG1HmkXYv+F6/1WFlkQ=
+github.com/ipfs/go-bitswap v0.0.8-0.20200117195305-e37498cf10d6/go.mod h1:XqOviwWKh3sq0oF678Aw8VR+4blyY4MbqfpdrqkUuqk=
 github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/baNLgayt4pFc=
 github.com/ipfs/go-block-format v0.0.2 h1:qPDvcP19izTjU8rgo6p7gTXZlkMkF5bz5G3fqIsSCPE=
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
