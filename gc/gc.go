@@ -71,7 +71,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 		emark.Done()
 		esweep := log.EventBegin(ctx, "GC.sweep")
 
-		keychan, err := bs.AllKeysChan(ctx)
+		keychain, err := bs.AllKeysChan(ctx)
 		if err != nil {
 			select {
 			case output <- Result{Error: err}:
@@ -86,7 +86,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	loop:
 		for ctx.Err() == nil { // select may not notice that we're "done".
 			select {
-			case k, ok := <-keychan:
+			case k, ok := <-keychain:
 				if !ok {
 					break loop
 				}
