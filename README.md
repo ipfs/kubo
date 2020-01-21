@@ -66,7 +66,7 @@ IPFS can run on most Linux, macOS, and Windows systems. We recommend running it 
 
 If your system is resource constrained, we recommend:
 
-1. Installing OpenSSL and rebuilding go-ipfs manually with `make build GOFLAGS=-tags=openssl`. See the [download and compile](#download-and-compile-ipfs) section for more information on compiling go-ipfs.
+1. Installing OpenSSL and rebuilding go-ipfs manually with `make build GOTAGS=openssl`. See the [download and compile](#download-and-compile-ipfs) section for more information on compiling go-ipfs.
 2. Initializing your daemon with `ipfs init --profile=lowpower`
 
 ### Install prebuilt packages
@@ -204,7 +204,7 @@ make build GOOS=myTargetOS GOARCH=myTargetArchitecture
 
 ##### OpenSSL
 
-To build go-ipfs with OpenSSL support, append `GOFLAGS=-tags=openssl` to your `make` invocation. Building with OpenSSL should significantly reduce the background CPU usage on nodes that frequently make or receive new connections.
+To build go-ipfs with OpenSSL support, append `GOTAGS=openssl` to your `make` invocation. Building with OpenSSL should significantly reduce the background CPU usage on nodes that frequently make or receive new connections.
 
 Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross compiling. To cross compile with OpenSSL support, you must:
 

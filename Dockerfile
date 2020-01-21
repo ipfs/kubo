@@ -20,7 +20,7 @@ COPY . $SRC_DIR
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
   && mkdir .git/objects \
-  && make build GOFLAGS=-tags=openssl
+  && make build GOTAGS=openssl
 
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
