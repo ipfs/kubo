@@ -67,7 +67,7 @@ require (
 	github.com/libp2p/go-libp2p-crypto v0.0.2
 	github.com/libp2p/go-libp2p-host v0.0.3
 	github.com/libp2p/go-libp2p-interface-connmgr v0.0.5
-	github.com/libp2p/go-libp2p-kad-dht v0.0.13
+	github.com/libp2p/go-libp2p-kad-dht v0.0.15
 	github.com/libp2p/go-libp2p-kbucket v0.1.1
 	github.com/libp2p/go-libp2p-loggables v0.0.1
 	github.com/libp2p/go-libp2p-metrics v0.0.1
@@ -88,12 +88,9 @@ require (
 	github.com/libp2p/go-libp2p-tls v0.0.2
 	github.com/libp2p/go-libp2p-yamux v0.1.3
 	github.com/libp2p/go-maddr-filter v0.0.4
-	github.com/libp2p/go-mplex v0.0.4 // indirect
 	github.com/libp2p/go-stream-muxer v0.0.1
 	github.com/libp2p/go-testutil v0.0.1
 	github.com/libp2p/go-ws-transport v0.0.6 // indirect
-	github.com/libp2p/go-yamux v1.2.3 // indirect
-	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/go-homedir v1.1.0
