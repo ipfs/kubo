@@ -38,7 +38,7 @@ RUN set -x \
 
 # Now comes the actual target image, which aims to be as small as possible.
 FROM busybox:1.31.0-glibc
-LABEL maintainer="Steven Allen <stven@stebalien.com>"
+LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
 ENV SRC_DIR /go-ipfs
