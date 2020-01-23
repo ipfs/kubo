@@ -218,6 +218,8 @@ func hasPrefix(s string, prefixes ...string) bool {
 }
 
 func stripPort(host string) string {
-	colon := strings.Index(host, ":")
-	return host[:colon]
+	if colon := strings.Index(host, ":"); colon != -1 {
+		return host[:colon]
+	}
+	return host
 }
