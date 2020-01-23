@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 
+	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 
@@ -21,6 +23,10 @@ var defaultGatewaySpec = config.GatewaySpec{
 }
 
 var defaultKnownGateways = map[string]config.GatewaySpec{
+	"localhost": config.GatewaySpec{
+		PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix},
+		UseSubdomains: true,
+	},
 	"ipfs.io":         defaultGatewaySpec,
 	"gateway.ipfs.io": defaultGatewaySpec,
 	"dweb.link": config.GatewaySpec{
@@ -28,6 +34,10 @@ var defaultKnownGateways = map[string]config.GatewaySpec{
 		UseSubdomains: true,
 	},
 }
+
+// Find content identifier, protocol, and remaining hostname
+// of a subdomain gateway (eg. *.ipfs.foo.bar.co.uk)
+var subdomainGatewayRegex = regexp.MustCompile("^(.+).(ipfs|ipns|ipld|p2p).([^:/]+)")
 
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
@@ -55,6 +65,17 @@ func HostnameOption() ServeOption {
 			}
 		}
 
+		// Return matching GatewaySpec with gracefull fallback to version without port
+		isKnownGateway := func(host string) (gw config.GatewaySpec, ok bool) {
+			// Try host+(optional)port (value from Host header as-is)
+			if gw, ok := knownGateways[host]; ok {
+				return gw, ok
+			}
+			// Fallback to hostname without port
+			gw, ok = knownGateways[stripPort(host)]
+			return gw, ok
+		}
+
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithCancel(n.Context())
 			defer cancel()
@@ -74,8 +95,11 @@ func HostnameOption() ServeOption {
 			// home directories. That way, `/ipfs/QmA/ipfs/QmB`
 			// would "just work". Should we try this?
 
-			// Is this one of our "known gateways"?
-			if gw, ok := knownGateways[r.Host]; ok {
+			// TODO: verify this sidenote: in proxy mode, r.URL.Host is the host of the target
+			// server and r.Host is the host of the proxy server itself.
+
+			// HTTP Host check: is this one of our path-based "known gateways"?
+			if gw, ok := isKnownGateway(r.Host); ok {
 				// This is a known gateway but we're not using
 				// the subdomain feature.
 
@@ -83,7 +107,7 @@ func HostnameOption() ServeOption {
 				if hasPrefix(r.URL.Path, gw.PathPrefixes...) {
 					// It does.
 
-					// Does this gateway use subdomains?
+					// Should this gateway use subdomains instead of paths?
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable (pretty much everything except `/api`).
 						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path); ok {
@@ -96,11 +120,14 @@ func HostnameOption() ServeOption {
 					childMux.ServeHTTP(w, r)
 					return
 				}
-			} else if host, pathPrefix, ok := parseSubdomains(r.Host); ok {
+			}
+
+			// HTTP Host check: is this one of our subdomain-based "known gateways"?
+			if host, pathPrefix, ok := parseSubdomains(r.Host); ok {
 				// Looks like we're using subdomains.
 
 				// Again, is this a known gateway that supports subdomains?
-				if gw, ok := knownGateways[host]; ok && gw.UseSubdomains {
+				if gw, ok := isKnownGateway(host); ok && gw.UseSubdomains {
 
 					// Yes, serve the request (and rewrite the path to not use subdomains).
 					r.URL.Path = pathPrefix + r.URL.Path
@@ -137,11 +164,11 @@ func isSubdomainNamespace(ns string) bool {
 
 // Parses a subdomain-based URL and returns it's components
 func parseSubdomains(host string) (newHost, pathPrefix string, ok bool) {
-	parts := strings.SplitN(host, ".", 3)
-	if len(parts) < 3 || !isSubdomainNamespace(parts[1]) {
+	parts := subdomainGatewayRegex.FindStringSubmatch(host)
+	if len(parts) < 4 || !isSubdomainNamespace(parts[2]) {
 		return "", "", false
 	}
-	return parts[2], "/" + parts[1] + "/" + parts[0], true
+	return parts[3], "/" + parts[2] + "/" + parts[1], true
 }
 
 // Converts a host/path to a subdomain-based URL, if applicable.
@@ -164,6 +191,14 @@ func toSubdomainURL(host, path string) (url string, ok bool) {
 		return "", false
 	}
 
+	rootCid, err := cid.Decode(object)
+	if err == nil {
+		// if object turns out to be a valid CID,
+		// ensure text representation used in subdomain is CIDv1 in Base32
+		// https://github.com/ipfs/in-web-browsers/issues/89
+		object = cid.NewCidV1(rootCid.Type(), rootCid.Hash()).String()
+	}
+
 	return fmt.Sprintf(
 		"http://%s.%s.%s/%s",
 		object,
@@ -180,4 +215,9 @@ func hasPrefix(s string, prefixes ...string) bool {
 		}
 	}
 	return false
+}
+
+func stripPort(host string) string {
+	colon := strings.Index(host, ":")
+	return host[:colon]
 }
