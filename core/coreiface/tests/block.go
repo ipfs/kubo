@@ -156,7 +156,7 @@ func (tp *TestSuite) TestBlockRm(t *testing.T) {
 
 	_, err = api.Block().Get(ctx, res.Path())
 	if err == nil {
-		t.Error("expected err to exist")
+		t.Fatal("expected err to exist")
 	}
 	if !strings.Contains(err.Error(), "blockservice: key not found") {
 		t.Errorf("unexpected error; %s", err.Error())
@@ -164,7 +164,7 @@ func (tp *TestSuite) TestBlockRm(t *testing.T) {
 
 	err = api.Block().Rm(ctx, res.Path())
 	if err == nil {
-		t.Error("expected err to exist")
+		t.Fatal("expected err to exist")
 	}
 	if !strings.Contains(err.Error(), "blockstore: block not found") {
 		t.Errorf("unexpected error; %s", err.Error())
