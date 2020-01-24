@@ -136,14 +136,20 @@ func HostnameOption() ServeOption {
 				}
 			}
 
-			// We don't have a known gateway. Fallback on dnslink.
-			host := strings.SplitN(r.Host, ":", 2)[0]
-			if len(host) > 0 && isd.IsDomain(host) {
-				name := "/ipns/" + host
-				_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
-				if err == nil || err == namesys.ErrResolveRecursion {
-					// The domain supports dnslink, rewrite.
-					r.URL.Path = name + r.URL.Path
+			// We don't have a known gateway. Fallback on DNSLink lookup
+			// if Host header includes a fully qualified domain name (FQDN)
+			fqdn := stripPort(r.Host)
+			if len(fqdn) > 0 && isd.IsDomain(fqdn) {
+				gw, ok := isKnownGateway(fqdn)
+				// Ensure DNSLink was not disabled for the fqdn or globally
+				enabled := (ok && !gw.NoDNSLink) || !cfg.Gateway.GatewaySpec.NoDNSLink
+				if enabled {
+					name := "/ipns/" + fqdn
+					_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
+					if err == nil || err == namesys.ErrResolveRecursion {
+						// The domain supports dnslink, rewrite.
+						r.URL.Path = name + r.URL.Path
+					}
 				}
 			} // else, just treat it as a gateway, I guess.
 
@@ -218,8 +224,5 @@ func hasPrefix(s string, prefixes ...string) bool {
 }
 
 func stripPort(host string) string {
-	if colon := strings.Index(host, ":"); colon != -1 {
-		return host[:colon]
-	}
-	return host
+	return strings.SplitN(host, ":", 2)[0]
 }
