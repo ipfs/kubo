@@ -17,22 +17,23 @@ import (
 	isd "github.com/jbenet/go-is-domain"
 )
 
-var defaultGatewaySpec = config.GatewaySpec{
+var pathGatewaySpec = config.GatewaySpec{
 	PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
 	UseSubdomains: false,
 }
 
+var subdomainGatewaySpec = config.GatewaySpec{
+	PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix},
+	UseSubdomains: true,
+}
+
 var defaultKnownGateways = map[string]config.GatewaySpec{
-	"localhost": config.GatewaySpec{
-		PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix},
-		UseSubdomains: true,
-	},
-	"ipfs.io":         defaultGatewaySpec,
-	"gateway.ipfs.io": defaultGatewaySpec,
-	"dweb.link": config.GatewaySpec{
-		PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix},
-		UseSubdomains: true,
-	},
+	"localhost":       subdomainGatewaySpec,
+	"127.0.0.1":       pathGatewaySpec,
+	"::1":             pathGatewaySpec,
+	"ipfs.io":         pathGatewaySpec,
+	"gateway.ipfs.io": pathGatewaySpec,
+	"dweb.link":       subdomainGatewaySpec,
 }
 
 // Find content identifier, protocol, and remaining hostname
