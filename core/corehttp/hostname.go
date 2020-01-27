@@ -135,19 +135,25 @@ func HostnameOption() ServeOption {
 					return
 				}
 			}
-
 			// We don't have a known gateway. Fallback on DNSLink lookup
-			// if Host header includes a fully qualified domain name (FQDN)
+
+			// HTTP Host check: does Host header include a fully qualified domain name (FQDN)?
 			fqdn := stripPort(r.Host)
 			if len(fqdn) > 0 && isd.IsDomain(fqdn) {
 				gw, ok := isKnownGateway(fqdn)
-				// Ensure DNSLink was not disabled for the fqdn or globally
+				// Confirm DNSLink was not disabled for the fqdn or globally
 				enabled := (ok && !gw.NoDNSLink) || !cfg.Gateway.GatewaySpec.NoDNSLink
 				if enabled {
 					name := "/ipns/" + fqdn
 					_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
 					if err == nil || err == namesys.ErrResolveRecursion {
-						// The domain supports dnslink, rewrite.
+						// Check if this gateway has any PathPrefixes mounted
+						if ok && hasPrefix(r.URL.Path, gw.PathPrefixes...) {
+							// Yes: PathPrefixes should take priority over DNSLink
+							childMux.ServeHTTP(w, r)
+							return
+						}
+						// The domain supports DNSLink, rewrite.
 						r.URL.Path = name + r.URL.Path
 					}
 				}
