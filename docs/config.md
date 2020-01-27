@@ -379,7 +379,6 @@ A boolean to configure whether the gateway is writeable or not.
 
 Default: `false`
 
-
 ### `Gateway.PathPrefixes`
 
 Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
@@ -408,6 +407,110 @@ location /blog/ {
 ```
 
 Default: `[]`
+
+- `NoDNSLink`
+  A boolean to configure whether DNSLink lookup for value in `Host` HTTP header should be performed.
+  If DNSLink is present, content path stored in it is mounted at `/` and respective payload is returned to the client.
+
+  Default: `false`
+
+### Gateway.PublicGateways
+
+`PublicGateways` is a dictionary for overriding default options on specific fully qualified domain names (FQDN).  
+Options for changing behavior per hostname:
+
+- `NoDNSLink`  
+  Overrides global setting of the same name.  
+  Default: `false`
+- `PathPrefixes`  
+  Array of paths that should be mounted at the root of domain name.  
+  **TODO: this does not override global 'PathPrefixes' used for validation of X-Ipfs-Gateway-Prefix header. Should this have different name? eg. PathMounts?**
+  Example: `["/ipfs", "/ipns", "/api"]`  
+  Default: `[]`
+  - **Note:** when both `PathPrefixes` and DNSLink are mounted, `PathPrefixes` take priority
+- `UseSubdomains`
+  A boolean to configure whether the gateway provides [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
+  between content roots.  
+  Default: `false`
+  - `true` – mount [subdomain gateway](#https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.{hostname}`
+    - requests for `http://{hostname}/ipfs/{cid}` will return redirect to `http://{cid}.ipfs.{hostname}`
+  - `false` – mount [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/ipfs/{cid}`
+    - **(not implemented yet)** due to the lack of Origin isolation, cookies and storage will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header
+
+
+#### Examples of common use cases
+
+* Public [subdomain gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link`
+   ```json
+   "Gateway": {
+     "PublicGateways": {
+       "dweb.link": {
+         "UseSubdomains": true
+   ```
+   Version that redirects content paths
+   to subdomains (`http://dweb.link/ipfs/{cid}`→`http://{cid}.ipfs.dweb.link`) for backward-compatibility:
+   ```json
+   "Gateway": {
+       "PublicGateways": {
+       "dweb.link": {
+           "UseSubdomains": true,
+           "PathPrefixes": ["/ipfs", "/ipns"]
+   ```
+   **TODO: should this backward-compatibility redirect be enabled by the default when `UseSubdomains: true`?**
+
+* Public [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}`
+   ```json
+   "Gateway": {
+     "PublicGateways": {
+       "ipfs.io": {
+         "UseSubdomains": false,
+         "PathPrefixes": ["/ipfs", "/ipns", "/api"]
+   ```
+
+* Public [DNSLink](https://dnslink.io/) gateway (accepting every hostname passed in `Host` header)
+  is enabled by default:
+   ```json
+   "Gateway": {
+     "NoDNSLink": false
+   ```
+
+* Site-specific [DNSLink](https://dnslink.io/) gateway.  
+  Disabling public gateway by default (`NoFetch: true`),
+  and enabling selected gateway features only on specific hostname for which data
+  is already present on the node:
+  ```json
+  "Gateway": {
+      "NoFetch": true,
+      "NoDNSLink": true,
+      "PublicGateways": {
+        "en.wikipedia-on-ipfs.org": {
+          "NoDNSLink": false,
+          "PathPrefixes": []
+    ```
+  **TODO: note how `Gateway.PublicGateways[host].PathPrefixes = []` has a different meaning than `Gateway.PathPrefixes = []`)**  
+
+**Note:** Default entries for localhost name and loopback IPs are always present.
+User-provided config will be merged on top of implicit values:
+```json
+{
+  "Gateway": {
+    "PublicGateways": {
+      "127.0.0.1": {
+        "PathPrefixes": ["/ipfs", "/ipns", "/api"],
+        "UseSubdomains": false
+      },
+      "::1": {
+        "PathPrefixes": ["/ipfs", "/ipns", "/api"],
+        "UseSubdomains": false
+      },
+      "localhost": {
+        "PathPrefixes": ["/ipfs", "ipns"],
+        "UseSubdomains": true
+      }
+    }
+  }
+}
+```
 
 ## `Identity`
 
