@@ -99,9 +99,9 @@ func HostnameOption() ServeOption {
 			// TODO: verify this sidenote: in proxy mode, r.URL.Host is the host of the target
 			// server and r.Host is the host of the proxy server itself.
 
-			// HTTP Host check: is this one of our path-based "known gateways"?
+			// HTTP Host & Path check: is this one of our path-based "known gateways"?
 			if gw, ok := isKnownGateway(r.Host); ok {
-				// This is a known gateway but we're not using
+				// This is a known gateway but request is not using
 				// the subdomain feature.
 
 				// Does this gateway _handle_ this path?
@@ -111,6 +111,7 @@ func HostnameOption() ServeOption {
 					// Should this gateway use subdomains instead of paths?
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable (pretty much everything except `/api`).
+						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
 						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path); ok {
 							http.Redirect(
 								w, r, newURL, http.StatusMovedPermanently,
@@ -118,12 +119,15 @@ func HostnameOption() ServeOption {
 							return
 						}
 					}
+					// No subdomains, continue with path request
+					// Example: ipfs.io/ipfs/{cid}
 					childMux.ServeHTTP(w, r)
 					return
 				}
 			}
 
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
+			// Example: {cid}.ipfs.dweb.link
 			if host, pathPrefix, ok := parseSubdomains(r.Host); ok {
 				// Looks like we're using subdomains.
 
