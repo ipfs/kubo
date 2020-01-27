@@ -209,7 +209,13 @@ func toSubdomainURL(host, path string) (url string, ok bool) {
 		// if object turns out to be a valid CID,
 		// ensure text representation used in subdomain is CIDv1 in Base32
 		// https://github.com/ipfs/in-web-browsers/issues/89
-		object = cid.NewCidV1(rootCid.Type(), rootCid.Hash()).String()
+		cidType := rootCid.Type()
+		if ns == "ipns" && cidType != cid.Libp2pKey {
+			// CIDv1 in IPNS should use libp2p-key multicodec
+			// Here we have CIDv0 that needs to be upgraded and fixed
+			cidType = cid.Libp2pKey
+		}
+		object = cid.NewCidV1(cidType, rootCid.Hash()).String()
 	}
 
 	return fmt.Sprintf(
