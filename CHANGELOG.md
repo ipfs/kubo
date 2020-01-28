@@ -425,7 +425,7 @@ receiving multiple inbound connections per second.
 To enable openssl support, rebuild go-ipfs with:
 
 ```bash
-> make build GOFLAGS=-tags=openssl
+> make build GOTAGS=openssl
 ```
 
 ### CoreAPI
