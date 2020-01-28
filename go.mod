@@ -84,7 +84,7 @@ require (
 	github.com/libp2p/go-libp2p-routing v0.0.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.0.2
 	github.com/libp2p/go-libp2p-secio v0.0.3
-	github.com/libp2p/go-libp2p-swarm v0.0.6
+	github.com/libp2p/go-libp2p-swarm v0.0.7
 	github.com/libp2p/go-libp2p-tls v0.0.2
 	github.com/libp2p/go-libp2p-yamux v0.1.3
 	github.com/libp2p/go-maddr-filter v0.0.4

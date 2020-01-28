@@ -429,6 +429,8 @@ github.com/libp2p/go-libp2p-swarm v0.0.1 h1:Vne+hjaDwXqzgNwQ2vb2YKbnbOTyXjtS47st
 github.com/libp2p/go-libp2p-swarm v0.0.1/go.mod h1:mh+KZxkbd3lQnveQ3j2q60BM1Cw2mX36XXQqwfPOShs=
 github.com/libp2p/go-libp2p-swarm v0.0.6 h1:gE0P/v2h+KEXtAi9YTw2UBOSODJ4m9VuuJ+ktc2LVUo=
 github.com/libp2p/go-libp2p-swarm v0.0.6/go.mod h1:s5GZvzg9xXe8sbeESuFpjt8CJPTCa8mhEusweJqyFy8=
+github.com/libp2p/go-libp2p-swarm v0.0.7 h1:Ma/ob07+9GwjDNxrSK5oP4cqilDir1p8FzwKBsWqPGg=
+github.com/libp2p/go-libp2p-swarm v0.0.7/go.mod h1:s5GZvzg9xXe8sbeESuFpjt8CJPTCa8mhEusweJqyFy8=
 github.com/libp2p/go-libp2p-tls v0.0.2 h1:bKuIE5fqyYiFJEtz8ovRkFogtvvAwQqCLZhbnSVMu8g=
 github.com/libp2p/go-libp2p-tls v0.0.2/go.mod h1:FHAVvksSmbluc1v4sDcIK6oF46Hy0MW0wFk0LyrFghY=
 github.com/libp2p/go-libp2p-transport v0.0.1/go.mod h1:UzbUs9X+PHOSw7S3ZmeOxfnwaQY5vGDzZmKPod3N3tk=
