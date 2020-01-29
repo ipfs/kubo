@@ -63,7 +63,7 @@ dep_changes() {
 
 # resolve_commits resolves a git ref for each version.
 resolve_commits() {
-    jq '. + {Ref: (.Version|capture("^((?<ref1>.*)\\+incompatible|v.*-[0-9]{14}-(?<ref2>[a-f0-9]{12})|(?<ref3>v.*))$") | .ref1 // .ref2 // .ref3)}'
+    jq '. + {Ref: (.Version|capture("^((?<ref1>.*)\\+incompatible|v.*-(0\\.)?[0-9]{14}-(?<ref2>[a-f0-9]{12})|(?<ref3>v.*))$") | .ref1 // .ref2 // .ref3)}'
 }
 
 # Generate a release log for a range of commits in a single repo.
@@ -126,6 +126,7 @@ recursive_release_log() {
     local repo_root="$(git rev-parse --show-toplevel)"
     local package="$(go list)"
     (
+        local result=0
         local workspace="$(mktemp -d)"
         trap "$(printf 'rm -rf "%q"' "$workspace")" INT TERM EXIT
         cd "$workspace"
@@ -153,9 +154,13 @@ recursive_release_log() {
             # Compute changelogs
             jq -r '"\(.Path) \(.New.Version) \(.New.Ref) \(.Old.Version) \(.Old.Ref // "")"' |
             while read repo new new_ref old old_ref; do
-                ensure "$repo" "$new_ref"
-                statlog "$repo" "$old_ref" "$new_ref" >> statlog.json
-                local changelog="$(release_log "$repo" "$old_ref" "$new_ref")"
+                if ! ensure "$repo" "$new_ref"; then
+                    result=1
+                    local changelog="failed to fetch repo"
+                else
+                    statlog "$repo" "$old_ref" "$new_ref" >> statlog.json
+                    local changelog="$(release_log "$repo" "$old_ref" "$new_ref")"
+                fi
                 if [[ -n "$changelog" ]]; then
                     printf -- "- %s (%s -> %s):\n" "$repo" "$old" "$new"
                     echo "$changelog" | indent
@@ -171,6 +176,7 @@ recursive_release_log() {
         statsummary <statlog.json |
             jq -s 'sort_by(.Lines) | reverse | .[]' |
             jq -r '"| \(.Author) | \(.Commits) | +\(.Insertions)/-\(.Deletions) | \(.Files) |"'
+        return "$status"
     )
 }
 
