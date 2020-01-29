@@ -28,6 +28,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] RTrade (@postables)
 - [ ] QRI (@b5)
 - [ ] Siderus (@koalalorenzo)
+- [ ] Charity Engine (@rytiss, @tristanolive)
 
 ## How to sign up?
 
