@@ -56,11 +56,11 @@ RUN chmod 4755 /usr/local/bin/fusermount
 RUN chmod 0755 /usr/local/bin/start_ipfs
 
 # This shared lib (part of glibc) doesn't seem to be included with busybox.
-COPY --from=0 /lib/x86_64-linux-gnu/libdl.so.2 /lib/libdl.so.2
+COPY --from=0 /lib/*-linux-gnu*/libdl.so.2 /lib/
 
 # Copy over SSL libraries.
-COPY --from=0 /usr/lib/x86_64-linux-gnu/libssl.so* /usr/lib/
-COPY --from=0 /usr/lib/x86_64-linux-gnu/libcrypto.so* /usr/lib/
+COPY --from=0 /usr/lib/*-linux-gnu*/libssl.so* /usr/lib/
+COPY --from=0 /usr/lib/*-linux-gnu*/libcrypto.so* /usr/lib/
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
