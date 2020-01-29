@@ -104,7 +104,7 @@ var CatCmd = &cmds.Command{
 						return err
 					}
 				default:
-					log.Warningf("cat postrun: received unexpected type %T", val)
+					log.Warnf("cat postrun: received unexpected type %T", val)
 				}
 			}
 		},

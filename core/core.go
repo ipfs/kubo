@@ -143,7 +143,7 @@ func (n *IpfsNode) Bootstrap(cfg bootstrap.BootstrapConfig) error {
 		cfg.BootstrapPeers = func() []peer.AddrInfo {
 			ps, err := n.loadBootstrapPeers()
 			if err != nil {
-				log.Warning("failed to parse bootstrap peers from config")
+				log.Warn("failed to parse bootstrap peers from config")
 				return nil
 			}
 			return ps

@@ -20,7 +20,6 @@ import (
 	fs "bazil.org/fuse/fs"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	lgbl "github.com/libp2p/go-libp2p-loggables"
 )
 
 var log = logging.Logger("fuse/ipfs")
@@ -186,7 +185,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 		}
 		nd, err := s.Ipfs.DAG.Get(ctx, lnk.Cid)
 		if err != nil {
-			log.Warning("error fetching directory child node: ", err)
+			log.Warn("error fetching directory child node: ", err)
 		}
 
 		t := fuse.DT_Unknown
@@ -195,7 +194,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			t = fuse.DT_File
 		case *mdag.ProtoNode:
 			if fsn, err := ft.FSNodeFromBytes(nd.Data()); err != nil {
-				log.Warning("failed to unmarshal protonode data field:", err)
+				log.Warn("failed to unmarshal protonode data field:", err)
 			} else {
 				switch fsn.Type() {
 				case ft.TDirectory, ft.THAMTShard:
@@ -238,22 +237,11 @@ func (s *Node) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string,
 }
 
 func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	c := s.Nd.Cid()
-
-	// setup our logging event
-	lm := make(lgbl.DeferredMap)
-	lm["fs"] = "ipfs"
-	lm["key"] = func() interface{} { return c.String() }
-	lm["req_offset"] = req.Offset
-	lm["req_size"] = req.Size
-	defer log.EventBegin(ctx, "fuseRead", lm).Done()
-
 	r, err := uio.NewDagReader(ctx, s.Nd, s.Ipfs.DAG)
 	if err != nil {
 		return err
 	}
-	o, err := r.Seek(req.Offset, io.SeekStart)
-	lm["res_offset"] = o
+	_, err = r.Seek(req.Offset, io.SeekStart)
 	if err != nil {
 		return err
 	}
@@ -266,7 +254,7 @@ func (s *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 	default:
 		return err
 	}
-	lm["res_size"] = n
+	resp.Data = resp.Data[:n]
 	return nil // may be non-nil / not succeeded
 }
 

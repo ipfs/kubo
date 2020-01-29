@@ -36,7 +36,7 @@ type Mount interface {
 // It does so by calling diskutil or fusermount directly.
 func ForceUnmount(m Mount) error {
 	point := m.MountPoint()
-	log.Warningf("Force-Unmounting %s...", point)
+	log.Warnf("Force-Unmounting %s...", point)
 
 	cmd, err := UnmountCmd(point)
 	if err != nil {
@@ -98,7 +98,7 @@ type closer struct {
 }
 
 func (c *closer) Close() error {
-	log.Warning(" (c *closer) Close(),", c.M.MountPoint())
+	log.Warn(" (c *closer) Close(),", c.M.MountPoint())
 	return c.M.Unmount()
 }
 

@@ -610,7 +610,7 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	http.Error(w, fmt.Sprintf("%s: %s", message, err), code)
 	if code >= 500 {
-		log.Warningf("server error: %s: %s", err)
+		log.Warnf("server error: %s: %s", err)
 	}
 }
 
