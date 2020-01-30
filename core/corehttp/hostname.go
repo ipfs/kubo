@@ -18,12 +18,12 @@ import (
 )
 
 var pathGatewaySpec = config.GatewaySpec{
-	PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
+	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
 	UseSubdomains: false,
 }
 
 var subdomainGatewaySpec = config.GatewaySpec{
-	PathPrefixes:  []string{ipfsPathPrefix, ipnsPathPrefix},
+	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix},
 	UseSubdomains: true,
 }
 
@@ -105,7 +105,7 @@ func HostnameOption() ServeOption {
 				// the subdomain feature.
 
 				// Does this gateway _handle_ this path?
-				if hasPrefix(r.URL.Path, gw.PathPrefixes...) {
+				if hasPrefix(r.URL.Path, gw.Paths...) {
 					// It does.
 
 					// Should this gateway use subdomains instead of paths?
@@ -134,9 +134,16 @@ func HostnameOption() ServeOption {
 				// Again, is this a known gateway that supports subdomains?
 				if gw, ok := isKnownGateway(host); ok && gw.UseSubdomains {
 
-					// Yes, serve the request (and rewrite the path to not use subdomains).
-					r.URL.Path = pathPrefix + r.URL.Path
-					childMux.ServeHTTP(w, r)
+					// Does this gateway _handle_ this path?
+					if hasPrefix(pathPrefix, gw.Paths...) {
+						// It does.
+						// Yes, serve the request (and rewrite the path to not use subdomains).
+						r.URL.Path = pathPrefix + r.URL.Path
+						childMux.ServeHTTP(w, r)
+						return
+					}
+					// If not, finish with error
+					http.Error(w, "SubdomainGateway: requested path is not allowed", http.StatusForbidden)
 					return
 				}
 			}
@@ -147,14 +154,14 @@ func HostnameOption() ServeOption {
 			if len(fqdn) > 0 && isd.IsDomain(fqdn) {
 				gw, ok := isKnownGateway(fqdn)
 				// Confirm DNSLink was not disabled for the fqdn or globally
-				enabled := (ok && !gw.NoDNSLink) || !cfg.Gateway.GatewaySpec.NoDNSLink
+				enabled := (ok && !gw.NoDNSLink) || !cfg.Gateway.NoDNSLink
 				if enabled {
 					name := "/ipns/" + fqdn
 					_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
 					if err == nil || err == namesys.ErrResolveRecursion {
-						// Check if this gateway has any PathPrefixes mounted
-						if ok && hasPrefix(r.URL.Path, gw.PathPrefixes...) {
-							// Yes: PathPrefixes should take priority over DNSLink
+						// Check if this gateway has any Paths mounted
+						if ok && hasPrefix(r.URL.Path, gw.Paths...) {
+							// Yes: Paths should take priority over DNSLink
 							childMux.ServeHTTP(w, r)
 							return
 						}
