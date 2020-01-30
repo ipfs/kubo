@@ -434,7 +434,7 @@ Options for changing behavior per hostname:
     - requires respective `Paths` to be set
     - requests for `http://{hostname}/ipfs/{cid}` will return redirect to `http://{cid}.ipfs.{hostname}`
   - `false` – mount [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/ipfs/{cid}`
-    - **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header
+    <!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
 
 #### Examples of common use cases
 
