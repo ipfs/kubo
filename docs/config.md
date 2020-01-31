@@ -424,17 +424,23 @@ Options for changing behavior per hostname:
 - `Paths`  
   Array of paths that should be mounted at the root of domain name.  
   Example: `["/ipfs", "/ipns", "/api"]`  
-  - **Note:** when both `Paths` and DNSLink are mounted, `Paths` takes priority
+  **Note:** If DNSLink is enabled, all defined `Paths` are mounted on top of `/` and take priority over DNSLink.
 
-- `UseSubdomains`
+- `UseSubdomains`  
   A boolean to configure whether the gateway provides [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
   between content roots.  
   Default: `false`
-  - `true` – mount [subdomain gateway](#https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.{hostname}`
-    - requires respective `Paths` to be set
-    - requests for `http://{hostname}/ipfs/{cid}` will return redirect to `http://{cid}.ipfs.{hostname}`
+  - `true` – mount [subdomain gateway](#https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}`
+    - requires respective `Paths` to be set  
+      Example: `Paths: ["/ipfs", "/ipns"]` is required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work.
+    - requests for content paths such as `http://{hostname}/ipfs/{cid}` will return redirect to `http://{cid}.ipfs.{hostname}`
   - `false` – mount [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/ipfs/{cid}`
     <!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
+
+- `NoDNSLink`  
+  A boolean to configure whether DNSLink for FQDN present in `Host`
+  HTTP header should be resolved. Overrides global setting.  
+  Default: `false` (DNSLink enabled by default for every defined hostname)
 
 #### Examples of common use cases
 
