@@ -38,7 +38,8 @@ Available profiles:
 
   Replaces default datastore configuration with experimental badger datastore.
   If you apply this profile after `ipfs init`, you will need to convert your
-  datastore to the new configuration. You can do this using [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
+  datastore to the new configuration. You can do this using
+  [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
 
   WARNING: badger datastore is experimental. Make sure to backup your data
   frequently.
@@ -59,24 +60,69 @@ Available profiles:
 ## Table of Contents
 
 - [`Addresses`](#addresses)
+    - [`Addresses.API`](#addressesapi)
+    - [`Addresses.Gateway`](#addressesgateway)
+    - [`Addresses.Swarm`](#addressesswarm)
+    - [`Addresses.Announce`](#addressesannounce)
+    - [`Addresses.NoAnnounce`](#addressesnoannounce)
 - [`API`](#api)
+    - [`API.HTTPHeaders`](#apihttpheaders)
 - [`Bootstrap`](#bootstrap)
 - [`Datastore`](#datastore)
+    - [`Datastore.StorageMax`](#datastorestoragemax)
+    - [`Datastore.StorageGCWatermark`](#datastorestoragegcwatermark)
+    - [`Datastore.GCPeriod`](#datastoregcperiod)
+    - [`Datastore.HashOnRead`](#datastorehashonread)
+    - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
+    - [`Datastore.Spec`](#datastorespec)
 - [`Discovery`](#discovery)
+    - [`Discovery.MDNS`](#discoverymdns)
+        - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
+        - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
 - [`Routing`](#routing)
+    - [`Routing.Type`](#routingtype)
 - [`Gateway`](#gateway)
+    - [`Gateway.NoFetch`](#gatewaynofetch)
+    - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
+    - [`Gateway.RootRedirect`](#gatewayrootredirect)
+    - [`Gateway.Writable`](#gatewaywritable)
+    - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
 - [`Identity`](#identity)
+    - [`Identity.PeerID`](#identitypeerid)
+    - [`Identity.PrivKey`](#identityprivkey)
 - [`Ipns`](#ipns)
+    - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
+    - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
+    - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
 - [`Mounts`](#mounts)
+    - [`Mounts.IPFS`](#mountsipfs)
+    - [`Mounts.IPNS`](#mountsipns)
+    - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
 - [`Reprovider`](#reprovider)
+    - [`Reprovider.Interval`](#reproviderinterval)
+    - [`Reprovider.Strategy`](#reproviderstrategy)
 - [`Swarm`](#swarm)
-- [`ConnMgr`](#connmgr)
+    - [`Swarm.AddrFilters`](#swarmaddrfilters)
+    - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
+    - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
+    - [`Swarm.DisableRelay`](#swarmdisablerelay)
+    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
+    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
+    - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
+    - [`Swarm.ConnMgr`](#swarmconnmgr)
+        - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
+        - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
+        - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
+        - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
 
 ## `Addresses`
+
 Contains information about various listener addresses to be used by this node.
 
-- `API`
-Multiaddr or array of multiaddrs describing the address to serve the local HTTP API on.
+### `Addresses.API`
+
+Multiaddr or array of multiaddrs describing the address to serve the local HTTP
+API on.
 
 Supported Transports:
 
@@ -85,8 +131,10 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
-- `Gateway`
-Multiaddr or array of multiaddrs describing the address to serve the local gateway on.
+### `Addresses.Gateway`
+
+Multiaddr or array of multiaddrs describing the address to serve the local
+gateway on.
 
 Supported Transports:
 
@@ -95,8 +143,10 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
-- `Swarm`
-Array of multiaddrs describing which addresses to listen on for p2p swarm connections.
+### `Addresses.Swarm`
+
+Array of multiaddrs describing which addresses to listen on for p2p swarm
+connections.
 
 Supported Transports:
 
@@ -112,12 +162,14 @@ Default:
 ]
 ```
 
-- `Announce`
-If non-empty, this array specifies the swarm addresses to announce to the network. If empty, the daemon will announce inferred swarm addresses.
+### `Addresses.Announce`
+
+If non-empty, this array specifies the swarm addresses to announce to the
+network. If empty, the daemon will announce inferred swarm addresses.
 
 Default: `[]`
 
-- `NoAnnounce`
+### `Addresses.NoAnnounce`
 Array of swarm addresses not to announce to the network.
 
 Default: `[]`
@@ -125,7 +177,7 @@ Default: `[]`
 ## `API`
 Contains information used by the API gateway.
 
-- `HTTPHeaders`
+### `API.HTTPHeaders`
 Map of HTTP headers to set on responses from the API HTTP server.
 
 Example:
@@ -138,57 +190,78 @@ Example:
 Default: `null`
 
 ## `Bootstrap`
+
 Bootstrap is an array of multiaddrs of trusted nodes to connect to in order to
 initiate a connection to the network.
 
 Default: The ipfs.io bootstrap nodes
 
 ## `Datastore`
+
 Contains information related to the construction and operation of the on-disk
 storage system.
 
-- `StorageMax`
+### `Datastore.StorageMax`
+
 A soft upper limit for the size of the ipfs repository's datastore. With `StorageGCWatermark`,
 is used to calculate whether to trigger a gc run (only if `--enable-gc` flag is set).
 
 Default: `10GB`
 
-- `StorageGCWatermark`
+### `Datastore.StorageGCWatermark`
+
 The percentage of the `StorageMax` value at which a garbage collection will be
 triggered automatically if the daemon was run with automatic gc enabled (that
 option defaults to false currently).
 
 Default: `90`
 
-- `GCPeriod`
+### `Datastore.GCPeriod`
+
 A time duration specifying how frequently to run a garbage collection. Only used
 if automatic gc is enabled.
 
 Default: `1h`
 
-- `HashOnRead`
+### `Datastore.HashOnRead`
+
 A boolean value. If set to true, all block reads from disk will be hashed and
 verified. This will cause increased CPU utilization.
 
 Default: `false`
 
-- `BloomFilterSize`
-A number representing the size in bytes of the blockstore's [bloom filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents the feature being disabled.
+### `Datastore.BloomFilterSize`
 
-This site generates useful graphs for various bloom filter values: <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7>
-You may use it to find a preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the config file.
-For example, for 1,000,000 blocks, expecting a 1% false positive rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize` we'd want to use 1199120 bytes.
-As of writing, [7 hash functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22) are used, so the constant `k` is 7 in the formula.
+A number representing the size in bytes of the blockstore's [bloom
+filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents
+the feature being disabled.
+
+This site generates useful graphs for various bloom filter values:
+<https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7> You may use it to find a
+preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to
+convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the
+config file. For example, for 1,000,000 blocks, expecting a 1% false positive
+rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize`
+we'd want to use 1199120 bytes. As of writing, [7 hash
+functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
+are used, so the constant `k` is 7 in the formula.
 
 
 Default: `0`
 
-- `Spec`
-Spec defines the structure of the ipfs datastore. It is a composable structure, where each datastore is represented by a json object. Datastores can wrap other datastores to provide extra functionality (eg metrics, logging, or caching).
+### `Datastore.Spec`
 
-This can be changed manually, however, if you make any changes that require a different on-disk structure, you will need to run the [ipfs-ds-convert tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new structures.
+Spec defines the structure of the ipfs datastore. It is a composable structure,
+where each datastore is represented by a json object. Datastores can wrap other
+datastores to provide extra functionality (eg metrics, logging, or caching).
 
-For more information on possible values for this configuration option, see docs/datastores.md
+This can be changed manually, however, if you make any changes that require a
+different on-disk structure, you will need to run the [ipfs-ds-convert
+tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new
+structures.
+
+For more information on possible values for this configuration option, see
+docs/datastores.md
 
 Default:
 ```
@@ -221,25 +294,33 @@ Default:
 ```
 
 ## `Discovery`
+
 Contains options for configuring ipfs node discovery mechanisms.
 
-- `MDNS`
+### `Discovery.MDNS`
+
 Options for multicast dns peer discovery.
 
-  - `Enabled`
+#### `Discovery.MDNS.Enabled`
+
 A boolean value for whether or not mdns should be active.
 
 Default: `true`
 
-  -  `Interval`
+#### `Discovery.MDNS.Interval`
+
 A number of seconds to wait between discovery checks.
 
-
 ## `Routing`
+
 Contains options for content routing mechanisms.
 
-- `Type`
-Content routing mode. Can be overridden with daemon `--routing` flag. When set to `dhtclient`, the node won't join the DHT but can still use it to find content.
+### `Routing.Type`
+
+Content routing mode. Can be overridden with daemon `--routing` flag. When set
+to `dhtclient`, the node won't join the DHT but can still use it to find
+content.
+
 Valid modes are:
   - `dht` (default)
   - `dhtclient`
@@ -257,15 +338,18 @@ Valid modes are:
   
 
 ## `Gateway`
+
 Options for the HTTP gateway.
 
-- `NoFetch`
+### `Gateway.NoFetch`
+
 When set to true, the gateway will only serve content already in the local repo
 and will not fetch files from the network.
 
 Default: `false`
 
-- `HTTPHeaders`
+### `Gateway.HTTPHeaders`
+
 Headers to set on gateway responses.
 
 Default:
@@ -283,20 +367,27 @@ Default:
 }
 ```
 
-- `RootRedirect`
+### `Gateway.RootRedirect`
+
 A url to redirect requests for `/` to.
 
 Default: `""`
 
-- `Writable`
+### `Gateway.Writable`
+
 A boolean to configure whether the gateway is writeable or not.
 
 Default: `false`
 
-- `PathPrefixes`
-Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix header. 
 
-The X-Ipfs-Path-Prefix header is used to specify a base path to prepend to links in directory listings and for trailing-slash redirects. It is intended to be set by a frontend http proxy like nginx.
+### `Gateway.PathPrefixes`
+
+Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
+header.
+
+The X-Ipfs-Path-Prefix header is used to specify a base path to prepend to links
+in directory listings and for trailing-slash redirects. It is intended to be set
+by a frontend http proxy like nginx.
 
 Example: We mount `blog.ipfs.io` (a dnslink page) at `ipfs.io/blog`.
 
@@ -320,46 +411,57 @@ Default: `[]`
 
 ## `Identity`
 
-- `PeerID`
+### `Identity.PeerID`
+
 The unique PKI identity label for this configs peer. Set on init and never read,
 its merely here for convenience. Ipfs will always generate the peerID from its
 keypair at runtime.
 
-- `PrivKey`
+### `Identity.PrivKey`
+
 The base64 encoded protobuf describing (and containing) the nodes private key.
 
 ## `Ipns`
 
-- `RepublishPeriod`
+### `Ipns.RepublishPeriod`
+
 A time duration specifying how frequently to republish ipns records to ensure
 they stay fresh on the network. If unset, we default to 4 hours.
 
-- `RecordLifetime`
+### `Ipns.RecordLifetime`
+
 A time duration specifying the value to set on ipns records for their validity
 lifetime.
+
 If unset, we default to 24 hours.
 
-- `ResolveCacheSize`
+### `Ipns.ResolveCacheSize`
+
 The number of entries to store in an LRU cache of resolved ipns entries. Entries
 will be kept cached until their lifetime is expired.
 
 Default: `128`
 
 ## `Mounts`
+
 FUSE mount point configuration options.
 
-- `IPFS`
+### `Mounts.IPFS`
+
 Mountpoint for `/ipfs/`.
 
-- `IPNS`
+### `Mounts.IPNS`
+
 Mountpoint for `/ipns/`.
 
-- `FuseAllowOther`
+### `Mounts.FuseAllowOther`
+
 Sets the FUSE allow other option on the mountpoint.
 
 ## `Reprovider`
 
-- `Interval`
+### `Reprovider.Interval`
+
 Sets the time between rounds of reproviding local content to the routing
 system. If unset, it defaults to 12 hours. If set to the value `"0"` it will
 disable content reproviding.
@@ -369,7 +471,8 @@ not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
 manually announce your content periodically.
 
-- `Strategy`
+### `Reprovider.Strategy`
+
 Tells reprovider what should be announced. Valid strategies are:
   - "all" (default) - announce all stored data
   - "pinned" - only announce pinned data
@@ -379,13 +482,14 @@ Tells reprovider what should be announced. Valid strategies are:
 
 Options for configuring the swarm.
 
-- `AddrFilters`
-An array of addresses (multiaddr netmasks) to not dial. By default, IPFS nodes advertise
-_all_ addresses, even internal ones. This makes it easier for nodes on the same
-network to reach each other. Unfortunately, this means that an IPFS node will
-try to connect to one or more private IP addresses whenever dialing another
-node, even if this other node is on a different network. This may may trigger
-netscan alerts on some hosting providers or cause strain in some setups.
+### `Swarm.AddrFilters`
+
+An array of addresses (multiaddr netmasks) to not dial. By default, IPFS nodes
+advertise _all_ addresses, even internal ones. This makes it easier for nodes on
+the same network to reach each other. Unfortunately, this means that an IPFS
+node will try to connect to one or more private IP addresses whenever dialing
+another node, even if this other node is on a different network. This may may
+trigger netscan alerts on some hosting providers or cause strain in some setups.
 
 The `server` configuration profile fills up this list with sensible defaults,
 preventing dials to all non-routable IP addresses (e.g., `192.168.0.0/16`) but
@@ -393,12 +497,14 @@ you should always check settings against your own network and/or hosting
 provider.
 
 
-- `DisableBandwidthMetrics`
+### `Swarm.DisableBandwidthMetrics`
+
 A boolean value that when set to true, will cause ipfs to not keep track of
 bandwidth metrics. Disabling bandwidth metrics can lead to a slight performance
 improvement, as well as a reduction in memory usage.
 
-- `DisableNatPortMap`
+### `Swarm.DisableNatPortMap`
+
 Disable automatic NAT port forwarding.
 
 When not disabled (default), go-ipfs asks NAT devices (e.g., routers), to open
@@ -406,50 +512,71 @@ up an external port and forward it to the port go-ipfs is running on. When this
 works (i.e., when your router supports NAT port forwarding), it makes the local
 go-ipfs node accessible from the public internet.
 
-- `DisableRelay`
+### `Swarm.DisableRelay`
+
 Disables the p2p-circuit relay transport.
 
-- `EnableRelayHop`
-Enables HOP relay for the node. If this is enabled, the node will act as
-an intermediate (Hop Relay) node in relay circuits for connected peers.
+### `Swarm.EnableRelayHop`
 
-- `EnableAutoRelay`
+Enables HOP relay for the node.
+
+If this is enabled, the node will act as an intermediate (Hop Relay) node in
+relay circuits for connected peers.
+
+### `Swarm.EnableAutoRelay`
+
 Enables automatic relay for this node.
-If the node is a HOP relay (`EnableRelayHop` is true) then it will advertise itself as a relay through the DHT.
-Otherwise, the node will test its own NAT situation (dialability) using passively discovered AutoNAT services.
-If the node is not publicly reachable, then it will seek HOP relays advertised through the DHT and override its public address(es) with relay addresses.
 
-- `EnableAutoNATService`
+If the node is a HOP relay (`EnableRelayHop` is true) then it will advertise
+itself as a relay through the DHT. Otherwise, the node will test its own NAT
+situation (dialability) using passively discovered AutoNAT services. If the node
+is not publicly reachable, then it will seek HOP relays advertised through the
+DHT and override its public address(es) with relay addresses.
+
+### `Swarm.EnableAutoNATService`
+
 Enables the AutoNAT service for this node.
-The service allows peers to discover their NAT situation by requesting dial backs to their public addresses.
-This should only be enabled on publicly reachable nodes.
 
-### `ConnMgr`
+The service allows peers to discover their NAT situation by requesting dial
+backs to their public addresses. This should only be enabled on publicly
+reachable nodes.
 
-The connection manager determines which and how many connections to keep and can be configured to keep.
+### `Swarm.ConnMgr`
 
-- `Type`
-Sets the type of connection manager to use, options are: `"none"` (no connection management) and `"basic"`.
+The connection manager determines which and how many connections to keep and can
+be configured to keep.
+
+#### `Swarm.ConnMgr.Type`
+
+Sets the type of connection manager to use, options are: `"none"` (no connection
+management) and `"basic"`.
 
 #### Basic Connection Manager
 
-- `LowWater`
+##### `Swarm.ConnMgr.LowWater`
+
 LowWater is the minimum number of connections to maintain.
 
-- `HighWater`
-HighWater is the number of connections that, when exceeded, will trigger a connection GC operation.
+##### `Swarm.ConnMgr.HighWater`
 
-- `GracePeriod`
-GracePeriod is a time duration that new connections are immune from being closed by the connection manager.
+HighWater is the number of connections that, when exceeded, will trigger a
+connection GC operation.
 
-The "basic" connection manager tries to keep between `LowWater` and `HighWater` connections. It works by:
+##### `Swarm.ConnMgr.GracePeriod`
+
+GracePeriod is a time duration that new connections are immune from being closed
+by the connection manager.
+
+The "basic" connection manager tries to keep between `LowWater` and `HighWater`
+connections. It works by:
 
 1. Keeping all connections until `HighWater` connections is reached.
-2. Once `HighWater` is reached, it closes connections until `LowWater` is reached.
-3. To prevent thrashing, it never closes connections established within the `GracePeriod`.
+2. Once `HighWater` is reached, it closes connections until `LowWater` is
+   reached.
+3. To prevent thrashing, it never closes connections established within the
+   `GracePeriod`.
 
 **Example:**
-
 
 ```json
 {
