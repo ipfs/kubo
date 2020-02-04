@@ -6,13 +6,13 @@ aliases:
   restore_gomod: &restore_gomod
     restore_cache:
       keys:
-        - v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
-        - v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
-        - v4-dep-{{ .Branch }}-
-        - v4-dep-master-
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
+        - v5-dep-{{ .Branch }}-
+        - v5-dep-master-
   store_gomod: &store_gomod
       save_cache:
-        key: v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        key: v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
         paths:
           - ~/go/pkg/mod
           - ~/.cache/go-build/
