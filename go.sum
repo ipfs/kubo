@@ -476,6 +476,8 @@ github.com/libp2p/go-libp2p-pubsub v0.2.5 h1:tPKbkjAUI0xLGN3KKTKKy9TQEviVfrP++zJ
 github.com/libp2p/go-libp2p-pubsub v0.2.5/go.mod h1:9Q2RRq8ofXkoewORcyVlgUFDKLKw7BuYSlJVWRcVk3Y=
 github.com/libp2p/go-libp2p-pubsub-router v0.2.0 h1:AcrCIL2aUNiQkQuqKonqVxhFBEfP0PsHVUdAowZZVLA=
 github.com/libp2p/go-libp2p-pubsub-router v0.2.0/go.mod h1:CgbGriQhei3gy9y3MwmAapge+SYGYNrcwOeXp3Sefpg=
+github.com/libp2p/go-libp2p-pubsub-router v0.2.1 h1:F5JYaHQuuMKVbSgLsH2POQwT1rloWpc7fUCOq6PBjyE=
+github.com/libp2p/go-libp2p-pubsub-router v0.2.1/go.mod h1:cl46APmxgKgzgpCGFb8Ns7++cqnJ29CxESXCQATp55k=
 github.com/libp2p/go-libp2p-quic-transport v0.2.3 h1:TPqC8+mQf0mp2lVauLZ/B64Tml8no507zj+6iFo0Yxo=
 github.com/libp2p/go-libp2p-quic-transport v0.2.3/go.mod h1:bwW00YE7G6Spb+/yVfWDIFi3WrOXfE00KlwOMJPHeX0=
 github.com/libp2p/go-libp2p-record v0.0.1/go.mod h1:grzqg263Rug/sRex85QrDOLntdFAymLDLm7lxMgU79Q=
