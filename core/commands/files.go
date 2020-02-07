@@ -48,7 +48,7 @@ during garbage collections. MFS is independent from the list of pinned items
 ("ipfs pin ls"). Calls to "ipfs pin add" and "ipfs pin rm" do not affect
 content on MFS. Similarly, content added with "ipfs add" (which by default
 pins), is not added to MFS. Any content can be put into MFS with the command
-"ipfs files cp /ipfs/<cid> /mfs/path/".
+"ipfs files cp /ipfs/<cid> /some/path/".
 
 
 NOTE:
