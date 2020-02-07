@@ -46,7 +46,7 @@ updated when a change happens (and can be checked with "ipfs files stat /").
 All files and folders within MFS are respected and will not be cleaned up
 during garbage collections. MFS is independent from the list of pinned items
 ("ipfs pin ls"). Calls to "ipfs pin add" and "ipfs pin rm" will add and remove
-an separate pin independent of the content on MFS. If MFS content that was
+pins independently of MFS. If MFS content that was
 additionally pinned is removed by calling "ipfs files rm", it will still
 remain pinned.
 
