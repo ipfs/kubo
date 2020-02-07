@@ -28,7 +28,7 @@ require (
 	github.com/ipfs/go-filestore v0.0.3
 	github.com/ipfs/go-fs-lock v0.0.4
 	github.com/ipfs/go-ipfs-blockstore v0.1.1
-	github.com/ipfs/go-ipfs-chunker v0.0.3
+	github.com/ipfs/go-ipfs-chunker v0.0.4
 	github.com/ipfs/go-ipfs-cmds v0.1.1
 	github.com/ipfs/go-ipfs-config v0.2.0
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
@@ -50,7 +50,7 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.1
 	github.com/ipfs/go-path v0.0.7
-	github.com/ipfs/go-unixfs v0.2.3
+	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.2.5
 	github.com/jbenet/go-is-domain v1.0.3
