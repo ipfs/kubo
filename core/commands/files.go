@@ -774,7 +774,7 @@ stat' on the file or any of its ancestors.
 				if retErr == nil {
 					retErr = err
 				} else {
-					log.Error("files: error closing file mfs file descriptor", err)
+					flog.Error("files: error closing file mfs file descriptor", err)
 				}
 			}
 		}()
