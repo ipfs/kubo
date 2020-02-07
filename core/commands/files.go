@@ -39,6 +39,18 @@ var FilesCmd = &cmds.Command{
 Files is an API for manipulating IPFS objects as if they were a unix
 filesystem.
 
+The files facility interacts with MFS (Mutable File System). MFS acts as a
+single, dynamic filesystem mount. MFS has a root CID which is transparently
+updated when a change happens (and can be checked with "ipfs files stat /").
+
+All files and folders within MFS are respected and will not be cleaned up
+during garbage collections. MFS is independent from the list of pinned items
+("ipfs pin ls"). Calls to "ipfs pin add" and "ipfs pin rm" do not affect
+content on MFS. Similarly, content added with "ipfs add" (which by default
+pins), is not added to MFS. Any content can be put into MFS with the command
+"ipfs files cp /ipfs/<cid> /mfs/path/".
+
+
 NOTE:
 Most of the subcommands of 'ipfs files' accept the '--flush' flag. It defaults
 to true. Use caution when setting this flag to false. It will improve
