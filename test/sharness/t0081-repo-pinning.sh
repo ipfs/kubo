@@ -237,12 +237,20 @@ test_expect_success "some are no longer there" '
   test_must_fail ipfs ls "$HASH_DIR3"
 '
 
+test_launch_ipfs_daemon --offline
 test_expect_success "recursive pin fails without objects" '
-  ipfs pin rm -r=false "$HASH_DIR1" &&
   test_must_fail ipfs pin add -r "$HASH_DIR1" 2>err_expected8 &&
   grep "pin: merkledag: not found" err_expected8 ||
   test_fsh cat err_expected8
 '
+
+# Regression test for https://github.com/ipfs/go-ipfs/issues/4650
+# This test requires the daemon. Otherwise, the pin changes are reverted when
+# the pin fails in the previous test.
+test_expect_success "failed recursive pin does not remove direct pin" '
+  test_pin_flag "$HASH_DIR1" direct true
+'
+test_kill_ipfs_daemon
 
 test_expect_success "test add nopin file" '
   echo "test nopin data" > test_nopin_data &&

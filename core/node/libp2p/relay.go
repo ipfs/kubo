@@ -21,4 +21,4 @@ func Relay(disable, enableHop bool) func() (opts Libp2pOpts, err error) {
 	}
 }
 
-var AutoRealy = simpleOpt(libp2p.EnableAutoRelay())
+var AutoRealy = simpleOpt(libp2p.ChainOptions(libp2p.EnableAutoRelay(), libp2p.DefaultStaticRelays()))
