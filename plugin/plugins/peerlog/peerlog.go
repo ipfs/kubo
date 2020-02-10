@@ -46,7 +46,9 @@ func (*peerLogPlugin) Init(*plugin.Environment) error {
 
 func (*peerLogPlugin) Start(node *core.IpfsNode) error {
 	// Ensure logs from this plugin get printed regardless of global IPFS_LOGGING value
-	logging.SetLogLevel("plugin/peerlog", "info")
+	if err := logging.SetLogLevel("plugin/peerlog", "info"); err != nil {
+		return fmt.Errorf("failed to set log level: %w", err)
+	}
 	var notifee network.NotifyBundle
 	notifee.ConnectedF = func(net network.Network, conn network.Conn) {
 		log.Infow("connected",
