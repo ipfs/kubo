@@ -139,12 +139,14 @@ test_expect_success "Request for {CIDv1-libp2p-key}.ipns.localhost return expect
   test_should_contain "hello" response
 '
 
-# TODO: this is bad UX, we should redirect to {CIDv1-libp2p-key} instead
-test_expect_success "Request for {CIDv1-dag-pb}.ipns.localhost returns error" '
+test_expect_success "Request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" '
   curl -sD- "http://${IPNS_IDv1_DAGPB}.ipns.localhost:$GWAY_PORT" > response &&
-  test_should_contain "404 Not Found" response &&
-  test_should_contain "ipfs resolve -r /ipns/${IPNS_IDv1_DAGPB}/: can'"'"'t convert CID of type protobuf to a peer ID" response
+  test_should_contain "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/" response &&
+  test_should_contain "<a href=\"http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/\">Moved Permanently</a>." response
 '
+
+# TODO: make all tests twice, once directly and once in HTTP Proxy mode
+# (thereis a lot of stuff to make DRY here, create helpers for handling response)
 
 # <dnslink-fqdn>.ipns.localhost
 

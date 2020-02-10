@@ -59,6 +59,18 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 	}
 
 	name = strings.TrimPrefix(name, "/ipns/")
+
+	// Fix PeerID represented as CIDv1 with invalid multicodec
+	if name[:4] == "bafy" { // TODO: is this a safe way of detecting base32-dag-pb?
+		ipnsCid, err := cid.Decode(name)
+		if err == nil && ipnsCid.Type() != cid.Libp2pKey {
+			// CIDs in IPNS are expected to have libp2p-key multicodec.
+			// We ease the transition by fixing multicodec on the fly:
+			// https://github.com/ipfs/go-ipfs/issues/5287#issuecomment-492163929
+			name = cid.NewCidV1(cid.Libp2pKey, ipnsCid.Hash()).String()
+		}
+	}
+
 	pid, err := peer.Decode(name)
 	if err != nil {
 		log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", name, err)

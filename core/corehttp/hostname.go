@@ -36,9 +36,9 @@ var defaultKnownGateways = map[string]config.GatewaySpec{
 	"dweb.link":       subdomainGatewaySpec,
 }
 
-// Find content identifier, protocol, and remaining hostname
+// Find content identifier, protocol, and remaining hostname (host+optional port)
 // of a subdomain gateway (eg. *.ipfs.foo.bar.co.uk)
-var subdomainGatewayRegex = regexp.MustCompile("^(.+).(ipfs|ipns|ipld|p2p).([^:/]+)")
+var subdomainGatewayRegex = regexp.MustCompile("^(.+).(ipfs|ipns|ipld|p2p).([^/?#&]+)$")
 
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
@@ -53,27 +53,27 @@ func HostnameOption() ServeOption {
 			map[string]config.GatewaySpec,
 			len(defaultKnownGateways)+len(cfg.Gateway.PublicGateways),
 		)
-		for host, gw := range defaultKnownGateways {
-			knownGateways[host] = gw
+		for hostname, gw := range defaultKnownGateways {
+			knownGateways[hostname] = gw
 		}
-		for host, gw := range cfg.Gateway.PublicGateways {
+		for hostname, gw := range cfg.Gateway.PublicGateways {
 			if gw == nil {
 				// Allows the user to remove gateways but _also_
 				// allows us to continuously update the list.
-				delete(knownGateways, host)
+				delete(knownGateways, hostname)
 			} else {
-				knownGateways[host] = *gw
+				knownGateways[hostname] = *gw
 			}
 		}
 
 		// Return matching GatewaySpec with gracefull fallback to version without port
-		isKnownGateway := func(host string) (gw config.GatewaySpec, ok bool) {
-			// Try host+(optional)port (value from Host header as-is)
-			if gw, ok := knownGateways[host]; ok {
+		isKnownGateway := func(hostname string) (gw config.GatewaySpec, ok bool) {
+			// Try hostname (host+optional port - value from Host header as-is)
+			if gw, ok := knownGateways[hostname]; ok {
 				return gw, ok
 			}
 			// Fallback to hostname without port
-			gw, ok = knownGateways[stripPort(host)]
+			gw, ok = knownGateways[stripPort(hostname)]
 			return gw, ok
 		}
 
@@ -113,32 +113,48 @@ func HostnameOption() ServeOption {
 						// Yes, redirect if applicable (pretty much everything except `/api`).
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
 						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path); ok {
-							http.Redirect(
-								w, r, newURL, http.StatusMovedPermanently,
-							)
+							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 							return
 						}
 					}
+
 					// No subdomains, continue with path request
-					// Example: ipfs.io/ipfs/{cid}
+					// Example: 127.0.0.1:8080/ipfs/{CID}, ipfs.io/ipfs/{CID} etc
 					childMux.ServeHTTP(w, r)
 					return
 				}
 			}
 
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
-			// Example: {cid}.ipfs.dweb.link
-			if host, pathPrefix, ok := parseSubdomains(r.Host); ok {
+			// Example: {cid}.ipfs.localhost, {cid}.ipfs.dweb.link
+			if hostname, ns, rootId, ok := parseSubdomains(r.Host); ok {
 				// Looks like we're using subdomains.
 
 				// Again, is this a known gateway that supports subdomains?
-				if gw, ok := isKnownGateway(host); ok && gw.UseSubdomains {
+				if gw, ok := isKnownGateway(hostname); ok && gw.UseSubdomains {
+
+					// Assemble original path prefix.
+					pathPrefix := "/" + ns + "/" + rootId
 
 					// Does this gateway _handle_ this path?
 					if hasPrefix(pathPrefix, gw.Paths...) {
-						// It does.
-						// Yes, serve the request (and rewrite the path to not use subdomains).
+
+						// Do we need to fix multicodec in CID?
+						if ns == "ipns" {
+							keyCid, err := cid.Decode(rootId)
+							if err == nil && keyCid.Type() != cid.Libp2pKey {
+
+								if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path); ok {
+									// Redirect to CID fixed inside of toSubdomainURL()
+									http.Redirect(w, r, newURL, http.StatusMovedPermanently)
+									return
+								}
+							}
+						}
+
+						// Rewrite the path to not use subdomains
 						r.URL.Path = pathPrefix + r.URL.Path
+						// Serve path request
 						childMux.ServeHTTP(w, r)
 						return
 					}
@@ -186,27 +202,28 @@ func isSubdomainNamespace(ns string) bool {
 	}
 }
 
-// Parses a subdomain-based URL and returns it's components
-func parseSubdomains(host string) (newHost, pathPrefix string, ok bool) {
-	parts := subdomainGatewayRegex.FindStringSubmatch(host)
+// Parses Host header of a subdomain-based URL and returns it's components
+// Note: hostname is host + optional port
+func parseSubdomains(hostHeader string) (hostname, ns, rootId string, ok bool) {
+	parts := subdomainGatewayRegex.FindStringSubmatch(hostHeader)
 	if len(parts) < 4 || !isSubdomainNamespace(parts[2]) {
-		return "", "", false
+		return "", "", "", false
 	}
-	return parts[3], "/" + parts[2] + "/" + parts[1], true
+	return parts[3], parts[2], parts[1], true
 }
 
-// Converts a host/path to a subdomain-based URL, if applicable.
-func toSubdomainURL(host, path string) (url string, ok bool) {
+// Converts a hostname/path to a subdomain-based URL, if applicable.
+func toSubdomainURL(hostname, path string) (url string, ok bool) {
 	parts := strings.SplitN(path, "/", 4)
 
-	var ns, object, rest string
+	var ns, rootId, rest string
 	switch len(parts) {
 	case 4:
 		rest = parts[3]
 		fallthrough
 	case 3:
 		ns = parts[1]
-		object = parts[2]
+		rootId = parts[2]
 	default:
 		return "", false
 	}
@@ -215,25 +232,27 @@ func toSubdomainURL(host, path string) (url string, ok bool) {
 		return "", false
 	}
 
-	rootCid, err := cid.Decode(object)
-	if err == nil {
+	if rootCid, err := cid.Decode(rootId); err == nil {
+		multicodec := rootCid.Type()
+
+		// CIDs in IPNS are expected to have libp2p-key multicodec.
+		// We ease the transition by fixing multicodec on the fly:
+		// https://github.com/ipfs/go-ipfs/issues/5287#issuecomment-492163929
+		if ns == "ipns" && multicodec != cid.Libp2pKey {
+			multicodec = cid.Libp2pKey
+		}
+
 		// if object turns out to be a valid CID,
 		// ensure text representation used in subdomain is CIDv1 in Base32
 		// https://github.com/ipfs/in-web-browsers/issues/89
-		cidType := rootCid.Type()
-		if ns == "ipns" && cidType != cid.Libp2pKey {
-			// CIDv1 in IPNS should use libp2p-key multicodec
-			// Here we have CIDv0 that needs to be upgraded and fixed
-			cidType = cid.Libp2pKey
-		}
-		object = cid.NewCidV1(cidType, rootCid.Hash()).String()
+		rootId = cid.NewCidV1(multicodec, rootCid.Hash()).String()
 	}
 
 	return fmt.Sprintf(
 		"http://%s.%s.%s/%s",
-		object,
+		rootId,
 		ns,
-		host,
+		hostname,
 		rest,
 	), true
 }
@@ -247,6 +266,6 @@ func hasPrefix(s string, prefixes ...string) bool {
 	return false
 }
 
-func stripPort(host string) string {
-	return strings.SplitN(host, ":", 2)[0]
+func stripPort(hostname string) string {
+	return strings.SplitN(hostname, ":", 2)[0]
 }
