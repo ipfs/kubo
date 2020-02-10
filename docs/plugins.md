@@ -136,6 +136,13 @@ To preload a go-ipfs plugin:
 go-ipfs$ make build
 ```
 
+You can also preload an in-tree but disabled-by-default plugin by adding it to
+the IPFS_PLUGINS variable. For example, to enable plugins foo, bar, and baz:
+
+```bash
+go-ipfs$ make build IPFS_PLUGINS="foo bar baz"
+```
+
 ## Creating A Plugin
 
 To create your own out-of-tree plugin, use the [example
