@@ -381,7 +381,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
@@ -447,7 +447,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/bar/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/file.txt\">") {
