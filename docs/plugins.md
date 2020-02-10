@@ -48,6 +48,15 @@ application without IPC and without forking go-ipfs.
 Note: We eventually plan to make go-ipfs usable as a library. However, this
 plugin type is likely the best interim solution.
 
+### Internal
+
+(never stable)
+
+Internal plugins are like daemon plugins _except_ that they can access, replace,
+and modify all internal state. Use this plugin type to extend go-ipfs in
+arbitrary ways. However, be aware that your plugin will likely break every time
+go-ipfs updated.
+
 ## Available Plugins
 
 | Name                                                                            | Type      | Preloaded | Description                                    |
