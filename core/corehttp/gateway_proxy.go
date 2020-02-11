@@ -73,7 +73,8 @@ func ProxyOption() ServeOption {
 					// nothing we can do.
 					return
 				}
-
+				// Serve always returns a non-nil error
+				// nolint:errcheck
 				http.Serve(
 					newProxyListener(proxyConn{rw, conn}, l.Addr()),
 					childMux,
