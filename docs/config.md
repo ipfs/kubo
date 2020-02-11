@@ -83,10 +83,13 @@ Available profiles:
     - [`Routing.Type`](#routingtype)
 - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
+    - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
+    - [`Gateway.PublicGateways`](#gatewaypublicgateways)
+    - [`Gateway` recipes](#gateway-recipes)
 - [`Identity`](#identity)
     - [`Identity.PeerID`](#identitypeerid)
     - [`Identity.PrivKey`](#identityprivkey)
@@ -348,6 +351,14 @@ and will not fetch files from the network.
 
 Default: `false`
 
+### `Gateway.NoDNSLink`
+
+A boolean to configure whether DNSLink lookup for value in `Host` HTTP header
+should be performed.  If DNSLink is present, content path stored in the DNS TXT
+record becomes the `/` and respective payload is returned to the client.
+
+Default: `false`
+
 ### `Gateway.HTTPHeaders`
 
 Headers to set on gateway responses.
@@ -408,85 +419,73 @@ location /blog/ {
 
 Default: `[]`
 
-- `NoDNSLink`  
-  A boolean to configure whether DNSLink lookup for value in `Host`
-  HTTP header should be performed.  If DNSLink is present, content path stored
-  in the DNS TXT record is mounted at `/` and respective payload is returned to
-  the client.
+
+### `Gateway.PublicGateways`
+
+`PublicGateways` is a dictionary for defining gateway behavior on specified hostnames.
+
+#### `Gateway.PublicGateways[hostname]: Paths`
+
+Array of paths that should be exposed on the hostname.
+
+Example: 
+```json
+{
+  "Gateway": {
+    "PublicGateways": {
+      "example.com": {
+        "Paths": ["/ipfs", "/ipns"],
+```
+
+Above enables `http://example.com/ipfs/*` and `http://example.com/ipns/*` but not `http://example.com/api/*`
+
+Default: `[]`
+
+#### `Gateway.PublicGateways[hostname]: UseSubdomains`
+
+A boolean to configure whether the gateway at the hostname provides [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
+between content roots.
+
+- `true` - enable [subdomain gateway](#https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
+    - **Note 1:** make sure respective `Paths` are set.
+    For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
+        ```json
+        {
+        "Gateway": {
+            "PublicGateways": {
+            "dweb.link": {
+                "UseSubdomains": true,
+                "Paths": ["/ipfs", "/ipns"],
+        ```
+    - **Note 2:** Requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
+
+- `false` - enable [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
+  - Example:
+    ```json
+    {
+    "Gateway": {
+        "PublicGateways": {
+        "ipfs.io": {
+            "UseSubdomains": false,
+            "Paths": ["/ipfs", "/ipns", "/api"],
+    ```
+<!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
 
 Default: `false`
 
-### Gateway.PublicGateways
 
-`PublicGateways` is a dictionary for defining gateway behavior on specific fully qualified domain names (FQDN).  
-Options for changing behavior per hostname:
+#### `Gateway.PublicGateways[hostname]: NoDNSLink`
 
-- `Paths`  
-  Array of paths that should be mounted at the root of domain name.  
-  Example: `["/ipfs", "/ipns", "/api"]`  
-  **Note:** If DNSLink is enabled, all defined `Paths` are mounted on top of `/` and take priority over DNSLink.
+A boolean to configure whether DNSLink for hostname present in `Host`
+HTTP header should be resolved. Overrides global setting.
+If `Paths` are defined, they take priority over DNSLink.
 
-- `UseSubdomains`  
-  A boolean to configure whether the gateway provides [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
-  between content roots.  
-  Default: `false`
-  - `true` – mount [subdomain gateway](#https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}`
-    - requires respective `Paths` to be set  
-      Example: `Paths: ["/ipfs", "/ipns"]` is required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work.
-    - requests for content paths such as `http://{hostname}/ipfs/{cid}` will return redirect to `http://{cid}.ipfs.{hostname}`
-  - `false` – mount [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/ipfs/{cid}`
-    <!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
+Default: `false` (DNSLink lookup enabled by default for every defined hostname)
 
-- `NoDNSLink`  
-  A boolean to configure whether DNSLink for FQDN present in `Host`
-  HTTP header should be resolved. Overrides global setting.  
-  Default: `false` (DNSLink enabled by default for every defined hostname)
+#### Implicit defaults of `Gateway.PublicGateways`
 
-#### Examples of common use cases
-
-* Public [subdomain gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link`
-   ```json
-   "Gateway": {
-       "PublicGateways": {
-       "dweb.link": {
-           "UseSubdomains": true,
-           "Paths": ["/ipfs", "/ipns"]
-   ```
-   **Note:** this enables automatic redirects from content paths to subdomains  
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
-
-* Public [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}`
-   ```json
-   "Gateway": {
-     "PublicGateways": {
-       "ipfs.io": {
-         "UseSubdomains": false,
-         "Paths": ["/ipfs", "/ipns", "/api"]
-   ```
-
-* Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header
-  (this is the default, works out of the box):
-   ```json
-   "Gateway": {
-     "NoDNSLink": false
-   ```
-
-* Hardened, site-specific [DNSLink](https://dnslink.io/) gateway.  
-  Disabling public gateway by default (`NoFetch: true`),
-  and enabling selected gateway features only on specific hostname for which data
-  is already present on the node:
-  ```json
-  "Gateway": {
-      "NoFetch": true,
-      "NoDNSLink": true,
-      "PublicGateways": {
-        "en.wikipedia-on-ipfs.org": {
-          "NoDNSLink": false,
-          "Paths": []
-    ```
-
-**Note:** Default entries for localhost name and loopback IPs are always present.
-User-provided config will be merged on top of implicit values:
+Default entries for `localhost` hostname and loopback IPs are always present.
+If additional config is provided for those hostnames, it will be merged on top of implicit values:
 ```json
 {
   "Gateway": {
@@ -507,6 +506,47 @@ User-provided config will be merged on top of implicit values:
   }
 }
 ```
+
+### `Gateway` recipes
+
+* Public [subdomain gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
+   ```json
+   "Gateway": {
+       "PublicGateways": {
+       "dweb.link": {
+           "UseSubdomains": true,
+           "Paths": ["/ipfs", "/ipns"]
+   ```
+   **Note:** this enables automatic redirects from content paths to subdomains  
+   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
+
+* Public [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
+   ```json
+   "Gateway": {
+     "PublicGateways": {
+       "ipfs.io": {
+         "UseSubdomains": false,
+         "Paths": ["/ipfs", "/ipns", "/api"]
+   ```
+
+* Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
+  * `NoDNSLink: false` is the default, works out of the box, no configuration needed
+
+* Hardened, site-specific [DNSLink gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).  
+  Disable fetching of remote data (`NoFetch: true`)
+  and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
+  Then, enable DNSLink gateway only for the specific hostname (for which data
+  is already present on the node), without exposing any content-addressing `Paths`:
+  ```json
+  "Gateway": {
+      "NoFetch": true,
+      "NoDNSLink": true,
+      "PublicGateways": {
+        "en.wikipedia-on-ipfs.org": {
+          "NoDNSLink": false,
+          "Paths": []
+  ```
+
 
 ## `Identity`
 
