@@ -40,7 +40,6 @@ func (*peerLogPlugin) Version() string {
 
 // Init initializes plugin
 func (*peerLogPlugin) Init(*plugin.Environment) error {
-	fmt.Println("peerLogPlugin enabled - PeerIDs will be logged")
 	return nil
 }
 

@@ -16,11 +16,15 @@ RUN cd $SRC_DIR \
 
 COPY . $SRC_DIR
 
+# Preload an in-tree but disabled-by-default plugin by adding it to the IPFS_PLUGINS variable
+# e.g. docker build --build-arg IPFS_PLUGINS="foo bar baz"
+ARG IPFS_PLUGINS
+
 # Build the thing.
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
   && mkdir .git/objects \
-  && make build GOTAGS=openssl
+  && make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
