@@ -48,6 +48,15 @@ application without IPC and without forking go-ipfs.
 Note: We eventually plan to make go-ipfs usable as a library. However, this
 plugin type is likely the best interim solution.
 
+### Internal
+
+(never stable)
+
+Internal plugins are like daemon plugins _except_ that they can access, replace,
+and modify all internal state. Use this plugin type to extend go-ipfs in
+arbitrary ways. However, be aware that your plugin will likely break every time
+go-ipfs updated.
+
 ## Available Plugins
 
 | Name                                                                            | Type      | Preloaded | Description                                    |
@@ -125,6 +134,13 @@ To preload a go-ipfs plugin:
 2. Build ipfs
 ```bash
 go-ipfs$ make build
+```
+
+You can also preload an in-tree but disabled-by-default plugin by adding it to
+the IPFS_PLUGINS variable. For example, to enable plugins foo, bar, and baz:
+
+```bash
+go-ipfs$ make build IPFS_PLUGINS="foo bar baz"
 ```
 
 ## Creating A Plugin

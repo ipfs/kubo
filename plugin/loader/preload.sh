@@ -4,6 +4,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 to_preload() {
 	awk 'NF' "$DIR/preload_list" | sed '/^#/d'
+  if [[ -n "$IPFS_PLUGINS" ]]; then
+      for plugin in $IPFS_PLUGINS; do
+          echo "$plugin github.com/ipfs/go-ipfs/plugin/plugins/$plugin *"
+      done
+  fi
 }
 
 cat <<EOL

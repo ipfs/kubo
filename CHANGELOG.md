@@ -1,5 +1,97 @@
 # go-ipfs changelog
 
+## 0.4.23 2019-01-29
+
+Given the large number of fixes merged since 0.4.22, we've decided to cut another patch release.
+
+This release contains critical fixes. Please upgrade ASAP. Importantly, we're strongly considering switching to TLS by default in go-ipfs 0.5.0 and dropping SECIO support. However, the current TLS transport in go-ipfs 0.4.22 has a bug that can cause connections to spontaneously disconnect during the handshake.
+
+This release fixes that bug, among many other issues. Users that _don't_ upgrade may experience connectivity issues when the network upgrades to go-ipfs 0.5.0.
+
+### Highlights
+
+* Fixes build on go 1.13
+* Fixes an issue where we may not connect to providers in bitswap.
+* Fixes an issue on the TLS transport where we may abort a handshake unintentionally.
+* Fixes a common panic in the websocket transport.
+* Adds support for recursively resolving dnsaddrs (makes go-ipfs compatible with the new bootstrappers).
+* Fixes several potential panics/crashes.
+* Switches to using pre-defined autorelays instead of trying to find them in the DHT:
+  * Avoids selecting random, potentially poor, relays.
+  * Avoids spamming the DHT with requests trying to find relays.
+  * Reduces the impact of accidentally enabling AutoRelay + RelayHop. I.e., the network won't try to DoS you.
+* Modifies the connection manager to not count connections in the grace period towards the connection limit.
+  * Pro: New connections don't cause us to close useful, existing connections.
+  * Con: Libp2p will keep more connections. Consider reducing your HighWater after applying this patch.
+* Improved peer usefulness tracking in bitswap. Frequently used peers will be marked as "important" and the connection manager will avoid closing connections to these peers.
+* Includes a new version of the WebUI to fix some issues with the peers map.
+
+## Changelog
+
+- github.com/ipfs/go-ipfs:
+  - feat: update the webui to fix some performance issues ([ipfs/go-ipfs#6844](https://github.com/ipfs/go-ipfs/pull/6844))
+  - fix: limit SW registration to content root ([ipfs/go-ipfs#6801](https://github.com/ipfs/go-ipfs/pull/6801))
+  - fix issue 6760, adding with hash-only, high CPU usage. ([ipfs/go-ipfs#6764](https://github.com/ipfs/go-ipfs/pull/6764))
+  - fix(coreapi/add): close the fake repo used when adding with hash-only ([ipfs/go-ipfs#6747](https://github.com/ipfs/go-ipfs/pull/6747))
+  - fix bug 6748 ([ipfs/go-ipfs#6754](https://github.com/ipfs/go-ipfs/pull/6754))
+  - fix(pin): wait till after fetching to remove direct pin ([ipfs/go-ipfs#6708](https://github.com/ipfs/go-ipfs/pull/6708))
+  - pin: fix pin update X Y where X==Y ([ipfs/go-ipfs#6669](https://github.com/ipfs/go-ipfs/pull/6669))
+  - namesys: set the correct cache TTL on publish ([ipfs/go-ipfs#6667](https://github.com/ipfs/go-ipfs/pull/6667))
+  - build: fix golangci again ([ipfs/go-ipfs#6641](https://github.com/ipfs/go-ipfs/pull/6641))
+  - make: move all test deps to a separate module ([ipfs/go-ipfs#6637](https://github.com/ipfs/go-ipfs/pull/6637))
+  - fix: close peerstore on stop ([ipfs/go-ipfs#6629](https://github.com/ipfs/go-ipfs/pull/6629))
+  - build: fix build when we don't have a full git tree ([ipfs/go-ipfs#6626](https://github.com/ipfs/go-ipfs/pull/6626))
+- github.com/ipfs/go-bitswap (v0.0.8-cbb485998356 -> v0.0.8-e37498cf10d6):
+  - fix: wait until we finish connecting before we cancel the context ([ipfs/go-bitswap#226](https://github.com/ipfs/go-bitswap/pull/226))
+  - engine: tag peers based on usefulness ([ipfs/go-bitswap#191](https://github.com/ipfs/go-bitswap/pull/191))
+- github.com/ipfs/go-cid (v0.0.2 -> v0.0.4):
+  - fix parsing issues and nits ([ipfs/go-cid#97](https://github.com/ipfs/go-cid/pull/97))
+  - Verify that prefix is correct v0 prefix ([ipfs/go-cid#96](https://github.com/ipfs/go-cid/pull/96))
+- github.com/multiformats/go-multihash (v0.0.5 -> v0.0.10):
+  - Ensure that length of multihash is properly handled ([multiformats/go-multihash#119](https://github.com/multiformats/go-multihash/pull/119))
+  - fix murmur3 name  ([multiformats/go-multihash#115](https://github.com/multiformats/go-multihash/pull/115))
+  - rename ID to IDENTITY ([multiformats/go-multihash#113](https://github.com/multiformats/go-multihash/pull/113))
+ ([multiformats/go-multihash#119](https://github.com/multiformats/go-multihash/pull/119))
+- github.com/libp2p/go-flow-metrics (v0.0.1 -> v0.0.3):
+  - fix bug in meter traversal logic ([libp2p/go-flow-metrics#11](https://github.com/libp2p/go-flow-metrics/pull/11))
+- github.com/libp2p/go-libp2p (v0.0.28 -> v0.0.32):
+  - options to configure known relays for autorelay ([libp2p/go-libp2p#705](https://github.com/libp2p/go-libp2p/pull/705))
+  - feat(host): recursively resolve addresses ([libp2p/go-libp2p#764](https://github.com/libp2p/go-libp2p/pull/764))
+  - mdns: always use interface addresses ([libp2p/go-libp2p#667](https://github.com/libp2p/go-libp2p/pull/667))
+- github.com/libp2p/go-libp2p-connmgr (v0.0.6 -> v0.2.1):
+  - don't count connections in the grace period against the limit ([libp2p/go-libp2p-connmgr#50](https://github.com/libp2p/go-libp2p-connmgr/pull/50))
+- github.com/libp2p/go-libp2p-kad-dht (v0.0.13 -> v0.0.15):
+  - metrics: fix memory leak ([libp2p/go-libp2p-kad-dht#390](https://github.com/libp2p/go-libp2p-kad-dht/pull/390))
+- github.com/libp2p/go-libp2p-tls (v0.0.1 -> v0.0.2):
+  - close the underlying connection when the handshake fails ([libp2p/go-libp2p-tls#39](https://github.com/libp2p/go-libp2p-tls/pull/39))
+  - make the error check for not receiving a public key more explicit ([libp2p/go-libp2p-tls#34](https://github.com/libp2p/go-libp2p-tls/pull/34))
+  - Fix: Connection Closed after handshake ([libp2p/go-libp2p-tls#37](https://github.com/libp2p/go-libp2p-tls/pull/37))
+- github.com/libp2p/go-libp2p-swarm (v0.0.6 -> v0.0.7):
+  - fix: don't assume that transports implement stringer ([libp2p/go-libp2p-swarm#134](https://github.com/libp2p/go-libp2p-swarm/pull/134))
+- github.com/libp2p/go-ws-transport (v0.0.4 -> v0.0.6):
+  - Add mutex for write/close ([libp2p/go-ws-transport#65](https://github.com/libp2p/go-ws-transport/pull/65))
+
+Other:
+
+Update bloom filter libraries to remove unsound usage of the `unsafe` package.
+
+### Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Steven Allen | 52 | +1866/-578 | 102 |
+| vyzo | 12 | +167/-90 | 22 |
+| whyrusleeping | 5 | +136/-52 | 7 |
+| Roman Proskuryakov | 7 | +94/-7 | 10 |
+| Jakub Sztandera | 3 | +58/-13 | 7 |
+| hcg1314 | 2 | +31/-11 | 2 |
+| Raúl Kripalani | 2 | +7/-33 | 6 |
+| Marten Seemann | 3 | +27/-10 | 5 |
+| Marcin Rataj | 2 | +26/-0 | 5 |
+| b5 | 1 | +2/-22 | 1 |
+| Hector Sanjuan | 1 | +11/-0 | 1 |
+| Yusef Napora | 1 | +4/-0 | 1 |
+
 ## 0.4.22 2019-08-06
 
 We're releasing a PATCH release of go-ipfs based on 0.4.21 containing some critical fixes.

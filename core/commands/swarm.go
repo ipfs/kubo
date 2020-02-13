@@ -298,10 +298,11 @@ var swarmAddrsLocalCmd = &cmds.Command{
 		}
 
 		var addrs []string
+		p2pProtocolName := ma.ProtocolWithCode(ma.P_P2P).Name
 		for _, addr := range maddrs {
 			saddr := addr.String()
 			if showid {
-				saddr = path.Join(saddr, "ipfs", self.ID().Pretty())
+				saddr = path.Join(saddr, p2pProtocolName, self.ID().Pretty())
 			}
 			addrs = append(addrs, saddr)
 		}
