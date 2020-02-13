@@ -392,6 +392,8 @@ github.com/libp2p/go-libp2p v0.5.1-0.20191230184347-6dbc0b2b46ba h1:uq4SWwXau7ic
 github.com/libp2p/go-libp2p v0.5.1-0.20191230184347-6dbc0b2b46ba/go.mod h1:zammhtC6UU8xKFsxZu2AZGj8n2nQrzLmCy0wsvoKExE=
 github.com/libp2p/go-libp2p v0.5.1-0.20200114191202-7acda4e38d1e h1:vo2bQsKUlgwk1/L4eEH7EfhAgTS95fQxt90jY1/Cjro=
 github.com/libp2p/go-libp2p v0.5.1-0.20200114191202-7acda4e38d1e/go.mod h1:zammhtC6UU8xKFsxZu2AZGj8n2nQrzLmCy0wsvoKExE=
+github.com/libp2p/go-libp2p v0.5.2-0.20200213054703-3a20aefa643b h1:NQ+7OM1ZXDWrV1eoBHYqDMqY4CsZ/Zw0DnQnh6G0cLU=
+github.com/libp2p/go-libp2p v0.5.2-0.20200213054703-3a20aefa643b/go.mod h1:pGKq/cYfBms3kgzi2S05hZ3JpEaBlF4K4C2ZKvnjfO8=
 github.com/libp2p/go-libp2p-autonat v0.0.2/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat v0.0.6/go.mod h1:uZneLdOkZHro35xIhpbtTzLlgYturpu4J5+0cZK3MqE=
 github.com/libp2p/go-libp2p-autonat v0.1.0 h1:aCWAu43Ri4nU0ZPO7NyLzUvvfqd0nE3dX0R/ZGYVgOU=
