@@ -188,8 +188,11 @@ func getUnixfsNode(path string) (files.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	f, err := files.NewSerialFile(path, false, st)
+	filter, err := files.NewFilter("", nil, false)
+	if err != nil {
+		return nil, err
+	}
+	f, err := files.NewSerialFile(path, filter, st)
 	if err != nil {
 		return nil, err
 	}

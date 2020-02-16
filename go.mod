@@ -6,6 +6,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
 	github.com/coreos/go-systemd/v22 v22.0.0
+	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/fatih/color v1.9.0 // indirect
@@ -104,4 +105,10 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
-go 1.12
+replace github.com/ipfs/go-ipfs-cmds => ../go-ipfs-cmds
+
+replace github.com/ipfs/go-ipfs-cmds/ipfs => ../go-ipfs-cmds
+
+replace github.com/ipfs/go-ipfs-files => ../go-ipfs-files
+
+go 1.13
