@@ -166,22 +166,17 @@ jobs:
             git -C interop log -1
       - restore_cache:
           keys:
-            - v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
-            - v1-interop-
+            - v2-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+            - v2-interop-
       - run:
           name: Installing dependencies
           command: |
             npm install
           working_directory: ~/ipfs/go-ipfs/interop
       - save_cache:
-          key: v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+          key: v2-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
           paths:
             - ~/ipfs/go-ipfs/interop/node_modules
-      - run:
-          name: Installing js-ipfs
-          command: |
-            npm install ipfs ipfs-http-client
-          working_directory: ~/ipfs/go-ipfs/interop
       - run:
           name: Installing reporting tools
           command: |
