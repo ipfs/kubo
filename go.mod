@@ -31,7 +31,7 @@ require (
 	github.com/ipfs/go-ipfs-chunker v0.0.4
 	github.com/ipfs/go-ipfs-cmds v0.1.1
 	github.com/ipfs/go-ipfs-config v0.2.0
-	github.com/ipfs/go-ipfs-ds-help v0.0.1
+	github.com/ipfs/go-ipfs-ds-help v0.1.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.6
@@ -90,7 +90,6 @@ require (
 	github.com/multiformats/go-multiaddr-net v0.1.2
 	github.com/multiformats/go-multibase v0.0.1
 	github.com/multiformats/go-multihash v0.0.13
-	github.com/multiformats/go-multistream v0.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.1

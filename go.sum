@@ -220,8 +220,6 @@ github.com/ipfs/go-fs-lock v0.0.4/go.mod h1:SUaaFT1boYZewW+QBw5FZjcDbxkZIWgNdYb1
 github.com/ipfs/go-ipfs-blockstore v0.0.1/go.mod h1:d3WClOmRQKFnJ0Jz/jj/zmksX0ma1gROTlovZKBmN08=
 github.com/ipfs/go-ipfs-blockstore v0.1.0 h1:V1GZorHFUIB6YgTJQdq7mcaIpUfCM3fCyVi+MTo9O88=
 github.com/ipfs/go-ipfs-blockstore v0.1.0/go.mod h1:5aD0AvHPi7mZc6Ci1WCAhiBQu2IsfTduLl+422H6Rqw=
-github.com/ipfs/go-ipfs-blockstore v0.1.1 h1:+PAFREAlSxLs9IEtrRcnJ/DqWkGlDa+l547WFZnohNw=
-github.com/ipfs/go-ipfs-blockstore v0.1.1/go.mod h1:8gZOgIN5e+Xdg2YSGdwTTRbguSVjYyosIDRQCY8E9QM=
 github.com/ipfs/go-ipfs-blockstore v0.1.4 h1:2SGI6U1B44aODevza8Rde3+dY30Pb+lbcObe1LETxOQ=
 github.com/ipfs/go-ipfs-blockstore v0.1.4/go.mod h1:Jxm3XMVjh6R17WvxFEiyKBLUGr86HgIYJW/D/MwqeYQ=
 github.com/ipfs/go-ipfs-blocksutil v0.0.1 h1:Eh/H4pc1hsvhzsQoMEP3Bke/aW5P5rVM1IWFJMcGIPQ=
@@ -251,8 +249,6 @@ github.com/ipfs/go-ipfs-files v0.0.4/go.mod h1:INEFm0LL2LWXBhNJ2PMIIb2w45hpXgPjN
 github.com/ipfs/go-ipfs-files v0.0.6 h1:sMRtPiSmDrTA2FEiFTtk1vWgO2Dkg7bxXKJ+s8/cDAc=
 github.com/ipfs/go-ipfs-files v0.0.6/go.mod h1:lVYE6sgAdtZN5825beJjSAHibw7WOBNPDWz5LaJeukg=
 github.com/ipfs/go-ipfs-flags v0.0.1/go.mod h1:RnXBb9WV53GSfTrSDVK61NLTFKvWc60n+K9EgCDh+rA=
-github.com/ipfs/go-ipfs-pinner v0.0.3 h1:ez/yNYYyH1W7DiCF/L29tmp6L7lBO8eqbJtPi2pHicA=
-github.com/ipfs/go-ipfs-pinner v0.0.3/go.mod h1:s4kFZWLWGDudN8Jyd/GTpt222A12C2snA2+OTdy/7p8=
 github.com/ipfs/go-ipfs-pinner v0.0.4 h1:EmxhS3vDsCK/rZrsgxX0Le9m2drBcGlUd7ah/VyFYVE=
 github.com/ipfs/go-ipfs-pinner v0.0.4/go.mod h1:s4kFZWLWGDudN8Jyd/GTpt222A12C2snA2+OTdy/7p8=
 github.com/ipfs/go-ipfs-posinfo v0.0.1 h1:Esoxj+1JgSjX0+ylc0hUmJCOv6V2vFoZiETLR6OtpRs=
@@ -391,8 +387,6 @@ github.com/libp2p/go-libp2p v0.4.0/go.mod h1:9EsEIf9p2UDuwtPd0DwJsAl0qXVxgAnuDGR
 github.com/libp2p/go-libp2p v0.4.2 h1:p0cthB0jDNHO4gH2HzS8/nAMMXbfUlFHs0jwZ4U+F2g=
 github.com/libp2p/go-libp2p v0.4.2/go.mod h1:MNmgUxUw5pMsdOzMlT0EE7oKjRasl+WyVwM0IBlpKgQ=
 github.com/libp2p/go-libp2p v0.5.0/go.mod h1:Os7a5Z3B+ErF4v7zgIJ7nBHNu2LYt8ZMLkTQUB3G/wA=
-github.com/libp2p/go-libp2p v0.5.1 h1:kZ9jg+2B9IIptRcltBHKBrQdhXNNSrjCoztvrMx7tqI=
-github.com/libp2p/go-libp2p v0.5.1/go.mod h1:Os7a5Z3B+ErF4v7zgIJ7nBHNu2LYt8ZMLkTQUB3G/wA=
 github.com/libp2p/go-libp2p v0.5.2 h1:fjQUTyB7x/4XgO31OEWkJ5uFeHRgpoExlf0rXz5BO8k=
 github.com/libp2p/go-libp2p v0.5.2/go.mod h1:o2r6AcpNl1eNGoiWhRtPji03NYOvZumeQ6u+X6gSxnM=
 github.com/libp2p/go-libp2p-autonat v0.0.2/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
