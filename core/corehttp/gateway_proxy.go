@@ -53,6 +53,10 @@ func ProxyOption() ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		childMux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// TODO remove below dead code?
+			// Rationale Go does not support requests with CONNECT method :-(
+			// https://golang.org/src/net/http/request.go#L111
+			// Below code block never gets executed
 			if r.Method == http.MethodConnect {
 				hijacker, ok := w.(http.Hijacker)
 				if !ok {

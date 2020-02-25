@@ -40,42 +40,37 @@ test_expect_success "Publish test text file to IPNS" '
 
 # IP remains old school path-based gateway
 
-test_expect_success "Request for 127.0.0.1/ipfs/{CID} stays on path" '
-  curl -s "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" > response &&
-  test_should_contain "hello" response
-'
+test_gateway_response_should_contain \
+  "Request for 127.0.0.1/ipfs/{CID} stays on path" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "hello"
 
 # 'localhost' hostname is used for subdomains, and should not return
 #  payload directly, but redirect to URL with proper origin isolation
 
-test_expect_success "Request for localhost/ipfs/{CIDv1} redirects to subdomain" '
-  curl -sD - "http://localhost:$GWAY_PORT/ipfs/$CIDv1" > response &&
-  test_should_contain "Location: http://$CIDv1.ipfs.localhost:$GWAY_PORT/" response &&
-  test_should_contain "<a href=\"http://$CIDv1.ipfs.localhost:$GWAY_PORT/\">Moved Permanently</a>." response
-'
+test_gateway_response_should_contain \
+  "Request for localhost/ipfs/{CIDv1} redirects to subdomain" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.localhost:$GWAY_PORT/"
 
-test_expect_success "Request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" '
-  curl -sD - "http://localhost:$GWAY_PORT/ipfs/$CIDv0" > response &&
-  test_should_contain "Location: http://${CIDv0to1}.ipfs.localhost:$GWAY_PORT/" response &&
-  test_should_contain "<a href=\"http://${CIDv0to1}.ipfs.localhost:$GWAY_PORT/\">Moved Permanently</a>." response
-'
+test_gateway_response_should_contain \
+  "Request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv0" \
+  "Location: http://${CIDv0to1}.ipfs.localhost:$GWAY_PORT/"
 
 # /ipns/<libp2p-key>
 
-test_expect_success "Request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" '
-  curl -sD - "http://localhost:$GWAY_PORT/ipns/$IPNS_IDv0" > response &&
-  test_should_contain "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/" response &&
-  test_should_contain "<a href=\"http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/\">Moved Permanently</a>." response
-'
+test_gateway_response_should_contain \
+  "Request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
+  "http://localhost:$GWAY_PORT/ipns/$IPNS_IDv0"
+  "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
 
 # /ipns/<dnslink-fqdn>
 
-test_expect_success "Request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" '
-  curl -sD - "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" > response &&
-  test_should_contain "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki" response &&
-  test_should_contain "<a href=\"http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki\">Moved Permanently</a>." response
-'
-
+test_gateway_response_should_contain \
+  "Request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
+  "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
+  "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
 
 ## ============================================================================
 ## Test subdomain-based requests to a local gateway with default config
@@ -84,17 +79,15 @@ test_expect_success "Request for localhost/ipns/{fqdn} redirects to DNSLink in s
 
 # {CID}.ipfs.localhost
 
-test_expect_success "Request for {CID}.ipfs.localhost should return expected payload" '
-  curl -sD - "http://${CIDv1}.ipfs.localhost:$GWAY_PORT" > response &&
-  test_should_contain "Etag: \"$CIDv1\"" response &&
-  test_should_contain "hello" response
-'
+test_gateway_response_should_contain \
+  "Request for {CID}.ipfs.localhost should return expected payload" \
+  "http://${CIDv1}.ipfs.localhost:$GWAY_PORT" \
+  "hello"
 
-test_expect_success "Request for {CID}.ipfs.localhost/ipfs/{CID} should fail" '
-  curl -sD - "http://${CIDv1}.ipfs.localhost:$GWAY_PORT/ipfs/$CIDv1" > response &&
-  test_should_contain "404 Not Found" response &&
-  test_should_contain "no link named \"ipfs\" under bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am" response
-'
+test_gateway_response_should_contain \
+  "Request for {CID}.ipfs.localhost/ipfs/{CID} should return HTTP 404" \
+  "http://${CIDv1}.ipfs.localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  "404 Not Found"
 
 # {CID}.ipfs.localhost/sub/dir
 
@@ -119,7 +112,6 @@ test_expect_success "Test the directory listing at {cid}.ipfs.localhost/sub/dir"
 # TODO make "Index of /" show full content path, ex: "index of /ipfs/<cid>"
 # test_should_contain "Index of /ipfs/${DIR_CID}" list_response &&
 
-
 test_expect_success "Test subdirectory response at {cid}.ipfs.localhost/sub/dir/file" '
   curl -s "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/subdir1/subdir2/bar" > list_response &&
   test_should_contain "subdir2-bar" list_response
@@ -134,19 +126,15 @@ test_expect_success "Test subdirectory response at {cid}.ipfs.localhost/sub/dir/
 
 # <libp2p-key>.ipns.localhost
 
-test_expect_success "Request for {CIDv1-libp2p-key}.ipns.localhost return expected payload" '
-  curl -s "http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT" > response &&
-  test_should_contain "hello" response
-'
+test_gateway_response_should_contain \
+  "Request for {CIDv1-libp2p-key}.ipns.localhost return expected payload" \
+  "http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT" \
+  "hello"
 
-test_expect_success "Request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" '
-  curl -sD- "http://${IPNS_IDv1_DAGPB}.ipns.localhost:$GWAY_PORT" > response &&
-  test_should_contain "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/" response &&
-  test_should_contain "<a href=\"http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/\">Moved Permanently</a>." response
-'
-
-# TODO: make all tests twice, once directly and once in HTTP Proxy mode
-# (thereis a lot of stuff to make DRY here, create helpers for handling response)
+test_gateway_response_should_contain \
+  "Request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
+  "http://${IPNS_IDv1_DAGPB}.ipns.localhost:$GWAY_PORT" \
+  "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
 
 # <dnslink-fqdn>.ipns.localhost
 
