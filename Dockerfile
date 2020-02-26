@@ -1,4 +1,4 @@
-FROM golang:1.13.6-buster
+FROM golang:1.14-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Install deps
@@ -41,7 +41,7 @@ RUN set -x \
   && chmod +x tini
 
 # Now comes the actual target image, which aims to be as small as possible.
-FROM busybox:1.31.0-glibc
+FROM busybox:1.31.1-glibc
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
