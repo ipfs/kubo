@@ -439,29 +439,3 @@ findprovs_expect() {
   '
 }
 
-# tests gateway response directly and in all supported HTTP proxy modes
-test_gateway_response_should_contain() {
-  # regular HTTP request
-  test_expect_success "$1 (direct HTTP)" "
-    curl -sD - \"$2\" > response &&
-    test_should_contain \"$3\" response
-  "
-  # HTTP proxy
-  test_expect_success "$1 (HTTP proxy)" "
-    curl -x http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
-    test_should_contain \"$3\" response
-  "
-  # HTTP proxy 1.0
-  test_expect_success "$1 (HTTP proxy 1.0)" "
-    curl --proxy1.0 http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
-    test_should_contain \"$3\" response
-  "
-  # TODO: HTTP proxy tunneling (CONNECT)
-  # https://tools.ietf.org/html/rfc7231#section-4.3.6
-  # In HTTP/1.x, the pseudo-method CONNECT
-  # can be used to convert an HTTP connection into a tunnel to a remote host
-  #test_expect_success "$1 (HTTP proxy tunneling)" "
-  #  curl --proxytunnel -x http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
-  #  test_should_contain \"$3\" response
-  #"
-}

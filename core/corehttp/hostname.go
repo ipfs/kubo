@@ -123,6 +123,9 @@ func HostnameOption() ServeOption {
 					childMux.ServeHTTP(w, r)
 					return
 				}
+				// If not, finish with error
+				http.Error(w, "Gateway.PublicGateways: requested path is not allowed for this hostname", http.StatusForbidden)
+				return
 			}
 
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
@@ -131,13 +134,13 @@ func HostnameOption() ServeOption {
 				// Looks like we're using subdomains.
 
 				// Again, is this a known gateway that supports subdomains?
-				if gw, ok := isKnownGateway(hostname); ok && gw.UseSubdomains {
+				if gw, ok := isKnownGateway(hostname); ok {
 
 					// Assemble original path prefix.
 					pathPrefix := "/" + ns + "/" + rootId
 
 					// Does this gateway _handle_ this path?
-					if hasPrefix(pathPrefix, gw.Paths...) {
+					if gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...) {
 
 						// Do we need to fix multicodec in CID?
 						if ns == "ipns" {
@@ -159,7 +162,7 @@ func HostnameOption() ServeOption {
 						return
 					}
 					// If not, finish with error
-					http.Error(w, "SubdomainGateway: requested path is not allowed", http.StatusForbidden)
+					http.Error(w, "Gateway.PublicGateways: requested path is not allowed for this hostname", http.StatusForbidden)
 					return
 				}
 			}
