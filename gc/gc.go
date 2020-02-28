@@ -73,11 +73,6 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 
 		// The blockstore reports raw blocks. We need to remove the codecs from the CIDs.
 		gcs = toRawCids(gcs)
-		emark.Append(logging.LoggableMap{
-			"blackSetSize": fmt.Sprintf("%d", gcs.Len()),
-		})
-		emark.Done()
-		esweep := log.EventBegin(ctx, "GC.sweep")
 
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
