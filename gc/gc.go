@@ -29,13 +29,13 @@ type Result struct {
 }
 
 // converts a set of CIDs with different codecs to a set of CIDs with the raw codec.
-func toRawCids(set *cid.Set) *cid.Set {
+func toRawCids(set *cid.Set) (*cid.Set, error) {
 	newSet := cid.NewSet()
-	set.ForEach(func(c cid.Cid) error {
+	err := set.ForEach(func(c cid.Cid) error {
 		newSet.Add(cid.NewCidV1(cid.Raw, c.Hash()))
 		return nil
 	})
-	return newSet
+	return newSet, err
 }
 
 // GC performs a mark and sweep garbage collection of the blocks in the blockstore
@@ -72,7 +72,14 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 		}
 
 		// The blockstore reports raw blocks. We need to remove the codecs from the CIDs.
-		gcs = toRawCids(gcs)
+		gcs, err = toRawCids(gcs)
+		if err != nil {
+			select {
+			case output <- Result{Error: err}:
+			case <-ctx.Done():
+			}
+			return
+		}
 
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
