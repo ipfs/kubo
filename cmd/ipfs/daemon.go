@@ -12,6 +12,8 @@ import (
 	"sort"
 	"sync"
 
+	multierror "github.com/hashicorp/go-multierror"
+
 	version "github.com/ipfs/go-ipfs"
 	config "github.com/ipfs/go-ipfs-config"
 	cserial "github.com/ipfs/go-ipfs-config/serialize"
@@ -27,7 +29,6 @@ import (
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	sockets "github.com/libp2p/go-socket-activation"
 
-	"github.com/hashicorp/go-multierror"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
 	goprocess "github.com/jbenet/goprocess"
@@ -298,9 +299,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
-		Repo:                        repo,
-		Permanent:                   true, // It is temporary way to signify that node is permanent
-		Online:                      !offline,
+		Repo:      repo,
+		Permanent: true, // It is temporary way to signify that node is permanent
+		Online:    !offline,
 		DisableEncryptedConnections: unencrypted,
 		ExtraOpts: map[string]bool{
 			"pubsub": pubsub,
@@ -635,7 +636,6 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	cmdctx.Gateway = true
 
 	var opts = []corehttp.ServeOption{
-		corehttp.ProxyOption(), // Proxies all CONNECT requests to self. Always put this first.
 		corehttp.MetricsCollectionOption("gateway"),
 		corehttp.HostnameOption(),
 		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),

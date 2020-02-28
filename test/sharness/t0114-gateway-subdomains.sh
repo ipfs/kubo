@@ -28,10 +28,10 @@ test_localhost_gateway_response_should_contain() {
   # https://tools.ietf.org/html/rfc7231#section-4.3.6
   # In HTTP/1.x, the pseudo-method CONNECT
   # can be used to convert an HTTP connection into a tunnel to a remote host
-  #test_expect_success "$1 (HTTP proxy tunneling)" "
-  #  curl --proxytunnel -x http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
-  #  test_should_contain \"$3\" response
-  #"
+  test_expect_success "$1 (HTTP proxy tunneling)" "
+    curl --proxytunnel -x http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
+    test_should_contain \"$3\" response
+  "
 }
 
 # Helper that checks gateway resonse for specific hostname in Host header
