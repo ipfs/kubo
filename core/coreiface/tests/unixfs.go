@@ -542,7 +542,7 @@ func (tp *TestSuite) TestAddPinned(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pins, err := api.Pin().Ls(ctx)
+	pins, err := accPins(api.Pin().Ls(ctx))
 	if err != nil {
 		t.Fatal(err)
 	}
