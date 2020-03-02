@@ -686,14 +686,15 @@ a beginning offset to write to. The entire length of the input will be
 written.
 
 If the '--create' option is specified, the file will be created if it does not
-exist. Nonexistant intermediate directories will not be created.
+exist. Nonexistant intermediate directories will not be created unless the
+'--parents' option is specified.
 
 Newly created files will have the same CID version and hash function of the
-parent directory unless the --cid-version and --hash options are used.
+parent directory unless the '--cid-version' and '--hash' options are used.
 
 Newly created leaves will be in the legacy format (Protobuf) if the
-CID version is 0, or raw is the CID version is non-zero.  Use of the
---raw-leaves option will override this behavior.
+CID version is 0, or raw if the CID version is non-zero.  Use of the
+'--raw-leaves' option will override this behavior.
 
 If the '--flush' option is set to false, changes will not be propogated to the
 merkledag root. This can make operations much faster when doing a large number
@@ -701,7 +702,7 @@ of writes to a deeper directory structure.
 
 EXAMPLE:
 
-    echo "hello world" | ipfs files write --create /myfs/a/b/file
+    echo "hello world" | ipfs files write --create --parents /myfs/a/b/file
     echo "hello world" | ipfs files write --truncate /myfs/a/b/file
 
 WARNING:
