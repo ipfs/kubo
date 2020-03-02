@@ -693,7 +693,7 @@ Newly created files will have the same CID version and hash function of the
 parent directory unless the '--cid-version' and '--hash' options are used.
 
 Newly created leaves will be in the legacy format (Protobuf) if the
-CID version is 0, or raw is the CID version is non-zero.  Use of the
+CID version is 0, or raw if the CID version is non-zero.  Use of the
 '--raw-leaves' option will override this behavior.
 
 If the '--flush' option is set to false, changes will not be propogated to the
