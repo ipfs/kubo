@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## 0.4.23 2019-01-29
+## 0.4.23 2020-01-29
 
 Given the large number of fixes merged since 0.4.22, we've decided to cut another patch release.
 
