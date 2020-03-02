@@ -58,7 +58,7 @@ If the issue is a protocol weakness that cannot be immediately exploited or some
 
 ## Install
 
-The canonical download instructions for IPFS are over at: https://docs.ipfs.io/guides/guides/install/. It is **highly suggested** you follow those instructions if you are not interested in working on IPFS development.
+The canonical download instructions for IPFS are over at: https://docs.ipfs.io/guides/guides/install/. It is **highly recommended** you follow those instructions if you are not interested in working on IPFS development.
 
 ### System Requirements
 
@@ -515,4 +515,7 @@ You can contact us on the freenode #ipfs-dev channel or attend one of our
 
 ## License
 
-[MIT](./LICENSE)
+The go-ipfs project is dual-licensed under Apache 2.0 and MIT terms:
+
+- Apache License, Version 2.0, ([LICENSE-APACHE](https://github.com/ipfs/go-ipfs/blob/master/LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](https://github.com/ipfs/go-ipfs/blob/master/LICENSE-MIT) or http://opensource.org/licenses/MIT)
