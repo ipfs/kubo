@@ -18,7 +18,7 @@ import (
 )
 
 var pathGatewaySpec = config.GatewaySpec{
-	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix, "/api/"},
+	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix, "/api/", "/version"},
 	UseSubdomains: false,
 }
 
@@ -123,8 +123,8 @@ func HostnameOption() ServeOption {
 					childMux.ServeHTTP(w, r)
 					return
 				}
-				// If not, finish with error
-				http.Error(w, "Gateway.PublicGateways: requested path is not allowed for this hostname", http.StatusForbidden)
+				// If not, resource does not exist on the hostname, return 404
+				http.NotFound(w, r)
 				return
 			}
 
@@ -161,8 +161,8 @@ func HostnameOption() ServeOption {
 						childMux.ServeHTTP(w, r)
 						return
 					}
-					// If not, finish with error
-					http.Error(w, "Gateway.PublicGateways: requested path is not allowed for this hostname", http.StatusForbidden)
+					// If not, resource does not exist on the subdomain gateway, return 404
+					http.NotFound(w, r)
 					return
 				}
 			}

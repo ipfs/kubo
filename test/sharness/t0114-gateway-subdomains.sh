@@ -304,10 +304,10 @@ test_launch_ipfs_daemon --offline
 
 # refuse requests to Paths that were not explicitly whitelisted for the hostname
 test_hostname_gateway_response_should_contain \
-  "Request for *.ipns.example.com is refused due to Paths restricted to /ipfs" \
+  "Request for *.ipns.example.com returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
   "${IPNS_IDv1}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
-  "403 Forbidden"
+  "404 Not Found"
 
 
 ## ============================================================================
@@ -333,17 +333,17 @@ test_hostname_gateway_response_should_contain \
 # refuse subdomain requests on path gateway
 # (we don't want false sense of security)
 test_hostname_gateway_response_should_contain \
-  "Request for {CID}.ipfs.example.com/ipfs/{CID} should return HTTP 403 Forbidden" \
+  "Request for {CID}.ipfs.example.com/ipfs/{CID} should return HTTP 404 Not Found" \
   "${CIDv1}.ipfs.example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
-  "403 Forbidden"
+  "404 Not Found"
 
 # refuse requests to Paths that were not explicitly whitelisted for the hostname
 test_hostname_gateway_response_should_contain \
-  "Request for example.com/ipns/ is refused due to Paths restricted to /ipfs" \
+  "Request for example.com/ipns/ returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv1" \
-  "403 Forbidden"
+  "404 Not Found"
 
 # =============================================================================
 test_kill_ipfs_daemon
