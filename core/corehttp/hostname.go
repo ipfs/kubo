@@ -18,7 +18,7 @@ import (
 )
 
 var pathGatewaySpec = config.GatewaySpec{
-	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix, "/api/", "/version"},
+	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix, "/api", "/p2p", "/version"},
 	UseSubdomains: false,
 }
 
