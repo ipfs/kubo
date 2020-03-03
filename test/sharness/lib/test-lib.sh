@@ -438,4 +438,3 @@ findprovs_expect() {
     test_cmp findprovsOut expected
   '
 }
-

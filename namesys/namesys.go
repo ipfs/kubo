@@ -6,7 +6,6 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -112,12 +111,12 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 	}
 
 	// Resolver selection:
-	// 1. if it is a CID/multihash resolve through "ipns".
+	// 1. if it is a PeerID/CID/multihash resolve through "ipns".
 	// 2. if it is a domain name, resolve through "dns"
 	// 3. otherwise resolve through the "proquint" resolver
 
 	var res resolver
-	if _, err := cid.Decode(key); err == nil {
+	if _, err := peer.Decode(key); err == nil {
 		res = ns.ipnsResolver
 	} else if isd.IsDomain(key) {
 		res = ns.dnsResolver
