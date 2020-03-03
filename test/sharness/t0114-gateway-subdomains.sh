@@ -4,7 +4,12 @@
 
 test_description="Test subdomain support on the HTTP gateway"
 
+
 . lib/test-lib.sh
+
+## ============================================================================
+## Helpers specific to subdomain tests
+## ============================================================================
 
 # Helper that tests gateway response over direct HTTP
 # and in all supported HTTP proxy modes
@@ -41,6 +46,9 @@ test_hostname_gateway_response_should_contain() {
     test_should_contain \"$4\" response
   "
 }
+## ============================================================================
+## Start IPFS Node and prepare test CIDs
+## ============================================================================
 
 test_init_ipfs
 test_launch_ipfs_daemon --offline
@@ -51,6 +59,13 @@ test_expect_success "Add test text file" '
   CIDv1=$(echo "hello" | ipfs add --cid-version 1 -Q)
   CIDv0=$(echo "hello" | ipfs add --cid-version 0 -Q)
   CIDv0to1=$(echo "$CIDv0" | ipfs cid base32)
+'
+
+test_expect_success "Add the test directory" '
+  mkdir -p testdirlisting/subdir1/subdir2 &&
+  echo "hello" > testdirlisting/hello &&
+  echo "subdir2-bar" > testdirlisting/subdir1/subdir2/bar &&
+  DIR_CID=$(ipfs add -Qr --cid-version 1 testdirlisting)
 '
 
 test_expect_success "Publish test text file to IPNS" '
@@ -64,6 +79,7 @@ test_expect_success "Publish test text file to IPNS" '
   printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
   test_cmp expected2 output
 '
+
 #test_kill_ipfs_daemon
 #test_launch_ipfs_daemon
 
@@ -108,6 +124,13 @@ test_localhost_gateway_response_should_contain \
   "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
 
+# /api/ → api.localhost/api
+
+test_localhost_gateway_response_should_contain \
+  "Request for localhost/api redirect to api.localhost" \
+  "http://localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
+  "Location: http://api.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true"
+
 ## ============================================================================
 ## Test subdomain-based requests to a local gateway with default config
 ## (origin per content root at http://*.localhost)
@@ -126,13 +149,6 @@ test_localhost_gateway_response_should_contain \
   "404 Not Found"
 
 # {CID}.ipfs.localhost/sub/dir (Directory Listing)
-
-test_expect_success "Add the test directory" '
-  mkdir -p testdirlisting/subdir1/subdir2 &&
-  echo "hello" > testdirlisting/hello &&
-  echo "subdir2-bar" > testdirlisting/subdir1/subdir2/bar &&
-  DIR_CID=$(ipfs add -Qr --cid-version 1 testdirlisting)
-'
 
 test_expect_success "Valid file and subdirectory paths in directory listing at {cid}.ipfs.localhost" '
   curl -s "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT" > list_response &&
@@ -184,6 +200,13 @@ test_localhost_gateway_response_should_contain \
 #  test_cmp docs_cid_expected dnslink_response
 #'
 
+# api.localhost/api
+
+# Note: use DIR_CID so refs -r returns some CIDs for child nodes
+test_localhost_gateway_response_should_contain \
+  "Request for api.localhost returns API response" \
+  "http://api.localhost:$GWAY_PORT/api/v0/refs?arg=$DIR_CID&r=true" \
+  "Ref"
 
 ## ============================================================================
 ## Test subdomain-based requests with a custom hostname config
@@ -191,7 +214,7 @@ test_localhost_gateway_response_should_contain \
 ## ============================================================================
 
 # set explicit subdomain gateway config for the hostname
-ipfs config --json Gateway.PublicGateways '{"example.com": { "UseSubdomains": true, "Paths": ["/ipfs", "/ipns"] }}'
+ipfs config --json Gateway.PublicGateways '{"example.com": { "UseSubdomains": true, "Paths": ["/ipfs", "/ipns", "/api"] }}'
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
 test_launch_ipfs_daemon --offline
@@ -281,7 +304,14 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "Location: http://${IPNS_IDv1}.ipns.example.com/"
 
-# TODO: api.example.com/v0/id
+# api.example.com
+# ============================================================================
+
+test_hostname_gateway_response_should_contain \
+  "Request for api.example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
+  "api.example.com" \
+  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
+  "Ref"
 #
 # DNSLink requests (could be moved to separate test file)
 #

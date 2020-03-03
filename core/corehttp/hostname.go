@@ -18,12 +18,12 @@ import (
 )
 
 var pathGatewaySpec = config.GatewaySpec{
-	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix, "/api", "/p2p", "/version"},
+	Paths:         []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"},
 	UseSubdomains: false,
 }
 
 var subdomainGatewaySpec = config.GatewaySpec{
-	Paths:         []string{ipfsPathPrefix, ipnsPathPrefix},
+	Paths:         []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"},
 	UseSubdomains: true,
 }
 
@@ -38,7 +38,7 @@ var defaultKnownGateways = map[string]config.GatewaySpec{
 
 // Find content identifier, protocol, and remaining hostname (host+optional port)
 // of a subdomain gateway (eg. *.ipfs.foo.bar.co.uk)
-var subdomainGatewayRegex = regexp.MustCompile("^(.+).(ipfs|ipns|ipld|p2p).([^/?#&]+)$")
+var subdomainGatewayRegex = regexp.MustCompile("^(.+).(ipfs|ipns|ipld|p2p|api).([^/?#&]+)$")
 
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
@@ -112,7 +112,7 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable (pretty much everything except `/api`).
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path); ok {
+						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r.URL.RawQuery); ok {
 							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 							return
 						}
@@ -130,24 +130,24 @@ func HostnameOption() ServeOption {
 
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
 			// Example: {cid}.ipfs.localhost, {cid}.ipfs.dweb.link
-			if hostname, ns, rootId, ok := parseSubdomains(r.Host); ok {
+			if hostname, ns, rootID, ok := parseSubdomains(r.Host); ok {
 				// Looks like we're using subdomains.
 
 				// Again, is this a known gateway that supports subdomains?
 				if gw, ok := isKnownGateway(hostname); ok {
 
 					// Assemble original path prefix.
-					pathPrefix := "/" + ns + "/" + rootId
+					pathPrefix := "/" + ns + "/" + rootID
 
 					// Does this gateway _handle_ this path?
 					if gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...) {
 
 						// Do we need to fix multicodec in CID?
 						if ns == "ipns" {
-							keyCid, err := cid.Decode(rootId)
+							keyCid, err := cid.Decode(rootID)
 							if err == nil && keyCid.Type() != cid.Libp2pKey {
 
-								if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path); ok {
+								if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r.URL.RawQuery); ok {
 									// Redirect to CID fixed inside of toSubdomainURL()
 									http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 									return
@@ -198,7 +198,7 @@ func HostnameOption() ServeOption {
 
 func isSubdomainNamespace(ns string) bool {
 	switch ns {
-	case "ipfs", "ipns", "p2p", "ipld":
+	case "ipfs", "ipns", "p2p", "ipld", "api":
 		return true
 	default:
 		return false
@@ -207,7 +207,7 @@ func isSubdomainNamespace(ns string) bool {
 
 // Parses Host header of a subdomain-based URL and returns it's components
 // Note: hostname is host + optional port
-func parseSubdomains(hostHeader string) (hostname, ns, rootId string, ok bool) {
+func parseSubdomains(hostHeader string) (hostname, ns, rootID string, ok bool) {
 	parts := subdomainGatewayRegex.FindStringSubmatch(hostHeader)
 	if len(parts) < 4 || !isSubdomainNamespace(parts[2]) {
 		return "", "", "", false
@@ -216,17 +216,17 @@ func parseSubdomains(hostHeader string) (hostname, ns, rootId string, ok bool) {
 }
 
 // Converts a hostname/path to a subdomain-based URL, if applicable.
-func toSubdomainURL(hostname, path string) (url string, ok bool) {
+func toSubdomainURL(hostname, path string, query string) (url string, ok bool) {
 	parts := strings.SplitN(path, "/", 4)
 
-	var ns, rootId, rest string
+	var ns, rootID, rest string
 	switch len(parts) {
 	case 4:
 		rest = parts[3]
 		fallthrough
 	case 3:
 		ns = parts[1]
-		rootId = parts[2]
+		rootID = parts[2]
 	default:
 		return "", false
 	}
@@ -235,7 +235,26 @@ func toSubdomainURL(hostname, path string) (url string, ok bool) {
 		return "", false
 	}
 
-	if rootCid, err := cid.Decode(rootId); err == nil {
+	// add prefix if query is present
+	if query != "" {
+		query = "?" + query
+	}
+
+	if ns == "api" || ns == "p2p" {
+		// API and P2P proxy use the same paths on subdomains:
+		// api.hostname/api/.. and p2p.hostname/p2p/..
+		return fmt.Sprintf(
+			"http://%s.%s/%s/%s/%s%s",
+			ns,
+			hostname,
+			ns,
+			rootID,
+			rest,
+			query,
+		), true
+	}
+
+	if rootCid, err := cid.Decode(rootID); err == nil {
 		multicodec := rootCid.Type()
 
 		// CIDs in IPNS are expected to have libp2p-key multicodec.
@@ -248,15 +267,16 @@ func toSubdomainURL(hostname, path string) (url string, ok bool) {
 		// if object turns out to be a valid CID,
 		// ensure text representation used in subdomain is CIDv1 in Base32
 		// https://github.com/ipfs/in-web-browsers/issues/89
-		rootId = cid.NewCidV1(multicodec, rootCid.Hash()).String()
+		rootID = cid.NewCidV1(multicodec, rootCid.Hash()).String()
 	}
 
 	return fmt.Sprintf(
-		"http://%s.%s.%s/%s",
-		rootId,
+		"http://%s.%s.%s/%s%s",
+		rootID,
 		ns,
 		hostname,
 		rest,
+		query,
 	), true
 }
 
