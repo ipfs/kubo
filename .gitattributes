@@ -9,6 +9,7 @@ LICENSE text eol=auto
 *.png binary
 *.tar binary
 *.gz binary
+*.car binary
 
 # Binary assets
 assets/init-doc/*          binary
