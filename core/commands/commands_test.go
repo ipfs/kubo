@@ -97,6 +97,7 @@ func TestCommands(t *testing.T) {
 		"/dag/get",
 		"/dag/export",
 		"/dag/put",
+		"/dag/import",
 		"/dag/resolve",
 		"/dht",
 		"/dht/findpeer",
