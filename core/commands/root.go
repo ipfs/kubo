@@ -190,6 +190,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 	"dag": {
 		Subcommands: map[string]*cmds.Command{
 			"get":     dag.DagGetCmd,
+			"export":  dag.DagExportCmd,
 			"resolve": dag.DagResolveCmd,
 		},
 	},

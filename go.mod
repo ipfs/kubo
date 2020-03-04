@@ -54,6 +54,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.2.6
+	github.com/ipld/go-car v0.0.5-0.20200316204026-3e2cf7af0fab
 	github.com/jbenet/go-is-domain v1.0.3
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
