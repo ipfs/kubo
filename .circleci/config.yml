@@ -369,7 +369,7 @@ workflows:
         - go-ipfs-http-client
         - ipfs-webui
 
-  # NOTE: As we need to pass the tag filter to all dependent jobs, this is pulled out into a seperate workflow.
+  # NOTE: You have to opt in to get circleci to trigger builds for a tat. As it is required that you set the tag filter to all dependent jobs, this is pulled out into a seperate workflow.
   # see: https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
   docker-on-tag: 
     jobs:
@@ -377,9 +377,13 @@ workflows:
           filters:
             tags:
               only: /^v[0-9].*|^cluster.+/
+          branches:
+              ignore: /.*/
       - docker-push:
           requires:
             - docker-build
           filters:
             tags:
               only: /^v[0-9].*|^cluster.+/
+          branches:
+              ignore: /.*/
