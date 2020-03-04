@@ -66,6 +66,7 @@ elif [[ $GIT_BRANCH =~ ^cluster ]]; then
 
 elif [ "$GIT_BRANCH" = "feat/stabilize-dht" ]; then 
   pushTag "bifrost-${BUILD_NUM}-${GIT_SHA1_SHORT}"
+  pushTag "bifrost-latest"
 
 elif [ "$GIT_BRANCH" = "release" ]; then 
   pushTag "release"
