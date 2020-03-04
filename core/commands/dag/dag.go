@@ -14,16 +14,22 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
+	mdag "github.com/ipfs/go-merkledag"
 	ipfspath "github.com/ipfs/go-path"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
+
+	gocar "github.com/ipld/go-car"
+	//gipfree "github.com/ipld/go-ipld-prime/impl/free"
+	//gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
+	//gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 )
 
 var DagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with ipld dag objects.",
 		ShortDescription: `
-'ipfs dag' is used for creating and manipulating dag objects.
+'ipfs dag' is used for creating and manipulating dag objects/hierarchies.
 
 This subcommand is currently an experimental feature, but it is intended
 to deprecate and replace the existing 'ipfs object' command moving forward.
@@ -33,6 +39,7 @@ to deprecate and replace the existing 'ipfs object' command moving forward.
 		"put":     DagPutCmd,
 		"get":     DagGetCmd,
 		"resolve": DagResolveCmd,
+		"export":  DagExportCmd,
 	},
 }
 
@@ -240,4 +247,104 @@ var DagResolveCmd = &cmds.Command{
 		}),
 	},
 	Type: ResolveOutput{},
+}
+
+var DagExportCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Streams the selected DAG as a .car stream on stdout.",
+		ShortDescription: `
+'ipfs dag export' fetches a dag and streams it out as a well-formed .car file.
+Note that at prsent only single root selections / .car files are supported.
+The output of blocks happens in strict DAG-traversal, first-seen, order.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("root", true, false, "Expression evaluting to a single root of a dag to export").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+
+		c, err := cid.Decode(req.Arguments[0])
+		if err != nil {
+			return fmt.Errorf(
+				"unable to parse root specification (currently only bare CIDs are supported): %s",
+				err,
+			)
+		}
+
+		// The current interface of go-car is rather suboptimal as it
+		// only takes a blockstore, instead of accepting a dagservice,
+		// and leveraging parallel-fetch capabilities
+		// https://github.com/ipld/go-car/issues/27
+		//
+		// Until the above is fixed, pre-warm the blockstore before doing
+		// anything else. We explicitly *DO NOT* take a lock during this
+		// operation: even if we lose some of the blocks we just received
+		// due to a conflicting GC: we will just re-retrieve anything we
+		// potentially lost when the car is being streamed out
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if err := mdag.FetchGraph(req.Context, c, node.DAG); err != nil {
+			if !node.IsOnline {
+				err = fmt.Errorf("%s (currently offline, perhaps retry after attaching to the network)", err)
+			}
+			return err
+		}
+
+		// Code disabled until descent-issue in go-ipld-prime is fixed
+		//
+		// The second part of the above - make a super-thin wrapper around
+		// a blockservice session, translating Session.GetBlock() to Blockstore.Get()
+		//
+		// sess := blockservice.NewSession(
+		// 	req.Context,
+		// 	node.Blocks,
+		// )
+		// var wrapper getBlockFromSessionWrapper = func(c cid.Cid) (blk.Block, error) {
+		// 	return sess.GetBlock(req.Context, c)
+		// }
+		// sb := gipselectorbuilder.NewSelectorSpecBuilder(gipfree.NodeBuilder())
+		// car := gocar.NewSelectiveCar(
+		// 	req.Context,
+		// 	&wrapper,
+		// 	[]gocar.Dag{gocar.Dag{
+		// 		Root: c,
+		// 		Selector: sb.ExploreRecursive(
+		// 			gipselector.RecursionLimitNone(),
+		// 			sb.ExploreAll(sb.ExploreRecursiveEdge()),
+		// 		).Node(),
+		// 	}},
+		// )
+
+		pipeR, pipeW := io.Pipe()
+
+		errCh := make(chan error, 2) // we only report the 1st error
+		go func() {
+			defer func() {
+				if err := pipeW.Close(); err != nil {
+					errCh <- fmt.Errorf("stream flush failed: %s", err)
+				}
+				close(errCh)
+			}()
+
+			//if err := car.Write(pipeW); err != nil {
+			if err := gocar.WriteCar(
+				req.Context,
+				node.DAG,
+				[]cid.Cid{c},
+				pipeW,
+			); err != nil {
+				errCh <- err
+			}
+		}()
+
+		if err := res.Emit(pipeR); err != nil {
+			pipeW.Close() // ignore errors if any
+			return err
+		}
+
+		return <-errCh
+	},
 }
