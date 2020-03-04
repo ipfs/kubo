@@ -377,7 +377,7 @@ workflows:
           filters:
             tags:
               only: /^v[0-9].*|^cluster.+/
-          branches:
+            branches:
               ignore: /.*/
       - docker-push:
           requires:
@@ -385,5 +385,5 @@ workflows:
           filters:
             tags:
               only: /^v[0-9].*|^cluster.+/
-          branches:
+            branches:
               ignore: /.*/
