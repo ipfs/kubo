@@ -309,11 +309,7 @@ jobs:
         - run:
             name: Build Docker image
             command: |
-              IPFS_PLUGINS=""
-              if (branch === feat/stabilize-dht) {
-                IPFS_PLUGINS="peerlog"
-              }
-              docker build -t --build-arg IPFS_PLUGINS=$IPFS_PLUGINS $IMAGE_NAME:$WIP_IMAGE_TAG .
+              docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .
         - run:
             name: Archive Docker image
             command: docker save -o go-ipfs-image.tar $IMAGE_NAME
