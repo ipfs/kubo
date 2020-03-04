@@ -14,19 +14,22 @@ test_description="Test subdomain support on the HTTP gateway"
 # Helper that tests gateway response over direct HTTP
 # and in all supported HTTP proxy modes
 test_localhost_gateway_response_should_contain() {
+  # explicit Host header to match browser behavior
+  # and also make tests independent from DNS
+  hname=$(echo $2 | cut -d'/' -f3 | cut -d':' -f1,2)
   # regular HTTP request
   test_expect_success "$1 (direct HTTP)" "
-    curl -sD - \"$2\" > response &&
+    curl -H \"Host: $hname\" -sD - \"$2\" > response &&
     test_should_contain \"$3\" response
   "
   # HTTP proxy
   test_expect_success "$1 (HTTP proxy)" "
-    curl -x http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
+    curl -x http://127.0.0.1:$GWAY_PORT -H \"Host: $hname\" -sD - \"$2\" > response &&
     test_should_contain \"$3\" response
   "
   # HTTP proxy 1.0
   test_expect_success "$1 (HTTP proxy 1.0)" "
-    curl --proxy1.0 http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
+    curl --proxy1.0 http://127.0.0.1:$GWAY_PORT -H \"Host: $hname\" -sD - \"$2\" > response &&
     test_should_contain \"$3\" response
   "
   # TODO: HTTP proxy tunneling (CONNECT)
@@ -34,7 +37,7 @@ test_localhost_gateway_response_should_contain() {
   # In HTTP/1.x, the pseudo-method CONNECT
   # can be used to convert an HTTP connection into a tunnel to a remote host
   test_expect_success "$1 (HTTP proxy tunneling)" "
-    curl --proxytunnel -x http://127.0.0.1:$GWAY_PORT -sD - \"$2\" > response &&
+    curl --proxytunnel -x http://127.0.0.1:$GWAY_PORT -H \"Host: $hname\" -sD - \"$2\" > response &&
     test_should_contain \"$3\" response
   "
 }
@@ -114,7 +117,7 @@ test_localhost_gateway_response_should_contain \
 
 test_localhost_gateway_response_should_contain \
   "Request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
-  "http://localhost:$GWAY_PORT/ipns/$IPNS_IDv0"
+  "http://localhost:$GWAY_PORT/ipns/$IPNS_IDv0" \
   "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
 
 # /ipns/<dnslink-fqdn>
@@ -242,7 +245,7 @@ test_hostname_gateway_response_should_contain \
 test_hostname_gateway_response_should_contain \
   "Request for example.com/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
   "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv0"
+  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv0" \
   "Location: http://${IPNS_IDv1}.ipns.example.com/"
 
 # example.com/ipns/<dnslink-fqdn>
