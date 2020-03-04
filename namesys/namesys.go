@@ -2,10 +2,12 @@ package namesys
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -116,7 +118,23 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 	// 3. otherwise resolve through the "proquint" resolver
 
 	var res resolver
-	if _, err := peer.Decode(key); err == nil {
+	_, err := peer.Decode(key)
+
+	// CIDs in IPNS are expected to have libp2p-key multicodec
+	// We ease the transition by returning a more meaningful error with a valid CID
+	if err != nil && err.Error() == "can't convert CID of type protobuf to a peer ID" {
+		ipnsCid, cidErr := cid.Decode(key)
+		if cidErr == nil && ipnsCid.Version() == 1 && ipnsCid.Type() != cid.Libp2pKey {
+			fixedCid := cid.NewCidV1(cid.Libp2pKey, ipnsCid.Hash()).String()
+			codecErr := fmt.Errorf("peer ID represented as CIDv1 require libp2p-key multicodec: retry with %s", fixedCid)
+			log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", key, codecErr)
+			out <- onceResult{err: codecErr}
+			close(out)
+			return out
+		}
+	}
+
+	if err == nil {
 		res = ns.ipnsResolver
 	} else if isd.IsDomain(key) {
 		res = ns.dnsResolver
