@@ -24,7 +24,7 @@
 #   # push tag for a release tag
 #   ./push-docker-tags.sh 1 testingsha release v0.5.0
 #
-#   # Surving suggestion in circle ci - https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
+#   # Serving suggestion in circle ci - https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
 #   ./push-docker-tags.sh "$CIRCLE_BUILD_NUM" "$CIRCLE_SHA1" "$CIRCLE_BRANCH" "$CIRCLE_TAG"
 #
 set -euo pipefail
