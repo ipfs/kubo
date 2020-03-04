@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/coredag"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
@@ -15,15 +17,22 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
+	gocar "github.com/ipld/go-car"
 	mh "github.com/multiformats/go-multihash"
+)
+
+const (
+	silentOptionName   = "silent"
+	pinRootsOptionName = "pin-roots"
 )
 
 var DagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with ipld dag objects.",
 		ShortDescription: `
-'ipfs dag' is used for creating and manipulating dag objects.
+'ipfs dag' is used for creating and manipulating dag objects/hierarchies.
 
 This subcommand is currently an experimental feature, but it is intended
 to deprecate and replace the existing 'ipfs object' command moving forward.
@@ -33,6 +42,7 @@ to deprecate and replace the existing 'ipfs object' command moving forward.
 		"put":     DagPutCmd,
 		"get":     DagGetCmd,
 		"resolve": DagResolveCmd,
+		"import":  DagImportCmd,
 	},
 }
 
@@ -45,6 +55,16 @@ type OutputObject struct {
 type ResolveOutput struct {
 	Cid     cid.Cid
 	RemPath string
+}
+
+// CarImportOutput is the output type of the 'dag import' commands
+type CarImportOutput struct {
+	Root RootMeta
+}
+type RootMeta struct {
+	Cid          cid.Cid
+	PresentInCar bool
+	PinErrorMsg  string
 }
 
 var DagPutCmd = &cmds.Command{
@@ -240,4 +260,249 @@ var DagResolveCmd = &cmds.Command{
 		}),
 	},
 	Type: ResolveOutput{},
+}
+
+type importResult struct {
+	roots map[cid.Cid]bool
+	err   error
+}
+
+var DagImportCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Import the contents of .car files",
+		ShortDescription: `
+'ipfs dag import' parses .car files and adds all objects to the blockstore.
+Currently only car files with version 1 are supported, without particular
+hard limits on the contents (so called car-determinism is not enforced).
+
+By default, after all supplied (one or more) car files have been processed,
+an attempt is made to pin recursively each individual root specified in any car
+headers. This is done at the end of the import, allowing pinning to take place
+over the contents of all cars (a dag scattered over multiple files) plus
+anything present in the blockstore.
+
+During pinning no network requests are made, with no option to change that.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.FileArg("path", true, true, "The path of a .car file.").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(silentOptionName, "No output."),
+		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
+	},
+	Type: CarImportOutput{},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+
+		// on import ensure we do not reach out to the network for any reason
+		// if a pin based on what is imported + what is in the lockstore
+		// isn't possible: tough luck
+		api, _ = api.WithOptions(options.Api.Offline(true))
+
+		// grab a gc lock so that regardless of the size of the streamed-in cars
+		// nothing will disappear on us before we had a chance to pin the roots
+		// at the very end
+		// This is especially important for use cases like dagger:
+		//    ipfs dag import $( ... | ipfs-dagger --stdout=carfifos )
+		//
+		unlocker := node.Blockstore.PinLock()
+		defer func() { unlocker.Unlock() }()
+
+		doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
+
+		retCh := make(chan importResult, 1)
+		go importWorker(req, res, api, retCh)
+
+		done := <-retCh
+		if done.err != nil {
+			return done.err
+		}
+
+		// It is not guaranteed that a root in a header is actually present in the same ( or any )
+		// .car file. This is the case in version 1, and ideally in further versions too
+		// Accumulate any root CID seen in a header, and supplement its actual node if/when encountered
+		// We will attempt a pin *only* at the end in case all car files were well formed
+		//
+		// The boolean value indicates whether we have encountered the root within the car file's
+		//var roots map[cid.Cid]bool
+		roots := done.roots
+
+		// opportunistic pinning: try whatever sticks
+		if doPinRoots {
+
+			var failedPins int
+			for c, seen := range roots {
+
+				// We need to re-retrieve a block, convert it to ipld, and feed it
+				// to the Pinning interface, sigh...
+				//
+				// If we didn't have the problem of inability to take multiple pinlocks,
+				// we could use the Api directly like so (though internally it does the same):
+				//
+				// // not ideal, but the pinning api takes only paths :(
+				// rp := path.NewResolvedPath(
+				// 	ipfspath.FromCid(c),
+				// 	c,
+				// 	c,
+				// 	"",
+				// )
+				//
+				// if err := api.Pin().Add(req.Context, rp, options.Pin.Recursive(true)); err != nil {
+
+				ret := RootMeta{Cid: c, PresentInCar: seen}
+
+				if block, err := node.Blockstore.Get(c); err != nil {
+					ret.PinErrorMsg = err.Error()
+				} else if nd, err := ipld.Decode(block); err != nil {
+					ret.PinErrorMsg = err.Error()
+				} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
+					ret.PinErrorMsg = err.Error()
+				} else if err := node.Pinning.Flush(req.Context); err != nil {
+					ret.PinErrorMsg = err.Error()
+				}
+
+				if ret.PinErrorMsg != "" {
+					failedPins++
+				}
+
+				if err := res.Emit(&CarImportOutput{Root: ret}); err != nil {
+					return err
+				}
+			}
+
+			if failedPins > 0 {
+				return fmt.Errorf(
+					"unable to pin all roots: %d out of %d failed",
+					failedPins,
+					len(roots),
+				)
+			}
+		}
+
+		return nil
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *CarImportOutput) error {
+
+			silent, _ := req.Options[silentOptionName].(bool)
+			if silent {
+				return nil
+			}
+
+			enc, err := cmdenv.GetLowLevelCidEncoder(req)
+			if err != nil {
+				return err
+			}
+
+			if event.Root.PinErrorMsg != "" {
+				event.Root.PinErrorMsg = fmt.Sprintf("FAILED: %s", event.Root.PinErrorMsg)
+			} else {
+				event.Root.PinErrorMsg = "success"
+			}
+
+			if !event.Root.PresentInCar {
+				event.Root.PinErrorMsg += " (root specified in .car header without its data)"
+			}
+
+			_, err = fmt.Fprintf(
+				w,
+				"Pinned root\t%s\t%s\n",
+				enc.Encode(event.Root.Cid),
+				event.Root.PinErrorMsg,
+			)
+			return err
+		}),
+	},
+}
+
+func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI, ret chan importResult) {
+
+	// this is *not* a transaction
+	// it is simply a way to relieve pressure on the blockstore
+	// similar to pinner.Pin/pinner.Flush
+	batch := ipld.NewBatch(req.Context, api.Dag())
+
+	roots := make(map[cid.Cid]bool)
+
+	it := req.Files.Entries()
+	for it.Next() {
+
+		file := files.FileFromEntry(it)
+		if file == nil {
+			ret <- importResult{err: errors.New("expected a file handle")}
+			return
+		}
+
+		car, err := gocar.NewCarReader(file)
+		if err != nil {
+			ret <- importResult{err: err}
+			return
+		}
+
+		// Be explicit here, until the spec is finished
+		if car.Header.Version != 1 {
+			ret <- importResult{err: errors.New("only car files version 1 supported at present")}
+			return
+		}
+
+		for _, c := range car.Header.Roots {
+			if _, exists := roots[c]; !exists {
+				roots[c] = false
+			}
+		}
+
+		for {
+			block, err := car.Next()
+			if err != nil && err != io.EOF {
+				ret <- importResult{err: err}
+				return
+			} else if block == nil {
+				break
+			}
+
+			// the double-decode is suboptimal, but we need it for batching
+			nd, err := ipld.Decode(block)
+			if err != nil {
+				ret <- importResult{err: err}
+				return
+			}
+
+			if err := batch.Add(req.Context, nd); err != nil {
+				ret <- importResult{err: err}
+				return
+			}
+
+			// encountered something known to be a root, for the first time
+			if seen, exists := roots[nd.Cid()]; exists && !seen {
+				roots[nd.Cid()] = true
+			}
+		}
+
+		// every single file in it() is already open before we start
+		// just close here sooner rather than later for neatness
+		// this won't/can't help with not running out of handles
+		file.Close()
+	}
+
+	if err := it.Err(); err != nil {
+		ret <- importResult{err: err}
+		return
+	}
+
+	if err := batch.Commit(); err != nil {
+		ret <- importResult{err: err}
+		return
+	}
+
+	ret <- importResult{roots: roots}
 }
