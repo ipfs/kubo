@@ -14,39 +14,69 @@ test_description="Test subdomain support on the HTTP gateway"
 # Helper that tests gateway response over direct HTTP
 # and in all supported HTTP proxy modes
 test_localhost_gateway_response_should_contain() {
-  # explicit Host header to match browser behavior
+  local label="$1"
+  local expected="$3"
+
+  # explicit "Host: $hostname" header to match browser behavior
   # and also make tests independent from DNS
-  hname=$(echo $2 | cut -d'/' -f3 | cut -d':' -f1,2)
+  local host=$(echo $2 | cut -d'/' -f3 | cut -d':' -f1)
+  local hostname=$(echo $2 | cut -d'/' -f3 | cut -d':' -f1,2)
+
+  # Proxy is the same as HTTP Gateway, we use raw IP and port to be sure
+  local proxy="http://127.0.0.1:$GWAY_PORT"
+
+  # Create a raw URL version with IP to ensure hostname from Host header is used
+  # (removes false-positives, Host header is used for passing hostname already)
+  local url="$2"
+  local rawurl=$(echo "$url" | sed "s/$hostname/127.0.0.1:$GWAY_PORT/")
+
+  #echo "hostname:   $hostname"
+  #echo "url before: $url"
+  #echo "url after:  $rawurl"
+
   # regular HTTP request
-  test_expect_success "$1 (direct HTTP)" "
-    curl -H \"Host: $hname\" -sD - \"$2\" > response &&
-    test_should_contain \"$3\" response
+  # (hostname in Host header, raw IP in URL)
+  test_expect_success "$label (direct HTTP)" "
+    curl -H \"Host: $hostname\" -sD - \"$rawurl\" > response &&
+    test_should_contain \"$expected\" response
   "
+
   # HTTP proxy
-  test_expect_success "$1 (HTTP proxy)" "
-    curl -x http://127.0.0.1:$GWAY_PORT -H \"Host: $hname\" -sD - \"$2\" > response &&
-    test_should_contain \"$3\" response
+  # (hostname is passed via URL)
+  # Note: proxy client should not care, but curl does DNS lookup
+  # for some reason anyway, so we pass static DNS mapping
+  test_expect_success "$label (HTTP proxy)" "
+    curl -x $proxy --resolve $hostname:127.0.0.1 -sD - \"$url\" > response &&
+    test_should_contain \"$expected\" response
   "
+
   # HTTP proxy 1.0
-  test_expect_success "$1 (HTTP proxy 1.0)" "
-    curl --proxy1.0 http://127.0.0.1:$GWAY_PORT -H \"Host: $hname\" -sD - \"$2\" > response &&
-    test_should_contain \"$3\" response
+  # (repeating proxy test with older spec, just to be sure)
+  test_expect_success "$label (HTTP proxy 1.0)" "
+    curl --proxy1.0 $proxy --resolve $hostname:127.0.0.1 -sD - \"$url\" > response &&
+    test_should_contain \"$expected\" response
   "
-  # TODO: HTTP proxy tunneling (CONNECT)
+
+  # HTTP proxy tunneling (CONNECT)
   # https://tools.ietf.org/html/rfc7231#section-4.3.6
   # In HTTP/1.x, the pseudo-method CONNECT
   # can be used to convert an HTTP connection into a tunnel to a remote host
-  test_expect_success "$1 (HTTP proxy tunneling)" "
-    curl --proxytunnel -x http://127.0.0.1:$GWAY_PORT -H \"Host: $hname\" -sD - \"$2\" > response &&
-    test_should_contain \"$3\" response
+  test_expect_success "$label (HTTP proxy tunneling)" "
+    curl --proxytunnel -x $proxy -H \"Host: $hostname\" -sD - \"$rawurl\" > response &&
+    test_should_contain \"$expected\" response
   "
 }
 
 # Helper that checks gateway resonse for specific hostname in Host header
 test_hostname_gateway_response_should_contain() {
-  test_expect_success "$1" "
-    curl -H \"Host: $2\" -sD - \"$3\" > response &&
-    test_should_contain \"$4\" response
+  local label="$1"
+  local hostname="$2"
+  local url="$3"
+  local rawurl=$(echo "$url" | sed "s/$hostname/127.0.0.1:$GWAY_PORT/")
+  local expected="$4"
+  test_expect_success "$label" "
+    curl -H \"Host: $hostname\" -sD - \"$rawurl\" > response &&
+    test_should_contain \"$expected\" response
   "
 }
 ## ============================================================================
@@ -152,15 +182,16 @@ test_localhost_gateway_response_should_contain \
   "404 Not Found"
 
 # {CID}.ipfs.localhost/sub/dir (Directory Listing)
+DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
 test_expect_success "Valid file and subdirectory paths in directory listing at {cid}.ipfs.localhost" '
-  curl -s "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT" > list_response &&
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME" > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
   test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
 '
 
 test_expect_success "Valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
-  curl -s "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/subdir1/subdir2/" > list_response &&
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/" > list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
 '
@@ -168,7 +199,7 @@ test_expect_success "Valid parent directory path in directory listing at {cid}.i
 # test_should_contain "Index of /ipfs/${DIR_CID}" list_response &&
 
 test_expect_success "Request for deep path resource at {cid}.ipfs.localhost/sub/dir/file" '
-  curl -s "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/subdir1/subdir2/bar" > list_response &&
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/bar" > list_response &&
   test_should_contain "subdir2-bar" list_response
 '
 
@@ -271,22 +302,22 @@ test_hostname_gateway_response_should_contain \
   "404 Not Found"
 
 # {CID}.ipfs.example.com/sub/dir (Directory Listing)
+DIR_FQDN="${DIR_CID}.ipfs.example.com"
 
 test_expect_success "Valid file and directory paths in directory listing at {cid}.ipfs.example.com" '
-  curl -s -H "Host: ${DIR_CID}.ipfs.example.com" http://127.0.0.1:$GWAY_PORT > list_response &&
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
   test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
 '
 
-test_expect_success "Valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
-  curl -s -H "Host: ${DIR_CID}.ipfs.example.com" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/ > list_response &&
+test_expect_success "Valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/ > list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
 '
 
-test_expect_success "Request for deep path resource {cid}.ipfs.localhost/sub/dir/file" '
-  curl -s -H "Host: ${DIR_CID}.ipfs.example.com" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/bar > list_response &&
-  curl -s "http://${DIR_CID}.ipfs.localhost:$GWAY_PORT/subdir1/subdir2/bar" > list_response &&
+test_expect_success "Request for deep path resource {cid}.ipfs.example.com/sub/dir/file" '
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/bar > list_response &&
   test_should_contain "subdir2-bar" list_response
 '
 
