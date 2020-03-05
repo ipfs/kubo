@@ -132,16 +132,16 @@ func TestKeystoreBasics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := ks.Put("..///foo/", k1); err == nil {
-		t.Fatal("shouldnt be able to put a poorly named key")
+	if err := ks.Put("..///foo/", k1); err != nil {
+		t.Fatal(err)
 	}
 
 	if err := ks.Put("", k1); err == nil {
 		t.Fatal("shouldnt be able to put a key with no name")
 	}
 
-	if err := ks.Put(".foo", k1); err == nil {
-		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
+	if err := ks.Put(".foo", k1); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -166,12 +166,17 @@ func TestInvalidKeyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(ks.dir, "valid"), bytes, 0644)
+	encodedName, err := encode("valid")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(ks.dir, ".invalid"), bytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(ks.dir, encodedName), bytes, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(ks.dir, "z.invalid"), bytes, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,10 +201,6 @@ func TestInvalidKeyFiles(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if _, err = ks.Has(".invalid"); err == nil {
-		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
 	}
 }
 
@@ -231,12 +232,12 @@ func TestMakeKeystoreNoDir(t *testing.T) {
 }
 
 func assertGetKey(ks Keystore, name string, exp ci.PrivKey) error {
-	out_k, err := ks.Get(name)
+	outK, err := ks.Get(name)
 	if err != nil {
 		return err
 	}
 
-	if !out_k.Equals(exp) {
+	if !outK.Equals(exp) {
 		return fmt.Errorf("key we got out didnt match expectation")
 	}
 
@@ -255,7 +256,11 @@ func assertDirContents(dir string, exp []string) error {
 
 	var names []string
 	for _, fi := range finfos {
-		names = append(names, fi.Name())
+		decodedName, err := decode(fi.Name())
+		if err != nil {
+			return err
+		}
+		names = append(names, decodedName)
 	}
 
 	sort.Strings(names)
@@ -270,93 +275,4 @@ func assertDirContents(dir string, exp []string) error {
 		}
 	}
 	return nil
-}
-
-func TestEncodedKeystoreBasics(t *testing.T) {
-	tdir, err := ioutil.TempDir("", "encoded-keystore-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ks, err := NewEncodedFSKeystore(tdir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	l, err := ks.List()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(l) != 0 {
-		t.Fatal("expected no keys")
-	}
-
-	k1 := privKeyOrFatal(t)
-	k1Name, err := encode("foo")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	k2 := privKeyOrFatal(t)
-	k2Name, err := encode("bar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = ks.Put("foo", k1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = ks.Put("bar", k2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	l, err = ks.List()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	sort.Strings(l)
-	if l[0] != "bar" || l[1] != "foo" {
-		t.Fatal("wrong entries listed")
-	}
-
-	if err := assertDirContents(tdir, []string{k1Name, k2Name}); err != nil {
-		t.Fatal(err)
-	}
-
-	exist, err := ks.Has("foo")
-	if !exist {
-		t.Fatal("should know it has a key named foo")
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := ks.Delete("bar"); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := assertDirContents(tdir, []string{k1Name}); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := assertGetKey(ks, "foo", k1); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := ks.Put("..///foo/", k1); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := ks.Put("", k1); err == nil {
-		t.Fatal("shouldnt be able to put a key with no name")
-	}
-
-	if err := ks.Put(".foo", k1); err != nil {
-		t.Fatal(err)
-	}
 }
