@@ -21,12 +21,12 @@ set -euo pipefail
 # env vars set by docker hub https://docs.docker.com/docker-hub/builds/advanced/#environment-variables-for-building-and-testing
 DOCKER_REPO=${1:-$DOCKER_REPO}       # e.g. "ipfs/go-ipfs"
 DOCKER_TAG=${2:-$DOCKER_TAG}         # e.g. "bifrost-latest"
-SOURCE_BRANCH=${3:-$SOURCE_BRANCH}    # e.g. "feat/stabilize-dh"
-SOURCE_COMMIT=${4:-$SOURCE_COMMIT}    # e.g. "a44c610c6cf4d2a878b1b16f5add8280bed423c0"
+SOURCE_BRANCH=${3:-$SOURCE_BRANCH}   # e.g. "feat/stabilize-dh"
+SOURCE_COMMIT=${4:-$SOURCE_COMMIT}   # e.g. "a44c610c6cf4d2a878b1b16f5add8280bed423c0"
 
 # custom vars
-DRY_RUN=${5:-false}                    # e.g. "dryrun".
-BUILD_DATE=$(date -u +%F)             # e.g. "2020-03-05"
+DRY_RUN=${5:-false}                  # e.g. "dryrun".
+BUILD_DATE=$(date -u +%F)            # e.g. "2020-03-05"
 GIT_SHA_SHORT=$(echo "$SOURCE_COMMIT" | cut -c 1-7)
 
 # Use me to create and push a new tag.
@@ -39,7 +39,7 @@ pushTag () {
   else 
     echo "hooks/post_push - pushing tag: '$DOCKER_REPO:$NEW_TAG' for branch: '$SOURCE_BRANCH'"
     docker tag "$DOCKER_REPO:$DOCKER_TAG" "$DOCKER_REPO:$NEW_TAG"
-    # docker push "$DOCKER_REPO:$NEW_TAG"
+    docker push "$DOCKER_REPO:$NEW_TAG"
   fi
 }
 
