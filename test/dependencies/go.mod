@@ -15,7 +15,7 @@ require (
 	github.com/ipfs/go-log v1.0.2
 	github.com/ipfs/go-merkledag v0.3.1
 	github.com/ipfs/go-unixfs v0.2.4
-	github.com/ipfs/hang-fds v0.0.1
+	github.com/ipfs/hang-fds v0.0.2
 	github.com/ipfs/iptb v1.4.0
 	github.com/ipfs/iptb-plugins v0.2.1
 	github.com/ipld/go-ipld-prime v0.0.2-0.20191108012745-28a82f04c785
