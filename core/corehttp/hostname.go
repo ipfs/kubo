@@ -78,9 +78,6 @@ func HostnameOption() ServeOption {
 		}
 
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithCancel(n.Context())
-			defer cancel()
-
 			// Unfortunately, many (well, ipfs.io) gateways use
 			// DNSLink so if we blindly rewrite with DNSLink, we'll
 			// break /ipfs links.
@@ -88,18 +85,8 @@ func HostnameOption() ServeOption {
 			// We fix this by maintaining a list of known gateways
 			// and the paths that they serve "gateway" content on.
 			// That way, we can use DNSLink for everything else.
-			//
-			// TODO: We wouldn't need _any_ of this if we
-			// supported transparent symlink resolution on
-			// the gateway. If we had that, such gateways could add
-			// symlinks to `/ipns`, `/ipfs`, `/api`, etc. to their
-			// home directories. That way, `/ipfs/QmA/ipfs/QmB`
-			// would "just work". Should we try this?
 
-			// TODO: verify this sidenote: in proxy mode, r.URL.Host is the host of the target
-			// server and r.Host is the host of the proxy server itself.
-
-			// HTTP Host & Path check: is this one of our path-based "known gateways"?
+			// HTTP Host & Path check: is this one of our  "known gateways"?
 			if gw, ok := isKnownGateway(r.Host); ok {
 				// This is a known gateway but request is not using
 				// the subdomain feature.
@@ -123,6 +110,16 @@ func HostnameOption() ServeOption {
 					childMux.ServeHTTP(w, r)
 					return
 				}
+				// Not a whitelisted path
+
+				// Try DNSLink, if it was not explicitly disabled for the hostname
+				if !gw.NoDNSLink && isDNSLinkRequest(r, n) {
+					// rewrite path and handle as DNSLink
+					r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
+					childMux.ServeHTTP(w, r)
+					return
+				}
+
 				// If not, resource does not exist on the hostname, return 404
 				http.NotFound(w, r)
 				return
@@ -142,7 +139,7 @@ func HostnameOption() ServeOption {
 					// Does this gateway _handle_ this path?
 					if gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...) {
 
-						// Do we need to fix multicodec in CID?
+						// Do we need to fix multicodec in /ipns/{cid}?
 						if ns == "ipns" {
 							keyCid, err := cid.Decode(rootID)
 							if err == nil && keyCid.Type() != cid.Libp2pKey {
@@ -168,32 +165,41 @@ func HostnameOption() ServeOption {
 			}
 			// We don't have a known gateway. Fallback on DNSLink lookup
 
-			// HTTP Host check: does Host header include a fully qualified domain name (FQDN)?
-			fqdn := stripPort(r.Host)
-			if len(fqdn) > 0 && isd.IsDomain(fqdn) {
-				gw, ok := isKnownGateway(fqdn)
-				// Confirm DNSLink was not disabled for the fqdn or globally
-				enabled := (ok && !gw.NoDNSLink) || !cfg.Gateway.NoDNSLink
-				if enabled {
-					name := "/ipns/" + fqdn
-					_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
-					if err == nil || err == namesys.ErrResolveRecursion {
-						// Check if this gateway has any Paths mounted
-						if ok && hasPrefix(r.URL.Path, gw.Paths...) {
-							// Yes: Paths should take priority over DNSLink
-							childMux.ServeHTTP(w, r)
-							return
-						}
-						// The domain supports DNSLink, rewrite.
-						r.URL.Path = name + r.URL.Path
-					}
-				}
-			} // else, just treat it as a gateway, I guess.
+			// Wildcard HTTP Host check:
+			// 1. is wildcard DNSLink enabled (Gateway.NoDNSLink=false)?
+			// 2. does Host header include a fully qualified domain name (FQDN)?
+			// 3. does DNSLink record exist in DNS?
+			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r, n) {
+				// rewrite path and handle as DNSLink
+				r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
+				childMux.ServeHTTP(w, r)
+				return
+			}
 
+			// else, treat it as an old school gateway, I guess.
 			childMux.ServeHTTP(w, r)
 		})
 		return childMux, nil
 	}
+}
+
+// isDNSLinkRequest returns bool that indicates if request
+// should return data from content path listed in DNSLink record (if exists)
+func isDNSLinkRequest(r *http.Request, n *core.IpfsNode) bool {
+	ctx, cancel := context.WithCancel(n.Context())
+	defer cancel()
+
+	fqdn := stripPort(r.Host)
+	if len(fqdn) > 0 && isd.IsDomain(fqdn) {
+		// Confirm DNSLink was not disabled for the fqdn or globally
+		name := "/ipns/" + fqdn
+		// check if DNSLink exists
+		_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
+		if err == nil || err == namesys.ErrResolveRecursion {
+			return true
+		}
+	}
+	return false
 }
 
 func isSubdomainNamespace(ns string) bool {

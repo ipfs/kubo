@@ -79,6 +79,7 @@ test_hostname_gateway_response_should_contain() {
     test_should_contain \"$expected\" response
   "
 }
+
 ## ============================================================================
 ## Start IPFS Node and prepare test CIDs
 ## ============================================================================
@@ -89,8 +90,9 @@ test_launch_ipfs_daemon --offline
 # CIDv0to1 is necessary because raw-leaves are enabled by default during
 # "ipfs add" with CIDv1 and disabled with CIDv0
 test_expect_success "Add test text file" '
-  CIDv1=$(echo "hello" | ipfs add --cid-version 1 -Q)
-  CIDv0=$(echo "hello" | ipfs add --cid-version 0 -Q)
+  CID_VAL="hello"
+  CIDv1=$(echo $CID_VAL | ipfs add --cid-version 1 -Q)
+  CIDv0=$(echo $CID_VAL | ipfs add --cid-version 0 -Q)
   CIDv0to1=$(echo "$CIDv0" | ipfs cid base32)
 '
 
@@ -113,8 +115,13 @@ test_expect_success "Publish test text file to IPNS" '
   test_cmp expected2 output
 '
 
-#test_kill_ipfs_daemon
-#test_launch_ipfs_daemon
+
+# ensure we start with empty Gateway.PublicGateways
+test_expect_success 'start daemon with empty config for Gateway.PublicGateways' '
+  test_kill_ipfs_daemon &&
+  ipfs config --json Gateway.PublicGateways "{}" &&
+  test_launch_ipfs_daemon --offline
+'
 
 ## ============================================================================
 ## Test path-based requests to a local gateway with default config
@@ -126,41 +133,41 @@ test_expect_success "Publish test text file to IPNS" '
 # IP remains old school path-based gateway
 
 test_localhost_gateway_response_should_contain \
-  "Request for 127.0.0.1/ipfs/{CID} stays on path" \
+  "request for 127.0.0.1/ipfs/{CID} stays on path" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
-  "hello"
+  "$CID_VAL"
 
 # 'localhost' hostname is used for subdomains, and should not return
 #  payload directly, but redirect to URL with proper origin isolation
 
 test_localhost_gateway_response_should_contain \
-  "Request for localhost/ipfs/{CIDv1} redirects to subdomain" \
+  "request for localhost/ipfs/{CIDv1} redirects to subdomain" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "Location: http://$CIDv1.ipfs.localhost:$GWAY_PORT/"
 
 test_localhost_gateway_response_should_contain \
-  "Request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \
+  "request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv0" \
   "Location: http://${CIDv0to1}.ipfs.localhost:$GWAY_PORT/"
 
 # /ipns/<libp2p-key>
 
 test_localhost_gateway_response_should_contain \
-  "Request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
+  "request for localhost/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
   "http://localhost:$GWAY_PORT/ipns/$IPNS_IDv0" \
   "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
 
 # /ipns/<dnslink-fqdn>
 
 test_localhost_gateway_response_should_contain \
-  "Request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
+  "request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" \
   "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
 
 # /api/ → api.localhost/api
 
 test_localhost_gateway_response_should_contain \
-  "Request for localhost/api redirect to api.localhost" \
+  "request for localhost/api redirect to api.localhost" \
   "http://localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
   "Location: http://api.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true"
 
@@ -172,73 +179,67 @@ test_localhost_gateway_response_should_contain \
 # {CID}.ipfs.localhost
 
 test_localhost_gateway_response_should_contain \
-  "Request for {CID}.ipfs.localhost should return expected payload" \
+  "request for {CID}.ipfs.localhost should return expected payload" \
   "http://${CIDv1}.ipfs.localhost:$GWAY_PORT" \
-  "hello"
+  "$CID_VAL"
 
 test_localhost_gateway_response_should_contain \
-  "Request for {CID}.ipfs.localhost/ipfs/{CID} should return HTTP 404" \
+  "request for {CID}.ipfs.localhost/ipfs/{CID} should return HTTP 404" \
   "http://${CIDv1}.ipfs.localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "404 Not Found"
 
 # {CID}.ipfs.localhost/sub/dir (Directory Listing)
 DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
-test_expect_success "Valid file and subdirectory paths in directory listing at {cid}.ipfs.localhost" '
+test_expect_success "valid file and subdirectory paths in directory listing at {cid}.ipfs.localhost" '
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME" > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
   test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
 '
 
-test_expect_success "Valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
+test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/" > list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
 '
-# TODO make "Index of /" show full content path, ex: "index of /ipfs/<cid>"
-# test_should_contain "Index of /ipfs/${DIR_CID}" list_response &&
 
-test_expect_success "Request for deep path resource at {cid}.ipfs.localhost/sub/dir/file" '
+test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/dir/file" '
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/bar" > list_response &&
   test_should_contain "subdir2-bar" list_response
 '
 
 # *.ipns.localhost
 
-
-# switch to offline daemon to use local IPNS table
-#test_kill_ipfs_daemon
-#test_launch_ipfs_daemon --offline
-
 # <libp2p-key>.ipns.localhost
 
 test_localhost_gateway_response_should_contain \
-  "Request for {CIDv1-libp2p-key}.ipns.localhost returns expected payload" \
+  "request for {CIDv1-libp2p-key}.ipns.localhost returns expected payload" \
   "http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT" \
-  "hello"
+  "$CID_VAL"
 
 test_localhost_gateway_response_should_contain \
-  "Request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
+  "request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
   "http://${IPNS_IDv1_DAGPB}.ipns.localhost:$GWAY_PORT" \
   "Location: http://${IPNS_IDv1}.ipns.localhost:$GWAY_PORT/"
 
-# TODO: <dnslink-fqdn>.ipns.localhost
-# - Opening <dnslink-fqdn>.ipns.localhost DNSLink (Host header) (eg. http://en.wikipedia-on-ipfs.org?)
+# <dnslink-fqdn>.ipns.localhost
 
-# TODO: this needs to be instant
-#test_expect_success "Request for localhost/ipns/{fqdn} redirects to DNSLink in subdomain" '
-#  DOCS_CID=$(ipfs name resolve -r docs.ipfs.io | cut -d"/" -f3) &&
-#  echo $DOCS_CID &&
-#  curl "http://docs.ipfs.io.ipns.localhost:$GWAY_PORT" > dnslink_response &&
-#  curl "$GWAY_ADDR/ipfs/$DOCS_CID" > docs_cid_expected &&
-#  test_cmp docs_cid_expected dnslink_response
-#'
+# DNSLink test requires a daemon in online mode with precached /ipns/ mapping
+test_kill_ipfs_daemon
+DNSLINK_FQDN="dnslink-test.example.com"
+export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$CIDv1"
+test_launch_ipfs_daemon
+
+test_localhost_gateway_response_should_contain \
+  "request for {dnslink}.ipns.localhost returns expected payload" \
+  "http://$DNSLINK_FQDN.ipns.localhost:$GWAY_PORT" \
+  "$CID_VAL"
 
 # api.localhost/api
 
-# Note: use DIR_CID so refs -r returns some CIDs for child nodes
+# Note: we use DIR_CID so refs -r returns some CIDs for child nodes
 test_localhost_gateway_response_should_contain \
-  "Request for api.localhost returns API response" \
+  "request for api.localhost returns API response" \
   "http://api.localhost:$GWAY_PORT/api/v0/refs?arg=$DIR_CID&r=true" \
   "Ref"
 
@@ -248,10 +249,16 @@ test_localhost_gateway_response_should_contain \
 ## ============================================================================
 
 # set explicit subdomain gateway config for the hostname
-ipfs config --json Gateway.PublicGateways '{"example.com": { "UseSubdomains": true, "Paths": ["/ipfs", "/ipns", "/api"] }}'
+ipfs config --json Gateway.PublicGateways '{
+  "example.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  }
+}' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
 test_launch_ipfs_daemon --offline
+
 
 # example.com/ip(f|n)s/*
 # =============================================================================
@@ -260,13 +267,13 @@ test_launch_ipfs_daemon --offline
 # to a subdomain URL with proper origin isolation
 
 test_hostname_gateway_response_should_contain \
-  "Request for example.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.example.com" \
+  "request for example.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.example.com" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "Location: http://$CIDv1.ipfs.example.com/"
 
 test_hostname_gateway_response_should_contain \
-  "Request for example.com/ipfs/{CIDv0} produces redirect to {CIDv1}.ipfs.example.com" \
+  "request for example.com/ipfs/{CIDv0} produces redirect to {CIDv1}.ipfs.example.com" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv0" \
   "Location: http://${CIDv0to1}.ipfs.example.com/"
@@ -274,7 +281,7 @@ test_hostname_gateway_response_should_contain \
 # example.com/ipns/<libp2p-key>
 
 test_hostname_gateway_response_should_contain \
-  "Request for example.com/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
+  "request for example.com/ipns/{CIDv0} redirects to CIDv1 with libp2p-key multicodec in subdomain" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv0" \
   "Location: http://${IPNS_IDv1}.ipns.example.com/"
@@ -282,7 +289,7 @@ test_hostname_gateway_response_should_contain \
 # example.com/ipns/<dnslink-fqdn>
 
 test_hostname_gateway_response_should_contain \
-  "Request for example.com/ipns/{fqdn} redirects to DNSLink in subdomain" \
+  "request for example.com/ipns/{fqdn} redirects to DNSLink in subdomain" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.example.com/wiki"
@@ -290,13 +297,13 @@ test_hostname_gateway_response_should_contain \
 # *.ipfs.example.com: subdomain requests made with custom FQDN in Host header
 
 test_hostname_gateway_response_should_contain \
-  "Request for {CID}.ipfs.example.com should return expected payload" \
+  "request for {CID}.ipfs.example.com should return expected payload" \
   "${CIDv1}.ipfs.example.com" \
   "http://127.0.0.1:$GWAY_PORT/" \
-  "hello"
+  "$CID_VAL"
 
 test_hostname_gateway_response_should_contain \
-  "Request for {CID}.ipfs.example.com/ipfs/{CID} should return HTTP 404" \
+  "request for {CID}.ipfs.example.com/ipfs/{CID} should return HTTP 404" \
   "${CIDv1}.ipfs.example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "404 Not Found"
@@ -304,19 +311,19 @@ test_hostname_gateway_response_should_contain \
 # {CID}.ipfs.example.com/sub/dir (Directory Listing)
 DIR_FQDN="${DIR_CID}.ipfs.example.com"
 
-test_expect_success "Valid file and directory paths in directory listing at {cid}.ipfs.example.com" '
+test_expect_success "valid file and directory paths in directory listing at {cid}.ipfs.example.com" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
   test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
 '
 
-test_expect_success "Valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
+test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/ > list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
   test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
 '
 
-test_expect_success "Request for deep path resource {cid}.ipfs.example.com/sub/dir/file" '
+test_expect_success "request for deep path resource {cid}.ipfs.example.com/sub/dir/file" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/bar > list_response &&
   test_should_contain "subdir2-bar" list_response
 '
@@ -327,13 +334,13 @@ test_expect_success "Request for deep path resource {cid}.ipfs.example.com/sub/d
 # <libp2p-key>.ipns.example.com
 
 test_hostname_gateway_response_should_contain \
-  "Request for {CIDv1-libp2p-key}.ipns.example.com returns expected payload" \
+  "request for {CIDv1-libp2p-key}.ipns.example.com returns expected payload" \
   "${IPNS_IDv1}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
-  "hello"
+  "$CID_VAL"
 
 test_hostname_gateway_response_should_contain \
-  "Request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
+  "request for {CIDv1-dag-pb}.ipns.localhost redirects to CID with libp2p-key multicodec" \
   "${IPNS_IDv1_DAGPB}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "Location: http://${IPNS_IDv1}.ipns.example.com/"
@@ -342,33 +349,42 @@ test_hostname_gateway_response_should_contain \
 # ============================================================================
 
 test_hostname_gateway_response_should_contain \
-  "Request for api.example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
+  "request for api.example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
   "api.example.com" \
   "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
   "Ref"
-#
-# DNSLink requests (could be moved to separate test file)
-#
-# - set PublicGateway config for host with DNSLink, eg. docs.ipfs.io
-#   - Paths: [] NoDNSLink: false
-#     - confirm content-addressed requests return 404
-#     - confirm the same payload is returned for / as for path at `ipfs dns docs.ipfs.io`
-#   - Paths: [] NoDNSLink: true
-#     - confirm both DNSLink and content-addressing return 404
-#
+
+# <dnslink-fqdn>.ipns.example.com
+
+# DNSLink test requires a daemon in online mode with precached /ipns/ mapping
+test_kill_ipfs_daemon
+DNSLINK_FQDN="dnslink-subdomain-gw-test.example.org"
+export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$CIDv1"
+test_launch_ipfs_daemon
+
+test_hostname_gateway_response_should_contain \
+  "request for {dnslink}.ipns.example.com returns expected payload" \
+  "$DNSLINK_FQDN.ipns.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "$CID_VAL"
 
 # Disable selected Paths for the subdomain gateway hostname
 # =============================================================================
 
 # disable /ipns for the hostname by not whitelisting it
-ipfs config --json Gateway.PublicGateways '{"example.com": { "UseSubdomains": true, "Paths": ["/ipfs"] }}'
+ipfs config --json Gateway.PublicGateways '{
+  "example.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  }
+}' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
 test_launch_ipfs_daemon --offline
 
 # refuse requests to Paths that were not explicitly whitelisted for the hostname
 test_hostname_gateway_response_should_contain \
-  "Request for *.ipns.example.com returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
+  "request for *.ipns.example.com returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
   "${IPNS_IDv1}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "404 Not Found"
@@ -379,7 +395,13 @@ test_hostname_gateway_response_should_contain \
 ## ============================================================================
 
 # set explicit subdomain gateway config for the hostname
-ipfs config --json Gateway.PublicGateways '{"example.com": { "UseSubdomains": false, "Paths": ["/ipfs"] }}'
+ipfs config --json Gateway.PublicGateways '{
+  "example.com": {
+    "UseSubdomains": false,
+    "Paths": ["/ipfs"]
+  }
+}' || exit 1
+
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
 test_launch_ipfs_daemon --offline
@@ -389,27 +411,136 @@ test_launch_ipfs_daemon --offline
 
 # confirm path gateway works for /ipfs
 test_hostname_gateway_response_should_contain \
-  "Request for example.com/ipfs/{CIDv1} returns expected payload" \
+  "request for example.com/ipfs/{CIDv1} returns expected payload" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
-  "hello"
+  "$CID_VAL"
 
 # refuse subdomain requests on path gateway
 # (we don't want false sense of security)
 test_hostname_gateway_response_should_contain \
-  "Request for {CID}.ipfs.example.com/ipfs/{CID} should return HTTP 404 Not Found" \
+  "request for {CID}.ipfs.example.com/ipfs/{CID} should return HTTP 404 Not Found" \
   "${CIDv1}.ipfs.example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "404 Not Found"
 
 # refuse requests to Paths that were not explicitly whitelisted for the hostname
 test_hostname_gateway_response_should_contain \
-  "Request for example.com/ipns/ returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
+  "request for example.com/ipns/ returns HTTP 404 Not Found when /ipns is not on Paths whitelist" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv1" \
   "404 Not Found"
 
+## ============================================================================
+## Test DNSLink requests with a custom PublicGateway (hostname config)
+## (DNSLink site at http://dnslink-test.example.com)
+## ============================================================================
+
+test_kill_ipfs_daemon
+
+# disable wildcard DNSLink gateway
+# and enable it on specific NSLink hostname
+ipfs config --json Gateway.NoDNSLink true && \
+ipfs config --json Gateway.PublicGateways '{
+  "dnslink-enabled-on-fqdn.example.org": {
+    "NoDNSLink": false,
+    "UseSubdomains": false,
+    "Paths": ["/ipfs"]
+  },
+  "dnslink-disabled-on-fqdn.example.com": {
+    "NoDNSLink": true,
+    "UseSubdomains": false,
+    "Paths": []
+  }
+}' || exit 1
+
+# DNSLink test requires a daemon in online mode with precached /ipns/ mapping
+DNSLINK_FQDN="dnslink-enabled-on-fqdn.example.org"
+NO_DNSLINK_FQDN="dnslink-disabled-on-fqdn.example.com"
+export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$CIDv1"
+
+# restart daemon to apply config changes
+test_launch_ipfs_daemon
+
+# make sure test setup is valid (fail if CoreAPI is unable to resolve)
+test_expect_success "spoofed DNSLink record resolves in cli" "
+  ipfs resolve /ipns/$DNSLINK_FQDN > result &&
+  test_should_contain \"$CIDv1\" result &&
+  ipfs cat /ipns/$DNSLINK_FQDN > result &&
+  test_should_contain \"$CID_VAL\" result
+"
+
+# DNSLink enabled
+
+test_hostname_gateway_response_should_contain \
+  "request for http://{dnslink-fqdn}/ PublicGateway returns expected payload" \
+  "$DNSLINK_FQDN" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+test_hostname_gateway_response_should_contain \
+  "request for {dnslink-fqdn}/ipfs/{cid} returns expected payload when path is whitelisted" \
+  "$DNSLINK_FQDN" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "$CID_VAL"
+
+test_hostname_gateway_response_should_contain \
+  "request for {dnslink-fqdn}/ipns/{peerid} returns 404 when path is not whitelisted" \
+  "$DNSLINK_FQDN" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_IDv0" \
+  "404 Not Found"
+
+# DNSLink disabled
+
+test_hostname_gateway_response_should_contain \
+  "request for http://{dnslink-fqdn}/ returns 404 when NoDNSLink=true" \
+  "$NO_DNSLINK_FQDN" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "404 Not Found"
+
+test_hostname_gateway_response_should_contain \
+  "request for {dnslink-fqdn}/ipfs/{cid} returns 404 when path is not whitelisted" \
+  "$NO_DNSLINK_FQDN" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv0" \
+  "404 Not Found"
+
+
+## ============================================================================
+## Test wildcard DNSLink (any hostname, with default config)
+## ============================================================================
+
+test_kill_ipfs_daemon
+
+# enable wildcard DNSLink gateway (any value in Host header)
+# and remove custom PublicGateways
+ipfs config --json Gateway.NoDNSLink false && \
+ipfs config --json Gateway.PublicGateways '{}' || exit 1
+
+# DNSLink test requires a daemon in online mode with precached /ipns/ mapping
+DNSLINK_FQDN="wildcard-dnslink-not-in-config.example.com"
+export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$CIDv1"
+
+# restart daemon to apply config changes
+test_launch_ipfs_daemon
+
+# make sure test setup is valid (fail if CoreAPI is unable to resolve)
+test_expect_success "spoofed DNSLink record resolves in cli" "
+  ipfs resolve /ipns/$DNSLINK_FQDN > result &&
+  test_should_contain \"$CIDv1\" result &&
+  ipfs cat /ipns/$DNSLINK_FQDN > result &&
+  test_should_contain \"$CID_VAL\" result
+"
+
+# gateway test
+test_hostname_gateway_response_should_contain \
+  "request for http://{dnslink-fqdn}/ (wildcard) returns expected payload" \
+  "$DNSLINK_FQDN" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
 # =============================================================================
+# ensure we end with empty Gateway.PublicGateways
+ipfs config --json Gateway.PublicGateways '{}'
 test_kill_ipfs_daemon
 
 test_done
