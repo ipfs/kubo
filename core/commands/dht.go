@@ -536,7 +536,7 @@ identified by QmFoo.
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("key", true, false, "The key to store the value at."),
-		cmds.FileArg("value", true, false, "The value to store.").EnableStdin(),
+		cmds.FileArg("value-file", true, false, "A path to a file containing the value to store.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(dhtVerboseOptionName, "v", "Print extra information."),
