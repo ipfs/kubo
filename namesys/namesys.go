@@ -3,6 +3,7 @@ package namesys
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -40,13 +41,30 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 		cache, _ = lru.New(cachesize)
 	}
 
-	return &mpns{
+	ns := mpns{
 		dnsResolver:      NewDNSResolver(),
 		proquintResolver: new(ProquintResolver),
 		ipnsResolver:     NewIpnsResolver(r),
 		ipnsPublisher:    NewIpnsPublisher(r, ds),
 		cache:            cache,
 	}
+
+	// Prewarm namesys cache with static records for deteministic tests and debugging.
+	// Useful for testing things like DNSLink without real DNS lookup.
+	// Example:
+	// IPFS_NS_MAP="dnslink-test.example.com:/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am"
+	if list := os.Getenv("IPFS_NS_MAP"); list != "" {
+		for _, pair := range strings.Split(list, ",") {
+			mapping := strings.SplitN(pair, ":", 2)
+			ns.cacheSet(
+				mapping[0],
+				path.FromString(mapping[1]),
+				time.Duration(24*time.Hour*365*100), // ~100 yrs
+			)
+		}
+	}
+
+	return &ns
 }
 
 const DefaultResolverCacheTTL = time.Minute
