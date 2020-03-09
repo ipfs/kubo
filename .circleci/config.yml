@@ -28,7 +28,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
