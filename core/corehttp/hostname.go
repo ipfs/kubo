@@ -28,9 +28,10 @@ var subdomainGatewaySpec = config.GatewaySpec{
 }
 
 var defaultKnownGateways = map[string]config.GatewaySpec{
+	// Note: local IPs act as catch-all, no need to define them here
+	//"127.0.0.1":       pathGatewaySpec,
+	//"::1":             pathGatewaySpec,
 	"localhost":       subdomainGatewaySpec,
-	"127.0.0.1":       pathGatewaySpec,
-	"::1":             pathGatewaySpec,
 	"ipfs.io":         pathGatewaySpec,
 	"gateway.ipfs.io": pathGatewaySpec,
 	"dweb.link":       subdomainGatewaySpec,
