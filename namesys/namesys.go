@@ -31,22 +31,18 @@ type mpns struct {
 	dnsResolver, proquintResolver, ipnsResolver resolver
 	ipnsPublisher                               Publisher
 
-	cache *lru.Cache
+	staticMap map[string]path.Path
+	cache     *lru.Cache
 }
 
 // NewNameSystem will construct the IPFS naming system based on Routing
 func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSystem {
-	var cache *lru.Cache
+	var (
+		cache     *lru.Cache
+		staticMap map[string]path.Path
+	)
 	if cachesize > 0 {
 		cache, _ = lru.New(cachesize)
-	}
-
-	ns := mpns{
-		dnsResolver:      NewDNSResolver(),
-		proquintResolver: new(ProquintResolver),
-		ipnsResolver:     NewIpnsResolver(r),
-		ipnsPublisher:    NewIpnsPublisher(r, ds),
-		cache:            cache,
 	}
 
 	// Prewarm namesys cache with static records for deteministic tests and debugging.
@@ -54,19 +50,26 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 	// Example:
 	// IPFS_NS_MAP="dnslink-test.example.com:/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am"
 	if list := os.Getenv("IPFS_NS_MAP"); list != "" {
+		staticMap = make(map[string]path.Path)
 		for _, pair := range strings.Split(list, ",") {
 			mapping := strings.SplitN(pair, ":", 2)
-			ns.cacheSet(
-				mapping[0],
-				path.FromString(mapping[1]),
-				time.Duration(24*time.Hour*365*100), // ~100 yrs
-			)
+			key := mapping[0]
+			value := path.FromString(mapping[1])
+			staticMap[key] = value
 		}
 	}
 
-	return &ns
+	return &mpns{
+		dnsResolver:      NewDNSResolver(),
+		proquintResolver: new(ProquintResolver),
+		ipnsResolver:     NewIpnsResolver(r),
+		ipnsPublisher:    NewIpnsPublisher(r, ds),
+		staticMap:        staticMap,
+		cache:            cache,
+	}
 }
 
+// DefaultResolverCacheTTL defines max ttl of a record placed in namesys cache.
 const DefaultResolverCacheTTL = time.Minute
 
 // Resolve implements Resolver.
