@@ -38,6 +38,25 @@ type gatewayHandler struct {
 	api    coreiface.CoreAPI
 }
 
+// StatusResponseWriter enables us to override HTTP Status Code passed to
+// WriteHeader function inside of http.ServeContent.  Decision is based on
+// presence of HTTP Headers such as Location.
+type statusResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (sw *statusResponseWriter) WriteHeader(code int) {
+	// Check if we need to adjust Status Code to account for scheduled redirect
+	// This enables us to return payload along with HTTP 301
+	// for subdomain redirect in web browsers while also returning body for cli
+	// tools which do not follow redirects by default (curl, wget).
+	redirect := sw.ResponseWriter.Header().Get("Location")
+	if redirect != "" && code == http.StatusOK {
+		code = http.StatusMovedPermanently
+	}
+	sw.ResponseWriter.WriteHeader(code)
+}
+
 func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 	i := &gatewayHandler{
 		config: c,
@@ -366,6 +385,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 	}
 	w.Header().Set("Content-Type", ctype)
 
+	w = &statusResponseWriter{w}
 	http.ServeContent(w, req, name, modtime, content)
 }
 

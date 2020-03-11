@@ -145,9 +145,30 @@ test_localhost_gateway_response_should_contain \
 #  payload directly, but redirect to URL with proper origin isolation
 
 test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} redirects to subdomain" \
+  "request for localhost/ipfs/{CIDv1} returns status code HTTP 301" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  "301 Moved Permanently"
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{CIDv1} returns Location HTTP header for subdomain redirect in browsers" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "Location: http://$CIDv1.ipfs.localhost:$GWAY_PORT/"
+
+# Responses to the root domain of subdomain gateway hostname should Clear-Site-Data
+# https://github.com/ipfs/go-ipfs/issues/6975#issuecomment-597472477
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{CIDv1} returns Clear-Site-Data header to purge Origin cookies and storage" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  'Clear-Site-Data: \"cookies\", \"storage\"'
+
+# We return body with HTTP 301 so existing cli scripts that use path-based
+# gateway do not break (curl doesn't auto-redirect without passing -L; wget
+# does not span across hostnames by default)
+# Context: https://github.com/ipfs/go-ipfs/issues/6975
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{CIDv1} includes valid payload in body for CLI tools like curl" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  "$CID_VAL"
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \

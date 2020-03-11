@@ -95,8 +95,24 @@ func HostnameOption() ServeOption {
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
 						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r); ok {
-							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
-							return
+							// Just to be sure single Origin can't be abused in
+							// web browsers that ignored the redirect for some
+							// reason, Clear-Site-Data header clears browsing
+							// data (cookies, storage etc) associated with
+							// hostname's root Origin
+							// Note: we can't use "*" due to bug in Chromium:
+							// https://bugs.chromium.org/p/chromium/issues/detail?id=898503
+							w.Header().Set("Clear-Site-Data", "\"cookies\", \"storage\"")
+
+							// Set "Location" header with redirect destination.
+							// It is ignored by curl in default mode, but will
+							// be respected by user agents that follow
+							// redirects by default, namely web browsers
+							w.Header().Set("Location", newURL)
+
+							// Note: we continue regular gateway processing:
+							// HTTP Status Code http.StatusMovedPermanently
+							// will be set later, in statusResponseWriter
 						}
 					}
 
