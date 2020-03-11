@@ -41,6 +41,10 @@ var defaultKnownGateways = map[string]config.GatewaySpec{
 // of a subdomain gateway (eg. *.ipfs.foo.bar.co.uk)
 var subdomainGatewayRegex = regexp.MustCompile("^(.+).(ipfs|ipns|ipld|p2p|api).([^/?#&]+)$")
 
+// Match user agents that do not follow cross-origin HTTP 301 by default
+// Context: https://github.com/ipfs/go-ipfs/issues/6975
+var noRedirectUserAgent = regexp.MustCompile("^curl|wget/i")
+
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
@@ -101,8 +105,27 @@ func HostnameOption() ServeOption {
 						// Yes, redirect if applicable (pretty much everything except `/api`).
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
 						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r.URL.RawQuery); ok {
-							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
-							return
+							// Just to be sure single Origin can't be abused in
+							// web browsers that ignored the redirect for some
+							// reason, Clear-Site-Data header clears browsing
+							// data (cookies, storage etc) associated with
+							// hostname's root Origin
+							// Note: we can't use "*" due to bug in Chromium:
+							// https://bugs.chromium.org/p/chromium/issues/detail?id=898503
+							w.Header().Set("Clear-Site-Data", "\"cookies\", \"storage\"")
+
+							// Check if it is safe to redirect
+							// https://github.com/ipfs/go-ipfs/issues/6975
+							ua := r.Header["User-Agent"]
+							if len(ua) == 0 || !noRedirectUserAgent.MatchString(ua[0]) {
+								// Send HTTP 301 status code and set "Location"
+								// header with redirect destination: it is ignored
+								// by curl in default mode, but will be respected
+								// by user agents that follow redirects by default,
+								// namely web browsers
+								http.Redirect(w, r, newURL, http.StatusMovedPermanently)
+								return
+							}
 						}
 					}
 

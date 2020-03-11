@@ -34,10 +34,12 @@ test_localhost_gateway_response_should_contain() {
   #echo "url before: $url"
   #echo "url after:  $rawurl"
 
+  # Note: we remove User-Agent to make test client-agnostic
+
   # regular HTTP request
   # (hostname in Host header, raw IP in URL)
   test_expect_success "$label (direct HTTP)" "
-    curl -H \"Host: $hostname\" -sD - \"$rawurl\" > response &&
+    curl -H \"Host: $hostname\" -H \"User-Agent:\" -sD - \"$rawurl\" > response &&
     test_should_contain \"$expected\" response
   "
 
@@ -46,14 +48,14 @@ test_localhost_gateway_response_should_contain() {
   # Note: proxy client should not care, but curl does DNS lookup
   # for some reason anyway, so we pass static DNS mapping
   test_expect_success "$label (HTTP proxy)" "
-    curl -x $proxy --resolve $hostname:127.0.0.1 -sD - \"$url\" > response &&
+    curl -x $proxy --resolve $hostname:127.0.0.1 -H \"User-Agent:\" -sD - \"$url\" > response &&
     test_should_contain \"$expected\" response
   "
 
   # HTTP proxy 1.0
   # (repeating proxy test with older spec, just to be sure)
   test_expect_success "$label (HTTP proxy 1.0)" "
-    curl --proxy1.0 $proxy --resolve $hostname:127.0.0.1 -sD - \"$url\" > response &&
+    curl --proxy1.0 $proxy --resolve $hostname:127.0.0.1 -H \"User-Agent:\" -sD - \"$url\" > response &&
     test_should_contain \"$expected\" response
   "
 
@@ -62,7 +64,7 @@ test_localhost_gateway_response_should_contain() {
   # In HTTP/1.x, the pseudo-method CONNECT
   # can be used to convert an HTTP connection into a tunnel to a remote host
   test_expect_success "$label (HTTP proxy tunneling)" "
-    curl --proxytunnel -x $proxy -H \"Host: $hostname\" -sD - \"$rawurl\" > response &&
+    curl --proxytunnel -x $proxy -H \"Host: $hostname\" -H \"User-Agent:\" -sD - \"$rawurl\" > response &&
     test_should_contain \"$expected\" response
   "
 }
@@ -75,7 +77,7 @@ test_hostname_gateway_response_should_contain() {
   local rawurl=$(echo "$url" | sed "s/$hostname/127.0.0.1:$GWAY_PORT/")
   local expected="$4"
   test_expect_success "$label" "
-    curl -H \"Host: $hostname\" -sD - \"$rawurl\" > response &&
+    curl -H \"Host: $hostname\" -H \"User-Agent:\" -sD - \"$rawurl\" > response &&
     test_should_contain \"$expected\" response
   "
 }
@@ -144,6 +146,24 @@ test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv1} redirects to subdomain" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "Location: http://$CIDv1.ipfs.localhost:$GWAY_PORT/"
+
+# 'localhost/*' should produce responses with Clear-Site-Data header
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
+# https://github.com/ipfs/go-ipfs/issues/6975#issuecomment-597472477
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{CIDv1} produces response with Clear-Site-Data header" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  'Clear-Site-Data: \"cookies\", \"storage\"'
+
+# Disable redirect to subdomain if curl User-Agent is used to ensure existing
+# scripts that use path-based gateway do not break (curl doesn't auto-redirect
+# without passing -L; wget does not span across hostnames by default)
+# Context: Option B from https://github.com/ipfs/go-ipfs/issues/6975
+test_expect_success "request for localhost/ipfs/{CIDv1} returns HTTP 200 with payload for curl User-Agent" '
+  curl -H "User-Agent: curl/000" --resolve localhost:$GWAY_PORT:127.0.0.1 -sD - http://localhost:$GWAY_PORT/ipfs/$CIDv1 > response &&
+  test_should_contain "Clear-Site-Data" response &&
+  test_should_contain "$CID_VAL" response
+'
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv0} redirects to CIDv1 representation in subdomain" \
