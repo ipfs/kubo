@@ -41,7 +41,7 @@ var defaultKnownGateways = map[string]config.GatewaySpec{
 
 // Find content identifier, protocol, and remaining hostname (host+optional port)
 // of a subdomain gateway (eg. *.ipfs.foo.bar.co.uk)
-var subdomainGatewayRegex = regexp.MustCompile("^(.+).(ipfs|ipns|ipld|p2p|api).([^/?#&]+)$")
+var subdomainGatewayRegex = regexp.MustCompile("^(.+)\\.(ipfs|ipns|ipld|p2p)\\.([^/?#&]+)$")
 
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
