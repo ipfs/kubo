@@ -4,6 +4,27 @@ import (
 	"testing"
 )
 
+func TestPortStripping(t *testing.T) {
+	for _, test := range []struct {
+		in  string
+		out string
+	}{
+		{"localhost:8080", "localhost"},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.localhost:8080", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.localhost"},
+		{"example.com:443", "example.com"},
+		{"example.com", "example.com"},
+		{"foo-dweb.pvt.k12.ma.us:8080", "foo-dweb.pvt.k12.ma.us"},
+		{"localhost", "localhost"},
+		{"[::1]:8080", "::1"},
+	} {
+		out := stripPort(test.in)
+		if out != test.out {
+			t.Errorf("(%s): returned '%s', expected '%s'", test.in, out, test.out)
+		}
+	}
+
+}
+
 func TestParseSubdomains(t *testing.T) {
 	for _, test := range []struct {
 		// in:

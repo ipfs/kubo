@@ -317,5 +317,11 @@ func hasPrefix(s string, prefixes ...string) bool {
 }
 
 func stripPort(hostname string) string {
-	return strings.SplitN(hostname, ":", 2)[0]
+	host, _, err := net.SplitHostPort(hostname)
+	if err == nil {
+		return host
+	}
+	// noop: this should never happen
+	// at this stage of request processing
+	return hostname
 }
