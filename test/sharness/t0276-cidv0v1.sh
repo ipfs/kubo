@@ -33,20 +33,28 @@ test_expect_success "check hashes" '
   test "$(cid-fmt -b z -v 0 %s $AHASHv1)" = "$AHASHv0"
 '
 
-test_expect_success "make sure CIDv1 hash really is in the repo" '
-  ipfs refs local | grep -q $AHASHv1
+test_expect_success "list the refs before gc" '
+  ipfs refs local > refs_before
 '
 
-test_expect_success "make sure CIDv0 hash really is in the repo" '
-  ipfs refs local | grep -q $AHASHv0
+test_expect_success "make sure CIDv1 hash really is in the repo" '
+  grep -q "$AHASHv1" refs_before
+'
+
+test_expect_success "make sure CIDv0 hash really is not in the repo" '
+  test_must_fail grep -q "$AHASHv0" refs_before
 '
 
 test_expect_success "run gc" '
   ipfs repo gc
 '
 
+test_expect_success "list the refs after first gc" '
+  ipfs refs local > refs_gc1
+'
+
 test_expect_success "make sure the CIDv0 hash is in the repo" '
-  ipfs refs local | grep -q $AHASHv0
+  grep -q "$AHASHv1" refs_gc1
 '
 
 test_expect_success "make sure we can get CIDv0 added file" '
@@ -54,14 +62,20 @@ test_expect_success "make sure we can get CIDv0 added file" '
   test_cmp afile thefile
 '
 
-test_expect_success "make sure the CIDv1 hash is not in the repo" '
-  ! ipfs refs local | grep -q $AHASHv1
+test_expect_success "unpin the file" '
+  ipfs pin rm $AHASHv0
 '
 
-test_expect_success "clean up" '
-  ipfs pin rm $AHASHv0 &&
-  ipfs repo gc &&
-  ! ipfs refs local | grep -q $AHASHv0
+test_expect_success "run gc again" '
+  ipfs repo gc
+'
+
+test_expect_success "make sure the CIDv0 hash is not in the repo" '
+  test_must_fail grep -q "$AHASHv0" refs_gc2
+'
+
+test_expect_success "make sure the CIDv1 hash is not in the repo" '
+  test_must_fail grep -q "$AHASHv1" refs_gc2
 '
 
 #

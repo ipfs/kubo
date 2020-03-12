@@ -43,18 +43,7 @@ func (b *blockstore) Get(c cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	// modify block so it has the original CID
-	block, err = blocks.NewBlockWithCid(block.RawData(), c)
-	if err != nil {
-		return nil, err
-	}
-	// insert the block with the original CID to avoid problems
-	// with pinning
-	err = b.Blockstore.Put(block)
-	if err != nil {
-		return nil, err
-	}
-	return block, nil
+	return blocks.NewBlockWithCid(block.RawData(), c)
 }
 
 func (b *blockstore) GetSize(c cid.Cid) (int, error) {

@@ -28,6 +28,33 @@ type Result struct {
 	Error      error
 }
 
+func upgradeCid(c cid.Cid) cid.Cid {
+	if !c.Defined() || c.Version() != 0 {
+		return c
+	}
+	return cid.NewCidV1(cid.DagProtobuf, c.Hash())
+}
+
+type upgradingCidSet map[cid.Cid]struct{}
+
+func (set upgradingCidSet) visit(c cid.Cid) bool {
+	c = upgradeCid(c)
+	if _, exists := set[c]; exists {
+		return false
+	}
+	set[c] = struct{}{}
+	return true
+}
+
+func (set upgradingCidSet) add(c cid.Cid) {
+	set[upgradeCid(c)] = struct{}{}
+}
+
+func (set upgradingCidSet) has(c cid.Cid) bool {
+	_, has := set[upgradeCid(c)]
+	return has
+}
+
 // GC performs a mark and sweep garbage collection of the blocks in the blockstore
 // first, it creates a 'marked' set and adds to it the following:
 // - all recursively pinned blocks, plus all of their descendants (recursively)
@@ -52,7 +79,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 		defer close(output)
 		defer unlocker.Unlock()
 
-		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
+		gcs, err := coloredSet(ctx, pn, ds, bestEffortRoots, output)
 		if err != nil {
 			select {
 			case output <- Result{Error: err}:
@@ -79,7 +106,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 				if !ok {
 					break loop
 				}
-				if !gcs.Has(k) {
+				if !gcs.has(k) {
 					err := bs.DeleteBlock(k)
 					removed++
 					if err != nil {
@@ -128,10 +155,10 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	return output
 }
 
-// Descendants recursively finds all the descendants of the given roots and
+// descendants recursively finds all the descendants of the given roots and
 // adds them to the given cid.Set, using the provided dag.GetLinks function
 // to walk the tree.
-func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots []cid.Cid) error {
+func descendants(ctx context.Context, getLinks dag.GetLinks, set upgradingCidSet, roots []cid.Cid) error {
 	verifyGetLinks := func(ctx context.Context, c cid.Cid) ([]*ipld.Link, error) {
 		err := verifcid.ValidateCid(c)
 		if err != nil {
@@ -154,7 +181,7 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 	for _, c := range roots {
 		// Walk recursively walks the dag and adds the keys to the given set
-		err := dag.Walk(ctx, verifyGetLinks, c, set.Visit, dag.Concurrent())
+		err := dag.Walk(ctx, verifyGetLinks, c, set.visit, dag.Concurrent())
 
 		if err != nil {
 			err = verboseCidError(err)
@@ -165,13 +192,13 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	return nil
 }
 
-// ColoredSet computes the set of nodes in the graph that are pinned by the
+// coloredSet computes the set of nodes in the graph that are pinned by the
 // pins in the given pinner.
-func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffortRoots []cid.Cid, output chan<- Result) (*cid.Set, error) {
+func coloredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffortRoots []cid.Cid, output chan<- Result) (upgradingCidSet, error) {
 	// KeySet currently implemented in memory, in the future, may be bloom filter or
 	// disk backed to conserve memory.
 	errors := false
-	gcs := cid.NewSet()
+	gcs := make(upgradingCidSet)
 	getLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
 		links, err := ipld.GetLinks(ctx, ng, cid)
 		if err != nil {
@@ -188,7 +215,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	if err != nil {
 		return nil, err
 	}
-	err = Descendants(ctx, getLinks, gcs, rkeys)
+	err = descendants(ctx, getLinks, gcs, rkeys)
 	if err != nil {
 		errors = true
 		select {
@@ -210,7 +237,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
+	err = descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
 		errors = true
 		select {
@@ -225,14 +252,14 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		return nil, err
 	}
 	for _, k := range dkeys {
-		gcs.Add(k)
+		gcs.add(k)
 	}
 
 	ikeys, err := pn.InternalPins(ctx)
 	if err != nil {
 		return nil, err
 	}
-	err = Descendants(ctx, getLinks, gcs, ikeys)
+	err = descendants(ctx, getLinks, gcs, ikeys)
 	if err != nil {
 		errors = true
 		select {
