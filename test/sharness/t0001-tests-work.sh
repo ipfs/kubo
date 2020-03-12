@@ -10,7 +10,7 @@ for file in $(find ..  -maxdepth 1 -name 't*.sh' -type f); do
     '
 
     test_expect_success "test in $file has a description" '
-              test_must_fail grep -L "^test_description=" "$file"
+              grep -q "^test_description=" "$file"
             '
 
     # We have some tests that manually kill.
