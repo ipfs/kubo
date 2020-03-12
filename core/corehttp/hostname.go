@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -224,11 +225,18 @@ func parseSubdomains(hostHeader string) (hostname, ns, rootID string, ok bool) {
 }
 
 // Converts a hostname/path to a subdomain-based URL, if applicable.
-func toSubdomainURL(hostname, path string, r *http.Request) (url string, ok bool) {
+func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok bool) {
 	var scheme, ns, rootID, rest string
 
 	query := r.URL.RawQuery
 	parts := strings.SplitN(path, "/", 4)
+	safeRedirectURL := func(in string) (out string, ok bool) {
+		safeURI, err := url.ParseRequestURI(in)
+		if err != nil {
+			return "", false
+		}
+		return safeURI.String(), true
+	}
 
 	// Support X-Forwarded-Proto if added by a reverse proxy
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
@@ -262,7 +270,7 @@ func toSubdomainURL(hostname, path string, r *http.Request) (url string, ok bool
 	if ns == "api" || ns == "p2p" {
 		// API and P2P proxy use the same paths on subdomains:
 		// api.hostname/api/.. and p2p.hostname/p2p/..
-		return fmt.Sprintf(
+		return safeRedirectURL(fmt.Sprintf(
 			"%s//%s.%s/%s/%s/%s%s",
 			scheme,
 			ns,
@@ -271,7 +279,7 @@ func toSubdomainURL(hostname, path string, r *http.Request) (url string, ok bool
 			rootID,
 			rest,
 			query,
-		), true
+		))
 	}
 
 	if rootCid, err := cid.Decode(rootID); err == nil {
@@ -295,7 +303,7 @@ func toSubdomainURL(hostname, path string, r *http.Request) (url string, ok bool
 		}
 	}
 
-	return fmt.Sprintf(
+	return safeRedirectURL(fmt.Sprintf(
 		"%s//%s.%s.%s/%s%s",
 		scheme,
 		rootID,
@@ -303,7 +311,7 @@ func toSubdomainURL(hostname, path string, r *http.Request) (url string, ok bool
 		hostname,
 		rest,
 		query,
-	), true
+	))
 }
 
 func hasPrefix(s string, prefixes ...string) bool {
