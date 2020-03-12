@@ -51,8 +51,9 @@ pushTag () {
   if [ "$DRY_RUN" != false ]; then
     echo "DRY RUN! I would have tagged and pushed the following..."
     echo docker tag "$IMAGE_NAME:$WIP_IMAGE_TAG" "$IMAGE_NAME:$IMAGE_TAG"
-    echo docker push "$IMAGE_NAME:$IMAGE_TAG"  
-  else 
+    echo docker push "$IMAGE_NAME:$IMAGE_TAG"
+  else
+    echo "Tagging $IMAGE_NAME:$IMAGE_TAG and pushing to dockerhub"
     docker tag "$IMAGE_NAME:$WIP_IMAGE_TAG" "$IMAGE_NAME:$IMAGE_TAG"
     docker push "$IMAGE_NAME:$IMAGE_TAG"
   fi
