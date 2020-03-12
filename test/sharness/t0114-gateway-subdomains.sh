@@ -272,11 +272,18 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
   "Location: http://$CIDv1.ipfs.example.com/"
 
+
 test_hostname_gateway_response_should_contain \
   "request for example.com/ipfs/{CIDv0} produces redirect to {CIDv1}.ipfs.example.com" \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv0" \
   "Location: http://${CIDv0to1}.ipfs.example.com/"
+
+# Support X-Forwarded-Proto
+test_expect_success "request for http://example.com/ipfs/{CID} with X-Forwarded-Proto: https produces redirect to HTTPS URL" "
+  curl -H \"X-Forwarded-Proto: https\" -H \"Host: example.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
+"
 
 # example.com/ipns/<libp2p-key>
 

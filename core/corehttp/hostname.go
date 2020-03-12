@@ -11,6 +11,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
+	mbase "github.com/multiformats/go-multibase"
 
 	config "github.com/ipfs/go-ipfs-config"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -100,7 +101,7 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable (pretty much everything except `/api`).
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r.URL.RawQuery); ok {
+						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r); ok {
 							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 							return
 						}
@@ -145,7 +146,7 @@ func HostnameOption() ServeOption {
 							keyCid, err := cid.Decode(rootID)
 							if err == nil && keyCid.Type() != cid.Libp2pKey {
 
-								if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r.URL.RawQuery); ok {
+								if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r); ok {
 									// Redirect to CID fixed inside of toSubdomainURL()
 									http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 									return
@@ -223,10 +224,21 @@ func parseSubdomains(hostHeader string) (hostname, ns, rootID string, ok bool) {
 }
 
 // Converts a hostname/path to a subdomain-based URL, if applicable.
-func toSubdomainURL(hostname, path string, query string) (url string, ok bool) {
+func toSubdomainURL(hostname, path string, r *http.Request) (url string, ok bool) {
+	var scheme, ns, rootID, rest string
+
+	query := r.URL.RawQuery
 	parts := strings.SplitN(path, "/", 4)
 
-	var ns, rootID, rest string
+	// Support X-Forwarded-Proto if added by a reverse proxy
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
+	xproto := r.Header.Get("X-Forwarded-Proto")
+	if xproto == "https" {
+		scheme = "https:"
+	} else {
+		scheme = "http:"
+	}
+
 	switch len(parts) {
 	case 4:
 		rest = parts[3]
@@ -251,7 +263,8 @@ func toSubdomainURL(hostname, path string, query string) (url string, ok bool) {
 		// API and P2P proxy use the same paths on subdomains:
 		// api.hostname/api/.. and p2p.hostname/p2p/..
 		return fmt.Sprintf(
-			"http://%s.%s/%s/%s/%s%s",
+			"%s//%s.%s/%s/%s/%s%s",
+			scheme,
 			ns,
 			hostname,
 			ns,
@@ -274,11 +287,17 @@ func toSubdomainURL(hostname, path string, query string) (url string, ok bool) {
 		// if object turns out to be a valid CID,
 		// ensure text representation used in subdomain is CIDv1 in Base32
 		// https://github.com/ipfs/in-web-browsers/issues/89
-		rootID = cid.NewCidV1(multicodec, rootCid.Hash()).String()
+		rootID, err = cid.NewCidV1(multicodec, rootCid.Hash()).StringOfBase(mbase.Base32)
+		if err != nil {
+			// should not error, but if it does, its clealy not possible to
+			// produce a subdomain URL
+			return "", false
+		}
 	}
 
 	return fmt.Sprintf(
-		"http://%s.%s.%s/%s%s",
+		"%s//%s.%s.%s/%s%s",
+		scheme,
 		rootID,
 		ns,
 		hostname,
