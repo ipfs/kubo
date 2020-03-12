@@ -4,6 +4,24 @@ import (
 	"testing"
 )
 
+func TestHasPrefix(t *testing.T) {
+	for _, test := range []struct {
+		prefixes []string
+		path     string
+		out      bool
+	}{
+		{[]string{"/ipfs"}, "/ipfs/cid", true},
+		{[]string{"/ipfs/"}, "/ipfs/cid", true},
+		{[]string{"/version/"}, "/version", true},
+		{[]string{"/version"}, "/version", true},
+	} {
+		out := hasPrefix(test.path, test.prefixes...)
+		if out != test.out {
+			t.Errorf("(%+v, %s) returned '%t', expected '%t'", test.prefixes, test.path, out, test.out)
+		}
+	}
+}
+
 func TestPortStripping(t *testing.T) {
 	for _, test := range []struct {
 		in  string

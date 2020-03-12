@@ -24,7 +24,7 @@ var pathGatewaySpec = config.GatewaySpec{
 }
 
 var subdomainGatewaySpec = config.GatewaySpec{
-	Paths:         []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"},
+	Paths:         []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"},
 	UseSubdomains: true,
 }
 
@@ -307,9 +307,12 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok
 	))
 }
 
-func hasPrefix(s string, prefixes ...string) bool {
+func hasPrefix(path string, prefixes ...string) bool {
 	for _, prefix := range prefixes {
-		if strings.HasPrefix(s, prefix) {
+		// Assume people are creative with trailing slashes in Gateway config
+		p := strings.TrimSuffix(prefix, "/")
+		// Support for both /version and /ipfs/$cid
+		if p == path || strings.HasPrefix(path, p+"/") {
 			return true
 		}
 	}
