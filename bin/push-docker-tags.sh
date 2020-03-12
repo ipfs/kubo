@@ -16,16 +16,16 @@
 #
 # Example:
 #   # dry run. pass a 5th arg to have it print what it would do rather than do it.
-#   ./push-docker-tags.sh 1 testingsha mybranch v1.0 dryrun
+#   ./push-docker-tags.sh $(date -u +%F) testingsha master "" dryrun
 #    
 #   # push tag for the master branch
-#   ./push-docker-tags.sh 1 testingsha master
+#   ./push-docker-tags.sh $(date -u +%F) testingsha master
 #
 #   # push tag for a release tag
-#   ./push-docker-tags.sh 1 testingsha release v0.5.0
+#   ./push-docker-tags.sh $(date -u +%F) testingsha release v0.5.0
 #
 #   # Serving suggestion in circle ci - https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
-#   ./push-docker-tags.sh "$CIRCLE_BUILD_NUM" "$CIRCLE_SHA1" "$CIRCLE_BRANCH" "$CIRCLE_TAG"
+#   ./push-docker-tags.sh $(date -u +%F) "$CIRCLE_SHA1" "$CIRCLE_BRANCH" "$CIRCLE_TAG"
 #
 set -euo pipefail
 
