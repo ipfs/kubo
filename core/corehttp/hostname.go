@@ -1,7 +1,6 @@
 package corehttp
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -189,20 +188,14 @@ func HostnameOption() ServeOption {
 // isDNSLinkRequest returns bool that indicates if request
 // should return data from content path listed in DNSLink record (if exists)
 func isDNSLinkRequest(r *http.Request, n *core.IpfsNode) bool {
-	ctx, cancel := context.WithCancel(n.Context())
-	defer cancel()
-
 	fqdn := stripPort(r.Host)
-	if len(fqdn) > 0 && isd.IsDomain(fqdn) {
-		// Confirm DNSLink was not disabled for the fqdn or globally
-		name := "/ipns/" + fqdn
-		// check if DNSLink exists
-		_, err := n.Namesys.Resolve(ctx, name, nsopts.Depth(1))
-		if err == nil || err == namesys.ErrResolveRecursion {
-			return true
-		}
+	if len(fqdn) == 0 && !isd.IsDomain(fqdn) {
+		return false
 	}
-	return false
+	name := "/ipns/" + fqdn
+	// check if DNSLink exists
+	_, err := n.Namesys.Resolve(n.Context(), name, nsopts.Depth(1))
+	return err == nil || err == namesys.ErrResolveRecursion
 }
 
 func isSubdomainNamespace(ns string) bool {
