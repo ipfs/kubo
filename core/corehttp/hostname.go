@@ -206,6 +206,15 @@ func isSubdomainNamespace(ns string) bool {
 	}
 }
 
+func isPeerIDNamespace(ns string) bool {
+	switch ns {
+	case "ipns", "p2p":
+		return true
+	default:
+		return false
+	}
+}
+
 // Parses Host header of a subdomain-based URL and returns it's components
 // Note: hostname is host + optional port
 func parseSubdomains(hostHeader string) (hostname, ns, rootID string, ok bool) {
@@ -262,10 +271,11 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok
 	if rootCid, err := cid.Decode(rootID); err == nil {
 		multicodec := rootCid.Type()
 
-		// CIDs in IPNS are expected to have libp2p-key multicodec.
+		// PeerIDs represented as CIDv1 are expected to have libp2p-key
+		// multicodec (https://github.com/libp2p/specs/pull/209).
 		// We ease the transition by fixing multicodec on the fly:
 		// https://github.com/ipfs/go-ipfs/issues/5287#issuecomment-492163929
-		if ns == "ipns" && multicodec != cid.Libp2pKey {
+		if isPeerIDNamespace(ns) && multicodec != cid.Libp2pKey {
 			multicodec = cid.Libp2pKey
 		}
 
