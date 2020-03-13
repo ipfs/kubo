@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-mfs"
-	"github.com/ipfs/go-path"
+	mfs "github.com/ipfs/go-mfs"
+	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
@@ -150,6 +150,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	requestURI, err := url.ParseRequestURI(r.RequestURI)
 	if err != nil {
 		webError(w, "failed to parse request path", err, http.StatusInternalServerError)
+		return
 	}
 	originalUrlPath := prefix + requestURI.Path
 
