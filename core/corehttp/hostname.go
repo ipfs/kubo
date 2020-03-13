@@ -98,7 +98,7 @@ func HostnameOption() ServeOption {
 
 					// Should this gateway use subdomains instead of paths?
 					if gw.UseSubdomains {
-						// Yes, redirect if applicable (pretty much everything except `/api`).
+						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
 						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r); ok {
 							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
@@ -106,7 +106,7 @@ func HostnameOption() ServeOption {
 						}
 					}
 
-					// No subdomains, continue with path request
+					// Not a subdomain resource, continue with path processing
 					// Example: 127.0.0.1:8080/ipfs/{CID}, ipfs.io/ipfs/{CID} etc
 					childMux.ServeHTTP(w, r)
 					return
@@ -199,7 +199,7 @@ func isDNSLinkRequest(r *http.Request, n *core.IpfsNode) bool {
 
 func isSubdomainNamespace(ns string) bool {
 	switch ns {
-	case "ipfs", "ipns", "p2p", "ipld", "api":
+	case "ipfs", "ipns", "p2p", "ipld":
 		return true
 	default:
 		return false
@@ -257,21 +257,6 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok
 	// add prefix if query is present
 	if query != "" {
 		query = "?" + query
-	}
-
-	if ns == "api" || ns == "p2p" {
-		// API and P2P proxy use the same paths on subdomains:
-		// api.hostname/api/.. and p2p.hostname/p2p/..
-		return safeRedirectURL(fmt.Sprintf(
-			"%s//%s.%s/%s/%s/%s%s",
-			scheme,
-			ns,
-			hostname,
-			ns,
-			rootID,
-			rest,
-			query,
-		))
 	}
 
 	if rootCid, err := cid.Decode(rootID); err == nil {

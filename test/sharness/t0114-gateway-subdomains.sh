@@ -164,12 +164,19 @@ test_localhost_gateway_response_should_contain \
   "http://localhost:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.localhost:$GWAY_PORT/wiki"
 
-# /api/ → api.localhost/api
+# API on localhost subdomain gateway
 
+# on root hostname
 test_localhost_gateway_response_should_contain \
-  "request for localhost/api redirect to api.localhost" \
+  "request for localhost/api" \
   "http://localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
-  "Location: http://api.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true"
+  "Ref"
+
+# on content root subdomain (avoid CORS issues)
+test_localhost_gateway_response_should_contain \
+  "request for {cid}.localhost/api" \
+  "http://${DIR_CID}.localhost:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
+  "Ref"
 
 ## ============================================================================
 ## Test subdomain-based requests to a local gateway with default config
@@ -352,12 +359,21 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "Location: http://${IPNS_IDv1}.ipns.example.com/"
 
-# api.example.com
+# API on subdomain gateway example.com
+# (should be available on both gateway root and every content root subdomain)
 # ============================================================================
 
+# an gateway root
 test_hostname_gateway_response_should_contain \
-  "request for api.example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
-  "api.example.com" \
+  "request for example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
+  "Ref"
+
+# on content root (avoids CORS issues)
+test_hostname_gateway_response_should_contain \
+  "request for {cid}.example.com/api/v0/refs returns expected payload when /api is on Paths whitelist" \
+  "$CIDv1.example.com" \
   "http://127.0.0.1:$GWAY_PORT/api/v0/refs?arg=${DIR_CID}&r=true" \
   "Ref"
 
