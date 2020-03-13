@@ -18,20 +18,19 @@ import (
 	isd "github.com/jbenet/go-is-domain"
 )
 
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"}
+
 var pathGatewaySpec = config.GatewaySpec{
-	Paths:         []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"},
+	Paths:         defaultPaths,
 	UseSubdomains: false,
 }
 
 var subdomainGatewaySpec = config.GatewaySpec{
-	Paths:         []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"},
+	Paths:         defaultPaths,
 	UseSubdomains: true,
 }
 
 var defaultKnownGateways = map[string]config.GatewaySpec{
-	// Note: local IPs act as catch-all, no need to define them here
-	//"127.0.0.1":       pathGatewaySpec,
-	//"::1":             pathGatewaySpec,
 	"localhost":       subdomainGatewaySpec,
 	"ipfs.io":         pathGatewaySpec,
 	"gateway.ipfs.io": pathGatewaySpec,
