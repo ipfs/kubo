@@ -6,6 +6,8 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	logging "github.com/ipfs/go-log"
+	eventbus "github.com/libp2p/go-eventbus"
+	event "github.com/libp2p/go-libp2p-core/event"
 	network "github.com/libp2p/go-libp2p-core/network"
 )
 
@@ -50,6 +52,7 @@ func (*peerLogPlugin) Start(node *core.IpfsNode) error {
 	}
 	var notifee network.NotifyBundle
 	notifee.ConnectedF = func(net network.Network, conn network.Conn) {
+		// TODO: Log transport, country, etc?
 		log.Infow("connected",
 			"peer", conn.RemotePeer().Pretty(),
 		)
@@ -60,6 +63,38 @@ func (*peerLogPlugin) Start(node *core.IpfsNode) error {
 		)
 	}
 	node.PeerHost.Network().Notify(&notifee)
+
+	sub, err := node.PeerHost.EventBus().Subscribe(
+		new(event.EvtPeerIdentificationCompleted),
+		eventbus.BufSize(1024),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to identify notifications")
+	}
+	go func() {
+		defer sub.Close()
+		for e := range sub.Out() {
+			switch e := e.(type) {
+			case event.EvtPeerIdentificationCompleted:
+				protocols, err := node.Peerstore.GetProtocols(e.Peer)
+				if err != nil {
+					log.Errorw("failed to get protocols", "error", err)
+					continue
+				}
+				agent, err := node.Peerstore.Get(e.Peer, "AgentVersion")
+				if err != nil {
+					log.Errorw("failed to get agent version", "error", err)
+					continue
+				}
+				log.Infow(
+					"identified",
+					"peer", e.Peer.Pretty(),
+					"agent", agent,
+					"protocols", protocols,
+				)
+			}
+		}
+	}()
 	return nil
 }
 
