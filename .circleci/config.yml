@@ -310,7 +310,8 @@ jobs:
     executor: dockerizer
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: "18.09.3"
       - run:
           name: Build Docker image
           command: |
@@ -326,7 +327,8 @@ jobs:
     executor: dockerizer
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: "18.09.3"
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -374,12 +376,11 @@ workflows:
           - interop
           - go-ipfs-api
           - go-ipfs-http-client
-          - ipfs-webui  
+          - ipfs-webui
         filters:
           branches:
-            only: 
+            only:
               - master
-              - release
               - feat/stabilize-dht
 
   # NOTE: CircleCI only builds tags if you explicitly filter for them. That

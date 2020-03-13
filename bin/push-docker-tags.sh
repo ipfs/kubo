@@ -59,20 +59,17 @@ pushTag () {
   fi
 }
 
-if [[ $GIT_TAG =~ ^v[0-9]+ ]]; then 
+if [[ $GIT_TAG =~ ^v[0-9]+ ]]; then
   pushTag "$GIT_TAG"
+  pushTag "latest"
 
-elif [ "$GIT_BRANCH" = "feat/stabilize-dht" ]; then 
+elif [ "$GIT_BRANCH" = "feat/stabilize-dht" ]; then
   pushTag "bifrost-${BUILD_NUM}-${GIT_SHA1_SHORT}"
   pushTag "bifrost-latest"
 
-elif [ "$GIT_BRANCH" = "release" ]; then 
-  pushTag "release"
-  pushTag "latest"
-
-elif [ "$GIT_BRANCH" = "master" ]; then 
+elif [ "$GIT_BRANCH" = "master" ]; then
   pushTag "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"
-  pushTag "master"
+  pushTag "master-latest"
 
 else
   echo "Nothing to do. No docker tag defined for branch: $GIT_BRANCH, tag: $GIT_TAG"
