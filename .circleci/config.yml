@@ -62,7 +62,7 @@ executors:
     docker: 
       - image: circleci/golang:1.14
     environment:
-      IMAGE_NAME: olizilla/test-go-ipfs
+      IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
 
 jobs:
