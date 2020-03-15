@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 T="$(mktemp)"
-find . -name '*.go' '!' -path ./plugin/loader/preload.go | xargs gofmt -l > "$T"
+find . \
+    -path ./test/sharness -prune \
+ -o -path ./plugin/loader/preload.go -prune \
+ -o -name '*.go' -print0 | xargs -0 gofmt -l > "$T"
 
 if [ -n "$(cat $T)" ]; then
 	echo "Following Go code is not formatted."
