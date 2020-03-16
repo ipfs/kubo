@@ -504,14 +504,15 @@ test_add_cat_expensive() {
 }
 
 test_add_named_pipe() {
-  test_expect_success "useful error message when adding a named pipe" '
-    mkfifo named-pipe &&
-    test_expect_code 1 ipfs add named-pipe 2>actual &&
-    STAT=$(generic_stat named-pipe) &&
-    rm named-pipe &&
-    grep "Error: unrecognized file type for named-pipe: $STAT" actual &&
-    grep USAGE actual &&
-    grep "ipfs add" actual
+  test_expect_success "Adding named pipes explicitly works" '
+    mkfifo named-pipe1 &&
+    ( echo foo > named-pipe1 & echo "added $( echo foo | ipfs add -nq ) named-pipe1" > expected_named_pipes_add ) &&
+    mkfifo named-pipe2 &&
+    ( echo bar > named-pipe2 & echo "added $( echo bar | ipfs add -nq ) named-pipe2" >> expected_named_pipes_add ) &&
+    ipfs add -n named-pipe1 named-pipe2 >actual_pipe_add &&
+    rm named-pipe1 &&
+    rm named-pipe2 &&
+    test_cmp expected_named_pipes_add actual_pipe_add
   '
 
   test_expect_success "useful error message when recursively adding a named pipe" '
