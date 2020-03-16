@@ -195,8 +195,8 @@ github.com/ipfs/go-bitswap v0.0.9/go.mod h1:kAPf5qgn2W2DrgAcscZ3HrM9qh4pH+X8Fkk3
 github.com/ipfs/go-bitswap v0.1.0/go.mod h1:FFJEf18E9izuCqUtHxbWEvq+reg7o4CW5wSAE1wsxj0=
 github.com/ipfs/go-bitswap v0.1.2/go.mod h1:qxSWS4NXGs7jQ6zQvoPY3+NmOfHHG47mhkiLzBpJQIs=
 github.com/ipfs/go-bitswap v0.1.3/go.mod h1:YEQlFy0kkxops5Vy+OxWdRSEZIoS7I7KDIwoa5Chkps=
-github.com/ipfs/go-bitswap v0.2.2 h1:f1lvxLuoUSLf0mvypG/B8jdzd8CYBhyM7HBW/jzDHFg=
-github.com/ipfs/go-bitswap v0.2.2/go.mod h1:aa7NXbpjjGNznbtluBAadDHOAM3auaNGTLQzzOs0iH0=
+github.com/ipfs/go-bitswap v0.2.3 h1:pIqG9XEj3uL36drRUSiJJqR3IPhI9DYt4Qq4mO7QKmk=
+github.com/ipfs/go-bitswap v0.2.3/go.mod h1:vHqjV7wGhpoEIT83n+NAD66YpqpZlKVKfLhAYlbbBDY=
 github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/baNLgayt4pFc=
 github.com/ipfs/go-block-format v0.0.2 h1:qPDvcP19izTjU8rgo6p7gTXZlkMkF5bz5G3fqIsSCPE=
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
@@ -503,8 +503,6 @@ github.com/libp2p/go-libp2p-interface-connmgr v0.0.1/go.mod h1:GarlRLH0LdeWcLnYM
 github.com/libp2p/go-libp2p-interface-connmgr v0.0.4/go.mod h1:GarlRLH0LdeWcLnYM/SaBykKFl9U5JFnbBGruAk/D5k=
 github.com/libp2p/go-libp2p-interface-connmgr v0.0.5/go.mod h1:GarlRLH0LdeWcLnYM/SaBykKFl9U5JFnbBGruAk/D5k=
 github.com/libp2p/go-libp2p-interface-pnet v0.0.1/go.mod h1:el9jHpQAXK5dnTpKA4yfCNBZXvrzdOU75zz+C6ryp3k=
-github.com/libp2p/go-libp2p-kad-dht v0.5.1 h1:SzsgS12DGegFw5xU9zgYuB7negj9iWALp6fFdtDcGc4=
-github.com/libp2p/go-libp2p-kad-dht v0.5.1/go.mod h1:Y/Ht3w4/HOhxx0osN/Sd9WoL9IK8c9itb+oRIQ1m+P0=
 github.com/libp2p/go-libp2p-kad-dht v0.5.2 h1:b10l1YIQk1R23skrvfbcU09yvepdkuMLIGdGuX/JRiA=
 github.com/libp2p/go-libp2p-kad-dht v0.5.2/go.mod h1:vRwh1sMmuxym6YFIHxICbxQ7rgY0ALkKuMKdmQSUnHE=
 github.com/libp2p/go-libp2p-kbucket v0.2.3 h1:XtNfN4WUy0cfeJoJgWCf1lor4Pp3kBkFJ9vQ+Zs+VUM=
@@ -810,8 +808,6 @@ github.com/prometheus/client_golang v0.8.0/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXP
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.2/go.mod h1:OsXs2jCmiKlQ1lTBmv21f2mNfw4xf/QclQDMrYNZzcM=
 github.com/prometheus/client_golang v1.0.0/go.mod h1:db9x61etRT2tGnBNRi70OPL5FsnadC4Ky3P0J6CfImo=
-github.com/prometheus/client_golang v1.5.0 h1:Ctq0iGpCmr3jeP77kbF2UxgvRwzWWz+4Bh9/vJTyg1A=
-github.com/prometheus/client_golang v1.5.0/go.mod h1:e9GMxYsXl05ICDXkRhurwBS4Q3OK1iX/F2sw+iXX5zU=
 github.com/prometheus/client_golang v1.5.1 h1:bdHYieyGlH+6OLEk2YQha8THib30KP0/yD0YH9m6xcA=
 github.com/prometheus/client_golang v1.5.1/go.mod h1:e9GMxYsXl05ICDXkRhurwBS4Q3OK1iX/F2sw+iXX5zU=
 github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910/go.mod h1:MbSGuTsp3dbXC40dX6PRTWyKYBIrTGTE9sqQNg2J8bo=
