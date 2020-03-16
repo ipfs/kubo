@@ -602,8 +602,8 @@ github.com/libp2p/go-libp2p-yamux v0.2.1 h1:Q3XYNiKCC2vIxrvUJL+Jg1kiyeEaIDNKLjgE
 github.com/libp2p/go-libp2p-yamux v0.2.1/go.mod h1:1FBXiHDk1VyRM1C0aez2bCfHQ4vMZKkAQzZbkSQt5fI=
 github.com/libp2p/go-libp2p-yamux v0.2.2 h1:eGvbqWqWY9S5lrpe2gA0UCOLCdzCgYSAR3vo/xCsNQg=
 github.com/libp2p/go-libp2p-yamux v0.2.2/go.mod h1:lIohaR0pT6mOt0AZ0L2dFze9hds9Req3OfS+B+dv4qw=
-github.com/libp2p/go-libp2p-yamux v0.2.3 h1:yv9+gifYUDllhXXiqiQYBs0sVYih8Jz5rFA8OexnLtk=
-github.com/libp2p/go-libp2p-yamux v0.2.3/go.mod h1:68WpIOqR17jIvi/Y7rObzhe0z8Z7Qb4dE9tzKvGn6M8=
+github.com/libp2p/go-libp2p-yamux v0.2.4 h1:SoIR1z7kjjncCPliuchPptd4n/xTxePzWtmR2vIQLwM=
+github.com/libp2p/go-libp2p-yamux v0.2.4/go.mod h1:Qq6yW6EfI9vNeL4J8H1l8yCcBoZnJiljJGsbZgfC/08=
 github.com/libp2p/go-maddr-filter v0.0.1/go.mod h1:6eT12kSQMA9x2pvFQa+xesMKUBlj9VImZbj3B9FBH/Q=
 github.com/libp2p/go-maddr-filter v0.0.4/go.mod h1:6eT12kSQMA9x2pvFQa+xesMKUBlj9VImZbj3B9FBH/Q=
 github.com/libp2p/go-maddr-filter v0.0.5 h1:CW3AgbMO6vUvT4kf87y4N+0P8KUl2aqLYhrGyDUbLSg=
@@ -660,8 +660,8 @@ github.com/libp2p/go-yamux v1.2.3 h1:xX8A36vpXb59frIzWFdEgptLMsOANMFq2K7fPRlunYI
 github.com/libp2p/go-yamux v1.2.3/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/libp2p/go-yamux v1.3.0 h1:FsYzT16Wq2XqUGJsBbOxoz9g+dFklvNi7jN6YFPfl7U=
 github.com/libp2p/go-yamux v1.3.0/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
-github.com/libp2p/go-yamux v1.3.1 h1:ohWkR5/HTfQ3VfvnjVU1T/Nhd4eyhMi8FErb23YlOgY=
-github.com/libp2p/go-yamux v1.3.1/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
+github.com/libp2p/go-yamux v1.3.2 h1:9ABGfqAAQB5hlBHWk0bAbGnS4dDaAJLSF0C7TPYia+0=
+github.com/libp2p/go-yamux v1.3.2/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/lucas-clemente/quic-go v0.15.2 h1:RgxRJ7rPde0Q/uXDeb3/UdblVvxrYGDAG9G9GO78LmI=
 github.com/lucas-clemente/quic-go v0.15.2/go.mod h1:qxmO5Y4ZMhdNkunGfxuZnZXnJwYpW9vjQkyrZ7BsgUI=
 github.com/lunixbochs/vtclean v1.0.0/go.mod h1:pHhQNgMf3btfWnGBVipUOjRYhoOsdGqdm/+2c2E2WMI=
