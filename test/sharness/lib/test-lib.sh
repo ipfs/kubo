@@ -41,6 +41,47 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 
 # Please put go-ipfs specific shell functions below
 
+###
+# BEGIN Check for pre-existing daemon being stuck
+###
+wait_prev_cleanup_tick_secs=1
+wait_prev_cleanup_max_secs=5
+cur_test_pwd="$(pwd)"
+
+while true ; do
+  echo -n > stuck_cwd_list
+
+  lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
+    case "$pwd_of_stuck" in
+      "$cur_test_pwd"*)
+        echo "$pwd_of_stuck" >> stuck_cwd_list
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  test -s stuck_cwd_list || break
+
+  test "$wait_prev_cleanup_max_secs" -le 0 && break
+
+  echo "Daemons still running, waiting for ${wait_prev_cleanup_max_secs}s"
+  sleep $wait_prev_cleanup_tick_secs
+
+  wait_prev_cleanup_max_secs="$(( $wait_prev_cleanup_max_secs - $wait_prev_cleanup_tick_secs ))"
+done
+
+if test -s stuck_cwd_list ; then
+  test_expect_success "ipfs daemon (s)seems to be running with CWDs of
+$(cat stuck_cwd_list)
+Almost certainly a leftover from a prior test, ABORTING" 'false'
+
+  test_done
+fi
+###
+# END Check for pre-existing daemon being stuck
+###
+
 # Make sure the ipfs path is set, also set in test_init_ipfs but that
 # is not always used.
 export IPFS_PATH="$(pwd)/.ipfs"
