@@ -14,7 +14,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/go-bitswap v0.2.3
+	github.com/ipfs/go-bitswap v0.2.4
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.2
 	github.com/ipfs/go-cid v0.0.5
@@ -80,7 +80,7 @@ require (
 	github.com/libp2p/go-libp2p-swarm v0.2.2
 	github.com/libp2p/go-libp2p-testing v0.1.1
 	github.com/libp2p/go-libp2p-tls v0.1.3
-	github.com/libp2p/go-libp2p-yamux v0.2.4
+	github.com/libp2p/go-libp2p-yamux v0.2.5
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/libp2p/go-socket-activation v0.0.2
 	github.com/mattn/go-runewidth v0.0.8 // indirect
