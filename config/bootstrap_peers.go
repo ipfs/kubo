@@ -6,10 +6,6 @@ import (
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
-
-	// Needs to be imported so that users can import this package directly
-	// and still parse the bootstrap addresses.
-	_ "github.com/multiformats/go-multiaddr-dns"
 )
 
 // DefaultBootstrapAddresses are the hardcoded bootstrap addresses
