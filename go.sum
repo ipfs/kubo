@@ -268,14 +268,10 @@ github.com/ipfs/go-ipfs-chunker v0.0.1 h1:cHUUxKFQ99pozdahi+uSC/3Y6HeRpi9oTeUHbE
 github.com/ipfs/go-ipfs-chunker v0.0.1/go.mod h1:tWewYK0we3+rMbOh7pPFGDyypCtvGcBFymgY4rSDLAw=
 github.com/ipfs/go-ipfs-chunker v0.0.4 h1:nb2ZIgtOk0TxJ5KDBEk+sv6iqJTF/PHg6owN2xCrUjE=
 github.com/ipfs/go-ipfs-chunker v0.0.4/go.mod h1:jhgdF8vxRHycr00k13FM8Y0E+6BoalYeobXmUyTreP8=
-github.com/ipfs/go-ipfs-cmds v0.1.1 h1:H9/BLf5rcsULHMj/x8gC0e5o+raYhqk1OQsfzbGMNM4=
-github.com/ipfs/go-ipfs-cmds v0.1.1/go.mod h1:k1zMXcOLtljA9iAnZHddbH69yVm5+weRL0snmMD/rK0=
-github.com/ipfs/go-ipfs-cmds v0.1.2-0.20200316211807-0c2a21b0dacc h1:HIG2l6XUnov+M6UwcUKKrwGc8Q+n9AYGbiGM4pK21SM=
-github.com/ipfs/go-ipfs-cmds v0.1.2-0.20200316211807-0c2a21b0dacc/go.mod h1:a9LyFOtQCnVc3BvbAgW+GrMXEuN29aLCNi3Wk0IM8wo=
 github.com/ipfs/go-ipfs-cmds v0.1.2 h1:02FLzTA9jYRle/xdMWYwGwxu3gzC3GhPUaz35dH+FrY=
 github.com/ipfs/go-ipfs-cmds v0.1.2/go.mod h1:a9LyFOtQCnVc3BvbAgW+GrMXEuN29aLCNi3Wk0IM8wo=
-github.com/ipfs/go-ipfs-config v0.2.1 h1:Mpyvdf9Zc8k3jg+sRe8e9iylYXHYXqFMuePUjAZQvsE=
-github.com/ipfs/go-ipfs-config v0.2.1/go.mod h1:zCKH1uf1XIvf67589BnQ5IAv/Pld2J3gQoQYvG8TK8w=
+github.com/ipfs/go-ipfs-config v0.3.0 h1:fGs3JBqB9ia/Joi8up47uiKn150EOEqqVFwv8HZqXao=
+github.com/ipfs/go-ipfs-config v0.3.0/go.mod h1:nSLCFtlaL+2rbl3F+9D4gQZQbT1LjRKx7TJg/IHz6oM=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=

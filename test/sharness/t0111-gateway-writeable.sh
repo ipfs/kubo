@@ -41,7 +41,7 @@ test_expect_success "HTTP gateway gives access to sample file" '
 
 test_expect_success "HTTP POST file gives Hash" '
   echo "$RANDOM" >infile &&
-  URL="http://localhost:$port/ipfs/" &&
+  URL="http://127.0.0.1:$port/ipfs/" &&
   curl -svX POST --data-binary @infile "$URL" 2>curl_post.out &&
   grep "HTTP/1.1 201 Created" curl_post.out &&
   LOCATION=$(grep Location curl_post.out) &&
@@ -49,7 +49,7 @@ test_expect_success "HTTP POST file gives Hash" '
 '
 
 test_expect_success "We can HTTP GET file just created" '
-  URL="http://localhost:${port}${HASH}" &&
+  URL="http://127.0.0.1:${port}${HASH}" &&
   curl -so outfile "$URL" &&
   test_cmp infile outfile
 '
@@ -60,7 +60,7 @@ test_expect_success "We got the correct hash" '
 '
 
 test_expect_success "HTTP GET empty directory" '
-  URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/" &&
+  URL="http://127.0.0.1:$port/ipfs/$HASH_EMPTY_DIR/" &&
   echo "GET $URL" &&
   curl -so outfile "$URL" 2>curl_getEmpty.out &&
   grep "Index of /ipfs/$HASH_EMPTY_DIR/" outfile
@@ -68,7 +68,7 @@ test_expect_success "HTTP GET empty directory" '
 
 test_expect_success "HTTP PUT file to construct a hierarchy" '
   echo "$RANDOM" >infile &&
-  URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/test.txt" &&
+  URL="http://127.0.0.1:$port/ipfs/$HASH_EMPTY_DIR/test.txt" &&
   echo "PUT $URL" &&
   curl -svX PUT --data-binary @infile "$URL" 2>curl_put.out &&
   grep "HTTP/1.1 201 Created" curl_put.out &&
@@ -77,7 +77,7 @@ test_expect_success "HTTP PUT file to construct a hierarchy" '
 '
 
 test_expect_success "We can HTTP GET file just created" '
-  URL="http://localhost:$port/ipfs/$HASH/test.txt" &&
+  URL="http://127.0.0.1:$port/ipfs/$HASH/test.txt" &&
   echo "GET $URL" &&
   curl -so outfile "$URL" &&
   test_cmp infile outfile
@@ -85,7 +85,7 @@ test_expect_success "We can HTTP GET file just created" '
 
 test_expect_success "HTTP PUT file to append to existing hierarchy" '
   echo "$RANDOM" >infile2 &&
-  URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
+  URL="http://127.0.0.1:$port/ipfs/$HASH/test/test.txt" &&
   echo "PUT $URL" &&
   curl -svX PUT --data-binary @infile2 "$URL" 2>curl_putAgain.out &&
   grep "HTTP/1.1 201 Created" curl_putAgain.out &&
@@ -95,7 +95,7 @@ test_expect_success "HTTP PUT file to append to existing hierarchy" '
 
 
 test_expect_success "We can HTTP GET file just updated" '
-  URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
+  URL="http://127.0.0.1:$port/ipfs/$HASH/test/test.txt" &&
   echo "GET $URL" &&
   curl -svo outfile2 "$URL" 2>curl_getAgain.out &&
   test_cmp infile2 outfile2
@@ -103,7 +103,7 @@ test_expect_success "We can HTTP GET file just updated" '
 
 test_expect_success "HTTP PUT to replace a directory" '
   echo "$RANDOM" >infile3 &&
-  URL="http://localhost:$port/ipfs/$HASH/test" &&
+  URL="http://127.0.0.1:$port/ipfs/$HASH/test" &&
   echo "PUT $URL" &&
   curl -svX PUT --data-binary @infile3 "$URL" 2>curl_putOverDirectory.out &&
   grep "HTTP/1.1 201 Created" curl_putOverDirectory.out &&
@@ -112,7 +112,7 @@ test_expect_success "HTTP PUT to replace a directory" '
 '
 
 test_expect_success "We can HTTP GET file just put over a directory" '
-  URL="http://localhost:$port/ipfs/$HASH/test" &&
+  URL="http://127.0.0.1:$port/ipfs/$HASH/test" &&
   echo "GET $URL" &&
   curl -svo outfile3 "$URL" 2>curl_getOverDirectory.out &&
   test_cmp infile3 outfile3
@@ -120,7 +120,7 @@ test_expect_success "We can HTTP GET file just put over a directory" '
 
 test_expect_success "HTTP PUT to /ipns fails" '
   PEERID=`ipfs id --format="<id>"` &&
-  URL="http://localhost:$port/ipns/$PEERID/test.txt" &&
+  URL="http://127.0.0.1:$port/ipns/$PEERID/test.txt" &&
   echo "PUT $URL" &&
   curl -svX PUT --data-binary @infile1 "$URL" 2>curl_putIpns.out &&
   grep "HTTP/1.1 400 Bad Request" curl_putIpns.out

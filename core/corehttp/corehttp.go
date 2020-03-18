@@ -43,7 +43,17 @@ func makeHandler(n *core.IpfsNode, l net.Listener, options ...ServeOption) (http
 			return nil, err
 		}
 	}
-	return topMux, nil
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// ServeMux does not support requests with CONNECT method,
+		// so we need to handle them separately
+		// https://golang.org/src/net/http/request.go#L111
+		if r.Method == http.MethodConnect {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		topMux.ServeHTTP(w, r)
+	})
+	return handler, nil
 }
 
 // ListenAndServe runs an HTTP server listening at |listeningMultiAddr| with
@@ -70,6 +80,8 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 	return Serve(n, manet.NetListener(list), options...)
 }
 
+// Serve accepts incoming HTTP connections on the listener and pass them
+// to ServeOption handlers.
 func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error {
 	// make sure we close this no matter what.
 	defer lis.Close()
