@@ -59,7 +59,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.3
 	github.com/libp2p/go-eventbus v0.1.0
-	github.com/libp2p/go-libp2p v0.6.0
+	github.com/libp2p/go-libp2p v0.6.1
 	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
 	github.com/libp2p/go-libp2p-circuit v0.1.4
 	github.com/libp2p/go-libp2p-connmgr v0.2.1
