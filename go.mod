@@ -30,12 +30,12 @@ require (
 	github.com/ipfs/go-graphsync v0.0.5
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
 	github.com/ipfs/go-ipfs-chunker v0.0.4
-	github.com/ipfs/go-ipfs-cmds v0.1.2
+	github.com/ipfs/go-ipfs-cmds v0.1.4
 	github.com/ipfs/go-ipfs-config v0.3.0
 	github.com/ipfs/go-ipfs-ds-help v0.1.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
-	github.com/ipfs/go-ipfs-files v0.0.6
+	github.com/ipfs/go-ipfs-files v0.0.7
 	github.com/ipfs/go-ipfs-pinner v0.0.4
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-provider v0.4.1
@@ -105,4 +105,4 @@ require (
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
-go 1.12
+go 1.13

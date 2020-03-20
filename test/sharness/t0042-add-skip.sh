@@ -12,6 +12,7 @@ test_add_skip() {
 
   test_expect_success "'ipfs add -r' with hidden file succeeds" '
     mkdir -p mountdir/planets/.asteroids &&
+    echo "mars.txt" >mountdir/planets/.gitignore &&
     echo "Hello Mars" >mountdir/planets/mars.txt &&
     echo "Hello Venus" >mountdir/planets/venus.txt &&
     echo "Hello Pluto" >mountdir/planets/.pluto.txt &&
@@ -39,11 +40,44 @@ EOF
 added QmcAREBcjgnUpKfyFmUGnfajA1NQS5ydqRp7WfqZ6JF8Dx planets/.asteroids/ceres.txt
 added QmZ5eaLybJ5GUZBNwy24AA9EEDTDpA4B8qXnuN3cGxu2uF planets/.asteroids/pallas.txt
 added QmaowqjedBkUrMUXgzt9c2ZnAJncM9jpJtkFfgdFstGr5a planets/.charon.txt
+added QmPHrRjTH8FskN3C2iv6BLekDT94o23KSL2u5qLqQqGhVH planets/.gitignore
 added QmU4zFD5eJtRBsWC63AvpozM9Atiadg9kPVTuTrnCYJiNF planets/.pluto.txt
 added QmZy3khu7qf696i5HtkgL2NotsCZ8wzvNZJ1eUdA5n8KaV planets/mars.txt
 added QmQnv4m3Q5512zgVtpbJ9z85osQrzZzGRn934AGh6iVEXz planets/venus.txt
 added Qmf6rbs5GF85anDuoxpSAdtuZPM9D2Yt3HngzjUVSQ7kDV planets/.asteroids
-added QmetajtFdmzhWYodAsZoVZSiqpeJDAiaw2NwbM3xcWcpDj planets
+added QmczhHaXyb3bc9APMxe4MXbr87V5YDLKLaw3DZX3fK7HrK planets
+EOF
+    test_cmp expected actual
+  '
+
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --hidden' succeeds" '
+    (cd mountdir/planets && ipfs add -r --ignore-rules-path=.gitignore --hidden .) > actual
+  '
+
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --hidden' did not include mars.txt file" '
+    cat >expected <<-\EOF &&
+added QmcAREBcjgnUpKfyFmUGnfajA1NQS5ydqRp7WfqZ6JF8Dx planets/.asteroids/ceres.txt
+added QmZ5eaLybJ5GUZBNwy24AA9EEDTDpA4B8qXnuN3cGxu2uF planets/.asteroids/pallas.txt
+added QmaowqjedBkUrMUXgzt9c2ZnAJncM9jpJtkFfgdFstGr5a planets/.charon.txt
+added QmPHrRjTH8FskN3C2iv6BLekDT94o23KSL2u5qLqQqGhVH planets/.gitignore
+added QmU4zFD5eJtRBsWC63AvpozM9Atiadg9kPVTuTrnCYJiNF planets/.pluto.txt
+added QmQnv4m3Q5512zgVtpbJ9z85osQrzZzGRn934AGh6iVEXz planets/venus.txt
+added Qmf6rbs5GF85anDuoxpSAdtuZPM9D2Yt3HngzjUVSQ7kDV planets/.asteroids
+added QmaRsiaCYvc65RqHVAcv2tqyjZgQYgvaNqW1tQGsjfy4N5 planets
+EOF
+    test_cmp expected actual
+  '
+
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden' succeeds" '
+    (cd mountdir/planets && ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden .) > actual
+  '
+
+  test_expect_success "'ipfs add -r --ignore-rules-path=.gitignore --ignore .asteroids --ignore venus.txt --hidden' did not include ignored files" '
+    cat >expected <<-\EOF &&
+added QmaowqjedBkUrMUXgzt9c2ZnAJncM9jpJtkFfgdFstGr5a planets/.charon.txt
+added QmPHrRjTH8FskN3C2iv6BLekDT94o23KSL2u5qLqQqGhVH planets/.gitignore
+added QmU4zFD5eJtRBsWC63AvpozM9Atiadg9kPVTuTrnCYJiNF planets/.pluto.txt
+added QmemuMahjSh7eYLY3hbz2q8sqMPnbQzBQeUdosqNiWChE6 planets
 EOF
     test_cmp expected actual
   '
