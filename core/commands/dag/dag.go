@@ -335,7 +335,7 @@ pin each individual root specified in the car headers, before GC runs again.
 		//
 		// !!!NOTE!!! - We take .GCLock, *not* .PinLock. The way the current stack is
 		// built makes it impossible to take both a GC and a Pinning lock, regardless
-		// of orer. Doing so can potentially deadlock if another thread starts GC
+		// of order. Doing so can potentially deadlock if another thread starts GC
 		// ( this is not theoretical - it's been reliably simulated with the insertion
 		// of strategic sleeps()s and hand-triggering GC )
 		//
