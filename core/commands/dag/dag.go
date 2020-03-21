@@ -76,7 +76,7 @@ type CarImportOutput struct {
 type RootMeta struct {
 	Cid          *cid.Cid
 	PresentInCar bool
-	PinError     error
+	PinErrorMsg  string
 }
 type ObjectCounts struct {
 	Blocks        int64
@@ -407,13 +407,13 @@ pin each individual root specified in the car headers, before GC runs again.
 				ret := RootMeta{Cid: &c, PresentInCar: seen}
 
 				if block, err := node.Blockstore.Get(c); err != nil {
-					ret.PinError = err
+					ret.PinErrorMsg = err.Error()
 				} else if nd, err := ipld.Decode(block); err != nil {
-					ret.PinError = err
+					ret.PinErrorMsg = err.Error()
 				} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
-					ret.PinError = err
+					ret.PinErrorMsg = err.Error()
 				} else if err := node.Pinning.Flush(req.Context); err != nil {
-					ret.PinError = err
+					ret.PinErrorMsg = err.Error()
 				}
 
 				if err := res.Emit(&CarImportOutput{Root: ret}); err != nil {
@@ -454,10 +454,10 @@ pin each individual root specified in the car headers, before GC runs again.
 				notInCar = " (specified in header without its data)"
 			}
 
-			if event.Root.PinError != nil {
-				event.Root.PinError = fmt.Errorf("FAILED: %s", event.Root.PinError)
+			if event.Root.PinErrorMsg != "" {
+				event.Root.PinErrorMsg = fmt.Sprintf("FAILED: %s", event.Root.PinErrorMsg)
 			} else {
-				event.Root.PinError = errors.New("success")
+				event.Root.PinErrorMsg = ("success")
 			}
 
 			_, err = fmt.Fprintf(
@@ -465,7 +465,7 @@ pin each individual root specified in the car headers, before GC runs again.
 				"Pinned root %s%s: %s\n",
 				enc.Encode(*event.Root.Cid),
 				notInCar,
-				event.Root.PinError,
+				event.Root.PinErrorMsg,
 			)
 			return err
 		}),
