@@ -350,36 +350,42 @@ pin each individual root specified in the car headers, before GC runs again.
 		var counts ObjectCounts
 		go importWorker(req, &res, &api, &counts, retCh)
 
-		var progressTicker *time.Ticker
-		if showProgress {
-			progressTicker = time.NewTicker(500 * time.Millisecond)
-			defer progressTicker.Stop()
-		}
-
 		var roots *expectedRootsSeen
 
-	ImportLoop:
-		for {
-			select {
-			case ret := <-retCh:
-				if ret.err != nil {
-					return ret.err
-				}
-				roots = ret.roots
-				if progressTicker != nil {
+		if !showProgress {
+			done := <-retCh
+			if done.err != nil {
+				return done.err
+			}
+			roots = done.roots
+		} else {
+
+			progressTicker := time.NewTicker(500 * time.Millisecond)
+			defer progressTicker.Stop()
+
+		ImportLoop:
+			for {
+				select {
+				case ret := <-retCh:
+					if ret.err != nil {
+						return ret.err
+					}
+					roots = ret.roots
+
 					progressTicker.Stop()
 					if err := res.Emit(&CarImportOutput{ObjectCounts: counts}); err != nil {
 						return err
 					}
 					os.Stderr.WriteString("\n")
+
+					break ImportLoop
+				case <-progressTicker.C:
+					if err := res.Emit(&CarImportOutput{ObjectCounts: counts}); err != nil {
+						return err
+					}
+				case <-req.Context.Done():
+					return req.Context.Err()
 				}
-				break ImportLoop
-			case <-progressTicker.C:
-				if err := res.Emit(&CarImportOutput{ObjectCounts: counts}); err != nil {
-					return err
-				}
-			case <-req.Context.Done():
-				return req.Context.Err()
 			}
 		}
 
