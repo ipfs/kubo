@@ -303,7 +303,11 @@ pin each individual root specified in the car headers, before GC runs again.
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		if silent, _ := req.Options[silentOptionName].(bool); silent {
+		silent, _ := req.Options[silentOptionName].(bool)
+		encType, _ := req.Options[cmds.EncLong].(string)
+
+		// force-disable progress unless on non-silent CLI
+		if silent || encType != "text" {
 			req.Options[progressOptionName] = false
 		}
 
