@@ -279,6 +279,12 @@ var DagResolveCmd = &cmds.Command{
 	Type: ResolveOutput{},
 }
 
+// It is not guaranteed that a root in a header is actually present in the same ( or any )
+// .car file. This is the case in version 1, and ideally in further versions too
+// Accumulate any root CID seen in a header, and supplement its actual node if/when encountered
+// We will attempt a pin *only* at the end in case all car files were well formed
+//
+// The boolean value indicates whether we have encountered the root within the car file's
 type expectedRootsSeen map[cid.Cid]bool
 type importResult struct {
 	roots *expectedRootsSeen
@@ -489,13 +495,7 @@ func importWorker(req *cmds.Request, re *cmds.ResponseEmitter, api *iface.CoreAP
 	// similar to pinner.Pin/pinner.Flush
 	batch := ipld.NewBatch(req.Context, (*api).Dag())
 
-	// It is not guaranteed that a root in a header is actually present in the same ( or any )
-	// .car file. This is the case in version 1, and ideally in further versions too
-	// Accumulate any root CID seen in a header, and supplement its actual node if/when encountered
-	// We will attempt a pin *only* at the end in case all car files were well formed
-	//
-	// The boolean value indicates whether we have encountered the root within the car file's
-	expectedRootsSeen := make(expectedRootsSeen)
+	roots := make(expectedRootsSeen)
 
 	it := req.Files.Entries()
 	for it.Next() {
@@ -520,8 +520,8 @@ func importWorker(req *cmds.Request, re *cmds.ResponseEmitter, api *iface.CoreAP
 		}
 
 		for _, c := range car.Header.Roots {
-			if _, exists := expectedRootsSeen[c]; !exists {
-				expectedRootsSeen[c] = false
+			if _, exists := roots[c]; !exists {
+				roots[c] = false
 				counts.RootsDeclared++
 			}
 		}
@@ -550,8 +550,8 @@ func importWorker(req *cmds.Request, re *cmds.ResponseEmitter, api *iface.CoreAP
 			counts.Blocks++
 
 			// encountered something known to be a root, for the first time
-			if seen, exists := expectedRootsSeen[nd.Cid()]; exists && !seen {
-				expectedRootsSeen[nd.Cid()] = true
+			if seen, exists := roots[nd.Cid()]; exists && !seen {
+				roots[nd.Cid()] = true
 				counts.RootsSeen++
 			}
 		}
@@ -567,7 +567,7 @@ func importWorker(req *cmds.Request, re *cmds.ResponseEmitter, api *iface.CoreAP
 		return
 	}
 
-	ret <- importResult{roots: &expectedRootsSeen}
+	ret <- importResult{roots: &roots}
 }
 
 var DagExportCmd = &cmds.Command{
