@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -646,9 +647,9 @@ var DagExportCmd = &cmds.Command{
 		)
 
 		if showProgress, _ := req.Options[progressOptionName].(bool); showProgress {
-			stopProgress := make(chan bool)
+			ctx, cancel := context.WithCancel(context.Background())
 			progressTicker := time.NewTicker(500 * time.Millisecond)
-			defer func() { stopProgress <- true }()
+			defer cancel()
 
 			go func() {
 				emitProgress := func() error {
@@ -662,7 +663,7 @@ var DagExportCmd = &cmds.Command{
 
 				for {
 					select {
-					case <-stopProgress:
+					case <-ctx.Done():
 						progressTicker.Stop()
 						_ = emitProgress()
 						os.Stderr.WriteString("\n")
