@@ -505,7 +505,6 @@ func importWorker(req *cmds.Request, re *cmds.ResponseEmitter, api *iface.CoreAP
 			ret <- importResult{err: errors.New("expected a file handle")}
 			return
 		}
-		defer func() { file.Close() }()
 
 		car, err := gocar.NewCarReader(file)
 		if err != nil {
@@ -555,6 +554,11 @@ func importWorker(req *cmds.Request, re *cmds.ResponseEmitter, api *iface.CoreAP
 				counts.RootsSeen++
 			}
 		}
+
+		// every single file in it. is already open before we start
+		// just close here sooner rather than later for neatness
+		// this won't/can't help with not running out of handles
+		file.Close()
 	}
 
 	if err := it.Err(); err != nil {
