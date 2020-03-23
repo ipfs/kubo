@@ -403,6 +403,7 @@ pin each individual root specified in the car headers, before GC runs again.
 		// opportunistic pinning: try whatever sticks
 		if doPinRoots {
 
+			var failedPins int
 			for c, seen := range *roots {
 
 				// We need to re-retrieve a block, convert it to ipld, and feed it
@@ -433,9 +434,21 @@ pin each individual root specified in the car headers, before GC runs again.
 					ret.PinErrorMsg = err.Error()
 				}
 
+				if ret.PinErrorMsg != "" {
+					failedPins++
+				}
+
 				if err := res.Emit(&CarImportOutput{Root: ret}); err != nil {
 					return err
 				}
+			}
+
+			if failedPins > 0 {
+				return fmt.Errorf(
+					"unable to pin all roots: %d out of %d failed",
+					failedPins,
+					len(*roots),
+				)
 			}
 		}
 
