@@ -72,7 +72,7 @@ type ResolveOutput struct {
 // CarImportOutput is the output type of the 'dag import' commands
 type CarImportOutput struct {
 	Root         RootMeta
-	ObjectCounts ObjectCounts `json:"-"`
+	ObjectCounts *ObjectCounts `json:",omitempty"`
 }
 type RootMeta struct {
 	Cid          *cid.Cid
@@ -390,14 +390,18 @@ pin each individual root specified in the car headers, before GC runs again.
 					roots = ret.roots
 
 					progressTicker.Stop()
-					if err := res.Emit(&CarImportOutput{ObjectCounts: counts}); err != nil {
+					if err := res.Emit(&CarImportOutput{ObjectCounts: &counts}); err != nil {
 						return err
 					}
-					os.Stderr.WriteString("\n")
+
+					// -1 is signal to emit the final newline
+					if err := res.Emit(&CarImportOutput{ObjectCounts: &ObjectCounts{Blocks: -1}}); err != nil {
+						return err
+					}
 
 					break ImportLoop
 				case <-progressTicker.C:
-					if err := res.Emit(&CarImportOutput{ObjectCounts: counts}); err != nil {
+					if err := res.Emit(&CarImportOutput{ObjectCounts: &counts}); err != nil {
 						return err
 					}
 				case <-req.Context.Done():
@@ -470,14 +474,23 @@ pin each individual root specified in the car headers, before GC runs again.
 
 			// this is a progress display event
 			if event.Root.Cid == nil {
-				_, err := fmt.Fprintf(
-					w,
-					"Objects/DeclaredRoots/FoundRoots: %d/%d/%d\r",
-					event.ObjectCounts.Blocks,
-					event.ObjectCounts.RootsDeclared,
-					event.ObjectCounts.RootsSeen,
-				)
-				return err
+
+				var printErr error
+
+				// -1 means we are done: just print a "\n"
+				if event.ObjectCounts.Blocks < 0 {
+					_, printErr = w.Write([]byte("\n"))
+				} else {
+					_, printErr = fmt.Fprintf(
+						w,
+						"Objects/DeclaredRoots/ImportedRoots:\t%d/%d/%d\r",
+						event.ObjectCounts.Blocks,
+						event.ObjectCounts.RootsDeclared,
+						event.ObjectCounts.RootsSeen,
+					)
+				}
+
+				return printErr
 			}
 
 			enc, err := cmdenv.GetLowLevelCidEncoder(req)
@@ -485,22 +498,20 @@ pin each individual root specified in the car headers, before GC runs again.
 				return err
 			}
 
-			var notInCar string
-			if !event.Root.PresentInCar {
-				notInCar = " (specified in header without its data)"
-			}
-
 			if event.Root.PinErrorMsg != "" {
 				event.Root.PinErrorMsg = fmt.Sprintf("FAILED: %s", event.Root.PinErrorMsg)
 			} else {
-				event.Root.PinErrorMsg = ("success")
+				event.Root.PinErrorMsg = "success"
+			}
+
+			if !event.Root.PresentInCar {
+				event.Root.PinErrorMsg += " (root specified in .car header without its data)"
 			}
 
 			_, err = fmt.Fprintf(
 				w,
-				"Pinned root %s%s: %s\n",
+				"Pinned root\t%s\t %s\n",
 				enc.Encode(*event.Root.Cid),
-				notInCar,
 				event.Root.PinErrorMsg,
 			)
 			return err
