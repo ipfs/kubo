@@ -174,6 +174,7 @@ jobs:
           name: Cloning
           command: |
             git clone https://github.com/ipfs/interop.git
+            git -C interop checkout "fix/disable-repo-interop-test"
             git -C interop log -1
       - restore_cache:
           keys:
