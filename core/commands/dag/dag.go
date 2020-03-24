@@ -305,7 +305,7 @@ pin each individual root specified in the car headers, before GC runs again.
 		cmds.FileArg("path", true, true, "The path of a .car file.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Display progress on CLI.").WithDefault(true),
+		cmds.BoolOption(progressOptionName, "p", "Display progress on CLI. Defaults to true when STDERR is a TTY"),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 	},
@@ -313,9 +313,15 @@ pin each individual root specified in the car headers, before GC runs again.
 		silent, _ := req.Options[silentOptionName].(bool)
 		encType, _ := req.Options[cmds.EncLong].(string)
 
-		// force-disable progress unless on non-silent CLI
 		if silent || encType != "text" {
+			// force-disable progress unless on non-silent CLI
 			req.Options[progressOptionName] = false
+		} else if _, specified := req.Options[progressOptionName]; !specified {
+			// enable progress implicitly if a TTY
+			errStat, _ := os.Stderr.Stat()
+			if 0 != (errStat.Mode() & os.ModeCharDevice) {
+				req.Options[progressOptionName] = true
+			}
 		}
 
 		return nil
@@ -599,8 +605,20 @@ var DagExportCmd = &cmds.Command{
 		cmds.StringArg("selector", true, false, "Selector representing the dag to export").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Display progress on CLI.").WithDefault(true),
+		cmds.BoolOption(progressOptionName, "p", "Display progress on CLI. Defaults to true when STDERR is a TTY."),
 	},
+	PreRun: func(req *cmds.Request, env cmds.Environment) error {
+		// enable progress implicitly if a TTY
+		if _, specified := req.Options[progressOptionName]; !specified {
+			errStat, _ := os.Stderr.Stat()
+			if 0 != (errStat.Mode() & os.ModeCharDevice) {
+				req.Options[progressOptionName] = true
+			}
+		}
+
+		return nil
+	},
+
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 
 		c, err := cid.Decode(req.Arguments[0])
@@ -618,8 +636,8 @@ var DagExportCmd = &cmds.Command{
 		// Until the above is fixed, pre-warm the blockstore before doing
 		// anything else. We explicitly *DO NOT* take a lock during this
 		// operation: even if we lose some of the blocks we just received
-		// due to a conflicting GC: we will just re-retrieve everything when
-		// the car is being streamed out
+		// due to a conflicting GC: we will just re-retrieve anything we
+		// potentially lost when the car is being streamed out
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -711,11 +729,7 @@ var DagExportCmd = &cmds.Command{
 			return err
 		}
 
-		if err := <-errCh; err != nil {
-			return err
-		}
-
-		return nil
+		return <-errCh
 	},
 }
 
