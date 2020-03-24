@@ -26,7 +26,6 @@ import (
 	mfs "github.com/ipfs/go-mfs"
 	resolver "github.com/ipfs/go-path/resolver"
 	goprocess "github.com/jbenet/goprocess"
-	autonat "github.com/libp2p/go-libp2p-autonat-svc"
 	connmgr "github.com/libp2p/go-libp2p-core/connmgr"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	p2phost "github.com/libp2p/go-libp2p-core/host"
@@ -91,7 +90,6 @@ type IpfsNode struct {
 	IpnsRepub     *ipnsrp.Republisher     `optional:"true"`
 	GraphExchange graphsync.GraphExchange `optional:"true"`
 
-	AutoNAT  *autonat.AutoNATService    `optional:"true"`
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
 	DHT      *dht.IpfsDHT               `optional:"true"`
