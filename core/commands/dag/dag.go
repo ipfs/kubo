@@ -1,7 +1,7 @@
 package dagcmd
 
 import (
-	"context"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -629,7 +629,6 @@ var DagExportCmd = &cmds.Command{
 
 		return nil
 	},
-
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 
 		c, err := cid.Decode(req.Arguments[0])
@@ -666,13 +665,9 @@ var DagExportCmd = &cmds.Command{
 			node.Blocks,
 		)
 
-		var nodeCount int64
-
 		// The second part of the above - make a super-thin wrapper around
 		// a blockservice session, translating Session.GetBlock() to Blockstore.Get()
-		// The function also doubles as our progress meter
 		var wrapper getBlockFromSessionWrapper = func(c cid.Cid) (blk.Block, error) {
-			nodeCount++
 			return sess.GetBlock(req.Context, c)
 		}
 		sb := gipselectorbuilder.NewSelectorSpecBuilder(gipfree.NodeBuilder())
@@ -687,37 +682,6 @@ var DagExportCmd = &cmds.Command{
 				).Node(),
 			}},
 		)
-
-		if showProgress, _ := req.Options[progressOptionName].(bool); showProgress {
-			ctx, cancel := context.WithCancel(context.Background())
-			progressTicker := time.NewTicker(500 * time.Millisecond)
-			defer cancel()
-
-			go func() {
-				emitProgress := func() error {
-					_, err := fmt.Fprintf(
-						os.Stderr,
-						"Exported objects: %d\r",
-						nodeCount,
-					)
-					return err
-				}
-
-				for {
-					select {
-					case <-ctx.Done():
-						progressTicker.Stop()
-						_ = emitProgress()
-						os.Stderr.WriteString("\n")
-						return
-					case <-progressTicker.C:
-						if emitProgress() != nil {
-							return
-						}
-					}
-				}
-			}()
-		}
 
 		pipeR, pipeW := io.Pipe()
 
@@ -741,6 +705,63 @@ var DagExportCmd = &cmds.Command{
 		}
 
 		return <-errCh
+	},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			if showProgress, _ := res.Request().Options[progressOptionName].(bool); !showProgress {
+				return cmds.Copy(re, res)
+			}
+
+			var exportSize int64
+			buf := make([]byte, 4*1024*1024)
+			defer func() {
+				if exportSize > 0 {
+					os.Stderr.WriteString("\n")
+				}
+			}()
+
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						return re.Close()
+					}
+					return re.CloseWithError(err)
+				}
+
+				if r, ok := v.(io.Reader); ok {
+					// we got a reader passed as a response
+					// proxy it through with an increasing counter
+					for {
+						len, readErr := r.Read(buf)
+						if len > 0 {
+							if err := re.Emit(bytes.NewBuffer(buf[:len])); err != nil {
+								return err
+							}
+
+							exportSize += int64(len)
+							fmt.Fprintf(
+								os.Stderr,
+								"Exported .car size:\t%d\r",
+								exportSize,
+							)
+						}
+
+						if readErr == io.EOF {
+							return re.Close()
+						} else if readErr != nil {
+							return re.CloseWithError(err)
+						}
+					}
+				} else {
+					// some sort of encoded response, just get on with it
+					err := re.Emit(v)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		},
 	},
 }
 
