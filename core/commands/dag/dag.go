@@ -15,7 +15,6 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 
 	blk "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -28,9 +27,9 @@ import (
 	mh "github.com/multiformats/go-multihash"
 
 	gocar "github.com/ipld/go-car"
-	gipfree "github.com/ipld/go-ipld-prime/impl/free"
-	gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
-	gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
+	//gipfree "github.com/ipld/go-ipld-prime/impl/free"
+	//gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
+	//gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 )
 
 const (
@@ -660,28 +659,28 @@ var DagExportCmd = &cmds.Command{
 			return err
 		}
 
-		sess := blockservice.NewSession(
-			req.Context,
-			node.Blocks,
-		)
-
 		// The second part of the above - make a super-thin wrapper around
 		// a blockservice session, translating Session.GetBlock() to Blockstore.Get()
-		var wrapper getBlockFromSessionWrapper = func(c cid.Cid) (blk.Block, error) {
-			return sess.GetBlock(req.Context, c)
-		}
-		sb := gipselectorbuilder.NewSelectorSpecBuilder(gipfree.NodeBuilder())
-		car := gocar.NewSelectiveCar(
-			req.Context,
-			&wrapper,
-			[]gocar.Dag{gocar.Dag{
-				Root: c,
-				Selector: sb.ExploreRecursive(
-					gipselector.RecursionLimitNone(),
-					sb.ExploreAll(sb.ExploreRecursiveEdge()),
-				).Node(),
-			}},
-		)
+		//
+		// sess := blockservice.NewSession(
+		// 	req.Context,
+		// 	node.Blocks,
+		// )
+		// var wrapper getBlockFromSessionWrapper = func(c cid.Cid) (blk.Block, error) {
+		// 	return sess.GetBlock(req.Context, c)
+		// }
+		// sb := gipselectorbuilder.NewSelectorSpecBuilder(gipfree.NodeBuilder())
+		// car := gocar.NewSelectiveCar(
+		// 	req.Context,
+		// 	&wrapper,
+		// 	[]gocar.Dag{gocar.Dag{
+		// 		Root: c,
+		// 		Selector: sb.ExploreRecursive(
+		// 			gipselector.RecursionLimitNone(),
+		// 			sb.ExploreAll(sb.ExploreRecursiveEdge()),
+		// 		).Node(),
+		// 	}},
+		// )
 
 		pipeR, pipeW := io.Pipe()
 
@@ -694,7 +693,13 @@ var DagExportCmd = &cmds.Command{
 				close(errCh)
 			}()
 
-			if err := car.Write(pipeW); err != nil {
+			//if err := car.Write(pipeW); err != nil {
+			if err := gocar.WriteCar(
+				req.Context,
+				node.DAG,
+				[]cid.Cid{c},
+				pipeW,
+			); err != nil {
 				errCh <- err
 			}
 		}()
