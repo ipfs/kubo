@@ -509,7 +509,7 @@ pin each individual root specified in the car headers, before GC runs again.
 
 			_, err = fmt.Fprintf(
 				w,
-				"Pinned root\t%s\t %s\n",
+				"Pinned root\t%s\t%s\n",
 				enc.Encode(*event.Root.Cid),
 				event.Root.PinErrorMsg,
 			)
