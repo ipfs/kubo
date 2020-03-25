@@ -47,16 +47,13 @@ type FSKeystore struct {
 
 // NewFSKeystore returns a new filesystem-backed keystore.
 func NewFSKeystore(dir string) (*FSKeystore, error) {
-	_, err := os.Stat(dir)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-		if err := os.Mkdir(dir, 0700); err != nil {
-			return nil, err
-		}
+	err := os.Mkdir(dir, 0700)
+	switch {
+	case os.IsExist(err):
+	case err == nil:
+	default:
+		return nil, err
 	}
-
 	return &FSKeystore{dir}, nil
 }
 
@@ -91,15 +88,11 @@ func (ks *FSKeystore) Put(name string, k ci.PrivKey) error {
 
 	kp := filepath.Join(ks.dir, name)
 
-	_, err = os.Stat(kp)
-	if err == nil {
-		return ErrKeyExists
-	} else if !os.IsNotExist(err) {
-		return err
-	}
-
-	fi, err := os.Create(kp)
+	fi, err := os.OpenFile(kp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
+		if os.IsExist(err) {
+			err = ErrKeyExists
+		}
 		return err
 	}
 	defer fi.Close()
