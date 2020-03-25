@@ -14,7 +14,6 @@ import (
 	"github.com/ipfs/go-ipfs/core/coredag"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 
-	blk "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -761,10 +760,4 @@ var DagExportCmd = &cmds.Command{
 			}
 		},
 	},
-}
-
-type getBlockFromSessionWrapper func(cid.Cid) (blk.Block, error)
-
-func (w *getBlockFromSessionWrapper) Get(c cid.Cid) (blk.Block, error) {
-	return (*w)(c)
 }
