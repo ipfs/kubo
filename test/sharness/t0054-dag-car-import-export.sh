@@ -23,8 +23,14 @@ reset_blockstore() {
 do_import() {
   node=$1; shift
 
+  bash -c "while [ -e spin.gc ]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc1_pid=$!
+  bash -c "while [ -e spin.gc ]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc2_pid=$!
+
   ipfsi $node dag import --progress=false "$@"
 
+  rm spin.gc
+  wait $gc1_pid
+  wait $gc2_pid
 }
 
 run_imp_exp_tests() {
@@ -39,6 +45,7 @@ run_imp_exp_tests() {
   echo -e "Pinned root\tbafy2bzaceaxm23epjsmh75yvzcecsrbavlmkcxnva66bkdebdcnyw3bjrc74u\tsuccess (root specified in .car header without its data)" > naked_import_result_expected
   echo -e "Pinned root\tbafy2bzaced4ueelaegfs5fqu4tzsh6ywbbpfk3cxppupmxfdhbpbhzawfw5oy\tsuccess (root specified in .car header without its data)" >> naked_import_result_expected
 
+  touch spin.gc
   test_expect_success "basic import" '
     do_import 0 \
       ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
@@ -47,6 +54,10 @@ run_imp_exp_tests() {
     | sort > basic_import_actual
   '
 
+  # FIXME - the fact we reliably fail this is indicative of some sort of race...
+  test_expect_failure "concurrent GC did not manage to grab anything" '
+    ! [ -s gc_out ]
+  '
   test_expect_success "basic import output as expected" '
     test_cmp basic_import_expected basic_import_actual
   '
@@ -92,12 +103,17 @@ run_imp_exp_tests() {
     rm pipe_testnet pipe_devnet
   ' &
 
+  touch spin.gc
   test_expect_success "fifo import" '
     do_import 0 \
       pipe_testnet \
       pipe_devnet \
       ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
     | sort > basic_fifo_import_actual
+  '
+  # FIXME - the fact we reliably fail this is indicative of some sort of race...
+  test_expect_failure "concurrent GC did not manage to grab anything" '
+    ! [ -s gc_out ]
   '
 
   test_expect_success "fifo-import output as expected" '

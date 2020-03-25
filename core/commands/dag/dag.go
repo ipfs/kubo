@@ -349,14 +349,7 @@ pin each individual root specified in the car headers, before GC runs again.
 		// This is especially important for use cases like dagger:
 		//    ipfs dag import $( ... | ipfs-dagger --stdout=carfifos )
 		//
-		// !!!NOTE!!! - We take .GCLock, *not* .PinLock. The way the current stack is
-		// built makes it impossible to take both a GC and a Pinning lock, regardless
-		// of order. Doing so can potentially deadlock if another thread starts GC
-		// ( this is not theoretical - it's been reliably simulated with the insertion
-		// of strategic sleeps()s and hand-triggering GC )
-		//
-		// See api.Pin().Add() vs node.Pinning.Pin() comment further down
-		unlocker := node.Blockstore.GCLock()
+		unlocker := node.Blockstore.PinLock()
 		defer func() { unlocker.Unlock() }()
 
 		doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
@@ -418,8 +411,8 @@ pin each individual root specified in the car headers, before GC runs again.
 				// We need to re-retrieve a block, convert it to ipld, and feed it
 				// to the Pinning interface, sigh...
 				//
-				// If we didn't have the deadlocking-gclock/pinlock problem we could
-				// use the Api directly like so (though internally it does the same):
+				// If we didn't have the problem of inability to take multiple pinlocks,
+				// we could use the Api directly like so (though internally it does the same):
 				//
 				// // not ideal, but the pinning api takes only paths :(
 				// rp := path.NewResolvedPath(
