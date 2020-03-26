@@ -254,7 +254,7 @@ var DagExportCmd = &cmds.Command{
 		Tagline: "Streams the selected DAG as a .car stream on stdout.",
 		ShortDescription: `
 'ipfs dag export' fetches a dag and streams it out as a well-formed .car file.
-Note that at prsent only single root selections / .car files are supported.
+Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
 `,
 	},
