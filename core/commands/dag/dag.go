@@ -309,9 +309,9 @@ During pinning no network requests are made, with no option to change that.
 		// isn't possible: tough luck
 		api, _ = api.WithOptions(options.Api.Offline(true))
 
-		// grab a gc lock so that regardless of the size of the streamed-in cars
-		// nothing will disappear on us before we had a chance to pin the roots
-		// at the very end
+		// grab a pinlock ( which doubles as a GC lock ) so that regardless of the
+		// size of the streamed-in cars nothing will disappear on us before we had
+		// a chance to roots that may show up at the very end
 		// This is especially important for use cases like dagger:
 		//    ipfs dag import $( ... | ipfs-dagger --stdout=carfifos )
 		//
@@ -334,8 +334,9 @@ During pinning no network requests are made, with no option to change that.
 		// We will attempt a pin *only* at the end in case all car files were well formed
 		//
 		// The boolean value indicates whether we have encountered the root within the car file's
-		//var roots map[cid.Cid]bool
-		roots := done.roots
+		var roots map[cid.Cid]bool
+
+		roots = done.roots
 
 		// opportunistic pinning: try whatever sticks
 		if doPinRoots {
