@@ -29,7 +29,7 @@ require (
 	github.com/ipfs/go-fs-lock v0.0.4
 	github.com/ipfs/go-graphsync v0.0.5
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
-	github.com/ipfs/go-ipfs-chunker v0.0.4
+	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.1.4
 	github.com/ipfs/go-ipfs-config v0.3.0
 	github.com/ipfs/go-ipfs-ds-help v0.1.1
