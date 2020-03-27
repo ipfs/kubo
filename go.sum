@@ -318,6 +318,8 @@ github.com/ipfs/go-ipld-cbor v0.0.4/go.mod h1:BkCduEx3XBCO6t2Sfo5BaHzuok7hbhdMm9
 github.com/ipfs/go-ipld-format v0.0.1/go.mod h1:kyJtbkDALmFHv3QR6et67i35QzO3S0dCDnkOJhcZkms=
 github.com/ipfs/go-ipld-format v0.0.2 h1:OVAGlyYT6JPZ0pEfGntFPS40lfrDmaDbQwNHEY2G9Zs=
 github.com/ipfs/go-ipld-format v0.0.2/go.mod h1:4B6+FM2u9OJ9zCV+kSbgFAZlOrv1Hqbf0INGQgiKf9k=
+github.com/ipfs/go-ipld-format v0.1.0 h1:EDKDGOoBxuiBg7+DN4sVrIdhTZvB5JXZy6nwOFtREiw=
+github.com/ipfs/go-ipld-format v0.1.0/go.mod h1:HruRlXRZPI+XbP8wqIwBzSOjtXHFQZr3hcv+g52PuOw=
 github.com/ipfs/go-ipld-git v0.0.3 h1:/YjkjCyo5KYRpW+suby8Xh9Cm/iH9dAgGV6qyZ1dGus=
 github.com/ipfs/go-ipld-git v0.0.3/go.mod h1:RuvMXa9qtJpDbqngyICCU/d+cmLFXxLsbIclmD0Lcr0=
 github.com/ipfs/go-ipns v0.0.2 h1:oq4ErrV4hNQ2Eim257RTYRgfOSV/s8BDaf9iIl4NwFs=
