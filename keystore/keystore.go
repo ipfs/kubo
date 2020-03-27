@@ -81,14 +81,14 @@ func (ks *FSKeystore) Put(name string, k ci.PrivKey) error {
 		return err
 	}
 
-	b, err := k.Bytes()
+	b, err := ci.MarshalPrivateKey(k)
 	if err != nil {
 		return err
 	}
 
 	kp := filepath.Join(ks.dir, name)
 
-	fi, err := os.OpenFile(kp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	fi, err := os.OpenFile(kp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0400)
 	if err != nil {
 		if os.IsExist(err) {
 			err = ErrKeyExists
