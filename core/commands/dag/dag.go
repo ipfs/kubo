@@ -332,6 +332,15 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 			return err
 		}
 
-		return <-errCh
+		err = <-errCh
+
+		// minimal user friendliness
+		if err != nil &&
+			!node.IsOnline &&
+			err.Error() == "merkledag: not found" {
+			err = fmt.Errorf("%s (currently offline, perhaps retry after attaching to the network)", err)
+		}
+
+		return err
 	},
 }
