@@ -14,7 +14,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	mdag "github.com/ipfs/go-merkledag"
 	ipfspath "github.com/ipfs/go-path"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
@@ -271,25 +270,8 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 			)
 		}
 
-		// The current interface of go-car is rather suboptimal as it
-		// only takes a blockstore, instead of accepting a dagservice,
-		// and leveraging parallel-fetch capabilities
-		// https://github.com/ipld/go-car/issues/27
-		//
-		// Until the above is fixed, pre-warm the blockstore before doing
-		// anything else. We explicitly *DO NOT* take a lock during this
-		// operation: even if we lose some of the blocks we just received
-		// due to a conflicting GC: we will just re-retrieve anything we
-		// potentially lost when the car is being streamed out
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
-			return err
-		}
-
-		if err := mdag.FetchGraph(req.Context, c, node.DAG); err != nil {
-			if !node.IsOnline {
-				err = fmt.Errorf("%s (currently offline, perhaps retry after attaching to the network)", err)
-			}
 			return err
 		}
 
@@ -297,6 +279,12 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 		//
 		// The second part of the above - make a super-thin wrapper around
 		// a blockservice session, translating Session.GetBlock() to Blockstore.Get()
+		//
+		// The current interface of go-car is rather suboptimal as it
+		// only takes a blockstore, instead of accepting a dagservice,
+		// and leveraging parallel-fetch capabilities
+		// https://github.com/ipld/go-car/issues/27
+		//
 		//
 		// sess := blockservice.NewSession(
 		// 	req.Context,
