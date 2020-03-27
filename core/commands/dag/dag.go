@@ -319,6 +319,7 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 		}()
 
 		if err := res.Emit(pipeR); err != nil {
+			pipeR.Close() // ignore the error if any
 			return err
 		}
 
