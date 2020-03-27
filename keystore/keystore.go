@@ -81,7 +81,7 @@ func (ks *FSKeystore) Put(name string, k ci.PrivKey) error {
 		return err
 	}
 
-	b, err := k.Bytes()
+	b, err := ci.MarshalPrivateKey(k)
 	if err != nil {
 		return err
 	}
