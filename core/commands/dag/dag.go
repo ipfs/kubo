@@ -291,6 +291,8 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 		// 		).Node(),
 		// 	}},
 		// )
+		// ...
+		// if err := car.Write(pipeW); err != nil {}
 
 		pipeR, pipeW := io.Pipe()
 
@@ -303,7 +305,6 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 				close(errCh)
 			}()
 
-			//if err := car.Write(pipeW); err != nil {
 			if err := gocar.WriteCar(
 				req.Context,
 				mdag.NewSession(
