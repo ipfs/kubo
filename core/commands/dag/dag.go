@@ -258,7 +258,7 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("root", true, false, "Expression evaluting to a single root of a dag to export").EnableStdin(),
+		cmds.StringArg("root", true, false, "CID of a root to recursively export").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 
