@@ -326,7 +326,7 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 		// minimal user friendliness
 		if err != nil &&
 			!node.IsOnline &&
-			err.Error() == "merkledag: not found" {
+			err == ipld.ErrNotFound {
 			err = fmt.Errorf("%s (currently offline, perhaps retry after attaching to the network)", err)
 		}
 
