@@ -8,6 +8,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/coredag"
+	mdag "github.com/ipfs/go-merkledag"
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
@@ -276,27 +277,12 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 		}
 
 		// Code disabled until descent-issue in go-ipld-prime is fixed
+		// https://github.com/ribasushi/gip-muddle-up
 		//
-		// The second part of the above - make a super-thin wrapper around
-		// a blockservice session, translating Session.GetBlock() to Blockstore.Get()
-		//
-		// The current interface of go-car is rather suboptimal as it
-		// only takes a blockstore, instead of accepting a dagservice,
-		// and leveraging parallel-fetch capabilities
-		// https://github.com/ipld/go-car/issues/27
-		//
-		//
-		// sess := blockservice.NewSession(
-		// 	req.Context,
-		// 	node.Blocks,
-		// )
-		// var wrapper getBlockFromSessionWrapper = func(c cid.Cid) (blk.Block, error) {
-		// 	return sess.GetBlock(req.Context, c)
-		// }
 		// sb := gipselectorbuilder.NewSelectorSpecBuilder(gipfree.NodeBuilder())
 		// car := gocar.NewSelectiveCar(
 		// 	req.Context,
-		// 	&wrapper,
+		// 	<needs to be fixed to take format.NodeGetter as well>,
 		// 	[]gocar.Dag{gocar.Dag{
 		// 		Root: c,
 		// 		Selector: sb.ExploreRecursive(
@@ -320,7 +306,10 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 			//if err := car.Write(pipeW); err != nil {
 			if err := gocar.WriteCar(
 				req.Context,
-				node.DAG,
+				mdag.NewSession(
+					req.Context,
+					node.DAG,
+				),
 				[]cid.Cid{c},
 				pipeW,
 			); err != nil {
