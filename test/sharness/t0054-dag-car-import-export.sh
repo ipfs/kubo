@@ -6,6 +6,8 @@ test_description="Test car file import/export functionality"
 . lib/test-lib.sh
 export -f ipfsi
 
+set -o pipefail
+
 reset_blockstore() {
   node=$1
   ipfsi $1 pin ls --quiet --type=recursive | ipfsi $1 pin rm &>/dev/null
@@ -109,9 +111,6 @@ test_expect_success "shut down nodes" '
 
 
 # We want to just init the repo, without using a daemon for stuff below
-# The ulimit is only adjusted when a server starts
-# Do it here instead of mucking with lib/test-lib.sh
-ulimit -n 2048
 test_init_ipfs
 
 
@@ -138,7 +137,7 @@ test_expect_success "multiroot import works" '
   ipfs dag import --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car | sort > multiroot_import_actual
 '
 test_expect_success "multiroot import expected output" '
-   test_cmp multiroot_import_expected multiroot_import_actual
+  test_cmp multiroot_import_expected multiroot_import_actual
 '
 
 

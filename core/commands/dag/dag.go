@@ -453,6 +453,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 	batch := ipld.NewBatch(req.Context, api.Dag())
 
 	roots := make(map[cid.Cid]bool)
+	var blockCount int64
 
 	it := req.Files.Entries()
 	for it.Next() {
@@ -504,6 +505,15 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 
 				if err := batch.Add(req.Context, nd); err != nil {
 					return err
+				}
+				blockCount++
+				if 0 == blockCount%200 {
+					// work around https://github.com/ipfs/go-ds-flatfs/issues/36 for the time being
+					// batch up-to 200 at a time ( fly under MacOS's default of 256 )
+					if err := batch.Commit(); err != nil {
+						return err
+					}
+					batch = ipld.NewBatch(req.Context, api.Dag())
 				}
 
 				// encountered something known to be a root, for the first time
