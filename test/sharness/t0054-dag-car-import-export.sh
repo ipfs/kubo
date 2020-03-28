@@ -122,7 +122,7 @@ test_expect_success "basic offline export of 'getting started' dag works" '
 
 echo "Error: merkledag: not found (currently offline, perhaps retry after attaching to the network)" > offline_fetch_error_expected
 test_expect_success "basic offline export of nonexistent cid" '
-  ! ipfs dag export QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2> offline_fetch_error_actual
+  ! ipfs dag export QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2> offline_fetch_error_actual >/dev/null
 '
 test_expect_success "correct error" '
   test_cmp offline_fetch_error_expected offline_fetch_error_actual
