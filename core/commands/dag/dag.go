@@ -316,9 +316,12 @@ During pinning no network requests are made, with no option to change that.
 		}
 
 		// on import ensure we do not reach out to the network for any reason
-		// if a pin based on what is imported + what is in the lockstore
+		// if a pin based on what is imported + what is in the blockstore
 		// isn't possible: tough luck
-		api, _ = api.WithOptions(options.Api.Offline(true))
+		api, err = api.WithOptions(options.Api.Offline(true))
+		if err != nil {
+			return err
+		}
 
 		// grab a pinlock ( which doubles as a GC lock ) so that regardless of the
 		// size of the streamed-in cars nothing will disappear on us before we had
