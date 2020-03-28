@@ -14,10 +14,10 @@ reset_blockstore() {
   ipfsi $1 repo gc &>/dev/null
 
   test_expect_success "pinlist empty" '
-    [ -z "$( ipfsi $1 pin ls )" ]
+    [[ -z "$( ipfsi $1 pin ls )" ]]
   '
   test_expect_success "nothing left to gc" '
-    [ -z "$( ipfsi $1 repo gc )" ]
+    [[ -z "$( ipfsi $1 repo gc )" ]]
   '
 }
 
@@ -25,8 +25,8 @@ reset_blockstore() {
 do_import() {
   node=$1; shift
 
-  bash -c "while [ -e spin.gc ]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc1_pid=$!
-  bash -c "while [ -e spin.gc ]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc2_pid=$!
+  bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc1_pid=$!
+  bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc2_pid=$!
 
   ipfsi $node dag import "$@"
 
@@ -55,7 +55,7 @@ run_online_imp_exp_tests() {
 
   # FIXME - the fact we reliably fail this is indicative of some sort of race...
   test_expect_failure "concurrent GC did not manage to grab anything" '
-    ! [ -s gc_out ]
+    ! [[ -s gc_out ]]
   '
   test_expect_success "basic import output as expected" '
     test_cmp basic_import_expected basic_import_actual
@@ -85,7 +85,7 @@ run_online_imp_exp_tests() {
   '
   # FIXME - the fact we reliably fail this is indicative of some sort of race...
   test_expect_failure "concurrent GC did not manage to grab anything" '
-    ! [ -s gc_out ]
+    ! [[ -s gc_out ]]
   '
 
   test_expect_success "fifo-import output as expected" '
@@ -93,7 +93,7 @@ run_online_imp_exp_tests() {
   '
 
   test_expect_success "fifos no longer present" '
-    ! [ -e pipe_testnet ] && ! [ -e pipe_devnet ]
+    ! [[ -e pipe_testnet ]] && ! [[ -e pipe_devnet ]]
   '
 }
 
@@ -148,7 +148,7 @@ test_expect_success "pin-less import works" '
     > no-pin_import_actual
 '
 test_expect_success "expected silence on --pin-roots=false" '
-  ! [ -s no-pin_import_actual ]
+  ! [[ -s no-pin_import_actual ]]
 '
 
 
