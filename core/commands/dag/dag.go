@@ -294,10 +294,10 @@ Note:
   The pinning of the roots happens after all car files are processed,
   permitting import of DAGs spanning multiple files.
 
-  Pinning takes place in offline-mode exclusively, with no option to change
-  this: if the collection of blocks from the imported CAR files and what
-  is currently present in the blockstore is insufficient pinning of the
-  affected root will fail
+  Pinning takes place in offline-mode exclusively, one root at a time.
+  If the combination of blocks from the imported CAR files and what is
+  currently present in the blockstore does not represent a complete DAG,
+  pinning of that individual root will fail.
 
 Maximum supported CAR version: 1
 `,
