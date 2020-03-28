@@ -33,7 +33,7 @@ do_import() {
   wait $gc2_pid
 }
 
-run_imp_exp_tests() {
+run_online_imp_exp_tests() {
 
   reset_blockstore 0
   reset_blockstore 1
@@ -95,31 +95,52 @@ run_imp_exp_tests() {
   '
 }
 
+
 test_expect_success "set up testbed" '
    iptb testbed create -type localipfs -count 2 -force -init
 '
 startup_cluster 2
 
-run_imp_exp_tests
+run_online_imp_exp_tests
 
 test_expect_success "shut down nodes" '
   iptb stop && iptb_wait_stop
 '
 
+
+# We want to just init the repo, without using a daemon for stuff below
+# The ulimit is only adjusted when a server starts
+# Do it here instead of mucking with lib/test-lib.sh
+ulimit -n 2048
 test_init_ipfs
+
+
+test_expect_success "basic offline export of 'getting started' dag works" '
+  ipfs dag export QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv >/dev/null
+'
+
+
+echo "Error: merkledag: not found (currently offline, perhaps retry after attaching to the network)" > offline_fetch_error_expected
+test_expect_success "basic offline export of nonexistent cid" '
+  ! ipfs dag export QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2> offline_fetch_error_actual
+'
+test_expect_success "correct error" '
+  test_cmp offline_fetch_error_expected offline_fetch_error_actual
+'
+
 
 cat >multiroot_import_expected <<EOE
 {"Root":{"Cid":{"/":"bafy2bzaceb55n7uxyfaelplulk3ev2xz7gnq6crncf3ahnvu46hqqmpucizcw"},"PresentInCar":true,"PinErrorMsg":""}}
 {"Root":{"Cid":{"/":"bafy2bzacebedrc4n2ac6cqdkhs7lmj5e4xiif3gu7nmoborihajxn3fav3vdq"},"PresentInCar":true,"PinErrorMsg":""}}
 {"Root":{"Cid":{"/":"bafy2bzacede2hsme6hparlbr4g2x6pylj43olp4uihwjq3plqdjyrdhrv7cp4"},"PresentInCar":true,"PinErrorMsg":""}}
 EOE
-
 test_expect_success "multiroot import works" '
   ipfs dag import --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car | sort > multiroot_import_actual
 '
 test_expect_success "multiroot import expected output" '
    test_cmp multiroot_import_expected multiroot_import_actual
 '
+
 
 test_expect_success "pin-less import works" '
   ipfs dag import --enc=json --pin-roots=false \
@@ -131,11 +152,11 @@ test_expect_success "expected silence on --pin-roots=false" '
   ! [ -s no-pin_import_actual ]
 '
 
+
 cat >naked_root_import_expected <<EOE
 {"Root":{"Cid":{"/":"bafy2bzaceaxm23epjsmh75yvzcecsrbavlmkcxnva66bkdebdcnyw3bjrc74u"},"PresentInCar":false,"PinErrorMsg":""}}
 {"Root":{"Cid":{"/":"bafy2bzaced4ueelaegfs5fqu4tzsh6ywbbpfk3cxppupmxfdhbpbhzawfw5oy"},"PresentInCar":false,"PinErrorMsg":""}}
 EOE
-
 test_expect_success "naked root import works" '
   ipfs dag import --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
   | sort > naked_root_import_actual
@@ -143,5 +164,6 @@ test_expect_success "naked root import works" '
 test_expect_success "naked root import expected output" '
    test_cmp naked_root_import_expected naked_root_import_actual
 '
+
 
 test_done
