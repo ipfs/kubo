@@ -455,55 +455,62 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 			return
 		}
 
-		car, err := gocar.NewCarReader(file)
+		// wrap a defer-closer-scope
+		//
+		// every single file in it() is already open before we start
+		// just close here sooner rather than later for neatness
+		// and to surface potential erorrs writing on closed fifos
+		// this won't/can't help with not running out of handles
+		err := func() error {
+			defer file.Close()
+
+			car, err := gocar.NewCarReader(file)
+			if err != nil {
+				return err
+			}
+
+			// Be explicit here, until the spec is finished
+			if car.Header.Version != 1 {
+				return errors.New("only car files version 1 supported at present")
+			}
+
+			for _, c := range car.Header.Roots {
+				if _, exists := roots[c]; !exists {
+					roots[c] = false
+				}
+			}
+
+			for {
+				block, err := car.Next()
+				if err != nil && err != io.EOF {
+					return err
+				} else if block == nil {
+					break
+				}
+
+				// the double-decode is suboptimal, but we need it for batching
+				nd, err := ipld.Decode(block)
+				if err != nil {
+					return err
+				}
+
+				if err := batch.Add(req.Context, nd); err != nil {
+					return err
+				}
+
+				// encountered something known to be a root, for the first time
+				if seen, exists := roots[nd.Cid()]; exists && !seen {
+					roots[nd.Cid()] = true
+				}
+			}
+
+			return nil
+		}()
+
 		if err != nil {
 			ret <- importResult{err: err}
 			return
 		}
-
-		// Be explicit here, until the spec is finished
-		if car.Header.Version != 1 {
-			ret <- importResult{err: errors.New("only car files version 1 supported at present")}
-			return
-		}
-
-		for _, c := range car.Header.Roots {
-			if _, exists := roots[c]; !exists {
-				roots[c] = false
-			}
-		}
-
-		for {
-			block, err := car.Next()
-			if err != nil && err != io.EOF {
-				ret <- importResult{err: err}
-				return
-			} else if block == nil {
-				break
-			}
-
-			// the double-decode is suboptimal, but we need it for batching
-			nd, err := ipld.Decode(block)
-			if err != nil {
-				ret <- importResult{err: err}
-				return
-			}
-
-			if err := batch.Add(req.Context, nd); err != nil {
-				ret <- importResult{err: err}
-				return
-			}
-
-			// encountered something known to be a root, for the first time
-			if seen, exists := roots[nd.Cid()]; exists && !seen {
-				roots[nd.Cid()] = true
-			}
-		}
-
-		// every single file in it() is already open before we start
-		// just close here sooner rather than later for neatness
-		// this won't/can't help with not running out of handles
-		file.Close()
 	}
 
 	if err := it.Err(); err != nil {
