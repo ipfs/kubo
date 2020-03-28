@@ -282,17 +282,24 @@ var DagImportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Import the contents of .car files",
 		ShortDescription: `
-'ipfs dag import' parses .car files and adds all objects to the blockstore.
-Currently only car files with version 1 are supported, without particular
-hard limits on the contents (so called car-determinism is not enforced).
+'ipfs dag import' imports all blocks present in supplied .car
+( Content Address aRchive ) files, recursively pinning any roots
+specified in the CAR file headers, unless --pin-roots is set to false.
 
-By default, after all supplied (one or more) car files have been processed,
-an attempt is made to pin recursively each individual root specified in any car
-headers. This is done at the end of the import, allowing pinning to take place
-over the contents of all cars (a dag scattered over multiple files) plus
-anything present in the blockstore.
+Note:
+  This command will import all blocks in the CAR file, not just those
+  reachable from the specified roots. However, these other blocks will
+  not be pinned and may be garbage collected later.
 
-During pinning no network requests are made, with no option to change that.
+  The pinning of the roots happens after all car files are processed,
+  permitting import of DAGs spanning multiple files.
+
+  Pinning takes place in offline-mode exclusively, with no option to change
+  this: if the collection of blocks from the imported CAR files and what
+  is currently present in the blockstore is insufficient pinning of the
+  affected root will fail
+
+Maximum supported CAR version: 1
 `,
 	},
 	Arguments: []cmds.Argument{
