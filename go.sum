@@ -260,8 +260,8 @@ github.com/ipfs/go-ipfs-blockstore v0.1.4/go.mod h1:Jxm3XMVjh6R17WvxFEiyKBLUGr86
 github.com/ipfs/go-ipfs-blocksutil v0.0.1 h1:Eh/H4pc1hsvhzsQoMEP3Bke/aW5P5rVM1IWFJMcGIPQ=
 github.com/ipfs/go-ipfs-blocksutil v0.0.1/go.mod h1:Yq4M86uIOmxmGPUHv/uI7uKqZNtLb449gwKqXjIsnRk=
 github.com/ipfs/go-ipfs-chunker v0.0.1/go.mod h1:tWewYK0we3+rMbOh7pPFGDyypCtvGcBFymgY4rSDLAw=
-github.com/ipfs/go-ipfs-chunker v0.0.4 h1:nb2ZIgtOk0TxJ5KDBEk+sv6iqJTF/PHg6owN2xCrUjE=
-github.com/ipfs/go-ipfs-chunker v0.0.4/go.mod h1:jhgdF8vxRHycr00k13FM8Y0E+6BoalYeobXmUyTreP8=
+github.com/ipfs/go-ipfs-chunker v0.0.5 h1:ojCf7HV/m+uS2vhUGWcogIIxiO5ubl5O57Q7NapWLY8=
+github.com/ipfs/go-ipfs-chunker v0.0.5/go.mod h1:jhgdF8vxRHycr00k13FM8Y0E+6BoalYeobXmUyTreP8=
 github.com/ipfs/go-ipfs-cmds v0.1.4 h1:l5QAc1iaoMZeBd2vpanrHWs26haEBL4PVqgoHJNG2GE=
 github.com/ipfs/go-ipfs-cmds v0.1.4/go.mod h1:wm+C6M8FYDcWPU/EdWqMuHvdyWborFh+GuDl6Ov6sM0=
 github.com/ipfs/go-ipfs-config v0.3.0 h1:fGs3JBqB9ia/Joi8up47uiKn150EOEqqVFwv8HZqXao=
@@ -577,6 +577,8 @@ github.com/libp2p/go-libp2p-yamux v0.2.1/go.mod h1:1FBXiHDk1VyRM1C0aez2bCfHQ4vMZ
 github.com/libp2p/go-libp2p-yamux v0.2.2/go.mod h1:lIohaR0pT6mOt0AZ0L2dFze9hds9Req3OfS+B+dv4qw=
 github.com/libp2p/go-libp2p-yamux v0.2.5 h1:MuyItOqz03oi8npvjgMJxgnhllJLZnO/dKVOpTZ9+XI=
 github.com/libp2p/go-libp2p-yamux v0.2.5/go.mod h1:Zpgj6arbyQrmZ3wxSZxfBmbdnWtbZ48OpsfmQVTErwA=
+github.com/libp2p/go-libp2p-yamux v0.2.6 h1:BXl4fEzzZwLUjoqoRJNx4co1UhvOwXaM+Qg2twEqEFU=
+github.com/libp2p/go-libp2p-yamux v0.2.6/go.mod h1:YbnSVt8RYb3t6YBGPD9rLUT0vmmvcr/waaQ79PINpOM=
 github.com/libp2p/go-maddr-filter v0.0.1/go.mod h1:6eT12kSQMA9x2pvFQa+xesMKUBlj9VImZbj3B9FBH/Q=
 github.com/libp2p/go-maddr-filter v0.0.4/go.mod h1:6eT12kSQMA9x2pvFQa+xesMKUBlj9VImZbj3B9FBH/Q=
 github.com/libp2p/go-maddr-filter v0.0.5 h1:CW3AgbMO6vUvT4kf87y4N+0P8KUl2aqLYhrGyDUbLSg=
@@ -629,6 +631,8 @@ github.com/libp2p/go-yamux v1.2.3/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZ
 github.com/libp2p/go-yamux v1.3.0/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/libp2p/go-yamux v1.3.3 h1:mWuzZRCAeTBFdynLlsYgA/EIeMOLr8XY04wa52NRhsE=
 github.com/libp2p/go-yamux v1.3.3/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
+github.com/libp2p/go-yamux v1.3.4 h1:CptmtNfQomI9RpM7LFJhVBFkwp2zwEXIskEfWwwtoHg=
+github.com/libp2p/go-yamux v1.3.4/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/lucas-clemente/quic-go v0.15.2 h1:RgxRJ7rPde0Q/uXDeb3/UdblVvxrYGDAG9G9GO78LmI=
 github.com/lucas-clemente/quic-go v0.15.2/go.mod h1:qxmO5Y4ZMhdNkunGfxuZnZXnJwYpW9vjQkyrZ7BsgUI=
 github.com/lunixbochs/vtclean v1.0.0/go.mod h1:pHhQNgMf3btfWnGBVipUOjRYhoOsdGqdm/+2c2E2WMI=

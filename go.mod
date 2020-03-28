@@ -29,7 +29,7 @@ require (
 	github.com/ipfs/go-fs-lock v0.0.4
 	github.com/ipfs/go-graphsync v0.0.5
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
-	github.com/ipfs/go-ipfs-chunker v0.0.4
+	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.1.4
 	github.com/ipfs/go-ipfs-config v0.3.0
 	github.com/ipfs/go-ipfs-ds-help v0.1.1
@@ -80,7 +80,7 @@ require (
 	github.com/libp2p/go-libp2p-swarm v0.2.2
 	github.com/libp2p/go-libp2p-testing v0.1.1
 	github.com/libp2p/go-libp2p-tls v0.1.3
-	github.com/libp2p/go-libp2p-yamux v0.2.5
+	github.com/libp2p/go-libp2p-yamux v0.2.6
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/libp2p/go-socket-activation v0.0.2
 	github.com/mattn/go-runewidth v0.0.8 // indirect
