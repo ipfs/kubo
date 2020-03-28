@@ -348,9 +348,7 @@ During pinning no network requests are made, with no option to change that.
 		// We will attempt a pin *only* at the end in case all car files were well formed
 		//
 		// The boolean value indicates whether we have encountered the root within the car file's
-		var roots map[cid.Cid]bool
-
-		roots = done.roots
+		roots := done.roots
 
 		// opportunistic pinning: try whatever sticks
 		if doPinRoots {
