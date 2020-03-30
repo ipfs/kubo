@@ -11,7 +11,7 @@ import (
 var DefaultTransports = simpleOpt(libp2p.DefaultTransports)
 var QUIC = simpleOpt(libp2p.Transport(libp2pquic.NewTransport))
 
-func Security(enabled, preferTLS bool) interface{} {
+func Security(enabled bool) interface{} {
 	if !enabled {
 		return func() (opts Libp2pOpts) {
 			// TODO: shouldn't this be Errorf to guarantee visibility?
@@ -22,11 +22,7 @@ func Security(enabled, preferTLS bool) interface{} {
 		}
 	}
 	return func() (opts Libp2pOpts) {
-		if preferTLS {
-			opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(tls.ID, tls.New), libp2p.Security(secio.ID, secio.New)))
-		} else {
-			opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(secio.ID, secio.New), libp2p.Security(tls.ID, tls.New)))
-		}
+		opts.Opts = append(opts.Opts, libp2p.ChainOptions(libp2p.Security(tls.ID, tls.New), libp2p.Security(secio.ID, secio.New)))
 		return opts
 	}
 }
