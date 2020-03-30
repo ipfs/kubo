@@ -544,7 +544,7 @@ You can read more in the [datastore](./datastores.md#badgerds) documentation.
 ### State
 Experimental
 
-Allows to create directories with an unlimited number of entries - currently
+Allows creating directories with an unlimited number of entries - currently
 size of unixfs directories is limited by the maximum block size
 
 ### Basic Usage:
@@ -570,13 +570,13 @@ ipfs config --json Experimental.ShardingEnabled true
 
 Experimental, default-disabled.
 
-Utilizes pubsub for publishing ipns records in real-time.
+Utilizes pubsub for publishing ipns records in real time.
 
 When it is enabled:
 - IPNS publishers push records to a name-specific pubsub topic,
   in addition to publishing to the DHT.
 - IPNS resolvers subscribe to the name-specific topic on first
-  resolution and receive subsequently published records through pubsub in real-time. This makes subsequent resolutions instant, as they are resolved through the local cache. Note that the initial resolution still goes through the DHT, as there is no message history in pubsub.
+  resolution and receive subsequently published records through pubsub in real time. This makes subsequent resolutions instant, as they are resolved through the local cache. Note that the initial resolution still goes through the DHT, as there is no message history in pubsub.
 
 Both the publisher and the resolver nodes need to have the feature enabled for it to work effectively.
 
