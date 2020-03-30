@@ -2,46 +2,48 @@ package options
 
 import "fmt"
 
+// PinAddSettings represent the settings for PinAPI.Add
 type PinAddSettings struct {
 	Recursive bool
 }
 
-type TypeSettings struct {
-	Type string
-}
-
+// PinLsSettings represent the settings for PinAPI.Ls
 type PinLsSettings struct {
 	Type string
 }
 
+// PinIsPinnedSettings represent the settings for PinAPI.IsPinned
 type PinIsPinnedSettings struct {
 	WithType string
 }
 
-// PinRmSettings represents the settings of pin rm command
+// PinRmSettings represents the settings for PinAPI.Rm
 type PinRmSettings struct {
 	Recursive bool
 }
 
+// PinUpdateSettings represent the settings for PinAPI.Update
 type PinUpdateSettings struct {
 	Unpin bool
 }
 
-// PinAddOption pin add option func
+// PinAddOption is the signature of an option for PinAPI.Add
 type PinAddOption func(*PinAddSettings) error
 
-// PinLsOption pin ls option func
+// PinLsOption is the signature of an option for PinAPI.Ls
 type PinLsOption func(*PinLsSettings) error
 
-// PinIsPinnedOption pin isPinned option func
+// PinIsPinnedOption is the signature of an option for PinAPI.IsPinned
 type PinIsPinnedOption func(*PinIsPinnedSettings) error
 
-// PinRmOption pin rm option func
+// PinRmOption is the signature of an option for PinAPI.Rm
 type PinRmOption func(*PinRmSettings) error
 
-// PinUpdateOption pin update option func
+// PinUpdateOption is the signature of an option for PinAPI.Update
 type PinUpdateOption func(*PinUpdateSettings) error
 
+// PinAddOptions compile a series of PinAddOption into a ready to use
+// PinAddSettings and set the default values.
 func PinAddOptions(opts ...PinAddOption) (*PinAddSettings, error) {
 	options := &PinAddSettings{
 		Recursive: true,
@@ -57,6 +59,8 @@ func PinAddOptions(opts ...PinAddOption) (*PinAddSettings, error) {
 	return options, nil
 }
 
+// PinLsOptions compile a series of PinLsOption into a ready to use
+// PinLsSettings and set the default values.
 func PinLsOptions(opts ...PinLsOption) (*PinLsSettings, error) {
 	options := &PinLsSettings{
 		Type: "all",
@@ -72,6 +76,8 @@ func PinLsOptions(opts ...PinLsOption) (*PinLsSettings, error) {
 	return options, nil
 }
 
+// PinIsPinnedOptions compile a series of PinIsPinnedOption into a ready to use
+// PinIsPinnedSettings and set the default values.
 func PinIsPinnedOptions(opts ...PinIsPinnedOption) (*PinIsPinnedSettings, error) {
 	options := &PinIsPinnedSettings{
 		WithType: "all",
@@ -87,7 +93,8 @@ func PinIsPinnedOptions(opts ...PinIsPinnedOption) (*PinIsPinnedSettings, error)
 	return options, nil
 }
 
-// PinRmOptions pin rm options
+// PinRmOptions compile a series of PinRmOption into a ready to use
+// PinRmSettings and set the default values.
 func PinRmOptions(opts ...PinRmOption) (*PinRmSettings, error) {
 	options := &PinRmSettings{
 		Recursive: true,
@@ -102,6 +109,8 @@ func PinRmOptions(opts ...PinRmOption) (*PinRmSettings, error) {
 	return options, nil
 }
 
+// PinUpdateOptions compile a series of PinUpdateOption into a ready to use
+// PinUpdateSettings and set the default values.
 func PinUpdateOptions(opts ...PinUpdateOption) (*PinUpdateSettings, error) {
 	options := &PinUpdateSettings{
 		Unpin: true,
@@ -122,6 +131,7 @@ type pinOpts struct {
 	IsPinned pinIsPinnedOpts
 }
 
+// Pin provide an access to all the options for the Pin API.
 var Pin pinOpts
 
 type pinLsOpts struct{}

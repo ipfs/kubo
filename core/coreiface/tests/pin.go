@@ -546,7 +546,7 @@ func assertIsPinned(t *testing.T, ctx context.Context, api iface.CoreAPI, p path
 	t.Helper()
 	withType, err := opt.Pin.IsPinned.Type(typeStr)
 	if err != nil {
-		panic("unhandled pin type")
+		t.Fatal("unhandled pin type")
 	}
 
 	whyPinned, pinned, err := api.Pin().IsPinned(ctx, p, withType)
