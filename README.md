@@ -12,7 +12,7 @@
 
 ## What is IPFS?
 
-IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from previous systems such Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built in. You can also mount the world at /ipfs.
+IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from previous systems such as Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single BitTorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built-in. You can also mount the world at /ipfs.
 
 For more info see: https://docs.ipfs.io/introduction/overview/
 
@@ -64,7 +64,7 @@ The canonical download instructions for IPFS are over at: https://docs.ipfs.io/g
 
 IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 2 GB of RAM and 2 CPU cores (go-ipfs is highly parallel). On systems with less memory, it may not be completely stable.
 
-If your system is resource constrained, we recommend:
+If your system is resource-constrained, we recommend:
 
 1. Installing OpenSSL and rebuilding go-ipfs manually with `make build GOTAGS=openssl`. See the [download and compile](#download-and-compile-ipfs) section for more information on compiling go-ipfs.
 2. Initializing your daemon with `ipfs init --profile=lowpower`
@@ -98,7 +98,7 @@ $ sudo pacman -S go-ipfs
 
 Development version of go-ipfs is also on AUR under
 [go-ipfs-git](https://aur.archlinux.org/packages/go-ipfs-git/).
-You can install it using your favourite AUR Helper or manually from AUR.
+You can install it using your favorite AUR Helper or manually from AUR.
 
 #### Nix
 
@@ -108,7 +108,7 @@ For Linux and MacOSX you can use the purely functional package manager [Nix](htt
 $ nix-env -i ipfs
 ```
 
-You can also install the Package by using it's attribute name, which is also `ipfs`.
+You can also install the Package by using its attribute name, which is also `ipfs`.
 
 #### Guix
 
@@ -127,7 +127,7 @@ In solus, go-ipfs is available in the main repository as
 $ sudo eopkg install go-ipfs
 ```
 
-You can also install it trough the Solus software center.
+You can also install it through the Solus software center.
 
 #### Snap
 
@@ -206,7 +206,7 @@ make build GOOS=myTargetOS GOARCH=myTargetArchitecture
 
 To build go-ipfs with OpenSSL support, append `GOTAGS=openssl` to your `make` invocation. Building with OpenSSL should significantly reduce the background CPU usage on nodes that frequently make or receive new connections.
 
-Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross compiling. To cross compile with OpenSSL support, you must:
+Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross-compiling. To cross-compile with OpenSSL support, you must:
 
 1. Install a compiler toolchain for the target platform.
 2. Set the `CGO_ENABLED=1` environment variable.
@@ -273,11 +273,11 @@ the optional arguments it takes. After initialization is complete, you can use
 
 Basic proof of 'ipfs working' locally:
 
-	echo "hello world" > hello
-	ipfs add hello
-	# This should output a hash string that looks something like:
-	# QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
-	ipfs cat <that hash>
+    echo "hello world" > hello
+    ipfs add hello
+    # This should output a hash string that looks something like:
+    # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
+    ipfs cat <that hash>
 
 ### Usage
 
@@ -302,7 +302,7 @@ SUBCOMMANDS
 
   ADVANCED COMMANDS
     daemon        Start a long-running daemon process
-    mount         Mount an ipfs read-only mountpoint
+    mount         Mount an ipfs read-only mount point
     resolve       Resolve any type of name
     name          Publish or resolve IPNS names
     dns           Resolve DNS links
@@ -325,8 +325,8 @@ SUBCOMMANDS
 
   Use 'ipfs <command> --help' to learn more about each command.
 
-  ipfs uses a repository in the local file system. By default, the repo is located
-  at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+  ipfs uses a repository in the local file system. By default, the repo is located at
+  ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 ```
