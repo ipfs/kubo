@@ -8,6 +8,5 @@ type Experiments struct {
 	Libp2pStreamMounting bool
 	P2pHttpProxy         bool
 	QUIC                 bool
-	PreferTLS            bool
 	StrategicProviding   bool
 }
