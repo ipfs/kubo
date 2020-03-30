@@ -632,7 +632,7 @@ For listening on a QUIC address, add it the swarm addresses, e.g. `/ip4/0.0.0.0/
 
 ### In Version
 
-0.4.19-dev
+0.4.19
 
 ### State
 
@@ -660,26 +660,14 @@ ipfs config --json Swarm.EnableAutoNATService true
 
 ## TLS 1.3 as default handshake protocol
 
+### In Version
+
+0.5.0
+
 ### State
 
-Every go-ipfs node (>=0.4.21) accepts secio and TLS 1.3 connections but prefers
-secio over TLS when dialing. To prefer TLS when dialing, you'll have to enable
-this feature.
+Stable
 
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.PreferTLS true
-```
-
-### Road to being a real feature
-
-- [ ] needs testing
-- [ ] needs adoption
-
----
 
 ## Strategic Providing
 
