@@ -683,7 +683,7 @@ ipfs config --json Experimental.StrategicProviding true
 
 - [ ] needs real-world testing
 - [ ] needs adoption
-- [ ] needs to support all provided features
+- [ ] needs to support all provider subsystem features
     - [X] provide nothing
     - [ ] provide roots
     - [ ] provide all
