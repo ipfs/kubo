@@ -11,11 +11,14 @@ type Transformer func(c *Config) error
 
 // Profile contains the profile transformer the description of the profile
 type Profile struct {
-	// Description briefly describes the functionality of the profile
+	// Description briefly describes the functionality of the profile.
 	Description string
 
-	// Transform takes ipfs configuration and applies the profile to it
+	// Transform takes ipfs configuration and applies the profile to it.
 	Transform Transformer
+
+	// InitOnly specifies that this profile can only be applied on init.
+	InitOnly bool
 }
 
 // defaultServerFilters has is a list of IPv4 and IPv6 prefixes that are private, local only, or unrouteable.
@@ -107,51 +110,49 @@ Inverse profile of the test profile.`,
 			return nil
 		},
 	},
-	"badgerds": {
-		Description: `Replaces default datastore configuration with experimental
-badger datastore.
+	"flatfs": {
+		Description: `Configures the node to use the flatfs datastore.
 
-If you apply this profile after ipfs init, you will need
-to convert your datastore to the new configuration.
-You can do this using ipfs-ds-convert.
+This is the most battle-tested and reliable datastore, but it's significantly
+slower than the badger datastore. You should use this datastore if:
 
-For more on ipfs-ds-convert see
-$ ipfs-ds-convert --help
-and
-$ ipfs-ds-convert convert --help
+* You need a very simple and very reliable datastore you and trust your
+  filesystem. This datastore stores each block as a separate file in the
+  underlying filesystem so it's unlikely to loose data unless there's an issue
+  with the underlying file system.
+* You need to run garbage collection on a small (<= 10GiB) datastore. The
+  default datastore, badger, can leave several gigabytes of data behind when
+  garbage collecting.
+* You're concerned about memory usage. In its default configuration, badger can
+  use up to several gigabytes of memory.
 
-WARNING: badger datastore is experimental.
-Make sure to backup your data frequently.`,
+This profile may only be applied when first initializing the node.
+`,
 
+		InitOnly: true,
 		Transform: func(c *Config) error {
-			c.Datastore.Spec = map[string]interface{}{
-				"type":   "measure",
-				"prefix": "badger.datastore",
-				"child": map[string]interface{}{
-					"type":       "badgerds",
-					"path":       "badgerds",
-					"syncWrites": false,
-					"truncate":   true,
-				},
-			}
+			c.Datastore.Spec = flatfsSpec()
 			return nil
 		},
 	},
-	"default-datastore": {
-		Description: `Restores default datastore configuration.
+	"badgerds": {
+		Description: `Configures the node to use the badger datastore.
 
-If you apply this profile after ipfs init, you will need
-to convert your datastore to the new configuration.
-You can do this using ipfs-ds-convert.
+This is the fastest datastore. Use this datastore if performance, especially
+when adding many gigabytes of files, is critical. However:
 
-For more on ipfs-ds-convert see
-$ ipfs-ds-convert --help
-and
-$ ipfs-ds-convert convert --help
-`,
+* This datastore will not properly reclaim space when your datastore is
+  smaller than several gigabytes. If you run IPFS with '--enable-gc' (you have
+  enabled block-level garbage collection), you plan on storing very little data in
+  your IPFS node, and disk usage is more critical than performance, consider using
+  flatfs.
+* This datastore uses up to several gigabytes of memory. 
 
+This profile may only be applied when first initializing the node.`,
+
+		InitOnly: true,
 		Transform: func(c *Config) error {
-			c.Datastore.Spec = DefaultDatastoreConfig().Spec
+			c.Datastore.Spec = badgerSpec()
 			return nil
 		},
 	},
@@ -185,6 +186,10 @@ fetching may be degraded.
 			return nil
 		},
 	},
+}
+
+func init() {
+	Profiles["default-datatore"] = Profiles["badgerds"]
 }
 
 func getAvailablePort() (port int, err error) {
