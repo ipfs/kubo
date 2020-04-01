@@ -36,11 +36,11 @@ var FilesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with unixfs files.",
 		ShortDescription: `
-Files is an API for manipulating IPFS objects as if they were a unix
+Files is an API for manipulating IPFS objects as if they were a Unix
 filesystem.
 
 The files facility interacts with MFS (Mutable File System). MFS acts as a
-single, dynamic filesystem mount. MFS has a root CID which is transparently
+single, dynamic filesystem mount. MFS has a root CID that is transparently
 updated when a change happens (and can be checked with "ipfs files stat /").
 
 All files and folders within MFS are respected and will not be cleaned up
@@ -61,7 +61,7 @@ to true. Use caution when setting this flag to false. It will improve
 performance for large numbers of file operations, but it does so at the cost
 of consistency guarantees. If the daemon is unexpectedly killed before running
 'ipfs files flush' on the files in question, then data may be lost. This also
-applies to running 'ipfs repo gc' concurrently with '--flush=false'
+applies to run 'ipfs repo gc' concurrently with '--flush=false'
 operations.
 `,
 	},
@@ -552,10 +552,10 @@ const (
 
 var filesReadCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Read a file in a given mfs.",
+		Tagline: "Read a file in a given MFS.",
 		ShortDescription: `
 Read a specified number of bytes from a file at a given offset. By default,
-will read the entire file similar to unix cat.
+it will read the entire file similar to the Unix cat.
 
 Examples:
 
@@ -647,7 +647,7 @@ var filesMvCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Move files.",
 		ShortDescription: `
-Move files around. Just like traditional unix mv.
+Move files around. Just like the traditional Unix mv.
 
 Example:
 
@@ -702,7 +702,7 @@ a beginning offset to write to. The entire length of the input will be
 written.
 
 If the '--create' option is specified, the file will be created if it does not
-exist. Nonexistant intermediate directories will not be created unless the
+exist. Nonexistent intermediate directories will not be created unless the
 '--parents' option is specified.
 
 Newly created files will have the same CID version and hash function of the
@@ -712,7 +712,7 @@ Newly created leaves will be in the legacy format (Protobuf) if the
 CID version is 0, or raw if the CID version is non-zero.  Use of the
 '--raw-leaves' option will override this behavior.
 
-If the '--flush' option is set to false, changes will not be propogated to the
+If the '--flush' option is set to false, changes will not be propagated to the
 merkledag root. This can make operations much faster when doing a large number
 of writes to a deeper directory structure.
 
@@ -895,7 +895,7 @@ var filesFlushCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Flush a given path's data to disk.",
 		ShortDescription: `
-Flush a given path to disk. This is only useful when other commands
+Flush a given path to the disk. This is only useful when other commands
 are run with the '--flush=false'.
 `,
 	},
