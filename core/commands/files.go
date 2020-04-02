@@ -321,11 +321,27 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 
 var filesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Copy files into mfs.",
+		Tagline: "Copy any IPFS files and directories into MFS (or copy within MFS).",
+		ShortDescription: `
+"ipfs files cp" can be used to copy any IPFS file or directory (usually in the
+form /ipfs/<CID>, but also any resolvable path), into the Mutable File System
+(MFS).
+
+It can also be used to copy files within MFS, but in the case when an
+IPFS-path matches an existing MFS path, the IPFS path wins.
+
+In order to add content to MFS from disk, you can use "ipfs add" to obtain the
+IPFS Content Identifier and then "ipfs files cp" to copy it into MFS:
+
+$ ipfs add --quieter --pin=false <your file>
+# ...
+# ... outputs the root CID at the end
+$ ipfs cp /ipfs/<CID> /your/desired/mfs/path
+`,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("source", true, false, "Source object to copy."),
-		cmds.StringArg("dest", true, false, "Destination to copy object to."),
+		cmds.StringArg("source", true, false, "Source IPFS or MFS path to copy."),
+		cmds.StringArg("dest", true, false, "Destination within MFS."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)
