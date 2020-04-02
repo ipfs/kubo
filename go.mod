@@ -98,7 +98,7 @@ require (
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
-	go.uber.org/fx v1.10.0
+	go.uber.org/fx v1.11.0
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
