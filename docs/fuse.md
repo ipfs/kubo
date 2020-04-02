@@ -62,7 +62,21 @@ sudo chown <username> /ipfs
 sudo chown <username> /ipns
 ```
 
-Depending on whether you are using OSX or Linux, follow the proceeding instructions.
+Depending on whether you are using OSX or Linux, follow the proceeding instructions. 
+
+## Make sure IPFS daemon is not running
+
+You'll need to stop the IPFS daemon if you have it started, otherwise the mount will complain. 
+
+```
+# Check to see if IPFS daemon is running
+ps aux | grep ipfs
+
+# Kill the IPFS daemon 
+pkill -f ipfs
+
+# Verify that it has been killed
+```
 
 ## Mounting IPFS
 
