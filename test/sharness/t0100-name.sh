@@ -195,7 +195,7 @@ test_expect_success "resolve output looks good" '
 '
 
 test_expect_success "empty request to name publish doesn't panic and returns error" '
-  curl "http://$API_ADDR/api/v0/name/publish" > curl_out || true &&
+  curl -X POST "http://$API_ADDR/api/v0/name/publish" > curl_out || true &&
     grep "argument \"ipfs-path\" is required" curl_out
 '
 
