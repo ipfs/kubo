@@ -63,7 +63,7 @@ var keyGenCmd = &cmds.Command{
 		Tagline: "Create a new keypair",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519. Default: rsa").WithDefault("rsa"),
+		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("rsa"),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
 	Arguments: []cmds.Argument{
