@@ -127,6 +127,9 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !i.config.Writable {
 		status = http.StatusMethodNotAllowed
 		errmsg = errmsg + "read only access"
+		w.Header().Add("Allow", http.MethodGet)
+		w.Header().Add("Allow", http.MethodHead)
+		w.Header().Add("Allow", http.MethodOptions)
 	} else {
 		status = http.StatusBadRequest
 		errmsg = errmsg + "bad request for " + r.URL.Path

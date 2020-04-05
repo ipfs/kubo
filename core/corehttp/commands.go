@@ -117,11 +117,17 @@ func patchCORSVars(c *cmdsHttp.ServerConfig, addr net.Addr) {
 	c.SetAllowedOrigins(newOrigins...)
 }
 
-func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
+func commandsOption(cctx oldcmds.Context, command *cmds.Command, allowGet bool) ServeOption {
 	return func(n *core.IpfsNode, l net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 
 		cfg := cmdsHttp.NewServerConfig()
-		cfg.SetAllowedMethods(http.MethodGet, http.MethodPost, http.MethodPut)
+		cfg.AllowGet = allowGet
+		corsAllowedMethods := []string{http.MethodPost}
+		if allowGet {
+			corsAllowedMethods = append(corsAllowedMethods, http.MethodGet)
+		}
+
+		cfg.SetAllowedMethods(corsAllowedMethods...)
 		cfg.APIPath = APIPath
 		rcfg, err := n.Repo.Config()
 		if err != nil {
@@ -140,15 +146,15 @@ func commandsOption(cctx oldcmds.Context, command *cmds.Command) ServeOption {
 }
 
 // CommandsOption constructs a ServerOption for hooking the commands into the
-// HTTP server.
+// HTTP server. It will NOT allow GET requests.
 func CommandsOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.Root)
+	return commandsOption(cctx, corecommands.Root, false)
 }
 
 // CommandsROOption constructs a ServerOption for hooking the read-only commands
-// into the HTTP server.
+// into the HTTP server. It will allow GET requests.
 func CommandsROOption(cctx oldcmds.Context) ServeOption {
-	return commandsOption(cctx, corecommands.RootRO)
+	return commandsOption(cctx, corecommands.RootRO, true)
 }
 
 // CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/go-ipfs/`

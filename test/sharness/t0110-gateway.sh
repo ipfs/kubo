@@ -104,7 +104,7 @@ test_expect_success "log output looks good" '
 '
 
 test_expect_success "GET /api/v0/version succeeds" '
-  curl -v "http://127.0.0.1:$apiport/api/v0/version" 2> version_out
+  curl -X POST -v "http://127.0.0.1:$apiport/api/v0/version" 2> version_out
 '
 
 test_expect_success "output only has one transfer encoding header" '

@@ -16,7 +16,7 @@ test_ls_cmd() {
     mkdir -p testdir &&
     echo "hello test" >testdir/test.txt &&
     ipfs add -r testdir &&
-    curl -i "http://$API_ADDR/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=text" >actual_output
+    curl -X POST -i "http://$API_ADDR/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=text" >actual_output
   '
 
   test_expect_success "Text encoded channel-streaming command output looks good" '
@@ -39,7 +39,7 @@ test_ls_cmd() {
     mkdir -p testdir &&
     echo "hello test" >testdir/test.txt &&
     ipfs add -r testdir &&
-    curl -i "http://$API_ADDR/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=json" >actual_output
+    curl -X POST -i "http://$API_ADDR/api/v0/refs?arg=QmTcJAn3JP8ZMAKS6WS75q8sbTyojWKbxcUHgLYGWur4Ym&stream-channels=true&encoding=json" >actual_output
   '
 
   test_expect_success "JSON encoded channel-streaming command output looks good" '

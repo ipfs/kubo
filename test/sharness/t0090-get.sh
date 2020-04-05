@@ -184,7 +184,7 @@ test_launch_ipfs_daemon
 test_get_cmd
 
 test_expect_success "empty request to get doesn't panic and returns error" '
-  curl "http://$API_ADDR/api/v0/get" > curl_out || true &&
+  curl -X POST "http://$API_ADDR/api/v0/get" > curl_out || true &&
     grep "argument \"ipfs-path\" is required" curl_out
 '
 test_kill_ipfs_daemon
