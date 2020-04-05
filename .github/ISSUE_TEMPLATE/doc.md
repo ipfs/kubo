@@ -6,7 +6,7 @@ labels: documentation
 
 #### Location
 
-<!-- In the case of missing/erroneous documentation, where is the error? If possible, a link/url would be great! -->
+<!-- In the case of missing/erroneous documentation, where is the error? If possible, a link/URL would be great! -->
 
 #### Description
 
