@@ -19,7 +19,7 @@ _ipfs_add()
     elif [ "${prev}" == "--pin" ] ; then
         _ipfs_comp "true false"
     elif [[ ${word} == -* ]] ; then
-        _ipfs_comp "--recursive --quiet --silent --progress --trickle --only-hash --wrap-with-directory --hidden --chunker= --pin= --raw-leaves --help "
+        _ipfs_comp "--recursive --dereference-args --stdin-name= --hidden --ignore= --ignore-rules-path= --quiet --quieter --silent --progress --trickle --only-hash --wrap-with-directory --chunker= --pin= --raw-leaves --nocopy --fscache --cid-version= --hash= --inline --inline-limit= --help "
     else
         _ipfs_filesystem_complete
     fi
