@@ -65,7 +65,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.5.1
 	github.com/libp2p/go-libp2p-discovery v0.3.0
 	github.com/libp2p/go-libp2p-http v0.1.5
-	github.com/libp2p/go-libp2p-kad-dht v0.5.2
+	github.com/libp2p/go-libp2p-kad-dht v0.6.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.3
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
