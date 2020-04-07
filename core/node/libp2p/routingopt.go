@@ -26,7 +26,9 @@ func constructDHTRouting(mode dht.ModeOpt) func(ctx context.Context, host host.H
 }
 
 var (
-	DHTOption       RoutingOption = constructDHTRouting(dht.ModeAuto)
+	// FIXME: Set this to dht.ModeAuto once we resolve
+	// https://github.com/libp2p/go-libp2p-kad-dht/issues/564
+	DHTOption       RoutingOption = constructDHTRouting(dht.ModeServer)
 	DHTClientOption               = constructDHTRouting(dht.ModeClient)
 	DHTServerOption               = constructDHTRouting(dht.ModeServer)
 	NilRouterOption               = nilrouting.ConstructNilRouting
