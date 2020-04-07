@@ -53,6 +53,7 @@ const (
 	routingOptionSupernodeKwd = "supernode"
 	routingOptionDHTClientKwd = "dhtclient"
 	routingOptionDHTKwd       = "dht"
+	routingOptionDHTServerKwd = "dhtserver"
 	routingOptionNoneKwd      = "none"
 	routingOptionDefaultKwd   = "default"
 	unencryptTransportKwd     = "disable-transport-encryption"
@@ -330,6 +331,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
 		ncfg.Routing = libp2p.DHTOption
+	case routingOptionDHTServerKwd:
+		ncfg.Routing = libp2p.DHTServerOption
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
 	default:
