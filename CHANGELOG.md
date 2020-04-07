@@ -1,5 +1,332 @@
 # go-ipfs changelog
 
+## 0.5.0 RC1 2020-04-06
+
+**WARNING** THIS IS A DRAFT! It highlights some of the new features, along with
+a bunch of important errata. But it's _definitely_ missing a _ton_ of shiny new
+features.
+
+### Highlights & Errata
+
+This release includes many important changes users should be aware of.
+
+#### New DHT
+
+This release includes an almost completely rewritten DHT implementation with a
+new protocol version. From a user's perspective, providing content, finding
+content, and resolving IPNS records should simply get faster. However, this is a
+_significant_ (albeit well tested) change and significant changes are always
+risky, so heads up.
+
+##### Old v. New
+
+The current DHT suffers from three core issues addressed in this release:
+
+1. Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs).
+   Much of a DHT query time is wasted trying to connect to peers that cannot be
+   reached.
+2. The DHT query logic doesn't properly terminate when it hits the end of the
+   query and, instead, aggressively keeps on searching.
+3. The routing tables are poorly maintained. This can cause a search that should
+   be logarithmic in the size of the network to be linear.
+
+###### Reachable
+
+We have addressed the problem of undialable nodes by having nodes wait to join
+the DHT as "server" nodes until they've confirmed that they are reachable from
+the public internet. Additionally, we've introduced:
+
+* A new libp2p protocol to push updates to our peers when we start/stop listen
+  on protocols.
+* A libp2p event bus for processing updates like these.
+* A new DHT protocol version. New DHT nodes will not admit old DHT nodes into
+  their routing tables. Old DHT nodes will still be able to issue queries
+  against the new DHT, they just won't be queried or referred by new DHT nodes.
+  This way, old, potentially unreachable nodes with bad routing tables won't
+  pollute the new DHT.
+
+Unfortunately, there's a significant downside to this approach: VPNs, offline
+LANs, etc. where _all_ nodes on the network have private IP addresses and never
+communicate over the public internet. In this case, none of these nodes would be
+"publicly reachable".
+
+To address this last point, go-ipfs 0.5.0 will run _two_ DHTs: one for private
+networks and one for the public internet. That is, every node will participate
+in a LAN DHT and a public WAN DHT.
+
+**RC1 NOTE:** Several of these features have not been enabled in RC1:
+
+1. We haven't yet switched the protocol version and will be running the DHT in
+   "compatibility mode" with the old DHT. Once we flip the switch and enable the
+   new protocol version, we will need to ensure that at least 20% of the
+   publicly reachable DHT speaks the new protocol, all at once. The plan is to
+   introduce a large number of "booster" nodes while the network transitions.
+2. We haven't yet introduced the split LAN/WAN DHTs. We're still testing this
+   approach and considering alternatives.
+3. Because we haven't introduced the LAN/WAN DHT split, IPFS nodes running in
+   DHT server mode will continue to run in DHT server mode _without_ waiting to
+   confirm that they're reachable from the public internet. Otherwise, we'd
+   break IPFS nodes running DHTs in VPNs and disconnected LANs.
+
+###### Query Logic
+
+We've fixed the DHT query logic by correctly implementing Kademlia (with a few
+tweaks). This should significantly speed up:
+
+* Publishing IPNS & provider records. We previously continued searching for
+  closer and closer peers to the "target" until we timed out, then we put to the
+  closest peers we found.
+* Resolving IPNS addresses. We previously continued IPNS record searches until
+  we ran out of peers to query, timed out, or found 16 records.
+
+In both cases, we now continue till we find the closest peers then stop.
+
+###### Routing Tables
+
+Finally, we've addressed the poorly maintained routing tables by:
+
+* Reducing the likelihood that the connection manager will kill connections to
+  peers in the routing table.
+* Keeping peers in the routing table, even if we get disconnected from them.
+* Actively and frequently querying the DHT to keep our routing table full.
+
+##### Testing
+
+The DHT rewrite was made possible by our new testing framework,
+[testground](https://github.com/ipfs/testground), which allows us to spin up
+multi-thousand node tests with simulated real-world network conditions. With
+testground and some custom analysis tools, we were able to gain confidence that
+the new DHT implementation behaves correctly.
+
+#### Refactored Bitswap
+
+This release includes a _major_ [bitswap refactor][bitswap-refactor] running a
+new, but backwards compatible, bitswap protocol. We expect these changes to
+improve performance significantly.
+
+With the refactored bitswap, we expect:
+
+* Few to no duplicate blocks when fetching data from other nodes speaking the
+  _new_ protocol.
+* Better parallelism when fetching from multiple peers.
+
+Note, the new bitswap won't magically make downloading content any faster until
+both seeds and leaches have updated. If you're one of the first to upgrade to
+0.5.0 and try downloading from peers that haven't upgraded, you're unlikely to
+see much of a performance improvement, if any.
+
+[bitswap-refactor]: https://blog.ipfs.io/2020-02-14-improved-bitswap-for-container-distribution/
+
+#### Provider Record Changes
+
+When you add content to your IPFS node, you advertise this content to the
+network by announcing it in the DHT. We call this "providing".
+
+However, go-ipfs has multiple ways to address the same underlying bytes.
+Specifically, we address content by content ID (CID) and the same underlying
+bytes can be addressed using (a) two different versions of CIDs (CIDv1 and
+CIDv2) and (b) with different "codecs" depending on how we're interpreting the
+data.
+
+Prior to go-ipfs 0.5.0, we used the content id (CID) in the DHT when sending out
+provider records for content. Unfortunately, this meant that users trying to
+find data announced using one CID wouldn't find nodes providing the content
+under a different CID.
+
+In go-ipfs 0.5.0, we're announcing data by _multihash_, not _CID_. This way,
+regardless of the CID version used by the peer adding the content, the peer
+trying to download the content should still be able to find it.
+
+**Warning:** as part of the network, this could impact finding content added
+with CIDv1. Because go-ipfs 0.5.0 will announce and search for content using the
+bare multihash (equivalent to the v0 CID), go-ipfs 0.5.0 will be unable to find
+CIDv1 content published by nodes prior to go-ipfs 0.5.0 and vice-versa. As CIDv1
+is _not_ enabled by default so we believe this will have minimal impact.
+However, users are _strongly_ encouraged to upgrade as soon as possible.
+
+#### IPFS/Libp2p Address Format
+
+If you've ever run a command like `ipfs swarm peers`, you've likely seen paths
+that look like `/ip4/193.45.1.24/tcp/4001/ipfs/QmSomePeerID`. These paths are
+_not_ file paths, they're multiaddrs; addresses of peers on the network.
+
+Unfortunately, `/ipfs/Qm...` is _also_ the same path format we use for files.
+This release, changes the multiaddr format from
+<code>/ip4/193.45.1.24/tcp/4001/<b>ipfs</b>/QmSomePeerID</code> to
+<code>/ip4/193.45.1.24/tcp/4001/<b>p2p</b>/QmSomePeerID</code> to make the
+distinction clear.
+
+What this means for users:
+
+* Old-style multiaddrs will still be accepted as inputs to IPFS.
+* If you were using a multiaddr library (go, js, etc.) to name _files_ because
+  `/ipfs/QmSomePeerID` looks like `/ipfs/QmSomeFile`, your tool may break if you
+  upgrade this library.
+* If you're manually parsing multiaddrs and are searching for the string
+  `/ipfs/`..., you'll need to search for `/p2p/...`.
+
+
+#### Minimum RSA Key Size
+
+Previously, IPFS did not enforce a minimum RSA key size. In this release, we've
+introduced a minimum 2048 bit RSA key size. IPFS generates 2048 bit RSA keys by
+default so this shouldn't be an issue for anyone in practice. However, users who
+explicitly chose a smaller key size will not be able to communicate with new
+nodes.
+
+Unfortunately, the some of the bootstrap peers _did_ intentionally generate 1024
+bit RSA keys so they'd have vanity peer addresses (starting with QmSoL for
+"solar net"). All IPFS nodes should _also_ have peers with >= 2048 bit RSA keys
+in their bootstrap list, but we've introduced a migration to ensure this.
+
+We implemented this change to follow security best practices and to remove a
+potential foot-gun. However, in practice, the security impact of allowing
+insecure RSA keys should have been next to none because IPFS doesn't trust other
+peers on the network anyways.
+
+#### Subdomain Gateway
+
+The gateway will redirect from `http://localhost:5001/ipfs/CID/...` to
+`http://CID.ipfs.localhost:5001/...` by default. This will:
+
+* Ensure that every dapp gets its own browser origin.
+* Make it easier to write websites that "just work" with IPFS because absolute
+  paths will now work.
+  
+Paths addressing the gateway by IP address (`http://127.0.0.1:5001/ipfs/CID`)
+will not be altered as IP addresses can't have subdomains.
+
+Note: cURL doesn't follow redirects by default. To avoid breaking cURL and other
+clients that don't support redirects, go-ipfs will return the requested file
+along with the redirect. Browsers will follow the redirect and abort the
+download while cURL will ignore the redirect and finish the download.
+
+#### TLS By Default
+
+In this release, we're switching TLS to be the _default_ transport. This means
+we'll try to encrypt the connection with TLS before re-trying with SECIO.
+
+Contrary to the announcement in the go-ipfs 0.4.23 release notes, this release
+does not remove SECIO support to maintain compatibility with js-ipfs.
+
+#### SECIO Deprecation Notice
+
+SECIO should be considered to be well on the way to deprecation and will be
+completely disabled in either the next release (0.6.0, ~mid May) or the one
+following that (0.7.0, ~end of June). Before SECIO is disabled, support will be
+added for the NOISE transport for compatibility with other IPFS implementations.
+
+#### QUIC Upgrade
+
+If you've been using the experimental QUIC support, this release includes
+
+**RC1 NOTE:** We've temporarily backed out of the new QUIC version because it
+currently requires go 1.14 and go 1.14 has some scheduler bugs that go-ipfs can
+reliably trigger.
+
+#### Badger Datastore
+
+In this release, we're calling the badger datastore (enabled at initialization
+with `ipfs init --profile=badgerds`) as stable. However, we're not yet enabling
+it by default.
+
+The benefit of badger is that adding/fetching data to/from badger is
+_significantly_ faster than adding/fetching data to/from the default datastore,
+flatfs. In some tests, adding data to badger is 32x faster than flatfs (in this
+release).
+
+However,
+
+1. Badger is complicated while flatfs pushes all the complexity down into the
+   filesystem itself. That means that flatfs is only likely to loose your data
+   if your underlying filesystem gets corrupted while there are more
+   opportunities for badger itself to get corrupted.
+2. Badger can use a lot of memory. In this release, we've tuned badger to use
+   very little (~20MiB) of memory by default. However, it can still produce
+   large (1GiB) spikes in memory usage when garbage collecting.
+3. Badger isn't very aggressive when it comes to garbage collection and we're
+   still investigating ways to get it to more aggressively clean up after
+   itself.
+
+TL;DR: Use badger if performance is your main requirement, you rarely/never
+delete anything, and you have some memory to spare.
+
+#### Systemd Support 
+
+For Linux users, this release includes support for two systemd features: socket
+activation and startup/shutdown notifications. This makes it possible to:
+
+* Start IPFS on demand on first use.
+* Wait for IPFS to finish starting before starting services that depend on it.
+
+You can find the new systemd units in the go-ipfs repo under misc/systemd.
+
+#### IPFS API Over Unix Domain Sockets
+
+This release supports exposing the IPFS API over a unix domain socket in the
+filesystem. You use this feature, run:
+
+```bash
+> ipfs config Addresses.API "/unix/path/to/socket/location"
+```
+
+#### Repo Migration
+
+IPFS uses repo migrations to make structural changes to the "repo" (the config,
+data storage, etc.) on upgrade.
+
+This release includes two very simple repo migrations: a config migration to
+ensure that the config contains working bootstrap nodes and a keystore migration
+to base32 encode all key filenames.
+
+In general, migrations should not require significant manual intervention.
+However, you should be aware of migrations and plan for them.
+
+* If you update go-ipfs with `ipfs update`, `ipfs update` will run the migration
+  for you.
+* If you start the ipfs daemon with `ipfs daemon --migrate`, ipfs will migrate
+  your repo for you on start.
+
+Otherwise, if you want more control over the repo migration process, you can
+manually install and run the [repo migration
+tool](http://dist.ipfs.io/#fs-repo-migrations).
+
+#### Bootstrap Peer Changes
+
+**AUTOMATIC MIGRATION REQUIRED**
+
+The first migration will update the bootstrap peer list to:
+
+1. Replace the old bootstrap nodes (ones with peer IDs starting with QmSoL),
+   with new bootstrap nodes (ones with addresses that start with
+   `/dnsaddr/bootstrap.libp2p.io`.
+2. Rewrite the address format from `/ipfs/QmPeerID` to `/p2p/QmPeerID`.
+
+We're migrating addresses for a few reasons:
+
+1. We're using DNS to address the new bootstrap nodes so we can change the
+   underlying IP addresses as necessary.
+2. The new bootstrap nodes use 2048 bit keys while the old bootstrap nodes use
+   1024 bit keys.
+3. We're normalizing the address format to `/p2p/Qm...`.
+
+Note: This migration won't _add_ the new bootstrap peers to your config if
+you've explicitly removed the old bootstrap peers. It will also leave custom
+entries in the list alone. In other words, if you've customized your bootstrap
+list, this migration won't clobber your changes.
+
+#### Keystore Changes
+
+**AUTOMATIC MIGRATION REQUIRED**
+
+Go-IPFS stores additional keys (i.e., all keys other than the "identity" key) in
+the keystore. You can list these keys with `ipfs key`.
+
+Currently, the keystore stores keys as regular files, named after the key
+itself. Unfortunately, filename restrictions and case-insensitivity are platform
+specific. To avoid platform specific issues, we're base32 encoding all key names
+and renaming all keys on-disk.
+
 ## 0.4.23 2020-01-29
 
 Given the large number of fixes merged since 0.4.22, we've decided to cut another patch release.
