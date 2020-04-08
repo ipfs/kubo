@@ -42,7 +42,7 @@ run_online_imp_exp_tests() {
   reset_blockstore 0
   reset_blockstore 1
 
-  echo -e "Pinned root\tbafkqaaa\tsuccess (root specified in .car header without available data)" > basic_import_expected
+  echo -e "Pinned root\tbafkqaaa\tsuccess" > basic_import_expected
   echo -e "Pinned root\tbafy2bzaceaxm23epjsmh75yvzcecsrbavlmkcxnva66bkdebdcnyw3bjrc74u\tsuccess" >> basic_import_expected
   echo -e "Pinned root\tbafy2bzaced4ueelaegfs5fqu4tzsh6ywbbpfk3cxppupmxfdhbpbhzawfw5oy\tsuccess" >> basic_import_expected
 
@@ -55,8 +55,8 @@ run_online_imp_exp_tests() {
     | sort > basic_import_actual
   '
 
-  # FIXME - the fact we reliably fail this is indicative of some sort of race...
-  test_expect_failure "concurrent GC did not manage to find anything" '
+  # FIXME - positive-test the lack of output when https://github.com/ipfs/go-ipfs/issues/7121 is addressed
+  test_expect_failure "concurrent GC did not manage to grab anything and remained silent" '
     ! [[ -s gc_out ]]
   '
   test_expect_success "basic import output as expected" '
@@ -89,8 +89,8 @@ run_online_imp_exp_tests() {
       ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
     | sort > basic_fifo_import_actual
   '
-  # FIXME - the fact we reliably fail this is indicative of some sort of race...
-  test_expect_failure "concurrent GC did not manage to grab anything" '
+  # FIXME - positive-test the lack of output when https://github.com/ipfs/go-ipfs/issues/7121 is addressed
+  test_expect_failure "concurrent GC did not manage to grab anything and remained silent" '
     ! [[ -s gc_out ]]
   '
 
@@ -135,9 +135,9 @@ test_expect_success "correct error" '
 
 
 cat >multiroot_import_expected <<EOE
-{"Root":{"Cid":{"/":"bafy2bzaceb55n7uxyfaelplulk3ev2xz7gnq6crncf3ahnvu46hqqmpucizcw"},"PresentInImport":true,"PinErrorMsg":""}}
-{"Root":{"Cid":{"/":"bafy2bzacebedrc4n2ac6cqdkhs7lmj5e4xiif3gu7nmoborihajxn3fav3vdq"},"PresentInImport":true,"PinErrorMsg":""}}
-{"Root":{"Cid":{"/":"bafy2bzacede2hsme6hparlbr4g2x6pylj43olp4uihwjq3plqdjyrdhrv7cp4"},"PresentInImport":true,"PinErrorMsg":""}}
+{"Root":{"Cid":{"/":"bafy2bzaceb55n7uxyfaelplulk3ev2xz7gnq6crncf3ahnvu46hqqmpucizcw"},"PinErrorMsg":""}}
+{"Root":{"Cid":{"/":"bafy2bzacebedrc4n2ac6cqdkhs7lmj5e4xiif3gu7nmoborihajxn3fav3vdq"},"PinErrorMsg":""}}
+{"Root":{"Cid":{"/":"bafy2bzacede2hsme6hparlbr4g2x6pylj43olp4uihwjq3plqdjyrdhrv7cp4"},"PinErrorMsg":""}}
 EOE
 test_expect_success "multiroot import works" '
   ipfs dag import --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car | sort > multiroot_import_actual
@@ -159,8 +159,8 @@ test_expect_success "expected silence on --pin-roots=false" '
 
 
 cat >naked_root_import_expected <<EOE
-{"Root":{"Cid":{"/":"bafy2bzaceaxm23epjsmh75yvzcecsrbavlmkcxnva66bkdebdcnyw3bjrc74u"},"PresentInImport":false,"PinErrorMsg":""}}
-{"Root":{"Cid":{"/":"bafy2bzaced4ueelaegfs5fqu4tzsh6ywbbpfk3cxppupmxfdhbpbhzawfw5oy"},"PresentInImport":false,"PinErrorMsg":""}}
+{"Root":{"Cid":{"/":"bafy2bzaceaxm23epjsmh75yvzcecsrbavlmkcxnva66bkdebdcnyw3bjrc74u"},"PinErrorMsg":""}}
+{"Root":{"Cid":{"/":"bafy2bzaced4ueelaegfs5fqu4tzsh6ywbbpfk3cxppupmxfdhbpbhzawfw5oy"},"PinErrorMsg":""}}
 EOE
 test_expect_success "naked root import works" '
   ipfs dag import --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
