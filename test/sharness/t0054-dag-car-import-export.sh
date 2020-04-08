@@ -32,9 +32,9 @@ do_import() {
 
   ipfsi $node dag import "$@"
 
-  rm spin.gc
+  rm -f spin.gc || true
   sleep 3
-  kill $gc1_pid $gc2_pid
+  kill $gc1_pid $gc2_pid || true
 }
 
 run_online_imp_exp_tests() {
