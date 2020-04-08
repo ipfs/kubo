@@ -29,6 +29,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] QRI (@b5)
 - [ ] Siderus (@koalalorenzo)
 - [ ] Charity Engine (@rytiss, @tristanolive)
+- [ ] Fission (@bmann)
 
 ## How to sign up?
 
