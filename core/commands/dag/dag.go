@@ -73,9 +73,8 @@ type CarImportOutput struct {
 	Root RootMeta
 }
 type RootMeta struct {
-	Cid             cid.Cid
-	PresentInImport bool
-	PinErrorMsg     string
+	Cid         cid.Cid
+	PinErrorMsg string
 }
 
 var DagPutCmd = &cmds.Command{
@@ -274,7 +273,7 @@ var DagResolveCmd = &cmds.Command{
 }
 
 type importResult struct {
-	roots map[cid.Cid]bool
+	roots map[cid.Cid]struct{}
 	err   error
 }
 
@@ -361,7 +360,7 @@ Maximum supported CAR version: 1
 		if doPinRoots {
 
 			var failedPins int
-			for c, seen := range roots {
+			for c := range roots {
 
 				// We need to re-retrieve a block, convert it to ipld, and feed it
 				// to the Pinning interface, sigh...
@@ -379,7 +378,7 @@ Maximum supported CAR version: 1
 				//
 				// if err := api.Pin().Add(req.Context, rp, options.Pin.Recursive(true)); err != nil {
 
-				ret := RootMeta{Cid: c, PresentInImport: seen}
+				ret := RootMeta{Cid: c}
 
 				if block, err := node.Blockstore.Get(c); err != nil {
 					ret.PinErrorMsg = err.Error()
@@ -430,10 +429,6 @@ Maximum supported CAR version: 1
 				event.Root.PinErrorMsg = "success"
 			}
 
-			if !event.Root.PresentInImport {
-				event.Root.PinErrorMsg += " (root specified in .car header without available data)"
-			}
-
 			_, err = fmt.Fprintf(
 				w,
 				"Pinned root\t%s\t%s\n",
@@ -452,7 +447,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 	// similar to pinner.Pin/pinner.Flush
 	batch := ipld.NewBatch(req.Context, api.Dag())
 
-	roots := make(map[cid.Cid]bool)
+	roots := make(map[cid.Cid]struct{})
 
 	it := req.Files.Entries()
 	for it.Next() {
@@ -483,9 +478,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 			}
 
 			for _, c := range car.Header.Roots {
-				if _, exists := roots[c]; !exists {
-					roots[c] = false
-				}
+				roots[c] = struct{}{}
 			}
 
 			for {
@@ -504,11 +497,6 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 
 				if err := batch.Add(req.Context, nd); err != nil {
 					return err
-				}
-
-				// encountered something known to be a root, for the first time
-				if seen, exists := roots[nd.Cid()]; exists && !seen {
-					roots[nd.Cid()] = true
 				}
 			}
 
