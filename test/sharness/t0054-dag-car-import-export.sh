@@ -16,10 +16,10 @@ reset_blockstore() {
   ipfsi $1 repo gc &>/dev/null
 
   test_expect_success "pinlist empty" '
-    test -z "$( ipfsi $1 pin ls )"
+    [ "$( ipfsi $1 pin ls )" = "" ]
   '
   test_expect_success "nothing left to gc" '
-    test -z "$( ipfsi $1 repo gc )"
+    [ "$( ipfsi $1 repo gc )" = "" ]
   '
 }
 
@@ -33,8 +33,8 @@ do_import() {
   ipfsi $node dag import "$@"
 
   rm spin.gc
-  wait $gc1_pid
-  wait $gc2_pid
+  sleep 3
+  kill $gc1_pid $gc2_pid
 }
 
 run_online_imp_exp_tests() {
