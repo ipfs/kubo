@@ -26,3 +26,4 @@ vendor
 .tarball
 go-ipfs-source.tar.gz
 docs/examples/go-ipfs-as-a-library/example-folder/Qm*
+/test/sharness/t0054-dag-car-import-export-data/*.car

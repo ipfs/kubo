@@ -42,7 +42,7 @@ require (
 	github.com/ipfs/go-ipfs-routing v0.1.0
 	github.com/ipfs/go-ipfs-util v0.0.1
 	github.com/ipfs/go-ipld-cbor v0.0.4
-	github.com/ipfs/go-ipld-format v0.0.2
+	github.com/ipfs/go-ipld-format v0.2.0
 	github.com/ipfs/go-ipld-git v0.0.3
 	github.com/ipfs/go-ipns v0.0.2
 	github.com/ipfs/go-log v1.0.3
@@ -54,6 +54,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.2.6
+	github.com/ipld/go-car v0.1.0
 	github.com/jbenet/go-is-domain v1.0.3
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
