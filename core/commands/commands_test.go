@@ -24,7 +24,6 @@ func TestROCommands(t *testing.T) {
 		"/commands",
 		"/dag",
 		"/dag/get",
-		"/dag/export",
 		"/dag/resolve",
 		"/dns",
 		"/get",
