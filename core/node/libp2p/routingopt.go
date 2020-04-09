@@ -8,6 +8,7 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	dual "github.com/libp2p/go-libp2p-kad-dht/dual"
 	record "github.com/libp2p/go-libp2p-record"
 )
 
@@ -15,7 +16,7 @@ type RoutingOption func(context.Context, host.Host, datastore.Batching, record.V
 
 func constructDHTRouting(mode dht.ModeOpt) func(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
 	return func(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
-		return dht.New(
+		return dual.New(
 			ctx, host,
 			dht.Concurrency(10),
 			dht.Mode(mode),
@@ -26,9 +27,7 @@ func constructDHTRouting(mode dht.ModeOpt) func(ctx context.Context, host host.H
 }
 
 var (
-	// FIXME: Set this to dht.ModeAuto once we resolve
-	// https://github.com/libp2p/go-libp2p-kad-dht/issues/564
-	DHTOption       RoutingOption = constructDHTRouting(dht.ModeServer)
+	DHTOption       RoutingOption = constructDHTRouting(dht.ModeAuto)
 	DHTClientOption               = constructDHTRouting(dht.ModeClient)
 	DHTServerOption               = constructDHTRouting(dht.ModeServer)
 	NilRouterOption               = nilrouting.ConstructNilRouting
