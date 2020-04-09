@@ -23,4 +23,53 @@ for file in $(find ..  -maxdepth 1 -name 't*.sh' -type f); do
     '
 done
 
+
+do_tests() {
+arg=$1
+
+test_expect_success 't' '
+  [ $( echo -n foo ) = "foo" ]
+'
+
+test_expect_success 't' '
+  [[ $( echo -n foo ) = "foo" ]]
+'
+
+test_expect_success 't' '
+  [ "$( echo -n foo )" = "foo" ]
+'
+
+test_expect_success 't' '
+  [[ "$( echo -n foo )" = "foo" ]]
+'
+
+test_expect_success 't' '
+  [ $( echo -n $arg ) = "$SHELL" ]
+'
+
+test_expect_success 't' '
+  [[ $( echo -n $SHELL ) = "$SHELL" ]]
+'
+
+test_expect_success 't' '
+  [ "$( echo -n $SHELL )" = "$SHELL" ]
+'
+
+test_expect_success 't' '
+  [[ "$( echo -n $SHELL )" = "$SHELL" ]]
+'
+
+test_expect_success 't' '
+  [ "` echo -n foo `" = "foo" ]
+'
+
+test_expect_success 't' '
+  [ ` echo -n foo ` = "foo" ]
+'
+}
+
+do_tests $SHELL
+
+test_expect_success 't' 'false'
+
 test_done

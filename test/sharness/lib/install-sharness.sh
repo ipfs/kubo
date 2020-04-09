@@ -7,7 +7,7 @@
 
 # settings
 version=5eee9b51b5621cec95a64018f0cc779963b230d2
-patch_version=17
+patch_version=18
 
 urlprefix=https://github.com/mlafeldt/sharness.git
 if test ! -n "$clonedir" ; then
@@ -30,6 +30,7 @@ apply_patches() {
   git config --local user.email "noone@nowhere"
   git config --local user.name "No One"
   git am ../0001-Generate-partial-JUnit-reports.patch
+  git am ../0001-Detect-type-of-test-commands-not-working-in-eval.patch
 
   touch "SHARNESS_VERSION_${version}_p${patch_version}" || die "Could not create 'SHARNESS_VERSION_${version}_p${patch_version}'"
 }

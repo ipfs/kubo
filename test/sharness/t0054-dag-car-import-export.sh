@@ -11,15 +11,16 @@ set -o pipefail
 tar -C ../t0054-dag-car-import-export-data/ --strip-components=1 -Jxf ../t0054-dag-car-import-export-data/test_dataset_car_v0.tar.xz
 
 reset_blockstore() {
-  node=$1
-  ipfsi $1 pin ls --quiet --type=recursive | ipfsi $1 pin rm &>/dev/null
-  ipfsi $1 repo gc &>/dev/null
+  node=$1; shift
+
+  ipfsi $node pin ls --quiet --type=recursive | ipfsi $node pin rm &>/dev/null
+  ipfsi $node repo gc &>/dev/null
 
   test_expect_success "pinlist empty" '
-    [ "$( ipfsi $1 pin ls )" = "" ]
+    [ "$( ipfsi $node pin ls )" = "" ]
   '
   test_expect_success "nothing left to gc" '
-    [ "$( ipfsi $1 repo gc )" = "" ]
+    [ "$( ipfsi $node repo gc )" = "" ]
   '
 }
 
@@ -170,5 +171,6 @@ test_expect_success "naked root import expected output" '
    test_cmp naked_root_import_expected naked_root_import_actual
 '
 
+test_expect_success 't' 'false'
 
 test_done

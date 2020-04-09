@@ -1,0 +1,39 @@
+From 88d714a413086497282a2fe2539ddc9d8d5bd937 Mon Sep 17 00:00:00 2001
+From: No One <noone@nowhere>
+Date: Thu, 9 Apr 2020 23:05:08 +0200
+Subject: [PATCH] Detect type of test commands not working in eval
+
+---
+ sharness.sh | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/sharness.sh b/sharness.sh
+index 94e6a2e..fd93475 100644
+--- a/sharness.sh
++++ b/sharness.sh
+@@ -372,6 +372,22 @@ test_pause() {
+ test_eval_() {
+ 	# This is a separate function because some tests use
+ 	# "return" to end a test_expect_success block early.
++
++	# Sanitize arguments - an eval with certain items will not complete as expected
++	local token
++	for token in $*; do
++		case "$token" in
++			'$('*')' | '`'*'`' | '['*']' )
++				# these should be ok ( single-word / balanced )
++				;;
++			'$('* | *')' | '`'* | *'`' | '['* | *']' )
++				# test_expect_success "busybox unsupported space-containing sub-shell-command in eval: $@" false
++				;;
++			*)
++				;;
++		esac
++	done
++
+ 	if test -n "$TEST_GENERATE_JUNIT"; then
+ 		eval </dev/null > >(tee -a .junit/tout >&3) 2> >(tee -a .junit/terr >&4) "$*"
+ 	else
+-- 
+2.24.0
+
