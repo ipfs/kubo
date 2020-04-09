@@ -1,4 +1,4 @@
-FROM golang:1.13.10-buster
+FROM golang:1.14.2-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Install deps
