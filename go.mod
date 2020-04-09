@@ -66,14 +66,14 @@ require (
 	github.com/libp2p/go-libp2p-core v0.5.1
 	github.com/libp2p/go-libp2p-discovery v0.3.0
 	github.com/libp2p/go-libp2p-http v0.1.5
-	github.com/libp2p/go-libp2p-kad-dht v0.6.1
+	github.com/libp2p/go-libp2p-kad-dht v0.6.2
 	github.com/libp2p/go-libp2p-kbucket v0.3.3
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
 	github.com/libp2p/go-libp2p-peerstore v0.2.3
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/libp2p/go-libp2p-pubsub-router v0.2.1
-	github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200228032821-6d8b0e775c52
+	github.com/libp2p/go-libp2p-quic-transport v0.3.3
 	github.com/libp2p/go-libp2p-record v0.1.2
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.0
 	github.com/libp2p/go-libp2p-secio v0.2.2
@@ -101,7 +101,7 @@ require (
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	go.uber.org/fx v1.11.0
 	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
-	golang.org/x/sys v0.0.0-20200406155108-e3b113bbe6a4
+	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
