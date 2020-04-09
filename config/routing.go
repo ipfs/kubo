@@ -6,8 +6,4 @@ type Routing struct {
 	//
 	// Can be one of "dht", "dhtclient", "dhtserver", "none", or unset.
 	Type string
-
-	// PrivateType sets the routing mode for private networks. Can take the
-	// same values as Type and defaults to Type if unset.
-	PrivateType string
 }
