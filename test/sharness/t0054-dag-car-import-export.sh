@@ -29,14 +29,13 @@ reset_blockstore() {
 do_import() {
   node=$1; shift
 
-  bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc1_pid=$!
-  bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc >>gc_out 2>&1; done" & gc2_pid=$!
+  touch spin.gc
+  timeout -s QUIT 15 bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc &>>gc_out; done" & gc1_pid=$!
+  timeout -s QUIT 15 bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc &>>gc_out; done" & gc2_pid=$!
 
-  ipfsi $node dag import "$@"
+  timeout -s QUIT 10 bash -c "ipfsi $node dag import $* 2>&1"
 
   rm -f spin.gc || true
-  sleep 3
-  kill $gc1_pid $gc2_pid || true
 }
 
 run_online_imp_exp_tests() {
@@ -56,7 +55,6 @@ EOE
 EOE
 
 
-  touch spin.gc
   test_expect_success "basic import" '
     do_import 0 \
       ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
@@ -118,7 +116,6 @@ EOE
     bash -c "sleep 60; kill $cat1_pid $cat2_pid 2>/dev/null" &
   ' &
 
-  touch spin.gc
   test_expect_success "fifo import" '
     do_import 0 \
       pipe_testnet \
