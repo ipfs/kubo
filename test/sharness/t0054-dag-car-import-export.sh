@@ -12,14 +12,15 @@ tar -C ../t0054-dag-car-import-export-data/ --strip-components=1 -Jxf ../t0054-d
 
 reset_blockstore() {
   node=$1
-  ipfsi $1 pin ls --quiet --type=recursive | ipfsi $1 pin rm &>/dev/null
-  ipfsi $1 repo gc &>/dev/null
+
+  ipfsi $node pin ls --quiet --type=recursive | ipfsi $node pin rm &>/dev/null
+  ipfsi $node repo gc &>/dev/null
 
   test_expect_success "pinlist empty" '
-    [ "$( ipfsi $1 pin ls )" = "" ]
+    [[ -z "$( ipfsi $node pin ls )" ]]
   '
   test_expect_success "nothing left to gc" '
-    [ "$( ipfsi $1 repo gc )" = "" ]
+    [[ -z "$( ipfsi $node repo gc )" ]]
   '
 }
 
@@ -57,7 +58,7 @@ run_online_imp_exp_tests() {
 
   # FIXME - positive-test the lack of output when https://github.com/ipfs/go-ipfs/issues/7121 is addressed
   test_expect_failure "concurrent GC did not manage to grab anything and remained silent" '
-    ! [[ -s gc_out ]]
+    test_cmp /dev/null gc_out
   '
   test_expect_success "basic import output as expected" '
     test_cmp basic_import_expected basic_import_actual
@@ -91,7 +92,7 @@ run_online_imp_exp_tests() {
   '
   # FIXME - positive-test the lack of output when https://github.com/ipfs/go-ipfs/issues/7121 is addressed
   test_expect_failure "concurrent GC did not manage to grab anything and remained silent" '
-    ! [[ -s gc_out ]]
+    test_cmp /dev/null gc_out
   '
 
   test_expect_success "fifo-import output as expected" '
@@ -154,7 +155,7 @@ test_expect_success "pin-less import works" '
     > no-pin_import_actual
 '
 test_expect_success "expected silence on --pin-roots=false" '
-  ! [[ -s no-pin_import_actual ]]
+  test_cmp /dev/null no-pin_import_actual
 '
 
 
@@ -169,6 +170,5 @@ test_expect_success "naked root import works" '
 test_expect_success "naked root import expected output" '
    test_cmp naked_root_import_expected naked_root_import_actual
 '
-
 
 test_done
