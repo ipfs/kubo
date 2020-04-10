@@ -616,6 +616,8 @@ github.com/libp2p/go-libp2p-record v0.1.2/go.mod h1:pal0eNcT5nqZaTV7UGhqeGqxFgGd
 github.com/libp2p/go-libp2p-routing v0.0.1/go.mod h1:N51q3yTr4Zdr7V8Jt2JIktVU+3xBBylx1MZeVA6t1Ys=
 github.com/libp2p/go-libp2p-routing-helpers v0.2.0 h1:+QKTsx2Bg0q3oueQ9CopTwKN5NsnF+qEC+sbkSVXnsU=
 github.com/libp2p/go-libp2p-routing-helpers v0.2.0/go.mod h1:Db+7LRSPImkV9fOKsNWVW5IXyy9XDse92lUtO3O+jlo=
+github.com/libp2p/go-libp2p-routing-helpers v0.2.1 h1:tV5fxxkl1cEEFXIv9yl5OGbLjEwngtq1qf5G/beLRvQ=
+github.com/libp2p/go-libp2p-routing-helpers v0.2.1/go.mod h1:rTLUHlGDZbXHANJAWP2xW7ruPNJLj41/GnCBiR+qgjU=
 github.com/libp2p/go-libp2p-secio v0.0.1/go.mod h1:IdG6iQybdcYmbTzxp4J5dwtUEDTOvZrT0opIDVNPrJs=
 github.com/libp2p/go-libp2p-secio v0.0.3/go.mod h1:hS7HQ00MgLhRO/Wyu1bTX6ctJKhVpm+j2/S2A5UqYb0=
 github.com/libp2p/go-libp2p-secio v0.1.0/go.mod h1:tMJo2w7h3+wN4pgU2LSYeiKPrfqBgkOsdiKK77hE7c8=
