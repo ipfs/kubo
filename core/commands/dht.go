@@ -76,7 +76,12 @@ var queryDhtCmd = &cmds.Command{
 		ctx, cancel := context.WithCancel(req.Context)
 		ctx, events := routing.RegisterForQueryEvents(ctx)
 
-		closestPeers, err := nd.DHT.GetClosestPeers(ctx, string(id))
+		dht := nd.DHT.WAN
+		if !nd.DHT.WANActive() {
+			dht = nd.DHT.LAN
+		}
+
+		closestPeers, err := dht.GetClosestPeers(ctx, string(id))
 		if err != nil {
 			cancel()
 			return err
