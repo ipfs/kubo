@@ -14,8 +14,8 @@ tab=$'\t'
 reset_blockstore() {
   node=$1
 
-  ipfsi $node pin ls --quiet --type=recursive | ipfsi $node pin rm &>/dev/null
-  ipfsi $node repo gc &>/dev/null
+  ipfsi "$node" pin ls --quiet --type=recursive | ipfsi "$node" pin rm &>/dev/null
+  ipfsi "$node" repo gc &>/dev/null
 
   test_expect_success "pinlist empty" '
     [[ -z "$( ipfsi $node pin ls )" ]]
@@ -27,18 +27,20 @@ reset_blockstore() {
 
 # hammer with concurrent gc to ensure nothing clashes
 do_import() {
-  node=$1; shift
+  node="$1"; shift
+  (
+      touch spin.gc
 
-  # for tests below expecting this to be non -z
-  echo "FIXME: BELOW TEST DISABLED FOR THE TIME BEING" > gc_out
+      while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
+      while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
 
-  #touch spin.gc
-  #timeout -s QUIT 30 bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc &>>gc_out; done" & gc1_pid=$!
-  #timeout -s QUIT 25 bash -c "while [[ -e spin.gc ]]; do ipfsi $node repo gc &>>gc_out; done" & gc2_pid=$!
+      ipfsi "$node" dag import "$@" 2>&1 && ipfsi "$node" repo verify &>/dev/null
+      result=$?
 
-  timeout -s QUIT 20 bash -c "ipfsi $node dag import $* 2>&1"
-
-  rm -f spin.gc || true
+      rm -f spin.gc &>/dev/null
+      wait
+      exit $result
+  )
 }
 
 run_online_imp_exp_tests() {
@@ -66,10 +68,6 @@ EOE
     | sort > basic_import_actual
   '
 
-  # FIXME - positive-test the lack of output when https://github.com/ipfs/go-ipfs/issues/7121 is addressed
-  test_expect_failure "concurrent GC did not manage to grab anything and remained silent" '
-    test_cmp /dev/null gc_out
-  '
   test_expect_success "basic import output as expected" '
     test_cmp basic_import_expected basic_import_actual
   '
@@ -107,36 +105,29 @@ EOE
   mkfifo pipe_testnet
   mkfifo pipe_devnet
 
-  # test that ipfs correctly opens both pipes and deleting them doesn't interfere with cleanup
-  bash -c '
-    sleep 1
-    cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet & cat1_pid=$!
-    cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet & cat2_pid=$!
-
-    rm pipe_testnet pipe_devnet
-
-    # extra safety valve to kill the cat processes in case something goes wrong
-    bash -c "sleep 60; kill $cat1_pid $cat2_pid 2>/dev/null" &
-  ' &
-
   test_expect_success "fifo import" '
-    do_import 0 \
-      pipe_testnet \
-      pipe_devnet \
-      ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
-    | sort > basic_fifo_import_actual
+    (
+        cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet &
+        cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet &
+
+        do_import 0 \
+          pipe_testnet \
+          pipe_devnet \
+          ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
+        | sort > basic_fifo_import_actual
+        result=$?
+
+        wait
+        exit "$result"
+    )
   '
-  # FIXME - positive-test the lack of output when https://github.com/ipfs/go-ipfs/issues/7121 is addressed
-  test_expect_failure "concurrent GC did not manage to grab anything and remained silent" '
-    test_cmp /dev/null gc_out
+
+  test_expect_success "remove fifos" '
+    rm pipe_testnet pipe_devnet
   '
 
   test_expect_success "fifo-import output as expected" '
     test_cmp basic_import_expected basic_fifo_import_actual
-  '
-
-  test_expect_success "fifos no longer present" '
-    ! [[ -e pipe_testnet ]] && ! [[ -e pipe_devnet ]]
   '
 }
 
