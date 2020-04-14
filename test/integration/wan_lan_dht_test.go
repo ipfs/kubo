@@ -104,8 +104,8 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		wanAddr := makeAddr(uint32(i), true)
 		wanPeer.Peerstore.AddAddr(wanPeer.Identity, wanAddr, peerstore.PermanentAddrTTL)
 		for _, p := range wanPeers {
-			mn.LinkPeers(p.Identity, wanPeer.Identity)
-			wanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
+			_, _ = mn.LinkPeers(p.Identity, wanPeer.Identity)
+			_ = wanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
 		}
 		wanPeers = append(wanPeers, wanPeer)
 
@@ -120,8 +120,8 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		lanAddr := makeAddr(uint32(i), false)
 		lanPeer.Peerstore.AddAddr(lanPeer.Identity, lanAddr, peerstore.PermanentAddrTTL)
 		for _, p := range lanPeers {
-			mn.LinkPeers(p.Identity, lanPeer.Identity)
-			lanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
+			_, _ = mn.LinkPeers(p.Identity, lanPeer.Identity)
+			_ = lanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
 		}
 		lanPeers = append(lanPeers, lanPeer)
 	}
@@ -171,7 +171,7 @@ StartupWait:
 	if testPeer.PeerHost.Network().Connectedness(lanPeers[i].Identity) == corenet.Connected {
 		i = (i + 1) % len(lanPeers)
 		if testPeer.PeerHost.Network().Connectedness(lanPeers[i].Identity) == corenet.Connected {
-			testPeer.PeerHost.Network().ClosePeer(lanPeers[i].Identity)
+			_ = testPeer.PeerHost.Network().ClosePeer(lanPeers[i].Identity)
 			testPeer.PeerHost.Peerstore().ClearAddrs(lanPeers[i].Identity)
 		}
 	}
@@ -230,7 +230,7 @@ WanStartupWait:
 	if testPeer.PeerHost.Network().Connectedness(wanPeers[i].Identity) == corenet.Connected {
 		i = (i + 1) % len(wanPeers)
 		if testPeer.PeerHost.Network().Connectedness(wanPeers[i].Identity) == corenet.Connected {
-			testPeer.PeerHost.Network().ClosePeer(wanPeers[i].Identity)
+			_ = testPeer.PeerHost.Network().ClosePeer(wanPeers[i].Identity)
 			testPeer.PeerHost.Peerstore().ClearAddrs(wanPeers[i].Identity)
 		}
 	}
@@ -254,7 +254,7 @@ WanStartupWait:
 	// Finally, re-share the lan provided cid from a wan peer and expect a merged result.
 	i = rand.Intn(len(wanPeers))
 	if testPeer.PeerHost.Network().Connectedness(wanPeers[i].Identity) == corenet.Connected {
-		testPeer.PeerHost.Network().ClosePeer(wanPeers[i].Identity)
+		_ = testPeer.PeerHost.Network().ClosePeer(wanPeers[i].Identity)
 		testPeer.PeerHost.Peerstore().ClearAddrs(wanPeers[i].Identity)
 	}
 
