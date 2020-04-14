@@ -76,16 +76,24 @@ test_dht() {
   
   
   # ipfs dht query <peerID>
-  ## We query 3 different keys, to statisically lower the chance that the queryer
-  ## turns out to be the closest to what a key hashes to.
-  # TODO: flaky. tracked by https://github.com/ipfs/go-ipfs/issues/2620
-  test_expect_success 'query' '
-    ipfsi 3 dht query "$(echo banana | ipfsi 3 add -q)" >actual &&
-    ipfsi 3 dht query "$(echo apple | ipfsi 3 add -q)" >>actual &&
-    ipfsi 3 dht query "$(echo pear | ipfsi 3 add -q)"  >>actual &&
-    PEERS=$(wc -l actual | cut -d '"'"' '"'"' -f 1) &&
-    [ -s actual ] ||
-    test_might_fail test_fsh cat actual
+  #
+  # We test all nodes. 4 nodes should see the same peer ID, one node (the
+  # closest) should see a different one.
+
+  for i in $(test_seq 0 4); do
+    test_expect_success "query from $i" '
+      ipfsi "$i" dht query "$HASH" | head -1 >closest-$i
+    '
+  done
+
+  test_expect_success "collecting results" '
+    cat closest-* | sort | uniq -c | sed -e "s/ *\([0-9]\+\) .*/\1/g" | sort -g > actual &&
+    echo 1 > expected &&
+    echo 4 >> expected
+  '
+
+  test_expect_success "checking results" '
+    test_cmp actual expected
   '
 
   test_expect_success 'stop iptb' '

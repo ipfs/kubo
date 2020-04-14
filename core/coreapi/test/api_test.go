@@ -13,6 +13,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo"
 
@@ -65,7 +66,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		}
 
 		c := config.Config{}
-		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/127.0.%d.1/tcp/4001", i)}
+		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/18.0.%d.1/tcp/4001", i)}
 		c.Identity = ident
 		c.Experimental.FilestoreEnabled = true
 
@@ -78,9 +79,10 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		}
 
 		node, err := core.NewNode(ctx, &core.BuildCfg{
-			Repo:   r,
-			Host:   mock.MockHostOption(mn),
-			Online: fullIdentity,
+			Routing: libp2p.DHTServerOption,
+			Repo:    r,
+			Host:    mock.MockHostOption(mn),
+			Online:  fullIdentity,
 			ExtraOpts: map[string]bool{
 				"pubsub": true,
 			},
