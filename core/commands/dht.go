@@ -81,19 +81,23 @@ var queryDhtCmd = &cmds.Command{
 			dht = nd.DHT.LAN
 		}
 
-		closestPeers, err := dht.GetClosestPeers(ctx, string(id))
-		if err != nil {
-			cancel()
-			return err
-		}
-
+		errCh := make(chan error, 1)
 		go func() {
+			defer close(errCh)
 			defer cancel()
-			for p := range closestPeers {
-				routing.PublishQueryEvent(ctx, &routing.QueryEvent{
-					ID:   p,
-					Type: routing.FinalPeer,
-				})
+			closestPeers, err := dht.GetClosestPeers(ctx, string(id))
+			if closestPeers != nil {
+				for p := range closestPeers {
+					routing.PublishQueryEvent(ctx, &routing.QueryEvent{
+						ID:   p,
+						Type: routing.FinalPeer,
+					})
+				}
+			}
+
+			if err != nil {
+				errCh <- err
+				return
 			}
 		}()
 
@@ -103,15 +107,13 @@ var queryDhtCmd = &cmds.Command{
 			}
 		}
 
-		return nil
+		return <-errCh
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
 			pfm := pfuncMap{
-				routing.PeerResponse: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					for _, p := range obj.Responses {
-						fmt.Fprintf(out, "%s\n", p.ID.Pretty())
-					}
+				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+					fmt.Fprintf(out, "%s\n", obj.ID)
 					return nil
 				},
 			}
