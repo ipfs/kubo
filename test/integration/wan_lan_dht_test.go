@@ -7,13 +7,13 @@ import (
 	"math"
 	"math/rand"
 	"net"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
 	mock "github.com/ipfs/go-ipfs/core/mock"
+	libp2p2 "github.com/ipfs/go-ipfs/core/node/libp2p"
 
 	corenet "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -93,8 +93,9 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	defer connCtxCancel()
 	for i := 0; i < numPeers; i++ {
 		wanPeer, err := core.NewNode(ctx, &core.BuildCfg{
-			Online: true,
-			Host:   mock.MockHostOption(mn),
+			Online:  true,
+			Routing: libp2p2.DHTServerOption,
+			Host:    mock.MockHostOption(mn),
 		})
 		if err != nil {
 			return err
@@ -190,7 +191,6 @@ StartupWait:
 		return fmt.Errorf("Unexpected lan peer provided record")
 	}
 
-	fmt.Fprintf(os.Stderr, "moving on to WAN.\n")
 	// Now, connect with a wan peer.
 	for _, p := range wanPeers {
 		if _, err := mn.LinkPeers(testPeer.Identity, p.Identity); err != nil {
@@ -203,7 +203,7 @@ StartupWait:
 		return err
 	}
 
-	startupCtx, startupCancel = context.WithTimeout(ctx, time.Second*60*5)
+	startupCtx, startupCancel = context.WithTimeout(ctx, time.Second*60)
 WanStartupWait:
 	for {
 		select {
