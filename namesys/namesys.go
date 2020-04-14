@@ -218,6 +218,9 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 		return err
 	}
 	if err := ns.ipnsPublisher.PublishWithEOL(ctx, name, value, eol); err != nil {
+		// Invalidate the cache. Publishing may _partially_ succeed but
+		// still return an error.
+		ns.cacheInvalidate(peer.Encode(id))
 		return err
 	}
 	ttl := DefaultResolverCacheTTL

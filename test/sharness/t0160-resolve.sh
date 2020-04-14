@@ -153,17 +153,24 @@ test_resolve_cmd_fail() {
   test_resolve "/ipld/$dag_hash/i/j" "/ipld/$dag_hash/i/j"
   test_resolve "/ipld/$dag_hash/i" "/ipld/$dag_hash/i"
 
+  # At the moment, publishing _fails_ because we fail to put to the DHT.
+  # However, resolving succeeds because we resolve the record we put to our own
+  # node.
+  #
+  # We should find a nice way to truly support offline publishing. But this
+  # behavior isn't terrible.
+
   test_resolve_setup_name_fail "self" "/ipfs/$a_hash"
-  test_resolve_fail "/ipns/$self_hash" "/ipfs/$a_hash"
-  test_resolve_fail "/ipns/$self_hash/b" "/ipfs/$b_hash"
-  test_resolve_fail "/ipns/$self_hash/b/c" "/ipfs/$c_hash"
+  test_resolve "/ipns/$self_hash" "/ipfs/$a_hash"
+  test_resolve "/ipns/$self_hash/b" "/ipfs/$b_hash"
+  test_resolve "/ipns/$self_hash/b/c" "/ipfs/$c_hash"
 
   test_resolve_setup_name_fail "self" "/ipfs/$b_hash"
-  test_resolve_fail "/ipns/$self_hash" "/ipfs/$b_hash"
-  test_resolve_fail "/ipns/$self_hash/c" "/ipfs/$c_hash"
+  test_resolve "/ipns/$self_hash" "/ipfs/$b_hash"
+  test_resolve "/ipns/$self_hash/c" "/ipfs/$c_hash"
 
   test_resolve_setup_name_fail "self" "/ipfs/$c_hash"
-  test_resolve_fail "/ipns/$self_hash" "/ipfs/$c_hash"
+  test_resolve "/ipns/$self_hash" "/ipfs/$c_hash"
 }
 
 # should work offline
