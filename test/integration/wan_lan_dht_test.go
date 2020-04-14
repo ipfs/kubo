@@ -102,6 +102,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		wanAddr := makeAddr(uint32(i), true)
 		wanPeer.Peerstore.AddAddr(wanPeer.Identity, wanAddr, peerstore.PermanentAddrTTL)
 		for _, p := range wanPeers {
+			mn.LinkPeers(p.Identity, wanPeer.Identity)
 			mn.ConnectPeers(p.Identity, wanPeer.Identity)
 		}
 		wanPeers = append(wanPeers, wanPeer)
@@ -117,18 +118,30 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		lanAddr := makeAddr(uint32(i), false)
 		lanPeer.Peerstore.AddAddr(lanPeer.Identity, lanAddr, peerstore.PermanentAddrTTL)
 		for _, p := range lanPeers {
+			mn.LinkPeers(p.Identity, lanPeer.Identity)
 			mn.ConnectPeers(p.Identity, lanPeer.Identity)
 		}
 		lanPeers = append(lanPeers, lanPeer)
 	}
 
+	// Add interfaces / addresses to test peer.
+	wanAddr := makeAddr(0, true)
+	testPeer.Peerstore.AddAddr(testPeer.Identity, wanAddr, peerstore.PermanentAddrTTL)
+	lanAddr := makeAddr(0, false)
+	testPeer.Peerstore.AddAddr(testPeer.Identity, lanAddr, peerstore.PermanentAddrTTL)
+
 	// The test peer is connected to one lan peer.
+	for _, p := range lanPeers {
+		if _, err := mn.LinkPeers(testPeer.Identity, p.Identity); err != nil {
+			return err
+		}
+	}
 	_, err = mn.ConnectPeers(testPeer.Identity, lanPeers[0].Identity)
 	if err != nil {
 		return err
 	}
 
-	err, done := <-testPeer.DHT.RefreshRoutingTable()
+	err, done := <-testPeer.DHT.LAN.RefreshRoutingTable()
 	if err != nil || !done {
 		if !done {
 			err = fmt.Errorf("expected refresh routing table to close")
@@ -149,25 +162,28 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	if err := lanPeers[i].DHT.Provide(provideCtx, provideCid, true); err != nil {
 		return err
 	}
-	provs, err := testPeer.DHT.FindProviders(provideCtx, provideCid)
-	if err != nil {
-		return err
+	provChan := testPeer.DHT.FindProvidersAsync(provideCtx, provideCid, 0)
+	prov, ok := <-provChan
+	if !ok || prov.ID == "" {
+		return fmt.Errorf("Expected provider. stream closed early")
 	}
-	if len(provs) != 1 {
-		return fmt.Errorf("Expected one provider, got %d", len(provs))
-	}
-	if provs[0].ID != lanPeers[i].Identity {
+	if prov.ID != lanPeers[i].Identity {
 		return fmt.Errorf("Unexpected lan peer provided record")
 	}
 
 	// Now, bootstrap from a wan peer.
+	for _, p := range wanPeers {
+		if _, err := mn.LinkPeers(testPeer.Identity, p.Identity); err != nil {
+			return err
+		}
+	}
 	bis := wanPeers[0].Peerstore.PeerInfo(wanPeers[0].PeerHost.ID())
 	bcfg := bootstrap.BootstrapConfigWithPeers([]peer.AddrInfo{bis})
 	if err := testPeer.Bootstrap(bcfg); err != nil {
 		return err
 	}
 
-	err, done = <-testPeer.DHT.RefreshRoutingTable()
+	err, done = <-testPeer.DHT.WAN.RefreshRoutingTable()
 	if err != nil || !done {
 		if !done {
 			err = fmt.Errorf("expected refresh routing table to close")
@@ -188,14 +204,12 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	if err := wanPeers[i].DHT.Provide(wanProvideCtx, wanCid, true); err != nil {
 		return err
 	}
-	provs, err = testPeer.DHT.FindProviders(wanProvideCtx, wanCid)
-	if err != nil {
-		return err
+	provChan = testPeer.DHT.FindProvidersAsync(wanProvideCtx, wanCid, 0)
+	prov, ok = <-provChan
+	if !ok || prov.ID == "" {
+		return fmt.Errorf("Expected one provider, closed early")
 	}
-	if len(provs) != 1 {
-		return fmt.Errorf("Expected one provider, got %d", len(provs))
-	}
-	if provs[0].ID != wanPeers[i].Identity {
+	if prov.ID != wanPeers[i].Identity {
 		return fmt.Errorf("Unexpected lan peer provided record")
 	}
 
@@ -211,12 +225,14 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	if err := wanPeers[i].DHT.Provide(provideCtx, provideCid, true); err != nil {
 		return err
 	}
-	provs, err = testPeer.DHT.FindProviders(provideCtx, provideCid)
-	if err != nil {
-		return err
+	provChan = testPeer.DHT.FindProvidersAsync(provideCtx, provideCid, 0)
+	prov, ok = <-provChan
+	if !ok {
+		return fmt.Errorf("Expected two providers, got 0")
 	}
-	if len(provs) != 2 {
-		return fmt.Errorf("Expected two providers, got %d", len(provs))
+	prov, ok = <-provChan
+	if !ok {
+		return fmt.Errorf("Expected two providers, got 1")
 	}
 
 	return nil
