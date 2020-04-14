@@ -112,7 +112,7 @@ EOE
   mkfifo pipe_testnet
   mkfifo pipe_devnet
 
-  test_expect_success "fifo import" '
+  test_expect_success "basic fifo import" '
     (
         cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet &
         cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet &
@@ -129,12 +129,43 @@ EOE
     )
   '
 
-  test_expect_success "remove fifos" '
-    rm pipe_testnet pipe_devnet
+  test_expect_success "basic fifo-import output as expected" '
+    test_cmp_sorted basic_import_expected basic_fifo_import_actual
   '
 
-  test_expect_success "fifo-import output as expected" '
-    test_cmp_sorted basic_import_expected basic_fifo_import_actual
+  reset_blockstore 0
+  reset_blockstore 1
+
+  test_expect_success "sequenced fifo import" '
+    (
+        # Part 2 is smaller, goes in first and blocks waiting on ipfs
+        # What is tested here is that by the time import 1 + roots finishes and the
+        # pipes are deleted, the preexisting open file handles will carry through,
+        # even though pipe_devnet is no longer on the filesystem
+        cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet &
+
+        # ipfs import starts and blocks on part 1
+        ipfsi 0 dag import \
+          pipe_testnet \
+          ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
+          pipe_devnet \
+        2>&1 & ipfs_pid=$!
+
+        # Flush part 1, unblock everything, delete pipes as soon as possible
+        cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet
+        rm -f pipe_devnet pipe_testnet
+
+        wait "$ipfs_pid"
+
+    ) > sequenced_fifo_import_actual
+  '
+
+  test_expect_success "fifos are gone" '
+    ! [[ -e pipe_testnet ]] && ! [[ -e pipe_devnet ]]
+  '
+
+  test_expect_success "sequenced fifo-import output as expected" '
+    test_cmp_sorted basic_import_expected sequenced_fifo_import_actual
   '
 }
 
