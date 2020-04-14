@@ -551,8 +551,8 @@ github.com/libp2p/go-libp2p-interface-connmgr v0.0.1/go.mod h1:GarlRLH0LdeWcLnYM
 github.com/libp2p/go-libp2p-interface-connmgr v0.0.4/go.mod h1:GarlRLH0LdeWcLnYM/SaBykKFl9U5JFnbBGruAk/D5k=
 github.com/libp2p/go-libp2p-interface-connmgr v0.0.5/go.mod h1:GarlRLH0LdeWcLnYM/SaBykKFl9U5JFnbBGruAk/D5k=
 github.com/libp2p/go-libp2p-interface-pnet v0.0.1/go.mod h1:el9jHpQAXK5dnTpKA4yfCNBZXvrzdOU75zz+C6ryp3k=
-github.com/libp2p/go-libp2p-kad-dht v0.7.2 h1:pmjjvk0q3wAQVLWWcFaYb0Ha+QXpa7NlzeXkKvhGYXU=
-github.com/libp2p/go-libp2p-kad-dht v0.7.2/go.mod h1:+XvZEgO0gOAd9liN1wjdewxIdcdtWLJXG8U8ou2oo/A=
+github.com/libp2p/go-libp2p-kad-dht v0.7.3 h1:veitKCfUhquYdPOSXoohm8gLymK+R0w7SmVHPBmF58k=
+github.com/libp2p/go-libp2p-kad-dht v0.7.3/go.mod h1:+XvZEgO0gOAd9liN1wjdewxIdcdtWLJXG8U8ou2oo/A=
 github.com/libp2p/go-libp2p-kbucket v0.4.1 h1:6FyzbQuGLPzbMv3HiD232zqscIz5iB8ppJwb380+OGI=
 github.com/libp2p/go-libp2p-kbucket v0.4.1/go.mod h1:7sCeZx2GkNK1S6lQnGUW5JYZCFPnXzAZCCBBS70lytY=
 github.com/libp2p/go-libp2p-loggables v0.0.1/go.mod h1:lDipDlBNYbpyqyPX/KcoO+eq0sJYEVR2JgOexcivchg=
@@ -605,8 +605,8 @@ github.com/libp2p/go-libp2p-protocol v0.0.1/go.mod h1:Af9n4PiruirSDjHycM1QuiMi/1
 github.com/libp2p/go-libp2p-protocol v0.1.0/go.mod h1:KQPHpAabB57XQxGrXCNvbL6UEXfQqUgC/1adR2Xtflk=
 github.com/libp2p/go-libp2p-pubsub v0.2.5 h1:tPKbkjAUI0xLGN3KKTKKy9TQEviVfrP++zJgH5Muke4=
 github.com/libp2p/go-libp2p-pubsub v0.2.5/go.mod h1:9Q2RRq8ofXkoewORcyVlgUFDKLKw7BuYSlJVWRcVk3Y=
-github.com/libp2p/go-libp2p-pubsub v0.2.6 h1:ypZaukCFrtD8cNeeb9nnWG4MD2Y1T0p22aQ+f7FKJig=
-github.com/libp2p/go-libp2p-pubsub v0.2.6/go.mod h1:5jEp7R3ItQ0pgcEMrPZYE9DQTg/H3CTc7Mu1j2G4Y5o=
+github.com/libp2p/go-libp2p-pubsub v0.2.7 h1:PBuK5+NfWsoaoEaAUZ7YQPETQh8UqBi8CbMJ1CZ5sNI=
+github.com/libp2p/go-libp2p-pubsub v0.2.7/go.mod h1:R4R0kH/6p2vu8O9xsue0HNSjEuXMEPBgg4h3nVDI15o=
 github.com/libp2p/go-libp2p-pubsub-router v0.2.1 h1:F5JYaHQuuMKVbSgLsH2POQwT1rloWpc7fUCOq6PBjyE=
 github.com/libp2p/go-libp2p-pubsub-router v0.2.1/go.mod h1:cl46APmxgKgzgpCGFb8Ns7++cqnJ29CxESXCQATp55k=
 github.com/libp2p/go-libp2p-quic-transport v0.3.3 h1:A920y1nion8PkGKsEnMiho+3OHpXUqfy35YnPfta4aI=
