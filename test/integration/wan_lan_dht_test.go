@@ -13,13 +13,10 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/bootstrap"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 
 	corenet "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 
@@ -146,25 +143,19 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		return err
 	}
 
-	startupCtx, startupCancel := context.WithTimeout(ctx, time.Second*15)
-	testPeer.DHT.Bootstrap(startupCtx)
+	startupCtx, startupCancel := context.WithTimeout(ctx, time.Second*60)
 StartupWait:
 	for {
 		select {
-		case err, done := <-testPeer.DHT.LAN.RefreshRoutingTable():
-			if err.Error() == kbucket.ErrLookupFailure.Error() ||
-				testPeer.DHT.LAN.RoutingTable() == nil ||
-				testPeer.DHT.LAN.RoutingTable().Size() == 0 {
+		case err := <-testPeer.DHT.LAN.RefreshRoutingTable():
+			if err != nil {
+				fmt.Printf("Error refreshing routing table: %v\n", err)
+			}
+			if testPeer.DHT.LAN.RoutingTable() == nil ||
+				testPeer.DHT.LAN.RoutingTable().Size() == 0 ||
+				err != nil {
 				time.Sleep(100 * time.Millisecond)
 				continue
-			}
-			if err != nil || !done {
-				if !done {
-					err = fmt.Errorf("expected refresh routing table to close")
-				}
-				fmt.Fprintf(os.Stderr, "how odd. that was lookupfailure.\n")
-				startupCancel()
-				return err
 			}
 			break StartupWait
 		case <-startupCtx.Done():
@@ -174,7 +165,6 @@ StartupWait:
 	}
 	startupCancel()
 
-	fmt.Fprintf(os.Stderr, "finding provider\n")
 	// choose a lan peer and validate lan DHT is functioning.
 	i := rand.Intn(len(lanPeers))
 	if testPeer.PeerHost.Network().Connectedness(lanPeers[i].Identity) == corenet.Connected {
@@ -200,32 +190,51 @@ StartupWait:
 		return fmt.Errorf("Unexpected lan peer provided record")
 	}
 
-	// Now, bootstrap from a wan peer.
+	fmt.Fprintf(os.Stderr, "moving on to WAN.\n")
+	// Now, connect with a wan peer.
 	for _, p := range wanPeers {
 		if _, err := mn.LinkPeers(testPeer.Identity, p.Identity); err != nil {
 			return err
 		}
 	}
-	bis := wanPeers[0].Peerstore.PeerInfo(wanPeers[0].PeerHost.ID())
-	bcfg := bootstrap.BootstrapConfigWithPeers([]peer.AddrInfo{bis})
-	if err := testPeer.Bootstrap(bcfg); err != nil {
+
+	err = testPeer.PeerHost.Connect(ctx, wanPeers[0].Peerstore.PeerInfo(wanPeers[0].Identity))
+	if err != nil {
 		return err
 	}
 
-	err, done := <-testPeer.DHT.WAN.RefreshRoutingTable()
-	if err != nil || !done {
-		if !done {
-			err = fmt.Errorf("expected refresh routing table to close")
+	startupCtx, startupCancel = context.WithTimeout(ctx, time.Second*60*5)
+WanStartupWait:
+	for {
+		select {
+		case err := <-testPeer.DHT.WAN.RefreshRoutingTable():
+			//if err != nil {
+			//	fmt.Printf("Error refreshing routing table: %v\n", err)
+			//}
+			if testPeer.DHT.WAN.RoutingTable() == nil ||
+				testPeer.DHT.WAN.RoutingTable().Size() == 0 ||
+				err != nil {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			break WanStartupWait
+		case <-startupCtx.Done():
+			startupCancel()
+			return fmt.Errorf("expected faster wan dht bootstrap")
 		}
-		return err
 	}
+	startupCancel()
 
 	// choose a wan peer and validate wan DHT is functioning.
 	i = rand.Intn(len(wanPeers))
 	if testPeer.PeerHost.Network().Connectedness(wanPeers[i].Identity) == corenet.Connected {
-		testPeer.PeerHost.Network().ClosePeer(wanPeers[i].Identity)
-		testPeer.PeerHost.Peerstore().ClearAddrs(wanPeers[i].Identity)
+		i = (i + 1) % len(wanPeers)
+		if testPeer.PeerHost.Network().Connectedness(wanPeers[i].Identity) == corenet.Connected {
+			testPeer.PeerHost.Network().ClosePeer(wanPeers[i].Identity)
+			testPeer.PeerHost.Peerstore().ClearAddrs(wanPeers[i].Identity)
+		}
 	}
+
 	// That peer will provide a new CID, and we'll validate the test node can find it.
 	wanCid := cid.NewCidV1(cid.Raw, []byte("Wan Provide Record"))
 	wanProvideCtx, cancel := context.WithTimeout(ctx, time.Second)
