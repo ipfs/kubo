@@ -473,7 +473,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	for _, addr := range apiAddrs {
 		apiMaddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
-			return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", apiAddr, err)
+			return nil, fmt.Errorf("serveHTTPApi: invalid API address: %q (err: %s)", addr, err)
 		}
 		if listenerAddrs[string(apiMaddr.Bytes())] {
 			continue
