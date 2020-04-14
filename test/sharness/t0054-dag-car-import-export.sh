@@ -41,7 +41,8 @@ do_import() {
       while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
       while [[ -e spin.gc ]]; do ipfsi "$node" repo gc &>/dev/null; done &
 
-      ipfsi "$node" dag import "$@" 2>&1 && ipfsi "$node" repo verify &>/dev/null
+      ipfsi "$node" dag import "$@" 2>&1 \
+        && ipfsi "$node" repo verify &>/dev/null
       result=$?
 
       rm -f spin.gc &>/dev/null
@@ -114,8 +115,8 @@ EOE
 
   test_expect_success "basic fifo import" '
     (
-        cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet &
-        cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet &
+        timeout 30 cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet &
+        timeout 30 cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet &
 
         do_import 0 \
           pipe_testnet \
@@ -142,7 +143,7 @@ EOE
         # What is tested here is that by the time import 1 + roots finishes and the
         # pipes are deleted, the preexisting open file handles will carry through,
         # even though pipe_devnet is no longer on the filesystem
-        cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet &
+        timeout 30 cat ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car > pipe_devnet &
 
         # ipfs import starts and blocks on part 1
         ipfsi 0 dag import \
@@ -152,7 +153,7 @@ EOE
         2>&1 & ipfs_pid=$!
 
         # Flush part 1, unblock everything, delete pipes as soon as possible
-        cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet
+        timeout 30 cat ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car > pipe_testnet
         rm -f pipe_devnet pipe_testnet
 
         wait "$ipfs_pid"
