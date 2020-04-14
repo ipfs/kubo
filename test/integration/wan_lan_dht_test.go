@@ -64,7 +64,7 @@ func makeAddr(n uint32, wan bool) ma.Multiaddr {
 		ip = append(net.IP{}, lanPrefix...)
 	}
 
-	binary.LittleEndian.PutUint32(ip[4:], n)
+	binary.LittleEndian.PutUint32(ip[12:], n)
 	addr, _ := ma.NewMultiaddr(fmt.Sprintf("/ip6/%s/tcp/4242", ip))
 	return addr
 }
