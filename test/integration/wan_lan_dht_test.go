@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	corenet "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 
@@ -90,6 +92,8 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	wanPeers := []*core.IpfsNode{}
 	lanPeers := []*core.IpfsNode{}
 
+	connectionContext, connCtxCancel := context.WithTimeout(ctx, 15*time.Second)
+	defer connCtxCancel()
 	for i := 0; i < numPeers; i++ {
 		wanPeer, err := core.NewNode(ctx, &core.BuildCfg{
 			Online: true,
@@ -103,7 +107,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		wanPeer.Peerstore.AddAddr(wanPeer.Identity, wanAddr, peerstore.PermanentAddrTTL)
 		for _, p := range wanPeers {
 			mn.LinkPeers(p.Identity, wanPeer.Identity)
-			mn.ConnectPeers(p.Identity, wanPeer.Identity)
+			wanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
 		}
 		wanPeers = append(wanPeers, wanPeer)
 
@@ -119,10 +123,11 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		lanPeer.Peerstore.AddAddr(lanPeer.Identity, lanAddr, peerstore.PermanentAddrTTL)
 		for _, p := range lanPeers {
 			mn.LinkPeers(p.Identity, lanPeer.Identity)
-			mn.ConnectPeers(p.Identity, lanPeer.Identity)
+			lanPeer.PeerHost.Connect(connectionContext, p.Peerstore.PeerInfo(p.Identity))
 		}
 		lanPeers = append(lanPeers, lanPeer)
 	}
+	connCtxCancel()
 
 	// Add interfaces / addresses to test peer.
 	wanAddr := makeAddr(0, true)
@@ -136,24 +141,48 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 			return err
 		}
 	}
-	_, err = mn.ConnectPeers(testPeer.Identity, lanPeers[0].Identity)
+	err = testPeer.PeerHost.Connect(ctx, lanPeers[0].Peerstore.PeerInfo(lanPeers[0].Identity))
 	if err != nil {
 		return err
 	}
 
-	err, done := <-testPeer.DHT.LAN.RefreshRoutingTable()
-	if err != nil || !done {
-		if !done {
-			err = fmt.Errorf("expected refresh routing table to close")
+	startupCtx, startupCancel := context.WithTimeout(ctx, time.Second*15)
+	testPeer.DHT.Bootstrap(startupCtx)
+StartupWait:
+	for {
+		select {
+		case err, done := <-testPeer.DHT.LAN.RefreshRoutingTable():
+			if err.Error() == kbucket.ErrLookupFailure.Error() ||
+				testPeer.DHT.LAN.RoutingTable() == nil ||
+				testPeer.DHT.LAN.RoutingTable().Size() == 0 {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			if err != nil || !done {
+				if !done {
+					err = fmt.Errorf("expected refresh routing table to close")
+				}
+				fmt.Fprintf(os.Stderr, "how odd. that was lookupfailure.\n")
+				startupCancel()
+				return err
+			}
+			break StartupWait
+		case <-startupCtx.Done():
+			startupCancel()
+			return fmt.Errorf("expected faster dht bootstrap")
 		}
-		return err
 	}
+	startupCancel()
 
+	fmt.Fprintf(os.Stderr, "finding provider\n")
 	// choose a lan peer and validate lan DHT is functioning.
 	i := rand.Intn(len(lanPeers))
 	if testPeer.PeerHost.Network().Connectedness(lanPeers[i].Identity) == corenet.Connected {
-		testPeer.PeerHost.Network().ClosePeer(lanPeers[i].Identity)
-		testPeer.PeerHost.Peerstore().ClearAddrs(lanPeers[i].Identity)
+		i = (i + 1) % len(lanPeers)
+		if testPeer.PeerHost.Network().Connectedness(lanPeers[i].Identity) == corenet.Connected {
+			testPeer.PeerHost.Network().ClosePeer(lanPeers[i].Identity)
+			testPeer.PeerHost.Peerstore().ClearAddrs(lanPeers[i].Identity)
+		}
 	}
 	// That peer will provide a new CID, and we'll validate the test node can find it.
 	provideCid := cid.NewCidV1(cid.Raw, []byte("Lan Provide Record"))
@@ -183,7 +212,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 		return err
 	}
 
-	err, done = <-testPeer.DHT.WAN.RefreshRoutingTable()
+	err, done := <-testPeer.DHT.WAN.RefreshRoutingTable()
 	if err != nil || !done {
 		if !done {
 			err = fmt.Errorf("expected refresh routing table to close")
