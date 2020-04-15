@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // Strings is a helper type that (un)marshals a single string to/from a single
@@ -39,3 +40,22 @@ func (o Strings) MarshalJSON() ([]byte, error) {
 
 var _ json.Unmarshaler = (*Strings)(nil)
 var _ json.Marshaler = (*Strings)(nil)
+
+// Duration wraps time.Duration to provide json serialization and deserialization.
+//
+// NOTE: the zero value encodes to an empty string.
+type Duration time.Duration
+
+func (d *Duration) UnmarshalText(text []byte) error {
+	dur, err := time.ParseDuration(string(text))
+	*d = Duration(dur)
+	return err
+}
+
+func (d Duration) MarshalText() ([]byte, error) {
+	return []byte(time.Duration(d).String()), nil
+}
+
+func (d Duration) String() string {
+	return time.Duration(d).String()
+}
