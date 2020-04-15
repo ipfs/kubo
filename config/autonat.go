@@ -75,5 +75,7 @@ type AutoNATThrottleConfig struct {
 
 	// Interval specifies how frequently this node should reset the
 	// global/peer dialback limits.
-	Interval string
+	//
+	// When unset, this defaults to 1 minute.
+	Interval Duration `json:",omitempty"`
 }
