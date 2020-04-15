@@ -192,6 +192,47 @@ Example:
 
 Default: `null`
 
+## `AutoNAT`
+
+Contains the configuration options for the AutoNAT service. The AutoNAT service
+helps other nodes on the network determine if they're publicly reachable from
+the rest of the internet.
+
+### `AutoNAT.ServiceMode`
+
+When unset (default), the AutoNAT service defaults to _enabled_. Otherwise, this
+field can take one of two values:
+
+* "enabled" - Enable the service (unless the node determines that it, itself,
+  isn't reachable by the public internet).
+* "disabled" - Disable the service.
+
+Additional modes may be added in the future.
+
+### `AutoNAT.Throttle`
+
+When set, this option configure's the AutoNAT services throttling behavior. By
+default, go-ipfs will rate-limit the number of NAT checks performed for other
+nodes to 30 per minute, and 3 per peer.
+
+### `AutoNAT.Throttle.GlobalLimit`
+
+Configures how many AutoNAT requests to service per `AutoNAT.Throttle.Interval`.
+
+Default: 30
+
+### `AutoNAT.Throttle.PeerLimit`
+
+Configures how many AutoNAT requests per-peer to service per `AutoNAT.Throttle.Interval`.
+
+Default: 3
+
+### `AutoNAT.Throttle.Interval`
+
+Configures the interval for the above limits.
+
+Default: 1 Minute
+
 ## `Bootstrap`
 
 Bootstrap is an array of multiaddrs of trusted nodes to connect to in order to
@@ -700,11 +741,9 @@ DHT and override its public address(es) with relay addresses.
 
 ### `Swarm.EnableAutoNATService`
 
-Enables the AutoNAT service for this node.
+**REMOVED**
 
-The service allows peers to discover their NAT situation by requesting dial
-backs to their public addresses. This should only be enabled on publicly
-reachable nodes.
+Please use [`AutoNAT.ServiceMode`][].
 
 ### `Swarm.ConnMgr`
 
