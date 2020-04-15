@@ -145,7 +145,7 @@ test_localhost_gateway_response_should_contain \
 #  payload directly, but redirect to URL with proper origin isolation
 
 test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} returns status code HTTP 301" \
+  "request for localhost/ipfs/{CIDv1} returns HTTP 301 Moved Permanently" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "301 Moved Permanently"
 
@@ -153,6 +153,16 @@ test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CIDv1} returns Location HTTP header for subdomain redirect in browsers" \
   "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "Location: http://$CIDv1.ipfs.localhost:$GWAY_PORT/"
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{DIR_CID} returns HTTP 301 Moved Permanently" \
+  "http://localhost:$GWAY_PORT/ipfs/$DIR_CID" \
+  "301 Moved Permanently"
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{DIR_CID} returns Location HTTP header for subdomain redirect in browsers" \
+  "http://localhost:$GWAY_PORT/ipfs/$DIR_CID/" \
+  "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
 
 # Responses to the root domain of subdomain gateway hostname should Clear-Site-Data
 # https://github.com/ipfs/go-ipfs/issues/6975#issuecomment-597472477
