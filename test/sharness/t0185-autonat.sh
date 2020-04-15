@@ -11,7 +11,15 @@ test_description="Test autonat"
 test_init_ipfs
 
 test_expect_success "enable autonat" '
-  ipfs config --json Swarm.EnableAutoNATService true
+  ipfs config AutoNAT.ServiceMode enabled
+'
+
+test_launch_ipfs_daemon
+
+test_kill_ipfs_daemon
+
+test_expect_success "enable autonat" '
+  ipfs config AutoNAT.ServiceMode disabled
 '
 
 test_launch_ipfs_daemon
