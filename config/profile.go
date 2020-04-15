@@ -163,6 +163,7 @@ fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
 			c.Routing.Type = "dhtclient"
+			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
 			c.Reprovider.Interval = "0"
 
 			c.Swarm.ConnMgr.LowWater = 20
