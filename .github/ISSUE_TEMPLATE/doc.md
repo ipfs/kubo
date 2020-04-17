@@ -1,7 +1,7 @@
 ---
 name: 'Documentation Issue'
 about: 'Report missing/erroneous documentation, propose new documentation, report broken links, etc.'
-labels: documentation
+labels: topic/docs-ipfs
 ---
 
 #### Location

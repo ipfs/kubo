@@ -1,7 +1,7 @@
 ---
 name: 'Enhancement'
 about: 'Suggest an improvement to an existing go-ipfs feature.'
-labels: enhancement
+labels: kind/enhancement
 ---
 
 <!--
