@@ -1,7 +1,7 @@
 ---
 name: 'Question/Support'
 about: 'DO NOT SELECT THIS OPTION: Ask questions on discuss.ipfs.io, IRC (#ipfs on Freenode), or Matrix (#ipfs:matrix.org)'
-labels: question
+labels: kind/question
 ---
 
 DO NOT ASK QUESTIONS HERE

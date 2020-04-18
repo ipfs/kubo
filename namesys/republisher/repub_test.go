@@ -29,10 +29,7 @@ func TestRepublish(t *testing.T) {
 
 	var nodes []*core.IpfsNode
 	for i := 0; i < 10; i++ {
-		nd, err := core.NewNode(ctx, &core.BuildCfg{
-			Online: true,
-			Host:   mock.MockHostOption(mn),
-		})
+		nd, err := mock.MockPublicNode(ctx, mn)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -33,7 +33,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	routing "github.com/libp2p/go-libp2p-core/routing"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
+	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
@@ -92,7 +92,7 @@ type IpfsNode struct {
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
-	DHT      *dht.IpfsDHT               `optional:"true"`
+	DHT      *ddht.DHT                  `optional:"true"`
 	P2P      *p2p.P2P                   `optional:"true"`
 
 	Process goprocess.Process

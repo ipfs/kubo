@@ -49,6 +49,13 @@ func (ns *mpns) cacheSet(name string, val path.Path, ttl time.Duration) {
 	})
 }
 
+func (ns *mpns) cacheInvalidate(name string) {
+	if ns.cache == nil {
+		return
+	}
+	ns.cache.Remove(name)
+}
+
 type cacheEntry struct {
 	val path.Path
 	eol time.Time

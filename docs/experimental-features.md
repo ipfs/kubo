@@ -82,21 +82,20 @@ signed) by running:
 ---
 
 ## Client mode DHT routing
+
 Allows the dht to be run in a mode that doesn't serve requests to the network,
 saving bandwidth.
 
 ### State
-experimental.
+stable
 
 ### In Version
-0.4.5
+
+0.5.0
 
 ### How to enable
-run your daemon with the `--routing=dhtclient` flag.
 
-### Road to being a real feature
-- [ ] Needs more people to use and report on how well it works.
-- [ ] Needs analysis of effect it has on the network as a whole.
+run your daemon with the `--routing=dhtclient` flag.
 
 ---
 
@@ -507,6 +506,8 @@ See [Plugin docs](./plugins.md)
 - [ ] More plugins and plugin types
 - [ ] Feedback on stability
 
+---
+
 ## Badger datastore
 
 ### In Version
@@ -591,7 +592,7 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
   so that we don't have to hit the DHT for the initial resolution.
   Alternatively, we could republish the last record periodically.
 
-
+---
 
 ## QUIC
 
@@ -662,6 +663,7 @@ ipfs config --json Swarm.EnableAutoNATService true
 
 Stable
 
+---
 
 ## Strategic Providing
 
@@ -688,6 +690,8 @@ ipfs config --json Experimental.StrategicProviding true
     - [ ] provide roots
     - [ ] provide all
     - [ ] provide strategic
+    
+---
 
 ## GraphSync
 

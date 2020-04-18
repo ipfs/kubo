@@ -5,16 +5,17 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ipfs/go-ipfs/core/node/helpers"
+
 	host "github.com/libp2p/go-libp2p-core/host"
 	routing "github.com/libp2p/go-libp2p-core/routing"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
+	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-pubsub"
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
-	"go.uber.org/fx"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"go.uber.org/fx"
 )
 
 type BaseIpfsRouting routing.Routing
@@ -31,8 +32,8 @@ type p2pRouterOut struct {
 	Router Router `group:"routers"`
 }
 
-func BaseRouting(lc fx.Lifecycle, in BaseIpfsRouting) (out p2pRouterOut, dr *dht.IpfsDHT) {
-	if dht, ok := in.(*dht.IpfsDHT); ok {
+func BaseRouting(lc fx.Lifecycle, in BaseIpfsRouting) (out p2pRouterOut, dr *ddht.DHT) {
+	if dht, ok := in.(*ddht.DHT); ok {
 		dr = dht
 
 		lc.Append(fx.Hook{

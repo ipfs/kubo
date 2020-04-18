@@ -79,7 +79,7 @@ Checklist:
     - [ ] IRC
 - [ ] **Stage 4 - Release**
   - [ ] Final preparation
-    - [ ] Verify that version string in [`repo/version.go`](https://github.com/ipfs/go-ipfs/tree/master/repo/version.go) has been updated
+    - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated
     - [ ] tag commit with vX.Y.Z
     - [ ] update release branch to point to release commit (`git merge vX.Y.Z`).
     - [ ] Release published

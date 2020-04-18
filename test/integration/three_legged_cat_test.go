@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/ipfs/go-ipfs/core"
 	bootstrap2 "github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
@@ -76,28 +75,19 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 		Bandwidth: math.MaxInt32,
 	})
 
-	bootstrap, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	bootstrap, err := mock.MockPublicNode(ctx, mn)
 	if err != nil {
 		return err
 	}
 	defer bootstrap.Close()
 
-	adder, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	adder, err := mock.MockPublicNode(ctx, mn)
 	if err != nil {
 		return err
 	}
 	defer adder.Close()
 
-	catter, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	catter, err := mock.MockPublicNode(ctx, mn)
 	if err != nil {
 		return err
 	}
