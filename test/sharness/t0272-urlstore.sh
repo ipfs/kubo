@@ -125,7 +125,7 @@ EOF
     test_cmp verify_expect_2 verify_actual_2
   '
   
-  test_expect_success "files can not be retrieved via the urlstore" '
+  test_expect_success "files cannot be retrieved via the urlstore" '
     test_must_fail ipfs cat $HASH1 > /dev/null &&
     test_must_fail ipfs cat $HASH2 > /dev/null
   '
@@ -164,7 +164,7 @@ EOF
   
   test_kill_ipfs_daemon
   
-  test_expect_success "files can not be retrieved via the urlstore" '
+  test_expect_success "files cannot be retrieved via the urlstore" '
     test_must_fail ipfs cat $HASH1 > /dev/null &&
     test_must_fail ipfs cat $HASH2 > /dev/null &&
     test_must_fail ipfs cat $HASH3 > /dev/null

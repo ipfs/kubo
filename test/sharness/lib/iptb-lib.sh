@@ -44,7 +44,7 @@ startup_cluster() {
     '
   fi
 
-  test_expect_success "connect nodes to eachother" '
+  test_expect_success "connect nodes to each other" '
     iptb connect [1-$bound] 0
   '
 

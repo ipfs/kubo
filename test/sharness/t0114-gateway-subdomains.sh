@@ -67,7 +67,7 @@ test_localhost_gateway_response_should_contain() {
   "
 }
 
-# Helper that checks gateway resonse for specific hostname in Host header
+# Helper that checks gateway response for specific hostname in Host header
 test_hostname_gateway_response_should_contain() {
   local label="$1"
   local hostname="$2"

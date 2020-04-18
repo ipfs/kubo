@@ -107,7 +107,7 @@ test_expect_success "'ipfs add --help' succeeds" '
 
 # other tests here...
 
-# dont forget to kill the daemon!!
+# don't forget to kill the daemon!!
 test_kill_ipfs_daemon
 ```
 
@@ -126,6 +126,6 @@ test_mount_ipfs
 
 # tests mounted here
 
-# dont forget to kill the daemon!!
+# don't forget to kill the daemon!!
 test_kill_ipfs_daemon
 ```

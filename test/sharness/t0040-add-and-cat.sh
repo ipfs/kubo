@@ -13,7 +13,7 @@ test_add_cat_file() {
     ipfs add --help 2> add_help_err1 > /dev/null
   '
 
-  test_expect_success "stdin reading message doesnt show up" '
+  test_expect_success "stdin reading message doesn't show up" '
     test_expect_code 1 grep "ipfs: Reading from" add_help_err1 &&
     test_expect_code 1 grep "send Ctrl-d to stop." add_help_err1
   '
@@ -22,7 +22,7 @@ test_add_cat_file() {
     ipfs help add 2> add_help_err2 > /dev/null
   '
 
-  test_expect_success "stdin reading message doesnt show up" '
+  test_expect_success "stdin reading message doesn't show up" '
     test_expect_code 1 grep "ipfs: Reading from" add_help_err2 &&
     test_expect_code 1 grep "send Ctrl-d to stop." add_help_err2
   '
@@ -83,7 +83,7 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
-  test_expect_success "ipfs cat from negitive offset should fail" '
+  test_expect_success "ipfs cat from negative offset should fail" '
     test_expect_code 1 ipfs cat --offset -102 "$HASH" > actual
   '
 
@@ -132,7 +132,7 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
-  test_expect_success "ipfs cat with negitive length should fail" '
+  test_expect_success "ipfs cat with negative length should fail" '
     test_expect_code 1 ipfs cat --length -102 "$HASH" > actual
   '
 

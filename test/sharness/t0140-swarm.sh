@@ -40,7 +40,7 @@ test_expect_success "output looks good" '
 
 addr="/ip4/127.0.0.1/tcp/9898/p2p/QmUWKoHbjsqsSMesRC2Zoscs8edyFz6F77auBB1YBBhgpX"
 
-test_expect_success "cant trigger a dial backoff with swarm connect" '
+test_expect_success "can't trigger a dial backoff with swarm connect" '
   test_expect_code 1 ipfs swarm connect $addr 2> connect_out
   test_expect_code 1 ipfs swarm connect $addr 2>> connect_out
   test_expect_code 1 ipfs swarm connect $addr 2>> connect_out

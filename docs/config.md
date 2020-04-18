@@ -620,7 +620,7 @@ Below is a list of the most common public gateway setups.
 ### `Identity.PeerID`
 
 The unique PKI identity label for this configs peer. Set on init and never read,
-its merely here for convenience. Ipfs will always generate the peerID from its
+it's merely here for convenience. Ipfs will always generate the peerID from its
 keypair at runtime.
 
 ### `Identity.PrivKey`
@@ -694,7 +694,7 @@ An array of addresses (multiaddr netmasks) to not dial. By default, IPFS nodes
 advertise _all_ addresses, even internal ones. This makes it easier for nodes on
 the same network to reach each other. Unfortunately, this means that an IPFS
 node will try to connect to one or more private IP addresses whenever dialing
-another node, even if this other node is on a different network. This may may
+another node, even if this other node is on a different network. This may
 trigger netscan alerts on some hosting providers or cause strain in some setups.
 
 The `server` configuration profile fills up this list with sensible defaults,

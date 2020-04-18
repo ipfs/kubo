@@ -17,7 +17,7 @@ func NewMemKeystore() *MemKeystore {
 	return &MemKeystore{make(map[string]ci.PrivKey)}
 }
 
-// Has return whether or not a key exist in the Keystore
+// Has return whether or not a key exists in the Keystore
 func (mk *MemKeystore) Has(name string) (bool, error) {
 	_, ok := mk.keys[name]
 	return ok, nil

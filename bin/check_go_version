@@ -29,7 +29,7 @@ PREFIX=$(expr "$0" : "\(.*\/\)") || PREFIX='./'
 # Include the 'check_at_least_version' function
 . ${PREFIX}check_version
 
-# Check that the go binary exist and is in the path
+# Check that the go binary exists and is in the path
 
 GOCC=${GOCC="go"}
 

@@ -87,7 +87,7 @@ RUN mkdir /ipfs /ipns \
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.
-# Important this happens after the USER directive so permission are correct.
+# Important this happens after the USER directive so permissions are correct.
 VOLUME $IPFS_PATH
 
 # The default logging level

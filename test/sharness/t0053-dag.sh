@@ -97,7 +97,7 @@ test_dag_cmd() {
     ipfs pin add $EXPHASH
   '
 
-  test_expect_success "after gc, objects still acessible" '
+  test_expect_success "after gc, objects still accessible" '
     ipfs repo gc > /dev/null &&
     ipfs refs -r --timeout=2s $EXPHASH > /dev/null
   '
@@ -110,7 +110,7 @@ test_dag_cmd() {
     grep "{\"/\":\"" ipld_obj_out > /dev/null
   '
 
-  test_expect_success "retreived object hashes back correctly" '
+  test_expect_success "retrieved object hashes back correctly" '
     IPLDHASH2=$(cat ipld_obj_out | ipfs dag put) &&
     test "$IPLDHASH" = "$IPLDHASH2"
   '
@@ -153,7 +153,7 @@ test_dag_cmd() {
     PINHASH=$(printf {\"foo\":\"bar\"} | ipfs dag put --pin=true)
   '
 
-  test_expect_success "after gc, objects still acessible" '
+  test_expect_success "after gc, objects still accessible" '
     ipfs repo gc > /dev/null &&
     ipfs refs -r --timeout=2s $PINHASH > /dev/null
   '

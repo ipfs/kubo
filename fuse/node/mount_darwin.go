@@ -42,7 +42,7 @@ For more help, see:
 `
 
 // errStrNoFuseHeaders is included in the output of `go get <fuseVersionPkg>` if there
-// are no fuse headers. this means they dont have OSXFUSE installed.
+// are no fuse headers. this means they don't have OSXFUSE installed.
 var errStrNoFuseHeaders = "no such file or directory: '/usr/local/lib/libosxfuse.dylib'"
 
 var errStrUpgradeFuse = `OSXFUSE version %s not supported.
@@ -208,10 +208,10 @@ func ensureFuseVersionIsInstalled() error {
 	cmd.Stdout = cmdout
 	cmd.Stderr = cmdout
 	if err := cmd.Run(); err != nil {
-		// Ok, install fuse-version failed. is it they dont have fuse?
+		// Ok, install fuse-version failed. is it they don't have fuse?
 		cmdoutstr := cmdout.String()
 		if strings.Contains(cmdoutstr, errStrNoFuseHeaders) {
-			// yes! it is! they dont have fuse!
+			// yes! it is! they don't have fuse!
 			return fmt.Errorf(errStrFuseRequired)
 		}
 
@@ -233,7 +233,7 @@ func ensureFuseVersionIsInstalled() error {
 func userAskedToSkipFuseCheck(node *core.IpfsNode) (skip bool, err error) {
 	val, err := node.Repo.GetConfigKey(dontCheckOSXFUSEConfigKey)
 	if err != nil {
-		return false, nil // failed to get config value. dont skip check.
+		return false, nil // failed to get config value. don't skip check.
 	}
 
 	switch val := val.(type) {
@@ -242,7 +242,7 @@ func userAskedToSkipFuseCheck(node *core.IpfsNode) (skip bool, err error) {
 	case bool:
 		return val, nil
 	default:
-		// got config value, but it's invalid... dont skip check, ask the user to fix it...
+		// got config value, but it's invalid... don't skip check, ask the user to fix it...
 		return false, fmt.Errorf(errStrFixConfig, dontCheckOSXFUSEConfigKey, val,
 			dontCheckOSXFUSEConfigKey)
 	}

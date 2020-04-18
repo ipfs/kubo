@@ -184,7 +184,7 @@ test_expect_success "daemon actually can handle 2048 file descriptors" '
   hang-fds -hold=2s 2000 '$API_MADDR' > /dev/null
 '
 
-test_expect_success "daemon didnt throw any errors" '
+test_expect_success "daemon didn't throw any errors" '
   test_expect_code 1 grep "too many open files" daemon_err
 '
 

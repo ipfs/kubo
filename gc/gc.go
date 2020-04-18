@@ -250,7 +250,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 }
 
 // ErrCannotFetchAllLinks is returned as the last Result in the GC output
-// channel when there was a error creating the marked set because of a
+// channel when there was an error creating the marked set because of a
 // problem when finding descendants.
 var ErrCannotFetchAllLinks = errors.New("garbage collection aborted: could not retrieve some links")
 

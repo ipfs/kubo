@@ -60,7 +60,7 @@ test_expect_success "add a file on a node in client mode" '
   FILE_HASH=$(ipfsi 8 add -q filea)
 '
 
-test_expect_success "retrieve that file on a client mode node" '
+test_expect_success "retrieve that file on a node in client mode" '
   check_file_fetch 9 $FILE_HASH filea
 '
 

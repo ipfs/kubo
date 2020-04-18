@@ -238,7 +238,7 @@ release).
 However,
 
 1. Badger is complicated while flatfs pushes all the complexity down into the
-   filesystem itself. That means that flatfs is only likely to loose your data
+   filesystem itself. That means that flatfs is only likely to lose your data
    if your underlying filesystem gets corrupted while there are more
    opportunities for badger itself to get corrupted.
 2. Badger can use a lot of memory. In this release, we've tuned badger to use

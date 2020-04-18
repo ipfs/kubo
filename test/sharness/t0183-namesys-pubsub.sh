@@ -41,7 +41,7 @@ test_expect_success 'check subscriptions' '
     test_cmp expected subs2
 '
 
-test_expect_success 'add an obect on publisher node' '
+test_expect_success 'add an object on publisher node' '
     echo "ipns is super fun" > file &&
     HASH_FILE=$(ipfsi 0 add -q file)
 '
