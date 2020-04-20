@@ -149,7 +149,7 @@ test_init_ipfs
 
 
 test_expect_success "basic offline export of 'getting started' dag works" '
-  ipfs dag export QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv >/dev/null
+  ipfs dag export "$HASH_WELCOME_DOCS" >/dev/null
 '
 
 
