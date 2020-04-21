@@ -10,11 +10,43 @@
   .narrow {width: 0px;}
   .padding { margin: 100px;}
   #header {
-    background: #000;
+    background: #0b3a53;
+    border-bottom: 4px solid #69c4cd;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
   }
   #logo {
-    height: 25px;
+    height: 35px;
     margin: 10px;
+  }
+  #header-menu {
+    align-items: center;
+    display: flex;
+    margin: 10px;
+    float: right;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  #header-menu a {
+    color: #69c4cd;
+  }
+  #header-menu a:active, a:visited {
+    color: #9ad4db;
+  }
+  #header-menu a:hover {
+    color: #ffffff;
+  }
+  .header-menu-item {
+    margin: 0px 8px;
+  }
+  #bug-report svg {
+    height: 30px;
+    fill: #69c4cd;
+    margin-top: 2px;
+  }
+  #bug-report svg:hover {
+    fill: #ffffff;
   }
   .ipfs-icon {
     width:16px;
@@ -27,8 +59,17 @@
 </head>
 <body>
   <div id="header" class="row">
-    <div class="col-xs-2">
+    <div class="" style="float:left; padding: 0 15px; width: 160px;">
       <div id="logo" class="ipfs-logo">&nbsp;</div>
+    </div>
+    <div id="header-menu">
+      <div class="header-menu-item"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About IPFS</a></div>
+      <div class="header-menu-item"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install IPFS</a></div>
+      <div class="header-menu-item" id="bug-report">
+        <a href="https://github.com/ipfs/dir-index-html/issues/" target="_blank" rel="noopener noreferrer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18.4 21"><circle cx="7.5" cy="4.8" r="1"/><circle cx="11.1" cy="4.8" r="1"/><path d="M12.7 8.4c-0.5-1.5-1.9-2.5-3.5-2.5 -1.6 0-3 1-3.5 2.5H12.7z"/><path d="M8.5 9.7H5c-0.5 0.8-0.7 1.7-0.7 2.7 0 2.6 1.8 4.8 4.2 5.2V9.7z"/><path d="M13.4 9.7H9.9v7.9c2.4-0.4 4.2-2.5 4.2-5.2C14.1 11.4 13.9 10.5 13.4 9.7z"/><circle cx="15.7" cy="12.9" r="1"/><circle cx="15.1" cy="15.4" r="1"/><circle cx="15.3" cy="10.4" r="1"/><circle cx="2.7" cy="12.9" r="1"/><circle cx="3.3" cy="15.4" r="1"/><circle cx="3.1" cy="10.4" r="1"/></svg>
+        </a>
+      </div>
     </div>
   </div>
   <br/>
