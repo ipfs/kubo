@@ -13,15 +13,15 @@ import (
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
-	return InitWithOptions(out, []options.KeyGenerateOption{options.Key.Size(nBitsForKeypair)})
-}
-
-func InitWithOptions(out io.Writer, opts []options.KeyGenerateOption) (*Config, error) {
-	identity, err := identityConfig(out, opts)
+	identity, err := CreateIdentity(out, []options.KeyGenerateOption{options.Key.Size(nBitsForKeypair)})
 	if err != nil {
 		return nil, err
 	}
 
+	return InitWithIdentity(identity)
+}
+
+func InitWithIdentity(identity Identity) (*Config, error) {
 	bootstrapPeers, err := DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -170,8 +170,8 @@ func flatfsSpec() map[string]interface{} {
 	}
 }
 
-// identityConfig initializes a new identity.
-func identityConfig(out io.Writer, opts []options.KeyGenerateOption) (Identity, error) {
+// CreateIdentity initializes a new identity.
+func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, error) {
 	// TODO guard higher up
 	ident := Identity{}
 
