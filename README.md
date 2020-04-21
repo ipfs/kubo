@@ -1,8 +1,9 @@
 # dir-index-html
 
-[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
-[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](http://ipfs.io/)
-[![](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
+[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](https://protocol.ai)
+[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](https://ipfs.io/)
+[![Matrix](https://img.shields.io/badge/matrix-%23ipfs%3Amatrix.org-blue.svg?style=flat-square)](https://matrix.to/#/room/#ipfs:matrix.org)
+[![IRC](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
 > Directory listing HTML for go-ipfs gateways
@@ -10,6 +11,11 @@
 This repo is not be used standalone. It's used by the gateway code in go-ipfs. It'll be merged into the gateway package, once the gateway has been extracted from go-ipfs.
 
 ![](http://gateway.ipfs.io/ipfs/Qmf82jUC9ZuoSTCNY55hyx3HmiDed3WnhFD5PC7CTSPmC2/cap.png)
+
+## Updating
+
+1. Make changes to _both_ dir-index.html and dir-index-uncat.html.
+2. Follow the instructions in [go-ipfs](https://github.com/ipfs/go-ipfs/tree/master/assets#updating-dir-index-html) for updating the directory index.
 
 ## Contribute
 
