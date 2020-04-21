@@ -50,7 +50,7 @@ func TestDHTConnectivitySlowRouting(t *testing.T) {
 	}
 }
 
-var wanPrefix = net.ParseIP("100::")
+var wanPrefix = net.ParseIP("2000::")
 var lanPrefix = net.ParseIP("fe80::")
 
 func makeAddr(n uint32, wan bool) ma.Multiaddr {
