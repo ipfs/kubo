@@ -522,8 +522,8 @@ var updatePinCmd = &cmds.Command{
 Efficiently pins a new object based on differences from an existing one and,
 by default, removes the old pin.
 
-This commands is useful when the new pin contains many similarities or is a
-derivative of an existing one, particuarly for large objects. This allows a more
+This command is useful when the new pin contains many similarities or is a
+derivative of an existing one, particularly for large objects. This allows a more
 efficient DAG-traversal which fully skips already-pinned branches from the old
 object. As a requirement, the old object needs to be an existing recursive
 pin.

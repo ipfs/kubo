@@ -66,8 +66,8 @@ func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 	// the soft limit is the value that the kernel enforces for the
 	// corresponding resource
 	// the hard limit acts as a ceiling for the soft limit
-	// an unprivileged process may only set it's soft limit to a
-	// alue in the range from 0 up to the hard limit
+	// an unprivileged process may only set its soft limit to a
+	// value in the range from 0 up to the hard limit
 	err = setLimit(targetLimit, targetLimit)
 	switch err {
 	case nil:
@@ -82,7 +82,7 @@ func ManageFdLimit() (changed bool, newLimit uint64, err error) {
 		// set the soft value
 		err = setLimit(targetLimit, hard)
 		if err != nil {
-			err = fmt.Errorf("error setting ulimit wihout hard limit: %s", err)
+			err = fmt.Errorf("error setting ulimit without hard limit: %s", err)
 			break
 		}
 		newLimit = targetLimit

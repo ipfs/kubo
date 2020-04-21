@@ -116,7 +116,7 @@ func verifyMigrationSupportsVersion(fsrbin string, vn int) error {
 		return nil
 	}
 
-	return fmt.Errorf("migrations binary doesnt support version %d: %s", vn, fsrbin)
+	return fmt.Errorf("migrations binary doesn't support version %d: %s", vn, fsrbin)
 }
 
 func migrationsVersion(bin string) (int, error) {
@@ -163,7 +163,7 @@ func GetLatestVersion(ipfspath, dist string) (string, error) {
 		}
 	}
 	if latest == "" {
-		return "", fmt.Errorf("couldnt find a non dev version in the list")
+		return "", fmt.Errorf("couldn't find a non dev version in the list")
 	}
 	return vs[len(vs)-1], nil
 }

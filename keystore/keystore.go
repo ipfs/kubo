@@ -19,7 +19,7 @@ var codec = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 // Keystore provides a key management interface
 type Keystore interface {
-	// Has returns whether or not a key exist in the Keystore
+	// Has returns whether or not a key exists in the Keystore
 	Has(string) (bool, error)
 	// Put stores a key in the Keystore, if a key with the same name already exists, returns ErrKeyExists
 	Put(string, ci.PrivKey) error
@@ -57,7 +57,7 @@ func NewFSKeystore(dir string) (*FSKeystore, error) {
 	return &FSKeystore{dir}, nil
 }
 
-// Has returns whether or not a key exist in the Keystore
+// Has returns whether or not a key exists in the Keystore
 func (ks *FSKeystore) Has(name string) (bool, error) {
 	name, err := encode(name)
 	if err != nil {

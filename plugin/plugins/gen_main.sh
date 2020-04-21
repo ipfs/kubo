@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-dir=${1:?first paramater with dir to work in is required}
+dir=${1:?first parameter with dir to work in is required}
 pkg=${2:?second parameter with full name of the package is required}
 main_pkg="$dir/main"
 

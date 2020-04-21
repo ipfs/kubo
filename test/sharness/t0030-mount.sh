@@ -8,7 +8,7 @@ test_description="Test mount command"
 
 . lib/test-lib.sh
 
-# if in travis CI, dont test mount (no fuse)
+# if in travis CI, don't test mount (no fuse)
 if ! test_have_prereq FUSE; then
   skip_all='skipping mount tests, fuse not available'
 

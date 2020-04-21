@@ -66,7 +66,7 @@ test_client_suite() {
 
 # first, test things without daemon, without /api file
 # with no daemon, everything should fail 
-# (using unreachable because API_MADDR doesnt get set until daemon start)
+# (using unreachable because API_MADDR doesn't get set until daemon start)
 test_client_suite "(daemon off, no --api, no /api file)" false false "$api_unreachable" "$api_other"
 
 

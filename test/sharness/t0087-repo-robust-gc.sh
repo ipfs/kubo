@@ -35,7 +35,7 @@ test_gc_robust_part1() {
     test_must_fail ipfs cat $HASH1
   '
 
-  test_expect_success "'ipfs repo gc' should still be be fine" '
+  test_expect_success "'ipfs repo gc' should still be fine" '
     ipfs repo gc
   '
 

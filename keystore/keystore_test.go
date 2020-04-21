@@ -137,7 +137,7 @@ func TestKeystoreBasics(t *testing.T) {
 	}
 
 	if err := ks.Put("", k1); err == nil {
-		t.Fatal("shouldnt be able to put a key with no name")
+		t.Fatal("shouldn't be able to put a key with no name")
 	}
 
 	if err := ks.Put(".foo", k1); err != nil {
@@ -238,7 +238,7 @@ func assertGetKey(ks Keystore, name string, exp ci.PrivKey) error {
 	}
 
 	if !outK.Equals(exp) {
-		return fmt.Errorf("key we got out didnt match expectation")
+		return fmt.Errorf("key we got out didn't match expectation")
 	}
 
 	return nil

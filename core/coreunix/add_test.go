@@ -87,7 +87,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 	// GC shouldn't get the lock until after the file is completely added
 	select {
 	case <-gc1started:
-		t.Fatal("gc shouldnt have started yet")
+		t.Fatal("gc shouldn't have started yet")
 	default:
 	}
 
@@ -118,7 +118,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 
 	select {
 	case <-gc2started:
-		t.Fatal("gc shouldnt have started yet")
+		t.Fatal("gc shouldn't have started yet")
 	default:
 	}
 
@@ -192,7 +192,7 @@ func TestAddGCLive(t *testing.T) {
 	case o := <-out:
 		addedHashes[o.(*coreiface.AddEvent).Path.Cid().String()] = struct{}{}
 	case <-addDone:
-		t.Fatal("add shouldnt complete yet")
+		t.Fatal("add shouldn't complete yet")
 	}
 
 	var gcout <-chan gc.Result
@@ -202,14 +202,14 @@ func TestAddGCLive(t *testing.T) {
 		gcout = gc.GC(context.Background(), node.Blockstore, node.Repo.Datastore(), node.Pinning, nil)
 	}()
 
-	// gc shouldnt start until we let the add finish its current file.
+	// gc shouldn't start until we let the add finish its current file.
 	if _, err := pipew.Write([]byte("some data for file b")); err != nil {
 		t.Fatal(err)
 	}
 
 	select {
 	case <-gcstarted:
-		t.Fatal("gc shouldnt have started yet")
+		t.Fatal("gc shouldn't have started yet")
 	default:
 	}
 

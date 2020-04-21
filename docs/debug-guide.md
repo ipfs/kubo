@@ -34,7 +34,7 @@ If you feel intrepid, you can dump this information and investigate it yourself:
 
 ### Analyzing the stack dump
 
-The first thing to look for is hung goroutines -- any goroutine thats been stuck
+The first thing to look for is hung goroutines -- any goroutine that's been stuck
 for over a minute will note that in the trace. It looks something like:
 
 ```

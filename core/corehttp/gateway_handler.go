@@ -228,7 +228,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Etag", etag)
 
 	// set these headers _after_ the error, for we may just not have it
-	// and dont want the client to cache a 500 response...
+	// and don't want the client to cache a 500 response...
 	// and only if it's /ipfs!
 	// TODO: break this out when we split /ipfs /ipns routes.
 	modtime := time.Now()
@@ -321,7 +321,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// keep backlink
 	case len(pathSplit) == 4 && pathSplit[3] == "": // url: /ipfs/$hash/
 
-	// add the correct link depending on wether the path ends with a slash
+	// add the correct link depending on whether the path ends with a slash
 	default:
 		if strings.HasSuffix(backLink, "/") {
 			backLink += "./.."

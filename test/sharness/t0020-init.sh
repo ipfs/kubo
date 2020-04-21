@@ -8,7 +8,7 @@ test_description="Test init command"
 
 . lib/test-lib.sh
 
-# test that ipfs fails to init if IPFS_PATH isnt writeable
+# test that ipfs fails to init if IPFS_PATH isn't writeable
 test_expect_success "create dir and change perms succeeds" '
   export IPFS_PATH="$(pwd)/.badipfs" &&
   mkdir "$IPFS_PATH" &&
@@ -114,7 +114,7 @@ test_expect_success "'ipfs init --empty-repo' output looks good" '
   test_cmp expected actual_init
 '
 
-test_expect_success "Welcome readme doesn't exists" '
+test_expect_success "Welcome readme doesn't exist" '
   test_must_fail ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme
 '
 

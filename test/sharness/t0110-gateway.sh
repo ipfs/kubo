@@ -64,7 +64,7 @@ test_expect_success "GET IPFS directory file output looks good" '
   test_cmp dir/test actual
 '
 
-test_expect_success "GET IPFS non existent file returns code expected (404)" '
+test_expect_success "GET IPFS nonexistent file returns code expected (404)" '
   test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/$HASH2/pleaseDontAddMe" "HTTP/1.1 404 Not Found"
 '
 
@@ -250,7 +250,7 @@ test_expect_success "try fetching not present ipns key from node 0" '
   test_expect_code 22 curl -f "http://127.0.0.1:$GWPORT/ipns/$PEERID_1"
 '
 
-test_expect_success "try fetching present key from from node 0" '
+test_expect_success "try fetching present key from node 0" '
   BAR=$(echo "bar" | ipfsi 0 add -Q) &&
   curl -f "http://127.0.0.1:$GWPORT/ipfs/$BAR"
 '

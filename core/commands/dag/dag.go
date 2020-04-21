@@ -217,7 +217,7 @@ var DagResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Resolve ipld block",
 		ShortDescription: `
-'ipfs dag resolve' fetches a dag node from ipfs, prints it's address and remaining path.
+'ipfs dag resolve' fetches a dag node from ipfs, prints its address and remaining path.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -366,7 +366,7 @@ Maximum supported CAR version: 1
 				// to the Pinning interface, sigh...
 				//
 				// If we didn't have the problem of inability to take multiple pinlocks,
-				// we could use the Api directly like so (though internally it does the same):
+				// we could use the api directly like so (though internally it does the same):
 				//
 				// // not ideal, but the pinning api takes only paths :(
 				// rp := path.NewResolvedPath(
@@ -462,7 +462,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 		//
 		// every single file in it() is already open before we start
 		// just close here sooner rather than later for neatness
-		// and to surface potential erorrs writing on closed fifos
+		// and to surface potential errors writing on closed fifos
 		// this won't/can't help with not running out of handles
 		err := func() error {
 			defer file.Close()

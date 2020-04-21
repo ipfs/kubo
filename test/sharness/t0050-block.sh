@@ -228,7 +228,7 @@ test_expect_success "can read block with different hash" '
 # Misc tests
 #
 
-test_expect_success "'ipfs block stat' with nothing from stdin doesnt crash" '
+test_expect_success "'ipfs block stat' with nothing from stdin doesn't crash" '
   test_expect_code 1 ipfs block stat < /dev/null 2> stat_out
 '
 

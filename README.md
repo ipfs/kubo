@@ -108,7 +108,7 @@ For Linux and MacOSX you can use the purely functional package manager [Nix](htt
 $ nix-env -i ipfs
 ```
 
-You can also install the Package by using it's attribute name, which is also `ipfs`.
+You can also install the Package by using its attribute name, which is also `ipfs`.
 
 #### Guix
 
@@ -127,7 +127,7 @@ In solus, go-ipfs is available in the main repository as
 $ sudo eopkg install go-ipfs
 ```
 
-You can also install it trough the Solus software center.
+You can also install it through the Solus software center.
 
 #### Snap
 

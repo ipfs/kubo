@@ -1166,7 +1166,7 @@ func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (
 			return nil, err
 		}
 
-		// if create is specified and the file doesnt exist, we create the file
+		// if create is specified and the file doesn't exist, we create the file
 		dirname, fname := gopath.Split(path)
 		pdir, err := getParentDir(r, dirname)
 		if err != nil {
@@ -1191,7 +1191,7 @@ func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (
 
 		fi, ok := fsn.(*mfs.File)
 		if !ok {
-			return nil, errors.New("expected *mfs.File, didnt get it. This is likely a race condition")
+			return nil, errors.New("expected *mfs.File, didn't get it. This is likely a race condition")
 		}
 		return fi, nil
 
@@ -1224,7 +1224,7 @@ func getParentDir(root *mfs.Root, dir string) (*mfs.Directory, error) {
 
 	pdir, ok := parent.(*mfs.Directory)
 	if !ok {
-		return nil, errors.New("expected *mfs.Directory, didnt get it. This is likely a race condition")
+		return nil, errors.New("expected *mfs.Directory, didn't get it. This is likely a race condition")
 	}
 	return pdir, nil
 }

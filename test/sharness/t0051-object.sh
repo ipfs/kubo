@@ -206,7 +206,7 @@ test_object_cmd() {
     test_cmp expected actual
   '
 
-  test_expect_success "after gc, objects still acessible" '
+  test_expect_success "after gc, objects still accessible" '
     ipfs repo gc > /dev/null &&
     ipfs refs -r --timeout=2s $HASH > /dev/null
   '

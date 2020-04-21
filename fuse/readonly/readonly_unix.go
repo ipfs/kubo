@@ -224,7 +224,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 }
 
 func (s *Node) Getxattr(ctx context.Context, req *fuse.GetxattrRequest, resp *fuse.GetxattrResponse) error {
-	// TODO: is nil the right response for 'bug off, we aint got none' ?
+	// TODO: is nil the right response for 'bug off, we ain't got none' ?
 	resp.Xattr = nil
 	return nil
 }

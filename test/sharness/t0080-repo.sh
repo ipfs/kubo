@@ -33,7 +33,7 @@ test_expect_success "'ipfs repo gc' looks good (patch root)" '
   grep -v "removed $HASH" gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' doesnt remove file" '
+test_expect_success "'ipfs repo gc' doesn't remove file" '
   ipfs cat "$HASH" >out &&
   test_cmp out afile
 '

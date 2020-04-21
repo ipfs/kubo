@@ -45,7 +45,7 @@ func NewNameSystem(r routing.ValueStore, ds ds.Datastore, cachesize int) NameSys
 		cache, _ = lru.New(cachesize)
 	}
 
-	// Prewarm namesys cache with static records for deteministic tests and debugging.
+	// Prewarm namesys cache with static records for deterministic tests and debugging.
 	// Useful for testing things like DNSLink without real DNS lookup.
 	// Example:
 	// IPFS_NS_MAP="dnslink-test.example.com:/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am"
