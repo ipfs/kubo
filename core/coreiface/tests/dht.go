@@ -4,8 +4,9 @@ import (
 	"context"
 	"io"
 	"testing"
+	"time"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
@@ -42,6 +43,8 @@ func (tp *TestSuite) TestDhtFindPeer(t *testing.T) {
 	if len(laddrs0) != 1 {
 		t.Fatal("unexpected number of local addrs")
 	}
+
+	time.Sleep(3 * time.Second)
 
 	pi, err := apis[2].Dht().FindPeer(ctx, self0.ID())
 	if err != nil {
@@ -88,6 +91,8 @@ func (tp *TestSuite) TestDhtFindProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	time.Sleep(3 * time.Second)
+
 	out, err := apis[2].Dht().FindProviders(ctx, p, options.Dht.NumProviders(1))
 	if err != nil {
 		t.Fatal(err)
@@ -124,6 +129,8 @@ func (tp *TestSuite) TestDhtProvide(t *testing.T) {
 	}
 
 	p := s.Path()
+
+	time.Sleep(3 * time.Second)
 
 	out, err := apis[2].Dht().FindProviders(ctx, p, options.Dht.NumProviders(1))
 	if err != nil {
