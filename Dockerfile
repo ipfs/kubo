@@ -1,4 +1,4 @@
-FROM golang:1.13.8-buster
+FROM golang:1.13.10-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Install deps
@@ -29,7 +29,7 @@ RUN cd $SRC_DIR \
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
-ENV TINI_VERSION v0.18.0
+ENV TINI_VERSION v0.19.0
 RUN set -eux; \
     dpkgArch="$(dpkg --print-architecture)"; \
     case "${dpkgArch##*-}" in \
