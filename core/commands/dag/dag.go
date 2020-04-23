@@ -554,7 +554,7 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 		}
 
 		ctx, cancel := context.WithCancel(req.Context)
-		ctx = exchange.NewSession(req.Context)
+		ctx = exchange.NewSession(ctx)
 		defer cancel()
 
 		// Code disabled until descent-issue in go-ipld-prime is fixed
