@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cid "github.com/ipfs/go-cid"
@@ -101,6 +102,12 @@ NOTE: List all references recursively by using the flag '-r'.
 
 			format = "<src> -> <dst>"
 		}
+
+		// Assume all these requests are related and put them into a
+		// single session.
+		ctx, cancel := context.WithCancel(ctx)
+		ctx = exchange.NewSession(ctx)
+		defer cancel()
 
 		objs, err := objectsForPaths(ctx, api, req.Arguments)
 		if err != nil {

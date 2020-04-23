@@ -233,12 +233,14 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 }
 
 // getSession returns new api backed by the same node with a read-only session DAG
+// TODO: Remove this once we can thread the context through everywhere we need
+// to make requests relates to the session.
 func (api *CoreAPI) getSession(ctx context.Context) *CoreAPI {
 	sesApi := *api
 
 	// TODO: We could also apply this to api.blocks, and compose into writable api,
 	// but this requires some changes in blockservice/merkledag
-	sesApi.dag = dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag))
+	sesApi.dag = dag.NewReadOnlyDagService(dag.NewSession(ctx, api.dag)) //nolint
 
 	return &sesApi
 }

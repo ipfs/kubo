@@ -16,6 +16,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	files "github.com/ipfs/go-ipfs-files"
 	dag "github.com/ipfs/go-merkledag"
 	mfs "github.com/ipfs/go-mfs"
@@ -89,6 +90,11 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// the hour is a hard fallback, we don't expect it to happen, but just in case
 	ctx, cancel := context.WithTimeout(r.Context(), time.Hour)
 	defer cancel()
+
+	// Always create a root session for http requests.
+	// That way we do all path resolution etc in the same session.
+	ctx = exchange.NewSession(ctx)
+
 	r = r.WithContext(ctx)
 
 	defer func() {

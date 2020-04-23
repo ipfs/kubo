@@ -81,7 +81,7 @@ func (s *syncDagService) Sync() error {
 }
 
 func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
-	return merkledag.NewSession(ctx, s.DAGService)
+	return merkledag.NewSession(ctx, s.DAGService) //nolint
 }
 
 // Dag creates new DAGService

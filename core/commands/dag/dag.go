@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/coredag"
 	iface "github.com/ipfs/interface-go-ipfs-core"
@@ -18,7 +20,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	mdag "github.com/ipfs/go-merkledag"
 	ipfspath "github.com/ipfs/go-path"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
@@ -552,6 +553,10 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 			return err
 		}
 
+		ctx, cancel := context.WithCancel(req.Context)
+		ctx = exchange.NewSession(req.Context)
+		defer cancel()
+
 		// Code disabled until descent-issue in go-ipld-prime is fixed
 		// https://github.com/ribasushi/gip-muddle-up
 		//
@@ -581,15 +586,7 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 				close(errCh)
 			}()
 
-			if err := gocar.WriteCar(
-				req.Context,
-				mdag.NewSession(
-					req.Context,
-					node.DAG,
-				),
-				[]cid.Cid{c},
-				pipeW,
-			); err != nil {
+			if err := gocar.WriteCar(ctx, node.DAG, []cid.Cid{c}, pipeW); err != nil {
 				errCh <- err
 			}
 		}()
