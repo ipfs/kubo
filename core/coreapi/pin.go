@@ -3,8 +3,10 @@ package coreapi
 import (
 	"context"
 	"fmt"
+
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	pin "github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -17,6 +19,8 @@ import (
 type PinAPI CoreAPI
 
 func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOption) error {
+	ctx = exchange.NewSession(ctx)
+
 	dagNode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return fmt.Errorf("pin: %s", err)
@@ -80,6 +84,8 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 }
 
 func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opts ...caopts.PinUpdateOption) error {
+	ctx = exchange.NewSession(ctx)
+
 	settings, err := caopts.PinUpdateOptions(opts...)
 	if err != nil {
 		return err

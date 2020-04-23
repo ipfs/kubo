@@ -14,7 +14,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/go-bitswap v0.2.12
+	github.com/ipfs/go-bitswap v0.2.13-0.20200423051144-fa8848292027
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.3
 	github.com/ipfs/go-cid v0.0.5
@@ -33,7 +33,7 @@ require (
 	github.com/ipfs/go-ipfs-cmds v0.2.2
 	github.com/ipfs/go-ipfs-config v0.5.2
 	github.com/ipfs/go-ipfs-ds-help v0.1.1
-	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
+	github.com/ipfs/go-ipfs-exchange-interface v0.0.2-0.20200423055703-2e8ddd22ab43
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.8
 	github.com/ipfs/go-ipfs-pinner v0.0.4
@@ -46,7 +46,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.0.3
 	github.com/ipfs/go-ipns v0.0.2
 	github.com/ipfs/go-log v1.0.4
-	github.com/ipfs/go-merkledag v0.3.2
+	github.com/ipfs/go-merkledag v0.3.3-0.20200423075046-69158fea10b0
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.1

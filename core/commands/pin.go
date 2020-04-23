@@ -12,6 +12,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	pin "github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -186,18 +187,30 @@ var addPinCmd = &cmds.Command{
 func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
-		rp, err := api.ResolvePath(ctx, path.New(b))
+		rp, err := pinAdd(ctx, api, path.New(b), recursive)
 		if err != nil {
-			return nil, err
-		}
-
-		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
 			return nil, err
 		}
 		added[i] = enc.Encode(rp.Cid())
 	}
 
 	return added, nil
+}
+
+func pinAdd(ctx context.Context, api coreiface.CoreAPI, path path.Path, recursive bool) (path.Resolved, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	ctx = exchange.NewSession(ctx)
+
+	rp, err := api.ResolvePath(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
+		return nil, err
+	}
+	return rp, nil
 }
 
 var rmPinCmd = &cmds.Command{
