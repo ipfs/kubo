@@ -45,7 +45,7 @@ do_import() {
       result=$?
 
       rm -f spin.gc &>/dev/null
-      wait
+      wait || true  # work around possible trigger of a bash bug on overloaded circleci
       exit $result
   )
 }
@@ -124,7 +124,7 @@ EOE
         > basic_fifo_import_actual
         result=$?
 
-        wait
+        wait || true	# work around possible trigger of a bash bug on overloaded circleci
         exit "$result"
     )
   '
