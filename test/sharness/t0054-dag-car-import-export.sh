@@ -11,6 +11,13 @@ set -o pipefail
 tar -C ../t0054-dag-car-import-export-data/ --strip-components=1 -Jxf ../t0054-dag-car-import-export-data/test_dataset_car_v0.tar.xz
 tab=$'\t'
 
+test_cmp_sorted() {
+  # use test_cmp to dump out the unsorted file contents as a diff
+  [[ "$( sort "$1" | sha256sum )" == "$( sort "$2" | sha256sum )" ]] \
+    || test_cmp "$1" "$2"
+}
+export -f test_cmp_sorted
+
 reset_blockstore() {
   node=$1
 
@@ -38,7 +45,7 @@ do_import() {
       result=$?
 
       rm -f spin.gc &>/dev/null
-      wait
+      wait || true  # work around possible trigger of a bash bug on overloaded circleci
       exit $result
   )
 }
@@ -65,11 +72,11 @@ EOE
       ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
       ../t0054-dag-car-import-export-data/lotus_testnet_export_128_shuffled_nulroot.car \
       ../t0054-dag-car-import-export-data/lotus_devnet_genesis_shuffled_nulroot.car \
-    | sort > basic_import_actual
+    > basic_import_actual
   '
 
   test_expect_success "basic import output as expected" '
-    test_cmp basic_import_expected basic_import_actual
+    test_cmp_sorted basic_import_expected basic_import_actual
   '
 
   test_expect_success "basic fetch+export 1" '
@@ -92,11 +99,11 @@ EOE
 
   test_expect_success "import/pin naked roots only, relying on local blockstore having all the data" '
     ipfsi 1 dag import --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
-      | sort > naked_import_result_json_actual
+      > naked_import_result_json_actual
   '
 
   test_expect_success "naked import output as expected" '
-    test_cmp  naked_root_import_json_expected naked_import_result_json_actual
+    test_cmp_sorted naked_root_import_json_expected naked_import_result_json_actual
   '
 
   reset_blockstore 0
@@ -114,10 +121,10 @@ EOE
           pipe_testnet \
           pipe_devnet \
           ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
-        | sort > basic_fifo_import_actual
+        > basic_fifo_import_actual
         result=$?
 
-        wait
+        wait || true	# work around possible trigger of a bash bug on overloaded circleci
         exit "$result"
     )
   '
@@ -127,7 +134,7 @@ EOE
   '
 
   test_expect_success "fifo-import output as expected" '
-    test_cmp basic_import_expected basic_fifo_import_actual
+    test_cmp_sorted basic_import_expected basic_fifo_import_actual
   '
 }
 
@@ -158,7 +165,7 @@ test_expect_success "basic offline export of nonexistent cid" '
   ! ipfs dag export QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2> offline_fetch_error_actual >/dev/null
 '
 test_expect_success "correct error" '
-  test_cmp offline_fetch_error_expected offline_fetch_error_actual
+  test_cmp_sorted offline_fetch_error_expected offline_fetch_error_actual
 '
 
 
@@ -168,10 +175,10 @@ cat >multiroot_import_json_expected <<EOE
 {"Root":{"Cid":{"/":"bafy2bzacede2hsme6hparlbr4g2x6pylj43olp4uihwjq3plqdjyrdhrv7cp4"},"PinErrorMsg":""}}
 EOE
 test_expect_success "multiroot import works" '
-  ipfs dag import --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car | sort > multiroot_import_json_actual
+  ipfs dag import --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
 '
 test_expect_success "multiroot import expected output" '
-  test_cmp multiroot_import_json_expected multiroot_import_json_actual
+  test_cmp_sorted multiroot_import_json_expected multiroot_import_json_actual
 '
 
 
@@ -188,10 +195,10 @@ test_expect_success "expected silence on --pin-roots=false" '
 
 test_expect_success "naked root import works" '
   ipfs dag import --enc=json ../t0054-dag-car-import-export-data/combined_naked_roots_genesis_and_128.car \
-  | sort > naked_root_import_json_actual
+    > naked_root_import_json_actual
 '
 test_expect_success "naked root import expected output" '
-   test_cmp naked_root_import_json_expected naked_root_import_json_actual
+   test_cmp_sorted naked_root_import_json_expected naked_root_import_json_actual
 '
 
 test_done
