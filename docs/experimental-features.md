@@ -545,8 +545,11 @@ You can read more in the [datastore](./datastores.md#badgerds) documentation.
 ### State
 Experimental
 
-Allows creating directories with an unlimited number of entries - currently
-size of unixfs directories is limited by the maximum block size
+Allows creating directories with an unlimited number of entries.
+
+**Caveats:**
+1. right now it is a GLOBAL FLAG which will impact the final CID of all directories produced by `ipfs.add` (even the small ones)
+2. currently size of unixfs directories is limited by the maximum block size
 
 ### Basic Usage:
 
