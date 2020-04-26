@@ -378,7 +378,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/") {
+	if !strings.Contains(s, "Index of /ipns/example.net/foo? #&lt;&#39;/") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
@@ -444,7 +444,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/bar/") {
+	if !strings.Contains(s, "Index of /ipns/example.net/foo? #&lt;&#39;/bar/") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
@@ -478,7 +478,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /good-prefix") {
+	if !strings.Contains(s, "Index of /ipns/example.net") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {

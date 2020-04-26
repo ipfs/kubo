@@ -335,7 +335,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
 		Listing:  dirListing,
-		Path:     originalUrlPath,
+		Path:     urlPath,
 		BackLink: backLink,
 		Hash:     hash,
 	}
