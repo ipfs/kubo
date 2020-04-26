@@ -330,10 +330,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	var hash string
-	if !strings.HasPrefix(urlPath, ipfsPathPrefix) {
-		hash = resolvedPath.Cid().String()
-	}
+	hash := resolvedPath.Cid().String()
 
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
