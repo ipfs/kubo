@@ -110,6 +110,20 @@ Inverse profile of the test profile.`,
 			return nil
 		},
 	},
+	"default-datastore": {
+		Description: `Configures the node to use the default datastore (flatfs).
+
+Read the "flatfs" profile description for more information on this datastore.
+
+This profile may only be applied when first initializing the node.
+`,
+
+		InitOnly: true,
+		Transform: func(c *Config) error {
+			c.Datastore.Spec = flatfsSpec()
+			return nil
+		},
+	},
 	"flatfs": {
 		Description: `Configures the node to use the flatfs datastore.
 
@@ -187,10 +201,6 @@ fetching may be degraded.
 			return nil
 		},
 	},
-}
-
-func init() {
-	Profiles["default-datatore"] = Profiles["badgerds"]
 }
 
 func getAvailablePort() (port int, err error) {
