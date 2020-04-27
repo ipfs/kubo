@@ -1,8 +1,9 @@
 ---
 name: 'Documentation Issue'
-about: 'Report missing/erroneous documentation, propose new documentation, report broken links, etc.'
-labels: topic/docs-ipfs
+about: 'Report missing, erroneous docs, broken links or propose new go-ipfs docs'
+labels: topic/docs-ipfs, need/triage
 ---
+<!-- Problems with documentation on https://docs.ipfs.io should be reported to https://github.com/ipfs/docs -->
 
 #### Location
 

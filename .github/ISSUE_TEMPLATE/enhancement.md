@@ -5,7 +5,7 @@ labels: kind/enhancement
 ---
 
 <!--
-Note: If you'd like to suggest an idea related to IPFS but not specifically related to the go implementation, please file an issue at https://github.com/ipfs/ipfs instead
+Note: If you'd like to suggest an idea related to IPFS but not specifically related to the Go implementation, please post in https://discuss.ipfs.io instead.
 
 When requesting an _enhancement_, please be sure to include your motivation and try to be as specific as possible.
 -->
