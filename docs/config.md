@@ -12,50 +12,82 @@ applied with `--profile` flag to `ipfs init` or with the `ipfs config profile
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
-Available profiles:
+The available configuration profiles are listed below. You can also find them
+documented in `ipfs config profile --help`.
 
 - `server`
 
-  Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
-  disables host and content discovery in local networks.
-
-- `local-discovery`
-
-  Sets default values to fields affected by `server` profile, enables
-  discovery in local networks.
-
-- `test`
-
-  Reduces external interference, useful for running ipfs in test environments.
-  Note that with these settings node won't be able to talk to the rest of the
-  network without manual bootstrap.
-
-- `default-networking`
-
-  Restores default network settings. Inverse profile of the `test` profile.
-
-- `badgerds`
-
-  Replaces default datastore configuration with experimental badger datastore.
-  If you apply this profile after `ipfs init`, you will need to convert your
-  datastore to the new configuration. You can do this using
-  [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
-
-  WARNING: badger datastore is experimental. Make sure to backup your data
-  frequently.
-
-- `default-datastore`
-
-  Restores default datastore configuration.
-
-- `lowpower`
-
-  Reduces daemon overhead on the system. May affect node functionality,
-  performance of content discovery and data fetching may be degraded.
+  Disables local host discovery, recommended when
+  running IPFS on machines with public IPv4 addresses.
 
 - `randomports`
 
-  Generate random port for swarm.
+  Use a random port number for swarm.
+
+- `default-datatore`
+
+  Configures the node to use the default datastore (flatfs).
+
+  Read the "flatfs" profile description for more information on this datastore.
+
+  This profile may only be applied when first initializing the node.
+
+- `local-discovery`
+
+  Sets default values to fields affected by the server
+  profile, enables discovery in local networks.
+
+- `test`
+
+  Reduces external interference of IPFS daemon, this
+  is useful when using the daemon in test environments.
+
+- `default-networking`
+
+  Restores default network settings.
+  Inverse profile of the test profile.
+
+- `flatfs`
+
+  Configures the node to use the flatfs datastore.
+
+  This is the most battle-tested and reliable datastore, but it's significantly
+  slower than the badger datastore. You should use this datastore if:
+
+  - You need a very simple and very reliable datastore you and trust your
+    filesystem. This datastore stores each block as a separate file in the
+    underlying filesystem so it's unlikely to loose data unless there's an issue
+    with the underlying file system.
+  - You need to run garbage collection on a small (<= 10GiB) datastore. The
+    default datastore, badger, can leave several gigabytes of data behind when
+    garbage collecting.
+  - You're concerned about memory usage. In its default configuration, badger can
+    use up to several gigabytes of memory.
+
+  This profile may only be applied when first initializing the node.
+
+
+- `badgerds`
+
+  Configures the node to use the badger datastore.
+
+  This is the fastest datastore. Use this datastore if performance, especially
+  when adding many gigabytes of files, is critical. However:
+
+  - This datastore will not properly reclaim space when your datastore is
+    smaller than several gigabytes. If you run IPFS with '--enable-gc' (you have
+    enabled block-level garbage collection), you plan on storing very little data in
+    your IPFS node, and disk usage is more critical than performance, consider using
+    flatfs.
+  - This datastore uses up to several gigabytes of memory. 
+
+  This profile may only be applied when first initializing the node.
+
+- `lowpower`
+
+  Reduces daemon overhead on the system. May affect node
+  functionality - performance of content discovery and data
+  fetching may be degraded.
 
 ## Table of Contents
 
@@ -67,6 +99,12 @@ Available profiles:
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
 - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
+- [`AutoNAT`](#autonat)
+    - [`AutoNAT.ServiceMode`](#autonatservicemode)
+    - [`AutoNAT.Throttle`](#autonatthrottle)
+    - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
+    - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
+    - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
 - [`Bootstrap`](#bootstrap)
 - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -89,7 +127,6 @@ Available profiles:
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
     - [`Gateway.PublicGateways`](#gatewaypublicgateways)
-    - [`Gateway` recipes](#gateway-recipes)
 - [`Identity`](#identity)
     - [`Identity.PeerID`](#identitypeerid)
     - [`Identity.PrivKey`](#identityprivkey)
@@ -111,7 +148,6 @@ Available profiles:
     - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
-    - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
         - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
