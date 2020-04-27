@@ -1,7 +1,7 @@
 ---
 name: 'Bug Report'
 about: 'Report a bug in go-ipfs.'
-labels: kind/bug
+labels: kind/bug, need/triage
 ---
 
 #### Version information:
