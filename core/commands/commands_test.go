@@ -195,6 +195,7 @@ func TestCommands(t *testing.T) {
 		"/stats",
 		"/stats/bitswap",
 		"/stats/bw",
+		"/stats/dht",
 		"/stats/repo",
 		"/swarm",
 		"/swarm/addrs",
