@@ -756,24 +756,41 @@ go-ipfs node accessible from the public internet.
 
 ### `Swarm.DisableRelay`
 
-Disables the p2p-circuit relay transport.
+Disables the p2p-circuit relay transport. This will prevent this node from
+connecting to nodes behind relays, or accepting connections from nodes behind
+relays.
 
 ### `Swarm.EnableRelayHop`
 
-Enables HOP relay for the node.
+Configures this node to act as a relay "hop". A relay "hop" relays traffic for other peers.
 
-If this is enabled, the node will act as an intermediate (Hop Relay) node in
-relay circuits for connected peers.
+WARNING: Do not enable this option unless you know what you're doing. Other
+peers will randomly decide to use your node as a relay and consume _all_
+available bandwidth. There is _no_ rate-limiting.
 
 ### `Swarm.EnableAutoRelay`
 
-Enables automatic relay for this node.
+Enables "automatic relay" mode for this node. This option does two _very_
+different things based on the `Swarm.EnableRelayHop`. See
+[#7228](https://github.com/ipfs/go-ipfs/issues/7228) for context.
 
-If the node is a HOP relay (`EnableRelayHop` is true) then it will advertise
-itself as a relay through the DHT. Otherwise, the node will test its own NAT
-situation (dialability) using passively discovered AutoNAT services. If the node
-is not publicly reachable, then it will seek HOP relays advertised through the
-DHT and override its public address(es) with relay addresses.
+#### Mode 1: `EnableRelayHop` is `false`
+
+If `Swarm.EnableAutoRelay` is enabled and `Swarm.EnableRelayHop` is disabled,
+your node will automatically _use_ public relays from the network if it detects
+that it cannot be reached from the public internet (e.g., it's behind a
+firewall). This is likely the feature you're looking for.
+
+If you enable `EnableAutoRelay`, you should almost certainly disable
+`EnableRelayHop`.
+
+#### Mode 2: `EnableRelayHop` is `true`
+
+If `EnableAutoRelay` is enabled and `EnableRelayHop` is enabled, your node will
+_act_ as a public relay for the network. Furthermore, in addition to simply
+relaying traffic, your node will advertise itself as a public relay. Unless you
+have the bandwidth of a small ISP, do not enable both of these options at the
+same time.
 
 ### `Swarm.EnableAutoNATService`
 
