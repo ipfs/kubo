@@ -1,21 +1,27 @@
 package config
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/ipfs/interface-go-ipfs-core/options"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
-	identity, err := identityConfig(out, nBitsForKeypair)
+	identity, err := CreateIdentity(out, []options.KeyGenerateOption{options.Key.Size(nBitsForKeypair)})
 	if err != nil {
 		return nil, err
 	}
 
+	return InitWithIdentity(identity)
+}
+
+func InitWithIdentity(identity Identity) (*Config, error) {
 	bootstrapPeers, err := DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -164,18 +170,43 @@ func flatfsSpec() map[string]interface{} {
 	}
 }
 
-// identityConfig initializes a new identity.
-func identityConfig(out io.Writer, nbits int) (Identity, error) {
+// CreateIdentity initializes a new identity.
+func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, error) {
 	// TODO guard higher up
 	ident := Identity{}
-	if nbits < ci.MinRsaKeyBits {
-		return ident, ci.ErrRsaKeyTooSmall
-	}
 
-	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	settings, err := options.KeyGenerateOptions(opts...)
 	if err != nil {
 		return ident, err
+	}
+
+	var sk ci.PrivKey
+	var pk ci.PubKey
+
+	fmt.Fprintf(out, "generating %s keypair...", settings.Algorithm)
+	switch settings.Algorithm {
+	case "rsa":
+		if settings.Size == -1 {
+			settings.Size = options.DefaultRSALen
+		}
+
+		priv, pub, err := ci.GenerateKeyPair(ci.RSA, settings.Size)
+		if err != nil {
+			return ident, err
+		}
+
+		sk = priv
+		pk = pub
+	case "ed25519":
+		priv, pub, err := ci.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			return ident, err
+		}
+
+		sk = priv
+		pk = pub
+	default:
+		return ident, fmt.Errorf("unrecognized key type: %s", settings.Algorithm)
 	}
 	fmt.Fprintf(out, "done\n")
 
