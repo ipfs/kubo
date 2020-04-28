@@ -3,6 +3,7 @@ package peerlog
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
 	plugin "github.com/ipfs/go-ipfs/plugin"
@@ -17,6 +18,13 @@ import (
 var log = logging.Logger("plugin/peerlog")
 
 type eventType int
+
+var (
+	// size of the event queue buffer
+	eventQueueSize = 64 * 1024
+	// number of events to drop when busy.
+	busyDropAmount = eventQueueSize / 8
+)
 
 const (
 	eventConnect eventType = iota
@@ -60,53 +68,80 @@ func (*peerLogPlugin) Version() string {
 
 // Init initializes plugin
 func (pl *peerLogPlugin) Init(*plugin.Environment) error {
-	pl.events = make(chan plEvent, 64*1024)
+	pl.events = make(chan plEvent, eventQueueSize)
 	return nil
 }
 
 func (pl *peerLogPlugin) collectEvents(node *core.IpfsNode) {
-	go func() {
-		ctx := node.Context()
+	ctx := node.Context()
 
-		dlog := log.Desugar()
-		for {
-			dropped := atomic.SwapUint64(&pl.droppedCount, 0)
-			if dropped > 0 {
-				dlog.Error("dropped events", zap.Uint64("count", dropped))
-			}
+	busyCounter := 0
+	dlog := log.Desugar()
+	for {
+		// Deal with dropped events.
+		dropped := atomic.SwapUint64(&pl.droppedCount, 0)
+		if dropped > 0 {
+			busyCounter++
 
-			var e plEvent
+			// sleep a bit to give the system a chance to catch up with logging.
 			select {
+			case <-time.After(time.Duration(busyCounter) * time.Second):
 			case <-ctx.Done():
 				return
-			case e = <-pl.events:
 			}
 
-			peerID := zap.String("peer", e.peer.Pretty())
-
-			switch e.kind {
-			case eventConnect:
-				dlog.Info("connected", peerID)
-			case eventIdentify:
-				agent, err := node.Peerstore.Get(e.peer, "AgentVersion")
-				switch err {
-				case nil:
-				case peerstore.ErrNotFound:
-					continue
+			// drain 1/8th of the backlog backlog so we
+			// don't immediately run into this situation
+			// again.
+		loop:
+			for i := 0; i < busyDropAmount; i++ {
+				select {
+				case <-pl.events:
+					dropped++
 				default:
-					dlog.Error("failed to get agent version", zap.Error(err))
-					continue
+					break loop
 				}
-
-				agentS, ok := agent.(string)
-				if !ok {
-					continue
-				}
-				dlog.Info("identified", peerID, zap.String("agent", agentS))
 			}
-		}
-	}()
 
+			// Add in any events we've dropped in the mean-time.
+			dropped += atomic.SwapUint64(&pl.droppedCount, 0)
+
+			// Report that we've dropped events.
+			dlog.Error("dropped events", zap.Uint64("count", dropped))
+		} else {
+			busyCounter = 0
+		}
+
+		var e plEvent
+		select {
+		case <-ctx.Done():
+			return
+		case e = <-pl.events:
+		}
+
+		peerID := zap.String("peer", e.peer.Pretty())
+
+		switch e.kind {
+		case eventConnect:
+			dlog.Info("connected", peerID)
+		case eventIdentify:
+			agent, err := node.Peerstore.Get(e.peer, "AgentVersion")
+			switch err {
+			case nil:
+			case peerstore.ErrNotFound:
+				continue
+			default:
+				dlog.Error("failed to get agent version", zap.Error(err))
+				continue
+			}
+
+			agentS, ok := agent.(string)
+			if !ok {
+				continue
+			}
+			dlog.Info("identified", peerID, zap.String("agent", agentS))
+		}
+	}
 }
 
 func (pl *peerLogPlugin) emit(evt eventType, p peer.ID) {
