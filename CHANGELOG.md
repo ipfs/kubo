@@ -226,7 +226,9 @@ In addition to a bunch of bug fixes, we've made two improvements to the gateway.
 
 You can play with both of these features by visiting:
 
-> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
+> https://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.dweb.link
+
+NOTE: If you don't see any changes, make sure you're not running IPFS Companion and an older go-ipfs release. You could be viewing this page from your local gateway.
 
 ##### Subdomain Gateway
 
@@ -246,7 +248,9 @@ Note: cURL doesn't follow redirects by default. To avoid breaking cURL and other
 
 The second feature is a face-lift to the directory listing theme and color palette.
 
-> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
+> https://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.dweb.link
+
+Again, make sure you're viewing this link with the right IPFS version, or view it directly on the dweb.link IPFS gateway.
 
 #### IPNS
 
