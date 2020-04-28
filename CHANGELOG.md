@@ -16,7 +16,7 @@ The distributed hash table (DHT) is how IPFS nodes keep track of who has what da
 
 The current DHT suffers from three core issues addressed in this release:
 
-- Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs). Much of a DHT query's time is wasted trying to connect to peers that cannot be reached.
+- Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs). Much of a DHT query time is wasted trying to connect to peers that cannot be reached.
 - The DHT query logic doesn't properly terminate when it hits the end of the query and, instead, aggressively keeps on searching.
 - The routing tables are poorly maintained. This can cause search performance to slow down linearly with network size, instead of logarithmically as expected.
 
@@ -61,9 +61,9 @@ The DHT rewrite was made possible by [Testground](https://github.com/ipfs/testgr
 
 ##### Provider Record Changes
 
-When you add content to your IPFS node, you advertise this content to the network by announcing it in the DHT. We call this "providing".
+When you add content to your IPFS node, you advertise this content to the network by announcing it in the DHT. We call this _providing_.
 
-However, go-ipfs has multiple ways to address the same underlying bytes. Specifically, we address content by content ID (CID) and the same underlying bytes can be addressed using (a) two different versions of CIDs (CIDv0 and CIDv1) and (b) with different "codecs" depending on how we're interpreting the data.
+However, go-ipfs has multiple ways to address the same underlying bytes. Specifically, we address content by content ID (CID) and the same underlying bytes can be addressed using (a) two different versions of CIDs (CIDv0 and CIDv1) and (b) with different _codecs_ depending on how we're interpreting the data.
 
 Prior to go-ipfs 0.5.0, we used the content id (CID) in the DHT when sending out provider records for content. Unfortunately, this meant that users trying to find data announced using one CID wouldn't find nodes providing the content under a different CID.
 
@@ -201,7 +201,7 @@ We implemented this change to follow security best practices and to remove a pot
 
 In this release, we're switching TLS to be the _default_ transport. This means we'll try to encrypt the connection with TLS before re-trying with SECIO.
 
-Contrary to the announcement in the go-ipfs 0.4.23 release notes, this release does not remove SECIO support in order to maintain compatibility with js-ipfs.
+Contrary to the announcement in the go-ipfs 0.4.23 release notes, this release does not remove SECIO support to maintain compatibility with js-ipfs.
 
 Note: The `Experimental.PreferTLS` configuration option is now ignored.
 
@@ -226,7 +226,7 @@ In addition to a bunch of bug fixes, we've made two improvements to the gateway.
 
 You can play with both of these features by visiting:
 
-> https://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.dweb.link
+> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
 
 ##### Subdomain Gateway
 
@@ -246,7 +246,7 @@ Note: cURL doesn't follow redirects by default. To avoid breaking cURL and other
 
 The second feature is face-lift to the directory listing theme.
 
-> https://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.dweb.link/
+> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
 
 #### IPNS
 
