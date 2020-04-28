@@ -20,7 +20,7 @@ The current DHT suffers from three core issues addressed in this release:
 - The DHT query logic doesn't properly terminate when it hits the end of the query and, instead, aggressively keeps on searching.
 - The routing tables are poorly maintained. This can cause search performance to slow down linearly with network size, instead of logarithimicaly as expected.
 
-###### Reachable
+###### Reachability
 
 We have addressed the problem of undialable nodes by having nodes wait to join the DHT as _server_ nodes until they've confirmed that they are reachable from the public internet.
 
