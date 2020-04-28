@@ -11,7 +11,7 @@ func Relay(disable, enableHop bool) func() (opts Libp2pOpts, err error) {
 			// Enabled by default.
 			opts.Opts = append(opts.Opts, libp2p.DisableRelay())
 		} else {
-			relayOpts := []relay.RelayOpt{relay.OptDiscovery}
+			relayOpts := []relay.RelayOpt{}
 			if enableHop {
 				relayOpts = append(relayOpts, relay.OptHop)
 			}
@@ -21,4 +21,4 @@ func Relay(disable, enableHop bool) func() (opts Libp2pOpts, err error) {
 	}
 }
 
-var AutoRealy = simpleOpt(libp2p.ChainOptions(libp2p.EnableAutoRelay(), libp2p.DefaultStaticRelays()))
+var AutoRelay = simpleOpt(libp2p.ChainOptions(libp2p.EnableAutoRelay(), libp2p.DefaultStaticRelays()))

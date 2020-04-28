@@ -8,7 +8,7 @@ test_description="Test init command"
 
 . lib/test-lib.sh
 
-# test that ipfs fails to init if IPFS_PATH isnt writeable
+# test that ipfs fails to init if IPFS_PATH isn't writeable
 test_expect_success "create dir and change perms succeeds" '
   export IPFS_PATH="$(pwd)/.badipfs" &&
   mkdir "$IPFS_PATH" &&
@@ -22,9 +22,9 @@ test_expect_success "ipfs init fails" '
 # Under Windows/Cygwin the error message is different,
 # so we use the STD_ERR_MSG prereq.
 if test_have_prereq STD_ERR_MSG; then
-  init_err_msg="Error: error opening repository at $IPFS_PATH: permission denied"
+  init_err_msg="Error: error loading plugins: open $IPFS_PATH/config: permission denied"
 else
-  init_err_msg="Error: mkdir $IPFS_PATH: The system cannot find the path specified."
+  init_err_msg="Error: error loading plugins: open $IPFS_PATH/config: The system cannot find the path specified."
 fi
 
 test_expect_success "ipfs init output looks good" '
@@ -98,7 +98,7 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_expect_success "'ipfs init --empty-repo' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --empty-repo >actual_init
 '
 
@@ -114,7 +114,7 @@ test_expect_success "'ipfs init --empty-repo' output looks good" '
   test_cmp expected actual_init
 '
 
-test_expect_success "Welcome readme doesn't exists" '
+test_expect_success "Welcome readme doesn't exist" '
   test_must_fail ipfs cat /ipfs/$HASH_WELCOME_DOCS/readme
 '
 
@@ -128,14 +128,14 @@ test_expect_success "clean up ipfs dir" '
 
 # test init profiles
 test_expect_success "'ipfs init --profile' with invalid profile fails" '
-  BITS="1024" &&
+  BITS="2048" &&
   test_must_fail ipfs init --bits="$BITS" --profile=nonexistent_profile 2> invalid_profile_out
   EXPECT="Error: invalid configuration profile: nonexistent_profile" &&
   grep "$EXPECT" invalid_profile_out
 '
 
 test_expect_success "'ipfs init --profile' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --profile=server
 '
 
@@ -149,7 +149,7 @@ test_expect_success "clean up ipfs dir" '
 '
 
 test_expect_success "'ipfs init --profile=test' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --profile=test
 '
 
@@ -163,12 +163,26 @@ test_expect_success "'ipfs config Addresses.API' looks good" '
   test $(cat actual_config) = "/ip4/127.0.0.1/tcp/0"
 '
 
+test_expect_success "ipfs init from existing config succeeds" '
+  export ORIG_PATH=$IPFS_PATH
+  export IPFS_PATH=$(pwd)/.ipfs-clone
+
+  ipfs init "$ORIG_PATH/config" &&
+  ipfs config Addresses.API > actual_config &&
+  test $(cat actual_config) = "/ip4/127.0.0.1/tcp/0"
+'
+
+test_expect_success "clean up ipfs clone dir and reset IPFS_PATH" '
+  rm -rf "$IPFS_PATH" &&
+  export IPFS_PATH=$ORIG_PATH
+'
+
 test_expect_success "clean up ipfs dir" '
   rm -rf "$IPFS_PATH"
 '
 
 test_expect_success "'ipfs init --profile=lowpower' succeeds" '
-  BITS="1024" &&
+  BITS="2048" &&
   ipfs init --bits="$BITS" --profile=lowpower
 '
 

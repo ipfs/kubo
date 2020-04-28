@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -20,7 +19,6 @@ import (
 	cid "github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
 )
 
 type RepoVersion struct {
@@ -150,8 +148,8 @@ Version         string The repo version.
 `,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(repoSizeOnlyOptionName, "Only report RepoSize and StorageMax."),
-		cmds.BoolOption(repoHumanOptionName, "Print sizes in human readable format (e.g., 1K 234M 2G)"),
+		cmds.BoolOption(repoSizeOnlyOptionName, "s", "Only report RepoSize and StorageMax."),
+		cmds.BoolOption(repoHumanOptionName, "H", "Print sizes in human readable format (e.g., 1K 234M 2G)"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -216,44 +214,11 @@ var repoFsckCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove repo lockfiles.",
 		ShortDescription: `
-'ipfs repo fsck' is a plumbing command that will remove repo and level db
-lockfiles, as well as the api file. This command can only run when no ipfs
-daemons are running.
+'ipfs repo fsck' is now a no-op.
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		configRoot, err := cmdenv.GetConfigRoot(env)
-		if err != nil {
-			return err
-		}
-
-		dsPath, err := config.DataStorePath(configRoot)
-		if err != nil {
-			return err
-		}
-
-		dsLockFile := filepath.Join(dsPath, "LOCK") // TODO: get this lockfile programmatically
-		repoLockFile := filepath.Join(configRoot, fsrepo.LockFile)
-		apiFile := filepath.Join(configRoot, "api") // TODO: get this programmatically
-
-		log.Infof("Removing repo lockfile: %s", repoLockFile)
-		log.Infof("Removing datastore lockfile: %s", dsLockFile)
-		log.Infof("Removing api file: %s", apiFile)
-
-		err = os.Remove(repoLockFile)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		err = os.Remove(dsLockFile)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		err = os.Remove(apiFile)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		return cmds.EmitOnce(res, &MessageOutput{"Lockfiles have been removed.\n"})
+		return cmds.EmitOnce(res, &MessageOutput{"`ipfs repo fsck` is deprecated and does nothing.\n"})
 	},
 	Type: MessageOutput{},
 	Encoders: cmds.EncoderMap{

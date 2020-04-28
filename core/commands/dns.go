@@ -64,12 +64,12 @@ The resolver can recursively resolve:
 		name := req.Arguments[0]
 		resolver := namesys.NewDNSResolver()
 
-		var ropts []nsopts.ResolveOpt
+		var routing []nsopts.ResolveOpt
 		if !recursive {
-			ropts = append(ropts, nsopts.Depth(1))
+			routing = append(routing, nsopts.Depth(1))
 		}
 
-		output, err := resolver.Resolve(req.Context, name, ropts...)
+		output, err := resolver.Resolve(req.Context, name, routing...)
 		if err != nil && (recursive || err != namesys.ErrResolveRecursion) {
 			return err
 		}

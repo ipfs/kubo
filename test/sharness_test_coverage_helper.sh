@@ -170,7 +170,7 @@ do
 done
 
 # The following will allow us to check that
-# we are properly excuding enough stuff using:
+# we are properly excluding enough stuff using:
 # diff -u ipfs_cmd_result.txt cmd_found.txt
 log "Get all the line commands that matched"
 CMD_FOUND="$TMPDIR/cmd_found.txt"

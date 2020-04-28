@@ -19,7 +19,7 @@ _ipfs_add()
     elif [ "${prev}" == "--pin" ] ; then
         _ipfs_comp "true false"
     elif [[ ${word} == -* ]] ; then
-        _ipfs_comp "--recursive --quiet --silent --progress --trickle --only-hash --wrap-with-directory --hidden --chunker= --pin= --raw-leaves --help "
+        _ipfs_comp "--recursive --dereference-args --stdin-name= --hidden --ignore= --ignore-rules-path= --quiet --quieter --silent --progress --trickle --only-hash --wrap-with-directory --chunker= --pin= --raw-leaves --nocopy --fscache --cid-version= --hash= --inline --inline-limit= --help "
     else
         _ipfs_filesystem_complete
     fi
@@ -172,9 +172,9 @@ _ipfs_dag_get()
 _ipfs_dag_put()
 {
     if [[ ${prev} == "--format" ]] ; then
-        _ipfs_comp "cbor placeholder1" # TODO: a) Which format more then cbor is valid? b) Solve autocomplete bug for "="
+        _ipfs_comp "cbor placeholder1" # TODO: a) Which format more than cbor is valid? b) Solve autocomplete bug for "="
     elif [[ ${prev} == "--input-enc" ]] ; then
-        _ipfs_comp "json placeholder1" # TODO: a) Which format more then json is valid? b) Solve autocomplete bug for "="
+        _ipfs_comp "json placeholder1" # TODO: a) Which format more than json is valid? b) Solve autocomplete bug for "="
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--format= --input-enc= --help"
     else
@@ -227,7 +227,7 @@ _ipfs_diag_cmds()
     if [[ ${prev} == "clear" ]] ; then
         return 0
     elif [[ ${prev} =~ ^-?[0-9]+$ ]] ; then
-        _ipfs_comp "ns us µs ms s m h" # TODO: Trigger with out space, eg. "ipfs diag set-time 10ns" not "... set-time 10 ns"
+        _ipfs_comp "ns us µs ms s m h" # TODO: Trigger without space, eg. "ipfs diag set-time 10ns" not "... set-time 10 ns"
     elif [[ ${prev} == "set-time" ]] ; then
         _ipfs_help_only
     elif [[ ${word} == -* ]] ; then

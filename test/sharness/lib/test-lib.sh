@@ -41,6 +41,47 @@ SHARNESS_LIB="lib/sharness/sharness.sh"
 
 # Please put go-ipfs specific shell functions below
 
+###
+# BEGIN Check for pre-existing daemon being stuck
+###
+wait_prev_cleanup_tick_secs=1
+wait_prev_cleanup_max_secs=5
+cur_test_pwd="$(pwd)"
+
+while true ; do
+  echo -n > stuck_cwd_list
+
+  lsof -c ipfs -Ffn 2>/dev/null | grep -A1 '^fcwd$' | grep '^n' | cut -b 2- | while read -r pwd_of_stuck ; do
+    case "$pwd_of_stuck" in
+      "$cur_test_pwd"*)
+        echo "$pwd_of_stuck" >> stuck_cwd_list
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  test -s stuck_cwd_list || break
+
+  test "$wait_prev_cleanup_max_secs" -le 0 && break
+
+  echo "Daemons still running, waiting for ${wait_prev_cleanup_max_secs}s"
+  sleep $wait_prev_cleanup_tick_secs
+
+  wait_prev_cleanup_max_secs="$(( $wait_prev_cleanup_max_secs - $wait_prev_cleanup_tick_secs ))"
+done
+
+if test -s stuck_cwd_list ; then
+  test_expect_success "ipfs daemon (s)seems to be running with CWDs of
+$(cat stuck_cwd_list)
+Almost certainly a leftover from a prior test, ABORTING" 'false'
+
+  test_done
+fi
+###
+# END Check for pre-existing daemon being stuck
+###
+
 # Make sure the ipfs path is set, also set in test_init_ipfs but that
 # is not always used.
 export IPFS_PATH="$(pwd)/.ipfs"
@@ -52,8 +93,12 @@ TEST_OS="$(uname -s | tr '[a-z]' '[A-Z]')"
 # grab + output options
 test "$TEST_NO_FUSE" != 1 && test_set_prereq FUSE
 test "$TEST_EXPENSIVE" = 1 && test_set_prereq EXPENSIVE
-test "$TEST_NO_DOCKER" != 1 && type docker >/dev/null 2>&1 && test_set_prereq DOCKER
+test "$TEST_NO_DOCKER" != 1 && type docker >/dev/null 2>&1 && groups | egrep "\bdocker\b" && test_set_prereq DOCKER
 test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUGIN
+
+# this may not be available, skip a few dependent tests
+type socat >/dev/null 2>&1 && test_set_prereq SOCAT
+
 
 # Set a prereq as error messages are often different on Windows/Cygwin
 expr "$TEST_OS" : "CYGWIN_NT" >/dev/null || test_set_prereq STD_ERR_MSG
@@ -148,7 +193,7 @@ test_init_ipfs() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init --profile=test -b=1024 > /dev/null
+    ipfs init --profile=test -b=2048 > /dev/null
   '
 
   test_expect_success "prepare config -- mounting" '
@@ -212,12 +257,12 @@ test_set_address_vars() {
 
 test_launch_ipfs_daemon() {
 
-  args="$@"
+  args=("$@")
 
   test "$TEST_ULIMIT_PRESET" != 1 && ulimit -n 2048
 
   test_expect_success "'ipfs daemon' succeeds" '
-    ipfs daemon $args >actual_daemon 2>daemon_err &
+    ipfs daemon "${args[@]}" >actual_daemon 2>daemon_err &
     IPFS_PID=$!
   '
 
@@ -230,7 +275,7 @@ test_launch_ipfs_daemon() {
 
   # we say the daemon is ready when the API server is ready.
   test_expect_success "'ipfs daemon' is ready" '
-    pollEndpoint -ep=/version -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
+    pollEndpoint -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
     test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
   '
 }
@@ -398,30 +443,6 @@ file_size() {
     $_STAT "$1"
 }
 
-directory_size() {
-    local total=0
-    local fsize=0
-    local res=0
-    find "$1" -type f | ( while read fname; do
-        fsize=$(file_size "$fname")
-        res=$?
-        if ! test $res -eq 0; then
-            if ! test -e "$fname"; then
-                continue;
-            fi
-            echo "failed to get filesize" >&2
-            return $res
-        fi
-        total=$(expr "$total" + "$fsize")
-        res=$?
-        if ! test $res -eq 0; then
-            echo "filesize not a number: $fsize" >&2
-            return $res
-        fi
-    done
-    echo "$total" ) # do not remove this subshell
-}
-
 test_check_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
   test "$peeridlen" = "46" || {
@@ -436,4 +457,25 @@ convert_tcp_maddr() {
 
 port_from_maddr() {
   echo $1 | awk -F'/' '{ print $NF }'
+}
+
+findprovs_empty() {
+  test_expect_success 'findprovs '$1' succeeds' '
+    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut
+  '
+
+  test_expect_success "findprovs $1 output is empty" '
+    test_must_be_empty findprovsOut
+  '
+}
+
+findprovs_expect() {
+  test_expect_success 'findprovs '$1' succeeds' '
+    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut &&
+    echo '$2' > expected
+  '
+
+  test_expect_success "findprovs $1 output looks good" '
+    test_cmp findprovsOut expected
+  '
 }

@@ -156,7 +156,7 @@ test_get_cmd() {
 }
 
 test_get_fail() {
-  test_expect_success "create an object that has unresolveable links" '
+  test_expect_success "create an object that has unresolvable links" '
     cat <<-\EOF >bad_object &&
 { "Links": [ { "Name": "foo", "Hash": "QmZzaC6ydNXiR65W8VjGA73ET9MZ6VFAqUT1ngYMXcpihn", "Size": 1897 }, { "Name": "bar", "Hash": "Qmd4mG6pDFDmDTn6p3hX1srP8qTbkyXKj5yjpEsiHDX3u8", "Size": 56 }, { "Name": "baz", "Hash": "QmUTjwRnG28dSrFFVTYgbr6LiDLsBmRr2SaUSTGheK2YqG", "Size": 24266 } ], "Data": "\b\u0001" }
 EOF
@@ -184,7 +184,7 @@ test_launch_ipfs_daemon
 test_get_cmd
 
 test_expect_success "empty request to get doesn't panic and returns error" '
-  curl "http://$API_ADDR/api/v0/get" > curl_out || true &&
+  curl -X POST "http://$API_ADDR/api/v0/get" > curl_out || true &&
     grep "argument \"ipfs-path\" is required" curl_out
 '
 test_kill_ipfs_daemon

@@ -24,6 +24,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		// Adapted from github.com/prometheus/client_golang/prometheus/http.go
 		// Work around https://github.com/prometheus/client_golang/pull/311
 		opts := prometheus.SummaryOpts{
+			Namespace:   "ipfs",
 			Subsystem:   "http",
 			ConstLabels: prometheus.Labels{"handler": handlerName},
 			Objectives:  map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
@@ -97,6 +98,13 @@ var (
 	peersTotalMetric = prometheus.NewDesc(
 		prometheus.BuildFQName("ipfs", "p2p", "peers_total"),
 		"Number of connected peers", []string{"transport"}, nil)
+
+	unixfsGetMetric = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Namespace: "ipfs",
+		Subsystem: "http",
+		Name:      "unixfs_get_latency_seconds",
+		Help:      "The time till the first block is received when 'getting' a file from the gateway.",
+	}, []string{"namespace"})
 )
 
 type IpfsNodeCollector struct {

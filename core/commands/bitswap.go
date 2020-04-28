@@ -12,7 +12,7 @@ import (
 	decision "github.com/ipfs/go-bitswap/decision"
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 var BitswapCmd = &cmds.Command{
@@ -60,7 +60,7 @@ Print out all blocks currently on the bitswap wantlist for the local peer.`,
 
 		pstr, found := req.Options[peerOptionName].(string)
 		if found {
-			pid, err := peer.IDB58Decode(pstr)
+			pid, err := peer.Decode(pstr)
 			if err != nil {
 				return err
 			}
@@ -195,7 +195,7 @@ prints the ledger associated with a given peer.
 			return e.TypeErr(bs, nd.Exchange)
 		}
 
-		partner, err := peer.IDB58Decode(req.Arguments[0])
+		partner, err := peer.Decode(req.Arguments[0])
 		if err != nil {
 			return err
 		}
@@ -233,7 +233,7 @@ Trigger reprovider to announce our data to network.
 			return ErrNotOnline
 		}
 
-		err = nd.Reprovider.Trigger(req.Context)
+		err = nd.Provider.Reprovide(req.Context)
 		if err != nil {
 			return err
 		}

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/libp2p/go-libp2p-host"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"go.uber.org/fx"
 
@@ -19,12 +19,12 @@ type discoveryHandler struct {
 	host host.Host
 }
 
-func (dh *discoveryHandler) HandlePeerFound(p peerstore.PeerInfo) {
-	log.Warning("trying peer info: ", p)
+func (dh *discoveryHandler) HandlePeerFound(p peer.AddrInfo) {
+	log.Info("connecting to discovered peer: ", p)
 	ctx, cancel := context.WithTimeout(dh.ctx, discoveryConnTimeout)
 	defer cancel()
 	if err := dh.host.Connect(ctx, p); err != nil {
-		log.Warning("Failed to connect to peer found by discovery: ", err)
+		log.Warnf("failed to connect to peer %s found by discovery: %s", p.ID, err)
 	}
 }
 

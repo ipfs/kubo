@@ -10,7 +10,7 @@ test_description="Test API add command"
 
 test_init_ipfs
 
-# Verify that that API add command returns size
+# Verify that the API add command returns size
 
 test_launch_ipfs_daemon
 test_expect_success "API Add response includes size field" '

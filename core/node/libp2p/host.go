@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/libp2p/go-libp2p"
-	host "github.com/libp2p/go-libp2p-host"
-	peer "github.com/libp2p/go-libp2p-peer"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	host "github.com/libp2p/go-libp2p-core/host"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	record "github.com/libp2p/go-libp2p-record"
-	routing "github.com/libp2p/go-libp2p-routing"
 	routedhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	"go.uber.org/fx"
 

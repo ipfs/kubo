@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var DistPath = "https://ipfs.io/ipfs/QmZLYJBVBK8nqc5JTHp6CZU1v9Ja3MvGrkCe61PfCecc6E"
+var DistPath = "https://ipfs.io/ipfs/QmUgfXycSjF9R8F4Tyauaz6LZ4bj5nbksg54G9GdF4fit6"
 
 func init() {
 	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
@@ -116,7 +116,7 @@ func verifyMigrationSupportsVersion(fsrbin string, vn int) error {
 		return nil
 	}
 
-	return fmt.Errorf("migrations binary doesnt support version %d: %s", vn, fsrbin)
+	return fmt.Errorf("migrations binary doesn't support version %d: %s", vn, fsrbin)
 }
 
 func migrationsVersion(bin string) (int, error) {
@@ -163,13 +163,13 @@ func GetLatestVersion(ipfspath, dist string) (string, error) {
 		}
 	}
 	if latest == "" {
-		return "", fmt.Errorf("couldnt find a non dev version in the list")
+		return "", fmt.Errorf("couldn't find a non dev version in the list")
 	}
 	return vs[len(vs)-1], nil
 }
 
 func httpGet(url string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("http.NewRequest error: %s", err)
 	}

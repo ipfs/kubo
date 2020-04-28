@@ -144,7 +144,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"swarm":     SwarmCmd,
 	"tar":       TarCmd,
 	"file":      unixfs.UnixFSCmd,
-	"update":    ExternalBinary(),
+	"update":    ExternalBinary("Please see https://git.io/fjylH for installation instructions."),
 	"urlstore":  urlStoreCmd,
 	"version":   VersionCmd,
 	"shutdown":  daemonShutdownCmd,

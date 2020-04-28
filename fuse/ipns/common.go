@@ -7,7 +7,7 @@ import (
 	nsys "github.com/ipfs/go-ipfs/namesys"
 	path "github.com/ipfs/go-path"
 	ft "github.com/ipfs/go-unixfs"
-	ci "github.com/libp2p/go-libp2p-crypto"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 // InitializeKeyspace sets the ipns record for the given key to
@@ -23,7 +23,7 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 		return err
 	}
 
-	err = n.Pinning.Flush()
+	err = n.Pinning.Flush(ctx)
 	if err != nil {
 		return err
 	}

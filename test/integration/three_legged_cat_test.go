@@ -9,16 +9,15 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/ipfs/go-ipfs/core"
 	bootstrap2 "github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
 	files "github.com/ipfs/go-ipfs-files"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	testutil "github.com/libp2p/go-testutil"
 )
 
 func TestThreeLeggedCatTransfer(t *testing.T) {
@@ -76,28 +75,19 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 		Bandwidth: math.MaxInt32,
 	})
 
-	bootstrap, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	bootstrap, err := mock.MockPublicNode(ctx, mn)
 	if err != nil {
 		return err
 	}
 	defer bootstrap.Close()
 
-	adder, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	adder, err := mock.MockPublicNode(ctx, mn)
 	if err != nil {
 		return err
 	}
 	defer adder.Close()
 
-	catter, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
-	})
+	catter, err := mock.MockPublicNode(ctx, mn)
 	if err != nil {
 		return err
 	}
@@ -119,7 +109,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	}
 
 	bis := bootstrap.Peerstore.PeerInfo(bootstrap.PeerHost.ID())
-	bcfg := bootstrap2.BootstrapConfigWithPeers([]pstore.PeerInfo{bis})
+	bcfg := bootstrap2.BootstrapConfigWithPeers([]peer.AddrInfo{bis})
 	if err := adder.Bootstrap(bcfg); err != nil {
 		return err
 	}

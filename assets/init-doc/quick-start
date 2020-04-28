@@ -96,7 +96,7 @@ Tool:
 
 Browse:
 
-  webui:
+  WebUI:
 
     http://localhost:5001/webui
 

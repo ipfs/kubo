@@ -8,6 +8,39 @@ test_description="Test daemon command"
 
 . lib/test-lib.sh
 
+test_expect_success "create badger config" '
+  ipfs init --profile=badgerds,test > /dev/null &&
+  cp "$IPFS_PATH/config" init-config
+'
+
+test_expect_success "cleanup repo" '
+  rm -rf "$IPFS_PATH"
+'
+
+test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile=test
+test_kill_ipfs_daemon
+
+test_expect_success "daemon initialization with existing config works" '
+  ipfs config "Datastore.Spec.child.path" >actual &&
+  test $(cat actual) = "badgerds" &&
+  ipfs config Addresses > orig_addrs
+'
+
+test_expect_success "cleanup repo" '
+  rm -rf "$IPFS_PATH"
+'
+
+test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile=test,randomports
+test_kill_ipfs_daemon
+
+test_expect_success "daemon initialization with existing config + profiles works" '
+  ipfs config Addresses >new_addrs &&
+  test_expect_code 1 diff -q new_addrs orig_addrs
+'
+
+test_expect_success "cleanup repo" '
+  rm -rf "$IPFS_PATH"
+'
 
 test_init_ipfs
 test_launch_ipfs_daemon
@@ -32,11 +65,11 @@ test_expect_success "ipfs peer id looks good" '
 # this is for checking SetAllowedOrigins race condition for the api and gateway
 # See https://github.com/ipfs/go-ipfs/pull/1966
 test_expect_success "ipfs API works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$API_PORT" -I "http://$API_ADDR/api/v0/version"
+  curl -s -X POST -H "Origin:http://localhost:$API_PORT" -I "http://$API_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs gateway works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
+  curl -s -X POST -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs daemon output looks good" '
@@ -75,8 +108,9 @@ test_expect_success "ipfs version deps succeeds" '
   ipfs version deps >deps.txt
 '
 
-test_expect_success "ipfs version deps output looks good" '
+test_expect_success "ipfs version deps output looks good ( set \$GOIPFSTEST_SKIP_LOCAL_DEVTREE_DEPS_CHECK to skip this test )" '
   head -1 deps.txt | grep "go-ipfs@(devel)" &&
+  [[ "$GOIPFSTEST_SKIP_LOCAL_DEVTREE_DEPS_CHECK" == "1" ]] ||
   [[ $(tail -n +2 deps.txt | egrep -v -c "^[^ @]+@v[^ @]+( => [^ @]+@v[^ @]+)?$") -eq 0 ]] ||
   test_fsh cat deps.txt
 '
@@ -91,13 +125,8 @@ test_expect_success "ipfs help output looks good" '
   test_fsh cat help.txt
 '
 
-# netcat (nc) is needed for the following test
-test_expect_success "socat is available" '
-  type socat >/dev/null
-'
-
 # check transport is encrypted
-test_expect_success "transport should be encrypted" '
+test_expect_success SOCAT "transport should be encrypted ( needs socat )" '
   socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-ls &&
   grep -q "/secio" swarmnc &&
   test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||
@@ -105,7 +134,7 @@ test_expect_success "transport should be encrypted" '
 '
 
 test_expect_success "output from streaming commands works" '
-  test_expect_code 28 curl -m 5 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
+  test_expect_code 28 curl -X POST -m 5 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
 '
 
 test_expect_success "output looks good" '
@@ -133,7 +162,7 @@ test_expect_success "'ipfs daemon' should be able to run with a pipe attached to
 '
 
 test_expect_success "daemon with pipe eventually becomes live" '
-  pollEndpoint -host='$API_MADDR' -ep=/version -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
+  pollEndpoint -host='$API_MADDR' -v -tout=1s -tries=10 >stdin_poll_apiout 2>stdin_poll_apierr &&
   test_kill_repeat_10_sec $DAEMON_PID ||
   test_fsh cat stdin_daemon_out || test_fsh cat stdin_daemon_err || test_fsh cat stdin_poll_apiout || test_fsh cat stdin_poll_apierr
 '
@@ -155,7 +184,7 @@ test_expect_success "daemon actually can handle 2048 file descriptors" '
   hang-fds -hold=2s 2000 '$API_MADDR' > /dev/null
 '
 
-test_expect_success "daemon didnt throw any errors" '
+test_expect_success "daemon didn't throw any errors" '
   test_expect_code 1 grep "too many open files" daemon_err
 '
 

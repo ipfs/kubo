@@ -7,7 +7,7 @@ import (
 
 	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-record"
 )
 
@@ -93,7 +93,7 @@ var ipnspsSubsCmd = &cmds.Command{
 				log.Errorf("ipns key not a valid peer ID: %s", err)
 				continue
 			}
-			paths = append(paths, "/ipns/"+peer.IDB58Encode(pid))
+			paths = append(paths, "/ipns/"+peer.Encode(pid))
 		}
 
 		return cmds.EmitOnce(res, &stringList{paths})
@@ -120,7 +120,7 @@ var ipnspsCancelCmd = &cmds.Command{
 
 		name := req.Arguments[0]
 		name = strings.TrimPrefix(name, "/ipns/")
-		pid, err := peer.IDB58Decode(name)
+		pid, err := peer.Decode(name)
 		if err != nil {
 			return cmds.Errorf(cmds.ErrClient, err.Error())
 		}

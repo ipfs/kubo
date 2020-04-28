@@ -1,32 +1,17 @@
 package node
 
 import (
-	"context"
-	"os"
-	"syscall"
-	"time"
-
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/retrystore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/go-ipfs-config"
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-filestore"
 	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/filestore"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/thirdparty/cidv0v1"
 	"github.com/ipfs/go-ipfs/thirdparty/verifbs"
 )
-
-func isTooManyFDError(err error) bool {
-	perr, ok := err.(*os.PathError)
-	if ok && perr.Err == syscall.EMFILE {
-		return true
-	}
-
-	return false
-}
 
 // RepoConfig loads configuration from the repo
 func RepoConfig(repo repo.Repo) (*config.Config, error) {
@@ -44,26 +29,12 @@ type BaseBlocks blockstore.Blockstore
 // BaseBlockstoreCtor creates cached blockstore backed by the provided datastore
 func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, nilRepo bool, hashOnRead bool) func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
 	return func(mctx helpers.MetricsCtx, repo repo.Repo, lc fx.Lifecycle) (bs BaseBlocks, err error) {
-		rds := &retrystore.Datastore{
-			Batching:    repo.Datastore(),
-			Delay:       time.Millisecond * 200,
-			Retries:     6,
-			TempErrFunc: isTooManyFDError,
-		}
 		// hash security
-		bs = blockstore.NewBlockstore(rds)
+		bs = blockstore.NewBlockstore(repo.Datastore())
 		bs = &verifbs.VerifBS{Blockstore: bs}
 
 		if !nilRepo {
-			ctx, cancel := context.WithCancel(mctx)
-
-			lc.Append(fx.Hook{
-				OnStop: func(context context.Context) error {
-					cancel()
-					return nil
-				},
-			})
-			bs, err = blockstore.CachedBlockstore(ctx, bs, cacheOpts)
+			bs, err = blockstore.CachedBlockstore(helpers.LifecycleCtx(mctx, lc), bs, cacheOpts)
 			if err != nil {
 				return nil, err
 			}

@@ -206,7 +206,7 @@ test_object_cmd() {
     test_cmp expected actual
   '
 
-  test_expect_success "after gc, objects still acessible" '
+  test_expect_success "after gc, objects still accessible" '
     ipfs repo gc > /dev/null &&
     ipfs refs -r --timeout=2s $HASH > /dev/null
   '
@@ -419,19 +419,19 @@ test_object_cmd() {
 test_object_content_type() {
 
   test_expect_success "'ipfs object get --encoding=protobuf' returns the correct content type" '
-    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=protobuf" | grep -q "^Content-Type: application/protobuf"
+    curl -X POST -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=protobuf" | grep -q "^Content-Type: application/protobuf"
   '
 
   test_expect_success "'ipfs object get --encoding=json' returns the correct content type" '
-    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=json" | grep -q "^Content-Type: application/json"
+    curl -X POST -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=json" | grep -q "^Content-Type: application/json"
   '
 
   test_expect_success "'ipfs object get --encoding=text' returns the correct content type" '
-    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=text" | grep -q "^Content-Type: text/plain"
+    curl -X POST -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=text" | grep -q "^Content-Type: text/plain"
   '
 
   test_expect_success "'ipfs object get --encoding=xml' returns the correct content type" '
-    curl -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=xml" | grep -q "^Content-Type: application/xml"
+    curl -X POST -sI "http://$API_ADDR/api/v0/object/get?arg=$HASH&encoding=xml" | grep -q "^Content-Type: application/xml"
   '
 }
 

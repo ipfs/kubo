@@ -9,7 +9,7 @@ fi
 # {data, server, client, bootstrap}
 tag=zaqwsx_ipfs-test-img
 
-# could use set -v, but i dont want to see the comments...
+# could use set -v, but i don't want to see the comments...
 
 img=$(docker images | grep $1 | awk '{print $3}')
 echo "using docker image: $img ($1)"

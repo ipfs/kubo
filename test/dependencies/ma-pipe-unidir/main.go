@@ -43,16 +43,6 @@ func app() int {
 		return 1
 	}
 
-	if len(opts.PidFile) > 0 {
-		data := []byte(strconv.Itoa(os.Getpid()))
-		err := ioutil.WriteFile(opts.PidFile, data, 0644)
-		if err != nil {
-			return 1
-		}
-
-		defer os.Remove(opts.PidFile)
-	}
-
 	maddr, err := ma.NewMultiaddr(addr)
 	if err != nil {
 		return 1
@@ -66,6 +56,16 @@ func app() int {
 			return 1
 		}
 
+		if len(opts.PidFile) > 0 {
+			data := []byte(strconv.Itoa(os.Getpid()))
+			err := ioutil.WriteFile(opts.PidFile, data, 0644)
+			if err != nil {
+				return 1
+			}
+
+			defer os.Remove(opts.PidFile)
+		}
+
 		conn, err = listener.Accept()
 		if err != nil {
 			return 1
@@ -76,6 +76,17 @@ func app() int {
 		if err != nil {
 			return 1
 		}
+
+		if len(opts.PidFile) > 0 {
+			data := []byte(strconv.Itoa(os.Getpid()))
+			err := ioutil.WriteFile(opts.PidFile, data, 0644)
+			if err != nil {
+				return 1
+			}
+
+			defer os.Remove(opts.PidFile)
+		}
+
 	}
 
 	defer conn.Close()

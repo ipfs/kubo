@@ -24,7 +24,7 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	ci "github.com/libp2p/go-libp2p-crypto"
+	ci "github.com/libp2p/go-libp2p-core/crypto"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
@@ -138,7 +138,7 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, iface
 
 	dh.Handler, err = makeHandler(n,
 		ts.Listener,
-		IPNSHostnameOption(),
+		HostnameOption(),
 		GatewayOption(false, "/ipfs", "/ipns"),
 		VersionOption(),
 	)
@@ -184,12 +184,12 @@ func TestGatewayGet(t *testing.T) {
 		status int
 		text   string
 	}{
-		{"localhost:5001", "/", http.StatusNotFound, "404 page not found\n"},
-		{"localhost:5001", "/" + k.Cid().String(), http.StatusNotFound, "404 page not found\n"},
-		{"localhost:5001", k.String(), http.StatusOK, "fnord"},
-		{"localhost:5001", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"localhost:5001", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"localhost:5001", "/ipns/example.com", http.StatusOK, "fnord"},
+		{"127.0.0.1:8080", "/", http.StatusNotFound, "404 page not found\n"},
+		{"127.0.0.1:8080", "/" + k.Cid().String(), http.StatusNotFound, "404 page not found\n"},
+		{"127.0.0.1:8080", k.String(), http.StatusOK, "fnord"},
+		{"127.0.0.1:8080", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"127.0.0.1:8080", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"127.0.0.1:8080", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 
 		{"working.example.com", "/", http.StatusOK, "fnord"},
@@ -202,7 +202,7 @@ func TestGatewayGet(t *testing.T) {
 		{"example.man", "/", http.StatusOK, "fnord"},
 	} {
 		var c http.Client
-		r, err := http.NewRequest("GET", ts.URL+test.path, nil)
+		r, err := http.NewRequest(http.MethodGet, ts.URL+test.path, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -259,7 +259,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	ns["/ipns/example.net"] = path.FromString(k.String())
 
 	// make request to directory containing index.html
-	req, err := http.NewRequest("GET", ts.URL+"/foo", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/foo", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +282,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	}
 
 	// make request with prefix to directory containing index.html
-	req, err = http.NewRequest("GET", ts.URL+"/foo", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/foo", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,7 +306,7 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	}
 
 	// make sure /version isn't exposed
-	req, err = http.NewRequest("GET", ts.URL+"/version", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/version", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +359,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	ns["/ipns/example.net"] = path.FromString(k.String())
 
 	// make request to directory listing
-	req, err := http.NewRequest("GET", ts.URL+"/foo%3F%20%23%3C%27/", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/foo%3F%20%23%3C%27/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +381,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
@@ -392,7 +392,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing at root
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -425,7 +425,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing
-	req, err = http.NewRequest("GET", ts.URL+"/foo%3F%20%23%3C%27/bar/", nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL+"/foo%3F%20%23%3C%27/bar/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,7 +447,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/bar/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/file.txt\">") {
@@ -458,7 +458,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing with prefix
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -492,7 +492,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// make request to directory listing with illegal prefix
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -500,7 +500,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	req.Header.Set("X-Ipfs-Gateway-Prefix", "/bad-prefix")
 
 	// make request to directory listing with evil prefix
-	req, err = http.NewRequest("GET", ts.URL, nil)
+	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -539,7 +539,7 @@ func TestCacheControlImmutable(t *testing.T) {
 	t.Logf("test server url: %s", ts.URL)
 	defer ts.Close()
 
-	req, err := http.NewRequest("GET", ts.URL+emptyDir+"/", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+emptyDir+"/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -566,7 +566,7 @@ func TestGoGetSupport(t *testing.T) {
 	defer ts.Close()
 
 	// mimic go-get
-	req, err := http.NewRequest("GET", ts.URL+emptyDir+"?go-get=1", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+emptyDir+"?go-get=1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -589,7 +589,7 @@ func TestVersion(t *testing.T) {
 	t.Logf("test server url: %s", ts.URL)
 	defer ts.Close()
 
-	req, err := http.NewRequest("GET", ts.URL+"/version", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/version", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -608,7 +608,7 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("response doesn't contain commit:\n%s", s)
 	}
 
-	if !strings.Contains(s, "Client Version: "+id.ClientVersion) {
+	if !strings.Contains(s, "Client Version: "+version.UserAgent) {
 		t.Fatalf("response doesn't contain client version:\n%s", s)
 	}
 

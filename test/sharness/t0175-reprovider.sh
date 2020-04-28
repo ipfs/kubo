@@ -16,32 +16,11 @@ init_strategy() {
     PEERID_1=$(iptb attr get 1 id)
   '
 
-  test_expect_success 'use pinning startegy for reprovider' '
+  test_expect_success 'use pinning strategy for reprovider' '
     ipfsi 0 config Reprovider.Strategy '$1'
   '
 
   startup_cluster ${NUM_NODES}
-}
-
-findprovs_empty() {
-  test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut
-  '
-
-  test_expect_success "findprovs $1 output is empty" '
-    test_must_be_empty findprovsOut
-  '
-}
-
-findprovs_expect() {
-  test_expect_success 'findprovs '$1' succeeds' '
-    ipfsi 1 dht findprovs -n 1 '$1' > findprovsOut &&
-    echo '$2' > expected
-  '
-
-  test_expect_success "findprovs $1 output looks good" '
-    test_cmp findprovsOut expected
-  '
 }
 
 reprovide() {

@@ -10,11 +10,10 @@ import (
 	cid "github.com/ipfs/go-cid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	p2phost "github.com/libp2p/go-libp2p-host"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	p2phost "github.com/libp2p/go-libp2p-core/host"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	routing "github.com/libp2p/go-libp2p-routing"
 )
 
 type PubSubAPI CoreAPI
@@ -57,6 +56,7 @@ func (api *PubSubAPI) Publish(ctx context.Context, topic string, data []byte) er
 		return err
 	}
 
+	//nolint deprecated
 	return api.pubSub.Publish(topic, data)
 }
 
@@ -71,6 +71,7 @@ func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 		return nil, err
 	}
 
+	//nolint deprecated
 	sub, err := api.pubSub.Subscribe(topic)
 	if err != nil {
 		return nil, err
@@ -93,7 +94,7 @@ func (api *PubSubAPI) Subscribe(ctx context.Context, topic string, opts ...caopt
 	return &pubSubSubscription{cancel, sub}, nil
 }
 
-func connectToPubSubPeers(ctx context.Context, r routing.IpfsRouting, ph p2phost.Host, cid cid.Cid) {
+func connectToPubSubPeers(ctx context.Context, r routing.Routing, ph p2phost.Host, cid cid.Cid) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -101,7 +102,7 @@ func connectToPubSubPeers(ctx context.Context, r routing.IpfsRouting, ph p2phost
 	var wg sync.WaitGroup
 	for p := range provs {
 		wg.Add(1)
-		go func(pi pstore.PeerInfo) {
+		go func(pi peer.AddrInfo) {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 			defer cancel()
@@ -117,7 +118,7 @@ func connectToPubSubPeers(ctx context.Context, r routing.IpfsRouting, ph p2phost
 	wg.Wait()
 }
 
-func (api *PubSubAPI) checkNode() (routing.IpfsRouting, error) {
+func (api *PubSubAPI) checkNode() (routing.Routing, error) {
 	if api.pubSub == nil {
 		return nil, errors.New("experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use.")
 	}

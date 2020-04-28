@@ -1,6 +1,8 @@
 # Building on Windows
 ![](https://ipfs.io/ipfs/QmccXW7JSZMVXidSc7tHsU6aktuaiV923q4yBGHUsdymYo/build.gif)
 
+If you just want to install go-ipfs, please download it from https://dist.ipfs.io/#go-ipfs. This document explains how to build it from source.
+
 ## Install Go
 `go-ipfs` is built on Golang and thus depends on it for all building methods.  
 https://golang.org/doc/install  
@@ -103,27 +105,20 @@ SETX PATH %PATH%
 ```
 
 ## Minimal
-While it's possible to build `go-ipfs` with `go` alone, we'll be using `git` and `gx` for practical source management.  
+
+While it's possible to build `go-ipfs` with `go` alone, we'll be using `git` to fetch the source.
+
 You can use whichever version of `git` you wish but we recommend the Windows builds at <https://git-scm.com>. `git` must be in your [`PATH`](https://ss64.com/nt/path.html) for `go get` to recognize and use it.
 
-### `gx`
-You may install prebuilt binaries for [`gx`](https://dist.ipfs.io/#gx) & [`gx-go`](https://dist.ipfs.io/#gx-go) if they're available for your platform.
-Alternatively, you can build them from source and install them to `%GOPATH%\bin` by running the following:
+### go-ipfs
+
+Clone and change directory to the source code, if you haven't already:
 
 ```
-go get -u github.com/whyrusleeping/gx
-go get -u github.com/whyrusleeping/gx-go
+git clone https://github.com/ipfs/go-ipfs %GOPATH%/src/github.com/ipfs/go-ipfs
+cd %GOPATH%/src/github.com/ipfs/go-ipfs/cmd/ipfs
 ```
 
-### `go-ipfs`
-
-```
-SET PATH=%PATH%;%GOPATH%\bin
-go get -u -d github.com/ipfs/go-ipfs
-cd %GOPATH%/src/github.com/ipfs/go-ipfs
-gx --verbose install --global
-cd cmd\ipfs
-```
 We need the `git` commit hash to be included in our build so that in the extremely rare event a bug is found, we have a reference point later for tracking it. We'll ask `git` for it and store it in a variable. The syntax for the next command is different depending on whether you're using the interactive command line or writing a batch file. Use the one that applies to you.  
 - interactive: `FOR /F %V IN ('git rev-parse --short HEAD') do set SHA=%V`  
 - interpreter: `FOR /F %%V IN ('git rev-parse --short HEAD') do set SHA=%%V`  

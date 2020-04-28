@@ -32,7 +32,7 @@ test_client_must_fail() {
   opts="$@"
   echo "OPTS = " $opts
   test_expect_success "client should fail $state" '
-    echo "Error: cannot connect to the api. Is the deamon running? To run as a standalone CLI command remove the api file in \`\$IPFS_PATH/api\`" >expected_err &&
+    echo "Error: cannot connect to the api. Is the daemon running? To run as a standalone CLI command remove the api file in \`\$IPFS_PATH/api\`" >expected_err &&
     test_must_fail ipfs id -f="<id>" $opts >actual 2>actual_err &&
     test_cmp expected_err actual_err
   '
@@ -66,7 +66,7 @@ test_client_suite() {
 
 # first, test things without daemon, without /api file
 # with no daemon, everything should fail 
-# (using unreachable because API_MADDR doesnt get set until daemon start)
+# (using unreachable because API_MADDR doesn't get set until daemon start)
 test_client_suite "(daemon off, no --api, no /api file)" false false "$api_unreachable" "$api_other"
 
 

@@ -4,13 +4,17 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 to_preload() {
 	awk 'NF' "$DIR/preload_list" | sed '/^#/d'
+  if [[ -n "$IPFS_PLUGINS" ]]; then
+      for plugin in $IPFS_PLUGINS; do
+          echo "$plugin github.com/ipfs/go-ipfs/plugin/plugins/$plugin *"
+      done
+  fi
 }
 
 cat <<EOL
 package loader
 
 import (
-	"github.com/ipfs/go-ipfs/plugin"
 EOL
 
 to_preload | while read -r name path num; do
@@ -25,12 +29,14 @@ cat <<EOL
 // This file is being generated as part of plugin build process
 // To change it, modify the plugin/loader/preload.sh
 
-var preloadPlugins = []plugin.Plugin{
+func init() {
 EOL
 
 to_preload | while read -r name path num; do
-	echo "plugin$name.Plugins[$num],"
+	case "$num" in
+		'*') echo "	Preload(plugin$name.Plugins...)" ;; # All plugins
+		*) echo "	Preload(plugin$name.Plugins[$num])" ;; # A specific plugin
+	esac
 done
-
 
 echo "}"

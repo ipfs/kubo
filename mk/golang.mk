@@ -1,5 +1,5 @@
 # golang utilities
-GO_MIN_VERSION = 1.12
+GO_MIN_VERSION = 1.13.8
 export GO111MODULE=on
 
 
@@ -9,6 +9,9 @@ GOTAGS ?=
 unexport GOFLAGS
 GOFLAGS ?=
 GOTFLAGS ?=
+
+# Try to make building as reproducible as possible by stripping the go path.
+GOFLAGS += "-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
 
 ifeq ($(tarball-is),1)
 	GOFLAGS += -mod=vendor

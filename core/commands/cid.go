@@ -31,6 +31,7 @@ var CidCmd = &cmds.Command{
 const (
 	cidFormatOptionName    = "f"
 	cidVerisonOptionName   = "v"
+	cidCodecOptionName     = "codec"
 	cidMultibaseOptionName = "b"
 )
 
@@ -49,11 +50,13 @@ The optional format string is a printf style format string:
 	Options: []cmds.Option{
 		cmds.StringOption(cidFormatOptionName, "Printf style format string.").WithDefault("%s"),
 		cmds.StringOption(cidVerisonOptionName, "CID version to convert to."),
+		cmds.StringOption(cidCodecOptionName, "CID codec to convert to."),
 		cmds.StringOption(cidMultibaseOptionName, "Multibase to display CID in."),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		fmtStr, _ := req.Options[cidFormatOptionName].(string)
 		verStr, _ := req.Options[cidVerisonOptionName].(string)
+		codecStr, _ := req.Options[cidCodecOptionName].(string)
 		baseStr, _ := req.Options[cidMultibaseOptionName].(string)
 
 		opts := cidFormatOpts{}
@@ -63,10 +66,21 @@ The optional format string is a printf style format string:
 		}
 		opts.fmtStr = fmtStr
 
+		if codecStr != "" {
+			codec, ok := cid.Codecs[codecStr]
+			if !ok {
+				return fmt.Errorf("unknown IPLD codec: %s", codecStr)
+			}
+			opts.newCodec = codec
+		} // otherwise, leave it as 0 (not a valid IPLD codec)
+
 		switch verStr {
 		case "":
 			// noop
 		case "0":
+			if opts.newCodec != 0 && opts.newCodec != cid.DagProtobuf {
+				return fmt.Errorf("cannot convert to CIDv0 with any codec other than DagPB")
+			}
 			opts.verConv = toCidV0
 		case "1":
 			opts.verConv = toCidV1
@@ -101,7 +115,7 @@ The optional format string is a printf style format string:
 
 type CidFormatRes struct {
 	CidStr    string // Original Cid String passed in
-	Formatted string // Formated Result
+	Formatted string // Formatted Result
 	ErrorMsg  string // Error
 }
 
@@ -125,9 +139,10 @@ var base32Cmd = &cmds.Command{
 }
 
 type cidFormatOpts struct {
-	fmtStr  string
-	newBase mbase.Encoding
-	verConv func(cid cid.Cid) (cid.Cid, error)
+	fmtStr   string
+	newBase  mbase.Encoding
+	verConv  func(cid cid.Cid) (cid.Cid, error)
+	newCodec uint64
 }
 
 type argumentIterator struct {
@@ -169,10 +184,11 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 			emitErr = resp.Emit(res)
 			continue
 		}
-		base := opts.newBase
-		if base == -1 {
-			base, _ = cid.ExtractEncoding(cidStr)
+
+		if opts.newCodec != 0 && opts.newCodec != c.Type() {
+			c = cid.NewCidV1(opts.newCodec, c.Hash())
 		}
+
 		if opts.verConv != nil {
 			c, err = opts.verConv(c)
 			if err != nil {
@@ -181,6 +197,16 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 				continue
 			}
 		}
+
+		base := opts.newBase
+		if base == -1 {
+			if c.Version() == 0 {
+				base = mbase.Base58BTC
+			} else {
+				base, _ = cid.ExtractEncoding(cidStr)
+			}
+		}
+
 		str, err := cidutil.Format(opts.fmtStr, base, c)
 		if _, ok := err.(cidutil.FormatStringError); ok {
 			// no point in continuing if there is a problem with the format string
@@ -229,7 +255,7 @@ var basesCmd = &cmds.Command{
 		Tagline: "List available multibase encodings.",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(prefixOptionName, "also include the single leter prefixes in addition to the code"),
+		cmds.BoolOption(prefixOptionName, "also include the single letter prefixes in addition to the code"),
 		cmds.BoolOption(numericOptionName, "also include numeric codes"),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {

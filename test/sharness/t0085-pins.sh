@@ -10,8 +10,9 @@ test_description="Test ipfs pinning operations"
 
 
 test_pins() {
-  EXTRA_ARGS=$1
-  BASE=$2
+  PIN_ARGS="$1"
+  LS_ARGS="$2"
+  BASE=$3
   if [ -n "$BASE" ]; then
     BASE_ARGS="--cid-base=$BASE"
   fi
@@ -44,11 +45,11 @@ test_pins() {
     '
   fi
 
-  test_expect_success "'ipfs pin add $EXTRA_ARGS' via stdin" '
-    cat hashes | ipfs pin add $EXTRA_ARGS $BASE_ARGS | tee actual
+  test_expect_success "'ipfs pin add $PIN_ARGS' via stdin" '
+    cat hashes | ipfs pin add $PIN_ARGS $BASE_ARGS | tee actual
   '
 
-  test_expect_success "'ipfs pin add $EXTRA_ARGS' output looks good" '
+  test_expect_success "'ipfs pin add $PIN_ARGS' output looks good" '
     sed -e "s/^/pinned /; s/$/ recursively/" hashes > expected &&
     test_cmp expected actual
   '
@@ -69,8 +70,8 @@ test_pins() {
     test_should_contain "$HASH_G ok" verify_out
   '
 
-  test_expect_success "ipfs pin ls $BASE_ARGS works" '
-    ipfs pin ls $BASE_ARGS > ls_out &&
+  test_expect_success "ipfs pin ls $LS_ARGS $BASE_ARGS works" '
+    ipfs pin ls $LS_ARGS $BASE_ARGS > ls_out &&
     test_should_contain "$HASH_A" ls_out &&
     test_should_contain "$HASH_B" ls_out &&
     test_should_contain "$HASH_C" ls_out &&
@@ -80,9 +81,9 @@ test_pins() {
     test_should_contain "$HASH_G" ls_out
   '
 
-  test_expect_success "test pin ls $BASE_ARGS hash" '
+  test_expect_success "test pin ls $LS_ARGS $BASE_ARGS hash" '
     echo $HASH_B | test_must_fail grep /ipfs && # just to be sure
-    ipfs pin ls $BASE_ARGS $HASH_B > ls_hash_out &&
+    ipfs pin ls $LS_ARGS $BASE_ARGS $HASH_B > ls_hash_out &&
     echo "$HASH_B recursive" > ls_hash_exp &&
     test_cmp ls_hash_exp ls_hash_out
   '
@@ -93,11 +94,11 @@ test_pins() {
 
   test_expect_success "test pin update" '
     ipfs pin add "$HASH_A" &&
-    ipfs pin ls $BASE_ARGS | tee before_update &&
+    ipfs pin ls $LS_ARGS $BASE_ARGS | tee before_update &&
     test_should_contain "$HASH_A" before_update &&
     test_must_fail grep -q "$HASH_B" before_update &&
     ipfs pin update --unpin=true "$HASH_A" "$HASH_B" &&
-    ipfs pin ls $BASE_ARGS > after_update &&
+    ipfs pin ls $LS_ARGS $BASE_ARGS > after_update &&
     test_must_fail grep -q "$HASH_A" after_update &&
     test_should_contain "$HASH_B" after_update &&
     ipfs pin update --unpin=true "$HASH_B" "$HASH_B" &&
@@ -110,20 +111,20 @@ test_pins() {
 RANDOM_HASH=Qme8uX5n9hn15pw9p6WcVKoziyyC9LXv4LEgvsmKMULjnV
 
 test_pins_error_reporting() {
-  EXTRA_ARGS=$1
+  PIN_ARGS=$1
 
-  test_expect_success "'ipfs pin add $EXTRA_ARGS' on non-existent hash should fail" '
-    test_must_fail ipfs pin add $EXTRA_ARGS $RANDOM_HASH 2> err &&
+  test_expect_success "'ipfs pin add $PIN_ARGS' on non-existent hash should fail" '
+    test_must_fail ipfs pin add $PIN_ARGS $RANDOM_HASH 2> err &&
     grep -q "not found" err
   '
 }
 
 test_pin_dag_init() {
-  EXTRA_ARGS=$1
+  PIN_ARGS=$1
 
-  test_expect_success "'ipfs add $EXTRA_ARGS --pin=false' 1MB file" '
+  test_expect_success "'ipfs add $PIN_ARGS --pin=false' 1MB file" '
     random 1048576 56 > afile &&
-    HASH=`ipfs add $EXTRA_ARGS --pin=false -q afile`
+    HASH=`ipfs add $PIN_ARGS --pin=false -q afile`
   '
 }
 
@@ -165,9 +166,11 @@ test_pin_progress() {
 
 test_init_ipfs
 
-test_pins
-test_pins --progress
-test_pins '' base32
+test_pins '' '' ''
+test_pins --progress '' ''
+test_pins --progress --stream ''
+test_pins '' '' base32
+test_pins '' --stream base32
 
 test_pins_error_reporting
 test_pins_error_reporting --progress
@@ -179,9 +182,11 @@ test_pin_progress
 
 test_launch_ipfs_daemon --offline
 
-test_pins
-test_pins --progress
-test_pins '' base32
+test_pins '' '' ''
+test_pins --progress '' ''
+test_pins --progress --stream ''
+test_pins '' '' base32
+test_pins '' --stream base32
 
 test_pins_error_reporting
 test_pins_error_reporting --progress

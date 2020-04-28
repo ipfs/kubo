@@ -126,6 +126,9 @@ func newMockDNS() *mockDNS {
 			"fqdn.example.com.": []string{
 				"dnslink=/ipfs/QmYvMB9yrsSf7RKBghkfwmHJkzJhW2ZgVwq3LxBXXPasFr",
 			},
+			"www.wealdtech.eth.link.": []string{
+				"dnslink=/ipns/ipfs.example.com",
+			},
 		},
 	}
 }
@@ -163,4 +166,7 @@ func TestDNSResolution(t *testing.T) {
 	testResolution(t, r, "double.example.com", opts.DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
 	testResolution(t, r, "conflict.example.com", opts.DefaultDepthLimit, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjE", nil)
 	testResolution(t, r, "fqdn.example.com.", opts.DefaultDepthLimit, "/ipfs/QmYvMB9yrsSf7RKBghkfwmHJkzJhW2ZgVwq3LxBXXPasFr", nil)
+	testResolution(t, r, "www.wealdtech.eth", 1, "/ipns/ipfs.example.com", ErrResolveRecursion)
+	testResolution(t, r, "www.wealdtech.eth", 2, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
+	testResolution(t, r, "www.wealdtech.eth.link", 2, "/ipfs/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", nil)
 }

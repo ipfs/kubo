@@ -37,7 +37,7 @@ func TestCheckVersionOption(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Logf("%#v", tc)
-		r := httptest.NewRequest("POST", tc.uri, nil)
+		r := httptest.NewRequest(http.MethodPost, tc.uri, nil)
 		r.Header.Add("User-Agent", tc.userAgent) // old version, should fail
 
 		called := false

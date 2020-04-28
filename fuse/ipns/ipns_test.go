@@ -1,4 +1,4 @@
-// +build !nofuse
+// +build !nofuse,!openbsd,!netbsd
 
 package ipns
 
@@ -16,11 +16,12 @@ import (
 	"bazil.org/fuse"
 
 	core "github.com/ipfs/go-ipfs/core"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
 	u "github.com/ipfs/go-ipfs-util"
-	ci "github.com/libp2p/go-testutil/ci"
+	ci "github.com/libp2p/go-libp2p-testing/ci"
 )
 
 func maybeSkipFuseTests(t *testing.T) {
@@ -115,7 +116,12 @@ func setupIpnsTest(t *testing.T, node *core.IpfsNode) (*core.IpfsNode, *mountWra
 		}
 	}
 
-	fs, err := NewFileSystem(node, node.PrivateKey, "", "")
+	coreApi, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fs, err := NewFileSystem(node.Context(), coreApi, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +271,7 @@ func TestFileSizeReporting(t *testing.T) {
 	}
 }
 
-// Test to make sure you cant create multiple entries with the same name
+// Test to make sure you can't create multiple entries with the same name
 func TestDoubleEntryFailure(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -452,7 +458,7 @@ func TestFSThrash(t *testing.T) {
 		}
 
 		if !bytes.Equal(data, out) {
-			t.Errorf("Data didnt match in %s: expected %v, got %v", name, data, out)
+			t.Errorf("Data didn't match in %s: expected %v, got %v", name, data, out)
 		}
 	}
 }

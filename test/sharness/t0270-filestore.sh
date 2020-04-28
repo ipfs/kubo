@@ -48,7 +48,7 @@ test_filestore_adds() {
 
   assert_repo_size_less_than 1000000
 
-  test_expect_success "normal add with fscache doesnt duplicate data" '
+  test_expect_success "normal add with fscache doesn't duplicate data" '
     ipfs add --raw-leaves --fscache -r -q somedir > /dev/null
   '
 

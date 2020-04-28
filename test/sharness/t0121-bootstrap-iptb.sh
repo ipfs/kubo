@@ -38,11 +38,11 @@ betterwait() {
 }
 
 test_expect_success "bring down iptb nodes" '
-  PID0=$(cat "$IPTB_ROOT/benches/default/0/daemon.pid") &&
-  PID1=$(cat "$IPTB_ROOT/benches/default/1/daemon.pid") &&
-  PID2=$(cat "$IPTB_ROOT/benches/default/2/daemon.pid") &&
-  PID3=$(cat "$IPTB_ROOT/benches/default/3/daemon.pid") &&
-  PID4=$(cat "$IPTB_ROOT/benches/default/4/daemon.pid") &&
+  PID0=$(cat "$IPTB_ROOT/testbeds/default/0/daemon.pid") &&
+  PID1=$(cat "$IPTB_ROOT/testbeds/default/1/daemon.pid") &&
+  PID2=$(cat "$IPTB_ROOT/testbeds/default/2/daemon.pid") &&
+  PID3=$(cat "$IPTB_ROOT/testbeds/default/3/daemon.pid") &&
+  PID4=$(cat "$IPTB_ROOT/testbeds/default/4/daemon.pid") &&
   iptb stop && # TODO: add --wait flag to iptb stop
   betterwait $PID0
   betterwait $PID1
@@ -58,7 +58,7 @@ test_expect_success "reset iptb nodes" '
 
 test_expect_success "set bootstrap addrs" '
   bsn_peer_id=$(ipfs id -f "<id>") &&
-  BADDR="/ip4/127.0.0.1/tcp/$SWARM_PORT/ipfs/$bsn_peer_id" &&
+  BADDR="/ip4/127.0.0.1/tcp/$SWARM_PORT/p2p/$bsn_peer_id" &&
   ipfsi 0 bootstrap add $BADDR &&
   ipfsi 1 bootstrap add $BADDR &&
   ipfsi 2 bootstrap add $BADDR &&

@@ -6,6 +6,18 @@
     "Description"
   ],
   "rows": [
+    "Libp2p",
+    ["libp2p/go-libp2p", "go-libp2p", "p2p networking library"],
+    ["libp2p/go-libp2p-pubsub", "go-libp2p-pubsub", "pubsub built on libp2p"],
+    ["libp2p/go-libp2p-kad-dht", "go-libp2p-kad-dht", "dht-backed router"],
+    ["libp2p/go-libp2p-pubsub-router", "go-libp2p-pubsub-router", "pubsub-backed router"],
+
+    "Multiformats",
+    ["ipfs/go-cid", "go-cid", "CID implementation"],
+    ["multiformats/go-multiaddr", "go-multiaddr", "multiaddr implementation"],
+    ["multiformats/go-multihash", "go-multihash", "multihash implementation"],
+    ["multiformats/go-multibase", "go-multibase", "mulitbase implementation"],
+
     "Files",
     ["ipfs/go-unixfs", "go-unixfs", "the core 'filesystem' logic"],
     ["ipfs/go-mfs", "go-mfs", "a mutable filesystem editor for unixfs"],
@@ -34,13 +46,20 @@
     ["ipfs/go-fs-lock", "go-fs-lock", "lockfile management functions"],
     ["ipfs/fs-repo-migrations", "fs-repo-migrations", "repo migrations"],
 
-    "Blocks",
+    "IPLD",
     ["ipfs/go-block-format", "go-block-format", "block interfaces and implementations"],
     ["ipfs/go-ipfs-blockstore", "go-ipfs-blockstore", "blockstore interfaces and implementations"],
+    ["ipfs/go-ipld-format", "go-ipld-format", "IPLD interfaces"],
+    ["ipfs/go-ipld-cbor", "go-ipld-cbor", "IPLD-CBOR implementation"],
+    ["ipfs/go-ipld-git", "go-ipld-git", "IPLD-Git implementation"],
+    ["ipfs/go-merkledag", "go-merkledag", "IPLD-Merkledag implementation (and then some)"],
 
     "Commands",
     ["ipfs/go-ipfs-cmds", "go-ipfs-cmds", "CLI & HTTP commands library"],
-    ["ipfs/go-ipfs-api", "go-ipfs-api", "a shell for the IPFS HTTP API"],
+    ["ipfs/go-ipfs-files", "go-ipfs-files", "CLI & HTTP commands library"],
+    ["ipfs/go-ipfs-api", "go-ipfs-api", "an old, stable shell for the IPFS HTTP API"],
+    ["ipfs/go-ipfs-http-client", "go-ipfs-http-client", "a new, unstable shell for the IPFS HTTP API"],
+    ["ipfs/interface-go-ipfs-core", "interface-go-ipfs-core", "core go-ipfs API interface definitions"],
 
     "Metrics & Logging",
     ["ipfs/go-metrics-interface", "go-metrics-interface", "metrics collection interfaces"],

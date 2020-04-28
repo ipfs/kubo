@@ -31,6 +31,12 @@ a directory:
 `go-get=1` parameter. See [PR#3964](https://github.com/ipfs/go-ipfs/pull/3963)
 for details</sub>
 
+## Static Websites
+
+You can use an IPFS gateway to serve static websites at a custom domain using
+[DNSLink](https://dnslink.io). See [Example: IPFS
+Gateway](https://dnslink.io/#example-ipfs-gateway) for instructions.
+
 ## Filenames
 
 When downloading files, browsers will usually guess a file's filename by looking

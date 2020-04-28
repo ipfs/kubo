@@ -2,21 +2,20 @@
 package blockstoreutil
 
 import (
+	"context"
 	"fmt"
 	"io"
 
-	"github.com/ipfs/go-ipfs/pin"
-
 	cid "github.com/ipfs/go-cid"
-	ds "github.com/ipfs/go-datastore"
 	bs "github.com/ipfs/go-ipfs-blockstore"
+	"github.com/ipfs/go-ipfs-pinner"
 )
 
-// RemovedBlock is used to respresent the result of removing a block.
+// RemovedBlock is used to represent the result of removing a block.
 // If a block was removed successfully than the Error string will be
 // empty.  If a block could not be removed than Error will contain the
 // reason the block could not be removed.  If the removal was aborted
-// due to a fatal error Hash will be be empty, Error will contain the
+// due to a fatal error Hash will be empty, Error will contain the
 // reason, and no more results will be sent.
 type RemovedBlock struct {
 	Hash  string `json:",omitempty"`
@@ -34,7 +33,7 @@ type RmBlocksOpts struct {
 // It returns a channel where objects of type RemovedBlock are placed, when
 // not using the Quiet option. Block removal is asynchronous and will
 // skip any pinned blocks.
-func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
+func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBlocksOpts) (<-chan interface{}, error) {
 	// make the channel large enough to hold any result to avoid
 	// blocking while holding the GCLock
 	out := make(chan interface{}, len(cids))
@@ -44,13 +43,23 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBl
 		unlocker := blocks.GCLock()
 		defer unlocker.Unlock()
 
-		stillOkay := FilterPinned(pins, out, cids)
+		stillOkay := FilterPinned(ctx, pins, out, cids)
 
 		for _, c := range stillOkay {
-			err := blocks.DeleteBlock(c)
-			if err != nil && opts.Force && (err == bs.ErrNotFound || err == ds.ErrNotFound) {
-				// ignore non-existent blocks
-			} else if err != nil {
+			// Kept for backwards compatibility. We may want to
+			// remove this sometime in the future.
+			has, err := blocks.Has(c)
+			if err != nil {
+				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
+				continue
+			}
+			if !has && !opts.Force {
+				out <- &RemovedBlock{Hash: c.String(), Error: bs.ErrNotFound.Error()}
+				continue
+			}
+
+			err = blocks.DeleteBlock(c)
+			if err != nil {
 				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
 			} else if !opts.Quiet {
 				out <- &RemovedBlock{Hash: c.String()}
@@ -65,9 +74,9 @@ func RmBlocks(blocks bs.GCBlockstore, pins pin.Pinner, cids []cid.Cid, opts RmBl
 // out channel, with an error which indicates that the Cid is pinned.
 // This function is used in RmBlocks to filter out any blocks which are not
 // to be removed (because they are pinned).
-func FilterPinned(pins pin.Pinner, out chan<- interface{}, cids []cid.Cid) []cid.Cid {
+func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, cids []cid.Cid) []cid.Cid {
 	stillOkay := make([]cid.Cid, 0, len(cids))
-	res, err := pins.CheckIfPinned(cids...)
+	res, err := pins.CheckIfPinned(ctx, cids...)
 	if err != nil {
 		out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
 		return nil

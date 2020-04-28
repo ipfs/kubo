@@ -44,7 +44,7 @@ test_expect_success 'peer ids' '
 '
 
 test_expect_success 'connect A <-Relay-> B' '
-  ipfsi 0 swarm connect /p2p-circuit/ipfs/$PEERID_2 > peers_out
+  ipfsi 0 swarm connect /p2p/$PEERID_1/p2p-circuit/p2p/$PEERID_2 > peers_out
 '
 
 test_expect_success 'output looks good' '
@@ -53,15 +53,13 @@ test_expect_success 'output looks good' '
 '
 
 test_expect_success 'peers for A look good' '
-  ipfsi 0 swarm peers | grep p2p-circuit > peers_out &&
-  echo "/ipfs/$PEERID_1/p2p-circuit/ipfs/$PEERID_2" > peers_exp &&
-  test_cmp peers_exp peers_out
+  ipfsi 0 swarm peers > peers_out &&
+  test_should_contain "/p2p/$PEERID_1/p2p-circuit/p2p/$PEERID_2$" peers_out
 '
 
 test_expect_success 'peers for B look good' '
-  ipfsi 2 swarm peers | grep p2p-circuit > peers_out &&
-  echo "/ipfs/$PEERID_1/p2p-circuit/ipfs/$PEERID_0" > peers_exp &&
-  test_cmp peers_exp peers_out
+  ipfsi 2 swarm peers > peers_out &&
+  test_should_contain "/p2p/$PEERID_1/p2p-circuit/p2p/$PEERID_0$" peers_out
 '
 
 test_expect_success 'add an object in A' '

@@ -202,6 +202,12 @@ test_files_api() {
     test_cmp ls_l_expected ls_l_actual
   '
 
+  test_expect_success "file has correct hash and size listed with --long" '
+    echo "file1	$FILE1	4" > ls_l_expected &&
+    ipfs files ls --long /cats/file1 > ls_l_actual &&
+    test_cmp ls_l_expected ls_l_actual
+  '
+
   test_expect_success "file has correct hash and size listed with -l --cid-base=base32" '
     echo "file1	`cid-fmt -v 1 -b base32 %s $FILE1`	4" > ls_l_expected &&
     ipfs files ls --cid-base=base32 -l /cats/file1 > ls_l_actual &&
@@ -436,10 +442,10 @@ test_files_api() {
   test_expect_success "file hash correct $EXTRA" '
     echo $FILE_HASH > filehash_expected &&
     ipfs files stat --hash /cats/ipfs > filehash &&
-    test_cmp filehash_expected filehash 
+    test_cmp filehash_expected filehash
   '
 
-  test_expect_success "cant write to negative offset $EXTRA" '
+  test_expect_success "can't write to negative offset $EXTRA" '
     test_expect_code 1 ipfs files write $ARGS $RAW_LEAVES --offset -1 /cats/ipfs < output
   '
 
@@ -676,6 +682,14 @@ test_files_api() {
     ipfs files mkdir /forcibly-dir &&
     ipfs files rm --force /forcibly-dir &&
     verify_dir_contents /
+  '
+
+  test_expect_success "remove nonexistant path forcibly" '
+    ipfs files rm --force /nonexistant
+  '
+
+  test_expect_success "remove deeply nonexistant path forcibly" '
+    ipfs files rm --force /deeply/nonexistant
   '
 }
 

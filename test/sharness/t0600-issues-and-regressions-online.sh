@@ -11,16 +11,16 @@ test_launch_ipfs_daemon
 # Tests go here
 
 test_expect_success "commands command with flag flags works via HTTP API - #2301" '
-  curl "http://$API_ADDR/api/v0/commands?flags" | grep "verbose"
+  curl -X POST "http://$API_ADDR/api/v0/commands?flags" | grep "verbose"
 '
 
 test_expect_success "ipfs refs local over HTTP API returns NDJOSN not flat - #2803" '
   echo "Hello World" | ipfs add &&
-  curl "http://$API_ADDR/api/v0/refs/local" | grep "Ref" | grep "Err"
+  curl -X POST "http://$API_ADDR/api/v0/refs/local" | grep "Ref" | grep "Err"
 '
 
-test_expect_success "args expecting stdin dont crash when not given" '
-  curl "$API_ADDR/api/v0/bootstrap/add" > result
+test_expect_success "args expecting stdin don't crash when not given" '
+  curl -X POST "$API_ADDR/api/v0/bootstrap/add" > result
 '
 
 test_expect_success "no panic traces on daemon" '
@@ -28,25 +28,25 @@ test_expect_success "no panic traces on daemon" '
 '
 
 test_expect_success "metrics work" '
-  curl "$API_ADDR/debug/metrics/prometheus" > pro_data &&
+  curl -X POST "$API_ADDR/debug/metrics/prometheus" > pro_data &&
   grep "ipfs_bs_cache_arc_hits_total" < pro_data ||
   test_fsh cat pro_data
 '
 
 test_expect_success "pin add api looks right - #3753" '
   HASH=$(echo "foo" | ipfs add -q) &&
-  curl "http://$API_ADDR/api/v0/pin/add/$HASH" > pinadd_out &&
+  curl -X POST "http://$API_ADDR/api/v0/pin/add/$HASH" > pinadd_out &&
   echo "{\"Pins\":[\"QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6\"]}" > pinadd_exp &&
   test_cmp pinadd_out pinadd_exp
 '
 
 test_expect_success "pin add api looks right - #3753" '
-  curl "http://$API_ADDR/api/v0/pin/rm/$HASH" > pinrm_out &&
+  curl -X POST "http://$API_ADDR/api/v0/pin/rm/$HASH" > pinrm_out &&
   echo "{\"Pins\":[\"QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6\"]}" > pinrm_exp &&
   test_cmp pinrm_out pinrm_exp
 '
 
-test_expect_success "no daemon crash on improper file argument - #4003" '
+test_expect_success SOCAT "no daemon crash on improper file argument - #4003 ( test needs socat )" '
   FNC=$(echo $API_ADDR | awk -F: '\''{ printf "%s:%s", $1, $2 }'\'') &&
   printf "POST /api/v0/add?pin=true HTTP/1.1\r\nHost: $API_ADDR\r\nContent-Type: multipart/form-data; boundary=Pyw9xQLtiLPE6XcI\r\nContent-Length: 22\r\n\r\n\r\n--Pyw9xQLtiLPE6XcI\r\n" | socat STDIO tcp-connect:$FNC | grep -m1 "500 Internal Server Error"
 '

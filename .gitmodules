@@ -1,0 +1,3 @@
+[submodule "assets/dir-index-html"]
+	path = assets/dir-index-html
+	url = https://github.com/ipfs/dir-index-html.git

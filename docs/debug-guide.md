@@ -15,6 +15,11 @@ When you see ipfs doing something (using lots of CPU, memory, or otherwise
 being weird), the first thing you want to do is gather all the relevant
 profiling information.
 
+There's a script (`bin/collect-profiles.sh`) that will do this for you and
+bundle the results up into a tarball, ready to be attached to a bug report.
+
+If you feel intrepid, you can dump this information and investigate it yourself:
+
 - goroutine dump
   - `curl localhost:5001/debug/pprof/goroutine\?debug=2 > ipfs.stacks`
 - 30 second cpu profile
@@ -26,14 +31,10 @@ profiling information.
 - system information
   - `ipfs diag sys > ipfs.sysinfo`
 
-Bundle all that up and include a copy of the ipfs binary that you are running
-(having the exact same binary is important, it contains debug info).
-
-You can investigate yourself if you feel intrepid:
 
 ### Analyzing the stack dump
 
-The first thing to look for is hung goroutines -- any goroutine thats been stuck
+The first thing to look for is hung goroutines -- any goroutine that's been stuck
 for over a minute will note that in the trace. It looks something like:
 
 ```

@@ -12,6 +12,7 @@ import (
 	blockservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidutil "github.com/ipfs/go-cidutil"
+	filestore "github.com/ipfs/go-filestore"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -32,7 +33,7 @@ type UnixfsAPI CoreAPI
 var nilNode *core.IpfsNode
 var once sync.Once
 
-func getOrCreateNilNode() (*core.IpfsNode,error) {
+func getOrCreateNilNode() (*core.IpfsNode, error) {
 	once.Do(func() {
 		if nilNode != nil {
 			return
@@ -96,7 +97,29 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	bserv := blockservice.New(addblockstore, exch) // hash security 001
 	dserv := dag.NewDAGService(bserv)
 
-	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, dserv)
+	// add a sync call to the DagService
+	// this ensures that data written to the DagService is persisted to the underlying datastore
+	// TODO: propagate the Sync function from the datastore through the blockstore, blockservice and dagservice
+	var syncDserv *syncDagService
+	if settings.OnlyHash {
+		syncDserv = &syncDagService{
+			DAGService: dserv,
+			syncFn:     func() error { return nil },
+		}
+	} else {
+		syncDserv = &syncDagService{
+			DAGService: dserv,
+			syncFn: func() error {
+				ds := api.repo.Datastore()
+				if err := ds.Sync(bstore.BlockPrefix); err != nil {
+					return err
+				}
+				return ds.Sync(filestore.FilestorePrefix)
+			},
+		}
+	}
+
+	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv)
 	if err != nil {
 		return nil, err
 	}
@@ -271,4 +294,14 @@ func (api *UnixfsAPI) lsFromLinks(ctx context.Context, ndlinks []*ipld.Link, set
 
 func (api *UnixfsAPI) core() *CoreAPI {
 	return (*CoreAPI)(api)
+}
+
+// syncDagService is used by the Adder to ensure blocks get persisted to the underlying datastore
+type syncDagService struct {
+	ipld.DAGService
+	syncFn func() error
+}
+
+func (s *syncDagService) Sync() error {
+	return s.syncFn()
 }

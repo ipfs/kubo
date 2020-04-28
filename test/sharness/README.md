@@ -52,7 +52,7 @@ directory.
 Please do not change anything in the "lib/sharness" directory.
 
 If you really need some changes in sharness, please fork it from
-[its cannonical repo](https://github.com/mlafeldt/sharness/) and
+[its canonical repo](https://github.com/mlafeldt/sharness/) and
 send pull requests there.
 
 ## Writing Tests
@@ -107,7 +107,7 @@ test_expect_success "'ipfs add --help' succeeds" '
 
 # other tests here...
 
-# dont forget to kill the daemon!!
+# don't forget to kill the daemon!!
 test_kill_ipfs_daemon
 ```
 
@@ -126,6 +126,6 @@ test_mount_ipfs
 
 # tests mounted here
 
-# dont forget to kill the daemon!!
+# don't forget to kill the daemon!!
 test_kill_ipfs_daemon
 ```

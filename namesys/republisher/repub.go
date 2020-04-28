@@ -15,8 +15,8 @@ import (
 	logging "github.com/ipfs/go-log"
 	goprocess "github.com/jbenet/goprocess"
 	gpctx "github.com/jbenet/goprocess/context"
-	ic "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	ic "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 var errNoEntry = errors.New("no previous entry")

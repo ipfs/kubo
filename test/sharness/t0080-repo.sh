@@ -33,7 +33,7 @@ test_expect_success "'ipfs repo gc' looks good (patch root)" '
   grep -v "removed $HASH" gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' doesnt remove file" '
+test_expect_success "'ipfs repo gc' doesn't remove file" '
   ipfs cat "$HASH" >out &&
   test_cmp out afile
 '
@@ -50,8 +50,7 @@ test_expect_success "'ipfs pin rm' output looks good" '
 test_expect_success "ipfs repo gc fully reverse ipfs add (part 1)" '
   ipfs repo gc &&
   random 100000 41 >gcfile &&
-  expected="$(directory_size "$IPFS_PATH/blocks")" &&
-  find "$IPFS_PATH/blocks" -type f &&
+  find "$IPFS_PATH/blocks" -type f -name "*.data" | sort -u > expected_blocks &&
   hash=$(ipfs add -q gcfile) &&
   ipfs pin rm -r $hash &&
   ipfs repo gc
@@ -60,9 +59,8 @@ test_expect_success "ipfs repo gc fully reverse ipfs add (part 1)" '
 test_kill_ipfs_daemon
 
 test_expect_success "ipfs repo gc fully reverse ipfs add (part 2)" '
-  actual=$(directory_size "$IPFS_PATH/blocks") &&
-  { test "$actual" -eq "$expected" || test_fsh echo "$actual != $expected"; } &&
-  { test "$actual" -gt "0" || test_fsh echo "not($actual > 0)"; }
+  find "$IPFS_PATH/blocks" -type f -name "*.data" | sort -u > actual_blocks &&
+  test_cmp expected_blocks actual_blocks
 '
 
 test_launch_ipfs_daemon --offline
@@ -249,10 +247,10 @@ test_expect_success "'ipfs repo stat --human' succeeds" '
 
 test_expect_success "repo stats --human came out correct" '
   grep "RepoPath" repo-stats-human &&
-  grep -P "RepoSize:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human &&
+  grep -E "RepoSize:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human &&
   grep "NumObjects" repo-stats-human &&
   grep "Version" repo-stats-human &&
-  grep -P "StorageMax:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human ||
+  grep -E "StorageMax:\s*([0-9]*[.])?[0-9]+\s+?(B|kB|MB|GB|TB|PB|EB)" repo-stats-human ||
   test_fsh cat repo-stats-human
 '
 

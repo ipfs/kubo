@@ -6,16 +6,21 @@ aliases:
   restore_gomod: &restore_gomod
     restore_cache:
       keys:
-        - v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
-        - v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
-        - v4-dep-{{ .Branch }}-
-        - v4-dep-master-
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
+        - v5-dep-{{ .Branch }}-
+        - v5-dep-master-
   store_gomod: &store_gomod
       save_cache:
-        key: v4-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        key: v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
         paths:
           - ~/go/pkg/mod
           - ~/.cache/go-build/
+  only-version-tags: &only-version-tags
+    tags:
+      only: /^v[0-9].*/
+    branches:
+      ignore: /.*/
 
 default_environment: &default_environment
   SERVICE: circle-ci
@@ -27,12 +32,8 @@ default_environment: &default_environment
 
 executors:
   golang:
-    parameters:
-      tag:
-        type: string
-        default: "1.12"
     docker:
-      - image: circleci/golang:<< parameters.tag >>
+      - image: circleci/golang:1.13.8
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -57,6 +58,12 @@ executors:
       IPFS_REUSEPORT: false
       LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
       E2E_IPFSD_TYPE: go
+  dockerizer: 
+    docker: 
+      - image: circleci/golang:1.13.8
+    environment:
+      IMAGE_NAME: ipfs/go-ipfs
+      WIP_IMAGE_TAG: wip
 
 jobs:
   gobuild:
@@ -170,22 +177,17 @@ jobs:
             git -C interop log -1
       - restore_cache:
           keys:
-            - v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
-            - v1-interop-
+            - v2-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+            - v2-interop-
       - run:
           name: Installing dependencies
           command: |
             npm install
           working_directory: ~/ipfs/go-ipfs/interop
       - save_cache:
-          key: v1-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
+          key: v2-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
           paths:
             - ~/ipfs/go-ipfs/interop/node_modules
-      - run:
-          name: Installing js-ipfs
-          command: |
-            npm install ipfs ipfs-http-client
-          working_directory: ~/ipfs/go-ipfs/interop
       - run:
           name: Installing reporting tools
           command: |
@@ -207,9 +209,7 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
   go-ipfs-api:
-    executor:
-      name: golang
-      tag: "1.13"
+    executor: golang
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -306,8 +306,45 @@ jobs:
           key: v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
           paths:
             - ~/ipfs/go-ipfs/ipfs-webui/node_modules
+  docker-build:
+    executor: dockerizer
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: "18.09.3"
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .
+      - run:
+          name: Archive Docker image
+          command: docker save -o go-ipfs-image.tar $IMAGE_NAME
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./go-ipfs-image.tar
+  docker-push:
+    executor: dockerizer
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: "18.09.3"
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Load archived Docker image
+          command: docker load -i /tmp/workspace/go-ipfs-image.tar
+      - run:
+          name: Publish Docker Image to Docker Hub
+          command: |
+            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            ./bin/push-docker-tags.sh $(date -u +%F) "$CIRCLE_SHA1" "$CIRCLE_BRANCH" "$CIRCLE_TAG"
+
 workflows:
   version: 2
+
+  # Runs for all branches, but not on tags
+  # see: https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
   test:
     jobs:
     - gobuild
@@ -327,3 +364,35 @@ workflows:
     - ipfs-webui:
         requires:
           - build
+    - docker-build
+    - docker-push:
+        # Requires dockerhub credentials, from circleci context.
+        context: dockerhub
+        requires:
+          - docker-build
+          - golint
+          - gotest
+          - sharness
+          - interop
+          - go-ipfs-api
+          - go-ipfs-http-client
+          - ipfs-webui
+        filters:
+          branches:
+            only:
+              - master
+              - feat/stabilize-dht
+
+  # NOTE: CircleCI only builds tags if you explicitly filter for them. That
+  # also means tag-based jobs can only depend on other tag-based jobs, so we
+  # use a separate workflow because every job needs to be tagged together.
+  # see: https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
+  docker-on-tag: 
+    jobs:
+      - docker-build:
+          filters: *only-version-tags 
+      - docker-push:
+          context: dockerhub
+          filters: *only-version-tags 
+          requires:
+            - docker-build

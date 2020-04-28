@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p"
-	host "github.com/libp2p/go-libp2p-host"
-	pnet "github.com/libp2p/go-libp2p-pnet"
-	"go.uber.org/fx"
-
 	"github.com/ipfs/go-ipfs/repo"
+
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/pnet"
+	"go.uber.org/fx"
+	"golang.org/x/crypto/salsa20"
+	"golang.org/x/crypto/sha3"
 )
 
 type PNetFingerprint []byte
@@ -22,14 +24,14 @@ func PNet(repo repo.Repo) (opts Libp2pOpts, fp PNetFingerprint, err error) {
 		return opts, nil, err
 	}
 
-	protec, err := pnet.NewProtector(bytes.NewReader(swarmkey))
+	psk, err := pnet.DecodeV1PSK(bytes.NewReader(swarmkey))
 	if err != nil {
 		return opts, nil, fmt.Errorf("failed to configure private network: %s", err)
 	}
-	fp = protec.Fingerprint()
 
-	opts.Opts = append(opts.Opts, libp2p.PrivateNetwork(protec))
-	return opts, fp, nil
+	opts.Opts = append(opts.Opts, libp2p.PrivateNetwork(psk))
+
+	return opts, pnetFingerprint(psk), nil
 }
 
 func PNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
@@ -51,8 +53,8 @@ func PNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
 					select {
 					case <-t.C:
 						if len(ph.Network().Peers()) == 0 {
-							log.Warning("We are in private network and have no peers.")
-							log.Warning("This might be configuration mistake.")
+							log.Warn("We are in private network and have no peers.")
+							log.Warn("This might be configuration mistake.")
 						}
 					case <-done:
 						return
@@ -67,4 +69,24 @@ func PNetChecker(repo repo.Repo, ph host.Host, lc fx.Lifecycle) error {
 		},
 	})
 	return nil
+}
+
+func pnetFingerprint(psk pnet.PSK) []byte {
+	var pskArr [32]byte
+	copy(pskArr[:], psk)
+
+	enc := make([]byte, 64)
+	zeros := make([]byte, 64)
+	out := make([]byte, 16)
+
+	// We encrypt data first so we don't feed PSK to hash function.
+	// Salsa20 function is not reversible thus increasing our security margin.
+	salsa20.XORKeyStream(enc, zeros, []byte("finprint"), &pskArr)
+
+	// Then do Shake-128 hash to reduce its length.
+	// This way if for some reason Shake is broken and Salsa20 preimage is possible,
+	// attacker has only half of the bytes necessary to recreate psk.
+	sha3.ShakeSum128(out, enc)
+
+	return out
 }

@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core"
-	gc "github.com/ipfs/go-ipfs/pin/gc"
-	repo "github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/gc"
+	"github.com/ipfs/go-ipfs/repo"
 
-	humanize "github.com/dustin/go-humanize"
-	cid "github.com/ipfs/go-cid"
+	"github.com/dustin/go-humanize"
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
-	mfs "github.com/ipfs/go-mfs"
+	"github.com/ipfs/go-mfs"
 )
 
 var log = logging.Logger("corerepo")
@@ -212,12 +212,11 @@ func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
 
 	if storage+offset > gc.StorageGC {
 		if storage+offset > gc.StorageMax {
-			log.Warningf("pre-GC: %s", ErrMaxStorageExceeded)
+			log.Warnf("pre-GC: %s", ErrMaxStorageExceeded)
 		}
 
 		// Do GC here
 		log.Info("Watermark exceeded. Starting repo GC...")
-		defer log.EventBegin(ctx, "repoGC").Done()
 
 		if err := GarbageCollect(gc.Node, ctx); err != nil {
 			return err

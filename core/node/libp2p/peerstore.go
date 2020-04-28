@@ -3,7 +3,7 @@ package libp2p
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	"go.uber.org/fx"
 )

@@ -8,12 +8,11 @@ import (
 	gopath "path"
 	"strconv"
 
-	"github.com/ipfs/go-ipfs/pin"
-
 	"github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	chunker "github.com/ipfs/go-ipfs-chunker"
 	"github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-posinfo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
@@ -37,6 +36,10 @@ var liveCacheSize = uint64(256 << 10)
 type Link struct {
 	Name, Hash string
 	Size       uint64
+}
+
+type syncer interface {
+	Sync() error
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
@@ -176,7 +179,7 @@ func (adder *Adder) PinRoot(root ipld.Node) error {
 	}
 
 	adder.pinning.PinWithMode(rnk, pin.Recursive)
-	return adder.pinning.Flush()
+	return adder.pinning.Flush(adder.ctx)
 }
 
 func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
@@ -315,6 +318,13 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	err = adder.outputDirs(name, root)
 	if err != nil {
 		return nil, err
+	}
+
+	if asyncDagService, ok := adder.dagService.(syncer); ok {
+		err = asyncDagService.Sync()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !adder.Pin {

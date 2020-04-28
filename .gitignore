@@ -15,6 +15,7 @@ gx-workspace-update.json
 
 .ipfs
 bin/gx
+bin/protoc-*
 bin/gx*
 bin/tmp
 bin/gocovmerge
@@ -24,3 +25,5 @@ bin/cover
 vendor
 .tarball
 go-ipfs-source.tar.gz
+docs/examples/go-ipfs-as-a-library/example-folder/Qm*
+/test/sharness/t0054-dag-car-import-export-data/*.car

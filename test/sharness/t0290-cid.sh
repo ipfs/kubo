@@ -10,6 +10,10 @@ CIDv0="QmS4ustL54uo8FzR9455qaxZwuMiUhyvMcX9Ba8nUH4uVv"
 CIDv1="zdj7WZAAFKPvYPPzyJLso2hhxo8a7ZACFQ4DvvfrNXTHidofr"
 CIDb32="bafybeibxm2nsadl3fnxv2sxcxmxaco2jl53wpeorjdzidjwf5aqdg7wa6u"
 
+CIDbase="QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6"
+CIDb32pb="bafybeievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
+CIDb32raw="bafkreievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
+
 test_expect_success "cid base32 works" '
   echo $CIDb32 > expected &&
   ipfs cid base32 $CIDv0 > actual1 &&
@@ -24,6 +28,12 @@ test_expect_success "cid format -v 1 -b base58btc" '
   test_cmp actual1 expected &&
   ipfs cid format -v 1 -b base58btc $CIDb32 > actual2 &&
   test_cmp expected actual2
+'
+
+test_expect_success "cid format -v 0" '
+  echo $CIDv0 > expected &&
+  ipfs cid format -v 0 $CIDb32 > actual &&
+  test_cmp expected actual
 '
 
 cat <<EOF > various_cids
@@ -227,5 +237,18 @@ test_expect_success "cid hashes --numeric" '
   ipfs cid hashes --numeric > actual &&
   test_cmp hashes_expect actual
 '
+
+test_expect_success "cid format -c raw" '
+  echo $CIDb32raw > expected &&
+  ipfs cid format --codec raw -b base32 $CIDb32pb > actual &&
+  test_cmp actual expected
+'
+
+test_expect_success "cid format -c protobuf -v 0" '
+  echo $CIDbase > expected &&
+  ipfs cid format --codec protobuf -v 0 $CIDb32raw > actual &&
+  test_cmp actual expected
+'
+
 
 test_done

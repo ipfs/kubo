@@ -9,7 +9,7 @@ shellquote() {
 	_space=''
 	for _arg
 	do
-		# On Mac OS, sed adds a newline character.
+		# On macOS, sed adds a newline character.
 		# With a printf wrapper the extra newline is removed.
 		printf "$_space'%s'" "$(printf "%s" "$_arg" | sed -e "s/'/'\\\\''/g;")"
 		_space=' '

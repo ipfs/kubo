@@ -21,6 +21,9 @@ directory (by default `~/.ipfs/plugins`).
 
 ## Plugin Types
 
+Plugins can implement one or more plugin types, defined in the
+[plugin](https://godoc.org/github.com/ipfs/go-ipfs/plugin) package.
+
 ### IPLD
 
 IPLD plugins add support for additional formats to `ipfs dag` and other IPLD
@@ -44,6 +47,43 @@ application without IPC and without forking go-ipfs.
 
 Note: We eventually plan to make go-ipfs usable as a library. However, this
 plugin type is likely the best interim solution.
+
+### Internal
+
+(never stable)
+
+Internal plugins are like daemon plugins _except_ that they can access, replace,
+and modify all internal state. Use this plugin type to extend go-ipfs in
+arbitrary ways. However, be aware that your plugin will likely break every time
+go-ipfs updated.
+
+## Configuration
+
+Plugins can be configured in the `Plugins` section of the config file. Here,
+plugins can be:
+
+1. Passed an arbitrary config object via the `Config` field.
+2. Disabled via the `Disabled` field.
+
+Example:
+
+```js
+{
+  // ...
+  "Plugins": {
+    "Plugins": {
+      // plugin named "plugin-foo"
+      "plugin-foo": {
+        "Config": { /* arbitrary json */ }
+      },
+      // plugin named "plugin-bar"
+      "plugin-bar": {
+        "Disabled": true // "plugin-bar" will not be loaded
+      }
+    }
+  }
+}
+```
 
 ## Available Plugins
 
@@ -122,6 +162,13 @@ To preload a go-ipfs plugin:
 2. Build ipfs
 ```bash
 go-ipfs$ make build
+```
+
+You can also preload an in-tree but disabled-by-default plugin by adding it to
+the IPFS_PLUGINS variable. For example, to enable plugins foo, bar, and baz:
+
+```bash
+go-ipfs$ make build IPFS_PLUGINS="foo bar baz"
 ```
 
 ## Creating A Plugin

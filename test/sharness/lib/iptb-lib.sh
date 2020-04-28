@@ -14,7 +14,7 @@ ipfsi() {
 check_has_connection() {
   node="$1"
   ipfsi "$node" swarm peers >"swarm_peers_$node" &&
-  grep "ipfs" "swarm_peers_$node" >/dev/null
+  grep "p2p" "swarm_peers_$node" >/dev/null
 }
 
 iptb() {
@@ -44,7 +44,7 @@ startup_cluster() {
     '
   fi
 
-  test_expect_success "connect nodes to eachother" '
+  test_expect_success "connect nodes to each other" '
     iptb connect [1-$bound] 0
   '
 

@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/libp2p/go-libp2p"
+	smux "github.com/libp2p/go-libp2p-core/mux"
 	mplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
-	smux "github.com/libp2p/go-stream-muxer"
 )
 
 func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
@@ -21,7 +21,7 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 		ymxtpt.LogOutput = os.Stderr
 	}
 
-	muxers := map[string]smux.Transport{yamuxID: &ymxtpt}
+	muxers := map[string]smux.Multiplexer{yamuxID: &ymxtpt}
 	if mplexExp {
 		muxers[mplexID] = mplex.DefaultTransport
 	}
@@ -36,7 +36,7 @@ func makeSmuxTransportOption(mplexExp bool) libp2p.Option {
 	for _, id := range order {
 		tpt, ok := muxers[id]
 		if !ok {
-			log.Warning("unknown or duplicate muxer in LIBP2P_MUX_PREFS: %s", id)
+			log.Warn("unknown or duplicate muxer in LIBP2P_MUX_PREFS: %s", id)
 			continue
 		}
 		delete(muxers, id)

@@ -85,15 +85,15 @@ func TestMemKeyStoreBasics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := ks.Put("..///foo/", k1); err == nil {
-		t.Fatal("shouldnt be able to put a poorly named key")
+	if err := ks.Put("..///foo/", k1); err != nil {
+		t.Fatal(err)
 	}
 
 	if err := ks.Put("", k1); err == nil {
-		t.Fatal("shouldnt be able to put a key with no name")
+		t.Fatal("shouldn't be able to put a key with no name")
 	}
 
-	if err := ks.Put(".foo", k1); err == nil {
-		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
+	if err := ks.Put(".foo", k1); err != nil {
+		t.Fatal(err)
 	}
 }
