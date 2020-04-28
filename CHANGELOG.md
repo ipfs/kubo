@@ -193,7 +193,7 @@ What this means for users:
 
 Previously, IPFS did not enforce a minimum RSA key size. In this release, we've introduced a minimum 2048 bit RSA key size. IPFS generates 2048 bit RSA keys by default so this shouldn't be an issue for anyone in practice. However, users who explicitly chose a smaller key size will not be able to communicate with new nodes.
 
-Unfortunately, the some of the bootstrap peers _did_ intentionally generate 1024 bit RSA keys so they'd have vanity peer addresses (starting with QmSoL for "solar net"). All IPFS nodes should _also_ have peers with >= 2048 bit RSA keys in their bootstrap list, but we've introduced a migration to ensure this.
+Unfortunately, some of the bootstrap peers _did_ intentionally generate 1024 bit RSA keys so they'd have vanity peer addresses (starting with QmSoL for "solar net"). All IPFS nodes should _also_ have peers with >= 2048 bit RSA keys in their bootstrap list, but we've introduced a migration to ensure this.
 
 We implemented this change to follow security best practices and to remove a potential foot-gun. However, in practice, the security impact of allowing insecure RSA keys should have been next to none because IPFS doesn't trust other peers on the network anyways.
 
@@ -276,8 +276,8 @@ Importantly, this allows IPNS names to appear in subdomains in the new [subdomai
 
 We have made two major changes to the pubsub subsystem in this release:
 
-1. Pubsub now more aggressively finds and connects to other peers peers subscribing to the same topic.
-2. Go-ipfs has switched its the default pubsub router from "floodsub", an inefficient but simple "flooding" pubsub implementation, to "gossipsub".
+1. Pubsub now more aggressively finds and connects to other peers subscribing to the same topic.
+2. Go-ipfs has switched its default pubsub router from "floodsub", an inefficient but simple "flooding" pubsub implementation, to "gossipsub".
 
 PubSub will be stabilized in go-ipfs 0.6.0.
 
@@ -321,7 +321,7 @@ It's now possible to initialize an IPFS node with an existing IPFS config by run
 > ipfs init /path/to/existing/config
 ```
 
-This will re-use the existing config's configuration in it's entirety (including the private key) and can be useful when:
+This will re-use the existing configuration in it's entirety (including the private key) and can be useful when:
 
 * Migrating a node's identity between machines without keeping the data.
 * Resetting the datastore.
@@ -379,7 +379,7 @@ Pinned root	QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc	success
 
 We've made two minor changes to the pinning subsystem:
 
-1. `ipfs pin ls --stream` allows one streaming a pin listing.
+1. `ipfs pin ls --stream` allows streaming a pin listing.
 2. `ipfs pin update` no longer holds the global pin lock while fetching files from the network. This should hopefully make it significantly more useful.
 
 #### Daemon
@@ -411,7 +411,7 @@ This release supports exposing the IPFS API over a unix domain socket in the fil
 
 ##### Docker
 
-We've a few improvements to our docker image in this release:
+We've made a few improvements to our docker image in this release:
 
 * It can now be cross-built for multiple architectures.
 * It now builds go-ipfs with OpenSSL support by default for faster libp2p handshakes.
@@ -439,7 +439,7 @@ This plugin interface is permanently unstable as it has access to internals that
 
 Plugins can now be configured and/or disabled via the [ipfs config file](./docs/plugins.md#configuration).
 
-To make this possible, the plugin interface has changed. Specifically, the `Init` function now takes an `*Environment` object. Specifically, the plugin signature has changed from:
+To make this possible, the plugin interface has changed. The `Init` function now takes an `*Environment` object. Specifically, the plugin signature has changed from:
 
 ```go
 type Plugin interface {
@@ -486,7 +486,7 @@ Otherwise, if you want more control over the repo migration process, you can man
 
 The first migration will update the bootstrap peer list to:
 
-1. Replace the old bootstrap nodes (ones with peer IDs starting with QmSoL), with new bootstrap nodes (ones with addresses that start with `/dnsaddr/bootstrap.libp2p.io`.
+1. Replace the old bootstrap nodes (ones with peer IDs starting with QmSoL), with new bootstrap nodes (ones with addresses that start with `/dnsaddr/bootstrap.libp2p.io`).
 2. Rewrite the address format from `/ipfs/QmPeerID` to `/p2p/QmPeerID`.
 
 We're migrating addresses for a few reasons:
@@ -509,9 +509,9 @@ Currently, the keystore stores keys as regular files, named after the key itself
 
 As usual, this release contains several Windows specific fixes and improvements:
 
-* Double-clicking `ipfs.exe` will now the start daemon inside a console window.
+* Double-clicking `ipfs.exe` will now start the daemon inside a console window.
 * `ipfs add -r` now correctly recognizes and ignores hidden files on Windows.
-* The default datastore, flatfs, now takes extra precautions to avoid "file in use" errors caused by both go-ipfs and external programs like anti-viruses. If you've ever seen an go-ipfs print out an "access denied" or "file in use" error on Windows, this issue was likely the cause.
+* The default datastore, flatfs, now takes extra precautions to avoid "file in use" errors caused by both go-ipfs and external programs like anti-viruses. If you've ever seen go-ipfs print out an "access denied" or "file in use" error on Windows, this issue was likely the cause.
 
 ### Changelog
 
