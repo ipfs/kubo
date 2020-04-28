@@ -20,8 +20,6 @@ The current DHT suffers from three core issues addressed in this release:
 - The DHT query logic doesn't properly terminate when it hits the end of the query and, instead, aggressively keeps on searching.
 - The routing tables are poorly maintained. This can cause search performance to slow down linearly with network size, instead of logarithimicaly as expected.
 
-While some of the DHT improvements will be apparent on release, many of the performance improvements will become more pronounced as the network upgrades.
-
 ###### Reachability
 
 We have addressed the problem of undialable nodes by having nodes wait to join the DHT as _server_ nodes until they've confirmed that they are reachable from the public internet.
@@ -112,7 +110,7 @@ To enable, run:
 
 #### Datastores
 
-Continuing on with the of improving our core data handling subsystems, both of the datastores used in go-ipfs, badger and flatfs, have received important updates in this release:
+Continuing with the of improving our core data handling subsystems, both of the datastores used in go-ipfs, Badger and flatfs, have received important updates in this release:
 
 ##### Badger
 
@@ -134,7 +132,7 @@ Badger is complicated. FlatFS pushes all the complexity down into the filesystem
 
 Badger can use a lot of memory. In this release, we've tuned Badger to use `~20MB` of memory by default. However, it can still produce spikes as large as [`1GiB` of data](https://github.com/dgraph-io/badger/issues/1292) in memory usage when garbage collecting.
 
-Finally, badger isn't very aggressive when it comes to garbage collection, and we're still investigating ways to get it to more aggressively clean up after itself.
+Finally, Badger isn't very aggressive when it comes to garbage collection, and we're still investigating ways to get it to more aggressively clean up after itself.
 
 We suggest you use Badger if:
 
