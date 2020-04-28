@@ -24,7 +24,7 @@ The current DHT suffers from three core issues addressed in this release:
 
 We have addressed the problem of undialable nodes by having nodes wait to join the DHT as _server_ nodes until they've confirmed that they are reachable from the public internet.
 
-To ensure that nodes which are not publicly reachable (ex behind VPNs, offline LANs, etc.) can still coordinate and share data, Go-IPFS 0.5 will run two DHTs: one for private networks and one for the public internet. Every node will participate in a LAN DHT and a public WAN DHT. See [Dual DHT](#dual-dht) for more details.
+To ensure that nodes which are not publicly reachable (ex behind VPNs, offline LANs, etc.) can still coordinate and share data, go-ipfs 0.5 will run two DHTs: one for private networks and one for the public internet. Every node will participate in a LAN DHT and a public WAN DHT. See [Dual DHT](#dual-dht) for more details.
 
 ###### Dual DHT
 
@@ -35,7 +35,7 @@ All IPFS nodes will now run two DHTs: one for the public internet WAN, and one f
 
 The WAN DHT includes all peers with at least one public IP address. This release will only consider an IPv6 address public if it is in the [public internet range `2000::/3`](https://www.iana.org/assignments/ipv6-address-space/ipv6-address-space.xhtml).
 
-This feature should not have any noticeable impact on Go-IPFS, performance, or otherwise. Everything should continue to work in all the currently supported network configurations: VPNs, disconnected LANs, public internet, etc.
+This feature should not have any noticeable impact on go-ipfs, performance, or otherwise. Everything should continue to work in all the currently supported network configurations: VPNs, disconnected LANs, public internet, etc.
 
 ###### Query Logic
 
@@ -114,9 +114,9 @@ Continuing on with the of improving our core data handling subsystems, both of t
 
 ##### Badger
 
-Badger has been in Go-IPFS for over a year as an experimental feature, and we're promoting it to stable (but not default). For this release, we've switched from writing to disk synchronously to explicitly syncing where appropriate, significantly increasing write throughput.
+Badger has been in go-ipfs for over a year as an experimental feature, and we're promoting it to stable (but not default). For this release, we've switched from writing to disk synchronously to explicitly syncing where appropriate, significantly increasing write throughput.
 
-The current and default datastore used by Go-IPFS is [FlatFS](https://github.com/ipfs/go-ds-flatfs). FlatFS essentially stores blocks of data as individual files on your file system. However, there are lots of optimizations a specialized database can do that a standard file system can not.
+The current and default datastore used by go-ipfs is [FlatFS](https://github.com/ipfs/go-ds-flatfs). FlatFS essentially stores blocks of data as individual files on your file system. However, there are lots of optimizations a specialized database can do that a standard file system can not.
 
 The benefit of Badger is that adding/fetching data to/from Badger is significantly faster than adding/fetching data to/from the default datastore, FlatFS. In some tests, adding data to Badger is 32x faster than FlatFS (in this release).
 
@@ -501,7 +501,7 @@ Note: This migration won't _add_ the new bootstrap peers to your config if you'v
 
 **AUTOMATIC MIGRATION REQUIRED**
 
-Go-IPFS stores additional keys (i.e., all keys other than the "identity" key) in the keystore. You can list these keys with `ipfs key`.
+go-ipfs stores additional keys (i.e., all keys other than the "identity" key) in the keystore. You can list these keys with `ipfs key`.
 
 Currently, the keystore stores keys as regular files, named after the key itself. Unfortunately, filename restrictions and case-insensitivity are platform specific. To avoid platform specific issues, we're base32 encoding all key names and renaming all keys on-disk.
 
