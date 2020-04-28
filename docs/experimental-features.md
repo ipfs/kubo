@@ -18,7 +18,6 @@ the above issue.
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
 - [ipfs urlstore](#ipfs-urlstore)
-- [BadgerDB datastore](#badger-datastore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [p2p http proxy](#p2p-http-proxy)
