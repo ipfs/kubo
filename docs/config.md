@@ -12,50 +12,82 @@ applied with `--profile` flag to `ipfs init` or with the `ipfs config profile
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
-Available profiles:
+The available configuration profiles are listed below. You can also find them
+documented in `ipfs config profile --help`.
 
 - `server`
 
-  Recommended for nodes with public IPv4 address (servers, VPSes, etc.),
-  disables host and content discovery in local networks.
-
-- `local-discovery`
-
-  Sets default values to fields affected by `server` profile, enables
-  discovery in local networks.
-
-- `test`
-
-  Reduces external interference, useful for running ipfs in test environments.
-  Note that with these settings node won't be able to talk to the rest of the
-  network without manual bootstrap.
-
-- `default-networking`
-
-  Restores default network settings. Inverse profile of the `test` profile.
-
-- `badgerds`
-
-  Replaces default datastore configuration with experimental badger datastore.
-  If you apply this profile after `ipfs init`, you will need to convert your
-  datastore to the new configuration. You can do this using
-  [ipfs-ds-convert](https://github.com/ipfs/ipfs-ds-convert)
-
-  WARNING: badger datastore is experimental. Make sure to backup your data
-  frequently.
-
-- `default-datastore`
-
-  Restores default datastore configuration.
-
-- `lowpower`
-
-  Reduces daemon overhead on the system. May affect node functionality,
-  performance of content discovery and data fetching may be degraded.
+  Disables local host discovery, recommended when
+  running IPFS on machines with public IPv4 addresses.
 
 - `randomports`
 
-  Generate random port for swarm.
+  Use a random port number for swarm.
+
+- `default-datatore`
+
+  Configures the node to use the default datastore (flatfs).
+
+  Read the "flatfs" profile description for more information on this datastore.
+
+  This profile may only be applied when first initializing the node.
+
+- `local-discovery`
+
+  Sets default values to fields affected by the server
+  profile, enables discovery in local networks.
+
+- `test`
+
+  Reduces external interference of IPFS daemon, this
+  is useful when using the daemon in test environments.
+
+- `default-networking`
+
+  Restores default network settings.
+  Inverse profile of the test profile.
+
+- `flatfs`
+
+  Configures the node to use the flatfs datastore.
+
+  This is the most battle-tested and reliable datastore, but it's significantly
+  slower than the badger datastore. You should use this datastore if:
+
+  - You need a very simple and very reliable datastore you and trust your
+    filesystem. This datastore stores each block as a separate file in the
+    underlying filesystem so it's unlikely to loose data unless there's an issue
+    with the underlying file system.
+  - You need to run garbage collection on a small (<= 10GiB) datastore. The
+    default datastore, badger, can leave several gigabytes of data behind when
+    garbage collecting.
+  - You're concerned about memory usage. In its default configuration, badger can
+    use up to several gigabytes of memory.
+
+  This profile may only be applied when first initializing the node.
+
+
+- `badgerds`
+
+  Configures the node to use the badger datastore.
+
+  This is the fastest datastore. Use this datastore if performance, especially
+  when adding many gigabytes of files, is critical. However:
+
+  - This datastore will not properly reclaim space when your datastore is
+    smaller than several gigabytes. If you run IPFS with '--enable-gc' (you have
+    enabled block-level garbage collection), you plan on storing very little data in
+    your IPFS node, and disk usage is more critical than performance, consider using
+    flatfs.
+  - This datastore uses up to several gigabytes of memory. 
+
+  This profile may only be applied when first initializing the node.
+
+- `lowpower`
+
+  Reduces daemon overhead on the system. May affect node
+  functionality - performance of content discovery and data
+  fetching may be degraded.
 
 ## Table of Contents
 
@@ -67,6 +99,12 @@ Available profiles:
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
 - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
+- [`AutoNAT`](#autonat)
+    - [`AutoNAT.ServiceMode`](#autonatservicemode)
+    - [`AutoNAT.Throttle`](#autonatthrottle)
+    - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
+    - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
+    - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
 - [`Bootstrap`](#bootstrap)
 - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
@@ -89,7 +127,6 @@ Available profiles:
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
     - [`Gateway.PublicGateways`](#gatewaypublicgateways)
-    - [`Gateway` recipes](#gateway-recipes)
 - [`Identity`](#identity)
     - [`Identity.PeerID`](#identitypeerid)
     - [`Identity.PrivKey`](#identityprivkey)
@@ -111,7 +148,6 @@ Available profiles:
     - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
-    - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
         - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
@@ -720,24 +756,41 @@ go-ipfs node accessible from the public internet.
 
 ### `Swarm.DisableRelay`
 
-Disables the p2p-circuit relay transport.
+Disables the p2p-circuit relay transport. This will prevent this node from
+connecting to nodes behind relays, or accepting connections from nodes behind
+relays.
 
 ### `Swarm.EnableRelayHop`
 
-Enables HOP relay for the node.
+Configures this node to act as a relay "hop". A relay "hop" relays traffic for other peers.
 
-If this is enabled, the node will act as an intermediate (Hop Relay) node in
-relay circuits for connected peers.
+WARNING: Do not enable this option unless you know what you're doing. Other
+peers will randomly decide to use your node as a relay and consume _all_
+available bandwidth. There is _no_ rate-limiting.
 
 ### `Swarm.EnableAutoRelay`
 
-Enables automatic relay for this node.
+Enables "automatic relay" mode for this node. This option does two _very_
+different things based on the `Swarm.EnableRelayHop`. See
+[#7228](https://github.com/ipfs/go-ipfs/issues/7228) for context.
 
-If the node is a HOP relay (`EnableRelayHop` is true) then it will advertise
-itself as a relay through the DHT. Otherwise, the node will test its own NAT
-situation (dialability) using passively discovered AutoNAT services. If the node
-is not publicly reachable, then it will seek HOP relays advertised through the
-DHT and override its public address(es) with relay addresses.
+#### Mode 1: `EnableRelayHop` is `false`
+
+If `Swarm.EnableAutoRelay` is enabled and `Swarm.EnableRelayHop` is disabled,
+your node will automatically _use_ public relays from the network if it detects
+that it cannot be reached from the public internet (e.g., it's behind a
+firewall). This is likely the feature you're looking for.
+
+If you enable `EnableAutoRelay`, you should almost certainly disable
+`EnableRelayHop`.
+
+#### Mode 2: `EnableRelayHop` is `true`
+
+If `EnableAutoRelay` is enabled and `EnableRelayHop` is enabled, your node will
+_act_ as a public relay for the network. Furthermore, in addition to simply
+relaying traffic, your node will advertise itself as a public relay. Unless you
+have the bandwidth of a small ISP, do not enable both of these options at the
+same time.
 
 ### `Swarm.EnableAutoNATService`
 
