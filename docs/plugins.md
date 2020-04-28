@@ -57,6 +57,34 @@ and modify all internal state. Use this plugin type to extend go-ipfs in
 arbitrary ways. However, be aware that your plugin will likely break every time
 go-ipfs updated.
 
+## Configuration
+
+Plugins can be configured in the `Plugins` section of the config file. Here,
+plugins can be:
+
+1. Passed an arbitrary config object via the `Config` field.
+2. Disabled via the `Disabled` field.
+
+Example:
+
+```js
+{
+  // ...
+  "Plugins": {
+    "Plugins": {
+      // plugin named "plugin-foo"
+      "plugin-foo": {
+        "Config": { /* arbitrary json */ }
+      },
+      // plugin named "plugin-bar"
+      "plugin-bar": {
+        "Disabled": true // "plugin-bar" will not be loaded
+      }
+    }
+  }
+}
+```
+
 ## Available Plugins
 
 | Name                                                                            | Type      | Preloaded | Description                                    |
