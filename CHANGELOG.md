@@ -18,7 +18,7 @@ The current DHT suffers from three core issues addressed in this release:
 
 - Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs). Much of a DHT query time is wasted trying to connect to peers that cannot be reached.
 - The DHT query logic doesn't properly terminate when it hits the end of the query and, instead, aggressively keeps on searching.
-- The routing tables are poorly maintained. This can cause a search that should be logarithmic in the size of the network to be linear.
+- The routing tables are poorly maintained. This can cause search performance to slow down linearly with network size, instead of logarithimicaly as expected.
 
 ###### Reachable
 
@@ -63,7 +63,7 @@ The DHT rewrite was made possible by [Testground](https://github.com/ipfs/testgr
 
 When you add content to your IPFS node, you advertise this content to the network by announcing it in the DHT. We call this "providing".
 
-However, go-ipfs has multiple ways to address the same underlying bytes. Specifically, we address content by content ID (CID) and the same underlying bytes can be addressed using (a) two different versions of CIDs (CIDv1 and CIDv2) and (b) with different "codecs" depending on how we're interpreting the data.
+However, go-ipfs has multiple ways to address the same underlying bytes. Specifically, we address content by content ID (CID) and the same underlying bytes can be addressed using (a) two different versions of CIDs (CIDv0 and CIDv1) and (b) with different "codecs" depending on how we're interpreting the data.
 
 Prior to go-ipfs 0.5.0, we used the content id (CID) in the DHT when sending out provider records for content. Unfortunately, this meant that users trying to find data announced using one CID wouldn't find nodes providing the content under a different CID.
 
