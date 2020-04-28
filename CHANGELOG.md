@@ -236,7 +236,7 @@ security. The gateway will now redirect from
 default. This:
 
 * Ensures that every dapp gets its own browser origin.
-* Makes it easier to write websites that "just work" with IPFS because absolute paths will now work.
+* Makes it easier to write websites that "just work" with IPFS because absolute paths will now work (though you should still use relative links because they're better).
   
 Paths addressing the gateway by IP address (`http://127.0.0.1:5001/ipfs/CID`) will not be altered as IP addresses can't have subdomains.
 
@@ -244,7 +244,7 @@ Note: cURL doesn't follow redirects by default. To avoid breaking cURL and other
 
 ##### Directory Listing
 
-The second feature is face-lift to the directory listing theme.
+The second feature is a face-lift to the directory listing theme and color palette.
 
 > http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
 
