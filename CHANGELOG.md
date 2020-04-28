@@ -14,11 +14,11 @@ The primary focus of this release was on improving content routing. That is, adv
 
 The distributed hash table (DHT) is how IPFS nodes keep track of who has what data. The DHT implementation has been almost completely rewritten in this release. Providing, finding content, and resolving IPNS records are now all much faster. However, there are risks involved with this update due to the significant amount of changes that have gone into this feature.
 
-The old DHT suffered from three core issues addressed in this release:
+The current DHT suffers from three core issues addressed in this release:
 
-- Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs), which previously meant much of a DHT query time was wasted trying to connect to peers that could not be reached.
-- The DHT query logic didn't properly terminate when it hit the end of the query and, instead, aggressively kept on searching.
-- The routing tables are poorly maintained. This can cause search performance to slow down linearly with network size, instead of logarithimicaly as expected.
+- Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs). Much of a DHT query time is wasted trying to connect to peers that cannot be reached.
+- The DHT query logic doesn't properly terminate when it hits the end of the query and, instead, aggressively keeps on searching.
+- The routing tables are poorly maintained. This can cause search performance to slow down linearly with network size, instead of logarithmically as expected.
 
 ###### Reachability
 
@@ -44,7 +44,7 @@ We've improved the DHT query logic to more closely follow Kademlia. This should 
 - Publishing IPNS & provider records.
 - Resolving IPNS addresses.
 
-Previously, nodes would continue searching till they timed out or ran out of peers before stopping (putting or returning data found). Now, nodes will stop as soon as they find the closest peers.
+Previously, nodes would continue searching until they timed out or ran out of peers before stopping (putting or returning data found). Now, nodes will now stop as soon as they find the closest peers.
 
 ###### Routing Tables
 
@@ -69,7 +69,7 @@ Prior to go-ipfs 0.5.0, we used the content id (CID) in the DHT when sending out
 
 In go-ipfs 0.5.0, we're announcing data by _multihash_, not _CID_. This way, regardless of the CID version used by the peer adding the content, the peer trying to download the content should still be able to find it.
 
-**Warning:** as part of the network, this could impact finding content added with CIDv1. Because go-ipfs 0.5.0 will announce and search for content using the bare multihash (equivalent to the v0 CID), go-ipfs 0.5.0 will be unable to find CIDv1 content published by nodes prior to go-ipfs 0.5.0 and vice-versa. As CIDv1 is _not_ enabled by default we believe this will have minimal impact. However, users are _strongly_ encouraged to upgrade as soon as possible.
+**Warning:** as part of the network, this could impact finding content added with CIDv1. Because go-ipfs 0.5.0 will announce and search for content using the bare multihash (equivalent to the v0 CID), go-ipfs 0.5.0 will be unable to find CIDv1 content published by nodes prior to go-ipfs 0.5.0 and vice-versa. As CIDv1 is _not_ enabled by default so we believe this will have minimal impact. However, users are _strongly_ encouraged to upgrade as soon as possible.
 
 #### Content Transfer
 
@@ -84,7 +84,7 @@ With the refactored Bitswap, we expect:
 - Few to no duplicate blocks when fetching data from other nodes speaking the _new_ protocol.
 - Better parallelism when fetching from multiple peers.
 
-The new Bitswap won't magically make downloading content any faster until **both** seeds and leaches have updated. If you're one of the first to upgrade to `0.5.0`, make sure your peers upgrade as well in order to see the performance improvement.
+The new Bitswap won't magically make downloading content any faster until both seeds and leaches have updated. If you're one of the first to upgrade to `0.5.0` and try downloading from peers that haven't upgraded, you're unlikely to see much of a performance improvement.
 
 [bitswap-refactor]: https://blog.ipfs.io/2020-02-14-improved-bitswap-for-container-distribution/
 
@@ -94,8 +94,8 @@ Graphsync is a new exchange protocol that operates at the IPLD Graph layer inste
 
 For example, to download "/ipfs/QmExample/index.html":
 
-* Bitswap would download "QmFoo", lookup "index.html" in the directory named by
-"QmFoo", and resolve it to a CID "QmIndex". Finally, Bitswap would download "QmIndex".
+* Bitswap would download QmFoo, lookup "index.html" in the directory named by
+QmFoo, resolving it to a CID QmIndex. Finally, bitswap would download QmIndex.
 * Graphsync would ask peers for "/ipfs/QmFoo/index.html". Specifically, it would ask for the child named "index.html" of the object named by "QmFoo".
 
 This saves us round-trips in exchange for some extra protocol complexity. Moreover, this protocol allows specifying more powerful queries like "give me everything under QmFoo". This can be used to quickly download a large amount of data with few round-trips.
@@ -114,7 +114,7 @@ Continuing with the of improving our core data handling subsystems, both of the 
 
 ##### Badger
 
-Badger has been in go-ipfs for over a year as an experimental feature, and we're now promoting it to stable (but not default). For this release, we've switched from writing data to disk synchronously, to explicitly syncing the data to disk where appropriate - significantly increasing write throughput.
+Badger has been in go-ipfs for over a year as an experimental feature, and we're promoting it to stable (but not default). For this release, we've switched from writing to disk synchronously to explicitly syncing where appropriate, significantly increasing write throughput.
 
 The current and default datastore used by go-ipfs is [FlatFS](https://github.com/ipfs/go-ds-flatfs). FlatFS essentially stores blocks of data as individual files on your file system. However, there are lots of optimizations a specialized database can do that a standard file system can not.
 
@@ -140,7 +140,7 @@ We suggest you use Badger if:
 - You rarely delete anything.
 - You have some memory to spare.
 
-##### FlatFS
+##### Flatfs
 
 In the flatfs datastore, we've fixed an issue where temporary files could be left behind in some cases. While this release will avoid leaving behind temporary files, you may want to remove any left behind by previous releases:
 
@@ -169,7 +169,7 @@ This release uses Automatic NAT Detection (AutoNAT) - determining if the node is
 2. The AutoNAT service attempts to _dial back_ those addresses, with some restrictions. We won't dial back to a different IP address, for example.
 3. If the AutoNAT service succeeds, it reports back the address it successfully dialed, and the AutoNAT client knows that it is reachable from the public internet.
 
-All nodes act as AutoNAT clients to determine if they should switch into DHT server mode. As of this release, nodes will by default run the service side of AutoNAT - verifying connectivity - for up to 30 peers every minute. This service should have minimal overhead, and will be disabled for nodes in the `lowpower` configuration profile, and those which believe they are not publicly reachable.
+All nodes act as AutoNAT clients to determine if they should switch into DHT server mode. As of this release, nodes will by default run the service side of AutoNAT - verifying connectivity - for up to 30 peers every minute. This service should have minimal overhead and will be disabled for nodes in the `lowpower` configuration profile, and those which believe they are not publicly reachable.
 
 In addition to enabling the AutoNAT service by default, this release changes the AutoNAT config options:
 
@@ -193,7 +193,7 @@ What this means for users:
 
 Previously, IPFS did not enforce a minimum RSA key size. In this release, we've introduced a minimum 2048 bit RSA key size. IPFS generates 2048 bit RSA keys by default so this shouldn't be an issue for anyone in practice. However, users who explicitly chose a smaller key size will not be able to communicate with new nodes.
 
-Unfortunately, some of the bootstrap peers _did_ intentionally generate 1024 bit RSA keys so they'd have vanity peer addresses (starting with QmSoL for "solar net"). All IPFS nodes should _also_ have peers with >= 2048 bit RSA keys in their bootstrap list, but we've introduced a migration to ensure this.
+Unfortunately, the some of the bootstrap peers _did_ intentionally generate 1024 bit RSA keys so they'd have vanity peer addresses (starting with QmSoL for "solar net"). All IPFS nodes should _also_ have peers with >= 2048 bit RSA keys in their bootstrap list, but we've introduced a migration to ensure this.
 
 We implemented this change to follow security best practices and to remove a potential foot-gun. However, in practice, the security impact of allowing insecure RSA keys should have been next to none because IPFS doesn't trust other peers on the network anyways.
 
