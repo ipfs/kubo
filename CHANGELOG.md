@@ -254,7 +254,7 @@ This release includes several new IPNS and IPNS-related features.
 
 ##### ENS
 
-IPFS now resolves [ENS](https://ens.domains/) names (e.g., `/ipns/ipfs.eth`) via DNSLink.
+IPFS now resolves [ENS](https://ens.domains/) names (e.g., `/ipns/ipfs.eth`) via DNSLink provided by https://eth.link service.
 
 ##### IPNS over PubSub
 
