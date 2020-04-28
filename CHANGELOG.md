@@ -377,7 +377,7 @@ Pinned root	QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc	success
 
 ##### Pins
 
-We've made two miner changes to the pinning subsystem:
+We've made two minor changes to the pinning subsystem:
 
 1. `ipfs pin ls --stream` allows one streaming a pin listing.
 2. `ipfs pin update` no longer holds the global pin lock while fetching files from the network. This should hopefully make it significantly more useful.
