@@ -16,7 +16,7 @@ The distributed hash table (DHT) is how IPFS nodes keep track of who has what da
 
 The current DHT suffers from three core issues addressed in this release:
 
-- Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs). Much of a DHT query time is wasted trying to connect to peers that cannot be reached.
+- Most peers in the DHT cannot be dialed (e.g., due to firewalls and NATs). Much of a DHT query's time is wasted trying to connect to peers that cannot be reached.
 - The DHT query logic doesn't properly terminate when it hits the end of the query and, instead, aggressively keeps on searching.
 - The routing tables are poorly maintained. This can cause search performance to slow down linearly with network size, instead of logarithmically as expected.
 
@@ -201,7 +201,7 @@ We implemented this change to follow security best practices and to remove a pot
 
 In this release, we're switching TLS to be the _default_ transport. This means we'll try to encrypt the connection with TLS before re-trying with SECIO.
 
-Contrary to the announcement in the go-ipfs 0.4.23 release notes, this release does not remove SECIO support to maintain compatibility with js-ipfs.
+Contrary to the announcement in the go-ipfs 0.4.23 release notes, this release does not remove SECIO support in order to maintain compatibility with js-ipfs.
 
 Note: The `Experimental.PreferTLS` configuration option is now ignored.
 
@@ -226,7 +226,7 @@ In addition to a bunch of bug fixes, we've made two improvements to the gateway.
 
 You can play with both of these features by visiting:
 
-> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
+> https://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.dweb.link
 
 ##### Subdomain Gateway
 
@@ -246,7 +246,7 @@ Note: cURL doesn't follow redirects by default. To avoid breaking cURL and other
 
 The second feature is face-lift to the directory listing theme.
 
-> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
+> https://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.dweb.link/
 
 #### IPNS
 
