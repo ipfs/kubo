@@ -4997,7 +4997,7 @@ There have been no changes since the last release candidate 0.4.3-rc4. \o/
 ### 0.4.3-rc4 - 2016-09-09
 
 This release candidate fixes issues in Bitswap and the `ipfs add` command, and improves testing.
-We plan for this tohttp://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.localhost:8080 be the last release candidate before the release of go-ipfs v0.4.3.
+We plan for this to be the last release candidate before the release of go-ipfs v0.4.3.
 
 With this release candidate, we're also moving go-ipfs to Go 1.7, which we expect will yield improvements in runtime performance, memory usage, build time and size of the release binaries.
 
