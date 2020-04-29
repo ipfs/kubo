@@ -1,0 +1,34 @@
+# Configuration for welcome - https://github.com/behaviorbot/welcome
+
+# Configuration for new-issue-welcome - https://github.com/behaviorbot/new-issue-welcome
+# Comment to be posted to on first time issues
+newIssueWelcomeComment: >
+  Thank you for submitting your first issue to this repository! A maintainer
+  will be here shortly to triage and review.
+
+  In the meantime, please double-check that you have provided all the
+  necessary information to make this process easy! Any information that can
+  help save additional round trips is useful! We currently aim to give
+  initial feedback within **two business days**. If this does not happen, feel
+  free to leave a comment.
+
+  Please keep an eye on how this issue will be labeled, as labels give an
+  overview of priorities, assignments and additional actions requested by the
+  maintainers:
+
+    - "Priority" labels will show how urgent this is for the team.
+    - "Status" labels will show if this is ready to be worked on, blocked, or in progress.
+    - "Need" labels will indicate if additional input or analysis is required.
+
+  Finally, remember to use https://discuss.ipfs.io if you just need general
+  support.
+
+# Configuration for new-pr-welcome - https://github.com/behaviorbot/new-pr-welcome
+# Comment to be posted to on PRs from first time contributors in your repository
+# Currently disabled
+# newPRWelcomeComment: ""
+
+# Configuration for first-pr-merge - https://github.com/behaviorbot/first-pr-merge
+# Comment to be posted to on pull requests merged by a first time user
+# Currently disabled
+#firstPRMergeComment: ""
