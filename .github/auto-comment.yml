@@ -8,25 +8,20 @@ pullRequestOpened: >
 
   A maintainer will be here shortly to review it.
 
-  We are super grateful to get code contributions and aim to make the best of
-  the contribution process. However, we are also overloaded with work, we'd be
-  happy if you can make sure that:
+  We are super grateful, but we are also overloaded! Help us by making sure
+  that:
 
     * The context for this PR is clear, with relevant discussion, decisions
       and stakeholders linked/mentioned.
 
-    * You have self-reviewed it yourself. Please make a self-review and leave
-      comments providing the rationale behind your changes as needed (this is
-      not a substitute for code comments though!).  Expect that the person
-      reviewing this code next does not have to be super familiar with the
-      affected codebase. Follow the [code contribution
+    * Your contribution itself is clear (code comments, self-review for the
+      rest) and in its best form. Follow the [code contribution
       guidelines](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#code-contribution-guidelines)
-      when they apply.
+      if they apply.
 
-    * Getting additional reviews from additional people (community members
-      etc) is a great help and a great way to pave the way for a quicker
-      merge. Feel free to ask on the chats or the forums for additional eyes
-      if your PR is complex. If you are unsure about something, just ask.
+  Getting other community members to do a review would be great help too on
+  complex PRs (you can ask in the chats/forums). If you are unsure about
+  something, just leave us a comment.
 
   Next steps:
 
@@ -42,4 +37,4 @@ pullRequestOpened: >
   days**. Please keep an eye on any labelling actions, as these will indicate
   priorities and status of your contribution.
 
-  Again, thank you for contributing!
+  We are very grateful for your contribution!
