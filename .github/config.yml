@@ -17,7 +17,7 @@ newIssueWelcomeComment: >
   maintainers:
 
     - "Priority" labels will show how urgent this is for the team.
-    - "Status" labels will show if this is ready to be worked on, blocked etc...
+    - "Status" labels will show if this is ready to be worked on, blocked, or in progress
     - "Need" labels will indicate if additional input or analysis is required.
 
   Finally, remember to use https://discuss.ipfs.io if you just need general
