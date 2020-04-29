@@ -226,13 +226,13 @@ In addition to a bunch of bug fixes, we've made two improvements to the gateway.
 
 You can play with both of these features by visiting:
 
-> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
+> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.localhost:8080
 
 ##### Subdomain Gateway
 
 First up, we've changed how URLs in the IPFS gateway work for better browser
 security. The gateway will now redirect from
-`http://localhost:5001/ipfs/CID/...` to `http://CID.ipfs.localhost:5001/...` by
+`http://localhost:8080/ipfs/CID/...` to `http://CID.ipfs.localhost:8080/...` by
 default. This:
 
 * Ensures that every dapp gets its own browser origin.
@@ -246,7 +246,7 @@ Note: cURL doesn't follow redirects by default. To avoid breaking cURL and other
 
 The second feature is a face-lift to the directory listing theme and color palette.
 
-> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.io/
+> http://bafybeia6po64b6tfqq73lckadrhpihg2oubaxgqaoushquhcek46y3zumm.ipfs.localhost:8080
 
 #### IPNS
 
@@ -254,7 +254,7 @@ This release includes several new IPNS and IPNS-related features.
 
 ##### ENS
 
-IPFS now resolves [ENS](https://ens.domains/) names (e.g., [/ipns/ipfs.eth](https://ipfs.eth.dweb.link)) via DNSLink.
+IPFS now resolves [ENS](https://ens.domains/) names (e.g., `/ipns/ipfs.eth`) via DNSLink provided by https://eth.link service.
 
 ##### IPNS over PubSub
 
