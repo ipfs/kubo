@@ -12,8 +12,8 @@ newIssueWelcomeComment: >
   initial feedback within **two business days**. If this does not happen, feel
   free to leave a comment.
 
-  Please keep an eye on how this issue will be labeled, as labels will give an
-  overview of priorities, assignments and additional actions as requested by the
+  Please keep an eye on how this issue will be labeled, as labels give an
+  overview of priorities, assignments and additional actions requested by the
   maintainers:
 
     - "Priority" labels will show how urgent this is for the team.
