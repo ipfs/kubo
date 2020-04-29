@@ -16,9 +16,11 @@ pullRequestOpened: >
       and stakeholders linked/mentioned.
 
     * You have self-reviewed it yourself. Please make a self-review and leave
-      comments providing the rationale behind your changes as needed.  Expect
-      that the person reviewing this code next does not have to be super
-      familiar with the affected codebase. Follow the [code contribution guidelines](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#code-contribution-guidelines)
+      comments providing the rationale behind your changes as needed (this is
+      not a substitute for code comments though!).  Expect that the person
+      reviewing this code next does not have to be super familiar with the
+      affected codebase. Follow the [code contribution
+      guidelines](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#code-contribution-guidelines)
       when they apply.
 
     * Getting additional reviews from additional people (community members
