@@ -15,7 +15,7 @@ pullRequestOpened: >
     * The context for this PR is clear, with relevant discussion, decisions
       and stakeholders linked/mentioned.
 
-    * You have self-reviewed yourself. Please make a self-review and leave
+    * You have self-reviewed it yourself. Please make a self-review and leave
       comments providing the rationale behind your changes as needed.  Expect
       that the person reviewing this code next does not have to be super
       familiar with the affected codebase. Follow the [code contribution guidelines](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#code-contribution-guidelines)
