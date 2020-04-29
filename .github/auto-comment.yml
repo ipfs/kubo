@@ -1,0 +1,43 @@
+# Comment to a new issue.
+# Disabled
+# issueOpened: ""
+
+pullRequestOpened: >
+
+  Thank you for submitting this PR!
+
+  A maintainer will be here shortly to review it.
+
+  We are super grateful to get code contributions and aim to make the best of
+  the contribution process. However, we are also overloaded with work, we'd be
+  happy if you can make sure that:
+
+    * The context for this PR is cleared, with relevant discussion, decisions
+      and stakeholders linked/mentioned.
+
+    * You have self-reviewed yourself. Please make a self-review and leave
+      comments providing the rationale behind your changes as needed.  Expect
+      that the person reviewing this code next does not have to be super
+      familiar with the affected codebase. Follow the [code contribution guidelines](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#code-contribution-guidelines)
+      when they apply.
+
+    * Getting additional reviews from additional people (community members
+      etc) is a great help and a great way to pave the way for a quicker
+      merge. Feel free to ask on the chats or the forums for additional eyes
+      if your PR is complex. If you are unsure about something, just ask.
+
+  Next steps:
+
+    * A maintainer will triage and assign priority to this PR, commenting on
+      any missing things and potentially assigning a reviewer for high
+      priority items.
+
+    * The PR gets reviews, discussed and approvals as needed.
+
+    * The PR is merged by maintainers when it has been approved and comments addressed.
+
+  We currently aim to provide initial feedback/triaging within **two business
+  days**. Please keep an eye on any labelling actions, as these will indicate
+  priorities and status of your contribution.
+
+  Again, thank you for contributing!
