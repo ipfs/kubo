@@ -1,9 +1,9 @@
 _do_comp()
 {
-  if [ -n "$ZSH_VERSION" ]; then
-    complete $@
-  else
+  if [[ $(type compopt) == *"builtin" ]]; then
     compopt $@
+  else
+    complete $@
   fi
 }
 
