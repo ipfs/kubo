@@ -3,6 +3,7 @@ package corehttp
 import (
 	"context"
 	"fmt"
+	"github.com/gabriel-vasile/mimetype"
 	"io"
 	"mime"
 	"net/http"
@@ -378,7 +379,9 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 		if ctype == "" {
 			buf := make([]byte, 512)
 			n, _ := io.ReadFull(content, buf[:])
-			ctype = http.DetectContentType(buf[:n])
+			// uses https://github.com/gabriel-vasile/mimetype library to determine the content type.
+			// Fixes https://github.com/ipfs/go-ipfs/issues/7252
+			ctype = mimetype.Detect(buf[:n]).String()
 			_, err := content.Seek(0, io.SeekStart)
 			if err != nil {
 				http.Error(w, "seeker can't seek", http.StatusInternalServerError)
