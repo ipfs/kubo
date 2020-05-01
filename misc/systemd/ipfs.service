@@ -1,3 +1,17 @@
+# This file will be overwritten on package upgrades, avoid customizations here.
+#
+# To make persistant changes, create file in 
+# "/etc/systemd/system/ipfs.service.d/overwrite.conf" with 
+# `systemctl edit ipfs.service`. This file will be parsed after this 
+# file has been parsed.
+#
+# To overwrite a variable, like ExecStart you have to specify it once
+# blank and a second time with a new value, like:
+# ExecStart=
+# ExecStart=/usr/bin/ipfs daemon --flag1 --flag2
+#
+# For more info about custom unit files see systemd.unit(5).
+
 [Unit]
 Description=InterPlanetary File System (IPFS) daemon
 After=network.target
