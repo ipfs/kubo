@@ -377,12 +377,16 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 	} else {
 		ctype = mime.TypeByExtension(gopath.Ext(name))
 		if ctype == "" {
-			buf := make([]byte, 512)
-			n, _ := io.ReadFull(content, buf[:])
 			// uses https://github.com/gabriel-vasile/mimetype library to determine the content type.
 			// Fixes https://github.com/ipfs/go-ipfs/issues/7252
-			ctype = mimetype.Detect(buf[:n]).String()
-			_, err := content.Seek(0, io.SeekStart)
+			mimeType, err := mimetype.DetectReader(content)
+			if err != nil {
+				http.Error(w, "cannot detect content-type", http.StatusInternalServerError)
+				return
+			}
+
+			ctype = mimeType.String()
+			_, err = content.Seek(0, io.SeekStart)
 			if err != nil {
 				http.Error(w, "seeker can't seek", http.StatusInternalServerError)
 				return
