@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -91,7 +91,7 @@ func (api *SwarmAPI) Peers(ctx context.Context) ([]iface.ConnectionInfo, error) 
 			direction: conn.Direction,
 		}
 
-		out.peer, err = peer.IDB58Decode(conn.Peer)
+		out.peer, err = peer.Decode(conn.Peer)
 		if err != nil {
 			return nil, err
 		}
@@ -131,7 +131,7 @@ func (api *SwarmAPI) KnownAddrs(ctx context.Context) (map[peer.ID][]multiaddr.Mu
 			addrs[i] = a
 		}
 
-		pid, err := peer.IDB58Decode(spid)
+		pid, err := peer.Decode(spid)
 		if err != nil {
 			return nil, err
 		}
