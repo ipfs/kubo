@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -41,7 +41,7 @@ func (api *PubsubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 
 	res := make([]peer.ID, len(out.Strings))
 	for i, sid := range out.Strings {
-		id, err := peer.IDB58Decode(sid)
+		id, err := peer.Decode(sid)
 		if err != nil {
 			return nil, err
 		}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -45,7 +45,7 @@ func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.Key
 	if err != nil {
 		return nil, err
 	}
-	out.pid, err = peer.IDB58Decode(out.Id)
+	out.pid, err = peer.Decode(out.Id)
 	return &out, err
 }
 
@@ -69,7 +69,7 @@ func (api *KeyAPI) Rename(ctx context.Context, oldName string, newName string, o
 	}
 
 	id := &keyOutput{JName: out.Now, Id: out.Id}
-	id.pid, err = peer.IDB58Decode(id.Id)
+	id.pid, err = peer.Decode(id.Id)
 	return id, out.Overwrite, err
 }
 
@@ -82,7 +82,7 @@ func (api *KeyAPI) List(ctx context.Context) ([]iface.Key, error) {
 	res := make([]iface.Key, len(out.Keys))
 	for i, k := range out.Keys {
 		var err error
-		k.pid, err = peer.IDB58Decode(k.Id)
+		k.pid, err = peer.Decode(k.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func (api *KeyAPI) Self(ctx context.Context) (iface.Key, error) {
 
 	var err error
 	out := keyOutput{JName: "self", Id: id.ID}
-	out.pid, err = peer.IDB58Decode(out.Id)
+	out.pid, err = peer.Decode(out.Id)
 	return &out, err
 }
 
@@ -114,7 +114,7 @@ func (api *KeyAPI) Remove(ctx context.Context, name string) (iface.Key, error) {
 	}
 
 	var err error
-	out.Keys[0].pid, err = peer.IDB58Decode(out.Keys[0].Id)
+	out.Keys[0].pid, err = peer.Decode(out.Keys[0].Id)
 	return &out.Keys[0], err
 }
 
