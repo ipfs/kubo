@@ -31,7 +31,7 @@ var testData = listingTemplateData{
 		Path: "short-film.mov",
 	}, {
 		Size: "1 KiB",
-		Name: "description.txt",
+		Name: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
 		Path: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
 	}},
 	Path:     "/ipfs/QmFoo",
