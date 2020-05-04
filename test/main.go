@@ -32,7 +32,7 @@ var testData = listingTemplateData{
 	}, {
 		Size: "1 KiB",
 		Name: "description.txt",
-		Path: "description.txt",
+		Path: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
 	}},
 	Path:     "/ipfs/QmFoo",
 	BackLink: "/..",
