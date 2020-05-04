@@ -36,7 +36,7 @@ var testData = listingTemplateData{
 	}},
 	Path:     "/ipfs/QmFoo",
 	BackLink: "/..",
-	Hash:     "QmFoo",
+	Hash:     "QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7RgQm",
 }
 
 func main() {
