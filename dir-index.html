@@ -527,6 +527,10 @@ td {
 	width: 1.15em;
 }
 
+.no-linebreak {
+  white-space: nowrap;
+}
+
 .ipfs-hash {
 	color: #7f8491;
 }
@@ -608,8 +612,8 @@ td {
       </div>
       <table>
         <tr>
-          <td>
-            <div class="type-icon ipfs-_blank">&nbsp;</div>
+          <td class="type-icon">
+            <div class="ipfs-_blank">&nbsp;</div>
           </td>
           <td>
             <a href="{{.BackLink | urlEscape}}">..</a>
@@ -618,13 +622,13 @@ td {
         </tr>
         {{ range .Listing }}
         <tr>
-          <td>
-            <div class="type-icon {{iconFromExt .Name}}">&nbsp;</div>
+          <td class="type-icon">
+            <div class="{{iconFromExt .Name}}">&nbsp;</div>
           </td>
           <td>
             <a href="{{ .Path | urlEscape }}">{{ .Name }}</a>
           </td>
-          <td>{{ .Size }}</td>
+          <td class="no-linebreak">{{ .Size }}</td>
         </tr>
       {{ end }}
       </table>
