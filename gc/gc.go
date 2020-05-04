@@ -172,17 +172,26 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	// disk backed to conserve memory.
 	errors := false
 	gcs := cid.NewSet()
-	getLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
-		links, err := ipld.GetLinks(ctx, ng, cid)
+	getLinks := func(ctx context.Context, CID cid.Cid) ([]*ipld.Link, error) {
+		links, err := ipld.GetLinks(ctx, ng, CID)
 		if err != nil {
 			errors = true
 			select {
-			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
+			case output <- Result{Error: &CannotFetchLinksError{CID, err}}:
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			}
 		}
-		return links, nil
+
+		filteredLinks := []*ipld.Link{}
+		for _, link := range links {
+			// Skip raw links, since it doesn't contain any leaf links to traverse.
+			if link.Cid.Type() == cid.Raw {
+				continue
+			}
+			filteredLinks = append(filteredLinks, link)
+		}
+		return filteredLinks, nil
 	}
 	rkeys, err := pn.RecursiveKeys(ctx)
 	if err != nil {
@@ -198,17 +207,26 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 	}
 
-	bestEffortGetLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
-		links, err := ipld.GetLinks(ctx, ng, cid)
+	bestEffortGetLinks := func(ctx context.Context, CID cid.Cid) ([]*ipld.Link, error) {
+		links, err := ipld.GetLinks(ctx, ng, CID)
 		if err != nil && err != ipld.ErrNotFound {
 			errors = true
 			select {
-			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
+			case output <- Result{Error: &CannotFetchLinksError{CID, err}}:
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			}
 		}
-		return links, nil
+
+		filteredLinks := []*ipld.Link{}
+		for _, link := range links {
+			// Skip raw links, since it doesn't contain any leaf links to traverse.
+			if link.Cid.Type() == cid.Raw {
+				continue
+			}
+			filteredLinks = append(filteredLinks, link)
+		}
+		return filteredLinks, nil
 	}
 	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
