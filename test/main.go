@@ -27,28 +27,8 @@ type directoryItem struct {
 var testData = listingTemplateData{
 	Listing: []directoryItem{{
 		Size: "25 MiB",
-		Name: "film-in-one-of-many-formats-to-test-icons.avi",
-		Path: "film-in-one-of-many-formats-to-test-icons.avi",
-	}, {
-		Size: "25 MiB",
-		Name: "short-film.flv",
-		Path: "short-film.flv",
-	}, {
-		Size: "25 MiB",
-		Name: "short-film.wmv",
-		Path: "short-film.wmv",
-	}, {
-		Size: "25 MiB",
 		Name: "short-film.mov",
 		Path: "short-film.mov",
-	}, {
-		Size: "25 MiB",
-		Name: "short-film.mkv",
-		Path: "short-film.mkv",
-	}, {
-		Size: "25 MiB",
-		Name: "short-film.mp4",
-		Path: "short-film.mp4",
 	}, {
 		Size: "1 KiB",
 		Name: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
