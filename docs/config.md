@@ -24,7 +24,7 @@ documented in `ipfs config profile --help`.
 
   Use a random port number for swarm.
 
-- `default-datatore`
+- `default-datastore`
 
   Configures the node to use the default datastore (flatfs).
 
