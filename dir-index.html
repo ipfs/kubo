@@ -403,18 +403,16 @@
 	box-sizing: border-box;
 }
 
-html {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-	-webkit-text-size-adjust: 100%;
-	-ms-text-size-adjust: 100%;
-	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-}
-
 body {
 	margin: 0;
 	font-size: 14px;
 	line-height: 1.43;
 	color: #34373f;
+  word-break: break-all;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 a {
@@ -425,6 +423,10 @@ a {
 a:hover {
 	color: #69c4cd;
 	text-decoration: underline;
+}
+
+a:active, a:visited {
+  color: #69c4cd;
 }
 
 strong {
@@ -452,16 +454,16 @@ tr:nth-of-type(even) {
 }
 
 td {
-	padding: 8px;
+	padding: 0.65em;
 	vertical-align: top;
-	border-top: 1px solid #ddd;
+	border-top: 1px solid #d9dbe2;
 }
 
 #page-header {
 	background: #0b3a53;
 	border-bottom: 4px solid #69c4cd;
 	color: #ffffff;
-  padding: 0 15px;
+  padding: 0 1em;
 }
 
 #page-header:after,
@@ -475,17 +477,16 @@ td {
 }
 
 #content {
-	margin: 15px;
-	border: 1px solid #ddd;
+	margin: 1em;
+	border: 1px solid #d9dbe2;
 	border-radius: 4px;
 }
 
 #content-header {
-	padding: 10px 15px;
-	border-bottom: 1px solid #ddd;
+	padding: 0.7em 1em;
+	border-bottom: 1px solid #d9dbe2;
 	border-top-left-radius: 3px;
 	border-top-right-radius: 3px;
-	color: #333;
 	background-color: #edf0f4;
 }
 
@@ -503,17 +504,17 @@ td {
 
 #logo {
   float:left;
-	height: 35px;
-	margin: 10px 10px 10px 0;
-  width: 100px;
+	height: 2.5em;
+	margin: 0.7em 0.7em 0.7em 0;
+  width: 7.15em;
 }
 
 #header-menu {
 	align-items: center;
 	display: flex;
-	margin: 10px 0;
+	margin: 0.65em 0;
 	float: right;
-	font-size: 16px;
+	font-size: 1.15em;
 	font-weight: 500;
 }
 
@@ -521,8 +522,7 @@ td {
 	color: #69c4cd;
 }
 
-#header-menu a:active,
-a:visited {
+#header-menu a:active {
 	color: #9ad4db;
 }
 
@@ -531,7 +531,7 @@ a:visited {
 }
 
 .header-menu-item-wide, .header-menu-item-narrow {
-	margin: 0px 8px;
+	margin: 0 0.6em;
 }
 
 .header-menu-item-narrow {
@@ -539,13 +539,13 @@ a:visited {
 }
 
 #bug-report {
-  margin-left: 8px;
+  margin-left: 0.6em;
 }
 
 #bug-report svg {
-	height: 30px;
+	height: 1.8em;
 	fill: #69c4cd;
-	margin-top: 2px;
+	margin-top: 0.125em;
 }
 
 #bug-report svg:hover {
@@ -553,11 +553,11 @@ a:visited {
 }
 
 .ipfs-icon {
-	width: 16px;
+	width: 1.15em;
 }
 
 .ipfs-hash {
-	color: #999;
+	color: #7f8491;
 }
 
 /* MEDIA QUERIES; print source https://github.com/h5bp/html5-boilerplate/blob/master/src/css/main.css */
