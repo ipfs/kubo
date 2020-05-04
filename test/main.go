@@ -43,6 +43,10 @@ var testData = listingTemplateData{
 		Path: "short-film.mov",
 	}, {
 		Size: "25 MiB",
+		Name: "short-film.mkv",
+		Path: "short-film.mkv",
+	}, {
+		Size: "25 MiB",
 		Name: "short-film.mp4",
 		Path: "short-film.mp4",
 	}, {
