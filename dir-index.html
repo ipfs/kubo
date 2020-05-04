@@ -418,7 +418,6 @@ body {
 }
 
 a {
-	background-color: transparent;
   color: #378085;
 	text-decoration: none;
 }
@@ -435,7 +434,6 @@ strong {
 table {
 	border-spacing: 0;
 	border-collapse: collapse;
-	background-color: transparent;
 	width: 100%;
 	max-width: 100%;
 }
@@ -478,7 +476,6 @@ td {
 
 #content {
 	margin: 15px;
-	background-color: #fff;
 	border: 1px solid #ddd;
 	border-radius: 4px;
 }
@@ -575,31 +572,37 @@ a:visited {
 }
 
 @media print {
-	*,
-	:after,
-	:before {
-		color: #000!important;
-		text-shadow: none!important;
-		background: 0 0!important;
-		-webkit-box-shadow: none!important;
-		box-shadow: none!important;
-	}
+  #page-header {
+    display: none;
+  }
+  #content-header, body, .ipfs-hash {
+  	color: #000;
+  }
+  #content-header {
+  	border-bottom: 1px solid #000;
+  }
+  #content {
+  	border: 1px solid #000;
+  }
 	a,
 	a:visited {
 		text-decoration: underline;
+    color: #000;
 	}
 	a[href]:after {
 		content: " (" attr(href) ")";
 	}
+  table {
+  }
 	tr {
 		page-break-inside: avoid;
 	}
-	table {
-		border-collapse: collapse !important;
-	}
-	table td {
-		background-color: #fff !important;
-	}
+  tr:nth-of-type(even) {
+  	background-color: transparent;
+  }
+  td {
+  	border-top: 1px solid #000;
+  }
 }
 
 @-ms-viewport {
