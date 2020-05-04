@@ -395,14 +395,6 @@
 
 /* END ICONS; NOW FOR CSS STYLING */
 
-*,
-:after,
-:before {
-	-webkit-box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	box-sizing: border-box;
-}
-
 body {
 	margin: 0;
 	font-size: 14px;
@@ -464,16 +456,57 @@ td {
 	border-bottom: 4px solid #69c4cd;
 	color: #ffffff;
   padding: 0 1em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1.15em;
+  font-weight: 500;
 }
 
-#page-header:after,
-#page-header:before {
-	display: table;
-	content: " "
+#page-header a {
+	color: #69c4cd;
 }
 
-#page-header:after {
-	clear: both;
+#page-header a:active {
+	color: #9ad4db;
+}
+
+#page-header a:hover {
+	color: #ffffff;
+}
+
+#page-header-logo {
+	height: 2.5em;
+	margin: 0.7em 0.7em 0.7em 0;
+  width: 7.15em;
+}
+
+#page-header-menu {
+	margin: 0.65em 0;
+  display: flex;
+  align-items: center;
+}
+
+#page-header-menu div {
+	margin: 0 0.6em;
+}
+
+#page-header-menu div:last-child {
+	margin: 0 0 0 0.6em;
+}
+
+#page-header-menu svg {
+	height: 1.8em;
+	fill: #69c4cd;
+	margin-top: 0.125em;
+}
+
+#page-header-menu svg:hover {
+	fill: #ffffff;
+}
+
+.menu-item-narrow {
+  display: none;
 }
 
 #content {
@@ -490,69 +523,7 @@ td {
 	background-color: #edf0f4;
 }
 
-
-
-
-
-
-
-/* THESE STYLES WERE ADDED LATER */
-
-.narrow {
-	width: 0px;
-}
-
-#logo {
-  float:left;
-	height: 2.5em;
-	margin: 0.7em 0.7em 0.7em 0;
-  width: 7.15em;
-}
-
-#header-menu {
-	align-items: center;
-	display: flex;
-	margin: 0.65em 0;
-	float: right;
-	font-size: 1.15em;
-	font-weight: 500;
-}
-
-#header-menu a {
-	color: #69c4cd;
-}
-
-#header-menu a:active {
-	color: #9ad4db;
-}
-
-#header-menu a:hover {
-	color: #ffffff;
-}
-
-.header-menu-item-wide, .header-menu-item-narrow {
-	margin: 0 0.6em;
-}
-
-.header-menu-item-narrow {
-  display: none;
-}
-
-#bug-report {
-  margin-left: 0.6em;
-}
-
-#bug-report svg {
-	height: 1.8em;
-	fill: #69c4cd;
-	margin-top: 0.125em;
-}
-
-#bug-report svg:hover {
-	fill: #ffffff;
-}
-
-.ipfs-icon {
+.type-icon {
 	width: 1.15em;
 }
 
@@ -560,13 +531,13 @@ td {
 	color: #7f8491;
 }
 
-/* MEDIA QUERIES; print source https://github.com/h5bp/html5-boilerplate/blob/master/src/css/main.css */
+/* MEDIA QUERIES */
 
 @media only screen and (max-width: 500px) {
-  .header-menu-item-narrow {
+  .menu-item-narrow {
     display: inline;
   }
-  .header-menu-item-wide {
+  .menu-item-wide {
     display: none;
   }
 }
@@ -592,8 +563,6 @@ td {
 	a[href]:after {
 		content: " (" attr(href) ")";
 	}
-  table {
-  }
 	tr {
 		page-break-inside: avoid;
 	}
@@ -615,13 +584,13 @@ td {
 </head>
 <body>
   <div id="page-header">
-    <div id="logo" class="ipfs-logo">&nbsp;</div>
-    <div id="header-menu">
-      <div class="header-menu-item-wide"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About IPFS</a></div>
-      <div class="header-menu-item-wide"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install IPFS</a></div>
-      <div class="header-menu-item-narrow"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About</a></div>
-      <div class="header-menu-item-narrow"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install</a></div>
-      <div id="bug-report">
+    <div id="page-header-logo" class="ipfs-logo">&nbsp;</div>
+    <div id="page-header-menu">
+      <div class="menu-item-wide"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About IPFS</a></div>
+      <div class="menu-item-wide"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install IPFS</a></div>
+      <div class="menu-item-narrow"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About</a></div>
+      <div class="menu-item-narrow"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install</a></div>
+      <div>
         <a href="https://github.com/ipfs/dir-index-html/issues/" target="_blank" rel="noopener noreferrer">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18.4 21"><circle cx="7.5" cy="4.8" r="1"/><circle cx="11.1" cy="4.8" r="1"/><path d="M12.7 8.4c-0.5-1.5-1.9-2.5-3.5-2.5 -1.6 0-3 1-3.5 2.5H12.7z"/><path d="M8.5 9.7H5c-0.5 0.8-0.7 1.7-0.7 2.7 0 2.6 1.8 4.8 4.2 5.2V9.7z"/><path d="M13.4 9.7H9.9v7.9c2.4-0.4 4.2-2.5 4.2-5.2C14.1 11.4 13.9 10.5 13.4 9.7z"/><circle cx="15.7" cy="12.9" r="1"/><circle cx="15.1" cy="15.4" r="1"/><circle cx="15.3" cy="10.4" r="1"/><circle cx="2.7" cy="12.9" r="1"/><circle cx="3.3" cy="15.4" r="1"/><circle cx="3.1" cy="10.4" r="1"/></svg>
         </a>
@@ -639,8 +608,8 @@ td {
       </div>
       <table>
         <tr>
-          <td class="narrow">
-            <div class="ipfs-icon ipfs-_blank">&nbsp;</div>
+          <td>
+            <div class="type-icon ipfs-_blank">&nbsp;</div>
           </td>
           <td>
             <a href="{{.BackLink | urlEscape}}">..</a>
@@ -650,7 +619,7 @@ td {
         {{ range .Listing }}
         <tr>
           <td>
-            <div class="ipfs-icon {{iconFromExt .Name}}">&nbsp;</div>
+            <div class="type-icon {{iconFromExt .Name}}">&nbsp;</div>
           </td>
           <td>
             <a href="{{ .Path | urlEscape }}">{{ .Name }}</a>
