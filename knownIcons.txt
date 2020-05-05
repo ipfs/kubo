@@ -28,6 +28,8 @@
 .key
 .less
 .mid
+.mkv
+.mov
 .mp3
 .mp4
 .mpg
@@ -55,6 +57,7 @@
 .tiff
 .txt
 .wav
+.wmv
 .xls
 .xlsx
 .xml
