@@ -173,6 +173,10 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	errors := false
 	gcs := cid.NewSet()
 	getLinks := func(ctx context.Context, CID cid.Cid) ([]*ipld.Link, error) {
+		if CID.Type() == cid.Raw {
+			return nil, nil
+		}
+
 		links, err := ipld.GetLinks(ctx, ng, CID)
 		if err != nil {
 			errors = true
@@ -182,16 +186,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 				return nil, ctx.Err()
 			}
 		}
-
-		filteredLinks := []*ipld.Link{}
-		for _, link := range links {
-			// Skip raw links, since it doesn't contain any leaf links to traverse.
-			if link.Cid.Type() == cid.Raw {
-				continue
-			}
-			filteredLinks = append(filteredLinks, link)
-		}
-		return filteredLinks, nil
+		return links, nil
 	}
 	rkeys, err := pn.RecursiveKeys(ctx)
 	if err != nil {
@@ -208,6 +203,10 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	}
 
 	bestEffortGetLinks := func(ctx context.Context, CID cid.Cid) ([]*ipld.Link, error) {
+		if CID.Type() == cid.Raw {
+			return nil, nil
+		}
+
 		links, err := ipld.GetLinks(ctx, ng, CID)
 		if err != nil && err != ipld.ErrNotFound {
 			errors = true
@@ -217,16 +216,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 				return nil, ctx.Err()
 			}
 		}
-
-		filteredLinks := []*ipld.Link{}
-		for _, link := range links {
-			// Skip raw links, since it doesn't contain any leaf links to traverse.
-			if link.Cid.Type() == cid.Raw {
-				continue
-			}
-			filteredLinks = append(filteredLinks, link)
-		}
-		return filteredLinks, nil
+		return links, nil
 	}
 	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
 	if err != nil {
