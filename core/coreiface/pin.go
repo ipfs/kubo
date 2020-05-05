@@ -46,6 +46,10 @@ type PinAPI interface {
 	// Ls returns list of pinned objects on this node
 	Ls(context.Context, ...options.PinLsOption) (<-chan Pin, error)
 
+	// IsPinned returns whether or not the given cid is pinned
+	// and an explanation of why its pinned
+	IsPinned(context.Context, path.Path, ...options.PinIsPinnedOption) (string, bool, error)
+
 	// Rm removes pin for object specified by the path
 	Rm(context.Context, path.Path, ...options.PinRmOption) error
 
