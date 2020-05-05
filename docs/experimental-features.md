@@ -13,23 +13,19 @@ feature, you MUST please make a PR updating this document, and link the PR in
 the above issue.
 
 - [ipfs pubsub](#ipfs-pubsub)
-- [Client mode DHT routing](#client-mode-dht-routing)
-- [go-multiplex stream muxer](#go-multiplex-stream-muxer)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
 - [ipfs urlstore](#ipfs-urlstore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [p2p http proxy](#p2p-http-proxy)
-- [Circuit Relay](#circuit-relay)
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding--hamt)
 - [IPNS PubSub](#ipns-pubsub)
 - [QUIC](#quic)
 - [AutoRelay](#autorelay)
-- [TLS 1.3 Handshake](#tls-13-as-default-handshake-protocol)
 - [Strategic Providing](#strategic-providing)
-- [Graphsync](graphsync)
+- [Graphsync](#graphsync)
 
 ---
 
