@@ -11,6 +11,7 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gabriel-vasile/mimetype v1.1.0
+	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
 	github.com/go-bindata/go-bindata/v3 v3.1.3
 	github.com/gogo/protobuf v1.3.1
 	github.com/hashicorp/go-multierror v1.1.0
@@ -85,6 +86,7 @@ require (
 	github.com/libp2p/go-sockaddr v0.1.0 // indirect
 	github.com/libp2p/go-socket-activation v0.0.2
 	github.com/mattn/go-runewidth v0.0.8 // indirect
+	github.com/miekg/dns v1.1.29 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.2.1
