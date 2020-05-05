@@ -53,7 +53,7 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 		return nil, fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.Type)
 	}
 
-	return api.pinLsAll(settings.Type, ctx), nil
+	return api.pinLsAll(ctx, settings.Type), nil
 }
 
 func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
@@ -218,20 +218,26 @@ func (p *pinInfo) Err() error {
 	return p.err
 }
 
-func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) <-chan coreiface.Pin {
+// pinLsAll is an internal function for returning a list of pins
+func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreiface.Pin {
 	out := make(chan coreiface.Pin)
 
 	keys := cid.NewSet()
 
-	AddToResultKeys := func(keyList []cid.Cid, typeStr string) {
+	AddToResultKeys := func(keyList []cid.Cid, typeStr string) error {
 		for _, c := range keyList {
 			if keys.Visit(c) {
-				out <- &pinInfo{
+				select {
+				case out <- &pinInfo{
 					pinType: typeStr,
 					path:    path.IpldPath(c),
+				}:
+				case <-ctx.Done():
+					return ctx.Err()
 				}
 			}
 		}
+		return nil
 	}
 
 	VisitKeys := func(keyList []cid.Cid) {
@@ -249,7 +255,10 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) <-chan coreifac
 				out <- &pinInfo{err: err}
 				return
 			}
-			AddToResultKeys(rkeys, "recursive")
+			if err := AddToResultKeys(rkeys, "recursive"); err != nil {
+				out <- &pinInfo{err: err}
+				return
+			}
 		}
 		if typeStr == "direct" || typeStr == "all" {
 			dkeys, err := api.pinning.DirectKeys(ctx)
@@ -257,7 +266,10 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) <-chan coreifac
 				out <- &pinInfo{err: err}
 				return
 			}
-			AddToResultKeys(dkeys, "direct")
+			if err := AddToResultKeys(dkeys, "direct"); err != nil {
+				out <- &pinInfo{err: err}
+				return
+			}
 		}
 		if typeStr == "all" {
 			set := cid.NewSet()
@@ -277,7 +289,10 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) <-chan coreifac
 					return
 				}
 			}
-			AddToResultKeys(set.Keys(), "indirect")
+			if err := AddToResultKeys(set.Keys(), "indirect"); err != nil {
+				out <- &pinInfo{err: err}
+				return
+			}
 		}
 		if typeStr == "indirect" {
 			// We need to first visit the direct pins that have priority
@@ -309,7 +324,10 @@ func (api *PinAPI) pinLsAll(typeStr string, ctx context.Context) <-chan coreifac
 					return
 				}
 			}
-			AddToResultKeys(set.Keys(), "indirect")
+			if err := AddToResultKeys(set.Keys(), "indirect"); err != nil {
+				out <- &pinInfo{err: err}
+				return
+			}
 		}
 	}()
 
