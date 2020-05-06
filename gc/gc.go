@@ -172,16 +172,16 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	// disk backed to conserve memory.
 	errors := false
 	gcs := cid.NewSet()
-	getLinks := func(ctx context.Context, CID cid.Cid) ([]*ipld.Link, error) {
-		if CID.Type() == cid.Raw {
+	getLinks := func(ctx context.Context, link cid.Cid) ([]*ipld.Link, error) {
+		if link.Type() == cid.Raw {
 			return nil, nil
 		}
 
-		links, err := ipld.GetLinks(ctx, ng, CID)
+		links, err := ipld.GetLinks(ctx, ng, link)
 		if err != nil {
 			errors = true
 			select {
-			case output <- Result{Error: &CannotFetchLinksError{CID, err}}:
+			case output <- Result{Error: &CannotFetchLinksError{link, err}}:
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			}
@@ -202,16 +202,16 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 	}
 
-	bestEffortGetLinks := func(ctx context.Context, CID cid.Cid) ([]*ipld.Link, error) {
-		if CID.Type() == cid.Raw {
+	bestEffortGetLinks := func(ctx context.Context, link cid.Cid) ([]*ipld.Link, error) {
+		if link.Type() == cid.Raw {
 			return nil, nil
 		}
 
-		links, err := ipld.GetLinks(ctx, ng, CID)
+		links, err := ipld.GetLinks(ctx, ng, link)
 		if err != nil && err != ipld.ErrNotFound {
 			errors = true
 			select {
-			case output <- Result{Error: &CannotFetchLinksError{CID, err}}:
+			case output <- Result{Error: &CannotFetchLinksError{link, err}}:
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			}
