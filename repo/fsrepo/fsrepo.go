@@ -361,7 +361,7 @@ func (r *FSRepo) Path() string {
 func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	// Create a temp file to write the address, so that we don't leave empty file when the
 	// program crashes after creating the file.
-	f, err := os.Create(filepath.Join(r.path, apiFile+"-tmp"))
+	f, err := os.Create(filepath.Join(r.path, "."+apiFile+".tmp"))
 	if err != nil {
 		return err
 	}
@@ -374,7 +374,7 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	}
 
 	// Atomically rename the temp file to the correct file name.
-	return os.Rename(filepath.Join(r.path, apiFile+"-tmp"), filepath.Join(r.path, apiFile))
+	return os.Rename(filepath.Join(r.path, "."+apiFile+".tmp"), filepath.Join(r.path, apiFile))
 }
 
 // openConfig returns an error if the config file is not present.
