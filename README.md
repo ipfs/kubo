@@ -170,7 +170,7 @@ To build without GCC, build with `CGO_ENABLED=0` (e.g., `make build CGO_ENABLED=
 
 #### Install Go
 
-The build process for ipfs requires Go 1.12 or higher. If you don't have it: [Download Go 1.12+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.14.2 or higher. If you don't have it: [Download Go 1.14+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
