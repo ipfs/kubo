@@ -1,5 +1,6 @@
 [Unit]
 Description=InterPlanetary File System (IPFS) daemon
+Documentation=https://docs.ipfs.io/
 After=network.target
 
 [Service]
