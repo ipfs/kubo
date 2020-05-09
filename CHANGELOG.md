@@ -1,5 +1,41 @@
 # go-ipfs changelog
 
+## 0.5.1 2020-05-08
+
+Hot on the heels of 0.5.0 is 0.5.1 with some important but small bug fixes. This release:
+
+1. Removes the 1 minute timeout for IPNS publishes (fixes #7244).
+2. Backport a DHT fix to reduce CPU usage for canceled requests.
+3. Fixes some timer leaks in the QUIC transport ([ipfs/go-ipfs#2515](https://github.com/lucas-clemente/quic-go/issues/2515)).
+
+### Changelog
+
+- github.com/ipfs/go-ipfs:
+  - IPNS timeout patch from master ([ipfs/go-ipfs#7276](https://github.com/ipfs/go-ipfs/pull/7276))
+- github.com/libp2p/go-libp2p-core (v0.5.2 -> v0.5.3):
+  - feat: add a function to tell if a context subscribes to query events ([libp2p/go-libp2p-core#147](https://github.com/libp2p/go-libp2p-core/pull/147))
+- github.com/libp2p/go-libp2p-kad-dht (v0.7.10 -> v0.7.11):
+  - fix: optimize for the case where we're not subscribing to query events ([libp2p/go-libp2p-kad-dht#624](https://github.com/libp2p/go-libp2p-kad-dht/pull/624))
+  - fix: don't spin when the event channel is closed ([libp2p/go-libp2p-kad-dht#622](https://github.com/libp2p/go-libp2p-kad-dht/pull/622))
+- github.com/libp2p/go-libp2p-routing-helpers (v0.2.2 -> v0.2.3):
+  - fix: avoid subscribing to query events unless necessary ([libp2p/go-libp2p-routing-helpers#43](https://github.com/libp2p/go-libp2p-routing-helpers/pull/43))
+- github.com/lucas-clemente/quic-go (v0.15.5 -> v0.15.7):
+  - reset the PTO when dropping a packet number space
+  - move deadlineTimer declaration out of the Read loop
+  - stop the deadline timer in Stream.Read and Write
+  - fix buffer use after it was released when sending an INVALID_TOKEN error
+  - create the session timer at the beginning of the run loop
+  - stop the timer when the session's run loop returns
+
+### Contributors
+
+| Contributor             | Commits | Lines ± | Files Changed |
+|-------------------------|---------|---------|---------------|
+| Marten Seemann          |      10 | +81/-62 |            19 |
+| Steven Allen            |       5 | +42/-18 |            10 |
+| Adin Schmahmann         |       1 | +2/-8   |             1 |
+| dependabot-preview[bot] |       2 | +6/-2   |             4 |
+
 ## 0.5.0 2020-04-28
 
 We're excited to announce go-ipfs 0.5.0! This is by far the largest go-ipfs release with ~2500 commits, 98 contributors, and over 650 PRs across ipfs, libp2p, and multiformats.
