@@ -88,27 +88,42 @@ resolve_commits() {
     jq '. + {Ref: (.Version|capture("^((?<ref1>.*)\\+incompatible|v.*-(0\\.)?[0-9]{14}-(?<ref2>[a-f0-9]{12})|(?<ref3>v.*))$") | .ref1 // .ref2 // .ref3)}'
 }
 
+pr_link() {
+    local repo="$1"
+    local prnum="$2"
+    local ghname="${repo##github.com/}"
+    printf -- "[%s#%s](https://%s/pull/%s)" "$ghname" "$prnum" "$repo" "$prnum"
+}
+
 # Generate a release log for a range of commits in a single repo.
 release_log() {
+    setopt local_options BASH_REMATCH
+
     local repo="$1"
     local start="$2"
     local end="${3:-HEAD}"
-    local ghname="${repo##github.com/}"
     local dir="$GOPATH/src/$repo"
 
-    local commit prnum
+    local commit pr
     git -C "$dir" log \
         --format='tformat:%H %s' \
-        --merges \
+        --first-parent \
         "$start..$end" |
-        sed -n -e 's/\([a-f0-9]\+\) .*#\([0-9]\+\).*/\1 \2/p' |
-        while read commit prnum; do
+        while read commit subject; do
             # Skip gx-only PRs.
             git -C "$dir" diff-tree --no-commit-id --name-only "$commit^" "$commit" |
                 grep -v "${IGNORED_FILES}" >/dev/null || continue
 
-            local desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
-            printf -- "- %s ([%s#%s](https://%s/pull/%s))\n" "$desc" "$ghname" "$prnum" "$repo" "$prnum"
+            if [[ "$subject" =~ '^Merge pull request #([0-9]+) from' ]]; then
+                local prnum="${BASH_REMATCH[2]}"
+                local desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
+                printf -- "- %s (%s)\n" "$desc" "$(pr_link "$repo" "$prnum")"
+            elif [[ "$subject" =~ '\(#([0-9]+)\)$' ]]; then
+                local prnum="${BASH_REMATCH[2]}"
+                printf -- "- %s (%s)\n" "$subject" "$(pr_link "$repo" "$prnum")"
+            else
+                printf -- "- %s\n" "$subject"
+            fi
         done
 }
 
