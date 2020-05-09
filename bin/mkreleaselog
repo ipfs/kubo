@@ -6,8 +6,30 @@ export GOPATH="$(go env GOPATH)"
 
 alias jq="jq --unbuffered"
 
-[[ -n "${REPO_FILTER+x}" ]] || REPO_FILTER="github.com/(ipfs|libp2p|ipld)"
-[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package.json\|\.travis.yml\|go.mod\|go.sum\)$'
+AUTHORS=(
+    # orgs
+    ipfs
+    ipld
+    libp2p
+    multiformats
+    filecoin-project
+    ipfs-shipyard
+
+    # Authors of personal repos used by go-ipfs that should be mentioned in the
+    # release notes.
+    whyrusleeping
+    Kubuxu
+    jbenet
+    Stebalien
+    marten-seemann
+    hsanjuan
+    lucas-clemente
+    warpfork
+)
+
+[[ -n "${REPO_FILTER+x}" ]] || REPO_FILTER="github.com/(${$(printf "|%s" "${AUTHORS[@]}"):1})"
+
+[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package\.json\|\.travis\.yml\|go.mod\|go\.sum|\.github|\.circleci\)$'
 
 NL=$'\n'
 
