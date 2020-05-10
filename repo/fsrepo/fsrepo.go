@@ -374,7 +374,16 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	}
 
 	// Atomically rename the temp file to the correct file name.
-	return os.Rename(filepath.Join(r.path, "."+apiFile+".tmp"), filepath.Join(r.path, apiFile))
+	if err = os.Rename(filepath.Join(r.path, "."+apiFile+".tmp"), filepath.Join(r.path,
+		apiFile)); err == nil {
+		return nil
+	}
+	// Remove the temp file when rename return error
+	if err1 := os.Remove(filepath.Join(r.path, "."+apiFile+".tmp")); err1 != nil {
+		return fmt.Errorf("File Rename error: %s, File remove error: %s", err.Error(),
+			err1.Error())
+	}
+	return err
 }
 
 // openConfig returns an error if the config file is not present.
