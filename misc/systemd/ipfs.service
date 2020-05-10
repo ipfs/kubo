@@ -15,7 +15,7 @@
 [Unit]
 Description=InterPlanetary File System (IPFS) daemon
 Documentation=https://docs.ipfs.io/
-After=network.target
+After=syslog.target network.target
 
 [Service]
 
