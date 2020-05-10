@@ -26,6 +26,9 @@ After=network.target
 # enable to specify a higher limit for open files/connections
 #LimitNOFILE=1000000
 
+#don't use swap
+MemorySwapMax=0
+
 Type=notify
 User=ipfs
 Group=ipfs
