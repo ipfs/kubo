@@ -359,13 +359,30 @@ func (r *FSRepo) Path() string {
 
 // SetAPIAddr writes the API Addr to the /api file.
 func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
-	f, err := os.Create(filepath.Join(r.path, apiFile))
+	// Create a temp file to write the address, so that we don't leave empty file when the
+	// program crashes after creating the file.
+	f, err := os.Create(filepath.Join(r.path, "."+apiFile+".tmp"))
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	_, err = f.WriteString(addr.String())
+	if _, err = f.WriteString(addr.String()); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+
+	// Atomically rename the temp file to the correct file name.
+	if err = os.Rename(filepath.Join(r.path, "."+apiFile+".tmp"), filepath.Join(r.path,
+		apiFile)); err == nil {
+		return nil
+	}
+	// Remove the temp file when rename return error
+	if err1 := os.Remove(filepath.Join(r.path, "."+apiFile+".tmp")); err1 != nil {
+		return fmt.Errorf("File Rename error: %s, File remove error: %s", err.Error(),
+			err1.Error())
+	}
 	return err
 }
 
