@@ -614,8 +614,10 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
-   **Note:** this enables automatic redirects from content paths to subdomains  
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
+   **Note I:** this enables automatic redirects from content paths to subdomains:  
+   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`  
+   **Note II:** if you run go-ipfs behind a reverse proxy that provides TLS, make it adds a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
+   `https://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
 
 * Public [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
    ```console
