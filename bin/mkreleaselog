@@ -161,7 +161,13 @@ recursive_release_log() {
     local start="${1:-$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)}"
     local end="${2:-$(git rev-parse HEAD)}"
     local repo_root="$(git rev-parse --show-toplevel)"
-    local package="$(go list)"
+    local package="$(cd "$repo_root" && go list)"
+
+    if ! [[ "${GOPATH}/${package}" != "${repo_root}" ]]; then
+        echo "This script requires the target package and all dependencies to live in a GOPATH."
+        return 1
+    fi
+
     (
         local result=0
         local workspace="$(mktemp -d)"
