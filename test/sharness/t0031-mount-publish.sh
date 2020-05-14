@@ -22,9 +22,9 @@ test_expect_success 'init iptb' '
 '
 
 # pre-mount publish
-HASH=$(echo 'hello warld' | ipfsi 0 add -q)
+HASH=$(echo 'hello warld' | ipfsi 0 add -Q -w --stdin-name "file")
 test_expect_success "can publish before mounting /ipns" '
-  ipfsi 0 name publish '$HASH'
+  ipfsi 0 name publish "$HASH"
 '
 
 # mount
