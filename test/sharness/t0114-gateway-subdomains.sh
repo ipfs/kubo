@@ -821,6 +821,89 @@ test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwar
   test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
+## ============================================================================
+## Test support for wildcards in gateway config
+## ============================================================================
+
+# set explicit subdomain gateway config for the hostnames
+ipfs config --json Gateway.PublicGateways '{
+  "*.example1.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  },
+  "*.*.example2.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  },
+  "foo.*.example3.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  },
+  "foo.bar-*-boo.example4.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
+  }
+}' || exit 1
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon --offline
+
+# *.example1.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.example1.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.example1.com" \
+  "foo.example1.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.example1.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.example1.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.example1.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+# *.*.example2.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.bar.example2.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.bar.example2.com" \
+  "foo.bar.example2.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.bar.example2.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.bar.example2.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.bar.example2.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+# foo.*.example3.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.bar.example3.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.bar.example3.com" \
+  "foo.bar.example3.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.bar.example3.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.bar.example3.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.bar.example3.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+# foo.bar-*-boo.example4.com
+
+test_hostname_gateway_response_should_contain \
+  "request for foo.bar-dev-boo.example4.com/ipfs/{CIDv1} produces redirect to {CIDv1}.ipfs.foo.bar-dev-boo.example4.com" \
+  "foo.bar-dev-boo.example4.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://$CIDv1.ipfs.foo.bar-dev-boo.example4.com/"
+
+test_hostname_gateway_response_should_contain \
+  "request for {CID}.ipfs.foo.bar-dev-boo.example4.com should return expected payload" \
+  "${CIDv1}.ipfs.foo.bar-dev-boo.example4.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
 # =============================================================================
 # ensure we end with empty Gateway.PublicGateways
 ipfs config --json Gateway.PublicGateways '{}'

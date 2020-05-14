@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	cid "github.com/ipfs/go-cid"
@@ -24,17 +25,17 @@ import (
 
 var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"}
 
-var pathGatewaySpec = config.GatewaySpec{
+var pathGatewaySpec = &config.GatewaySpec{
 	Paths:         defaultPaths,
 	UseSubdomains: false,
 }
 
-var subdomainGatewaySpec = config.GatewaySpec{
+var subdomainGatewaySpec = &config.GatewaySpec{
 	Paths:         defaultPaths,
 	UseSubdomains: true,
 }
 
-var defaultKnownGateways = map[string]config.GatewaySpec{
+var defaultKnownGateways = map[string]*config.GatewaySpec{
 	"localhost":       subdomainGatewaySpec,
 	"ipfs.io":         pathGatewaySpec,
 	"gateway.ipfs.io": pathGatewaySpec,
@@ -58,22 +59,8 @@ func HostnameOption() ServeOption {
 		if err != nil {
 			return nil, err
 		}
-		knownGateways := make(
-			map[string]config.GatewaySpec,
-			len(defaultKnownGateways)+len(cfg.Gateway.PublicGateways),
-		)
-		for hostname, gw := range defaultKnownGateways {
-			knownGateways[hostname] = gw
-		}
-		for hostname, gw := range cfg.Gateway.PublicGateways {
-			if gw == nil {
-				// Allows the user to remove gateways but _also_
-				// allows us to continuously update the list.
-				delete(knownGateways, hostname)
-			} else {
-				knownGateways[hostname] = *gw
-			}
-		}
+
+		knownGateways := prepareKnownGateways(cfg.Gateway.PublicGateways)
 
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			// Unfortunately, many (well, ipfs.io) gateways use
@@ -233,22 +220,85 @@ func HostnameOption() ServeOption {
 	}
 }
 
+type gatewayHosts struct {
+	exact    map[string]*config.GatewaySpec
+	wildcard []wildcardHost
+}
+
+type wildcardHost struct {
+	re   *regexp.Regexp
+	spec *config.GatewaySpec
+}
+
+func prepareKnownGateways(publicGateways map[string]*config.GatewaySpec) gatewayHosts {
+	var hosts gatewayHosts
+
+	if len(publicGateways) == 0 {
+		hosts.exact = make(
+			map[string]*config.GatewaySpec,
+			len(defaultKnownGateways),
+		)
+		for hostname, gw := range defaultKnownGateways {
+			hosts.exact[hostname] = gw
+		}
+		return hosts
+	}
+
+	hosts.exact = make(map[string]*config.GatewaySpec, len(publicGateways))
+
+	for hostname, gw := range publicGateways {
+		if gw == nil {
+			continue
+		}
+		if strings.Contains(hostname, "*") {
+			// from *.domain.tld, construct a regexp that match any direct subdomain
+			// of .domain.tld.
+			//
+			// Regexp will be in the form of ^[^.]+\.domain.tld(?::\d+)?$
+
+			escaped := strings.ReplaceAll(hostname, ".", `\.`)
+			regexed := strings.ReplaceAll(escaped, "*", "[^.]+")
+
+			re, err := regexp.Compile(fmt.Sprintf(`^%s(?::\d+)?$`, regexed))
+			if err != nil {
+				log.Warn("invalid wildcard gateway hostname \"%s\"", hostname)
+			}
+
+			hosts.wildcard = append(hosts.wildcard, wildcardHost{re: re, spec: gw})
+		} else {
+			hosts.exact[hostname] = gw
+		}
+	}
+
+	return hosts
+}
+
 // isKnownHostname checks Gateway.PublicGateways and returns matching
 // GatewaySpec with gracefull fallback to version without port
-func isKnownHostname(hostname string, knownGateways map[string]config.GatewaySpec) (gw config.GatewaySpec, ok bool) {
+func isKnownHostname(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, ok bool) {
 	// Try hostname (host+optional port - value from Host header as-is)
-	if gw, ok := knownGateways[hostname]; ok {
+	if gw, ok := knownGateways.exact[hostname]; ok {
 		return gw, ok
 	}
-	// Fallback to hostname without port
-	gw, ok = knownGateways[stripPort(hostname)]
+	// Also test without port
+	if gw, ok = knownGateways.exact[stripPort(hostname)]; ok {
+		return gw, ok
+	}
+
+	// Wildcard support. Test both with and without port.
+	for _, host := range knownGateways.wildcard {
+		if host.re.MatchString(hostname) {
+			return host.spec, true
+		}
+	}
+
 	return gw, ok
 }
 
 // Parses Host header and looks for a known subdomain gateway host.
 // If found, returns GatewaySpec and subdomain components.
 // Note: hostname is host + optional port
-func knownSubdomainDetails(hostname string, knownGateways map[string]config.GatewaySpec) (gw config.GatewaySpec, knownHostname, ns, rootID string, ok bool) {
+func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, knownHostname, ns, rootID string, ok bool) {
 	labels := strings.Split(hostname, ".")
 	// Look for FQDN of a known gateway hostname.
 	// Example: given "dist.ipfs.io.ipns.dweb.link":
