@@ -63,14 +63,14 @@ require (
 	github.com/libp2p/go-libp2p v0.8.3
 	github.com/libp2p/go-libp2p-circuit v0.2.2
 	github.com/libp2p/go-libp2p-connmgr v0.2.1
-	github.com/libp2p/go-libp2p-core v0.5.3
+	github.com/libp2p/go-libp2p-core v0.5.4
 	github.com/libp2p/go-libp2p-discovery v0.4.0
 	github.com/libp2p/go-libp2p-http v0.1.5
 	github.com/libp2p/go-libp2p-kad-dht v0.7.11
 	github.com/libp2p/go-libp2p-kbucket v0.4.1
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
-	github.com/libp2p/go-libp2p-peerstore v0.2.3
+	github.com/libp2p/go-libp2p-peerstore v0.2.4
 	github.com/libp2p/go-libp2p-pubsub v0.2.7
 	github.com/libp2p/go-libp2p-pubsub-router v0.2.1
 	github.com/libp2p/go-libp2p-quic-transport v0.3.7
