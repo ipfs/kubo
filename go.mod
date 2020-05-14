@@ -63,7 +63,7 @@ require (
 	github.com/libp2p/go-libp2p v0.8.3
 	github.com/libp2p/go-libp2p-circuit v0.2.2
 	github.com/libp2p/go-libp2p-connmgr v0.2.1
-	github.com/libp2p/go-libp2p-core v0.5.3
+	github.com/libp2p/go-libp2p-core v0.5.4
 	github.com/libp2p/go-libp2p-discovery v0.4.0
 	github.com/libp2p/go-libp2p-http v0.1.5
 	github.com/libp2p/go-libp2p-kad-dht v0.7.11
