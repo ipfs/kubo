@@ -29,6 +29,7 @@ for your IPFS node.`,
 		"bw":      statBwCmd,
 		"repo":    repoStatCmd,
 		"bitswap": bitswapStatCmd,
+		"dht":     statDhtCmd,
 	},
 }
 
