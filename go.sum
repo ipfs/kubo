@@ -385,6 +385,8 @@ github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZa
 github.com/ipfs/go-metrics-prometheus v0.0.2/go.mod h1:ELLU99AQQNi+zX6GCGm2lAgnzdSH3u5UVlCdqSXnEks=
 github.com/ipfs/go-mfs v0.1.1 h1:tjYEWFIl0W6vRFuM/EnySHaaYzPmDcQWwTjtYWMGQ1A=
 github.com/ipfs/go-mfs v0.1.1/go.mod h1:nk17h6kCOrfaNqXvx2VJ3SqkJ0VYUzJFAsc+BA0sqaw=
+github.com/ipfs/go-mfs v0.1.2 h1:DlelNSmH+yz/Riy0RjPKlooPg0KML4lXGdLw7uZkfAg=
+github.com/ipfs/go-mfs v0.1.2/go.mod h1:T1QBiZPEpkPLzDqEJLNnbK55BVKVlNi2a+gVm4diFo0=
 github.com/ipfs/go-path v0.0.3/go.mod h1:zIRQUez3LuQIU25zFjC2hpBTHimWx7VK5bjZgRLbbdo=
 github.com/ipfs/go-path v0.0.7 h1:H06hKMquQ0aYtHiHryOMLpQC1qC3QwXwkahcEVD51Ho=
 github.com/ipfs/go-path v0.0.7/go.mod h1:6KTKmeRnBXgqrTvzFrPV3CamxcgvXX/4z79tfAd2Sno=
