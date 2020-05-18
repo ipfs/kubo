@@ -300,6 +300,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// A HTML directory index will be presented, be sure to set the correct
+	// type instead of relying on autodetection (which may fail).
+	w.Header().Set("Content-Type", "text/html")
 	if r.Method == http.MethodHead {
 		return
 	}
