@@ -11,6 +11,7 @@ import (
 	gopath "path"
 	"regexp"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -203,6 +204,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusServiceUnavailable)
 		return
 	default:
+		if i.servePretty404IfPresent(w, r, parsedPath) {
+			return
+		}
+
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
@@ -287,6 +292,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	if r.Method == http.MethodHead {
+		return
+	}
+
+	if i.servePretty404IfPresent(w, r, parsedPath) {
 		return
 	}
 
@@ -404,6 +413,36 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 
 	w = &statusResponseWriter{w}
 	http.ServeContent(w, req, name, modtime, content)
+}
+
+func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.Request, parsedPath ipath.Path) bool {
+	resolved404Path, ctype, err := i.searchUpTreeFor404(r, parsedPath)
+	if err != nil {
+		return false
+	}
+
+	dr, err := i.api.Unixfs().Get(r.Context(), resolved404Path)
+	if err != nil {
+		return false
+	}
+	defer dr.Close()
+
+	f, ok := dr.(files.File)
+	if !ok {
+		return false
+	}
+
+	size, err := f.Size()
+	if err != nil {
+		return false
+	}
+
+	log.Debugf("using pretty 404 file for %s", parsedPath.String())
+	w.Header().Set("Content-Type", ctype)
+	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	w.WriteHeader(http.StatusNotFound)
+	_, err = io.CopyN(w, f, size)
+	return err == nil
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
@@ -618,4 +657,46 @@ func getFilename(s string) string {
 		return ""
 	}
 	return gopath.Base(s)
+}
+
+func (i *gatewayHandler) searchUpTreeFor404(r *http.Request, parsedPath ipath.Path) (ipath.Resolved, string, error) {
+	filename404, ctype, err := preferred404Filename(r.Header.Values("Accept"))
+	if err != nil {
+		return nil, "", err
+	}
+
+	pathComponents := strings.Split(parsedPath.String(), "/")
+
+	for idx := len(pathComponents); idx >= 3; idx-- {
+		pretty404 := gopath.Join(append(pathComponents[0:idx], filename404)...)
+		parsed404Path := ipath.New("/" + pretty404)
+		if parsed404Path.IsValid() != nil {
+			break
+		}
+		resolvedPath, err := i.api.ResolvePath(r.Context(), parsed404Path)
+		if err != nil {
+			continue
+		}
+		return resolvedPath, ctype, nil
+	}
+
+	return nil, "", fmt.Errorf("no pretty 404 in any parent folder")
+}
+
+func preferred404Filename(acceptHeaders []string) (string, string, error) {
+	// If we ever want to offer a 404 file for a different content type
+	// then this function will need to parse q weightings, but for now
+	// the presence of anything matching HTML is enough.
+	for _, acceptHeader := range acceptHeaders {
+		accepted := strings.Split(acceptHeader, ",")
+		for _, spec := range accepted {
+			contentType := strings.SplitN(spec, ";", 1)[0]
+			switch contentType {
+			case "*/*", "text/*", "text/html":
+				return "ipfs-404.html", "text/html", nil
+			}
+		}
+	}
+
+	return "", "", fmt.Errorf("there is no 404 file for the requested content types")
 }
