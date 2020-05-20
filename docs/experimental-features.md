@@ -427,9 +427,14 @@ ipfs config --json Experimental.ShardingEnabled true
 
 ### In Version
 
-Introduced: 0.4.14
+0.4.14 :
+  - Introduced
 
-Latest Major Change: 0.5.0
+0.5.0 : 
+   - No longer needs to use the DHT for the first resolution
+   - When discovering PubSub peers via the DHT, the DHT key is different from previous versions
+      - This leads to 0.5 IPNS pubsub peers and 0.4 IPNS pubsub peers not being able to find each other in the DHT
+   - Robustness improvements
 
 ### State
 
