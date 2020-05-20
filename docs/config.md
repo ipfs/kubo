@@ -117,8 +117,6 @@ documented in `ipfs config profile --help`.
     - [`Discovery.MDNS`](#discoverymdns)
         - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
         - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
-- [`Routing`](#routing)
-    - [`Routing.Type`](#routingtype)
 - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
@@ -138,9 +136,14 @@ documented in `ipfs config profile --help`.
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+- [`Pubsub`](#pubsub)
+    - [`Pubsub.Router`](#pubsubrouter)
+    - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
 - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
+- [`Routing`](#routing)
+    - [`Routing.Type`](#routingtype)
 - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
@@ -390,48 +393,6 @@ Default: `true`
 #### `Discovery.MDNS.Interval`
 
 A number of seconds to wait between discovery checks.
-
-## `Routing`
-
-Contains options for content, peer, and IPNS routing mechanisms.
-
-### `Routing.Type`
-
-Content routing mode. Can be overridden with daemon `--routing` flag.
-
-There are two core routing options: "none" and "dht" (default).
-
-* If set to "none", your node will use _no_ routing system. You'll have to
-  explicitly connect to peers that have the content you're looking for.
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will use the IPFS DHT.
-
-When the DHT is enabled, it can operate in two modes: client and server.
-
-* In server mode, your node will query other peers for DHT records, and will
-  respond to requests from other peers (both requests to store records and
-  requests to retrieve records).
-* In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource intensive than server
-  mode.
-
-When `Routing.Type` is set to `dht`, your node will start as a DHT client, and
-switch to a DHT server when and if it determines that it's reachable from the
-public internet (e.g., it's not behind a firewall).
-
-To force a specific DHT mode, client or server, set `Routing.Type` to
-`dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
-unless you're sure your node is reachable from the public network.
-  
-**Example:**
-
-```json
-{
-  "Routing": {
-    "Type": "dhtclient"
-  }
-}
-```  
-  
 
 ## `Gateway`
 
@@ -702,6 +663,35 @@ Mountpoint for `/ipns/`.
 
 Sets the FUSE allow other option on the mountpoint.
 
+## `Pubsub`
+
+Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
+passing the `--enable-pubsub-experiment` flag to the daemon.
+
+### `Pubsub.Router`
+
+Sets the default router used by pubsub to route messages to peers. This can be one of:
+
+* `"floodsub"` - floodsub is a basic router that simply _floods_ messages to all
+  connected peers. This router is extremely inefficient but _very_ reliable.
+* `"gossipsub"` - [gossipsub][] is a more advanced routing algorithm that will
+  build an overlay mesh from a subset of the links in the network.
+  
+Default: `"gossipsub"`
+
+[gossipsub]: https://github.com/libp2p/specs/tree/master/pubsub/gossipsub
+
+### `Pubsub.DisableSigning`
+
+Disables message signing and signature verification. Enable this option if
+you're operating in a completely trusted network.
+
+It is _not_ safe to disable signing even if you don't care _who_ sent the
+message because spoofed messages can be used to silence real messages by
+intentionally re-using the real message's message ID.
+
+Default: `false`
+
 ## `Reprovider`
 
 ### `Reprovider.Interval`
@@ -721,6 +711,48 @@ Tells reprovider what should be announced. Valid strategies are:
   - "all" (default) - announce all stored data
   - "pinned" - only announce pinned data
   - "roots" - only announce directly pinned keys and root keys of recursive pins
+
+## `Routing`
+
+Contains options for content, peer, and IPNS routing mechanisms.
+
+### `Routing.Type`
+
+Content routing mode. Can be overridden with daemon `--routing` flag.
+
+There are two core routing options: "none" and "dht" (default).
+
+* If set to "none", your node will use _no_ routing system. You'll have to
+  explicitly connect to peers that have the content you're looking for.
+* If set to "dht" (or "dhtclient"/"dhtserver"), your node will use the IPFS DHT.
+
+When the DHT is enabled, it can operate in two modes: client and server.
+
+* In server mode, your node will query other peers for DHT records, and will
+  respond to requests from other peers (both requests to store records and
+  requests to retrieve records).
+* In client mode, your node will query the DHT as a client but will not respond
+  to requests from other peers. This mode is less resource intensive than server
+  mode.
+
+When `Routing.Type` is set to `dht`, your node will start as a DHT client, and
+switch to a DHT server when and if it determines that it's reachable from the
+public internet (e.g., it's not behind a firewall).
+
+To force a specific DHT mode, client or server, set `Routing.Type` to
+`dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
+unless you're sure your node is reachable from the public network.
+  
+**Example:**
+
+```json
+{
+  "Routing": {
+    "Type": "dhtclient"
+  }
+}
+```  
+  
 
 ## `Swarm`
 
