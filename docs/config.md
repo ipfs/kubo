@@ -136,6 +136,9 @@ documented in `ipfs config profile --help`.
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+- [`Pubsub`](#pubsub)
+    - [`Pubsub.Router`](#pubsubrouter)
+    - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
 - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
@@ -659,6 +662,35 @@ Mountpoint for `/ipns/`.
 ### `Mounts.FuseAllowOther`
 
 Sets the FUSE allow other option on the mountpoint.
+
+## `Pubsub`
+
+Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
+passing the `--enable-pubsub-experiment` flag to the daemon.
+
+### `Pubsub.Router`
+
+Sets the default router used by pubsub to route messages to peers. This can be one of:
+
+* `"floodsub"` - floodsub is a basic router that simply _floods_ messages to all
+  connected peers. This router is extremely inefficient but _very_ reliable.
+* `"gossipsub"` - [gossipsub][] is a more advanced routing algorithm that will
+  build an overlay mesh from a subset of the links in the network.
+  
+Default: `"gossipsub"`
+
+[gossipsub]: https://github.com/libp2p/specs/tree/master/pubsub/gossipsub
+
+### `Pubsub.DisableSigning`
+
+Disables message signing and signature verification. Enable this option if
+you're operating in a completely trusted network.
+
+It is _not_ safe to disable signing even if you don't care _who_ sent the
+message because spoofed messages can be used to silence real messages by
+intentionally re-using the real message's message ID.
+
+Default: `false`
 
 ## `Reprovider`
 
