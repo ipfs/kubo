@@ -44,35 +44,12 @@ Candidate, disabled by default but will be enabled by default in 0.6.0.
 run your daemon with the `--enable-pubsub-experiment` flag. Then use the
 `ipfs pubsub` commands.
 
-### gossipsub
-
-Gossipsub is a new, experimental routing protocol for pubsub that
-should waste less bandwidth than floodsub, the current pubsub
-protocol. It's backward compatible with floodsub so enabling this
-feature shouldn't break compatibility with existing IPFS nodes.
-
-You can enable gossipsub via configuration:
-`ipfs config Pubsub.Router gossipsub`
-
-### Message Signing
-
-As of 0.4.18, go-ipfs signs all pubsub messages by default. For now, it doesn't
-*reject* unsigned messages but it will in the future.
-
-You can turn off message signing (not recommended unless you're using a private
-network) by running:
-`ipfs config Pubsub.DisableSigning true`
-
-You can turn on strict signature verification (require that all messages be
-signed) by running:
-`ipfs config Pubsub.StrictSignatureVerification true`
-
-(this last option will be set to true by default and eventually removed entirely)
+Configuration documentation can be found in [./config.md]()
 
 ### Road to being a real feature
-- [ ] Needs more people to use and report on how well it works
-- [ ] Needs authenticating modes to be implemented
-- [ ] needs performance analyses to be done
+
+- [ ] Needs to not impact peers who don't use pubsub:
+      https://github.com/libp2p/go-libp2p-pubsub/issues/332
 
 ## Raw Leaves for unixfs files
 
