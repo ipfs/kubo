@@ -459,6 +459,7 @@ Example: We mount `blog.ipfs.io` (a dnslink page) at `ipfs.io/blog`.
 ```json
 "Gateway": {
   "PathPrefixes": ["/blog"],
+}
 ```
 
 **nginx_ipfs.conf**
@@ -489,6 +490,10 @@ Example:
     "PublicGateways": {
       "example.com": {
         "Paths": ["/ipfs", "/ipns"],
+      }
+    }
+  }
+}
 ```
 
 Above enables `http://example.com/ipfs/*` and `http://example.com/ipns/*` but not `http://example.com/api/*`
@@ -504,12 +509,14 @@ between content roots.
     - **Requires whitelist:** make sure respective `Paths` are set.
     For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
         ```json
-        {
         "Gateway": {
             "PublicGateways": {
-            "dweb.link": {
-                "UseSubdomains": true,
-                "Paths": ["/ipfs", "/ipns"],
+                "dweb.link": {
+                    "UseSubdomains": true,
+                    "Paths": ["/ipfs", "/ipns"],
+                }
+            }
+        }
         ```
     - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
     - **API:** if `/api` is on the `Paths` whitelist, `http://{hostname}/api/{cmd}` produces redirect to `http://api.{hostname}/api/{cmd}`
@@ -517,12 +524,14 @@ between content roots.
 - `false` - enables [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
     ```json
-    {
     "Gateway": {
         "PublicGateways": {
-        "ipfs.io": {
-            "UseSubdomains": false,
-            "Paths": ["/ipfs", "/ipns", "/api"],
+            "ipfs.io": {
+                "UseSubdomains": false,
+                "Paths": ["/ipfs", "/ipns", "/api"],
+            }
+        }
+    }
     ```
 <!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
 
