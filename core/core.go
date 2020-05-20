@@ -39,6 +39,7 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
@@ -82,6 +83,7 @@ type IpfsNode struct {
 
 	// Online
 	PeerHost      p2phost.Host            `optional:"true"` // the network host (server+client)
+	Filters       *ma.Filters             `optional:"true"`
 	Bootstrapper  io.Closer               `optional:"true"` // the periodic bootstrapper
 	Routing       routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
 	Exchange      exchange.Interface      // the block exchange + strategy (bitswap)

@@ -60,35 +60,34 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
-	github.com/libp2p/go-libp2p v0.8.3
+	github.com/libp2p/go-libp2p v0.9.2
 	github.com/libp2p/go-libp2p-circuit v0.2.2
-	github.com/libp2p/go-libp2p-connmgr v0.2.1
-	github.com/libp2p/go-libp2p-core v0.5.3
+	github.com/libp2p/go-libp2p-connmgr v0.2.3
+	github.com/libp2p/go-libp2p-core v0.5.6
 	github.com/libp2p/go-libp2p-discovery v0.4.0
 	github.com/libp2p/go-libp2p-http v0.1.5
 	github.com/libp2p/go-libp2p-kad-dht v0.7.11
 	github.com/libp2p/go-libp2p-kbucket v0.4.1
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
-	github.com/libp2p/go-libp2p-peerstore v0.2.3
-	github.com/libp2p/go-libp2p-pubsub v0.2.7
-	github.com/libp2p/go-libp2p-pubsub-router v0.2.1
-	github.com/libp2p/go-libp2p-quic-transport v0.3.7
-	github.com/libp2p/go-libp2p-record v0.1.2
+	github.com/libp2p/go-libp2p-peerstore v0.2.4
+	github.com/libp2p/go-libp2p-pubsub v0.3.0
+	github.com/libp2p/go-libp2p-pubsub-router v0.3.0
+	github.com/libp2p/go-libp2p-quic-transport v0.4.0
+	github.com/libp2p/go-libp2p-record v0.1.3
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
 	github.com/libp2p/go-libp2p-secio v0.2.2
-	github.com/libp2p/go-libp2p-swarm v0.2.3
+	github.com/libp2p/go-libp2p-swarm v0.2.4
 	github.com/libp2p/go-libp2p-testing v0.1.1
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-libp2p-yamux v0.2.7
 	github.com/libp2p/go-maddr-filter v0.0.5
-	github.com/libp2p/go-sockaddr v0.1.0 // indirect
 	github.com/libp2p/go-socket-activation v0.0.2
 	github.com/mattn/go-runewidth v0.0.8 // indirect
 	github.com/miekg/dns v1.1.29 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.3
-	github.com/multiformats/go-multiaddr v0.2.1
+	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multiaddr-net v0.1.5
 	github.com/multiformats/go-multibase v0.0.2
@@ -103,9 +102,8 @@ require (
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c
 	go.uber.org/fx v1.12.0
 	go.uber.org/zap v1.15.0
-	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
-	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 )
 
