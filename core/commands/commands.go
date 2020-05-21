@@ -26,7 +26,7 @@ func (e *commandEncoder) Encode(v interface{}) error {
 	)
 
 	if cmd, ok = v.(*Command); !ok {
-		return fmt.Errorf(`core/commands: uenxpected type %T, expected *"core/commands".Command`, v)
+		return fmt.Errorf(`core/commands: unexpected type %T, expected *"core/commands".Command`, v)
 	}
 
 	for _, s := range cmdPathStrings(cmd, cmd.showOpts) {

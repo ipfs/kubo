@@ -445,7 +445,7 @@ test_files_api() {
     test_cmp filehash_expected filehash
   '
 
-  test_expect_success "cant write to negative offset $EXTRA" '
+  test_expect_success "can't write to negative offset $EXTRA" '
     test_expect_code 1 ipfs files write $ARGS $RAW_LEAVES --offset -1 /cats/ipfs < output
   '
 

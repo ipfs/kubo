@@ -8,29 +8,27 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	dhtopts "github.com/libp2p/go-libp2p-kad-dht/opts"
+	dual "github.com/libp2p/go-libp2p-kad-dht/dual"
 	record "github.com/libp2p/go-libp2p-record"
 )
 
 type RoutingOption func(context.Context, host.Host, datastore.Batching, record.Validator) (routing.Routing, error)
 
-func constructDHTRouting(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
-	return dht.New(
-		ctx, host,
-		dhtopts.Datastore(dstore),
-		dhtopts.Validator(validator),
-	)
+func constructDHTRouting(mode dht.ModeOpt) func(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
+	return func(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
+		return dual.New(
+			ctx, host,
+			dht.Concurrency(10),
+			dht.Mode(mode),
+			dht.Datastore(dstore),
+			dht.Validator(validator),
+		)
+	}
 }
 
-func constructClientDHTRouting(ctx context.Context, host host.Host, dstore datastore.Batching, validator record.Validator) (routing.Routing, error) {
-	return dht.New(
-		ctx, host,
-		dhtopts.Client(true),
-		dhtopts.Datastore(dstore),
-		dhtopts.Validator(validator),
-	)
-}
-
-var DHTOption RoutingOption = constructDHTRouting
-var DHTClientOption RoutingOption = constructClientDHTRouting
-var NilRouterOption RoutingOption = nilrouting.ConstructNilRouting
+var (
+	DHTOption       RoutingOption = constructDHTRouting(dht.ModeAuto)
+	DHTClientOption               = constructDHTRouting(dht.ModeClient)
+	DHTServerOption               = constructDHTRouting(dht.ModeServer)
+	NilRouterOption               = nilrouting.ConstructNilRouting
+)

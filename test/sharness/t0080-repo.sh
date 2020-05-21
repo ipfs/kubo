@@ -33,7 +33,7 @@ test_expect_success "'ipfs repo gc' looks good (patch root)" '
   grep -v "removed $HASH" gc_out_actual
 '
 
-test_expect_success "'ipfs repo gc' doesnt remove file" '
+test_expect_success "'ipfs repo gc' doesn't remove file" '
   ipfs cat "$HASH" >out &&
   test_cmp out afile
 '
@@ -50,7 +50,7 @@ test_expect_success "'ipfs pin rm' output looks good" '
 test_expect_success "ipfs repo gc fully reverse ipfs add (part 1)" '
   ipfs repo gc &&
   random 100000 41 >gcfile &&
-  find "$IPFS_PATH/blocks" -type f | sort -u > expected_blocks &&
+  find "$IPFS_PATH/blocks" -type f -name "*.data" | sort -u > expected_blocks &&
   hash=$(ipfs add -q gcfile) &&
   ipfs pin rm -r $hash &&
   ipfs repo gc
@@ -59,7 +59,7 @@ test_expect_success "ipfs repo gc fully reverse ipfs add (part 1)" '
 test_kill_ipfs_daemon
 
 test_expect_success "ipfs repo gc fully reverse ipfs add (part 2)" '
-  find "$IPFS_PATH/blocks" -type f | sort -u > actual_blocks &&
+  find "$IPFS_PATH/blocks" -type f -name "*.data" | sort -u > actual_blocks &&
   test_cmp expected_blocks actual_blocks
 '
 

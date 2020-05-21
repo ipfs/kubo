@@ -44,7 +44,7 @@ test_expect_success 'peer ids' '
 '
 
 test_expect_success 'connect A <-Relay-> B' '
-  ipfsi 0 swarm connect /p2p-circuit/p2p/$PEERID_2 > peers_out
+  ipfsi 0 swarm connect /p2p/$PEERID_1/p2p-circuit/p2p/$PEERID_2 > peers_out
 '
 
 test_expect_success 'output looks good' '

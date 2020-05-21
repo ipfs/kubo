@@ -132,16 +132,16 @@ func TestKeystoreBasics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := ks.Put("..///foo/", k1); err == nil {
-		t.Fatal("shouldnt be able to put a poorly named key")
+	if err := ks.Put("..///foo/", k1); err != nil {
+		t.Fatal(err)
 	}
 
 	if err := ks.Put("", k1); err == nil {
-		t.Fatal("shouldnt be able to put a key with no name")
+		t.Fatal("shouldn't be able to put a key with no name")
 	}
 
-	if err := ks.Put(".foo", k1); err == nil {
-		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
+	if err := ks.Put(".foo", k1); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -166,12 +166,17 @@ func TestInvalidKeyFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(ks.dir, "valid"), bytes, 0644)
+	encodedName, err := encode("valid")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(ks.dir, ".invalid"), bytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(ks.dir, encodedName), bytes, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(ks.dir, "z.invalid"), bytes, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,10 +201,6 @@ func TestInvalidKeyFiles(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if _, err = ks.Has(".invalid"); err == nil {
-		t.Fatal("shouldnt be able to put a key with a 'hidden' name")
 	}
 }
 
@@ -231,13 +232,13 @@ func TestMakeKeystoreNoDir(t *testing.T) {
 }
 
 func assertGetKey(ks Keystore, name string, exp ci.PrivKey) error {
-	out_k, err := ks.Get(name)
+	outK, err := ks.Get(name)
 	if err != nil {
 		return err
 	}
 
-	if !out_k.Equals(exp) {
-		return fmt.Errorf("key we got out didnt match expectation")
+	if !outK.Equals(exp) {
+		return fmt.Errorf("key we got out didn't match expectation")
 	}
 
 	return nil
@@ -255,7 +256,11 @@ func assertDirContents(dir string, exp []string) error {
 
 	var names []string
 	for _, fi := range finfos {
-		names = append(names, fi.Name())
+		decodedName, err := decode(fi.Name())
+		if err != nil {
+			return err
+		}
+		names = append(names, decodedName)
 	}
 
 	sort.Strings(names)

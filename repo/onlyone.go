@@ -12,7 +12,7 @@ type OnlyOne struct {
 }
 
 // Open a Repo identified by key. If Repo is not already open, the
-// open function is called, and the result is remember for further
+// open function is called, and the result is remembered for further
 // use.
 //
 // Key must be comparable, or Open will panic. Make sure to pick keys

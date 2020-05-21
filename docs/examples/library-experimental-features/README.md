@@ -58,8 +58,6 @@ func createTempRepo(ctx context.Context) (string, error) {
 	cfg.Experimental.P2pHttpProxy = true
 	// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#quic
 	cfg.Experimental.QUIC = true
-	// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#tls-13-as-default-handshake-protocol
-	cfg.Experimental.PreferTLS = true
 	// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#strategic-providing
 	cfg.Experimental.StrategicProviding = true
 

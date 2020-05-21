@@ -22,10 +22,10 @@ import (
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	"github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
-	"github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs-config"
 	u "github.com/ipfs/go-ipfs-util"
 	logging "github.com/ipfs/go-log"
 	loggables "github.com/libp2p/go-libp2p-loggables"
@@ -113,6 +113,9 @@ func mainRet() int {
 				os.Args[1] = "--help"
 			}
 		}
+	} else if insideGUI() { // if no args were passed, and we're in a GUI environment
+		// launch the daemon instead of launching a ghost window
+		os.Args = append(os.Args, "daemon", "--init")
 	}
 
 	// output depends on executable name passed in os.Args
@@ -170,6 +173,10 @@ func mainRet() int {
 
 	// everything went better than expected :)
 	return 0
+}
+
+func insideGUI() bool {
+	return util.InsideGUI()
 }
 
 func checkDebug(req *cmds.Request) {

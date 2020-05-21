@@ -115,7 +115,7 @@ The optional format string is a printf style format string:
 
 type CidFormatRes struct {
 	CidStr    string // Original Cid String passed in
-	Formatted string // Formated Result
+	Formatted string // Formatted Result
 	ErrorMsg  string // Error
 }
 
@@ -255,7 +255,7 @@ var basesCmd = &cmds.Command{
 		Tagline: "List available multibase encodings.",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(prefixOptionName, "also include the single leter prefixes in addition to the code"),
+		cmds.BoolOption(prefixOptionName, "also include the single letter prefixes in addition to the code"),
 		cmds.BoolOption(numericOptionName, "also include numeric codes"),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {

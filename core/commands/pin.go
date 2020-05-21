@@ -13,8 +13,6 @@ import (
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	pin "github.com/ipfs/go-ipfs-pinner"
-	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	verifcid "github.com/ipfs/go-verifcid"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -24,7 +22,6 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 )
 
 var PinCmd = &cmds.Command{
@@ -320,11 +317,6 @@ Example:
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		n, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
@@ -352,9 +344,9 @@ Example:
 		}
 
 		if len(req.Arguments) > 0 {
-			err = pinLsKeys(req, typeStr, n, api, emit)
+			err = pinLsKeys(req, typeStr, api, emit)
 		} else {
-			err = pinLsAll(req, typeStr, n.Pinning, n.DAG, emit)
+			err = pinLsAll(req, typeStr, api, emit)
 		}
 		if err != nil {
 			return err
@@ -431,24 +423,30 @@ type PinLsObject struct {
 	Type string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreiface.CoreAPI, emit func(value interface{}) error) error {
-	mode, ok := pin.StringToMode(typeStr)
-	if !ok {
-		return fmt.Errorf("invalid pin mode '%s'", typeStr)
-	}
-
+func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
 	}
 
+	switch typeStr {
+	case "all", "direct", "indirect", "recursive":
+	default:
+		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+	}
+
+	opt, err := options.Pin.IsPinned.Type(typeStr)
+	if err != nil {
+		panic("unhandled pin type")
+	}
+
 	for _, p := range req.Arguments {
-		c, err := api.ResolvePath(req.Context, path.New(p))
+		rp, err := api.ResolvePath(req.Context, path.New(p))
 		if err != nil {
 			return err
 		}
 
-		pinType, pinned, err := n.Pinning.IsPinnedWithType(req.Context, c.Cid(), mode)
+		pinType, pinned, err := api.Pin().IsPinned(req.Context, rp, opt)
 		if err != nil {
 			return err
 		}
@@ -466,7 +464,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreifac
 		err = emit(&PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
-				Cid:  enc.Encode(c.Cid()),
+				Cid:  enc.Encode(rp.Cid()),
 			},
 		})
 		if err != nil {
@@ -477,38 +475,42 @@ func pinLsKeys(req *cmds.Request, typeStr string, n *core.IpfsNode, api coreifac
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, pinning pin.Pinner, dag ipld.DAGService, emit func(value interface{}) error) error {
-	pinCh, errCh := coreapi.PinLsAll(req.Context, typeStr, pinning, dag)
-
+func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
 	}
 
-	ctx := req.Context
-loop:
-	for {
-		select {
-		case p, ok := <-pinCh:
-			if !ok {
-				break loop
-			}
-			if err := emit(&PinLsOutputWrapper{
-				PinLsObject: PinLsObject{
-					Type: p.Type(),
-					Cid:  enc.Encode(p.Path().Cid()),
-				},
-			}); err != nil {
-				return err
-			}
+	switch typeStr {
+	case "all", "direct", "indirect", "recursive":
+	default:
+		err = fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
+		return err
+	}
 
-		case <-ctx.Done():
-			return ctx.Err()
+	opt, err := options.Pin.Ls.Type(typeStr)
+	if err != nil {
+		panic("unhandled pin type")
+	}
+
+	pins, err := api.Pin().Ls(req.Context, opt)
+	if err != nil {
+		return err
+	}
+
+	for p := range pins {
+		err = emit(&PinLsOutputWrapper{
+			PinLsObject: PinLsObject{
+				Type: p.Type(),
+				Cid:  enc.Encode(p.Path().Cid()),
+			},
+		})
+		if err != nil {
+			return err
 		}
 	}
 
-	err = <-errCh
-	return err
+	return nil
 }
 
 const (
@@ -522,8 +524,8 @@ var updatePinCmd = &cmds.Command{
 Efficiently pins a new object based on differences from an existing one and,
 by default, removes the old pin.
 
-This commands is useful when the new pin contains many similarities or is a
-derivative of an existing one, particuarly for large objects. This allows a more
+This command is useful when the new pin contains many similarities or is a
+derivative of an existing one, particularly for large objects. This allows a more
 efficient DAG-traversal which fully skips already-pinned branches from the old
 object. As a requirement, the old object needs to be an existing recursive
 pin.

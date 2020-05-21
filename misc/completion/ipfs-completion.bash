@@ -1,9 +1,18 @@
+_do_comp()
+{
+  if [[ $(type compopt) == *"builtin" ]]; then
+    compopt $@
+  else
+    complete $@
+  fi
+}
+
 _ipfs_comp()
 {
     COMPREPLY=( $(compgen -W "$1" -- ${word}) )
     if [[ ${#COMPREPLY[@]} == 1 && ${COMPREPLY[0]} == "--"*"=" ]] ; then
         # If there's only one option, with =, then discard space
-        compopt -o nospace
+        _do_comp -o nospace
     fi
 }
 
@@ -19,7 +28,7 @@ _ipfs_add()
     elif [ "${prev}" == "--pin" ] ; then
         _ipfs_comp "true false"
     elif [[ ${word} == -* ]] ; then
-        _ipfs_comp "--recursive --quiet --silent --progress --trickle --only-hash --wrap-with-directory --hidden --chunker= --pin= --raw-leaves --help "
+        _ipfs_comp "--recursive --dereference-args --stdin-name= --hidden --ignore= --ignore-rules-path= --quiet --quieter --silent --progress --trickle --only-hash --wrap-with-directory --chunker= --pin= --raw-leaves --nocopy --fscache --cid-version= --hash= --inline --inline-limit= --help "
     else
         _ipfs_filesystem_complete
     fi
@@ -172,9 +181,9 @@ _ipfs_dag_get()
 _ipfs_dag_put()
 {
     if [[ ${prev} == "--format" ]] ; then
-        _ipfs_comp "cbor placeholder1" # TODO: a) Which format more then cbor is valid? b) Solve autocomplete bug for "="
+        _ipfs_comp "cbor placeholder1" # TODO: a) Which format more than cbor is valid? b) Solve autocomplete bug for "="
     elif [[ ${prev} == "--input-enc" ]] ; then
-        _ipfs_comp "json placeholder1" # TODO: a) Which format more then json is valid? b) Solve autocomplete bug for "="
+        _ipfs_comp "json placeholder1" # TODO: a) Which format more than json is valid? b) Solve autocomplete bug for "="
     elif [[ ${word} == -* ]] ; then
         _ipfs_comp "--format= --input-enc= --help"
     else
@@ -227,7 +236,7 @@ _ipfs_diag_cmds()
     if [[ ${prev} == "clear" ]] ; then
         return 0
     elif [[ ${prev} =~ ^-?[0-9]+$ ]] ; then
-        _ipfs_comp "ns us µs ms s m h" # TODO: Trigger with out space, eg. "ipfs diag set-time 10ns" not "... set-time 10 ns"
+        _ipfs_comp "ns us µs ms s m h" # TODO: Trigger without space, eg. "ipfs diag set-time 10ns" not "... set-time 10 ns"
     elif [[ ${prev} == "set-time" ]] ; then
         _ipfs_help_only
     elif [[ ${word} == -* ]] ; then
@@ -271,7 +280,7 @@ _ipfs_files_mv()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -283,7 +292,7 @@ _ipfs_files_rm()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 _ipfs_files_flush()
@@ -292,7 +301,7 @@ _ipfs_files_flush()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -306,7 +315,7 @@ _ipfs_files_read()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -322,7 +331,7 @@ _ipfs_files_write()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -332,7 +341,7 @@ _ipfs_files_cp()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -346,7 +355,7 @@ _ipfs_files_ls()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -361,7 +370,7 @@ _ipfs_files_mkdir()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -373,7 +382,7 @@ _ipfs_files_stat()
         _ipfs_files_complete
     else
         COMPREPLY=( / )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -394,7 +403,7 @@ _ipfs_file_ls()
 _ipfs_get()
 {
     if [ "${prev}" == "--output" ] ; then
-        compopt -o default # Re-enable default file read
+        _do_comp -o default # Re-enable default file read
         COMPREPLY=()
     elif [ "${prev}" == "--compression-level" ] ; then
         _ipfs_comp "-1 1 2 3 4 5 6 7 8 9" # TODO: Solve autocomplete bug for "="
@@ -700,7 +709,7 @@ _ipfs_resolve()
     else
         opts="/ipns/ /ipfs/"
         COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
-        [[ $COMPREPLY = */ ]] && compopt -o nospace
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace
     fi
 }
 
@@ -751,7 +760,7 @@ _ipfs_swarm_disconnect()
     opts=$(for x in `ipfs swarm peers`; do echo ${x} ; done)
     IFS="$OLDIFS" # Reset divider to space, ' '
     COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
-    [[ $COMPREPLY = */ ]] && compopt -o nospace -o filenames
+    [[ $COMPREPLY = */ ]] && _do_comp -o nospace -o filenames
 }
 
 _ipfs_swarm_filters()
@@ -855,7 +864,7 @@ _ipfs_hash_complete()
     echo "Current: ${word}" >> ~/Downloads/debug-ipfs.txt
     COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
     echo "Suggestion: ${COMPREPLY}" >> ~/Downloads/debug-ipfs.txt
-    [[ $COMPREPLY = */ ]] && compopt -o nospace -o filenames # Removing whitespace after output & handle output as filenames. (Only printing the latest folder of files.)
+    [[ $COMPREPLY = */ ]] && _do_comp -o nospace -o filenames # Removing whitespace after output & handle output as filenames. (Only printing the latest folder of files.)
     return 0
 }
 
@@ -866,7 +875,7 @@ _ipfs_files_complete()
     opts=$(for x in `ipfs files ls ${lastDir}`; do echo ${lastDir}${x}/ ; done) # TODO: Implement "ipfs files ls -F" to get rid of frontslash after files. This does currently throw "Error: /cats/foo/ is not a directory"
     IFS="$OLDIFS" # Reset divider to space, ' '
     COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
-    [[ $COMPREPLY = */ ]] && compopt -o nospace -o filenames
+    [[ $COMPREPLY = */ ]] && _do_comp -o nospace -o filenames
     return 0
 }
 
@@ -901,7 +910,7 @@ _ipfs_multiaddr_complete()
         opts="/ip4/ /ip6/"
         COMPREPLY=( $(compgen -W "${opts}" -- ${word}) )
     fi
-    [[ $COMPREPLY = */ ]] && compopt -o nospace -o filenames
+    [[ $COMPREPLY = */ ]] && _do_comp -o nospace -o filenames
     return 0
 }
 
@@ -913,19 +922,19 @@ _ipfs_pinned_complete()
     IFS="$OLDIFS"
     if [[ ${#COMPREPLY[*]} -eq 1 ]]; then # Only one completion, remove pretty output
         COMPREPLY=( ${COMPREPLY[0]/ *//} ) #Remove ' ' and everything after
-        [[ $COMPREPLY = */ ]] && compopt -o nospace  # Removing whitespace after output
+        [[ $COMPREPLY = */ ]] && _do_comp -o nospace  # Removing whitespace after output
     fi
 }
 _ipfs_filesystem_complete()
 {
-    compopt -o default # Re-enable default file read
+    _do_comp -o default # Re-enable default file read
     COMPREPLY=()
 }
 
 _ipfs()
 {
     COMPREPLY=()
-    compopt +o default # Disable default to not deny completion, see: http://stackoverflow.com/a/19062943/1216348
+    _do_comp +o default # Disable default to not deny completion, see: http://stackoverflow.com/a/19062943/1216348
 
     local word="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"

@@ -11,11 +11,11 @@ import (
 	"github.com/ipfs/go-ipfs-pinner"
 )
 
-// RemovedBlock is used to respresent the result of removing a block.
+// RemovedBlock is used to represent the result of removing a block.
 // If a block was removed successfully than the Error string will be
 // empty.  If a block could not be removed than Error will contain the
 // reason the block could not be removed.  If the removal was aborted
-// due to a fatal error Hash will be be empty, Error will contain the
+// due to a fatal error Hash will be empty, Error will contain the
 // reason, and no more results will be sent.
 type RemovedBlock struct {
 	Hash  string `json:",omitempty"`

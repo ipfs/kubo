@@ -5,7 +5,7 @@ test_description="Test mount command in conjunction with publishing"
 # imports
 . lib/test-lib.sh
 
-# if in travis CI, dont test mount (no fuse)
+# if in travis CI, don't test mount (no fuse)
 if ! test_have_prereq FUSE; then
   skip_all='skipping mount tests, fuse not available'
 
@@ -22,9 +22,9 @@ test_expect_success 'init iptb' '
 '
 
 # pre-mount publish
-HASH=$(echo 'hello warld' | ipfsi 0 add -q)
+HASH=$(echo 'hello warld' | ipfsi 0 add -Q -w --stdin-name "file")
 test_expect_success "can publish before mounting /ipns" '
-  ipfsi 0 name publish '$HASH'
+  ipfsi 0 name publish "$HASH"
 '
 
 # mount

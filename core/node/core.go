@@ -65,6 +65,11 @@ func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo)
 	return pinning, nil
 }
 
+var (
+	_ merkledag.SessionMaker = new(syncDagService)
+	_ format.DAGService      = new(syncDagService)
+)
+
 // syncDagService is used by the Pinner to ensure data gets persisted to the underlying datastore
 type syncDagService struct {
 	format.DAGService
@@ -73,6 +78,10 @@ type syncDagService struct {
 
 func (s *syncDagService) Sync() error {
 	return s.syncFn()
+}
+
+func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
+	return merkledag.NewSession(ctx, s.DAGService)
 }
 
 // Dag creates new DAGService

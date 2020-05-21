@@ -59,6 +59,7 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 	}
 
 	name = strings.TrimPrefix(name, "/ipns/")
+
 	pid, err := peer.Decode(name)
 	if err != nil {
 		log.Debugf("RoutingResolver: could not convert public key hash %s to peer ID: %s\n", name, err)

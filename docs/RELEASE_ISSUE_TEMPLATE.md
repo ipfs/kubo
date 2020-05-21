@@ -79,14 +79,17 @@ Checklist:
     - [ ] IRC
 - [ ] **Stage 4 - Release**
   - [ ] Final preparation
-    - [ ] Verify that version string in [`repo/version.go`](https://github.com/ipfs/go-ipfs/tree/master/repo/version.go) has been updated
+    - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated
     - [ ] tag commit with vX.Y.Z
     - [ ] update release branch to point to release commit (`git merge vX.Y.Z`).
     - [ ] Release published
       - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
       - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
       - [ ] to [chocolatey](https://chocolatey.org/packages/ipfs)
+      - [ ] to [snap](https://snapcraft.io/ipfs)
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
+      - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
+    - [ ] Cut a new ipfs-desktop release
   - [ ] Publish a Release Blog post (at minimum, a c&p of this release issue with all the highlights, API changes, link to changelog and thank yous)
   - [ ] Broadcasting (link to blog post)
     - [ ] Twitter

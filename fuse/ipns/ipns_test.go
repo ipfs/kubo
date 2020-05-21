@@ -271,7 +271,7 @@ func TestFileSizeReporting(t *testing.T) {
 	}
 }
 
-// Test to make sure you cant create multiple entries with the same name
+// Test to make sure you can't create multiple entries with the same name
 func TestDoubleEntryFailure(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
@@ -458,7 +458,7 @@ func TestFSThrash(t *testing.T) {
 		}
 
 		if !bytes.Equal(data, out) {
-			t.Errorf("Data didnt match in %s: expected %v, got %v", name, data, out)
+			t.Errorf("Data didn't match in %s: expected %v, got %v", name, data, out)
 		}
 	}
 }

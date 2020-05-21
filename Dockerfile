@@ -1,4 +1,4 @@
-FROM golang:1.14-buster
+FROM golang:1.14.2-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Install deps
@@ -29,15 +29,20 @@ RUN cd $SRC_DIR \
 # Get su-exec, a very minimal tool for dropping privileges,
 # and tini, a very minimal init daemon for containers
 ENV SUEXEC_VERSION v0.2
-ENV TINI_VERSION v0.18.0
-RUN set -x \
-  && cd /tmp \
+ENV TINI_VERSION v0.19.0
+RUN set -eux; \
+    dpkgArch="$(dpkg --print-architecture)"; \
+    case "${dpkgArch##*-}" in \
+        "amd64" | "armhf" | "arm64") tiniArch="tini-$dpkgArch" ;;\
+        *) echo >&2 "unsupported architecture: ${dpkgArch}"; exit 1 ;; \
+    esac; \
+  cd /tmp \
   && git clone https://github.com/ncopa/su-exec.git \
   && cd su-exec \
   && git checkout -q $SUEXEC_VERSION \
   && make \
   && cd /tmp \
-  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/tini \
+  && wget -q -O tini https://github.com/krallin/tini/releases/download/$TINI_VERSION/$tiniArch \
   && chmod +x tini
 
 # Now comes the actual target image, which aims to be as small as possible.
@@ -87,7 +92,7 @@ RUN mkdir /ipfs /ipns \
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.
-# Important this happens after the USER directive so permission are correct.
+# Important this happens after the USER directive so permissions are correct.
 VOLUME $IPFS_PATH
 
 # The default logging level

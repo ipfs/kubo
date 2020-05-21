@@ -139,10 +139,16 @@ func (api *NameAPI) Resolve(ctx context.Context, name string, opts ...caopts.Nam
 }
 
 func keylookup(self ci.PrivKey, kstore keystore.Keystore, k string) (ci.PrivKey, error) {
+	////////////////////
+	// Lookup by name //
+	////////////////////
+
+	// First, lookup self.
 	if k == "self" {
 		return self, nil
 	}
 
+	// Then, look in the keystore.
 	res, err := kstore.Get(k)
 	if res != nil {
 		return res, nil
@@ -157,20 +163,36 @@ func keylookup(self ci.PrivKey, kstore keystore.Keystore, k string) (ci.PrivKey,
 		return nil, err
 	}
 
+	//////////////////
+	// Lookup by ID //
+	//////////////////
+	targetPid, err := peer.Decode(k)
+	if err != nil {
+		return nil, keystore.ErrNoSuchKey
+	}
+
+	// First, check self.
+	pid, err := peer.IDFromPrivateKey(self)
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine peer ID for private key: %w", err)
+	}
+	if pid == targetPid {
+		return self, nil
+	}
+
+	// Then, look in the keystore.
 	for _, key := range keys {
 		privKey, err := kstore.Get(key)
 		if err != nil {
 			return nil, err
 		}
 
-		pubKey := privKey.GetPublic()
-
-		pid, err := peer.IDFromPublicKey(pubKey)
+		pid, err := peer.IDFromPrivateKey(privKey)
 		if err != nil {
 			return nil, err
 		}
 
-		if pid.Pretty() == k {
+		if targetPid == pid {
 			return privKey, nil
 		}
 	}

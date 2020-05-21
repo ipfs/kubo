@@ -65,11 +65,11 @@ test_expect_success "ipfs peer id looks good" '
 # this is for checking SetAllowedOrigins race condition for the api and gateway
 # See https://github.com/ipfs/go-ipfs/pull/1966
 test_expect_success "ipfs API works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$API_PORT" -I "http://$API_ADDR/api/v0/version"
+  curl -s -X POST -H "Origin:http://localhost:$API_PORT" -I "http://$API_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs gateway works with the correct allowed origin port" '
-  curl -s -X GET -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
+  curl -s -X POST -H "Origin:http://localhost:$GWAY_PORT" -I "http://$GWAY_ADDR/api/v0/version"
 '
 
 test_expect_success "ipfs daemon output looks good" '
@@ -134,7 +134,7 @@ test_expect_success SOCAT "transport should be encrypted ( needs socat )" '
 '
 
 test_expect_success "output from streaming commands works" '
-  test_expect_code 28 curl -m 5 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
+  test_expect_code 28 curl -X POST -m 5 http://localhost:$API_PORT/api/v0/stats/bw\?poll=true > statsout
 '
 
 test_expect_success "output looks good" '
@@ -184,7 +184,7 @@ test_expect_success "daemon actually can handle 2048 file descriptors" '
   hang-fds -hold=2s 2000 '$API_MADDR' > /dev/null
 '
 
-test_expect_success "daemon didnt throw any errors" '
+test_expect_success "daemon didn't throw any errors" '
   test_expect_code 1 grep "too many open files" daemon_err
 '
 

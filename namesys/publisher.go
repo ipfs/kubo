@@ -22,7 +22,6 @@ import (
 
 const ipnsPrefix = "/ipns/"
 
-const PublishPutValTimeout = time.Minute
 const DefaultRecordEOL = 24 * time.Hour
 
 // IpnsPublisher is capable of publishing and resolving names to the IPFS
@@ -269,15 +268,10 @@ func PublishPublicKey(ctx context.Context, r routing.ValueStore, k string, pubk 
 	}
 
 	// Store associated public key
-	timectx, cancel := context.WithTimeout(ctx, PublishPutValTimeout)
-	defer cancel()
-	return r.PutValue(timectx, k, pkbytes)
+	return r.PutValue(ctx, k, pkbytes)
 }
 
 func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec *pb.IpnsEntry) error {
-	timectx, cancel := context.WithTimeout(ctx, PublishPutValTimeout)
-	defer cancel()
-
 	data, err := proto.Marshal(rec)
 	if err != nil {
 		return err
@@ -285,7 +279,7 @@ func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec
 
 	log.Debugf("Storing ipns entry at: %s", ipnskey)
 	// Store ipns entry at "/ipns/"+h(pubkey)
-	return r.PutValue(timectx, ipnskey, data)
+	return r.PutValue(ctx, ipnskey, data)
 }
 
 // InitializeKeyspace sets the ipns record for the given key to

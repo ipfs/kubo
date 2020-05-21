@@ -17,7 +17,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/hang-fds v0.0.2
 	github.com/ipfs/iptb v1.4.0
-	github.com/ipfs/iptb-plugins v0.2.1
+	github.com/ipfs/iptb-plugins v0.2.2
 	github.com/ipld/go-ipld-prime v0.0.2-0.20191108012745-28a82f04c785
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded

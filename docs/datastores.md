@@ -4,6 +4,7 @@ This document describes the different possible values for the `Datastore.Spec`
 field in the ipfs configuration file.
 
 ## flatfs
+
 Stores each key value pair as a file on the filesystem.
 
 The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descriptor of the sharding strategy. Some example values are:
@@ -21,8 +22,7 @@ The shardFunc is prefixed with `/repo/flatfs/shard/v1` then followed by a descri
 }
 ```
 
-NOTE: flatfs should only be used as a block store (mounted at `/blocks`) as the
-current implementation is not complete.
+NOTE: flatfs must only be used as a block store (mounted at `/blocks`) as it only partially implements the datastore interface. You can mount flatfs for /blocks only using the mount datastore (described below).
 
 ## levelds
 Uses a leveldb database to store key value pairs.
@@ -36,10 +36,11 @@ Uses a leveldb database to store key value pairs.
 ```
 
 ## badgerds
+
 Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
 
-* `syncWrites`: Flush every write to disk before continuing. Disabling this option may leave your datastore in an inconsistent state after a crash.
-* `truncate`: Truncate the DB if a partially written sector is found (defaults to true). This only happens if a IPFS crashes half-way through a write so this option is usually safe to leave on.
+* `syncWrites`: Flush every write to disk before continuing. Setting this to false is safe as go-ipfs will automatically flush writes to disk before and after performing critical operations like pinning. However, you can set this to true to be extra-safe (at the cost of a 2-3x slowdown when adding files).
+* `truncate`: Truncate the DB if a partially written sector is found (defaults to true). There is no good reason to set this to false unless you want to manually recover partially written (and unpinned) blocks if go-ipfs crashes half-way through a adding a file.
 
 ```json
 {
@@ -51,6 +52,7 @@ Uses [badger](https://github.com/dgraph-io/badger) as a key value store.
 ```
 
 ## mount
+
 Allows specified datastores to handle keys prefixed with a given path.
 The mountpoints are added as keys within the child datastore definitions.
 
@@ -71,6 +73,7 @@ The mountpoints are added as keys within the child datastore definitions.
 ```
 
 ## measure
+
 This datastore is a wrapper that adds metrics tracking to any datastore.
 
 ```json

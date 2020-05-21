@@ -1,11 +1,11 @@
 ---
 name: 'Feature'
 about: 'Suggest a new feature in go-ipfs.'
-labels: feature
+labels: kind/feature, need/triage
 ---
 
 <!--
-Note: If you'd like to suggest an idea related to IPFS but not specifically related to the go implementation, please file an issue at https://github.com/ipfs/ipfs instead
+Note: If you'd like to suggest an idea related to IPFS but not specifically related to the Go implementation, please post in https://discuss.ipfs.io instead.
 
 When requesting a _feature_, please be sure to include:
   * Your motivation. Why do you need the feature?

@@ -13,7 +13,7 @@ test_add_cat_file() {
     ipfs add --help 2> add_help_err1 > /dev/null
   '
 
-  test_expect_success "stdin reading message doesnt show up" '
+  test_expect_success "stdin reading message doesn't show up" '
     test_expect_code 1 grep "ipfs: Reading from" add_help_err1 &&
     test_expect_code 1 grep "send Ctrl-d to stop." add_help_err1
   '
@@ -22,7 +22,7 @@ test_add_cat_file() {
     ipfs help add 2> add_help_err2 > /dev/null
   '
 
-  test_expect_success "stdin reading message doesnt show up" '
+  test_expect_success "stdin reading message doesn't show up" '
     test_expect_code 1 grep "ipfs: Reading from" add_help_err2 &&
     test_expect_code 1 grep "send Ctrl-d to stop." add_help_err2
   '
@@ -83,7 +83,7 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
-  test_expect_success "ipfs cat from negitive offset should fail" '
+  test_expect_success "ipfs cat from negative offset should fail" '
     test_expect_code 1 ipfs cat --offset -102 "$HASH" > actual
   '
 
@@ -132,7 +132,7 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
-  test_expect_success "ipfs cat with negitive length should fail" '
+  test_expect_success "ipfs cat with negative length should fail" '
     test_expect_code 1 ipfs cat --length -102 "$HASH" > actual
   '
 
@@ -504,14 +504,15 @@ test_add_cat_expensive() {
 }
 
 test_add_named_pipe() {
-  test_expect_success "useful error message when adding a named pipe" '
-    mkfifo named-pipe &&
-    test_expect_code 1 ipfs add named-pipe 2>actual &&
-    STAT=$(generic_stat named-pipe) &&
-    rm named-pipe &&
-    grep "Error: unrecognized file type for named-pipe: $STAT" actual &&
-    grep USAGE actual &&
-    grep "ipfs add" actual
+  test_expect_success "Adding named pipes explicitly works" '
+    mkfifo named-pipe1 &&
+    ( echo foo > named-pipe1 & echo "added $( echo foo | ipfs add -nq ) named-pipe1" > expected_named_pipes_add ) &&
+    mkfifo named-pipe2 &&
+    ( echo bar > named-pipe2 & echo "added $( echo bar | ipfs add -nq ) named-pipe2" >> expected_named_pipes_add ) &&
+    ipfs add -n named-pipe1 named-pipe2 >actual_pipe_add &&
+    rm named-pipe1 &&
+    rm named-pipe2 &&
+    test_cmp expected_named_pipes_add actual_pipe_add
   '
 
   test_expect_success "useful error message when recursively adding a named pipe" '

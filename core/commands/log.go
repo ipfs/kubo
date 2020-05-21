@@ -24,8 +24,10 @@ output of a running daemon.
 
 There are also two environmental variables that direct the logging 
 system (not just for the daemon logs, but all commands):
-    IPFS_LOGGING - sets the level of verbosity of the logging. One of: debug, info, warning, error, critical
-    IPFS_LOGGING_FMT - sets formatting of the log output. One of: color, nocolor
+    IPFS_LOGGING - sets the level of verbosity of the logging.
+        One of: debug, info, warn, error, dpanic, panic, fatal
+    IPFS_LOGGING_FMT - sets formatting of the log output.
+        One of: color, nocolor
 `,
 	},
 
@@ -49,8 +51,8 @@ the event log.
 		// TODO use a different keyword for 'all' because all can theoretically
 		// clash with a subsystem name
 		cmds.StringArg("subsystem", true, false, fmt.Sprintf("The subsystem logging identifier. Use '%s' for all subsystems.", logAllKeyword)),
-		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'critical' the least verbose.
-			One of: debug, info, warning, error, critical.
+		cmds.StringArg("level", true, false, `The log level, with 'debug' the most verbose and 'fatal' the least verbose.
+			One of: debug, info, warn, error, dpanic, panic, fatal.
 		`),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {

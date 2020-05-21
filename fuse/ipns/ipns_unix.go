@@ -188,7 +188,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, errors.New("invalid path from ipns record")
 	}
 
-	return &Link{s.IpfsRoot + "/" + strings.TrimPrefix("/ipfs/", resolved.String())}, nil
+	return &Link{s.IpfsRoot + "/" + strings.TrimPrefix(resolved.String(), "/ipfs/")}, nil
 }
 
 func (r *Root) Close() error {

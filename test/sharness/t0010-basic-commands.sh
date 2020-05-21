@@ -67,9 +67,9 @@ test_expect_success "All sub-commands accept help" '
   while read -r cmd
   do
     ${cmd:0:4} help ${cmd:5} >/dev/null ||
-      { echo "$cmd doesnt accept --help"; echo 1 > fail; }
+      { echo "$cmd does not accept --help"; echo 1 > fail; }
     echo stuff | $cmd --help >/dev/null ||
-      { echo "$cmd doesnt accept --help when using stdin"; echo 1 > fail; }
+      { echo "$cmd does not accept --help when using stdin"; echo 1 > fail; }
   done <commands.txt
 
   if [ $(cat fail) = 1 ]; then
@@ -82,9 +82,9 @@ test_expect_success "All commands accept --help" '
   while read -r cmd
   do
     $cmd --help >/dev/null ||
-      { echo "$cmd doesnt accept --help"; echo 1 > fail; }
+      { echo "$cmd does not accept --help"; echo 1 > fail; }
     echo stuff | $cmd --help >/dev/null ||
-      { echo "$cmd doesnt accept --help when using stdin"; echo 1 > fail; }
+      { echo "$cmd does not accept --help when using stdin"; echo 1 > fail; }
   done <commands.txt
 
   if [ $(cat fail) = 1 ]; then
