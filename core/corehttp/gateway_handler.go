@@ -307,10 +307,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if i.servePretty404IfPresent(w, r, parsedPath) {
-		return
-	}
-
 	// storage for directory listing
 	var dirListing []directoryItem
 	dirit := dir.Entries()

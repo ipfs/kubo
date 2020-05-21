@@ -267,8 +267,8 @@ func TestPretty404(t *testing.T) {
 		{"/nope", "*/*", http.StatusNotFound, "Custom 404"},
 		{"/nope", "application/json", http.StatusNotFound, "ipfs resolve -r /ipns/example.net/nope: no link named \"nope\" under QmcmnF7XG5G34RdqYErYDwCKNFQ6jb8oKVR21WAJgubiaj\n"},
 		{"/deeper/nope", "text/html", http.StatusNotFound, "Deep custom 404"},
-		{"/deeper/", "text/html", http.StatusNotFound, "Deep custom 404"},
-		{"/deeper", "text/html", http.StatusNotFound, "Deep custom 404"},
+		{"/deeper/", "text/html", http.StatusOK, ""},
+		{"/deeper", "text/html", http.StatusOK, ""},
 		{"/nope/nope", "text/html", http.StatusNotFound, "Custom 404"},
 	} {
 		var c http.Client
@@ -293,7 +293,7 @@ func TestPretty404(t *testing.T) {
 			t.Fatalf("error reading response from %s: %s", test.path, err)
 		}
 
-		if string(body) != test.text {
+		if test.text != "" && string(body) != test.text {
 			t.Fatalf("unexpected response body from %s: got %q, expected %q", test.path, body, test.text)
 		}
 	}
