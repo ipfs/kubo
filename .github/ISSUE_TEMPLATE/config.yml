@@ -10,7 +10,7 @@ contact_links:
    url: https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md
    about: Documentation on Private Networks, Filestore and other experimental features.
  - name: HTTP API Reference
-   url: https://docs-beta.ipfs.io/reference/http/api/#api-v0-add
+   url: https://docs.ipfs.io/reference/http/api/#api-v0-add
    about: Documentation of all go-ipfs HTTP API endpoints.
  - name: IPFS Official Forum
    url: https://discuss.ipfs.io
