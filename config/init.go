@@ -107,8 +107,9 @@ func addressesConfig() Addresses {
 	return Addresses{
 		Swarm: []string{
 			"/ip4/0.0.0.0/tcp/4001",
-			// "/ip4/0.0.0.0/udp/4002/utp", // disabled for now.
 			"/ip6/::/tcp/4001",
+			"/ip4/0.0.0.0/udp/4001/quic",
+			"/ip6/::/udp/4001/quic",
 		},
 		Announce:   []string{},
 		NoAnnounce: []string{},
