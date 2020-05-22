@@ -184,12 +184,13 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 	var sk ci.PrivKey
 	var pk ci.PubKey
 
-	fmt.Fprintf(out, "generating %s keypair...", settings.Algorithm)
 	switch settings.Algorithm {
 	case "rsa":
 		if settings.Size == -1 {
 			settings.Size = options.DefaultRSALen
 		}
+
+		fmt.Fprintf(out, "generating %d-bit RSA keypair...", settings.Size)
 
 		priv, pub, err := ci.GenerateKeyPair(ci.RSA, settings.Size)
 		if err != nil {
@@ -199,6 +200,7 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 		sk = priv
 		pk = pub
 	case "ed25519":
+		fmt.Fprintf(out, "generating ED25519 keypair...")
 		priv, pub, err := ci.GenerateEd25519Key(rand.Reader)
 		if err != nil {
 			return ident, err
