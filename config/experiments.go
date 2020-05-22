@@ -7,6 +7,5 @@ type Experiments struct {
 	GraphsyncEnabled     bool
 	Libp2pStreamMounting bool
 	P2pHttpProxy         bool
-	QUIC                 bool
 	StrategicProviding   bool
 }
