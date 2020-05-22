@@ -75,7 +75,6 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		pubsubOptions = append(
 			pubsubOptions,
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
-			pubsub.WithStrictSignatureVerification(cfg.Pubsub.StrictSignatureVerification),
 		)
 
 		switch cfg.Pubsub.Router {
