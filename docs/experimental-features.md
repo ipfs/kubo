@@ -22,7 +22,6 @@ the above issue.
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding--hamt)
 - [IPNS PubSub](#ipns-pubsub)
-- [QUIC](#quic)
 - [AutoRelay](#autorelay)
 - [Strategic Providing](#strategic-providing)
 - [Graphsync](#graphsync)
@@ -462,35 +461,6 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 
 - [ ] Needs more people to use and report on how well it works
 - [ ] Pubsub enabled as a real feature
-
-## QUIC
-
-### In Version
-
-0.4.18
-
-### State
-
-Candidate, disabled by default but it will be enabled by default in 0.6.0.
-
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.QUIC true
-```
-
-For listening on a QUIC address, add it to the swarm addresses, e.g. `/ip4/0.0.0.0/udp/4001/quic`.
-
-
-### Road to being a real feature
-
-- [ ] The IETF QUIC specification needs to be finalized.
-- [ ] Make sure QUIC connections work reliably
-- [ ] Make sure QUIC connection offer equal or better performance than TCP connections on real-world networks
-- [ ] Finalize libp2p-TLS handshake spec.
-
 
 ## AutoRelay
 

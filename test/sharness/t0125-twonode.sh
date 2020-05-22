@@ -89,12 +89,6 @@ test_expect_success "set up tcp testbed" '
   iptb testbed create -type localipfs -count 2 -force -init
 '
 
-# Enable quic but don't use it yet.
-test_expect_success "enable QUIC experiment" '
-  ipfsi 0 config --json Experimental.QUIC true &&
-  ipfsi 1 config --json Experimental.QUIC true
-'
-
 # test multiplex muxer
 echo "Running advanced tests with mplex"
 export LIBP2P_MUX_PREFS="/mplex/6.7.0"

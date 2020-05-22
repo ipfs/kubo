@@ -8,7 +8,7 @@ import (
 	tls "github.com/libp2p/go-libp2p-tls"
 )
 
-var DefaultTransports = simpleOpt(libp2p.DefaultTransports)
+var DefaultTransports = simpleOpt(libp2p.ChainOptions(libp2p.DefaultTransports, libp2p.Transport(libp2pquic.NewTransport)))
 var QUIC = simpleOpt(libp2p.Transport(libp2pquic.NewTransport))
 
 func Security(enabled bool) interface{} {

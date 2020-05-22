@@ -73,6 +73,8 @@ COPY --from=0 /usr/lib/*-linux-gnu*/libcrypto.so* /usr/lib/
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
+# Swarm UDP; should be exposed to the public
+EXPOSE 4001/udp
 # Daemon API; must not be exposed publicly but to client services under you control
 EXPOSE 5001
 # Web Gateway; can be exposed publicly with a proxy, e.g. as https://ipfs.example.org
