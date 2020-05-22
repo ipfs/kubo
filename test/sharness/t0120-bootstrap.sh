@@ -10,6 +10,7 @@ BP2="/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19
 BP3="/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb"
 BP4="/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt"
 BP5="/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+BP6="/ip4/104.131.131.82/udp/4001/quic/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
 
 test_description="Test ipfs repo operations"
 
@@ -91,10 +92,11 @@ test_bootstrap_cmd() {
     echo "added $BP3" >>add2_expected &&
     echo "added $BP4" >>add2_expected &&
     echo "added $BP5" >>add2_expected &&
+    echo "added $BP6" >>add2_expected &&
     test_cmp add2_expected add2_actual
   '
 
-  test_bootstrap_list_cmd $BP1 $BP2 $BP3 $BP4 $BP5
+  test_bootstrap_list_cmd $BP1 $BP2 $BP3 $BP4 $BP5 $BP6
 
   test_expect_success "'ipfs bootstrap rm --all' succeeds" '
     ipfs bootstrap rm --all >rm2_actual
@@ -106,6 +108,7 @@ test_bootstrap_cmd() {
     echo "removed $BP3" >>rm2_expected &&
     echo "removed $BP4" >>rm2_expected &&
     echo "removed $BP5" >>rm2_expected &&
+    echo "removed $BP6" >>rm2_expected &&
     test_cmp rm2_expected rm2_actual
   '
 
