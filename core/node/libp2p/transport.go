@@ -6,10 +6,20 @@ import (
 	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
 	secio "github.com/libp2p/go-libp2p-secio"
 	tls "github.com/libp2p/go-libp2p-tls"
+
+	"go.uber.org/fx"
 )
 
-var DefaultTransports = simpleOpt(libp2p.DefaultTransports)
-var QUIC = simpleOpt(libp2p.Transport(libp2pquic.NewTransport))
+func Transports(pnet struct {
+	fx.In
+	Fprint PNetFingerprint `optional:"true"`
+}) (opts Libp2pOpts) {
+	opts.Opts = append(opts.Opts, libp2p.DefaultTransports)
+	if pnet.Fprint == nil {
+		opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport))
+	}
+	return opts
+}
 
 func Security(enabled bool) interface{} {
 	if !enabled {

@@ -26,7 +26,7 @@ var BaseLibP2P = fx.Options(
 	fx.Provide(libp2p.UserAgent),
 	fx.Provide(libp2p.PNet),
 	fx.Provide(libp2p.ConnectionManager),
-	fx.Provide(libp2p.DefaultTransports),
+	fx.Provide(libp2p.Transports),
 
 	fx.Provide(libp2p.Host),
 
@@ -75,7 +75,6 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		pubsubOptions = append(
 			pubsubOptions,
 			pubsub.WithMessageSigning(!cfg.Pubsub.DisableSigning),
-			pubsub.WithStrictSignatureVerification(cfg.Pubsub.StrictSignatureVerification),
 		)
 
 		switch cfg.Pubsub.Router {
@@ -130,7 +129,6 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
 		maybeProvide(libp2p.AutoRelay, cfg.Swarm.EnableAutoRelay),
-		maybeProvide(libp2p.QUIC, cfg.Experimental.QUIC),
 		autonat,
 		connmgr,
 		ps,

@@ -106,25 +106,14 @@ test_expect_success 'stop iptb' '
 
 # Test with some nodes not signing messages.
 
-test_expect_success 'disable signing on node 1' '
-  ipfsi 1 config --json Pubsub.DisableSigning true
-'
-
-startup_cluster $NUM_NODES --enable-pubsub-experiment
-run_pubsub_tests
-test_expect_success 'stop iptb' '
-  iptb stop
-'
-
-# Test strict message verification.
-
-test_expect_success 'enable strict signature verification on node 4' '
-  ipfsi 4 config --json Pubsub.StrictSignatureVerification true
+test_expect_success 'disable signing on nodes 1-3' '
+  iptb run [0-3] -- ipfs config --json Pubsub.DisableSigning true
 '
 
 startup_cluster $NUM_NODES --enable-pubsub-experiment
 
 test_expect_success 'set node 4 to listen on testTopic' '
+  rm -f node4_actual &&
   ipfsi 4 pubsub sub --enc=ndpayload testTopic > node4_actual &
 '
 
@@ -134,25 +123,8 @@ test_expect_success 'stop iptb' '
   iptb stop
 '
 
-test_expect_success 'node 4 only got the signed message' '
-  echo "testOK2" > node4_expected &&
-  test_cmp node4_actual node4_expected
-'
-
-# Test all nodes signing with strict verification
-
-test_expect_success 're-enable signing on node 1' '
-  ipfsi 1 config --json Pubsub.DisableSigning false
-'
-
-test_expect_success 'enable strict signature verification on all nodes' '
-  iptb run -- ipfs config --json Pubsub.StrictSignatureVerification true
-'
-
-startup_cluster $NUM_NODES --enable-pubsub-experiment
-run_pubsub_tests
-test_expect_success 'stop iptb' '
-  iptb stop
+test_expect_success 'node 4 got no unsigned messages' '
+  test_must_be_empty node4_actual
 '
 
 test_done
