@@ -139,6 +139,8 @@ documented in `ipfs config profile --help`.
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
+    - [`Peering`](#peering)
+        - [`Peering.Peers`](#peeringpeers)
 - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
@@ -156,6 +158,7 @@ documented in `ipfs config profile --help`.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+
 
 ## `Addresses`
 
@@ -702,6 +705,26 @@ message because spoofed messages can be used to silence real messages by
 intentionally re-using the real message's message ID.
 
 Default: `false`
+
+### `Peering`
+
+Configures the peering subsystem. The peering subsystem configures go-ipfs to
+connect to, remain connected to, and reconnect to a set of peers. Peers should
+use this subsystem to create "sticky" links between frequently used peers for
+improved reliability.
+
+#### `Peering.Peers`
+
+The set of peers with which to peer. Each entry is of the form:
+
+```js
+{
+  "ID": "QmSomePeerID", # The peers ID.
+  "Addrs": ["/ip4/1.2.3.4/tcp/1234"] # Known addresses for the peer. If none are specified, the DHT will be queried.
+}
+```
+
+Additional fields may be added in the future.
 
 ## `Reprovider`
 
