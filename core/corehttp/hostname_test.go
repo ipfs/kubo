@@ -77,7 +77,7 @@ func TestPortStripping(t *testing.T) {
 
 }
 
-func TestToDNSSafePrefix(t *testing.T) {
+func TestDNSPrefix(t *testing.T) {
 	for _, test := range []struct {
 		in  string
 		out string
@@ -91,7 +91,7 @@ func TestToDNSSafePrefix(t *testing.T) {
 		{"bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvy.w764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg"},
 		{"bafkrgqe3ohjcjplc6n4f3fw.unlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4.ffyyxnayrtdi5oc4xb2332g645433aeg", "bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvy.w764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg"},
 	} {
-		out := toDNSSafePrefix(test.in)
+		out := toDNSPrefix(test.in)
 		if out != test.out {
 			t.Errorf("(%s): returned '%s', expected '%s'", test.in, out, test.out)
 		}
@@ -153,6 +153,8 @@ func TestKnownSubdomainDetails(t *testing.T) {
 		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.ipfs.pvt.k12.ma.us", "dweb.ipfs.pvt.k12.ma.us", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
 		// edge case check: understand split CIDs (workaround for 63 character limit of a single DNS label https://github.com/ipfs/go-ipfs/issues/7318)
 		// Note: canonical split is at 63, but we support arbitrary splits for improved UX
+		// Short CID (eg. unnecessarily split by user)
+		{"baf.kreicysg23kiwv34eg2d7.qweipxwosdo2py4ldv4.2nbauguluen5v6am.ipfs.dweb.link", "dweb.link", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
 		// ED25519 libp2p-key
 		{"ba.fzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk.ipfs.dweb.link", "dweb.link", "ipfs", "bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk", true},
 		{"bafzaajaiaejca4syrpdu6gdx4wsdnok.xkprgzxf4wrstuc34gxw5k5jrag2so5gk.ipfs.dweb.link", "dweb.link", "ipfs", "bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk", true},

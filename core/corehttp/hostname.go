@@ -157,8 +157,8 @@ func HostnameOption() ServeOption {
 				// Check if rootID is a valid CID
 				if rootCID, err := cid.Decode(rootID); err == nil {
 					// Do we need to redirect CID to a canonical DNS representation?
-					canonicalPrefix := toDNSSafePrefix(rootID)
-					if !strings.HasPrefix(r.Host, canonicalPrefix) {
+					hostPrefix := toDNSPrefix(rootID)
+					if !strings.HasPrefix(r.Host, hostPrefix) {
 						if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r); ok {
 							// Redirect to CID split split at deterministic places
 							// to ensure CID always gets the same Origin on the web
@@ -291,7 +291,7 @@ func isPeerIDNamespace(ns string) bool {
 }
 
 // Converts an identifier to DNS-safe representation
-func toDNSSafePrefix(id string) (prefix string) {
+func toDNSPrefix(id string) (prefix string) {
 	s := strings.Replace(id, ".", "", -1) // remove separators if present
 
 	// Return if things fit after dot removal
@@ -395,7 +395,7 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok
 			// produce a subdomain URL
 			return "", false
 		}
-		rootID = toDNSSafePrefix(rootID)
+		rootID = toDNSPrefix(rootID)
 	}
 
 	return safeRedirectURL(fmt.Sprintf(

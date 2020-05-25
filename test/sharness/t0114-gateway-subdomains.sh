@@ -95,6 +95,7 @@ test_expect_success "Add test text file" '
   CIDv1_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
   CID_DNS_SPLIT_CANONICAL="bafkrgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dl.fsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir6ksdy6wzrnz6ohnv4aglcs"
   CID_DNS_SPLIT_CUSTOM="baf.krgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dl.fsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir.6ksdy6wzrnz6ohnv4aglcs"
+  CID_DNS_SPLIT_CUSTOM2=$(echo $CIDv1 | sed -r -e "s/^./&./")
   CIDv0=$(echo $CID_VAL | ipfs add --cid-version 0 -Q)
   CIDv0to1=$(echo "$CIDv0" | ipfs cid base32)
 '
@@ -526,6 +527,11 @@ test_localhost_gateway_response_should_contain \
   "http://${CID_DNS_SPLIT_CUSTOM}.ipfs.localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "Location: http://${CID_DNS_SPLIT_CANONICAL}.ipfs.localhost:$GWAY_PORT/"
 
+test_localhost_gateway_response_should_contain \
+  "request for {unnecessary.split.of.short.CID}.ipfs.localhost should return redirect to a canonical Origin" \
+  "http://${CID_DNS_SPLIT_CUSTOM2}.ipfs.localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://${CIDv1}.ipfs.localhost:$GWAY_PORT/"
+
 # public gateway: *.example.com
 
 test_hostname_gateway_response_should_contain \
@@ -545,6 +551,12 @@ test_hostname_gateway_response_should_contain \
   "${CID_DNS_SPLIT_CUSTOM}.ipfs.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "Location: http://${CID_DNS_SPLIT_CANONICAL}.ipfs.example.com"
+
+test_hostname_gateway_response_should_contain \
+  "request for {unnecessary.split.of.short.CID}.ipfs.example.com should return redirect to a canonical Origin" \
+  "${CID_DNS_SPLIT_CUSTOM2}.ipfs.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "Location: http://${CIDv1}.ipfs.example.com"
 
 ## ============================================================================
 ## Test path-based requests with a custom hostname config
