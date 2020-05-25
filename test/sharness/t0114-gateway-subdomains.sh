@@ -110,15 +110,14 @@ test_expect_success "Add the test directory" '
 test_expect_success "Publish test text file to IPNS" '
   PEERID=$(ipfs id --format="<id>")
   IPNS_IDv0=$(echo "$PEERID" | ipfs cid format -v 0)
-  IPNS_IDv1=$(echo "$PEERID" | ipfs cid format -v 1 --codec libp2p-key -b base32)
-  IPNS_IDv1_DAGPB=$(echo "$IPNS_IDv0" | ipfs cid format -v 1 -b base32)
+  IPNS_IDv1=$(echo "$PEERID" | ipfs cid format -v 1 --codec libp2p-key -b base36)
+  IPNS_IDv1_DAGPB=$(echo "$IPNS_IDv0" | ipfs cid format -v 1 -b base36)
   test_check_peerid "${PEERID}" &&
   ipfs name publish --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
   ipfs name resolve "$PEERID"  > output &&
   printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
   test_cmp expected2 output
 '
-
 
 # ensure we start with empty Gateway.PublicGateways
 test_expect_success 'start daemon with empty config for Gateway.PublicGateways' '
@@ -261,6 +260,7 @@ test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/bar" > list_response &&
   test_should_contain "subdir2-bar" list_response
 '
+
 
 # *.ipns.localhost
 
@@ -480,6 +480,66 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "$CID_VAL"
 
+## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
+## https://github.com/ipfs/go-ipfs/issues/7318
+## ============================================================================
+
+# TODO: replace with cidv1
+# ed25519 fits under 63 char limit when represented in base36
+CIDv1_ED25519_RAW="12D3KooWP3ggTJV8LGckDHc4bVyXGhEWuBskoFyE6Rn2BJBqJtpa"
+CIDv1_ED25519_DNSSAFE="k51qzi5uqu5dl2yn0d6xu8q5aqa61jh8zeyixz9tsju80n15ssiyew48912c63"
+# sha512 will be over 63char limit, even when represented in Base36
+CIDv1_TOO_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
+
+# local: *.localhost
+test_localhost_gateway_response_should_contain \
+  "request for a ED25519 CID at localhost/ipfs/{CIDv1} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "http://localhost:$GWAY_PORT/ipns/$CIDv1_ED25519_RAW" \
+  "Location: http://${CIDv1_ED25519_DNSSAFE}.ipns.localhost:$GWAY_PORT/"
+
+# router should not redirect to hostnames that could fail due to DNS limits
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at localhost/ipfs/{CIDv1} returns human readable error" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "CID incompatible with DNS label length limit of 63"
+
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at localhost/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "400 Bad Request"
+
+# direct request should also fail (provides the same UX as router and avoids confusion)
+test_localhost_gateway_response_should_contain \
+  "request for a too long CID at {CIDv1}.ipfs.localhost returns expected payload" \
+  "http://$CIDv1_TOO_LONG.ipfs.localhost:$GWAY_PORT" \
+  "400 Bad Request"
+
+# public subdomain gateway: *.example.com
+
+test_hostname_gateway_response_should_contain \
+  "request for a ED25519 CID at example.com/ipfs/{CIDv1} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/$CIDv1_ED25519_RAW" \
+  "Location: http://${CIDv1_ED25519_DNSSAFE}.ipns.example.com"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at example.com/ipfs/{CIDv1} returns human readable error" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "CID incompatible with DNS label length limit of 63"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at example.com/ipfs/{CIDv1} returns HTTP Error 400 Bad Request" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_TOO_LONG" \
+  "400 Bad Request"
+
+test_hostname_gateway_response_should_contain \
+  "request for a too long CID at {CIDv1}.ipfs.example.com returns HTTP Error 400 Bad Request" \
+  "$CIDv1_TOO_LONG.ipfs.example.com" \
+  "http://127.0.0.1:$GWAY_PORT/" \
+  "400 Bad Request"
+
 # Disable selected Paths for the subdomain gateway hostname
 # =============================================================================
 
@@ -500,7 +560,6 @@ test_hostname_gateway_response_should_contain \
   "${IPNS_IDv1}.ipns.example.com" \
   "http://127.0.0.1:$GWAY_PORT" \
   "404 Not Found"
-
 
 ## ============================================================================
 ## Test path-based requests with a custom hostname config
