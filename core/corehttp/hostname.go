@@ -294,30 +294,31 @@ func isPeerIDNamespace(ns string) bool {
 func toDNSSafePrefix(id string) (prefix string) {
 	s := strings.Replace(id, ".", "", -1) // remove separators if present
 
-	// Return ID as-is if already in canonical form and safe for use in DNS
-	if s == id && len(s) <= dnsLabelMaxLength {
-		return id
+	// Return if things fit after dot removal
+	if len(s) <= dnsLabelMaxLength {
+		return s
 	}
 
-	var b strings.Builder
-	split := dnsLabelMaxLength - 1
-	end := len(s) - 1
+	parts := make(
+		[]string,
+		// same as ceil( len(s) / dnsLabelMaxLength )
+		(len(s)+dnsLabelMaxLength-1)/dnsLabelMaxLength,
+	)
 
-	// Iterate from the right to left to maximize length of first label
-	for i := end; i >= 0; i-- {
-		b.WriteByte(s[i])
-		if end-i%dnsLabelMaxLength == split && i != end {
-			b.WriteRune('.')
-		}
+	firstPartLen := len(s) % dnsLabelMaxLength
+
+	// if it divides by 63 perfectly - full part
+	if firstPartLen == 0 {
+		firstPartLen = dnsLabelMaxLength
 	}
 
-	// Reverse produced string
-	chars := []rune(b.String())
-	for i, j := 0, len(chars)-1; i < j; i, j = i+1, j-1 {
-		chars[i], chars[j] = chars[j], chars[i]
+	// Iterate from right to left to maximize length of right-most labels
+	for i := len(parts) - 1; i > 0; i-- {
+		parts[i] = s[(i-1)*dnsLabelMaxLength+firstPartLen : i*dnsLabelMaxLength+firstPartLen]
 	}
+	parts[0] = s[:firstPartLen]
 
-	return string(chars)
+	return strings.Join(parts, ".")
 }
 
 // Converts a hostname/path to a subdomain-based URL, if applicable.
