@@ -1,6 +1,8 @@
 //go:generate git submodule update --init ./dir-index-html
 //go:generate go run github.com/go-bindata/go-bindata/go-bindata -pkg=assets init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
 //go:generate gofmt -w bindata.go
+//go:generate sh -c "sed -i \"s/.*BindataVersionHash.*/BindataVersionHash=\\\"$(git hash-object bindata.go)\\\"/\" bindata_version_hash.go"
+//go:generate gofmt -w bindata_version_hash.go
 package assets
 
 import (
