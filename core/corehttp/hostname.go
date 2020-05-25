@@ -41,6 +41,9 @@ var defaultKnownGateways = map[string]config.GatewaySpec{
 	"dweb.link":       subdomainGatewaySpec,
 }
 
+// Label's max length in DNS (https://tools.ietf.org/html/rfc1034#page-7)
+const dnsLabelMaxLength int = 63
+
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
@@ -151,14 +154,27 @@ func HostnameOption() ServeOption {
 					return
 				}
 
-				// Do we need to fix multicodec in PeerID represented as CIDv1?
-				if isPeerIDNamespace(ns) {
-					keyCid, err := cid.Decode(rootID)
-					if err == nil && keyCid.Type() != cid.Libp2pKey {
+				// Check if rootID is a valid CID
+				if rootCID, err := cid.Decode(rootID); err == nil {
+					// Do we need to redirect CID to a canonical DNS representation?
+					canonicalPrefix := toDNSSafePrefix(rootID)
+					if !strings.HasPrefix(r.Host, canonicalPrefix) {
 						if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r); ok {
-							// Redirect to CID fixed inside of toSubdomainURL()
+							// Redirect to CID split split at deterministic places
+							// to ensure CID always gets the same Origin on the web
 							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 							return
+						}
+					}
+
+					// Do we need to fix multicodec in PeerID represented as CIDv1?
+					if isPeerIDNamespace(ns) {
+						if rootCID.Type() != cid.Libp2pKey {
+							if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r); ok {
+								// Redirect to CID fixed inside of toSubdomainURL()
+								http.Redirect(w, r, newURL, http.StatusMovedPermanently)
+								return
+							}
 						}
 					}
 				}
@@ -226,8 +242,16 @@ func knownSubdomainDetails(hostname string, knownGateways map[string]config.Gate
 			break
 		}
 
-		// Merge remaining labels (could be a FQDN with DNSLink)
-		rootID := strings.Join(labels[:i-1], ".")
+		idLabels := labels[:i-1]
+		// Merge remaining DNS labels and see if it is a CID or something else
+		// (DNS-friendly text representation splits CID to fit each chunk in 63 characters)
+		rootID := strings.Join(idLabels, "")
+		if _, err := cid.Decode(rootID); err != nil {
+			// Not a CID:
+			// Return rootID in original form, separated with '.'
+			// (mostly used by FQDNs with DNSLink)
+			rootID = strings.Join(idLabels, ".")
+		}
 		return gw, fqdn, ns, rootID, true
 	}
 	// not a known subdomain gateway
@@ -264,6 +288,36 @@ func isPeerIDNamespace(ns string) bool {
 	default:
 		return false
 	}
+}
+
+// Converts an identifier to DNS-safe representation
+func toDNSSafePrefix(id string) (prefix string) {
+	s := strings.Replace(id, ".", "", -1) // remove separators if present
+
+	// Return ID as-is if already in canonical form and safe for use in DNS
+	if s == id && len(s) <= dnsLabelMaxLength {
+		return id
+	}
+
+	var b strings.Builder
+	split := dnsLabelMaxLength - 1
+	end := len(s) - 1
+
+	// Iterate from the right to left to maximize length of first label
+	for i := end; i >= 0; i-- {
+		b.WriteByte(s[i])
+		if end-i%dnsLabelMaxLength == split && i != end {
+			b.WriteRune('.')
+		}
+	}
+
+	// Reverse produced string
+	chars := []rune(b.String())
+	for i, j := 0, len(chars)-1; i < j; i, j = i+1, j-1 {
+		chars[i], chars[j] = chars[j], chars[i]
+	}
+
+	return string(chars)
 }
 
 // Converts a hostname/path to a subdomain-based URL, if applicable.
@@ -340,6 +394,7 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok
 			// produce a subdomain URL
 			return "", false
 		}
+		rootID = toDNSSafePrefix(rootID)
 	}
 
 	return safeRedirectURL(fmt.Sprintf(

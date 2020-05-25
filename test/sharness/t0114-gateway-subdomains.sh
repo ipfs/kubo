@@ -92,6 +92,9 @@ test_launch_ipfs_daemon --offline
 test_expect_success "Add test text file" '
   CID_VAL="hello"
   CIDv1=$(echo $CID_VAL | ipfs add --cid-version 1 -Q)
+  CIDv1_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
+  CID_DNS_SPLIT_CANONICAL="bafkrgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dl.fsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir6ksdy6wzrnz6ohnv4aglcs"
+  CID_DNS_SPLIT_CUSTOM="baf.krgqhhyivzstcz3hhswshfjgy6ertgmnqeleynhwt4dl.fsthi4hn7zgh4uvlsb5xncykzapi3ocd4lzogukir.6ksdy6wzrnz6ohnv4aglcs"
   CIDv0=$(echo $CID_VAL | ipfs add --cid-version 0 -Q)
   CIDv0to1=$(echo "$CIDv0" | ipfs cid base32)
 '
@@ -118,7 +121,6 @@ test_expect_success "Publish test text file to IPNS" '
   printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
   test_cmp expected2 output
 '
-
 
 # ensure we start with empty Gateway.PublicGateways
 test_expect_success 'start daemon with empty config for Gateway.PublicGateways' '
@@ -261,6 +263,7 @@ test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/bar" > list_response &&
   test_should_contain "subdir2-bar" list_response
 '
+
 
 # *.ipns.localhost
 
@@ -501,6 +504,47 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "404 Not Found"
 
+## ============================================================================
+## Special handling of CIDs that do not fit in a single DNS Label (>63chars)
+## https://github.com/ipfs/go-ipfs/issues/7318
+## ============================================================================
+
+
+# local: *.localhost
+test_localhost_gateway_response_should_contain \
+  "request for a long CID at localhost/ipfs/{CIDv1} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1_LONG" \
+  "Location: http://${CID_DNS_SPLIT_CANONICAL}.ipfs.localhost:$GWAY_PORT/"
+
+test_localhost_gateway_response_should_contain \
+  "request for {long.CID}.ipfs.localhost should return expected payload" \
+  "http://${CID_DNS_SPLIT_CANONICAL}.ipfs.localhost:$GWAY_PORT" \
+  "$CID_VAL"
+
+test_localhost_gateway_response_should_contain \
+  "request for {custom.split.of.long.CID}.ipfs.localhost should return redirect to a canonical Origin" \
+  "http://${CID_DNS_SPLIT_CUSTOM}.ipfs.localhost:$GWAY_PORT/ipfs/$CIDv1" \
+  "Location: http://${CID_DNS_SPLIT_CANONICAL}.ipfs.localhost:$GWAY_PORT/"
+
+# public gateway: *.example.com
+
+test_hostname_gateway_response_should_contain \
+  "request for a long CID at example.com/ipfs/{CIDv1} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1_LONG" \
+  "Location: http://${CID_DNS_SPLIT_CANONICAL}.ipfs.example.com"
+
+test_hostname_gateway_response_should_contain \
+  "request for {long.CID}.ipfs.example.com should return expected payload" \
+  "${CID_DNS_SPLIT_CANONICAL}.ipfs.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "$CID_VAL"
+
+test_hostname_gateway_response_should_contain \
+  "request for {custom.split.of.long.CID}.ipfs.example.com should return redirect to a canonical Origin" \
+  "${CID_DNS_SPLIT_CUSTOM}.ipfs.example.com" \
+  "http://127.0.0.1:$GWAY_PORT" \
+  "Location: http://${CID_DNS_SPLIT_CANONICAL}.ipfs.example.com"
 
 ## ============================================================================
 ## Test path-based requests with a custom hostname config

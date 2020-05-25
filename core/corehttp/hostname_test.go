@@ -23,11 +23,13 @@ func TestToSubdomainURL(t *testing.T) {
 		{"localhost:8080", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost:8080/", true},
 		// CIDv0 → CIDv1base32
 		{"localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.localhost/", true},
+		// CIDv1 with long sha512 (requires DNS label length workaround)
+		{"localhost", "/ipfs/bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "http://bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvy.w764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg.ipfs.localhost/", true},
 		// PeerID as CIDv1 needs to have libp2p-key multicodec
 		{"localhost", "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://bafzbeieqhtl2l3mrszjnhv6hf2iloiitsx7mexiolcnywnbcrzkqxwslja.ipns.localhost/", true},
 		{"localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://bafzbeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm.ipns.localhost/", true},
 		// PeerID: ed25519+identity multihash
-		{"localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://bafzaajaiaejcat4yhiwnr2qz73mtu6vrnj2krxlpfoa3wo2pllfi37quorgwh2jw.ipns.localhost/", true},
+		{"localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://ba.fzaajaiaejcat4yhiwnr2qz73mtu6vrnj2krxlpfoa3wo2pllfi37quorgwh2jw.ipns.localhost/", true},
 	} {
 		url, ok := toSubdomainURL(test.hostname, test.path, r)
 		if ok != test.ok || url != test.url {
@@ -68,6 +70,28 @@ func TestPortStripping(t *testing.T) {
 		{"[::1]:8080", "::1"},
 	} {
 		out := stripPort(test.in)
+		if out != test.out {
+			t.Errorf("(%s): returned '%s', expected '%s'", test.in, out, test.out)
+		}
+	}
+
+}
+
+func TestToDNSSafePrefix(t *testing.T) {
+	for _, test := range []struct {
+		in  string
+		out string
+	}{
+		// <= 63
+		{"bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm"},
+		{"bafy.beickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm"},
+		// > 63
+		{"bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk", "ba.fzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk"},
+		{"bafzaajaiaejca4syrpdu6g.dx4wsdnokxkprgzxf4wrs.tuc34gxw5k5jrag2so5gk", "ba.fzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk"},
+		{"bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvy.w764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg"},
+		{"bafkrgqe3ohjcjplc6n4f3fw.unlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4.ffyyxnayrtdi5oc4xb2332g645433aeg", "bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvy.w764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg"},
+	} {
+		out := toDNSSafePrefix(test.in)
 		if out != test.out {
 			t.Errorf("(%s): returned '%s', expected '%s'", test.in, out, test.out)
 		}
@@ -127,6 +151,15 @@ func TestKnownSubdomainDetails(t *testing.T) {
 		{"foo.dweb.ipfs.pvt.k12.ma.us", "", "", "", false},
 		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.ipfs.pvt.k12.ma.us", "dweb.ipfs.pvt.k12.ma.us", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
 		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.ipfs.pvt.k12.ma.us", "dweb.ipfs.pvt.k12.ma.us", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
+		// edge case check: understand split CIDs (workaround for 63 character limit of a single DNS label https://github.com/ipfs/go-ipfs/issues/7318)
+		// Note: canonical split is at 63, but we support arbitrary splits for improved UX
+		// ED25519 libp2p-key
+		{"ba.fzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk.ipfs.dweb.link", "dweb.link", "ipfs", "bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk", true},
+		{"bafzaajaiaejca4syrpdu6gdx4wsdnok.xkprgzxf4wrstuc34gxw5k5jrag2so5gk.ipfs.dweb.link", "dweb.link", "ipfs", "bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk", true},
+		{"bafzaajaiaejca4sy.rpdu6gdx4wsdnok.xkprgzxf4wrstuc34g.xw5k5jrag2so5gk.ipfs.dweb.link", "dweb.link", "ipfs", "bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk", true},
+		// CID created with --hash sha2-512
+		{"bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq.6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg.ipfs.dweb.link", "dweb.link", "ipfs", "bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", true},
+		{"bafkrgqe3ohjcjplc6n4f3fwunlj6upltg.gn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4f.fyyxnayrtdi5oc4xb2332g645433aeg.ipfs.dweb.link", "dweb.link", "ipfs", "bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", true},
 		// other namespaces
 		{"api.localhost", "", "", "", false},
 		{"peerid.p2p.localhost", "localhost", "p2p", "peerid", true},
