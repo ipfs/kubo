@@ -1,9 +1,11 @@
 package corehttp
 
 import (
+	"errors"
 	"net/http/httptest"
 	"testing"
 
+	cid "github.com/ipfs/go-cid"
 	config "github.com/ipfs/go-ipfs-config"
 )
 
@@ -15,23 +17,25 @@ func TestToSubdomainURL(t *testing.T) {
 		path     string
 		// out:
 		url string
-		ok  bool
+		err error
 	}{
 		// DNSLink
-		{"localhost", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost/", true},
+		{"localhost", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost/", nil},
 		// Hostname with port
-		{"localhost:8080", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost:8080/", true},
+		{"localhost:8080", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost:8080/", nil},
 		// CIDv0 → CIDv1base32
-		{"localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.localhost/", true},
+		{"localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.localhost/", nil},
+		// CIDv1 with long sha512
+		{"localhost", "/ipfs/bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "", errors.New("CID incompatible with DNS label length limit of 63: kf1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5oj")},
 		// PeerID as CIDv1 needs to have libp2p-key multicodec
-		{"localhost", "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://bafzbeieqhtl2l3mrszjnhv6hf2iloiitsx7mexiolcnywnbcrzkqxwslja.ipns.localhost/", true},
-		{"localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://bafzbeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm.ipns.localhost/", true},
-		// PeerID: ed25519+identity multihash
-		{"localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://bafzaajaiaejcat4yhiwnr2qz73mtu6vrnj2krxlpfoa3wo2pllfi37quorgwh2jw.ipns.localhost/", true},
+		{"localhost", "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://k2k4r8n0flx3ra0y5dr8fmyvwbzy3eiztmtq6th694k5a3rznayp3e4o.ipns.localhost/", nil},
+		{"localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://k2k4r8l9ja7hkzynavdqup76ou46tnvuaqegbd04a4o1mpbsey0meucb.ipns.localhost/", nil},
+		// PeerID: ed25519+identity multihash → CIDv1Base36
+		{"localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna.ipns.localhost/", nil},
 	} {
-		url, ok := toSubdomainURL(test.hostname, test.path, r)
-		if ok != test.ok || url != test.url {
-			t.Errorf("(%s, %s) returned (%s, %t), expected (%s, %t)", test.hostname, test.path, url, ok, test.url, ok)
+		url, err := toSubdomainURL(test.hostname, test.path, r)
+		if url != test.url || !equalError(err, test.err) {
+			t.Errorf("(%s, %s) returned (%s, %v), expected (%s, %v)", test.hostname, test.path, url, err, test.url, test.err)
 		}
 	}
 }
@@ -70,6 +74,30 @@ func TestPortStripping(t *testing.T) {
 		out := stripPort(test.in)
 		if out != test.out {
 			t.Errorf("(%s): returned '%s', expected '%s'", test.in, out, test.out)
+		}
+	}
+
+}
+
+func TestDNSPrefix(t *testing.T) {
+	for _, test := range []struct {
+		in  string
+		out string
+		err error
+	}{
+		// <= 63
+		{"QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", nil},
+		{"bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", nil},
+		// > 63
+		// PeerID: ed25519+identity multihash → CIDv1Base36
+		{"bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk", "k51qzi5uqu5dj16qyiq0tajolkojyl9qdkr254920wxv7ghtuwcz593tp69z9m", nil},
+		// CIDv1 with long sha512 → error
+		{"bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "", errors.New("CID incompatible with DNS label length limit of 63: kf1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5oj")},
+	} {
+		inCID, _ := cid.Decode(test.in)
+		out, err := toDNSPrefix(test.in, inCID)
+		if out != test.out || !equalError(err, test.err) {
+			t.Errorf("(%s): returned (%s, %v) expected (%s, %v)", test.in, out, err, test.out, test.err)
 		}
 	}
 
@@ -149,4 +177,8 @@ func TestKnownSubdomainDetails(t *testing.T) {
 		}
 	}
 
+}
+
+func equalError(a, b error) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil && a.Error() == b.Error())
 }

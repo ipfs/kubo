@@ -216,7 +216,7 @@ test_expect_success 'handle multipart/form-data http request' '
 '
 
 # subdomain gateway at *.p2p.example.com requires PeerdID in base32
-RECEIVER_ID_CIDv1=$( ipfs cid format -v 1 -b b --codec libp2p-key -- $RECEIVER_ID)
+RECEIVER_ID_CIDv1=$( ipfs cid format -v 1 --codec libp2p-key -b base36 -- $RECEIVER_ID)
 
 # OK: $peerid.p2p.example.com/http/index.txt
 test_expect_success "handle http request to a subdomain gateway" '
