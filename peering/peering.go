@@ -40,20 +40,22 @@ type peerHandler struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	mu    sync.Mutex
-	addrs []multiaddr.Multiaddr
-	timer *time.Timer
+	mu             sync.Mutex
+	addrs          []multiaddr.Multiaddr
+	reconnectTimer *time.Timer
 
 	nextDelay time.Duration
 }
 
+// stop permanently stops the peer handler.
 func (ph *peerHandler) stop() {
+	ph.cancel()
+
 	ph.mu.Lock()
 	defer ph.mu.Unlock()
-
-	if ph.timer != nil {
-		ph.timer.Stop()
-		ph.timer = nil
+	if ph.reconnectTimer != nil {
+		ph.reconnectTimer.Stop()
+		ph.reconnectTimer = nil
 	}
 }
 
@@ -79,10 +81,10 @@ func (ph *peerHandler) reconnect() {
 		logger.Debugw("failed to reconnect", "peer", ph.peer, "error", err)
 		// Ok, we failed. Extend the timeout.
 		ph.mu.Lock()
-		if ph.timer != nil {
-			// Only counts if the timer still exists. If not, a
+		if ph.reconnectTimer != nil {
+			// Only counts if the reconnectTimer still exists. If not, a
 			// connection _was_ somehow established.
-			ph.timer.Reset(ph.nextBackoff())
+			ph.reconnectTimer.Reset(ph.nextBackoff())
 		}
 		// Otherwise, someone else has stopped us so we can assume that
 		// we're either connected or someone else will start us.
@@ -98,10 +100,10 @@ func (ph *peerHandler) stopIfConnected() {
 	ph.mu.Lock()
 	defer ph.mu.Unlock()
 
-	if ph.timer != nil && ph.host.Network().Connectedness(ph.peer) == network.Connected {
+	if ph.reconnectTimer != nil && ph.host.Network().Connectedness(ph.peer) == network.Connected {
 		logger.Debugw("successfully reconnected", "peer", ph.peer)
-		ph.timer.Stop()
-		ph.timer = nil
+		ph.reconnectTimer.Stop()
+		ph.reconnectTimer = nil
 		ph.nextDelay = initialDelay
 	}
 }
@@ -111,10 +113,10 @@ func (ph *peerHandler) startIfDisconnected() {
 	ph.mu.Lock()
 	defer ph.mu.Unlock()
 
-	if ph.timer == nil && ph.host.Network().Connectedness(ph.peer) != network.Connected {
+	if ph.reconnectTimer == nil && ph.host.Network().Connectedness(ph.peer) != network.Connected {
 		logger.Debugw("disconnected from peer", "peer", ph.peer)
 		// Always start with a short timeout so we can stagger things a bit.
-		ph.timer = time.AfterFunc(ph.nextBackoff(), ph.reconnect)
+		ph.reconnectTimer = time.AfterFunc(ph.nextBackoff(), ph.reconnect)
 	}
 }
 
@@ -222,7 +224,6 @@ func (ps *PeeringService) RemovePeer(id peer.ID) {
 		ps.host.ConnManager().Unprotect(id, connmgrTag)
 
 		handler.stop()
-		handler.cancel()
 		delete(ps.peers, id)
 	}
 }
