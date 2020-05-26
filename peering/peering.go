@@ -141,18 +141,13 @@ type PeeringService struct {
 
 	mu    sync.RWMutex
 	peers map[peer.ID]*peerHandler
-
-	ctx    context.Context
-	cancel context.CancelFunc
-	state  state
+	state state
 }
 
 // NewPeeringService constructs a new peering service. Peers can be added and
 // removed immediately, but connections won't be formed until `Start` is called.
 func NewPeeringService(host host.Host) *PeeringService {
-	ps := &PeeringService{host: host, peers: make(map[peer.ID]*peerHandler)}
-	ps.ctx, ps.cancel = context.WithCancel(context.Background())
-	return ps
+	return &PeeringService{host: host, peers: make(map[peer.ID]*peerHandler)}
 }
 
 // Start starts the peering service, connecting and maintaining connections to
@@ -180,17 +175,18 @@ func (ps *PeeringService) Start() error {
 
 // Stop stops the peering service.
 func (ps *PeeringService) Stop() error {
-	ps.cancel()
 	ps.host.Network().StopNotify((*netNotifee)(ps))
 
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
-	if ps.state == stateRunning {
+	switch ps.state {
+	case stateInit, stateRunning:
 		logger.Infow("stopping")
 		for _, handler := range ps.peers {
 			handler.stop()
 		}
+		ps.state = stateStopped
 	}
 	return nil
 }
@@ -218,10 +214,16 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 			addrs:     info.Addrs,
 			nextDelay: initialDelay,
 		}
-		handler.ctx, handler.cancel = context.WithCancel(ps.ctx)
+		handler.ctx, handler.cancel = context.WithCancel(context.Background())
 		ps.peers[info.ID] = handler
-		if ps.state == stateRunning {
+		switch ps.state {
+		case stateRunning:
 			go handler.startIfDisconnected()
+		case stateStopped:
+			// We still construct everything in this state because
+			// it's easier to reason about. But we should still free
+			// resources.
+			handler.cancel()
 		}
 	}
 }
