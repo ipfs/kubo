@@ -88,6 +88,8 @@ c    99  base32pad
 C    67  base32padupper
 f   102  base16
 F    70  base16upper
+k   107  base36
+K    75  base36upper
 m   109  base64
 M    77  base64pad
 t   116  base32hexpad
