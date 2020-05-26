@@ -14,8 +14,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-// maxBackoff is the maximum time between reconnect attempts.
 const (
+	// maxBackoff is the maximum time between reconnect attempts.
 	maxBackoff = 10 * time.Minute
 	connmgrTag = "ipfs-peering"
 	// This needs to be sufficient to prevent two sides from simultaneously
