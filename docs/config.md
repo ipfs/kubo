@@ -139,6 +139,8 @@ documented in `ipfs config profile --help`.
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
+    - [`Peering`](#peering)
+        - [`Peering.Peers`](#peeringpeers)
 - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
@@ -156,6 +158,7 @@ documented in `ipfs config profile --help`.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+
 
 ## `Addresses`
 
@@ -702,6 +705,56 @@ message because spoofed messages can be used to silence real messages by
 intentionally re-using the real message's message ID.
 
 Default: `false`
+
+### `Peering`
+
+Configures the peering subsystem. The peering subsystem configures go-ipfs to
+connect to, remain connected to, and reconnect to a set of nodes. Nodes should
+use this subsystem to create "sticky" links between frequently useful peers to
+improve reliability.
+
+Use-cases:
+
+* An IPFS gateway connected to an IPFS cluster should peer to ensure that the
+  gateway can always fetch content from the cluster.
+* A dapp may peer embedded go-ipfs nodes with a set of pinning services or
+  textile cafes/hubs.
+* A set of friends may peer to ensure that they can always fetch each other's
+  content.
+
+When a node is added to the set of peered nodes, go-ipfs will:
+
+1. Protect connections to this node from the connection manager. That is,
+   go-ipfs will never automatically close the connection to this node and
+   connections to this node will not count towards the connection limit.
+2. Connect to this node on startup.
+3. Repeatedly try to reconnect to this node if the last connection dies or the
+   node goes offline. This repeated re-connect logic is governed by a randomized
+   exponential backoff delay ranging from ~5 seconds to ~10 minutes to avoid
+   repeatedly reconnect to a node that's offline.
+
+Peering can be asymmetric or symmetric:
+
+* When symmetric, the connection will be protected by both nodes and will likely
+  be vary stable.
+* When asymmetric, only one node (the node that configured peering) will protect
+  the connection and attempt to re-connect to the peered node on disconnect. If
+  the peered node is under heavy load and/or has a low connection limit, the
+  connection may flap repeatedly. Be careful when asymmetrically peering to not
+  overload peers.
+
+#### `Peering.Peers`
+
+The set of peers with which to peer. Each entry is of the form:
+
+```js
+{
+  "ID": "QmSomePeerID", # The peers ID.
+  "Addrs": ["/ip4/1.2.3.4/tcp/1234"] # Known addresses for the peer. If none are specified, the DHT will be queried.
+}
+```
+
+Additional fields may be added in the future.
 
 ## `Reprovider`
 
