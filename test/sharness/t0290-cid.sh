@@ -124,6 +124,8 @@ cat <<EOF > codecs_expect
   225  decred-tx
   240  dash-block
   241  dash-tx
+61697  fil-commitment-unsealed
+61698  fil-commitment-sealed
 EOF
 
 cat <<EOF > hashes_expect
