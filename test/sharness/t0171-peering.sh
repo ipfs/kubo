@@ -87,7 +87,7 @@ disconnect() {
     ipfsi "$1" swarm disconnect "/p2p/$(peer_id "$2")"
 }
 
-# Bidiractional peering shouldn't cause problems (e.g., simultaneous connect
+# Bidirectional peering shouldn't cause problems (e.g., simultaneous connect
 # issues).
 test_expect_success 'disconnecting 0->1' '
   disconnect 0 1
