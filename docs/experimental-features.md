@@ -25,6 +25,7 @@ the above issue.
 - [AutoRelay](#autorelay)
 - [Strategic Providing](#strategic-providing)
 - [Graphsync](#graphsync)
+- [Noise](#noise)
 
 ---
 
@@ -538,3 +539,26 @@ ipfs config --json Experimental.GraphsyncEnabled true
 ### Road to being a real feature
 
 - [ ] We need to confirm that it can't be used to DoS a node. The server-side logic for GraphSync is quite complex and, if we're not careful, the server might end up performing unbounded work when responding to a malicious request.
+
+## Noise
+
+### State
+
+Experimental, enabled by default
+
+[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in go-ipfs, Noise is easier to implement and will thus serve as the "interop" transport between IPFS and libp2p implementations, eventually replacing SECIO.
+
+### How to enable
+
+While the Noise transport is now shipped and enabled by default in go-ipfs, it won't be used by default for most connections because TLS and SECIO are currently preferred. If you'd like to test out the Noise transport, you can use the `Experimental.OverrideSecurityTransports` option to enable, disable, and reorder security transports.
+
+For example, to prefer noise over TLS and disable SECIO, run:
+
+```
+ipfs config --json Experimental.OverrideSecurityTransports '["noise", "tls"]'
+```
+
+### Road to being a real feature
+
+- [ ] Needs real-world testing.
+- [ ] Ideally a js-ipfs and a rust-ipfs release would include support for Noise.
