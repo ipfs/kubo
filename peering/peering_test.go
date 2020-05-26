@@ -137,3 +137,22 @@ func TestPeeringService(t *testing.T) {
 	ps1.AddPeer(peer.AddrInfo{ID: h4.ID(), Addrs: h4.Addrs()})
 	ps1.RemovePeer(h2.ID())
 }
+
+func TestNextBackoff(t *testing.T) {
+	minMaxBackoff := (100 - maxBackoffJitter) / 100 * maxBackoff
+	for x := 0; x < 1000; x++ {
+		ph := peerHandler{nextDelay: time.Second}
+		for min, max := time.Second*3/2, time.Second*5/2; min < minMaxBackoff; min, max = min*3/2, max*5/2 {
+			b := ph.nextBackoff()
+			if b > max || b < min {
+				t.Errorf("expected backoff %s to be between %s and %s", b, min, max)
+			}
+		}
+		for i := 0; i < 100; i++ {
+			b := ph.nextBackoff()
+			if b < minMaxBackoff || b > maxBackoff {
+				t.Fatal("failed to stay within max bounds")
+			}
+		}
+	}
+}

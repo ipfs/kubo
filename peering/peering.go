@@ -14,10 +14,17 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+// Seed the random number generator.
+//
+// We don't need good randomness, but we do need randomness.
 const (
 	// maxBackoff is the maximum time between reconnect attempts.
 	maxBackoff = 10 * time.Minute
-	connmgrTag = "ipfs-peering"
+	// The backoff will be cut off when we get within 10% of the actual max.
+	// If we go over the max, we'll adjust the delay down to a random value
+	// between 90-100% of the max backoff.
+	maxBackoffJitter = 10 // %
+	connmgrTag       = "ipfs-peering"
 	// This needs to be sufficient to prevent two sides from simultaneously
 	// dialing.
 	initialDelay = 5 * time.Second
@@ -78,10 +85,17 @@ func (ph *peerHandler) stop() {
 }
 
 func (ph *peerHandler) nextBackoff() time.Duration {
-	// calculate the timeout
 	if ph.nextDelay < maxBackoff {
 		ph.nextDelay += ph.nextDelay/2 + time.Duration(rand.Int63n(int64(ph.nextDelay)))
 	}
+
+	// If we've gone over the max backoff, reduce it under the max.
+	if ph.nextDelay > maxBackoff {
+		ph.nextDelay = maxBackoff
+		// randomize the backoff a bit (10%).
+		ph.nextDelay -= time.Duration(rand.Int63n(int64(maxBackoff) * maxBackoffJitter / 100))
+	}
+
 	return ph.nextDelay
 }
 
