@@ -18,14 +18,31 @@ type LookupTXTFunc func(name string) (txt []string, err error)
 
 // DNSResolver implements a Resolver on DNS domains
 type DNSResolver struct {
-	lookupTXT LookupTXTFunc
+	lookupTXT  LookupTXTFunc
+	DNSAddress string
 	// TODO: maybe some sort of caching?
 	// cache would need a timeout
 }
 
 // NewDNSResolver constructs a name resolver using DNS TXT records.
-func NewDNSResolver() *DNSResolver {
-	return &DNSResolver{lookupTXT: net.LookupTXT}
+func NewDNSResolver(dnsaddress string) *DNSResolver {
+	var lookupTXTDNS func(ctx context.Context, name string) ([]string, error)
+	if dnsaddress == "" {
+		lookupTXTDNS = (&net.Resolver{}).LookupTXT
+	} else {
+		lookupTXTDNS = (&net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, "udp", dnsaddress)
+			},
+		}).LookupTXT
+	}
+	return &DNSResolver{lookupTXT: func(name string) (txt []string, err error) {
+		return lookupTXTDNS(context.Background(), name)
+	},
+		DNSAddress: dnsaddress,
+	}
 }
 
 // Resolve implements Resolver.
