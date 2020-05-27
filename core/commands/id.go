@@ -97,15 +97,17 @@ EXAMPLE:
 			return errors.New(offlineIdErrorMessage)
 		}
 
-		p, err := n.Routing.FindPeer(req.Context, id)
-		if err == kb.ErrLookupFailure {
+		// We need to actually connect to run identify.
+		err = n.PeerHost.Connect(req.Context, peer.AddrInfo{ID: id})
+		switch err {
+		case nil:
+		case kb.ErrLookupFailure:
 			return errors.New(offlineIdErrorMessage)
-		}
-		if err != nil {
+		default:
 			return err
 		}
 
-		output, err := printPeer(n.Peerstore, p.ID)
+		output, err := printPeer(n.Peerstore, id)
 		if err != nil {
 			return err
 		}
