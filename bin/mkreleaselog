@@ -33,15 +33,22 @@ AUTHORS=(
 
 NL=$'\n'
 
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
 msg() {
     echo "$*" >&2
 }
 
 statlog() {
-    rpath="$GOPATH/src/$1"
-    start="${2:-}"
-    end="${3:-HEAD}"
-    git -C "$rpath" log --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" | while 
+    local rpath="$GOPATH/src/$1"
+    local start="${2:-}"
+    local end="${3:-HEAD}"
+    local mailmap_file="$rpath/.mailmap"
+    if ! [[ -e "$mailmap_file" ]]; then
+        mailmap_file="$ROOT_DIR/.mailmap"
+    fi
+
+    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" | while 
         read hash
         read name
         read email
