@@ -128,10 +128,18 @@ test_expect_success "ipfs id is consistent for node 0" '
   ipfsi 0 id > 0see0 &&
   test_cmp 1see0 0see0
 '
+
 test_expect_success "ipfs id is consistent for node 1" '
   ipfsi 0 id "$(iptb attr get 1 id)" > 0see1 &&
   ipfsi 1 id > 1see1 &&
   test_cmp 0see1 1see1
+'
+
+test_expect_success "addresses contain /p2p/..." '
+  test_should_contain "/p2p/$(iptb attr get 1 id)\"" 0see1 &&
+  test_should_contain "/p2p/$(iptb attr get 1 id)\"" 1see1 &&
+  test_should_contain "/p2p/$(iptb attr get 0 id)\"" 1see0 &&
+  test_should_contain "/p2p/$(iptb attr get 0 id)\"" 0see0
 '
 
 test_expect_success "stopping cluster" '
