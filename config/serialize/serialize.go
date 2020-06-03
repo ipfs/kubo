@@ -35,12 +35,12 @@ func ReadConfigFile(filename string, cfg interface{}) error {
 
 // WriteConfigFile writes the config from `cfg` into `filename`.
 func WriteConfigFile(filename string, cfg interface{}) error {
-	err := os.MkdirAll(filepath.Dir(filename), 0775)
+	err := os.MkdirAll(filepath.Dir(filename), 0755)
 	if err != nil {
 		return err
 	}
 
-	f, err := atomicfile.New(filename, 0660)
+	f, err := atomicfile.New(filename, 0600)
 	if err != nil {
 		return err
 	}
