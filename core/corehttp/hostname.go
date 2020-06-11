@@ -92,9 +92,16 @@ func HostnameOption() ServeOption {
 
 					// Should this gateway use subdomains instead of paths?
 					if gw.UseSubdomains {
+						hostname := r.Host
+
+						// Redirect to another host if configured
+						if gw.RedirectHost != "" {
+							hostname = gw.RedirectHost
+						}
+
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r); ok {
+						if newURL, ok := toSubdomainURL(hostname, r.URL.Path, r); ok {
 							// Just to be sure single Origin can't be abused in
 							// web browsers that ignored the redirect for some
 							// reason, Clear-Site-Data header clears browsing
