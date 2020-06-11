@@ -23,7 +23,7 @@ ARG IPFS_PLUGINS
 # Build the thing.
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
-  && mkdir .git/objects \
+  && mkdir -p .git/objects \
   && make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Get su-exec, a very minimal tool for dropping privileges,
