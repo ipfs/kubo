@@ -41,7 +41,7 @@ require (
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-provider v0.4.3
 	github.com/ipfs/go-ipfs-routing v0.1.0
-	github.com/ipfs/go-ipfs-util v0.0.1
+	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-ipld-cbor v0.0.4
 	github.com/ipfs/go-ipld-format v0.2.0
 	github.com/ipfs/go-ipld-git v0.0.3
@@ -67,7 +67,7 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.4.0
 	github.com/libp2p/go-libp2p-http v0.1.5
 	github.com/libp2p/go-libp2p-kad-dht v0.8.1
-	github.com/libp2p/go-libp2p-kbucket v0.4.2
+	github.com/libp2p/go-libp2p-kbucket v0.4.6
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
 	github.com/libp2p/go-libp2p-noise v0.1.1
