@@ -1,6 +1,6 @@
 # General performance debugging guidelines
 
-This is a document for helping debug go-ipfs. Please add to it if you can!
+This document covers the topic of debugging the go-ipfs daemon. Please extend it if you can!
 
 ### Table of Contents
 - [Beginning](#beginning)
@@ -11,12 +11,9 @@ This is a document for helping debug go-ipfs. Please add to it if you can!
 
 ### Beginning
 
-When you see ipfs doing something (using lots of CPU, memory, or otherwise
-being weird), the first thing you want to do is gather all the relevant
-profiling information.
+When you see ipfs doing something (using lots of CPU, memory, or otherwise being weird), the first thing you want to do is gather all the relevant profiling information.
 
-There's a script (`bin/collect-profiles.sh`) that will do this for you and
-bundle the results up into a tarball, ready to be attached to a bug report.
+There's a script (`bin/collect-profiles.sh`) that will do this for you and bundle the results up into a tarball, ready to be attached to a bug report.
 
 If you feel intrepid, you can dump this information and investigate it yourself:
 
@@ -34,10 +31,9 @@ If you feel intrepid, you can dump this information and investigate it yourself:
 
 ### Analyzing the stack dump
 
-The first thing to look for is hung goroutines -- any goroutine that's been stuck
-for over a minute will note that in the trace. It looks something like:
+The first thing to look for is hung goroutines -- any goroutine that's been stuck for over a minute will note that in the trace. It looks something like:
 
-```
+```bash
 goroutine 2306090 [semacquire, 458 minutes]:
 sync.runtime_Semacquire(0xc8222fd3e4)
   /home/whyrusleeping/go/src/runtime/sema.go:47 +0x26
@@ -53,40 +49,21 @@ created by gx/ipfs/QmZK81vcgMhpb2t7GNbozk7qzt6Rj4zFqitpvsWT9mduW8/go-peerstream.
   /home/whyrusleeping/gopkg/src/gx/ipfs/QmZK81vcgMhpb2t7GNbozk7qzt6Rj4zFqitpvsWT9mduW8/go-peerstream/conn.go:131 +0xab
 ```
 
-At the top, you can see that this goroutine (number 2306090) has been waiting
-to acquire a semaphore for 458 minutes. That seems bad. Looking at the rest of
-the trace, we see the exact line it's waiting on is line 47 of runtime/sema.go.
-That's not particularly helpful, so we move on. Next, we see that call was made
-by line 205 of yamux/session.go in the `Close` method of `yamux.Session`. This
-one appears to be the issue.
+At the top, you can see that this goroutine (number 2306090) has been waiting to acquire a semaphore for 458 minutes. That seems bad. Looking at the rest of the trace, we see the exact line it's waiting on is line 47 of runtime/sema.go. That's not particularly helpful, so we move on. Next, we see that call was made by line 205 of yamux/session.go in the `Close` method of `yamux.Session`. This one appears to be the issue.
 
-Given that information, look for another goroutine that might be
-holding the semaphore in question in the rest of the stack dump.
-(If you need help doing this, ping and we'll stub this out.)
+Given that information, look for another goroutine that might be holding the semaphore in question in the rest of the stack dump. (If you need help doing this, ping and we'll stub this out.)
 
 There are a few different reasons that goroutines can be hung:
 - `semacquire` means we're waiting to take a lock or semaphore.
-- `select` means that the goroutine is hanging in a select statement and none of
-  the cases are yielding anything.
-- `chan receive` and `chan send` are waiting for a channel to be received from
-  or sent on, respectively.
-- `IO wait` generally means that we are waiting on a socket to read or write
-  data, although it *can* mean we are waiting on a very slow filesystem.
+- `select` means that the goroutine is hanging in a select statement and none of the cases are yielding anything.
+- `chan receive` and `chan send` are waiting for a channel to be received from or sent on, respectively.
+- `IO wait` generally means that we are waiting on a socket to read or write data, although it *can* mean we are waiting on a very slow filesystem.
 
-If you see any of those tags _without_ a `,
-X minutes` suffix, that generally means there isn't a problem -- you just caught
-that goroutine in the middle of a short wait for something. If the wait time is
-over a few minutes, that either means that goroutine doesn't do much, or
-something is pretty wrong.
+If you see any of those tags _without_ a `, X minutes` suffix, that generally means there isn't a problem -- you just caught that goroutine in the middle of a short wait for something. If the wait time is over a few minutes, that either means that goroutine doesn't do much, or something is pretty wrong.
 
 ### Analyzing the CPU Profile
 
-The go team wrote an [excellent article on profiling go
-programs](http://blog.golang.org/profiling-go-programs). If you've already
-gathered the above information, you can skip down to where they start talking
-about `go tool pprof`. My go-to method of analyzing these is to run the `web`
-command, which generates an SVG dotgraph and opens it in your browser. This is
-the quickest way to easily point out where the hot spots in the code are.
+The go team wrote an [excellent article on profiling go programs](http://blog.golang.org/profiling-go-programs). If you've already gathered the above information, you can skip down to where they start talking about `go tool pprof`. My go-to method of analyzing these is to run the `web` command, which generates an SVG dotgraph and opens it in your browser. This is the quickest way to easily point out where the hot spots in the code are.
 
 ### Analyzing vars and memory statistics
 
@@ -94,7 +71,5 @@ The output is JSON formatted and includes badger store statistics, the command l
 
 ### Other
 
-If you have any questions, or want us to analyze some weird go-ipfs behaviour,
-just let us know, and be sure to include all the profiling information
-mentioned at the top.
+If you have any questions or want us to analyze some weird go-ipfs behavior, just let us know, and be sure to include all the profiling information mentioned at the top.
 

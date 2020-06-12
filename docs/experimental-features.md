@@ -1,16 +1,10 @@
 # Experimental features of go-ipfs
 
-This document contains a list of experimental features in go-ipfs.
-These features, commands, and APIs aren't mature, and you shouldn't rely on them.
-Once they reach maturity, there's going to be mention in the changelog and
-release posts. If they don't reach maturity, the same applies, and their code is
-removed.
+This document contains a list of experimental features in go-ipfs. These features, commands, and APIs aren't mature, and you shouldn't rely on them. Once they reach maturity, there's going to be mention in the changelog and release posts. If they don't reach maturity, the same applies, and their code is removed.
 
 Subscribe to https://github.com/ipfs/go-ipfs/issues/3397 to get updates.
 
-When you add a new experimental feature to go-ipfs or change an experimental
-feature, you MUST please make a PR updating this document, and link the PR in
-the above issue.
+When you add a new experimental feature to go-ipfs or change an experimental feature, you MUST please make a PR updating this document, and link the PR in the above issue.
 
 - [ipfs pubsub](#ipfs-pubsub)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
@@ -41,8 +35,7 @@ Candidate, disabled by default but will be enabled by default in 0.6.0.
 
 ### How to enable
 
-run your daemon with the `--enable-pubsub-experiment` flag. Then use the
-`ipfs pubsub` commands.
+run your daemon with the `--enable-pubsub-experiment` flag. Then use the `ipfs pubsub` commands.
 
 Configuration documentation can be found in [./config.md]()
 
@@ -86,14 +79,13 @@ Experimental.
 ### How to enable
 
 Modify your ipfs config:
-```
-ipfs config --json Experimental.FilestoreEnabled true
+```bash
+$ ipfs config --json Experimental.FilestoreEnabled true
 ```
 
 Then restart your IPFS node to reload your config.
 
-Finally, when adding files with ipfs add, pass the --nocopy flag to use the
-filestore instead of copying the files into your local IPFS repo.
+Finally, when adding files with ipfs add, pass the --nocopy flag to use the filestore instead of copying the files into your local IPFS repo.
 
 ### Road to being a real feature
 
@@ -117,8 +109,8 @@ v0.4.17
 ### How to enable
 
 Modify your ipfs config:
-```
-ipfs config --json Experimental.UrlstoreEnabled true
+```bash
+$ ipfs config --json Experimental.UrlstoreEnabled true
 ```
 
 And then add a file at a specific URL using `ipfs urlstore add <url>`
@@ -145,40 +137,33 @@ Stable but not quite ready for prime-time.
 ### How to enable
 
 Generate a pre-shared-key using [ipfs-swarm-key-gen](https://github.com/Kubuxu/go-ipfs-swarm-key-gen)):
-```
-go get github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen
-ipfs-swarm-key-gen > ~/.ipfs/swarm.key
+```bash
+$ go get github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen
+$ ipfs-swarm-key-gen > ~/.ipfs/swarm.key
 ```
 
-To join a given private network, get the key file from someone in the network
-and save it to `~/.ipfs/swarm.key` (If you are using a custom `$IPFS_PATH`, put
-it in there instead).
+To join a given private network, get the key file from someone in the network and save it to `~/.ipfs/swarm.key` (If you are using a custom `$IPFS_PATH`, put it in there instead).
 
-When using this feature, you will not be able to connect to the default bootstrap
-nodes (Since we aren't part of your private network) so you will need to set up
-your own bootstrap nodes.
+When using this feature, you will not be able to connect to the default bootstrap nodes (Since we aren't part of your private network) so you will need to set up your bootstrap nodes.
 
 First, to prevent your node from even trying to connect to the default bootstrap nodes, run:
 ```bash
-ipfs bootstrap rm --all
+$ ipfs bootstrap rm --all
 ```
 
-Then add your own bootstrap peers with:
+Then add your bootstrap peers with:
 ```bash
-ipfs bootstrap add <multiaddr>
+$ ipfs bootstrap add <multiaddr>
 ```
 
 For example:
-```
-ipfs bootstrap add /ip4/104.236.76.40/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64
+```bash
+$ ipfs bootstrap add /ip4/104.236.76.40/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64
 ```
 
-Bootstrap nodes are no different from all other nodes in the network apart from
-the function they serve.
+Bootstrap nodes are no different from all other nodes in the network apart from the function they serve.
 
-To be extra cautious, You can also set the `LIBP2P_FORCE_PNET` environment
-variable to `1` to force the usage of private networks. If no private network is
-configured, the daemon will fail to start.
+To be extra cautious, You can also set the `LIBP2P_FORCE_PNET` environment variable to `1` to force the usage of private networks. If no private network is configured, the daemon will fail to start.
 
 ### Road to being a real feature
 
@@ -188,13 +173,11 @@ configured, the daemon will fail to start.
 
 ## ipfs p2p
 
-Allows tunneling of TCP connections through Libp2p streams. If you've ever used
-port forwarding with SSH (the `-L` option in OpenSSH), this feature is quite
-similar.
+Allows tunneling of TCP connections through Libp2p streams. If you've ever used port forwarding with SSH (the `-L` option in OpenSSH), this feature is quite similar.
 
 ### State
 
-Experimental, will be stabilized in 0.6.0
+Experimental and will be stabilized in 0.6.0
 
 ### In Version
 
@@ -204,17 +187,15 @@ Experimental, will be stabilized in 0.6.0
 
 The `p2p` command needs to be enabled in the config:
 
-```sh
-> ipfs config --json Experimental.Libp2pStreamMounting true
+```bash
+$ ipfs config --json Experimental.Libp2pStreamMounting true
 ```
 
 ### How to use
 
 **Netcat example:**
 
-First, pick a protocol name for your application. Think of the protocol name as
-a port number, just significantly more user-friendly. In this example, we're
-going to use `/x/kickass/1.0`.
+First, pick a protocol name for your application. Think of the protocol name as a port number, just significantly more user-friendly. In this example, we're going to use `/x/kickass/1.0`.
 
 ***Setup:***
 
@@ -223,45 +204,37 @@ going to use `/x/kickass/1.0`.
 
 ***On the "server" node:***
 
-First, start your application and have it listen for TCP connections on
-port `$APP_PORT`.
+First, start your application and have it listen for TCP connections on port `$APP_PORT`.
 
 Then, configure the p2p listener by running:
 
-```sh
-> ipfs p2p listen /x/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
+```bash
+$ ipfs p2p listen /x/kickass/1.0 /ip4/127.0.0.1/tcp/$APP_PORT
 ```
 
-This will configure IPFS to forward all incoming `/x/kickass/1.0` streams to
-`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per
-incoming stream.
+This will configure IPFS to forward all incoming `/x/kickass/1.0` streams to `127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per incoming stream.
 
 ***On the "client" node:***
 
-First, configure the client p2p dialer, so that it forwards all inbound
-connections on `127.0.0.1:SOME_PORT` to the server node listening
-on `/x/kickass/1.0`.
+First, configure the client p2p dialer, so that it forwards all inbound connections on `127.0.0.1:SOME_PORT` to the server node listening on `/x/kickass/1.0`.
 
-```sh
-> ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /p2p/$SERVER_ID
+```bash
+$ ipfs p2p forward /x/kickass/1.0 /ip4/127.0.0.1/tcp/$SOME_PORT /p2p/$SERVER_ID
 ```
 
-Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This
-connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
-the remote machine. You can test it with netcat:
+Next, have your application open a connection to `127.0.0.1:$SOME_PORT`. This connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on the remote machine. You can test it with netcat:
 
 ***On "server" node:***
-```sh
-> nc -v -l -p $APP_PORT
+```bash
+$ nc -v -l -p $APP_PORT
 ```
 
 ***On "client" node:***
-```sh
-> nc -v 127.0.0.1 $SOME_PORT
+```bash
+$ nc -v 127.0.0.1 $SOME_PORT
 ```
 
-You should now see that a connection has been established and be able to
-exchange messages between netcat instances.
+You should now see that a connection has been established and be able to exchange messages between netcat instances.
 
 (note that depending on your netcat version you may need to drop the `-v` flag)
 
@@ -269,26 +242,24 @@ exchange messages between netcat instances.
 
 **Setup:**
 
-1. A "server" node with peer ID `$SERVER_ID` and running ssh server on the
-   default port.
+1. A "server" node with peer ID `$SERVER_ID` and running ssh server on the default port.
 2. A "client" node.
 
 _you can get `$SERVER_ID` by running `ipfs id -f "<id>\n"`_
 
 ***First, on the "server" node:***
 
-```sh
-ipfs p2p listen /x/ssh /ip4/127.0.0.1/tcp/22
+```bash
+$ ipfs p2p listen /x/ssh /ip4/127.0.0.1/tcp/22
 ```
 
 ***Then, on "client" node:***
 
-```sh
-ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /p2p/$SERVER_ID
+```bash
+$ ipfs p2p forward /x/ssh /ip4/127.0.0.1/tcp/2222 /p2p/$SERVER_ID
 ```
 
-You should now be able to connect to your ssh server through a libp2p connection
-with `ssh [user]@127.0.0.1 -p 2222`.
+You should now be able to connect to your ssh server through a libp2p connection with `ssh [user]@127.0.0.1 -p 2222`.
 
 
 ### Road to being a real feature
@@ -311,23 +282,21 @@ Experimental
 
 The `p2p` command needs to be enabled in the config:
 
-```sh
-> ipfs config --json Experimental.Libp2pStreamMounting true
+```bash
+$ ipfs config --json Experimental.Libp2pStreamMounting true
 ```
 
 On the client, the p2p HTTP proxy needs to be enabled in the config:
 
-```sh
-> ipfs config --json Experimental.P2pHttpProxy true
+```bash
+$ ipfs config --json Experimental.P2pHttpProxy true
 ```
 
 ### How to use
 
 **Netcat example:**
 
-First, pick a protocol name for your application. Think of the protocol name as
-a port number, just significantly more user-friendly. In this example, we're
-going to use `/http`.
+First, pick a protocol name for your application. Think of the protocol name as a port number, just significantly more user-friendly. In this example, we're going to use `/http`.
 
 ***Setup:***
 
@@ -336,32 +305,28 @@ going to use `/http`.
 
 ***On the "server" node:***
 
-First, start your application and have it listen for TCP connections on
-port `$APP_PORT`.
+First, start your application and have it listen for TCP connections on port `$APP_PORT`.
 
 Then, configure the p2p listener by running:
 
-```sh
-> ipfs p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$APP_PORT
+```bash
+$ ipfs p2p listen --allow-custom-protocol /http /ip4/127.0.0.1/tcp/$APP_PORT
 ```
 
-This will configure IPFS to forward all incoming `/http` streams to
-`127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per incoming stream.
+This will configure IPFS to forward all incoming `/http` streams to `127.0.0.1:$APP_PORT` (opening a new connection to `127.0.0.1:$APP_PORT` per incoming stream.
 
 ***On the "client" node:***
 
-Next, have your application make a http request to `127.0.0.1:8080/p2p/$SERVER_ID/http/$FORWARDED_PATH`. This
-connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on
-the remote machine (which needs to be a http server!) with path `$FORWARDED_PATH`. You can test it with netcat:
+Next, have your application make a HTTP request to `127.0.0.1:8080/p2p/$SERVER_ID/http/$FORWARDED_PATH`. This connection will be forwarded to the service running on `127.0.0.1:$APP_PORT` on the remote machine (which needs to be an http server!) with path `$FORWARDED_PATH`. You can test it with netcat:
 
 ***On "server" node:***
-```sh
-> echo -e "HTTP/1.1 200\nContent-length: 11\n\nIPFS rocks!" | nc -l -p $APP_PORT
+```bash
+$ echo -e "HTTP/1.1 200\nContent-length: 11\n\nIPFS rocks!" | nc -l -p $APP_PORT
 ```
 
 ***On "client" node:***
-```sh
-> curl http://localhost:8080/p2p/$SERVER_ID/http/
+```bash
+$ curl http://localhost:8080/p2p/$SERVER_ID/http/
 ```
 
 You should now see the resulting HTTP response: IPFS rocks!
@@ -373,7 +338,7 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 ### Road to being a real feature
 
 - [ ] Needs p2p streams to graduate from experiments
-- [ ] Needs more people to use and report on how well it works / fits use cases
+- [ ] Needs more people to use and report on how well it works/fits use cases
 - [ ] More documentation
 - [ ] Need better integration with the subdomain gateway feature.
 
@@ -410,12 +375,12 @@ Allows creating directories with an unlimited number of entries.
 
 **Caveats:**
 1. right now it is a GLOBAL FLAG which will impact the final CID of all directories produced by `ipfs.add` (even the small ones)
-2. currently size of unixfs directories is limited by the maximum block size
+2. currently the size of unixfs directories is limited by the maximum block size
 
 ### Basic Usage:
 
-```
-ipfs config --json Experimental.ShardingEnabled true
+```bash
+$ ipfs config --json Experimental.ShardingEnabled true
 ```
 
 ### Road to being a real feature
@@ -430,7 +395,7 @@ ipfs config --json Experimental.ShardingEnabled true
 0.4.14 :
   - Introduced
 
-0.5.0 : 
+0.5.0 :
    - No longer needs to use the DHT for the first resolution
    - When discovering PubSub peers via the DHT, the DHT key is different from previous versions
       - This leads to 0.5 IPNS pubsub peers and 0.4 IPNS pubsub peers not being able to find each other in the DHT
@@ -440,14 +405,11 @@ ipfs config --json Experimental.ShardingEnabled true
 
 Experimental, default-disabled.
 
-Utilizes pubsub for publishing ipns records in real time.
+Utilizes pubsub for publishing ipns records in real-time.
 
 When it is enabled:
-- IPNS publishers push records to a name-specific pubsub topic,
-  in addition to publishing to the DHT.
-- IPNS resolvers subscribe to the name-specific topic on first
-  resolution and receive subsequently published records through pubsub in real time.
-  This makes subsequent resolutions instant, as they are resolved through the local cache.
+- IPNS publishers push records to a name-specific pubsub topic, in addition to publishing to the DHT.
+- IPNS resolvers subscribe to the name-specific topic on the first resolution and receive subsequently published records through pubsub in real-time. This makes subsequent resolutions instant, as they are resolved through the local cache.
 
 Both the publisher and the resolver nodes need to have the feature enabled for it to work effectively.
 
@@ -479,9 +441,9 @@ Automatically discovers relays and advertises relay addresses when the node is b
 
 Modify your ipfs config:
 
-```
-ipfs config --json Swarm.EnableRelayHop false
-ipfs config --json Swarm.EnableAutoRelay true
+```bash
+$ ipfs config --json Swarm.EnableRelayHop false
+$ ipfs config --json Swarm.EnableAutoRelay true
 ```
 
 NOTE: Ensuring `Swarm.EnableRelayHop` is _false_ is extremely important here. If you set it to true, you will _act_ as a public relay for the rest of the network instead of _using_ the public relays.
@@ -502,8 +464,8 @@ Replaces the existing provide mechanism with a robust, strategic provider system
 
 Modify your ipfs config:
 
-```
-ipfs config --json Experimental.StrategicProviding true
+```bash
+$ ipfs config --json Experimental.StrategicProviding true
 ```
 
 ### Road to being a real feature
@@ -515,25 +477,23 @@ ipfs config --json Experimental.StrategicProviding true
     - [ ] provide roots
     - [ ] provide all
     - [ ] provide strategic
-    
+
 ## GraphSync
 
 ### State
 
 Experimental, disabled by default.
 
-[GraphSync](https://github.com/ipfs/go-graphsync) is the next-gen graph exchange
-protocol for IPFS.
+[GraphSync](https://github.com/ipfs/go-graphsync) is the next-gen graph exchange protocol for IPFS.
 
-When this feature is enabled, IPFS will make files available over the graphsync
-protocol. However, IPFS will not currently use this protocol to _fetch_ files.
+When this feature is enabled, IPFS will make files available over the graphsync protocol. However, IPFS will not currently use this protocol to _fetch_ files.
 
 ### How to enable
 
 Modify your ipfs config:
 
-```
-ipfs config --json Experimental.GraphsyncEnabled true
+```bash
+$ ipfs config --json Experimental.GraphsyncEnabled true
 ```
 
 ### Road to being a real feature
@@ -552,15 +512,15 @@ Experimental, enabled by default
 
 While the Noise transport is now shipped and enabled by default in go-ipfs, it won't be used by default for most connections because TLS and SECIO are currently preferred. If you'd like to test out the Noise transport, you can increase the priority of the noise transport:
 
-```
-ipfs config --json Swarm.Transports.Security.Noise 1
+```bash
+$ ipfs config --json Swarm.Transports.Security.Noise 1
 ```
 
 Or even disable TLS and/or SECIO (not recommended for the moment):
 
-```
-ipfs config --json Swarm.Transports.Security.TLS false
-ipfs config --json Swarm.Transports.Security.SECIO false
+```bash
+$ ipfs config --json Swarm.Transports.Security.TLS false
+$ ipfs config --json Swarm.Transports.Security.SECIO false
 ```
 
 ### Road to being a real feature

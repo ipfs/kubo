@@ -17,7 +17,7 @@ Otherwise, check out the following guides to using and developing IPFS:
 ## Guides
 
 - [How to Implement an API Client](implement-api-bindings.md)
-- [Connecting with Websockets](transports.md) — if you want `js-ipfs` nodes in web browsers to connect to your `go-ipfs` node, you will need to turn on websocket support in your `go-ipfs` node.
+- [Connecting with Websockets](transports.md) — if you want `js-ipfs` nodes in web browsers to connect to your `go-ipfs` node, you will need to turn on WebSocket support in your `go-ipfs` node.
 
 ## Advanced User Guides
 

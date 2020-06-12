@@ -2,9 +2,7 @@
 
 ## `LIBP2P_TCP_REUSEPORT` (`IPFS_REUSEPORT`)
 
-go-ipfs tries to reuse the same source port for all connections to improve NAT
-traversal. If this is an issue, you can disable it by setting
-`LIBP2P_TCP_REUSEPORT` to false.
+go-ipfs tries to reuse the same source port for all connections to improve NAT traversal. If this is an issue, you can disable it by setting `LIBP2P_TCP_REUSEPORT` to false.
 
 This variable was previously `IPFS_REUSEPORT`.
 
@@ -12,8 +10,7 @@ Default: true
 
 ## `IPFS_PATH`
 
-Sets the location of the IPFS repo (where the config, blocks, etc.
-are stored).
+Sets the location of the IPFS repo (where the config, blocks, etc. are stored).
 
 Default: ~/.ipfs
 
@@ -28,8 +25,7 @@ Sets the log level for go-ipfs. It can be set to one of:
 * `INFO`
 * `DEBUG`
 
-Logging can also be configured (on a subsystem by subsystem basis) at runtime
-with the `ipfs log` command.
+Logging can also be configured (on a subsystem by subsystem basis) at runtime with the `ipfs log` command.
 
 Default: `ERROR`
 
@@ -48,11 +44,9 @@ Sets the file to which go-ipfs logs. By default, go-ipfs logs to standard error.
 
 ## `GOLOG_TRACING_FILE`
 
-Sets the file to which go-ipfs sends tracing events. By default, tracing is
-disabled.
+Sets the file to which go-ipfs sends tracing events. By default, tracing is disabled.
 
-This log can be read at runtime (without writing it to a file) using the `ipfs
-log tail` command.
+This log can be read at runtime (without writing it to a file) using the `ipfs log tail` command.
 
 Warning: Enabling tracing will likely affect performance.
 
@@ -70,26 +64,23 @@ Default: false
 
 ## `IPFS_FD_MAX`
 
-Sets the file descriptor limit for go-ipfs. If go-ipfs fails to set the file
-descriptor limit, it will log an error.
+Sets the file descriptor limit for go-ipfs. If go-ipfs fails to set the file descriptor limit, it will log an error.
 
 Defaults: 2048
 
 ## `IPFS_DIST_PATH`
 
-URL from which go-ipfs fetches repo migrations (when the daemon is launched with
-the `--migrate` flag).
+URL from which go-ipfs fetches repo migrations (when the daemon is launched with the `--migrate` flag).
 
 Default: https://ipfs.io/ipfs/$something (depends on the IPFS version)
 
 ## `IPFS_NS_MAP`
 
-Adds static namesys records for deterministic tests and debugging.
-Useful for testing things like DNSLink without real DNS lookup.
+Adds static namesys records for deterministic tests and debugging. Useful for testing things like DNSLink without real DNS lookup.
 
 Example:
 
-```console
+```bash
 $ IPFS_NS_MAP="dnslink-test1.example.com:/ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am,dnslink-test2.example.com:/ipns/dnslink-test1.example.com" ipfs daemon
 ...
 $ ipfs resolve -r /ipns/dnslink-test2.example.com

@@ -16,9 +16,9 @@
 
 ## Release Philosophy
 
-`go-ipfs` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages that gives us the opportunity to test the new version against our test environments (unit, interop, integration), QA in our current production environment, IPFS apps (e.g. Desktop and WebUI) and with our community and _early testers_<sup>[1]</sup> that have IPFS running in production.
+`go-ipfs` aims to have a release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages that allow us to test the new version against our test environments (unit, interop, integration), QA in our current production environment, IPFS apps (e.g. Desktop and WebUI) and with our community and _early testers_<sup>[1]</sup> that have IPFS running in production.
 
-We might expand the six week release schedule in case of:
+We might expand the six-week release schedule in case of:
 
 - No new updates to be added
 - In case of a large community event that takes the core team availability away (e.g. IPFS Conf, Dev Meetings, IPFS Camp, etc.)
@@ -43,7 +43,7 @@ At this stage, we'll:
 **Goals:**
 
 1. Make sure we haven't introduced any obvious regressions.
-2. Test the release in an environment we can monitor and easily roll back (i.e. our own infra).
+2. Test the release in an environment we can monitor and easily rollback (i.e. on our infra).
 
 ### Stage 2 - Community Dev Testing
 
@@ -55,7 +55,7 @@ Test the release in as many non-production environments as possible. This is rel
 
 ### Stage 3 - Community Prod Testing
 
-At this stage, we consider the release to be "production ready" and will ask the community and our early testers to (partially) deploy the release to their production infrastructure.
+At this stage, we consider the release to be "production-ready" and will ask the community and our early testers to (partially) deploy the release to their production infrastructure.
 
 **Goals:**
 
@@ -65,7 +65,7 @@ At this stage, we consider the release to be "production ready" and will ask the
 
 ### Stage 4 - Release
 
-At this stage, the release is "battle hardened" and ready for wide deployment.
+At this stage, the release is "battle-hardened" and ready for wide deployment.
 
 ## Release Cycle
 
