@@ -745,14 +745,27 @@ Peering can be asymmetric or symmetric:
 
 #### `Peering.Peers`
 
-The set of peers with which to peer. Each entry is of the form:
+The set of peers with which to peer.
 
-```js
+```json
 {
-  "ID": "QmSomePeerID", # The peers ID.
-  "Addrs": ["/ip4/1.2.3.4/tcp/1234"] # Known addresses for the peer. If none are specified, the DHT will be queried.
+  "Peering": {
+    "Peers": [
+      {
+        "ID": "QmPeerID1",
+        "Addrs": ["/ip4/18.1.1.1/tcp/4001"]
+      },
+      {
+        "ID": "QmPeerID2",
+        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic"]
+      }
+    ]
+  }
+  ...
 }
 ```
+
+Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the DHT will be queried.
 
 Additional fields may be added in the future.
 
