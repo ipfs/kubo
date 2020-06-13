@@ -6,6 +6,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
+	dag "github.com/ipfs/go-merkledag"
 )
 
 type dagAPI struct {
@@ -50,3 +51,12 @@ func (adder *pinningAdder) AddMany(ctx context.Context, nds []ipld.Node) error {
 func (api *dagAPI) Pinning() ipld.NodeAdder {
 	return (*pinningAdder)(api.core)
 }
+
+func (api *dagAPI) Session(ctx context.Context) ipld.NodeGetter {
+	return dag.NewSession(ctx, api.DAGService)
+}
+
+var (
+	_ ipld.DAGService  = (*dagAPI)(nil)
+	_ dag.SessionMaker = (*dagAPI)(nil)
+)

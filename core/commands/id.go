@@ -154,7 +154,13 @@ func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 		info.PublicKey = base64.StdEncoding.EncodeToString(pkb)
 	}
 
-	for _, a := range ps.Addrs(p) {
+	addrInfo := ps.PeerInfo(p)
+	addrs, err := peer.AddrInfoToP2pAddrs(&addrInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range addrs {
 		info.Addresses = append(info.Addresses, a.String())
 	}
 
