@@ -83,3 +83,102 @@ func TestFunkyStrings(t *testing.T) {
 		t.Fatalf("unexpected result: %v", s)
 	}
 }
+
+func TestFlag(t *testing.T) {
+	// make sure we have the right zero value.
+	var defaultFlag Flag
+	if defaultFlag != Default {
+		t.Errorf("expected default flag to be %q, got %q", Default, defaultFlag)
+	}
+
+	for jsonStr, goValue := range map[string]Flag{
+		"null":  Default,
+		"true":  True,
+		"false": False,
+	} {
+		var d Flag
+		err := json.Unmarshal([]byte(jsonStr), &d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d != goValue {
+			t.Fatalf("expected %s, got %s", goValue, d)
+		}
+
+		// Reverse
+		out, err := json.Marshal(goValue)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(out) != jsonStr {
+			t.Fatalf("expected %s, got %s", jsonStr, string(out))
+		}
+	}
+
+	type Foo struct {
+		F Flag `json:",omitempty"`
+	}
+	out, err := json.Marshal(new(Foo))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "{}"
+	if string(out) != expected {
+		t.Fatal("expected omitempty to omit the flag")
+	}
+}
+
+func TestPriority(t *testing.T) {
+	// make sure we have the right zero value.
+	var defaultPriority Priority
+	if defaultPriority != DefaultPriority {
+		t.Errorf("expected default priority to be %q, got %q", DefaultPriority, defaultPriority)
+	}
+
+	for jsonStr, goValue := range map[string]Priority{
+		"null":  DefaultPriority,
+		"false": Disabled,
+		"1":     1,
+		"2":     2,
+		"100":   100,
+	} {
+		var d Priority
+		err := json.Unmarshal([]byte(jsonStr), &d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if d != goValue {
+			t.Fatalf("expected %s, got %s", goValue, d)
+		}
+
+		// Reverse
+		out, err := json.Marshal(goValue)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(out) != jsonStr {
+			t.Fatalf("expected %s, got %s", jsonStr, string(out))
+		}
+	}
+
+	type Foo struct {
+		P Priority `json:",omitempty"`
+	}
+	out, err := json.Marshal(new(Foo))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "{}"
+	if string(out) != expected {
+		t.Fatal("expected omitempty to omit the flag")
+	}
+	for _, invalid := range []string{
+		"0", "-1", "-2", "1.1", "0.0",
+	} {
+		var p Priority
+		err := json.Unmarshal([]byte(invalid), &p)
+		if err == nil {
+			t.Errorf("expected to fail to decode %s as a priority", invalid)
+		}
+	}
+}

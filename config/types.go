@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding"
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -41,6 +43,128 @@ func (o Strings) MarshalJSON() ([]byte, error) {
 var _ json.Unmarshaler = (*Strings)(nil)
 var _ json.Marshaler = (*Strings)(nil)
 
+// Flag represents a ternary value: false (-1), default (0), or true (+1).
+//
+// When encoded in json, False is "false", Default is "null" (or empty), and True
+// is "true".
+type Flag int8
+
+const (
+	False   Flag = -1
+	Default Flag = 0
+	True    Flag = 1
+)
+
+func (f Flag) MarshalJSON() ([]byte, error) {
+	switch f {
+	case Default:
+		return json.Marshal(nil)
+	case True:
+		return json.Marshal(true)
+	case False:
+		return json.Marshal(false)
+	default:
+		return nil, fmt.Errorf("invalid flag value: %d", f)
+	}
+}
+
+func (f *Flag) UnmarshalJSON(input []byte) error {
+	switch string(input) {
+	case "null", "undefined":
+		*f = Default
+	case "false":
+		*f = False
+	case "true":
+		*f = True
+	default:
+		return fmt.Errorf("failed to unmarshal %q into a flag: must be null/undefined, true, or false", string(input))
+	}
+	return nil
+}
+
+func (f Flag) String() string {
+	switch f {
+	case Default:
+		return "default"
+	case True:
+		return "true"
+	case False:
+		return "false"
+	default:
+		return fmt.Sprintf("<invalid flag value %d>", f)
+	}
+}
+
+var _ json.Unmarshaler = (*Flag)(nil)
+var _ json.Marshaler = (*Flag)(nil)
+
+// Priority represents a value with a priority where 0 means "default" and -11
+// means "disabled".
+//
+// When encoded in json, Default is encoded as "null" and Disabled is encoded as
+// "false".
+type Priority int64
+
+const (
+	DefaultPriority Priority = 0
+	Disabled        Priority = -1
+)
+
+func (p Priority) MarshalJSON() ([]byte, error) {
+	// > 0 == Priority
+	if p > 0 {
+		return json.Marshal(int64(p))
+	}
+	// <= 0 == special
+	switch p {
+	case DefaultPriority:
+		return json.Marshal(nil)
+	case Disabled:
+		return json.Marshal(false)
+	default:
+		return nil, fmt.Errorf("invalid priority value: %d", p)
+	}
+}
+
+func (p *Priority) UnmarshalJSON(input []byte) error {
+	switch string(input) {
+	case "null", "undefined":
+		*p = DefaultPriority
+	case "false":
+		*p = Disabled
+	case "true":
+		return fmt.Errorf("'true' is not a valid priority")
+	default:
+		var priority int64
+		err := json.Unmarshal(input, &priority)
+		if err != nil {
+			return err
+		}
+		if priority <= 0 {
+			return fmt.Errorf("priority must be positive: %d <= 0", priority)
+		}
+		*p = Priority(priority)
+	}
+	return nil
+}
+
+func (p Priority) String() string {
+	if p > 0 {
+		return fmt.Sprintf("%d", p)
+	}
+	switch p {
+	case DefaultPriority:
+		return "default"
+	case Disabled:
+		return "false"
+	default:
+		return fmt.Sprintf("<invalid priority %d>", p)
+	}
+}
+
+var _ json.Unmarshaler = (*Flag)(nil)
+var _ json.Marshaler = (*Flag)(nil)
+
 // Duration wraps time.Duration to provide json serialization and deserialization.
 //
 // NOTE: the zero value encodes to an empty string.
@@ -59,3 +183,6 @@ func (d Duration) MarshalText() ([]byte, error) {
 func (d Duration) String() string {
 	return time.Duration(d).String()
 }
+
+var _ encoding.TextUnmarshaler = (*Duration)(nil)
+var _ encoding.TextMarshaler = (*Duration)(nil)
