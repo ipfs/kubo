@@ -6,12 +6,13 @@ export GO111MODULE=on
 # pre-definitions
 GOCC ?= go
 GOTAGS ?=
-unexport GOFLAGS
-GOFLAGS ?=
 GOTFLAGS ?=
 
+# Unexport GOFLAGS so we only apply it where we actually want it.
+unexport GOFLAGS
 # Try to make building as reproducible as possible by stripping the go path.
-GOFLAGS += "-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
+# Override so we can combine with the user's go flags.
+override GOFLAGS += -trimpath
 
 ifeq ($(tarball-is),1)
 	GOFLAGS += -mod=vendor
