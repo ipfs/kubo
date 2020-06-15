@@ -37,8 +37,20 @@ If you hit this performance issue on Linux, you should tune the `net.core.rmem_d
 
 #### Gateway
 
-* Base36 support.
-* 404 pages
+##### Custom 404
+
+It is now possible to customize `404 Not Found` error response by including `ipfs-404.html`. When a requested file isn't found `ipfs-404.html` is looked for in the same directory, rolling up through any of its parents, and displayed (without immutable cache headers) if present.
+
+##### Support for Base36 and ED25519 in subdomains
+
+DNS label has a maximum length of 63 characters. This was a problem for users who opted into using inlined ED25519 keys for IPNS publishing. Support for CIDv1 in Base36 enables subdomain gateway to load websites published with those keys without the need for re-hashing.
+
+ED25519 key can be converted to Base36 via `ipfs cid` command:
+
+```sh
+$ ipfs cid format -v 1 --codec libp2p-key -b base36 bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk
+k51qzi5uqu5dj16qyiq0tajolkojyl9qdkr254920wxv7ghtuwcz593tp69z9m
+```
 
 #### Gossipsub Upgrade
 
