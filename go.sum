@@ -653,6 +653,8 @@ github.com/libp2p/go-libp2p-kad-dht v0.8.2-0.20200615173108-8bb594d29cd9 h1:8JY/
 github.com/libp2p/go-libp2p-kad-dht v0.8.2-0.20200615173108-8bb594d29cd9/go.mod h1:EMTHVtp92SP1Wi/4zpyAIp/FwLpjRRemmo15BEAr4CI=
 github.com/libp2p/go-libp2p-kbucket v0.4.6 h1:09hF4woC+3ZNl3k5flPErUV5pXKq34LBhvupjn4qjW4=
 github.com/libp2p/go-libp2p-kbucket v0.4.6/go.mod h1:12pr3Yg2qtBdwRjffaGJTa995rrMQxBk5a+KncHqTn4=
+github.com/libp2p/go-libp2p-kbucket v0.4.7-0.20200615215750-f25026fe950b h1:LyIOis/vDYY5B8ozbxqSWW31AmKsacqpF8TenYwWGiI=
+github.com/libp2p/go-libp2p-kbucket v0.4.7-0.20200615215750-f25026fe950b/go.mod h1:12pr3Yg2qtBdwRjffaGJTa995rrMQxBk5a+KncHqTn4=
 github.com/libp2p/go-libp2p-loggables v0.0.1/go.mod h1:lDipDlBNYbpyqyPX/KcoO+eq0sJYEVR2JgOexcivchg=
 github.com/libp2p/go-libp2p-loggables v0.1.0 h1:h3w8QFfCt2UJl/0/NW4K829HX/0S4KD31PQ7m8UXXO8=
 github.com/libp2p/go-libp2p-loggables v0.1.0/go.mod h1:EyumB2Y6PrYjr55Q3/tiJ/o3xoDasoRYM7nOzEpoa90=

@@ -67,7 +67,7 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.4.0
 	github.com/libp2p/go-libp2p-http v0.1.5
 	github.com/libp2p/go-libp2p-kad-dht v0.8.2-0.20200615173108-8bb594d29cd9
-	github.com/libp2p/go-libp2p-kbucket v0.4.6
+	github.com/libp2p/go-libp2p-kbucket v0.4.7-0.20200615215750-f25026fe950b
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.2.3
 	github.com/libp2p/go-libp2p-noise v0.1.1
