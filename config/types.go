@@ -84,7 +84,7 @@ func (f Flag) MarshalJSON() ([]byte, error) {
 
 func (f *Flag) UnmarshalJSON(input []byte) error {
 	switch string(input) {
-	case "null", "undefined":
+	case "null":
 		*f = Default
 	case "false":
 		*f = False
