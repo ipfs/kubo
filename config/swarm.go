@@ -61,7 +61,7 @@ type Transports struct {
 
 	// Multiplexers specifies the transports used to multiplex multiple
 	// connections over a single duplex connection.
-	Multiplex struct {
+	Multiplexers struct {
 		// Defaults to 100.
 		Yamux Priority `json:",omitempty"`
 		// Defaults to 200.
