@@ -111,7 +111,7 @@ func (f Flag) String() string {
 var _ json.Unmarshaler = (*Flag)(nil)
 var _ json.Marshaler = (*Flag)(nil)
 
-// Priority represents a value with a priority where 0 means "default" and -11
+// Priority represents a value with a priority where 0 means "default" and -1
 // means "disabled".
 //
 // When encoded in json, Default is encoded as "null" and Disabled is encoded as
