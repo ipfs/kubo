@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"text/tabwriter"
 	"time"
 
@@ -21,6 +22,8 @@ type dhtPeerInfo struct {
 	AgentVersion  string
 	LastUsefulAt  string
 	LastQueriedAt string
+	AddedAt       string
+	Replaceable   bool
 }
 
 type dhtStat struct {
@@ -109,6 +112,14 @@ This interface is not stable and may change from release to release.
 					info.LastQueriedAt = pi.LastSuccessfulOutboundQueryAt.Format(time.RFC3339)
 				}
 
+				if !pi.AddedAt.IsZero() {
+					info.AddedAt = pi.AddedAt.Format(time.RFC3339)
+				}
+
+				v := reflect.ValueOf(pi)
+				r := v.FieldByName("replaceable")
+				info.Replaceable = r.Bool()
+
 				info.Connected = nd.PeerHost.Network().Connectedness(pi.Id) == network.Connected
 
 				buckets[cpl].Peers = append(buckets[cpl].Peers, info)
@@ -158,7 +169,7 @@ This interface is not stable and may change from release to release.
 					lastRefresh = since(t)
 				}
 				fmt.Fprintf(tw, "  Bucket %2d (%d peers) - refreshed %s:\t\t\t\n", i, len(bucket.Peers), lastRefresh)
-				fmt.Fprintln(tw, "    Peer\tlast useful\tlast queried\tAgent Version")
+				fmt.Fprintln(tw, "    Peer\tlast useful\tlast queried\tAgent Version\tadded\treplaceable")
 
 				for _, p := range bucket.Peers {
 					lastUseful := "never"
@@ -179,11 +190,20 @@ This interface is not stable and may change from release to release.
 						lastQueried = since(t)
 					}
 
+					addedAt := "never"
+					if p.AddedAt != "" {
+						t, err := time.Parse(time.RFC3339, p.AddedAt)
+						if err != nil {
+							return err
+						}
+						addedAt = since(t)
+					}
+
 					state := " "
 					if p.Connected {
 						state = "@"
 					}
-					fmt.Fprintf(tw, "  %s %s\t%s\t%s\t%s\n", state, p.ID, lastUseful, lastQueried, p.AgentVersion)
+					fmt.Fprintf(tw, "  %s %s\t%s\t%s\t%s\t%s\t%v\n", state, p.ID, lastUseful, lastQueried, p.AgentVersion, addedAt, p.Replaceable)
 				}
 				fmt.Fprintln(tw, "\t\t\t")
 			}
