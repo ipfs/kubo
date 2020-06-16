@@ -27,7 +27,8 @@ type SwarmConfig struct {
 	//
 	// When both EnableAutoRelay and EnableRelayHop are set, this go-ipfs node
 	// will advertise itself as a public relay. Otherwise it will find and use
-	// advertised public relays.
+	// advertised public relays when it determines that it's not reachable
+	// from the public internet.
 	EnableAutoRelay bool
 
 	// Transports contains flags to enable/disable libp2p transports.
