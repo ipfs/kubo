@@ -12,10 +12,15 @@ reverse HTTP proxy (usually NGINX). You may need a reverse proxy to:
 * Block content.
 * Rate limit and timeout requests.
 * Apply QoS rules (e.g., prioritize traffic for certain important IPFS resources).
-* Expose a limited subset of the HTTP API.
 
 This document contains a collection of tips, tricks, and pitfalls when running a
 go-ipfs node behind a reverse HTTP proxy.
+
+**WARNING:** Due to
+[nginx#1293](https://trac.nginx.org/nginx/ticket/1293)/[go-ipfs#6402](https://github.com/ipfs/go-ipfs/issues/6402),
+parts of the go-ipfs API will not work correctly behind an NGINX reverse proxy
+as go-ipfs starts sending back a response before it finishes reading the request
+body. The gateway itself is unaffected.
 
 ## Peering
 
@@ -44,38 +49,6 @@ you run out of space, instead of garbage collecting.
 
 This will effectively "garbage collect" without actually running the garbage
 collector.
-
-# Buffering Requests & Responses
-
-In general, requests to the gateway should be buffered by the reverse proxy for
-the best performance. This is usually enabled by default (`proxy_request_buffering`).
-
-## API
-
-The go-ipfs HTTP API (`/api/...`) starts sending a response before it's done
-reading the request. This allows it to, e.g., send back progress updates while
-adding a file to go-ipfs.
-
-However, these progress updates won't work if the HTTP reverse proxy is
-configured to buffer requests. While requests to the go-ipfs _gateway_ should
-usually be buffered for better performance, requests to the go-ipfs API should
-generally not be buffered.
-
-In NGINX, you can turn off buffering for the API with:
-
-```nginx
-server {
-  ...
-  location /api {
-    ...
-    proxy_request_buffering off;
-    proxy_buffering off;
-    proxy_http_version 1.1;
-  }
-}
-```
-
-See: https://github.com/ipfs/go-ipfs/issues/6402#issuecomment-643025868
 
 # Content Blocking
 
