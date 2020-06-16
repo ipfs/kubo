@@ -55,6 +55,7 @@ const (
 	True    Flag = 1
 )
 
+// WithDefault resolves the value of the flag given the provided default value.
 func (f Flag) WithDefault(defaultValue bool) bool {
 	switch f {
 	case False:
