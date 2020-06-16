@@ -25,8 +25,8 @@ type SwarmConfig struct {
 
 	// EnableAutoRelay enables the "auto relay" feature.
 	//
-	// When both EnableAutoRelay and RelayHop are set, this go-ipfs node
-	// will advertise itself as a public relay, instead of finding and using
+	// When both EnableAutoRelay and EnableRelayHop are set, this go-ipfs node
+	// will advertise itself as a public relay. Otherwise it will find and use
 	// advertised public relays.
 	EnableAutoRelay bool
 
