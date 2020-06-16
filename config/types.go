@@ -55,6 +55,19 @@ const (
 	True    Flag = 1
 )
 
+func (f Flag) WithDefault(defaultValue bool) bool {
+	switch f {
+	case False:
+		return false
+	case Default:
+		return defaultValue
+	case True:
+		return true
+	default:
+		panic(fmt.Sprintf("invalid flag value %d", f))
+	}
+}
+
 func (f Flag) MarshalJSON() ([]byte, error) {
 	switch f {
 	case Default:
@@ -109,6 +122,23 @@ const (
 	DefaultPriority Priority = 0
 	Disabled        Priority = -1
 )
+
+// WithDefault resolves the priority with the given default.
+//
+// If `defaultPriority` is Default/0, this function will return 0.
+func (p Priority) WithDefault(defaultPriority Priority) (priority int64, enabled bool) {
+	switch p {
+	case Disabled:
+		return 0, false
+	case DefaultPriority:
+		if defaultPriority < 0 {
+			return 0, false
+		}
+		return int64(defaultPriority), true
+	default:
+		return int64(p), true
+	}
+}
 
 func (p Priority) MarshalJSON() ([]byte, error) {
 	// > 0 == Priority

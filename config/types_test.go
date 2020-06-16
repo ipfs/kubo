@@ -91,6 +91,30 @@ func TestFlag(t *testing.T) {
 		t.Errorf("expected default flag to be %q, got %q", Default, defaultFlag)
 	}
 
+	if defaultFlag.WithDefault(true) != true {
+		t.Error("expected default & true to be true")
+	}
+
+	if defaultFlag.WithDefault(false) != false {
+		t.Error("expected default & false to be false")
+	}
+
+	if True.WithDefault(false) != true {
+		t.Error("default should only apply to default")
+	}
+
+	if False.WithDefault(true) != false {
+		t.Error("default should only apply to default")
+	}
+
+	if True.WithDefault(true) != true {
+		t.Error("true & true is true")
+	}
+
+	if False.WithDefault(true) != false {
+		t.Error("false & false is false")
+	}
+
 	for jsonStr, goValue := range map[string]Flag{
 		"null":  Default,
 		"true":  True,
@@ -133,6 +157,18 @@ func TestPriority(t *testing.T) {
 	var defaultPriority Priority
 	if defaultPriority != DefaultPriority {
 		t.Errorf("expected default priority to be %q, got %q", DefaultPriority, defaultPriority)
+	}
+
+	if _, ok := defaultPriority.WithDefault(Disabled); ok {
+		t.Error("should have been disabled")
+	}
+
+	if p, ok := defaultPriority.WithDefault(1); !ok || p != 1 {
+		t.Errorf("priority should have been 1, got %d", p)
+	}
+
+	if p, ok := defaultPriority.WithDefault(DefaultPriority); !ok || p != 0 {
+		t.Errorf("priority should have been 0, got %d", p)
 	}
 
 	for jsonStr, goValue := range map[string]Priority{
