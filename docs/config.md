@@ -216,7 +216,7 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/5001`
 
-Type: `strings`
+Type: `strings` (multiaddrs)
 
 ### `Addresses.Gateway`
 
@@ -230,7 +230,7 @@ Supported Transports:
 
 Default: `/ip4/127.0.0.1/tcp/8080`
 
-Type: `strings`
+Type: `strings` (multiaddrs)
 
 ### `Addresses.Swarm`
 
@@ -253,7 +253,7 @@ Default:
 ]
 ```
 
-Type: `array[string]`
+Type: `array[string]` (multiaddrs)
 
 ### `Addresses.Announce`
 
@@ -262,14 +262,14 @@ network. If empty, the daemon will announce inferred swarm addresses.
 
 Default: `[]`
 
-Type: `array[string]`
+Type: `array[string]` (multiaddrs)
 
 ### `Addresses.NoAnnounce`
 Array of swarm addresses not to announce to the network.
 
 Default: `[]`
 
-Type: `array[string]`
+Type: `array[string]` (multiaddrs)
 
 ## `API`
 Contains information used by the API gateway.
@@ -286,7 +286,7 @@ Example:
 
 Default: `null`
 
-Type: `object[string -> array[string]]`
+Type: `object[string -> array[string]]` (header names -> array of header values)
 
 ## `AutoNAT`
 
@@ -305,7 +305,7 @@ field can take one of two values:
 
 Additional modes may be added in the future.
 
-Type: `string` (can only be "enabled" and "disabled")
+Type: `string` (one of `"enabled"` or `"disabled"`)
 
 ### `AutoNAT.Throttle`
 
@@ -319,7 +319,7 @@ Configures how many AutoNAT requests to service per `AutoNAT.Throttle.Interval`.
 
 Default: 30
 
-Type: `integer`
+Type: `integer` (non-negative, `0` means unlimited)
 
 ### `AutoNAT.Throttle.PeerLimit`
 
@@ -327,7 +327,7 @@ Configures how many AutoNAT requests per-peer to service per `AutoNAT.Throttle.I
 
 Default: 3
 
-Type: `integer`
+Type: `integer` (non-negative, `0` means unlimited)
 
 ### `AutoNAT.Throttle.Interval`
 
@@ -335,7 +335,7 @@ Configures the interval for the above limits.
 
 Default: 1 Minute
 
-Type: `duration`
+Type: `duration` (when `0`/unset, the default value is used)
 
 ## `Bootstrap`
 
@@ -344,7 +344,7 @@ initiate a connection to the network.
 
 Default: The ipfs.io bootstrap nodes
 
-Type: `array[string]`
+Type: `array[string]` (multiaddrs)
 
 ## `Datastore`
 
@@ -368,7 +368,7 @@ option defaults to false currently).
 
 Default: `90`
 
-Type: `integer`
+Type: `integer` (0-100%)
 
 ### `Datastore.GCPeriod`
 
@@ -377,7 +377,7 @@ if automatic gc is enabled.
 
 Default: `1h`
 
-Type: `duration` or an empty string for the default value.
+Type: `duration` (an empty string means the default value)
 
 ### `Datastore.HashOnRead`
 
@@ -406,7 +406,7 @@ are used, so the constant `k` is 7 in the formula.
 
 Default: `0` (disabled)
 
-Type: `integer`
+Type: `integer` (non-negative, bytes)
 
 ### `Datastore.Spec`
 
@@ -474,7 +474,9 @@ Type: `bool`
 
 A number of seconds to wait between discovery checks.
 
-Type: `integer` (_not_ a duration)
+Default: `5`
+
+Type: `integer` (integer seconds, 0 means the default)
 
 ## `Gateway`
 
@@ -526,7 +528,7 @@ A url to redirect requests for `/` to.
 
 Default: `""`
 
-Type: `string`
+Type: `string` (url)
 
 ### `Gateway.Writable`
 
@@ -729,13 +731,13 @@ The unique PKI identity label for this configs peer. Set on init and never read,
 it's merely here for convenience. Ipfs will always generate the peerID from its
 keypair at runtime.
 
-Type: `string`
+Type: `string` (peer ID)
 
 ### `Identity.PrivKey`
 
 The base64 encoded protobuf describing (and containing) the nodes private key.
 
-Type: `string`
+Type: `string` (base64 encoded)
 
 ## `Ipns`
 
@@ -764,7 +766,7 @@ will be kept cached until their lifetime is expired.
 
 Default: `128`
 
-Type: `integer`
+Type: `integer` (non-negative, 0 means the default)
 
 ## `Mounts`
 
@@ -776,7 +778,7 @@ Mountpoint for `/ipfs/`.
 
 Default: `/ipfs`
 
-Type: `string`
+Type: `string` (filesystem path)
 
 ### `Mounts.IPNS`
 
@@ -784,7 +786,7 @@ Mountpoint for `/ipns/`.
 
 Default: `/ipns`
 
-Type: `string`
+Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
@@ -806,7 +808,7 @@ Sets the default router used by pubsub to route messages to peers. This can be o
   
 Default: `"gossipsub"`
 
-Type: `string`
+Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
 
 [gossipsub]: https://github.com/libp2p/specs/tree/master/pubsub/gossipsub
 
@@ -1054,16 +1056,22 @@ Please use [`AutoNAT.ServiceMode`][].
 ### `Swarm.ConnMgr`
 
 The connection manager determines which and how many connections to keep and can
-be configured to keep.
+be configured to keep. Go-ipfs currently supports two connection managers:
+
+* none: never close idle connections.
+* basic: the default connection manager.
+
+Default: basic
 
 #### `Swarm.ConnMgr.Type`
 
 Sets the type of connection manager to use, options are: `"none"` (no connection
 management) and `"basic"`.
 
-Default: `"basic"`
+Default: "basic".
 
-Type: `string` (one of `"basic"`, `"none"`, or `""` (default, i.e. `"basic"`).
+Type: `string` (when unset or `""`, the default connection manager is applied
+and all `ConnMgr` fields are ignored).
 
 #### Basic Connection Manager
 
