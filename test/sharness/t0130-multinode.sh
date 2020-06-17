@@ -88,24 +88,27 @@ test_expect_success "set up /tcp testbed" '
   iptb testbed create -type localipfs -count 5 -force -init
 '
 
-# test multiplex muxer
-export LIBP2P_MUX_PREFS="/mplex/6.7.0"
-run_advanced_test
-unset LIBP2P_MUX_PREFS
-
 # test default configuration
+run_advanced_test
+
+# test multiplex muxer
+test_expect_success "disable yamux" '
+  iptb run -- ipfs config --json Swarm.Transports.Multiplexers.Yamux false
+'
 run_advanced_test
 
 test_expect_success "set up /ws testbed" '
   iptb testbed create -type localipfs -count 5 -attr listentype,ws -force -init
 '
 
-# test multiplex muxer
-export LIBP2P_MUX_PREFS="/mplex/6.7.0"
-run_advanced_test "--enable-mplex-experiment"
-unset LIBP2P_MUX_PREFS
-
 # test default configuration
+run_advanced_test
+
+# test multiplex muxer
+test_expect_success "disable yamux" '
+  iptb run -- ipfs config --json Swarm.Transports.Multiplexers.Yamux false
+'
+
 run_advanced_test
 
 

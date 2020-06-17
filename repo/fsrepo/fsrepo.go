@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -615,6 +614,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	if err != nil {
 		return err
 	}
+	// Load into a map so we don't end up writing any additional defaults to the config file.
 	var mapconf map[string]interface{}
 	if err := serialize.ReadConfigFile(filename, &mapconf); err != nil {
 		return err
@@ -628,42 +628,7 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return err
 	}
 
-	// Get the type of the value associated with the key
-	oldValue, err := common.MapGetKV(mapconf, key)
-	ok := true
-	if err != nil {
-		// key-value does not exist yet
-		switch v := value.(type) {
-		case string:
-			value, err = strconv.ParseBool(v)
-			if err != nil {
-				value, err = strconv.Atoi(v)
-				if err != nil {
-					value, err = strconv.ParseFloat(v, 32)
-					if err != nil {
-						value = v
-					}
-				}
-			}
-		default:
-		}
-	} else {
-		switch oldValue.(type) {
-		case bool:
-			value, ok = value.(bool)
-		case int:
-			value, ok = value.(int)
-		case float32:
-			value, ok = value.(float32)
-		case string:
-			value, ok = value.(string)
-		default:
-		}
-		if !ok {
-			return fmt.Errorf("wrong config type, expected %T", oldValue)
-		}
-	}
-
+	// Set the key in the map.
 	if err := common.MapSetKV(mapconf, key, value); err != nil {
 		return err
 	}

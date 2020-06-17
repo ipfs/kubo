@@ -89,38 +89,47 @@ test_expect_success "set up tcp testbed" '
   iptb testbed create -type localipfs -count 2 -force -init
 '
 
+addrs='"[\"/ip4/127.0.0.1/tcp/0\", \"/ip4/127.0.0.1/udp/0/quic\"]"'
+test_expect_success "configure addresses" '
+  ipfsi 0 config --json Addresses.Swarm '"${addrs}"' &&
+  ipfsi 1 config --json Addresses.Swarm '"${addrs}"'
+'
+
 # Test TCP transport
 echo "Testing TCP"
-tcp_addr='"[\"/ip4/127.0.0.1/tcp/0\"]"'
 test_expect_success "use TCP only" '
-  ipfsi 0 config --json Addresses.Swarm '${tcp_addr}' &&
-  ipfsi 1 config --json Addresses.Swarm '${tcp_addr}'
+  iptb run -- ipfs config --json Swarm.Transports.Network.QUIC false &&
+  iptb run -- ipfs config --json Swarm.Transports.Network.Relay false &&
+  iptb run -- ipfs config --json Swarm.Transports.Network.Websocket false
 '
 run_advanced_test
 
 # test multiplex muxer
 echo "Running advanced tests with mplex"
-export LIBP2P_MUX_PREFS="/mplex/6.7.0"
-run_advanced_test "--enable-mplex-experiment"
-unset LIBP2P_MUX_PREFS
+test_expect_success "disable yamux" '
+  iptb run -- ipfs config --json Swarm.Transports.Multiplexers.Yamux false
+'
+run_advanced_test
+
+test_expect_success "re-enable yamux" '
+  iptb run -- ipfs config --json Swarm.Transports.Multiplexers.Yamux null
+'
 
 # test Noise
 
 echo "Running advanced tests with NOISE"
-noise_transports='"[\"noise\"]"'
 test_expect_success "use noise only" '
-  ipfsi 0 config --json Experimental.OverrideSecurityTransports '${noise_transports}' &&
-  ipfsi 1 config --json Experimental.OverrideSecurityTransports '${noise_transports}'
+  iptb run -- ipfs config --json Swarm.Transports.Security.TLS false &&
+  iptb run -- ipfs config --json Swarm.Transports.Security.Secio false
 '
 
 run_advanced_test
 
 # test QUIC
 echo "Running advanced tests over QUIC"
-addr1='"[\"/ip4/127.0.0.1/udp/0/quic\"]"'
 test_expect_success "use QUIC only" '
-  ipfsi 0 config --json Addresses.Swarm '${quic_addr}' &&
-  ipfsi 1 config --json Addresses.Swarm '${quic_addr}'
+  iptb run -- ipfs config --json Swarm.Transports.Network.QUIC true &&
+  iptb run -- ipfs config --json Swarm.Transports.Network.TCP false
 '
 
 run_advanced_test

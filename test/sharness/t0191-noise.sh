@@ -11,14 +11,14 @@ test_expect_success 'init iptb' '
   iptb testbed create -type localipfs -count 3 -init
 '
 
-noise_transports='"[\"noise\"]"'
-other_transports='"[\"tls\",\"secio\"]"'
 tcp_addr='"[\"/ip4/127.0.0.1/tcp/0\"]"'
 test_expect_success "configure security transports" '
-  ipfsi 0 config --json Experimental.OverrideSecurityTransports '${noise_transports}' &&
-  ipfsi 1 config --json Experimental.OverrideSecurityTransports '${noise_transports}' &&
-  ipfsi 2 config --json Experimental.OverrideSecurityTransports '${other_transports}' &&
-  iptb run -- ipfs config --json Addresses.Swarm '${tcp_addr}'
+iptb run <<CMDS
+  [0,1] -- ipfs config --json Swarm.Transports.Security.TLS false &&
+  [0,1] -- ipfs config --json Swarm.Transports.Security.SECIO false &&
+  2     -- ipfs config --json Swarm.Transports.Security.Noise false &&
+        -- ipfs config --json Addresses.Swarm '${tcp_addr}'
+CMDS
 '
 
 startup_cluster 2
