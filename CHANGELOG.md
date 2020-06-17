@@ -29,13 +29,25 @@ Unfortunately, this change isn't without drawbacks: the QUIC transport may not b
 
 If you hit this performance issue on Linux, you should tune the `net.core.rmem_default` and `net.core.rmem_max` sysctl parameters to increase your UDP receive buffer sizes.
 
+If necessary, you can disable the QUIC transport by running:
+
+```bash
+> ipfs config --json Swarm.Transports.Network.QUIC false
+```
+
 **NOTE:** The QUIC transport included in this release is backwards incompatible with the experimental QUIC transport included in previous releases. Unfortunately, the QUIC protocol underwent some significant breaking changes and supporting multiple versions wasn't an option. In practice this degrades gracefully as go-ipfs will simply fall back on the TCP transport when dialing nodes with incompatible QUIC versions.
 
-#### NOISE Transport
+#### Noise Transport
 
-* Quick "why noise"?
+This go-ipfs release introduces a new security transport: [libp2p Noise](https://github.com/libp2p/specs/tree/master/noise) (built from the [Noise Protocol Framework](http://www.noiseprotocol.org/)). While TLS1.3 remains the default go-ipfs security transport, Noise is simpler to implement from scratch and will be the standard cross-platform libp2p security transport going forward.
+
+This brings us one step closer to deprecating and removing support for SECIO.
+
+While enabled by default, Noise won't actually be _used_ by default it's negotiated. Given that TLS1.3 is still the default security transport for go-ipfs, this usually won't happen. If you'd like to prefer Noise over other security transports, you can change its priority in the [config](./docs/config.md) (`Swarm.Transports.Security.Noise`).
 
 #### Gateway
+
+This release brings two gateway-relevant features: custom 404 pages and base36 support.
 
 ##### Custom 404
 
@@ -55,17 +67,17 @@ $ ipfs cid format -v 1 --codec libp2p-key -b base36 bafzaajaiaejca4syrpdu6gdx4ws
 
 #### Gossipsub Upgrade
 
-* Summary paragraph and a link to the blog post?
+This release brings a new gossipsub protocol version: 1.1. You can read about it in the [blog post](https://blog.ipfs.io/2020-05-20-gossipsub-v1.1/).
 
 #### Connectivity
 
-* "Peering" support.
+This release introduces a new ["peering"](./docs/config.md#peering) feature. The peering subsystem configures go-ipfs to connect to, remain connected to, and reconnect to a set of nodes. Nodes should use this subsystem to create "sticky" links between frequently useful peers to improve reliability.
 
-#### Libp2p Changes
+Use-cases:
 
-* Advertise fewer addresses.
-* Reduced allocations under load.
-* Improved routing table refresh logic.
+* An IPFS gateway connected to an IPFS cluster should peer to ensure that the gateway can always fetch content from the cluster.
+* A dapp may peer embedded go-ipfs nodes with a set of pinning services or textile cafes/hubs.
+* A set of friends may peer to ensure that they can always fetch each other's content.
 
 ### Changelog
 
