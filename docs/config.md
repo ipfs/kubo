@@ -198,7 +198,19 @@ does (e.g, `"1d2h4m40.01s"`).
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
-
+    - [`Swarm.Transports`](#swarmtransports)
+        - [`Swarm.Transports.Security`](#swarmtransportssecurity)
+          - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
+          - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
+          - [`Swarm.Transports.Security.Noise`](#swarmtransportssecuritynoise)
+        - [`Swarm.Transports.Multiplexers`](#swarmtransportsmultiplexers)
+          - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
+          - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
+        - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
+          - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
+          - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
+          - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
+          - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
 
 ## `Addresses`
 
