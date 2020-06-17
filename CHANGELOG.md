@@ -41,15 +41,16 @@ If you hit this performance issue on Linux, you should tune the `net.core.rmem_d
 
 You can now customize `404 Not Found` error pages by including an `ipfs-404.html` file somewhere in the request path. When a requested file isn't found, go-ipfs will look for an `ipfs-404.html` in the same directory as the requested file, and in each ancestor directory. If found, this file will be returned (with a 404 status code) instead of the usual error message.
 
-##### Support for Base36 and ED25519 in subdomains
+##### Support for Base36
 
-DNS label has a maximum length of 63 characters. This was a problem for users who opted into using inlined ED25519 keys for IPNS publishing. Support for CIDv1 in Base36 enables subdomain gateway to load websites published with those keys without the need for re-hashing.
+This release adds support for a new multibase encoding: base36. Base36 is an optimally efficient case-insensitive alphanumeric encoding. Case-insensitive alphanumeric encodings are important for the subdomain gateway as domain names are case insensitive.
 
-ED25519 key can be converted to Base36 via `ipfs cid` command:
+While base32 (the current default encoding used in subdomains) is simpler than base36, it's not optimally efficient and base36 Ed25519 IPNS keys are 2 characters too big to fit into the 63 character subdomain length limit. The extra efficiency from base36 brings us under this limit and allows Ed25519 IPNS keys to work with the subdomain gateway.
+
+This release adds support for base36 but won't use it by default. If you'd like to re-encode an Ed25519 IPNS key into base36, you can use the `ipfs cid format` command:
 
 ```sh
-$ ipfs cid format -v 1 --codec libp2p-key -b base36 bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk
-k51qzi5uqu5dj16qyiq0tajolkojyl9qdkr254920wxv7ghtuwcz593tp69z9m
+$ ipfs cid format -v 1 --codec libp2p-key -b base36 bafzaajaiaejca4syrpdu6gdx4wsdnokxkprgzxf4wrstuc34gxw5k5jrag2so5gk k51qzi5uqu5dj16qyiq0tajolkojyl9qdkr254920wxv7ghtuwcz593tp69z9m
 ```
 
 #### Gossipsub Upgrade
