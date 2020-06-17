@@ -39,7 +39,7 @@ If you hit this performance issue on Linux, you should tune the `net.core.rmem_d
 
 ##### Custom 404
 
-It is now possible to customize `404 Not Found` error response by including `ipfs-404.html`. When a requested file isn't found `ipfs-404.html` is looked for in the same directory, rolling up through any of its parents, and displayed (without immutable cache headers) if present.
+You can now customize `404 Not Found` error pages by including an `ipfs-404.html` file somewhere in the request path. When a requested file isn't found, go-ipfs will look for an `ipfs-404.html` in the same directory as the requested file, and in each ancestor directory. If found, this file will be returned (with a 404 status code) instead of the usual error message.
 
 ##### Support for Base36 and ED25519 in subdomains
 
