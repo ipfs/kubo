@@ -7,9 +7,9 @@
 This is a relatively small release in terms of code changes, but it contains some large changes with respect to the protocol. The highlights in this release include:
 
 * The QUIC transport is enabled by default. Furthermore, go-ipfs will automatically run a migration to listen on the QUIC transport (on the same address/port as the TCP transport) to make this upgrade process seamless.
-* The new NOISE security transport is now supported but won't be selected by default. This transport will replace SECIO as the default cross-language interoperability security transport. TLS 1.3 will still remain the default go-ipfs to go-ipfs security transport for now.
+* The new NOISE security transport is now supported but won't be selected by default. This transport will replace SECIO as the default cross-language interoperability security transport. TLS 1.3 will still remain the default security transport between go-ipfs nodes for now.
 
-**MIGRATION:** This release contains a small config migration to enable QUIC by default. This migration will:
+**MIGRATION:** This release contains a small config migration to enable QUIC alongside the configured TCP transport. This migration will:
 
 * Normalize multiaddrs in the bootstrap list to use the `/p2p/Qm...` syntax for multiaddrs instead of the `/ipfs/Qm...` syntax.
 * Add QUIC addresses for the default bootstrapers, as necessary. If you've removed the default bootstrappers from your bootstrap config, the migration won't add them back.
@@ -29,7 +29,7 @@ Unfortunately, this change isn't without drawbacks: the QUIC transport may not b
 
 If you hit this performance issue on Linux, you should tune the `net.core.rmem_default` and `net.core.rmem_max` sysctl parameters to increase your UDP receive buffer sizes.
 
-**NOTE:** The QUIC transport included in this release is backwards incompatible with the experimental QUIC transport included in previous releases. Unfortunately, the QUIC protocol underwent some significant breaking changes and supporting multiple versions wasn't an option. In practice, practice as go-ipfs will simply fall back on the TCP transport when dialing nodes with incompatible QUIC versions.
+**NOTE:** The QUIC transport included in this release is backwards incompatible with the experimental QUIC transport included in previous releases. Unfortunately, the QUIC protocol underwent some significant breaking changes and supporting multiple versions wasn't an option. In practice this degrades gracefully, as go-ipfs will simply fall back on the TCP transport when dialing nodes with incompatible QUIC versions.
 
 #### NOISE Transport
 
