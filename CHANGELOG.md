@@ -82,6 +82,9 @@ Use-cases:
 ### Changelog
 
 - github.com/ipfs/go-ipfs:
+  - docs(config): update toc ([ipfs/go-ipfs#7483](https://github.com/ipfs/go-ipfs/pull/7483))
+  - feat: transport config ([ipfs/go-ipfs#7479](https://github.com/ipfs/go-ipfs/pull/7479))
+  - fix the minimal go version under 'Build from Source' ([ipfs/go-ipfs#7459](https://github.com/ipfs/go-ipfs/pull/7459))
   - fix(migration): migrate /ipfs/ bootstrappers to /p2p/
   - fix(migration): correctly migrate quic addresses
   - chore: add migration to listen on QUIC by default
@@ -165,7 +168,8 @@ Use-cases:
   - Staticcheck fixes (#196) ([ipfs/go-ipfs-cmds#196](https://github.com/ipfs/go-ipfs-cmds/pull/196))
   - doc: update docs for interface changes ([ipfs/go-ipfs-cmds#197](https://github.com/ipfs/go-ipfs-cmds/pull/197))
   - Add standard issue template
-- github.com/ipfs/go-ipfs-config (v0.5.3 -> v0.7.1):
+- github.com/ipfs/go-ipfs-config (v0.5.3 -> v0.8.0):
+  - feat: add a transports section for enabling/disabling transports ([ipfs/go-ipfs-config#102](https://github.com/ipfs/go-ipfs-config/pull/102))
   - feat: add an option for security transport experiments ([ipfs/go-ipfs-config#97](https://github.com/ipfs/go-ipfs-config/pull/97))
   - feat: add peering service config section ([ipfs/go-ipfs-config#96](https://github.com/ipfs/go-ipfs-config/pull/96))
   - fix: include key size in key init method ([ipfs/go-ipfs-config#95](https://github.com/ipfs/go-ipfs-config/pull/95))
@@ -288,7 +292,15 @@ Use-cases:
 - github.com/libp2p/go-yamux (v1.3.5 -> v1.3.7):
   - tighten lock around appending new chunks of read data in stream ([libp2p/go-yamux#28](https://github.com/libp2p/go-yamux/pull/28))
   - fix: unlock recvLock in all cases. ([libp2p/go-yamux#25](https://github.com/libp2p/go-yamux/pull/25))
-- github.com/lucas-clemente/quic-go (v0.15.7 -> v0.16.1):
+- github.com/lucas-clemente/quic-go (v0.15.7 -> v0.16.2):
+  - make it possible to use the transport with both draft-28 and draft-29
+  - update the ALPN for draft-29 ([lucas-clemente/quic-go#2600](https://github.com/lucas-clemente/quic-go/pull/2600))
+  - update initial salts and test vectors for draft-29 ([lucas-clemente/quic-go#2587](https://github.com/lucas-clemente/quic-go/pull/2587))
+  - rename the SERVER_BUSY error to CONNECTION_REFUSED ([lucas-clemente/quic-go#2596](https://github.com/lucas-clemente/quic-go/pull/2596))
+  - reduce calls to time.Now() from the flow controller ([lucas-clemente/quic-go#2591](https://github.com/lucas-clemente/quic-go/pull/2591))
+  - remove redundant parenthesis and type conversion in flow controller ([lucas-clemente/quic-go#2592](https://github.com/lucas-clemente/quic-go/pull/2592))
+  - use the receipt of a Retry packet to get a first RTT estimate ([lucas-clemente/quic-go#2588](https://github.com/lucas-clemente/quic-go/pull/2588))
+  - fix debug message when returning an early session ([lucas-clemente/quic-go#2594](https://github.com/lucas-clemente/quic-go/pull/2594))
   - fix closing of the http.Request.Body ([lucas-clemente/quic-go#2584](https://github.com/lucas-clemente/quic-go/pull/2584))
   - split PTO calculation into a separate function ([lucas-clemente/quic-go#2576](https://github.com/lucas-clemente/quic-go/pull/2576))
   - add a unit test using the ChaCha20 test vector from the draft ([lucas-clemente/quic-go#2585](https://github.com/lucas-clemente/quic-go/pull/2585))
@@ -341,14 +353,14 @@ Use-cases:
 | Contributor             | Commits | Lines ±     | Files Changed |
 |-------------------------|---------|-------------|---------------|
 | vyzo                    | 224     | +8016/-2810 | 304           |
-| Marten Seemann          | 79      | +5858/-2514 | 178           |
+| Marten Seemann          | 87      | +6081/-2607 | 215           |
+| Steven Allen            | 151     | +4726/-1607 | 260           |
 | Aarsh Shah              | 33      | +4619/-1634 | 128           |
 | Dirk McCormick          | 26      | +3596/-1156 | 69            |
-| Steven Allen            | 124     | +3283/-1339 | 215           |
 | Yusef Napora            | 66      | +2622/-785  | 98            |
 | Raúl Kripalani          | 24      | +2424/-782  | 61            |
+| Hector Sanjuan          | 30      | +999/-177   | 61            |
 | Louis Thibault          | 2       | +1111/-4    | 4             |
-| Hector Sanjuan          | 28      | +904/-177   | 58            |
 | Will Scott              | 15      | +717/-219   | 31            |
 | dependabot-preview[bot] | 53      | +640/-64    | 106           |
 | Michael Muré            | 7       | +456/-213   | 17            |
@@ -357,10 +369,10 @@ Use-cases:
 | Lukasz Zimnoch          | 9       | +361/-49    | 13            |
 | Jakub Sztandera         | 4       | +157/-104   | 9             |
 | Rod Vagg                | 1       | +91/-83     | 2             |
-| RubenKelevra            | 12      | +83/-83     | 29            |
+| RubenKelevra            | 13      | +84/-84     | 30            |
 | JP Hastings-Spital      | 1       | +145/-0     | 2             |
 | Adin Schmahmann         | 11      | +67/-37     | 15            |
-| Marcin Rataj            | 10      | +27/-41     | 10            |
+| Marcin Rataj            | 11      | +41/-43     | 11            |
 | Tiger                   | 5       | +53/-8      | 6             |
 | Akira                   | 2       | +35/-19     | 2             |
 | Casey Chance            | 2       | +31/-22     | 2             |
@@ -371,6 +383,7 @@ Use-cases:
 | Edgar Aroutiounian      | 3       | +16/-8      | 3             |
 | Peter Wu                | 2       | +12/-9      | 2             |
 | Sawood Alam             | 2       | +7/-7       | 2             |
+| Command                 | 1       | +12/-0      | 1             |
 | Eric Myhre              | 1       | +9/-2       | 1             |
 | mawei                   | 2       | +5/-5       | 2             |
 | decanus                 | 1       | +5/-5       | 1             |
@@ -378,10 +391,12 @@ Use-cases:
 | Alfonso Montero         | 1       | +1/-5       | 1             |
 | Volker Mische           | 1       | +2/-2       | 1             |
 | Shotaro Yamada          | 1       | +2/-1       | 1             |
+| Mark Gaiser             | 1       | +1/-1       | 1             |
 | Johnny                  | 1       | +1/-1       | 1             |
 | Ganesh Prasad Kumble    | 1       | +1/-1       | 1             |
 | Dominic Della Valle     | 1       | +1/-1       | 1             |
 | Corbin Page             | 1       | +1/-1       | 1             |
+| Bryan Stenson           | 1       | +1/-1       | 1             |
 | Bernhard M. Wiedemann   | 1       | +1/-1       | 1             |
 
 ## 0.5.1 2020-05-08
