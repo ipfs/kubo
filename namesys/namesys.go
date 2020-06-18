@@ -86,16 +86,19 @@ func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.Resolv
 }
 
 func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.ResolveOpt) <-chan Result {
-	res := make(chan Result, 1)
 	if strings.HasPrefix(name, "/ipfs/") {
 		p, err := path.ParsePath(name)
+		res := make(chan Result, 1)
 		res <- Result{p, err}
+		close(res)
 		return res
 	}
 
 	if !strings.HasPrefix(name, "/") {
 		p, err := path.ParsePath("/ipfs/" + name)
+		res := make(chan Result, 1)
 		res <- Result{p, err}
+		close(res)
 		return res
 	}
 
