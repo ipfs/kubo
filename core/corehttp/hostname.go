@@ -124,7 +124,7 @@ func HostnameOption() ServeOption {
 				// Not a whitelisted path
 
 				// Try DNSLink, if it was not explicitly disabled for the hostname
-				if !gw.NoDNSLink && isDNSLinkRequest(n.Context(), coreApi, r) {
+				if !gw.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, r) {
 					// rewrite path and handle as DNSLink
 					r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
 					childMux.ServeHTTP(w, r)
@@ -176,7 +176,7 @@ func HostnameOption() ServeOption {
 			// 1. is wildcard DNSLink enabled (Gateway.NoDNSLink=false)?
 			// 2. does Host header include a fully qualified domain name (FQDN)?
 			// 3. does DNSLink record exist in DNS?
-			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(n.Context(), coreApi, r) {
+			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, r) {
 				// rewrite path and handle as DNSLink
 				r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
 				childMux.ServeHTTP(w, r)
