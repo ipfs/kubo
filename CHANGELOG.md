@@ -1,10 +1,12 @@
 # go-ipfs changelog
 
-## v0.6.0 2020-06-16
+## v0.6.0 2020-06-19
+
+This is a relatively small release in terms of code changes, but it contains some significant changes to the IPFS protocol.
 
 ### Highlights
 
-This is a relatively small release in terms of code changes, but it contains some significant changes to the IPFS protocol. The highlights in this release include:
+The highlights in this release include:
 
 * The QUIC transport is enabled by default. Furthermore, go-ipfs will automatically run a migration to listen on the QUIC transport (on the same address/port as the TCP transport) to make this upgrade process seamless.
 * The new NOISE security transport is now supported but won't be selected by default. This transport will replace SECIO as the default cross-language interoperability security transport. TLS 1.3 will still remain the default security transport between go-ipfs nodes for now.
@@ -82,6 +84,7 @@ Use-cases:
 ### Changelog
 
 - github.com/ipfs/go-ipfs:
+  - fix 3 bugs responsible for a goroutine leak (plus one other bug) ([ipfs/go-ipfs#7491](https://github.com/ipfs/go-ipfs/pull/7491))
   - docs(config): update toc ([ipfs/go-ipfs#7483](https://github.com/ipfs/go-ipfs/pull/7483))
   - feat: transport config ([ipfs/go-ipfs#7479](https://github.com/ipfs/go-ipfs/pull/7479))
   - fix the minimal go version under 'Build from Source' ([ipfs/go-ipfs#7459](https://github.com/ipfs/go-ipfs/pull/7459))
@@ -354,7 +357,7 @@ Use-cases:
 |-------------------------|---------|-------------|---------------|
 | vyzo                    | 224     | +8016/-2810 | 304           |
 | Marten Seemann          | 87      | +6081/-2607 | 215           |
-| Steven Allen            | 151     | +4726/-1607 | 260           |
+| Steven Allen            | 157     | +4763/-1628 | 266           |
 | Aarsh Shah              | 33      | +4619/-1634 | 128           |
 | Dirk McCormick          | 26      | +3596/-1156 | 69            |
 | Yusef Napora            | 66      | +2622/-785  | 98            |
