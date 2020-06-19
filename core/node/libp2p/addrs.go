@@ -6,21 +6,22 @@ import (
 	"github.com/libp2p/go-libp2p"
 	host "github.com/libp2p/go-libp2p-core/host"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	mafilter "github.com/libp2p/go-maddr-filter"
 	ma "github.com/multiformats/go-multiaddr"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
 
-func AddrFilters(filters []string) func() (opts Libp2pOpts, err error) {
-	return func() (opts Libp2pOpts, err error) {
+func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
+	return func() (filter *ma.Filters, opts Libp2pOpts, err error) {
+		filter = ma.NewFilters()
+		opts.Opts = append(opts.Opts, libp2p.Filters(filter)) //nolint
 		for _, s := range filters {
 			f, err := mamask.NewMask(s)
 			if err != nil {
-				return opts, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
+				return filter, opts, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
 			}
-			opts.Opts = append(opts.Opts, libp2p.FilterAddresses(f))
+			opts.Opts = append(opts.Opts, libp2p.FilterAddresses(f)) //nolint
 		}
-		return opts, nil
+		return filter, opts, nil
 	}
 }
 
@@ -34,12 +35,12 @@ func makeAddrsFactory(announce []string, noAnnounce []string) (p2pbhost.AddrsFac
 		annAddrs = append(annAddrs, maddr)
 	}
 
-	filters := mafilter.NewFilters()
+	filters := ma.NewFilters()
 	noAnnAddrs := map[string]bool{}
 	for _, addr := range noAnnounce {
 		f, err := mamask.NewMask(addr)
 		if err == nil {
-			filters.AddFilter(*f, mafilter.ActionDeny)
+			filters.AddFilter(*f, ma.ActionDeny)
 			continue
 		}
 		maddr, err := ma.NewMultiaddr(addr)

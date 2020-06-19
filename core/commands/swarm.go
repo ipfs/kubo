@@ -19,8 +19,6 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	mafilter "github.com/libp2p/go-maddr-filter"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
@@ -559,14 +557,8 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return ErrNotOnline
 		}
 
-		// FIXME(steb)
-		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
-		if !ok {
-			return errors.New("failed to cast network to swarm network")
-		}
-
 		var output []string
-		for _, f := range swrm.Filters.FiltersForAction(mafilter.ActionDeny) {
+		for _, f := range n.Filters.FiltersForAction(ma.ActionDeny) {
 			s, err := mamask.ConvertIPNet(&f)
 			if err != nil {
 				return err
@@ -601,12 +593,6 @@ var swarmFiltersAddCmd = &cmds.Command{
 			return ErrNotOnline
 		}
 
-		// FIXME(steb)
-		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
-		if !ok {
-			return errors.New("failed to cast network to swarm network")
-		}
-
 		if len(req.Arguments) == 0 {
 			return errors.New("no filters to add")
 		}
@@ -627,7 +613,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 				return err
 			}
 
-			swrm.Filters.AddFilter(*mask, mafilter.ActionDeny)
+			n.Filters.AddFilter(*mask, ma.ActionDeny)
 		}
 
 		added, err := filtersAdd(r, cfg, req.Arguments)
@@ -663,11 +649,6 @@ var swarmFiltersRmCmd = &cmds.Command{
 			return ErrNotOnline
 		}
 
-		swrm, ok := n.PeerHost.Network().(*swarm.Swarm)
-		if !ok {
-			return errors.New("failed to cast network to swarm network")
-		}
-
 		r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
 		if err != nil {
 			return err
@@ -679,9 +660,9 @@ var swarmFiltersRmCmd = &cmds.Command{
 		}
 
 		if req.Arguments[0] == "all" || req.Arguments[0] == "*" {
-			fs := swrm.Filters.FiltersForAction(mafilter.ActionDeny)
+			fs := n.Filters.FiltersForAction(ma.ActionDeny)
 			for _, f := range fs {
-				swrm.Filters.RemoveLiteral(f)
+				n.Filters.RemoveLiteral(f)
 			}
 
 			removed, err := filtersRemoveAll(r, cfg)
@@ -698,7 +679,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 				return err
 			}
 
-			swrm.Filters.RemoveLiteral(*mask)
+			n.Filters.RemoveLiteral(*mask)
 		}
 
 		removed, err := filtersRemove(r, cfg, req.Arguments)

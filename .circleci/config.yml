@@ -33,7 +33,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.13.8
+      - image: circleci/golang:1.14.2
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -44,7 +44,7 @@ executors:
       TEST_VERBOSE: 1
   node:
     docker:
-      - image: circleci/node:10
+      - image: circleci/node:12
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -60,7 +60,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer: 
     docker: 
-      - image: circleci/golang:1.13.8
+      - image: circleci/golang:1.14.2
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
@@ -191,15 +191,14 @@ jobs:
       - run:
           name: Installing reporting tools
           command: |
-            npm install --save-dev mocha-junit-reporter@1.23.1 mocha-multi-reporters@1.1.0
+            npm install --save-dev mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
           name: Running tests
           command: |
             mkdir -p /tmp/test-results/interop/
             export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
-            echo '{"reporterEnabled": "mocha-junit-reporter, spec"}' > mocha-conf.json
-            node_modules/.bin/mocha -R mocha-multi-reporters --reporter-options "configFile=mocha-conf.json" \
+            node_modules/.bin/mocha --reporter mocha-circleci-reporter \
               $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" test/node.js | circleci tests split)
           working_directory: ~/ipfs/go-ipfs/interop
           environment:

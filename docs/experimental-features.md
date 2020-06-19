@@ -13,23 +13,19 @@ feature, you MUST please make a PR updating this document, and link the PR in
 the above issue.
 
 - [ipfs pubsub](#ipfs-pubsub)
-- [Client mode DHT routing](#client-mode-dht-routing)
-- [go-multiplex stream muxer](#go-multiplex-stream-muxer)
 - [Raw leaves for unixfs files](#raw-leaves-for-unixfs-files)
 - [ipfs filestore](#ipfs-filestore)
 - [ipfs urlstore](#ipfs-urlstore)
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [p2p http proxy](#p2p-http-proxy)
-- [Circuit Relay](#circuit-relay)
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding--hamt)
 - [IPNS PubSub](#ipns-pubsub)
-- [QUIC](#quic)
 - [AutoRelay](#autorelay)
-- [TLS 1.3 Handshake](#tls-13-as-default-handshake-protocol)
 - [Strategic Providing](#strategic-providing)
-- [Graphsync](graphsync)
+- [Graphsync](#graphsync)
+- [Noise](#noise)
 
 ---
 
@@ -48,35 +44,12 @@ Candidate, disabled by default but will be enabled by default in 0.6.0.
 run your daemon with the `--enable-pubsub-experiment` flag. Then use the
 `ipfs pubsub` commands.
 
-### gossipsub
-
-Gossipsub is a new, experimental routing protocol for pubsub that
-should waste less bandwidth than floodsub, the current pubsub
-protocol. It's backward compatible with floodsub so enabling this
-feature shouldn't break compatibility with existing IPFS nodes.
-
-You can enable gossipsub via configuration:
-`ipfs config Pubsub.Router gossipsub`
-
-### Message Signing
-
-As of 0.4.18, go-ipfs signs all pubsub messages by default. For now, it doesn't
-*reject* unsigned messages but it will in the future.
-
-You can turn off message signing (not recommended unless you're using a private
-network) by running:
-`ipfs config Pubsub.DisableSigning true`
-
-You can turn on strict signature verification (require that all messages be
-signed) by running:
-`ipfs config Pubsub.StrictSignatureVerification true`
-
-(this last option will be set to true by default and eventually removed entirely)
+Configuration documentation can be found in [./config.md]()
 
 ### Road to being a real feature
-- [ ] Needs more people to use and report on how well it works
-- [ ] Needs authenticating modes to be implemented
-- [ ] needs performance analyses to be done
+
+- [ ] Needs to not impact peers who don't use pubsub:
+      https://github.com/libp2p/go-libp2p-pubsub/issues/332
 
 ## Raw Leaves for unixfs files
 
@@ -454,7 +427,14 @@ ipfs config --json Experimental.ShardingEnabled true
 
 ### In Version
 
-0.4.14
+0.4.14 :
+  - Introduced
+
+0.5.0 : 
+   - No longer needs to use the DHT for the first resolution
+   - When discovering PubSub peers via the DHT, the DHT key is different from previous versions
+      - This leads to 0.5 IPNS pubsub peers and 0.4 IPNS pubsub peers not being able to find each other in the DHT
+   - Robustness improvements
 
 ### State
 
@@ -466,9 +446,13 @@ When it is enabled:
 - IPNS publishers push records to a name-specific pubsub topic,
   in addition to publishing to the DHT.
 - IPNS resolvers subscribe to the name-specific topic on first
-  resolution and receive subsequently published records through pubsub in real time. This makes subsequent resolutions instant, as they are resolved through the local cache. Note that the initial resolution still goes through the DHT, as there is no message history in pubsub.
+  resolution and receive subsequently published records through pubsub in real time.
+  This makes subsequent resolutions instant, as they are resolved through the local cache.
 
 Both the publisher and the resolver nodes need to have the feature enabled for it to work effectively.
+
+Note: While IPNS pubsub has been available since 0.4.14, it received major changes in 0.5.0.
+Users interested in this feature should upgrade to at least 0.5.0
 
 ### How to enable
 
@@ -477,38 +461,7 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 ### Road to being a real feature
 
 - [ ] Needs more people to use and report on how well it works
-- [ ] Add a mechanism for last record distribution on subscription,
-  so that we don't have to hit the DHT for the initial resolution.
-  Alternatively, we could republish the last record periodically.
-
-## QUIC
-
-### In Version
-
-0.4.18
-
-### State
-
-Candidate, disabled by default but it will be enabled by default in 0.6.0.
-
-### How to enable
-
-Modify your ipfs config:
-
-```
-ipfs config --json Experimental.QUIC true
-```
-
-For listening on a QUIC address, add it to the swarm addresses, e.g. `/ip4/0.0.0.0/udp/4001/quic`.
-
-
-### Road to being a real feature
-
-- [ ] The IETF QUIC specification needs to be finalized.
-- [ ] Make sure QUIC connections work reliably
-- [ ] Make sure QUIC connection offer equal or better performance than TCP connections on real-world networks
-- [ ] Finalize libp2p-TLS handshake spec.
-
+- [ ] Pubsub enabled as a real feature
 
 ## AutoRelay
 
@@ -586,3 +539,31 @@ ipfs config --json Experimental.GraphsyncEnabled true
 ### Road to being a real feature
 
 - [ ] We need to confirm that it can't be used to DoS a node. The server-side logic for GraphSync is quite complex and, if we're not careful, the server might end up performing unbounded work when responding to a malicious request.
+
+## Noise
+
+### State
+
+Experimental, enabled by default
+
+[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in go-ipfs, Noise is easier to implement and will thus serve as the "interop" transport between IPFS and libp2p implementations, eventually replacing SECIO.
+
+### How to enable
+
+While the Noise transport is now shipped and enabled by default in go-ipfs, it won't be used by default for most connections because TLS and SECIO are currently preferred. If you'd like to test out the Noise transport, you can increase the priority of the noise transport:
+
+```
+ipfs config --json Swarm.Transports.Security.Noise 1
+```
+
+Or even disable TLS and/or SECIO (not recommended for the moment):
+
+```
+ipfs config --json Swarm.Transports.Security.TLS false
+ipfs config --json Swarm.Transports.Security.SECIO false
+```
+
+### Road to being a real feature
+
+- [ ] Needs real-world testing.
+- [ ] Ideally a js-ipfs and a rust-ipfs release would include support for Noise.

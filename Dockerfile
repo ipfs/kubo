@@ -1,4 +1,4 @@
-FROM golang:1.13.10-buster
+FROM golang:1.14.2-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Install deps
@@ -23,7 +23,7 @@ ARG IPFS_PLUGINS
 # Build the thing.
 # Also: fix getting HEAD commit hash via git rev-parse.
 RUN cd $SRC_DIR \
-  && mkdir .git/objects \
+  && mkdir -p .git/objects \
   && make build GOTAGS=openssl IPFS_PLUGINS=$IPFS_PLUGINS
 
 # Get su-exec, a very minimal tool for dropping privileges,
@@ -73,6 +73,8 @@ COPY --from=0 /usr/lib/*-linux-gnu*/libcrypto.so* /usr/lib/
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001
+# Swarm UDP; should be exposed to the public
+EXPOSE 4001/udp
 # Daemon API; must not be exposed publicly but to client services under you control
 EXPOSE 5001
 # Web Gateway; can be exposed publicly with a proxy, e.g. as https://ipfs.example.org

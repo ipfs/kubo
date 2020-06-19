@@ -88,6 +88,8 @@ c    99  base32pad
 C    67  base32padupper
 f   102  base16
 F    70  base16upper
+k   107  base36
+K    75  base36upper
 m   109  base64
 M    77  base64pad
 t   116  base32hexpad
@@ -122,6 +124,8 @@ cat <<EOF > codecs_expect
   225  decred-tx
   240  dash-block
   241  dash-tx
+61697  fil-commitment-unsealed
+61698  fil-commitment-sealed
 EOF
 
 cat <<EOF > hashes_expect

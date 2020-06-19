@@ -12,7 +12,7 @@
 
 ## What is IPFS?
 
-IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from previous systems such Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single bittorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built in. You can also mount the world at /ipfs.
+IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas from previous systems such as Git, BitTorrent, Kademlia, SFS, and the Web. It is like a single BitTorrent swarm, exchanging git objects. IPFS provides an interface as simple as the HTTP web, but with permanence built-in. You can also mount the world at /ipfs.
 
 For more info see: https://docs.ipfs.io/introduction/overview/
 
@@ -64,7 +64,7 @@ The canonical download instructions for IPFS are over at: https://docs.ipfs.io/g
 
 IPFS can run on most Linux, macOS, and Windows systems. We recommend running it on a machine with at least 2 GB of RAM and 2 CPU cores (go-ipfs is highly parallel). On systems with less memory, it may not be completely stable.
 
-If your system is resource constrained, we recommend:
+If your system is resource-constrained, we recommend:
 
 1. Installing OpenSSL and rebuilding go-ipfs manually with `make build GOTAGS=openssl`. See the [download and compile](#download-and-compile-ipfs) section for more information on compiling go-ipfs.
 2. Initializing your daemon with `ipfs init --profile=lowpower`
@@ -98,7 +98,7 @@ $ sudo pacman -S go-ipfs
 
 Development version of go-ipfs is also on AUR under
 [go-ipfs-git](https://aur.archlinux.org/packages/go-ipfs-git/).
-You can install it using your favourite AUR Helper or manually from AUR.
+You can install it using your favorite AUR Helper or manually from AUR.
 
 #### Nix
 
@@ -160,7 +160,7 @@ PS> scoop install go-ipfs
 
 ### Build from Source
 
-go-ipfs's build system requires Go 1.13 and some standard POSIX build tools:
+go-ipfs's build system requires Go 1.14.2 and some standard POSIX build tools:
 
 * GNU make
 * Git
@@ -170,7 +170,7 @@ To build without GCC, build with `CGO_ENABLED=0` (e.g., `make build CGO_ENABLED=
 
 #### Install Go
 
-The build process for ipfs requires Go 1.12 or higher. If you don't have it: [Download Go 1.12+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.14.2 or higher. If you don't have it: [Download Go 1.14+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -206,7 +206,7 @@ make build GOOS=myTargetOS GOARCH=myTargetArchitecture
 
 To build go-ipfs with OpenSSL support, append `GOTAGS=openssl` to your `make` invocation. Building with OpenSSL should significantly reduce the background CPU usage on nodes that frequently make or receive new connections.
 
-Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross compiling. To cross compile with OpenSSL support, you must:
+Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross-compiling. To cross-compile with OpenSSL support, you must:
 
 1. Install a compiler toolchain for the target platform.
 2. Set the `CGO_ENABLED=1` environment variable.
@@ -273,11 +273,11 @@ the optional arguments it takes. After initialization is complete, you can use
 
 Basic proof of 'ipfs working' locally:
 
-	echo "hello world" > hello
-	ipfs add hello
-	# This should output a hash string that looks something like:
-	# QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
-	ipfs cat <that hash>
+    echo "hello world" > hello
+    ipfs add hello
+    # This should output a hash string that looks something like:
+    # QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o
+    ipfs cat <that hash>
 
 ### Usage
 
@@ -302,7 +302,7 @@ SUBCOMMANDS
 
   ADVANCED COMMANDS
     daemon        Start a long-running daemon process
-    mount         Mount an ipfs read-only mountpoint
+    mount         Mount an ipfs read-only mount point
     resolve       Resolve any type of name
     name          Publish or resolve IPNS names
     dns           Resolve DNS links
@@ -325,8 +325,8 @@ SUBCOMMANDS
 
   Use 'ipfs <command> --help' to learn more about each command.
 
-  ipfs uses a repository in the local file system. By default, the repo is located
-  at ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
+  ipfs uses a repository in the local file system. By default, the repo is located at
+  ~/.ipfs. To change the repo location, set the $IPFS_PATH environment variable:
 
     export IPFS_PATH=/path/to/ipfsrepo
 ```
@@ -344,7 +344,7 @@ IPFS files that will persist when you restart the container.
 
 Start a container running ipfs and expose ports 4001, 5001 and 8080:
 
-    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
+    docker run -d --name ipfs_host -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 4001:4001/udp -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
 
 Watch the ipfs log:
 
@@ -376,16 +376,16 @@ Stop the running container:
 
 When starting a container running ipfs for the first time with an empty data directory, it will call `ipfs init` to initialize configuration files and generate a new keypair. At this time, you can choose which profile to apply using the `IPFS_PROFILE` environment variable:
 
-    docker run -d --name ipfs_host -e IPFS_PROFILE=server -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
+    docker run -d --name ipfs_host -e IPFS_PROFILE=server -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 4001:4001/udp -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
 
 It is possible to initialize the container with a swarm key file (`/data/ipfs/swarm.key`) using the variables `IPFS_SWARM_KEY` and `IPFS_SWARM_KEY_FILE`. The `IPFS_SWARM_KEY` creates `swarm.key` with the contents of the variable itself, whilst `IPFS_SWARM_KEY_FILE` copies the key from a path stored in the variable. The `IPFS_SWARM_KEY_FILE` **overwrites** the key generated by `IPFS_SWARM_KEY`.
 
-    docker run -d --name ipfs_host -e IPFS_SWARM_KEY=<your swarm key> -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
+    docker run -d --name ipfs_host -e IPFS_SWARM_KEY=<your swarm key> -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 4001:4001/udp -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
 
 The swarm key initialization can also be done using docker secrets **(requires docker swarm or docker-compose)**:
 
     cat your_swarm.key | docker secret create swarm_key_secret -
-    docker run -d --name ipfs_host --secret swarm_key_secret -e IPFS_SWARM_KEY_FILE=/run/secrets/swarm_key_secret -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
+    docker run -d --name ipfs_host --secret swarm_key_secret -e IPFS_SWARM_KEY_FILE=/run/secrets/swarm_key_secret -v $ipfs_staging:/export -v $ipfs_data:/data/ipfs -p 4001:4001 -p 4001:4001/udp -p 127.0.0.1:8080:8080 -p 127.0.0.1:5001:5001 ipfs/go-ipfs:latest
 
 ### Troubleshooting
 

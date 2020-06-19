@@ -235,6 +235,70 @@ func TestGatewayGet(t *testing.T) {
 	}
 }
 
+func TestPretty404(t *testing.T) {
+	ns := mockNamesys{}
+	ts, api, ctx := newTestServerAndNode(t, ns)
+	defer ts.Close()
+
+	f1 := files.NewMapDirectory(map[string]files.Node{
+		"ipfs-404.html": files.NewBytesFile([]byte("Custom 404")),
+		"deeper": files.NewMapDirectory(map[string]files.Node{
+			"ipfs-404.html": files.NewBytesFile([]byte("Deep custom 404")),
+		}),
+	})
+
+	k, err := api.Unixfs().Add(ctx, f1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host := "example.net"
+	ns["/ipns/"+host] = path.FromString(k.String())
+
+	for _, test := range []struct {
+		path   string
+		accept string
+		status int
+		text   string
+	}{
+		{"/ipfs-404.html", "text/html", http.StatusOK, "Custom 404"},
+		{"/nope", "text/html", http.StatusNotFound, "Custom 404"},
+		{"/nope", "text/*", http.StatusNotFound, "Custom 404"},
+		{"/nope", "*/*", http.StatusNotFound, "Custom 404"},
+		{"/nope", "application/json", http.StatusNotFound, "ipfs resolve -r /ipns/example.net/nope: no link named \"nope\" under QmcmnF7XG5G34RdqYErYDwCKNFQ6jb8oKVR21WAJgubiaj\n"},
+		{"/deeper/nope", "text/html", http.StatusNotFound, "Deep custom 404"},
+		{"/deeper/", "text/html", http.StatusOK, ""},
+		{"/deeper", "text/html", http.StatusOK, ""},
+		{"/nope/nope", "text/html", http.StatusNotFound, "Custom 404"},
+	} {
+		var c http.Client
+		req, err := http.NewRequest("GET", ts.URL+test.path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Add("Accept", test.accept)
+		req.Host = host
+		resp, err := c.Do(req)
+
+		if err != nil {
+			t.Fatalf("error requesting %s: %s", test.path, err)
+		}
+
+		defer resp.Body.Close()
+		if resp.StatusCode != test.status {
+			t.Fatalf("got %d, expected %d, from %s", resp.StatusCode, test.status, test.path)
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("error reading response from %s: %s", test.path, err)
+		}
+
+		if test.text != "" && string(body) != test.text {
+			t.Fatalf("unexpected response body from %s: got %q, expected %q", test.path, body, test.text)
+		}
+	}
+}
+
 func TestIPNSHostnameRedirect(t *testing.T) {
 	ns := mockNamesys{}
 	ts, api, ctx := newTestServerAndNode(t, ns)
@@ -378,7 +442,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/") {
+	if !strings.Contains(s, "Index of /ipns/example.net/foo? #&lt;&#39;/") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
@@ -444,7 +508,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /foo? #&lt;&#39;/bar/") {
+	if !strings.Contains(s, "Index of /ipns/example.net/foo? #&lt;&#39;/bar/") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
@@ -478,7 +542,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /good-prefix") {
+	if !strings.Contains(s, "Index of /ipns/example.net") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {

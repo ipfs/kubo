@@ -15,13 +15,15 @@ if ! test_have_prereq FUSE; then
   test_done
 fi
 
+
+export IPFS_NS_MAP="welcome.example.com:/ipfs/$HASH_WELCOME_DOCS"
+
 # start iptb + wait for peering
 NUM_NODES=5
 test_expect_success 'init iptb' '
   iptb testbed create -type localipfs -count $NUM_NODES -init
 '
 startup_cluster $NUM_NODES
-
 
 # test mount failure before mounting properly.
 test_expect_success "'ipfs mount' fails when there is no mount dir" '
@@ -50,6 +52,18 @@ test_expect_success FUSE "'ipfs mount' succeeds" '
 test_expect_success FUSE "'ipfs mount' output looks good" '
   echo "IPFS mounted at: $(pwd)/ipfs" >expected &&
   echo "IPNS mounted at: $(pwd)/ipns" >>expected &&
+  test_cmp expected actual
+'
+
+test_expect_success FUSE "local symlink works" '
+  ipfsi 0 id -f"<id>\n" > expected &&
+  basename $(readlink ipns/local) > actual &&
+  test_cmp expected actual
+'
+
+test_expect_success FUSE "can resolve ipns names" '
+  echo -n "ipfs" > expected &&
+  cat ipns/welcome.example.com/ping > actual &&
   test_cmp expected actual
 '
 

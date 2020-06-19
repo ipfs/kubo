@@ -11,13 +11,8 @@ test_expect_success 'init iptb' '
   iptb testbed create -type localipfs -count 2 -init
 '
 
-test_expect_success "enable QUIC experiment" '
-  ipfsi 0 config --json Experimental.QUIC true &&
-  ipfsi 1 config --json Experimental.QUIC true
-'
-
-addr1='"[\"/ip4/127.0.0.1/udp/0/quic/\"]"'
-addr2='"[\"/ip4/127.0.0.1/udp/0/quic/\"]"'
+addr1='"[\"/ip4/127.0.0.1/udp/0/quic\"]"'
+addr2='"[\"/ip4/127.0.0.1/udp/0/quic\"]"'
 test_expect_success "add QUIC swarm addresses" '
   ipfsi 0 config --json Addresses.Swarm '$addr1' &&
   ipfsi 1 config --json Addresses.Swarm '$addr2'

@@ -98,6 +98,8 @@ $ ipfs resolve -r /ipns/dnslink-test2.example.com
 
 ## `LIBP2P_MUX_PREFS`
 
+Deprecated: Use the `Swarm.Transports.Multiplexers` config field.
+
 Tells go-ipfs which multiplexers to use in which order.
 
 Default: "/yamux/1.0.0 /mplex/6.7.0"

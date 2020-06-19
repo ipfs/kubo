@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var DistPath = "https://ipfs.io/ipfs/QmUgfXycSjF9R8F4Tyauaz6LZ4bj5nbksg54G9GdF4fit6"
+var DistPath = "https://ipfs.io/ipfs/Qmdo5m6bpQXCayzfGghyvgXJdVHSsXsCKDUo9vWktDKq3K"
 
 func init() {
 	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
