@@ -550,12 +550,17 @@ Experimental, enabled by default
 
 ### How to enable
 
-While the Noise transport is now shipped and enabled by default in go-ipfs, it won't be used by default for most connections because TLS and SECIO are currently preferred. If you'd like to test out the Noise transport, you can use the `Experimental.OverrideSecurityTransports` option to enable, disable, and reorder security transports.
-
-For example, to prefer noise over TLS and disable SECIO, run:
+While the Noise transport is now shipped and enabled by default in go-ipfs, it won't be used by default for most connections because TLS and SECIO are currently preferred. If you'd like to test out the Noise transport, you can increase the priority of the noise transport:
 
 ```
-ipfs config --json Experimental.OverrideSecurityTransports '["noise", "tls"]'
+ipfs config --json Swarm.Transports.Security.Noise 1
+```
+
+Or even disable TLS and/or SECIO (not recommended for the moment):
+
+```
+ipfs config --json Swarm.Transports.Security.TLS false
+ipfs config --json Swarm.Transports.Security.SECIO false
 ```
 
 ### Road to being a real feature

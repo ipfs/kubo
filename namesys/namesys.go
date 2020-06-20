@@ -86,16 +86,19 @@ func (ns *mpns) Resolve(ctx context.Context, name string, options ...opts.Resolv
 }
 
 func (ns *mpns) ResolveAsync(ctx context.Context, name string, options ...opts.ResolveOpt) <-chan Result {
-	res := make(chan Result, 1)
 	if strings.HasPrefix(name, "/ipfs/") {
 		p, err := path.ParsePath(name)
+		res := make(chan Result, 1)
 		res <- Result{p, err}
+		close(res)
 		return res
 	}
 
 	if !strings.HasPrefix(name, "/") {
 		p, err := path.ParsePath("/ipfs/" + name)
+		res := make(chan Result, 1)
 		res <- Result{p, err}
+		close(res)
 		return res
 	}
 
@@ -120,15 +123,12 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 	key := segments[2]
 
 	if p, ok := ns.cacheGet(key); ok {
+		var err error
 		if len(segments) > 3 {
-			var err error
 			p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
-			if err != nil {
-				emitOnceResult(ctx, out, onceResult{value: p, err: err})
-			}
 		}
 
-		out <- onceResult{value: p}
+		out <- onceResult{value: p, err: err}
 		close(out)
 		return out
 	}
@@ -180,17 +180,15 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 					best = res
 				}
 				p := res.value
+				err := res.err
+				ttl := res.ttl
 
 				// Attach rest of the path
 				if len(segments) > 3 {
-					var err error
 					p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
-					if err != nil {
-						emitOnceResult(ctx, out, onceResult{value: p, ttl: res.ttl, err: err})
-					}
 				}
 
-				emitOnceResult(ctx, out, onceResult{value: p, ttl: res.ttl, err: res.err})
+				emitOnceResult(ctx, out, onceResult{value: p, ttl: ttl, err: err})
 			case <-ctx.Done():
 				return
 			}
