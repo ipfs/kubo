@@ -21,13 +21,13 @@ var FileStoreCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"ls":     lsFileStore,
 		"verify": verifyFileStore,
-		"fix":    fixFileStore,
 		"dups":   dupsFileStore,
 	},
 }
 
 const (
-	fileOrderOptionName = "file-order"
+	fileOrderOptionName       = "file-order"
+	removeBadBlocksOptionName = "remove-bad-blocks"
 )
 
 var lsFileStore = &cmds.Command{
@@ -57,7 +57,7 @@ The output is:
 		}
 		args := req.Arguments
 		if len(args) > 0 {
-			return listByArgs(res, fs, args)
+			return listByArgs(res, fs, args, false)
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
@@ -108,7 +108,7 @@ otherwise verify all objects.
 
 The output is:
 
-<status> <hash> <size> <path> <offset>
+<status> <hash> <size> <path> <offset> <action>
 
 Where <status> is one of:
 ok:       the block can be reconstructed
@@ -117,100 +117,11 @@ no-file:  the backing file could not be found
 error:    there was some other problem reading the file
 missing:  <obj> could not be found in the filestore
 ERROR:    internal error, most likely due to a corrupt database
-
-For ERROR entries the error will also be printed to stderr.
-`,
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("obj", false, true, "Cid of objects to verify."),
-	},
-	Options: []cmds.Option{
-		cmds.BoolOption(fileOrderOptionName, "verify the objects based on the order of the backing file"),
-	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		_, fs, err := getFilestore(env)
-		if err != nil {
-			return err
-		}
-		args := req.Arguments
-		if len(args) > 0 {
-			return listByArgs(res, fs, args)
-		}
-
-		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
-		next, err := filestore.VerifyAll(fs, fileOrder)
-		if err != nil {
-			return err
-		}
-
-		for {
-			r := next()
-			if r == nil {
-				break
-			}
-			if err := res.Emit(r); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	},
-	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			enc, err := cmdenv.GetCidEncoder(res.Request())
-			if err != nil {
-				return err
-			}
-
-			for {
-				v, err := res.Next()
-				if err != nil {
-					if err == io.EOF {
-						return nil
-					}
-					return err
-				}
-
-				list, ok := v.(*filestore.ListRes)
-				if !ok {
-					return e.TypeErr(list, v)
-				}
-
-				if list.Status == filestore.StatusOtherError {
-					fmt.Fprintf(os.Stderr, "%s\n", list.ErrorMsg)
-				}
-				fmt.Fprintf(os.Stdout, "%s %s\n", list.Status.Format(), list.FormatLong(enc.Encode))
-			}
-		},
-	},
-	Type: filestore.ListRes{},
-}
-
-var fixFileStore = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Verify objects in filestore and remove bad links",
-		LongDescription: `
-Verify objects in filestore and remove bad links.
-
-If one or more <obj> is specified only verify those specific objects,
-otherwise verify all objects.
-
-The output is:
-
-<action> <status> <hash> <size> <path> <offset>
 
 Where <action> is one of:
 remove:   link will be removed
 nop:      nothing to do with it
 
-Where <status> is one of:
-ok:       the block can be reconstructed
-changed:  the contents of the backing file have changed
-no-file:  the backing file could not be found
-error:    there was some other problem reading the file
-missing:  <obj> could not be found in the filestore
-ERROR:    internal error, most likely due to a corrupt database
-
 For ERROR entries the error will also be printed to stderr.
 `,
 	},
@@ -219,15 +130,18 @@ For ERROR entries the error will also be printed to stderr.
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(fileOrderOptionName, "verify the objects based on the order of the backing file"),
+		cmds.BoolOption(removeBadBlocksOptionName, "remove bas blocks. WARNING: This may remove pinned data. You should run 'ipfs pin verify' after running this command and correct any issues."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		_, fs, err := getFilestore(env)
 		if err != nil {
 			return err
 		}
+
+		removeBadBlocks, _ := req.Options[removeBadBlocksOptionName].(bool)
 		args := req.Arguments
 		if len(args) > 0 {
-			return listByArgs(res, fs, args)
+			return listByArgs(res, fs, args, removeBadBlocks)
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
@@ -241,11 +155,13 @@ For ERROR entries the error will also be printed to stderr.
 			if r == nil {
 				break
 			}
+
+			if removeBadBlocks && (r.Status != filestore.StatusOk) && (r.Status != filestore.StatusOtherError) {
+				fs.FileManager().DeleteBlock(r.Key)
+			}
+
 			if err := res.Emit(r); err != nil {
 				return err
-			}
-			if (r.Status != filestore.StatusOk) && (r.Status != filestore.StatusOtherError) {
-				fs.FileManager().DeleteBlock(r.Key)
 			}
 		}
 
@@ -258,6 +174,8 @@ For ERROR entries the error will also be printed to stderr.
 				return err
 			}
 
+			req := res.Request()
+			removeBadBlocks, _ := req.Options[removeBadBlocksOptionName].(bool)
 			for {
 				v, err := res.Next()
 				if err != nil {
@@ -276,11 +194,12 @@ For ERROR entries the error will also be printed to stderr.
 					fmt.Fprintf(os.Stderr, "%s\n", list.ErrorMsg)
 				}
 
-				if (list.Status != filestore.StatusOk) && (list.Status != filestore.StatusOtherError) {
-					fmt.Fprintf(os.Stdout, "remove %s %s\n", list.Status.Format(), list.FormatLong(enc.Encode))
-				} else {
-					fmt.Fprintf(os.Stdout, "nop %s %s\n", list.Status.Format(), list.FormatLong(enc.Encode))
+				action := "nop"
+				if removeBadBlocks && (list.Status != filestore.StatusOk) && (list.Status != filestore.StatusOtherError) {
+					action = "remove"
 				}
+
+				fmt.Fprintf(os.Stdout, "%s %s %s\n", list.Status.Format(), list.FormatLong(enc.Encode), action)
 			}
 		},
 	},
@@ -337,7 +256,7 @@ func getFilestore(env cmds.Environment) (*core.IpfsNode, *filestore.Filestore, e
 	return n, fs, err
 }
 
-func listByArgs(res cmds.ResponseEmitter, fs *filestore.Filestore, args []string) error {
+func listByArgs(res cmds.ResponseEmitter, fs *filestore.Filestore, args []string, removeBadBlocks bool) error {
 	for _, arg := range args {
 		c, err := cid.Decode(arg)
 		if err != nil {
@@ -351,6 +270,11 @@ func listByArgs(res cmds.ResponseEmitter, fs *filestore.Filestore, args []string
 			continue
 		}
 		r := filestore.Verify(fs, c)
+
+		if removeBadBlocks && (r.Status != filestore.StatusOk) && (r.Status != filestore.StatusOtherError) {
+			fs.FileManager().DeleteBlock(r.Key)
+		}
+
 		if err := res.Emit(r); err != nil {
 			return err
 		}
