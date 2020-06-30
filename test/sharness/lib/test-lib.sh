@@ -193,7 +193,7 @@ test_init_ipfs() {
 
   test_expect_success "ipfs init succeeds" '
     export IPFS_PATH="$(pwd)/.ipfs" &&
-    ipfs init --profile=test -b=2048 > /dev/null
+    ipfs init --profile=test -a=rsa -b=2048 > /dev/null
   '
 
   test_expect_success "prepare config -- mounting" '
