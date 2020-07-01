@@ -664,6 +664,36 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT/" \
   "$CID_VAL"
 
+## ============================================================================
+## Test support for X-Forwarded-Host
+## ============================================================================
+
+# set explicit subdomain gateway config for the hostname
+ipfs config --json Gateway.PublicGateways '{
+  "example.com": {
+    "UseSubdomains": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
+  }
+}' || exit 1
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon --offline
+
+test_expect_success "request for http://fake.domain.com/ipfs/{CID} doesn't match the example.com gateway" "
+  curl -H \"Host: fake.domain.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"200 OK\" response
+"
+
+test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwarded-Host: example.com match the example.com gateway" "
+  curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: http://$CIDv1.ipfs.example.com/\" response
+"
+
+test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwarded-Host: example.com and X-Forwarded-Proto: https match the example.com gateway, redirect with https" "
+  curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
+"
+
 # =============================================================================
 # ensure we end with empty Gateway.PublicGateways
 ipfs config --json Gateway.PublicGateways '{}'

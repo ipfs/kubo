@@ -81,8 +81,15 @@ func HostnameOption() ServeOption {
 			// and the paths that they serve "gateway" content on.
 			// That way, we can use DNSLink for everything else.
 
+			// Support X-Forwarded-Host if added by a reverse proxy
+			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
+			host := r.Host
+			if xHost := r.Header.Get("X-Forwarded-Host"); xHost != "" {
+				host = xHost
+			}
+
 			// HTTP Host & Path check: is this one of our  "known gateways"?
-			if gw, ok := isKnownHostname(r.Host, knownGateways); ok {
+			if gw, ok := isKnownHostname(host, knownGateways); ok {
 				// This is a known gateway but request is not using
 				// the subdomain feature.
 
@@ -94,7 +101,7 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r); ok {
+						if newURL, ok := toSubdomainURL(host, r.URL.Path, r); ok {
 							// Just to be sure single Origin can't be abused in
 							// web browsers that ignored the redirect for some
 							// reason, Clear-Site-Data header clears browsing
@@ -124,9 +131,9 @@ func HostnameOption() ServeOption {
 				// Not a whitelisted path
 
 				// Try DNSLink, if it was not explicitly disabled for the hostname
-				if !gw.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, r) {
+				if !gw.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, host) {
 					// rewrite path and handle as DNSLink
-					r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
+					r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
 					childMux.ServeHTTP(w, r)
 					return
 				}
@@ -138,7 +145,7 @@ func HostnameOption() ServeOption {
 
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
 			// Example: {cid}.ipfs.localhost, {cid}.ipfs.dweb.link
-			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(r.Host, knownGateways); ok {
+			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(host, knownGateways); ok {
 				// Looks like we're using known subdomain gateway.
 
 				// Assemble original path prefix.
@@ -176,9 +183,9 @@ func HostnameOption() ServeOption {
 			// 1. is wildcard DNSLink enabled (Gateway.NoDNSLink=false)?
 			// 2. does Host header include a fully qualified domain name (FQDN)?
 			// 3. does DNSLink record exist in DNS?
-			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, r) {
+			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, host) {
 				// rewrite path and handle as DNSLink
-				r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
+				r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
 				childMux.ServeHTTP(w, r)
 				return
 			}
@@ -236,8 +243,8 @@ func knownSubdomainDetails(hostname string, knownGateways map[string]config.Gate
 
 // isDNSLinkRequest returns bool that indicates if request
 // should return data from content path listed in DNSLink record (if exists)
-func isDNSLinkRequest(ctx context.Context, ipfs iface.CoreAPI, r *http.Request) bool {
-	fqdn := stripPort(r.Host)
+func isDNSLinkRequest(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
+	fqdn := stripPort(host)
 	if len(fqdn) == 0 && !isd.IsDomain(fqdn) {
 		return false
 	}
