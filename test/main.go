@@ -13,6 +13,7 @@ const templateFile = "../dir-index.html"
 // Copied from go-ipfs/core/corehttp/gateway_indexPage.go
 type listingTemplateData struct {
 	Listing  []directoryItem
+	Size     string
 	Path     string
 	BackLink string
 	Hash     string
@@ -34,6 +35,7 @@ var testData = listingTemplateData{
 		Name: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
 		Path: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
 	}},
+	Size: "25 MiB",
 	Path:     "/ipfs/QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7RgQm",
 	BackLink: "/..",
 	Hash:     "QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7RgQm",
