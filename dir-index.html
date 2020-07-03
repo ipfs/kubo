@@ -55,7 +55,14 @@
   <div id="content">
     <div id="content-header" class="d-flex flex-wrap">
       <div>
-        <strong>Index of {{ .Path }}</strong>
+        <strong>
+          Index of
+          {{ range .Breadcrumbs -}}
+          /{{ if .Path }}<a href="{{ .Path | urlEscape }}">{{ .Name }}</a>{{ else }}{{ .Name }}{{ end }}
+          {{- else }}
+          {{ .Path }}
+          {{ end }}
+        </strong>
         {{ if .Hash }}
         <div class="ipfs-hash">
           {{ .Hash }}
