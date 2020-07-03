@@ -33,6 +33,17 @@
  .ml-auto {
    margin-left: auto;
  }
+ .text-truncate {
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+ }
+ .table-responsive {
+   display: block;
+   width: 100%;
+   overflow-x: auto;
+   -webkit-overflow-scrolling: touch;
+ }
 </style>
 
 <title>{{ .Path }}</title>
@@ -75,6 +86,7 @@
       </div>
       {{ end }}
     </div>
+    <div class="table-responsive">
     <table>
       <tr>
         <td class="type-icon">
@@ -83,6 +95,7 @@
         <td>
           <a href="{{.BackLink | urlEscape}}">..</a>
         </td>
+        <td></td>
         <td></td>
       </tr>
       {{ range .Listing }}
@@ -93,10 +106,19 @@
         <td>
           <a href="{{ .Path | urlEscape }}">{{ .Name }}</a>
         </td>
+        <td>
+          {{ if .Hash }}
+          <a class="d-flex" style="width:33vw; max-width:30em; max-width: max-content" href="/ipfs/{{ .Hash | urlEscape }}">
+            <span class="text-truncate" style="min-width: 2.5em">{{ slice .Hash 0 40 }}</span>
+            <span class="no-linebreak">{{ slice .Hash 40 }}</span>
+          </a>
+          {{ end }}
+        </td>
         <td class="no-linebreak">{{ .Size }}</td>
       </tr>
       {{ end }}
     </table>
+    </div>
   </div>
 </body>
 </html>

@@ -24,6 +24,7 @@ type directoryItem struct {
 	Size string
 	Name string
 	Path string
+	Hash string
 }
 
 type breadcrumb struct {
@@ -37,10 +38,12 @@ var testData = listingTemplateData{
 		Size: "25 MiB",
 		Name: "short-film.mov",
 		Path: testPath + "/short-film.mov",
+		Hash: "QmQuxBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
 	}, {
 		Size: "1 KiB",
 		Name: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
 		Path: testPath + "/this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
+		Hash: "QmquXbaRQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
 	}},
 	Size: "25 MiB",
 	Path: testPath,
