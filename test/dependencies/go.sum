@@ -373,6 +373,8 @@ github.com/ipfs/iptb-plugins v0.2.3 h1:Ycma4XtWWR97RgAUXZraK3PHnLl911R9gG5mlcm4n
 github.com/ipfs/iptb-plugins v0.2.3/go.mod h1:5QtOvckeIw4bY86gSH4fgh3p3gCSMn3FmIKr4gaBncA=
 github.com/ipfs/iptb-plugins v0.2.4-0.20200702204012-ea23d62dfb2c h1:8mm4PUxWjjVN8gwr5PVog++qIEyUk4uZ80qRsvC0RdY=
 github.com/ipfs/iptb-plugins v0.2.4-0.20200702204012-ea23d62dfb2c/go.mod h1:5QtOvckeIw4bY86gSH4fgh3p3gCSMn3FmIKr4gaBncA=
+github.com/ipfs/iptb-plugins v0.2.4-0.20200707173455-682d901a0d46 h1:a1/BfzuM0sdamIoWffGDvOSGT8ALfiXFZN0d0LZkPA8=
+github.com/ipfs/iptb-plugins v0.2.4-0.20200707173455-682d901a0d46/go.mod h1:5QtOvckeIw4bY86gSH4fgh3p3gCSMn3FmIKr4gaBncA=
 github.com/ipld/go-ipld-prime v0.0.2-0.20191108012745-28a82f04c785 h1:fASnkvtR+SmB2y453RxmDD3Uvd4LonVUgFGk9JoDaZs=
 github.com/ipld/go-ipld-prime v0.0.2-0.20191108012745-28a82f04c785/go.mod h1:bDDSvVz7vaK12FNvMeRYnpRFkSUPNQOiCYQezMD/P3w=
 github.com/ipld/go-ipld-prime-proto v0.0.0-20191113031812-e32bd156a1e5 h1:lSip43rAdyGA+yRQuy6ju0ucZkWpYc1F2CTQtZTVW/4=
