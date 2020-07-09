@@ -5,10 +5,11 @@ import (
 	"io"
 	"text/tabwriter"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	b36 "github.com/multiformats/go-base36"
 )
 
 var KeyCmd = &cmds.Command{
@@ -56,6 +57,7 @@ type KeyRenameOutput struct {
 const (
 	keyStoreTypeOptionName = "type"
 	keyStoreSizeOptionName = "size"
+	cidOptionName          = "cid"
 )
 
 var keyGenCmd = &cmds.Command{
@@ -65,6 +67,7 @@ var keyGenCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("rsa"),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
+		cmds.BoolOption(cidOptionName, "c", "return a base-36 CIDv1 encoding of the key").WithDefault(true),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name of key to create"),
@@ -98,9 +101,14 @@ var keyGenCmd = &cmds.Command{
 			return err
 		}
 
+		id := key.ID().Pretty()
+		if req.Options[cidOptionName].(bool) {
+			id = b36.EncodeToStringLc(peer.ToCid(key.ID()).Bytes())
+		}
+
 		return cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   key.ID().Pretty(),
+			Id:   id,
 		})
 	},
 	Encoders: cmds.EncoderMap{
