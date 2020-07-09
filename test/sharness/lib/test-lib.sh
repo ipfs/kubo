@@ -445,7 +445,7 @@ file_size() {
 
 test_check_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
-  test "$peeridlen" = "46" || {
+  test "$peeridlen" = "46" -o "$peeridlen" = "52" -o "$peeridlen" = "62" || {
     echo "Bad peerid '$1' with len '$peeridlen'"
     return 1
   }
