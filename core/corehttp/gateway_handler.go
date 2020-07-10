@@ -328,8 +328,20 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			size = humanize.Bytes(uint64(s))
 		}
 
+		hash := ""
+		if r, err := i.api.ResolvePath(r.Context(), ipath.Join(resolvedPath, dirit.Name())); err == nil {
+			// Path may not be resolved. Continue anyways.
+			hash = r.Cid().String()
+		}
+
 		// See comment above where originalUrlPath is declared.
-		di := directoryItem{size, dirit.Name(), gopath.Join(originalUrlPath, dirit.Name())}
+		di := directoryItem{
+			Size:      size,
+			Name:      dirit.Name(),
+			Path:      gopath.Join(originalUrlPath, dirit.Name()),
+			Hash:      hash,
+			ShortHash: shortHash(hash),
+		}
 		dirListing = append(dirListing, di)
 	}
 	if dirit.Err() != nil {
@@ -359,14 +371,34 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	size := "?"
+	if s, err := dir.Size(); err == nil {
+		// Size may not be defined/supported. Continue anyways.
+		size = humanize.Bytes(uint64(s))
+	}
+
 	hash := resolvedPath.Cid().String()
+
+	// Storage for gateway URL to be used when linking to other rootIDs. This
+	// will be blank unless subdomain resolution is being used for this request.
+	var gwURL string
+
+	// Get gateway hostname and build gateway URL.
+	if h, ok := r.Context().Value("gw-hostname").(string); ok {
+		gwURL = "//" + h
+	} else {
+		gwURL = ""
+	}
 
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
-		Listing:  dirListing,
-		Path:     urlPath,
-		BackLink: backLink,
-		Hash:     hash,
+		GatewayURL:  gwURL,
+		Listing:     dirListing,
+		Size:        size,
+		Path:        urlPath,
+		Breadcrumbs: breadcrumbs(urlPath),
+		BackLink:    backLink,
+		Hash:        hash,
 	}
 
 	err = listingTemplate.Execute(w, tplData)

@@ -143,6 +143,10 @@ func HostnameOption() ServeOption {
 			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(host, knownGateways); ok {
 				// Looks like we're using a known gateway in subdomain mode.
 
+				// Add gateway hostname context for linking to other root ids.
+				// Example: localhost/ipfs/{cid}
+				ctx := context.WithValue(r.Context(), "gw-hostname", hostname)
+
 				// Assemble original path prefix.
 				pathPrefix := "/" + ns + "/" + rootID
 
@@ -197,7 +201,7 @@ func HostnameOption() ServeOption {
 				r.URL.Path = pathPrefix + r.URL.Path
 
 				// Serve path request
-				childMux.ServeHTTP(w, r)
+				childMux.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 			// We don't have a known gateway. Fallback on DNSLink lookup
