@@ -14,10 +14,6 @@ base: core18
 grade: stable
 confinement: strict
 
-# skip building on `ppc64el` and `s390x` to save some cpu cycles.
-architectures:
-  - build-on: [amd64, arm64, armhf, i386]
-
 apps:
   ipfs:
     command: ipfs
