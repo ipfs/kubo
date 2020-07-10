@@ -1,5 +1,4 @@
 # This snap will build go-ipfs from source.
-# See: https://github.com/ipfs-shipyard/ipfs-snap for more details
 name: ipfs
 summary: global, versioned, peer-to-peer filesystem # 79 char long summary
 description: |
@@ -15,10 +14,15 @@ base: core18
 grade: stable
 confinement: strict
 
+# skip building on `ppc64el` and `s390x` to save some cpu cycles.
+architectures:
+  - build-on: [amd64, arm64, armhf, i386]
+
 apps:
   ipfs:
     command: ipfs
-    plugs: [network, network-bind, removable-media]
+    # the home plug is included so the user can `ipfs add` files from their home dir without a permission error.
+    plugs: [home, network, network-bind, removable-media]
     environment:
       # Snaps versions are isolated by default. This keeps the same ipfs repo across upgrades.
       IPFS_PATH: "$SNAP_USER_COMMON"
