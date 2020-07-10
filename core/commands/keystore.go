@@ -101,14 +101,9 @@ var keyGenCmd = &cmds.Command{
 			return err
 		}
 
-		id := key.ID().Pretty()
-		if req.Options[cidOptionName].(bool) {
-			id = b36.EncodeToStringLc(peer.ToCid(key.ID()).Bytes())
-		}
-
 		return cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   id,
+			Id:   formatID(key.ID(), req.Options[cidOptionName].(bool)),
 		})
 	},
 	Encoders: cmds.EncoderMap{
@@ -120,12 +115,20 @@ var keyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
+func formatID(id peer.ID, useCID bool) string {
+	if useCID {
+		return b36.EncodeToStringLc(peer.ToCid(id).Bytes())
+	}
+	return id.Pretty()
+}
+
 var keyListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List all local keypairs",
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
+		cmds.BoolOption(cidOptionName, "c", "return a base-36 CIDv1 encoding of the keys").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -141,7 +144,10 @@ var keyListCmd = &cmds.Command{
 		list := make([]KeyOutput, 0, len(keys))
 
 		for _, key := range keys {
-			list = append(list, KeyOutput{Name: key.Name(), Id: key.ID().Pretty()})
+			list = append(list, KeyOutput{
+				Name: key.Name(),
+				Id:   formatID(key.ID(), req.Options[cidOptionName].(bool)),
+			})
 		}
 
 		return cmds.EmitOnce(res, &KeyOutputList{list})
