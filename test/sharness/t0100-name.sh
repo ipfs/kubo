@@ -101,7 +101,7 @@ test_expect_failure "publish with our explicit node ID looks good" '
 # publish with an explicit node ID as key name
 
 test_expect_success "generate and verify a new key" '
-  NEWID=`ipfs key gen --type=rsa --size=2048 keyname` &&
+  NEWID=`ipfs key gen -f=b58mh --type=rsa --size=2048 keyname` &&
   test_check_peerid "${NEWID}"
 '
 
