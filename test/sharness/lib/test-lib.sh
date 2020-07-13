@@ -451,6 +451,38 @@ test_check_peerid() {
   }
 }
 
+test_check_rsa2048_b58mh_peerid() {
+  peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
+  test "$peeridlen" = "46" || {
+    echo "Bad RSA2048 B58MH peerid '$1' with len '$peeridlen'"
+    return 1
+  }
+}
+
+test_check_ed25519_b58mh_peerid() {
+  peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
+  test "$peeridlen" = "46" || {
+    echo "Bad ED25519 B58MH peerid '$1' with len '$peeridlen'"
+    return 1
+  }
+}
+
+test_check_rsa2048_b36cid_peerid() {
+  peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
+  test "$peeridlen" = "56" || {
+    echo "Bad RSA2048 B36CID peerid '$1' with len '$peeridlen'"
+    return 1
+  }
+}
+
+test_check_ed25519_b36cid_peerid() {
+  peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
+  test "$peeridlen" = "62" || {
+    echo "Bad ED25519 B36CID peerid '$1' with len '$peeridlen'"
+    return 1
+  }
+}
+
 convert_tcp_maddr() {
   echo $1 | awk -F'/' '{ printf "%s:%s", $3, $5 }'
 }

@@ -5,10 +5,11 @@ import (
 	"io"
 	"text/tabwriter"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	mbase "github.com/multiformats/go-multibase"
 )
 
 var KeyCmd = &cmds.Command{
@@ -56,6 +57,7 @@ type KeyRenameOutput struct {
 const (
 	keyStoreTypeOptionName = "type"
 	keyStoreSizeOptionName = "size"
+	keyFormatOptionName    = "format"
 )
 
 var keyGenCmd = &cmds.Command{
@@ -65,6 +67,7 @@ var keyGenCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("rsa"),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
+		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b58mh"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name of key to create"),
@@ -91,6 +94,9 @@ var keyGenCmd = &cmds.Command{
 		if sizefound {
 			opts = append(opts, options.Key.Size(size))
 		}
+		if err = verifyFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+			return err
+		}
 
 		key, err := api.Key().Generate(req.Context, name, opts...)
 
@@ -100,7 +106,7 @@ var keyGenCmd = &cmds.Command{
 
 		return cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   key.ID().Pretty(),
+			Id:   formatID(key.ID(), req.Options[keyFormatOptionName].(string)),
 		})
 	},
 	Encoders: cmds.EncoderMap{
@@ -112,14 +118,44 @@ var keyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
+func verifyFormatLabel(formatLabel string) error {
+	switch formatLabel {
+	case "b58mh":
+		return nil
+	case "b36cid":
+		return nil
+	}
+	return fmt.Errorf("invalid output format option")
+}
+
+func formatID(id peer.ID, formatLabel string) string {
+	switch formatLabel {
+	case "b58mh":
+		return id.Pretty()
+	case "b36cid":
+		if s, err := peer.ToCid(id).StringOfBase(mbase.Base36); err != nil {
+			panic(err)
+		} else {
+			return s
+		}
+	default:
+		panic("unreachable")
+	}
+}
+
 var keyListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List all local keypairs",
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
+		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b58mh"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		if err := verifyFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+			return err
+		}
+
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
@@ -133,7 +169,10 @@ var keyListCmd = &cmds.Command{
 		list := make([]KeyOutput, 0, len(keys))
 
 		for _, key := range keys {
-			list = append(list, KeyOutput{Name: key.Name(), Id: key.ID().Pretty()})
+			list = append(list, KeyOutput{
+				Name: key.Name(),
+				Id:   formatID(key.ID(), req.Options[keyFormatOptionName].(string)),
+			})
 		}
 
 		return cmds.EmitOnce(res, &KeyOutputList{list})

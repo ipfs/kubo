@@ -23,7 +23,7 @@ test_expect_success "resolve: prepare dag" '
 
 test_expect_success "resolve: prepare keys" '
     self_hash=$(ipfs id -f="<id>") &&
-    alt_hash=$(ipfs key gen -t rsa alt)
+    alt_hash=$(ipfs key gen -f=b58mh -t rsa alt)
 '
 
 test_resolve_setup_name() {
