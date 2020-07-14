@@ -34,3 +34,16 @@ func TestCreateIdentity(t *testing.T) {
 		t.Fatal("unexpected type:", pk.Type())
 	}
 }
+
+func TestCreateIdentityOptions(t *testing.T) {
+	var w bytes.Buffer
+
+	// ed25519 keys with bit size must fail.
+	_, err := CreateIdentity(&w, []options.KeyGenerateOption{
+		options.Key.Type(options.Ed25519Key),
+		options.Key.Size(2048),
+	})
+	if err == nil {
+		t.Errorf("ed25519 keys cannot have a custom bit size")
+	}
+}
