@@ -339,8 +339,8 @@ test_localhost_gateway_response_should_contain \
 # set explicit subdomain gateway config for the hostname
 ipfs config --json Gateway.PublicGateways '{
   "example.com": {
-  "UseSubdomains": true,
-  "Paths": ["/ipfs", "/ipns", "/api"]
+    "UseSubdomains": true,
+    "Paths": ["/ipfs", "/ipns", "/api"]
   }
 }' || exit 1
 # restart daemon to apply config changes
@@ -376,8 +376,8 @@ test_hostname_gateway_response_should_contain \
 
 # Support X-Forwarded-Proto
 test_expect_success "request for http://example.com/ipfs/{CID} with X-Forwarded-Proto: https produces redirect to HTTPS URL" "
-curl -H \"X-Forwarded-Proto: https\" -H \"Host: example.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
-test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
+  curl -H \"X-Forwarded-Proto: https\" -H \"Host: example.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
 
@@ -493,8 +493,8 @@ test_hostname_gateway_response_should_contain \
 # disable /api on example.com
 ipfs config --json Gateway.PublicGateways '{
   "example.com": {
-  "UseSubdomains": true,
-  "Paths": ["/ipfs", "/ipns"]
+   "UseSubdomains": true,
+   "Paths": ["/ipfs", "/ipns"]
   }
 }' || exit 1
 # restart daemon to apply config changes
@@ -626,8 +626,8 @@ test_hostname_gateway_response_should_contain \
 # set explicit subdomain gateway config for the hostname
 ipfs config --json Gateway.PublicGateways '{
   "example.com": {
-  "UseSubdomains": false,
-  "Paths": ["/ipfs"]
+    "UseSubdomains": false,
+    "Paths": ["/ipfs"]
   }
 }' || exit 1
 
@@ -809,18 +809,18 @@ test_kill_ipfs_daemon
 test_launch_ipfs_daemon --offline
 
 test_expect_success "request for http://fake.domain.com/ipfs/{CID} doesn't match the example.com gateway" "
-curl -H \"Host: fake.domain.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
-test_should_contain \"200 OK\" response
+  curl -H \"Host: fake.domain.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"200 OK\" response
 "
 
 test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwarded-Host: example.com match the example.com gateway" "
-curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
-test_should_contain \"Location: http://$CIDv1.ipfs.example.com/\" response
+  curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: http://$CIDv1.ipfs.example.com/\" response
 "
 
 test_expect_success "request for http://fake.domain.com/ipfs/{CID} with X-Forwarded-Host: example.com and X-Forwarded-Proto: https match the example.com gateway, redirect with https" "
-curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
-test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
+  curl -H \"Host: fake.domain.com\" -H \"X-Forwarded-Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
+  test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
 # =============================================================================
