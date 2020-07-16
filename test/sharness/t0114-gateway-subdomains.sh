@@ -113,25 +113,25 @@ test_expect_success "Add the test directory" '
 '
 
 test_expect_success "Publish test text file to IPNS using RSA keys" '
-  PEERID=$(ipfs key gen -f=b58mh --type=rsa --size=2048 test_key_rsa | head -n1 | tr -d "\n")
-  RSA_IPNS_IDv0=$(echo "$PEERID" | ipfs cid format -v 0)
-  RSA_IPNS_IDv1=$(echo "$PEERID" | ipfs cid format -v 1 --codec libp2p-key -b base36)
+  RSA_KEY=$(ipfs key gen -f=b58mh --type=rsa --size=2048 test_key_rsa | head -n1 | tr -d "\n")
+  RSA_IPNS_IDv0=$(echo "RSA_KEY" | ipfs cid format -v 0)
+  RSA_IPNS_IDv1=$(echo "RSA_KEY" | ipfs cid format -v 1 --codec libp2p-key -b base36)
   RSA_IPNS_IDv1_DAGPB=$(echo "$RSA_IPNS_IDv0" | ipfs cid format -v 1 -b base36)
-  test_check_peerid "${PEERID}" &&
+  test_check_peerid "${RSA_KEY}" &&
   ipfs name publish --key test_key_rsa --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
-  ipfs name resolve "$PEERID"  > output &&
+  ipfs name resolve "RSA_KEY"  > output &&
   printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
   test_cmp expected2 output
 '
 
 test_expect_success "Publish test text file to IPNS using ED25519 keys" '
-  PEERID=$(ipfs key gen -f=b36cid --type=ed25519 test_key_ed25519 | head -n1 | tr -d "\n") &&
-  ED25519_IPNS_IDv0=$PEERID
-  ED25519_IPNS_IDv1=$PEERID
-  ED25519_IPNS_IDv1_DAGPB=$(echo "$ED25519_IPNS_IDv0" | ipfs cid format -v 1 -b base32)
-  test_check_peerid "${PEERID}" &&
+  ED25519_KEY=$(ipfs key gen -f=b58mh --type=ed25519 test_key_ed25519 | head -n1 | tr -d "\n")
+  ED25519_IPNS_IDv0=ED25519_KEY
+  ED25519_IPNS_IDv1=$(ipfs key list -l -f b36cid | grep test_key_ed25519 | cut -d " " -f1 | tr -d "\n")
+  ED25519_IPNS_IDv1_DAGPB=$(echo "$ED25519_IPNS_IDv1" | ipfs cid format -v 1 -b base36 --codec protobuf)
+  test_check_peerid "${ED25519_KEY}" &&
   ipfs name publish --key test_key_ed25519 --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
-  ipfs name resolve "$PEERID"  > output &&
+  ipfs name resolve "ED25519_KEY"  > output &&
   printf "/ipfs/%s\n" "$CIDv1" > expected2 &&
   test_cmp expected2 output
 '
