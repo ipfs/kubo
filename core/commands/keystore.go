@@ -240,7 +240,7 @@ var keyExportCmd = &cmds.Command{
 		name := req.Arguments[0]
 
 		if name == "self" {
-			return fmt.Errorf("exporting key 'self' is not allowed")
+			return fmt.Errorf("cannot export key with name 'self'")
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -290,6 +290,11 @@ var keyImportCmd = &cmds.Command{
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
+
+		if name == "self" {
+			return fmt.Errorf("cannot import key with name 'self'")
+		}
+
 		encoded := req.Arguments[1]
 
 		data, err := base58.Decode(encoded)

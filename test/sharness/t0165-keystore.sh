@@ -11,15 +11,31 @@ test_description="Test keystore commands"
 test_init_ipfs
 
 test_key_cmd() {
+  test_expect_success "export with no store doesn't store" '
+    ipfs key gen -n -e && echo self > list_exp &&
+    ipfs key list > list_out &&
+    test_sort_cmp list_exp list_out
+  '
+
+  test_expect_success "no store without export is an error" '
+    test_must_fail ipfs key gen -n 2>&1 | tee key_gen_out &&
+    grep -q "you must export key" key_gen_out
+  '
+
+  test_expect_success "key gen without name is an error" '
+    test_must_fail ipfs key gen 2>&1 | tee key_gen_out &&
+    grep -q "you must specify a key name" key_gen_out
+  '
+
 # test key output format
 test_expect_success "create an RSA key and test B58MH multihash output" '
 PEERID=$(ipfs key gen -f=b58mh --type=rsa --size=2048 key_rsa) &&
 test_check_rsa2048_b58mh_peerid $PEERID
 '
 
-test_expect_success "test RSA key B36CID sk export format" '
-PEERID=$(ipfs key export key_rsa) &&
-test_check_rsa2048_sk $PEERID
+test_expect_success "test RSA key sk export format" '
+SK=$(ipfs key export key_rsa) &&
+test_check_rsa2048_sk $SK
 '
 
 test_expect_success "test RSA key B36CID multihash format" '
@@ -33,9 +49,10 @@ PEERID=$(ipfs key gen -f=b36cid --type=ed25519 key_ed25519) &&
 test_check_ed25519_b36cid_peerid $PEERID
 '
 
-test_expect_success "test RSA key ED25519 sk export format" '
-PEERID=$(ipfs key export key_ed25519) &&
-test_check_ed25519_sk $PEERID
+test_expect_success "create and export an ED25519 key" '
+SK=$(ipfs key gen -e key_ed25519_2) &&
+test_check_ed25519_sk $SK &&
+ipfs key rm key_ed25519_2
 '
 
 test_expect_success "test ED25519 key B36CID multihash format" '
@@ -63,7 +80,7 @@ ipfs key rm key_ed25519
     test $imphash = $gothash
   '
   
-  test_expect_success "key import can't export self" '
+  test_expect_success "key export can't export self" '
     test_must_fail ipfs key export self 2>&1 | tee key_exp_out &&
     grep -q "Error: cannot export key with name" key_exp_out
   '
@@ -77,10 +94,9 @@ ipfs key rm key_ed25519
     echo bazed > list_exp &&
     echo foobarsa >> list_exp &&
     echo quxel >> list_exp &&
-    echo self >> list_exp &&
-    sort -o list_exp list_exp
-    ipfs key list -f=b58mh | sort > list_out &&
-    test_cmp list_exp list_out
+    echo self >> list_exp
+    ipfs key list -f=b58mh > list_out &&
+    test_sort_cmp list_exp list_out
   '
 
   test_expect_success "key hashes show up in long list output" '
@@ -96,9 +112,10 @@ ipfs key rm key_ed25519
   test_expect_success "key rm remove a key" '
     ipfs key rm foobarsa
     echo bazed > list_exp &&
+    echo quxel >> list_exp &&
     echo self >> list_exp
-    ipfs key list -f=b58mh | sort > list_out &&
-    test_cmp list_exp list_out
+    ipfs key list -f=b58mh > list_out &&
+    test_sort_cmp list_exp list_out
   '
 
   test_expect_success "key rm can't remove self" '
@@ -109,9 +126,10 @@ ipfs key rm key_ed25519
   test_expect_success "key rename rename a key" '
     ipfs key rename bazed fooed
     echo fooed > list_exp &&
+    echo quxel >> list_exp &&
     echo self >> list_exp
-    ipfs key list -f=b58mh | sort > list_out &&
-    test_cmp list_exp list_out
+    ipfs key list -f=b58mh > list_out &&
+    test_sort_cmp list_exp list_out
   '
 
   test_expect_success "key rename rename key output succeeds" '
