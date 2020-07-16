@@ -80,12 +80,10 @@ test_hostname_gateway_response_should_contain() {
   "
 }
 
-
 ## ============================================================================
 ## Start IPFS Node and prepare test CIDs
 ## ============================================================================
 
-# test_init_ipfs
 test_expect_success "ipfs init" '
   export IPFS_PATH="$(pwd)/.ipfs" &&
   ipfs init --profile=test -a=rsa -b=2048 > /dev/null
@@ -493,8 +491,8 @@ test_hostname_gateway_response_should_contain \
 # disable /api on example.com
 ipfs config --json Gateway.PublicGateways '{
   "example.com": {
-   "UseSubdomains": true,
-   "Paths": ["/ipfs", "/ipns"]
+    "UseSubdomains": true,
+    "Paths": ["/ipfs", "/ipns"]
   }
 }' || exit 1
 # restart daemon to apply config changes
@@ -598,8 +596,8 @@ test_hostname_gateway_response_should_contain \
 # disable /ipns for the hostname by not whitelisting it
 ipfs config --json Gateway.PublicGateways '{
   "example.com": {
-  "UseSubdomains": true,
-  "Paths": ["/ipfs"]
+    "UseSubdomains": true,
+    "Paths": ["/ipfs"]
   }
 }' || exit 1
 # restart daemon to apply config changes
