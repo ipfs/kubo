@@ -24,7 +24,6 @@ var commandsClientCmd = commands.CommandsCmd(Root)
 var localCommands = map[string]*cmds.Command{
 	"daemon":   daemonCmd,
 	"init":     initCmd,
-	"rotate":   rotateCmd,
 	"commands": commandsClientCmd,
 }
 
@@ -94,4 +93,5 @@ var cmdDetailsMap = map[string]cmdDetails{
 	"repo/fsck":   {cannotRunOnDaemon: true},
 	"config/edit": {cannotRunOnDaemon: true, doesNotUseRepo: true},
 	"cid":         {doesNotUseRepo: true},
+	"key/rotate":  {cannotRunOnDaemon: true},
 }
