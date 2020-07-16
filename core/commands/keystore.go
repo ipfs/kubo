@@ -7,8 +7,13 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/coreapi"
+	repo "github.com/ipfs/go-ipfs/repo"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/mr-tron/base58/base58"
 	mbase "github.com/multiformats/go-multibase"
 )
 
@@ -30,16 +35,29 @@ publish'.
 		`,
 	},
 	Subcommands: map[string]*cmds.Command{
-		"gen":    keyGenCmd,
-		"list":   keyListCmd,
-		"rename": keyRenameCmd,
-		"rm":     keyRmCmd,
+		"gen":      keyGenCmd,
+		"export":   keyExportCmd,
+		"import":   keyImportCmd,
+		"identify": keyIdentifyCmd,
+		"list":     keyListCmd,
+		"rename":   keyRenameCmd,
+		"rm":       keyRmCmd,
 	},
 }
 
 type KeyOutput struct {
 	Name string
 	Id   string
+}
+
+type GenerateKeyOutput struct {
+	Name string
+	Id   string
+	Sk   string
+}
+
+type ExportKeyOutput struct {
+	Sk string
 }
 
 type KeyOutputList struct {
@@ -58,6 +76,8 @@ const (
 	keyStoreTypeOptionName = "type"
 	keyStoreSizeOptionName = "size"
 	keyFormatOptionName    = "format"
+	keyExportOptionName    = "export"
+	keyNoStoreOptionName   = "no-store"
 )
 
 var keyGenCmd = &cmds.Command{
@@ -68,24 +88,57 @@ var keyGenCmd = &cmds.Command{
 		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("rsa"),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b58mh"),
+		cmds.BoolOption(keyExportOptionName, "e", "return generated key for later re-import").WithDefault(false),
+		cmds.BoolOption(keyNoStoreOptionName, "n", "don't add the key to the keychain").WithDefault(false),
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("name", true, false, "name of key to create"),
+		cmds.StringArg("name", false, false, "name of key to create, required unless -n specified"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		api, err := cmdenv.GetApi(env, req)
-		if err != nil {
-			return err
-		}
-
 		typ, f := req.Options[keyStoreTypeOptionName].(string)
 		if !f {
 			return fmt.Errorf("please specify a key type with --type")
 		}
 
-		name := req.Arguments[0]
-		if name == "self" {
-			return fmt.Errorf("cannot create key with name 'self'")
+		store := !req.Options[keyNoStoreOptionName].(bool)
+		export := req.Options[keyExportOptionName].(bool)
+
+		var name string
+		var r repo.Repo = nil
+		defer func() {
+			if r != nil {
+				r.Close()
+			}
+		}()
+		if store {
+			if len(req.Arguments) == 0 {
+				return fmt.Errorf("you must specify a key name")
+			}
+
+			name = req.Arguments[0]
+
+			if name == "self" {
+				return fmt.Errorf("cannot create key with name 'self'")
+			}
+
+			cfgRoot, err := cmdenv.GetConfigRoot(env)
+			if err != nil {
+				return err
+			}
+
+			r, err = fsrepo.Open(cfgRoot)
+			if err != nil {
+				return err
+			}
+
+			_, err = r.Keystore().Get(name)
+			if err == nil {
+				return fmt.Errorf("key with name '%s' already exists", name)
+			}
+		}
+
+		if !store && !export {
+			return fmt.Errorf("you must export key if not storing")
 		}
 
 		opts := []options.KeyGenerateOption{options.Key.Type(typ)}
@@ -94,28 +147,52 @@ var keyGenCmd = &cmds.Command{
 		if sizefound {
 			opts = append(opts, options.Key.Size(size))
 		}
-		if err = verifyFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+		if err := verifyFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
 			return err
 		}
 
-		key, err := api.Key().Generate(req.Context, name, opts...)
-
+		sk, pk, err := coreapi.GenerateKey(opts...)
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &KeyOutput{
+		if store {
+			err = r.Keystore().Put(name, sk)
+			if err != nil {
+				return err
+			}
+		}
+
+		pid, err := peer.IDFromPublicKey(pk)
+		if err != nil {
+			return err
+		}
+
+		var encoded string
+		if export {
+			encoded, err = encodeSKForExport(sk)
+			if err != nil {
+				return err
+			}
+		}
+
+		return cmds.EmitOnce(res, &GenerateKeyOutput{
 			Name: name,
-			Id:   formatID(key.ID(), req.Options[keyFormatOptionName].(string)),
+			Id:   formatID(pid, req.Options[keyFormatOptionName].(string)),
+			Sk:   encoded,
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *KeyOutput) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *GenerateKeyOutput) error {
+			if ko.Sk != "" {
+				_, err := w.Write([]byte(ko.Sk + "\n"))
+				return err
+			}
 			_, err := w.Write([]byte(ko.Id + "\n"))
 			return err
 		}),
 	},
-	Type: KeyOutput{},
+	Type: GenerateKeyOutput{},
 }
 
 func verifyFormatLabel(formatLabel string) error {
@@ -141,6 +218,170 @@ func formatID(id peer.ID, formatLabel string) string {
 	default:
 		panic("unreachable")
 	}
+}
+
+func encodeSKForExport(sk crypto.PrivKey) (string, error) {
+	data, err := crypto.MarshalPrivateKey(sk)
+	if err != nil {
+		return "", err
+	}
+	return base58.Encode(data), nil
+}
+
+var keyExportCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Export a keypair",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, false, "name of key to export").EnableStdin(),
+	},
+	Options: []cmds.Option{},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		name := req.Arguments[0]
+
+		if name == "self" {
+			return fmt.Errorf("exporting key 'self' is not allowed")
+		}
+
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+
+		sk, err := r.Keystore().Get(name)
+		if err != nil {
+			return fmt.Errorf("key with name '%s' doesn't exist", name)
+		}
+
+		encoded, err := encodeSKForExport(sk)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &ExportKeyOutput{
+			Sk: encoded,
+		})
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *ExportKeyOutput) error {
+			_, err := w.Write([]byte(ko.Sk + "\n"))
+			return err
+		}),
+	},
+	Type: ExportKeyOutput{},
+}
+
+var keyImportCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Import a key and prints imported key id",
+	},
+	Options: []cmds.Option{
+		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b58mh"),
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
+		cmds.StringArg("key", true, false, "key provided by generate or export"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		name := req.Arguments[0]
+		encoded := req.Arguments[1]
+
+		data, err := base58.Decode(encoded)
+		if err != nil {
+			return err
+		}
+
+		sk, err := crypto.UnmarshalPrivateKey(data)
+		if err != nil {
+			return err
+		}
+
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		r, err := fsrepo.Open(cfgRoot)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+
+		_, err = r.Keystore().Get(name)
+		if err == nil {
+			return fmt.Errorf("key with name '%s' already exists", name)
+		}
+
+		err = r.Keystore().Put(name, sk)
+		if err != nil {
+			return err
+		}
+
+		pid, err := peer.IDFromPrivateKey(sk)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &KeyOutput{
+			Name: name,
+			Id:   formatID(pid, req.Options[keyFormatOptionName].(string)),
+		})
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *KeyOutput) error {
+			_, err := w.Write([]byte(ko.Id + "\n"))
+			return err
+		}),
+	},
+	Type: KeyOutput{},
+}
+
+var keyIdentifyCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Identify an exported keypair",
+	},
+	Options: []cmds.Option{
+		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b58mh"),
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "key provided by generate or export"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		encoded := req.Arguments[0]
+
+		data, err := base58.Decode(encoded)
+		if err != nil {
+			return err
+		}
+
+		sk, err := crypto.UnmarshalPrivateKey(data)
+		if err != nil {
+			return err
+		}
+
+		pid, err := peer.IDFromPrivateKey(sk)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &KeyOutput{
+			Name: "",
+			Id:   formatID(pid, req.Options[keyFormatOptionName].(string)),
+		})
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *KeyOutput) error {
+			_, err := w.Write([]byte(ko.Id + "\n"))
+			return err
+		}),
+	},
+	Type: KeyOutput{},
 }
 
 var keyListCmd = &cmds.Command{
