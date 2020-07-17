@@ -86,7 +86,7 @@ test_hostname_gateway_response_should_contain() {
 
 test_expect_success "ipfs init" '
   export IPFS_PATH="$(pwd)/.ipfs" &&
-  ipfs init --profile=test -a=rsa -b=2048 > /dev/null
+  ipfs init --profile=test > /dev/null
 '
 
 test_launch_ipfs_daemon --offline
