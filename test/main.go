@@ -12,20 +12,20 @@ const templateFile = "../dir-index.html"
 
 // Copied from go-ipfs/core/corehttp/gateway_indexPage.go
 type listingTemplateData struct {
-	GatewayURL string
-	Listing  []directoryItem
-	Size     string
-	Path     string
+	GatewayURL  string
+	Listing     []directoryItem
+	Size        string
+	Path        string
 	Breadcrumbs []breadcrumb
-	BackLink string
-	Hash     string
+	BackLink    string
+	Hash        string
 }
 
 type directoryItem struct {
-	Size string
-	Name string
-	Path string
-	Hash string
+	Size      string
+	Name      string
+	Path      string
+	Hash      string
 	ShortHash string
 }
 
@@ -38,16 +38,16 @@ var testPath = "/ipfs/QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7/a/b/c"
 var testData = listingTemplateData{
 	GatewayURL: "//localhost:3000",
 	Listing: []directoryItem{{
-		Size: "25 MiB",
-		Name: "short-film.mov",
-		Path: testPath + "/short-film.mov",
-		Hash: "QmQuxBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
+		Size:      "25 MiB",
+		Name:      "short-film.mov",
+		Path:      testPath + "/short-film.mov",
+		Hash:      "QmQuxBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
 		ShortHash: "QmQu\u2026xDu7",
 	}, {
-		Size: "1 KiB",
-		Name: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
-		Path: testPath + "/this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
-		Hash: "QmquXbaRQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
+		Size:      "1 KiB",
+		Name:      "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
+		Path:      testPath + "/this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
+		Hash:      "QmquXbaRQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
 		ShortHash: "Qmqu\u2026xDu7",
 	}},
 	Size: "25 MiB",
