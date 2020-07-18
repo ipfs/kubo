@@ -12,6 +12,7 @@ const templateFile = "../dir-index.html"
 
 // Copied from go-ipfs/core/corehttp/gateway_indexPage.go
 type listingTemplateData struct {
+	GatewayURL string
 	Listing  []directoryItem
 	Size     string
 	Path     string
@@ -35,6 +36,7 @@ type breadcrumb struct {
 
 var testPath = "/ipfs/QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7/a/b/c"
 var testData = listingTemplateData{
+	GatewayURL: "//localhost:3000",
 	Listing: []directoryItem{{
 		Size: "25 MiB",
 		Name: "short-film.mov",

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{{ $root := . }}
 <html>
 <head>
 <meta charset="utf-8" />
@@ -44,7 +45,7 @@
         <strong>
           Index of
           {{ range .Breadcrumbs -}}
-          /{{ if .Path }}<a href="{{ .Path | urlEscape }}">{{ .Name }}</a>{{ else }}{{ .Name }}{{ end }}
+          /{{ if .Path }}<a href="{{ $root.GatewayURL }}{{ .Path | urlEscape }}">{{ .Name }}</a>{{ else }}{{ .Name }}{{ end }}
           {{- else }}
           {{ .Path }}
           {{ end }}
@@ -83,7 +84,7 @@
         </td>
         <td class="no-linebreak">
           {{ if .Hash }}
-          <a href="/ipfs/{{ .Hash | urlEscape }}">
+          <a href="{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape }}">
             {{ .ShortHash }}
           </a>
           {{ end }}
