@@ -560,6 +560,8 @@ github.com/libp2p/go-libp2p v0.8.3 h1:IFWeNzxkBaNO1N8stN9ayFGdC6RmVuSsKd5bou7qpK
 github.com/libp2p/go-libp2p v0.8.3/go.mod h1:EsH1A+8yoWK+L4iKcbPYu6MPluZ+CHWI9El8cTaefiM=
 github.com/libp2p/go-libp2p v0.9.6 h1:sDiuVhuLpWQOjSFmxOJEXVM9RHKIUTKgi8ArSS9nBtE=
 github.com/libp2p/go-libp2p v0.9.6/go.mod h1:EA24aHpFs3BscMWvO286AiaKs3a7efQdLo+tbZ2tUSk=
+github.com/libp2p/go-libp2p v0.10.0 h1:7ooOvK1wi8eLpyTppy8TeH43UHy5uI75GAHGJxenUi0=
+github.com/libp2p/go-libp2p v0.10.0/go.mod h1:yBJNpb+mGJdgrwbKAKrhPU0u3ogyNFTfjJ6bdM+Q/G8=
 github.com/libp2p/go-libp2p-autonat v0.0.2/go.mod h1:fs71q5Xk+pdnKU014o2iq1RhMs9/PMaG5zXRFNnIIT4=
 github.com/libp2p/go-libp2p-autonat v0.0.6/go.mod h1:uZneLdOkZHro35xIhpbtTzLlgYturpu4J5+0cZK3MqE=
 github.com/libp2p/go-libp2p-autonat v0.1.0 h1:aCWAu43Ri4nU0ZPO7NyLzUvvfqd0nE3dX0R/ZGYVgOU=
@@ -627,6 +629,8 @@ github.com/libp2p/go-libp2p-core v0.5.6 h1:IxFH4PmtLlLdPf4fF/i129SnK/C+/v8WEX644
 github.com/libp2p/go-libp2p-core v0.5.6/go.mod h1:txwbVEhHEXikXn9gfC7/UDDw7rkxuX0bJvM49Ykaswo=
 github.com/libp2p/go-libp2p-core v0.5.7 h1:QK3xRwFxqd0Xd9bSZL+8yZ8ncZZbl6Zngd/+Y+A6sgQ=
 github.com/libp2p/go-libp2p-core v0.5.7/go.mod h1:txwbVEhHEXikXn9gfC7/UDDw7rkxuX0bJvM49Ykaswo=
+github.com/libp2p/go-libp2p-core v0.6.0 h1:u03qofNYTBN+yVg08PuAKylZogVf0xcTEeM8skGf+ak=
+github.com/libp2p/go-libp2p-core v0.6.0/go.mod h1:txwbVEhHEXikXn9gfC7/UDDw7rkxuX0bJvM49Ykaswo=
 github.com/libp2p/go-libp2p-crypto v0.0.1/go.mod h1:yJkNyDmO341d5wwXxDUGO0LykUVT72ImHNUqh5D/dBE=
 github.com/libp2p/go-libp2p-crypto v0.0.2/go.mod h1:eETI5OUfBnvARGOHrJz2eWNyTUxEGZnBxMcbUjfIj4I=
 github.com/libp2p/go-libp2p-crypto v0.1.0 h1:k9MFy+o2zGDNGsaoZl0MA3iZ75qXxr9OOoAZF+sD5OQ=
@@ -716,6 +720,7 @@ github.com/libp2p/go-libp2p-pubsub v0.3.1/go.mod h1:TxPOBuo1FPdsTjFnv+FGZbNbWYsp
 github.com/libp2p/go-libp2p-pubsub-router v0.3.0 h1:ghpHApTMXN+aZ+InYvpJa/ckBW4orypzNI0aWQDth3s=
 github.com/libp2p/go-libp2p-pubsub-router v0.3.0/go.mod h1:6kZb1gGV1yGzXTfyNsi4p+hyt1JnA1OMGHeExTOJR3A=
 github.com/libp2p/go-libp2p-quic-transport v0.3.7/go.mod h1:Kr4aDtnfHHNeENn5J+sZIVc+t8HpQn9W6BOxhVGHbgI=
+github.com/libp2p/go-libp2p-quic-transport v0.5.0/go.mod h1:IEcuC5MLxvZ5KuHKjRu+dr3LjCT1Be3rcD/4d8JrX8M=
 github.com/libp2p/go-libp2p-quic-transport v0.7.1 h1:X6Ond9GANspXpgwJlSR9yxcMMD6SLBnGKRtwjBG5awc=
 github.com/libp2p/go-libp2p-quic-transport v0.7.1/go.mod h1:TD31to4E5exogR/GWHClXCfkktigjAl5rXSt7HoxNvY=
 github.com/libp2p/go-libp2p-record v0.0.1/go.mod h1:grzqg263Rug/sRex85QrDOLntdFAymLDLm7lxMgU79Q=
@@ -749,6 +754,8 @@ github.com/libp2p/go-libp2p-swarm v0.2.4 h1:94XL76/tFeTdJNcIGugi+1uZo5O/a7y4i21P
 github.com/libp2p/go-libp2p-swarm v0.2.4/go.mod h1:/xIpHFPPh3wmSthtxdGbkHZ0OET1h/GGZes8Wku/M5Y=
 github.com/libp2p/go-libp2p-swarm v0.2.6 h1:UhMXIa+yCOALQyceENEIStMlbTCzOM6aWo6vw8QW17Q=
 github.com/libp2p/go-libp2p-swarm v0.2.6/go.mod h1:F9hrkZjO7dDbcEiYii/fAB1QdpLuU6h1pa4P5VNsEgc=
+github.com/libp2p/go-libp2p-swarm v0.2.7 h1:4lV/sf7f0NuVqunOpt1I11+Z54+xp+m0eeAvxj/LyRc=
+github.com/libp2p/go-libp2p-swarm v0.2.7/go.mod h1:ZSJ0Q+oq/B1JgfPHJAT2HTall+xYRNYp1xs4S2FBWKA=
 github.com/libp2p/go-libp2p-testing v0.0.1/go.mod h1:gvchhf3FQOtBdr+eFUABet5a4MBLK8jM3V4Zghvmi+E=
 github.com/libp2p/go-libp2p-testing v0.0.2/go.mod h1:gvchhf3FQOtBdr+eFUABet5a4MBLK8jM3V4Zghvmi+E=
 github.com/libp2p/go-libp2p-testing v0.0.3/go.mod h1:gvchhf3FQOtBdr+eFUABet5a4MBLK8jM3V4Zghvmi+E=
@@ -869,6 +876,7 @@ github.com/libp2p/go-yamux v1.3.7 h1:v40A1eSPJDIZwz2AvrV3cxpTZEGDP11QJbukmEhYyQI
 github.com/libp2p/go-yamux v1.3.7/go.mod h1:fr7aVgmdNGJK+N1g+b6DW6VxzbRCjCOejR/hkmpooHE=
 github.com/lucas-clemente/quic-go v0.15.7 h1:Pu7To5/G9JoP1mwlrcIvfV8ByPBlCzif3MCl8+1W83I=
 github.com/lucas-clemente/quic-go v0.15.7/go.mod h1:Myi1OyS0FOjL3not4BxT7KN29bRkcMUV5JVVFLKtDp8=
+github.com/lucas-clemente/quic-go v0.16.0/go.mod h1:I0+fcNTdb9eS1ZcjQZbDVPGchJ86chcIxPALn9lEJqE=
 github.com/lucas-clemente/quic-go v0.17.3 h1:jMX/MmDNCljfisgMmPGUcBJ+zUh9w3d3ia4YJjYS3TM=
 github.com/lucas-clemente/quic-go v0.17.3/go.mod h1:I0+fcNTdb9eS1ZcjQZbDVPGchJ86chcIxPALn9lEJqE=
 github.com/lunixbochs/vtclean v1.0.0/go.mod h1:pHhQNgMf3btfWnGBVipUOjRYhoOsdGqdm/+2c2E2WMI=
@@ -1114,6 +1122,7 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
+github.com/stretchr/testify v1.6.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd0=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/syndtr/goleveldb v1.0.0 h1:fBdIW9lB4Iz0n9khmH8w27SJ3QEJ7+IgjPEwGSZiFdE=
