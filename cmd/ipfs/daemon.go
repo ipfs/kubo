@@ -182,6 +182,8 @@ Headers.
 		// cmds.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
 	},
 	Subcommands: map[string]*cmds.Command{},
+	NoRemote:    true,
+	Extra:       commands.CreateCmdExtras(commands.SetDoesNotUseConfigAsInput(true)),
 	Run:         daemonFunc,
 }
 

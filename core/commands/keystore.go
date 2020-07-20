@@ -144,6 +144,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
 	},
+	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
 

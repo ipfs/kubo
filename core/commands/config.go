@@ -239,7 +239,8 @@ To use 'ipfs config edit', you must have the $EDITOR environment
 variable set to your preferred text editor.
 `,
 	},
-
+	NoRemote: true,
+	Extra:    CreateCmdExtras(SetDoesNotUseRepo(true)),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
