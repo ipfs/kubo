@@ -66,6 +66,7 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		Options: []cmds.Option{
 			cmds.BoolOption(flagsOptionName, "f", "Show command flags"),
 		},
+		Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 			rootCmd := cmd2outputCmd("ipfs", root)
 			rootCmd.showOpts, _ = req.Options[flagsOptionName].(bool)

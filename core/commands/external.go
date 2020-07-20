@@ -17,6 +17,7 @@ func ExternalBinary(instructions string) *cmds.Command {
 			cmds.StringArg("args", false, true, "Arguments for subcommand."),
 		},
 		External: true,
+		NoRemote: true,
 		Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 			binname := strings.Join(append([]string{"ipfs"}, req.Path...), "-")
 			_, err := exec.LookPath(binname)

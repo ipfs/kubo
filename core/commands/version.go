@@ -43,6 +43,8 @@ var VersionCmd = &cmds.Command{
 		cmds.BoolOption(versionRepoOptionName, "Show repo version."),
 		cmds.BoolOption(versionAllOptionName, "Show all version information"),
 	},
+	// must be permitted to run before init
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true), SetDoesNotUseConfigAsInput(true)),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		return cmds.EmitOnce(res, &VersionOutput{
 			Version: version.CurrentVersionNumber,

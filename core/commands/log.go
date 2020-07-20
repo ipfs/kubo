@@ -55,6 +55,7 @@ the event log.
 			One of: debug, info, warn, error, dpanic, panic, fatal.
 		`),
 	},
+	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		args := req.Arguments
 		subsystem, level := args[0], args[1]
