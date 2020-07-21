@@ -26,8 +26,6 @@ apps:
 parts:
   ipfs:
     source: '.'
-    # TODO: set this to master when porting this file to ipfs/go-ipfs.
-    # Setting it explicitly lets us build the missing versions 0.5 and 0.6
     source-tag: master
     plugin: go
     # keep me up to date with the go version that go-ipfs expects to be built with.
