@@ -2,15 +2,15 @@ package tests
 
 import (
 	"context"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"io"
 	"math/rand"
 	gopath "path"
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs-files"
-	ipath "github.com/ipfs/go-path"
+	path "github.com/ipfs/interface-go-ipfs-core/path"
+
+	files "github.com/ipfs/go-ipfs-files"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
@@ -70,8 +70,8 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if e.Name() != self.ID().Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
+			if e.Name() != coreiface.FormatKeyID(self.ID()) {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
 			}
 
 			if e.Value().String() != p.String() {
@@ -100,8 +100,8 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if e.Name() != self.ID().Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
+			if e.Name() != coreiface.FormatKeyID(self.ID()) {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
 			}
 
 			if e.Value().String() != p.String()+"/test" {
@@ -130,8 +130,8 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if e.Name() != self.ID().Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
+			if e.Name() != coreiface.FormatKeyID(self.ID()) {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
 			}
 
 			if e.Value().String() != p.String() {
@@ -160,8 +160,8 @@ func (tp *TestSuite) TestPublishResolve(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if e.Name() != self.ID().Pretty() {
-				t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
+			if e.Name() != coreiface.FormatKeyID(self.ID()) {
+				t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
 			}
 
 			if e.Value().String() != p.String()+"/a" {
@@ -212,8 +212,8 @@ func (tp *TestSuite) TestBasicPublishResolveKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if ipath.Join([]string{"/ipns", e.Name()}) != k.Path().String() {
-		t.Errorf("expected e.Name to equal '%s', got '%s'", e.Name(), k.Path().String())
+	if e.Name() != coreiface.FormatKey(k) {
+		t.Errorf("expected e.Name to equal %s, got '%s'", e.Name(), coreiface.FormatKey(k))
 	}
 
 	if e.Value().String() != p.String() {
@@ -255,8 +255,8 @@ func (tp *TestSuite) TestBasicPublishResolveTimeout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if e.Name() != self.ID().Pretty() {
-		t.Errorf("expected e.Name to equal '%s', got '%s'", self.ID().Pretty(), e.Name())
+	if e.Name() != coreiface.FormatKeyID(self.ID()) {
+		t.Errorf("expected e.Name to equal '%s', got '%s'", coreiface.FormatKeyID(self.ID()), e.Name())
 	}
 
 	if e.Value().String() != p.String() {
