@@ -12,31 +12,63 @@ const templateFile = "../dir-index.html"
 
 // Copied from go-ipfs/core/corehttp/gateway_indexPage.go
 type listingTemplateData struct {
-	Listing  []directoryItem
-	Path     string
-	BackLink string
-	Hash     string
+	GatewayURL  string
+	Listing     []directoryItem
+	Size        string
+	Path        string
+	Breadcrumbs []breadcrumb
+	BackLink    string
+	Hash        string
 }
 
 type directoryItem struct {
-	Size string
+	Size      string
+	Name      string
+	Path      string
+	Hash      string
+	ShortHash string
+}
+
+type breadcrumb struct {
 	Name string
 	Path string
 }
 
+var testPath = "/ipfs/QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7/a/b/c"
 var testData = listingTemplateData{
+	GatewayURL: "//localhost:3000",
 	Listing: []directoryItem{{
-		Size: "25 MiB",
-		Name: "short-film.mov",
-		Path: "short-film.mov",
+		Size:      "25 MiB",
+		Name:      "short-film.mov",
+		Path:      testPath + "/short-film.mov",
+		Hash:      "QmQuxBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
+		ShortHash: "QmQu\u2026xDu7",
 	}, {
-		Size: "1 KiB",
-		Name: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
-		Path: "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
+		Size:      "1 KiB",
+		Name:      "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
+		Path:      testPath + "/this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
+		Hash:      "QmquXbaRQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
+		ShortHash: "Qmqu\u2026xDu7",
 	}},
-	Path:     "/ipfs/QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7RgQm",
-	BackLink: "/..",
-	Hash:     "QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7RgQm",
+	Size: "25 MiB",
+	Path: testPath,
+	Breadcrumbs: []breadcrumb{{
+		Name: "ipfs",
+	}, {
+		Name: "QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
+		Path: testPath + "/../../..",
+	}, {
+		Name: "a",
+		Path: testPath + "/../..",
+	}, {
+		Name: "b",
+		Path: testPath + "/..",
+	}, {
+		Name: "c",
+		Path: testPath,
+	}},
+	BackLink: testPath + "/..",
+	Hash:     "QmFooBazBar2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
 }
 
 func main() {
