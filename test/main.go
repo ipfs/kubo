@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-const templateFile = "../dir-index.html"
+const templateFile = "../dist/dir-index.html"
 
 // Copied from go-ipfs/core/corehttp/gateway_indexPage.go
 type listingTemplateData struct {
