@@ -183,7 +183,7 @@ jobs:
           command: |
             mkdir -p /tmp/test-results/interop/
             export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
-            node_modules/.bin/ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
+            npx ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             IPFS_REUSEPORT: false
