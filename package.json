@@ -1,5 +1,9 @@
 {
+  "name": "dir-index-html",
   "author": "lgierth",
+  "description": "Directory listing HTML for go-ipfs gateways",
+  "version": "1.2.0",
+  "homepage": "https://github.com/ipfs/dir-index-html#readme",
   "bugs": {
     "url": "https://github.com/ipfs/dir-index-html"
   },
@@ -11,8 +15,7 @@
   "gxVersion": "0.14.0",
   "language": "go",
   "license": "MIT",
-  "name": "dir-index-html",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "1.0.4"
+  "scripts": {
+  }
 }
-
