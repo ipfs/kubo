@@ -17,10 +17,11 @@
   "license": "MIT",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "scripts": {
-    "build": "npm run build:clean && npm run build:stripstylelinks && npm run build:minify && npm run build:insert",
+    "build": "npm run build:clean && npm run build:remove-style-links && npm run build:minify-wrap-css && npm run build:combine-html-css && npm run build:remove-unused",
     "build:clean": "rm -rf ./dist/*",
-    "build:stripstylelinks": "sed '/<link rel=\"stylesheet\"/d' src/dir-index.html > dist/base-html.html",
-    "build:minify": "(echo \"<style>\" && cat src/icons.css src/style.css | tr -d \"\t\n\r\" && echo \"</style>\") > dist/minified-style.html",
-    "build:insert": "sed '/<head>/ r dist/minified-style.html' dist/base-html.html > dist/dir-index.html"
+    "build:remove-style-links": "sed '/<link rel=\"stylesheet\"/d' ./src/dir-index.html > ./dist/base-html.html",
+    "build:minify-wrap-css": "(echo \"<style>\" && cat ./src/icons.css ./src/style.css | tr -d \"\t\n\r\" && echo \"</style>\") > ./dist/minified-wrapped-style.html",
+    "build:combine-html-css": "sed '/<head>/ r ./dist/minified-wrapped-style.html' ./dist/base-html.html > ./dist/dir-index.html",
+    "build:remove-unused": "rm ./dist/base-html.html && rm ./dist/minified-wrapped-style.html"
   }
 }
