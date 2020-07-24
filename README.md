@@ -10,7 +10,7 @@
 
 This repo is not be used standalone. It's used by the gateway code in go-ipfs. It'll be merged into the gateway package, once the gateway has been extracted from go-ipfs.
 
-![](https://gateway.ipfs.io/ipfs/QmZrdrmeBeDtnb8cJzfc1hq54NFoGL9BHNuiQB9CWSJfTE)
+![](https://user-images.githubusercontent.com/157609/88379209-ce6f0600-cda2-11ea-9620-20b9237bb441.png)
 
 ## Updating
 
