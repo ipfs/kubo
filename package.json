@@ -17,5 +17,10 @@
   "license": "MIT",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "scripts": {
+    "build": "npm run build:clean && npm run build:stripstylelinks && npm run build:minify && npm run build:insert",
+    "build:clean": "rm -rf ./dist/*",
+    "build:stripstylelinks": "sed '/<link rel=\"stylesheet\"/d' src/dir-index.html > dist/base-html.html",
+    "build:minify": "(echo \"<style>\" && cat src/icons.css src/style.css | tr -d \" \t\n\r\" && echo \"</style>\") > dist/minified-style.html",
+    "build:insert": "sed '/<head>/ r dist/minified-style.html' dist/base-html.html > dist/dir-index.html"
   }
 }
