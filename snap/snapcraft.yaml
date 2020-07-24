@@ -1,0 +1,44 @@
+# This snap will build go-ipfs from source.
+name: ipfs
+summary: global, versioned, peer-to-peer filesystem # 79 char long summary
+description: |
+  IPFS combines good ideas from Git, BitTorrent, Kademlia, SFS, and the Web.
+  It is like a single bittorrent swarm, exchanging git objects. IPFS provides
+  an interface as simple as the HTTP web, but with permanence built in. You
+  can also mount the world at /ipfs.
+
+# fetch the version number in the `ipfs` part rather than hardcode it here
+# see: https://snapcraft.io/docs/using-external-metadata#heading--scriptlet
+adopt-info: ipfs
+base: core18
+grade: stable
+confinement: strict
+
+apps:
+  ipfs:
+    command: ipfs
+    # the home plug is included so the user can `ipfs add` files from their home dir without a permission error.
+    plugs: [home, network, network-bind, removable-media]
+    environment:
+      # Snaps versions are isolated by default. This keeps the same ipfs repo across upgrades.
+      IPFS_PATH: "$SNAP_USER_COMMON"
+
+parts:
+  ipfs:
+    source: '.'
+    source-tag: master
+    plugin: go
+    # keep me up to date with the go version that go-ipfs expects to be built with.
+    go-channel: 1.14/stable
+    go-importpath: github.com/ipfs/go-ipfs
+    build-packages:
+        - build-essential
+
+    # use `make` to build and set the snap version from `ipfs version` output
+    override-build: |
+      export GOPATH=$SNAPCRAFT_PART_BUILD/go
+      make install
+      cp $SNAPCRAFT_PART_BUILD/go/bin/ipfs $SNAPCRAFT_PART_INSTALL
+      export IPFS_VERSION=$($SNAPCRAFT_PART_BUILD/go/bin/ipfs version --commit | cut -c 14-)
+      echo "found version $IPFS_VERSION"
+      snapcraftctl set-version $IPFS_VERSION
