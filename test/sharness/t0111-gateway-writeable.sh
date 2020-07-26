@@ -63,7 +63,7 @@ test_expect_success "HTTP GET empty directory" '
   URL="http://127.0.0.1:$port/ipfs/$HASH_EMPTY_DIR/" &&
   echo "GET $URL" &&
   curl -so outfile "$URL" 2>curl_getEmpty.out &&
-  grep "Index of /ipfs/$HASH_EMPTY_DIR/" outfile
+  cat outfile | tr -s "\n" " " | grep "Index of /ipfs/<a href=\"/ipfs/$HASH_EMPTY_DIR\">$HASH_EMPTY_DIR</a>"
 '
 
 test_expect_success "HTTP PUT file to construct a hierarchy" '

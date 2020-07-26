@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -152,6 +153,11 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, iface
 	}
 
 	return ts, api, n.Context()
+}
+
+func matchPathOrBreadcrumbs(s string, expected string) bool {
+	matched, _ := regexp.MatchString("Index of\n[\t ]*"+regexp.QuoteMeta(expected), s)
+	return matched
 }
 
 func TestGatewayGet(t *testing.T) {
@@ -442,7 +448,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /ipns/example.net/foo? #&lt;&#39;/") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
@@ -475,7 +481,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /") {
+	if !matchPathOrBreadcrumbs(s, "/") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/\">") {
@@ -508,7 +514,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /ipns/example.net/foo? #&lt;&#39;/bar/") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
@@ -542,7 +548,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /ipns/example.net") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {
@@ -584,7 +590,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !strings.Contains(s, "Index of /") {
+	if !matchPathOrBreadcrumbs(s, "/") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/\">") {
