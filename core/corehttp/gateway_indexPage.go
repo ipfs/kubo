@@ -53,7 +53,7 @@ func init() {
 	}
 
 	// Directory listing template
-	dirIndexBytes, err := assets.Asset("dir-index-html/dir-index.html")
+	dirIndexBytes, err := assets.Asset("dir-index-html/dist/dir-index.html")
 	if err != nil {
 		panic(err)
 	}
