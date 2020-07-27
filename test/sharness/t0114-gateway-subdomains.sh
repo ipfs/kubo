@@ -101,10 +101,11 @@ test_expect_success "Add test text file" '
   echo CIDv0to1=${CIDv0to1}
 '
 
+# Directory tree crafted to test for edge cases like "/ipfs/ipfs/ipns/bar"
 test_expect_success "Add the test directory" '
-  mkdir -p testdirlisting/subdir1/subdir2 &&
+  mkdir -p testdirlisting/ipfs/ipns &&
   echo "hello" > testdirlisting/hello &&
-  echo "subdir2-bar" > testdirlisting/subdir1/subdir2/bar &&
+  echo "text-file-content" > testdirlisting/ipfs/ipns/bar &&
   mkdir -p testdirlisting/api &&
   mkdir -p testdirlisting/ipfs &&
   echo "I am a txt file" > testdirlisting/api/file.txt &&
@@ -269,18 +270,18 @@ DIR_HOSTNAME="${DIR_CID}.ipfs.localhost:$GWAY_PORT"
 test_expect_success "valid file and subdirectory paths in directory listing at {cid}.ipfs.localhost" '
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME" > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
+  test_should_contain "<a href=\"/ipfs\">ipfs</a>" list_response
 '
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
-  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/" > list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/" > list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/./..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 
 test_expect_success "request for deep path resource at {cid}.ipfs.localhost/sub/dir/file" '
-  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/subdir1/subdir2/bar" > list_response &&
-  test_should_contain "subdir2-bar" list_response
+  curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/bar" > list_response &&
+  test_should_contain "text-file-content" list_response
 '
 
 
@@ -422,18 +423,25 @@ DIR_FQDN="${DIR_CID}.ipfs.example.com"
 test_expect_success "valid file and directory paths in directory listing at {cid}.ipfs.example.com" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT > list_response &&
   test_should_contain "<a href=\"/hello\">hello</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1\">subdir1</a>" list_response
+  test_should_contain "<a href=\"/ipfs\">ipfs</a>" list_response
 '
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
-  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/ > list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/./..\">..</a>" list_response &&
-  test_should_contain "<a href=\"/subdir1/subdir2/bar\">bar</a>" list_response
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/./..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
+'
+
+# Note we test for sneaky subdir names  {cid}.ipfs.example.com/ipfs/ipns/ :^)
+test_expect_success "valid breadcrumb links in the header of directory listing at {cid}.ipfs.example.com/sub/dir" '
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
+  test_should_contain "Index of" list_response &&
+  test_should_contain "/ipfs/<a href=\"//example.com/ipfs/${DIR_CID}\">${DIR_CID}</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs\">ipfs</a>/<a href=\"//example.com/ipfs/${DIR_CID}/ipfs/ipns\">ipns</a>" list_response
 '
 
 test_expect_success "request for deep path resource {cid}.ipfs.example.com/sub/dir/file" '
-  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/subdir1/subdir2/bar > list_response &&
-  test_should_contain "subdir2-bar" list_response
+  curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/bar > list_response &&
+  test_should_contain "text-file-content" list_response
 '
 
 # *.ipns.example.com
