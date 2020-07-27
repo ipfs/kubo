@@ -17,7 +17,7 @@
 When making updates to the directory listing page template, please note the following:
 
 1. Make your changes to the (human-friendly) source documents in the `src` directory
-2. Before testing or releasing, make sure to run the build script to generate a minified version in the `dist` directory:
+2. Before testing or releasing, make sure to run the build script to update the minified version in the top-level directory:
 
 ```bash
 > npm run build
