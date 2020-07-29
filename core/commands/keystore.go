@@ -104,7 +104,7 @@ var keyGenCmd = &cmds.Command{
 		if sizefound {
 			opts = append(opts, options.Key.Size(size))
 		}
-		if err = verifyFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+		if err = verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
 			return err
 		}
 
@@ -126,31 +126,6 @@ var keyGenCmd = &cmds.Command{
 		}),
 	},
 	Type: KeyOutput{},
-}
-
-func verifyFormatLabel(formatLabel string) error {
-	switch formatLabel {
-	case "b58mh":
-		return nil
-	case "b36cid":
-		return nil
-	}
-	return fmt.Errorf("invalid output format option")
-}
-
-func formatID(id peer.ID, formatLabel string) string {
-	switch formatLabel {
-	case "b58mh":
-		return id.Pretty()
-	case "b36cid":
-		if s, err := peer.ToCid(id).StringOfBase(mbase.Base36); err != nil {
-			panic(err)
-		} else {
-			return s
-		}
-	default:
-		panic("unreachable")
-	}
 }
 
 var keyExportCmd = &cmds.Command{
@@ -320,7 +295,7 @@ var keyListCmd = &cmds.Command{
 		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b58mh"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		if err := verifyFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+		if err := verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
 			return err
 		}
 
@@ -435,6 +410,31 @@ var keyRmCmd = &cmds.Command{
 		cmds.Text: keyOutputListEncoders(),
 	},
 	Type: KeyOutputList{},
+}
+
+func verifyIDFormatLabel(formatLabel string) error {
+	switch formatLabel {
+	case "b58mh":
+		return nil
+	case "b36cid":
+		return nil
+	}
+	return fmt.Errorf("invalid output format option")
+}
+
+func formatID(id peer.ID, formatLabel string) string {
+	switch formatLabel {
+	case "b58mh":
+		return id.Pretty()
+	case "b36cid":
+		if s, err := peer.ToCid(id).StringOfBase(mbase.Base36); err != nil {
+			panic(err)
+		} else {
+			return s
+		}
+	default:
+		panic("unreachable")
+	}
 }
 
 func keyOutputListEncoders() cmds.EncoderFunc {
