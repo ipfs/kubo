@@ -135,7 +135,6 @@ func TestCommands(t *testing.T) {
 		"/key/gen",
 		"/key/export",
 		"/key/import",
-		"/key/identify",
 		"/key/list",
 		"/key/rename",
 		"/key/rm",

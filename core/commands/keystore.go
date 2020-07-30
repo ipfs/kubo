@@ -38,7 +38,6 @@ publish'.
 		"gen":      keyGenCmd,
 		"export":   keyExportCmd,
 		"import":   keyImportCmd,
-		"identify": keyIdentifyCmd,
 		"list":     keyListCmd,
 		"rename":   keyRenameCmd,
 		"rm":       keyRmCmd,
@@ -335,48 +334,6 @@ var keyImportCmd = &cmds.Command{
 
 		return cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   formatID(pid, req.Options[keyFormatOptionName].(string)),
-		})
-	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *KeyOutput) error {
-			_, err := w.Write([]byte(ko.Id + "\n"))
-			return err
-		}),
-	},
-	Type: KeyOutput{},
-}
-
-var keyIdentifyCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline: "Identify an exported keypair",
-	},
-	Options: []cmds.Option{
-		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b58mh"),
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "key provided by generate or export"),
-	},
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		encoded := req.Arguments[0]
-
-		data, err := base58.Decode(encoded)
-		if err != nil {
-			return err
-		}
-
-		sk, err := crypto.UnmarshalPrivateKey(data)
-		if err != nil {
-			return err
-		}
-
-		pid, err := peer.IDFromPrivateKey(sk)
-		if err != nil {
-			return err
-		}
-
-		return cmds.EmitOnce(res, &KeyOutput{
-			Name: "",
 			Id:   formatID(pid, req.Options[keyFormatOptionName].(string)),
 		})
 	},
