@@ -3,9 +3,10 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/pkg/errors"
@@ -24,6 +25,11 @@ type pinRefKeyList struct {
 type pin struct {
 	path path.Resolved
 	typ  string
+	err  error
+}
+
+func (p *pin) Err() error {
+	return p.err
 }
 
 func (p *pin) Path() path.Resolved {
@@ -44,7 +50,7 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 		Option("recursive", options.Recursive).Exec(ctx, nil)
 }
 
-func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]iface.Pin, error) {
+func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan iface.Pin, error) {
 	options, err := caopts.PinLsOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -57,16 +63,46 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) ([]iface.
 		return nil, err
 	}
 
-	pins := make([]iface.Pin, 0, len(out.Keys))
-	for hash, p := range out.Keys {
-		c, err := cid.Parse(hash)
-		if err != nil {
-			return nil, err
+	pins := make(chan iface.Pin)
+	go func(ch chan<- iface.Pin) {
+		defer close(ch)
+		for hash, p := range out.Keys {
+			c, e := cid.Parse(hash)
+			if e != nil {
+				ch <- &pin{typ: p.Type, err: e}
+				return
+			}
+			ch <- &pin{typ: p.Type, path: path.IpldPath(c), err: e}
 		}
-		pins = append(pins, &pin{typ: p.Type, path: path.IpldPath(c)})
+	}(pins)
+	return pins, nil
+}
+
+// IsPinned returns whether or not the given cid is pinned
+// and an explanation of why its pinned
+func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
+	options, err := caopts.PinIsPinnedOptions(opts...)
+	if err != nil {
+		return "", false, err
+	}
+	var out pinRefKeyList
+	err = api.core().Request("pin/ls").
+		Option("type", options.WithType).
+		Option("arg", p.String()).
+		Exec(ctx, &out)
+	if err != nil {
+		// TODO: This error-type discrimination based on sub-string matching is brittle.
+		// It is addressed by this open issue: https://github.com/ipfs/go-ipfs/issues/7563
+		if strings.Index(err.Error(), "is not pinned") != -1 {
+			return "", false, nil
+		}
+		return "", false, err
 	}
 
-	return pins, nil
+	for _, obj := range out.Keys {
+		return obj.Type, true, nil
+	}
+	return "", false, errors.New("http api returned no error and no results")
 }
 
 func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOption) error {
