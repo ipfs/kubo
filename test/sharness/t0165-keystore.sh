@@ -11,22 +11,6 @@ test_description="Test keystore commands"
 test_init_ipfs
 
 test_key_cmd() {
-  test_expect_success "export with no store doesn't store" '
-    ipfs key gen -n -e && echo self > list_exp &&
-    ipfs key list > list_out &&
-    test_sort_cmp list_exp list_out
-  '
-
-  test_expect_success "no store without export is an error" '
-    test_must_fail ipfs key gen -n 2>&1 | tee key_gen_out &&
-    grep -q "you must export key" key_gen_out
-  '
-
-  test_expect_success "key gen without name is an error" '
-    test_must_fail ipfs key gen 2>&1 | tee key_gen_out &&
-    grep -q "you must specify a key name" key_gen_out
-  '
-
 # test key output format
 test_expect_success "create an RSA key and test B58MH multihash output" '
 PEERID=$(ipfs key gen -f=b58mh --type=rsa --size=2048 key_rsa) &&
@@ -49,10 +33,9 @@ PEERID=$(ipfs key gen -f=b36cid --type=ed25519 key_ed25519) &&
 test_check_ed25519_b36cid_peerid $PEERID
 '
 
-test_expect_success "create and export an ED25519 key" '
-SK=$(ipfs key gen -e key_ed25519_2) &&
-test_check_ed25519_sk $SK &&
-ipfs key rm key_ed25519_2
+test_expect_success "test ED25519 key sk export format" '
+SK=$(ipfs key export key_ed25519) &&
+test_check_ed25519_sk $SK
 '
 
 test_expect_success "test ED25519 key B36CID multihash format" '
@@ -76,7 +59,7 @@ ipfs key rm key_ed25519
     imphash=$(ipfs key import -f=b58mh quxel $(cat importkey))
   '
 
-  test_expect_success "export an rsa key" '
+  test_expect_success "exported key matches imported" '
     ipfs key export quxel >> exportkey &&
     test_cmp importkey exportkey
   '

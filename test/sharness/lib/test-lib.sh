@@ -493,10 +493,10 @@ test_check_rsa2048_sk() {
 
 test_check_ed25519_sk() {
   sklen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
-  if (($sklen < 1600)); then
+  test "$sklen" = "93" || {
     echo "Bad ED25519 sk '$1' with len '$sklen'"
     return 1
-  fi
+  }
 }
 
 convert_tcp_maddr() {

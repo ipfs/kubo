@@ -37,11 +37,21 @@ func (k *key) ID() peer.ID {
 	return k.peerID
 }
 
-// GenerateKey generates a new keypair and returns it
-func GenerateKey(opts ...caopts.KeyGenerateOption) (crypto.PrivKey, crypto.PubKey, error) {
+// Generate generates new key, stores it in the keystore under the specified
+// name and returns a base58 encoded multihash of its public key.
+func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (coreiface.Key, error) {
 	options, err := caopts.KeyGenerateOptions(opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
+	}
+
+	if name == "self" {
+		return nil, fmt.Errorf("cannot create key with name 'self'")
+	}
+
+	_, err = api.repo.Keystore().Get(name)
+	if err == nil {
+		return nil, fmt.Errorf("key with name '%s' already exists", name)
 	}
 
 	var sk crypto.PrivKey
@@ -55,7 +65,7 @@ func GenerateKey(opts ...caopts.KeyGenerateOption) (crypto.PrivKey, crypto.PubKe
 
 		priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, options.Size, rand.Reader)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		sk = priv
@@ -63,33 +73,13 @@ func GenerateKey(opts ...caopts.KeyGenerateOption) (crypto.PrivKey, crypto.PubKe
 	case "ed25519":
 		priv, pub, err := crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		sk = priv
 		pk = pub
 	default:
-		return nil, nil, fmt.Errorf("unrecognized key type: %s", options.Algorithm)
-	}
-
-	return sk, pk, nil
-}
-
-// Generate generates new key, stores it in the keystore under the specified
-// name and returns a base58 encoded multihash of its public key.
-func (api *KeyAPI) Generate(ctx context.Context, name string, opts ...caopts.KeyGenerateOption) (coreiface.Key, error) {
-	if name == "self" {
-		return nil, fmt.Errorf("cannot create key with name 'self'")
-	}
-
-	_, err := api.repo.Keystore().Get(name)
-	if err == nil {
-		return nil, fmt.Errorf("key with name '%s' already exists", name)
-	}
-
-	sk, pk, err := GenerateKey(opts...)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unrecognized key type: %s", options.Algorithm)
 	}
 
 	err = api.repo.Keystore().Put(name, sk)
