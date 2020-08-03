@@ -1,17 +1,20 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/e"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	"github.com/mr-tron/base58/base58"
 	mbase "github.com/multiformats/go-multibase"
 )
 
@@ -45,10 +48,6 @@ publish'.
 type KeyOutput struct {
 	Name string
 	Id   string
-}
-
-type ExportKeyOutput struct {
-	Sk string
 }
 
 type KeyOutputList struct {
@@ -152,22 +151,22 @@ func formatID(id peer.ID, formatLabel string) string {
 	}
 }
 
-func encodeSKForExport(sk crypto.PrivKey) (string, error) {
-	data, err := crypto.MarshalPrivateKey(sk)
-	if err != nil {
-		return "", err
-	}
-	return base58.Encode(data), nil
-}
-
 var keyExportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Export a keypair",
+		ShortDescription: `
+Exports a named libp2p key to disk.
+
+By default, the output will be stored at './<key-name>', but an alternate
+path can be specified with '--output=<path>' or '-o=<path>'.
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name of key to export").EnableStdin(),
 	},
-	Options: []cmds.Option{},
+	Options: []cmds.Option{
+		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
 
@@ -191,22 +190,44 @@ var keyExportCmd = &cmds.Command{
 			return fmt.Errorf("key with name '%s' doesn't exist", name)
 		}
 
-		encoded, err := encodeSKForExport(sk)
+		encoded, err := crypto.MarshalPrivateKey(sk)
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &ExportKeyOutput{
-			Sk: encoded,
-		})
+		return res.Emit(bytes.NewReader(encoded))
 	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ko *ExportKeyOutput) error {
-			_, err := w.Write([]byte(ko.Sk + "\n"))
-			return err
-		}),
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			req := res.Request()
+
+			v, err := res.Next()
+			if err != nil {
+				return err
+			}
+
+			outReader, ok := v.(io.Reader)
+			if !ok {
+				return e.New(e.TypeErr(outReader, v))
+			}
+
+			outPath := getOutPath(req)
+
+			// create file
+			file, err := os.Create(outPath)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			_, err = io.Copy(file, outReader)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
 	},
-	Type: ExportKeyOutput{},
 }
 
 var keyImportCmd = &cmds.Command{
@@ -218,7 +239,7 @@ var keyImportCmd = &cmds.Command{
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
-		cmds.StringArg("key", true, false, "key provided by generate or export"),
+		cmds.FileArg("key", true, false, "key provided by generate or export"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
@@ -227,9 +248,13 @@ var keyImportCmd = &cmds.Command{
 			return fmt.Errorf("cannot import key with name 'self'")
 		}
 
-		encoded := req.Arguments[1]
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
 
-		data, err := base58.Decode(encoded)
+		data, err := ioutil.ReadAll(file)
 		if err != nil {
 			return err
 		}

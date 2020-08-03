@@ -483,22 +483,6 @@ test_check_ed25519_b36cid_peerid() {
   }
 }
 
-test_check_rsa2048_sk() {
-  sklen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
-  if (($sklen < 1600)); then
-    echo "Bad RSA2048 sk '$1' with len '$sklen'"
-    return 1
-  fi
-}
-
-test_check_ed25519_sk() {
-  sklen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
-  test "$sklen" = "93" || {
-    echo "Bad ED25519 sk '$1' with len '$sklen'"
-    return 1
-  }
-}
-
 convert_tcp_maddr() {
   echo $1 | awk -F'/' '{ printf "%s:%s", $3, $5 }'
 }
