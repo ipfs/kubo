@@ -19,8 +19,8 @@ test_check_rsa2048_b58mh_peerid $PEERID
 
 test_expect_success "test RSA key sk export format" '
 ipfs key export key_rsa &&
-test_check_rsa2048_sk key_rsa &&
-rm key_rsa
+test_check_rsa2048_sk key_rsa.key &&
+rm key_rsa.key
 '
 
 test_expect_success "test RSA key B36CID multihash format" '
@@ -36,8 +36,8 @@ test_check_ed25519_b36cid_peerid $PEERID
 
 test_expect_success "test ED25519 key sk export format" '
 ipfs key export key_ed25519 &&
-test_check_ed25519_sk key_ed25519 &&
-rm key_ed25519
+test_check_ed25519_sk key_ed25519.key &&
+rm key_ed25519.key
 '
 
 test_expect_success "test ED25519 key B36CID multihash format" '
@@ -61,22 +61,22 @@ ipfs key rm key_ed25519
   test_expect_success "export and import rsa key" '
     ipfs key export generated_rsa_key &&
     ipfs key rm generated_rsa_key &&
-    ipfs key import generated_rsa_key generated_rsa_key > roundtrip_rsa_key_id &&
+    ipfs key import generated_rsa_key generated_rsa_key.key > roundtrip_rsa_key_id &&
     test_cmp rsa_key_id roundtrip_rsa_key_id
   '
 
   test_expect_success "export and import ed25519 key" '
     ipfs key export generated_ed25519_key &&
     ipfs key rm generated_ed25519_key &&
-    ipfs key import generated_ed25519_key generated_ed25519_key > roundtrip_ed25519_key_id &&
+    ipfs key import generated_ed25519_key generated_ed25519_key.key > roundtrip_ed25519_key_id &&
     test_cmp ed25519_key_id roundtrip_ed25519_key_id
   '
 
   test_expect_success "test export file option" '
     ipfs key export generated_rsa_key -o=named_rsa_export_file &&
-    test_cmp generated_rsa_key named_rsa_export_file &&
+    test_cmp generated_rsa_key.key named_rsa_export_file &&
     ipfs key export generated_ed25519_key -o=named_ed25519_export_file &&
-    test_cmp generated_ed25519_key named_ed25519_export_file
+    test_cmp generated_ed25519_key.key named_ed25519_export_file
   '
   
   test_expect_success "key export can't export self" '
@@ -89,10 +89,10 @@ ipfs key rm key_ed25519
   test_expect_success "key import can't import self" '
     ipfs key gen overwrite_self_import &&
     ipfs key export overwrite_self_import &&
-    test_must_fail ipfs key import self overwrite_self_import 2>&1 | tee key_imp_out &&
+    test_must_fail ipfs key import self overwrite_self_import.key 2>&1 | tee key_imp_out &&
     grep -q "Error: cannot import key with name" key_imp_out &&
     ipfs key rm overwrite_self_import &&
-    rm overwrite_self_import
+    rm overwrite_self_import.key
   '
 
   test_expect_success "add a default key" '

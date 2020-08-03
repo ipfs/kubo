@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -157,7 +159,7 @@ var keyExportCmd = &cmds.Command{
 		ShortDescription: `
 Exports a named libp2p key to disk.
 
-By default, the output will be stored at './<key-name>', but an alternate
+By default, the output will be stored at './<key-name>.key', but an alternate
 path can be specified with '--output=<path>' or '-o=<path>'.
 `,
 	},
@@ -211,7 +213,12 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 				return e.New(e.TypeErr(outReader, v))
 			}
 
-			outPath := getOutPath(req)
+			outPath, _ := req.Options[outputOptionName].(string)
+			if outPath == "" {
+				trimmed := strings.TrimRight(fmt.Sprintf("%s.key", req.Arguments[0]), "/")
+				_, outPath = filepath.Split(trimmed)
+				outPath = filepath.Clean(outPath)
+			}
 
 			// create file
 			file, err := os.Create(outPath)
