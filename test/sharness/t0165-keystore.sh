@@ -12,9 +12,12 @@ test_init_ipfs
 
 test_key_cmd() {
 # test key output format
-test_expect_success "create an RSA key and test B58MH multihash output" '
+test_expect_success "create an RSA key and test B58MH/B36CID output formats" '
 PEERID=$(ipfs key gen -f=b58mh --type=rsa --size=2048 key_rsa) &&
-test_check_rsa2048_b58mh_peerid $PEERID
+test_check_rsa2048_b58mh_peerid $PEERID &&
+ipfs key rm key_rsa &&
+PEERID=$(ipfs key gen -f=b36cid --type=rsa --size=2048 key_rsa) &&
+test_check_rsa2048_b36cid_peerid $PEERID
 '
 
 test_expect_success "test RSA key sk export format" '
@@ -23,13 +26,18 @@ test_check_rsa2048_sk key_rsa.key &&
 rm key_rsa.key
 '
 
-test_expect_success "test RSA key B36CID multihash format" '
+test_expect_success "test RSA key B58MH/B36CID multihash format" '
+PEERID=$(ipfs key list -f=b58mh -l | grep key_rsa | head -n 1 | cut -d " " -f1) &&
+test_check_rsa2048_b58mh_peerid $PEERID &&
 PEERID=$(ipfs key list -f=b36cid -l | grep key_rsa | head -n 1 | cut -d " " -f1) &&
 test_check_rsa2048_b36cid_peerid $PEERID &&
 ipfs key rm key_rsa
 '
 
-test_expect_success "create an ED25519 key and test multihash output" '
+test_expect_success "create an ED25519 key and test B58MH/B36CID output formats" '
+PEERID=$(ipfs key gen -f=b58mh --type=ed25519 key_ed25519) &&
+test_check_ed25519_b58mh_peerid $PEERID &&
+ipfs key rm key_ed25519 &&
 PEERID=$(ipfs key gen -f=b36cid --type=ed25519 key_ed25519) &&
 test_check_ed25519_b36cid_peerid $PEERID
 '
@@ -40,7 +48,9 @@ test_check_ed25519_sk key_ed25519.key &&
 rm key_ed25519.key
 '
 
-test_expect_success "test ED25519 key B36CID multihash format" '
+test_expect_success "test ED25519 key B58MH/B36CID multihash format" '
+PEERID=$(ipfs key list -f=b58mh -l | grep key_ed25519 | head -n 1 | cut -d " " -f1) &&
+test_check_ed25519_b58mh_peerid $PEERID &&
 PEERID=$(ipfs key list -f=b36cid -l | grep key_ed25519 | head -n 1 | cut -d " " -f1) &&
 test_check_ed25519_b36cid_peerid $PEERID &&
 ipfs key rm key_ed25519
@@ -49,12 +59,12 @@ ipfs key rm key_ed25519
 
 
   test_expect_success "create a new rsa key" '
-    rsahash=$(ipfs key gen -f=b58mh generated_rsa_key --type=rsa --size=2048)
+    rsahash=$(ipfs key gen generated_rsa_key --type=rsa --size=2048)
     echo $rsahash > rsa_key_id
   '
 
   test_expect_success "create a new ed25519 key" '
-    edhash=$(ipfs key gen -f=b58mh generated_ed25519_key --type=ed25519)
+    edhash=$(ipfs key gen generated_ed25519_key --type=ed25519)
     echo $edhash > ed25519_key_id
   '
 
@@ -104,18 +114,18 @@ ipfs key rm key_ed25519
     echo generated_rsa_key >> list_exp &&
     echo quxel >> list_exp &&
     echo self >> list_exp
-    ipfs key list -f=b58mh > list_out &&
+    ipfs key list > list_out &&
     test_sort_cmp list_exp list_out
   '
 
   test_expect_success "key hashes show up in long list output" '
-    ipfs key list -f=b58mh -l | grep $edhash > /dev/null &&
-    ipfs key list -f=b58mh -l | grep $rsahash > /dev/null
+    ipfs key list -l | grep $edhash > /dev/null &&
+    ipfs key list -l | grep $rsahash > /dev/null
   '
 
   test_expect_success "key list -l contains self key with peerID" '
     PeerID="$(ipfs config Identity.PeerID)"
-    ipfs key list -f=b58mh -l | grep "$PeerID\s\+self"
+    ipfs key list -l | grep "$PeerID\s\+self"
   '
 
   test_expect_success "key rm remove a key" '
@@ -123,7 +133,7 @@ ipfs key rm key_ed25519
     echo generated_ed25519_key > list_exp &&
     echo quxel >> list_exp &&
     echo self >> list_exp
-    ipfs key list -f=b58mh > list_out &&
+    ipfs key list > list_out &&
     test_sort_cmp list_exp list_out
   '
 
@@ -137,12 +147,12 @@ ipfs key rm key_ed25519
     echo fooed > list_exp &&
     echo quxel >> list_exp &&
     echo self >> list_exp
-    ipfs key list -f=b58mh > list_out &&
+    ipfs key list > list_out &&
     test_sort_cmp list_exp list_out
   '
 
   test_expect_success "key rename rename key output succeeds" '
-    key_content=$(ipfs key gen -f=b58mh key1 --type=rsa --size=2048) &&
+    key_content=$(ipfs key gen key1 --type=rsa --size=2048) &&
     ipfs key rename key1 key2 >rs &&
     echo "Key $key_content renamed to key2" >expect &&
     test_cmp rs expect
