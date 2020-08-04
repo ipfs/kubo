@@ -465,7 +465,7 @@ test_check_rsa2048_b58mh_peerid() {
 
 test_check_ed25519_b58mh_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
-  test "$peeridlen" = "46" || {
+  test "$peeridlen" = "52" || {
     echo "Bad ED25519 B58MH peerid '$1' with len '$peeridlen'"
     return 1
   }
