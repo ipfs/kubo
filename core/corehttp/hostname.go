@@ -233,21 +233,19 @@ type wildcardHost struct {
 func prepareKnownGateways(publicGateways map[string]*config.GatewaySpec) gatewayHosts {
 	var hosts gatewayHosts
 
-	if len(publicGateways) == 0 {
-		hosts.exact = make(
-			map[string]*config.GatewaySpec,
-			len(defaultKnownGateways),
-		)
-		for hostname, gw := range defaultKnownGateways {
-			hosts.exact[hostname] = gw
-		}
-		return hosts
+	hosts.exact = make(map[string]*config.GatewaySpec, len(publicGateways)+len(defaultKnownGateways))
+
+	// First, implicit defaults such as subdomain gateway on localhost
+	for hostname, gw := range defaultKnownGateways {
+		hosts.exact[hostname] = gw
 	}
 
-	hosts.exact = make(map[string]*config.GatewaySpec, len(publicGateways))
-
+	// Then apply values from Gateway.PublicGateways, if present in the config
 	for hostname, gw := range publicGateways {
 		if gw == nil {
+			// Remove any implicit defaults, if present. This is useful when one
+			// wants to disable subdomain gateway on localhost etc.
+			delete(hosts.exact, hostname)
 			continue
 		}
 		if strings.Contains(hostname, "*") {

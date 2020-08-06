@@ -534,18 +534,18 @@ test_hostname_gateway_response_should_contain \
 ## https://github.com/ipfs/go-ipfs/issues/7318
 ## ============================================================================
 
-# TODO: replace with cidv1
 # ed25519 fits under 63 char limit when represented in base36
-CIDv1_ED25519_RAW="12D3KooWP3ggTJV8LGckDHc4bVyXGhEWuBskoFyE6Rn2BJBqJtpa"
-CIDv1_ED25519_DNSSAFE="k51qzi5uqu5dl2yn0d6xu8q5aqa61jh8zeyixz9tsju80n15ssiyew48912c63"
+IPNS_KEY="test_key_ed25519"
+IPNS_ED25519_B58MH=$(ipfs key list -l -f b58mh | grep $IPNS_KEY | cut -d " " -f1 | tr -d "\n")
+IPNS_ED25519_B36CID=$(ipfs key list -l -f b36cid | grep $IPNS_KEY | cut -d " " -f1 | tr -d "\n")
 # sha512 will be over 63char limit, even when represented in Base36
 CIDv1_TOO_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
 
 # local: *.localhost
 test_localhost_gateway_response_should_contain \
-  "request for a ED25519 CID at localhost/ipfs/{CIDv1} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
-  "http://localhost:$GWAY_PORT/ipns/$CIDv1_ED25519_RAW" \
-  "Location: http://${CIDv1_ED25519_DNSSAFE}.ipns.localhost:$GWAY_PORT/"
+  "request for a ED25519 libp2p-key at localhost/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "http://localhost:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
+  "Location: http://${IPNS_ED25519_B36CID}.ipns.localhost:$GWAY_PORT/"
 
 # router should not redirect to hostnames that could fail due to DNS limits
 test_localhost_gateway_response_should_contain \
@@ -567,10 +567,10 @@ test_localhost_gateway_response_should_contain \
 # public subdomain gateway: *.example.com
 
 test_hostname_gateway_response_should_contain \
-  "request for a ED25519 CID at example.com/ipfs/{CIDv1} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
+  "request for a ED25519 libp2p-key at example.com/ipns/{b58mh} returns Location HTTP header for DNS-safe subdomain redirect in browsers" \
   "example.com" \
-  "http://127.0.0.1:$GWAY_PORT/ipns/$CIDv1_ED25519_RAW" \
-  "Location: http://${CIDv1_ED25519_DNSSAFE}.ipns.example.com"
+  "http://127.0.0.1:$GWAY_PORT/ipns/$IPNS_ED25519_B58MH" \
+  "Location: http://${IPNS_ED25519_B36CID}.ipns.example.com"
 
 test_hostname_gateway_response_should_contain \
   "request for a too long CID at example.com/ipfs/{CIDv1} returns human readable error" \
@@ -621,7 +621,7 @@ test_hostname_gateway_response_should_contain \
 ## Test path-based requests with a custom hostname config
 ## ============================================================================
 
-# set explicit subdomain gateway config for the hostname
+# set explicit no-subdomain gateway config for the hostname
 ipfs config --json Gateway.PublicGateways '{
   "example.com": {
     "UseSubdomains": false,
@@ -902,6 +902,24 @@ test_hostname_gateway_response_should_contain \
   "request for {CID}.ipfs.foo.bar-dev-boo.example4.com should return expected payload" \
   "${CIDv1}.ipfs.foo.bar-dev-boo.example4.com" \
   "http://127.0.0.1:$GWAY_PORT/" \
+  "$CID_VAL"
+
+## ============================================================================
+## Test support for overriding implicit defaults
+## ============================================================================
+
+# disable subdomain gateway at localhost by removing implicit config
+ipfs config --json Gateway.PublicGateways '{
+  "localhost": null
+}' || exit 1
+
+# restart daemon to apply config changes
+test_kill_ipfs_daemon
+test_launch_ipfs_daemon --offline
+
+test_localhost_gateway_response_should_contain \
+  "request for localhost/ipfs/{CID} stays on path when subdomain gw is explicitly disabled" \
+  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
   "$CID_VAL"
 
 # =============================================================================
