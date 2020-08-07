@@ -155,7 +155,7 @@ func TestPublishWithTTL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ientry, ok := nsys.(*mpns).cache.Get(pid.Pretty())
+	ientry, ok := nsys.(*mpns).cache.Get(string(pid))
 	if !ok {
 		t.Fatal("cache get failed")
 	}
