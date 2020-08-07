@@ -59,12 +59,12 @@ ipfs key rm key_ed25519
 
 
   test_expect_success "create a new rsa key" '
-    rsahash=$(ipfs key gen generated_rsa_key --type=rsa --size=2048)
+    rsahash=$(ipfs key gen generated_rsa_key --type=rsa --size=2048 -f=b58mh)
     echo $rsahash > rsa_key_id
   '
 
   test_expect_success "create a new ed25519 key" '
-    edhash=$(ipfs key gen generated_ed25519_key --type=ed25519)
+    edhash=$(ipfs key gen generated_ed25519_key --type=ed25519 -f=b58mh)
     echo $edhash > ed25519_key_id
   '
 
@@ -119,13 +119,13 @@ ipfs key rm key_ed25519
   '
 
   test_expect_success "key hashes show up in long list output" '
-    ipfs key list -l | grep $edhash > /dev/null &&
-    ipfs key list -l | grep $rsahash > /dev/null
+    ipfs key list -l -f=b58mh | grep $edhash > /dev/null &&
+    ipfs key list -l -f=b58mh | grep $rsahash > /dev/null
   '
 
   test_expect_success "key list -l contains self key with peerID" '
     PeerID="$(ipfs config Identity.PeerID)"
-    ipfs key list -l | grep "$PeerID\s\+self"
+    ipfs key list -l -f=b58mh | grep "$PeerID\s\+self"
   '
 
   test_expect_success "key rm remove a key" '
@@ -152,7 +152,7 @@ ipfs key rm key_ed25519
   '
 
   test_expect_success "key rename rename key output succeeds" '
-    key_content=$(ipfs key gen key1 --type=rsa --size=2048) &&
+    key_content=$(ipfs key gen key1 --type=rsa --size=2048 -f=b58mh) &&
     ipfs key rename key1 key2 >rs &&
     echo "Key $key_content renamed to key2" >expect &&
     test_cmp rs expect

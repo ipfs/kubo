@@ -22,8 +22,10 @@ test_expect_success "resolve: prepare dag" '
 '
 
 test_expect_success "resolve: prepare keys" '
-    self_hash=$(ipfs id -f="<id>") &&
-    alt_hash=$(ipfs key gen -f=b58mh -t rsa alt)
+    self_hash=$(ipfs key list -f=b36cid -l | grep self | cut -d " " -f1) &&
+    alt_hash=$(ipfs key gen -f=b36cid -t rsa alt)
+    echo self_hash $self_hash
+    echo $(ipfs id -f="<id>")
 '
 
 test_resolve_setup_name() {
@@ -60,6 +62,7 @@ test_resolve() {
 }
 
 test_resolve_cmd() {
+  echo '-- starting test_resolve_cmd'
   test_resolve "/ipfs/$a_hash" "/ipfs/$a_hash"
   test_resolve "/ipfs/$a_hash/b" "/ipfs/$b_hash"
   test_resolve "/ipfs/$a_hash/b/c" "/ipfs/$c_hash"
@@ -96,6 +99,7 @@ test_resolve_cmd() {
 }
 
 test_resolve_cmd_b32() {
+  echo '-- starting test_resolve_cmd_b32'
   # no flags needed, base should be preserved
 
   test_resolve "/ipfs/$a_hash_b32" "/ipfs/$a_hash_b32"
