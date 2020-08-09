@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	version "github.com/ipfs/go-ipfs"
@@ -172,6 +173,7 @@ func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 	for _, p := range protocols {
 		info.Protocols = append(info.Protocols, string(p))
 	}
+	sort.Strings(info.Protocols)
 
 	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
 		if vs, ok := v.(string); ok {
@@ -208,6 +210,7 @@ func printSelf(node *core.IpfsNode) (interface{}, error) {
 			info.Addresses = append(info.Addresses, a.String())
 		}
 		info.Protocols = node.PeerHost.Mux().Protocols()
+		sort.Strings(info.Protocols)
 	}
 	info.ProtocolVersion = identify.LibP2PVersion
 	info.AgentVersion = version.UserAgent
