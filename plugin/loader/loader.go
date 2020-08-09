@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	config "github.com/ipfs/go-ipfs-config"
@@ -30,8 +31,8 @@ func Preload(plugins ...plugin.Plugin) {
 
 var log = logging.Logger("plugin/loader")
 
-var loadPluginsFunc = func(string) ([]plugin.Plugin, error) {
-	return nil, nil
+var loadPluginFunc = func(string) ([]plugin.Plugin, error) {
+	return nil, fmt.Errorf("unsupported platform %s", runtime.GOOS)
 }
 
 type loaderState int
@@ -182,7 +183,36 @@ func loadDynamicPlugins(pluginDir string) ([]plugin.Plugin, error) {
 		return nil, err
 	}
 
-	return loadPluginsFunc(pluginDir)
+	var plugins []plugin.Plugin
+
+	err = filepath.Walk(pluginDir, func(fi string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			if fi != pluginDir {
+				log.Warnf("found directory inside plugins directory: %s", fi)
+			}
+			return nil
+		}
+
+		if info.Mode().Perm()&0111 == 0 {
+			// file is not executable let's not load it
+			// this is to prevent loading plugins from for example non-executable
+			// mounts, some /tmp mounts are marked as such for security
+			log.Errorf("non-executable file in plugins directory: %s", fi)
+			return nil
+		}
+
+		if newPlugins, err := loadPluginFunc(fi); err == nil {
+			plugins = append(plugins, newPlugins...)
+		} else {
+			return fmt.Errorf("loading plugin %s: %s", fi, err)
+		}
+		return nil
+	})
+
+	return plugins, err
 }
 
 // Initialize initializes all loaded plugins

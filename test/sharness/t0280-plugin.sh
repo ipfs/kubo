@@ -89,4 +89,14 @@ test_expect_success "configure the plugin" '
 
 test_plugin true "$IPFS_PATH" "foobar"
 
+test_expect_success "noplugin flag works" '
+  test_must_fail go run -tags=noplugin github.com/ipfs/go-ipfs/cmd/ipfs id > output 2>&1
+  test_should_contain "not built with plugin support" output
+'
+
+test_expect_success "noplugin flag works" '
+  CGO_ENABLED=0 test_must_fail go run github.com/ipfs/go-ipfs/cmd/ipfs id > output 2>&1
+  test_should_contain "not built with cgo support" output
+'
+
 test_done
