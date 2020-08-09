@@ -168,6 +168,7 @@ func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 	for _, a := range addrs {
 		info.Addresses = append(info.Addresses, a.String())
 	}
+	sort.Strings(info.Addresses)
 
 	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
 	for _, p := range protocols {
@@ -209,6 +210,7 @@ func printSelf(node *core.IpfsNode) (interface{}, error) {
 		for _, a := range addrs {
 			info.Addresses = append(info.Addresses, a.String())
 		}
+		sort.Strings(info.Addresses)
 		info.Protocols = node.PeerHost.Mux().Protocols()
 		sort.Strings(info.Protocols)
 	}
