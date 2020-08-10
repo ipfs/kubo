@@ -152,7 +152,7 @@ ipfs key rm key_ed25519
   '
 
   test_expect_success "key rename rename key output succeeds" '
-    key_content=$(ipfs key gen key1 --type=rsa --size=2048 -f=b58mh) &&
+    key_content=$(ipfs key gen key1 --type=rsa --size=2048) &&
     ipfs key rename key1 key2 >rs &&
     echo "Key $key_content renamed to key2" >expect &&
     test_cmp rs expect

@@ -346,10 +346,14 @@ var keyRenameCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(keyStoreForceOptionName, "f", "Allow to overwrite an existing key."),
+		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or b36cid").WithDefault("b36cid"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
+			return err
+		}
+		if err = verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
 			return err
 		}
 
@@ -365,7 +369,7 @@ var keyRenameCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &KeyRenameOutput{
 			Was:       name,
 			Now:       newName,
-			Id:        key.ID().Pretty(),
+			Id:        formatID(key.ID(), req.Options[keyFormatOptionName].(string)), // key.ID().Pretty(),
 			Overwrite: overwritten,
 		})
 	},
@@ -391,10 +395,14 @@ var keyRmCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
+		cmds.StringOption(keyFormatOptionName, "f", "output format: b58mh or b36cid").WithDefault("b36cid"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
+			return err
+		}
+		if err = verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
 			return err
 		}
 
@@ -407,7 +415,10 @@ var keyRmCmd = &cmds.Command{
 				return err
 			}
 
-			list = append(list, KeyOutput{Name: name, Id: key.ID().Pretty()})
+			list = append(list, KeyOutput{
+				Name: name,
+				Id:   formatID(key.ID(), req.Options[keyFormatOptionName].(string)), // key.ID().Pretty(),
+			})
 		}
 
 		return cmds.EmitOnce(res, &KeyOutputList{list})
