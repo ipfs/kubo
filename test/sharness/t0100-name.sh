@@ -24,7 +24,7 @@ test_name_with_self() {
                 ipfs init --profile=test -a=ed25519 > /dev/null
                 ;;
         esac &&
-        export PEERID=`ipfs key list -f=b36cid -l | grep self | cut -d " " -f1` &&
+        export PEERID=`ipfs key list --ipns-base=b36cid -l | grep self | cut -d " " -f1` &&
         test_check_peerid "${PEERID}"
         '
 
@@ -109,8 +109,8 @@ test_name_with_self() {
         # test publishing with B36CID and B58MH resolve to the same B36CID
 
         test_expect_success "verify self key output" '
-        B58MH_ID=`ipfs key list -f=b58mh -l | grep self | cut -d " " -f1` &&
-        B36CID_ID=`ipfs key list -f=b36cid -l | grep self | cut -d " " -f1` &&
+        B58MH_ID=`ipfs key list --ipns-base=b58mh -l | grep self | cut -d " " -f1` &&
+        B36CID_ID=`ipfs key list --ipns-base=b36cid -l | grep self | cut -d " " -f1` &&
         test_check_peerid "${B58MH_ID}" &&
         test_check_peerid "${B36CID_ID}"
         '
@@ -250,15 +250,15 @@ test_name_with_key() {
         test_expect_success "'prepare keys" '
         case $GEN_ALG in
         rsa)
-                export KEY=`ipfs key gen -f=b58mh --type=rsa --size=2048 key` &&
-                export KEY_B36CID=`ipfs key list -f=b36cid -l | grep key | cut -d " " -f1`
+                export KEY=`ipfs key gen --ipns-base=b58mh --type=rsa --size=2048 key` &&
+                export KEY_B36CID=`ipfs key list --ipns-base=b36cid -l | grep key | cut -d " " -f1`
                 ;;
         ed25519_b58)
-                export KEY=`ipfs key gen -f=b58mh --type=ed25519 key`
-                export KEY_B36CID=`ipfs key list -f=b36cid -l | grep key | cut -d " " -f1`
+                export KEY=`ipfs key gen --ipns-base=b58mh --type=ed25519 key`
+                export KEY_B36CID=`ipfs key list --ipns-base=b36cid -l | grep key | cut -d " " -f1`
                 ;;
         ed25519_b36)
-                export KEY=`ipfs key gen -f=b36cid --type=ed25519 key`
+                export KEY=`ipfs key gen --ipns-base=b36cid --type=ed25519 key`
                 export KEY_B36CID=$KEY
                 ;;
         esac &&

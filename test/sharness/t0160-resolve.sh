@@ -22,8 +22,8 @@ test_expect_success "resolve: prepare dag" '
 '
 
 test_expect_success "resolve: prepare keys" '
-    self_hash=$(ipfs key list -f=b36cid -l | grep self | cut -d " " -f1) &&
-    alt_hash=$(ipfs key gen -f=b36cid -t rsa alt)
+    self_hash=$(ipfs key list --ipns-base=b36cid -l | grep self | cut -d " " -f1) &&
+    alt_hash=$(ipfs key gen --ipns-base=b36cid -t rsa alt)
     echo self_hash $self_hash
     echo $(ipfs id -f="<id>")
 '
