@@ -127,7 +127,7 @@ test_expect_success "Publish test text file to IPNS using RSA keys" '
 test_expect_success "Publish test text file to IPNS using ED25519 keys" '
   ED25519_KEY=$(ipfs key gen --ipns-base=b58mh --type=ed25519 test_key_ed25519 | head -n1 | tr -d "\n")
   ED25519_IPNS_IDv0=$ED25519_KEY
-  ED25519_IPNS_IDv1=$(ipfs key list -l --ipns-base=b36cid | grep test_key_ed25519 | cut -d " " -f1 | tr -d "\n")
+  ED25519_IPNS_IDv1=$(ipfs key list -l --ipns-base=base36 | grep test_key_ed25519 | cut -d " " -f1 | tr -d "\n")
   ED25519_IPNS_IDv1_DAGPB=$(echo "$ED25519_IPNS_IDv1" | ipfs cid format -v 1 -b base36 --codec protobuf)
   test_check_peerid "${ED25519_KEY}" &&
   ipfs name publish --key test_key_ed25519 --allow-offline -Q "/ipfs/$CIDv1" > name_publish_out &&
