@@ -724,26 +724,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			DAG:   api.Dag(),
 			Order: traverse.DFSPre,
 			Func: func(current traverse.State) error {
-				stat, err := current.Node.Stat()
-				if err != nil {
-					return err
-				}
-
-				// stat.BlockSize gives the raw size of the data which is what we want here.
-				// However, node.Stat() is not implemented by any node types other than DagPB, which defines Size() as
-				// a field stored in the data instead of the raw size of the data itself.
-				//
-				// Therefore, we check if stat is defined and if so use `stat.BlockSize` and otherwise just rely on the
-				// Size() function.
-				if len(stat.Hash) == 0 {
-					size, err := current.Node.Size()
-					if err != nil {
-						return err
-					}
-					dagstats.Size += size
-				} else {
-					dagstats.Size += uint64(stat.BlockSize)
-				}
+				dagstats.Size += uint64(len(current.Node.RawData()))
 				dagstats.NumBlocks++
 
 				if progressive {
