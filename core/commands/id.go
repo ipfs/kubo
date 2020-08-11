@@ -14,6 +14,7 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -41,7 +42,8 @@ type IdOutput struct {
 }
 
 const (
-	formatOptionName = "format"
+	formatOptionName   = "format"
+	idFormatOptionName = "peerid-base"
 )
 
 var IDCmd = &cmds.Command{
@@ -68,8 +70,14 @@ EXAMPLE:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(formatOptionName, "f", "Optional output format."),
+		cmds.StringOption(idFormatOptionName, "", "Encoding used for peer IDs: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("b58mh"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[idFormatOptionName].(string))
+		if err != nil {
+			return err
+		}
+
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -87,7 +95,7 @@ EXAMPLE:
 		}
 
 		if id == n.Identity {
-			output, err := printSelf(n)
+			output, err := printSelf(keyEnc, n)
 			if err != nil {
 				return err
 			}
@@ -109,7 +117,7 @@ EXAMPLE:
 			return err
 		}
 
-		output, err := printPeer(n.Peerstore, id)
+		output, err := printPeer(keyEnc, n.Peerstore, id)
 		if err != nil {
 			return err
 		}
@@ -143,13 +151,13 @@ EXAMPLE:
 	Type: IdOutput{},
 }
 
-func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
+func printPeer(keyEnc ke.KeyEncoder, ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 	if p == "" {
 		return nil, errors.New("attempted to print nil peer")
 	}
 
 	info := new(IdOutput)
-	info.ID = p.Pretty()
+	info.ID = keyEnc.FormatID(p)
 
 	if pk := ps.PubKey(p); pk != nil {
 		pkb, err := ic.MarshalPublicKey(pk)
@@ -191,9 +199,9 @@ func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 }
 
 // printing self is special cased as we get values differently.
-func printSelf(node *core.IpfsNode) (interface{}, error) {
+func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 	info := new(IdOutput)
-	info.ID = node.Identity.Pretty()
+	info.ID = keyEnc.FormatID(node.Identity)
 
 	pk := node.PrivateKey.GetPublic()
 	pkb, err := ic.MarshalPublicKey(pk)
