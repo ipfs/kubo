@@ -59,12 +59,12 @@ ipfs key rm key_ed25519
 
 
   test_expect_success "create a new rsa key" '
-    rsahash=$(ipfs key gen generated_rsa_key --type=rsa --size=2048 --ipns-base=b58mh)
+    rsahash=$(ipfs key gen generated_rsa_key --type=rsa --size=2048)
     echo $rsahash > rsa_key_id
   '
 
   test_expect_success "create a new ed25519 key" '
-    edhash=$(ipfs key gen generated_ed25519_key --type=ed25519 --ipns-base=b58mh)
+    edhash=$(ipfs key gen generated_ed25519_key --type=ed25519)
     echo $edhash > ed25519_key_id
   '
 
@@ -119,8 +119,8 @@ ipfs key rm key_ed25519
   '
 
   test_expect_success "key hashes show up in long list output" '
-    ipfs key list -l --ipns-base=b58mh | grep $edhash > /dev/null &&
-    ipfs key list -l --ipns-base=b58mh | grep $rsahash > /dev/null
+    ipfs key list -l | grep $edhash > /dev/null &&
+    ipfs key list -l | grep $rsahash > /dev/null
   '
 
   test_expect_success "key list -l contains self key with peerID" '
