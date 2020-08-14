@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	version "github.com/ipfs/go-ipfs"
@@ -36,6 +37,7 @@ type IdOutput struct {
 	Addresses       []string
 	AgentVersion    string
 	ProtocolVersion string
+	Protocols       []string
 }
 
 const (
@@ -97,15 +99,17 @@ EXAMPLE:
 			return errors.New(offlineIdErrorMessage)
 		}
 
-		p, err := n.Routing.FindPeer(req.Context, id)
-		if err == kb.ErrLookupFailure {
+		// We need to actually connect to run identify.
+		err = n.PeerHost.Connect(req.Context, peer.AddrInfo{ID: id})
+		switch err {
+		case nil:
+		case kb.ErrLookupFailure:
 			return errors.New(offlineIdErrorMessage)
-		}
-		if err != nil {
+		default:
 			return err
 		}
 
-		output, err := printPeer(n.Peerstore, p.ID)
+		output, err := printPeer(n.Peerstore, id)
 		if err != nil {
 			return err
 		}
@@ -121,6 +125,7 @@ EXAMPLE:
 				output = strings.Replace(output, "<pver>", out.ProtocolVersion, -1)
 				output = strings.Replace(output, "<pubkey>", out.PublicKey, -1)
 				output = strings.Replace(output, "<addrs>", strings.Join(out.Addresses, "\n"), -1)
+				output = strings.Replace(output, "<protocols>", strings.Join(out.Protocols, "\n"), -1)
 				output = strings.Replace(output, "\\n", "\n", -1)
 				output = strings.Replace(output, "\\t", "\t", -1)
 				fmt.Fprint(w, output)
@@ -163,6 +168,13 @@ func printPeer(ps pstore.Peerstore, p peer.ID) (interface{}, error) {
 	for _, a := range addrs {
 		info.Addresses = append(info.Addresses, a.String())
 	}
+	sort.Strings(info.Addresses)
+
+	protocols, _ := ps.GetProtocols(p) // don't care about errors here.
+	for _, p := range protocols {
+		info.Protocols = append(info.Protocols, string(p))
+	}
+	sort.Strings(info.Protocols)
 
 	if v, err := ps.Get(p, "ProtocolVersion"); err == nil {
 		if vs, ok := v.(string); ok {
@@ -198,6 +210,9 @@ func printSelf(node *core.IpfsNode) (interface{}, error) {
 		for _, a := range addrs {
 			info.Addresses = append(info.Addresses, a.String())
 		}
+		sort.Strings(info.Addresses)
+		info.Protocols = node.PeerHost.Mux().Protocols()
+		sort.Strings(info.Protocols)
 	}
 	info.ProtocolVersion = identify.LibP2PVersion
 	info.AgentVersion = version.UserAgent
