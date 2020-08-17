@@ -69,8 +69,6 @@ type KeyRenameOutput struct {
 
 const (
 	keyStoreAlgorithmDefault    = options.RSAKey
-	keyStoreAlgorithmOptionName = "algorithm"
-	keyStoreBitsOptionName      = "bits"
 	keyStoreTypeOptionName      = "type"
 	keyStoreSizeOptionName      = "size"
 	keyFormatOptionName         = "format"
@@ -437,8 +435,8 @@ environment variable:
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		cmds.StringOption(oldKeyOptionName, "o", "Keystore name for the old/rotated-out key."),
-		cmds.StringOption(keyStoreAlgorithmOptionName, "a", "Cryptographic algorithm to use for key generation.").WithDefault(keyStoreAlgorithmDefault),
-		cmds.IntOption(keyStoreBitsOptionName, "b", "Number of bits to use in the generated RSA private key."),
+		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault(keyStoreAlgorithmDefault),
+		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
 	NoRemote: true,
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
@@ -459,8 +457,8 @@ environment variable:
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
-		nBitsForKeypair, nBitsGiven := req.Options[keyStoreBitsOptionName].(int)
-		algorithm, _ := req.Options[keyStoreAlgorithmOptionName].(string)
+		nBitsForKeypair, nBitsGiven := req.Options[keyStoreSizeOptionName].(int)
+		algorithm, _ := req.Options[keyStoreTypeOptionName].(string)
 		oldKey, ok := req.Options[oldKeyOptionName].(string)
 		if !ok {
 			return fmt.Errorf("keystore name for backing up old key must be provided")

@@ -35,10 +35,10 @@ test_rotate() {
         test_expect_success "rotating keys" '
         case $TO_ALG in
         rsa)
-                ipfs key rotate -a=rsa -b=2048 --oldkey=oldkey
+                ipfs key rotate -t=rsa -s=2048 --oldkey=oldkey
                 ;;
         ed25519)
-                ipfs key rotate -a=ed25519 --oldkey=oldkey
+                ipfs key rotate -t=ed25519 --oldkey=oldkey
                 ;;
         *)
                 ipfs key rotate --oldkey=oldkey
