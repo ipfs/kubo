@@ -695,7 +695,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		cmds.StringArg("root", true, false, "CID of a DAG root to get statistics for").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault("true"),
+		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		progressive := req.Options[progressOptionName].(bool)
