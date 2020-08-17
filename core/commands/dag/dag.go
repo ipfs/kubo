@@ -776,7 +776,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStat) error {
 			_, err := fmt.Fprintf(
 				w,
-				"%v",
+				"%v\n",
 				event,
 			)
 			return err
