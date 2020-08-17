@@ -138,6 +138,7 @@ func TestCommands(t *testing.T) {
 		"/key/list",
 		"/key/rename",
 		"/key/rm",
+		"/key/rotate",
 		"/log",
 		"/log/level",
 		"/log/ls",

@@ -146,7 +146,7 @@ func genKeys(t *testing.T, keyType int) (ci.PrivKey, peer.ID, string, string) {
 	return sk, id, PkKeyForID(id), ipns.RecordKey(id)
 }
 
-func createIPNSRecordWithEmbeddedPublicKey(sk ci.PrivKey, val []byte, seq uint64, eol time.Time) (*ipns_pb.IpnsEntry, error){
+func createIPNSRecordWithEmbeddedPublicKey(sk ci.PrivKey, val []byte, seq uint64, eol time.Time) (*ipns_pb.IpnsEntry, error) {
 	entry, err := ipns.Create(sk, val, seq, eol)
 	if err != nil {
 		return nil, err
