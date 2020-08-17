@@ -5,6 +5,8 @@ import (
 	mbase "github.com/multiformats/go-multibase"
 )
 
+const KeyFormatOptionName = "ipns-base"
+
 type KeyEncoder struct {
 	baseEnc *mbase.Encoder
 }

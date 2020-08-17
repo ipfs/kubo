@@ -116,14 +116,19 @@ test_name_with_self() {
         '
 
         test_expect_success "'ipfs name publish --allow-offline --key=<peer-id> <hash>' succeeds" '
-        ipfs name publish --allow-offline  --key=${B58MH_ID} "/ipfs/$HASH_WELCOME_DOCS" >b58mh_published_id &&
-        ipfs name publish --allow-offline  --key=${B36CID_ID} "/ipfs/$HASH_WELCOME_DOCS" >base36_published_id
+        ipfs name publish --allow-offline  --key=${B58MH_ID} "/ipfs/$HASH_WELCOME_DOCS" >b58mh_published_id_base36 &&
+        ipfs name publish --allow-offline  --key=${B36CID_ID} "/ipfs/$HASH_WELCOME_DOCS" >base36_published_id_base36 &&
+        ipfs name publish --allow-offline  --key=${B58MH_ID} --ipns-base=b58mh "/ipfs/$HASH_WELCOME_DOCS" >b58mh_published_id_b58mh &&
+        ipfs name publish --allow-offline  --key=${B36CID_ID} --ipns-base=b58mh "/ipfs/$HASH_WELCOME_DOCS" >base36_published_id_b58mh
         '
 
         test_expect_success "publish an explicit node ID as two key in B58MH and B36CID, name looks good" '
-        echo "Published to ${B36CID_ID}: /ipfs/$HASH_WELCOME_DOCS" >expected_published_id &&
-        test_cmp expected_published_id b58mh_published_id &&
-        test_cmp expected_published_id base36_published_id
+        echo "Published to ${B36CID_ID}: /ipfs/$HASH_WELCOME_DOCS" >expected_published_id_base36 &&
+        echo "Published to ${B58MH_ID}: /ipfs/$HASH_WELCOME_DOCS" >expected_published_id_b58mh &&
+        test_cmp expected_published_id_base36 b58mh_published_id_base36 &&
+        test_cmp expected_published_id_base36 base36_published_id_base36 &&
+        test_cmp expected_published_id_b58mh b58mh_published_id_b58mh &&
+        test_cmp expected_published_id_b58mh base36_published_id_b58mh
         '
 
         test_expect_success "'ipfs name resolve' succeeds" '
