@@ -714,14 +714,15 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 			return fmt.Errorf("cannot return size for anything other than a DAG with a root CID")
 		}
 
-		obj, err := api.Dag().Get(req.Context, rp.Cid())
+		nodeGetter := mdag.NewSession(req.Context, api.Dag())
+		obj, err := nodeGetter.Get(req.Context, rp.Cid())
 		if err != nil {
 			return err
 		}
 
 		dagstats := &DagStat{}
 		err = traverse.Traverse(obj, traverse.Options{
-			DAG:   api.Dag(),
+			DAG:   nodeGetter,
 			Order: traverse.DFSPre,
 			Func: func(current traverse.State) error {
 				dagstats.Size += uint64(len(current.Node.RawData()))
