@@ -5,10 +5,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ipfs/go-ipfs-cmds"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-record"
+	record "github.com/libp2p/go-libp2p-record"
 )
 
 type ipnsPubsubState struct {
@@ -72,7 +73,15 @@ var ipnspsSubsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Show current name subscriptions",
 	},
+	Options: []cmds.Option{
+		cmds.StringOption(ke.IPNSKeyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.IPNSKeyFormatOptionName].(string))
+		if err != nil {
+			return err
+		}
+
 		n, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
@@ -93,7 +102,7 @@ var ipnspsSubsCmd = &cmds.Command{
 				log.Errorf("ipns key not a valid peer ID: %s", err)
 				continue
 			}
-			paths = append(paths, "/ipns/"+peer.Encode(pid))
+			paths = append(paths, "/ipns/"+keyEnc.FormatID(pid))
 		}
 
 		return cmds.EmitOnce(res, &stringList{paths})

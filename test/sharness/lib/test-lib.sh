@@ -445,8 +445,8 @@ file_size() {
 
 # len 46: 2048-bit RSA keys, b58mh-encoded
 # len 52: ED25519 keys, b58mh-encoded
-# len 56: 2048-bit RSA keys, b36cid-encoded
-# len 62: ED25519 keys, b36cid-encoded
+# len 56: 2048-bit RSA keys, base36-encoded
+# len 62: ED25519 keys, base36-encoded
 test_check_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
   test "$peeridlen" = "46" -o "$peeridlen" = "52" -o "$peeridlen" = "56" -o "$peeridlen" = "62" || {
@@ -471,7 +471,7 @@ test_check_ed25519_b58mh_peerid() {
   }
 }
 
-test_check_rsa2048_b36cid_peerid() {
+test_check_rsa2048_base36_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
   test "$peeridlen" = "56" || {
     echo "Bad RSA2048 B36CID peerid '$1' with len '$peeridlen'"
@@ -479,7 +479,7 @@ test_check_rsa2048_b36cid_peerid() {
   }
 }
 
-test_check_ed25519_b36cid_peerid() {
+test_check_ed25519_base36_peerid() {
   peeridlen=$(echo "$1" | tr -dC "[:alnum:]" | wc -c | tr -d " ") &&
   test "$peeridlen" = "62" || {
     echo "Bad ED25519 B36CID peerid '$1' with len '$peeridlen'"

@@ -24,7 +24,7 @@ test_name_with_self() {
                 ipfs init --profile=test -a=ed25519 > /dev/null
                 ;;
         esac &&
-        export PEERID=`ipfs key list -f=b36cid -l | grep self | cut -d " " -f1` &&
+        export PEERID=`ipfs key list --ipns-base=base36 -l | grep self | cut -d " " -f1` &&
         test_check_peerid "${PEERID}"
         '
 
@@ -109,21 +109,26 @@ test_name_with_self() {
         # test publishing with B36CID and B58MH resolve to the same B36CID
 
         test_expect_success "verify self key output" '
-        B58MH_ID=`ipfs key list -f=b58mh -l | grep self | cut -d " " -f1` &&
-        B36CID_ID=`ipfs key list -f=b36cid -l | grep self | cut -d " " -f1` &&
+        B58MH_ID=`ipfs key list --ipns-base=b58mh -l | grep self | cut -d " " -f1` &&
+        B36CID_ID=`ipfs key list --ipns-base=base36 -l | grep self | cut -d " " -f1` &&
         test_check_peerid "${B58MH_ID}" &&
         test_check_peerid "${B36CID_ID}"
         '
 
         test_expect_success "'ipfs name publish --allow-offline --key=<peer-id> <hash>' succeeds" '
-        ipfs name publish --allow-offline  --key=${B58MH_ID} "/ipfs/$HASH_WELCOME_DOCS" >b58mh_published_id &&
-        ipfs name publish --allow-offline  --key=${B36CID_ID} "/ipfs/$HASH_WELCOME_DOCS" >b36cid_published_id
+        ipfs name publish --allow-offline  --key=${B58MH_ID} "/ipfs/$HASH_WELCOME_DOCS" >b58mh_published_id_base36 &&
+        ipfs name publish --allow-offline  --key=${B36CID_ID} "/ipfs/$HASH_WELCOME_DOCS" >base36_published_id_base36 &&
+        ipfs name publish --allow-offline  --key=${B58MH_ID} --ipns-base=b58mh "/ipfs/$HASH_WELCOME_DOCS" >b58mh_published_id_b58mh &&
+        ipfs name publish --allow-offline  --key=${B36CID_ID} --ipns-base=b58mh "/ipfs/$HASH_WELCOME_DOCS" >base36_published_id_b58mh
         '
 
         test_expect_success "publish an explicit node ID as two key in B58MH and B36CID, name looks good" '
-        echo "Published to ${B36CID_ID}: /ipfs/$HASH_WELCOME_DOCS" >expected_published_id &&
-        test_cmp expected_published_id b58mh_published_id &&
-        test_cmp expected_published_id b36cid_published_id
+        echo "Published to ${B36CID_ID}: /ipfs/$HASH_WELCOME_DOCS" >expected_published_id_base36 &&
+        echo "Published to ${B58MH_ID}: /ipfs/$HASH_WELCOME_DOCS" >expected_published_id_b58mh &&
+        test_cmp expected_published_id_base36 b58mh_published_id_base36 &&
+        test_cmp expected_published_id_base36 base36_published_id_base36 &&
+        test_cmp expected_published_id_b58mh b58mh_published_id_b58mh &&
+        test_cmp expected_published_id_b58mh base36_published_id_b58mh
         '
 
         test_expect_success "'ipfs name resolve' succeeds" '
@@ -250,15 +255,15 @@ test_name_with_key() {
         test_expect_success "'prepare keys" '
         case $GEN_ALG in
         rsa)
-                export KEY=`ipfs key gen -f=b58mh --type=rsa --size=2048 key` &&
-                export KEY_B36CID=`ipfs key list -f=b36cid -l | grep key | cut -d " " -f1`
+                export KEY=`ipfs key gen --ipns-base=b58mh --type=rsa --size=2048 key` &&
+                export KEY_B36CID=`ipfs key list --ipns-base=base36 -l | grep key | cut -d " " -f1`
                 ;;
         ed25519_b58)
-                export KEY=`ipfs key gen -f=b58mh --type=ed25519 key`
-                export KEY_B36CID=`ipfs key list -f=b36cid -l | grep key | cut -d " " -f1`
+                export KEY=`ipfs key gen --ipns-base=b58mh --type=ed25519 key`
+                export KEY_B36CID=`ipfs key list --ipns-base=base36 -l | grep key | cut -d " " -f1`
                 ;;
         ed25519_b36)
-                export KEY=`ipfs key gen -f=b36cid --type=ed25519 key`
+                export KEY=`ipfs key gen --ipns-base=base36 --type=ed25519 key`
                 export KEY_B36CID=$KEY
                 ;;
         esac &&

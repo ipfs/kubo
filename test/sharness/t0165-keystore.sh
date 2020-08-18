@@ -13,11 +13,11 @@ test_init_ipfs
 test_key_cmd() {
 # test key output format
 test_expect_success "create an RSA key and test B58MH/B36CID output formats" '
-PEERID=$(ipfs key gen -f=b58mh --type=rsa --size=2048 key_rsa) &&
+PEERID=$(ipfs key gen --ipns-base=b58mh --type=rsa --size=2048 key_rsa) &&
 test_check_rsa2048_b58mh_peerid $PEERID &&
 ipfs key rm key_rsa &&
-PEERID=$(ipfs key gen -f=b36cid --type=rsa --size=2048 key_rsa) &&
-test_check_rsa2048_b36cid_peerid $PEERID
+PEERID=$(ipfs key gen --ipns-base=base36 --type=rsa --size=2048 key_rsa) &&
+test_check_rsa2048_base36_peerid $PEERID
 '
 
 test_expect_success "test RSA key sk export format" '
@@ -27,19 +27,19 @@ rm key_rsa.key
 '
 
 test_expect_success "test RSA key B58MH/B36CID multihash format" '
-PEERID=$(ipfs key list -f=b58mh -l | grep key_rsa | head -n 1 | cut -d " " -f1) &&
+PEERID=$(ipfs key list --ipns-base=b58mh -l | grep key_rsa | head -n 1 | cut -d " " -f1) &&
 test_check_rsa2048_b58mh_peerid $PEERID &&
-PEERID=$(ipfs key list -f=b36cid -l | grep key_rsa | head -n 1 | cut -d " " -f1) &&
-test_check_rsa2048_b36cid_peerid $PEERID &&
+PEERID=$(ipfs key list --ipns-base=base36 -l | grep key_rsa | head -n 1 | cut -d " " -f1) &&
+test_check_rsa2048_base36_peerid $PEERID &&
 ipfs key rm key_rsa
 '
 
 test_expect_success "create an ED25519 key and test B58MH/B36CID output formats" '
-PEERID=$(ipfs key gen -f=b58mh --type=ed25519 key_ed25519) &&
+PEERID=$(ipfs key gen --ipns-base=b58mh --type=ed25519 key_ed25519) &&
 test_check_ed25519_b58mh_peerid $PEERID &&
 ipfs key rm key_ed25519 &&
-PEERID=$(ipfs key gen -f=b36cid --type=ed25519 key_ed25519) &&
-test_check_ed25519_b36cid_peerid $PEERID
+PEERID=$(ipfs key gen --ipns-base=base36 --type=ed25519 key_ed25519) &&
+test_check_ed25519_base36_peerid $PEERID
 '
 
 test_expect_success "test ED25519 key sk export format" '
@@ -49,10 +49,10 @@ rm key_ed25519.key
 '
 
 test_expect_success "test ED25519 key B58MH/B36CID multihash format" '
-PEERID=$(ipfs key list -f=b58mh -l | grep key_ed25519 | head -n 1 | cut -d " " -f1) &&
+PEERID=$(ipfs key list --ipns-base=b58mh -l | grep key_ed25519 | head -n 1 | cut -d " " -f1) &&
 test_check_ed25519_b58mh_peerid $PEERID &&
-PEERID=$(ipfs key list -f=b36cid -l | grep key_ed25519 | head -n 1 | cut -d " " -f1) &&
-test_check_ed25519_b36cid_peerid $PEERID &&
+PEERID=$(ipfs key list --ipns-base=base36 -l | grep key_ed25519 | head -n 1 | cut -d " " -f1) &&
+test_check_ed25519_base36_peerid $PEERID &&
 ipfs key rm key_ed25519
 '
 # end of format test
@@ -125,7 +125,7 @@ ipfs key rm key_ed25519
 
   test_expect_success "key list -l contains self key with peerID" '
     PeerID="$(ipfs config Identity.PeerID)"
-    ipfs key list -l | grep "$PeerID\s\+self"
+    ipfs key list -l --ipns-base=b58mh | grep "$PeerID\s\+self"
   '
 
   test_expect_success "key rm remove a key" '

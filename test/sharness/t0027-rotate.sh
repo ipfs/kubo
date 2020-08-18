@@ -56,8 +56,8 @@ test_rotate() {
         test_expect_success "checking ID" '
         ipfs config Identity.PeerID > expected-id &&
         ipfs id -f "<id>\n" > actual-id &&
-        ipfs key list -l | grep self | cut -d " " -f1 > keystore-id &&
-        ipfs key list -l | grep oldkey | cut -d " " -f1 | tr -d "\n" > old-keystore-id &&
+        ipfs key list -l --ipns-base=b58mh | grep self | cut -d " " -f1 > keystore-id &&
+        ipfs key list -l --ipns-base=b58mh | grep oldkey | cut -d " " -f1 | tr -d "\n" > old-keystore-id &&
         test_cmp expected-id actual-id &&
         test_cmp expected-id keystore-id &&
         test_cmp old-keystore-id first_id
