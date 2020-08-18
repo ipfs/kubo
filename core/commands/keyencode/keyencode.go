@@ -1,11 +1,11 @@
-package keybase
+package keyencode
 
 import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	mbase "github.com/multiformats/go-multibase"
 )
 
-const KeyFormatOptionName = "ipns-base"
+const IPNSKeyFormatOptionName = "ipns-base"
 
 type KeyEncoder struct {
 	baseEnc *mbase.Encoder

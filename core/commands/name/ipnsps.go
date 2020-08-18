@@ -7,7 +7,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	kb "github.com/ipfs/go-ipfs/core/commands/keybase"
+	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
 	"github.com/libp2p/go-libp2p-core/peer"
 	record "github.com/libp2p/go-libp2p-record"
 )
@@ -74,10 +74,10 @@ var ipnspsSubsCmd = &cmds.Command{
 		Tagline: "Show current name subscriptions",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(kb.KeyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
+		cmds.StringOption(ke.IPNSKeyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		keyEnc, err := kb.KeyEncoderFromString(req.Options[kb.KeyFormatOptionName].(string))
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.IPNSKeyFormatOptionName].(string))
 		if err != nil {
 			return err
 		}
