@@ -3,10 +3,9 @@ package node
 import (
 	"github.com/ipfs/go-graphsync"
 	gsimpl "github.com/ipfs/go-graphsync/impl"
-	"github.com/ipfs/go-graphsync/ipldbridge"
 	"github.com/ipfs/go-graphsync/network"
 	"github.com/ipfs/go-graphsync/storeutil"
-	"github.com/ipfs/go-ipfs-blockstore"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	libp2p "github.com/libp2p/go-libp2p-core"
 	"go.uber.org/fx"
 
@@ -18,9 +17,7 @@ func Graphsync(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host, bs bl
 	ctx := helpers.LifecycleCtx(mctx, lc)
 
 	network := network.NewFromLibp2pHost(host)
-	ipldBridge := ipldbridge.NewIPLDBridge()
-	return gsimpl.New(ctx,
-		network, ipldBridge,
+	return gsimpl.New(ctx, network,
 		storeutil.LoaderForBlockstore(bs),
 		storeutil.StorerForBlockstore(bs),
 	)
