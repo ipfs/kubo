@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-ipfs/core/coredag"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 
@@ -19,6 +20,7 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
 	mdag "github.com/ipfs/go-merkledag"
+	traverse "github.com/ipfs/go-merkledag/traverse"
 	ipfspath "github.com/ipfs/go-path"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
@@ -54,6 +56,7 @@ to deprecate and replace the existing 'ipfs object' command moving forward.
 		"resolve": DagResolveCmd,
 		"import":  DagImportCmd,
 		"export":  DagExportCmd,
+		"stat":    DagStatCmd,
 	},
 }
 
@@ -666,5 +669,118 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 				}
 			}
 		},
+	},
+}
+
+type DagStat struct {
+	Size      uint64
+	NumBlocks int64
+}
+
+func (s *DagStat) String() string {
+	return fmt.Sprintf("Size: %d, NumBlocks: %d", s.Size, s.NumBlocks)
+}
+
+var DagStatCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Gets stats for a DAG",
+		ShortDescription: `
+'ipfs dag size' fetches a dag and returns various statistics about the DAG.
+Statistics include size and number of blocks.
+
+Note: This command skips duplicate blocks in reporting both size and the number of blocks
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("root", true, false, "CID of a DAG root to get statistics for").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		progressive := req.Options[progressOptionName].(bool)
+
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+
+		rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
+		if err != nil {
+			return err
+		}
+
+		if len(rp.Remainder()) > 0 {
+			return fmt.Errorf("cannot return size for anything other than a DAG with a root CID")
+		}
+
+		nodeGetter := mdag.NewSession(req.Context, api.Dag())
+		obj, err := nodeGetter.Get(req.Context, rp.Cid())
+		if err != nil {
+			return err
+		}
+
+		dagstats := &DagStat{}
+		err = traverse.Traverse(obj, traverse.Options{
+			DAG:   nodeGetter,
+			Order: traverse.DFSPre,
+			Func: func(current traverse.State) error {
+				dagstats.Size += uint64(len(current.Node.RawData()))
+				dagstats.NumBlocks++
+
+				if progressive {
+					if err := res.Emit(dagstats); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			ErrFunc:        nil,
+			SkipDuplicates: true,
+		})
+		if err != nil {
+			return fmt.Errorf("error traversing DAG: %w", err)
+		}
+
+		if !progressive {
+			if err := res.Emit(dagstats); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	},
+	Type: DagStat{},
+	PostRun: cmds.PostRunMap{
+		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+			var dagStats *DagStat
+			for {
+				v, err := res.Next()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return err
+				}
+
+				out, ok := v.(*DagStat)
+				if !ok {
+					return e.TypeErr(out, v)
+				}
+				dagStats = out
+				fmt.Fprintf(os.Stderr, "%v\r", out)
+			}
+			return re.Emit(dagStats)
+		},
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, event *DagStat) error {
+			_, err := fmt.Fprintf(
+				w,
+				"%v\n",
+				event,
+			)
+			return err
+		}),
 	},
 }

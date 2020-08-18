@@ -268,6 +268,41 @@ test_dag_cmd() {
     test_cmp resolve_obj_exp resolve_obj &&
     test_cmp resolve_data_exp resolve_data
   '
+
+  test_expect_success "dag stat of simple IPLD object" '
+    ipfs dag stat $NESTED_HASH > actual_stat_inner_ipld_obj &&
+    echo "Size: 15, NumBlocks: 1" > exp_stat_inner_ipld_obj &&
+    test_cmp exp_stat_inner_ipld_obj actual_stat_inner_ipld_obj &&
+    ipfs dag stat $HASH > actual_stat_ipld_obj &&
+    echo "Size: 61, NumBlocks: 2" > exp_stat_ipld_obj &&
+    test_cmp exp_stat_ipld_obj actual_stat_ipld_obj
+  '
+
+  test_expect_success "dag stat of simple UnixFS object" '
+    BASIC_UNIXFS=$(echo "1234" | ipfs add --pin=false -q) &&
+    ipfs dag stat $BASIC_UNIXFS > actual_stat_basic_unixfs &&
+    echo "Size: 13, NumBlocks: 1" > exp_stat_basic_unixfs &&
+    test_cmp exp_stat_basic_unixfs actual_stat_basic_unixfs
+  '
+
+  # The multiblock file is just 10000000 copies of the number 1
+  # As most of its data is replicated it should have a small number of blocks
+  test_expect_success "dag stat of multiblock UnixFS object" '
+    MULTIBLOCK_UNIXFS=$(printf "1%.0s" {1..10000000} | ipfs add --pin=false -q) &&
+    ipfs dag stat $MULTIBLOCK_UNIXFS > actual_stat_multiblock_unixfs &&
+    echo "Size: 302582, NumBlocks: 3" > exp_stat_multiblock_unixfs &&
+    test_cmp exp_stat_multiblock_unixfs actual_stat_multiblock_unixfs
+  '
+
+  test_expect_success "dag stat of directory of UnixFS objects" '
+    mkdir -p unixfsdir &&
+    echo "1234" > unixfsdir/small.txt
+    printf "1%.0s" {1..10000000} > unixfsdir/many1s.txt &&
+    DIRECTORY_UNIXFS=$(ipfs add -r --pin=false -Q unixfsdir) &&
+    ipfs dag stat $DIRECTORY_UNIXFS > actual_stat_directory_unixfs &&
+    echo "Size: 302705, NumBlocks: 5" > exp_stat_directory_unixfs &&
+    test_cmp exp_stat_directory_unixfs actual_stat_directory_unixfs
+  '
 }
 
 # should work offline
