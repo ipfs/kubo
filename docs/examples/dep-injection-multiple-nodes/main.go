@@ -163,11 +163,7 @@ func setConfig(ctx context.Context) fx.Option {
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				if exch.Close != nil {
-					return exch.Close()
-				}
-				return nil
-
+				return exch.Close()
 			},
 		})
 		return exch

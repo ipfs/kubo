@@ -53,14 +53,14 @@ You should see the following as output:
 ## Understanding the example
 
 The example comprises the following parts:
-* A [main function](./main.go#L313-L366) where all the action happens. Here we define the [size of the random file](./main.go#L316) to be generated, we [spawn two IPFS nodes](./main.go#L321-L332), we [connect both nodes](./main.go#L341-L346), we [generate a random file and added it to the network from node 1](./main.go#L348-L355) and finally [retrieve it from node2](./main.go#L357-L366).
+* A [main function](./main.go#L309-L362) where all the action happens. Here we define the [size of the random file](./main.go#L312) to be generated, we [spawn two IPFS nodes](./main.go#L317-L335), we [connect both nodes](./main.go#L337-L342), we [generate a random file and added it to the network from node 1](./main.go#L344-L351) and finally [retrieve it from node2](./main.go#L353-L363).
 
-* The nodes are spawned using the same [`NewNode` function](./main.go#L252-L311) which initializes the node and injects all the corresponding dependencies. In this example both nodes are using the same configuration.
+* The nodes are spawned using the same [`NewNode` function](./main.go#L248-L307) which initializes the node and injects all the corresponding dependencies. In this example both nodes are using the same configuration.
 
 * The configuration and dependencies of the node are set in the [`setConfig` function](./main.go#L68-L249). This is the place to go if you want to change some configurations of the nodes to be spawned. In this function you will be able to do some cool stuff such as:
     * Setting the listening address for the nodes, or [allow them to listen from any available port](./main.go#L92-L98).
     * Choosing the [`routingOption` to use](./main.go#L126-L130).
-    * Or setting [your custom exchange interface](./main.go#L132-L174)
-    * Dependencies are injected [here](./main.go#L189-L248). Many of the ones used for this example are the default ones, but you could customize and set them at your desire as done for `hostOpotions` and the `exchangeInterface`.
+    * Or setting [your custom exchange interface](./main.go#L132-L170)
+    * Dependencies are injected [here](./main.go#L185-L244). Many of the ones used for this example are the default ones, but you could customize and set them at your desire as done for `hostOpotions` and the `exchangeInterface`.
 
 * More advanced configurations coming in the future.
