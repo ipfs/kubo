@@ -68,7 +68,7 @@ type KeyRenameOutput struct {
 }
 
 const (
-	keyStoreAlgorithmDefault = options.RSAKey
+	keyStoreAlgorithmDefault = options.Ed25519Key
 	keyStoreTypeOptionName   = "type"
 	keyStoreSizeOptionName   = "size"
 	oldKeyOptionName         = "oldkey"

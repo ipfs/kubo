@@ -167,7 +167,8 @@ test_expect_success 'setup p2p listener on the receiver' '
 '
 
 test_expect_success 'setup environment' '
-    RECEIVER_ID="$(iptb attr get 1 id)"
+    RECEIVER_ID=$(ipfsi 1 id -f="<id>" --peerid-base=b58mh)
+    RECEIVER_ID_CIDv1=$(ipfsi 1 id -f="<id>" --peerid-base=base36)
 '
 
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
@@ -214,9 +215,6 @@ test_expect_success 'handle multipart/form-data http request' '
     serve_content "OK" &&
     curl_send_multipart_form_request 200
 '
-
-# subdomain gateway at *.p2p.example.com requires PeerdID in base32
-RECEIVER_ID_CIDv1=$( ipfs cid format -v 1 --codec libp2p-key -b base36 -- $RECEIVER_ID)
 
 # OK: $peerid.p2p.example.com/http/index.txt
 test_expect_success "handle http request to a subdomain gateway" '

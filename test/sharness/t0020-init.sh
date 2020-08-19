@@ -138,7 +138,7 @@ test_ipfs_init_flags() {
                         ipfs init --algorithm=ed25519 --empty-repo >actual_init
                         ;;
                 *)
-                        ipfs init --bits="$RSA_BITS" --empty-repo >actual_init
+                        ipfs init --empty-repo >actual_init
                         ;;
         esac
         '
@@ -166,7 +166,7 @@ test_ipfs_init_flags() {
                         test_cmp ed25519_expected actual_init
                         ;;
                 *)
-                        test_cmp rsa_expected actual_init
+                        test_cmp ed25519_expected actual_init
                         ;;
         esac
         '
@@ -190,14 +190,14 @@ test_ipfs_init_flags ''
 # test init profiles
 test_expect_success "'ipfs init --profile' with invalid profile fails" '
   RSA_BITS="2048" &&
-  test_must_fail ipfs init --bits="$RSA_BITS" --profile=nonexistent_profile 2> invalid_profile_out
+  test_must_fail ipfs init --profile=nonexistent_profile 2> invalid_profile_out
   EXPECT="Error: invalid configuration profile: nonexistent_profile" &&
   grep "$EXPECT" invalid_profile_out
 '
 
 test_expect_success "'ipfs init --profile' succeeds" '
   RSA_BITS="2048" &&
-  ipfs init --bits="$RSA_BITS" --profile=server
+  ipfs init --profile=server
 '
 
 test_expect_success "'ipfs config Swarm.AddrFilters' looks good" '
@@ -211,7 +211,7 @@ test_expect_success "clean up ipfs dir" '
 
 test_expect_success "'ipfs init --profile=test' succeeds" '
   RSA_BITS="2048" &&
-  ipfs init --bits="$RSA_BITS" --profile=test
+  ipfs init --profile=test
 '
 
 test_expect_success "'ipfs config Bootstrap' looks good" '
@@ -244,7 +244,7 @@ test_expect_success "clean up ipfs dir" '
 
 test_expect_success "'ipfs init --profile=lowpower' succeeds" '
   RSA_BITS="2048" &&
-  ipfs init --bits="$RSA_BITS" --profile=lowpower
+  ipfs init --profile=lowpower
 '
 
 test_expect_success "'ipfs config Discovery.Routing' looks good" '
