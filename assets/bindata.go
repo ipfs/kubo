@@ -101,7 +101,7 @@ func initDocAbout() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init-doc/about", size: 1681, mode: os.FileMode(420), modTime: time.Unix(1594946551, 0)}
+	info := bindataFileInfo{name: "init-doc/about", size: 1681, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -121,7 +121,7 @@ func initDocContact() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init-doc/contact", size: 189, mode: os.FileMode(384), modTime: time.Unix(1568932423, 0)}
+	info := bindataFileInfo{name: "init-doc/contact", size: 189, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -141,7 +141,7 @@ func initDocHelp() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init-doc/help", size: 311, mode: os.FileMode(420), modTime: time.Unix(1594946551, 0)}
+	info := bindataFileInfo{name: "init-doc/help", size: 311, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -161,7 +161,7 @@ func initDocPing() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init-doc/ping", size: 4, mode: os.FileMode(384), modTime: time.Unix(1575854776, 0)}
+	info := bindataFileInfo{name: "init-doc/ping", size: 4, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -181,7 +181,7 @@ func initDocQuickStart() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init-doc/quick-start", size: 1681, mode: os.FileMode(420), modTime: time.Unix(1594946551, 0)}
+	info := bindataFileInfo{name: "init-doc/quick-start", size: 1681, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -201,7 +201,7 @@ func initDocReadme() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init-doc/readme", size: 1091, mode: os.FileMode(384), modTime: time.Unix(1568932423, 0)}
+	info := bindataFileInfo{name: "init-doc/readme", size: 1091, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -221,7 +221,7 @@ func initDocSecurityNotes() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "init-doc/security-notes", size: 1162, mode: os.FileMode(384), modTime: time.Unix(1575854776, 0)}
+	info := bindataFileInfo{name: "init-doc/security-notes", size: 1162, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -241,7 +241,7 @@ func dirIndexHtmlDirIndexHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "dir-index-html/dir-index.html", size: 90304, mode: os.FileMode(384), modTime: time.Unix(1597808041, 0)}
+	info := bindataFileInfo{name: "dir-index-html/dir-index.html", size: 90304, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -261,7 +261,7 @@ func dirIndexHtmlKnowniconsTxt() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "dir-index-html/knownIcons.txt", size: 326, mode: os.FileMode(420), modTime: time.Unix(1594946551, 0)}
+	info := bindataFileInfo{name: "dir-index-html/knownIcons.txt", size: 326, mode: os.FileMode(420), modTime: time.Unix(1403768328, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
