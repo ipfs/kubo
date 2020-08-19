@@ -32,6 +32,7 @@ func TestToSubdomainURL(t *testing.T) {
 		{"localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://k2k4r8l9ja7hkzynavdqup76ou46tnvuaqegbd04a4o1mpbsey0meucb.ipns.localhost/", nil},
 		// PeerID: ed25519+identity multihash → CIDv1Base36
 		{"localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna.ipns.localhost/", nil},
+		{"sub.localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.sub.localhost/", nil},
 	} {
 		url, err := toSubdomainURL(test.hostname, test.path, r)
 		if url != test.url || !equalError(err, test.err) {
@@ -104,60 +105,73 @@ func TestDNSPrefix(t *testing.T) {
 }
 
 func TestKnownSubdomainDetails(t *testing.T) {
-	gwSpec := config.GatewaySpec{
-		UseSubdomains: true,
-	}
-	knownGateways := map[string]config.GatewaySpec{
-		"localhost":               gwSpec,
-		"dweb.link":               gwSpec,
-		"dweb.ipfs.pvt.k12.ma.us": gwSpec, // note the sneaky ".ipfs." ;-)
-	}
+	gwLocalhost := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwDweb := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwLong := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwWildcard1 := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwWildcard2 := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+
+	knownGateways := prepareKnownGateways(map[string]*config.GatewaySpec{
+		"localhost":               gwLocalhost,
+		"dweb.link":               gwDweb,
+		"dweb.ipfs.pvt.k12.ma.us": gwLong, // note the sneaky ".ipfs." ;-)
+		"*.wildcard1.tld":         gwWildcard1,
+		"*.*.wildcard2.tld":       gwWildcard2,
+	})
 
 	for _, test := range []struct {
 		// in:
 		hostHeader string
 		// out:
+		gw       *config.GatewaySpec
 		hostname string
 		ns       string
 		rootID   string
 		ok       bool
 	}{
 		// no subdomain
-		{"127.0.0.1:8080", "", "", "", false},
-		{"[::1]:8080", "", "", "", false},
-		{"hey.look.example.com", "", "", "", false},
-		{"dweb.link", "", "", "", false},
+		{"127.0.0.1:8080", nil, "", "", "", false},
+		{"[::1]:8080", nil, "", "", "", false},
+		{"hey.look.example.com", nil, "", "", "", false},
+		{"dweb.link", nil, "", "", "", false},
 		// malformed Host header
-		{".....dweb.link", "", "", "", false},
-		{"link", "", "", "", false},
-		{"8080:dweb.link", "", "", "", false},
-		{" ", "", "", "", false},
-		{"", "", "", "", false},
+		{".....dweb.link", nil, "", "", "", false},
+		{"link", nil, "", "", "", false},
+		{"8080:dweb.link", nil, "", "", "", false},
+		{" ", nil, "", "", "", false},
+		{"", nil, "", "", "", false},
 		// unknown gateway host
-		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.unknown.example.com", "", "", "", false},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.unknown.example.com", nil, "", "", "", false},
 		// cid in subdomain, known gateway
-		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.localhost:8080", "localhost:8080", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
-		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.link", "dweb.link", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.localhost:8080", gwLocalhost, "localhost:8080", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.link", gwDweb, "dweb.link", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
 		// capture everything before .ipfs.
-		{"foo.bar.boo-buzz.ipfs.dweb.link", "dweb.link", "ipfs", "foo.bar.boo-buzz", true},
+		{"foo.bar.boo-buzz.ipfs.dweb.link", gwDweb, "dweb.link", "ipfs", "foo.bar.boo-buzz", true},
 		// ipns
-		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.localhost:8080", "localhost:8080", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
-		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.link", "dweb.link", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
+		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.localhost:8080", gwLocalhost, "localhost:8080", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
+		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.link", gwDweb, "dweb.link", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
 		// edge case check: public gateway under long TLD (see: https://publicsuffix.org)
-		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.ipfs.pvt.k12.ma.us", "dweb.ipfs.pvt.k12.ma.us", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
-		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.ipfs.pvt.k12.ma.us", "dweb.ipfs.pvt.k12.ma.us", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.ipfs.pvt.k12.ma.us", gwLong, "dweb.ipfs.pvt.k12.ma.us", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
+		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.ipfs.pvt.k12.ma.us", gwLong, "dweb.ipfs.pvt.k12.ma.us", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
 		// dnslink in subdomain
-		{"en.wikipedia-on-ipfs.org.ipns.localhost:8080", "localhost:8080", "ipns", "en.wikipedia-on-ipfs.org", true},
-		{"en.wikipedia-on-ipfs.org.ipns.localhost", "localhost", "ipns", "en.wikipedia-on-ipfs.org", true},
-		{"dist.ipfs.io.ipns.localhost:8080", "localhost:8080", "ipns", "dist.ipfs.io", true},
-		{"en.wikipedia-on-ipfs.org.ipns.dweb.link", "dweb.link", "ipns", "en.wikipedia-on-ipfs.org", true},
+		{"en.wikipedia-on-ipfs.org.ipns.localhost:8080", gwLocalhost, "localhost:8080", "ipns", "en.wikipedia-on-ipfs.org", true},
+		{"en.wikipedia-on-ipfs.org.ipns.localhost", gwLocalhost, "localhost", "ipns", "en.wikipedia-on-ipfs.org", true},
+		{"dist.ipfs.io.ipns.localhost:8080", gwLocalhost, "localhost:8080", "ipns", "dist.ipfs.io", true},
+		{"en.wikipedia-on-ipfs.org.ipns.dweb.link", gwDweb, "dweb.link", "ipns", "en.wikipedia-on-ipfs.org", true},
 		// edge case check: public gateway under long TLD (see: https://publicsuffix.org)
-		{"foo.dweb.ipfs.pvt.k12.ma.us", "", "", "", false},
-		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.ipfs.pvt.k12.ma.us", "dweb.ipfs.pvt.k12.ma.us", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
-		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.ipfs.pvt.k12.ma.us", "dweb.ipfs.pvt.k12.ma.us", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
+		{"foo.dweb.ipfs.pvt.k12.ma.us", nil, "", "", "", false},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.ipfs.pvt.k12.ma.us", gwLong, "dweb.ipfs.pvt.k12.ma.us", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
+		{"bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju.ipns.dweb.ipfs.pvt.k12.ma.us", gwLong, "dweb.ipfs.pvt.k12.ma.us", "ipns", "bafzbeihe35nmjqar22thmxsnlsgxppd66pseq6tscs4mo25y55juhh6bju", true},
 		// other namespaces
-		{"api.localhost", "", "", "", false},
-		{"peerid.p2p.localhost", "localhost", "p2p", "peerid", true},
+		{"api.localhost", nil, "", "", "", false},
+		{"peerid.p2p.localhost", gwLocalhost, "localhost", "p2p", "peerid", true},
+		// wildcards
+		{"wildcard1.tld", nil, "", "", "", false},
+		{".wildcard1.tld", nil, "", "", "", false},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.wildcard1.tld", nil, "", "", "", false},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.sub.wildcard1.tld", gwWildcard1, "sub.wildcard1.tld", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.sub1.sub2.wildcard1.tld", nil, "", "", "", false},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.sub1.sub2.wildcard2.tld", gwWildcard2, "sub1.sub2.wildcard2.tld", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
 	} {
 		gw, hostname, ns, rootID, ok := knownSubdomainDetails(test.hostHeader, knownGateways)
 		if ok != test.ok {
@@ -172,8 +186,8 @@ func TestKnownSubdomainDetails(t *testing.T) {
 		if hostname != test.hostname {
 			t.Errorf("knownSubdomainDetails(%s): hostname is '%s', expected '%s'", test.hostHeader, hostname, test.hostname)
 		}
-		if ok && gw.UseSubdomains != gwSpec.UseSubdomains {
-			t.Errorf("knownSubdomainDetails(%s): gw is  %+v, expected %+v", test.hostHeader, gw, gwSpec)
+		if gw != test.gw {
+			t.Errorf("knownSubdomainDetails(%s): gw is  %+v, expected %+v", test.hostHeader, gw, test.gw)
 		}
 	}
 

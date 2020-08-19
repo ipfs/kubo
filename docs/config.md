@@ -586,6 +586,12 @@ Type: `array[string]`
 
 `PublicGateways` is a dictionary for defining gateway behavior on specified hostnames.
 
+Hostnames can optionally be defined with one or more wildcards.
+
+Examples:
+- `*.example.com` will match requests to `http://foo.example.com/ipfs/*` or `http://{cid}.ipfs.bar.example.com/*`.
+- `foo-*.example.com` will match requests to `http://foo-bar.example.com/ipfs/*` or `http://{cid}.ipfs.foo-xyz.example.com/*`.
+
 #### `Gateway.PublicGateways: Paths`
 
 Array of paths that should be exposed on the hostname.
