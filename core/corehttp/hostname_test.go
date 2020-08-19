@@ -105,11 +105,11 @@ func TestDNSPrefix(t *testing.T) {
 }
 
 func TestKnownSubdomainDetails(t *testing.T) {
-	gwLocalhost := &config.GatewaySpec{}
-	gwDweb := &config.GatewaySpec{}
-	gwLong := &config.GatewaySpec{}
-	gwWildcard1 := &config.GatewaySpec{}
-	gwWildcard2 := &config.GatewaySpec{}
+	gwLocalhost := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwDweb := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwLong := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwWildcard1 := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
+	gwWildcard2 := &config.GatewaySpec{Paths: []string{"/ipfs", "/ipns", "/api"}, UseSubdomains: true}
 
 	knownGateways := prepareKnownGateways(map[string]*config.GatewaySpec{
 		"localhost":               gwLocalhost,

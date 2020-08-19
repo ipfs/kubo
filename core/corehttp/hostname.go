@@ -141,12 +141,12 @@ func HostnameOption() ServeOption {
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
 			// Example: {cid}.ipfs.localhost, {cid}.ipfs.dweb.link
 			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(host, knownGateways); ok {
-				// Looks like we're using known subdomain gateway.
+				// Looks like we're using a known gateway in subdomain mode.
 
 				// Assemble original path prefix.
 				pathPrefix := "/" + ns + "/" + rootID
 
-				// Does this gateway _handle_ this path?
+				// Does this gateway _handle_ subdomains AND this path?
 				if !(gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...)) {
 					// If not, resource does not exist, return 404
 					http.NotFound(w, r)
@@ -290,10 +290,10 @@ func isKnownHostname(hostname string, knownGateways gatewayHosts) (gw *config.Ga
 		}
 	}
 
-	return gw, ok
+	return nil, false
 }
 
-// Parses Host header and looks for a known subdomain gateway host.
+// Parses Host header and looks for a known gateway matching subdomain host.
 // If found, returns GatewaySpec and subdomain components.
 // Note: hostname is host + optional port
 func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, knownHostname, ns, rootID string, ok bool) {
@@ -321,8 +321,8 @@ func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *con
 		rootID := strings.Join(labels[:i-1], ".")
 		return gw, fqdn, ns, rootID, true
 	}
-	// not a known subdomain gateway
-	return gw, "", "", "", false
+	// no match
+	return nil, "", "", "", false
 }
 
 // isDNSLinkRequest returns bool that indicates if request
