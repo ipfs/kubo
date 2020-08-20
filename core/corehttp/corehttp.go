@@ -16,7 +16,7 @@ import (
 	"github.com/jbenet/goprocess"
 	periodicproc "github.com/jbenet/goprocess/periodic"
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 var log = logging.Logger("core/server")

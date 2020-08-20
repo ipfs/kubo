@@ -18,7 +18,7 @@ require (
 	github.com/ipfs/go-bitswap v0.2.19
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.3
-	github.com/ipfs/go-cid v0.0.6
+	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-cidutil v0.0.2
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-detect-race v0.0.1
@@ -90,11 +90,10 @@ require (
 	github.com/miekg/dns v1.1.29 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.3
-	github.com/multiformats/go-multiaddr v0.2.2
+	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
-	github.com/multiformats/go-multiaddr-net v0.1.5
 	github.com/multiformats/go-multibase v0.0.3
-	github.com/multiformats/go-multihash v0.0.13
+	github.com/multiformats/go-multihash v0.0.14
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.6.0
