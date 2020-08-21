@@ -21,7 +21,7 @@ type RoutingOption func(
 	...peer.AddrInfo,
 ) (routing.Routing, error)
 
-func constructDHTRouting(mode dht.ModeOpt) func(
+func constructDHTRouting(mode dht.ModeOpt, overwrite ...dual.Option) func(
 	ctx context.Context,
 	host host.Host,
 	dstore datastore.Batching,
@@ -37,11 +37,18 @@ func constructDHTRouting(mode dht.ModeOpt) func(
 	) (routing.Routing, error) {
 		return dual.New(
 			ctx, host,
-			dht.Concurrency(10),
-			dht.Mode(mode),
-			dht.Datastore(dstore),
-			dht.Validator(validator),
-			dht.BootstrapPeers(bootstrapPeers...),
+			append(
+				[]dual.Option{
+					dual.DHTOption(
+						dht.Concurrency(10),
+						dht.Mode(mode),
+						dht.Datastore(dstore),
+						dht.Validator(validator),
+						dht.BootstrapPeers(bootstrapPeers...),
+					),
+				},
+				overwrite...,
+			)...,
 		)
 	}
 }
@@ -57,8 +64,14 @@ func constructNilRouting(
 }
 
 var (
-	DHTOption       RoutingOption = constructDHTRouting(dht.ModeAuto)
+	DHTOption                   RoutingOption = constructDHTRouting(dht.ModeAuto)
+	DHTAutoWanNoDiversityOption               = constructDHTRouting(dht.ModeAuto,
+		dual.WanDHTOption(dht.RoutingTablePeerDiversityFilter(nil)),
+	)
 	DHTClientOption               = constructDHTRouting(dht.ModeClient)
 	DHTServerOption               = constructDHTRouting(dht.ModeServer)
-	NilRouterOption               = constructNilRouting
+	DHTServerWanNoDiversityOption = constructDHTRouting(dht.ModeServer,
+		dual.WanDHTOption(dht.RoutingTablePeerDiversityFilter(nil)),
+	)
+	NilRouterOption = constructNilRouting
 )

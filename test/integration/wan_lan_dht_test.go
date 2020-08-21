@@ -78,8 +78,9 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	})
 
 	testPeer, err := core.NewNode(ctx, &core.BuildCfg{
-		Online: true,
-		Host:   mock.MockHostOption(mn),
+		Online:  true,
+		Routing: libp2p2.DHTAutoWanNoDiversityOption,
+		Host:    mock.MockHostOption(mn),
 	})
 	if err != nil {
 		return err
@@ -94,7 +95,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	for i := 0; i < numPeers; i++ {
 		wanPeer, err := core.NewNode(ctx, &core.BuildCfg{
 			Online:  true,
-			Routing: libp2p2.DHTServerOption,
+			Routing: libp2p2.DHTServerWanNoDiversityOption,
 			Host:    mock.MockHostOption(mn),
 		})
 		if err != nil {
