@@ -50,7 +50,8 @@ func TestDHTConnectivitySlowRouting(t *testing.T) {
 	}
 }
 
-var wanPrefix = net.ParseIP("2000::")
+// wan prefix must have a real corresponding ASN for the peer diversity filter to work.
+var wanPrefix = net.ParseIP("2001:218:3004::")
 var lanPrefix = net.ParseIP("fe80::")
 
 func makeAddr(n uint32, wan bool) ma.Multiaddr {
@@ -78,9 +79,8 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	})
 
 	testPeer, err := core.NewNode(ctx, &core.BuildCfg{
-		Online:  true,
-		Routing: libp2p2.DHTAutoWanNoDiversityOption,
-		Host:    mock.MockHostOption(mn),
+		Online: true,
+		Host:   mock.MockHostOption(mn),
 	})
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	for i := 0; i < numPeers; i++ {
 		wanPeer, err := core.NewNode(ctx, &core.BuildCfg{
 			Online:  true,
-			Routing: libp2p2.DHTServerWanNoDiversityOption,
+			Routing: libp2p2.DHTServerOption,
 			Host:    mock.MockHostOption(mn),
 		})
 		if err != nil {
