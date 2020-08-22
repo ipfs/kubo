@@ -259,10 +259,13 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	}
 
 	/* don't provide from bitswap when the strategic provider service is active */
-	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
+	onlinex, err := OnlineExchange(!cfg.Experimental.StrategicProviding, cfg.Experimental.WithScoreLedger)
+	if err != nil {
+		return fx.Error(err)
+	}
 
 	return fx.Options(
-		fx.Provide(OnlineExchange(shouldBitswapProvide)),
+		fx.Provide(onlinex),
 		maybeProvide(Graphsync, cfg.Experimental.GraphsyncEnabled),
 		fx.Provide(Namesys(ipnsCacheSize)),
 		fx.Provide(Peering),

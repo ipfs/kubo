@@ -14,6 +14,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	coredag "github.com/ipfs/go-ipfs/core/coredag"
+	node "github.com/ipfs/go-ipfs/core/node"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
@@ -113,8 +114,10 @@ func NewPluginLoader(repo string) (*PluginLoader, error) {
 		}
 	}
 
-	if err := loader.LoadDirectory(filepath.Join(repo, "plugins")); err != nil {
-		return nil, err
+	if repo != "" {
+		if err := loader.LoadDirectory(filepath.Join(repo, "plugins")); err != nil {
+			return nil, err
+		}
 	}
 	return loader, nil
 }
@@ -240,7 +243,7 @@ func (loader *PluginLoader) Inject() error {
 		return err
 	}
 
-	for _, pl := range loader.plugins {
+	for name, pl := range loader.plugins {
 		if pl, ok := pl.(plugin.PluginIPLD); ok {
 			err := injectIPLDPlugin(pl)
 			if err != nil {
@@ -257,6 +260,13 @@ func (loader *PluginLoader) Inject() error {
 		}
 		if pl, ok := pl.(plugin.PluginDatastore); ok {
 			err := injectDatastorePlugin(pl)
+			if err != nil {
+				loader.state = loaderFailed
+				return err
+			}
+		}
+		if pl, ok := pl.(plugin.PluginScoreLedger); ok {
+			err := injectScoreLedgerPlugin(name, pl)
 			if err != nil {
 				loader.state = loaderFailed
 				return err
@@ -348,5 +358,14 @@ func injectTracerPlugin(pl plugin.PluginTracer) error {
 		return err
 	}
 	opentracing.SetGlobalTracer(tracer)
+	return nil
+}
+
+func injectScoreLedgerPlugin(name string, pl plugin.PluginScoreLedger) error {
+	sl, err := pl.Ledger()
+	if err != nil {
+		return err
+	}
+	node.RegisterScoreLedger(name, sl)
 	return nil
 }

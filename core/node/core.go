@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-bitswap"
+	"github.com/ipfs/go-bitswap/decision"
 	"github.com/ipfs/go-bitswap/network"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
@@ -89,19 +90,36 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
 }
 
+// Keeps the set of known score ledgers
+var scoreLedgers map[string]decision.ScoreLedger = make(map[string]decision.ScoreLedger)
+
+// Puts the given score ledger to the set of known ledgers under
+// the given name. A registered ledger can be used with the BitSwap
+// instance via the "WithScoreLedger" experimental option.
+func RegisterScoreLedger(name string, sl decision.ScoreLedger) {
+	scoreLedgers[name] = sl
+}
+
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(provide bool) interface{} {
+func OnlineExchange(provide bool, withScoreLedger string) (interface{}, error) {
+	opts := []bitswap.Option{bitswap.ProvideEnabled(provide)}
+	if withScoreLedger != "" {
+		if sl, ok := scoreLedgers[withScoreLedger]; ok {
+			opts = append(opts, bitswap.WithScoreLedger(sl))
+		} else {
+			return nil, fmt.Errorf("score ledger '%s' not found, check if plugin is loaded", withScoreLedger)
+		}
+	}
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
-		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, bitswap.ProvideEnabled(provide))
+		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, opts...)
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
 				return exch.Close()
 			},
 		})
 		return exch
-
-	}
+	}, nil
 }
 
 // Files loads persisted MFS root

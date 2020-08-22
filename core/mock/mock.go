@@ -26,13 +26,26 @@ import (
 
 // NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*core.IpfsNode, error) {
+	return NewMockNodeWithConfig(nil)
+}
+
+// Constructs an IpfsNode with the specified configuration for use in
+// tests.
+func NewMockNodeWithConfig(conf *config.Config) (*core.IpfsNode, error) {
 	ctx := context.Background()
 
-	// effectively offline, only peer in its network
-	return core.NewNode(ctx, &core.BuildCfg{
+	bcfg := &core.BuildCfg{
 		Online: true,
 		Host:   MockHostOption(mocknet.New(ctx)),
-	})
+	}
+	if conf != nil {
+		bcfg.Repo = &repo.Mock{
+			D: syncds.MutexWrap(datastore.NewMapDatastore()),
+			C: *conf,
+		}
+	}
+	// effectively offline, only peer in its network
+	return core.NewNode(ctx, bcfg)
 }
 
 func MockHostOption(mn mocknet.Mocknet) libp2p2.HostOption {
