@@ -84,7 +84,7 @@ test_expect_success 'S->C Setup(dnsaddr/addr/p2p/peerID) client side' '
 '
 
 test_expect_success 'S->C Setup(dnsaddr/addr) client side' '
-  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10104 /dnsaddr/cluster.ipfs.io 2>&1 > dialer-stdouterr.log
+  ipfsi 1 p2p forward /x/p2p-test /ip4/127.0.0.1/tcp/10104 /dnsaddr/example-dnsaddr.multiformats.io 2>&1 > dialer-stdouterr.log
 '
 
 
