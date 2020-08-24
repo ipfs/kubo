@@ -46,6 +46,12 @@ test_rotate() {
         esac
         '
 
+        test_expect_success "'ipfs key rotate -o self' should fail" '
+        echo "Error: keystore name for back up cannot be named '\''self'\''" >expected-self
+        test_must_fail ipfs key rotate -o self 2>actual-self &&
+        test_cmp expected-self actual-self
+        '
+
         test_expect_success "Compare second ID and key to first" '
         ipfs id -f="<id>" > second_id &&
         ipfs id -f="<pubkey>" > second_key &&

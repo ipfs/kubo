@@ -442,6 +442,7 @@ var keyRotateCmd = &cmds.Command{
 		Tagline: "Rotates the ipfs identity.",
 		ShortDescription: `
 Generates a new ipfs identity and saves it to the ipfs config file.
+Your existing identity key will be backed up in the Keystore.
 The daemon must not be running when calling this command.
 
 ipfs uses a repository in the local file system. By default, the repo is
@@ -453,7 +454,7 @@ environment variable:
 	},
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
-		cmds.StringOption(oldKeyOptionName, "o", "Keystore name for the old/rotated-out key."),
+		cmds.StringOption(oldKeyOptionName, "o", "Keystore name to use for backing up your existing identity"),
 		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault(keyStoreAlgorithmDefault),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
@@ -481,6 +482,9 @@ environment variable:
 		oldKey, ok := req.Options[oldKeyOptionName].(string)
 		if !ok {
 			return fmt.Errorf("keystore name for backing up old key must be provided")
+		}
+		if oldKey == "self" {
+			return fmt.Errorf("keystore name for back up cannot be named 'self'")
 		}
 		return doRotate(os.Stdout, cctx.ConfigRoot, oldKey, algorithm, nBitsForKeypair, nBitsGiven)
 	},
