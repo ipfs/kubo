@@ -179,8 +179,8 @@ does (e.g, `"1d2h4m40.01s"`).
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
-    - [`Peering`](#peering)
-        - [`Peering.Peers`](#peeringpeers)
+- [`Peering`](#peering)
+    - [`Peering.Peers`](#peeringpeers)
 - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
@@ -846,7 +846,7 @@ Default: `false`
 
 Type: `bool`
 
-### `Peering`
+## `Peering`
 
 Configures the peering subsystem. The peering subsystem configures go-ipfs to
 connect to, remain connected to, and reconnect to a set of nodes. Nodes should
@@ -883,7 +883,7 @@ Peering can be asymmetric or symmetric:
   connection may flap repeatedly. Be careful when asymmetrically peering to not
   overload peers.
 
-#### `Peering.Peers`
+### `Peering.Peers`
 
 The set of peers with which to peer.
 
