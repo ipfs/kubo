@@ -11,6 +11,7 @@ import (
 
 	proto "github.com/gogo/protobuf/proto"
 	ds "github.com/ipfs/go-datastore"
+	ipns "github.com/ipfs/go-ipns"
 	pb "github.com/ipfs/go-ipns/pb"
 	logging "github.com/ipfs/go-log"
 	goprocess "github.com/jbenet/goprocess"
@@ -126,7 +127,7 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	log.Debugf("republishing ipns entry for %s", id)
 
 	// Look for it locally only
-	p, err := rp.getLastVal(id)
+	e, err := rp.getLastIPNSEntry(id)
 	if err != nil {
 		if err == errNoEntry {
 			return nil
@@ -134,25 +135,34 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 		return err
 	}
 
+	p := path.Path(e.GetValue())
+	prevEol, err := ipns.GetEOL(e)
+	if err != nil {
+		return err
+	}
+
 	// update record with same sequence number
 	eol := time.Now().Add(rp.RecordLifetime)
+	if prevEol.After(eol) {
+		eol = prevEol
+	}
 	return rp.ns.PublishWithEOL(ctx, priv, p, eol)
 }
 
-func (rp *Republisher) getLastVal(id peer.ID) (path.Path, error) {
+func (rp *Republisher) getLastIPNSEntry(id peer.ID) (*pb.IpnsEntry, error) {
 	// Look for it locally only
 	val, err := rp.ds.Get(namesys.IpnsDsKey(id))
 	switch err {
 	case nil:
 	case ds.ErrNotFound:
-		return "", errNoEntry
+		return nil, errNoEntry
 	default:
-		return "", err
+		return nil, err
 	}
 
 	e := new(pb.IpnsEntry)
 	if err := proto.Unmarshal(val, e); err != nil {
-		return "", err
+		return nil, err
 	}
-	return path.Path(e.Value), nil
+	return e, nil
 }
