@@ -22,7 +22,6 @@ import (
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	. "github.com/ipfs/go-ipfs/namesys/republisher"
-
 )
 
 func TestRepublish(t *testing.T) {
@@ -189,7 +188,7 @@ func TestLongEOLRepublish(t *testing.T) {
 	}
 
 	entry, err := getLastIPNSEntry(publisher.Repo.Datastore(), publisher.Identity)
-	if err != nil{
+	if err != nil {
 		t.Fatal(err)
 	}
 
