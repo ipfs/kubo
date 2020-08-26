@@ -245,7 +245,7 @@ func setConfig(ctx context.Context) fx.Option {
 }
 
 // NewNode constructs and returns an IpfsNode using the given cfg.
-func NewNode(ctx context.Context) (*core.IpfsNode, error) {
+func NewNode(ctx context.Context) (*core.IpfsNode, func() error, error) {
 	// save this context as the "lifetime" ctx.
 	lctx := ctx
 
@@ -296,14 +296,14 @@ func NewNode(ctx context.Context) (*core.IpfsNode, error) {
 	}()
 
 	if app.Err() != nil {
-		return nil, app.Err()
+		return nil, nil, app.Err()
 	}
 
 	if err := app.Start(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return n, n.Bootstrap(bootstrap.DefaultBootstrapConfig)
+	return n, stopNode, n.Bootstrap(bootstrap.DefaultBootstrapConfig)
 }
 
 func main() {
@@ -316,12 +316,12 @@ func main() {
 
 	// Spawn two different nodes with the same configuration.
 	// Each will be started in a different port.
-	n1, err := NewNode(ctx)
+	n1, n1Close, err := NewNode(ctx)
 	fmt.Println("[*] Spawned first node listening at: ", n1.PeerHost.Addrs())
 	if err != nil {
 		panic(err)
 	}
-	n2, err := NewNode(ctx)
+	n2, n2Close, err := NewNode(ctx)
 	fmt.Println("[*] Spawned first node listening at: ", n2.PeerHost.Addrs())
 	if err != nil {
 		panic(err)
@@ -359,4 +359,9 @@ func main() {
 	// Size of the file.
 	s, _ := f.Size()
 	fmt.Println("[*] Retrieved file with size: ", s)
+	// Close both nodes.
+	n1Close()
+	fmt.Println("[*] Gracefully closed node 1")
+	n2Close()
+	fmt.Println("[*] Gracefully closed node 2")
 }
