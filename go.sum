@@ -443,6 +443,8 @@ github.com/ipfs/go-mfs v0.1.2/go.mod h1:T1QBiZPEpkPLzDqEJLNnbK55BVKVlNi2a+gVm4di
 github.com/ipfs/go-path v0.0.3/go.mod h1:zIRQUez3LuQIU25zFjC2hpBTHimWx7VK5bjZgRLbbdo=
 github.com/ipfs/go-path v0.0.7 h1:H06hKMquQ0aYtHiHryOMLpQC1qC3QwXwkahcEVD51Ho=
 github.com/ipfs/go-path v0.0.7/go.mod h1:6KTKmeRnBXgqrTvzFrPV3CamxcgvXX/4z79tfAd2Sno=
+github.com/ipfs/go-path v0.0.8 h1:R0k6t9x/pa+g8qzl5apQIPurJFozXhopks3iw3MX+jU=
+github.com/ipfs/go-path v0.0.8/go.mod h1:VpDkSBKQ9EFQOUgi54Tq/O/tGi8n1RfYNks13M3DEs8=
 github.com/ipfs/go-peertaskqueue v0.0.4/go.mod h1:03H8fhyeMfKNFWqzYEVyMbcPUeYrqP1MX6Kd+aN+rMQ=
 github.com/ipfs/go-peertaskqueue v0.1.0/go.mod h1:Jmk3IyCcfl1W3jTW3YpghSwSEC6IJ3Vzz/jUmWw8Z0U=
 github.com/ipfs/go-peertaskqueue v0.1.1/go.mod h1:Jmk3IyCcfl1W3jTW3YpghSwSEC6IJ3Vzz/jUmWw8Z0U=
