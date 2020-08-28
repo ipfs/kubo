@@ -53,10 +53,10 @@ You should see the following as output:
 ## Understanding the example
 
 The example comprises the following parts:
-* A [main function](./main.go#L309-L362) where all the action happens. Here we define the [size of the random file](./main.go#L312) to be generated, we [spawn two IPFS nodes](./main.go#L317-L335), we [connect both nodes](./main.go#L337-L342), we [generate a random file and added it to the network from node 1](./main.go#L344-L351) and finally [retrieve it from node2](./main.go#L353-L363).
+* A [main function](./main.go#L309-L362) where all the action happens. Here we define the [size of the random file](./main.go#L312) to be generated, we [spawn two IPFS nodes](./main.go#L317-L335), we [connect both nodes](./main.go#L337-L342), we [generate a random file and added it to the network from node 1](./main.go#L344-L351) and finally [retrieve it from node2](./main.go#L353-L367).
 
 * The nodes are spawned using the same [`NewNode` function](./main.go#L248-L307) which initializes the node and injects all the corresponding dependencies. In this example both nodes are using the same configuration.
-* Nodes return their [`close` function](./main.go#L319) in case they want to [be gracefully closed](./main.go#L362-L367), as this way of spawning nodes generate a nil pointer reference error with `node.Close()` as it can't be properly initialized.
+* Nodes return their [`close` function](./main.go#L319) in case they want to [be gracefully closed](./main.go#L368-L372), as this way of spawning nodes generate a nil pointer reference error with `node.Close()` as it can't be properly initialized.
 
 * The configuration and dependencies of the node are set in the [`setConfig` function](./main.go#L68-L249). This is the place to go if you want to change some configurations of the nodes to be spawned. In this function you will be able to do some cool stuff such as:
     * Setting the listening address for the nodes, or [allow them to listen from any available port](./main.go#L92-L98).

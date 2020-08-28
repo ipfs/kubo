@@ -350,11 +350,17 @@ func main() {
 	}
 	fmt.Println("[*] Added a test file to the network:", cidRandom)
 
-	// Retrieve the file from the other node.
+	// Retrieve the DAG structure from the other node.
 	fmt.Printf("[*] Searching for %v from node 2\n", cidRandom)
 	f, err := api2.Unixfs().Get(ctx, cidRandom)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("Could find file in IPFS: %s", err))
+	}
+	// Traverse the full graph and write the file in /tmp/
+	// If we don't write the file we only get the DagReader in f.
+	err = files.WriteTo(f, "/tmp/"+time.Now().String())
+	if err != nil {
+		panic(fmt.Errorf("Could not write retrieved file: %s", err))
 	}
 	// Size of the file.
 	s, _ := f.Size()
