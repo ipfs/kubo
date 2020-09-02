@@ -18,7 +18,6 @@ import (
 	path "github.com/ipfs/go-path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	routing "github.com/libp2p/go-libp2p-core/routing"
-	b58 "github.com/mr-tron/base58/base58"
 )
 
 var ErrNotDHT = errors.New("routing service is not a DHT")
@@ -676,20 +675,15 @@ func printEvent(obj *routing.QueryEvent, out io.Writer, verbose bool, override p
 
 func escapeDhtKey(s string) (string, error) {
 	parts := path.SplitList(s)
-	switch len(parts) {
-	case 1:
-		k, err := b58.Decode(s)
-		if err != nil {
-			return "", err
-		}
-		return string(k), nil
-	case 3:
-		k, err := b58.Decode(parts[2])
-		if err != nil {
-			return "", err
-		}
-		return path.Join(append(parts[:2], string(k))), nil
-	default:
+	if len(parts) != 3 ||
+		parts[0] != "" ||
+		!(parts[1] == "ipns" || parts[1] == "pk") {
 		return "", errors.New("invalid key")
 	}
+
+	k, err := peer.Decode(parts[2])
+	if err != nil {
+		return "", err
+	}
+	return path.Join(append(parts[:2], string(k))), nil
 }
