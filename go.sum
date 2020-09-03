@@ -271,6 +271,8 @@ github.com/ipfs/go-bitswap v0.1.3/go.mod h1:YEQlFy0kkxops5Vy+OxWdRSEZIoS7I7KDIwo
 github.com/ipfs/go-bitswap v0.1.8/go.mod h1:TOWoxllhccevbWFUR2N7B1MTSVVge1s6XSMiCSA4MzM=
 github.com/ipfs/go-bitswap v0.2.20 h1:Zfi5jDUoqxDThORUznqdeL77DdGniAzlccNJ4vr+Itc=
 github.com/ipfs/go-bitswap v0.2.20/go.mod h1:C7TwBgHnu89Q8sHsTJP7IhUqF9XYLe71P4tT5adgmYo=
+github.com/ipfs/go-bitswap v0.2.21-0.20200903122846-00f4df8d04e2 h1:t0qkfTluTgPCVew75dPzsgUgUNTeBo+VsAw1VsHpdrw=
+github.com/ipfs/go-bitswap v0.2.21-0.20200903122846-00f4df8d04e2/go.mod h1:C7TwBgHnu89Q8sHsTJP7IhUqF9XYLe71P4tT5adgmYo=
 github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/baNLgayt4pFc=
 github.com/ipfs/go-block-format v0.0.2 h1:qPDvcP19izTjU8rgo6p7gTXZlkMkF5bz5G3fqIsSCPE=
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
@@ -1206,8 +1208,6 @@ github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c/go.mod h1:
 github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee h1:lYbXeSvJi5zk5GLKVuid9TVjS9a0OmLIDKTfoZBL6Ow=
 github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee/go.mod h1:m2aV4LZI4Aez7dP5PMyVKEHhUyEJ/RjmPEDOpDvudHg=
 github.com/whyrusleeping/yamux v1.1.5/go.mod h1:E8LnQQ8HKx5KD29HZFUwM1PxCOdPRzGwur1mcYhXcD8=
-github.com/wolneykien/go-bitswap v0.2.21-0.20200822132638-80c1a81b63e5 h1:QGeq6h0+aajUikwDovvuPzLdqvENj8Ik92KOvRFBjw8=
-github.com/wolneykien/go-bitswap v0.2.21-0.20200822132638-80c1a81b63e5/go.mod h1:C7TwBgHnu89Q8sHsTJP7IhUqF9XYLe71P4tT5adgmYo=
 github.com/wolneykien/go-ipfs-config v0.9.1-0.20200822153552-ebf11a6556cc h1:aw5s9cBJKb8S/E/Vv+sUVaEFX8eElD5SX6aI1OsuQcc=
 github.com/wolneykien/go-ipfs-config v0.9.1-0.20200822153552-ebf11a6556cc/go.mod h1:GQUxqb0NfkZmEU92PxqqqLVVFTLpoGGUlBaTyDaAqrE=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=

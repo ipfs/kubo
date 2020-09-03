@@ -114,4 +114,4 @@ go 1.13
 
 replace github.com/ipfs/go-ipfs-config v0.9.0 => github.com/wolneykien/go-ipfs-config v0.9.1-0.20200822153552-ebf11a6556cc
 
-replace github.com/ipfs/go-bitswap v0.2.20 => github.com/wolneykien/go-bitswap v0.2.21-0.20200822132638-80c1a81b63e5
+replace github.com/ipfs/go-bitswap v0.2.20 => github.com/ipfs/go-bitswap v0.2.21-0.20200903122846-00f4df8d04e2
