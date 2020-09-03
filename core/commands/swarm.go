@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -51,6 +52,7 @@ ipfs peers in the internet.
 		"disconnect": swarmDisconnectCmd,
 		"filters":    swarmFiltersCmd,
 		"peers":      swarmPeersCmd,
+		"stat":       swarmStatCmd,
 	},
 }
 
@@ -769,4 +771,94 @@ func filtersRemove(r repo.Repo, cfg *config.Config, toRemoveFilters []string) ([
 	}
 
 	return removed, nil
+}
+
+var swarmStatCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Get stats about the swarm status.",
+		ShortDescription: `
+'ipfs swarm stat' provides information about the local swarm node. It outputs:
+
+ListenAddr      uint, number of listened address.
+ConnectedPeers  uint, number of connected peers.
+KnownPeers      uint, number of known unique peers.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+
+		store := statStore{}
+		s := api.Swarm()
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		// 2 buffer because so in a worst case senario (all request fail) goroutines
+		// will still return and errChan will be closed and cleanup by GC.
+		errChan := make(chan error, 2)
+
+		// Fetching peers
+		go func() {
+			defer wg.Done()
+			pi, err := s.Peers(req.Context)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			store.Peers = uint(len(pi))
+		}()
+		// Fetching Listen Addresses
+		go func() {
+			defer wg.Done()
+			laddr, err := s.ListenAddrs(req.Context)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			store.LAddr = uint(len(laddr))
+		}()
+		// Fetching known peers.
+		{
+			kpeers, err := s.KnownAddrs(req.Context)
+			if err != nil {
+				// Don't let free running goroutines.
+				wg.Wait()
+				return err
+			}
+			store.KPeers = uint(len(kpeers))
+		}
+		wg.Wait()
+
+		select {
+		case err = <-errChan:
+			return err
+		default:
+		}
+
+		return cmds.EmitOnce(res, &store)
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ss *statStore) error {
+			fmt.Fprintf(
+				w,
+				"ListenAddr: %d\nConnectedPeers: %d\nKnownPeers: %d\n",
+				ss.LAddr,
+				ss.Peers,
+				ss.KPeers,
+			)
+			return nil
+		}),
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ss *statStore) error {
+			return json.NewEncoder(w).Encode(ss)
+		}),
+	},
+	Type: &statStore{},
+}
+
+type statStore struct {
+	LAddr  uint `json:"ListenAddr"`
+	Peers  uint `json:"ConnectedPeers"`
+	KPeers uint `json:"KnownPeers"`
 }
