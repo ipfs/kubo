@@ -11,11 +11,13 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	humanize "github.com/dustin/go-humanize"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 
+	humanize "github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -39,6 +41,7 @@ var RepoCmd = &cmds.Command{
 		"fsck":    repoFsckCmd,
 		"version": repoVersionCmd,
 		"verify":  repoVerifyCmd,
+		"migrate": repoMigrateCmd,
 	},
 }
 
@@ -49,8 +52,9 @@ type GcResult struct {
 }
 
 const (
-	repoStreamErrorsOptionName = "stream-errors"
-	repoQuietOptionName        = "quiet"
+	repoStreamErrorsOptionName   = "stream-errors"
+	repoQuietOptionName          = "quiet"
+	repoAllowDowngradeOptionName = "allow-downgrade"
 )
 
 var repoGcCmd = &cmds.Command{
@@ -373,5 +377,38 @@ var repoVersionCmd = &cmds.Command{
 			}
 			return nil
 		}),
+	},
+}
+
+var repoMigrateCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Apply any outstanding migrations to the repo.",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(repoAllowDowngradeOptionName, "Allow downgrading to a lower repo version"),
+	},
+	NoRemote: true,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cctx := env.(*oldcmds.Context)
+
+		_, err := fsrepo.Open(cctx.ConfigRoot)
+		if err != fsrepo.ErrNeedMigration {
+			fmt.Println("Repo does not require migration")
+			return nil
+		}
+
+		fmt.Println("Found outdated fs-repo, starting migration.")
+
+		err = migrate.RunMigration(fsrepo.RepoVersion)
+		if err != nil {
+			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Printf("  %s\n", err)
+			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			return err
+		}
+
+		fmt.Println("Repo migrated successfully.")
+		return nil
 	},
 }
