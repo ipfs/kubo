@@ -74,10 +74,10 @@ var ipnspsSubsCmd = &cmds.Command{
 		Tagline: "Show current name subscriptions",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(ke.IPNSKeyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
+		ke.OptionIPNSBase,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.IPNSKeyFormatOptionName].(string))
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
 		if err != nil {
 			return err
 		}
