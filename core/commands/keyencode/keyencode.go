@@ -8,7 +8,7 @@ import (
 
 const ipnsKeyFormatOptionName = "ipns-base"
 
-var OptionIPNSBase = cmds.StringOption(ipnsKeyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36")
+var OptionIPNSBase = cmds.StringOption(ipnsKeyFormatOptionName, "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36")
 
 type KeyEncoder struct {
 	baseEnc *mbase.Encoder
