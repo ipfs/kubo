@@ -37,8 +37,7 @@ newPRWelcomeComment: >
       and stakeholders linked/mentioned.
 
     * Your contribution itself is clear (code comments, self-review for the
-      rest) and in its best form. Follow the [code contribution
-      guidelines](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#code-contribution-guidelines)
+      rest) and in its best form. Follow the [code contribution guidelines](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#code-contribution-guidelines)
       if they apply.
 
   Getting other community members to do a review would be great help too on
