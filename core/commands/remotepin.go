@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
@@ -23,10 +24,12 @@ var remotePinCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"add": addRemotePinCmd,
+		"ls":  listRemotePinCmd,
 	},
 }
 
 const pinNameOptionName = "name"
+const pinCIDsOptionName = "cid"
 
 type AddRemotePinOutput struct {
 	ID        string
@@ -89,9 +92,74 @@ var addRemotePinCmd = &cmds.Command{
 			return nil
 		}),
 	},
-	// PostRun: cmds.PostRunMap{
-	// 	cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-	// 		XXX
-	// 	},
-	// },
+}
+
+var listRemotePinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List objects pinned to remote pinning service.",
+		ShortDescription: `
+Returns a list of objects that are pinned to a remote pinning service.
+`,
+		LongDescription: `
+Returns a list of objects that are pinned to a remote pinning service.
+`,
+	},
+
+	Arguments: []cmds.Argument{},
+	Options: []cmds.Option{
+		cmds.StringOption(pinNameOptionName, "An optional name for the pin to be listed."),
+		cmds.StringsOption(pinCIDsOptionName, "An optional list of CIDs to be listed."),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		opts := []pinclient.LsOption{}
+		if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
+			opts = append(opts, pinclient.PinOpts.FilterName(name))
+		}
+		if cidsRaw, cidsFound := req.Options[pinNameOptionName].([]string); cidsFound {
+			parsedCIDs := []cid.Cid{}
+			for _, rawCID := range cidsRaw {
+				parsedCID, err := cid.Decode(rawCID)
+				if err != nil {
+					return fmt.Errorf("CID %s cannot be parsed (%v)", rawCID, err)
+				}
+				parsedCIDs = append(parsedCIDs, parsedCID)
+			}
+			opts = append(opts, pinclient.PinOpts.FilterCIDs(parsedCIDs...))
+		}
+
+		c := pinclient.NewClient(remotePinURL, remotePinKey)
+
+		psCh, errCh := c.Ls(ctx, opts...)
+
+		for {
+			select {
+			case ps := <-psCh:
+				if err := res.Emit(&AddRemotePinOutput{
+					ID:        ps.GetId(),
+					Name:      ps.GetPin().GetName(),
+					Delegates: ps.GetDelegates(),
+				}); err != nil {
+					return err
+				}
+			case err := <-errCh:
+				return err
+			case <-ctx.Done():
+				return fmt.Errorf("interrupted")
+			}
+		}
+	},
+	Type: &AddRemotePinOutput{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddRemotePinOutput) error {
+			fmt.Printf("pin_id=%v\n", out.ID)
+			fmt.Printf("pin_name=%q\n", out.Name)
+			for _, d := range out.Delegates {
+				fmt.Printf("pin_delegate=%v\n", d.String())
+			}
+			return nil
+		}),
+	},
 }
