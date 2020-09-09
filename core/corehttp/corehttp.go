@@ -73,9 +73,9 @@ func ListenAndServe(n *core.IpfsNode, listeningMultiAddr string, options ...Serv
 		return err
 	}
 
-	// we might have listened to /tcp/0 - let's see what we are listing on
+	// we might have listened to /tcp/0 - let's see what we are listening on
 	addr = list.Multiaddr()
-	fmt.Printf("API server listening on %s\n", addr)
+	log.Infof("API server listening on %s", addr)
 
 	return Serve(n, manet.NetListener(list), options...)
 }
