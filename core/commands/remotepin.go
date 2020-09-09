@@ -25,6 +25,7 @@ var remotePinCmd = &cmds.Command{
 	Subcommands: map[string]*cmds.Command{
 		"add": addRemotePinCmd,
 		"ls":  listRemotePinCmd,
+		"rm":  rmRemotePinCmd,
 	},
 }
 
@@ -75,6 +76,9 @@ var addRemotePinCmd = &cmds.Command{
 		c := pinclient.NewClient(remotePinURL, remotePinKey)
 
 		ps, err := c.Add(ctx, rp.Cid(), opts...)
+		if err != nil {
+			return err
+		}
 
 		return res.Emit(&AddRemotePinOutput{
 			ID:        ps.GetId(),
@@ -161,5 +165,32 @@ Returns a list of objects that are pinned to a remote pinning service.
 			}
 			return nil
 		}),
+	},
+}
+
+var rmRemotePinCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove pinned objects from remote pinning service.",
+		ShortDescription: `
+Removes the pin from the given object allowing it to be garbage
+collected if needed.
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("pin-id", true, true, "ID of the pin to be removed.").EnableStdin(),
+	},
+	Options: []cmds.Option{},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		if len(req.Arguments) == 0 {
+			return fmt.Errorf("missing a pin ID argument")
+		}
+
+		c := pinclient.NewClient(remotePinURL, remotePinKey)
+
+		return c.DeleteByID(ctx, req.Arguments[0])
 	},
 }
