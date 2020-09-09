@@ -408,7 +408,7 @@ var repoMigrateCmd = &cmds.Command{
 			return err
 		}
 
-		fmt.Println("Repo migrated successfully.")
+		fmt.Printf("Success: fs-repo has been migrated to version %d.\n", fsrepo.RepoVersion)
 		return nil
 	},
 }
