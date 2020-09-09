@@ -83,14 +83,14 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 		cmds.StringOption(ttlOptionName, "Time duration this record should be cached for. Uses the same syntax as the lifetime option. (caution: experimental)"),
 		cmds.StringOption(keyOptionName, "k", "Name of the key to be used or a valid PeerID, as listed by 'ipfs key list -l'.").WithDefault("self"),
 		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
-		cmds.StringOption(ke.IPNSKeyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
+		ke.OptionIPNSBase,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
-		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.IPNSKeyFormatOptionName].(string))
+		keyEnc, err := ke.KeyEncoderFromString(req.Options[ke.OptionIPNSBase.Name()].(string))
 		if err != nil {
 			return err
 		}
