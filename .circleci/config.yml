@@ -174,8 +174,8 @@ jobs:
           name: Installing dependencies
           command: |
             npm init -y
-            npm install ipfs@^0.49.1-rc.2
-            npm install ipfs-interop@^2.0.1
+            npm install ipfs@^0.50.1
+            npm install ipfs-interop@^3.0.0
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
