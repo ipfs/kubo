@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -78,6 +79,18 @@ var addRemotePinCmd = &cmds.Command{
 		ps, err := c.Add(ctx, rp.Cid(), opts...)
 		if err != nil {
 			return err
+		}
+
+		n, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		for _, d := range ps.GetDelegates() {
+			p, err := peer.AddrInfoFromP2pAddr(d)
+			if err != nil {
+				return err
+			}
+			n.PeerHost.Connect(ctx, *p)
 		}
 
 		return res.Emit(&AddRemotePinOutput{
