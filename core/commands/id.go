@@ -70,7 +70,7 @@ EXAMPLE:
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(formatOptionName, "f", "Optional output format."),
-		cmds.StringOption(idFormatOptionName, "", "Encoding used for peer IDs: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("b58mh"),
+		cmds.StringOption(idFormatOptionName, "Encoding used for peer IDs: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("b58mh"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		keyEnc, err := ke.KeyEncoderFromString(req.Options[idFormatOptionName].(string))
