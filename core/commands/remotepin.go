@@ -51,7 +51,7 @@ var addRemotePinCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 	},
-	Type: &AddRemotePinOutput{},
+	Type: AddRemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -162,7 +162,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 
 		return <-errCh
 	},
-	Type: &AddRemotePinOutput{},
+	Type: AddRemotePinOutput{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddRemotePinOutput) error {
 			fmt.Printf("pin_id=%v\n", out.ID)
