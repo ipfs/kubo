@@ -81,16 +81,12 @@ var addRemotePinCmd = &cmds.Command{
 			return err
 		}
 
-		n, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
 		for _, d := range ps.GetDelegates() {
 			p, err := peer.AddrInfoFromP2pAddr(d)
 			if err != nil {
 				return err
 			}
-			if err := n.PeerHost.Connect(ctx, *p); err != nil {
+			if err := api.Swarm().Connect(ctx, *p); err != nil {
 				log.Infof("error connecting to remote pin delegate %v : %w", d, err)
 			}
 
