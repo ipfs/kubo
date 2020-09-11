@@ -90,7 +90,10 @@ var addRemotePinCmd = &cmds.Command{
 			if err != nil {
 				return err
 			}
-			n.PeerHost.Connect(ctx, *p)
+			if err := n.PeerHost.Connect(ctx, *p); err != nil {
+				log.Infof("error connecting to remote pin delegate %v : %w", d, err)
+			}
+
 		}
 
 		return res.Emit(&AddRemotePinOutput{
@@ -151,22 +154,17 @@ Returns a list of objects that are pinned to a remote pinning service.
 
 		psCh, errCh := c.Ls(ctx, opts...)
 
-		for {
-			select {
-			case ps := <-psCh:
-				if err := res.Emit(&AddRemotePinOutput{
-					ID:        ps.GetId(),
-					Name:      ps.GetPin().GetName(),
-					Delegates: ps.GetDelegates(),
-				}); err != nil {
-					return err
-				}
-			case err := <-errCh:
+		for ps := range psCh {
+			if err := res.Emit(&AddRemotePinOutput{
+				ID:        ps.GetId(),
+				Name:      ps.GetPin().GetName(),
+				Delegates: ps.GetDelegates(),
+			}); err != nil {
 				return err
-			case <-ctx.Done():
-				return fmt.Errorf("interrupted")
 			}
 		}
+
+		return <-errCh
 	},
 	Type: &AddRemotePinOutput{},
 	Encoders: cmds.EncoderMap{
