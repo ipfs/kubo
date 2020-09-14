@@ -390,6 +390,7 @@ var repoMigrateCmd = &cmds.Command{
 	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
+		allowDowngrade, _ := req.Options[repoAllowDowngradeOptionName].(bool)
 
 		_, err := fsrepo.Open(cctx.ConfigRoot)
 		if err != fsrepo.ErrNeedMigration {
@@ -399,7 +400,7 @@ var repoMigrateCmd = &cmds.Command{
 
 		fmt.Println("Found outdated fs-repo, starting migration.")
 
-		err = migrate.RunMigration(fsrepo.RepoVersion)
+		err = migrate.RunMigration(fsrepo.RepoVersion, allowDowngrade)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
