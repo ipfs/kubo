@@ -404,6 +404,7 @@ And then run:
 		cmds.StringOption(datafieldencOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding."),
 		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmds.StringOption("pinpath", "Pin under this path").WithDefault("added/"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -431,7 +432,12 @@ And then run:
 			return err
 		}
 
-		dopin, _ := req.Options[pinOptionName].(bool)
+		pinpath, _ := req.Options["pinpath"].(string)
+		if err != nil {
+			return err
+		}
+
+		pin, _ := req.Options["pin"].(bool)
 		if err != nil {
 			return err
 		}
@@ -439,7 +445,8 @@ And then run:
 		p, err := api.Object().Put(req.Context, file,
 			options.Object.DataType(datafieldenc),
 			options.Object.InputEnc(inputenc),
-			options.Object.Pin(dopin))
+			options.Object.Pin(pin),
+			options.Object.PinPath(pinpath))
 		if err != nil {
 			return err
 		}

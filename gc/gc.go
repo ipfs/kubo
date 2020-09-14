@@ -172,31 +172,6 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 	// disk backed to conserve memory.
 	errors := false
 	gcs := cid.NewSet()
-	getLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
-		links, err := ipld.GetLinks(ctx, ng, cid)
-		if err != nil {
-			errors = true
-			select {
-			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		}
-		return links, nil
-	}
-	rkeys, err := pn.RecursiveKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = Descendants(ctx, getLinks, gcs, rkeys)
-	if err != nil {
-		errors = true
-		select {
-		case output <- Result{Error: err}:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-	}
 
 	bestEffortGetLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
 		links, err := ipld.GetLinks(ctx, ng, cid)
@@ -210,36 +185,26 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		}
 		return links, nil
 	}
-	err = Descendants(ctx, bestEffortGetLinks, gcs, bestEffortRoots)
+	recursiveKeys, err := pn.PinnedCids(true)
 	if err != nil {
 		errors = true
-		select {
-		case output <- Result{Error: err}:
-		case <-ctx.Done():
-			return nil, ctx.Err()
+		output <- Result{Error: err}
+	} else {
+		err := Descendants(ctx, bestEffortGetLinks, gcs, recursiveKeys)
+		if err != nil {
+			errors = true
+			select {
+			case output <- Result{Error: err}:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 		}
 	}
 
-	dkeys, err := pn.DirectKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, k := range dkeys {
+	directKeys, err := pn.PinnedCids(false)
+
+	for _, k := range directKeys {
 		gcs.Add(k)
-	}
-
-	ikeys, err := pn.InternalPins(ctx)
-	if err != nil {
-		return nil, err
-	}
-	err = Descendants(ctx, getLinks, gcs, ikeys)
-	if err != nil {
-		errors = true
-		select {
-		case output <- Result{Error: err}:
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
 	}
 
 	if errors {

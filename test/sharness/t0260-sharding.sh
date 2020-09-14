@@ -69,7 +69,7 @@ test_expect_success "'ipfs ls --resolve-type=false --size=false' admits missing 
   ipfs ls "$SHARDED" | head -1 > first_file &&
   ipfs ls --size=false "$SHARDED" | sort > sharded_out_nosize &&
   read -r HASH _ NAME <first_file &&
-  ipfs pin rm "$SHARDED" "$UNSHARDED" && # To allow us to remove the block
+  ipfs pin rm "added/$SHARDED" "added/$UNSHARDED" && # To allow us to remove the block
   ipfs block rm "$HASH" &&
   test_expect_code 1 ipfs cat "$SHARDED/$NAME" &&
   test_expect_code 1 ipfs ls "$SHARDED" &&

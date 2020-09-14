@@ -9,7 +9,6 @@ import (
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	pin "github.com/ipfs/go-ipfs-pinner"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
@@ -45,18 +44,14 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
-	if settings.Pin {
-		defer api.blockstore.PinLock().Unlock()
-	}
-
 	err = api.blocks.AddBlock(b)
 	if err != nil {
 		return nil, err
 	}
 
 	if settings.Pin {
-		api.pinning.PinWithMode(b.Cid(), pin.Recursive)
-		if err := api.pinning.Flush(ctx); err != nil {
+		err = api.pinning.AddPin(settings.PinPath, b.Cid(), true)
+		if err != nil {
 			return nil, err
 		}
 	}

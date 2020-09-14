@@ -387,7 +387,7 @@ test_add_cat_5MB() {
   '
 
   test_expect_success "remove hash" '
-    ipfs pin rm "$EXP_HASH" &&
+    ipfs pin rm "added/$EXP_HASH" &&
     ipfs block rm "$EXP_HASH"
   '
 
@@ -509,7 +509,7 @@ test_add_named_pipe() {
     ( echo foo > named-pipe1 & echo "added $( echo foo | ipfs add -nq ) named-pipe1" > expected_named_pipes_add ) &&
     mkfifo named-pipe2 &&
     ( echo bar > named-pipe2 & echo "added $( echo bar | ipfs add -nq ) named-pipe2" >> expected_named_pipes_add ) &&
-    ipfs add -n named-pipe1 named-pipe2 >actual_pipe_add &&
+    ipfs add -P named-pipe -n named-pipe1 named-pipe2 >actual_pipe_add &&
     rm named-pipe1 &&
     rm named-pipe2 &&
     test_cmp expected_named_pipes_add actual_pipe_add
@@ -519,7 +519,7 @@ test_add_named_pipe() {
     mkdir -p named-pipe-dir &&
     mkfifo named-pipe-dir/named-pipe &&
     STAT=$(generic_stat named-pipe-dir/named-pipe) &&
-    test_expect_code 1 ipfs add -r named-pipe-dir 2>actual &&
+    test_expect_code 1 ipfs add -P named-pipe -r named-pipe-dir 2>actual &&
     printf "Error: unrecognized file type for named-pipe-dir/named-pipe: $STAT\n" >expected &&
     rm named-pipe-dir/named-pipe &&
     rmdir named-pipe-dir &&

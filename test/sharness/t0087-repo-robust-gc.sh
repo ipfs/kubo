@@ -13,7 +13,7 @@ test_gc_robust_part1() {
 
   test_expect_success "add a 1MB file with --raw-leaves" '
     random 1048576 56 > afile &&
-    HASH1=`ipfs add --raw-leaves -q afile`
+    HASH1=`ipfs add --raw-leaves -q -P test/afile afile`
   '
 
   HASH1FILE=.ipfs/blocks/L3/CIQNIPL4GP62ZMNNSLZ2G33Z3T5VAN3YHCJTGT5FG45XWH5FGZRXL3A.data
@@ -56,7 +56,7 @@ test_gc_robust_part1() {
   '
 
   test_expect_success "unpin the 1MB file" '
-    ipfs pin rm $HASH1
+    ipfs pin rm test/afile
   '
 
   # make sure the permission problem is fixed on exit, otherwise cleanup
@@ -91,7 +91,7 @@ test_gc_robust_part2() {
 
   test_expect_success "add 1MB file normally (i.e., without raw leaves)" '
     random 1048576 56 > afile &&
-    HASH2=`ipfs add -q afile`
+    HASH2=`ipfs add -q -P test/afile afile`
   '
 
   LEAF1=QmSijovevteoY63Uj1uC5b8pkpDU5Jgyk2dYBqz3sMJUPc
@@ -142,7 +142,7 @@ test_gc_robust_part2() {
   '
 
   test_expect_success "unpin 1MB file" '
-    ipfs pin rm $HASH2
+    ipfs pin rm test/afile
   '
 
   test_expect_success "'ipfs repo gc' should be fine now" '

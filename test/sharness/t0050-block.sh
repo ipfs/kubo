@@ -96,7 +96,6 @@ test_expect_success "add and pin directory" '
   echo "file2" > adir/file2 &&
   echo "file3" > adir/file3 &&
   ipfs add -r adir
-  ipfs pin add -r $DIRHASH
 '
 
 test_expect_success "can't remove pinned block" '
@@ -104,7 +103,7 @@ test_expect_success "can't remove pinned block" '
 '
 
 test_expect_success "can't remove pinned block: output looks good" '
-  grep -q "$DIRHASH: pinned: recursive" block_rm_err
+  grep -q "$DIRHASH: pinned under added/$DIRHASH recursively" block_rm_err
 '
 
 test_expect_success "can't remove indirectly pinned block" '
@@ -112,11 +111,11 @@ test_expect_success "can't remove indirectly pinned block" '
 '
 
 test_expect_success "can't remove indirectly pinned block: output looks good" '
-  grep -q "$FILE1HASH: pinned via $DIRHASH" block_rm_err
+  grep -q "$FILE1HASH: pinned under added/$DIRHASH via $DIRHASH" block_rm_err
 '
 
 test_expect_success "remove pin" '
-  ipfs pin rm -r $DIRHASH
+  ipfs pin rm added/$DIRHASH
 '
 
 test_expect_success "multi-block 'ipfs block rm' succeeds" '
@@ -148,7 +147,7 @@ test_expect_success "'add some blocks' succeeds" '
 
 test_expect_success "add and pin directory" '
   ipfs add -r adir
-  ipfs pin add -r $DIRHASH
+  ipfs pin add $DIRHASH
 '
 
 HASH=QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk

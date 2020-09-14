@@ -66,9 +66,10 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 		}
 	}
 
-	if err := api.Pin().Add(nd.Context(), basePath); err != nil {
+	if err := api.Pin().Add(nd.Context(), "assets", basePath); err != nil {
 		return cid.Cid{}, err
 	}
 
 	return basePath.Cid(), nil
+
 }

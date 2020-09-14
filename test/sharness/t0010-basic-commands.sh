@@ -41,7 +41,7 @@ test_expect_success "ipfs version --all has all required fields" '
   grep "Golang version" version_all.txt
 '
 
-test_expect_success "ipfs version deps succeeds" '
+test_expect_success "ipfs version deps fails" '
   ipfs version deps >deps.txt
 '
 
@@ -139,7 +139,7 @@ test_expect_success "'ipfs commands --flags' succeeds" '
 '
 
 test_expect_success "'ipfs commands --flags' output looks good" '
-  grep "ipfs pin add --recursive / ipfs pin add -r" commands.txt &&
+  grep "ipfs pin add --direct / ipfs pin add -d" commands.txt &&
   grep "ipfs id --format / ipfs id -f" commands.txt &&
   grep "ipfs repo gc --quiet / ipfs repo gc -q" commands.txt
 '

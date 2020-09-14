@@ -37,9 +37,9 @@ require (
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.8
-	github.com/ipfs/go-ipfs-pinner v0.0.4
+	github.com/ipfs/go-ipfs-pinner v0.1.0-c5de08a
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
-	github.com/ipfs/go-ipfs-provider v0.4.3
+	github.com/ipfs/go-ipfs-provider v0.5.0-f4cd5b3
 	github.com/ipfs/go-ipfs-routing v0.1.0
 	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-ipld-cbor v0.0.4
@@ -54,12 +54,14 @@ require (
 	github.com/ipfs/go-path v0.0.8
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-verifcid v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.4.0
+	github.com/ipfs/interface-go-ipfs-core v0.5.0-89fc7f2
 	github.com/ipld/go-car v0.1.1-0.20200429200904-c222d793c339
 	github.com/jbenet/go-is-domain v1.0.5
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
+	github.com/jessevdk/go-flags v1.4.0 // indirect
+	github.com/kr/pty v1.1.3 // indirect
 	github.com/libp2p/go-libp2p v0.11.0
 	github.com/libp2p/go-libp2p-circuit v0.3.1
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
@@ -87,6 +89,7 @@ require (
 	github.com/libp2p/go-ws-transport v0.3.1
 	github.com/lucas-clemente/quic-go v0.18.0
 	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
@@ -111,3 +114,9 @@ require (
 )
 
 go 1.13
+
+replace github.com/ipfs/go-ipfs-provider => github.com/Voker57/go-ipfs-provider v0.5.0
+
+replace github.com/ipfs/interface-go-ipfs-core => github.com/Voker57/interface-go-ipfs-core v0.1.1-0.20200919202922-89fc7f2a3083
+
+replace github.com/ipfs/go-ipfs-pinner => github.com/Voker57/go-ipfs-pinner v0.1.0

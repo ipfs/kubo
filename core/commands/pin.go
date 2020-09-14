@@ -59,11 +59,12 @@ var addPinCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be pinned.").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, true, "Path(es) to object(s) to be pinned.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
+		cmds.BoolOption("direct", "d", "Pin the object directly"),
 		cmds.BoolOption(pinProgressOptionName, "Show progress"),
+		cmds.StringOption("pinpath", "P", "Pin path.").WithDefault("default/"),
 	},
 	Type: AddPinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -72,11 +73,11 @@ var addPinCmd = &cmds.Command{
 			return err
 		}
 
-		// set recursive flag
-		recursive, _ := req.Options[pinRecursiveOptionName].(bool)
+		// set direct flag
+		direct, _ := req.Options["direct"].(bool)
 		showProgress, _ := req.Options[pinProgressOptionName].(bool)
 
-		if err := req.ParseBodyArgs(); err != nil {
+		if err = req.ParseBodyArgs(); err != nil {
 			return err
 		}
 
@@ -85,8 +86,13 @@ var addPinCmd = &cmds.Command{
 			return err
 		}
 
+		pinPath, _ := req.Options["pinpath"].(string)
+
+		toPin := req.Arguments
+
 		if !showProgress {
-			added, err := pinAddMany(req.Context, api, enc, req.Arguments, recursive)
+			added, err := pinAddMany(req.Context, api, enc, pinPath, toPin, !direct)
+
 			if err != nil {
 				return err
 			}
@@ -104,7 +110,7 @@ var addPinCmd = &cmds.Command{
 
 		ch := make(chan pinResult, 1)
 		go func() {
-			added, err := pinAddMany(ctx, api, enc, req.Arguments, recursive)
+			added, err := pinAddMany(ctx, api, enc, pinPath, toPin, !direct)
 			ch <- pinResult{pins: added, err: err}
 		}()
 
@@ -136,9 +142,10 @@ var addPinCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddPinOutput) error {
-			rec, found := req.Options["recursive"].(bool)
+			direct, found := req.Options["direct"].(bool)
+
 			var pintype string
-			if rec || !found {
+			if !direct || !found {
 				pintype = "recursively"
 			} else {
 				pintype = "directly"
@@ -180,7 +187,7 @@ var addPinCmd = &cmds.Command{
 	},
 }
 
-func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
+func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, pinPath string, paths []string, recursive bool) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
 		rp, err := api.ResolvePath(ctx, path.New(b))
@@ -188,7 +195,7 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 			return nil, err
 		}
 
-		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
+		if err := api.Pin().Add(ctx, pinPath, rp, options.Pin.Recursive(recursive)); err != nil {
 			return nil, err
 		}
 		added[i] = enc.Encode(rp.Cid())
@@ -202,15 +209,15 @@ var rmPinCmd = &cmds.Command{
 		Tagline: "Remove pinned objects from local storage.",
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
-collected if needed. (By default, recursively. Use -r=false for direct pins.)
+collected if needed. By default, removes recursive pins.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Path to object(s) to be unpinned.").EnableStdin(),
+		cmds.StringArg("pin-path", true, true, "Pin paths").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively unpin the object linked to by the specified object(s).").WithDefault(true),
+		cmds.BoolOption("direct", "d", "Unpins a direct pin").WithDefault(false),
 	},
 	Type: PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -220,32 +227,20 @@ collected if needed. (By default, recursively. Use -r=false for direct pins.)
 		}
 
 		// set recursive flag
-		recursive, _ := req.Options[pinRecursiveOptionName].(bool)
+		direct, _ := req.Options["direct"].(bool)
+		recursive := !direct
 
 		if err := req.ParseBodyArgs(); err != nil {
 			return err
 		}
 
-		enc, err := cmdenv.GetCidEncoder(req)
-		if err != nil {
-			return err
-		}
-
-		pins := make([]string, 0, len(req.Arguments))
 		for _, b := range req.Arguments {
-			rp, err := api.ResolvePath(req.Context, path.New(b))
-			if err != nil {
-				return err
-			}
-
-			id := enc.Encode(rp.Cid())
-			pins = append(pins, id)
-			if err := api.Pin().Rm(req.Context, rp, options.Pin.RmRecursive(recursive)); err != nil {
+			if err := api.Pin().Rm(req.Context, b, options.Pin.RmRecursive(recursive)); err != nil {
 				return err
 			}
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{pins})
+		return cmds.EmitOnce(res, &PinOutput{req.Arguments})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
@@ -314,6 +309,7 @@ Example:
 	Options: []cmds.Option{
 		cmds.StringOption(pinTypeOptionName, "t", "The type of pinned keys to list. Can be \"direct\", \"indirect\", \"recursive\", or \"all\".").WithDefault("all"),
 		cmds.BoolOption(pinQuietOptionName, "q", "Write just hashes of objects."),
+		cmds.BoolOption("recursive", "r", "List all pins under given prefix"),
 		cmds.BoolOption(pinStreamOptionName, "s", "Enable streaming of pins as they are discovered."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -324,6 +320,7 @@ Example:
 
 		typeStr, _ := req.Options[pinTypeOptionName].(string)
 		stream, _ := req.Options[pinStreamOptionName].(bool)
+		recursive, _ := req.Options["recursive"].(bool)
 
 		switch typeStr {
 		case "all", "direct", "indirect", "recursive":
@@ -332,22 +329,24 @@ Example:
 			return err
 		}
 
+		prefix := ""
+		if len(req.Arguments) == 1 {
+			prefix = req.Arguments[0]
+		}
+
 		// For backward compatibility, we accumulate the pins in the same output type as before.
 		emit := res.Emit
 		lgcList := map[string]PinLsType{}
 		if !stream {
 			emit = func(v interface{}) error {
 				obj := v.(*PinLsOutputWrapper)
-				lgcList[obj.PinLsObject.Cid] = PinLsType{Type: obj.PinLsObject.Type}
+				lgcList[obj.PinLsObject.Cid] = PinLsType{Type: obj.PinLsObject.Type, PinPath: obj.PinLsObject.Path}
 				return nil
 			}
 		}
 
-		if len(req.Arguments) > 0 {
-			err = pinLsKeys(req, typeStr, api, emit)
-		} else {
-			err = pinLsAll(req, typeStr, api, emit)
-		}
+		err = pinLsAll(req, prefix, typeStr, recursive, api, emit)
+
 		if err != nil {
 			return err
 		}
@@ -381,7 +380,7 @@ Example:
 				if quiet {
 					fmt.Fprintf(w, "%s\n", out.PinLsObject.Cid)
 				} else {
-					fmt.Fprintf(w, "%s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type)
+					fmt.Fprintf(w, "%s %s %s\n", out.PinLsObject.Cid, out.PinLsObject.Type, out.PinLsObject.Path)
 				}
 				return nil
 			}
@@ -390,7 +389,7 @@ Example:
 				if quiet {
 					fmt.Fprintf(w, "%s\n", k)
 				} else {
-					fmt.Fprintf(w, "%s %s\n", k, v.Type)
+					fmt.Fprintf(w, "%s %s %s\n", k, v.Type, v.PinPath)
 				}
 			}
 
@@ -414,68 +413,18 @@ type PinLsList struct {
 
 // PinLsType contains the type of a pin
 type PinLsType struct {
-	Type string
+	Type    string
+	PinPath string
 }
 
 // PinLsObject contains the description of a pin
 type PinLsObject struct {
 	Cid  string `json:",omitempty"`
 	Type string `json:",omitempty"`
+	Path string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
-	enc, err := cmdenv.GetCidEncoder(req)
-	if err != nil {
-		return err
-	}
-
-	switch typeStr {
-	case "all", "direct", "indirect", "recursive":
-	default:
-		return fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", typeStr)
-	}
-
-	opt, err := options.Pin.IsPinned.Type(typeStr)
-	if err != nil {
-		panic("unhandled pin type")
-	}
-
-	for _, p := range req.Arguments {
-		rp, err := api.ResolvePath(req.Context, path.New(p))
-		if err != nil {
-			return err
-		}
-
-		pinType, pinned, err := api.Pin().IsPinned(req.Context, rp, opt)
-		if err != nil {
-			return err
-		}
-
-		if !pinned {
-			return fmt.Errorf("path '%s' is not pinned", p)
-		}
-
-		switch pinType {
-		case "direct", "indirect", "recursive", "internal":
-		default:
-			pinType = "indirect through " + pinType
-		}
-
-		err = emit(&PinLsOutputWrapper{
-			PinLsObject: PinLsObject{
-				Type: pinType,
-				Cid:  enc.Encode(rp.Cid()),
-			},
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsAll(req *cmds.Request, prefix string, typeStr string, recursive bool, api coreiface.CoreAPI, emit func(value interface{}) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -493,7 +442,9 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		panic("unhandled pin type")
 	}
 
-	pins, err := api.Pin().Ls(req.Context, opt)
+	recOpt := options.Pin.Ls.RecursiveList(recursive)
+
+	pins, err := api.Pin().Ls(req.Context, prefix, opt, recOpt)
 	if err != nil {
 		return err
 	}
@@ -506,6 +457,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
 				Cid:  enc.Encode(p.Path().Cid()),
+				Path: p.PinPath(),
 			},
 		})
 		if err != nil {
@@ -537,41 +489,30 @@ pin.
 
 	Arguments: []cmds.Argument{
 		cmds.StringArg("from-path", true, false, "Path to old object."),
+		cmds.StringArg("pinpath", true, false, "Pin path of the old object."),
 		cmds.StringArg("to-path", true, false, "Path to a new object to be pinned."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption(pinUnpinOptionName, "Remove the old pin.").WithDefault(true),
-	},
-	Type: PinOutput{},
+	Options: []cmds.Option{},
+	Type:    PinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		enc, err := cmdenv.GetCidEncoder(req)
-		if err != nil {
-			return err
-		}
+		from := req.Arguments[0]
 
-		unpin, _ := req.Options[pinUnpinOptionName].(bool)
-
-		// Resolve the paths ahead of time so we can return the actual CIDs
-		from, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
-		if err != nil {
-			return err
-		}
 		to, err := api.ResolvePath(req.Context, path.New(req.Arguments[1]))
 		if err != nil {
 			return err
 		}
 
-		err = api.Pin().Update(req.Context, from, to, options.Pin.Unpin(unpin))
+		err = api.Pin().Update(req.Context, from, to)
 		if err != nil {
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.Cid()), enc.Encode(to.Cid())}})
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{from, to.String()}})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
@@ -666,9 +607,15 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := dag.GetLinksWithDAG(DAG)
-	recPins, err := n.Pinning.RecursiveKeys(ctx)
+
+	recPins, err := n.Pinning.PinnedCids(true)
 	if err != nil {
-		return nil, err
+		status := PinStatus{Ok: false}
+		// TODO: do something about this error reporting
+		status.BadNodes = []BadNode{BadNode{Err: err.Error()}}
+		out := make(chan interface{})
+		out <- &PinVerifyRes{"", status}
+		return out, err
 	}
 
 	var checkPin func(root cid.Cid) PinStatus

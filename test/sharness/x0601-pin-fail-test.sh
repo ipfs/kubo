@@ -14,7 +14,7 @@ test_launch_ipfs_daemon
 
 test_expect_success "pre-test setup" '
   printf "" > pins &&
-  ipfs pin ls --type=recursive -q > rec_pins_before
+  ipfs pin ls -r --type=recursive -q > rec_pins_before
 '
 
 
@@ -26,7 +26,7 @@ do
 done
 
 test_expect_success "get pinset afterwards" '
-  ipfs pin ls --type=recursive -q | sort > rec_pins_after &&
+  ipfs pin ls -r --type=recursive -q | sort > rec_pins_after &&
   cat pins rec_pins_before | sort | uniq > exp_pins_after &&
   test_cmp rec_pins_after exp_pins_after
 '

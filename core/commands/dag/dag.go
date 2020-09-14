@@ -94,7 +94,7 @@ into an object of the specified format.
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "Format that the object will be added as.").WithDefault("cbor"),
 		cmds.StringOption("input-enc", "Format that the input object will be.").WithDefault("json"),
-		cmds.BoolOption("pin", "Pin this object when adding."),
+		cmds.StringOption("pin", "Pin this object when adding.").WithDefault(""),
 		cmds.StringOption("hash", "Hash function to use").WithDefault(""),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -106,7 +106,7 @@ into an object of the specified format.
 		ienc, _ := req.Options["input-enc"].(string)
 		format, _ := req.Options["format"].(string)
 		hash, _ := req.Options["hash"].(string)
-		dopin, _ := req.Options["pin"].(bool)
+		pinpath, _ := req.Options["pin"].(string)
 
 		// mhType tells inputParser which hash should be used. MaxUint64 means 'use
 		// default hash' (sha256 for cbor, sha1 for git..)
@@ -121,9 +121,6 @@ into an object of the specified format.
 		}
 
 		var adder ipld.NodeAdder = api.Dag()
-		if dopin {
-			adder = api.Dag().Pinning()
-		}
 		b := ipld.NewBatch(req.Context, adder)
 
 		it := req.Files.Entries()
@@ -140,10 +137,13 @@ into an object of the specified format.
 				return fmt.Errorf("no node returned from ParseInputs")
 			}
 
-			for _, nd := range nds {
-				err := b.Add(req.Context, nd)
-				if err != nil {
-					return err
+			if pinpath != "" {
+
+				for _, nd := range nds {
+					err := api.Pin().Add(req.Context, pinpath, path.IpfsPath(nd.Cid()))
+					if err != nil {
+						return err
+					}
 				}
 			}
 
@@ -387,9 +387,7 @@ Maximum supported CAR version: 1
 					ret.PinErrorMsg = err.Error()
 				} else if nd, err := ipld.Decode(block); err != nil {
 					ret.PinErrorMsg = err.Error()
-				} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
-					ret.PinErrorMsg = err.Error()
-				} else if err := node.Pinning.Flush(req.Context); err != nil {
+				} else if err := node.Pinning.Pin(req.Context, "car-import/", nd, true); err != nil {
 					ret.PinErrorMsg = err.Error()
 				}
 

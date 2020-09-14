@@ -130,6 +130,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		fileAdder.Progress = settings.Progress
 	}
 	fileAdder.Pin = settings.Pin && !settings.OnlyHash
+	fileAdder.PinPath = settings.PinPath
 	fileAdder.Silent = settings.Silent
 	fileAdder.RawLeaves = settings.RawLeaves
 	fileAdder.NoCopy = settings.NoCopy

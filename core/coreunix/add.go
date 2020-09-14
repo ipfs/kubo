@@ -69,6 +69,7 @@ type Adder struct {
 	Out        chan<- interface{}
 	Progress   bool
 	Pin        bool
+	PinPath    string
 	Trickle    bool
 	RawLeaves  bool
 	Silent     bool
@@ -171,15 +172,14 @@ func (adder *Adder) PinRoot(root ipld.Node) error {
 	}
 
 	if adder.tempRoot.Defined() {
-		err := adder.pinning.Unpin(adder.ctx, adder.tempRoot, true)
+		err := adder.pinning.UnpinCidUnderPrefix("tmp/temproot/", adder.tempRoot, true)
 		if err != nil {
 			return err
 		}
 		adder.tempRoot = rnk
 	}
 
-	adder.pinning.PinWithMode(rnk, pin.Recursive)
-	return adder.pinning.Flush(adder.ctx)
+	return adder.pinning.AddPin(adder.PinPath, rnk, true)
 }
 
 func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {

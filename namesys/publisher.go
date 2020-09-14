@@ -288,18 +288,6 @@ func PublishEntry(ctx context.Context, r routing.ValueStore, ipnskey string, rec
 func InitializeKeyspace(ctx context.Context, pub Publisher, pins pin.Pinner, key ci.PrivKey) error {
 	emptyDir := ft.EmptyDirNode()
 
-	// pin recursively because this might already be pinned
-	// and doing a direct pin would throw an error in that case
-	err := pins.Pin(ctx, emptyDir, true)
-	if err != nil {
-		return err
-	}
-
-	err = pins.Flush(ctx)
-	if err != nil {
-		return err
-	}
-
 	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
 }
 

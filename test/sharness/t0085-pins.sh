@@ -93,18 +93,18 @@ test_pins() {
   '
 
   test_expect_success "test pin update" '
-    ipfs pin add "$HASH_A" &&
-    ipfs pin ls $LS_ARGS $BASE_ARGS | tee before_update &&
+    ipfs pin add -P test/updated_pin "$HASH_A" &&
+    ipfs pin ls $LS_ARGS $BASE_ARGS -r > before_update &&
     test_should_contain "$HASH_A" before_update &&
     test_must_fail grep -q "$HASH_B" before_update &&
-    ipfs pin update --unpin=true "$HASH_A" "$HASH_B" &&
-    ipfs pin ls $LS_ARGS $BASE_ARGS > after_update &&
+    ipfs pin update test/updated_pin "$HASH_B" &&
+    ipfs pin ls $LS_ARGS $BASE_ARGS -r > after_update &&
     test_must_fail grep -q "$HASH_A" after_update &&
     test_should_contain "$HASH_B" after_update &&
-    ipfs pin update --unpin=true "$HASH_B" "$HASH_B" &&
-    ipfs pin ls $LS_ARGS $BASE_ARGS > after_idempotent_update &&
+    ipfs pin update test/updated_pin "$HASH_B" &&
+    ipfs pin ls $LS_ARGS $BASE_ARGS -r > after_idempotent_update &&
     test_should_contain "$HASH_B" after_idempotent_update &&
-    ipfs pin rm "$HASH_B"
+    ipfs pin rm test/updated_pin
   '
 }
 

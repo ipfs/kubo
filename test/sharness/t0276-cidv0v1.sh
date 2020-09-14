@@ -59,7 +59,7 @@ test_expect_success "make sure the CIDv1 hash is not in the repo" '
 '
 
 test_expect_success "clean up" '
-  ipfs pin rm $AHASHv0 &&
+  ipfs pin rm added/$AHASHv0 &&
   ipfs repo gc &&
   ! ipfs refs local | grep -q $AHASHv0
 '

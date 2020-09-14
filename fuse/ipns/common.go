@@ -18,16 +18,6 @@ func InitializeKeyspace(n *core.IpfsNode, key ci.PrivKey) error {
 
 	emptyDir := ft.EmptyDirNode()
 
-	err := n.Pinning.Pin(ctx, emptyDir, false)
-	if err != nil {
-		return err
-	}
-
-	err = n.Pinning.Flush(ctx)
-	if err != nil {
-		return err
-	}
-
 	pub := nsys.NewIpnsPublisher(n.Routing, n.Repo.Datastore())
 
 	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))

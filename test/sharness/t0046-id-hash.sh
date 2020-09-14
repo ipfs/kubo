@@ -34,7 +34,7 @@ test_expect_success "but can fetch it anyway" '
 '
 
 test_expect_success "block rm does nothing" '
-  ipfs pin rm $HASH &&
+  ipfs pin rm added/$HASH &&
   ipfs block rm $HASH
 '
 

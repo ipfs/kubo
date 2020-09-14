@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 
 	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-merkledag/dagutils"
@@ -107,18 +106,13 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		return nil, err
 	}
 
-	if options.Pin {
-		defer api.blockstore.PinLock().Unlock()
-	}
-
 	err = api.dag.Add(ctx, dagnode)
 	if err != nil {
 		return nil, err
 	}
 
 	if options.Pin {
-		api.pinning.PinWithMode(dagnode.Cid(), pin.Recursive)
-		err = api.pinning.Flush(ctx)
+		err = api.pinning.AddPin(options.PinPath, dagnode.Cid(), true)
 		if err != nil {
 			return nil, err
 		}

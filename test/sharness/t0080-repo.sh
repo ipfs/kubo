@@ -21,7 +21,7 @@ test_expect_success "'ipfs add afile' succeeds" '
 '
 
 test_expect_success "added file was pinned" '
-  ipfs pin ls --type=recursive >actual &&
+  ipfs pin ls -r added/ --type=recursive >actual &&
   grep "$HASH" actual
 '
 
@@ -39,11 +39,11 @@ test_expect_success "'ipfs repo gc' doesn't remove file" '
 '
 
 test_expect_success "'ipfs pin rm' succeeds" '
-  ipfs pin rm -r "$HASH" >actual1
+  ipfs pin rm "added/$HASH" >actual1
 '
 
 test_expect_success "'ipfs pin rm' output looks good" '
-  echo "unpinned $HASH" >expected1 &&
+  echo "unpinned added/$HASH" >expected1 &&
   test_cmp expected1 actual1
 '
 
@@ -52,7 +52,7 @@ test_expect_success "ipfs repo gc fully reverse ipfs add (part 1)" '
   random 100000 41 >gcfile &&
   find "$IPFS_PATH/blocks" -type f -name "*.data" | sort -u > expected_blocks &&
   hash=$(ipfs add -q gcfile) &&
-  ipfs pin rm -r $hash &&
+  ipfs pin rm added/$hash &&
   ipfs repo gc
 '
 
@@ -66,45 +66,33 @@ test_expect_success "ipfs repo gc fully reverse ipfs add (part 2)" '
 test_launch_ipfs_daemon --offline
 
 test_expect_success "file no longer pinned" '
-  ipfs pin ls --type=recursive --quiet >actual2 &&
+  ipfs pin ls -r --type=recursive --quiet >actual2 &&
   test_expect_code 1 grep $HASH actual2
 '
 
 test_expect_success "recursively pin afile(default action)" '
-  HASH=`ipfs add -q afile` &&
+  HASH=`ipfs add -q --pin=false afile` &&
   ipfs pin add "$HASH"
 '
 
 test_expect_success "recursively pin rm afile (default action)" '
-  ipfs pin rm "$HASH"
+  ipfs pin rm "default/$HASH"
 '
 
 test_expect_success "recursively pin afile" '
-  ipfs pin add -r "$HASH"
+  ipfs pin add "$HASH"
 '
 
-test_expect_success "pinning directly should fail now" '
-  echo "Error: pin: $HASH already pinned recursively" >expected3 &&
-  test_must_fail ipfs pin add -r=false "$HASH" 2>actual3 &&
-  test_cmp expected3 actual3
+test_expect_success "pinning directly should not fail either" '
+  ipfs pin add -d "$HASH"
 '
 
-test_expect_success "'ipfs pin rm -r=false <hash>' should fail" '
-  echo "Error: $HASH is pinned recursively" >expected4
-  test_must_fail ipfs pin rm -r=false "$HASH" 2>actual4 &&
-  test_cmp expected4 actual4
-'
-
-test_expect_success "remove recursive pin, add direct" '
-  echo "unpinned $HASH" >expected5 &&
-  ipfs pin rm -r "$HASH" >actual5 &&
-  test_cmp expected5 actual5 &&
-  ipfs pin add -r=false "$HASH"
-'
-
+test_expect_success "remove recursive pin" '
+  echo "unpinned default/$HASH" >expected6 &&
+  ipfs pin rm "default/$HASH" >actual6 &&
 test_expect_success "remove direct pin" '
-  echo "unpinned $HASH" >expected6 &&
-  ipfs pin rm "$HASH" >actual6 &&
+  echo "unpinned default/$HASH" >expected6 &&
+  ipfs pin rm -d "default/$HASH" >actual6 &&
   test_cmp expected6 actual6
 '
 
@@ -128,37 +116,38 @@ test_expect_success "adding multiblock random file succeeds" '
 '
 
 test_expect_success "'ipfs pin ls --type=indirect' is correct" '
-  ipfs refs "$MBLOCKHASH" >refsout &&
-  ipfs refs -r "$HASH_WELCOME_DOCS" >>refsout &&
-  sed -i"~" "s/\(.*\)/\1 indirect/g" refsout &&
-  ipfs pin ls --type=indirect >indirectpins &&
+  ipfs refs "$MBLOCKHASH" >mbrefsout &&
+  ipfs refs -r "$HASH_WELCOME_DOCS" >assetsrefsout &&
+  sed -i"~" "s|\(.*\)|\1 indirect added/$MBLOCKHASH|g" mbrefsout &&
+  sed -i"~" "s/\(.*\)/\1 indirect assets/g" assetsrefsout &&
+  ipfs pin ls -r --type=indirect >indirectpins &&
+  cat assetsrefsout mbrefsout > refsout &&
   test_sort_cmp refsout indirectpins
 '
 
 test_expect_success "pin something directly" '
   echo "ipfs is so awesome" >awesome &&
   DIRECTPIN=`ipfs add -q awesome` &&
-  echo "unpinned $DIRECTPIN" >expected9 &&
-  ipfs pin rm -r "$DIRECTPIN" >actual9 &&
+  echo "unpinned added/$DIRECTPIN" >expected9 &&
+  ipfs pin rm "added/$DIRECTPIN" >actual9 &&
   test_cmp expected9 actual9  &&
 
   echo "pinned $DIRECTPIN directly" >expected10 &&
-  ipfs pin add -r=false "$DIRECTPIN" >actual10 &&
+  ipfs pin add -d "$DIRECTPIN" >actual10 &&
   test_cmp expected10 actual10
 '
 
 test_expect_success "'ipfs pin ls --type=direct' is correct" '
-  echo "$DIRECTPIN direct" >directpinexpected &&
-  ipfs pin ls --type=direct >directpinout &&
+  echo "$DIRECTPIN direct default/$DIRECTPIN" >directpinexpected &&
+  ipfs pin ls -r --type=direct >directpinout &&
   test_sort_cmp directpinexpected directpinout
 '
 
 test_expect_success "'ipfs pin ls --type=recursive' is correct" '
-  echo "$MBLOCKHASH" >rp_expected &&
-  echo "$HASH_WELCOME_DOCS" >>rp_expected &&
-  echo "$EMPTY_DIR" >>rp_expected &&
-  sed -i"~" "s/\(.*\)/\1 recursive/g" rp_expected &&
-  ipfs pin ls --type=recursive >rp_actual &&
+  echo "$MBLOCKHASH added/$MBLOCKHASH" >rp_expected &&
+  echo "$HASH_WELCOME_DOCS assets" >>rp_expected &&
+  sed -i"~" -E "s/^([^ ]+)/\1 recursive/g" rp_expected &&
+  ipfs pin ls -r --type=recursive >rp_actual &&
   test_sort_cmp rp_expected rp_actual
 '
 
@@ -167,7 +156,7 @@ test_expect_success "'ipfs pin ls --type=all --quiet' is correct" '
   cat rp_actual >>allpins &&
   cat indirectpins >>allpins &&
   cut -f1 -d " " allpins | sort | uniq >> allpins_uniq_hashes &&
-  ipfs pin ls --type=all --quiet >actual_allpins &&
+  ipfs pin ls -r --type=all --quiet >actual_allpins &&
   test_sort_cmp allpins_uniq_hashes actual_allpins
 '
 

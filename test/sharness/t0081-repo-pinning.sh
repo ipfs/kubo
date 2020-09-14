@@ -15,7 +15,7 @@ test_pin_flag() {
 
   echo "test_pin_flag" "$@"
 
-  if ipfs pin ls --type="$ptype" "$object" >actual
+  if ipfs pin ls -r --type="$ptype" | grep "^$object" >actual
   then
     test "$expect" = "true" && return
     test_fsh cat actual
@@ -141,7 +141,7 @@ test_expect_success "added dir was NOT pinned indirectly" '
 '
 
 test_expect_success "nothing is pinned directly" '
-  ipfs pin ls --type=direct >actual4 &&
+  ipfs pin ls -r --type=direct >actual4 &&
   test_must_be_empty actual4
 '
 
@@ -166,8 +166,8 @@ test_expect_success "objects are still there" '
 '
 
 test_expect_success "remove dir recursive pin succeeds" '
-  echo "unpinned $HASH_DIR1" >expected5 &&
-  ipfs pin rm -r "$HASH_DIR1" >actual5 &&
+  echo "unpinned added/$HASH_DIR1" >expected5 &&
+  ipfs pin rm "added/$HASH_DIR1" >actual5 &&
   test_cmp expected5 actual5
 '
 
@@ -178,16 +178,16 @@ test_expect_success "none are pinned any more" '
   test_pin "$HASH_FILE3" &&
   test_pin "$HASH_FILE2" &&
   test_pin "$HASH_FILE1" &&
-  test_pin "$HASH_DIR3"  &&
-  test_pin "$HASH_DIR4"  &&
-  test_pin "$HASH_DIR2"  &&
+  test_pin "$HASH_DIR3" &&
+  test_pin "$HASH_DIR4" &&
+  test_pin "$HASH_DIR2" &&
   test_pin "$HASH_DIR1"
 '
 
 test_expect_success "pin some directly and indirectly" '
-  ipfs pin add -r=false  "$HASH_DIR1"  >actual7 &&
-  ipfs pin add -r=true  "$HASH_DIR2"  >>actual7 &&
-  ipfs pin add -r=false  "$HASH_FILE1" >>actual7 &&
+  ipfs pin add -d "$HASH_DIR1"  >actual7 &&
+  ipfs pin add "$HASH_DIR2"  >>actual7 &&
+  ipfs pin add -d "$HASH_FILE1" >>actual7 &&
   echo "pinned $HASH_DIR1 directly"     >expected7 &&
   echo "pinned $HASH_DIR2 recursively" >>expected7 &&
   echo "pinned $HASH_FILE1 directly"   >>expected7 &&
@@ -195,10 +195,10 @@ test_expect_success "pin some directly and indirectly" '
 '
 
 test_expect_success "pin lists look good" '
-  test_pin $HASH_DIR1  direct &&
-  test_pin $HASH_DIR2  recursive &&
-  test_pin $HASH_DIR3  &&
-  test_pin $HASH_DIR4  indirect &&
+  test_pin $HASH_DIR1 direct &&
+  test_pin $HASH_DIR2 recursive &&
+  test_pin $HASH_DIR3 &&
+  test_pin $HASH_DIR4 indirect &&
   test_pin $HASH_FILE1 indirect direct &&
   test_pin $HASH_FILE2 indirect &&
   test_pin $HASH_FILE3 &&
@@ -226,7 +226,7 @@ test_expect_success "some objects are still there" '
   ipfs cat "$HASH_FILE1" >>actual8 &&
   ipfs ls "$HASH_DIR4"   >>actual8 &&
   ipfs ls "$HASH_DIR2"   >>actual8 &&
-  ipfs object links "$HASH_DIR1" >>actual8 &&
+  ipfs object links "$HASH_DIR1" >>actual8  &&
   test_cmp expected8 actual8
 '
 

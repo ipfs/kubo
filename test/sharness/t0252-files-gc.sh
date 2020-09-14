@@ -29,12 +29,12 @@ test_expect_success "gc okay after adding incomplete node -- prep" '
   ipfs files mkdir /adir &&
   echo "file1" |  ipfs files write --create /adir/file1 &&
   echo "file2" |  ipfs files write --create /adir/file2 &&
-  ipfs pin add --recursive=false $ADIR_HASH &&
+  ipfs pin add -d $ADIR_HASH &&
   ipfs files rm -r /adir &&
   ipfs repo gc && # will remove /adir/file1 and /adir/file2 but not /adir
   test_must_fail ipfs cat $FILE1_HASH &&
   ipfs files cp /ipfs/$ADIR_HASH /adir &&
-  ipfs pin rm $ADIR_HASH
+  ipfs pin rm -d default/$ADIR_HASH
 '
 
 test_expect_success "gc okay after adding incomplete node" '
@@ -49,7 +49,7 @@ test_expect_success "add directory with direct pin" '
   FILE_UNPINNED=$(ipfs add --pin=false -q -r mydir/hello.txt) &&
   DIR_PINNED=$(ipfs add --pin=false -q -r mydir | tail -n1) &&
   ipfs add --pin=false -r mydir &&
-  ipfs pin add --recursive=false $DIR_PINNED &&
+  ipfs pin add -d $DIR_PINNED &&
   ipfs cat $FILE_UNPINNED
 '
 

@@ -92,7 +92,7 @@ test_sharding() {
 
   test_expect_success "can unpin a file from sharded directory $EXTRA" '
     read -r _ HASH _ < pin_hash &&
-    ipfs pin rm $HASH
+    ipfs pin rm default/$HASH
   '
 
   test_expect_success "output object was really sharded and has correct hash $EXTRA" '

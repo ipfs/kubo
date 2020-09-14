@@ -106,7 +106,7 @@ EOF
   '
   
   test_expect_success "remove original hashes from local gateway" '
-    ipfs pin rm $HASH1a $HASH2a &&
+    ipfs pin rm added/$HASH1a added/$HASH2a &&
     ipfs repo gc > /dev/null
   '
   
@@ -131,7 +131,7 @@ EOF
   '
   
   test_expect_success "remove broken files" '
-    ipfs pin rm $HASH2 &&
+    ipfs pin rm default/$HASH2 &&
     ipfs repo gc > /dev/null
   '
   

@@ -40,6 +40,7 @@ settings for 'ipfs add'.
 	Options: []cmds.Option{
 		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
+		cmds.StringOption("pinpath", "P", "Pin object under this path.").WithDefault("added/"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("url", true, false, "URL to add to IPFS"),
@@ -71,9 +72,11 @@ settings for 'ipfs add'.
 
 		useTrickledag, _ := req.Options[trickleOptionName].(bool)
 		dopin, _ := req.Options[pinOptionName].(bool)
+		pinPath, _ := req.Options["pinpath"].(string)
 
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Pin(dopin),
+			options.Unixfs.PinPath(pinPath),
 			options.Unixfs.CidVersion(1),
 			options.Unixfs.RawLeaves(true),
 			options.Unixfs.Nocopy(true),
@@ -89,7 +92,9 @@ settings for 'ipfs add'.
 		if err != nil {
 			return err
 		}
+
 		size, _ := file.Size()
+
 		return cmds.EmitOnce(res, &BlockStat{
 			Key:  enc.Encode(path.Cid()),
 			Size: int(size),

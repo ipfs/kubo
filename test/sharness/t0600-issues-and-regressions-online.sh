@@ -35,14 +35,14 @@ test_expect_success "metrics work" '
 
 test_expect_success "pin add api looks right - #3753" '
   HASH=$(echo "foo" | ipfs add -q) &&
-  curl -X POST "http://$API_ADDR/api/v0/pin/add/$HASH" > pinadd_out &&
+  curl -X POST "http://$API_ADDR/api/v0/pin/add/$HASH?pinpath=pintest" > pinadd_out &&
   echo "{\"Pins\":[\"QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6\"]}" > pinadd_exp &&
   test_cmp pinadd_out pinadd_exp
 '
 
 test_expect_success "pin add api looks right - #3753" '
-  curl -X POST "http://$API_ADDR/api/v0/pin/rm/$HASH" > pinrm_out &&
-  echo "{\"Pins\":[\"QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6\"]}" > pinrm_exp &&
+  curl -X POST "http://$API_ADDR/api/v0/pin/rm/pintest" > pinrm_out &&
+  echo "{\"Pins\":[\"pintest\"]}" > pinrm_exp &&
   test_cmp pinrm_out pinrm_exp
 '
 
