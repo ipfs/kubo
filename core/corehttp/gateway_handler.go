@@ -261,7 +261,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		urlFilename := r.URL.Query().Get("filename")
 		var name string
 		if urlFilename != "" {
-			w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename*=UTF-8''%s", url.PathEscape(urlFilename)))
+			disposition := "inline"
+			if r.URL.Query().Get("download") == "true" {
+				disposition = "attachment"
+			}
+			w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename*=UTF-8''%s", disposition, url.PathEscape(urlFilename)))
 			name = urlFilename
 		} else {
 			name = getFilename(urlPath)
