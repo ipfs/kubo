@@ -34,6 +34,8 @@ const (
 	ipnsPathPrefix = "/ipns/"
 )
 
+var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
@@ -265,7 +267,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			if r.URL.Query().Get("download") == "true" {
 				disposition = "attachment"
 			}
-			w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename*=UTF-8''%s", disposition, url.PathEscape(urlFilename)))
+			utf8Name := url.PathEscape(urlFilename)
+			asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(urlFilename, "_"))
+			w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
 			name = urlFilename
 		} else {
 			name = getFilename(urlPath)
