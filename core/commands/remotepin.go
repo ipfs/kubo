@@ -124,7 +124,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin to be listed."),
-		cmds.StringsOption(pinCIDsOptionName, "An optional list of CIDs to be listed."),
+		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
