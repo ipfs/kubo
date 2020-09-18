@@ -29,7 +29,7 @@ AUTHORS=(
 
 [[ -n "${REPO_FILTER+x}" ]] || REPO_FILTER="github.com/(${$(printf "|%s" "${AUTHORS[@]}"):1})"
 
-[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package\.json\|\.travis\.yml\|go.mod\|go\.sum|\.github|\.circleci\)$'
+[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package\.json\|\.travis\.yml\|go.mod\|go\.sum|\.github|\.circleci\|.*\.pb\.go\|cbor_gen\.go\)$'
 
 NL=$'\n'
 
@@ -48,7 +48,7 @@ statlog() {
         mailmap_file="$ROOT_DIR/.mailmap"
     fi
 
-    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" | while 
+    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" -- ":!:*.pb.go" ":!:cbor_gen.go" ":!:go.sum" ":!:go.mod" | while 
         read hash
         read name
         read email
