@@ -101,7 +101,7 @@ jobs:
         sudo apt install ruby ruby-dev zlib1g-dev &&
         sudo gem install rails
     - run:
-        cd rb-pinning-service-api
+        cd rb-pinning-service-api &&
         docker-compose up -d
 
     - checkout
