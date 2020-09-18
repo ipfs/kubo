@@ -94,7 +94,7 @@ jobs:
     executor: golang
     steps:
         # start remote pinning service
-    - checkout ~/ipfs-shipyard
+    - checkout
         # install rails
     - run:
         git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git &&
