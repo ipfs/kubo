@@ -51,7 +51,7 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.2
 	github.com/ipfs/go-path v0.0.8
-	github.com/ipfs/go-pinning-service-http-client v0.0.0-20200911012638-6064981450e6
+	github.com/ipfs/go-pinning-service-http-client v0.0.0-20200921200811-9fbf23e5f073
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.4.0

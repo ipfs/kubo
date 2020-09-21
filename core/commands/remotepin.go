@@ -93,7 +93,7 @@ var addRemotePinCmd = &cmds.Command{
 		}
 
 		return res.Emit(&AddRemotePinOutput{
-			ID:        ps.GetId(),
+			ID:        ps.GetRequestId(),
 			Name:      ps.GetPin().GetName(),
 			Delegates: ps.GetDelegates(),
 		})
@@ -152,7 +152,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 
 		for ps := range psCh {
 			if err := res.Emit(&AddRemotePinOutput{
-				ID:        ps.GetId(),
+				ID:        ps.GetRequestId(),
 				Name:      ps.GetPin().GetName(),
 				Delegates: ps.GetDelegates(),
 			}); err != nil {
