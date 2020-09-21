@@ -14,11 +14,11 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 
+	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/whyrusleeping/tar-utils"
-	"gopkg.in/cheggaaa/pb.v1"
 )
 
 var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")

@@ -31,7 +31,7 @@ import (
 	//gipselector "github.com/ipld/go-ipld-prime/traversal/selector"
 	//gipselectorbuilder "github.com/ipld/go-ipld-prime/traversal/selector/builder"
 
-	"gopkg.in/cheggaaa/pb.v1"
+	"github.com/cheggaaa/pb"
 )
 
 const (
