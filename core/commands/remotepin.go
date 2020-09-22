@@ -36,7 +36,9 @@ const pinCIDsOptionName = "cid"
 type AddRemotePinOutput struct {
 	ID        string
 	Name      string
-	Delegates []multiaddr.Multiaddr
+	Delegates []string // multiaddr
+	Status    string
+	Cid       string
 }
 
 var addRemotePinCmd = &cmds.Command{
@@ -95,7 +97,9 @@ var addRemotePinCmd = &cmds.Command{
 		return res.Emit(&AddRemotePinOutput{
 			ID:        ps.GetRequestId(),
 			Name:      ps.GetPin().GetName(),
-			Delegates: ps.GetDelegates(),
+			Delegates: multiaddrsToStrings(ps.GetDelegates()),
+			Status:    ps.GetStatus().String(),
+			Cid:       ps.GetPin().GetCid().String(),
 		})
 	},
 	Encoders: cmds.EncoderMap{
@@ -103,11 +107,21 @@ var addRemotePinCmd = &cmds.Command{
 			fmt.Printf("pin_id=%v\n", out.ID)
 			fmt.Printf("pin_name=%q\n", out.Name)
 			for _, d := range out.Delegates {
-				fmt.Printf("pin_delegate=%v\n", d.String())
+				fmt.Printf("pin_delegate=%v\n", d)
 			}
+			fmt.Printf("pin_status=%v\n", out.Status)
+			fmt.Printf("pin_cid=%v\n", out.Cid)
 			return nil
 		}),
 	},
+}
+
+func multiaddrsToStrings(m []multiaddr.Multiaddr) []string {
+	r := make([]string, len(m))
+	for i := range m {
+		r[i] = m[i].String()
+	}
+	return r
 }
 
 var listRemotePinCmd = &cmds.Command{
@@ -154,7 +168,9 @@ Returns a list of objects that are pinned to a remote pinning service.
 			if err := res.Emit(&AddRemotePinOutput{
 				ID:        ps.GetRequestId(),
 				Name:      ps.GetPin().GetName(),
-				Delegates: ps.GetDelegates(),
+				Delegates: multiaddrsToStrings(ps.GetDelegates()),
+				Status:    ps.GetStatus().String(),
+				Cid:       ps.GetPin().GetCid().String(),
 			}); err != nil {
 				return err
 			}
@@ -168,8 +184,10 @@ Returns a list of objects that are pinned to a remote pinning service.
 			fmt.Printf("pin_id=%v\n", out.ID)
 			fmt.Printf("pin_name=%q\n", out.Name)
 			for _, d := range out.Delegates {
-				fmt.Printf("pin_delegate=%v\n", d.String())
+				fmt.Printf("pin_delegate=%v\n", d)
 			}
+			fmt.Printf("pin_status=%v\n", out.Status)
+			fmt.Printf("pin_cid=%v\n", out.Cid)
 			return nil
 		}),
 	},
