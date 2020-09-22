@@ -1,5 +1,544 @@
 # go-ipfs changelog
 
+## v0.7.0 2020-09-22
+
+### Highlights
+
+#### Secio is now disabled by default
+
+As part of deprecating and removing support for the Secio security transport, we have disabled it by default. TLS1.3 will remain the default security transport with fallback to Noise. You can read more about the deprecation in the blog post, https://blog.ipfs.io/2020-08-07-deprecating-secio/. If you're running IPFS older than 0.5, this may start to impact your performance on the public network.
+
+#### Ed25519 keys are now used by default
+
+Previously go-ipfs generated 2048 bit RSA keys for new nodes, but it will now use ed25519 keys by default. This will not affect any existing keys, but newly created keys will be ed25519 by default. The main benefit of using ed25519 keys over RSA is that ed25519 keys have an inline public key. This means that someone only needs your PeerId to verify things you've signed, which means we don't have to worry about storing those bulky RSA public keys.
+
+##### Rotating keys
+
+Along with switching the default, we've added support for rotating keys. If you would like to change the key type of your IPFS node, you can now do so with the rotate command. **NOTE: This will affect your Peer Id, so be sure you want to do this!** Your existing identity key will be backed up in the Keystore.
+
+```bash
+ipfs key rotate -o my-old-key -t ed25519
+```
+
+#### Key export/import
+
+We've added commands to allow you to export and import keys from the IPFS Keystore to a local .key file. This does not apply to the IPFS identity key, `self`.
+
+```bash
+ipfs key gen mykey
+ipfs key export -o mykey.key mykey # ./<name>.key is the default path
+ipfs key import mykey mykey.key # on another node
+```
+
+#### IPNS paths now encode the key name as a base36 CIDv1 by default
+
+Previously go-ipfs encoded the key names for IPNS paths as base58btc multihashes (e.g. Qmabc...). We now encode them as base36 encoded CIDv1s as defined in the [peerID spec](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#string-representation) (e.g. k51xyz...) which also deals with encoding of public keys. This is nice because it means that IPNS keys will by default be case-insensitive and that they will fit into DNS labels (e.g. k51xyz...ipns.localhost) and therefore that subdomain gateway redirections (e.g. from localhost:8080/ipns/{key} to {key}.ipns.localhost) will look better to users in the default case.
+
+Many commands will accept a `--ipns-base` option that allows changing command outputs to use a particular encoding (i.e.  base58btc multihash, or CIDv1 encoded in any supported base)
+
+#### Multiaddresses now accept PeerIDs encoded as CIDv1
+
+In preparation for eventually changing the default PeerID representation multiaddresses can now contain strings like `/p2p/k51xyz...` in addition to the default `/p2p/Qmabc...`. There is a corresponding `--peerid-base` option to many functions that output peerIDs.
+
+#### `dag stat`
+
+Initial support has been added for the `ipfs dag stat` command. Running this command will traverse the DAG for the given root CID and report statistics. By default, progress will be shown as the DAG is traversed. Supported statistics currently include DAG size and number of blocks.
+
+```bash
+ipfs dag stat bafybeihpetclqvwb4qnmumvcn7nh4pxrtugrlpw4jgjpqicdxsv7opdm6e # the IPFS webui
+Size: 30362191, NumBlocks: 346
+```
+
+#### Plugin build changes
+
+We have changed the build flags used by the official binary distributions on dist.ipfs.io (or `/ipns/dist.ipfs.io`) to use the simpler and more reliable `-trimpath` flag instead of the more complicated and brittle `-asmflags=all=-trimpath="$(GOPATH)" -gcflags=all=-trimpath="$(GOPATH)"` flags, however the build flags used by default in go-ipfs remain the same.
+
+The scripts in https://github.com/ipfs/go-ipfs-example-plugin have been updated to reflect this change. This is a breaking change to how people have been building plugins against the dist.ipfs.io binary of go-ipfs and plugins should update their build processes accordingly see https://github.com/ipfs/go-ipfs-example-plugin/pull/9 for details.
+
+### Changelog
+
+- github.com/ipfs/go-ipfs:
+  - chore: bump webui version
+  - fix: remove the (empty) alias for --peerid-base
+  - Release v0.7.0-rc2
+  - fix: use override GOFLAGS changes from 480defab689610550ee3d346e31441a2bb881fcb but keep trimpath usage as is
+  - Revert "fix: override GOFLAGS"
+  - fix: remove the (empty) alias for --ipns-base
+  - refactor: put all --ipns-base options in one place
+  - docs: update config to indicate SECIO deprecation
+  - fix: ipfs dht put/get commands now work on keys encoded as peerIDs and fail early for namespaces other than /pk or /ipns
+  - Release v0.7.0-rc1
+  - chore: cleanup ([ipfs/go-ipfs#7628](https://github.com/ipfs/go-ipfs/pull/7628))
+  - namesys: fixed IPNS republisher to not overwrite IPNS record lifetimes ([ipfs/go-ipfs#7627](https://github.com/ipfs/go-ipfs/pull/7627))
+  - Fix #7624: Do not fetch dag nodes when checking if a pin exists ([ipfs/go-ipfs#7625](https://github.com/ipfs/go-ipfs/pull/7625))
+  - chore: update dependencies ([ipfs/go-ipfs#7610](https://github.com/ipfs/go-ipfs/pull/7610))
+  - use t.Cleanup() to reduce the need to clean up servers in tests ([ipfs/go-ipfs#7550](https://github.com/ipfs/go-ipfs/pull/7550))
+  - fix: ipfs pin ls - ignore pins that have errors ([ipfs/go-ipfs#7612](https://github.com/ipfs/go-ipfs/pull/7612))
+  - docs(config): fix Peering header ([ipfs/go-ipfs#7623](https://github.com/ipfs/go-ipfs/pull/7623))
+  - sharness: use dnsaddr example in ipfs p2p command tests ([ipfs/go-ipfs#7620](https://github.com/ipfs/go-ipfs/pull/7620))
+  - fix(key): dont allow backup key to be named 'self' ([ipfs/go-ipfs#7615](https://github.com/ipfs/go-ipfs/pull/7615))
+  - [BOUNTY] Directory page UI improvements ([ipfs/go-ipfs#7536](https://github.com/ipfs/go-ipfs/pull/7536))
+  - fix: make assets deterministic ([ipfs/go-ipfs#7609](https://github.com/ipfs/go-ipfs/pull/7609))
+  - use ed25519 keys by default ([ipfs/go-ipfs#7579](https://github.com/ipfs/go-ipfs/pull/7579))
+  - feat: wildcard support for public gateways ([ipfs/go-ipfs#7319](https://github.com/ipfs/go-ipfs/pull/7319))
+  - fix: fix go-bindata import path ([ipfs/go-ipfs#7605](https://github.com/ipfs/go-ipfs/pull/7605))
+  - Upgrade graphsync deps ([ipfs/go-ipfs#7598](https://github.com/ipfs/go-ipfs/pull/7598))
+  - Add --peerid-base to ipfs id command ([ipfs/go-ipfs#7591](https://github.com/ipfs/go-ipfs/pull/7591))
+  - use b36 keys by default for keys and IPNS ([ipfs/go-ipfs#7582](https://github.com/ipfs/go-ipfs/pull/7582))
+  - add ipfs dag stat command (#7553) ([ipfs/go-ipfs#7553](https://github.com/ipfs/go-ipfs/pull/7553))
+  - Move key rotation command to ipfs key rotate ([ipfs/go-ipfs#7599](https://github.com/ipfs/go-ipfs/pull/7599))
+  - Disable secio by default ([ipfs/go-ipfs#7600](https://github.com/ipfs/go-ipfs/pull/7600))
+  - Stop searching for public keys before doing an IPNS Get (#7549) ([ipfs/go-ipfs#7549](https://github.com/ipfs/go-ipfs/pull/7549))
+  - feat: return supported protocols in id output ([ipfs/go-ipfs#7409](https://github.com/ipfs/go-ipfs/pull/7409))
+  - docs: fix typo in default swarm addrs config docs ([ipfs/go-ipfs#7585](https://github.com/ipfs/go-ipfs/pull/7585))
+  - feat: nice errors when failing to load plugins ([ipfs/go-ipfs#7429](https://github.com/ipfs/go-ipfs/pull/7429))
+  - doc: document reverse proxy bug ([ipfs/go-ipfs#7478](https://github.com/ipfs/go-ipfs/pull/7478))
+  - fix: ipfs name resolve --dht-record-count flag uses correct type and now works
+  - refactor: get rid of cmdDetails awkwardness
+  - IPNS format keys in b36cid ([ipfs/go-ipfs#7554](https://github.com/ipfs/go-ipfs/pull/7554))
+  - Key import and export cli commands ([ipfs/go-ipfs#7546](https://github.com/ipfs/go-ipfs/pull/7546))
+  - feat: add snap package configuration ([ipfs/go-ipfs#7529](https://github.com/ipfs/go-ipfs/pull/7529))
+  - chore: bump webui version
+  - repeat gateway subdomain test for all key types (#7542) ([ipfs/go-ipfs#7542](https://github.com/ipfs/go-ipfs/pull/7542))
+  - fix: override GOFLAGS
+  - update QUIC, enable the RetireBugBackwardsCompatibilityMode
+  - Document add behavior when the daemon is not running ([ipfs/go-ipfs#7514](https://github.com/ipfs/go-ipfs/pull/7514))
+  -  ([ipfs/go-ipfs#7515](https://github.com/ipfs/go-ipfs/pull/7515))
+  - Choose Key type at initialization ([ipfs/go-ipfs#7251](https://github.com/ipfs/go-ipfs/pull/7251))
+  - feat: add flag to ipfs key and list to output keys in b36/CIDv1 (#7531) ([ipfs/go-ipfs#7531](https://github.com/ipfs/go-ipfs/pull/7531))
+  - feat: support ED25519 libp2p-key in subdomains
+  - chore: fix a typo
+  - docs: document X-Forwarded-Host
+  - feat: support X-Forwarded-Host when doing gateway redirect
+  - chore: update test deps for graphsync
+  - chore: bump test dependencies ([ipfs/go-ipfs#7524](https://github.com/ipfs/go-ipfs/pull/7524))
+  - fix: use static binaries in docker container ([ipfs/go-ipfs#7505](https://github.com/ipfs/go-ipfs/pull/7505))
+  - chore:bump webui version to 2.10.1 ([ipfs/go-ipfs#7504](https://github.com/ipfs/go-ipfs/pull/7504))
+  - chore: bump webui version ([ipfs/go-ipfs#7501](https://github.com/ipfs/go-ipfs/pull/7501))
+  - update version to 0.7.0-dev
+  - Merge branch 'release' into master
+  - systemd: specify repo path, to avoid unnecessary subdirectory ([ipfs/go-ipfs#7472](https://github.com/ipfs/go-ipfs/pull/7472))
+  - doc(prod): start documenting production stuff ([ipfs/go-ipfs#7469](https://github.com/ipfs/go-ipfs/pull/7469))
+  - Readme: Update link about init systems (and import old readme) ([ipfs/go-ipfs#7473](https://github.com/ipfs/go-ipfs/pull/7473))
+  - doc(config): expand peering docs ([ipfs/go-ipfs#7466](https://github.com/ipfs/go-ipfs/pull/7466))
+  - fix: Use the -p option in Dockerfile to make parents as needed ([ipfs/go-ipfs#7464](https://github.com/ipfs/go-ipfs/pull/7464))
+  - systemd: enable systemd hardening features ([ipfs/go-ipfs#7286](https://github.com/ipfs/go-ipfs/pull/7286))
+  - fix(migration): migrate /ipfs/ bootstrappers to /p2p/ ([ipfs/go-ipfs#7450](https://github.com/ipfs/go-ipfs/pull/7450))
+  - readme: update go-version ([ipfs/go-ipfs#7447](https://github.com/ipfs/go-ipfs/pull/7447))
+  - fix(migration): correctly migrate quic addresses ([ipfs/go-ipfs#7446](https://github.com/ipfs/go-ipfs/pull/7446))
+  - chore: add migration to listen on QUIC by default ([ipfs/go-ipfs#7443](https://github.com/ipfs/go-ipfs/pull/7443))
+  - go: bump minimal dependency to 1.14.4 ([ipfs/go-ipfs#7419](https://github.com/ipfs/go-ipfs/pull/7419))
+  - fix: use bitswap sessions for ipfs refs ([ipfs/go-ipfs#7389](https://github.com/ipfs/go-ipfs/pull/7389))
+  - fix(commands): print consistent addresses in ipfs id ([ipfs/go-ipfs#7397](https://github.com/ipfs/go-ipfs/pull/7397))
+  - fix two pubsub issues. ([ipfs/go-ipfs#7394](https://github.com/ipfs/go-ipfs/pull/7394))
+  - docs: add pacman.store (@RubenKelevra) to the early testers ([ipfs/go-ipfs#7368](https://github.com/ipfs/go-ipfs/pull/7368))
+  - Update docs-beta links to final URLs ([ipfs/go-ipfs#7386](https://github.com/ipfs/go-ipfs/pull/7386))
+  - feat: webui v2.9.0 ([ipfs/go-ipfs#7387](https://github.com/ipfs/go-ipfs/pull/7387))
+  - chore: update WebUI to 2.8.0 ([ipfs/go-ipfs#7380](https://github.com/ipfs/go-ipfs/pull/7380))
+  - mailmap support ([ipfs/go-ipfs#7375](https://github.com/ipfs/go-ipfs/pull/7375))
+  - doc: update the release template for git flow changes ([ipfs/go-ipfs#7370](https://github.com/ipfs/go-ipfs/pull/7370))
+  - chore: update deps ([ipfs/go-ipfs#7369](https://github.com/ipfs/go-ipfs/pull/7369))
+- github.com/ipfs/go-bitswap (v0.2.19 -> v0.2.20):
+  - fix: don't say we're sending a full wantlist unless we are (#429) ([ipfs/go-bitswap#429](https://github.com/ipfs/go-bitswap/pull/429))
+- github.com/ipfs/go-cid (v0.0.6 -> v0.0.7):
+  - feat: optimize cid.Prefix ([ipfs/go-cid#109](https://github.com/ipfs/go-cid/pull/109))
+- github.com/ipfs/go-datastore (v0.4.4 -> v0.4.5):
+  - Add test to ensure that Delete returns no error for missing keys ([ipfs/go-datastore#162](https://github.com/ipfs/go-datastore/pull/162))
+  - Fix typo in sync/sync.go ([ipfs/go-datastore#159](https://github.com/ipfs/go-datastore/pull/159))
+  - Add the generated flatfs stub, since it cannot be auto-generated ([ipfs/go-datastore#158](https://github.com/ipfs/go-datastore/pull/158))
+  - support flatfs fuzzing ([ipfs/go-datastore#157](https://github.com/ipfs/go-datastore/pull/157))
+  - fuzzing harness (#153) ([ipfs/go-datastore#153](https://github.com/ipfs/go-datastore/pull/153))
+  - feat(mount): don't give up on error ([ipfs/go-datastore#146](https://github.com/ipfs/go-datastore/pull/146))
+  - /test: fix bad ElemCount/10 lenght (should not be divided) ([ipfs/go-datastore#152](https://github.com/ipfs/go-datastore/pull/152))
+- github.com/ipfs/go-ds-flatfs (v0.4.4 -> v0.4.5):
+  - Add os.Rename wrapper for Plan 9 (#87) ([ipfs/go-ds-flatfs#87](https://github.com/ipfs/go-ds-flatfs/pull/87))
+- github.com/ipfs/go-fs-lock (v0.0.5 -> v0.0.6):
+  - Fix build on Plan 9 ([ipfs/go-fs-lock#17](https://github.com/ipfs/go-fs-lock/pull/17))
+- github.com/ipfs/go-graphsync (v0.0.5 -> v0.1.1):
+  - docs(CHANGELOG): update for v0.1.1
+  - docs(CHANGELOG): update for v0.1.0 release ([ipfs/go-graphsync#84](https://github.com/ipfs/go-graphsync/pull/84))
+  - Dedup by key extension (#83) ([ipfs/go-graphsync#83](https://github.com/ipfs/go-graphsync/pull/83))
+  - Release infrastructure (#81) ([ipfs/go-graphsync#81](https://github.com/ipfs/go-graphsync/pull/81))
+  - feat(persistenceoptions): add unregister ability (#80) ([ipfs/go-graphsync#80](https://github.com/ipfs/go-graphsync/pull/80))
+  - fix(message): regen protobuf code (#79) ([ipfs/go-graphsync#79](https://github.com/ipfs/go-graphsync/pull/79))
+  - feat(requestmanager): run response hooks on completed requests (#77) ([ipfs/go-graphsync#77](https://github.com/ipfs/go-graphsync/pull/77))
+  - Revert "add extensions on complete (#76)"
+  - add extensions on complete (#76) ([ipfs/go-graphsync#76](https://github.com/ipfs/go-graphsync/pull/76))
+  - All changes to date including pause requests & start paused, along with new adds for cleanups and checking of execution (#75) ([ipfs/go-graphsync#75](https://github.com/ipfs/go-graphsync/pull/75))
+  - More fine grained response controls (#71) ([ipfs/go-graphsync#71](https://github.com/ipfs/go-graphsync/pull/71))
+  - Refactor request execution and use IPLD SkipMe functionality for proper partial results on a request (#70) ([ipfs/go-graphsync#70](https://github.com/ipfs/go-graphsync/pull/70))
+  - feat(graphsync): implement do-no-send-cids extension (#69) ([ipfs/go-graphsync#69](https://github.com/ipfs/go-graphsync/pull/69))
+  - Incoming Block Hooks (#68) ([ipfs/go-graphsync#68](https://github.com/ipfs/go-graphsync/pull/68))
+  - fix(responsemanager): add nil check (#67) ([ipfs/go-graphsync#67](https://github.com/ipfs/go-graphsync/pull/67))
+  - refactor(hooks): use external pubsub (#65) ([ipfs/go-graphsync#65](https://github.com/ipfs/go-graphsync/pull/65))
+  - Update of IPLD Prime (#66) ([ipfs/go-graphsync#66](https://github.com/ipfs/go-graphsync/pull/66))
+  - feat(responsemanager): add listener for completed responses (#64) ([ipfs/go-graphsync#64](https://github.com/ipfs/go-graphsync/pull/64))
+  - Update Requests (#63) ([ipfs/go-graphsync#63](https://github.com/ipfs/go-graphsync/pull/63))
+  - Add pausing and unpausing of requests (#62) ([ipfs/go-graphsync#62](https://github.com/ipfs/go-graphsync/pull/62))
+  - Outgoing Request Hooks, swapping persistence layers (#61) ([ipfs/go-graphsync#61](https://github.com/ipfs/go-graphsync/pull/61))
+  - Feat/request hook loader chooser (#60) ([ipfs/go-graphsync#60](https://github.com/ipfs/go-graphsync/pull/60))
+  - Option to Reject requests by default (#58) ([ipfs/go-graphsync#58](https://github.com/ipfs/go-graphsync/pull/58))
+  - Testify refactor (#56) ([ipfs/go-graphsync#56](https://github.com/ipfs/go-graphsync/pull/56))
+  - Switch To Circle CI (#57) ([ipfs/go-graphsync#57](https://github.com/ipfs/go-graphsync/pull/57))
+  - fix(deps): go mod tidy
+  - docs(README): remove ipldbridge reference
+  - Tech Debt: Remove IPLD Bridge ([ipfs/go-graphsync#55](https://github.com/ipfs/go-graphsync/pull/55))
+- github.com/ipfs/go-ipfs-cmds (v0.2.9 -> v0.4.0):
+  - fix: allow requests from electron renderer (#201) ([ipfs/go-ipfs-cmds#201](https://github.com/ipfs/go-ipfs-cmds/pull/201))
+  - refactor: move external command checks into commands lib (#198) ([ipfs/go-ipfs-cmds#198](https://github.com/ipfs/go-ipfs-cmds/pull/198))
+  - Fix build on Plan 9 ([ipfs/go-ipfs-cmds#199](https://github.com/ipfs/go-ipfs-cmds/pull/199))
+- github.com/ipfs/go-ipfs-config (v0.8.0 -> v0.9.0):
+  - error if bit size specified with ed25519 keys (#105) ([ipfs/go-ipfs-config#105](https://github.com/ipfs/go-ipfs-config/pull/105))
+- github.com/ipfs/go-log/v2 (v2.0.8 -> v2.1.1):
+  failed to fetch repo
+- github.com/ipfs/go-path (v0.0.7 -> v0.0.8):
+  - ResolveToLastNode no longer fetches nodes it does not need ([ipfs/go-path#30](https://github.com/ipfs/go-path/pull/30))
+  - doc: add a lead maintainer
+- github.com/ipfs/interface-go-ipfs-core (v0.3.0 -> v0.4.0):
+  - Add ID formatting functions, used by various IPFS cli commands ([ipfs/interface-go-ipfs-core#65](https://github.com/ipfs/interface-go-ipfs-core/pull/65))
+- github.com/ipld/go-car (v0.1.0 -> v0.1.1-0.20200429200904-c222d793c339):
+  - Update go-ipld-prime to the era of NodeAssembler. ([ipld/go-car#31](https://github.com/ipld/go-car/pull/31))
+  - fix: update the cli tool's car dep ([ipld/go-car#30](https://github.com/ipld/go-car/pull/30))
+- github.com/ipld/go-ipld-prime (v0.0.2-0.20191108012745-28a82f04c785 -> v0.0.2-0.20200428162820-8b59dc292b8e):
+  - Add two basic examples of usage, as go tests.
+  - Fix marshalling error ([ipld/go-ipld-prime#53](https://github.com/ipld/go-ipld-prime/pull/53))
+  - Add more test specs for list and map nesting.
+  - traversal.SkipMe feature ([ipld/go-ipld-prime#51](https://github.com/ipld/go-ipld-prime/pull/51))
+  - Improvements to traversal docs.
+  - Drop code coverage bot config. ([ipld/go-ipld-prime#50](https://github.com/ipld/go-ipld-prime/pull/50))
+  - Promote NodeAssembler/NodeStyle interface rework to core, and use improved basicnode implementation. ([ipld/go-ipld-prime#49](https://github.com/ipld/go-ipld-prime/pull/49))
+  - Merge branch 'traversal-benchmarks'
+  - Merge branch 'cycle-breaking-and-traversal-benchmarks'
+  - Merge branch 'assembler-upgrade-to-codecs'
+  - Path clarifications ([ipld/go-ipld-prime#47](https://github.com/ipld/go-ipld-prime/pull/47))
+  - Merge branch 'research-admissions'
+  - Add a typed link node to allow traversal with code gen'd builders across links ([ipld/go-ipld-prime#41](https://github.com/ipld/go-ipld-prime/pull/41))
+  - Merge branch 'research-admissions'
+  - Library updates.
+  - Feat/add code gen disclaimer ([ipld/go-ipld-prime#39](https://github.com/ipld/go-ipld-prime/pull/39))
+  - Readme and key Node interface docs improvements.
+  - fix(schema/gen): return value not reference ([ipld/go-ipld-prime#38](https://github.com/ipld/go-ipld-prime/pull/38))
+- github.com/ipld/go-ipld-prime-proto (v0.0.0-20191113031812-e32bd156a1e5 -> v0.0.0-20200428191222-c1ffdadc01e1):
+  - feat(deps): upgrade to new IPLD prime ([ipld/go-ipld-prime-proto#1](https://github.com/ipld/go-ipld-prime-proto/pull/1))
+  - Update to latest ipld before rework ([ipld/go-ipld-prime-proto#2](https://github.com/ipld/go-ipld-prime-proto/pull/2))
+- github.com/libp2p/go-libp2p (v0.9.6 -> v0.11.0):
+  - Added parsing of IPv6 addresses for incoming mDNS requests ([libp2p/go-libp2p#990](https://github.com/libp2p/go-libp2p/pull/990))
+  - Switch from SECIO to Noise ([libp2p/go-libp2p#972](https://github.com/libp2p/go-libp2p/pull/972))
+  - fix tests ([libp2p/go-libp2p#995](https://github.com/libp2p/go-libp2p/pull/995))
+  - Bump Autonat version & validate fixed call loop in `.Addrs` (#988) ([libp2p/go-libp2p#988](https://github.com/libp2p/go-libp2p/pull/988))
+  - fix: use the correct external address when NAT port-mapping ([libp2p/go-libp2p#987](https://github.com/libp2p/go-libp2p/pull/987))
+  - upgrade deps + interoperable uvarint delimited writer/reader. (#985) ([libp2p/go-libp2p#985](https://github.com/libp2p/go-libp2p/pull/985))
+  - fix host can be dialed by autonat public addr, but lost the public addr to announce ([libp2p/go-libp2p#983](https://github.com/libp2p/go-libp2p/pull/983))
+  - Fix address advertisement bugs (#974) ([libp2p/go-libp2p#974](https://github.com/libp2p/go-libp2p/pull/974))
+  - fix: avoid a close deadlock in the natmanager ([libp2p/go-libp2p#971](https://github.com/libp2p/go-libp2p/pull/971))
+  - upgrade swarm; add ID() on mock conns and streams. (#970) ([libp2p/go-libp2p#970](https://github.com/libp2p/go-libp2p/pull/970))
+- github.com/libp2p/go-libp2p-asn-util (null -> v0.0.0-20200825225859-85005c6cf052):
+  - chore: go fmt
+  - feat: use deferred initialization of the asnStore ([libp2p/go-libp2p-asn-util#3](https://github.com/libp2p/go-libp2p-asn-util/pull/3))
+  - chore: switch to forked cidranger
+  - fixed code
+  - library for ASN mappings
+- github.com/libp2p/go-libp2p-autonat (v0.2.3 -> v0.3.2):
+  - static nat shouldn't call host.Addrs()
+  - upgrade deps + interoperable uvarint delimited writer/reader. (#95) ([libp2p/go-libp2p-autonat#95](https://github.com/libp2p/go-libp2p-autonat/pull/95))
+  - fix: a type switch nit ([libp2p/go-libp2p-autonat#83](https://github.com/libp2p/go-libp2p-autonat/pull/83))
+- github.com/libp2p/go-libp2p-blankhost (v0.1.6 -> v0.2.0):
+  - call reset where appropriate (and update deps) ([libp2p/go-libp2p-blankhost#52](https://github.com/libp2p/go-libp2p-blankhost/pull/52))
+- github.com/libp2p/go-libp2p-circuit (v0.2.3 -> v0.3.1):
+  - upgrade deps + interoperable uvarints. (#122) ([libp2p/go-libp2p-circuit#122](https://github.com/libp2p/go-libp2p-circuit/pull/122))
+  - Fix/remove deprecated logging ([libp2p/go-libp2p-circuit#85](https://github.com/libp2p/go-libp2p-circuit/pull/85))
+- github.com/libp2p/go-libp2p-core (v0.5.7 -> v0.6.1):
+  - experimental introspection support (#159) ([libp2p/go-libp2p-core#159](https://github.com/libp2p/go-libp2p-core/pull/159))
+- github.com/libp2p/go-libp2p-discovery (v0.4.0 -> v0.5.0):
+  - Put period at end of sentence ([libp2p/go-libp2p-discovery#65](https://github.com/libp2p/go-libp2p-discovery/pull/65))
+- github.com/libp2p/go-libp2p-kad-dht (v0.8.2 -> v0.9.0):
+  - chore: update deps ([libp2p/go-libp2p-kad-dht#689](https://github.com/libp2p/go-libp2p-kad-dht/pull/689))
+  - allow overwriting builtin dual DHT options ([libp2p/go-libp2p-kad-dht#688](https://github.com/libp2p/go-libp2p-kad-dht/pull/688))
+  - Hardening Improvements: RT diversity and decreased RT churn ([libp2p/go-libp2p-kad-dht#687](https://github.com/libp2p/go-libp2p-kad-dht/pull/687))
+  - Fix key log encoding ([libp2p/go-libp2p-kad-dht#682](https://github.com/libp2p/go-libp2p-kad-dht/pull/682))
+  - upgrade deps + uvarint delimited writer/reader. (#684) ([libp2p/go-libp2p-kad-dht#684](https://github.com/libp2p/go-libp2p-kad-dht/pull/684))
+  - periodicBootstrapInterval should be ticker? (#678) ([libp2p/go-libp2p-kad-dht#678](https://github.com/libp2p/go-libp2p-kad-dht/pull/678))
+  - removes duplicate comment ([libp2p/go-libp2p-kad-dht#674](https://github.com/libp2p/go-libp2p-kad-dht/pull/674))
+  - Revert "Peer Diversity in the Routing Table (#658)" ([libp2p/go-libp2p-kad-dht#670](https://github.com/libp2p/go-libp2p-kad-dht/pull/670))
+  - Fixed problem with refresh logging ([libp2p/go-libp2p-kad-dht#667](https://github.com/libp2p/go-libp2p-kad-dht/pull/667))
+  - feat: protect all peers in low buckets, tag everyone else with 5 ([libp2p/go-libp2p-kad-dht#666](https://github.com/libp2p/go-libp2p-kad-dht/pull/666))
+  - Peer Diversity in the Routing Table (#658) ([libp2p/go-libp2p-kad-dht#658](https://github.com/libp2p/go-libp2p-kad-dht/pull/658))
+- github.com/libp2p/go-libp2p-kbucket (v0.4.2 -> v0.4.7):
+  - chore: switch from go-multiaddr-net to go-multiaddr/net
+  - Use crypto/rand for generating random prefixes
+  - feat: when using the diversity filter for ipv6 addresses if the ASN cannot be found for a particular address then fallback on using the /32 mask of the  address as the group name instead of simply rejecting the peer from routing table
+  - simplify filter (#92) ([libp2p/go-libp2p-kbucket#92](https://github.com/libp2p/go-libp2p-kbucket/pull/92))
+  - fix: switch to forked cid ranger dep ([libp2p/go-libp2p-kbucket#91](https://github.com/libp2p/go-libp2p-kbucket/pull/91))
+  - Reduce Routing Table churn (#90) ([libp2p/go-libp2p-kbucket#90](https://github.com/libp2p/go-libp2p-kbucket/pull/90))
+  - Peer Diversity for Routing Table and Querying (#88) ([libp2p/go-libp2p-kbucket#88](https://github.com/libp2p/go-libp2p-kbucket/pull/88))
+  - fix bug in peer eviction (#87) ([libp2p/go-libp2p-kbucket#87](https://github.com/libp2p/go-libp2p-kbucket/pull/87))
+  - feat: add an AddedAt timestamp (#84) ([libp2p/go-libp2p-kbucket#84](https://github.com/libp2p/go-libp2p-kbucket/pull/84))
+- github.com/libp2p/go-libp2p-pubsub (v0.3.1 -> v0.3.5):
+  - regenerate protobufs (#381) ([libp2p/go-libp2p-pubsub#381](https://github.com/libp2p/go-libp2p-pubsub/pull/381))
+  - track validation time
+  - fullfill promise as soon as a message begins validation
+  - don't apply penalty in self origin rejections
+  - add behaviour penalty threshold
+  - Add String() method to Topic.
+  - add regression test for issue 371
+  - don't add direct peers to fanout
+  - reference spec change in comment.
+  - fix backoff slack time
+  - use the heartbeat interval for slack time
+  - add slack time to prune backoff clearance
+  - fix: call the correct tracer function in FloodSubRouter.Leave (#373) ([libp2p/go-libp2p-pubsub#373](https://github.com/libp2p/go-libp2p-pubsub/pull/373))
+  - downgrade trace buffer overflow log to debug
+  - track topics in Reject/Duplicate/Deliver events
+  - add topics to Reject/Duplicate/Deliver events
+  - fix flaky test
+  - refactor ip colocation factor computation that is common for score and inspection
+  - better handling of intermediate topic score snapshots
+  - disallow duplicate score inspectors
+  - make peer score inspect function types aliases
+  - extended peer score inspection
+  - upgrade deps + interoperable uvarint delimited writer/reader.
+  - Add warning about messageIDs
+  - Signing policy + optional Signature, From and Seqno ([libp2p/go-libp2p-pubsub#359](https://github.com/libp2p/go-libp2p-pubsub/pull/359))
+  - Update pubsub.go
+  - Define a public error ErrSubscriptionCancelled.
+  - only do PX on leave if PX was enabled in the node
+  - drop warning about failure to open stream to a debug log
+  - reinstate tagging (now protection) tests
+  - disable tests for direct/mesh tags, we don't have an interface to query the connman yet
+  - protect direct and mesh peers in the connection manager
+  - feat: add direct connect ticks option
+- github.com/libp2p/go-libp2p-pubsub-router (v0.3.0 -> v0.3.2):
+  - upgrade deps + interoperable uvarint delimited writer/reader. (#79) ([libp2p/go-libp2p-pubsub-router#79](https://github.com/libp2p/go-libp2p-pubsub-router/pull/79))
+- github.com/libp2p/go-libp2p-quic-transport (v0.6.0 -> v0.8.0):
+  - update quic-go to v0.18.0 (#171) ([libp2p/go-libp2p-quic-transport#171](https://github.com/libp2p/go-libp2p-quic-transport/pull/171))
+- github.com/libp2p/go-libp2p-swarm (v0.2.6 -> v0.2.8):
+  - slim down dependencies ([libp2p/go-libp2p-swarm#225](https://github.com/libp2p/go-libp2p-swarm/pull/225))
+  - `ID()` method on connections and streams + record opening time (#224) ([libp2p/go-libp2p-swarm#224](https://github.com/libp2p/go-libp2p-swarm/pull/224))
+- github.com/libp2p/go-libp2p-testing (v0.1.1 -> v0.2.0):
+  - Add net benchmark harness ([libp2p/go-libp2p-testing#21](https://github.com/libp2p/go-libp2p-testing/pull/21))
+  - Update suite to check that streams respect mux.ErrReset. ([libp2p/go-libp2p-testing#16](https://github.com/libp2p/go-libp2p-testing/pull/16))
+- github.com/libp2p/go-maddr-filter (v0.0.5 -> v0.1.0):
+  - deprecate this package; moved to multiformats/go-multiaddr. (#23) ([libp2p/go-maddr-filter#23](https://github.com/libp2p/go-maddr-filter/pull/23))
+  - chore(dep): update ([libp2p/go-maddr-filter#18](https://github.com/libp2p/go-maddr-filter/pull/18))
+- github.com/libp2p/go-msgio (v0.0.4 -> v0.0.6):
+  - interoperable uvarints. (#21) ([libp2p/go-msgio#21](https://github.com/libp2p/go-msgio/pull/21))
+  - upgrade deps + interoperable uvarint delimited writer/reader. (#20) ([libp2p/go-msgio#20](https://github.com/libp2p/go-msgio/pull/20))
+- github.com/libp2p/go-netroute (v0.1.2 -> v0.1.3):
+  - add Plan 9 support
+- github.com/libp2p/go-openssl (v0.0.5 -> v0.0.7):
+  - make ed25519 less special ([libp2p/go-openssl#7](https://github.com/libp2p/go-openssl/pull/7))
+  - Add required bindings to support openssl in libp2p-tls ([libp2p/go-openssl#6](https://github.com/libp2p/go-openssl/pull/6))
+- github.com/libp2p/go-reuseport (v0.0.1 -> v0.0.2):
+  - Fix build on Plan 9 ([libp2p/go-reuseport#79](https://github.com/libp2p/go-reuseport/pull/79))
+  - farewell gx; thanks for serving us well.
+  - update readme badges
+  - remove Jenkinsfile.
+- github.com/libp2p/go-reuseport-transport (v0.0.3 -> v0.0.4):
+  - Update go-netroute and go-reuseport for Plan 9 support
+  - Fix build on Plan 9
+- github.com/lucas-clemente/quic-go (v0.16.2 -> v0.18.0):
+  - create a milestone version for v0.18.x
+  - add Changelog entries for v0.17 ([lucas-clemente/quic-go#2726](https://github.com/lucas-clemente/quic-go/pull/2726))
+  - regenerate the testdata certificate with SAN instead of CommonName ([lucas-clemente/quic-go#2723](https://github.com/lucas-clemente/quic-go/pull/2723))
+  - make it possible to use multiple qtls versions at the same time, add support for Go 1.15 ([lucas-clemente/quic-go#2720](https://github.com/lucas-clemente/quic-go/pull/2720))
+  - add fuzzing for transport parameters ([lucas-clemente/quic-go#2713](https://github.com/lucas-clemente/quic-go/pull/2713))
+  - run golangci-lint on Github Actions ([lucas-clemente/quic-go#2700](https://github.com/lucas-clemente/quic-go/pull/2700))
+  - disallow values above 2^60 for Config.MaxIncoming{Uni}Streams ([lucas-clemente/quic-go#2711](https://github.com/lucas-clemente/quic-go/pull/2711))
+  - never send a value larger than 2^60 in MAX_STREAMS frames ([lucas-clemente/quic-go#2710](https://github.com/lucas-clemente/quic-go/pull/2710))
+  - run the check for go generated files on Github Actions instead of Travis ([lucas-clemente/quic-go#2703](https://github.com/lucas-clemente/quic-go/pull/2703))
+  - update QUIC draft version information in README ([lucas-clemente/quic-go#2715](https://github.com/lucas-clemente/quic-go/pull/2715))
+  - remove Fuzzit badge from README ([lucas-clemente/quic-go#2714](https://github.com/lucas-clemente/quic-go/pull/2714))
+  - use the correct return values in Fuzz() functions ([lucas-clemente/quic-go#2705](https://github.com/lucas-clemente/quic-go/pull/2705))
+  - simplify the connection, rename it to sendConn ([lucas-clemente/quic-go#2707](https://github.com/lucas-clemente/quic-go/pull/2707))
+  - update qpack to v0.2.0 ([lucas-clemente/quic-go#2704](https://github.com/lucas-clemente/quic-go/pull/2704))
+  - remove redundant error check in the stream ([lucas-clemente/quic-go#2718](https://github.com/lucas-clemente/quic-go/pull/2718))
+  - put back the packet buffer when parsing the connection ID fails ([lucas-clemente/quic-go#2708](https://github.com/lucas-clemente/quic-go/pull/2708))
+  - update fuzzing code for oss-fuzz ([lucas-clemente/quic-go#2702](https://github.com/lucas-clemente/quic-go/pull/2702))
+  - fix travis script ([lucas-clemente/quic-go#2701](https://github.com/lucas-clemente/quic-go/pull/2701))
+  - remove Fuzzit from Travis config ([lucas-clemente/quic-go#2699](https://github.com/lucas-clemente/quic-go/pull/2699))
+  - add a script to check if go generated files are correct ([lucas-clemente/quic-go#2692](https://github.com/lucas-clemente/quic-go/pull/2692))
+  - only arm the application data PTO timer after the handshake is confirmed ([lucas-clemente/quic-go#2689](https://github.com/lucas-clemente/quic-go/pull/2689))
+  - fix tracing of congestion state updates ([lucas-clemente/quic-go#2691](https://github.com/lucas-clemente/quic-go/pull/2691))
+  - fix reading of flag values in integration tests ([lucas-clemente/quic-go#2690](https://github.com/lucas-clemente/quic-go/pull/2690))
+  - remove ACK decimation ([lucas-clemente/quic-go#2599](https://github.com/lucas-clemente/quic-go/pull/2599))
+  - add a metric for PTOs ([lucas-clemente/quic-go#2686](https://github.com/lucas-clemente/quic-go/pull/2686))
+  - remove the H3_EARLY_RESPONSE error ([lucas-clemente/quic-go#2687](https://github.com/lucas-clemente/quic-go/pull/2687))
+  - implement tracing for congestion state changes ([lucas-clemente/quic-go#2684](https://github.com/lucas-clemente/quic-go/pull/2684))
+  - remove the N connection simulation from the Reno code ([lucas-clemente/quic-go#2682](https://github.com/lucas-clemente/quic-go/pull/2682))
+  - remove the SSLR (slow start large reduction) experiment ([lucas-clemente/quic-go#2680](https://github.com/lucas-clemente/quic-go/pull/2680))
+  - remove unused connectionStats counters from the Reno implementation ([lucas-clemente/quic-go#2683](https://github.com/lucas-clemente/quic-go/pull/2683))
+  - add an integration test that randomly sets tracers ([lucas-clemente/quic-go#2679](https://github.com/lucas-clemente/quic-go/pull/2679))
+  - privatize some methods in the congestion controller package ([lucas-clemente/quic-go#2681](https://github.com/lucas-clemente/quic-go/pull/2681))
+  - fix out-of-bounds read when creating a multiplexed tracer ([lucas-clemente/quic-go#2678](https://github.com/lucas-clemente/quic-go/pull/2678))
+  - run integration tests with qlog and metrics on CircleCI ([lucas-clemente/quic-go#2677](https://github.com/lucas-clemente/quic-go/pull/2677))
+  - add a metric for closed connections ([lucas-clemente/quic-go#2676](https://github.com/lucas-clemente/quic-go/pull/2676))
+  - trace packets that are sent outside of a connection ([lucas-clemente/quic-go#2675](https://github.com/lucas-clemente/quic-go/pull/2675))
+  - trace dropped packets that are dropped before they are passed to any session ([lucas-clemente/quic-go#2670](https://github.com/lucas-clemente/quic-go/pull/2670))
+  - add a metric for sent packets ([lucas-clemente/quic-go#2673](https://github.com/lucas-clemente/quic-go/pull/2673))
+  - add a metric for lost packets ([lucas-clemente/quic-go#2672](https://github.com/lucas-clemente/quic-go/pull/2672))
+  - simplify the Tracer interface by combining the TracerFor... methods ([lucas-clemente/quic-go#2671](https://github.com/lucas-clemente/quic-go/pull/2671))
+  - add a metrics package using OpenCensus, trace connections ([lucas-clemente/quic-go#2646](https://github.com/lucas-clemente/quic-go/pull/2646))
+  - add a multiplexer for the tracer ([lucas-clemente/quic-go#2665](https://github.com/lucas-clemente/quic-go/pull/2665))
+  - introduce a type for stateless reset tokens ([lucas-clemente/quic-go#2668](https://github.com/lucas-clemente/quic-go/pull/2668))
+  - log all reasons why a connection is closed ([lucas-clemente/quic-go#2669](https://github.com/lucas-clemente/quic-go/pull/2669))
+  - add integration tests using faulty packet conns ([lucas-clemente/quic-go#2663](https://github.com/lucas-clemente/quic-go/pull/2663))
+  - don't block sendQueue.Send() if the runloop already exited. ([lucas-clemente/quic-go#2656](https://github.com/lucas-clemente/quic-go/pull/2656))
+  - move the SupportedVersions slice out of the wire.Header ([lucas-clemente/quic-go#2664](https://github.com/lucas-clemente/quic-go/pull/2664))
+  - add a flag to disable conn ID generation and the check for retired conn IDs ([lucas-clemente/quic-go#2660](https://github.com/lucas-clemente/quic-go/pull/2660))
+  - put the session in the packet handler map directly (for client sessions) ([lucas-clemente/quic-go#2667](https://github.com/lucas-clemente/quic-go/pull/2667))
+  - don't send write error in CONNECTION_CLOSE frames ([lucas-clemente/quic-go#2666](https://github.com/lucas-clemente/quic-go/pull/2666))
+  - reset the PTO count before setting the timer when dropping a PN space ([lucas-clemente/quic-go#2657](https://github.com/lucas-clemente/quic-go/pull/2657))
+  - enforce that a connection ID is not retired in a packet that uses that connection ID ([lucas-clemente/quic-go#2651](https://github.com/lucas-clemente/quic-go/pull/2651))
+  - don't retire the conn ID that's in use when receiving a retransmission ([lucas-clemente/quic-go#2652](https://github.com/lucas-clemente/quic-go/pull/2652))
+  - fix flaky cancelation integration test ([lucas-clemente/quic-go#2649](https://github.com/lucas-clemente/quic-go/pull/2649))
+  - fix crash when the qlog callbacks returns a nil io.WriteCloser ([lucas-clemente/quic-go#2648](https://github.com/lucas-clemente/quic-go/pull/2648))
+  - fix flaky server test on Travis ([lucas-clemente/quic-go#2645](https://github.com/lucas-clemente/quic-go/pull/2645))
+  - fix a typo in the logging package test suite
+  - introduce type aliases in the logging package ([lucas-clemente/quic-go#2643](https://github.com/lucas-clemente/quic-go/pull/2643))
+  - rename frame fields to the names used in the draft ([lucas-clemente/quic-go#2644](https://github.com/lucas-clemente/quic-go/pull/2644))
+  - split the qlog package into a logging and a qlog package, use a tracer interface in the quic.Config ([lucas-clemente/quic-go#2638](https://github.com/lucas-clemente/quic-go/pull/2638))
+  - fix HTTP request writing if the Request.Body reads data and returns EOF ([lucas-clemente/quic-go#2642](https://github.com/lucas-clemente/quic-go/pull/2642))
+  - handle Version Negotiation packets in the session ([lucas-clemente/quic-go#2640](https://github.com/lucas-clemente/quic-go/pull/2640))
+  - increase the packet size of the client's Initial packet ([lucas-clemente/quic-go#2634](https://github.com/lucas-clemente/quic-go/pull/2634))
+  - introduce an assertion in the server ([lucas-clemente/quic-go#2637](https://github.com/lucas-clemente/quic-go/pull/2637))
+  - use the new qtls interface for (re)storing app data with a session state ([lucas-clemente/quic-go#2631](https://github.com/lucas-clemente/quic-go/pull/2631))
+  - remove buffering of HTTP requests ([lucas-clemente/quic-go#2626](https://github.com/lucas-clemente/quic-go/pull/2626))
+  - remove superfluous parameters logged when not doing 0-RTT ([lucas-clemente/quic-go#2632](https://github.com/lucas-clemente/quic-go/pull/2632))
+  - return an infinite bandwidth if the RTT is zero ([lucas-clemente/quic-go#2636](https://github.com/lucas-clemente/quic-go/pull/2636))
+  - drop support for Go 1.13 ([lucas-clemente/quic-go#2628](https://github.com/lucas-clemente/quic-go/pull/2628))
+  - remove superfluos handleResetStreamFrame method on the stream ([lucas-clemente/quic-go#2623](https://github.com/lucas-clemente/quic-go/pull/2623))
+  - implement a token-bucket pacing algorithm ([lucas-clemente/quic-go#2615](https://github.com/lucas-clemente/quic-go/pull/2615))
+  - gracefully handle concurrent stream writes and cancellations ([lucas-clemente/quic-go#2624](https://github.com/lucas-clemente/quic-go/pull/2624))
+  - log sent packets right before sending them out ([lucas-clemente/quic-go#2613](https://github.com/lucas-clemente/quic-go/pull/2613))
+  - remove unused packet counter in the receivedPacketTracker ([lucas-clemente/quic-go#2611](https://github.com/lucas-clemente/quic-go/pull/2611))
+  - rewrite the proxy to avoid packet reordering ([lucas-clemente/quic-go#2617](https://github.com/lucas-clemente/quic-go/pull/2617))
+  - fix flaky INVALID_TOKEN integration test ([lucas-clemente/quic-go#2610](https://github.com/lucas-clemente/quic-go/pull/2610))
+  - make DialEarly return EarlySession ([lucas-clemente/quic-go#2621](https://github.com/lucas-clemente/quic-go/pull/2621))
+  - add debug logging to the packet handler map ([lucas-clemente/quic-go#2608](https://github.com/lucas-clemente/quic-go/pull/2608))
+  - increase the minimum pacing delay to 1ms ([lucas-clemente/quic-go#2605](https://github.com/lucas-clemente/quic-go/pull/2605))
+- github.com/marten-seemann/qpack (v0.1.0 -> v0.2.0):
+  - don't reuse the encoder in the integration tests ([marten-seemann/qpack#18](https://github.com/marten-seemann/qpack/pull/18))
+  - use Huffman encoding for field names and values ([marten-seemann/qpack#16](https://github.com/marten-seemann/qpack/pull/16))
+  - add more tests for encoding using the static table ([marten-seemann/qpack#15](https://github.com/marten-seemann/qpack/pull/15))
+  - Encoder uses the static table. ([marten-seemann/qpack#10](https://github.com/marten-seemann/qpack/pull/10))
+  - add gofmt to golangci-lint
+  - update qifs to the current version ([marten-seemann/qpack#14](https://github.com/marten-seemann/qpack/pull/14))
+  - use golangci-lint for linting ([marten-seemann/qpack#12](https://github.com/marten-seemann/qpack/pull/12))
+  - add fuzzing ([marten-seemann/qpack#9](https://github.com/marten-seemann/qpack/pull/9))
+  - update qifs
+  - use https protocol for submodule clone ([marten-seemann/qpack#7](https://github.com/marten-seemann/qpack/pull/7))
+- github.com/marten-seemann/qtls (v0.9.1 -> v0.10.0):
+  - add callbacks to store and restore app data along a session state
+  - remove support for Go 1.13
+- github.com/marten-seemann/qtls-go1-15 (null -> v0.1.0):
+  - use a prefix for client session cache keys
+  - add callbacks to store and restore app data along a session state
+  - don't use TLS 1.3 compatibility mode when using alternative record layer
+  - delete the session ticket after attempting 0-RTT
+  - reject 0-RTT when a different ALPN is chosen
+  - encode the ALPN into the session ticket
+  - add a field to the ConnectionState to tell if 0-RTT was used
+  - add a callback to tell the client about rejection of 0-RTT
+  - don't offer 0-RTT after a HelloRetryRequest
+  - add Accept0RTT to Config callback to decide if 0-RTT should be accepted
+  - add the option to encode application data into the session ticket
+  - export the 0-RTT write key
+  - abuse the nonce field of ClientSessionState to save max_early_data_size
+  - export the 0-RTT read key
+  - close connection if client attempts 0-RTT, but ticket didn't allow it
+  - encode the max early data size into the session ticket
+  - implement parsing of the early_data extension in the EncryptedExtensions
+  - add a tls.Config.MaxEarlyData option to enable 0-RTT
+  - accept TLS 1.3 cipher suites in Config.CipherSuites
+  - introduce a function on the connection to generate a session ticket
+  - add a config option to enforce selection of an application protocol
+  - export Conn.HandlePostHandshakeMessage
+  - export Alert
+  - reject Configs that set MaxVersion < 1.3 when using a record layer
+  - enforce TLS 1.3 when using an alternative record layer
+- github.com/multiformats/go-multiaddr (v0.2.2 -> v0.3.1):
+  - dep: add "codependencies" for handling version conflicts ([multiformats/go-multiaddr#132](https://github.com/multiformats/go-multiaddr/pull/132))
+  - Support /p2p addresses encoded as CIDs ([multiformats/go-multiaddr#130](https://github.com/multiformats/go-multiaddr/pull/130))
+  - Merge go-multiaddr-net
+- github.com/multiformats/go-multiaddr-net (v0.1.5 -> v0.2.0):
+  - Deprecate ([multiformats/go-multiaddr-net#72](https://github.com/multiformats/go-multiaddr-net/pull/72))
+- github.com/multiformats/go-multihash (v0.0.13 -> v0.0.14):
+  - fix: only register one blake2s length ([multiformats/go-multihash#129](https://github.com/multiformats/go-multihash/pull/129))
+  - feat: add two filecoin hashes, without Sum() implementations ([multiformats/go-multihash#128](https://github.com/multiformats/go-multihash/pull/128))
+  - feat: reduce blake2b allocations by special-casing the 256/512 variants ([multiformats/go-multihash#126](https://github.com/multiformats/go-multihash/pull/126))
+- github.com/multiformats/go-multistream (v0.1.1 -> v0.1.2):
+  - upgrade deps + interoperable varints. (#51) ([multiformats/go-multistream#51](https://github.com/multiformats/go-multistream/pull/51))
+- github.com/multiformats/go-varint (v0.0.5 -> v0.0.6):
+  - fix minor interoperability issues. (#6) ([multiformats/go-varint#6](https://github.com/multiformats/go-varint/pull/6))
+- github.com/warpfork/go-wish (v0.0.0-20190328234359-8b3e70f8e830 -> v0.0.0-20200122115046-b9ea61034e4a):
+  - Add ShouldBeSameTypeAs checker.
+  - Integration test update for go versions.
+- github.com/whyrusleeping/cbor-gen (v0.0.0-20200123233031-1cdf64d27158 -> v0.0.0-20200402171437-3d27c146c105):
+  - Handle Nil values for cbg.Deferred ([whyrusleeping/cbor-gen#14](https://github.com/whyrusleeping/cbor-gen/pull/14))
+  - add name of struct field to error messages
+  - Support uint64 pointers ([whyrusleeping/cbor-gen#13](https://github.com/whyrusleeping/cbor-gen/pull/13))
+  - int64 support in map encoders ([whyrusleeping/cbor-gen#12](https://github.com/whyrusleeping/cbor-gen/pull/12))
+  - Fix uint64 typed array gen ([whyrusleeping/cbor-gen#10](https://github.com/whyrusleeping/cbor-gen/pull/10))
+  - Fix cbg self referencing import path ([whyrusleeping/cbor-gen#8](https://github.com/whyrusleeping/cbor-gen/pull/8))
+
+### Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Marten Seemann | 156 | +16428/-42621 | 979 |
+| hannahhoward | 42 | +15132/-9819 | 467 |
+| Eric Myhre | 114 | +13709/-6898 | 586 |
+| Steven Allen | 55 | +1211/-2714 | 95 |
+| Adin Schmahmann | 54 | +1660/-783 | 117 |
+| Petar Maymounkov | 23 | +1677/-671 | 75 |
+| Aarsh Shah | 10 | +1926/-341 | 39 |
+| Raúl Kripalani | 17 | +1134/-537 | 53 |
+| Will | 1 | +841/-0 | 9 |
+| rendaw | 3 | +425/-195 | 12 |
+| Will Scott | 8 | +302/-229 | 15 |
+| vyzo | 22 | +345/-166 | 23 |
+| Fazlul Shahriar | 7 | +452/-44 | 19 |
+| Peter Rabbitson | 1 | +353/-118 | 5 |
+| Hector Sanjuan | 10 | +451/-3 | 14 |
+| Marcin Rataj | 9 | +298/-106 | 16 |
+| Łukasz Magiera | 4 | +329/-51 | 12 |
+| RubenKelevra | 9 | +331/-7 | 12 |
+| Michael Muré | 2 | +259/-69 | 6 |
+| jstordeur | 1 | +252/-2 | 5 |
+| Diederik Loerakker | 1 | +168/-35 | 7 |
+| Tiger | 3 | +138/-52 | 8 |
+| Kevin Neaton | 3 | +103/-21 | 9 |
+| Rod Vagg | 1 | +50/-40 | 4 |
+| Oli Evans | 4 | +60/-9 | 6 |
+| achingbrain | 4 | +30/-30 | 5 |
+| Cyril Fougeray | 2 | +34/-24 | 2 |
+| Luke Tucker | 1 | +31/-1 | 2 |
+| sandman | 2 | +23/-7 | 3 |
+| Alan Shaw | 1 | +18/-9 | 2 |
+| Jacob Heun | 4 | +13/-3 | 4 |
+| Jessica Schilling | 3 | +7/-7 | 3 |
+| Rafael Ramalho | 4 | +9/-4 | 4 |
+| Jeromy Johnson | 2 | +6/-6 | 4 |
+| Nick Cabatoff | 1 | +7/-2 | 1 |
+| Stephen Solka | 1 | +1/-7 | 1 |
+| Preston Van Loon | 2 | +6/-2 | 2 |
+| Jakub Sztandera | 2 | +5/-2 | 2 |
+| llx | 1 | +3/-3 | 1 |
+| Adrian Lanzafame | 1 | +3/-3 | 1 |
+| Yusef Napora | 1 | +3/-2 | 1 |
+| Louis Thibault | 1 | +5/-0 | 1 |
+| Martín Triay | 1 | +4/-0 | 1 |
+| Hlib | 1 | +2/-2 | 1 |
+| Shotaro Yamada | 1 | +2/-1 | 1 |
+| phuslu | 1 | +1/-1 | 1 |
+| Zero King | 1 | +1/-1 | 1 |
+| Rüdiger Klaehn | 1 | +2/-0 | 1 |
+| Nex | 1 | +1/-1 | 1 |
+| Mark Gaiser | 1 | +1/-1 | 1 |
+| Luflosi | 1 | +1/-1 | 1 |
+| David Florness | 1 | +1/-1 | 1 |
+| Dean Eigenmann | 1 | +0/-1 | 1 |
+
 ## v0.6.0 2020-06-19
 
 This is a relatively small release in terms of code changes, but it contains some significant changes to the IPFS protocol.

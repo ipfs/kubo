@@ -57,9 +57,9 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 }
 
 func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
-	dagNode, err := api.core().ResolveNode(ctx, p)
+	resolved, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
-		return "", false, fmt.Errorf("pin: %s", err)
+		return "", false, fmt.Errorf("error resolving path: %s", err)
 	}
 
 	settings, err := caopts.PinIsPinnedOptions(opts...)
@@ -72,7 +72,7 @@ func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 		return "", false, fmt.Errorf("invalid type '%s', must be one of {direct, indirect, recursive, all}", settings.WithType)
 	}
 
-	return api.pinning.IsPinnedWithType(ctx, dagNode.Cid(), mode)
+	return api.pinning.IsPinnedWithType(ctx, resolved.Cid(), mode)
 }
 
 // Rm pin rm api

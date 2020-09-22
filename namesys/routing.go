@@ -69,20 +69,6 @@ func (r *IpnsResolver) resolveOnceAsync(ctx context.Context, name string, option
 		return out
 	}
 
-	// Name should be the hash of a public key retrievable from ipfs.
-	// We retrieve the public key here to make certain that it's in the peer
-	// store before calling GetValue() on the DHT - the DHT will call the
-	// ipns validator, which in turn will get the public key from the peer
-	// store to verify the record signature
-	_, err = routing.GetPublicKey(r.routing, ctx, pid)
-	if err != nil {
-		log.Debugf("RoutingResolver: could not retrieve public key %s: %s\n", name, err)
-		out <- onceResult{err: err}
-		close(out)
-		cancel()
-		return out
-	}
-
 	// Use the routing system to get the name.
 	// Note that the DHT will call the ipns validator when retrieving
 	// the value, which in turn verifies the ipns record signature

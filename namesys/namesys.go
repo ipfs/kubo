@@ -122,24 +122,13 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 
 	key := segments[2]
 
-	if p, ok := ns.cacheGet(key); ok {
-		var err error
-		if len(segments) > 3 {
-			p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
-		}
-
-		out <- onceResult{value: p, err: err}
-		close(out)
-		return out
-	}
-
 	// Resolver selection:
 	// 1. if it is a PeerID/CID/multihash resolve through "ipns".
 	// 2. if it is a domain name, resolve through "dns"
 	// 3. otherwise resolve through the "proquint" resolver
 
 	var res resolver
-	_, err := peer.Decode(key)
+	ipnsKey, err := peer.Decode(key)
 
 	// CIDs in IPNS are expected to have libp2p-key multicodec
 	// We ease the transition by returning a more meaningful error with a valid CID
@@ -153,6 +142,22 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 			close(out)
 			return out
 		}
+	}
+
+	cacheKey := key
+	if err == nil {
+		cacheKey = string(ipnsKey)
+	}
+
+	if p, ok := ns.cacheGet(cacheKey); ok {
+		var err error
+		if len(segments) > 3 {
+			p, err = path.FromSegments("", strings.TrimRight(p.String(), "/"), segments[3])
+		}
+
+		out <- onceResult{value: p, err: err}
+		close(out)
+		return out
 	}
 
 	if err == nil {
@@ -172,7 +177,7 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 			case res, ok := <-resCh:
 				if !ok {
 					if best != (onceResult{}) {
-						ns.cacheSet(key, best.value, best.ttl)
+						ns.cacheSet(cacheKey, best.value, best.ttl)
 					}
 					return
 				}
@@ -218,7 +223,7 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 	if err := ns.ipnsPublisher.PublishWithEOL(ctx, name, value, eol); err != nil {
 		// Invalidate the cache. Publishing may _partially_ succeed but
 		// still return an error.
-		ns.cacheInvalidate(peer.Encode(id))
+		ns.cacheInvalidate(string(id))
 		return err
 	}
 	ttl := DefaultResolverCacheTTL
@@ -228,6 +233,6 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 	if ttEol := time.Until(eol); ttEol < ttl {
 		ttl = ttEol
 	}
-	ns.cacheSet(peer.Encode(id), value, ttl)
+	ns.cacheSet(string(id), value, ttl)
 	return nil
 }

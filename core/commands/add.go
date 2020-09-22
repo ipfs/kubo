@@ -60,6 +60,10 @@ Adds contents of <path> to ipfs. Use -r to add directories.
 Note that directories are added recursively, to form the ipfs
 MerkleDAG.
 
+If the daemon is not running, it will just add locally.
+If the daemon is started later, it will be advertised after a few
+seconds when the reprovider runs.
+
 The wrap option, '-w', wraps the file (or files, if using the
 recursive option) in a directory. This directory contains only
 the files which have been added, and means that the file retains

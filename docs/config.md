@@ -179,8 +179,8 @@ does (e.g, `"1d2h4m40.01s"`).
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
-    - [`Peering`](#peering)
-        - [`Peering.Peers`](#peeringpeers)
+- [`Peering`](#peering)
+    - [`Peering.Peers`](#peeringpeers)
 - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
@@ -260,7 +260,7 @@ Default:
 [
   "/ip4/0.0.0.0/tcp/4001",
   "/ip6/::/tcp/4001",
-  "/ip6/0.0.0.0/udp/4001/quic",
+  "/ip4/0.0.0.0/udp/4001/quic",
   "/ip6/::/udp/4001/quic"
 ]
 ```
@@ -586,6 +586,12 @@ Type: `array[string]`
 
 `PublicGateways` is a dictionary for defining gateway behavior on specified hostnames.
 
+Hostnames can optionally be defined with one or more wildcards.
+
+Examples:
+- `*.example.com` will match requests to `http://foo.example.com/ipfs/*` or `http://{cid}.ipfs.bar.example.com/*`.
+- `foo-*.example.com` will match requests to `http://foo-bar.example.com/ipfs/*` or `http://{cid}.ipfs.foo-xyz.example.com/*`.
+
 #### `Gateway.PublicGateways: Paths`
 
 Array of paths that should be exposed on the hostname.
@@ -614,7 +620,7 @@ Type: `array[string]`
 A boolean to configure whether the gateway at the hostname provides [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
 between content roots.
 
-- `true` - enables [subdomain gateway](#https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
+- `true` - enables [subdomain gateway](#https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
     - **Requires whitelist:** make sure respective `Paths` are set.
     For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
         ```json
@@ -630,7 +636,7 @@ between content roots.
     - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
     - **API:** if `/api` is on the `Paths` whitelist, `http://{hostname}/api/{cmd}` produces redirect to `http://api.{hostname}/api/{cmd}`
 
-- `false` - enables [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
+- `false` - enables [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
     ```json
     "Gateway": {
@@ -687,7 +693,7 @@ $ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 Below is a list of the most common public gateway setups.
 
-* Public [subdomain gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
+* Public [subdomain gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "dweb.link": {
@@ -698,10 +704,13 @@ Below is a list of the most common public gateway setups.
    ```
    **Note I:** this enables automatic redirects from content paths to subdomains:  
    `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`  
-   **Note II:** if you run go-ipfs behind a reverse proxy that provides TLS, make it adds a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
-   `https://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
+   **Note II:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
+   `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`  
+   **Note III:** we also support `X-Forwarded-Proto: example.com` if you want to override subdomain gateway host from the original request:
+   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
+   
 
-* Public [path gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
+* Public [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "ipfs.io": {
@@ -717,7 +726,7 @@ Below is a list of the most common public gateway setups.
   ```
   * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
-* Hardened, site-specific [DNSLink gateway](https://docs-beta.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).  
+* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).  
   Disable fetching of remote data (`NoFetch: true`)
   and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
@@ -837,7 +846,7 @@ Default: `false`
 
 Type: `bool`
 
-### `Peering`
+## `Peering`
 
 Configures the peering subsystem. The peering subsystem configures go-ipfs to
 connect to, remain connected to, and reconnect to a set of nodes. Nodes should
@@ -874,16 +883,29 @@ Peering can be asymmetric or symmetric:
   connection may flap repeatedly. Be careful when asymmetrically peering to not
   overload peers.
 
-#### `Peering.Peers`
+### `Peering.Peers`
 
-The set of peers with which to peer. Each entry is of the form:
+The set of peers with which to peer.
 
-```js
+```json
 {
-  "ID": "QmSomePeerID", # The peers ID.
-  "Addrs": ["/ip4/1.2.3.4/tcp/1234"] # Known addresses for the peer. If none are specified, the DHT will be queried.
+  "Peering": {
+    "Peers": [
+      {
+        "ID": "QmPeerID1",
+        "Addrs": ["/ip4/18.1.1.1/tcp/4001"]
+      },
+      {
+        "ID": "QmPeerID2",
+        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic"]
+      }
+    ]
+  }
+  ...
 }
 ```
+
+Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the DHT will be queried.
 
 Additional fields may be added in the future.
 
@@ -1233,7 +1255,7 @@ receiver supports. When establishing an _inbound_ connection, go-ipfs will let
 the initiator choose the protocol, but will refuse to use any of the disabled
 transports.
 
-Supported transports are: TLS (priority 100), SECIO (priority 200), Noise
+Supported transports are: TLS (priority 100), SECIO (Disabled: i.e. priority false), Noise
 (priority 300).
 
 No default priority will ever be less than 100.
@@ -1250,12 +1272,12 @@ Type: `priority`
 
 #### `Swarm.Transports.Security.SECIO`
 
-[SECIO](https://github.com/libp2p/specs/tree/master/secio) is the most widely
+[SECIO](https://github.com/libp2p/specs/tree/master/secio) was the most widely
 supported IPFS & libp2p security transport. However, it is currently being
 phased out in favor of more popular and better vetted protocols like TLS and
 Noise.
 
-Default: `200`
+Default: `false`
 
 Type: `priority`
 

@@ -45,6 +45,7 @@ commit.
 ```bash
 > go generate .
 > git add bindata.go
+> git add bindata_version_hash.go
 > go mod tidy
 > git commit --amend --no-edit
 

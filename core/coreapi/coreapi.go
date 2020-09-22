@@ -26,7 +26,6 @@ import (
 	"github.com/ipfs/go-ipfs-provider"
 	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -43,8 +42,6 @@ import (
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo"
 )
-
-var log = logging.Logger("core/coreapi")
 
 type CoreAPI struct {
 	nctx context.Context

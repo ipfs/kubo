@@ -33,7 +33,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.14.2
+      - image: circleci/golang:1.14.4
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -58,9 +58,9 @@ executors:
       IPFS_REUSEPORT: false
       LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
       E2E_IPFSD_TYPE: go
-  dockerizer: 
-    docker: 
-      - image: circleci/golang:1.14.2
+  dockerizer:
+    docker:
+      - image: circleci/golang:1.14.4
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
@@ -100,7 +100,7 @@ jobs:
     - run: |
         make -j 1 test/unit/gotest.junit.xml \
         && [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
-    - run: 
+    - run:
         when: always
         command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
 
@@ -171,35 +171,19 @@ jobs:
       - attach_workspace:
           at: /tmp/circleci-workspace
       - run:
-          name: Cloning
-          command: |
-            git clone https://github.com/ipfs/interop.git
-            git -C interop log -1
-      - restore_cache:
-          keys:
-            - v2-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
-            - v2-interop-
-      - run:
           name: Installing dependencies
           command: |
-            npm install
-          working_directory: ~/ipfs/go-ipfs/interop
-      - save_cache:
-          key: v2-interop-{{ checksum "~/ipfs/go-ipfs/interop/package-lock.json" }}
-          paths:
-            - ~/ipfs/go-ipfs/interop/node_modules
-      - run:
-          name: Installing reporting tools
-          command: |
-            npm install --save-dev mocha-circleci-reporter@0.0.3
+            npm init -y
+            npm install ipfs@^0.50.1
+            npm install ipfs-interop@^3.0.0
+            npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
           name: Running tests
           command: |
             mkdir -p /tmp/test-results/interop/
             export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
-            node_modules/.bin/mocha --reporter mocha-circleci-reporter \
-              $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" test/node.js | circleci tests split)
+            npx ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             IPFS_REUSEPORT: false
@@ -386,12 +370,12 @@ workflows:
   # also means tag-based jobs can only depend on other tag-based jobs, so we
   # use a separate workflow because every job needs to be tagged together.
   # see: https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
-  docker-on-tag: 
+  docker-on-tag:
     jobs:
       - docker-build:
-          filters: *only-version-tags 
+          filters: *only-version-tags
       - docker-push:
           context: dockerhub
-          filters: *only-version-tags 
+          filters: *only-version-tags
           requires:
             - docker-build

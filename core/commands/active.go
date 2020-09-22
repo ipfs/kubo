@@ -23,6 +23,7 @@ var ActiveReqsCmd = &cmds.Command{
 Lists running and recently run commands.
 `,
 	},
+	NoLocal: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx := env.(*oldcmds.Context)
 		return cmds.EmitOnce(res, ctx.ReqLog.Report())

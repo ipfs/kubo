@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	cid "github.com/ipfs/go-cid"
@@ -24,29 +25,32 @@ import (
 
 var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"}
 
-var pathGatewaySpec = config.GatewaySpec{
+var pathGatewaySpec = &config.GatewaySpec{
 	Paths:         defaultPaths,
 	UseSubdomains: false,
 }
 
-var subdomainGatewaySpec = config.GatewaySpec{
+var subdomainGatewaySpec = &config.GatewaySpec{
 	Paths:         defaultPaths,
 	UseSubdomains: true,
 }
 
-var defaultKnownGateways = map[string]config.GatewaySpec{
+var defaultKnownGateways = map[string]*config.GatewaySpec{
 	"localhost":       subdomainGatewaySpec,
 	"ipfs.io":         pathGatewaySpec,
 	"gateway.ipfs.io": pathGatewaySpec,
 	"dweb.link":       subdomainGatewaySpec,
 }
 
+// Label's max length in DNS (https://tools.ietf.org/html/rfc1034#page-7)
+const dnsLabelMaxLength int = 63
+
 // HostnameOption rewrites an incoming request based on the Host header.
 func HostnameOption() ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		childMux := http.NewServeMux()
 
-		coreApi, err := coreapi.NewCoreAPI(n)
+		coreAPI, err := coreapi.NewCoreAPI(n)
 		if err != nil {
 			return nil, err
 		}
@@ -55,22 +59,8 @@ func HostnameOption() ServeOption {
 		if err != nil {
 			return nil, err
 		}
-		knownGateways := make(
-			map[string]config.GatewaySpec,
-			len(defaultKnownGateways)+len(cfg.Gateway.PublicGateways),
-		)
-		for hostname, gw := range defaultKnownGateways {
-			knownGateways[hostname] = gw
-		}
-		for hostname, gw := range cfg.Gateway.PublicGateways {
-			if gw == nil {
-				// Allows the user to remove gateways but _also_
-				// allows us to continuously update the list.
-				delete(knownGateways, hostname)
-			} else {
-				knownGateways[hostname] = *gw
-			}
-		}
+
+		knownGateways := prepareKnownGateways(cfg.Gateway.PublicGateways)
 
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			// Unfortunately, many (well, ipfs.io) gateways use
@@ -81,8 +71,15 @@ func HostnameOption() ServeOption {
 			// and the paths that they serve "gateway" content on.
 			// That way, we can use DNSLink for everything else.
 
+			// Support X-Forwarded-Host if added by a reverse proxy
+			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Host
+			host := r.Host
+			if xHost := r.Header.Get("X-Forwarded-Host"); xHost != "" {
+				host = xHost
+			}
+
 			// HTTP Host & Path check: is this one of our  "known gateways"?
-			if gw, ok := isKnownHostname(r.Host, knownGateways); ok {
+			if gw, ok := isKnownHostname(host, knownGateways); ok {
 				// This is a known gateway but request is not using
 				// the subdomain feature.
 
@@ -94,7 +91,12 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						if newURL, ok := toSubdomainURL(r.Host, r.URL.Path, r); ok {
+						newURL, err := toSubdomainURL(host, r.URL.Path, r)
+						if err != nil {
+							http.Error(w, err.Error(), http.StatusBadRequest)
+							return
+						}
+						if newURL != "" {
 							// Just to be sure single Origin can't be abused in
 							// web browsers that ignored the redirect for some
 							// reason, Clear-Site-Data header clears browsing
@@ -124,9 +126,9 @@ func HostnameOption() ServeOption {
 				// Not a whitelisted path
 
 				// Try DNSLink, if it was not explicitly disabled for the hostname
-				if !gw.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, r) {
+				if !gw.NoDNSLink && isDNSLinkRequest(r.Context(), coreAPI, host) {
 					// rewrite path and handle as DNSLink
-					r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
+					r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
 					childMux.ServeHTTP(w, r)
 					return
 				}
@@ -138,27 +140,59 @@ func HostnameOption() ServeOption {
 
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
 			// Example: {cid}.ipfs.localhost, {cid}.ipfs.dweb.link
-			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(r.Host, knownGateways); ok {
-				// Looks like we're using known subdomain gateway.
+			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(host, knownGateways); ok {
+				// Looks like we're using a known gateway in subdomain mode.
+
+				// Add gateway hostname context for linking to other root ids.
+				// Example: localhost/ipfs/{cid}
+				ctx := context.WithValue(r.Context(), "gw-hostname", hostname)
 
 				// Assemble original path prefix.
 				pathPrefix := "/" + ns + "/" + rootID
 
-				// Does this gateway _handle_ this path?
+				// Does this gateway _handle_ subdomains AND this path?
 				if !(gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...)) {
 					// If not, resource does not exist, return 404
 					http.NotFound(w, r)
 					return
 				}
 
-				// Do we need to fix multicodec in PeerID represented as CIDv1?
-				if isPeerIDNamespace(ns) {
-					keyCid, err := cid.Decode(rootID)
-					if err == nil && keyCid.Type() != cid.Libp2pKey {
-						if newURL, ok := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r); ok {
-							// Redirect to CID fixed inside of toSubdomainURL()
+				// Check if rootID is a valid CID
+				if rootCID, err := cid.Decode(rootID); err == nil {
+					// Do we need to redirect root CID to a canonical DNS representation?
+					dnsCID, err := toDNSPrefix(rootID, rootCID)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusBadRequest)
+						return
+					}
+					if !strings.HasPrefix(r.Host, dnsCID) {
+						dnsPrefix := "/" + ns + "/" + dnsCID
+						newURL, err := toSubdomainURL(hostname, dnsPrefix+r.URL.Path, r)
+						if err != nil {
+							http.Error(w, err.Error(), http.StatusBadRequest)
+							return
+						}
+						if newURL != "" {
+							// Redirect to deterministic CID to ensure CID
+							// always gets the same Origin on the web
 							http.Redirect(w, r, newURL, http.StatusMovedPermanently)
 							return
+						}
+					}
+
+					// Do we need to fix multicodec in PeerID represented as CIDv1?
+					if isPeerIDNamespace(ns) {
+						if rootCID.Type() != cid.Libp2pKey {
+							newURL, err := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r)
+							if err != nil {
+								http.Error(w, err.Error(), http.StatusBadRequest)
+								return
+							}
+							if newURL != "" {
+								// Redirect to CID fixed inside of toSubdomainURL()
+								http.Redirect(w, r, newURL, http.StatusMovedPermanently)
+								return
+							}
 						}
 					}
 				}
@@ -167,7 +201,7 @@ func HostnameOption() ServeOption {
 				r.URL.Path = pathPrefix + r.URL.Path
 
 				// Serve path request
-				childMux.ServeHTTP(w, r)
+				childMux.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 			// We don't have a known gateway. Fallback on DNSLink lookup
@@ -176,9 +210,9 @@ func HostnameOption() ServeOption {
 			// 1. is wildcard DNSLink enabled (Gateway.NoDNSLink=false)?
 			// 2. does Host header include a fully qualified domain name (FQDN)?
 			// 3. does DNSLink record exist in DNS?
-			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r.Context(), coreApi, r) {
+			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r.Context(), coreAPI, host) {
 				// rewrite path and handle as DNSLink
-				r.URL.Path = "/ipns/" + stripPort(r.Host) + r.URL.Path
+				r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
 				childMux.ServeHTTP(w, r)
 				return
 			}
@@ -190,22 +224,83 @@ func HostnameOption() ServeOption {
 	}
 }
 
-// isKnownHostname checks Gateway.PublicGateways and returns matching
-// GatewaySpec with gracefull fallback to version without port
-func isKnownHostname(hostname string, knownGateways map[string]config.GatewaySpec) (gw config.GatewaySpec, ok bool) {
-	// Try hostname (host+optional port - value from Host header as-is)
-	if gw, ok := knownGateways[hostname]; ok {
-		return gw, ok
-	}
-	// Fallback to hostname without port
-	gw, ok = knownGateways[stripPort(hostname)]
-	return gw, ok
+type gatewayHosts struct {
+	exact    map[string]*config.GatewaySpec
+	wildcard []wildcardHost
 }
 
-// Parses Host header and looks for a known subdomain gateway host.
+type wildcardHost struct {
+	re   *regexp.Regexp
+	spec *config.GatewaySpec
+}
+
+func prepareKnownGateways(publicGateways map[string]*config.GatewaySpec) gatewayHosts {
+	var hosts gatewayHosts
+
+	hosts.exact = make(map[string]*config.GatewaySpec, len(publicGateways)+len(defaultKnownGateways))
+
+	// First, implicit defaults such as subdomain gateway on localhost
+	for hostname, gw := range defaultKnownGateways {
+		hosts.exact[hostname] = gw
+	}
+
+	// Then apply values from Gateway.PublicGateways, if present in the config
+	for hostname, gw := range publicGateways {
+		if gw == nil {
+			// Remove any implicit defaults, if present. This is useful when one
+			// wants to disable subdomain gateway on localhost etc.
+			delete(hosts.exact, hostname)
+			continue
+		}
+		if strings.Contains(hostname, "*") {
+			// from *.domain.tld, construct a regexp that match any direct subdomain
+			// of .domain.tld.
+			//
+			// Regexp will be in the form of ^[^.]+\.domain.tld(?::\d+)?$
+
+			escaped := strings.ReplaceAll(hostname, ".", `\.`)
+			regexed := strings.ReplaceAll(escaped, "*", "[^.]+")
+
+			re, err := regexp.Compile(fmt.Sprintf(`^%s(?::\d+)?$`, regexed))
+			if err != nil {
+				log.Warn("invalid wildcard gateway hostname \"%s\"", hostname)
+			}
+
+			hosts.wildcard = append(hosts.wildcard, wildcardHost{re: re, spec: gw})
+		} else {
+			hosts.exact[hostname] = gw
+		}
+	}
+
+	return hosts
+}
+
+// isKnownHostname checks Gateway.PublicGateways and returns matching
+// GatewaySpec with gracefull fallback to version without port
+func isKnownHostname(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, ok bool) {
+	// Try hostname (host+optional port - value from Host header as-is)
+	if gw, ok := knownGateways.exact[hostname]; ok {
+		return gw, ok
+	}
+	// Also test without port
+	if gw, ok = knownGateways.exact[stripPort(hostname)]; ok {
+		return gw, ok
+	}
+
+	// Wildcard support. Test both with and without port.
+	for _, host := range knownGateways.wildcard {
+		if host.re.MatchString(hostname) {
+			return host.spec, true
+		}
+	}
+
+	return nil, false
+}
+
+// Parses Host header and looks for a known gateway matching subdomain host.
 // If found, returns GatewaySpec and subdomain components.
 // Note: hostname is host + optional port
-func knownSubdomainDetails(hostname string, knownGateways map[string]config.GatewaySpec) (gw config.GatewaySpec, knownHostname, ns, rootID string, ok bool) {
+func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, knownHostname, ns, rootID string, ok bool) {
 	labels := strings.Split(hostname, ".")
 	// Look for FQDN of a known gateway hostname.
 	// Example: given "dist.ipfs.io.ipns.dweb.link":
@@ -230,14 +325,14 @@ func knownSubdomainDetails(hostname string, knownGateways map[string]config.Gate
 		rootID := strings.Join(labels[:i-1], ".")
 		return gw, fqdn, ns, rootID, true
 	}
-	// not a known subdomain gateway
-	return gw, "", "", "", false
+	// no match
+	return nil, "", "", "", false
 }
 
 // isDNSLinkRequest returns bool that indicates if request
 // should return data from content path listed in DNSLink record (if exists)
-func isDNSLinkRequest(ctx context.Context, ipfs iface.CoreAPI, r *http.Request) bool {
-	fqdn := stripPort(r.Host)
+func isDNSLinkRequest(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
+	fqdn := stripPort(host)
 	if len(fqdn) == 0 && !isd.IsDomain(fqdn) {
 		return false
 	}
@@ -266,18 +361,38 @@ func isPeerIDNamespace(ns string) bool {
 	}
 }
 
+// Converts an identifier to DNS-safe representation that fits in 63 characters
+func toDNSPrefix(rootID string, rootCID cid.Cid) (prefix string, err error) {
+	// Return as-is if things fit
+	if len(rootID) <= dnsLabelMaxLength {
+		return rootID, nil
+	}
+
+	// Convert to Base36 and see if that helped
+	rootID, err = cid.NewCidV1(rootCID.Type(), rootCID.Hash()).StringOfBase(mbase.Base36)
+	if err != nil {
+		return "", err
+	}
+	if len(rootID) <= dnsLabelMaxLength {
+		return rootID, nil
+	}
+
+	// Can't win with DNS at this point, return error
+	return "", fmt.Errorf("CID incompatible with DNS label length limit of 63: %s", rootID)
+}
+
 // Converts a hostname/path to a subdomain-based URL, if applicable.
-func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok bool) {
+func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, err error) {
 	var scheme, ns, rootID, rest string
 
 	query := r.URL.RawQuery
 	parts := strings.SplitN(path, "/", 4)
-	safeRedirectURL := func(in string) (out string, ok bool) {
+	safeRedirectURL := func(in string) (out string, err error) {
 		safeURI, err := url.ParseRequestURI(in)
 		if err != nil {
-			return "", false
+			return "", err
 		}
-		return safeURI.String(), true
+		return safeURI.String(), nil
 	}
 
 	// Support X-Forwarded-Proto if added by a reverse proxy
@@ -297,11 +412,11 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok
 		ns = parts[1]
 		rootID = parts[2]
 	default:
-		return "", false
+		return "", nil
 	}
 
 	if !isSubdomainNamespace(ns) {
-		return "", false
+		return "", nil
 	}
 
 	// add prefix if query is present
@@ -320,25 +435,42 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, ok
 	}
 
 	// If rootID is a CID, ensure it uses DNS-friendly text representation
-	if rootCid, err := cid.Decode(rootID); err == nil {
-		multicodec := rootCid.Type()
+	if rootCID, err := cid.Decode(rootID); err == nil {
+		multicodec := rootCID.Type()
+		var base mbase.Encoding = mbase.Base32
 
-		// PeerIDs represented as CIDv1 are expected to have libp2p-key
-		// multicodec (https://github.com/libp2p/specs/pull/209).
-		// We ease the transition by fixing multicodec on the fly:
-		// https://github.com/ipfs/go-ipfs/issues/5287#issuecomment-492163929
-		if isPeerIDNamespace(ns) && multicodec != cid.Libp2pKey {
-			multicodec = cid.Libp2pKey
+		// Normalizations specific to /ipns/{libp2p-key}
+		if isPeerIDNamespace(ns) {
+			// Using Base36 for /ipns/ for consistency
+			// Context: https://github.com/ipfs/go-ipfs/pull/7441#discussion_r452372828
+			base = mbase.Base36
+
+			// PeerIDs represented as CIDv1 are expected to have libp2p-key
+			// multicodec (https://github.com/libp2p/specs/pull/209).
+			// We ease the transition by fixing multicodec on the fly:
+			// https://github.com/ipfs/go-ipfs/issues/5287#issuecomment-492163929
+			if multicodec != cid.Libp2pKey {
+				multicodec = cid.Libp2pKey
+			}
 		}
 
-		// if object turns out to be a valid CID,
-		// ensure text representation used in subdomain is CIDv1 in Base32
-		// https://github.com/ipfs/in-web-browsers/issues/89
-		rootID, err = cid.NewCidV1(multicodec, rootCid.Hash()).StringOfBase(mbase.Base32)
+		// Ensure CID text representation used in subdomain is compatible
+		// with the way DNS and URIs are implemented in user agents.
+		//
+		// 1. Switch to CIDv1 and enable case-insensitive Base encoding
+		//    to avoid issues when user agent force-lowercases the hostname
+		//    before making the request
+		//    (https://github.com/ipfs/in-web-browsers/issues/89)
+		rootCID = cid.NewCidV1(multicodec, rootCID.Hash())
+		rootID, err = rootCID.StringOfBase(base)
 		if err != nil {
-			// should not error, but if it does, its clealy not possible to
-			// produce a subdomain URL
-			return "", false
+			return "", err
+		}
+		// 2. Make sure CID fits in a DNS label, adjust encoding if needed
+		//    (https://github.com/ipfs/go-ipfs/issues/7318)
+		rootID, err = toDNSPrefix(rootID, rootCID)
+		if err != nil {
+			return "", err
 		}
 	}
 

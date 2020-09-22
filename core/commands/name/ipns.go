@@ -99,7 +99,7 @@ Resolve the value of a dnslink:
 		}
 
 		recursive, _ := req.Options[recursiveOptionName].(bool)
-		rc, rcok := req.Options[dhtRecordCountOptionName].(int)
+		rc, rcok := req.Options[dhtRecordCountOptionName].(uint)
 		dhtt, dhttok := req.Options[dhtTimeoutOptionName].(string)
 		stream, _ := req.Options[streamOptionName].(bool)
 
@@ -111,7 +111,7 @@ Resolve the value of a dnslink:
 			opts = append(opts, options.Name.ResolveOption(nsopts.Depth(1)))
 		}
 		if rcok {
-			opts = append(opts, options.Name.ResolveOption(nsopts.DhtRecordCount(uint(rc))))
+			opts = append(opts, options.Name.ResolveOption(nsopts.DhtRecordCount(rc)))
 		}
 		if dhttok {
 			d, err := time.ParseDuration(dhtt)

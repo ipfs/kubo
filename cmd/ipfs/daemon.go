@@ -31,9 +31,10 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 	goprocess "github.com/jbenet/goprocess"
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promauto "github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -181,6 +182,8 @@ Headers.
 		// cmds.StringOption(swarmAddrKwd, "Address for the swarm socket (overrides config)"),
 	},
 	Subcommands: map[string]*cmds.Command{},
+	NoRemote:    true,
+	Extra:       commands.CreateCmdExtras(commands.SetDoesNotUseConfigAsInput(true)),
 	Run:         daemonFunc,
 }
 
@@ -247,7 +250,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			}
 		}
 
-		if err = doInit(os.Stdout, cctx.ConfigRoot, false, nBitsForKeypairDefault, profiles, conf); err != nil {
+		identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+			options.Key.Type(algorithmDefault),
+		})
+		if err != nil {
+			return err
+		}
+
+		if err = doInit(os.Stdout, cctx.ConfigRoot, false, &identity, profiles, conf); err != nil {
 			return err
 		}
 	}

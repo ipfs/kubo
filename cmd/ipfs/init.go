@@ -13,19 +13,22 @@ import (
 	assets "github.com/ipfs/go-ipfs/assets"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/commands"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 const (
-	nBitsForKeypairDefault = 2048
-	bitsOptionName         = "bits"
-	emptyRepoOptionName    = "empty-repo"
-	profileOptionName      = "profile"
+	algorithmDefault    = options.Ed25519Key
+	algorithmOptionName = "algorithm"
+	bitsOptionName      = "bits"
+	emptyRepoOptionName = "empty-repo"
+	profileOptionName   = "profile"
 )
 
 var errRepoExists = errors.New(`ipfs configuration file already exists!
@@ -54,7 +57,8 @@ environment variable:
 		cmds.FileArg("default-config", false, false, "Initialize with the given configuration.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key.").WithDefault(nBitsForKeypairDefault),
+		cmds.StringOption(algorithmOptionName, "a", "Cryptographic algorithm to use for key generation.").WithDefault(algorithmDefault),
+		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key."),
 		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 
@@ -63,6 +67,8 @@ environment variable:
 		// name of the file?
 		// TODO cmds.StringOption("event-logs", "l", "Location for machine-readable event logs."),
 	},
+	NoRemote: true,
+	Extra:    commands.CreateCmdExtras(commands.SetDoesNotUseRepo(true), commands.SetDoesNotUseConfigAsInput(true)),
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
@@ -82,7 +88,8 @@ environment variable:
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		empty, _ := req.Options[emptyRepoOptionName].(bool)
-		nBitsForKeypair, _ := req.Options[bitsOptionName].(int)
+		algorithm, _ := req.Options[algorithmOptionName].(string)
+		nBitsForKeypair, nBitsGiven := req.Options[bitsOptionName].(int)
 
 		var conf *config.Config
 
@@ -106,8 +113,24 @@ environment variable:
 			}
 		}
 
+		var err error
+		var identity config.Identity
+		if nBitsGiven {
+			identity, err = config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+				options.Key.Size(nBitsForKeypair),
+				options.Key.Type(algorithm),
+			})
+		} else {
+			identity, err = config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+				options.Key.Type(algorithm),
+			})
+		}
+		if err != nil {
+			return err
+		}
+
 		profiles, _ := req.Options[profileOptionName].(string)
-		return doInit(os.Stdout, cctx.ConfigRoot, empty, nBitsForKeypair, profiles, conf)
+		return doInit(os.Stdout, cctx.ConfigRoot, empty, &identity, profiles, conf)
 	},
 }
 
@@ -129,7 +152,7 @@ func applyProfiles(conf *config.Config, profiles string) error {
 	return nil
 }
 
-func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, confProfiles string, conf *config.Config) error {
+func doInit(out io.Writer, repoRoot string, empty bool, identity *config.Identity, confProfiles string, conf *config.Config) error {
 	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -142,9 +165,13 @@ func doInit(out io.Writer, repoRoot string, empty bool, nBitsForKeypair int, con
 		return errRepoExists
 	}
 
+	if identity == nil {
+		return fmt.Errorf("No Identity provided for initialization")
+	}
+
 	if conf == nil {
 		var err error
-		conf, err = config.Init(out, nBitsForKeypair)
+		conf, err = config.InitWithIdentity(*identity)
 		if err != nil {
 			return err
 		}

@@ -82,23 +82,6 @@ Resolve the value of an IPFS DAG path:
 		name := req.Arguments[0]
 		recursive, _ := req.Options[resolveRecursiveOptionName].(bool)
 
-		var enc cidenc.Encoder
-		switch {
-		case !cmdenv.CidBaseDefined(req):
-			// Not specified, check the path.
-			enc, err = cmdenv.CidEncoderFromPath(name)
-			if err == nil {
-				break
-			}
-			// Nope, fallback on the default.
-			fallthrough
-		default:
-			enc, err = cmdenv.GetCidEncoder(req)
-			if err != nil {
-				return err
-			}
-		}
-
 		// the case when ipns is resolved step by step
 		if strings.HasPrefix(name, "/ipns/") && !recursive {
 			rc, rcok := req.Options[resolveDhtRecordCountOptionName].(uint)
@@ -126,6 +109,23 @@ Resolve the value of an IPFS DAG path:
 				return err
 			}
 			return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: ipfspath.Path(p.String())})
+		}
+
+		var enc cidenc.Encoder
+		switch {
+		case !cmdenv.CidBaseDefined(req) && !strings.HasPrefix(name, "/ipns/"):
+			// Not specified, check the path.
+			enc, err = cmdenv.CidEncoderFromPath(name)
+			if err == nil {
+				break
+			}
+			// Nope, fallback on the default.
+			fallthrough
+		default:
+			enc, err = cmdenv.GetCidEncoder(req)
+			if err != nil {
+				return err
+			}
 		}
 
 		// else, ipfs path or ipns with recursive flag

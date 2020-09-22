@@ -128,7 +128,7 @@ test_expect_success "ipfs help output looks good" '
 # check transport is encrypted
 test_expect_success SOCAT "transport should be encrypted ( needs socat )" '
   socat - tcp:localhost:$SWARM_PORT,connect-timeout=1 > swarmnc < ../t0060-data/mss-ls &&
-  grep -q "/secio" swarmnc &&
+  grep -q "/tls" swarmnc &&
   test_must_fail grep -q "/plaintext/1.0.0" swarmnc ||
   test_fsh cat swarmnc
 '

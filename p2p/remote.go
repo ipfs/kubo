@@ -7,7 +7,7 @@ import (
 	net "github.com/libp2p/go-libp2p-core/network"
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 var maPrefix = "/" + ma.ProtocolWithCode(ma.P_IPFS).Name + "/"

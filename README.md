@@ -160,7 +160,7 @@ PS> scoop install go-ipfs
 
 ### Build from Source
 
-go-ipfs's build system requires Go 1.14.2 and some standard POSIX build tools:
+go-ipfs's build system requires Go 1.14.4 and some standard POSIX build tools:
 
 * GNU make
 * Git
@@ -170,7 +170,7 @@ To build without GCC, build with `CGO_ENABLED=0` (e.g., `make build CGO_ENABLED=
 
 #### Install Go
 
-The build process for ipfs requires Go 1.14.2 or higher. If you don't have it: [Download Go 1.14+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.14.4 or higher. If you don't have it: [Download Go 1.14+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -224,7 +224,7 @@ dependencies as well.
   (See https://github.com/ipfs/go-ipfs/issues/177)
 - For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
 - Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
-- See the [init examples](https://github.com/ipfs/website/tree/master/static/docs/examples/init) for how to connect IPFS to systemd or whatever init system your distro uses.
+- See the [misc folder](https://github.com/ipfs/go-ipfs/tree/master/misc) for how to connect IPFS to systemd or whatever init system your distro uses.
 
 ### Updating go-ipfs
 

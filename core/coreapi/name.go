@@ -76,7 +76,7 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 	}
 
 	return &ipnsEntry{
-		name:  pid.Pretty(),
+		name:  coreiface.FormatKeyID(pid),
 		value: p,
 	}, nil
 }

@@ -7,20 +7,59 @@ import (
 	"strings"
 
 	"github.com/ipfs/go-ipfs/assets"
+	ipfspath "github.com/ipfs/go-path"
 )
 
 // structs for directory listing
 type listingTemplateData struct {
-	Listing  []directoryItem
-	Path     string
-	BackLink string
-	Hash     string
+	GatewayURL  string
+	Listing     []directoryItem
+	Size        string
+	Path        string
+	Breadcrumbs []breadcrumb
+	BackLink    string
+	Hash        string
 }
 
 type directoryItem struct {
-	Size string
+	Size      string
+	Name      string
+	Path      string
+	Hash      string
+	ShortHash string
+}
+
+type breadcrumb struct {
 	Name string
 	Path string
+}
+
+func breadcrumbs(urlPath string) []breadcrumb {
+	var ret []breadcrumb
+
+	p, err := ipfspath.ParsePath(urlPath)
+	if err != nil {
+		// No breadcrumbs, fallback to bare Path in template
+		return ret
+	}
+
+	segs := p.Segments()
+	for i, seg := range segs {
+		if i == 0 {
+			ret = append(ret, breadcrumb{Name: seg})
+		} else {
+			ret = append(ret, breadcrumb{
+				Name: seg,
+				Path: "/" + strings.Join(segs[0:i+1], "/"),
+			})
+		}
+	}
+
+	return ret
+}
+
+func shortHash(hash string) string {
+	return (hash[0:4] + "\u2026" + hash[len(hash)-4:])
 }
 
 var listingTemplate *template.Template

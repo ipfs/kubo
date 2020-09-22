@@ -9,7 +9,7 @@ import (
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 	sysi "github.com/whyrusleeping/go-sysinfo"
 )
 

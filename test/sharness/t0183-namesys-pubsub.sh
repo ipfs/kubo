@@ -13,7 +13,8 @@ test_expect_success 'init iptb' '
 startup_cluster $NUM_NODES --enable-namesys-pubsub
 
 test_expect_success 'peer ids' '
-    PEERID_0=$(iptb attr get 0 id)
+    PEERID_0_BASE36=$(ipfsi 0 key list --ipns-base=base36 -l | grep self | head -n 1 | cut -d " " -f1) &&
+    PEERID_0_B58MH=$(ipfsi 0 key list --ipns-base=b58mh -l | grep self | head -n 1 | cut -d " " -f1)
 '
 
 test_expect_success 'check namesys pubsub state' '
@@ -28,17 +29,22 @@ test_expect_success 'check namesys pubsub state' '
 
 # These commands are *expected* to fail. We haven't published anything yet.
 test_expect_success 'subscribe nodes to the publisher topic' '
-    ipfsi 1 name resolve /ipns/$PEERID_0 --timeout=1s;
-    ipfsi 2 name resolve /ipns/$PEERID_0 --timeout=1s;
+    ipfsi 1 name resolve /ipns/$PEERID_0_BASE36 --timeout=1s;
+    ipfsi 2 name resolve /ipns/$PEERID_0_BASE36 --timeout=1s;
     true
 '
 
 test_expect_success 'check subscriptions' '
-    echo /ipns/$PEERID_0 > expected &&
+    echo /ipns/$PEERID_0_BASE36 > expected_base36 &&
+    echo /ipns/$PEERID_0_B58MH > expected_b58mh &&
     ipfsi 1 name pubsub subs > subs1 &&
     ipfsi 2 name pubsub subs > subs2 &&
-    test_cmp expected subs1 &&
-    test_cmp expected subs2
+    ipfsi 1 name pubsub subs --ipns-base=b58mh > subs1_b58mh &&
+    ipfsi 2 name pubsub subs --ipns-base=b58mh > subs2_b58mh &&
+    test_cmp expected_base36 subs1 &&
+    test_cmp expected_base36 subs2 &&
+    test_cmp expected_b58mh subs1_b58mh &&
+    test_cmp expected_b58mh subs2_b58mh
 '
 
 test_expect_success 'add an object on publisher node' '
@@ -56,15 +62,15 @@ test_expect_success 'wait for the flood' '
 
 test_expect_success 'resolve name in subscriber nodes' '
     echo "/ipfs/$HASH_FILE" > expected &&
-    ipfsi 1 name resolve /ipns/$PEERID_0 > name1 &&
-    ipfsi 2 name resolve /ipns/$PEERID_0 > name2 &&
+    ipfsi 1 name resolve /ipns/$PEERID_0_BASE36 > name1 &&
+    ipfsi 2 name resolve /ipns/$PEERID_0_BASE36 > name2 &&
     test_cmp expected name1 &&
     test_cmp expected name2
 '
 
 test_expect_success 'cancel subscriptions to the publisher topic' '
-    ipfsi 1 name pubsub cancel /ipns/$PEERID_0 &&
-    ipfsi 2 name pubsub cancel /ipns/$PEERID_0
+    ipfsi 1 name pubsub cancel /ipns/$PEERID_0_BASE36 &&
+    ipfsi 2 name pubsub cancel /ipns/$PEERID_0_BASE36
 '
 
 test_expect_success 'check subscriptions' '

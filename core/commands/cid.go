@@ -26,6 +26,7 @@ var CidCmd = &cmds.Command{
 		"codecs": codecsCmd,
 		"hashes": hashesCmd,
 	},
+	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
 
 const (
