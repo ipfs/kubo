@@ -13,6 +13,11 @@ test_remote_pins() {
   test_expect_success "create some hashes using base $BASE" '
     HASH_A=$(echo "A" | ipfs add $BASE_ARGS -q --pin=false)
   '
+
+  test_expect_success "make sure we are connected to pinning service" '
+    ipfs pin remote ls --enc=json
+  '
+
   test_expect_success "'ipfs pin remote add'" '
     ID_A=$(ipfs pin remote add --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .ID)
   '
@@ -36,10 +41,13 @@ test_remote_pins() {
 
 test_init_ipfs
 
-if [ -z "$IPFS_REMOTE_PIN_SERVICE" && -z "$IPFS_REMOTE_PIN_KEY" ]; then
+if [ -z "$IPFS_REMOTE_PIN_SERVICE" ] && [ -z "$IPFS_REMOTE_PIN_KEY" ]; then
         # create user on pinning service
+        echo "Creating test user on remote pinning service"
         IPFS_REMOTE_PIN_SERVICE=localhost:5000
         IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output '.access_token')
+else
+        echo "Using remote pinning service from environment"
 fi
 
 test_remote_pins ""
