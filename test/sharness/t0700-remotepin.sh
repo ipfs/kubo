@@ -41,13 +41,12 @@ test_remote_pins() {
 
 test_init_ipfs
 
-if [ -z "$IPFS_REMOTE_PIN_SERVICE" ] && [ -z "$IPFS_REMOTE_PIN_KEY" ]; then
+if [ -z "$IPFS_REMOTE_PIN_SERVICE" ] || [ -z "$IPFS_REMOTE_PIN_KEY" ]; then
         # create user on pinning service
-        echo "Creating test user on remote pinning service"
-        IPFS_REMOTE_PIN_SERVICE=localhost:5000
-        IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output '.access_token')
-else
-        echo "Using remote pinning service from environment"
+        test_expect_success "creating test user on remote pinning service" '
+                IPFS_REMOTE_PIN_SERVICE=localhost:5000 &&
+                IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
+        '
 fi
 
 test_remote_pins ""
