@@ -131,7 +131,8 @@ jobs:
     - run:
         cd rb-pinning-service-api &&
         echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
-        docker-compose up -d
+        docker-compose up -d &&
+        docker ps
 
     - *make_out_dirs
     - *restore_gomod
