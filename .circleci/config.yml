@@ -133,6 +133,7 @@ jobs:
         echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
         docker-compose up -d &&
         docker ps &&
+        sleep 5 &&
         curl http://localhost:5000/api/v1
 
     - *make_out_dirs
