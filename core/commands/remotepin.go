@@ -8,7 +8,9 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -24,9 +26,23 @@ var remotePinCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"add": addRemotePinCmd,
-		"ls":  listRemotePinCmd,
-		"rm":  rmRemotePinCmd,
+		"add":     addRemotePinCmd,
+		"ls":      listRemotePinCmd,
+		"rm":      rmRemotePinCmd,
+		"service": remotePinServiceCmd,
+	},
+}
+
+var remotePinServiceCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Configure remote pinning services.",
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"add": addRemotePinServiceCmd,
+		// "rename": renameRemotePinServiceCmd,
+		// "update": updateRemotePinServiceCmd,
+		// "rm":     rmRemotePinServiceCmd,
 	},
 }
 
@@ -57,6 +73,16 @@ var addRemotePinCmd = &cmds.Command{
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+
+		// cfgRoot, err := cmdenv.GetConfigRoot(env)
+		// if err != nil {
+		// 	return err
+		// }
+		// repo, err := fsrepo.Open(cfgRoot)
+		// if err != nil {
+		// 	return err
+		// }
+		// defer repo.Close()
 
 		opts := []pinclient.AddOption{}
 		if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
@@ -217,5 +243,54 @@ collected if needed.
 		c := pinclient.NewClient(remotePinURL, remotePinKey)
 
 		return c.DeleteByID(ctx, req.Arguments[0])
+	},
+}
+
+var addRemotePinServiceCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Add remote pinning service.",
+		ShortDescription: "Add a credentials for access to a remote pinning service.",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ipfs-path", true, true, "Name, URL and key (in that order) for a remote pinning service.").EnableStdin(),
+	},
+	Options: []cmds.Option{},
+	Type:    nil,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+		repo, err := fsrepo.Open(cfgRoot)
+		if err != nil {
+			return err
+		}
+		defer repo.Close()
+
+		if len(req.Arguments) != 3 {
+			return fmt.Errorf("expecting three argument: name, url and key")
+		}
+		name := req.Arguments[0]
+		url := req.Arguments[1]
+		key := req.Arguments[2]
+
+		cfg, err := repo.Config()
+		if err != nil {
+			return err
+		}
+		if cfg.RemotePinServices.Services != nil {
+			if _, present := cfg.RemotePinServices.Services[name]; present {
+				return fmt.Errorf("service already present")
+			}
+		} else {
+			cfg.RemotePinServices.Services = map[string]config.RemotePinService{}
+		}
+		cfg.RemotePinServices.Services[name] = config.RemotePinService{
+			Name: name,
+			URL:  url,
+			Key:  key,
+		}
+
+		return repo.SetConfig(cfg)
 	},
 }
