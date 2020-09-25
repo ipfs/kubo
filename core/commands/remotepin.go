@@ -48,6 +48,7 @@ var remotePinServiceCmd = &cmds.Command{
 
 const pinNameOptionName = "name"
 const pinCIDsOptionName = "cid"
+const pinServiceNameOptionName = "service"
 
 type AddRemotePinOutput struct {
 	ID        string
@@ -68,21 +69,12 @@ var addRemotePinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
+		cmds.StringsOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Type: AddRemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-
-		// cfgRoot, err := cmdenv.GetConfigRoot(env)
-		// if err != nil {
-		// 	return err
-		// }
-		// repo, err := fsrepo.Open(cfgRoot)
-		// if err != nil {
-		// 	return err
-		// }
-		// defer repo.Close()
 
 		opts := []pinclient.AddOption{}
 		if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
@@ -102,7 +94,15 @@ var addRemotePinCmd = &cmds.Command{
 			return err
 		}
 
-		c := pinclient.NewClient(remotePinURL, remotePinKey)
+		service, serviceFound := req.Options[pinServiceNameOptionName].(string)
+		if !serviceFound {
+			return fmt.Errorf("remote pinning service name not specified")
+		}
+		url, key, err := getRemotePinServiceOrEnv(env, service)
+		if err != nil {
+			return err
+		}
+		c := pinclient.NewClient(url, key)
 
 		ps, err := c.Add(ctx, rp.Cid(), opts...)
 		if err != nil {
@@ -165,6 +165,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-insensitive, partial or full match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
+		cmds.StringsOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -186,7 +187,15 @@ Returns a list of objects that are pinned to a remote pinning service.
 			opts = append(opts, pinclient.PinOpts.FilterCIDs(parsedCIDs...))
 		}
 
-		c := pinclient.NewClient(remotePinURL, remotePinKey)
+		service, serviceFound := req.Options[pinServiceNameOptionName].(string)
+		if !serviceFound {
+			return fmt.Errorf("remote pinning service name not specified")
+		}
+		url, key, err := getRemotePinServiceOrEnv(env, service)
+		if err != nil {
+			return err
+		}
+		c := pinclient.NewClient(url, key)
 
 		psCh, errCh := c.Ls(ctx, opts...)
 
@@ -231,7 +240,9 @@ collected if needed.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("pin-id", true, true, "ID of the pin to be removed.").EnableStdin(),
 	},
-	Options: []cmds.Option{},
+	Options: []cmds.Option{
+		cmds.StringsOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -240,7 +251,15 @@ collected if needed.
 			return fmt.Errorf("missing a pin ID argument")
 		}
 
-		c := pinclient.NewClient(remotePinURL, remotePinKey)
+		service, serviceFound := req.Options[pinServiceNameOptionName].(string)
+		if !serviceFound {
+			return fmt.Errorf("remote pinning service name not specified")
+		}
+		url, key, err := getRemotePinServiceOrEnv(env, service)
+		if err != nil {
+			return err
+		}
+		c := pinclient.NewClient(url, key)
 
 		return c.DeleteByID(ctx, req.Arguments[0])
 	},
@@ -293,4 +312,35 @@ var addRemotePinServiceCmd = &cmds.Command{
 
 		return repo.SetConfig(cfg)
 	},
+}
+
+func getRemotePinServiceOrEnv(env cmds.Environment, name string) (url, key string, err error) {
+	if remotePinURL != "" && remotePinKey != "" {
+		return remotePinURL, remotePinKey, nil
+	}
+	return getRemotePinService(env, name)
+}
+
+func getRemotePinService(env cmds.Environment, name string) (url, key string, err error) {
+	cfgRoot, err := cmdenv.GetConfigRoot(env)
+	if err != nil {
+		return "", "", err
+	}
+	repo, err := fsrepo.Open(cfgRoot)
+	if err != nil {
+		return "", "", err
+	}
+	defer repo.Close()
+	cfg, err := repo.Config()
+	if err != nil {
+		return "", "", err
+	}
+	if cfg.RemotePinServices.Services == nil {
+		return "", "", fmt.Errorf("service not known")
+	}
+	service, present := cfg.RemotePinServices.Services[name]
+	if !present {
+		return "", "", fmt.Errorf("service not known")
+	}
+	return service.URL, service.Key, nil
 }
