@@ -34,7 +34,7 @@ type breadcrumb struct {
 	Path string
 }
 
-func breadcrumbs(urlPath string) []breadcrumb {
+func breadcrumbs(urlPath string, gwRootURL string) []breadcrumb {
 	var ret []breadcrumb
 
 	p, err := ipfspath.ParsePath(urlPath)
@@ -42,8 +42,9 @@ func breadcrumbs(urlPath string) []breadcrumb {
 		// No breadcrumbs, fallback to bare Path in template
 		return ret
 	}
-
 	segs := p.Segments()
+	ns := segs[0]
+	contentRoot := segs[1]
 	for i, seg := range segs {
 		if i == 0 {
 			ret = append(ret, breadcrumb{Name: seg})
@@ -53,6 +54,20 @@ func breadcrumbs(urlPath string) []breadcrumb {
 				Path: "/" + strings.Join(segs[0:i+1], "/"),
 			})
 		}
+	}
+
+	// Drop the /ipns/<fqdn> prefix from breadcrumb Paths when directory listing
+	// on a DNSLink website (loaded due to Host header in HTTP request).
+	// Necessary because gwRootURL won't have a public gateway mounted.
+	if ns == "ipns" && (("//" + contentRoot) == gwRootURL) {
+		prefix := "/ipns/" + contentRoot
+		for i, crumb := range ret {
+			if strings.HasPrefix(crumb.Path, prefix) {
+				ret[i].Path = strings.Replace(crumb.Path, prefix, "", 1)
+			}
+		}
+		// Make contentRoot breadcrumb link to the website root
+		ret[1].Path = "/"
 	}
 
 	return ret

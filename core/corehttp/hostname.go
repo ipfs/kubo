@@ -129,7 +129,7 @@ func HostnameOption() ServeOption {
 				if !gw.NoDNSLink && isDNSLinkRequest(r.Context(), coreAPI, host) {
 					// rewrite path and handle as DNSLink
 					r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
-					childMux.ServeHTTP(w, r)
+					childMux.ServeHTTP(w, withHostnameContext(r, host))
 					return
 				}
 
@@ -142,10 +142,6 @@ func HostnameOption() ServeOption {
 			// Example: {cid}.ipfs.localhost, {cid}.ipfs.dweb.link
 			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(host, knownGateways); ok {
 				// Looks like we're using a known gateway in subdomain mode.
-
-				// Add gateway hostname context for linking to other root ids.
-				// Example: localhost/ipfs/{cid}
-				ctx := context.WithValue(r.Context(), "gw-hostname", hostname)
 
 				// Assemble original path prefix.
 				pathPrefix := "/" + ns + "/" + rootID
@@ -201,7 +197,7 @@ func HostnameOption() ServeOption {
 				r.URL.Path = pathPrefix + r.URL.Path
 
 				// Serve path request
-				childMux.ServeHTTP(w, r.WithContext(ctx))
+				childMux.ServeHTTP(w, withHostnameContext(r, hostname))
 				return
 			}
 			// We don't have a known gateway. Fallback on DNSLink lookup
@@ -213,7 +209,7 @@ func HostnameOption() ServeOption {
 			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r.Context(), coreAPI, host) {
 				// rewrite path and handle as DNSLink
 				r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
-				childMux.ServeHTTP(w, r)
+				childMux.ServeHTTP(w, withHostnameContext(r, host))
 				return
 			}
 
@@ -232,6 +228,17 @@ type gatewayHosts struct {
 type wildcardHost struct {
 	re   *regexp.Regexp
 	spec *config.GatewaySpec
+}
+
+// Extends request context to include hostname of a canonical gateway root
+// (subdomain root or dnslink fqdn)
+func withHostnameContext(r *http.Request, hostname string) *http.Request {
+	// This is required for links on directory listing pages to work correctly
+	// on subdomain and dnslink gateways. While DNSlink could read value from
+	// Host header, subdomain gateways have more comples rules (knownSubdomainDetails)
+	// More: https://github.com/ipfs/dir-index-html/issues/42
+	ctx := context.WithValue(r.Context(), "gw-hostname", hostname)
+	return r.WithContext(ctx)
 }
 
 func prepareKnownGateways(publicGateways map[string]*config.GatewaySpec) gatewayHosts {

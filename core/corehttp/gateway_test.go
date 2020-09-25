@@ -391,6 +391,8 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	}
 }
 
+// Test directory listing on DNSLink website
+// (scenario when Host header is the same as URL hostname)
 func TestIPNSHostnameBacklinks(t *testing.T) {
 	ns := mockNamesys{}
 	ts, api, ctx := newTestServerAndNode(t, ns)
@@ -445,7 +447,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
@@ -511,7 +513,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"//example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
@@ -545,7 +547,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {

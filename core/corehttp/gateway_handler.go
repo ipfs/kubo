@@ -379,8 +379,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	hash := resolvedPath.Cid().String()
 
-	// Storage for gateway URL to be used when linking to other rootIDs. This
-	// will be blank unless subdomain resolution is being used for this request.
+	// Gateway root URL to be used when linking to other rootIDs.
+	// This will be blank unless subdomain or DNSLink resolution is being used
+	// for this request.
 	var gwURL string
 
 	// Get gateway hostname and build gateway URL.
@@ -396,10 +397,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		Listing:     dirListing,
 		Size:        size,
 		Path:        urlPath,
-		Breadcrumbs: breadcrumbs(urlPath),
+		Breadcrumbs: breadcrumbs(urlPath, gwURL),
 		BackLink:    backLink,
 		Hash:        hash,
 	}
+
+	// TODO: remove logging below
+	// tplDataJSON, _ := json.MarshalIndent(tplData, "", " ")
+	// fmt.Println(string(tplDataJSON))
 
 	err = listingTemplate.Execute(w, tplData)
 	if err != nil {
