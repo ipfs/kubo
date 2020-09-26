@@ -17,6 +17,7 @@
   "license": "MIT",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "scripts": {
+    "start": "cd test && go run .",
     "build": "npm run build:clean && npm run build:remove-style-links && npm run build:minify-wrap-css && npm run build:combine-html-css && npm run build:remove-unused",
     "build:clean": "rm dir-index.html",
     "build:remove-style-links": "sed '/<link rel=\"stylesheet\"/d' ./src/dir-index.html > ./base-html.html",
