@@ -13,6 +13,7 @@ const templateFile = "../dir-index.html"
 // Copied from go-ipfs/core/corehttp/gateway_indexPage.go
 type listingTemplateData struct {
 	GatewayURL  string
+	DNSLink     bool
 	Listing     []directoryItem
 	Size        string
 	Path        string
@@ -37,18 +38,25 @@ type breadcrumb struct {
 var testPath = "/ipfs/QmFooBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7/a/b/c"
 var testData = listingTemplateData{
 	GatewayURL: "//localhost:3000",
+	DNSLink:    true,
 	Listing: []directoryItem{{
 		Size:      "25 MiB",
 		Name:      "short-film.mov",
 		Path:      testPath + "/short-film.mov",
-		Hash:      "QmQuxBarQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
-		ShortHash: "QmQu\u2026xDu7",
+		Hash:      "QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR",
+		ShortHash: "QmbW\u2026sMnR",
+	}, {
+		Size:      "23 KiB",
+		Name:      "250pxيوسف_الوزاني_صورة_ملتقطة_بواسطة_مرصد_هابل_الفضائي_توضح_سديم_السرطان،_وهو_بقايا_مستعر_أعظم._.jpg",
+		Path:      testPath + "/250pxيوسف_الوزاني_صورة_ملتقطة_بواسطة_مرصد_هابل_الفضائي_توضح_سديم_السرطان،_وهو_بقايا_مستعر_أعظم._.jpg",
+		Hash:      "QmUwrKrMTrNv8QjWGKMMH5QV9FMPUtRCoQ6zxTdgxATQW6",
+		ShortHash: "QmUw\u2026TQW6",
 	}, {
 		Size:      "1 KiB",
 		Name:      "this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
 		Path:      testPath + "/this-piece-of-papers-got-47-words-37-sentences-58-words-we-wanna-know.txt",
-		Hash:      "QmquXbaRQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7",
-		ShortHash: "Qmqu\u2026xDu7",
+		Hash:      "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+		ShortHash: "bafy\u2026bzdi",
 	}},
 	Size: "25 MiB",
 	Path: testPath,

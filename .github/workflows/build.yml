@@ -12,10 +12,10 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: '12.x'
-    - run: npm run build    
+    - run: npm run build
     - name: Check working tree
       id: changes
       uses: UnicornGlobal/has-changes-action@v1.0.11
     - name: Check for uncommited changes
       if: steps.changes.outputs.changed == 1
-      run: git status && echo "Output does not match src/, uncommitted changes exist, follow build instructions from README" && exit 1
+      run: git status && git --no-pager diff --patch-with-raw && echo "Output does not match src/, uncommitted changes exist, follow build instructions from README" && exit 1
