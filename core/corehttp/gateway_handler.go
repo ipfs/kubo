@@ -391,13 +391,16 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		gwURL = ""
 	}
 
+	dnslink := hasDNSLinkOrigin(gwURL, urlPath)
+
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
 		GatewayURL:  gwURL,
+		DNSLink:     dnslink,
 		Listing:     dirListing,
 		Size:        size,
 		Path:        urlPath,
-		Breadcrumbs: breadcrumbs(urlPath, gwURL),
+		Breadcrumbs: breadcrumbs(urlPath, dnslink),
 		BackLink:    backLink,
 		Hash:        hash,
 	}
