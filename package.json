@@ -2,7 +2,7 @@
   "name": "dir-index-html",
   "author": "lgierth",
   "description": "Directory listing HTML for go-ipfs gateways",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "homepage": "https://github.com/ipfs/dir-index-html#readme",
   "bugs": {
     "url": "https://github.com/ipfs/dir-index-html"
