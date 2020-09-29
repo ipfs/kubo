@@ -71,13 +71,13 @@ DIR_HOSTNAME="${DIR_CID}.ipfs.localhost"
 # note: we skip DNS lookup by running curl with --resolve $DIR_HOSTNAME:127.0.0.1
 
 test_expect_success "path gw: backlink on root CID should point origin root" '
-  curl -sD - --resolve $DIR_HOSTNAME:127.0.0.1 http://$DIR_HOSTNAME:$GWAY_PORT/ > list_response &&
+  curl -sD - --resolve $DIR_HOSTNAME:$GWAY_PORT:127.0.0.1 http://$DIR_HOSTNAME:$GWAY_PORT/ > list_response &&
   test_should_contain "Index of" list_response &&
   test_should_contain "<a href=\"/\">..</a>" list_response
 '
 
 test_expect_success "path gw: Etag should be present" '
-  curl -sD - --resolve $DIR_HOSTNAME:127.0.0.1 http://$DIR_HOSTNAME:$GWAY_PORT/ą/ę > list_response &&
+  curl -sD - --resolve $DIR_HOSTNAME:$GWAY_PORT:127.0.0.1 http://$DIR_HOSTNAME:$GWAY_PORT/ą/ę > list_response &&
   test_should_contain "Index of" list_response &&
   test_should_contain "Etag: \"DirIndex-" list_response
 '
