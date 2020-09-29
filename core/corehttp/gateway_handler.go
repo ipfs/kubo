@@ -405,10 +405,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		Hash:        hash,
 	}
 
-	// TODO: remove logging below
-	// tplDataJSON, _ := json.MarshalIndent(tplData, "", " ")
-	// fmt.Println(string(tplDataJSON))
-
 	err = listingTemplate.Execute(w, tplData)
 	if err != nil {
 		internalWebError(w, err)

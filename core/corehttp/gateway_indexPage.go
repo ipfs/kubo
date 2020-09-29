@@ -82,8 +82,8 @@ func shortHash(hash string) string {
 // (when hostname from gwURL is matching /ipns/<fqdn> in path)
 func hasDNSLinkOrigin(gwURL string, path string) bool {
 	if gwURL != "" {
-		dnslinkRoot := strings.Replace(gwURL, "//", "/ipns/", 1)
-		return strings.HasPrefix(path, dnslinkRoot)
+		fqdn := stripPort(strings.TrimPrefix(gwURL, "//"))
+		return strings.HasPrefix(path, "/ipns/"+fqdn)
 	}
 	return false
 }
