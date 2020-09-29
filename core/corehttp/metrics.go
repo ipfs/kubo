@@ -49,8 +49,8 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 		}
 
 		// Construct the mux
-		zpages.Handle(mux, "/ocmetrics/debug")
-		mux.Handle("/ocmetrics", pe)
+		zpages.Handle(mux, "/debug/metrics/oc/debugz")
+		mux.Handle("/debug/metrics/oc", pe)
 
 		return mux, nil
 	}
