@@ -58,6 +58,8 @@ type AddRemotePinOutput struct {
 	Cid       string
 }
 
+// remote pin commands
+
 var addRemotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Pin objects to remote storage.",
@@ -69,7 +71,7 @@ var addRemotePinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
-		cmds.StringsOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Type: AddRemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -165,7 +167,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-insensitive, partial or full match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
-		cmds.StringsOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -175,7 +177,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 		if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
 			opts = append(opts, pinclient.PinOpts.FilterName(name))
 		}
-		if cidsRaw, cidsFound := req.Options[pinNameOptionName].([]string); cidsFound {
+		if cidsRaw, cidsFound := req.Options[pinCIDsOptionName].([]string); cidsFound {
 			parsedCIDs := []cid.Cid{}
 			for _, rawCID := range cidsRaw {
 				parsedCID, err := cid.Decode(rawCID)
@@ -241,7 +243,7 @@ collected if needed.
 		cmds.StringArg("pin-id", true, true, "ID of the pin to be removed.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringsOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -264,6 +266,8 @@ collected if needed.
 		return c.DeleteByID(ctx, req.Arguments[0])
 	},
 }
+
+// remote service commands
 
 var addRemotePinServiceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
