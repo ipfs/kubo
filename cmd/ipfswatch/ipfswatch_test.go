@@ -1,3 +1,5 @@
+// +build !plan9
+
 package main
 
 import (

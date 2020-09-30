@@ -243,8 +243,7 @@ func netcat(c io.ReadWriteCloser) {
 
 	// wait until we exit.
 	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT,
-		syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(sigc, notifySignals...)
 
 	select {
 	case <-done:

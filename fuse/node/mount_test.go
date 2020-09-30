@@ -1,4 +1,4 @@
-// +build !openbsd,!nofuse,!netbsd
+// +build !openbsd,!nofuse,!netbsd,!plan9
 
 package node
 
