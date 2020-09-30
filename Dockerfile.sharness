@@ -1,0 +1,23 @@
+FROM golang:1.14.4-buster 
+LABEL maintainer="Steven Allen <steven@stebalien.com>"
+
+# Install deps
+RUN apt-get update && apt-get install -y \
+  socat \
+  libssl-dev \
+  ca-certificates \
+  fuse
+
+ENV SRC_DIR /go-ipfs
+
+# Download packages first so they can be cached.
+COPY go.mod go.sum $SRC_DIR/
+RUN cd $SRC_DIR && \
+        go mod download
+
+COPY . $SRC_DIR
+
+# Make output directories.
+RUN mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/{unit,sharness}
+
+CMD ["/go-ipfs/run_sharness.sh"]
