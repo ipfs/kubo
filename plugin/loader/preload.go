@@ -1,6 +1,7 @@
 package loader
 
 import (
+	pluginbadger2ds "github.com/ipfs/go-ipfs/plugin/plugins/badger2ds"
 	pluginbadgerds "github.com/ipfs/go-ipfs/plugin/plugins/badgerds"
 	pluginflatfs "github.com/ipfs/go-ipfs/plugin/plugins/flatfs"
 	pluginipldgit "github.com/ipfs/go-ipfs/plugin/plugins/git"
@@ -14,6 +15,7 @@ import (
 func init() {
 	Preload(pluginipldgit.Plugins...)
 	Preload(pluginbadgerds.Plugins...)
+	Preload(pluginbadger2ds.Plugins...)
 	Preload(pluginflatfs.Plugins...)
 	Preload(pluginlevelds.Plugins...)
 }

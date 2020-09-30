@@ -6,5 +6,6 @@
 ipldgit github.com/ipfs/go-ipfs/plugin/plugins/git *
 
 badgerds github.com/ipfs/go-ipfs/plugin/plugins/badgerds *
+badger2ds github.com/ipfs/go-ipfs/plugin/plugins/badger2ds *
 flatfs github.com/ipfs/go-ipfs/plugin/plugins/flatfs *
 levelds github.com/ipfs/go-ipfs/plugin/plugins/levelds *

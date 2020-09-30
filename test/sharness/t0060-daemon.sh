@@ -30,6 +30,28 @@ test_expect_success "cleanup repo" '
   rm -rf "$IPFS_PATH"
 '
 
+test_expect_success "create badger2 config" '
+  ipfs init --profile=badger2ds,test > /dev/null &&
+  cp "$IPFS_PATH/config" init-config
+'
+
+test_expect_success "cleanup repo" '
+  rm -rf "$IPFS_PATH"
+'
+
+test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile=test
+test_kill_ipfs_daemon
+
+test_expect_success "daemon initialization with existing config works" '
+  ipfs config "Datastore.Spec.child.path" >actual &&
+  test $(cat actual) = "badger2ds" &&
+  ipfs config Addresses > orig_addrs
+'
+
+test_expect_success "cleanup repo" '
+  rm -rf "$IPFS_PATH"
+'
+
 test_launch_ipfs_daemon --init --init-config="$(pwd)/init-config" --init-profile=test,randomports
 test_kill_ipfs_daemon
 

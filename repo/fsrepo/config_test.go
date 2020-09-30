@@ -49,6 +49,18 @@ var defaultConfig = []byte(`{
     "BloomFilterSize": 0
 }`)
 
+var badgerConfig = []byte(`{
+            "path": "datastore",
+            "type": "badgerds"
+}`)
+
+var badger2Config = []byte(`{
+            "compression": "none",
+            "blockCacheSize": "0",
+            "path": "datastore",
+            "type": "badger2ds"
+}`)
+
 var leveldbConfig = []byte(`{
             "compression": "none",
             "path": "datastore",
@@ -232,5 +244,83 @@ func TestMeasureConfig(t *testing.T) {
 
 	if typ := reflect.TypeOf(ds).String(); typ != "*measure.measure" {
 		t.Errorf("expected '*measure.measure' got '%s'", typ)
+	}
+}
+
+func TestBadgerConfig(t *testing.T) {
+	config := new(config.Datastore)
+	err := json.Unmarshal(defaultConfig, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir) // clean up
+
+	spec := make(map[string]interface{})
+	err = json.Unmarshal(badgerConfig, &spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dsc, err := fsrepo.AnyDatastoreConfig(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{"path":"datastore","type":"badgerds"}`
+	if dsc.DiskSpec().String() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
+	}
+
+	ds, err := dsc.Create(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if typ := reflect.TypeOf(ds).String(); typ != "*badger.Datastore" {
+		t.Errorf("expected '*badger.datastore' got '%s'", typ)
+	}
+}
+
+func TestBadger2Config(t *testing.T) {
+	config := new(config.Datastore)
+	err := json.Unmarshal(defaultConfig, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir) // clean up
+
+	spec := make(map[string]interface{})
+	err = json.Unmarshal(badger2Config, &spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dsc, err := fsrepo.AnyDatastoreConfig(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{"path":"datastore","type":"badger2ds"}`
+	if dsc.DiskSpec().String() != expected {
+		t.Errorf("expected '%s' got '%s' as DiskId", expected, dsc.DiskSpec().String())
+	}
+
+	ds, err := dsc.Create(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The name of the package in go-ds-badger2 is "badger", so the type
+	// returned by dsc.Create() is "*badger.Datastore"
+	if typ := reflect.TypeOf(ds).String(); typ != "*badger.Datastore" {
+		t.Errorf("expected '*badger.datastore' got '%s'", typ)
 	}
 }

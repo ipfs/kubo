@@ -54,7 +54,7 @@ documented in `ipfs config profile --help`.
   This is the most battle-tested and reliable datastore, but it's significantly
   slower than the badger datastore. You should use this datastore if:
 
-  - You need a very simple and very reliable datastore you and trust your
+  - You need a very simple and very reliable datastore and you trust your
     filesystem. This datastore stores each block as a separate file in the
     underlying filesystem so it's unlikely to loose data unless there's an issue
     with the underlying file system.
@@ -70,6 +70,22 @@ documented in `ipfs config profile --help`.
 - `badgerds`
 
   Configures the node to use the badger datastore.
+
+  This is a the fast datastore. Use this datastore if performance, especially
+  when adding many gigabytes of files, is critical. However:
+
+  - This datastore will not properly reclaim space when your datastore is
+    smaller than several gigabytes. If you run IPFS with '--enable-gc' (you have
+    enabled block-level garbage collection), you plan on storing very little data in
+    your IPFS node, and disk usage is more critical than performance, consider using
+    flatfs.
+  - This datastore uses up to several gigabytes of memory. 
+
+  This profile may only be applied when first initializing the node.
+
+- `badger2ds`
+
+  Configures the node to use the badger2 datastore.
 
   This is the fastest datastore. Use this datastore if performance, especially
   when adding many gigabytes of files, is critical. However:
