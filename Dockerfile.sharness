@@ -1,11 +1,11 @@
 FROM golang:1.14.4-buster 
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
-# Add test user (sharness tests cannot run as root)
+# add test user (sharness tests cannot run as root)
 RUN groupadd -r tester && useradd -r -g tester -d /tester tester && \
         mkdir -p /tester && chown -R tester:tester /tester
 
-# Install deps
+# install deps
 RUN apt-get update && apt-get install -y \
   socat \
   libssl-dev \
@@ -14,17 +14,20 @@ RUN apt-get update && apt-get install -y \
 
 ENV SRC_DIR /go-ipfs
 
-# Proceed as tester
+# with write accesss to /tmp
+# RUN chown -R tester:tester /tmp
+
+# proceed as tester
 USER tester
 
-# Download packages first so they can be cached.
+# download packages first so they can be cached.
 COPY --chown=tester:tester go.mod go.sum $SRC_DIR/
 RUN cd $SRC_DIR && \
         go mod download
 
 COPY --chown=tester:tester . $SRC_DIR
 
-# Make output directories.
-RUN mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/{unit,sharness}
+# make output directories.
+RUN mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/unit /tmp/circleci-test-results/sharness
 
 CMD ["/go-ipfs/run_sharness.sh"]
