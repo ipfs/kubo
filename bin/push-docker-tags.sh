@@ -58,7 +58,7 @@ pushTag () {
     echo "Tagging $IMAGE_NAME:$IMAGE_TAG and pushing to dockerhub"
     docker tag "$IMAGE_NAME:$WIP_IMAGE_TAG" "$IMAGE_NAME:$IMAGE_TAG"
     docker buildx build --push \
-          --platform linux/arm/v7,linux/arm64/v8,linux/amd64 \
+          --platform linux/arm64/v8,linux/amd64 \
           --tag "$IMAGE_NAME:$IMAGE_TAG" .
   fi
 }
