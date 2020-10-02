@@ -31,9 +31,14 @@ test_expect_success "GET IPFS path succeeds" '
   curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH"
 '
 
-test_expect_success "GET IPFS path with explicit filename succeeds with proper header" "
-  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест' &&
-  grep -F \"Content-Disposition: inline; filename*=UTF-8''test%D1%82%D0%B5%D1%81%D1%82\" actual_headers
+test_expect_success "GET IPFS path with explicit ?filename succeeds with proper header" "
+  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест.pdf' &&
+  grep -F 'Content-Disposition: inline; filename=\"test____.pdf\"; filename*=UTF-8'\'\''test%D1%82%D0%B5%D1%81%D1%82.pdf' actual_headers
+"
+
+test_expect_success "GET IPFS path with explicit ?filename and &download=true succeeds with proper header" "
+  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест.mp4&download=true' &&
+  grep -F 'Content-Disposition: attachment; filename=\"test____.mp4\"; filename*=UTF-8'\'\''test%D1%82%D0%B5%D1%81%D1%82.mp4' actual_headers
 "
 
 # https://github.com/ipfs/go-ipfs/issues/4025#issuecomment-342250616
