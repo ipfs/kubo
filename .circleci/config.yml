@@ -295,7 +295,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: "18.09.3"
-      - run: apk add make curl
+      - run: sudo apt install make curl
       - run: mkdir -vp ~/.docker/cli-plugins/
       - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
       - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
