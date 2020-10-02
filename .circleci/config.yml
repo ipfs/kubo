@@ -295,10 +295,17 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: "18.09.3"
+      - run: apk add make curl
+      - run: mkdir -vp ~/.docker/cli-plugins/
+      - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
+      - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
+      - run: docker buildx version
       - run:
           name: Build Docker image
           command: |
-            docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .
+            docker buildx build \
+              --platform linux/arm/v7,linux/arm64/v8,linux/amd64 \
+              -t $IMAGE_NAME:$WIP_IMAGE_TAG .
       - run:
           name: Archive Docker image
           command: docker save -o go-ipfs-image.tar $IMAGE_NAME
