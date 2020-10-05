@@ -132,7 +132,8 @@ jobs:
           docker build -t ipfs/go-ipfs-sharness -f ./Dockerfile.sharness .
     - run:
         name: Run sharness container
-        command: docker run \
+        command: |
+          docker run \
                 --mount type=bind,source=/tmp/circleci-artifacts,target=/tmp/circleci-artifacts \
                 --mount type=bind,source=/tmp/circleci-workspace,target=/tmp/circleci-workspace \
                 --mount type=bind,source=/tmp/circleci-test-results,target=/tmp/circleci-test-results \
