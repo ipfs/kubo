@@ -122,20 +122,33 @@ jobs:
     steps:
     - run: sudo apt install socat
     - checkout
+    - setup_remote_docker:
+        version: "18.09.3"
     - *make_out_dirs
-    - *restore_gomod
-
-    - run: make -O -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
-
+    # - *restore_gomod
     - run:
-        when: always
-        command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
+        name: Build sharness Docker image
+        command: |
+          docker build -t ipfs/go-ipfs-sharness -f ./Dockerfile.sharness .
+    - run:
+        name: Run sharness container
+        command: docker run \
+                --mount type=bind,source=/tmp/circleci-artifacts,target=/tmp/circleci-artifacts \
+                --mount type=bind,source=/tmp/circleci-workspace,target=/tmp/circleci-workspace \
+                --mount type=bind,source=/tmp/circleci-test-results,target=/tmp/circleci-test-results \
+                -ti ipfs/go-ipfs-sharness
 
-    - run: mv "test/sharness/test-results/sharness.xml" /tmp/circleci-test-results/sharness
+#     - run: make -O -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
+
+#     - run:
+#         when: always
+#         command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
+
+#     - run: mv "test/sharness/test-results/sharness.xml" /tmp/circleci-test-results/sharness
     # make sure we fail if there are test failures
-    - run: find test/sharness/test-results -name 't*-*.sh.*.counts' | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
+#     - run: find test/sharness/test-results -name 't*-*.sh.*.counts' | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
 
-    - *store_gomod
+    # - *store_gomod
 
     - store_test_results:
         path: /tmp/circleci-test-results
