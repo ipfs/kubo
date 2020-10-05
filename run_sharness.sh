@@ -9,6 +9,6 @@ make -O -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sh
 
 bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
 
-mv "test/sharness/test-results/sharness.xml" /tmp/circleci-test-results/sharness
+mv test/sharness/test-results/sharness.xml /tmp/circleci-test-results/sharness
 
 find test/sharness/test-results -name 't*-*.sh.*.counts' | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'

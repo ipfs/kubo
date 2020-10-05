@@ -12,10 +12,14 @@ RUN apt-get update && apt-get install -y \
   ca-certificates \
   fuse
 
-ENV SRC_DIR /go-ipfs
+# Add suid bit on fusermount so it will run properly
+RUN chmod 4755 /bin/fusermount
 
-# with write accesss to /tmp
-# RUN chown -R tester:tester /tmp
+# Create mount points for `ipfs mount` command
+RUN mkdir /ipfs /ipns \
+  && chown tester:tester /ipfs /ipns
+
+ENV SRC_DIR /go-ipfs
 
 # proceed as tester
 USER tester
@@ -30,4 +34,9 @@ COPY --chown=tester:tester . $SRC_DIR
 # make output directories.
 RUN mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/unit /tmp/circleci-test-results/sharness
 
-CMD ["/go-ipfs/run_sharness.sh"]
+ENV GO111MODULE "on"
+ENV TEST_NO_DOCKER 1
+ENV TEST_NO_FUSE 1
+ENV TEST_VERBOSE 1
+
+CMD /go-ipfs/run_sharness.sh
