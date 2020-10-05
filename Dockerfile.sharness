@@ -21,6 +21,13 @@ RUN mkdir /ipfs /ipns \
 
 ENV SRC_DIR /go-ipfs
 
+# make output directories.
+VOLUME /tmp/circleci-artifacts
+VOLUME /tmp/circleci-workspace
+VOLUME /tmp/circleci-test-results
+RUN mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/unit /tmp/circleci-test-results/sharness
+RUN chown tester:tester -R /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results
+
 # proceed as tester
 USER tester
 
@@ -30,12 +37,6 @@ RUN cd $SRC_DIR && \
         go mod download
 
 COPY --chown=tester:tester . $SRC_DIR
-
-# make output directories.
-VOLUME /tmp/circleci-artifacts
-VOLUME /tmp/circleci-workspace
-VOLUME /tmp/circleci-test-results
-RUN mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/unit /tmp/circleci-test-results/sharness
 
 ENV GO111MODULE "on"
 ENV TEST_NO_DOCKER 1
