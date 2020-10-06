@@ -133,7 +133,8 @@ jobs:
     - run:
         name: Run sharness container
         command: |
-          docker run --mount type=bind,source=/tmp/circleci-artifacts,target=/tmp/circleci-artifacts --mount type=bind,source=/tmp/circleci-workspace,target=/tmp/circleci-workspace --mount type=bind,source=/tmp/circleci-test-results,target=/tmp/circleci-test-results -ti ipfs/go-ipfs-sharness
+        mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/unit /tmp/circleci-test-results/sharness && \
+        docker run --mount type=bind,source=/tmp/circleci-artifacts,target=/tmp/circleci-artifacts --mount type=bind,source=/tmp/circleci-workspace,target=/tmp/circleci-workspace --mount type=bind,source=/tmp/circleci-test-results,target=/tmp/circleci-test-results -ti ipfs/go-ipfs-sharness
 
 #     - run: make -O -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
 
