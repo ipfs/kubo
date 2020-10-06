@@ -1,7 +1,7 @@
 package corehttp
 
 // TODO: move to IPNS
-const WebUIPath = "/ipfs/bafybeifekmcbbi4nwyj4aasti6x3nuhyli464wfjjfdjg4xnz53lhyiedq" // v2.11.2
+const WebUIPath = "/ipfs/bafybeigv2xkwu2v27rx56m7ndg5dnz4b7235pn33andlriqhyy5s6nwyvq" // v2.11.3
 
 // this is a list of all past webUI paths.
 var WebUIPaths = []string{
