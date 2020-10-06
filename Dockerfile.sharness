@@ -43,4 +43,6 @@ ENV TEST_NO_DOCKER 1
 ENV TEST_NO_FUSE 1
 ENV TEST_VERBOSE 1
 
+WORKDIR /go-ipfs
+
 CMD /go-ipfs/run_sharness.sh
