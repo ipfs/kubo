@@ -137,17 +137,21 @@ jobs:
     - run:
         name: Run sharness container
         command: |
-                docker run --mount type=bind,source=/tmp/circleci-artifacts,target=/tmp/circleci-artifacts --mount type=bind,source=/tmp/circleci-workspace,target=/tmp/circleci-workspace --mount type=bind,source=/tmp/circleci-test-results,target=/tmp/circleci-test-results -ti ipfs/go-ipfs-sharness
+                docker run --name sharness_container --mount type=bind,source=/tmp/circleci-artifacts,target=/tmp/circleci-artifacts --mount type=bind,source=/tmp/circleci-workspace,target=/tmp/circleci-workspace --mount type=bind,source=/tmp/circleci-test-results,target=/tmp/circleci-test-results -ti ipfs/go-ipfs-sharness && \
+                docker cp sharness_container:/go-ipfs/coverage/sharness_tests.coverprofile ./ && \
+                docker cp sharness_container:/go-ipfs/test/sharness/test-results/sharness.xml /tmp/circleci-test-results/sharness/ && \
+                docker cp sharness_container:/go-ipfs/test ./
 
 #     - run: make -O -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
 
-#     - run:
-#         when: always
-#         command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
+    - run:
+        when: always
+        command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f sharness_tests.coverprofile
 
-#     - run: mv "test/sharness/test-results/sharness.xml" /tmp/circleci-test-results/sharness
+    - run: mv "test/sharness/test-results/sharness.xml" /tmp/circleci-test-results/sharness
+
     # make sure we fail if there are test failures
-#     - run: find test/sharness/test-results -name 't*-*.sh.*.counts' | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
+    - run: find test/sharness/test-results -name 't*-*.sh.*.counts' | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
 
     # - *store_gomod
 
