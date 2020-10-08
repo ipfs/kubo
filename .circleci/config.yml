@@ -137,7 +137,7 @@ jobs:
     - run:
         name: Run sharness container
         command: |
-                docker run --name sharness_container --mount type=bind,source=/tmp/circleci-artifacts,target=/tmp/circleci-artifacts --mount type=bind,source=/tmp/circleci-workspace,target=/tmp/circleci-workspace --mount type=bind,source=/tmp/circleci-test-results,target=/tmp/circleci-test-results -ti ipfs/go-ipfs-sharness && \
+                docker run --name sharness_container -ti ipfs/go-ipfs-sharness && \
                 docker cp sharness_container:/go-ipfs/coverage/sharness_tests.coverprofile ./ && \
                 docker cp sharness_container:/go-ipfs/test/sharness/test-results/sharness.xml /tmp/circleci-test-results/sharness/ && \
                 docker cp sharness_container:/go-ipfs/test ./
