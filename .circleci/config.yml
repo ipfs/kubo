@@ -306,7 +306,7 @@ jobs:
           name: Build Docker image
           command: |
             docker buildx build \
-              --platform linux/arm64/v8,linux/amd64 \
+              --platform linux/amd64 \
               -t $IMAGE_NAME:$WIP_IMAGE_TAG .
       - run:
           name: Archive Docker image
