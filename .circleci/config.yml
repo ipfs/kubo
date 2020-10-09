@@ -136,6 +136,7 @@ jobs:
                 mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/unit /tmp/circleci-test-results/sharness
     - run:
         name: Run sharness container
+        no_output_timeout: 30m
         command: |
                 docker run --name sharness_container -ti ipfs/go-ipfs-sharness && \
                 docker cp sharness_container:/go-ipfs/coverage/sharness_tests.coverprofile ./ && \
