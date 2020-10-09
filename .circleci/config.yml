@@ -60,7 +60,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer:
     docker:
-      - image: jdrouet/docker-with-buildx:stable
+      - image: circleci/golang:1.14.4
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
@@ -296,11 +296,10 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: "18.09.3"
-      # - run: sudo apt install make curl
-      # - run: mkdir -vp ~/.docker/cli-plugins/
-      # - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
-      # - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
-      - run: apk add qemu-user
+      - run: sudo apt install -y make curl qemu-user
+      - run: mkdir -vp ~/.docker/cli-plugins/
+      - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
+      - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
       - run: docker buildx version
       - run:
           name: Build Docker image
