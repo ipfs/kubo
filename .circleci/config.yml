@@ -64,6 +64,7 @@ executors:
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
+      DOCKER_CLI_EXPERIMENTAL: enabled
 
 jobs:
   gobuild:
@@ -295,6 +296,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: "18.09.3"
+      - run: sudo apk add qemu-user
       - run: docker buildx version
       - run:
           name: Build Docker image
