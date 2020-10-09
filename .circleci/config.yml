@@ -296,7 +296,7 @@ jobs:
       - checkout
       - setup_remote_docker:
           version: "18.09.3"
-      - run: sudo apt install -y make curl qemu-user
+      - run: sudo apt install -y make curl qemu-user-static
       - run: mkdir -vp ~/.docker/cli-plugins/
       - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
       - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
