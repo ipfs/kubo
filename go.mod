@@ -2,14 +2,12 @@ module github.com/ipfs/go-ipfs
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
-	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d
 	github.com/cheggaaa/pb v1.0.29
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
-	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gabriel-vasile/mimetype v1.1.1
 	github.com/go-bindata/go-bindata/v3 v3.1.3
@@ -75,7 +73,7 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-pubsub v0.3.5
 	github.com/libp2p/go-libp2p-pubsub-router v0.3.2
-	github.com/libp2p/go-libp2p-quic-transport v0.8.0
+	github.com/libp2p/go-libp2p-quic-transport v0.8.2
 	github.com/libp2p/go-libp2p-record v0.1.3
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
 	github.com/libp2p/go-libp2p-secio v0.2.2
@@ -86,7 +84,7 @@ require (
 	github.com/libp2p/go-socket-activation v0.0.2
 	github.com/libp2p/go-tcp-transport v0.2.1
 	github.com/libp2p/go-ws-transport v0.3.1
-	github.com/lucas-clemente/quic-go v0.18.0
+	github.com/lucas-clemente/quic-go v0.18.1
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-multiaddr v0.3.1
