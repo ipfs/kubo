@@ -118,7 +118,7 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   sharness:
-    resource_class: xlarge
+    resource_class: 2xlarge
     executor: golang
     steps:
     - run: sudo apt install socat
