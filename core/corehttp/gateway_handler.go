@@ -290,7 +290,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		goget := r.URL.Query().Get("go-get") == "1"
 		if dirwithoutslash && !goget {
 			// See comment above where originalUrlPath is declared.
-			http.Redirect(w, r, originalUrlPath+"/", 302)
+			suffix := "/"
+			if r.URL.RawQuery != "" {
+				// preserve query parameters
+				suffix = suffix + "?" + r.URL.RawQuery
+			}
+			http.Redirect(w, r, originalUrlPath+suffix, 302)
 			return
 		}
 
