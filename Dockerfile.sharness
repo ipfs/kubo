@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y \
   fuse \
   less \
   sudo  \
-  net-tools
+  net-tools \
+  pstree
 
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /bin/fusermount
