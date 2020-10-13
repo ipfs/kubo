@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
   ca-certificates \
   fuse \
   less \
-  sudo
+  sudo  \
+  net-tools
 
 # Add suid bit on fusermount so it will run properly
 RUN chmod 4755 /bin/fusermount
