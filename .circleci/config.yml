@@ -139,7 +139,7 @@ jobs:
         name: Run sharness container
         no_output_timeout: 30m
         command: |
-                docker run --cpus=36 --memory=30g --name sharness_container -ti ipfs/go-ipfs-sharness && \
+                docker run --cpus=2 --memory=30g --name sharness_container -ti ipfs/go-ipfs-sharness && \
                 docker cp sharness_container:/go-ipfs/coverage/sharness_tests.coverprofile ./ && \
                 docker cp sharness_container:/go-ipfs/test/sharness/test-results/sharness.xml /tmp/circleci-test-results/sharness/ && \
                 docker cp sharness_container:/go-ipfs/test ./
