@@ -136,8 +136,7 @@ jobs:
 
     - run:
         git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git &&
-        sudo apt install ruby ruby-dev zlib1g-dev &&
-        sudo gem install rails
+        gem install rails
 #     - setup_remote_docker
     - run:
         cd rb-pinning-service-api &&
