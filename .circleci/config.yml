@@ -42,6 +42,9 @@ executors:
       TEST_NO_FUSE: 1
       GOPATH: /home/circleci/go
       TEST_VERBOSE: 1
+  golang_mach:
+    machine:
+      - image: ubuntu-1604:202007-01
   node:
     docker:
       - image: circleci/node:12
@@ -119,7 +122,7 @@ jobs:
         path: /tmp/circleci-test-results
   sharness:
     resource_class: 2xlarge
-    executor: golang
+    executor: golang_mach
     steps:
     - run: sudo apt install socat
     - checkout
