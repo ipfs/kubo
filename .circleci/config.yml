@@ -147,7 +147,9 @@ jobs:
     - *make_out_dirs
     - *restore_gomod
 
-    - run: make -O -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
+    - run: 
+        export CI_HOST_IP=$(ip route|awk '/172/ { print $9 }') # get ip of circle ci host machine within the docker net
+        make -O -j 10 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1
 
     - run:
         when: always

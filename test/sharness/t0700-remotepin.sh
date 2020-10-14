@@ -44,7 +44,8 @@ test_init_ipfs
 if [ -z "$IPFS_REMOTE_PIN_SERVICE" ] || [ -z "$IPFS_REMOTE_PIN_KEY" ]; then
         # create user on pinning service
         test_expect_success "creating test user on remote pinning service" '
-                IPFS_REMOTE_PIN_SERVICE=http://localhost:5000/api/v1 &&
+                echo CI host IP address ${CI_HOST_IP}
+                IPFS_REMOTE_PIN_SERVICE=http://${CI_HOST_IP}:5000/api/v1 &&
                 IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
         '
 fi
