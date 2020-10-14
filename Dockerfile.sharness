@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
   libssl-dev \
   ca-certificates \
   fuse \
+  xz-utils \
   less \
   sudo  \
   net-tools \
