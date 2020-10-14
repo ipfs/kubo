@@ -138,7 +138,7 @@ jobs:
         git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git &&
         sudo apt install ruby ruby-dev zlib1g-dev &&
         sudo gem install rails
-    - setup_remote_docker
+#     - setup_remote_docker
     - run:
         cd rb-pinning-service-api &&
         echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
