@@ -125,8 +125,8 @@ jobs:
     steps:
     - run: sudo apt install socat
     - checkout
-    - setup_remote_docker:
-        version: "18.09.3"
+#     - setup_remote_docker:
+#         version: "18.09.3"
     - *make_out_dirs
     # - *restore_gomod
     - run:
