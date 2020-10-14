@@ -118,7 +118,18 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   sharness:
-    executor: golang
+    resource_class: xlarge
+#     executor: golang
+    machine:
+        image: ubuntu-1604:202007-01
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+        <<: *default_environment
+        GO111MODULE: "on"
+        TEST_NO_DOCKER: 1
+        TEST_NO_FUSE: 1
+        GOPATH: /home/circleci/go
+        TEST_VERBOSE: 1
     steps:
     - run: sudo apt install socat
     - checkout
@@ -131,7 +142,8 @@ jobs:
     - run:
         cd rb-pinning-service-api &&
         echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
-        docker-compose up -d
+        docker-compose up -d &&
+        cd ..
 
     - *make_out_dirs
     - *restore_gomod
