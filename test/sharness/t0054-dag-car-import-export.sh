@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
 
+set -x
+
 test_description="Test car file import/export functionality"
 
 . lib/test-lib.sh
