@@ -2,6 +2,7 @@
 
 test_description="Test ipfs remote pinning operations"
 
+set -x
 . lib/test-lib.sh
 
 test_remote_pins() {
@@ -27,6 +28,7 @@ test_remote_pins() {
 
   test_expect_success "'ipfs pin remote ls' for existing pins by name" '
     FOUND_ID_A=$(ipfs pin remote ls --enc=json --name=name_a --cid=$HASH_A | jq --raw-output .RequestID | grep $ID_A) &&
+    echo ID_A=$ID_A FOUND_ID_A=$FOUND_ID_A &&
     echo $ID_A > expected &&
     echo $FOUND_ID_A > actual &&
     test_cmp expected actual
