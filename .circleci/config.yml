@@ -118,7 +118,7 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   sharness:
-    resource_class: xlarge
+    resource_class: 2xlarge
     machine:
         image: ubuntu-1604:202007-01
     working_directory: ~/ipfs/go-ipfs
