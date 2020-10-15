@@ -50,8 +50,8 @@ const pinNameOptionName = "name"
 const pinCIDsOptionName = "cid"
 const pinServiceNameOptionName = "service"
 
-type AddRemotePinOutput struct {
-	ID        string
+type RemotePinOutput struct {
+	RequestID string
 	Name      string
 	Delegates []string // multiaddr
 	Status    string
@@ -73,7 +73,7 @@ var addRemotePinCmd = &cmds.Command{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
-	Type: AddRemotePinOutput{},
+	Type: RemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -119,8 +119,8 @@ var addRemotePinCmd = &cmds.Command{
 
 		}
 
-		return res.Emit(&AddRemotePinOutput{
-			ID:        ps.GetRequestId(),
+		return res.Emit(&RemotePinOutput{
+			RequestID: ps.GetRequestId(),
 			Name:      ps.GetPin().GetName(),
 			Delegates: multiaddrsToStrings(ps.GetDelegates()),
 			Status:    ps.GetStatus().String(),
@@ -128,8 +128,8 @@ var addRemotePinCmd = &cmds.Command{
 		})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddRemotePinOutput) error {
-			fmt.Printf("pin_id=%v\n", out.ID)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
+			fmt.Printf("pin_id=%v\n", out.RequestID)
 			fmt.Printf("pin_name=%q\n", out.Name)
 			for _, d := range out.Delegates {
 				fmt.Printf("pin_delegate=%v\n", d)
@@ -196,8 +196,8 @@ Returns a list of objects that are pinned to a remote pinning service.
 		psCh, errCh := c.Ls(ctx, opts...)
 
 		for ps := range psCh {
-			if err := res.Emit(&AddRemotePinOutput{
-				ID:        ps.GetRequestId(),
+			if err := res.Emit(&RemotePinOutput{
+				RequestID: ps.GetRequestId(),
 				Name:      ps.GetPin().GetName(),
 				Delegates: multiaddrsToStrings(ps.GetDelegates()),
 				Status:    ps.GetStatus().String(),
@@ -209,10 +209,10 @@ Returns a list of objects that are pinned to a remote pinning service.
 
 		return <-errCh
 	},
-	Type: AddRemotePinOutput{},
+	Type: RemotePinOutput{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *AddRemotePinOutput) error {
-			fmt.Printf("pin_id=%v\n", out.ID)
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
+			fmt.Printf("pin_id=%v\n", out.RequestID)
 			fmt.Printf("pin_name=%q\n", out.Name)
 			for _, d := range out.Delegates {
 				fmt.Printf("pin_delegate=%v\n", d)
@@ -234,7 +234,7 @@ collected if needed.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("pin-id", true, true, "ID of the pin to be removed.").EnableStdin(),
+		cmds.StringArg("request-id", true, true, "Request ID of the pin to be removed.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
@@ -244,7 +244,7 @@ collected if needed.
 		defer cancel()
 
 		if len(req.Arguments) == 0 {
-			return fmt.Errorf("missing a pin ID argument")
+			return fmt.Errorf("missing a pin request ID argument")
 		}
 
 		service, _ := req.Options[pinServiceNameOptionName].(string)
