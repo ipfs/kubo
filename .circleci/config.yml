@@ -119,7 +119,6 @@ jobs:
         path: /tmp/circleci-test-results
   sharness:
     resource_class: xlarge
-#     executor: golang
     machine:
         image: ubuntu-1604:202007-01
     working_directory: ~/ipfs/go-ipfs
@@ -136,8 +135,7 @@ jobs:
 
     - run:
         git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git &&
-        gem install rails
-#     - setup_remote_docker
+        # gem install rails
     - run:
         cd rb-pinning-service-api &&
         echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&

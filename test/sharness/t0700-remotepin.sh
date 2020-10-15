@@ -50,10 +50,6 @@ if [ -z "$IPFS_REMOTE_PIN_SERVICE" ] || [ -z "$IPFS_REMOTE_PIN_KEY" ]; then
         '
 fi
 
-test_expect_success "verify the pin service is reachable" '
-  curl $IPFS_REMOTE_PIN_SERVICE
-'
-
 test_remote_pins ""
 
 # test_kill_ipfs_daemon

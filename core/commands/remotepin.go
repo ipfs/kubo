@@ -96,10 +96,7 @@ var addRemotePinCmd = &cmds.Command{
 			return err
 		}
 
-		service, serviceFound := req.Options[pinServiceNameOptionName].(string)
-		if !serviceFound {
-			return fmt.Errorf("remote pinning service name not specified")
-		}
+		service, _ := req.Options[pinServiceNameOptionName].(string)
 		url, key, err := getRemotePinServiceOrEnv(env, service)
 		if err != nil {
 			return err
@@ -189,10 +186,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 			opts = append(opts, pinclient.PinOpts.FilterCIDs(parsedCIDs...))
 		}
 
-		service, serviceFound := req.Options[pinServiceNameOptionName].(string)
-		if !serviceFound {
-			return fmt.Errorf("remote pinning service name not specified")
-		}
+		service, _ := req.Options[pinServiceNameOptionName].(string)
 		url, key, err := getRemotePinServiceOrEnv(env, service)
 		if err != nil {
 			return err
@@ -253,10 +247,7 @@ collected if needed.
 			return fmt.Errorf("missing a pin ID argument")
 		}
 
-		service, serviceFound := req.Options[pinServiceNameOptionName].(string)
-		if !serviceFound {
-			return fmt.Errorf("remote pinning service name not specified")
-		}
+		service, _ := req.Options[pinServiceNameOptionName].(string)
 		url, key, err := getRemotePinServiceOrEnv(env, service)
 		if err != nil {
 			return err
@@ -451,6 +442,9 @@ var renameRemotePinServiceCmd = &cmds.Command{
 func getRemotePinServiceOrEnv(env cmds.Environment, name string) (url, key string, err error) {
 	if remotePinURL != "" && remotePinKey != "" {
 		return remotePinURL, remotePinKey, nil
+	}
+	if name == "" {
+		return "", "", fmt.Errorf("remote pinning service name not specified")
 	}
 	return getRemotePinService(env, name)
 }
