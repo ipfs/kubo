@@ -22,11 +22,11 @@ test_remote_pins() {
   '
 
   test_expect_success "'ipfs pin remote add'" '
-    ID_A=$(ipfs pin remote add --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .ID)
+    ID_A=$(ipfs pin remote add --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID)
   '
 
   test_expect_success "'ipfs pin remote ls' for existing pins by name" '
-    FOUND_ID_A=$(ipfs pin remote ls --enc=json --name=name_a --cid=$HASH_A | jq --raw-output .ID | grep $ID_A) &&
+    FOUND_ID_A=$(ipfs pin remote ls --enc=json --name=name_a --cid=$HASH_A | jq --raw-output .RequestID | grep $ID_A) &&
     echo $ID_A > expected &&
     echo $FOUND_ID_A > actual &&
     test_cmp expected actual
@@ -37,7 +37,7 @@ test_remote_pins() {
   '
 
   test_expect_success "'ipfs pin remote ls' for deleted pin" '
-    ipfs pin remote ls --enc=json --name=name_a | jq --raw-output .ID > list
+    ipfs pin remote ls --enc=json --name=name_a | jq --raw-output .RequestID > list
     test_expect_code 1 grep $ID_A list
   '
 }
@@ -47,8 +47,8 @@ test_init_ipfs
 # create user on pinning service
 test_expect_success "creating test user on remote pinning service" '
         echo CI host IP address ${CI_HOST_IP} &&
-        IPFS_REMOTE_PIN_SERVICE=http://${CI_HOST_IP}:5000/api/v1 &&
-        IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
+        export IPFS_REMOTE_PIN_SERVICE=http://${CI_HOST_IP}:5000/api/v1 &&
+        export IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
 '
 
 test_remote_pins ""
