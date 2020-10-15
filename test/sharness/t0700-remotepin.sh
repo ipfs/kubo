@@ -10,6 +10,9 @@ test_remote_pins() {
     BASE_ARGS="--cid-base=$BASE"
   fi
 
+  echo Using IPFS_REMOTE_PIN_SERVICE=$IPFS_REMOTE_PIN_SERVICE
+  echo Using IPFS_REMOTE_PIN_KEY=$IPFS_REMOTE_PIN_KEY
+
   test_expect_success "create some hashes using base $BASE" '
     HASH_A=$(echo "A" | ipfs add $BASE_ARGS -q --pin=false)
   '
@@ -41,14 +44,12 @@ test_remote_pins() {
 
 test_init_ipfs
 
-if [ -z "$IPFS_REMOTE_PIN_SERVICE" ] || [ -z "$IPFS_REMOTE_PIN_KEY" ]; then
-        # create user on pinning service
-        test_expect_success "creating test user on remote pinning service" '
-                echo CI host IP address ${CI_HOST_IP} &&
-                IPFS_REMOTE_PIN_SERVICE=http://${CI_HOST_IP}:5000/api/v1 &&
-                IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
-        '
-fi
+# create user on pinning service
+test_expect_success "creating test user on remote pinning service" '
+        echo CI host IP address ${CI_HOST_IP} &&
+        IPFS_REMOTE_PIN_SERVICE=http://${CI_HOST_IP}:5000/api/v1 &&
+        IPFS_REMOTE_PIN_KEY=$(curl -X POST $IPFS_REMOTE_PIN_SERVICE/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
+'
 
 test_remote_pins ""
 
