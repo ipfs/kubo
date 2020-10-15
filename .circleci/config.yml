@@ -134,7 +134,7 @@ jobs:
     - checkout
 
     - run:
-        git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git &&
+        git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git
         # gem install rails
     - run:
         cd rb-pinning-service-api &&
