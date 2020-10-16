@@ -2,7 +2,6 @@
 
 test_description="Test ipfs remote pinning operations"
 
-set -x
 . lib/test-lib.sh
 
 test_remote_pins() {
@@ -15,7 +14,7 @@ test_remote_pins() {
   echo Using IPFS_REMOTE_PIN_KEY=$IPFS_REMOTE_PIN_KEY
 
   test_expect_success "create some hashes using base $BASE" '
-    HASH_A=$(echo "A" | ipfs add $BASE_ARGS -q --pin=false)
+    export HASH_A=$(echo "A" | ipfs add $BASE_ARGS -q --pin=false)
   '
 
   test_expect_success "check connection to pinning service" '
@@ -23,7 +22,7 @@ test_remote_pins() {
   '
 
   test_expect_success "'ipfs pin remote add'" '
-    ID_A=$(ipfs pin remote add --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID)
+    export ID_A=$(ipfs pin remote add --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID)
   '
 
   test_expect_success "'ipfs pin remote ls' for existing pins by name" '

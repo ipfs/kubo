@@ -460,6 +460,8 @@ github.com/ipfs/go-pinning-service-http-client v0.0.0-20200911012638-6064981450e
 github.com/ipfs/go-pinning-service-http-client v0.0.0-20200911012638-6064981450e6/go.mod h1:CnOlD0wFt1FJtL2colQy3WINJjhj0Ve7VzDWqjqDQiE=
 github.com/ipfs/go-pinning-service-http-client v0.0.0-20200921200811-9fbf23e5f073 h1:lb2nhLNWyQAU0wSWqMUFxp4IgVXigzVFHubFZxyLUzw=
 github.com/ipfs/go-pinning-service-http-client v0.0.0-20200921200811-9fbf23e5f073/go.mod h1:7aOggtq0hGoNLsv5pV7zfvrDDaqqNd1/GxdnS4MkSZA=
+github.com/ipfs/go-pinning-service-http-client v0.0.0-20201015193505-957255340bf1 h1:s8TGDcpmZRAs4iT4mnilVLA6hLelrXHyhFtO4/MaZZQ=
+github.com/ipfs/go-pinning-service-http-client v0.0.0-20201015193505-957255340bf1/go.mod h1:7aOggtq0hGoNLsv5pV7zfvrDDaqqNd1/GxdnS4MkSZA=
 github.com/ipfs/go-unixfs v0.0.4/go.mod h1:eIo/p9ADu/MFOuyxzwU+Th8D6xoxU//r590vUpWyfz8=
 github.com/ipfs/go-unixfs v0.1.0/go.mod h1:lysk5ELhOso8+Fed9U1QTGey2ocsfaZ18h0NCO2Fj9s=
 github.com/ipfs/go-unixfs v0.2.4 h1:6NwppOXefWIyysZ4LR/qUBPvXd5//8J3jiMdvpbw6Lo=
