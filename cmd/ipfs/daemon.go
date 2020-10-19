@@ -250,14 +250,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			}
 		}
 
-		identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
-			options.Key.Type(algorithmDefault),
-		})
-		if err != nil {
-			return err
+		if conf == nil {
+			identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+				options.Key.Type(algorithmDefault),
+			})
+			if err != nil {
+				return err
+			}
+			conf, err = config.InitWithIdentity(identity)
+			if err != nil {
+				return err
+			}
 		}
 
-		if err = doInit(os.Stdout, cctx.ConfigRoot, false, &identity, profiles, conf); err != nil {
+		if err = doInit(os.Stdout, cctx.ConfigRoot, false, profiles, conf); err != nil {
 			return err
 		}
 	}
