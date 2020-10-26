@@ -22,7 +22,8 @@ test_remote_pins() {
   '
 
   test_expect_success "'ipfs pin remote add'" '
-    export ID_A=$(ipfs pin remote add --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID)
+    export ID_A=$(ipfs pin remote add --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID) &&
+    sleep 3 # provide time for the pinning service to download the file
   '
 
   test_expect_success "'ipfs pin remote ls' for existing pins by name" '
