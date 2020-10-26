@@ -40,6 +40,8 @@ const APIPath = "/api/v0"
 var defaultLocalhostOrigins = []string{
 	"http://127.0.0.1:<port>",
 	"https://127.0.0.1:<port>",
+	"http://[::1]:<port>",
+	"https://[::1]:<port>",
 	"http://localhost:<port>",
 	"https://localhost:<port>",
 }
