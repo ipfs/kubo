@@ -34,6 +34,14 @@ test_remote_pins() {
     test_cmp expected actual
   '
 
+  test_expect_success "'ipfs pin remote ls' for existing pins by status" '
+    FOUND_ID_A=$(ipfs pin remote ls --enc=json --status=pinned | jq --raw-output .RequestID | grep $ID_A) &&
+    echo ID_A=$ID_A FOUND_ID_A=$FOUND_ID_A &&
+    echo $ID_A > expected &&
+    echo $FOUND_ID_A > actual &&
+    test_cmp expected actual
+  '
+
   test_expect_success "'ipfs pin remote rm' an existing pin by ID" '
     ipfs pin remote rm --enc=json $ID_A
   '
