@@ -147,7 +147,7 @@ jobs:
 
     - run:
         name: Setup Environment Variables
-        command: echo 'export CI_HOST_IP=$(ip route | grep docker | cut -d " " -f 12)' >> $BASH_ENV
+        command: echo 'export CI_HOST_IP=$(ip route | grep docker | cut -d " " -f 9)' >> $BASH_ENV
     - run: 
         echo CI_HOST_IP=$CI_HOST_IP &&
         make -O -j 3 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 CI_HOST_IP=$CI_HOST_IP
