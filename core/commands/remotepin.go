@@ -48,6 +48,7 @@ var remotePinServiceCmd = &cmds.Command{
 
 const pinNameOptionName = "name"
 const pinCIDsOptionName = "cid"
+const pinStatusOptionName = "status"
 const pinServiceNameOptionName = "service"
 
 type RemotePinOutput struct {
@@ -164,6 +165,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-insensitive, partial or full match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
+		cmds.StringsOption(pinStatusOptionName, "Return only pin objects with the specified statuses; optional, comma separated."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -184,6 +186,16 @@ Returns a list of objects that are pinned to a remote pinning service.
 				parsedCIDs = append(parsedCIDs, parsedCID)
 			}
 			opts = append(opts, pinclient.PinOpts.FilterCIDs(parsedCIDs...))
+		}
+		if statusRaw, statusFound := req.Options[pinStatusOptionName].([]string); statusFound {
+			parsedStatuses := []pinclient.Status{}
+			for _, rawStatus := range statusRaw {
+				if pinclient.Status(rawStatus).String() == string(pinclient.StatusUnknown) {
+					return fmt.Errorf("status %s is not valid", rawStatus)
+				}
+				parsedStatuses = append(parsedStatuses, pinclient.Status(rawStatus))
+			}
+			opts = append(opts, pinclient.PinOpts.FilterStatus(parsedStatuses...))
 		}
 
 		service, _ := req.Options[pinServiceNameOptionName].(string)
