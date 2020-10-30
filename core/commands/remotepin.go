@@ -169,7 +169,10 @@ Returns a list of objects that are pinned to a remote pinning service.
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		psCh, errCh, err := lsRemote(req, env)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		psCh, errCh, err := lsRemote(ctx, req, env)
 		if err != nil {
 			return err
 		}
@@ -203,10 +206,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	},
 }
 
-func lsRemote(req *cmds.Request, env cmds.Environment) (chan pinclient.PinStatusGetter, chan error, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func lsRemote(ctx context.Context, req *cmds.Request, env cmds.Environment) (chan pinclient.PinStatusGetter, chan error, error) {
 	opts := []pinclient.LsOption{}
 	if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
 		opts = append(opts, pinclient.PinOpts.FilterName(name))
@@ -269,7 +269,7 @@ collected if needed.
 
 		rmIDs := []string{}
 		if len(req.Arguments) == 0 {
-			psCh, errCh, err := lsRemote(req, env)
+			psCh, errCh, err := lsRemote(ctx, req, env)
 			if err != nil {
 				return err
 			}
