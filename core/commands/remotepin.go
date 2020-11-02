@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -16,9 +15,6 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
-
-var remotePinURL = os.Getenv("IPFS_REMOTE_PIN_SERVICE")
-var remotePinKey = os.Getenv("IPFS_REMOTE_PIN_KEY")
 
 var remotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -481,9 +477,6 @@ var renameRemotePinServiceCmd = &cmds.Command{
 }
 
 func getRemotePinServiceOrEnv(env cmds.Environment, name string) (url, key string, err error) {
-	if remotePinURL != "" && remotePinKey != "" {
-		return remotePinURL, remotePinKey, nil
-	}
 	if name == "" {
 		return "", "", fmt.Errorf("remote pinning service name not specified")
 	}

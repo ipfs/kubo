@@ -134,9 +134,8 @@ jobs:
 
     - run:
         git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git
-    - run:
+    - run: # echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
         cd rb-pinning-service-api &&
-        # echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
         docker-compose up -d &&
         cd ..
 
@@ -145,6 +144,7 @@ jobs:
 
     - run:
         name: Setup Environment Variables
+        # 172.17.0.1 is the docker host IP; all ports exported by child containers can be accessed there.
         command: echo 'export CI_HOST_IP=172.17.0.1' >> $BASH_ENV
     - run: 
         echo CI_HOST_IP=$CI_HOST_IP &&
