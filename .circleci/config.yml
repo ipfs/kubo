@@ -118,7 +118,6 @@ jobs:
     - store_artifacts:
         path: /tmp/circleci-test-results
   sharness:
-#     resource_class: 2xlarge
     machine:
         image: ubuntu-2004:202010-01
     working_directory: ~/ipfs/go-ipfs
@@ -135,10 +134,9 @@ jobs:
 
     - run:
         git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git
-        # gem install rails
     - run:
         cd rb-pinning-service-api &&
-        echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
+        # echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
         docker-compose up -d &&
         cd ..
 
