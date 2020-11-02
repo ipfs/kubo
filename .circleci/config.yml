@@ -134,7 +134,7 @@ jobs:
 
     - run:
         git clone https://github.com/ipfs-shipyard/rb-pinning-service-api.git
-    - run: # echo "SECRET_KEY_BASE=28bcaf69b1991b" >> .env &&
+    - run:
         cd rb-pinning-service-api &&
         docker-compose up -d &&
         cd ..
