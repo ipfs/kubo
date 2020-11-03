@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"time"
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -48,6 +49,7 @@ const pinNameOptionName = "name"
 const pinCIDsOptionName = "cid"
 const pinStatusOptionName = "status"
 const pinServiceNameOptionName = "service"
+const pinBackgroundOptionName = "background"
 
 type RemotePinOutput struct {
 	RequestID string
@@ -71,6 +73,7 @@ var addRemotePinCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		cmds.BoolOption(pinBackgroundOptionName, "Add the pins in the background.").WithDefault(true),
 	},
 	Type: RemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -115,6 +118,28 @@ var addRemotePinCmd = &cmds.Command{
 				log.Infof("error connecting to remote pin delegate %v : %w", d, err)
 			}
 
+		}
+
+		if !req.Options[pinBackgroundOptionName].(bool) {
+			for {
+				ps, err = c.GetStatusByID(ctx, ps.GetRequestId())
+				if err != nil {
+					return fmt.Errorf("failed to query pin (%v)", err)
+				}
+				s := ps.GetStatus()
+				if s == pinclient.StatusPinned {
+					break
+				}
+				if s == pinclient.StatusFailed {
+					return fmt.Errorf("failed to pin")
+				}
+				tmr := time.NewTimer(time.Second / 2)
+				select {
+				case <-tmr.C:
+				case <-ctx.Done():
+					return fmt.Errorf("waiting for pin interrupted")
+				}
+			}
 		}
 
 		return res.Emit(&RemotePinOutput{
