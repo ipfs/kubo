@@ -148,7 +148,7 @@ jobs:
         command: echo 'export CI_HOST_IP=172.17.0.1' >> $BASH_ENV
     - run: 
         echo CI_HOST_IP=$CI_HOST_IP &&
-        make -O -j 5 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 CI_HOST_IP=$CI_HOST_IP
+        make -O -j 3 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 CI_HOST_IP=$CI_HOST_IP
 
     - run:
         when: always
