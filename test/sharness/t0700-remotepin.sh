@@ -13,6 +13,10 @@ test_expect_success "creating test user on remote pinning service" '
         ipfs pin remote service add test_pin_svc $TEST_PIN_SVC $(curl -X POST $TEST_PIN_SVC/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
 '
 
+test_expect_success "test 'ipfs pin remote service ls'"'
+        ipfs pin remote service ls | jq --raw-output .Service | grep test_pin_svc
+'
+
 test_remote_pins() {
   BASE=$1
   if [ -n "$BASE" ]; then

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sort"
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -36,9 +37,10 @@ var remotePinServiceCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"add":    addRemotePinServiceCmd,
+		"ls":     lsRemotePinServiceCmd,
 		"rename": renameRemotePinServiceCmd,
-		"update": updateRemotePinServiceCmd,
 		"rm":     rmRemotePinServiceCmd,
+		"update": updateRemotePinServiceCmd,
 	},
 }
 
@@ -94,11 +96,10 @@ var addRemotePinCmd = &cmds.Command{
 		}
 
 		service, _ := req.Options[pinServiceNameOptionName].(string)
-		url, key, err := getRemotePinServiceOrEnv(env, service)
+		c, err := getRemotePinServiceOrEnv(env, service)
 		if err != nil {
 			return err
 		}
-		c := pinclient.NewClient(url, key)
 
 		ps, err := c.Add(ctx, rp.Cid(), opts...)
 		if err != nil {
@@ -231,11 +232,10 @@ func lsRemote(ctx context.Context, req *cmds.Request, env cmds.Environment) (cha
 	}
 
 	service, _ := req.Options[pinServiceNameOptionName].(string)
-	url, key, err := getRemotePinServiceOrEnv(env, service)
+	c, err := getRemotePinServiceOrEnv(env, service)
 	if err != nil {
 		return nil, nil, err
 	}
-	c := pinclient.NewClient(url, key)
 
 	psCh, errCh := c.Ls(ctx, opts...)
 
@@ -281,11 +281,10 @@ collected if needed.
 		}
 
 		service, _ := req.Options[pinServiceNameOptionName].(string)
-		url, key, err := getRemotePinServiceOrEnv(env, service)
+		c, err := getRemotePinServiceOrEnv(env, service)
 		if err != nil {
 			return err
 		}
-		c := pinclient.NewClient(url, key)
 
 		for _, rmID := range rmIDs {
 			if err = c.DeleteByID(ctx, rmID); err != nil {
@@ -477,11 +476,74 @@ var renameRemotePinServiceCmd = &cmds.Command{
 	},
 }
 
-func getRemotePinServiceOrEnv(env cmds.Environment, name string) (url, key string, err error) {
+var lsRemotePinServiceCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "List remote pinning services.",
+		ShortDescription: "List remote pinning services.",
+	},
+	Arguments: []cmds.Argument{},
+	Options:   []cmds.Option{},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+		repo, err := fsrepo.Open(cfgRoot)
+		if err != nil {
+			return err
+		}
+		defer repo.Close()
+
+		cfg, err := repo.Config()
+		if err != nil {
+			return err
+		}
+		if cfg.RemotePinServices.Services == nil {
+			return nil // no pinning services added yet
+		}
+		result := sortedServiceAndURL{}
+		for svcName, svcConfig := range cfg.RemotePinServices.Services {
+			result = append(result, PinServiceAndURL{svcName, svcConfig.URL})
+		}
+		sort.Sort(result)
+		for _, r := range result {
+			if err := res.Emit(r); err != nil {
+				return err
+			}
+		}
+		return nil
+	},
+	Type: PinServiceAndURL{},
+}
+
+type PinServiceAndURL struct {
+	Service string
+	URL     string
+}
+
+type sortedServiceAndURL []PinServiceAndURL
+
+func (s sortedServiceAndURL) Len() int {
+	return len(s)
+}
+
+func (s sortedServiceAndURL) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s sortedServiceAndURL) Less(i, j int) bool {
+	return s[i].Service < s[j].Service
+}
+
+func getRemotePinServiceOrEnv(env cmds.Environment, name string) (*pinclient.Client, error) {
 	if name == "" {
-		return "", "", fmt.Errorf("remote pinning service name not specified")
+		return nil, fmt.Errorf("remote pinning service name not specified")
 	}
-	return getRemotePinService(env, name)
+	url, key, err := getRemotePinService(env, name)
+	if err != nil {
+		return nil, err
+	}
+	return pinclient.NewClient(url, key), nil
 }
 
 func getRemotePinService(env cmds.Environment, name string) (url, key string, err error) {
