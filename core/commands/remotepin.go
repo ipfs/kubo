@@ -37,11 +37,9 @@ var remotePinServiceCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"add":    addRemotePinServiceCmd,
-		"ls":     lsRemotePinServiceCmd,
-		"rename": renameRemotePinServiceCmd,
-		"rm":     rmRemotePinServiceCmd,
-		"update": updateRemotePinServiceCmd,
+		"add": addRemotePinServiceCmd,
+		"ls":  lsRemotePinServiceCmd,
+		"rm":  rmRemotePinServiceCmd,
 	},
 }
 
@@ -328,7 +326,7 @@ var addRemotePinServiceCmd = &cmds.Command{
 		ShortDescription: "Add a credentials for access to a remote pinning service.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Name, URL and key (in that order) for a remote pinning service.").EnableStdin(),
+		cmds.StringArg("remote-pin-service", true, true, "Name, URL and key (in that order) for a remote pinning service.").EnableStdin(),
 	},
 	Options: []cmds.Option{},
 	Type:    nil,
@@ -360,54 +358,6 @@ var addRemotePinServiceCmd = &cmds.Command{
 			}
 		} else {
 			cfg.RemotePinServices.Services = map[string]config.RemotePinService{}
-		}
-		cfg.RemotePinServices.Services[name] = config.RemotePinService{
-			Name: name,
-			URL:  url,
-			Key:  key,
-		}
-
-		return repo.SetConfig(cfg)
-	},
-}
-
-var updateRemotePinServiceCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline:          "Update a remote pinning service.",
-		ShortDescription: "Update credentials for access to a remote pinning service.",
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Name, new URL and new key (in that order) for a remote pinning service.").EnableStdin(),
-	},
-	Options: []cmds.Option{},
-	Type:    nil,
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cfgRoot, err := cmdenv.GetConfigRoot(env)
-		if err != nil {
-			return err
-		}
-		repo, err := fsrepo.Open(cfgRoot)
-		if err != nil {
-			return err
-		}
-		defer repo.Close()
-
-		if len(req.Arguments) != 3 {
-			return fmt.Errorf("expecting three argument: name, url and key")
-		}
-		name := req.Arguments[0]
-		url := req.Arguments[1]
-		key := req.Arguments[2]
-
-		cfg, err := repo.Config()
-		if err != nil {
-			return err
-		}
-		if cfg.RemotePinServices.Services == nil {
-			return fmt.Errorf("service not found")
-		}
-		if _, present := cfg.RemotePinServices.Services[name]; !present {
-			return fmt.Errorf("service not found")
 		}
 		cfg.RemotePinServices.Services[name] = config.RemotePinService{
 			Name: name,
@@ -452,51 +402,6 @@ var rmRemotePinServiceCmd = &cmds.Command{
 		if cfg.RemotePinServices.Services != nil {
 			delete(cfg.RemotePinServices.Services, name)
 		}
-		return repo.SetConfig(cfg)
-	},
-}
-
-var renameRemotePinServiceCmd = &cmds.Command{
-	Helptext: cmds.HelpText{
-		Tagline:          "Rename a remote pinning service.",
-		ShortDescription: "Rename a remote pinning service.",
-	},
-	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, true, "Old and new name of remote pinning service to rename.").EnableStdin(),
-	},
-	Options: []cmds.Option{},
-	Type:    nil,
-	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cfgRoot, err := cmdenv.GetConfigRoot(env)
-		if err != nil {
-			return err
-		}
-		repo, err := fsrepo.Open(cfgRoot)
-		if err != nil {
-			return err
-		}
-		defer repo.Close()
-
-		if len(req.Arguments) != 2 {
-			return fmt.Errorf("expecting two arguments: old name and new name")
-		}
-		oldName := req.Arguments[0]
-		newName := req.Arguments[1]
-
-		cfg, err := repo.Config()
-		if err != nil {
-			return err
-		}
-		if cfg.RemotePinServices.Services == nil {
-			return fmt.Errorf("remote pinning service not found")
-		}
-		s, present := cfg.RemotePinServices.Services[oldName]
-		if !present {
-			return fmt.Errorf("remote pinning service not found")
-		}
-		delete(cfg.RemotePinServices.Services, oldName)
-		s.Name = newName
-		cfg.RemotePinServices.Services[newName] = s
 		return repo.SetConfig(cfg)
 	},
 }
