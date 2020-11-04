@@ -192,7 +192,13 @@ Returns a list of objects that are pinned to a remote pinning service.
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
-		psCh, errCh, err := lsRemote(ctx, req, env)
+		service, _ := req.Options[pinServiceNameOptionName].(string)
+		c, err := getRemotePinServiceOrEnv(env, service)
+		if err != nil {
+			return err
+		}
+
+		psCh, errCh, err := lsRemote(ctx, req, c)
 		if err != nil {
 			return err
 		}
@@ -226,7 +232,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	},
 }
 
-func lsRemote(ctx context.Context, req *cmds.Request, env cmds.Environment) (chan pinclient.PinStatusGetter, chan error, error) {
+func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
 	opts := []pinclient.LsOption{}
 	if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
 		opts = append(opts, pinclient.PinOpts.FilterName(name))
@@ -252,12 +258,6 @@ func lsRemote(ctx context.Context, req *cmds.Request, env cmds.Environment) (cha
 			parsedStatuses = append(parsedStatuses, s)
 		}
 		opts = append(opts, pinclient.PinOpts.FilterStatus(parsedStatuses...))
-	}
-
-	service, _ := req.Options[pinServiceNameOptionName].(string)
-	c, err := getRemotePinServiceOrEnv(env, service)
-	if err != nil {
-		return nil, nil, err
 	}
 
 	psCh, errCh := c.Ls(ctx, opts...)
@@ -287,9 +287,15 @@ collected if needed.
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
+		service, _ := req.Options[pinServiceNameOptionName].(string)
+		c, err := getRemotePinServiceOrEnv(env, service)
+		if err != nil {
+			return err
+		}
+
 		rmIDs := []string{}
 		if len(req.Arguments) == 0 {
-			psCh, errCh, err := lsRemote(ctx, req, env)
+			psCh, errCh, err := lsRemote(ctx, req, c)
 			if err != nil {
 				return err
 			}
@@ -301,12 +307,6 @@ collected if needed.
 			}
 		} else {
 			rmIDs = append(rmIDs, req.Arguments[0])
-		}
-
-		service, _ := req.Options[pinServiceNameOptionName].(string)
-		c, err := getRemotePinServiceOrEnv(env, service)
-		if err != nil {
-			return err
 		}
 
 		for _, rmID := range rmIDs {
