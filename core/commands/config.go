@@ -15,8 +15,8 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"github.com/elgris/jsondiff"
-	"github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-config"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	config "github.com/ipfs/go-ipfs-config"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -83,6 +83,8 @@ Set the value of the 'Datastore.Path' key:
 		switch strings.ToLower(key) {
 		case "identity", "identity.privkey":
 			return errors.New("cannot show or change private key through API")
+		case "remotepinservices":
+			return errors.New("cannot show remote pinning services, use 'ipfs pin remote service ls'")
 		default:
 		}
 
@@ -144,7 +146,7 @@ var configShowCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Output config file contents.",
 		ShortDescription: `
-NOTE: For security reasons, this command will omit your private key. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
+NOTE: For security reasons, this command will omit your private key and remote services. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
 	Type: map[string]interface{}{},
@@ -170,7 +172,7 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 			return err
 		}
 
-		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
+		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag, config.RemotePinServicesTag})
 		if err != nil {
 			return err
 		}
