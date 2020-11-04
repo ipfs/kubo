@@ -375,7 +375,7 @@ var rmRemotePinServiceCmd = &cmds.Command{
 		ShortDescription: "Remove credentials for access to a remote pinning service.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "Name of remote pinning service to remove.").EnableStdin(),
+		cmds.StringArg("remote-pin-service", true, false, "Name of remote pinning service to remove.").EnableStdin(),
 	},
 	Options: []cmds.Option{},
 	Type:    nil,

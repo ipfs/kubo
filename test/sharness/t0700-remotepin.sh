@@ -18,12 +18,21 @@ test_expect_success "test 'ipfs pin remote service ls'"'
   ipfs pin remote service ls | jq --raw-output .Service | grep test_pin_svc &&
   ipfs pin remote service ls | jq --raw-output .Service | grep fake_pin_svc
 '
+
 test_expect_success "check connection to test pinning service" '
   ipfs pin remote ls --service=test_pin_svc --enc=json
 '
 
 test_expect_failure "test fake pinning service calls fail" '
   ipfs pin remote ls --service=fake_pin_svc --enc=json
+'
+
+test_expect_success "remove fake pinning service" '
+  ipfs pin remote service rm fake_pin_svc
+'
+
+test_expect_failure "verify fake pinning service removed"'
+  ipfs pin remote service ls | jq --raw-output .Service | grep fake_pin_svc
 '
 
 test_remote_pins() {
