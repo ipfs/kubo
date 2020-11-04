@@ -172,7 +172,11 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag, config.RemotePinServicesTag})
+		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
+		if err != nil {
+			return err
+		}
+		err = scrubValue(cfg, []string{config.RemotePinServicesTag})
 		if err != nil {
 			return err
 		}
