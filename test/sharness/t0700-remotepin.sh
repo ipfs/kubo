@@ -10,11 +10,20 @@ test_init_ipfs
 test_expect_success "creating test user on remote pinning service" '
         echo CI host IP address ${CI_HOST_IP} &&
         export TEST_PIN_SVC=http://${CI_HOST_IP}:5000/api/v1 &&
-        ipfs pin remote service add test_pin_svc $TEST_PIN_SVC $(curl -X POST $TEST_PIN_SVC/users -d email=sharness@ipfs.io | jq --raw-output .access_token)
+        ipfs pin remote service add test_pin_svc $TEST_PIN_SVC $(curl -X POST $TEST_PIN_SVC/users -d email=sharness@ipfs.io | jq --raw-output .access_token) &&
+        ipfs pin remote service add fake_pin_svc http://0.0.0.0:5000 fake_api_key
 '
 
 test_expect_success "test 'ipfs pin remote service ls'"'
-        ipfs pin remote service ls | jq --raw-output .Service | grep test_pin_svc
+  ipfs pin remote service ls | jq --raw-output .Service | grep test_pin_svc &&
+  ipfs pin remote service ls | jq --raw-output .Service | grep fake_pin_svc
+'
+test_expect_success "check connection to test pinning service" '
+  ipfs pin remote ls --service=test_pin_svc --enc=json
+'
+
+test_expect_failure "test fake pinning service calls fail" '
+  ipfs pin remote ls --service=fake_pin_svc --enc=json
 '
 
 test_remote_pins() {
@@ -27,10 +36,6 @@ test_remote_pins() {
     export HASH_A=$(echo "A" | ipfs add $BASE_ARGS -q --pin=false) &&
     export HASH_B=$(echo "B" | ipfs add $BASE_ARGS -q --pin=false) &&
     export HASH_C=$(echo "C" | ipfs add $BASE_ARGS -q --pin=false)
-  '
-
-  test_expect_success "check connection to pinning service" '
-    ipfs pin remote ls --service=test_pin_svc --enc=json
   '
 
   test_expect_success "'ipfs pin remote add'" '
