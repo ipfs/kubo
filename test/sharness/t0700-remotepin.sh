@@ -57,7 +57,17 @@ test_remote_pins() {
   test_expect_success "'ipfs pin remote add'" '
     export ID_A=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID) &&
     export ID_B=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_b $HASH_B | jq --raw-output .RequestID) &&
-    export ID_C=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_c $HASH_C | jq --raw-output .RequestID)
+    export ID_C=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_c $HASH_C | jq --raw-output .RequestID) &&
+    export HASH_MISSING="QmNRpQVA5n7osjtyjYaWEQpwYnbV1QoVkrSe7oyccMJh1m" &&
+    export ID_M=$(ipfs pin remote add --background=true --service=test_pin_svc --enc=json $BASE_ARGS --name=name_m $HASH_MISSING | jq --raw-output .RequestID)
+  '
+
+  test_expect_success "'ipfs pin remote ls' for existing pins by multiple statuses" '
+    FOUND_ID_M=$(ipfs pin remote ls --service=test_pin_svc --enc=json --status=queued,pinned | jq --raw-output .RequestID | grep $ID_M) &&
+    echo ID_M=$ID_M FOUND_ID_M=$FOUND_ID_M &&
+    echo $ID_M > expected &&
+    echo $FOUND_ID_M > actual &&
+    test_cmp expected actual
   '
 
   test_expect_success "'ipfs pin remote ls' for existing pins by ID" '
