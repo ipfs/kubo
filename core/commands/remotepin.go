@@ -48,6 +48,7 @@ const pinCIDsOptionName = "cid"
 const pinStatusOptionName = "status"
 const pinServiceNameOptionName = "service"
 const pinBackgroundOptionName = "background"
+const pinForceOptionName = "force"
 
 type RemotePinOutput struct {
 	RequestID string
@@ -282,6 +283,7 @@ collected if needed.
 		cmds.StringsOption(pinCIDsOptionName, "Remove only pin objects for the specified CID(s); optional, comma separated."),
 		cmds.StringsOption(pinStatusOptionName, "Remove only pin objects with the specified statuses; optional, comma separated."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		cmds.BoolOption(pinForceOptionName, "Delete multiple pins.").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(req.Context)
@@ -304,6 +306,9 @@ collected if needed.
 			}
 			if err = <-errCh; err != nil {
 				return fmt.Errorf("listing remote pin IDs (%v)", err)
+			}
+			if len(rmIDs) > 0 && !req.Options[pinForceOptionName].(bool) {
+				return fmt.Errorf("multiple pins may be removed, use --force")
 			}
 		} else {
 			rmIDs = append(rmIDs, req.Arguments[0])

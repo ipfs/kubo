@@ -88,12 +88,16 @@ test_remote_pins() {
     ipfs pin remote rm --service=test_pin_svc --enc=json $ID_A
   '
 
-  test_expect_success "'ipfs pin remote rm' an existing pin by name" '
+  test_expect_failure "'ipfs pin remote rm' needs --force when globbing" '
     ipfs pin remote rm --service=test_pin_svc --enc=json --name=name_b
   '
 
+  test_expect_success "'ipfs pin remote rm' an existing pin by name" '
+    ipfs pin remote rm --service=test_pin_svc --enc=json --force --name=name_b
+  '
+
   test_expect_success "'ipfs pin remote rm' an existing pin by status" '
-    ipfs pin remote rm --service=test_pin_svc --enc=json --status=pinned
+    ipfs pin remote rm --service=test_pin_svc --enc=json --force --status=pinned
   '
 
   test_expect_success "'ipfs pin remote ls' for deleted pin" '
