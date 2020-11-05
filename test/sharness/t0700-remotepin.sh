@@ -44,14 +44,20 @@ test_remote_pins() {
   test_expect_success "create some hashes using base $BASE" '
     export HASH_A=$(echo "A" | ipfs add $BASE_ARGS -q --pin=false) &&
     export HASH_B=$(echo "B" | ipfs add $BASE_ARGS -q --pin=false) &&
-    export HASH_C=$(echo "C" | ipfs add $BASE_ARGS -q --pin=false)
+    export HASH_C=$(echo "C" | ipfs add $BASE_ARGS -q --pin=false) &&
+    export HASH_D=$(echo "D" | ipfs add $BASE_ARGS -q --pin=false)
+  '
+
+  test_expect_success "verify background add works" '
+    export ID_D=$(ipfs pin remote add --background=true --service=test_pin_svc --enc=json $BASE_ARGS --name=name_d $HASH_D | jq --raw-output .RequestID) &&
+    sleep 3 &&
+    ipfs pin remote ls --service=test_pin_svc --enc=json --name=name_d | jq --raw-output .Status | grep pinned
   '
 
   test_expect_success "'ipfs pin remote add'" '
-    export ID_A=$(ipfs pin remote add --service=test_pin_svc --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID) &&
-    export ID_B=$(ipfs pin remote add --service=test_pin_svc --enc=json $BASE_ARGS --name=name_b $HASH_B | jq --raw-output .RequestID) &&
-    export ID_C=$(ipfs pin remote add --service=test_pin_svc --enc=json $BASE_ARGS --name=name_c $HASH_C | jq --raw-output .RequestID) &&
-    sleep 3 # provide time for the pinning service to download the file
+    export ID_A=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_a $HASH_A | jq --raw-output .RequestID) &&
+    export ID_B=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_b $HASH_B | jq --raw-output .RequestID) &&
+    export ID_C=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_c $HASH_C | jq --raw-output .RequestID)
   '
 
   test_expect_success "'ipfs pin remote ls' for existing pins by ID" '
