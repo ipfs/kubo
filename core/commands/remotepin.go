@@ -47,6 +47,8 @@ const pinNameOptionName = "name"
 const pinCIDsOptionName = "cid"
 const pinStatusOptionName = "status"
 const pinServiceNameOptionName = "service"
+const pinServiceURLOptionName = "url"
+const pinServiceKeyOptionName = "key"
 const pinBackgroundOptionName = "background"
 const pinForceOptionName = "force"
 
@@ -332,6 +334,9 @@ var addRemotePinServiceCmd = &cmds.Command{
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("remote-pin-service", true, true, "Name, URL and key (in that order) for a remote pinning service.").EnableStdin(),
+		cmds.StringArg(pinServiceNameOptionName, true, false, "Service name."),
+		cmds.StringArg(pinServiceURLOptionName, true, false, "Service URL."),
+		cmds.StringArg(pinServiceKeyOptionName, true, false, "Service key."),
 	},
 	Options: []cmds.Option{},
 	Type:    nil,
@@ -346,12 +351,18 @@ var addRemotePinServiceCmd = &cmds.Command{
 		}
 		defer repo.Close()
 
-		if len(req.Arguments) != 3 {
-			return fmt.Errorf("expecting three argument: name, url and key")
+		name, nameFound := req.Options[pinServiceNameOptionName].(string)
+		if !nameFound {
+			return fmt.Errorf("service name not given")
 		}
-		name := req.Arguments[0]
-		url := req.Arguments[1]
-		key := req.Arguments[2]
+		url, urlFound := req.Options[pinServiceURLOptionName].(string)
+		if !urlFound {
+			return fmt.Errorf("service url not given")
+		}
+		key, keyFound := req.Options[pinServiceKeyOptionName].(string)
+		if !keyFound {
+			return fmt.Errorf("service key not given")
+		}
 
 		cfg, err := repo.Config()
 		if err != nil {

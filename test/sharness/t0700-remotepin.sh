@@ -10,8 +10,8 @@ test_init_ipfs
 test_expect_success "creating test user on remote pinning service" '
         echo CI host IP address ${CI_HOST_IP} &&
         export TEST_PIN_SVC=http://${CI_HOST_IP}:5000/api/v1 &&
-        ipfs pin remote service add test_pin_svc $TEST_PIN_SVC $(curl -X POST $TEST_PIN_SVC/users -d email=sharness@ipfs.io | jq --raw-output .access_token) &&
-        ipfs pin remote service add fake_pin_svc http://0.0.0.0:5000 fake_api_key
+        ipfs pin remote service add --name=test_pin_svc --url=$TEST_PIN_SVC --key=$(curl -X POST $TEST_PIN_SVC/users -d email=sharness@ipfs.io | jq --raw-output .access_token) &&
+        ipfs pin remote service add --name=fake_pin_svc --url=http://0.0.0.0:5000 --key=fake_api_key
 '
 
 test_expect_success "test 'ipfs pin remote service ls'"'
