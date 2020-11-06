@@ -1,4 +1,4 @@
-package commands
+package pin
 
 import (
 	"context"
@@ -12,11 +12,14 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	logging "github.com/ipfs/go-log"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
+
+var log = logging.Logger("core/commands/cmdenv")
 
 var remotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
