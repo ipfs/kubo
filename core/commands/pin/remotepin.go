@@ -336,7 +336,6 @@ var addRemotePinServiceCmd = &cmds.Command{
 		ShortDescription: "Add a credentials for access to a remote pinning service.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("remote-pin-service", true, true, "Name, URL and key (in that order) for a remote pinning service.").EnableStdin(),
 		cmds.StringArg(pinServiceNameOptionName, true, false, "Service name."),
 		cmds.StringArg(pinServiceURLOptionName, true, false, "Service URL."),
 		cmds.StringArg(pinServiceKeyOptionName, true, false, "Service key."),
