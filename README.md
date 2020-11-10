@@ -391,7 +391,7 @@ The swarm key initialization can also be done using docker secrets **(requires d
 
 #### Key rotation inside Docker
 
-If needed, it is possible to do key rotation in ephemeral container that is temporarily executing against volume that is mounted under `/data/ipfs`:
+If needed, it is possible to do key rotation in an ephemeral container that is temporarily executing against a volume that is mounted under `/data/ipfs`:
 
 ```sh
 # given container named 'ipfs-test' that persists repo at /path/to/persisted/.ipfs
