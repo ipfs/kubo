@@ -392,8 +392,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	hash := resolvedPath.Cid().String()
 
-	// Storage for gateway URL to be used when linking to other rootIDs. This
-	// will be blank unless subdomain resolution is being used for this request.
+	// Gateway root URL to be used when linking to other rootIDs.
+	// This will be blank unless subdomain or DNSLink resolution is being used
+	// for this request.
 	var gwURL string
 
 	// Get gateway hostname and build gateway URL.
@@ -403,13 +404,16 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		gwURL = ""
 	}
 
+	dnslink := hasDNSLinkOrigin(gwURL, urlPath)
+
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
 		GatewayURL:  gwURL,
+		DNSLink:     dnslink,
 		Listing:     dirListing,
 		Size:        size,
 		Path:        urlPath,
-		Breadcrumbs: breadcrumbs(urlPath),
+		Breadcrumbs: breadcrumbs(urlPath, dnslink),
 		BackLink:    backLink,
 		Hash:        hash,
 	}
