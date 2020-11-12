@@ -136,6 +136,7 @@ jobs:
         git clone --depth 1 https://github.com/ipfs-shipyard/rb-pinning-service-api.git
     - run:
         cd rb-pinning-service-api &&
+        git checkout c6ad5c428ec3422bc56131c5150d6b00815abfee &&
         docker-compose pull &&
         docker-compose up -d &&
         cd ..
