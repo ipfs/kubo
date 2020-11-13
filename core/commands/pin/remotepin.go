@@ -18,6 +18,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -113,7 +114,6 @@ var addRemotePinCmd = &cmds.Command{
 			opts = append(opts, pinclient.PinOpts.WithName(name))
 		}
 
-		/* TODO
 		// Prepare Pin.origins
 		// Add own multiaddrs to the 'origins' array, so Pinning Service can
 		// use that as a hint and connect back to us (if possible)
@@ -130,9 +130,8 @@ var addRemotePinCmd = &cmds.Command{
 			for _, a := range addrs {
 				origins = append(origins, a)
 			}
-			opts = append(opts, pinclient.PinOpts.WithOrigins(origins))
+			opts = append(opts, pinclient.PinOpts.WithOrigins(origins...))
 		}
-		*/
 
 		// Execute remote pin request
 		// TODO: fix panic when pinning service is down
