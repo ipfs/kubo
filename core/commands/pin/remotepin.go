@@ -6,6 +6,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	neturl "net/url"
@@ -488,19 +489,25 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		if cfg.RemotePinServices.Services == nil {
 			return nil // no pinning services added yet
 		}
-		result := sortedServiceAndURL{}
-		for svcName, svcConfig := range cfg.RemotePinServices.Services {
-			result = append(result, PinServiceAndURL{svcName, svcConfig.URL})
+		services := cfg.RemotePinServices.Services
+		result := PinServicesList{make([]PinServiceAndURL, 0, len(services))}
+		for svcName, svcConfig := range services {
+			result.RemoteServices = append(result.RemoteServices, PinServiceAndURL{svcName, svcConfig.URL})
 		}
 		sort.Sort(result)
-		for _, r := range result {
-			if err := res.Emit(r); err != nil {
-				return err
-			}
-		}
-		return nil
+		return cmds.EmitOnce(res, &result)
 	},
-	Type: PinServiceAndURL{},
+	Type: PinServicesList{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, list *PinServicesList) error {
+			tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
+			for _, s := range list.RemoteServices {
+				fmt.Fprintf(tw, "%s\t%s\n", s.Service, s.URL)
+			}
+			tw.Flush()
+			return nil
+		}),
+	},
 }
 
 type PinServiceAndURL struct {
@@ -508,17 +515,22 @@ type PinServiceAndURL struct {
 	URL     string
 }
 
-type sortedServiceAndURL []PinServiceAndURL
-
-func (s sortedServiceAndURL) Len() int {
-	return len(s)
+// Struct returned by ipfs pin remote service ls --enc=json | jq
+type PinServicesList struct {
+	RemoteServices []PinServiceAndURL
 }
 
-func (s sortedServiceAndURL) Swap(i, j int) {
+func (l PinServicesList) Len() int {
+	return len(l.RemoteServices)
+}
+
+func (l PinServicesList) Swap(i, j int) {
+	s := l.RemoteServices
 	s[i], s[j] = s[j], s[i]
 }
 
-func (s sortedServiceAndURL) Less(i, j int) bool {
+func (l PinServicesList) Less(i, j int) bool {
+	s := l.RemoteServices
 	return s[i].Service < s[j].Service
 }
 
