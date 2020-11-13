@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 	"time"
+
+	neturl "net/url"
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -84,36 +87,66 @@ var addRemotePinCmd = &cmds.Command{
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
-		opts := []pinclient.AddOption{}
-		if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
-			opts = append(opts, pinclient.PinOpts.WithName(name))
-		}
-
-		api, err := cmdenv.GetApi(env, req)
-		if err != nil {
-			return err
-		}
-
-		if len(req.Arguments) != 1 {
-			return fmt.Errorf("expecting one CID argument")
-		}
-		rp, err := api.ResolvePath(ctx, path.New(req.Arguments[0]))
-		if err != nil {
-			return err
-		}
-
+		// Get remote service
 		service, _ := req.Options[pinServiceNameOptionName].(string)
 		c, err := getRemotePinServiceOrEnv(env, service)
 		if err != nil {
 			return err
 		}
 
+		// Prepare value for Pin.cid
+		if len(req.Arguments) != 1 {
+			return fmt.Errorf("expecting one CID argument")
+		}
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+		rp, err := api.ResolvePath(ctx, path.New(req.Arguments[0]))
+		if err != nil {
+			return err
+		}
+
+		// Prepare Pin.name
+		opts := []pinclient.AddOption{}
+		if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
+			opts = append(opts, pinclient.PinOpts.WithName(name))
+		}
+
+		/* TODO
+		// Prepare Pin.origins
+		// Add own multiaddrs to the 'origins' array, so Pinning Service can
+		// use that as a hint and connect back to us (if possible)
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		if node.PeerHost != nil {
+			addrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(node.PeerHost))
+			if err != nil {
+				return err
+			}
+			var origins []multiaddr.Multiaddr = nil
+			for _, a := range addrs {
+				origins = append(origins, a)
+			}
+			opts = append(opts, pinclient.PinOpts.WithOrigins(origins))
+		}
+		*/
+
+		// Execute remote pin request
+		// TODO: fix panic when pinning service is down
 		ps, err := c.Add(ctx, rp.Cid(), opts...)
 		if err != nil {
 			return err
 		}
 
+		// Act on PinStatus.delegates
+		// If Pinning Service returned any delegates, proactively try to
+		// connect to them to facilitate data exchange without waiting for DHT
+		// lookup
 		for _, d := range ps.GetDelegates() {
+			// TODO: confirm this works as expected
 			p, err := peer.AddrInfoFromP2pAddr(d)
 			if err != nil {
 				return err
@@ -121,14 +154,18 @@ var addRemotePinCmd = &cmds.Command{
 			if err := api.Swarm().Connect(ctx, *p); err != nil {
 				log.Infof("error connecting to remote pin delegate %v : %w", d, err)
 			}
-
 		}
 
+		// Block until pinned if background=false
 		if !req.Options[pinBackgroundOptionName].(bool) {
+			requestId := ps.GetRequestId()
 			for {
-				ps, err = c.GetStatusByID(ctx, ps.GetRequestId())
+				ps, err = c.GetStatusByID(ctx, requestId)
 				if err != nil {
 					return fmt.Errorf("failed to query pin (%v)", err)
+				}
+				if ps.GetRequestId() != requestId {
+					return fmt.Errorf("unable to check status for requestId=%q, remote service sent unexpected %q", requestId, ps.GetRequestId())
 				}
 				s := ps.GetStatus()
 				if s == pinclient.StatusPinned {
@@ -156,13 +193,11 @@ var addRemotePinCmd = &cmds.Command{
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
-			fmt.Printf("pin_id=%v\n", out.RequestID)
-			fmt.Printf("pin_name=%q\n", out.Name)
-			for _, d := range out.Delegates {
-				fmt.Printf("pin_delegate=%v\n", d)
-			}
-			fmt.Printf("pin_status=%v\n", out.Status)
-			fmt.Printf("pin_cid=%v\n", out.Cid)
+			fmt.Printf("RequestID: %v\n", out.RequestID)
+			fmt.Printf("CID: %v\n", out.Cid)
+			fmt.Printf("Name: %v\n", out.Name)
+			fmt.Printf("Status: %v\n", out.Status)
+			fmt.Printf("Delegates: %v\n", strings.Join(out.Delegates, ", "))
 			return nil
 		}),
 	},
@@ -226,13 +261,11 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Type: RemotePinOutput{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
-			fmt.Printf("pin_id=%v\n", out.RequestID)
-			fmt.Printf("pin_name=%q\n", out.Name)
-			for _, d := range out.Delegates {
-				fmt.Printf("pin_delegate=%v\n", d)
-			}
-			fmt.Printf("pin_status=%v\n", out.Status)
-			fmt.Printf("pin_cid=%v\n", out.Cid)
+			fmt.Printf("RequestID: %v\n", out.RequestID)
+			fmt.Printf("CID: %v\n", out.Cid)
+			fmt.Printf("Name: %v\n", out.Name)
+			fmt.Printf("Status: %v\n", out.Status)
+			fmt.Printf("Delegates: %v\n", strings.Join(out.Delegates, ", "))
 			return nil
 		}),
 	},
@@ -243,8 +276,14 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 	if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
 		opts = append(opts, pinclient.PinOpts.FilterName(name))
 	}
+
+	// TODO: remove debug after ergonomics below are fixed
+	// data, _ := json.Marshal(req.Options)
+	// fmt.Println(string(data))
+
 	if cidsRaw, cidsFound := req.Options[pinCIDsOptionName].([]string); cidsFound {
 		parsedCIDs := []cid.Cid{}
+		// TODO: improve ergonomics: support both --cid=a --cid=b and --cid=a,b
 		for _, rawCID := range cidsRaw {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
@@ -256,6 +295,7 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 	}
 	if statusRaw, statusFound := req.Options[pinStatusOptionName].([]string); statusFound {
 		parsedStatuses := []pinclient.Status{}
+		// TODO: improve ergonomics: support both --status=a --status=b and --status=a,b
 		for _, rawStatus := range statusRaw {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
@@ -353,17 +393,17 @@ var addRemotePinServiceCmd = &cmds.Command{
 		}
 		defer repo.Close()
 
-		name, nameFound := req.Options[pinServiceNameOptionName].(string)
-		if !nameFound {
-			return fmt.Errorf("service name not given")
+		if len(req.Arguments) < 3 {
+			return fmt.Errorf("expecting three arguments: service name, url and key")
 		}
-		url, urlFound := req.Options[pinServiceURLOptionName].(string)
-		if !urlFound {
-			return fmt.Errorf("service url not given")
-		}
-		key, keyFound := req.Options[pinServiceKeyOptionName].(string)
-		if !keyFound {
-			return fmt.Errorf("service key not given")
+
+		name := req.Arguments[0]
+		url := req.Arguments[1]
+		key := req.Arguments[2]
+
+		u, err := neturl.ParseRequestURI(url)
+		if err != nil || !strings.HasPrefix(u.Scheme, "http") {
+			return fmt.Errorf("service url must be a valid HTTP URL")
 		}
 
 		cfg, err := repo.Config()
