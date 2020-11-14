@@ -100,11 +100,12 @@ var addRemotePinCmd = &cmds.Command{
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "Path to object(s) to be pinned.").EnableStdin(),
+		cmds.StringArg("ipfs-path", true, false, "Path to object(s) to be pinned."),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		// TODO: swap default to --background=false
 		cmds.BoolOption(pinBackgroundOptionName, "Add the pins in the background.").WithDefault(true),
 	},
 	Type: RemotePinOutput{},
@@ -236,7 +237,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("request-id", false, false, "Request ID of the pin to be listed.").EnableStdin(),
+		cmds.StringArg("request-id", false, true, "Request ID of the pin to be listed."),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-sensitive, exact match)."),
@@ -254,18 +255,6 @@ Returns a list of objects that are pinned to a remote pinning service.
 			return err
 		}
 
-		// If request-id is provided, return PinStatus directly
-		if len(req.Arguments) == 1 {
-			// TODO: support more than one?
-			ps, err := lsRemoteByRequestId(ctx, req, c)
-			if err != nil {
-				return err
-			}
-			// return single element
-			return res.Emit(toRemotePinOutput(ps))
-		}
-
-		// Else, use filters to find remote pins that match criteria
 		psCh, errCh, err := lsRemote(ctx, req, c)
 		if err != nil {
 			return err
@@ -289,16 +278,44 @@ Returns a list of objects that are pinned to a remote pinning service.
 	},
 }
 
-func lsRemoteByRequestId(ctx context.Context, req *cmds.Request, c *pinclient.Client) (pinclient.PinStatusGetter, error) {
-	requestId := req.Arguments[0]
-	ps, err := c.GetStatusByID(ctx, requestId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find pin with request ID %s (%v)", requestId, err)
+// Returns pin objects with passed RequestIDs or matching filters.
+func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
+	// If request-ids are provided, do direct lookup for specific objects
+	if len(req.Arguments) > 0 {
+		return lsRemoteByRequestId(ctx, req, c)
 	}
-	return ps, nil
+	// else, apply filters to find matching pin objects
+	return lsRemoteWithFilters(ctx, req, c)
 }
 
-func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
+// Executes GET /pins/{requestid} for each requestid passed as argument.
+// Status checks are executed one by one and operation is aborted on first error.
+func lsRemoteByRequestId(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
+	lsIDs := req.Arguments
+	res := make(chan pinclient.PinStatusGetter, 1)
+	errs := make(chan error, 1)
+	go func() {
+		defer close(res)
+		defer close(errs)
+		for _, requestId := range lsIDs {
+			ps, err := c.GetStatusByID(ctx, requestId)
+			if err != nil {
+				errs <- err
+				return
+			}
+			select {
+			case res <- ps:
+			case <-ctx.Done():
+				errs <- ctx.Err()
+				return
+			}
+		}
+	}()
+	return res, errs, nil
+}
+
+// Executes GET /pins/?query-with-filters
+func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
 	opts := []pinclient.LsOption{}
 	if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
 		opts = append(opts, pinclient.PinOpts.FilterName(name))
@@ -348,7 +365,7 @@ collected if needed.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("request-id", false, true, "Request ID of the pin to be removed.").EnableStdin(),
+		cmds.StringArg("request-id", false, true, "Request ID of the pin to be removed."),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Remove pin objects with names that contain provided value (case-sensitive, exact match)."),
@@ -460,7 +477,7 @@ var rmRemotePinServiceCmd = &cmds.Command{
 		ShortDescription: "Remove credentials for access to a remote pinning service.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("remote-pin-service", true, false, "Name of remote pinning service to remove.").EnableStdin(),
+		cmds.StringArg("remote-pin-service", true, false, "Name of remote pinning service to remove."),
 	},
 	Options: []cmds.Option{},
 	Type:    nil,
