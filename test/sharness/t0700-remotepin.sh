@@ -93,8 +93,8 @@ test_remote_pins() {
   '
 
   test_expect_success "verify background add worked" '
-    ipfs pin remote ls --service=test_pin_svc --enc=json --name=name_d --status=queued --status=pinning --status=pinned > ls_out &&
-    grep name_d ls_out
+    ipfs pin remote ls --service=test_pin_svc --enc=json $ID_D > ls_out &&
+    grep $ID_D ls_out
   '
 
   test_expect_success "'ipfs pin remote add' with CID that is not available" '
@@ -121,7 +121,15 @@ test_remote_pins() {
     test_cmp expected actual
   '
 
-  test_expect_success "'ipfs pin remote ls' for existing pins by ID" '
+  test_expect_success "'ipfs pin remote ls' for existing pins by RequestID" '
+    FOUND_ID_A=$(ipfs pin remote ls --service=test_pin_svc --enc=json $ID_A | jq --raw-output .RequestID | grep $ID_A) &&
+    echo ID_A=$ID_A FOUND_ID_A=$FOUND_ID_A &&
+    echo $ID_A > expected &&
+    echo $FOUND_ID_A > actual &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "'ipfs pin remote ls' for existing pins by CID" '
     FOUND_ID_A=$(ipfs pin remote ls --service=test_pin_svc --enc=json --cid=$HASH_A | jq --raw-output .RequestID | grep $ID_A) &&
     echo ID_A=$ID_A FOUND_ID_A=$FOUND_ID_A &&
     echo $ID_A > expected &&

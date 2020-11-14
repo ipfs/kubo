@@ -62,10 +62,33 @@ const pinForceOptionName = "force"
 
 type RemotePinOutput struct {
 	RequestID string
-	Name      string
-	Delegates []string // multiaddr
 	Status    string
 	Cid       string
+	Name      string
+	Delegates []string // multiaddr
+}
+
+func toRemotePinOutput(ps pinclient.PinStatusGetter) RemotePinOutput {
+	return RemotePinOutput{
+		RequestID: ps.GetRequestId(),
+		Name:      ps.GetPin().GetName(),
+		Delegates: multiaddrsToStrings(ps.GetDelegates()),
+		Status:    ps.GetStatus().String(),
+		Cid:       ps.GetPin().GetCid().String(),
+	}
+}
+
+func printRemotePinDetails(w io.Writer, out *RemotePinOutput) {
+	tw := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+	defer tw.Flush()
+	fw := func(k string, v string) {
+		fmt.Fprintf(tw, "%s:\t%s\n", k, v)
+	}
+	fw("RequestID", out.RequestID)
+	fw("CID", out.Cid)
+	fw("Name", out.Name)
+	fw("Status", out.Status)
+	fw("Delegates", strings.Join(out.Delegates, ", "))
 }
 
 // remote pin commands
@@ -183,21 +206,11 @@ var addRemotePinCmd = &cmds.Command{
 			}
 		}
 
-		return res.Emit(&RemotePinOutput{
-			RequestID: ps.GetRequestId(),
-			Name:      ps.GetPin().GetName(),
-			Delegates: multiaddrsToStrings(ps.GetDelegates()),
-			Status:    ps.GetStatus().String(),
-			Cid:       ps.GetPin().GetCid().String(),
-		})
+		return res.Emit(toRemotePinOutput(ps))
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
-			fmt.Printf("RequestID: %v\n", out.RequestID)
-			fmt.Printf("CID: %v\n", out.Cid)
-			fmt.Printf("Name: %v\n", out.Name)
-			fmt.Printf("Status: %v\n", out.Status)
-			fmt.Printf("Delegates: %v\n", strings.Join(out.Delegates, ", "))
+			printRemotePinDetails(w, out)
 			return nil
 		}),
 	},
@@ -222,7 +235,9 @@ Returns a list of objects that are pinned to a remote pinning service.
 `,
 	},
 
-	Arguments: []cmds.Argument{},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("request-id", false, false, "Request ID of the pin to be listed.").EnableStdin(),
+	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-sensitive, exact match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
@@ -239,19 +254,25 @@ Returns a list of objects that are pinned to a remote pinning service.
 			return err
 		}
 
+		// If request-id is provided, return PinStatus directly
+		if len(req.Arguments) == 1 {
+			// TODO: support more than one?
+			ps, err := lsRemoteByRequestId(ctx, req, c)
+			if err != nil {
+				return err
+			}
+			// return single element
+			return res.Emit(toRemotePinOutput(ps))
+		}
+
+		// Else, use filters to find remote pins that match criteria
 		psCh, errCh, err := lsRemote(ctx, req, c)
 		if err != nil {
 			return err
 		}
 
 		for ps := range psCh {
-			if err := res.Emit(&RemotePinOutput{
-				RequestID: ps.GetRequestId(),
-				Name:      ps.GetPin().GetName(),
-				Delegates: multiaddrsToStrings(ps.GetDelegates()),
-				Status:    ps.GetStatus().String(),
-				Cid:       ps.GetPin().GetCid().String(),
-			}); err != nil {
+			if err := res.Emit(toRemotePinOutput(ps)); err != nil {
 				return err
 			}
 		}
@@ -261,14 +282,20 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Type: RemotePinOutput{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
-			fmt.Printf("RequestID: %v\n", out.RequestID)
-			fmt.Printf("CID: %v\n", out.Cid)
-			fmt.Printf("Name: %v\n", out.Name)
-			fmt.Printf("Status: %v\n", out.Status)
-			fmt.Printf("Delegates: %v\n", strings.Join(out.Delegates, ", "))
+			// pin remote ls produces a flat output similar to legacy pin ls
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", out.RequestID, out.Cid, out.Status, out.Name)
 			return nil
 		}),
 	},
+}
+
+func lsRemoteByRequestId(ctx context.Context, req *cmds.Request, c *pinclient.Client) (pinclient.PinStatusGetter, error) {
+	requestId := req.Arguments[0]
+	ps, err := c.GetStatusByID(ctx, requestId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find pin with request ID %s (%v)", requestId, err)
+	}
+	return ps, nil
 }
 
 func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
