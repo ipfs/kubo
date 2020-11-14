@@ -151,11 +151,7 @@ var addRemotePinCmd = &cmds.Command{
 			if err != nil {
 				return err
 			}
-			var origins []multiaddr.Multiaddr = nil
-			for _, a := range addrs {
-				origins = append(origins, a)
-			}
-			opts = append(opts, pinclient.PinOpts.WithOrigins(origins...))
+			opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
 		}
 
 		// Execute remote pin request
