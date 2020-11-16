@@ -417,9 +417,9 @@ const (
 
 var filesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directories in the local mutable namespace. (Both IPFS and MFS paths)",
+		Tagline: "List directories in the local mutable namespace.",
 		ShortDescription: `
-List directories in the local mutable namespace (Both IPFS and MFS paths).
+List directories in the local mutable namespace (Works on both IPFS and MFS paths).
 
 Examples:
 
