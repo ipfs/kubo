@@ -176,7 +176,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		if err != nil {
 			return err
 		}
-		err = scrubValue(cfg, []string{config.RemotePinServicesTag})
+		err = scrubValue(cfg, []string{config.PinningRemoteServicesTag})
 		if err != nil {
 			return err
 		}

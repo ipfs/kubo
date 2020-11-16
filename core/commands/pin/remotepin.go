@@ -450,17 +450,16 @@ var addRemotePinServiceCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		if cfg.RemotePinServices.Services != nil {
-			if _, present := cfg.RemotePinServices.Services[name]; present {
+		if cfg.Pinning.RemoteServices != nil {
+			if _, present := cfg.Pinning.RemoteServices[name]; present {
 				return fmt.Errorf("service already present")
 			}
 		} else {
-			cfg.RemotePinServices.Services = map[string]config.RemotePinService{}
+			cfg.Pinning.RemoteServices = map[string]config.RemotePinningService{}
 		}
-		cfg.RemotePinServices.Services[name] = config.RemotePinService{
-			Name: name,
-			URL:  url,
-			Key:  key,
+		cfg.Pinning.RemoteServices[name] = config.RemotePinningService{
+			ApiEndpoint: url,
+			ApiKey:      key,
 		}
 
 		return repo.SetConfig(cfg)
@@ -497,8 +496,8 @@ var rmRemotePinServiceCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		if cfg.RemotePinServices.Services != nil {
-			delete(cfg.RemotePinServices.Services, name)
+		if cfg.Pinning.RemoteServices != nil {
+			delete(cfg.Pinning.RemoteServices, name)
 		}
 		return repo.SetConfig(cfg)
 	},
@@ -526,13 +525,13 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		if cfg.RemotePinServices.Services == nil {
+		if cfg.Pinning.RemoteServices == nil {
 			return nil // no pinning services added yet
 		}
-		services := cfg.RemotePinServices.Services
-		result := PinServicesList{make([]PinServiceAndURL, 0, len(services))}
+		services := cfg.Pinning.RemoteServices
+		result := PinServicesList{make([]PinServiceAndEndpoint, 0, len(services))}
 		for svcName, svcConfig := range services {
-			result.RemoteServices = append(result.RemoteServices, PinServiceAndURL{svcName, svcConfig.URL})
+			result.RemoteServices = append(result.RemoteServices, PinServiceAndEndpoint{svcName, svcConfig.ApiEndpoint})
 		}
 		sort.Sort(result)
 		return cmds.EmitOnce(res, &result)
@@ -542,7 +541,7 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, list *PinServicesList) error {
 			tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 			for _, s := range list.RemoteServices {
-				fmt.Fprintf(tw, "%s\t%s\n", s.Service, s.URL)
+				fmt.Fprintf(tw, "%s\t%s\n", s.Service, s.ApiEndpoint)
 			}
 			tw.Flush()
 			return nil
@@ -550,14 +549,14 @@ var lsRemotePinServiceCmd = &cmds.Command{
 	},
 }
 
-type PinServiceAndURL struct {
-	Service string
-	URL     string
+type PinServiceAndEndpoint struct {
+	Service     string
+	ApiEndpoint string
 }
 
 // Struct returned by ipfs pin remote service ls --enc=json | jq
 type PinServicesList struct {
-	RemoteServices []PinServiceAndURL
+	RemoteServices []PinServiceAndEndpoint
 }
 
 func (l PinServicesList) Len() int {
@@ -599,12 +598,12 @@ func getRemotePinService(env cmds.Environment, name string) (url, key string, er
 	if err != nil {
 		return "", "", err
 	}
-	if cfg.RemotePinServices.Services == nil {
+	if cfg.Pinning.RemoteServices == nil {
 		return "", "", fmt.Errorf("service not known")
 	}
-	service, present := cfg.RemotePinServices.Services[name]
+	service, present := cfg.Pinning.RemoteServices[name]
 	if !present {
 		return "", "", fmt.Errorf("service not known")
 	}
-	return service.URL, service.Key, nil
+	return service.ApiEndpoint, service.ApiKey, nil
 }
