@@ -294,7 +294,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: "18.09.3"
+          version: "19.03.13"
       - run:
           name: Build Docker image
           command: |
@@ -311,7 +311,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: "18.09.3"
+          version: "19.03.13"
       - attach_workspace:
           at: /tmp/workspace
       - run:
