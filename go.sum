@@ -340,6 +340,7 @@ github.com/ipfs/go-ds-badger v0.2.3 h1:J27YvAcpuA5IvZUbeBxOcQgqnYHUPxoygc6Qxxkod
 github.com/ipfs/go-ds-badger v0.2.3/go.mod h1:pEYw0rgg3FIrywKKnL+Snr+w/LjJZVMTBRn4FS6UHUk=
 github.com/ipfs/go-ds-badger v0.2.5 h1:oKRP6xVdgunjioOvaW4Ue2N7rBI7h/sWNERHTguUmpE=
 github.com/ipfs/go-ds-badger v0.2.5/go.mod h1:02rnztVKA4aZwDuaRPTf8mpqcKmXP7mLl6JPxd14JHA=
+github.com/ipfs/go-ds-badger v0.2.6/go.mod h1:02rnztVKA4aZwDuaRPTf8mpqcKmXP7mLl6JPxd14JHA=
 github.com/ipfs/go-ds-flatfs v0.4.5 h1:4QceuKEbH+HVZ2ZommstJMi3o3II+dWS3IhLaD7IGHs=
 github.com/ipfs/go-ds-flatfs v0.4.5/go.mod h1:e4TesLyZoA8k1gV/yCuBTnt2PJtypn4XUlB5n8KQMZY=
 github.com/ipfs/go-ds-leveldb v0.0.1/go.mod h1:feO8V3kubwsEF22n0YRQCffeb79OOYIykR4L04tMOYc=
