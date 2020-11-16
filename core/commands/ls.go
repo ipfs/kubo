@@ -47,9 +47,9 @@ const (
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directory contents for Unix filesystem objects. (Only IPFS paths)",
+		Tagline: "List directory contents for Unix filesystem objects.",
 		ShortDescription: `
-Displays the contents of an IPFS or IPNS object(s) at the given path, with
+Displays the contents of an IPFS or IPNS object(s) at the given path, (Won't work with MFS paths - Use 'ipfs files ls' instead) with
 the following format:
 
   <link base58 hash> <link size in bytes> <link name>
