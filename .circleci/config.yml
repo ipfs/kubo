@@ -303,11 +303,12 @@ jobs:
       - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
       - run: docker buildx version
       - run: docker buildx ls
+      - run: docker buildx create –use
       - run:
           name: Build Docker image
           command: |
             docker buildx build \
-              --platform linux/amd64,linux/arm/v7 \
+              --platform linux/amd64,linux/arm/v7,linux/arm64/v8 \
               -t $IMAGE_NAME:$WIP_IMAGE_TAG .
       - run:
           name: Archive Docker image
