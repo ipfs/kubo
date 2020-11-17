@@ -34,6 +34,8 @@ const (
 	ipnsPathPrefix = "/ipns/"
 )
 
+var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
@@ -261,7 +263,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		urlFilename := r.URL.Query().Get("filename")
 		var name string
 		if urlFilename != "" {
-			w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename*=UTF-8''%s", url.PathEscape(urlFilename)))
+			disposition := "inline"
+			if r.URL.Query().Get("download") == "true" {
+				disposition = "attachment"
+			}
+			utf8Name := url.PathEscape(urlFilename)
+			asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(urlFilename, "_"))
+			w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
 			name = urlFilename
 		} else {
 			name = getFilename(urlPath)
@@ -282,7 +290,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		goget := r.URL.Query().Get("go-get") == "1"
 		if dirwithoutslash && !goget {
 			// See comment above where originalUrlPath is declared.
-			http.Redirect(w, r, originalUrlPath+"/", 302)
+			suffix := "/"
+			if r.URL.RawQuery != "" {
+				// preserve query parameters
+				suffix = suffix + "?" + r.URL.RawQuery
+			}
+			http.Redirect(w, r, originalUrlPath+suffix, 302)
 			return
 		}
 
@@ -379,8 +392,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	hash := resolvedPath.Cid().String()
 
-	// Storage for gateway URL to be used when linking to other rootIDs. This
-	// will be blank unless subdomain resolution is being used for this request.
+	// Gateway root URL to be used when linking to other rootIDs.
+	// This will be blank unless subdomain or DNSLink resolution is being used
+	// for this request.
 	var gwURL string
 
 	// Get gateway hostname and build gateway URL.
@@ -390,13 +404,16 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		gwURL = ""
 	}
 
+	dnslink := hasDNSLinkOrigin(gwURL, urlPath)
+
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
 		GatewayURL:  gwURL,
+		DNSLink:     dnslink,
 		Listing:     dirListing,
 		Size:        size,
 		Path:        urlPath,
-		Breadcrumbs: breadcrumbs(urlPath),
+		Breadcrumbs: breadcrumbs(urlPath, dnslink),
 		BackLink:    backLink,
 		Hash:        hash,
 	}

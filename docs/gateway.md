@@ -49,6 +49,16 @@ your query string to explicitly specify the filename. For example:
 
 > https://ipfs.io/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG?filename=hello_world.txt
 
+When you try to save above page, you browser will use passed `filename` instead of a CID.
+
+## Downloads
+
+It is possible to skip browser rendering of supported filetypes (plain text,
+images, audio, video, PDF) and trigger immediate "save as" dialog by appending
+`&download=true`:
+
+> https://ipfs.io/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG?filename=hello_world.txt&download=true
+
 ## MIME-Types
 
 TODO

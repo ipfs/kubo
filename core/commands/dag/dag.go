@@ -685,7 +685,7 @@ var DagStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Gets stats for a DAG",
 		ShortDescription: `
-'ipfs dag size' fetches a dag and returns various statistics about the DAG.
+'ipfs dag stat' fetches a dag and returns various statistics about the DAG.
 Statistics include size and number of blocks.
 
 Note: This command skips duplicate blocks in reporting both size and the number of blocks

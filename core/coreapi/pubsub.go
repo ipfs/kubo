@@ -118,5 +118,9 @@ func (msg *pubSubMessage) Seq() []byte {
 }
 
 func (msg *pubSubMessage) Topics() []string {
-	return msg.msg.TopicIDs
+	// TODO: handle breaking downstream changes by returning a single string.
+	if msg.msg.Topic == nil {
+		return nil
+	}
+	return []string{*msg.msg.Topic}
 }
