@@ -105,8 +105,7 @@ var addRemotePinCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
-		// TODO: swap default to --background=false
-		cmds.BoolOption(pinBackgroundOptionName, "Queue the pin request on the remote service, return RequestID immediately.").WithDefault(true),
+		cmds.BoolOption(pinBackgroundOptionName, "Add to the queue on the remote service and return RequestID immediately.").WithDefault(false),
 	},
 	Type: RemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
