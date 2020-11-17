@@ -83,7 +83,7 @@ Set the value of the 'Datastore.Path' key:
 		switch strings.ToLower(key) {
 		case "identity", "identity.privkey":
 			return errors.New("cannot show or change private key through API")
-		case "remotepinservices":
+		case "pinning", "remoteservices":
 			return errors.New("cannot show remote pinning services, use 'ipfs pin remote service ls'")
 		default:
 		}
@@ -176,7 +176,9 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		if err != nil {
 			return err
 		}
-		err = scrubValue(cfg, []string{config.PinningRemoteServicesTag})
+
+		// TODO: needs tests similar to PrivKey ones in test/sharness/t0021-config.sh
+		err = scrubOptionalValue(cfg, []string{"Pinning", "RemoteServices"})
 		if err != nil {
 			return err
 		}
@@ -197,6 +199,12 @@ NOTE: For security reasons, this command will omit your private key and remote s
 }
 
 func scrubValue(m map[string]interface{}, key []string) error {
+	return scrub(m, key, false)
+}
+func scrubOptionalValue(m map[string]interface{}, key []string) error {
+	return scrub(m, key, true)
+}
+func scrub(m map[string]interface{}, key []string, okIfMissing bool) error {
 	find := func(m map[string]interface{}, k string) (string, interface{}, bool) {
 		lckey := strings.ToLower(k)
 		for mkey, val := range m {
@@ -211,7 +219,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 	cur := m
 	for _, k := range key[:len(key)-1] {
 		foundk, val, ok := find(cur, k)
-		if !ok {
+		if !ok && !okIfMissing {
 			return errors.New("failed to find specified key")
 		}
 
@@ -229,7 +237,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 	}
 
 	todel, _, ok := find(cur, key[len(key)-1])
-	if !ok {
+	if !ok && !okIfMissing {
 		return fmt.Errorf("%s, not found", strings.Join(key, "."))
 	}
 
@@ -487,6 +495,8 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	}
 
 	cfg.Identity.PrivKey = pkstr
+
+	// TODO: preserve Pinning.RemoteServices (if present in original config)
 
 	return r.SetConfig(&cfg)
 }
