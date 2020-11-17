@@ -4,9 +4,9 @@ test_description="Test ipfs remote pinning operations"
 
 . lib/test-lib.sh
 
-if [ -z ${CI_HOST_IP+x} ]; then
+if [ -z ${DOCKER_HOST+x} ]; then
   # TODO: set up instead of skipping?
-  skip_all='Skipping pinning service integration tests: missing CI_HOST_IP, remote pinning service not available'
+  skip_all='Skipping pinning service integration tests: missing DOCKER_HOST, remote pinning service not available'
   test_done
 fi
 
@@ -14,7 +14,7 @@ fi
 test_init_ipfs
 test_launch_ipfs_daemon
 
-TEST_PIN_SVC="http://${CI_HOST_IP}:5000/api/v1"
+TEST_PIN_SVC="http://${DOCKER_HOST}:5000/api/v1"
 TEST_PIN_SVC_KEY=$(curl -s -X POST "$TEST_PIN_SVC/users" -d email="go-ipfs-sharness@ipfs.example.com" | jq --raw-output .access_token)
 
 # create user on pinning service

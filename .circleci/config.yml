@@ -146,11 +146,11 @@ jobs:
 
     - run:
         name: Setup Environment Variables
-        # 172.17.0.1 is the docker host IP; all ports exported by child containers can be accessed there.
-        command: echo 'export CI_HOST_IP=172.17.0.1' >> $BASH_ENV
-    - run: 
-        echo CI_HOST_IP=$CI_HOST_IP &&
-        make -O -j 3 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 CI_HOST_IP=$CI_HOST_IP
+        # we need the docker host IP; all ports exported by child containers can be accessed there.
+        command: echo "export DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $BASH_ENV
+    - run:
+        echo DOCKER_HOST=$DOCKER_HOST &&
+        make -O -j 3 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 DOCKER_HOST=$DOCKER_HOST
 
     - run:
         when: always
