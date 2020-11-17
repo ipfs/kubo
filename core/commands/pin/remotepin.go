@@ -317,14 +317,9 @@ func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Cl
 		opts = append(opts, pinclient.PinOpts.FilterName(name))
 	}
 
-	// TODO: remove debug after ergonomics below are fixed
-	// data, _ := json.Marshal(req.Options)
-	// fmt.Println(string(data))
-
 	if cidsRaw, cidsFound := req.Options[pinCIDsOptionName].([]string); cidsFound {
 		parsedCIDs := []cid.Cid{}
-		// TODO: improve ergonomics: support both --cid=a --cid=b and --cid=a,b
-		for _, rawCID := range cidsRaw {
+		for _, rawCID := range flattenCommaList(cidsRaw) {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
@@ -335,8 +330,7 @@ func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Cl
 	}
 	if statusRaw, statusFound := req.Options[pinStatusOptionName].([]string); statusFound {
 		parsedStatuses := []pinclient.Status{}
-		// TODO: improve ergonomics: support both --status=a --status=b and --status=a,b
-		for _, rawStatus := range statusRaw {
+		for _, rawStatus := range flattenCommaList(statusRaw) {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
 				return nil, nil, fmt.Errorf("status %q is not valid", rawStatus)
@@ -349,6 +343,14 @@ func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Cl
 	psCh, errCh := c.Ls(ctx, opts...)
 
 	return psCh, errCh, nil
+}
+
+func flattenCommaList(list []string) []string {
+	flatList := list[:0]
+	for _, s := range list {
+		flatList = append(flatList, strings.Split(s, ",")...)
+	}
+	return flatList
 }
 
 var rmRemotePinCmd = &cmds.Command{

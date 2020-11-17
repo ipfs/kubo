@@ -66,7 +66,7 @@ test_expect_success "verify pinning service removal works" '
 # TODO: why this was not pinned instantly? no bitswap is required for inlined CID
 test_expect_success "verify background add works with data inlined in CID" '
   ipfs pin remote add --background=true --service=test_pin_svc --enc=json --name=inlined_null bafkqaaa &&
-  ipfs pin remote ls --service=test_pin_svc --enc=json --name=inlined_null --status=queued --status=pinning --status=pinned | tee ls_out &&
+  ipfs pin remote ls --service=test_pin_svc --enc=json --name=inlined_null --status=queued,pinning,pinned | tee ls_out &&
   grep -qE "queued|pinning|pinned" ls_out
 '
 
@@ -102,7 +102,7 @@ test_remote_pins() {
   '
 
   test_expect_success "'ipfs pin remote ls' for existing pins by multiple statuses" '
-    ipfs pin remote ls --service=test_pin_svc --enc=json --status=queued --status=pinning --status=pinned --status=failed | tee ls_out &&
+    ipfs pin remote ls --service=test_pin_svc --enc=json --status=queued,pinning,pinned,failed | tee ls_out &&
     grep -q $HASH_A ls_out &&
     grep -q $HASH_B ls_out &&
     grep -q $HASH_MISSING ls_out
