@@ -106,7 +106,7 @@ var addRemotePinCmd = &cmds.Command{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 		// TODO: swap default to --background=false
-		cmds.BoolOption(pinBackgroundOptionName, "Add the pins in the background.").WithDefault(true),
+		cmds.BoolOption(pinBackgroundOptionName, "Queue the pin request on the remote service, return RequestID immediately.").WithDefault(true),
 	},
 	Type: RemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -182,23 +182,23 @@ var addRemotePinCmd = &cmds.Command{
 			for {
 				ps, err = c.GetStatusByID(ctx, requestId)
 				if err != nil {
-					return fmt.Errorf("failed to query pin (%v)", err)
+					return fmt.Errorf("failed to check pin status for requestid=%q due to error: %v", requestId, err)
 				}
 				if ps.GetRequestId() != requestId {
-					return fmt.Errorf("unable to check status for requestId=%q, remote service sent unexpected %q", requestId, ps.GetRequestId())
+					return fmt.Errorf("failed to check pin status for requestid=%q, remote service sent unexpected requestid=%q", requestId, ps.GetRequestId())
 				}
 				s := ps.GetStatus()
 				if s == pinclient.StatusPinned {
 					break
 				}
 				if s == pinclient.StatusFailed {
-					return fmt.Errorf("failed to pin")
+					return fmt.Errorf("remote service failed to pin requestid=%q", requestId)
 				}
 				tmr := time.NewTimer(time.Second / 2)
 				select {
 				case <-tmr.C:
 				case <-ctx.Done():
-					return fmt.Errorf("waiting for pin interrupted")
+					return fmt.Errorf("waiting for pin interrupted, requestid=%q remains on remote service: check its status with 'ls' or abort with 'rm'", requestId)
 				}
 			}
 		}
@@ -327,7 +327,7 @@ func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Cl
 		for _, rawCID := range cidsRaw {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
-				return nil, nil, fmt.Errorf("CID %s cannot be parsed (%v)", rawCID, err)
+				return nil, nil, fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
 			}
 			parsedCIDs = append(parsedCIDs, parsedCID)
 		}
@@ -339,7 +339,7 @@ func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Cl
 		for _, rawStatus := range statusRaw {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
-				return nil, nil, fmt.Errorf("status %s is not valid", rawStatus)
+				return nil, nil, fmt.Errorf("status %q is not valid", rawStatus)
 			}
 			parsedStatuses = append(parsedStatuses, s)
 		}
@@ -368,7 +368,7 @@ collected if needed.
 		cmds.StringsOption(pinCIDsOptionName, "Remove only pin objects for the specified CID(s); optional, comma separated."),
 		cmds.StringsOption(pinStatusOptionName, "Remove only pin objects with the specified statuses; optional, comma separated."),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
-		cmds.BoolOption(pinForceOptionName, "Delete multiple pins.").WithDefault(false),
+		cmds.BoolOption(pinForceOptionName, "Delete multiple pins without confirmation.").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(req.Context)
@@ -390,10 +390,11 @@ collected if needed.
 				rmIDs = append(rmIDs, ps.GetRequestId())
 			}
 			if err = <-errCh; err != nil {
-				return fmt.Errorf("listing remote pin IDs (%v)", err)
+				return fmt.Errorf("error while listing remote pins: %v", err)
 			}
+			// TODO: shouldn't we require --force only when more than one pin was found?
 			if len(rmIDs) > 0 && !req.Options[pinForceOptionName].(bool) {
-				return fmt.Errorf("multiple pins may be removed, use --force")
+				return fmt.Errorf("multiple remote pins are matching this query, add --force to confirm the bulk removal")
 			}
 		} else {
 			rmIDs = append(rmIDs, req.Arguments[0])
@@ -401,7 +402,7 @@ collected if needed.
 
 		for _, rmID := range rmIDs {
 			if err = c.DeleteByID(ctx, rmID); err != nil {
-				return fmt.Errorf("removing pin with request ID %s (%v)", rmID, err)
+				return fmt.Errorf("removing pin identified by requestid=%q failed: %v", rmID, err)
 			}
 		}
 		return nil
@@ -509,7 +510,9 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		ShortDescription: "List remote pinning services.",
 	},
 	Arguments: []cmds.Argument{},
-	Options:   []cmds.Option{},
+	Options:   []cmds.Option{
+	// TODO: -s --stats that execute  ls query for each status  and reads pagination hints to return Stats object with the count of pins in each state: {Queued, Pinning, Pinned, Failed}
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
