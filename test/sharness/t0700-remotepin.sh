@@ -63,11 +63,13 @@ test_expect_success "verify pinning service removal works" '
   ipfs pin remote service ls | grep -L test_invalid_key_svc
 '
 
-# TODO: why this was not pinned instantly? no bitswap is required for inlined CID
-test_expect_success "verify background add works with data inlined in CID" '
-  ipfs pin remote add --background=true --service=test_pin_svc --enc=json --name=inlined_null bafkqaaa &&
-  ipfs pin remote ls --service=test_pin_svc --enc=json --name=inlined_null --status=queued,pinning,pinned | tee ls_out &&
-  grep -qE "queued|pinning|pinned" ls_out
+# we leverage the fact that inlined CID can be pinned instantly on the remote service
+# (https://github.com/ipfs-shipyard/rb-pinning-service-api/issues/8)
+# below test ensures that assumption is correct (before we proceed to actual tests)
+test_expect_success "verify that default add (implicit --background=false) works with data inlined in CID" '
+  ipfs pin remote add --service=test_pin_svc --name=inlined_null bafkqaaa &&
+  ipfs pin remote ls --service=test_pin_svc --enc=json --name=inlined_null --status=pinned | jq --raw-output .Status | tee ls_out &&
+  grep -q "pinned" ls_out
 '
 
 test_remote_pins() {
@@ -76,13 +78,12 @@ test_remote_pins() {
     BASE_ARGS="--cid-base=$BASE"
   fi
 
-  # time-based CIDs to ensure we test with data that is not on public network
-  # note: one hash is not imported to IPFS on purpose, to reliably test 'queued' state
+  # note: HAS_MISSING is not inlined nor imported to IPFS on purpose, to reliably test 'queued' state
   test_expect_success "create some hashes using base $BASE" '
-    export HASH_A=$(echo "A @ $(date)" | ipfs add $BASE_ARGS -q --pin=false) &&
-    export HASH_B=$(echo "B @ $(date)" | ipfs add $BASE_ARGS -q --pin=false) &&
-    export HASH_C=$(echo "C @ $(date)" | ipfs add $BASE_ARGS -q --pin=false) &&
-    export HASH_D=$(echo "D @ $(date)" | ipfs add $BASE_ARGS -q --pin=false) &&
+    export HASH_A=$(echo "A @ $(date)" | ipfs add $BASE_ARGS -q --inline --inline-limit 100 --pin=false) &&
+    export HASH_B=$(echo "B @ $(date)" | ipfs add $BASE_ARGS -q --inline --inline-limit 100 --pin=false) &&
+    export HASH_C=$(echo "C @ $(date)" | ipfs add $BASE_ARGS -q --inline --inline-limit 100 --pin=false) &&
+    export HASH_D=$(echo "D @ $(date)" | ipfs add $BASE_ARGS -q --inline --inline-limit 100 --pin=false) &&
     export HASH_MISSING=$(echo "MISSING FROM IPFS @ $(date)" | ipfs add $BASE_ARGS -q --only-hash)
   '
 
@@ -97,6 +98,18 @@ test_remote_pins() {
     grep -q $HASH_B ls_out
   '
 
+  test_expect_success "'ipfs pin remote add --background=false'" '
+    export ID_C=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_c $HASH_C | jq --raw-output .RequestID) &&
+    export ID_D=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_d $HASH_D | jq --raw-output .RequestID)
+  '
+
+  test_expect_success "verify foreground add worked" '
+    ipfs pin remote ls --service=test_pin_svc --enc=json $ID_C $ID_D | tee ls_out &&
+    grep -q $HASH_C ls_out &&
+    grep -q $HASH_D ls_out
+  '
+
+
   test_expect_success "'ipfs pin remote add' with CID that is not available" '
     export ID_M=$(ipfs pin remote add --background=true --service=test_pin_svc --enc=json $BASE_ARGS --name=name_m $HASH_MISSING | jq --raw-output .RequestID)
   '
@@ -107,8 +120,6 @@ test_remote_pins() {
     grep -q $HASH_B ls_out &&
     grep -q $HASH_MISSING ls_out
   '
-
-  # TODO: fix / verify remaining tests below
 
   test_expect_success "'ipfs pin remote ls' for existing pins by RequestID" '
     ipfs pin remote ls --service=test_pin_svc --enc=json $ID_A | tee ls_out &&
@@ -126,7 +137,7 @@ test_remote_pins() {
   '
 
   test_expect_success "'ipfs pin remote ls' for existing pins by status" '
-    ipfs pin remote ls --service=test_pin_svc --enc=json --status=queued | tee ls_out &&
+    ipfs pin remote ls --service=test_pin_svc --enc=json --status=queued,pinning | tee ls_out &&
     grep -q $HASH_MISSING ls_out
   '
 
@@ -134,42 +145,31 @@ test_remote_pins() {
     ipfs pin remote rm --service=test_pin_svc $ID_A
   '
 
-  test_expect_success "'ipfs pin remote rm --name' fails without --force when globbing" '
+  # --force is required only when more than a single match is found,
+  # so we add second pin with the same name to simulate that scenario
+  test_expect_success "'ipfs pin remote rm --name' fails without --force when matching multiple pins" '
+    export ID_B2=$(ipfs pin remote add --service=test_pin_svc --enc=json $BASE_ARGS --name=name_b $HASH_B | jq --raw-output .RequestID) &&
     test_expect_code 1 ipfs pin remote rm --service=test_pin_svc --enc=json --name=name_b
   '
 
-  test_expect_success "'ipfs pin remote rm' an existing pin by name" '
-    ipfs pin remote rm --service=test_pin_svc --enc=json --force --name=name_b
+  test_expect_success "'ipfs pin remote rm --name' without --force did not remove matching pins" '
+    ipfs pin remote ls --service=test_pin_svc --enc=json --name=name_b | jq --raw-output .RequestID | tee ls_out &&
+    grep -q $ID_B &&
+    grep -q $ID_B2
   '
 
-  test_expect_success "'ipfs pin remote rm' an existing pin by status" '
+  test_expect_success "'ipfs pin remote rm --force' removes all pinned items" '
     ipfs pin remote rm --service=test_pin_svc --enc=json --force --status=pinned
   '
 
   test_expect_success "'ipfs pin remote ls' returns error for deleted pin" '
-    ipfs pin remote ls --service=test_pin_svc --enc=json $ID_B | tee ls_out
+    ipfs pin remote ls --service=test_pin_svc --enc=json $ID_B | tee ls_out &&
     test_expect_code 1 grep -q $HASH_B ls_out
-  '
-
-  # TODO: we test this at the end because so far it hangs forever on CI -- needs investigation
-  test_expect_success "'ipfs pin remote add --background=false'" '
-    export ID_C=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_c $HASH_C | jq --raw-output .RequestID) &&
-    export ID_D=$(ipfs pin remote add --background=false --service=test_pin_svc --enc=json $BASE_ARGS --name=name_d $HASH_D | jq --raw-output .RequestID)
-  '
-
-  test_expect_success "verify foreground add worked" '
-    ipfs pin remote ls --service=test_pin_svc --enc=json $ID_C $ID_D | tee ls_out &&
-    grep -q $HASH_C ls_out &&
-    grep -q $HASH_D ls_out
   '
 
 }
 
 test_remote_pins ""
-
-
-# TODO: origin / delegates
-# TODO: name search
 
 test_kill_ipfs_daemon
 test_done
