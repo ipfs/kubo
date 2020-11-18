@@ -88,7 +88,6 @@ func printRemotePinDetails(w io.Writer, out *RemotePinOutput) {
 	fw("CID", out.Cid)
 	fw("Name", out.Name)
 	fw("Status", out.Status)
-	fw("Delegates", strings.Join(out.Delegates, ", "))
 }
 
 // remote pin commands
