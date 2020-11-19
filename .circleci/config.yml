@@ -330,7 +330,7 @@ jobs:
           command: docker save -o go-ipfs-image.tar $IMAGE_NAME
       - persist_to_workspace:
           root: .
-            paths:
+          paths:
             - ./go-ipfs-image.tar
   docker-push:
     executor: dockerizer
