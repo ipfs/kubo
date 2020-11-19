@@ -302,13 +302,15 @@ jobs:
       - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
       - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
       - run: docker buildx version
+      - run: docker context ls
       - run: docker buildx ls
-      - run: docker buildx create –use
+      - run: docker buildx create –use --name mybuild node-amd64
+      - run: docker buildx create --append --name mybuild node-arm64
       - run:
           name: Build Docker image
           command: |
             docker buildx build \
-              --platform linux/amd64,linux/arm/v7,linux/arm64/v8 \
+              --platform linux/amd64,linux/arm64 \
               -t $IMAGE_NAME:$WIP_IMAGE_TAG .
       - run:
           name: Archive Docker image
