@@ -318,13 +318,13 @@ jobs:
             # Run binfmt
             docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
 
-        - run: docker buildx create --name mybuilder -use
-        - run:
-          name: Build Docker image
-          command: |
-            docker buildx build \
-              --platform "$BUILDX_PLATFORMS" \
-              -t $IMAGE_NAME:$WIP_IMAGE_TAG .
+      - run: docker buildx create --name mybuilder -use
+      - run:
+        name: Build Docker image
+        command: |
+          docker buildx build \
+            --platform "$BUILDX_PLATFORMS" \
+            -t $IMAGE_NAME:$WIP_IMAGE_TAG .
       - run:
           name: Archive Docker image
           command: docker save -o go-ipfs-image.tar $IMAGE_NAME
