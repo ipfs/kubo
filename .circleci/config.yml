@@ -299,7 +299,7 @@ jobs:
       - setup_remote_docker:
           version: "19.03.13"
       - run: sudo apt update -y
-            - run: sudo apt install -y make curl qemu-user-static qemu-user binfmt-support
+      - run: sudo apt install -y make curl qemu-user-static qemu-user binfmt-support
       - run:
           name: Install buildx
           command: |
