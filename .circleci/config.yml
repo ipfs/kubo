@@ -298,9 +298,10 @@ jobs:
           version: "19.03.13"
       - run: sudo apt update -y
       - run: sudo apt install -y make curl qemu-user-static qemu-user binfmt-support
-      - run: mkdir -vp ~/.docker/cli-plugins/
-      - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
-      - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
+#       - run: mkdir -vp ~/.docker/cli-plugins/
+#       - run: curl --silent -L --output ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.4.2/buildx-v0.4.2.linux-amd64
+#       - run: chmod a+x ~/.docker/cli-plugins/docker-buildx
+      - run: docker buildx install
       - run: docker buildx version
       - run: docker context ls
       - run: docker buildx ls
