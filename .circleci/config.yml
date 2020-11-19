@@ -318,7 +318,7 @@ jobs:
             # Run binfmt
             docker run --rm --privileged tonistiigi/binfmt:latest --install "$BUILDX_PLATFORMS"
 
-      - run: docker buildx create --name mybuilder -use
+      - run: docker buildx create -use --name mybuilder
       - run:
           name: Build Docker image
           command: |
