@@ -28,7 +28,7 @@ default_environment: &default_environment
   CIRCLE: 1
   CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
   CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
-    GIT_PAGER: cat
+  GIT_PAGER: cat
 
 executors:
   golang:
