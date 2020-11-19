@@ -432,7 +432,7 @@ tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new
 structures.
 
 For more information on possible values for this configuration option, see
-docs/datastores.md
+[docs/datastores.md](datastores.md)
 
 Default:
 ```
