@@ -358,8 +358,6 @@ github.com/ipfs/go-ipfs-chunker v0.0.5 h1:ojCf7HV/m+uS2vhUGWcogIIxiO5ubl5O57Q7Na
 github.com/ipfs/go-ipfs-chunker v0.0.5/go.mod h1:jhgdF8vxRHycr00k13FM8Y0E+6BoalYeobXmUyTreP8=
 github.com/ipfs/go-ipfs-cmds v0.4.0 h1:xUavIxA9Ts8U6PAHmQBvDGMlGfUrQ13Rymd+5t8LIF4=
 github.com/ipfs/go-ipfs-cmds v0.4.0/go.mod h1:ZgYiWVnCk43ChwoH8hAmI1IRbuVtq3GSTHwtRB/Kqhk=
-github.com/ipfs/go-ipfs-config v0.9.1-0.20200925164234-711def0cc4d3 h1:7EwzMoBhktnUjdgukBmOm+L0J8pwVlHdXEOJa5Ct6KA=
-github.com/ipfs/go-ipfs-config v0.9.1-0.20200925164234-711def0cc4d3/go.mod h1:GQUxqb0NfkZmEU92PxqqqLVVFTLpoGGUlBaTyDaAqrE=
 github.com/ipfs/go-ipfs-config v0.9.1-0.20201116161859-f69c8d6d47cb h1:cK7DEEHIsYIBVwAaxlQsO3ScvTOOy+CSkeJ53yCxgMY=
 github.com/ipfs/go-ipfs-config v0.9.1-0.20201116161859-f69c8d6d47cb/go.mod h1:GQUxqb0NfkZmEU92PxqqqLVVFTLpoGGUlBaTyDaAqrE=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -456,8 +454,8 @@ github.com/ipfs/go-peertaskqueue v0.1.0/go.mod h1:Jmk3IyCcfl1W3jTW3YpghSwSEC6IJ3
 github.com/ipfs/go-peertaskqueue v0.1.1/go.mod h1:Jmk3IyCcfl1W3jTW3YpghSwSEC6IJ3Vzz/jUmWw8Z0U=
 github.com/ipfs/go-peertaskqueue v0.2.0 h1:2cSr7exUGKYyDeUyQ7P/nHPs9P7Ht/B+ROrpN1EJOjc=
 github.com/ipfs/go-peertaskqueue v0.2.0/go.mod h1:5/eNrBEbtSKWCG+kQK8K8fGNixoYUnr+P7jivavs9lY=
-github.com/ipfs/go-pinning-service-http-client v0.0.0-20201030162340-38f3baeb8878 h1:RQLHEUEGAikm7pFNtxtSSin3TfRQdnhBcCrsaTxxLz0=
-github.com/ipfs/go-pinning-service-http-client v0.0.0-20201030162340-38f3baeb8878/go.mod h1:7aOggtq0hGoNLsv5pV7zfvrDDaqqNd1/GxdnS4MkSZA=
+github.com/ipfs/go-pinning-service-http-client v0.0.0-20201119193934-34aa0b8a7959 h1:+7p/zpQWfElnHKzbjzks7VRuQtnUg2+8FhX43hyf8c8=
+github.com/ipfs/go-pinning-service-http-client v0.0.0-20201119193934-34aa0b8a7959/go.mod h1:7aOggtq0hGoNLsv5pV7zfvrDDaqqNd1/GxdnS4MkSZA=
 github.com/ipfs/go-unixfs v0.0.4/go.mod h1:eIo/p9ADu/MFOuyxzwU+Th8D6xoxU//r590vUpWyfz8=
 github.com/ipfs/go-unixfs v0.1.0/go.mod h1:lysk5ELhOso8+Fed9U1QTGey2ocsfaZ18h0NCO2Fj9s=
 github.com/ipfs/go-unixfs v0.2.4 h1:6NwppOXefWIyysZ4LR/qUBPvXd5//8J3jiMdvpbw6Lo=

@@ -34,6 +34,14 @@ test_expect_success "test 'ipfs pin remote service ls'" '
   grep -q test_invalid_url_dns_svc ls_out
 '
 
+test_expect_success "pin remote service ls --pin-count' returns numbers for a valid service" '
+  ipfs pin remote service ls --pin-count | grep -E "^test_pin_svc.+[0-9]+/[0-9]+/[0-9]+/[0-9]+$"
+'
+
+test_expect_success "pin remote service ls --pin-count' returns 'offline' for invalid service" '
+  ipfs pin remote service ls --pin-count | grep -E "^test_invalid_url_path_svc.+offline$"
+'
+
 test_expect_success "check connection to test pinning service" '
   ipfs pin remote ls --service=test_pin_svc --enc=json
 '
