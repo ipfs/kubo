@@ -550,7 +550,7 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 			)
 		}
 
-		node, err := cmdenv.GetNode(env)
+		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
@@ -588,7 +588,7 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 				req.Context,
 				mdag.NewSession(
 					req.Context,
-					node.DAG,
+					api.Dag(),
 				),
 				[]cid.Cid{c},
 				pipeW,
@@ -606,9 +606,16 @@ The output of blocks happens in strict DAG-traversal, first-seen, order.
 
 		// minimal user friendliness
 		if err != nil &&
-			!node.IsOnline &&
 			err == ipld.ErrNotFound {
-			err = fmt.Errorf("%s (currently offline, perhaps retry after attaching to the network)", err)
+			explicitOffline, _ := req.Options["offline"].(bool)
+			if explicitOffline {
+				err = fmt.Errorf("%s (currently offline, perhaps retry without the offline flag)", err)
+			} else {
+				node, envErr := cmdenv.GetNode(env)
+				if envErr == nil && !node.IsOnline {
+					err = fmt.Errorf("%s (currently offline, perhaps retry after attaching to the network)", err)
+				}
+			}
 		}
 
 		return err
