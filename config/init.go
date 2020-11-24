@@ -142,19 +142,6 @@ func badgerSpec() map[string]interface{} {
 	}
 }
 
-func badger2Spec() map[string]interface{} {
-	return map[string]interface{}{
-		"type":   "measure",
-		"prefix": "badger2.datastore",
-		"child": map[string]interface{}{
-			"type":       "badger2ds",
-			"path":       "badger2ds",
-			"syncWrites": false,
-			"truncate":   true,
-		},
-	}
-}
-
 func flatfsSpec() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "mount",
