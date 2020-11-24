@@ -43,6 +43,7 @@ is the total size of the file contents. For directories, the child
 size is the IPFS link size.
 
 This functionality is deprecated, and will be removed in future versions as it duplicates the functionality of 'ipfs ls'.
+If possible, please use 'ipfs ls' instead.
 `,
 		LongDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
@@ -62,6 +63,7 @@ Example:
     cat.jpg
 
 This functionality is deprecated, and will be removed in future versions as it duplicates the functionality of 'ipfs ls'.
+If possible, please use 'ipfs ls' instead.
 `,
 	},
 
