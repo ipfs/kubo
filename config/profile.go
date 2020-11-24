@@ -152,27 +152,6 @@ This profile may only be applied when first initializing the node.
 	"badgerds": {
 		Description: `Configures the node to use the badger datastore.
 
-This is a fast datastore. Use this datastore if performance, especially
-when adding many gigabytes of files, is critical. However:
-
-* This datastore will not properly reclaim space when your datastore is
-  smaller than several gigabytes. If you run IPFS with '--enable-gc' (you have
-  enabled block-level garbage collection), you plan on storing very little data in
-  your IPFS node, and disk usage is more critical than performance, consider using
-  flatfs.
-* This datastore uses up to several gigabytes of memory. 
-
-This profile may only be applied when first initializing the node.`,
-
-		InitOnly: true,
-		Transform: func(c *Config) error {
-			c.Datastore.Spec = badgerSpec()
-			return nil
-		},
-	},
-	"badger2ds": {
-		Description: `Configures the node to use the badger2 datastore.
-
 This is the fastest datastore. Use this datastore if performance, especially
 when adding many gigabytes of files, is critical. However:
 
@@ -187,7 +166,7 @@ This profile may only be applied when first initializing the node.`,
 
 		InitOnly: true,
 		Transform: func(c *Config) error {
-			c.Datastore.Spec = badger2Spec()
+			c.Datastore.Spec = badgerSpec()
 			return nil
 		},
 	},
