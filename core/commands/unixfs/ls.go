@@ -34,7 +34,7 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directory contents for Unix filesystem objects. Deprecated: Use 'ipfs ls' instead",
+		Tagline: "List directory contents for Unix filesystem objects. Deprecated: Use 'ipfs ls' instead.",
 		ShortDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
 
