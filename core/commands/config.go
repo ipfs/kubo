@@ -83,9 +83,13 @@ Set the value of the 'Datastore.Path' key:
 		switch strings.ToLower(key) {
 		case "identity", "identity.privkey":
 			return errors.New("cannot show or change private key through API")
-		case "pinning", "remoteservices":
-			return errors.New("cannot show remote pinning services, use 'ipfs pin remote service ls'")
+		case "pinning", "pinning.remoteservices":
+			return errors.New("cannot show or change pinning services through API, use 'ipfs pin remote service' instead")
 		default:
+		}
+
+		if blocked := inBlockedScope(key, "Pinning.RemoteServices"); blocked {
+			return errors.New("cannot show or change pinning services through API, use 'ipfs pin remote service' instead")
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -140,6 +144,22 @@ Set the value of the 'Datastore.Path' key:
 		}),
 	},
 	Type: ConfigField{},
+}
+
+// Returns bool to indicate if tested key is in the blocked scope.
+// (scope includes parent, direct, and child match)
+func inBlockedScope(testKey string, blockedScope string) bool {
+	blockedScope = strings.ToLower(blockedScope)
+	roots := strings.Split(strings.ToLower(testKey), ".")
+	var scope []string
+	for _, name := range roots {
+		scope := append(scope, name)
+		impactedKey := strings.Join(scope, ".")
+		if strings.HasPrefix(impactedKey, blockedScope) {
+			return true
+		}
+	}
+	return false
 }
 
 var configShowCmd = &cmds.Command{
