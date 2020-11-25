@@ -237,7 +237,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-sensitive, exact match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
-		cmds.StringsOption(pinStatusOptionName, "Return only pin objects with the specified statuses (queued,pinning,pinned,failed)").WithDefault("pinned"),
+		cmds.StringsOption(pinStatusOptionName, "Return only pin objects with the specified statuses (queued,pinning,pinned,failed)").WithDefault([]string{"pinned"}),
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -368,7 +368,7 @@ collected if needed.
 		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
 		cmds.StringOption(pinNameOptionName, "Remove pin objects with names that contain provided value (case-sensitive, exact match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Remove only pin objects for the specified CID(s)."),
-		cmds.StringsOption(pinStatusOptionName, "Remove only pin objects with the specified statuses (queued,pinning,pinned,failed).").WithDefault("pinned"),
+		cmds.StringsOption(pinStatusOptionName, "Remove only pin objects with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
 		cmds.BoolOption(pinForceOptionName, "Remove multiple pins without confirmation.").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
