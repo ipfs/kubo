@@ -93,6 +93,8 @@ func printRemotePinDetails(w io.Writer, out *RemotePinOutput) {
 
 // remote pin commands
 
+var pinServiceNameOption = cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use.")
+
 var addRemotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Pin objects to remote storage.",
@@ -104,7 +106,7 @@ var addRemotePinCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
-		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		pinServiceNameOption,
 		cmds.BoolOption(pinBackgroundOptionName, "Add to the queue on the remote service and return RequestID immediately.").WithDefault(false),
 	},
 	Type: RemotePinOutput{},
@@ -113,10 +115,14 @@ var addRemotePinCmd = &cmds.Command{
 		defer cancel()
 
 		// Get remote service
-		service, _ := req.Options[pinServiceNameOptionName].(string)
-		c, err := getRemotePinServiceOrEnv(env, service)
-		if err != nil {
-			return err
+		var c *pinclient.Client
+		if service, serviceFound := req.Options[pinServiceNameOptionName]; serviceFound {
+			serviceStr := service.(string)
+			var err error
+			c, err = getRemotePinService(env, serviceStr)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Prepare value for Pin.cid
@@ -134,8 +140,9 @@ var addRemotePinCmd = &cmds.Command{
 
 		// Prepare Pin.name
 		opts := []pinclient.AddOption{}
-		if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
-			opts = append(opts, pinclient.PinOpts.WithName(name))
+		if name, nameFound := req.Options[pinNameOptionName]; nameFound {
+			nameStr := name.(string)
+			opts = append(opts, pinclient.PinOpts.WithName(nameStr))
 		}
 
 		// Prepare Pin.origins
@@ -238,16 +245,20 @@ Returns a list of objects that are pinned to a remote pinning service.
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-sensitive, exact match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
 		cmds.StringsOption(pinStatusOptionName, "Return only pin objects with the specified statuses (queued,pinning,pinned,failed)").WithDefault([]string{"pinned"}),
-		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		pinServiceNameOption,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
-		service, _ := req.Options[pinServiceNameOptionName].(string)
-		c, err := getRemotePinServiceOrEnv(env, service)
-		if err != nil {
-			return err
+		var c *pinclient.Client
+		if service, serviceFound := req.Options[pinServiceNameOptionName]; serviceFound {
+			serviceStr := service.(string)
+			var err error
+			c, err = getRemotePinService(env, serviceStr)
+			if err != nil {
+				return err
+			}
 		}
 
 		psCh, errCh, err := lsRemote(ctx, req, c)
@@ -312,13 +323,15 @@ func lsRemoteByRequestId(ctx context.Context, req *cmds.Request, c *pinclient.Cl
 // Executes GET /pins/?query-with-filters
 func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
 	opts := []pinclient.LsOption{}
-	if name, nameFound := req.Options[pinNameOptionName].(string); nameFound {
-		opts = append(opts, pinclient.PinOpts.FilterName(name))
+	if name, nameFound := req.Options[pinNameOptionName]; nameFound {
+		nameStr := name.(string)
+		opts = append(opts, pinclient.PinOpts.FilterName(nameStr))
 	}
 
-	if cidsRaw, cidsFound := req.Options[pinCIDsOptionName].([]string); cidsFound {
+	if cidsRaw, cidsFound := req.Options[pinCIDsOptionName]; cidsFound {
+		cidsRawArr := cidsRaw.([]string)
 		parsedCIDs := []cid.Cid{}
-		for _, rawCID := range flattenCommaList(cidsRaw) {
+		for _, rawCID := range flattenCommaList(cidsRawArr) {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
@@ -327,9 +340,10 @@ func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Cl
 		}
 		opts = append(opts, pinclient.PinOpts.FilterCIDs(parsedCIDs...))
 	}
-	if statusRaw, statusFound := req.Options[pinStatusOptionName].([]string); statusFound {
+	if statusRaw, statusFound := req.Options[pinStatusOptionName]; statusFound {
+		statusRawArr := statusRaw.([]string)
 		parsedStatuses := []pinclient.Status{}
-		for _, rawStatus := range flattenCommaList(statusRaw) {
+		for _, rawStatus := range flattenCommaList(statusRawArr) {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
 				return nil, nil, fmt.Errorf("status %q is not valid", rawStatus)
@@ -365,7 +379,7 @@ collected if needed.
 		cmds.StringArg("request-id", false, true, "Request ID of the pin to be removed."),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use."),
+		pinServiceNameOption,
 		cmds.StringOption(pinNameOptionName, "Remove pin objects with names that contain provided value (case-sensitive, exact match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Remove only pin objects for the specified CID(s)."),
 		cmds.StringsOption(pinStatusOptionName, "Remove only pin objects with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
@@ -375,10 +389,14 @@ collected if needed.
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
-		service, _ := req.Options[pinServiceNameOptionName].(string)
-		c, err := getRemotePinServiceOrEnv(env, service)
-		if err != nil {
-			return err
+		var c *pinclient.Client
+		if service, serviceFound := req.Options[pinServiceNameOptionName]; serviceFound {
+			serviceStr := service.(string)
+			var err error
+			c, err = getRemotePinService(env, serviceStr)
+			if err != nil {
+				return err
+			}
 		}
 
 		rmIDs := []string{}
@@ -402,7 +420,7 @@ collected if needed.
 		}
 
 		for _, rmID := range rmIDs {
-			if err = c.DeleteByID(ctx, rmID); err != nil {
+			if err := c.DeleteByID(ctx, rmID); err != nil {
 				return fmt.Errorf("removing pin identified by requestid=%q failed: %v", rmID, err)
 			}
 		}
@@ -543,7 +561,7 @@ var lsRemotePinServiceCmd = &cmds.Command{
 			// if --pin-count is passed, we try to fetch pin numbers from remote service
 			if req.Options[pinServicePinCountOptionName].(bool) {
 				lsRemotePinCount := func(ctx context.Context, env cmds.Environment, svcName string) (*PinCount, error) {
-					c, err := getRemotePinServiceOrEnv(env, svcName)
+					c, err := getRemotePinService(env, svcName)
 					if err != nil {
 						return nil, err
 					}
@@ -640,18 +658,18 @@ func (l PinServicesList) Less(i, j int) bool {
 	return s[i].Service < s[j].Service
 }
 
-func getRemotePinServiceOrEnv(env cmds.Environment, name string) (*pinclient.Client, error) {
+func getRemotePinService(env cmds.Environment, name string) (*pinclient.Client, error) {
 	if name == "" {
 		return nil, fmt.Errorf("remote pinning service name not specified")
 	}
-	url, key, err := getRemotePinService(env, name)
+	url, key, err := getRemotePinServiceInfo(env, name)
 	if err != nil {
 		return nil, err
 	}
 	return pinclient.NewClient(url, key), nil
 }
 
-func getRemotePinService(env cmds.Environment, name string) (url, key string, err error) {
+func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string, err error) {
 	cfgRoot, err := cmdenv.GetConfigRoot(env)
 	if err != nil {
 		return "", "", err
