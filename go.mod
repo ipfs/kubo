@@ -31,7 +31,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.4.1-0.20201125035704-4373bad335aa
-	github.com/ipfs/go-ipfs-config v0.9.1-0.20201116161859-f69c8d6d47cb
+	github.com/ipfs/go-ipfs-config v0.9.1-0.20201125175347-280c4dbe8b64
 	github.com/ipfs/go-ipfs-ds-help v0.1.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
@@ -88,6 +88,7 @@ require (
 	github.com/lucas-clemente/quic-go v0.18.1
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multibase v0.0.3

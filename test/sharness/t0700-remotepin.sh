@@ -37,25 +37,55 @@ test_expect_success "test 'ipfs pin remote service ls'" '
   grep -q test_invalid_url_dns_svc ls_out
 '
 
-# SECURITY: prevent exposing the ApiKey on the network
+# SECURITY of access tokens in ApiKey fields:
+# Pinning.RemoteServices includes ApiKey, and we give it the same treatment
+# as Identity.PrivKey to prevent exposing it on the network
+
 test_expect_success "'ipfs config Pinning' fails" '
   test_expect_code 1 ipfs config Pinning 2> config_out
 '
-
-test_expect_success "output includes meaningful error" "
-  echo \"Error: cannot show or change pinning services through API, use 'ipfs pin remote service' instead\" > config_exp &&
+test_expect_success "output includes meaningful error" '
+  echo "Error: cannot show or change pinning services through this API (try: ipfs pin remote service --help)" > config_exp &&
   test_cmp config_exp config_out
-"
+'
 
 test_expect_success "'ipfs config Pinning.RemoteServices' fails" '
   test_expect_code 1 ipfs config Pinning.RemoteServices 2> config_out
 '
-
 test_expect_success "output includes meaningful error" '
   test_cmp config_exp config_out
 '
 
-# TODO: test ipfs config replace
+test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc' fails" '
+  test_expect_code 1 ipfs config Pinning.RemoteServices.test_pin_svc 2> config_out
+'
+test_expect_success "output includes meaningful error" '
+  test_cmp config_exp config_out
+'
+
+test_expect_success "'ipfs config show' doesn't include RemoteServices" '
+  ipfs config show > show_config &&
+  test_expect_code 1 grep RemoteServices show_config
+'
+
+test_expect_success "'ipfs config replace' injects remote services back" '
+  test_expect_code 1 grep -q -E "test_.+_svc" show_config &&
+  ipfs config replace show_config &&
+  test_expect_code 0 grep -q test_pin_svc "$IPFS_PATH/config" &&
+  test_expect_code 0 grep -q test_invalid_key_svc "$IPFS_PATH/config" &&
+  test_expect_code 0 grep -q test_invalid_url_path_svc "$IPFS_PATH/config" &&
+  test_expect_code 0 grep -q test_invalid_url_dns_svc "$IPFS_PATH/config"
+'
+
+# note: we remove Identity.PrivKey to ensure error is triggered by Pinning.RemoteServices
+test_expect_success "'ipfs config replace' with remote services errors out" '
+  jq -M "del(.Identity.PrivKey)" "$IPFS_PATH/config" | jq ".Pinning += { RemoteServices: {\"foo\": {} }}" > new_config &&
+  test_expect_code 1 ipfs config replace - < new_config 2> replace_out
+'
+test_expect_success "output includes meaningful error" '
+  echo "Error: cannot show or change pinning services through this API (try: ipfs pin remote service --help)" > replace_expected
+  test_cmp replace_out replace_expected
+'
 
 # /SECURITY
 
@@ -218,3 +248,5 @@ test_remote_pins ""
 
 test_kill_ipfs_daemon
 test_done
+
+# vim: ts=2 sw=2 sts=2 et:

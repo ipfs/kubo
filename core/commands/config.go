@@ -17,6 +17,7 @@ import (
 	"github.com/elgris/jsondiff"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
+	"github.com/mitchellh/mapstructure"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -35,6 +36,8 @@ const (
 	configJSONOptionName   = "json"
 	configDryRunOptionName = "dry-run"
 )
+
+var tryRemoteServiceApiErr = errors.New("cannot show or change pinning services through this API (try: ipfs pin remote service --help)")
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -83,13 +86,13 @@ Set the value of the 'Datastore.Path' key:
 		switch strings.ToLower(key) {
 		case "identity", "identity.privkey":
 			return errors.New("cannot show or change private key through API")
-		case "pinning", "pinning.remoteservices":
-			return errors.New("cannot show or change pinning services through API, use 'ipfs pin remote service' instead")
 		default:
 		}
 
-		if blocked := inBlockedScope(key, "Pinning.RemoteServices"); blocked {
-			return errors.New("cannot show or change pinning services through API, use 'ipfs pin remote service' instead")
+		// Temporary fix until we move ApiKey secrets out of the config file
+		// (remote services are a map, so more advanced blocking is required)
+		if blocked := inBlockedScope(key, config.RemoteServicesSelector); blocked {
+			return tryRemoteServiceApiErr
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -155,7 +158,9 @@ func inBlockedScope(testKey string, blockedScope string) bool {
 	for _, name := range roots {
 		scope := append(scope, name)
 		impactedKey := strings.Join(scope, ".")
-		if strings.HasPrefix(impactedKey, blockedScope) {
+		// blockedScope=foo.bar.BLOCKED should return true
+		// for parent and child impactedKeys: foo.bar and foo.bar.BLOCKED.subkey
+		if strings.HasPrefix(impactedKey, blockedScope) || strings.HasPrefix(blockedScope, impactedKey) {
 			return true
 		}
 	}
@@ -197,8 +202,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		// TODO: needs tests similar to PrivKey ones in test/sharness/t0021-config.sh
-		err = scrubOptionalValue(cfg, []string{"Pinning", "RemoteServices"})
+		err = scrubOptionalValue(cfg, []string{config.PinningTag, config.RemoteServicesTag})
 		if err != nil {
 			return err
 		}
@@ -218,12 +222,16 @@ NOTE: For security reasons, this command will omit your private key and remote s
 	},
 }
 
+// Scrubs value and returns error if missing
 func scrubValue(m map[string]interface{}, key []string) error {
 	return scrub(m, key, false)
 }
+
+// Scrubs value and returns no error if missing
 func scrubOptionalValue(m map[string]interface{}, key []string) error {
 	return scrub(m, key, true)
 }
+
 func scrub(m map[string]interface{}, key []string, okIfMissing bool) error {
 	find := func(m map[string]interface{}, k string) (string, interface{}, bool) {
 		lckey := strings.ToLower(k)
@@ -500,6 +508,9 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
 		return errors.New("failed to decode file as config")
 	}
+
+	// Handle Identity.PrivKey (secret)
+
 	if len(cfg.Identity.PrivKey) != 0 {
 		return errors.New("setting private key with API is not supported")
 	}
@@ -516,7 +527,27 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 
 	cfg.Identity.PrivKey = pkstr
 
-	// TODO: preserve Pinning.RemoteServices (if present in original config)
+	// Handle Pinning.RemoteServices (ApiKey of each service is secret)
+	// Note: these settings are opt-in and may be missing
+
+	if len(cfg.Pinning.RemoteServices) != 0 {
+		return tryRemoteServiceApiErr
+	}
+
+	// detect if existing config has any remote services defined..
+	if remoteServicesTag, err := getConfig(r, config.RemoteServicesSelector); err == nil {
+		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
+		// so we have to manually copy the data :-|
+		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
+			var services map[string]config.RemotePinningService
+			err := mapstructure.Decode(val, &services)
+			if err != nil {
+				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
+			}
+			// .. if so, apply them on top of the new config
+			cfg.Pinning.RemoteServices = services
+		}
+	}
 
 	return r.SetConfig(&cfg)
 }
