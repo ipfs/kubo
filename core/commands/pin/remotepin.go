@@ -11,6 +11,8 @@ import (
 
 	neturl "net/url"
 
+	"golang.org/x/sync/errgroup"
+
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
@@ -569,25 +571,41 @@ var lsRemotePinServiceCmd = &cmds.Command{
 					batch := pinclient.PinOpts.Limit(1)
 					fs := pinclient.PinOpts.FilterStatus
 
-					// TODO run in parallel?
-					_, queued, err := c.LsBatchSync(ctx, batch, fs(pinclient.StatusQueued))
-					if err != nil {
-						return nil, err
+					statuses := []pinclient.Status{
+						pinclient.StatusQueued,
+						pinclient.StatusPinning,
+						pinclient.StatusPinned,
+						pinclient.StatusFailed,
 					}
-					_, pinning, err := c.LsBatchSync(ctx, batch, fs(pinclient.StatusPinning))
-					if err != nil {
-						return nil, err
+
+					g, ctx := errgroup.WithContext(ctx)
+					pc := &PinCount{}
+
+					for _, s := range statuses {
+						status := s // lol https://golang.org/doc/faq#closures_and_goroutines
+						g.Go(func() error {
+							_, n, err := c.LsBatchSync(ctx, batch, fs(status))
+							if err != nil {
+								return err
+							}
+							switch status {
+							case pinclient.StatusQueued:
+								pc.Queued = n
+							case pinclient.StatusPinning:
+								pc.Pinning = n
+							case pinclient.StatusPinned:
+								pc.Pinned = n
+							case pinclient.StatusFailed:
+								pc.Failed = n
+							}
+							return nil
+						})
 					}
-					_, pinned, err := c.LsBatchSync(ctx, batch, fs(pinclient.StatusPinned))
-					if err != nil {
-						return nil, err
-					}
-					_, failed, err := c.LsBatchSync(ctx, batch, fs(pinclient.StatusFailed))
-					if err != nil {
+					if err := g.Wait(); err != nil {
 						return nil, err
 					}
 
-					return &PinCount{queued, pinning, pinned, failed}, nil
+					return pc, nil
 				}
 
 				pinCount, err := lsRemotePinCount(ctx, env, svcName)
