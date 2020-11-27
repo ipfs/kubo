@@ -101,17 +101,14 @@ test_expect_success "check connection to test pinning service" '
   ipfs pin remote ls --service=test_pin_svc --enc=json
 '
 
-# TODO: improve error returned below
 test_expect_success "unathorized pinning service calls fail" '
   test_expect_code 1 ipfs pin remote ls --service=test_invalid_key_svc
 '
 
-# TODO: improve error returned below
 test_expect_success "misconfigured pinning service calls fail (wrong path)" '
   test_expect_code 1 ipfs pin remote ls --service=test_invalid_url_path_svc
 '
 
-# TODO: improve error returned below (panic when offline mode)
 test_expect_success "misconfigured pinning service calls fail (dns error)" '
   test_expect_code 1 ipfs pin remote ls --service=test_invalid_url_dns_svc
 '
@@ -182,7 +179,6 @@ test_remote_pins() {
     test_expect_code 0 grep -q $HASH_B ls_out
   '
 
-  # TODO: this does not seem to find $HASH_MISSING
   test_expect_success "'ipfs pin remote ls' for existing pins by multiple statuses" '
     ipfs pin remote ls --service=test_pin_svc --enc=json --status=queued,pinning,pinned,failed | tee ls_out &&
     test_expect_code 0 grep -q $HASH_A ls_out &&
@@ -205,7 +201,6 @@ test_remote_pins() {
     test_expect_code 0 grep -q $HASH_A ls_out
   '
 
-  # TODO: this does not seem to find $HASH_MISSING
   test_expect_success "'ipfs pin remote ls' for ongoing pins by status" '
     ipfs pin remote ls --service=test_pin_svc --status=queued,pinning | tee ls_out &&
     test_expect_code 0 grep -q $HASH_MISSING ls_out
