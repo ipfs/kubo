@@ -543,7 +543,10 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 			if err != nil {
 				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
 			}
-			json.Unmarshal(jsonString, &services)
+			err = json.Unmarshal(jsonString, &services)
+			if err != nil {
+				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
+			}
 			// .. if so, apply them on top of the new config
 			cfg.Pinning.RemoteServices = services
 		}
