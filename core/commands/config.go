@@ -17,7 +17,6 @@ import (
 	"github.com/elgris/jsondiff"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
-	"github.com/mitchellh/mapstructure"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -540,10 +539,11 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 		// so we have to manually copy the data :-|
 		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
 			var services map[string]config.RemotePinningService
-			err := mapstructure.Decode(val, &services)
+			jsonString, err := json.Marshal(val)
 			if err != nil {
 				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
 			}
+			json.Unmarshal(jsonString, &services)
 			// .. if so, apply them on top of the new config
 			cfg.Pinning.RemoteServices = services
 		}
