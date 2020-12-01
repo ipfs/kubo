@@ -65,7 +65,7 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 	}
 
 	split = strings.SplitN(path, "/", 7)
-	if split[3] != "x" || split[5] != "http" {
+	if len(split) < 7 || split[3] != "x" || split[5] != "http" {
 		return nil, fmt.Errorf("Invalid request path '%s'", path)
 	}
 
