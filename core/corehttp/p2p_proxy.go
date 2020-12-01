@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	core "github.com/ipfs/go-ipfs/core"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	p2phttp "github.com/libp2p/go-libp2p-http"
@@ -57,6 +58,10 @@ func parseRequest(request *http.Request) (*proxyRequest, error) {
 
 	split := strings.SplitN(path, "/", 5)
 	if len(split) < 5 {
+		return nil, fmt.Errorf("Invalid request path '%s'", path)
+	}
+
+	if _, err := peer.Decode(split[2]); err != nil {
 		return nil, fmt.Errorf("Invalid request path '%s'", path)
 	}
 
