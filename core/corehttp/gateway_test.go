@@ -391,6 +391,10 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	}
 }
 
+// Test directory listing on DNSLink website
+// (scenario when Host header is the same as URL hostname)
+// This is basic regression test: additional end-to-end tests
+// can be found in test/sharness/t0115-gateway-dir-listing.sh
 func TestIPNSHostnameBacklinks(t *testing.T) {
 	ns := mockNamesys{}
 	ts, api, ctx := newTestServerAndNode(t, ns)
@@ -437,7 +441,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// expect correct backlinks
+	// expect correct links
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
@@ -445,7 +449,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
@@ -453,6 +457,10 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
+	}
+	if !strings.Contains(s, "<a class=\"ipfs-hash\" href=\"https://cid.ipfs.io/#") {
+		// https://github.com/ipfs/dir-index-html/issues/42
+		t.Fatalf("expected links to cid.ipfs.io in CID column when on DNSLink website")
 	}
 	if !strings.Contains(s, k2.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")
@@ -487,6 +495,10 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "<a href=\"/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
+	if !strings.Contains(s, "<a class=\"ipfs-hash\" href=\"https://cid.ipfs.io/#") {
+		// https://github.com/ipfs/dir-index-html/issues/42
+		t.Fatalf("expected links to cid.ipfs.io in CID column when on DNSLink website")
+	}
 	if !strings.Contains(s, k.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")
 	}
@@ -511,7 +523,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"//example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
@@ -545,7 +557,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {

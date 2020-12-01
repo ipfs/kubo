@@ -432,7 +432,8 @@ test_expect_success "valid parent directory path in directory listing at {cid}.i
   test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 
-# Note we test for sneaky subdir names  {cid}.ipfs.example.com/ipfs/ipns/ :^)
+# Note 1: we test for sneaky subdir names  {cid}.ipfs.example.com/ipfs/ipns/ :^)
+# Note 2: example.com/ipfs/.. present in HTML will be redirected to subdomain, so this is expected behavior
 test_expect_success "valid breadcrumb links in the header of directory listing at {cid}.ipfs.example.com/sub/dir" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
   test_should_contain "Index of" list_response &&

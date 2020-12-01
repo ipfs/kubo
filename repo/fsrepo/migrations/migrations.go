@@ -220,6 +220,11 @@ func GetBinaryForVersion(distname, binnom, root, vers, out string) error {
 	if err != nil {
 		return err
 	}
+
+	if osv == "linux-musl" {
+		return fmt.Errorf("linux-musl not supported, you must build the binary from source for your platform")
+	}
+
 	finame := fmt.Sprintf("%s_%s_%s-%s.%s", distname, vers, osv, runtime.GOARCH, archive)
 	distpath := fmt.Sprintf("%s/%s/%s/%s", root, distname, vers, finame)
 
