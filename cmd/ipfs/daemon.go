@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	_ "expvar"
 	"fmt"
@@ -11,9 +12,11 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
 
+	cid "github.com/ipfs/go-cid"
 	version "github.com/ipfs/go-ipfs"
 	config "github.com/ipfs/go-ipfs-config"
 	cserial "github.com/ipfs/go-ipfs-config/serialize"
@@ -27,6 +30,9 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	pinclient "github.com/ipfs/go-pinning-service-http-client"
+	"github.com/libp2p/go-libp2p-core/host"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -439,6 +445,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
+	// start MFS pinning thread
+	pinErr, err := pinMFSOnChange(cctx, node)
+	if err != nil {
+		return err
+	}
+
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
 	notifyReady()
@@ -454,13 +466,106 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(apiErrc, gwErrc, gcErrc) {
+	for err := range merge(apiErrc, gwErrc, gcErrc, pinErr) {
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
 	}
 
 	return errs
+}
+
+const mfsRepinInterval = time.Minute
+
+func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, error) {
+	errCh := make(chan error)
+	go func() {
+		var lastRootCid cid.Cid
+		for {
+			// poll periodically
+			tmo := time.NewTimer(mfsRepinInterval)
+			select {
+			case <-cctx.Context().Done():
+				return
+			case <-tmo.C:
+			}
+
+			// get the most recent MFS root cid
+			rootNode, err := node.FilesRoot.GetDirectory().GetNode()
+			if err != nil {
+				select {
+				case errCh <- err:
+				case <-cctx.Context().Done():
+					return
+				}
+				continue
+			}
+			rootCid := rootNode.Cid()
+
+			// do nothing, if MFS has not changed
+			if lastRootCid == rootCid {
+				continue
+			}
+			lastRootCid = rootCid
+
+			// reread the config, which may have changed in the meantime
+			cfg, err := cctx.GetConfig()
+			if err != nil {
+				select {
+				case errCh <- err:
+				case <-cctx.Context().Done():
+					return
+				}
+			}
+
+			// pin on all remote services in parallel to prevent DoS attacks
+			var wg sync.WaitGroup
+			for svcName, svcConfig := range cfg.Pinning.RemoteServices {
+				if svcConfig.Policies.PinMFS == nil || !*svcConfig.Policies.PinMFS {
+					continue
+				}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					pinMFS(cctx.Context(), node, lastRootCid, svcName, svcConfig, errCh)
+				}()
+			}
+			wg.Wait()
+		}
+	}()
+	return errCh, nil
+}
+
+func pinMFS(ctx context.Context, node *core.IpfsNode, cid cid.Cid, svcName string, svcConfig config.RemotePinningService, errCh chan<- error) {
+	c := pinclient.NewClient(svcConfig.Api.ApiEndpoint, svcConfig.Api.ApiKey)
+
+	// Prepare Pin.name
+	opts := []pinclient.AddOption{pinclient.PinOpts.WithName("policy-mfs")}
+
+	// Prepare Pin.origins
+	// Add own multiaddrs to the 'origins' array, so Pinning Service can
+	// use that as a hint and connect back to us (if possible)
+	if node.PeerHost != nil {
+		addrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(node.PeerHost))
+		if err != nil {
+			select {
+			case errCh <- err:
+			case <-ctx.Done():
+			}
+			return
+		}
+		opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
+	}
+
+	// Execute remote pin request
+	// TODO: fix panic when pinning service is down
+	_, err := c.Add(ctx, cid, opts...)
+	if err != nil {
+		select {
+		case errCh <- err:
+		case <-ctx.Done():
+		}
+	}
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests
