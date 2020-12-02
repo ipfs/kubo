@@ -480,10 +480,21 @@ const mfsRepinInterval = time.Minute
 func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, error) {
 	errCh := make(chan error)
 	go func() {
+		defer close(errCh)
 		var lastRootCid cid.Cid
+		var tmo *time.Timer
+		defer func() {
+			if tmo != nil {
+				tmo.Stop()
+			}
+		}()
 		for {
 			// poll periodically
-			tmo := time.NewTimer(mfsRepinInterval)
+			if tmo == nil {
+				tmo = time.NewTimer(mfsRepinInterval)
+			} else {
+				tmo.Reset(mfsRepinInterval)
+			}
 			select {
 			case <-cctx.Context().Done():
 				return
@@ -520,7 +531,8 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 
 			// pin on all remote services in parallel to prevent DoS attacks
 			var wg sync.WaitGroup
-			for svcName, svcConfig := range cfg.Pinning.RemoteServices {
+			for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
+				svcName, svcConfig := svcName_, svcConfig_
 				if svcConfig.Policies.PinMFS == nil || !*svcConfig.Policies.PinMFS {
 					continue
 				}
