@@ -558,7 +558,6 @@ func pinMFS(ctx context.Context, node *core.IpfsNode, cid cid.Cid, svcName strin
 	}
 
 	// Execute remote pin request
-	// TODO: fix panic when pinning service is down
 	_, err := c.Add(ctx, cid, opts...)
 	if err != nil {
 		select {
