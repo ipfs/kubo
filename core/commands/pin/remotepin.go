@@ -480,8 +480,10 @@ var addRemotePinServiceCmd = &cmds.Command{
 			cfg.Pinning.RemoteServices = map[string]config.RemotePinningService{}
 		}
 		cfg.Pinning.RemoteServices[name] = config.RemotePinningService{
-			ApiEndpoint: url,
-			ApiKey:      key,
+			Api: config.RemotePinningServiceApi{
+				ApiEndpoint: url,
+				ApiKey:      key,
+			},
 		}
 
 		return repo.SetConfig(cfg)
@@ -558,7 +560,7 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		services := cfg.Pinning.RemoteServices
 		result := PinServicesList{make([]ServiceDetails, 0, len(services))}
 		for svcName, svcConfig := range services {
-			svcDetails := ServiceDetails{svcName, svcConfig.ApiEndpoint, nil}
+			svcDetails := ServiceDetails{svcName, svcConfig.Api.ApiEndpoint, nil}
 
 			// if --pin-count is passed, we try to fetch pin numbers from remote service
 			if req.Options[pinServicePinCountOptionName].(bool) {
@@ -708,5 +710,5 @@ func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string
 	if !present {
 		return "", "", fmt.Errorf("service not known")
 	}
-	return service.ApiEndpoint, service.ApiKey, nil
+	return service.Api.ApiEndpoint, service.Api.ApiKey, nil
 }
