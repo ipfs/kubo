@@ -475,8 +475,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	return errs
 }
 
-const mfsRepinInterval = time.Minute
-
 func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, error) {
 	errCh := make(chan error)
 	go func() {
@@ -489,6 +487,39 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			}
 		}()
 		for {
+			// reread the config, which may have changed in the meantime
+			cfg, err := cctx.GetConfig()
+			if err != nil {
+				select {
+				case errCh <- err:
+				case <-cctx.Context().Done():
+					return
+				}
+			}
+			// if MFSRepinInterval is not set, pinning MFS is disabled,
+			// however this loop still polls to capture changes in the config
+			if cfg.Pinning.MFSRepinInterval == "" {
+				if tmo == nil {
+					tmo = time.NewTimer(time.Minute) // poll for config changes once per minute
+				} else {
+					tmo.Reset(time.Minute)
+				}
+				select {
+				case <-cctx.Context().Done():
+					return
+				case <-tmo.C:
+				}
+				continue
+			}
+			mfsRepinInterval, err := time.ParseDuration(cfg.Pinning.MFSRepinInterval)
+			if err != nil {
+				select {
+				case errCh <- err:
+				case <-cctx.Context().Done():
+					return
+				}
+			}
+
 			// poll periodically
 			if tmo == nil {
 				tmo = time.NewTimer(mfsRepinInterval)
@@ -519,16 +550,6 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				continue
 			}
 			lastRootCid = rootCid
-
-			// reread the config, which may have changed in the meantime
-			cfg, err := cctx.GetConfig()
-			if err != nil {
-				select {
-				case errCh <- err:
-				case <-cctx.Context().Done():
-					return
-				}
-			}
 
 			// pin on all remote services in parallel to prevent DoS attacks
 			var wg sync.WaitGroup
