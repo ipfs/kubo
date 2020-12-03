@@ -117,14 +117,9 @@ var addRemotePinCmd = &cmds.Command{
 		defer cancel()
 
 		// Get remote service
-		var c *pinclient.Client
-		if service, serviceFound := req.Options[pinServiceNameOptionName]; serviceFound {
-			serviceStr := service.(string)
-			var err error
-			c, err = getRemotePinService(env, serviceStr)
-			if err != nil {
-				return err
-			}
+		c, err := getRemotePinServiceFromRequest(req, env)
+		if err != nil {
+			return err
 		}
 
 		// Prepare value for Pin.cid
@@ -253,14 +248,9 @@ Returns a list of objects that are pinned to a remote pinning service.
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
-		var c *pinclient.Client
-		if service, serviceFound := req.Options[pinServiceNameOptionName]; serviceFound {
-			serviceStr := service.(string)
-			var err error
-			c, err = getRemotePinService(env, serviceStr)
-			if err != nil {
-				return err
-			}
+		c, err := getRemotePinServiceFromRequest(req, env)
+		if err != nil {
+			return err
 		}
 
 		psCh, errCh, err := lsRemote(ctx, req, c)
@@ -391,14 +381,9 @@ collected if needed.
 		ctx, cancel := context.WithCancel(req.Context)
 		defer cancel()
 
-		var c *pinclient.Client
-		if service, serviceFound := req.Options[pinServiceNameOptionName]; serviceFound {
-			serviceStr := service.(string)
-			var err error
-			c, err = getRemotePinService(env, serviceStr)
-			if err != nil {
-				return err
-			}
+		c, err := getRemotePinServiceFromRequest(req, env)
+		if err != nil {
+			return err
 		}
 
 		rmIDs := []string{}
@@ -676,6 +661,22 @@ func (l PinServicesList) Swap(i, j int) {
 func (l PinServicesList) Less(i, j int) bool {
 	s := l.RemoteServices
 	return s[i].Service < s[j].Service
+}
+
+func getRemotePinServiceFromRequest(req *cmds.Request, env cmds.Environment) (*pinclient.Client, error) {
+	service, serviceFound := req.Options[pinServiceNameOptionName]
+	if !serviceFound {
+		return nil, fmt.Errorf("a service name must be passed")
+	}
+
+	serviceStr := service.(string)
+	var err error
+	c, err := getRemotePinService(env, serviceStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
 func getRemotePinService(env cmds.Environment, name string) (*pinclient.Client, error) {
