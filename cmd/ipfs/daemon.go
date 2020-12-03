@@ -500,6 +500,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				return
 			case <-tmo.C:
 			}
+			log.Infof("Pinning loop is awake")
 
 			// get the most recent MFS root cid
 			rootNode, err := node.FilesRoot.GetDirectory().GetNode()
