@@ -37,6 +37,14 @@ test_expect_success "test 'ipfs pin remote service ls'" '
   grep -q test_invalid_url_dns_svc ls_out
 '
 
+test_expect_success "test mfs is being pinned" '
+  sleep 60 &&
+  ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
+  ipfs pin remote ls --name=policy-mfs --enc=json | jq -r .Cid > pin_cid &&
+  cat mfs_cid pin_cid &&
+  test_cmp mfs_cid pin_cid
+'
+
 # SECURITY of access tokens in Api.Key fields:
 # Pinning.RemoteServices includes Api.Key, and we give it the same treatment
 # as Identity.PrivKey to prevent exposing it on the network
