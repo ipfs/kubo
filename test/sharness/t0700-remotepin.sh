@@ -26,7 +26,8 @@ test_expect_success "creating test user on remote pinning service" '
   ipfs pin remote service add test_pin_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY} &&
   ipfs pin remote service add test_invalid_key_svc ${TEST_PIN_SVC} fake_api_key &&
   ipfs pin remote service add test_invalid_url_path_svc ${TEST_PIN_SVC}/invalid-path fake_api_key &&
-  ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key
+  ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key &&
+  ipfs pin remote service add --policy=mfs test_pin_mfs_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY}
 '
 
 test_expect_success "test 'ipfs pin remote service ls'" '

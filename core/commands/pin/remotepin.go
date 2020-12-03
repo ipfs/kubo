@@ -62,6 +62,7 @@ const pinServiceKeyOptionName = "key"
 const pinServicePinCountOptionName = "pin-count"
 const pinBackgroundOptionName = "background"
 const pinForceOptionName = "force"
+const pinPolicyOptionName = "policy"
 
 type RemotePinOutput struct {
 	RequestID string
@@ -427,8 +428,10 @@ var addRemotePinServiceCmd = &cmds.Command{
 		cmds.StringArg(pinServiceURLOptionName, true, false, "Service URL."),
 		cmds.StringArg(pinServiceKeyOptionName, true, false, "Service key."),
 	},
-	Options: []cmds.Option{},
-	Type:    nil,
+	Options: []cmds.Option{
+		cmds.StringsOption(pinPolicyOptionName, "list of pin policies from: mfs; optional, comma separated."),
+	},
+	Type: nil,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
@@ -464,10 +467,23 @@ var addRemotePinServiceCmd = &cmds.Command{
 		} else {
 			cfg.Pinning.RemoteServices = map[string]config.RemotePinningService{}
 		}
+
+		var pinMFS bool
+		if policyRaw, policyFound := req.Options[pinCIDsOptionName]; policyFound {
+			for _, p := range policyRaw.([]string) {
+				if p == "mfs" {
+					pinMFS = true
+				}
+			}
+		}
+
 		cfg.Pinning.RemoteServices[name] = config.RemotePinningService{
 			Api: config.RemotePinningServiceApi{
 				ApiEndpoint: url,
 				ApiKey:      key,
+			},
+			Policies: config.RemotePinningServicePolicies{
+				PinMFS: &pinMFS,
 			},
 		}
 
