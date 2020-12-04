@@ -65,20 +65,16 @@ const pinForceOptionName = "force"
 const pinPolicyOptionName = "policy"
 
 type RemotePinOutput struct {
-	RequestID string
-	Status    string
-	Cid       string
-	Name      string
-	Delegates []string // multiaddr
+	Status string
+	Cid    string
+	Name   string
 }
 
 func toRemotePinOutput(ps pinclient.PinStatusGetter) RemotePinOutput {
 	return RemotePinOutput{
-		RequestID: ps.GetRequestId(),
-		Name:      ps.GetPin().GetName(),
-		Delegates: multiaddrsToStrings(ps.GetDelegates()),
-		Status:    ps.GetStatus().String(),
-		Cid:       ps.GetPin().GetCid().String(),
+		Name:   ps.GetPin().GetName(),
+		Status: ps.GetStatus().String(),
+		Cid:    ps.GetPin().GetCid().String(),
 	}
 }
 
@@ -88,7 +84,6 @@ func printRemotePinDetails(w io.Writer, out *RemotePinOutput) {
 	fw := func(k string, v string) {
 		fmt.Fprintf(tw, "%s:\t%s\n", k, v)
 	}
-	fw("RequestID", out.RequestID)
 	fw("CID", out.Cid)
 	fw("Name", out.Name)
 	fw("Status", out.Status)
@@ -100,8 +95,8 @@ var pinServiceNameOption = cmds.StringOption(pinServiceNameOptionName, "Name of 
 
 var addRemotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Pin objects to remote storage.",
-		ShortDescription: "Stores an IPFS object(s) from a given path to a remote pinning service.",
+		Tagline:          "Pin object to remote pinning service.",
+		ShortDescription: "Stores an IPFS object from a given path to a remote pinning service.",
 	},
 
 	Arguments: []cmds.Argument{
@@ -110,7 +105,7 @@ var addRemotePinCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		pinServiceNameOption,
-		cmds.BoolOption(pinBackgroundOptionName, "Add to the queue on the remote service and return RequestID immediately.").WithDefault(false),
+		cmds.BoolOption(pinBackgroundOptionName, "Add to the queue on the remote service and return immediately (does not wait for pinned status).").WithDefault(false),
 	},
 	Type: RemotePinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -202,7 +197,7 @@ var addRemotePinCmd = &cmds.Command{
 				select {
 				case <-tmr.C:
 				case <-ctx.Done():
-					return fmt.Errorf("waiting for pin interrupted, requestid=%q remains on remote service: check its status with 'ls' or abort with 'rm'", requestId)
+					return fmt.Errorf("waiting for pin interrupted, requestid=%q remains on remote service", requestId)
 				}
 			}
 		}
@@ -236,9 +231,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.StringArg("request-id", false, true, "Request ID of the pin to be listed."),
-	},
+	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-sensitive, exact match)."),
 		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
@@ -271,50 +264,14 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
 			// pin remote ls produces a flat output similar to legacy pin ls
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", out.RequestID, out.Cid, out.Status, out.Name)
+			fmt.Fprintf(w, "%s\t%s\t%s\n", out.Cid, out.Status, out.Name)
 			return nil
 		}),
 	},
 }
 
-// Returns pin objects with passed RequestIDs or matching filters.
-func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
-	// If request-ids are provided, do direct lookup for specific objects
-	if len(req.Arguments) > 0 {
-		return lsRemoteByRequestId(ctx, req, c)
-	}
-	// else, apply filters to find matching pin objects
-	return lsRemoteWithFilters(ctx, req, c)
-}
-
-// Executes GET /pins/{requestid} for each requestid passed as argument.
-// Status checks are executed one by one and operation is aborted on first error.
-func lsRemoteByRequestId(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
-	lsIDs := req.Arguments
-	res := make(chan pinclient.PinStatusGetter, 1)
-	errs := make(chan error, 1)
-	go func() {
-		defer close(res)
-		defer close(errs)
-		for _, requestId := range lsIDs {
-			ps, err := c.GetStatusByID(ctx, requestId)
-			if err != nil {
-				errs <- err
-				return
-			}
-			select {
-			case res <- ps:
-			case <-ctx.Done():
-				errs <- ctx.Err()
-				return
-			}
-		}
-	}()
-	return res, errs, nil
-}
-
 // Executes GET /pins/?query-with-filters
-func lsRemoteWithFilters(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
+func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan pinclient.PinStatusGetter, chan error, error) {
 	opts := []pinclient.LsOption{}
 	if name, nameFound := req.Options[pinNameOptionName]; nameFound {
 		nameStr := name.(string)
@@ -368,9 +325,7 @@ collected if needed.
 `,
 	},
 
-	Arguments: []cmds.Argument{
-		cmds.StringArg("request-id", false, true, "Request ID of the pin to be removed."),
-	},
+	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		pinServiceNameOption,
 		cmds.StringOption(pinNameOptionName, "Remove pin objects with names that contain provided value (case-sensitive, exact match)."),
@@ -404,7 +359,7 @@ collected if needed.
 				return fmt.Errorf("multiple remote pins are matching this query, add --force to confirm the bulk removal")
 			}
 		} else {
-			rmIDs = append(rmIDs, req.Arguments[0])
+			return fmt.Errorf("unexpected argument %q", req.Arguments[0])
 		}
 
 		for _, rmID := range rmIDs {
