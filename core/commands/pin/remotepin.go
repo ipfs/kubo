@@ -58,7 +58,7 @@ const pinStatusOptionName = "status"
 const pinServiceNameOptionName = "service"
 const pinServiceURLOptionName = "url"
 const pinServiceKeyOptionName = "key"
-const pinServicePinCountOptionName = "pin-count"
+const pinServiceStatOptionName = "stat"
 const pinBackgroundOptionName = "background"
 const pinForceOptionName = "force"
 const pinPolicyOptionName = "policy"
@@ -481,7 +481,7 @@ var lsRemotePinServiceCmd = &cmds.Command{
 	},
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
-		cmds.BoolOption(pinServicePinCountOptionName, "Try to fetch and display current pin count on remote service (queued/pinning/pinned/failed).").WithDefault(false),
+		cmds.BoolOption(pinServiceStatOptionName, "Try to fetch and display current pin count on remote service (queued/pinning/pinned/failed).").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(req.Context)
@@ -507,10 +507,10 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		services := cfg.Pinning.RemoteServices
 		result := PinServicesList{make([]ServiceDetails, 0, len(services))}
 		for svcName, svcConfig := range services {
-			svcDetails := ServiceDetails{svcName, svcConfig.Api.ApiEndpoint, nil}
+			svcDetails := ServiceDetails{svcName, svcConfig.Api.ApiEndpoint, Stat{Status: "unknown", PinCount: nil}}
 
 			// if --pin-count is passed, we try to fetch pin numbers from remote service
-			if req.Options[pinServicePinCountOptionName].(bool) {
+			if req.Options[pinServiceStatOptionName].(bool) {
 				lsRemotePinCount := func(ctx context.Context, env cmds.Environment, svcName string) (*PinCount, error) {
 					c, err := getRemotePinService(env, svcName)
 					if err != nil {
@@ -563,7 +563,10 @@ var lsRemotePinServiceCmd = &cmds.Command{
 				// We don't want to break listing of services so this is best-effort.
 				// (verbose err is returned by 'pin remote ls', if needed)
 				if err == nil {
-					svcDetails.PinCount = pinCount
+					svcDetails.Stat.Status = "valid"
+					svcDetails.Stat.PinCount = pinCount
+				} else {
+					svcDetails.Stat.Status = "invalid"
 				}
 			}
 			result.RemoteServices = append(result.RemoteServices, svcDetails)
@@ -575,14 +578,15 @@ var lsRemotePinServiceCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, list *PinServicesList) error {
 			tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
-			withPinCount := req.Options[pinServicePinCountOptionName].(bool)
+			withStat := req.Options[pinServiceStatOptionName].(bool)
 			for _, s := range list.RemoteServices {
-				if withPinCount {
-					pinCount := "offline"
-					if s.PinCount != nil {
-						pinCount = fmt.Sprintf("%d/%d/%d/%d", s.PinCount.Queued, s.PinCount.Pinning, s.PinCount.Pinned, s.PinCount.Failed)
+				if withStat {
+					stat := s.Stat.Status
+					pc := s.Stat.PinCount
+					if s.Stat.PinCount != nil {
+						stat = fmt.Sprintf("%d/%d/%d/%d", pc.Queued, pc.Pinning, pc.Pinned, pc.Failed)
 					}
-					fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Service, s.ApiEndpoint, pinCount)
+					fmt.Fprintf(tw, "%s\t%s\t%s\n", s.Service, s.ApiEndpoint, stat)
 				} else {
 					fmt.Fprintf(tw, "%s\t%s\n", s.Service, s.ApiEndpoint)
 				}
@@ -596,7 +600,12 @@ var lsRemotePinServiceCmd = &cmds.Command{
 type ServiceDetails struct {
 	Service     string
 	ApiEndpoint string
-	PinCount    *PinCount `json:",omitempty"` // missing when --pin-service is passed means service is offline
+	Stat        Stat
+}
+
+type Stat struct {
+	Status   string
+	PinCount *PinCount `json:",omitempty"` // missing when --stat is passed means service is offline
 }
 
 type PinCount struct {

@@ -91,15 +91,33 @@ test_expect_success "output includes meaningful error" '
 
 # /SECURITY
 
-test_expect_success "pin remote service ls --pin-count' returns numbers for a valid service" '
-  ipfs pin remote service ls --pin-count | grep -E "^test_pin_svc.+[0-9]+/[0-9]+/[0-9]+/[0-9]+$"
+test_expect_success "pin remote service ls --stat' returns numbers for a valid service" '
+  ipfs pin remote service ls --stat | grep -E "^test_pin_svc.+[0-9]+/[0-9]+/[0-9]+/[0-9]+$"
 '
 
-test_expect_success "pin remote service ls --pin-count' returns 'offline' for invalid service" '
-  ipfs pin remote service ls --pin-count | grep -E "^test_invalid_url_path_svc.+offline$"
+test_expect_success "pin remote service ls --enc=json --stat' returns valid status" "
+  ipfs pin remote service ls --stat --enc=json | jq --raw-output '.RemoteServices[] | select(.Service == \"test_pin_svc\") | .Stat.Status' | tee stat_out &&
+  echo valid > stat_expected &&
+  test_cmp stat_out stat_expected
+"
+
+test_expect_success "pin remote service ls --stat' returns invalid status for invalid service" '
+  ipfs pin remote service ls --stat | grep -E "^test_invalid_url_path_svc.+invalid$"
 '
 
-test_expect_success "check connection to test pinning service" '
+test_expect_success "pin remote service ls --enc=json --stat' returns invalid status" "
+  ipfs pin remote service ls --stat --enc=json | jq --raw-output '.RemoteServices[] | select(.Service == \"test_invalid_url_path_svc\") | .Stat.Status' | tee stat_out &&
+  echo invalid > stat_expected &&
+  test_cmp stat_out stat_expected
+"
+
+test_expect_success "pin remote service ls --enc=json' (without --stat) returns unknown status" "
+  ipfs pin remote service ls --enc=json | jq --raw-output '.RemoteServices[] | select(.Service == \"test_invalid_url_path_svc\") | .Stat.Status' | tee stat_out &&
+  echo unknown > stat_expected &&
+  test_cmp stat_out stat_expected
+"
+
+test_expect_success "check connection to the test pinning service" '
   ipfs pin remote ls --service=test_pin_svc --enc=json
 '
 
