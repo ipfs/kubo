@@ -549,6 +549,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			if lastRootCid == rootCid {
 				continue
 			}
+			log.Infof("For pinning purposes, MFS root CID has changed")
 			lastRootCid = rootCid
 
 			// pin on all remote services in parallel to prevent DoS attacks
@@ -558,6 +559,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				if svcConfig.Policies.PinMFS == nil || !*svcConfig.Policies.PinMFS {
 					continue
 				}
+				log.Infof("Pinning MFS to %s", svcName)
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
