@@ -448,7 +448,7 @@ var addRemotePinServiceCmd = &cmds.Command{
 		}
 
 		name := req.Arguments[0]
-		url := req.Arguments[1]
+		url := strings.TrimSuffix(req.Arguments[1], "/pins") // fix /pins/pins :-)
 		key := req.Arguments[2]
 
 		u, err := neturl.ParseRequestURI(url)
