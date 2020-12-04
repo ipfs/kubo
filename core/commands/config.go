@@ -148,22 +148,9 @@ Set the value of the 'Datastore.Path' key:
 	Type: ConfigField{},
 }
 
-// Returns bool to indicate if tested key is in the blocked scope.
-// (scope includes parent, direct, and child match)
+// Returns bool to indicate if tested key is inside blockedScope.
 func inBlockedScope(testKey string, blockedScope string) bool {
-	blockedScope = strings.ToLower(blockedScope)
-	roots := strings.Split(strings.ToLower(testKey), ".")
-	var scope []string
-	for _, name := range roots {
-		scope := append(scope, name)
-		impactedKey := strings.Join(scope, ".")
-		// blockedScope=foo.bar.BLOCKED should return true
-		// for parent and child impactedKeys: foo.bar and foo.bar.BLOCKED.subkey
-		if strings.HasPrefix(impactedKey, blockedScope) || strings.HasPrefix(blockedScope, impactedKey) {
-			return true
-		}
-	}
-	return false
+	return strings.HasPrefix(strings.ToLower(testKey), strings.ToLower(blockedScope))
 }
 
 var configShowCmd = &cmds.Command{
