@@ -475,11 +475,17 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	return errs
 }
 
+type lastPin struct {
+	ServiceName   string
+	ServiceConfig config.RemotePinningService
+	CID           cid.Cid
+}
+
 func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, error) {
 	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
-		var lastRootCid cid.Cid
+		lastPins := map[string]lastPin{}
 		var tmo *time.Timer
 		defer func() {
 			if tmo != nil {
@@ -500,7 +506,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			// however this loop still polls to capture changes in the config
 			if cfg.Pinning.MFSRepinInterval == "" {
 				if tmo == nil {
-					tmo = time.NewTimer(time.Minute) // poll for config changes once per minute
+					tmo = time.NewTimer(time.Minute) // poll for config changes once per minute?
 				} else {
 					tmo.Reset(time.Minute)
 				}
@@ -545,34 +551,44 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			}
 			rootCid := rootNode.Cid()
 
-			// do nothing, if MFS has not changed
-			if lastRootCid == rootCid {
-				continue
-			}
-			log.Infof("For pinning purposes, MFS root CID has changed")
-			lastRootCid = rootCid
-
 			// pin on all remote services in parallel to prevent DoS attacks
-			var wg sync.WaitGroup
+			ch := make(chan lastPin, len(cfg.Pinning.RemoteServices))
 			for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
 				svcName, svcConfig := svcName_, svcConfig_
 				if svcConfig.Policies.PinMFS == nil || !*svcConfig.Policies.PinMFS {
 					continue
 				}
-				log.Infof("Pinning MFS to %s", svcName)
-				wg.Add(1)
+				if last, ok := lastPins[svcName]; ok && last.ServiceConfig == svcConfig && last.CID == rootCid {
+					// do nothing, if MFS has not changed since last pin on the exact same service
+					ch <- lastPin{}
+					continue
+				}
+				log.Infof("Pinning MFS root %s to %s", rootCid, svcName)
 				go func() {
-					defer wg.Done()
-					pinMFS(cctx.Context(), node, lastRootCid, svcName, svcConfig, errCh)
+					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
+						ch <- lastPin{}
+					} else {
+						ch <- r
+					}
 				}()
 			}
-			wg.Wait()
+			for i := 0; i < len(cfg.Pinning.RemoteServices); i++ {
+				x := <-ch
+				lastPins[x.ServiceName] = x
+			}
 		}
 	}()
 	return errCh, nil
 }
 
-func pinMFS(ctx context.Context, node *core.IpfsNode, cid cid.Cid, svcName string, svcConfig config.RemotePinningService, errCh chan<- error) {
+func pinMFS(
+	ctx context.Context,
+	node *core.IpfsNode,
+	cid cid.Cid,
+	svcName string,
+	svcConfig config.RemotePinningService,
+	errCh chan<- error,
+) (lastPin, error) {
 	c := pinclient.NewClient(svcConfig.Api.ApiEndpoint, svcConfig.Api.ApiKey)
 
 	// Prepare Pin.name
@@ -588,7 +604,7 @@ func pinMFS(ctx context.Context, node *core.IpfsNode, cid cid.Cid, svcName strin
 			case errCh <- err:
 			case <-ctx.Done():
 			}
-			return
+			return lastPin{}, err
 		}
 		opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
 	}
@@ -600,7 +616,9 @@ func pinMFS(ctx context.Context, node *core.IpfsNode, cid cid.Cid, svcName strin
 		case errCh <- err:
 		case <-ctx.Done():
 		}
+		return lastPin{}, err
 	}
+	return lastPin{ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests
