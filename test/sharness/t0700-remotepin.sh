@@ -42,8 +42,8 @@ test_expect_success "test 'ipfs pin remote service ls'" '
 # Pinning.RemoteServices includes ApiKey, and we give it the same treatment
 # as Identity.PrivKey to prevent exposing it on the network
 
-test_expect_success "'ipfs config Pinning' works" '
-  test_expect_code 0 ipfs config Pinning > config_out
+test_expect_success "'ipfs config Pinning' fails" '
+  test_expect_code 1 ipfs config Pinning 2>&1 > config_out
 '
 test_expect_success "output does not include ApiKey" '
   test_expect_code 1 grep -q ApiKey config_out

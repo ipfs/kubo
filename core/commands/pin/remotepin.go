@@ -23,7 +23,6 @@ import (
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr"
 )
 
 var log = logging.Logger("core/commands/cmdenv")
@@ -210,14 +209,6 @@ var addRemotePinCmd = &cmds.Command{
 			return nil
 		}),
 	},
-}
-
-func multiaddrsToStrings(m []multiaddr.Multiaddr) []string {
-	r := make([]string, len(m))
-	for i := range m {
-		r[i] = m[i].String()
-	}
-	return r
 }
 
 var listRemotePinCmd = &cmds.Command{
