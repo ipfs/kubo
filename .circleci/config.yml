@@ -133,12 +133,16 @@ jobs:
     - checkout
 
     - run:
-        git clone --depth 1 https://github.com/ipfs-shipyard/rb-pinning-service-api.git
+        mkdir rb-pinning-service-api &&
+        cd rb-pinning-service-api &&
+        git init &&
+        git remote add origin  https://github.com/ipfs-shipyard/rb-pinning-service-api.git &&
+        git fetch --depth 1 origin 773c3adbb421c551d2d89288abac3e01e1f7c3a8 &&
+        git checkout FETCH_HEAD
     - run:
         cd rb-pinning-service-api &&
         docker-compose pull &&
-        docker-compose up -d &&
-        cd ..
+        docker-compose up -d
 
     - *make_out_dirs
     - *restore_gomod
