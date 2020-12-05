@@ -111,9 +111,9 @@ test_expect_success "pin remote service ls --enc=json --stat' returns invalid st
   test_cmp stat_out stat_expected
 "
 
-test_expect_success "pin remote service ls --enc=json' (without --stat) returns unknown status" "
-  ipfs pin remote service ls --enc=json | jq --raw-output '.RemoteServices[] | select(.Service == \"test_invalid_url_path_svc\") | .Stat.Status' | tee stat_out &&
-  echo unknown > stat_expected &&
+test_expect_success "pin remote service ls --enc=json' (without --stat) returns no Stat object" "
+  ipfs pin remote service ls --enc=json | jq --raw-output '.RemoteServices[] | select(.Service == \"test_invalid_url_path_svc\") | .Stat' | tee stat_out &&
+  echo null > stat_expected &&
   test_cmp stat_out stat_expected
 "
 

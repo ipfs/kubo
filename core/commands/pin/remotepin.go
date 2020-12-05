@@ -507,7 +507,7 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		services := cfg.Pinning.RemoteServices
 		result := PinServicesList{make([]ServiceDetails, 0, len(services))}
 		for svcName, svcConfig := range services {
-			svcDetails := ServiceDetails{svcName, svcConfig.Api.ApiEndpoint, Stat{Status: "unknown", PinCount: nil}}
+			svcDetails := ServiceDetails{svcName, svcConfig.Api.ApiEndpoint, nil}
 
 			// if --pin-count is passed, we try to fetch pin numbers from remote service
 			if req.Options[pinServiceStatOptionName].(bool) {
@@ -562,6 +562,7 @@ var lsRemotePinServiceCmd = &cmds.Command{
 				// PinCount is present only if we were able to fetch counts.
 				// We don't want to break listing of services so this is best-effort.
 				// (verbose err is returned by 'pin remote ls', if needed)
+				svcDetails.Stat = &Stat{}
 				if err == nil {
 					svcDetails.Stat.Status = "valid"
 					svcDetails.Stat.PinCount = pinCount
@@ -600,12 +601,12 @@ var lsRemotePinServiceCmd = &cmds.Command{
 type ServiceDetails struct {
 	Service     string
 	ApiEndpoint string
-	Stat        Stat
+	Stat        *Stat `json:",omitempty"` // present only when --stat not passed
 }
 
 type Stat struct {
 	Status   string
-	PinCount *PinCount `json:",omitempty"` // missing when --stat is passed means service is offline
+	PinCount *PinCount `json:",omitempty"` // missing when --stat is passed but the service is offline
 }
 
 type PinCount struct {
