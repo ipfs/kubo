@@ -181,6 +181,23 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 	originalUrlPath := prefix + requestURI.Path
 
+	// Query parameter handling to support requests produced by navigator.registerProtocolHandler.
+	// E.g. This code will redirect calls to /ipfs/?uri=ipfs%3A%2F%2Fcontent-identifier
+	// to /ipfs/content-identifier.
+	if uri := r.URL.Query().Get("uri"); uri != "" {
+		u, err := url.Parse(uri)
+		if err != nil {
+			webError(w, "failed to parse uri query parameter", err, http.StatusBadRequest)
+			return
+		}
+		if u.Scheme != "ipfs" && u.Scheme != "ipns" {
+			webError(w, "uri query parameter scheme must be ipfs or ipns", err, http.StatusBadRequest)
+			return
+		}
+		http.Redirect(w, r, gopath.Join("/", prefix, u.Scheme, u.Host), http.StatusMovedPermanently)
+		return
+	}
+
 	// Service Worker registration request
 	if r.Header.Get("Service-Worker") == "script" {
 		// Disallow Service Worker registration on namespace roots
