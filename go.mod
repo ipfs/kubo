@@ -31,7 +31,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.4.1-0.20201125035704-4373bad335aa
-	github.com/ipfs/go-ipfs-config v0.9.1-0.20201203231406-d4056861ff38
+	github.com/ipfs/go-ipfs-config v0.10.1-0.20201205222155-84cb43b0a8c9
 	github.com/ipfs/go-ipfs-ds-help v0.1.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
