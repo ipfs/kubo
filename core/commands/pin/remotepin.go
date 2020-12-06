@@ -61,7 +61,6 @@ const pinServiceKeyOptionName = "key"
 const pinServiceStatOptionName = "stat"
 const pinBackgroundOptionName = "background"
 const pinForceOptionName = "force"
-const pinPolicyOptionName = "policy"
 
 type RemotePinOutput struct {
 	Status string
@@ -373,9 +372,6 @@ var addRemotePinServiceCmd = &cmds.Command{
 		cmds.StringArg(pinServiceNameOptionName, true, false, "Service name."),
 		cmds.StringArg(pinServiceURLOptionName, true, false, "Service URL."),
 		cmds.StringArg(pinServiceKeyOptionName, true, false, "Service key."),
-	},
-	Options: []cmds.Option{
-		cmds.StringsOption(pinPolicyOptionName, "list of pin policies from: mfs; optional, comma separated."),
 	},
 	Type: nil,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
