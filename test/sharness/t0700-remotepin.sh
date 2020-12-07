@@ -26,7 +26,7 @@ test_expect_success "creating test user on remote pinning service" '
   ipfs pin remote service add test_pin_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY} &&
   ipfs pin remote service add test_invalid_key_svc ${TEST_PIN_SVC} fake_api_key &&
   ipfs pin remote service add test_invalid_url_path_svc ${TEST_PIN_SVC}/invalid-path fake_api_key &&
-  ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key &&
+  ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key
 '
 
 test_expect_success "test 'ipfs pin remote service ls'" '
@@ -37,19 +37,19 @@ test_expect_success "test 'ipfs pin remote service ls'" '
   grep -q test_invalid_url_dns_svc ls_out
 '
 
-# SECURITY of access tokens in ApiKey fields:
-# Pinning.RemoteServices includes ApiKey, and we give it the same treatment
+# SECURITY of access tokens in Api.Key fields:
+# Pinning.RemoteServices includes Api.Key, and we give it the same treatment
 # as Identity.PrivKey to prevent exposing it on the network
 
 test_expect_success "'ipfs config Pinning' fails" '
   test_expect_code 1 ipfs config Pinning 2>&1 > config_out
 '
-test_expect_success "output does not include ApiKey" '
-  test_expect_code 1 grep -q ApiKey config_out
+test_expect_success "output does not include Api.Key" '
+  test_expect_code 1 grep -q Key config_out
 '
 
-test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc.Api.ApiKey' fails" '
-  test_expect_code 1 ipfs config Pinning.RemoteServices.test_pin_svc.Api.ApiKey 2> config_out
+test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc.Api.Key' fails" '
+  test_expect_code 1 ipfs config Pinning.RemoteServices.test_pin_svc.Api.Key 2> config_out
 '
 
 test_expect_success "output includes meaningful error" '
