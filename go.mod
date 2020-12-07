@@ -108,3 +108,7 @@ require (
 )
 
 go 1.14
+
+replace (
+	github.com/libp2p/go-libp2p-kad-dht => ../../libp2p/go-libp2p-kad-dht
+)
