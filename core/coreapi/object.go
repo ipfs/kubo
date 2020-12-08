@@ -48,6 +48,8 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 		n = new(dag.ProtoNode)
 	case "unixfs-dir":
 		n = ft.EmptyDirNode()
+	default:
+		return nil, fmt.Errorf("unknown node type: %s", options.Type)
 	}
 
 	err = api.dag.Add(ctx, n)

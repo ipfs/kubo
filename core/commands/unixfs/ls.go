@@ -34,7 +34,7 @@ type LsOutput struct {
 
 var LsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List directory contents for Unix filesystem objects.",
+		Tagline: "List directory contents for Unix filesystem objects. Deprecated: Use 'ipfs ls' instead.",
 		ShortDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
 
@@ -42,8 +42,8 @@ The JSON output contains size information. For files, the child size
 is the total size of the file contents. For directories, the child
 size is the IPFS link size.
 
-This functionality is deprecated, and will be removed in future versions. If
-possible, please use 'ipfs ls' instead.
+This functionality is deprecated, and will be removed in future versions as it duplicates the functionality of 'ipfs ls'.
+If possible, please use 'ipfs ls' instead.
 `,
 		LongDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
@@ -62,8 +62,8 @@ Example:
     > ipfs file ls /ipfs/QmW2WQi7j6c7UgJTarActp7tDNikE4B2qXtFCfLPdsgaTQ
     cat.jpg
 
-This functionality is deprecated, and will be removed in future versions. If
-possible, please use 'ipfs ls' instead.
+This functionality is deprecated, and will be removed in future versions as it duplicates the functionality of 'ipfs ls'.
+If possible, please use 'ipfs ls' instead.
 `,
 	},
 
