@@ -15,8 +15,8 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"github.com/elgris/jsondiff"
-	"github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-config"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	config "github.com/ipfs/go-ipfs-config"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -35,6 +35,8 @@ const (
 	configJSONOptionName   = "json"
 	configDryRunOptionName = "dry-run"
 )
+
+var tryRemoteServiceApiErr = errors.New("cannot show or change pinning services through this API (try: ipfs pin remote service --help)")
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
@@ -84,6 +86,12 @@ Set the value of the 'Datastore.Path' key:
 		case "identity", "identity.privkey":
 			return errors.New("cannot show or change private key through API")
 		default:
+		}
+
+		// Temporary fix until we move ApiKey secrets out of the config file
+		// (remote services are a map, so more advanced blocking is required)
+		if blocked := inBlockedScope(key, config.RemoteServicesSelector); blocked {
+			return tryRemoteServiceApiErr
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -140,11 +148,29 @@ Set the value of the 'Datastore.Path' key:
 	Type: ConfigField{},
 }
 
+// Returns bool to indicate if tested key is in the blocked scope.
+// (scope includes parent, direct, and child match)
+func inBlockedScope(testKey string, blockedScope string) bool {
+	blockedScope = strings.ToLower(blockedScope)
+	roots := strings.Split(strings.ToLower(testKey), ".")
+	var scope []string
+	for _, name := range roots {
+		scope := append(scope, name)
+		impactedKey := strings.Join(scope, ".")
+		// blockedScope=foo.bar.BLOCKED should return true
+		// for parent and child impactedKeys: foo.bar and foo.bar.BLOCKED.subkey
+		if strings.HasPrefix(impactedKey, blockedScope) || strings.HasPrefix(blockedScope, impactedKey) {
+			return true
+		}
+	}
+	return false
+}
+
 var configShowCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Output config file contents.",
 		ShortDescription: `
-NOTE: For security reasons, this command will omit your private key. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
+NOTE: For security reasons, this command will omit your private key and remote services. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
 	Type: map[string]interface{}{},
@@ -175,6 +201,11 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 			return err
 		}
 
+		err = scrubOptionalValue(cfg, []string{config.PinningTag, config.RemoteServicesTag})
+		if err != nil {
+			return err
+		}
+
 		return cmds.EmitOnce(res, &cfg)
 	},
 	Encoders: cmds.EncoderMap{
@@ -190,7 +221,17 @@ NOTE: For security reasons, this command will omit your private key. If you woul
 	},
 }
 
+// Scrubs value and returns error if missing
 func scrubValue(m map[string]interface{}, key []string) error {
+	return scrub(m, key, false)
+}
+
+// Scrubs value and returns no error if missing
+func scrubOptionalValue(m map[string]interface{}, key []string) error {
+	return scrub(m, key, true)
+}
+
+func scrub(m map[string]interface{}, key []string, okIfMissing bool) error {
 	find := func(m map[string]interface{}, k string) (string, interface{}, bool) {
 		lckey := strings.ToLower(k)
 		for mkey, val := range m {
@@ -205,7 +246,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 	cur := m
 	for _, k := range key[:len(key)-1] {
 		foundk, val, ok := find(cur, k)
-		if !ok {
+		if !ok && !okIfMissing {
 			return errors.New("failed to find specified key")
 		}
 
@@ -223,7 +264,7 @@ func scrubValue(m map[string]interface{}, key []string) error {
 	}
 
 	todel, _, ok := find(cur, key[len(key)-1])
-	if !ok {
+	if !ok && !okIfMissing {
 		return fmt.Errorf("%s, not found", strings.Join(key, "."))
 	}
 
@@ -466,6 +507,9 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
 		return errors.New("failed to decode file as config")
 	}
+
+	// Handle Identity.PrivKey (secret)
+
 	if len(cfg.Identity.PrivKey) != 0 {
 		return errors.New("setting private key with API is not supported")
 	}
@@ -481,6 +525,32 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	}
 
 	cfg.Identity.PrivKey = pkstr
+
+	// Handle Pinning.RemoteServices (ApiKey of each service is secret)
+	// Note: these settings are opt-in and may be missing
+
+	if len(cfg.Pinning.RemoteServices) != 0 {
+		return tryRemoteServiceApiErr
+	}
+
+	// detect if existing config has any remote services defined..
+	if remoteServicesTag, err := getConfig(r, config.RemoteServicesSelector); err == nil {
+		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
+		// so we have to manually copy the data :-|
+		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
+			var services map[string]config.RemotePinningService
+			jsonString, err := json.Marshal(val)
+			if err != nil {
+				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
+			}
+			err = json.Unmarshal(jsonString, &services)
+			if err != nil {
+				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
+			}
+			// .. if so, apply them on top of the new config
+			cfg.Pinning.RemoteServices = services
+		}
+	}
 
 	return r.SetConfig(&cfg)
 }
