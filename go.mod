@@ -95,7 +95,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.14
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.8.0
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
@@ -108,7 +108,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
+	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
 )
 
 go 1.14
