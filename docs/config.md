@@ -176,6 +176,11 @@ does (e.g, `"1d2h4m40.01s"`).
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+- [`Pinning`](#pinning)
+    - [`Pinning.RemoteServices`](#pinningremoteservices)
+        - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
+          - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
+          - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
@@ -812,6 +817,55 @@ Type: `string` (filesystem path)
 ### `Mounts.FuseAllowOther`
 
 Sets the FUSE allow other option on the mountpoint.
+
+## `Pinning`
+
+Pinning configures the options available for pinning content
+(i.e. keeping content longer term instead of as temporarily cached storage).
+
+### `Pinning.RemoteServices`
+
+`RemoteServices` maps a name for a remote pinning service to its configuration.
+
+A remote pinning service is a remote service that exposes an API for managing
+that service's interest in longer term data storage.
+
+The exposed API conforms to the specification defined at
+https://ipfs.github.io/pinning-services-api-spec/
+
+#### `Pinning.RemoteServices: API`
+
+Contains information relevant to utilizing the remote pinning service
+
+Example:
+```json
+{
+  "Pinning": {
+    "RemoteServices": {
+      "myPinningService": {
+        "API" : {
+          "Endpoint" : "https://pinningservice.tld:1234/my/api/path",
+          "Key" : "someOpaqueKey"
+        }
+      }
+    }
+  }
+}
+```
+
+##### `Pinning.RemoteServices: API.Endpoint`
+
+The HTTP(S) endpoint through which to access the pinning service
+
+Example: "https://pinningservice.tld:1234/my/api/path"
+
+Type: `string`
+
+##### `Pinning.RemoteServices: API.Key`
+
+The key through which access to the pinning service is granted
+
+Type: `string`
 
 ## `Pubsub`
 
