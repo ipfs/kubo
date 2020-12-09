@@ -26,7 +26,7 @@ func MetricsScrapingOption(path string) ServeOption {
 // This adds collection of OpenCensus metrics
 func MetricsOpenCensusCollectionOption() ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		log.Error("Init OpenCensus")
+		log.Info("Init OpenCensus")
 
 		promRegistry := prometheus.NewRegistry()
 		pe, err := ocprom.NewExporter(ocprom.Options{
