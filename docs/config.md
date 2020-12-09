@@ -178,9 +178,9 @@ does (e.g, `"1d2h4m40.01s"`).
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
 - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
-        - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
-          - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
-          - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
+        - [`Pinning.RemoteServices.Api`](#pinningremoteservices-api)
+          - [`Pinning.RemoteServices.Api.Endpoint`](#pinningremoteservices-apiendpoint)
+          - [`Pinning.RemoteServices.Api.Key`](#pinningremoteservices-apikey)
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
@@ -833,7 +833,7 @@ that service's interest in longer term data storage.
 The exposed API conforms to the specification defined at
 https://ipfs.github.io/pinning-services-api-spec/
 
-#### `Pinning.RemoteServices: API`
+#### `Pinning.RemoteServices: Api`
 
 Contains information relevant to utilizing the remote pinning service
 
@@ -843,7 +843,7 @@ Example:
   "Pinning": {
     "RemoteServices": {
       "myPinningService": {
-        "API" : {
+        "Api" : {
           "Endpoint" : "https://pinningservice.tld:1234/my/api/path",
           "Key" : "someOpaqueKey"
         }
@@ -853,7 +853,7 @@ Example:
 }
 ```
 
-##### `Pinning.RemoteServices: API.Endpoint`
+##### `Pinning.RemoteServices: Api.Endpoint`
 
 The HTTP(S) endpoint through which to access the pinning service
 
@@ -861,7 +861,7 @@ Example: "https://pinningservice.tld:1234/my/api/path"
 
 Type: `string`
 
-##### `Pinning.RemoteServices: API.Key`
+##### `Pinning.RemoteServices: Api.Key`
 
 The key through which access to the pinning service is granted
 
