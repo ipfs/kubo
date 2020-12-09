@@ -589,7 +589,7 @@ func pinMFS(
 	svcConfig config.RemotePinningService,
 	errCh chan<- error,
 ) (lastPin, error) {
-	c := pinclient.NewClient(svcConfig.Api.ApiEndpoint, svcConfig.Api.ApiKey)
+	c := pinclient.NewClient(svcConfig.Api.Endpoint, svcConfig.Api.Key)
 
 	// Prepare Pin.name
 	opts := []pinclient.AddOption{pinclient.PinOpts.WithName("policy-mfs")}
