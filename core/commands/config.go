@@ -196,12 +196,12 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
+		cfg, err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
 		if err != nil {
 			return err
 		}
 
-		err = scrubOptionalValue(cfg, []string{config.PinningTag, config.RemoteServicesTag})
+		cfg, err = scrubOptionalValue(cfg, config.PinningConcealSelector)
 		if err != nil {
 			return err
 		}
@@ -222,54 +222,49 @@ NOTE: For security reasons, this command will omit your private key and remote s
 }
 
 // Scrubs value and returns error if missing
-func scrubValue(m map[string]interface{}, key []string) error {
-	return scrub(m, key, false)
+func scrubValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
+	return scrub_map(m, key, false)
 }
 
 // Scrubs value and returns no error if missing
-func scrubOptionalValue(m map[string]interface{}, key []string) error {
-	return scrub(m, key, true)
+func scrubOptionalValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
+	return scrub_map(m, key, true)
 }
 
-func scrub(m map[string]interface{}, key []string, okIfMissing bool) error {
-	find := func(m map[string]interface{}, k string) (string, interface{}, bool) {
-		lckey := strings.ToLower(k)
-		for mkey, val := range m {
-			lcmkey := strings.ToLower(mkey)
-			if lckey == lcmkey {
-				return mkey, val, true
+func scrub_either(u interface{}, key []string, okIfMissing bool) (interface{}, error) {
+	if m, ok := u.(map[string]interface{}); ok {
+		return scrub_map(m, key, okIfMissing)
+	} else {
+		return scrub_value(m, key, okIfMissing)
+	}
+}
+
+func scrub_value(v interface{}, key []string, okIfMissing bool) (interface{}, error) {
+	if v == nil && !okIfMissing {
+		return nil, errors.New("failed to find specified key")
+	}
+	return nil, nil
+}
+
+func scrub_map(m map[string]interface{}, key []string, okIfMissing bool) (map[string]interface{}, error) {
+	if len(key) == 0 {
+		return nil, nil // delete value
+	}
+	n := map[string]interface{}{}
+	for k, v := range m {
+		if key[0] == "*" {
+			if u, err := scrub_either(v, key[1:], okIfMissing); err != nil {
+				return nil, err
+			} else {
+				if u != nil {
+					n[k] = u
+				}
 			}
+		} else if strings.ToLower(key[0]) != strings.ToLower(k) {
+			n[k] = v
 		}
-		return "", nil, false
 	}
-
-	cur := m
-	for _, k := range key[:len(key)-1] {
-		foundk, val, ok := find(cur, k)
-		if !ok && !okIfMissing {
-			return errors.New("failed to find specified key")
-		}
-
-		if foundk != k {
-			// case mismatch, calling this an error
-			return fmt.Errorf("case mismatch in config, expected %q but got %q", k, foundk)
-		}
-
-		mval, mok := val.(map[string]interface{})
-		if !mok {
-			return fmt.Errorf("%s was not a map", foundk)
-		}
-
-		cur = mval
-	}
-
-	todel, _, ok := find(cur, key[len(key)-1])
-	if !ok && !okIfMissing {
-		return fmt.Errorf("%s, not found", strings.Join(key, "."))
-	}
-
-	delete(cur, todel)
-	return nil
+	return n, nil
 }
 
 var configEditCmd = &cmds.Command{
@@ -421,7 +416,7 @@ func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	err = scrubValue(cfgMap, []string{config.IdentityTag, config.PrivKeyTag})
+	cfgMap, err = scrubValue(cfgMap, []string{config.IdentityTag, config.PrivKeyTag})
 	if err != nil {
 		return nil, err
 	}
