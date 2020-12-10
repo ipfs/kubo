@@ -90,7 +90,8 @@ Set the value of the 'Datastore.Path' key:
 
 		// Temporary fix until we move ApiKey secrets out of the config file
 		// (remote services are a map, so more advanced blocking is required)
-		if blocked := inBlockedScope(key, config.RemoteServicesSelector); blocked {
+		// XXX
+		if blocked := inBlockedScope(key, config.RemoteServicesPath); blocked {
 			return tryRemoteServiceApiErr
 		}
 
@@ -529,18 +530,18 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	}
 
 	// detect if existing config has any remote services defined..
-	if remoteServicesTag, err := getConfig(r, config.RemoteServicesSelector); err == nil {
+	if remoteServicesTag, err := getConfig(r, config.RemoteServicesPath); err == nil {
 		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
 		// so we have to manually copy the data :-|
 		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
 			var services map[string]config.RemotePinningService
 			jsonString, err := json.Marshal(val)
 			if err != nil {
-				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
+				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesPath, err)
 			}
 			err = json.Unmarshal(jsonString, &services)
 			if err != nil {
-				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
+				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesPath, err)
 			}
 			// .. if so, apply them on top of the new config
 			cfg.Pinning.RemoteServices = services
