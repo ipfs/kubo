@@ -61,6 +61,7 @@ const pinServiceKeyOptionName = "key"
 const pinServiceStatOptionName = "stat"
 const pinBackgroundOptionName = "background"
 const pinForceOptionName = "force"
+const pinMFSPolicyOptionName = "mfs"
 
 type RemotePinOutput struct {
 	Status string
@@ -373,6 +374,9 @@ var addRemotePinServiceCmd = &cmds.Command{
 		cmds.StringArg(pinServiceURLOptionName, true, false, "Service URL."),
 		cmds.StringArg(pinServiceKeyOptionName, true, false, "Service key."),
 	},
+	Options: []cmds.Option{
+		cmds.StringOption(pinMFSPolicyOptionName, "Name of remote pin for MFS. If set, MFS pinning is enabled."),
+	},
 	Type: nil,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -410,10 +414,22 @@ var addRemotePinServiceCmd = &cmds.Command{
 			cfg.Pinning.RemoteServices = map[string]config.RemotePinningService{}
 		}
 
+		pinMFSEnable, pinMFSName := false, ""
+		if pinMFSRaw, pinMFSFound := req.Options[pinMFSPolicyOptionName]; pinMFSFound {
+			pinMFSEnable, pinMFSName = true, pinMFSRaw.(string)
+		}
+
 		cfg.Pinning.RemoteServices[name] = config.RemotePinningService{
 			Api: config.RemotePinningServiceApi{
 				Endpoint: url,
 				Key:      key,
+			},
+			Policies: config.RemotePinningServicePolicies{
+				MFS: config.RemotePinningServiceMFSPolicy{
+					Enable:        pinMFSEnable,
+					Name:          pinMFSName,
+					RepinInterval: cfg.Pinning.DefaultPolicies.MFS.RepinInterval,
+				},
 			},
 		}
 

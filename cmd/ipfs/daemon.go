@@ -476,23 +476,41 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 }
 
 type lastPin struct {
+	Time          time.Time
 	ServiceName   string
 	ServiceConfig config.RemotePinningService
 	CID           cid.Cid
 }
 
+const configPollInterval = time.Minute / 2
+
 func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, error) {
 	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
-		lastPins := map[string]lastPin{}
+
 		var tmo *time.Timer
 		defer func() {
 			if tmo != nil {
 				tmo.Stop()
 			}
 		}()
+
+		lastPins := map[string]lastPin{}
 		for {
+			// polling sleep
+			if tmo == nil {
+				tmo = time.NewTimer(configPollInterval)
+			} else {
+				tmo.Reset(configPollInterval)
+			}
+			select {
+			case <-cctx.Context().Done():
+				return
+			case <-tmo.C:
+			}
+			log.Infof("Pinning loop is awake")
+
 			// reread the config, which may have changed in the meantime
 			cfg, err := cctx.GetConfig()
 			if err != nil {
@@ -501,43 +519,8 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				case <-cctx.Context().Done():
 					return
 				}
-			}
-			// if MFSRepinInterval is not set, pinning MFS is disabled,
-			// however this loop still polls to capture changes in the config
-			if cfg.Pinning.MFSRepinInterval == "" {
-				if tmo == nil {
-					tmo = time.NewTimer(time.Minute) // poll for config changes once per minute?
-				} else {
-					tmo.Reset(time.Minute)
-				}
-				select {
-				case <-cctx.Context().Done():
-					return
-				case <-tmo.C:
-				}
 				continue
 			}
-			mfsRepinInterval, err := time.ParseDuration(cfg.Pinning.MFSRepinInterval)
-			if err != nil {
-				select {
-				case errCh <- err:
-				case <-cctx.Context().Done():
-					return
-				}
-			}
-
-			// poll periodically
-			if tmo == nil {
-				tmo = time.NewTimer(mfsRepinInterval)
-			} else {
-				tmo.Reset(mfsRepinInterval)
-			}
-			select {
-			case <-cctx.Context().Done():
-				return
-			case <-tmo.C:
-			}
-			log.Infof("Pinning loop is awake")
 
 			// get the most recent MFS root cid
 			rootNode, err := node.FilesRoot.GetDirectory().GetNode()
@@ -554,15 +537,29 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			// pin on all remote services in parallel to prevent DoS attacks
 			ch := make(chan lastPin, len(cfg.Pinning.RemoteServices))
 			for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
+				// skip services where MFS is not enabled
 				svcName, svcConfig := svcName_, svcConfig_
-				if svcConfig.Policies.PinMFS == nil || !*svcConfig.Policies.PinMFS {
+				if !svcConfig.Policies.MFS.Enable {
 					continue
 				}
-				if last, ok := lastPins[svcName]; ok && last.ServiceConfig == svcConfig && last.CID == rootCid {
-					// do nothing, if MFS has not changed since last pin on the exact same service
+				// read mfs pin interval for this service
+				repinInterval, err := time.ParseDuration(svcConfig.Policies.MFS.RepinInterval)
+				if err != nil {
+					select {
+					case errCh <- fmt.Errorf("remote pinning service %s has invalid mfs pin interval (%v)", svcName, err):
+					case <-cctx.Context().Done():
+						return
+					}
+					continue
+				}
+
+				// do nothing, if MFS has not changed since last pin on the exact same service
+				if last, ok := lastPins[svcName]; ok &&
+					last.ServiceConfig == svcConfig && last.CID == rootCid && time.Now().Sub(last.Time) < repinInterval {
 					ch <- lastPin{}
 					continue
 				}
+
 				log.Infof("Pinning MFS root %s to %s", rootCid, svcName)
 				go func() {
 					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
@@ -591,8 +588,13 @@ func pinMFS(
 ) (lastPin, error) {
 	c := pinclient.NewClient(svcConfig.Api.Endpoint, svcConfig.Api.Key)
 
+	pinName := svcConfig.Policies.MFS.Name
+	if pinName == "" {
+		pinName = fmt.Sprintf("policy/%s/mfs", node.Identity.String())
+	}
+
 	// Prepare Pin.name
-	opts := []pinclient.AddOption{pinclient.PinOpts.WithName("policy-mfs")}
+	opts := []pinclient.AddOption{pinclient.PinOpts.WithName(pinName)}
 
 	// Prepare Pin.origins
 	// Add own multiaddrs to the 'origins' array, so Pinning Service can
@@ -618,7 +620,7 @@ func pinMFS(
 		}
 		return lastPin{}, err
 	}
-	return lastPin{ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
+	return lastPin{Time: time.Now(), ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 }
 
 // serveHTTPApi collects options, creates listener, prints status message and starts serving requests
