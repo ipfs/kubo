@@ -593,8 +593,28 @@ func pinMFS(
 		pinName = fmt.Sprintf("policy/%s/mfs", node.Identity.String())
 	}
 
+	// check if same pin exists
+	lsPinCh, lsErrCh := c.Ls(ctx, pinclient.PinOpts.FilterCIDs(cid), pinclient.PinOpts.FilterName(pinName))
+	pinFound := false
+	for ps := range lsPinCh {
+		if ps.GetPin().GetCid() == cid {
+			pinFound = true
+		}
+	}
+	if err := <-lsErrCh; err != nil {
+		err = fmt.Errorf("error while listing remote pins: %v", err)
+		select {
+		case errCh <- err:
+		case <-ctx.Done():
+		}
+		return lastPin{}, err
+	}
+	if pinFound {
+		return lastPin{}, nil
+	}
+
 	// Prepare Pin.name
-	opts := []pinclient.AddOption{pinclient.PinOpts.WithName(pinName)}
+	addOpts := []pinclient.AddOption{pinclient.PinOpts.WithName(pinName)}
 
 	// Prepare Pin.origins
 	// Add own multiaddrs to the 'origins' array, so Pinning Service can
@@ -608,13 +628,11 @@ func pinMFS(
 			}
 			return lastPin{}, err
 		}
-		opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
+		addOpts = append(addOpts, pinclient.PinOpts.WithOrigins(addrs...))
 	}
 
-	// XXX: ls to see if the exact same pin exists
-
 	// Execute remote pin request
-	_, err := c.Add(ctx, cid, opts...)
+	_, err := c.Add(ctx, cid, addOpts...)
 	if err != nil {
 		select {
 		case errCh <- err:
