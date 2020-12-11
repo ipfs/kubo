@@ -28,9 +28,7 @@ test_expect_success "creating test user on remote pinning service" '
   ipfs pin remote service add test_invalid_key_svc ${TEST_PIN_SVC} fake_api_key &&
   ipfs pin remote service add test_invalid_url_path_svc ${TEST_PIN_SVC}/invalid-path fake_api_key &&
   ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key &&
-  ipfs pin remote service add --policy=mfs test_pin_mfs_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY} &&
-  ipfs config Pinning.MFSRepinInterval "10s" &&
-  echo Pinning.MFSRepinInterval=$(ipfs config Pinning.MFSRepinInterval)
+  ipfs pin remote service add test_pin_mfs_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY}
 '
 
 test_expect_success "test 'ipfs pin remote service ls'" '
@@ -42,9 +40,12 @@ test_expect_success "test 'ipfs pin remote service ls'" '
 '
 
 test_expect_success "test mfs is being pinned" '
-  sleep 10 &&
+  ipfs config Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval 30s &&
+  ipfs config Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName mfs_test_pin &&
+  ipfs config Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable true &&
+  sleep 40 &&
   ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
-  ipfs pin remote ls --name=policy-mfs --enc=json | jq -r .Cid > pin_cid &&
+  ipfs pin remote ls --name=mfs_test_pin --enc=json | jq -r .Cid > pin_cid &&
   cat mfs_cid pin_cid &&
   test_cmp mfs_cid pin_cid
 '
