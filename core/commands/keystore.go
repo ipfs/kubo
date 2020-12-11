@@ -150,6 +150,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
 	},
 	NoRemote: true,
+	PreRun:   daemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
 
@@ -229,6 +230,7 @@ var keyImportCmd = &cmds.Command{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
 		cmds.FileArg("key", true, false, "key provided by generate or export"),
 	},
+	PreRun: daemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
 
@@ -459,22 +461,7 @@ environment variable:
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
 	NoRemote: true,
-	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		cctx := env.(*oldcmds.Context)
-		daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
-		if err != nil {
-			return err
-		}
-
-		log.Info("checking if daemon is running...")
-		if daemonLocked {
-			log.Debug("ipfs daemon is running")
-			e := "ipfs daemon is running. please stop it to run this command"
-			return cmds.ClientError(e)
-		}
-
-		return nil
-	},
+	PreRun:   daemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		nBitsForKeypair, nBitsGiven := req.Options[keyStoreSizeOptionName].(int)
@@ -555,4 +542,21 @@ func keyOutputListEncoders() cmds.EncoderFunc {
 		tw.Flush()
 		return nil
 	})
+}
+
+func daemonNotRunning(req *cmds.Request, env cmds.Environment) error {
+	cctx := env.(*oldcmds.Context)
+	daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
+	if err != nil {
+		return err
+	}
+
+	log.Info("checking if daemon is running...")
+	if daemonLocked {
+		log.Debug("ipfs daemon is running")
+		e := "ipfs daemon is running. please stop it to run this command"
+		return cmds.ClientError(e)
+	}
+
+	return nil
 }
