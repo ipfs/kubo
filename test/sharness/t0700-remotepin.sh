@@ -40,8 +40,8 @@ test_expect_success "test 'ipfs pin remote service ls'" '
 '
 
 test_expect_success "test enabling mfs pinning" '
-  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval '"30s"' &&
-  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName '"mfs_test_pin"' &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval \"30s\" &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName \"mfs_test_pin\" &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable true &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval > repin_interval &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName > pin_name &&
