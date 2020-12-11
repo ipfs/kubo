@@ -90,8 +90,7 @@ Set the value of the 'Datastore.Path' key:
 
 		// Temporary fix until we move ApiKey secrets out of the config file
 		// (remote services are a map, so more advanced blocking is required)
-		// XXX
-		if blocked := inBlockedScope(key, config.RemoteServicesPath); blocked {
+		if blocked := matchesGlobPrefix(key, config.PinningConcealSelector); blocked {
 			return tryRemoteServiceApiErr
 		}
 
@@ -149,22 +148,21 @@ Set the value of the 'Datastore.Path' key:
 	Type: ConfigField{},
 }
 
-// Returns bool to indicate if tested key is in the blocked scope.
-// (scope includes parent, direct, and child match)
-func inBlockedScope(testKey string, blockedScope string) bool {
-	blockedScope = strings.ToLower(blockedScope)
-	roots := strings.Split(strings.ToLower(testKey), ".")
-	var scope []string
-	for _, name := range roots {
-		scope := append(scope, name)
-		impactedKey := strings.Join(scope, ".")
-		// blockedScope=foo.bar.BLOCKED should return true
-		// for parent and child impactedKeys: foo.bar and foo.bar.BLOCKED.subkey
-		if strings.HasPrefix(impactedKey, blockedScope) || strings.HasPrefix(blockedScope, impactedKey) {
-			return true
+// Returns true if key matches any prefix of glob.
+func matchesGlobPrefix(key string, glob []string) bool {
+	k := strings.Split(key, ".")
+	for i, g := range glob {
+		if i >= len(k) {
+			break
+		}
+		if g == "*" {
+			continue
+		}
+		if strings.ToLower(k[i]) != strings.ToLower(g) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 var configShowCmd = &cmds.Command{
@@ -534,17 +532,21 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
 		// so we have to manually copy the data :-|
 		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
-			var services map[string]config.RemotePinningService
+			var oldServices map[string]config.RemotePinningService
 			jsonString, err := json.Marshal(val)
 			if err != nil {
 				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesPath, err)
 			}
-			err = json.Unmarshal(jsonString, &services)
+			err = json.Unmarshal(jsonString, &oldServices)
 			if err != nil {
 				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesPath, err)
 			}
-			// .. if so, apply them on top of the new config
-			cfg.Pinning.RemoteServices = services
+			// if so, apply them on top of the new config,
+			// i.e. include only services from the new replacement config, ignoring the API structure
+			for svcName, svcNew := range cfg.Pinning.RemoteServices {
+				svcNew.API = oldServices[svcName].API
+				cfg.Pinning.RemoteServices[svcName] = svcNew
+			}
 		}
 	}
 

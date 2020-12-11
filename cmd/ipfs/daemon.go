@@ -586,9 +586,9 @@ func pinMFS(
 	svcConfig config.RemotePinningService,
 	errCh chan<- error,
 ) (lastPin, error) {
-	c := pinclient.NewClient(svcConfig.Api.Endpoint, svcConfig.Api.Key)
+	c := pinclient.NewClient(svcConfig.API.Endpoint, svcConfig.API.Key)
 
-	pinName := svcConfig.Policies.MFS.Name
+	pinName := svcConfig.Policies.MFS.PinName
 	if pinName == "" {
 		pinName = fmt.Sprintf("policy/%s/mfs", node.Identity.String())
 	}
@@ -610,6 +610,8 @@ func pinMFS(
 		}
 		opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
 	}
+
+	// XXX: ls to see if the exact same pin exists
 
 	// Execute remote pin request
 	_, err := c.Add(ctx, cid, opts...)
