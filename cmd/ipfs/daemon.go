@@ -555,7 +555,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 
 				// do nothing, if MFS has not changed since last pin on the exact same service
 				if last, ok := lastPins[svcName]; ok &&
-					last.ServiceConfig == svcConfig && last.CID == rootCid && time.Now().Sub(last.Time) < repinInterval {
+					last.ServiceConfig == svcConfig && last.CID == rootCid && time.Since(last.Time) < repinInterval {
 					ch <- lastPin{}
 					continue
 				}

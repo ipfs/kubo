@@ -158,7 +158,7 @@ func matchesGlobPrefix(key string, glob []string) bool {
 		if g == "*" {
 			continue
 		}
-		if strings.ToLower(k[i]) != strings.ToLower(g) {
+		if !strings.EqualFold(strings.ToLower(k[i]), strings.ToLower(g)) {
 			return false
 		}
 	}
@@ -251,7 +251,7 @@ func scrub_map(m map[string]interface{}, key []string, okIfMissing bool) (map[st
 	}
 	n := map[string]interface{}{}
 	for k, v := range m {
-		if key[0] == "*" || strings.ToLower(key[0]) == strings.ToLower(k) {
+		if key[0] == "*" || strings.EqualFold(strings.ToLower(key[0]), strings.ToLower(k)) {
 			if u, err := scrub_either(v, key[1:], okIfMissing); err != nil {
 				return nil, err
 			} else {

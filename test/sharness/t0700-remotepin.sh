@@ -39,10 +39,22 @@ test_expect_success "test 'ipfs pin remote service ls'" '
   grep -q test_invalid_url_dns_svc ls_out
 '
 
-test_expect_success "test mfs is being pinned" '
+test_expect_success "test enabling mfs pinning" '
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval '"30s"' &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName '"mfs_test_pin"' &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable true &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval > repin_interval &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName > pin_name &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable > enable &&
+  echo 30s > expected_repin_interval &&
+  echo mfs_test_pin > expected_pin_name &&
+  echo true > expected_enable &&
+  test_cmp repin_interval expected_repin_interval &&
+  test_cmp pin_name expected_pin_name &&
+  test_cmp enable expected_enable
+'
+
+test_expect_success "verify mfs is being pinned" '
   sleep 40 &&
   ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
   ipfs pin remote ls --service=test_pin_mfs_svc --name=mfs_test_pin --enc=json | jq -r .Cid > pin_cid &&
