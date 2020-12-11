@@ -56,7 +56,7 @@ const pinNameOptionName = "name"
 const pinCIDsOptionName = "cid"
 const pinStatusOptionName = "status"
 const pinServiceNameOptionName = "service"
-const pinServiceURLOptionName = "url"
+const pinServiceEndpointOptionName = "endpoint"
 const pinServiceKeyOptionName = "key"
 const pinServiceStatOptionName = "stat"
 const pinBackgroundOptionName = "background"
@@ -89,20 +89,41 @@ func printRemotePinDetails(w io.Writer, out *RemotePinOutput) {
 
 // remote pin commands
 
-var pinServiceNameOption = cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use.")
+var pinServiceNameOption = cmds.StringOption(pinServiceNameOptionName, "Name of the remote pinning service to use (mandatory).")
 
 var addRemotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Pin object to remote pinning service.",
-		ShortDescription: "Stores an IPFS object from a given path to a remote pinning service.",
+		ShortDescription: "Asks remote pinning service to pin an IPFS object from a given path.",
+		LongDescription: `
+Asks remote pinning service to pin an IPFS object from a given path or a CID.
+
+To pin CID 'bafkqaaa' to service named 'mysrv' under a pin named 'mypin':
+
+  $ ipfs pin remote add --service=mysrv --name=mypin bafkqaaa
+
+The above command will block until remote service returns 'pinned' status,
+which may take time depending on the size and available providers of the pinned
+data.
+
+If you prefer to not wait for pinning confirmation and return immediatelly
+after remote service confirms 'queued' status, add the '--background' flag:
+
+  $ ipfs pin remote add --service=mysrv --name=mypin --background bafkqaaa
+
+Status of background pin requests can be inspected with the 'ls' command:
+
+  $ ipfs pin remote ls --service=mysrv --cid=bafkqaaa --status=queued,pinning,pinned,failed
+
+`,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path", true, false, "Path to object(s) to be pinned."),
+		cmds.StringArg("ipfs-path-or-cid", true, false, "Path to object(s) to be pinned."),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		pinServiceNameOption,
+		cmds.StringOption(pinNameOptionName, "An optional name for the pin."),
 		cmds.BoolOption(pinBackgroundOptionName, "Add to the queue on the remote service and return immediately (does not wait for pinned status).").WithDefault(false),
 	},
 	Type: RemotePinOutput{},
@@ -218,15 +239,18 @@ Returns a list of objects that are pinned to a remote pinning service.
 `,
 		LongDescription: `
 Returns a list of objects that are pinned to a remote pinning service.
+
+NOTE: by default it will only show matching objects in 'pinned' state.
+Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 `,
 	},
 
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
-		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-sensitive, exact match)."),
-		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
-		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Return only pin objects with the specified statuses (queued,pinning,pinned,failed)").WithDefault([]string{"pinned"}),
 		pinServiceNameOption,
+		cmds.StringOption(pinNameOptionName, "Return pins with names that contain provided value (case-sensitive, exact match)."),
+		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Return pins for the specified CIDs (comma separated)."),
+		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Return pins with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(req.Context)
@@ -300,20 +324,41 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 
 var rmRemotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove pinned objects from remote pinning service.",
-		ShortDescription: `
-Removes the pin from the given object allowing it to be garbage
-collected if needed.
+		Tagline:          "Remove pins from remote pinning service.",
+		ShortDescription: "Removes the remote pin allowing it to be garbage collected if needed.",
+		LongDescription: `
+Removes remote pins allowing them to be garbage collected if needed.
+
+This command accepts the same search query parameters as 'ls' and it is a good
+practice to execute 'ls' before 'rm' to confirm the list of pins to be removed.
+
+To remove a single pin for a specific CID:
+
+  $ ipfs pin remote ls --service=mysrv --cid=bafkqaaa
+  $ ipfs pin remote rm --service=mysrv --cid=bafkqaaa
+
+When more than one pin is matching the query on the remote service an error is
+returned.  To confirm removal of multiple pins pass '--force':
+
+  $ ipfs pin remote ls --service=mysrv --name=popular-name
+  $ ipfs pin remote rm --service=mysrv --name=popular-name --force
+
+NOTE: When no '--status' is passed, implicit '--status=pinned' is used.
+To list and then remove all pending pin requests pass an explicit status list:
+
+  $ ipfs pin remote ls --service=mysrv --status=queued,pinning,failed
+  $ ipfs pin remote rm --service=mysrv --status=queued,pinning,failed --force
+
 `,
 	},
 
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		pinServiceNameOption,
-		cmds.StringOption(pinNameOptionName, "Remove pin objects with names that contain provided value (case-sensitive, exact match)."),
-		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Remove only pin objects for the specified CID(s)."),
-		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Remove only pin objects with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
-		cmds.BoolOption(pinForceOptionName, "Remove multiple pins without confirmation.").WithDefault(false),
+		cmds.StringOption(pinNameOptionName, "Remove pins with names that contain provided value (case-sensitive, exact match)."),
+		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Remove pins for the specified CIDs."),
+		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Remove pins with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
+		cmds.BoolOption(pinForceOptionName, "Allow removal of multiple pins matching the query without additional confirmation.").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		ctx, cancel := context.WithCancel(req.Context)
@@ -359,10 +404,25 @@ var addRemotePinServiceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Add remote pinning service.",
 		ShortDescription: "Add a credentials for access to a remote pinning service.",
+		LongDescription: `
+Add a credentials for access to a remote pinning service and store them in the
+config under Pinning.RemoteServices map.
+
+TIP:
+
+  To add services and test them by fetching pin count stats:
+
+  $ ipfs pin remote service add goodsrv https://pin-api.example.com secret-key
+  $ ipfs pin remote service add badsrv  https://bad-api.example.com invalid-key
+  $ ipfs pin remote service ls --stat
+  goodsrv   https://pin-api.example.com 0/0/0/0
+  badsrv    https://bad-api.example.com invalid
+
+`,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg(pinServiceNameOptionName, true, false, "Service name."),
-		cmds.StringArg(pinServiceURLOptionName, true, false, "Service URL."),
+		cmds.StringArg(pinServiceEndpointOptionName, true, false, "Service endpoint."),
 		cmds.StringArg(pinServiceKeyOptionName, true, false, "Service key."),
 	},
 	Type: nil,
@@ -378,7 +438,7 @@ var addRemotePinServiceCmd = &cmds.Command{
 		defer repo.Close()
 
 		if len(req.Arguments) < 3 {
-			return fmt.Errorf("expecting three arguments: service name, url and key")
+			return fmt.Errorf("expecting three arguments: service name, endpoint and key")
 		}
 
 		name := req.Arguments[0]
@@ -387,7 +447,7 @@ var addRemotePinServiceCmd = &cmds.Command{
 
 		u, err := neturl.ParseRequestURI(url)
 		if err != nil || !strings.HasPrefix(u.Scheme, "http") {
-			return fmt.Errorf("service url must be a valid HTTP URL")
+			return fmt.Errorf("service endpoint must be a valid HTTP URL")
 		}
 
 		cfg, err := repo.Config()
@@ -419,7 +479,7 @@ var rmRemotePinServiceCmd = &cmds.Command{
 		ShortDescription: "Remove credentials for access to a remote pinning service.",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("remote-pin-service", true, false, "Name of remote pinning service to remove."),
+		cmds.StringArg(pinServiceNameOptionName, true, false, "Name of remote pinning service to remove."),
 	},
 	Options: []cmds.Option{},
 	Type:    nil,
@@ -454,6 +514,18 @@ var lsRemotePinServiceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "List remote pinning services.",
 		ShortDescription: "List remote pinning services.",
+		LongDescription: `
+List remote pinning services.
+
+By default only a name and an endpoint are listed, however one can pass '--stat'
+to test each endpoint by fetching pin counts for each state:
+
+  $ ipfs pin remote service ls --stat
+  goodsrv   https://pin-api.example.com 0/0/0/0
+  badsrv    https://bad-api.example.com invalid
+
+TIP: pass '--enc=json' for more useful JSON output.
+`,
 	},
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
