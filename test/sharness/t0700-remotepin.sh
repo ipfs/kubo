@@ -40,12 +40,12 @@ test_expect_success "test 'ipfs pin remote service ls'" '
 '
 
 test_expect_success "test mfs is being pinned" '
-  ipfs config Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval 30s &&
-  ipfs config Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName mfs_test_pin &&
-  ipfs config Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable true &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval '"30s"' &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName '"mfs_test_pin"' &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable true &&
   sleep 40 &&
   ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
-  ipfs pin remote ls --name=mfs_test_pin --enc=json | jq -r .Cid > pin_cid &&
+  ipfs pin remote ls --service=test_pin_mfs_svc --name=mfs_test_pin --enc=json | jq -r .Cid > pin_cid &&
   cat mfs_cid pin_cid &&
   test_cmp mfs_cid pin_cid
 '

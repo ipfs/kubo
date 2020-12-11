@@ -251,7 +251,7 @@ func scrub_map(m map[string]interface{}, key []string, okIfMissing bool) (map[st
 	}
 	n := map[string]interface{}{}
 	for k, v := range m {
-		if key[0] == "*" {
+		if key[0] == "*" || strings.ToLower(key[0]) == strings.ToLower(k) {
 			if u, err := scrub_either(v, key[1:], okIfMissing); err != nil {
 				return nil, err
 			} else {
@@ -259,7 +259,7 @@ func scrub_map(m map[string]interface{}, key []string, okIfMissing bool) (map[st
 					n[k] = u
 				}
 			}
-		} else if strings.ToLower(key[0]) != strings.ToLower(k) {
+		} else {
 			n[k] = v
 		}
 	}
