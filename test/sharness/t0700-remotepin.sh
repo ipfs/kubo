@@ -89,18 +89,9 @@ test_expect_success "output includes meaningful error" '
   test_cmp config_exp config_out
 '
 
-test_expect_success "'ipfs config show' doesn't include RemoteServices" '
-  ipfs config show > show_config &&
-  test_expect_code 1 grep RemoteServices show_config
-'
-
-test_expect_success "'ipfs config replace' injects remote services back" '
-  test_expect_code 1 grep -q -E "test_.+_svc" show_config &&
-  ipfs config replace show_config &&
-  test_expect_code 0 grep -q test_pin_svc "$IPFS_PATH/config" &&
-  test_expect_code 0 grep -q test_invalid_key_svc "$IPFS_PATH/config" &&
-  test_expect_code 0 grep -q test_invalid_url_path_svc "$IPFS_PATH/config" &&
-  test_expect_code 0 grep -q test_invalid_url_dns_svc "$IPFS_PATH/config"
+test_expect_success "'ipfs config show' doesn't include Pinning.RemoteServices.*.API.Key" '
+  ipfs config show | jq -r .Pinning.RemoteServices > show_config &&
+  test_expect_code 1 grep \"Key\" show_config
 '
 
 # note: we remove Identity.PrivKey to ensure error is triggered by Pinning.RemoteServices
