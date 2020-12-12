@@ -509,11 +509,12 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				return
 			case <-tmo.C:
 			}
-			log.Infof("Pinning loop is awake")
+			log.Infof("pinning loop is awake")
 
 			// reread the config, which may have changed in the meantime
 			cfg, err := cctx.GetConfig()
 			if err != nil {
+				log.Errorf("pinning reading config (%v)", err)
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
@@ -525,6 +526,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			// get the most recent MFS root cid
 			rootNode, err := node.FilesRoot.GetDirectory().GetNode()
 			if err != nil {
+				log.Errorf("pinning reading mfs root (%v)", err)
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
@@ -540,11 +542,13 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				// skip services where MFS is not enabled
 				svcName, svcConfig := svcName_, svcConfig_
 				if !svcConfig.Policies.MFS.Enable {
+					log.Infof("pinning service %s is not enabled", svcName)
 					continue
 				}
 				// read mfs pin interval for this service
 				repinInterval, err := time.ParseDuration(svcConfig.Policies.MFS.RepinInterval)
 				if err != nil {
+					log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
 					select {
 					case errCh <- fmt.Errorf("remote pinning service %s has invalid mfs pin interval (%v)", svcName, err):
 					case <-cctx.Context().Done():
@@ -554,13 +558,15 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				}
 
 				// do nothing, if MFS has not changed since last pin on the exact same service
-				if last, ok := lastPins[svcName]; ok &&
-					last.ServiceConfig == svcConfig && last.CID == rootCid && time.Since(last.Time) < repinInterval {
-					ch <- lastPin{}
-					continue
+				if last, ok := lastPins[svcName]; ok {
+					if last.ServiceConfig == svcConfig && last.CID == rootCid && time.Since(last.Time) < repinInterval {
+						log.Infof("pinning mfs was pinned to %s recently, skipping", svcName)
+						ch <- lastPin{}
+						continue
+					}
 				}
 
-				log.Infof("Pinning MFS root %s to %s", rootCid, svcName)
+				log.Infof("pinning mfs root %s to %s", rootCid, svcName)
 				go func() {
 					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
 						ch <- lastPin{}
