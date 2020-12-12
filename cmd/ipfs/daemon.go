@@ -509,7 +509,6 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				return
 			case <-tmo.C:
 			}
-			log.Infof("pinning loop is awake")
 
 			// reread the config, which may have changed in the meantime
 			cfg, err := cctx.GetConfig()
@@ -522,6 +521,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 				}
 				continue
 			}
+			log.Infof("pinning loop is awake, %d remote services", len(cfg.Pinning.RemoteServices))
 
 			// get the most recent MFS root cid
 			rootNode, err := node.FilesRoot.GetDirectory().GetNode()
