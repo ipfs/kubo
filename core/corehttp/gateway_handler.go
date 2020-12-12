@@ -181,10 +181,17 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 	originalUrlPath := prefix + requestURI.Path
 
-	// Query parameter handling to support requests produced by navigator.registerProtocolHandler.
-	// E.g. This code will redirect calls to /ipfs/?uri=ipfs%3A%2F%2Fcontent-identifier
-	// to /ipfs/content-identifier.
-	if uri := r.URL.Query().Get("uri"); uri != "" {
+	// ?uri query param support for requests produced by web browsers
+	// via navigator.registerProtocolHandler Web API
+	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+	// TLDR: redirect /ipfs/?uri=ipfs%3A%2F%2Fcid%3Fquery%3Dval to /ipfs/cid?query=val
+	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
+		// Browsers will pass URI in URL-escaped form, we need to unescape it first
+		uri, err := url.QueryUnescape(uriParam)
+		if err != nil {
+			webError(w, "failed to unescape uri query parameter", err, http.StatusBadRequest)
+			return
+		}
 		u, err := url.Parse(uri)
 		if err != nil {
 			webError(w, "failed to parse uri query parameter", err, http.StatusBadRequest)
@@ -194,7 +201,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			webError(w, "uri query parameter scheme must be ipfs or ipns", err, http.StatusBadRequest)
 			return
 		}
-		http.Redirect(w, r, gopath.Join("/", prefix, u.Scheme, u.Host), http.StatusMovedPermanently)
+		path := u.Path
+		if u.RawQuery != "" { // preserve query if present
+			path = path + "?" + u.RawQuery
+		}
+		http.Redirect(w, r, gopath.Join("/", prefix, u.Scheme, u.Host, path), http.StatusMovedPermanently)
 		return
 	}
 
