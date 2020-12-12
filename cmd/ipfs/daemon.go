@@ -541,6 +541,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
 				// skip services where MFS is not enabled
 				svcName, svcConfig := svcName_, svcConfig_
+				log.Infof("pinning considering service %s for mfs pinning", svcName)
 				if !svcConfig.Policies.MFS.Enable {
 					log.Infof("pinning service %s is not enabled", svcName)
 					continue
