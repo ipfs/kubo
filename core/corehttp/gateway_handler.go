@@ -186,13 +186,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
 	// TLDR: redirect /ipfs/?uri=ipfs%3A%2F%2Fcid%3Fquery%3Dval to /ipfs/cid?query=val
 	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
-		// Browsers will pass URI in URL-escaped form, we need to unescape it first
-		uri, err := url.QueryUnescape(uriParam)
-		if err != nil {
-			webError(w, "failed to unescape uri query parameter", err, http.StatusBadRequest)
-			return
-		}
-		u, err := url.Parse(uri)
+		u, err := url.Parse(uriParam)
 		if err != nil {
 			webError(w, "failed to parse uri query parameter", err, http.StatusBadRequest)
 			return
