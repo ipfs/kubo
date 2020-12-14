@@ -486,7 +486,7 @@ var lsRemotePinServiceCmd = &cmds.Command{
 			return err
 		}
 		if cfg.Pinning.RemoteServices == nil {
-			return nil // no pinning services added yet
+			return cmds.EmitOnce(res, &PinServicesList{make([]ServiceDetails, 0)})
 		}
 		services := cfg.Pinning.RemoteServices
 		result := PinServicesList{make([]ServiceDetails, 0, len(services))}
