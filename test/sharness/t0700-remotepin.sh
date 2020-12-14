@@ -12,6 +12,7 @@ fi
 
 # daemon running in online mode to ensure Pin.origins/PinStatus.delegates work
 test_init_ipfs
+export IPFS_LOGGING=INFO
 test_launch_ipfs_daemon
 ipfs log level all info
 
@@ -55,7 +56,7 @@ test_expect_success "test enabling mfs pinning" '
 '
 
 test_expect_success "verify mfs is being pinned" '
-  sleep 40 &&
+  sleep 60 &&
   ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
   ipfs pin remote ls --service=test_pin_mfs_svc --name=mfs_test_pin --enc=json | jq -r .Cid > pin_cid &&
   cat mfs_cid pin_cid &&
