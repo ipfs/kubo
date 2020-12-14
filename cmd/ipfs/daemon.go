@@ -511,7 +511,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			}
 
 			// reread the config, which may have changed in the meantime
-			cfg, err := cctx.GetConfig()
+			cfg, err := cctx.GetConfigNoCache()
 			if err != nil {
 				log.Errorf("pinning reading config (%v)", err)
 				select {
