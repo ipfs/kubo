@@ -106,7 +106,7 @@ The above command will block until remote service returns 'pinned' status,
 which may take time depending on the size and available providers of the pinned
 data.
 
-If you prefer to not wait for pinning confirmation and return immediatelly
+If you prefer to not wait for pinning confirmation and return immediately
 after remote service confirms 'queued' status, add the '--background' flag:
 
   $ ipfs pin remote add --service=mysrv --name=mypin --background bafkqaaa
@@ -240,7 +240,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 		LongDescription: `
 Returns a list of objects that are pinned to a remote pinning service.
 
-NOTE: by default it will only show matching objects in 'pinned' state.
+NOTE: By default, it will only show matching objects in 'pinned' state.
 Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 `,
 	},
@@ -248,8 +248,8 @@ Pass '--status=queued,pinning,pinned,failed' to list pins in all states.
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		pinServiceNameOption,
-		cmds.StringOption(pinNameOptionName, "Return pins with names that contain provided value (case-sensitive, exact match)."),
-		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Return pins for the specified CIDs (comma separated)."),
+		cmds.StringOption(pinNameOptionName, "Return pins with names that contain the value provided (case-sensitive, exact match)."),
+		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Return pins for the specified CIDs (comma-separated)."),
 		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Return pins with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -325,11 +325,11 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 var rmRemotePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Remove pins from remote pinning service.",
-		ShortDescription: "Removes the remote pin allowing it to be garbage collected if needed.",
+		ShortDescription: "Removes the remote pin, allowing it to be garbage-collected if needed.",
 		LongDescription: `
-Removes remote pins allowing them to be garbage collected if needed.
+Removes remote pins, allowing them to be garbage-collected if needed.
 
-This command accepts the same search query parameters as 'ls' and it is a good
+This command accepts the same search query parameters as 'ls', and it is good
 practice to execute 'ls' before 'rm' to confirm the list of pins to be removed.
 
 To remove a single pin for a specific CID:
@@ -337,14 +337,14 @@ To remove a single pin for a specific CID:
   $ ipfs pin remote ls --service=mysrv --cid=bafkqaaa
   $ ipfs pin remote rm --service=mysrv --cid=bafkqaaa
 
-When more than one pin is matching the query on the remote service an error is
-returned.  To confirm removal of multiple pins pass '--force':
+When more than one pin matches the query on the remote service, an error is
+returned.  To confirm the removal of multiple pins, pass '--force':
 
   $ ipfs pin remote ls --service=mysrv --name=popular-name
   $ ipfs pin remote rm --service=mysrv --name=popular-name --force
 
 NOTE: When no '--status' is passed, implicit '--status=pinned' is used.
-To list and then remove all pending pin requests pass an explicit status list:
+To list and then remove all pending pin requests, pass an explicit status list:
 
   $ ipfs pin remote ls --service=mysrv --status=queued,pinning,failed
   $ ipfs pin remote rm --service=mysrv --status=queued,pinning,failed --force
@@ -403,9 +403,9 @@ To list and then remove all pending pin requests pass an explicit status list:
 var addRemotePinServiceCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Add remote pinning service.",
-		ShortDescription: "Add a credentials for access to a remote pinning service.",
+		ShortDescription: "Add credentials for access to a remote pinning service.",
 		LongDescription: `
-Add a credentials for access to a remote pinning service and store them in the
+Add credentials for access to a remote pinning service and store them in the
 config under Pinning.RemoteServices map.
 
 TIP:
@@ -517,8 +517,8 @@ var lsRemotePinServiceCmd = &cmds.Command{
 		LongDescription: `
 List remote pinning services.
 
-By default only a name and an endpoint are listed, however one can pass '--stat'
-to test each endpoint by fetching pin counts for each state:
+By default, only a name and an endpoint are listed; however, one can pass
+'--stat' to test each endpoint by fetching pin counts for each state:
 
   $ ipfs pin remote service ls --stat
   goodsrv   https://pin-api.example.com 0/0/0/0
