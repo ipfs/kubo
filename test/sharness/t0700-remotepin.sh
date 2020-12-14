@@ -12,9 +12,7 @@ fi
 
 # daemon running in online mode to ensure Pin.origins/PinStatus.delegates work
 test_init_ipfs
-export IPFS_LOGGING=INFO
 test_launch_ipfs_daemon
-ipfs log level all info
 
 # create user on pinning service
 TEST_PIN_SVC="http://${DOCKER_HOST}:5000/api/v1"
