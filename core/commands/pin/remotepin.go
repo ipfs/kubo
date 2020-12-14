@@ -443,12 +443,12 @@ TIP:
 		}
 
 		name := req.Arguments[0]
-		url := strings.TrimSuffix(req.Arguments[1], "/pins") // fix /pins/pins :-)
+		url := req.Arguments[1]
 		key := req.Arguments[2]
 
-		u, err := neturl.ParseRequestURI(url)
-		if err != nil || !strings.HasPrefix(u.Scheme, "http") {
-			return fmt.Errorf("service endpoint must be a valid HTTP URL")
+		endpoint, err := normalizeEndpoint(url)
+		if err != nil {
+			return err
 		}
 
 		cfg, err := repo.Config()
@@ -465,7 +465,7 @@ TIP:
 
 		cfg.Pinning.RemoteServices[name] = config.RemotePinningService{
 			Api: config.RemotePinningServiceApi{
-				Endpoint: url,
+				Endpoint: endpoint,
 				Key:      key,
 			},
 		}
@@ -708,7 +708,11 @@ func getRemotePinService(env cmds.Environment, name string) (*pinclient.Client, 
 	if err != nil {
 		return nil, err
 	}
-	return pinclient.NewClient(url, key), nil
+	endpoint, err := normalizeEndpoint(url)
+	if err != nil {
+		return nil, err
+	}
+	return pinclient.NewClient(endpoint, key), nil
 }
 
 func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string, err error) {
@@ -733,4 +737,17 @@ func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string
 		return "", "", fmt.Errorf("service not known")
 	}
 	return service.Api.Endpoint, service.Api.Key, nil
+}
+
+func normalizeEndpoint(endpoint string) (string, error) {
+	uri, err := neturl.ParseRequestURI(endpoint)
+	if err != nil || !strings.HasPrefix(uri.Scheme, "http") {
+		return "", fmt.Errorf("service endpoint must be a valid HTTP URL")
+	}
+	// avoid //pins (https://github.com/ipfs/go-ipfs/issues/7826)
+	uri.Path = strings.TrimSuffix(uri.Path, "/")
+	// avoid /pins/pins
+	uri.Path = strings.TrimSuffix(uri.Path, "/pins")
+
+	return uri.String(), nil
 }
