@@ -752,7 +752,7 @@ func normalizeEndpoint(endpoint string) (string, error) {
 	uri.Path = strings.TrimSuffix(uri.Path, "/")
 
 	// remove any query params
-	if uri.RawQuery != "" || uri.RawFragment != "" {
+	if uri.RawQuery != "" {
 		return "", fmt.Errorf("service endpoint should be provided without any query parameters")
 	}
 
