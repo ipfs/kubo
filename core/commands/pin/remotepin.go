@@ -10,6 +10,7 @@ import (
 	"time"
 
 	neturl "net/url"
+	gopath "path"
 
 	"golang.org/x/sync/errgroup"
 
@@ -744,10 +745,20 @@ func normalizeEndpoint(endpoint string) (string, error) {
 	if err != nil || !strings.HasPrefix(uri.Scheme, "http") {
 		return "", fmt.Errorf("service endpoint must be a valid HTTP URL")
 	}
-	// avoid //pins (https://github.com/ipfs/go-ipfs/issues/7826)
+
+	// cleanup trailing and duplicate slashes (https://github.com/ipfs/go-ipfs/issues/7826)
+	uri.Path = gopath.Clean(uri.Path)
+	uri.Path = strings.TrimSuffix(uri.Path, ".")
 	uri.Path = strings.TrimSuffix(uri.Path, "/")
-	// avoid /pins/pins
-	uri.Path = strings.TrimSuffix(uri.Path, "/pins")
+
+	// remove any query params
+	if uri.RawQuery != "" || uri.RawFragment != "" {
+		return "", fmt.Errorf("service endpoint should be provided without any query parameters")
+	}
+
+	if strings.HasSuffix(uri.Path, "/pins") {
+		return "", fmt.Errorf("service endpoint should be provided without the /pins suffix")
+	}
 
 	return uri.String(), nil
 }

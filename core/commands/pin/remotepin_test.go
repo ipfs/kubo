@@ -22,16 +22,26 @@ func TestNormalizeEndpoint(t *testing.T) {
 		},
 		{
 			in:  "https://3.example.com/pins/",
-			err: "",
-			out: "https://3.example.com",
+			err: "service endpoint should be provided without the /pins suffix",
+			out: "",
 		},
 		{
 			in:  "https://4.example.com/pins",
-			err: "",
-			out: "https://4.example.com",
+			err: "service endpoint should be provided without the /pins suffix",
+			out: "",
 		},
 		{
-			in:  "http://192.168.0.5:45000/pins",
+			in:  "https://5.example.com/./some//nonsense/../path/../path/",
+			err: "",
+			out: "https://5.example.com/some/path",
+		},
+		{
+			in:  "https://6.example.com/endpoint/?query=val",
+			err: "service endpoint should be provided without any query parameters",
+			out: "",
+		},
+		{
+			in:  "http://192.168.0.5:45000/",
 			err: "",
 			out: "http://192.168.0.5:45000",
 		},
@@ -44,12 +54,12 @@ func TestNormalizeEndpoint(t *testing.T) {
 
 	for _, tc := range cases {
 		out, err := normalizeEndpoint(tc.in)
-		if out != tc.out {
-			t.Errorf("unexpected endpoint for %q: expected %q; got %q", tc.in, tc.out, out)
-			continue
-		}
 		if err != nil && tc.err != err.Error() {
 			t.Errorf("unexpected error for %q: expected %q; got %q", tc.in, tc.err, err)
+			continue
+		}
+		if out != tc.out {
+			t.Errorf("unexpected endpoint for %q: expected %q; got %q", tc.in, tc.out, out)
 			continue
 		}
 	}
