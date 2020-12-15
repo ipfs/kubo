@@ -56,8 +56,9 @@ const pinNameOptionName = "name"
 const pinCIDsOptionName = "cid"
 const pinStatusOptionName = "status"
 const pinServiceNameOptionName = "service"
-const pinServiceEndpointOptionName = "endpoint"
-const pinServiceKeyOptionName = "key"
+const pinServiceNameArgName = pinServiceNameOptionName
+const pinServiceEndpointArgName = "endpoint"
+const pinServiceKeyArgName = "key"
 const pinServiceStatOptionName = "stat"
 const pinBackgroundOptionName = "background"
 const pinForceOptionName = "force"
@@ -119,7 +120,7 @@ Status of background pin requests can be inspected with the 'ls' command:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ipfs-path-or-cid", true, false, "Path to object(s) to be pinned."),
+		cmds.StringArg("ipfs-path", true, false, "Path to object(s) to be pinned."),
 	},
 	Options: []cmds.Option{
 		pinServiceNameOption,
@@ -421,9 +422,9 @@ TIP:
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg(pinServiceNameOptionName, true, false, "Service name."),
-		cmds.StringArg(pinServiceEndpointOptionName, true, false, "Service endpoint."),
-		cmds.StringArg(pinServiceKeyOptionName, true, false, "Service key."),
+		cmds.StringArg(pinServiceNameArgName, true, false, "Service name."),
+		cmds.StringArg(pinServiceEndpointArgName, true, false, "Service endpoint."),
+		cmds.StringArg(pinServiceKeyArgName, true, false, "Service key."),
 	},
 	Type: nil,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
