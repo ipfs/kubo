@@ -444,13 +444,11 @@ TIP:
 		}
 
 		name := req.Arguments[0]
-		url := req.Arguments[1]
-		key := req.Arguments[2]
-
-		endpoint, err := normalizeEndpoint(url)
+		endpoint, err := normalizeEndpoint(req.Arguments[1])
 		if err != nil {
 			return err
 		}
+		key := req.Arguments[2]
 
 		cfg, err := repo.Config()
 		if err != nil {
@@ -705,18 +703,14 @@ func getRemotePinService(env cmds.Environment, name string) (*pinclient.Client, 
 	if name == "" {
 		return nil, fmt.Errorf("remote pinning service name not specified")
 	}
-	url, key, err := getRemotePinServiceInfo(env, name)
-	if err != nil {
-		return nil, err
-	}
-	endpoint, err := normalizeEndpoint(url)
+	endpoint, key, err := getRemotePinServiceInfo(env, name)
 	if err != nil {
 		return nil, err
 	}
 	return pinclient.NewClient(endpoint, key), nil
 }
 
-func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string, err error) {
+func getRemotePinServiceInfo(env cmds.Environment, name string) (endpoint, key string, err error) {
 	cfgRoot, err := cmdenv.GetConfigRoot(env)
 	if err != nil {
 		return "", "", err
@@ -737,7 +731,11 @@ func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string
 	if !present {
 		return "", "", fmt.Errorf("service not known")
 	}
-	return service.Api.Endpoint, service.Api.Key, nil
+	endpoint, err = normalizeEndpoint(service.Api.Endpoint)
+	if err != nil {
+		return "", "", err
+	}
+	return endpoint, service.Api.Key, nil
 }
 
 func normalizeEndpoint(endpoint string) (string, error) {
