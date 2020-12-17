@@ -23,7 +23,7 @@ type lastPin struct {
 	CID           cid.Cid
 }
 
-const configPollInterval = time.Minute / 2
+const daemonConfigPollInterval = time.Minute / 2
 
 type pinMFSContext interface {
 	Context() context.Context
@@ -52,7 +52,7 @@ func (x *ipfsPinMFSNode) PeerHost() host.Host {
 	return x.PeerHost()
 }
 
-func pinMFSOnChange(cctx pinMFSContext, node pinMFSNode, errCh chan<- error) error {
+func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node pinMFSNode, errCh chan<- error) error {
 	go func() {
 		defer close(errCh)
 

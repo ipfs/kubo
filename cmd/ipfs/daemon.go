@@ -441,7 +441,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// start MFS pinning thread
 	pinErr := make(chan error)
-	err = pinMFSOnChange(cctx, &ipfsPinMFSNode{node}, pinErr)
+	err = pinMFSOnChange(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node}, pinErr)
 	if err != nil {
 		return err //COV
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	config "github.com/ipfs/go-ipfs-config"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -42,12 +43,9 @@ func (x *testPinMFSNode) PeerHost() host.Host {
 	return nil
 }
 
+var testConfigPollInterval = time.Second
+
 func TestPinMFSConfigError(t *testing.T) {
-	// cfg := &config.Config{
-	// 	Pinning: config.Pinning{
-	// 		XXX,
-	// 	},
-	// }
 	ctx := &testPinMFSContext{
 		ctx: context.Background(),
 		cfg: nil,
@@ -56,7 +54,7 @@ func TestPinMFSConfigError(t *testing.T) {
 	node := &testPinMFSNode{}
 	errCh := make(chan error)
 	go func() {
-		pinMFSOnChange(ctx, node, errCh)
+		pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
 	}()
 	if <-errCh != ctx.err {
 		t.Errorf("error did not propagate")
@@ -79,12 +77,12 @@ func TestPinMFSRootNodeError(t *testing.T) {
 	}
 	errCh := make(chan error)
 	go func() {
-		pinMFSOnChange(ctx, node, errCh)
+		pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
 	}()
-	if <-errCh != ctx.err {
+	if <-errCh != node.err {
 		t.Errorf("error did not propagate")
 	}
-	if <-errCh != ctx.err {
+	if <-errCh != node.err {
 		t.Errorf("error did not propagate")
 	}
 }
