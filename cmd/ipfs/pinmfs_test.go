@@ -2,8 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"testing"
 
 	config "github.com/ipfs/go-ipfs-config"
+	ipld "github.com/ipfs/go-ipld-format"
+	"github.com/ipfs/go-merkledag"
+	"github.com/libp2p/go-libp2p-core/host"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 type testPinMFSContext struct {
@@ -20,15 +26,65 @@ func (x *testPinMFSContext) GetConfigNoCache() (*config.Config, error) {
 	return x.cfg, x.err
 }
 
-// func TestPinMFS(t *testing.T) {
-// 	ctx := &testPinMFSContext{
-// 		ctx: context.Background(),
-// 		cfg: XXX,
-// 		err: XXX,
-// 	}
-// 	node := XXX
-// 	go func() {
-// 		pinMFSOnChange(ctx, node)
-// 	}()
-// 	XXX
-// }
+type testPinMFSNode struct {
+	err error
+}
+
+func (x *testPinMFSNode) RootNode() (ipld.Node, error) {
+	return merkledag.NewRawNode([]byte{0x01}), x.err
+}
+
+func (x *testPinMFSNode) Identity() peer.ID {
+	return peer.ID("test_id")
+}
+
+func (x *testPinMFSNode) PeerHost() host.Host {
+	return nil
+}
+
+func TestPinMFSConfigError(t *testing.T) {
+	// cfg := &config.Config{
+	// 	Pinning: config.Pinning{
+	// 		XXX,
+	// 	},
+	// }
+	ctx := &testPinMFSContext{
+		ctx: context.Background(),
+		cfg: nil,
+		err: fmt.Errorf("couldn't read config"),
+	}
+	node := &testPinMFSNode{}
+	errCh := make(chan error)
+	go func() {
+		pinMFSOnChange(ctx, node, errCh)
+	}()
+	if <-errCh != ctx.err {
+		t.Errorf("error did not propagate")
+	}
+	if <-errCh != ctx.err {
+		t.Errorf("error did not propagate")
+	}
+}
+
+func TestPinMFSRootNodeError(t *testing.T) {
+	ctx := &testPinMFSContext{
+		ctx: context.Background(),
+		cfg: &config.Config{
+			Pinning: config.Pinning{},
+		},
+		err: nil,
+	}
+	node := &testPinMFSNode{
+		err: fmt.Errorf("cannot create root node"),
+	}
+	errCh := make(chan error)
+	go func() {
+		pinMFSOnChange(ctx, node, errCh)
+	}()
+	if <-errCh != ctx.err {
+		t.Errorf("error did not propagate")
+	}
+	if <-errCh != ctx.err {
+		t.Errorf("error did not propagate")
+	}
+}

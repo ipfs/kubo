@@ -52,8 +52,7 @@ func (x *ipfsPinMFSNode) PeerHost() host.Host {
 	return x.PeerHost()
 }
 
-func pinMFSOnChange(cctx pinMFSContext, node pinMFSNode) (<-chan error, error) {
-	errCh := make(chan error)
+func pinMFSOnChange(cctx pinMFSContext, node pinMFSNode, errCh chan<- error) error {
 	go func() {
 		defer close(errCh)
 
@@ -81,26 +80,26 @@ func pinMFSOnChange(cctx pinMFSContext, node pinMFSNode) (<-chan error, error) {
 			// reread the config, which may have changed in the meantime
 			cfg, err := cctx.GetConfigNoCache()
 			if err != nil {
-				log.Errorf("pinning reading config (%v)", err) //COV
+				log.Errorf("pinning reading config (%v)", err)
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
 					return //COV
 				}
-				continue //COV
+				continue
 			}
 			log.Infof("pinning loop is awake, %d remote services", len(cfg.Pinning.RemoteServices))
 
 			// get the most recent MFS root cid
 			rootNode, err := node.RootNode()
 			if err != nil {
-				log.Errorf("pinning reading mfs root (%v)", err) //COV
+				log.Errorf("pinning reading mfs root (%v)", err)
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
 					return //COV
 				}
-				continue //COV
+				continue
 			}
 			rootCid := rootNode.Cid()
 
@@ -150,7 +149,7 @@ func pinMFSOnChange(cctx pinMFSContext, node pinMFSNode) (<-chan error, error) {
 			}
 		}
 	}()
-	return errCh, nil
+	return nil
 }
 
 func pinMFS(

@@ -440,7 +440,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	// start MFS pinning thread
-	pinErr, err := pinMFSOnChange(cctx, &ipfsPinMFSNode{node})
+	pinErr := make(chan error)
+	err = pinMFSOnChange(cctx, &ipfsPinMFSNode{node}, pinErr)
 	if err != nil {
 		return err //COV
 	}
