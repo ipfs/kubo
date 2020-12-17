@@ -30,6 +30,7 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	ipld "github.com/ipfs/go-ipld-format"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -446,9 +447,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	// start MFS pinning thread
-	pinErr, err := pinMFSOnChange(cctx, node)
+	pinErr, err := pinMFSOnChange(cctx, &ipfsPinMFSNode{node})
 	if err != nil {
-		return err
+		return err //COV
 	}
 
 	// The daemon is *finally* ready.
@@ -484,7 +485,34 @@ type lastPin struct {
 
 const configPollInterval = time.Minute / 2
 
-func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, error) {
+type pinMFSContext interface {
+	Context() context.Context
+	GetConfigNoCache() (*config.Config, error)
+}
+
+type pinMFSNode interface {
+	RootNode() (ipld.Node, error)
+	Identity() peer.ID
+	PeerHost() host.Host
+}
+
+type ipfsPinMFSNode struct {
+	node *core.IpfsNode
+}
+
+func (x *ipfsPinMFSNode) RootNode() (ipld.Node, error) {
+	return x.node.FilesRoot.GetDirectory().GetNode()
+}
+
+func (x *ipfsPinMFSNode) Identity() peer.ID {
+	return x.node.Identity
+}
+
+func (x *ipfsPinMFSNode) PeerHost() host.Host {
+	return x.PeerHost()
+}
+
+func pinMFSOnChange(cctx pinMFSContext, node pinMFSNode) (<-chan error, error) {
 	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
@@ -513,26 +541,26 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			// reread the config, which may have changed in the meantime
 			cfg, err := cctx.GetConfigNoCache()
 			if err != nil {
-				log.Errorf("pinning reading config (%v)", err)
+				log.Errorf("pinning reading config (%v)", err) //COV
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
-					return
+					return //COV
 				}
-				continue
+				continue //COV
 			}
 			log.Infof("pinning loop is awake, %d remote services", len(cfg.Pinning.RemoteServices))
 
 			// get the most recent MFS root cid
-			rootNode, err := node.FilesRoot.GetDirectory().GetNode()
+			rootNode, err := node.RootNode()
 			if err != nil {
-				log.Errorf("pinning reading mfs root (%v)", err)
+				log.Errorf("pinning reading mfs root (%v)", err) //COV
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
-					return
+					return //COV
 				}
-				continue
+				continue //COV
 			}
 			rootCid := rootNode.Cid()
 
@@ -540,45 +568,45 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 			ch := make(chan lastPin, len(cfg.Pinning.RemoteServices))
 			for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
 				// skip services where MFS is not enabled
-				svcName, svcConfig := svcName_, svcConfig_
+				svcName, svcConfig := svcName_, svcConfig_ //COV
 				log.Infof("pinning considering service %s for mfs pinning", svcName)
 				if !svcConfig.Policies.MFS.Enable {
 					log.Infof("pinning service %s is not enabled", svcName)
-					continue
+					continue //COV
 				}
 				// read mfs pin interval for this service
-				repinInterval, err := time.ParseDuration(svcConfig.Policies.MFS.RepinInterval)
+				repinInterval, err := time.ParseDuration(svcConfig.Policies.MFS.RepinInterval) //COV
 				if err != nil {
 					log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
 					select {
 					case errCh <- fmt.Errorf("remote pinning service %s has invalid mfs pin interval (%v)", svcName, err):
 					case <-cctx.Context().Done():
-						return
+						return //COV
 					}
-					continue
+					continue //COV
 				}
 
 				// do nothing, if MFS has not changed since last pin on the exact same service
-				if last, ok := lastPins[svcName]; ok {
+				if last, ok := lastPins[svcName]; ok { //COV
 					if last.ServiceConfig == svcConfig && last.CID == rootCid && time.Since(last.Time) < repinInterval {
 						log.Infof("pinning mfs was pinned to %s recently, skipping", svcName)
 						ch <- lastPin{}
-						continue
+						continue //COV
 					}
 				}
 
-				log.Infof("pinning mfs root %s to %s", rootCid, svcName)
+				log.Infof("pinning mfs root %s to %s", rootCid, svcName) //COV
 				go func() {
 					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
-						ch <- lastPin{}
+						ch <- lastPin{} //COV
 					} else {
-						ch <- r
+						ch <- r //COV
 					}
 				}()
 			}
 			for i := 0; i < len(cfg.Pinning.RemoteServices); i++ {
-				x := <-ch
-				lastPins[x.ServiceName] = x
+				x := <-ch                   //COV
+				lastPins[x.ServiceName] = x //COV
 			}
 		}
 	}()
@@ -587,7 +615,7 @@ func pinMFSOnChange(cctx *oldcmds.Context, node *core.IpfsNode) (<-chan error, e
 
 func pinMFS(
 	ctx context.Context,
-	node *core.IpfsNode,
+	node pinMFSNode,
 	cid cid.Cid,
 	svcName string,
 	svcConfig config.RemotePinningService,
@@ -597,7 +625,7 @@ func pinMFS(
 
 	pinName := svcConfig.Policies.MFS.PinName
 	if pinName == "" {
-		pinName = fmt.Sprintf("policy/%s/mfs", node.Identity.String())
+		pinName = fmt.Sprintf("policy/%s/mfs", node.Identity().String())
 	}
 
 	// check if same pin exists
@@ -626,8 +654,8 @@ func pinMFS(
 	// Prepare Pin.origins
 	// Add own multiaddrs to the 'origins' array, so Pinning Service can
 	// use that as a hint and connect back to us (if possible)
-	if node.PeerHost != nil {
-		addrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(node.PeerHost))
+	if node.PeerHost() != nil {
+		addrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(node.PeerHost()))
 		if err != nil {
 			select {
 			case errCh <- err:
