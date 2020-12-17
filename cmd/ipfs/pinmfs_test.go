@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,5 +85,43 @@ func TestPinMFSRootNodeError(t *testing.T) {
 	}
 	if <-errCh != node.err {
 		t.Errorf("error did not propagate")
+	}
+}
+
+func TestPinMFSService(t *testing.T) {
+	ctx := &testPinMFSContext{
+		ctx: context.Background(),
+		cfg: &config.Config{
+			Pinning: config.Pinning{
+				RemoteServices: map[string]config.RemotePinningService{
+					"disabled": {
+						Policies: config.RemotePinningServicePolicies{
+							MFS: config.RemotePinningServiceMFSPolicy{
+								Enable: false,
+							},
+						},
+					},
+					"invalid_interval": {
+						Policies: config.RemotePinningServicePolicies{
+							MFS: config.RemotePinningServiceMFSPolicy{
+								Enable:        true,
+								RepinInterval: "INVALID_INTERVAL",
+							},
+						},
+					},
+				},
+			},
+		},
+		err: nil,
+	}
+	node := &testPinMFSNode{
+		err: nil,
+	}
+	errCh := make(chan error)
+	go func() {
+		pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
+	}()
+	if !strings.HasPrefix((<-errCh).Error(), "remote pinning service invalid_interval has invalid mfs pin interval") {
+		t.Errorf("expecting error from service with invalid repin interval")
 	}
 }
