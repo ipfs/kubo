@@ -254,7 +254,7 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemotePinOutput) error {
 			// pin remote ls produces a flat output similar to legacy pin ls
-			fmt.Fprintf(w, "%s\t%s\t%s\n", out.Cid, out.Status, out.Name)
+			fmt.Fprintf(w, "%s\t%s\t%s\n", out.Cid, out.Status, cmdenv.EscNonPrint(out.Name))
 			return nil
 		}),
 	},

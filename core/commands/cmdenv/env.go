@@ -2,6 +2,7 @@ package cmdenv
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/commands"
@@ -69,4 +70,15 @@ func GetConfigRoot(env cmds.Environment) (string, error) {
 	}
 
 	return ctx.ConfigRoot, nil
+}
+
+// EscNonPrint converts control characters and non-printable characters into Go
+// escape sequences, if the given string contains any.
+func EscNonPrint(s string) string {
+	for _, r := range s {
+		if !strconv.IsPrint(r) {
+			return strings.Trim(strconv.Quote(s), "\"")
+		}
+	}
+	return s
 }
