@@ -154,7 +154,7 @@ Alternatively, publish an <ipfs-path> using a valid PeerID (as listed by
 			if quieter {
 				_, err = fmt.Fprintln(w, cmdenv.EscNonPrint(ie.Name))
 			} else {
-				_, err = fmt.Fprintf(w, "Published to %s: %s\n", cmdenv.EscNonPrint(ie.Name), ie.Value)
+				_, err = fmt.Fprintf(w, "Published to %s: %s\n", cmdenv.EscNonPrint(ie.Name), cmdenv.EscNonPrint(ie.Value))
 			}
 			return err
 		}),
