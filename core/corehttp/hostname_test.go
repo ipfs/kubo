@@ -2,41 +2,121 @@ package corehttp
 
 import (
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	cid "github.com/ipfs/go-cid"
 	config "github.com/ipfs/go-ipfs-config"
+	files "github.com/ipfs/go-ipfs-files"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	path "github.com/ipfs/go-path"
 )
 
 func TestToSubdomainURL(t *testing.T) {
-	r := httptest.NewRequest("GET", "http://request-stub.example.com", nil)
+	ns := mockNamesys{}
+	n, err := newNodeWithMockNamesys(ns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	coreAPI, err := coreapi.NewCoreAPI(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCID, err := coreAPI.Unixfs().Add(n.Context(), files.NewBytesFile([]byte("fnord")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ns["/ipns/dnslink.long-name.example.com"] = path.FromString(testCID.String())
+	ns["/ipns/dnslink.too-long.f1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5o.example.com"] = path.FromString(testCID.String())
+	httpRequest := httptest.NewRequest("GET", "http://127.0.0.1:8080", nil)
+	httpsRequest := httptest.NewRequest("GET", "https://https-request-stub.example.com", nil)
+	httpsProxiedRequest := httptest.NewRequest("GET", "http://proxied-https-request-stub.example.com", nil)
+	httpsProxiedRequest.Header.Set("X-Forwarded-Proto", "https")
+
 	for _, test := range []struct {
 		// in:
-		hostname string
-		path     string
+		request    *http.Request
+		gwHostname string
+		path       string
 		// out:
 		url string
 		err error
 	}{
 		// DNSLink
-		{"localhost", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost/", nil},
+		{httpRequest, "localhost", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost/", nil},
 		// Hostname with port
-		{"localhost:8080", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost:8080/", nil},
+		{httpRequest, "localhost:8080", "/ipns/dnslink.io", "http://dnslink.io.ipns.localhost:8080/", nil},
 		// CIDv0 → CIDv1base32
-		{"localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.localhost/", nil},
+		{httpRequest, "localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.localhost/", nil},
 		// CIDv1 with long sha512
-		{"localhost", "/ipfs/bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "", errors.New("CID incompatible with DNS label length limit of 63: kf1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5oj")},
+		{httpRequest, "localhost", "/ipfs/bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "", errors.New("CID incompatible with DNS label length limit of 63: kf1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5oj")},
 		// PeerID as CIDv1 needs to have libp2p-key multicodec
-		{"localhost", "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://k2k4r8n0flx3ra0y5dr8fmyvwbzy3eiztmtq6th694k5a3rznayp3e4o.ipns.localhost/", nil},
-		{"localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://k2k4r8l9ja7hkzynavdqup76ou46tnvuaqegbd04a4o1mpbsey0meucb.ipns.localhost/", nil},
+		{httpRequest, "localhost", "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://k2k4r8n0flx3ra0y5dr8fmyvwbzy3eiztmtq6th694k5a3rznayp3e4o.ipns.localhost/", nil},
+		{httpRequest, "localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://k2k4r8l9ja7hkzynavdqup76ou46tnvuaqegbd04a4o1mpbsey0meucb.ipns.localhost/", nil},
 		// PeerID: ed25519+identity multihash → CIDv1Base36
-		{"localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna.ipns.localhost/", nil},
-		{"sub.localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.sub.localhost/", nil},
+		{httpRequest, "localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna.ipns.localhost/", nil},
+		{httpRequest, "sub.localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.sub.localhost/", nil},
+		// HTTPS requires DNSLink name to fit in a single DNS label – see "Option C" from https://github.com/ipfs/in-web-browsers/issues/169
+		{httpRequest, "dweb.link", "/ipns/dnslink.long-name.example.com", "http://dnslink.long-name.example.com.ipns.dweb.link/", nil},
+		{httpsRequest, "dweb.link", "/ipns/dnslink.long-name.example.com", "https://dnslink-long--name-example-com.ipns.dweb.link/", nil},
+		{httpsProxiedRequest, "dweb.link", "/ipns/dnslink.long-name.example.com", "https://dnslink-long--name-example-com.ipns.dweb.link/", nil},
 	} {
-		url, err := toSubdomainURL(test.hostname, test.path, r)
+		url, err := toSubdomainURL(test.gwHostname, test.path, test.request, coreAPI)
 		if url != test.url || !equalError(err, test.err) {
-			t.Errorf("(%s, %s) returned (%s, %v), expected (%s, %v)", test.hostname, test.path, url, err, test.url, test.err)
+			t.Errorf("(%s, %s) returned (%s, %v), expected (%s, %v)", test.gwHostname, test.path, url, err, test.url, test.err)
+		}
+	}
+}
+
+func TestToDNSLinkDNSLabel(t *testing.T) {
+	for _, test := range []struct {
+		in  string
+		out string
+		err error
+	}{
+		{"dnslink.long-name.example.com", "dnslink-long--name-example-com", nil},
+		{"dnslink.too-long.f1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5o.example.com", "", errors.New("DNSLink representation incompatible with DNS label length limit of 63: dnslink-too--long-f1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5o-example-com")},
+	} {
+		out, err := toDNSLinkDNSLabel(test.in)
+		if out != test.out || !equalError(err, test.err) {
+			t.Errorf("(%s) returned (%s, %v), expected (%s, %v)", test.in, out, err, test.out, test.err)
+		}
+	}
+}
+
+func TestToDNSLinkFQDN(t *testing.T) {
+	for _, test := range []struct {
+		in  string
+		out string
+	}{
+		{"singlelabel", "singlelabel"},
+		{"docs-ipfs-io", "docs.ipfs.io"},
+		{"dnslink-long--name-example-com", "dnslink.long-name.example.com"},
+	} {
+		out := toDNSLinkFQDN(test.in)
+		if out != test.out {
+			t.Errorf("(%s) returned (%s), expected (%s)", test.in, out, test.out)
+		}
+	}
+}
+
+func TestIsHTTPSRequest(t *testing.T) {
+	httpRequest := httptest.NewRequest("GET", "http://127.0.0.1:8080", nil)
+	httpsRequest := httptest.NewRequest("GET", "https://https-request-stub.example.com", nil)
+	httpsProxiedRequest := httptest.NewRequest("GET", "http://proxied-https-request-stub.example.com", nil)
+	httpsProxiedRequest.Header.Set("X-Forwarded-Proto", "https")
+	for _, test := range []struct {
+		in  *http.Request
+		out bool
+	}{
+		{httpRequest, false},
+		{httpsRequest, true},
+		{httpsProxiedRequest, true},
+	} {
+		out := isHTTPSRequest(test.in)
+		if out != test.out {
+			t.Errorf("(%+v): returned %t, expected %t", test.in, out, test.out)
 		}
 	}
 }
@@ -77,10 +157,9 @@ func TestPortStripping(t *testing.T) {
 			t.Errorf("(%s): returned '%s', expected '%s'", test.in, out, test.out)
 		}
 	}
-
 }
 
-func TestDNSPrefix(t *testing.T) {
+func TestToDNSLabel(t *testing.T) {
 	for _, test := range []struct {
 		in  string
 		out string
@@ -96,7 +175,7 @@ func TestDNSPrefix(t *testing.T) {
 		{"bafkrgqe3ohjcjplc6n4f3fwunlj6upltggn7xqujbsvnvyw764srszz4u4rshq6ztos4chl4plgg4ffyyxnayrtdi5oc4xb2332g645433aeg", "", errors.New("CID incompatible with DNS label length limit of 63: kf1siqrebi3vir8sab33hu5vcy008djegvay6atmz91ojesyjs8lx350b7y7i1nvyw2haytfukfyu2f2x4tocdrfa0zgij6p4zpl4u5oj")},
 	} {
 		inCID, _ := cid.Decode(test.in)
-		out, err := toDNSPrefix(test.in, inCID)
+		out, err := toDNSLabel(test.in, inCID)
 		if out != test.out || !equalError(err, test.err) {
 			t.Errorf("(%s): returned (%s, %v) expected (%s, %v)", test.in, out, err, test.out, test.err)
 		}

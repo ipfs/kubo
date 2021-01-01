@@ -91,7 +91,7 @@ func HostnameOption() ServeOption {
 					if gw.UseSubdomains {
 						// Yes, redirect if applicable
 						// Example: dweb.link/ipfs/{cid} → {cid}.ipfs.dweb.link
-						newURL, err := toSubdomainURL(host, r.URL.Path, r)
+						newURL, err := toSubdomainURL(host, r.URL.Path, r, coreAPI)
 						if err != nil {
 							http.Error(w, err.Error(), http.StatusBadRequest)
 							return
@@ -126,7 +126,7 @@ func HostnameOption() ServeOption {
 				// Not a whitelisted path
 
 				// Try DNSLink, if it was not explicitly disabled for the hostname
-				if !gw.NoDNSLink && isDNSLinkRequest(r.Context(), coreAPI, host) {
+				if !gw.NoDNSLink && isDNSLinkName(r.Context(), coreAPI, host) {
 					// rewrite path and handle as DNSLink
 					r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
 					childMux.ServeHTTP(w, withHostnameContext(r, host))
@@ -139,8 +139,10 @@ func HostnameOption() ServeOption {
 			}
 
 			// HTTP Host check: is this one of our subdomain-based "known gateways"?
-			// Example: {cid}.ipfs.localhost, {cid}.ipfs.dweb.link
-			if gw, hostname, ns, rootID, ok := knownSubdomainDetails(host, knownGateways); ok {
+			// IPFS details extracted from the host: {rootID}.{ns}.{gwHostname}
+			// /ipfs/ example: {cid}.ipfs.localhost:8080, {cid}.ipfs.dweb.link
+			// /ipns/ example: {libp2p-key}.ipns.localhost:8080, {inlined-dnslink-fqdn}.ipns.dweb.link
+			if gw, gwHostname, ns, rootID, ok := knownSubdomainDetails(host, knownGateways); ok {
 				// Looks like we're using a known gateway in subdomain mode.
 
 				// Assemble original path prefix.
@@ -156,14 +158,14 @@ func HostnameOption() ServeOption {
 				// Check if rootID is a valid CID
 				if rootCID, err := cid.Decode(rootID); err == nil {
 					// Do we need to redirect root CID to a canonical DNS representation?
-					dnsCID, err := toDNSPrefix(rootID, rootCID)
+					dnsCID, err := toDNSLabel(rootID, rootCID)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusBadRequest)
 						return
 					}
 					if !strings.HasPrefix(r.Host, dnsCID) {
 						dnsPrefix := "/" + ns + "/" + dnsCID
-						newURL, err := toSubdomainURL(hostname, dnsPrefix+r.URL.Path, r)
+						newURL, err := toSubdomainURL(gwHostname, dnsPrefix+r.URL.Path, r, coreAPI)
 						if err != nil {
 							http.Error(w, err.Error(), http.StatusBadRequest)
 							return
@@ -179,7 +181,7 @@ func HostnameOption() ServeOption {
 					// Do we need to fix multicodec in PeerID represented as CIDv1?
 					if isPeerIDNamespace(ns) {
 						if rootCID.Type() != cid.Libp2pKey {
-							newURL, err := toSubdomainURL(hostname, pathPrefix+r.URL.Path, r)
+							newURL, err := toSubdomainURL(gwHostname, pathPrefix+r.URL.Path, r, coreAPI)
 							if err != nil {
 								http.Error(w, err.Error(), http.StatusBadRequest)
 								return
@@ -191,13 +193,36 @@ func HostnameOption() ServeOption {
 							}
 						}
 					}
+				} else { // rootID is not a CID..
+
+					// Check if rootID is a single DNS label with an inlined
+					// DNSLink FQDN a single DNS label. We support this so
+					// loading DNSLink names over TLS "just works" on public
+					// HTTP gateways.
+					//
+					// Rationale for doing this can be found under "Option C"
+					// at: https://github.com/ipfs/in-web-browsers/issues/169
+					//
+					// TLDR is:
+					// https://dweb.link/ipns/my.v-long.example.com
+					// can be loaded from a subdomain gateway with a wildcard
+					// TLS cert if represented as a single DNS label:
+					// https://my-v--long-example-com.ipns.dweb.link
+					if ns == "ipns" && !strings.Contains(rootID, ".") {
+						// my-v--long-example-com → my.v-long.example.com
+						dnslinkFQDN := toDNSLinkFQDN(rootID)
+						if isDNSLinkName(r.Context(), coreAPI, dnslinkFQDN) {
+							// update path prefix to use real FQDN with DNSLink
+							pathPrefix = "/ipns/" + dnslinkFQDN
+						}
+					}
 				}
 
 				// Rewrite the path to not use subdomains
 				r.URL.Path = pathPrefix + r.URL.Path
 
 				// Serve path request
-				childMux.ServeHTTP(w, withHostnameContext(r, hostname))
+				childMux.ServeHTTP(w, withHostnameContext(r, gwHostname))
 				return
 			}
 			// We don't have a known gateway. Fallback on DNSLink lookup
@@ -206,7 +231,7 @@ func HostnameOption() ServeOption {
 			// 1. is wildcard DNSLink enabled (Gateway.NoDNSLink=false)?
 			// 2. does Host header include a fully qualified domain name (FQDN)?
 			// 3. does DNSLink record exist in DNS?
-			if !cfg.Gateway.NoDNSLink && isDNSLinkRequest(r.Context(), coreAPI, host) {
+			if !cfg.Gateway.NoDNSLink && isDNSLinkName(r.Context(), coreAPI, host) {
 				// rewrite path and handle as DNSLink
 				r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
 				childMux.ServeHTTP(w, withHostnameContext(r, host))
@@ -305,9 +330,10 @@ func isKnownHostname(hostname string, knownGateways gatewayHosts) (gw *config.Ga
 }
 
 // Parses Host header and looks for a known gateway matching subdomain host.
-// If found, returns GatewaySpec and subdomain components.
+// If found, returns GatewaySpec and subdomain components extracted from Host
+// header: {rootID}.{ns}.{gwHostname}
 // Note: hostname is host + optional port
-func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, knownHostname, ns, rootID string, ok bool) {
+func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, gwHostname, ns, rootID string, ok bool) {
 	labels := strings.Split(hostname, ".")
 	// Look for FQDN of a known gateway hostname.
 	// Example: given "dist.ipfs.io.ipns.dweb.link":
@@ -336,9 +362,8 @@ func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *con
 	return nil, "", "", "", false
 }
 
-// isDNSLinkRequest returns bool that indicates if request
-// should return data from content path listed in DNSLink record (if exists)
-func isDNSLinkRequest(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
+// isDNSLinkName returns bool if a valid DNS TXT record exist for provided host
+func isDNSLinkName(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
 	fqdn := stripPort(host)
 	if len(fqdn) == 0 && !isd.IsDomain(fqdn) {
 		return false
@@ -368,8 +393,8 @@ func isPeerIDNamespace(ns string) bool {
 	}
 }
 
-// Converts an identifier to DNS-safe representation that fits in 63 characters
-func toDNSPrefix(rootID string, rootCID cid.Cid) (prefix string, err error) {
+// Converts a CID to DNS-safe representation that fits in 63 characters
+func toDNSLabel(rootID string, rootCID cid.Cid) (dnsCID string, err error) {
 	// Return as-is if things fit
 	if len(rootID) <= dnsLabelMaxLength {
 		return rootID, nil
@@ -388,12 +413,45 @@ func toDNSPrefix(rootID string, rootCID cid.Cid) (prefix string, err error) {
 	return "", fmt.Errorf("CID incompatible with DNS label length limit of 63: %s", rootID)
 }
 
+// Returns true if HTTP request involves TLS certificate.
+// See https://github.com/ipfs/in-web-browsers/issues/169 to uderstand how it
+// impacts DNSLink websites on public gateways.
+func isHTTPSRequest(r *http.Request) bool {
+	// X-Forwarded-Proto if added by a reverse proxy
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
+	xproto := r.Header.Get("X-Forwarded-Proto")
+	// Is request a native TLS (not used atm, but future-proofing)
+	// or a proxied HTTPS (eg. go-ipfs behind nginx at a public gw)?
+	return r.URL.Scheme == "https" || xproto == "https"
+}
+
+// Converts a FQDN to DNS-safe representation that fits in 63 characters:
+// my.v-long.example.com → my-v--long-example-com
+func toDNSLinkDNSLabel(fqdn string) (dnsLabel string, err error) {
+	dnsLabel = strings.ReplaceAll(fqdn, "-", "--")
+	dnsLabel = strings.ReplaceAll(dnsLabel, ".", "-")
+	if len(dnsLabel) > dnsLabelMaxLength {
+		return "", fmt.Errorf("DNSLink representation incompatible with DNS label length limit of 63: %s", dnsLabel)
+	}
+	return dnsLabel, nil
+}
+
+// Converts a DNS-safe representation of DNSLink FQDN to real FQDN:
+// my-v--long-example-com → my.v-long.example.com
+func toDNSLinkFQDN(dnsLabel string) (fqdn string) {
+	fqdn = strings.ReplaceAll(dnsLabel, "--", "@") // @ placeholder is unused in DNS labels
+	fqdn = strings.ReplaceAll(fqdn, "-", ".")
+	fqdn = strings.ReplaceAll(fqdn, "@", "-")
+	return fqdn
+}
+
 // Converts a hostname/path to a subdomain-based URL, if applicable.
-func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, err error) {
+func toSubdomainURL(hostname, path string, r *http.Request, ipfs iface.CoreAPI) (redirURL string, err error) {
 	var scheme, ns, rootID, rest string
 
 	query := r.URL.RawQuery
 	parts := strings.SplitN(path, "/", 4)
+	isHTTPS := isHTTPSRequest(r)
 	safeRedirectURL := func(in string) (out string, err error) {
 		safeURI, err := url.ParseRequestURI(in)
 		if err != nil {
@@ -402,10 +460,7 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, er
 		return safeURI.String(), nil
 	}
 
-	// Support X-Forwarded-Proto if added by a reverse proxy
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
-	xproto := r.Header.Get("X-Forwarded-Proto")
-	if xproto == "https" {
+	if isHTTPS {
 		scheme = "https:"
 	} else {
 		scheme = "http:"
@@ -475,9 +530,35 @@ func toSubdomainURL(hostname, path string, r *http.Request) (redirURL string, er
 		}
 		// 2. Make sure CID fits in a DNS label, adjust encoding if needed
 		//    (https://github.com/ipfs/go-ipfs/issues/7318)
-		rootID, err = toDNSPrefix(rootID, rootCID)
+		rootID, err = toDNSLabel(rootID, rootCID)
 		if err != nil {
 			return "", err
+		}
+	} else { // rootID is not a CID
+
+		// Check if rootID is a FQDN with DNSLink and convert it to TLS-safe
+		// representation that fits in a single DNS label.  We support this so
+		// loading DNSLink names over TLS "just works" on public HTTP gateways
+		// that pass 'https' in X-Forwarded-Proto to go-ipfs.
+		//
+		// Rationale can be found under "Option C"
+		// at: https://github.com/ipfs/in-web-browsers/issues/169
+		//
+		// TLDR is:
+		// /ipns/my.v-long.example.com
+		// can be loaded from a subdomain gateway with a wildcard TLS cert if
+		// represented as a single DNS label:
+		// https://my-v--long-example-com.ipns.dweb.link
+		if isHTTPS && ns == "ipns" && strings.Contains(rootID, ".") {
+			if isDNSLinkName(r.Context(), ipfs, rootID) {
+				// my.v-long.example.com → my-v--long-example-com
+				dnsLabel, err := toDNSLinkDNSLabel(rootID)
+				if err != nil {
+					return "", err
+				}
+				// update path prefix to use real FQDN with DNSLink
+				rootID = dnsLabel
+			}
 		}
 	}
 
