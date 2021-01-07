@@ -106,6 +106,9 @@ func TestIsHTTPSRequest(t *testing.T) {
 	httpsRequest := httptest.NewRequest("GET", "https://https-request-stub.example.com", nil)
 	httpsProxiedRequest := httptest.NewRequest("GET", "http://proxied-https-request-stub.example.com", nil)
 	httpsProxiedRequest.Header.Set("X-Forwarded-Proto", "https")
+	httpProxiedRequest := httptest.NewRequest("GET", "http://proxied-http-request-stub.example.com", nil)
+	httpProxiedRequest.Header.Set("X-Forwarded-Proto", "http")
+	oddballRequest := httptest.NewRequest("GET", "foo://127.0.0.1:8080", nil)
 	for _, test := range []struct {
 		in  *http.Request
 		out bool
@@ -113,6 +116,8 @@ func TestIsHTTPSRequest(t *testing.T) {
 		{httpRequest, false},
 		{httpsRequest, true},
 		{httpsProxiedRequest, true},
+		{httpProxiedRequest, false},
+		{oddballRequest, false},
 	} {
 		out := isHTTPSRequest(test.in)
 		if out != test.out {

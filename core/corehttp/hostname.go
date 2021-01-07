@@ -414,7 +414,7 @@ func toDNSLabel(rootID string, rootCID cid.Cid) (dnsCID string, err error) {
 }
 
 // Returns true if HTTP request involves TLS certificate.
-// See https://github.com/ipfs/in-web-browsers/issues/169 to uderstand how it
+// See https://github.com/ipfs/in-web-browsers/issues/169 to understand how it
 // impacts DNSLink websites on public gateways.
 func isHTTPSRequest(r *http.Request) bool {
 	// X-Forwarded-Proto if added by a reverse proxy
