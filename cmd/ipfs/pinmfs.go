@@ -136,7 +136,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 					}
 				}
 
-				log.Infof("pinning mfs root %s to %s", rootCid, svcName) //COV
+				log.Infof("pinning mfs root %s to %s", rootCid, svcName)
 				go func() {
 					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
 						ch <- lastPin{}
