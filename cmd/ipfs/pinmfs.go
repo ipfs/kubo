@@ -107,11 +107,12 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 			ch := make(chan lastPin, len(cfg.Pinning.RemoteServices))
 			for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
 				// skip services where MFS is not enabled
-				svcName, svcConfig := svcName_, svcConfig_ //COV
+				svcName, svcConfig := svcName_, svcConfig_
 				log.Infof("pinning considering service %s for mfs pinning", svcName)
 				if !svcConfig.Policies.MFS.Enable {
 					log.Infof("pinning service %s is not enabled", svcName)
-					continue //COV
+					ch <- lastPin{}
+					continue
 				}
 				// read mfs pin interval for this service
 				repinInterval, err := time.ParseDuration(svcConfig.Policies.MFS.RepinInterval) //COV
@@ -122,7 +123,8 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 					case <-cctx.Context().Done():
 						return //COV
 					}
-					continue //COV
+					ch <- lastPin{}
+					continue
 				}
 
 				// do nothing, if MFS has not changed since last pin on the exact same service
@@ -137,15 +139,15 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 				log.Infof("pinning mfs root %s to %s", rootCid, svcName) //COV
 				go func() {
 					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
-						ch <- lastPin{} //COV
+						ch <- lastPin{}
 					} else {
 						ch <- r //COV
 					}
 				}()
 			}
 			for i := 0; i < len(cfg.Pinning.RemoteServices); i++ {
-				x := <-ch                   //COV
-				lastPins[x.ServiceName] = x //COV
+				x := <-ch
+				lastPins[x.ServiceName] = x
 			}
 		}
 	}()
