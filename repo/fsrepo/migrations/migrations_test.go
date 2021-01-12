@@ -3,8 +3,10 @@ package migrations
 import (
 	"context"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -21,6 +23,9 @@ func TestFindMigrations(t *testing.T) {
 	migs, bins, err := findMigrations(ctx, 0, 5)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(migs) != 5 {
+		t.Fatal("expected 5 migrations")
 	}
 	if len(bins) != 0 {
 		t.Fatal("should not have found migrations")
@@ -57,16 +62,22 @@ func TestFindMigrations(t *testing.T) {
 }
 
 func TestFetchMigrations(t *testing.T) {
-	t.Skip("skip - migrations not available on distribution site yet")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, err := LatestDistVersion(ctx, "ipfs-1-to-2")
+	if err != nil {
+		if strings.Contains(err.Error(), http.StatusText(http.StatusNotFound)) {
+			t.Skip("skip - migrations not yet available on distribution site")
+		}
+		t.Fatal(err)
+	}
 
 	tmpDir, err := ioutil.TempDir("", "migratetest")
 	if err != nil {
 		panic(err)
 	}
 	defer os.RemoveAll(tmpDir)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	needed := []string{"ipfs-1-to-2", "ipfs-2-to-3"}
 	fetched, err := fetchMigrations(ctx, needed, tmpDir)
@@ -89,5 +100,8 @@ func createFakeBin(from, to int, tmpDir string) {
 		panic(err)
 	}
 	emptyFile.Close()
-	os.Chmod(migPath, 0755)
+	err = os.Chmod(migPath, 0755)
+	if err != nil {
+		panic(err)
+	}
 }

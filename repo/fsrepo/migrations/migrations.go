@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	// Migrations distribution
-	distMigsRoot = "go-ipfs-repo-migrations"
+	// Migrations subdirectory in distribution. Empty for root (no subdir).
+	distMigsRoot = ""
 	distFSRM     = "fs-repo-migrations"
 )
 

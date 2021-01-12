@@ -40,7 +40,7 @@ func TestHttpFetch(t *testing.T) {
 
 	// Check bad URL
 	url = gatewayURL + path.Join(ipfsDistPath, distFSRM, "no_such_file")
-	rc, err = httpFetch(ctx, url)
+	_, err = httpFetch(ctx, url)
 	if err == nil || !strings.Contains(err.Error(), "404") {
 		t.Fatal("expected error 404")
 	}
@@ -81,7 +81,7 @@ func TestIpfsFetch(t *testing.T) {
 
 	// Check bad URL
 	url = path.Join(ipfsDistPath, distFSRM, "no_such_file")
-	rc, err = ipfsFetch(ctx, url)
+	_, err = ipfsFetch(ctx, url)
 	if err == nil || !strings.Contains(err.Error(), "no link") {
 		t.Fatal("expected 'no link' error, got:", err)
 	}
