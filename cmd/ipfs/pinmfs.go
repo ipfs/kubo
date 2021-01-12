@@ -49,7 +49,7 @@ func (x *ipfsPinMFSNode) Identity() peer.ID {
 }
 
 func (x *ipfsPinMFSNode) PeerHost() host.Host {
-	return x.PeerHost()
+	return x.node.PeerHost
 }
 
 func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node pinMFSNode, errCh chan<- error) error {
