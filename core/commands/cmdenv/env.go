@@ -72,13 +72,27 @@ func GetConfigRoot(env cmds.Environment) (string, error) {
 	return ctx.ConfigRoot, nil
 }
 
-// EscNonPrint converts control characters and non-printable characters into Go
+// EscNonPrint converts non-printable characters and backslash into Go
 // escape sequences, if the given string contains any.
 func EscNonPrint(s string) string {
+	// First see if escaping is needed, to avoid creating garbage.
+	if !needEscape(s) {
+		return s
+	}
+
+	esc := strconv.Quote(s)
+	// Remove first and last quote, and unescape quotes.
+	return strings.ReplaceAll(esc[1:len(esc)-1], `\"`, `"`)
+}
+
+func needEscape(s string) bool {
+	if strings.ContainsRune(s, '\\') {
+		return true
+	}
 	for _, r := range s {
 		if !strconv.IsPrint(r) {
-			return strings.Trim(strconv.Quote(s), "\"")
+			return true
 		}
 	}
-	return s
+	return false
 }
