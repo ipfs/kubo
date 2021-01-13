@@ -90,7 +90,7 @@ func TestPeeringService(t *testing.T) {
 	// All conns to peer should eventually close.
 	for _, c := range conns {
 		require.Eventually(t, func() bool {
-			s, err := c.NewStream()
+			s, err := c.NewStream(context.Background())
 			if s != nil {
 				_ = s.Reset()
 			}
