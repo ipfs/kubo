@@ -213,12 +213,12 @@ If possible, please use 'ipfs ls' instead.
 				if len(out.Arguments) > 1 {
 					for _, arg := range directories[i:] {
 						if out.Arguments[arg] == hash {
-							fmt.Fprintf(tw, "%s:\n", arg)
+							fmt.Fprintf(tw, "%s:\n", cmdenv.EscNonPrint(arg))
 						}
 					}
 				}
 				for _, link := range object.Links {
-					fmt.Fprintf(tw, "%s\n", link.Name)
+					fmt.Fprintf(tw, "%s\n", cmdenv.EscNonPrint(link.Name))
 				}
 			}
 			tw.Flush()

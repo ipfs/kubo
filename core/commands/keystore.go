@@ -383,9 +383,9 @@ var keyRenameCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, kro *KeyRenameOutput) error {
 			if kro.Overwrite {
-				fmt.Fprintf(w, "Key %s renamed to %s with overwriting\n", kro.Id, kro.Now)
+				fmt.Fprintf(w, "Key %s renamed to %s with overwriting\n", kro.Id, cmdenv.EscNonPrint(kro.Now))
 			} else {
-				fmt.Fprintf(w, "Key %s renamed to %s\n", kro.Id, kro.Now)
+				fmt.Fprintf(w, "Key %s renamed to %s\n", kro.Id, cmdenv.EscNonPrint(kro.Now))
 			}
 			return nil
 		}),
@@ -547,9 +547,9 @@ func keyOutputListEncoders() cmds.EncoderFunc {
 		tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 		for _, s := range list.Keys {
 			if withID {
-				fmt.Fprintf(tw, "%s\t%s\t\n", s.Id, s.Name)
+				fmt.Fprintf(tw, "%s\t%s\t\n", s.Id, cmdenv.EscNonPrint(s.Name))
 			} else {
-				fmt.Fprintf(tw, "%s\n", s.Name)
+				fmt.Fprintf(tw, "%s\n", cmdenv.EscNonPrint(s.Name))
 			}
 		}
 		tw.Flush()
