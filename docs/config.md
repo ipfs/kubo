@@ -709,8 +709,9 @@ Below is a list of the most common public gateway setups.
    ```
    **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:  
    `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`  
-   **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
+   **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
    `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`  
+   `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`  
    **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
    `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
    
