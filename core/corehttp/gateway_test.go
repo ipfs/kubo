@@ -184,6 +184,7 @@ func TestUriQueryRedirect(t *testing.T) {
 		{"/ipns/?uri=ipns://" + cid, http.StatusMovedPermanently, "/ipns/" + cid},
 		{"/ipns/?uri=ipfs://" + cid, http.StatusMovedPermanently, "/ipfs/" + cid},
 		{"/ipfs/?uri=unsupported://" + cid, http.StatusBadRequest, ""},
+		{"/ipfs/?uri=invaliduri", http.StatusBadRequest, ""},
 		{"/ipfs/?uri=" + cid, http.StatusBadRequest, ""},
 	} {
 
