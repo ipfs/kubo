@@ -12,10 +12,6 @@ var (
 	fakeIpfs string
 )
 
-func init() {
-	CacheIpfsDir(false)
-}
-
 func TestRepoDir(t *testing.T) {
 	var err error
 	fakeHome, err = ioutil.TempDir("", "testhome")
@@ -33,7 +29,7 @@ func TestRepoDir(t *testing.T) {
 }
 
 func testFindIpfsDir(t *testing.T) {
-	_, err := findIpfsDir()
+	_, err := CheckIpfsDir("")
 	if err == nil {
 		t.Fatal("expected error when no .ipfs directory to find")
 	}
@@ -43,7 +39,7 @@ func testFindIpfsDir(t *testing.T) {
 		panic(err)
 	}
 
-	dir, err := findIpfsDir()
+	dir, err := IpfsDir("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +48,7 @@ func testFindIpfsDir(t *testing.T) {
 	}
 
 	os.Setenv("IPFS_PATH", "~/.ipfs")
-	dir, err = findIpfsDir()
+	dir, err = IpfsDir("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,12 +58,12 @@ func testFindIpfsDir(t *testing.T) {
 }
 
 func testCheckIpfsDir(t *testing.T) {
-	_, err := checkIpfsDir("~/no_such_dir")
+	_, err := CheckIpfsDir("~/no_such_dir")
 	if err == nil {
 		t.Fatal("expected error from nonexistent directory")
 	}
 
-	dir, err := checkIpfsDir("~/.ipfs")
+	dir, err := CheckIpfsDir("~/.ipfs")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -22,7 +22,7 @@ const (
 // RunMigration finds, downloads, and runs the individual migrations needed to
 // migrate the repo from its current version to the target version.
 func RunMigration(ctx context.Context, targetVer int, ipfsDir string) error {
-	ipfsDir, err := checkIpfsDir(ipfsDir)
+	ipfsDir, err := CheckIpfsDir(ipfsDir)
 	if err != nil {
 		return err
 	}

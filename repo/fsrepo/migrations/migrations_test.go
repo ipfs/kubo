@@ -65,6 +65,7 @@ func TestFetchMigrations(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	SetIpfsDistPath("/ipfs/QmdFVsmD668ijuBFJwjyXdP5Sq44a5bPNAq3nnQF77kpyJ")
 	_, err := LatestDistVersion(ctx, "ipfs-1-to-2")
 	if err != nil {
 		if strings.Contains(err.Error(), http.StatusText(http.StatusNotFound)) {
