@@ -72,10 +72,11 @@ func GetConfigRoot(env cmds.Environment) (string, error) {
 	return ctx.ConfigRoot, nil
 }
 
-// EscNonPrint converts non-printable characters and backslash into Go
-// escape sequences, if the given string contains any.
+// EscNonPrint converts non-printable characters and backslash into Go escape
+// sequences.  This is done to display all characters in a string, including
+// those that would otherwise not be displayed or have an undesirable effect on
+// the display.
 func EscNonPrint(s string) string {
-	// First see if escaping is needed, to avoid creating garbage.
 	if !needEscape(s) {
 		return s
 	}
