@@ -209,11 +209,14 @@ func HostnameOption() ServeOption {
 					// TLS cert if represented as a single DNS label:
 					// https://my-v--long-example-com.ipns.dweb.link
 					if ns == "ipns" && !strings.Contains(rootID, ".") {
-						// my-v--long-example-com → my.v-long.example.com
-						dnslinkFQDN := toDNSLinkFQDN(rootID)
-						if isDNSLinkName(r.Context(), coreAPI, dnslinkFQDN) {
-							// update path prefix to use real FQDN with DNSLink
-							pathPrefix = "/ipns/" + dnslinkFQDN
+						// if there is no TXT recordfor rootID
+						if !isDNSLinkName(r.Context(), coreAPI, rootID) {
+							// my-v--long-example-com → my.v-long.example.com
+							dnslinkFQDN := toDNSLinkFQDN(rootID)
+							if isDNSLinkName(r.Context(), coreAPI, dnslinkFQDN) {
+								// update path prefix to use real FQDN with DNSLink
+								pathPrefix = "/ipns/" + dnslinkFQDN
+							}
 						}
 					}
 				}
