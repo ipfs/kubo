@@ -379,7 +379,12 @@ test_expect_success "request for http://example.com/ipfs/{CID} with X-Forwarded-
   test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
-
+# Support ipfs:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipfs/?uri=ipfs%3A%2F%2F.. produces redirect to /ipfs/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/?uri=ipfs%3A%2F%2FQmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco%2Fwiki%2FDiego_Maradona.html" \
+  "Location: /ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Diego_Maradona.html"
 
 # example.com/ipns/<libp2p-key>
 
@@ -410,6 +415,13 @@ test_expect_success \
   curl -H \"Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki\" > response &&
   test_should_contain \"Location: https://en-wikipedia--on--ipfs-org.ipns.example.com/wiki\" response
   "
+
+# Support ipns:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/?uri=ipns%3A%2F%2F.. produces redirect to /ipns/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/?uri=ipns%3A%2F%2Fen.wikipedia-on-ipfs.org" \
+  "Location: /ipns/en.wikipedia-on-ipfs.org"
 
 # *.ipfs.example.com: subdomain requests made with custom FQDN in Host header
 
