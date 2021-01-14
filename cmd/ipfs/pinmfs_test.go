@@ -144,7 +144,7 @@ func TestPinMFSService(t *testing.T) {
 			},
 		},
 	}
-	testPinMFSServiceWithError(t, cfg_invalid_interval, "remote pinning service invalid_interval has invalid mfs pin interval")
+	testPinMFSServiceWithError(t, cfg_invalid_interval, "remote pinning service invalid_interval has invalid MFS.RepinInterval")
 	testPinMFSServiceWithError(t, cfg_valid_unnamed, "error while listing remote pins: empty response from remote pinning service")
 	testPinMFSServiceWithError(t, cfg_valid_named, "error while listing remote pins: empty response from remote pinning service")
 }
