@@ -182,7 +182,7 @@ func pinMFS(
 	for ps := range lsPinCh {
 		existingRequestID = ps.GetRequestId()
 		if ps.GetPin().GetCid() == cid {
-			alreadyPinned = true
+			alreadyPinned = ps.GetStatus() != pinclient.StatusFailed
 			break
 		}
 	}
