@@ -73,12 +73,9 @@ func testCheckIpfsDir(t *testing.T) {
 }
 
 func testRepoVersion(t *testing.T) {
-	ver, err := RepoVersion(fakeIpfs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ver != 0 {
-		t.Fatal("expected version 0 when no version file")
+	_, err := RepoVersion(fakeIpfs)
+	if !os.IsNotExist(err) {
+		t.Fatal("expected not-exist error")
 	}
 
 	testVer := 42
@@ -87,6 +84,7 @@ func testRepoVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	var ver int
 	ver, err = RepoVersion(fakeIpfs)
 	if err != nil {
 		t.Fatal(err)

@@ -143,11 +143,7 @@ func WriteRepoVersion(ipfsDir string, version int) error {
 func repoVersion(ipfsDir string) (int, error) {
 	c, err := ioutil.ReadFile(path.Join(ipfsDir, versionFile))
 	if err != nil {
-		if os.IsNotExist(err) {
-			// IPFS directory exists without version file, so version 0
-			return 0, nil
-		}
-		return 0, fmt.Errorf("cannot read repo version file: %s", err)
+		return 0, err
 	}
 
 	ver, err := strconv.Atoi(strings.TrimSpace(string(c)))
