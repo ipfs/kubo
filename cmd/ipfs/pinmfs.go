@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "expvar"
 	"fmt"
-	_ "net/http/pprof"
 	"time"
 
 	cid "github.com/ipfs/go-cid"
@@ -85,7 +84,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
-					return //COV
+					return
 				}
 				continue
 			}
@@ -98,7 +97,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
-					return //COV
+					return
 				}
 				continue
 			}
@@ -120,13 +119,13 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 				if svcConfig.Policies.MFS.RepinInterval == "" {
 					repinInterval = defaultRepinInterval
 				} else {
-					repinInterval, err = time.ParseDuration(svcConfig.Policies.MFS.RepinInterval) //COV
+					repinInterval, err = time.ParseDuration(svcConfig.Policies.MFS.RepinInterval)
 					if err != nil {
 						log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
 						select {
 						case errCh <- fmt.Errorf("remote pinning service %s has invalid mfs pin interval (%v)", svcName, err):
 						case <-cctx.Context().Done():
-							return //COV
+							return
 						}
 						ch <- lastPin{}
 						continue
@@ -134,11 +133,11 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 				}
 
 				// do nothing, if MFS has not changed since last pin on the exact same service
-				if last, ok := lastPins[svcName]; ok { //COV
+				if last, ok := lastPins[svcName]; ok {
 					if last.ServiceConfig == svcConfig && last.CID == rootCid && time.Since(last.Time) < repinInterval {
 						log.Infof("pinning mfs was pinned to %s recently, skipping", svcName)
 						ch <- lastPin{}
-						continue //COV
+						continue
 					}
 				}
 
@@ -147,7 +146,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
 						ch <- lastPin{}
 					} else {
-						ch <- r //COV
+						ch <- r
 					}
 				}()
 			}
