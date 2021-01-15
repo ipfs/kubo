@@ -179,10 +179,12 @@ func pinMFS(
 	lsPinCh, lsErrCh := c.Ls(ctx, pinclient.PinOpts.FilterName(pinName), pinclient.PinOpts.FilterStatus(pinStatuses...))
 	existingRequestID := "" // is there any pre-existing MFS pin with pinName (for any CID)?
 	alreadyPinned := false  // is CID for current MFS already pinned?
+	pinTime := time.Now()
 	for ps := range lsPinCh {
 		existingRequestID = ps.GetRequestId()
-		if ps.GetPin().GetCid() == cid {
-			alreadyPinned = ps.GetStatus() != pinclient.StatusFailed
+		if ps.GetPin().GetCid() == cid && ps.GetStatus() != pinclient.StatusFailed {
+			alreadyPinned = true
+			pinTime = ps.GetCreated()
 			break
 		}
 	}
@@ -197,8 +199,8 @@ func pinMFS(
 
 	// CID of the current MFS root is already pinned, nothing to do
 	if alreadyPinned {
-		log.Infof("pinning MFS to %s: pin for %s already exists, skipping", svcName, cid)
-		return lastPin{Time: time.Now(), ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
+		log.Infof("pinning MFS to %s: pin for %s exists since %q, skipping", svcName, cid, pinTime)
+		return lastPin{Time: pinTime, ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 	}
 
 	// Prepare Pin.name
@@ -241,5 +243,5 @@ func pinMFS(
 			return lastPin{}, err
 		}
 	}
-	return lastPin{Time: time.Now(), ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
+	return lastPin{Time: pinTime, ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 }
