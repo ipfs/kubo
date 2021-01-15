@@ -134,7 +134,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 
 				// do nothing, if MFS has not changed since last pin on the exact same service
 				if last, ok := lastPins[svcName]; ok {
-					if last.ServiceConfig == svcConfig && last.CID == rootCid && time.Since(last.Time) < repinInterval {
+					if last.ServiceConfig == svcConfig && (last.CID == rootCid || time.Since(last.Time) < repinInterval) {
 						log.Infof("pinning MFS root to %s: %s was pinned recently, skipping", svcName, rootCid)
 						ch <- lastPin{}
 						continue
