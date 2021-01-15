@@ -198,7 +198,7 @@ func pinMFS(
 	// CID of the current MFS root is already pinned, nothing to do
 	if alreadyPinned {
 		log.Infof("pinning MFS to %s: pin for %s already exists, skipping", svcName, cid)
-		return lastPin{}, nil
+		return lastPin{Time: time.Now(), ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 	}
 
 	// Prepare Pin.name
