@@ -24,6 +24,7 @@ type lastPin struct {
 }
 
 const daemonConfigPollInterval = time.Minute / 2
+const defaultRepinInterval = 5 * time.Minute
 
 type pinMFSContext interface {
 	Context() context.Context
@@ -115,16 +116,21 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 					continue
 				}
 				// read mfs pin interval for this service
-				repinInterval, err := time.ParseDuration(svcConfig.Policies.MFS.RepinInterval) //COV
-				if err != nil {
-					log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
-					select {
-					case errCh <- fmt.Errorf("remote pinning service %s has invalid mfs pin interval (%v)", svcName, err):
-					case <-cctx.Context().Done():
-						return //COV
+				var repinInterval time.Duration
+				if svcConfig.Policies.MFS.RepinInterval == "" {
+					repinInterval = defaultRepinInterval
+				} else {
+					repinInterval, err = time.ParseDuration(svcConfig.Policies.MFS.RepinInterval) //COV
+					if err != nil {
+						log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
+						select {
+						case errCh <- fmt.Errorf("remote pinning service %s has invalid mfs pin interval (%v)", svcName, err):
+						case <-cctx.Context().Done():
+							return //COV
+						}
+						ch <- lastPin{}
+						continue
 					}
-					ch <- lastPin{}
-					continue
 				}
 
 				// do nothing, if MFS has not changed since last pin on the exact same service
