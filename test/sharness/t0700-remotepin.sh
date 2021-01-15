@@ -39,13 +39,13 @@ test_expect_success "test 'ipfs pin remote service ls'" '
 '
 
 test_expect_success "test enabling mfs pinning" '
-  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval \"30s\" &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval \"15s\" &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName \"mfs_test_pin\" &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable true &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval > repin_interval &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName > pin_name &&
   ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable > enable &&
-  echo 30s > expected_repin_interval &&
+  echo 15s > expected_repin_interval &&
   echo mfs_test_pin > expected_pin_name &&
   echo true > expected_enable &&
   test_cmp repin_interval expected_repin_interval &&
@@ -53,11 +53,12 @@ test_expect_success "test enabling mfs pinning" '
   test_cmp enable expected_enable
 '
 
-test_expect_success "verify mfs is being pinned" '
+test_expect_success "verify MFS root is being pinned" '
+  ipfs files cp /ipfs/bafkqaaa /mfs-pinning-test-$(date +%s.%N) &&
   sleep 60 &&
   ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
-  ipfs pin remote ls --service=test_pin_mfs_svc --name=mfs_test_pin --enc=json | jq -r .Cid > pin_cid &&
-  cat mfs_cid pin_cid &&
+  ipfs pin remote ls --service=test_pin_mfs_svc --name=mfs_test_pin --status=queued,pinning,pinned,failed --enc=json | tee ls_out | jq -r .Cid > pin_cid &&
+  cat mfs_cid ls_out &&
   test_cmp mfs_cid pin_cid
 '
 
