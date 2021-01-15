@@ -123,7 +123,12 @@ func findMigrations(ctx context.Context, from, to int) ([]string, map[string]str
 		if ctx.Err() != nil {
 			return nil, nil, ctx.Err()
 		}
-		migName := migrationName(cur, cur+step)
+		var migName string
+		if step == -1 {
+			migName = migrationName(cur+step, cur)
+		} else {
+			migName = migrationName(cur, cur+step)
+		}
 		migrations = append(migrations, migName)
 		bin, err := exec.LookPath(migName)
 		if err != nil {
