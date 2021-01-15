@@ -224,8 +224,8 @@ Returns a list of objects that are pinned to a remote pinning service.
 	Arguments: []cmds.Argument{},
 	Options: []cmds.Option{
 		cmds.StringOption(pinNameOptionName, "Return pins objects with names that contain provided value (case-sensitive, exact match)."),
-		cmds.StringsOption(pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
-		cmds.StringsOption(pinStatusOptionName, "Return only pin objects with the specified statuses (queued,pinning,pinned,failed)").WithDefault([]string{"pinned"}),
+		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Return only pin objects for the specified CID(s); optional, comma separated."),
+		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Return only pin objects with the specified statuses (queued,pinning,pinned,failed)").WithDefault([]string{"pinned"}),
 		pinServiceNameOption,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -270,8 +270,8 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 
 	if cidsRaw, cidsFound := req.Options[pinCIDsOptionName]; cidsFound {
 		cidsRawArr := cidsRaw.([]string)
-		parsedCIDs := []cid.Cid{}
-		for _, rawCID := range flattenCommaList(cidsRawArr) {
+		var parsedCIDs []cid.Cid
+		for _, rawCID := range cidsRawArr {
 			parsedCID, err := cid.Decode(rawCID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("CID %q cannot be parsed: %v", rawCID, err)
@@ -282,8 +282,8 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 	}
 	if statusRaw, statusFound := req.Options[pinStatusOptionName]; statusFound {
 		statusRawArr := statusRaw.([]string)
-		parsedStatuses := []pinclient.Status{}
-		for _, rawStatus := range flattenCommaList(statusRawArr) {
+		var parsedStatuses []pinclient.Status
+		for _, rawStatus := range statusRawArr {
 			s := pinclient.Status(rawStatus)
 			if s.String() == string(pinclient.StatusUnknown) {
 				return nil, nil, fmt.Errorf("status %q is not valid", rawStatus)
@@ -296,14 +296,6 @@ func lsRemote(ctx context.Context, req *cmds.Request, c *pinclient.Client) (chan
 	psCh, errCh := c.Ls(ctx, opts...)
 
 	return psCh, errCh, nil
-}
-
-func flattenCommaList(list []string) []string {
-	flatList := list[:0]
-	for _, s := range list {
-		flatList = append(flatList, strings.Split(s, ",")...)
-	}
-	return flatList
 }
 
 var rmRemotePinCmd = &cmds.Command{
@@ -319,8 +311,8 @@ collected if needed.
 	Options: []cmds.Option{
 		pinServiceNameOption,
 		cmds.StringOption(pinNameOptionName, "Remove pin objects with names that contain provided value (case-sensitive, exact match)."),
-		cmds.StringsOption(pinCIDsOptionName, "Remove only pin objects for the specified CID(s)."),
-		cmds.StringsOption(pinStatusOptionName, "Remove only pin objects with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
+		cmds.DelimitedStringsOption(",", pinCIDsOptionName, "Remove only pin objects for the specified CID(s)."),
+		cmds.DelimitedStringsOption(",", pinStatusOptionName, "Remove only pin objects with the specified statuses (queued,pinning,pinned,failed).").WithDefault([]string{"pinned"}),
 		cmds.BoolOption(pinForceOptionName, "Remove multiple pins without confirmation.").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
