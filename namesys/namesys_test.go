@@ -114,7 +114,13 @@ func TestPublishWithCache0(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = nsys.Publish(context.Background(), priv, p)
+
+	pid, err = peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nsys.Publish(context.Background(), priv, p, pid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +157,13 @@ func TestPublishWithTTL(t *testing.T) {
 	eol := time.Now().Add(2 * time.Second)
 
 	ctx := context.WithValue(context.Background(), "ipns-publish-ttl", ttl)
-	err = nsys.Publish(ctx, priv, p)
+
+	pid, err = peer.IDFromPrivateKey(priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nsys.Publish(ctx, priv, p, pid)
 	if err != nil {
 		t.Fatal(err)
 	}

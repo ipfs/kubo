@@ -65,12 +65,13 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 	}
 
 	eol := time.Now().Add(options.ValidTime)
-	err = api.namesys.PublishWithEOL(ctx, k, pth, eol)
+
+	pid, err := peer.IDFromPrivateKey(k)
 	if err != nil {
 		return nil, err
 	}
 
-	pid, err := peer.IDFromPrivateKey(k)
+	err = api.namesys.PublishWithEOL(ctx, k, pth, eol, pid)
 	if err != nil {
 		return nil, err
 	}

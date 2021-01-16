@@ -11,6 +11,7 @@ import (
 	mockrouting "github.com/ipfs/go-ipfs-routing/mock"
 	ipns "github.com/ipfs/go-ipns"
 	path "github.com/ipfs/go-path"
+	"github.com/libp2p/go-libp2p-core/peer"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	tnet "github.com/libp2p/go-libp2p-testing/net"
 )
@@ -27,7 +28,13 @@ func TestRoutingResolve(t *testing.T) {
 	identity := tnet.RandIdentityOrFatal(t)
 
 	h := path.FromString("/ipfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN")
-	err := publisher.Publish(context.Background(), identity.PrivateKey(), h)
+
+	pid, err := peer.IDFromPrivateKey(identity.PrivateKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = publisher.Publish(context.Background(), identity.PrivateKey(), h, pid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,8 +71,13 @@ func TestPrexistingExpiredRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	pid, err := peer.IDFromPrivateKey(identity.PrivateKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Now, with an old record in the system already, try and publish a new one
-	err = publisher.Publish(context.Background(), identity.PrivateKey(), h)
+	err = publisher.Publish(context.Background(), identity.PrivateKey(), h, pid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,8 +109,13 @@ func TestPrexistingRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	pid, err := peer.IDFromPrivateKey(identity.PrivateKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Now, with an old record in the system already, try and publish a new one
-	err = publisher.Publish(context.Background(), identity.PrivateKey(), h)
+	err = publisher.Publish(context.Background(), identity.PrivateKey(), h, pid)
 	if err != nil {
 		t.Fatal(err)
 	}

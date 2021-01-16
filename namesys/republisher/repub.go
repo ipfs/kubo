@@ -92,7 +92,12 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 	// because:
 	// 1. There's no way to get keys from the keystore by ID.
 	// 2. We don't actually have access to the IPNS publisher.
-	err := rp.republishEntry(ctx, rp.self)
+	pid, err := peer.IDFromPrivateKey(rp.self)
+	if err != nil {
+		return err
+	}
+
+	err = rp.republishEntry(ctx, rp.self, pid)
 	if err != nil {
 		return err
 	}
@@ -107,7 +112,12 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 			if err != nil {
 				return err
 			}
-			err = rp.republishEntry(ctx, priv)
+			pid, err = peer.IDFromPrivateKey(priv)
+			if err != nil {
+				return err
+			}
+
+			err = rp.republishEntry(ctx, priv, pid)
 			if err != nil {
 				return err
 			}
@@ -118,16 +128,12 @@ func (rp *Republisher) republishEntries(p goprocess.Process) error {
 	return nil
 }
 
-func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) error {
-	id, err := peer.IDFromPrivateKey(priv)
-	if err != nil {
-		return err
-	}
+func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey, pid peer.ID) error {
 
-	log.Debugf("republishing ipns entry for %s", id)
+	log.Debugf("republishing ipns entry for %s", pid)
 
 	// Look for it locally only
-	e, err := rp.getLastIPNSEntry(id)
+	e, err := rp.getLastIPNSEntry(pid)
 	if err != nil {
 		if err == errNoEntry {
 			return nil
@@ -146,7 +152,7 @@ func (rp *Republisher) republishEntry(ctx context.Context, priv ic.PrivKey) erro
 	if prevEol.After(eol) {
 		eol = prevEol
 	}
-	return rp.ns.PublishWithEOL(ctx, priv, p, eol)
+	return rp.ns.PublishWithEOL(ctx, priv, p, eol, pid)
 }
 
 func (rp *Republisher) getLastIPNSEntry(id peer.ID) (*pb.IpnsEntry, error) {

@@ -26,6 +26,7 @@ import (
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-peer"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
@@ -68,11 +69,11 @@ func (m mockNamesys) ResolveAsync(ctx context.Context, name string, opts ...nsop
 	return out
 }
 
-func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
+func (m mockNamesys) Publish(ctx context.Context, name ci.PrivKey, value path.Path, pid peer.ID) error {
 	return errors.New("not implemented for mockNamesys")
 }
 
-func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, _ time.Time) error {
+func (m mockNamesys) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, _ time.Time, pid peer.ID) error {
 	return errors.New("not implemented for mockNamesys")
 }
 

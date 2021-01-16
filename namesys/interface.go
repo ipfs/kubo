@@ -38,6 +38,7 @@ import (
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // ErrResolveFailed signals an error when attempting to resolve.
@@ -98,9 +99,9 @@ type Publisher interface {
 
 	// Publish establishes a name-value mapping.
 	// TODO make this not PrivKey specific.
-	Publish(ctx context.Context, name ci.PrivKey, value path.Path) error
+	Publish(ctx context.Context, name ci.PrivKey, value path.Path, pid peer.ID) error
 
 	// TODO: to be replaced by a more generic 'PublishWithValidity' type
 	// call once the records spec is implemented
-	PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error
+	PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time, pid peer.ID) error
 }

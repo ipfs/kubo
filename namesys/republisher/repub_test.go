@@ -14,7 +14,7 @@ import (
 
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipns"
-	"github.com/ipfs/go-ipns/pb"
+	ipns_pb "github.com/ipfs/go-ipns/pb"
 	path "github.com/ipfs/go-path"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -73,7 +73,13 @@ func TestRepublish(t *testing.T) {
 	timeout := time.Second
 	for {
 		expiration = time.Now().Add(time.Second)
-		err := rp.PublishWithEOL(ctx, publisher.PrivateKey, p, expiration)
+
+		pid, err := peer.IDFromPrivateKey(publisher.PrivateKey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = rp.PublishWithEOL(ctx, publisher.PrivateKey, p, expiration, pid)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -159,7 +165,13 @@ func TestLongEOLRepublish(t *testing.T) {
 	name := "/ipns/" + publisher.Identity.Pretty()
 
 	expiration := time.Now().Add(time.Hour)
-	err := rp.PublishWithEOL(ctx, publisher.PrivateKey, p, expiration)
+
+	pid, err := peer.IDFromPrivateKey(publisher.PrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = rp.PublishWithEOL(ctx, publisher.PrivateKey, p, expiration, pid)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -44,9 +44,9 @@ func NewIpnsPublisher(route routing.ValueStore, ds ds.Datastore) *IpnsPublisher 
 
 // Publish implements Publisher. Accepts a keypair and a value,
 // and publishes it out to the routing system
-func (p *IpnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Path) error {
+func (p *IpnsPublisher) Publish(ctx context.Context, k ci.PrivKey, value path.Path, pid peer.ID) error {
 	log.Debugf("Publish %s", value)
-	return p.PublishWithEOL(ctx, k, value, time.Now().Add(DefaultRecordEOL))
+	return p.PublishWithEOL(ctx, k, value, time.Now().Add(DefaultRecordEOL), pid)
 }
 
 func IpnsDsKey(id peer.ID) ds.Key {
@@ -137,17 +137,13 @@ func (p *IpnsPublisher) GetPublished(ctx context.Context, id peer.ID, checkRouti
 	return e, nil
 }
 
-func (p *IpnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) (*pb.IpnsEntry, error) {
-	id, err := peer.IDFromPrivateKey(k)
-	if err != nil {
-		return nil, err
-	}
+func (p *IpnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time, pid peer.ID) (*pb.IpnsEntry, error) {
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	// get previous records sequence number
-	rec, err := p.GetPublished(ctx, id, true)
+	rec, err := p.GetPublished(ctx, pid, true)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +174,7 @@ func (p *IpnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value pa
 	}
 
 	// Put the new record.
-	key := IpnsDsKey(id)
+	key := IpnsDsKey(pid)
 	if err := p.ds.Put(key, data); err != nil {
 		return nil, err
 	}
@@ -190,8 +186,8 @@ func (p *IpnsPublisher) updateRecord(ctx context.Context, k ci.PrivKey, value pa
 
 // PublishWithEOL is a temporary stand in for the ipns records implementation
 // see here for more details: https://github.com/ipfs/specs/tree/master/records
-func (p *IpnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time) error {
-	record, err := p.updateRecord(ctx, k, value, eol)
+func (p *IpnsPublisher) PublishWithEOL(ctx context.Context, k ci.PrivKey, value path.Path, eol time.Time, pid peer.ID) error {
+	record, err := p.updateRecord(ctx, k, value, eol, pid)
 	if err != nil {
 		return err
 	}
@@ -300,7 +296,12 @@ func InitializeKeyspace(ctx context.Context, pub Publisher, pins pin.Pinner, key
 		return err
 	}
 
-	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()))
+	pid, err := peer.IDFromPrivateKey(key)
+	if err != nil {
+		return err
+	}
+
+	return pub.Publish(ctx, key, path.FromCid(emptyDir.Cid()), pid)
 }
 
 // PkKeyForID returns the public key routing key for the given peer ID.

@@ -211,19 +211,15 @@ func emitOnceResult(ctx context.Context, outCh chan<- onceResult, r onceResult) 
 }
 
 // Publish implements Publisher
-func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path) error {
-	return ns.PublishWithEOL(ctx, name, value, time.Now().Add(DefaultRecordEOL))
+func (ns *mpns) Publish(ctx context.Context, name ci.PrivKey, value path.Path, pid peer.ID) error {
+	return ns.PublishWithEOL(ctx, name, value, time.Now().Add(DefaultRecordEOL), pid)
 }
 
-func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time) error {
-	id, err := peer.IDFromPrivateKey(name)
-	if err != nil {
-		return err
-	}
-	if err := ns.ipnsPublisher.PublishWithEOL(ctx, name, value, eol); err != nil {
+func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.Path, eol time.Time, pid peer.ID) error {
+	if err := ns.ipnsPublisher.PublishWithEOL(ctx, name, value, eol, pid); err != nil {
 		// Invalidate the cache. Publishing may _partially_ succeed but
 		// still return an error.
-		ns.cacheInvalidate(string(id))
+		ns.cacheInvalidate(string(pid))
 		return err
 	}
 	ttl := DefaultResolverCacheTTL
@@ -233,6 +229,6 @@ func (ns *mpns) PublishWithEOL(ctx context.Context, name ci.PrivKey, value path.
 	if ttEol := time.Until(eol); ttEol < ttl {
 		ttl = ttEol
 	}
-	ns.cacheSet(string(id), value, ttl)
+	ns.cacheSet(string(pid), value, ttl)
 	return nil
 }

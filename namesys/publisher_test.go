@@ -3,9 +3,10 @@ package namesys
 import (
 	"context"
 	"crypto/rand"
-	"github.com/ipfs/go-path"
 	"testing"
 	"time"
+
+	"github.com/ipfs/go-path"
 
 	ds "github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
@@ -129,7 +130,12 @@ func TestAsyncDS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := publisher.Publish(ctx, ipnsFakeID.PrivateKey(), ipnsVal); err != nil {
+	pid, err := peer.IDFromPrivateKey(ipnsFakeID.PrivateKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := publisher.Publish(ctx, ipnsFakeID.PrivateKey(), ipnsVal, pid); err != nil {
 		t.Fatal(err)
 	}
 
