@@ -132,10 +132,14 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 					}
 				}
 
-				// do nothing, if MFS has not changed since last pin on the exact same service
+				// do nothing, if MFS has not changed since last pin on the exact same service or waiting for MFS.RepinInterval
 				if last, ok := lastPins[svcName]; ok {
 					if last.ServiceConfig == svcConfig && (last.CID == rootCid || time.Since(last.Time) < repinInterval) {
-						log.Infof("pinning MFS root to %s: %s was pinned recently, skipping", svcName, rootCid)
+						if last.CID == rootCid {
+							log.Infof("pinning MFS root to %s: pin for %s exists since %s, skipping", svcName, rootCid, last.Time.String())
+						} else {
+							log.Infof("pinning MFS root to %s: skipped due to MFS.RepinInterval=%s (remaining: %s)", svcName, repinInterval.String(), (repinInterval - time.Since(last.Time)).String())
+						}
 						ch <- lastPin{}
 						continue
 					}
@@ -179,12 +183,12 @@ func pinMFS(
 	lsPinCh, lsErrCh := c.Ls(ctx, pinclient.PinOpts.FilterName(pinName), pinclient.PinOpts.FilterStatus(pinStatuses...))
 	existingRequestID := "" // is there any pre-existing MFS pin with pinName (for any CID)?
 	alreadyPinned := false  // is CID for current MFS already pinned?
-	pinTime := time.Now()
+	pinTime := time.Now().UTC()
 	for ps := range lsPinCh {
 		existingRequestID = ps.GetRequestId()
 		if ps.GetPin().GetCid() == cid && ps.GetStatus() != pinclient.StatusFailed {
 			alreadyPinned = true
-			pinTime = ps.GetCreated()
+			pinTime = ps.GetCreated().UTC()
 			break
 		}
 	}
@@ -199,7 +203,7 @@ func pinMFS(
 
 	// CID of the current MFS root is already pinned, nothing to do
 	if alreadyPinned {
-		log.Infof("pinning MFS to %s: pin for %s exists since %q, skipping", svcName, cid, pinTime)
+		log.Infof("pinning MFS to %s: pin for %s exists since %s, skipping", svcName, cid, pinTime.String())
 		return lastPin{Time: pinTime, ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 	}
 
