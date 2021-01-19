@@ -521,11 +521,6 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	cfg.Identity.PrivKey = pkstr
 
 	// Handle Pinning.RemoteServices (ApiKey of each service is secret)
-	// Note: these settings are opt-in and may be missing
-
-	if len(cfg.Pinning.RemoteServices) != 0 {
-		return tryRemoteServiceApiErr
-	}
 
 	// detect if existing config has any remote services defined..
 	if remoteServicesTag, err := getConfig(r, config.RemoteServicesPath); err == nil {
@@ -544,8 +539,12 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 			// if so, apply them on top of the new config,
 			// i.e. include only services from the new replacement config, ignoring the API structure
 			for svcName, svcNew := range cfg.Pinning.RemoteServices {
-				svcNew.API = oldServices[svcName].API
-				cfg.Pinning.RemoteServices[svcName] = svcNew
+				if oldSvc, hadSvc := oldServices[svcName]; hadSvc {
+					svcNew.API = oldSvc.API
+					cfg.Pinning.RemoteServices[svcName] = svcNew
+				} else {
+					delete(cfg.Pinning.RemoteServices, svcName)
+				}
 			}
 		}
 	}
