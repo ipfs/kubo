@@ -93,7 +93,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 			// get the most recent MFS root cid
 			rootNode, err := node.RootNode()
 			if err != nil {
-				log.Errorf("pinning reading mfs root (%v)", err)
+				log.Errorf("pinning reading MFS root (%v)", err)
 				select {
 				case errCh <- err:
 				case <-cctx.Context().Done():
@@ -123,7 +123,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 					if err != nil {
 						log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
 						select {
-						case errCh <- fmt.Errorf("remote pinning service %s has invalid mfs pin interval (%v)", svcName, err):
+						case errCh <- fmt.Errorf("remote pinning service %s has invalid MFS.RepinInterval (%v)", svcName, err):
 						case <-cctx.Context().Done():
 							return
 						}
@@ -132,16 +132,20 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 					}
 				}
 
-				// do nothing, if MFS has not changed since last pin on the exact same service
+				// do nothing, if MFS has not changed since last pin on the exact same service or waiting for MFS.RepinInterval
 				if last, ok := lastPins[svcName]; ok {
-					if last.ServiceConfig == svcConfig && last.CID == rootCid && time.Since(last.Time) < repinInterval {
-						log.Infof("pinning mfs was pinned to %s recently, skipping", svcName)
+					if last.ServiceConfig == svcConfig && (last.CID == rootCid || time.Since(last.Time) < repinInterval) {
+						if last.CID == rootCid {
+							log.Infof("pinning MFS root to %s: pin for %s exists since %s, skipping", svcName, rootCid, last.Time.String())
+						} else {
+							log.Infof("pinning MFS root to %s: skipped due to MFS.RepinInterval=%s (remaining: %s)", svcName, repinInterval.String(), (repinInterval - time.Since(last.Time)).String())
+						}
 						ch <- lastPin{}
 						continue
 					}
 				}
 
-				log.Infof("pinning mfs root %s to %s", rootCid, svcName)
+				log.Infof("pinning MFS root %s to %s", rootCid, svcName)
 				go func() {
 					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
 						ch <- lastPin{}
@@ -174,12 +178,18 @@ func pinMFS(
 		pinName = fmt.Sprintf("policy/%s/mfs", node.Identity().String())
 	}
 
-	// check if same pin exists
-	lsPinCh, lsErrCh := c.Ls(ctx, pinclient.PinOpts.FilterCIDs(cid), pinclient.PinOpts.FilterName(pinName))
-	pinFound := false
+	// check if MFS pin exists (across all possible states) and inspect its CID
+	pinStatuses := []pinclient.Status{pinclient.StatusQueued, pinclient.StatusPinning, pinclient.StatusPinned, pinclient.StatusFailed}
+	lsPinCh, lsErrCh := c.Ls(ctx, pinclient.PinOpts.FilterName(pinName), pinclient.PinOpts.FilterStatus(pinStatuses...))
+	existingRequestID := "" // is there any pre-existing MFS pin with pinName (for any CID)?
+	alreadyPinned := false  // is CID for current MFS already pinned?
+	pinTime := time.Now().UTC()
 	for ps := range lsPinCh {
-		if ps.GetPin().GetCid() == cid {
-			pinFound = true
+		existingRequestID = ps.GetRequestId()
+		if ps.GetPin().GetCid() == cid && ps.GetStatus() != pinclient.StatusFailed {
+			alreadyPinned = true
+			pinTime = ps.GetCreated().UTC()
+			break
 		}
 	}
 	if err := <-lsErrCh; err != nil {
@@ -190,8 +200,11 @@ func pinMFS(
 		}
 		return lastPin{}, err
 	}
-	if pinFound {
-		return lastPin{}, nil
+
+	// CID of the current MFS root is already pinned, nothing to do
+	if alreadyPinned {
+		log.Infof("pinning MFS to %s: pin for %s exists since %s, skipping", svcName, cid, pinTime.String())
+		return lastPin{Time: pinTime, ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 	}
 
 	// Prepare Pin.name
@@ -212,14 +225,27 @@ func pinMFS(
 		addOpts = append(addOpts, pinclient.PinOpts.WithOrigins(addrs...))
 	}
 
-	// Execute remote pin request
-	_, err := c.Add(ctx, cid, addOpts...)
-	if err != nil {
-		select {
-		case errCh <- err:
-		case <-ctx.Done():
+	// Create or replace pin for MFS root
+	if existingRequestID != "" {
+		log.Infof("pinning to %s: replacing existing MFS root pin with %s", svcName, cid)
+		_, err := c.Replace(ctx, existingRequestID, cid, addOpts...)
+		if err != nil {
+			select {
+			case errCh <- err:
+			case <-ctx.Done():
+			}
+			return lastPin{}, err
 		}
-		return lastPin{}, err
+	} else {
+		log.Infof("pinning to %s: creating a new MFS root pin for %s", svcName, cid)
+		_, err := c.Add(ctx, cid, addOpts...)
+		if err != nil {
+			select {
+			case errCh <- err:
+			case <-ctx.Done():
+			}
+			return lastPin{}, err
+		}
 	}
-	return lastPin{Time: time.Now(), ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
+	return lastPin{Time: pinTime, ServiceName: svcName, ServiceConfig: svcConfig, CID: cid}, nil
 }
