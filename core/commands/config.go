@@ -497,14 +497,14 @@ func editConfig(filename string) error {
 }
 
 func replaceConfig(r repo.Repo, file io.Reader) error {
-	var cfg config.Config
-	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
+	var newCfg config.Config
+	if err := json.NewDecoder(file).Decode(&newCfg); err != nil {
 		return errors.New("failed to decode file as config")
 	}
 
 	// Handle Identity.PrivKey (secret)
 
-	if len(cfg.Identity.PrivKey) != 0 {
+	if len(newCfg.Identity.PrivKey) != 0 {
 		return errors.New("setting private key with API is not supported")
 	}
 
@@ -518,36 +518,57 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 		return errors.New("private key in config was not a string")
 	}
 
-	cfg.Identity.PrivKey = pkstr
+	newCfg.Identity.PrivKey = pkstr
 
-	// Handle Pinning.RemoteServices (ApiKey of each service is secret)
+	// Handle Pinning.RemoteServices (API.Key of each service is a secret)
 
-	// detect if existing config has any remote services defined..
+	newServices := newCfg.Pinning.RemoteServices
+	oldServices, err := getRemotePinningServices(r)
+	if err != nil {
+		return tryRemoteServiceApiErr
+	}
+
+	// fail fast if service lists are obviously different
+	if len(newServices) != len(oldServices) {
+		return tryRemoteServiceApiErr
+	}
+
+	// re-apply API details and confirm every modified service already existed
+	for name, oldSvc := range oldServices {
+		if newSvc, hadSvc := newServices[name]; hadSvc {
+			// fail if input changes any of API details
+			// (interop with config show: allow Endpoint as long it did not change)
+			if len(newSvc.API.Key) != 0 || (len(newSvc.API.Endpoint) != 0 && newSvc.API.Endpoint != oldSvc.API.Endpoint) {
+				return tryRemoteServiceApiErr
+			}
+			// re-apply API details and store service in updated config
+			newSvc.API = oldSvc.API
+			newCfg.Pinning.RemoteServices[name] = newSvc
+		} else {
+			// error on service rm attempt
+			return tryRemoteServiceApiErr
+		}
+	}
+
+	return r.SetConfig(&newCfg)
+}
+
+func getRemotePinningServices(r repo.Repo) (map[string]config.RemotePinningService, error) {
+	var oldServices map[string]config.RemotePinningService
 	if remoteServicesTag, err := getConfig(r, config.RemoteServicesPath); err == nil {
 		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
 		// so we have to manually copy the data :-|
 		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
-			var oldServices map[string]config.RemotePinningService
 			jsonString, err := json.Marshal(val)
 			if err != nil {
-				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesPath, err)
+				return nil, err
 			}
 			err = json.Unmarshal(jsonString, &oldServices)
 			if err != nil {
-				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesPath, err)
-			}
-			// if so, apply them on top of the new config,
-			// i.e. include only services from the new replacement config, ignoring the API structure
-			for svcName, svcNew := range cfg.Pinning.RemoteServices {
-				if oldSvc, hadSvc := oldServices[svcName]; hadSvc {
-					svcNew.API = oldSvc.API
-					cfg.Pinning.RemoteServices[svcName] = svcNew
-				} else {
-					delete(cfg.Pinning.RemoteServices, svcName)
-				}
+				return nil, err
 			}
 		}
 	}
+	return oldServices, nil
 
-	return r.SetConfig(&cfg)
 }

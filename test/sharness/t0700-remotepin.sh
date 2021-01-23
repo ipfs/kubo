@@ -75,19 +75,19 @@ test_expect_success "verify MFS root is being repinned on CID change" '
   test_cmp mfs_cid pin_cid
 '
 
-# SECURITY of access tokens in Api.Key fields:
-# Pinning.RemoteServices includes Api.Key, and we give it the same treatment
+# SECURITY of access tokens in API.Key fields:
+# Pinning.RemoteServices includes API.Key, and we give it the same treatment
 # as Identity.PrivKey to prevent exposing it on the network
 
 test_expect_success "'ipfs config Pinning' fails" '
   test_expect_code 1 ipfs config Pinning 2>&1 > config_out
 '
-test_expect_success "output does not include Api.Key" '
+test_expect_success "output does not include API.Key" '
   test_expect_code 1 grep -q Key config_out
 '
 
-test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc.Api.Key' fails" '
-  test_expect_code 1 ipfs config Pinning.RemoteServices.test_pin_svc.Api.Key 2> config_out
+test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc.API.Key' fails" '
+  test_expect_code 1 ipfs config Pinning.RemoteServices.test_pin_svc.API.Key 2> config_out
 '
 
 test_expect_success "output includes meaningful error" '
@@ -102,14 +102,24 @@ test_expect_success "output includes meaningful error" '
   test_cmp config_exp config_out
 '
 
-test_expect_success "'ipfs config show' doesn't include Pinning.RemoteServices.*.API.Key" '
-  ipfs config show | jq -r .Pinning.RemoteServices > show_config &&
-  test_expect_code 1 grep \"Key\" show_config
+test_expect_success "'ipfs config show' does not include Pinning.RemoteServices[*].API.Key" '
+  ipfs config show | tee show_config | jq -r .Pinning.RemoteServices > remote_services &&
+  test_expect_code 1 grep \"Key\" remote_services &&
+  test_expect_code 1 grep fake_api_key show_config &&
+  test_expect_code 1 grep "$TEST_PIN_SVC_KEY" show_config
+'
+
+test_expect_success "'ipfs config replace' injects Pinning.RemoteServices[*].API.Key back" '
+  test_expect_code 1 grep fake_api_key show_config &&
+  test_expect_code 1 grep "$TEST_PIN_SVC_KEY" show_config &&
+  ipfs config replace show_config &&
+  test_expect_code 0 grep fake_api_key "$IPFS_PATH/config" &&
+  test_expect_code 0 grep "$TEST_PIN_SVC_KEY" "$IPFS_PATH/config"
 '
 
 # note: we remove Identity.PrivKey to ensure error is triggered by Pinning.RemoteServices
-test_expect_success "'ipfs config replace' with remote services errors out" '
-  jq -M "del(.Identity.PrivKey)" "$IPFS_PATH/config" | jq ".Pinning += { RemoteServices: {\"foo\": {} }}" > new_config &&
+test_expect_success "'ipfs config replace' with Pinning.RemoteServices[*].API.Key errors out" '
+  jq -M "del(.Identity.PrivKey)" "$IPFS_PATH/config" | jq ".Pinning += { RemoteServices: {\"myservice\": {\"API\": {\"Endpoint\": \"https://example.com/psa\", \"Key\": \"mysecret\"}}}}" > new_config &&
   test_expect_code 1 ipfs config replace - < new_config 2> replace_out
 '
 test_expect_success "output includes meaningful error" '
