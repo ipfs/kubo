@@ -148,7 +148,17 @@ Set the value of the 'Datastore.Path' key:
 	Type: ConfigField{},
 }
 
-// Returns true if key matches any prefix of glob.
+// matchesGlobPrefix returns true if and only if the key matches the glob.
+// The key is a sequence of string "parts", separated by commas.
+// The glob is a sequence of string "patterns".
+// matchesGlobPrefix tries to match all of the first K parts to the first K patterns, respectively,
+// where K is the length of the shorter of key or glob.
+// A pattern matches a part if and only if the pattern is "*" or the lowercase pattern equals the lowercase part.
+//
+// For example:
+//	matchesGlobPrefix("foo.bar", []string{"*", "bar", "baz"}) returns true
+//	matchesGlobPrefix("foo.bar.baz", []string{"*", "bar"}) returns true
+//	matchesGlobPrefix("foo.bar", []string{"baz", "*"}) returns false
 func matchesGlobPrefix(key string, glob []string) bool {
 	k := strings.Split(key, ".")
 	for i, g := range glob {
