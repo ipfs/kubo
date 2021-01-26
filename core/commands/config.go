@@ -230,36 +230,37 @@ NOTE: For security reasons, this command will omit your private key and remote s
 
 // Scrubs value and returns error if missing
 func scrubValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
-	return scrub_map(m, key, false)
+	return scrubMapInternal(m, key, false)
 }
 
 // Scrubs value and returns no error if missing
 func scrubOptionalValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
-	return scrub_map(m, key, true)
+	return scrubMapInternal(m, key, true)
 }
 
-func scrub_either(u interface{}, key []string, okIfMissing bool) (interface{}, error) {
-	if m, ok := u.(map[string]interface{}); ok {
-		return scrub_map(m, key, okIfMissing)
+func scrubEither(u interface{}, key []string, okIfMissing bool) (interface{}, error) {
+	m, ok := u.(map[string]interface{})
+	if ok {
+		return scrubMapInternal(m, key, okIfMissing)
 	}
-	return scrub_value(m, key, okIfMissing)
+	return scrubValueInternal(m, key, okIfMissing)
 }
 
-func scrub_value(v interface{}, key []string, okIfMissing bool) (interface{}, error) {
+func scrubValueInternal(v interface{}, key []string, okIfMissing bool) (interface{}, error) {
 	if v == nil && !okIfMissing {
 		return nil, errors.New("failed to find specified key")
 	}
 	return nil, nil
 }
 
-func scrub_map(m map[string]interface{}, key []string, okIfMissing bool) (map[string]interface{}, error) {
+func scrubMapInternal(m map[string]interface{}, key []string, okIfMissing bool) (map[string]interface{}, error) {
 	if len(key) == 0 {
 		return make(map[string]interface{}), nil // delete value
 	}
 	n := map[string]interface{}{}
 	for k, v := range m {
 		if key[0] == "*" || strings.EqualFold(key[0], k) {
-			u, err := scrub_either(v, key[1:], okIfMissing)
+			u, err := scrubEither(v, key[1:], okIfMissing)
 			if err != nil {
 				return nil, err
 			}
