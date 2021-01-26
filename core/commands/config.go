@@ -36,8 +36,6 @@ const (
 	configDryRunOptionName = "dry-run"
 )
 
-var tryRemoteServiceApiErr = errors.New("cannot show or change pinning services through this API (try: ipfs pin remote service --help)")
-
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get and set ipfs config values.",
@@ -91,7 +89,7 @@ Set the value of the 'Datastore.Path' key:
 		// Temporary fix until we move ApiKey secrets out of the config file
 		// (remote services are a map, so more advanced blocking is required)
 		if blocked := matchesGlobPrefix(key, config.PinningConcealSelector); blocked {
-			return tryRemoteServiceApiErr
+			return errors.New("cannot show or change pinning services credentials")
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -168,7 +166,7 @@ func matchesGlobPrefix(key string, glob []string) bool {
 		if g == "*" {
 			continue
 		}
-		if !strings.EqualFold(strings.ToLower(k[i]), strings.ToLower(g)) {
+		if !strings.EqualFold(k[i], g) {
 			return false
 		}
 	}
@@ -182,7 +180,7 @@ var configShowCmd = &cmds.Command{
 NOTE: For security reasons, this command will omit your private key and remote services. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
-	Type: map[string]interface{}{},
+	Type: make(map[string]interface{}),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
@@ -257,11 +255,11 @@ func scrub_value(v interface{}, key []string, okIfMissing bool) (interface{}, er
 
 func scrub_map(m map[string]interface{}, key []string, okIfMissing bool) (map[string]interface{}, error) {
 	if len(key) == 0 {
-		return nil, nil // delete value
+		return make(map[string]interface{}), nil // delete value
 	}
 	n := map[string]interface{}{}
 	for k, v := range m {
-		if key[0] == "*" || strings.EqualFold(strings.ToLower(key[0]), strings.ToLower(k)) {
+		if key[0] == "*" || strings.EqualFold(key[0], k) {
 			if u, err := scrub_either(v, key[1:], okIfMissing); err != nil {
 				return nil, err
 			} else {
@@ -535,12 +533,12 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 	newServices := newCfg.Pinning.RemoteServices
 	oldServices, err := getRemotePinningServices(r)
 	if err != nil {
-		return tryRemoteServiceApiErr
+		return fmt.Errorf("failed to load remote pinning services info (%v)", err)
 	}
 
 	// fail fast if service lists are obviously different
 	if len(newServices) != len(oldServices) {
-		return tryRemoteServiceApiErr
+		return errors.New("cannot add or remove remote pinning services with 'config replace'")
 	}
 
 	// re-apply API details and confirm every modified service already existed
@@ -549,14 +547,14 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 			// fail if input changes any of API details
 			// (interop with config show: allow Endpoint as long it did not change)
 			if len(newSvc.API.Key) != 0 || (len(newSvc.API.Endpoint) != 0 && newSvc.API.Endpoint != oldSvc.API.Endpoint) {
-				return tryRemoteServiceApiErr
+				return errors.New("cannot change remote pinning services api info with `config replace`")
 			}
 			// re-apply API details and store service in updated config
 			newSvc.API = oldSvc.API
 			newCfg.Pinning.RemoteServices[name] = newSvc
 		} else {
 			// error on service rm attempt
-			return tryRemoteServiceApiErr
+			return errors.New("cannot add or remove remote pinning services with 'config replace'")
 		}
 	}
 
