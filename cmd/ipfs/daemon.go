@@ -441,10 +441,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// start MFS pinning thread
 	pinErr := make(chan error)
-	err = pinMFSOnChange(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node}, pinErr)
-	if err != nil {
-		return err //COV
-	}
+	pinMFSOnChange(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node}, pinErr)
 
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")

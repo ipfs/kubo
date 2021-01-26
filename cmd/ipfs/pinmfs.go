@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
-	_ "expvar"
 	"fmt"
 	"time"
 
-	cid "github.com/ipfs/go-cid"
-	config "github.com/ipfs/go-ipfs-config"
-	"github.com/ipfs/go-ipfs/core"
-	ipld "github.com/ipfs/go-ipld-format"
-	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+
+	cid "github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
+	pinclient "github.com/ipfs/go-pinning-service-http-client"
+
+	config "github.com/ipfs/go-ipfs-config"
+	"github.com/ipfs/go-ipfs/core"
 )
 
 type lastPin struct {
@@ -20,6 +21,10 @@ type lastPin struct {
 	ServiceName   string
 	ServiceConfig config.RemotePinningService
 	CID           cid.Cid
+}
+
+func (x lastPin) IsValid() bool {
+	return x != lastPin{}
 }
 
 const daemonConfigPollInterval = time.Minute / 2
@@ -52,7 +57,7 @@ func (x *ipfsPinMFSNode) PeerHost() host.Host {
 	return x.node.PeerHost
 }
 
-func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node pinMFSNode, errCh chan<- error) error {
+func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node pinMFSNode, errCh chan<- error) {
 	go func() {
 		defer close(errCh)
 
@@ -155,12 +160,12 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 				}()
 			}
 			for i := 0; i < len(cfg.Pinning.RemoteServices); i++ {
-				x := <-ch
-				lastPins[x.ServiceName] = x
+				if x := <-ch; x.IsValid() {
+					lastPins[x.ServiceName] = x
+				}
 			}
 		}
 	}()
-	return nil
 }
 
 func pinMFS(
