@@ -7,7 +7,11 @@ func TestScrubMapInternalDelete(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if _, ok := m.(map[string]interface{}); !ok {
+	if m == nil {
 		t.Errorf("expecting an empty map, got nil")
+	}
+	if len(m) != 0 {
+		t.Errorf("expecting an empty map, got a non-empty map")
+
 	}
 }
