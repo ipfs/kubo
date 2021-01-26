@@ -152,7 +152,11 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 
 				log.Infof("pinning MFS root %s to %s", rootCid, svcName)
 				go func() {
-					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig, errCh); err != nil {
+					if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig); err != nil {
+						select {
+						case errCh <- err:
+						case <-cctx.Context().Done():
+						}
 						ch <- lastPin{}
 					} else {
 						ch <- r
@@ -174,7 +178,6 @@ func pinMFS(
 	cid cid.Cid,
 	svcName string,
 	svcConfig config.RemotePinningService,
-	errCh chan<- error,
 ) (lastPin, error) {
 	c := pinclient.NewClient(svcConfig.API.Endpoint, svcConfig.API.Key)
 
@@ -197,13 +200,10 @@ func pinMFS(
 			break
 		}
 	}
+	for range lsPinCh { // in case the prior loop exits early
+	}
 	if err := <-lsErrCh; err != nil {
-		err = fmt.Errorf("error while listing remote pins: %v", err)
-		select {
-		case errCh <- err:
-		case <-ctx.Done():
-		}
-		return lastPin{}, err
+		return lastPin{}, fmt.Errorf("error while listing remote pins: %v", err)
 	}
 
 	// CID of the current MFS root is already pinned, nothing to do
@@ -221,10 +221,6 @@ func pinMFS(
 	if node.PeerHost() != nil {
 		addrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(node.PeerHost()))
 		if err != nil {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
 			return lastPin{}, err
 		}
 		addOpts = append(addOpts, pinclient.PinOpts.WithOrigins(addrs...))
@@ -235,20 +231,12 @@ func pinMFS(
 		log.Infof("pinning to %s: replacing existing MFS root pin with %s", svcName, cid)
 		_, err := c.Replace(ctx, existingRequestID, cid, addOpts...)
 		if err != nil {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
 			return lastPin{}, err
 		}
 	} else {
 		log.Infof("pinning to %s: creating a new MFS root pin for %s", svcName, cid)
 		_, err := c.Add(ctx, cid, addOpts...)
 		if err != nil {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
 			return lastPin{}, err
 		}
 	}

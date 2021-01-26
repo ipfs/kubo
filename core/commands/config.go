@@ -241,9 +241,8 @@ func scrubOptionalValue(m map[string]interface{}, key []string) (map[string]inte
 func scrub_either(u interface{}, key []string, okIfMissing bool) (interface{}, error) {
 	if m, ok := u.(map[string]interface{}); ok {
 		return scrub_map(m, key, okIfMissing)
-	} else {
-		return scrub_value(m, key, okIfMissing)
 	}
+	return scrub_value(m, key, okIfMissing)
 }
 
 func scrub_value(v interface{}, key []string, okIfMissing bool) (interface{}, error) {
@@ -260,12 +259,12 @@ func scrub_map(m map[string]interface{}, key []string, okIfMissing bool) (map[st
 	n := map[string]interface{}{}
 	for k, v := range m {
 		if key[0] == "*" || strings.EqualFold(key[0], k) {
-			if u, err := scrub_either(v, key[1:], okIfMissing); err != nil {
+			u, err := scrub_either(v, key[1:], okIfMissing)
+			if err != nil {
 				return nil, err
-			} else {
-				if u != nil {
-					n[k] = u
-				}
+			}
+			if u != nil {
+				n[k] = u
 			}
 		} else {
 			n[k] = v
