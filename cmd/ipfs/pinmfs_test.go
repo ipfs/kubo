@@ -54,7 +54,7 @@ func TestPinMFSConfigError(t *testing.T) {
 	}
 	node := &testPinMFSNode{}
 	errCh := make(chan error)
-	pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
+	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
 	if <-errCh != ctx.err {
 		t.Errorf("error did not propagate")
 	}
@@ -75,7 +75,7 @@ func TestPinMFSRootNodeError(t *testing.T) {
 		err: fmt.Errorf("cannot create root node"),
 	}
 	errCh := make(chan error)
-	pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
+	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
 	if <-errCh != node.err {
 		t.Errorf("error did not propagate")
 	}
@@ -152,7 +152,7 @@ func testPinMFSServiceWithError(t *testing.T, cfg *config.Config, expectedErrorP
 		err: nil,
 	}
 	errCh := make(chan error)
-	pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
+	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
 	defer cancel()
 	// first pass through the pinning loop
 	err := <-errCh
