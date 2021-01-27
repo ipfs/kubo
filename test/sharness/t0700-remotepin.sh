@@ -37,6 +37,12 @@ test_expect_success "creating test user on remote pinning service" '
   ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key
 '
 
+# add a service with a invalid endpoint
+test_expect_success "adding remote service with invalid endpoint" '
+  test_expect_code 1 ipfs pin remote service add test_endpoint_no_protocol invalid-service.example.com fake_api_key &&
+  test_expect_code 1 ipfs pin remote service add test_endpoint_bad_protocol xyz://invalid-service.example.com fake_api_key
+'
+
 test_expect_success "test 'ipfs pin remote service ls'" '
   ipfs pin remote service ls | tee ls_out &&
   grep -q test_pin_svc ls_out &&
