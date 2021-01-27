@@ -107,65 +107,70 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 		}
 		rootCid := rootNode.Cid()
 
-		// pin on all remote services in parallel to prevent DoS attacks
-		ch := make(chan lastPin, len(cfg.Pinning.RemoteServices))
-		for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
-			// skip services where MFS is not enabled
-			svcName, svcConfig := svcName_, svcConfig_
-			log.Infof("pinning considering service %s for mfs pinning", svcName)
-			if !svcConfig.Policies.MFS.Enable {
-				log.Infof("pinning service %s is not enabled", svcName)
+		// pin to all remote services in parallel
+		pinAllMFS(cctx.Context(), node, cfg, rootCid, lastPins, errCh)
+	}
+}
+
+// pinAllMFS pins on all remote services in parallel to overcome DoS attacks.
+func pinAllMFS(ctx context.Context, node pinMFSNode, cfg *config.Config, rootCid cid.Cid, lastPins map[string]lastPin, errCh chan<- error) {
+	ch := make(chan lastPin, len(cfg.Pinning.RemoteServices))
+	for svcName_, svcConfig_ := range cfg.Pinning.RemoteServices {
+		// skip services where MFS is not enabled
+		svcName, svcConfig := svcName_, svcConfig_
+		log.Infof("pinning considering service %s for mfs pinning", svcName)
+		if !svcConfig.Policies.MFS.Enable {
+			log.Infof("pinning service %s is not enabled", svcName)
+			ch <- lastPin{}
+			continue
+		}
+		// read mfs pin interval for this service
+		var repinInterval time.Duration
+		if svcConfig.Policies.MFS.RepinInterval == "" {
+			repinInterval = defaultRepinInterval
+		} else {
+			var err error
+			repinInterval, err = time.ParseDuration(svcConfig.Policies.MFS.RepinInterval)
+			if err != nil {
+				log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
+				select {
+				case errCh <- fmt.Errorf("remote pinning service %s has invalid MFS.RepinInterval (%v)", svcName, err):
+				case <-ctx.Done():
+				}
 				ch <- lastPin{}
 				continue
 			}
-			// read mfs pin interval for this service
-			var repinInterval time.Duration
-			if svcConfig.Policies.MFS.RepinInterval == "" {
-				repinInterval = defaultRepinInterval
-			} else {
-				repinInterval, err = time.ParseDuration(svcConfig.Policies.MFS.RepinInterval)
-				if err != nil {
-					log.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
-					select {
-					case errCh <- fmt.Errorf("remote pinning service %s has invalid MFS.RepinInterval (%v)", svcName, err):
-					case <-cctx.Context().Done():
-						return
-					}
-					ch <- lastPin{}
-					continue
-				}
-			}
-
-			// do nothing, if MFS has not changed since last pin on the exact same service or waiting for MFS.RepinInterval
-			if last, ok := lastPins[svcName]; ok {
-				if last.ServiceConfig == svcConfig && (last.CID == rootCid || time.Since(last.Time) < repinInterval) {
-					if last.CID == rootCid {
-						log.Infof("pinning MFS root to %s: pin for %s exists since %s, skipping", svcName, rootCid, last.Time.String())
-					} else {
-						log.Infof("pinning MFS root to %s: skipped due to MFS.RepinInterval=%s (remaining: %s)", svcName, repinInterval.String(), (repinInterval - time.Since(last.Time)).String())
-					}
-					ch <- lastPin{}
-					continue
-				}
-			}
-
-			log.Infof("pinning MFS root %s to %s", rootCid, svcName)
-			go func() {
-				if r, err := pinMFS(cctx.Context(), node, rootCid, svcName, svcConfig); err != nil {
-					select {
-					case errCh <- err:
-					case <-cctx.Context().Done():
-					}
-					ch <- lastPin{}
-				} else {
-					ch <- r
-				}
-			}()
 		}
-		for i := 0; i < len(cfg.Pinning.RemoteServices); i++ {
-			if x := <-ch; x.IsValid() {
-				lastPins[x.ServiceName] = x
+
+		// do nothing, if MFS has not changed since last pin on the exact same service or waiting for MFS.RepinInterval
+		if last, ok := lastPins[svcName]; ok {
+			if last.ServiceConfig == svcConfig && (last.CID == rootCid || time.Since(last.Time) < repinInterval) {
+				if last.CID == rootCid {
+					log.Infof("pinning MFS root to %s: pin for %s exists since %s, skipping", svcName, rootCid, last.Time.String())
+				} else {
+					log.Infof("pinning MFS root to %s: skipped due to MFS.RepinInterval=%s (remaining: %s)", svcName, repinInterval.String(), (repinInterval - time.Since(last.Time)).String())
+				}
+				ch <- lastPin{}
+				continue
 			}
+		}
+
+		log.Infof("pinning MFS root %s to %s", rootCid, svcName)
+		go func() {
+			if r, err := pinMFS(ctx, node, rootCid, svcName, svcConfig); err != nil {
+				select {
+				case errCh <- err:
+				case <-ctx.Done():
+				}
+				ch <- lastPin{}
+			} else {
+				ch <- r
+			}
+		}()
+	}
+	for i := 0; i < len(cfg.Pinning.RemoteServices); i++ {
+		if x := <-ch; x.IsValid() {
+			lastPins[x.ServiceName] = x
 		}
 	}
 }
