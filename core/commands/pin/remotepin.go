@@ -740,7 +740,7 @@ func getRemotePinServiceInfo(env cmds.Environment, name string) (endpoint, key s
 
 func normalizeEndpoint(endpoint string) (string, error) {
 	uri, err := neturl.ParseRequestURI(endpoint)
-	if err != nil || !strings.HasPrefix(uri.Scheme, "http") {
+	if err != nil || !(uri.Scheme == "http" || uri.Scheme == "https") {
 		return "", fmt.Errorf("service endpoint must be a valid HTTP URL")
 	}
 
