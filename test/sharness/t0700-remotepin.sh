@@ -91,7 +91,7 @@ test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc.API.Key' f
 '
 
 test_expect_success "output includes meaningful error" '
-  echo "Error: cannot show or change pinning services through this API (try: ipfs pin remote service --help)" > config_exp &&
+  echo "Error: cannot show or change pinning services credentials" > config_exp &&
   test_cmp config_exp config_out
 '
 
@@ -122,10 +122,10 @@ test_expect_success "'ipfs config replace' with Pinning.RemoteServices[*].API.Ke
   jq -M "del(.Identity.PrivKey)" "$IPFS_PATH/config" | jq ".Pinning += { RemoteServices: {\"myservice\": {\"API\": {\"Endpoint\": \"https://example.com/psa\", \"Key\": \"mysecret\"}}}}" > new_config &&
   test_expect_code 1 ipfs config replace - < new_config 2> replace_out
 '
-test_expect_success "output includes meaningful error" '
-  echo "Error: cannot show or change pinning services through this API (try: ipfs pin remote service --help)" > replace_expected &&
+test_expect_success "output includes meaningful error" "
+  echo \"Error: cannot add or remove remote pinning services with 'config replace'\" > replace_expected &&
   test_cmp replace_out replace_expected
-'
+"
 
 # /SECURITY
 
