@@ -167,6 +167,24 @@ ipfs key rm key_ed25519
     test_must_fail ipfs key rename -f fooed self 2>&1 | tee key_rename_out &&
     grep -q "Error: cannot overwrite key with name" key_rename_out
   '
+
+  test_launch_ipfs_daemon
+
+  test_expect_success "online import rsa key" '
+    ipfs key import generated_rsa_key generated_rsa_key.key > roundtrip_rsa_key_id &&
+    test_cmp rsa_key_id roundtrip_rsa_key_id
+  '
+
+  test_must_fail "online export rsa key" '
+    ipfs key export generated_rsa_key
+  '
+
+  test_must_fail "online rotate rsa key" '
+    ipfs key rotate
+  '
+  
+  test_kill_ipfs_daemon
+
 }
 
 test_check_rsa2048_sk() {
