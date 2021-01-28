@@ -106,9 +106,8 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 		// reread the config, which may have changed in the meantime
 		cfg, err := cctx.GetConfigNoCache()
 		if err != nil {
-			mfslog.Errorf("pinning reading config (%v)", err)
 			select {
-			case errCh <- err:
+			case errCh <- fmt.Errorf("pinning reading config (%v)", err):
 			case <-cctx.Context().Done():
 				return
 			}
@@ -119,9 +118,8 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 		// get the most recent MFS root cid
 		rootNode, err := node.RootNode()
 		if err != nil {
-			mfslog.Errorf("pinning reading MFS root (%v)", err)
 			select {
-			case errCh <- err:
+			case errCh <- fmt.Errorf("pinning reading MFS root (%v)", err):
 			case <-cctx.Context().Done():
 				return
 			}
@@ -154,7 +152,6 @@ func pinAllMFS(ctx context.Context, node pinMFSNode, cfg *config.Config, rootCid
 			var err error
 			repinInterval, err = time.ParseDuration(svcConfig.Policies.MFS.RepinInterval)
 			if err != nil {
-				mfslog.Errorf("pinning parsing service %s repin interval %q", svcName, svcConfig.Policies.MFS.RepinInterval)
 				select {
 				case errCh <- fmt.Errorf("remote pinning service %s has invalid MFS.RepinInterval (%v)", svcName, err):
 				case <-ctx.Done():
@@ -180,9 +177,8 @@ func pinAllMFS(ctx context.Context, node pinMFSNode, cfg *config.Config, rootCid
 		mfslog.Debugf("pinning MFS root %s to %s", rootCid, svcName)
 		go func() {
 			if r, err := pinMFS(ctx, node, rootCid, svcName, svcConfig); err != nil {
-				mfslog.Debugf("pinning MFS root %s to %s error (%v)", rootCid, svcName, err)
 				select {
-				case errCh <- err:
+				case errCh <- fmt.Errorf("pinning MFS root %s to %s (%v)", rootCid, svcName, err):
 				case <-ctx.Done():
 				}
 				ch <- lastPin{}

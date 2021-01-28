@@ -46,6 +46,19 @@ func (x *testPinMFSNode) PeerHost() host.Host {
 
 var testConfigPollInterval = time.Second
 
+func isErrorSimilar(e1, e2 error) bool {
+	switch {
+	case e1 == nil && e2 == nil:
+		return true
+	case e1 != nil && e2 == nil:
+		return false
+	case e1 == nil && e2 != nil:
+		return false
+	default:
+		return strings.Contains(e1.Error(), e2.Error()) || strings.Contains(e2.Error(), e1.Error())
+	}
+}
+
 func TestPinMFSConfigError(t *testing.T) {
 	ctx := &testPinMFSContext{
 		ctx: context.Background(),
@@ -55,10 +68,10 @@ func TestPinMFSConfigError(t *testing.T) {
 	node := &testPinMFSNode{}
 	errCh := make(chan error)
 	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
-	if <-errCh != ctx.err {
+	if !isErrorSimilar(<-errCh, ctx.err) {
 		t.Errorf("error did not propagate")
 	}
-	if <-errCh != ctx.err {
+	if !isErrorSimilar(<-errCh, ctx.err) {
 		t.Errorf("error did not propagate")
 	}
 }
@@ -76,10 +89,10 @@ func TestPinMFSRootNodeError(t *testing.T) {
 	}
 	errCh := make(chan error)
 	go pinMFSOnChange(testConfigPollInterval, ctx, node, errCh)
-	if <-errCh != node.err {
+	if !isErrorSimilar(<-errCh, node.err) {
 		t.Errorf("error did not propagate")
 	}
-	if <-errCh != node.err {
+	if !isErrorSimilar(<-errCh, node.err) {
 		t.Errorf("error did not propagate")
 	}
 }
@@ -156,11 +169,11 @@ func testPinMFSServiceWithError(t *testing.T, cfg *config.Config, expectedErrorP
 	defer cancel()
 	// first pass through the pinning loop
 	err := <-errCh
-	if !strings.HasPrefix((err).Error(), expectedErrorPrefix) {
-		t.Errorf("expecting error with prefix %q", expectedErrorPrefix)
+	if !strings.Contains((err).Error(), expectedErrorPrefix) {
+		t.Errorf("expecting error containing %q", expectedErrorPrefix)
 	}
 	// second pass through the pinning loop
-	if !strings.HasPrefix((err).Error(), expectedErrorPrefix) {
-		t.Errorf("expecting error with prefix %q", expectedErrorPrefix)
+	if !strings.Contains((err).Error(), expectedErrorPrefix) {
+		t.Errorf("expecting error containing %q", expectedErrorPrefix)
 	}
 }
