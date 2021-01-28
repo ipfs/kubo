@@ -63,8 +63,7 @@ UDP:{{ range $element := .UDPPorts}} {{$element}}{{end}}
 To (your current IP): {{.LocalIP}}
 {{- end}}
 {{if .Gateway -}}
-Your router's administrative console can likely be found at:
-
+If you are on a personal home network, your router's administrative console can likely be found at:
     {{.Gateway}}
 {{end -}}
 `

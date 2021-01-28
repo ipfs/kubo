@@ -12,17 +12,16 @@ import (
 	libp2p "github.com/libp2p/go-libp2p-core"
 	libp2pEvent "github.com/libp2p/go-libp2p-core/event"
 	libp2pNetwork "github.com/libp2p/go-libp2p-core/network"
-
-	netroute "github.com/libp2p/go-netroute"
+	"github.com/libp2p/go-netroute"
+	manet "github.com/multiformats/go-multiaddr/net"
 
 	config "github.com/ipfs/go-ipfs-config"
 	logging "github.com/ipfs/go-log"
 
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
 )
 
-var log = logging.Logger("namesys")
+var log = logging.Logger("/ipfs/diag/doctor")
 
 type Doctor struct {
 	host    libp2p.Host
@@ -43,6 +42,7 @@ type Status struct {
 	TCPPorts, UDPPorts []int
 	LocalIP            net.IP
 	Gateway            *url.URL
+	// TODO NAT Device Type
 }
 
 func NewDoctor(host libp2p.Host, cfg *config.Config, console io.Writer) *Doctor {
@@ -67,18 +67,21 @@ func (n *Doctor) Close() error {
 func (n *Doctor) GetNATStatus() libp2pNetwork.Reachability {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
+
 	return n.reachability
 }
 
 func (n *Doctor) GetRelayStatus() bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
+
 	return n.usingRelays
 }
 
 func (n *Doctor) Start() error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	if n.sub != nil {
 		return fmt.Errorf("already started")
 	}
@@ -89,11 +92,12 @@ func (n *Doctor) Start() error {
 		new(libp2pEvent.EvtLocalAddressesUpdated),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to subscribe to libp2p events: %s", err)
 	}
 
 	evtCh := n.sub.Out()
 	go func() {
+		// close the doctor and the subscription if we haven't already done so
 		defer n.Close()
 
 		for evt := range evtCh {
@@ -107,11 +111,58 @@ func (n *Doctor) Start() error {
 			}
 		}
 	}()
+
 	return nil
 }
 
-func (n *Doctor) printf(f string, rest ...interface{}) {
-	fmt.Fprintf(n.console, f+"\n", rest...)
+func (n *Doctor) GetStatus(ctx context.Context) (*Status, error) {
+	n.mu.RLock()
+
+	status := &Status{
+		Reachability:     n.reachability,
+		AutoRelayEnabled: n.config.Swarm.EnableAutoRelay && !n.config.Swarm.EnableRelayHop,
+		UsingRelays:      n.usingRelays,
+	}
+
+	n.mu.RUnlock()
+
+	status.Listening = len(n.host.Network().ListenAddresses()) > 0
+
+	iAddrs, err := n.host.Network().InterfaceListenAddresses()
+	if err != nil {
+		return status, err
+	}
+
+	router, err := netroute.New()
+	if err != nil {
+		return status, err
+	}
+	_, gw, src, err := router.Route(net.IPv4zero)
+	if err != nil {
+		return status, err
+	}
+
+	status.LocalIP = src
+	for _, addr := range iAddrs {
+		addr, err := manet.ToNetAddr(addr)
+		if err != nil {
+			continue
+		}
+		switch addr := addr.(type) {
+		case *net.TCPAddr:
+			if addr.IP.Equal(src) {
+				status.TCPPorts = append(status.TCPPorts, addr.Port)
+			}
+		case *net.UDPAddr:
+			if addr.IP.Equal(src) {
+				status.UDPPorts = append(status.UDPPorts, addr.Port)
+			}
+		}
+	}
+
+	status.Gateway, _ = testHttp(ctx, gw)
+
+	return status, nil
 }
 
 func (n *Doctor) handleAddrUpdate(evt libp2pEvent.EvtLocalAddressesUpdated) {
@@ -122,8 +173,10 @@ func (n *Doctor) handleAddrUpdate(evt libp2pEvent.EvtLocalAddressesUpdated) {
 			break
 		}
 	}
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	if usingRelays != n.usingRelays {
 		n.usingRelays = usingRelays
 		status := "not using relays"
@@ -137,11 +190,13 @@ func (n *Doctor) handleAddrUpdate(evt libp2pEvent.EvtLocalAddressesUpdated) {
 func (n *Doctor) handleReachability(evt libp2pEvent.EvtLocalReachabilityChanged) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+
 	if evt.Reachability == n.reachability {
 		// Otherwise, we'll print
 		// "unknown" on start.
 		return
 	}
+
 	n.reachability = evt.Reachability
 	status := "unknown"
 	switch n.reachability {
@@ -153,12 +208,19 @@ func (n *Doctor) handleReachability(evt libp2pEvent.EvtLocalReachabilityChanged)
 	}
 
 	n.printf("Firewall Status: %s", status)
+
+	// We do this simply so users actually run the command.
 	if !n.hasNagged {
 		n.hasNagged = true
 		n.printf("NOTE: Your node appears to be behind a firewall. Please run `ipfs diag net` to diagnose.")
 	}
 }
 
+func (n *Doctor) printf(f string, rest ...interface{}) {
+	fmt.Fprintf(n.console, f+"\n", rest...)
+}
+
+// TODO Test this
 func testHttp(ctx context.Context, ip net.IP) (*url.URL, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -187,54 +249,4 @@ func testHttp(ctx context.Context, ip net.IP) (*url.URL, error) {
 		return resp.Request.URL, nil
 	}
 	return url, err
-}
-
-func (n *Doctor) GetStatus(ctx context.Context) (*Status, error) {
-	n.mu.RLock()
-
-	status := &Status{
-		Reachability:     n.reachability,
-		AutoRelayEnabled: n.config.Swarm.EnableAutoRelay && !n.config.Swarm.EnableRelayHop,
-		UsingRelays:      n.usingRelays,
-	}
-
-	n.mu.RUnlock()
-
-	status.Listening = len(n.host.Network().ListenAddresses()) > 0
-
-	addrs, err := n.host.Network().InterfaceListenAddresses()
-	if err != nil {
-		return status, err
-	}
-
-	router, err := netroute.New()
-	if err != nil {
-		return status, err
-	}
-	_, gw, src, err := router.Route(net.IPv4zero)
-	if err != nil {
-		return status, err
-	}
-
-	status.LocalIP = src
-	for _, addr := range addrs {
-		addr, err := manet.ToNetAddr(addr)
-		if err != nil {
-			continue
-		}
-		switch addr := addr.(type) {
-		case *net.TCPAddr:
-			if addr.IP.Equal(src) {
-				status.TCPPorts = append(status.TCPPorts, addr.Port)
-			}
-		case *net.UDPAddr:
-			if addr.IP.Equal(src) {
-				status.UDPPorts = append(status.UDPPorts, addr.Port)
-			}
-		}
-	}
-
-	status.Gateway, _ = testHttp(ctx, gw)
-
-	return status, nil
 }
