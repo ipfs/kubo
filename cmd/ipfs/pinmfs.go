@@ -162,6 +162,7 @@ func pinAllMFS(ctx context.Context, node pinMFSNode, cfg *config.Config, rootCid
 		mfslog.Debugf("pinning MFS root %s to %s", rootCid, svcName)
 		go func() {
 			if r, err := pinMFS(ctx, node, rootCid, svcName, svcConfig); err != nil {
+				mfslog.Debugf("pinning MFS root %s to %s error (%v)", rootCid, svcName, err)
 				select {
 				case errCh <- err:
 				case <-ctx.Done():
