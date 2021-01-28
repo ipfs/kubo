@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -77,7 +78,7 @@ The resolver can recursively resolve:
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ncmd.ResolvedPath) error {
-			fmt.Fprintln(w, out.Path.String())
+			fmt.Fprintln(w, cmdenv.EscNonPrint(out.Path.String()))
 			return nil
 		}),
 	},

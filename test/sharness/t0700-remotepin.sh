@@ -20,6 +20,14 @@ TEST_PIN_SVC_KEY=$(curl -s -X POST "$TEST_PIN_SVC/users" -d email="go-ipfs-sharn
 
 # pin remote service  add|ls|rm
 
+# confirm empty service list response has proper json struct
+# https://github.com/ipfs/go-ipfs/pull/7829
+test_expect_success "test 'ipfs pin remote service ls' JSON on empty list" '
+  ipfs pin remote service ls --stat --enc=json | tee empty_ls_out &&
+  echo "{\"RemoteServices\":[]}" > exp_ls_out &&
+  test_cmp exp_ls_out empty_ls_out
+'
+
 # add valid and invalid services
 test_expect_success "creating test user on remote pinning service" '
   echo CI host IP address ${TEST_PIN_SVC} &&
@@ -28,6 +36,12 @@ test_expect_success "creating test user on remote pinning service" '
   ipfs pin remote service add test_invalid_url_path_svc ${TEST_PIN_SVC}/invalid-path fake_api_key &&
   ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key &&
   ipfs pin remote service add test_pin_mfs_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY}
+'
+
+# add a service with a invalid endpoint
+test_expect_success "adding remote service with invalid endpoint" '
+  test_expect_code 1 ipfs pin remote service add test_endpoint_no_protocol invalid-service.example.com fake_api_key &&
+  test_expect_code 1 ipfs pin remote service add test_endpoint_bad_protocol xyz://invalid-service.example.com fake_api_key
 '
 
 test_expect_success "test 'ipfs pin remote service ls'" '
