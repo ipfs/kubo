@@ -470,10 +470,11 @@ TIP:
 		}
 
 		cfg.Pinning.RemoteServices[name] = config.RemotePinningService{
-			Api: config.RemotePinningServiceApi{
+			API: config.RemotePinningServiceAPI{
 				Endpoint: endpoint,
 				Key:      key,
 			},
+			Policies: config.RemotePinningServicePolicies{},
 		}
 
 		return repo.SetConfig(cfg)
@@ -562,7 +563,7 @@ TIP: pass '--enc=json' for more useful JSON output.
 		services := cfg.Pinning.RemoteServices
 		result := PinServicesList{make([]ServiceDetails, 0, len(services))}
 		for svcName, svcConfig := range services {
-			svcDetails := ServiceDetails{svcName, svcConfig.Api.Endpoint, nil}
+			svcDetails := ServiceDetails{svcName, svcConfig.API.Endpoint, nil}
 
 			// if --pin-count is passed, we try to fetch pin numbers from remote service
 			if req.Options[pinServiceStatOptionName].(bool) {
@@ -738,11 +739,11 @@ func getRemotePinServiceInfo(env cmds.Environment, name string) (endpoint, key s
 	if !present {
 		return "", "", fmt.Errorf("service not known")
 	}
-	endpoint, err = normalizeEndpoint(service.Api.Endpoint)
+	endpoint, err = normalizeEndpoint(service.API.Endpoint)
 	if err != nil {
 		return "", "", err
 	}
-	return endpoint, service.Api.Key, nil
+	return endpoint, service.API.Key, nil
 }
 
 func normalizeEndpoint(endpoint string) (string, error) {

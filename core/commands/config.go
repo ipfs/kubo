@@ -36,8 +36,6 @@ const (
 	configDryRunOptionName = "dry-run"
 )
 
-var tryRemoteServiceApiErr = errors.New("cannot show or change pinning services through this API (try: ipfs pin remote service --help)")
-
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Get and set ipfs config values.",
@@ -90,8 +88,8 @@ Set the value of the 'Datastore.Path' key:
 
 		// Temporary fix until we move ApiKey secrets out of the config file
 		// (remote services are a map, so more advanced blocking is required)
-		if blocked := inBlockedScope(key, config.RemoteServicesSelector); blocked {
-			return tryRemoteServiceApiErr
+		if blocked := matchesGlobPrefix(key, config.PinningConcealSelector); blocked {
+			return errors.New("cannot show or change pinning services credentials")
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
@@ -148,22 +146,31 @@ Set the value of the 'Datastore.Path' key:
 	Type: ConfigField{},
 }
 
-// Returns bool to indicate if tested key is in the blocked scope.
-// (scope includes parent, direct, and child match)
-func inBlockedScope(testKey string, blockedScope string) bool {
-	blockedScope = strings.ToLower(blockedScope)
-	roots := strings.Split(strings.ToLower(testKey), ".")
-	var scope []string
-	for _, name := range roots {
-		scope := append(scope, name)
-		impactedKey := strings.Join(scope, ".")
-		// blockedScope=foo.bar.BLOCKED should return true
-		// for parent and child impactedKeys: foo.bar and foo.bar.BLOCKED.subkey
-		if strings.HasPrefix(impactedKey, blockedScope) || strings.HasPrefix(blockedScope, impactedKey) {
-			return true
+// matchesGlobPrefix returns true if and only if the key matches the glob.
+// The key is a sequence of string "parts", separated by commas.
+// The glob is a sequence of string "patterns".
+// matchesGlobPrefix tries to match all of the first K parts to the first K patterns, respectively,
+// where K is the length of the shorter of key or glob.
+// A pattern matches a part if and only if the pattern is "*" or the lowercase pattern equals the lowercase part.
+//
+// For example:
+//	matchesGlobPrefix("foo.bar", []string{"*", "bar", "baz"}) returns true
+//	matchesGlobPrefix("foo.bar.baz", []string{"*", "bar"}) returns true
+//	matchesGlobPrefix("foo.bar", []string{"baz", "*"}) returns false
+func matchesGlobPrefix(key string, glob []string) bool {
+	k := strings.Split(key, ".")
+	for i, g := range glob {
+		if i >= len(k) {
+			break
+		}
+		if g == "*" {
+			continue
+		}
+		if !strings.EqualFold(k[i], g) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 var configShowCmd = &cmds.Command{
@@ -173,7 +180,7 @@ var configShowCmd = &cmds.Command{
 NOTE: For security reasons, this command will omit your private key and remote services. If you would like to make a full backup of your config (private key included), you must copy the config file from your repo.
 `,
 	},
-	Type: map[string]interface{}{},
+	Type: make(map[string]interface{}),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
@@ -196,12 +203,12 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
+		cfg, err = scrubValue(cfg, []string{config.IdentityTag, config.PrivKeyTag})
 		if err != nil {
 			return err
 		}
 
-		err = scrubOptionalValue(cfg, []string{config.PinningTag, config.RemoteServicesTag})
+		cfg, err = scrubOptionalValue(cfg, config.PinningConcealSelector)
 		if err != nil {
 			return err
 		}
@@ -222,54 +229,49 @@ NOTE: For security reasons, this command will omit your private key and remote s
 }
 
 // Scrubs value and returns error if missing
-func scrubValue(m map[string]interface{}, key []string) error {
-	return scrub(m, key, false)
+func scrubValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
+	return scrubMapInternal(m, key, false)
 }
 
 // Scrubs value and returns no error if missing
-func scrubOptionalValue(m map[string]interface{}, key []string) error {
-	return scrub(m, key, true)
+func scrubOptionalValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
+	return scrubMapInternal(m, key, true)
 }
 
-func scrub(m map[string]interface{}, key []string, okIfMissing bool) error {
-	find := func(m map[string]interface{}, k string) (string, interface{}, bool) {
-		lckey := strings.ToLower(k)
-		for mkey, val := range m {
-			lcmkey := strings.ToLower(mkey)
-			if lckey == lcmkey {
-				return mkey, val, true
+func scrubEither(u interface{}, key []string, okIfMissing bool) (interface{}, error) {
+	m, ok := u.(map[string]interface{})
+	if ok {
+		return scrubMapInternal(m, key, okIfMissing)
+	}
+	return scrubValueInternal(m, key, okIfMissing)
+}
+
+func scrubValueInternal(v interface{}, key []string, okIfMissing bool) (interface{}, error) {
+	if v == nil && !okIfMissing {
+		return nil, errors.New("failed to find specified key")
+	}
+	return nil, nil
+}
+
+func scrubMapInternal(m map[string]interface{}, key []string, okIfMissing bool) (map[string]interface{}, error) {
+	if len(key) == 0 {
+		return make(map[string]interface{}), nil // delete value
+	}
+	n := map[string]interface{}{}
+	for k, v := range m {
+		if key[0] == "*" || strings.EqualFold(key[0], k) {
+			u, err := scrubEither(v, key[1:], okIfMissing)
+			if err != nil {
+				return nil, err
 			}
+			if u != nil {
+				n[k] = u
+			}
+		} else {
+			n[k] = v
 		}
-		return "", nil, false
 	}
-
-	cur := m
-	for _, k := range key[:len(key)-1] {
-		foundk, val, ok := find(cur, k)
-		if !ok && !okIfMissing {
-			return errors.New("failed to find specified key")
-		}
-
-		if foundk != k {
-			// case mismatch, calling this an error
-			return fmt.Errorf("case mismatch in config, expected %q but got %q", k, foundk)
-		}
-
-		mval, mok := val.(map[string]interface{})
-		if !mok {
-			return fmt.Errorf("%s was not a map", foundk)
-		}
-
-		cur = mval
-	}
-
-	todel, _, ok := find(cur, key[len(key)-1])
-	if !ok && !okIfMissing {
-		return fmt.Errorf("%s, not found", strings.Join(key, "."))
-	}
-
-	delete(cur, todel)
-	return nil
+	return n, nil
 }
 
 var configEditCmd = &cmds.Command{
@@ -421,7 +423,7 @@ func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	err = scrubValue(cfgMap, []string{config.IdentityTag, config.PrivKeyTag})
+	cfgMap, err = scrubValue(cfgMap, []string{config.IdentityTag, config.PrivKeyTag})
 	if err != nil {
 		return nil, err
 	}
@@ -503,14 +505,14 @@ func editConfig(filename string) error {
 }
 
 func replaceConfig(r repo.Repo, file io.Reader) error {
-	var cfg config.Config
-	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
+	var newCfg config.Config
+	if err := json.NewDecoder(file).Decode(&newCfg); err != nil {
 		return errors.New("failed to decode file as config")
 	}
 
 	// Handle Identity.PrivKey (secret)
 
-	if len(cfg.Identity.PrivKey) != 0 {
+	if len(newCfg.Identity.PrivKey) != 0 {
 		return errors.New("setting private key with API is not supported")
 	}
 
@@ -524,33 +526,57 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 		return errors.New("private key in config was not a string")
 	}
 
-	cfg.Identity.PrivKey = pkstr
+	newCfg.Identity.PrivKey = pkstr
 
-	// Handle Pinning.RemoteServices (ApiKey of each service is secret)
-	// Note: these settings are opt-in and may be missing
+	// Handle Pinning.RemoteServices (API.Key of each service is a secret)
 
-	if len(cfg.Pinning.RemoteServices) != 0 {
-		return tryRemoteServiceApiErr
+	newServices := newCfg.Pinning.RemoteServices
+	oldServices, err := getRemotePinningServices(r)
+	if err != nil {
+		return fmt.Errorf("failed to load remote pinning services info (%v)", err)
 	}
 
-	// detect if existing config has any remote services defined..
-	if remoteServicesTag, err := getConfig(r, config.RemoteServicesSelector); err == nil {
-		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
-		// so we have to manually copy the data :-|
-		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
-			var services map[string]config.RemotePinningService
-			jsonString, err := json.Marshal(val)
-			if err != nil {
-				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
+	// fail fast if service lists are obviously different
+	if len(newServices) != len(oldServices) {
+		return errors.New("cannot add or remove remote pinning services with 'config replace'")
+	}
+
+	// re-apply API details and confirm every modified service already existed
+	for name, oldSvc := range oldServices {
+		if newSvc, hadSvc := newServices[name]; hadSvc {
+			// fail if input changes any of API details
+			// (interop with config show: allow Endpoint as long it did not change)
+			if len(newSvc.API.Key) != 0 || (len(newSvc.API.Endpoint) != 0 && newSvc.API.Endpoint != oldSvc.API.Endpoint) {
+				return errors.New("cannot change remote pinning services api info with `config replace`")
 			}
-			err = json.Unmarshal(jsonString, &services)
-			if err != nil {
-				return fmt.Errorf("failed to replace config while preserving %s: %s", config.RemoteServicesSelector, err)
-			}
-			// .. if so, apply them on top of the new config
-			cfg.Pinning.RemoteServices = services
+			// re-apply API details and store service in updated config
+			newSvc.API = oldSvc.API
+			newCfg.Pinning.RemoteServices[name] = newSvc
+		} else {
+			// error on service rm attempt
+			return errors.New("cannot add or remove remote pinning services with 'config replace'")
 		}
 	}
 
-	return r.SetConfig(&cfg)
+	return r.SetConfig(&newCfg)
+}
+
+func getRemotePinningServices(r repo.Repo) (map[string]config.RemotePinningService, error) {
+	var oldServices map[string]config.RemotePinningService
+	if remoteServicesTag, err := getConfig(r, config.RemoteServicesPath); err == nil {
+		// seems that golang cannot type assert map[string]interface{} to map[string]config.RemotePinningService
+		// so we have to manually copy the data :-|
+		if val, ok := remoteServicesTag.Value.(map[string]interface{}); ok {
+			jsonString, err := json.Marshal(val)
+			if err != nil {
+				return nil, err
+			}
+			err = json.Unmarshal(jsonString, &oldServices)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return oldServices, nil
+
 }

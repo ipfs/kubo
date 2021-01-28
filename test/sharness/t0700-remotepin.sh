@@ -34,7 +34,8 @@ test_expect_success "creating test user on remote pinning service" '
   ipfs pin remote service add test_pin_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY} &&
   ipfs pin remote service add test_invalid_key_svc ${TEST_PIN_SVC} fake_api_key &&
   ipfs pin remote service add test_invalid_url_path_svc ${TEST_PIN_SVC}/invalid-path fake_api_key &&
-  ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key
+  ipfs pin remote service add test_invalid_url_dns_svc https://invalid-service.example.com fake_api_key &&
+  ipfs pin remote service add test_pin_mfs_svc ${TEST_PIN_SVC} ${TEST_PIN_SVC_KEY}
 '
 
 # add a service with a invalid endpoint
@@ -51,23 +52,60 @@ test_expect_success "test 'ipfs pin remote service ls'" '
   grep -q test_invalid_url_dns_svc ls_out
 '
 
-# SECURITY of access tokens in Api.Key fields:
-# Pinning.RemoteServices includes Api.Key, and we give it the same treatment
+test_expect_success "test enabling mfs pinning" '
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval \"10s\" &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName \"mfs_test_pin\" &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable true &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.RepinInterval > repin_interval &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.PinName > pin_name &&
+  ipfs config --json Pinning.RemoteServices.test_pin_mfs_svc.Policies.MFS.Enable > enable &&
+  echo 10s > expected_repin_interval &&
+  echo mfs_test_pin > expected_pin_name &&
+  echo true > expected_enable &&
+  test_cmp repin_interval expected_repin_interval &&
+  test_cmp pin_name expected_pin_name &&
+  test_cmp enable expected_enable
+'
+
+# expect PIN to be created
+test_expect_success "verify MFS root is being pinned" '
+  ipfs files cp /ipfs/bafkqaaa /mfs-pinning-test-$(date +%s.%N) &&
+  ipfs files flush &&
+  sleep 31 &&
+  ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
+  ipfs pin remote ls --service=test_pin_mfs_svc --name=mfs_test_pin --status=queued,pinning,pinned,failed --enc=json | tee ls_out | jq -r .Cid > pin_cid &&
+  cat mfs_cid ls_out &&
+  test_cmp mfs_cid pin_cid
+'
+
+# expect existing PIN to be replaced
+test_expect_success "verify MFS root is being repinned on CID change" '
+  ipfs files cp /ipfs/bafkqaaa /mfs-pinning-repin-test-$(date +%s.%N) &&
+  ipfs files flush &&
+  sleep 31 &&
+  ipfs files stat / --enc=json | jq -r .Hash > mfs_cid &&
+  ipfs pin remote ls --service=test_pin_mfs_svc --name=mfs_test_pin --status=queued,pinning,pinned,failed --enc=json | tee ls_out | jq -r .Cid > pin_cid &&
+  cat mfs_cid ls_out &&
+  test_cmp mfs_cid pin_cid
+'
+
+# SECURITY of access tokens in API.Key fields:
+# Pinning.RemoteServices includes API.Key, and we give it the same treatment
 # as Identity.PrivKey to prevent exposing it on the network
 
 test_expect_success "'ipfs config Pinning' fails" '
   test_expect_code 1 ipfs config Pinning 2>&1 > config_out
 '
-test_expect_success "output does not include Api.Key" '
+test_expect_success "output does not include API.Key" '
   test_expect_code 1 grep -q Key config_out
 '
 
-test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc.Api.Key' fails" '
-  test_expect_code 1 ipfs config Pinning.RemoteServices.test_pin_svc.Api.Key 2> config_out
+test_expect_success "'ipfs config Pinning.RemoteServices.test_pin_svc.API.Key' fails" '
+  test_expect_code 1 ipfs config Pinning.RemoteServices.test_pin_svc.API.Key 2> config_out
 '
 
 test_expect_success "output includes meaningful error" '
-  echo "Error: cannot show or change pinning services through this API (try: ipfs pin remote service --help)" > config_exp &&
+  echo "Error: cannot show or change pinning services credentials" > config_exp &&
   test_cmp config_exp config_out
 '
 
@@ -78,29 +116,30 @@ test_expect_success "output includes meaningful error" '
   test_cmp config_exp config_out
 '
 
-test_expect_success "'ipfs config show' doesn't include RemoteServices" '
-  ipfs config show > show_config &&
-  test_expect_code 1 grep RemoteServices show_config
+test_expect_success "'ipfs config show' does not include Pinning.RemoteServices[*].API.Key" '
+  ipfs config show | tee show_config | jq -r .Pinning.RemoteServices > remote_services &&
+  test_expect_code 1 grep \"Key\" remote_services &&
+  test_expect_code 1 grep fake_api_key show_config &&
+  test_expect_code 1 grep "$TEST_PIN_SVC_KEY" show_config
 '
 
-test_expect_success "'ipfs config replace' injects remote services back" '
-  test_expect_code 1 grep -q -E "test_.+_svc" show_config &&
+test_expect_success "'ipfs config replace' injects Pinning.RemoteServices[*].API.Key back" '
+  test_expect_code 1 grep fake_api_key show_config &&
+  test_expect_code 1 grep "$TEST_PIN_SVC_KEY" show_config &&
   ipfs config replace show_config &&
-  test_expect_code 0 grep -q test_pin_svc "$IPFS_PATH/config" &&
-  test_expect_code 0 grep -q test_invalid_key_svc "$IPFS_PATH/config" &&
-  test_expect_code 0 grep -q test_invalid_url_path_svc "$IPFS_PATH/config" &&
-  test_expect_code 0 grep -q test_invalid_url_dns_svc "$IPFS_PATH/config"
+  test_expect_code 0 grep fake_api_key "$IPFS_PATH/config" &&
+  test_expect_code 0 grep "$TEST_PIN_SVC_KEY" "$IPFS_PATH/config"
 '
 
 # note: we remove Identity.PrivKey to ensure error is triggered by Pinning.RemoteServices
-test_expect_success "'ipfs config replace' with remote services errors out" '
-  jq -M "del(.Identity.PrivKey)" "$IPFS_PATH/config" | jq ".Pinning += { RemoteServices: {\"foo\": {} }}" > new_config &&
+test_expect_success "'ipfs config replace' with Pinning.RemoteServices[*].API.Key errors out" '
+  jq -M "del(.Identity.PrivKey)" "$IPFS_PATH/config" | jq ".Pinning += { RemoteServices: {\"myservice\": {\"API\": {\"Endpoint\": \"https://example.com/psa\", \"Key\": \"mysecret\"}}}}" > new_config &&
   test_expect_code 1 ipfs config replace - < new_config 2> replace_out
 '
-test_expect_success "output includes meaningful error" '
-  echo "Error: cannot show or change pinning services through this API (try: ipfs pin remote service --help)" > replace_expected &&
+test_expect_success "output includes meaningful error" "
+  echo \"Error: cannot add or remove remote pinning services with 'config replace'\" > replace_expected &&
   test_cmp replace_out replace_expected
-'
+"
 
 # /SECURITY
 

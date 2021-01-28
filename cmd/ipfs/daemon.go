@@ -439,6 +439,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
+	// start MFS pinning thread
+	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
+
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
 	notifyReady()
