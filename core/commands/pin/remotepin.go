@@ -10,6 +10,7 @@ import (
 	"time"
 
 	neturl "net/url"
+	gopath "path"
 
 	"golang.org/x/sync/errgroup"
 
@@ -443,13 +444,11 @@ TIP:
 		}
 
 		name := req.Arguments[0]
-		url := strings.TrimSuffix(req.Arguments[1], "/pins") // fix /pins/pins :-)
-		key := req.Arguments[2]
-
-		u, err := neturl.ParseRequestURI(url)
-		if err != nil || !strings.HasPrefix(u.Scheme, "http") {
-			return fmt.Errorf("service endpoint must be a valid HTTP URL")
+		endpoint, err := normalizeEndpoint(req.Arguments[1])
+		if err != nil {
+			return err
 		}
+		key := req.Arguments[2]
 
 		cfg, err := repo.Config()
 		if err != nil {
@@ -465,7 +464,7 @@ TIP:
 
 		cfg.Pinning.RemoteServices[name] = config.RemotePinningService{
 			Api: config.RemotePinningServiceApi{
-				Endpoint: url,
+				Endpoint: endpoint,
 				Key:      key,
 			},
 		}
@@ -704,14 +703,14 @@ func getRemotePinService(env cmds.Environment, name string) (*pinclient.Client, 
 	if name == "" {
 		return nil, fmt.Errorf("remote pinning service name not specified")
 	}
-	url, key, err := getRemotePinServiceInfo(env, name)
+	endpoint, key, err := getRemotePinServiceInfo(env, name)
 	if err != nil {
 		return nil, err
 	}
-	return pinclient.NewClient(url, key), nil
+	return pinclient.NewClient(endpoint, key), nil
 }
 
-func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string, err error) {
+func getRemotePinServiceInfo(env cmds.Environment, name string) (endpoint, key string, err error) {
 	cfgRoot, err := cmdenv.GetConfigRoot(env)
 	if err != nil {
 		return "", "", err
@@ -732,5 +731,32 @@ func getRemotePinServiceInfo(env cmds.Environment, name string) (url, key string
 	if !present {
 		return "", "", fmt.Errorf("service not known")
 	}
-	return service.Api.Endpoint, service.Api.Key, nil
+	endpoint, err = normalizeEndpoint(service.Api.Endpoint)
+	if err != nil {
+		return "", "", err
+	}
+	return endpoint, service.Api.Key, nil
+}
+
+func normalizeEndpoint(endpoint string) (string, error) {
+	uri, err := neturl.ParseRequestURI(endpoint)
+	if err != nil || !(uri.Scheme == "http" || uri.Scheme == "https") {
+		return "", fmt.Errorf("service endpoint must be a valid HTTP URL")
+	}
+
+	// cleanup trailing and duplicate slashes (https://github.com/ipfs/go-ipfs/issues/7826)
+	uri.Path = gopath.Clean(uri.Path)
+	uri.Path = strings.TrimSuffix(uri.Path, ".")
+	uri.Path = strings.TrimSuffix(uri.Path, "/")
+
+	// remove any query params
+	if uri.RawQuery != "" {
+		return "", fmt.Errorf("service endpoint should be provided without any query parameters")
+	}
+
+	if strings.HasSuffix(uri.Path, "/pins") {
+		return "", fmt.Errorf("service endpoint should be provided without the /pins suffix")
+	}
+
+	return uri.String(), nil
 }
