@@ -440,8 +440,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
 	// start MFS pinning thread
-	pinErr := make(chan error)
-	go pinMFSOnChange(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node}, pinErr)
+	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
 
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
@@ -458,7 +457,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(apiErrc, gwErrc, gcErrc, pinErr) {
+	for err := range merge(apiErrc, gwErrc, gcErrc) {
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}

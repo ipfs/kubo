@@ -61,6 +61,24 @@ func (x *ipfsPinMFSNode) PeerHost() host.Host {
 	return x.node.PeerHost
 }
 
+func startPinMFS(configPollInterval time.Duration, cctx pinMFSContext, node pinMFSNode) {
+	errCh := make(chan error)
+	go pinMFSOnChange(configPollInterval, cctx, node, errCh)
+	go func() {
+		for {
+			select {
+			case err, isOpen := <-errCh:
+				if !isOpen {
+					return
+				}
+				mfslog.Errorf("%v", err)
+			case <-cctx.Context().Done():
+				return
+			}
+		}
+	}()
+}
+
 func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node pinMFSNode, errCh chan<- error) {
 	defer close(errCh)
 
