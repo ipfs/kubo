@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"strings"
+	"fmt"
 
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
