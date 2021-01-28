@@ -21,7 +21,6 @@ const (
 	// Distribution
 	gatewayURL = "https://ipfs.io"
 	ipfsDist   = "/ipns/dist.ipfs.io"
-	// ipfsDist = "/ipfs/QmYRLRDKobvg1AXTGeK5Xk6ntWTsjGiHbyNKhWfz7koGpa"
 
 	// Maximum download size
 	fetchSizeLimit = 1024 * 1024 * 512
