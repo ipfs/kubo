@@ -86,6 +86,9 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 				Type:        "basic",
 			},
 		},
+		Pinning: Pinning{
+			RemoteServices: map[string]RemotePinningService{},
+		},
 	}
 
 	return conf, nil

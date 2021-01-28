@@ -1,9 +1,8 @@
 package config
 
-const (
-	PinningTag             = "Pinning"
-	RemoteServicesTag      = "RemoteServices"
-	RemoteServicesSelector = PinningTag + "." + RemoteServicesTag
+var (
+	RemoteServicesPath     = "Pinning.RemoteServices"
+	PinningConcealSelector = []string{"Pinning", "RemoteServices", "*", "API", "Key"}
 )
 
 type Pinning struct {
@@ -11,10 +10,24 @@ type Pinning struct {
 }
 
 type RemotePinningService struct {
-	Api RemotePinningServiceApi
+	API      RemotePinningServiceAPI
+	Policies RemotePinningServicePolicies
 }
 
-type RemotePinningServiceApi struct {
+type RemotePinningServiceAPI struct {
 	Endpoint string
 	Key      string
+}
+
+type RemotePinningServicePolicies struct {
+	MFS RemotePinningServiceMFSPolicy
+}
+
+type RemotePinningServiceMFSPolicy struct {
+	// Enable enables watching for changes in MFS and re-pinning the MFS root cid whenever a change occurs.
+	Enable bool
+	// Name is the pin name for MFS.
+	PinName string
+	// RepinInterval determines the repin interval when the policy is enabled. In ns, us, ms, s, m, h.
+	RepinInterval string
 }
