@@ -23,12 +23,12 @@ func TestRepoDir(t *testing.T) {
 	os.Setenv("HOME", fakeHome)
 	fakeIpfs = path.Join(fakeHome, ".ipfs")
 
-	t.Run("testFindIpfsDir", testFindIpfsDir)
+	t.Run("testIpfsDir", testIpfsDir)
 	t.Run("testCheckIpfsDir", testCheckIpfsDir)
 	t.Run("testRepoVersion", testRepoVersion)
 }
 
-func testFindIpfsDir(t *testing.T) {
+func testIpfsDir(t *testing.T) {
 	_, err := CheckIpfsDir("")
 	if err == nil {
 		t.Fatal("expected error when no .ipfs directory to find")
@@ -47,7 +47,7 @@ func testFindIpfsDir(t *testing.T) {
 		t.Fatal("wrong ipfs directory:", dir)
 	}
 
-	os.Setenv("IPFS_PATH", "~/.ipfs")
+	os.Setenv(envIpfsPath, "~/.ipfs")
 	dir, err = IpfsDir("")
 	if err != nil {
 		t.Fatal(err)
@@ -55,10 +55,46 @@ func testFindIpfsDir(t *testing.T) {
 	if dir != fakeIpfs {
 		t.Fatal("wrong ipfs directory:", dir)
 	}
+
+	_, err = IpfsDir("~somesuer/foo")
+	if err == nil {
+		t.Fatal("expected error with user-specific home dir")
+	}
+
+	err = os.Setenv(envIpfsPath, "~somesuer/foo")
+	if err != nil {
+		panic(err)
+	}
+	_, err = IpfsDir("~somesuer/foo")
+	if err == nil {
+		t.Fatal("expected error with user-specific home dir")
+	}
+	err = os.Unsetenv(envIpfsPath)
+	if err != nil {
+		panic(err)
+	}
+
+	dir, err = IpfsDir("~/.ipfs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dir != fakeIpfs {
+		t.Fatal("wrong ipfs directory:", dir)
+	}
+
+	_, err = IpfsDir("")
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func testCheckIpfsDir(t *testing.T) {
-	_, err := CheckIpfsDir("~/no_such_dir")
+	_, err := CheckIpfsDir("~somesuer/foo")
+	if err == nil {
+		t.Fatal("expected error with user-specific home dir")
+	}
+
+	_, err = CheckIpfsDir("~/no_such_dir")
 	if err == nil {
 		t.Fatal("expected error from nonexistent directory")
 	}
@@ -73,7 +109,13 @@ func testCheckIpfsDir(t *testing.T) {
 }
 
 func testRepoVersion(t *testing.T) {
-	_, err := RepoVersion(fakeIpfs)
+	badDir := "~somesuer/foo"
+	_, err := RepoVersion(badDir)
+	if err == nil {
+		t.Fatal("expected error with user-specific home dir")
+	}
+
+	_, err = RepoVersion(fakeIpfs)
 	if !os.IsNotExist(err) {
 		t.Fatal("expected not-exist error")
 	}
@@ -91,6 +133,29 @@ func testRepoVersion(t *testing.T) {
 	}
 	if ver != testVer {
 		t.Fatalf("expected version %d, got %d", testVer, ver)
+	}
+
+	err = WriteRepoVersion(badDir, testVer)
+	if err == nil {
+		t.Fatal("expected error with user-specific home dir")
+	}
+
+	ipfsDir, err := IpfsDir(fakeIpfs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vFilePath := path.Join(ipfsDir, versionFile)
+	err = ioutil.WriteFile(vFilePath, []byte("bad-version-data\n"), 0644)
+	if err != nil {
+		panic(err)
+	}
+	_, err = RepoVersion(fakeIpfs)
+	if err == nil || err.Error() != "invalid data in repo version file" {
+		t.Fatal("expected 'invalid data' error")
+	}
+	err = WriteRepoVersion(fakeIpfs, testVer)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -146,5 +211,12 @@ func TestApiEndpoint(t *testing.T) {
 	}
 	if val2 != val {
 		t.Fatal("expected", val, "got", val2)
+	}
+
+	_, _, err = ApiShell(fakeIpfs)
+	if err != nil {
+		if err.Error() != "ipfs api shell not up" {
+			t.Fatal("expected 'ipfs api shell not up' error")
+		}
 	}
 }

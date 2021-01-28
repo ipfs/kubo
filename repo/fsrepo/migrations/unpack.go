@@ -83,7 +83,12 @@ func unpackZip(arcPath, root, name, out string) error {
 			}
 
 			bin = rc
+			break
 		}
+	}
+
+	if bin == nil {
+		return errors.New("no binary found in archive")
 	}
 
 	return writeToPath(bin, out)

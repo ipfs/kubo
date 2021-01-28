@@ -16,6 +16,8 @@ import (
 )
 
 const (
+	envIpfsDistPath = "IPFS_DIST_PATH"
+
 	// Distribution
 	gatewayURL = "https://ipfs.io"
 	ipfsDist   = "/ipns/dist.ipfs.io"
@@ -45,7 +47,7 @@ func SetIpfsDistPath(distPath string) {
 		return
 	}
 
-	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
+	if dist := os.Getenv(envIpfsDistPath); dist != "" {
 		ipfsDistPath = dist
 	} else {
 		ipfsDistPath = ipfsDist
