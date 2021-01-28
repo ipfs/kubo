@@ -113,7 +113,14 @@ after remote service confirms 'queued' status, add the '--background' flag:
 
   $ ipfs pin remote add --service=mysrv --name=mypin --background bafkqaaa
 
-Status of background pin requests can be inspected with the 'ls' command:
+Status of background pin requests can be inspected with the 'ls' command.
+
+To list all pins for the CID across all statuses:
+
+  $ ipfs pin remote ls --service=mysrv --cid=bafkqaaa --status=queued \
+      --status=pinning --status=pinned --status=failed
+
+NOTE: a comma-separated notation is supported in CLI for convenience:
 
   $ ipfs pin remote ls --service=mysrv --cid=bafkqaaa --status=queued,pinning,pinned,failed
 
