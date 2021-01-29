@@ -379,7 +379,12 @@ test_expect_success "request for http://example.com/ipfs/{CID} with X-Forwarded-
   test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
-
+# Support ipfs:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipfs/?uri=ipfs%3A%2F%2F.. produces redirect to /ipfs/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/?uri=ipfs%3A%2F%2FQmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco%2Fwiki%2FDiego_Maradona.html" \
+  "Location: /ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Diego_Maradona.html"
 
 # example.com/ipns/<libp2p-key>
 
@@ -402,6 +407,21 @@ test_hostname_gateway_response_should_contain \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.example.com/wiki"
+
+# DNSLink on Public gateway with a single-level wildcard TLS cert
+# "Option C" from  https://github.com/ipfs/in-web-browsers/issues/169
+test_expect_success \
+  "request for example.com/ipns/{fqdn} with X-Forwarded-Proto redirects to TLS-safe label in subdomain" "
+  curl -H \"Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki\" > response &&
+  test_should_contain \"Location: https://en-wikipedia--on--ipfs-org.ipns.example.com/wiki\" response
+  "
+
+# Support ipns:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/?uri=ipns%3A%2F%2F.. produces redirect to /ipns/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/?uri=ipns%3A%2F%2Fen.wikipedia-on-ipfs.org" \
+  "Location: /ipns/en.wikipedia-on-ipfs.org"
 
 # *.ipfs.example.com: subdomain requests made with custom FQDN in Host header
 
@@ -539,14 +559,22 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "$CID_VAL"
 
+# DNSLink on Public gateway with a single-level wildcard TLS cert
+# "Option C" from  https://github.com/ipfs/in-web-browsers/issues/169
+test_expect_success \
+  "request for {single-label-dnslink}.ipns.example.com with X-Forwarded-Proto returns expected payload" "
+  curl -H \"Host: dnslink--subdomain--gw--test-example-org.ipns.example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT\" > response &&
+  test_should_contain \"$CID_VAL\" response
+  "
+
 ## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
 ## https://github.com/ipfs/go-ipfs/issues/7318
 ## ============================================================================
 
 # ed25519 fits under 63 char limit when represented in base36
 IPNS_KEY="test_key_ed25519"
-IPNS_ED25519_B58MH=$(ipfs key list -l -f b58mh | grep $IPNS_KEY | cut -d " " -f1 | tr -d "\n")
-IPNS_ED25519_B36CID=$(ipfs key list -l -f b36cid | grep $IPNS_KEY | cut -d " " -f1 | tr -d "\n")
+IPNS_ED25519_B58MH=$(ipfs key list -l --ipns-base b58mh | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
+IPNS_ED25519_B36CID=$(ipfs key list -l --ipns-base base36 | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
 # sha512 will be over 63char limit, even when represented in Base36
 CIDv1_TOO_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
 

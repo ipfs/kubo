@@ -119,8 +119,8 @@ baz
 	Type: config.Mounts{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, mounts *config.Mounts) error {
-			fmt.Fprintf(w, "IPFS mounted at: %s\n", mounts.IPFS)
-			fmt.Fprintf(w, "IPNS mounted at: %s\n", mounts.IPNS)
+			fmt.Fprintf(w, "IPFS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPFS))
+			fmt.Fprintf(w, "IPNS mounted at: %s\n", cmdenv.EscNonPrint(mounts.IPNS))
 
 			return nil
 		}),

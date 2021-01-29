@@ -353,7 +353,7 @@ only-hash, and progress/status related flags) will change the final hash.
 							if quiet {
 								fmt.Fprintf(os.Stdout, "%s\n", output.Hash)
 							} else {
-								fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, output.Name)
+								fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, cmdenv.EscNonPrint(output.Name))
 							}
 
 						} else {

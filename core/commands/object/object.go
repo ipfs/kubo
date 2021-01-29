@@ -167,7 +167,7 @@ multihash.
 				fmt.Fprintln(tw, "Hash\tSize\tName")
 			}
 			for _, link := range out.Links {
-				fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, link.Name)
+				fmt.Fprintf(tw, "%s\t%v\t%s\n", link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
 			}
 			tw.Flush()
 
