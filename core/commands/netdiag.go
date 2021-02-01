@@ -66,6 +66,18 @@ To (your current IP): {{.LocalIP}}
 If you are on a personal home network, your router's administrative console can likely be found at:
     {{.Gateway}}
 {{end -}}
+
+{{if .UDPNATDeviceType -}}
+
+Your NAT Device Type for UDP is:
+    {{.UDPNATDeviceType}}
+{{end -}}
+
+{{if .TCPNATDeviceType -}}
+
+Your NAT Device Type for TCP is:
+    {{.TCPNATDeviceType}}
+{{end -}}
 `
 
 var netDiagPublicTemplate, netDiagPrivateTemplate, netDiagUnknownTemplate *template.Template

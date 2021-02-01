@@ -28,7 +28,11 @@ type Doctor struct {
 	config  *config.Config
 	console io.Writer
 
-	mu                     sync.RWMutex
+	mu sync.RWMutex
+
+	tcpNATDeviceType libp2pNetwork.NATDeviceType
+	udpNATDeviceType libp2pNetwork.NATDeviceType
+
 	sub                    libp2pEvent.Subscription
 	reachability           libp2pNetwork.Reachability
 	hasNagged, usingRelays bool
@@ -42,7 +46,8 @@ type Status struct {
 	TCPPorts, UDPPorts []int
 	LocalIP            net.IP
 	Gateway            *url.URL
-	// TODO NAT Device Type
+	TCPNATDeviceType   *libp2pNetwork.NATDeviceType
+	UDPNATDeviceType   *libp2pNetwork.NATDeviceType
 }
 
 func NewDoctor(host libp2p.Host, cfg *config.Config, console io.Writer) *Doctor {
@@ -90,6 +95,7 @@ func (n *Doctor) Start() error {
 	n.sub, err = n.host.EventBus().Subscribe([]interface{}{
 		new(libp2pEvent.EvtLocalReachabilityChanged),
 		new(libp2pEvent.EvtLocalAddressesUpdated),
+		new(libp2pEvent.EvtNATDeviceTypeChanged),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to libp2p events: %s", err)
@@ -106,6 +112,8 @@ func (n *Doctor) Start() error {
 				n.handleReachability(evt)
 			case libp2pEvent.EvtLocalAddressesUpdated:
 				n.handleAddrUpdate(evt)
+			case libp2pEvent.EvtNATDeviceTypeChanged:
+				n.handleNATDeviceTypeChanged(evt)
 			default:
 				log.Errorf("unexpected event type: %T", evt)
 			}
@@ -162,7 +170,27 @@ func (n *Doctor) GetStatus(ctx context.Context) (*Status, error) {
 
 	status.Gateway, _ = testHttp(ctx, gw)
 
+	if n.tcpNATDeviceType != libp2pNetwork.NATDeviceTypeUnknown {
+		status.TCPNATDeviceType = &n.tcpNATDeviceType
+	}
+
+	if n.udpNATDeviceType != libp2pNetwork.NATDeviceTypeUnknown {
+		status.UDPNATDeviceType = &n.udpNATDeviceType
+	}
+
 	return status, nil
+}
+
+func (n *Doctor) handleNATDeviceTypeChanged(evt libp2pEvent.EvtNATDeviceTypeChanged) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	switch evt.TransportProtocol {
+	case libp2pEvent.NATTransportUDP:
+		n.udpNATDeviceType = evt.NatDeviceType
+	case libp2pEvent.NATTransportTCP:
+		n.tcpNATDeviceType = evt.NatDeviceType
+	}
 }
 
 func (n *Doctor) handleAddrUpdate(evt libp2pEvent.EvtLocalAddressesUpdated) {
