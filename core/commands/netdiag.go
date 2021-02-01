@@ -26,6 +26,7 @@ const netDiagUnknownText = `
 IPFS has not yet determined if your node is reachable from the public network.
 `
 
+// TODO Information about Hole Punching based on NAT Type
 const netDiagPrivateText = `
 {{ if .UsingRelays -}}
 Your IPFS node appears to be behind a Firewall or NAT and can only be reached
