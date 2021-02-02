@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	host "github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -17,6 +18,8 @@ var DefaultHostOption HostOption = constructPeerHost
 
 // isolates the complex initialization steps
 func constructPeerHost(ctx context.Context, id peer.ID, ps peerstore.Peerstore, options ...libp2p.Option) (host.Host, error) {
+	golog.SetLogLevel("p2p/holepunch", "INFO")
+
 	relayId, err := peer.Decode("Qma71QQyJN7Sw7gz1cgJ4C66ubHmvKqBasSegKRugM5qo6")
 	if err != nil {
 		panic(err)
