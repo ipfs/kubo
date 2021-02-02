@@ -184,7 +184,7 @@ func fetchMigrations(ctx context.Context, needed []string, destDir string) ([]st
 				log.Printf("could not download %s: %s", name, err)
 				return
 			}
-			log.Printf("Downloaded and unpacked migration: %s", loc)
+			log.Printf("Downloaded and unpacked migration: %s (%s)", loc, ver)
 			bins[i] = loc
 		}(i, name)
 	}

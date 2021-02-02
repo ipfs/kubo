@@ -10,6 +10,8 @@ import (
 	"testing"
 )
 
+const testIPFSDistPath = "/ipfs/Qme8pJhBidEUXRdpcWLGR2fkG5kdwVnaMh3kabjfP8zz7Y"
+
 func TestFindMigrations(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "migratetest")
 	if err != nil {
@@ -116,7 +118,7 @@ func TestFetchMigrations(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	SetIpfsDistPath("/ipfs/QmXt92hFRuvQgFhgHoaMxC4wLFcvKsCywQPTNmPYCGfEV4")
+	SetIpfsDistPath(testIPFSDistPath)
 	_, err := LatestDistVersion(ctx, "ipfs-1-to-2")
 	if err != nil {
 		if strings.Contains(err.Error(), http.StatusText(http.StatusNotFound)) {
