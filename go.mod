@@ -61,7 +61,7 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
-	github.com/libp2p/go-libp2p v0.13.1-0.20210202115131-837edb0b0bd5
+	github.com/libp2p/go-libp2p v0.13.1-0.20210202174038-35b7b8a875ae
 	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.8.1-0.20210202093214-7116e2835272
