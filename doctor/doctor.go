@@ -185,10 +185,16 @@ func (n *Doctor) handleNATDeviceTypeChanged(evt libp2pEvent.EvtNATDeviceTypeChan
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
+	if evt.NatDeviceType == libp2pNetwork.NATDeviceTypeCone {
+		fmt.Printf("\n Your NAT device supports NAT traversal via hole punching for %s connections\n", evt.TransportProtocol)
+	} else {
+		fmt.Printf("\n Your NAT device does NOT support NAT traversal via hole punching for %s connections\n", evt.TransportProtocol)
+	}
+
 	switch evt.TransportProtocol {
-	case libp2pEvent.NATTransportUDP:
+	case libp2pNetwork.NATTransportUDP:
 		n.udpNATDeviceType = evt.NatDeviceType
-	case libp2pEvent.NATTransportTCP:
+	case libp2pNetwork.NATTransportTCP:
 		n.tcpNATDeviceType = evt.NatDeviceType
 	}
 }
