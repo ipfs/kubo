@@ -418,6 +418,8 @@ github.com/ipfs/interface-go-ipfs-core v0.4.0 h1:+mUiamyHIwedqP8ZgbCIwpy40oX7QcX
 github.com/ipfs/interface-go-ipfs-core v0.4.0/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
 github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203221434-f39297b7ac59 h1:qR12199H3ZtmgCWLTftgwvojNU3xwRkpL7KHOa8jFPo=
 github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203221434-f39297b7ac59/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
+github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203224035-283af70309ec h1:x7ffwbbUIsLrIMFGVUu7SuG+udI+LZunHoLYRQBLfno=
+github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203224035-283af70309ec/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
 github.com/ipld/go-car v0.1.1-0.20201015032735-ff6ccdc46acc h1:BdI33Q56hLWG9Ef0WbQ7z+dwmbRYhTb45SMjw0RudbQ=
 github.com/ipld/go-car v0.1.1-0.20201015032735-ff6ccdc46acc/go.mod h1:WdIgzcEjFqydQ7jH+BXzGYxVCmLeAs5nP8Vu3Rege2Y=
 github.com/ipld/go-ipld-prime v0.5.1-0.20200828233916-988837377a7f/go.mod h1:0xEgdD6MKbZ1vF0GC+YcR/C4SQCAlRuOjIJ2i0HxqzM=

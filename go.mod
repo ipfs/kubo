@@ -55,7 +55,7 @@ require (
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-verifcid v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203221434-f39297b7ac59
+	github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203224035-283af70309ec
 	github.com/ipld/go-car v0.1.1-0.20201015032735-ff6ccdc46acc
 	github.com/jbenet/go-is-domain v1.0.5
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
