@@ -11,9 +11,9 @@ import (
 	"github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-posinfo"
+	files "github.com/ipfs/go-ipfs-files"
+	pin "github.com/ipfs/go-ipfs-pinner"
+	posinfo "github.com/ipfs/go-ipfs-posinfo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
@@ -101,10 +101,10 @@ func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 }
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
-func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
+func (adder *Adder) add(reader io.Reader) (ipld.Node, *ChunkingManifest, error) {
 	chnk, err := chunker.FromString(reader, adder.Chunker)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	params := ihelper.DagBuilderParams{
@@ -117,7 +117,7 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 
 	db, err := params.New(chnk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var nd ipld.Node
 	if adder.Trickle {
@@ -126,10 +126,15 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 		nd, err = balanced.Layout(db)
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return nd, adder.bufferedDS.Commit()
+	chunking, err := extractChunkingManifest(adder.ctx, adder.bufferedDS, nd.Cid())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return nd, chunking, adder.bufferedDS.Commit()
 }
 
 // RootNode returns the mfs root node
@@ -396,10 +401,13 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		}
 	}
 
-	dagnode, err := adder.add(reader)
+	dagnode, chunkingManifest, err := adder.add(reader)
 	if err != nil {
 		return err
 	}
+	// TODO: place the chunkingManifest into the "big file store".
+	// The big file store should be a field of the adder.
+	_ = chunkingManifest
 
 	// patch it into the root
 	return adder.addNode(dagnode, path)
