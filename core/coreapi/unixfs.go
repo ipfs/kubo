@@ -151,6 +151,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		}
 	}
 
+	if settings.RawFileHashSet {
+		fileAdder.RawFileHash = &settings.RawFileHash
+	}
+
 	if settings.OnlyHash {
 		md := dagtest.Mock()
 		emptyDirNode := ft.EmptyDirNode()

@@ -2,8 +2,10 @@ package coreunix
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/multiformats/go-multihash"
 	"io"
 	gopath "path"
 	"strconv"
@@ -61,24 +63,25 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 
 // Adder holds the switches passed to the `add` command.
 type Adder struct {
-	ctx        context.Context
-	pinning    pin.Pinner
-	gcLocker   bstore.GCLocker
-	dagService ipld.DAGService
-	bufferedDS *ipld.BufferedDAG
-	Out        chan<- interface{}
-	Progress   bool
-	Pin        bool
-	Trickle    bool
-	RawLeaves  bool
-	Silent     bool
-	NoCopy     bool
-	Chunker    string
-	mroot      *mfs.Root
-	unlocker   bstore.Unlocker
-	tempRoot   cid.Cid
-	CidBuilder cid.Builder
-	liveNodes  uint64
+	ctx         context.Context
+	pinning     pin.Pinner
+	gcLocker    bstore.GCLocker
+	dagService  ipld.DAGService
+	bufferedDS  *ipld.BufferedDAG
+	Out         chan<- interface{}
+	Progress    bool
+	Pin         bool
+	Trickle     bool
+	RawLeaves   bool
+	Silent      bool
+	NoCopy      bool
+	RawFileHash *uint64
+	Chunker     string
+	mroot       *mfs.Root
+	unlocker    bstore.Unlocker
+	tempRoot    cid.Cid
+	CidBuilder  cid.Builder
+	liveNodes   uint64
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -101,10 +104,10 @@ func (adder *Adder) SetMfsRoot(r *mfs.Root) {
 }
 
 // Constructs a node from reader's data, and adds it. Doesn't pin.
-func (adder *Adder) add(reader io.Reader) (ipld.Node, *ChunkingManifest, error) {
+func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	chnk, err := chunker.FromString(reader, adder.Chunker)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	params := ihelper.DagBuilderParams{
@@ -117,7 +120,7 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, *ChunkingManifest, error) 
 
 	db, err := params.New(chnk)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	var nd ipld.Node
 	if adder.Trickle {
@@ -126,15 +129,10 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, *ChunkingManifest, error) 
 		nd, err = balanced.Layout(db)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	chunking, err := extractChunkingManifest(adder.ctx, adder.bufferedDS, nd.Cid())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nd, chunking, adder.bufferedDS.Commit()
+	return nd, adder.bufferedDS.Commit()
 }
 
 // RootNode returns the mfs root node
@@ -401,13 +399,41 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		}
 	}
 
-	dagnode, chunkingManifest, err := adder.add(reader)
+	dagnode, err := adder.add(reader)
 	if err != nil {
 		return err
 	}
-	// TODO: place the chunkingManifest into the "big file store".
-	// The big file store should be a field of the adder.
-	_ = chunkingManifest
+
+	if adder.RawFileHash != nil {
+		chunkingManifest, err := extractChunkingManifest(adder.ctx, adder.bufferedDS, dagnode.Cid())
+		if err != nil {
+			return err
+		}
+
+		// Make more generic
+		if *adder.RawFileHash == multihash.SHA2_256 {
+			hasher := sha256.New()
+			for _, c := range chunkingManifest.Chunks {
+				nd, err := adder.bufferedDS.Get(adder.ctx, c.ChunkCid)
+				if err != nil {
+					return err
+				}
+
+				if _, err := hasher.Write(nd.RawData()); err != nil {
+					return err
+				}
+			}
+			mh, err := multihash.Encode(hasher.Sum(nil), multihash.SHA2_256)
+			if err != nil {
+				return err
+			}
+			chunkingManifest.StreamCid = cid.NewCidV1(cid.Raw, mh)
+		}
+
+		// TODO: place the chunkingManifest into the "big file store".
+		// The big file store should be a field of the adder.
+		_ = chunkingManifest
+	}
 
 	// patch it into the root
 	return adder.addNode(dagnode, path)
