@@ -9,7 +9,6 @@ import (
 )
 
 type ChunkingManifest struct {
-	StreamCid  cid.Cid
 	ChunkedCid cid.Cid
 	Chunks     []*ChunkingManifestChunk
 }
@@ -23,7 +22,6 @@ type ChunkingManifestChunk struct {
 func extractChunkingManifest(ctx context.Context, dagSvc ipld.DAGService, chunkedFileCid cid.Cid) (*ChunkingManifest, error) {
 	getLinks := dag.GetLinksWithDAG(dagSvc)
 	chunking := &ChunkingManifest{
-		// TODO: compute and set stream cid (aka "SID")
 		ChunkedCid: chunkedFileCid,
 	}
 	var verr error

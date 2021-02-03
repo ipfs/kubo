@@ -5,10 +5,11 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/multiformats/go-multihash"
 	"io"
 	gopath "path"
 	"strconv"
+
+	"github.com/multiformats/go-multihash"
 
 	"github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -427,7 +428,8 @@ func (adder *Adder) addFile(path string, file files.File) error {
 			if err != nil {
 				return err
 			}
-			chunkingManifest.StreamCid = cid.NewCidV1(cid.Raw, mh)
+			sha256StreamCid := cid.NewCidV1(cid.Raw, mh)
+			_ = sha256StreamCid // TODO: use this when inserting into the "big file store"
 		}
 
 		// TODO: place the chunkingManifest into the "big file store".
