@@ -15,7 +15,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/go-bitswap v0.3.4-0.20210202165925-817dac1af577
+	github.com/ipfs/go-bitswap v0.3.4-0.20210203042842-f745c9f2b361
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.4
 	github.com/ipfs/go-cid v0.0.7
@@ -61,7 +61,7 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
-	github.com/libp2p/go-libp2p v0.13.1-0.20210202174038-35b7b8a875ae
+	github.com/libp2p/go-libp2p v0.13.1-0.20210203044643-eddb65cf3f0d
 	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.8.1-0.20210202093214-7116e2835272
@@ -90,7 +90,7 @@ require (
 	github.com/lucas-clemente/quic-go v0.19.3
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/multiformats/go-multiaddr v0.3.1
+	github.com/multiformats/go-multiaddr v0.3.2-0.20210121092939-900a4d7ebbca
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multibase v0.0.3
 	github.com/multiformats/go-multihash v0.0.14
@@ -111,7 +111,5 @@ require (
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 )
-
-replace github.com/libp2p/go-libp2p => /Users/aarshshah/go/src/github.com/libp2p/go-libp2p
 
 go 1.14
