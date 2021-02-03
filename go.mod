@@ -71,7 +71,7 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.4.1
-	github.com/libp2p/go-libp2p-noise v0.1.2
+	github.com/libp2p/go-libp2p-noise v0.1.1
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
 	github.com/libp2p/go-libp2p-pubsub-router v0.4.0
@@ -79,7 +79,7 @@ require (
 	github.com/libp2p/go-libp2p-record v0.1.3
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
 	github.com/libp2p/go-libp2p-secio v0.2.2
-	github.com/libp2p/go-libp2p-swarm v0.4.1-0.20210128120202-a88bce7ef1d0
+	github.com/libp2p/go-libp2p-swarm v0.4.1-0.20210119090647-fca9031125ef
 	github.com/libp2p/go-libp2p-testing v0.4.0
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-libp2p-yamux v0.5.1
@@ -111,5 +111,7 @@ require (
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 )
+
+replace github.com/libp2p/go-libp2p => /Users/aarshshah/go/src/github.com/libp2p/go-libp2p
 
 go 1.14
