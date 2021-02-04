@@ -431,12 +431,11 @@ func (adder *Adder) addFile(path string, file files.File) error {
 				return err
 			}
 			sha256StreamCid := cid.NewCidV1(cid.Raw, mh)
-			_ = sha256StreamCid // TODO: use this when inserting into the "big file store"
+			if err = adder.bfs.Put(sha256StreamCid, chunkingManifest.Chunks); err != nil {
+				return err
+			}
 		}
 
-		// TODO: place the chunkingManifest into the "big file store".
-		// The big file store should be a field of the adder.
-		_ = chunkingManifest
 	}
 
 	// patch it into the root
