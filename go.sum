@@ -263,8 +263,8 @@ github.com/ipfs/go-bitswap v0.1.0/go.mod h1:FFJEf18E9izuCqUtHxbWEvq+reg7o4CW5wSA
 github.com/ipfs/go-bitswap v0.1.2/go.mod h1:qxSWS4NXGs7jQ6zQvoPY3+NmOfHHG47mhkiLzBpJQIs=
 github.com/ipfs/go-bitswap v0.1.3/go.mod h1:YEQlFy0kkxops5Vy+OxWdRSEZIoS7I7KDIwoa5Chkps=
 github.com/ipfs/go-bitswap v0.1.8/go.mod h1:TOWoxllhccevbWFUR2N7B1MTSVVge1s6XSMiCSA4MzM=
-github.com/ipfs/go-bitswap v0.3.4-0.20210203213610-ec4d6a9f0120 h1:EH6dTmz867wv1V2rwPyOsQ4SDRxyGbikX/PTlvMPBsM=
-github.com/ipfs/go-bitswap v0.3.4-0.20210203213610-ec4d6a9f0120/go.mod h1:fjCW0ajzfqPml6HQGSiR+8NVwFPpgIItCyjG70BvCV0=
+github.com/ipfs/go-bitswap v0.3.4-0.20210204011006-ca7cda558714 h1:zYoSxYXHlEFZzuuHRzIva5OCeMZgz8xABYU5Jz/wokQ=
+github.com/ipfs/go-bitswap v0.3.4-0.20210204011006-ca7cda558714/go.mod h1:fjCW0ajzfqPml6HQGSiR+8NVwFPpgIItCyjG70BvCV0=
 github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/baNLgayt4pFc=
 github.com/ipfs/go-block-format v0.0.2 h1:qPDvcP19izTjU8rgo6p7gTXZlkMkF5bz5G3fqIsSCPE=
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
@@ -416,8 +416,6 @@ github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/interface-go-ipfs-core v0.4.0 h1:+mUiamyHIwedqP8ZgbCIwpy40oX7QcXUbo4CZOeJVJg=
 github.com/ipfs/interface-go-ipfs-core v0.4.0/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
-github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203221434-f39297b7ac59 h1:qR12199H3ZtmgCWLTftgwvojNU3xwRkpL7KHOa8jFPo=
-github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203221434-f39297b7ac59/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
 github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203224035-283af70309ec h1:x7ffwbbUIsLrIMFGVUu7SuG+udI+LZunHoLYRQBLfno=
 github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210203224035-283af70309ec/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
 github.com/ipld/go-car v0.1.1-0.20201015032735-ff6ccdc46acc h1:BdI33Q56hLWG9Ef0WbQ7z+dwmbRYhTb45SMjw0RudbQ=
