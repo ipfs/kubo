@@ -407,7 +407,7 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		return err
 	}
 
-	if adder.RawFileHash != nil {
+	if adder.RawFileHash != nil && adder.bfs != nil {
 		chunkingManifest, err := extractChunkingManifest(adder.ctx, adder.bufferedDS, dagnode.Cid())
 		if err != nil {
 			return err
