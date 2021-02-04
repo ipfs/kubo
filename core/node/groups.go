@@ -165,6 +165,7 @@ func Storage(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	if cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled {
 		finalBstore = fx.Provide(FilestoreBlockstoreCtor)
 	}
+	finalBstore = fx.Provide(BigFileBlockstoreCtor)
 
 	return fx.Options(
 		fx.Provide(RepoConfig),

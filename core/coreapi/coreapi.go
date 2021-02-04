@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core/bigfilestore"
 
 	bserv "github.com/ipfs/go-blockservice"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
@@ -38,7 +39,6 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreunix"
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo"
@@ -57,7 +57,7 @@ type CoreAPI struct {
 
 	blocks bserv.BlockService
 	dag    ipld.DAGService
-	bfs    *coreunix.BigFileStore //XXX
+	bfs    *bigfilestore.BigFileStore
 
 	peerstore       pstore.Peerstore
 	peerHost        p2phost.Host
@@ -169,7 +169,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 		blocks: n.Blocks,
 		dag:    n.DAG,
-		bfs:    nil, // XXX: initialize big file store, e.g. coreunix.NewBigFileStore(???),
+		bfs:    n.BigBlockStore,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,

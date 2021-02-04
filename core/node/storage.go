@@ -4,6 +4,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/go-ipfs-config"
+	"github.com/ipfs/go-ipfs/core/bigfilestore"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-filestore"
@@ -67,6 +68,20 @@ func FilestoreBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore
 	// hash security
 	fstore = filestore.NewFilestore(bb, repo.FileManager())
 	gcbs = blockstore.NewGCBlockstore(fstore, gclocker)
+	gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
+
+	bs = gcbs
+	return
+}
+
+// BigBlockstoreCtor wraps base blockstore with GcBlockstore and BigFileStore
+// TODO: Filestore support
+func BigFileBlockstoreCtor(repo repo.Repo, bb BaseBlocks) (gclocker blockstore.GCLocker, gcbs blockstore.GCBlockstore, bs blockstore.Blockstore, bbstore *bigfilestore.BigFileStore) {
+	gclocker = blockstore.NewGCLocker()
+
+	// hash security
+	bbstore = bigfilestore.NewBigFileStore(bb, repo.Datastore())
+	gcbs = blockstore.NewGCBlockstore(bbstore, gclocker)
 	gcbs = &verifbs.VerifBSGC{GCBlockstore: gcbs}
 
 	bs = gcbs

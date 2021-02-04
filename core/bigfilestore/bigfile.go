@@ -1,4 +1,4 @@
-package coreunix
+package bigfilestore
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ type ChunkingManifestChunk struct {
 	Size     uint64
 }
 
-func extractChunkingManifest(ctx context.Context, dagSvc ipld.DAGService, chunkedFileCid cid.Cid) (*ChunkingManifest, error) {
+func ExtractChunkingManifest(ctx context.Context, dagSvc ipld.DAGService, chunkedFileCid cid.Cid) (*ChunkingManifest, error) {
 	getLinks := dag.GetLinksWithDAG(dagSvc)
 	chunking := &ChunkingManifest{
 		ChunkedCid: chunkedFileCid,

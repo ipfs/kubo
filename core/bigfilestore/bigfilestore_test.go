@@ -1,6 +1,7 @@
-package coreunix
+package bigfilestore
 
 import (
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"testing"
 
 	"github.com/ipfs/go-cid"
@@ -9,7 +10,9 @@ import (
 )
 
 func TestBigFileStorePutThenGet(t *testing.T) {
-	bfs := NewBigFileStore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	dstore := ds_sync.MutexWrap(ds.NewMapDatastore())
+	bstore := blockstore.NewBlockstore(dstore)
+	bfs := NewBigFileStore(bstore, dstore)
 
 	streamCid, err := cid.Parse("QmWQadpxHe1UgAMdkZ5tm7znzqiixwo5u9XLKCtPGLtdDs")
 	if err != nil {
@@ -35,12 +38,12 @@ func TestBigFileStorePutThenGet(t *testing.T) {
 		}
 	}
 
-	err = bfs.Put(streamCid, chunks)
+	err = bfs.PutBigBlock(streamCid, chunks)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	chunks2, err := bfs.Get(streamCid)
+	chunks2, err := bfs.GetBigBlock(streamCid)
 	if err != nil {
 		t.Fatal(err)
 	}

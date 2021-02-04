@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core/bigfilestore"
 	"io"
 	gopath "path"
 	"strconv"
@@ -26,7 +27,7 @@ import (
 	ihelper "github.com/ipfs/go-unixfs/importer/helpers"
 	"github.com/ipfs/go-unixfs/importer/trickle"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	ipfsPath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var log = logging.Logger("coreunix")
@@ -46,7 +47,7 @@ type syncer interface {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService, bfs *BigFileStore) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService, bfs *bigfilestore.BigFileStore) (*Adder, error) {
 	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
 
 	return &Adder{
@@ -70,7 +71,7 @@ type Adder struct {
 	gcLocker    bstore.GCLocker
 	dagService  ipld.DAGService
 	bufferedDS  *ipld.BufferedDAG
-	bfs         *BigFileStore
+	bfs         *bigfilestore.BigFileStore
 	Out         chan<- interface{}
 	Progress    bool
 	Pin         bool
@@ -407,8 +408,8 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		return err
 	}
 
-	if adder.RawFileHash != nil && adder.bfs != nil {
-		chunkingManifest, err := extractChunkingManifest(adder.ctx, adder.bufferedDS, dagnode.Cid())
+	if adder.RawFileHash != nil {
+		chunkingManifest, err := bigfilestore.ExtractChunkingManifest(adder.ctx, adder.bufferedDS, dagnode.Cid())
 		if err != nil {
 			return err
 		}
@@ -431,8 +432,18 @@ func (adder *Adder) addFile(path string, file files.File) error {
 				return err
 			}
 			sha256StreamCid := cid.NewCidV1(cid.Raw, mh)
-			if err = adder.bfs.Put(sha256StreamCid, chunkingManifest.Chunks); err != nil {
+			if err = adder.bfs.PutBigBlock(sha256StreamCid, chunkingManifest.Chunks); err != nil {
 				return err
+			}
+
+			sz, err := adder.bfs.GetSize(sha256StreamCid)
+			if err != nil {
+				return err
+			}
+
+			adder.Out <- &coreiface.AddEvent{
+				Path:  ipfsPath.IpfsPath(sha256StreamCid),
+				Bytes: int64(sz),
 			}
 		}
 
@@ -519,7 +530,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 	}
 
 	output := &coreiface.AddEvent{
-		Path: path.IpfsPath(c),
+		Path: ipfsPath.IpfsPath(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 
