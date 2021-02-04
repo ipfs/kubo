@@ -119,7 +119,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		}
 	}
 
-	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv)
+	fileAdder, err := coreunix.NewAdder(ctx, pinning, addblockstore, syncDserv, api.bfs)
 	if err != nil {
 		return nil, err
 	}

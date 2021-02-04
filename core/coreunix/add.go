@@ -46,7 +46,7 @@ type syncer interface {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService, bfs *BigFileStore) (*Adder, error) {
 	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
 
 	return &Adder{
@@ -55,6 +55,7 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		gcLocker:   bs,
 		dagService: ds,
 		bufferedDS: bufferedDS,
+		bfs:        bfs,
 		Progress:   false,
 		Pin:        true,
 		Trickle:    false,
@@ -69,6 +70,7 @@ type Adder struct {
 	gcLocker    bstore.GCLocker
 	dagService  ipld.DAGService
 	bufferedDS  *ipld.BufferedDAG
+	bfs         *BigFileStore
 	Out         chan<- interface{}
 	Progress    bool
 	Pin         bool

@@ -7,7 +7,7 @@ import (
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
 )
 
-type bigFileStore struct {
+type BigFileStore struct {
 	dstore ds.Datastore
 }
 
@@ -15,13 +15,13 @@ type bigFileStore struct {
 var bigFilePrefix = ds.NewKey("bigfiles")
 
 // NewBigFileStore creates a new bifFileStore
-func NewBigFileStore(dstore ds.Datastore) *bigFileStore {
-	return &bigFileStore{
+func NewBigFileStore(dstore ds.Datastore) *BigFileStore {
+	return &BigFileStore{
 		dstore: dsns.Wrap(dstore, bigFilePrefix),
 	}
 }
 
-func (b *bigFileStore) Put(streamCid cid.Cid, chunks []*ChunkingManifestChunk) error {
+func (b *BigFileStore) Put(streamCid cid.Cid, chunks []*ChunkingManifestChunk) error {
 	chunkData, err := serializeChunks(chunks)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (b *bigFileStore) Put(streamCid cid.Cid, chunks []*ChunkingManifestChunk) e
 	return b.dstore.Put(dsk, chunkData)
 }
 
-func (b *bigFileStore) Get(streamCid cid.Cid) ([]*ChunkingManifestChunk, error) {
+func (b *BigFileStore) Get(streamCid cid.Cid) ([]*ChunkingManifestChunk, error) {
 	data, err := b.dstore.Get(dshelp.CidToDsKey(streamCid))
 	if err != nil {
 		return nil, err
