@@ -22,16 +22,16 @@ TEST_GO :=
 TEST_GO_BUILD :=
 CHECK_GO :=
 
-go-pkg-name=$(shell $(GOCC) list $(go-tags) github.com/ipfs/go-ipfs/$(1))
-go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
-go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
-go-pkgs=$(shell $(GOCC) list github.com/ipfs/go-ipfs/...)
-
 # Go tags cannot be set in GOFLAGS.
 go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 # These flags _may_ contain spaces so we can't use GOFLAGS either.
 go-flags="-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
 go-flags-with-tags=$(go-flags)$(go-tags)
+
+# ignores GOFLAGS...
+go-pkg-name=$(shell $(GOCC) list $(GOFLAGS) $(go-flags-with-tags) github.com/ipfs/go-ipfs/$(1))
+go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
+go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
 
 define go-build-relative
 $(GOCC) build $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
