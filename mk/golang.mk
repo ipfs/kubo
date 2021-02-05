@@ -8,10 +8,9 @@ GOCC ?= go
 GOTAGS ?=
 GOTFLAGS ?=
 
-# These are global go flags that will apply to all commands. This includes random calls to `go fmt`.
-export GOFLAGS
+go-global-flags :=
 ifeq ($(tarball-is),1)
-override GOFLAGS += -mod=vendor
+go-global-flags += -mod=vendor
 endif
 
 # match Go's default GOPATH behaviour
@@ -23,30 +22,29 @@ TEST_GO_BUILD :=
 CHECK_GO :=
 
 # Go tags cannot be set in GOFLAGS.
-go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
+go-tags-flag=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 # These flags _may_ contain spaces so we can't use GOFLAGS either.
-go-flags="-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
-go-flags-with-tags=$(go-flags)$(go-tags)
+go-build-flags=$(go-global-flags) "-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'" $(go-tags-flag)
 
 # ignores GOFLAGS...
-go-pkg-name=$(shell $(GOCC) list $(GOFLAGS) $(go-flags-with-tags) github.com/ipfs/go-ipfs/$(1))
+go-pkg-name=$(shell $(GOCC) list $(go-build-flags) github.com/ipfs/go-ipfs/$(1))
 go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
 go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
 
 define go-build-relative
-$(GOCC) build $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
+$(GOCC) build $(go-build-flags) -o "$@" "$(call go-pkg-name,$<)"
 endef
 
 define go-build
-$(GOCC) build $(go-flags-with-tags) -o "$@" "$(1)"
+$(GOCC) build $(go-build-flags) -o "$@" "$(1)"
 endef
 
 define go-try-build
-$(GOCC) build $(go-flags-with-tags) -o /dev/null "$(call go-pkg-name,$<)"
+$(GOCC) build $(go-build-flags) -o /dev/null "$(call go-pkg-name,$<)"
 endef
 
 test_go_test: $$(DEPS_GO)
-	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) ./...
+	$(GOCC) test $(go-build-flags) $(GOTFLAGS) ./...
 .PHONY: test_go_test
 
 test_go_build: $$(TEST_GO_BUILD)
