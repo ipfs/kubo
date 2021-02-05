@@ -682,7 +682,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		if err := verifcid.ValidateCid(root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
+				status.BadNodes = []BadNode{{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -692,7 +692,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
+				status.BadNodes = []BadNode{{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
