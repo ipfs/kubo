@@ -3,6 +3,7 @@ package namesys
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -12,7 +13,6 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
-	isd "github.com/jbenet/go-is-domain"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	routing "github.com/libp2p/go-libp2p-core/routing"
@@ -162,7 +162,7 @@ func (ns *mpns) resolveOnceAsync(ctx context.Context, name string, options opts.
 
 	if err == nil {
 		res = ns.ipnsResolver
-	} else if isd.IsDomain(key) {
+	} else if net.isDomainName(key) {
 		res = ns.dnsResolver
 	} else {
 		res = ns.proquintResolver

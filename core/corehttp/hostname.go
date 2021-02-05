@@ -13,7 +13,6 @@ import (
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	namesys "github.com/ipfs/go-ipfs/namesys"
-	isd "github.com/jbenet/go-is-domain"
 	"github.com/libp2p/go-libp2p-core/peer"
 	mbase "github.com/multiformats/go-multibase"
 
@@ -368,7 +367,7 @@ func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *con
 // isDNSLinkName returns bool if a valid DNS TXT record exist for provided host
 func isDNSLinkName(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
 	fqdn := stripPort(host)
-	if len(fqdn) == 0 && !isd.IsDomain(fqdn) {
+	if len(fqdn) == 0 && !net.isDomainName(fqdn) {
 		return false
 	}
 	name := "/ipns/" + fqdn
@@ -490,11 +489,11 @@ func toSubdomainURL(hostname, path string, r *http.Request, ipfs iface.CoreAPI) 
 	}
 
 	// Normalize problematic PeerIDs (eg. ed25519+identity) to CID representation
-	if isPeerIDNamespace(ns) && !isd.IsDomain(rootID) {
-		peerID, err := peer.Decode(rootID)
-		// Note: PeerID CIDv1 with protobuf multicodec will fail, but we fix it
-		// in the next block
-		if err == nil {
+	if isPeerIDNamespace(ns) {
+		// could be a CID or DNSLink name, so we check if it is a CID
+		if peerID, err := peer.Decode(rootID); err == nil {
+			// Note: PeerID CIDv1 with protobuf multicodec will fail, but we fix it
+			// in the next block
 			rootID = peer.ToCid(peerID).String()
 		}
 	}
