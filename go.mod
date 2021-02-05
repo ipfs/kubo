@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-bitswap v0.3.3
-	github.com/ipfs/go-block-format v0.0.2
+	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.1.4
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-cidutil v0.0.2
