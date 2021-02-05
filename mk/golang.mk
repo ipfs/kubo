@@ -8,14 +8,10 @@ GOCC ?= go
 GOTAGS ?=
 GOTFLAGS ?=
 
-# Unexport GOFLAGS so we only apply it where we actually want it.
-unexport GOFLAGS
-# Override so we can combine with the user's go flags.
-# Try to make building as reproducible as possible by stripping the go path.
-override GOFLAGS += "-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
-
+# These are global go flags that will apply to all commands. This includes random calls to `go fmt`.
+export GOFLAGS
 ifeq ($(tarball-is),1)
-	GOFLAGS += -mod=vendor
+override GOFLAGS += -mod=vendor
 endif
 
 # match Go's default GOPATH behaviour
@@ -31,8 +27,11 @@ go-main-name=$(notdir $(call go-pkg-name,$(1)))$(?exe)
 go-curr-pkg-tgt=$(d)/$(call go-main-name,$(d))
 go-pkgs=$(shell $(GOCC) list github.com/ipfs/go-ipfs/...)
 
+# Go tags cannot be set in GOFLAGS.
 go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
-go-flags-with-tags=$(GOFLAGS)$(go-tags)
+# These flags _may_ contain spaces so we can't use GOFLAGS either.
+go-flags="-asmflags=all='-trimpath=$(GOPATH)'" "-gcflags=all='-trimpath=$(GOPATH)'"
+go-flags-with-tags=$(go-flags)$(go-tags)
 
 define go-build-relative
 $(GOCC) build $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
