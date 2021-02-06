@@ -57,11 +57,13 @@ func TestPeeringService(t *testing.T) {
 	require.NoError(t, ps1.Start())
 
 	// We should eventually connect.
+	t.Logf("waiting for h1 to connect to h2")
 	require.Eventually(t, func() bool {
 		return h1.Network().Connectedness(h2.ID()) == network.Connected
 	}, 30*time.Second, 10*time.Millisecond)
 
-	// Now explicitly connect to p3.
+	// Now explicitly connect to h3.
+	t.Logf("waiting for h1's connection to h3 to work")
 	require.NoError(t, h1.Connect(ctx, peer.AddrInfo{ID: h3.ID(), Addrs: h3.Addrs()}))
 	require.Eventually(t, func() bool {
 		return h1.Network().Connectedness(h2.ID()) == network.Connected
@@ -72,7 +74,8 @@ func TestPeeringService(t *testing.T) {
 	// force a disconnect
 	h1.ConnManager().TrimOpenConns(ctx)
 
-	// Should disconnect from p3.
+	// Should disconnect from h3.
+	t.Logf("waiting for h1's connection to h3 to disconnect")
 	require.Eventually(t, func() bool {
 		return h1.Network().Connectedness(h3.ID()) != network.Connected
 	}, 5*time.Second, 10*time.Millisecond)
@@ -88,6 +91,7 @@ func TestPeeringService(t *testing.T) {
 	h2.ConnManager().TrimOpenConns(ctx)
 
 	// All conns to peer should eventually close.
+	t.Logf("waiting for all connections to close")
 	for _, c := range conns {
 		require.Eventually(t, func() bool {
 			s, err := c.NewStream(context.Background())
@@ -110,11 +114,13 @@ func TestPeeringService(t *testing.T) {
 	h1.ConnManager().TrimOpenConns(ctx)
 
 	// Should disconnect
+	t.Logf("waiting for h1 to disconnect from h2")
 	require.Eventually(t, func() bool {
 		return h1.Network().Connectedness(h2.ID()) != network.Connected
 	}, 5*time.Second, 10*time.Millisecond)
 
 	// Should never reconnect.
+	t.Logf("ensuring h1 is not connected to h2 again")
 	require.Never(t, func() bool {
 		return h1.Network().Connectedness(h2.ID()) == network.Connected
 	}, 20*time.Second, 1*time.Second)
@@ -122,6 +128,7 @@ func TestPeeringService(t *testing.T) {
 	// Until added back
 	ps1.AddPeer(peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
 	ps1.AddPeer(peer.AddrInfo{ID: h3.ID(), Addrs: h3.Addrs()})
+	t.Logf("wait for h1 to connect to h2 and h3 again")
 	require.Eventually(t, func() bool {
 		return h1.Network().Connectedness(h2.ID()) == network.Connected
 	}, 30*time.Second, 1*time.Second)
