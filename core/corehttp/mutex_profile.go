@@ -24,7 +24,7 @@ func MutexFractionOption(path string) ServeOption {
 			}
 
 			asfr := r.Form.Get("fraction")
-			if len(asfr) == 0 {
+			if asfr == "" {
 				http.Error(w, "parameter 'fraction' must be set", http.StatusBadRequest)
 				return
 			}

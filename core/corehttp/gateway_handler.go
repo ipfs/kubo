@@ -317,7 +317,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				// preserve query parameters
 				suffix = suffix + "?" + r.URL.RawQuery
 			}
-			http.Redirect(w, r, originalUrlPath+suffix, 302)
+			http.Redirect(w, r, originalUrlPath+suffix, http.StatusFound)
 			return
 		}
 

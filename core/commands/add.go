@@ -361,7 +361,7 @@ only-hash, and progress/status related flags) will change the final hash.
 								continue
 							}
 
-							if len(lastFile) == 0 {
+							if lastFile == "" {
 								lastFile = output.Name
 							}
 							if output.Name != lastFile || output.Bytes < lastBytes {

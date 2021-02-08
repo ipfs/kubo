@@ -1201,7 +1201,7 @@ func getFileHandle(r *mfs.Root, path string, create bool, builder cid.Builder) (
 }
 
 func checkPath(p string) (string, error) {
-	if len(p) == 0 {
+	if p == "" {
 		return "", fmt.Errorf("paths must not be empty")
 	}
 

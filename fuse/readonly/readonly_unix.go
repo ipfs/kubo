@@ -180,7 +180,7 @@ func (s *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	var entries []fuse.Dirent
 	err = dir.ForEachLink(ctx, func(lnk *ipld.Link) error {
 		n := lnk.Name
-		if len(n) == 0 {
+		if n == "" {
 			n = lnk.Cid.String()
 		}
 		nd, err := s.Ipfs.DAG.Get(ctx, lnk.Cid)

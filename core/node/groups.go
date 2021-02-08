@@ -182,7 +182,7 @@ func Identity(cfg *config.Config) fx.Option {
 	if cid == "" {
 		return fx.Error(errors.New("identity was not set in config (was 'ipfs init' run?)"))
 	}
-	if len(cid) == 0 {
+	if cid == "" {
 		return fx.Error(errors.New("no peer ID in config! (was 'ipfs init' run?)"))
 	}
 

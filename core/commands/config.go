@@ -512,7 +512,7 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 
 	// Handle Identity.PrivKey (secret)
 
-	if len(newCfg.Identity.PrivKey) != 0 {
+	if newCfg.Identity.PrivKey != "" {
 		return errors.New("setting private key with API is not supported")
 	}
 
@@ -546,7 +546,7 @@ func replaceConfig(r repo.Repo, file io.Reader) error {
 		if newSvc, hadSvc := newServices[name]; hadSvc {
 			// fail if input changes any of API details
 			// (interop with config show: allow Endpoint as long it did not change)
-			if len(newSvc.API.Key) != 0 || (len(newSvc.API.Endpoint) != 0 && newSvc.API.Endpoint != oldSvc.API.Endpoint) {
+			if newSvc.API.Key != "" || (newSvc.API.Endpoint != "" && newSvc.API.Endpoint != oldSvc.API.Endpoint) {
 				return errors.New("cannot change remote pinning services api info with `config replace`")
 			}
 			// re-apply API details and store service in updated config

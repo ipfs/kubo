@@ -24,5 +24,5 @@ type redirectHandler struct {
 }
 
 func (i *redirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, i.path, 302)
+	http.Redirect(w, r, i.path, http.StatusFound)
 }

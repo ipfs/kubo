@@ -368,7 +368,7 @@ func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *con
 // isDNSLinkName returns bool if a valid DNS TXT record exist for provided host
 func isDNSLinkName(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
 	fqdn := stripPort(host)
-	if len(fqdn) == 0 && !isd.IsDomain(fqdn) {
+	if fqdn == "" && !isd.IsDomain(fqdn) {
 		return false
 	}
 	name := "/ipns/" + fqdn
