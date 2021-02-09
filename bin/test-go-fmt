@@ -4,7 +4,7 @@ T="$(mktemp)"
 find . \
     -path ./test/sharness -prune \
  -o -path ./plugin/loader/preload.go -prune \
- -o -name '*.go' -print0 | xargs -0 gofmt -l > "$T"
+ -o -name '*.go' -print0 | xargs -0 gofmt -s -l > "$T"
 
 if [ -n "$(cat $T)" ]; then
 	echo "Following Go code is not formatted."
