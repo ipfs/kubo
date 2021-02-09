@@ -2,18 +2,22 @@ package coreunix
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core/bigfilestore"
 	"io"
 	gopath "path"
 	"strconv"
 
+	"github.com/multiformats/go-multihash"
+
 	"github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-posinfo"
+	files "github.com/ipfs/go-ipfs-files"
+	pin "github.com/ipfs/go-ipfs-pinner"
+	posinfo "github.com/ipfs/go-ipfs-posinfo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
@@ -23,7 +27,7 @@ import (
 	ihelper "github.com/ipfs/go-unixfs/importer/helpers"
 	"github.com/ipfs/go-unixfs/importer/trickle"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/path"
+	ipfsPath "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 var log = logging.Logger("coreunix")
@@ -43,7 +47,7 @@ type syncer interface {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService, bfs *bigfilestore.BigFileStore) (*Adder, error) {
 	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
 
 	return &Adder{
@@ -52,6 +56,7 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		gcLocker:   bs,
 		dagService: ds,
 		bufferedDS: bufferedDS,
+		bfs:        bfs,
 		Progress:   false,
 		Pin:        true,
 		Trickle:    false,
@@ -61,24 +66,26 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 
 // Adder holds the switches passed to the `add` command.
 type Adder struct {
-	ctx        context.Context
-	pinning    pin.Pinner
-	gcLocker   bstore.GCLocker
-	dagService ipld.DAGService
-	bufferedDS *ipld.BufferedDAG
-	Out        chan<- interface{}
-	Progress   bool
-	Pin        bool
-	Trickle    bool
-	RawLeaves  bool
-	Silent     bool
-	NoCopy     bool
-	Chunker    string
-	mroot      *mfs.Root
-	unlocker   bstore.Unlocker
-	tempRoot   cid.Cid
-	CidBuilder cid.Builder
-	liveNodes  uint64
+	ctx         context.Context
+	pinning     pin.Pinner
+	gcLocker    bstore.GCLocker
+	dagService  ipld.DAGService
+	bufferedDS  *ipld.BufferedDAG
+	bfs         *bigfilestore.BigFileStore
+	Out         chan<- interface{}
+	Progress    bool
+	Pin         bool
+	Trickle     bool
+	RawLeaves   bool
+	Silent      bool
+	NoCopy      bool
+	RawFileHash *uint64
+	Chunker     string
+	mroot       *mfs.Root
+	unlocker    bstore.Unlocker
+	tempRoot    cid.Cid
+	CidBuilder  cid.Builder
+	liveNodes   uint64
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -401,6 +408,47 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		return err
 	}
 
+	if adder.RawFileHash != nil {
+		chunkingManifest, err := bigfilestore.ExtractChunkingManifest(adder.ctx, adder.bufferedDS, dagnode.Cid())
+		if err != nil {
+			return err
+		}
+
+		// Make more generic
+		if *adder.RawFileHash == multihash.SHA2_256 {
+			hasher := sha256.New()
+			for _, c := range chunkingManifest.Chunks {
+				nd, err := adder.bufferedDS.Get(adder.ctx, c.ChunkCid)
+				if err != nil {
+					return err
+				}
+
+				if _, err := hasher.Write(nd.RawData()); err != nil {
+					return err
+				}
+			}
+			mh, err := multihash.Encode(hasher.Sum(nil), multihash.SHA2_256)
+			if err != nil {
+				return err
+			}
+			sha256StreamCid := cid.NewCidV1(cid.Raw, mh)
+			if err = adder.bfs.PutBigBlock(sha256StreamCid, chunkingManifest.Chunks); err != nil {
+				return err
+			}
+
+			sz, err := adder.bfs.GetSize(sha256StreamCid)
+			if err != nil {
+				return err
+			}
+
+			adder.Out <- &coreiface.AddEvent{
+				Path:  ipfsPath.IpfsPath(sha256StreamCid),
+				Bytes: int64(sz),
+			}
+		}
+
+	}
+
 	// patch it into the root
 	return adder.addNode(dagnode, path)
 }
@@ -482,7 +530,7 @@ func getOutput(dagnode ipld.Node) (*coreiface.AddEvent, error) {
 	}
 
 	output := &coreiface.AddEvent{
-		Path: path.IpfsPath(c),
+		Path: ipfsPath.IpfsPath(c),
 		Size: strconv.FormatUint(s, 10),
 	}
 

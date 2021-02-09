@@ -45,6 +45,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
+	rawFileHashName       = "raw-file-hash"
 )
 
 const adderOutChanSize = 8
@@ -140,6 +141,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmds.StringOption(rawFileHashName, "Additionally reference and share files using the hash of the full file. Takes the name of a hash function (experimental)"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -180,6 +182,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+		rawFileHashStr, rawFileSet := req.Options[rawFileHashName].(string)
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
@@ -225,6 +228,15 @@ only-hash, and progress/status related flags) will change the final hash.
 
 		if trickle {
 			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
+		}
+
+		if rawFileSet {
+			var rawHashFunCode uint64
+			rawHashFunCode, ok = mh.Names[strings.ToLower(rawFileHashStr)]
+			if !ok {
+				return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(rawFileHashStr))
+			}
+			opts = append(opts, options.Unixfs.RawFileHash(rawHashFunCode))
 		}
 
 		opts = append(opts, nil) // events option placeholder

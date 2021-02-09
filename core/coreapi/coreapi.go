@@ -17,13 +17,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core/bigfilestore"
 
 	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-interface"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	offlinexch "github.com/ipfs/go-ipfs-exchange-offline"
-	"github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-provider"
+	pin "github.com/ipfs/go-ipfs-pinner"
+	provider "github.com/ipfs/go-ipfs-provider"
 	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
@@ -56,6 +57,7 @@ type CoreAPI struct {
 
 	blocks bserv.BlockService
 	dag    ipld.DAGService
+	bfs    *bigfilestore.BigFileStore
 
 	peerstore       pstore.Peerstore
 	peerHost        p2phost.Host
@@ -167,6 +169,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 
 		blocks: n.Blocks,
 		dag:    n.DAG,
+		bfs:    n.BigBlockStore,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,
