@@ -16,6 +16,7 @@ import (
 
 const (
 	envIpfsPath = "IPFS_PATH"
+	defIpfsDir  = ".ipfs"
 	versionFile = "version"
 
 	// Local IPFS API
@@ -74,17 +75,11 @@ func ApiShell(ipfsDir string) (*api.Shell, string, error) {
 // location in the home directory.
 func IpfsDir(dir string) (string, error) {
 	var err error
+	if dir == "" {
+		dir = os.Getenv(envIpfsPath)
+	}
 	if dir != "" {
 		dir, err = homedir.Expand(dir)
-		if err != nil {
-			return "", err
-		}
-		return dir, nil
-	}
-
-	ipfspath := os.Getenv(envIpfsPath)
-	if ipfspath != "" {
-		dir, err := homedir.Expand(ipfspath)
 		if err != nil {
 			return "", err
 		}
@@ -99,7 +94,7 @@ func IpfsDir(dir string) (string, error) {
 		return "", errors.New("could not determine IPFS_PATH, home dir not set")
 	}
 
-	return path.Join(home, ".ipfs"), nil
+	return path.Join(home, defIpfsDir), nil
 }
 
 // CheckIpfsDir gets the ipfs directory and checks that the directory exists.

@@ -106,7 +106,7 @@ func migrationName(from, to int) string {
 }
 
 // findMigrations returns a list of migrations, ordered from first to last
-// migration to apply, and a map of locations migration binaries of any
+// migration to apply, and a map of locations of migration binaries of any
 // migrations that were found.
 func findMigrations(ctx context.Context, from, to int) ([]string, map[string]string, error) {
 	step := 1
@@ -155,7 +155,7 @@ func runMigration(ctx context.Context, binPath, ipfsDir string, revert bool) err
 }
 
 // fetchMigrations downloads the requested migrations, and returns a slice with
-// the paths of each binary, in the same order as in needed.
+// the paths of each binary, in the same order specified by needed.
 func fetchMigrations(ctx context.Context, needed []string, destDir string) ([]string, error) {
 	osv, err := osWithVariant()
 	if err != nil {
