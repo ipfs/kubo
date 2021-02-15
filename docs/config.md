@@ -872,15 +872,15 @@ Type: `string`
 
 #### `Pinning.RemoteServices: Policies`
 
-Contains additional opt-in policies for the remote pinning service
+Contains additional opt-in policies for the remote pinning service.
 
 ##### `Pinning.RemoteServices: Policies.MFS`
 
-When this policy is enabled it will be following changes to MFS
-and updating the pin for MFS root on the configured remote service.
+When this policy is enabled, it follows changes to MFS
+and updates the pin for MFS root on the configured remote service.
 
-Pin request to the remote service is sent only when MFS root changed
-and time passed since the previous pin is bigger than `RepinInterval`.
+A pin request to the remote service is sent only when MFS root has changed
+and time has passed, since the previous pin is bigger than `RepinInterval`.
 
 ###### `Pinning.RemoteServices: Policies.MFS.Enabled`
 
@@ -892,8 +892,8 @@ Type: `bool`
 
 ###### `Pinning.RemoteServices: Policies.MFS.PinName`
 
-Optional name to use for remote pin that represents MFS root CID.  
-When left empty, default name will be generated.
+Optional name to use for a remote pin that represents the MFS root CID.  
+When left empty, a default name will be generated.
 
 Default: `"policy/{PeerID}/mfs"`, e.g. `"policy/12.../mfs"`
 
@@ -901,8 +901,8 @@ Type: `string`
 
 ###### `Pinning.RemoteServices: Policies.MFS.RepinInterval`
 
-Defines how often (at most) the pin request should be sent to remote service.  
-When left empty, default interval will be used. Values lower than `1m` will be ignored.
+Defines how often (at most) the pin request should be sent to the remote service.  
+If left empty, the default interval will be used. Values lower than `1m` will be ignored.
 
 Default: `"5m"`
 
