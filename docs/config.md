@@ -879,8 +879,8 @@ Contains additional opt-in policies for the remote pinning service.
 When this policy is enabled, it follows changes to MFS
 and updates the pin for MFS root on the configured remote service.
 
-A pin request to the remote service is sent only when MFS root has changed
-and time has passed, since the previous pin is bigger than `RepinInterval`.
+A pin request to the remote service is sent only when MFS root CID has changed
+and enough time has passed since the previous request (determined by `RepinInterval`).
 
 ###### `Pinning.RemoteServices: Policies.MFS.Enabled`
 
