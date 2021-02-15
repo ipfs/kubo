@@ -895,7 +895,7 @@ Type: `bool`
 Optional name to use for remote pin that represents MFS root CID.  
 When left empty, default name will be generated.
 
-Default: `"policy/12.../mfs"`
+Default: `"policy/{PeerID}/mfs"`, e.g. `"policy/12.../mfs"`
 
 Type: `string`
 
