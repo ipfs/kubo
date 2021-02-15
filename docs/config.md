@@ -181,6 +181,8 @@ does (e.g, `"1d2h4m40.01s"`).
         - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
           - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
           - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
+        - [`Pinning.RemoteServices.Policies`](#pinningremoteservices-policies)
+          - [`Pinning.RemoteServices.Policies.MFS`](#pinningremoteservices-policiesmfs)
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
@@ -847,7 +849,7 @@ Example:
         "API" : {
           "Endpoint" : "https://pinningservice.tld:1234/my/api/path",
           "Key" : "someOpaqueKey"
-        }
+				}
       }
     }
   }
@@ -867,6 +869,44 @@ Type: `string`
 The key through which access to the pinning service is granted
 
 Type: `string`
+
+#### `Pinning.RemoteServices: Policies`
+
+Contains additional opt-in policies for the remote pinning service
+
+##### `Pinning.RemoteServices: Policies.MFS`
+
+When this policy is enabled it will be following changes to MFS
+and updating the pin for MFS root on the configured remote service.
+
+Pin request to the remote service is sent only when MFS root changed
+and time passed since the previous pin is bigger than `RepinInterval`.
+
+###### `Pinning.RemoteServices: Policies.MFS.Enabled`
+
+Controls if this policy is active.
+
+Default: `false`
+
+Type: `bool`
+
+###### `Pinning.RemoteServices: Policies.MFS.PinName`
+
+Optional name to use for remote pin that represents MFS root CID.  
+When left empty, default name will be generated.
+
+Default: `"policy/12.../mfs"`
+
+Type: `string`
+
+###### `Pinning.RemoteServices: Policies.MFS.RepinInterval`
+
+Defines how often (at most) the pin request should be sent to remote service.  
+When left empty, default interval will be used. Values lower than `1m` will be ignored.
+
+Default: `"5m"`
+
+Type: `duration`
 
 ## `Pubsub`
 
