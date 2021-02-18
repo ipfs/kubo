@@ -250,14 +250,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			}
 		}
 
-		identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
-			options.Key.Type(algorithmDefault),
-		})
-		if err != nil {
-			return err
+		if conf == nil {
+			identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+				options.Key.Type(algorithmDefault),
+			})
+			if err != nil {
+				return err
+			}
+			conf, err = config.InitWithIdentity(identity)
+			if err != nil {
+				return err
+			}
 		}
 
-		if err = doInit(os.Stdout, cctx.ConfigRoot, false, &identity, profiles, conf); err != nil {
+		if err = doInit(os.Stdout, cctx.ConfigRoot, false, profiles, conf); err != nil {
 			return err
 		}
 	}
@@ -433,6 +439,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
+	// start MFS pinning thread
+	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
+
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
 	notifyReady()
@@ -522,6 +531,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
+		corehttp.MetricsOpenCensusCollectionOption(),
 		corehttp.CheckVersionOption(),
 		corehttp.CommandsOption(*cctx),
 		corehttp.WebUIOption,

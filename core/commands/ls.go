@@ -251,7 +251,7 @@ func tabularOutput(req *cmds.Request, w io.Writer, out *LsOutput, lastObjectHash
 				}
 			}
 
-			fmt.Fprintf(tw, s, link.Hash, link.Size, link.Name)
+			fmt.Fprintf(tw, s, link.Hash, link.Size, cmdenv.EscNonPrint(link.Name))
 		}
 	}
 	tw.Flush()

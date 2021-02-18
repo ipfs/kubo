@@ -60,7 +60,7 @@ Checklist:
     - [ ] Deploy new version to a subset of Preload nodes
     - [ ] Collect metrics every day. Work with the Infrastructure team to learn of any hiccup
   - [ ] IPFS Application Testing -  Run the tests of the following applications:
-    - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) - @hacdias
+    - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) - @lidel
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion) - @lidel
     - [ ] [NPM on IPFS](https://github.com/ipfs-shipyard/npm-on-ipfs) - @achingbrain
 - [ ] **Stage 2 - Community Dev Testing**
@@ -74,6 +74,7 @@ Checklist:
     - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
     - [ ] Ensure that all the examples we have produced for go-ipfs run without problems
     - [ ] Update HTTP-API Documentation on the Website using https://github.com/ipfs/http-api-docs
+    - [ ] Update [CLI Documentation](https://github.com/ipfs/ipfs-docs/blob/master/docs/reference/cli.md) on the Website using https://github.com/ipfs-inactive/docs/blob/master/scripts/cli.sh
   - [ ] Invite the IPFS [_early testers_](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) to deploy the release to part of their production infrastructure.
   - [ ] Invite the wider community through (link to the release issue):
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)

@@ -7,6 +7,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	name "github.com/ipfs/go-ipfs/core/commands/name"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
+	"github.com/ipfs/go-ipfs/core/commands/pin"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -136,7 +137,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"mount":     MountCmd,
 	"name":      name.NameCmd,
 	"object":    ocmd.ObjectCmd,
-	"pin":       PinCmd,
+	"pin":       pin.PinCmd,
 	"ping":      PingCmd,
 	"p2p":       P2PCmd,
 	"refs":      RefsCmd,

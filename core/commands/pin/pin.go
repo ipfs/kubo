@@ -1,4 +1,4 @@
-package commands
+package pin
 
 import (
 	"context"
@@ -35,6 +35,7 @@ var PinCmd = &cmds.Command{
 		"ls":     listPinCmd,
 		"verify": verifyPinCmd,
 		"update": updatePinCmd,
+		"remote": remotePinCmd,
 	},
 }
 

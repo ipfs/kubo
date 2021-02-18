@@ -10,12 +10,12 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
+	"github.com/cheggaaa/pb"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	mh "github.com/multiformats/go-multihash"
-	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
@@ -353,7 +353,7 @@ only-hash, and progress/status related flags) will change the final hash.
 							if quiet {
 								fmt.Fprintf(os.Stdout, "%s\n", output.Hash)
 							} else {
-								fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, output.Name)
+								fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, cmdenv.EscNonPrint(output.Name))
 							}
 
 						} else {

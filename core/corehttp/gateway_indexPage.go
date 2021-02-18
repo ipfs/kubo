@@ -13,6 +13,7 @@ import (
 // structs for directory listing
 type listingTemplateData struct {
 	GatewayURL  string
+	DNSLink     bool
 	Listing     []directoryItem
 	Size        string
 	Path        string
@@ -34,7 +35,7 @@ type breadcrumb struct {
 	Path string
 }
 
-func breadcrumbs(urlPath string) []breadcrumb {
+func breadcrumbs(urlPath string, dnslinkOrigin bool) []breadcrumb {
 	var ret []breadcrumb
 
 	p, err := ipfspath.ParsePath(urlPath)
@@ -42,8 +43,8 @@ func breadcrumbs(urlPath string) []breadcrumb {
 		// No breadcrumbs, fallback to bare Path in template
 		return ret
 	}
-
 	segs := p.Segments()
+	contentRoot := segs[1]
 	for i, seg := range segs {
 		if i == 0 {
 			ret = append(ret, breadcrumb{Name: seg})
@@ -55,11 +56,36 @@ func breadcrumbs(urlPath string) []breadcrumb {
 		}
 	}
 
+	// Drop the /ipns/<fqdn> prefix from breadcrumb Paths when directory
+	// listing on a DNSLink website (loaded due to Host header in HTTP
+	// request).  Necessary because the hostname most likely won't have a
+	// public gateway mounted.
+	if dnslinkOrigin {
+		prefix := "/ipns/" + contentRoot
+		for i, crumb := range ret {
+			if strings.HasPrefix(crumb.Path, prefix) {
+				ret[i].Path = strings.Replace(crumb.Path, prefix, "", 1)
+			}
+		}
+		// Make contentRoot breadcrumb link to the website root
+		ret[1].Path = "/"
+	}
+
 	return ret
 }
 
 func shortHash(hash string) string {
 	return (hash[0:4] + "\u2026" + hash[len(hash)-4:])
+}
+
+// helper to detect DNSLink website context
+// (when hostname from gwURL is matching /ipns/<fqdn> in path)
+func hasDNSLinkOrigin(gwURL string, path string) bool {
+	if gwURL != "" {
+		fqdn := stripPort(strings.TrimPrefix(gwURL, "//"))
+		return strings.HasPrefix(path, "/ipns/"+fqdn)
+	}
+	return false
 }
 
 var listingTemplate *template.Template

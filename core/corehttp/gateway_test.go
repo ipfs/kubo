@@ -161,6 +161,54 @@ func matchPathOrBreadcrumbs(s string, expected string) bool {
 	return matched
 }
 
+func TestUriQueryRedirect(t *testing.T) {
+	ts, _, _ := newTestServerAndNode(t, mockNamesys{})
+
+	cid := "QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR"
+	for i, test := range []struct {
+		path     string
+		status   int
+		location string
+	}{
+		// - Browsers will send original URI in URL-escaped form
+		// - We expect query parameters to be persisted
+		// - We drop fragments, as those should not be sent by a browser
+		{"/ipfs/?uri=ipfs%3A%2F%2FQmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco%2Fwiki%2FFoo_%C4%85%C4%99.html%3Ffilename%3Dtest-%C4%99.html%23header-%C4%85", http.StatusMovedPermanently, "/ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Foo_%c4%85%c4%99.html?filename=test-%c4%99.html"},
+		{"/ipfs/?uri=ipns%3A%2F%2Fexample.com%2Fwiki%2FFoo_%C4%85%C4%99.html%3Ffilename%3Dtest-%C4%99.html", http.StatusMovedPermanently, "/ipns/example.com/wiki/Foo_%c4%85%c4%99.html?filename=test-%c4%99.html"},
+		{"/ipfs/?uri=ipfs://" + cid, http.StatusMovedPermanently, "/ipfs/" + cid},
+		{"/ipfs?uri=ipfs://" + cid, http.StatusMovedPermanently, "/ipfs/?uri=ipfs://" + cid},
+		{"/ipfs/?uri=ipns://" + cid, http.StatusMovedPermanently, "/ipns/" + cid},
+		{"/ipns/?uri=ipfs%3A%2F%2FQmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco%2Fwiki%2FFoo_%C4%85%C4%99.html%3Ffilename%3Dtest-%C4%99.html%23header-%C4%85", http.StatusMovedPermanently, "/ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Foo_%c4%85%c4%99.html?filename=test-%c4%99.html"},
+		{"/ipns/?uri=ipns%3A%2F%2Fexample.com%2Fwiki%2FFoo_%C4%85%C4%99.html%3Ffilename%3Dtest-%C4%99.html", http.StatusMovedPermanently, "/ipns/example.com/wiki/Foo_%c4%85%c4%99.html?filename=test-%c4%99.html"},
+		{"/ipns?uri=ipns://" + cid, http.StatusMovedPermanently, "/ipns/?uri=ipns://" + cid},
+		{"/ipns/?uri=ipns://" + cid, http.StatusMovedPermanently, "/ipns/" + cid},
+		{"/ipns/?uri=ipfs://" + cid, http.StatusMovedPermanently, "/ipfs/" + cid},
+		{"/ipfs/?uri=unsupported://" + cid, http.StatusBadRequest, ""},
+		{"/ipfs/?uri=invaliduri", http.StatusBadRequest, ""},
+		{"/ipfs/?uri=" + cid, http.StatusBadRequest, ""},
+	} {
+
+		r, err := http.NewRequest(http.MethodGet, ts.URL+test.path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := doWithoutRedirect(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != test.status {
+			t.Errorf("(%d) got %d, expected %d from %s", i, resp.StatusCode, test.status, ts.URL+test.path)
+		}
+
+		locHdr := resp.Header.Get("Location")
+		if locHdr != test.location {
+			t.Errorf("(%d) location header got %s, expected %s from %s", i, locHdr, test.location, ts.URL+test.path)
+		}
+	}
+}
+
 func TestGatewayGet(t *testing.T) {
 	ns := mockNamesys{}
 	ts, api, ctx := newTestServerAndNode(t, ns)
@@ -391,6 +439,10 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	}
 }
 
+// Test directory listing on DNSLink website
+// (scenario when Host header is the same as URL hostname)
+// This is basic regression test: additional end-to-end tests
+// can be found in test/sharness/t0115-gateway-dir-listing.sh
 func TestIPNSHostnameBacklinks(t *testing.T) {
 	ns := mockNamesys{}
 	ts, api, ctx := newTestServerAndNode(t, ns)
@@ -437,7 +489,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// expect correct backlinks
+	// expect correct links
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
@@ -445,7 +497,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s := string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
@@ -453,6 +505,10 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
+	}
+	if !strings.Contains(s, "<a class=\"ipfs-hash\" href=\"https://cid.ipfs.io/#") {
+		// https://github.com/ipfs/dir-index-html/issues/42
+		t.Fatalf("expected links to cid.ipfs.io in CID column when on DNSLink website")
 	}
 	if !strings.Contains(s, k2.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")
@@ -487,6 +543,10 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "<a href=\"/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
+	if !strings.Contains(s, "<a class=\"ipfs-hash\" href=\"https://cid.ipfs.io/#") {
+		// https://github.com/ipfs/dir-index-html/issues/42
+		t.Fatalf("expected links to cid.ipfs.io in CID column when on DNSLink website")
+	}
 	if !strings.Contains(s, k.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")
 	}
@@ -511,7 +571,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"/ipns/example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"//example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
@@ -545,7 +605,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	s = string(body)
 	t.Logf("body: %s\n", string(body))
 
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"/ipns/example.net\">example.net</a>") {
+	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {

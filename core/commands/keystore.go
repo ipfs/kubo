@@ -150,6 +150,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
 	},
 	NoRemote: true,
+	PreRun:   DaemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
 
@@ -383,9 +384,9 @@ var keyRenameCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, kro *KeyRenameOutput) error {
 			if kro.Overwrite {
-				fmt.Fprintf(w, "Key %s renamed to %s with overwriting\n", kro.Id, kro.Now)
+				fmt.Fprintf(w, "Key %s renamed to %s with overwriting\n", kro.Id, cmdenv.EscNonPrint(kro.Now))
 			} else {
-				fmt.Fprintf(w, "Key %s renamed to %s\n", kro.Id, kro.Now)
+				fmt.Fprintf(w, "Key %s renamed to %s\n", kro.Id, cmdenv.EscNonPrint(kro.Now))
 			}
 			return nil
 		}),
@@ -459,22 +460,7 @@ environment variable:
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 	},
 	NoRemote: true,
-	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		cctx := env.(*oldcmds.Context)
-		daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
-		if err != nil {
-			return err
-		}
-
-		log.Info("checking if daemon is running...")
-		if daemonLocked {
-			log.Debug("ipfs daemon is running")
-			e := "ipfs daemon is running. please stop it to run this command"
-			return cmds.ClientError(e)
-		}
-
-		return nil
-	},
+	PreRun:   DaemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		nBitsForKeypair, nBitsGiven := req.Options[keyStoreSizeOptionName].(int)
@@ -547,12 +533,31 @@ func keyOutputListEncoders() cmds.EncoderFunc {
 		tw := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 		for _, s := range list.Keys {
 			if withID {
-				fmt.Fprintf(tw, "%s\t%s\t\n", s.Id, s.Name)
+				fmt.Fprintf(tw, "%s\t%s\t\n", s.Id, cmdenv.EscNonPrint(s.Name))
 			} else {
-				fmt.Fprintf(tw, "%s\n", s.Name)
+				fmt.Fprintf(tw, "%s\n", cmdenv.EscNonPrint(s.Name))
 			}
 		}
 		tw.Flush()
 		return nil
 	})
+}
+
+// DaemonNotRunning checks to see if the ipfs repo is locked, indicating that
+// the daemon is running, and returns and error if the daemon is running.
+func DaemonNotRunning(req *cmds.Request, env cmds.Environment) error {
+	cctx := env.(*oldcmds.Context)
+	daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
+	if err != nil {
+		return err
+	}
+
+	log.Info("checking if daemon is running...")
+	if daemonLocked {
+		log.Debug("ipfs daemon is running")
+		e := "ipfs daemon is running. please stop it to run this command"
+		return cmds.ClientError(e)
+	}
+
+	return nil
 }

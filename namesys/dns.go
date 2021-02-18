@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"strings"
+	"fmt"
 
 	path "github.com/ipfs/go-path"
 	opts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -53,7 +54,7 @@ func (r *DNSResolver) resolveOnceAsync(ctx context.Context, name string, options
 	domain := segments[0]
 
 	if !isd.IsDomain(domain) {
-		out <- onceResult{err: errors.New("not a valid domain name")}
+		out <- onceResult{err: fmt.Errorf("not a valid domain name: %s", domain)}
 		close(out)
 		return out
 	}

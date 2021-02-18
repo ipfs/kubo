@@ -223,6 +223,10 @@ test_object_cmd() {
     ipfs object stat $OUTPUT
   '
 
+  test_expect_success "'ipfs object new foo' shouldn't crash" '
+    test_expect_code 1 ipfs object new foo
+  '
+
   test_expect_success "'ipfs object links' gives the correct results" '
     echo "$EMPTY_DIR" 4 foo > expected &&
     ipfs object links "$OUTPUT" > actual &&

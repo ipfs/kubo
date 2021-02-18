@@ -176,6 +176,13 @@ does (e.g, `"1d2h4m40.01s"`).
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+- [`Pinning`](#pinning)
+    - [`Pinning.RemoteServices`](#pinningremoteservices)
+        - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
+          - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
+          - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
+        - [`Pinning.RemoteServices.Policies`](#pinningremoteservices-policies)
+          - [`Pinning.RemoteServices.Policies.MFS`](#pinningremoteservices-policiesmfs)
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
@@ -432,7 +439,7 @@ tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new
 structures.
 
 For more information on possible values for this configuration option, see
-docs/datastores.md
+[docs/datastores.md](datastores.md)
 
 Default:
 ```
@@ -702,11 +709,12 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
-   **Note I:** this enables automatic redirects from content paths to subdomains:  
+   **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:  
    `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`  
-   **Note II:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
+   **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
    `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`  
-   **Note III:** we also support `X-Forwarded-Proto: example.com` if you want to override subdomain gateway host from the original request:
+   `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`  
+   **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
    `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
    
 
@@ -812,6 +820,93 @@ Type: `string` (filesystem path)
 ### `Mounts.FuseAllowOther`
 
 Sets the FUSE allow other option on the mountpoint.
+
+## `Pinning`
+
+Pinning configures the options available for pinning content
+(i.e. keeping content longer term instead of as temporarily cached storage).
+
+### `Pinning.RemoteServices`
+
+`RemoteServices` maps a name for a remote pinning service to its configuration.
+
+A remote pinning service is a remote service that exposes an API for managing
+that service's interest in longer term data storage.
+
+The exposed API conforms to the specification defined at
+https://ipfs.github.io/pinning-services-api-spec/
+
+#### `Pinning.RemoteServices: API`
+
+Contains information relevant to utilizing the remote pinning service
+
+Example:
+```json
+{
+  "Pinning": {
+    "RemoteServices": {
+      "myPinningService": {
+        "API" : {
+          "Endpoint" : "https://pinningservice.tld:1234/my/api/path",
+          "Key" : "someOpaqueKey"
+				}
+      }
+    }
+  }
+}
+```
+
+##### `Pinning.RemoteServices: API.Endpoint`
+
+The HTTP(S) endpoint through which to access the pinning service
+
+Example: "https://pinningservice.tld:1234/my/api/path"
+
+Type: `string`
+
+##### `Pinning.RemoteServices: API.Key`
+
+The key through which access to the pinning service is granted
+
+Type: `string`
+
+#### `Pinning.RemoteServices: Policies`
+
+Contains additional opt-in policies for the remote pinning service.
+
+##### `Pinning.RemoteServices: Policies.MFS`
+
+When this policy is enabled, it follows changes to MFS
+and updates the pin for MFS root on the configured remote service.
+
+A pin request to the remote service is sent only when MFS root CID has changed
+and enough time has passed since the previous request (determined by `RepinInterval`).
+
+###### `Pinning.RemoteServices: Policies.MFS.Enabled`
+
+Controls if this policy is active.
+
+Default: `false`
+
+Type: `bool`
+
+###### `Pinning.RemoteServices: Policies.MFS.PinName`
+
+Optional name to use for a remote pin that represents the MFS root CID.  
+When left empty, a default name will be generated.
+
+Default: `"policy/{PeerID}/mfs"`, e.g. `"policy/12.../mfs"`
+
+Type: `string`
+
+###### `Pinning.RemoteServices: Policies.MFS.RepinInterval`
+
+Defines how often (at most) the pin request should be sent to the remote service.  
+If left empty, the default interval will be used. Values lower than `1m` will be ignored.
+
+Default: `"5m"`
+
+Type: `duration`
 
 ## `Pubsub`
 

@@ -31,9 +31,14 @@ test_expect_success "GET IPFS path succeeds" '
   curl -sfo actual "http://127.0.0.1:$port/ipfs/$HASH"
 '
 
-test_expect_success "GET IPFS path with explicit filename succeeds with proper header" "
-  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест' &&
-  grep -F \"Content-Disposition: inline; filename*=UTF-8''test%D1%82%D0%B5%D1%81%D1%82\" actual_headers
+test_expect_success "GET IPFS path with explicit ?filename succeeds with proper header" "
+  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест.pdf' &&
+  grep -F 'Content-Disposition: inline; filename=\"test____.pdf\"; filename*=UTF-8'\'\''test%D1%82%D0%B5%D1%81%D1%82.pdf' actual_headers
+"
+
+test_expect_success "GET IPFS path with explicit ?filename and &download=true succeeds with proper header" "
+  curl -fo actual -D actual_headers 'http://127.0.0.1:$port/ipfs/$HASH?filename=testтест.mp4&download=true' &&
+  grep -F 'Content-Disposition: attachment; filename=\"test____.mp4\"; filename*=UTF-8'\'\''test%D1%82%D0%B5%D1%81%D1%82.mp4' actual_headers
 "
 
 # https://github.com/ipfs/go-ipfs/issues/4025#issuecomment-342250616
@@ -49,8 +54,9 @@ test_expect_success "GET IPFS path output looks good" '
 '
 
 test_expect_success "GET IPFS directory path succeeds" '
-  mkdir dir &&
+  mkdir -p dir/dirwithindex &&
   echo "12345" >dir/test &&
+  echo "hello i am a webpage" >dir/dirwithindex/index.html &&
   ipfs add -r -q dir >actual &&
   HASH2=$(tail -n 1 actual) &&
   curl -sf "http://127.0.0.1:$port/ipfs/$HASH2"
@@ -63,6 +69,16 @@ test_expect_success "GET IPFS directory file succeeds" '
 test_expect_success "GET IPFS directory file output looks good" '
   test_cmp dir/test actual
 '
+
+test_expect_success "GET IPFS directory with index.html returns redirect to add trailing slash" "
+  curl -sI -o response_without_slash \"http://127.0.0.1:$port/ipfs/$HASH2/dirwithindex?query=to-remember\"  &&
+  test_should_contain \"Location: /ipfs/$HASH2/dirwithindex/?query=to-remember\" response_without_slash
+"
+
+test_expect_success "GET IPFS directory with index.html and trailing slash returns expected output" "
+  curl -s -o response_with_slash \"http://127.0.0.1:$port/ipfs/$HASH2/dirwithindex/?query=to-remember\"  &&
+  test_should_contain \"hello i am a webpage\" response_with_slash
+"
 
 test_expect_success "GET IPFS nonexistent file returns code expected (404)" '
   test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/$HASH2/pleaseDontAddMe" "HTTP/1.1 404 Not Found"

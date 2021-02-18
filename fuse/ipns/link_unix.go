@@ -1,4 +1,4 @@
-// +build !nofuse,!openbsd,!netbsd
+// +build !nofuse,!openbsd,!netbsd,!plan9
 
 package ipns
 
