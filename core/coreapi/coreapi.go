@@ -39,8 +39,8 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/node"
-	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-namesys"
 )
 
 type CoreAPI struct {

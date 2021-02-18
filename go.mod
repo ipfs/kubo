@@ -4,7 +4,6 @@ require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.2.0
 	github.com/blang/semver/v4 v4.0.0
-	github.com/bren2010/proquint v0.0.0-20201027163346-95122a84635f
 	github.com/cheggaaa/pb v1.0.29
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/dustin/go-humanize v1.0.0
@@ -12,9 +11,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gabriel-vasile/mimetype v1.1.2
 	github.com/go-bindata/go-bindata/v3 v3.1.3
-	github.com/gogo/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.1.0
-	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/go-bitswap v0.3.3
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.1.4
@@ -33,10 +30,10 @@ require (
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
 	github.com/ipfs/go-ipfs-config v0.12.0
-	github.com/ipfs/go-ipfs-ds-help v0.1.1
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.8
+	github.com/ipfs/go-ipfs-keystore v0.0.2
 	github.com/ipfs/go-ipfs-pinner v0.1.1
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
 	github.com/ipfs/go-ipfs-provider v0.4.3
@@ -51,6 +48,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.2
+	github.com/ipfs/go-namesys v0.0.1
 	github.com/ipfs/go-path v0.0.9
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.2.4
@@ -86,7 +84,6 @@ require (
 	github.com/libp2p/go-tcp-transport v0.2.1
 	github.com/libp2p/go-ws-transport v0.4.0
 	github.com/lucas-clemente/quic-go v0.19.3
-	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
@@ -97,7 +94,6 @@ require (
 	github.com/prometheus/client_golang v1.9.0
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/tar-utils v0.0.0-20201201191210-20a61371de5b
