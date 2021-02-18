@@ -16,6 +16,9 @@ import (
 )
 
 const (
+	// Current dirstibution to fetch migrations from
+	CurrentIpfsDist = "/ipfs/Qme8pJhBidEUXRdpcWLGR2fkG5kdwVnaMh3kabjfP8zz7Y"
+
 	envIpfsDistPath = "IPFS_DIST_PATH"
 
 	// Distribution
@@ -39,7 +42,7 @@ func init() {
 
 // SetIpfsDistPath sets the ipfs path to the distribution site.  If an empty
 // string is given, then the path is set using the IPFS_DIST_PATH environ
-// veriable, or the default value if that is not defined.
+// veriable, or the default dns link value if that is not defined.
 func SetIpfsDistPath(distPath string) {
 	if distPath != "" {
 		ipfsDistPath = distPath
