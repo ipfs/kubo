@@ -217,6 +217,17 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	parsedPath := ipath.New(urlPath)
 	if err := parsedPath.IsValid(); err != nil {
+		// Attempt to fix redundant /ipfs/ namespace as long resulting
+		// 'intended' path is valid.  This is in case gremlins were tickled
+		// wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
+		// like in bafybeien3m7mdn6imm425vc2s22erzyhbvk5n3ofzgikkhmdkh5cuqbpbq
+		// :^))
+		intendedPath := ipath.New(strings.TrimPrefix(urlPath, "/ipfs"))
+		if err2 := intendedPath.IsValid(); err2 == nil {
+			intendedURL := strings.Replace(r.URL.String(), urlPath, intendedPath.String(), 1)
+			http.Redirect(w, r, intendedURL, http.StatusMovedPermanently)
+			return
+		}
 		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
 		return
 	}
