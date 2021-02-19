@@ -882,7 +882,7 @@ and updates the pin for MFS root on the configured remote service.
 A pin request to the remote service is sent only when MFS root CID has changed
 and enough time has passed since the previous request (determined by `RepinInterval`).
 
-One can observe MFS pinning details by enabling debug via `ipfs log level remotepinning/mfs debug` and switch back to `error` when done.
+One can observe MFS pinning details by enabling debug via `ipfs log level remotepinning/mfs debug` and switching back to `error` when done.
 
 ###### `Pinning.RemoteServices: Policies.MFS.Enabled`
 
