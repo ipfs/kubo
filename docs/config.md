@@ -730,7 +730,7 @@ Below is a list of the most common public gateway setups.
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
-  $ ipfs config --json Gateway.NoDNSLink true
+  $ ipfs config --json Gateway.NoDNSLink false
   ```
   * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
