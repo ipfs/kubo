@@ -500,7 +500,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 	}
 
 	for p := range pins {
-		if p.Err() != nil {
+		if err := p.Err(); err != nil {
 			return err
 		}
 		err = emit(&PinLsOutputWrapper{
