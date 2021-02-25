@@ -1352,8 +1352,7 @@ receiver supports. When establishing an _inbound_ connection, go-ipfs will let
 the initiator choose the protocol, but will refuse to use any of the disabled
 transports.
 
-Supported transports are: TLS (priority 100), SECIO (Disabled: i.e. priority false), Noise
-(priority 300).
+Supported transports are: TLS (priority 100) and Noise (priority 300).
 
 No default priority will ever be less than 100.
 
@@ -1369,14 +1368,7 @@ Type: `priority`
 
 #### `Swarm.Transports.Security.SECIO`
 
-[SECIO](https://github.com/libp2p/specs/tree/master/secio) was the most widely
-supported IPFS & libp2p security transport. However, it is currently being
-phased out in favor of more popular and better vetted protocols like TLS and
-Noise.
-
-Default: `false`
-
-Type: `priority`
+Support for SECIO has been removed. Please remove this option from your config.
 
 #### `Swarm.Transports.Security.Noise`
 
