@@ -119,8 +119,7 @@ test_expect_success "re-enable yamux" '
 
 echo "Running advanced tests with NOISE"
 test_expect_success "use noise only" '
-  iptb run -- ipfs config --json Swarm.Transports.Security.TLS false &&
-  iptb run -- ipfs config --json Swarm.Transports.Security.Secio false
+  iptb run -- ipfs config --json Swarm.Transports.Security.TLS false
 '
 
 run_advanced_test

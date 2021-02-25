@@ -544,26 +544,6 @@ ipfs config --json Experimental.GraphsyncEnabled true
 
 ### State
 
-Experimental, enabled by default
+Stable, enabled by default
 
-[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in go-ipfs, Noise is easier to implement and will thus serve as the "interop" transport between IPFS and libp2p implementations, eventually replacing SECIO.
-
-### How to enable
-
-While the Noise transport is now shipped and enabled by default in go-ipfs, it won't be used by default for most connections because TLS and SECIO are currently preferred. If you'd like to test out the Noise transport, you can increase the priority of the noise transport:
-
-```
-ipfs config --json Swarm.Transports.Security.Noise 1
-```
-
-Or even disable TLS and/or SECIO (not recommended for the moment):
-
-```
-ipfs config --json Swarm.Transports.Security.TLS false
-ipfs config --json Swarm.Transports.Security.SECIO false
-```
-
-### Road to being a real feature
-
-- [ ] Needs real-world testing.
-- [ ] Ideally a js-ipfs and a rust-ipfs release would include support for Noise.
+[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in go-ipfs, Noise is easier to implement and is thus the "interop" transport between IPFS and libp2p implementations.
