@@ -108,4 +108,4 @@ require (
 	golang.org/x/sys v0.0.0-20210503173754-0981d6026fa6
 )
 
-go 1.14
+go 1.15
