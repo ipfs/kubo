@@ -3,14 +3,11 @@ package migrations
 import (
 	"context"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path"
 	"strings"
 	"testing"
 )
-
-const testIPFSDistPath = "/ipfs/Qme8pJhBidEUXRdpcWLGR2fkG5kdwVnaMh3kabjfP8zz7Y"
 
 func TestFindMigrations(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "migratetest")
@@ -118,14 +115,11 @@ func TestFetchMigrations(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	SetIpfsDistPath(testIPFSDistPath)
-	_, err := LatestDistVersion(ctx, "ipfs-1-to-2")
-	if err != nil {
-		if strings.Contains(err.Error(), http.StatusText(http.StatusNotFound)) {
-			t.Skip("skip - migrations not yet available on distribution site")
-		}
-		t.Fatal(err)
-	}
+	fetcher := NewHttpFetcher()
+	fetcher.SetDistPath(CurrentIpfsDist)
+	ts := createTestServer()
+	defer ts.Close()
+	fetcher.SetGateway(ts.URL)
 
 	tmpDir, err := ioutil.TempDir("", "migratetest")
 	if err != nil {
@@ -134,7 +128,7 @@ func TestFetchMigrations(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	needed := []string{"ipfs-1-to-2", "ipfs-2-to-3"}
-	fetched, err := fetchMigrations(ctx, needed, tmpDir)
+	fetched, err := fetchMigrations(ctx, fetcher, needed, tmpDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,6 +137,52 @@ func TestFetchMigrations(t *testing.T) {
 		_, err = os.Stat(bin)
 		if os.IsNotExist(err) {
 			t.Error("expected file to exist:", bin)
+		}
+	}
+}
+
+func TestRunMigrations(t *testing.T) {
+	var err error
+	fakeHome, err = ioutil.TempDir("", "testhome")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(fakeHome)
+
+	os.Setenv("HOME", fakeHome)
+	fakeIpfs := path.Join(fakeHome, ".ipfs")
+
+	err = os.Mkdir(fakeIpfs, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+
+	testVer := 11
+	err = WriteRepoVersion(fakeIpfs, testVer)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fetcher := NewHttpFetcher()
+	fetcher.SetDistPath(CurrentIpfsDist)
+	ts := createTestServer()
+	defer ts.Close()
+	fetcher.SetGateway(ts.URL)
+
+	targetVer := 9
+
+	err = RunMigration(ctx, fetcher, targetVer, fakeIpfs, false)
+	if err == nil || !strings.HasPrefix(err.Error(), "downgrade not allowed") {
+		t.Fatal("expected 'downgrade not alloed' error")
+	}
+
+	err = RunMigration(ctx, fetcher, targetVer, fakeIpfs, true)
+	if err != nil {
+		if !strings.HasPrefix(err.Error(), "migration ipfs-10-to-11 failed") {
+			t.Fatal(err)
 		}
 	}
 }

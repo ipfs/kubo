@@ -21,7 +21,7 @@ const (
 
 // RunMigration finds, downloads, and runs the individual migrations needed to
 // migrate the repo from its current version to the target version.
-func RunMigration(ctx context.Context, targetVer int, ipfsDir string) error {
+func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir string, allowDowngrade bool) error {
 	ipfsDir, err := CheckIpfsDir(ipfsDir)
 	if err != nil {
 		return err
@@ -33,6 +33,9 @@ func RunMigration(ctx context.Context, targetVer int, ipfsDir string) error {
 	if fromVer == targetVer {
 		// repo already at target version number
 		return nil
+	}
+	if fromVer > targetVer && !allowDowngrade {
+		return fmt.Errorf("downgrade not allowed from %d to %d", fromVer, targetVer)
 	}
 
 	log.Print("Looking for suitable migration binaries.")
@@ -59,7 +62,7 @@ func RunMigration(ctx context.Context, targetVer int, ipfsDir string) error {
 		}
 		defer os.RemoveAll(tmpDir)
 
-		fetched, err := fetchMigrations(ctx, missing, tmpDir)
+		fetched, err := fetchMigrations(ctx, fetcher, missing, tmpDir)
 		if err != nil {
 			log.Print("Failed to download migrations.")
 			return err
@@ -156,7 +159,7 @@ func runMigration(ctx context.Context, binPath, ipfsDir string, revert bool) err
 
 // fetchMigrations downloads the requested migrations, and returns a slice with
 // the paths of each binary, in the same order specified by needed.
-func fetchMigrations(ctx context.Context, needed []string, destDir string) ([]string, error) {
+func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, destDir string) ([]string, error) {
 	osv, err := osWithVariant()
 	if err != nil {
 		return nil, err
@@ -173,13 +176,13 @@ func fetchMigrations(ctx context.Context, needed []string, destDir string) ([]st
 		log.Printf("Downloading migration: %s...", name)
 		go func(i int, name string) {
 			defer wg.Done()
-			distDir := path.Join(distMigsRoot, name)
-			ver, err := LatestDistVersion(ctx, distDir)
+			dist := path.Join(distMigsRoot, name)
+			ver, err := LatestDistVersion(ctx, fetcher, dist, false)
 			if err != nil {
 				log.Printf("could not get latest version of migration %s: %s", name, err)
 				return
 			}
-			loc, err := FetchBinary(ctx, distDir, ver, name, name, destDir)
+			loc, err := FetchBinary(ctx, fetcher, dist, ver, name, destDir)
 			if err != nil {
 				log.Printf("could not download %s: %s", name, err)
 				return

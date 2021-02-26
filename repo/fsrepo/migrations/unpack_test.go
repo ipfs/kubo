@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"compress/gzip"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -49,7 +50,7 @@ func TestUnpackTgz(t *testing.T) {
 
 	testTarGzip := path.Join(tmpDir, "test.tar.gz")
 	testData := "some data"
-	err = writeTarGzip(testTarGzip, "testroot", "testfile", testData)
+	err = writeTarGzipFile(testTarGzip, "testroot", "testfile", testData)
 	if err != nil {
 		panic(err)
 	}
@@ -97,7 +98,7 @@ func TestUnpackZip(t *testing.T) {
 
 	testZip := path.Join(tmpDir, "test.zip")
 	testData := "some data"
-	err = writeZip(testZip, "testroot", "testfile", testData)
+	err = writeZipFile(testZip, "testroot", "testfile", testData)
 	if err != nil {
 		panic(err)
 	}
@@ -125,21 +126,38 @@ func TestUnpackZip(t *testing.T) {
 	}
 }
 
-func writeTarGzip(archName, root, fileName, data string) error {
+func writeTarGzipFile(archName, root, fileName, data string) error {
 	archFile, err := os.Create(archName)
 	if err != nil {
 		return err
 	}
 	defer archFile.Close()
-	wr := bufio.NewWriter(archFile)
+	w := bufio.NewWriter(archFile)
 
+	err = writeTarGzip(root, fileName, data, w)
+	if err != nil {
+		return err
+	}
+	// Flush buffered data to file
+	if err = w.Flush(); err != nil {
+		return err
+	}
+	// Close tar file
+	if err = archFile.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeTarGzip(root, fileName, data string, w io.Writer) error {
 	// gzip writer writes to buffer
-	gzw := gzip.NewWriter(wr)
+	gzw := gzip.NewWriter(w)
 	defer gzw.Close()
 	// tar writer writes to gzip
 	tw := tar.NewWriter(gzw)
 	defer tw.Close()
 
+	var err error
 	if fileName != "" {
 		hdr := &tar.Header{
 			Name: path.Join(root, fileName),
@@ -163,26 +181,34 @@ func writeTarGzip(archName, root, fileName, data string) error {
 	if err = gzw.Close(); err != nil {
 		return err
 	}
-	// Flush buffered data to file
-	if err = wr.Flush(); err != nil {
+	return nil
+}
+
+func writeZipFile(archName, root, fileName, data string) error {
+	archFile, err := os.Create(archName)
+	if err != nil {
 		return err
 	}
-	// Close tar file
+	defer archFile.Close()
+	w := bufio.NewWriter(archFile)
+
+	err = writeZip(root, fileName, data, w)
+	if err != nil {
+		return err
+	}
+	// Flush buffered data to file
+	if err = w.Flush(); err != nil {
+		return err
+	}
+	// Close zip file
 	if err = archFile.Close(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func writeZip(archName, root, fileName, data string) error {
-	archFile, err := os.Create(archName)
-	if err != nil {
-		return err
-	}
-	defer archFile.Close()
-	wr := bufio.NewWriter(archFile)
-
-	zw := zip.NewWriter(wr)
+func writeZip(root, fileName, data string, w io.Writer) error {
+	zw := zip.NewWriter(w)
 	defer zw.Close()
 
 	// Write file name
@@ -198,14 +224,6 @@ func writeZip(archName, root, fileName, data string) error {
 
 	// Close zip writer
 	if err = zw.Close(); err != nil {
-		return err
-	}
-	// Flush buffered data to file
-	if err = wr.Flush(); err != nil {
-		return err
-	}
-	// Close zip file
-	if err = archFile.Close(); err != nil {
 		return err
 	}
 	return nil

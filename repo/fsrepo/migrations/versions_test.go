@@ -14,7 +14,12 @@ func TestDistVersions(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	vers, err := DistVersions(ctx, testDist, true)
+	fetcher := NewHttpFetcher()
+	ts := createTestServer()
+	defer ts.Close()
+	fetcher.SetGateway(ts.URL)
+
+	vers, err := DistVersions(ctx, fetcher, testDist, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +34,12 @@ func TestLatestDistVersion(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	latest, err := LatestDistVersion(ctx, testDist)
+	fetcher := NewHttpFetcher()
+	//ts := createTestServer()
+	//defer ts.Close()
+	//fetcher.SetGateway(ts.URL)
+
+	latest, err := LatestDistVersion(ctx, fetcher, testDist, false)
 	if err != nil {
 		t.Fatal(err)
 	}

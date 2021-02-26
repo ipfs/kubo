@@ -18,17 +18,21 @@ const distVersions = "versions"
 
 // LatestDistVersion returns the latest version, of the specified distribution,
 // that is available on the distribution site.
-func LatestDistVersion(ctx context.Context, dist string) (string, error) {
-	vs, err := DistVersions(ctx, dist, false)
+func LatestDistVersion(ctx context.Context, fetcher Fetcher, dist string, stableOnly bool) (string, error) {
+	vs, err := DistVersions(ctx, fetcher, dist, false)
 	if err != nil {
 		return "", err
 	}
 
 	for i := len(vs) - 1; i >= 0; i-- {
 		ver := vs[i]
-		if !strings.Contains(ver, "-dev") {
-			return ver, nil
+		if stableOnly && strings.Contains(ver, "-rc") {
+			continue
 		}
+		if strings.Contains(ver, "-dev") {
+			continue
+		}
+		return ver, nil
 	}
 	return "", errors.New("could not find a non dev version")
 }
@@ -36,8 +40,8 @@ func LatestDistVersion(ctx context.Context, dist string) (string, error) {
 // DistVersions returns all versions of the specified distribution, that are
 // available on the distriburion site.  List is in ascending order, unless
 // sortDesc is true.
-func DistVersions(ctx context.Context, dist string, sortDesc bool) ([]string, error) {
-	rc, err := fetch(ctx, path.Join(ipfsDistPath, dist, distVersions))
+func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bool) ([]string, error) {
+	rc, err := fetcher.Fetch(ctx, path.Join(dist, distVersions))
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/ipfs/go-ipfs-api"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -50,23 +49,6 @@ func ApiEndpoint(ipfsDir string) (string, error) {
 	}
 
 	return parts[2] + ":" + parts[4], nil
-}
-
-// ApiShell creates a new ipfs api shell and checks that it is up.  If the shell
-// is available, then the shell and ipfs version are returned.
-func ApiShell(ipfsDir string) (*api.Shell, string, error) {
-	apiEp, err := ApiEndpoint("")
-	if err != nil {
-		return nil, "", err
-	}
-	sh := api.NewShell(apiEp)
-	sh.SetTimeout(shellUpTimeout)
-	ver, _, err := sh.Version()
-	if err != nil {
-		return nil, "", errors.New("ipfs api shell not up")
-	}
-	sh.SetTimeout(0)
-	return sh, ver, nil
 }
 
 // IpfsDir returns the path of the ipfs directory.  If dir specified, then

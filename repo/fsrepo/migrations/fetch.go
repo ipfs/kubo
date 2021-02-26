@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -15,68 +14,22 @@ import (
 	"strings"
 )
 
-const (
-	// Current dirstibution to fetch migrations from
-	CurrentIpfsDist = "/ipfs/Qme8pJhBidEUXRdpcWLGR2fkG5kdwVnaMh3kabjfP8zz7Y"
-
-	envIpfsDistPath = "IPFS_DIST_PATH"
-
-	// Distribution
-	gatewayURL = "https://ipfs.io"
-	ipfsDist   = "/ipns/dist.ipfs.io"
-
-	// Maximum download size
-	fetchSizeLimit = 1024 * 1024 * 512
-)
-
-type limitReadCloser struct {
-	io.Reader
-	io.Closer
-}
-
-var ipfsDistPath string
-
-func init() {
-	SetIpfsDistPath("")
-}
-
-// SetIpfsDistPath sets the ipfs path to the distribution site.  If an empty
-// string is given, then the path is set using the IPFS_DIST_PATH environ
-// veriable, or the default dns link value if that is not defined.
-func SetIpfsDistPath(distPath string) {
-	if distPath != "" {
-		ipfsDistPath = distPath
-		return
-	}
-
-	if dist := os.Getenv(envIpfsDistPath); dist != "" {
-		ipfsDistPath = dist
-	} else {
-		ipfsDistPath = ipfsDist
-	}
-}
-
 // FetchBinary downloads an archive from the distribution site and unpacks it.
-//
-// The base name of the archive file, inside the distribution directory on
-// distribution site, may differ from the distribution name.  If it does, then
-// specify arcName.
 //
 // The base name of the binary inside the archive may differ from the base
 // archive name.  If it does, then specify binName.  For example, the following
 // is needed because the archive "go-ipfs_v0.7.0_linux-amd64.tar.gz" contains a
 // binary named "ipfs"
 //
-//     FetchBinary(ctx, "go-ipfs", "v0.7.0", "go-ipfs", "ipfs", tmpDir)
+//     FetchBinary(ctx, fetcher, "go-ipfs", "v0.7.0", "ipfs", tmpDir)
 //
 // If out is a directory, then the binary is written to that directory with the
 // same name it has inside the archive.  Otherwise, the binary file is written
 // to the file named by out.
-func FetchBinary(ctx context.Context, dist, ver, arcName, binName, out string) (string, error) {
-	// If archive base name not specified, then it is same as dist.
-	if arcName == "" {
-		arcName = dist
-	}
+func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out string) (string, error) {
+	// The archive file name is the base of dist to support possible subdir in
+	// dist, for example: "ipfs-repo-migrations/ipfs-11-to-12"
+	arcName := path.Base(dist)
 	// If binary base name is not specified, then it is same as archive base name.
 	if binName == "" {
 		binName = arcName
@@ -101,6 +54,18 @@ func FetchBinary(ctx context.Context, dist, ver, arcName, binName, out string) (
 		}
 		// out exists and is a directory, so compose final name
 		out = path.Join(out, binName)
+		// Check if the binary already exists in the directory
+		fi, err = os.Stat(out)
+		if !os.IsNotExist(err) {
+			if err != nil {
+				return "", err
+			}
+			return "", &os.PathError{
+				Op:   "FetchBinary",
+				Path: out,
+				Err:  os.ErrExist,
+			}
+		}
 	}
 
 	// Create temp directory to store download
@@ -115,11 +80,10 @@ func FetchBinary(ctx context.Context, dist, ver, arcName, binName, out string) (
 		atype = "zip"
 	}
 
-	arcName = makeArchiveName(arcName, ver, atype)
-	arcIpfsPath := makeIpfsPath(dist, ver, arcName)
+	arcDistPath, arcFullName := makeArchivePath(dist, arcName, ver, atype)
 
 	// Create a file to write the archive data to
-	arcPath := path.Join(tmpDir, arcName)
+	arcPath := path.Join(tmpDir, arcFullName)
 	arcFile, err := os.Create(arcPath)
 	if err != nil {
 		return "", err
@@ -127,7 +91,7 @@ func FetchBinary(ctx context.Context, dist, ver, arcName, binName, out string) (
 	defer arcFile.Close()
 
 	// Open connection to download archive from ipfs path
-	rc, err := fetch(ctx, arcIpfsPath)
+	rc, err := fetcher.Fetch(ctx, arcDistPath)
 	if err != nil {
 		return "", err
 	}
@@ -153,73 +117,6 @@ func FetchBinary(ctx context.Context, dist, ver, arcName, binName, out string) (
 	}
 
 	return out, nil
-}
-
-// fetch attempts to fetch the file at the given ipfs path, first using the
-// local ipfs api if available, then using http.  Returns io.ReadCloser on
-// success, which caller must close.
-func fetch(ctx context.Context, ipfsPath string) (io.ReadCloser, error) {
-	// Try fetching via ipfs daemon
-	rc, err := ipfsFetch(ctx, ipfsPath)
-	if err == nil {
-		// Transferred using local ipfs daemon
-		return rc, nil
-	}
-	// Try fetching via HTTP
-	return httpFetch(ctx, gatewayURL+ipfsPath)
-}
-
-// ipfsFetch attempts to fetch the file at the given ipfs path using the local
-// ipfs api.  Returns io.ReadCloser on success, which caller must close.
-func ipfsFetch(ctx context.Context, ipfsPath string) (io.ReadCloser, error) {
-	sh, _, err := ApiShell("")
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := sh.Request("cat", ipfsPath).Send(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Error != nil {
-		return nil, resp.Error
-	}
-
-	return newLimitReadCloser(resp.Output, fetchSizeLimit), nil
-}
-
-// httpFetch attempts to fetch the file at the given URL.  Returns
-// io.ReadCloser on success, which caller must close.
-func httpFetch(ctx context.Context, url string) (io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("http.NewRequest error: %s", err)
-	}
-
-	req.Header.Set("User-Agent", "go-ipfs")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("http.DefaultClient.Do error: %s", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		defer resp.Body.Close()
-		mes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("error reading error body: %s", err)
-		}
-		return nil, fmt.Errorf("GET %s error: %s: %s", url, resp.Status, string(mes))
-	}
-
-	return newLimitReadCloser(resp.Body, fetchSizeLimit), nil
-}
-
-func newLimitReadCloser(rc io.ReadCloser, limit int64) io.ReadCloser {
-	return limitReadCloser{
-		Reader: io.LimitReader(rc, limit),
-		Closer: rc,
-	}
 }
 
 // osWithVariant returns the OS name with optional variant.
@@ -255,18 +152,21 @@ func osWithVariant() (string, error) {
 	return "linux", nil
 }
 
-// makeArchiveName composes the name of a migration binary archive.
+// makeArchivePath composes the path, relative to the distribution site, from which to
+// download a binary.  The path returned does not contain the distribution site path,
+// e.g. "/ipns/dist.ipfs.io/", since that is know to the fetcher.
 //
-// The archive name is in the format: name_version_osv-GOARCH.atype
-// Example: ipfs-10-to-11_v1.8.0_darwin-amd64.tar.gz
-func makeArchiveName(name, ver, atype string) string {
-	return fmt.Sprintf("%s_%s_%s-%s.%s", name, ver, runtime.GOOS, runtime.GOARCH, atype)
-}
-
-// makeIpfsPath composes the name ipfs path location to download a migration
-// binary from the distribution site.
+// Returns the archive path and the base name.
 //
-// The ipfs path format: distBaseCID/rootdir/version/name/archive
-func makeIpfsPath(dist, ver, arcName string) string {
-	return fmt.Sprintf("%s/%s/%s/%s", ipfsDistPath, dist, ver, arcName)
+// The ipfs path format is: distribution/version/archiveName
+// - distribution is the name of a distribution, such as "go-ipfs"
+// - version is the version to fetch, such as "v0.8.0-rc2"
+// - archiveName is formatted as name_version_osv-GOARCH.atype, such as
+//     "go-ipfs_v0.8.0-rc2_linux-amd64.tar.gz"
+//
+// This would form the path:
+// go-ipfs/v0.8.0/go-ipfs_v0.8.0_linux-amd64.tar.gz
+func makeArchivePath(dist, name, ver, atype string) (string, string) {
+	arcName := fmt.Sprintf("%s_%s_%s-%s.%s", name, ver, runtime.GOOS, runtime.GOARCH, atype)
+	return fmt.Sprintf("%s/%s/%s", dist, ver, arcName), arcName
 }

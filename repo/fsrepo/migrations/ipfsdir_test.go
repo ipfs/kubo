@@ -212,11 +212,4 @@ func TestApiEndpoint(t *testing.T) {
 	if val2 != val {
 		t.Fatal("expected", val, "got", val2)
 	}
-
-	_, _, err = ApiShell(fakeIpfs)
-	if err != nil {
-		if err.Error() != "ipfs api shell not up" {
-			t.Fatal("expected 'ipfs api shell not up' error")
-		}
-	}
 }

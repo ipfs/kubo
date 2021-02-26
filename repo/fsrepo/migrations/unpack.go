@@ -30,13 +30,13 @@ func unpackArchive(arcPath, atype, root, name, out string) error {
 func unpackTgz(arcPath, root, name, out string) error {
 	fi, err := os.Open(arcPath)
 	if err != nil {
-		return fmt.Errorf("cannot open archive file: %s", err)
+		return fmt.Errorf("cannot open archive file: %w", err)
 	}
 	defer fi.Close()
 
 	gzr, err := gzip.NewReader(fi)
 	if err != nil {
-		return fmt.Errorf("error opening gzip reader: %s", err)
+		return fmt.Errorf("error opening gzip reader: %w", err)
 	}
 	defer gzr.Close()
 
@@ -50,7 +50,7 @@ func unpackTgz(arcPath, root, name, out string) error {
 			if err == io.EOF {
 				break
 			}
-			return fmt.Errorf("cannot read archive: %s", err)
+			return fmt.Errorf("cannot read archive: %w", err)
 		}
 
 		if th.Name == lookFor {
@@ -69,7 +69,7 @@ func unpackTgz(arcPath, root, name, out string) error {
 func unpackZip(arcPath, root, name, out string) error {
 	zipr, err := zip.OpenReader(arcPath)
 	if err != nil {
-		return fmt.Errorf("error opening zip reader: %s", err)
+		return fmt.Errorf("error opening zip reader: %w", err)
 	}
 	defer zipr.Close()
 
@@ -79,7 +79,7 @@ func unpackZip(arcPath, root, name, out string) error {
 		if fis.Name == lookFor {
 			rc, err := fis.Open()
 			if err != nil {
-				return fmt.Errorf("error extracting binary from archive: %s", err)
+				return fmt.Errorf("error extracting binary from archive: %w", err)
 			}
 
 			bin = rc
@@ -97,7 +97,7 @@ func unpackZip(arcPath, root, name, out string) error {
 func writeToPath(rc io.Reader, out string) error {
 	binfi, err := os.Create(out)
 	if err != nil {
-		return fmt.Errorf("error opening tmp bin path '%s': %s", out, err)
+		return fmt.Errorf("error creating output file '%s': %w", out, err)
 	}
 	defer binfi.Close()
 
