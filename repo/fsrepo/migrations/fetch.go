@@ -55,7 +55,7 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 		// out exists and is a directory, so compose final name
 		out = path.Join(out, binName)
 		// Check if the binary already exists in the directory
-		fi, err = os.Stat(out)
+		_, err = os.Stat(out)
 		if !os.IsNotExist(err) {
 			if err != nil {
 				return "", err

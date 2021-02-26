@@ -17,7 +17,10 @@ func TestDistVersions(t *testing.T) {
 	fetcher := NewHttpFetcher()
 	ts := createTestServer()
 	defer ts.Close()
-	fetcher.SetGateway(ts.URL)
+	err := fetcher.SetGateway(ts.URL)
+	if err != nil {
+		panic(err)
+	}
 
 	vers, err := DistVersions(ctx, fetcher, testDist, true)
 	if err != nil {

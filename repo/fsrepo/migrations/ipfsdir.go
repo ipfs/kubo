@@ -8,7 +8,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mitchellh/go-homedir"
 )
@@ -19,8 +18,7 @@ const (
 	versionFile = "version"
 
 	// Local IPFS API
-	apiFile        = "api"
-	shellUpTimeout = 2 * time.Second
+	apiFile = "api"
 )
 
 func init() {

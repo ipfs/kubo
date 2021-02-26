@@ -119,7 +119,10 @@ func TestFetchMigrations(t *testing.T) {
 	fetcher.SetDistPath(CurrentIpfsDist)
 	ts := createTestServer()
 	defer ts.Close()
-	fetcher.SetGateway(ts.URL)
+	err := fetcher.SetGateway(ts.URL)
+	if err != nil {
+		panic(err)
+	}
 
 	tmpDir, err := ioutil.TempDir("", "migratetest")
 	if err != nil {
@@ -170,7 +173,9 @@ func TestRunMigrations(t *testing.T) {
 	fetcher.SetDistPath(CurrentIpfsDist)
 	ts := createTestServer()
 	defer ts.Close()
-	fetcher.SetGateway(ts.URL)
+	if err = fetcher.SetGateway(ts.URL); err != nil {
+		panic(err)
+	}
 
 	targetVer := 9
 

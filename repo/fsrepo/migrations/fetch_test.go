@@ -105,7 +105,10 @@ func TestHttpFetch(t *testing.T) {
 	fetcher := NewHttpFetcher()
 	ts := createTestServer()
 	defer ts.Close()
-	fetcher.SetGateway(ts.URL)
+	err := fetcher.SetGateway(ts.URL)
+	if err != nil {
+		panic(err)
+	}
 
 	rc, err := fetcher.Fetch(ctx, "/versions")
 	if err != nil {
@@ -150,7 +153,9 @@ func TestFetchBinary(t *testing.T) {
 	fetcher := NewHttpFetcher()
 	ts := createTestServer()
 	defer ts.Close()
-	fetcher.SetGateway(ts.URL)
+	if err = fetcher.SetGateway(ts.URL); err != nil {
+		panic(err)
+	}
 
 	vers, err := DistVersions(ctx, fetcher, distFSRM, false)
 	if err != nil {
