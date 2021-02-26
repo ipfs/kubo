@@ -84,10 +84,11 @@ test_expect_success "GET IPFS nonexistent file returns code expected (404)" '
   test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/$HASH2/pleaseDontAddMe" "HTTP/1.1 404 Not Found"
 '
 
-test_expect_success "GET /ipfs/ipfs/{cid} returns redirect to the valid path" "
-  curl -sI -o response_with_double_ipfs_ns \"http://127.0.0.1:$port/ipfs/ipfs/bafkqaaa?query=to-remember\"  &&
-  test_should_contain \"Location: /ipfs/bafkqaaa?query=to-remember\" response_with_double_ipfs_ns
-"
+test_expect_success "GET /ipfs/ipfs/{cid} returns redirect to the valid path" '
+  curl -sD - "http://127.0.0.1:$port/ipfs/ipfs/bafkqaaa?query=to-remember" > response_with_double_ipfs_ns &&
+  test_should_contain "<meta http-equiv=\"refresh\" content=\"10;url=/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns &&
+  test_should_contain "<link rel=\"canonical\" href=\"/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns
+'
 
 test_expect_failure "GET IPNS path succeeds" '
   ipfs name publish --allow-offline "$HASH" &&
@@ -102,8 +103,9 @@ test_expect_failure "GET IPNS path output looks good" '
 
 test_expect_success "GET /ipfs/ipns/{peerid} returns redirect to the valid path" '
   PEERID=$(ipfs config Identity.PeerID) &&
-  curl -sI -o response_with_ipfs_ipns_ns "http://127.0.0.1:$port/ipfs/ipns/${PEERID}?query=to-remember" &&
-  test_should_contain "Location: /ipns/${PEERID}?query=to-remember" response_with_ipfs_ipns_ns
+  curl -sD - "http://127.0.0.1:$port/ipfs/ipns/${PEERID}?query=to-remember" > response_with_ipfs_ipns_ns &&
+  test_should_contain "<meta http-equiv=\"refresh\" content=\"10;url=/ipns/${PEERID}?query=to-remember\" />" response_with_ipfs_ipns_ns &&
+  test_should_contain "<link rel=\"canonical\" href=\"/ipns/${PEERID}?query=to-remember\" />" response_with_ipfs_ipns_ns
 '
 
 test_expect_success "GET invalid IPFS path errors" '

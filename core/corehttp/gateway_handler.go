@@ -3,6 +3,7 @@ package corehttp
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"mime"
 	"net/http"
@@ -35,6 +36,16 @@ const (
 )
 
 var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+
+// HTML-based redirect for errors which can be recovered from, but we want
+// to provide hint to people that they should fix things on their end.
+var redirectTemplate = template.Must(template.New("redirect").Parse(`<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta http-equiv="refresh" content="10;url={{.RedirectURL}}" /><link rel="canonical" href="{{.RedirectURL}}" /></head><body><pre>{{.ErrorMsg}}</pre><pre>(if a redirect does not happen in 10 seconds, use "{{.SuggestedPath}}" instead)</pre></body></html>`))
+
+type redirectTemplateData struct {
+	RedirectURL   string
+	SuggestedPath string
+	ErrorMsg      string
+}
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
@@ -216,19 +227,32 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	parsedPath := ipath.New(urlPath)
-	if err := parsedPath.IsValid(); err != nil {
-		// Attempt to fix redundant /ipfs/ namespace as long resulting
+	if pathErr := parsedPath.IsValid(); pathErr != nil {
+		// Attempt to fix redundant /ipfs/ namespace as long as resulting
 		// 'intended' path is valid.  This is in case gremlins were tickled
 		// wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
 		// like in bafybeien3m7mdn6imm425vc2s22erzyhbvk5n3ofzgikkhmdkh5cuqbpbq
 		// :^))
 		intendedPath := ipath.New(strings.TrimPrefix(urlPath, "/ipfs"))
-		if err2 := intendedPath.IsValid(); err2 == nil {
+		if err := intendedPath.IsValid(); err == nil {
 			intendedURL := strings.Replace(r.URL.String(), urlPath, intendedPath.String(), 1)
-			http.Redirect(w, r, intendedURL, http.StatusMovedPermanently)
+			// return HTML that
+			// - points at correct canonical path via <link> header
+			// - displays error
+			// - redirects to intendedURL after a delay
+			err = redirectTemplate.Execute(w, redirectTemplateData{
+				RedirectURL:   intendedURL,
+				SuggestedPath: intendedPath.String(),
+				ErrorMsg:      pathErr.Error(),
+			})
+			if err != nil {
+				internalWebError(w, err)
+				return
+			}
 			return
 		}
-		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
+		// unable to fix path, returning error
+		webError(w, "invalid ipfs path", pathErr, http.StatusBadRequest)
 		return
 	}
 
