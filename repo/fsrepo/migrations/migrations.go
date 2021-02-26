@@ -40,7 +40,7 @@ func RunMigration(newv int) error {
 	fmt.Println("  => Looking for suitable fs-repo-migrations binary.")
 
 	var err error
-	migrateBin, err = exec.LookPath(migrateBin)
+	migrateBin, err = findMigrations(migrateBin)
 	if err == nil {
 		// check to make sure migrations binary supports our target version
 		err = verifyMigrationSupportsVersion(migrateBin, newv)
@@ -78,6 +78,25 @@ func RunMigration(newv int) error {
 	fmt.Printf("  => Success: fs-repo has been migrated to version %d.\n", newv)
 
 	return nil
+}
+
+func findMigrations(migrateBin string) (string, error) {
+	var err error
+	migrateBin, err = exec.LookPath(migrateBin)
+	if err == nil {
+		return migrateBin, nil
+	}
+
+	wd, wdErr := os.Getwd()
+	if wdErr != nil {
+		return "", wdErr
+	}
+	migrateBin = filepath.Join(wd, migrateBin)
+	_, statErr := os.Stat(migrateBin)
+	if statErr != nil {
+		return "", statErr
+	}
+	return migrateBin, nil
 }
 
 func GetMigrations() (string, error) {
