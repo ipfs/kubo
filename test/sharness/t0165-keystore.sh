@@ -175,12 +175,12 @@ ipfs key rm key_ed25519
     test_cmp rsa_key_id roundtrip_rsa_key_id
   '
 
-  test_must_fail "online export rsa key" '
-    ipfs key export generated_rsa_key
+  test_expect_success "online export rsa key" '
+    test_must_fail ipfs key export generated_rsa_key
   '
 
-  test_must_fail "online rotate rsa key" '
-    ipfs key rotate
+  test_expect_success "online rotate rsa key" '
+    test_must_fail ipfs key rotate
   '
   
   test_kill_ipfs_daemon

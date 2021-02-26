@@ -129,7 +129,8 @@ jobs:
         GOPATH: /home/circleci/go
         TEST_VERBOSE: 1
     steps:
-    - run: sudo apt install socat
+    - run: sudo apt update
+    - run: sudo apt install socat net-tools
     - checkout
 
     - run:
