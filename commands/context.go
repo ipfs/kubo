@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
@@ -33,6 +34,8 @@ type Context struct {
 	api           coreiface.CoreAPI
 	node          *core.IpfsNode
 	ConstructNode func() (*core.IpfsNode, error)
+
+	nodeLock sync.Mutex
 }
 
 // GetConfig returns the config of the current Command execution
@@ -55,6 +58,9 @@ func (c *Context) GetConfigNoCache() (*config.Config, error) {
 // GetNode returns the node of the current Command execution
 // context. It may construct it with the provided function.
 func (c *Context) GetNode() (*core.IpfsNode, error) {
+	c.nodeLock.Lock()
+	defer c.nodeLock.Unlock()
+
 	var err error
 	if c.node == nil {
 		if c.ConstructNode == nil {
@@ -128,6 +134,9 @@ func (c *Context) LogRequest(req *cmds.Request) func() {
 
 // Close cleans up the application state.
 func (c *Context) Close() {
+	c.nodeLock.Lock()
+	defer c.nodeLock.Unlock()
+
 	// let's not forget teardown. If a node was initialized, we must close it.
 	// Note that this means the underlying req.Context().Node variable is exposed.
 	// this is gross, and should be changed when we extract out the exec Context.
