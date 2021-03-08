@@ -473,8 +473,8 @@ github.com/ipfs/go-merkledag v0.2.3/go.mod h1:SQiXrtSts3KGNmgOzMICy5c0POOpUNQLvB
 github.com/ipfs/go-merkledag v0.3.0/go.mod h1:4pymaZLhSLNVuiCITYrpViD6vmfZ/Ws4n/L9tfNv3S4=
 github.com/ipfs/go-merkledag v0.3.1/go.mod h1:fvkZNNZixVW6cKSZ/JfLlON5OlgTXNdRLz0p6QG/I2M=
 github.com/ipfs/go-merkledag v0.3.2/go.mod h1:fvkZNNZixVW6cKSZ/JfLlON5OlgTXNdRLz0p6QG/I2M=
-github.com/ipfs/go-merkledag v0.3.3-0.20210304154622-a48eae819406 h1:KlbgKWz0Aq0kiitVvndEihkBdqSsLpyrFrPbD3ZF/h8=
-github.com/ipfs/go-merkledag v0.3.3-0.20210304154622-a48eae819406/go.mod h1:u/6wF1eUsjDUiCECNNfoL9b6msK2c0cJfO74NvTGr8c=
+github.com/ipfs/go-merkledag v0.3.3-0.20210308175741-82937afc01c2 h1:JVWbi1UwAvKat0dVnNk7Qf6F9sVh4xB/SRJif5x7roI=
+github.com/ipfs/go-merkledag v0.3.3-0.20210308175741-82937afc01c2/go.mod h1:rRUxpNNXz0J/oXwBlbmmMOHqQsb0G1RcFgSTxcKZNVI=
 github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fGD6n0jO4kdg=
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZaGVF1CUVdE+s=
@@ -503,7 +503,6 @@ github.com/ipld/go-car v0.2.1-0.20210308124829-cb192ce583f4/go.mod h1:g/2BfMq0LY
 github.com/ipld/go-codec-dagpb v1.0.1 h1:1bpbWKNyRGpCV2w9QIJPmmmFODjjNVhHiM9t/kT/HP8=
 github.com/ipld/go-codec-dagpb v1.0.1/go.mod h1:3RKe7tCm89O2jWw5nQDQx0MMMxJUQbZzBHkleyttP3M=
 github.com/ipld/go-ipld-prime v0.7.0/go.mod h1:0xEgdD6MKbZ1vF0GC+YcR/C4SQCAlRuOjIJ2i0HxqzM=
-github.com/ipld/go-ipld-prime v0.7.1-0.20210125211748-8d37030e16e1/go.mod h1:0xEgdD6MKbZ1vF0GC+YcR/C4SQCAlRuOjIJ2i0HxqzM=
 github.com/ipld/go-ipld-prime v0.7.1-0.20210305140706-7e6922442629 h1:8OaclCESdhKZeTjY+13QRuflDhoD/1VX+o37DbWssho=
 github.com/ipld/go-ipld-prime v0.7.1-0.20210305140706-7e6922442629/go.mod h1:k++jmk6A1k3gXVnW0XF1M1xBKnk7fGEjC2QDj9Zgvyg=
 github.com/jackpal/gateway v1.0.5/go.mod h1:lTpwd4ACLXmpyiCTRtfiNyVnUmqT9RivzCDQetPfnjA=

@@ -49,7 +49,7 @@ require (
 	github.com/ipfs/go-ipns v0.0.2
 	github.com/ipfs/go-log v1.0.4
 	github.com/ipfs/go-log/v2 v2.1.2 // indirect
-	github.com/ipfs/go-merkledag v0.3.3-0.20210304154622-a48eae819406
+	github.com/ipfs/go-merkledag v0.3.3-0.20210308175741-82937afc01c2
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.2
