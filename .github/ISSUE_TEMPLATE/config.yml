@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+ - name: Security issues
+   url: https://github.com/ipfs/community/blob/master/CONTRIBUTING.md#security-issues
+   about: Please report security issues by email to security@ipfs.io
  - name: Getting Help on IPFS
    url: https://ipfs.io/help
    about: All information about how and where to get help on IPFS.
