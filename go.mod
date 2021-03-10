@@ -2,7 +2,7 @@ module github.com/ipfs/go-ipfs
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
-	contrib.go.opencensus.io/exporter/prometheus v0.2.0
+	contrib.go.opencensus.io/exporter/prometheus v0.3.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/bren2010/proquint v0.0.0-20201027163346-95122a84635f
 	github.com/cheggaaa/pb v1.0.29
