@@ -78,7 +78,7 @@ test_expect_success "add block linking to insecure" '
 '
 
 test_expect_success "ipfs cat fails with code 1 and not timeout" '
-  test_expect_code 1 go-timeout 1s ipfs cat QmVpsktzNeJdfWEpyeix93QJdQaBSgRNxebSbYSo9SQPGx
+  test_expect_code 1 go-timeout 1 ipfs cat QmVpsktzNeJdfWEpyeix93QJdQaBSgRNxebSbYSo9SQPGx
 '
 
 test_kill_ipfs_daemon
