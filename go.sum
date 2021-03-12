@@ -391,6 +391,8 @@ github.com/ipfs/go-fs-lock v0.0.6 h1:sn3TWwNVQqSeNjlWy6zQ1uUGAZrV3hPOyEA6y1/N2a0
 github.com/ipfs/go-fs-lock v0.0.6/go.mod h1:OTR+Rj9sHiRubJh3dRhD15Juhd/+w6VPOY28L7zESmM=
 github.com/ipfs/go-graphsync v0.7.1-0.20210308174814-65b969778be6 h1:JQDimitASqz5vO7yJfFbce3gm1GiF3N+5aEPe7bJEpg=
 github.com/ipfs/go-graphsync v0.7.1-0.20210308174814-65b969778be6/go.mod h1:QcrfVdJEPnByPEl6IL0tW0z9DTmMgvq6sOLx8aH7E88=
+github.com/ipfs/go-graphsync v0.7.1-0.20210312040155-3e212380e309 h1:btixKDWeNm0bzZ3DnWgVOVjmmq7h0rg55mebvdNuNL0=
+github.com/ipfs/go-graphsync v0.7.1-0.20210312040155-3e212380e309/go.mod h1:9C4+yy+DGxQ2JyXuudDSZ80LXltKGBm5vV+GoY1EIPo=
 github.com/ipfs/go-ipfs-blockstore v0.0.1/go.mod h1:d3WClOmRQKFnJ0Jz/jj/zmksX0ma1gROTlovZKBmN08=
 github.com/ipfs/go-ipfs-blockstore v0.1.0/go.mod h1:5aD0AvHPi7mZc6Ci1WCAhiBQu2IsfTduLl+422H6Rqw=
 github.com/ipfs/go-ipfs-blockstore v0.1.4 h1:2SGI6U1B44aODevza8Rde3+dY30Pb+lbcObe1LETxOQ=
@@ -445,6 +447,8 @@ github.com/ipfs/go-ipld-git v0.0.3 h1:/YjkjCyo5KYRpW+suby8Xh9Cm/iH9dAgGV6qyZ1dGu
 github.com/ipfs/go-ipld-git v0.0.3/go.mod h1:RuvMXa9qtJpDbqngyICCU/d+cmLFXxLsbIclmD0Lcr0=
 github.com/ipfs/go-ipld-legacy v0.0.0-20210218225241-84f51157421a h1:1ilREE9AGIgjpUStkKcZkZlg4mtiGc0aO+gea6vnOdQ=
 github.com/ipfs/go-ipld-legacy v0.0.0-20210218225241-84f51157421a/go.mod h1:SCjANwen36uQaNtPpItdt9RjRAY5KT6+1sp9CL/TXQE=
+github.com/ipfs/go-ipld-legacy v0.0.0-20210312014519-2895f54096d5 h1:5RLoebNIGmHmlcdTSdVrXGRF5sLy/wTiCUgWMeJvIII=
+github.com/ipfs/go-ipld-legacy v0.0.0-20210312014519-2895f54096d5/go.mod h1:1wv+3vTMw6axVoAJFisWzJ7tewUnrcr6AxymcZrd83k=
 github.com/ipfs/go-ipns v0.0.2 h1:oq4ErrV4hNQ2Eim257RTYRgfOSV/s8BDaf9iIl4NwFs=
 github.com/ipfs/go-ipns v0.0.2/go.mod h1:WChil4e0/m9cIINWLxZe1Jtf77oz5L05rO2ei/uKJ5U=
 github.com/ipfs/go-log v0.0.1/go.mod h1:kL1d2/hzSpI0thNYjiKfjanbVNU+IIGA/WnNESY9leM=
@@ -467,6 +471,8 @@ github.com/ipfs/go-merkledag v0.3.1/go.mod h1:fvkZNNZixVW6cKSZ/JfLlON5OlgTXNdRLz
 github.com/ipfs/go-merkledag v0.3.2/go.mod h1:fvkZNNZixVW6cKSZ/JfLlON5OlgTXNdRLz0p6QG/I2M=
 github.com/ipfs/go-merkledag v0.3.3-0.20210309175419-4f3d3c5e7e4c h1:LmzcEHPmglDnRxmrpsDdFXHvNYEZy1jOGPYQOUAIVfk=
 github.com/ipfs/go-merkledag v0.3.3-0.20210309175419-4f3d3c5e7e4c/go.mod h1:rRUxpNNXz0J/oXwBlbmmMOHqQsb0G1RcFgSTxcKZNVI=
+github.com/ipfs/go-merkledag v0.3.3-0.20210312014858-029e8490baca h1:Ce8qKAfHExgamRAtm+/eYIaJNXdrLjFRxvDV6Pm9ZPs=
+github.com/ipfs/go-merkledag v0.3.3-0.20210312014858-029e8490baca/go.mod h1:SritbFoag+qejI1DmSxOaM3z+wp1sbV3QvcD9tFiOw0=
 github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fGD6n0jO4kdg=
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZaGVF1CUVdE+s=
@@ -492,11 +498,18 @@ github.com/ipfs/interface-go-ipfs-core v0.4.0 h1:+mUiamyHIwedqP8ZgbCIwpy40oX7QcX
 github.com/ipfs/interface-go-ipfs-core v0.4.0/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
 github.com/ipld/go-car v0.2.1-0.20210308124829-cb192ce583f4 h1:AB3Ti7qTTD/lNLRk1ylaiuCKzxjfbELtKYGPNkd68bI=
 github.com/ipld/go-car v0.2.1-0.20210308124829-cb192ce583f4/go.mod h1:g/2BfMq0LY9i2QNJIg7EZcF9jy0JUxwzxNHON+C/X0c=
+github.com/ipld/go-car v0.2.1-0.20210312021557-7afab98d034f h1:417+6v+keLsNoVi2vPJamDsW/ewuAs2uE3hlFt5muGs=
+github.com/ipld/go-car v0.2.1-0.20210312021557-7afab98d034f/go.mod h1:kHunAcD305JwLqwI9MfKvuQu4ljwWRZQWfDWPrkkhcg=
 github.com/ipld/go-codec-dagpb v1.0.1 h1:1bpbWKNyRGpCV2w9QIJPmmmFODjjNVhHiM9t/kT/HP8=
 github.com/ipld/go-codec-dagpb v1.0.1/go.mod h1:3RKe7tCm89O2jWw5nQDQx0MMMxJUQbZzBHkleyttP3M=
+github.com/ipld/go-codec-dagpb v1.0.2-0.20210308154810-d05d02fa186e h1:QXGG+qipDQaY7BT/n2gnDCS5Y6KNtdZNceTFHlPlEqE=
+github.com/ipld/go-codec-dagpb v1.0.2-0.20210308154810-d05d02fa186e/go.mod h1:oYexiw3WkBIVD5UTNkVuOd0iyEcLxqytAQa90F3nH9M=
 github.com/ipld/go-ipld-prime v0.7.0/go.mod h1:0xEgdD6MKbZ1vF0GC+YcR/C4SQCAlRuOjIJ2i0HxqzM=
+github.com/ipld/go-ipld-prime v0.7.1-0.20210225173718-8fef5312eb12/go.mod h1:0xEgdD6MKbZ1vF0GC+YcR/C4SQCAlRuOjIJ2i0HxqzM=
 github.com/ipld/go-ipld-prime v0.7.1-0.20210305140706-7e6922442629 h1:8OaclCESdhKZeTjY+13QRuflDhoD/1VX+o37DbWssho=
 github.com/ipld/go-ipld-prime v0.7.1-0.20210305140706-7e6922442629/go.mod h1:k++jmk6A1k3gXVnW0XF1M1xBKnk7fGEjC2QDj9Zgvyg=
+github.com/ipld/go-ipld-prime v0.7.1-0.20210312004928-8a500e6b8a62 h1:rYzj0eh2b6VWuF3yRdWugOcItYSI7Z4buf8Q9zxW1Yo=
+github.com/ipld/go-ipld-prime v0.7.1-0.20210312004928-8a500e6b8a62/go.mod h1:ZwznT3awHhuBoB0SgGxSo8SZEg6XbQtsZ6WahL9r9z0=
 github.com/jackpal/gateway v1.0.5/go.mod h1:lTpwd4ACLXmpyiCTRtfiNyVnUmqT9RivzCDQetPfnjA=
 github.com/jackpal/go-nat-pmp v1.0.1/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
@@ -1247,6 +1260,7 @@ golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
 golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 h1:/ZScEX8SfEmUGRHs0gxpqteO5nfNW6axyZbBdw9A12g=
 golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
@@ -1393,6 +1407,7 @@ golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201214210602-f9fddec55a1e/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201223074533-0d417f636930/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073 h1:8qxJSnu+7dRq6upnbntrmriWByIakBuct5OM/MdQC1M=
 golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
