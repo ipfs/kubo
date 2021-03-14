@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-filestore"
+	"github.com/ipfs/go-ipfs-keystore"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo"
 
 	"github.com/ipfs/go-datastore"

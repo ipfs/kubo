@@ -9,7 +9,7 @@ import (
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
-	ns "github.com/ipfs/go-ipfs/namesys"
+	ns "github.com/ipfs/go-namesys"
 
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"

@@ -45,11 +45,11 @@ import (
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/fuse/mount"
-	"github.com/ipfs/go-ipfs/namesys"
-	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/peering"
 	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-namesys"
+	ipnsrp "github.com/ipfs/go-namesys/republisher"
 )
 
 var log = logging.Logger("core")
