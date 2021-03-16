@@ -288,9 +288,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		fetcher := migrations.NewHttpFetcher()
 		// Fetch migrations from current distribution, or location from environ
-		fetcher.SetDistPath(migrations.GetDistPathEnv(migrations.CurrentIpfsDist))
+		fetcher := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
 		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")

@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"strings"
 )
 
 const (
@@ -21,8 +20,6 @@ type Fetcher interface {
 	// Fetch attempts to fetch the file at the given ipfs path.
 	// Returns io.ReadCloser on success, which caller must close.
 	Fetch(ctx context.Context, filePath string) (io.ReadCloser, error)
-	// SetDistPath sets the path to the distribution site for a Fetcher
-	SetDistPath(distPath string)
 }
 
 // MultiFetcher holds multiple Fetchers and provides a Fetch that tries each
@@ -57,16 +54,6 @@ func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (rc io.ReadCl
 		}
 	}
 	return
-}
-
-// SetDistPath sets the path to the distribution site for all fetchers
-func (f *MultiFetcher) SetDistPath(distPath string) {
-	if !strings.HasPrefix(distPath, "/") {
-		distPath = "/" + distPath
-	}
-	for _, fetcher := range f.fetchers {
-		fetcher.SetDistPath(distPath)
-	}
 }
 
 // NewLimitReadCloser returns a new io.ReadCloser with the reader wrappen in a

@@ -52,14 +52,10 @@ func createFakeArchive(name string, archZip bool, w io.Writer) {
 	}
 }
 
-func TestSetDistPath(t *testing.T) {
-	f1 := NewHttpFetcher()
-	f2 := NewHttpFetcher()
-	mf := NewMultiFetcher(f1, f2)
-
+func TestGetDistPath(t *testing.T) {
 	os.Unsetenv(envIpfsDistPath)
-	mf.SetDistPath(GetDistPathEnv(""))
-	if f1.distPath != IpnsIpfsDist {
+	distPath := GetDistPathEnv("")
+	if distPath != IpnsIpfsDist {
 		t.Error("did not set default dist path")
 	}
 
@@ -72,28 +68,18 @@ func TestSetDistPath(t *testing.T) {
 		os.Unsetenv(envIpfsDistPath)
 	}()
 
-	mf.SetDistPath(GetDistPathEnv(""))
-	if f1.distPath != testDist {
+	distPath = GetDistPathEnv("")
+	if distPath != testDist {
 		t.Error("did not set dist path from environ")
 	}
-	if f2.distPath != testDist {
-		t.Error("did not set dist path from environ")
-	}
-
-	mf.SetDistPath(GetDistPathEnv("ignored"))
-	if f1.distPath != testDist {
-		t.Error("did not set dist path from environ")
-	}
-	if f2.distPath != testDist {
+	distPath = GetDistPathEnv("ignored")
+	if distPath != testDist {
 		t.Error("did not set dist path from environ")
 	}
 
 	testDist = "/unit/test/dist2"
-	mf.SetDistPath(testDist)
-	if f1.distPath != testDist {
-		t.Error("did not set dist path")
-	}
-	if f2.distPath != testDist {
+	fetcher := NewHttpFetcher(testDist, "", "", 0)
+	if fetcher.distPath != testDist {
 		t.Error("did not set dist path")
 	}
 }
@@ -102,13 +88,10 @@ func TestHttpFetch(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewHttpFetcher()
 	ts := createTestServer()
 	defer ts.Close()
-	err := fetcher.SetGateway(ts.URL)
-	if err != nil {
-		panic(err)
-	}
+
+	fetcher := NewHttpFetcher("", ts.URL, "", 0)
 
 	rc, err := fetcher.Fetch(ctx, "/versions")
 	if err != nil {
@@ -150,12 +133,10 @@ func TestFetchBinary(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewHttpFetcher()
 	ts := createTestServer()
 	defer ts.Close()
-	if err = fetcher.SetGateway(ts.URL); err != nil {
-		panic(err)
-	}
+
+	fetcher := NewHttpFetcher("", ts.URL, "", 0)
 
 	vers, err := DistVersions(ctx, fetcher, distFSRM, false)
 	if err != nil {
@@ -232,5 +213,32 @@ func TestFetchBinary(t *testing.T) {
 	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "not-such-bin", tmpDir)
 	if err == nil || err.Error() != "no binary found in archive" {
 		t.Error("expected 'no binary found in archive' error")
+	}
+}
+
+func TestMultiFetcher(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ts := createTestServer()
+	defer ts.Close()
+
+	badFetcher := NewHttpFetcher("", "bad-url", "", 0)
+	fetcher := NewHttpFetcher("", ts.URL, "", 0)
+
+	mf := NewMultiFetcher(badFetcher, fetcher)
+
+	rc, err := mf.Fetch(ctx, "/versions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rc.Close()
+
+	vers, err := ioutil.ReadAll(rc)
+	if err != nil {
+		t.Fatal("could not read versions:", err)
+	}
+	if len(vers) < 45 {
+		fmt.Println("unexpected more data")
 	}
 }

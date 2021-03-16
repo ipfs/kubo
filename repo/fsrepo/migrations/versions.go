@@ -5,10 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/coreos/go-semver/semver"
@@ -74,20 +72,4 @@ func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bo
 	}
 
 	return out, nil
-}
-
-// IpfsRepoVersion returns the repo version required by the ipfs daemon
-func IpfsRepoVersion(ctx context.Context) (int, error) {
-	out, err := exec.CommandContext(ctx, "ipfs", "version", "--repo").CombinedOutput()
-	if err != nil {
-		return 0, fmt.Errorf("%s: %s", err, string(out))
-	}
-
-	verStr := strings.TrimSpace(string(out))
-	ver, err := strconv.Atoi(verStr)
-	if err != nil {
-		return 0, fmt.Errorf("repo version is not an integer: %s", verStr)
-	}
-
-	return ver, nil
 }

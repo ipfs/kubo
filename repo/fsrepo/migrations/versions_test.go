@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"context"
-	"os/exec"
 	"testing"
 
 	"github.com/coreos/go-semver/semver"
@@ -14,13 +13,9 @@ func TestDistVersions(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewHttpFetcher()
 	ts := createTestServer()
 	defer ts.Close()
-	err := fetcher.SetGateway(ts.URL)
-	if err != nil {
-		panic(err)
-	}
+	fetcher := NewHttpFetcher("", ts.URL, "", 0)
 
 	vers, err := DistVersions(ctx, fetcher, testDist, true)
 	if err != nil {
@@ -37,10 +32,9 @@ func TestLatestDistVersion(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewHttpFetcher()
-	//ts := createTestServer()
-	//defer ts.Close()
-	//fetcher.SetGateway(ts.URL)
+	ts := createTestServer()
+	defer ts.Close()
+	fetcher := NewHttpFetcher("", ts.URL, "", 0)
 
 	latest, err := LatestDistVersion(ctx, fetcher, testDist, false)
 	if err != nil {
@@ -54,23 +48,4 @@ func TestLatestDistVersion(t *testing.T) {
 		t.Fatal("latest version has invalid format:", latest)
 	}
 	t.Log("Latest version of", testDist, "is", latest)
-}
-
-func TestIpfsRepoVersion(t *testing.T) {
-	_, err := exec.LookPath("ipfs")
-	if err != nil {
-		t.Skip("ipfs not available")
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ipfsRepoVer, err := IpfsRepoVersion(ctx)
-	if err != nil {
-		t.Fatal("Could not get required repo version:", err)
-	}
-	if ipfsRepoVer < 1 {
-		t.Fatal("Invalid repo version")
-	}
-	t.Log("IPFS repo version:", ipfsRepoVer)
 }

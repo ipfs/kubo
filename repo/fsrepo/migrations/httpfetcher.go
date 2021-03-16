@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 )
@@ -18,43 +17,45 @@ const (
 
 // HttpFetcher fetches files over HTTP
 type HttpFetcher struct {
-	gateway  string
-	distPath string
-	limit    int64
+	distPath  string
+	gateway   string
+	limit     int64
+	userAgent string
 }
 
 var _ Fetcher = (*HttpFetcher)(nil)
 
 // NewHttpFetcher creates a new HttpFetcher
-func NewHttpFetcher() *HttpFetcher {
-	return &HttpFetcher{
-		gateway:  defaultGatewayURL,
+//
+// Specifying "" for distPath sets the default IPNS path.
+// Specifying "" for gateway sets the default.
+// Specifying 0 for fetchLimit sets the default, -1 means no limit.
+func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *HttpFetcher {
+	f := &HttpFetcher{
 		distPath: IpnsIpfsDist,
+		gateway:  defaultGatewayURL,
 		limit:    defaultFetchLimit,
 	}
-}
 
-// SetGateway sets the gateway URL
-func (f *HttpFetcher) SetGateway(gatewayURL string) error {
-	gwURL, err := url.Parse(gatewayURL)
-	if err != nil {
-		return err
+	if distPath != "" {
+		if !strings.HasPrefix(distPath, "/") {
+			distPath = "/" + distPath
+		}
+		f.distPath = distPath
 	}
-	f.gateway = gwURL.String()
-	return nil
-}
 
-// SetDistPath sets the path to the distribution site.
-func (f *HttpFetcher) SetDistPath(distPath string) {
-	if !strings.HasPrefix(distPath, "/") {
-		distPath = "/" + distPath
+	if gateway != "" {
+		f.gateway = strings.TrimRight(gateway, "/")
 	}
-	f.distPath = distPath
-}
 
-// SetFetchLimit sets the download size limit. A value of 0 means no limit.
-func (f *HttpFetcher) SetFetchLimit(limit int64) {
-	f.limit = limit
+	if fetchLimit != 0 {
+		if fetchLimit == -1 {
+			fetchLimit = 0
+		}
+		f.limit = fetchLimit
+	}
+
+	return f
 }
 
 // Fetch attempts to fetch the file at the given path, from the distribution
@@ -68,7 +69,9 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 		return nil, fmt.Errorf("http.NewRequest error: %s", err)
 	}
 
-	req.Header.Set("User-Agent", "go-ipfs")
+	if f.userAgent != "" {
+		req.Header.Set("User-Agent", f.userAgent)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

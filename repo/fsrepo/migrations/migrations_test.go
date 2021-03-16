@@ -115,14 +115,9 @@ func TestFetchMigrations(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewHttpFetcher()
-	fetcher.SetDistPath(CurrentIpfsDist)
 	ts := createTestServer()
 	defer ts.Close()
-	err := fetcher.SetGateway(ts.URL)
-	if err != nil {
-		panic(err)
-	}
+	fetcher := NewHttpFetcher(CurrentIpfsDist, ts.URL, "", 0)
 
 	tmpDir, err := ioutil.TempDir("", "migratetest")
 	if err != nil {
@@ -166,16 +161,12 @@ func TestRunMigrations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	fetcher := NewHttpFetcher()
-	fetcher.SetDistPath(CurrentIpfsDist)
 	ts := createTestServer()
 	defer ts.Close()
-	if err = fetcher.SetGateway(ts.URL); err != nil {
-		panic(err)
-	}
+	fetcher := NewHttpFetcher(CurrentIpfsDist, ts.URL, "", 0)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	targetVer := 9
 
