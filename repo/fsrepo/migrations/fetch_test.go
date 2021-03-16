@@ -55,7 +55,7 @@ func createFakeArchive(name string, archZip bool, w io.Writer) {
 func TestGetDistPath(t *testing.T) {
 	os.Unsetenv(envIpfsDistPath)
 	distPath := GetDistPathEnv("")
-	if distPath != IpnsIpfsDist {
+	if distPath != LatestIpfsDist {
 		t.Error("did not set default dist path")
 	}
 

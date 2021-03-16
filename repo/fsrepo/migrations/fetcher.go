@@ -9,8 +9,8 @@ import (
 const (
 	// Current dirstibution to fetch migrations from
 	CurrentIpfsDist = "/ipfs/Qme8pJhBidEUXRdpcWLGR2fkG5kdwVnaMh3kabjfP8zz7Y"
-	// Distribution IPNS path.  Default for fetchers.
-	IpnsIpfsDist = "/ipns/dist.ipfs.io"
+	// Latest distribution path.  Default for fetchers.
+	LatestIpfsDist = "/ipns/dist.ipfs.io"
 
 	// Distribution environ variable
 	envIpfsDistPath = "IPFS_DIST_PATH"
@@ -77,7 +77,7 @@ func GetDistPathEnv(distPath string) string {
 		return dist
 	}
 	if distPath == "" {
-		return IpnsIpfsDist
+		return LatestIpfsDist
 	}
 	return distPath
 }
