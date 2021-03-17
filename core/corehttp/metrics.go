@@ -59,7 +59,6 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 // This adds collection of net/http-related metrics
 func MetricsCollectionOption(handlerName string) ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
-		promRegistry := prometheus.NewRegistry()
 		// Adapted from github.com/prometheus/client_golang/prometheus/http.go
 		// Work around https://github.com/prometheus/client_golang/pull/311
 		opts := prometheus.SummaryOpts{
@@ -79,7 +78,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 			},
 			[]string{"method", "code"},
 		)
-		if err := promRegistry.Register(reqCnt); err != nil {
+		if err := prometheus.Register(reqCnt); err != nil {
 			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
 				reqCnt = are.ExistingCollector.(*prometheus.CounterVec)
 			} else {
@@ -90,7 +89,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		opts.Name = "request_duration_seconds"
 		opts.Help = "The HTTP request latencies in seconds."
 		reqDur := prometheus.NewSummaryVec(opts, nil)
-		if err := promRegistry.Register(reqDur); err != nil {
+		if err := prometheus.Register(reqDur); err != nil {
 			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
 				reqDur = are.ExistingCollector.(*prometheus.SummaryVec)
 			} else {
@@ -101,7 +100,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		opts.Name = "request_size_bytes"
 		opts.Help = "The HTTP request sizes in bytes."
 		reqSz := prometheus.NewSummaryVec(opts, nil)
-		if err := promRegistry.Register(reqSz); err != nil {
+		if err := prometheus.Register(reqSz); err != nil {
 			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
 				reqSz = are.ExistingCollector.(*prometheus.SummaryVec)
 			} else {
@@ -112,7 +111,7 @@ func MetricsCollectionOption(handlerName string) ServeOption {
 		opts.Name = "response_size_bytes"
 		opts.Help = "The HTTP response sizes in bytes."
 		resSz := prometheus.NewSummaryVec(opts, nil)
-		if err := promRegistry.Register(resSz); err != nil {
+		if err := prometheus.Register(resSz); err != nil {
 			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
 				resSz = are.ExistingCollector.(*prometheus.SummaryVec)
 			} else {
