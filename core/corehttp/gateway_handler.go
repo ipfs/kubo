@@ -39,7 +39,17 @@ var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
 
 // HTML-based redirect for errors which can be recovered from, but we want
 // to provide hint to people that they should fix things on their end.
-var redirectTemplate = template.Must(template.New("redirect").Parse(`<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta http-equiv="refresh" content="10;url={{.RedirectURL}}" /><link rel="canonical" href="{{.RedirectURL}}" /></head><body><pre>{{.ErrorMsg}}</pre><pre>(if a redirect does not happen in 10 seconds, use "{{.SuggestedPath}}" instead)</pre></body></html>`))
+var redirectTemplate = template.Must(template.New("redirect").Parse(`<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="refresh" content="10;url={{.RedirectURL}}" />
+		<link rel="canonical" href="{{.RedirectURL}}" />
+	</head>
+	<body>
+		<pre>{{.ErrorMsg}}</pre><pre>(if a redirect does not happen in 10 seconds, use "{{.SuggestedPath}}" instead)</pre>
+	</body>
+</html>`))
 
 type redirectTemplateData struct {
 	RedirectURL   string
@@ -228,27 +238,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	parsedPath := ipath.New(urlPath)
 	if pathErr := parsedPath.IsValid(); pathErr != nil {
-		// Attempt to fix redundant /ipfs/ namespace as long as resulting
-		// 'intended' path is valid.  This is in case gremlins were tickled
-		// wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
-		// like in bafybeien3m7mdn6imm425vc2s22erzyhbvk5n3ofzgikkhmdkh5cuqbpbq
-		// :^))
-		intendedPath := ipath.New(strings.TrimPrefix(urlPath, "/ipfs"))
-		if err := intendedPath.IsValid(); err == nil {
-			intendedURL := strings.Replace(r.URL.String(), urlPath, intendedPath.String(), 1)
-			// return HTML that
-			// - points at correct canonical path via <link> header
-			// - displays error
-			// - redirects to intendedURL after a delay
-			err = redirectTemplate.Execute(w, redirectTemplateData{
-				RedirectURL:   intendedURL,
-				SuggestedPath: intendedPath.String(),
-				ErrorMsg:      pathErr.Error(),
-			})
-			if err != nil {
-				internalWebError(w, err)
-				return
-			}
+		if fixErr := fixupSuperfluousNamespace(w, r, pathErr, urlPath); fixErr == nil {
+			// the error was due to redundant namespace, which we were able to fix
+			// by returning error/redirect page, nothing left to do here
 			return
 		}
 		// unable to fix path, returning error
@@ -815,4 +807,28 @@ func preferred404Filename(acceptHeaders []string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("there is no 404 file for the requested content types")
+}
+
+// Attempt to fix redundant /ipfs/ namespace as long as resulting
+// 'intended' path is valid.  This is in case gremlins were tickled
+// wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
+// like in bafybeien3m7mdn6imm425vc2s22erzyhbvk5n3ofzgikkhmdkh5cuqbpbq :^))
+func fixupSuperfluousNamespace(w http.ResponseWriter, r *http.Request, pathErr error, urlPath string) error {
+	intendedPath := ipath.New(strings.TrimPrefix(urlPath, "/ipfs"))
+	err := intendedPath.IsValid()
+	if err != nil {
+		// not a superfluous namespace
+		return err
+	}
+	intendedURL := strings.Replace(r.URL.String(), urlPath, intendedPath.String(), 1)
+	// return HTTP 400 (Bad Request) with HTML error page that:
+	// - points at correct canonical path via <link> header
+	// - displays human-readable error
+	// - redirects to intendedURL after a short delay
+	w.WriteHeader(http.StatusBadRequest)
+	return redirectTemplate.Execute(w, redirectTemplateData{
+		RedirectURL:   intendedURL,
+		SuggestedPath: intendedPath.String(),
+		ErrorMsg:      fmt.Sprintf("invalid path: %q should be %q", urlPath, intendedPath.String()),
+	})
 }
