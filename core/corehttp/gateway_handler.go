@@ -238,7 +238,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	parsedPath := ipath.New(urlPath)
 	if pathErr := parsedPath.IsValid(); pathErr != nil {
-		if fixupSuperfluousNamespace(w, r, urlPath) {
+		if fixupSuperfluousNamespace(w, urlPath, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
 			// by returning error/redirect page, nothing left to do here
 			return
@@ -813,7 +813,7 @@ func preferred404Filename(acceptHeaders []string) (string, string, error) {
 // 'intended' path is valid.  This is in case gremlins were tickled
 // wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
 // like in bafybeien3m7mdn6imm425vc2s22erzyhbvk5n3ofzgikkhmdkh5cuqbpbq :^))
-func fixupSuperfluousNamespace(w http.ResponseWriter, r *http.Request, urlPath string) bool {
+func fixupSuperfluousNamespace(w http.ResponseWriter, urlPath string, urlQuery string) bool {
 	if !(strings.HasPrefix(urlPath, "/ipfs/ipfs/") || strings.HasPrefix(urlPath, "/ipfs/ipns/")) {
 		return false // not a superfluous namespace
 	}
@@ -821,7 +821,12 @@ func fixupSuperfluousNamespace(w http.ResponseWriter, r *http.Request, urlPath s
 	if err := intendedPath.IsValid(); err != nil {
 		return false // not a valid path
 	}
-	intendedURL := strings.Replace(r.URL.String(), urlPath, intendedPath.String(), 1)
+	intendedURL := intendedPath.String()
+	if urlQuery != "" {
+		// we render HTML, so ensure query entries are properly escaped
+		q, _ := url.ParseQuery(urlQuery)
+		intendedURL = intendedURL + "?" + q.Encode()
+	}
 	// return HTTP 400 (Bad Request) with HTML error page that:
 	// - points at correct canonical path via <link> header
 	// - displays human-readable error
