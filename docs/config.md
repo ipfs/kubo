@@ -559,6 +559,9 @@ Type: `bool`
 
 ### `Gateway.PathPrefixes`
 
+**DEPRECATED:** see [go-ipfs#7702](https://github.com/ipfs/go-ipfs/issues/7702)
+
+<!--
 Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
 header.
 
@@ -584,6 +587,8 @@ location /blog/ {
   proxy_pass http://127.0.0.1:8080;
 }
 ```
+
+-->
 
 Default: `[]`
 
