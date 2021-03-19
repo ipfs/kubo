@@ -238,7 +238,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	parsedPath := ipath.New(urlPath)
 	if pathErr := parsedPath.IsValid(); pathErr != nil {
-		if fixupSuperfluousNamespace(w, urlPath, r.URL.RawQuery) {
+		if prefix == "" && fixupSuperfluousNamespace(w, urlPath, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
 			// by returning error/redirect page, nothing left to do here
 			return
