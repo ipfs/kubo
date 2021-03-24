@@ -1,14 +1,13 @@
 package commands
 
 import (
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-
-	"github.com/ipfs/go-ipfs-cmds"
 )
 
 var daemonShutdownCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Shut down the ipfs daemon",
+		Tagline: "Shut down the IPFS daemon.",
 	},
 	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 		nd, err := cmdenv.GetNode(env)

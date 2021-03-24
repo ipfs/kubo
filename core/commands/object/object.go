@@ -8,11 +8,11 @@ import (
 	"io/ioutil"
 	"text/tabwriter"
 
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -466,7 +466,7 @@ And then run:
 // ObjectNewCmd object new command
 var ObjectNewCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create a new object from an ipfs template.",
+		Tagline: "Create a new object from an IPFS template.",
 		ShortDescription: `
 'ipfs object new' is a plumbing command for creating new DAG nodes.
 `,

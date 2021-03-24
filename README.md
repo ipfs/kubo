@@ -288,10 +288,10 @@ Basic proof of 'ipfs working' locally:
 
 SUBCOMMANDS
   BASIC COMMANDS
-    init          Initialize ipfs local configuration
-    add <path>    Add a file to ipfs
-    cat <ref>     Show ipfs object data
-    get <ref>     Download ipfs objects
+    init          Initialize local IPFS configuration
+    add <path>    Add a file to IPFS
+    cat <ref>     Show IPFS object data
+    get <ref>     Download IPFS objects
     ls <ref>      List links from an object
     refs <ref>    List hashes of links from an object
 
@@ -302,7 +302,7 @@ SUBCOMMANDS
 
   ADVANCED COMMANDS
     daemon        Start a long-running daemon process
-    mount         Mount an ipfs read-only mount point
+    mount         Mount an IPFS read-only mount point
     resolve       Resolve any type of name
     name          Publish or resolve IPNS names
     dns           Resolve DNS links
@@ -310,7 +310,7 @@ SUBCOMMANDS
     repo          Manipulate an IPFS repository
 
   NETWORK COMMANDS
-    id            Show info about ipfs peers
+    id            Show info about IPFS peers
     bootstrap     Add or remove bootstrap peers
     swarm         Manage connections to the p2p network
     dht           Query the DHT for values or peers
@@ -319,7 +319,7 @@ SUBCOMMANDS
 
   TOOL COMMANDS
     config        Manage configuration
-    version       Show ipfs version information
+    version       Show IPFS version information
     update        Download and apply go-ipfs updates
     commands      List all available commands
 

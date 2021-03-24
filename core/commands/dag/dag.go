@@ -24,9 +24,9 @@ const (
 // DagCmd provides a subset of commands for interacting with ipld dag objects
 var DagCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with ipld dag objects.",
+		Tagline: "Interact with IPLD DAG objects.",
 		ShortDescription: `
-'ipfs dag' is used for creating and manipulating dag objects/hierarchies.
+'ipfs dag' is used for creating and manipulating DAG objects/hierarchies.
 
 This subcommand is currently an experimental feature, but it is intended
 to deprecate and replace the existing 'ipfs object' command moving forward.
@@ -67,7 +67,7 @@ type RootMeta struct {
 // DagPutCmd is a command for adding a dag node
 var DagPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add a dag node to ipfs.",
+		Tagline: "Add a DAG node to IPFS.",
 		ShortDescription: `
 'ipfs dag put' accepts input from a file or stdin and parses it
 into an object of the specified format.
@@ -99,9 +99,9 @@ into an object of the specified format.
 // DagGetCmd is a command for getting a dag node from IPFS
 var DagGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get a dag node from ipfs.",
+		Tagline: "Get a DAG node from IPFS.",
 		ShortDescription: `
-'ipfs dag get' fetches a dag node from ipfs and prints it out in the specified
+'ipfs dag get' fetches a DAG node from IPFS and prints it out in the specified
 format.
 `,
 	},
@@ -114,9 +114,9 @@ format.
 // DagResolveCmd returns address of highest block within a path and a path remainder
 var DagResolveCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Resolve ipld block",
+		Tagline: "Resolve IPLD block.",
 		ShortDescription: `
-'ipfs dag resolve' fetches a dag node from ipfs, prints its address and remaining path.
+'ipfs dag resolve' fetches a DAG node from IPFS, prints its address and remaining path.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -230,7 +230,7 @@ var DagExportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Streams the selected DAG as a .car stream on stdout.",
 		ShortDescription: `
-'ipfs dag export' fetches a dag and streams it out as a well-formed .car file.
+'ipfs dag export' fetches a DAG and streams it out as a well-formed .car file.
 Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
 `,
@@ -260,9 +260,9 @@ func (s *DagStat) String() string {
 // DagStatCmd is a command for getting size information about an ipfs-stored dag
 var DagStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Gets stats for a DAG",
+		Tagline: "Gets stats for a DAG.",
 		ShortDescription: `
-'ipfs dag stat' fetches a dag and returns various statistics about the DAG.
+'ipfs dag stat' fetches a DAG and returns various statistics about it.
 Statistics include size and number of blocks.
 
 Note: This command skips duplicate blocks in reporting both size and the number of blocks

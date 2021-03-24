@@ -30,8 +30,8 @@ const (
 
 var VersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Show ipfs version information.",
-		ShortDescription: "Returns the current version of ipfs and exits.",
+		Tagline:          "Show IPFS version information.",
+		ShortDescription: "Returns the current version of IPFS and exits.",
 	},
 	Subcommands: map[string]*cmds.Command{
 		"deps": depsVersionCommand,
@@ -105,7 +105,7 @@ const pkgVersionFmt = "%s@%s"
 
 var depsVersionCommand = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Shows information about dependencies used for build",
+		Tagline: "Shows information about dependencies used for build.",
 		ShortDescription: `
 Print out all dependencies and their versions.`,
 	},

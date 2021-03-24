@@ -300,7 +300,7 @@ var keyImportCmd = &cmds.Command{
 
 var keyListCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List all local keypairs",
+		Tagline: "List all local keypairs.",
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
@@ -345,7 +345,7 @@ const (
 
 var keyRenameCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Rename a keypair",
+		Tagline: "Rename a keypair.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name of key to rename"),
@@ -396,7 +396,7 @@ var keyRenameCmd = &cmds.Command{
 
 var keyRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove a keypair",
+		Tagline: "Remove a keypair.",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, true, "names of keys to remove").EnableStdin(),
@@ -440,7 +440,7 @@ var keyRmCmd = &cmds.Command{
 
 var keyRotateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Rotates the ipfs identity.",
+		Tagline: "Rotates the IPFS identity.",
 		ShortDescription: `
 Generates a new ipfs identity and saves it to the ipfs config file.
 Your existing identity key will be backed up in the Keystore.

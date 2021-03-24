@@ -35,7 +35,7 @@ type dhtBucket struct {
 
 var statDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Returns statistics about the node's DHT(s)",
+		Tagline: "Returns statistics about the node's DHT(s).",
 		ShortDescription: `
 Returns statistics about the DHT(s) the node is participating in.
 
