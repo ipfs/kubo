@@ -83,6 +83,14 @@ Patch releases will usually follow a compressed release cycle and should take 2-
 
 Some patch releases, especially ones fixing one or more complex bugs, may undergo the full release process.
 
+## Security Fix Policy
+
+Any release may contain security fixes. Unless the fix addresses a bug being exploited in the wild, the fix will _not_ be called out in the release notes. Please make sure to update ASAP.
+
+By policy, the team will usually wait until about 2 weeks after the final release to announce any fixed security issues. However, depending on the impact and ease of discovery of the issue, the team may wait more or less time. It is important to always update to the latest version ASAP and file issues if you're unable to update for some reason.
+
+Finally, unless a security issue is actively being exploited or a significant number of users are unable to update to the latest version (e.g., due to a difficult migration, breaking changes, etc.), security fixes will _not_ be backported to previous releases.
+
 ## Performing a Release
 
 The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md) not more than **48 hours** after the previous release.
