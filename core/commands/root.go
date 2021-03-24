@@ -42,7 +42,7 @@ BASIC COMMANDS
 DATA STRUCTURE COMMANDS
   dag           Interact with IPLD DAG nodes
   files         Interact with files as if they were a unix filesystem
-  object        Interact with objects (deprecated, use 'dag' or 'files')
+  object        Interact with dag-pb objects (deprecated, use 'dag' or 'files')
   block         Interact with raw blocks in the datastore
 
 ADVANCED COMMANDS
