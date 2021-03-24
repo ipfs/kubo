@@ -48,10 +48,10 @@ const (
 
 var ObjectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with IPFS objects.",
+		Tagline: "Interact with objects (deprecated, use 'dag' or 'files')",
 		ShortDescription: `
-'ipfs object' is a plumbing command used to manipulate DAG objects
-directly.`,
+'ipfs object' is a legacy plumbing command used to manipulate DAG objects
+directly. Deprecated, use more modern 'ipfs dag' and 'ipfs files' instead.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{

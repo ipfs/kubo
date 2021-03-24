@@ -32,7 +32,7 @@ var Root = &cmds.Command{
 		Synopsis: "ipfs [--config=<config> | -c] [--debug | -D] [--help] [-h] [--api=<api>] [--offline] [--cid-base=<base>] [--upgrade-cidv0-in-output] [--encoding=<encoding> | --enc] [--timeout=<timeout>] <command> ...",
 		Subcommands: `
 BASIC COMMANDS
-  init          Initialize ipfs local configuration
+  init          Initialize local IPFS configuration
   add <path>    Add a file to IPFS
   cat <ref>     Show IPFS object data
   get <ref>     Download IPFS objects
@@ -40,10 +40,10 @@ BASIC COMMANDS
   refs <ref>    List hashes of links from an object
 
 DATA STRUCTURE COMMANDS
+  dag           Interact with IPLD DAG nodes
+  files         Interact with files as if they were a unix filesystem
+  object        Interact with objects (deprecated, use 'dag' or 'files')
   block         Interact with raw blocks in the datastore
-  object        Interact with raw dag nodes
-  files         Interact with objects as if they were a unix filesystem
-  dag           Interact with IPLD documents (experimental)
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
