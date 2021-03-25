@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -38,7 +39,7 @@ func TestUnpackTgz(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	badTarGzip := path.Join(tmpDir, "bad.tar.gz")
+	badTarGzip := filepath.Join(tmpDir, "bad.tar.gz")
 	err = ioutil.WriteFile(badTarGzip, []byte("bad-data\n"), 0644)
 	if err != nil {
 		panic(err)
@@ -48,14 +49,14 @@ func TestUnpackTgz(t *testing.T) {
 		t.Fatal("expected error opening gzip reader, got:", err)
 	}
 
-	testTarGzip := path.Join(tmpDir, "test.tar.gz")
+	testTarGzip := filepath.Join(tmpDir, "test.tar.gz")
 	testData := "some data"
 	err = writeTarGzipFile(testTarGzip, "testroot", "testfile", testData)
 	if err != nil {
 		panic(err)
 	}
 
-	out := path.Join(tmpDir, "out.txt")
+	out := filepath.Join(tmpDir, "out.txt")
 
 	// Test looking for file that is not in archive
 	err = unpackTgz(testTarGzip, "testroot", "abc", out)
@@ -86,7 +87,7 @@ func TestUnpackZip(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	badZip := path.Join(tmpDir, "bad.zip")
+	badZip := filepath.Join(tmpDir, "bad.zip")
 	err = ioutil.WriteFile(badZip, []byte("bad-data\n"), 0644)
 	if err != nil {
 		panic(err)
@@ -96,14 +97,14 @@ func TestUnpackZip(t *testing.T) {
 		t.Fatal("expected error opening zip reader, got:", err)
 	}
 
-	testZip := path.Join(tmpDir, "test.zip")
+	testZip := filepath.Join(tmpDir, "test.zip")
 	testData := "some data"
 	err = writeZipFile(testZip, "testroot", "testfile", testData)
 	if err != nil {
 		panic(err)
 	}
 
-	out := path.Join(tmpDir, "out.txt")
+	out := filepath.Join(tmpDir, "out.txt")
 
 	// Test looking for file that is not in archive
 	err = unpackZip(testZip, "testroot", "abc", out)

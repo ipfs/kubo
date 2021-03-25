@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -47,7 +47,7 @@ func IpfsDir(dir string) (string, error) {
 		return "", errors.New("could not determine IPFS_PATH, home dir not set")
 	}
 
-	return path.Join(home, defIpfsDir), nil
+	return filepath.Join(home, defIpfsDir), nil
 }
 
 // CheckIpfsDir gets the ipfs directory and checks that the directory exists.
@@ -84,12 +84,12 @@ func WriteRepoVersion(ipfsDir string, version int) error {
 		return err
 	}
 
-	vFilePath := path.Join(ipfsDir, versionFile)
+	vFilePath := filepath.Join(ipfsDir, versionFile)
 	return ioutil.WriteFile(vFilePath, []byte(fmt.Sprintf("%d\n", version)), 0644)
 }
 
 func repoVersion(ipfsDir string) (int, error) {
-	c, err := ioutil.ReadFile(path.Join(ipfsDir, versionFile))
+	c, err := ioutil.ReadFile(filepath.Join(ipfsDir, versionFile))
 	if err != nil {
 		return 0, err
 	}

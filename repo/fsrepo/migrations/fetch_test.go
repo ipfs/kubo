@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -181,7 +182,7 @@ func TestFetchBinary(t *testing.T) {
 		t.Error("expected 'exists' error, got:", err)
 	}
 
-	os.Remove(path.Join(tmpDir, ExeName("ipfs")))
+	os.Remove(filepath.Join(tmpDir, ExeName("ipfs")))
 
 	// Check error creating temp download directory
 	//

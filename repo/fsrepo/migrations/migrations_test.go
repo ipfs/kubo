@@ -4,7 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -148,7 +148,7 @@ func TestRunMigrations(t *testing.T) {
 	defer os.RemoveAll(fakeHome)
 
 	os.Setenv("HOME", fakeHome)
-	fakeIpfs := path.Join(fakeHome, ".ipfs")
+	fakeIpfs := filepath.Join(fakeHome, ".ipfs")
 
 	err = os.Mkdir(fakeIpfs, os.ModePerm)
 	if err != nil {
@@ -184,7 +184,7 @@ func TestRunMigrations(t *testing.T) {
 }
 
 func createFakeBin(from, to int, tmpDir string) {
-	migPath := path.Join(tmpDir, ExeName(migrationName(from, to)))
+	migPath := filepath.Join(tmpDir, ExeName(migrationName(from, to)))
 	emptyFile, err := os.Create(migPath)
 	if err != nil {
 		panic(err)

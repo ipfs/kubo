@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -29,7 +29,7 @@ import (
 func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out string) (string, error) {
 	// The archive file name is the base of dist. This is to support a possible subdir in
 	// dist, for example: "ipfs-repo-migrations/fs-repo-11-to-12"
-	arcName := path.Base(dist)
+	arcName := filepath.Base(dist)
 	// If binary base name is not specified, then it is same as archive base name.
 	if binName == "" {
 		binName = arcName
@@ -53,7 +53,7 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 			}
 		}
 		// out exists and is a directory, so compose final name
-		out = path.Join(out, binName)
+		out = filepath.Join(out, binName)
 		// Check if the binary already exists in the directory
 		_, err = os.Stat(out)
 		if !os.IsNotExist(err) {
@@ -83,7 +83,7 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 	arcDistPath, arcFullName := makeArchivePath(dist, arcName, ver, atype)
 
 	// Create a file to write the archive data to
-	arcPath := path.Join(tmpDir, arcFullName)
+	arcPath := filepath.Join(tmpDir, arcFullName)
 	arcFile, err := os.Create(arcPath)
 	if err != nil {
 		return "", err
