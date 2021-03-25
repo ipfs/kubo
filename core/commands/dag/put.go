@@ -47,15 +47,17 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	if !ok {
 		if n, err := strconv.Atoi(ienc); err == nil {
 			icodec = mc.Code(n)
+		} else {
+			return fmt.Errorf("%s is not a valid codec name", ienc)
 		}
-		return fmt.Errorf("%s is not a valid codec name", ienc)
 	}
 	fcodec, ok := mc.Of(format)
 	if !ok {
 		if n, err := strconv.Atoi(format); err == nil {
 			fcodec = mc.Code(n)
+		} else {
+			return fmt.Errorf("%s is not a valid codec name", format)
 		}
-		return fmt.Errorf("%s is not a valid codec name", format)
 	}
 
 	cidPrefix := cid.Prefix{
