@@ -8,7 +8,7 @@ import (
 
 const (
 	// Current dirstibution to fetch migrations from
-	CurrentIpfsDist = "/ipfs/Qme8pJhBidEUXRdpcWLGR2fkG5kdwVnaMh3kabjfP8zz7Y"
+	CurrentIpfsDist = "/ipfs/QmZqzacg5Q8WpDL7SymogoaSZYw6RZT2kgPavymCmMwWse"
 	// Latest distribution path.  Default for fetchers.
 	LatestIpfsDist = "/ipns/dist.ipfs.io"
 

@@ -105,7 +105,7 @@ func ExeName(name string) string {
 }
 
 func migrationName(from, to int) string {
-	return fmt.Sprintf("ipfs-%d-to-%d", from, to)
+	return fmt.Sprintf("fs-repo-%d-to-%d", from, to)
 }
 
 // findMigrations returns a list of migrations, ordered from first to last

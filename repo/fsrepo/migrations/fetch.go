@@ -27,8 +27,8 @@ import (
 // same name it has inside the archive.  Otherwise, the binary file is written
 // to the file named by out.
 func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out string) (string, error) {
-	// The archive file name is the base of dist to support possible subdir in
-	// dist, for example: "ipfs-repo-migrations/ipfs-11-to-12"
+	// The archive file name is the base of dist. This is to support a possible subdir in
+	// dist, for example: "ipfs-repo-migrations/fs-repo-11-to-12"
 	arcName := path.Base(dist)
 	// If binary base name is not specified, then it is same as archive base name.
 	if binName == "" {

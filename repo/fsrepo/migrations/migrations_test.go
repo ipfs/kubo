@@ -125,7 +125,7 @@ func TestFetchMigrations(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	needed := []string{"ipfs-1-to-2", "ipfs-2-to-3"}
+	needed := []string{"fs-repo-1-to-2", "fs-repo-2-to-3"}
 	fetched, err := fetchMigrations(ctx, fetcher, needed, tmpDir)
 	if err != nil {
 		t.Fatal(err)
@@ -177,7 +177,7 @@ func TestRunMigrations(t *testing.T) {
 
 	err = RunMigration(ctx, fetcher, targetVer, fakeIpfs, true)
 	if err != nil {
-		if !strings.HasPrefix(err.Error(), "migration ipfs-10-to-11 failed") {
+		if !strings.HasPrefix(err.Error(), "migration fs-repo-10-to-11 failed") {
 			t.Fatal(err)
 		}
 	}
