@@ -40,6 +40,7 @@ func createFakeArchive(name string, archZip bool, w io.Writer) {
 	if fileName == "go-ipfs" {
 		fileName = "ipfs"
 	}
+	fileName = ExeName(fileName)
 
 	var err error
 	if archZip {
@@ -179,7 +180,7 @@ func TestFetchBinary(t *testing.T) {
 		t.Error("expected 'exists' error, got:", err)
 	}
 
-	os.Remove(path.Join(tmpDir, "ipfs"))
+	os.Remove(path.Join(tmpDir, ExeName("ipfs")))
 
 	// Check error creating temp download directory
 	err = os.Chmod(tmpDir, 0555)
