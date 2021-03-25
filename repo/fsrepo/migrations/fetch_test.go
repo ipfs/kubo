@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -183,25 +184,30 @@ func TestFetchBinary(t *testing.T) {
 	os.Remove(path.Join(tmpDir, ExeName("ipfs")))
 
 	// Check error creating temp download directory
-	err = os.Chmod(tmpDir, 0555)
-	if err != nil {
-		panic(err)
-	}
-	err = os.Setenv("TMPDIR", tmpDir)
-	if err != nil {
-		panic(err)
-	}
-	_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "ipfs", tmpDir)
-	if !os.IsPermission(err) {
-		t.Error("expected 'permission' error, got:", err)
-	}
-	err = os.Setenv("TMPDIR", "/tmp")
-	if err != nil {
-		panic(err)
-	}
-	err = os.Chmod(tmpDir, 0755)
-	if err != nil {
-		panic(err)
+	//
+	// Windows doesn't have read-only directories https://github.com/golang/go/issues/35042 this would need to be
+	// tested another way
+	if runtime.GOOS != "windows" {
+		err = os.Chmod(tmpDir, 0555)
+		if err != nil {
+			panic(err)
+		}
+		err = os.Setenv("TMPDIR", tmpDir)
+		if err != nil {
+			panic(err)
+		}
+		_, err = FetchBinary(ctx, fetcher, "go-ipfs", "v0.3.5", "ipfs", tmpDir)
+		if !os.IsPermission(err) {
+			t.Error("expected 'permission' error, got:", err)
+		}
+		err = os.Setenv("TMPDIR", "/tmp")
+		if err != nil {
+			panic(err)
+		}
+		err = os.Chmod(tmpDir, 0755)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// Check error if failure to fetch due to bad dist
