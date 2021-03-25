@@ -3,7 +3,6 @@ package dagcmd
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"strconv"
 
 	blocks "github.com/ipfs/go-block-format"
@@ -39,9 +38,8 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	hash, _ := req.Options["hash"].(string)
 	dopin, _ := req.Options["pin"].(bool)
 
-	// mhType tells inputParser which hash should be used. MaxUint64 means 'use
-	// default hash' (sha256 for cbor, sha1 for git..)
-	mhType := uint64(math.MaxUint64)
+	// mhType tells inputParser which hash should be used. Default otherwise is sha256
+	mhType := uint64(mh.SHA2_256)
 
 	icodec, ok := mc.Of(ienc)
 	if !ok {
