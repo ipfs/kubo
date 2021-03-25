@@ -8,6 +8,7 @@ import (
 	"github.com/ipfs/go-ipfs/namesys/resolve"
 
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-fetcher"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
@@ -61,7 +62,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 	}
 
 	r := &resolver.Resolver{
-		DAG:         api.dag,
+		FetchConfig: fetcher.NewFetcherConfig(api.blocks),
 		ResolveOnce: resolveOnce,
 	}
 

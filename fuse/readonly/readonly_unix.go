@@ -6,20 +6,21 @@ package readonly
 import (
 	"context"
 	"fmt"
+	"github.com/ipfs/go-cid"
 	"io"
 	"os"
 	"syscall"
 
+	fuse "bazil.org/fuse"
+	fs "bazil.org/fuse/fs"
 	core "github.com/ipfs/go-ipfs/core"
+	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
 	mdag "github.com/ipfs/go-merkledag"
 	path "github.com/ipfs/go-path"
 	ft "github.com/ipfs/go-unixfs"
 	uio "github.com/ipfs/go-unixfs/io"
-
-	fuse "bazil.org/fuse"
-	fs "bazil.org/fuse/fs"
-	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )
 
 var log = logging.Logger("fuse/ipfs")
@@ -65,20 +66,41 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 		return nil, fuse.ENOENT
 	}
 
-	nd, err := s.Ipfs.Resolver.ResolvePath(ctx, p)
+	nd, ndLnk, err := s.Ipfs.Resolver.ResolvePath(ctx, p)
 	if err != nil {
 		// todo: make this error more versatile.
 		return nil, fuse.ENOENT
 	}
 
-	switch nd := nd.(type) {
-	case *mdag.ProtoNode, *mdag.RawNode:
-		return &Node{Ipfs: s.Ipfs, Nd: nd}, nil
-	default:
-		log.Error("fuse node was not a protobuf node")
-		return nil, fuse.ENOTSUP
+	cidLnk, ok := ndLnk.(cidlink.Link)
+	if !ok {
+		log.Debugf("non-cidlink returned from ResolvePath: %v", ndLnk)
+		return nil, fuse.ENOENT
 	}
 
+	// convert ipld-prime node to universal node
+	blk, err := s.Ipfs.Blockstore.Get(cidLnk.Cid)
+	if err != nil {
+		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
+		return nil, fuse.ENOENT
+	}
+
+	var fnd ipld.Node
+	switch cidLnk.Cid.Prefix().Codec {
+	case cid.DagProtobuf:
+		fnd, err = mdag.ProtoNodeConverter(blk, nd)
+	case cid.Raw:
+		fnd, err = mdag.RawNodeConverter(blk, nd)
+	default:
+		log.Error("fuse node was not a protobuf node")
+		return nil, fuse.ENOENT
+	}
+	if err != nil {
+		log.Error("could not convert protobuf node")
+		return nil, fuse.ENOENT
+	}
+
+	return &Node{Ipfs: s.Ipfs, Nd: fnd}, nil
 }
 
 // ReadDirAll reads a particular directory. Disallowed for root.
