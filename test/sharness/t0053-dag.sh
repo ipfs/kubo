@@ -26,17 +26,17 @@ test_expect_success "make an ipld object in json" '
 '
 
 test_dag_cmd() {
-  test_expect_success "can add an ipld object using protobuf" '
-    IPLDHASH=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-pb)
+  test_expect_success "can add an ipld object using " '
+    IPLDHASH=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-cbor)
   '
 
   test_expect_success "output looks correct" '
-    EXPHASH="QmdfTbBqBPQ7VNxZEYEj14VmRuZBkqFbiwReogJgS1zR1n"
+    EXPHASH="bafyreicktrf5jt6zu2npbojxx2onikqqdihoj2xutehmkmzrsw5bo5zgge"
     test $EXPHASH = $IPLDHASH
   '
 
   test_expect_success "can add an ipld object using protobuf and --cid=base=base32" '
-    IPLDHASHb32=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-pb --cid-base=base32)
+    IPLDHASHb32=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-cbor --cid-base=base32)
   '
 
   test_expect_success "output looks correct (does not upgrade to CIDv1)" '
@@ -48,7 +48,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "output looks correct" '
-    EXPHASH="bafyreidjtjfmavdk7epvztob2m5vlm3pxp3gjmpyewro4qlbw5n4f4iz64"
+    EXPHASH="bafyreicktrf5jt6zu2npbojxx2onikqqdihoj2xutehmkmzrsw5bo5zgge"
     test $EXPHASH = $IPLDHASH
   '
 
