@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/blang/semver/v4"
 )
 
 const testDist = "go-ipfs"
@@ -43,7 +43,7 @@ func TestLatestDistVersion(t *testing.T) {
 	if len(latest) < 6 {
 		t.Fatal("latest version string too short", latest)
 	}
-	_, err = semver.NewVersion(latest[1:])
+	_, err = semver.New(latest[1:])
 	if err != nil {
 		t.Fatal("latest version has invalid format:", latest)
 	}

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/blang/semver/v4"
 )
 
 const distVersions = "versions"
@@ -46,11 +46,11 @@ func DistVersions(ctx context.Context, fetcher Fetcher, dist string, sortDesc bo
 	defer rc.Close()
 
 	prefix := "v"
-	var vers []*semver.Version
+	var vers []semver.Version
 
 	scan := bufio.NewScanner(rc)
 	for scan.Scan() {
-		ver, err := semver.NewVersion(strings.TrimLeft(scan.Text(), prefix))
+		ver, err := semver.Make(strings.TrimLeft(scan.Text(), prefix))
 		if err != nil {
 			continue
 		}
