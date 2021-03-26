@@ -28,7 +28,7 @@ require (
 	github.com/ipfs/go-ds-measure v0.1.0
 	github.com/ipfs/go-filestore v0.0.3
 	github.com/ipfs/go-fs-lock v0.0.6
-	github.com/ipfs/go-graphsync v0.7.1-0.20210312040155-3e212380e309
+	github.com/ipfs/go-graphsync v0.8.0
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
@@ -47,7 +47,7 @@ require (
 	github.com/ipfs/go-ipld-git v0.0.3
 	github.com/ipfs/go-ipns v0.0.2
 	github.com/ipfs/go-log v1.0.4
-	github.com/ipfs/go-merkledag v0.3.3-0.20210312014858-029e8490baca
+	github.com/ipfs/go-merkledag v0.3.3-0.20210325015807-e952d22343f9
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.2
@@ -91,7 +91,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multibase v0.0.3
-	github.com/multiformats/go-multihash v0.0.14
+	github.com/multiformats/go-multihash v0.0.15
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
@@ -108,7 +108,7 @@ require (
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
+	golang.org/x/sys v0.0.0-20210309074719-68d13333faf2
 )
 
 go 1.14
