@@ -54,7 +54,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 			}
 		}
 
-		log.Print("Need", len(missing), "migrations, downloading.")
+		log.Println("Need", len(missing), "migrations, downloading.")
 
 		tmpDir, err := ioutil.TempDir("", "migrations")
 		if err != nil {
