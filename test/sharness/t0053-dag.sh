@@ -27,7 +27,7 @@ test_expect_success "make an ipld object in json" '
 
 test_dag_cmd() {
   test_expect_success "can add an ipld object using protobuf" '
-    IPLDHASH=$(cat ipld_object | ipfs dag put -i dag-json -f dag-pb)
+    IPLDHASH=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-pb)
   '
 
   test_expect_success "output looks correct" '
@@ -36,7 +36,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add an ipld object using protobuf and --cid=base=base32" '
-    IPLDHASHb32=$(cat ipld_object | ipfs dag put -i dag-json -f dag-pb --cid-base=base32)
+    IPLDHASHb32=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-pb --cid-base=base32)
   '
 
   test_expect_success "output looks correct (does not upgrade to CIDv1)" '
