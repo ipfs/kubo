@@ -219,6 +219,9 @@ func (p *pinInfo) Err() error {
 }
 
 // pinLsAll is an internal function for returning a list of pins
+//
+// The caller must keep reading results until the channel is closed to prevent
+// leaking the goroutine that is fetching pins.
 func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreiface.Pin {
 	out := make(chan coreiface.Pin, 1)
 
