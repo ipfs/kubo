@@ -41,12 +41,11 @@ var ConfigCmd = &cmds.Command{
 		Tagline: "Get and set IPFS config values.",
 		ShortDescription: `
 'ipfs config' controls configuration variables. It works like 'git config'.
-The configuration values are stored in a config file inside your IPFS_PATH
-repository.`,
+The configuration values are stored in a config file inside your IPFS_PATH.`,
 		LongDescription: `
 'ipfs config' controls configuration variables. It works
 much like 'git config'. The configuration values are stored in a config
-file inside your IPFS repository.
+file inside your IPFS repository (IPFS_PATH).
 
 Examples:
 

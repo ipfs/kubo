@@ -53,10 +53,10 @@ var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Add a file or directory to IPFS.",
 		ShortDescription: `
-Adds contents of <path> to IPFS. Use -r to add directories (recursively).
+Adds the content of <path> to IPFS. Use -r to add directories (recursively).
 `,
 		LongDescription: `
-Adds contents of <path> to IPFS. Use -r to add directories.
+Adds the content of <path> to IPFS. Use -r to add directories.
 Note that directories are added recursively, to form the IPFS
 MerkleDAG.
 
