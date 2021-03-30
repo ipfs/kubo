@@ -496,7 +496,7 @@ NOTE: Ensuring `Swarm.EnableRelayHop` is _false_ is extremely important here. If
 
 Experimental, disabled by default.
 
-Replaces the existing provide mechanism with a robust, strategic provider system.
+Replaces the existing provide mechanism with a robust, strategic provider system. Currently enabling this option will provide nothing.
 
 ### How to enable
 
