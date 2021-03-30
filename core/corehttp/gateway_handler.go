@@ -322,7 +322,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			modtime = time.Unix(1, 0)
 		}
 
-		setContentDispositionHeader(r.URL.Query(), w.Header())
+		maybeSetContentDispositionHeader(r.URL.Query(), w.Header())
 		name := r.URL.Query().Get("filename")
 		if name == "" {
 			name = getFilename(urlPath)
@@ -530,7 +530,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 func (i *gatewayHandler) serveCBOR(w http.ResponseWriter, r *http.Request, n format.Node) {
 	w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 	w.Header().Set("Content-Type", "application/json")
-	setContentDispositionHeader(r.URL.Query(), w.Header())
+	maybeSetContentDispositionHeader(r.URL.Query(), w.Header())
 
 	name := r.URL.Query().Get("filename")
 	if name == "" {
@@ -862,9 +862,9 @@ func fixupSuperfluousNamespace(w http.ResponseWriter, urlPath string, urlQuery s
 	}) == nil
 }
 
-// setContentDispositionHeader sets the Content-Disposition header if a
+// maybeSetContentDispositionHeader sets the Content-Disposition header if a
 // "filename" was included in the URL querystring.
-func setContentDispositionHeader(qs url.Values, h http.Header) {
+func maybeSetContentDispositionHeader(qs url.Values, h http.Header) {
 	urlFilename := qs.Get("filename")
 	if urlFilename == "" {
 		return
