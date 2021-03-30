@@ -51,13 +51,13 @@ const adderOutChanSize = 8
 
 var AddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Add a file or directory to ipfs.",
+		Tagline: "Add a file or directory to IPFS.",
 		ShortDescription: `
-Adds contents of <path> to ipfs. Use -r to add directories (recursively).
+Adds the content of <path> to IPFS. Use -r to add directories (recursively).
 `,
 		LongDescription: `
-Adds contents of <path> to ipfs. Use -r to add directories.
-Note that directories are added recursively, to form the ipfs
+Adds the content of <path> to IPFS. Use -r to add directories.
+Note that directories are added recursively, to form the IPFS
 MerkleDAG.
 
 If the daemon is not running, it will just add locally.
@@ -115,7 +115,7 @@ only-hash, and progress/status related flags) will change the final hash.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("path", true, true, "The path to a file to be added to ipfs.").EnableRecursive().EnableStdin(),
+		cmds.FileArg("path", true, true, "The path to a file to be added to IPFS.").EnableRecursive().EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)

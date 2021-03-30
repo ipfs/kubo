@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	tar "github.com/ipfs/go-ipfs/tar"
 
-	"github.com/ipfs/go-ipfs-cmds"
 	dag "github.com/ipfs/go-merkledag"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
@@ -25,7 +25,7 @@ var TarCmd = &cmds.Command{
 
 var tarAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Import a tar file into ipfs.",
+		Tagline: "Import a tar file into IPFS.",
 		ShortDescription: `
 'ipfs tar add' will parse a tar file and create a merkledag structure to
 represent it.

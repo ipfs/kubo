@@ -523,7 +523,7 @@ const (
 
 var updatePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Update a recursive pin",
+		Tagline: "Update a recursive pin.",
 		ShortDescription: `
 Efficiently pins a new object based on differences from an existing one and,
 by default, removes the old pin.

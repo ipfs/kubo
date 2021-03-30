@@ -8,11 +8,11 @@ import (
 	"io/ioutil"
 	"text/tabwriter"
 
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-cmds"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -48,10 +48,10 @@ const (
 
 var ObjectCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Interact with IPFS objects.",
+		Tagline: "Interact with dag-pb objects (deprecated, use generic 'dag')",
 		ShortDescription: `
-'ipfs object' is a plumbing command used to manipulate DAG objects
-directly.`,
+'ipfs object' is a legacy plumbing command used to manipulate dag-pb objects
+directly. Deprecated, use more modern 'ipfs dag' and 'ipfs files' instead.`,
 	},
 
 	Subcommands: map[string]*cmds.Command{
@@ -69,14 +69,14 @@ directly.`,
 // ObjectDataCmd object data command
 var ObjectDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Output the raw bytes of an IPFS object.",
+		Tagline: "Output the raw bytes of a dag-pb object.",
 		ShortDescription: `
 'ipfs object data' is a plumbing command for retrieving the raw bytes stored
-in a DAG node. It outputs to stdout, and <key> is a base58 encoded multihash.
+in a dag-pb node. It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 		LongDescription: `
 'ipfs object data' is a plumbing command for retrieving the raw bytes stored
-in a DAG node. It outputs to stdout, and <key> is a base58 encoded multihash.
+in a dag-pb node. It outputs to stdout, and <key> is a base58 encoded multihash.
 
 Note that the "--encoding" option does not affect the output, since the output
 is the raw data of the object.
@@ -106,16 +106,16 @@ is the raw data of the object.
 // ObjectLinksCmd object links command
 var ObjectLinksCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Output the links pointed to by the specified object.",
+		Tagline: "Output the links pointed to by the specified dag-pb object.",
 		ShortDescription: `
 'ipfs object links' is a plumbing command for retrieving the links from
-a DAG node. It outputs to stdout, and <key> is a base58 encoded
+a dag-pb node. It outputs to stdout, and <key> is a base58 encoded
 multihash.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the dag-pb object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(headersOptionName, "v", "Print table headers (Hash, Size, Name)."),
@@ -180,14 +180,14 @@ multihash.
 // ObjectGetCmd object get command
 var ObjectGetCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get and serialize the DAG node named by <key>.",
+		Tagline: "Get and serialize the dag-pb node named by <key>.",
 		ShortDescription: `
-'ipfs object get' is a plumbing command for retrieving DAG nodes.
+'ipfs object get' is a plumbing command for retrieving dag-pb nodes.
 It serializes the DAG node to the format specified by the "--encoding"
 flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 `,
 		LongDescription: `
-'ipfs object get' is a plumbing command for retrieving DAG nodes.
+'ipfs object get' is a plumbing command for retrieving dag-pb nodes.
 It serializes the DAG node to the format specified by the "--encoding"
 flag. It outputs to stdout, and <key> is a base58 encoded multihash.
 
@@ -207,7 +207,7 @@ Supported values are:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "Key of the object to retrieve, in base58-encoded multihash format.").EnableStdin(),
+		cmds.StringArg("key", true, false, "Key of the dag-pb object to retrieve, in base58-encoded multihash format.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(encodingOptionName, "Encoding type of the data field, either \"text\" or \"base64\".").WithDefault("text"),
@@ -287,9 +287,9 @@ Supported values are:
 // ObjectStatCmd object stat command
 var ObjectStatCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get stats for the DAG node named by <key>.",
+		Tagline: "Get stats for the dag-pb node named by <key>.",
 		ShortDescription: `
-'ipfs object stat' is a plumbing command to print DAG node statistics.
+'ipfs object stat' is a plumbing command to print dag-pb node statistics.
 <key> is a base58 encoded multihash. It outputs to stdout:
 
 	NumLinks        int number of links in link table
@@ -360,13 +360,13 @@ var ObjectStatCmd = &cmds.Command{
 // ObjectPutCmd object put command
 var ObjectPutCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Store input as a DAG object, print its key.",
+		Tagline: "Store input as a dag-pb object, print its key.",
 		ShortDescription: `
-'ipfs object put' is a plumbing command for storing DAG nodes.
+'ipfs object put' is a plumbing command for storing dag-pb nodes.
 It reads from stdin, and the output is a base58 encoded multihash.
 `,
 		LongDescription: `
-'ipfs object put' is a plumbing command for storing DAG nodes.
+'ipfs object put' is a plumbing command for storing dag-pb nodes.
 It reads from stdin, and the output is a base58 encoded multihash.
 
 Data should be in the format specified by the --inputenc flag.
@@ -397,7 +397,7 @@ And then run:
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.FileArg("data", true, false, "Data to be stored as a DAG object.").EnableStdin(),
+		cmds.FileArg("data", true, false, "Data to be stored as a dag-pb object.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(inputencOptionName, "Encoding type of input data. One of: {\"protobuf\", \"json\"}.").WithDefault("json"),
@@ -466,12 +466,12 @@ And then run:
 // ObjectNewCmd object new command
 var ObjectNewCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create a new object from an ipfs template.",
+		Tagline: "Create a new dag-pb object from a template.",
 		ShortDescription: `
-'ipfs object new' is a plumbing command for creating new DAG nodes.
+'ipfs object new' is a plumbing command for creating new dag-pb nodes.
 `,
 		LongDescription: `
-'ipfs object new' is a plumbing command for creating new DAG nodes.
+'ipfs object new' is a plumbing command for creating new dag-pb nodes.
 By default it creates and returns a new empty merkledag node, but
 you may pass an optional template argument to create a preformatted
 node.

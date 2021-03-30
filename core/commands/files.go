@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	"github.com/dustin/go-humanize"
 	bservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
@@ -22,7 +22,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-mfs"
+	mfs "github.com/ipfs/go-mfs"
 	ft "github.com/ipfs/go-unixfs"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
@@ -943,9 +943,9 @@ are run with the '--flush=false'.
 
 var filesChcidCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Change the cid version or hash function of the root node of a given path.",
+		Tagline: "Change the CID version or hash function of the root node of a given path.",
 		ShortDescription: `
-Change the cid version or hash function of the root node of a given path.
+Change the CID version or hash function of the root node of a given path.
 `,
 	},
 	Arguments: []cmds.Argument{

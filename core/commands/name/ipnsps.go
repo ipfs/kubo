@@ -43,7 +43,7 @@ Note: this command is experimental and subject to change as the system is refine
 
 var ipnspsStateCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Query the state of IPNS pubsub",
+		Tagline: "Query the state of IPNS pubsub.",
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -71,7 +71,7 @@ var ipnspsStateCmd = &cmds.Command{
 
 var ipnspsSubsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show current name subscriptions",
+		Tagline: "Show current name subscriptions.",
 	},
 	Options: []cmds.Option{
 		ke.OptionIPNSBase,
@@ -115,7 +115,7 @@ var ipnspsSubsCmd = &cmds.Command{
 
 var ipnspsCancelCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Cancel a name subscription",
+		Tagline: "Cancel a name subscription.",
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	"github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
@@ -31,7 +31,7 @@ result. This is the Merkle-DAG version of modifying an object.
 
 var patchAppendDataCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Append data to the data segment of a dag node.",
+		Tagline: "Append data to the data segment of a DAG node.",
 		ShortDescription: `
 Append data to what already exists in the data segment in the given object.
 
