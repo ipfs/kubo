@@ -26,7 +26,7 @@ import (
 	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -288,7 +288,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		err = migrate.RunMigration(fsrepo.RepoVersion)
+		// Fetch migrations from current distribution, or location from environ
+		fetcher := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
+		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
