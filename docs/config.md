@@ -660,7 +660,6 @@ between content roots.
         }
     }
     ```
-<!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
 
 Default: `false`
 

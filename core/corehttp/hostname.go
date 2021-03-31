@@ -97,15 +97,6 @@ func HostnameOption() ServeOption {
 							return
 						}
 						if newURL != "" {
-							// Just to be sure single Origin can't be abused in
-							// web browsers that ignored the redirect for some
-							// reason, Clear-Site-Data header clears browsing
-							// data (cookies, storage etc) associated with
-							// hostname's root Origin
-							// Note: we can't use "*" due to bug in Chromium:
-							// https://bugs.chromium.org/p/chromium/issues/detail?id=898503
-							w.Header().Set("Clear-Site-Data", "\"cookies\", \"storage\"")
-
 							// Set "Location" header with redirect destination.
 							// It is ignored by curl in default mode, but will
 							// be respected by user agents that follow
