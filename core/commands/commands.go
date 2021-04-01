@@ -6,6 +6,7 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -62,6 +63,9 @@ func CommandsCmd(root *cmds.Command) *cmds.Command {
 		Helptext: cmds.HelpText{
 			Tagline:          "List all available commands.",
 			ShortDescription: `Lists all available commands (and subcommands) and exits.`,
+		},
+		Subcommands: map[string]*cmds.Command{
+			"completion": CompletionCmd(root),
 		},
 		Options: []cmds.Option{
 			cmds.BoolOption(flagsOptionName, "f", "Show command flags"),
@@ -129,6 +133,44 @@ func cmdPathStrings(cmd *Command, showOptions bool) []string {
 	recurse("", cmd)
 	sort.Strings(cmds)
 	return cmds
+}
+
+func CompletionCmd(root *cmds.Command) *cmds.Command {
+	return &cmds.Command{
+		Helptext: cmds.HelpText{
+			Tagline: "Generate shell completions.",
+		},
+		NoRemote: true,
+		Subcommands: map[string]*cmds.Command{
+			"bash": {
+				Helptext: cmds.HelpText{
+					Tagline:          "Generate bash shell completions.",
+					ShortDescription: "Generates command completions for the bash shell.",
+					LongDescription: `
+Generates command completions for the bash shell.
+
+The simplest way to see it working is write the completions
+to a file and then source it:
+
+  > ipfs commands completion bash > ipfs-completion.bash
+  > source ./ipfs-completion.bash
+
+To install the completions permanently, they can be moved to
+/etc/bash_completion.d or sourced from your ~/.bashrc file.
+`,
+				},
+				NoRemote: true,
+				Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+					var buf bytes.Buffer
+					if err := writeBashCompletions(root, &buf); err != nil {
+						return err
+					}
+					res.SetLength(uint64(buf.Len()))
+					return res.Emit(&buf)
+				},
+			},
+		},
+	}
 }
 
 type nonFatalError string
