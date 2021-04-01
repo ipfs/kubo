@@ -6,6 +6,7 @@ import (
 	gopath "path"
 
 	"github.com/ipfs/go-ipfs/namesys/resolve"
+	"github.com/ipfs/go-unixfsnode"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -53,7 +54,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 	}
 
 	r := resolver.NewBasicResolver(api.blocks)
-
+	r.FetchConfig.AugmentChooser = unixfsnode.AugmentPrototypeChooser
 	node, rest, err := r.ResolveToLastNode(ctx, ipath)
 	if err != nil {
 		return nil, err
