@@ -529,7 +529,6 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 
 func (i *gatewayHandler) serveCBOR(w http.ResponseWriter, r *http.Request, n format.Node) {
 	w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
-	w.Header().Set("Content-Type", "application/json")
 	maybeSetContentDispositionHeader(r.URL.Query(), w.Header())
 
 	name := r.URL.Query().Get("filename")
@@ -538,12 +537,23 @@ func (i *gatewayHandler) serveCBOR(w http.ResponseWriter, r *http.Request, n for
 	}
 	modtime := time.Unix(1, 0)
 
-	b, err := json.Marshal(n)
-	if err != nil {
-		internalWebError(w, err)
-		return
+	var contentType string
+	var data []byte
+	if r.URL.Query().Get("enc") == "json" || r.Header.Get("Content-Type") == "application/json" {
+		contentType = "application/json"
+		b, err := json.Marshal(n)
+		if err != nil {
+			internalWebError(w, err)
+			return
+		}
+		data = b
+	} else {
+		contentType = "application/cbor"
+		data = n.RawData()
 	}
-	http.ServeContent(w, r, name, modtime, bytes.NewReader(b))
+
+	w.Header().Set("Content-Type", contentType)
+	http.ServeContent(w, r, name, modtime, bytes.NewReader(data))
 }
 
 func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.Request, parsedPath ipath.Path) bool {
