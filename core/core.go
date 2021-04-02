@@ -17,6 +17,7 @@ import (
 	"github.com/ipfs/go-ipfs-pinner"
 
 	bserv "github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-fetcher"
 	"github.com/ipfs/go-graphsync"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
@@ -77,6 +78,7 @@ type IpfsNode struct {
 	Blocks          bserv.BlockService        // the block service, get/add blocks.
 	DAG             ipld.DAGService           // the merkle dag service, get/add objects.
 	Resolver        *resolver.Resolver        // the path resolution system
+	FetcherFactory  fetcher.Factory           // an implementation of the fetcher
 	Reporter        *metrics.BandwidthCounter `optional:"true"`
 	Discovery       discovery.Service         `optional:"true"`
 	FilesRoot       *mfs.Root
