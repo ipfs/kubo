@@ -205,6 +205,14 @@ var rmPinCmd = &cmds.Command{
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins.)
 `,
+		LongDescription: `
+Removes the pin from the given object allowing it to be garbage
+collected if needed. (By default, recursively. Use -r=false for direct pins.)
+
+A pin may not be removed because the specified object is not pinned or pinned
+indirectly. To determine if the object is pinned indirectly, use the command:
+ipfs pin ls -t indirect <cid>
+`,
 	},
 
 	Arguments: []cmds.Argument{
