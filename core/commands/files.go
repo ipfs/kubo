@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"io"
 	"os"
 	gopath "path"
 	"sort"
+	"strconv"
 	"strings"
-
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	"github.com/dustin/go-humanize"
 	bservice "github.com/ipfs/go-blockservice"
@@ -101,6 +101,9 @@ type statOutput struct {
 	WithLocality   bool   `json:",omitempty"`
 	Local          bool   `json:",omitempty"`
 	SizeLocal      uint64 `json:",omitempty"`
+	Mode           string `json:",omitempty"`
+	Mtime          int64  `json:",omitempty"`
+	MtimeNsecs     int    `json:",omitempty"`
 }
 
 const (
@@ -252,28 +255,7 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 
 	switch n := nd.(type) {
 	case *dag.ProtoNode:
-		d, err := ft.FSNodeFromBytes(n.Data())
-		if err != nil {
-			return nil, err
-		}
-
-		var ndtype string
-		switch d.Type() {
-		case ft.TDirectory, ft.THAMTShard:
-			ndtype = "directory"
-		case ft.TFile, ft.TMetadata, ft.TRaw:
-			ndtype = "file"
-		default:
-			return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
-		}
-
-		return &statOutput{
-			Hash:           enc.Encode(c),
-			Blocks:         len(nd.Links()),
-			Size:           d.FileSize(),
-			CumulativeSize: cumulsize,
-			Type:           ndtype,
-		}, nil
+		return statProtoNode(n, enc, c, cumulsize)
 	case *dag.RawNode:
 		return &statOutput{
 			Hash:           enc.Encode(c),
@@ -285,6 +267,42 @@ func statNode(nd ipld.Node, enc cidenc.Encoder) (*statOutput, error) {
 	default:
 		return nil, fmt.Errorf("not unixfs node (proto or raw)")
 	}
+}
+
+func statProtoNode(n *dag.ProtoNode, enc cidenc.Encoder, cid cid.Cid, cumulsize uint64) (*statOutput, error) {
+	d, err := ft.FSNodeFromBytes(n.Data())
+	if err != nil {
+		return nil, err
+	}
+
+	stat := statOutput{
+		Hash:           enc.Encode(cid),
+		Blocks:         len(n.Links()),
+		Size:           d.FileSize(),
+		CumulativeSize: cumulsize,
+	}
+
+	switch d.Type() {
+	case ft.TDirectory, ft.THAMTShard:
+		stat.Type = "directory"
+	case ft.TFile, ft.TMetadata, ft.TRaw:
+		stat.Type = "file"
+	default:
+		return nil, fmt.Errorf("unrecognized node type: %s", d.Type())
+	}
+
+	if mode := d.Mode(); mode != 0 {
+		stat.Mode = "0" + strconv.FormatUint(uint64(mode), 8)
+	}
+
+	if mt := d.ModTime(); !mt.IsZero() {
+		stat.Mtime = mt.Unix()
+		if ns := mt.Nanosecond(); ns > 0 {
+			stat.MtimeNsecs = ns
+		}
+	}
+
+	return &stat, nil
 }
 
 func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool, uint64, error) {
@@ -419,7 +437,7 @@ var filesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List directories in the local mutable namespace.",
 		ShortDescription: `
-List directories in the local mutable namespace (works on both IPFS and MFS paths).
+List directories in the local mutable namespace.
 
 Examples:
 
