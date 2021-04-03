@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"path"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
@@ -21,11 +23,35 @@ import (
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
+type TimeParts struct {
+	t *time.Time
+}
+
+func (t TimeParts) MarshalJSON() ([]byte, error) {
+	return t.t.MarshalJSON()
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// The time is expected to be a quoted string in RFC 3339 format.
+func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
+	// Fractional seconds are handled implicitly by Parse.
+	tt, err := time.Parse("\"2006-01-02T15:04:05Z\"", string(data))
+	*t = TimeParts{&tt}
+	return
+}
+
+func AsJSON(t *time.Time) string {
+	return fmt.Sprintf("{\"secs\":%v,\"nsecs\":%v}", t.Unix(), t.Nanosecond())
+}
+
 type AddEvent struct {
-	Name  string
-	Hash  string `json:",omitempty"`
-	Bytes int64  `json:",omitempty"`
-	Size  string `json:",omitempty"`
+	Name       string
+	Hash       string `json:",omitempty"`
+	Bytes      int64  `json:",omitempty"`
+	Size       string `json:",omitempty"`
+	Mode       string `json:",omitempty"`
+	Mtime      int64  `json:",omitempty"`
+	MtimeNsecs int    `json:",omitempty"`
 }
 
 const (
@@ -290,12 +316,31 @@ only-hash, and progress/status related flags) will change the final hash.
 					output.Name = path.Join(addit.Name(), output.Name)
 				}
 
-				if err := res.Emit(&AddEvent{
-					Name:  output.Name,
-					Hash:  h,
-					Bytes: output.Bytes,
-					Size:  output.Size,
-				}); err != nil {
+				output.Mode = addit.Node().Mode()
+				output.Mtime = addit.Node().ModTime().Unix()
+				output.MtimeNsecs = addit.Node().ModTime().Nanosecond()
+
+				addEvent := AddEvent{
+					Name:       output.Name,
+					Hash:       h,
+					Bytes:      output.Bytes,
+					Size:       output.Size,
+					Mtime:      output.Mtime,
+					MtimeNsecs: output.MtimeNsecs,
+				}
+
+				if output.Mode != 0 {
+					addEvent.Mode = "0" + strconv.FormatUint(uint64(output.Mode), 8)
+				}
+
+				if output.Mtime > 0 {
+					addEvent.Mtime = output.Mtime
+					if output.MtimeNsecs > 0 {
+						addEvent.MtimeNsecs = output.MtimeNsecs
+					}
+				}
+
+				if err := res.Emit(&addEvent); err != nil {
 					return err
 				}
 			}
