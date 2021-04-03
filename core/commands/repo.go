@@ -400,7 +400,9 @@ var repoMigrateCmd = &cmds.Command{
 
 		fmt.Println("Found outdated fs-repo, starting migration.")
 
-		err = migrate.RunMigration(fsrepo.RepoVersion, allowDowngrade)
+		// Fetch migrations from current distribution, or location from environ
+		fetcher := migrate.NewHttpFetcher(migrate.GetDistPathEnv(migrate.CurrentIpfsDist), "", "go-ipfs", 0)
+		err = migrate.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", allowDowngrade)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
