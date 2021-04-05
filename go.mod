@@ -46,8 +46,8 @@ require (
 	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-ipld-cbor v0.0.5
 	github.com/ipfs/go-ipld-format v0.2.0
-	github.com/ipfs/go-ipld-git v0.0.3
-	github.com/ipfs/go-ipld-legacy v0.0.0-20210312014519-2895f54096d5 // indirect
+	github.com/ipfs/go-ipld-git v0.0.4-0.20210324174925-515bc5cab461
+	github.com/ipfs/go-ipld-legacy v0.0.0-20210312014519-2895f54096d5
 	github.com/ipfs/go-ipns v0.0.2
 	github.com/ipfs/go-log v1.0.4
 	github.com/ipfs/go-merkledag v0.3.3-0.20210325015807-e952d22343f9
@@ -97,7 +97,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multibase v0.0.3
-	github.com/multiformats/go-multicodec v0.2.1-0.20210319221629-f3663dccaeee // indirect
+	github.com/multiformats/go-multicodec v0.2.1-0.20210319221629-f3663dccaeee
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
