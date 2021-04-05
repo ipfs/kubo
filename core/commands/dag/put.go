@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"strconv"
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -42,27 +43,35 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	// default hash' (sha256 for cbor, sha1 for git..)
 	mhType := uint64(math.MaxUint64)
 
+	icodec, ok := mc.Of(ienc)
+	if !ok {
+		if n, err := strconv.Atoi(ienc); err == nil {
+			icodec = mc.Code(n)
+		}
+		return fmt.Errorf("%s is not a valid codec name", ienc)
+	}
+	fcodec, ok := mc.Of(format)
+	if !ok {
+		if n, err := strconv.Atoi(format); err == nil {
+			fcodec = mc.Code(n)
+		}
+		return fmt.Errorf("%s is not a valid codec name", format)
+	}
+
+	cidPrefix := cid.Prefix{
+		Version:  1,
+		Codec:    uint64(fcodec),
+		MhType:   mhType,
+		MhLength: -1,
+	}
+
 	if hash != "" {
 		var ok bool
 		mhType, ok = mh.Names[hash]
 		if !ok {
 			return fmt.Errorf("%s in not a valid multihash name", hash)
 		}
-	}
-
-	icodec, ok := mc.Of(ienc)
-	if !ok {
-		return fmt.Errorf("%s is not a valid codec name", ienc)
-	}
-	fcodec, ok := mc.Of(format)
-	if !ok {
-		return fmt.Errorf("%s is not a valid codec name", format)
-	}
-	cidPrefix := cid.Prefix{
-		Version:  1,
-		Codec:    uint64(fcodec),
-		MhType:   mhType,
-		MhLength: -1,
+		cidPrefix.MhType = mhType
 	}
 
 	decoder, err := multicodec.LookupDecoder(uint64(icodec))
