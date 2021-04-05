@@ -54,7 +54,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 	}
 
 	r := resolver.NewBasicResolver(api.blocks)
-	r.FetchConfig.AugmentChooser = unixfsnode.AugmentPrototypeChooser
+	r.FetchConfig.NodeReifier = unixfsnode.Reify
 	node, rest, err := r.ResolveToLastNode(ctx, ipath)
 	if err != nil {
 		return nil, err

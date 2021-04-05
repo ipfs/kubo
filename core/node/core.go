@@ -11,14 +11,16 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-ipfs-pinner"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	pin "github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-pinner/dspinner"
-	"github.com/ipfs/go-ipld-format"
+	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
+	"github.com/ipfs/go-path/resolver"
 	"github.com/ipfs/go-unixfs"
+	"github.com/ipfs/go-unixfsnode"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
@@ -80,6 +82,13 @@ func (s *syncDagService) Sync() error {
 
 func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
 	return merkledag.NewSession(ctx, s.DAGService)
+}
+
+// Resolver returns a resolver that's configured to look up unixfs paths
+func Resolver(bs blockservice.BlockService) *resolver.Resolver {
+	rs := resolver.NewBasicResolver(bs)
+	rs.FetchConfig.NodeReifier = unixfsnode.Reify
+	return rs
 }
 
 // Dag creates new DAGService
