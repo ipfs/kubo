@@ -138,13 +138,13 @@ test_dag_cmd() {
   '
 
   test_expect_success "non-canonical cbor input is normalized" '
-    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=raw) &&
+    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=raw) &&
     test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
     test_fsh echo $HASH
   '
 
   test_expect_success "non-canonical cbor input is normalized with input-enc cbor" '
-    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=cbor --input-enc=cbor) &&
+    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=dag-cbor) &&
     test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
     test_fsh echo $HASH
   '
@@ -174,7 +174,7 @@ test_dag_cmd() {
 
   test_expect_success "dag put with json dag-pb works" '
     ipfs dag get $HASH > pbjson &&
-    cat pbjson | ipfs dag put --format=dag-pb --input-enc=json > dag_put_out
+    cat pbjson | ipfs dag put --format=dag-pb --input-enc=dag-json > dag_put_out
   '
 
   test_expect_success "dag put with dag-pb works output looks good" '
