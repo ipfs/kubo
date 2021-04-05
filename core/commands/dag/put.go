@@ -17,6 +17,14 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	mc "github.com/multiformats/go-multicodec"
 	mh "github.com/multiformats/go-multihash"
+
+	// Expected minimal set of available format/ienc codecs.
+	_ "github.com/ipld/go-codec-dagpb"
+	_ "github.com/ipld/go-ipld-prime/codec/cbor"
+	_ "github.com/ipld/go-ipld-prime/codec/dagcbor"
+	_ "github.com/ipld/go-ipld-prime/codec/dagjson"
+	_ "github.com/ipld/go-ipld-prime/codec/json"
+	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
 
 func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
