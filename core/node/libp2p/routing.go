@@ -7,9 +7,12 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 
+	"github.com/ipfs/go-ipfs/repo"
 	host "github.com/libp2p/go-libp2p-core/host"
 	routing "github.com/libp2p/go-libp2p-core/routing"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	"github.com/libp2p/go-libp2p-pubsub"
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
@@ -32,23 +35,89 @@ type p2pRouterOut struct {
 	Router Router `group:"routers"`
 }
 
-func BaseRouting(lc fx.Lifecycle, in BaseIpfsRouting) (out p2pRouterOut, dr *ddht.DHT) {
-	if dht, ok := in.(*ddht.DHT); ok {
-		dr = dht
+type processInitialRoutingIn struct {
+	fx.In
 
-		lc.Append(fx.Hook{
-			OnStop: func(ctx context.Context) error {
-				return dr.Close()
+	Router routing.Routing `name:"initialrouting"`
+
+	// For setting up experimental DHT client
+	Host      host.Host
+	Repo      repo.Repo
+	Validator record.Validator
+}
+
+type processInitialRoutingOut struct {
+	fx.Out
+
+	Router    Router `group:"routers"`
+	DHT       *ddht.DHT
+	DHTClient routing.Routing `name:"dhtc"`
+	BaseRT    BaseIpfsRouting
+}
+
+func BaseRouting(experimentalDHTClient bool) interface{} {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
+		var dr *ddht.DHT
+		if dht, ok := in.Router.(*ddht.DHT); ok {
+			dr = dht
+
+			lc.Append(fx.Hook{
+				OnStop: func(ctx context.Context) error {
+					return dr.Close()
+				},
+			})
+		}
+
+		if dr != nil && experimentalDHTClient {
+			cfg, err := in.Repo.Config()
+			if err != nil {
+				return out, err
+			}
+			bspeers, err := cfg.BootstrapPeers()
+			if err != nil {
+				return out, err
+			}
+
+			expClient, err := fullrt.NewFullRT(in.Host,
+				dht.DefaultPrefix,
+				fullrt.DHTOption(
+					dht.Validator(in.Validator),
+					dht.Datastore(in.Repo.Datastore()),
+					dht.BootstrapPeers(bspeers...),
+					dht.BucketSize(20),
+				),
+			)
+			if err != nil {
+				return out, err
+			}
+
+			lc.Append(fx.Hook{
+				OnStop: func(ctx context.Context) error {
+					return expClient.Close()
+				},
+			})
+
+			return processInitialRoutingOut{
+				Router: Router{
+					Routing:  expClient,
+					Priority: 1000,
+				},
+				DHT:       dr,
+				DHTClient: expClient,
+				BaseRT:    expClient,
+			}, nil
+		}
+
+		return processInitialRoutingOut{
+			Router: Router{
+				Priority: 1000,
+				Routing:  in.Router,
 			},
-		})
+			DHT:       dr,
+			DHTClient: dr,
+			BaseRT:    in.Router,
+		}, nil
 	}
-
-	return p2pRouterOut{
-		Router: Router{
-			Priority: 1000,
-			Routing:  in,
-		},
-	}, dr
 }
 
 type p2pOnlineRoutingIn struct {
