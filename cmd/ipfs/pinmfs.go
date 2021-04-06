@@ -216,6 +216,9 @@ func pinMFS(
 	pinTime := time.Now().UTC()
 	for ps := range lsPinCh {
 		existingRequestID = ps.GetRequestId()
+		if ps.GetPin().GetCid() == cid && ps.GetStatus() == pinclient.StatusFailed {
+			mfslog.Errorf("received StatusFailed while pinning: %v", cid)
+		}
 		if ps.GetPin().GetCid() == cid && ps.GetStatus() != pinclient.StatusFailed {
 			alreadyPinned = true
 			pinTime = ps.GetCreated().UTC()
