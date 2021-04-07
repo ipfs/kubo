@@ -25,9 +25,18 @@ test_expect_success "make an ipld object in json" '
   printf "{\"hello\":\"world\",\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"magic\":{\"/\":\"%s\"},\"sub\":{\"dict\":\"ionary\",\"beep\":[0,\"bop\"]}}" $HASH1 $HASH2 $HASH3 > ipld_object
 '
 
+test_expect_success "make an ipld object in dag-pb" '
+  printf "{\"data\":\"thisisatest\",\"links\":[{\"/\":\"%s\"},{\"/\":\"%s\"}]}" $HASH1 $HASH2 > ipld_object_pb
+'
+
+
 test_dag_cmd() {
-  test_expect_success "can add an ipld object using " '
+  test_expect_success "can add an ipld object using dag-json" '
     IPLDHASH=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-cbor)
+  '
+
+  test_expect_success "can add an ipld object using dag-json" '
+    IPLDPBHASH=$(cat ipld_object_pb | ipfs dag put --input-enc=dag-json -f dag-pb)
   '
 
   test_expect_success "output looks correct" '
@@ -103,7 +112,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can get object" '
-    ipfs dag get $IPLDHASH > ipld_obj_out
+    ipfs dag get $IPLDPBHASH > ipld_obj_out
   '
 
   test_expect_success "object links look right" '
@@ -112,7 +121,7 @@ test_dag_cmd() {
 
   test_expect_success "retrieved object hashes back correctly" '
     IPLDHASH2=$(cat ipld_obj_out | ipfs dag put) &&
-    test "$IPLDHASH" = "$IPLDHASH2"
+    test "$IPLDPBHASH" = "$IPLDHASH2"
   '
 
   test_expect_success "add a normal file" '
