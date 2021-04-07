@@ -1,4 +1,4 @@
-package migrations
+package ipfsdir
 
 import (
 	"io/ioutil"

@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsdir"
 )
 
 const (
@@ -22,11 +24,11 @@ const (
 // RunMigration finds, downloads, and runs the individual migrations needed to
 // migrate the repo from its current version to the target version.
 func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir string, allowDowngrade bool) error {
-	ipfsDir, err := CheckIpfsDir(ipfsDir)
+	ipfsDir, err := ipfsdir.CheckIpfsDir(ipfsDir)
 	if err != nil {
 		return err
 	}
-	fromVer, err := repoVersion(ipfsDir)
+	fromVer, err := ipfsdir.RepoVersion(ipfsDir)
 	if err != nil {
 		return fmt.Errorf("could not get repo version: %s", err)
 	}
@@ -91,7 +93,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 }
 
 func NeedMigration(target int) (bool, error) {
-	vnum, err := RepoVersion("")
+	vnum, err := ipfsdir.RepoVersion("")
 	if err != nil {
 		return false, fmt.Errorf("could not get repo version: %s", err)
 	}
