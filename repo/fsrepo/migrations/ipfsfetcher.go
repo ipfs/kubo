@@ -207,7 +207,11 @@ func (f *IpfsFetcher) startTempNode() error {
 	f.ipfsCtx = node.Context() // signals when node is stopped
 
 	// Connect to any specified peers
-	go connect(ctxIpfsLife, ifaceCore, f.peers)
+	go func() {
+		if err := connect(ctxIpfsLife, ifaceCore, f.peers); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to connect to peers: %s", err)
+		}
+	}()
 
 	return nil
 }
