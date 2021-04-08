@@ -15,8 +15,6 @@ const (
 
 	// Distribution environ variable
 	envIpfsDistPath = "IPFS_DIST_PATH"
-	// Default maximum download size
-	defaultFetchLimit = 1024 * 1024 * 512
 )
 
 type Fetcher interface {

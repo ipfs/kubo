@@ -1,4 +1,4 @@
-package ipfsdir
+package migrations
 
 import (
 	"errors"

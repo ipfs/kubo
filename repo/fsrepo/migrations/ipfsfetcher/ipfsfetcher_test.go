@@ -1,4 +1,4 @@
-package migrations
+package ipfsfetcher
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestIpfsFetcher(t *testing.T) {
-	t.Skip("manually-run dev test only")
+	//t.Skip("manually-run dev test only")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

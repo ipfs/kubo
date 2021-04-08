@@ -27,6 +27,7 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -298,7 +299,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 		// Fetch migrations from current distribution, or location from environ
 		fetchHttp := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
-		fetchIpfs := migrations.NewIpfsFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), 0, peers)
+		fetchIpfs := ipfsfetcher.NewIpfsFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), 0, peers)
 
 		var (
 			f1 migrations.Fetcher = fetchHttp

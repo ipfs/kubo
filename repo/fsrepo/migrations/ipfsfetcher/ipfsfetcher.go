@@ -1,4 +1,4 @@
-package migrations
+package ipfsfetcher
 
 import (
 	"context"
@@ -18,12 +18,17 @@ import (
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsdir"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
+)
+
+const (
+	// Default maximum download size
+	defaultFetchLimit = 1024 * 1024 * 512
 )
 
 type IpfsFetcher struct {
@@ -48,7 +53,7 @@ type IpfsFetcher struct {
 func NewIpfsFetcher(distPath string, fetchLimit int64, peers []string) *IpfsFetcher {
 	f := &IpfsFetcher{
 		limit:    defaultFetchLimit,
-		distPath: LatestIpfsDist,
+		distPath: migrations.LatestIpfsDist,
 		peers:    peers,
 	}
 
@@ -106,7 +111,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 	}
 
 	if f.limit != 0 {
-		return NewLimitReadCloser(fileNode, f.limit), nil
+		return migrations.NewLimitReadCloser(fileNode, f.limit), nil
 	}
 	return fileNode, nil
 }
@@ -132,7 +137,7 @@ func (f *IpfsFetcher) Close() error {
 }
 
 func initTempNode(ctx context.Context) (string, error) {
-	defaultPath, err := ipfsdir.IpfsDir("")
+	defaultPath, err := migrations.IpfsDir("")
 	if err != nil {
 		return "", err
 	}

@@ -14,7 +14,6 @@ import (
 	keystore "github.com/ipfs/go-ipfs-keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsdir"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
 	ds "github.com/ipfs/go-datastore"
@@ -23,6 +22,7 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	serialize "github.com/ipfs/go-ipfs-config/serialize"
 	util "github.com/ipfs/go-ipfs-util"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	logging "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
@@ -142,7 +142,7 @@ func open(repoPath string) (repo.Repo, error) {
 	}()
 
 	// Check version, and error out if not matching
-	ver, err := ipfsdir.RepoVersion(r.path)
+	ver, err := migrations.RepoVersion(r.path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, ErrNoVersion
@@ -291,7 +291,7 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	if err := ipfsdir.WriteRepoVersion(repoPath, RepoVersion); err != nil {
+	if err := migrations.WriteRepoVersion(repoPath, RepoVersion); err != nil {
 		return err
 	}
 
