@@ -3,11 +3,16 @@ package ipfsfetcher
 import (
 	"bufio"
 	"context"
+	"flag"
 	"testing"
 )
 
+var runIpfsTest = flag.Bool("ipfstest", false, "Run IpfsFetcher tests")
+
 func TestIpfsFetcher(t *testing.T) {
-	//t.Skip("manually-run dev test only")
+	if !*runIpfsTest {
+		t.Skip("manually-run dev test, use '-ipfstest' flage to run")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -21,21 +26,21 @@ func TestIpfsFetcher(t *testing.T) {
 	}
 	defer rc.Close()
 
-	var out []string
+	var lines []string
 	scan := bufio.NewScanner(rc)
 	for scan.Scan() {
-		out = append(out, scan.Text())
+		lines = append(lines, scan.Text())
 	}
 	err = scan.Err()
 	if err != nil {
 		t.Fatal("could not read versions:", err)
 	}
 
-	if len(out) < 6 {
+	if len(lines) < 6 {
 		t.Fatal("do not get all expected data")
 	}
-	if out[0] != "v0.3.2" {
-		t.Fatal("expected v1.0.0 as first line, got", out[0])
+	if lines[0] != "v0.3.2" {
+		t.Fatal("expected v1.0.0 as first line, got", lines[0])
 	}
 
 	// Check not found
@@ -44,4 +49,49 @@ func TestIpfsFetcher(t *testing.T) {
 		t.Fatal("expected error 404")
 	}
 
+}
+
+func TestInitIpfsFetcher(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	f := NewIpfsFetcher("", 0, nil)
+	defer f.Close()
+
+	var (
+		stopFunc       func()
+		stopFuncCalled bool
+	)
+
+	// Init ipfs repo
+	f.ipfsTmpDir, f.openErr = initTempNode(ctx)
+	if f.openErr != nil {
+		t.Errorf("failed to init ipfs node: %s", f.openErr)
+	} else {
+		// Start ipfs node
+		f.ipfs, stopFunc, f.openErr = startTempNode(f.ipfsTmpDir, f.peers)
+		if f.openErr != nil {
+			t.Errorf("failed to start ipfs node: %s", f.openErr)
+			return
+		}
+
+		f.ipfsStopFunc = func() {
+			stopFuncCalled = true
+			stopFunc()
+		}
+	}
+
+	err := f.Close()
+	if err != nil {
+		t.Fatalf("failed to close fetcher: %s", err)
+	}
+
+	if stopFunc != nil && !stopFuncCalled {
+		t.Error("Close did not call stop function")
+	}
+
+	err = f.Close()
+	if err != nil {
+		t.Fatalf("failed to close fetcher 2nd time: %s", err)
+	}
 }

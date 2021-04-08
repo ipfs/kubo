@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -37,13 +38,13 @@ type IpfsFetcher struct {
 	peers    []string
 
 	openOnce  sync.Once
+	openErr   error
 	closeOnce sync.Once
-	err       error
+	closeErr  error
 
-	ipfs       iface.CoreAPI
-	ipfsCancel context.CancelFunc
-	ipfsCtx    context.Context
-	ipfsTmpDir string
+	ipfs         iface.CoreAPI
+	ipfsTmpDir   string
+	ipfsStopFunc func()
 }
 
 // NewIpfsFetcher creates a new IpfsFetcher
@@ -65,7 +66,7 @@ func NewIpfsFetcher(distPath string, fetchLimit int64, peers []string) *IpfsFetc
 	}
 
 	if fetchLimit != 0 {
-		if fetchLimit == -1 {
+		if fetchLimit < 0 {
 			fetchLimit = 0
 		}
 		f.limit = fetchLimit
@@ -81,21 +82,21 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 	// Initialize and start IPFS node on first call to Fetch, since the fetcher
 	// may be created by not used.
 	f.openOnce.Do(func() {
-		f.ipfsTmpDir, f.err = initTempNode(ctx)
-		if f.err != nil {
+		f.ipfsTmpDir, f.openErr = initTempNode(ctx)
+		if f.openErr != nil {
 			return
 		}
 
-		f.err = f.startTempNode()
+		f.ipfs, f.ipfsStopFunc, f.openErr = startTempNode(f.ipfsTmpDir, f.peers)
 	})
 
 	fmt.Printf("Fetching with IPFS: %q\n", filePath)
 
-	if f.err != nil {
-		return nil, f.err
+	if f.openErr != nil {
+		return nil, f.openErr
 	}
 
-	iPath, err := parsePath(filepath.Join(f.distPath, filePath))
+	iPath, err := parsePath(path.Join(f.distPath, filePath))
 	if err != nil {
 		return nil, err
 	}
@@ -118,36 +119,23 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 
 func (f *IpfsFetcher) Close() error {
 	f.closeOnce.Do(func() {
-		if f.ipfsCancel != nil {
-			// Tell ipfs to stop
-			f.ipfsCancel()
-
-			// Wait until ipfs is stopped
-			<-f.ipfsCtx.Done()
+		if f.ipfsStopFunc != nil {
+			// Tell ipfs node to stop and wait for it to stop
+			f.ipfsStopFunc()
 		}
 
 		if f.ipfsTmpDir != "" {
 			// Remove the temp ipfs dir
-			if err := os.RemoveAll(f.ipfsTmpDir); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
+			f.closeErr = os.RemoveAll(f.ipfsTmpDir)
 		}
 	})
-	return nil
+	return f.closeErr
 }
 
 func initTempNode(ctx context.Context) (string, error) {
-	defaultPath, err := migrations.IpfsDir("")
+	err := setupPlugins()
 	if err != nil {
 		return "", err
-	}
-
-	// TODO: Is there a better way to check it plugins are loaded first?
-	err = setupPlugins(defaultPath)
-	// Need to ignore errors here because plugins may already be loaded when
-	// run from ipfs daemon.
-	if err != nil {
-		fmt.Println("Ignored plugin error:", err)
 	}
 
 	identity, err := config.CreateIdentity(ioutil.Discard, []options.KeyGenerateOption{
@@ -179,11 +167,11 @@ func initTempNode(ctx context.Context) (string, error) {
 	return dir, nil
 }
 
-func (f *IpfsFetcher) startTempNode() error {
+func startTempNode(repoDir string, peers []string) (iface.CoreAPI, func(), error) {
 	// Open the repo
-	r, err := fsrepo.Open(f.ipfsTmpDir)
+	r, err := fsrepo.Open(repoDir)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// Create a new lifetime context that is used to stop the temp ipfs node
@@ -198,74 +186,90 @@ func (f *IpfsFetcher) startTempNode() error {
 	if err != nil {
 		cancel()
 		r.Close()
-		return err
+		return nil, nil, err
 	}
 
 	ifaceCore, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		cancel()
-		return err
+		return nil, nil, err
 	}
 
-	f.ipfs = ifaceCore
-	f.ipfsCancel = cancel      // stops node
-	f.ipfsCtx = node.Context() // signals when node is stopped
+	stopFunc := func() {
+		// Tell ipfs to stop
+		cancel()
+		// Wait until ipfs is stopped
+		<-node.Context().Done()
+	}
 
-	// Connect to any specified peers
-	go func() {
-		if err := connect(ctxIpfsLife, ifaceCore, f.peers); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to connect to peers: %s", err)
-		}
-	}()
+	if len(peers) != 0 {
+		// Asynchronously connect to any specified peers
+		go func() {
+			if err := connect(ctxIpfsLife, ifaceCore, peers); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to connect to peers: %s", err)
+			}
+		}()
+	}
 
-	return nil
+	return ifaceCore, stopFunc, nil
 }
 
-func parsePath(path string) (ipath.Path, error) {
-	ipfsPath := ipath.New(path)
+func parsePath(fetchPath string) (ipath.Path, error) {
+	ipfsPath := ipath.New(fetchPath)
 	if ipfsPath.IsValid() == nil {
 		return ipfsPath, nil
 	}
 
-	u, err := url.Parse(path)
+	u, err := url.Parse(fetchPath)
 	if err != nil {
-		return nil, fmt.Errorf("%q could not be parsed: %s", path, err)
+		return nil, fmt.Errorf("%q could not be parsed: %s", fetchPath, err)
 	}
 
 	switch proto := u.Scheme; proto {
 	case "ipfs", "ipld", "ipns":
-		ipfsPath = ipath.New(filepath.Join("/", proto, u.Host, u.Path))
+		ipfsPath = ipath.New(path.Join("/", proto, u.Host, u.Path))
 	case "http", "https":
 		ipfsPath = ipath.New(u.Path)
 	default:
-		return nil, fmt.Errorf("%q is not recognized as an IPFS path", path)
+		return nil, fmt.Errorf("%q is not recognized as an IPFS path", fetchPath)
 	}
 	return ipfsPath, ipfsPath.IsValid()
 }
 
-func setupPlugins(path string) error {
+func setupPlugins() error {
+	defaultPath, err := migrations.IpfsDir("")
+	if err != nil {
+		return err
+	}
+
 	// Load plugins. This will skip the repo if not available.
-	plugins, err := loader.NewPluginLoader(filepath.Join(path, "plugins"))
+	//
+	// TODO: Is there a better way to check it plugins are loaded first?
+	plugins, err := loader.NewPluginLoader(filepath.Join(defaultPath, "plugins"))
 	if err != nil {
 		return fmt.Errorf("error loading plugins: %s", err)
 	}
 
 	if err := plugins.Initialize(); err != nil {
-		return fmt.Errorf("error initializing plugins: %s", err)
+		// Need to ignore errors here because plugins may already be loaded when
+		// run from ipfs daemon.
+		fmt.Fprintln(os.Stderr, "Did not initialize plugins:", err)
+		//return fmt.Errorf("error initializing plugins: %s", err)
+		return nil
 	}
 
 	if err := plugins.Inject(); err != nil {
-		return fmt.Errorf("error initializing plugins: %s", err)
+		// Need to ignore errors here because plugins may already be loaded when
+		// run from ipfs daemon.
+		fmt.Fprintln(os.Stderr, "Did not inject plugins:", err)
+		//return fmt.Errorf("error initializing plugins: %s", err)
+		return nil
 	}
 
 	return nil
 }
 
 func connect(ctx context.Context, ipfs iface.CoreAPI, peers []string) error {
-	if len(peers) == 0 {
-		return nil
-	}
-
 	pinfos := make(map[peer.ID]*peer.AddrInfo, len(peers))
 	for _, addrStr := range peers {
 		addr, err := ma.NewMultiaddr(addrStr)
@@ -284,19 +288,27 @@ func connect(ctx context.Context, ipfs iface.CoreAPI, peers []string) error {
 		pi.Addrs = append(pi.Addrs, pii.Addrs...)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(pinfos))
+	connErrs := make(chan error)
 	for _, pi := range pinfos {
 		go func(pi *peer.AddrInfo) {
-			defer wg.Done()
-			fmt.Fprintf(os.Stderr, "attempting to connect to peer: %q\n", pi)
-			err := ipfs.Swarm().Connect(ctx, *pi)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to connect to %s: %s", pi.ID, err)
+			if err := ipfs.Swarm().Connect(ctx, *pi); err != nil {
+				connErrs <- fmt.Errorf("cound not connec to %q: %s", pi.ID, err)
+			} else {
+				connErrs <- nil
 			}
-			fmt.Fprintf(os.Stderr, "successfully connected to %s\n", pi.ID)
 		}(pi)
 	}
-	wg.Wait()
+
+	var fails []string
+	for i := 0; i < len(pinfos); i++ {
+		err := <-connErrs
+		if err != nil {
+			fails = append(fails, err.Error())
+		}
+	}
+	if len(fails) != 0 {
+		return fmt.Errorf(strings.Join(fails, ", "))
+	}
+
 	return nil
 }

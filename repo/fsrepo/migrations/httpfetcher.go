@@ -50,7 +50,7 @@ func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *Http
 	}
 
 	if fetchLimit != 0 {
-		if fetchLimit == -1 {
+		if fetchLimit < 0 {
 			fetchLimit = 0
 		}
 		f.limit = fetchLimit
@@ -63,6 +63,7 @@ func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *Http
 // site configured for this HttpFetcher.  Returns io.ReadCloser on success,
 // which caller must close.
 func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	fmt.Printf("Fetching with HTTP: %q\n", filePath)
 	gwURL := f.gateway + path.Join(f.distPath, filePath)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, gwURL, nil)
