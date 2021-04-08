@@ -314,15 +314,20 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// Fetchers are tried in the order given to NewMultiFetcher
 		multiFetcher := migrations.NewMultiFetcher(f1, f2)
 		err = migrations.RunMigration(cctx.Context(), multiFetcher, fsrepo.RepoVersion, "", false)
+		closeErr := fetchIpfs.Close()
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
 			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
-			fetchIpfs.Close()
 			return err
 		}
-		fetchIpfs.Close()
+
+		// If there was an error closing the IpfsFetcher, then write error, but
+		// do not fail because of it.
+		if closeErr != nil {
+			log.Errorf("error closing IPFS fetcher: %s", closeErr)
+		}
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
 		if err != nil {
