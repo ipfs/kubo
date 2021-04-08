@@ -48,6 +48,7 @@ const (
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
 	migrateKwd                = "migrate"
+	migrateIpfsKwd            = "ipfs"
 	mountKwd                  = "mount"
 	offlineKwd                = "offline" // global option
 	routingOptionKwd          = "routing"
@@ -173,6 +174,7 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
+		cmds.BoolOption(migrateIpfsKwd, "If true, download migrate using IPFS first. If false, try HTTP first."),
 		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
@@ -288,16 +290,38 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
+		// TODO: Get optional peers to connect to.
+		//   - Read from existing config?
+		//   - Read from cli?
+		//   - Both?
+		var peers []string
+
 		// Fetch migrations from current distribution, or location from environ
-		fetcher := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
-		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
+		fetchHttp := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
+		fetchIpfs := migrations.NewIpfsFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), 0, peers)
+
+		var (
+			f1 migrations.Fetcher = fetchHttp
+			f2 migrations.Fetcher = fetchIpfs
+		)
+
+		ipfsFirst, _ := req.Options[migrateIpfsKwd].(bool)
+		if ipfsFirst {
+			f1, f2 = f2, f1
+		}
+
+		// Fetchers are tried in the order given to NewMultiFetcher
+		multiFetcher := migrations.NewMultiFetcher(f1, f2)
+		err = migrations.RunMigration(cctx.Context(), multiFetcher, fsrepo.RepoVersion, "", false)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
 			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			fetchIpfs.Close()
 			return err
 		}
+		fetchIpfs.Close()
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
 		if err != nil {
