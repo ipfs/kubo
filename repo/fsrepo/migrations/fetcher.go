@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 )
@@ -14,6 +15,8 @@ const (
 
 	// Distribution environ variable
 	envIpfsDistPath = "IPFS_DIST_PATH"
+	// Default maximum download size
+	defaultFetchLimit = 1024 * 1024 * 512
 )
 
 type Fetcher interface {
@@ -52,6 +55,7 @@ func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (rc io.ReadCl
 			// Transferred using this fetcher
 			return
 		}
+		fmt.Fprintln(os.Stderr, "fetch error:", err)
 	}
 	return
 }

@@ -12,7 +12,6 @@ import (
 
 const (
 	defaultGatewayURL = "https://ipfs.io"
-	defaultFetchLimit = 1024 * 1024 * 512
 )
 
 // HttpFetcher fetches files over HTTP
