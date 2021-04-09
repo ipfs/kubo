@@ -46,16 +46,21 @@ func NewMultiFetcher(f ...Fetcher) Fetcher {
 
 // Fetch attempts to fetch the file at each of its fetchers until one succeeds.
 // Returns io.ReadCloser on success, which caller must close.
-func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (rc io.ReadCloser, err error) {
+func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (io.ReadCloser, error) {
+	var errs []error
 	for _, fetcher := range f.fetchers {
-		rc, err = fetcher.Fetch(ctx, ipfsPath)
+		rc, err := fetcher.Fetch(ctx, ipfsPath)
 		if err == nil {
 			// Transferred using this fetcher
-			return
+			return rc, nil
 		}
-		fmt.Fprintln(os.Stderr, "fetch error:", err)
+		errs = append(errs, err)
 	}
-	return
+	err := fmt.Errorf("fetch errors:")
+	for i := range errs {
+		err = fmt.Errorf("%s\n%d) %s", err.Error(), i, errs[i])
+	}
+	return nil, err
 }
 
 // NewLimitReadCloser returns a new io.ReadCloser with the reader wrappen in a
