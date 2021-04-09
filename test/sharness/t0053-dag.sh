@@ -26,7 +26,8 @@ test_expect_success "make an ipld object in json" '
 '
 
 test_expect_success "make an ipld object in dag-pb" '
-  printf "{\"Data\":\"thisisatest\",\"Links\":[{\"/\":\"%s\"},{\"/\":\"%s\"}]}" $HASH1 $HASH2 > ipld_object_pb
+  B64=$(cat ipld_object | base64)
+  printf "{\"Data\":{\"/\":{\"bytes\":\"%s\"}},\"Links\":[{\"/\":\"%s\"},{\"/\":\"%s\"}]}" $B64 $HASH1 $HASH2 > ipld_object_pb
 '
 
 
