@@ -157,6 +157,11 @@ func initTempNode(ctx context.Context) (string, error) {
 	// configure the temporary node
 	cfg.Routing.Type = "dhtclient"
 
+	// Disable listening for inbound connections
+	cfg.Addresses.Gateway = []string{}
+	cfg.Addresses.API = []string{}
+	cfg.Addresses.Swarm = []string{}
+
 	err = fsrepo.Init(dir, cfg)
 	if err != nil {
 		os.RemoveAll(dir)
