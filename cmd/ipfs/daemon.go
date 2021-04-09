@@ -291,15 +291,15 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		// TODO: Get optional peers to connect to.
-		//   - Read from existing config?
-		//   - Read from cli?
-		//   - Both?
-		var peers []string
+		// Read from existing config
+		cfg, err := cctx.GetConfig()
+		if err != nil {
+			return fmt.Errorf("migrate: GetConfig() failed: %s", err)
+		}
 
 		// Fetch migrations from current distribution, or location from environ
 		fetchHttp := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
-		fetchIpfs := ipfsfetcher.NewIpfsFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), 0, peers)
+		fetchIpfs := ipfsfetcher.NewIpfsFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), 0, cfg.Peering.Peers)
 
 		var (
 			f1 migrations.Fetcher = fetchHttp

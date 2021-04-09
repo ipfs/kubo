@@ -24,7 +24,6 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 const (
@@ -35,7 +34,7 @@ const (
 type IpfsFetcher struct {
 	distPath string
 	limit    int64
-	peers    []string
+	peers    []peer.AddrInfo
 
 	openOnce  sync.Once
 	openErr   error
@@ -51,7 +50,7 @@ type IpfsFetcher struct {
 //
 // Specifying "" for distPath sets the default IPNS path.
 // Specifying 0 for fetchLimit sets the default, -1 means no limit.
-func NewIpfsFetcher(distPath string, fetchLimit int64, peers []string) *IpfsFetcher {
+func NewIpfsFetcher(distPath string, fetchLimit int64, peers []peer.AddrInfo) *IpfsFetcher {
 	f := &IpfsFetcher{
 		limit:    defaultFetchLimit,
 		distPath: migrations.LatestIpfsDist,
@@ -167,7 +166,7 @@ func initTempNode(ctx context.Context) (string, error) {
 	return dir, nil
 }
 
-func startTempNode(repoDir string, peers []string) (iface.CoreAPI, func(), error) {
+func startTempNode(repoDir string, peers []peer.AddrInfo) (iface.CoreAPI, func(), error) {
 	// Open the repo
 	r, err := fsrepo.Open(repoDir)
 	if err != nil {
@@ -202,13 +201,9 @@ func startTempNode(repoDir string, peers []string) (iface.CoreAPI, func(), error
 		<-node.Context().Done()
 	}
 
+	// Parse peer addresses and asynchronously connect to peers
 	if len(peers) != 0 {
-		// Asynchronously connect to any specified peers
-		go func() {
-			if err := connect(ctxIpfsLife, ifaceCore, peers); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to connect to peers: %s", err)
-			}
-		}()
+		connectPeers(ctxIpfsLife, ifaceCore, peers)
 	}
 
 	return ifaceCore, stopFunc, nil
@@ -269,46 +264,20 @@ func setupPlugins() error {
 	return nil
 }
 
-func connect(ctx context.Context, ipfs iface.CoreAPI, peers []string) error {
-	pinfos := make(map[peer.ID]*peer.AddrInfo, len(peers))
-	for _, addrStr := range peers {
-		addr, err := ma.NewMultiaddr(addrStr)
-		if err != nil {
-			return err
+func connectPeers(ctx context.Context, ipfs iface.CoreAPI, peers []peer.AddrInfo) {
+	// Asynchronously connect to each peer
+	//
+	// Do not return an error if there is a failure to connect to a peer, since
+	// node may still be able to operate.  Only write the errors to stderr.
+	go func() {
+		for i := range peers {
+			go func(pi peer.AddrInfo) {
+				if err := ipfs.Swarm().Connect(ctx, pi); err != nil {
+					fmt.Fprintf(os.Stderr, "cound not connec to %q: %s\n", pi.ID, err)
+				} else {
+					fmt.Fprintf(os.Stderr, "conneced to peer %q\n", pi.ID)
+				}
+			}(peers[i])
 		}
-		pii, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			return err
-		}
-		pi, ok := pinfos[pii.ID]
-		if !ok {
-			pi = &peer.AddrInfo{ID: pii.ID}
-			pinfos[pi.ID] = pi
-		}
-		pi.Addrs = append(pi.Addrs, pii.Addrs...)
-	}
-
-	connErrs := make(chan error)
-	for _, pi := range pinfos {
-		go func(pi *peer.AddrInfo) {
-			if err := ipfs.Swarm().Connect(ctx, *pi); err != nil {
-				connErrs <- fmt.Errorf("cound not connec to %q: %s", pi.ID, err)
-			} else {
-				connErrs <- nil
-			}
-		}(pi)
-	}
-
-	var fails []string
-	for i := 0; i < len(pinfos); i++ {
-		err := <-connErrs
-		if err != nil {
-			fails = append(fails, err.Error())
-		}
-	}
-	if len(fails) != 0 {
-		return fmt.Errorf(strings.Join(fails, ", "))
-	}
-
-	return nil
+	}()
 }
