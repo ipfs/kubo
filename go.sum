@@ -919,8 +919,9 @@ github.com/multiformats/go-multiaddr v0.3.1 h1:1bxa+W7j9wZKTZREySx1vPMs2TqrYWjVZ
 github.com/multiformats/go-multiaddr v0.3.1/go.mod h1:uPbspcUPd5AfaP6ql3ujFY+QWzmBD8uLLL4bXW0XfGc=
 github.com/multiformats/go-multiaddr-dns v0.0.1/go.mod h1:9kWcqw/Pj6FwxAwW38n/9403szc57zJPs45fmnznu3Q=
 github.com/multiformats/go-multiaddr-dns v0.0.2/go.mod h1:9kWcqw/Pj6FwxAwW38n/9403szc57zJPs45fmnznu3Q=
-github.com/multiformats/go-multiaddr-dns v0.2.0 h1:YWJoIDwLePniH7OU5hBnDZV6SWuvJqJ0YtN6pLeH9zA=
 github.com/multiformats/go-multiaddr-dns v0.2.0/go.mod h1:TJ5pr5bBO7Y1B18djPuRsVkduhQH2YqYSbxWJzYGdK0=
+github.com/multiformats/go-multiaddr-dns v0.3.0 h1:CUSbj29Qw/grGQdQ4ttsGJcVvo9AvEEMyAIeI/YwQs0=
+github.com/multiformats/go-multiaddr-dns v0.3.0/go.mod h1:mNzQ4eTGDg0ll1N9jKPOUogZPoJ30W8a7zk66FQPpdQ=
 github.com/multiformats/go-multiaddr-fmt v0.0.1/go.mod h1:aBYjqL4T/7j4Qx+R73XSv/8JsgnRFlf0w2KGLCmXl3Q=
 github.com/multiformats/go-multiaddr-fmt v0.1.0 h1:WLEFClPycPkp4fnIzoFoV9FVd49/eQsuaL3/CWe167E=
 github.com/multiformats/go-multiaddr-fmt v0.1.0/go.mod h1:hGtDIW4PU4BqJ50gW2quDuPVjyWNZxToGUh/HwTZYJo=
