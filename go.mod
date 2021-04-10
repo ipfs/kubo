@@ -20,7 +20,7 @@ require (
 	github.com/ipfs/go-blockservice v0.1.4
 	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-cidutil v0.0.2
-	github.com/ipfs/go-dagwriter v0.0.0-20210330014411-6fb9a511eaff
+	github.com/ipfs/go-dagwriter v0.0.0-20210410024744-41183870fd1b
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.2.6
@@ -58,7 +58,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-unixfsnode v1.1.1
 	github.com/ipfs/go-verifcid v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210405202020-ca57b3c9337b
+	github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210410030100-56c2e678cb62
 	github.com/ipld/go-car v0.2.1-0.20210312021557-7afab98d034f
 	github.com/ipld/go-codec-dagpb v1.2.1-0.20210405170603-d0b86f7623c2
 	github.com/ipld/go-ipld-prime v0.9.1-0.20210402181957-7406578571d1

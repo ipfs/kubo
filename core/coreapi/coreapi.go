@@ -20,6 +20,7 @@ import (
 
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-dagwriter"
+	bsdagwriter "github.com/ipfs/go-dagwriter/impl/blockservice"
 	"github.com/ipfs/go-fetcher"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
@@ -29,7 +30,6 @@ import (
 	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-unixfsnode"
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -60,7 +60,7 @@ type CoreAPI struct {
 
 	blocks          bserv.BlockService
 	dag             ipld.DAGService
-	fetcherConfig   fetcher.FetcherConfig
+	fetcherFactory  fetcher.Factory
 	dagWriter       dagwriter.DagWritingService
 	resolver        *resolver.Resolver
 	peerstore       pstore.Peerstore
@@ -112,14 +112,14 @@ func (api *CoreAPI) Dag() coreiface.APIDagService {
 }
 
 type nodeAPI struct {
-	fetcher.FetcherConfig
+	fetcher.Factory
 	dagwriter.DagWritingService
 }
 
 // Node returns the Node interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Node() coreiface.NodeAPI {
 	return &nodeAPI{
-		api.fetcherConfig,
+		api.fetcherFactory,
 		api.dagWriter,
 	}
 }
@@ -184,10 +184,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		baseBlocks: n.BaseBlocks,
 		pinning:    n.Pinning,
 
-		blocks:   n.Blocks,
-		dag:      n.DAG,
-		resolver: n.Resolver,
-		fetcherConfig: n.FetcherFactory,
+		blocks:         n.Blocks,
+		dag:            n.DAG,
+		resolver:       n.Resolver,
+		fetcherFactory: n.FetcherFactory,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,
@@ -204,7 +204,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		parentOpts: settings,
 	}
 
-	subApi.dagWriter = dagwriter.NewDagWriter(subApi.blocks)
+	subApi.dagWriter = bsdagwriter.NewDagWriter(subApi.blocks)
 
 	subApi.checkOnline = func(allowOffline bool) error {
 		if !n.IsOnline && !allowOffline {
