@@ -29,7 +29,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
-	github.com/ipfs/go-ipfs-config v0.12.0
+	github.com/ipfs/go-ipfs-config v0.12.1-0.20210415091656-d75a8c68b4c4
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.8
@@ -48,7 +48,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.2
-	github.com/ipfs/go-namesys v0.1.1
+	github.com/ipfs/go-namesys v0.1.2-0.20210423173001-2454122ef30e
 	github.com/ipfs/go-path v0.0.9
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.2.5
