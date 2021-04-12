@@ -11,7 +11,7 @@ var runIpfsTest = flag.Bool("ipfstest", false, "Run IpfsFetcher tests")
 
 func TestIpfsFetcher(t *testing.T) {
 	if !*runIpfsTest {
-		t.Skip("manually-run dev test, use '-ipfstest' flage to run")
+		t.Skip("manually-run dev test, use the '-ipfstest' flag to run")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

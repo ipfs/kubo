@@ -63,8 +63,8 @@ func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *Http
 // site configured for this HttpFetcher.  Returns io.ReadCloser on success,
 // which caller must close.
 func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
-	fmt.Printf("Fetching with HTTP: %q\n", filePath)
 	gwURL := f.gateway + path.Join(f.distPath, filePath)
+	fmt.Printf("Fetching with HTTP: %q\n", gwURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, gwURL, nil)
 	if err != nil {
@@ -93,4 +93,8 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 		return NewLimitReadCloser(resp.Body, f.limit), nil
 	}
 	return resp.Body, nil
+}
+
+func (f *HttpFetcher) Close() error {
+	return nil
 }

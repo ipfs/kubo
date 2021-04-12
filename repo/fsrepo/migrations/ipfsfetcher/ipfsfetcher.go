@@ -228,10 +228,8 @@ func parsePath(fetchPath string) (ipath.Path, error) {
 	switch proto := u.Scheme; proto {
 	case "ipfs", "ipld", "ipns":
 		ipfsPath = ipath.New(path.Join("/", proto, u.Host, u.Path))
-	case "http", "https":
-		ipfsPath = ipath.New(u.Path)
 	default:
-		return nil, fmt.Errorf("%q is not recognized as an IPFS path", fetchPath)
+		return nil, fmt.Errorf("%q is not an IPFS path", fetchPath)
 	}
 	return ipfsPath, ipfsPath.IsValid()
 }

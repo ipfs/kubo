@@ -27,7 +27,6 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -49,7 +48,8 @@ const (
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
 	migrateKwd                = "migrate"
-	migrateIpfsKwd            = "ipfs"
+	migrateDownloadKwd        = "download-migration"
+	migrateKeepKwd            = "keep-migration"
 	mountKwd                  = "mount"
 	offlineKwd                = "offline" // global option
 	routingOptionKwd          = "routing"
@@ -175,7 +175,8 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(migrateIpfsKwd, "If true, download migrate using IPFS first. If false, try HTTP first."),
+		cmds.StringOption(migrateDownloadKwd, "Comma-separated list of \"http\", \"ipfs\", or custom gateway URL"),
+		cmds.StringOption(migrateKeepKwd, "What to do with downloaded migrations: \"keep\", \"pin\", \"discard\". Default: \"keep\""),
 		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
@@ -271,6 +272,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
+	var migrationDL migrations.Downloads
+	var keepMigrations, pinMigrations bool
+
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo, err := fsrepo.Open(cctx.ConfigRoot)
@@ -291,30 +295,33 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		// Read from existing config
-		cfg, err := cctx.GetConfig()
+		switch keep, _ := req.Options[migrateKeepKwd].(string); keep {
+		case "", "keep":
+			keepMigrations = true
+		case "pin":
+			pinMigrations = true
+		case "discard":
+		default:
+			return errors.New("unrecognized value for %s, must be 'keep', 'pin', or 'discard'")
+		}
+
+		// Try to read existing config, but do not fail if it cannot be read.
+		cfg, _ := cctx.GetConfig()
+
+		// Get migration fetcher(s) according to download policy
+		policy, _ := req.Options[migrateDownloadKwd].(string)
+		fetcher, err := getMigrationFetcher(policy, cfg)
 		if err != nil {
-			return fmt.Errorf("migrate: GetConfig() failed: %s", err)
+			return err
 		}
 
-		// Fetch migrations from current distribution, or location from environ
-		fetchHttp := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
-		fetchIpfs := ipfsfetcher.NewIpfsFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), 0, cfg.Peering.Peers)
-
-		var (
-			f1 migrations.Fetcher = fetchHttp
-			f2 migrations.Fetcher = fetchIpfs
-		)
-
-		ipfsFirst, _ := req.Options[migrateIpfsKwd].(bool)
-		if ipfsFirst {
-			f1, f2 = f2, f1
+		if keepMigrations || pinMigrations {
+			migrationDL, err = migrations.RunMigrationDL(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
+			defer migrationDL.Cleanup()
+		} else {
+			err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
 		}
-
-		// Fetchers are tried in the order given to NewMultiFetcher
-		multiFetcher := migrations.NewMultiFetcher(f1, f2)
-		err = migrations.RunMigration(cctx.Context(), multiFetcher, fsrepo.RepoVersion, "", false)
-		closeErr := fetchIpfs.Close()
+		closeErr := fetcher.Close()
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
@@ -448,6 +455,15 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	gcErrc, err := maybeRunGC(req, node)
 	if err != nil {
 		return err
+	}
+
+	// Add any files downloaded by migration.
+	if len(migrationDL.Files) != 0 {
+		err = addMigrationBins(cctx.Context(), node, migrationDL.Files, pinMigrations)
+		if err != nil {
+			return err
+		}
+		migrationDL.Cleanup()
 	}
 
 	// construct http gateway
