@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/libp2p/go-libp2p-record"
+	madns "github.com/multiformats/go-multiaddr-dns"
 
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-namesys"
@@ -27,9 +28,9 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 }
 
 // Namesys creates new name system
-func Namesys(cacheSize int) func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
-	return func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
-		return namesys.NewNameSystem(rt, repo.Datastore(), cacheSize), nil
+func Namesys(cacheSize int) func(rt routing.Routing, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+	return func(rt routing.Routing, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+		return namesys.NewNameSystem(rt, repo.Datastore(), rslv, cacheSize), nil
 	}
 }
 

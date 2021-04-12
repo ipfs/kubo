@@ -36,6 +36,7 @@ import (
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
+	madns "github.com/multiformats/go-multiaddr-dns"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/node"
@@ -62,8 +63,9 @@ type CoreAPI struct {
 	recordValidator record.Validator
 	exchange        exchange.Interface
 
-	namesys namesys.NameSystem
-	routing routing.Routing
+	namesys     namesys.NameSystem
+	routing     routing.Routing
+	dnsResolver *madns.Resolver
 
 	provider provider.System
 
@@ -174,6 +176,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		recordValidator: n.RecordValidator,
 		exchange:        n.Exchange,
 		routing:         n.Routing,
+		dnsResolver:     n.DNSResolver,
 
 		provider: n.Provider,
 
@@ -212,7 +215,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		}
 
 		subApi.routing = offlineroute.NewOfflineRouter(subApi.repo.Datastore(), subApi.recordValidator)
-		subApi.namesys = namesys.NewNameSystem(subApi.routing, subApi.repo.Datastore(), cs)
+		subApi.namesys = namesys.NewNameSystem(subApi.routing, subApi.repo.Datastore(), subApi.dnsResolver, cs)
 		subApi.provider = provider.NewOfflineProvider()
 
 		subApi.peerstore = nil

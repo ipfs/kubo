@@ -40,6 +40,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
+	madns "github.com/multiformats/go-multiaddr-dns"
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
@@ -88,6 +89,7 @@ type IpfsNode struct {
 	Filters       *ma.Filters             `optional:"true"`
 	Bootstrapper  io.Closer               `optional:"true"` // the periodic bootstrapper
 	Routing       routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
+	DNSResolver   *madns.Resolver         // the DNS resolver
 	Exchange      exchange.Interface      // the block exchange + strategy (bitswap)
 	Namesys       namesys.NameSystem      // the name system, resolves paths to hashes
 	Provider      provider.System         // the value provider system
