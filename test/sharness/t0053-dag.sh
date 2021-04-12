@@ -25,9 +25,8 @@ test_expect_success "make an ipld object in json" '
   printf "{\"hello\":\"world\",\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"magic\":{\"/\":\"%s\"},\"sub\":{\"dict\":\"ionary\",\"beep\":[0,\"bop\"]}}" $HASH1 $HASH2 $HASH3 > ipld_object
 '
 
-test_expect_success "make an ipld object in dag-pb" '
-  B64=$(cat ipld_object | base64)
-  printf "{\"Data\":{\"/\":{\"bytes\":\"%s\"}},\"Links\":[{\"/\":\"%s\"},{\"/\":\"%s\"}]}" $B64 $HASH1 $HASH2 > ipld_object_pb
+test_expect_success "make an ipld object in dag-json" '
+  echo "omREYXRhT6JkRGF0YWF4ZUxpbmtzgGVMaW5rc4A=" | base64 -d > ipld_object_pb
 '
 
 
@@ -37,7 +36,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add an ipld object using dag-json" '
-    IPLDPBHASH=$(cat ipld_object_pb | ipfs dag put --input-enc=dag-json -f dag-pb)
+    IPLDPBHASH=$(cat ipld_object_pb | ipfs dag put --input-enc=dag-cbor -f dag-pb)
   '
 
   test_expect_success "output looks correct" '
