@@ -44,6 +44,7 @@ DATA STRUCTURE COMMANDS
   files         Interact with files as if they were a unix filesystem
   object        Interact with dag-pb objects (deprecated, use 'dag' or 'files')
   block         Interact with raw blocks in the datastore
+  cid           Convert and discover properties of CIDs
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
@@ -65,13 +66,14 @@ NETWORK COMMANDS
   dht           Query the DHT for values or peers
   ping          Measure the latency of a connection
   diag          Print diagnostics
+  bitswap       Inspect bitswap state
+  pubsub        Send and receive messages via pubsub
 
 TOOL COMMANDS
   config        Manage configuration
   version       Show IPFS version information
   update        Download and apply go-ipfs updates
   commands      List all available commands
-  cid           Convert and discover properties of CIDs
   log           Manage and show logs of running daemon
 
 Use 'ipfs <command> --help' to learn more about each command.
