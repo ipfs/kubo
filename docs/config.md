@@ -695,6 +695,7 @@ If additional config is provided for those hostnames, it will be merged on top o
 ```
 
 It is also possible to remove a default by setting it to `null`.
+
 For example, to disable subdomain gateway on `localhost`
 and make that hostname act the same as `127.0.0.1`:
 
@@ -715,13 +716,19 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
-   **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
-   **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
-   `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
-   `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
-   **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
+   - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
+   
+     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
+     
+   - **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
+  
+     `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
+     
+     `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
+     
+   - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
+   
+     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
 
 
 * Public [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
@@ -741,12 +748,11 @@ Below is a list of the most common public gateway setups.
   * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
 * Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).
-  Disable fetching of remote data (`NoFetch: true`)
-  and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
+
+  Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
   is already present on the node), without exposing any content-addressing `Paths`:
-      "NoFetch": true,
-      "NoDNSLink": true,
+  
    ```console
    $ ipfs config --json Gateway.NoFetch true
    $ ipfs config --json Gateway.NoDNSLink true
@@ -1428,27 +1434,29 @@ Type: `priority`
 
 ## `DNS`
 
-Options for configuring DNS resolution.
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
 
 ## `DNS.Resolvers`
 
-Map of FQDNs to resolver URLs.
+Map of [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) to custom resolver URLs.
 
-This option allows you to specify domain-specific resolvers for custom DNS resolution.
-Currently only https URLs are supported, using DNS over HTTPS.
-
-The default resolver can be overriden by specifying a URL for `.`.
+- This allows for overriding the default cleartext DNS resolver provided by the operating system,
+  and using different resolvers per domain or TLD (including ones from alternative, non-ICANN naming systems).
+- Currently only `https://` URLs for [DNS over HTTPS](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported.
+- The default resolver can be overriden by adding an entry for the DNS root indicated by  `.`
 
 Example:
-```
+```json
+{
   "DNS": {
     "Resolvers": {
       "eth.": "https://different-ens.example.net/dns-query",
-      "crypto.": "https://unstoppablesomething.example.com/dns-query",
+      "crypto.": "https://resolver.unstoppable.io/dns-query",
       "libre.": "https://ns1.iriseden.fr/dns-query",
       ".": "https://doh-ch.blahdns.com:4443/dns-query"
     }
   }
+}
 ```
 
 Default: `null`
