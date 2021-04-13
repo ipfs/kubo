@@ -26,7 +26,7 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 
 	hasEth := false
 	for domain, url := range cfg.DNS.Resolvers {
-		if !dns.IsFqdn(domain) {
+		if domain != "." && !dns.IsFqdn(domain) {
 			return nil, fmt.Errorf("invalid domain %s; must be FQDN", domain)
 		}
 
