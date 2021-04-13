@@ -69,7 +69,7 @@ func TestInitIpfsFetcher(t *testing.T) {
 		t.Errorf("failed to init ipfs node: %s", f.openErr)
 	} else {
 		// Start ipfs node
-		f.ipfs, stopFunc, f.openErr = startTempNode(f.ipfsTmpDir, f.peers)
+		f.ipfs, stopFunc, f.openErr = startTempNode(f.ipfsTmpDir, nil)
 		if f.openErr != nil {
 			t.Errorf("failed to start ipfs node: %s", f.openErr)
 			return
