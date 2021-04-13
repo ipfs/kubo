@@ -23,12 +23,7 @@ import (
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 )
 
-var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"}
-
-var pathGatewaySpec = &config.GatewaySpec{
-	Paths:         defaultPaths,
-	UseSubdomains: false,
-}
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
 
 var subdomainGatewaySpec = &config.GatewaySpec{
 	Paths:         defaultPaths,
@@ -36,10 +31,7 @@ var subdomainGatewaySpec = &config.GatewaySpec{
 }
 
 var defaultKnownGateways = map[string]*config.GatewaySpec{
-	"localhost":       subdomainGatewaySpec,
-	"ipfs.io":         pathGatewaySpec,
-	"gateway.ipfs.io": pathGatewaySpec,
-	"dweb.link":       subdomainGatewaySpec,
+	"localhost": subdomainGatewaySpec,
 }
 
 // Label's max length in DNS (https://tools.ietf.org/html/rfc1034#page-7)
