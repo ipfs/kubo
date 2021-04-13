@@ -50,6 +50,7 @@ const (
 	migrateKwd                = "migrate"
 	migrateDownloadKwd        = "download-migration"
 	migrateKeepKwd            = "keep-migration"
+	migratePeersKwd           = "migration-peers"
 	mountKwd                  = "mount"
 	offlineKwd                = "offline" // global option
 	routingOptionKwd          = "routing"
@@ -177,6 +178,7 @@ Headers.
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
 		cmds.StringOption(migrateDownloadKwd, "Comma-separated list of \"http\", \"ipfs\", or custom gateway URL"),
 		cmds.StringOption(migrateKeepKwd, "What to do with downloaded migrations: \"keep\", \"pin\", \"discard\". Default: \"keep\""),
+		cmds.StringOption(migratePeersKwd, "IPFS peers to connect to when downloading migration binaries. Comma-separated list of addresses like those returned by ipfs id"),
 		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
@@ -306,11 +308,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 
 		// Try to read existing config, but do not fail if it cannot be read.
-		cfg, _ := cctx.GetConfig()
+		peers, _ := req.Options[migratePeersKwd].(string)
 
 		// Get migration fetcher(s) according to download policy
 		policy, _ := req.Options[migrateDownloadKwd].(string)
-		fetcher, err := getMigrationFetcher(policy, cfg)
+		fetcher, err := getMigrationFetcher(policy, peers)
 		if err != nil {
 			return err
 		}

@@ -34,7 +34,7 @@ const (
 type IpfsFetcher struct {
 	distPath string
 	limit    int64
-	peers    []peer.AddrInfo
+	getPeers func() []peer.AddrInfo
 
 	openOnce  sync.Once
 	openErr   error
@@ -50,11 +50,14 @@ type IpfsFetcher struct {
 //
 // Specifying "" for distPath sets the default IPNS path.
 // Specifying 0 for fetchLimit sets the default, -1 means no limit.
-func NewIpfsFetcher(distPath string, fetchLimit int64, peers []peer.AddrInfo) *IpfsFetcher {
+//
+// The getPeers function, if not nil, is called to get the peers to connect to
+// when the temporary node is started.
+func NewIpfsFetcher(distPath string, fetchLimit int64, getPeers func() []peer.AddrInfo) *IpfsFetcher {
 	f := &IpfsFetcher{
 		limit:    defaultFetchLimit,
 		distPath: migrations.LatestIpfsDist,
-		peers:    peers,
+		getPeers: getPeers,
 	}
 
 	if distPath != "" {
@@ -86,7 +89,11 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 			return
 		}
 
-		f.ipfs, f.ipfsStopFunc, f.openErr = startTempNode(f.ipfsTmpDir, f.peers)
+		var peers []peer.AddrInfo
+		if f.getPeers != nil {
+			peers = f.getPeers()
+		}
+		f.ipfs, f.ipfsStopFunc, f.openErr = startTempNode(f.ipfsTmpDir, peers)
 	})
 
 	fmt.Printf("Fetching with IPFS: %q\n", filePath)

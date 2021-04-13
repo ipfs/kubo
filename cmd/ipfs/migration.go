@@ -9,13 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 	"github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/multiformats/go-multiaddr"
 )
 
 // getMigrationFetcher creates one or more fetchers according to
@@ -26,10 +27,7 @@ import (
 // HttpFetcher.  Any other string is treated as a gateway URL to use with
 // another HttpFetcher.  If downloadPolicy is is an empty string, then the
 // default policy ("http,ipfs")is used.
-//
-// If the downloadPolicy requests an IpfsFetcher, and cfg is not nil, then an
-// attempt is made to read the peers from the config.
-func getMigrationFetcher(downloadPolicy string, cfg *config.Config) (migrations.Fetcher, error) {
+func getMigrationFetcher(downloadPolicy string, peers string) (migrations.Fetcher, error) {
 	const httpUserAgent = "go-ipfs"
 
 	var policyParts []string
@@ -53,11 +51,18 @@ func getMigrationFetcher(downloadPolicy string, cfg *config.Config) (migrations.
 
 		switch src {
 		case "ipfs":
-			if cfg != nil {
-				fetchers = append(fetchers, ipfsfetcher.NewIpfsFetcher(fetchDistPath, 0, cfg.Peering.Peers))
-			} else {
-				fetchers = append(fetchers, ipfsfetcher.NewIpfsFetcher(fetchDistPath, 0, nil))
+			var peerFunc func() []peer.AddrInfo
+			if peers != "" {
+				peerFunc = func() []peer.AddrInfo {
+					pi, e := parsePeers(peers)
+					if e != nil {
+						fmt.Fprintln(os.Stderr, "cannot parse peers:", e)
+						return nil
+					}
+					return pi
+				}
 			}
+			fetchers = append(fetchers, ipfsfetcher.NewIpfsFetcher(fetchDistPath, 0, peerFunc))
 		case "http":
 			fetchers = append(fetchers, migrations.NewHttpFetcher(fetchDistPath, "", httpUserAgent, 0))
 		default:
@@ -108,4 +113,48 @@ func addMigrationBins(ctx context.Context, node *core.IpfsNode, binPaths []strin
 	}
 
 	return nil
+}
+
+func parsePeers(migrationPeers string) ([]peer.AddrInfo, error) {
+	var peers []string
+	for _, p := range strings.Split(migrationPeers, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			peers = append(peers, p)
+		}
+	}
+
+	if len(peers) == 0 {
+		return nil, nil
+	}
+
+	// Parse the peer addresses
+	pinfos := make(map[peer.ID]*peer.AddrInfo, len(peers))
+	for _, addrStr := range peers {
+		addr, err := multiaddr.NewMultiaddr(addrStr)
+		if err != nil {
+			return nil, err
+		}
+		pii, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			return nil, err
+		}
+		pi, ok := pinfos[pii.ID]
+		if !ok {
+			pi = &peer.AddrInfo{ID: pii.ID}
+			pinfos[pi.ID] = pi
+		}
+		pi.Addrs = append(pi.Addrs, pii.Addrs...)
+	}
+	peerAddrs := make([]peer.AddrInfo, len(pinfos))
+	var i int
+	for _, pi := range pinfos {
+		peerAddrs[i] = peer.AddrInfo{
+			ID:    pi.ID,
+			Addrs: pi.Addrs,
+		}
+		i++
+	}
+
+	return peerAddrs, nil
 }
