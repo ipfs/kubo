@@ -476,7 +476,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	// Add any files downloaded by migration.
 	if keepMigrations {
-		addMigrations(cctx.Context(), node, fetcher, pinMigrations)
+		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Could not add migragion to IPFS:", err)
+		}
 		fetcher.Close()
 		os.RemoveAll(migrations.DownloadDirectory)
 		migrations.DownloadDirectory = ""

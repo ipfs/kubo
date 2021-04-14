@@ -68,16 +68,15 @@ func TestParsePeers(t *testing.T) {
 		t.Fatal("expected 2 peers, got:", len(peers))
 	}
 
-	if peers[0].ID.String() != "12D3KooWGC6TvWhfajpgX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5" {
-		t.Fatal("wrong peer id:", peers[0].ID)
-	}
-	if peers[0].Addrs[0].String() != "/ip4/127.0.0.1/tcp/4001" {
-		t.Fatal("wrong peer addr")
-	}
-	if peers[1].ID.String() != "12D3KooWGC6TvWhfagifX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5" {
-		t.Fatal("wrong peer id:", peers[1].ID)
-	}
-	if peers[1].Addrs[0].String() != "/ip4/127.0.0.1/udp/4001/quic" {
-		t.Fatal("wrong peer addr")
+	for i := range peers {
+		pid := peers[i].ID.String()
+		if pid != "12D3KooWGC6TvWhfajpgX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5" &&
+			pid != "12D3KooWGC6TvWhfagifX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5" {
+			t.Fatal("wrong peer id:", pid)
+		}
+		addr := peers[i].Addrs[0].String()
+		if addr != "/ip4/127.0.0.1/tcp/4001" && addr != "/ip4/127.0.0.1/udp/4001/quic" {
+			t.Fatal("wrong peer addr:", addr)
+		}
 	}
 }

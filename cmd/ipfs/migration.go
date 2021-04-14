@@ -16,6 +16,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -174,9 +175,9 @@ func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.A
 
 	// Connect to temp node
 	if err := ipfs.Swarm().Connect(ctx, peerInfo); err != nil {
-		return fmt.Errorf("cound not connec to migration peer %q: %s", peerInfo.ID, err)
+		return fmt.Errorf("could not connect to migration peer %q: %s", peerInfo.ID, err)
 	}
-	fmt.Printf("conneced to migration peer %q\n", peerInfo)
+	fmt.Printf("connected to migration peer %q\n", peerInfo)
 
 	if pin {
 		pinApi := ipfs.Pin()
@@ -194,23 +195,37 @@ func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.A
 
 	// Add migration files
 	for _, ipfsPath := range paths {
-		nd, err := ufs.Get(ctx, ipfsPath)
+		err = ipfsGet(ctx, ufs, ipfsPath)
 		if err != nil {
 			return err
 		}
-
-		fnd, ok := nd.(files.File)
-		if !ok {
-			return fmt.Errorf("not a file node: %q", ipfsPath)
-		}
-		io.Copy(ioutil.Discard, fnd)
-		nd.Close()
-		fmt.Printf("Added migration file: %q\n", ipfsPath)
 	}
 
 	return nil
 }
 
+func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath ipath.Path) error {
+	nd, err := ufs.Get(ctx, ipfsPath)
+	if err != nil {
+		return err
+	}
+	defer nd.Close()
+
+	fnd, ok := nd.(files.File)
+	if !ok {
+		return fmt.Errorf("not a file node: %q", ipfsPath)
+	}
+	_, err = io.Copy(ioutil.Discard, fnd)
+	if err != nil {
+		return fmt.Errorf("could not read migration: %w", err)
+	}
+	fmt.Printf("Added migration file: %q\n", ipfsPath)
+	return nil
+}
+
+// parsePeers parses multiaddr strings in the form:
+// /<ip-proto>/<ip-addr>/<transport>/<port>/p2p/<node-id>,..
+// and parses them into a list of peer.AddrInfo, in no particular order
 func parsePeers(migrationPeers string) ([]peer.AddrInfo, error) {
 	var peers []string
 	for _, p := range strings.Split(migrationPeers, ",") {
