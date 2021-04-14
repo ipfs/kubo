@@ -59,7 +59,7 @@ test_expect_success "output looks good" '
 
 # Daemon exits with 1 after the prompt gets "n" when asking to migrate. 
 test_expect_success "'ipfs daemon' prompts to auto migrate" '
-  test_expect_code 1 bash -c "echo n | ipfs daemon > daemon_out 2> daemon_err"
+  test_expect_code 1 ipfs daemon > daemon_out 2> daemon_err
 '
 
 test_expect_success "output looks good" '
