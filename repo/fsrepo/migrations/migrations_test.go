@@ -2,7 +2,9 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -126,7 +128,10 @@ func TestFetchMigrations(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	needed := []string{"fs-repo-1-to-2", "fs-repo-2-to-3"}
-	fetched, err := fetchMigrations(ctx, fetcher, needed, tmpDir)
+	buf := new(strings.Builder)
+	buf.Grow(256)
+	logger := log.New(buf, "", 0)
+	fetched, err := fetchMigrations(ctx, fetcher, needed, tmpDir, logger)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,6 +140,18 @@ func TestFetchMigrations(t *testing.T) {
 		_, err = os.Stat(bin)
 		if os.IsNotExist(err) {
 			t.Error("expected file to exist:", bin)
+		}
+	}
+
+	// Check expected log output
+	for _, mig := range needed {
+		logOut := fmt.Sprintf("Downloading migration: %s", mig)
+		if !strings.Contains(buf.String(), logOut) {
+			t.Fatalf("did not find expected log output %q", logOut)
+		}
+		logOut = fmt.Sprintf("Downloaded and unpacked migration: %s", filepath.Join(tmpDir, mig))
+		if !strings.Contains(buf.String(), logOut) {
+			t.Fatalf("did not find expected log output %q", logOut)
 		}
 	}
 }

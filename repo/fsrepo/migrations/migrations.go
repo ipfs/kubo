@@ -38,7 +38,9 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 		return fmt.Errorf("downgrade not allowed from %d to %d", fromVer, targetVer)
 	}
 
-	log.Print("Looking for suitable migration binaries.")
+	logger := log.New(os.Stdout, "", 0)
+
+	logger.Print("Looking for suitable migration binaries.")
 
 	migrations, binPaths, err := findMigrations(ctx, fromVer, targetVer)
 	if err != nil {
@@ -54,7 +56,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 			}
 		}
 
-		log.Println("Need", len(missing), "migrations, downloading.")
+		logger.Println("Need", len(missing), "migrations, downloading.")
 
 		tmpDir, err := ioutil.TempDir("", "migrations")
 		if err != nil {
@@ -62,9 +64,9 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 		}
 		defer os.RemoveAll(tmpDir)
 
-		fetched, err := fetchMigrations(ctx, fetcher, missing, tmpDir)
+		fetched, err := fetchMigrations(ctx, fetcher, missing, tmpDir, logger)
 		if err != nil {
-			log.Print("Failed to download migrations.")
+			logger.Print("Failed to download migrations.")
 			return err
 		}
 		for i := range missing {
@@ -77,13 +79,13 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 		revert = true
 	}
 	for _, migration := range migrations {
-		log.Println("Running migration", migration, "...")
-		err = runMigration(ctx, binPaths[migration], ipfsDir, revert)
+		logger.Println("Running migration", migration, "...")
+		err = runMigration(ctx, binPaths[migration], ipfsDir, revert, logger)
 		if err != nil {
 			return fmt.Errorf("migration %s failed: %s", migration, err)
 		}
 	}
-	log.Printf("Success: fs-repo migrated to version %d.\n", targetVer)
+	logger.Printf("Success: fs-repo migrated to version %d.\n", targetVer)
 
 	return nil
 }
@@ -142,14 +144,14 @@ func findMigrations(ctx context.Context, from, to int) ([]string, map[string]str
 	return migrations, binPaths, nil
 }
 
-func runMigration(ctx context.Context, binPath, ipfsDir string, revert bool) error {
+func runMigration(ctx context.Context, binPath, ipfsDir string, revert bool, logger *log.Logger) error {
 	pathArg := fmt.Sprintf("-path=%s", ipfsDir)
 	var cmd *exec.Cmd
 	if revert {
-		log.Println("  => Running:", binPath, pathArg, "-verbose=true -revert")
+		logger.Println("  => Running:", binPath, pathArg, "-verbose=true -revert")
 		cmd = exec.CommandContext(ctx, binPath, pathArg, "-verbose=true", "-revert")
 	} else {
-		log.Println("  => Running:", binPath, pathArg, "-verbose=true")
+		logger.Println("  => Running:", binPath, pathArg, "-verbose=true")
 		cmd = exec.CommandContext(ctx, binPath, pathArg, "-verbose=true")
 	}
 	cmd.Stdout = os.Stdout
@@ -159,7 +161,7 @@ func runMigration(ctx context.Context, binPath, ipfsDir string, revert bool) err
 
 // fetchMigrations downloads the requested migrations, and returns a slice with
 // the paths of each binary, in the same order specified by needed.
-func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, destDir string) ([]string, error) {
+func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, destDir string, logger *log.Logger) ([]string, error) {
 	osv, err := osWithVariant()
 	if err != nil {
 		return nil, err
@@ -173,21 +175,21 @@ func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, dest
 	bins := make([]string, len(needed))
 	// Download and unpack all requested migrations concurrently.
 	for i, name := range needed {
-		log.Printf("Downloading migration: %s...", name)
+		logger.Printf("Downloading migration: %s...", name)
 		go func(i int, name string) {
 			defer wg.Done()
 			dist := path.Join(distMigsRoot, name)
 			ver, err := LatestDistVersion(ctx, fetcher, dist, false)
 			if err != nil {
-				log.Printf("could not get latest version of migration %s: %s", name, err)
+				logger.Printf("could not get latest version of migration %s: %s", name, err)
 				return
 			}
 			loc, err := FetchBinary(ctx, fetcher, dist, ver, name, destDir)
 			if err != nil {
-				log.Printf("could not download %s: %s", name, err)
+				logger.Printf("could not download %s: %s", name, err)
 				return
 			}
-			log.Printf("Downloaded and unpacked migration: %s (%s)", loc, ver)
+			logger.Printf("Downloaded and unpacked migration: %s (%s)", loc, ver)
 			bins[i] = loc
 		}(i, name)
 	}
