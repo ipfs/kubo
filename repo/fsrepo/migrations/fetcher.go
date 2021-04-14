@@ -75,6 +75,10 @@ func (f *MultiFetcher) Close() error {
 	return errs
 }
 
+func (f *MultiFetcher) LastUsed() Fetcher {
+	return f.fetchers[0]
+}
+
 func (f *MultiFetcher) Len() int {
 	return len(f.fetchers)
 }

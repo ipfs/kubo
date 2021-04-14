@@ -23,7 +23,6 @@ func unpackArchive(arcPath, atype, root, name, out string) error {
 	if err != nil {
 		return err
 	}
-	os.Remove(arcPath)
 	return nil
 }
 

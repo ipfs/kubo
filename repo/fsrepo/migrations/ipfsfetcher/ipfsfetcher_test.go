@@ -58,27 +58,32 @@ func TestInitIpfsFetcher(t *testing.T) {
 	f := NewIpfsFetcher("", 0, nil)
 	defer f.Close()
 
-	var (
-		stopFunc       func()
-		stopFuncCalled bool
-	)
-
 	// Init ipfs repo
 	f.ipfsTmpDir, f.openErr = initTempNode(ctx)
 	if f.openErr != nil {
-		t.Errorf("failed to init ipfs node: %s", f.openErr)
-	} else {
-		// Start ipfs node
-		f.ipfs, stopFunc, f.openErr = startTempNode(f.ipfsTmpDir, nil)
-		if f.openErr != nil {
-			t.Errorf("failed to start ipfs node: %s", f.openErr)
-			return
-		}
+		t.Fatalf("failed to init ipfs node: %s", f.openErr)
+	}
 
-		f.ipfsStopFunc = func() {
-			stopFuncCalled = true
-			stopFunc()
-		}
+	// Start ipfs node
+	f.openErr = f.startTempNode(nil)
+	if f.openErr != nil {
+		t.Errorf("failed to start ipfs node: %s", f.openErr)
+		return
+	}
+
+	var stopFuncCalled bool
+	stopFunc := f.ipfsStopFunc
+	f.ipfsStopFunc = func() {
+		stopFuncCalled = true
+		stopFunc()
+	}
+
+	addrInfo := f.AddrInfo()
+	if string(addrInfo.ID) == "" {
+		t.Error("AddInfo ID not set")
+	}
+	if len(addrInfo.Addrs) == 0 {
+		t.Error("AddInfo Addrs not set")
 	}
 
 	err := f.Close()

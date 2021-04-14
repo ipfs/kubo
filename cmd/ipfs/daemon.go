@@ -4,6 +4,7 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -274,8 +275,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
-	var migrationDL migrations.Downloads
 	var keepMigrations, pinMigrations bool
+	var fetcher migrations.Fetcher
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
@@ -298,10 +299,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 
 		switch keep, _ := req.Options[migrateKeepKwd].(string); keep {
-		case "", "keep":
-			keepMigrations = true
 		case "pin":
 			pinMigrations = true
+			fallthrough
+		case "", "keep":
+			keepMigrations = true
 		case "discard":
 		default:
 			return errors.New("unrecognized value for %s, must be 'keep', 'pin', or 'discard'")
@@ -312,30 +314,43 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 		// Get migration fetcher(s) according to download policy
 		policy, _ := req.Options[migrateDownloadKwd].(string)
-		fetcher, err := getMigrationFetcher(policy, peers)
+		fetcher, err = getMigrationFetcher(policy, peers)
 		if err != nil {
 			return err
 		}
 
-		if keepMigrations || pinMigrations {
-			migrationDL, err = migrations.RunMigrationDL(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
-			defer migrationDL.Cleanup()
-		} else {
-			err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
+		if keepMigrations {
+			// Create temp directory to store downloaded migration archives
+			migrations.DownloadDirectory, err = ioutil.TempDir("", "migrations")
+			if err != nil {
+				return err
+			}
+			defer func() {
+				if migrations.DownloadDirectory != "" {
+					os.RemoveAll(migrations.DownloadDirectory)
+				}
+			}()
 		}
-		closeErr := fetcher.Close()
+
+		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
 			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			fetcher.Close()
 			return err
 		}
 
-		// If there was an error closing the IpfsFetcher, then write error, but
-		// do not fail because of it.
-		if closeErr != nil {
-			log.Errorf("error closing IPFS fetcher: %s", closeErr)
+		if keepMigrations {
+			defer fetcher.Close()
+		} else {
+			// If there is an error closing the IpfsFetcher, then print error, but
+			// do not fail because of it.
+			err = fetcher.Close()
+			if err != nil {
+				log.Errorf("error closing IPFS fetcher: %s", err)
+			}
 		}
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
@@ -460,12 +475,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	// Add any files downloaded by migration.
-	if len(migrationDL.Files) != 0 {
-		err = addMigrationBins(cctx.Context(), node, migrationDL.Files, pinMigrations)
-		if err != nil {
-			return err
-		}
-		migrationDL.Cleanup()
+	if keepMigrations {
+		addMigrations(cctx.Context(), node, fetcher, pinMigrations)
+		fetcher.Close()
+		os.RemoveAll(migrations.DownloadDirectory)
+		migrations.DownloadDirectory = ""
 	}
 
 	// construct http gateway

@@ -24,11 +24,14 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 const (
 	// Default maximum download size
 	defaultFetchLimit = 1024 * 1024 * 512
+
+	tempNodeTcpAddr = "/ip4/127.0.0.1/tcp/40010"
 )
 
 type IpfsFetcher struct {
@@ -44,6 +47,11 @@ type IpfsFetcher struct {
 	ipfs         iface.CoreAPI
 	ipfsTmpDir   string
 	ipfsStopFunc func()
+
+	fetched []ipath.Path
+	mutex   sync.Mutex
+
+	addrInfo peer.AddrInfo
 }
 
 // NewIpfsFetcher creates a new IpfsFetcher
@@ -93,7 +101,8 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 		if f.getPeers != nil {
 			peers = f.getPeers()
 		}
-		f.ipfs, f.ipfsStopFunc, f.openErr = startTempNode(f.ipfsTmpDir, peers)
+
+		f.openErr = f.startTempNode(peers)
 	})
 
 	fmt.Printf("Fetching with IPFS: %q\n", filePath)
@@ -111,6 +120,8 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 	if err != nil {
 		return nil, err
 	}
+
+	f.recordFetched(iPath)
 
 	fileNode, ok := nd.(files.File)
 	if !ok {
@@ -136,6 +147,20 @@ func (f *IpfsFetcher) Close() error {
 		}
 	})
 	return f.closeErr
+}
+
+func (f *IpfsFetcher) AddrInfo() peer.AddrInfo {
+	return f.addrInfo
+}
+
+func (f *IpfsFetcher) FetchedPaths() []ipath.Path {
+	return f.fetched
+}
+
+func (f *IpfsFetcher) recordFetched(fetchedPath ipath.Path) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	f.fetched = append(f.fetched, fetchedPath)
 }
 
 func initTempNode(ctx context.Context) (string, error) {
@@ -167,7 +192,7 @@ func initTempNode(ctx context.Context) (string, error) {
 	// Disable listening for inbound connections
 	cfg.Addresses.Gateway = []string{}
 	cfg.Addresses.API = []string{}
-	cfg.Addresses.Swarm = []string{}
+	cfg.Addresses.Swarm = []string{tempNodeTcpAddr}
 
 	err = fsrepo.Init(dir, cfg)
 	if err != nil {
@@ -178,11 +203,11 @@ func initTempNode(ctx context.Context) (string, error) {
 	return dir, nil
 }
 
-func startTempNode(repoDir string, peers []peer.AddrInfo) (iface.CoreAPI, func(), error) {
+func (f *IpfsFetcher) startTempNode(peers []peer.AddrInfo) error {
 	// Open the repo
-	r, err := fsrepo.Open(repoDir)
+	r, err := fsrepo.Open(f.ipfsTmpDir)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	// Create a new lifetime context that is used to stop the temp ipfs node
@@ -197,13 +222,13 @@ func startTempNode(repoDir string, peers []peer.AddrInfo) (iface.CoreAPI, func()
 	if err != nil {
 		cancel()
 		r.Close()
-		return nil, nil, err
+		return err
 	}
 
 	ifaceCore, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		cancel()
-		return nil, nil, err
+		return err
 	}
 
 	stopFunc := func() {
@@ -211,6 +236,8 @@ func startTempNode(repoDir string, peers []peer.AddrInfo) (iface.CoreAPI, func()
 		cancel()
 		// Wait until ipfs is stopped
 		<-node.Context().Done()
+
+		fmt.Println("migration peer", node.Identity, "shutdown")
 	}
 
 	// Parse peer addresses and asynchronously connect to peers
@@ -218,7 +245,19 @@ func startTempNode(repoDir string, peers []peer.AddrInfo) (iface.CoreAPI, func()
 		connectPeers(ctxIpfsLife, ifaceCore, peers)
 	}
 
-	return ifaceCore, stopFunc, nil
+	a, err := ma.NewMultiaddr(tempNodeTcpAddr)
+	if err != nil {
+		return err
+	}
+	f.addrInfo = peer.AddrInfo{
+		ID:    node.Identity,
+		Addrs: []ma.Multiaddr{a},
+	}
+
+	f.ipfs = ifaceCore
+	f.ipfsStopFunc = stopFunc
+
+	return nil
 }
 
 func parsePath(fetchPath string) (ipath.Path, error) {

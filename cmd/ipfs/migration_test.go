@@ -12,7 +12,7 @@ const peersStr = "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWGC6TvWhfajpgX6wvJHMYvKpDMX
 func TestGetMigrationFetcher(t *testing.T) {
 	var f migrations.Fetcher
 	var err error
-	f, err = getMigrationFetcher("ftp://bad.gateway.io", "")
+	_, err = getMigrationFetcher("ftp://bad.gateway.io", "")
 	if err == nil {
 		t.Fatal("Expected bad URL scheme error")
 	}

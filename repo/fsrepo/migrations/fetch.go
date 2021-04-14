@@ -14,6 +14,12 @@ import (
 	"strings"
 )
 
+// DownloadDirectory can be set as the location for FetchBinary to save the
+// downloaded archive file in.  If not set, then FetchBinary saves the archive
+// in a temporary directory that is removed after the contents of the archive
+// is extracted.
+var DownloadDirectory string
+
 // FetchBinary downloads an archive from the distribution site and unpacks it.
 //
 // The base name of the binary inside the archive may differ from the base
@@ -68,12 +74,27 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 		}
 	}
 
-	// Create temp directory to store download
-	tmpDir, err := ioutil.TempDir("", arcName)
-	if err != nil {
-		return "", err
+	tmpDir := DownloadDirectory
+	if tmpDir != "" {
+		fi, err = os.Stat(tmpDir)
+		if err != nil {
+			return "", err
+		}
+		if !fi.IsDir() {
+			return "", &os.PathError{
+				Op:   "FetchBinary",
+				Path: tmpDir,
+				Err:  os.ErrExist,
+			}
+		}
+	} else {
+		// Create temp directory to store download
+		tmpDir, err = ioutil.TempDir("", arcName)
+		if err != nil {
+			return "", err
+		}
+		defer os.RemoveAll(tmpDir)
 	}
-	defer os.RemoveAll(tmpDir)
 
 	atype := "tar.gz"
 	if runtime.GOOS == "windows" {

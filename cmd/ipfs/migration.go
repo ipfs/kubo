@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 	"github.com/ipfs/interface-go-ipfs-core/options"
+	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -89,9 +91,46 @@ func getMigrationFetcher(downloadPolicy string, peers string) (migrations.Fetche
 	return migrations.NewMultiFetcher(fetchers...), nil
 }
 
-// addMigrationBins adds the files at binPaths to IPFS, pinning them also if
-// pin is true.
-func addMigrationBins(ctx context.Context, node *core.IpfsNode, binPaths []string, pin bool) error {
+func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.Fetcher, pin bool) error {
+	if mf, ok := fetcher.(*migrations.MultiFetcher); ok {
+		fetcher = mf.LastUsed()
+	}
+
+	switch f := fetcher.(type) {
+	case *ipfsfetcher.IpfsFetcher:
+		// Add migrations by connecting to temp node and getting from IPFS
+		err := addMigrationPaths(ctx, node, f.AddrInfo(), f.FetchedPaths(), pin)
+		if err != nil {
+			return err
+		}
+	case *migrations.HttpFetcher:
+		// Add the downloaded migration files directly
+		if migrations.DownloadDirectory != "" {
+			var paths []string
+			err := filepath.Walk(migrations.DownloadDirectory, func(filePath string, info os.FileInfo, err error) error {
+				if info.IsDir() {
+					return nil
+				}
+				paths = append(paths, filePath)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+			err = addMigrationFiles(ctx, node, paths, pin)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		return errors.New("Cannot get migrations from unknown fetcher type")
+	}
+
+	return nil
+}
+
+// addMigrationFiles adds the files at paths to IPFS, optionally pinning them
+func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string, pin bool) error {
 	ifaceCore, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return err
@@ -99,17 +138,73 @@ func addMigrationBins(ctx context.Context, node *core.IpfsNode, binPaths []strin
 	ufs := ifaceCore.Unixfs()
 
 	// Add migration files
-	for _, filePath := range binPaths {
+	for _, filePath := range paths {
 		f, err := os.Open(filePath)
 		if err != nil {
 			return err
 		}
 
-		ipfsPath, err := ufs.Add(ctx, files.NewReaderFile(f), options.Unixfs.Pin(pin))
+		fi, err := f.Stat()
+		if err != nil {
+			return err
+		}
+
+		ipfsPath, err := ufs.Add(ctx, files.NewReaderStatFile(f, fi), options.Unixfs.Pin(pin))
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Added migration file %q: %s\n", filepath.Base(filePath), ipfsPath)
+	}
+
+	return nil
+}
+
+// addMigrationPaths adds the files at paths to IPFS, optionally pinning
+// them. This is done after connecting to the peer.
+func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.AddrInfo, paths []ipath.Path, pin bool) error {
+	if len(paths) == 0 {
+		return errors.New("nothing downloaded by ipfs fetcher")
+	}
+
+	ipfs, err := coreapi.NewCoreAPI(node)
+	if err != nil {
+		return err
+	}
+
+	// Connect to temp node
+	if err := ipfs.Swarm().Connect(ctx, peerInfo); err != nil {
+		return fmt.Errorf("cound not connec to migration peer %q: %s", peerInfo.ID, err)
+	}
+	fmt.Printf("conneced to migration peer %q\n", peerInfo)
+
+	if pin {
+		pinApi := ipfs.Pin()
+		for _, ipfsPath := range paths {
+			err := pinApi.Add(ctx, ipfsPath)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Added and pinned migration file: %q\n", ipfsPath)
+		}
+		return nil
+	}
+
+	ufs := ipfs.Unixfs()
+
+	// Add migration files
+	for _, ipfsPath := range paths {
+		nd, err := ufs.Get(ctx, ipfsPath)
+		if err != nil {
+			return err
+		}
+
+		fnd, ok := nd.(files.File)
+		if !ok {
+			return fmt.Errorf("not a file node: %q", ipfsPath)
+		}
+		io.Copy(io.Discard, fnd)
+		nd.Close()
+		fmt.Printf("Added migration file: %q\n", ipfsPath)
 	}
 
 	return nil
