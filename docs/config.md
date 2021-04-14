@@ -1440,17 +1440,15 @@ Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concep
 
 Map of [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) to custom resolver URLs.
 
-- This allows for overriding the default cleartext DNS resolver provided by the operating system,
-  and using different resolvers per domain or TLD (including ones from alternative, non-ICANN naming systems).
-- Currently only `https://` URLs for [DNS over HTTPS](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported.
-- The default resolver can be overriden by adding an entry for the DNS root indicated by  `.`
+This allows for overriding the default DNS resolver provided by the operating system,
+and using different resolvers per domain or TLD (including ones from alternative, non-ICANN naming systems).
 
 Example:
 ```json
 {
   "DNS": {
     "Resolvers": {
-      "eth.": "https://different-ens.example.net/dns-query",
+      "eth.": "https://eth.link/dns-query",
       "crypto.": "https://resolver.unstoppable.io/dns-query",
       "libre.": "https://ns1.iriseden.fr/dns-query",
       ".": "https://doh-ch.blahdns.com:4443/dns-query"
@@ -1458,6 +1456,18 @@ Example:
   }
 }
 ```
+
+Be mindful that:
+- Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
+- The default catch-all resolver is the cleartext one provided by your operating system. It can be overriden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
+- Out-of-the-box support for selected decentralized TLDs relies on a [centralized service which is provided on best-effort basis](https://www.cloudflare.com/distributed-web-gateway-terms/). The implicit DoH resolvers are:
+  ```json
+  {
+    "eth.": "https://resolver.cloudflare-eth.com/dns-query",
+    "crypto.": "https://resolver.cloudflare-eth.com/dns-query
+  }
+  ```
+  To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
 
 Default: `{}`
 
