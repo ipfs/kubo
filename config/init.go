@@ -89,6 +89,9 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Pinning: Pinning{
 			RemoteServices: map[string]RemotePinningService{},
 		},
+		DNS: DNS{
+			Resolvers: map[string]string{},
+		},
 	}
 
 	return conf, nil
