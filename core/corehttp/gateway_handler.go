@@ -299,8 +299,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// set these headers _after_ the error, for we may just not have it
 	// and don't want the client to cache a 500 response...
 	// and only if it's /ipfs!
-	// TODO: break this out when we split /ipfs /ipns routes.
-	modtime := time.Now()
+
+	// ipns routes do not require LastModified header, disable by passing zero date to ServeContent
+	modtime := time.Time{}
 
 	if f, ok := dr.(files.File); ok {
 		if strings.HasPrefix(urlPath, ipfsPathPrefix) {
