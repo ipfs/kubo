@@ -1459,6 +1459,6 @@ Example:
 }
 ```
 
-Default: `null`
+Default: `{}`
 
 Type: `object[string -> string]`
