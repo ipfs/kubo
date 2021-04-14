@@ -36,6 +36,12 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 			return nil, fmt.Errorf("invalid domain %s; must be FQDN", domain)
 		}
 
+		domains[domain] = struct{}{}
+		if url == "" {
+			// allow overriding of implicit defaults with the default resolver
+			continue
+		}
+
 		rslv, ok := rslvrs[url]
 		if !ok {
 			rslv, err = newResolver(url)
@@ -50,8 +56,6 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 		} else {
 			opts = append(opts, madns.WithDefaultResolver(rslv))
 		}
-
-		domains[domain] = struct{}{}
 	}
 
 	// fill in defaults if not overriden by the user
