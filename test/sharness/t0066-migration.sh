@@ -57,7 +57,6 @@ test_expect_success "output looks good" '
   grep "Success: fs-repo migrated to version 11" true_out > /dev/null
 '
 
-# Daemon exits with 1 after the prompt gets "n" when asking to migrate. 
 test_expect_success "'ipfs daemon' prompts to auto migrate" '
   test_expect_code 1 ipfs daemon > daemon_out 2> daemon_err
 '
