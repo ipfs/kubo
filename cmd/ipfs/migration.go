@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -202,7 +203,7 @@ func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.A
 		if !ok {
 			return fmt.Errorf("not a file node: %q", ipfsPath)
 		}
-		io.Copy(io.Discard, fnd)
+		io.Copy(ioutil.Discard, fnd)
 		nd.Close()
 		fmt.Printf("Added migration file: %q\n", ipfsPath)
 	}
