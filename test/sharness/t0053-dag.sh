@@ -39,6 +39,10 @@ test_dag_cmd() {
     IPLDPBHASH=$(cat ipld_object_pb | ipfs dag put --input-enc=dag-cbor -f dag-pb)
   '
 
+  test_expect_success "can add an ipld object using dag-json" '
+    IPLDCBORHASH=$(cat ipld_object_pb | ipfs dag put --input-enc=dag-cbor -f dag-cbor)
+  '
+
   test_expect_success "output looks correct" '
     EXPHASH="bafyreicktrf5jt6zu2npbojxx2onikqqdihoj2xutehmkmzrsw5bo5zgge"
     test $EXPHASH = $IPLDHASH
@@ -106,6 +110,10 @@ test_dag_cmd() {
     ipfs pin add $EXPHASH
   '
 
+  test_expect_success "can pin dag object" '
+    ipfs pin add $IPLDPBHASH
+  '
+
   test_expect_success "after gc, objects still accessible" '
     ipfs repo gc > /dev/null &&
     ipfs refs -r --timeout=2s $EXPHASH > /dev/null
@@ -120,8 +128,8 @@ test_dag_cmd() {
   '
 
   test_expect_success "retrieved object hashes back correctly" '
-    IPLDHASH2=$(cat ipld_obj_out | ipfs dag put) &&
-    test "$IPLDPBHASH" = "$IPLDHASH2"
+    IPLDHASH2=$(cat ipld_obj_out | ipfs dag put --input-enc=dag-json -f dag-cbor) &&
+    test "$IPLDCBORHASH" = "$IPLDHASH2"
   '
 
   test_expect_success "add a normal file" '
@@ -147,7 +155,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "non-canonical cbor input is normalized" '
-    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=raw) &&
+    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=dag-cbor) &&
     test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
     test_fsh echo $HASH
   '
@@ -159,7 +167,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "add an ipld with pin" '
-    PINHASH=$(printf {\"foo\":\"bar\"} | ipfs dag put --pin=true)
+    PINHASH=$(printf {\"foo\":\"bar\"} | ipfs dag put --input-enc=dag-json --pin=true)
   '
 
   test_expect_success "after gc, objects still accessible" '
