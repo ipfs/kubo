@@ -10,27 +10,47 @@ test_description="Test migrations auto update prompt"
 
 test_init_ipfs
 
+MIGRATION_START=7
+IPFS_REPO_VER=$(<.ipfs/version)
+
+# Generate mock migration binaries
+gen_mock_migrations() {
+  mkdir bin
+  i=$((MIGRATION_START))
+  until [ $i -ge $IPFS_REPO_VER ]
+  do
+    j=$((i+1))
+    echo "#!/bin/bash" > bin/fs-repo-${i}-to-${j}
+    echo "echo fake applying ${i}-to-${j} repo migration" >> bin/fs-repo-${i}-to-${j}
+    chmod +x bin/fs-repo-${i}-to-${j}
+    ((i++))
+  done
+}
+
+# Check for expected output from each migration
+check_migration_output() {
+  out_file="$1"
+  i=$((MIGRATION_START))
+  until [ $i -ge $IPFS_REPO_VER ]
+  do
+    j=$((i+1))
+    grep "applying ${i}-to-${j} repo migration" "$out_file" > /dev/null
+    ((i++))
+  done
+}
+
 # Create fake migration binaries instead of letting ipfs download from network
 # To test downloading and running actual binaries, comment out this test.
 test_expect_success "setup mock migrations" '
-  mkdir bin &&
-  echo "#!/bin/bash" > bin/fs-repo-7-to-8 &&
-  echo "echo fake applying 7-to-8 repo migration" >> bin/fs-repo-7-to-8 &&
-  chmod +x bin/fs-repo-7-to-8 &&
-  echo "#!/bin/bash" > bin/fs-repo-8-to-9 &&
-  echo "echo fake applying 8-to-9 repo migration" >> bin/fs-repo-8-to-9 &&
-  chmod +x bin/fs-repo-8-to-9 &&
-  echo "#!/bin/bash" > bin/fs-repo-9-to-10 &&
-  echo "echo fake applying 9-to-10 repo migration" >> bin/fs-repo-9-to-10 &&
-  chmod +x bin/fs-repo-9-to-10 &&
-  echo "#!/bin/bash" > bin/fs-repo-10-to-11 &&
-  echo "echo fake applying 10-to-11 repo migration" >> bin/fs-repo-10-to-11 &&
-  chmod +x bin/fs-repo-10-to-11 &&
-  export PATH="$(pwd)/bin":$PATH
+  gen_mock_migrations &&
+  find bin -name "fs-repo-*-to-*" | wc -l > mock_count &&
+  echo $((IPFS_REPO_VER-MIGRATION_START)) > expect_mock_count &&
+  export PATH="$(pwd)/bin":$PATH &&
+  test_cmp mock_count expect_mock_count
 '
 
-test_expect_success "manually reset repo version to 7" '
-  echo "7" > "$IPFS_PATH"/version
+test_expect_success "manually reset repo version to $MIGRATION_START" '
+  echo "$MIGRATION_START" > "$IPFS_PATH"/version
 '
 
 test_expect_success "ipfs daemon --migrate=false fails" '
@@ -50,11 +70,8 @@ test_expect_success "ipfs daemon --migrate=true runs migration" '
 '
 
 test_expect_success "output looks good" '
-  grep "applying 7-to-8 repo migration" true_out > /dev/null &&
-  grep "applying 8-to-9 repo migration" true_out > /dev/null &&
-  grep "applying 9-to-10 repo migration" true_out > /dev/null &&
-  grep "applying 10-to-11 repo migration" true_out > /dev/null &&
-  grep "Success: fs-repo migrated to version 11" true_out > /dev/null
+  check_migration_output true_out &&
+  grep "Success: fs-repo migrated to version $IPFS_REPO_VER" true_out > /dev/null
 '
 
 test_expect_success "'ipfs daemon' prompts to auto migrate" '
