@@ -215,7 +215,15 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		}
 
 		subApi.routing = offlineroute.NewOfflineRouter(subApi.repo.Datastore(), subApi.recordValidator)
-		subApi.namesys = namesys.NewNameSystem(subApi.routing, subApi.repo.Datastore(), subApi.dnsResolver, cs)
+
+		subApi.namesys, err = namesys.NewNameSystem(subApi.routing,
+			namesys.WithDatastore(subApi.repo.Datastore()),
+			namesys.WithDNSResolver(subApi.dnsResolver),
+			namesys.WithCache(cs))
+		if err != nil {
+			return nil, fmt.Errorf("error constructing namesys: %w", err)
+		}
+
 		subApi.provider = provider.NewOfflineProvider()
 
 		subApi.peerstore = nil

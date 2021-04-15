@@ -30,7 +30,16 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 // Namesys creates new name system
 func Namesys(cacheSize int) func(rt routing.Routing, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
 	return func(rt routing.Routing, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
-		return namesys.NewNameSystem(rt, repo.Datastore(), rslv, cacheSize), nil
+		opts := []namesys.Option{
+			namesys.WithDatastore(repo.Datastore()),
+			namesys.WithDNSResolver(rslv),
+		}
+
+		if cacheSize > 0 {
+			opts = append(opts, namesys.WithCache(cacheSize))
+		}
+
+		return namesys.NewNameSystem(rt, opts...)
 	}
 }
 
