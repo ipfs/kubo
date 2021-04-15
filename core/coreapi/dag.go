@@ -3,6 +3,7 @@ package coreapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	cid "github.com/ipfs/go-cid"
@@ -252,6 +253,50 @@ func (api *dagAPI) importWorker(ctx context.Context, dir files.Directory, ret ch
 	}
 
 	ret <- importResult{roots: roots}
+}
+
+// Export exports the DAG rooted at a given CID into a CAR file. The error channel will return at most one error and
+// the reader is usable before the error channel has been closed.
+func (api *dagAPI) Export(ctx context.Context, c cid.Cid) (io.ReadCloser, <-chan error) {
+	// Code disabled until descent-issue in go-ipld-prime is fixed
+	// https://github.com/ribasushi/gip-muddle-up
+	//
+	// sb := gipselectorbuilder.NewSelectorSpecBuilder(gipfree.NodeBuilder())
+	// car := gocar.NewSelectiveCar(
+	// 	req.Context,
+	// 	<needs to be fixed to take format.NodeGetter as well>,
+	// 	[]gocar.Dag{gocar.Dag{
+	// 		Root: c,
+	// 		Selector: sb.ExploreRecursive(
+	// 			gipselector.RecursionLimitNone(),
+	// 			sb.ExploreAll(sb.ExploreRecursiveEdge()),
+	// 		).Node(),
+	// 	}},
+	// )
+	// ...
+	// if err := car.Write(pipeW); err != nil {}
+
+	pipeR, pipeW := io.Pipe()
+
+	errCh := make(chan error, 1) // we only report the 1st error
+	go func() {
+		defer close(errCh)
+		var err error
+		if err = gocar.WriteCar(
+			ctx,
+			api.Session(ctx),
+			[]cid.Cid{c},
+			pipeW,
+		); err != nil {
+			errCh <- err
+		}
+
+		if closeErr := pipeW.Close(); closeErr != nil && err == nil {
+			errCh <- fmt.Errorf("stream flush failed: %s", closeErr)
+		}
+	}()
+
+	return pipeR, errCh
 }
 
 var (
