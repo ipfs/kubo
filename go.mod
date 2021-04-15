@@ -29,7 +29,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v0.1.4
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
-	github.com/ipfs/go-ipfs-config v0.12.0
+	github.com/ipfs/go-ipfs-config v0.12.1-0.20210415065829-ab423490da8d
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.8
@@ -80,6 +80,7 @@ require (
 	github.com/libp2p/go-libp2p-testing v0.4.0
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-libp2p-yamux v0.5.1
+	github.com/libp2p/go-smart-record v0.0.0-20210414084321-7e561a2c921d
 	github.com/libp2p/go-socket-activation v0.0.2
 	github.com/libp2p/go-tcp-transport v0.2.1
 	github.com/libp2p/go-ws-transport v0.4.0

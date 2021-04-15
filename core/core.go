@@ -14,13 +14,13 @@ import (
 	"io"
 
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-pinner"
+	pin "github.com/ipfs/go-ipfs-pinner"
 
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-graphsync"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-ipfs-provider"
+	provider "github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	mfs "github.com/ipfs/go-mfs"
@@ -39,6 +39,7 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	smart "github.com/libp2p/go-smart-record/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
@@ -83,16 +84,17 @@ type IpfsNode struct {
 	RecordValidator record.Validator
 
 	// Online
-	PeerHost      p2phost.Host            `optional:"true"` // the network host (server+client)
-	Peering       peering.PeeringService  `optional:"true"`
-	Filters       *ma.Filters             `optional:"true"`
-	Bootstrapper  io.Closer               `optional:"true"` // the periodic bootstrapper
-	Routing       routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
-	Exchange      exchange.Interface      // the block exchange + strategy (bitswap)
-	Namesys       namesys.NameSystem      // the name system, resolves paths to hashes
-	Provider      provider.System         // the value provider system
-	IpnsRepub     *ipnsrp.Republisher     `optional:"true"`
-	GraphExchange graphsync.GraphExchange `optional:"true"`
+	PeerHost      p2phost.Host             `optional:"true"` // the network host (server+client)
+	Peering       peering.PeeringService   `optional:"true"`
+	Filters       *ma.Filters              `optional:"true"`
+	Bootstrapper  io.Closer                `optional:"true"` // the periodic bootstrapper
+	Routing       routing.Routing          `optional:"true"` // the routing system. recommend ipfs-dht
+	Exchange      exchange.Interface       // the block exchange + strategy (bitswap)
+	Namesys       namesys.NameSystem       // the name system, resolves paths to hashes
+	Provider      provider.System          // the value provider system
+	IpnsRepub     *ipnsrp.Republisher      `optional:"true"`
+	GraphExchange graphsync.GraphExchange  `optional:"true"`
+	SmartRecords  smart.SmartRecordManager `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
