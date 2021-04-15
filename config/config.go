@@ -28,6 +28,7 @@ type Config struct {
 	AutoNAT   AutoNATConfig
 	Pubsub    PubsubConfig
 	Peering   Peering
+	DNS       DNS
 
 	Provider     Provider
 	Reprovider   Reprovider
