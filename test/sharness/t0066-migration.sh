@@ -46,7 +46,7 @@ test_expect_success "output looks good" '
 #
 # If run with real migrations, the daemon continues running and must be killed.
 test_expect_success "ipfs daemon --migrate=true runs migration" '
-  test_expect_code 1 ipfs daemon --migrate=true > true_out 2>&1
+  test_expect_code 1 ipfs daemon --migrate=true > true_out
 '
 
 test_expect_success "output looks good" '
