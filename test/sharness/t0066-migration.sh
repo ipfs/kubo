@@ -90,11 +90,11 @@ test_expect_success "ipfs repo migrate succeed" '
 
 test_expect_success "output looks good" '
   grep "Found outdated fs-repo, starting migration." migrate_out > /dev/null &&
-  grep "Success: fs-repo has been migrated to version 10" migrate_out > /dev/null
+  grep "Success: fs-repo has been migrated to version 11" migrate_out > /dev/null
 '
 
-test_expect_success "manually reset repo version to 10" '
-  echo "10" > "$IPFS_PATH"/version
+test_expect_success "manually reset repo version to 11" '
+  echo "11" > "$IPFS_PATH"/version
 '
 
 test_expect_success "detect repo does not need migration" '
