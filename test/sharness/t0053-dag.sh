@@ -156,14 +156,13 @@ test_dag_cmd() {
 
   test_expect_success "non-canonical cbor input is normalized" '
     HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=dag-cbor) &&
-    test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
+    test $HASH = "bafyreicfngo3hexoxbbwsm64apbydw5fyeruyrfwiyxlj3f4wuzdyztd4m" ||
     test_fsh echo $HASH
   '
 
-  test_expect_success "non-canonical cbor input is normalized with input-enc cbor" '
-    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=dag-cbor) &&
-    test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
-    test_fsh echo $HASH
+  test_expect_success "cbor input can be fetched" '
+    EXPARR=$(ipfs dag get $HASH/arr)
+    test $EXPARR = "[]"
   '
 
   test_expect_success "add an ipld with pin" '
@@ -180,7 +179,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "output looks correct" '
-    EXPHASH="bafyriqgae54zjl3bjebmbat2rjem4ewj6vni6jxohandmvk3bibfgv3sioyeidppsghvulryxats43br3b7afa6jy77x6gqzqaicer6ljicck"
+    EXPHASH="bafyriqf6pe376nnoh4ngsxmo7inplk35k5ucdfwvbc547vhp5mxx6wknllub3nyk44pvp37kgzrp2cotebl2onrqg5i7an4rcuu66cnj4ij4i"
     test $EXPHASH = $IPLDHASH
   '
 
