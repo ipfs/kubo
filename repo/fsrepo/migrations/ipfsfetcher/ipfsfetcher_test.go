@@ -65,7 +65,7 @@ func TestInitIpfsFetcher(t *testing.T) {
 	}
 
 	// Start ipfs node
-	f.openErr = f.startTempNode(nil)
+	f.openErr = f.startTempNode(ctx, nil)
 	if f.openErr != nil {
 		t.Errorf("failed to start ipfs node: %s", f.openErr)
 		return
@@ -85,6 +85,7 @@ func TestInitIpfsFetcher(t *testing.T) {
 	if len(addrInfo.Addrs) == 0 {
 		t.Error("AddInfo Addrs not set")
 	}
+	t.Log("Temp node listening on:", addrInfo.Addrs)
 
 	err := f.Close()
 	if err != nil {

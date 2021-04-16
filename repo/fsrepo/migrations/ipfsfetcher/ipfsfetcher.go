@@ -24,14 +24,13 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 const (
 	// Default maximum download size
 	defaultFetchLimit = 1024 * 1024 * 512
 
-	tempNodeTcpAddr = "/ip4/127.0.0.1/tcp/40010"
+	tempNodeTcpAddr = "/ip4/127.0.0.1/tcp/0"
 )
 
 type IpfsFetcher struct {
@@ -102,7 +101,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 			peers = f.getPeers()
 		}
 
-		f.openErr = f.startTempNode(peers)
+		f.openErr = f.startTempNode(ctx, peers)
 	})
 
 	fmt.Printf("Fetching with IPFS: %q\n", filePath)
@@ -203,7 +202,7 @@ func initTempNode(ctx context.Context) (string, error) {
 	return dir, nil
 }
 
-func (f *IpfsFetcher) startTempNode(peers []peer.AddrInfo) error {
+func (f *IpfsFetcher) startTempNode(ctx context.Context, peers []peer.AddrInfo) error {
 	// Open the repo
 	r, err := fsrepo.Open(f.ipfsTmpDir)
 	if err != nil {
@@ -225,7 +224,7 @@ func (f *IpfsFetcher) startTempNode(peers []peer.AddrInfo) error {
 		return err
 	}
 
-	ifaceCore, err := coreapi.NewCoreAPI(node)
+	ipfs, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		cancel()
 		return err
@@ -242,19 +241,20 @@ func (f *IpfsFetcher) startTempNode(peers []peer.AddrInfo) error {
 
 	// Parse peer addresses and asynchronously connect to peers
 	if len(peers) != 0 {
-		connectPeers(ctxIpfsLife, ifaceCore, peers)
+		connectPeers(ctxIpfsLife, ipfs, peers)
 	}
 
-	a, err := ma.NewMultiaddr(tempNodeTcpAddr)
+	addrs, err := ipfs.Swarm().LocalAddrs(ctx)
 	if err != nil {
 		return err
 	}
+
 	f.addrInfo = peer.AddrInfo{
 		ID:    node.Identity,
-		Addrs: []ma.Multiaddr{a},
+		Addrs: addrs,
 	}
 
-	f.ipfs = ifaceCore
+	f.ipfs = ipfs
 	f.ipfsStopFunc = stopFunc
 
 	return nil
