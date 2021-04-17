@@ -36,7 +36,7 @@ const (
 type IpfsFetcher struct {
 	distPath string
 	limit    int64
-	getPeers func() []peer.AddrInfo
+	peers    []peer.AddrInfo
 
 	openOnce  sync.Once
 	openErr   error
@@ -57,14 +57,11 @@ type IpfsFetcher struct {
 //
 // Specifying "" for distPath sets the default IPNS path.
 // Specifying 0 for fetchLimit sets the default, -1 means no limit.
-//
-// The getPeers function, if not nil, is called to get the peers to connect to
-// when the temporary node is started.
-func NewIpfsFetcher(distPath string, fetchLimit int64, getPeers func() []peer.AddrInfo) *IpfsFetcher {
+func NewIpfsFetcher(distPath string, fetchLimit int64, peers []peer.AddrInfo) *IpfsFetcher {
 	f := &IpfsFetcher{
 		limit:    defaultFetchLimit,
 		distPath: migrations.LatestIpfsDist,
-		getPeers: getPeers,
+		peers:    peers,
 	}
 
 	if distPath != "" {
@@ -96,12 +93,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 			return
 		}
 
-		var peers []peer.AddrInfo
-		if f.getPeers != nil {
-			peers = f.getPeers()
-		}
-
-		f.openErr = f.startTempNode(ctx, peers)
+		f.openErr = f.startTempNode(ctx)
 	})
 
 	fmt.Printf("Fetching with IPFS: %q\n", filePath)
@@ -202,7 +194,7 @@ func initTempNode(ctx context.Context) (string, error) {
 	return dir, nil
 }
 
-func (f *IpfsFetcher) startTempNode(ctx context.Context, peers []peer.AddrInfo) error {
+func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 	// Open the repo
 	r, err := fsrepo.Open(f.ipfsTmpDir)
 	if err != nil {
@@ -239,9 +231,9 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context, peers []peer.AddrInfo) 
 		fmt.Println("migration peer", node.Identity, "shutdown")
 	}
 
-	// Parse peer addresses and asynchronously connect to peers
-	if len(peers) != 0 {
-		connectPeers(ctxIpfsLife, ipfs, peers)
+	// Asynchronously connect to peers
+	if len(f.peers) != 0 {
+		go connectPeers(ctxIpfsLife, ipfs, f.peers)
 	}
 
 	addrs, err := ipfs.Swarm().LocalAddrs(ctx)
@@ -314,19 +306,15 @@ func setupPlugins() error {
 }
 
 func connectPeers(ctx context.Context, ipfs iface.CoreAPI, peers []peer.AddrInfo) {
-	// Asynchronously connect to each peer
-	//
 	// Do not return an error if there is a failure to connect to a peer, since
 	// node may still be able to operate.  Only write the errors to stderr.
-	go func() {
-		for i := range peers {
-			go func(pi peer.AddrInfo) {
-				if err := ipfs.Swarm().Connect(ctx, pi); err != nil {
-					fmt.Fprintf(os.Stderr, "cound not connec to %q: %s\n", pi.ID, err)
-				} else {
-					fmt.Fprintf(os.Stderr, "conneced to peer %q\n", pi.ID)
-				}
-			}(peers[i])
-		}
-	}()
+	for i := range peers {
+		go func(pi peer.AddrInfo) {
+			if err := ipfs.Swarm().Connect(ctx, pi); err != nil {
+				fmt.Fprintf(os.Stderr, "cound not connec to %q: %s\n", pi.ID, err)
+			} else {
+				fmt.Fprintf(os.Stderr, "conneced to peer %q\n", pi.ID)
+			}
+		}(peers[i])
+	}
 }

@@ -20,7 +20,6 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr"
 )
 
 // getMigrationFetcher creates one or more fetchers according to
@@ -31,43 +30,19 @@ import (
 // HttpFetcher.  Any other string is treated as a gateway URL to use with
 // another HttpFetcher.  If downloadPolicy is is an empty string, then the
 // default policy ("http,ipfs")is used.
-func getMigrationFetcher(downloadPolicy string, peers string) (migrations.Fetcher, error) {
+func getMigrationFetcher(downloadSources []string, peers []peer.AddrInfo) (migrations.Fetcher, error) {
 	const httpUserAgent = "go-ipfs"
-
-	var policyParts []string
-	if downloadPolicy == "" {
-		policyParts = []string{"http", "ipfs"}
-	} else {
-		policyParts = strings.Split(downloadPolicy, ",")
-	}
-
-	var fetchers []migrations.Fetcher
-	seen := make(map[string]struct{})
 
 	// Fetch migrations from current distribution, or location from environ
 	fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
-	for _, policy := range policyParts {
-		src := strings.TrimSpace(policy)
-		if _, ok := seen[src]; ok {
-			continue
-		}
-		seen[src] = struct{}{}
 
+	var fetchers []migrations.Fetcher
+	for _, src := range downloadSources {
+		src := strings.TrimSpace(src)
 		switch src {
-		case "ipfs":
-			var peerFunc func() []peer.AddrInfo
-			if peers != "" {
-				peerFunc = func() []peer.AddrInfo {
-					pi, e := parsePeers(peers)
-					if e != nil {
-						fmt.Fprintln(os.Stderr, "cannot parse peers:", e)
-						return nil
-					}
-					return pi
-				}
-			}
-			fetchers = append(fetchers, ipfsfetcher.NewIpfsFetcher(fetchDistPath, 0, peerFunc))
-		case "http":
+		case "IPFS", "ipfs":
+			fetchers = append(fetchers, ipfsfetcher.NewIpfsFetcher(fetchDistPath, 0, peers))
+		case "HTTPS", "https", "HTTP", "http":
 			fetchers = append(fetchers, migrations.NewHttpFetcher(fetchDistPath, "", httpUserAgent, 0))
 		default:
 			u, err := url.Parse(src)
@@ -82,7 +57,12 @@ func getMigrationFetcher(downloadPolicy string, peers string) (migrations.Fetche
 				return nil, errors.New("custom gateway scheme must be http or https")
 			}
 			fetchers = append(fetchers, migrations.NewHttpFetcher(fetchDistPath, u.String(), httpUserAgent, 0))
+		case "":
+			// Ignore empty string
 		}
+	}
+	if len(fetchers) == 0 {
+		return nil, errors.New("no fetchers specified")
 	}
 
 	if len(fetchers) == 1 {
@@ -221,51 +201,4 @@ func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath ipath.Path) 
 	}
 	fmt.Printf("Added migration file: %q\n", ipfsPath)
 	return nil
-}
-
-// parsePeers parses multiaddr strings in the form:
-// /<ip-proto>/<ip-addr>/<transport>/<port>/p2p/<node-id>,..
-// and parses them into a list of peer.AddrInfo, in no particular order
-func parsePeers(migrationPeers string) ([]peer.AddrInfo, error) {
-	var peers []string
-	for _, p := range strings.Split(migrationPeers, ",") {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			peers = append(peers, p)
-		}
-	}
-
-	if len(peers) == 0 {
-		return nil, nil
-	}
-
-	// Parse the peer addresses
-	pinfos := make(map[peer.ID]*peer.AddrInfo, len(peers))
-	for _, addrStr := range peers {
-		addr, err := multiaddr.NewMultiaddr(addrStr)
-		if err != nil {
-			return nil, err
-		}
-		pii, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			return nil, err
-		}
-		pi, ok := pinfos[pii.ID]
-		if !ok {
-			pi = &peer.AddrInfo{ID: pii.ID}
-			pinfos[pi.ID] = pi
-		}
-		pi.Addrs = append(pi.Addrs, pii.Addrs...)
-	}
-	peerAddrs := make([]peer.AddrInfo, len(pinfos))
-	var i int
-	for _, pi := range pinfos {
-		peerAddrs[i] = peer.AddrInfo{
-			ID:    pi.ID,
-			Addrs: pi.Addrs,
-		}
-		i++
-	}
-
-	return peerAddrs, nil
 }

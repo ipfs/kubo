@@ -49,9 +49,6 @@ const (
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
 	migrateKwd                = "migrate"
-	migrateDownloadKwd        = "download-migration"
-	migrateKeepKwd            = "keep-migration"
-	migratePeersKwd           = "migration-peers"
 	mountKwd                  = "mount"
 	offlineKwd                = "offline" // global option
 	routingOptionKwd          = "routing"
@@ -177,9 +174,6 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.StringOption(migrateDownloadKwd, "Comma-separated list of \"http\", \"ipfs\", or custom gateway URL"),
-		cmds.StringOption(migrateKeepKwd, "What to do with downloaded migrations: \"keep\", \"pin\", \"discard\". Default: \"keep\""),
-		cmds.StringOption(migratePeersKwd, "IPFS peers to connect to when downloading migration binaries. Comma-separated list of addresses like those returned by ipfs id"),
 		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
@@ -275,7 +269,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
-	var keepMigrations, pinMigrations bool
+	var cacheMigrations, pinMigrations bool
 	var fetcher migrations.Fetcher
 
 	// acquire the repo lock _before_ constructing a node. we need to make
@@ -298,28 +292,33 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		switch keep, _ := req.Options[migrateKeepKwd].(string); keep {
+		// Read from existing config
+		cfg, err := cctx.GetConfig()
+
+		keep := cfg.Migration.Keep
+		if keep == "" {
+			keep = config.DefaultMigrationKeep
+		}
+		switch keep {
+		case "discard":
+		case "cache":
+			cacheMigrations = true
 		case "pin":
 			pinMigrations = true
-			fallthrough
-		case "", "keep":
-			keepMigrations = true
-		case "discard":
 		default:
-			return errors.New("unrecognized value for %s, must be 'keep', 'pin', or 'discard'")
+			return errors.New("unrecognized value for %s, must be 'cache', 'pin', or 'discard'")
 		}
 
-		// Try to read existing config, but do not fail if it cannot be read.
-		peers, _ := req.Options[migratePeersKwd].(string)
-
-		// Get migration fetcher(s) according to download policy
-		policy, _ := req.Options[migrateDownloadKwd].(string)
-		fetcher, err = getMigrationFetcher(policy, peers)
+		dlSources := cfg.Migration.DownloadSources
+		if len(dlSources) == 0 {
+			dlSources = config.DefaultMigrationDownloadSources
+		}
+		fetcher, err = getMigrationFetcher(dlSources, cfg.Migration.Peers)
 		if err != nil {
 			return err
 		}
 
-		if keepMigrations {
+		if cacheMigrations || pinMigrations {
 			// Create temp directory to store downloaded migration archives
 			migrations.DownloadDirectory, err = ioutil.TempDir("", "migrations")
 			if err != nil {
@@ -342,7 +341,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return err
 		}
 
-		if keepMigrations {
+		if cacheMigrations || pinMigrations {
 			defer fetcher.Close()
 		} else {
 			// If there is an error closing the IpfsFetcher, then print error, but
@@ -475,7 +474,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	// Add any files downloaded by migration.
-	if keepMigrations {
+	if cacheMigrations || pinMigrations {
 		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Could not add migragion to IPFS:", err)
