@@ -294,6 +294,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 		// Read from existing config
 		cfg, err := cctx.GetConfig()
+		if err != nil {
+			return err
+		}
 
 		keep := cfg.Migration.Keep
 		if keep == "" {
