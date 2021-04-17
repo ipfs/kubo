@@ -92,6 +92,10 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		DNS: DNS{
 			Resolvers: map[string]string{},
 		},
+		Migration: Migration{
+			DownloadSources: DefaultMigrationDownloadSources,
+			Keep:            DefaultMigrationKeep,
+		},
 	}
 
 	return conf, nil
