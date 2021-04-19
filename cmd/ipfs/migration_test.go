@@ -69,7 +69,7 @@ func TestGetMigrationFetcher(t *testing.T) {
 		t.Fatal("expected MultiFetcher")
 	}
 	if mf.Len() != 3 {
-		t.Fatal("expected3 fetchers in MultiFetcher")
+		t.Fatal("expected 3 fetchers in MultiFetcher")
 	}
 
 	_, err = getMigrationFetcher(nil, nil)

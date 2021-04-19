@@ -231,14 +231,20 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 		fmt.Println("migration peer", node.Identity, "shutdown")
 	}
 
-	// Asynchronously connect to peers
+	// Asynchronously connect to peers.  The peer may be a close-by node that
+	// helps get migrations faster, and not connecting is not considered a
+	// failure.  Migrations may still be available through defaults or other
+	// peers.
 	if len(f.peers) != 0 {
 		go connectPeers(ctxIpfsLife, ipfs, f.peers)
 	}
 
 	addrs, err := ipfs.Swarm().LocalAddrs(ctx)
 	if err != nil {
-		return err
+		// Failure to get the local swarm address only means that the
+		// downloaded migrations cannot be fetched through the temporary node.
+		// So, print the error message and keep going.
+		fmt.Fprintln(os.Stderr, "cannot get local swarm address: %s", err)
 	}
 
 	f.addrInfo = peer.AddrInfo{
