@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-bitswap/network"
+	bsutil "github.com/ipfs/go-bitswap/util"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
@@ -16,16 +17,20 @@ import (
 	"github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-pinner/dspinner"
 	"github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-unixfs"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/repo"
 )
+
+var bsLog = logging.Logger("bitswap")
 
 // BlockService creates new blockservice which provides an interface to fetch content-addressable blocks
 func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interface) blockservice.BlockService {
@@ -97,8 +102,46 @@ func OnlineExchange(provide bool) interface{} {
 				return exch.Close()
 			},
 		})
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go func() {
+					for {
+						// We do the check every X seconds. This time is also
+						// as much as we are willing to wait for the response
+						// on all CIDs requested. This means we only do *one*
+						// test at a time.
+						testContext, _ := context.WithTimeout(ctx, time.Second*5) // fixme: parameter, make this a config so we can adjust on the fly
+
+						checkBitswapResponse(testContext, host.ID())
+
+						select {
+						case <-ctx.Done():
+							return
+						case <-testContext.Done():
+						}
+					}
+				}()
+				return nil
+			},
+		})
 		return exch
 
+	}
+}
+
+func checkBitswapResponse(ctx context.Context,
+	localPeer peer.ID,
+) {
+	bsLog.Debug("checking BitSwap response") // FIXME: Add more info here. Connection type?
+	missingCids, err := bsutil.CheckBitswapCID(ctx, localPeer)
+	if err != nil {
+		bsLog.Warnf("error in CheckBitswapCID: %s", err)
+	} else if len(missingCids) > 0 {
+		// Note this is an error, not a warning. This is the
+		// true error case we are monitoring for (the rest
+		// is noise and probably errors in this tool).
+		bsLog.Errorf("CheckBitswapCID: did not get HAVE/DONT-HAVE response on CIDs: %v", missingCids)
+		// FIXME: Log also the timeout we waited for the response.
 	}
 }
 

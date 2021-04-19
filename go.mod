@@ -112,3 +112,7 @@ require (
 )
 
 go 1.14
+
+// Only works with: GOPROXY=direct (https://github.com/golang/go/issues/32955#issuecomment-509318558)
+// Still, the branch name will get rewritten with the commit..
+replace github.com/ipfs/go-bitswap => github.com/ipfs/go-bitswap monitor/data-stall
