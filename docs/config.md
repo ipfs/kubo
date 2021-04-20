@@ -172,6 +172,10 @@ does (e.g, `"1d2h4m40.01s"`).
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+- [`Migration`](#migration)
+    - [`Migration.DownloadSources`](#migrationdownloadsources)
+    - [`Migration.Keep`](#migrationkeep)
+    - [`Migration.Peers`](#migrationpeers)
 - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
@@ -808,6 +812,28 @@ will be kept cached until their lifetime is expired.
 Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
+
+## `Migration`
+
+Migration configures how migrations are downloaded and if the downloads are added to IPFS locally.
+
+### `Migration.DownloadSources`
+
+Sources in order of preference, where "IPFS" means use IPFS and "HTTPS" means use default gateways. Any other values are interpreted as hostnames for custom gateways. An empty list means "use default sources".
+
+Default: `["HTTPS", "IPFS"]`
+
+### `Migration.Keep`
+
+Specifies whether or not to keep the migration after downloading it. Options are "discard", "cache", "pin". Empty string for default.
+
+Default: `cache`
+
+### `Migration.Peers`
+
+A set of peers to attempt to connect with when downloading migrations. Peers are specified as described in [`Peering.Peers`](#peeringpeers).
+
+Default: empty.
 
 ## `Mounts`
 
