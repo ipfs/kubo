@@ -244,7 +244,7 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 		// Failure to get the local swarm address only means that the
 		// downloaded migrations cannot be fetched through the temporary node.
 		// So, print the error message and keep going.
-		fmt.Fprintln(os.Stderr, "cannot get local swarm address: %s", err)
+		fmt.Fprintln(os.Stderr, "cannot get local swarm address:", err)
 	}
 
 	f.addrInfo = peer.AddrInfo{
