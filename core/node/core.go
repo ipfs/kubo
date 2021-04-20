@@ -10,6 +10,8 @@ import (
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-fetcher"
+	bsfetcher "github.com/ipfs/go-fetcher/impl/blockservice"
 	"github.com/ipfs/go-filestore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
@@ -21,6 +23,10 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	"github.com/ipfs/go-unixfs"
 	"github.com/ipfs/go-unixfsnode"
+	dagpb "github.com/ipld/go-codec-dagpb"
+	"github.com/ipld/go-ipld-prime"
+	basicnode "github.com/ipld/go-ipld-prime/node/basic"
+	"github.com/ipld/go-ipld-prime/schema"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
@@ -84,11 +90,22 @@ func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
 	return merkledag.NewSession(ctx, s.DAGService)
 }
 
+// FetcherConfig returns a fetcher config that can build new fetcher instances
+func FetcherConfig(bs blockservice.BlockService) fetcher.Factory {
+	fc := bsfetcher.NewFetcherConfig(bs)
+	fc.NodeReifier = unixfsnode.Reify
+	fc.PrototypeChooser = dagpb.AddSupportToChooser(func(lnk ipld.Link, lnkCtx ipld.LinkContext) (ipld.NodePrototype, error) {
+		if tlnkNd, ok := lnkCtx.LinkNode.(schema.TypedLinkNode); ok {
+			return tlnkNd.LinkTargetNodePrototype(), nil
+		}
+		return basicnode.Prototype.Any, nil
+	})
+	return fc
+}
+
 // Resolver returns a resolver that's configured to look up unixfs paths
-func Resolver(bs blockservice.BlockService) *resolver.Resolver {
-	rs := resolver.NewBasicResolver(bs)
-	rs.FetchConfig.NodeReifier = unixfsnode.Reify
-	return rs
+func Resolver(fetcherFactory fetcher.Factory) *resolver.Resolver {
+	return resolver.NewBasicResolver(fetcherFactory)
 }
 
 // Dag creates new DAGService

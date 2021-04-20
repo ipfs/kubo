@@ -6,12 +6,10 @@ import (
 	gopath "path"
 
 	"github.com/ipfs/go-ipfs/namesys/resolve"
-	"github.com/ipfs/go-unixfsnode"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
-	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
@@ -53,9 +51,7 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
 
-	r := resolver.NewBasicResolver(api.blocks)
-	r.FetchConfig.NodeReifier = unixfsnode.Reify
-	node, rest, err := r.ResolveToLastNode(ctx, ipath)
+	node, rest, err := api.resolver.ResolveToLastNode(ctx, ipath)
 	if err != nil {
 		return nil, err
 	}

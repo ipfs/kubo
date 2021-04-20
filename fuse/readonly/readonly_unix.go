@@ -6,13 +6,13 @@ package readonly
 import (
 	"context"
 	"fmt"
-	"github.com/ipfs/go-cid"
 	"io"
 	"os"
 	"syscall"
 
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
+	"github.com/ipfs/go-cid"
 	core "github.com/ipfs/go-ipfs/core"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
