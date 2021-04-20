@@ -283,7 +283,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 func Offline(cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(offline.Exchange),
-		fx.Provide(NilDNSResolver),
+		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(0)),
 		fx.Provide(offroute.NewOfflineRouter),
 		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),

@@ -79,7 +79,3 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 
 	return madns.NewResolver(opts...)
 }
-
-func NilDNSResolver() (*madns.Resolver, error) {
-	return madns.NewResolver(madns.WithDefaultResolver(&madns.MockResolver{}))
-}
