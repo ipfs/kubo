@@ -200,6 +200,34 @@ func defaultMux(path string) corehttp.ServeOption {
 	}
 }
 
+// readMigrationConfig reads the migration config out of the config, avoiding reading anything other
+// than the migration section. That way, we're free to make arbitrary changes to all _other_
+// sections in migrations.
+func readMigrationConfig(repoRoot string) (*config.Migration, error) {
+	var cfg struct {
+		Migration config.Migration
+	}
+
+	cfgPath, err := config.Filename(repoRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	cfgFile, err := os.Open(cfgPath)
+	if err != nil {
+		return nil, err
+	}
+
+	defer cfgFile.Close()
+
+	err = json.NewDecoder(cfgFile).Decode(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg.Migration, nil
+}
+
 func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (_err error) {
 	// Inject metrics before we do anything
 	err := mprome.Inject()
@@ -293,26 +321,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		var cfg struct {
-			Migration config.Migration
+		migrationCfg, err := readMigrationConfig(cctx.ConfigRoot)
+		if err != nil {
+			return err
 		}
 
-		{
-			cfgPath, err := config.Filename(cctx.ConfigRoot)
-			if err != nil {
-				return err
-			}
-			cfgFile, err := os.Open(cfgPath)
-			if err != nil {
-				return err
-			}
-			err = json.NewDecoder(cfgFile).Decode(&cfg)
-			if err != nil {
-				return err
-			}
-		}
-
-		keep := cfg.Migration.Keep
+		keep := migrationCfg.Keep
 		if keep == "" {
 			keep = config.DefaultMigrationKeep
 		}
@@ -326,11 +340,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return errors.New("unrecognized value for %s, must be 'cache', 'pin', or 'discard'")
 		}
 
-		dlSources := cfg.Migration.DownloadSources
+		dlSources := migrationCfg.DownloadSources
 		if len(dlSources) == 0 {
 			dlSources = config.DefaultMigrationDownloadSources
 		}
-		fetcher, err = getMigrationFetcher(dlSources, cfg.Migration.Peers)
+		fetcher, err = getMigrationFetcher(dlSources, migrationCfg.Peers)
 		if err != nil {
 			return err
 		}
