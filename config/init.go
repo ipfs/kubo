@@ -93,8 +93,8 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			Resolvers: map[string]string{},
 		},
 		Migration: Migration{
-			DownloadSources: DefaultMigrationDownloadSources,
-			Keep:            DefaultMigrationKeep,
+			DownloadSources: []string{},
+			Keep:            "",
 		},
 	}
 
