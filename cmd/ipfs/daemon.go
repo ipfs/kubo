@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	_ "expvar"
 	"fmt"
@@ -292,10 +293,23 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		// Read from existing config
-		cfg, err := cctx.GetConfig()
-		if err != nil {
-			return err
+		var cfg struct {
+			Migration config.Migration
+		}
+
+		{
+			cfgPath, err := config.Filename(cctx.ConfigRoot)
+			if err != nil {
+				return err
+			}
+			cfgFile, err := os.Open(cfgPath)
+			if err != nil {
+				return err
+			}
+			err = json.NewDecoder(cfgFile).Decode(&cfg)
+			if err != nil {
+				return err
+			}
 		}
 
 		keep := cfg.Migration.Keep
