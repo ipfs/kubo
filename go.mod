@@ -25,10 +25,10 @@ require (
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
 	github.com/ipfs/go-fetcher v1.6.1
-	github.com/ipfs/go-filestore v0.1.0
+	github.com/ipfs/go-filestore v1.1.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-graphsync v0.11.0
-	github.com/ipfs/go-ipfs-blockstore v0.2.1
+	github.com/ipfs/go-ipfs-blockstore v1.1.1
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
 	github.com/ipfs/go-ipfs-config v0.18.0
