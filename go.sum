@@ -402,8 +402,8 @@ github.com/ipfs/go-ipfs-chunker v0.0.5 h1:ojCf7HV/m+uS2vhUGWcogIIxiO5ubl5O57Q7Na
 github.com/ipfs/go-ipfs-chunker v0.0.5/go.mod h1:jhgdF8vxRHycr00k13FM8Y0E+6BoalYeobXmUyTreP8=
 github.com/ipfs/go-ipfs-cmds v0.6.0 h1:yAxdowQZzoFKjcLI08sXVNnqVj3jnABbf9smrPQmBsw=
 github.com/ipfs/go-ipfs-cmds v0.6.0/go.mod h1:ZgYiWVnCk43ChwoH8hAmI1IRbuVtq3GSTHwtRB/Kqhk=
-github.com/ipfs/go-ipfs-config v0.12.1-0.20210415065829-ab423490da8d h1:V/89vLcX0C8oitEe9B67sQC14h6qiPCKSVBMcnk4+bQ=
-github.com/ipfs/go-ipfs-config v0.12.1-0.20210415065829-ab423490da8d/go.mod h1:Ei/FLgHGTdPyqCPK0oPCwGTe8VSnsjJjx7HZqUb6Ry0=
+github.com/ipfs/go-ipfs-config v0.12.1-0.20210421090431-87b43eb677b4 h1:eHUTrJOUxzx19u8sNcpqVGSAI1BTt0Ao5Xa6bcATKQ4=
+github.com/ipfs/go-ipfs-config v0.12.1-0.20210421090431-87b43eb677b4/go.mod h1:Ei/FLgHGTdPyqCPK0oPCwGTe8VSnsjJjx7HZqUb6Ry0=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -800,8 +800,8 @@ github.com/libp2p/go-reuseport-transport v0.0.2/go.mod h1:YkbSDrvjUVDL6b8XqriyA2
 github.com/libp2p/go-reuseport-transport v0.0.3/go.mod h1:Spv+MPft1exxARzP2Sruj2Wb5JSyHNncjf1Oi2dEbzM=
 github.com/libp2p/go-reuseport-transport v0.0.4 h1:OZGz0RB620QDGpv300n1zaOcKGGAoGVf8h9txtt/1uM=
 github.com/libp2p/go-reuseport-transport v0.0.4/go.mod h1:trPa7r/7TJK/d+0hdBLOCGvpQQVOU74OXbNCIMkufGw=
-github.com/libp2p/go-smart-record v0.0.0-20210420082248-3bba69aae583 h1:VwSA1yrifC4I5gmF+WAXlWu5CnllBatf7Y2U261pLdo=
-github.com/libp2p/go-smart-record v0.0.0-20210420082248-3bba69aae583/go.mod h1:R6mtdVJZjY16WPAf3q9viBXd4+fCbSMhVs87DTen18I=
+github.com/libp2p/go-smart-record v0.0.0-20210421083332-4bb1d6ce2a56 h1:XYah2US+nDcM0i26aJSkxMGQX6bXWcfCndszwro++Vk=
+github.com/libp2p/go-smart-record v0.0.0-20210421083332-4bb1d6ce2a56/go.mod h1:R6mtdVJZjY16WPAf3q9viBXd4+fCbSMhVs87DTen18I=
 github.com/libp2p/go-sockaddr v0.0.2 h1:tCuXfpA9rq7llM/v834RKc/Xvovy/AqM9kHvTV/jY/Q=
 github.com/libp2p/go-sockaddr v0.0.2/go.mod h1:syPvOmNs24S3dFVGJA1/mrqdeijPxLV2Le3BRLKd68k=
 github.com/libp2p/go-socket-activation v0.0.2 h1:VLU3IbrUUqu4DMhxA9857Q63qUpEAbCz5RqSnLCx5jE=

@@ -228,19 +228,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//out.WritePretty(&w)
 	fmt.Println("[*] Getting 234 from node2")
-	fmt.Println(out)
-	//fmt.Println(w.String())
-	//w.Reset()
 
-	/*
-		if !ir.IsEqual(in, *out) {
-			fmt.Println("Wrong update")
-		}
-	*/
+	for k, v := range *out {
+		var w bytes.Buffer
+		v.WritePretty(&w)
+		fmt.Printf("(%s): %s", k.String(), string(w.Bytes()))
+		w.Reset()
+	}
+	in.WritePretty(&w)
+	fmt.Println(w.String())
+	w.Reset()
+	// TODO: Compare if the update was successful comparing with in once VM implementation
+	// is done
 	fmt.Println("Update went successfully")
-	fmt.Println(in)
-	select {}
 
 }

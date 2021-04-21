@@ -8,17 +8,13 @@ import (
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 )
 
-func SmartRecord(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordManager, error) {
-	ctx := helpers.LifecycleCtx(mctx, lc)
-	return smart.NewSmartRecordManager(ctx, host)
+func SmartRecord(serverMode bool) func(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordManager, error) {
+	return func(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordManager, error) {
+		ctx := helpers.LifecycleCtx(mctx, lc)
+		if serverMode {
+			return smart.NewSmartRecordManager(ctx, host)
+		} else {
+			return smart.NewSmartRecordClient(ctx, host)
+		}
+	}
 }
-
-// NOTE: If we choose to pass the smart record options using IPFS config, we may uncomment this function
-// and comment the above, modifying `core/node/groups.go` SmartRecords maybeProvide line with:
-// maybeProvide(SmartRecords(options...), cfg...)
-// func SmartRecord(smartOptions ...smart.Option) interface{} {
-//         return func(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordManager, error) {
-//                 ctx := helpers.LifecycleCtx(mctx, lc)
-//                 return smart.NewSmartRecordManager(ctx, host, smartOptions...)
-//         }
-// }
