@@ -6,6 +6,7 @@ import (
 	"github.com/ipfs/go-graphsync/network"
 	"github.com/ipfs/go-graphsync/storeutil"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	"github.com/ipfs/go-unixfsnode"
 	libp2p "github.com/libp2p/go-libp2p-core"
 	"go.uber.org/fx"
 
@@ -15,10 +16,10 @@ import (
 // Graphsync constructs a graphsync
 func Graphsync(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host, bs blockstore.GCBlockstore) graphsync.GraphExchange {
 	ctx := helpers.LifecycleCtx(mctx, lc)
-
+	lsys := storeutil.LinkSystemForBlockstore(bs)
+	lsys.NodeReifier = unixfsnode.Reify
 	network := network.NewFromLibp2pHost(host)
 	return gsimpl.New(ctx, network,
-		storeutil.LoaderForBlockstore(bs),
-		storeutil.StorerForBlockstore(bs),
+		lsys,
 	)
 }
