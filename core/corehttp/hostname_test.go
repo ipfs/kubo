@@ -55,7 +55,7 @@ func TestToSubdomainURL(t *testing.T) {
 		{httpRequest, "localhost", "/ipns/QmY3hE8xgFCjGcz6PHgnvJz5HZi1BaKRfPkn1ghZUcYMjD", "http://k2k4r8n0flx3ra0y5dr8fmyvwbzy3eiztmtq6th694k5a3rznayp3e4o.ipns.localhost/", nil},
 		{httpRequest, "localhost", "/ipns/bafybeickencdqw37dpz3ha36ewrh4undfjt2do52chtcky4rxkj447qhdm", "http://k2k4r8l9ja7hkzynavdqup76ou46tnvuaqegbd04a4o1mpbsey0meucb.ipns.localhost/", nil},
 		// PeerID: ed25519+identity multihash → CIDv1Base36
-		{httpRequest, "localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5.ipns.localhost/", nil},
+		{httpRequest, "localhost", "/ipns/12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", "http://k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna.ipns.localhost/", nil},
 		{httpRequest, "sub.localhost", "/ipfs/QmbCMUZw6JFeZ7Wp9jkzbye3Fzp2GGcPgC3nmeUjfVF87n", "http://bafybeif7a7gdklt6hodwdrmwmxnhksctcuav6lfxlcyfz4khzl3qfmvcgu.ipfs.sub.localhost/", nil},
 		// HTTPS requires DNSLink name to fit in a single DNS label – see "Option C" from https://github.com/ipfs/in-web-browsers/issues/169
 		{httpRequest, "dweb.link", "/ipns/dnslink.long-name.example.com", "http://dnslink.long-name.example.com.ipns.dweb.link/", nil},
@@ -140,6 +140,25 @@ func TestHasPrefix(t *testing.T) {
 		out := hasPrefix(test.path, test.prefixes...)
 		if out != test.out {
 			t.Errorf("(%+v, %s) returned '%t', expected '%t'", test.prefixes, test.path, out, test.out)
+		}
+	}
+}
+
+func TestIsDomainNameAndNotPeerID(t *testing.T) {
+	for _, test := range []struct {
+		hostname string
+		out      bool
+	}{
+		{"", false},
+		{"example.com", true},
+		{"non-icann.something", true},
+		{"..", false},
+		{"12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", false},           // valid peerid
+		{"k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna", false}, // valid peerid
+	} {
+		out := isDomainNameAndNotPeerID(test.hostname)
+		if out != test.out {
+			t.Errorf("(%s) returned '%t', expected '%t'", test.hostname, out, test.out)
 		}
 	}
 }
