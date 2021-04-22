@@ -430,7 +430,7 @@ func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
 	return cfgMap, nil
 }
 
-// transformConfig returns old config and new config instead of difference between they,
+// transformConfig returns old config and new config instead of difference between them,
 // because apply command can provide stable API through this way.
 // If dryRun is true, repo's config should not be updated and persisted
 // to storage. Otherwise, repo's config should be updated and persisted
