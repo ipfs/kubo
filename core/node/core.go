@@ -115,7 +115,7 @@ func OnlineExchange(provide bool) interface{} {
 						checkBitswapResponse(testContext, host.ID())
 
 						select {
-						case <-ctx.Done():
+						case <-helpers.LifecycleCtx(mctx, lc).Done():
 							return
 						case <-testContext.Done():
 						}
