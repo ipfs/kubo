@@ -779,8 +779,8 @@ github.com/libp2p/go-reuseport-transport v0.0.2/go.mod h1:YkbSDrvjUVDL6b8XqriyA2
 github.com/libp2p/go-reuseport-transport v0.0.3/go.mod h1:Spv+MPft1exxARzP2Sruj2Wb5JSyHNncjf1Oi2dEbzM=
 github.com/libp2p/go-reuseport-transport v0.0.4 h1:OZGz0RB620QDGpv300n1zaOcKGGAoGVf8h9txtt/1uM=
 github.com/libp2p/go-reuseport-transport v0.0.4/go.mod h1:trPa7r/7TJK/d+0hdBLOCGvpQQVOU74OXbNCIMkufGw=
-github.com/libp2p/go-smart-record v0.0.0-20210421083332-4bb1d6ce2a56 h1:XYah2US+nDcM0i26aJSkxMGQX6bXWcfCndszwro++Vk=
-github.com/libp2p/go-smart-record v0.0.0-20210421083332-4bb1d6ce2a56/go.mod h1:R6mtdVJZjY16WPAf3q9viBXd4+fCbSMhVs87DTen18I=
+github.com/libp2p/go-smart-record v0.0.0-20210422073748-2a1dd35eaf70 h1:MEAtSkv0O8y8KLBuJGN0LtSAuTigJzI+RilIEtYK68Y=
+github.com/libp2p/go-smart-record v0.0.0-20210422073748-2a1dd35eaf70/go.mod h1:h5+jo8z9a0/w9RGwXTzkQAEg/sZkxPzGbWlqEXjkpSs=
 github.com/libp2p/go-sockaddr v0.0.2 h1:tCuXfpA9rq7llM/v834RKc/Xvovy/AqM9kHvTV/jY/Q=
 github.com/libp2p/go-sockaddr v0.0.2/go.mod h1:syPvOmNs24S3dFVGJA1/mrqdeijPxLV2Le3BRLKd68k=
 github.com/libp2p/go-socket-activation v0.0.2/go.mod h1:KP44C+yZ7gA8sTxavgaD0b8vXVFJwam2CEW0s7+f094=

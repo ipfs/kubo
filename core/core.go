@@ -84,17 +84,18 @@ type IpfsNode struct {
 	RecordValidator record.Validator
 
 	// Online
-	PeerHost      p2phost.Host             `optional:"true"` // the network host (server+client)
-	Peering       peering.PeeringService   `optional:"true"`
-	Filters       *ma.Filters              `optional:"true"`
-	Bootstrapper  io.Closer                `optional:"true"` // the periodic bootstrapper
-	Routing       routing.Routing          `optional:"true"` // the routing system. recommend ipfs-dht
-	Exchange      exchange.Interface       // the block exchange + strategy (bitswap)
-	Namesys       namesys.NameSystem       // the name system, resolves paths to hashes
-	Provider      provider.System          // the value provider system
-	IpnsRepub     *ipnsrp.Republisher      `optional:"true"`
-	GraphExchange graphsync.GraphExchange  `optional:"true"`
-	SmartRecords  smart.SmartRecordManager `optional:"true"`
+	PeerHost          p2phost.Host            `optional:"true"` // the network host (server+client)
+	Peering           peering.PeeringService  `optional:"true"`
+	Filters           *ma.Filters             `optional:"true"`
+	Bootstrapper      io.Closer               `optional:"true"` // the periodic bootstrapper
+	Routing           routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
+	Exchange          exchange.Interface      // the block exchange + strategy (bitswap)
+	Namesys           namesys.NameSystem      // the name system, resolves paths to hashes
+	Provider          provider.System         // the value provider system
+	IpnsRepub         *ipnsrp.Republisher     `optional:"true"`
+	GraphExchange     graphsync.GraphExchange `optional:"true"`
+	SmartRecordClient smart.SmartRecordClient `optional:"true"`
+	SmartRecordServer smart.SmartRecordServer `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`

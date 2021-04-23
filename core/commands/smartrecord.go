@@ -12,10 +12,9 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-smart-record/ir"
-	"github.com/libp2p/go-smart-record/vm"
 )
 
-var ErrNoSmartRecord = errors.New("smart records are not enabled")
+var ErrNoSmartRecord = errors.New("no smart record client initialized in peer")
 
 const smartRecordReqTimeout = 10 * time.Second
 
@@ -63,7 +62,7 @@ var getSmartRecordCmd = &cmds.Command{
 			return err
 		}
 
-		if nd.SmartRecords == nil {
+		if nd.SmartRecordClient == nil {
 			return ErrNoSmartRecord
 		}
 
@@ -73,38 +72,39 @@ var getSmartRecordCmd = &cmds.Command{
 			return cmds.ClientError("invalid peer ID")
 		}
 
-		smManager := nd.SmartRecords
+		smManager := nd.SmartRecordClient
 		ctx, cancel := context.WithTimeout(req.Context, smartRecordReqTimeout)
 		out, err := smManager.Get(ctx, k, p)
 		cancel()
 		if err != nil {
 			return fmt.Errorf("record GET failed: %s", err)
 		}
-
-		b, err := vm.MarshalRecordValue(*out)
-		if err != nil {
-			return fmt.Errorf("Error marshalling record value: %s", err)
+		if len(*out) == 0 {
+			fmt.Println("No entries in record")
+		} else {
+			// NOTE: This should go in the Encoders section, but as it requires marshalling
+			// and sending it as bytes (because we don't support json.Marshal for dicts, we'll
+			// leave it like this for now)
+			for k, v := range *out {
+				var w bytes.Buffer
+				v.WritePretty(&w)
+				fmt.Printf("(%s): %s\n", k.String(), string(w.Bytes()))
+				w.Reset()
+			}
 		}
-		return res.Emit(&SmartRecordResult{Out: b, Ok: true})
+		return res.Emit(&SmartRecordResult{Ok: true})
 
 	},
 	Type: &SmartRecordResult{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *SmartRecordResult) error {
-			rv, err := vm.UnmarshalRecordValue(out.Out)
-			if err != nil {
-				return err
-			}
-			if len(rv) == 0 {
-				fmt.Println("No entries in record")
+
+			// NOTE: Consider outputting additional information or marshalling out from above and
+			// emitting to pretty print here.
+			if out.Ok {
+				fmt.Println("Record get successful")
 			} else {
-				// NOTE: We can probably come up with prettier ways of outputting this.
-				for k, v := range rv {
-					var w bytes.Buffer
-					v.WritePretty(&w)
-					fmt.Printf("(%s): %s", k.String(), string(w.Bytes()))
-					w.Reset()
-				}
+				fmt.Println("Record get wasn't successful")
 			}
 			return nil
 		}),
@@ -131,7 +131,7 @@ var updateSmartRecordCmd = &cmds.Command{
 			return err
 		}
 
-		if nd.SmartRecords == nil {
+		if nd.SmartRecordClient == nil {
 			return ErrNoSmartRecord
 		}
 
@@ -153,7 +153,7 @@ var updateSmartRecordCmd = &cmds.Command{
 			return fmt.Errorf("Record is not dict type")
 		}
 
-		smManager := nd.SmartRecords
+		smManager := nd.SmartRecordClient
 		ctx, cancel := context.WithTimeout(req.Context, smartRecordReqTimeout)
 		err = smManager.Update(ctx, k, p, r)
 		cancel()

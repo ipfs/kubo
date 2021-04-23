@@ -187,7 +187,7 @@ func main() {
 	}
 	fmt.Println("Connected successfully to peer")
 
-	vm := node1.Node.SmartRecords
+	vm := node1.Node.SmartRecordClient
 
 	in1 := ir.Dict{
 		Pairs: ir.Pairs{
@@ -242,5 +242,5 @@ func main() {
 	// TODO: Compare if the update was successful comparing with in once VM implementation
 	// is done
 	fmt.Println("Update went successfully")
-
+	select {}
 }

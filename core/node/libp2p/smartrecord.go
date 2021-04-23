@@ -8,13 +8,11 @@ import (
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 )
 
-func SmartRecord(serverMode bool) func(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordManager, error) {
-	return func(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordManager, error) {
-		ctx := helpers.LifecycleCtx(mctx, lc)
-		if serverMode {
-			return smart.NewSmartRecordManager(ctx, host)
-		} else {
-			return smart.NewSmartRecordClient(ctx, host)
-		}
-	}
+func SmartRecordClient(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordClient, error) {
+	ctx := helpers.LifecycleCtx(mctx, lc)
+	return smart.NewSmartRecordClient(ctx, host)
+}
+func SmartRecordServer(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host) (smart.SmartRecordServer, error) {
+	ctx := helpers.LifecycleCtx(mctx, lc)
+	return smart.NewSmartRecordServer(ctx, host)
 }
