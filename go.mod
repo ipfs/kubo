@@ -15,7 +15,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/go-bitswap v0.3.3
+	github.com/ipfs/go-bitswap v0.3.4-0.20210423224948-36c782e793b7
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.4
 	github.com/ipfs/go-cid v0.0.7
@@ -112,8 +112,6 @@ require (
 )
 
 go 1.14
-
-replace github.com/ipfs/go-bitswap => github.com/ipfs/go-bitswap v0.3.4-0.20210423195404-77774fa11f7a
 
 // Dev: To point to the (not fixed) branch (instead of fixed commit):
 // replace github.com/ipfs/go-bitswap => github.com/ipfs/go-bitswap monitor/data-stall
