@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	_ "expvar"
 	"fmt"
@@ -198,34 +197,6 @@ func defaultMux(path string) corehttp.ServeOption {
 		mux.Handle(path, http.DefaultServeMux)
 		return mux, nil
 	}
-}
-
-// readMigrationConfig reads the migration config out of the config, avoiding reading anything other
-// than the migration section. That way, we're free to make arbitrary changes to all _other_
-// sections in migrations.
-func readMigrationConfig(repoRoot string) (*config.Migration, error) {
-	var cfg struct {
-		Migration config.Migration
-	}
-
-	cfgPath, err := config.Filename(repoRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	cfgFile, err := os.Open(cfgPath)
-	if err != nil {
-		return nil, err
-	}
-
-	defer cfgFile.Close()
-
-	err = json.NewDecoder(cfgFile).Decode(&cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg.Migration, nil
 }
 
 func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) (_err error) {

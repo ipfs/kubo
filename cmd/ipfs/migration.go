@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
@@ -21,6 +23,34 @@ import (
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+// readMigrationConfig reads the migration config out of the config, avoiding reading anything other
+// than the migration section. That way, we're free to make arbitrary changes to all _other_
+// sections in migrations.
+func readMigrationConfig(repoRoot string) (*config.Migration, error) {
+	var cfg struct {
+		Migration config.Migration
+	}
+
+	cfgPath, err := config.Filename(repoRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	cfgFile, err := os.Open(cfgPath)
+	if err != nil {
+		return nil, err
+	}
+
+	defer cfgFile.Close()
+
+	err = json.NewDecoder(cfgFile).Decode(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg.Migration, nil
+}
 
 // getMigrationFetcher creates one or more fetchers according to
 // downloadPolicy.

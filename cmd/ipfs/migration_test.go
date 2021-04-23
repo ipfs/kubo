@@ -1,6 +1,9 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
@@ -21,6 +24,71 @@ func init() {
 	testPeers, err = parsePeers(testPeerStrs)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func TestReadMigrationConfig(t *testing.T) {
+	str := `
+		{
+			"Migration": {
+ 				"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+				"Keep": "cache",
+				"Peers": [
+					{
+						"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
+						"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
+					}
+				]
+			}
+		}
+	`
+
+	tmpDir, err := ioutil.TempDir("", "migration_test")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	cfgFile, err := os.Create(filepath.Join(tmpDir, "config"))
+	if err != nil {
+		panic(err)
+	}
+	if _, err = cfgFile.Write([]byte(str)); err != nil {
+		panic(err)
+	}
+	if err = cfgFile.Close(); err != nil {
+		panic(err)
+	}
+
+	cfg, err := readMigrationConfig(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(cfg.DownloadSources) != 3 {
+		t.Fatal("wrong number of DownloadSources")
+	}
+	expect := []string{"IPFS", "HTTP", "127.0.0.1"}
+	for i := range expect {
+		if cfg.DownloadSources[i] != expect[i] {
+			t.Errorf("wrong DownloadSource at %d", i)
+		}
+	}
+
+	if cfg.Keep != "cache" {
+		t.Error("wrong value for Keep")
+	}
+
+	if len(cfg.Peers) != 1 {
+		t.Fatal("wrong number of peers")
+	}
+
+	peer := cfg.Peers[0]
+	if peer.ID.String() != "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5" {
+		t.Errorf("wrong ID for first peer")
+	}
+	if len(peer.Addrs) != 2 {
+		t.Error("wrong number of addrs for first peer")
 	}
 }
 
