@@ -209,7 +209,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// let the user know we're going.
 	fmt.Printf("Initializing daemon...\n")
 
-	if level := os.Getenv("BS_LOG"); level != "" {
+	if level := os.Getenv("BS_CFG_LOG"); level != "" {
 		logging.SetAllLoggers(logging.LevelWarn)
 		logging.SetLogLevel("bitswap", level)
 		logging.SetLogLevel("engine", level)

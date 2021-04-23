@@ -3,6 +3,8 @@ package node
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/ipfs/go-bitswap"
@@ -104,15 +106,39 @@ func OnlineExchange(provide bool) interface{} {
 		})
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
+				// Monitoring configuration settings as environment variables
+				// with the `BS_CFG_` prefix.
+				// * `BS_CFG_TIMEOUT`: time interval between test (CID requests).
+				//  Also the time we wait for *all* CID requests to be responded
+				//  before reporting an error.
+				// * `BS_CFG_CID_REQ_NUM`: number of CIDs requested in total for
+				//   the group of valid and existing CIDs (that will have a BS
+				//  `BLOCK` response) and the group of invalid (shortened)
+				//  nonexistent CIDs (that will have a `DONT_HAVE` response).
+				//  They are read and parsed every test run to be modified without
+				//  restarting the node. (The timeout is usually in the order of
+				//  seconds and this is not a measurable performance penalty.) They
+				//  need to be set *always* otherwise we report an error (they
+				//  are crucial for the test to be meaningful).
+				// FIXME: This should actually be part of the config file
+				//  to use the node API to change them on the fly but I'd
+				//  like to avoid modifying yet another dependency for now.
 				go func() {
 					for {
-						// We do the check every X seconds. This time is also
+						timeout, successTimeout := parseNonZeroIntConfig("BS_CFG_TIMEOUT")
+						cidNum, successCid := parseNonZeroIntConfig("BS_CFG_CID_REQ_NUM")
+						if successTimeout == false || successCid == false {
+							time.Sleep(time.Second * 5)
+							continue
+						}
+
+						// We do the check every `timeout` seconds. This time is also
 						// as much as we are willing to wait for the response
 						// on all CIDs requested. This means we only do *one*
 						// test at a time.
-						testContext, _ := context.WithTimeout(ctx, time.Second*5) // fixme: parameter, make this a config so we can adjust on the fly
+						testContext, _ := context.WithTimeout(ctx, time.Second*time.Duration(timeout))
 
-						checkBitswapResponse(testContext, host.ID())
+						checkBitswapResponse(testContext, host.ID(), cidNum)
 
 						select {
 						case <-helpers.LifecycleCtx(mctx, lc).Done():
@@ -129,13 +155,35 @@ func OnlineExchange(provide bool) interface{} {
 	}
 }
 
+func parseNonZeroIntConfig(configString string) (int, bool) {
+	configValueString := os.Getenv(configString)
+	if configValueString == "" {
+		bsLog.Errorf("%s not set", configString)
+		return 0, false
+	}
+	configInt, err := strconv.Atoi(configValueString)
+	if err != nil {
+		bsLog.Errorf("error parsing %s: %s",
+			configString, err)
+		return 0, false
+	}
+	if configInt == 0 {
+		bsLog.Errorf("%s set to zero seconds", configString)
+		return 0, false
+	}
+	return configInt, true
+}
+
 func checkBitswapResponse(ctx context.Context,
 	localPeer peer.ID,
+	cidNum int,
 ) {
 	bsLog.Debug("checking BitSwap response") // FIXME: Add more info here. Connection type?
-	missingCids, err := bsutil.CheckBitswapCID(ctx, localPeer)
+	missingCids, err := bsutil.CheckBitswapCID(ctx, localPeer, cidNum)
 	if err != nil {
-		bsLog.Warnf("error in CheckBitswapCID: %s", err)
+		if err != context.Canceled {
+			bsLog.Warnf("error in CheckBitswapCID: %s", err)
+		}
 	} else if len(missingCids) > 0 {
 		// Note this is an error, not a warning. This is the
 		// true error case we are monitoring for (the rest

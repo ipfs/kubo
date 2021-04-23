@@ -1,4 +1,5 @@
 export GOPROXY=direct
-export BS_LOG=info
-export BITSWAP_LOG_PEER=12D3KooWDpJ7As7BWAwRMfu1VU2WCqNjvq387JEYKDBj4kx6nXTN
+export BS_CFG_LOG=info
+export BS_CFG_TIMEOUT=5
+export BS_CFG_CID_REQ_NUM=10
 make build && ./cmd/ipfs/ipfs daemon
