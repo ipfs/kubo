@@ -19,6 +19,9 @@ import (
 	"fmt"
 
 	bserv "github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-dagwriter"
+	bsdagwriter "github.com/ipfs/go-dagwriter/impl/blockservice"
+	"github.com/ipfs/go-fetcher"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	offlinexch "github.com/ipfs/go-ipfs-exchange-offline"
@@ -57,6 +60,8 @@ type CoreAPI struct {
 
 	blocks          bserv.BlockService
 	dag             ipld.DAGService
+	fetcherFactory  fetcher.Factory
+	dagWriter       dagwriter.DagWritingService
 	resolver        *resolver.Resolver
 	peerstore       pstore.Peerstore
 	peerHost        p2phost.Host
@@ -103,6 +108,19 @@ func (api *CoreAPI) Dag() coreiface.APIDagService {
 	return &dagAPI{
 		api.dag,
 		api,
+	}
+}
+
+type nodeAPI struct {
+	fetcher.Factory
+	dagwriter.DagWritingService
+}
+
+// Node returns the Node interface implementation backed by the go-ipfs node
+func (api *CoreAPI) Node() coreiface.NodeAPI {
+	return &nodeAPI{
+		api.fetcherFactory,
+		api.dagWriter,
 	}
 }
 
@@ -166,9 +184,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		baseBlocks: n.BaseBlocks,
 		pinning:    n.Pinning,
 
-		blocks:   n.Blocks,
-		dag:      n.DAG,
-		resolver: n.Resolver,
+		blocks:         n.Blocks,
+		dag:            n.DAG,
+		resolver:       n.Resolver,
+		fetcherFactory: n.FetcherFactory,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,
@@ -184,6 +203,8 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		nd:         n,
 		parentOpts: settings,
 	}
+
+	subApi.dagWriter = bsdagwriter.NewDagWriter(subApi.blocks)
 
 	subApi.checkOnline = func(allowOffline bool) error {
 		if !n.IsOnline && !allowOffline {
