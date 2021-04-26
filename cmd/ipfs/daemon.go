@@ -211,13 +211,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	bsLogLevel := os.Getenv("BS_CFG_LOG");
 	if  bsLogLevel == "" {
-		panic("BS_CFG_LOG not set, recommended to set to INFO")
-	} else {
-		logging.SetAllLoggers(logging.LevelWarn)
-		logging.SetLogLevel("bitswap", bsLogLevel)
-		logging.SetLogLevel("engine", bsLogLevel)
-		logging.SetLogLevel("bs:peermgr", bsLogLevel)
+		bsLogLevel = "info"
 	}
+	logging.SetLogLevel("bitswap", bsLogLevel)
+	logging.SetLogLevel("engine", bsLogLevel)
+	logging.SetLogLevel("bs:peermgr", bsLogLevel)
 
 	defer func() {
 		if _err != nil {
