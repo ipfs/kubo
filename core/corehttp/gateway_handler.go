@@ -301,13 +301,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// and only if it's /ipfs!
 
 	// ipns routes do not require LastModified header, disable by passing zero date to ServeContent
+	// (ipfs routes have modtime set in a separate code block below)
 	modtime := time.Time{}
 
 	if f, ok := dr.(files.File); ok {
 		if strings.HasPrefix(urlPath, ipfsPathPrefix) {
 			w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
 
-			// set modtime to a really long time ago, since files are immutable and should stay cached
+			// set modtime for /ipfs/ to a really long time ago, since files are immutable and should stay cached
 			modtime = time.Unix(1, 0)
 		}
 
