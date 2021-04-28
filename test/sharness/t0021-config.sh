@@ -129,7 +129,7 @@ test_config_cmd() {
   # Dynamic keys with dot in their names
   test_config_cmd_set "--json" "Gateway.PublicGateways[\"some.example.com\"].UseSubdomains" "true"
   test_expect_success "'ipfs config show' after Foo[\"bar.buzz\"] returns a valid JSON" '
-    test_expect_code 0 ipfs config show | jq > /dev/null 2>&1
+    ipfs config show | jq -e > /dev/null 2>&1
   '
   test_expect_success "'ipfs config' after Foo[\"bar.buzz\"] shows updated value" '
     ipfs config Gateway.PublicGateways[\"some.example.com\"].UseSubdomains > bool_out &&
