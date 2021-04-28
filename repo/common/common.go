@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // Find dynamic map key names passed  as Parent["foo"] notation
@@ -16,10 +18,10 @@ func keyToLookupData(key string) (normalizedKey string, dynamicKeys map[string]s
 	bracketedKeys := bracketsRe.FindAllString(key, -1)
 	dynamicKeys = make(map[string]string, len(bracketedKeys))
 	normalizedKey = key
-	for i, mapKeySegment := range bracketedKeys {
-		mapKey := strings.TrimLeft(mapKeySegment, "[\"")
-		mapKey = strings.TrimRight(mapKey, "\"]")
-		placeholder := fmt.Sprintf("mapKey%d", i)
+	for _, mapKeySegment := range bracketedKeys {
+		mapKey := strings.TrimPrefix(mapKeySegment, `["`)
+		mapKey = strings.TrimSuffix(mapKey, `"]`)
+		placeholder := uuid.New().String()
 		dynamicKeys[placeholder] = mapKey
 		normalizedKey = strings.Replace(normalizedKey, mapKeySegment, fmt.Sprintf(".%s", placeholder), 1)
 	}
