@@ -126,6 +126,13 @@ test_config_cmd() {
     test_cmp replconfig.json newconfig.json
   '
 
+  # Dynamic keys with dot in their names
+  test_config_cmd_set "--json" "Gateway.PublicGateways[\"some.example.com\"].UseSubdomains" "true"
+  test_expect_success "'ipfs config' output for dynamic keys looks good" '
+    ipfs config Gateway.PublicGateways["some.example.com"].UseSubdomains > dynkey_out &&
+    grep true dynkey_out
+  '
+
   # SECURITY
   # Those tests are here to prevent exposing the PrivKey on the network
 
