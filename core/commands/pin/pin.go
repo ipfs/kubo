@@ -44,8 +44,8 @@ type PinOutput struct {
 }
 
 type AddPinOutput struct {
-	Pins     []string
-	Progress int `json:",omitempty"`
+	Pins     []string `json:",omitempty"`
+	Progress int      `json:",omitempty"`
 }
 
 const (
