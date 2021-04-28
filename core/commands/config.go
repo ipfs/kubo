@@ -12,6 +12,7 @@ import (
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/repo"
+	. "github.com/ipfs/go-ipfs/repo/common"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	"github.com/elgris/jsondiff"
@@ -162,7 +163,8 @@ Values behind map key names that include dots can be accessed like this:
 //	matchesGlobPrefix("foo.bar.baz", []string{"*", "bar"}) returns true
 //	matchesGlobPrefix("foo.bar", []string{"baz", "*"}) returns false
 func matchesGlobPrefix(key string, glob []string) bool {
-	k := strings.Split(key, ".")
+	normalizedKey, _ := ConfigKeyToLookupData(key)
+	k := strings.Split(normalizedKey, ".")
 	for i, g := range glob {
 		if i >= len(k) {
 			break
