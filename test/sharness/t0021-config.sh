@@ -131,6 +131,7 @@ test_config_cmd() {
   test_expect_success "'ipfs config show' after Foo[\"bar.buzz\"] returns a valid JSON" '
     ipfs config show | jq -e > /dev/null 2>&1
   '
+  # TODO:  ipfs config show | jq -e > /dev/null 2>&1
   test_expect_success "'ipfs config' after Foo[\"bar.buzz\"] shows updated value" '
     ipfs config Gateway.PublicGateways[\"some.example.com\"].UseSubdomains > bool_out &&
     grep true bool_out
