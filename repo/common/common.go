@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// Find dynamic map key names passed  as Parent["foo"] notation
-var bracketsRe = regexp.MustCompile(`\[([^\[\]]*)\]`)
+// Find dynamic map key names passed with Parent["foo"] notation
+var bracketsRe = regexp.MustCompile(`\["([^\["\]]*)"\]`)
 
 // Normalization for supporting arbitrary dynamic keys with dots:
 // Gateway.PublicGateways["gw.example.com"].UseSubdomains
