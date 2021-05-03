@@ -29,6 +29,7 @@ type Config struct {
 	Pubsub    PubsubConfig
 	Peering   Peering
 	DNS       DNS
+	Migration Migration
 
 	Provider     Provider
 	Reprovider   Reprovider
