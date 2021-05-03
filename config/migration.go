@@ -1,7 +1,5 @@
 package config
 
-import "github.com/libp2p/go-libp2p-core/peer"
-
 const DefaultMigrationKeep = "cache"
 
 var DefaultMigrationDownloadSources = []string{"HTTPS", "IPFS"}
@@ -16,7 +14,4 @@ type Migration struct {
 	// Whether or not to keep the migration after downloading it.
 	// Options are "discard", "cache", "pin".  Empty string for default.
 	Keep string
-	// Peers lists the nodes to attempt to connect with when downloading
-	// migrations.
-	Peers []peer.AddrInfo
 }
