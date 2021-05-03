@@ -222,7 +222,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		if u.RawQuery != "" { // preserve query if present
 			path = path + "?" + u.RawQuery
 		}
-		http.Redirect(w, r, gopath.Join("/", prefix, u.Scheme, u.Host, path), http.StatusMovedPermanently)
+		redirect(w, r, gopath.Join("/", prefix, u.Scheme, u.Host, path), http.StatusMovedPermanently)
 		return
 	}
 
@@ -265,6 +265,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "ipfs resolve -r "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
+
+	log.Debugf("mapped request to CID: %s %s -> %s", r.Method, r.URL.Path, resolvedPath.Cid())
 
 	dr, err := i.api.Unixfs().Get(r.Context(), resolvedPath)
 	if err != nil {
@@ -346,7 +348,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				// preserve query parameters
 				suffix = suffix + "?" + r.URL.RawQuery
 			}
-			http.Redirect(w, r, originalUrlPath+suffix, 302)
+			redirect(w, r, originalUrlPath+suffix, 302)
 			return
 		}
 
@@ -477,6 +479,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
+	log.Debugf("serving file: %s for request: %s", name, req.URL.Path)
 	size, err := file.Size()
 	if err != nil {
 		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
@@ -564,7 +567,7 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", p.Cid().String())
-	http.Redirect(w, r, p.String(), http.StatusCreated)
+	redirect(w, r, p.String(), http.StatusCreated)
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
@@ -656,7 +659,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newcid.String(), newPath), http.StatusCreated)
+	redirect(w, r, gopath.Join(ipfsPathPrefix, newcid.String(), newPath), http.StatusCreated)
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -728,13 +731,18 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", ncid.String())
 	// note: StatusCreated is technically correct here as we created a new resource.
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), directory), http.StatusCreated)
+	redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), directory), http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
 	for k, v := range i.config.Headers {
 		w.Header()[k] = v
 	}
+}
+
+func redirect(w http.ResponseWriter, r *http.Request, url string, code int) {
+	http.Redirect(w, r, url, code)
+	log.Debugf("redirected to url: %s with status: %s", url, code)
 }
 
 func webError(w http.ResponseWriter, message string, err error, defaultCode int) {
