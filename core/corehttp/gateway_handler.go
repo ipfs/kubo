@@ -482,7 +482,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 	log.Debugf("serving file: %s for request: %s", name, req.URL.Path)
 	size, err := file.Size()
 	if err != nil {
-		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
+		webError(w, "cannot serve files with unknown sizes", err, http.StatusBadGateway)
 		return
 	}
 
@@ -503,14 +503,14 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 			// Fixes https://github.com/ipfs/go-ipfs/issues/7252
 			mimeType, err := mimetype.DetectReader(content)
 			if err != nil {
-				http.Error(w, fmt.Sprintf("cannot detect content-type: %s", err.Error()), http.StatusInternalServerError)
+				webError(w,"cannot detect content-type", err, http.StatusInternalServerError)
 				return
 			}
 
 			ctype = mimeType.String()
 			_, err = content.Seek(0, io.SeekStart)
 			if err != nil {
-				http.Error(w, "seeker can't seek", http.StatusInternalServerError)
+				webError(w, "seeker can't seek", err, http.StatusInternalServerError)
 				return
 			}
 		}
@@ -635,7 +635,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	dir, ok := dirNode.(*mfs.Directory)
 	if !ok {
-		http.Error(w, "WritableGateway: target directory is not a directory", http.StatusBadRequest)
+		webError(w, "WritableGateway: target directory is not a directory", errors.New("target is not a directory"), http.StatusBadRequest)
 		return
 	}
 	err = dir.Unlink(newFileName)
