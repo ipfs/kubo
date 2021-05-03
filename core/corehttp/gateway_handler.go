@@ -503,7 +503,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 			// Fixes https://github.com/ipfs/go-ipfs/issues/7252
 			mimeType, err := mimetype.DetectReader(content)
 			if err != nil {
-				webError(w,"cannot detect content-type", err, http.StatusInternalServerError)
+				webError(w, "cannot detect content-type", err, http.StatusInternalServerError)
 				return
 			}
 
