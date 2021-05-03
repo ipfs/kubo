@@ -17,7 +17,7 @@ func TestIpfsFetcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewIpfsFetcher("", 0, nil)
+	fetcher := NewIpfsFetcher("", 0, nil, nil)
 	defer fetcher.Close()
 
 	rc, err := fetcher.Fetch(ctx, "go-ipfs/versions")
@@ -55,11 +55,11 @@ func TestInitIpfsFetcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	f := NewIpfsFetcher("", 0, nil)
+	f := NewIpfsFetcher("", 0, nil, nil)
 	defer f.Close()
 
 	// Init ipfs repo
-	f.ipfsTmpDir, f.openErr = initTempNode(ctx)
+	f.ipfsTmpDir, f.openErr = initTempNode(ctx, f.bootstrap, f.peers)
 	if f.openErr != nil {
 		t.Fatalf("failed to init ipfs node: %s", f.openErr)
 	}

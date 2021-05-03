@@ -6,59 +6,67 @@ import (
 	"path/filepath"
 	"testing"
 
+	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr"
 )
 
-var testPeerStrs = []string{
-	"/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
-	"/ip4/127.0.0.1/udp/4001/quic/p2p/12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ7",
-}
-
-var testPeers []peer.AddrInfo
-
-func init() {
-	var err error
-	testPeers, err = parsePeers(testPeerStrs)
-	if err != nil {
-		panic(err)
+var configData = `
+{
+	"Bootstrap": [
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+	],
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": {
+		"Peers": [
+			{
+				"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
+				"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
+			}
+		]
 	}
 }
+`
+
+var configDataBadPeers = `
+{
+	"Bootstrap": [
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+	],
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": "Unreadable-data"
+}
+`
+
+var configDataBadBootstrap = `
+{
+	"Bootstrap": "unreadable",
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": {
+		"Peers": [
+			{
+				"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
+				"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
+			}
+		]
+	}
+}
+`
 
 func TestReadMigrationConfig(t *testing.T) {
-	str := `
-		{
-			"Migration": {
- 				"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
-				"Keep": "cache",
-				"Peers": [
-					{
-						"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
-						"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
-					}
-				]
-			}
-		}
-	`
-
-	tmpDir, err := ioutil.TempDir("", "migration_test")
-	if err != nil {
-		panic(err)
-	}
+	tmpDir := makeConfig(configData)
 	defer os.RemoveAll(tmpDir)
-
-	cfgFile, err := os.Create(filepath.Join(tmpDir, "config"))
-	if err != nil {
-		panic(err)
-	}
-	if _, err = cfgFile.Write([]byte(str)); err != nil {
-		panic(err)
-	}
-	if err = cfgFile.Close(); err != nil {
-		panic(err)
-	}
 
 	cfg, err := readMigrationConfig(tmpDir)
 	if err != nil {
@@ -78,12 +86,30 @@ func TestReadMigrationConfig(t *testing.T) {
 	if cfg.Keep != "cache" {
 		t.Error("wrong value for Keep")
 	}
+}
 
-	if len(cfg.Peers) != 1 {
+func TestReadIpfsConfig(t *testing.T) {
+	tmpDir := makeConfig(configData)
+	defer os.RemoveAll(tmpDir)
+
+	bootstrap, peers := readIpfsConfig(nil)
+	if bootstrap != nil || peers != nil {
+		t.Fatal("expected nil ipfs config items")
+	}
+
+	bootstrap, peers = readIpfsConfig(&tmpDir)
+	if len(bootstrap) != 2 {
+		t.Fatal("wrong number of bootstrap addresses")
+	}
+	if bootstrap[0] != "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt" {
+		t.Fatal("wrong bootstrap address")
+	}
+
+	if len(peers) != 1 {
 		t.Fatal("wrong number of peers")
 	}
 
-	peer := cfg.Peers[0]
+	peer := peers[0]
 	if peer.ID.String() != "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5" {
 		t.Errorf("wrong ID for first peer")
 	}
@@ -92,15 +118,70 @@ func TestReadMigrationConfig(t *testing.T) {
 	}
 }
 
+func TestReadPartialIpfsConfig(t *testing.T) {
+	tmpDir := makeConfig(configDataBadBootstrap)
+	defer os.RemoveAll(tmpDir)
+
+	bootstrap, peers := readIpfsConfig(&tmpDir)
+	if bootstrap != nil {
+		t.Fatal("expected nil bootstrap")
+	}
+	if len(peers) != 1 {
+		t.Fatal("wrong number of peers")
+	}
+	if len(peers[0].Addrs) != 2 {
+		t.Error("wrong number of addrs for first peer")
+	}
+	os.RemoveAll(tmpDir)
+
+	tmpDir = makeConfig(configDataBadPeers)
+	defer os.RemoveAll(tmpDir)
+
+	bootstrap, peers = readIpfsConfig(&tmpDir)
+	if peers != nil {
+		t.Fatal("expected nil peers")
+	}
+	if len(bootstrap) != 2 {
+		t.Fatal("wrong number of bootstrap addresses")
+	}
+	if bootstrap[0] != "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt" {
+		t.Fatal("wrong bootstrap address")
+	}
+}
+
+func makeConfig(configData string) string {
+	tmpDir, err := ioutil.TempDir("", "migration_test")
+	if err != nil {
+		panic(err)
+	}
+
+	cfgFile, err := os.Create(filepath.Join(tmpDir, "config"))
+	if err != nil {
+		panic(err)
+	}
+	if _, err = cfgFile.Write([]byte(configData)); err != nil {
+		panic(err)
+	}
+	if err = cfgFile.Close(); err != nil {
+		panic(err)
+	}
+	return tmpDir
+}
+
 func TestGetMigrationFetcher(t *testing.T) {
 	var f migrations.Fetcher
 	var err error
-	_, err = getMigrationFetcher([]string{"ftp://bad.gateway.io"}, nil)
+
+	cfg := &config.Migration{}
+
+	cfg.DownloadSources = []string{"ftp://bad.gateway.io"}
+	_, err = getMigrationFetcher(cfg, nil)
 	if err == nil {
 		t.Fatal("Expected bad URL scheme error")
 	}
 
-	f, err = getMigrationFetcher([]string{"ipfs"}, nil)
+	cfg.DownloadSources = []string{"ipfs"}
+	f, err = getMigrationFetcher(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +189,8 @@ func TestGetMigrationFetcher(t *testing.T) {
 		t.Fatal("expected IpfsFetcher")
 	}
 
-	f, err = getMigrationFetcher([]string{"http"}, nil)
+	cfg.DownloadSources = []string{"http"}
+	f, err = getMigrationFetcher(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +198,8 @@ func TestGetMigrationFetcher(t *testing.T) {
 		t.Fatal("expected HttpFetcher")
 	}
 
-	f, err = getMigrationFetcher([]string{"IPFS", "HTTPS"}, nil)
+	cfg.DownloadSources = []string{"IPFS", "HTTPS"}
+	f, err = getMigrationFetcher(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +211,8 @@ func TestGetMigrationFetcher(t *testing.T) {
 		t.Fatal("expected 2 fetchers in MultiFetcher")
 	}
 
-	f, err = getMigrationFetcher([]string{"ipfs", "https", "some.domain.io"}, testPeers)
+	cfg.DownloadSources = []string{"ipfs", "https", "some.domain.io"}
+	f, err = getMigrationFetcher(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,51 +224,15 @@ func TestGetMigrationFetcher(t *testing.T) {
 		t.Fatal("expected 3 fetchers in MultiFetcher")
 	}
 
-	_, err = getMigrationFetcher(nil, nil)
+	cfg.DownloadSources = nil
+	_, err = getMigrationFetcher(cfg, nil)
 	if err == nil {
-		t.Fatal("expected error when no fetchers specified")
+		t.Fatal("expected error when no sources specified")
 	}
 
-	_, err = getMigrationFetcher([]string{"", ""}, nil)
+	cfg.DownloadSources = []string{"", ""}
+	_, err = getMigrationFetcher(cfg, nil)
 	if err == nil {
 		t.Fatal("expected error when empty string fetchers specified")
 	}
-}
-
-// parsePeers parses multiaddr strings in the form:
-// /<ip-proto>/<ip-addr>/<transport>/<port>/p2p/<node-id>
-func parsePeers(peers []string) ([]peer.AddrInfo, error) {
-	if len(peers) == 0 {
-		return nil, nil
-	}
-
-	// Parse the peer addresses
-	pinfos := make(map[peer.ID]*peer.AddrInfo, len(peers))
-	for _, addrStr := range peers {
-		addr, err := multiaddr.NewMultiaddr(addrStr)
-		if err != nil {
-			return nil, err
-		}
-		pii, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			return nil, err
-		}
-		pi, ok := pinfos[pii.ID]
-		if !ok {
-			pi = &peer.AddrInfo{ID: pii.ID}
-			pinfos[pi.ID] = pi
-		}
-		pi.Addrs = append(pi.Addrs, pii.Addrs...)
-	}
-	peerAddrs := make([]peer.AddrInfo, len(pinfos))
-	var i int
-	for _, pi := range pinfos {
-		peerAddrs[i] = peer.AddrInfo{
-			ID:    pi.ID,
-			Addrs: pi.Addrs,
-		}
-		i++
-	}
-
-	return peerAddrs, nil
 }

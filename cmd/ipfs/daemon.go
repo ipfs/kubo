@@ -297,27 +297,16 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return err
 		}
 
-		keep := migrationCfg.Keep
-		if keep == "" {
-			keep = config.DefaultMigrationKeep
-		}
-		switch keep {
-		case "discard":
-		case "cache":
-			cacheMigrations = true
-		case "pin":
-			pinMigrations = true
-		default:
-			return errors.New("unrecognized value for %s, must be 'cache', 'pin', or 'discard'")
-		}
-
-		dlSources := migrationCfg.DownloadSources
-		if len(dlSources) == 0 {
-			dlSources = config.DefaultMigrationDownloadSources
-		}
-		fetcher, err = getMigrationFetcher(dlSources, migrationCfg.Peers)
+		fetcher, err = getMigrationFetcher(migrationCfg, &cctx.ConfigRoot)
 		if err != nil {
 			return err
+		}
+		defer fetcher.Close()
+
+		if migrationCfg.Keep == "cache" {
+			cacheMigrations = true
+		} else if migrationCfg.Keep == "pin" {
+			pinMigrations = true
 		}
 
 		if cacheMigrations || pinMigrations {
@@ -339,19 +328,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			fmt.Printf("  %s\n", err)
 			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
 			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
-			fetcher.Close()
 			return err
-		}
-
-		if cacheMigrations || pinMigrations {
-			defer fetcher.Close()
-		} else {
-			// If there is an error closing the IpfsFetcher, then print error, but
-			// do not fail because of it.
-			err = fetcher.Close()
-			if err != nil {
-				log.Errorf("error closing IPFS fetcher: %s", err)
-			}
 		}
 
 		repo, err = fsrepo.Open(cctx.ConfigRoot)
@@ -481,9 +458,16 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Could not add migragion to IPFS:", err)
 		}
-		fetcher.Close()
 		os.RemoveAll(migrations.DownloadDirectory)
 		migrations.DownloadDirectory = ""
+	}
+	if fetcher != nil {
+		// If there is an error closing the IpfsFetcher, then print error, but
+		// do not fail because of it.
+		err = fetcher.Close()
+		if err != nil {
+			log.Errorf("error closing IPFS fetcher: %s", err)
+		}
 	}
 
 	// construct http gateway

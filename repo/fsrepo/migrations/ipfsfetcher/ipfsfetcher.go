@@ -34,9 +34,10 @@ const (
 )
 
 type IpfsFetcher struct {
-	distPath string
-	limit    int64
-	peers    []peer.AddrInfo
+	distPath  string
+	limit     int64
+	bootstrap []string
+	peers     []peer.AddrInfo
 
 	openOnce  sync.Once
 	openErr   error
@@ -57,11 +58,12 @@ type IpfsFetcher struct {
 //
 // Specifying "" for distPath sets the default IPNS path.
 // Specifying 0 for fetchLimit sets the default, -1 means no limit.
-func NewIpfsFetcher(distPath string, fetchLimit int64, peers []peer.AddrInfo) *IpfsFetcher {
+func NewIpfsFetcher(distPath string, fetchLimit int64, bootstrap []string, peers []peer.AddrInfo) *IpfsFetcher {
 	f := &IpfsFetcher{
-		limit:    defaultFetchLimit,
-		distPath: migrations.LatestIpfsDist,
-		peers:    peers,
+		limit:     defaultFetchLimit,
+		distPath:  migrations.LatestIpfsDist,
+		bootstrap: bootstrap,
+		peers:     peers,
 	}
 
 	if distPath != "" {
@@ -88,7 +90,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 	// Initialize and start IPFS node on first call to Fetch, since the fetcher
 	// may be created by not used.
 	f.openOnce.Do(func() {
-		f.ipfsTmpDir, f.openErr = initTempNode(ctx)
+		f.ipfsTmpDir, f.openErr = initTempNode(ctx, f.bootstrap, f.peers)
 		if f.openErr != nil {
 			return
 		}
@@ -154,7 +156,7 @@ func (f *IpfsFetcher) recordFetched(fetchedPath ipath.Path) {
 	f.fetched = append(f.fetched, fetchedPath)
 }
 
-func initTempNode(ctx context.Context) (string, error) {
+func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo) (string, error) {
 	err := setupPlugins()
 	if err != nil {
 		return "", err
@@ -184,6 +186,14 @@ func initTempNode(ctx context.Context) (string, error) {
 	cfg.Addresses.Gateway = []string{}
 	cfg.Addresses.API = []string{}
 	cfg.Addresses.Swarm = []string{tempNodeTcpAddr}
+
+	if len(bootstrap) != 0 {
+		cfg.Bootstrap = bootstrap
+	}
+
+	if len(peers) != 0 {
+		cfg.Peering.Peers = peers
+	}
 
 	err = fsrepo.Init(dir, cfg)
 	if err != nil {
@@ -229,14 +239,6 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 		<-node.Context().Done()
 
 		fmt.Println("migration peer", node.Identity, "shutdown")
-	}
-
-	// Asynchronously connect to peers.  The peer may be a close-by node that
-	// helps get migrations faster, and not connecting is not considered a
-	// failure.  Migrations may still be available through defaults or other
-	// peers.
-	if len(f.peers) != 0 {
-		go connectPeers(ctxIpfsLife, ipfs, f.peers)
 	}
 
 	addrs, err := ipfs.Swarm().LocalAddrs(ctx)
@@ -309,18 +311,4 @@ func setupPlugins() error {
 	}
 
 	return nil
-}
-
-func connectPeers(ctx context.Context, ipfs iface.CoreAPI, peers []peer.AddrInfo) {
-	// Do not return an error if there is a failure to connect to a peer, since
-	// node may still be able to operate.  Only write the errors to stderr.
-	for i := range peers {
-		go func(pi peer.AddrInfo) {
-			if err := ipfs.Swarm().Connect(ctx, pi); err != nil {
-				fmt.Fprintf(os.Stderr, "cound not connec to %q: %s\n", pi.ID, err)
-			} else {
-				fmt.Fprintf(os.Stderr, "conneced to peer %q\n", pi.ID)
-			}
-		}(peers[i])
-	}
 }
