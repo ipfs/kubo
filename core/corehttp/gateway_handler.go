@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -577,7 +578,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newPath == "" || newPath == "/" {
-		http.Error(w, "WritableGateway: empty path", http.StatusBadRequest)
+		webError(w, "WritableGateway: empty path", errors.New(fmt.Sprintf("empty path: %s", newPath)), http.StatusBadRequest)
 		return
 	}
 	newDirectory, newFileName := gopath.Split(newPath)
@@ -669,7 +670,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newPath == "" || newPath == "/" {
-		http.Error(w, "WritableGateway: empty path", http.StatusBadRequest)
+		webError(w, "WritableGateway: empty path", errors.New(fmt.Sprintf("empty path: %s", newPath)), http.StatusBadRequest)
 		return
 	}
 	directory, filename := gopath.Split(newPath)
@@ -683,7 +684,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	rootNode, ok := rootNodeIPLD.(*dag.ProtoNode)
 	if !ok {
-		http.Error(w, "WritableGateway: empty path", http.StatusInternalServerError)
+		webError(w, "WritableGateway: empty path", errors.New("empty path"), http.StatusInternalServerError)
 		return
 	}
 
@@ -705,7 +706,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	parent, ok := parentNode.(*mfs.Directory)
 	if !ok {
-		http.Error(w, "WritableGateway: parent is not a directory", http.StatusInternalServerError)
+		webError(w, "WritableGateway: parent is not a directory", errors.New("parent is not a directory"), http.StatusInternalServerError)
 		return
 	}
 
@@ -751,7 +752,9 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	http.Error(w, fmt.Sprintf("%s: %s", message, err), code)
 	if code >= 500 {
-		log.Warnf("server error: %s: %s", err)
+		log.Warnf("server error: %s: %s", message, err)
+	} else {
+		log.Debugf("web error: %s: %s", message, err)
 	}
 }
 
