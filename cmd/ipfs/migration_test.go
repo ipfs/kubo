@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	config "github.com/ipfs/go-ipfs-config"
@@ -11,7 +12,7 @@ import (
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 )
 
-var configData = `
+var testConfig = `
 {
 	"Bootstrap": [
 		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
@@ -32,40 +33,44 @@ var configData = `
 }
 `
 
-var configDataBadPeers = `
-{
-	"Bootstrap": [
-		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
-		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
-	],
-	"Migration": {
-		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
-		"Keep": "cache"
-	},
-	"Peering": "Unreadable-data"
-}
-`
+func TestReadMigrationConfigDefaults(t *testing.T) {
+	tmpDir := makeConfig("{}")
+	defer os.RemoveAll(tmpDir)
 
-var configDataBadBootstrap = `
-{
-	"Bootstrap": "unreadable",
-	"Migration": {
-		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
-		"Keep": "cache"
-	},
-	"Peering": {
-		"Peers": [
-			{
-				"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
-				"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
-			}
-		]
+	cfg, err := readMigrationConfig(tmpDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cfg.Keep != config.DefaultMigrationKeep {
+		t.Error("expected default value for Keep")
+	}
+
+	if len(cfg.DownloadSources) != len(config.DefaultMigrationDownloadSources) {
+		t.Fatal("expected default number of download sources")
+	}
+	for i, src := range config.DefaultMigrationDownloadSources {
+		if cfg.DownloadSources[i] != src {
+			t.Errorf("wrong DownloadSource: %s", cfg.DownloadSources[i])
+		}
 	}
 }
-`
+
+func TestReadMigrationConfigBadKeep(t *testing.T) {
+	tmpDir := makeConfig(`{"Migration": {"Keep": "badvalue"}}`)
+	defer os.RemoveAll(tmpDir)
+
+	_, err := readMigrationConfig(tmpDir)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.HasPrefix(err.Error(), "unknown") {
+		t.Fatal("did not get expected error:", err)
+	}
+}
 
 func TestReadMigrationConfig(t *testing.T) {
-	tmpDir := makeConfig(configData)
+	tmpDir := makeConfig(testConfig)
 	defer os.RemoveAll(tmpDir)
 
 	cfg, err := readMigrationConfig(tmpDir)
@@ -89,7 +94,7 @@ func TestReadMigrationConfig(t *testing.T) {
 }
 
 func TestReadIpfsConfig(t *testing.T) {
-	tmpDir := makeConfig(configData)
+	tmpDir := makeConfig(testConfig)
 	defer os.RemoveAll(tmpDir)
 
 	bootstrap, peers := readIpfsConfig(nil)
@@ -119,7 +124,40 @@ func TestReadIpfsConfig(t *testing.T) {
 }
 
 func TestReadPartialIpfsConfig(t *testing.T) {
-	tmpDir := makeConfig(configDataBadBootstrap)
+	const (
+		configBadBootstrap = `
+{
+	"Bootstrap": "unreadable",
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": {
+		"Peers": [
+			{
+				"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
+				"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
+			}
+		]
+	}
+}
+`
+		configBadPeers = `
+{
+	"Bootstrap": [
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+	],
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": "Unreadable-data"
+}
+`
+	)
+
+	tmpDir := makeConfig(configBadBootstrap)
 	defer os.RemoveAll(tmpDir)
 
 	bootstrap, peers := readIpfsConfig(&tmpDir)
@@ -134,7 +172,7 @@ func TestReadPartialIpfsConfig(t *testing.T) {
 	}
 	os.RemoveAll(tmpDir)
 
-	tmpDir = makeConfig(configDataBadPeers)
+	tmpDir = makeConfig(configBadPeers)
 	defer os.RemoveAll(tmpDir)
 
 	bootstrap, peers = readIpfsConfig(&tmpDir)
