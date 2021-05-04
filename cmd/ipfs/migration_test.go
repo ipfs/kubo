@@ -19,7 +19,7 @@ var testConfig = `
 		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
 	],
 	"Migration": {
-		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1", "https://127.0.1.1"],
 		"Keep": "cache"
 	},
 	"Peering": {
@@ -56,7 +56,7 @@ func TestReadMigrationConfigDefaults(t *testing.T) {
 	}
 }
 
-func TestReadMigrationConfigBadKeep(t *testing.T) {
+func TestReadMigrationConfigErrors(t *testing.T) {
 	tmpDir := makeConfig(`{"Migration": {"Keep": "badvalue"}}`)
 	defer os.RemoveAll(tmpDir)
 
@@ -66,6 +66,27 @@ func TestReadMigrationConfigBadKeep(t *testing.T) {
 	}
 	if !strings.HasPrefix(err.Error(), "unknown") {
 		t.Fatal("did not get expected error:", err)
+	}
+
+	os.RemoveAll(tmpDir)
+	_, err = readMigrationConfig(tmpDir)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	bootstrap, peers := readIpfsConfig(&tmpDir)
+	if bootstrap != nil {
+		t.Error("expected nil bootstrap")
+	}
+	if peers != nil {
+		t.Error("expected nil peers")
+	}
+
+	tmpDir = makeConfig(`}{`)
+	defer os.RemoveAll(tmpDir)
+	_, err = readMigrationConfig(tmpDir)
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }
 
@@ -78,10 +99,10 @@ func TestReadMigrationConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(cfg.DownloadSources) != 3 {
+	if len(cfg.DownloadSources) != 4 {
 		t.Fatal("wrong number of DownloadSources")
 	}
-	expect := []string{"IPFS", "HTTP", "127.0.0.1"}
+	expect := []string{"IPFS", "HTTP", "127.0.0.1", "https://127.0.1.1"}
 	for i := range expect {
 		if cfg.DownloadSources[i] != expect[i] {
 			t.Errorf("wrong DownloadSource at %d", i)
@@ -214,8 +235,17 @@ func TestGetMigrationFetcher(t *testing.T) {
 
 	cfg.DownloadSources = []string{"ftp://bad.gateway.io"}
 	_, err = getMigrationFetcher(cfg, nil)
-	if err == nil {
-		t.Fatal("Expected bad URL scheme error")
+	if err == nil || !strings.HasPrefix(err.Error(), "bad gateway addr") {
+		t.Fatal("Expected bad gateway address error")
+	}
+
+	cfg.DownloadSources = []string{"http://localhost"}
+	f, err = getMigrationFetcher(cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := f.(*migrations.HttpFetcher); !ok {
+		t.Fatal("expected HttpFetcher")
 	}
 
 	cfg.DownloadSources = []string{"ipfs"}

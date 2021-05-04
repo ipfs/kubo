@@ -175,7 +175,6 @@ does (e.g, `"1d2h4m40.01s"`).
 - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
-    - [`Migration.Peers`](#migrationpeers)
 - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
@@ -828,12 +827,6 @@ Default: `["HTTPS", "IPFS"]`
 Specifies whether or not to keep the migration after downloading it. Options are "discard", "cache", "pin". Empty string for default.
 
 Default: `cache`
-
-### `Migration.Peers`
-
-A set of peers to attempt to connect with when downloading migrations. Peers are specified as described in [`Peering.Peers`](#peeringpeers).
-
-Default: empty.
 
 ## `Mounts`
 

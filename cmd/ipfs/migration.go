@@ -34,7 +34,6 @@ func readMigrationConfig(repoRoot string) (*config.Migration, error) {
 
 	cfgPath, err := config.Filename(repoRoot)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		return nil, err
 	}
 
@@ -66,7 +65,7 @@ func readMigrationConfig(repoRoot string) (*config.Migration, error) {
 
 func readIpfsConfig(repoRoot *string) (bootstrap []string, peers []peer.AddrInfo) {
 	if repoRoot == nil {
-		return nil, nil
+		return
 	}
 
 	cfgPath, err := config.Filename(*repoRoot)
@@ -140,7 +139,7 @@ func getMigrationFetcher(cfg *config.Migration, repoRoot *string) (migrations.Fe
 				u.Scheme = "https"
 			case "https", "http":
 			default:
-				return nil, errors.New("custom gateway scheme must be http or https")
+				return nil, errors.New("bad gateway address: url scheme must be http or https")
 			}
 			fetchers = append(fetchers, migrations.NewHttpFetcher(fetchDistPath, u.String(), httpUserAgent, 0))
 		case "":
