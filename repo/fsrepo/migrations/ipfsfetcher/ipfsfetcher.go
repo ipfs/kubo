@@ -198,7 +198,7 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	err = fsrepo.Init(dir, cfg)
 	if err != nil {
 		os.RemoveAll(dir)
-		return "", fmt.Errorf("failed to init ephemeral node: %s", err)
+		return "", fmt.Errorf("failed to initialize ephemeral node: %s", err)
 	}
 
 	return dir, nil
@@ -298,7 +298,6 @@ func setupPlugins() error {
 		// Need to ignore errors here because plugins may already be loaded when
 		// run from ipfs daemon.
 		fmt.Fprintln(os.Stderr, "Did not initialize plugins:", err)
-		//return fmt.Errorf("error initializing plugins: %s", err)
 		return nil
 	}
 
@@ -306,7 +305,6 @@ func setupPlugins() error {
 		// Need to ignore errors here because plugins may already be loaded when
 		// run from ipfs daemon.
 		fmt.Fprintln(os.Stderr, "Did not inject plugins:", err)
-		//return fmt.Errorf("error initializing plugins: %s", err)
 		return nil
 	}
 

@@ -236,7 +236,13 @@ func TestGetMigrationFetcher(t *testing.T) {
 	cfg.DownloadSources = []string{"ftp://bad.gateway.io"}
 	_, err = getMigrationFetcher(cfg, nil)
 	if err == nil || !strings.HasPrefix(err.Error(), "bad gateway addr") {
-		t.Fatal("Expected bad gateway address error")
+		t.Fatal("Expected bad gateway address error, got:", err)
+	}
+
+	cfg.DownloadSources = []string{"::bad.gateway.io"}
+	_, err = getMigrationFetcher(cfg, nil)
+	if err == nil || !strings.HasPrefix(err.Error(), "bad gateway addr") {
+		t.Fatal("Expected bad gateway address error, got:", err)
 	}
 
 	cfg.DownloadSources = []string{"http://localhost"}

@@ -132,7 +132,7 @@ func getMigrationFetcher(cfg *config.Migration, repoRoot *string) (migrations.Fe
 		default:
 			u, err := url.Parse(src)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("bad gateway address: %s", err)
 			}
 			switch u.Scheme {
 			case "":
