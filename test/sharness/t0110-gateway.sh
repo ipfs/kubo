@@ -199,6 +199,8 @@ for cmd in add  \
            block/put \
            bootstrap \
            config \
+           dag/put \
+           dag/import \
            dht \
            diag \
            id \
