@@ -16,24 +16,26 @@ var (
 	testAddr, _ = ma.NewMultiaddr("/dns4/example.com/tcp/5001")
 )
 
-func makeResolver(n uint8) *madns.Resolver {
+func makeResolver(t *testing.T, n uint8) *madns.Resolver {
 	results := make([]net.IPAddr, n)
 	for i := uint8(0); i < n; i++ {
 		results[i] = net.IPAddr{IP: net.ParseIP(fmt.Sprintf("192.0.2.%d", i))}
 	}
 
-	backend := &madns.MockBackend{
+	backend := &madns.MockResolver{
 		IP: map[string][]net.IPAddr{
 			"example.com": results,
 		}}
 
-	return &madns.Resolver{
-		Backend: backend,
+	resolver, err := madns.NewResolver(madns.WithDefaultResolver(backend))
+	if err != nil {
+		t.Fatal(err)
 	}
+	return resolver
 }
 
 func TestApiEndpointResolveDNSOneResult(t *testing.T) {
-	dnsResolver = makeResolver(1)
+	dnsResolver = makeResolver(t, 1)
 
 	addr, err := resolveAddr(ctx, testAddr)
 	if err != nil {
@@ -46,7 +48,7 @@ func TestApiEndpointResolveDNSOneResult(t *testing.T) {
 }
 
 func TestApiEndpointResolveDNSMultipleResults(t *testing.T) {
-	dnsResolver = makeResolver(4)
+	dnsResolver = makeResolver(t, 4)
 
 	addr, err := resolveAddr(ctx, testAddr)
 	if err != nil {
@@ -59,7 +61,7 @@ func TestApiEndpointResolveDNSMultipleResults(t *testing.T) {
 }
 
 func TestApiEndpointResolveDNSNoResults(t *testing.T) {
-	dnsResolver = makeResolver(0)
+	dnsResolver = makeResolver(t, 0)
 
 	addr, err := resolveAddr(ctx, testAddr)
 	if addr != nil || err == nil {
