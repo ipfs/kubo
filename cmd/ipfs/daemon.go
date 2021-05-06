@@ -315,6 +315,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			if err != nil {
 				return err
 			}
+			// Defer cleanup of download directory so that it gets cleaned up
+			// if daemon returns early due to error
 			defer func() {
 				if migrations.DownloadDirectory != "" {
 					os.RemoveAll(migrations.DownloadDirectory)
@@ -458,6 +460,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Could not add migragion to IPFS:", err)
 		}
+		// Remove download directory so that it does not remain for lifetime of
+		// daemon or get left behind if daemon has a hard exit
 		os.RemoveAll(migrations.DownloadDirectory)
 		migrations.DownloadDirectory = ""
 	}

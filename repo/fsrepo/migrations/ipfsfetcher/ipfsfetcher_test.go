@@ -3,16 +3,24 @@ package ipfsfetcher
 import (
 	"bufio"
 	"context"
-	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/ipfs/go-ipfs/plugin/loader"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 )
 
-var runIpfsTest = flag.Bool("ipfstest", false, "Run IpfsFetcher tests")
+func init() {
+	err := setupPlugins()
+	if err != nil {
+		panic(err)
+	}
+}
 
 func TestIpfsFetcher(t *testing.T) {
-	if !*runIpfsTest {
-		t.Skip("manually-run dev test, use the '-ipfstest' flag to run")
-	}
+	skipUnlessEpic(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -61,7 +69,7 @@ func TestInitIpfsFetcher(t *testing.T) {
 	// Init ipfs repo
 	f.ipfsTmpDir, f.openErr = initTempNode(ctx, f.bootstrap, f.peers)
 	if f.openErr != nil {
-		t.Fatalf("failed to init ipfs node: %s", f.openErr)
+		t.Fatalf("failed to initialize ipfs node: %s", f.openErr)
 	}
 
 	// Start ipfs node
@@ -100,4 +108,37 @@ func TestInitIpfsFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to close fetcher 2nd time: %s", err)
 	}
+}
+
+func skipUnlessEpic(t *testing.T) {
+	if os.Getenv("IPFS_EPIC_TEST") == "" {
+		t.SkipNow()
+	}
+}
+
+func setupPlugins() error {
+	defaultPath, err := migrations.IpfsDir("")
+	if err != nil {
+		return err
+	}
+
+	// Load plugins. This will skip the repo if not available.
+	plugins, err := loader.NewPluginLoader(filepath.Join(defaultPath, "plugins"))
+	if err != nil {
+		return fmt.Errorf("error loading plugins: %w", err)
+	}
+
+	if err := plugins.Initialize(); err != nil {
+		// Need to ignore errors here because plugins may already be loaded when
+		// run from ipfs daemon.
+		return fmt.Errorf("error initializing plugins: %w", err)
+	}
+
+	if err := plugins.Inject(); err != nil {
+		// Need to ignore errors here because plugins may already be loaded when
+		// run from ipfs daemon.
+		return fmt.Errorf("error injecting plugins: %w", err)
+	}
+
+	return nil
 }

@@ -51,13 +51,9 @@ func NewMultiFetcher(f ...Fetcher) Fetcher {
 // Returns io.ReadCloser on success, which caller must close.
 func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (io.ReadCloser, error) {
 	var errs error
-	for i, fetcher := range f.fetchers {
+	for _, fetcher := range f.fetchers {
 		rc, err := fetcher.Fetch(ctx, ipfsPath)
 		if err == nil {
-			// Transferred using this fetcher. If not first, swap with first.
-			if i != 0 {
-				f.fetchers[0], f.fetchers[i] = f.fetchers[i], f.fetchers[0]
-			}
 			return rc, nil
 		}
 		errs = multierror.Append(errs, err)
@@ -75,12 +71,12 @@ func (f *MultiFetcher) Close() error {
 	return errs
 }
 
-func (f *MultiFetcher) LastUsed() Fetcher {
-	return f.fetchers[0]
-}
-
 func (f *MultiFetcher) Len() int {
 	return len(f.fetchers)
+}
+
+func (f *MultiFetcher) Fetchers() []Fetcher {
+	return f.fetchers
 }
 
 // NewLimitReadCloser returns a new io.ReadCloser with the reader wrappen in a

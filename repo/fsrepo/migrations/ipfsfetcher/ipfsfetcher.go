@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/plugin/loader"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	iface "github.com/ipfs/interface-go-ipfs-core"
@@ -146,22 +144,21 @@ func (f *IpfsFetcher) AddrInfo() peer.AddrInfo {
 	return f.addrInfo
 }
 
+// FetchedPaths returns the IPFS paths of all items fetched by this fetcher
 func (f *IpfsFetcher) FetchedPaths() []ipath.Path {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
 	return f.fetched
 }
 
 func (f *IpfsFetcher) recordFetched(fetchedPath ipath.Path) {
+	// Mutex protects against update by concurrent calls to Fetch
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	f.fetched = append(f.fetched, fetchedPath)
 }
 
 func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo) (string, error) {
-	err := setupPlugins()
-	if err != nil {
-		return "", err
-	}
-
 	identity, err := config.CreateIdentity(ioutil.Discard, []options.KeyGenerateOption{
 		options.Key.Type(options.Ed25519Key),
 	})
@@ -195,6 +192,7 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 		cfg.Peering.Peers = peers
 	}
 
+	// Assumes that repo plugins are already loaded
 	err = fsrepo.Init(dir, cfg)
 	if err != nil {
 		os.RemoveAll(dir)
@@ -278,35 +276,4 @@ func parsePath(fetchPath string) (ipath.Path, error) {
 		return nil, fmt.Errorf("%q is not an IPFS path", fetchPath)
 	}
 	return ipfsPath, ipfsPath.IsValid()
-}
-
-func setupPlugins() error {
-	defaultPath, err := migrations.IpfsDir("")
-	if err != nil {
-		return err
-	}
-
-	// Load plugins. This will skip the repo if not available.
-	//
-	// TODO: Is there a better way to check it plugins are loaded first?
-	plugins, err := loader.NewPluginLoader(filepath.Join(defaultPath, "plugins"))
-	if err != nil {
-		return fmt.Errorf("error loading plugins: %s", err)
-	}
-
-	if err := plugins.Initialize(); err != nil {
-		// Need to ignore errors here because plugins may already be loaded when
-		// run from ipfs daemon.
-		fmt.Fprintln(os.Stderr, "Did not initialize plugins:", err)
-		return nil
-	}
-
-	if err := plugins.Inject(); err != nil {
-		// Need to ignore errors here because plugins may already be loaded when
-		// run from ipfs daemon.
-		fmt.Fprintln(os.Stderr, "Did not inject plugins:", err)
-		return nil
-	}
-
-	return nil
 }

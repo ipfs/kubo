@@ -159,38 +159,43 @@ func getMigrationFetcher(cfg *config.Migration, repoRoot *string) (migrations.Fe
 }
 
 func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.Fetcher, pin bool) error {
+	var fetchers []migrations.Fetcher
 	if mf, ok := fetcher.(*migrations.MultiFetcher); ok {
-		fetcher = mf.LastUsed()
+		fetchers = mf.Fetchers()
+	} else {
+		fetchers = []migrations.Fetcher{fetcher}
 	}
 
-	switch f := fetcher.(type) {
-	case *ipfsfetcher.IpfsFetcher:
-		// Add migrations by connecting to temp node and getting from IPFS
-		err := addMigrationPaths(ctx, node, f.AddrInfo(), f.FetchedPaths(), pin)
-		if err != nil {
-			return err
-		}
-	case *migrations.HttpFetcher:
-		// Add the downloaded migration files directly
-		if migrations.DownloadDirectory != "" {
-			var paths []string
-			err := filepath.Walk(migrations.DownloadDirectory, func(filePath string, info os.FileInfo, err error) error {
-				if info.IsDir() {
+	for _, fetcher := range fetchers {
+		switch f := fetcher.(type) {
+		case *ipfsfetcher.IpfsFetcher:
+			// Add migrations by connecting to temp node and getting from IPFS
+			err := addMigrationPaths(ctx, node, f.AddrInfo(), f.FetchedPaths(), pin)
+			if err != nil {
+				return err
+			}
+		case *migrations.HttpFetcher:
+			// Add the downloaded migration files directly
+			if migrations.DownloadDirectory != "" {
+				var paths []string
+				err := filepath.Walk(migrations.DownloadDirectory, func(filePath string, info os.FileInfo, err error) error {
+					if info.IsDir() {
+						return nil
+					}
+					paths = append(paths, filePath)
 					return nil
+				})
+				if err != nil {
+					return err
 				}
-				paths = append(paths, filePath)
-				return nil
-			})
-			if err != nil {
-				return err
+				err = addMigrationFiles(ctx, node, paths, pin)
+				if err != nil {
+					return err
+				}
 			}
-			err = addMigrationFiles(ctx, node, paths, pin)
-			if err != nil {
-				return err
-			}
+		default:
+			return errors.New("Cannot get migrations from unknown fetcher type")
 		}
-	default:
-		return errors.New("Cannot get migrations from unknown fetcher type")
 	}
 
 	return nil
@@ -198,6 +203,9 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 
 // addMigrationFiles adds the files at paths to IPFS, optionally pinning them
 func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string, pin bool) error {
+	if len(paths) == 0 {
+		return nil
+	}
 	ifaceCore, err := coreapi.NewCoreAPI(node)
 	if err != nil {
 		return err
