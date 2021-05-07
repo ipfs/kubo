@@ -16,6 +16,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/p2p"
 
+	"github.com/alecthomas/units"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	uio "github.com/ipfs/go-unixfs/io"
@@ -317,7 +318,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	}
 
 	// TEMP: setting global sharding switch here
-	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
+	uio.HAMTShardingSize = int(256 * units.KiB)
 
 	return fx.Options(
 		bcfgOpts,
