@@ -12,6 +12,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
+	keystore "github.com/ipfs/go-ipfs-keystore"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
@@ -150,7 +151,6 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
 	},
 	NoRemote: true,
-	PreRun:   DaemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
 
@@ -163,13 +163,15 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		// Export is read-only: safe to read it without acquiring repo lock
+		// (this makes export work when ipfs daemon is already running)
+		ksp := filepath.Join(cfgRoot, "keystore")
+		ks, err := keystore.NewFSKeystore(ksp)
 		if err != nil {
 			return err
 		}
-		defer r.Close()
 
-		sk, err := r.Keystore().Get(name)
+		sk, err := ks.Get(name)
 		if err != nil {
 			return fmt.Errorf("key with name '%s' doesn't exist", name)
 		}

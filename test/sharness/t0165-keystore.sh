@@ -175,8 +175,13 @@ ipfs key rm key_ed25519
     test_cmp rsa_key_id roundtrip_rsa_key_id
   '
 
-  test_expect_success "online export rsa key" '
-    test_must_fail ipfs key export generated_rsa_key
+  test_expect_success "export and import ed25519 key while daemon is running" '
+    edhash=$(ipfs key gen exported_ed25519_key --type=ed25519)
+    echo $edhash > ed25519_key_id
+    ipfs key export exported_ed25519_key &&
+    ipfs key rm exported_ed25519_key &&
+    ipfs key import exported_ed25519_key exported_ed25519_key.key > roundtrip_ed25519_key_id &&
+    test_cmp ed25519_key_id roundtrip_ed25519_key_id
   '
 
   test_expect_success "online rotate rsa key" '
