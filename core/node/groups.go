@@ -144,6 +144,10 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
 		maybeProvide(libp2p.AutoRelay, cfg.Swarm.EnableAutoRelay),
+
+		maybeProvide(libp2p.SmartRecordServer, cfg.Experimental.SmartRecordServer || true), // TOOD: Remove short-circuit
+		maybeProvide(libp2p.SmartRecordClient, cfg.Experimental.SmartRecordClient || true), // TOOD: Remove short-circuit
+
 		autonat,
 		connmgr,
 		ps,
