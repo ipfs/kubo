@@ -120,8 +120,10 @@ release_log() {
         "$start..$end" |
         while read commit subject; do
             # Skip gx-only PRs.
-            git -C "$dir" diff-tree --no-commit-id --name-only "$commit^" "$commit" |
-                grep -v "${IGNORED_FILES}" >/dev/null || continue
+            if git rev-parse '$commit^' >/dev/null 2>&1 &&
+                   ! git -C "$dir" diff-tree --no-commit-id --name-only "$commit^" "$commit" | grep -v "${IGNORED_FILES}" >/dev/null; then
+                continue
+            fi
 
             if [[ "$subject" =~ '^Merge pull request #([0-9]+) from' ]]; then
                 local prnum="${BASH_REMATCH[2]}"
