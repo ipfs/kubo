@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/go-ipfs/core/commands/e"
 	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	migrations "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -161,6 +162,15 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
 		if err != nil {
 			return err
+		}
+
+		// Check repo version, and error out if not matching
+		ver, err := migrations.RepoVersion(cfgRoot)
+		if err != nil {
+			return err
+		}
+		if ver > fsrepo.RepoVersion {
+			return fmt.Errorf("key export expects repo version (%d) but found (%d)", fsrepo.RepoVersion, ver)
 		}
 
 		// Export is read-only: safe to read it without acquiring repo lock

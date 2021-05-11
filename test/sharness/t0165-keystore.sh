@@ -187,7 +187,7 @@ ipfs key rm key_ed25519
 
   test_expect_success "key export over HTTP /api/v0/key/export is not possible" '
     ipfs key gen nohttpexporttest_key --type=ed25519 &&
-    test_curl_resp_http_code "http://127.0.0.1:$API_PORT/api/v0/key/export&arg=nohttpexporttest_key" "HTTP/1.1 404 Not Found"
+    curl -X POST -sI "http://$API_ADDR/api/v0/key/export&arg=nohttpexporttest_key" | grep -q "^HTTP/1.1 404 Not Found"
   '
 
   test_expect_success "online rotate rsa key" '
