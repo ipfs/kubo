@@ -360,6 +360,11 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N
 		cmds.StringArg("address", true, true, "Address of peer to connect to.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
@@ -367,7 +372,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N
 
 		addrs := req.Arguments
 
-		pis, err := parseAddresses(req.Context, addrs)
+		pis, err := parseAddresses(req.Context, addrs, node.DNSResolver)
 		if err != nil {
 			return err
 		}
@@ -408,12 +413,17 @@ it will reconnect.
 		cmds.StringArg("address", true, true, "Address of peer to disconnect from.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
 
-		addrs, err := parseAddresses(req.Context, req.Arguments)
+		addrs, err := parseAddresses(req.Context, req.Arguments, node.DNSResolver)
 		if err != nil {
 			return err
 		}
@@ -453,9 +463,9 @@ it will reconnect.
 
 // parseAddresses is a function that takes in a slice of string peer addresses
 // (multiaddr + peerid) and returns a slice of properly constructed peers
-func parseAddresses(ctx context.Context, addrs []string) ([]peer.AddrInfo, error) {
+func parseAddresses(ctx context.Context, addrs []string, rslv *madns.Resolver) ([]peer.AddrInfo, error) {
 	// resolve addresses
-	maddrs, err := resolveAddresses(ctx, addrs)
+	maddrs, err := resolveAddresses(ctx, addrs, rslv)
 	if err != nil {
 		return nil, err
 	}
@@ -464,7 +474,7 @@ func parseAddresses(ctx context.Context, addrs []string) ([]peer.AddrInfo, error
 }
 
 // resolveAddresses resolves addresses parallelly
-func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, error) {
+func resolveAddresses(ctx context.Context, addrs []string, rslv *madns.Resolver) ([]ma.Multiaddr, error) {
 	ctx, cancel := context.WithTimeout(ctx, dnsResolveTimeout)
 	defer cancel()
 
@@ -488,7 +498,7 @@ func resolveAddresses(ctx context.Context, addrs []string) ([]ma.Multiaddr, erro
 		wg.Add(1)
 		go func(maddr ma.Multiaddr) {
 			defer wg.Done()
-			raddrs, err := madns.Resolve(ctx, maddr)
+			raddrs, err := rslv.Resolve(ctx, maddr)
 			if err != nil {
 				resolveErrC <- err
 				return

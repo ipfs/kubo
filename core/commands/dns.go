@@ -61,9 +61,14 @@ The resolver can recursively resolve:
 		cmds.BoolOption(dnsRecursiveOptionName, "r", "Resolve until the result is not a DNS link.").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
 		recursive, _ := req.Options[dnsRecursiveOptionName].(bool)
 		name := req.Arguments[0]
-		resolver := namesys.NewDNSResolver()
+		resolver := namesys.NewDNSResolver(node.DNSResolver.LookupTXT)
 
 		var routing []nsopts.ResolveOpt
 		if !recursive {

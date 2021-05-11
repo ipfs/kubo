@@ -72,4 +72,3 @@ func TestApiEndpointResolveDNSNoResults(t *testing.T) {
 		t.Errorf("expected error not thrown; actual: %v", err)
 	}
 }
-

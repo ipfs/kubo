@@ -30,6 +30,7 @@ var BaseLibP2P = fx.Options(
 	fx.Provide(libp2p.PNet),
 	fx.Provide(libp2p.ConnectionManager),
 	fx.Provide(libp2p.Host),
+	fx.Provide(libp2p.MultiaddrResolver),
 
 	fx.Provide(libp2p.DiscoveryHandler),
 
@@ -264,6 +265,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(OnlineExchange(shouldBitswapProvide)),
 		maybeProvide(Graphsync, cfg.Experimental.GraphsyncEnabled),
+		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize)),
 		fx.Provide(Peering),
 		PeerWith(cfg.Peering.Peers...),
@@ -281,6 +283,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 func Offline(cfg *config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(offline.Exchange),
+		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(0)),
 		fx.Provide(offroute.NewOfflineRouter),
 		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
