@@ -169,7 +169,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 		if err != nil {
 			return err
 		}
-		if ver > fsrepo.RepoVersion {
+		if ver != fsrepo.RepoVersion {
 			return fmt.Errorf("key export expects repo version (%d) but found (%d)", fsrepo.RepoVersion, ver)
 		}
 
