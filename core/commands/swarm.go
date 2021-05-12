@@ -51,6 +51,7 @@ ipfs peers in the internet.
 		"disconnect": swarmDisconnectCmd,
 		"filters":    swarmFiltersCmd,
 		"peers":      swarmPeersCmd,
+		"peering":    swarmPeeringCmd,
 	},
 }
 
@@ -60,6 +61,129 @@ const (
 	swarmLatencyOptionName   = "latency"
 	swarmDirectionOptionName = "direction"
 )
+
+var swarmPeeringCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "modify the peering service.",
+		ShortDescription: `
+'ipfs swarm peering' is a tool to manupulate the peering service. 
+Peers in the peering service is maintained to be connected, reconnected 
+on disconnect with a back-off.
+`,
+	},
+	Subcommands: map[string]*cmds.Command{
+		"add": swarmPeeringAddCmd,
+		"ls":  swarmPeeringLsCmd,
+		"rm":  swarmPeeringRmCmd,
+	},
+}
+
+var swarmPeeringAddCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "add peers into the peering service.",
+		ShortDescription: `
+'ipfs swarm peering add' adds peers into the peering service.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("address", true, true, "address of peer to add into the PeeringService"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		addrs := make([]ma.Multiaddr, len(req.Arguments))
+
+		for i, arg := range req.Arguments {
+			addr, err := ma.NewMultiaddr(arg)
+			if err != nil {
+				return err
+			}
+
+			addrs[i] = addr
+		}
+
+		addInfos, err := peer.AddrInfosFromP2pAddrs(addrs...)
+		if err != nil {
+			return err
+		}
+
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		output := make([]string, len(addInfos))
+		for i, id := range addInfos {
+			output[i] = "add " + id.ID.Pretty()
+			node.Peering.AddPeer(id)
+
+			output[i] += " success"
+		}
+
+		return cmds.EmitOnce(res, &stringList{output})
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
+	},
+	Type: stringList{},
+}
+
+var swarmPeeringLsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "list peers registered in the peering service.",
+		ShortDescription: `
+'ipfs swarm peering ls' lists peers registered in the peering service.`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		peers := node.Peering.ListPeer()
+		return cmds.EmitOnce(res, addrInfos{Peers: peers})
+	},
+	Type: addrInfos{},
+}
+
+type addrInfos struct {
+	Peers []peer.AddrInfo
+}
+
+var swarmPeeringRmCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "remove a peer from the peering service.",
+		ShortDescription: `
+'ipfs swarm peering rm' removes peers from the peering service.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ID", true, true, "ID of peer to remove from PeeringService"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		output := make([]string, 0, len(req.Arguments))
+		for _, arg := range req.Arguments {
+			id, err := peer.Decode(arg)
+			if err != nil {
+				return err
+			}
+
+			msg := "remove " + id.Pretty()
+
+			node.Peering.RemovePeer(id)
+
+			msg += " success"
+			output = append(output, msg)
+		}
+		return cmds.EmitOnce(res, &stringList{output})
+	},
+	Type: stringList{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
+	},
+}
 
 var swarmPeersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{

@@ -3,6 +3,7 @@ package peering
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -212,6 +213,7 @@ func (ps *PeeringService) Stop() error {
 // Add peer may also be called multiple times for the same peer. The new
 // addresses will replace the old.
 func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
+	fmt.Printf("atempt to add peer %s of addrs %s\n", info.ID, info.Addrs)
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -220,6 +222,7 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 		handler.setAddrs(info.Addrs)
 	} else {
 		logger.Infow("peer added", "peer", info.ID, "addrs", info.Addrs)
+		// in case ps.host is null this line results in a panic.
 		ps.host.ConnManager().Protect(info.ID, connmgrTag)
 
 		handler = &peerHandler{
@@ -240,6 +243,22 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 			handler.cancel()
 		}
 	}
+}
+
+// ListPeer lists peers in the peering service.
+func (ps *PeeringService) ListPeer() []peer.AddrInfo {
+	out := make([]peer.AddrInfo, len(ps.peers))
+	c := 0
+	for k, v := range ps.peers {
+		out_addrs := make([]multiaddr.Multiaddr, len(v.addrs))
+		copy(out_addrs, v.addrs)
+		out[c] = peer.AddrInfo{
+			ID:    k,
+			Addrs: out_addrs,
+		}
+		c++
+	}
+	return out
 }
 
 // RemovePeer removes a peer from the peering service. This function may be
