@@ -12,11 +12,13 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
+	keystore "github.com/ipfs/go-ipfs-keystore"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	migrations "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -150,7 +152,6 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
 	},
 	NoRemote: true,
-	PreRun:   DaemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		name := req.Arguments[0]
 
@@ -163,13 +164,24 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			return err
 		}
 
-		r, err := fsrepo.Open(cfgRoot)
+		// Check repo version, and error out if not matching
+		ver, err := migrations.RepoVersion(cfgRoot)
 		if err != nil {
 			return err
 		}
-		defer r.Close()
+		if ver != fsrepo.RepoVersion {
+			return fmt.Errorf("key export expects repo version (%d) but found (%d)", fsrepo.RepoVersion, ver)
+		}
 
-		sk, err := r.Keystore().Get(name)
+		// Export is read-only: safe to read it without acquiring repo lock
+		// (this makes export work when ipfs daemon is already running)
+		ksp := filepath.Join(cfgRoot, "keystore")
+		ks, err := keystore.NewFSKeystore(ksp)
+		if err != nil {
+			return err
+		}
+
+		sk, err := ks.Get(name)
 		if err != nil {
 			return fmt.Errorf("key with name '%s' doesn't exist", name)
 		}
