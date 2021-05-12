@@ -4,6 +4,7 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -268,6 +269,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 	}
 
+	var cacheMigrations, pinMigrations bool
+	var fetcher migrations.Fetcher
+
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
 	repo, err := fsrepo.Open(cctx.ConfigRoot)
@@ -288,8 +292,38 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		// Fetch migrations from current distribution, or location from environ
-		fetcher := migrations.NewHttpFetcher(migrations.GetDistPathEnv(migrations.CurrentIpfsDist), "", "go-ipfs", 0)
+		migrationCfg, err := readMigrationConfig(cctx.ConfigRoot)
+		if err != nil {
+			return err
+		}
+
+		fetcher, err = getMigrationFetcher(migrationCfg, &cctx.ConfigRoot)
+		if err != nil {
+			return err
+		}
+		defer fetcher.Close()
+
+		if migrationCfg.Keep == "cache" {
+			cacheMigrations = true
+		} else if migrationCfg.Keep == "pin" {
+			pinMigrations = true
+		}
+
+		if cacheMigrations || pinMigrations {
+			// Create temp directory to store downloaded migration archives
+			migrations.DownloadDirectory, err = ioutil.TempDir("", "migrations")
+			if err != nil {
+				return err
+			}
+			// Defer cleanup of download directory so that it gets cleaned up
+			// if daemon returns early due to error
+			defer func() {
+				if migrations.DownloadDirectory != "" {
+					os.RemoveAll(migrations.DownloadDirectory)
+				}
+			}()
+		}
+
 		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
@@ -418,6 +452,26 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	gcErrc, err := maybeRunGC(req, node)
 	if err != nil {
 		return err
+	}
+
+	// Add any files downloaded by migration.
+	if cacheMigrations || pinMigrations {
+		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Could not add migragion to IPFS:", err)
+		}
+		// Remove download directory so that it does not remain for lifetime of
+		// daemon or get left behind if daemon has a hard exit
+		os.RemoveAll(migrations.DownloadDirectory)
+		migrations.DownloadDirectory = ""
+	}
+	if fetcher != nil {
+		// If there is an error closing the IpfsFetcher, then print error, but
+		// do not fail because of it.
+		err = fetcher.Close()
+		if err != nil {
+			log.Errorf("error closing IPFS fetcher: %s", err)
+		}
 	}
 
 	// construct http gateway

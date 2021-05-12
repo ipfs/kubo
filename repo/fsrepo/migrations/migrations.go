@@ -26,7 +26,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 	if err != nil {
 		return err
 	}
-	fromVer, err := repoVersion(ipfsDir)
+	fromVer, err := RepoVersion(ipfsDir)
 	if err != nil {
 		return fmt.Errorf("could not get repo version: %s", err)
 	}
@@ -69,6 +69,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 			logger.Print("Failed to download migrations.")
 			return err
 		}
+
 		for i := range missing {
 			binPaths[missing[i]] = fetched[i]
 		}

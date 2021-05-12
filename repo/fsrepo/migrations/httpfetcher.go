@@ -12,6 +12,7 @@ import (
 
 const (
 	defaultGatewayURL = "https://ipfs.io"
+	// Default maximum download size
 	defaultFetchLimit = 1024 * 1024 * 512
 )
 
@@ -49,7 +50,7 @@ func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *Http
 	}
 
 	if fetchLimit != 0 {
-		if fetchLimit == -1 {
+		if fetchLimit < 0 {
 			fetchLimit = 0
 		}
 		f.limit = fetchLimit
@@ -63,6 +64,7 @@ func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *Http
 // which caller must close.
 func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
 	gwURL := f.gateway + path.Join(f.distPath, filePath)
+	fmt.Printf("Fetching with HTTP: %q\n", gwURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, gwURL, nil)
 	if err != nil {
@@ -91,4 +93,8 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 		return NewLimitReadCloser(resp.Body, f.limit), nil
 	}
 	return resp.Body, nil
+}
+
+func (f *HttpFetcher) Close() error {
+	return nil
 }

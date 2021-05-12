@@ -157,8 +157,7 @@ func TestFetchMigrations(t *testing.T) {
 }
 
 func TestRunMigrations(t *testing.T) {
-	var err error
-	fakeHome, err = ioutil.TempDir("", "testhome")
+	fakeHome, err := ioutil.TempDir("", "testhome")
 	if err != nil {
 		panic(err)
 	}

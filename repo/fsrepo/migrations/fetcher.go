@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"os"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -20,6 +22,8 @@ type Fetcher interface {
 	// Fetch attempts to fetch the file at the given ipfs path.
 	// Returns io.ReadCloser on success, which caller must close.
 	Fetch(ctx context.Context, filePath string) (io.ReadCloser, error)
+	// Close performs any cleanup after the fetcher is not longer needed.
+	Close() error
 }
 
 // MultiFetcher holds multiple Fetchers and provides a Fetch that tries each
@@ -45,15 +49,34 @@ func NewMultiFetcher(f ...Fetcher) Fetcher {
 
 // Fetch attempts to fetch the file at each of its fetchers until one succeeds.
 // Returns io.ReadCloser on success, which caller must close.
-func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (rc io.ReadCloser, err error) {
+func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (io.ReadCloser, error) {
+	var errs error
 	for _, fetcher := range f.fetchers {
-		rc, err = fetcher.Fetch(ctx, ipfsPath)
+		rc, err := fetcher.Fetch(ctx, ipfsPath)
 		if err == nil {
-			// Transferred using this fetcher
-			return
+			return rc, nil
+		}
+		errs = multierror.Append(errs, err)
+	}
+	return nil, errs
+}
+
+func (f *MultiFetcher) Close() error {
+	var errs error
+	for _, fetcher := range f.fetchers {
+		if err := fetcher.Close(); err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
-	return
+	return errs
+}
+
+func (f *MultiFetcher) Len() int {
+	return len(f.fetchers)
+}
+
+func (f *MultiFetcher) Fetchers() []Fetcher {
+	return f.fetchers
 }
 
 // NewLimitReadCloser returns a new io.ReadCloser with the reader wrappen in a

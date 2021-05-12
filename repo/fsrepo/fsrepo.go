@@ -14,7 +14,6 @@ import (
 	keystore "github.com/ipfs/go-ipfs-keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
 	ds "github.com/ipfs/go-datastore"
@@ -23,6 +22,7 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	serialize "github.com/ipfs/go-ipfs-config/serialize"
 	util "github.com/ipfs/go-ipfs-util"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	logging "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"

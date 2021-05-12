@@ -102,21 +102,21 @@ func TestHttpFetch(t *testing.T) {
 	}
 	defer rc.Close()
 
-	var out []string
+	var lines []string
 	scan := bufio.NewScanner(rc)
 	for scan.Scan() {
-		out = append(out, scan.Text())
+		lines = append(lines, scan.Text())
 	}
 	err = scan.Err()
 	if err != nil {
 		t.Fatal("could not read versions:", err)
 	}
 
-	if len(out) < 6 {
+	if len(lines) < 6 {
 		t.Fatal("do not get all expected data")
 	}
-	if out[0] != "v1.0.0" {
-		t.Fatal("expected v1.0.0 as first line, got", out[0])
+	if lines[0] != "v1.0.0" {
+		t.Fatal("expected v1.0.0 as first line, got", lines[0])
 	}
 
 	// Check not found
