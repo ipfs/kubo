@@ -275,7 +275,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(p2p.New),
 
 		LibP2P(bcfg, cfg),
-		OnlineProviders(cfg.Experimental.StrategicProviding, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		OnlineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
 	)
 }
 
@@ -286,7 +286,7 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(0)),
 		fx.Provide(offroute.NewOfflineRouter),
-		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
+		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
 	)
 }
 

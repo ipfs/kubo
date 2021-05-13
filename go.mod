@@ -36,7 +36,7 @@ require (
 	github.com/ipfs/go-ipfs-keystore v0.0.2
 	github.com/ipfs/go-ipfs-pinner v0.1.1
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
-	github.com/ipfs/go-ipfs-provider v0.4.3
+	github.com/ipfs/go-ipfs-provider v0.4.4-0.20210513014626-1c19caa05024
 	github.com/ipfs/go-ipfs-routing v0.1.0
 	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-ipld-cbor v0.0.5
