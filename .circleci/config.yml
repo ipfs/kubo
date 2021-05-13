@@ -44,13 +44,13 @@ executors:
       TEST_VERBOSE: 1
   node:
     docker:
-      - image: circleci/node:12
+      - image: circleci/node:14
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
   node-browsers:
     docker:
-      - image: circleci/node:12-browsers
+      - image: circleci/node:14-browsers
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
