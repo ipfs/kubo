@@ -10,7 +10,6 @@ import (
 	"go.opencensus.io/zpages"
 
 	ocprom "contrib.go.opencensus.io/exporter/prometheus"
-	quicmetrics "github.com/lucas-clemente/quic-go/metrics"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -43,10 +42,6 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 		// register prometheus with opencensus
 		view.RegisterExporter(pe)
 		view.SetReportingPeriod(2 * time.Second)
-
-		if err := view.Register(quicmetrics.DefaultViews...); err != nil {
-			return nil, err
-		}
 
 		// Construct the mux
 		zpages.Handle(mux, "/debug/metrics/oc/debugz")
