@@ -144,6 +144,25 @@ func TestHasPrefix(t *testing.T) {
 	}
 }
 
+func TestIsDomainNameAndNotPeerID(t *testing.T) {
+	for _, test := range []struct {
+		hostname string
+		out      bool
+	}{
+		{"", false},
+		{"example.com", true},
+		{"non-icann.something", true},
+		{"..", false},
+		{"12D3KooWFB51PRY9BxcXSH6khFXw1BZeszeLDy7C8GciskqCTZn5", false},           // valid peerid
+		{"k51qzi5uqu5di608geewp3nqkg0bpujoasmka7ftkyxgcm3fh1aroup0gsdrna", false}, // valid peerid
+	} {
+		out := isDomainNameAndNotPeerID(test.hostname)
+		if out != test.out {
+			t.Errorf("(%s) returned '%t', expected '%t'", test.hostname, out, test.out)
+		}
+	}
+}
+
 func TestPortStripping(t *testing.T) {
 	for _, test := range []struct {
 		in  string
