@@ -37,7 +37,7 @@ func DefaultBootstrapPeers() ([]peer.AddrInfo, error) {
 	ps, err := ParseBootstrapPeers(DefaultBootstrapAddresses)
 	if err != nil {
 		return nil, fmt.Errorf(`failed to parse hardcoded bootstrap peers: %s
-This is a problem with the ipfs codebase. Please report it to the dev team.`, err)
+This is a problem with the ipfs codebase. Please report it to the dev team`, err)
 	}
 	return ps, nil
 }
