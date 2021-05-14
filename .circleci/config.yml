@@ -130,6 +130,11 @@ jobs:
         TEST_VERBOSE: 1
     steps:
     - run: sudo apt update
+    - run: |
+        mkdir ~/localgo && cd ~/localgo
+        wget https://golang.org/dl/go1.16.4.linux-amd64.tar.gz
+        tar xfz go1.16.4.linux-amd64.tar.gz
+        echo "export PATH=$(pwd)/go/bin:$PATH" >> $BASH_ENV
     - run: sudo apt install socat net-tools
     - checkout
 
