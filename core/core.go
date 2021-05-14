@@ -98,8 +98,11 @@ type IpfsNode struct {
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
-	DHT      *ddht.DHT                  `optional:"true"`
-	P2P      *p2p.P2P                   `optional:"true"`
+
+	DHT       *ddht.DHT       `optional:"true"`
+	DHTClient routing.Routing `name:"dhtc" optional:"true"`
+
+	P2P *p2p.P2P `optional:"true"`
 
 	Process goprocess.Process
 	ctx     context.Context

@@ -26,6 +26,7 @@ the above issue.
 - [Strategic Providing](#strategic-providing)
 - [Graphsync](#graphsync)
 - [Noise](#noise)
+- [Accelerated DHT Client](#accelerated-dht-client)
 
 ---
 
@@ -547,3 +548,56 @@ ipfs config --json Experimental.GraphsyncEnabled true
 Stable, enabled by default
 
 [Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in go-ipfs, Noise is easier to implement and is thus the "interop" transport between IPFS and libp2p implementations.
+
+## Accelerated DHT Client
+
+### In Version
+
+0.9.0
+
+### State
+
+Experimental, default-disabled.
+
+Utilizes an alternative DHT client that searches for and maintains more information about the network
+in exchange for being more performant.
+
+When it is enabled:
+- DHT operations should complete much faster than with it disabled
+- A batching reprovider system will be enabled which takes advantage of some properties of the experimental client to
+  very efficiently put provider records into the network
+- The standard DHT client (and server if enabled) are run alongside the alternative client
+- The operations `ipfs stats dht` and `ipfs stats provide` will have different outputs
+   - `ipfs stats provide` only works when the accelerated DHT client is enabled and shows various statistics regarding
+     the provider/reprovider system
+   - `ipfs stats dht` will default to showing information about the new client
+
+**Caveats:**
+1. Running the experimental client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
+   - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
+   - Currently, the resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly
+     done in rounds
+   - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
+     egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
+     entering your node that you don't want to advertise consider using [Reprovider Strategies](config.md#reproviderstrategy)
+     to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
+     short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
+     you may benefit from using [Strategic Providing](#strategic-providing) to prevent advertising of data that you
+     ultimately will not have.
+2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
+prepared. This means operations like searching the DHT for particular peers or content will not work
+   - You can see if the DHT has been initially populated by running `ipfs stats dht`
+3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
+them
+
+### How to enable
+
+```
+ipfs config --json Experimental.AcceleratedDHTClient true
+```
+
+### Road to being a real feature
+
+- [ ] Needs more people to use and report on how well it works
+- [ ] Should be usable for queries (even if slower/less efficient) shortly after startup
+- [ ] Should be usable with non-WAN DHTs
