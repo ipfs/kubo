@@ -581,7 +581,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newPath == "" || newPath == "/" {
-		webError(w, "WritableGateway: empty path", fmt.Errorf("empty path: %s", newPath), http.StatusBadRequest)
+		webError(w, "WritableGateway", fmt.Errorf("empty path: %s", newPath), http.StatusBadRequest)
 		return
 	}
 	newDirectory, newFileName := gopath.Split(newPath)
