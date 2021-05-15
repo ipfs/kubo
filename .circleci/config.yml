@@ -37,10 +37,8 @@ executors:
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
-      GO111MODULE: "on"
       TEST_NO_DOCKER: 1
       TEST_NO_FUSE: 1
-      GOPATH: /home/circleci/go
       TEST_VERBOSE: 1
   node:
     docker:
@@ -123,10 +121,8 @@ jobs:
     working_directory: ~/ipfs/go-ipfs
     environment:
         <<: *default_environment
-        GO111MODULE: "on"
         TEST_NO_DOCKER: 1
         TEST_NO_FUSE: 1
-        GOPATH: /home/circleci/go
         TEST_VERBOSE: 1
     steps:
     - run: sudo apt update
