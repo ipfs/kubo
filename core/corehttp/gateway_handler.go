@@ -687,7 +687,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	rootNode, ok := rootNodeIPLD.(*dag.ProtoNode)
 	if !ok {
-		webError(w, "WritableGateway: empty path", errors.New("empty path"), http.StatusInternalServerError)
+		webError(w, "WritableGateway", errors.New("empty path"), http.StatusInternalServerError)
 		return
 	}
 
