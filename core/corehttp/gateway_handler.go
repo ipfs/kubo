@@ -635,7 +635,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	dir, ok := dirNode.(*mfs.Directory)
 	if !ok {
-		webError(w, "WritableGateway: target directory is not a directory", errors.New("target is not a directory"), http.StatusBadRequest)
+		webError(w, "WritableGateway", errors.New("target is not a directory"), http.StatusBadRequest)
 		return
 	}
 	err = dir.Unlink(newFileName)
