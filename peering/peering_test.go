@@ -66,7 +66,7 @@ func TestPeeringService(t *testing.T) {
 	t.Logf("waiting for h1's connection to h3 to work")
 	require.NoError(t, h1.Connect(ctx, peer.AddrInfo{ID: h3.ID(), Addrs: h3.Addrs()}))
 	require.Eventually(t, func() bool {
-		return h1.Network().Connectedness(h2.ID()) == network.Connected
+		return h1.Network().Connectedness(h3.ID()) == network.Connected
 	}, 30*time.Second, 100*time.Millisecond)
 
 	require.Len(t, h1.Network().Peers(), 3)
