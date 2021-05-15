@@ -673,7 +673,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newPath == "" || newPath == "/" {
-		webError(w, "WritableGateway: empty path", fmt.Errorf("empty path: %s", newPath), http.StatusBadRequest)
+		webError(w, "WritableGateway", fmt.Errorf("empty path: %s", newPath), http.StatusBadRequest)
 		return
 	}
 	directory, filename := gopath.Split(newPath)
