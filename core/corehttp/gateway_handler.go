@@ -709,7 +709,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	parent, ok := parentNode.(*mfs.Directory)
 	if !ok {
-		webError(w, "WritableGateway: parent is not a directory", errors.New("parent is not a directory"), http.StatusInternalServerError)
+		webError(w, "WritableGateway", errors.New("parent is not a directory"), http.StatusInternalServerError)
 		return
 	}
 
