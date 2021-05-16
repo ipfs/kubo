@@ -10,7 +10,6 @@ import (
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
-	dag "github.com/ipfs/go-merkledag"
 	ft "github.com/ipfs/go-unixfs"
 	"github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
@@ -32,7 +31,7 @@ func (api *ObjectAPI) New(ctx context.Context, opts ...caopts.ObjectNewOption) (
 	var n ipld.Node
 	switch options.Type {
 	case "empty":
-		n = new(dag.ProtoNode)
+		n = new(merkledag.ProtoNode)
 	case "unixfs-dir":
 		n = ft.EmptyDirNode()
 	default:

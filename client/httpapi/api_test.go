@@ -4,7 +4,6 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
-	gohttp "net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
@@ -163,9 +162,9 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 				return
 			}
 
-			c := &gohttp.Client{
-				Transport: &gohttp.Transport{
-					Proxy:              gohttp.ProxyFromEnvironment,
+			c := &http.Client{
+				Transport: &http.Transport{
+					Proxy:              http.ProxyFromEnvironment,
 					DisableKeepAlives:  true,
 					DisableCompression: true,
 				},
