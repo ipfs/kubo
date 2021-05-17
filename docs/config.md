@@ -34,8 +34,8 @@ documented in `ipfs config profile --help`.
 
 - `local-discovery`
 
-  Sets default values to fields affected by the server
-  profile enables discovery in local networks.
+  Enables local discovery (enabled by default). Useful to re-enable local discovery after it's
+  disabled by another profile (e.g., the server profile).
 
 - `test`
 
@@ -610,7 +610,7 @@ Examples:
 
 #### `Gateway.PublicGateways: Paths`
 
-An array of paths that are exposed on the hostname.
+An array of paths that should be exposed on the hostname.
 
 Example:
 ```json
