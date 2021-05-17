@@ -93,7 +93,7 @@ func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 	if err != nil {
 		// TODO: This error-type discrimination based on sub-string matching is brittle.
 		// It is addressed by this open issue: https://github.com/ipfs/go-ipfs/issues/7563
-		if strings.Index(err.Error(), "is not pinned") != -1 {
+		if strings.Contains(err.Error(), "is not pinned") {
 			return "", false, nil
 		}
 		return "", false, err

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	gohttp "net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +13,7 @@ import (
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 const (
@@ -34,7 +33,7 @@ var ErrApiNotFound = errors.New("ipfs api address could not be found")
 // https://godoc.org/github.com/ipfs/interface-go-ipfs-core#CoreAPI
 type HttpApi struct {
 	url         string
-	httpcli     gohttp.Client
+	httpcli     http.Client
 	Headers     http.Header
 	applyGlobal func(*requestBuilder)
 }
@@ -85,9 +84,9 @@ func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
 
 // NewApi constructs HttpApi with specified endpoint
 func NewApi(a ma.Multiaddr) (*HttpApi, error) {
-	c := &gohttp.Client{
-		Transport: &gohttp.Transport{
-			Proxy:             gohttp.ProxyFromEnvironment,
+	c := &http.Client{
+		Transport: &http.Transport{
+			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
 		},
 	}
@@ -96,7 +95,7 @@ func NewApi(a ma.Multiaddr) (*HttpApi, error) {
 }
 
 // NewApiWithClient constructs HttpApi with specified endpoint and custom http client
-func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) (*HttpApi, error) {
+func NewApiWithClient(a ma.Multiaddr, c *http.Client) (*HttpApi, error) {
 	_, url, err := manet.DialArgs(a)
 	if err != nil {
 		return nil, err
@@ -112,7 +111,7 @@ func NewApiWithClient(a ma.Multiaddr, c *gohttp.Client) (*HttpApi, error) {
 	return NewURLApiWithClient(url, c)
 }
 
-func NewURLApiWithClient(url string, c *gohttp.Client) (*HttpApi, error) {
+func NewURLApiWithClient(url string, c *http.Client) (*HttpApi, error) {
 	api := &HttpApi{
 		url:         url,
 		httpcli:     *c,
@@ -121,7 +120,7 @@ func NewURLApiWithClient(url string, c *gohttp.Client) (*HttpApi, error) {
 	}
 
 	// We don't support redirects.
-	api.httpcli.CheckRedirect = func(_ *gohttp.Request, _ []*gohttp.Request) error {
+	api.httpcli.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 		return fmt.Errorf("unexpected redirect")
 	}
 	return api, nil
