@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -24,6 +25,7 @@ import (
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 var log = logging.Logger("core/commands/cmdenv")
@@ -167,18 +169,36 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 		}
 
 		// Prepare Pin.origins
-		// Add own multiaddrs to the 'origins' array, so Pinning Service can
-		// use that as a hint and connect back to us (if possible)
+		// If CID in blockstore, add own multiaddrs to the 'origins' array
+		// so pinning service can use that as a hint and connect back to us.
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
 		}
-		if node.PeerHost != nil {
+
+		isInBlockstore, err := node.Blockstore.Has(rp.Cid())
+		if err != nil {
+			return err
+		}
+
+		if isInBlockstore && node.PeerHost != nil {
 			addrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(node.PeerHost))
 			if err != nil {
 				return err
 			}
-			opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
+
+			cfg, err := cmdenv.GetConfig(env)
+			if err != nil {
+				return err
+			}
+
+			var filteredAddrs []ma.Multiaddr
+			for _, addr := range addrs {
+				if isOriginAddr(addr, cfg.Addresses.NoAnnounce) {
+					filteredAddrs = append(filteredAddrs, addr)
+				}
+			}
+			opts = append(opts, pinclient.PinOpts.WithOrigins(filteredAddrs...))
 		}
 
 		// Execute remote pin request
@@ -238,6 +258,22 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			return nil
 		}),
 	},
+}
+
+func isOriginAddr(addr ma.Multiaddr, noAnnounceAddrs []string) bool {
+	// IP is located at the second index: /ip4/127.0.0.1/tcp/8080
+	ip := net.ParseIP(strings.Split(addr.String(), "/")[2])
+	if ip.IsLoopback() {
+		return false
+	}
+
+	for _, noAnnounceAddr := range noAnnounceAddrs {
+		if strings.HasPrefix(addr.String(), noAnnounceAddr) {
+			return false
+		}
+	}
+
+	return true
 }
 
 var listRemotePinCmd = &cmds.Command{
