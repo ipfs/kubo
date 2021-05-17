@@ -8,7 +8,7 @@ config file at runtime.
 ## Profiles
 
 Configuration profiles allow to tweak configuration quickly. Profiles can be
-applied with `--profile` flag to `ipfs init` or with the `ipfs config profile
+applied with the `--profile` flag to `ipfs init` or with the `ipfs config profile
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
@@ -22,7 +22,7 @@ documented in `ipfs config profile --help`.
 
 - `randomports`
 
-  Use a random port number for swarm.
+  Use a random port number for the incoming swarm connections.
 
 - `default-datastore`
 
@@ -34,8 +34,8 @@ documented in `ipfs config profile --help`.
 
 - `local-discovery`
 
-  Sets default values to fields affected by the server
-  profile, enables discovery in local networks.
+  Enables local discovery (enabled by default). Useful to re-enable local discovery after it's
+  disabled by another profile (e.g., the server profile).
 
 - `test`
 
@@ -56,7 +56,7 @@ documented in `ipfs config profile --help`.
 
   - You need a very simple and very reliable datastore and you trust your
     filesystem. This datastore stores each block as a separate file in the
-    underlying filesystem so it's unlikely to loose data unless there's an issue
+    underlying filesystem so it's unlikely to lose data unless there's an issue
     with the underlying file system.
   - You need to run garbage collection on a small (<= 10GiB) datastore. The
     default datastore, badger, can leave several gigabytes of data behind when
@@ -258,7 +258,7 @@ Type: `strings` (multiaddrs)
 
 ### `Addresses.Swarm`
 
-Array of multiaddrs describing which addresses to listen on for p2p swarm
+An array of multiaddrs describing which addresses to listen on for p2p swarm
 connections.
 
 Supported Transports:
@@ -289,7 +289,7 @@ Default: `[]`
 Type: `array[string]` (multiaddrs)
 
 ### `Addresses.NoAnnounce`
-Array of swarm addresses not to announce to the network.
+An array of swarm addresses not to announce to the network.
 
 Default: `[]`
 
@@ -363,8 +363,7 @@ Type: `duration` (when `0`/unset, the default value is used)
 
 ## `Bootstrap`
 
-Bootstrap is an array of multiaddrs of trusted nodes to connect to in order to
-initiate a connection to the network.
+Bootstrap is an array of multiaddrs of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
 Default: The ipfs.io bootstrap nodes
 
@@ -405,7 +404,7 @@ Type: `duration` (an empty string means the default value)
 
 ### `Datastore.HashOnRead`
 
-A boolean value. If set to true, all block reads from disk will be hashed and
+A boolean value. If set to true, all block reads from the disk will be hashed and
 verified. This will cause increased CPU utilization.
 
 Default: `false`
@@ -416,13 +415,13 @@ Type: `bool`
 
 A number representing the size in bytes of the blockstore's [bloom
 filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents
-the feature being disabled.
+the feature is disabled.
 
 This site generates useful graphs for various bloom filter values:
 <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7> You may use it to find a
 preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to
 convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the
-config file. For example, for 1,000,000 blocks, expecting a 1% false positive
+config file. For example, for 1,000,000 blocks, expecting a 1% false-positive
 rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize`
 we'd want to use 1199120 bytes. As of writing, [7 hash
 functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
@@ -496,7 +495,7 @@ Type: `bool`
 
 #### `Discovery.MDNS.Interval`
 
-A number of seconds to wait between discovery checks.
+The number of seconds between discovery checks.
 
 Default: `5`
 
@@ -518,8 +517,8 @@ Type: `bool`
 ### `Gateway.NoDNSLink`
 
 A boolean to configure whether DNSLink lookup for value in `Host` HTTP header
-should be performed.  If DNSLink is present, content path stored in the DNS TXT
-record becomes the `/` and respective payload is returned to the client.
+should be performed.  If DNSLink is present, the content path stored in the DNS TXT
+record becomes the `/` and the respective payload is returned to the client.
 
 Default: `false`
 
@@ -567,7 +566,7 @@ Type: `bool`
 **DEPRECATED:** see [go-ipfs#7702](https://github.com/ipfs/go-ipfs/issues/7702)
 
 <!--
-Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
+An array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
 header.
 
 The X-Ipfs-Path-Prefix header is used to specify a base path to prepend to links
@@ -611,7 +610,7 @@ Examples:
 
 #### `Gateway.PublicGateways: Paths`
 
-Array of paths that should be exposed on the hostname.
+An array of paths that should be exposed on the hostname.
 
 Example:
 ```json
@@ -779,7 +778,7 @@ Type: `string` (peer ID)
 
 ### `Identity.PrivKey`
 
-The base64 encoded protobuf describing (and containing) the nodes private key.
+The base64 encoded protobuf describing (and containing) the node's private key.
 
 Type: `string` (base64 encoded)
 
@@ -850,19 +849,19 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the FUSE allow other option on the mountpoint.
+Sets the 'FUSE allow other'-option on the mount point.
 
 ## `Pinning`
 
 Pinning configures the options available for pinning content
-(i.e. keeping content longer term instead of as temporarily cached storage).
+(i.e. keeping content longer-term instead of as temporarily cached storage).
 
 ### `Pinning.RemoteServices`
 
 `RemoteServices` maps a name for a remote pinning service to its configuration.
 
 A remote pinning service is a remote service that exposes an API for managing
-that service's interest in longer term data storage.
+that service's interest in long-term data storage.
 
 The exposed API conforms to the specification defined at
 https://ipfs.github.io/pinning-services-api-spec/
@@ -1004,7 +1003,7 @@ When a node is added to the set of peered nodes, go-ipfs will:
 Peering can be asymmetric or symmetric:
 
 * When symmetric, the connection will be protected by both nodes and will likely
-  be vary stable.
+  be very stable.
 * When asymmetric, only one node (the node that configured peering) will protect
   the connection and attempt to re-connect to the peered node on disconnect. If
   the peered node is under heavy load and/or has a low connection limit, the
@@ -1087,7 +1086,7 @@ When the DHT is enabled, it can operate in two modes: client and server.
   respond to requests from other peers (both requests to store records and
   requests to retrieve records).
 * In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource intensive than server
+  to requests from other peers. This mode is less resource-intensive than server
   mode.
 
 When `Routing.Type` is set to `dht`, your node will start as a DHT client, and
