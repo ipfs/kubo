@@ -187,14 +187,9 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 				return err
 			}
 
-			cfg, err := cmdenv.GetConfig(env)
-			if err != nil {
-				return err
-			}
-
 			var filteredAddrs []ma.Multiaddr
 			for _, addr := range addrs {
-				if isOriginAddr(addr, cfg.Addresses.NoAnnounce) {
+				if !isLoopbackAddr(addr) {
 					filteredAddrs = append(filteredAddrs, addr)
 				}
 			}
@@ -260,20 +255,10 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 	},
 }
 
-func isOriginAddr(addr ma.Multiaddr, noAnnounceAddrs []string) bool {
+func isLoopbackAddr(addr ma.Multiaddr) bool {
 	// IP is located at the second index: /ip4/127.0.0.1/tcp/8080
 	ip := net.ParseIP(strings.Split(addr.String(), "/")[2])
-	if ip.IsLoopback() {
-		return false
-	}
-
-	for _, noAnnounceAddr := range noAnnounceAddrs {
-		if strings.HasPrefix(addr.String(), noAnnounceAddr) {
-			return false
-		}
-	}
-
-	return true
+	return ip.IsLoopback()
 }
 
 var listRemotePinCmd = &cmds.Command{
