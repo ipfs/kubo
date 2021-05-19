@@ -45,21 +45,37 @@ verify_dir_contents() {
   '
 }
 
+# Same as `t0260-sharding.sh`, we need a big directory now to trigger sharding.
+test_expect_success "set up test data" '
+  mkdir big_dir
+  for i in `seq 6500` # just to be sure
+  do
+    echo $i > big_dir/`printf "file%06d" $i` # fixed length of 10 chars
+  done
+'
+
 test_sharding() {
   local EXTRA ARGS
   EXTRA=$1
   ARGS=$2 # only applied to the initial directory
 
   test_expect_success "make a directory $EXTRA" '
-    ipfs files mkdir $ARGS /foo
+    ipfs add $ARGS -r -q big_dir | tail -n1 > sharddir_cid &&
+    ipfs files cp /ipfs/`cat sharddir_cid` /foo
   '
 
   test_expect_success "can make 100 files in a directory $EXTRA" '
     printf "" > list_exp_raw
-    for i in `seq 100 -1 1`
+    # Already present in the directory to trigger sharding
+    for i in `seq 6500` # just to be sure
     do
-      echo $i | ipfs files write --create /foo/file$i || return 1
-      echo file$i >> list_exp_raw
+      echo `printf "file%06d" $i` >> list_exp_raw
+    done
+
+    for i in `seq 10100 -1 10000`
+    do
+      echo $i | ipfs files write --create /foo/`printf "file%06d" $i` || return 1
+      echo `printf "file%06d" $i` >> list_exp_raw
     done
   '
   # Create the files in reverse (unsorted) order (`seq 100 -1 1`)
@@ -80,13 +96,13 @@ test_sharding() {
   '
 
   test_expect_success "can read a file from sharded directory $EXTRA" '
-    ipfs files read /foo/file65 > file_out &&
+    ipfs files read /foo/file000065 > file_out &&
     echo "65" > file_exp &&
     test_cmp file_out file_exp
   '
 
   test_expect_success "can pin a file from sharded directory $EXTRA" '
-    ipfs files stat --hash /foo/file42 > pin_file_hash &&
+    ipfs files stat --hash /foo/file000042 > pin_file_hash &&
     ipfs pin add < pin_file_hash > pin_hash
   '
 
@@ -817,10 +833,10 @@ test_expect_success "enable sharding in config" '
 
 test_launch_ipfs_daemon_without_network
 
-SHARD_HASH=QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se
+SHARD_HASH=QmWSqxvnnHh6NL9ctzpwMiWg7iyCKTfcvLoQbCqC7qPQHw
 test_sharding "(cidv0)"
 
-SHARD_HASH=bafybeib46tpawg2d2hhlmmn2jvgio33wqkhlehxrem7wbfvqqikure37rm
+SHARD_HASH=bafybeid7vaa7ywcd3mgrkdohpyqm5wxtmkwovyvxftzio3wuie3vlx4tcq
 test_sharding "(cidv1 root)" "--cid-version=1"
 
 test_kill_ipfs_daemon
