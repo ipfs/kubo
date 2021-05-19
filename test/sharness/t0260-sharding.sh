@@ -30,7 +30,7 @@ test_expect_success "set up test data" '
   done
 '
 # CID of big_dir/ which will be sharded.
-SHARDED="Qmbgq1VC2KSWWhdFLvH6mapN1wuY67FZVPYbCGyR5TnYSv"
+SHARDED="QmUj4SSHNz27z9t6DtZJiR56r17BWqwMrWCzBcR6hF2bq1"
 # CID of small_dir/ which will *not* be sharded.
 UNSHARDED="QmdBXmm4HRpUhyzzctbFvi2tLai3XFL1YjmE1qfpJe61NX"
 
@@ -111,7 +111,7 @@ test_add_large_dir_v1() {
 }
 
 # this hash implies the directory is CIDv1 and leaf entries are CIDv1 and raw
-SHARDEDV1="bafybeif5mvotyb33vzncgkcorenaj6s7gwg7pgq3jmzuhosup3nrq2x7fi"
+SHARDEDV1="bafybeie2tnyhaxbwkkzc44otilntecf55gvmnmnasjsppju7t6swhiw54e"
 test_add_large_dir_v1 "$SHARDEDV1" big_dir
 
 test_launch_ipfs_daemon
