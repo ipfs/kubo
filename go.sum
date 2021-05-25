@@ -436,8 +436,8 @@ github.com/ipfs/go-ipfs-posinfo v0.0.1/go.mod h1:SwyeVP+jCwiDu0C313l/8jg6ZxM0qqt
 github.com/ipfs/go-ipfs-pq v0.0.1/go.mod h1:LWIqQpqfRG3fNc5XsnIhz/wQ2XXGyugQwls7BgUmUfY=
 github.com/ipfs/go-ipfs-pq v0.0.2 h1:e1vOOW6MuOwG2lqxcLA+wEn93i/9laCY8sXAw76jFOY=
 github.com/ipfs/go-ipfs-pq v0.0.2/go.mod h1:LWIqQpqfRG3fNc5XsnIhz/wQ2XXGyugQwls7BgUmUfY=
-github.com/ipfs/go-ipfs-provider v0.4.4-0.20210513014626-1c19caa05024 h1:eYfdZ27ogtwfnwKdfphOwcQ7PEOjKqXlWzVOakK0a60=
-github.com/ipfs/go-ipfs-provider v0.4.4-0.20210513014626-1c19caa05024/go.mod h1:kUMTf1R8c+KgWUWKTGSZiXCDZWMCkxCX3wyepk0cYEA=
+github.com/ipfs/go-ipfs-provider v0.5.1 h1:kZj72jzWLtGcorlwnMvBL6y6KJk6klO2Kb8QSeqEB0o=
+github.com/ipfs/go-ipfs-provider v0.5.1/go.mod h1:fem6HKSru7n35Ljap6kowWdJrUzvcWJW01uhAkqNnzo=
 github.com/ipfs/go-ipfs-routing v0.0.1/go.mod h1:k76lf20iKFxQTjcJokbPM9iBXVXVZhcOwc360N4nuKs=
 github.com/ipfs/go-ipfs-routing v0.1.0 h1:gAJTT1cEeeLj6/DlLX6t+NxD9fQe2ymTO6qWRDI/HQQ=
 github.com/ipfs/go-ipfs-routing v0.1.0/go.mod h1:hYoUkJLyAUKhF58tysKpids8RNDPO42BVMgK5dNsoqY=
@@ -679,8 +679,8 @@ github.com/libp2p/go-libp2p-interface-connmgr v0.0.4/go.mod h1:GarlRLH0LdeWcLnYM
 github.com/libp2p/go-libp2p-interface-connmgr v0.0.5/go.mod h1:GarlRLH0LdeWcLnYM/SaBykKFl9U5JFnbBGruAk/D5k=
 github.com/libp2p/go-libp2p-interface-pnet v0.0.1/go.mod h1:el9jHpQAXK5dnTpKA4yfCNBZXvrzdOU75zz+C6ryp3k=
 github.com/libp2p/go-libp2p-kad-dht v0.11.1/go.mod h1:5ojtR2acDPqh/jXf5orWy8YGb8bHQDS+qeDcoscL/PI=
-github.com/libp2p/go-libp2p-kad-dht v0.12.0 h1:R5vvp8kuXjsyDE/HEMKgM8XIwlRsP5BdAZexM+tJxdU=
-github.com/libp2p/go-libp2p-kad-dht v0.12.0/go.mod h1:zdQYru1c7dnluMpZls4i9Fj2TwYXS7YyDkJ1Yahv0w0=
+github.com/libp2p/go-libp2p-kad-dht v0.12.1 h1:6HsBhzxcD34rE7Ds2lK9q6llPE7/tdqV7JmJiukEcQ8=
+github.com/libp2p/go-libp2p-kad-dht v0.12.1/go.mod h1:zdQYru1c7dnluMpZls4i9Fj2TwYXS7YyDkJ1Yahv0w0=
 github.com/libp2p/go-libp2p-kbucket v0.3.1/go.mod h1:oyjT5O7tS9CQurok++ERgc46YLwEpuGoFq9ubvoUOio=
 github.com/libp2p/go-libp2p-kbucket v0.4.7 h1:spZAcgxifvFZHBD8tErvppbnNiKA5uokDu3CV7axu70=
 github.com/libp2p/go-libp2p-kbucket v0.4.7/go.mod h1:XyVo99AfQH0foSf176k4jY1xUJ2+jUJIZCSDm7r2YKk=
