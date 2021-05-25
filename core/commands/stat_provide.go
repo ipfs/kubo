@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"io"
+	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -46,6 +48,17 @@ This interface is not stable and may change from release to release.
 
 		return nil
 	},
-	Encoders: cmds.EncoderMap{},
-	Type:     batched.BatchedProviderStats{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s *batched.BatchedProviderStats) error {
+			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+			defer wtr.Flush()
+
+			fmt.Fprintf(wtr, "TotalProvides: %d\n", s.TotalProvides)
+			fmt.Fprintf(wtr, "AvgProvideDuration: %v\n", s.AvgProvideDuration)
+			fmt.Fprintf(wtr, "LastReprovideDuration: %v\n", s.LastReprovideDuration)
+			fmt.Fprintf(wtr, "LastReprovideBatchSize: %d\n", s.LastReprovideBatchSize)
+			return nil
+		}),
+	},
+	Type: batched.BatchedProviderStats{},
 }
