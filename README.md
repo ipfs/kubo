@@ -222,7 +222,7 @@ dependencies as well.
 - _WARNING_: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!-
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/ipfs/go-ipfs/issues/177)
-  - Read [docs/fuse.md](docs/fuse.md) for more details on setting up FUSE (so that you can mount the filesystem).
+- Read [docs/fuse.md](docs/fuse.md) for more details on setting up FUSE (so that you can mount the filesystem).
 - Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
 - See the [misc folder](https://github.com/ipfs/go-ipfs/tree/master/misc) for how to connect IPFS to systemd or whatever init system your distro uses.
 
