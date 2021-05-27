@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"text/tabwriter"
+	"time"
 
 	humanize "github.com/dustin/go-humanize"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -56,14 +57,18 @@ This interface is not stable and may change from release to release.
 
 			tp := float64(s.TotalProvides)
 			fmt.Fprintf(wtr, "TotalProvides:\t%s\t(%s)\n", humanSI(tp, 0), humanFull(tp, 0))
-			fmt.Fprintf(wtr, "AvgProvideDuration:\t%v\n", s.AvgProvideDuration)
-			fmt.Fprintf(wtr, "LastReprovideDuration:\t%v\n", s.LastReprovideDuration)
+			fmt.Fprintf(wtr, "AvgProvideDuration:\t%v\n", humanDuration(s.AvgProvideDuration))
+			fmt.Fprintf(wtr, "LastReprovideDuration:\t%v\n", humanDuration(s.LastReprovideDuration))
 			lrbs := float64(s.LastReprovideBatchSize)
 			fmt.Fprintf(wtr, "LastReprovideBatchSize:\t%s\t(%s)\n", humanSI(lrbs, 0), humanFull(lrbs, 0))
 			return nil
 		}),
 	},
 	Type: batched.BatchedProviderStats{},
+}
+
+func humanDuration(val time.Duration) string {
+	return val.Truncate(time.Microsecond).String()
 }
 
 func humanSI(val float64, decimals int) string {
