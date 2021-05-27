@@ -5,6 +5,7 @@ import (
 	"io"
 	"text/tabwriter"
 
+	humanize "github.com/dustin/go-humanize"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
@@ -50,15 +51,26 @@ This interface is not stable and may change from release to release.
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, s *batched.BatchedProviderStats) error {
-			wtr := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+			wtr := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 			defer wtr.Flush()
 
-			fmt.Fprintf(wtr, "TotalProvides: %d\n", s.TotalProvides)
-			fmt.Fprintf(wtr, "AvgProvideDuration: %v\n", s.AvgProvideDuration)
-			fmt.Fprintf(wtr, "LastReprovideDuration: %v\n", s.LastReprovideDuration)
-			fmt.Fprintf(wtr, "LastReprovideBatchSize: %d\n", s.LastReprovideBatchSize)
+			tp := float64(s.TotalProvides)
+			fmt.Fprintf(wtr, "TotalProvides:\t%s\t(%s)\n", humanSI(tp, 0), humanFull(tp, 0))
+			fmt.Fprintf(wtr, "AvgProvideDuration:\t%v\n", s.AvgProvideDuration)
+			fmt.Fprintf(wtr, "LastReprovideDuration:\t%v\n", s.LastReprovideDuration)
+			lrbs := float64(s.LastReprovideBatchSize)
+			fmt.Fprintf(wtr, "LastReprovideBatchSize:\t%s\t(%s)\n", humanSI(lrbs, 0), humanFull(lrbs, 0))
 			return nil
 		}),
 	},
 	Type: batched.BatchedProviderStats{},
+}
+
+func humanSI(val float64, decimals int) string {
+	v, unit := humanize.ComputeSI(val)
+	return humanize.SIWithDigits(v, decimals, unit)
+}
+
+func humanFull(val float64, decimals int) string {
+	return humanize.CommafWithDigits(val, decimals)
 }
