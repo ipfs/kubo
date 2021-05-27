@@ -55,12 +55,10 @@ This interface is not stable and may change from release to release.
 			wtr := tabwriter.NewWriter(w, 1, 2, 1, ' ', 0)
 			defer wtr.Flush()
 
-			tp := float64(s.TotalProvides)
-			fmt.Fprintf(wtr, "TotalProvides:\t%s\t(%s)\n", humanSI(tp, 0), humanFull(tp, 0))
-			fmt.Fprintf(wtr, "AvgProvideDuration:\t%v\n", humanDuration(s.AvgProvideDuration))
-			fmt.Fprintf(wtr, "LastReprovideDuration:\t%v\n", humanDuration(s.LastReprovideDuration))
-			lrbs := float64(s.LastReprovideBatchSize)
-			fmt.Fprintf(wtr, "LastReprovideBatchSize:\t%s\t(%s)\n", humanSI(lrbs, 0), humanFull(lrbs, 0))
+			fmt.Fprintf(wtr, "TotalProvides:\t%s\n", humanNumber(s.TotalProvides))
+			fmt.Fprintf(wtr, "AvgProvideDuration:\t%s\n", humanDuration(s.AvgProvideDuration))
+			fmt.Fprintf(wtr, "LastReprovideDuration:\t%s\n", humanDuration(s.LastReprovideDuration))
+			fmt.Fprintf(wtr, "LastReprovideBatchSize:\t%s\n", humanNumber(s.LastReprovideBatchSize))
 			return nil
 		}),
 	},
@@ -71,9 +69,19 @@ func humanDuration(val time.Duration) string {
 	return val.Truncate(time.Microsecond).String()
 }
 
+func humanNumber(n int) string {
+	nf := float64(n)
+	str := humanSI(nf, 0)
+	fullStr := humanFull(nf, 0)
+	if str != fullStr {
+		return fmt.Sprintf("%s\t(%s)", str, fullStr)
+	}
+	return str
+}
+
 func humanSI(val float64, decimals int) string {
 	v, unit := humanize.ComputeSI(val)
-	return humanize.SIWithDigits(v, decimals, unit)
+	return fmt.Sprintf("%s%s", humanFull(v, decimals), unit)
 }
 
 func humanFull(val float64, decimals int) string {
