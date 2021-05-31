@@ -458,7 +458,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if cacheMigrations || pinMigrations {
 		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Could not add migragion to IPFS:", err)
+			fmt.Fprintln(os.Stderr, "Could not add migration to IPFS:", err)
 		}
 		// Remove download directory so that it does not remain for lifetime of
 		// daemon or get left behind if daemon has a hard exit
