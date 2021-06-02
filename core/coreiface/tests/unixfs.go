@@ -31,7 +31,7 @@ import (
 func (tp *TestSuite) TestUnixfs(t *testing.T) {
 	tp.hasApi(t, func(api coreiface.CoreAPI) error {
 		if api.Unixfs() == nil {
-			return apiNotImplemented
+			return errAPINotImplemented
 		}
 		return nil
 	})
@@ -1035,8 +1035,7 @@ func (tp *TestSuite) TestGetReadAt(t *testing.T) {
 
 	origR := bytes.NewReader(orig)
 
-	r, err = api.Unixfs().Get(ctx, p)
-	if err != nil {
+	if _, err := api.Unixfs().Get(ctx, p); err != nil {
 		t.Fatal(err)
 	}
 

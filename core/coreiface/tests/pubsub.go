@@ -12,7 +12,7 @@ import (
 func (tp *TestSuite) TestPubSub(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.PubSub() == nil {
-			return apiNotImplemented
+			return errAPINotImplemented
 		}
 		return nil
 	})

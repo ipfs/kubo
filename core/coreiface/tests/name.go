@@ -19,7 +19,7 @@ import (
 func (tp *TestSuite) TestName(t *testing.T) {
 	tp.hasApi(t, func(api coreiface.CoreAPI) error {
 		if api.Name() == nil {
-			return apiNotImplemented
+			return errAPINotImplemented
 		}
 		return nil
 	})
