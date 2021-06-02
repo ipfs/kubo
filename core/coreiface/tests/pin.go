@@ -18,7 +18,7 @@ import (
 func (tp *TestSuite) TestPin(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.Pin() == nil {
-			return apiNotImplemented
+			return errAPINotImplemented
 		}
 		return nil
 	})

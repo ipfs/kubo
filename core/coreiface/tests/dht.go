@@ -13,7 +13,7 @@ import (
 func (tp *TestSuite) TestDht(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.Dht() == nil {
-			return apiNotImplemented
+			return errAPINotImplemented
 		}
 		return nil
 	})

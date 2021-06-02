@@ -5,8 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	cid "github.com/ipfs/go-cid"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/go-cid"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
 	mbase "github.com/multiformats/go-multibase"
@@ -15,7 +14,7 @@ import (
 func (tp *TestSuite) TestKey(t *testing.T) {
 	tp.hasApi(t, func(api iface.CoreAPI) error {
 		if api.Key() == nil {
-			return apiNotImplemented
+			return errAPINotImplemented
 		}
 		return nil
 	})
@@ -67,8 +66,8 @@ func (tp *TestSuite) TestListSelf(t *testing.T) {
 		t.Errorf("expected the key to be called 'self', got '%s'", keys[0].Name())
 	}
 
-	if keys[0].Path().String() != "/ipns/"+coreiface.FormatKeyID(self.ID()) {
-		t.Errorf("expected the key to have path '/ipns/%s', got '%s'", coreiface.FormatKeyID(self.ID()), keys[0].Path().String())
+	if keys[0].Path().String() != "/ipns/"+iface.FormatKeyID(self.ID()) {
+		t.Errorf("expected the key to have path '/ipns/%s', got '%s'", iface.FormatKeyID(self.ID()), keys[0].Path().String())
 	}
 }
 
@@ -185,9 +184,10 @@ func (tp *TestSuite) TestGenerateSize(t *testing.T) {
 }
 
 func (tp *TestSuite) TestGenerateType(t *testing.T) {
+	t.Skip("disabled until libp2p/specs#111 is fixed")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	t.Skip("disabled until libp2p/specs#111 is fixed")
 
 	api, err := tp.makeAPI(ctx)
 	if err != nil {

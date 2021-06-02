@@ -9,7 +9,7 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 )
 
-var apiNotImplemented = errors.New("api not implemented")
+var errAPINotImplemented = errors.New("api not implemented")
 
 func (tp *TestSuite) makeAPI(ctx context.Context) (coreiface.CoreAPI, error) {
 	api, err := tp.MakeAPISwarm(ctx, false, 1)
