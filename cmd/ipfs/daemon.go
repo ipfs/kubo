@@ -515,6 +515,16 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// Give the user heads up if daemon running in online mode has no peers after 1 minute
 	if !offline {
 		time.AfterFunc(1*time.Minute, func() {
+			cfg, err := cctx.GetConfig()
+			if err != nil {
+				log.Errorf("failed to access config: %s", err)
+			}
+			if len(cfg.Bootstrap) == 0 && len(cfg.Peering.Peers) == 0 {
+				// Skip peer check if Bootstrap and Peering lists are empty
+				// (means user disabled them on purpose)
+				log.Warn("skipping bootstrap: empty Bootstrap and Peering lists")
+				return
+			}
 			ipfs, err := coreapi.NewCoreAPI(node)
 			if err != nil {
 				log.Errorf("failed to access CoreAPI: %v", err)
