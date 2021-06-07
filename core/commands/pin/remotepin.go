@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -25,7 +24,6 @@ import (
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 var log = logging.Logger("core/commands/cmdenv")
@@ -186,14 +184,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			if err != nil {
 				return err
 			}
-
-			var filteredAddrs []ma.Multiaddr
-			for _, addr := range addrs {
-				if !isLoopbackAddr(addr) {
-					filteredAddrs = append(filteredAddrs, addr)
-				}
-			}
-			opts = append(opts, pinclient.PinOpts.WithOrigins(filteredAddrs...))
+			opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
 		}
 
 		// Execute remote pin request
@@ -253,12 +244,6 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			return nil
 		}),
 	},
-}
-
-func isLoopbackAddr(addr ma.Multiaddr) bool {
-	// IP is located at the second index: /ip4/127.0.0.1/tcp/8080
-	ip := net.ParseIP(strings.Split(addr.String(), "/")[2])
-	return ip.IsLoopback()
 }
 
 var listRemotePinCmd = &cmds.Command{
