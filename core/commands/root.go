@@ -75,6 +75,9 @@ TOOL COMMANDS
   commands      List all available commands
   log           Manage and show logs of running daemon
 
+UTILITIES
+  multibase     Encode and decode files with multibase format
+
 Use 'ipfs <command> --help' to learn more about each command.
 
 ipfs uses a repository in the local file system. By default, the repo is

@@ -11,7 +11,7 @@ import (
 
 var MbaseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "",
+		Tagline: "Encode and decode files with multibase format",
 	},
 	Subcommands: map[string]*cmds.Command{
 		"encode": mbaseEncodeCmd,
@@ -26,8 +26,7 @@ const (
 
 var mbaseEncodeCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:         "",
-		LongDescription: "",
+		Tagline: "Encode file or stdin into multibase string",
 	},
 	Arguments: []cmds.Argument{
 		cmds.FileArg("file", true, false, "data to encode").EnableStdin(),
@@ -66,8 +65,7 @@ var mbaseEncodeCmd = &cmds.Command{
 
 var mbaseDecodeCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:         "",
-		LongDescription: "",
+		Tagline: "Decode multibase string to stdout",
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("encoded_data", true, false, "encoded data to decode").EnableStdin(),
