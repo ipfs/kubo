@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"io/ioutil"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -48,16 +49,11 @@ var mbaseEncodeCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		size, err := file.Size()
+		buf, err := ioutil.ReadAll(file)
 		if err != nil {
 			return err
 		}
-		buf := make([]byte, size)
-		n, err := file.Read(buf)
-		if err != nil {
-			return err
-		}
-		encoded := encoder.Encode(buf[:n])
+		encoded := encoder.Encode(buf)
 		reader := strings.NewReader(encoded)
 		return resp.Emit(reader)
 	},
@@ -68,14 +64,19 @@ var mbaseDecodeCmd = &cmds.Command{
 		Tagline: "Decode multibase string to stdout",
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("encoded_data", true, false, "encoded data to decode").EnableStdin(),
+		cmds.FileArg("encoded_file", true, false, "encoded data to decode").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		if err := req.ParseBodyArgs(); err != nil {
 			return err
 		}
-		encoded_data := req.Arguments[0]
-		_, data, err := mbase.Decode(encoded_data)
+		files := req.Files.Entries()
+		file, err := cmdenv.GetFileArg(files)
+		if err != nil {
+			return err
+		}
+		encoded_data, err := ioutil.ReadAll(file)
+		_, data, err := mbase.Decode(string(encoded_data))
 		if err != nil {
 			return err
 		}
