@@ -506,6 +506,8 @@ github.com/ipfs/go-verifcid v0.0.1 h1:m2HI7zIuR5TFyQ1b79Da5N9dnnCP1vcu2QqawmWlK2
 github.com/ipfs/go-verifcid v0.0.1/go.mod h1:5Hrva5KBeIog4A+UpqlaIU+DEstipcJYQQZc0g37pY0=
 github.com/ipfs/interface-go-ipfs-core v0.4.0 h1:+mUiamyHIwedqP8ZgbCIwpy40oX7QcXUbo4CZOeJVJg=
 github.com/ipfs/interface-go-ipfs-core v0.4.0/go.mod h1:UJBcU6iNennuI05amq3FQ7g0JHUkibHFAfhfUIy927o=
+github.com/ipfs/tar-utils v0.0.1 h1:8Na0KBD6GddGyXwU4rXNtVTE24iuZws8mENJQPLG7W4=
+github.com/ipfs/tar-utils v0.0.1/go.mod h1:ACflm9wXvV9w0eMJt6yYXxS2zuIV+yXGNwbuq1bhLeE=
 github.com/ipld/go-car v0.3.1 h1:WT+3cdmXlvmWOlGxk9webhj4auGO5QvgqC2vCCkFRXs=
 github.com/ipld/go-car v0.3.1/go.mod h1:dPkEWeAK8KaVvH5TahaCs6Mncpd4lDMpkbs0/SPzuVs=
 github.com/ipld/go-codec-dagpb v1.2.0 h1:2umV7ud8HBMkRuJgd8gXw95cLhwmcYrihS3cQEy9zpI=
@@ -1244,8 +1246,6 @@ github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9 h1:Y1/FEOpaCpD2
 github.com/whyrusleeping/mdns v0.0.0-20190826153040-b9b60ed33aa9/go.mod h1:j4l84WPFclQPj320J9gp0XwNKBb3U0zt5CBqjPp22G4=
 github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7 h1:E9S12nwJwEOXe2d6gT6qxdvqMnNq+VnSsKPgm2ZZNds=
 github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7/go.mod h1:X2c0RVCI1eSUFI8eLcY3c0423ykwiUdxLJtkDvruhjI=
-github.com/whyrusleeping/tar-utils v0.0.0-20201201191210-20a61371de5b h1:wA3QeTsaAXybLL2kb2cKhCAQTHgYTMwuI8lBlJSv5V8=
-github.com/whyrusleeping/tar-utils v0.0.0-20201201191210-20a61371de5b/go.mod h1:xT1Y5p2JR2PfSZihE0s4mjdJaRGp1waCTf5JzhQLBck=
 github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee h1:lYbXeSvJi5zk5GLKVuid9TVjS9a0OmLIDKTfoZBL6Ow=
 github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee/go.mod h1:m2aV4LZI4Aez7dP5PMyVKEHhUyEJ/RjmPEDOpDvudHg=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=
