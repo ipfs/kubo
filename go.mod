@@ -84,7 +84,7 @@ require (
 	github.com/libp2p/go-tcp-transport v0.2.2
 	github.com/libp2p/go-ws-transport v0.4.0
 	github.com/lucas-clemente/quic-go v0.21.1
-	github.com/miekg/dns v1.1.41
+	github.com/miekg/dns v1.1.42
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-multiaddr v0.3.2
 	github.com/multiformats/go-multiaddr-dns v0.3.1
