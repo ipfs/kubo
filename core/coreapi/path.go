@@ -5,7 +5,7 @@ import (
 	"fmt"
 	gopath "path"
 
-	"github.com/ipfs/go-ipfs/namesys/resolve"
+	"github.com/ipfs/go-namesys/resolve"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"

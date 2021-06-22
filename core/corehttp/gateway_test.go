@@ -14,8 +14,8 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	namesys "github.com/ipfs/go-ipfs/namesys"
 	repo "github.com/ipfs/go-ipfs/repo"
+	namesys "github.com/ipfs/go-namesys"
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"

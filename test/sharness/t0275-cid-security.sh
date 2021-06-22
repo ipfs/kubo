@@ -11,7 +11,7 @@ test_description="Cid Security"
 test_init_ipfs
 
 test_expect_success "adding using unsafe function fails with error" '
-  echo foo | test_must_fail ipfs add --hash murmur3-128 2>add_out
+  echo foo | test_must_fail ipfs add --hash shake-128 2>add_out
 '
 
 test_expect_success "error reason is pointed out" '
@@ -78,7 +78,7 @@ test_expect_success "add block linking to insecure" '
 '
 
 test_expect_success "ipfs cat fails with code 1 and not timeout" '
-  test_expect_code 1 go-timeout 1s ipfs cat QmVpsktzNeJdfWEpyeix93QJdQaBSgRNxebSbYSo9SQPGx
+  test_expect_code 1 go-timeout 1 ipfs cat QmVpsktzNeJdfWEpyeix93QJdQaBSgRNxebSbYSo9SQPGx
 '
 
 test_kill_ipfs_daemon

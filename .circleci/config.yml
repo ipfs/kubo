@@ -33,7 +33,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.14.4
+      - image: circleci/golang:1.15.2
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -44,13 +44,13 @@ executors:
       TEST_VERBOSE: 1
   node:
     docker:
-      - image: circleci/node:12
+      - image: circleci/node:14
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
   node-browsers:
     docker:
-      - image: circleci/node:12-browsers
+      - image: circleci/node:14-browsers
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -60,7 +60,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer:
     docker:
-      - image: circleci/golang:1.14.4
+      - image: circleci/golang:1.15.2
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
@@ -129,7 +129,8 @@ jobs:
         GOPATH: /home/circleci/go
         TEST_VERBOSE: 1
     steps:
-    - run: sudo apt install socat
+    - run: sudo apt update
+    - run: sudo apt install socat net-tools
     - checkout
 
     - run:

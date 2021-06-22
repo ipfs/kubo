@@ -117,7 +117,6 @@ func (c *Context) LogRequest(req *cmds.Request) func() {
 		Command:   strings.Join(req.Path, "/"),
 		Options:   req.Options,
 		Args:      req.Arguments,
-		ID:        c.ReqLog.nextID,
 		log:       c.ReqLog,
 	}
 	c.ReqLog.AddEntry(rle)

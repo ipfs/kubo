@@ -38,15 +38,14 @@ const (
 
 var ConfigCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Get and set ipfs config values.",
+		Tagline: "Get and set IPFS config values.",
 		ShortDescription: `
 'ipfs config' controls configuration variables. It works like 'git config'.
-The configuration values are stored in a config file inside your ipfs
-repository.`,
+The configuration values are stored in a config file inside your IPFS_PATH.`,
 		LongDescription: `
 'ipfs config' controls configuration variables. It works
 much like 'git config'. The configuration values are stored in a config
-file inside your IPFS repository.
+file inside your IPFS repository (IPFS_PATH).
 
 Examples:
 
@@ -431,7 +430,7 @@ func scrubPrivKey(cfg *config.Config) (map[string]interface{}, error) {
 	return cfgMap, nil
 }
 
-// transformConfig returns old config and new config instead of difference between they,
+// transformConfig returns old config and new config instead of difference between them,
 // because apply command can provide stable API through this way.
 // If dryRun is true, repo's config should not be updated and persisted
 // to storage. Otherwise, repo's config should be updated and persisted

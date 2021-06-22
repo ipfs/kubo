@@ -1,6 +1,6 @@
 # go-ipfs
 
-![banner](https://ipfs.io/ipfs/QmVk7srrwahXLNmcDYvyUEJptyoxpndnRa57YJ11L4jV26/ipfs.go.png)
+![banner](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
 
 [![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
 [![Matrix](https://img.shields.io/badge/matrix-%23ipfs%3Amatrix.org-blue.svg?style=flat-square)](https://matrix.to/#/room/#ipfs:matrix.org)
@@ -160,7 +160,7 @@ PS> scoop install go-ipfs
 
 ### Build from Source
 
-go-ipfs's build system requires Go 1.14.4 and some standard POSIX build tools:
+go-ipfs's build system requires Go 1.15.2 and some standard POSIX build tools:
 
 * GNU make
 * Git
@@ -170,7 +170,7 @@ To build without GCC, build with `CGO_ENABLED=0` (e.g., `make build CGO_ENABLED=
 
 #### Install Go
 
-The build process for ipfs requires Go 1.14.4 or higher. If you don't have it: [Download Go 1.14+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.15.2 or higher. If you don't have it: [Download Go 1.15+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -288,29 +288,33 @@ Basic proof of 'ipfs working' locally:
 
 SUBCOMMANDS
   BASIC COMMANDS
-    init          Initialize ipfs local configuration
-    add <path>    Add a file to ipfs
-    cat <ref>     Show ipfs object data
-    get <ref>     Download ipfs objects
+    init          Initialize local IPFS configuration
+    add <path>    Add a file to IPFS
+    cat <ref>     Show IPFS object data
+    get <ref>     Download IPFS objects
     ls <ref>      List links from an object
     refs <ref>    List hashes of links from an object
 
   DATA STRUCTURE COMMANDS
+    dag           Interact with IPLD DAG nodes
+    files         Interact with files as if they were a unix filesystem
     block         Interact with raw blocks in the datastore
-    object        Interact with raw dag nodes
-    files         Interact with objects as if they were a unix filesystem
 
   ADVANCED COMMANDS
     daemon        Start a long-running daemon process
-    mount         Mount an ipfs read-only mount point
+    mount         Mount an IPFS read-only mount point
     resolve       Resolve any type of name
-    name          Publish or resolve IPNS names
+    name          Publish and resolve IPNS names
+    key           Create and list IPNS name keypairs
     dns           Resolve DNS links
     pin           Pin objects to local storage
-    repo          Manipulate an IPFS repository
+    repo          Manipulate the IPFS repository
+    stats         Various operational stats
+    p2p           Libp2p stream mounting
+    filestore     Manage the filestore (experimental)
 
   NETWORK COMMANDS
-    id            Show info about ipfs peers
+    id            Show info about IPFS peers
     bootstrap     Add or remove bootstrap peers
     swarm         Manage connections to the p2p network
     dht           Query the DHT for values or peers
@@ -319,9 +323,11 @@ SUBCOMMANDS
 
   TOOL COMMANDS
     config        Manage configuration
-    version       Show ipfs version information
+    version       Show IPFS version information
     update        Download and apply go-ipfs updates
     commands      List all available commands
+    cid           Convert and discover properties of CIDs
+    log           Manage and show logs of running daemon
 
   Use 'ipfs <command> --help' to learn more about each command.
 

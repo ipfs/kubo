@@ -313,6 +313,10 @@ var repoVerifyCmd = &cmds.Command{
 			}
 		}
 
+		if err := req.Context.Err(); err != nil {
+			return err
+		}
+
 		if fails != 0 {
 			return errors.New("verify complete, some blocks were corrupt")
 		}

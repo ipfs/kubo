@@ -54,7 +54,7 @@ documented in `ipfs config profile --help`.
   This is the most battle-tested and reliable datastore, but it's significantly
   slower than the badger datastore. You should use this datastore if:
 
-  - You need a very simple and very reliable datastore you and trust your
+  - You need a very simple and very reliable datastore and you trust your
     filesystem. This datastore stores each block as a separate file in the
     underlying filesystem so it's unlikely to loose data unless there's an issue
     with the underlying file system.
@@ -79,7 +79,7 @@ documented in `ipfs config profile --help`.
     enabled block-level garbage collection), you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
     flatfs.
-  - This datastore uses up to several gigabytes of memory. 
+  - This datastore uses up to several gigabytes of memory.
 
   This profile may only be applied when first initializing the node.
 
@@ -172,6 +172,9 @@ does (e.g, `"1d2h4m40.01s"`).
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+- [`Migration`](#migration)
+    - [`Migration.DownloadSources`](#migrationdownloadsources)
+    - [`Migration.Keep`](#migrationkeep)
 - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
@@ -218,6 +221,8 @@ does (e.g, `"1d2h4m40.01s"`).
           - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
           - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
           - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
+- [`DNS`](#dns)
+    - [`DNS.Resolvers`](#dnsresolvers)
 
 ## `Addresses`
 
@@ -559,6 +564,9 @@ Type: `bool`
 
 ### `Gateway.PathPrefixes`
 
+**DEPRECATED:** see [go-ipfs#7702](https://github.com/ipfs/go-ipfs/issues/7702)
+
+<!--
 Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
 header.
 
@@ -585,6 +593,8 @@ location /blog/ {
 }
 ```
 
+-->
+
 Default: `[]`
 
 Type: `array[string]`
@@ -603,7 +613,7 @@ Examples:
 
 Array of paths that should be exposed on the hostname.
 
-Example: 
+Example:
 ```json
 {
   "Gateway": {
@@ -655,7 +665,6 @@ between content roots.
         }
     }
     ```
-<!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
 
 Default: `false`
 
@@ -688,7 +697,8 @@ If additional config is provided for those hostnames, it will be merged on top o
 }
 ```
 
-It is also possible to remove a default by setting it to `null`.  
+It is also possible to remove a default by setting it to `null`.
+
 For example, to disable subdomain gateway on `localhost`
 and make that hostname act the same as `127.0.0.1`:
 
@@ -709,14 +719,20 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
-   **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:  
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`  
-   **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
-   `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`  
-   `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`  
-   **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
+   - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
    
+     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
+     
+   - **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
+  
+     `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
+     
+     `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
+     
+   - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
+   
+     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
+
 
 * Public [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
    ```console
@@ -730,17 +746,16 @@ Below is a list of the most common public gateway setups.
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
-  $ ipfs config --json Gateway.NoDNSLink true
+  $ ipfs config --json Gateway.NoDNSLink false
   ```
   * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
-* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).  
-  Disable fetching of remote data (`NoFetch: true`)
-  and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
+* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).
+
+  Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
   is already present on the node), without exposing any content-addressing `Paths`:
-      "NoFetch": true,
-      "NoDNSLink": true,
+  
    ```console
    $ ipfs config --json Gateway.NoFetch true
    $ ipfs config --json Gateway.NoDNSLink true
@@ -796,6 +811,22 @@ will be kept cached until their lifetime is expired.
 Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
+
+## `Migration`
+
+Migration configures how migrations are downloaded and if the downloads are added to IPFS locally.
+
+### `Migration.DownloadSources`
+
+Sources in order of preference, where "IPFS" means use IPFS and "HTTPS" means use default gateways. Any other values are interpreted as hostnames for custom gateways. An empty list means "use default sources".
+
+Default: `["HTTPS", "IPFS"]`
+
+### `Migration.Keep`
+
+Specifies whether or not to keep the migration after downloading it. Options are "discard", "cache", "pin". Empty string for default.
+
+Default: `cache`
 
 ## `Mounts`
 
@@ -882,6 +913,8 @@ and updates the pin for MFS root on the configured remote service.
 A pin request to the remote service is sent only when MFS root CID has changed
 and enough time has passed since the previous request (determined by `RepinInterval`).
 
+One can observe MFS pinning details by enabling debug via `ipfs log level remotepinning/mfs debug` and switching back to `error` when done.
+
 ###### `Pinning.RemoteServices: Policies.MFS.Enabled`
 
 Controls if this policy is active.
@@ -892,7 +925,7 @@ Type: `bool`
 
 ###### `Pinning.RemoteServices: Policies.MFS.PinName`
 
-Optional name to use for a remote pin that represents the MFS root CID.  
+Optional name to use for a remote pin that represents the MFS root CID.
 When left empty, a default name will be generated.
 
 Default: `"policy/{PeerID}/mfs"`, e.g. `"policy/12.../mfs"`
@@ -901,7 +934,7 @@ Type: `string`
 
 ###### `Pinning.RemoteServices: Policies.MFS.RepinInterval`
 
-Defines how often (at most) the pin request should be sent to the remote service.  
+Defines how often (at most) the pin request should be sent to the remote service.
 If left empty, the default interval will be used. Values lower than `1m` will be ignored.
 
 Default: `"5m"`
@@ -921,7 +954,7 @@ Sets the default router used by pubsub to route messages to peers. This can be o
   connected peers. This router is extremely inefficient but _very_ reliable.
 * `"gossipsub"` - [gossipsub][] is a more advanced routing algorithm that will
   build an overlay mesh from a subset of the links in the network.
-  
+
 Default: `"gossipsub"`
 
 Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
@@ -1029,7 +1062,7 @@ Tells reprovider what should be announced. Valid strategies are:
   - "all" - announce all stored data
   - "pinned" - only announce pinned data
   - "roots" - only announce directly pinned keys and root keys of recursive pins
-  
+
 Default: all
 
 Type: `string` (or unset for the default)
@@ -1064,7 +1097,7 @@ public internet (e.g., it's not behind a firewall).
 To force a specific DHT mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
-  
+
 **Example:**
 
 ```json
@@ -1073,8 +1106,8 @@ unless you're sure your node is reachable from the public network.
     "Type": "dhtclient"
   }
 }
-```  
-  
+```
+
 Default: dht
 
 Type: `string` (or unset for the default)
@@ -1288,7 +1321,7 @@ Type: `flag`
 
 Listen Addresses:
 * /ip4/0.0.0.0/tcp/4001 (default)
-* /ip6/::/tcp/4001 (default) 
+* /ip6/::/tcp/4001 (default)
 
 #### `Swarm.Transports.Network.Websocket`
 
@@ -1350,8 +1383,7 @@ receiver supports. When establishing an _inbound_ connection, go-ipfs will let
 the initiator choose the protocol, but will refuse to use any of the disabled
 transports.
 
-Supported transports are: TLS (priority 100), SECIO (Disabled: i.e. priority false), Noise
-(priority 300).
+Supported transports are: TLS (priority 100) and Noise (priority 300).
 
 No default priority will ever be less than 100.
 
@@ -1367,14 +1399,7 @@ Type: `priority`
 
 #### `Swarm.Transports.Security.SECIO`
 
-[SECIO](https://github.com/libp2p/specs/tree/master/secio) was the most widely
-supported IPFS & libp2p security transport. However, it is currently being
-phased out in favor of more popular and better vetted protocols like TLS and
-Noise.
-
-Default: `false`
-
-Type: `priority`
+Support for SECIO has been removed. Please remove this option from your config.
 
 #### `Swarm.Transports.Security.Noise`
 
@@ -1425,3 +1450,44 @@ other IPFS and libp2p implementations. Unlike Yamux:
 Default: `200`
 
 Type: `priority`
+
+## `DNS`
+
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
+
+## `DNS.Resolvers`
+
+Map of [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) to custom resolver URLs.
+
+This allows for overriding the default DNS resolver provided by the operating system,
+and using different resolvers per domain or TLD (including ones from alternative, non-ICANN naming systems).
+
+Example:
+```json
+{
+  "DNS": {
+    "Resolvers": {
+      "eth.": "https://eth.link/dns-query",
+      "crypto.": "https://resolver.unstoppable.io/dns-query",
+      "libre.": "https://ns1.iriseden.fr/dns-query",
+      ".": "https://doh-ch.blahdns.com:4443/dns-query"
+    }
+  }
+}
+```
+
+Be mindful that:
+- Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
+- The default catch-all resolver is the cleartext one provided by your operating system. It can be overriden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
+- Out-of-the-box support for selected decentralized TLDs relies on a [centralized service which is provided on best-effort basis](https://www.cloudflare.com/distributed-web-gateway-terms/). The implicit DoH resolvers are:
+  ```json
+  {
+    "eth.": "https://resolver.cloudflare-eth.com/dns-query",
+    "crypto.": "https://resolver.cloudflare-eth.com/dns-query
+  }
+  ```
+  To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
+
+Default: `{}`
+
+Type: `object[string -> string]`

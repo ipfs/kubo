@@ -44,8 +44,8 @@ type PinOutput struct {
 }
 
 type AddPinOutput struct {
-	Pins     []string
-	Progress int `json:",omitempty"`
+	Pins     []string `json:",omitempty"`
+	Progress int      `json:",omitempty"`
 }
 
 const (
@@ -204,6 +204,14 @@ var rmPinCmd = &cmds.Command{
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins.)
+`,
+		LongDescription: `
+Removes the pin from the given object allowing it to be garbage
+collected if needed. (By default, recursively. Use -r=false for direct pins.)
+
+A pin may not be removed because the specified object is not pinned or pinned
+indirectly. To determine if the object is pinned indirectly, use the command:
+ipfs pin ls -t indirect <cid>
 `,
 	},
 
@@ -500,7 +508,7 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 	}
 
 	for p := range pins {
-		if p.Err() != nil {
+		if err := p.Err(); err != nil {
 			return err
 		}
 		err = emit(&PinLsOutputWrapper{
@@ -523,7 +531,7 @@ const (
 
 var updatePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Update a recursive pin",
+		Tagline: "Update a recursive pin.",
 		ShortDescription: `
 Efficiently pins a new object based on differences from an existing one and,
 by default, removes the old pin.
@@ -682,7 +690,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		if err := verifcid.ValidateCid(root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
+				status.BadNodes = []BadNode{{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status
@@ -692,7 +700,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		if err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
-				status.BadNodes = []BadNode{BadNode{Cid: enc.Encode(key), Err: err.Error()}}
+				status.BadNodes = []BadNode{{Cid: enc.Encode(key), Err: err.Error()}}
 			}
 			visited[key] = status
 			return status

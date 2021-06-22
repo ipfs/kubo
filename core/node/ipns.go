@@ -10,10 +10,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/libp2p/go-libp2p-record"
+	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-ipfs/namesys"
-	"github.com/ipfs/go-ipfs/namesys/republisher"
 	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-namesys"
+	"github.com/ipfs/go-namesys/republisher"
 )
 
 const DefaultIpnsCacheSize = 128
@@ -27,9 +28,18 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 }
 
 // Namesys creates new name system
-func Namesys(cacheSize int) func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
-	return func(rt routing.Routing, repo repo.Repo) (namesys.NameSystem, error) {
-		return namesys.NewNameSystem(rt, repo.Datastore(), cacheSize), nil
+func Namesys(cacheSize int) func(rt routing.Routing, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+	return func(rt routing.Routing, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+		opts := []namesys.Option{
+			namesys.WithDatastore(repo.Datastore()),
+			namesys.WithDNSResolver(rslv),
+		}
+
+		if cacheSize > 0 {
+			opts = append(opts, namesys.WithCache(cacheSize))
+		}
+
+		return namesys.NewNameSystem(rt, opts...)
 	}
 }
 

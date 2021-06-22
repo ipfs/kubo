@@ -9,7 +9,7 @@ import (
 
 	config "github.com/ipfs/go-ipfs-config"
 	ipld "github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/go-merkledag"
+	merkledag "github.com/ipfs/go-merkledag"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
@@ -149,7 +149,7 @@ func TestPinMFSService(t *testing.T) {
 			},
 		},
 	}
-	testPinMFSServiceWithError(t, cfg_invalid_interval, "remote pinning service invalid_interval has invalid MFS.RepinInterval")
+	testPinMFSServiceWithError(t, cfg_invalid_interval, "remote pinning service \"invalid_interval\" has invalid MFS.RepinInterval")
 	testPinMFSServiceWithError(t, cfg_valid_unnamed, "error while listing remote pins: empty response from remote pinning service")
 	testPinMFSServiceWithError(t, cfg_valid_named, "error while listing remote pins: empty response from remote pinning service")
 }

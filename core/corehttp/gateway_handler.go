@@ -3,6 +3,7 @@ package corehttp
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"mime"
 	"net/http"
@@ -35,6 +36,26 @@ const (
 )
 
 var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+
+// HTML-based redirect for errors which can be recovered from, but we want
+// to provide hint to people that they should fix things on their end.
+var redirectTemplate = template.Must(template.New("redirect").Parse(`<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="refresh" content="10;url={{.RedirectURL}}" />
+		<link rel="canonical" href="{{.RedirectURL}}" />
+	</head>
+	<body>
+		<pre>{{.ErrorMsg}}</pre><pre>(if a redirect does not happen in 10 seconds, use "{{.SuggestedPath}}" instead)</pre>
+	</body>
+</html>`))
+
+type redirectTemplateData struct {
+	RedirectURL   string
+	SuggestedPath string
+	ErrorMsg      string
+}
 
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
@@ -159,6 +180,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
 	// It will be prepended to links in directory listings and the index.html redirect.
+	// TODO: this feature is deprecated and will be removed  (https://github.com/ipfs/go-ipfs/issues/7702)
 	prefix := ""
 	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); len(prfx) > 0 {
 		for _, p := range i.config.PathPrefixes {
@@ -216,8 +238,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	parsedPath := ipath.New(urlPath)
-	if err := parsedPath.IsValid(); err != nil {
-		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
+	if pathErr := parsedPath.IsValid(); pathErr != nil {
+		if prefix == "" && fixupSuperfluousNamespace(w, urlPath, r.URL.RawQuery) {
+			// the error was due to redundant namespace, which we were able to fix
+			// by returning error/redirect page, nothing left to do here
+			return
+		}
+		// unable to fix path, returning error
+		webError(w, "invalid ipfs path", pathErr, http.StatusBadRequest)
 		return
 	}
 
@@ -780,4 +808,34 @@ func preferred404Filename(acceptHeaders []string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("there is no 404 file for the requested content types")
+}
+
+// Attempt to fix redundant /ipfs/ namespace as long as resulting
+// 'intended' path is valid.  This is in case gremlins were tickled
+// wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
+// like in bafybeien3m7mdn6imm425vc2s22erzyhbvk5n3ofzgikkhmdkh5cuqbpbq :^))
+func fixupSuperfluousNamespace(w http.ResponseWriter, urlPath string, urlQuery string) bool {
+	if !(strings.HasPrefix(urlPath, "/ipfs/ipfs/") || strings.HasPrefix(urlPath, "/ipfs/ipns/")) {
+		return false // not a superfluous namespace
+	}
+	intendedPath := ipath.New(strings.TrimPrefix(urlPath, "/ipfs"))
+	if err := intendedPath.IsValid(); err != nil {
+		return false // not a valid path
+	}
+	intendedURL := intendedPath.String()
+	if urlQuery != "" {
+		// we render HTML, so ensure query entries are properly escaped
+		q, _ := url.ParseQuery(urlQuery)
+		intendedURL = intendedURL + "?" + q.Encode()
+	}
+	// return HTTP 400 (Bad Request) with HTML error page that:
+	// - points at correct canonical path via <link> header
+	// - displays human-readable error
+	// - redirects to intendedURL after a short delay
+	w.WriteHeader(http.StatusBadRequest)
+	return redirectTemplate.Execute(w, redirectTemplateData{
+		RedirectURL:   intendedURL,
+		SuggestedPath: intendedPath.String(),
+		ErrorMsg:      fmt.Sprintf("invalid path: %q should be %q", urlPath, intendedPath.String()),
+	}) == nil
 }
