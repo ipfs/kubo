@@ -301,7 +301,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return err
 		}
 
-		// Define function to create IPFS fetcher
+		// Define function to create IPFS fetcher.  Do not supply an
+		// already-constructed IPFS fetcher, because this may be expensive and
+		// not needed according to migration config. Instead, supply a function
+		// to construct the particular IPFS fetcher implementation used here,
+		// which is called only if an IPFS fetcher is needed.
 		newIpfsFetcher := func(distPath string) migrations.Fetcher {
 			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot)
 		}
