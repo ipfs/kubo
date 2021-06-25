@@ -49,13 +49,15 @@ statlog() {
         mailmap_file="$ROOT_DIR/.mailmap"
     fi
 
-    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" -- . ':^*\.pb\.go' ':^*ipldsch*\.go' ':^cbor_gen\.go\' ':^go\.mod' ':^go\.sum' | while
-        read hash
-        read name
-        read email
-        read _ # empty line
-        read changes
-    do
+    local stack=()
+    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%x09%aN%x09%aE" "$start..$end" -- . ':^*\.pb\.go' ':^*ipldsch*\.go' ':^cbor_gen\.go\' ':^go\.mod' ':^go\.sum' | while read -r line; do
+        if [[ -n "$line" ]]; then
+            stack+=("$line")
+            continue
+        fi
+
+        read -r changes
+
         changed=0
         insertions=0
         deletions=0
@@ -72,14 +74,18 @@ statlog() {
             fi
         done<<<"${changes//,/$NL}"
 
-        jq -n \
-           --arg "hash" "$hash" \
-           --arg "name" "$name" \
-           --arg "email" "$email" \
-           --argjson "changed" "$changed" \
-           --argjson "insertions" "$insertions" \
-           --argjson "deletions" "$deletions" \
-           '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+        for author in "${stack[@]}"; do
+            IFS=$'\t' read -r hash name email <<<"$author"
+            jq -n \
+               --arg "hash" "$hash" \
+               --arg "name" "$name" \
+               --arg "email" "$email" \
+               --argjson "changed" "$changed" \
+               --argjson "insertions" "$insertions" \
+               --argjson "deletions" "$deletions" \
+               '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+        done
+        stack=()
     done
 }
 
