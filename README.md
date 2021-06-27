@@ -30,6 +30,8 @@ Before opening an issue, consider using one of the following locations to ensure
   - [System Requirements](#system-requirements)
   - [Install prebuilt packages](#install-prebuilt-packages)
   - [From Linux package managers](#from-linux-package-managers)
+  - [From Windows package managers](#from-windows-package-managers)
+  - [From macOS package managers](#from-macos-package-managers)
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -83,7 +85,7 @@ You can also download go-ipfs from this project's GitHub releases page if you ar
 ### From Linux package managers
 
 - [Arch Linux](#arch-linux)
-- [Nix](#nix)
+- [Nix](#nix-linux)
 - [Solus](#solus)
 - [Snap](#snap)
 
@@ -100,9 +102,9 @@ Development version of go-ipfs is also on AUR under
 [go-ipfs-git](https://aur.archlinux.org/packages/go-ipfs-git/).
 You can install it using your favorite AUR Helper or manually from AUR.
 
-#### Nix
+#### <a name="nix-linux">Nix</a>
 
-For Linux and MacOSX you can use the purely functional package manager [Nix](https://nixos.org/nix/):
+For Linux and macOS you can use the purely functional package manager [Nix](https://nixos.org/nix/):
 
 ```
 $ nix-env -i ipfs
@@ -157,6 +159,29 @@ Scoop provides `go-ipfs` in its 'extras' bucket.
 PS> scoop bucket add extras
 PS> scoop install go-ipfs
 ```
+
+### From macOS package managers
+
+- [MacPorts](#macports)
+- [Nix](#nix-macos)
+
+#### MacPorts
+
+The package [ipfs](https://ports.macports.org/port/ipfs) currently points to go-ipfs and is being maintained.
+
+```
+$ sudo port install ipfs
+```
+
+#### <a name="nix-macos">Nix</a>
+
+For macOS and Linux you can use the purely functional package manager [Nix](https://nixos.org/nix/):
+
+```
+$ nix-env -i ipfs
+```
+
+You can also install the Package by using its attribute name, which is also `ipfs`.
 
 ### Build from Source
 
