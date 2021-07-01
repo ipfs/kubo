@@ -33,7 +33,7 @@ var mbaseEncodeCmd = &cmds.Command{
 		cmds.FileArg("file", true, false, "data to encode").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(mbaseOptionName, "multibase encoding").WithDefault("identity"),
+		cmds.StringOption(mbaseOptionName, "multibase encoding").WithDefault("base64url"),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		if err := req.ParseBodyArgs(); err != nil {
