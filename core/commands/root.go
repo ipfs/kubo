@@ -43,7 +43,10 @@ DATA STRUCTURE COMMANDS
   dag           Interact with IPLD DAG nodes
   files         Interact with files as if they were a unix filesystem
   block         Interact with raw blocks in the datastore
+
+TEXT ENCODING COMMANDS
   cid           Convert and discover properties of CIDs
+  multibase     Encode and decode data with Multibase format
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
@@ -74,9 +77,6 @@ TOOL COMMANDS
   update        Download and apply go-ipfs updates
   commands      List all available commands
   log           Manage and show logs of running daemon
-
-UTILITIES
-  multibase     Encode and decode files with multibase format
 
 Use 'ipfs <command> --help' to learn more about each command.
 

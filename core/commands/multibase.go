@@ -12,7 +12,7 @@ import (
 
 var MbaseCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Encode and decode files with multibase format",
+		Tagline: "Encode and decode files or stdin with multibase format",
 	},
 	Subcommands: map[string]*cmds.Command{
 		"encode": mbaseEncodeCmd,
@@ -76,6 +76,9 @@ var mbaseDecodeCmd = &cmds.Command{
 			return err
 		}
 		encoded_data, err := ioutil.ReadAll(file)
+		if err != nil {
+			return err
+		}
 		_, data, err := mbase.Decode(string(encoded_data))
 		if err != nil {
 			return err
