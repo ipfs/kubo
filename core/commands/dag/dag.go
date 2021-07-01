@@ -55,7 +55,8 @@ type ResolveOutput struct {
 
 // CarImportOutput is the output type of the 'dag import' commands
 type CarImportOutput struct {
-	Root RootMeta
+	BlockCount uint64
+	Root       *RootMeta
 }
 
 // RootMeta is the metadata for a root pinning response
@@ -160,8 +161,9 @@ var DagResolveCmd = &cmds.Command{
 }
 
 type importResult struct {
-	roots map[cid.Cid]struct{}
-	err   error
+	blockCount uint64
+	roots      map[cid.Cid]struct{}
+	err        error
 }
 
 // DagImportCmd is a command for importing a car to ipfs
@@ -203,6 +205,11 @@ Maximum supported CAR version: 1
 
 			silent, _ := req.Options[silentOptionName].(bool)
 			if silent {
+				return nil
+			}
+
+			if event.Root == nil {
+				fmt.Fprintf(w, "Imported %d blocks\n", event.BlockCount)
 				return nil
 			}
 
