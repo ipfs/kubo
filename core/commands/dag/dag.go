@@ -55,8 +55,8 @@ type ResolveOutput struct {
 
 // CarImportOutput is the output type of the 'dag import' commands
 type CarImportOutput struct {
-	BlockCount uint64
-	Root       *RootMeta
+	BlockCount *uint64   `json:",omitempty"`
+	Root       *RootMeta `json:",omitempty"`
 }
 
 // RootMeta is the metadata for a root pinning response
@@ -208,9 +208,17 @@ Maximum supported CAR version: 1
 				return nil
 			}
 
+			// event should have only one of `Root` or `BlockCount` set, not both
 			if event.Root == nil {
-				fmt.Fprintf(w, "Imported %d blocks\n", event.BlockCount)
+				if event.BlockCount == nil {
+					return fmt.Errorf("Unexpected message from DAG import")
+				}
+				fmt.Fprintf(w, "Imported %d blocks\n", *event.BlockCount)
 				return nil
+			}
+
+			if event.BlockCount != nil {
+				return fmt.Errorf("Unexpected message from DAG import")
 			}
 
 			enc, err := cmdenv.GetLowLevelCidEncoder(req)

@@ -55,7 +55,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return done.err
 	}
 
-	if err := res.Emit(&CarImportOutput{BlockCount: done.blockCount}); err != nil {
+	if err := res.Emit(&CarImportOutput{BlockCount: &done.blockCount}); err != nil {
 		return err
 	}
 
