@@ -786,7 +786,7 @@ test_expect_success "enable sharding in config" '
   ipfs config --json Experimental.ShardingEnabled true
 '
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 SHARD_HASH=QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se
 test_sharding "(cidv0)"
