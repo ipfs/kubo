@@ -8,7 +8,7 @@ config file at runtime.
 ## Profiles
 
 Configuration profiles allow to tweak configuration quickly. Profiles can be
-applied with `--profile` flag to `ipfs init` or with the `ipfs config profile
+applied with the `--profile` flag to `ipfs init` or with the `ipfs config profile
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
@@ -22,7 +22,7 @@ documented in `ipfs config profile --help`.
 
 - `randomports`
 
-  Use a random port number for swarm.
+  Use a random port number for the incoming swarm connections.
 
 - `default-datastore`
 
@@ -34,8 +34,8 @@ documented in `ipfs config profile --help`.
 
 - `local-discovery`
 
-  Sets default values to fields affected by the server
-  profile, enables discovery in local networks.
+  Enables local discovery (enabled by default). Useful to re-enable local discovery after it's
+  disabled by another profile (e.g., the server profile).
 
 - `test`
 
@@ -54,9 +54,9 @@ documented in `ipfs config profile --help`.
   This is the most battle-tested and reliable datastore, but it's significantly
   slower than the badger datastore. You should use this datastore if:
 
-  - You need a very simple and very reliable datastore you and trust your
+  - You need a very simple and very reliable datastore and you trust your
     filesystem. This datastore stores each block as a separate file in the
-    underlying filesystem so it's unlikely to loose data unless there's an issue
+    underlying filesystem so it's unlikely to lose data unless there's an issue
     with the underlying file system.
   - You need to run garbage collection on a small (<= 10GiB) datastore. The
     default datastore, badger, can leave several gigabytes of data behind when
@@ -79,7 +79,7 @@ documented in `ipfs config profile --help`.
     enabled block-level garbage collection), you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
     flatfs.
-  - This datastore uses up to several gigabytes of memory. 
+  - This datastore uses up to several gigabytes of memory.
 
   This profile may only be applied when first initializing the node.
 
@@ -172,10 +172,20 @@ does (e.g, `"1d2h4m40.01s"`).
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+- [`Migration`](#migration)
+    - [`Migration.DownloadSources`](#migrationdownloadsources)
+    - [`Migration.Keep`](#migrationkeep)
 - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+- [`Pinning`](#pinning)
+    - [`Pinning.RemoteServices`](#pinningremoteservices)
+        - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
+          - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
+          - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
+        - [`Pinning.RemoteServices.Policies`](#pinningremoteservices-policies)
+          - [`Pinning.RemoteServices.Policies.MFS`](#pinningremoteservices-policiesmfs)
 - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
@@ -211,6 +221,8 @@ does (e.g, `"1d2h4m40.01s"`).
           - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
           - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
           - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
+- [`DNS`](#dns)
+    - [`DNS.Resolvers`](#dnsresolvers)
 
 ## `Addresses`
 
@@ -246,7 +258,7 @@ Type: `strings` (multiaddrs)
 
 ### `Addresses.Swarm`
 
-Array of multiaddrs describing which addresses to listen on for p2p swarm
+An array of multiaddrs describing which addresses to listen on for p2p swarm
 connections.
 
 Supported Transports:
@@ -277,7 +289,7 @@ Default: `[]`
 Type: `array[string]` (multiaddrs)
 
 ### `Addresses.NoAnnounce`
-Array of swarm addresses not to announce to the network.
+An array of swarm addresses not to announce to the network.
 
 Default: `[]`
 
@@ -351,8 +363,7 @@ Type: `duration` (when `0`/unset, the default value is used)
 
 ## `Bootstrap`
 
-Bootstrap is an array of multiaddrs of trusted nodes to connect to in order to
-initiate a connection to the network.
+Bootstrap is an array of multiaddrs of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
 Default: The ipfs.io bootstrap nodes
 
@@ -393,7 +404,7 @@ Type: `duration` (an empty string means the default value)
 
 ### `Datastore.HashOnRead`
 
-A boolean value. If set to true, all block reads from disk will be hashed and
+A boolean value. If set to true, all block reads from the disk will be hashed and
 verified. This will cause increased CPU utilization.
 
 Default: `false`
@@ -404,13 +415,13 @@ Type: `bool`
 
 A number representing the size in bytes of the blockstore's [bloom
 filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents
-the feature being disabled.
+the feature is disabled.
 
 This site generates useful graphs for various bloom filter values:
 <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7> You may use it to find a
 preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to
 convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the
-config file. For example, for 1,000,000 blocks, expecting a 1% false positive
+config file. For example, for 1,000,000 blocks, expecting a 1% false-positive
 rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize`
 we'd want to use 1199120 bytes. As of writing, [7 hash
 functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
@@ -432,7 +443,7 @@ tool](https://github.com/ipfs/ipfs-ds-convert) to migrate data into the new
 structures.
 
 For more information on possible values for this configuration option, see
-docs/datastores.md
+[docs/datastores.md](datastores.md)
 
 Default:
 ```
@@ -484,7 +495,7 @@ Type: `bool`
 
 #### `Discovery.MDNS.Interval`
 
-A number of seconds to wait between discovery checks.
+The number of seconds between discovery checks.
 
 Default: `5`
 
@@ -506,8 +517,8 @@ Type: `bool`
 ### `Gateway.NoDNSLink`
 
 A boolean to configure whether DNSLink lookup for value in `Host` HTTP header
-should be performed.  If DNSLink is present, content path stored in the DNS TXT
-record becomes the `/` and respective payload is returned to the client.
+should be performed.  If DNSLink is present, the content path stored in the DNS TXT
+record becomes the `/` and the respective payload is returned to the client.
 
 Default: `false`
 
@@ -552,7 +563,10 @@ Type: `bool`
 
 ### `Gateway.PathPrefixes`
 
-Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
+**DEPRECATED:** see [go-ipfs#7702](https://github.com/ipfs/go-ipfs/issues/7702)
+
+<!--
+An array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
 header.
 
 The X-Ipfs-Path-Prefix header is used to specify a base path to prepend to links
@@ -578,6 +592,8 @@ location /blog/ {
 }
 ```
 
+-->
+
 Default: `[]`
 
 Type: `array[string]`
@@ -594,9 +610,9 @@ Examples:
 
 #### `Gateway.PublicGateways: Paths`
 
-Array of paths that should be exposed on the hostname.
+An array of paths that should be exposed on the hostname.
 
-Example: 
+Example:
 ```json
 {
   "Gateway": {
@@ -648,7 +664,6 @@ between content roots.
         }
     }
     ```
-<!-- **(not implemented yet)** due to the lack of Origin isolation, cookies and storage on `Paths` will be disabled by [Clear-Site-Data](https://github.com/ipfs/in-web-browsers/issues/157) header -->
 
 Default: `false`
 
@@ -681,7 +696,8 @@ If additional config is provided for those hostnames, it will be merged on top o
 }
 ```
 
-It is also possible to remove a default by setting it to `null`.  
+It is also possible to remove a default by setting it to `null`.
+
 For example, to disable subdomain gateway on `localhost`
 and make that hostname act the same as `127.0.0.1`:
 
@@ -702,13 +718,20 @@ Below is a list of the most common public gateway setups.
        }
      }'
    ```
-   **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:  
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`  
-   **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:    
-   `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`  
-   **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
-   `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
+   - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
    
+     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
+     
+   - **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
+  
+     `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
+     
+     `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
+     
+   - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
+   
+     `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
+
 
 * Public [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
    ```console
@@ -722,17 +745,16 @@ Below is a list of the most common public gateway setups.
 
 * Public [DNSLink](https://dnslink.io/) gateway resolving every hostname passed in `Host` header.
   ```console
-  $ ipfs config --json Gateway.NoDNSLink true
+  $ ipfs config --json Gateway.NoDNSLink false
   ```
   * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
-* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).  
-  Disable fetching of remote data (`NoFetch: true`)
-  and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
+* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).
+
+  Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
   is already present on the node), without exposing any content-addressing `Paths`:
-      "NoFetch": true,
-      "NoDNSLink": true,
+  
    ```console
    $ ipfs config --json Gateway.NoFetch true
    $ ipfs config --json Gateway.NoDNSLink true
@@ -756,7 +778,7 @@ Type: `string` (peer ID)
 
 ### `Identity.PrivKey`
 
-The base64 encoded protobuf describing (and containing) the nodes private key.
+The base64 encoded protobuf describing (and containing) the node's private key.
 
 Type: `string` (base64 encoded)
 
@@ -789,6 +811,22 @@ Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
 
+## `Migration`
+
+Migration configures how migrations are downloaded and if the downloads are added to IPFS locally.
+
+### `Migration.DownloadSources`
+
+Sources in order of preference, where "IPFS" means use IPFS and "HTTPS" means use default gateways. Any other values are interpreted as hostnames for custom gateways. An empty list means "use default sources".
+
+Default: `["HTTPS", "IPFS"]`
+
+### `Migration.Keep`
+
+Specifies whether or not to keep the migration after downloading it. Options are "discard", "cache", "pin". Empty string for default.
+
+Default: `cache`
+
 ## `Mounts`
 
 FUSE mount point configuration options.
@@ -811,7 +849,96 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the FUSE allow other option on the mountpoint.
+Sets the 'FUSE allow other'-option on the mount point.
+
+## `Pinning`
+
+Pinning configures the options available for pinning content
+(i.e. keeping content longer-term instead of as temporarily cached storage).
+
+### `Pinning.RemoteServices`
+
+`RemoteServices` maps a name for a remote pinning service to its configuration.
+
+A remote pinning service is a remote service that exposes an API for managing
+that service's interest in long-term data storage.
+
+The exposed API conforms to the specification defined at
+https://ipfs.github.io/pinning-services-api-spec/
+
+#### `Pinning.RemoteServices: API`
+
+Contains information relevant to utilizing the remote pinning service
+
+Example:
+```json
+{
+  "Pinning": {
+    "RemoteServices": {
+      "myPinningService": {
+        "API" : {
+          "Endpoint" : "https://pinningservice.tld:1234/my/api/path",
+          "Key" : "someOpaqueKey"
+				}
+      }
+    }
+  }
+}
+```
+
+##### `Pinning.RemoteServices: API.Endpoint`
+
+The HTTP(S) endpoint through which to access the pinning service
+
+Example: "https://pinningservice.tld:1234/my/api/path"
+
+Type: `string`
+
+##### `Pinning.RemoteServices: API.Key`
+
+The key through which access to the pinning service is granted
+
+Type: `string`
+
+#### `Pinning.RemoteServices: Policies`
+
+Contains additional opt-in policies for the remote pinning service.
+
+##### `Pinning.RemoteServices: Policies.MFS`
+
+When this policy is enabled, it follows changes to MFS
+and updates the pin for MFS root on the configured remote service.
+
+A pin request to the remote service is sent only when MFS root CID has changed
+and enough time has passed since the previous request (determined by `RepinInterval`).
+
+One can observe MFS pinning details by enabling debug via `ipfs log level remotepinning/mfs debug` and switching back to `error` when done.
+
+###### `Pinning.RemoteServices: Policies.MFS.Enabled`
+
+Controls if this policy is active.
+
+Default: `false`
+
+Type: `bool`
+
+###### `Pinning.RemoteServices: Policies.MFS.PinName`
+
+Optional name to use for a remote pin that represents the MFS root CID.
+When left empty, a default name will be generated.
+
+Default: `"policy/{PeerID}/mfs"`, e.g. `"policy/12.../mfs"`
+
+Type: `string`
+
+###### `Pinning.RemoteServices: Policies.MFS.RepinInterval`
+
+Defines how often (at most) the pin request should be sent to the remote service.
+If left empty, the default interval will be used. Values lower than `1m` will be ignored.
+
+Default: `"5m"`
+
+Type: `duration`
 
 ## `Pubsub`
 
@@ -826,7 +953,7 @@ Sets the default router used by pubsub to route messages to peers. This can be o
   connected peers. This router is extremely inefficient but _very_ reliable.
 * `"gossipsub"` - [gossipsub][] is a more advanced routing algorithm that will
   build an overlay mesh from a subset of the links in the network.
-  
+
 Default: `"gossipsub"`
 
 Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
@@ -876,7 +1003,7 @@ When a node is added to the set of peered nodes, go-ipfs will:
 Peering can be asymmetric or symmetric:
 
 * When symmetric, the connection will be protected by both nodes and will likely
-  be vary stable.
+  be very stable.
 * When asymmetric, only one node (the node that configured peering) will protect
   the connection and attempt to re-connect to the peered node on disconnect. If
   the peered node is under heavy load and/or has a low connection limit, the
@@ -934,7 +1061,7 @@ Tells reprovider what should be announced. Valid strategies are:
   - "all" - announce all stored data
   - "pinned" - only announce pinned data
   - "roots" - only announce directly pinned keys and root keys of recursive pins
-  
+
 Default: all
 
 Type: `string` (or unset for the default)
@@ -959,7 +1086,7 @@ When the DHT is enabled, it can operate in two modes: client and server.
   respond to requests from other peers (both requests to store records and
   requests to retrieve records).
 * In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource intensive than server
+  to requests from other peers. This mode is less resource-intensive than server
   mode.
 
 When `Routing.Type` is set to `dht`, your node will start as a DHT client, and
@@ -969,7 +1096,7 @@ public internet (e.g., it's not behind a firewall).
 To force a specific DHT mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
-  
+
 **Example:**
 
 ```json
@@ -978,8 +1105,8 @@ unless you're sure your node is reachable from the public network.
     "Type": "dhtclient"
   }
 }
-```  
-  
+```
+
 Default: dht
 
 Type: `string` (or unset for the default)
@@ -1193,7 +1320,7 @@ Type: `flag`
 
 Listen Addresses:
 * /ip4/0.0.0.0/tcp/4001 (default)
-* /ip6/::/tcp/4001 (default) 
+* /ip6/::/tcp/4001 (default)
 
 #### `Swarm.Transports.Network.Websocket`
 
@@ -1255,8 +1382,7 @@ receiver supports. When establishing an _inbound_ connection, go-ipfs will let
 the initiator choose the protocol, but will refuse to use any of the disabled
 transports.
 
-Supported transports are: TLS (priority 100), SECIO (Disabled: i.e. priority false), Noise
-(priority 300).
+Supported transports are: TLS (priority 100) and Noise (priority 300).
 
 No default priority will ever be less than 100.
 
@@ -1272,14 +1398,7 @@ Type: `priority`
 
 #### `Swarm.Transports.Security.SECIO`
 
-[SECIO](https://github.com/libp2p/specs/tree/master/secio) was the most widely
-supported IPFS & libp2p security transport. However, it is currently being
-phased out in favor of more popular and better vetted protocols like TLS and
-Noise.
-
-Default: `false`
-
-Type: `priority`
+Support for SECIO has been removed. Please remove this option from your config.
 
 #### `Swarm.Transports.Security.Noise`
 
@@ -1330,3 +1449,44 @@ other IPFS and libp2p implementations. Unlike Yamux:
 Default: `200`
 
 Type: `priority`
+
+## `DNS`
+
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
+
+## `DNS.Resolvers`
+
+Map of [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) to custom resolver URLs.
+
+This allows for overriding the default DNS resolver provided by the operating system,
+and using different resolvers per domain or TLD (including ones from alternative, non-ICANN naming systems).
+
+Example:
+```json
+{
+  "DNS": {
+    "Resolvers": {
+      "eth.": "https://eth.link/dns-query",
+      "crypto.": "https://resolver.unstoppable.io/dns-query",
+      "libre.": "https://ns1.iriseden.fr/dns-query",
+      ".": "https://doh-ch.blahdns.com:4443/dns-query"
+    }
+  }
+}
+```
+
+Be mindful that:
+- Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
+- The default catch-all resolver is the cleartext one provided by your operating system. It can be overriden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
+- Out-of-the-box support for selected decentralized TLDs relies on a [centralized service which is provided on best-effort basis](https://www.cloudflare.com/distributed-web-gateway-terms/). The implicit DoH resolvers are:
+  ```json
+  {
+    "eth.": "https://resolver.cloudflare-eth.com/dns-query",
+    "crypto.": "https://resolver.cloudflare-eth.com/dns-query
+  }
+  ```
+  To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
+
+Default: `{}`
+
+Type: `object[string -> string]`

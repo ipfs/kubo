@@ -7,6 +7,7 @@ import (
 	dag "github.com/ipfs/go-ipfs/core/commands/dag"
 	name "github.com/ipfs/go-ipfs/core/commands/name"
 	ocmd "github.com/ipfs/go-ipfs/core/commands/object"
+	"github.com/ipfs/go-ipfs/core/commands/pin"
 	unixfs "github.com/ipfs/go-ipfs/core/commands/unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -31,7 +32,7 @@ var Root = &cmds.Command{
 		Synopsis: "ipfs [--config=<config> | -c] [--debug | -D] [--help] [-h] [--api=<api>] [--offline] [--cid-base=<base>] [--upgrade-cidv0-in-output] [--encoding=<encoding> | --enc] [--timeout=<timeout>] <command> ...",
 		Subcommands: `
 BASIC COMMANDS
-  init          Initialize ipfs local configuration
+  init          Initialize local IPFS configuration
   add <path>    Add a file to IPFS
   cat <ref>     Show IPFS object data
   get <ref>     Download IPFS objects
@@ -39,10 +40,10 @@ BASIC COMMANDS
   refs <ref>    List hashes of links from an object
 
 DATA STRUCTURE COMMANDS
+  dag           Interact with IPLD DAG nodes
+  files         Interact with files as if they were a unix filesystem
   block         Interact with raw blocks in the datastore
-  object        Interact with raw dag nodes
-  files         Interact with objects as if they were a unix filesystem
-  dag           Interact with IPLD documents (experimental)
+  cid           Convert and discover properties of CIDs
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
@@ -64,13 +65,14 @@ NETWORK COMMANDS
   dht           Query the DHT for values or peers
   ping          Measure the latency of a connection
   diag          Print diagnostics
+  bitswap       Inspect bitswap state
+  pubsub        Send and receive messages via pubsub
 
 TOOL COMMANDS
   config        Manage configuration
-  version       Show ipfs version information
+  version       Show IPFS version information
   update        Download and apply go-ipfs updates
   commands      List all available commands
-  cid           Convert and discover properties of CIDs
   log           Manage and show logs of running daemon
 
 Use 'ipfs <command> --help' to learn more about each command.
@@ -136,7 +138,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"mount":     MountCmd,
 	"name":      name.NameCmd,
 	"object":    ocmd.ObjectCmd,
-	"pin":       PinCmd,
+	"pin":       pin.PinCmd,
 	"ping":      PingCmd,
 	"p2p":       P2PCmd,
 	"refs":      RefsCmd,
@@ -165,7 +167,7 @@ var VersionROCmd = &cmds.Command{}
 var rootROSubcommands = map[string]*cmds.Command{
 	"commands": CommandsDaemonROCmd,
 	"cat":      CatCmd,
-	"block": &cmds.Command{
+	"block": {
 		Subcommands: map[string]*cmds.Command{
 			"stat": blockStatCmd,
 			"get":  blockGetCmd,
@@ -192,6 +194,7 @@ var rootROSubcommands = map[string]*cmds.Command{
 			"get":     dag.DagGetCmd,
 			"resolve": dag.DagResolveCmd,
 			"stat":    dag.DagStatCmd,
+			"export":  dag.DagExportCmd,
 		},
 	},
 	"resolve": ResolveCmd,

@@ -1,277 +1,214 @@
-package mfsr
+package migrations
 
 import (
-	"bufio"
-	"bytes"
+	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
+	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"path"
 	"runtime"
-	"strconv"
 	"strings"
+	"sync"
 )
 
-var DistPath = "https://ipfs.io/ipfs/Qmdo5m6bpQXCayzfGghyvgXJdVHSsXsCKDUo9vWktDKq3K"
+const (
+	// Migrations subdirectory in distribution. Empty for root (no subdir).
+	distMigsRoot = ""
+	distFSRM     = "fs-repo-migrations"
+)
 
-func init() {
-	if dist := os.Getenv("IPFS_DIST_PATH"); dist != "" {
-		DistPath = dist
-	}
-}
-
-const migrations = "fs-repo-migrations"
-
-func migrationsBinName() string {
-	switch runtime.GOOS {
-	case "windows":
-		return migrations + ".exe"
-	default:
-		return migrations
-	}
-}
-
-func RunMigration(newv int) error {
-	migrateBin := migrationsBinName()
-
-	fmt.Println("  => Looking for suitable fs-repo-migrations binary.")
-
-	var err error
-	migrateBin, err = exec.LookPath(migrateBin)
-	if err == nil {
-		// check to make sure migrations binary supports our target version
-		err = verifyMigrationSupportsVersion(migrateBin, newv)
-	}
-
+// RunMigration finds, downloads, and runs the individual migrations needed to
+// migrate the repo from its current version to the target version.
+func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir string, allowDowngrade bool) error {
+	ipfsDir, err := CheckIpfsDir(ipfsDir)
 	if err != nil {
-		fmt.Println("  => None found, downloading.")
+		return err
+	}
+	fromVer, err := RepoVersion(ipfsDir)
+	if err != nil {
+		return fmt.Errorf("could not get repo version: %s", err)
+	}
+	if fromVer == targetVer {
+		// repo already at target version number
+		return nil
+	}
+	if fromVer > targetVer && !allowDowngrade {
+		return fmt.Errorf("downgrade not allowed from %d to %d", fromVer, targetVer)
+	}
 
-		loc, err := GetMigrations()
+	logger := log.New(os.Stdout, "", 0)
+
+	logger.Print("Looking for suitable migration binaries.")
+
+	migrations, binPaths, err := findMigrations(ctx, fromVer, targetVer)
+	if err != nil {
+		return err
+	}
+
+	// Download migrations that were not found
+	if len(binPaths) < len(migrations) {
+		missing := make([]string, 0, len(migrations)-len(binPaths))
+		for _, mig := range migrations {
+			if _, ok := binPaths[mig]; !ok {
+				missing = append(missing, mig)
+			}
+		}
+
+		logger.Println("Need", len(missing), "migrations, downloading.")
+
+		tmpDir, err := ioutil.TempDir("", "migrations")
 		if err != nil {
-			fmt.Println("  => Failed to download fs-repo-migrations.")
+			return err
+		}
+		defer os.RemoveAll(tmpDir)
+
+		fetched, err := fetchMigrations(ctx, fetcher, missing, tmpDir, logger)
+		if err != nil {
+			logger.Print("Failed to download migrations.")
 			return err
 		}
 
-		err = verifyMigrationSupportsVersion(loc, newv)
-		if err != nil {
-			return fmt.Errorf("no fs-repo-migration binary found for version %d: %s", newv, err)
+		for i := range missing {
+			binPaths[missing[i]] = fetched[i]
 		}
-
-		migrateBin = loc
 	}
 
-	cmd := exec.Command(migrateBin, "-to", fmt.Sprint(newv), "-y")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	fmt.Printf("  => Running: %s -to %d -y\n", migrateBin, newv)
-
-	err = cmd.Run()
-	if err != nil {
-		fmt.Printf("  => Failed: %s -to %d -y\n", migrateBin, newv)
-		return fmt.Errorf("migration failed: %s", err)
+	var revert bool
+	if fromVer > targetVer {
+		revert = true
 	}
-
-	fmt.Printf("  => Success: fs-repo has been migrated to version %d.\n", newv)
+	for _, migration := range migrations {
+		logger.Println("Running migration", migration, "...")
+		err = runMigration(ctx, binPaths[migration], ipfsDir, revert, logger)
+		if err != nil {
+			return fmt.Errorf("migration %s failed: %s", migration, err)
+		}
+	}
+	logger.Printf("Success: fs-repo migrated to version %d.\n", targetVer)
 
 	return nil
 }
 
-func GetMigrations() (string, error) {
-	latest, err := GetLatestVersion(DistPath, migrations)
+func NeedMigration(target int) (bool, error) {
+	vnum, err := RepoVersion("")
 	if err != nil {
-		return "", fmt.Errorf("failed to find latest fs-repo-migrations: %s", err)
+		return false, fmt.Errorf("could not get repo version: %s", err)
 	}
 
-	dir, err := ioutil.TempDir("", "go-ipfs-migrate")
-	if err != nil {
-		return "", fmt.Errorf("failed to create fs-repo-migrations tempdir: %s", err)
-	}
-
-	out := filepath.Join(dir, migrationsBinName())
-
-	err = GetBinaryForVersion(migrations, migrations, DistPath, latest, out)
-	if err != nil {
-		return "", fmt.Errorf("failed to download latest fs-repo-migrations: %s", err)
-	}
-
-	err = os.Chmod(out, 0755)
-	if err != nil {
-		return "", err
-	}
-
-	return out, nil
+	return vnum != target, nil
 }
 
-func verifyMigrationSupportsVersion(fsrbin string, vn int) error {
-	sn, err := migrationsVersion(fsrbin)
-	if err != nil {
-		return err
+func ExeName(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".exe"
 	}
-
-	if sn >= vn {
-		return nil
-	}
-
-	return fmt.Errorf("migrations binary doesn't support version %d: %s", vn, fsrbin)
+	return name
 }
 
-func migrationsVersion(bin string) (int, error) {
-	out, err := exec.Command(bin, "-v").CombinedOutput()
-	if err != nil {
-		return 0, fmt.Errorf("failed to check migrations version: %s", err)
-	}
-
-	vs := strings.Trim(string(out), " \n\t")
-	vn, err := strconv.Atoi(vs)
-	if err != nil {
-		return 0, fmt.Errorf("migrations binary version check did not return a number: %s", err)
-	}
-
-	return vn, nil
+func migrationName(from, to int) string {
+	return fmt.Sprintf("fs-repo-%d-to-%d", from, to)
 }
 
-func GetVersions(ipfspath, dist string) ([]string, error) {
-	rc, err := httpFetch(ipfspath + "/" + dist + "/versions")
-	if err != nil {
-		return nil, err
-	}
-	defer rc.Close()
-
-	var out []string
-	scan := bufio.NewScanner(rc)
-	for scan.Scan() {
-		out = append(out, scan.Text())
+// findMigrations returns a list of migrations, ordered from first to last
+// migration to apply, and a map of locations of migration binaries of any
+// migrations that were found.
+func findMigrations(ctx context.Context, from, to int) ([]string, map[string]string, error) {
+	step := 1
+	count := to - from
+	if from > to {
+		step = -1
+		count = from - to
 	}
 
-	return out, nil
-}
+	migrations := make([]string, 0, count)
+	binPaths := make(map[string]string, count)
 
-func GetLatestVersion(ipfspath, dist string) (string, error) {
-	vs, err := GetVersions(ipfspath, dist)
-	if err != nil {
-		return "", err
-	}
-	var latest string
-	for i := len(vs) - 1; i >= 0; i-- {
-		if !strings.Contains(vs[i], "-dev") {
-			latest = vs[i]
-			break
+	for cur := from; cur != to; cur += step {
+		if ctx.Err() != nil {
+			return nil, nil, ctx.Err()
 		}
-	}
-	if latest == "" {
-		return "", fmt.Errorf("couldn't find a non dev version in the list")
-	}
-	return vs[len(vs)-1], nil
-}
-
-func httpGet(url string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("http.NewRequest error: %s", err)
-	}
-
-	req.Header.Set("User-Agent", "go-ipfs")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("http.DefaultClient.Do error: %s", err)
-	}
-
-	return resp, nil
-}
-
-func httpFetch(url string) (io.ReadCloser, error) {
-	resp, err := httpGet(url)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode >= 400 {
-		mes, err := ioutil.ReadAll(resp.Body)
+		var migName string
+		if step == -1 {
+			migName = migrationName(cur+step, cur)
+		} else {
+			migName = migrationName(cur, cur+step)
+		}
+		migrations = append(migrations, migName)
+		bin, err := exec.LookPath(migName)
 		if err != nil {
-			return nil, fmt.Errorf("error reading error body: %s", err)
+			continue
 		}
-
-		return nil, fmt.Errorf("GET %s error: %s: %s", url, resp.Status, string(mes))
+		binPaths[migName] = bin
 	}
-
-	return resp.Body, nil
+	return migrations, binPaths, nil
 }
 
-func GetBinaryForVersion(distname, binnom, root, vers, out string) error {
-	dir, err := ioutil.TempDir("", "go-ipfs-auto-migrate")
-	if err != nil {
-		return err
+func runMigration(ctx context.Context, binPath, ipfsDir string, revert bool, logger *log.Logger) error {
+	pathArg := fmt.Sprintf("-path=%s", ipfsDir)
+	var cmd *exec.Cmd
+	if revert {
+		logger.Println("  => Running:", binPath, pathArg, "-verbose=true -revert")
+		cmd = exec.CommandContext(ctx, binPath, pathArg, "-verbose=true", "-revert")
+	} else {
+		logger.Println("  => Running:", binPath, pathArg, "-verbose=true")
+		cmd = exec.CommandContext(ctx, binPath, pathArg, "-verbose=true")
 	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
 
-	var archive string
-	switch runtime.GOOS {
-	case "windows":
-		archive = "zip"
-		binnom += ".exe"
-	default:
-		archive = "tar.gz"
-	}
+// fetchMigrations downloads the requested migrations, and returns a slice with
+// the paths of each binary, in the same order specified by needed.
+func fetchMigrations(ctx context.Context, fetcher Fetcher, needed []string, destDir string, logger *log.Logger) ([]string, error) {
 	osv, err := osWithVariant()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	finame := fmt.Sprintf("%s_%s_%s-%s.%s", distname, vers, osv, runtime.GOARCH, archive)
-	distpath := fmt.Sprintf("%s/%s/%s/%s", root, distname, vers, finame)
-
-	data, err := httpFetch(distpath)
-	if err != nil {
-		return err
+	if osv == "linux-musl" {
+		return nil, fmt.Errorf("linux-musl not supported, you must build the binary from source for your platform")
 	}
 
-	arcpath := filepath.Join(dir, finame)
-	fi, err := os.Create(arcpath)
-	if err != nil {
-		return err
+	var wg sync.WaitGroup
+	wg.Add(len(needed))
+	bins := make([]string, len(needed))
+	// Download and unpack all requested migrations concurrently.
+	for i, name := range needed {
+		logger.Printf("Downloading migration: %s...", name)
+		go func(i int, name string) {
+			defer wg.Done()
+			dist := path.Join(distMigsRoot, name)
+			ver, err := LatestDistVersion(ctx, fetcher, dist, false)
+			if err != nil {
+				logger.Printf("could not get latest version of migration %s: %s", name, err)
+				return
+			}
+			loc, err := FetchBinary(ctx, fetcher, dist, ver, name, destDir)
+			if err != nil {
+				logger.Printf("could not download %s: %s", name, err)
+				return
+			}
+			logger.Printf("Downloaded and unpacked migration: %s (%s)", loc, ver)
+			bins[i] = loc
+		}(i, name)
 	}
+	wg.Wait()
 
-	_, err = io.Copy(fi, data)
-	if err != nil {
-		return err
-	}
-	fi.Close()
-
-	return unpackArchive(distname, binnom, arcpath, out, archive)
-}
-
-// osWithVariant returns the OS name with optional variant.
-// Currently returns either runtime.GOOS, or "linux-musl".
-func osWithVariant() (string, error) {
-	if runtime.GOOS != "linux" {
-		return runtime.GOOS, nil
-	}
-
-	// ldd outputs the system's kind of libc.
-	// - on standard ubuntu: ldd (Ubuntu GLIBC 2.23-0ubuntu5) 2.23
-	// - on alpine: musl libc (x86_64)
-	//
-	// we use the combined stdout+stderr,
-	// because ldd --version prints differently on different OSes.
-	// - on standard ubuntu: stdout
-	// - on alpine: stderr (it probably doesn't know the --version flag)
-	//
-	// we suppress non-zero exit codes (see last point about alpine).
-	out, err := exec.Command("sh", "-c", "ldd --version || true").CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	// now just see if we can find "musl" somewhere in the output
-	scan := bufio.NewScanner(bytes.NewBuffer(out))
-	for scan.Scan() {
-		if strings.Contains(scan.Text(), "musl") {
-			return "linux-musl", nil
+	var fails []string
+	for i := range bins {
+		if bins[i] == "" {
+			fails = append(fails, needed[i])
 		}
 	}
+	if len(fails) != 0 {
+		err = fmt.Errorf("failed to download migrations: %s", strings.Join(fails, " "))
+		if ctx.Err() != nil {
+			err = fmt.Errorf("%s, %s", ctx.Err(), err)
+		}
+		return nil, err
+	}
 
-	return "linux", nil
+	return bins, nil
 }

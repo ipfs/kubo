@@ -3,9 +3,13 @@ package corehttp
 import (
 	"net"
 	"net/http"
+	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/zpages"
 
+	ocprom "contrib.go.opencensus.io/exporter/prometheus"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	promhttp "github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -14,6 +18,35 @@ import (
 func MetricsScrapingOption(path string) ServeOption {
 	return func(n *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
 		mux.Handle(path, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}))
+		return mux, nil
+	}
+}
+
+// This adds collection of OpenCensus metrics
+func MetricsOpenCensusCollectionOption() ServeOption {
+	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		log.Info("Init OpenCensus")
+
+		promRegistry := prometheus.NewRegistry()
+		pe, err := ocprom.NewExporter(ocprom.Options{
+			Namespace: "ipfs_oc",
+			Registry:  promRegistry,
+			OnError: func(err error) {
+				log.Errorw("OC ERROR", "error", err)
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// register prometheus with opencensus
+		view.RegisterExporter(pe)
+		view.SetReportingPeriod(2 * time.Second)
+
+		// Construct the mux
+		zpages.Handle(mux, "/debug/metrics/oc/debugz")
+		mux.Handle("/debug/metrics/oc", pe)
+
 		return mux, nil
 	}
 }

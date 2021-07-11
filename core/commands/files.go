@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
-	"github.com/dustin/go-humanize"
 	bservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
@@ -22,7 +22,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-mfs"
+	mfs "github.com/ipfs/go-mfs"
 	ft "github.com/ipfs/go-unixfs"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
@@ -43,16 +43,17 @@ The files facility interacts with MFS (Mutable File System). MFS acts as a
 single, dynamic filesystem mount. MFS has a root CID that is transparently
 updated when a change happens (and can be checked with "ipfs files stat /").
 
-All files and folders within MFS are respected and will not be cleaned up
-during garbage collections. MFS is independent from the list of pinned items
-("ipfs pin ls"). Calls to "ipfs pin add" and "ipfs pin rm" will add and remove
-pins independently of MFS. If MFS content that was
-additionally pinned is removed by calling "ipfs files rm", it will still
-remain pinned.
+All files and folders within MFS are respected and will not be deleted
+during garbage collections. However, a DAG may be referenced in MFS without
+being fully available locally (MFS content is lazy loaded when accessed).
+MFS is independent from the list of pinned items ("ipfs pin ls"). Calls to
+"ipfs pin add" and "ipfs pin rm" will add and remove pins independently of
+MFS. If MFS content that was additionally pinned is removed by calling
+"ipfs files rm", it will still remain pinned.
 
 Content added with "ipfs add" (which by default also becomes pinned), is not
-added to MFS. Any content can be put into MFS with the command "ipfs files cp
-/ipfs/<cid> /some/path/".
+added to MFS. Any content can be lazily referenced from MFS with the command
+"ipfs files cp /ipfs/<cid> /some/path/" (see ipfs files cp --help).
 
 
 NOTE:
@@ -321,11 +322,12 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 
 var filesCpCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Copy any IPFS files and directories into MFS (or copy within MFS).",
+		Tagline: "Add references to IPFS files and directories in MFS (or copy within MFS).",
 		ShortDescription: `
-"ipfs files cp" can be used to copy any IPFS file or directory (usually in the
-form /ipfs/<CID>, but also any resolvable path), into the Mutable File System
-(MFS).
+"ipfs files cp" can be used to add references to any IPFS file or directory
+(usually in the form /ipfs/<CID>, but also any resolvable path) into MFS.
+This performs a lazy copy: the full DAG will not be fetched, only the root
+node being copied.
 
 It can also be used to copy files within MFS, but in the case when an
 IPFS-path matches an existing MFS path, the IPFS path wins.
@@ -337,6 +339,17 @@ $ ipfs add --quieter --pin=false <your file>
 # ...
 # ... outputs the root CID at the end
 $ ipfs cp /ipfs/<CID> /your/desired/mfs/path
+
+If you wish to fully copy content from a different IPFS peer into MFS, do not
+forget to force IPFS to fetch to full DAG after doing the "cp" operation. i.e:
+
+$ ipfs cp /ipfs/<CID> /your/desired/mfs/path
+$ ipfs pin add <CID>
+
+The lazy-copy feature can also be used to protect partial DAG contents from
+garbage collection. i.e. adding the Wikipedia root to MFS would not download
+all the Wikipedia, but will any downloaded Wikipedia-DAG content from being
+GC'ed.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -419,7 +432,7 @@ var filesLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List directories in the local mutable namespace.",
 		ShortDescription: `
-List directories in the local mutable namespace.
+List directories in the local mutable namespace (works on both IPFS and MFS paths).
 
 Examples:
 
@@ -561,7 +574,7 @@ Examples:
 
     $ ipfs files read /test/hello
     hello
-        `,
+	`,
 	},
 
 	Arguments: []cmds.Argument{
@@ -930,9 +943,9 @@ are run with the '--flush=false'.
 
 var filesChcidCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Change the cid version or hash function of the root node of a given path.",
+		Tagline: "Change the CID version or hash function of the root node of a given path.",
 		ShortDescription: `
-Change the cid version or hash function of the root node of a given path.
+Change the CID version or hash function of the root node of a given path.
 `,
 	},
 	Arguments: []cmds.Argument{

@@ -4,6 +4,7 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -11,6 +12,7 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
 
@@ -21,12 +23,13 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -250,17 +253,26 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			}
 		}
 
-		identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
-			options.Key.Type(algorithmDefault),
-		})
-		if err != nil {
-			return err
+		if conf == nil {
+			identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+				options.Key.Type(algorithmDefault),
+			})
+			if err != nil {
+				return err
+			}
+			conf, err = config.InitWithIdentity(identity)
+			if err != nil {
+				return err
+			}
 		}
 
-		if err = doInit(os.Stdout, cctx.ConfigRoot, false, &identity, profiles, conf); err != nil {
+		if err = doInit(os.Stdout, cctx.ConfigRoot, false, profiles, conf); err != nil {
 			return err
 		}
 	}
+
+	var cacheMigrations, pinMigrations bool
+	var fetcher migrations.Fetcher
 
 	// acquire the repo lock _before_ constructing a node. we need to make
 	// sure we are permitted to access the resources (datastore, etc.)
@@ -282,7 +294,39 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		err = migrate.RunMigration(fsrepo.RepoVersion)
+		migrationCfg, err := readMigrationConfig(cctx.ConfigRoot)
+		if err != nil {
+			return err
+		}
+
+		fetcher, err = getMigrationFetcher(migrationCfg, &cctx.ConfigRoot)
+		if err != nil {
+			return err
+		}
+		defer fetcher.Close()
+
+		if migrationCfg.Keep == "cache" {
+			cacheMigrations = true
+		} else if migrationCfg.Keep == "pin" {
+			pinMigrations = true
+		}
+
+		if cacheMigrations || pinMigrations {
+			// Create temp directory to store downloaded migration archives
+			migrations.DownloadDirectory, err = ioutil.TempDir("", "migrations")
+			if err != nil {
+				return err
+			}
+			// Defer cleanup of download directory so that it gets cleaned up
+			// if daemon returns early due to error
+			defer func() {
+				if migrations.DownloadDirectory != "" {
+					os.RemoveAll(migrations.DownloadDirectory)
+				}
+			}()
+		}
+
+		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", false)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
 			fmt.Printf("  %s\n", err)
@@ -412,6 +456,26 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	// Add any files downloaded by migration.
+	if cacheMigrations || pinMigrations {
+		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Could not add migration to IPFS:", err)
+		}
+		// Remove download directory so that it does not remain for lifetime of
+		// daemon or get left behind if daemon has a hard exit
+		os.RemoveAll(migrations.DownloadDirectory)
+		migrations.DownloadDirectory = ""
+	}
+	if fetcher != nil {
+		// If there is an error closing the IpfsFetcher, then print error, but
+		// do not fail because of it.
+		err = fetcher.Close()
+		if err != nil {
+			log.Errorf("error closing IPFS fetcher: %s", err)
+		}
+	}
+
 	// construct http gateway
 	gwErrc, err := serveHTTPGateway(req, cctx)
 	if err != nil {
@@ -433,6 +497,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
+	// start MFS pinning thread
+	startPinMFS(daemonConfigPollInterval, cctx, &ipfsPinMFSNode{node})
+
 	// The daemon is *finally* ready.
 	fmt.Printf("Daemon is ready\n")
 	notifyReady()
@@ -444,6 +511,33 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		fmt.Println("Received interrupt signal, shutting down...")
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
+
+	// Give the user heads up if daemon running in online mode has no peers after 1 minute
+	if !offline {
+		time.AfterFunc(1*time.Minute, func() {
+			cfg, err := cctx.GetConfig()
+			if err != nil {
+				log.Errorf("failed to access config: %s", err)
+			}
+			if len(cfg.Bootstrap) == 0 && len(cfg.Peering.Peers) == 0 {
+				// Skip peer check if Bootstrap and Peering lists are empty
+				// (means user disabled them on purpose)
+				log.Warn("skipping bootstrap: empty Bootstrap and Peering lists")
+				return
+			}
+			ipfs, err := coreapi.NewCoreAPI(node)
+			if err != nil {
+				log.Errorf("failed to access CoreAPI: %v", err)
+			}
+			peers, err := ipfs.Swarm().Peers(cctx.Context())
+			if err != nil {
+				log.Errorf("failed to read swarm peers: %v", err)
+			}
+			if len(peers) == 0 {
+				log.Error("failed to bootstrap (no peers found): consider updating Bootstrap or Peering section of your config")
+			}
+		})
+	}
 
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
@@ -522,6 +616,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	var opts = []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
+		corehttp.MetricsOpenCensusCollectionOption(),
 		corehttp.CheckVersionOption(),
 		corehttp.CommandsOption(*cctx),
 		corehttp.WebUIOption,
@@ -665,6 +760,10 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
 		opts = append(opts, corehttp.RedirectOption("", cfg.Gateway.RootRedirect))
+	}
+
+	if len(cfg.Gateway.PathPrefixes) > 0 {
+		log.Error("Support for X-Ipfs-Gateway-Prefix and Gateway.PathPrefixes is deprecated and will be removed in the next release. Please comment on the issue if you're using this feature: https://github.com/ipfs/go-ipfs/issues/7702")
 	}
 
 	node, err := cctx.ConstructNode()

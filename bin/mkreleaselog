@@ -29,7 +29,7 @@ AUTHORS=(
 
 [[ -n "${REPO_FILTER+x}" ]] || REPO_FILTER="github.com/(${$(printf "|%s" "${AUTHORS[@]}"):1})"
 
-[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package\.json\|\.travis\.yml\|go.mod\|go\.sum|\.github|\.circleci\)$'
+[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package\.json\|\.travis\.yml\|go\.mod\|go\.sum\|\.github\|\.circleci\|.*\.pb\.go\|cbor_gen\.go\|.*ipldsch.*\.go\)$'
 
 NL=$'\n'
 
@@ -40,7 +40,8 @@ msg() {
 }
 
 statlog() {
-    local rpath="$GOPATH/src/$1"
+    local module="$1"
+    local rpath="$GOPATH/src/$(strip_version "$module")"
     local start="${2:-}"
     local end="${3:-HEAD}"
     local mailmap_file="$rpath/.mailmap"
@@ -48,13 +49,15 @@ statlog() {
         mailmap_file="$ROOT_DIR/.mailmap"
     fi
 
-    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" | while 
-        read hash
-        read name
-        read email
-        read _ # empty line
-        read changes
-    do
+    local stack=()
+    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%x09%aN%x09%aE" "$start..$end" -- . ':^*\.pb\.go' ':^*ipldsch*\.go' ':^cbor_gen\.go\' ':^go\.mod' ':^go\.sum' | while read -r line; do
+        if [[ -n "$line" ]]; then
+            stack+=("$line")
+            continue
+        fi
+
+        read -r changes
+
         changed=0
         insertions=0
         deletions=0
@@ -71,14 +74,18 @@ statlog() {
             fi
         done<<<"${changes//,/$NL}"
 
-        jq -n \
-           --arg "hash" "$hash" \
-           --arg "name" "$name" \
-           --arg "email" "$email" \
-           --argjson "changed" "$changed" \
-           --argjson "insertions" "$insertions" \
-           --argjson "deletions" "$deletions" \
-           '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+        for author in "${stack[@]}"; do
+            IFS=$'\t' read -r hash name email <<<"$author"
+            jq -n \
+               --arg "hash" "$hash" \
+               --arg "name" "$name" \
+               --arg "email" "$email" \
+               --argjson "changed" "$changed" \
+               --argjson "insertions" "$insertions" \
+               --argjson "deletions" "$deletions" \
+               '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+        done
+        stack=()
     done
 }
 
@@ -106,9 +113,10 @@ pr_link() {
 release_log() {
     setopt local_options BASH_REMATCH
 
-    local repo="$1"
+    local module="$1"
     local start="$2"
     local end="${3:-HEAD}"
+    local repo="$(strip_version "$1")"
     local dir="$GOPATH/src/$repo"
 
     local commit pr
@@ -118,8 +126,10 @@ release_log() {
         "$start..$end" |
         while read commit subject; do
             # Skip gx-only PRs.
-            git -C "$dir" diff-tree --no-commit-id --name-only "$commit^" "$commit" |
-                grep -v "${IGNORED_FILES}" >/dev/null || continue
+            if git rev-parse '$commit^' >/dev/null 2>&1 &&
+                   ! git -C "$dir" diff-tree --no-commit-id --name-only "$commit^" "$commit" | grep -v "${IGNORED_FILES}" >/dev/null; then
+                continue
+            fi
 
             if [[ "$subject" =~ '^Merge pull request #([0-9]+) from' ]]; then
                 local prnum="${BASH_REMATCH[2]}"
@@ -139,11 +149,11 @@ indent() {
 }
 
 mod_deps() {
-    go list -json -m all | jq 'select(.Version != null)'
+    go list -mod=mod -json -m all | jq 'select(.Version != null)'
 }
 
 ensure() {
-    local repo="$1"
+    local repo="$(strip_version "$1")"
     local commit="$2"
     local rpath="$GOPATH/src/$repo"
     if [[ ! -d "$rpath" ]]; then
@@ -164,14 +174,23 @@ statsummary() {
         jq '. + {Lines: (.Deletions + .Insertions)}'
 }
 
+strip_version() {
+    local repo="$1"
+    if [[ "$repo" =~ '.*/v[0-9]+$' ]]; then
+        repo="$(dirname "$repo")"
+    fi
+    echo "$repo"
+}
+
 recursive_release_log() {
     local start="${1:-$(git tag -l | sort -V | grep -v -- '-rc' | grep 'v'| tail -n1)}"
     local end="${2:-$(git rev-parse HEAD)}"
     local repo_root="$(git rev-parse --show-toplevel)"
-    local package="$(cd "$repo_root" && go list)"
+    local module="$(go list -m)"
+    local dir="$(go list -m -f '{{.Dir}}')"
 
-    if ! [[ "${GOPATH}/${package}" != "${repo_root}" ]]; then
-        echo "This script requires the target package and all dependencies to live in a GOPATH."
+    if [[ "${GOPATH}/${module}" -ef "${dir}" ]]; then
+        echo "This script requires the target module and all dependencies to live in a GOPATH."
         return 1
     fi
 
@@ -191,28 +210,28 @@ recursive_release_log() {
 
         rm -f go.mod go.sum
 
-        printf -- "Generating Changelog for %s %s..%s\n" "$package" "$start" "$end" >&2
+        printf -- "Generating Changelog for %s %s..%s\n" "$module" "$start" "$end" >&2
 
-        printf -- "- %s:\n" "$package"
-        release_log "$package" "$start" "$end" | indent
+        printf -- "- %s:\n" "$module"
+        release_log "$module" "$start" "$end" | indent
 
 
-        statlog "$package" "$start" "$end" > statlog.json
+        statlog "$module" "$start" "$end" > statlog.json
 
         dep_changes old_deps.json new_deps.json |
             jq --arg filter "$REPO_FILTER" 'select(.Path | match($filter))' |
             # Compute changelogs
             jq -r '"\(.Path) \(.New.Version) \(.New.Ref) \(.Old.Version) \(.Old.Ref // "")"' |
-            while read repo new new_ref old old_ref; do
-                if ! ensure "$repo" "$new_ref"; then
+            while read module new new_ref old old_ref; do
+                if ! ensure "$module" "$new_ref"; then
                     result=1
                     local changelog="failed to fetch repo"
                 else
-                    statlog "$repo" "$old_ref" "$new_ref" >> statlog.json
-                    local changelog="$(release_log "$repo" "$old_ref" "$new_ref")"
+                    statlog "$module" "$old_ref" "$new_ref" >> statlog.json
+                    local changelog="$(release_log "$module" "$old_ref" "$new_ref")"
                 fi
                 if [[ -n "$changelog" ]]; then
-                    printf -- "- %s (%s -> %s):\n" "$repo" "$old" "$new"
+                    printf -- "- %s (%s -> %s):\n" "$module" "$old" "$new"
                     echo "$changelog" | indent
                 fi
             done

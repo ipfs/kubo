@@ -14,8 +14,9 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands"
-	namesys "github.com/ipfs/go-ipfs/namesys"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	path "github.com/ipfs/go-path"
+	unixfs "github.com/ipfs/go-unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
@@ -69,22 +70,7 @@ environment variable:
 	},
 	NoRemote: true,
 	Extra:    commands.CreateCmdExtras(commands.SetDoesNotUseRepo(true), commands.SetDoesNotUseConfigAsInput(true)),
-	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		cctx := env.(*oldcmds.Context)
-		daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
-		if err != nil {
-			return err
-		}
-
-		log.Info("checking if daemon is running...")
-		if daemonLocked {
-			log.Debug("ipfs daemon is running")
-			e := "ipfs daemon is running. please stop it to run this command"
-			return cmds.ClientError(e)
-		}
-
-		return nil
-	},
+	PreRun:   commands.DaemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		empty, _ := req.Options[emptyRepoOptionName].(bool)
@@ -113,24 +99,30 @@ environment variable:
 			}
 		}
 
-		var err error
-		var identity config.Identity
-		if nBitsGiven {
-			identity, err = config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
-				options.Key.Size(nBitsForKeypair),
-				options.Key.Type(algorithm),
-			})
-		} else {
-			identity, err = config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
-				options.Key.Type(algorithm),
-			})
-		}
-		if err != nil {
-			return err
+		if conf == nil {
+			var err error
+			var identity config.Identity
+			if nBitsGiven {
+				identity, err = config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+					options.Key.Size(nBitsForKeypair),
+					options.Key.Type(algorithm),
+				})
+			} else {
+				identity, err = config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
+					options.Key.Type(algorithm),
+				})
+			}
+			if err != nil {
+				return err
+			}
+			conf, err = config.InitWithIdentity(identity)
+			if err != nil {
+				return err
+			}
 		}
 
 		profiles, _ := req.Options[profileOptionName].(string)
-		return doInit(os.Stdout, cctx.ConfigRoot, empty, &identity, profiles, conf)
+		return doInit(os.Stdout, cctx.ConfigRoot, empty, profiles, conf)
 	},
 }
 
@@ -152,7 +144,7 @@ func applyProfiles(conf *config.Config, profiles string) error {
 	return nil
 }
 
-func doInit(out io.Writer, repoRoot string, empty bool, identity *config.Identity, confProfiles string, conf *config.Config) error {
+func doInit(out io.Writer, repoRoot string, empty bool, confProfiles string, conf *config.Config) error {
 	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -163,18 +155,6 @@ func doInit(out io.Writer, repoRoot string, empty bool, identity *config.Identit
 
 	if fsrepo.IsInitialized(repoRoot) {
 		return errRepoExists
-	}
-
-	if identity == nil {
-		return fmt.Errorf("No Identity provided for initialization")
-	}
-
-	if conf == nil {
-		var err error
-		conf, err = config.InitWithIdentity(*identity)
-		if err != nil {
-			return err
-		}
 	}
 
 	if err := applyProfiles(conf, confProfiles); err != nil {
@@ -266,5 +246,19 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	}
 	defer nd.Close()
 
-	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
+	emptyDir := unixfs.EmptyDirNode()
+
+	// pin recursively because this might already be pinned
+	// and doing a direct pin would throw an error in that case
+	err = nd.Pinning.Pin(ctx, emptyDir, true)
+	if err != nil {
+		return err
+	}
+
+	err = nd.Pinning.Flush(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nd.Namesys.Publish(ctx, nd.PrivateKey, path.FromCid(emptyDir.Cid()))
 }

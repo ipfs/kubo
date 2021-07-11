@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
-	namesys "github.com/ipfs/go-ipfs/namesys"
+	namesys "github.com/ipfs/go-namesys"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -60,9 +61,14 @@ The resolver can recursively resolve:
 		cmds.BoolOption(dnsRecursiveOptionName, "r", "Resolve until the result is not a DNS link.").WithDefault(true),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
 		recursive, _ := req.Options[dnsRecursiveOptionName].(bool)
 		name := req.Arguments[0]
-		resolver := namesys.NewDNSResolver()
+		resolver := namesys.NewDNSResolver(node.DNSResolver.LookupTXT)
 
 		var routing []nsopts.ResolveOpt
 		if !recursive {
@@ -77,7 +83,7 @@ The resolver can recursively resolve:
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ncmd.ResolvedPath) error {
-			fmt.Fprintln(w, out.Path.String())
+			fmt.Fprintln(w, cmdenv.EscNonPrint(out.Path.String()))
 			return nil
 		}),
 	},

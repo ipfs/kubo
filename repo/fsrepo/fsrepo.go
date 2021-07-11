@@ -11,10 +11,9 @@ import (
 	"sync"
 
 	filestore "github.com/ipfs/go-filestore"
-	keystore "github.com/ipfs/go-ipfs/keystore"
+	keystore "github.com/ipfs/go-ipfs-keystore"
 	repo "github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/common"
-	mfsr "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
 
 	ds "github.com/ipfs/go-datastore"
@@ -23,6 +22,7 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	serialize "github.com/ipfs/go-ipfs-config/serialize"
 	util "github.com/ipfs/go-ipfs-util"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	logging "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
@@ -35,7 +35,7 @@ const LockFile = "repo.lock"
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = 10
+var RepoVersion = 11
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -142,7 +142,7 @@ func open(repoPath string) (repo.Repo, error) {
 	}()
 
 	// Check version, and error out if not matching
-	ver, err := mfsr.RepoPath(r.path).Version()
+	ver, err := migrations.RepoVersion(r.path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, ErrNoVersion
@@ -291,7 +291,7 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	if err := mfsr.RepoPath(repoPath).WriteVersion(RepoVersion); err != nil {
+	if err := migrations.WriteRepoVersion(repoPath, RepoVersion); err != nil {
 		return err
 	}
 
