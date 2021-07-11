@@ -46,7 +46,7 @@ DRY_RUN=${5:-false}
 WIP_IMAGE_TAG=${WIP_IMAGE_TAG:-wip}
 IMAGE_NAME=${IMAGE_NAME:-ipfs/go-ipfs}
 
-ARCHS=${$BUILDX_PLATFORMS:-"linux/arm/v7,linux/arm64/v8,linux/amd64"}
+ARCHS=${BUILDX_PLATFORMS:-"linux/arm/v7,linux/arm64/v8,linux/amd64"}
 
 pushTag () {
   local IMAGE_TAG=$1
