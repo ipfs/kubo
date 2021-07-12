@@ -108,6 +108,9 @@ format.
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ref", true, false, "The object to get").EnableStdin(),
 	},
+	Options: []cmds.Option{
+		cmds.StringOption("format", "f", "Format that the object will be serialized as.").WithDefault("dag-json"),
+	},
 	Run: dagGet,
 }
 

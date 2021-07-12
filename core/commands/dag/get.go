@@ -1,10 +1,18 @@
 package dagcmd
 
 import (
-	"strings"
+	"fmt"
+	"io"
+	"strconv"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+
+	"github.com/ipld/go-ipld-prime"
+	"github.com/ipld/go-ipld-prime/multicodec"
+	"github.com/ipld/go-ipld-prime/traversal"
+	mc "github.com/multiformats/go-multicodec"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
@@ -13,6 +21,16 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	api, err := cmdenv.GetApi(env, req)
 	if err != nil {
 		return err
+	}
+
+	format, _ := req.Options["format"].(string)
+	fCodec, ok := mc.Of(format)
+	if !ok {
+		n, err := strconv.Atoi(format)
+		if err != nil {
+			return fmt.Errorf("%s is not a valid codec name", format)
+		}
+		fCodec = mc.Code(n)
 	}
 
 	rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
@@ -25,14 +43,34 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		return err
 	}
 
-	var out interface{} = obj
+	universal, ok := obj.(ipldlegacy.UniversalNode)
+	if !ok {
+		return fmt.Errorf("%T is not a valid IPLD node", obj)
+	}
+
+	finalNode := universal.(ipld.Node)
+
 	if len(rp.Remainder()) > 0 {
-		rem := strings.Split(rp.Remainder(), "/")
-		final, _, err := obj.Resolve(rem)
+		remainderPath := ipld.ParsePath(rp.Remainder())
+
+		finalNode, err = traversal.Get(finalNode, remainderPath)
 		if err != nil {
 			return err
 		}
-		out = final
 	}
-	return cmds.EmitOnce(res, &out)
+
+	encoder, err := multicodec.LookupEncoder(uint64(fCodec))
+	if err != nil {
+		return fmt.Errorf("invalid encoding: %s - %s", format, err)
+	}
+
+	r, w := io.Pipe()
+	go func() {
+		defer w.Close()
+		if err := encoder(finalNode, w); err != nil {
+			_ = res.CloseWithError(err)
+		}
+	}()
+
+	return res.Emit(r)
 }
