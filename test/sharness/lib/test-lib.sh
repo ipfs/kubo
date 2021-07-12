@@ -282,7 +282,6 @@ test_launch_ipfs_daemon() {
 
 test_launch_ipfs_daemon_without_network() {
   test_launch_ipfs_daemon --offline "$@"
-  # FIXME: Check if this is the right way to concatenate arguments.
 }
 
 do_umount() {
