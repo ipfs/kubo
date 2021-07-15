@@ -116,3 +116,4 @@ require (
 )
 
 go 1.14
+replace github.com/ipld/go-ipld-prime => ./../../ipld/go-ipld-prime/
