@@ -58,7 +58,7 @@ require (
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.4.0
 	github.com/ipld/go-car v0.3.1
-	github.com/ipld/go-codec-dagpb v1.2.1-0.20210405170603-d0b86f7623c2 // indirect
+	github.com/ipld/go-codec-dagpb v1.2.1-0.20210405170603-d0b86f7623c2
 	github.com/ipld/go-ipld-prime v0.10.1-0.20210701102120-b7347f196aa5
 	github.com/jbenet/go-is-domain v1.0.5
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
@@ -94,7 +94,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-dns v0.2.0
 	github.com/multiformats/go-multibase v0.0.3
-	github.com/multiformats/go-multicodec v0.2.1-0.20210319221629-f3663dccaeee
+	github.com/multiformats/go-multicodec v0.2.1-0.20210718225951-a237c4436b76
 	github.com/multiformats/go-multihash v0.0.15
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
