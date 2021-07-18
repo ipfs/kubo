@@ -3,7 +3,6 @@ package dagcmd
 import (
 	"fmt"
 	"io"
-	"strconv"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
@@ -24,13 +23,9 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	}
 
 	format, _ := req.Options["format"].(string)
-	fCodec, ok := mc.Of(format)
-	if !ok {
-		n, err := strconv.Atoi(format)
-		if err != nil {
-			return fmt.Errorf("%s is not a valid codec name", format)
-		}
-		fCodec = mc.Code(n)
+	var fCodec mc.Code
+	if err := fCodec.Set(format); err != nil {
+		return err
 	}
 
 	rp, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))

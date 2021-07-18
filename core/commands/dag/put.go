@@ -3,7 +3,6 @@ package dagcmd
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -41,21 +40,13 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	// mhType tells inputParser which hash should be used. Default otherwise is sha256
 	mhType := uint64(mh.SHA2_256)
 
-	icodec, ok := mc.Of(ienc)
-	if !ok {
-		n, err := strconv.Atoi(ienc)
-		if err != nil {
-			return fmt.Errorf("%s is not a valid codec name", ienc)
-		}
-		icodec = mc.Code(n)
+	var icodec mc.Code
+	if err := icodec.Set(ienc); err != nil {
+		return err
 	}
-	fcodec, ok := mc.Of(format)
-	if !ok {
-		n, err := strconv.Atoi(format)
-		if err != nil {
-			return fmt.Errorf("%s is not a valid codec name", format)
-		}
-		fcodec = mc.Code(n)
+	var fcodec mc.Code
+	if err := fcodec.Set(format); err != nil {
+		return err
 	}
 
 	cidPrefix := cid.Prefix{
