@@ -21,6 +21,7 @@ config file at runtime.
     - [`Addresses.Gateway`](#addressesgateway)
     - [`Addresses.Swarm`](#addressesswarm)
     - [`Addresses.Announce`](#addressesannounce)
+    - [`Addresses.AppendAnnounce`](#addressesappendannounce)
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
   - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)

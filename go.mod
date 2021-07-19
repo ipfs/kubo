@@ -114,3 +114,5 @@ require (
 )
 
 go 1.16
+
+replace github.com/ipfs/go-ipfs-config => github.com/Jorropo/go-ipfs-config v0.14.1-0.20211115134851-f197db464bd5 // Temporary while waiting for https://github.com/ipfs/go-ipfs-config/pull/135/
