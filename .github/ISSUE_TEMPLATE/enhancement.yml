@@ -1,0 +1,33 @@
+name: Enhancement
+description: Suggest an improvement to an existing go-ipfs feature.
+labels:
+  - kind/enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an enhancement to go-ipfs (the program). If you'd like to suggest an improvement to the IPFS protocol, please discuss it on [the forum](https://discuss.ipfs.io).
+
+        Issues in this repo must be specific, actionable, and well motivated. They should be starting points for _building_ new features, not brainstorming ideas.
+
+        If you have an idea you'd like to discuss, please open a new thread on [the forum](https://discuss.ipfs.io).
+
+        **Example:**
+
+        > Reduce memory usage of `ipfs cat` (specific) by buffering less in ... (actionable). This would let me run go-ipfs on my Raspberry Pi (motivated).
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      description: Please verify the following.
+      options:
+        - label: My issue is specific & actionable.
+          required: true
+        - label: I am not suggesting a protocol enhancement.
+          required: true
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my issue.
+          required: true
+  - type: textarea
+    attributes:
+      label: Description
+      description: |
+        Please describe your idea. When requesting an enhancement, please be sure to include your motivation and try to be as specific as possible.
