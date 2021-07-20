@@ -68,6 +68,8 @@ github.com/aws/aws-sdk-go-v2 v0.18.0/go.mod h1:JWVYvqSMppoMJC0x5wdwiImzgXTI9FuZw
 github.com/benbjohnson/clock v1.0.2/go.mod h1:bGMdMPoPVvcYyt1gHDf4J2KE153Yf9BuiUKYMaxlTDM=
 github.com/benbjohnson/clock v1.0.3 h1:vkLuvpK4fmtSCuo60+yC63p7y0BmQ8gm5ZXGuBCJyXg=
 github.com/benbjohnson/clock v1.0.3/go.mod h1:bGMdMPoPVvcYyt1gHDf4J2KE153Yf9BuiUKYMaxlTDM=
+github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
+github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -349,6 +351,8 @@ github.com/ipfs/go-bitswap v0.1.3/go.mod h1:YEQlFy0kkxops5Vy+OxWdRSEZIoS7I7KDIwo
 github.com/ipfs/go-bitswap v0.1.8/go.mod h1:TOWoxllhccevbWFUR2N7B1MTSVVge1s6XSMiCSA4MzM=
 github.com/ipfs/go-bitswap v0.3.5-0.20210701213830-78aabea61d9f h1:A1lLx8RzhtceZiJkdqtgW0AEaVT+AgAk+bPjpx41wxo=
 github.com/ipfs/go-bitswap v0.3.5-0.20210701213830-78aabea61d9f/go.mod h1:otrMG4YnkfiLvmFRIOGFVBChPGjriHe6HfgnkCVdr0E=
+github.com/ipfs/go-bitswap v0.3.5-0.20210720200444-688eba5439b3 h1:9kvZsrPug7aBqSuj1O4higQa0GnwpXkg4aNrH635sTQ=
+github.com/ipfs/go-bitswap v0.3.5-0.20210720200444-688eba5439b3/go.mod h1:9il/NtVM3SqieYC7LpleBnw7DTMseBazbkETqhQ6H0g=
 github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/baNLgayt4pFc=
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
 github.com/ipfs/go-block-format v0.0.3 h1:r8t66QstRp/pd/or4dpnbVfXT5Gt7lOqRvC+/dDTpMc=
@@ -505,6 +509,8 @@ github.com/ipfs/go-peertaskqueue v0.1.1/go.mod h1:Jmk3IyCcfl1W3jTW3YpghSwSEC6IJ3
 github.com/ipfs/go-peertaskqueue v0.2.0/go.mod h1:5/eNrBEbtSKWCG+kQK8K8fGNixoYUnr+P7jivavs9lY=
 github.com/ipfs/go-peertaskqueue v0.2.1-0.20210701194929-2b501cbd3313 h1:GRXbwnSNKpjVGgQIMD4fcnb8/u8kiObkAvhBOSoSCi4=
 github.com/ipfs/go-peertaskqueue v0.2.1-0.20210701194929-2b501cbd3313/go.mod h1:5/eNrBEbtSKWCG+kQK8K8fGNixoYUnr+P7jivavs9lY=
+github.com/ipfs/go-peertaskqueue v0.2.1-0.20210720195451-24f8245710f5 h1:dJE4EB1lVZ/BAhvZLYMsusz7Y+SOctCWpPJU92hslnI=
+github.com/ipfs/go-peertaskqueue v0.2.1-0.20210720195451-24f8245710f5/go.mod h1:KL9F49hXJMoXCad8e5anivjN+kWdr+CyGcyh4K6doLc=
 github.com/ipfs/go-pinning-service-http-client v0.1.0 h1:Au0P4NglL5JfzhNSZHlZ1qra+IcJyO3RWMd9EYCwqSY=
 github.com/ipfs/go-pinning-service-http-client v0.1.0/go.mod h1:tcCKmlkWWH9JUUkKs8CrOZBanacNc1dmKLfjlyXAMu4=
 github.com/ipfs/go-unixfs v0.1.0/go.mod h1:lysk5ELhOso8+Fed9U1QTGey2ocsfaZ18h0NCO2Fj9s=
