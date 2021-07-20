@@ -44,6 +44,13 @@ body:
       description: |
         Enter the output of `ipfs version --all`. If you can't run that command, please include a copy of your [gateway's version page](http://localhost:8080/api/v0/version?enc=text&all=true).
   - type: textarea
+    id: config
+    attributes:
+      label: Config
+      render: json
+      description: |
+        Enter the output of `ipfs config show`.
+  - type: textarea
     attributes:
       label: Description
       description: |
