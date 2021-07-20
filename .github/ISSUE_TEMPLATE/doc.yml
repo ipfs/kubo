@@ -15,6 +15,8 @@ body:
       options:
         - label: I am reporting a documentation issue in this repo, not https://docs.ipfs.io.
           required: true
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my issue.
+          required: true
   - type: input
     attributes:
       label: Location

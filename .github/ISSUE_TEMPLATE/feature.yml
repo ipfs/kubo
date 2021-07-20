@@ -25,6 +25,8 @@ body:
           required: true
         - label: I am not suggesting a protocol enhancement.
           required: true
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my issue.
+          required: true
   - type: textarea
     attributes:
       label: Description
