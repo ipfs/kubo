@@ -14,7 +14,7 @@ body:
 
         **Example:**
 
-        > Reduce memory usage of `ipfs cat` (specific) by buffering less in ... (actionable). This would let me run go-ipfs on my Raspberry Pi (motivated).
+        > Add deduplication-optimized chunking of tar files in `ipfs add` (specific) by examining tar headers ... (actionable). This would let me efficiently store and update many versions of code archives (motivated).
 
   - type: checkboxes
     attributes:
