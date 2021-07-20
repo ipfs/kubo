@@ -1,5 +1,66 @@
 # go-ipfs changelog
 
+## v0.9.1 2021-07-20
+
+This is a small bug fix release resolving the following issues:
+1. A regression where the empty CID bafkqaaa could not resolve on gateways [#8230](https://github.com/ipfs/go-ipfs/issues/8230)
+2. A panic on OpenBSD [#8211](https://github.com/ipfs/go-ipfs/issues/8211)
+3. High CPU usage with QUIC [#8256](https://github.com/ipfs/go-ipfs/issues/8256)
+4. High memory usage with TCP [#8219](https://github.com/ipfs/go-ipfs/issues/8219)
+5. Some pubsub issues ([libp2p/go-libp2p-pubsub#427](https://github.com/libp2p/go-libp2p-pubsub/pull/427), [libp2p/go-libp2p-pubsub#430](https://github.com/libp2p/go-libp2p-pubsub/pull/430))
+6. Updated WebUI to [v2.12.4](https://github.com/ipfs/ipfs-webui/releases/tag/v2.12.4)
+7. Fixed the snap deployment [#8212](https://github.com/ipfs/go-ipfs/pull/8212)
+
+### Changelog
+
+- github.com/ipfs/go-ipfs:
+  - chore: update deps
+  - feat: webui v2.12.4
+  - test: gateway response for bafkqaaa
+  - fix: downgrade mimetype dependency
+  - update go-libp2p to v0.14.3
+  - bump snap to build with Go 1.16
+- github.com/libp2p/go-libp2p (v0.14.2 -> v0.14.3):
+  - update go-tcp-transport to v0.2.3 and go-multiaddr to v0.3.3 ([libp2p/go-libp2p#1121](https://github.com/libp2p/go-libp2p/pull/1121))
+- github.com/libp2p/go-libp2p-pubsub (v0.4.1 -> v0.4.2):
+  - release priority locks early when handling batches
+  - don't respawn writer if we fail to open a stream; declare it a peer error
+  - batch process dead peer notifications
+  - use a priority lock instead of a semaphore
+  - do the notification in a goroutine
+  - emit new peer notification without holding the semaphore
+  - use a semaphore for new peer notifications so that we don't block the event loop
+  - don't accumulate pending goroutines from new connections
+  - Make close concurrent safe
+  - Fix close of closed channel
+- github.com/libp2p/go-libp2p-quic-transport (v0.11.1 -> v0.11.2):
+  - update quic-go to v0.21.2
+- github.com/libp2p/go-tcp-transport (v0.2.2 -> v0.2.4):
+  - collect metrics in a separate go routine ([libp2p/go-tcp-transport#82](https://github.com/libp2p/go-tcp-transport/pull/82))
+  - fix: avoid logging "invalid argument" errors when setting keepalive ([libp2p/go-tcp-transport#83](https://github.com/libp2p/go-tcp-transport/pull/83))
+  - Skip SetKeepAlivePeriod call on OpenBSD ([libp2p/go-tcp-transport#80](https://github.com/libp2p/go-tcp-transport/pull/80))
+  - sync: update CI config files (#79) ([libp2p/go-tcp-transport#79](https://github.com/libp2p/go-tcp-transport/pull/79))
+- github.com/lucas-clemente/quic-go (v0.21.1 -> v0.21.2):
+  - update qtls to include the crypto/tls fix of Go 1.16.6 / 1.15.14
+  - cancel the PTO timer when all Handshake packets are acknowledged
+  - update to Go 1.17rc1
+  - update Ginkgo to v1.16.4 and Gomega to v1.13.0 ([lucas-clemente/quic-go#3139](https://github.com/lucas-clemente/quic-go/pull/3139))
+- github.com/multiformats/go-multiaddr (v0.3.2 -> v0.3.3):
+  - guard against nil {Local,Remote}Addr() return values ([multiformats/go-multiaddr#155](https://github.com/multiformats/go-multiaddr/pull/155))
+  - sync: update CI config files (#154) ([multiformats/go-multiaddr#154](https://github.com/multiformats/go-multiaddr/pull/154))
+
+### Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| vyzo | 8 | +205/-141 | 12 |
+| Marten Seemann | 7 | +127/-74 | 11 |
+| gammazero | 2 | +43/-5 | 3 |
+| Steven Allen | 1 | +13/-2 | 1 |
+| Adin Schmahmann | 3 | +13/-2 | 3 |
+| Marcin Rataj | 2 | +9/-1 | 2 |
+| Aaron Bieber | 1 | +6/-2 | 1 |
+
 ## v0.9.0 2021-06-22
 
 We're happy to announce go-ipfs 0.9.0. This release makes go-ipfs even more configurable with some fun experiments to boot. We're also deprecating or removing some uncommonly used features to make it easier for users to discover the easy ways to use go-ipfs safely and efficiently.
