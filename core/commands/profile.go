@@ -26,6 +26,43 @@ type profileResult struct {
 const cpuProfileTimeOption = "cpu-profile-time"
 
 var sysProfileCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Collect a performance profile for debugging.",
+		ShortDescription: `
+Collects cpu, heap, and goroutine profiles from a running go-ipfs daemon
+into a single zipfile. To aid in debugging, this command also attempts to
+include a copy of the running go-ipfs binary.
+`,
+		LongDescription: `
+Collects cpu, heap, and goroutine profiles from a running go-ipfs daemon
+into a single zipfile. To aid in debugging, this command also attempts to
+include a copy of the running go-ipfs binary.
+
+Privacy Notice:
+
+The output file includes:
+
+- A list of running goroutines.
+- A CPU profile.
+- A heap profile.
+- Your copy of go-ipfs.
+- The output of 'ipfs version --all'.
+
+It does not include:
+
+- Any of your IPFS data or metadata.
+- Your config or private key.
+- Your IP address.
+- The contents of your computer's memory, filesystem, etc.
+
+However, it could reveal:
+
+- Your build path, if you built go-ipfs yourself.
+- If and how a command/feature is being used (inferred from running functions).
+- Memory offsets of various data structures.
+- Any modifications you've made to go-ipfs.
+`,
+	},
 	NoLocal: true,
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),

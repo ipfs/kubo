@@ -117,6 +117,7 @@ func TestCommands(t *testing.T) {
 		"/diag/cmds",
 		"/diag/cmds/clear",
 		"/diag/cmds/set-time",
+		"/diag/profile",
 		"/diag/sys",
 		"/dns",
 		"/file",
