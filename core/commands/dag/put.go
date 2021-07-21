@@ -15,7 +15,6 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
 	mc "github.com/multiformats/go-multicodec"
-	mh "github.com/multiformats/go-multihash"
 
 	// Expected minimal set of available format/ienc codecs.
 	_ "github.com/ipld/go-codec-dagpb"
@@ -37,9 +36,6 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	hash, _ := req.Options["hash"].(string)
 	dopin, _ := req.Options["pin"].(bool)
 
-	// mhType tells inputParser which hash should be used. Default otherwise is sha256
-	mhType := uint64(mh.SHA2_256)
-
 	var icodec mc.Code
 	if err := icodec.Set(ienc); err != nil {
 		return err
@@ -48,21 +44,16 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	if err := fcodec.Set(format); err != nil {
 		return err
 	}
+	var mhType mc.Code
+	if err := mhType.Set(hash); err != nil {
+		return err
+	}
 
 	cidPrefix := cid.Prefix{
 		Version:  1,
 		Codec:    uint64(fcodec),
-		MhType:   mhType,
+		MhType:   uint64(mhType),
 		MhLength: -1,
-	}
-
-	if hash != "" {
-		var ok bool
-		mhType, ok = mh.Names[hash]
-		if !ok {
-			return fmt.Errorf("%s in not a valid multihash name", hash)
-		}
-		cidPrefix.MhType = mhType
 	}
 
 	decoder, err := multicodec.LookupDecoder(uint64(icodec))
