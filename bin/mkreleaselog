@@ -1,4 +1,7 @@
 #!/bin/zsh
+#
+# Invocation: mkreleaselog [FIRST_REF [LAST_REF]]
+
 set -euo pipefail
 export GO111MODULE=on
 export GOPATH="$(go env GOPATH)"
@@ -30,7 +33,7 @@ EXCLUDE_MODULES=(
     "^github.com/marten-seemann/qtls"
 )
 
-# Ignored files as git pathspecs.
+# Ignored files as git pathspecs. These patters will match any full path component.
 IGNORE_FILES=(
     ".gx"
     "package.json"
@@ -60,7 +63,7 @@ fi
 
 IGNORE_FILES_PATHSPEC=()
 for f in "${IGNORE_FILES[@]}"; do
-    IGNORE_FILES_PATHSPEC+=(":^:$f") # Prepend the magic "ignore this" sequence.
+    IGNORE_FILES_PATHSPEC+=(":^:**/$f" ":^:$f") # Prepend the magic "ignore this" sequence.
 done
 
 
