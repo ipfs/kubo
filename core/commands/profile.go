@@ -30,7 +30,7 @@ var sysProfileCmd = &cmds.Command{
 		Tagline: "Collect a performance profile for debugging.",
 		ShortDescription: `
 Collects cpu, heap, and goroutine profiles from a running go-ipfs daemon
-into a single zipfile. To aid in debugging, this command also attempts to
+into a single zip file. To aid in debugging, this command also attempts to
 include a copy of the running go-ipfs binary.
 `,
 		LongDescription: `
