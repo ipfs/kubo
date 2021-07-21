@@ -149,7 +149,6 @@ ignored_commit() {
     local matches
 
     # Check to see if this commit includes any non-ignored files.
-    # Use jq instead of grep so we get PCRE regexes.
     matches=$(git -C "$dir" diff-tree --no-commit-id --name-only -r "$commit" \
                   -- "${IGNORE_FILES_PATHSPEC[@]}" | wc -l)
     [[ "$matches" -eq 0 ]]
