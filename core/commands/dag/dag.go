@@ -80,7 +80,7 @@ into an object of the specified format.
 		cmds.StringOption("format", "f", "Format that the object will be added as.").WithDefault("dag-cbor"),
 		cmds.StringOption("input-enc", "Format that the input object will be.").WithDefault("dag-json"),
 		cmds.BoolOption("pin", "Pin this object when adding."),
-		cmds.StringOption("hash", "Hash function to use").WithDefault(""),
+		cmds.StringOption("hash", "Hash function to use").WithDefault("sha2-256"),
 	},
 	Run:  dagPut,
 	Type: OutputObject{},
