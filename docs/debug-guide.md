@@ -15,8 +15,8 @@ When you see ipfs doing something (using lots of CPU, memory, or otherwise
 being weird), the first thing you want to do is gather all the relevant
 profiling information.
 
-There's a script (`bin/collect-profiles.sh`) that will do this for you and
-bundle the results up into a tarball, ready to be attached to a bug report.
+There's a command (`ipfs diag profile`) that will do this for you and
+bundle the results up into a zip file, ready to be attached to a bug report.
 
 If you feel intrepid, you can dump this information and investigate it yourself:
 
