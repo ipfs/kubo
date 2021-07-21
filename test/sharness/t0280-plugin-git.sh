@@ -17,19 +17,19 @@ test_expect_success "prepare test data" '
 
 test_dag_git() {
   test_expect_success "add objects via dag put" '
-    find objects -type f -exec ipfs dag put --format=git-raw --input-enc=268435576 {} \; -exec echo \; > hashes
+    find objects -type f -exec ipfs dag put --format=git-raw --input-enc=3145848 --hash=sha1 {} \; -exec echo -n \; > hashes
   '
 
-  test_expect_failure "successfully get added objects" '
+  test_expect_success "successfully get added objects" '
     cat hashes | xargs -I {} ipfs dag get -- {} > /dev/null
   '
 
-  test_expect_failure "path traversals work" '
-    echo \"YmxvYiA3ACcsLnB5Zgo=\" > file1 &&
-    ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/object/parents/0/tree/dir2/hash/f3/hash > out1
+  test_expect_success "path traversals work" '
+    echo -n "{\"/\":{\"bytes\":\"YmxvYiA3ACcsLnB5Zgo=\"}}" > file1 &&
+    ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/Object/Parents/0/GitTree/1/Hash/0/Hash > out1
   '
 
-  test_expect_failure "outputs look correct" '
+  test_expect_success "outputs look correct" '
     test_cmp file1 out1
   '
 }

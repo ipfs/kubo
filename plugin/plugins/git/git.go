@@ -31,9 +31,9 @@ func (*gitPlugin) Version() string {
 }
 
 func (*gitPlugin) Init(_ *plugin.Environment) error {
-	// register a custom identifier for import of "zlib-incoded git objects."
+	// register a custom identifier in the reserved range for import of "zlib-encoded git objects."
 	// TODO: give this a name.
-	multicodec.RegisterDecoder(uint64(0x10000000+mc.GitRaw), decodeZlibGit)
+	multicodec.RegisterDecoder(uint64(0x300000+mc.GitRaw), decodeZlibGit)
 	return nil
 }
 
