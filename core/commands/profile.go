@@ -13,8 +13,6 @@ import (
 	"time"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 )
 
@@ -40,14 +38,9 @@ var sysProfileCmd = &cmds.Command{
 			return fmt.Errorf("failed to parse CPU profile duration %q: %w", cpuProfileTimeStr, err)
 		}
 
-		nd, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-
 		r, w := io.Pipe()
 		go func() {
-			_ = w.CloseWithError(writeProfiles(req.Context, nd, cpuProfileTime, w))
+			_ = w.CloseWithError(writeProfiles(req.Context, cpuProfileTime, w))
 		}()
 		return res.Emit(r)
 	},
@@ -88,7 +81,7 @@ var sysProfileCmd = &cmds.Command{
 	},
 }
 
-func writeProfiles(ctx context.Context, nd *core.IpfsNode, cpuProfileTime time.Duration, w io.Writer) error {
+func writeProfiles(ctx context.Context, cpuProfileTime time.Duration, w io.Writer) error {
 	archive := zip.NewWriter(w)
 
 	// Take some profiles.
@@ -135,17 +128,16 @@ func writeProfiles(ctx context.Context, nd *core.IpfsNode, cpuProfileTime time.D
 		}
 	}
 
-	// Collect info
+	// Collect version info
+	// I'd use diag sysinfo, but that includes some more sensitive information
+	// (GOPATH, etc.).
 	{
-		out, err := archive.Create("sysinfo.json")
+		out, err := archive.Create("version.json")
 		if err != nil {
 			return err
 		}
-		info, err := getInfo(nd)
-		if err != nil {
-			return err
-		}
-		err = json.NewEncoder(out).Encode(info)
+
+		err = json.NewEncoder(out).Encode(getVersionInfo())
 		if err != nil {
 			return err
 		}
