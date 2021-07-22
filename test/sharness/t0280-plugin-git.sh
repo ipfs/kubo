@@ -26,7 +26,7 @@ test_dag_git() {
 
   test_expect_success "path traversals work" '
     echo -n "{\"/\":{\"bytes\":\"YmxvYiA3ACcsLnB5Zgo=\"}}" > file1 &&
-    ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/Object/Parents/0/GitTree/1/Hash/0/Hash > out1
+    ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/object/parents/0/tree/dir2/hash/f3/hash > out1
   '
 
   test_expect_success "outputs look correct" '
