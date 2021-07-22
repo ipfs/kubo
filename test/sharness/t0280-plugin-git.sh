@@ -17,7 +17,7 @@ test_expect_success "prepare test data" '
 
 test_dag_git() {
   test_expect_success "add objects via dag put" '
-    find objects -type f -exec ipfs dag put --format=git-raw --input-enc=3145848 --hash=sha1 {} \; -exec echo -n \; > hashes
+    find objects -type f -exec ipfs dag put --format=git-raw --input-enc=0x300078 --hash=sha1 {} \; -exec echo -n \; > hashes
   '
 
   test_expect_success "successfully get added objects" '
