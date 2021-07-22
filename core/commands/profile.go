@@ -38,6 +38,9 @@ Collects cpu, heap, and goroutine profiles from a running go-ipfs daemon
 into a single zipfile. To aid in debugging, this command also attempts to
 include a copy of the running go-ipfs binary.
 
+Profile's can be examined using 'go tool pprof', some tips can be found at
+https://github.com/ipfs/go-ipfs/blob/master/docs/debug-guide.md.
+
 Privacy Notice:
 
 The output file includes:

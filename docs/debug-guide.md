@@ -79,6 +79,9 @@ that goroutine in the middle of a short wait for something. If the wait time is
 over a few minutes, that either means that goroutine doesn't do much, or
 something is pretty wrong.
 
+If you're seeing a lot of goroutines, conside rusing
+[stackparse](https://github.com/whyrusleeping/stackparse) to filter, sort, and summarize them.
+
 ### Analyzing the CPU Profile
 
 The go team wrote an [excellent article on profiling go
