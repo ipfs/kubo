@@ -98,6 +98,7 @@ test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUG
 
 # this may not be available, skip a few dependent tests
 type socat >/dev/null 2>&1 && test_set_prereq SOCAT
+type unzip >/dev/null 2>&1 && test_set_prereq UNZIP
 
 
 # Set a prereq as error messages are often different on Windows/Cygwin
