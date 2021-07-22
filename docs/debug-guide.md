@@ -79,7 +79,7 @@ that goroutine in the middle of a short wait for something. If the wait time is
 over a few minutes, that either means that goroutine doesn't do much, or
 something is pretty wrong.
 
-If you're seeing a lot of goroutines, conside rusing
+If you're seeing a lot of goroutines, consider using
 [stackparse](https://github.com/whyrusleeping/stackparse) to filter, sort, and summarize them.
 
 ### Analyzing the CPU Profile
@@ -100,4 +100,3 @@ The output is JSON formatted and includes badger store statistics, the command l
 If you have any questions, or want us to analyze some weird go-ipfs behaviour,
 just let us know, and be sure to include all the profiling information
 mentioned at the top.
-
