@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
@@ -191,8 +191,8 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 		return ident, err
 	}
 
-	var sk ci.PrivKey
-	var pk ci.PubKey
+	var sk crypto.PrivKey
+	var pk crypto.PubKey
 
 	switch settings.Algorithm {
 	case "rsa":
@@ -202,7 +202,7 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 
 		fmt.Fprintf(out, "generating %d-bit RSA keypair...", settings.Size)
 
-		priv, pub, err := ci.GenerateKeyPair(ci.RSA, settings.Size)
+		priv, pub, err := crypto.GenerateKeyPair(crypto.RSA, settings.Size)
 		if err != nil {
 			return ident, err
 		}
@@ -214,7 +214,7 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 			return ident, fmt.Errorf("number of key bits does not apply when using ed25519 keys")
 		}
 		fmt.Fprintf(out, "generating ED25519 keypair...")
-		priv, pub, err := ci.GenerateEd25519Key(rand.Reader)
+		priv, pub, err := crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {
 			return ident, err
 		}
@@ -228,7 +228,7 @@ func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, 
 
 	// currently storing key unencrypted. in the future we need to encrypt it.
 	// TODO(security)
-	skbytes, err := sk.Bytes()
+	skbytes, err := crypto.MarshalPrivateKey(sk)
 	if err != nil {
 		return ident, err
 	}
