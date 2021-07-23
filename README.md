@@ -141,10 +141,10 @@ $ sudo snap install ipfs
 
 #### Chocolatey
 
-The package [ipfs](https://chocolatey.org/packages/ipfs) currently points to go-ipfs and is being maintained.
+The package name is [go-ipfs](https://chocolatey.org/packages/go-ipfs):
 
 ```Powershell
-PS> choco install ipfs
+PS> choco install go-ipfs
 ```
 
 #### Scoop
