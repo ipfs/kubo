@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-filestore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	config "github.com/ipfs/go-ipfs-config"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	pin "github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-pinner/dspinner"
@@ -86,11 +87,31 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(provide bool) interface{} {
+func OnlineExchange(cfg *config.Config, provide bool) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
-		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, bitswap.ProvideEnabled(provide),
-			bitswap.EngineBlockstoreWorkerCount(2000), bitswap.TaskWorkerCount(500), bitswap.EngineTaskWorkerCount(500), bitswap.MaxOutstandingBytesPerPeer(1 << 21))
+		opts := []bitswap.Option{bitswap.ProvideEnabled(provide)}
+		if cfg.Internal.Bitswap.EngineBlockstoreWorkerCount == 0 {
+			opts = append(opts, bitswap.EngineBlockstoreWorkerCount(config.DefaultBitswapEngineBlockstoreWorkerCount))
+		} else {
+			opts = append(opts, bitswap.EngineBlockstoreWorkerCount(cfg.Internal.Bitswap.EngineBlockstoreWorkerCount))
+		}
+		if cfg.Internal.Bitswap.TaskWorkerCount == 0 {
+			opts = append(opts, bitswap.TaskWorkerCount(config.DefaultBitswapTaskWorkerCount))
+		} else {
+			opts = append(opts, bitswap.TaskWorkerCount(cfg.Internal.Bitswap.TaskWorkerCount))
+		}
+		if cfg.Internal.Bitswap.EngineTaskWorkerCount == 0 {
+			opts = append(opts, bitswap.EngineTaskWorkerCount(config.DefaultBitswapEngineTaskWorkerCount))
+		} else {
+			opts = append(opts, bitswap.EngineTaskWorkerCount(cfg.Internal.Bitswap.EngineTaskWorkerCount))
+		}
+		if cfg.Internal.Bitswap.MaxOutstandingBytesPerPeer == 0 {
+			opts = append(opts, bitswap.MaxOutstandingBytesPerPeer(config.DefaultBitswapMaxOutstandingBytesPerPeer))
+		} else {
+			opts = append(opts, bitswap.MaxOutstandingBytesPerPeer(cfg.Internal.Bitswap.MaxOutstandingBytesPerPeer))
+		}
+		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, opts...)
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
 				return exch.Close()
