@@ -36,6 +36,8 @@ type Config struct {
 	Experimental Experiments
 	Plugins      Plugins
 	Pinning      Pinning
+
+	Internal Internal // experimental/unstable options
 }
 
 const (
