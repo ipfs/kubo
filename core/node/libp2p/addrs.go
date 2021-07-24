@@ -4,24 +4,32 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	host "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/host"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	"github.com/libp2p/go-libp2p/p2p/net/conngater"
 	ma "github.com/multiformats/go-multiaddr"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
 
 func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
-	return func() (filter *ma.Filters, opts Libp2pOpts, err error) {
-		filter = ma.NewFilters()
-		opts.Opts = append(opts.Opts, libp2p.Filters(filter)) //nolint
+	return func() (*ma.Filters, Libp2pOpts, error) {
+		gater, err := conngater.NewBasicConnectionGater(nil)
+		if err != nil {
+			return nil, Libp2pOpts{}, fmt.Errorf("failed to construct connection gater: %w", err)
+		}
 		for _, s := range filters {
 			f, err := mamask.NewMask(s)
 			if err != nil {
-				return filter, opts, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
+				return nil, Libp2pOpts{}, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
 			}
-			opts.Opts = append(opts.Opts, libp2p.FilterAddresses(f)) //nolint
+			if err := gater.BlockSubnet(f); err != nil {
+				panic(err)
+				return nil, Libp2pOpts{}, fmt.Errorf("failed to block subnet %s: %w", s, err)
+			}
 		}
-		return filter, opts, nil
+		var opts Libp2pOpts
+		opts.Opts = append(opts.Opts, libp2p.ConnectionGater(gater))
+		return ma.NewFilters(), opts, nil
 	}
 }
 
