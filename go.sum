@@ -667,8 +667,9 @@ github.com/libp2p/go-libp2p-core v0.8.0/go.mod h1:FfewUH/YpvWbEB+ZY9AQRQ4TAD8sJB
 github.com/libp2p/go-libp2p-core v0.8.1/go.mod h1:FfewUH/YpvWbEB+ZY9AQRQ4TAD8sJBt/G1rVvhz5XT8=
 github.com/libp2p/go-libp2p-core v0.8.2/go.mod h1:FfewUH/YpvWbEB+ZY9AQRQ4TAD8sJBt/G1rVvhz5XT8=
 github.com/libp2p/go-libp2p-core v0.8.5/go.mod h1:FfewUH/YpvWbEB+ZY9AQRQ4TAD8sJBt/G1rVvhz5XT8=
-github.com/libp2p/go-libp2p-core v0.8.6 h1:3S8g006qG6Tjpj1JdRK2S+TWc2DJQKX/RG9fdLeiLSU=
 github.com/libp2p/go-libp2p-core v0.8.6/go.mod h1:dgHr0l0hIKfWpGpqAMbpo19pen9wJfdCGv51mTmdpmM=
+github.com/libp2p/go-libp2p-core v0.9.0 h1:t97Mv0LIBZlP2FXVRNKKVzHJCIjbIWGxYptGId4+htU=
+github.com/libp2p/go-libp2p-core v0.9.0/go.mod h1:ESsbz31oC3C1AvMJoGx26RTuCkNhmkSRCqZ0kQtJ2/8=
 github.com/libp2p/go-libp2p-crypto v0.0.1/go.mod h1:yJkNyDmO341d5wwXxDUGO0LykUVT72ImHNUqh5D/dBE=
 github.com/libp2p/go-libp2p-crypto v0.0.2/go.mod h1:eETI5OUfBnvARGOHrJz2eWNyTUxEGZnBxMcbUjfIj4I=
 github.com/libp2p/go-libp2p-crypto v0.1.0/go.mod h1:sPUokVISZiy+nNuTTH/TY+leRSxnFj/2GLjtOTW90hI=
@@ -779,8 +780,9 @@ github.com/libp2p/go-libp2p-testing v0.1.0/go.mod h1:xaZWMJrPUM5GlDBxCeGUi7kI4eq
 github.com/libp2p/go-libp2p-testing v0.1.1/go.mod h1:xaZWMJrPUM5GlDBxCeGUi7kI4eqnjVyavGroI2nxEM0=
 github.com/libp2p/go-libp2p-testing v0.1.2-0.20200422005655-8775583591d8/go.mod h1:Qy8sAncLKpwXtS2dSnDOP8ktexIAHKu+J+pnZOFZLTc=
 github.com/libp2p/go-libp2p-testing v0.3.0/go.mod h1:efZkql4UZ7OVsEfaxNHZPzIehtsBXMrXnCfJIgDti5g=
-github.com/libp2p/go-libp2p-testing v0.4.0 h1:PrwHRi0IGqOwVQWR3xzgigSlhlLfxgfXgkHxr77EghQ=
 github.com/libp2p/go-libp2p-testing v0.4.0/go.mod h1:Q+PFXYoiYFN5CAEG2w3gLPEzotlKsNSbKQ/lImlOWF0=
+github.com/libp2p/go-libp2p-testing v0.4.2 h1:IOiA5mMigi+eEjf4J+B7fepDhsjtsoWA9QbsCqbNp5U=
+github.com/libp2p/go-libp2p-testing v0.4.2/go.mod h1:Q+PFXYoiYFN5CAEG2w3gLPEzotlKsNSbKQ/lImlOWF0=
 github.com/libp2p/go-libp2p-tls v0.1.3 h1:twKMhMu44jQO+HgQK9X8NHO5HkeJu2QbhLzLJpa8oNM=
 github.com/libp2p/go-libp2p-tls v0.1.3/go.mod h1:wZfuewxOndz5RTnCAxFliGjvYSDA40sKitV4c50uI1M=
 github.com/libp2p/go-libp2p-transport v0.0.1/go.mod h1:UzbUs9X+PHOSw7S3ZmeOxfnwaQY5vGDzZmKPod3N3tk=
@@ -790,8 +792,9 @@ github.com/libp2p/go-libp2p-transport-upgrader v0.1.1/go.mod h1:IEtA6or8JUbsV07q
 github.com/libp2p/go-libp2p-transport-upgrader v0.2.0/go.mod h1:mQcrHj4asu6ArfSoMuyojOdjx73Q47cYD7s5+gZOlns=
 github.com/libp2p/go-libp2p-transport-upgrader v0.3.0/go.mod h1:i+SKzbRnvXdVbU3D1dwydnTmKRPXiAR/fyvi1dXuL4o=
 github.com/libp2p/go-libp2p-transport-upgrader v0.4.0/go.mod h1:J4ko0ObtZSmgn5BX5AmegP+dK3CSnU2lMCKsSq/EY0s=
-github.com/libp2p/go-libp2p-transport-upgrader v0.4.2 h1:4JsnbfJzgZeRS9AWN7B9dPqn/LY/HoQTlO9gtdJTIYM=
 github.com/libp2p/go-libp2p-transport-upgrader v0.4.2/go.mod h1:NR8ne1VwfreD5VIWIU62Agt/J18ekORFU/j1i2y8zvk=
+github.com/libp2p/go-libp2p-transport-upgrader v0.4.3 h1:ONPhm0NZ3H+jWRMuCmERfFPwDW2bNMwLrY0OR2KOI+0=
+github.com/libp2p/go-libp2p-transport-upgrader v0.4.3/go.mod h1:bpkldbOWXMrXhpZbSV1mQxTrefOg2Fi+k1ClDSA4ppw=
 github.com/libp2p/go-libp2p-xor v0.0.0-20200501025846-71e284145d58 h1:GcTNu27BMpOTtMnQqun03+kbtHA1qTxJ/J8cZRRYu2k=
 github.com/libp2p/go-libp2p-xor v0.0.0-20200501025846-71e284145d58/go.mod h1:AYjOiqJIdcmI4SXE2ouKQuFrUbE5myv8txWaB2pl4TI=
 github.com/libp2p/go-libp2p-yamux v0.1.2/go.mod h1:xUoV/RmYkg6BW/qGxA9XJyg+HzXFYkeXbnhjmnYzKp8=
@@ -873,8 +876,9 @@ github.com/libp2p/go-ws-transport v0.1.0/go.mod h1:rjw1MG1LU9YDC6gzmwObkPd/Sqwhw
 github.com/libp2p/go-ws-transport v0.2.0/go.mod h1:9BHJz/4Q5A9ludYWKoGCFC5gUElzlHoKzu0yY9p/klM=
 github.com/libp2p/go-ws-transport v0.3.0/go.mod h1:bpgTJmRZAvVHrgHybCVyqoBmyLQ1fiZuEaBYusP5zsk=
 github.com/libp2p/go-ws-transport v0.3.1/go.mod h1:bpgTJmRZAvVHrgHybCVyqoBmyLQ1fiZuEaBYusP5zsk=
-github.com/libp2p/go-ws-transport v0.4.0 h1:9tvtQ9xbws6cA5LvqdE6Ne3vcmGB4f1z9SByggk4s0k=
 github.com/libp2p/go-ws-transport v0.4.0/go.mod h1:EcIEKqf/7GDjth6ksuS/6p7R49V4CBY6/E7R/iyhYUA=
+github.com/libp2p/go-ws-transport v0.5.0 h1:cO6x4P0v6PfxbKnxmf5cY2Ny4OPDGYkUqNvZzp/zdlo=
+github.com/libp2p/go-ws-transport v0.5.0/go.mod h1:I2juo1dNTbl8BKSBYo98XY85kU2xds1iamArLvl8kNg=
 github.com/libp2p/go-yamux v1.2.1/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/libp2p/go-yamux v1.2.2/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
 github.com/libp2p/go-yamux v1.2.3/go.mod h1:FGTiPvoV/3DVdgWpX+tM0OW3tsM+W5bSE3gZwqQTcow=
