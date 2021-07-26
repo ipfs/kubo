@@ -428,6 +428,8 @@ github.com/ipfs/go-ipfs-config v0.14.1-0.20210723132933-3242fec92779 h1:gpeBg/8O
 github.com/ipfs/go-ipfs-config v0.14.1-0.20210723132933-3242fec92779/go.mod h1:4IoXvJ4eEe+KpI/OXXeserUraTREewhTYJSRdhKgNcY=
 github.com/ipfs/go-ipfs-config v0.14.1-0.20210723135224-02da3d795ca9 h1:Dd0mAOcDZ6sWf8HBQxdXp/Jbx4OfNVsX1vJNuJJ5wZM=
 github.com/ipfs/go-ipfs-config v0.14.1-0.20210723135224-02da3d795ca9/go.mod h1:4IoXvJ4eEe+KpI/OXXeserUraTREewhTYJSRdhKgNcY=
+github.com/ipfs/go-ipfs-config v0.14.1-0.20210726200028-d6c7f66679e6 h1:VGvgoxcqftv2xneDswM4l5HiUXWKqMbGdP1+gDt0mVs=
+github.com/ipfs/go-ipfs-config v0.14.1-0.20210726200028-d6c7f66679e6/go.mod h1:4IoXvJ4eEe+KpI/OXXeserUraTREewhTYJSRdhKgNcY=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
