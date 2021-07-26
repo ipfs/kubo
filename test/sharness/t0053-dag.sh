@@ -21,6 +21,8 @@ test_expect_success "make a few test files" '
   HASH4=$(ipfs add --pin=false -q file4)
 '
 
+# TODO: revert this ordering when https://github.com/ipld/go-ipld-prime/pull/204 is merged
+# and we get dag-cbor map sorting
 test_expect_success "make an ipld object in json" '
   printf "{\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"hello\":\"world\",\"magic\":{\"/\":\"%s\"},\"subNode\":{\"beep\":[0,\"bop\"],\"dict\":\"ionary\"}}" $HASH1 $HASH2 $HASH3 > ipld_object
 '
