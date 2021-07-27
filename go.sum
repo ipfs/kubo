@@ -514,8 +514,9 @@ github.com/ipld/go-codec-dagpb v1.2.1-0.20210405170603-d0b86f7623c2/go.mod h1:GM
 github.com/ipld/go-ipld-prime v0.9.0/go.mod h1:KvBLMr4PX1gWptgkzRjVZCrLmSGcZCb/jioOQwCqZN8=
 github.com/ipld/go-ipld-prime v0.9.1-0.20210324083106-dc342a9917db/go.mod h1:KvBLMr4PX1gWptgkzRjVZCrLmSGcZCb/jioOQwCqZN8=
 github.com/ipld/go-ipld-prime v0.9.1-0.20210402181957-7406578571d1/go.mod h1:KvBLMr4PX1gWptgkzRjVZCrLmSGcZCb/jioOQwCqZN8=
-github.com/ipld/go-ipld-prime v0.10.1-0.20210723093545-ebe39c7bab39 h1:70/42k1tU7ZHuyjFDd7vbd6dgnMyFnC0fe8LKeF9ZPg=
 github.com/ipld/go-ipld-prime v0.10.1-0.20210723093545-ebe39c7bab39/go.mod h1:KvBLMr4PX1gWptgkzRjVZCrLmSGcZCb/jioOQwCqZN8=
+github.com/ipld/go-ipld-prime v0.10.1-0.20210727022528-083c39518830 h1:tQyWv1pyxNIFe2hPczHGITClSQRJlW6dLIcEvkdSRgY=
+github.com/ipld/go-ipld-prime v0.10.1-0.20210727022528-083c39518830/go.mod h1:KvBLMr4PX1gWptgkzRjVZCrLmSGcZCb/jioOQwCqZN8=
 github.com/jackpal/gateway v1.0.5/go.mod h1:lTpwd4ACLXmpyiCTRtfiNyVnUmqT9RivzCDQetPfnjA=
 github.com/jackpal/go-nat-pmp v1.0.1/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=

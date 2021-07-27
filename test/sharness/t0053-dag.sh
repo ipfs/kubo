@@ -21,10 +21,8 @@ test_expect_success "make a few test files" '
   HASH4=$(ipfs add --pin=false -q file4)
 '
 
-# TODO: revert this ordering when https://github.com/ipld/go-ipld-prime/pull/204 is merged
-# and we get dag-cbor map sorting
 test_expect_success "make an ipld object in json" '
-  printf "{\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"hello\":\"world\",\"magic\":{\"/\":\"%s\"},\"subNode\":{\"beep\":[0,\"bop\"],\"dict\":\"ionary\"}}" $HASH1 $HASH2 $HASH3 > ipld_object
+  printf "{\"hello\":\"world\",\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"magic\":{\"/\":\"%s\"},\"sub\":{\"dict\":\"ionary\",\"beep\":[0,\"bop\"]}}" $HASH1 $HASH2 $HASH3 > ipld_object
 '
 
 test_expect_success "make the same ipld object in dag-cbor, dag-json and dag-pb" '
@@ -39,7 +37,8 @@ test_dag_cmd() {
   '
 
   test_expect_success "CID looks correct" '
-    EXPHASH="bafyreihim5n3etxp5om74fdpriqtys5sdmgbd5ix2oil7u2g2qfdpdlgie"
+    EXPHASH="bafyreiblwimnjbqcdoeafiobk6q27jcw64ew7n2fmmhdpldd63edmjecde"
+    echo $IPLDHASH > ipld_hash && \
     test $EXPHASH = $IPLDHASH
   '
 
@@ -48,7 +47,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "CID looks correct" '
-    EXPHASH="bafyreihim5n3etxp5om74fdpriqtys5sdmgbd5ix2oil7u2g2qfdpdlgie"
+    EXPHASH="bafyreiblwimnjbqcdoeafiobk6q27jcw64ew7n2fmmhdpldd63edmjecde"
     test $EXPHASH = $IPLDHASH
   '
 
@@ -109,10 +108,10 @@ test_dag_cmd() {
 
   test_expect_success "resolving sub-objects works" '
     ipfs dag get $IPLDHASH/hello > sub1 &&
-    ipfs dag get $IPLDHASH/subNode > sub2 &&
-    ipfs dag get $IPLDHASH/subNode/beep > sub3 &&
-    ipfs dag get $IPLDHASH/subNode/beep/0 > sub4 &&
-    ipfs dag get $IPLDHASH/subNode/beep/1 > sub5
+    ipfs dag get $IPLDHASH/sub > sub2 &&
+    ipfs dag get $IPLDHASH/sub/beep > sub3 &&
+    ipfs dag get $IPLDHASH/sub/beep/0 > sub4 &&
+    ipfs dag get $IPLDHASH/sub/beep/1 > sub5
   '
 
   test_expect_success "sub-objects look right" '
@@ -184,9 +183,9 @@ test_dag_cmd() {
     test_cmp cat_exp cat_out
   '
 
-  test_expect_success "non-canonical cbor input is normalized" '
+  test_expect_success "non-canonical dag-cbor input is normalized" '
     HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=dag-cbor) &&
-    test $HASH = "bafyreicfngo3hexoxbbwsm64apbydw5fyeruyrfwiyxlj3f4wuzdyztd4m" ||
+    test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
     test_fsh echo $HASH
   '
 
@@ -204,12 +203,12 @@ test_dag_cmd() {
     ipfs refs -r --timeout=2s $PINHASH > /dev/null
   '
 
-  test_expect_success "can add an ipld object with sha3 hash" '
-    IPLDHASH=$(cat ipld_object | ipfs dag put --hash sha3)
+  test_expect_success "can add an ipld object with sha3-512 hash" '
+    IPLDHASH=$(cat ipld_object | ipfs dag put --hash sha3-512)
   '
 
   test_expect_success "output looks correct" '
-    EXPHASH="bafyriqdoys7rmgfkjg7jjdjdhaajt66vxjusd2ry6eims63xy5wwjtjgditq4z4f76tmnal5rccb4zg3o4zcud3utxulm7svoapq2du3xmnok"
+    EXPHASH="bafyriqforjma7y7akqz7nhuu73r6liggj5zhkbfiqgicywe3fgkna2ijlhod2af3ue7doj56tlzt5hh6iu5esafc4msr3sd53jol5m2o25ucy"
     test $EXPHASH = $IPLDHASH
   '
 
