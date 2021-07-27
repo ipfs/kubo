@@ -13,13 +13,7 @@ var (
 )
 
 func TestRepoDir(t *testing.T) {
-	var err error
-	fakeHome, err = ioutil.TempDir("", "testhome")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(fakeHome)
-
+	fakeHome = t.TempDir()
 	os.Setenv("HOME", fakeHome)
 	fakeIpfs = filepath.Join(fakeHome, ".ipfs")
 

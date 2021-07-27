@@ -312,6 +312,8 @@ func readIpfsConfig(repoRoot *string) (bootstrap []string, peers []peer.AddrInfo
 	}
 
 	if _, err = cfgFile.Seek(0, 0); err != nil {
+		// If Seek fails, only log the error and continue on to try to read the
+		// peering config anyway as it might still be readable
 		fmt.Fprintln(os.Stderr, err)
 	}
 

@@ -183,11 +183,11 @@ func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetch
 			// Ignore empty string
 		}
 	}
-	if len(fetchers) == 0 {
-		return nil, errors.New("no sources specified")
-	}
 
-	if len(fetchers) == 1 {
+	switch len(fetchers) {
+	case 0:
+		return nil, errors.New("no sources specified")
+	case 1:
 		return fetchers[0], nil
 	}
 

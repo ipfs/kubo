@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -142,8 +141,7 @@ func TestReadIpfsConfig(t *testing.T) {
 		t.Error("expected nil peers")
 	}
 
-	tmpDir := makeConfig(testConfig)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := makeConfig(t, testConfig)
 
 	bootstrap, peers = readIpfsConfig(nil)
 	if bootstrap != nil || peers != nil {
@@ -171,9 +169,8 @@ func TestReadIpfsConfig(t *testing.T) {
 	}
 }
 
-func TestReadPartialIpfsConfig(t *testing.T) {
-	const (
-		configBadBootstrap = `
+func TestBadBootstrappingIpfsConfig(t *testing.T) {
+	const configBadBootstrap = `
 {
 	"Bootstrap": "unreadable",
 	"Migration": {
@@ -190,23 +187,8 @@ func TestReadPartialIpfsConfig(t *testing.T) {
 	}
 }
 `
-		configBadPeers = `
-{
-	"Bootstrap": [
-		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
-		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
-	],
-	"Migration": {
-		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
-		"Keep": "cache"
-	},
-	"Peering": "Unreadable-data"
-}
-`
-	)
 
-	tmpDir := makeConfig(configBadBootstrap)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := makeConfig(t, configBadBootstrap)
 
 	bootstrap, peers := readIpfsConfig(&tmpDir)
 	if bootstrap != nil {
@@ -219,11 +201,26 @@ func TestReadPartialIpfsConfig(t *testing.T) {
 		t.Error("wrong number of addrs for first peer")
 	}
 	os.RemoveAll(tmpDir)
+}
 
-	tmpDir = makeConfig(configBadPeers)
-	defer os.RemoveAll(tmpDir)
+func TestBadPeersIpfsConfig(t *testing.T) {
+	const configBadPeers = `
+{
+	"Bootstrap": [
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+	],
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": "Unreadable-data"
+}
+`
 
-	bootstrap, peers = readIpfsConfig(&tmpDir)
+	tmpDir := makeConfig(t, configBadPeers)
+
+	bootstrap, peers := readIpfsConfig(&tmpDir)
 	if peers != nil {
 		t.Fatal("expected nil peers")
 	}
@@ -235,21 +232,18 @@ func TestReadPartialIpfsConfig(t *testing.T) {
 	}
 }
 
-func makeConfig(configData string) string {
-	tmpDir, err := ioutil.TempDir("", "migration_test")
-	if err != nil {
-		panic(err)
-	}
+func makeConfig(t *testing.T, configData string) string {
+	tmpDir := t.TempDir()
 
 	cfgFile, err := os.Create(filepath.Join(tmpDir, "config"))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if _, err = cfgFile.Write([]byte(configData)); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if err = cfgFile.Close(); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	return tmpDir
 }

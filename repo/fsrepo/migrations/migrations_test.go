@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -15,11 +14,7 @@ import (
 )
 
 func TestFindMigrations(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "migratetest")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -66,11 +61,7 @@ func TestFindMigrations(t *testing.T) {
 }
 
 func TestFindMigrationsReverse(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "migratetest")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -124,11 +115,7 @@ func TestFetchMigrations(t *testing.T) {
 	defer ts.Close()
 	fetcher := NewHttpFetcher(CurrentIpfsDist, ts.URL, "", 0)
 
-	tmpDir, err := ioutil.TempDir("", "migratetest")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	needed := []string{"fs-repo-1-to-2", "fs-repo-2-to-3"}
 	buf := new(strings.Builder)
@@ -160,16 +147,12 @@ func TestFetchMigrations(t *testing.T) {
 }
 
 func TestRunMigrations(t *testing.T) {
-	fakeHome, err := ioutil.TempDir("", "testhome")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(fakeHome)
+	fakeHome := t.TempDir()
 
 	os.Setenv("HOME", fakeHome)
 	fakeIpfs := filepath.Join(fakeHome, ".ipfs")
 
-	err = os.Mkdir(fakeIpfs, os.ModePerm)
+	err := os.Mkdir(fakeIpfs, os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
@@ -237,8 +220,7 @@ var testConfig = `
 `
 
 func TestReadMigrationConfigDefaults(t *testing.T) {
-	tmpDir := makeConfig("{}")
-	defer os.RemoveAll(tmpDir)
+	tmpDir := makeConfig(t, "{}")
 
 	cfg, err := ReadMigrationConfig(tmpDir)
 	if err != nil {
@@ -260,8 +242,7 @@ func TestReadMigrationConfigDefaults(t *testing.T) {
 }
 
 func TestReadMigrationConfigErrors(t *testing.T) {
-	tmpDir := makeConfig(`{"Migration": {"Keep": "badvalue"}}`)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := makeConfig(t, `{"Migration": {"Keep": "badvalue"}}`)
 
 	_, err := ReadMigrationConfig(tmpDir)
 	if err == nil {
@@ -277,8 +258,7 @@ func TestReadMigrationConfigErrors(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	tmpDir = makeConfig(`}{`)
-	defer os.RemoveAll(tmpDir)
+	tmpDir = makeConfig(t, `}{`)
 	_, err = ReadMigrationConfig(tmpDir)
 	if err == nil {
 		t.Fatal("expected error")
@@ -286,8 +266,7 @@ func TestReadMigrationConfigErrors(t *testing.T) {
 }
 
 func TestReadMigrationConfig(t *testing.T) {
-	tmpDir := makeConfig(testConfig)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := makeConfig(t, testConfig)
 
 	cfg, err := ReadMigrationConfig(tmpDir)
 	if err != nil {
@@ -405,21 +384,18 @@ func TestGetMigrationFetcher(t *testing.T) {
 	}
 }
 
-func makeConfig(configData string) string {
-	tmpDir, err := ioutil.TempDir("", "migration_test")
-	if err != nil {
-		panic(err)
-	}
+func makeConfig(t *testing.T, configData string) string {
+	tmpDir := t.TempDir()
 
 	cfgFile, err := os.Create(filepath.Join(tmpDir, "config"))
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if _, err = cfgFile.Write([]byte(configData)); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if err = cfgFile.Close(); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	return tmpDir
 }
