@@ -25,7 +25,7 @@ func TestIpfsFetcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewIpfsFetcher("", 0, nil, nil)
+	fetcher := NewIpfsFetcher("", 0, nil)
 	defer fetcher.Close()
 
 	rc, err := fetcher.Fetch(ctx, "go-ipfs/versions")
@@ -63,11 +63,11 @@ func TestInitIpfsFetcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	f := NewIpfsFetcher("", 0, nil, nil)
+	f := NewIpfsFetcher("", 0, nil)
 	defer f.Close()
 
 	// Init ipfs repo
-	f.ipfsTmpDir, f.openErr = initTempNode(ctx, f.bootstrap, f.peers)
+	f.ipfsTmpDir, f.openErr = initTempNode(ctx, nil, nil)
 	if f.openErr != nil {
 		t.Fatalf("failed to initialize ipfs node: %s", f.openErr)
 	}
@@ -108,6 +108,144 @@ func TestInitIpfsFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to close fetcher 2nd time: %s", err)
 	}
+}
+
+func TestReadIpfsConfig(t *testing.T) {
+	var testConfig = `
+{
+	"Bootstrap": [
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+	],
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1", "https://127.0.1.1"],
+		"Keep": "cache"
+	},
+	"Peering": {
+		"Peers": [
+			{
+				"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
+				"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
+			}
+		]
+	}
+}
+`
+
+	noSuchDir := "no_such_dir-5953aa51-1145-4efd-afd1-a069075fcf76"
+	bootstrap, peers := readIpfsConfig(&noSuchDir)
+	if bootstrap != nil {
+		t.Error("expected nil bootstrap")
+	}
+	if peers != nil {
+		t.Error("expected nil peers")
+	}
+
+	tmpDir := makeConfig(t, testConfig)
+
+	bootstrap, peers = readIpfsConfig(nil)
+	if bootstrap != nil || peers != nil {
+		t.Fatal("expected nil ipfs config items")
+	}
+
+	bootstrap, peers = readIpfsConfig(&tmpDir)
+	if len(bootstrap) != 2 {
+		t.Fatal("wrong number of bootstrap addresses")
+	}
+	if bootstrap[0] != "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt" {
+		t.Fatal("wrong bootstrap address")
+	}
+
+	if len(peers) != 1 {
+		t.Fatal("wrong number of peers")
+	}
+
+	peer := peers[0]
+	if peer.ID.String() != "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5" {
+		t.Errorf("wrong ID for first peer")
+	}
+	if len(peer.Addrs) != 2 {
+		t.Error("wrong number of addrs for first peer")
+	}
+}
+
+func TestBadBootstrappingIpfsConfig(t *testing.T) {
+	const configBadBootstrap = `
+{
+	"Bootstrap": "unreadable",
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": {
+		"Peers": [
+			{
+				"ID": "12D3KooWGC6TvWhfapngX6wvJHMYvKpDMXPb3ZnCZ6dMoaMtimQ5",
+				"Addrs": ["/ip4/127.0.0.1/tcp/4001", "/ip4/127.0.0.1/udp/4001/quic"]
+			}
+		]
+	}
+}
+`
+
+	tmpDir := makeConfig(t, configBadBootstrap)
+
+	bootstrap, peers := readIpfsConfig(&tmpDir)
+	if bootstrap != nil {
+		t.Fatal("expected nil bootstrap")
+	}
+	if len(peers) != 1 {
+		t.Fatal("wrong number of peers")
+	}
+	if len(peers[0].Addrs) != 2 {
+		t.Error("wrong number of addrs for first peer")
+	}
+	os.RemoveAll(tmpDir)
+}
+
+func TestBadPeersIpfsConfig(t *testing.T) {
+	const configBadPeers = `
+{
+	"Bootstrap": [
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"
+	],
+	"Migration": {
+		"DownloadSources": ["IPFS", "HTTP", "127.0.0.1"],
+		"Keep": "cache"
+	},
+	"Peering": "Unreadable-data"
+}
+`
+
+	tmpDir := makeConfig(t, configBadPeers)
+
+	bootstrap, peers := readIpfsConfig(&tmpDir)
+	if peers != nil {
+		t.Fatal("expected nil peers")
+	}
+	if len(bootstrap) != 2 {
+		t.Fatal("wrong number of bootstrap addresses")
+	}
+	if bootstrap[0] != "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt" {
+		t.Fatal("wrong bootstrap address")
+	}
+}
+
+func makeConfig(t *testing.T, configData string) string {
+	tmpDir := t.TempDir()
+
+	cfgFile, err := os.Create(filepath.Join(tmpDir, "config"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = cfgFile.Write([]byte(configData)); err != nil {
+		t.Fatal(err)
+	}
+	if err = cfgFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return tmpDir
 }
 
 func skipUnlessEpic(t *testing.T) {
