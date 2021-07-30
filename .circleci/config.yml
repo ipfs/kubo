@@ -33,7 +33,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: cimg/go:1.16.4
+      - image: cimg/go:1.16.6
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -60,7 +60,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer:
     docker:
-      - image: cimg/go:1.16.4
+      - image: cimg/go:1.16.6
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
@@ -132,7 +132,7 @@ jobs:
     - run: sudo apt update
     - run: |
         mkdir ~/localgo && cd ~/localgo
-        wget https://golang.org/dl/go1.16.4.linux-amd64.tar.gz
+        wget https://golang.org/dl/go1.16.6.linux-amd64.tar.gz
         tar xfz go1.16.4.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:$PATH" >> $BASH_ENV
     - run: go version
