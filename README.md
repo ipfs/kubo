@@ -2,12 +2,8 @@
 
 ![banner](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
 
-[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
-[![Matrix](https://img.shields.io/badge/matrix-%23ipfs%3Amatrix.org-blue.svg?style=flat-square)](https://matrix.to/#/room/#ipfs:matrix.org)
-[![IRC](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
-[![Discord](https://img.shields.io/discord/475789330380488707?color=blueviolet&label=discord&style=flat-square)](https://discord.gg/24fmuwR)
+[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](https://protocol.ai)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/ipfs/go-ipfs)
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![CircleCI](https://img.shields.io/circleci/build/github/ipfs/go-ipfs?style=flat-square)](https://circleci.com/gh/ipfs/go-ipfs)
 
 ## What is IPFS?
@@ -22,6 +18,7 @@ Before opening an issue, consider using one of the following locations to ensure
   - IPFS _design_ in [ipfs/specs issues](https://github.com/ipfs/specs/issues).
   - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
   - Ask questions and meet the rest of the community at the [IPFS Forum](https://discuss.ipfs.io).
+  - Or [chat with us](https://docs.ipfs.io/community/chat/).
 
 ## Table of Contents
 
@@ -144,10 +141,10 @@ $ sudo snap install ipfs
 
 #### Chocolatey
 
-The package [ipfs](https://chocolatey.org/packages/ipfs) currently points to go-ipfs and is being maintained.
+The package name is [go-ipfs](https://chocolatey.org/packages/go-ipfs):
 
 ```Powershell
-PS> choco install ipfs
+PS> choco install go-ipfs
 ```
 
 #### Scoop
@@ -222,8 +219,8 @@ dependencies as well.
 - _WARNING_: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!-
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/ipfs/go-ipfs/issues/177)
-- For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
-- Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
+- Read [docs/fuse.md](docs/fuse.md) for more details on setting up FUSE (so that you can mount the filesystem).
+- Shell command completions can be generated with one of the `ipfs commands completion` subcommands. Read [docs/command-completion.md](docs/command-completion.md) to learn more.
 - See the [misc folder](https://github.com/ipfs/go-ipfs/tree/master/misc) for how to connect IPFS to systemd or whatever init system your distro uses.
 
 ### Updating go-ipfs
@@ -532,8 +529,7 @@ We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what 
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-You can contact us on the freenode #ipfs-dev channel or attend one of our
-[weekly calls](https://github.com/ipfs/team-mgmt/issues/674).
+Please reach out to us in one [chat](https://docs.ipfs.io/community/chat/) rooms.
 
 ## License
 

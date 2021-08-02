@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
 
@@ -22,12 +23,14 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
+	"github.com/ipfs/go-ipfs/core/coreapi"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -292,12 +295,26 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
-		migrationCfg, err := readMigrationConfig(cctx.ConfigRoot)
+		// Read Migration section of IPFS config
+		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot)
 		if err != nil {
 			return err
 		}
 
-		fetcher, err = getMigrationFetcher(migrationCfg, &cctx.ConfigRoot)
+		// Define function to create IPFS fetcher.  Do not supply an
+		// already-constructed IPFS fetcher, because this may be expensive and
+		// not needed according to migration config. Instead, supply a function
+		// to construct the particular IPFS fetcher implementation used here,
+		// which is called only if an IPFS fetcher is needed.
+		newIpfsFetcher := func(distPath string) migrations.Fetcher {
+			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot)
+		}
+
+		// Fetch migrations from current distribution, or location from environ
+		fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
+
+		// Create fetchers according to migrationCfg.DownloadSources
+		fetcher, err = migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
 		if err != nil {
 			return err
 		}
@@ -458,7 +475,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if cacheMigrations || pinMigrations {
 		err = addMigrations(cctx.Context(), node, fetcher, pinMigrations)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Could not add migragion to IPFS:", err)
+			fmt.Fprintln(os.Stderr, "Could not add migration to IPFS:", err)
 		}
 		// Remove download directory so that it does not remain for lifetime of
 		// daemon or get left behind if daemon has a hard exit
@@ -509,6 +526,33 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		fmt.Println("Received interrupt signal, shutting down...")
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
+
+	// Give the user heads up if daemon running in online mode has no peers after 1 minute
+	if !offline {
+		time.AfterFunc(1*time.Minute, func() {
+			cfg, err := cctx.GetConfig()
+			if err != nil {
+				log.Errorf("failed to access config: %s", err)
+			}
+			if len(cfg.Bootstrap) == 0 && len(cfg.Peering.Peers) == 0 {
+				// Skip peer check if Bootstrap and Peering lists are empty
+				// (means user disabled them on purpose)
+				log.Warn("skipping bootstrap: empty Bootstrap and Peering lists")
+				return
+			}
+			ipfs, err := coreapi.NewCoreAPI(node)
+			if err != nil {
+				log.Errorf("failed to access CoreAPI: %v", err)
+			}
+			peers, err := ipfs.Swarm().Peers(cctx.Context())
+			if err != nil {
+				log.Errorf("failed to read swarm peers: %v", err)
+			}
+			if len(peers) == 0 {
+				log.Error("failed to bootstrap (no peers found): consider updating Bootstrap or Peering section of your config")
+			}
+		})
+	}
 
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown

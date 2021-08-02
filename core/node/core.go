@@ -3,7 +3,6 @@ package node
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-bitswap/network"
@@ -11,11 +10,11 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-ipfs-pinner"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	pin "github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-pinner/dspinner"
-	"github.com/ipfs/go-ipld-format"
+	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-unixfs"
@@ -52,8 +51,7 @@ func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo)
 	}
 	syncDs := &syncDagService{ds, syncFn}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Minute)
-	defer cancel()
+	ctx := context.TODO()
 
 	pinning, err := dspinner.New(ctx, rootDS, syncDs)
 	if err != nil {

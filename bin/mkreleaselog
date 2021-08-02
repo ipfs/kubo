@@ -1,39 +1,77 @@
 #!/bin/zsh
-#set -x
+#
+# Invocation: mkreleaselog [FIRST_REF [LAST_REF]]
+
 set -euo pipefail
 export GO111MODULE=on
 export GOPATH="$(go env GOPATH)"
 
-alias jq="jq --unbuffered"
-
-AUTHORS=(
+# List of PCRE regular expressions to match "included" modules.
+INCLUDE_MODULES=(
     # orgs
-    ipfs
-    ipld
-    libp2p
-    multiformats
-    filecoin-project
-    ipfs-shipyard
+    "^github.com/ipfs/"
+    "^github.com/ipld/"
+    "^github.com/libp2p/"
+    "^github.com/multiformats/"
+    "^github.com/filecoin-project/"
+    "^github.com/ipfs-shipyard/"
 
-    # Authors of personal repos used by go-ipfs that should be mentioned in the
+    # Authors of personal modules used by go-ipfs that should be mentioned in the
     # release notes.
-    whyrusleeping
-    Kubuxu
-    jbenet
-    Stebalien
-    marten-seemann
-    hsanjuan
-    lucas-clemente
-    warpfork
+    "^github.com/whyrusleeping/"
+    "^github.com/Kubuxu/"
+    "^github.com/jbenet/"
+    "^github.com/Stebalien/"
+    "^github.com/marten-seemann/"
+    "^github.com/hsanjuan/"
+    "^github.com/lucas-clemente/"
+    "^github.com/warpfork/"
 )
 
-[[ -n "${REPO_FILTER+x}" ]] || REPO_FILTER="github.com/(${$(printf "|%s" "${AUTHORS[@]}"):1})"
+# List of PCRE regular expressions to match "excluded" modules. Applied after includes.
+EXCLUDE_MODULES=(
+    "^github.com/marten-seemann/qtls"
+)
 
-[[ -n "${IGNORED_FILES+x}" ]] || IGNORED_FILES='^\(\.gx\|package\.json\|\.travis\.yml\|go\.mod\|go\.sum\|\.github\|\.circleci\|.*\.pb\.go\|cbor_gen\.go\|.*ipldsch.*\.go\)$'
+# Ignored files as git pathspecs. These patters will match any full path component.
+IGNORE_FILES=(
+    ".gx"
+    "package.json"
+    ".travis.yml"
+    "go.mod"
+    "go.sum"
+    ".github"
+    ".circleci"
+    "*.pb.go"
+    "cbor_gen.go"
+    "ipldsch_*.go"
+)
+
+##########################################################################################
+
+if [[ ${#INCLUDE_MODULES[@]} -gt 0 ]]; then
+    INCLUDE_REGEX="(${$(printf "|%s" "${INCLUDE_MODULES[@]}"):1})"
+else 
+    INCLUDE_REGEX="" # "match anything"
+fi
+
+if [[ ${#EXCLUDE_MODULES[@]} -gt 0 ]]; then
+    EXCLUDE_REGEX="(${$(printf "|%s" "${EXCLUDE_MODULES[@]}"):1})"
+else
+    EXCLUDE_REGEX='$^' # "match nothing"
+fi
+
+IGNORE_FILES_PATHSPEC=()
+for f in "${IGNORE_FILES[@]}"; do
+    IGNORE_FILES_PATHSPEC+=(":^:**/$f" ":^:$f") # Prepend the magic "ignore this" sequence.
+done
+
 
 NL=$'\n'
 
 ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+alias jq="jq --unbuffered"
 
 msg() {
     echo "$*" >&2
@@ -49,13 +87,15 @@ statlog() {
         mailmap_file="$ROOT_DIR/.mailmap"
     fi
 
-    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%n%aN%n%aE" "$start..$end" -- . ':^*\.pb\.go' ':^*ipldsch*\.go' ':^cbor_gen\.go\' ':^go\.mod' ':^go\.sum' | while
-        read hash
-        read name
-        read email
-        read _ # empty line
-        read changes
-    do
+    local stack=()
+    git -C "$rpath" -c mailmap.file="$mailmap_file" log --use-mailmap --shortstat --no-merges --pretty="tformat:%H%x09%aN%x09%aE" "$start..$end" -- . "${IGNORE_FILES_PATHSPEC[@]}" | while read -r line; do
+        if [[ -n "$line" ]]; then
+            stack+=("$line")
+            continue
+        fi
+
+        read -r changes
+
         changed=0
         insertions=0
         deletions=0
@@ -72,14 +112,18 @@ statlog() {
             fi
         done<<<"${changes//,/$NL}"
 
-        jq -n \
-           --arg "hash" "$hash" \
-           --arg "name" "$name" \
-           --arg "email" "$email" \
-           --argjson "changed" "$changed" \
-           --argjson "insertions" "$insertions" \
-           --argjson "deletions" "$deletions" \
-           '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+        for author in "${stack[@]}"; do
+            IFS=$'\t' read -r hash name email <<<"$author"
+            jq -n \
+               --arg "hash" "$hash" \
+               --arg "name" "$name" \
+               --arg "email" "$email" \
+               --argjson "changed" "$changed" \
+               --argjson "insertions" "$insertions" \
+               --argjson "deletions" "$deletions" \
+               '{Commit: $hash, Author: $name, Email: $email, Files: $changed, Insertions: $insertions, Deletions: $deletions}'
+        done
+        stack=()
     done
 }
 
@@ -103,6 +147,16 @@ pr_link() {
     printf -- "[%s#%s](https://%s/pull/%s)" "$ghname" "$prnum" "$repo" "$prnum"
 }
 
+ignored_commit() {
+    local commit="$1"
+    local matches
+
+    # Check to see if this commit includes any non-ignored files.
+    matches=$(git -C "$dir" diff-tree --no-commit-id --name-only -r "$commit" \
+                  -- "${IGNORE_FILES_PATHSPEC[@]}" | wc -l)
+    [[ "$matches" -eq 0 ]]
+}
+
 # Generate a release log for a range of commits in a single repo.
 release_log() {
     setopt local_options BASH_REMATCH
@@ -119,9 +173,10 @@ release_log() {
         --first-parent \
         "$start..$end" |
         while read commit subject; do
-            # Skip gx-only PRs.
-            git -C "$dir" diff-tree --no-commit-id --name-only "$commit^" "$commit" |
-                grep -v "${IGNORED_FILES}" >/dev/null || continue
+            # Skip commits that only touch ignored files.
+            if ignored_commit "$commit"; then
+                continue
+            fi
 
             if [[ "$subject" =~ '^Merge pull request #([0-9]+) from' ]]; then
                 local prnum="${BASH_REMATCH[2]}"
@@ -211,7 +266,8 @@ recursive_release_log() {
         statlog "$module" "$start" "$end" > statlog.json
 
         dep_changes old_deps.json new_deps.json |
-            jq --arg filter "$REPO_FILTER" 'select(.Path | match($filter))' |
+            jq --arg inc "$INCLUDE_REGEX" --arg exc "$EXCLUDE_REGEX" \
+               'select(.Path | test($inc)) | select(.Path | test($exc) | not)' |
             # Compute changelogs
             jq -r '"\(.Path) \(.New.Version) \(.New.Ref) \(.Old.Version) \(.Old.Ref // "")"' |
             while read module new new_ref old old_ref; do
