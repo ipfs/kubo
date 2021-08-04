@@ -46,7 +46,7 @@ require (
 	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-ipld-cbor v0.0.5
 	github.com/ipfs/go-ipld-format v0.2.0
-	github.com/ipfs/go-ipld-git v0.0.4-0.20210726071918-f3dcf6c6f96e
+	github.com/ipfs/go-ipld-git v0.0.5-0.20210804024000-9218898fbcca
 	github.com/ipfs/go-ipld-legacy v0.0.0-20210325015318-9799f2cffab0
 	github.com/ipfs/go-ipns v0.0.2
 	github.com/ipfs/go-log v1.0.4
@@ -62,7 +62,7 @@ require (
 	github.com/ipfs/interface-go-ipfs-core v0.4.1-0.20210410030100-56c2e678cb62
 	github.com/ipld/go-car v0.3.1
 	github.com/ipld/go-codec-dagpb v1.2.1-0.20210405170603-d0b86f7623c2
-	github.com/ipld/go-ipld-prime v0.10.1-0.20210727022528-083c39518830
+	github.com/ipld/go-ipld-prime v0.10.1-0.20210729021320-145d8235e5de
 	github.com/jbenet/go-is-domain v1.0.5
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
