@@ -1,3 +1,5 @@
+active_block_tasks
+active_tasks
 flatfs_datastore_batchcommit_errors_total
 flatfs_datastore_batchcommit_latency_seconds_bucket
 flatfs_datastore_batchcommit_latency_seconds_bucket
@@ -563,6 +565,8 @@ leveldb_datastore_sync_latency_seconds_bucket
 leveldb_datastore_sync_latency_seconds_count
 leveldb_datastore_sync_latency_seconds_sum
 leveldb_datastore_sync_total
+pending_block_tasks
+pending_tasks
 process_cpu_seconds_total
 process_max_fds
 process_open_fds
