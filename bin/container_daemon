@@ -2,6 +2,7 @@
 set -e
 user=ipfs
 repo="$IPFS_PATH"
+ipfsEnvPrefix="IPFSCONFIG"
 
 if [ `id -u` -eq 0 ]; then
   echo "Changing user to $user"
@@ -24,6 +25,27 @@ else
   ipfs init $INIT_ARGS
   ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
+
+  # Set config from ENV variables
+  # Some examples are:
+  # 
+  # IPFSCONFIG_Swarm_EnableAutoRelay=true
+  # IPFSCONFIG_Addresses_Swarm=[\"/ip4/0.0.0.0/tcp/4001\",\"/ip6/::/tcp/4001\"]
+  env | \
+  while IFS='=' read -r name value; do
+    # Since we don't have extended pattern in busybox, will use grep
+    if echo $name | grep -qxwE "${ipfsEnvPrefix}(_[a-zA-Z0-9]+)+" ; then
+      removePrefix=${name#$ipfsEnvPrefix*}
+      replaceToDot=${removePrefix//_/.}
+      ipfsConfigArg=${replaceToDot:1}
+      
+      # Inform user what we are doing, since it could be
+      # a potential vector for command injections
+      set -x
+      ipfs config --json $ipfsConfigArg $value
+      { set +x; } 2>/dev/null
+    fi
+  done
 
   # Set up the swarm key, if provided
 
