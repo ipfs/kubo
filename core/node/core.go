@@ -91,24 +91,16 @@ func OnlineExchange(cfg *config.Config, provide bool) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
 		opts := []bitswap.Option{bitswap.ProvideEnabled(provide)}
-		if cfg.Internal.Bitswap.EngineBlockstoreWorkerCount == 0 {
-			opts = append(opts, bitswap.EngineBlockstoreWorkerCount(config.DefaultBitswapEngineBlockstoreWorkerCount))
-		} else {
+		if cfg.Internal.Bitswap.EngineBlockstoreWorkerCount != 0 {
 			opts = append(opts, bitswap.EngineBlockstoreWorkerCount(cfg.Internal.Bitswap.EngineBlockstoreWorkerCount))
 		}
-		if cfg.Internal.Bitswap.TaskWorkerCount == 0 {
-			opts = append(opts, bitswap.TaskWorkerCount(config.DefaultBitswapTaskWorkerCount))
-		} else {
+		if cfg.Internal.Bitswap.TaskWorkerCount != 0 {
 			opts = append(opts, bitswap.TaskWorkerCount(cfg.Internal.Bitswap.TaskWorkerCount))
 		}
-		if cfg.Internal.Bitswap.EngineTaskWorkerCount == 0 {
-			opts = append(opts, bitswap.EngineTaskWorkerCount(config.DefaultBitswapEngineTaskWorkerCount))
-		} else {
+		if cfg.Internal.Bitswap.EngineTaskWorkerCount != 0 {
 			opts = append(opts, bitswap.EngineTaskWorkerCount(cfg.Internal.Bitswap.EngineTaskWorkerCount))
 		}
-		if cfg.Internal.Bitswap.MaxOutstandingBytesPerPeer == 0 {
-			opts = append(opts, bitswap.MaxOutstandingBytesPerPeer(config.DefaultBitswapMaxOutstandingBytesPerPeer))
-		} else {
+		if cfg.Internal.Bitswap.MaxOutstandingBytesPerPeer != 0 {
 			opts = append(opts, bitswap.MaxOutstandingBytesPerPeer(cfg.Internal.Bitswap.MaxOutstandingBytesPerPeer))
 		}
 		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, opts...)
