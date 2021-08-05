@@ -167,13 +167,19 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 		}
 
 		// Prepare Pin.origins
-		// Add own multiaddrs to the 'origins' array, so Pinning Service can
-		// use that as a hint and connect back to us (if possible)
+		// If CID in blockstore, add own multiaddrs to the 'origins' array
+		// so pinning service can use that as a hint and connect back to us.
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
 		}
-		if node.PeerHost != nil {
+
+		isInBlockstore, err := node.Blockstore.Has(rp.Cid())
+		if err != nil {
+			return err
+		}
+
+		if isInBlockstore && node.PeerHost != nil {
 			addrs, err := peer.AddrInfoToP2pAddrs(host.InfoFromHost(node.PeerHost))
 			if err != nil {
 				return err

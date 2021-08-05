@@ -37,10 +37,8 @@ executors:
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
-      GO111MODULE: "on"
       TEST_NO_DOCKER: 1
       TEST_NO_FUSE: 1
-      GOPATH: /home/circleci/go
       TEST_VERBOSE: 1
   node:
     docker:
@@ -123,10 +121,8 @@ jobs:
     working_directory: ~/ipfs/go-ipfs
     environment:
         <<: *default_environment
-        GO111MODULE: "on"
         TEST_NO_DOCKER: 1
         TEST_NO_FUSE: 1
-        GOPATH: /home/circleci/go
         TEST_VERBOSE: 1
     steps:
     - run: sudo apt update
@@ -151,10 +147,10 @@ jobs:
     - run:
         name: Setup Environment Variables
         # we need the docker host IP; all ports exported by child containers can be accessed there.
-        command: echo "export DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $BASH_ENV
+        command: echo "export TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $BASH_ENV
     - run:
-        echo DOCKER_HOST=$DOCKER_HOST &&
-        make -O -j 3 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 DOCKER_HOST=$DOCKER_HOST
+        echo TEST_DOCKER_HOST=$TEST_DOCKER_HOST &&
+        make -O -j 3 coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
 
     - run:
         when: always
