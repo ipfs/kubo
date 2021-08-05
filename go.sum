@@ -350,6 +350,8 @@ github.com/ipfs/go-bitswap v0.1.8/go.mod h1:TOWoxllhccevbWFUR2N7B1MTSVVge1s6XSMi
 github.com/ipfs/go-bitswap v0.3.4/go.mod h1:4T7fvNv/LmOys+21tnLzGKncMeeXUYUd1nUiJ2teMvI=
 github.com/ipfs/go-bitswap v0.3.5-0.20210803162044-fcf3ad1fb304 h1:j8UJ/m0ub0MCIX6pG9ub0qyVr8mSxdWcymvERHVnnhU=
 github.com/ipfs/go-bitswap v0.3.5-0.20210803162044-fcf3ad1fb304/go.mod h1:We4REokk/9XvFqvxKcknSTCcm3ztPZnt7Jp8Sb2TlLk=
+github.com/ipfs/go-bitswap v0.3.5-0.20210805193318-edf209ffece1 h1:u0TJSWAIT3QObMXt7hkriphFs+XJUi+FTNe6m/Prza8=
+github.com/ipfs/go-bitswap v0.3.5-0.20210805193318-edf209ffece1/go.mod h1:We4REokk/9XvFqvxKcknSTCcm3ztPZnt7Jp8Sb2TlLk=
 github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/baNLgayt4pFc=
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
 github.com/ipfs/go-block-format v0.0.3 h1:r8t66QstRp/pd/or4dpnbVfXT5Gt7lOqRvC+/dDTpMc=
@@ -423,6 +425,8 @@ github.com/ipfs/go-ipfs-cmds v0.6.0 h1:yAxdowQZzoFKjcLI08sXVNnqVj3jnABbf9smrPQmB
 github.com/ipfs/go-ipfs-cmds v0.6.0/go.mod h1:ZgYiWVnCk43ChwoH8hAmI1IRbuVtq3GSTHwtRB/Kqhk=
 github.com/ipfs/go-ipfs-config v0.14.1-0.20210803180539-104bb2cefa7f h1:4w5HO+s6gL4BNdOzhu4gY4ZqWqtNqKcr1ZoXurDRkSE=
 github.com/ipfs/go-ipfs-config v0.14.1-0.20210803180539-104bb2cefa7f/go.mod h1:4IoXvJ4eEe+KpI/OXXeserUraTREewhTYJSRdhKgNcY=
+github.com/ipfs/go-ipfs-config v0.14.1-0.20210805193444-07c43cd9c80d h1:u4qOvEbYznHDniFFKWnQnpPVo/cequD1pY6e7bEKNf0=
+github.com/ipfs/go-ipfs-config v0.14.1-0.20210805193444-07c43cd9c80d/go.mod h1:4IoXvJ4eEe+KpI/OXXeserUraTREewhTYJSRdhKgNcY=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=

@@ -131,33 +131,41 @@ does (e.g, `"1d2h4m40.01s"`).
 
 ## Table of Contents
 
-- [`Addresses`](#addresses)
+- [The go-ipfs config file](#the-go-ipfs-config-file)
+  - [Profiles](#profiles)
+  - [Types](#types)
+    - [`flag`](#flag)
+    - [`priority`](#priority)
+    - [`strings`](#strings)
+    - [`duration`](#duration)
+  - [Table of Contents](#table-of-contents)
+  - [`Addresses`](#addresses)
     - [`Addresses.API`](#addressesapi)
     - [`Addresses.Gateway`](#addressesgateway)
     - [`Addresses.Swarm`](#addressesswarm)
     - [`Addresses.Announce`](#addressesannounce)
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
-- [`API`](#api)
+  - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
-- [`AutoNAT`](#autonat)
+  - [`AutoNAT`](#autonat)
     - [`AutoNAT.ServiceMode`](#autonatservicemode)
     - [`AutoNAT.Throttle`](#autonatthrottle)
     - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
     - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
     - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
-- [`Bootstrap`](#bootstrap)
-- [`Datastore`](#datastore)
+  - [`Bootstrap`](#bootstrap)
+  - [`Datastore`](#datastore)
     - [`Datastore.StorageMax`](#datastorestoragemax)
     - [`Datastore.StorageGCWatermark`](#datastorestoragegcwatermark)
     - [`Datastore.GCPeriod`](#datastoregcperiod)
     - [`Datastore.HashOnRead`](#datastorehashonread)
     - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
     - [`Datastore.Spec`](#datastorespec)
-- [`Discovery`](#discovery)
+  - [`Discovery`](#discovery)
     - [`Discovery.MDNS`](#discoverymdns)
-        - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
-        - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
-- [`Gateway`](#gateway)
+      - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
+      - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
+  - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
@@ -165,64 +173,82 @@ does (e.g, `"1d2h4m40.01s"`).
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
     - [`Gateway.PublicGateways`](#gatewaypublicgateways)
-- [`Identity`](#identity)
+      - [`Gateway.PublicGateways: Paths`](#gatewaypublicgateways-paths)
+      - [`Gateway.PublicGateways: UseSubdomains`](#gatewaypublicgateways-usesubdomains)
+      - [`Gateway.PublicGateways: NoDNSLink`](#gatewaypublicgateways-nodnslink)
+      - [Implicit defaults of `Gateway.PublicGateways`](#implicit-defaults-of-gatewaypublicgateways)
+    - [`Gateway` recipes](#gateway-recipes)
+  - [`Identity`](#identity)
     - [`Identity.PeerID`](#identitypeerid)
     - [`Identity.PrivKey`](#identityprivkey)
-- [`Ipns`](#ipns)
+  - [`Internal`](#internal)
+    - [`Internal.Bitswap`](#internalbitswap)
+      - [`Internal.Bitswap.TaskWorkerCount`](#internalbitswaptaskworkercount)
+      - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
+      - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
+      - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
+  - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
-- [`Migration`](#migration)
+  - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
-- [`Mounts`](#mounts)
+  - [`Mounts`](#mounts)
     - [`Mounts.IPFS`](#mountsipfs)
     - [`Mounts.IPNS`](#mountsipns)
     - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
-- [`Pinning`](#pinning)
+  - [`Pinning`](#pinning)
     - [`Pinning.RemoteServices`](#pinningremoteservices)
-        - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
-          - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
-          - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
-        - [`Pinning.RemoteServices.Policies`](#pinningremoteservices-policies)
-          - [`Pinning.RemoteServices.Policies.MFS`](#pinningremoteservices-policiesmfs)
-- [`Pubsub`](#pubsub)
+      - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
+        - [`Pinning.RemoteServices: API.Endpoint`](#pinningremoteservices-apiendpoint)
+        - [`Pinning.RemoteServices: API.Key`](#pinningremoteservices-apikey)
+      - [`Pinning.RemoteServices: Policies`](#pinningremoteservices-policies)
+        - [`Pinning.RemoteServices: Policies.MFS`](#pinningremoteservices-policiesmfs)
+          - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
+          - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
+          - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Pubsub`](#pubsub)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
-- [`Peering`](#peering)
+  - [`Peering`](#peering)
     - [`Peering.Peers`](#peeringpeers)
-- [`Reprovider`](#reprovider)
+  - [`Reprovider`](#reprovider)
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
-- [`Routing`](#routing)
+  - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
-- [`Swarm`](#swarm)
+  - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
+      - [Mode 1: `EnableRelayHop` is `false`](#mode-1-enablerelayhop-is-false)
+      - [Mode 2: `EnableRelayHop` is `true`](#mode-2-enablerelayhop-is-true)
+    - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
-        - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
+      - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
+      - [Basic Connection Manager](#basic-connection-manager)
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.Transports`](#swarmtransports)
-        - [`Swarm.Transports.Security`](#swarmtransportssecurity)
-          - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
-          - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
-          - [`Swarm.Transports.Security.Noise`](#swarmtransportssecuritynoise)
-        - [`Swarm.Transports.Multiplexers`](#swarmtransportsmultiplexers)
-          - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
-          - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
-        - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
-          - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
-          - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
-          - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
-          - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
-- [`DNS`](#dns)
-    - [`DNS.Resolvers`](#dnsresolvers)
+    - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
+      - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
+      - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
+      - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
+      - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
+    - [`Swarm.Transports.Security`](#swarmtransportssecurity)
+      - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
+      - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
+      - [`Swarm.Transports.Security.Noise`](#swarmtransportssecuritynoise)
+    - [`Swarm.Transports.Multiplexers`](#swarmtransportsmultiplexers)
+    - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
+    - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
+  - [`DNS`](#dns)
+  - [`DNS.Resolvers`](#dnsresolvers)
 
 ## `Addresses`
 
@@ -781,6 +807,74 @@ Type: `string` (peer ID)
 The base64 encoded protobuf describing (and containing) the node's private key.
 
 Type: `string` (base64 encoded)
+
+## `Internal`
+
+### `Internal.Bitswap`
+
+InternalBitswap contains knobs for tuning bitswap resource utilization.
+The knobs (below) document how their value should related to each other.
+Whether their values should be raised or lowered should be determined
+based on the metrics `active_tasks`, `pending_tasks`, `pending_block_tasks` and `active_block_tasks`
+reported by bitswap.
+
+The value of `active_tasks` is capped by `EngineTaskWorkerCount`.
+
+The value of `pending_tasks` is generally capped by the knobs below,
+however its exact maximum value is hard to predict as it depends on task sizes
+as well as number of requesting peers. However, as a rule of thumb,
+during healthy operation this value should oscillate around a "typical" low value
+(without hitting a plateau continuously).
+
+If `pending_tasks` grows and eventually reaches a plateau,
+while at the same time `active_tasks` is at its maximum,
+the node has reached its resource limits and requests are being dropped (or not serviced).
+Raising resource limits (using the knobs below) could help, assuming the hardware can support the new limits.
+
+The value of `active_block_tasks` is capped by `EngineBlockstoreWorkerCount`.
+
+The value of `pending_block_tasks` is indirectly capped by `active_tasks`, but cannot be predicted
+as it depends on the number of blocks involved in a peer task which can vary.
+
+If the value of `pending_block_tasks` is observed to grow,
+while `active_block_tasks` is at its maximum, there is indication that the number of
+available block tasks is creating a bottleneck (either due to high-latency block operations,
+or due to high number of block operations per bitswap peer task).
+In such cases, try increasing the `EngineBlockstoreWorkerCount`.
+
+#### `Internal.Bitswap.TaskWorkerCount`
+
+Number of threads sending outgoing messages.
+Used to thottle the number of concurrent send operations.
+
+Type: `int`
+
+#### `Internal.Bitswap.EngineBlockstoreWorkerCount`
+
+Number of threads for blockstore operations.
+Used to throttle the number of concurrent requests to the block store.
+This number should generally be a low multiple (e.g. 4) of the `TaskWorkerCount`,
+but its optimal value can be informed by the metrics `pending_block_tasks` and `active_block_tasks`.
+
+Type: `int`
+
+#### `Internal.Bitswap.EngineTaskWorkerCount`
+
+Number of worker threads for decision engine task worker.
+Used to throttle the number of (send) tasks scheduled in parallel, therefore
+this number should generally be equal to `TaskWorkerCount`.
+
+Type: `int`
+
+#### `Internal.Bitswap.MaxOutstandingBytesPerPeer`
+
+Maximum number of bytes (across all tasks) pending to be processed and sent to any individual peer.
+This number controls fairness and can very from 250Kb (very fair) to 10Mb (less fair, with more work
+dedicated to peers who ask for more). Values below 250Kb could cause thrashing.
+Values above 10Mb open the potential for aggressively-wanting peers to consume all resources and
+deteriorate the quality provided to less aggressively-wanting peers.
+
+Type: `int`
 
 ## `Ipns`
 
