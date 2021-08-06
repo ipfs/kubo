@@ -281,7 +281,11 @@ func main() {
 
 	/// --- Part III: Getting the file and directory you added back
 
-	outputBasePath := "../example-folder/"
+	outputBasePath, err := ioutil.TempDir("", "example")
+	if err != nil {
+		panic(fmt.Errorf("could not create output dir (%v)", err))
+	}
+	fmt.Printf("output folder: %s\n", outputBasePath)
 	outputPathFile := outputBasePath + strings.Split(cidFile.String(), "/")[2]
 	outputPathDirectory := outputBasePath + strings.Split(cidDirectory.String(), "/")[2]
 
