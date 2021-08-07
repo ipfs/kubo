@@ -26,7 +26,6 @@ bitswap status
   dup blocks received: 0
   dup data received: 0
   wantlist [0 keys]
-  inboundreqs [0]
   partners [0]
 EOF
   test_cmp expected stat_out
@@ -65,7 +64,6 @@ bitswap status
   dup blocks received: 0
   dup data received: 0
   wantlist [0 keys]
-  inboundreqs [0]
   partners [0]
 EOF
   test_cmp expected stat_out
@@ -95,7 +93,6 @@ bitswap status
   dup blocks received: 0
   dup data received: 0 B
   wantlist [0 keys]
-  inboundreqs [0]
   partners [0]
 EOF
   test_cmp expected stat_out_human
