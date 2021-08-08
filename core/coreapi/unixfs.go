@@ -77,6 +77,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		return nil, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://git.io/vNItf")
 	}
 
+	if settings.Index && !cfg.Experimental.Index {
+		return nil, fmt.Errorf("the index config must be enabled to use")
+	}
+
 	addblockstore := api.blockstore
 	if !(settings.FsCache || settings.NoCopy) {
 		addblockstore = bstore.NewGCBlockstore(api.baseBlocks, api.blockstore)

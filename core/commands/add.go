@@ -45,6 +45,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
+	indexOptionName       = "index"
 )
 
 const adderOutChanSize = 8
@@ -140,6 +141,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmds.BoolOption(indexOptionName, "Whether index the cid or not when adding"),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
@@ -180,6 +182,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		hashFunStr, _ := req.Options[hashOptionName].(string)
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+		index, _ := req.Options[indexOptionName].(bool)
 
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
 		if !ok {
@@ -213,6 +216,7 @@ only-hash, and progress/status related flags) will change the final hash.
 
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
+			options.Unixfs.Index(index),
 		}
 
 		if cidVerSet {

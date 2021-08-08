@@ -108,3 +108,7 @@ require (
 )
 
 go 1.15
+
+replace github.com/ipfs/interface-go-ipfs-core v0.4.0 => github.com/kenlabs/interface-go-ipfs-core v0.4.1-0.20210808142747-6a832391de67
+
+replace github.com/ipfs/go-ipfs-config v0.14.0 => github.com/kenlabs/go-ipfs-config v0.14.1-0.20210808143700-703580aaf381
