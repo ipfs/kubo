@@ -1,19 +1,25 @@
 package coreunix
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
 	gopath "path"
+	"path/filepath"
 	"strconv"
 
 	"github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-posinfo"
+	files "github.com/ipfs/go-ipfs-files"
+	pin "github.com/ipfs/go-ipfs-pinner"
+	posinfo "github.com/ipfs/go-ipfs-posinfo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
@@ -43,7 +49,7 @@ type syncer interface {
 }
 
 // NewAdder Returns a new Adder used for a file add operation.
-func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService) (*Adder, error) {
+func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAGService, peerID string) (*Adder, error) {
 	bufferedDS := ipld.NewBufferedDAG(ctx, ds)
 
 	return &Adder{
@@ -56,6 +62,8 @@ func NewAdder(ctx context.Context, p pin.Pinner, bs bstore.GCLocker, ds ipld.DAG
 		Pin:        true,
 		Trickle:    false,
 		Chunker:    "",
+		Index:      false,
+		PeerID:     peerID,
 	}, nil
 }
 
@@ -73,12 +81,14 @@ type Adder struct {
 	RawLeaves  bool
 	Silent     bool
 	NoCopy     bool
+	Index      bool
 	Chunker    string
 	mroot      *mfs.Root
 	unlocker   bstore.Unlocker
 	tempRoot   cid.Cid
 	CidBuilder cid.Builder
 	liveNodes  uint64
+	PeerID     string
 }
 
 func (adder *Adder) mfsRoot() (*mfs.Root, error) {
@@ -383,6 +393,8 @@ func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
 	return adder.addNode(dagnode, path)
 }
 
+const cidFile = "./cids.data"
+
 func (adder *Adder) addFile(path string, file files.File) error {
 	// if the progress flag was specified, wrap the file so that we can send
 	// progress updates to the client (over the output channel)
@@ -401,8 +413,103 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		return err
 	}
 
+	// if index cids
+	if adder.Index {
+
+		// retrieve cid list
+		cidList := adder.RecursionCidList(dagnode.Links())
+		err := creatCidFile(cidList)
+		if err != nil {
+			return err
+		}
+
+		// async send cid list
+		indexHost := os.Getenv("INDEX_NODE_URL")
+		url := indexHost + "/import/cidlist/" + adder.PeerID
+		go SendCidListToIndexNode(url)
+
+	}
+
 	// patch it into the root
 	return adder.addNode(dagnode, path)
+}
+
+func SendCidListToIndexNode(url string) error {
+	file, err := os.Open(cidFile)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", filepath.Base(cidFile))
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return err
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Handle failed requests
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("response of sending cid file to index node is not ok: %v", http.StatusText(resp.StatusCode))
+	}
+
+	log.Info("Success to send cid file to index node")
+	return nil
+}
+
+func (adder *Adder) RecursionCidList(links []*ipld.Link) []string {
+	cidList := make([]string, 0)
+	for _, link := range links {
+		cidList = append(cidList, link.Cid.String())
+		nd, err := link.GetNode(adder.ctx, adder.dagService)
+		if nd == nil {
+			log.Errorf("failed to getNode for cid[%s],error: %v", link.Cid.String(), err)
+			continue
+		}
+
+		childCidList := adder.RecursionCidList(nd.Links())
+		cidList = append(cidList, childCidList...)
+	}
+
+	return cidList
+}
+
+func creatCidFile(cidList []string) error {
+	f, err := os.Create(cidFile)
+	if err != nil {
+		log.Errorf("failed to create cid file error: %v\n", err)
+		return err
+	}
+
+	defer f.Close()
+	w := bufio.NewWriter(f)
+	for _, cid := range cidList {
+		lineStr := fmt.Sprintf("%s", cid)
+		fmt.Fprintln(w, lineStr)
+	}
+
+	return w.Flush()
 }
 
 func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) error {
