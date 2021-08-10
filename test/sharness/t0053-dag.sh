@@ -25,11 +25,11 @@ test_expect_success "make an ipld object in dag-json" '
   printf "{\"hello\":\"world\",\"cats\":[{\"/\":\"%s\"},{\"water\":{\"/\":\"%s\"}}],\"magic\":{\"/\":\"%s\"},\"sub\":{\"dict\":\"ionary\",\"beep\":[0,\"bop\"]}}" $HASH1 $HASH2 $HASH3 > ipld_object
 '
 
-# This data is in https://github.com/ipld/codec-fixtures/tree/master/fixtures/dagpb_2link%2Bdata
+# This data is in https://github.com/ipld/codec-fixtures/tree/master/fixtures/dagpb_Data_some
 test_expect_success "make the same ipld object in dag-cbor, dag-json and dag-pb" '
-  echo "omREYXRhSXNvbWUgZGF0YWVMaW5rc4KjZEhhc2jYKlgjABIgiremxedHN4eKxzhjy3ZznRXUZm3kTldWv1Wi+emrX0NkTmFtZWlzb21lIGxpbmtlVHNpemUaBfXhAKNkSGFzaNgqWCMAEiCKt6bF50c3h4rHOGPLdnOdFdRmbeROV1a/VaL56atfRGROYW1lb3NvbWUgb3RoZXIgbGlua2VUc2l6ZQg=" | base64 -d > ipld_object_dagcbor
-  echo "EjQKIhIgiremxedHN4eKxzhjy3ZznRXUZm3kTldWv1Wi+emrX0MSCXNvbWUgbGluaxiAwtcvEjcKIhIgiremxedHN4eKxzhjy3ZznRXUZm3kTldWv1Wi+emrX0QSD3NvbWUgb3RoZXIgbGluaxgICglzb21lIGRhdGE=" | base64 -d > ipld_object_dagpb
-  echo "{\"Data\":{\"/\":{\"bytes\":\"c29tZSBkYXRh\"}},\"Links\":[{\"Hash\":{\"/\":\"QmXg9Pp2ytZ14xgmQjYEiHjVjMFXzCVVEcRTWJBmLgR39U\"},\"Name\":\"some link\",\"Tsize\":100000000},{\"Hash\":{\"/\":\"QmXg9Pp2ytZ14xgmQjYEiHjVjMFXzCVVEcRTWJBmLgR39V\"},\"Name\":\"some other link\",\"Tsize\":8}]}" > ipld_object_dagjson
+  echo "omREYXRhRQABAgMEZUxpbmtzgA==" | base64 -d > ipld_object_dagcbor
+  echo "CgUAAQIDBA==" | base64 -d > ipld_object_dagpb
+  echo "{\"Data\":{\"/\":{\"bytes\":\"AAECAwQ\"}},\"Links\":[]}" > ipld_object_dagjson
 '
 
 test_dag_cmd() {
@@ -79,7 +79,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-cbor CID looks correct" '
-    EXPHASH="bafyreia4kjmr364wv7snvuffjjfx6e3ssyhcaxcv3mmewrm6lkg426ycpu"
+    EXPHASH="bafyreieculsmrexh3ty5jentbvuku452o27mst4h2tq2rb2zntqhgcstji"
     test $EXPHASH = $IPLDCBORHASH
   '
 
@@ -88,7 +88,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-pb CID looks correct" '
-    EXPHASH="bafybeibh647pmxyksmdm24uad6b5f7tx4dhvilzbg2fiqgzll4yek7g7y4"
+    EXPHASH="bafybeibazl2z4vqp2tmwcfag6wirmtpnomxknqcgrauj7m2yisrz3qjbom"
     test $EXPHASH = $IPLDPBHASH
   '
 
@@ -97,7 +97,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-json CID looks correct" '
-    EXPHASH="baguqeerasu2dlp3l3b6xswyh45iegkn3qamarjdygorldhucn3x4kfeafmpa"
+    EXPHASH="baguqeerajwksxu3lxpomdwxvosl542zl3xknhjgxtq3277gafrhl6vdw5tcq"
     test $EXPHASH = $IPLDJSONHASH
   '
 
@@ -108,7 +108,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-cbor CID looks correct" '
-    EXPHASH="bafyreia4kjmr364wv7snvuffjjfx6e3ssyhcaxcv3mmewrm6lkg426ycpu"
+    EXPHASH="bafyreieculsmrexh3ty5jentbvuku452o27mst4h2tq2rb2zntqhgcstji"
     test $EXPHASH = $IPLDCBORHASH
   '
 
@@ -117,7 +117,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-pb CID looks correct" '
-    EXPHASH="bafybeibh647pmxyksmdm24uad6b5f7tx4dhvilzbg2fiqgzll4yek7g7y4"
+    EXPHASH="bafybeibazl2z4vqp2tmwcfag6wirmtpnomxknqcgrauj7m2yisrz3qjbom"
     test $EXPHASH = $IPLDPBHASH
   '
 
@@ -126,7 +126,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-json CID looks correct" '
-    EXPHASH="baguqeerasu2dlp3l3b6xswyh45iegkn3qamarjdygorldhucn3x4kfeafmpa"
+    EXPHASH="baguqeerajwksxu3lxpomdwxvosl542zl3xknhjgxtq3277gafrhl6vdw5tcq"
     test $EXPHASH = $IPLDJSONHASH
   '
 
@@ -137,7 +137,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-cbor CID looks correct" '
-    EXPHASH="bafyreia4kjmr364wv7snvuffjjfx6e3ssyhcaxcv3mmewrm6lkg426ycpu"
+    EXPHASH="bafyreieculsmrexh3ty5jentbvuku452o27mst4h2tq2rb2zntqhgcstji"
     test $EXPHASH = $IPLDCBORHASH
   '
 
@@ -146,7 +146,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-pb CID looks correct" '
-    EXPHASH="bafybeibh647pmxyksmdm24uad6b5f7tx4dhvilzbg2fiqgzll4yek7g7y4"
+    EXPHASH="bafybeibazl2z4vqp2tmwcfag6wirmtpnomxknqcgrauj7m2yisrz3qjbom"
     test $EXPHASH = $IPLDPBHASH
   '
 
@@ -155,7 +155,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "dag-json CID looks correct" '
-    EXPHASH="baguqeerasu2dlp3l3b6xswyh45iegkn3qamarjdygorldhucn3x4kfeafmpa"
+    EXPHASH="baguqeerajwksxu3lxpomdwxvosl542zl3xknhjgxtq3277gafrhl6vdw5tcq"
     test $EXPHASH = $IPLDJSONHASH
   '
 
@@ -207,12 +207,12 @@ test_dag_cmd() {
   '
 
   test_expect_success "traversals using /ipld/ work" '
-    ipfs dag get /ipld/$IPLDPBHASH/Links/0/Name > link0name_actual
+    ipfs dag get /ipld/$IPLDPBHASH/Data > ipld_path_Data_actual
   '
 
   test_expect_success "retrieved node looks right" '
-    echo -n "\"some link\"" > link0name_expected
-    test_cmp link0name_actual link0name_expected
+    echo -n "{\"/\":{\"bytes\":\"AAECAwQ\"}}" > ipld_path_Data_expected
+    test_cmp ipld_path_Data_actual ipld_path_Data_expected
   '
 
   test_expect_success "can pin ipld object" '
@@ -258,7 +258,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "output looks correct" '
-    echo -n "{\"Data\":{\"/\":{\"bytes\":\"CAISB2Zvb2JhcgoYBw==\"}},\"Links\":[]}" > dag_get_pb_exp &&
+    echo -n "{\"Data\":{\"/\":{\"bytes\":\"CAISB2Zvb2JhcgoYBw\"}},\"Links\":[]}" > dag_get_pb_exp &&
     test_cmp dag_get_pb_exp dag_get_pb_out
   '
 
@@ -267,7 +267,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "output looks correct" '
-    echo -n "{\"Data\":{\"/\":{\"bytes\":\"CAISBGZvbwoYBA==\"}},\"Links\":[]}" > cat_exp &&
+    echo -n "{\"Data\":{\"/\":{\"bytes\":\"CAISBGZvbwoYBA\"}},\"Links\":[]}" > cat_exp &&
     test_cmp cat_exp cat_out
   '
 
