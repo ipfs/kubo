@@ -105,14 +105,6 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		if err := b.Add(req.Context, &ln); err != nil {
 			return err
 		}
-		/*
-			for _, nd := range nds {
-				err := b.Add(req.Context, nd)
-				if err != nil {
-					return err
-				}
-			}
-		*/
 
 		cid := ln.Cid()
 		if err := res.Emit(&OutputObject{Cid: cid}); err != nil {
