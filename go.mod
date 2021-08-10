@@ -15,7 +15,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/ipfs/go-bitswap v0.3.3
+	github.com/ipfs/go-bitswap v0.3.4
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.1.4
 	github.com/ipfs/go-cid v0.0.7
@@ -27,7 +27,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.4.5
 	github.com/ipfs/go-ds-leveldb v0.4.2
 	github.com/ipfs/go-ds-measure v0.1.0
-	github.com/ipfs/go-fetcher v1.3.0
+	github.com/ipfs/go-fetcher v1.3.1-0.20210810055511-b24de2cb27b4
 	github.com/ipfs/go-filestore v0.0.3
 	github.com/ipfs/go-fs-lock v0.0.6
 	github.com/ipfs/go-graphsync v0.8.0
