@@ -92,11 +92,11 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	case cid.Raw:
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:
-		log.Error("fuse node was not a protobuf node")
-		return nil, fuse.ENOENT
+		log.Error("fuse node was not a supported type")
+		return nil, fuse.ENOTSUP
 	}
 	if err != nil {
-		log.Error("could not convert protobuf node")
+		log.Error("could not convert protobuf or raw node")
 		return nil, fuse.ENOENT
 	}
 
