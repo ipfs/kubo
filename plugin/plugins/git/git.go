@@ -20,7 +20,7 @@ var Plugins = []plugin.Plugin{
 
 type gitPlugin struct{}
 
-var _ plugin.Plugin = (*gitPlugin)(nil)
+var _ plugin.PluginIPLD = (*gitPlugin)(nil)
 
 func (*gitPlugin) Name() string {
 	return "ipld-git"
@@ -31,9 +31,12 @@ func (*gitPlugin) Version() string {
 }
 
 func (*gitPlugin) Init(_ *plugin.Environment) error {
+	return nil
+}
+
+func (*gitPlugin) Register(reg multicodec.Registry) error {
 	// register a custom identifier in the reserved range for import of "zlib-encoded git objects."
-	// TODO: give this a name.
-	multicodec.RegisterDecoder(uint64(mc.ReservedStart+mc.GitRaw), decodeZlibGit)
+	reg.RegisterDecoder(uint64(mc.ReservedStart+mc.GitRaw), decodeZlibGit)
 	return nil
 }
 
