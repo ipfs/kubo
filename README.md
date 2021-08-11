@@ -1,13 +1,9 @@
 # go-ipfs
 
-![banner](https://ipfs.io/ipfs/QmVk7srrwahXLNmcDYvyUEJptyoxpndnRa57YJ11L4jV26/ipfs.go.png)
+![banner](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
 
-[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
-[![Matrix](https://img.shields.io/badge/matrix-%23ipfs%3Amatrix.org-blue.svg?style=flat-square)](https://matrix.to/#/room/#ipfs:matrix.org)
-[![IRC](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
-[![Discord](https://img.shields.io/discord/475789330380488707?color=blueviolet&label=discord&style=flat-square)](https://discord.gg/24fmuwR)
+[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](https://protocol.ai)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://godoc.org/github.com/ipfs/go-ipfs)
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![CircleCI](https://img.shields.io/circleci/build/github/ipfs/go-ipfs?style=flat-square)](https://circleci.com/gh/ipfs/go-ipfs)
 
 ## What is IPFS?
@@ -22,6 +18,7 @@ Before opening an issue, consider using one of the following locations to ensure
   - IPFS _design_ in [ipfs/specs issues](https://github.com/ipfs/specs/issues).
   - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
   - Ask questions and meet the rest of the community at the [IPFS Forum](https://discuss.ipfs.io).
+  - Or [chat with us](https://docs.ipfs.io/community/chat/).
 
 ## Table of Contents
 
@@ -30,6 +27,8 @@ Before opening an issue, consider using one of the following locations to ensure
   - [System Requirements](#system-requirements)
   - [Install prebuilt packages](#install-prebuilt-packages)
   - [From Linux package managers](#from-linux-package-managers)
+  - [From Windows package managers](#from-windows-package-managers)
+  - [From macOS package managers](#from-macos-package-managers)
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
@@ -83,7 +82,7 @@ You can also download go-ipfs from this project's GitHub releases page if you ar
 ### From Linux package managers
 
 - [Arch Linux](#arch-linux)
-- [Nix](#nix)
+- [Nix](#nix-linux)
 - [Solus](#solus)
 - [Snap](#snap)
 
@@ -100,9 +99,9 @@ Development version of go-ipfs is also on AUR under
 [go-ipfs-git](https://aur.archlinux.org/packages/go-ipfs-git/).
 You can install it using your favorite AUR Helper or manually from AUR.
 
-#### Nix
+#### <a name="nix-linux">Nix</a>
 
-For Linux and MacOSX you can use the purely functional package manager [Nix](https://nixos.org/nix/):
+For Linux and macOS you can use the purely functional package manager [Nix](https://nixos.org/nix/):
 
 ```
 $ nix-env -i ipfs
@@ -144,10 +143,10 @@ $ sudo snap install ipfs
 
 #### Chocolatey
 
-The package [ipfs](https://chocolatey.org/packages/ipfs) currently points to go-ipfs and is being maintained.
+The package name is [go-ipfs](https://chocolatey.org/packages/go-ipfs):
 
 ```Powershell
-PS> choco install ipfs
+PS> choco install go-ipfs
 ```
 
 #### Scoop
@@ -158,9 +157,32 @@ PS> scoop bucket add extras
 PS> scoop install go-ipfs
 ```
 
+### From macOS package managers
+
+- [MacPorts](#macports)
+- [Nix](#nix-macos)
+
+#### MacPorts
+
+The package [ipfs](https://ports.macports.org/port/ipfs) currently points to go-ipfs and is being maintained.
+
+```
+$ sudo port install ipfs
+```
+
+#### <a name="nix-macos">Nix</a>
+
+For macOS and Linux you can use the purely functional package manager [Nix](https://nixos.org/nix/):
+
+```
+$ nix-env -i ipfs
+```
+
+You can also install the Package by using its attribute name, which is also `ipfs`.
+
 ### Build from Source
 
-go-ipfs's build system requires Go 1.14.4 and some standard POSIX build tools:
+go-ipfs's build system requires Go 1.15.2 and some standard POSIX build tools:
 
 * GNU make
 * Git
@@ -170,7 +192,7 @@ To build without GCC, build with `CGO_ENABLED=0` (e.g., `make build CGO_ENABLED=
 
 #### Install Go
 
-The build process for ipfs requires Go 1.14.4 or higher. If you don't have it: [Download Go 1.14+](https://golang.org/dl/).
+The build process for ipfs requires Go 1.15.2 or higher. If you don't have it: [Download Go 1.15+](https://golang.org/dl/).
 
 You'll need to add Go's bin directories to your `$PATH` environment variable e.g., by adding these lines to your `/etc/profile` (for a system-wide installation) or `$HOME/.profile`:
 
@@ -222,8 +244,8 @@ dependencies as well.
 - _WARNING_: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!-
   We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
   (See https://github.com/ipfs/go-ipfs/issues/177)
-- For more details on setting up FUSE (so that you can mount the filesystem), see the docs folder.
-- Shell command completion is available in `misc/completion/ipfs-completion.bash`. Read [docs/command-completion.md](docs/command-completion.md) to learn how to install it.
+- Read [docs/fuse.md](docs/fuse.md) for more details on setting up FUSE (so that you can mount the filesystem).
+- Shell command completions can be generated with one of the `ipfs commands completion` subcommands. Read [docs/command-completion.md](docs/command-completion.md) to learn more.
 - See the [misc folder](https://github.com/ipfs/go-ipfs/tree/master/misc) for how to connect IPFS to systemd or whatever init system your distro uses.
 
 ### Updating go-ipfs
@@ -288,29 +310,33 @@ Basic proof of 'ipfs working' locally:
 
 SUBCOMMANDS
   BASIC COMMANDS
-    init          Initialize ipfs local configuration
-    add <path>    Add a file to ipfs
-    cat <ref>     Show ipfs object data
-    get <ref>     Download ipfs objects
+    init          Initialize local IPFS configuration
+    add <path>    Add a file to IPFS
+    cat <ref>     Show IPFS object data
+    get <ref>     Download IPFS objects
     ls <ref>      List links from an object
     refs <ref>    List hashes of links from an object
 
   DATA STRUCTURE COMMANDS
+    dag           Interact with IPLD DAG nodes
+    files         Interact with files as if they were a unix filesystem
     block         Interact with raw blocks in the datastore
-    object        Interact with raw dag nodes
-    files         Interact with objects as if they were a unix filesystem
 
   ADVANCED COMMANDS
     daemon        Start a long-running daemon process
-    mount         Mount an ipfs read-only mount point
+    mount         Mount an IPFS read-only mount point
     resolve       Resolve any type of name
-    name          Publish or resolve IPNS names
+    name          Publish and resolve IPNS names
+    key           Create and list IPNS name keypairs
     dns           Resolve DNS links
     pin           Pin objects to local storage
-    repo          Manipulate an IPFS repository
+    repo          Manipulate the IPFS repository
+    stats         Various operational stats
+    p2p           Libp2p stream mounting
+    filestore     Manage the filestore (experimental)
 
   NETWORK COMMANDS
-    id            Show info about ipfs peers
+    id            Show info about IPFS peers
     bootstrap     Add or remove bootstrap peers
     swarm         Manage connections to the p2p network
     dht           Query the DHT for values or peers
@@ -319,9 +345,11 @@ SUBCOMMANDS
 
   TOOL COMMANDS
     config        Manage configuration
-    version       Show ipfs version information
+    version       Show IPFS version information
     update        Download and apply go-ipfs updates
     commands      List all available commands
+    cid           Convert and discover properties of CIDs
+    log           Manage and show logs of running daemon
 
   Use 'ipfs <command> --help' to learn more about each command.
 
@@ -526,8 +554,7 @@ We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what 
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-You can contact us on the freenode #ipfs-dev channel or attend one of our
-[weekly calls](https://github.com/ipfs/team-mgmt/issues/674).
+Please reach out to us in one [chat](https://docs.ipfs.io/community/chat/) rooms.
 
 ## License
 

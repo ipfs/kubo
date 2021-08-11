@@ -44,8 +44,8 @@ type PinOutput struct {
 }
 
 type AddPinOutput struct {
-	Pins     []string
-	Progress int `json:",omitempty"`
+	Pins     []string `json:",omitempty"`
+	Progress int      `json:",omitempty"`
 }
 
 const (
@@ -204,6 +204,14 @@ var rmPinCmd = &cmds.Command{
 		ShortDescription: `
 Removes the pin from the given object allowing it to be garbage
 collected if needed. (By default, recursively. Use -r=false for direct pins.)
+`,
+		LongDescription: `
+Removes the pin from the given object allowing it to be garbage
+collected if needed. (By default, recursively. Use -r=false for direct pins.)
+
+A pin may not be removed because the specified object is not pinned or pinned
+indirectly. To determine if the object is pinned indirectly, use the command:
+ipfs pin ls -t indirect <cid>
 `,
 	},
 
@@ -523,7 +531,7 @@ const (
 
 var updatePinCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Update a recursive pin",
+		Tagline: "Update a recursive pin.",
 		ShortDescription: `
 Efficiently pins a new object based on differences from an existing one and,
 by default, removes the old pin.

@@ -4,6 +4,8 @@
 
 We're happy to announce go-ipfs X.Y.Z, bla bla...
 
+As usual, this release includes important fixes, some of which may be critical for security. Unless the fix addresses a bug being exploited in the wild, the fix will _not_ be called out in the release notes. Please make sure to update ASAP. See our [release process](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md#security-fix-policy) for details.
+
 ## 🗺 What's left for release
 
 <List of items with PRs and/or Issues to be considered for this release>

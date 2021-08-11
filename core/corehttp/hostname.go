@@ -12,9 +12,10 @@ import (
 	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-	namesys "github.com/ipfs/go-ipfs/namesys"
-	isd "github.com/jbenet/go-is-domain"
+	namesys "github.com/ipfs/go-namesys"
 	"github.com/libp2p/go-libp2p-core/peer"
+	dns "github.com/miekg/dns"
+
 	mbase "github.com/multiformats/go-multibase"
 
 	config "github.com/ipfs/go-ipfs-config"
@@ -23,12 +24,7 @@ import (
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 )
 
-var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/version"}
-
-var pathGatewaySpec = &config.GatewaySpec{
-	Paths:         defaultPaths,
-	UseSubdomains: false,
-}
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
 
 var subdomainGatewaySpec = &config.GatewaySpec{
 	Paths:         defaultPaths,
@@ -36,10 +32,7 @@ var subdomainGatewaySpec = &config.GatewaySpec{
 }
 
 var defaultKnownGateways = map[string]*config.GatewaySpec{
-	"localhost":       subdomainGatewaySpec,
-	"ipfs.io":         pathGatewaySpec,
-	"gateway.ipfs.io": pathGatewaySpec,
-	"dweb.link":       subdomainGatewaySpec,
+	"localhost": subdomainGatewaySpec,
 }
 
 // Label's max length in DNS (https://tools.ietf.org/html/rfc1034#page-7)
@@ -97,15 +90,6 @@ func HostnameOption() ServeOption {
 							return
 						}
 						if newURL != "" {
-							// Just to be sure single Origin can't be abused in
-							// web browsers that ignored the redirect for some
-							// reason, Clear-Site-Data header clears browsing
-							// data (cookies, storage etc) associated with
-							// hostname's root Origin
-							// Note: we can't use "*" due to bug in Chromium:
-							// https://bugs.chromium.org/p/chromium/issues/detail?id=898503
-							w.Header().Set("Clear-Site-Data", "\"cookies\", \"storage\"")
-
 							// Set "Location" header with redirect destination.
 							// It is ignored by curl in default mode, but will
 							// be respected by user agents that follow
@@ -365,13 +349,27 @@ func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *con
 	return nil, "", "", "", false
 }
 
-// isDNSLinkName returns bool if a valid DNS TXT record exist for provided host
-func isDNSLinkName(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
-	fqdn := stripPort(host)
-	if len(fqdn) == 0 && !isd.IsDomain(fqdn) {
+// isDomainNameAndNotPeerID returns bool if string looks like a valid DNS name AND is not a PeerID
+func isDomainNameAndNotPeerID(hostname string) bool {
+	if len(hostname) == 0 {
 		return false
 	}
-	name := "/ipns/" + fqdn
+	if _, err := peer.Decode(hostname); err == nil {
+		return false
+	}
+	_, ok := dns.IsDomainName(hostname)
+	return ok
+}
+
+// isDNSLinkName returns bool if a valid DNS TXT record exist for provided host
+func isDNSLinkName(ctx context.Context, ipfs iface.CoreAPI, host string) bool {
+	dnslinkName := stripPort(host)
+
+	if !isDomainNameAndNotPeerID(dnslinkName) {
+		return false
+	}
+
+	name := "/ipns/" + dnslinkName
 	// check if DNSLink exists
 	depth := options.Name.ResolveOption(nsopts.Depth(1))
 	_, err := ipfs.Name().Resolve(ctx, name, depth)
@@ -490,7 +488,7 @@ func toSubdomainURL(hostname, path string, r *http.Request, ipfs iface.CoreAPI) 
 	}
 
 	// Normalize problematic PeerIDs (eg. ed25519+identity) to CID representation
-	if isPeerIDNamespace(ns) && !isd.IsDomain(rootID) {
+	if isPeerIDNamespace(ns) && !isDomainNameAndNotPeerID(rootID) {
 		peerID, err := peer.Decode(rootID)
 		// Note: PeerID CIDv1 with protobuf multicodec will fail, but we fix it
 		// in the next block

@@ -48,7 +48,7 @@ const (
 
 var IDCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Show ipfs node id info.",
+		Tagline: "Show IPFS node id info.",
 		ShortDescription: `
 Prints out information about the specified peer.
 If no peer is specified, prints out information for local peers.

@@ -28,10 +28,20 @@ const (
 	versionAllOptionName    = "all"
 )
 
+func getVersionInfo() *VersionOutput {
+	return &VersionOutput{
+		Version: version.CurrentVersionNumber,
+		Commit:  version.CurrentCommit,
+		Repo:    fmt.Sprint(fsrepo.RepoVersion),
+		System:  runtime.GOARCH + "/" + runtime.GOOS, //TODO: Precise version here
+		Golang:  runtime.Version(),
+	}
+}
+
 var VersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline:          "Show ipfs version information.",
-		ShortDescription: "Returns the current version of ipfs and exits.",
+		Tagline:          "Show IPFS version information.",
+		ShortDescription: "Returns the current version of IPFS and exits.",
 	},
 	Subcommands: map[string]*cmds.Command{
 		"deps": depsVersionCommand,
@@ -46,13 +56,7 @@ var VersionCmd = &cmds.Command{
 	// must be permitted to run before init
 	Extra: CreateCmdExtras(SetDoesNotUseRepo(true), SetDoesNotUseConfigAsInput(true)),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		return cmds.EmitOnce(res, &VersionOutput{
-			Version: version.CurrentVersionNumber,
-			Commit:  version.CurrentCommit,
-			Repo:    fmt.Sprint(fsrepo.RepoVersion),
-			System:  runtime.GOARCH + "/" + runtime.GOOS, //TODO: Precise version here
-			Golang:  runtime.Version(),
-		})
+		return cmds.EmitOnce(res, getVersionInfo())
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, version *VersionOutput) error {
@@ -105,7 +109,7 @@ const pkgVersionFmt = "%s@%s"
 
 var depsVersionCommand = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Shows information about dependencies used for build",
+		Tagline: "Shows information about dependencies used for build.",
 		ShortDescription: `
 Print out all dependencies and their versions.`,
 	},

@@ -89,7 +89,7 @@ test_expect_success "ipfs init" '
   ipfs init --profile=test > /dev/null
 '
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # CIDv0to1 is necessary because raw-leaves are enabled by default during
 # "ipfs add" with CIDv1 and disabled with CIDv0
@@ -141,7 +141,7 @@ test_expect_success "Publish test text file to IPNS using ED25519 keys" '
 test_expect_success 'start daemon with empty config for Gateway.PublicGateways' '
   test_kill_ipfs_daemon &&
   ipfs config --json Gateway.PublicGateways "{}" &&
-  test_launch_ipfs_daemon --offline
+  test_launch_ipfs_daemon_without_network
 '
 
 ## ============================================================================
@@ -180,13 +180,6 @@ test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{DIR_CID} returns Location HTTP header for subdomain redirect in browsers" \
   "http://localhost:$GWAY_PORT/ipfs/$DIR_CID/" \
   "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
-
-# Responses to the root domain of subdomain gateway hostname should Clear-Site-Data
-# https://github.com/ipfs/go-ipfs/issues/6975#issuecomment-597472477
-test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} returns Clear-Site-Data header to purge Origin cookies and storage" \
-  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
-  'Clear-Site-Data: \"cookies\", \"storage\"'
 
 # We return body with HTTP 301 so existing cli scripts that use path-based
 # gateway do not break (curl doesn't auto-redirect without passing -L; wget
@@ -344,7 +337,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 
 # example.com/ip(f|n)s/*
@@ -526,7 +519,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # not mounted at the root domain
 test_hostname_gateway_response_should_contain \
@@ -639,7 +632,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # refuse requests to Paths that were not explicitly whitelisted for the hostname
 test_hostname_gateway_response_should_contain \
@@ -668,7 +661,7 @@ ipfs config --json Gateway.PublicGateways '{
 
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # example.com/ip(f|n)s/* smoke-tests
 # =============================================================================
@@ -841,7 +834,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 test_expect_success "request for http://fake.domain.com/ipfs/{CID} doesn't match the example.com gateway" "
   curl -H \"Host: fake.domain.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
@@ -883,7 +876,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # *.example1.com
 
@@ -952,7 +945,7 @@ ipfs config --json Gateway.PublicGateways '{
 
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CID} stays on path when subdomain gw is explicitly disabled" \

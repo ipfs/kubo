@@ -12,6 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -35,7 +36,7 @@ type dhtBucket struct {
 
 var statDhtCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Returns statistics about the node's DHT(s)",
+		Tagline: "Returns statistics about the node's DHT(s).",
 		ShortDescription: `
 Returns statistics about the DHT(s) the node is participating in.
 
@@ -43,7 +44,8 @@ This interface is not stable and may change from release to release.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("dht", false, true, "The DHT whose table should be listed (wan or lan). Defaults to both."),
+		cmds.StringArg("dht", false, true, "The DHT whose table should be listed (wanserver, lanserver, wan, lan). "+
+			"wan and lan refer to client routing tables. When using the experimental DHT client only WAN is supported. Defaults to wan and lan."),
 	},
 	Options: []cmds.Option{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -67,12 +69,62 @@ This interface is not stable and may change from release to release.
 			dhts = []string{"wan", "lan"}
 		}
 
+	dhttypeloop:
 		for _, name := range dhts {
 			var dht *dht.IpfsDHT
+
+			var separateClient bool
+			if nd.DHTClient != nd.DHT {
+				separateClient = true
+			}
+
 			switch name {
 			case "wan":
+				if separateClient {
+					client, ok := nd.DHTClient.(*fullrt.FullRT)
+					if !ok {
+						return cmds.Errorf(cmds.ErrClient, "could not generate stats for the WAN DHT client type")
+					}
+					peerMap := client.Stat()
+					buckets := make([]dhtBucket, 1)
+					b := &dhtBucket{}
+					for _, p := range peerMap {
+						info := dhtPeerInfo{ID: p.String()}
+
+						if ver, err := nd.Peerstore.Get(p, "AgentVersion"); err == nil {
+							info.AgentVersion, _ = ver.(string)
+						} else if err == pstore.ErrNotFound {
+							// ignore
+						} else {
+							// this is a bug, usually.
+							log.Errorw(
+								"failed to get agent version from peerstore",
+								"error", err,
+							)
+						}
+
+						info.Connected = nd.PeerHost.Network().Connectedness(p) == network.Connected
+						b.Peers = append(b.Peers, info)
+					}
+					buckets[0] = *b
+
+					if err := res.Emit(dhtStat{
+						Name:    name,
+						Buckets: buckets,
+					}); err != nil {
+						return err
+					}
+					continue dhttypeloop
+				}
+				fallthrough
+			case "wanserver":
 				dht = nd.DHT.WAN
 			case "lan":
+				if separateClient {
+					return cmds.Errorf(cmds.ErrClient, "no LAN client found")
+				}
+				fallthrough
+			case "lanserver":
 				dht = nd.DHT.LAN
 			default:
 				return cmds.Errorf(cmds.ErrClient, "unknown dht type: %s", name)

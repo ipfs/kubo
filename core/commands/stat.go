@@ -30,6 +30,7 @@ for your IPFS node.`,
 		"repo":    repoStatCmd,
 		"bitswap": bitswapStatCmd,
 		"dht":     statDhtCmd,
+		"provide": statProvideCmd,
 	},
 }
 
@@ -42,7 +43,7 @@ const (
 
 var statBwCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Print ipfs bandwidth information.",
+		Tagline: "Print IPFS bandwidth information.",
 		ShortDescription: `'ipfs stats bw' prints bandwidth information for the ipfs daemon.
 It displays: TotalIn, TotalOut, RateIn, RateOut.
 		`,

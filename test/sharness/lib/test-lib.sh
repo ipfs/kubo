@@ -98,6 +98,7 @@ test "$TEST_NO_PLUGIN" != 1 && test "$TEST_OS" = "LINUX" && test_set_prereq PLUG
 
 # this may not be available, skip a few dependent tests
 type socat >/dev/null 2>&1 && test_set_prereq SOCAT
+type unzip >/dev/null 2>&1 && test_set_prereq UNZIP
 
 
 # Set a prereq as error messages are often different on Windows/Cygwin
@@ -278,6 +279,10 @@ test_launch_ipfs_daemon() {
     pollEndpoint -host=$API_MADDR -v -tout=1s -tries=60 2>poll_apierr > poll_apiout ||
     test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
   '
+}
+
+test_launch_ipfs_daemon_without_network() {
+  test_launch_ipfs_daemon --offline "$@"
 }
 
 do_umount() {
