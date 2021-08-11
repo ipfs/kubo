@@ -37,6 +37,8 @@ func (*gitPlugin) Init(_ *plugin.Environment) error {
 func (*gitPlugin) Register(reg multicodec.Registry) error {
 	// register a custom identifier in the reserved range for import of "zlib-encoded git objects."
 	reg.RegisterDecoder(uint64(mc.ReservedStart+mc.GitRaw), decodeZlibGit)
+	reg.RegisterEncoder(uint64(mc.GitRaw), git.Encode)
+	reg.RegisterDecoder(uint64(mc.GitRaw), git.Decode)
 	return nil
 }
 

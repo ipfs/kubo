@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	multicodec "github.com/ipfs/go-ipld-prime/multicodec"
+	multicodec "github.com/ipld/go-ipld-prime/multicodec"
 )
 
 // PluginIPLD is an interface that can be implemented to add handlers for
