@@ -208,8 +208,8 @@ func (p Priority) String() string {
 	}
 }
 
-var _ json.Unmarshaler = (*Flag)(nil)
-var _ json.Marshaler = (*Flag)(nil)
+var _ json.Unmarshaler = (*Priority)(nil)
+var _ json.Marshaler = (*Priority)(nil)
 
 // Duration wraps time.Duration to provide json serialization and deserialization.
 //
