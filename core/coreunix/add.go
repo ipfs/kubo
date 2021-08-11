@@ -418,6 +418,7 @@ func (adder *Adder) addFile(path string, file files.File) error {
 
 		// retrieve cid list
 		cidList := adder.RecursionCidList(dagnode.Links())
+		cidList = append(cidList, dagnode.Cid().String())
 		err := creatCidFile(cidList)
 		if err != nil {
 			return err
@@ -425,6 +426,10 @@ func (adder *Adder) addFile(path string, file files.File) error {
 
 		// async send cid list
 		indexHost := os.Getenv("INDEX_NODE_URL")
+		if indexHost == "" {
+			return fmt.Errorf("not specified index node host")
+		}
+
 		url := indexHost + "/import/cidlist/" + adder.PeerID
 		go SendCidListToIndexNode(url)
 
