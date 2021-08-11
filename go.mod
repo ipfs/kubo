@@ -27,7 +27,7 @@ require (
 	github.com/ipfs/go-ds-flatfs v0.4.5
 	github.com/ipfs/go-ds-leveldb v0.4.2
 	github.com/ipfs/go-ds-measure v0.1.0
-	github.com/ipfs/go-fetcher v1.3.1-0.20210810055511-b24de2cb27b4
+	github.com/ipfs/go-fetcher v1.3.1-0.20210811164155-5ca55a2bea5e
 	github.com/ipfs/go-filestore v0.0.3
 	github.com/ipfs/go-fs-lock v0.0.6
 	github.com/ipfs/go-graphsync v0.8.0
@@ -54,7 +54,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.2
-	github.com/ipfs/go-path v0.0.10-0.20210726072238-b450033b62d9
+	github.com/ipfs/go-path v0.0.10-0.20210811160053-18a10cd84c77
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.2.4
 	github.com/ipfs/go-unixfsnode v1.1.1
