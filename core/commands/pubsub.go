@@ -166,7 +166,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		cmds.StringArg("data", false, true, "Payload of message to publish."),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		encoder, _ := mbase.EncoderByName("base64")
+		encoder, _ := mbase.EncoderByName("base64url")
 		for n, arg := range req.Arguments {
 			req.Arguments[n] = encoder.Encode([]byte(arg))
 		}
