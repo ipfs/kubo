@@ -6,7 +6,8 @@ LABEL maintainer="Steven Allen <steven@stebalien.com>"
 RUN apt-get update && apt-get install -y \
   libssl-dev \
   ca-certificates \
-  fuse
+  fuse \
+  bash-static
 
 ENV SRC_DIR /go-ipfs
 
@@ -71,6 +72,9 @@ COPY --from=0 /lib/*-linux-gnu*/libdl.so.2 /lib/
 # Copy over SSL libraries.
 COPY --from=0 /usr/lib/*-linux-gnu*/libssl.so* /usr/lib/
 COPY --from=0 /usr/lib/*-linux-gnu*/libcrypto.so* /usr/lib/
+
+# Bash shell for ERR signals
+COPY --from=0 /bin/bash-static /bin/bash
 
 # Swarm TCP; should be exposed to the public
 EXPOSE 4001

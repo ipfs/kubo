@@ -1,7 +1,21 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 user=ipfs
 repo="$IPFS_PATH"
+
+init_scripts() {
+  trap 'kill $$' ERR # Kill parent if init fail
+  local scripts_path=$1
+
+  if [ -d ${scripts_path} ]; then
+    for script in ${scripts_path}/*.sh; do
+      echo "==== Running $script"
+      # Prevent failure if no +x is set on file
+      cat $script | sh -e
+    done
+  fi
+
+}
 
 if [ `id -u` -eq 0 ]; then
   echo "Changing user to $user"
@@ -50,6 +64,12 @@ else
 
   # Unset the swarm key file variable
   unset IPFS_SWARM_KEY_FILE
+
+  # Pre-hook init with scripts
+  init_scripts /docker-prehook.d
+
+  # Post-hook init scripts
+  { sleep 10; init_scripts /docker-posthook.d ; } &
 
 fi
 
