@@ -61,7 +61,7 @@ require (
 	github.com/ipfs/tar-utils v0.0.1
 	github.com/ipld/go-car v0.3.1
 	github.com/ipld/go-codec-dagpb v1.2.1-0.20210405170603-d0b86f7623c2
-	github.com/ipld/go-ipld-prime v0.10.1-0.20210810090017-8ef23e564c4d
+	github.com/ipld/go-ipld-prime v0.10.1-0.20210812142709-6d3da1ffccb7
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
