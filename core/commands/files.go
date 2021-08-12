@@ -362,6 +362,9 @@ GC'ed.
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
 
 		prefix, err := getPrefixNew(req)
 		if err != nil {
