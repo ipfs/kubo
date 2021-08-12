@@ -225,7 +225,7 @@ jobs:
       - run:
           name: Cloning
           command: |
-            git clone -b ipld-in-ipfs https://github.com/ipfs/go-ipfs-api.git
+            git clone https://github.com/ipfs/go-ipfs-api.git
             git -C go-ipfs-api log -1
       - run:
           name: Starting the daemon
