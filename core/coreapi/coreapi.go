@@ -113,19 +113,6 @@ func (api *CoreAPI) Dag() coreiface.APIDagService {
 	}
 }
 
-type nodeAPI struct {
-	fetcher.Factory
-	dagwriter.DagWritingService
-}
-
-// Node returns the Node interface implementation backed by the go-ipfs node
-func (api *CoreAPI) Node() coreiface.NodeAPI {
-	return &nodeAPI{
-		api.fetcherFactory,
-		api.dagWriter,
-	}
-}
-
 // Name returns the NameAPI interface implementation backed by the go-ipfs node
 func (api *CoreAPI) Name() coreiface.NameAPI {
 	return (*NameAPI)(api)
