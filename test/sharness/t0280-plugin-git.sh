@@ -35,8 +35,8 @@ test_dag_git() {
 
   test_expect_success "path traversals work" '
     echo -n "{\"date\":\"1497302532\",\"email\":\"johndoe@example.com\",\"name\":\"John Doe\",\"timezone\":\"+0200\"}" > author_expected &&
-    echo -n "{\"/\":{\"bytes\":\"YmxvYiAxMgBIZWxsbyB3b3JsZAo=\"}}" > file1_expected &&
-    echo -n "{\"/\":{\"bytes\":\"YmxvYiA3ACcsLnB5Zgo=\"}}" > file2_expected &&
+    echo -n "{\"/\":{\"bytes\":\"YmxvYiAxMgBIZWxsbyB3b3JsZAo\"}}" > file1_expected &&
+    echo -n "{\"/\":{\"bytes\":\"YmxvYiA3ACcsLnB5Zgo\"}}" > file2_expected &&
     ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/object/author > author_actual &&
     ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/object/tree/file/hash > file1_actual &&
     ipfs dag get baf4bcfhzi72pcj5cc4ocz7igcduubuu7aa3cddi/object/parents/0/tree/dir2/hash/f3/hash > file2_actual
@@ -50,7 +50,7 @@ test_dag_git() {
 }
 
 # should work offline
-#test_dag_git
+test_dag_git
 
 # should work online
 test_launch_ipfs_daemon
