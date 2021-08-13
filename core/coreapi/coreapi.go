@@ -19,8 +19,6 @@ import (
 	"fmt"
 
 	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-dagwriter"
-	bsdagwriter "github.com/ipfs/go-dagwriter/impl/blockservice"
 	"github.com/ipfs/go-fetcher"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
@@ -30,7 +28,6 @@ import (
 	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
-	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
@@ -59,15 +56,14 @@ type CoreAPI struct {
 	baseBlocks blockstore.Blockstore
 	pinning    pin.Pinner
 
-	blocks          bserv.BlockService
-	dag             ipld.DAGService
-	fetcherFactory  fetcher.Factory
-	dagWriter       dagwriter.DagWritingService
-	resolver        *resolver.Resolver
-	peerstore       pstore.Peerstore
-	peerHost        p2phost.Host
-	recordValidator record.Validator
-	exchange        exchange.Interface
+	blocks               bserv.BlockService
+	dag                  ipld.DAGService
+	ipldFetcherFactory   fetcher.Factory
+	unixFSFetcherFactory fetcher.Factory
+	peerstore            pstore.Peerstore
+	peerHost             p2phost.Host
+	recordValidator      record.Validator
+	exchange             exchange.Interface
 
 	namesys     namesys.NameSystem
 	routing     routing.Routing
@@ -173,10 +169,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		baseBlocks: n.BaseBlocks,
 		pinning:    n.Pinning,
 
-		blocks:         n.Blocks,
-		dag:            n.DAG,
-		resolver:       n.Resolver,
-		fetcherFactory: n.FetcherFactory,
+		blocks:               n.Blocks,
+		dag:                  n.DAG,
+		ipldFetcherFactory:   n.IPLDFetcherFactory,
+		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,
@@ -193,8 +189,6 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		nd:         n,
 		parentOpts: settings,
 	}
-
-	subApi.dagWriter = bsdagwriter.NewDagWriter(subApi.blocks)
 
 	subApi.checkOnline = func(allowOffline bool) error {
 		if !n.IsOnline && !allowOffline {

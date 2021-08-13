@@ -294,7 +294,6 @@ var Core = fx.Options(
 	fx.Provide(BlockService),
 	fx.Provide(Dag),
 	fx.Provide(FetcherConfig),
-	fx.Provide(Resolver),
 	fx.Provide(Pinning),
 	fx.Provide(Files),
 )

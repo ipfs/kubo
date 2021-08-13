@@ -3,7 +3,6 @@ package node
 import (
 	"context"
 	"fmt"
-
 	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-bitswap/network"
 	"github.com/ipfs/go-blockservice"
@@ -19,7 +18,6 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
-	"github.com/ipfs/go-path/resolver"
 	"github.com/ipfs/go-unixfs"
 	"github.com/ipfs/go-unixfsnode"
 	dagpb "github.com/ipld/go-codec-dagpb"
@@ -88,22 +86,24 @@ func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
 	return merkledag.NewSession(ctx, s.DAGService)
 }
 
+type fetchersOut struct {
+	fx.Out
+	IPLDFetcher   fetcher.Factory `name:"ipldFetcher"`
+	UnixfsFetcher fetcher.Factory `name:"unixfsFetcher"`
+}
+
 // FetcherConfig returns a fetcher config that can build new fetcher instances
-func FetcherConfig(bs blockservice.BlockService) fetcher.Factory {
-	fc := bsfetcher.NewFetcherConfig(bs)
-	fc.NodeReifier = unixfsnode.Reify
-	fc.PrototypeChooser = dagpb.AddSupportToChooser(func(lnk ipld.Link, lnkCtx ipld.LinkContext) (ipld.NodePrototype, error) {
+func FetcherConfig(bs blockservice.BlockService) fetchersOut {
+	ipldFetcher := bsfetcher.NewFetcherConfig(bs)
+	ipldFetcher.PrototypeChooser = dagpb.AddSupportToChooser(func(lnk ipld.Link, lnkCtx ipld.LinkContext) (ipld.NodePrototype, error) {
 		if tlnkNd, ok := lnkCtx.LinkNode.(schema.TypedLinkNode); ok {
 			return tlnkNd.LinkTargetNodePrototype(), nil
 		}
 		return basicnode.Prototype.Any, nil
 	})
-	return fc
-}
 
-// Resolver returns a resolver that's configured to look up unixfs paths
-func Resolver(fetcherFactory fetcher.Factory) *resolver.Resolver {
-	return resolver.NewBasicResolver(fetcherFactory)
+	unixFSFetcher := ipldFetcher.WithReifier(unixfsnode.Reify)
+	return fetchersOut{IPLDFetcher: ipldFetcher, UnixfsFetcher: unixFSFetcher}
 }
 
 // Dag creates new DAGService

@@ -11,9 +11,9 @@ import (
 	"github.com/ipfs/go-fetcher"
 	ipld "github.com/ipfs/go-ipld-format"
 	ipfspath "github.com/ipfs/go-path"
+	ipfspathresolver "github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
-	ipldprime "github.com/ipld/go-ipld-prime"
 )
 
 // ResolveNode resolves the path `p` using Unixfs resolver, gets and returns the
@@ -52,15 +52,14 @@ func (api *CoreAPI) ResolvePath(ctx context.Context, p path.Path) (path.Resolved
 	if ipath.Segments()[0] != "ipfs" && ipath.Segments()[0] != "ipld" {
 		return nil, fmt.Errorf("unsupported path namespace: %s", p.Namespace())
 	}
-	resolver := *api.resolver
+
+	var dataFetcher fetcher.Factory
 	if ipath.Segments()[0] == "ipld" {
-		type reifiable interface {
-			WithReifier(nr ipldprime.NodeReifier) fetcher.Factory
-		}
-		if bsf, ok := resolver.FetcherFactory.(reifiable); ok {
-			resolver.FetcherFactory = bsf.WithReifier(nil)
-		}
+		dataFetcher = api.ipldFetcherFactory
+	} else {
+		dataFetcher = api.unixFSFetcherFactory
 	}
+	resolver := ipfspathresolver.NewBasicResolver(dataFetcher)
 
 	node, rest, err := resolver.ResolveToLastNode(ctx, ipath)
 	if err != nil {
