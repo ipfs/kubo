@@ -9,15 +9,17 @@
 # use the ipfs tool to test against
 
 # add current directory to path, for ipfs tool.
-BIN=$(cd .. && pwd)/bin
-BIN2=$(cd ../.. && pwd)/cmd/ipfs
-PATH=${BIN2}:${BIN}:${PATH}
+if test "$MAKE_SKIP_PATH" != "1"; then
+  BIN=$(cd .. && echo `pwd`/bin)
+  BIN2=$(cd ../.. && echo `pwd`/cmd/ipfs)
+  PATH=${BIN2}:${BIN}:${PATH}
 
-# assert the `ipfs` we're using is the right one.
-if test "$(which ipfs)" != "${BIN2}/ipfs"; then
-  echo >&2 "Cannot find the tests' local ipfs tool."
-  echo >&2 "Please check test and ipfs tool installation."
-  exit 1
+  # assert the `ipfs` we're using is the right one.
+  if test `which ipfs` != ${BIN2}/ipfs; then
+    echo >&2 "Cannot find the tests' local ipfs tool."
+    echo >&2 "Please check test and ipfs tool installation."
+    exit 1
+  fi
 fi
 
 # set sharness verbosity. we set the env var directly as
