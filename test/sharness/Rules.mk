@@ -26,6 +26,8 @@ DEPS_$(d) += $(PLUGINS_$(d))
 endif
 endif
 
+#export MAKE_SKIP_PATH=1
+
 $(T_$(d)): $$(DEPS_$(d)) # use second expansion so coverage can inject dependency
 	@echo "*** $@ ***"
 ifeq ($(CONTINUE_ON_S_FAILURE),1)
