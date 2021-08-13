@@ -75,6 +75,9 @@ func breadcrumbs(urlPath string, dnslinkOrigin bool) []breadcrumb {
 }
 
 func shortHash(hash string) string {
+	if len(hash) <= 8 {
+		return hash
+	}
 	return (hash[0:4] + "\u2026" + hash[len(hash)-4:])
 }
 

@@ -412,11 +412,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			size = humanize.Bytes(uint64(s))
 		}
 
-		hash := ""
-		if r, err := i.api.ResolvePath(r.Context(), ipath.Join(resolvedPath, dirit.Name())); err == nil {
-			// Path may not be resolved. Continue anyways.
-			hash = r.Cid().String()
+		resolved, err := i.api.ResolvePath(r.Context(), ipath.Join(resolvedPath, dirit.Name()))
+		if err != nil {
+			internalWebError(w, err)
+			return
 		}
+		hash := resolved.Cid().String()
 
 		// See comment above where originalUrlPath is declared.
 		di := directoryItem{
