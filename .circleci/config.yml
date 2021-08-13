@@ -118,6 +118,7 @@ jobs:
   sharness:
     machine:
         image: ubuntu-2004:202010-01
+    resource_class: 2xlarge
     working_directory: ~/ipfs/go-ipfs
     environment:
         <<: *default_environment
