@@ -85,7 +85,7 @@ type IpfsNode struct {
 
 	// Online
 	PeerHost      p2phost.Host            `optional:"true"` // the network host (server+client)
-	Peering       peering.PeeringService  `optional:"true"`
+	Peering       *peering.PeeringService `optional:"true"`
 	Filters       *ma.Filters             `optional:"true"`
 	Bootstrapper  io.Closer               `optional:"true"` // the periodic bootstrapper
 	Routing       routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
