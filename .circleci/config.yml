@@ -130,7 +130,7 @@ jobs:
         mkdir ~/localgo && cd ~/localgo
         wget https://golang.org/dl/go1.16.6.linux-amd64.tar.gz
         tar xfz go1.16.6.linux-amd64.tar.gz
-        echo "export PATH=$(pwd)/go/bin:$PATH" >> $BASH_ENV
+        echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
     - run: sudo apt install socat net-tools
     - checkout
