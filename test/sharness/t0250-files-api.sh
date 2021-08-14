@@ -296,6 +296,20 @@ test_files_api() {
     ipfs files cp /ipfs/$FILE3 /cats/this/is/a/dir/file3
   '
 
+  test_expect_success "can copy file into deep dir using -p flag $EXTRA" '
+    ipfs files cp -p /ipfs/$FILE3 /cats/some/other/dir/file3
+  '
+
+  test_expect_success "file copied into deep dir exists $EXTRA" '
+    ipfs files read /cats/some/other/dir/file3 > file_out &&
+    echo "baz" > file_exp &&
+    test_cmp file_out file_exp
+  '
+  
+  test_expect_success "cleanup deep cp -p test $EXTRA" '
+    ipfs files rm -r /cats/some
+  '
+
   test_expect_success "can read file $EXTRA" '
     ipfs files read /cats/this/is/a/dir/file3 > output
   '
