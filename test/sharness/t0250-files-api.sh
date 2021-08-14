@@ -296,6 +296,10 @@ test_files_api() {
     ipfs files cp /ipfs/$FILE3 /cats/this/is/a/dir/file3
   '
 
+  test_expect_success "can copy file into deep dir using -p flag $EXTRA" '
+    ipfs files cp -p /ipfs/$FILE3 /cats/some/other/dir/file3
+  '
+
   test_expect_success "can read file $EXTRA" '
     ipfs files read /cats/this/is/a/dir/file3 > output
   '
