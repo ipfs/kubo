@@ -300,6 +300,10 @@ test_files_api() {
     ipfs files cp -p /ipfs/$FILE3 /cats/some/other/dir/file3
   '
 
+  test_expect_success "cleanup deep cp -p test $EXTRA" '
+    ipfs files rm -r /cats/some
+  '
+
   test_expect_success "can read file $EXTRA" '
     ipfs files read /cats/this/is/a/dir/file3 > output
   '
