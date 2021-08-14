@@ -16,6 +16,7 @@ import (
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	migrate "github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 
 	humanize "github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
@@ -400,8 +401,31 @@ var repoMigrateCmd = &cmds.Command{
 
 		fmt.Println("Found outdated fs-repo, starting migration.")
 
+		// Read Migration section of IPFS config
+		migrationCfg, err := migrate.ReadMigrationConfig(cctx.ConfigRoot)
+		if err != nil {
+			return err
+		}
+
+		// Define function to create IPFS fetcher.  Do not supply an
+		// already-constructed IPFS fetcher, because this may be expensive and
+		// not needed according to migration config. Instead, supply a function
+		// to construct the particular IPFS fetcher implementation used here,
+		// which is called only if an IPFS fetcher is needed.
+		newIpfsFetcher := func(distPath string) migrate.Fetcher {
+			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot)
+		}
+
 		// Fetch migrations from current distribution, or location from environ
-		fetcher := migrate.NewHttpFetcher(migrate.GetDistPathEnv(migrate.CurrentIpfsDist), "", "go-ipfs", 0)
+		fetchDistPath := migrate.GetDistPathEnv(migrate.CurrentIpfsDist)
+
+		// Create fetchers according to migrationCfg.DownloadSources
+		fetcher, err := migrate.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
+		if err != nil {
+			return err
+		}
+		defer fetcher.Close()
+
 		err = migrate.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", allowDowngrade)
 		if err != nil {
 			fmt.Println("The migrations of fs-repo failed:")
