@@ -10,7 +10,7 @@ import (
 
 const (
 	// Current dirstibution to fetch migrations from
-	CurrentIpfsDist = "/ipfs/QmVxxcTSuryJYdQJGcS8SyhzN7NBNLTqVPAxpu6gp2ZcrR"
+	CurrentIpfsDist = "/ipfs/QmP7tLxzhLU1KauTRX3jkVkF93pCv4skcceyUYMhf4AKJR" // fs-repo-migrations v2.0.2
 	// Latest distribution path.  Default for fetchers.
 	LatestIpfsDist = "/ipns/dist.ipfs.io"
 
