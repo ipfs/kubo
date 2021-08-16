@@ -232,3 +232,55 @@ func (d Duration) String() string {
 
 var _ encoding.TextUnmarshaler = (*Duration)(nil)
 var _ encoding.TextMarshaler = (*Duration)(nil)
+
+// OptionalInteger represents an integer that has a default value
+//
+// When encoded in json, Default is encoded as "null"
+type OptionalInteger struct {
+	value *int64
+}
+
+// WithDefault resolves the integer with the given default.
+func (p OptionalInteger) WithDefault(defaultValue int64) (value int64) {
+	if p.value == nil {
+		return defaultValue
+	}
+	return *p.value
+}
+
+// IsDefault returns if this is a default optional integer
+func (p OptionalInteger) IsDefault() bool {
+	return p.value == nil
+}
+
+func (p OptionalInteger) MarshalJSON() ([]byte, error) {
+	if p.value != nil {
+		return json.Marshal(p.value)
+	}
+	return json.Marshal(nil)
+}
+
+func (p *OptionalInteger) UnmarshalJSON(input []byte) error {
+	switch string(input) {
+	case "null", "undefined":
+		*p = OptionalInteger{}
+	default:
+		var value int64
+		err := json.Unmarshal(input, &value)
+		if err != nil {
+			return err
+		}
+		*p = OptionalInteger{value: &value}
+	}
+	return nil
+}
+
+func (p OptionalInteger) String() string {
+	if p.value == nil {
+		return "default"
+	}
+	return fmt.Sprintf("%d", p.value)
+}
+
+var _ json.Unmarshaler = (*OptionalInteger)(nil)
+var _ json.Marshaler = (*OptionalInteger)(nil)

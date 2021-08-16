@@ -218,3 +218,93 @@ func TestPriority(t *testing.T) {
 		}
 	}
 }
+
+func TestOptionalInteger(t *testing.T) {
+	makeInt64Pointer := func(v int64) *int64 {
+		return &v
+	}
+
+	var defaultOptionalInt OptionalInteger
+	if !defaultOptionalInt.IsDefault() {
+		t.Fatal("should be the default")
+	}
+	if val := defaultOptionalInt.WithDefault(0); val != 0 {
+		t.Errorf("optional integer should have been 0, got %d", val)
+	}
+
+	if val := defaultOptionalInt.WithDefault(1); val != 1 {
+		t.Errorf("optional integer should have been 1, got %d", val)
+	}
+
+	if val := defaultOptionalInt.WithDefault(-1); val != -1 {
+		t.Errorf("optional integer should have been -1, got %d", val)
+	}
+
+	var filledInt OptionalInteger
+	filledInt = OptionalInteger{value: makeInt64Pointer(1)}
+	if filledInt.IsDefault() {
+		t.Fatal("should not be the default")
+	}
+	if val := filledInt.WithDefault(0); val != 1 {
+		t.Errorf("optional integer should have been 1, got %d", val)
+	}
+
+	if val := filledInt.WithDefault(-1); val != 1 {
+		t.Errorf("optional integer should have been 1, got %d", val)
+	}
+
+	filledInt = OptionalInteger{value: makeInt64Pointer(0)}
+	if val := filledInt.WithDefault(1); val != 0 {
+		t.Errorf("optional integer should have been 0, got %d", val)
+	}
+
+	for jsonStr, goValue := range map[string]OptionalInteger{
+		"null": {},
+		"0":    {value: makeInt64Pointer(0)},
+		"1":    {value: makeInt64Pointer(1)},
+		"-1":   {value: makeInt64Pointer(-1)},
+	} {
+		var d OptionalInteger
+		err := json.Unmarshal([]byte(jsonStr), &d)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if goValue.value == nil && d.value == nil {
+		} else if goValue.value == nil && d.value != nil {
+			t.Errorf("expected default, got %s", d)
+		} else if *d.value != *goValue.value {
+			t.Fatalf("expected %s, got %s", goValue, d)
+		}
+
+		// Reverse
+		out, err := json.Marshal(goValue)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(out) != jsonStr {
+			t.Fatalf("expected %s, got %s", jsonStr, string(out))
+		}
+	}
+
+	type Foo struct {
+		I *OptionalInteger `json:",omitempty"`
+	}
+	out, err := json.Marshal(new(Foo))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "{}"
+	if string(out) != expected {
+		t.Fatal("expected omitempty to omit the optional integer")
+	}
+	for _, invalid := range []string{
+		"foo", "-1.1", "1.1", "0.0", "[]",
+	} {
+		var p Priority
+		err := json.Unmarshal([]byte(invalid), &p)
+		if err == nil {
+			t.Errorf("expected to fail to decode %s as a priority", invalid)
+		}
+	}
+}
