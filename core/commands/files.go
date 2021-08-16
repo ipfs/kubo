@@ -356,8 +356,17 @@ GC'ed.
 		cmds.StringArg("source", true, false, "Source IPFS or MFS path to copy."),
 		cmds.StringArg("dest", true, false, "Destination within MFS."),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		mkParents, _ := req.Options[filesParentsOptionName].(bool)
 		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		prefix, err := getPrefixNew(req)
 		if err != nil {
 			return err
 		}
@@ -387,6 +396,13 @@ GC'ed.
 		node, err := getNodeFromPath(req.Context, nd, api, src)
 		if err != nil {
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
+		}
+
+		if mkParents {
+			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = mfs.PutNode(nd.FilesRoot, dst, node)

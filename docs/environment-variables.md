@@ -77,10 +77,11 @@ Defaults: 2048
 
 ## `IPFS_DIST_PATH`
 
-URL from which go-ipfs fetches repo migrations (when the daemon is launched with
-the `--migrate` flag).
+IPFS Content Path from which go-ipfs fetches repo migrations (when the daemon
+is launched with the `--migrate` flag).
 
-Default: https://ipfs.io/ipfs/$something (depends on the IPFS version)
+Default: `/ipfs/<cid>` (the exact path is hardcoded in
+`migrations.CurrentIpfsDist`, depends on the IPFS version)
 
 ## `IPFS_NS_MAP`
 
