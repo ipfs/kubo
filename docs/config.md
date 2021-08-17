@@ -864,8 +864,8 @@ be hardware limitations like I/O or CPU.
 
 #### `Internal.Bitswap.TaskWorkerCount`
 
-Number of threads sending outgoing messages.
-Used to thottle the number of concurrent send operations.
+Number of threads (goroutines) sending outgoing messages.
+Throttles the number of concurrent send operations.
 
 Type: `optionalInteger` (thread count, `null` means default which is 8)
 
