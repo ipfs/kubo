@@ -116,12 +116,18 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 func OnlineExchange(cfg *config.Config, provide bool) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
+
+		var internalBsCfg config.InternalBitswap
+		if cfg.Internal.Bitswap != nil {
+			internalBsCfg = *cfg.Internal.Bitswap
+		}
+
 		opts := []bitswap.Option{
 			bitswap.ProvideEnabled(provide),
-			bitswap.EngineBlockstoreWorkerCount(int(cfg.Internal.Bitswap.EngineBlockstoreWorkerCount.WithDefault(8))),
-			bitswap.TaskWorkerCount(int(cfg.Internal.Bitswap.TaskWorkerCount.WithDefault(128))),
-			bitswap.EngineTaskWorkerCount(int(cfg.Internal.Bitswap.EngineTaskWorkerCount.WithDefault(8))),
-			bitswap.MaxOutstandingBytesPerPeer(int(cfg.Internal.Bitswap.MaxOutstandingBytesPerPeer.WithDefault(1 << 20))),
+			bitswap.EngineBlockstoreWorkerCount(int(internalBsCfg.EngineBlockstoreWorkerCount.WithDefault(8))),
+			bitswap.TaskWorkerCount(int(internalBsCfg.TaskWorkerCount.WithDefault(128))),
+			bitswap.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(8))),
+			bitswap.MaxOutstandingBytesPerPeer(int(internalBsCfg.MaxOutstandingBytesPerPeer.WithDefault(1 << 20))),
 		}
 		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, opts...)
 		lc.Append(fx.Hook{
