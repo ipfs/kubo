@@ -33,7 +33,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: cimg/go:1.16.6
+      - image: cimg/go:1.16.7
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -58,7 +58,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer:
     docker:
-      - image: cimg/go:1.16.6
+      - image: cimg/go:1.16.7
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
