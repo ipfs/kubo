@@ -63,7 +63,7 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	go func() {
 		defer w.Close()
 		if err := encoder(finalNode, w); err != nil {
-			_ = res.CloseWithError(err)
+			_ = w.CloseWithError(err)
 		}
 	}()
 
