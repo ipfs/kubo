@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ipfs/go-bitswap"
-	"github.com/ipfs/go-bitswap/network"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-filestore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	config "github.com/ipfs/go-ipfs-config"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	pin "github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-pinner/dspinner"
@@ -19,8 +16,6 @@ import (
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-unixfs"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
@@ -84,34 +79,6 @@ func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
 // Dag creates new DAGService
 func Dag(bs blockservice.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
-}
-
-// OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(cfg *config.Config, provide bool) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
-		bitswapNetwork := network.NewFromIpfsHost(host, rt)
-
-		var internalBsCfg config.InternalBitswap
-		if cfg.Internal.Bitswap != nil {
-			internalBsCfg = *cfg.Internal.Bitswap
-		}
-
-		opts := []bitswap.Option{
-			bitswap.ProvideEnabled(provide),
-			bitswap.EngineBlockstoreWorkerCount(int(internalBsCfg.EngineBlockstoreWorkerCount.WithDefault(8))),
-			bitswap.TaskWorkerCount(int(internalBsCfg.TaskWorkerCount.WithDefault(128))),
-			bitswap.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(8))),
-			bitswap.MaxOutstandingBytesPerPeer(int(internalBsCfg.MaxOutstandingBytesPerPeer.WithDefault(1 << 20))),
-		}
-		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, opts...)
-		lc.Append(fx.Hook{
-			OnStop: func(ctx context.Context) error {
-				return exch.Close()
-			},
-		})
-		return exch
-
-	}
 }
 
 // Files loads persisted MFS root
