@@ -810,6 +810,10 @@ Type: `string` (base64 encoded)
 
 ## `Internal`
 
+This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile go-ipfs.  
+
+**Be aware that making informed change here requires in-depth knowledge and most users should leave these untouched. All knobs listed here are subject to breaking changes between versions.** 
+
 ### `Internal.Bitswap`
 
 `Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
