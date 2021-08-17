@@ -3,7 +3,6 @@ package peering
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -213,7 +212,6 @@ func (ps *PeeringService) Stop() error {
 // Add peer may also be called multiple times for the same peer. The new
 // addresses will replace the old.
 func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
-	fmt.Printf("atempt to add peer %s of addrs %s\n", info.ID, info.Addrs)
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
