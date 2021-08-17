@@ -8,7 +8,8 @@ The handling of data serialization as well as many aspects of DAG traversal and 
 
 This is significant refactor of a core component that touches many parts of IPFS, and does come with some **breaking changes**:
 
-* **IPLD plugins** (those implementing the `PluginIPLD` interface) are not registered into go-ipld-prime. Such plugins should instead register their encoder and decoder functions in their initialization functions against the multicodec table. We demonstrate the change with the [bundled git plugin](./plugin/plugins/git/).
+* **IPLD plugins**:
+  * The `PluginIPLD` interface has been changed to utilize go-ipld-prime. There is a demonstration of the change in the [bundled git plugin](./plugin/plugins/git/).
 * **The semantics of `dag put` and `dag get` change**:
   * `dag get` now takes the `format` option which accepts a multicodec name used to encode the output. By default this is `dag-json`. Users may notice differences from the previously plain Go JSON output, particularly where bytes are concerned which are now encoded using a form similar to CIDs: `{"/":{"bytes":"unpadded-base64-bytes"}}` rather than the previously Go-specific plain padded base64 string. See the [dag-json specification](https://ipld.io/specs/codecs/dag-json/spec/) for an explanation of these forms.
   * `dag get` no longer prints an additional new-line character at the end of the encoded block output. This means that the output as presented by `dag get` are the exact bytes of the requested node. A round-trip of such bytes back in through `dag put` using the same codec should result in the same CID.
