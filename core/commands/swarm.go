@@ -141,6 +141,17 @@ var swarmPeeringLsCmd = &cmds.Command{
 		return cmds.EmitOnce(res, addrInfos{Peers: peers})
 	},
 	Type: addrInfos{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ai *addrInfos) error {
+			for _, info := range ai.Peers {
+				fmt.Fprintf(w, "%s \n", info.ID.String())
+				for _, addr := range info.Addrs {
+					fmt.Fprintf(w, "\t"+addr.String()+"\n")
+				}
+			}
+			return nil
+		}),
+	},
 }
 
 type addrInfos struct {
