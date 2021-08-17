@@ -10,14 +10,13 @@ import (
 
 	config "github.com/ipfs/go-ipfs-config"
 	cserialize "github.com/ipfs/go-ipfs-config/serialize"
+	"github.com/ipld/go-ipld-prime/multicodec"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	coredag "github.com/ipfs/go-ipfs/core/coredag"
 	plugin "github.com/ipfs/go-ipfs/plugin"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
-	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	opentracing "github.com/opentracing/opentracing-go"
 )
@@ -335,11 +334,7 @@ func injectDatastorePlugin(pl plugin.PluginDatastore) error {
 }
 
 func injectIPLDPlugin(pl plugin.PluginIPLD) error {
-	err := pl.RegisterBlockDecoders(ipld.DefaultBlockDecoder)
-	if err != nil {
-		return err
-	}
-	return pl.RegisterInputEncParsers(coredag.DefaultInputEncParsers)
+	return pl.Register(multicodec.DefaultRegistry)
 }
 
 func injectTracerPlugin(pl plugin.PluginTracer) error {

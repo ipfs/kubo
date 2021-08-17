@@ -19,11 +19,12 @@ import (
 	"fmt"
 
 	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-interface"
+	"github.com/ipfs/go-fetcher"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	offlinexch "github.com/ipfs/go-ipfs-exchange-offline"
-	"github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-provider"
+	pin "github.com/ipfs/go-ipfs-pinner"
+	provider "github.com/ipfs/go-ipfs-provider"
 	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
@@ -55,13 +56,14 @@ type CoreAPI struct {
 	baseBlocks blockstore.Blockstore
 	pinning    pin.Pinner
 
-	blocks bserv.BlockService
-	dag    ipld.DAGService
-
-	peerstore       pstore.Peerstore
-	peerHost        p2phost.Host
-	recordValidator record.Validator
-	exchange        exchange.Interface
+	blocks               bserv.BlockService
+	dag                  ipld.DAGService
+	ipldFetcherFactory   fetcher.Factory
+	unixFSFetcherFactory fetcher.Factory
+	peerstore            pstore.Peerstore
+	peerHost             p2phost.Host
+	recordValidator      record.Validator
+	exchange             exchange.Interface
 
 	namesys     namesys.NameSystem
 	routing     routing.Routing
@@ -167,8 +169,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		baseBlocks: n.BaseBlocks,
 		pinning:    n.Pinning,
 
-		blocks: n.Blocks,
-		dag:    n.DAG,
+		blocks:               n.Blocks,
+		dag:                  n.DAG,
+		ipldFetcherFactory:   n.IPLDFetcherFactory,
+		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,

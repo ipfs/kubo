@@ -1,16 +1,28 @@
 package dagcmd
 
 import (
+	"bytes"
 	"fmt"
-	"math"
 
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/coredag"
+	ipldlegacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipld/go-ipld-prime/multicodec"
+	basicnode "github.com/ipld/go-ipld-prime/node/basic"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
-	mh "github.com/multiformats/go-multihash"
+	mc "github.com/multiformats/go-multicodec"
+
+	// Expected minimal set of available format/ienc codecs.
+	_ "github.com/ipld/go-codec-dagpb"
+	_ "github.com/ipld/go-ipld-prime/codec/cbor"
+	_ "github.com/ipld/go-ipld-prime/codec/dagcbor"
+	_ "github.com/ipld/go-ipld-prime/codec/dagjson"
+	_ "github.com/ipld/go-ipld-prime/codec/json"
+	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
 
 func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -24,16 +36,33 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	hash, _ := req.Options["hash"].(string)
 	dopin, _ := req.Options["pin"].(bool)
 
-	// mhType tells inputParser which hash should be used. MaxUint64 means 'use
-	// default hash' (sha256 for cbor, sha1 for git..)
-	mhType := uint64(math.MaxUint64)
+	var icodec mc.Code
+	if err := icodec.Set(ienc); err != nil {
+		return err
+	}
+	var fcodec mc.Code
+	if err := fcodec.Set(format); err != nil {
+		return err
+	}
+	var mhType mc.Code
+	if err := mhType.Set(hash); err != nil {
+		return err
+	}
 
-	if hash != "" {
-		var ok bool
-		mhType, ok = mh.Names[hash]
-		if !ok {
-			return fmt.Errorf("%s in not a valid multihash name", hash)
-		}
+	cidPrefix := cid.Prefix{
+		Version:  1,
+		Codec:    uint64(fcodec),
+		MhType:   uint64(mhType),
+		MhLength: -1,
+	}
+
+	decoder, err := multicodec.LookupDecoder(uint64(icodec))
+	if err != nil {
+		return err
+	}
+	encoder, err := multicodec.LookupEncoder(uint64(fcodec))
+	if err != nil {
+		return err
 	}
 
 	var adder ipld.NodeAdder = api.Dag()
@@ -48,22 +77,36 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		if file == nil {
 			return fmt.Errorf("expected a regular file")
 		}
-		nds, err := coredag.ParseInputs(ienc, format, file, mhType, -1)
+
+		node := basicnode.Prototype.Any.NewBuilder()
+		if err := decoder(node, file); err != nil {
+			return err
+		}
+		n := node.Build()
+
+		bd := bytes.NewBuffer([]byte{})
+		if err := encoder(n, bd); err != nil {
+			return err
+		}
+
+		blockCid, err := cidPrefix.Sum(bd.Bytes())
 		if err != nil {
 			return err
 		}
-		if len(nds) == 0 {
-			return fmt.Errorf("no node returned from ParseInputs")
+		blk, err := blocks.NewBlockWithCid(bd.Bytes(), blockCid)
+		if err != nil {
+			return err
+		}
+		ln := ipldlegacy.LegacyNode{
+			Block: blk,
+			Node:  n,
 		}
 
-		for _, nd := range nds {
-			err := b.Add(req.Context, nd)
-			if err != nil {
-				return err
-			}
+		if err := b.Add(req.Context, &ln); err != nil {
+			return err
 		}
 
-		cid := nds[0].Cid()
+		cid := ln.Cid()
 		if err := res.Emit(&OutputObject{Cid: cid}); err != nil {
 			return err
 		}

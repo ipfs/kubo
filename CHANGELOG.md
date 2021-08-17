@@ -1,5 +1,28 @@
 # go-ipfs changelog
 
+## v0.10.0 TBD
+
+**IPLD Levels Up**
+
+The handling of data serialization as well as many aspects of DAG traversal and pathing have been migrated from older libraries, including [go-merkledag](https://github.com/ipfs/go-merkledag) and [go-ipld-format](https://github.com/ipfs/go-ipld-format) to the new **[go-ipld-prime](https://github.com/ipld/go-ipld-prime)** library and its components. This allows us to use many of the newer tools afforded by go-ipld-prime, stricter and more uniform codec implementations, support for additional (pluggable) codecs, and some minor performance improvements.
+
+This is significant refactor of a core component that touches many parts of IPFS, and does come with some **breaking changes**:
+
+* **IPLD plugins**:
+  * The `PluginIPLD` interface has been changed to utilize go-ipld-prime. There is a demonstration of the change in the [bundled git plugin](./plugin/plugins/git/).
+* **The semantics of `dag put` and `dag get` change**:
+  * `dag get` now takes the `format` option which accepts a multicodec name used to encode the output. By default this is `dag-json`. Users may notice differences from the previously plain Go JSON output, particularly where bytes are concerned which are now encoded using a form similar to CIDs: `{"/":{"bytes":"unpadded-base64-bytes"}}` rather than the previously Go-specific plain padded base64 string. See the [dag-json specification](https://ipld.io/specs/codecs/dag-json/spec/) for an explanation of these forms.
+  * `dag get` no longer prints an additional new-line character at the end of the encoded block output. This means that the output as presented by `dag get` are the exact bytes of the requested node. A round-trip of such bytes back in through `dag put` using the same codec should result in the same CID.
+  * `dag put` uses the `input-enc` option to specify the multicodec name of the format data is being provided in, and the `format` option to specify the multicodec multicodec name of the format the data should be stored in. These formerly defaulted to `json` and `cbor` respectively. They now default to `dag-json` and `dag-cbor` respectively but may be changed to any supported codec (bundled or loaded via plugin) by its [multicodec name](https://github.com/multiformats/multicodec/blob/master/table.csv).
+  * The `json` and `cbor` multicodec names (as used by `input-enc` and `format` options) are now no longer aliases for `dag-json` and `dag-cbor` respectively. Instead, they now refer to their proper [multicodec](https://github.com/multiformats/multicodec/blob/master/table.csv) types. `cbor` refers to a plain CBOR format, which will not encode CIDs and does not have strict deterministic encoding rules. `json` is a plain JSON format, which also won't encode CIDs and will encode bytes in the Go-specific padded base64 string format rather than the dag-json method of byte encoding. See https://ipld.io/specs/codecs/ for more information on IPLD codecs.
+* The **dag-pb codec**, which is used to encode UnixFS data for IPFS, is now represented in a form via the `dag` API that mirrors the protobuf schema used to define the binary format and unifies the implementations and specification of dag-pb across the IPLD and IPFS stacks. Previously, additional layers of code within IPFS between protobuf serialization and UnixFS handling for file and directory data, obscured the forms that are described by the protobuf representation. Much of this code has now been replaced and there are fewer layers of transformation. This means that interacting with dag-pb data via the `dag` API will use different forms:
+  * Previously, using `dag get` on a dag-pb block would present the block serialized as JSON as `{"data":"padded-base64-bytes","links":[{"Name":"foo","Size":100,"Cid":{"/":"Qm..."}},...]}`.
+  * Using the dag-pb data model specification and the new default dag-json codec for output, this will now be serialized as: `{"Data":{"/":{"bytes":"unpadded-base64-bytes"}},"Links":[{"Name":"foo","Tsize":100,"Hash":{"/":"Qm..."}},...]}`. Aside from the change in byte formatting, most field names have changed: `data` → `Data`, `links` → `Links`, `Size` → `Tsize`, `Cid` → `Hash`. Note that this output can be changed now using the `--format` option to specify an alternative codec.
+  * Using `dag put` and a `format` option of `dag-pb` now requires that the input conform to this dag-pb specified form. Previously, input using `{"data":"...","links":[...]}` was accepted, now it must be `{"Data":"...","Links":[...]}`.
+  * Previously it was not possible to use paths to navigate to any of these properties of a dag-pb node, the only possible paths were named links, e.g. `dag get QmFoo/NamedLink` where `NamedLink` was one of the links whose name was `NamedLink`. This functionality remains the same, but by prefixing the path with `/ipld/` we enter data model pathing semantics and can `dag get /ipld/QmFoo/Links/0/Hash` to navigate to links or `/ipld/QmFoo/Data` to simply retrieve the data section of the node, for example.
+  * See the [dag-pb specification](https://ipld.io/specs/codecs/dag-pb/) for details on the codec and its data model representation.
+  * See this [detailed write-up](https://github.com/ipld/ipld/blob/master/design/tricky-choices/dag-pb-forms-impl-and-use.md) for further background on these changes.
+
 ## v0.9.1 2021-07-20
 
 This is a small bug fix release resolving the following issues:
