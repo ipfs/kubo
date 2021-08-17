@@ -812,14 +812,14 @@ Type: `string` (base64 encoded)
 
 ### `Internal.Bitswap`
 
-InternalBitswap contains knobs for tuning bitswap resource utilization.
+`Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
 The knobs (below) document how their value should related to each other.
 Whether their values should be raised or lowered should be determined
 based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
 `ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`
 reported by bitswap.
 
-These metrics can be accessed as the prometheus endpoint `API_ADDR/debug/metrics/prometheus`.
+These metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
 
 The value of `ipfs_bitswap_active_tasks` is capped by `EngineTaskWorkerCount`.
 
@@ -852,7 +852,7 @@ be hardware limitations like I/O or CPU.
 Number of threads sending outgoing messages.
 Used to thottle the number of concurrent send operations.
 
-Type: `integer` (thread count, 0 means default which is 8)
+Type: `OptionalInteger` (thread count, `null` means default which is 8)
 
 #### `Internal.Bitswap.EngineBlockstoreWorkerCount`
 
@@ -861,14 +861,14 @@ Used to throttle the number of concurrent requests to the block store.
 The optimal value can be informed by the metrics `ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`.
 This would be a number that depends on your hardware (I/O and CPU).
 
-Type: `integer` (thread count, 0 means default which is 128)
+Type: `OptionalInteger` (thread count, `null` means default which is 128)
 
 #### `Internal.Bitswap.EngineTaskWorkerCount`
 
 Number of worker threads used for preparing and packaging responses before they are sent out.
 This number should generally be equal to `TaskWorkerCount`.
 
-Type: `integer` (thread count, 0 means default which is 8)
+Type: `OptionalInteger` (thread count, `null` means default which is 8)
 
 #### `Internal.Bitswap.MaxOutstandingBytesPerPeer`
 
@@ -878,7 +878,7 @@ dedicated to peers who ask for more). Values below 250Kb could cause thrashing.
 Values above 10Mb open the potential for aggressively-wanting peers to consume all resources and
 deteriorate the quality provided to less aggressively-wanting peers.
 
-Type: `integer` (byte count, 0 means default which is 1MB)
+Type: `OptionalInteger` (byte count, `null` means default which is 1MB)
 
 ## `Ipns`
 
