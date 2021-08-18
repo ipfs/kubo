@@ -67,11 +67,10 @@ func runSpeedTest(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 		return err
 	}
 	for _, a := range h.Addrs() {
-		runenv.RecordMessage("listening on addr", a.String())
+		runenv.RecordMessage("listening on addr: %s", a.String())
 	}
 	bstore := blockstore.NewBlockstore(datastore.NewMapDatastore())
 	ex := bitswap.New(ctx, bsnet.NewFromIpfsHost(h, kad), bstore)
-	// sleep a little to make sure listening is working
 	switch runenv.TestGroupID {
 	case "providers":
 		runenv.RecordMessage("running provider")
