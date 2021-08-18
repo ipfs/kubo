@@ -6,9 +6,8 @@ require (
 	github.com/ipfs/go-ipfs v0.7.0
 	github.com/ipfs/go-ipfs-config v0.14.0
 	github.com/ipfs/go-ipfs-files v0.0.8
-	github.com/ipfs/interface-go-ipfs-core v0.4.0
+	github.com/ipfs/interface-go-ipfs-core v0.5.1
 	github.com/libp2p/go-libp2p-core v0.8.6
-	github.com/libp2p/go-libp2p-peerstore v0.2.8
 	github.com/multiformats/go-multiaddr v0.3.3
 )
 
