@@ -1,5 +1,4 @@
 [metadata]
-  name = "bitswap-large-speed-test"
 
 [global]
   plan = "bitswap"
