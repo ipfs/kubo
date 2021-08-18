@@ -144,7 +144,7 @@ var swarmPeeringLsCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ai *addrInfos) error {
 			for _, info := range ai.Peers {
-				fmt.Fprintf(w, "%s \n", info.ID.String())
+				fmt.Fprintf(w, "%s\n", info.ID)
 				for _, addr := range info.Addrs {
 					fmt.Fprintf(w, "\t%s\n", addr)
 				}
