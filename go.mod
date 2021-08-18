@@ -77,17 +77,17 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-noise v0.2.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.8
-	github.com/libp2p/go-libp2p-pubsub v0.4.2
+	github.com/libp2p/go-libp2p-pubsub v0.5.4
 	github.com/libp2p/go-libp2p-pubsub-router v0.4.0
 	github.com/libp2p/go-libp2p-quic-transport v0.11.2
 	github.com/libp2p/go-libp2p-record v0.1.3
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
-	github.com/libp2p/go-libp2p-swarm v0.5.0
-	github.com/libp2p/go-libp2p-testing v0.4.0
+	github.com/libp2p/go-libp2p-swarm v0.5.3
+	github.com/libp2p/go-libp2p-testing v0.4.2
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-libp2p-yamux v0.5.4
 	github.com/libp2p/go-socket-activation v0.0.2
-	github.com/libp2p/go-tcp-transport v0.2.4
+	github.com/libp2p/go-tcp-transport v0.2.7
 	github.com/libp2p/go-ws-transport v0.4.0
 	github.com/lucas-clemente/quic-go v0.21.2
 	github.com/miekg/dns v1.1.41
