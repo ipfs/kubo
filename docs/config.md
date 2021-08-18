@@ -5,6 +5,130 @@ is read once at node instantiation, either for an offline command, or when
 starting the daemon. Commands that execute on a running daemon do not read the
 config file at runtime.
 
+## Table of Contents
+
+- [The go-ipfs config file](#the-go-ipfs-config-file)
+  - [Table of Contents](#table-of-contents)
+  - [Profiles](#profiles)
+  - [Types](#types)
+    - [`flag`](#flag)
+    - [`priority`](#priority)
+    - [`strings`](#strings)
+    - [`duration`](#duration)
+    - [`optionalInteger`](#optionalinteger)
+  - [`Addresses`](#addresses)
+    - [`Addresses.API`](#addressesapi)
+    - [`Addresses.Gateway`](#addressesgateway)
+    - [`Addresses.Swarm`](#addressesswarm)
+    - [`Addresses.Announce`](#addressesannounce)
+    - [`Addresses.NoAnnounce`](#addressesnoannounce)
+  - [`API`](#api)
+    - [`API.HTTPHeaders`](#apihttpheaders)
+  - [`AutoNAT`](#autonat)
+    - [`AutoNAT.ServiceMode`](#autonatservicemode)
+    - [`AutoNAT.Throttle`](#autonatthrottle)
+    - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
+    - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
+    - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
+  - [`Bootstrap`](#bootstrap)
+  - [`Datastore`](#datastore)
+    - [`Datastore.StorageMax`](#datastorestoragemax)
+    - [`Datastore.StorageGCWatermark`](#datastorestoragegcwatermark)
+    - [`Datastore.GCPeriod`](#datastoregcperiod)
+    - [`Datastore.HashOnRead`](#datastorehashonread)
+    - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
+    - [`Datastore.Spec`](#datastorespec)
+  - [`Discovery`](#discovery)
+    - [`Discovery.MDNS`](#discoverymdns)
+      - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
+      - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
+  - [`Gateway`](#gateway)
+    - [`Gateway.NoFetch`](#gatewaynofetch)
+    - [`Gateway.NoDNSLink`](#gatewaynodnslink)
+    - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
+    - [`Gateway.RootRedirect`](#gatewayrootredirect)
+    - [`Gateway.Writable`](#gatewaywritable)
+    - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
+    - [`Gateway.PublicGateways`](#gatewaypublicgateways)
+      - [`Gateway.PublicGateways: Paths`](#gatewaypublicgateways-paths)
+      - [`Gateway.PublicGateways: UseSubdomains`](#gatewaypublicgateways-usesubdomains)
+      - [`Gateway.PublicGateways: NoDNSLink`](#gatewaypublicgateways-nodnslink)
+      - [Implicit defaults of `Gateway.PublicGateways`](#implicit-defaults-of-gatewaypublicgateways)
+    - [`Gateway` recipes](#gateway-recipes)
+  - [`Identity`](#identity)
+    - [`Identity.PeerID`](#identitypeerid)
+    - [`Identity.PrivKey`](#identityprivkey)
+  - [`Internal`](#internal)
+    - [`Internal.Bitswap`](#internalbitswap)
+      - [`Internal.Bitswap.TaskWorkerCount`](#internalbitswaptaskworkercount)
+      - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
+      - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
+      - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
+  - [`Ipns`](#ipns)
+    - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
+    - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
+    - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+  - [`Migration`](#migration)
+    - [`Migration.DownloadSources`](#migrationdownloadsources)
+    - [`Migration.Keep`](#migrationkeep)
+  - [`Mounts`](#mounts)
+    - [`Mounts.IPFS`](#mountsipfs)
+    - [`Mounts.IPNS`](#mountsipns)
+    - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+  - [`Pinning`](#pinning)
+    - [`Pinning.RemoteServices`](#pinningremoteservices)
+      - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
+        - [`Pinning.RemoteServices: API.Endpoint`](#pinningremoteservices-apiendpoint)
+        - [`Pinning.RemoteServices: API.Key`](#pinningremoteservices-apikey)
+      - [`Pinning.RemoteServices: Policies`](#pinningremoteservices-policies)
+        - [`Pinning.RemoteServices: Policies.MFS`](#pinningremoteservices-policiesmfs)
+          - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
+          - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
+          - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Pubsub`](#pubsub)
+    - [`Pubsub.Router`](#pubsubrouter)
+    - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
+  - [`Peering`](#peering)
+    - [`Peering.Peers`](#peeringpeers)
+  - [`Reprovider`](#reprovider)
+    - [`Reprovider.Interval`](#reproviderinterval)
+    - [`Reprovider.Strategy`](#reproviderstrategy)
+  - [`Routing`](#routing)
+    - [`Routing.Type`](#routingtype)
+  - [`Swarm`](#swarm)
+    - [`Swarm.AddrFilters`](#swarmaddrfilters)
+    - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
+    - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
+    - [`Swarm.DisableRelay`](#swarmdisablerelay)
+    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
+    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
+      - [Mode 1: `EnableRelayHop` is `false`](#mode-1-enablerelayhop-is-false)
+      - [Mode 2: `EnableRelayHop` is `true`](#mode-2-enablerelayhop-is-true)
+    - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
+    - [`Swarm.ConnMgr`](#swarmconnmgr)
+      - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
+      - [Basic Connection Manager](#basic-connection-manager)
+        - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
+        - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
+        - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+    - [`Swarm.Transports`](#swarmtransports)
+    - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
+      - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
+      - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
+      - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
+      - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
+    - [`Swarm.Transports.Security`](#swarmtransportssecurity)
+      - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
+      - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
+      - [`Swarm.Transports.Security.Noise`](#swarmtransportssecuritynoise)
+    - [`Swarm.Transports.Multiplexers`](#swarmtransportsmultiplexers)
+    - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
+    - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
+  - [`DNS`](#dns)
+  - [`DNS.Resolvers`](#dnsresolvers)
+
+
+
 ## Profiles
 
 Configuration profiles allow to tweak configuration quickly. Profiles can be
@@ -129,100 +253,13 @@ of strings, or null:
 Duration is a type for describing lengths of time, using the same format go
 does (e.g, `"1d2h4m40.01s"`).
 
-## Table of Contents
+### `optionalInteger`
 
-- [`Addresses`](#addresses)
-    - [`Addresses.API`](#addressesapi)
-    - [`Addresses.Gateway`](#addressesgateway)
-    - [`Addresses.Swarm`](#addressesswarm)
-    - [`Addresses.Announce`](#addressesannounce)
-    - [`Addresses.NoAnnounce`](#addressesnoannounce)
-- [`API`](#api)
-    - [`API.HTTPHeaders`](#apihttpheaders)
-- [`AutoNAT`](#autonat)
-    - [`AutoNAT.ServiceMode`](#autonatservicemode)
-    - [`AutoNAT.Throttle`](#autonatthrottle)
-    - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
-    - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
-    - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
-- [`Bootstrap`](#bootstrap)
-- [`Datastore`](#datastore)
-    - [`Datastore.StorageMax`](#datastorestoragemax)
-    - [`Datastore.StorageGCWatermark`](#datastorestoragegcwatermark)
-    - [`Datastore.GCPeriod`](#datastoregcperiod)
-    - [`Datastore.HashOnRead`](#datastorehashonread)
-    - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
-    - [`Datastore.Spec`](#datastorespec)
-- [`Discovery`](#discovery)
-    - [`Discovery.MDNS`](#discoverymdns)
-        - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
-        - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
-- [`Gateway`](#gateway)
-    - [`Gateway.NoFetch`](#gatewaynofetch)
-    - [`Gateway.NoDNSLink`](#gatewaynodnslink)
-    - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
-    - [`Gateway.RootRedirect`](#gatewayrootredirect)
-    - [`Gateway.Writable`](#gatewaywritable)
-    - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
-    - [`Gateway.PublicGateways`](#gatewaypublicgateways)
-- [`Identity`](#identity)
-    - [`Identity.PeerID`](#identitypeerid)
-    - [`Identity.PrivKey`](#identityprivkey)
-- [`Ipns`](#ipns)
-    - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
-    - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
-    - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
-- [`Migration`](#migration)
-    - [`Migration.DownloadSources`](#migrationdownloadsources)
-    - [`Migration.Keep`](#migrationkeep)
-- [`Mounts`](#mounts)
-    - [`Mounts.IPFS`](#mountsipfs)
-    - [`Mounts.IPNS`](#mountsipns)
-    - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
-- [`Pinning`](#pinning)
-    - [`Pinning.RemoteServices`](#pinningremoteservices)
-        - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
-          - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
-          - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
-        - [`Pinning.RemoteServices.Policies`](#pinningremoteservices-policies)
-          - [`Pinning.RemoteServices.Policies.MFS`](#pinningremoteservices-policiesmfs)
-- [`Pubsub`](#pubsub)
-    - [`Pubsub.Router`](#pubsubrouter)
-    - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
-- [`Peering`](#peering)
-    - [`Peering.Peers`](#peeringpeers)
-- [`Reprovider`](#reprovider)
-    - [`Reprovider.Interval`](#reproviderinterval)
-    - [`Reprovider.Strategy`](#reproviderstrategy)
-- [`Routing`](#routing)
-    - [`Routing.Type`](#routingtype)
-- [`Swarm`](#swarm)
-    - [`Swarm.AddrFilters`](#swarmaddrfilters)
-    - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
-    - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
-    - [`Swarm.DisableRelay`](#swarmdisablerelay)
-    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
-    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
-    - [`Swarm.ConnMgr`](#swarmconnmgr)
-        - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
-        - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
-        - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
-        - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
-    - [`Swarm.Transports`](#swarmtransports)
-        - [`Swarm.Transports.Security`](#swarmtransportssecurity)
-          - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
-          - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
-          - [`Swarm.Transports.Security.Noise`](#swarmtransportssecuritynoise)
-        - [`Swarm.Transports.Multiplexers`](#swarmtransportsmultiplexers)
-          - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
-          - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
-        - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
-          - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
-          - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
-          - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
-          - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
-- [`DNS`](#dns)
-    - [`DNS.Resolvers`](#dnsresolvers)
+Optional Integers allow specifying some numerical value which has
+an implicit default when `null` or missing from the config file:
+
+- `null`/missing (apply the default value defined in go-ipfs sources)
+- an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
 
 ## `Addresses`
 
@@ -781,6 +818,81 @@ Type: `string` (peer ID)
 The base64 encoded protobuf describing (and containing) the node's private key.
 
 Type: `string` (base64 encoded)
+
+## `Internal`
+
+This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile go-ipfs.  
+
+**Be aware that making informed change here requires in-depth knowledge and most users should leave these untouched. All knobs listed here are subject to breaking changes between versions.** 
+
+### `Internal.Bitswap`
+
+`Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
+The knobs (below) document how their value should related to each other.
+Whether their values should be raised or lowered should be determined
+based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
+`ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`
+reported by bitswap.
+
+These metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+
+The value of `ipfs_bitswap_active_tasks` is capped by `EngineTaskWorkerCount`.
+
+The value of `ipfs_bitswap_pending_tasks` is generally capped by the knobs below,
+however its exact maximum value is hard to predict as it depends on task sizes
+as well as number of requesting peers. However, as a rule of thumb,
+during healthy operation this value should oscillate around a "typical" low value
+(without hitting a plateau continuously).
+
+If `ipfs_bitswap_pending_tasks` is growing while `ipfs_bitswap_active_tasks` is at its maximum then
+the node has reached its resource limits and new requests are unable to be processed as quickly as they are coming in.
+Raising resource limits (using the knobs below) could help, assuming the hardware can support the new limits.
+
+The value of `ipfs_bitswap_active_block_tasks` is capped by `EngineBlockstoreWorkerCount`.
+
+The value of `ipfs_bitswap_pending_block_tasks` is indirectly capped by `ipfs_bitswap_active_tasks`, but can be hard to
+predict as it depends on the number of blocks involved in a peer task which can vary.
+
+If the value of `ipfs_bitswap_pending_block_tasks` is observed to grow,
+while `ipfs_bitswap_active_block_tasks` is at its maximum, there is indication that the number of
+available block tasks is creating a bottleneck (either due to high-latency block operations,
+or due to high number of block operations per bitswap peer task).
+In such cases, try increasing the `EngineBlockstoreWorkerCount`.
+If this adjustment still does not increase the throuput of the node, there might
+be hardware limitations like I/O or CPU.
+
+#### `Internal.Bitswap.TaskWorkerCount`
+
+Number of threads (goroutines) sending outgoing messages.
+Throttles the number of concurrent send operations.
+
+Type: `optionalInteger` (thread count, `null` means default which is 8)
+
+#### `Internal.Bitswap.EngineBlockstoreWorkerCount`
+
+Number of threads for blockstore operations.
+Used to throttle the number of concurrent requests to the block store.
+The optimal value can be informed by the metrics `ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`.
+This would be a number that depends on your hardware (I/O and CPU).
+
+Type: `optionalInteger` (thread count, `null` means default which is 128)
+
+#### `Internal.Bitswap.EngineTaskWorkerCount`
+
+Number of worker threads used for preparing and packaging responses before they are sent out.
+This number should generally be equal to `TaskWorkerCount`.
+
+Type: `optionalInteger` (thread count, `null` means default which is 8)
+
+#### `Internal.Bitswap.MaxOutstandingBytesPerPeer`
+
+Maximum number of bytes (across all tasks) pending to be processed and sent to any individual peer.
+This number controls fairness and can very from 250Kb (very fair) to 10Mb (less fair, with more work
+dedicated to peers who ask for more). Values below 250Kb could cause thrashing.
+Values above 10Mb open the potential for aggressively-wanting peers to consume all resources and
+deteriorate the quality provided to less aggressively-wanting peers.
+
+Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 
 ## `Ipns`
 
