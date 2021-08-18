@@ -64,10 +64,10 @@ const (
 
 var swarmPeeringCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "modify the peering service.",
+		Tagline: "Modify the peering subsystem.",
 		ShortDescription: `
-'ipfs swarm peering' is a tool to manupulate the peering service. 
-Peers in the peering service is maintained to be connected, reconnected 
+'ipfs swarm peering' manages the peering subsystem. 
+Peers in the peering subsystem is maintained to be connected, reconnected 
 on disconnect with a back-off.
 `,
 	},
@@ -80,13 +80,13 @@ on disconnect with a back-off.
 
 var swarmPeeringAddCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "add peers into the peering service.",
+		Tagline: "Add peers into the peering subsystem.",
 		ShortDescription: `
-'ipfs swarm peering add' adds peers into the peering service.
+'ipfs swarm peering add' will add the new address to the peering subsystem as one that should always be connected to.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("address", true, true, "address of peer to add into the PeeringService"),
+		cmds.StringArg("address", true, true, "address of peer to add into the peering subsystem"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		addrs := make([]ma.Multiaddr, len(req.Arguments))
@@ -128,16 +128,17 @@ var swarmPeeringAddCmd = &cmds.Command{
 
 var swarmPeeringLsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "list peers registered in the peering service.",
+		Tagline: "List peers registered in the peering subsystem.",
 		ShortDescription: `
-'ipfs swarm peering ls' lists peers registered in the peering service.`,
+'ipfs swarm peering ls' lists the peers that are registered in the peering subsystem and to which the daemon is always connected.
+`,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
 		}
-		peers := node.Peering.ListPeer()
+		peers := node.Peering.ListPeers()
 		return cmds.EmitOnce(res, addrInfos{Peers: peers})
 	},
 	Type: addrInfos{},
@@ -160,13 +161,13 @@ type addrInfos struct {
 
 var swarmPeeringRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "remove a peer from the peering service.",
+		Tagline: "Remove a peer from the peering subsystem.",
 		ShortDescription: `
-'ipfs swarm peering rm' removes peers from the peering service.
+'ipfs swarm peering rm' will remove the given ID from the peering subsystem and remove it from the always-on connection.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("ID", true, true, "ID of peer to remove from PeeringService"),
+		cmds.StringArg("ID", true, true, "ID of peer to remove from the peering subsystem"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)

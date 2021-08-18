@@ -220,7 +220,6 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 		handler.setAddrs(info.Addrs)
 	} else {
 		logger.Infow("peer added", "peer", info.ID, "addrs", info.Addrs)
-		// in case ps.host is null this line results in a panic.
 		ps.host.ConnManager().Protect(info.ID, connmgrTag)
 
 		handler = &peerHandler{
@@ -245,16 +244,11 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 
 // ListPeers lists peers in the peering service.
 func (ps *PeeringService) ListPeers() []peer.AddrInfo {
-	out := make([]peer.AddrInfo, len(ps.peers))
-	c := 0
-	for k, v := range ps.peers {
-		outAddrs := make([]multiaddr.Multiaddr, len(v.addrs))
-		copy(out_addrs, v.addrs)
-		out[c] = peer.AddrInfo{
-			ID:    k,
-			Addrs: out_addrs,
-		}
-		c++
+	out := make([]peer.AddrInfo, 0, len(ps.peers))
+	for id, addrs := range ps.peers {
+		ai := peer.AddrInfo{ID: id}
+		ai.Addrs = append(ai.Addrs, addrs.addrs...)
+		out = append(out, ai)
 	}
 	return out
 }
