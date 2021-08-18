@@ -48,6 +48,7 @@ wait_prev_cleanup_tick_secs=1
 wait_prev_cleanup_max_secs=5
 cur_test_pwd="$(pwd)"
 
+# wait for daemons to exit, only daemons whose cwd's match this proc's
 while true ; do
   echo -n > stuck_cwd_list
 
