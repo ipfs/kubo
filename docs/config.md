@@ -255,11 +255,11 @@ does (e.g, `"1d2h4m40.01s"`).
 
 ### `optionalInteger`
 
-Optional Integers allow specifying some numerical value with have
+Optional Integers allow specifying some numerical value which has
 an implicit default when `null` or missing from the config file:
 
 - `null`/missing (apply the default value defined in go-ipfs sources)
-- an integer between `-9223372036854775808` (`1 - 2^63`) and `9223372036854775807`
+- an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
 
 ## `Addresses`
 
@@ -844,15 +844,14 @@ as well as number of requesting peers. However, as a rule of thumb,
 during healthy operation this value should oscillate around a "typical" low value
 (without hitting a plateau continuously).
 
-If `ipfs_bitswap_pending_tasks` grows and eventually reaches a plateau,
-while at the same time `ipfs_bitswap_active_tasks` is at its maximum,
-the node has reached its resource limits and requests are being dropped (or not serviced).
+If `ipfs_bitswap_pending_tasks` is growing while `ipfs_bitswap_active_tasks` is at its maximum then
+the node has reached its resource limits and new requests are unable to be processed as quickly as they are coming in.
 Raising resource limits (using the knobs below) could help, assuming the hardware can support the new limits.
 
 The value of `ipfs_bitswap_active_block_tasks` is capped by `EngineBlockstoreWorkerCount`.
 
-The value of `ipfs_bitswap_pending_block_tasks` is indirectly capped by `ipfs_bitswap_active_tasks`, but cannot be predicted
-as it depends on the number of blocks involved in a peer task which can vary.
+The value of `ipfs_bitswap_pending_block_tasks` is indirectly capped by `ipfs_bitswap_active_tasks`, but can be hard to
+predict as it depends on the number of blocks involved in a peer task which can vary.
 
 If the value of `ipfs_bitswap_pending_block_tasks` is observed to grow,
 while `ipfs_bitswap_active_block_tasks` is at its maximum, there is indication that the number of
