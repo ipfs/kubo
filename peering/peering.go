@@ -248,7 +248,7 @@ func (ps *PeeringService) ListPeers() []peer.AddrInfo {
 	out := make([]peer.AddrInfo, len(ps.peers))
 	c := 0
 	for k, v := range ps.peers {
-		out_addrs := make([]multiaddr.Multiaddr, len(v.addrs))
+		outAddrs := make([]multiaddr.Multiaddr, len(v.addrs))
 		copy(out_addrs, v.addrs)
 		out[c] = peer.AddrInfo{
 			ID:    k,
