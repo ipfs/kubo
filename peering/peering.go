@@ -243,8 +243,8 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 	}
 }
 
-// ListPeer lists peers in the peering service.
-func (ps *PeeringService) ListPeer() []peer.AddrInfo {
+// ListPeers lists peers in the peering service.
+func (ps *PeeringService) ListPeers() []peer.AddrInfo {
 	out := make([]peer.AddrInfo, len(ps.peers))
 	c := 0
 	for k, v := range ps.peers {
