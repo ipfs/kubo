@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -154,42 +153,61 @@ Example:
 		}
 	},
 	Type: metrics.Stats{},
-	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			polling, _ := res.Request().Options[statPollOptionName].(bool)
+	DisplayCLI: func(res cmds.Response, stdout, stderr io.Writer) error {
+		polling, _ := res.Request().Options[statPollOptionName].(bool)
 
-			if polling {
-				fmt.Fprintln(os.Stdout, "Total Up    Total Down  Rate Up     Rate Down")
-			}
-			for {
-				v, err := res.Next()
-				if err != nil {
-					if err == io.EOF {
-						return nil
-					}
-					return err
-				}
+		output := printStats
 
-				bs := v.(*metrics.Stats)
+		if polling {
+			output = pollStats
+		}
 
-				if !polling {
-					printStats(os.Stdout, bs)
-					return nil
-				}
-
-				fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
-				fmt.Fprintf(os.Stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
-				fmt.Fprintf(os.Stdout, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
-				fmt.Fprintf(os.Stdout, "%8s/s      \r", humanize.Bytes(uint64(bs.RateIn)))
-			}
-		},
+		return output(res, stdout, stderr)
 	},
 }
 
-func printStats(out io.Writer, bs *metrics.Stats) {
-	fmt.Fprintln(out, "Bandwidth")
-	fmt.Fprintf(out, "TotalIn: %s\n", humanize.Bytes(uint64(bs.TotalIn)))
-	fmt.Fprintf(out, "TotalOut: %s\n", humanize.Bytes(uint64(bs.TotalOut)))
-	fmt.Fprintf(out, "RateIn: %s/s\n", humanize.Bytes(uint64(bs.RateIn)))
-	fmt.Fprintf(out, "RateOut: %s/s\n", humanize.Bytes(uint64(bs.RateOut)))
+// Non-polled output
+
+func printStats(res cmds.Response, stdout io.Writer, stderr io.Writer) error {
+
+	v, err := res.Next()
+	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}
+
+	bs := v.(*metrics.Stats)
+
+	fmt.Fprintln(stdout, "Bandwidth")
+	fmt.Fprintf(stdout, "TotalIn: %s\n", humanize.Bytes(uint64(bs.TotalIn)))
+	fmt.Fprintf(stdout, "TotalOut: %s\n", humanize.Bytes(uint64(bs.TotalOut)))
+	fmt.Fprintf(stdout, "RateIn: %s/s\n", humanize.Bytes(uint64(bs.RateIn)))
+	fmt.Fprintf(stdout, "RateOut: %s/s\n", humanize.Bytes(uint64(bs.RateOut)))
+
+	return nil
+}
+
+// Polled output
+
+func pollStats(res cmds.Response, stdout io.Writer, stderr io.Writer) error {
+	fmt.Fprintln(stdout, "Total Up    Total Down  Rate Up     Rate Down")
+
+	for {
+		v, err := res.Next()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+
+		bs := v.(*metrics.Stats)
+
+		fmt.Fprintf(stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalOut)))
+		fmt.Fprintf(stdout, "%8s    ", humanize.Bytes(uint64(bs.TotalIn)))
+		fmt.Fprintf(stdout, "%8s/s  ", humanize.Bytes(uint64(bs.RateOut)))
+		fmt.Fprintf(stdout, "%8s/s      \r", humanize.Bytes(uint64(bs.RateIn)))
+	}
 }

@@ -28,7 +28,6 @@ require (
 	github.com/ipfs/go-graphsync v0.8.0
 	github.com/ipfs/go-ipfs-blockstore v0.1.6
 	github.com/ipfs/go-ipfs-chunker v0.0.5
-	github.com/ipfs/go-ipfs-cmds v0.6.0
 	github.com/ipfs/go-ipfs-config v0.14.0
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
@@ -59,6 +58,7 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
+	github.com/jbouwman/go-ipfs-cmds v0.6.1-0.20210819183735-7ee6142a5f12 // indirect
 	github.com/libp2p/go-doh-resolver v0.3.1
 	github.com/libp2p/go-libp2p v0.14.4
 	github.com/libp2p/go-libp2p-circuit v0.4.0
@@ -108,3 +108,5 @@ require (
 )
 
 go 1.15
+
+// replace github.com/ipfs/go-ipfs-cmds => ../go-ipfs-cmds
