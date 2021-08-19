@@ -68,8 +68,15 @@ elif [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   pushTag "release" # see: https://github.com/ipfs/go-ipfs/issues/3999#issuecomment-742228981
 
 elif [ "$GIT_BRANCH" = "master" ]; then
-  pushTag "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"
-  pushTag "master-latest"
+  # "extras" bundles extra functionality for PL gateways (e.g. the peerlog plugin for peer metrics)
+  if [ "$IS_EXTRAS" ]; then
+    pushTag "master-extras-${BUILD_NUM}-${GIT_SHA1_SHORT}"
+    pushTag "master-extras-latest"
+
+  else
+    pushTag "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"
+    pushTag "master-latest"
+  fi
 
 else
   echo "Nothing to do. No docker tag defined for branch: $GIT_BRANCH, tag: $GIT_TAG"
