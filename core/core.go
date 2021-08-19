@@ -37,7 +37,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
@@ -80,7 +80,7 @@ type IpfsNode struct {
 	IPLDFetcherFactory   fetcher.Factory           `name:"ipldFetcher"`   // fetcher that paths over the IPLD data model
 	UnixFSFetcherFactory fetcher.Factory           `name:"unixfsFetcher"` // fetcher that interprets UnixFS data
 	Reporter             *metrics.BandwidthCounter `optional:"true"`
-	Discovery            discovery.Service         `optional:"true"`
+	Discovery            mdns.Service              `optional:"true"`
 	FilesRoot            *mfs.Root
 	RecordValidator      record.Validator
 
