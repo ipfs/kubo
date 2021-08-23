@@ -152,7 +152,7 @@ ignored_commit() {
     local matches
 
     # Check to see if this commit includes any non-ignored files.
-    matches=$(git -C "$dir" diff-tree --no-commit-id --name-only -r "$commit" \
+    matches=$(git -C "$dir" diff-tree --no-commit-id --name-only -r "$commit^" "$commit" \
                   -- "${IGNORE_FILES_PATHSPEC[@]}" | wc -l)
     [[ "$matches" -eq 0 ]]
 }
@@ -261,7 +261,6 @@ recursive_release_log() {
 
         printf -- "- %s:\n" "$module"
         release_log "$module" "$start" "$end" | indent
-
 
         statlog "$module" "$start" "$end" > statlog.json
 
