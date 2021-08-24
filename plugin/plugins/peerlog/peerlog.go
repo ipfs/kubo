@@ -67,26 +67,30 @@ func (*peerLogPlugin) Version() string {
 	return "0.1.0"
 }
 
+func extractEnabled(config interface{}) bool {
+	// plugin is disabled by default, unless Enabled=true
+	if config == nil {
+		return false
+	}
+	mapIface, ok := config.(map[string]interface{})
+	if !ok {
+		return false
+	}
+	enabledIface, ok := mapIface["Enabled"]
+	if !ok || enabledIface == nil {
+		return false
+	}
+	enabled, ok := enabledIface.(bool)
+	if !ok {
+		return false
+	}
+	return enabled
+}
+
 // Init initializes plugin
 func (pl *peerLogPlugin) Init(env *plugin.Environment) error {
 	pl.events = make(chan plEvent, eventQueueSize)
-
-	// plugin is disabled by default, unless Enabled=true
-	if env.Config != nil {
-		mapIface, ok := env.Config.(map[string]interface{})
-		if !ok {
-			return nil
-		}
-		enabledIface, ok := mapIface["Enabled"]
-		if !ok || enabledIface == nil {
-			return nil
-		}
-		enabled, ok := enabledIface.(bool)
-		if !ok {
-			return nil
-		}
-		pl.enabled = enabled
-	}
+	pl.enabled = extractEnabled(env.Config)
 	return nil
 }
 
