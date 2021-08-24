@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	util "github.com/ipfs/go-ipfs/cmd/ipfs/util"
@@ -45,8 +46,8 @@ const (
 	heapProfile        = "ipfs.memprof"
 )
 
-func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
-	plugins, err := loader.NewPluginLoader(repoPath)
+func loadPlugins(repoPath string, configPath string) (*loader.PluginLoader, error) {
+	plugins, err := loader.NewPluginLoader(repoPath, configPath)
 	if err != nil {
 		return nil, fmt.Errorf("error loading plugins: %s", err)
 	}
@@ -123,13 +124,13 @@ func mainRet() int {
 
 	buildEnv := func(ctx context.Context, req *cmds.Request) (cmds.Environment, error) {
 		checkDebug(req)
-		repoPath, err := getRepoPath(req)
+		repoPath, configPath, err := getRepoAndConfigPath(req)
 		if err != nil {
 			return nil, err
 		}
 		log.Debugf("config path is %s", repoPath)
 
-		plugins, err := loadPlugins(repoPath)
+		plugins, err := loadPlugins(repoPath, configPath)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +138,7 @@ func mainRet() int {
 		// this sets up the function that will initialize the node
 		// this is so that we can construct the node lazily.
 		return &oldcmds.Context{
-			ConfigRoot: repoPath,
+			ConfigRoot: configPath,
 			LoadConfig: loadConfig,
 			ReqLog:     &oldcmds.ReqLog{},
 			Plugins:    plugins,
@@ -293,17 +294,22 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 	return cmdhttp.NewClient(host, opts...), nil
 }
 
-func getRepoPath(req *cmds.Request) (string, error) {
-	repoOpt, found := req.Options["config"].(string)
-	if found && repoOpt != "" {
-		return repoOpt, nil
-	}
-
+func getRepoAndConfigPath(req *cmds.Request) (string, string, error) {
 	repoPath, err := fsrepo.BestKnownPath()
 	if err != nil {
-		return "", err
+		return "","", err
 	}
-	return repoPath, nil
+	configPath, found := req.Options["config"].(string)
+	if found && configPath != "" {
+		split := strings.Split(configPath,"/")
+		config.DefaultConfigFile = strings.Join(split[len(split)-1:]," ") //considering the last split as the config file name
+		configPath = ""
+		for i := 0; i<len(split)-1; i++ {
+		    configPath = configPath+split[i]+"/"
+		}
+		return repoPath,configPath, nil
+	}
+	return repoPath,repoPath, nil
 }
 
 func loadConfig(path string) (*config.Config, error) {

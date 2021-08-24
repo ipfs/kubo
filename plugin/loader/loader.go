@@ -94,10 +94,10 @@ type PluginLoader struct {
 }
 
 // NewPluginLoader creates new plugin loader
-func NewPluginLoader(repo string) (*PluginLoader, error) {
+func NewPluginLoader(repo string, conf string) (*PluginLoader, error) {
 	loader := &PluginLoader{plugins: make(map[string]plugin.Plugin, len(preloadPlugins)), repo: repo}
-	if repo != "" {
-		cfg, err := cserialize.Load(filepath.Join(repo, config.DefaultConfigFile))
+	if conf != "" {
+		cfg, err := cserialize.Load(filepath.Join(conf, config.DefaultConfigFile))
 		switch err {
 		case cserialize.ErrNotInitialized:
 		case nil:
