@@ -54,12 +54,12 @@ func (*leveldsPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 			return nil, fmt.Errorf("'path' field is missing or not string")
 		}
 
-		switch cm := params["compression"].(string); cm {
+		switch cm := params["compression"]; cm {
 		case "none":
 			c.compression = ldbopts.NoCompression
 		case "snappy":
 			c.compression = ldbopts.SnappyCompression
-		case "":
+		case "", nil:
 			c.compression = ldbopts.DefaultCompression
 		default:
 			return nil, fmt.Errorf("unrecognized value for compression: %s", cm)
