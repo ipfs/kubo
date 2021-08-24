@@ -45,6 +45,7 @@ type plEvent struct {
 //   {"level":"info","ts":"2020-02-10T13:54:59.095Z","logger":"plugin/peerlog","caller":"peerlog/peerlog.go:56","msg":"identified","peer":"QmS2H72gdrekXJggGdE9SunXPntBqdkJdkXQJjuxcH8Cbt","agent":"go-ipfs/0.5.0/"}
 //
 type peerLogPlugin struct {
+	enabled      bool
 	droppedCount uint64
 	events       chan plEvent
 }
@@ -67,8 +68,25 @@ func (*peerLogPlugin) Version() string {
 }
 
 // Init initializes plugin
-func (pl *peerLogPlugin) Init(*plugin.Environment) error {
+func (pl *peerLogPlugin) Init(env *plugin.Environment) error {
 	pl.events = make(chan plEvent, eventQueueSize)
+
+	// plugin is disabled by default, unless Enabled=true
+	if env.Config != nil {
+		mapIface, ok := env.Config.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		enabledIface, ok := mapIface["Enabled"]
+		if !ok || enabledIface == nil {
+			return nil
+		}
+		enabled, ok := enabledIface.(bool)
+		if !ok {
+			return nil
+		}
+		pl.enabled = enabled
+	}
 	return nil
 }
 
@@ -153,6 +171,10 @@ func (pl *peerLogPlugin) emit(evt eventType, p peer.ID) {
 }
 
 func (pl *peerLogPlugin) Start(node *core.IpfsNode) error {
+	if !pl.enabled {
+		return nil
+	}
+
 	// Ensure logs from this plugin get printed regardless of global IPFS_LOGGING value
 	if err := logging.SetLogLevel("plugin/peerlog", "info"); err != nil {
 		return fmt.Errorf("failed to set log level: %w", err)
