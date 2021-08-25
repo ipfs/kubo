@@ -36,7 +36,7 @@ type plEvent struct {
 	peer peer.ID
 }
 
-// Log all the PeerIDs we see
+// Log all the PeerIDs. This is considered internal, unsupported, and may break at any point.
 //
 // Usage:
 //   GOLOG_FILE=~/peer.log IPFS_LOGGING_FMT=json ipfs daemon
@@ -67,6 +67,11 @@ func (*peerLogPlugin) Version() string {
 	return "0.1.0"
 }
 
+// extractEnabled extracts the "Enabled" field from the plugin config.
+// Do not follow this as a precedent, this is only applicable to this plugin,
+// since it is internal-only, unsupported functionality.
+// For supported functionality, we should rework the plugin API to support this use case
+// of including plugins that are disabled by default.
 func extractEnabled(config interface{}) bool {
 	// plugin is disabled by default, unless Enabled=true
 	if config == nil {
