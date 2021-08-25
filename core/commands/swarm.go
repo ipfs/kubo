@@ -182,25 +182,25 @@ var swarmPeeringRmCmd = &cmds.Command{
 			return err
 		}
 
-		output := make([]string, 0, len(req.Arguments))
 		for _, arg := range req.Arguments {
 			id, err := peer.Decode(arg)
 			if err != nil {
 				return err
 			}
 
-			msg := "remove " + id.Pretty()
-
 			node.Peering.RemovePeer(id)
-
-			msg += " success"
-			output = append(output, msg)
+			if err = res.Emit(peeringResult{id, "success"}); err != nil {
+				return err
+			}
 		}
-		return cmds.EmitOnce(res, &stringList{output})
+		return nil
 	},
-	Type: stringList{},
+	Type: peeringResult{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
+			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			return nil
+		}),
 	},
 }
 
