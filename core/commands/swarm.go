@@ -62,6 +62,11 @@ const (
 	swarmDirectionOptionName = "direction"
 )
 
+type peeringResult struct {
+	ID     peer.ID
+	Status string
+}
+
 var swarmPeeringCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Modify the peering subsystem.",
@@ -110,20 +115,22 @@ var swarmPeeringAddCmd = &cmds.Command{
 			return err
 		}
 
-		output := make([]string, len(addInfos))
-		for i, id := range addInfos {
-			output[i] = "add " + id.ID.Pretty()
-			node.Peering.AddPeer(id)
-
-			output[i] += " success"
+		for _, addrinfo := range addInfos {
+			node.Peering.AddPeer(addrinfo)
+			err = res.Emit(peeringResult{addrinfo.ID, "success"})
+			if err != nil {
+				return err
+			}
 		}
-
-		return cmds.EmitOnce(res, &stringList{output})
+		return nil
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
+			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			return nil
+		}),
 	},
-	Type: stringList{},
+	Type: peeringResult{},
 }
 
 var swarmPeeringLsCmd = &cmds.Command{
