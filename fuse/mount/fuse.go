@@ -33,11 +33,15 @@ func NewMount(p goprocess.Process, fsys fs.FS, mountpoint string, allow_other bo
 	var conn *fuse.Conn
 	var err error
 
-	if allow_other {
-		conn, err = fuse.Mount(mountpoint, fuse.AllowOther())
-	} else {
-		conn, err = fuse.Mount(mountpoint)
+	var mountOpts = []fuse.MountOption{
+		fuse.MaxReadahead(64 * 1024 * 1024),
+		fuse.AsyncRead(),
 	}
+
+	if allow_other {
+		mountOpts = append(mountOpts, fuse.AllowOther())
+	}
+	conn, err = fuse.Mount(mountpoint, mountOpts...)
 
 	if err != nil {
 		return nil, err
