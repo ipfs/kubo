@@ -428,7 +428,7 @@ workflows:
           branches:
             only:
               - master
-              # the bifrst-* branches are used for deploying code that hasn't hit master yet (e.g. for testing)
+              # the bifrost-* branches are used for deploying code that hasn't hit master yet (e.g. for testing)
               - /^bifrost-.*/
 
 
