@@ -429,6 +429,7 @@ workflows:
             only:
               - master
               - feat/stabilize-dht
+              - sev3aug23
 
   # NOTE: CircleCI only builds tags if you explicitly filter for them. That
   # also means tag-based jobs can only depend on other tag-based jobs, so we
