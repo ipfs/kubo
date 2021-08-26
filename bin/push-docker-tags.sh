@@ -67,6 +67,11 @@ elif [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   pushTag "latest"
   pushTag "release" # see: https://github.com/ipfs/go-ipfs/issues/3999#issuecomment-742228981
 
+elif [[ $GIT_BRANCH =~ ^bifrost-.* ]]; then
+  # sanitize the branch name since docker tags have stricter char limits than git branch names
+  branch=$(echo "$GIT_BRANCH" | tr '/' '-' | tr --delete --complement '[:alnum:]-')
+  pushTag "${branch}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
+
 elif [ "$GIT_BRANCH" = "master" ]; then
   pushTag "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"
   pushTag "master-latest"
