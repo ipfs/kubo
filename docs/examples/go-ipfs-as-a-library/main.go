@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -55,6 +56,24 @@ func createTempRepo() (string, error) {
 	cfg, err := config.Init(ioutil.Discard, 2048)
 	if err != nil {
 		return "", err
+	}
+
+	// When creating the repository, you can define custom settings on the repository, such as enabling experimental
+	// features (See experimental-features.md) or customizing the gateway endpoint.
+	// To do such things, you should modify the variable `cfg`. For example:
+	if *flagExp {
+		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-filestore
+		cfg.Experimental.FilestoreEnabled = true
+		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-urlstore
+		cfg.Experimental.UrlstoreEnabled = true
+		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#directory-sharding--hamt
+		cfg.Experimental.ShardingEnabled = true
+		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-p2p
+		cfg.Experimental.Libp2pStreamMounting = true
+		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#p2p-http-proxy
+		cfg.Experimental.P2pHttpProxy = true
+		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#strategic-providing
+		cfg.Experimental.StrategicProviding = true
 	}
 
 	// Create the repo with the config
@@ -198,7 +217,11 @@ func getUnixfsNode(path string) (files.Node, error) {
 
 /// -------
 
+var flagExp = flag.Bool("experimental", false, "enable experimental features")
+
 func main() {
+	flag.Parse()
+
 	/// --- Part I: Getting a IPFS node running
 
 	fmt.Println("-- Getting an IPFS node running -- ")
@@ -228,7 +251,7 @@ func main() {
 
 	fmt.Println("\n-- Adding and getting back files & directories --")
 
-	inputBasePath := "./example-folder/"
+	inputBasePath := "../example-folder/"
 	inputPathFile := inputBasePath + "ipfs.paper.draft3.pdf"
 	inputPathDirectory := inputBasePath + "test-dir"
 
@@ -258,7 +281,11 @@ func main() {
 
 	/// --- Part III: Getting the file and directory you added back
 
-	outputBasePath := "./example-folder/"
+	outputBasePath, err := ioutil.TempDir("", "example")
+	if err != nil {
+		panic(fmt.Errorf("could not create output dir (%v)", err))
+	}
+	fmt.Printf("output folder: %s\n", outputBasePath)
 	outputPathFile := outputBasePath + strings.Split(cidFile.String(), "/")[2]
 	outputPathDirectory := outputBasePath + strings.Split(cidDirectory.String(), "/")[2]
 

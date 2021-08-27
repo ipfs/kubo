@@ -101,6 +101,9 @@ jobs:
     - run:
         when: always
         command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
+    - run:
+        command: go test -v ./...
+        working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
 
     - run:
         when: always
@@ -395,6 +398,8 @@ workflows:
           branches:
             only:
               - master
+              # the bifrost-* branches are used for deploying code that hasn't hit master yet (e.g. for testing)
+              - /^bifrost-.*/
 
   # NOTE: CircleCI only builds tags if you explicitly filter for them. That
   # also means tag-based jobs can only depend on other tag-based jobs, so we
