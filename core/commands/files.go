@@ -216,6 +216,17 @@ var filesStatCmd = &cmds.Command{
 				)
 			}
 
+			if out.Mode != "" {
+				fmt.Fprintf(w, "Mode: %s\n", out.Mode)
+			}
+
+			if out.Mtime > 0 {
+				fmt.Fprintf(w, "Mtime: %d\n", out.Mtime)
+				if out.MtimeNsecs > 0 {
+					fmt.Fprintf(w, "MtimeNsecs: %d\n", out.MtimeNsecs)
+				}
+			}
+
 			return nil
 		}),
 	},
