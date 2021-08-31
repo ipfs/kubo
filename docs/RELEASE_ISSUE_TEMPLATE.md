@@ -109,7 +109,7 @@ Checklist:
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
-  - [ ] Merge the PR created for IPFS Desktop into main
+  - [ ] Mark PR draft created for IPFS Desktop as ready for review.
 
 ## ❤️ Contributors
 
