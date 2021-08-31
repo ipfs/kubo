@@ -4,6 +4,7 @@
 # name             go-path                  number of the sub-plugin or *
 
 ipldgit github.com/ipfs/go-ipfs/plugin/plugins/git *
+iplddagjose github.com/ipfs/go-ipfs/plugin/plugins/dagjose *
 
 badgerds github.com/ipfs/go-ipfs/plugin/plugins/badgerds *
 flatfs github.com/ipfs/go-ipfs/plugin/plugins/flatfs *
