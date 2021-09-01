@@ -74,6 +74,19 @@ test_expect_success "multibase encode+decode roundtrip" '
   test_cmp actual expected
 '
 
+test_expect_success "mutlibase transcode works (stdin)" '
+  echo -n f68656c6c6f > expected &&
+  echo -n uaGVsbG8 | ipfs multibase transcode -b base16 > actual &&
+  test_cmp actual expected
+'
+
+test_expect_success "multibase transcode works (file)" '
+  echo -n uaGVsbG8 > file &&
+  echo -n f68656c6c6f > expected &&
+  ipfs multibase transcode ./file -b base16> actual &&
+  test_cmp actual expected
+'
+
 test_expect_success "multibase error on unknown multibase prefix" '
   echo "Error: failed to decode multibase: selected encoding not supported" > expected &&
   echo -n ę-that-should-do-the-trick | ipfs multibase decode 2> actual ;

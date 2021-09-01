@@ -162,6 +162,7 @@ func TestCommands(t *testing.T) {
 		"/multibase",
 		"/multibase/decode",
 		"/multibase/encode",
+		"/multibase/transcode",
 		"/multibase/list",
 		"/name",
 		"/name/publish",
