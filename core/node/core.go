@@ -3,8 +3,6 @@ package node
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/ipfs/go-bitswap"
@@ -14,11 +12,12 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-ipfs-pinner"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	config "github.com/ipfs/go-ipfs-config"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	pin "github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-pinner/dspinner"
-	"github.com/ipfs/go-ipld-format"
+	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
@@ -95,7 +94,7 @@ func Dag(bs blockservice.BlockService) format.DAGService {
 }
 
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(provide bool) interface{} {
+func OnlineExchange(provide bool, cbs *config.InternalBitswap) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
 		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, bitswap.ProvideEnabled(provide))
@@ -106,37 +105,22 @@ func OnlineExchange(provide bool) interface{} {
 		})
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				// Monitoring configuration settings as environment variables
-				// with the `BS_CFG_` prefix.
-				// * `BS_CFG_TIMEOUT`: time interval between test (CID requests).
-				//  Also the time we wait for *all* CID requests to be responded
-				//  before reporting an error.
-				// * `BS_CFG_CID_REQ_NUM`: number of CIDs requested in total for
-				//   the group of valid and existing CIDs (that will have a BS
-				//  `BLOCK` response) and the group of invalid (shortened)
-				//  nonexistent CIDs (that will have a `DONT_HAVE` response).
-				//  They are read and parsed every test run to be modified without
-				//  restarting the node. (The timeout is usually in the order of
-				//  seconds and this is not a measurable performance penalty.) They
-				//  need to be set *always* otherwise we report an error (they
-				//  are crucial for the test to be meaningful).
-				// FIXME: This should actually be part of the config file
-				//  to use the node API to change them on the fly but I'd
-				//  like to avoid modifying yet another dependency for now.
-				go func() {
-					for {
-						timeout, successTimeout := parseNonZeroIntConfig("BS_CFG_TIMEOUT")
-						cidNum, successCid := parseNonZeroIntConfig("BS_CFG_CID_REQ_NUM")
-						if successTimeout == false || successCid == false {
-							time.Sleep(time.Second * 5)
-							continue
-						}
 
+				go func() {
+					for cbs != nil {
+						cidNum := int(cbs.CheckCidRequiredCount.WithDefault(1))
+						var timeout time.Duration
+						if cbs.CheckTimeout != 0 {
+							timeout = time.Duration(cbs.CheckTimeout)
+						} else {
+							timeout = 5 * time.Second
+						}
 						// We do the check every `timeout` seconds. This time is also
 						// as much as we are willing to wait for the response
 						// on all CIDs requested. This means we only do *one*
 						// test at a time.
-						testContext, _ := context.WithTimeout(ctx, time.Second*time.Duration(timeout))
+						testContext, cancel := context.WithTimeout(ctx, timeout)
+						defer cancel()
 
 						checkBitswapResponse(testContext, host.ID(), cidNum)
 
@@ -153,25 +137,6 @@ func OnlineExchange(provide bool) interface{} {
 		return exch
 
 	}
-}
-
-func parseNonZeroIntConfig(configString string) (int, bool) {
-	configValueString := os.Getenv(configString)
-	if configValueString == "" {
-		bsLog.Errorf("%s not set", configString)
-		return 0, false
-	}
-	configInt, err := strconv.Atoi(configValueString)
-	if err != nil {
-		bsLog.Errorf("error parsing %s: %s",
-			configString, err)
-		return 0, false
-	}
-	if configInt == 0 {
-		bsLog.Errorf("%s set to zero seconds", configString)
-		return 0, false
-	}
-	return configInt, true
 }
 
 func checkBitswapResponse(ctx context.Context,
