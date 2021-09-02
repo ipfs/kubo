@@ -8,8 +8,8 @@ import (
 	"os"
 	gopath "path"
 	"sort"
-	"strconv"
 	"strings"
+	"time"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/core"
@@ -103,7 +103,7 @@ type statOutput struct {
 	WithLocality   bool   `json:",omitempty"`
 	Local          bool   `json:",omitempty"`
 	SizeLocal      uint64 `json:",omitempty"`
-	Mode           string `json:",omitempty"`
+	Mode           uint32 `json:",omitempty"`
 	Mtime          int64  `json:",omitempty"`
 	MtimeNsecs     int    `json:",omitempty"`
 }
@@ -218,15 +218,13 @@ var filesStatCmd = &cmds.Command{
 				)
 			}
 
-			if out.Mode != "" {
-				fmt.Fprintf(w, "Mode: %s\n", out.Mode)
+			if out.Mode != 0 {
+				fmt.Fprintf(w, "Mode: %s\n", os.FileMode(out.Mode).String())
 			}
 
 			if out.Mtime > 0 {
-				fmt.Fprintf(w, "Mtime: %d\n", out.Mtime)
-				if out.MtimeNsecs > 0 {
-					fmt.Fprintf(w, "MtimeNsecs: %d\n", out.MtimeNsecs)
-				}
+				fmt.Fprintf(w, "Mtime: %s\n",
+					time.Unix(out.Mtime, int64(out.MtimeNsecs)).Format("2 Jan 2006, 15:04:05 MST"))
 			}
 
 			return nil
@@ -305,7 +303,7 @@ func statProtoNode(n *dag.ProtoNode, enc cidenc.Encoder, cid cid.Cid, cumulsize 
 	}
 
 	if mode := d.Mode(); mode != 0 {
-		stat.Mode = "0" + strconv.FormatUint(uint64(mode), 8)
+		stat.Mode = uint32(mode)
 	}
 
 	if mt := d.ModTime(); !mt.IsZero() {
