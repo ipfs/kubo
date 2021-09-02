@@ -74,6 +74,7 @@ var swarmPeeringCmd = &cmds.Command{
 'ipfs swarm peering' manages the peering subsystem. 
 Peers in the peering subsystem is maintained to be connected, reconnected 
 on disconnect with a back-off.
+The changes are not saved to the config.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
