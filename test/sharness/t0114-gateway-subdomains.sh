@@ -89,7 +89,7 @@ test_expect_success "ipfs init" '
   ipfs init --profile=test > /dev/null
 '
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # CIDv0to1 is necessary because raw-leaves are enabled by default during
 # "ipfs add" with CIDv1 and disabled with CIDv0
@@ -141,7 +141,7 @@ test_expect_success "Publish test text file to IPNS using ED25519 keys" '
 test_expect_success 'start daemon with empty config for Gateway.PublicGateways' '
   test_kill_ipfs_daemon &&
   ipfs config --json Gateway.PublicGateways "{}" &&
-  test_launch_ipfs_daemon --offline
+  test_launch_ipfs_daemon_without_network
 '
 
 ## ============================================================================
@@ -180,13 +180,6 @@ test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{DIR_CID} returns Location HTTP header for subdomain redirect in browsers" \
   "http://localhost:$GWAY_PORT/ipfs/$DIR_CID/" \
   "Location: http://$DIR_CID.ipfs.localhost:$GWAY_PORT/"
-
-# Responses to the root domain of subdomain gateway hostname should Clear-Site-Data
-# https://github.com/ipfs/go-ipfs/issues/6975#issuecomment-597472477
-test_localhost_gateway_response_should_contain \
-  "request for localhost/ipfs/{CIDv1} returns Clear-Site-Data header to purge Origin cookies and storage" \
-  "http://localhost:$GWAY_PORT/ipfs/$CIDv1" \
-  'Clear-Site-Data: \"cookies\", \"storage\"'
 
 # We return body with HTTP 301 so existing cli scripts that use path-based
 # gateway do not break (curl doesn't auto-redirect without passing -L; wget
@@ -344,7 +337,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 
 # example.com/ip(f|n)s/*
@@ -379,7 +372,12 @@ test_expect_success "request for http://example.com/ipfs/{CID} with X-Forwarded-
   test_should_contain \"Location: https://$CIDv1.ipfs.example.com/\" response
 "
 
-
+# Support ipfs:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipfs/?uri=ipfs%3A%2F%2F.. produces redirect to /ipfs/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipfs/?uri=ipfs%3A%2F%2FQmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco%2Fwiki%2FDiego_Maradona.html" \
+  "Location: /ipfs/QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco/wiki/Diego_Maradona.html"
 
 # example.com/ipns/<libp2p-key>
 
@@ -402,6 +400,21 @@ test_hostname_gateway_response_should_contain \
   "example.com" \
   "http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki" \
   "Location: http://en.wikipedia-on-ipfs.org.ipns.example.com/wiki"
+
+# DNSLink on Public gateway with a single-level wildcard TLS cert
+# "Option C" from  https://github.com/ipfs/in-web-browsers/issues/169
+test_expect_success \
+  "request for example.com/ipns/{fqdn} with X-Forwarded-Proto redirects to TLS-safe label in subdomain" "
+  curl -H \"Host: example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipns/en.wikipedia-on-ipfs.org/wiki\" > response &&
+  test_should_contain \"Location: https://en-wikipedia--on--ipfs-org.ipns.example.com/wiki\" response
+  "
+
+# Support ipns:// in https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+test_hostname_gateway_response_should_contain \
+  "request for example.com/ipns/?uri=ipns%3A%2F%2F.. produces redirect to /ipns/.. content path" \
+  "example.com" \
+  "http://127.0.0.1:$GWAY_PORT/ipns/?uri=ipns%3A%2F%2Fen.wikipedia-on-ipfs.org" \
+  "Location: /ipns/en.wikipedia-on-ipfs.org"
 
 # *.ipfs.example.com: subdomain requests made with custom FQDN in Host header
 
@@ -506,7 +519,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # not mounted at the root domain
 test_hostname_gateway_response_should_contain \
@@ -539,14 +552,22 @@ test_hostname_gateway_response_should_contain \
   "http://127.0.0.1:$GWAY_PORT" \
   "$CID_VAL"
 
+# DNSLink on Public gateway with a single-level wildcard TLS cert
+# "Option C" from  https://github.com/ipfs/in-web-browsers/issues/169
+test_expect_success \
+  "request for {single-label-dnslink}.ipns.example.com with X-Forwarded-Proto returns expected payload" "
+  curl -H \"Host: dnslink--subdomain--gw--test-example-org.ipns.example.com\" -H \"X-Forwarded-Proto: https\" -sD - \"http://127.0.0.1:$GWAY_PORT\" > response &&
+  test_should_contain \"$CID_VAL\" response
+  "
+
 ## Test subdomain handling of CIDs that do not fit in a single DNS Label (>63chars)
 ## https://github.com/ipfs/go-ipfs/issues/7318
 ## ============================================================================
 
 # ed25519 fits under 63 char limit when represented in base36
 IPNS_KEY="test_key_ed25519"
-IPNS_ED25519_B58MH=$(ipfs key list -l -f b58mh | grep $IPNS_KEY | cut -d " " -f1 | tr -d "\n")
-IPNS_ED25519_B36CID=$(ipfs key list -l -f b36cid | grep $IPNS_KEY | cut -d " " -f1 | tr -d "\n")
+IPNS_ED25519_B58MH=$(ipfs key list -l --ipns-base b58mh | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
+IPNS_ED25519_B36CID=$(ipfs key list -l --ipns-base base36 | grep $IPNS_KEY | cut -d" " -f1 | tr -d "\n")
 # sha512 will be over 63char limit, even when represented in Base36
 CIDv1_TOO_LONG=$(echo $CID_VAL | ipfs add --cid-version 1 --hash sha2-512 -Q)
 
@@ -611,7 +632,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # refuse requests to Paths that were not explicitly whitelisted for the hostname
 test_hostname_gateway_response_should_contain \
@@ -640,7 +661,7 @@ ipfs config --json Gateway.PublicGateways '{
 
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # example.com/ip(f|n)s/* smoke-tests
 # =============================================================================
@@ -813,7 +834,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 test_expect_success "request for http://fake.domain.com/ipfs/{CID} doesn't match the example.com gateway" "
   curl -H \"Host: fake.domain.com\" -sD - \"http://127.0.0.1:$GWAY_PORT/ipfs/$CIDv1\" > response &&
@@ -855,7 +876,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 # *.example1.com
 
@@ -924,7 +945,7 @@ ipfs config --json Gateway.PublicGateways '{
 
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 test_localhost_gateway_response_should_contain \
   "request for localhost/ipfs/{CID} stays on path when subdomain gw is explicitly disabled" \

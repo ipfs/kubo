@@ -38,6 +38,7 @@ func (rl *ReqLog) AddEntry(rle *ReqLogEntry) {
 	rl.lock.Lock()
 	defer rl.lock.Unlock()
 
+	rle.ID = rl.nextID
 	rl.nextID++
 	rl.Requests = append(rl.Requests, rle)
 

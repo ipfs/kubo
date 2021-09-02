@@ -9,17 +9,9 @@ import (
 	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
 	tcp "github.com/libp2p/go-tcp-transport"
 	websocket "github.com/libp2p/go-ws-transport"
-	quic "github.com/lucas-clemente/quic-go"
 
 	"go.uber.org/fx"
 )
-
-// See https://github.com/ipfs/go-ipfs/issues/7526 and
-// https://github.com/lucas-clemente/quic-go/releases/tag/v0.17.3.
-// TODO: remove this once the network has upgraded to > v0.6.0.
-func init() {
-	quic.RetireBugBackwardsCompatibilityMode = true
-}
 
 func Transports(tptConfig config.Transports) interface{} {
 	return func(pnet struct {

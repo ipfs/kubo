@@ -19,11 +19,12 @@ import (
 	"fmt"
 
 	bserv "github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-interface"
+	"github.com/ipfs/go-fetcher"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	offlinexch "github.com/ipfs/go-ipfs-exchange-offline"
-	"github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-provider"
+	pin "github.com/ipfs/go-ipfs-pinner"
+	provider "github.com/ipfs/go-ipfs-provider"
 	offlineroute "github.com/ipfs/go-ipfs-routing/offline"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
@@ -36,11 +37,12 @@ import (
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
+	madns "github.com/multiformats/go-multiaddr-dns"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/node"
-	"github.com/ipfs/go-ipfs/namesys"
 	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-namesys"
 )
 
 type CoreAPI struct {
@@ -54,16 +56,18 @@ type CoreAPI struct {
 	baseBlocks blockstore.Blockstore
 	pinning    pin.Pinner
 
-	blocks bserv.BlockService
-	dag    ipld.DAGService
+	blocks               bserv.BlockService
+	dag                  ipld.DAGService
+	ipldFetcherFactory   fetcher.Factory
+	unixFSFetcherFactory fetcher.Factory
+	peerstore            pstore.Peerstore
+	peerHost             p2phost.Host
+	recordValidator      record.Validator
+	exchange             exchange.Interface
 
-	peerstore       pstore.Peerstore
-	peerHost        p2phost.Host
-	recordValidator record.Validator
-	exchange        exchange.Interface
-
-	namesys namesys.NameSystem
-	routing routing.Routing
+	namesys     namesys.NameSystem
+	routing     routing.Routing
+	dnsResolver *madns.Resolver
 
 	provider provider.System
 
@@ -165,8 +169,10 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		baseBlocks: n.BaseBlocks,
 		pinning:    n.Pinning,
 
-		blocks: n.Blocks,
-		dag:    n.DAG,
+		blocks:               n.Blocks,
+		dag:                  n.DAG,
+		ipldFetcherFactory:   n.IPLDFetcherFactory,
+		unixFSFetcherFactory: n.UnixFSFetcherFactory,
 
 		peerstore:       n.Peerstore,
 		peerHost:        n.PeerHost,
@@ -174,6 +180,7 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		recordValidator: n.RecordValidator,
 		exchange:        n.Exchange,
 		routing:         n.Routing,
+		dnsResolver:     n.DNSResolver,
 
 		provider: n.Provider,
 
@@ -212,7 +219,15 @@ func (api *CoreAPI) WithOptions(opts ...options.ApiOption) (coreiface.CoreAPI, e
 		}
 
 		subApi.routing = offlineroute.NewOfflineRouter(subApi.repo.Datastore(), subApi.recordValidator)
-		subApi.namesys = namesys.NewNameSystem(subApi.routing, subApi.repo.Datastore(), cs)
+
+		subApi.namesys, err = namesys.NewNameSystem(subApi.routing,
+			namesys.WithDatastore(subApi.repo.Datastore()),
+			namesys.WithDNSResolver(subApi.dnsResolver),
+			namesys.WithCache(cs))
+		if err != nil {
+			return nil, fmt.Errorf("error constructing namesys: %w", err)
+		}
+
 		subApi.provider = provider.NewOfflineProvider()
 
 		subApi.peerstore = nil

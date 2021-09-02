@@ -6,7 +6,8 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
@@ -35,17 +36,13 @@ func DiscoveryHandler(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host) 
 	}
 }
 
-func SetupDiscovery(mdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.Lifecycle, host.Host, *discoveryHandler) error {
+func SetupDiscovery(useMdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.Lifecycle, host.Host, *discoveryHandler) error {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, handler *discoveryHandler) error {
-		if mdns {
+		if useMdns {
 			if mdnsInterval == 0 {
 				mdnsInterval = 5
 			}
-			service, err := discovery.NewMdnsService(helpers.LifecycleCtx(mctx, lc), host, time.Duration(mdnsInterval)*time.Second, discovery.ServiceTag)
-			if err != nil {
-				log.Error("mdns error: ", err)
-				return nil
-			}
+			service := mdns.NewMdnsService(host, mdns.ServiceName)
 			service.RegisterNotifee(handler)
 		}
 		return nil

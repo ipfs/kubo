@@ -79,7 +79,7 @@ are refined`,
 
 var p2pForwardCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Forward connections to libp2p service",
+		Tagline: "Forward connections to libp2p service.",
 		ShortDescription: `
 Forward connections made to <listen-address> to <target-address>.
 
@@ -180,7 +180,7 @@ func parseIpfsAddr(addr string) (*peer.AddrInfo, error) {
 
 var p2pListenCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Create libp2p service",
+		Tagline: "Create libp2p service.",
 		ShortDescription: `
 Create libp2p service and forward connections made to <target-address>.
 

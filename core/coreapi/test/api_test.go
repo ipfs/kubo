@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-filestore"
+	"github.com/ipfs/go-ipfs-keystore"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/keystore"
 	"github.com/ipfs/go-ipfs/repo"
 
 	"github.com/ipfs/go-datastore"
@@ -22,7 +22,7 @@ import (
 	"github.com/ipfs/go-ipfs-config"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -40,7 +40,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 	for i := 0; i < n; i++ {
 		var ident config.Identity
 		if fullIdentity {
-			sk, pk, err := ci.GenerateKeyPair(ci.RSA, 2048)
+			sk, pk, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
 			if err != nil {
 				return nil, err
 			}
@@ -50,7 +50,7 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 				return nil, err
 			}
 
-			kbytes, err := sk.Bytes()
+			kbytes, err := crypto.MarshalPrivateKey(sk)
 			if err != nil {
 				return nil, err
 			}

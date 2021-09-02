@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ipfs/go-fetcher"
 	"github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-provider"
+	"github.com/ipfs/go-ipfs-provider/batched"
 	q "github.com/ipfs/go-ipfs-provider/queue"
 	"github.com/ipfs/go-ipfs-provider/simple"
-	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/multiformats/go-multihash"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/repo"
 )
 
@@ -59,29 +62,78 @@ func SimpleProviderSys(isOnline bool) interface{} {
 	}
 }
 
+type provideMany interface {
+	ProvideMany(ctx context.Context, keys []multihash.Multihash) error
+	Ready() bool
+}
+
+// BatchedProviderSys creates new provider system
+func BatchedProviderSys(isOnline bool, reprovideInterval string) interface{} {
+	return func(lc fx.Lifecycle, cr libp2p.BaseIpfsRouting, q *q.Queue, keyProvider simple.KeyChanFunc, repo repo.Repo) (provider.System, error) {
+		r, ok := (cr).(provideMany)
+		if !ok {
+			return nil, fmt.Errorf("BatchedProviderSys requires a content router that supports provideMany")
+		}
+
+		reprovideIntervalDuration := kReprovideFrequency
+		if reprovideInterval != "" {
+			dur, err := time.ParseDuration(reprovideInterval)
+			if err != nil {
+				return nil, err
+			}
+
+			reprovideIntervalDuration = dur
+		}
+
+		sys, err := batched.New(r, q,
+			batched.ReproviderInterval(reprovideIntervalDuration),
+			batched.Datastore(repo.Datastore()),
+			batched.KeyProvider(keyProvider))
+		if err != nil {
+			return nil, err
+		}
+
+		if isOnline {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					sys.Run()
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					return sys.Close()
+				},
+			})
+		}
+
+		return sys, nil
+	}
+}
+
 // ONLINE/OFFLINE
 
 // OnlineProviders groups units managing provider routing records online
-func OnlineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
+func OnlineProviders(useStrategicProviding bool, useBatchedProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
 	if useStrategicProviding {
 		return fx.Provide(provider.NewOfflineProvider)
 	}
 
 	return fx.Options(
 		SimpleProviders(reprovideStrategy, reprovideInterval),
-		fx.Provide(SimpleProviderSys(true)),
+		maybeProvide(SimpleProviderSys(true), !useBatchedProviding),
+		maybeProvide(BatchedProviderSys(true, reprovideInterval), useBatchedProviding),
 	)
 }
 
 // OfflineProviders groups units managing provider routing records offline
-func OfflineProviders(useStrategicProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
+func OfflineProviders(useStrategicProviding bool, useBatchedProviding bool, reprovideStrategy string, reprovideInterval string) fx.Option {
 	if useStrategicProviding {
 		return fx.Provide(provider.NewOfflineProvider)
 	}
 
 	return fx.Options(
 		SimpleProviders(reprovideStrategy, reprovideInterval),
-		fx.Provide(SimpleProviderSys(false)),
+		maybeProvide(SimpleProviderSys(false), true),
+		//maybeProvide(BatchedProviderSys(false, reprovideInterval), useBatchedProviding),
 	)
 }
 
@@ -120,7 +172,12 @@ func SimpleProviders(reprovideStrategy string, reprovideInterval string) fx.Opti
 }
 
 func pinnedProviderStrategy(onlyRoots bool) interface{} {
-	return func(pinner pin.Pinner, dag ipld.DAGService) simple.KeyChanFunc {
-		return simple.NewPinnedProvider(onlyRoots, pinner, dag)
+	type input struct {
+		fx.In
+		Pinner      pin.Pinner
+		IPLDFetcher fetcher.Factory `name:"ipldFetcher"`
+	}
+	return func(in input) simple.KeyChanFunc {
+		return simple.NewPinnedProvider(onlyRoots, in.Pinner, in.IPLDFetcher)
 	}
 }

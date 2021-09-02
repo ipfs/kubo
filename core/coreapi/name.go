@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-ipfs/keystore"
-	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs-keystore"
+	"github.com/ipfs/go-namesys"
 
 	ipath "github.com/ipfs/go-path"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -93,9 +93,13 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 	}
 
 	var resolver namesys.Resolver = api.namesys
-
 	if !options.Cache {
-		resolver = namesys.NewNameSystem(api.routing, api.repo.Datastore(), 0)
+		resolver, err = namesys.NewNameSystem(api.routing,
+			namesys.WithDatastore(api.repo.Datastore()),
+			namesys.WithDNSResolver(api.dnsResolver))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !strings.HasPrefix(name, "/ipns/") {

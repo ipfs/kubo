@@ -4,6 +4,8 @@
 
 We're happy to announce go-ipfs X.Y.Z, bla bla...
 
+As usual, this release includes important fixes, some of which may be critical for security. Unless the fix addresses a bug being exploited in the wild, the fix will _not_ be called out in the release notes. Please make sure to update ASAP. See our [release process](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md#security-fix-policy) for details.
+
 ## 🗺 What's left for release
 
 <List of items with PRs and/or Issues to be considered for this release>
@@ -60,7 +62,7 @@ Checklist:
     - [ ] Deploy new version to a subset of Preload nodes
     - [ ] Collect metrics every day. Work with the Infrastructure team to learn of any hiccup
   - [ ] IPFS Application Testing -  Run the tests of the following applications:
-    - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) - @hacdias
+    - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop) - @lidel
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion) - @lidel
     - [ ] [NPM on IPFS](https://github.com/ipfs-shipyard/npm-on-ipfs) - @achingbrain
 - [ ] **Stage 2 - Community Dev Testing**

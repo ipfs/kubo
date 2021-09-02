@@ -15,7 +15,6 @@ tcp_addr='"[\"/ip4/127.0.0.1/tcp/0\"]"'
 test_expect_success "configure security transports" '
 iptb run <<CMDS
   [0,1] -- ipfs config --json Swarm.Transports.Security.TLS false &&
-  [0,1] -- ipfs config --json Swarm.Transports.Security.SECIO false &&
   2     -- ipfs config --json Swarm.Transports.Security.Noise false &&
         -- ipfs config --json Addresses.Swarm '${tcp_addr}'
 CMDS

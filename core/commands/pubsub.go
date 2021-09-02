@@ -205,7 +205,7 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 
 func stringListEncoder(req *cmds.Request, w io.Writer, list *stringList) error {
 	for _, str := range list.Strings {
-		_, err := fmt.Fprintf(w, "%s\n", str)
+		_, err := fmt.Fprintf(w, "%s\n", cmdenv.EscNonPrint(str))
 		if err != nil {
 			return err
 		}

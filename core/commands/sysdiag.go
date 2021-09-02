@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	version "github.com/ipfs/go-ipfs"
+	"github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -21,40 +22,49 @@ Prints out information about your computer to aid in easier debugging.
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		info := make(map[string]interface{})
-		err := runtimeInfo(info)
-		if err != nil {
-			return err
-		}
-
-		err = envVarInfo(info)
-		if err != nil {
-			return err
-		}
-
-		err = diskSpaceInfo(info)
-		if err != nil {
-			return err
-		}
-
-		err = memInfo(info)
-		if err != nil {
-			return err
-		}
 		nd, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
 		}
 
-		err = netInfo(nd.IsOnline, info)
+		info, err := getInfo(nd)
 		if err != nil {
 			return err
 		}
-
-		info["ipfs_version"] = version.CurrentVersionNumber
-		info["ipfs_commit"] = version.CurrentCommit
 		return cmds.EmitOnce(res, info)
 	},
+}
+
+func getInfo(nd *core.IpfsNode) (map[string]interface{}, error) {
+	info := make(map[string]interface{})
+	err := runtimeInfo(info)
+	if err != nil {
+		return nil, err
+	}
+
+	err = envVarInfo(info)
+	if err != nil {
+		return nil, err
+	}
+
+	err = diskSpaceInfo(info)
+	if err != nil {
+		return nil, err
+	}
+
+	err = memInfo(info)
+	if err != nil {
+		return nil, err
+	}
+
+	err = netInfo(nd.IsOnline, info)
+	if err != nil {
+		return nil, err
+	}
+
+	info["ipfs_version"] = version.CurrentVersionNumber
+	info["ipfs_commit"] = version.CurrentCommit
+	return info, nil
 }
 
 func runtimeInfo(out map[string]interface{}) error {

@@ -14,8 +14,9 @@ import (
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands"
-	namesys "github.com/ipfs/go-ipfs/namesys"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	path "github.com/ipfs/go-path"
+	unixfs "github.com/ipfs/go-unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
@@ -69,22 +70,7 @@ environment variable:
 	},
 	NoRemote: true,
 	Extra:    commands.CreateCmdExtras(commands.SetDoesNotUseRepo(true), commands.SetDoesNotUseConfigAsInput(true)),
-	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		cctx := env.(*oldcmds.Context)
-		daemonLocked, err := fsrepo.LockedByOtherProcess(cctx.ConfigRoot)
-		if err != nil {
-			return err
-		}
-
-		log.Info("checking if daemon is running...")
-		if daemonLocked {
-			log.Debug("ipfs daemon is running")
-			e := "ipfs daemon is running. please stop it to run this command"
-			return cmds.ClientError(e)
-		}
-
-		return nil
-	},
+	PreRun:   commands.DaemonNotRunning,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		cctx := env.(*oldcmds.Context)
 		empty, _ := req.Options[emptyRepoOptionName].(bool)
@@ -260,5 +246,19 @@ func initializeIpnsKeyspace(repoRoot string) error {
 	}
 	defer nd.Close()
 
-	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
+	emptyDir := unixfs.EmptyDirNode()
+
+	// pin recursively because this might already be pinned
+	// and doing a direct pin would throw an error in that case
+	err = nd.Pinning.Pin(ctx, emptyDir, true)
+	if err != nil {
+		return err
+	}
+
+	err = nd.Pinning.Flush(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nd.Namesys.Publish(ctx, nd.PrivateKey, path.FromCid(emptyDir.Cid()))
 }

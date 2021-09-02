@@ -194,7 +194,12 @@ test_expect_success 'handle proxy http request invalid request' '
 '
 
 test_expect_success 'handle proxy http request unknown proxy peer ' '
-    curl_check_response_code 502 p2p/unknown_peer/http/index.txt
+    UNKNOWN_PEER="k51qzi5uqu5dlmbel1sd8rs4emr3bfosk9bm4eb42514r4lakt4oxw3a3fa2tm" &&
+    curl_check_response_code 502 p2p/$UNKNOWN_PEER/http/index.txt
+'
+
+test_expect_success 'handle proxy http request to invalid proxy peer ' '
+    curl_check_response_code 400 p2p/invalid_peer/http/index.txt
 '
 
 test_expect_success 'handle proxy http request to custom protocol' '

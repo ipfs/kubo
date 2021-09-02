@@ -17,6 +17,7 @@ import (
 	"github.com/ipfs/go-ipfs-pinner"
 
 	bserv "github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-fetcher"
 	"github.com/ipfs/go-graphsync"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
@@ -24,7 +25,6 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	mfs "github.com/ipfs/go-mfs"
-	resolver "github.com/ipfs/go-path/resolver"
 	goprocess "github.com/jbenet/goprocess"
 	connmgr "github.com/libp2p/go-libp2p-core/connmgr"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
@@ -37,19 +37,20 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
+	madns "github.com/multiformats/go-multiaddr-dns"
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/fuse/mount"
-	"github.com/ipfs/go-ipfs/namesys"
-	ipnsrp "github.com/ipfs/go-ipfs/namesys/republisher"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/peering"
 	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-namesys"
+	ipnsrp "github.com/ipfs/go-namesys/republisher"
 )
 
 var log = logging.Logger("core")
@@ -69,25 +70,27 @@ type IpfsNode struct {
 	PNetFingerprint libp2p.PNetFingerprint `optional:"true"` // fingerprint of private network
 
 	// Services
-	Peerstore       pstore.Peerstore          `optional:"true"` // storage for other Peer instances
-	Blockstore      bstore.GCBlockstore       // the block store (lower level)
-	Filestore       *filestore.Filestore      `optional:"true"` // the filestore blockstore
-	BaseBlocks      node.BaseBlocks           // the raw blockstore, no filestore wrapping
-	GCLocker        bstore.GCLocker           // the locker used to protect the blockstore during gc
-	Blocks          bserv.BlockService        // the block service, get/add blocks.
-	DAG             ipld.DAGService           // the merkle dag service, get/add objects.
-	Resolver        *resolver.Resolver        // the path resolution system
-	Reporter        *metrics.BandwidthCounter `optional:"true"`
-	Discovery       discovery.Service         `optional:"true"`
-	FilesRoot       *mfs.Root
-	RecordValidator record.Validator
+	Peerstore            pstore.Peerstore          `optional:"true"` // storage for other Peer instances
+	Blockstore           bstore.GCBlockstore       // the block store (lower level)
+	Filestore            *filestore.Filestore      `optional:"true"` // the filestore blockstore
+	BaseBlocks           node.BaseBlocks           // the raw blockstore, no filestore wrapping
+	GCLocker             bstore.GCLocker           // the locker used to protect the blockstore during gc
+	Blocks               bserv.BlockService        // the block service, get/add blocks.
+	DAG                  ipld.DAGService           // the merkle dag service, get/add objects.
+	IPLDFetcherFactory   fetcher.Factory           `name:"ipldFetcher"`   // fetcher that paths over the IPLD data model
+	UnixFSFetcherFactory fetcher.Factory           `name:"unixfsFetcher"` // fetcher that interprets UnixFS data
+	Reporter             *metrics.BandwidthCounter `optional:"true"`
+	Discovery            mdns.Service              `optional:"true"`
+	FilesRoot            *mfs.Root
+	RecordValidator      record.Validator
 
 	// Online
 	PeerHost      p2phost.Host            `optional:"true"` // the network host (server+client)
-	Peering       peering.PeeringService  `optional:"true"`
+	Peering       *peering.PeeringService `optional:"true"`
 	Filters       *ma.Filters             `optional:"true"`
 	Bootstrapper  io.Closer               `optional:"true"` // the periodic bootstrapper
 	Routing       routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
+	DNSResolver   *madns.Resolver         // the DNS resolver
 	Exchange      exchange.Interface      // the block exchange + strategy (bitswap)
 	Namesys       namesys.NameSystem      // the name system, resolves paths to hashes
 	Provider      provider.System         // the value provider system
@@ -96,8 +99,11 @@ type IpfsNode struct {
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
-	DHT      *ddht.DHT                  `optional:"true"`
-	P2P      *p2p.P2P                   `optional:"true"`
+
+	DHT       *ddht.DHT       `optional:"true"`
+	DHTClient routing.Routing `name:"dhtc" optional:"true"`
+
+	P2P *p2p.P2P `optional:"true"`
 
 	Process goprocess.Process
 	ctx     context.Context

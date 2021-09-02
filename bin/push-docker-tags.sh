@@ -6,7 +6,7 @@
 # A bit like dockerhub autobuild config, but somewhere we can version control it.
 # 
 # The `docker-build` job in .circleci/config.yml builds the current commit
-# in docker and tags it as ipfs/go-ipfs:wip
+# in docker and tags it as ipfs/go-ipfs:wip
 #
 # Then the `docker-publish` job runs this script to decide what tag, if any,
 # to publish to dockerhub.
@@ -59,13 +59,18 @@ pushTag () {
   fi
 }
 
-if [[ $GIT_TAG =~ ^v[0-9]+ ]]; then
+if [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc ]]; then
+  pushTag "$GIT_TAG"
+
+elif [[ $GIT_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   pushTag "$GIT_TAG"
   pushTag "latest"
+  pushTag "release" # see: https://github.com/ipfs/go-ipfs/issues/3999#issuecomment-742228981
 
-elif [ "$GIT_BRANCH" = "feat/stabilize-dht" ]; then
-  pushTag "bifrost-${BUILD_NUM}-${GIT_SHA1_SHORT}"
-  pushTag "bifrost-latest"
+elif [[ $GIT_BRANCH =~ ^bifrost-.* ]]; then
+  # sanitize the branch name since docker tags have stricter char limits than git branch names
+  branch=$(echo "$GIT_BRANCH" | tr '/' '-' | tr --delete --complement '[:alnum:]-')
+  pushTag "${branch}-${BUILD_NUM}-${GIT_SHA1_SHORT}"
 
 elif [ "$GIT_BRANCH" = "master" ]; then
   pushTag "master-${BUILD_NUM}-${GIT_SHA1_SHORT}"

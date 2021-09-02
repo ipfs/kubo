@@ -17,9 +17,10 @@ SUPPORTED_PLATFORMS += linux-arm64
 SUPPORTED_PLATFORMS += linux-386
 SUPPORTED_PLATFORMS += linux-amd64
 
-SUPPORTED_PLATFORMS += darwin-386
 SUPPORTED_PLATFORMS += darwin-amd64
-
+ifeq ($(shell bin/check_go_version "1.16.0" 2>/dev/null; echo $$?),0)
+SUPPORTED_PLATFORMS += darwin-arm64
+endif
 SUPPORTED_PLATFORMS += freebsd-386
 SUPPORTED_PLATFORMS += freebsd-amd64
 
@@ -29,8 +30,7 @@ SUPPORTED_PLATFORMS += openbsd-amd64
 SUPPORTED_PLATFORMS += netbsd-386
 SUPPORTED_PLATFORMS += netbsd-amd64
 
-space:=
-space+=
+space:=$() $()
 comma:=,
 join-with=$(subst $(space),$1,$(strip $2))
 

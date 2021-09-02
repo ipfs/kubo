@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core"
 
 	inet "github.com/libp2p/go-libp2p-core/network"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
@@ -20,7 +20,11 @@ func TestPeersTotal(t *testing.T) {
 
 	hosts := make([]*bhost.BasicHost, 4)
 	for i := 0; i < 4; i++ {
-		hosts[i] = bhost.New(swarmt.GenSwarm(t, ctx))
+		var err error
+		hosts[i], err = bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	dial := func(a, b inet.Network) {
