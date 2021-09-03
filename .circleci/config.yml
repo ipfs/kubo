@@ -30,6 +30,9 @@ default_environment: &default_environment
   CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
   GIT_PAGER: cat
 
+orbs:
+  jq: circleci/jq@2.2.0
+
 executors:
   golang:
     docker:
@@ -137,6 +140,8 @@ jobs:
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
     - run: sudo apt install socat net-tools
+    - jq/install:
+        override: true
     - checkout
 
     - run:
