@@ -367,12 +367,12 @@ workflows:
     - interop:
         requires:
           - build
-    - go-ipfs-api:
-        requires:
-          - build
-    - go-ipfs-http-client:
-        requires:
-          - build
+    # - go-ipfs-api:
+    #     requires:
+    #       - build
+    # - go-ipfs-http-client:
+    #     requires:
+    #       - build
     - ipfs-webui:
         requires:
           - build
@@ -386,8 +386,8 @@ workflows:
           - gotest
           - sharness
           - interop
-          - go-ipfs-api
-          - go-ipfs-http-client
+          # - go-ipfs-api
+          # - go-ipfs-http-client
           - ipfs-webui
         filters:
           branches:
