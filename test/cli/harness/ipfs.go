@@ -3,6 +3,7 @@ package harness
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -79,4 +80,15 @@ func (h *Harness) GetIPFSConfig(key string, val interface{}) {
 		log.Fatalf("unmarshaling config for key '%s', value '%s': %s", key, valStr, err)
 	}
 	return
+}
+
+func (h *Harness) IPFSAdd(content io.Reader, args ...string) string {
+	fullArgs := []string{"add", "-q"}
+	fullArgs = append(fullArgs, args...)
+	res := h.Runner.MustRun(RunRequest{
+		Path:    h.IPFSBin,
+		Args:    fullArgs,
+		CmdOpts: []CmdOpt{h.Runner.RunWithStdin(content)},
+	})
+	return strings.TrimSpace(res.Stdout.String())
 }

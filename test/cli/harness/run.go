@@ -3,8 +3,10 @@ package harness
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
+	"strings"
 )
 
 type Runner struct {
@@ -100,4 +102,14 @@ func (r *Runner) RunWithEnv(env map[string]string) CmdOpt {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 		}
 	}
+}
+
+func (r *Runner) RunWithStdin(reader io.Reader) CmdOpt {
+	return func(cmd *exec.Cmd) {
+		cmd.Stdin = reader
+	}
+}
+
+func (r *Runner) RunWithStdinStr(s string) CmdOpt {
+	return r.RunWithStdin(strings.NewReader(s))
 }

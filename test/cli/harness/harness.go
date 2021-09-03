@@ -116,17 +116,24 @@ func SplitLines(s string) []string {
 	return lines
 }
 
+// WriteToTemp writes the given contents to a guaranteed-unique temp file, returning its path.
 func (h *Harness) WriteToTemp(contents string) string {
-	f, err := os.CreateTemp("", "")
-	if err != nil {
-		log.Panicf("creating temp file: %s", err)
-	}
+	f := h.TempFile()
 	f.WriteString(contents)
-	err = f.Close()
+	err := f.Close()
 	if err != nil {
 		log.Panicf("closing temp file: %s", err)
 	}
 	return f.Name()
+}
+
+// TempFile creates a new unique temp file.
+func (h *Harness) TempFile() *os.File {
+	f, err := os.CreateTemp(h.Dir, "")
+	if err != nil {
+		log.Panicf("creating temp file: %s", err)
+	}
+	return f
 }
 
 // WriteFile writes a file given a filename and its contents.
