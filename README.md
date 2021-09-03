@@ -370,40 +370,43 @@ To perform a custom initialization and configuration step, one can mount `.sh` s
 
 This example initializes a peer in a private network, without any communication with the default bootstrap nodes because it is performed before the daemon starts:
 
-    # This is the initialization script
-    TEST_NAME=00-test.sh
-    TEST_SCRIPT=`pwd`/$TEST_NAME
+```bash
 
-    # The script will add this node when creating the container
-    MY_PEER_IP=127.0.0.1
-    MY_PEER_HASH=QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+# This is the initialization script
+TEST_NAME=00-test.sh
+TEST_SCRIPT=`pwd`/$TEST_NAME
 
-    # For instructional purposes, create the initialization script here,
-    # but this may be part of a suite of scripts maintained by the IT team,
-    # or created inside a custom Dockerfile.
-    cat >$TEST_SCRIPT <<EOF
-    echo Removing boostraps...
-    ipfs bootstrap rm all || exit 1
-    echo Adding custom boostrap from environment...
-    MULTIADDR=/ip4/\$MY_PEER_IP/tcp/4001/ipfs/\$MY_PEER_HASH
-    ipfs bootstrap add \$MULTIADDR || exit 1
-    exit 0
-    EOF
+# The script will add this node when creating the container
+PRIV_PEER_IP=127.0.0.1
+PRIV_PEER_ID=QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
 
-    # Set the script as executable
-    chmod +x $TEST_SCRIPT
+# For instructional purposes, create the initialization script here,
+# but this may be part of a suite of scripts maintained by the IT team,
+# or created inside a custom Dockerfile.
+cat >$TEST_SCRIPT <<EOF
+echo Removing boostraps...
+ipfs bootstrap rm all || exit 1
+echo Adding custom boostrap from environment...
+MULTIADDR=/ip4/\$PRIV_PEER_IP/tcp/4001/ipfs/\$PRIV_PEER_ID
+ipfs bootstrap add \$MULTIADDR || exit 1
+exit 0
+EOF
 
-    # Initialize the container with the custom scripted mounted.
-    # It is also possible to mount the entire /container-init.d
-    # rather than a single
-    docker run -d --name ipfs_host \
-        -e MY_PEER_IP=$MY_PEER_IP \
-        -e MY_PEER_HASH=$MY_PEER_HASH \
-        -v $TEST_SCRIPT:/container-init.d/$TEST_NAME \
-        -p 4001:4001 \
-        -p 127.0.0.1:8080:8080 \
-        -p 127.0.0.1:5001:5001 \
-        ipfs/go-ipfs:latest
+# Set the script as executable
+chmod +x $TEST_SCRIPT
+
+# Initialize the container with the custom scripted mounted.
+# It is also possible to mount the entire /container-init.d
+# rather than a single script, if needed
+docker run -d --name ipfs_host \
+    -e PRIV_PEER_IP=$PRIV_PEER_IP \
+    -e PRIV_PEER_ID=$PRIV_PEER_ID \
+    -v $TEST_SCRIPT:/container-init.d/$TEST_NAME \
+    -p 4001:4001 \
+    -p 127.0.0.1:8080:8080 \
+    -p 127.0.0.1:5001:5001 \
+    ipfs/go-ipfs:latest
+```
 
 ### Troubleshooting
 
