@@ -82,6 +82,8 @@ operations.
 		"rm":    filesRmCmd,
 		"flush": filesFlushCmd,
 		"chcid": filesChcidCmd,
+		"touch": filesTouchCmd,
+		"chmod": filesChmodCmd,
 	},
 }
 
@@ -234,15 +236,6 @@ var filesStatCmd = &cmds.Command{
 					humanize.Bytes(out.CumulativeSize),
 					100.0*float64(out.SizeLocal)/float64(out.CumulativeSize),
 				)
-			}
-
-			if out.Mode != 0 {
-				fmt.Fprintf(w, "Mode: %s\n", os.FileMode(out.Mode).String())
-			}
-
-			if out.Mtime > 0 {
-				fmt.Fprintf(w, "Mtime: %s\n",
-					time.Unix(out.Mtime, int64(out.MtimeNsecs)).Format("2 Jan 2006, 15:04:05 MST"))
 			}
 
 			return nil
@@ -1302,4 +1295,88 @@ func getParentDir(root *mfs.Root, dir string) (*mfs.Directory, error) {
 		return nil, errors.New("expected *mfs.Directory, didn't get it. This is likely a race condition")
 	}
 	return pdir, nil
+}
+
+var filesChmodCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Change mode permissions",
+		ShortDescription: `
+The mode argument must be specified in unix numeric notation. 
+
+    $ ipfs files chmod 0644 /foo
+    $ ipfs files stat /foo
+	...
+    Type: file
+    Mode: -rw-r--r--
+    ...
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("mode", true, false, "mode to apply to node"),
+		cmds.StringArg("path", true, false, "Path to target node"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		path, err := checkPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
+
+		mode, err := strconv.ParseInt(req.Arguments[0], 8, 32)
+		if err != nil {
+			return err
+		}
+
+		return mfs.Chmod(nd.FilesRoot, path, os.FileMode(mode))
+	},
+}
+
+var filesTouchCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Change file modification times.",
+		ShortDescription: `
+Examples:
+
+    # set modification time to now.
+    $ ipfs files touch /foo
+
+    # set a custom modification time.
+    $ ipfs files touch --mtime=1630937926 /foo
+
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, false, "Path of target to update."),
+	},
+	Options: []cmds.Option{
+		cmds.Int64Option(mtimeOptionName, "Modification time in seconds before or since the Unix Epoch to apply to created UnixFS entries."),
+		cmds.UintOption(mtimeNsecsOptionName, "Modification time fraction in nanoseconds"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		path, err := checkPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		mtime, _ := req.Options[mtimeOptionName].(int64)
+		nsecs, _ := req.Options[mtimeNsecsOptionName].(uint)
+
+		var ts time.Time
+		if mtime != 0 {
+			ts = time.Unix(int64(mtime), int64(nsecs)).UTC()
+		} else {
+			ts = time.Now().UTC()
+		}
+
+		return mfs.Touch(nd.FilesRoot, path, ts)
+	},
 }

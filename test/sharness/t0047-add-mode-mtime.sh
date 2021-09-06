@@ -83,4 +83,32 @@ test_expect_success "can get custom mode and mtime" '
   test "$EXPECTED" = "$MODETIME"
 '
 
+test_expect_success "can change file mode" '
+  HASH=$(echo testfile | ipfs add -q --mode=0600) &&
+  ipfs files cp "/ipfs/$HASH" /chmod1 &&
+  ipfs files chmod 444 /chmod1 &&
+  HASH=$(ipfs files stat /chmod1|head -1) &&
+  ipfs get -o mountdir/chmod1 $HASH &&
+  test $(stat -c "%a" mountdir/chmod1) = 444
+'
+
+test_expect_success "can touch file modification time" '
+  NOW=$(date +%s) &&
+  HASH=$(echo testfile | ipfs add -q --mtime=$NOW) &&
+  ipfs files cp "/ipfs/$HASH" /touch1 &&
+  sleep 1 &&
+  ipfs files touch /touch1 &&
+  HASH=$(ipfs files stat /touch1|head -1) &&
+  ipfs get -o mountdir/touch1 $HASH &&
+  test $(stat -c "%Y" mountdir/touch1) -gt $NOW
+'
+
+test_expect_success "can change file modification time and nanoseconds" '
+  echo test|ipfs files write --create /touch2 &&
+  EXPECTED=$(date --date="yesterday" +%s) &&
+  ipfs files touch --mtime=$EXPECTED --mtime-nsecs=55567 /touch2 &&
+  test $(ipfs files stat --format="<mtime-secs>" /touch2) -eq $EXPECTED &&
+  test $(ipfs files stat --format="<mtime-nsecs>" /touch2) -eq 55567
+'
+
 test_done
