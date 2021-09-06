@@ -317,8 +317,10 @@ only-hash, and progress/status related flags) will change the final hash.
 				}
 
 				output.Mode = addit.Node().Mode()
-				output.Mtime = addit.Node().ModTime().Unix()
-				output.MtimeNsecs = addit.Node().ModTime().Nanosecond()
+				if ts := addit.Node().ModTime(); !ts.IsZero() {
+					output.Mtime = addit.Node().ModTime().Unix()
+					output.MtimeNsecs = addit.Node().ModTime().Nanosecond()
+				}
 
 				addEvent := AddEvent{
 					Name:       output.Name,
