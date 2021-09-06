@@ -8,6 +8,7 @@ import (
 	"os"
 	gopath "path"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -113,7 +114,9 @@ const (
 Size: <size>
 CumulativeSize: <cumulsize>
 ChildBlocks: <childs>
-Type: <type>`
+Type: <type>
+Mode: <mode>
+Mtime: <mtime>`
 	filesFormatOptionName    = "format"
 	filesSizeOptionName      = "size"
 	filesWithLocalOptionName = "with-local"
@@ -202,11 +205,26 @@ var filesStatCmd = &cmds.Command{
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *statOutput) error {
 			s, _ := statGetFormatOptions(req)
+
+			var mode os.FileMode
+			if out.Mode != 0 {
+				mode = os.FileMode(out.Mode)
+			}
+			var mtime string
+			if out.Mtime > 0 {
+				mtime = time.Unix(out.Mtime, int64(out.MtimeNsecs)).Format("2 Jan 2006, 15:04:05 MST")
+			}
+
 			s = strings.Replace(s, "<hash>", out.Hash, -1)
 			s = strings.Replace(s, "<size>", fmt.Sprintf("%d", out.Size), -1)
 			s = strings.Replace(s, "<cumulsize>", fmt.Sprintf("%d", out.CumulativeSize), -1)
 			s = strings.Replace(s, "<childs>", fmt.Sprintf("%d", out.Blocks), -1)
 			s = strings.Replace(s, "<type>", out.Type, -1)
+			s = strings.Replace(s, "<mode>", mode.String(), -1)
+			s = strings.Replace(s, "<mtime>", mtime, -1)
+			s = strings.Replace(s, "<mtime-secs>", strconv.FormatInt(out.Mtime, 10), -1)
+			s = strings.Replace(s, "<mtime-nsecs>", strconv.Itoa(out.MtimeNsecs), -1)
+			s = strings.Replace(s, "<mode-octal>", strconv.FormatInt(int64(out.Mode), 8), -1)
 
 			fmt.Fprintln(w, s)
 
