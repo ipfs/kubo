@@ -16,9 +16,10 @@ import (
 )
 
 const (
+	pinRootsOptionName = "pin-roots"
 	progressOptionName = "progress"
 	silentOptionName   = "silent"
-	pinRootsOptionName = "pin-roots"
+	statsOptionName    = "stats"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -53,10 +54,14 @@ type ResolveOutput struct {
 	RemPath string
 }
 
+type CarImportStats struct {
+	BlockCount uint64
+}
+
 // CarImportOutput is the output type of the 'dag import' commands
 type CarImportOutput struct {
-	BlockCount *uint64   `json:",omitempty"`
-	Root       *RootMeta `json:",omitempty"`
+	Root  *RootMeta       `json:",omitempty"`
+	Stats *CarImportStats `json:",omitempty"`
 }
 
 // RootMeta is the metadata for a root pinning response
@@ -195,8 +200,9 @@ Maximum supported CAR version: 1
 		cmds.FileArg("path", true, true, "The path of a .car file.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
+		cmds.BoolOption(silentOptionName, "No output."),
+		cmds.BoolOption(statsOptionName, "Output stats."),
 	},
 	Type: CarImportOutput{},
 	Run:  dagImport,
@@ -208,16 +214,19 @@ Maximum supported CAR version: 1
 				return nil
 			}
 
-			// event should have only one of `Root` or `BlockCount` set, not both
+			// event should have only one of `Root` or `Stats` set, not both
 			if event.Root == nil {
-				if event.BlockCount == nil {
+				if event.Stats == nil {
 					return fmt.Errorf("Unexpected message from DAG import")
 				}
-				fmt.Fprintf(w, "Imported %d blocks\n", *event.BlockCount)
+				stats, _ := req.Options[statsOptionName].(bool)
+				if stats {
+					fmt.Fprintf(w, "Imported %d blocks\n", event.Stats.BlockCount)
+				}
 				return nil
 			}
 
-			if event.BlockCount != nil {
+			if event.Stats != nil {
 				return fmt.Errorf("Unexpected message from DAG import")
 			}
 

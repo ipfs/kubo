@@ -55,10 +55,6 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return done.err
 	}
 
-	if err := res.Emit(&CarImportOutput{BlockCount: &done.blockCount}); err != nil {
-		return err
-	}
-
 	// It is not guaranteed that a root in a header is actually present in the same ( or any )
 	// .car file. This is the case in version 1, and ideally in further versions too
 	// Accumulate any root CID seen in a header, and supplement its actual node if/when encountered
@@ -116,6 +112,17 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				failedPins,
 				len(roots),
 			)
+		}
+	}
+
+	stats, _ := req.Options[statsOptionName].(bool)
+	if stats {
+		if err := res.Emit(&CarImportOutput{
+			Stats: &CarImportStats{
+				BlockCount: done.blockCount,
+			},
+		}); err != nil {
+			return err
 		}
 	}
 
