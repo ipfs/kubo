@@ -232,6 +232,21 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
+		// We do not allow producing blocks bigger than 1 MiB to avoid errors
+		// when transmitting them over BitSwap. The 1 MiB constant is an
+		// unenforced and undeclared rule of thumb hard-coded here.
+		modifiedNode, err := api.Dag().Get(req.Context, p.Cid())
+		if err != nil {
+			return err
+		}
+		modifiedNodeSize, err := modifiedNode.Size()
+		if err != nil {
+			return err
+		}
+		if modifiedNodeSize > 1024 * 1024 {
+			return fmt.Errorf("object API does not support HAMT-sharding. To create big directories, please use the files API (MFS)")
+		}
+		
 		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
