@@ -93,7 +93,6 @@ jobs:
     steps:
     - checkout
     - *make_out_dirs
-    - *restore_gomod
 
     - run: |
         make -j 1 test/unit/gotest.junit.xml \
@@ -421,7 +420,6 @@ workflows:
         requires:
           - docker-build
           - golint
-          - gotest
           - sharness
           - interop
           - go-ipfs-api
