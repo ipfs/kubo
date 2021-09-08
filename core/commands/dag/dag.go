@@ -78,7 +78,8 @@ into an object of the specified format.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption("format", "f", "Format that the object will be added as.").WithDefault("dag-cbor"),
-		cmds.StringOption("input-enc", "Format that the input object will be.").WithDefault("dag-json"),
+		cmds.StringOption("input-format", "Format that the input object will be."),
+		cmds.StringOption("input-enc", "Format that the input object will be (DEPRECATED)."),
 		cmds.BoolOption("pin", "Pin this object when adding."),
 		cmds.StringOption("hash", "Hash function to use").WithDefault("sha2-256"),
 	},

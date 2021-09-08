@@ -32,12 +32,27 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	}
 
 	ienc, _ := req.Options["input-enc"].(string)
+	iformat, _ := req.Options["input-format"].(string)
 	format, _ := req.Options["format"].(string)
 	hash, _ := req.Options["hash"].(string)
 	dopin, _ := req.Options["pin"].(bool)
 
+	// deal with legacy --input-enc option, see dagtransl.go, as well as setting
+	// the default value to dag-json if nothing else is specified
+	if iformat == "" {
+		switch ienc {
+		case "raw", "cbor", "protobuf":
+			// decode the raw bytes as the `--format` requested
+			iformat = format
+		case "json", "":
+			iformat = "dag-json"
+		default:
+			iformat = ienc
+		}
+	} // else `--input-format` overrides `--input-enc`
+
 	var icodec mc.Code
-	if err := icodec.Set(ienc); err != nil {
+	if err := icodec.Set(iformat); err != nil {
 		return err
 	}
 	var fcodec mc.Code
