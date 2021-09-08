@@ -506,8 +506,8 @@ github.com/ipfs/go-ipld-format v0.0.1/go.mod h1:kyJtbkDALmFHv3QR6et67i35QzO3S0dC
 github.com/ipfs/go-ipld-format v0.0.2/go.mod h1:4B6+FM2u9OJ9zCV+kSbgFAZlOrv1Hqbf0INGQgiKf9k=
 github.com/ipfs/go-ipld-format v0.2.0 h1:xGlJKkArkmBvowr+GMCX0FEZtkro71K1AwiKnL37mwA=
 github.com/ipfs/go-ipld-format v0.2.0/go.mod h1:3l3C1uKoadTPbeNfrDi+xMInYKlx2Cvg1BuydPSdzQs=
-github.com/ipfs/go-ipld-git v0.1.0 h1:+HUPKbvOPicyF5J4gdRS3nvQRBgvYVGyvuAigiISkzc=
-github.com/ipfs/go-ipld-git v0.1.0/go.mod h1:pfIxVWClpLmyDHDWI7qTva4/cdOQyVzC+0jzl5/n1Sk=
+github.com/ipfs/go-ipld-git v0.1.1 h1:TWGnZjS0htmEmlMFEkA3ogrNCqWjIxwr16x1OsdhG+Y=
+github.com/ipfs/go-ipld-git v0.1.1/go.mod h1:+VyMqF5lMcJh4rwEppV0e6g4nCCHXThLYYDpKUkJubI=
 github.com/ipfs/go-ipld-legacy v0.1.0 h1:wxkkc4k8cnvIGIjPO0waJCe7SHEyFgl+yQdafdjGrpA=
 github.com/ipfs/go-ipld-legacy v0.1.0/go.mod h1:86f5P/srAmh9GcIcWQR9lfFLZPrIyyXQeVlOWeeWEuI=
 github.com/ipfs/go-ipns v0.0.2/go.mod h1:WChil4e0/m9cIINWLxZe1Jtf77oz5L05rO2ei/uKJ5U=
@@ -575,8 +575,9 @@ github.com/ipld/go-codec-dagpb v1.3.0 h1:czTcaoAuNNyIYWs6Qe01DJ+sEX7B+1Z0LcXjSat
 github.com/ipld/go-codec-dagpb v1.3.0/go.mod h1:ga4JTU3abYApDC3pZ00BC2RSvC3qfBb9MSJkMLSwnhA=
 github.com/ipld/go-ipld-prime v0.9.0/go.mod h1:KvBLMr4PX1gWptgkzRjVZCrLmSGcZCb/jioOQwCqZN8=
 github.com/ipld/go-ipld-prime v0.9.1-0.20210324083106-dc342a9917db/go.mod h1:KvBLMr4PX1gWptgkzRjVZCrLmSGcZCb/jioOQwCqZN8=
-github.com/ipld/go-ipld-prime v0.11.0 h1:jD/b/22R7CSL+F9xNffcexs+wO0Ji/TfwXO/TWck+70=
 github.com/ipld/go-ipld-prime v0.11.0/go.mod h1:+WIAkokurHmZ/KwzDOMUuoeJgaRQktHtEaLglS3ZeV8=
+github.com/ipld/go-ipld-prime v0.12.2 h1:StIquYvKIRuSEAtjJDr39fyzBtziioHPwVC75tBiXzo=
+github.com/ipld/go-ipld-prime v0.12.2/go.mod h1:PaeLYq8k6dJLmDUSLrzkEpoGV4PEfe/1OtFN/eALOc8=
 github.com/jackpal/gateway v1.0.5/go.mod h1:lTpwd4ACLXmpyiCTRtfiNyVnUmqT9RivzCDQetPfnjA=
 github.com/jackpal/go-nat-pmp v1.0.1/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
@@ -1318,6 +1319,8 @@ github.com/urfave/cli/v2 v2.0.0/go.mod h1:SE9GqnLQmjVa0iPEY0f1w3ygNIYcIJ0OKPMoW2
 github.com/viant/assertly v0.4.8/go.mod h1:aGifi++jvCrUaklKEKT0BU95igDNaqkvz+49uaYMPRU=
 github.com/viant/toolbox v0.24.0/go.mod h1:OxMCG57V0PXuIP2HNQrtJf2CjqdmbrOx5EkMILuUhzM=
 github.com/wangjia184/sortedset v0.0.0-20160527075905-f5d03557ba30/go.mod h1:YkocrP2K2tcw938x9gCOmT5G5eCD6jsTz0SZuyAqwIE=
+github.com/warpfork/go-testmark v0.3.0 h1:Q81c4u7hT+BR5kNfNQhEF0VT2pmL7+Kk0wD+ORYl7iA=
+github.com/warpfork/go-testmark v0.3.0/go.mod h1:jhEf8FVxd+F17juRubpmut64NEG6I2rgkUhlcqqXwE0=
 github.com/warpfork/go-wish v0.0.0-20180510122957-5ad1f5abf436/go.mod h1:x6AKhvSSexNrVSrViXSHUEbICjmGXhtgABaHIySUSGw=
 github.com/warpfork/go-wish v0.0.0-20190328234359-8b3e70f8e830/go.mod h1:x6AKhvSSexNrVSrViXSHUEbICjmGXhtgABaHIySUSGw=
 github.com/warpfork/go-wish v0.0.0-20200122115046-b9ea61034e4a h1:G++j5e0OC488te356JvdhaM8YS6nMsjLAYF7JxCv07w=
