@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -109,6 +110,40 @@ type statOutput struct {
 	Mode           uint32 `json:",omitempty"`
 	Mtime          int64  `json:",omitempty"`
 	MtimeNsecs     int    `json:",omitempty"`
+}
+
+func (s *statOutput) MarshalJSON() ([]byte, error) {
+	type so statOutput
+	out := &struct {
+		*so
+		Mode string `json:",omitempty"`
+	}{so: (*so)(s)}
+
+	if s.Mode != 0 {
+		out.Mode = fmt.Sprintf("%04d", s.Mode)
+	}
+	return json.Marshal(out)
+}
+
+func (s *statOutput) UnmarshalJSON(data []byte) error {
+	var err error
+	type so statOutput
+	tmp := &struct {
+		*so
+		Mode string `json:",omitempty"`
+	}{so: (*so)(s)}
+
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+
+	if tmp.Mode != "" {
+		mode, err := strconv.ParseUint(tmp.Mode, 8, 32)
+		if err == nil {
+			s.Mode = uint32(mode)
+		}
+	}
+	return err
 }
 
 const (
