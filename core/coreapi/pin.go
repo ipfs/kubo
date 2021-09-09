@@ -334,6 +334,21 @@ func (api *PinAPI) pinLsAll(ctx context.Context, typeStr string) <-chan coreifac
 	return out
 }
 
+func (api *PinAPI) RemoveAll(ctx context.Context) (int, error) {
+	defer api.blockstore.PinLock().Unlock()
+
+	count, err := api.pinning.RemoveAll(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("removing all pins: %s", err)
+	}
+
+	if err = api.pinning.Flush(ctx); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (api *PinAPI) core() coreiface.CoreAPI {
 	return (*CoreAPI)(api)
 }

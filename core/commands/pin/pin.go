@@ -30,12 +30,13 @@ var PinCmd = &cmds.Command{
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"add":    addPinCmd,
-		"rm":     rmPinCmd,
-		"ls":     listPinCmd,
-		"verify": verifyPinCmd,
-		"update": updatePinCmd,
-		"remote": remotePinCmd,
+		"add":       addPinCmd,
+		"ls":        listPinCmd,
+		"remote":    remotePinCmd,
+		"removeall": removeAllPinsCmd,
+		"rm":        rmPinCmd,
+		"update":    updatePinCmd,
+		"verify":    verifyPinCmd,
 	},
 }
 
@@ -747,4 +748,56 @@ func (r PinVerifyRes) Format(out io.Writer) {
 			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 		}
 	}
+}
+
+type RemoveAllOutput struct {
+	PinCount int
+}
+
+var removeAllPinsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove all local pins.",
+		ShortDescription: `
+Removes all local pins allowing previously pinned objects to be garbage collected if needed.
+`,
+		LongDescription: `
+Removes all local pins, recursive and direct, allowing previously pinned objects to be
+garbage collected if needed.
+
+If removing all pins, with the intention of re-pinning some objects afterward, then do not
+allow garbage collection to run until after the desired objects are re-pinned. Otherwise, the
+objects will be garbage collected and will not longer be available locally.
+`,
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(pinQuietOptionName, "q", "Do not output count of pins removed."),
+	},
+	Type: RemoveAllOutput{},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+
+		if err := req.ParseBodyArgs(); err != nil {
+			return err
+		}
+
+		count, err := api.Pin().RemoveAll(req.Context)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &RemoveAllOutput{PinCount: count})
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *RemoveAllOutput) error {
+			quiet, _ := req.Options[pinQuietOptionName].(bool)
+			if !quiet {
+				fmt.Fprintf(w, "removed all %d pins\n", out.PinCount)
+			}
+
+			return nil
+		}),
+	},
 }

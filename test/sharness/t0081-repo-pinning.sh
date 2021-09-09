@@ -250,6 +250,13 @@ test_expect_success "recursive pin fails without objects" '
 test_expect_success "failed recursive pin does not remove direct pin" '
   test_pin_flag "$HASH_DIR1" direct true
 '
+
+test_expect_success "all pins are removed" '
+  ipfs pin removeall   &&
+  ipfs pin ls >actual9 &&
+  test_must_be_empty actual9
+'
+
 test_kill_ipfs_daemon
 
 test_expect_success "test add nopin file" '
