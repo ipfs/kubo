@@ -119,8 +119,8 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	if stats {
 		err = res.Emit(&CarImportOutput{
 			Stats: &CarImportStats{
-				BlockCount:        done.blockCount,
-				PayloadBytesCount: done.payloadBytesCount,
+				BlockCount:      done.blockCount,
+				BlockBytesCount: done.blockBytesCount,
 			},
 		})
 		if err != nil {
@@ -139,7 +139,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 	batch := ipld.NewBatch(req.Context, api.Dag())
 
 	roots := make(map[cid.Cid]struct{})
-	var blockCount, payloadBytesCount uint64
+	var blockCount, blockBytesCount uint64
 
 	it := req.Files.Entries()
 	for it.Next() {
@@ -192,7 +192,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 				}
 				blockCount++
 				ndSize, _ := nd.Size()
-				payloadBytesCount += ndSize
+				blockBytesCount += ndSize
 			}
 
 			return nil
@@ -215,7 +215,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 	}
 
 	ret <- importResult{
-		blockCount:        blockCount,
-		payloadBytesCount: payloadBytesCount,
-		roots:             roots}
+		blockCount:      blockCount,
+		blockBytesCount: blockBytesCount,
+		roots:           roots}
 }

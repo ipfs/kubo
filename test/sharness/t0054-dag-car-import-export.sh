@@ -65,7 +65,7 @@ EOE
   cat >naked_root_import_json_expected <<EOE
 {"Root":{"Cid":{"/":"bafy2bzaceaxm23epjsmh75yvzcecsrbavlmkcxnva66bkdebdcnyw3bjrc74u"},"PinErrorMsg":""}}
 {"Root":{"Cid":{"/":"bafy2bzaced4ueelaegfs5fqu4tzsh6ywbbpfk3cxppupmxfdhbpbhzawfw5oy"},"PinErrorMsg":""}}
-{"Stats":{"BlockCount":0,"PayloadBytesCount":0}}
+{"Stats":{"BlockCount":0,"BlockBytesCount":0}}
 EOE
 
 
@@ -175,7 +175,7 @@ cat >multiroot_import_json_expected <<EOE
 {"Root":{"Cid":{"/":"bafy2bzaceb55n7uxyfaelplulk3ev2xz7gnq6crncf3ahnvu46hqqmpucizcw"},"PinErrorMsg":""}}
 {"Root":{"Cid":{"/":"bafy2bzacebedrc4n2ac6cqdkhs7lmj5e4xiif3gu7nmoborihajxn3fav3vdq"},"PinErrorMsg":""}}
 {"Root":{"Cid":{"/":"bafy2bzacede2hsme6hparlbr4g2x6pylj43olp4uihwjq3plqdjyrdhrv7cp4"},"PinErrorMsg":""}}
-{"Stats":{"BlockCount":2825,"PayloadBytesCount":1339709}}
+{"Stats":{"BlockCount":2825,"BlockBytesCount":1339709}}
 EOE
 test_expect_success "multiroot import works" '
   ipfs dag import --stats --enc=json ../t0054-dag-car-import-export-data/lotus_testnet_export_256_multiroot.car > multiroot_import_json_actual
@@ -186,7 +186,7 @@ test_expect_success "multiroot import expected output" '
 
 
 cat >pin_import_expected << EOE
-{"Stats":{"BlockCount":1198,"PayloadBytesCount":468513}}
+{"Stats":{"BlockCount":1198,"BlockBytesCount":468513}}
 EOE
 test_expect_success "pin-less import works" '
   ipfs dag import --stats --enc=json --pin-roots=false \

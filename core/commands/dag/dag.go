@@ -55,8 +55,8 @@ type ResolveOutput struct {
 }
 
 type CarImportStats struct {
-	BlockCount        uint64
-	PayloadBytesCount uint64
+	BlockCount      uint64
+	BlockBytesCount uint64
 }
 
 // CarImportOutput is the output type of the 'dag import' commands
@@ -167,10 +167,10 @@ var DagResolveCmd = &cmds.Command{
 }
 
 type importResult struct {
-	blockCount        uint64
-	payloadBytesCount uint64
-	roots             map[cid.Cid]struct{}
-	err               error
+	blockCount      uint64
+	blockBytesCount uint64
+	roots           map[cid.Cid]struct{}
+	err             error
 }
 
 // DagImportCmd is a command for importing a car to ipfs
@@ -223,7 +223,7 @@ Maximum supported CAR version: 1
 				}
 				stats, _ := req.Options[statsOptionName].(bool)
 				if stats {
-					fmt.Fprintf(w, "Imported %d blocks (%d bytes)\n", event.Stats.BlockCount, event.Stats.PayloadBytesCount)
+					fmt.Fprintf(w, "Imported %d blocks (%d bytes)\n", event.Stats.BlockCount, event.Stats.BlockBytesCount)
 				}
 				return nil
 			}
