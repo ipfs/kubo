@@ -191,8 +191,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 					return err
 				}
 				blockCount++
-				ndSize, _ := nd.Size()
-				blockBytesCount += ndSize
+				blockBytesCount += uint64(len(nd.RawData()))
 			}
 
 			return nil
