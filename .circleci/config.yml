@@ -35,3 +35,4 @@ workflows:
   setup-workflow:
     jobs:
       - generate-params
+
