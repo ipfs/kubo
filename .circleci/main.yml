@@ -104,7 +104,7 @@ jobs:
     - *restore_gomod
 
     - run: |
-        make -j << pipeline.parameters.make_jobs >> test/unit/gotest.junit.xml \
+        make -j 1 test/unit/gotest.junit.xml \
         && [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
     - run:
         when: always
