@@ -202,6 +202,7 @@ func TestCommands(t *testing.T) {
 		"/pin/remote/service/add",
 		"/pin/remote/service/ls",
 		"/pin/remote/service/rm",
+		"/pin/removeall",
 		"/pin/rm",
 		"/pin/update",
 		"/pin/verify",
