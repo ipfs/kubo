@@ -191,7 +191,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 					return err
 				}
 				blockCount++
-				blockBytesCount += uint64(len(nd.RawData()))
+				blockBytesCount += uint64(len(block.RawData()))
 			}
 
 			return nil
