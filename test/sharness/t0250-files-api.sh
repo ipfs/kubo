@@ -508,6 +508,21 @@ test_files_api() {
     verify_dir_contents /cats file1 ipfs this
   '
 
+  # Temporary check to uncover source of flaky test fail (see
+  # https://github.com/ipfs/go-ipfs/issues/8131 for more details).
+  # We suspect that sometimes the daemon isn't running when in fact we need
+  # it to for the `--flush=false` flag to take effect. To try to spot the
+  # specific error before it manifests itself in the failed test we explicitly
+  # poll the damon API when it should be running ($WITH_DAEMON set).
+  # Test taken from `test/sharness/lib/test-lib.sh` (but with less retries
+  # as the daemon is either running or not but there is no 'bootstrap' time
+  # needed in this case).
+  test_expect_success "'ipfs daemon' is running when WITH_DAEMON is set" '
+    test -z "$WITH_DAEMON" ||
+    pollEndpoint -host=$API_MADDR -v -tout=1s -tries=3 2>poll_apierr > poll_apiout ||
+    test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
+  '
+
   test_expect_success "write 'no-flush' succeeds $EXTRA" '
     echo "testing" | ipfs files write $ARGS $RAW_LEAVES -f=false -e /cats/walrus
   '
