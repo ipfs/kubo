@@ -244,6 +244,9 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 
 // ListPeers lists peers in the peering service.
 func (ps *PeeringService) ListPeers() []peer.AddrInfo {
+	ps.mu.RLock()
+	defer ps.mu.RUnlock()
+
 	out := make([]peer.AddrInfo, 0, len(ps.peers))
 	for id, addrs := range ps.peers {
 		ai := peer.AddrInfo{ID: id}
