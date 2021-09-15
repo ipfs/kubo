@@ -22,9 +22,9 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		return err
 	}
 
-	format, _ := req.Options["format"].(string)
-	var fCodec mc.Code
-	if err := fCodec.Set(format); err != nil {
+	codecStr, _ := req.Options["output-codec"].(string)
+	var codec mc.Code
+	if err := codec.Set(codecStr); err != nil {
 		return err
 	}
 
@@ -54,9 +54,9 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		}
 	}
 
-	encoder, err := multicodec.LookupEncoder(uint64(fCodec))
+	encoder, err := multicodec.LookupEncoder(uint64(codec))
 	if err != nil {
-		return fmt.Errorf("invalid encoding: %s - %s", format, err)
+		return fmt.Errorf("invalid encoding: %s - %s", codec, err)
 	}
 
 	r, w := io.Pipe()
