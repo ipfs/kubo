@@ -82,6 +82,10 @@ func (h *Harness) GetIPFSConfig(key string, val interface{}) {
 	return
 }
 
+func (h *Harness) IPFSAddStr(content string, args ...string) string {
+	return h.IPFSAdd(strings.NewReader(content), args...)
+}
+
 func (h *Harness) IPFSAdd(content io.Reader, args ...string) string {
 	fullArgs := []string{"add", "-q"}
 	fullArgs = append(fullArgs, args...)

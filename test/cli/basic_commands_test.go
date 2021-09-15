@@ -92,8 +92,8 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 		go func(cmd string) {
 			defer wg.Done()
 			splitCmd := strings.Split(cmd, " ")[1:]
-			h.MustRunIPFS(append([]string{"help"}, splitCmd...)...)
-			h.MustRunIPFS(append(splitCmd, "--help")...)
+			h.MustRunIPFS(StrConcat("help", splitCmd)...)
+			h.MustRunIPFS(StrConcat(splitCmd, "--help")...)
 		}(cmd)
 	}
 	wg.Wait()
@@ -179,7 +179,7 @@ func TestCommandDocsWidth(t *testing.T) {
 		go func(cmd string) {
 			defer wg.Done()
 			splitCmd := strings.Split(cmd, " ")
-			resStr := h.MustRunIPFS(append(splitCmd[1:], "--help")...)
+			resStr := h.MustRunIPFS(StrConcat(splitCmd[1:], "--help")...)
 			res := strings.TrimSpace(resStr.Stdout.String())
 			for i, line := range harness.SplitLines(res) {
 				assert.LessOrEqualf(t, len(line), 80, cmd, i)
