@@ -97,6 +97,40 @@ test_expect_success "Addresses.NoAnnounce with /ipcidr affects addresses" '
 
 test_kill_ipfs_daemon
 
+test_launch_ipfs_daemon
+
+test_expect_success "'ipfs swarm peering ls' lists peerings" '
+  ipfs swarm peering ls
+'
+
+peeringID='QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N'
+peeringID2='QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5K'
+peeringAddr='/ip4/1.2.3.4/tcp/1234/p2p/QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N'
+peeringAddr2='/ip4/1.2.3.4/tcp/1234/p2p/QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5K'
+test_expect_success "'ipfs swarm peering add' adds a peering" '
+  ipfs swarm peering ls > peeringls &&
+  ! test_should_contain ${peeringID} peeringls &&
+  ! test_should_contain ${peeringID2} peeringls &&
+  ipfs swarm peering add ${peeringAddr} ${peeringAddr2}
+'
+
+test_expect_success 'a peering is added' '
+  ipfs swarm peering ls > peeringadd &&
+  test_should_contain ${peeringID} peeringadd &&
+  test_should_contain ${peeringID2} peeringadd
+'
+
+test_expect_success "'swarm peering rm' removes a peering" '
+  ipfs swarm peering rm ${peeringID}
+'
+
+test_expect_success 'peering is removed' '
+  ipfs swarm peering ls > peeringrm &&
+  ! test_should_contain ${peeringID} peeringrm
+'
+
+test_kill_ipfs_daemon
+
 test_expect_success "set up tcp testbed" '
   iptb testbed create -type localipfs -count 2 -force -init
 '
