@@ -14,8 +14,8 @@ test_expect_success 'create test JSON files' '
 '
 
 test_expect_success 'puts as CBOR work' '
-  GOT_HASH_WITHOUT_NEWLINE="$(cat without_newline.json | ipfs dag put -f dag-cbor)"
-  GOT_HASH_WITH_NEWLINE="$(cat with_newline.json | ipfs dag put -f dag-cbor)"
+  GOT_HASH_WITHOUT_NEWLINE="$(cat without_newline.json | ipfs dag put -s dag-cbor)"
+  GOT_HASH_WITH_NEWLINE="$(cat with_newline.json | ipfs dag put -s dag-cbor)"
 '
 
 test_expect_success 'put hashes with or without newline are equal' '

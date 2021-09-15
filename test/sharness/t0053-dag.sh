@@ -45,7 +45,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add an ipld object using dag-json to dag-json" '
-    IPLDHASH=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-json)
+    IPLDHASH=$(cat ipld_object | ipfs dag put -i dag-json -s dag-json)
   '
 
   test_expect_success "CID looks correct" '
@@ -54,7 +54,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add an ipld object using dag-json to dag-cbor" '
-    IPLDHASH=$(cat ipld_object | ipfs dag put --input-enc=dag-json -f dag-cbor)
+    IPLDHASH=$(cat ipld_object | ipfs dag put -i dag-json -s dag-cbor)
   '
 
   test_expect_success "CID looks correct" '
@@ -75,7 +75,7 @@ test_dag_cmd() {
   # (1) dag-cbor input
 
   test_expect_success "can add a dag-cbor input block stored as dag-cbor" '
-    IPLDCBORHASH=$(cat ipld_object_dagcbor | ipfs dag put --input-enc=dag-cbor -f dag-cbor)
+    IPLDCBORHASH=$(cat ipld_object_dagcbor | ipfs dag put -i dag-cbor -s dag-cbor)
   '
 
   test_expect_success "dag-cbor CID looks correct" '
@@ -84,7 +84,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add a dag-cbor input block stored as dag-pb" '
-    IPLDPBHASH=$(cat ipld_object_dagcbor | ipfs dag put --input-enc=dag-cbor -f dag-pb)
+    IPLDPBHASH=$(cat ipld_object_dagcbor | ipfs dag put -i dag-cbor -s dag-pb)
   '
 
   test_expect_success "dag-pb CID looks correct" '
@@ -93,7 +93,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add a dag-cbor input block stored as dag-json" '
-    IPLDJSONHASH=$(cat ipld_object_dagcbor | ipfs dag put --input-enc=dag-cbor -f dag-json)
+    IPLDJSONHASH=$(cat ipld_object_dagcbor | ipfs dag put -i dag-cbor -s dag-json)
   '
 
   test_expect_success "dag-json CID looks correct" '
@@ -104,7 +104,7 @@ test_dag_cmd() {
   # (2) dag-json input
 
   test_expect_success "can add a dag-json input block stored as dag-cbor" '
-    IPLDCBORHASH=$(cat ipld_object_dagjson | ipfs dag put --input-enc=dag-json -f dag-cbor)
+    IPLDCBORHASH=$(cat ipld_object_dagjson | ipfs dag put -i dag-json -s dag-cbor)
   '
 
   test_expect_success "dag-cbor CID looks correct" '
@@ -113,7 +113,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add a dag-json input block stored as dag-pb" '
-    IPLDPBHASH=$(cat ipld_object_dagjson | ipfs dag put --input-enc=dag-json -f dag-pb)
+    IPLDPBHASH=$(cat ipld_object_dagjson | ipfs dag put -i dag-json -s dag-pb)
   '
 
   test_expect_success "dag-pb CID looks correct" '
@@ -122,7 +122,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add a dag-json input block stored as dag-json" '
-    IPLDJSONHASH=$(cat ipld_object_dagjson | ipfs dag put --input-enc=dag-json -f dag-json)
+    IPLDJSONHASH=$(cat ipld_object_dagjson | ipfs dag put -i dag-json -s dag-json)
   '
 
   test_expect_success "dag-json CID looks correct" '
@@ -133,7 +133,7 @@ test_dag_cmd() {
   # (3) dag-pb input
 
   test_expect_success "can add a dag-pb input block stored as dag-cbor" '
-    IPLDCBORHASH=$(cat ipld_object_dagpb | ipfs dag put --input-enc=dag-pb -f dag-cbor)
+    IPLDCBORHASH=$(cat ipld_object_dagpb | ipfs dag put -i dag-pb -s dag-cbor)
   '
 
   test_expect_success "dag-cbor CID looks correct" '
@@ -142,7 +142,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add a dag-pb input block stored as dag-pb" '
-    IPLDPBHASH=$(cat ipld_object_dagpb | ipfs dag put --input-enc=dag-pb -f dag-pb)
+    IPLDPBHASH=$(cat ipld_object_dagpb | ipfs dag put -i dag-pb -s dag-pb)
   '
 
   test_expect_success "dag-pb CID looks correct" '
@@ -151,7 +151,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "can add a dag-pb input block stored as dag-json" '
-    IPLDJSONHASH=$(cat ipld_object_dagpb | ipfs dag put --input-enc=dag-pb -f dag-json)
+    IPLDJSONHASH=$(cat ipld_object_dagpb | ipfs dag put -i dag-pb -s dag-json)
   '
 
   test_expect_success "dag-json CID looks correct" '
@@ -245,7 +245,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "retrieved object hashes back correctly" '
-    IPLDHASH2=$(cat ipld_obj_out | ipfs dag put --input-enc=dag-json -f dag-cbor) &&
+    IPLDHASH2=$(cat ipld_obj_out | ipfs dag put -i dag-json -s dag-cbor) &&
     test "$IPLDHASH" = "$IPLDHASH2"
   '
 
@@ -272,7 +272,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "non-canonical dag-cbor input is normalized" '
-    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put --format=dag-cbor --input-enc=dag-cbor) &&
+    HASH=$(cat ../t0053-dag-data/non-canon.cbor | ipfs dag put -s dag-cbor -i dag-cbor) &&
     test $HASH = "bafyreiawx7ona7oa2ptcoh6vwq4q6bmd7x2ibtkykld327bgb7t73ayrqm" ||
     test_fsh echo $HASH
   '
@@ -283,7 +283,7 @@ test_dag_cmd() {
   '
 
   test_expect_success "add an ipld with pin" '
-    PINHASH=$(printf {\"foo\":\"bar\"} | ipfs dag put --input-enc=dag-json --pin=true)
+    PINHASH=$(printf {\"foo\":\"bar\"} | ipfs dag put -i dag-json --pin=true)
   '
 
   test_expect_success "after gc, objects still accessible" '
@@ -307,7 +307,7 @@ test_dag_cmd() {
 
   test_expect_success "dag put with json dag-pb works" '
     ipfs dag get $HASH > pbjson &&
-    cat pbjson | ipfs dag put --format=dag-pb --input-enc=dag-json > dag_put_out
+    cat pbjson | ipfs dag put --store-codec=dag-pb --input-codec=dag-json > dag_put_out
   '
 
   test_expect_success "dag put with dag-pb works output looks good" '
@@ -317,7 +317,7 @@ test_dag_cmd() {
 
   test_expect_success "dag put with raw dag-pb works" '
     ipfs block get $HASH > pbraw &&
-    cat pbraw | ipfs dag put --format=dag-pb --input-enc=dag-pb > dag_put_out
+    cat pbraw | ipfs dag put --store-codec=dag-pb --input-codec=dag-pb > dag_put_out
   '
 
   test_expect_success "dag put with dag-pb works output looks good" '
@@ -327,7 +327,7 @@ test_dag_cmd() {
 
   test_expect_success "dag put with raw node works" '
     echo "foo bar" > raw_node_in &&
-    HASH=$(ipfs dag put --format=raw --input-enc=raw -- raw_node_in) &&
+    HASH=$(ipfs dag put --store-codec=raw --input-codec=raw -- raw_node_in) &&
     ipfs block get "$HASH" > raw_node_out &&
     test_cmp raw_node_in raw_node_out'
 

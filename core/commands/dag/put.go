@@ -31,17 +31,17 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 		return err
 	}
 
-	ienc, _ := req.Options["input-enc"].(string)
-	format, _ := req.Options["format"].(string)
+	inputCodec, _ := req.Options["input-codec"].(string)
+	storeCodec, _ := req.Options["store-codec"].(string)
 	hash, _ := req.Options["hash"].(string)
 	dopin, _ := req.Options["pin"].(bool)
 
 	var icodec mc.Code
-	if err := icodec.Set(ienc); err != nil {
+	if err := icodec.Set(inputCodec); err != nil {
 		return err
 	}
-	var fcodec mc.Code
-	if err := fcodec.Set(format); err != nil {
+	var scodec mc.Code
+	if err := scodec.Set(storeCodec); err != nil {
 		return err
 	}
 	var mhType mc.Code
@@ -51,7 +51,7 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 
 	cidPrefix := cid.Prefix{
 		Version:  1,
-		Codec:    uint64(fcodec),
+		Codec:    uint64(scodec),
 		MhType:   uint64(mhType),
 		MhLength: -1,
 	}
@@ -60,7 +60,7 @@ func dagPut(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 	if err != nil {
 		return err
 	}
-	encoder, err := multicodec.LookupEncoder(uint64(fcodec))
+	encoder, err := multicodec.LookupEncoder(uint64(scodec))
 	if err != nil {
 		return err
 	}
