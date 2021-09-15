@@ -17,7 +17,12 @@ test_id_compute_agent() {
         AGENT_COMMIT="${AGENT_COMMIT##$AGENT_VERSION-}"
     fi
     AGENT_VERSION="go-ipfs/$AGENT_VERSION/$AGENT_COMMIT"
-    test -z "$AGENT_SUFFIX" || AGENT_VERSION="$AGENT_VERSION/$AGENT_SUFFIX"
+    if test -n "$AGENT_SUFFIX"; then
+      if test -n "$AGENT_COMMIT"; then
+        AGENT_VERSION="$AGENT_VERSION/"
+      fi
+      AGENT_VERSION="$AGENT_VERSION$AGENT_SUFFIX"
+    fi
     echo "$AGENT_VERSION"
 }
 
