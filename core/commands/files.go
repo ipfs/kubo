@@ -1033,7 +1033,7 @@ Remove files or directories.
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("path", true, true, "File to remove."),
+		cmds.StringArg("path", true, false, "File to remove."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(recursiveOptionName, "r", "Recursively remove directories."),
