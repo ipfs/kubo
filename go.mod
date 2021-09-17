@@ -3,8 +3,8 @@ module github.com/ipfs/go-ipfs
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.3.0
-	github.com/ceramicnetwork/go-dag-jose v0.0.5
 	github.com/blang/semver/v4 v4.0.0
+	github.com/ceramicnetwork/go-dag-jose v0.0.0-20211117173117-9e74eecaf7e9
 	github.com/cheggaaa/pb v1.0.29
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dustin/go-humanize v1.0.0
