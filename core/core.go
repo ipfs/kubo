@@ -24,7 +24,6 @@ import (
 	"github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-	mfs "github.com/ipfs/go-mfs"
 	goprocess "github.com/jbenet/goprocess"
 	connmgr "github.com/libp2p/go-libp2p-core/connmgr"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
@@ -81,7 +80,17 @@ type IpfsNode struct {
 	UnixFSFetcherFactory fetcher.Factory           `name:"unixfsFetcher"` // fetcher that interprets UnixFS data
 	Reporter             *metrics.BandwidthCounter `optional:"true"`
 	Discovery            mdns.Service              `optional:"true"`
-	FilesRoot            *mfs.Root
+	// FIXME(BLOCKING): Decided on this.
+	// Temporarily masking FilesRoot to make sure we're covering *all* MFS accesses.
+	// We should evaluate later if we either want to:
+	// * leave it in place for backward compatibility (this would be very risky
+	//   given we would be exposing an unlocked version of the MFS root)
+	// * remove it completely (breaking interface) in favor of LockedFilesRoot;
+	//   this would seem the cleaner option
+	// * some in-between like renaming LockedFilesRoot to the original FilesRoot
+	//   (which would still be breaking the API and could even be more confusing)
+	// FilesRoot            *mfs.Root
+	LockedFilesRoot      *node.LockedFilesRoot
 	RecordValidator      record.Validator
 
 	// Online

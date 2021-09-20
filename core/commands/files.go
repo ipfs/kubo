@@ -9,10 +9,12 @@ import (
 	gopath "path"
 	"sort"
 	"strings"
+	"time"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/node"
 
 	bservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
@@ -398,20 +400,23 @@ GC'ed.
 			return fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
 		}
 
+		filesRoot := nd.LockedFilesRoot.Lock()
+		defer nd.LockedFilesRoot.Unlock()
+
 		if mkParents {
-			err := ensureContainingDirectoryExists(nd.FilesRoot, dst, prefix)
+			err := ensureContainingDirectoryExists(filesRoot, dst, prefix)
 			if err != nil {
 				return err
 			}
 		}
 
-		err = mfs.PutNode(nd.FilesRoot, dst, node)
+		err = mfs.PutNode(filesRoot, dst, node)
 		if err != nil {
 			return fmt.Errorf("cp: cannot put node in path %s: %s", dst, err)
 		}
 
 		if flush {
-			_, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
+			_, err := mfs.FlushPath(req.Context, filesRoot, dst)
 			if err != nil {
 				return fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
 			}
@@ -426,7 +431,9 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI
 	case strings.HasPrefix(p, "/ipfs/"):
 		return api.ResolveNode(ctx, path.New(p))
 	default:
-		fsn, err := mfs.Lookup(node.FilesRoot, p)
+		filesRoot := node.LockedFilesRoot.RLock()
+		defer node.LockedFilesRoot.RUnlock()
+		fsn, err := mfs.Lookup(filesRoot, p)
 		if err != nil {
 			return nil, err
 		}
@@ -491,7 +498,10 @@ Examples:
 			return err
 		}
 
-		fsn, err := mfs.Lookup(nd.FilesRoot, path)
+		filesRoot := nd.LockedFilesRoot.RLock()
+		defer nd.LockedFilesRoot.RUnlock()
+
+		fsn, err := mfs.Lookup(filesRoot, path)
 		if err != nil {
 			return err
 		}
@@ -611,7 +621,10 @@ Examples:
 			return err
 		}
 
-		fsn, err := mfs.Lookup(nd.FilesRoot, path)
+		filesRoot := nd.LockedFilesRoot.RLock()
+		defer nd.LockedFilesRoot.RUnlock()
+
+		fsn, err := mfs.Lookup(filesRoot, path)
 		if err != nil {
 			return err
 		}
@@ -706,9 +719,12 @@ Example:
 			return err
 		}
 
-		err = mfs.Mv(nd.FilesRoot, src, dst)
+		filesRoot := nd.LockedFilesRoot.Lock()
+		defer nd.LockedFilesRoot.Unlock()
+
+		err = mfs.Mv(filesRoot, src, dst)
 		if err == nil && flush {
-			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, "/")
+			_, err = mfs.FlushPath(req.Context, filesRoot, "/")
 		}
 		return err
 	},
@@ -768,6 +784,9 @@ stat' on the file or any of its ancestors.
 		cmds.BoolOption(filesTruncateOptionName, "t", "Truncate the file to size zero before writing."),
 		cmds.Int64Option(filesCountOptionName, "n", "Maximum number of bytes to read."),
 		cmds.BoolOption(filesRawLeavesOptionName, "Use raw blocks for newly created leaf nodes. (experimental)"),
+		// FIXME(BLOCKING): Remove.
+		// Fake lock for manual testing.
+		cmds.IntOption("lock-time", "lt", "[TESTING] timeout to hold the MFS lock while copying").WithDefault(0),
 		cidVersionOption,
 		hashOption,
 	},
@@ -798,14 +817,21 @@ stat' on the file or any of its ancestors.
 			return fmt.Errorf("cannot have negative write offset")
 		}
 
+		filesRoot := nd.LockedFilesRoot.Lock()
+		defer nd.LockedFilesRoot.Unlock()
+		// FIXME(BLOCKING): Remove.
+		// Keep the hold for a fake, arbitrary amount of time to test it manually.
+		timeout, _ := req.Options["lock-time"].(int)
+		defer time.Sleep(time.Duration(timeout) * time.Second)
+
 		if mkParents {
-			err := ensureContainingDirectoryExists(nd.FilesRoot, path, prefix)
+			err := ensureContainingDirectoryExists(filesRoot, path, prefix)
 			if err != nil {
 				return err
 			}
 		}
 
-		fi, err := getFileHandle(nd.FilesRoot, path, create, prefix)
+		fi, err := getFileHandle(filesRoot, path, create, prefix)
 		if err != nil {
 			return err
 		}
@@ -904,7 +930,9 @@ Examples:
 		if err != nil {
 			return err
 		}
-		root := n.FilesRoot
+
+		root := n.LockedFilesRoot.Lock()
+		defer n.LockedFilesRoot.Unlock()
 
 		err = mfs.Mkdir(root, dirtomake, mfs.MkdirOpts{
 			Mkparents:  dashp,
@@ -947,7 +975,10 @@ are run with the '--flush=false'.
 			path = req.Arguments[0]
 		}
 
-		n, err := mfs.FlushPath(req.Context, nd.FilesRoot, path)
+		filesRoot := nd.LockedFilesRoot.Lock()
+		defer nd.LockedFilesRoot.Unlock()
+
+		n, err := mfs.FlushPath(req.Context, filesRoot, path)
 		if err != nil {
 			return err
 		}
@@ -989,9 +1020,12 @@ Change the CID version or hash function of the root node of a given path.
 			return err
 		}
 
-		err = updatePath(nd.FilesRoot, path, prefix)
+		filesRoot := nd.LockedFilesRoot.Lock()
+		defer nd.LockedFilesRoot.Unlock()
+
+		err = updatePath(filesRoot, path, prefix)
 		if err == nil && flush {
-			_, err = mfs.FlushPath(req.Context, nd.FilesRoot, path)
+			_, err = mfs.FlushPath(req.Context, filesRoot, path)
 		}
 		return err
 	},
@@ -1056,7 +1090,7 @@ Remove files or directories.
 				continue
 			}
 
-			if err := removePath(nd.FilesRoot, path, force, dashr); err != nil {
+			if err := removePath(nd.LockedFilesRoot, path, force, dashr); err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", path, err))
 			}
 		}
@@ -1073,7 +1107,7 @@ Remove files or directories.
 	},
 }
 
-func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error {
+func removePath(lockedFilesRoot *node.LockedFilesRoot, path string, force bool, dashr bool) error {
 	if path == "/" {
 		return fmt.Errorf("cannot delete root")
 	}
@@ -1084,6 +1118,9 @@ func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error 
 	}
 
 	dir, name := gopath.Split(path)
+
+	filesRoot := lockedFilesRoot.Lock()
+	defer lockedFilesRoot.Unlock()
 
 	pdir, err := getParentDir(filesRoot, dir)
 	if err != nil {
