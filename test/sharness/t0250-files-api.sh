@@ -690,9 +690,7 @@ test_files_api() {
   '
 
   test_expect_success "clean up $EXTRA" '
-    ipfs files rm -r /foobar &&
-    ipfs files rm -r /adir &&
-    ipfs files rm -r /parents
+    ipfs files rm -r /foobar /adir /parents
   '
 
   test_expect_success "root mfs entry is empty $EXTRA" '
@@ -711,9 +709,36 @@ test_files_api() {
     verify_dir_contents /
   '
 
+  test_expect_success "remove multiple files forcibly" '
+    echo "hello world" | ipfs files write --create /forcibly_one &&
+    echo "hello world" | ipfs files write --create /forcibly_two &&
+    ipfs files rm --force /forcibly_one /forcibly_two &&
+    verify_dir_contents /
+  '
+
   test_expect_success "remove directory forcibly" '
     ipfs files mkdir /forcibly-dir &&
     ipfs files rm --force /forcibly-dir &&
+    verify_dir_contents /
+  '
+
+  test_expect_success "remove multiple directories forcibly" '
+    ipfs files mkdir /forcibly-dir-one &&
+    ipfs files mkdir /forcibly-dir-two &&
+    ipfs files rm --force /forcibly-dir-one /forcibly-dir-two &&
+    verify_dir_contents /
+  '
+
+  test_expect_success "remove multiple files" '
+    echo "hello world" | ipfs files write --create /file_one &&
+    echo "hello world" | ipfs files write --create /file_two &&
+    ipfs files rm /file_one /file_two
+  '
+
+  test_expect_success "remove multiple directories" '
+    ipfs files mkdir /forcibly-dir-one &&
+    ipfs files mkdir /forcibly-dir-two &&
+    ipfs files rm -r /forcibly-dir-one /forcibly-dir-two &&
     verify_dir_contents /
   '
 
@@ -723,6 +748,14 @@ test_files_api() {
 
   test_expect_success "remove deeply nonexistant path forcibly" '
     ipfs files rm --force /deeply/nonexistant
+  '
+
+  # This one should return code 1 but still remove the rest of the valid files.
+  test_expect_success "remove multiple files (with nonexistent one)" '
+    echo "hello world" | ipfs files write --create /file_one &&
+    echo "hello world" | ipfs files write --create /file_two &&
+    test_expect_code 1 ipfs files rm /file_one /nonexistent /file_two
+    verify_dir_contents /
   '
 }
 

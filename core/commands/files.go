@@ -1044,68 +1044,93 @@ Remove files or directories.
 		if err != nil {
 			return err
 		}
-
-		path, err := checkPath(req.Arguments[0])
-		if err != nil {
-			return err
-		}
-
-		if path == "/" {
-			return fmt.Errorf("cannot delete root")
-		}
-
-		// 'rm a/b/c/' will fail unless we trim the slash at the end
-		if path[len(path)-1] == '/' {
-			path = path[:len(path)-1]
-		}
-
 		// if '--force' specified, it will remove anything else,
 		// including file, directory, corrupted node, etc
 		force, _ := req.Options[forceOptionName].(bool)
-
-		dir, name := gopath.Split(path)
-
-		pdir, err := getParentDir(nd.FilesRoot, dir)
-		if err != nil {
-			if force && err == os.ErrNotExist {
-				return nil
-			}
-			return fmt.Errorf("parent lookup: %s", err)
-		}
-
-		if force {
-			err := pdir.Unlink(name)
-			if err != nil {
-				if err == os.ErrNotExist {
-					return nil
-				}
-				return err
-			}
-			return pdir.Flush()
-		}
-
-		// get child node by name, when the node is corrupted and nonexistent,
-		// it will return specific error.
-		child, err := pdir.Child(name)
-		if err != nil {
-			return err
-		}
-
 		dashr, _ := req.Options[recursiveOptionName].(bool)
-
-		switch child.(type) {
-		case *mfs.Directory:
-			if !dashr {
-				return fmt.Errorf("%s is a directory, use -r to remove directories", path)
+		var errs []error
+		for _, arg := range req.Arguments {
+			path, err := checkPath(arg)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", arg, err))
+				continue
 			}
-		}
 
-		err = pdir.Unlink(name)
-		if err != nil {
-			return err
-		}
+			if path == "/" {
+				errs = append(errs, fmt.Errorf("%s: cannot delete root", path))
+				continue
+			}
 
-		return pdir.Flush()
+			// 'rm a/b/c/' will fail unless we trim the slash at the end
+			if path[len(path)-1] == '/' {
+				path = path[:len(path)-1]
+			}
+
+			dir, name := gopath.Split(path)
+
+			pdir, err := getParentDir(nd.FilesRoot, dir)
+			if err != nil {
+				if force && err == os.ErrNotExist {
+					continue
+				}
+				errs = append(errs, fmt.Errorf("%s: parent lookup: %w", path, err))
+				continue
+			}
+
+			if force {
+				err := pdir.Unlink(name)
+				if err != nil {
+					if err == os.ErrNotExist {
+						continue
+					}
+					errs = append(errs, fmt.Errorf("%s: %w", path, err))
+					continue
+				}
+				err = pdir.Flush()
+				if err != nil {
+					errs = append(errs, fmt.Errorf("%s: %w", path, err))
+				}
+				continue
+			}
+
+			// get child node by name, when the node is corrupted and nonexistent,
+			// it will return specific error.
+			child, err := pdir.Child(name)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", path, err))
+				continue
+			}
+
+			switch child.(type) {
+			case *mfs.Directory:
+				if !dashr {
+					errs = append(errs, fmt.Errorf("%s is a directory, use -r to remove directories", path))
+					continue
+				}
+			}
+
+			err = pdir.Unlink(name)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", path, err))
+				continue
+			}
+
+			err = pdir.Flush()
+			if err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", path, err))
+			}
+			continue
+		}
+		if len(errs) > 0 {
+			for _, err = range errs {
+				e := res.Emit(err.Error())
+				if e != nil {
+					return e
+				}
+			}
+			return fmt.Errorf("can't remove some files")
+		}
+		return nil
 	},
 }
 
