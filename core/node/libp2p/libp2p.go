@@ -25,8 +25,7 @@ type Libp2pOpts struct {
 }
 
 // Misc options
-
-var UserAgent = simpleOpt(libp2p.UserAgent(version.UserAgent))
+var UserAgent = simpleOpt(libp2p.UserAgent(version.GetUserAgentVersion()))
 
 func ConnectionManager(low, high int, grace time.Duration) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {

@@ -8,7 +8,22 @@ const CurrentVersionNumber = "0.11.0-dev"
 
 const ApiVersion = "/go-ipfs/" + CurrentVersionNumber + "/"
 
-// UserAgent is the libp2p user agent used by go-ipfs.
+// GetUserAgentVersion is the libp2p user agent used by go-ipfs.
 //
 // Note: This will end in `/` when no commit is available. This is expected.
-var UserAgent = "go-ipfs/" + CurrentVersionNumber + "/" + CurrentCommit
+func GetUserAgentVersion() string {
+	userAgent := "go-ipfs/" + CurrentVersionNumber + "/" + CurrentCommit
+	if userAgentSuffix != "" {
+		if CurrentCommit != "" {
+			userAgent += "/"
+		}
+		userAgent += userAgentSuffix
+	}
+	return userAgent
+}
+
+var userAgentSuffix string
+
+func SetUserAgentSuffix(suffix string) {
+	userAgentSuffix = suffix
+}
