@@ -43,7 +43,7 @@ test_expect_success "test ping 0" '
 '
 
 test_expect_success "test ping offline" '
-  iptb stop 1 &&
+  iptb stop 1 && sleep 2 &&
   ! ipfsi 0 ping -n2 -- "$PEERID_1"
 '
 
