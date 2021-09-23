@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -240,23 +242,8 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
-
-		allowAnyBlockSize, _ := req.Options[forceBlockSize].(bool)
-		if !allowAnyBlockSize {
-			// We do not allow producing blocks bigger than 1 MiB to avoid errors
-			// when transmitting them over BitSwap. The 1 MiB constant is an
-			// unenforced and undeclared rule of thumb hard-coded here.
-			modifiedNode, err := api.Dag().Get(req.Context, p.Cid())
-			if err != nil {
-				return err
-			}
-			modifiedNodeSize, err := modifiedNode.Size()
-			if err != nil {
-				return err
-			}
-			if modifiedNodeSize > 1024 * 1024 {
-				return fmt.Errorf("object API does not support HAMT-sharding. To create big directories, please use the files API (MFS)")
-			}
+		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
+			return err
 		}
 
 		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
@@ -268,4 +255,27 @@ Use MFS and 'files' commands instead:
 			return nil
 		}),
 	},
+}
+
+func checkBlockSize(req *cmds.Request, c cid.Cid, dagAPI coreiface.APIDagService) error {
+	allowAnyBlockSize, _ := req.Options[forceBlockSize].(bool)
+	if allowAnyBlockSize {
+		return nil
+	}
+
+	// We do not allow producing blocks bigger than 1 MiB to avoid errors
+	// when transmitting them over BitSwap. The 1 MiB constant is an
+	// unenforced and undeclared rule of thumb hard-coded here.
+	modifiedNode, err := dagAPI.Get(req.Context, c)
+	if err != nil {
+		return err
+	}
+	modifiedNodeSize, err := modifiedNode.Size()
+	if err != nil {
+		return err
+	}
+	if modifiedNodeSize > 1024 * 1024 {
+		return fmt.Errorf("object API does not support HAMT-sharding. To create big directories, please use the files API (MFS)")
+	}
+	return nil
 }
