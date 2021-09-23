@@ -11,6 +11,11 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
+const (
+	// FIXME: Confirm if this is the right name.
+	forceBlockSize   = "force-block-size"
+)
+
 var ObjectPatchCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated way to create a new merkledag object based on an existing one. Use MFS with 'files cp|rm' instead.",
@@ -40,6 +45,9 @@ For modern use cases, use MFS with 'files' commands: 'ipfs files --help'.
 		"add-link":    patchAddLinkCmd,
 		"rm-link":     patchRmLinkCmd,
 		"set-data":    patchSetDataCmd,
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(forceBlockSize, "Disable block size check and allow commands to produce any output size.").WithDefault(false),
 	},
 }
 
@@ -232,21 +240,25 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
-		// We do not allow producing blocks bigger than 1 MiB to avoid errors
-		// when transmitting them over BitSwap. The 1 MiB constant is an
-		// unenforced and undeclared rule of thumb hard-coded here.
-		modifiedNode, err := api.Dag().Get(req.Context, p.Cid())
-		if err != nil {
-			return err
+
+		allowAnyBlockSize, _ := req.Options[forceBlockSize].(bool)
+		if !allowAnyBlockSize {
+			// We do not allow producing blocks bigger than 1 MiB to avoid errors
+			// when transmitting them over BitSwap. The 1 MiB constant is an
+			// unenforced and undeclared rule of thumb hard-coded here.
+			modifiedNode, err := api.Dag().Get(req.Context, p.Cid())
+			if err != nil {
+				return err
+			}
+			modifiedNodeSize, err := modifiedNode.Size()
+			if err != nil {
+				return err
+			}
+			if modifiedNodeSize > 1024 * 1024 {
+				return fmt.Errorf("object API does not support HAMT-sharding. To create big directories, please use the files API (MFS)")
+			}
 		}
-		modifiedNodeSize, err := modifiedNode.Size()
-		if err != nil {
-			return err
-		}
-		if modifiedNodeSize > 1024 * 1024 {
-			return fmt.Errorf("object API does not support HAMT-sharding. To create big directories, please use the files API (MFS)")
-		}
-		
+
 		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
