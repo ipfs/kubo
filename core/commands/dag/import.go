@@ -101,7 +101,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				failedPins++
 			}
 
-			if err := res.Emit(&CarImportOutput{Root: ret}); err != nil {
+			if err := res.Emit(&CarImportOutput{Root: &ret}); err != nil {
 				return err
 			}
 		}
@@ -112,6 +112,19 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 				failedPins,
 				len(roots),
 			)
+		}
+	}
+
+	stats, _ := req.Options[statsOptionName].(bool)
+	if stats {
+		err = res.Emit(&CarImportOutput{
+			Stats: &CarImportStats{
+				BlockCount:      done.blockCount,
+				BlockBytesCount: done.blockBytesCount,
+			},
+		})
+		if err != nil {
+			return err
 		}
 	}
 
@@ -126,6 +139,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 	batch := ipld.NewBatch(req.Context, api.Dag())
 
 	roots := make(map[cid.Cid]struct{})
+	var blockCount, blockBytesCount uint64
 
 	it := req.Files.Entries()
 	for it.Next() {
@@ -176,6 +190,8 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 				if err := batch.Add(req.Context, nd); err != nil {
 					return err
 				}
+				blockCount++
+				blockBytesCount += uint64(len(block.RawData()))
 			}
 
 			return nil
@@ -197,5 +213,8 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 		return
 	}
 
-	ret <- importResult{roots: roots}
+	ret <- importResult{
+		blockCount:      blockCount,
+		blockBytesCount: blockBytesCount,
+		roots:           roots}
 }
