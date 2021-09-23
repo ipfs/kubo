@@ -92,6 +92,10 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs add' or 'ipfs files' inste
 			return err
 		}
 
+		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
+			return err
+		}
+
 		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: &Object{},
@@ -138,6 +142,10 @@ DEPRECATED and provided for legacy reasons. Use 'files cp' and 'dag put' instead
 			return err
 		}
 
+		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
+			return err
+		}
+
 		return cmds.EmitOnce(res, &Object{Hash: p.Cid().String()})
 	},
 	Type: Object{},
@@ -173,6 +181,10 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 		name := req.Arguments[1]
 		p, err := api.Object().RmLink(req.Context, root, name)
 		if err != nil {
+			return err
+		}
+
+		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
 			return err
 		}
 
