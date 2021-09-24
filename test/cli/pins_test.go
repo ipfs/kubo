@@ -90,7 +90,7 @@ func TestPins(t *testing.T) {
 			})
 
 			// unpin the hashes
-			h.MustRunIPFS("pin", "rm")
+			// h.MustRunIPFS("pin", "rm")ss
 		})
 	}
 
