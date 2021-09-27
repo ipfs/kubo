@@ -165,6 +165,18 @@ test_dag_cmd() {
     ipfs dag get $IPLDPBHASH >& dag-get-pb
   '
 
+  test_expect_success "can get dag-pb block transcoded as dag-cbor" '
+    ipfs dag get --output-codec=dag-cbor $IPLDPBHASH >& dag-get-dagpb-transcoded-to-dagcbor &&
+    echo "122082a2e4c892e7dcf1d491b30d68aa73ba76bec94f87d4e1a887596ce0730a534a" >sha2_dagpb_to_dagcbor_expected &&
+    multihash -a=sha2-256 -e=hex dag-get-dagpb-transcoded-to-dagcbor >sha2_dagpb_to_dagcbor_actual &&
+    test_cmp sha2_dagpb_to_dagcbor_expected sha2_dagpb_to_dagcbor_actual
+  '
+
+  test_expect_success "dag put and dag get transcodings match" '
+    ROUNDTRIPDAGCBOR=$(ipfs dag put --input-codec=dag-cbor --store-codec=dag-cbor dag-get-dagpb-transcoded-to-dagcbor) &&
+    test $ROUNDTRIPDAGCBOR = $IPLDCBORHASH
+  '
+
   # this doesn't tell us if they are correct, we test that better below
   test_expect_success "outputs are the same" '
     test_cmp dag-get-cbor dag-get-json &&
