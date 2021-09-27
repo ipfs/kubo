@@ -53,7 +53,7 @@ require (
 	github.com/ipfs/go-namesys v0.3.1
 	github.com/ipfs/go-path v0.1.2
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
-	github.com/ipfs/go-unixfs v0.2.5
+	github.com/ipfs/go-unixfs v0.2.6
 	github.com/ipfs/go-unixfsnode v1.1.3
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.5.1
