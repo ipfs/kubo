@@ -21,6 +21,7 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	ft "github.com/ipfs/go-unixfs"
 	uio "github.com/ipfs/go-unixfs/io"
+	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )
 
@@ -89,7 +90,13 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var fnd ipld.Node
 	switch cidLnk.Cid.Prefix().Codec {
 	case cid.DagProtobuf:
-		fnd, err = mdag.ProtoNodeConverter(blk, nd)
+		adl, ok := nd.(ipldprime.ADL)
+		if ok {
+			substrate := adl.Substrate()
+			fnd, err = mdag.ProtoNodeConverter(blk, substrate)
+		} else {
+			fnd, err = mdag.ProtoNodeConverter(blk, nd)
+		}
 	case cid.Raw:
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:
