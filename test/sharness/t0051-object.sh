@@ -227,14 +227,18 @@ test_object_cmd() {
     DIR=$(ipfs object new unixfs-dir)
     for i in {1..13}
     do
-       DIR=$(ipfs object patch --force-block-size=false "$DIR" add-link "$DIR.jpg" "$DIR")
+       DIR=$(ipfs object patch "$DIR" add-link "$DIR.jpg" "$DIR")
     done
-    # This one will fail as it goes over the BS limit of 1MB.
-    test_expect_code 1 ipfs object patch --force-block-size=false "$DIR" add-link "$DIR.jpg" "$DIR"  >patch_out 2>&1
+    # Fail when new block goes over the BS limit of 1MB, but allow manual override
+    test_expect_code 1 ipfs object patch "$DIR" add-link "$DIR.jpg" "$DIR"  >patch_out 2>&1
   '
 
   test_expect_success "ipfs object patch add-link output has the correct error" '
-    grep "Error: object API does not support HAMT-sharding. To create big directories, please use the files API (MFS)" patch_out
+    grep "produced block is over 1MB, object API is deprecated and does not support HAMT-sharding: to create big directories, please use the files API (MFS)" patch_out
+  '
+
+  test_expect_success "ipfs object patch --allow-big-block=true add-link works" '
+    test_expect_code 0 ipfs object patch --allow-big-block=true "$DIR" add-link "$DIR.jpg" "$DIR"
   '
 
   test_expect_success "'ipfs object new foo' shouldn't crash" '

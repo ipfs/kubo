@@ -6,16 +6,16 @@ import (
 
 	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (
-	// FIXME: Confirm if this is the right name.
-	forceBlockSize   = "force-block-size"
+	softBlockLimit = 1024 * 1024 // https://github.com/ipfs/go-ipfs/issues/7421#issuecomment-910833499
+	allowBigBlock  = "allow-big-block"
 )
 
 var ObjectPatchCmd = &cmds.Command{
@@ -49,7 +49,7 @@ For modern use cases, use MFS with 'files' commands: 'ipfs files --help'.
 		"set-data":    patchSetDataCmd,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(forceBlockSize, "Disable block size check and allow commands to produce any output size.").WithDefault(false),
+		cmds.BoolOption(allowBigBlock, "Disable block size check and allow creation of blocks bigger than 1MB. WARNING: such blocks won't be transferable over the standard bitswap.").WithDefault(false),
 	},
 }
 
@@ -270,7 +270,7 @@ Use MFS and 'files' commands instead:
 }
 
 func checkBlockSize(req *cmds.Request, c cid.Cid, dagAPI coreiface.APIDagService) error {
-	allowAnyBlockSize, _ := req.Options[forceBlockSize].(bool)
+	allowAnyBlockSize, _ := req.Options[allowBigBlock].(bool)
 	if allowAnyBlockSize {
 		return nil
 	}
@@ -286,8 +286,8 @@ func checkBlockSize(req *cmds.Request, c cid.Cid, dagAPI coreiface.APIDagService
 	if err != nil {
 		return err
 	}
-	if modifiedNodeSize > 1024 * 1024 {
-		return fmt.Errorf("object API does not support HAMT-sharding. To create big directories, please use the files API (MFS)")
+	if modifiedNodeSize > softBlockLimit {
+		return fmt.Errorf("produced block is over 1MB, object API is deprecated and does not support HAMT-sharding: to create big directories, please use the files API (MFS)")
 	}
 	return nil
 }
