@@ -65,7 +65,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-doh-resolver v0.3.1
-	github.com/libp2p/go-libp2p v0.15.0-rc.1
+	github.com/libp2p/go-libp2p v0.15.0
 	github.com/libp2p/go-libp2p-circuit v0.4.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.9.0
@@ -87,7 +87,7 @@ require (
 	github.com/libp2p/go-libp2p-tls v0.2.0
 	github.com/libp2p/go-libp2p-yamux v0.5.4
 	github.com/libp2p/go-socket-activation v0.1.0
-	github.com/libp2p/go-tcp-transport v0.2.7
+	github.com/libp2p/go-tcp-transport v0.2.8
 	github.com/libp2p/go-ws-transport v0.5.0
 	github.com/miekg/dns v1.1.43
 	github.com/mitchellh/go-homedir v1.1.0
@@ -106,7 +106,7 @@ require (
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	go.opencensus.io v0.23.0
 	go.uber.org/fx v1.13.1
-	go.uber.org/zap v1.19.0
+	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.0.0-20210813211128-0a44fdfbc16e
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
