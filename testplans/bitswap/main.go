@@ -19,6 +19,7 @@ import (
 	datastore "github.com/ipfs/go-datastore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	bstats "github.com/ipfs/go-ipfs-regression/bitswap"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -46,10 +47,23 @@ func main() {
 func runSpeedTest(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 	runenv.RecordMessage("running speed-test")
 	ctx := context.Background()
+	linkShape := network.LinkShape{
+		Latency:   50 * time.Millisecond,
+		Jitter:    20 * time.Millisecond,
+		Bandwidth: 3e6,
+		// Filter: (not implemented)
+		Loss:          0.02,
+		Corrupt:       0.01,
+		CorruptCorr:   0.1,
+		Reorder:       0.01,
+		ReorderCorr:   0.1,
+		Duplicate:     0.02,
+		DuplicateCorr: 0.1,
+	}
 	initCtx.NetClient.MustConfigureNetwork(ctx, &network.Config{
 		Network:        "default",
 		Enable:         true,
-		Default:        network.LinkShape{},
+		Default:        linkShape,
 		CallbackState:  networkState,
 		CallbackTarget: runenv.TestGroupInstanceCount,
 		RoutingPolicy:  network.AllowAll,
@@ -127,9 +141,6 @@ func runRequest(ctx context.Context, runenv *runtime.RunEnv, h host.Host, bstore
 		return err
 	}
 	ai := <-providers
-	if err != nil {
-		return err
-	}
 
 	runenv.RecordMessage("connecting  to provider provider: %s", fmt.Sprint(*ai))
 	providerSub.Done()
@@ -163,8 +174,13 @@ func runRequest(ctx context.Context, runenv *runtime.RunEnv, h host.Host, bstore
 			return fmt.Errorf("could not download get block %s: %w", mh.String(), err)
 		}
 		dlDuration := time.Since(dlBegin)
-		runenv.RecordMessage("downloaded block %s", blk.Cid().String())
-		runenv.RecordMessage("download time: %s", dlDuration)
+		s := &bstats.BitswapStat{
+			SingleDownloadSpeed: &bstats.SingleDownloadSpeed{
+				Cid:              blk.Cid().String(),
+				DownloadDuration: dlDuration,
+			},
+		}
+		runenv.RecordMessage(bstats.Marshal(s))
 
 		stored, err := bstore.Has(blk.Cid())
 		if err != nil {
@@ -175,7 +191,13 @@ func runRequest(ctx context.Context, runenv *runtime.RunEnv, h host.Host, bstore
 		}
 	}
 	duration := time.Since(begin)
-	runenv.RecordMessage("total time: %s", duration)
+	s := &bstats.BitswapStat{
+		MultipleDownloadSpeed: &bstats.MultipleDownloadSpeed{
+			BlockCount:    count,
+			TotalDuration: duration,
+		},
+	}
+	runenv.RecordMessage(bstats.Marshal(s))
 	tgc.MustSignalEntry(ctx, doneState)
 	return nil
 }

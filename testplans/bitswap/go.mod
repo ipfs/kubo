@@ -1,4 +1,4 @@
-module github.com/ipfs/go-ipfs
+module github.com/ipfs/go-ipfs/testplans/bitswap
 
 require (
 	github.com/gopherjs/gopherjs v0.0.0-20190812055157-5d271430af9f // indirect
@@ -8,6 +8,7 @@ require (
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-ipfs-blockstore v0.1.6
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
+	github.com/ipfs/go-ipfs-regression v0.0.0-20210928154621-dd4770807754
 	github.com/ipfs/go-ipns v0.1.0 // indirect
 	github.com/ipfs/go-log/v2 v2.3.0 // indirect
 	github.com/ipld/go-ipld-prime v0.9.1-0.20210324083106-dc342a9917db // indirect
