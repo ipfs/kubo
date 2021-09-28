@@ -442,7 +442,6 @@ workflows:
               # the bifrost-* branches are used for deploying code that hasn't hit master yet (e.g. for testing)
               - /^bifrost-.*/
 
-
   # NOTE: CircleCI only builds tags if you explicitly filter for them. That
   # also means tag-based jobs can only depend on other tag-based jobs, so we
   # use a separate workflow because every job needs to be tagged together.
