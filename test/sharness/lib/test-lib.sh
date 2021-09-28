@@ -287,7 +287,7 @@ test_launch_ipfs_daemon_without_network() {
 
 do_umount() {
   if [ "$(uname -s)" = "Linux" ]; then
-  fusermount -u "$1"
+  fusermount -z -u "$1"
   else
   umount "$1"
   fi
