@@ -29,18 +29,18 @@
 #
 set -euo pipefail
 
-if [[ $# -lt 3 ]] ; then
-  echo 'At least 3 args required. Pass 5 args for a dry run.'
+if [[ $# -lt 1 ]] ; then
+  echo 'At least 1 arg required. Pass 5 args for a dry run.'
   echo 'Usage:'
-  echo './push-docker-tags.sh <build number> <git commit sha1> <git branch name> [git tag name] [dry run]'
+  echo './push-docker-tags.sh <build number> [git commit sha1] [git branch name] [git tag name] [dry run]'
   exit 1
 fi
 
 BUILD_NUM=$1
-GIT_SHA1=$2
+GIT_SHA1=${2:-$(git rev-parse HEAD)}
 GIT_SHA1_SHORT=$(echo "$GIT_SHA1" | cut -c 1-7)
-GIT_BRANCH=$3
-GIT_TAG=${4:-""}
+GIT_BRANCH=${3:-$(git symbolic-ref -q --short HEAD || echo "unknown")}
+GIT_TAG=${4:-$(git describe --tags --exact-match || echo "")}
 DRY_RUN=${5:-false}
 
 WIP_IMAGE_TAG=${WIP_IMAGE_TAG:-wip}
