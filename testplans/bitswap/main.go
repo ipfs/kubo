@@ -47,19 +47,20 @@ func main() {
 func runSpeedTest(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 	runenv.RecordMessage("running speed-test")
 	ctx := context.Background()
-	linkShape := network.LinkShape{
-		Latency:   50 * time.Millisecond,
-		Jitter:    20 * time.Millisecond,
-		Bandwidth: 3e6,
-		// Filter: (not implemented)
-		Loss:          0.02,
-		Corrupt:       0.01,
-		CorruptCorr:   0.1,
-		Reorder:       0.01,
-		ReorderCorr:   0.1,
-		Duplicate:     0.02,
-		DuplicateCorr: 0.1,
-	}
+	linkShape := network.LinkShape{}
+	// linkShape := network.LinkShape{
+	// 	Latency:   50 * time.Millisecond,
+	// 	Jitter:    20 * time.Millisecond,
+	// 	Bandwidth: 3e6,
+	// 	// Filter: (not implemented)
+	// 	Loss:          0.02,
+	// 	Corrupt:       0.01,
+	// 	CorruptCorr:   0.1,
+	// 	Reorder:       0.01,
+	// 	ReorderCorr:   0.1,
+	// 	Duplicate:     0.02,
+	// 	DuplicateCorr: 0.1,
+	// }
 	initCtx.NetClient.MustConfigureNetwork(ctx, &network.Config{
 		Network:        "default",
 		Enable:         true,
