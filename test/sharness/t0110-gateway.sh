@@ -163,6 +163,19 @@ test_expect_success "test failure conditions of mutex pprof endpoint" '
     test_must_fail curl -f -X GET "http://127.0.0.1:$apiport/debug/pprof-mutex/?fraction=-1"
 '
 
+curl_pprofblock() {
+  curl -f -X POST "http://127.0.0.1:$apiport/debug/pprof-block/?rate=$1"
+}
+
+test_expect_success "set blocking profiler rate for pprof (0 so it doesn't enable)" '
+  curl_pprofblock 0
+'
+
+test_expect_success "test failure conditions of mutex block endpoint" '
+  test_must_fail curl_pprofblock &&
+  test_must_fail curl_pprofblock that_is_string &&
+  test_must_fail curl -f -X GET "http://127.0.0.1:$apiport/debug/pprof-block/?rate=0"
+'
 
 test_expect_success "setup index hash" '
   mkdir index &&
