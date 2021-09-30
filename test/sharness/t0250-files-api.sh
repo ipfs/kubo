@@ -296,6 +296,20 @@ test_files_api() {
     ipfs files cp /ipfs/$FILE3 /cats/this/is/a/dir/file3
   '
 
+  test_expect_success "can copy file into deep dir using -p flag $EXTRA" '
+    ipfs files cp -p /ipfs/$FILE3 /cats/some/other/dir/file3
+  '
+
+  test_expect_success "file copied into deep dir exists $EXTRA" '
+    ipfs files read /cats/some/other/dir/file3 > file_out &&
+    echo "baz" > file_exp &&
+    test_cmp file_out file_exp
+  '
+  
+  test_expect_success "cleanup deep cp -p test $EXTRA" '
+    ipfs files rm -r /cats/some
+  '
+
   test_expect_success "can read file $EXTRA" '
     ipfs files read /cats/this/is/a/dir/file3 > output
   '
@@ -494,12 +508,31 @@ test_files_api() {
     verify_dir_contents /cats file1 ipfs this
   '
 
+  # Temporary check to uncover source of flaky test fail (see
+  # https://github.com/ipfs/go-ipfs/issues/8131 for more details).
+  # We suspect that sometimes the daemon isn't running when in fact we need
+  # it to for the `--flush=false` flag to take effect. To try to spot the
+  # specific error before it manifests itself in the failed test we explicitly
+  # poll the damon API when it should be running ($WITH_DAEMON set).
+  # Test taken from `test/sharness/lib/test-lib.sh` (but with less retries
+  # as the daemon is either running or not but there is no 'bootstrap' time
+  # needed in this case).
+  test_expect_success "'ipfs daemon' is running when WITH_DAEMON is set" '
+    test -z "$WITH_DAEMON" ||
+    pollEndpoint -host=$API_MADDR -v -tout=1s -tries=3 2>poll_apierr > poll_apiout ||
+    test_fsh cat actual_daemon || test_fsh cat daemon_err || test_fsh cat poll_apierr || test_fsh cat poll_apiout
+  '
+
   test_expect_success "write 'no-flush' succeeds $EXTRA" '
     echo "testing" | ipfs files write $ARGS $RAW_LEAVES -f=false -e /cats/walrus
   '
 
+  # Skip this test if the commands are not being run through the daemon
+  # ($WITH_DAEMON not set) as standalone commands will *always* flush
+  # after being done and the 'no-flush' call from the previous test will
+  # not be enforced.
   test_expect_success "root hash not bubbled up yet $EXTRA" '
-    test -z "$ONLINE" ||
+    test -z "$WITH_DAEMON" ||
     (ipfs refs local > refsout &&
     test_expect_code 1 grep $ROOT_HASH refsout)
   '
@@ -693,8 +726,10 @@ test_files_api() {
   '
 }
 
-# test offline and online
-
+# test with and without the daemon (EXTRA="with-daemon" and EXTRA="no-daemon"
+# respectively).
+# FIXME: Check if we are correctly using the "no-daemon" flag in these test
+# combinations.
 tests_for_files_api() {
   local EXTRA
   EXTRA=$1
@@ -712,7 +747,7 @@ tests_for_files_api() {
     create_files --raw-leaves
   '
 
-  if [ "$EXTRA" = "offline" ]; then
+  if [ "$EXTRA" = "with-daemon" ]; then
     ROOT_HASH=QmTpKiKcAj4sbeesN6vrs5w3QeVmd4QmGpxRL81hHut4dZ
     CATS_HASH=QmPhPkmtUGGi8ySPHoPu1qbfryLJKKq1GYxpgLyyCruvGe
     test_files_api "($EXTRA, partial raw-leaves)"
@@ -728,7 +763,7 @@ tests_for_files_api() {
   CATS_HASH=bafybeig4cpvfu2qwwo3u4ffazhqdhyynfhnxqkzvbhrdbamauthf5mfpuq
   FILE_HASH=bafybeibkrazpbejqh3qun7xfnsl7yofl74o4jwhxebpmtrcpavebokuqtm
   TRUNC_HASH=bafybeigwhb3q36yrm37jv5fo2ap6r6eyohckqrxmlejrenex4xlnuxiy3e
-  if [ "$EXTRA" = "offline" ]; then
+  if [ "$EXTRA" = "with-daemon" ]; then
     test_files_api "($EXTRA, cidv1)" --cid-version=1
   fi
 
@@ -742,7 +777,7 @@ tests_for_files_api() {
   ROOT_HASH=bafybeifxnoetaa2jetwmxubv3gqiyaknnujwkkkhdeua63kulm63dcr5wu
     test_files_api "($EXTRA, cidv1 root)"
 
-  if [ "$EXTRA" = "offline" ]; then
+  if [ "$EXTRA" = "with-daemon" ]; then
     test_expect_success "can update root hash to blake2b-256" '
     ipfs files chcid --hash=blake2b-256 / &&
       echo bafykbzacebugfutjir6qie7apo5shpry32ruwfi762uytd5g3u2gk7tpscndq > hash_expect &&
@@ -764,21 +799,23 @@ tests_for_files_api() {
   '
 }
 
-tests_for_files_api "online"
+tests_for_files_api "no-daemon"
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
-ONLINE=1 # set online flag so tests can easily tell
+WITH_DAEMON=1
+# FIXME: Used only on a specific test inside `test_files_api` but we should instead
+# propagate the `"with-daemon"` argument in its caller `tests_for_files_api`.
 
-tests_for_files_api "offline"
+tests_for_files_api "with-daemon"
 
-test_kill_ipfs_daemon --offline
+test_kill_ipfs_daemon
 
 test_expect_success "enable sharding in config" '
   ipfs config --json Experimental.ShardingEnabled true
 '
 
-test_launch_ipfs_daemon --offline
+test_launch_ipfs_daemon_without_network
 
 SHARD_HASH=QmPkwLJTYZRGPJ8Lazr9qPdrLmswPtUjaDbEpmR9jEh1se
 test_sharding "(cidv0)"

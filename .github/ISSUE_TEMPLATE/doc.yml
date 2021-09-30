@@ -1,0 +1,29 @@
+name: Documentation Issue
+description: Report missing, erroneous docs, broken links or propose new go-ipfs docs.
+labels:
+  - topic/docs-ipfs
+  - need/triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Problems with documentation on https://docs.ipfs.io should be reported to https://github.com/ipfs/ipfs-docs
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      description: Please verify the following.
+      options:
+        - label: I am reporting a documentation issue in this repo, not https://docs.ipfs.io.
+          required: true
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my issue.
+          required: true
+  - type: input
+    attributes:
+      label: Location
+      description: |
+        If possible, please provide a link to the documentation issue.
+  - type: textarea
+    attributes:
+      label: Description
+      description: |
+        Please describe your issue.

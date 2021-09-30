@@ -6,7 +6,9 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	legacymdns "github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
+
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
@@ -35,18 +37,21 @@ func DiscoveryHandler(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host) 
 	}
 }
 
-func SetupDiscovery(mdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.Lifecycle, host.Host, *discoveryHandler) error {
+func SetupDiscovery(useMdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.Lifecycle, host.Host, *discoveryHandler) error {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, handler *discoveryHandler) error {
-		if mdns {
+		if useMdns {
+			service := mdns.NewMdnsService(host, mdns.ServiceName)
+			service.RegisterNotifee(handler)
+
 			if mdnsInterval == 0 {
 				mdnsInterval = 5
 			}
-			service, err := discovery.NewMdnsService(helpers.LifecycleCtx(mctx, lc), host, time.Duration(mdnsInterval)*time.Second, discovery.ServiceTag)
+			legacyService, err := legacymdns.NewMdnsService(mctx, host, time.Duration(mdnsInterval)*time.Second, legacymdns.ServiceTag)
 			if err != nil {
 				log.Error("mdns error: ", err)
 				return nil
 			}
-			service.RegisterNotifee(handler)
+			legacyService.RegisterNotifee(handler)
 		}
 		return nil
 	}

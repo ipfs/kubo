@@ -1,0 +1,62 @@
+name: Bug Report
+description: Report a bug in go-ipfs.
+labels:
+  - kind/bug
+  - need/triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        - Make sure you are running the [latest version of go-ipfs][releases] before reporting an issue.
+        - If you have an enhancement or feature request for go-ipfs, please select [a different option][issues].
+        - Please report possible security issues by email to security@ipfs.io
+
+        [issues]: https://github.com/ipfs/go-ipfs/issues/new/choose
+        [releases]: https://github.com/ipfs/go-ipfs/releases
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      description: Please verify that you've followed these steps
+      options:
+        - label: This is a bug report, not a question. Ask questions on [discuss.ipfs.io](https://discuss.ipfs.io).
+          required: true
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my bug.
+          required: true
+        - label: I am running the latest [go-ipfs version](https://dist.ipfs.io/#go-ipfs) or have an issue updating.
+          required: true
+  - type: dropdown
+    id: install
+    validations:
+      required: true
+    attributes:
+      label: Installation method
+      description: Please select your installation method
+      options:
+        - ipfs-desktop
+        - ipfs-update or dist.ipfs.io
+        - third-party binary
+        - built from source
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      render: Text
+      description: |
+        Enter the output of `ipfs version --all`. If you can't run that command, please include a copy of your [gateway's version page](http://localhost:8080/api/v0/version?enc=text&all=true).
+  - type: textarea
+    id: config
+    attributes:
+      label: Config
+      render: json
+      description: |
+        Enter the output of `ipfs config show`.
+  - type: textarea
+    attributes:
+      label: Description
+      description: |
+        This is where you get to tell us what went wrong. When doing so, please make sure to include *all* relevant information.
+
+        Please try to include:
+        * What you were doing when you experienced the bug.
+        * Any error messages you saw, *where* you saw them, and what you believe may have caused them (if you have any ideas).
+        * When possible, steps to reliably produce the bug.

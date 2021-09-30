@@ -18,7 +18,6 @@ import (
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
-	"github.com/ipfs/go-path/resolver"
 	uio "github.com/ipfs/go-unixfs/io"
 	"go.uber.org/fx"
 )
@@ -263,7 +262,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	shouldBitswapProvide := !cfg.Experimental.StrategicProviding
 
 	return fx.Options(
-		fx.Provide(OnlineExchange(shouldBitswapProvide)),
+		fx.Provide(OnlineExchange(cfg, shouldBitswapProvide)),
 		maybeProvide(Graphsync, cfg.Experimental.GraphsyncEnabled),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(ipnsCacheSize)),
@@ -294,7 +293,7 @@ func Offline(cfg *config.Config) fx.Option {
 var Core = fx.Options(
 	fx.Provide(BlockService),
 	fx.Provide(Dag),
-	fx.Provide(resolver.NewBasicResolver),
+	fx.Provide(FetcherConfig),
 	fx.Provide(Pinning),
 	fx.Provide(Files),
 )

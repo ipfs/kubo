@@ -223,6 +223,6 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		sort.Strings(info.Protocols)
 	}
 	info.ProtocolVersion = identify.LibP2PVersion
-	info.AgentVersion = version.UserAgent
+	info.AgentVersion = version.GetUserAgentVersion()
 	return info, nil
 }

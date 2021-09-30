@@ -33,14 +33,10 @@ func TestUnpackArchive(t *testing.T) {
 }
 
 func TestUnpackTgz(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "testunpacktgz")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	badTarGzip := filepath.Join(tmpDir, "bad.tar.gz")
-	err = ioutil.WriteFile(badTarGzip, []byte("bad-data\n"), 0644)
+	err := ioutil.WriteFile(badTarGzip, []byte("bad-data\n"), 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -81,14 +77,10 @@ func TestUnpackTgz(t *testing.T) {
 }
 
 func TestUnpackZip(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "testunpackzip")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	badZip := filepath.Join(tmpDir, "bad.zip")
-	err = ioutil.WriteFile(badZip, []byte("bad-data\n"), 0644)
+	err := ioutil.WriteFile(badZip, []byte("bad-data\n"), 0644)
 	if err != nil {
 		panic(err)
 	}

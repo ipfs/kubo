@@ -3,24 +3,26 @@ package node
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/ipfs/go-bitswap"
-	"github.com/ipfs/go-bitswap/network"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-fetcher"
+	bsfetcher "github.com/ipfs/go-fetcher/impl/blockservice"
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-ipfs-pinner"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	exchange "github.com/ipfs/go-ipfs-exchange-interface"
+	pin "github.com/ipfs/go-ipfs-pinner"
 	"github.com/ipfs/go-ipfs-pinner/dspinner"
-	"github.com/ipfs/go-ipld-format"
+	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-mfs"
 	"github.com/ipfs/go-unixfs"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/ipfs/go-unixfsnode"
+	dagpb "github.com/ipld/go-codec-dagpb"
+	"github.com/ipld/go-ipld-prime"
+	basicnode "github.com/ipld/go-ipld-prime/node/basic"
+	"github.com/ipld/go-ipld-prime/schema"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
@@ -52,8 +54,7 @@ func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo)
 	}
 	syncDs := &syncDagService{ds, syncFn}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Minute)
-	defer cancel()
+	ctx := context.TODO()
 
 	pinning, err := dspinner.New(ctx, rootDS, syncDs)
 	if err != nil {
@@ -82,24 +83,29 @@ func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
 	return merkledag.NewSession(ctx, s.DAGService)
 }
 
+type fetchersOut struct {
+	fx.Out
+	IPLDFetcher   fetcher.Factory `name:"ipldFetcher"`
+	UnixfsFetcher fetcher.Factory `name:"unixfsFetcher"`
+}
+
+// FetcherConfig returns a fetcher config that can build new fetcher instances
+func FetcherConfig(bs blockservice.BlockService) fetchersOut {
+	ipldFetcher := bsfetcher.NewFetcherConfig(bs)
+	ipldFetcher.PrototypeChooser = dagpb.AddSupportToChooser(func(lnk ipld.Link, lnkCtx ipld.LinkContext) (ipld.NodePrototype, error) {
+		if tlnkNd, ok := lnkCtx.LinkNode.(schema.TypedLinkNode); ok {
+			return tlnkNd.LinkTargetNodePrototype(), nil
+		}
+		return basicnode.Prototype.Any, nil
+	})
+
+	unixFSFetcher := ipldFetcher.WithReifier(unixfsnode.Reify)
+	return fetchersOut{IPLDFetcher: ipldFetcher, UnixfsFetcher: unixFSFetcher}
+}
+
 // Dag creates new DAGService
 func Dag(bs blockservice.BlockService) format.DAGService {
 	return merkledag.NewDAGService(bs)
-}
-
-// OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(provide bool) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
-		bitswapNetwork := network.NewFromIpfsHost(host, rt)
-		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, bitswap.ProvideEnabled(provide))
-		lc.Append(fx.Hook{
-			OnStop: func(ctx context.Context) error {
-				return exch.Close()
-			},
-		})
-		return exch
-
-	}
 }
 
 // Files loads persisted MFS root

@@ -28,6 +28,16 @@ const (
 	versionAllOptionName    = "all"
 )
 
+func getVersionInfo() *VersionOutput {
+	return &VersionOutput{
+		Version: version.CurrentVersionNumber,
+		Commit:  version.CurrentCommit,
+		Repo:    fmt.Sprint(fsrepo.RepoVersion),
+		System:  runtime.GOARCH + "/" + runtime.GOOS, //TODO: Precise version here
+		Golang:  runtime.Version(),
+	}
+}
+
 var VersionCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Show IPFS version information.",
@@ -46,13 +56,7 @@ var VersionCmd = &cmds.Command{
 	// must be permitted to run before init
 	Extra: CreateCmdExtras(SetDoesNotUseRepo(true), SetDoesNotUseConfigAsInput(true)),
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		return cmds.EmitOnce(res, &VersionOutput{
-			Version: version.CurrentVersionNumber,
-			Commit:  version.CurrentCommit,
-			Repo:    fmt.Sprint(fsrepo.RepoVersion),
-			System:  runtime.GOARCH + "/" + runtime.GOOS, //TODO: Precise version here
-			Golang:  runtime.Version(),
-		})
+		return cmds.EmitOnce(res, getVersionInfo())
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, version *VersionOutput) error {

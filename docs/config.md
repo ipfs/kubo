@@ -5,10 +5,134 @@ is read once at node instantiation, either for an offline command, or when
 starting the daemon. Commands that execute on a running daemon do not read the
 config file at runtime.
 
+## Table of Contents
+
+- [The go-ipfs config file](#the-go-ipfs-config-file)
+  - [Table of Contents](#table-of-contents)
+  - [Profiles](#profiles)
+  - [Types](#types)
+    - [`flag`](#flag)
+    - [`priority`](#priority)
+    - [`strings`](#strings)
+    - [`duration`](#duration)
+    - [`optionalInteger`](#optionalinteger)
+  - [`Addresses`](#addresses)
+    - [`Addresses.API`](#addressesapi)
+    - [`Addresses.Gateway`](#addressesgateway)
+    - [`Addresses.Swarm`](#addressesswarm)
+    - [`Addresses.Announce`](#addressesannounce)
+    - [`Addresses.NoAnnounce`](#addressesnoannounce)
+  - [`API`](#api)
+    - [`API.HTTPHeaders`](#apihttpheaders)
+  - [`AutoNAT`](#autonat)
+    - [`AutoNAT.ServiceMode`](#autonatservicemode)
+    - [`AutoNAT.Throttle`](#autonatthrottle)
+    - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
+    - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
+    - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
+  - [`Bootstrap`](#bootstrap)
+  - [`Datastore`](#datastore)
+    - [`Datastore.StorageMax`](#datastorestoragemax)
+    - [`Datastore.StorageGCWatermark`](#datastorestoragegcwatermark)
+    - [`Datastore.GCPeriod`](#datastoregcperiod)
+    - [`Datastore.HashOnRead`](#datastorehashonread)
+    - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
+    - [`Datastore.Spec`](#datastorespec)
+  - [`Discovery`](#discovery)
+    - [`Discovery.MDNS`](#discoverymdns)
+      - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
+      - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
+  - [`Gateway`](#gateway)
+    - [`Gateway.NoFetch`](#gatewaynofetch)
+    - [`Gateway.NoDNSLink`](#gatewaynodnslink)
+    - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
+    - [`Gateway.RootRedirect`](#gatewayrootredirect)
+    - [`Gateway.Writable`](#gatewaywritable)
+    - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
+    - [`Gateway.PublicGateways`](#gatewaypublicgateways)
+      - [`Gateway.PublicGateways: Paths`](#gatewaypublicgateways-paths)
+      - [`Gateway.PublicGateways: UseSubdomains`](#gatewaypublicgateways-usesubdomains)
+      - [`Gateway.PublicGateways: NoDNSLink`](#gatewaypublicgateways-nodnslink)
+      - [Implicit defaults of `Gateway.PublicGateways`](#implicit-defaults-of-gatewaypublicgateways)
+    - [`Gateway` recipes](#gateway-recipes)
+  - [`Identity`](#identity)
+    - [`Identity.PeerID`](#identitypeerid)
+    - [`Identity.PrivKey`](#identityprivkey)
+  - [`Internal`](#internal)
+    - [`Internal.Bitswap`](#internalbitswap)
+      - [`Internal.Bitswap.TaskWorkerCount`](#internalbitswaptaskworkercount)
+      - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
+      - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
+      - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
+  - [`Ipns`](#ipns)
+    - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
+    - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
+    - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+  - [`Migration`](#migration)
+    - [`Migration.DownloadSources`](#migrationdownloadsources)
+    - [`Migration.Keep`](#migrationkeep)
+  - [`Mounts`](#mounts)
+    - [`Mounts.IPFS`](#mountsipfs)
+    - [`Mounts.IPNS`](#mountsipns)
+    - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
+  - [`Pinning`](#pinning)
+    - [`Pinning.RemoteServices`](#pinningremoteservices)
+      - [`Pinning.RemoteServices: API`](#pinningremoteservices-api)
+        - [`Pinning.RemoteServices: API.Endpoint`](#pinningremoteservices-apiendpoint)
+        - [`Pinning.RemoteServices: API.Key`](#pinningremoteservices-apikey)
+      - [`Pinning.RemoteServices: Policies`](#pinningremoteservices-policies)
+        - [`Pinning.RemoteServices: Policies.MFS`](#pinningremoteservices-policiesmfs)
+          - [`Pinning.RemoteServices: Policies.MFS.Enabled`](#pinningremoteservices-policiesmfsenabled)
+          - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
+          - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
+  - [`Pubsub`](#pubsub)
+    - [`Pubsub.Router`](#pubsubrouter)
+    - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
+  - [`Peering`](#peering)
+    - [`Peering.Peers`](#peeringpeers)
+  - [`Reprovider`](#reprovider)
+    - [`Reprovider.Interval`](#reproviderinterval)
+    - [`Reprovider.Strategy`](#reproviderstrategy)
+  - [`Routing`](#routing)
+    - [`Routing.Type`](#routingtype)
+  - [`Swarm`](#swarm)
+    - [`Swarm.AddrFilters`](#swarmaddrfilters)
+    - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
+    - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
+    - [`Swarm.DisableRelay`](#swarmdisablerelay)
+    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
+    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
+      - [Mode 1: `EnableRelayHop` is `false`](#mode-1-enablerelayhop-is-false)
+      - [Mode 2: `EnableRelayHop` is `true`](#mode-2-enablerelayhop-is-true)
+    - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
+    - [`Swarm.ConnMgr`](#swarmconnmgr)
+      - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
+      - [Basic Connection Manager](#basic-connection-manager)
+        - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
+        - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
+        - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+    - [`Swarm.Transports`](#swarmtransports)
+    - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
+      - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
+      - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
+      - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
+      - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
+    - [`Swarm.Transports.Security`](#swarmtransportssecurity)
+      - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
+      - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
+      - [`Swarm.Transports.Security.Noise`](#swarmtransportssecuritynoise)
+    - [`Swarm.Transports.Multiplexers`](#swarmtransportsmultiplexers)
+    - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
+    - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
+  - [`DNS`](#dns)
+  - [`DNS.Resolvers`](#dnsresolvers)
+
+
+
 ## Profiles
 
 Configuration profiles allow to tweak configuration quickly. Profiles can be
-applied with `--profile` flag to `ipfs init` or with the `ipfs config profile
+applied with the `--profile` flag to `ipfs init` or with the `ipfs config profile
 apply` command. When a profile is applied a backup of the configuration file
 will be created in `$IPFS_PATH`.
 
@@ -22,7 +146,7 @@ documented in `ipfs config profile --help`.
 
 - `randomports`
 
-  Use a random port number for swarm.
+  Use a random port number for the incoming swarm connections.
 
 - `default-datastore`
 
@@ -34,8 +158,8 @@ documented in `ipfs config profile --help`.
 
 - `local-discovery`
 
-  Sets default values to fields affected by the server
-  profile, enables discovery in local networks.
+  Enables local discovery (enabled by default). Useful to re-enable local discovery after it's
+  disabled by another profile (e.g., the server profile).
 
 - `test`
 
@@ -56,7 +180,7 @@ documented in `ipfs config profile --help`.
 
   - You need a very simple and very reliable datastore and you trust your
     filesystem. This datastore stores each block as a separate file in the
-    underlying filesystem so it's unlikely to loose data unless there's an issue
+    underlying filesystem so it's unlikely to lose data unless there's an issue
     with the underlying file system.
   - You need to run garbage collection on a small (<= 10GiB) datastore. The
     default datastore, badger, can leave several gigabytes of data behind when
@@ -129,100 +253,13 @@ of strings, or null:
 Duration is a type for describing lengths of time, using the same format go
 does (e.g, `"1d2h4m40.01s"`).
 
-## Table of Contents
+### `optionalInteger`
 
-- [`Addresses`](#addresses)
-    - [`Addresses.API`](#addressesapi)
-    - [`Addresses.Gateway`](#addressesgateway)
-    - [`Addresses.Swarm`](#addressesswarm)
-    - [`Addresses.Announce`](#addressesannounce)
-    - [`Addresses.NoAnnounce`](#addressesnoannounce)
-- [`API`](#api)
-    - [`API.HTTPHeaders`](#apihttpheaders)
-- [`AutoNAT`](#autonat)
-    - [`AutoNAT.ServiceMode`](#autonatservicemode)
-    - [`AutoNAT.Throttle`](#autonatthrottle)
-    - [`AutoNAT.Throttle.GlobalLimit`](#autonatthrottlegloballimit)
-    - [`AutoNAT.Throttle.PeerLimit`](#autonatthrottlepeerlimit)
-    - [`AutoNAT.Throttle.Interval`](#autonatthrottleinterval)
-- [`Bootstrap`](#bootstrap)
-- [`Datastore`](#datastore)
-    - [`Datastore.StorageMax`](#datastorestoragemax)
-    - [`Datastore.StorageGCWatermark`](#datastorestoragegcwatermark)
-    - [`Datastore.GCPeriod`](#datastoregcperiod)
-    - [`Datastore.HashOnRead`](#datastorehashonread)
-    - [`Datastore.BloomFilterSize`](#datastorebloomfiltersize)
-    - [`Datastore.Spec`](#datastorespec)
-- [`Discovery`](#discovery)
-    - [`Discovery.MDNS`](#discoverymdns)
-        - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
-        - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
-- [`Gateway`](#gateway)
-    - [`Gateway.NoFetch`](#gatewaynofetch)
-    - [`Gateway.NoDNSLink`](#gatewaynodnslink)
-    - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
-    - [`Gateway.RootRedirect`](#gatewayrootredirect)
-    - [`Gateway.Writable`](#gatewaywritable)
-    - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
-    - [`Gateway.PublicGateways`](#gatewaypublicgateways)
-- [`Identity`](#identity)
-    - [`Identity.PeerID`](#identitypeerid)
-    - [`Identity.PrivKey`](#identityprivkey)
-- [`Ipns`](#ipns)
-    - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
-    - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
-    - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
-- [`Migration`](#migration)
-    - [`Migration.DownloadSources`](#migrationdownloadsources)
-    - [`Migration.Keep`](#migrationkeep)
-- [`Mounts`](#mounts)
-    - [`Mounts.IPFS`](#mountsipfs)
-    - [`Mounts.IPNS`](#mountsipns)
-    - [`Mounts.FuseAllowOther`](#mountsfuseallowother)
-- [`Pinning`](#pinning)
-    - [`Pinning.RemoteServices`](#pinningremoteservices)
-        - [`Pinning.RemoteServices.API`](#pinningremoteservices-api)
-          - [`Pinning.RemoteServices.API.Endpoint`](#pinningremoteservices-apiendpoint)
-          - [`Pinning.RemoteServices.API.Key`](#pinningremoteservices-apikey)
-        - [`Pinning.RemoteServices.Policies`](#pinningremoteservices-policies)
-          - [`Pinning.RemoteServices.Policies.MFS`](#pinningremoteservices-policiesmfs)
-- [`Pubsub`](#pubsub)
-    - [`Pubsub.Router`](#pubsubrouter)
-    - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
-- [`Peering`](#peering)
-    - [`Peering.Peers`](#peeringpeers)
-- [`Reprovider`](#reprovider)
-    - [`Reprovider.Interval`](#reproviderinterval)
-    - [`Reprovider.Strategy`](#reproviderstrategy)
-- [`Routing`](#routing)
-    - [`Routing.Type`](#routingtype)
-- [`Swarm`](#swarm)
-    - [`Swarm.AddrFilters`](#swarmaddrfilters)
-    - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
-    - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
-    - [`Swarm.DisableRelay`](#swarmdisablerelay)
-    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
-    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
-    - [`Swarm.ConnMgr`](#swarmconnmgr)
-        - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
-        - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
-        - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
-        - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
-    - [`Swarm.Transports`](#swarmtransports)
-        - [`Swarm.Transports.Security`](#swarmtransportssecurity)
-          - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
-          - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
-          - [`Swarm.Transports.Security.Noise`](#swarmtransportssecuritynoise)
-        - [`Swarm.Transports.Multiplexers`](#swarmtransportsmultiplexers)
-          - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
-          - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
-        - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
-          - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
-          - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
-          - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
-          - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
-- [`DNS`](#dns)
-    - [`DNS.Resolvers`](#dnsresolvers)
+Optional Integers allow specifying some numerical value which has
+an implicit default when `null` or missing from the config file:
+
+- `null`/missing (apply the default value defined in go-ipfs sources)
+- an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
 
 ## `Addresses`
 
@@ -258,7 +295,7 @@ Type: `strings` (multiaddrs)
 
 ### `Addresses.Swarm`
 
-Array of multiaddrs describing which addresses to listen on for p2p swarm
+An array of multiaddrs describing which addresses to listen on for p2p swarm
 connections.
 
 Supported Transports:
@@ -289,7 +326,7 @@ Default: `[]`
 Type: `array[string]` (multiaddrs)
 
 ### `Addresses.NoAnnounce`
-Array of swarm addresses not to announce to the network.
+An array of swarm addresses not to announce to the network.
 
 Default: `[]`
 
@@ -363,8 +400,7 @@ Type: `duration` (when `0`/unset, the default value is used)
 
 ## `Bootstrap`
 
-Bootstrap is an array of multiaddrs of trusted nodes to connect to in order to
-initiate a connection to the network.
+Bootstrap is an array of multiaddrs of trusted nodes that your node connects to, to fetch other nodes of the network on startup.
 
 Default: The ipfs.io bootstrap nodes
 
@@ -405,7 +441,7 @@ Type: `duration` (an empty string means the default value)
 
 ### `Datastore.HashOnRead`
 
-A boolean value. If set to true, all block reads from disk will be hashed and
+A boolean value. If set to true, all block reads from the disk will be hashed and
 verified. This will cause increased CPU utilization.
 
 Default: `false`
@@ -416,13 +452,13 @@ Type: `bool`
 
 A number representing the size in bytes of the blockstore's [bloom
 filter](https://en.wikipedia.org/wiki/Bloom_filter). A value of zero represents
-the feature being disabled.
+the feature is disabled.
 
 This site generates useful graphs for various bloom filter values:
 <https://hur.st/bloomfilter/?n=1e6&p=0.01&m=&k=7> You may use it to find a
 preferred optimal value, where `m` is `BloomFilterSize` in bits. Remember to
 convert the value `m` from bits, into bytes for use as `BloomFilterSize` in the
-config file. For example, for 1,000,000 blocks, expecting a 1% false positive
+config file. For example, for 1,000,000 blocks, expecting a 1% false-positive
 rate, you'd end up with a filter size of 9592955 bits, so for `BloomFilterSize`
 we'd want to use 1199120 bytes. As of writing, [7 hash
 functions](https://github.com/ipfs/go-ipfs-blockstore/blob/547442836ade055cc114b562a3cc193d4e57c884/caching.go#L22)
@@ -496,7 +532,7 @@ Type: `bool`
 
 #### `Discovery.MDNS.Interval`
 
-A number of seconds to wait between discovery checks.
+The number of seconds between discovery checks.
 
 Default: `5`
 
@@ -518,8 +554,8 @@ Type: `bool`
 ### `Gateway.NoDNSLink`
 
 A boolean to configure whether DNSLink lookup for value in `Host` HTTP header
-should be performed.  If DNSLink is present, content path stored in the DNS TXT
-record becomes the `/` and respective payload is returned to the client.
+should be performed.  If DNSLink is present, the content path stored in the DNS TXT
+record becomes the `/` and the respective payload is returned to the client.
 
 Default: `false`
 
@@ -567,7 +603,7 @@ Type: `bool`
 **DEPRECATED:** see [go-ipfs#7702](https://github.com/ipfs/go-ipfs/issues/7702)
 
 <!--
-Array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
+An array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
 header.
 
 The X-Ipfs-Path-Prefix header is used to specify a base path to prepend to links
@@ -611,7 +647,7 @@ Examples:
 
 #### `Gateway.PublicGateways: Paths`
 
-Array of paths that should be exposed on the hostname.
+An array of paths that should be exposed on the hostname.
 
 Example:
 ```json
@@ -779,9 +815,84 @@ Type: `string` (peer ID)
 
 ### `Identity.PrivKey`
 
-The base64 encoded protobuf describing (and containing) the nodes private key.
+The base64 encoded protobuf describing (and containing) the node's private key.
 
 Type: `string` (base64 encoded)
+
+## `Internal`
+
+This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile go-ipfs.  
+
+**Be aware that making informed change here requires in-depth knowledge and most users should leave these untouched. All knobs listed here are subject to breaking changes between versions.** 
+
+### `Internal.Bitswap`
+
+`Internal.Bitswap` contains knobs for tuning bitswap resource utilization.
+The knobs (below) document how their value should related to each other.
+Whether their values should be raised or lowered should be determined
+based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
+`ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`
+reported by bitswap.
+
+These metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+
+The value of `ipfs_bitswap_active_tasks` is capped by `EngineTaskWorkerCount`.
+
+The value of `ipfs_bitswap_pending_tasks` is generally capped by the knobs below,
+however its exact maximum value is hard to predict as it depends on task sizes
+as well as number of requesting peers. However, as a rule of thumb,
+during healthy operation this value should oscillate around a "typical" low value
+(without hitting a plateau continuously).
+
+If `ipfs_bitswap_pending_tasks` is growing while `ipfs_bitswap_active_tasks` is at its maximum then
+the node has reached its resource limits and new requests are unable to be processed as quickly as they are coming in.
+Raising resource limits (using the knobs below) could help, assuming the hardware can support the new limits.
+
+The value of `ipfs_bitswap_active_block_tasks` is capped by `EngineBlockstoreWorkerCount`.
+
+The value of `ipfs_bitswap_pending_block_tasks` is indirectly capped by `ipfs_bitswap_active_tasks`, but can be hard to
+predict as it depends on the number of blocks involved in a peer task which can vary.
+
+If the value of `ipfs_bitswap_pending_block_tasks` is observed to grow,
+while `ipfs_bitswap_active_block_tasks` is at its maximum, there is indication that the number of
+available block tasks is creating a bottleneck (either due to high-latency block operations,
+or due to high number of block operations per bitswap peer task).
+In such cases, try increasing the `EngineBlockstoreWorkerCount`.
+If this adjustment still does not increase the throuput of the node, there might
+be hardware limitations like I/O or CPU.
+
+#### `Internal.Bitswap.TaskWorkerCount`
+
+Number of threads (goroutines) sending outgoing messages.
+Throttles the number of concurrent send operations.
+
+Type: `optionalInteger` (thread count, `null` means default which is 8)
+
+#### `Internal.Bitswap.EngineBlockstoreWorkerCount`
+
+Number of threads for blockstore operations.
+Used to throttle the number of concurrent requests to the block store.
+The optimal value can be informed by the metrics `ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`.
+This would be a number that depends on your hardware (I/O and CPU).
+
+Type: `optionalInteger` (thread count, `null` means default which is 128)
+
+#### `Internal.Bitswap.EngineTaskWorkerCount`
+
+Number of worker threads used for preparing and packaging responses before they are sent out.
+This number should generally be equal to `TaskWorkerCount`.
+
+Type: `optionalInteger` (thread count, `null` means default which is 8)
+
+#### `Internal.Bitswap.MaxOutstandingBytesPerPeer`
+
+Maximum number of bytes (across all tasks) pending to be processed and sent to any individual peer.
+This number controls fairness and can very from 250Kb (very fair) to 10Mb (less fair, with more work
+dedicated to peers who ask for more). Values below 250Kb could cause thrashing.
+Values above 10Mb open the potential for aggressively-wanting peers to consume all resources and
+deteriorate the quality provided to less aggressively-wanting peers.
+
+Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 
 ## `Ipns`
 
@@ -850,19 +961,19 @@ Type: `string` (filesystem path)
 
 ### `Mounts.FuseAllowOther`
 
-Sets the FUSE allow other option on the mountpoint.
+Sets the 'FUSE allow other'-option on the mount point.
 
 ## `Pinning`
 
 Pinning configures the options available for pinning content
-(i.e. keeping content longer term instead of as temporarily cached storage).
+(i.e. keeping content longer-term instead of as temporarily cached storage).
 
 ### `Pinning.RemoteServices`
 
 `RemoteServices` maps a name for a remote pinning service to its configuration.
 
 A remote pinning service is a remote service that exposes an API for managing
-that service's interest in longer term data storage.
+that service's interest in long-term data storage.
 
 The exposed API conforms to the specification defined at
 https://ipfs.github.io/pinning-services-api-spec/
@@ -1004,7 +1115,7 @@ When a node is added to the set of peered nodes, go-ipfs will:
 Peering can be asymmetric or symmetric:
 
 * When symmetric, the connection will be protected by both nodes and will likely
-  be vary stable.
+  be very stable.
 * When asymmetric, only one node (the node that configured peering) will protect
   the connection and attempt to re-connect to the peered node on disconnect. If
   the peered node is under heavy load and/or has a low connection limit, the
@@ -1087,7 +1198,7 @@ When the DHT is enabled, it can operate in two modes: client and server.
   respond to requests from other peers (both requests to store records and
   requests to retrieve records).
 * In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource intensive than server
+  to requests from other peers. This mode is less resource-intensive than server
   mode.
 
 When `Routing.Type` is set to `dht`, your node will start as a DHT client, and

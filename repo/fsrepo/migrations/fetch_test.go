@@ -127,11 +127,7 @@ func TestHttpFetch(t *testing.T) {
 }
 
 func TestFetchBinary(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "fetchtest")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

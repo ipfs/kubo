@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p"
-	host "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/host"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
@@ -13,13 +13,13 @@ import (
 func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
 	return func() (filter *ma.Filters, opts Libp2pOpts, err error) {
 		filter = ma.NewFilters()
-		opts.Opts = append(opts.Opts, libp2p.Filters(filter)) //nolint
+		opts.Opts = append(opts.Opts, libp2p.ConnectionGater((*filtersConnectionGater)(filter)))
 		for _, s := range filters {
 			f, err := mamask.NewMask(s)
 			if err != nil {
 				return filter, opts, fmt.Errorf("incorrectly formatted address filter in config: %s", s)
 			}
-			opts.Opts = append(opts.Opts, libp2p.FilterAddresses(f)) //nolint
+			filter.AddFilter(*f, ma.ActionDeny)
 		}
 		return filter, opts, nil
 	}
