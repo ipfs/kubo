@@ -1,7 +1,5 @@
 module github.com/ipfs/go-ipfs/test/dependencies
 
-go 1.13
-
 require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.26.0
@@ -28,3 +26,5 @@ require (
 	github.com/multiformats/go-multihash v0.0.13
 	gotest.tools/gotestsum v0.4.2
 )
+
+go 1.16
