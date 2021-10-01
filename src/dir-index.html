@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {{ $root := . }}
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="description" content="A directory of files hosted on the distributed, decentralized web using IPFS">
@@ -48,7 +48,7 @@
           {{ end }}
         </strong>
         {{ if .Hash }}
-        <div class="ipfs-hash">
+        <div class="ipfs-hash" translate="no">
           {{ .Hash }}
         </div>
         {{ end }}
@@ -81,7 +81,7 @@
         </td>
         <td class="no-linebreak">
           {{ if .Hash }}
-          <a class="ipfs-hash" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
+          <a class="ipfs-hash" translate="no" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
             {{ .ShortHash }}
           </a>
           {{ end }}
