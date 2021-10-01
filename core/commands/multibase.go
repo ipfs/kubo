@@ -16,9 +16,10 @@ var MbaseCmd = &cmds.Command{
 		Tagline: "Encode and decode files or stdin with multibase format",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"encode": mbaseEncodeCmd,
-		"decode": mbaseDecodeCmd,
-		"list":   basesCmd,
+		"encode":    mbaseEncodeCmd,
+		"decode":    mbaseDecodeCmd,
+		"transcode": mbaseTranscodeCmd,
+		"list":      basesCmd,
 	},
 	Extra: CreateCmdExtras(SetDoesNotUseRepo(true)),
 }
@@ -113,6 +114,58 @@ This command expects multibase inside of a file or via stdin:
 			return fmt.Errorf("failed to decode multibase: %w", err)
 		}
 		reader := bytes.NewReader(data)
+		return resp.Emit(reader)
+	},
+}
+
+var mbaseTranscodeCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Transcode multibase string between bases",
+		LongDescription: `
+This command expects multibase inside of a file or via stdin.
+
+By default it will use URL-safe base64url encoding,
+but one can customize used base with -b:
+
+  > echo -n hello | ipfs multibase encode > file
+  > cat file
+  uaGVsbG8
+
+  > ipfs multibase transcode file -b base16 > transcoded_file
+  > cat transcoded_file
+  f68656c6c6f
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.FileArg("encoded_file", true, false, "encoded data to decode").EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.StringOption(mbaseOptionName, "multibase encoding").WithDefault("base64url"),
+	},
+	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
+		if err := req.ParseBodyArgs(); err != nil {
+			return err
+		}
+		encoderName, _ := req.Options[mbaseOptionName].(string)
+		encoder, err := mbase.EncoderByName(encoderName)
+		if err != nil {
+			return err
+		}
+		files := req.Files.Entries()
+		file, err := cmdenv.GetFileArg(files)
+		if err != nil {
+			return fmt.Errorf("failed to access file: %w", err)
+		}
+		encoded_data, err := ioutil.ReadAll(file)
+		if err != nil {
+			return fmt.Errorf("failed to read file contents: %w", err)
+		}
+		_, data, err := mbase.Decode(string(encoded_data))
+		if err != nil {
+			return fmt.Errorf("failed to decode multibase: %w", err)
+		}
+		encoded := encoder.Encode(data)
+		reader := strings.NewReader(encoded)
 		return resp.Emit(reader)
 	},
 }

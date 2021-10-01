@@ -51,6 +51,7 @@ ipfs peers in the internet.
 		"disconnect": swarmDisconnectCmd,
 		"filters":    swarmFiltersCmd,
 		"peers":      swarmPeersCmd,
+		"peering":    swarmPeeringCmd,
 	},
 }
 
@@ -60,6 +61,149 @@ const (
 	swarmLatencyOptionName   = "latency"
 	swarmDirectionOptionName = "direction"
 )
+
+type peeringResult struct {
+	ID     peer.ID
+	Status string
+}
+
+var swarmPeeringCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Modify the peering subsystem.",
+		ShortDescription: `
+'ipfs swarm peering' manages the peering subsystem. 
+Peers in the peering subsystem is maintained to be connected, reconnected 
+on disconnect with a back-off.
+The changes are not saved to the config.
+`,
+	},
+	Subcommands: map[string]*cmds.Command{
+		"add": swarmPeeringAddCmd,
+		"ls":  swarmPeeringLsCmd,
+		"rm":  swarmPeeringRmCmd,
+	},
+}
+
+var swarmPeeringAddCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Add peers into the peering subsystem.",
+		ShortDescription: `
+'ipfs swarm peering add' will add the new address to the peering subsystem as one that should always be connected to.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("address", true, true, "address of peer to add into the peering subsystem"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		addrs := make([]ma.Multiaddr, len(req.Arguments))
+
+		for i, arg := range req.Arguments {
+			addr, err := ma.NewMultiaddr(arg)
+			if err != nil {
+				return err
+			}
+
+			addrs[i] = addr
+		}
+
+		addInfos, err := peer.AddrInfosFromP2pAddrs(addrs...)
+		if err != nil {
+			return err
+		}
+
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		for _, addrinfo := range addInfos {
+			node.Peering.AddPeer(addrinfo)
+			err = res.Emit(peeringResult{addrinfo.ID, "success"})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
+			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			return nil
+		}),
+	},
+	Type: peeringResult{},
+}
+
+var swarmPeeringLsCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "List peers registered in the peering subsystem.",
+		ShortDescription: `
+'ipfs swarm peering ls' lists the peers that are registered in the peering subsystem and to which the daemon is always connected.
+`,
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		peers := node.Peering.ListPeers()
+		return cmds.EmitOnce(res, addrInfos{Peers: peers})
+	},
+	Type: addrInfos{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, ai *addrInfos) error {
+			for _, info := range ai.Peers {
+				fmt.Fprintf(w, "%s\n", info.ID)
+				for _, addr := range info.Addrs {
+					fmt.Fprintf(w, "\t%s\n", addr)
+				}
+			}
+			return nil
+		}),
+	},
+}
+
+type addrInfos struct {
+	Peers []peer.AddrInfo
+}
+
+var swarmPeeringRmCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Remove a peer from the peering subsystem.",
+		ShortDescription: `
+'ipfs swarm peering rm' will remove the given ID from the peering subsystem and remove it from the always-on connection.
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("ID", true, true, "ID of peer to remove from the peering subsystem"),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		node, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		for _, arg := range req.Arguments {
+			id, err := peer.Decode(arg)
+			if err != nil {
+				return err
+			}
+
+			node.Peering.RemovePeer(id)
+			if err = res.Emit(peeringResult{id, "success"}); err != nil {
+				return err
+			}
+		}
+		return nil
+	},
+	Type: peeringResult{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
+			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			return nil
+		}),
+	},
+}
 
 var swarmPeersCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
