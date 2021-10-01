@@ -4,7 +4,7 @@ require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.26.0
 	github.com/ipfs/go-blockservice v0.1.3
-	github.com/ipfs/go-cid v0.0.6
+	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-cidutil v0.0.2
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/ipfs/go-graphsync v0.1.1
@@ -21,9 +21,8 @@ require (
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
 	github.com/libp2p/go-libp2p v0.9.6
 	github.com/libp2p/go-libp2p-core v0.5.7
-	github.com/multiformats/go-multiaddr v0.2.2
-	github.com/multiformats/go-multiaddr-net v0.1.5
-	github.com/multiformats/go-multihash v0.0.13
+	github.com/multiformats/go-multiaddr v0.4.0
+	github.com/multiformats/go-multihash v0.0.14
 	gotest.tools/gotestsum v0.4.2
 )
 
