@@ -49,7 +49,7 @@
           {{ end }}
         </strong>
         {{ if .Hash }}
-        <div class="ipfs-hash">
+        <div class="ipfs-hash" translate="no">
           {{ .Hash }}
         </div>
         {{ end }}
@@ -82,7 +82,7 @@
         </td>
         <td class="no-linebreak">
           {{ if .Hash }}
-          <a class="ipfs-hash" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
+          <a class="ipfs-hash" translate="no" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
             {{ .ShortHash }}
           </a>
           {{ end }}
