@@ -60,7 +60,7 @@ test_expect_success "path gw: name column should be a link to its content path" 
 '
 
 test_expect_success "path gw: hash column should be a CID link with filename param" '
-  test_should_contain "<a class=\"ipfs-hash\" href=\"/ipfs/$FILE_CID?filename=file-%25C5%25BA%25C5%2582.txt\">" list_response
+  test_should_contain "<a class=\"ipfs-hash\" translate=\"no\" href=\"/ipfs/$FILE_CID?filename=file-%25C5%25BA%25C5%2582.txt\">" list_response
 '
 
 ## ============================================================================
@@ -91,7 +91,7 @@ test_expect_success "path gw: name column should be a link to content root mount
 '
 
 test_expect_success "path gw: hash column should be a CID link to path router with filename param" '
-  test_should_contain "<a class=\"ipfs-hash\" href=\"//localhost:$GWAY_PORT/ipfs/$FILE_CID?filename=file-%25C5%25BA%25C5%2582.txt\">" list_response
+  test_should_contain "<a class=\"ipfs-hash\" translate=\"no\" href=\"//localhost:$GWAY_PORT/ipfs/$FILE_CID?filename=file-%25C5%25BA%25C5%2582.txt\">" list_response
 '
 
 ## ============================================================================
@@ -132,7 +132,7 @@ test_expect_success "dnslink gw: name column should be a link to content root mo
 # DNSLink websites don't have public gateway mounted by default
 # See: https://github.com/ipfs/dir-index-html/issues/42
 test_expect_success "dnslink gw: hash column should be a CID link to cid.ipfs.io" '
-  test_should_contain "<a class=\"ipfs-hash\" href=\"https://cid.ipfs.io/#$FILE_CID\" target=\"_blank\" rel=\"noreferrer noopener\">" list_response
+  test_should_contain "<a class=\"ipfs-hash\" translate=\"no\" href=\"https://cid.ipfs.io/#$FILE_CID\" target=\"_blank\" rel=\"noreferrer noopener\">" list_response
 '
 
 ## ============================================================================
