@@ -22,7 +22,7 @@
     "build:clean": "rm dir-index.html",
     "build:remove-style-links": "sed '/<link rel=\"stylesheet\"/d' ./src/dir-index.html > ./base-html.html",
     "build:minify-wrap-css": "(echo \"<style>\" && cat ./src/icons.css ./src/style.css | tr -d \"\t\n\r\" && echo && echo \"</style>\") > ./minified-wrapped-style.html",
-    "build:combine-html-css": "sed '/<head>/ r ./minified-wrapped-style.html' ./base-html.html > ./dir-index.html",
+    "build:combine-html-css": "sed '/<\\/title>/ r ./minified-wrapped-style.html' ./base-html.html > ./dir-index.html",
     "build:remove-unused": "rm ./base-html.html && rm ./minified-wrapped-style.html"
   }
 }
