@@ -93,7 +93,7 @@ Checklist:
     - [ ] Release published
       - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
       - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
-      - [ ] to [chocolatey](https://chocolatey.org/packages/ipfs)
+      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
       - [ ] to [snap](https://snapcraft.io/ipfs)
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
