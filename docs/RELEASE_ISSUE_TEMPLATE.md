@@ -95,6 +95,7 @@ Checklist:
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
       - [ ] to [snap](https://snapcraft.io/ipfs)
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
+        - [ ] use the artifacts built in CI for dist.ipfs.io
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
   - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
