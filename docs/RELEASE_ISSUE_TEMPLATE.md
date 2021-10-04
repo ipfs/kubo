@@ -100,8 +100,8 @@ Checklist:
     - [ ] Cut a new ipfs-desktop release
   - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
   - [ ] Broadcasting (link to blog post)
-    - [ ] Twitter
-    - [ ] IRC
+    - [ ] Twitter (request in Slack channel #pl-marketing-requests)
+    - [ ] Matrix
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
     - [ ] Announce it on the [IPFS Users Mailing List](https://groups.google.com/forum/#!forum/ipfs-users)
