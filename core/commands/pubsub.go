@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -127,24 +126,15 @@ TOPIC ENCODING
 			_, err = w.Write(dec)
 			return err
 		}),
-		// --enc=ndpayload is not documented, byt used internally by sharness tests
+		// DEPRECATED, undocumented format we used in tests, but not anymore
+		// <message.payload>\n<message.payload>\n
 		"ndpayload": cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, psm *pubsubMessage) error {
-			_, dec, err := mbase.Decode(psm.Data)
-			if err != nil {
-				return err
-			}
-			data := append(dec, '\n')
-			_, err = w.Write(data)
-			return err
+			return errors.New("--enc=ndpayload was removed, use --enc=json instead")
 		}),
-		// ¯\_(ツ)_/¯ – seems unused, can we remove this?
+		// DEPRECATED, uncodumented format we used in tests, but not anymore
+		// <varint-len><message.payload><varint-len><message.payload>
 		"lenpayload": cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, psm *pubsubMessage) error {
-			buf := make([]byte, 8, len(psm.Data)+8)
-
-			n := binary.PutUvarint(buf, uint64(len(psm.Data)))
-			buf = append(buf[:n], psm.Data...)
-			_, err := w.Write(buf)
-			return err
+			return errors.New("--enc=lenpayload was removed, use --enc=json instead")
 		}),
 	},
 	Type: pubsubMessage{},
