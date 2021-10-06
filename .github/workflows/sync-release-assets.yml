@@ -8,9 +8,9 @@ jobs:
     steps:
       - name: List github releases
         uses: actions/github-script@v4
-        if: ${{ success() }}
+        # if: ${{ success() }}
         with:
           script: |
-            r = github.rest.repos.listReleases({ context.repo.owner, context.repo.repo });
-            console.log(r);
+            r = await github.rest.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
+            console.log('await response', r);
             return r;
