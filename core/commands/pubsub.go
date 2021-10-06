@@ -25,10 +25,11 @@ var PubsubCmd = &cmds.Command{
 ipfs pubsub allows you to publish messages to a given topic, and also to
 subscribe to new messages on a given topic.
 
-This is an experimental feature. It is not intended in its current state
-to be used in a production environment.
+EXPERIMENTAL FEATURE
 
-To use, the daemon must be run with '--enable-pubsub-experiment'.
+  It is not intended in its current state to be used in a production
+  environment.  To use, the daemon must be run with
+  '--enable-pubsub-experiment'.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
@@ -38,10 +39,6 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		"peers": PubsubPeersCmd,
 	},
 }
-
-const (
-	pubsubDiscoverOptionName = "discover"
-)
 
 type pubsubMessage struct {
 	From     string   `json:"from,omitempty"`
@@ -56,37 +53,37 @@ var PubsubSubCmd = &cmds.Command{
 		ShortDescription: `
 ipfs pubsub sub subscribes to messages on a given topic.
 
-This is an experimental feature. It is not intended in its current state
-to be used in a production environment.
+EXPERIMENTAL FEATURE
 
-To use, the daemon must be run with '--enable-pubsub-experiment'.
-`,
-		LongDescription: `
-ipfs pubsub sub subscribes to messages on a given topic.
+  It is not intended in its current state to be used in a production
+  environment.  To use, the daemon must be run with
+  '--enable-pubsub-experiment'.
 
-This is an experimental feature. It is not intended in its current state
-to be used in a production environment.
+TOPIC ENCODING
 
-To use, the daemon must be run with '--enable-pubsub-experiment'.
+  Topic names are a binary data. To ensure all bytes are transferred
+  correctly RPC client and server will use multibase encoding behind
+  the scenes.
 
-This command outputs data in the following encodings:
-  * "json"
-(Specified by the "--encoding" or "--enc" flag)
+  You can inspect the format by passing --enc=json. ipfs multibase commands
+  can be used for encoding/decoding multibase strings in the userland.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", true, false, "String name of topic to subscribe to."),
+		cmds.StringArg("topic", true, false, "Name of topic to subscribe to."),
 	},
-	Options: []cmds.Option{
-		cmds.BoolOption(pubsubDiscoverOptionName, "Deprecated option to instruct pubsub to discovery peers for the topic. Discovery is now built into pubsub."),
-	},
+	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
+		if err := urlArgsDecoder(req, env); err != nil {
+			return err
+		}
 
 		topic := req.Arguments[0]
+
 		sub, err := api.PubSub().Subscribe(req.Context, topic)
 		if err != nil {
 			return err
@@ -105,7 +102,9 @@ This command outputs data in the following encodings:
 				return err
 			}
 
-			encoder, _ := mbase.EncoderByName("base64")
+			// encode as base64url so the same string is present in body and URL args
+			// when sent over HTTP RPC API
+			encoder, _ := mbase.EncoderByName("base64url")
 			psm := pubsubMessage{
 				Data:  encoder.Encode(msg.Data()),
 				From:  encoder.Encode([]byte(msg.From())),
@@ -128,6 +127,7 @@ This command outputs data in the following encodings:
 			_, err = w.Write(dec)
 			return err
 		}),
+		// --enc=ndpayload is not documented, byt used internally by sharness tests
 		"ndpayload": cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, psm *pubsubMessage) error {
 			_, dec, err := mbase.Decode(psm.Data)
 			if err != nil {
@@ -137,6 +137,7 @@ This command outputs data in the following encodings:
 			_, err = w.Write(data)
 			return err
 		}),
+		// ¯\_(ツ)_/¯ – seems unused, can we remove this?
 		"lenpayload": cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, psm *pubsubMessage) error {
 			buf := make([]byte, 8, len(psm.Data)+8)
 
@@ -155,10 +156,20 @@ var PubsubPubCmd = &cmds.Command{
 		ShortDescription: `
 ipfs pubsub pub publishes a message to a specified topic.
 
-This is an experimental feature. It is not intended in its current state
-to be used in a production environment.
+EXPERIMENTAL FEATURE
 
-To use, the daemon must be run with '--enable-pubsub-experiment'.
+  It is not intended in its current state to be used in a production
+  environment.  To use, the daemon must be run with
+  '--enable-pubsub-experiment'.
+
+TOPIC AND DATA ENCODING
+
+  Topic names are a binary data too. To ensure all bytes are transferred
+  correctly RPC client and server will use multibase encoding behind
+  the scenes.
+
+  You can inspect the format by passing --enc=json. ipfs multibase commands
+  can be used for encoding/decoding multibase strings in the userland.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -166,38 +177,28 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 		cmds.StringArg("data", false, true, "Payload of message to publish."),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		encoder, _ := mbase.EncoderByName("base64url")
-		for n, arg := range req.Arguments {
-			req.Arguments[n] = encoder.Encode([]byte(arg))
-		}
-
-		// when there are no string args, read from stdin.
+		// when there are no string args with data, read from stdin.
 		if len(req.Arguments) == 1 {
 			buf, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
 				return err
 			}
-			req.Arguments = append(req.Arguments, encoder.Encode(buf))
+			req.Arguments = append(req.Arguments, string(buf))
 		}
-		return nil
+		return urlArgsEncoder(req, env)
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
-
-		_, topic, err := mbase.Decode(req.Arguments[0])
-		if err != nil {
-			return errors.Wrap(err, "pubsub topic must be multibase encoded")
+		if err := urlArgsDecoder(req, env); err != nil {
+			return err
 		}
 
+		topic := req.Arguments[0]
 		for _, data := range req.Arguments[1:] {
-			_, datab, err := mbase.Decode(data)
-			if err != nil {
-				return errors.Wrap(err, "pubsub data must be multibase encoded")
-			}
-			if err := api.PubSub().Publish(req.Context, string(topic), datab); err != nil {
+			if err := api.PubSub().Publish(req.Context, topic, []byte(data)); err != nil {
 				return err
 			}
 		}
@@ -212,10 +213,20 @@ var PubsubLsCmd = &cmds.Command{
 		ShortDescription: `
 ipfs pubsub ls lists out the names of topics you are currently subscribed to.
 
-This is an experimental feature. It is not intended in its current state
-to be used in a production environment.
+EXPERIMENTAL FEATURE
 
-To use, the daemon must be run with '--enable-pubsub-experiment'.
+  It is not intended in its current state to be used in a production
+  environment.  To use, the daemon must be run with
+  '--enable-pubsub-experiment'.
+
+TOPIC ENCODING
+
+  Topic names are a binary data. To ensure all bytes are transferred
+  correctly RPC client and server will use multibase encoding behind
+  the scenes.
+
+  You can inspect the format by passing --enc=json. ipfs multibase commands
+  can be used for encoding/decoding multibase strings in the userland.
 `,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -229,12 +240,29 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 			return err
 		}
 
+		// emit topics encoded in multibase
+		encoder, _ := mbase.EncoderByName("base64url")
+		for n, topic := range l {
+			l[n] = encoder.Encode([]byte(topic))
+		}
+
 		return cmds.EmitOnce(res, stringList{l})
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(multibaseDecodedStringListEncoder),
 	},
+}
+
+func multibaseDecodedStringListEncoder(req *cmds.Request, w io.Writer, list *stringList) error {
+	for n, mb := range list.Strings {
+		_, data, err := mbase.Decode(mb)
+		if err != nil {
+			return err
+		}
+		list.Strings[n] = string(data)
+	}
+	return stringListEncoder(req, w, list)
 }
 
 func stringListEncoder(req *cmds.Request, w io.Writer, list *stringList) error {
@@ -252,21 +280,35 @@ var PubsubPeersCmd = &cmds.Command{
 		Tagline: "List peers we are currently pubsubbing with.",
 		ShortDescription: `
 ipfs pubsub peers with no arguments lists out the pubsub peers you are
-currently connected to. If given a topic, it will list connected
-peers who are subscribed to the named topic.
+currently connected to. If given a topic, it will list connected peers who are
+subscribed to the named topic.
 
-This is an experimental feature. It is not intended in its current state
-to be used in a production environment.
+EXPERIMENTAL FEATURE
 
-To use, the daemon must be run with '--enable-pubsub-experiment'.
+  It is not intended in its current state to be used in a production
+  environment.  To use, the daemon must be run with
+  '--enable-pubsub-experiment'.
+
+TOPIC AND DATA ENCODING
+
+  Topic names are a binary data. To ensure all bytes are transferred
+  correctly RPC client and server will use multibase encoding behind
+  the scenes.
+
+  You can inspect the format by passing --enc=json. ipfs multibase commands
+  can be used for encoding/decoding multibase strings in the userland.
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", false, false, "topic to list connected peers of"),
+		cmds.StringArg("topic", false, false, "Topic to list connected peers of."),
 	},
+	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
+			return err
+		}
+		if err := urlArgsDecoder(req, env); err != nil {
 			return err
 		}
 
@@ -292,4 +334,41 @@ To use, the daemon must be run with '--enable-pubsub-experiment'.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
+}
+
+// Encode binary data to be passed as multibase string in URL arguments.
+// (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
+func urlArgsEncoder(req *cmds.Request, env cmds.Environment) error {
+	encoder, _ := mbase.EncoderByName("base64url")
+	for n, arg := range req.Arguments {
+		req.Arguments[n] = encoder.Encode([]byte(arg))
+	}
+	return nil
+}
+
+// Decode binary data passed as multibase string in URL arguments.
+// (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
+func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
+	err := req.ParseBodyArgs()
+	if err != nil {
+		return err
+	}
+	for n, arg := range req.Arguments {
+		encoding, data, err := mbase.Decode(arg)
+		if err != nil {
+			return errors.Wrap(err, "URL arg must be multibase encoded")
+		}
+
+		// Enforce URL-safe encoding is used for data passed via URL arguments
+		// - without this we get data corruption similar to https://github.com/ipfs/go-ipfs/issues/7939
+		// - we can't just deny base64, because there may be other bases that
+		//   are not URL-safe – better to force base64url which is known to be
+		//   safe in URL context
+		if encoding != mbase.Base64url {
+			return errors.New("URL arg must be base64url encoded")
+		}
+
+		req.Arguments[n] = string(data)
+	}
+	return nil
 }
