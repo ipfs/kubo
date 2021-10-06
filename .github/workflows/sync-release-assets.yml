@@ -13,5 +13,6 @@ jobs:
           script: |
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
             for (const release of resp.data) {
-              console.log(release.tag_name, ' -> ', release.assets_url);
+              console.log(release);
+              // console.log(release.tag_name, ' -> ', release.assets_url);
             }
