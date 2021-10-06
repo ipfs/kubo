@@ -19,7 +19,7 @@ jobs:
             const execa = require('execa')
 
             // build ipfs
-            const { stdout } = await execa('go', ['install'], {cwd: join(process.cwd(), 'cmd/ipfs') })
+            const { stdout } = await execa('go', ['install'], {cwd: process.cwd() + '/cmd/ipfs' })
             console.log(stdout)
 
             // fetch github releases
