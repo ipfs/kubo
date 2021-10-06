@@ -1,0 +1,16 @@
+name: Sync github release assets with dist.ipfs.io
+
+on: push
+
+jobs:
+  sync-github-and-dist-ipfs-io:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: List github releases
+        uses: actions/github-script@v4
+        if: ${{ success() }}
+        with:
+          script: |
+            r = github.rest.repos.listReleases({ context.repo.owner, context.repo.repo });
+            console.log(r);
+            return r;
