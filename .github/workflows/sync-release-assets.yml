@@ -16,9 +16,9 @@ jobs:
         # if: ${{ success() }}
         with:
           script: |
-            const execa = require('execa')
-            const { stdout } = await execa('ls', ['-l'])
-            console.log(stdout)
+            //const execa = require('execa')
+            //const { stdout } = await execa('ls', ['-l'])
+            //console.log(stdout)
             ;
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
             const release_assets = [];
