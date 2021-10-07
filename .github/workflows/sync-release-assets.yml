@@ -7,6 +7,10 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v2
+      - name: Build IPFS binary
+        run: |
+          cd cmd/ipfs
+          go install
       - uses: actions/setup-node@v2
         with:
           node-version: 14
@@ -16,11 +20,7 @@ jobs:
         # if: ${{ success() }}
         with:
           script: |
-            const execa = require('execa')
-
-            // build ipfs
-            const { stdout } = await execa('go', ['install'], {cwd: process.cwd() + '/cmd/ipfs' })
-            console.log(stdout)
+            // const execa = require('execa')
 
             // fetch github releases
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
