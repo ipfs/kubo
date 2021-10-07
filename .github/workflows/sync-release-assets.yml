@@ -7,6 +7,10 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
       - name: Build IPFS binary
         run: |
           cd cmd/ipfs
