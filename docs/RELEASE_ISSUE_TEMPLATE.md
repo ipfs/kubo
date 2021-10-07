@@ -31,7 +31,7 @@ For each RC published in each stage:
   4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
 - cut a pre-release on [github](https://github.com/ipfs/go-ipfs/releases) and upload the result of the ipfs/distributions build in the previous step.
 - Announce the RC:
-  - [ ] On IRC/Matrix (both #ipfs and #ipfs-dev)
+  - [ ] On Matrix (both #ipfs and #ipfs-dev)
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).
 
 Checklist:
@@ -61,12 +61,7 @@ Checklist:
       - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop) and push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde)), and open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826))
       - [ ] Ensure CI tests pass, repeat for new RCs
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion) - @lidel
-- [ ] **Stage 2 - Community Dev Testing**
-  - [ ] Reach out to the IPFS _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) for testing this release (check when no more problems have been reported). If you'd like to be added to this list, please file a PR.
-  - [ ] Reach out on Matrix for beta testers.
-  - [ ] Run tests available in the following repos with the latest beta (check when all tests pass):
-    - [ ] [orbit-db](https://github.com/orbitdb/orbit-db)
-- [ ] **Stage 3 - Community Prod Testing**
+- [ ] **Stage 2 - Community Prod Testing**
   - [ ] Documentation
     - [ ] Ensure that [CHANGELOG.md](https://github.com/ipfs/go-ipfs/tree/master/CHANGELOG.md) is up to date
     - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
@@ -74,7 +69,7 @@ Checklist:
   - [ ] Invite the wider community through (link to the release issue):
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
     - [ ] Matrix
-- [ ] **Stage 4 - Release**
+- [ ] **Stage 3 - Release**
   - [ ] Final preparation
     - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
     - [ ] Merge `release-vX.Y.Z` into the `release` branch.
