@@ -41,15 +41,21 @@ jobs:
         with:
           script: |
             const execa = require('execa')
+            const util = require('util');
+            const exec = util.promisify(require('child_process').exec);
 
             // fetch github releases
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
             const release_assets = [];
             for (const release of resp.data) {
+
               // fetch asset info from dist.ipfs.io
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
-              const { ls_stdout } = await execa('ipfs', ['ls', p])
-              console.log("ipfs ls ", p, ":\n", ls_stdout)
+
+              // const { ls_stdout } = await execa('ipfs', ['ls', p])
+              const { ls_stdout, ls_stderr } = await exec('ipfs ls ' + p);
+
+              console.log("ipfs ls " + p + ":\n", ls_stdout)
               const dist_assets = [];
               for (const line of ls_stdout.split("\n")) {
                 file = line.split(" ")[2]
