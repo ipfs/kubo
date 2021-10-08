@@ -22,7 +22,7 @@ We will ask early testers to participate at two points in the process:
 
 ## Who has signed up?
 
-- [ ] pacman.store ([@RubenKelevra](https://github.com/RubenKelevra))
+- [ ] pacman.store (@RubenKelevra)
 - [ ] Infura (@MichaelMure)
 - [ ] Textile (@sanderpick)
 - [ ] Pinata (@obo20)
