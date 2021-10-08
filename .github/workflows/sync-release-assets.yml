@@ -11,13 +11,26 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.16'
-      - name: Build IPFS binary
+      - name: Build go-ipfs binary
         run: |
           cd cmd/ipfs
           go install
-      - name: Initialize IPFS and start daemon
+      - name: Initialize go-ipfs and start daemon
         run: |
           ipfs init
+          ipfs daemon &
+      - name: Wait for go-ipfs to be ready
+        shell: pwsh
+        run: |
+          for ($i = 0; $i -lt 10; $i++) {
+            $addrs = ipfs id | jq .Addresses;
+            if ($addrs -eq "null") {
+              sleep 1
+            } else {
+              echo "Successfully started the daemon"
+              exit 0
+            }
+          }
       - uses: actions/setup-node@v2
         with:
           node-version: 14
@@ -47,6 +60,8 @@ jobs:
                 github_assets.push(asset.name);
               }
               release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
+
+              // for every file in dist_assets and not in github_assets, copy it over
             }
             console.log(release_assets);
             return release_assets;
