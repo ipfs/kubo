@@ -48,6 +48,7 @@ jobs:
             for (const release of resp.data) {
               // fetch asset info from dist.ipfs.io
               const { ls_stdout } = await execa('ipfs', ['ls', '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name])
+              console.log("ipfs ls:\n", ls_stdout)
               const dist_assets = [];
               for (const line of ls_stdout.split("\n")) {
                 file = line.split(" ")[2]
