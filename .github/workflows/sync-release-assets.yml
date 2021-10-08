@@ -28,17 +28,26 @@ jobs:
         # if: ${{ success() }}
         with:
           script: |
-            // const execa = require('execa')
+            const execa = require('execa')
 
             // fetch github releases
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
             const release_assets = [];
             for (const release of resp.data) {
-              const assets = [];
-              for (const asset of release.assets) {
-                assets.push(asset.name);
+              // fetch asset info from dist.ipfs.io
+              const { ls_stdout } = await execa('ipfs', ['ls', '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name])
+              const dist_assets = [];
+              for (const line of ls_stdout.split("\n")) {
+                file = line.split(" ")[2]
+                console.log("dist ", release.tag_name, " -> ", file)
+                dist_assets.push(file)
               }
-              release_assets.push({ tag: release.tag_name, assets: assets })
+              
+              const github_assets = [];
+              for (const asset of release.assets) {
+                github_assets.push(asset.name);
+              }
+              release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
             }
             console.log(release_assets);
             return release_assets;
