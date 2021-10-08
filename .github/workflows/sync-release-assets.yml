@@ -18,7 +18,6 @@ jobs:
       - name: Initialize IPFS and start daemon
         run: |
           ipfs init
-          ipfs daemon &
       - uses: actions/setup-node@v2
         with:
           node-version: 14
