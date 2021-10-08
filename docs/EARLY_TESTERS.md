@@ -31,6 +31,7 @@ We will ask early testers to participate at two points in the process:
 - [ ] Siderus (@koalalorenzo)
 - [ ] Charity Engine (@rytiss, @tristanolive)
 - [ ] Fission (@bmann)
+- [ ] OrbitDB (@tabcat)
 
 ## How to sign up?
 
