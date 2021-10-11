@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -53,30 +54,41 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	pipeR, pipeW := io.Pipe()
 
 	errCh := make(chan error, 2) // we only report the 1st error
+
+	var buf bytes.Buffer
+	iter, err := gocar.WriteCarIter(
+		req.Context,
+		mdag.NewSession(
+			req.Context,
+			api.Dag(),
+		),
+		[]cid.Cid{c},
+		&buf,
+	)
+	if err != nil {
+		return err
+	}
+
 	go func() {
 		defer func() {
 			if err := pipeW.Close(); err != nil {
-				errCh <- fmt.Errorf("stream flush failed: %s", err)
+				errCh <- err
 			}
 			close(errCh)
 		}()
-
-		if err := gocar.WriteCar(
-			req.Context,
-			mdag.NewSession(
-				req.Context,
-				api.Dag(),
-			),
-			[]cid.Cid{c},
-			pipeW,
-		); err != nil {
-			errCh <- err
+		for err, cont := iter(); cont; err, cont = iter() {
+			if err != nil {
+				errCh <- err
+			}
+			if _, err := pipeW.Write(buf.Bytes()); err != nil {
+				errCh <- err
+			}
+			buf.Truncate(0)
 		}
 	}()
 
 	if err := res.Emit(pipeR); err != nil {
-		pipeR.Close() // ignore the error if any
-		return err
+		pipeR.Close()
 	}
 
 	err = <-errCh
