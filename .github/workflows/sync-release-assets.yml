@@ -19,6 +19,7 @@ jobs:
         run: |
           ipfs init
           ipfs daemon &
+          sleep 7
       - name: Wait for go-ipfs to be ready
         shell: pwsh
         run: |
