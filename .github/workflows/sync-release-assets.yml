@@ -38,10 +38,10 @@ jobs:
       - run: npm install execa
       - name: List github releases
         uses: actions/github-script@v4
-        # if: ${{ success() }}
         with:
           script: |
-            const execa = require('execa')
+            // const execa = require('execa')
+            const exec = require('@actions/exec');
 
             // fetch github releases
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
@@ -51,7 +51,8 @@ jobs:
               // fetch asset info from dist.ipfs.io
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
 
-              const { ls_stdout, ls_stderr } = await execa('ipfs', ['ls', p])
+              // const { ls_stdout, ls_stderr } = await execa('ipfs', ['ls', p])
+              const { ls_stdout, ls_stderr } = await exec.exec('ipfs', ['ls', p])
 
               console.log("ipfs ls " + p + " (out):\n", ls_stdout)
               console.log("ipfs ls " + p + " (err):\n", ls_stderr)
