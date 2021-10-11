@@ -2,13 +2,10 @@ package dagcmd
 
 import (
 	"bytes"
-	"errors"
+	"encoding/base64"
 	"fmt"
 	"io"
-	"os"
-	"time"
 
-	"github.com/cheggaaa/pb"
 	cid "github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -17,6 +14,11 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	gocar "github.com/ipld/go-car"
 )
+
+type dagExportNode struct {
+	Err error
+	Raw []byte
+}
 
 func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 
@@ -51,10 +53,6 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	// ...
 	// if err := car.Write(pipeW); err != nil {}
 
-	pipeR, pipeW := io.Pipe()
-
-	errCh := make(chan error, 2) // we only report the 1st error
-
 	var buf bytes.Buffer
 	iter, err := gocar.WriteCarIter(
 		req.Context,
@@ -69,29 +67,20 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	go func() {
-		defer func() {
-			if err := pipeW.Close(); err != nil {
-				errCh <- err
-			}
-			close(errCh)
-		}()
-		for err, cont := iter(); cont; err, cont = iter() {
-			if err != nil {
-				errCh <- err
-			}
-			if _, err := pipeW.Write(buf.Bytes()); err != nil {
-				errCh <- err
-			}
-			buf.Truncate(0)
+	var cont bool
+	for err, cont = iter(); cont; err, cont = iter() {
+		den := dagExportNode{
+			Err: err,
+			Raw: buf.Bytes(),
 		}
-	}()
-
-	if err := res.Emit(pipeR); err != nil {
-		pipeR.Close()
+		if err2 := res.Emit(&den); err != nil {
+			return err2
+		}
+		if err != nil {
+			break
+		}
+		buf.Truncate(0)
 	}
-
-	err = <-errCh
 
 	// minimal user friendliness
 	if err != nil &&
@@ -111,57 +100,32 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 }
 
 func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
-
-	var showProgress bool
-	val, specified := res.Request().Options[progressOptionName]
-	if !specified {
-		// default based on TTY availability
-		errStat, _ := os.Stderr.Stat()
-		if 0 != (errStat.Mode() & os.ModeCharDevice) {
-			showProgress = true
+	pipeR, pipeW := io.Pipe()
+	errCh := make(chan error, 2)
+	go func() {
+		defer func() {
+			pipeW.Close()
+			close(errCh)
+		}()
+		for v, err := res.Next(); v != nil; v, err = res.Next() {
+			if err != nil {
+				errCh <- re.CloseWithError(err)
+				return
+			}
+			m := v.(map[string]interface{})
+			if m["Err"] != nil {
+				errCh <- m["Err"].(error)
+				return
+			}
+			raw := m["Raw"].(string)
+			dec, err := base64.StdEncoding.DecodeString(raw)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			pipeW.Write(dec)
 		}
-	} else if val.(bool) {
-		showProgress = true
-	}
-
-	// simple passthrough, no progress
-	if !showProgress {
-		return cmds.Copy(re, res)
-	}
-
-	bar := pb.New64(0).SetUnits(pb.U_BYTES)
-	bar.Output = os.Stderr
-	bar.ShowSpeed = true
-	bar.ShowElapsedTime = true
-	bar.RefreshRate = 500 * time.Millisecond
-	bar.Start()
-
-	var processedOneResponse bool
-	for {
-		v, err := res.Next()
-		if err == io.EOF {
-
-			// We only write the final bar update on success
-			// On error it looks too weird
-			bar.Finish()
-
-			return re.Close()
-		} else if err != nil {
-			return re.CloseWithError(err)
-		} else if processedOneResponse {
-			return re.CloseWithError(errors.New("unexpected multipart response during emit, please file a bugreport"))
-		}
-
-		r, ok := v.(io.Reader)
-		if !ok {
-			// some sort of encoded response, this should not be happening
-			return errors.New("unexpected non-stream passed to PostRun: please file a bugreport")
-		}
-
-		processedOneResponse = true
-
-		if err := re.Emit(bar.NewProxyReader(r)); err != nil {
-			return err
-		}
-	}
+	}()
+	re.Emit(pipeR)
+	return <-errCh
 }
