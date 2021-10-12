@@ -52,8 +52,8 @@ jobs:
               // fetch asset info from dist.ipfs.io
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
 
-              // const { ls_stdout, ls_stderr } = await execa('ipfs', ['ls', p])
-              const { ls_stdout, ls_stderr } = await exec.exec('ipfs ls ' + p);
+              const { stdout } = await execa('ipfs', ['ls', p])
+              // const { ls_stdout, ls_stderr } = await exec.exec('ipfs ls ' + p);
               // curl -X POST http://localhost:5001/api/v0/ls?arg=/ipns/dist.ipfs.io/go-ipfs/v0.10.0
               // const { ls_stdout, ls_stderr } = await execa('curl', ['-X', 'POST', 'http://localhost:5001/api/v0/ls?arg=' + p])
 
