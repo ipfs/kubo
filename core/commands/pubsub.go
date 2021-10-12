@@ -58,9 +58,14 @@ EXPERIMENTAL FEATURE
   environment.  To use, the daemon must be run with
   '--enable-pubsub-experiment'.
 
-TOPIC ENCODING
+PEER ENCODING
 
-  Topic names are a binary data. To ensure all bytes are transferred
+  Peer IDs in From fields are encoded using the default text representation
+  from go-libp2p. This ensures the same string values as in 'ipfs pubsub peers'.
+
+TOPIC AND DATA ENCODING
+
+  Topics, Data and Seqno are binary data. To ensure all bytes are transferred
   correctly RPC client and server will use multibase encoding behind
   the scenes.
 
@@ -101,12 +106,11 @@ TOPIC ENCODING
 				return err
 			}
 
-			// encode as base64url so the same string is present in body and URL args
-			// when sent over HTTP RPC API
+			// turn bytes into strings
 			encoder, _ := mbase.EncoderByName("base64url")
 			psm := pubsubMessage{
 				Data:  encoder.Encode(msg.Data()),
-				From:  encoder.Encode([]byte(msg.From())),
+				From:  msg.From().Pretty(),
 				Seqno: encoder.Encode(msg.Seq()),
 			}
 			for _, topic := range msg.Topics() {
