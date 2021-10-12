@@ -41,10 +41,10 @@ jobs:
         with:
           script: |
             const execa = require('execa')
+            const fs = require('fs').promises
 
             // fetch github releases
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo })
-            console.log("listReleases: ", resp)
             const release_assets = [];
             num_synced = 0;
             for (const release of resp.data) {
@@ -78,12 +78,16 @@ jobs:
 
               // if dist.ipfs.io has files not found in github, copy them over
               // for (const file of missing_files) {
-              //   await execa('ipfs', ['get', p + '/' + file])
+              for (const file of dist_assets) {
+                console.log("fetching", file, "from dist.ipfs.io")
+                await execa('ipfs', ['get', p + '/' + file])
+                const data = await fs.readFile(file, "binary")
+                console.log("read file size", data.length)
               //   resp = await github.repos.uploadReleaseAsset({
               //     owner: context.repo.owner,
               //     repo: context.repo.repo,
-              //     release_id: XXX,
-              //     name: XXX,
+              //     release_id: release.id,
+              //     name: file,
               //     data: XXX,
               //   })
               // }
