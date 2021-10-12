@@ -237,7 +237,7 @@ jobs:
       - run:
           name: Cloning
           command: |
-            git clone https://github.com/ipfs/go-ipfs-api.git
+            git clone --branch feat/pubsub-require-multibase https://github.com/ipfs/go-ipfs-api.git
             git -C go-ipfs-api log -1
       - run:
           name: Starting the daemon
