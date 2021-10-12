@@ -252,10 +252,13 @@ func multibaseDecodedStringListEncoder(req *cmds.Request, w io.Writer, list *str
 		}
 		list.Strings[n] = string(data)
 	}
-	return stringListEncoder(req, w, list)
+	return safeTextListEncoder(req, w, list)
 }
 
-func stringListEncoder(req *cmds.Request, w io.Writer, list *stringList) error {
+// converts list of strings to text representation where each string is placed
+// in separate line with non-printable/unsafe characters escaped
+// (this protects terminal output from being mangled by non-ascii topic names)
+func safeTextListEncoder(req *cmds.Request, w io.Writer, list *stringList) error {
 	for _, str := range list.Strings {
 		_, err := fmt.Fprintf(w, "%s\n", cmdenv.EscNonPrint(str))
 		if err != nil {
@@ -322,7 +325,7 @@ TOPIC AND DATA ENCODING
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
 	},
 }
 
