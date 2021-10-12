@@ -32,6 +32,7 @@ jobs:
               exit 0
             }
           }
+          ipfs ls /ipns/dist.ipfs.io/go-ipfs/v0.10.0
       - uses: actions/setup-node@v2
         with:
           node-version: 14
