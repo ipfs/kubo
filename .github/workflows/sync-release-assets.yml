@@ -90,7 +90,7 @@ jobs:
               //     name: file,
               //     data: XXX,
               //   })
-              // }
+              }
 
               // summary of assets on both sides
               release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
