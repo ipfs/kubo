@@ -23,6 +23,7 @@ jobs:
       - name: Wait for go-ipfs to be ready
         shell: pwsh
         run: |
+          ipfs ls /ipns/dist.ipfs.io/go-ipfs/v0.10.0
           for ($i = 0; $i -lt 10; $i++) {
             $addrs = ipfs id | jq .Addresses;
             if ($addrs -eq "null") {
@@ -32,7 +33,6 @@ jobs:
               exit 0
             }
           }
-          ipfs ls /ipns/dist.ipfs.io/go-ipfs/v0.10.0
       - uses: actions/setup-node@v2
         with:
           node-version: 14
