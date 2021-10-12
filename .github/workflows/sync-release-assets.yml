@@ -44,7 +44,7 @@ jobs:
 
             // fetch github releases
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo })
-            console.log("listReleases: " + resp)
+            console.log("listReleases: ", resp)
             const release_assets = [];
             num_synced = 0;
             for (const release of resp.data) {
