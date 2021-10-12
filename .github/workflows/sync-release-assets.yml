@@ -61,7 +61,7 @@ jobs:
 
               const dist_assets = [];
               for (const line of stdout.split("\n")) {
-                file = line.split(" ")[2]
+                file = line.split(/(\s+)/).filter( function(e) { return e.trim().length > 0; } )[2]
                 console.log("dist ", release.tag_name, " -> ", file)
                 dist_assets.push(file)
               }
