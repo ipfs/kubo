@@ -40,8 +40,7 @@ jobs:
         uses: actions/github-script@v4
         with:
           script: |
-            // const execa = require('execa')
-            const exec2 = require('@actions/exec');
+            const execa = require('execa')
 
             // fetch github releases
             resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
@@ -52,7 +51,8 @@ jobs:
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
 
               // const { ls_stdout, ls_stderr } = await execa('ipfs', ['ls', p])
-              const { ls_stdout, ls_stderr } = await exec2.exec('ipfs', ['ls', p])
+              // curl -X POST http://localhost:5001/api/v0/ls?arg=/ipns/dist.ipfs.io/go-ipfs/v0.10.0
+              const { ls_stdout, ls_stderr } = await execa('curl', ['-X', 'POST', 'http://localhost:5001/api/v0/ls?arg=' + p])
 
               console.log("ipfs ls " + p + " (out):\n", ls_stdout)
               console.log("ipfs ls " + p + " (err):\n", ls_stderr)
