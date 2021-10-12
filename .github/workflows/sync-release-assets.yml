@@ -57,10 +57,9 @@ jobs:
               // curl -X POST http://localhost:5001/api/v0/ls?arg=/ipns/dist.ipfs.io/go-ipfs/v0.10.0
               // const { ls_stdout, ls_stderr } = await execa('curl', ['-X', 'POST', 'http://localhost:5001/api/v0/ls?arg=' + p])
 
-              console.log("ipfs ls " + p + " (out):\n", ls_stdout)
-              console.log("ipfs ls " + p + " (err):\n", ls_stderr)
+              console.log("ipfs ls " + p + " (out):\n", stdout)
               const dist_assets = [];
-              for (const line of ls_stdout.split("\n")) {
+              for (const line of stdout.split("\n")) {
                 file = line.split(" ")[2]
                 console.log("dist ", release.tag_name, " -> ", file)
                 dist_assets.push(file)
