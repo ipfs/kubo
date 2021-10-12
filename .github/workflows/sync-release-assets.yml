@@ -77,19 +77,18 @@ jobs:
               }
 
               // if dist.ipfs.io has files not found in github, copy them over
-              // for (const file of missing_files) {
-              for (const file of dist_assets) {
+              for (const file of missing_files) {
                 console.log("fetching", file, "from dist.ipfs.io")
                 await execa('ipfs', ['get', p + '/' + file])
                 const data = await fs.readFile(file, "binary")
-                console.log("read file size", data.length)
-              //   resp = await github.repos.uploadReleaseAsset({
-              //     owner: context.repo.owner,
-              //     repo: context.repo.repo,
-              //     release_id: release.id,
-              //     name: file,
-              //     data: XXX,
-              //   })
+                console.log("uploading", file, "to github release", release.tag_name)
+                resp = await github.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  name: file,
+                  data: data,
+                })
               }
 
               // summary of assets on both sides
