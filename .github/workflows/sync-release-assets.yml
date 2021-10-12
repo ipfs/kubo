@@ -24,6 +24,7 @@ jobs:
         shell: pwsh
         run: |
           ipfs ls /ipns/dist.ipfs.io/go-ipfs/v0.10.0
+          curl -X POST http://localhost:5001/api/v0/ls?arg=/ipns/dist.ipfs.io/go-ipfs/v0.10.0
           for ($i = 0; $i -lt 10; $i++) {
             $addrs = ipfs id | jq .Addresses;
             if ($addrs -eq "null") {
