@@ -43,7 +43,8 @@ jobs:
             const execa = require('execa')
 
             // fetch github releases
-            resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo });
+            resp = await github.repos.listReleases({ owner: context.repo.owner, repo: context.repo.repo })
+            console.log("listReleases: " + resp)
             const release_assets = [];
             num_synced = 0;
             for (const release of resp.data) {
@@ -53,26 +54,42 @@ jobs:
                 break;
               }
               num_synced += 1
+              
+              const github_assets = [];
+              github_map = {};
+              for (const asset of release.assets) {
+                github_assets.push(asset.name);
+                github_map[asset.name] = true;
+              }
 
               // fetch asset info from dist.ipfs.io
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
               const { stdout } = await execa('ipfs', ['ls', p])
-              console.log("ipfs ls:\n", stdout, "\nXXX")
 
-              const dist_assets = [];
+              const dist_assets = []
+              missing_files = []
               for (const line of stdout.split("\n")) {
                 file = line.split(/(\s+)/).filter( function(e) { return e.trim().length > 0; } )[2]
-                console.log("dist ", release.tag_name, " -> ", file)
                 dist_assets.push(file)
+                if (!github_map[file]) {
+                  missing_files.push(file)
+                }
               }
-              
-              const github_assets = [];
-              for (const asset of release.assets) {
-                github_assets.push(asset.name);
-              }
-              release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
 
-              // for every file in dist_assets and not in github_assets, copy it over
+              // if dist.ipfs.io has files not found in github, copy them over
+              // for (const file of missing_files) {
+              //   await execa('ipfs', ['get', p + '/' + file])
+              //   resp = await github.repos.uploadReleaseAsset({
+              //     owner: context.repo.owner,
+              //     repo: context.repo.repo,
+              //     release_id: XXX,
+              //     name: XXX,
+              //     data: XXX,
+              //   })
+              // }
+
+              // summary of assets on both sides
+              release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
             }
-            console.log(release_assets);
-            return release_assets;
+            console.log(release_assets)
+            return release_assets
