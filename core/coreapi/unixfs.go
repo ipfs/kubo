@@ -217,13 +217,13 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.Unixf
 }
 
 func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
+	if linkres.Err != nil {
+		return coreiface.DirEntry{Err: linkres.Err}
+	}
+
 	lnk := coreiface.DirEntry{
 		Name: linkres.Link.Name,
 		Cid:  linkres.Link.Cid,
-		Err:  linkres.Err,
-	}
-	if lnk.Err != nil {
-		return lnk
 	}
 
 	switch lnk.Cid.Type() {
