@@ -1,6 +1,13 @@
 name: Sync github release assets with dist.ipfs.io
 
-on: push
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+concurrency:
+  group: release-assets-dist-sync
+  cancel-in-progress: true
 
 jobs:
   sync-github-and-dist-ipfs-io:
@@ -42,7 +49,7 @@ jobs:
         with:
           node-version: 14
       - run: npm install execa
-      - name: List github releases
+      - name: Sync the latest 5 github releases
         uses: actions/github-script@v4
         with:
           script: |
