@@ -372,6 +372,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Errorf("To disable this multiplexer, please configure `Swarm.Transports.Multiplexers'.")
 	}
 
+	cfg, err := repo.Config()
+	if err != nil {
+		return err
+	}
+
+	pubsub = pubsub || cfg.Pubsub.Enabled
+	ipnsps = ipnsps || cfg.Pubsub.Namesys.Enabled
+
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
 		Repo:                        repo,
@@ -387,11 +395,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		cfg, err := repo.Config()
-		if err != nil {
-			return err
-		}
-
 		routingOption = cfg.Routing.Type
 		if routingOption == "" {
 			routingOption = routingOptionDHTKwd
