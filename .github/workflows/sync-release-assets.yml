@@ -6,20 +6,26 @@ jobs:
   sync-github-and-dist-ipfs-io:
     runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v2
       - name: Setup go
         uses: actions/setup-go@v2
         with:
           go-version: '1.16'
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Build go-ipfs binary
-        run: |
-          cd cmd/ipfs
-          go install
+        run: go install github.com/ipfs/go-ipfs/cmd/ipfs@latest
       - name: Initialize go-ipfs and start daemon
         run: |
-          ipfs init
-          ipfs daemon &
-          sleep 7
+          sudo sysctl -w net.core.rmem_max=2500000
+          ipfs init --profile flatfs,server
+          ipfs daemon --enable-gc=false &
+          while (! ipfs id --api "/ip4/127.0.0.1/tcp/5001"); do sleep 1; done
       - name: Wait for go-ipfs to be ready
         shell: pwsh
         run: |
@@ -54,7 +60,7 @@ jobs:
                 break;
               }
               num_synced += 1
-              
+
               const github_assets = [];
               github_map = {};
               for (const asset of release.assets) {
@@ -90,7 +96,6 @@ jobs:
                   data: data,
                 })
               }
-
               // summary of assets on both sides
               release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
             }
