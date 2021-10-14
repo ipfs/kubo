@@ -91,7 +91,7 @@ jobs:
                   stdout += data.toString();
                 }
               }
-              const { stdout } = await exec.exec('ipfs', ['ls', p], options)
+              await exec.exec('ipfs', ['ls', p], options)
               console.log("XXX:", stdout)
 
               const dist_assets = []
