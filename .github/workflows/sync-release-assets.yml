@@ -84,7 +84,14 @@ jobs:
               // fetch asset info from dist.ipfs.io
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
               // const { stdout } = await execa('ipfs', ['ls', p])
-              const { stdout } = await exec.exec('ipfs ls ' + p)
+              let stdout = ''
+              const options = {}
+              options.listeners = {
+                stdout: (data: Buffer) => {
+                  stdout += data.toString();
+                }
+              }
+              const { stdout } = await exec.exec('ipfs', ['ls', p], options)
               console.log("XXX:", stdout)
 
               const dist_assets = []
