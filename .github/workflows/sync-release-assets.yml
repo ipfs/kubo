@@ -1,9 +1,9 @@
 name: Sync github release assets with dist.ipfs.io
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * *'
+on: push
+  # workflow_dispatch:
+  # schedule:
+  #   - cron: '0 0 * * *'
 
 concurrency:
   group: release-assets-dist-sync
@@ -83,7 +83,9 @@ jobs:
 
               // fetch asset info from dist.ipfs.io
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
-              const { stdout } = await execa('ipfs', ['ls', p])
+              // const { stdout } = await execa('ipfs', ['ls', p])
+              const { stdout } = await exec.exec('ipfs ls ' + p])
+              console.log("XXX:", stdout)
 
               const dist_assets = []
               missing_files = []
