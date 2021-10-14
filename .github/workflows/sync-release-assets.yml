@@ -92,12 +92,14 @@ jobs:
                 }
               }
               await exec.exec('ipfs', ['ls', p], options)
-              // console.log("XXX:", stdout)
 
               const dist_assets = []
               missing_files = []
               for (const line of stdout.split("\n")) {
-                console.log("parsing:", line)
+                line = line.trim()
+                if (line.length == 0) {
+                  continue
+                }
                 file = line.split(/(\s+)/).filter( function(e) { return e.trim().length > 0; } )[2]
                 dist_assets.push(file)
                 if (!github_map[file]) {
