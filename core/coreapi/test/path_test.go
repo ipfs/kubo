@@ -26,10 +26,11 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 	a := apis[0]
 
 	// Setting this after instantiating the swarm so that it's not clobbered by loading the go-ipfs config
-	prevVal := uio.UseHAMTSharding
-	uio.UseHAMTSharding = true
+	// TODO: Either create a sharded directory manually, or make it such that it is automatically sized as sharded
+	prevVal := uio.HAMTShardingSize
+	uio.HAMTShardingSize = 1
 	defer func() {
-		uio.UseHAMTSharding = prevVal
+		uio.HAMTShardingSize = prevVal
 	}()
 
 	// Create and add a sharded directory
