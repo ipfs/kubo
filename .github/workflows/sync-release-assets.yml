@@ -87,7 +87,7 @@ jobs:
               let stdout = ''
               const options = {}
               options.listeners = {
-                stdout: (data: Buffer) => {
+                stdout: (data) => {
                   stdout += data.toString();
                 }
               }
