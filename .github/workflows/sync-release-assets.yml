@@ -48,12 +48,10 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: 14
-      - run: npm install execa
       - name: Sync the latest 5 github releases
         uses: actions/github-script@v4
         with:
           script: |
-            const execa = require('execa')
             const fs = require('fs').promises
             const max_synced = 5
 
@@ -83,7 +81,6 @@ jobs:
 
               // fetch asset info from dist.ipfs.io
               p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
-              // const { stdout } = await execa('ipfs', ['ls', p])
               let stdout = ''
               const options = {}
               options.listeners = {
@@ -109,7 +106,7 @@ jobs:
               // if dist.ipfs.io has files not found in github, copy them over
               for (const file of missing_files) {
                 console.log("fetching", file, "from dist.ipfs.io")
-                await execa('ipfs', ['get', p + '/' + file])
+                await exec.exec('ipfs', ['get', p + '/' + file])
                 const data = await fs.readFile(file, "binary")
                 console.log("uploading", file, "to github release", release.tag_name)
                 resp = await github.repos.uploadReleaseAsset({
