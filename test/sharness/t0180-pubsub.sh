@@ -22,7 +22,7 @@ run_pubsub_tests() {
   
   # ipfs pubsub sub
   test_expect_success 'pubsub' '
-    echo -n "testOK" | ipfs multibase encode -b base64url > expected &&
+    echo -n -e "test\nOK" | ipfs multibase encode -b base64url > expected &&
     touch empty &&
     mkfifo wait ||
     test_fsh echo init fail
@@ -51,7 +51,7 @@ run_pubsub_tests() {
   '
   
   test_expect_success "publish something from file" '
-    echo -n "testOK" > payload-file &&
+    echo -n -e "test\nOK" > payload-file &&
     ipfsi 1 pubsub pub testTopic payload-file &> pubErr
   '
   
@@ -62,7 +62,7 @@ run_pubsub_tests() {
   '
   
   test_expect_success "wait for another pubsub message" '
-    echo -n "testOK2" | ipfs multibase encode -b base64url > expected &&
+    echo -n -e "test\nOK\r\n2" | ipfs multibase encode -b base64url > expected &&
     mkfifo wait2 ||
     test_fsh echo init fail
   
@@ -81,7 +81,7 @@ run_pubsub_tests() {
   '
   
   test_expect_success "publish something from stdin" '
-    echo -n "testOK2" | ipfsi 3 pubsub pub testTopic &> pubErr
+    echo -n -e "test\nOK\r\n2" | ipfsi 3 pubsub pub testTopic &> pubErr
   '
   
   test_expect_success "wait until echo > wait executed" '
