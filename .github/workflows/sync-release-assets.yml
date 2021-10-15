@@ -1,0 +1,124 @@
+name: Sync github release assets with dist.ipfs.io
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+concurrency:
+  group: release-assets-dist-sync
+  cancel-in-progress: true
+
+jobs:
+  sync-github-and-dist-ipfs-io:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Build go-ipfs binary
+        run: go install github.com/ipfs/go-ipfs/cmd/ipfs@latest
+      - name: Initialize go-ipfs and start daemon
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          ipfs init --profile flatfs,server
+          ipfs daemon --enable-gc=false &
+          while (! ipfs id --api "/ip4/127.0.0.1/tcp/5001"); do sleep 1; done
+      - name: Wait for go-ipfs to be ready
+        shell: pwsh
+        run: |
+          for ($i = 0; $i -lt 10; $i++) {
+            $addrs = ipfs id | jq .Addresses;
+            if ($addrs -eq "null") {
+              sleep 1
+            } else {
+              echo "Successfully started the daemon"
+              exit 0
+            }
+          }
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 14
+      - name: Sync the latest 5 github releases
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const fs = require('fs').promises
+            const max_synced = 5
+
+            // fetch github releases
+            resp = await github.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              page: 1,
+              per_page: max_synced
+            })
+            const release_assets = [];
+            num_synced = 0;
+            for (const release of resp.data) {
+              console.log("checking release tagged", release.tag_name)
+              if (num_synced > max_synced) {
+                console.log("done: synced", max_synced, "latest releases")
+                break;
+              }
+              num_synced += 1
+
+              const github_assets = [];
+              github_map = {};
+              for (const asset of release.assets) {
+                github_assets.push(asset.name);
+                github_map[asset.name] = true;
+              }
+
+              // fetch asset info from dist.ipfs.io
+              p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
+              let stdout = ''
+              const options = {}
+              options.listeners = {
+                stdout: (data) => {
+                  stdout += data.toString();
+                }
+              }
+              await exec.exec('ipfs', ['ls', p], options)
+
+              const dist_assets = []
+              missing_files = []
+              for (const raw_line of stdout.split("\n")) {
+                line = raw_line.trim();
+                if (line.length != 0) {
+                  file = line.split(/(\s+)/).filter( function(e) { return e.trim().length > 0; } )[2]
+                  dist_assets.push(file)
+                  if (!github_map[file]) {
+                    missing_files.push(file)
+                  }
+                }
+              }
+
+              // if dist.ipfs.io has files not found in github, copy them over
+              for (const file of missing_files) {
+                console.log("fetching", file, "from dist.ipfs.io")
+                await exec.exec('ipfs', ['get', p + '/' + file])
+                const data = await fs.readFile(file, "binary")
+                console.log("uploading", file, "to github release", release.tag_name)
+                resp = await github.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  name: file,
+                  data: data,
+                })
+              }
+              // summary of assets on both sides
+              release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
+            }
+            console.log(release_assets)
+            return release_assets
