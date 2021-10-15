@@ -1,9 +1,9 @@
 name: Sync github release assets with dist.ipfs.io
 
-on: push
-  # workflow_dispatch:
-  # schedule:
-  #   - cron: '0 0 * * *'
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
 
 concurrency:
   group: release-assets-dist-sync
