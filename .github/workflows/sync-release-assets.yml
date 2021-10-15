@@ -95,7 +95,7 @@ jobs:
 
               const dist_assets = []
               missing_files = []
-              for (const line of stdout.split("\n")) {
+              for (line of stdout.split("\n")) {
                 line = line.trim()
                 if (line.length == 0) {
                   continue
