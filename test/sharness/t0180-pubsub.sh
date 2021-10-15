@@ -50,8 +50,9 @@ run_pubsub_tests() {
     test_cmp peers_exp peers_out
   '
   
-  test_expect_success "publish something" '
-    ipfsi 1 pubsub pub testTopic "testOK" &> pubErr
+  test_expect_success "publish something from file" '
+    echo -n "testOK" > payload-file &&
+    ipfsi 1 pubsub pub testTopic payload-file &> pubErr
   '
   
   test_expect_success "wait until echo > wait executed" '
@@ -79,7 +80,7 @@ run_pubsub_tests() {
     go-sleep 500ms
   '
   
-  test_expect_success "publish something" '
+  test_expect_success "publish something from stdin" '
     echo -n "testOK2" | ipfsi 3 pubsub pub testTopic &> pubErr
   '
   

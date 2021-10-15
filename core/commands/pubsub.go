@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"sort"
 
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -146,9 +145,10 @@ TOPIC AND DATA ENCODING
 
 var PubsubPubCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Publish a message to a given pubsub topic.",
+		Tagline: "Publish data to a given pubsub topic.",
 		ShortDescription: `
 ipfs pubsub pub publishes a message to a specified topic.
+It reads binary data from stdin or a file.
 
 EXPERIMENTAL FEATURE
 
@@ -156,31 +156,21 @@ EXPERIMENTAL FEATURE
   environment.  To use, the daemon must be run with
   '--enable-pubsub-experiment'.
 
-TOPIC AND DATA ENCODING
+HTTP RPC ENCODING
+
+  The data to be published is sent in HTTP request body as multipart/form-data.
 
   Topic names are a binary data too. To ensure all bytes are transferred
-  correctly RPC client and server will use multibase encoding behind
-  the scenes.
+  correctly via URL params, the RPC client and server will use multibase
+  encoding behind the scenes.
 
-  You can inspect the format by passing --enc=json. ipfs multibase commands
-  can be used for encoding/decoding multibase strings in the userland.
 `,
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("topic", true, false, "Topic to publish to."),
-		cmds.StringArg("data", false, true, "Payload of message to publish."),
+		cmds.FileArg("data", true, false, "The data to be published.").EnableStdin(),
 	},
-	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		// when there are no string args with data, read from stdin.
-		if len(req.Arguments) == 1 {
-			buf, err := ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				return err
-			}
-			req.Arguments = append(req.Arguments, string(buf))
-		}
-		return urlArgsEncoder(req, env)
-	},
+	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
@@ -191,13 +181,20 @@ TOPIC AND DATA ENCODING
 		}
 
 		topic := req.Arguments[0]
-		for _, data := range req.Arguments[1:] {
-			if err := api.PubSub().Publish(req.Context, topic, []byte(data)); err != nil {
-				return err
-			}
+
+		// read data passed as a file
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		data, err := ioutil.ReadAll(file)
+		if err != nil {
+			return err
 		}
 
-		return nil
+		// publish
+		return api.PubSub().Publish(req.Context, topic, data)
 	},
 }
 
@@ -333,6 +330,7 @@ TOPIC AND DATA ENCODING
 	},
 }
 
+// TODO: move to cmdenv?
 // Encode binary data to be passed as multibase string in URL arguments.
 // (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
 func urlArgsEncoder(req *cmds.Request, env cmds.Environment) error {
@@ -346,10 +344,6 @@ func urlArgsEncoder(req *cmds.Request, env cmds.Environment) error {
 // Decode binary data passed as multibase string in URL arguments.
 // (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
 func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
-	err := req.ParseBodyArgs()
-	if err != nil {
-		return err
-	}
 	for n, arg := range req.Arguments {
 		encoding, data, err := mbase.Decode(arg)
 		if err != nil {
