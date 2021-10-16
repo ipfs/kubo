@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"net/http"
 	neturl "net/url"
 	gopath "path"
 
@@ -159,10 +160,11 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			return err
 		}
 
+		var nameStr string
 		// Prepare Pin.name
 		opts := []pinclient.AddOption{}
 		if name, nameFound := req.Options[pinNameOptionName]; nameFound {
-			nameStr := name.(string)
+			nameStr = name.(string)
 			opts = append(opts, pinclient.PinOpts.WithName(nameStr))
 		}
 
@@ -172,6 +174,34 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
+		}
+		//ifconfig.co
+		checkConnection := func() bool {
+			_, err := http.Get("ifconfig.co")
+			return err == nil
+		}
+		netConnection := checkConnection()
+		//retrieve offline option from request and cast it into bool
+		offline, _ := req.Options["offline"].(bool)
+
+		if offline || !node.IsOnline || !netConnection {
+			fmt.Println("checking connection")
+			allKeys, err := node.Blockstore.AllKeysChan(ctx)
+			if err != nil {
+				return err
+			}
+			for k := range allKeys {
+				if k == rp.Cid() {
+					warnMessage := fmt.Sprintf("warning : node is offline and pinning %+v may fail if there is no other provider. ", rp.Cid().String())
+					warnOutput := RemotePinOutput{
+						Status: warnMessage,
+						Cid:    rp.Cid().String(),
+						Name:   nameStr,
+					}
+					res.Emit(warnOutput)
+					fmt.Println(warnMessage)
+				}
+			}
 		}
 
 		isInBlockstore, err := node.Blockstore.Has(rp.Cid())
