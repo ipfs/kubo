@@ -198,12 +198,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
 
-	// Debug logs for every request received/processed/ended to follow up them.
-	// DON'T change the log level for these logs below as will produce a ton of them.
 	log.Debugw("request received", "url", r.URL.String(), "started", begin)
-	defer func() {
-		log.Debugw("request processed or ended", "url", r.URL.String(), "duration", time.Since(begin).String())
-	}()
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
@@ -506,11 +501,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		Hash:        hash,
 	}
 
+	log.Debugw("request processed", "url", r.URL.String(), "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash, "duration", time.Since(begin).String())
+
 	if err := listingTemplate.Execute(w, tplData); err != nil {
 		internalWebError(w, err)
 		return
 	}
-
 }
 
 func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
