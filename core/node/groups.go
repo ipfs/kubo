@@ -9,8 +9,8 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/go-ipfs-config"
 	util "github.com/ipfs/go-ipfs-util"
-	log "github.com/ipfs/go-log"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/go-log"
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
@@ -109,17 +109,17 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle))
 	}
 
-	// If `cfg.Swarm.DisableRelay` is set and `Network.Relay` isn't, use the former.
-	enableRelay := cfg.Swarm.Transports.Network.Relay.WithDefault(!cfg.Swarm.DisableRelay) //nolint
+	// If `cfg.Swarm.DisableRelay` is set and `Network.RelayTransport` isn't, use the former.
+	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(!cfg.Swarm.DisableRelay) //nolint
 
 	// Warn about a deprecated option.
 	//nolint
 	if cfg.Swarm.DisableRelay {
 		logger.Error("The `Swarm.DisableRelay' config field is deprecated.")
-		if enableRelay {
-			logger.Error("`Swarm.DisableRelay' has been overridden by `Swarm.Transports.Network.Relay'")
+		if enableRelayTransport {
+			logger.Error("`Swarm.DisableRelay' has been overridden by `Swarm.Transports.Network.RelayTransport'")
 		} else {
-			logger.Error("Use the `Swarm.Transports.Network.Relay' config field instead")
+			logger.Error("Use the `Swarm.Transports.Network.RelayTransport' config field instead")
 		}
 	}
 
@@ -130,7 +130,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
-		fx.Provide(libp2p.Relay(enableRelay, cfg.Swarm.EnableRelayHop)),
+		fx.Provide(libp2p.RelayTransport(enableRelayTransport)),
+		fx.Provide(libp2p.RelayService(!cfg.Swarm.DisableRelayService, cfg.Swarm.RelayServiceOpts)),
 		fx.Provide(libp2p.Transports(cfg.Swarm.Transports)),
 		fx.Invoke(libp2p.StartListening(cfg.Addresses.Swarm)),
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled, cfg.Discovery.MDNS.Interval)),

@@ -40,8 +40,10 @@ func DiscoveryHandler(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host) 
 func SetupDiscovery(useMdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.Lifecycle, host.Host, *discoveryHandler) error {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, handler *discoveryHandler) error {
 		if useMdns {
-			service := mdns.NewMdnsService(host, mdns.ServiceName)
-			service.RegisterNotifee(handler)
+			service := mdns.NewMdnsService(host, mdns.ServiceName, handler)
+			if err := service.Start(); err != nil {
+				return err
+			}
 
 			if mdnsInterval == 0 {
 				mdnsInterval = 5

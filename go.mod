@@ -30,7 +30,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v0.1.6
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
-	github.com/ipfs/go-ipfs-config v0.16.0
+	github.com/ipfs/go-ipfs-config v0.16.1-0.20211018130411-0226122eaf22
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.9
@@ -65,29 +65,28 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-doh-resolver v0.3.1
-	github.com/libp2p/go-libp2p v0.15.0
-	github.com/libp2p/go-libp2p-circuit v0.4.0
+	github.com/libp2p/go-libp2p v0.15.0-rc.1.0.20211012133018-4f129401a3e4
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
-	github.com/libp2p/go-libp2p-core v0.9.0
+	github.com/libp2p/go-libp2p-core v0.10.0
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-http v0.2.1
 	github.com/libp2p/go-libp2p-kad-dht v0.13.1
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-loggables v0.1.0
 	github.com/libp2p/go-libp2p-mplex v0.4.1
-	github.com/libp2p/go-libp2p-noise v0.2.2
+	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-peerstore v0.2.8
 	github.com/libp2p/go-libp2p-pubsub v0.5.4
 	github.com/libp2p/go-libp2p-pubsub-router v0.4.0
-	github.com/libp2p/go-libp2p-quic-transport v0.12.0
+	github.com/libp2p/go-libp2p-quic-transport v0.13.0
 	github.com/libp2p/go-libp2p-record v0.1.3
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
-	github.com/libp2p/go-libp2p-swarm v0.5.3
-	github.com/libp2p/go-libp2p-testing v0.4.2
-	github.com/libp2p/go-libp2p-tls v0.2.0
+	github.com/libp2p/go-libp2p-swarm v0.6.0
+	github.com/libp2p/go-libp2p-testing v0.5.0
+	github.com/libp2p/go-libp2p-tls v0.3.0
 	github.com/libp2p/go-libp2p-yamux v0.5.4
 	github.com/libp2p/go-socket-activation v0.1.0
-	github.com/libp2p/go-tcp-transport v0.2.8
+	github.com/libp2p/go-tcp-transport v0.3.0
 	github.com/libp2p/go-ws-transport v0.5.0
 	github.com/miekg/dns v1.1.43
 	github.com/mitchellh/go-homedir v1.1.0
@@ -114,3 +113,5 @@ require (
 )
 
 go 1.16
+
+//replace github.com/ipfs/go-ipfs-config => ../../ipfs/go-ipfs-config
