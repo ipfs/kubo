@@ -15,10 +15,6 @@ test_expect_success 'start up nodes for configuration' '
   iptb start -wait -- --routing=none
 '
 
-test_expect_success 'configure EnableRelayHop in relay node' '
-  ipfsi 1 config --json Swarm.EnableRelayHop true
-'
-
 test_expect_success 'restart nodes' '
   iptb stop &&
   iptb_wait_stop &&

@@ -100,7 +100,18 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.DisableRelay`](#swarmdisablerelay)
-    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
+    - [`Swarm.DisableRelayService`](#swarmdisablerelayservice)
+    - [`Swarm.RelayServiceOpts`](#swarmrelayserviceopts)
+      - [`Swarm.RelayServiceOpts.Limit`](#swarmrelayserviceoptslimit)
+        - [`Swarm.RelayServiceOpts.Limit.Duration`](#swarmrelayserviceoptslimitduration)
+        - [`Swarm.RelayServiceOpts.Limit.Data`](#swarmrelayserviceoptslimitdata)
+      - [`Swarm.RelayServiceOpts.ReservationTTL`](#swarmrelayserviceoptsreservationttl)
+      - [`Swarm.RelayServiceOpts.MaxReservations`](#swarmrelayserviceoptsmaxreservations)
+      - [`Swarm.RelayServiceOpts.MaxCircuits`](#swarmrelayserviceoptsmaxcircuits)
+      - [`Swarm.RelayServiceOpts.BufferSize`](#swarmrelayserviceoptsbuffersize)
+      - [`Swarm.RelayServiceOpts.MaxReservationsPerPeer`](#swarmrelayserviceoptsmaxreservationsperpeer)
+      - [`Swarm.RelayServiceOpts.MaxReservationsPerIP`](#swarmrelayserviceoptsmaxreservationsperip)
+      - [`Swarm.RelayServiceOpts.MaxReservationsPerASN`](#swarmrelayserviceoptsmaxreservationsperasn)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
       - [Mode 1: `EnableRelayHop` is `false`](#mode-1-enablerelayhop-is-false)
       - [Mode 2: `EnableRelayHop` is `true`](#mode-2-enablerelayhop-is-true)
@@ -1280,17 +1291,118 @@ Default: `false`
 
 Type: `bool`
 
-### `Swarm.EnableRelayHop`
+### `Swarm.DisableRelayService`
 
-Configures this node to act as a relay "hop". A relay "hop" relays traffic for other peers.
-
-WARNING: Do not enable this option unless you know what you're doing. Other
-peers will randomly decide to use your node as a relay and consume _all_
-available bandwidth. There is _no_ rate-limiting.
+Disables the p2p-circuit v2 relay service. This will prevent this node from
+running as a relay server.
 
 Default: `false`
 
 Type: `bool`
+
+### `Swarm.RelayServiceOpts`
+
+Configuration options for the relay service.
+
+Default: `{}`
+
+Type: `object`
+
+#### `Swarm.RelayServiceOpts.Limit`
+
+Limits applied to every relayed connection.
+
+Default: `{}`
+
+Type: `object[string -> string]`
+
+##### `Swarm.RelayServiceOpts.Limit.Duration`
+
+Time limit before a relayed connection is reset.
+
+Default: `"2m"`
+
+Type: `string`
+
+
+##### `Swarm.RelayServiceOpts.Limit.Data`
+
+Limit of data relayed (in each direction) before a relayed connection is reset.
+
+Default: `131072` (128 kb)
+
+Type: `integer`
+
+
+#### `Swarm.RelayServiceOpts.ReservationTTL`
+
+Duration of a new or refreshed reservation. 
+
+Default: `"1h"`
+
+Type: `string`
+
+
+#### `Swarm.RelayServiceOpts.MaxReservations`
+
+Maximum number of active relay slots.
+
+Default: `128`
+
+Type: `integer`
+
+
+#### `Swarm.RelayServiceOpts.MaxReservations`
+
+Maximum number of open relay connections for each peer.
+
+Default: `16`
+
+Type: `integer`
+
+
+#### `Swarm.RelayServiceOpts.BufferSize`
+
+Size of the relayed connection buffers.
+
+Default: `2048`
+
+Type: `integer`
+
+
+#### `Swarm.RelayServiceOpts.MaxReservationsPerPeer`
+
+Maximum number of reservations originating from the same peer.
+
+Default: `4`
+
+Type: `integer`
+
+
+#### `Swarm.RelayServiceOpts.MaxReservationsPerIP`
+
+Maximum number of reservations originating from the same IP.
+
+Default: `8`
+
+Type: `integer`
+
+
+#### `Swarm.RelayServiceOpts.MaxReservationsPerASN`
+
+Maximum number of reservations originating from the same ASN.
+
+Default: `32`
+
+Type: `integer`
+
+
+### `Swarm.EnableRelayHop`
+
+**REMOVED**
+
+Please use [`Swarm.DisableRelayService`][].
+
 
 ### `Swarm.EnableAutoRelay`
 
@@ -1302,23 +1414,10 @@ Default: `false`
 
 Type: `bool`
 
-#### Mode 1: `EnableRelayHop` is `false`
-
-If `Swarm.EnableAutoRelay` is enabled and `Swarm.EnableRelayHop` is disabled,
-your node will automatically _use_ public relays from the network if it detects
+Your node will automatically _use_ public relays from the network if it detects
 that it cannot be reached from the public internet (e.g., it's behind a
 firewall). This is likely the feature you're looking for.
 
-If you enable `EnableAutoRelay`, you should almost certainly disable
-`EnableRelayHop`.
-
-#### Mode 2: `EnableRelayHop` is `true`
-
-If `EnableAutoRelay` is enabled and `EnableRelayHop` is enabled, your node will
-_act_ as a public relay for the network. Furthermore, in addition to simply
-relaying traffic, your node will advertise itself as a public relay. Unless you
-have the bandwidth of a small ISP, do not enable both of these options at the
-same time.
 
 ### `Swarm.EnableAutoNATService`
 
