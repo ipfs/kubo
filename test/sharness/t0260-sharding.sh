@@ -31,18 +31,21 @@ test_expect_success "set up test data" '
 '
 # CID of big_dir/ which will be sharded.
 SHARDED="QmUj4SSHNz27z9t6DtZJiR56r17BWqwMrWCzBcR6hF2bq1"
+# CID of big_dir/ once we remove half its entries and trigger a switch
+# back to a basic directory (un-sharding).
+UNSHAREDED="QmUj4SSHNz27z9t6DtZJiR56r17BWqwMrWCzBcR6hF2bq1"
 # CID of small_dir/ which will *not* be sharded.
-UNSHARDED="QmdBXmm4HRpUhyzzctbFvi2tLai3XFL1YjmE1qfpJe61NX"
+NOT_SHARDED="QmdBXmm4HRpUhyzzctbFvi2tLai3XFL1YjmE1qfpJe61NX"
 
-test_add_large_dir() {
+test_add_dir_with_sharding_enabled() {
   exphash="$1"
   input_dir="$2"
-  test_expect_success "ipfs add on very large directory succeeds" '
+  test_expect_success "ipfs add directory (with sharding enabled) succeeds" '
     ipfs add -r -Q $input_dir > sharddir_out &&
     echo "$exphash" > sharddir_exp &&
     test_cmp sharddir_exp sharddir_out
   '
-  test_expect_success "ipfs get on very large directory succeeds" '
+  test_expect_success "ipfs add directory (with sharding enabled) succeeds matches expected hash" '
     ipfs get -o output_dir "$exphash" &&
     test_cmp $input_dir output_dir
     rm output_dir -r
@@ -51,19 +54,28 @@ test_add_large_dir() {
 
 test_init_ipfs
 
-test_add_large_dir "$SHARDED" big_dir
-test_add_large_dir "$UNSHARDED" small_dir
+test_add_dir_with_sharding_enabled "$SHARDED" big_dir
+test_add_dir_with_sharding_enabled "$NOT_SHARDED" small_dir
 
 test_launch_ipfs_daemon
 
-test_add_large_dir "$SHARDED" big_dir
-test_add_large_dir "$UNSHARDED" small_dir
+test_add_dir_with_sharding_enabled "$SHARDED" big_dir
+test_add_dir_with_sharding_enabled "$NOT_SHARDED" small_dir
 
 test_kill_ipfs_daemon
 
+test_expect_success "remove entries from big_dir/" '
+  for i in `seq 3000` # just to be sure
+  do
+    rm big_dir/`printf "file%06d" $i`
+  done
+'
+
+test_add_dir_with_sharding_enabled "$UNSHAREDED" big_dir
+
 test_expect_success "ipfs cat error output the same" '
   test_expect_code 1 ipfs cat "$SHARDED" 2> sharded_err &&
-  test_expect_code 1 ipfs cat "$UNSHARDED" 2> unsharded_err &&
+  test_expect_code 1 ipfs cat "$NOT_SHARDED" 2> unsharded_err &&
   test_cmp sharded_err unsharded_err
 '
 
@@ -71,7 +83,7 @@ test_expect_success "'ipfs ls --resolve-type=false --size=false' admits missing 
   ipfs ls "$SHARDED" | head -1 > first_file &&
   ipfs ls --size=false "$SHARDED" | sort > sharded_out_nosize &&
   read -r HASH _ NAME <first_file &&
-  ipfs pin rm "$SHARDED" "$UNSHARDED" && # To allow us to remove the block
+  ipfs pin rm "$SHARDED" "$NOT_SHARDED" && # To allow us to remove the block
   ipfs block rm "$HASH" &&
   test_expect_code 1 ipfs cat "$SHARDED/$NAME" &&
   test_expect_code 1 ipfs ls "$SHARDED" &&
@@ -95,7 +107,7 @@ test_expect_success "'ipfs resolve' can resolve sharded dirs" '
 
 test_kill_ipfs_daemon
 
-test_add_large_dir_v1() {
+test_add_dir_with_sharding_enabled_v1() {
   exphash="$1"
   input_dir="$2"
   test_expect_success "ipfs add (CIDv1) on very large directory succeeds" '
@@ -105,18 +117,18 @@ test_add_large_dir_v1() {
   '
 
   test_expect_success "can access a path under the dir" '
-    ipfs cat "$exphash/file000020" > file20_out &&
-    test_cmp "$input_dir/file000020" file20_out
+    ipfs cat "$exphash/file003020" > file3020_out &&
+    test_cmp "$input_dir/file003020" file3020_out
   '
 }
 
 # this hash implies the directory is CIDv1 and leaf entries are CIDv1 and raw
 SHARDEDV1="bafybeie2tnyhaxbwkkzc44otilntecf55gvmnmnasjsppju7t6swhiw54e"
-test_add_large_dir_v1 "$SHARDEDV1" big_dir
+test_add_dir_with_sharding_enabled_v1 "$SHARDEDV1" big_dir
 
 test_launch_ipfs_daemon
 
-test_add_large_dir_v1 "$SHARDEDV1" big_dir
+test_add_dir_with_sharding_enabled_v1 "$SHARDEDV1" big_dir
 
 test_kill_ipfs_daemon
 
