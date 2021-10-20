@@ -377,8 +377,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	pubsub = pubsub || cfg.Pubsub.Enabled
-	ipnsps = ipnsps || cfg.Pubsub.Namesys.Enabled
+	if cfg.Pubsub.Enabled.WithDefault(false) {
+		pubsub = true
+	}
+	if cfg.Ipns.UsePubsub.WithDefault(false) {
+		ipnsps = true
+	}
 
 	// Start assembling node config
 	ncfg := &core.BuildCfg{
