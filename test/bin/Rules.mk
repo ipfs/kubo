@@ -83,6 +83,11 @@ $(d)/golangci-lint: github.com/golangci/golangci-lint/cmd/golangci-lint
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/golangci-lint
 
+.PHONY: github.com/guseggert/glibc-check/cmd/glibc-check
+$(d)/glibc-check: github.com/guseggert/glibc-check/cmd/glibc-check
+	$(go-build-testdep)
+TGTS_$(d) += $(d)/glibc-check
+
 $(TGTS_$(d)): $$(DEPS_GO)
 
 CLEAN += $(TGTS_$(d))

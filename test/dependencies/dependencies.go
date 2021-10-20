@@ -11,4 +11,5 @@ import (
 	_ "github.com/jbenet/go-random/random"
 	_ "github.com/multiformats/go-multihash/multihash"
 	_ "gotest.tools/gotestsum"
+	_ "github.com/guseggert/glibc-check"
 )
