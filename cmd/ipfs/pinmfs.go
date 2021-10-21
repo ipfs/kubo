@@ -200,7 +200,6 @@ func pinMFS(
 	svcConfig config.RemotePinningService,
 	repinInterval time.Duration) (lastPin, error) {
 	c := pinclient.NewClient(svcConfig.API.Endpoint, svcConfig.API.Key)
-	log.Errorf("pinclient Typ eis  is : %T", c)
 	pinName := svcConfig.Policies.MFS.PinName
 	if pinName == "" {
 		pinName = fmt.Sprintf("policy/%s/mfs", node.Identity().String())
@@ -213,7 +212,6 @@ func pinMFS(
 	pinning := false        // is CID for current MFS already being pinned?
 	pinTime := time.Now().UTC()
 	pinStatusMsg := "pinning to %q: received pre-existing %q status for %q (requestid=%q)"
-	//log.Errorf("PS Typ eis  is : %T %d", lsPinCh, len(lsPinCh))
 	for ps := range lsPinCh {
 		log.Errorf("PS Typ eis  is : %T", ps)
 		existingRequestID = ps.GetRequestId()
@@ -276,8 +274,7 @@ func pinMFS(
 }
 
 func checkPinStatus(ctx context.Context, node pinMFSNode, svcName string, svcConfig config.RemotePinningService, ps pinclient.PinStatusGetter,
-						repinInterval time.Duration) {
-							
+						repinInterval time.Duration) {							
 	result := make(chan int)
 	fmt.Println("Repinterval starts counting ...")
 	go func() {
