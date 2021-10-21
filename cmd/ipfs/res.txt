@@ -1,0 +1,25 @@
+Initializing daemon...
+go-ipfs version: 0.11.0-dev-3ae4af826-dirty
+Repo version: 11
+System version: amd64/linux
+Golang version: go1.16.2
+Swarm listening on /ip4/127.0.0.1/tcp/4001
+Swarm listening on /ip4/127.0.0.1/udp/4001/quic
+Swarm listening on /ip4/192.168.17.144/tcp/4001
+Swarm listening on /ip4/192.168.17.144/udp/4001/quic
+Swarm listening on /ip6/::1/tcp/4001
+Swarm listening on /ip6/::1/udp/4001/quic
+Swarm listening on /p2p-circuit
+Swarm announcing /ip4/127.0.0.1/tcp/4001
+Swarm announcing /ip4/127.0.0.1/udp/4001/quic
+Swarm announcing /ip4/192.168.17.144/tcp/4001
+Swarm announcing /ip4/192.168.17.144/udp/4001/quic
+Swarm announcing /ip6/::1/tcp/4001
+Swarm announcing /ip6/::1/udp/4001/quic
+API server listening on /ip4/127.0.0.1/tcp/5001
+WebUI: http://127.0.0.1:5001/webui
+Gateway (readonly) server listening on /ip4/127.0.0.1/tcp/8080
+Daemon is ready
+
+Received interrupt signal, shutting down...
+(Hit ctrl-c again to force-shutdown the daemon.)
