@@ -386,6 +386,8 @@ github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d/go.mod
 github.com/ipfs/bbloom v0.0.1/go.mod h1:oqo8CVWsJFMOZqTglBG4wydCE4IQA/G2/SEofB0rjUI=
 github.com/ipfs/bbloom v0.0.4 h1:Gi+8EGJ2y5qiD5FbsbpX/TMNcJw8gSqr7eyjHa4Fhvs=
 github.com/ipfs/bbloom v0.0.4/go.mod h1:cS9YprKXpoZ9lT0n/Mw/a6/aFV6DTjTLYHeA+gyqMG0=
+github.com/ipfs/go-bitfield v1.0.0 h1:y/XHm2GEmD9wKngheWNNCNL0pzrWXZwCdQGv1ikXknQ=
+github.com/ipfs/go-bitfield v1.0.0/go.mod h1:N/UiujQy+K+ceU1EF5EkVd1TNqevLrCQMIcAEPrdtus=
 github.com/ipfs/go-bitswap v0.0.9/go.mod h1:kAPf5qgn2W2DrgAcscZ3HrM9qh4pH+X8Fkk3UPrwvis=
 github.com/ipfs/go-bitswap v0.1.0/go.mod h1:FFJEf18E9izuCqUtHxbWEvq+reg7o4CW5wSAE1wsxj0=
 github.com/ipfs/go-bitswap v0.1.2/go.mod h1:qxSWS4NXGs7jQ6zQvoPY3+NmOfHHG47mhkiLzBpJQIs=
@@ -540,8 +542,8 @@ github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fG
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZaGVF1CUVdE+s=
 github.com/ipfs/go-metrics-prometheus v0.0.2/go.mod h1:ELLU99AQQNi+zX6GCGm2lAgnzdSH3u5UVlCdqSXnEks=
-github.com/ipfs/go-mfs v0.1.3-0.20210507195338-96fbfa122164 h1:0ATu9s5KktHhm8aYRSe1ysOJPik3dRwU/uag1Bcz+tg=
-github.com/ipfs/go-mfs v0.1.3-0.20210507195338-96fbfa122164/go.mod h1:A525zyeY2o078AoxhjJirOlDTXI1GnZxiYQnESGJ9WU=
+github.com/ipfs/go-mfs v0.1.3-0.20211022172037-3e82e1e60d6c h1:abIhXTK5Nj2E+bUSTOXH4HykCU+U6Vi4k9Uhnzc5HSc=
+github.com/ipfs/go-mfs v0.1.3-0.20211022172037-3e82e1e60d6c/go.mod h1:xDArQRVSrt4Zy9puzsSJAfWoEzDVCpXV0G1ah0kJcxQ=
 github.com/ipfs/go-namesys v0.3.1 h1:DqmeXlVODejOyECAqoqhSB5JGRv8aRFhtG0oPDmxsMc=
 github.com/ipfs/go-namesys v0.3.1/go.mod h1:/BL4xk8LP5Lq82AmaRKyxZv/eYRlumNiU9SZUe1Hlps=
 github.com/ipfs/go-path v0.0.7/go.mod h1:6KTKmeRnBXgqrTvzFrPV3CamxcgvXX/4z79tfAd2Sno=
@@ -558,9 +560,8 @@ github.com/ipfs/go-peertaskqueue v0.4.0/go.mod h1:KL9F49hXJMoXCad8e5anivjN+kWdr+
 github.com/ipfs/go-pinning-service-http-client v0.1.0 h1:Au0P4NglL5JfzhNSZHlZ1qra+IcJyO3RWMd9EYCwqSY=
 github.com/ipfs/go-pinning-service-http-client v0.1.0/go.mod h1:tcCKmlkWWH9JUUkKs8CrOZBanacNc1dmKLfjlyXAMu4=
 github.com/ipfs/go-unixfs v0.2.4/go.mod h1:SUdisfUjNoSDzzhGVxvCL9QO/nKdwXdr+gbMUdqcbYw=
-github.com/ipfs/go-unixfs v0.2.6/go.mod h1:GTTzQvaZsTZARdNkkdjDKFFnBhmO3e5mIM1PkH/x4p0=
-github.com/ipfs/go-unixfs v0.2.7-0.20210519135750-3befc7e347fa h1:b2JM6ADtCk9+DgUmhwR15oxQSnyEucqNssy6GRfm+J4=
-github.com/ipfs/go-unixfs v0.2.7-0.20210519135750-3befc7e347fa/go.mod h1:GTTzQvaZsTZARdNkkdjDKFFnBhmO3e5mIM1PkH/x4p0=
+github.com/ipfs/go-unixfs v0.2.7-0.20211022171058-f7a8e99934ab h1:KvRvkoYP9PZRrw3v09PGwibhb0m353la1HvGJaRDK38=
+github.com/ipfs/go-unixfs v0.2.7-0.20211022171058-f7a8e99934ab/go.mod h1:4P7unwkBeL3rhfluLhnVKc+OXmFXlcJRfdgv7U1G/qA=
 github.com/ipfs/go-unixfsnode v1.1.2/go.mod h1:5dcE2x03pyjHk4JjamXmunTMzz+VUtqvPwZjIEkfV6s=
 github.com/ipfs/go-unixfsnode v1.1.3 h1:IyqJBGIEvcHvll1wDDVIHOEVXnE+IH6tjzTWpZ6kGiI=
 github.com/ipfs/go-unixfsnode v1.1.3/go.mod h1:ZZxUM5wXBC+G0Co9FjrYTOm+UlhZTjxLfRYdWY9veZ4=
