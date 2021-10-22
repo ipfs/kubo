@@ -18,7 +18,7 @@ test_description="Test directory sharding"
 # codifications as IPFS directories.
 test_expect_success "set up test data" '
   mkdir big_dir
-  for i in `seq 6500` # just to be sure
+  for i in `seq 5960` # Just above the number of entries that trigger sharding for 256KiB
   do
     echo $i > big_dir/`printf "file%06d" $i` # fixed length of 10 chars
   done
@@ -33,7 +33,7 @@ test_expect_success "set up test data" '
 SHARDED="QmUj4SSHNz27z9t6DtZJiR56r17BWqwMrWCzBcR6hF2bq1"
 # CID of big_dir/ once we remove half its entries and trigger a switch
 # back to a basic directory (un-sharding).
-UNSHAREDED="QmUj4SSHNz27z9t6DtZJiR56r17BWqwMrWCzBcR6hF2bq1"
+UNSHAREDED="QmbvMyr8D2GDwuBkyJhbVWkrrVaJfFQhwUKFYqWnhkEiwg"
 # CID of small_dir/ which will *not* be sharded.
 NOT_SHARDED="QmdBXmm4HRpUhyzzctbFvi2tLai3XFL1YjmE1qfpJe61NX"
 
@@ -64,8 +64,8 @@ test_add_dir_with_sharding_enabled "$NOT_SHARDED" small_dir
 
 test_kill_ipfs_daemon
 
-test_expect_success "remove entries from big_dir/" '
-  for i in `seq 3000` # just to be sure
+test_expect_success "remove a few entries from big_dir/" '
+  for i in `seq 5` # just to be sure
   do
     rm big_dir/`printf "file%06d" $i`
   done
