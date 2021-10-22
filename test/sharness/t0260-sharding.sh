@@ -30,10 +30,10 @@ test_expect_success "set up test data" '
   done
 '
 # CID of big_dir/ which will be sharded.
-SHARDED="QmUj4SSHNz27z9t6DtZJiR56r17BWqwMrWCzBcR6hF2bq1"
+SHARDED="QmWfjnRWRvdvYezQWnfbvrvY7JjrpevsE9cato1x76UqGr"
 # CID of big_dir/ once we remove half its entries and trigger a switch
 # back to a basic directory (un-sharding).
-UNSHAREDED="QmbvMyr8D2GDwuBkyJhbVWkrrVaJfFQhwUKFYqWnhkEiwg"
+UNSHAREDED="QmbVxi5zDdzytrjdufUejM92JsWj8wGVmukk6tiPce3p1m"
 # CID of small_dir/ which will *not* be sharded.
 NOT_SHARDED="QmdBXmm4HRpUhyzzctbFvi2tLai3XFL1YjmE1qfpJe61NX"
 
@@ -64,14 +64,16 @@ test_add_dir_with_sharding_enabled "$NOT_SHARDED" small_dir
 
 test_kill_ipfs_daemon
 
-test_expect_success "remove a few entries from big_dir/" '
-  for i in `seq 5` # just to be sure
+test_expect_success "remove a few entries from big_dir/ to trigger unsharding" '
+  ipfs files cp /ipfs/$SHARDED /big_dir &&
+  for i in `seq 5`
   do
-    rm big_dir/`printf "file%06d" $i`
-  done
+    ipfs files rm /big_dir/`printf "file%06d" $i`
+  done &&
+  ipfs files stat --hash /big_dir > unshard_dir_hash &&
+  echo "$UNSHAREDED" > unshard_exp &&
+  test_cmp unshard_exp unshard_dir_hash
 '
-
-test_add_dir_with_sharding_enabled "$UNSHAREDED" big_dir
 
 test_expect_success "ipfs cat error output the same" '
   test_expect_code 1 ipfs cat "$SHARDED" 2> sharded_err &&
