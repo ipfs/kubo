@@ -276,12 +276,10 @@ func pinMFS(
 func checkPinStatus(ctx context.Context, node pinMFSNode, svcName string, svcConfig config.RemotePinningService, ps pinclient.PinStatusGetter,
 						repinInterval time.Duration) {							
 	result := make(chan int)
-	fmt.Println("Repinterval starts counting ...")
 	go func() {
 		for { 
 			if ps.GetStatus() != pinclient.StatusFailed && ps.GetStatus() != pinclient.StatusPinned {
 				time.Sleep(repinInterval)			
-				fmt.Println("Chking ...")
 			} else {
 				break
 			}		
