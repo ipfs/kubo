@@ -218,14 +218,15 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.Unixf
 
 func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
 	if linkres.Err != nil {
-		return coreiface.DirEntry{Err: linkres.Err}
+		return coreiface.DirEntry{
+			Err:  linkres.Err,
+		}
 	}
 
 	lnk := coreiface.DirEntry{
 		Name: linkres.Link.Name,
 		Cid:  linkres.Link.Cid,
 	}
-
 	switch lnk.Cid.Type() {
 	case cid.Raw:
 		// No need to check with raw leaves
