@@ -125,7 +125,7 @@ test_add_dir_with_sharding_enabled_v1() {
 }
 
 # this hash implies the directory is CIDv1 and leaf entries are CIDv1 and raw
-SHARDEDV1="bafybeie2tnyhaxbwkkzc44otilntecf55gvmnmnasjsppju7t6swhiw54e"
+SHARDEDV1="bafybeiglv7wdwjqaqxjs4nk3uo4vvldhmmod5vkinvgwihyrv6bdzuzbbm"
 test_add_dir_with_sharding_enabled_v1 "$SHARDEDV1" big_dir
 
 test_launch_ipfs_daemon
