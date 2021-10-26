@@ -115,11 +115,11 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// Warn about a deprecated option.
 	//nolint
 	if cfg.Swarm.DisableRelay {
-		logger.Error("The `Swarm.DisableRelay' config field is deprecated.")
+		logger.Error("The 'Swarm.DisableRelay' config field is deprecated.")
 		if enableRelayTransport {
-			logger.Error("`Swarm.DisableRelay' has been overridden by `Swarm.Transports.Network.RelayTransport'")
+			logger.Error("'Swarm.DisableRelay' has been overridden by 'Swarm.Transports.Network.Relay'")
 		} else {
-			logger.Error("Use the `Swarm.Transports.Network.RelayTransport' config field instead")
+			logger.Error("Use the 'Swarm.Transports.Network.Relay' config field instead")
 		}
 	}
 
