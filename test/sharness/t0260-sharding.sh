@@ -117,4 +117,24 @@ test_add_large_dir_v1 "$SHARDEDV1"
 
 test_kill_ipfs_daemon
 
+test_list_incomplete_dir() {
+  test_expect_success "ipfs add (CIDv1) on very large directory with sha3 succeeds" '
+    ipfs add -r -q --cid-version=1 --hash=sha3-256 --pin=false testdata | tail -n1 > sharddir_out &&
+    largeSHA3dir=$(cat sharddir_out)
+  '
+
+  test_expect_success "delete intermediate node from DAG" '
+    ipfs block rm "/ipld/$largeSHA3dir/Links/0/Hash"
+  '
+
+  test_expect_success "can list part of the directory" '
+    ipfs ls "$largeSHA3dir" 2> ls_err_out
+    echo "Error: merkledag: not found" > exp_err_out &&
+    cat ls_err_out &&
+    test_cmp exp_err_out ls_err_out
+  '
+}
+
+test_list_incomplete_dir
+
 test_done
