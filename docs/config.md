@@ -100,21 +100,19 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.DisableRelay`](#swarmdisablerelay)
-    - [`Swarm.DisableRelayService`](#swarmdisablerelayservice)
-    - [`Swarm.RelayServiceOpts`](#swarmrelayserviceopts)
-      - [`Swarm.RelayServiceOpts.Limit`](#swarmrelayserviceoptslimit)
-        - [`Swarm.RelayServiceOpts.Limit.Duration`](#swarmrelayserviceoptslimitduration)
-        - [`Swarm.RelayServiceOpts.Limit.Data`](#swarmrelayserviceoptslimitdata)
-      - [`Swarm.RelayServiceOpts.ReservationTTL`](#swarmrelayserviceoptsreservationttl)
-      - [`Swarm.RelayServiceOpts.MaxReservations`](#swarmrelayserviceoptsmaxreservations)
-      - [`Swarm.RelayServiceOpts.MaxCircuits`](#swarmrelayserviceoptsmaxcircuits)
-      - [`Swarm.RelayServiceOpts.BufferSize`](#swarmrelayserviceoptsbuffersize)
-      - [`Swarm.RelayServiceOpts.MaxReservationsPerPeer`](#swarmrelayserviceoptsmaxreservationsperpeer)
-      - [`Swarm.RelayServiceOpts.MaxReservationsPerIP`](#swarmrelayserviceoptsmaxreservationsperip)
-      - [`Swarm.RelayServiceOpts.MaxReservationsPerASN`](#swarmrelayserviceoptsmaxreservationsperasn)
+    - [`Swarm.RelayService`](#swarmrelayservice)
+      - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled)
+      - [`Swarm.RelayService.Limit`](#swarmrelayservicelimit)
+        - [`Swarm.RelayService.Limit.Duration`](#swarmrelayservicelimitduration)
+        - [`Swarm.RelayService.Limit.Data`](#swarmrelayservicelimitdata)
+      - [`Swarm.RelayService.ReservationTTL`](#swarmrelayservicereservationttl)
+      - [`Swarm.RelayService.MaxReservations`](#swarmrelayservicemaxreservations)
+      - [`Swarm.RelayService.MaxCircuits`](#swarmrelayservicemaxcircuits)
+      - [`Swarm.RelayService.BufferSize`](#swarmrelayservicebuffersize)
+      - [`Swarm.RelayService.MaxReservationsPerPeer`](#swarmrelayservicemaxreservationsperpeer)
+      - [`Swarm.RelayService.MaxReservationsPerIP`](#swarmrelayservicemaxreservationsperip)
+      - [`Swarm.RelayService.MaxReservationsPerASN`](#swarmrelayservicemaxreservationsperasn)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
-      - [Mode 1: `EnableRelayHop` is `false`](#mode-1-enablerelayhop-is-false)
-      - [Mode 2: `EnableRelayHop` is `true`](#mode-2-enablerelayhop-is-true)
     - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
       - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
@@ -1291,16 +1289,7 @@ Default: `false`
 
 Type: `bool`
 
-### `Swarm.DisableRelayService`
-
-Disables the p2p-circuit v2 relay service. This will prevent this node from
-running as a relay server.
-
-Default: `false`
-
-Type: `bool`
-
-### `Swarm.RelayServiceOpts`
+### `Swarm.RelayService`
 
 Configuration options for the relay service.
 
@@ -1308,7 +1297,16 @@ Default: `{}`
 
 Type: `object`
 
-#### `Swarm.RelayServiceOpts.Limit`
+### `Swarm.RelayService.Enabled`
+
+Enables the p2p-circuit v2 relay service. Disabling this will prevent this node
+from running as a relay server.
+
+Default: Enabled
+
+Type: `flag`
+
+#### `Swarm.RelayService.Limit`
 
 Limits applied to every relayed connection.
 
@@ -1316,86 +1314,83 @@ Default: `{}`
 
 Type: `object[string -> string]`
 
-##### `Swarm.RelayServiceOpts.Limit.Duration`
+##### `Swarm.RelayService.Limit.Duration`
 
 Time limit before a relayed connection is reset.
 
 Default: `"2m"`
 
-Type: `string`
+Type: `duration`
 
-
-##### `Swarm.RelayServiceOpts.Limit.Data`
+##### `Swarm.RelayService.Limit.Data`
 
 Limit of data relayed (in each direction) before a relayed connection is reset.
 
 Default: `131072` (128 kb)
 
-Type: `integer`
+Type: `optionalInteger`
 
 
-#### `Swarm.RelayServiceOpts.ReservationTTL`
+#### `Swarm.RelayService.ReservationTTL`
 
 Duration of a new or refreshed reservation. 
 
 Default: `"1h"`
 
-Type: `string`
+Type: `duration`
 
 
-#### `Swarm.RelayServiceOpts.MaxReservations`
+#### `Swarm.RelayService.MaxReservations`
 
 Maximum number of active relay slots.
 
 Default: `128`
 
-Type: `integer`
+Type: `optionalInteger`
 
 
-#### `Swarm.RelayServiceOpts.MaxReservations`
+#### `Swarm.RelayService.MaxReservations`
 
 Maximum number of open relay connections for each peer.
 
 Default: `16`
 
-Type: `integer`
+Type: `optionalInteger`
 
 
-#### `Swarm.RelayServiceOpts.BufferSize`
+#### `Swarm.RelayService.BufferSize`
 
 Size of the relayed connection buffers.
 
 Default: `2048`
 
-Type: `integer`
+Type: `optionalInteger`
 
 
-#### `Swarm.RelayServiceOpts.MaxReservationsPerPeer`
+#### `Swarm.RelayService.MaxReservationsPerPeer`
 
 Maximum number of reservations originating from the same peer.
 
 Default: `4`
 
-Type: `integer`
+Type: `optionalInteger`
 
 
-#### `Swarm.RelayServiceOpts.MaxReservationsPerIP`
+#### `Swarm.RelayService.MaxReservationsPerIP`
 
 Maximum number of reservations originating from the same IP.
 
 Default: `8`
 
-Type: `integer`
+Type: `optionalInteger`
 
-
-#### `Swarm.RelayServiceOpts.MaxReservationsPerASN`
+#### `Swarm.RelayService.MaxReservationsPerASN`
 
 Maximum number of reservations originating from the same ASN.
 
 Default: `32`
 
-Type: `integer`
-
+Type: `optionalInteger`
 
 ### `Swarm.EnableRelayHop`
 
@@ -1403,21 +1398,24 @@ Type: `integer`
 
 Please use [`Swarm.DisableRelayService`][].
 
-
 ### `Swarm.EnableAutoRelay`
 
-Enables "automatic relay" mode for this node. This option does two _very_
-different things based on the `Swarm.EnableRelayHop`. See
-[#7228](https://github.com/ipfs/go-ipfs/issues/7228) for context.
-
-Default: `false`
-
-Type: `bool`
+Enables "automatic relay" mode for this node.
 
 Your node will automatically _use_ public relays from the network if it detects
 that it cannot be reached from the public internet (e.g., it's behind a
 firewall). This is likely the feature you're looking for.
 
+See also:
+
+- [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay) to control
+  relay transport (as a client)
+- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) to control if your
+  node should act as a limited relay when possible
+
+Default: `false`
+
+Type: `bool`
 
 ### `Swarm.EnableAutoNATService`
 
