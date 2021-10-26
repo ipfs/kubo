@@ -105,7 +105,11 @@ jobs:
         when: always
         command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
     - run:
-        command: go test -v ./...
+        command: |
+          current=$(git rev-parse HEAD)
+          go get github.com/ipfs/go-ipfs@$current
+          go mod tidy
+          go test -v ./...
         working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
 
     - run:
