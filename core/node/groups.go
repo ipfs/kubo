@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"time"
 
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
@@ -317,7 +318,12 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	}
 
 	// TEMP: setting global sharding switch here
-	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
+	shardSizeString := cfg.Internal.UnixFSShardingSizeThreshold.WithDefault("256kiB")
+	shardSizeInt, err := humanize.ParseBytes(shardSizeString)
+	if err != nil {
+		return fx.Error(err)
+	}
+	uio.HAMTShardingSize = int(shardSizeInt)
 
 	return fx.Options(
 		bcfgOpts,
