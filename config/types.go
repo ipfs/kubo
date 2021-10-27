@@ -1,9 +1,9 @@
 package config
 
 import (
-	"encoding"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -211,27 +211,56 @@ func (p Priority) String() string {
 var _ json.Unmarshaler = (*Priority)(nil)
 var _ json.Marshaler = (*Priority)(nil)
 
-// Duration wraps time.Duration to provide json serialization and deserialization.
+// OptionalDuration wraps time.Duration to provide json serialization and deserialization.
 //
-// NOTE: the zero value encodes to an empty string.
-type Duration time.Duration
-
-func (d *Duration) UnmarshalText(text []byte) error {
-	dur, err := time.ParseDuration(string(text))
-	*d = Duration(dur)
-	return err
+// NOTE: the zero value encodes to JSON nill
+type OptionalDuration struct {
+	value *time.Duration
 }
 
-func (d Duration) MarshalText() ([]byte, error) {
-	return []byte(time.Duration(d).String()), nil
+func (d *OptionalDuration) UnmarshalJSON(input []byte) error {
+	switch string(input) {
+	case "null", "undefined", "\"null\"", "", "default", "\"\"", "\"default\"":
+		*d = OptionalDuration{}
+		return nil
+	default:
+		text := strings.Trim(string(input), "\"")
+		value, err := time.ParseDuration(text)
+		if err != nil {
+			return err
+		}
+		*d = OptionalDuration{value: &value}
+		return nil
+	}
 }
 
-func (d Duration) String() string {
-	return time.Duration(d).String()
+func (d *OptionalDuration) IsDefault() bool {
+	return d == nil || d.value == nil
 }
 
-var _ encoding.TextUnmarshaler = (*Duration)(nil)
-var _ encoding.TextMarshaler = (*Duration)(nil)
+func (d *OptionalDuration) WithDefault(defaultValue time.Duration) time.Duration {
+	if d == nil || d.value == nil {
+		return defaultValue
+	}
+	return *d.value
+}
+
+func (d OptionalDuration) MarshalJSON() ([]byte, error) {
+	if d.value == nil {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(d.value.String())
+}
+
+func (d OptionalDuration) String() string {
+	if d.value == nil {
+		return "default"
+	}
+	return d.value.String()
+}
+
+var _ json.Unmarshaler = (*OptionalDuration)(nil)
+var _ json.Marshaler = (*OptionalDuration)(nil)
 
 // OptionalInteger represents an integer that has a default value
 //
