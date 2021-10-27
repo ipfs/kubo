@@ -845,7 +845,7 @@ tests_for_files_api "with-daemon"
 test_kill_ipfs_daemon
 
 test_expect_success "enable sharding in config" '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold "1B"
+  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
 '
 
 test_launch_ipfs_daemon_without_network
