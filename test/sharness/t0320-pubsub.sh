@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-test_description="Test dht command"
+test_description="Test pubsub command"
 
 . lib/test-lib.sh
 
@@ -96,7 +96,23 @@ run_pubsub_tests() {
 
 }
 
-# Normal tests
+# Normal tests - enabled via config
+
+test_expect_success 'enable the pubsub' '
+  iptb run -- ipfs config --json Pubsub.Enabled true
+'
+
+startup_cluster $NUM_NODES
+run_pubsub_tests
+test_expect_success 'stop iptb' '
+  iptb stop
+'
+
+test_expect_success 'disable the pubsub' '
+  iptb run -- ipfs config --json Pubsub.Enabled false
+'
+
+# Normal tests - enabled via daemon option flag
 
 startup_cluster $NUM_NODES --enable-pubsub-experiment
 run_pubsub_tests
