@@ -24,13 +24,13 @@ func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2
 	return func() (opts Libp2pOpts, err error) {
 		if enable {
 			r := relay.DefaultResources()
-			if i := int64(relayOpts.Limit.Data.WithDefault(0)); i > 0 {
-				r.Limit.Data = i
-			}
-			/* TODO: swap when https://github.com/ipfs/go-ipfs-config/pull/148 lands
-			if i := int(relayOpts.Limit.Duration.WithDefault(0)); i > 0 { */
-			if i := int(relayOpts.Limit.Duration); i > 0 {
-				r.Limit.Duration = time.Duration(relayOpts.Limit.Duration)
+			if relayOpts.Limit != nil {
+				if i := int64(relayOpts.Limit.Data.WithDefault(0)); i > 0 {
+					r.Limit.Data = i
+				}
+				if i := int(relayOpts.Limit.Duration.WithDefault(0)); i > 0 {
+					r.Limit.Duration = time.Duration(i)
+				}
 			}
 			if i := int(relayOpts.MaxCircuits.WithDefault(0)); i > 0 {
 				r.MaxCircuits = i
@@ -38,10 +38,8 @@ func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2
 			if i := int(relayOpts.BufferSize.WithDefault(0)); i > 0 {
 				r.BufferSize = i
 			}
-			/* TODO: swap when https://github.com/ipfs/go-ipfs-config/pull/148 lands
-			if i := int(relayOpts.ReservationTTL.WithDefault(0)); i > 0 { */
-			if i := int(relayOpts.ReservationTTL); i > 0 {
-				r.ReservationTTL = time.Duration(relayOpts.ReservationTTL)
+			if i := int(relayOpts.ReservationTTL.WithDefault(0)); i > 0 {
+				r.ReservationTTL = time.Duration(i)
 			}
 			if i := int(relayOpts.MaxReservations.WithDefault(0)); i > 0 {
 				r.MaxReservations = i
