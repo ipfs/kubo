@@ -68,6 +68,7 @@ config file at runtime.
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+    - [`Ipns.UsePubsub`](#ipnsusepubsub)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
@@ -86,6 +87,7 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
   - [`Pubsub`](#pubsub)
+    - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
   - [`Peering`](#peering)
@@ -934,6 +936,15 @@ Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
 
+### `Ipns.UsePubsub`
+
+Enables IPFS over pubsub experiment for publishing IPNS records in real time.
+Read about current limitations at [experimental-features.md#ipfs-pubsub](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-pubsub).
+
+Default: `disabled`
+
+Type: `flag`
+
 ## `Migration`
 
 Migration configures how migrations are downloaded and if the downloads are added to IPFS locally.
@@ -1066,7 +1077,17 @@ Type: `duration`
 ## `Pubsub`
 
 Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
-passing the `--enable-pubsub-experiment` flag to the daemon.
+passing the `--enable-pubsub-experiment` flag to the daemon
+or via the `Pubsub.Enabled` flag below.
+
+### `Pubsub.Enabled`
+
+Enables the pubsub experiment.
+Read about current limitations at [experimental-features.md#ipfs-pubsub](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-pubsub).
+
+Default: `false`
+
+Type: `flag`
 
 ### `Pubsub.Router`
 
