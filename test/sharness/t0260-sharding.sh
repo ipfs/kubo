@@ -41,7 +41,7 @@ test_add_large_dir "$UNSHARDED"
 test_kill_ipfs_daemon
 
 test_expect_success "enable sharding" '
-  ipfs config --json Internal.UnixFSShardingSizeThreshold "1B"
+  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
 '
 
 SHARDED="QmSCJD1KYLhVVHqBK3YyXuoEqHt7vggyJhzoFYbT8v1XYL"
