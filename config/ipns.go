@@ -5,4 +5,7 @@ type Ipns struct {
 	RecordLifetime  string
 
 	ResolveCacheSize int
+
+	// Enable namesys pubsub (--enable-namesys-pubsub)
+	UsePubsub Flag `json:",omitempty"`
 }

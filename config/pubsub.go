@@ -8,4 +8,7 @@ type PubsubConfig struct {
 	// DisableSigning disables message signing. Message signing is *enabled*
 	// by default.
 	DisableSigning bool
+
+	// Enable pubsub (--enable-pubsub-experiment)
+	Enabled Flag `json:",omitempty"`
 }
