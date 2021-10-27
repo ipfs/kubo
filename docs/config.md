@@ -102,9 +102,8 @@ config file at runtime.
     - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.RelayService`](#swarmrelayservice)
       - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled)
-      - [`Swarm.RelayService.Limit`](#swarmrelayservicelimit)
-        - [`Swarm.RelayService.Limit.Duration`](#swarmrelayservicelimitduration)
-        - [`Swarm.RelayService.Limit.Data`](#swarmrelayservicelimitdata)
+      - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
+      - [`Swarm.RelayService.ConnectionDataLimit`](#swarmrelayserviceconnectiondatalimit)
       - [`Swarm.RelayService.ReservationTTL`](#swarmrelayservicereservationttl)
       - [`Swarm.RelayService.MaxReservations`](#swarmrelayservicemaxreservations)
       - [`Swarm.RelayService.MaxCircuits`](#swarmrelayservicemaxcircuits)
@@ -1314,7 +1313,7 @@ Default: `{}`
 
 Type: `object[string -> string]`
 
-##### `Swarm.RelayService.Limit.Duration`
+##### `Swarm.RelayService.ConnectionDurationLimit`
 
 Time limit before a relayed connection is reset.
 
@@ -1322,7 +1321,7 @@ Default: `"2m"`
 
 Type: `duration`
 
-##### `Swarm.RelayService.Limit.Data`
+##### `Swarm.RelayService.ConnectionDataLimit`
 
 Limit of data relayed (in each direction) before a relayed connection is reset.
 

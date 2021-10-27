@@ -24,13 +24,13 @@ func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2
 	return func() (opts Libp2pOpts, err error) {
 		if enable {
 			r := relay.DefaultResources()
-			if relayOpts.Limit != nil {
-				if i := int64(relayOpts.Limit.Data.WithDefault(0)); i > 0 {
-					r.Limit.Data = i
-				}
-				if i := int(relayOpts.Limit.Duration.WithDefault(0)); i > 0 {
-					r.Limit.Duration = time.Duration(i)
-				}
+			// Real defaults live in go-libp2p.
+			// Here we apply any overrides from user config.
+			if i := int64(relayOpts.ConnectionDataLimit.WithDefault(0)); i > 0 {
+				r.Limit.Data = i
+			}
+			if i := int(relayOpts.ConnectionDurationLimit.WithDefault(0)); i > 0 {
+				r.Limit.Duration = time.Duration(i)
 			}
 			if i := int(relayOpts.MaxCircuits.WithDefault(0)); i > 0 {
 				r.MaxCircuits = i
