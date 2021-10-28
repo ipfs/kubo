@@ -199,7 +199,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	escapedURLPath := r.URL.EscapedPath()
 
 	logger := log.With("from", r.URL)
-	logger.Debugw("http request received")
+	logger.Debug("http request received")
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
@@ -412,7 +412,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// type instead of relying on autodetection (which may fail).
 	w.Header().Set("Content-Type", "text/html")
 	if r.Method == http.MethodHead {
-		logger.Debugw("return as request's HTTP method is HEAD")
+		logger.Debug("return as request's HTTP method is HEAD")
 		return
 	}
 
