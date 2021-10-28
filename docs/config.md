@@ -1290,7 +1290,10 @@ Type: `bool`
 
 ### `Swarm.RelayService`
 
-Configuration options for the relay service.
+Configuration options for the relay service that can be provided to _other_ peers
+on the network.
+- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
+- Specs: [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
 
 Default: `{}`
 
@@ -1298,8 +1301,11 @@ Type: `object`
 
 ### `Swarm.RelayService.Enabled`
 
-Enables the p2p-circuit v2 relay service. Disabling this will prevent this node
-from running as a relay server.
+Enables providing `/p2p-circuit` v2 relay service to other peers on the network.
+
+NOTE: This is the service/server part of the relay system.
+Disabling this will prevent this node from running as a relay server.
+Use [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for turning your node into a relay user.
 
 Default: Enabled
 
@@ -1399,18 +1405,16 @@ Please use [`Swarm.DisableRelayService`][].
 
 ### `Swarm.EnableAutoRelay`
 
-Enables "automatic relay" mode for this node.
+Enables "automatic relay user" mode for this node.
 
 Your node will automatically _use_ public relays from the network if it detects
 that it cannot be reached from the public internet (e.g., it's behind a
-firewall). This is likely the feature you're looking for.
+firewall) and get a `/p2p-circuit` address from a public relay.
+This is likely the feature you're looking for.
 
 See also:
-
-- [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay) to control
-  relay transport (as a client)
-- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) to control if your
-  node should act as a limited relay when possible
+- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
+- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
 
 Default: `false`
 
@@ -1566,8 +1570,18 @@ Listen Addresses:
 #### `Swarm.Transports.Network.Relay`
 
 [Libp2p Relay](https://github.com/libp2p/specs/tree/master/relay) proxy
-transport that forms connections by hopping between multiple libp2p nodes. This
-transport is primarily useful for bypassing firewalls and NATs.
+transport that forms connections by hopping between multiple libp2p nodes.
+Allows IPFS node to connect to other peers using their `/p2p-circuit`
+multiaddrs.  This transport is primarily useful for bypassing firewalls and
+NATs.
+
+See also:
+- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
+- Specs: [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
+- [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for getting a public
+  `/p2p-circuit` address when behind a firewall.
+- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) for becoming a
+  limited relay for other peers
 
 Default: Enabled
 
