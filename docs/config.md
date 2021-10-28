@@ -99,7 +99,7 @@ config file at runtime.
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
-    - [`Swarm.DisableRelay`](#swarmdisablerelay)
+    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
     - [`Swarm.RelayService`](#swarmrelayservice)
       - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled)
       - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
@@ -111,7 +111,7 @@ config file at runtime.
       - [`Swarm.RelayService.MaxReservationsPerPeer`](#swarmrelayservicemaxreservationsperpeer)
       - [`Swarm.RelayService.MaxReservationsPerIP`](#swarmrelayservicemaxreservationsperip)
       - [`Swarm.RelayService.MaxReservationsPerASN`](#swarmrelayservicemaxreservationsperasn)
-    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
+    - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
       - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
@@ -1276,13 +1276,18 @@ Default: `false`
 
 Type: `bool`
 
-### `Swarm.DisableRelay`
+### `Swarm.EnableAutoRelay`
 
-Deprecated: Set `Swarm.Transports.Network.Relay` to `false`.
+Enables "automatic relay user" mode for this node.
 
-Disables the p2p-circuit relay transport. This will prevent this node from
-connecting to nodes behind relays, or accepting connections from nodes behind
-relays.
+Your node will automatically _use_ public relays from the network if it detects
+that it cannot be reached from the public internet (e.g., it's behind a
+firewall) and get a `/p2p-circuit` address from a public relay.
+This is likely the feature you're looking for.
+
+See also:
+- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
+- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
 
 Default: `false`
 
@@ -1401,20 +1406,15 @@ Type: `optionalInteger`
 
 **REMOVED**
 
-Please use [`Swarm.DisableRelayService`][].
+Replaced with [`Swarm.RelayService.Enabled`][].
 
-### `Swarm.EnableAutoRelay`
+### `Swarm.DisableRelay`
 
-Enables "automatic relay user" mode for this node.
+Deprecated: Set `Swarm.Transports.Network.Relay` to `false`.
 
-Your node will automatically _use_ public relays from the network if it detects
-that it cannot be reached from the public internet (e.g., it's behind a
-firewall) and get a `/p2p-circuit` address from a public relay.
-This is likely the feature you're looking for.
-
-See also:
-- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
-- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
+Disables the p2p-circuit relay transport. This will prevent this node from
+connecting to nodes behind relays, or accepting connections from nodes behind
+relays.
 
 Default: `false`
 
