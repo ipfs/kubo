@@ -1283,9 +1283,8 @@ Enables "automatic relay user" mode for this node.
 Your node will automatically _use_ public relays from the network if it detects
 that it cannot be reached from the public internet (e.g., it's behind a
 firewall) and get a `/p2p-circuit` address from a public relay.
-This is likely the feature you're looking for.
 
-See also:
+This is likely the feature you're looking for, but see also:
 - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
 - Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
 
@@ -1296,15 +1295,13 @@ Type: `bool`
 ### `Swarm.RelayService`
 
 Configuration options for the relay service that can be provided to _other_ peers
-on the network.
-- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
-- Specs: [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
+on the network ([Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)).
 
 Default: `{}`
 
 Type: `object`
 
-### `Swarm.RelayService.Enabled`
+#### `Swarm.RelayService.Enabled`
 
 Enables providing `/p2p-circuit` v2 relay service to other peers on the network.
 
@@ -1406,7 +1403,7 @@ Type: `optionalInteger`
 
 **REMOVED**
 
-Replaced with [`Swarm.RelayService.Enabled`][].
+Replaced with [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled).
 
 ### `Swarm.DisableRelay`
 
@@ -1424,7 +1421,7 @@ Type: `bool`
 
 **REMOVED**
 
-Please use [`AutoNAT.ServiceMode`][].
+Please use [`AutoNAT.ServiceMode`][#autonatservicemode].
 
 ### `Swarm.ConnMgr`
 
@@ -1577,7 +1574,6 @@ NATs.
 
 See also:
 - Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
-- Specs: [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
 - [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for getting a public
   `/p2p-circuit` address when behind a firewall.
 - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) for becoming a
@@ -1587,9 +1583,9 @@ Default: Enabled
 
 Type: `flag`
 
-Listen Addresses: This transport is special. Any node that enables this
-transport can receive inbound connections on this transport, without specifying
-a listen address.
+Listen Addresses:
+* This transport is special. Any node that enables this transport can receive
+  inbound connections on this transport, without specifying a listen address.
 
 ### `Swarm.Transports.Security`
 
