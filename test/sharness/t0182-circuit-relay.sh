@@ -16,7 +16,7 @@ test_expect_success 'start up nodes for configuration' '
 '
 
 test_expect_success 'set ForceReachability to public relay node' '
-  ipfsi 1 config --json Internalxyz.Libp2pForceReachability "\"public\""
+  ipfsi 1 config Internal.Libp2pForceReachability public
 '
 
 test_expect_success 'restart nodes' '

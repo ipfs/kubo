@@ -85,7 +85,7 @@ func ForceReachability(val *config.OptionalString) func() (opts Libp2pOpts, err 
 		if val.IsDefault() {
 			return
 		}
-		v := val.WithDefault("unrecognized") // TODO: change to String() when https://github.com/ipfs/go-ipfs-config/pull/153 is merged
+		v := val.WithDefault("unrecognized")
 		switch v {
 		case "public":
 			opts.Opts = append(opts.Opts, libp2p.ForceReachabilityPublic())
