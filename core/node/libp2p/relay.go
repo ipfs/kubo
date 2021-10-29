@@ -1,8 +1,6 @@
 package libp2p
 
 import (
-	"time"
-
 	config "github.com/ipfs/go-ipfs-config"
 
 	"github.com/libp2p/go-libp2p"
@@ -23,37 +21,22 @@ func RelayTransport(enableRelay bool) func() (opts Libp2pOpts, err error) {
 func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
 		if enable {
-			r := relay.DefaultResources()
+			def := relay.DefaultResources()
 			// Real defaults live in go-libp2p.
 			// Here we apply any overrides from user config.
-			if i := int64(relayOpts.ConnectionDataLimit.WithDefault(0)); i > 0 {
-				r.Limit.Data = i
-			}
-			if i := int(relayOpts.ConnectionDurationLimit.WithDefault(0)); i > 0 {
-				r.Limit.Duration = time.Duration(i)
-			}
-			if i := int(relayOpts.MaxCircuits.WithDefault(0)); i > 0 {
-				r.MaxCircuits = i
-			}
-			if i := int(relayOpts.BufferSize.WithDefault(0)); i > 0 {
-				r.BufferSize = i
-			}
-			if i := int(relayOpts.ReservationTTL.WithDefault(0)); i > 0 {
-				r.ReservationTTL = time.Duration(i)
-			}
-			if i := int(relayOpts.MaxReservations.WithDefault(0)); i > 0 {
-				r.MaxReservations = i
-			}
-			if i := int(relayOpts.MaxReservationsPerIP.WithDefault(0)); i > 0 {
-				r.MaxReservationsPerIP = i
-			}
-			if i := int(relayOpts.MaxReservationsPerPeer.WithDefault(0)); i > 0 {
-				r.MaxReservationsPerPeer = i
-			}
-			if i := int(relayOpts.MaxReservationsPerASN.WithDefault(0)); i > 0 {
-				r.MaxReservationsPerASN = i
-			}
-			opts.Opts = append(opts.Opts, libp2p.EnableRelayService(relay.WithResources(r)))
+			opts.Opts = append(opts.Opts, libp2p.EnableRelayService(relay.WithResources(relay.Resources{
+				Limit: &relay.RelayLimit{
+					Data:     relayOpts.ConnectionDataLimit.WithDefault(def.Limit.Data),
+					Duration: relayOpts.ConnectionDurationLimit.WithDefault(def.Limit.Duration),
+				},
+				MaxCircuits:            int(relayOpts.MaxCircuits.WithDefault(int64(def.MaxCircuits))),
+				BufferSize:             int(relayOpts.BufferSize.WithDefault(int64(def.BufferSize))),
+				ReservationTTL:         relayOpts.ReservationTTL.WithDefault(def.ReservationTTL),
+				MaxReservations:        int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservations))),
+				MaxReservationsPerIP:   int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservationsPerIP))),
+				MaxReservationsPerPeer: int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservationsPerPeer))),
+				MaxReservationsPerASN:  int(relayOpts.MaxReservations.WithDefault(int64(def.MaxReservationsPerASN))),
+			})))
 		}
 		return
 	}
