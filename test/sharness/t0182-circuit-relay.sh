@@ -15,6 +15,10 @@ test_expect_success 'start up nodes for configuration' '
   iptb start -wait -- --routing=none
 '
 
+test_expect_success 'set ForceReachability to public relay node' '
+  ipfsi 1 config --json Internalxyz.Libp2pForceReachability "\"public\""
+'
+
 test_expect_success 'restart nodes' '
   iptb stop &&
   iptb_wait_stop &&

@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-connmgr"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -77,4 +78,22 @@ func prioritizeOptions(opts []priorityOption) libp2p.Option {
 		p2pOpts[i] = opt.opt
 	}
 	return libp2p.ChainOptions(p2pOpts...)
+}
+
+func ForceReachability(val *config.OptionalString) func() (opts Libp2pOpts, err error) {
+	return func() (opts Libp2pOpts, err error) {
+		if val.IsDefault() {
+			return
+		}
+		v := val.WithDefault("unrecognized") // TODO: change to String() when https://github.com/ipfs/go-ipfs-config/pull/153 is merged
+		switch v {
+		case "public":
+			opts.Opts = append(opts.Opts, libp2p.ForceReachabilityPublic())
+		case "private":
+			opts.Opts = append(opts.Opts, libp2p.ForceReachabilityPrivate())
+		default:
+			return opts, fmt.Errorf("unrecognized reachability option: %s", v)
+		}
+		return
+	}
 }
