@@ -12,7 +12,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-	namesys "github.com/ipfs/go-namesys"
+	namesys "github.com/ipfs/go-ipfs/lib/namesys"
 	"github.com/libp2p/go-libp2p-core/peer"
 	dns "github.com/miekg/dns"
 

@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ipfs/go-ipfs-util"
+	util "github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-ipns"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/routing"
-	"github.com/libp2p/go-libp2p-record"
+	record "github.com/libp2p/go-libp2p-record"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
+	"github.com/ipfs/go-ipfs/lib/namesys"
+	"github.com/ipfs/go-ipfs/lib/namesys/republisher"
 	"github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-namesys"
-	"github.com/ipfs/go-namesys/republisher"
 )
 
 const DefaultIpnsCacheSize = 128

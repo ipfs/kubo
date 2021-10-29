@@ -14,14 +14,14 @@ import (
 	"io"
 
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-pinner"
+	pin "github.com/ipfs/go-ipfs-pinner"
 
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-fetcher"
 	"github.com/ipfs/go-graphsync"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-ipfs-provider"
+	provider "github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	mfs "github.com/ipfs/go-mfs"
@@ -46,11 +46,11 @@ import (
 	"github.com/ipfs/go-ipfs/core/node"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/fuse/mount"
+	"github.com/ipfs/go-ipfs/lib/namesys"
+	ipnsrp "github.com/ipfs/go-ipfs/lib/namesys/republisher"
 	"github.com/ipfs/go-ipfs/p2p"
 	"github.com/ipfs/go-ipfs/peering"
 	"github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-namesys"
-	ipnsrp "github.com/ipfs/go-namesys/republisher"
 )
 
 var log = logging.Logger("core")
