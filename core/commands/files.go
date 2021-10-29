@@ -338,12 +338,12 @@ IPFS Content Identifier and then "ipfs files cp" to copy it into MFS:
 $ ipfs add --quieter --pin=false <your file>
 # ...
 # ... outputs the root CID at the end
-$ ipfs cp /ipfs/<CID> /your/desired/mfs/path
+$ ipfs files cp /ipfs/<CID> /your/desired/mfs/path
 
 If you wish to fully copy content from a different IPFS peer into MFS, do not
 forget to force IPFS to fetch to full DAG after doing the "cp" operation. i.e:
 
-$ ipfs cp /ipfs/<CID> /your/desired/mfs/path
+$ ipfs files cp /ipfs/<CID> /your/desired/mfs/path
 $ ipfs pin add <CID>
 
 The lazy-copy feature can also be used to protect partial DAG contents from
