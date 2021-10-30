@@ -680,8 +680,8 @@ github.com/libp2p/go-libp2p v0.13.0/go.mod h1:pM0beYdACRfHO1WcJlp65WXyG2A6NqYM+t
 github.com/libp2p/go-libp2p v0.14.0/go.mod h1:dsQrWLAoIn+GkHPN/U+yypizkHiB9tnv79Os+kSgQ4Q=
 github.com/libp2p/go-libp2p v0.14.3/go.mod h1:d12V4PdKbpL0T1/gsUNN8DfgMuRPDX8bS2QxCZlwRH0=
 github.com/libp2p/go-libp2p v0.14.4/go.mod h1:EIRU0Of4J5S8rkockZM7eJp2S0UrCyi55m2kJVru3rM=
-github.com/libp2p/go-libp2p v0.15.0-rc.1.0.20211021081216-db8f9c6fddb5 h1:nE20CmFlCbwN56/3bADccjHEvbM9E9hFe7Y+0ebdpig=
-github.com/libp2p/go-libp2p v0.15.0-rc.1.0.20211021081216-db8f9c6fddb5/go.mod h1:P+WgjkSS2d8eBj+NvkyKo0nb8fJAC04G+cCex0ZMcvI=
+github.com/libp2p/go-libp2p v0.16.0-dev.0.20211021081216-db8f9c6fddb5 h1:0/PN8zyD0sYDPPE3mEVTJtzXZo1xG0QJ5moceb3iBEM=
+github.com/libp2p/go-libp2p v0.16.0-dev.0.20211021081216-db8f9c6fddb5/go.mod h1:P+WgjkSS2d8eBj+NvkyKo0nb8fJAC04G+cCex0ZMcvI=
 github.com/libp2p/go-libp2p-asn-util v0.0.0-20200825225859-85005c6cf052/go.mod h1:nRMRTab+kZuk0LnKZpxhOVH/ndsdr2Nr//Zltc/vwgo=
 github.com/libp2p/go-libp2p-asn-util v0.1.0 h1:rABPCO77SjdbJ/eJ/ynIo8vWICy1VEnL5JAxJbQLo1E=
 github.com/libp2p/go-libp2p-asn-util v0.1.0/go.mod h1:wu+AnM9Ii2KgO5jMmS1rz9dvzTdj8BXqsPR9HR0XB7I=
