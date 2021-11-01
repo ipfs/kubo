@@ -16,6 +16,12 @@ The gateway's configuration options are (briefly) described in the
 [config](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#gateway)
 documentation.
 
+### Debug
+The gateway's log level can be changed with this command:
+```
+> ipfs log level core/server debug
+```
+
 ## Directories
 
 For convenience, the gateway (mostly) acts like a normal web-server when serving
