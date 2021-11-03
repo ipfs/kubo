@@ -19,7 +19,7 @@ test_expect_success "set up test data" '
 test_add_large_dir() {
   exphash="$1"
   test_expect_success "ipfs add on very large directory succeeds" '
-    ipfs add -r -q testdata | tail -n1 > sharddir_out &&
+    ipfs add -r -Q testdata > sharddir_out &&
     echo "$exphash" > sharddir_exp &&
     test_cmp sharddir_exp sharddir_out
   '
@@ -96,7 +96,7 @@ test_kill_ipfs_daemon
 test_add_large_dir_v1() {
   exphash="$1"
   test_expect_success "ipfs add (CIDv1) on very large directory succeeds" '
-    ipfs add -r -q --cid-version=1 testdata | tail -n1 > sharddir_out &&
+    ipfs add -r -Q --cid-version=1 testdata > sharddir_out &&
     echo "$exphash" > sharddir_exp &&
     test_cmp sharddir_exp sharddir_out
   '
@@ -119,7 +119,7 @@ test_kill_ipfs_daemon
 
 test_list_incomplete_dir() {
   test_expect_success "ipfs add (CIDv1) on very large directory with sha3 succeeds" '
-    ipfs add -r -q --cid-version=1 --hash=sha3-256 --pin=false testdata | tail -n1 > sharddir_out &&
+    ipfs add -r -Q --cid-version=1 --hash=sha3-256 --pin=false testdata > sharddir_out &&
     largeSHA3dir=$(cat sharddir_out)
   '
 

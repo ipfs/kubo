@@ -64,7 +64,7 @@ test_add_w() {
   test_expect_success "random-files generates test files" '
     random-files --seed 7547632 --files 5 --dirs 2 --depth 3 m &&
     echo "$add_w_m" >expected &&
-    ipfs add -q -r m | tail -n1 >actual &&
+    ipfs add -Q -r m >actual &&
     test_sort_cmp expected actual
   '
 
@@ -120,7 +120,7 @@ test_add_w() {
 
   # test -w -r m/* == -r m
   test_expect_success "ipfs add -w -r m/* == add -r m  succeeds" '
-    ipfs add -q -w -r m/* | tail -n1 >actual
+    ipfs add -Q -w -r m/* >actual
   '
 
   test_expect_success "ipfs add -w -r m/* == add -r m  is correct" '
@@ -130,10 +130,10 @@ test_add_w() {
 
   # test repeats together
   test_expect_success "ipfs add -w (repeats) succeeds" '
-    ipfs add -q -w -r m/t_1wp-8a2/h3qpecj0 m/ha6f0x7su6/gnz66h \
+    ipfs add -Q -w -r m/t_1wp-8a2/h3qpecj0 m/ha6f0x7su6/gnz66h \
       m/t_1wp-8a2/_jo7 m/4r93 m/t_1wp-8a2 m/t_1wp-8a2 m/4r93 \
       m/4r93 m/ha6f0x7su6/_rwujlf3qh_g08 \
-      m/ha6f0x7su6/gnz66h/9cwudvacx | tail -n1 >actual
+      m/ha6f0x7su6/gnz66h/9cwudvacx >actual
   '
 
   test_expect_success "ipfs add -w (repeats) is correct" '
