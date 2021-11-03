@@ -18,7 +18,7 @@ create_files() {
   echo cats > stuff_test/a &&
   echo dogs > stuff_test/b &&
   echo giraffes > stuff_test/c &&
-  DIR1=$(ipfs add -r "$@" -q stuff_test | tail -n1)
+  DIR1=$(ipfs add -r "$@" -Q stuff_test)
 }
 
 verify_path_exists() {
