@@ -82,8 +82,8 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 	redirect := sw.ResponseWriter.Header().Get("Location")
 	if redirect != "" && code == http.StatusOK {
 		code = http.StatusMovedPermanently
+		log.Debugw("subdomain redirect", "location", redirect, "status", code)
 	}
-	log.Debugw("subdomain redirect", "location", redirect, "status", code)
 	sw.ResponseWriter.WriteHeader(code)
 }
 
