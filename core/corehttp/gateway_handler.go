@@ -83,6 +83,7 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 	if redirect != "" && code == http.StatusOK {
 		code = http.StatusMovedPermanently
 	}
+	log.Debugw("subdomain redirect", "location", redirect, "status", code)
 	sw.ResponseWriter.WriteHeader(code)
 }
 
@@ -198,7 +199,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
 
-	logger := log.With("from", r.URL)
+	logger := log.With("from", r.RequestURI)
 	logger.Debug("http request received")
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
@@ -213,7 +214,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				break
 			}
 		}
-		logger.Debugw("sub-path", "prefix", prefix)
+		logger.Debugw("sub-path (deprecrated)", "prefix", prefix)
 	}
 
 	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
@@ -248,7 +249,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 
 		redirectURL := gopath.Join("/", prefix, u.Scheme, u.Host, path)
-		logger.Debugw("received an uri param, redirect", "to", redirectURL, "status", http.StatusMovedPermanently)
+		logger.Debugw("uri param, redirect", "to", redirectURL, "status", http.StatusMovedPermanently)
 		http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
 		return
 	}
@@ -270,7 +271,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		if prefix == "" && fixupSuperfluousNamespace(w, urlPath, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
 			// by returning error/redirect page, nothing left to do here
-			logger.Debugw("redundant namespace, returning error/redirect page")
+			logger.Debugw("redundant namespace; noop")
 			return
 		}
 		// unable to fix path, returning error
@@ -355,7 +356,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			name = getFilename(urlPath)
 		}
 
-		logger.Debugw("serve file", "name", name)
+		logger.Debugw("serving file", "name", name)
 		i.serveFile(w, r, name, modtime, f)
 		return
 	}
@@ -508,7 +509,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		Hash:        hash,
 	}
 
-	logger.Debugw("http request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash, "duration", time.Since(begin))
+	logger.Debugw("request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash, "duration", time.Since(begin))
 
 	if err := listingTemplate.Execute(w, tplData); err != nil {
 		internalWebError(w, err)
@@ -699,7 +700,7 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("IPFS-Hash", newcid.String())
 
 	redirectURL := gopath.Join(ipfsPathPrefix, newcid.String(), newPath)
-	log.Debugw("CID replaced, http redirect", "from", r.URL, "to", redirectURL, "status", http.StatusCreated)
+	log.Debugw("CID replaced, redirect", "from", r.URL, "to", redirectURL, "status", http.StatusCreated)
 	http.Redirect(w, r, redirectURL, http.StatusCreated)
 }
 
@@ -774,7 +775,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	redirectURL := gopath.Join(ipfsPathPrefix+ncid.String(), directory)
 	// note: StatusCreated is technically correct here as we created a new resource.
-	log.Debugw("CID deleted, http redirect", "from", r.URL, "to", redirectURL, "status", http.StatusCreated)
+	log.Debugw("CID deleted, redirect", "from", r.RequestURI, "to", redirectURL, "status", http.StatusCreated)
 	http.Redirect(w, r, redirectURL, http.StatusCreated)
 }
 
