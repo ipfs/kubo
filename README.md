@@ -50,6 +50,7 @@ Before opening an issue, consider using one of the following locations to ensure
   - [macOS package managers](#macos-package-managers)
     - [MacPorts](#MacPorts)
 	- [Nix](#nix-macos)
+    - [Homebrew](#Homebrew)
   - [Windows package managers](#windows-package-managers)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
@@ -169,6 +170,7 @@ $ sudo snap install ipfs
 
 - [MacPorts](#macports)
 - [Nix](#nix-macos)
+- [Homebrew](#Homebrew)
 
 #### MacPorts
 
@@ -187,6 +189,14 @@ $ nix-env -i ipfs
 ```
 
 You can also install the Package by using its attribute name, which is also `ipfs`.
+
+#### Homebrew
+
+A Homebrew formula [ipfs](https://formulae.brew.sh/formula/ipfs) is maintained too.
+
+```
+$ brew install --formula ipfs
+```
 
 ### Windows package managers
 
