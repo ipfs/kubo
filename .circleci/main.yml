@@ -216,7 +216,7 @@ jobs:
           command: |
             npm init -y
             npm install ipfs@^0.59.1
-            npm install ipfs-interop@^7.0.3
+            npm install ipfs/interop#fix/use-new-go-ipfs-sharding-option
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
