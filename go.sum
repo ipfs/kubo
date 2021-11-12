@@ -64,8 +64,9 @@ github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuy
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
-github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d h1:UQZhZ2O0vMHr2cI+DC1Mbh0TJxzA3RcLoMsFw+aXw7E=
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
+github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a h1:E/8AP5dFtMhl5KPJz66Kt9G0n+7Sn41Fy1wv9/jHOrc=
+github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a/go.mod h1:OMCwj8VM1Kc9e19TLln2VL61YJF0x1XFtfdL4JdbSyE=
 github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 h1:iW0a5ljuFxkLGPNem5Ui+KBjFJzKg4Fv2fnxe4dvzpM=
 github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5/go.mod h1:Y2QMoi1vgtOIfc+6DhrMOGkLoGzqSV2rKp4Sm+opsyA=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
@@ -542,8 +543,8 @@ github.com/ipfs/go-metrics-interface v0.0.1 h1:j+cpbjYvu4R8zbleSs36gvB7jR+wsL2fG
 github.com/ipfs/go-metrics-interface v0.0.1/go.mod h1:6s6euYU4zowdslK0GKHmqaIZ3j/b/tL7HTWtJ4VPgWY=
 github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZaGVF1CUVdE+s=
 github.com/ipfs/go-metrics-prometheus v0.0.2/go.mod h1:ELLU99AQQNi+zX6GCGm2lAgnzdSH3u5UVlCdqSXnEks=
-github.com/ipfs/go-mfs v0.1.3-0.20211022172037-3e82e1e60d6c h1:abIhXTK5Nj2E+bUSTOXH4HykCU+U6Vi4k9Uhnzc5HSc=
-github.com/ipfs/go-mfs v0.1.3-0.20211022172037-3e82e1e60d6c/go.mod h1:xDArQRVSrt4Zy9puzsSJAfWoEzDVCpXV0G1ah0kJcxQ=
+github.com/ipfs/go-mfs v0.1.3-0.20211112012225-23d6734eab23 h1:RP+F0BONWIXRDb1x5QXk9PV7AnEosaKZCzU4RInsNvw=
+github.com/ipfs/go-mfs v0.1.3-0.20211112012225-23d6734eab23/go.mod h1:+NT2mLpzr3LKkRZbjYSFjUTUzHAqJjPbBfnDsLJPJjw=
 github.com/ipfs/go-namesys v0.3.1 h1:DqmeXlVODejOyECAqoqhSB5JGRv8aRFhtG0oPDmxsMc=
 github.com/ipfs/go-namesys v0.3.1/go.mod h1:/BL4xk8LP5Lq82AmaRKyxZv/eYRlumNiU9SZUe1Hlps=
 github.com/ipfs/go-path v0.0.7/go.mod h1:6KTKmeRnBXgqrTvzFrPV3CamxcgvXX/4z79tfAd2Sno=
@@ -560,8 +561,8 @@ github.com/ipfs/go-peertaskqueue v0.4.0/go.mod h1:KL9F49hXJMoXCad8e5anivjN+kWdr+
 github.com/ipfs/go-pinning-service-http-client v0.1.0 h1:Au0P4NglL5JfzhNSZHlZ1qra+IcJyO3RWMd9EYCwqSY=
 github.com/ipfs/go-pinning-service-http-client v0.1.0/go.mod h1:tcCKmlkWWH9JUUkKs8CrOZBanacNc1dmKLfjlyXAMu4=
 github.com/ipfs/go-unixfs v0.2.4/go.mod h1:SUdisfUjNoSDzzhGVxvCL9QO/nKdwXdr+gbMUdqcbYw=
-github.com/ipfs/go-unixfs v0.2.7-0.20211022171058-f7a8e99934ab h1:KvRvkoYP9PZRrw3v09PGwibhb0m353la1HvGJaRDK38=
-github.com/ipfs/go-unixfs v0.2.7-0.20211022171058-f7a8e99934ab/go.mod h1:4P7unwkBeL3rhfluLhnVKc+OXmFXlcJRfdgv7U1G/qA=
+github.com/ipfs/go-unixfs v0.2.7-0.20211112011223-bd53b6a811b1 h1:FFSVXA9ns5IqwQRZUgq4GFk7qN1C9LbAwY6CJwk0I4Q=
+github.com/ipfs/go-unixfs v0.2.7-0.20211112011223-bd53b6a811b1/go.mod h1:t8BWCW4OvTjcxQsX4e+GFroSZ5fCUXB5ywIMbw9eH/Y=
 github.com/ipfs/go-unixfsnode v1.1.2/go.mod h1:5dcE2x03pyjHk4JjamXmunTMzz+VUtqvPwZjIEkfV6s=
 github.com/ipfs/go-unixfsnode v1.1.3 h1:IyqJBGIEvcHvll1wDDVIHOEVXnE+IH6tjzTWpZ6kGiI=
 github.com/ipfs/go-unixfsnode v1.1.3/go.mod h1:ZZxUM5wXBC+G0Co9FjrYTOm+UlhZTjxLfRYdWY9veZ4=
