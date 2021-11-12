@@ -28,7 +28,7 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 	var opts []madns.Option
 	var err error
 
-	domains := make(map[string]struct{})           // to track overriden default resolvers
+	domains := make(map[string]struct{})           // to track overridden default resolvers
 	rslvrs := make(map[string]madns.BasicResolver) // to reuse resolvers for the same URL
 
 	for domain, url := range cfg.DNS.Resolvers {
@@ -58,7 +58,7 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 		}
 	}
 
-	// fill in defaults if not overriden by the user
+	// fill in defaults if not overridden by the user
 	for domain, url := range defaultResolvers {
 		_, ok := domains[domain]
 		if ok {

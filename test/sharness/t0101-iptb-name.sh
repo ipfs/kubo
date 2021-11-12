@@ -16,7 +16,7 @@ test_expect_success "set up an iptb cluster" '
 
 startup_cluster $num_nodes
 
-test_expect_success "add an obect on one node" '
+test_expect_success "add an object on one node" '
   echo "ipns is super fun" > file &&
   HASH_FILE=$(ipfsi 1 add -q file)
 '

@@ -24,7 +24,7 @@ assert_repo_size_less_than() {
 
   test_expect_success "check repo size" '
     test "$(get_repo_size)"  -lt "$expval" ||
-      { echo should be bellow "$expval" && test_fsh get_repo_size; }
+      { echo should be below "$expval" && test_fsh get_repo_size; }
   '
 }
 
