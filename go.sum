@@ -545,6 +545,8 @@ github.com/ipfs/go-metrics-prometheus v0.0.2 h1:9i2iljLg12S78OhC6UAiXi176xvQGiZa
 github.com/ipfs/go-metrics-prometheus v0.0.2/go.mod h1:ELLU99AQQNi+zX6GCGm2lAgnzdSH3u5UVlCdqSXnEks=
 github.com/ipfs/go-mfs v0.1.3-0.20210507195338-96fbfa122164 h1:0ATu9s5KktHhm8aYRSe1ysOJPik3dRwU/uag1Bcz+tg=
 github.com/ipfs/go-mfs v0.1.3-0.20210507195338-96fbfa122164/go.mod h1:A525zyeY2o078AoxhjJirOlDTXI1GnZxiYQnESGJ9WU=
+github.com/ipfs/go-mfs v0.1.3-0.20211112012225-23d6734eab23 h1:RP+F0BONWIXRDb1x5QXk9PV7AnEosaKZCzU4RInsNvw=
+github.com/ipfs/go-mfs v0.1.3-0.20211112012225-23d6734eab23/go.mod h1:+NT2mLpzr3LKkRZbjYSFjUTUzHAqJjPbBfnDsLJPJjw=
 github.com/ipfs/go-namesys v0.3.1 h1:DqmeXlVODejOyECAqoqhSB5JGRv8aRFhtG0oPDmxsMc=
 github.com/ipfs/go-namesys v0.3.1/go.mod h1:/BL4xk8LP5Lq82AmaRKyxZv/eYRlumNiU9SZUe1Hlps=
 github.com/ipfs/go-path v0.0.7/go.mod h1:6KTKmeRnBXgqrTvzFrPV3CamxcgvXX/4z79tfAd2Sno=
@@ -564,6 +566,8 @@ github.com/ipfs/go-unixfs v0.2.4/go.mod h1:SUdisfUjNoSDzzhGVxvCL9QO/nKdwXdr+gbMU
 github.com/ipfs/go-unixfs v0.2.6/go.mod h1:GTTzQvaZsTZARdNkkdjDKFFnBhmO3e5mIM1PkH/x4p0=
 github.com/ipfs/go-unixfs v0.2.7-0.20211027185217-29ffa004db20 h1:pgaPI+mAg6aqpY9CKj74XZ6Q+Jt8+uZnMv9ZaYylAJQ=
 github.com/ipfs/go-unixfs v0.2.7-0.20211027185217-29ffa004db20/go.mod h1:1WeAha/x8lEiiYfIDg7guKC4qAFEmBlNKFn2ztr4MPQ=
+github.com/ipfs/go-unixfs v0.2.7-0.20211112011223-bd53b6a811b1 h1:FFSVXA9ns5IqwQRZUgq4GFk7qN1C9LbAwY6CJwk0I4Q=
+github.com/ipfs/go-unixfs v0.2.7-0.20211112011223-bd53b6a811b1/go.mod h1:t8BWCW4OvTjcxQsX4e+GFroSZ5fCUXB5ywIMbw9eH/Y=
 github.com/ipfs/go-unixfsnode v1.1.2/go.mod h1:5dcE2x03pyjHk4JjamXmunTMzz+VUtqvPwZjIEkfV6s=
 github.com/ipfs/go-unixfsnode v1.1.3 h1:IyqJBGIEvcHvll1wDDVIHOEVXnE+IH6tjzTWpZ6kGiI=
 github.com/ipfs/go-unixfsnode v1.1.3/go.mod h1:ZZxUM5wXBC+G0Co9FjrYTOm+UlhZTjxLfRYdWY9veZ4=
