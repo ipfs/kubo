@@ -270,16 +270,16 @@ type OptionalInteger struct {
 }
 
 // WithDefault resolves the integer with the given default.
-func (p OptionalInteger) WithDefault(defaultValue int64) (value int64) {
-	if p.value == nil {
+func (p *OptionalInteger) WithDefault(defaultValue int64) (value int64) {
+	if p == nil || p.value == nil {
 		return defaultValue
 	}
 	return *p.value
 }
 
 // IsDefault returns if this is a default optional integer
-func (p OptionalInteger) IsDefault() bool {
-	return p.value == nil
+func (p *OptionalInteger) IsDefault() bool {
+	return p == nil || p.value == nil
 }
 
 func (p OptionalInteger) MarshalJSON() ([]byte, error) {

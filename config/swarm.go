@@ -16,26 +16,52 @@ type SwarmConfig struct {
 	// DisableRelay explicitly disables the relay transport.
 	//
 	// Deprecated: This flag is deprecated and is overridden by
-	// `Transports.Relay` if specified.
+	// `Swarm.Transports.Relay` if specified.
 	DisableRelay bool `json:",omitempty"`
 
-	// EnableRelayHop makes this node act as a public relay, relaying
-	// traffic between other nodes.
-	EnableRelayHop bool
-
-	// EnableAutoRelay enables the "auto relay" feature.
-	//
-	// When both EnableAutoRelay and EnableRelayHop are set, this go-ipfs node
-	// will advertise itself as a public relay. Otherwise it will find and use
-	// advertised public relays when it determines that it's not reachable
-	// from the public internet.
+	// EnableAutoRelay enables the "auto relay user" feature.
+	// Node will find and use advertised public relays when it determines that
+	// it's not reachable from the public internet.
 	EnableAutoRelay bool
+
+	// RelayService.* controls the "auto relay service" feature.
+	// When enabled, node will provide a limited relay service to other peers.
+	RelayService RelayService
 
 	// Transports contains flags to enable/disable libp2p transports.
 	Transports Transports
 
 	// ConnMgr configures the connection manager.
 	ConnMgr ConnMgr
+}
+
+// RelayService configures the resources of the circuit v2 relay.
+// For every field a reasonable default will be defined in go-ipfs.
+type RelayService struct {
+	// Enables the limited relay (circuit v2 relay).
+	Enabled Flag `json:",omitempty"`
+
+	// ConnectionDurationLimit is the time limit before resetting a relayed connection.
+	ConnectionDurationLimit *OptionalDuration `json:",omitempty"`
+	// ConnectionDataLimit is the limit of data relayed (on each direction) before resetting the connection.
+	ConnectionDataLimit *OptionalInteger `json:",omitempty"`
+
+	// ReservationTTL is the duration of a new (or refreshed reservation).
+	ReservationTTL *OptionalDuration `json:",omitempty"`
+
+	// MaxReservations is the maximum number of active relay slots.
+	MaxReservations *OptionalInteger `json:",omitempty"`
+	// MaxCircuits is the maximum number of open relay connections for each peer; defaults to 16.
+	MaxCircuits *OptionalInteger `json:",omitempty"`
+	// BufferSize is the size of the relayed connection buffers.
+	BufferSize *OptionalInteger `json:",omitempty"`
+
+	// MaxReservationsPerPeer is the maximum number of reservations originating from the same peer.
+	MaxReservationsPerPeer *OptionalInteger `json:",omitempty"`
+	// MaxReservationsPerIP is the maximum number of reservations originating from the same IP address.
+	MaxReservationsPerIP *OptionalInteger `json:",omitempty"`
+	// MaxReservationsPerASN is the maximum number of reservations origination from the same ASN.
+	MaxReservationsPerASN *OptionalInteger `json:",omitempty"`
 }
 
 type Transports struct {
