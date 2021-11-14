@@ -22,9 +22,16 @@ type SwarmConfig struct {
 	// EnableAutoRelay enables the "auto relay user" feature.
 	// Node will find and use advertised public relays when it determines that
 	// it's not reachable from the public internet.
+	//
+	// Deprecated: This flag is deprecated and is overriden by
+	// `Swarm.AutoRelay.Enabled` if specified.
 	EnableAutoRelay bool
 
-	// RelayService.* controls the "auto relay service" feature.
+	// AutoRelay controls the "auto relay service" feature.
+	// When enabled, the node will use relays if it is not publicly reachable.
+	AutoRelay AutoRelay
+
+	// RelayService.* controls the "relay service".
 	// When enabled, node will provide a limited relay service to other peers.
 	RelayService RelayService
 
@@ -33,6 +40,16 @@ type SwarmConfig struct {
 
 	// ConnMgr configures the connection manager.
 	ConnMgr ConnMgr
+}
+
+type AutoRelay struct {
+	// Enables the AutoRelay.
+	Enabled Flag `json:",omitempty"`
+
+	// StaticRelays configures static relays to use when this node is not
+	// publicly reachable. If set, auto relay will not try to find any
+	// other relay servers.
+	StaticRelays []string `json:",omitempty"`
 }
 
 // RelayService configures the resources of the circuit v2 relay.
