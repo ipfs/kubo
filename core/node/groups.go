@@ -18,7 +18,6 @@ import (
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
-	uio "github.com/ipfs/go-unixfs/io"
 	"go.uber.org/fx"
 )
 
@@ -320,7 +319,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	}
 
 	// TEMP: setting global sharding switch here
-	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
+	//	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
 
 	return fx.Options(
 		bcfgOpts,

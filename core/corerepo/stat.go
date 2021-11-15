@@ -71,7 +71,7 @@ func RepoSize(ctx context.Context, n *core.IpfsNode) (SizeStat, error) {
 		return SizeStat{}, err
 	}
 
-	usage, err := r.GetStorageUsage()
+	usage, err := r.GetStorageUsage(ctx)
 	if err != nil {
 		return SizeStat{}, err
 	}
