@@ -11,7 +11,6 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gabriel-vasile/mimetype v1.1.2
 	github.com/go-bindata/go-bindata/v3 v3.1.3
-	github.com/gopherjs/gopherjs v0.0.0-20190812055157-5d271430af9f // indirect
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/go-bitswap v0.5.0
 	github.com/ipfs/go-block-format v0.0.3
@@ -21,10 +20,10 @@ require (
 	github.com/ipfs/go-datastore v0.5.0
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.0
-	github.com/ipfs/go-ds-flatfs v0.4.6-0.20211022215308-063e7297c4c4
+	github.com/ipfs/go-ds-flatfs v0.5.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
-	github.com/ipfs/go-ds-measure v0.1.1-0.20211022215957-ab1649254335
-	github.com/ipfs/go-fetcher v1.5.0
+	github.com/ipfs/go-ds-measure v0.2.0
+	github.com/ipfs/go-fetcher v1.6.0
 	github.com/ipfs/go-filestore v1.0.1-0.20211022220855-bad9642b9398
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-graphsync v0.10.5-0.20211022221432-61a702bcea25
@@ -36,9 +35,9 @@ require (
 	github.com/ipfs/go-ipfs-exchange-offline v0.1.0
 	github.com/ipfs/go-ipfs-files v0.0.9
 	github.com/ipfs/go-ipfs-keystore v0.0.2
-	github.com/ipfs/go-ipfs-pinner v0.1.3-0.20211022224820-71e2b1511fd2
+	github.com/ipfs/go-ipfs-pinner v0.2.0
 	github.com/ipfs/go-ipfs-posinfo v0.0.1
-	github.com/ipfs/go-ipfs-provider v0.6.2-0.20211025183630-eb8461370f74
+	github.com/ipfs/go-ipfs-provider v0.7.0
 	github.com/ipfs/go-ipfs-routing v0.2.0
 	github.com/ipfs/go-ipfs-util v0.0.2
 	github.com/ipfs/go-ipld-cbor v0.0.5
@@ -52,7 +51,7 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.1.3-0.20211025170123-e41b40a71677
 	github.com/ipfs/go-namesys v0.3.2-0.20211025145726-331d6bea5fc9
-	github.com/ipfs/go-path v0.1.3-0.20211021180819-6f599234c77d
+	github.com/ipfs/go-path v0.2.0
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.2.7-0.20211021174028-9e137ae83d40
 	github.com/ipfs/go-unixfsnode v1.1.4-0.20211021180004-3d0f9aae0add
@@ -77,7 +76,7 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.4.1
 	github.com/libp2p/go-libp2p-noise v0.3.0
 	github.com/libp2p/go-libp2p-peerstore v0.4.0
-	github.com/libp2p/go-libp2p-pubsub v0.5.6-0.20211022213958-eb85e0b9a30f
+	github.com/libp2p/go-libp2p-pubsub v0.6.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.4.1-0.20211025173248-17875e5a4465
 	github.com/libp2p/go-libp2p-quic-transport v0.14.0
 	github.com/libp2p/go-libp2p-record v0.1.3
@@ -109,7 +108,6 @@ require (
 	go.uber.org/fx v1.13.1
 	go.uber.org/zap v1.19.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
-	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211025112917-711f33c9992c
 )

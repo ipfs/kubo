@@ -68,7 +68,7 @@ func TestAddMultipleGCLive(t *testing.T) {
 
 	go func() {
 		defer close(out)
-		_, _ = adder.AddAllAndPin(slf)
+		_, _ = adder.AddAllAndPin(context.Background(), slf)
 		// Ignore errors for clarity - the real bug would be gc'ing files while adding them, not this resultant error
 	}()
 
@@ -179,7 +179,7 @@ func TestAddGCLive(t *testing.T) {
 	go func() {
 		defer close(addDone)
 		defer close(out)
-		_, err := adder.AddAllAndPin(slf)
+		_, err := adder.AddAllAndPin(context.Background(), slf)
 
 		if err != nil {
 			t.Error(err)
@@ -288,7 +288,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 
 	go func() {
 		defer close(adder.Out)
-		_, err = adder.AddAllAndPin(file)
+		_, err = adder.AddAllAndPin(context.Background(), file)
 		if err != nil {
 			t.Error(err)
 		}
@@ -327,16 +327,16 @@ type testBlockstore struct {
 	countAtOffsetNonZero int
 }
 
-func (bs *testBlockstore) Put(block blocks.Block) error {
+func (bs *testBlockstore) Put(ctx context.Context, block blocks.Block) error {
 	bs.CheckForPosInfo(block)
-	return bs.GCBlockstore.Put(block)
+	return bs.GCBlockstore.Put(ctx, block)
 }
 
-func (bs *testBlockstore) PutMany(blocks []blocks.Block) error {
+func (bs *testBlockstore) PutMany(ctx context.Context, blocks []blocks.Block) error {
 	for _, blk := range blocks {
 		bs.CheckForPosInfo(blk)
 	}
-	return bs.GCBlockstore.PutMany(blocks)
+	return bs.GCBlockstore.PutMany(ctx, blocks)
 }
 
 func (bs *testBlockstore) CheckForPosInfo(block blocks.Block) {
