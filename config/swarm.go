@@ -25,7 +25,7 @@ type SwarmConfig struct {
 	//
 	// Deprecated: This flag is deprecated and is overriden by
 	// `Swarm.AutoRelay.Enabled` if specified.
-	EnableAutoRelay bool
+	EnableAutoRelay bool `json:",omitempty"`
 
 	// AutoRelay controls the "auto relay service" feature.
 	// When enabled, the node will use relays if it is not publicly reachable.
