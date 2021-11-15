@@ -129,7 +129,7 @@ test_list_incomplete_dir() {
 
   test_expect_success "can list part of the directory" '
     ipfs ls "$largeSHA3dir" 2> ls_err_out
-    echo "Error: merkledag: not found" > exp_err_out &&
+    echo "Error: failed to fetch all nodes" > exp_err_out &&
     cat ls_err_out &&
     test_cmp exp_err_out ls_err_out
   '
