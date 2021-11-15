@@ -65,6 +65,26 @@ test_expect_success 'Addresses.Announce affects addresses' '
 
 test_kill_ipfs_daemon
 
+announceCfg='["/dnsaddr/dynamic.example.com", "/ip4/10.20.30.40/tcp/4321"]'
+test_expect_success "test_config_set AppendAnnounce succeeds" "
+  ipfs config --json Addresses.AppendAnnounce '$announceCfg'
+"
+
+test_launch_ipfs_daemon
+
+test_expect_success 'Addresses.AppendAnnounce is applied on top of Announce' '
+  ipfs swarm addrs local >actual &&
+  grep "/ip4/1.2.3.4/tcp/1234" actual &&
+  grep "/dnsaddr/dynamic.example.com" actual &&
+  grep "/ip4/10.20.30.40/tcp/4321" actual &&
+  ipfs id -f"<addrs>" | xargs -n1 echo | tee actual &&
+  grep "/ip4/1.2.3.4/tcp/1234/p2p" actual &&
+  grep "/dnsaddr/dynamic.example.com/p2p/" actual &&
+  grep "/ip4/10.20.30.40/tcp/4321/p2p/" actual
+'
+
+test_kill_ipfs_daemon
+
 noAnnounceCfg='["/ip4/1.2.3.4/tcp/1234"]'
 test_expect_success "test_config_set succeeds" "
   ipfs config --json Addresses.NoAnnounce '$noAnnounceCfg'
@@ -72,11 +92,13 @@ test_expect_success "test_config_set succeeds" "
 
 test_launch_ipfs_daemon
 
-test_expect_success "Addresses.NoAnnounce affects addresses" '
+test_expect_success "Addresses.NoAnnounce affects addresses from Announce and AppendAnnounce" '
   ipfs swarm addrs local >actual &&
   grep -v "/ip4/1.2.3.4/tcp/1234" actual &&
+  grep -v "/ip4/10.20.30.40/tcp/4321" actual &&
   ipfs id -f"<addrs>" | xargs -n1 echo >actual &&
-  grep -v "/ip4/1.2.3.4/tcp/1234" actual
+  grep -v "/ip4/1.2.3.4/tcp/1234" actual &&
+  grep -v "//ip4/10.20.30.40/tcp/4321" actual
 '
 
 test_kill_ipfs_daemon
