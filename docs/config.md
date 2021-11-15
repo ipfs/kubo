@@ -326,8 +326,19 @@ Default: `[]`
 
 Type: `array[string]` (multiaddrs)
 
+### `Addresses.AppendAnnounce`
+
+Similar to [`Addresses.Announce`](#addressesannounce) except this doesn't
+override inferred swarm addresses if non-empty.
+
+Default: `[]`
+
+Type: `array[string]` (multiaddrs)
+
 ### `Addresses.NoAnnounce`
+
 An array of swarm addresses not to announce to the network.
+Takes precedence over `Addresses.Announce` and `Addresses.AppendAnnounce`.
 
 Default: `[]`
 
