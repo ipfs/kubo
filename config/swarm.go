@@ -22,9 +22,16 @@ type SwarmConfig struct {
 	// EnableAutoRelay enables the "auto relay user" feature.
 	// Node will find and use advertised public relays when it determines that
 	// it's not reachable from the public internet.
-	EnableAutoRelay bool
+	//
+	// Deprecated: This flag is deprecated and is overriden by
+	// `Swarm.AutoRelay.Enabled` if specified.
+	EnableAutoRelay bool `json:",omitempty"`
 
-	// RelayService.* controls the "auto relay service" feature.
+	// RelayClient controls the client side of "auto relay" feature.
+	// When enabled, the node will use relays if it is not publicly reachable.
+	RelayClient RelayClient
+
+	// RelayService.* controls the "relay service".
 	// When enabled, node will provide a limited relay service to other peers.
 	RelayService RelayService
 
@@ -35,10 +42,20 @@ type SwarmConfig struct {
 	ConnMgr ConnMgr
 }
 
+type RelayClient struct {
+	// Enables the auto relay feature: will use relays if it is not publicly reachable.
+	Enabled Flag `json:",omitempty"`
+
+	// StaticRelays configures static relays to use when this node is not
+	// publicly reachable. If set, auto relay will not try to find any
+	// other relay servers.
+	StaticRelays []string `json:",omitempty"`
+}
+
 // RelayService configures the resources of the circuit v2 relay.
 // For every field a reasonable default will be defined in go-ipfs.
 type RelayService struct {
-	// Enables the limited relay (circuit v2 relay).
+	// Enables the limited relay service for other peers (circuit v2 relay).
 	Enabled Flag `json:",omitempty"`
 
 	// ConnectionDurationLimit is the time limit before resetting a relayed connection.
