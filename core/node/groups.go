@@ -135,7 +135,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Invoke(libp2p.StartListening(cfg.Addresses.Swarm)),
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled, cfg.Discovery.MDNS.Interval)),
 		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),
-		fx.Provide(libp2p.StaticRelays(cfg.Swarm.StaticRelays)),
+		fx.Provide(libp2p.StaticRelays(cfg.Swarm.RelayClient.StaticRelays)),
 
 		fx.Provide(libp2p.Security(!bcfg.DisableEncryptedConnections, cfg.Swarm.Transports)),
 
@@ -145,7 +145,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
-		maybeProvide(libp2p.AutoRelay(len(cfg.Swarm.StaticRelays) == 0), cfg.Swarm.EnableAutoRelay),
+		maybeProvide(libp2p.AutoRelay(len(cfg.Swarm.RelayClient.StaticRelays) == 0), cfg.Swarm.EnableAutoRelay),
 		autonat,
 		connmgr,
 		ps,
