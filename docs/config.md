@@ -938,6 +938,8 @@ Type: `integer` (non-negative, 0 means the default)
 
 ### `Ipns.UsePubsub`
 
+**EXPERIMENTAL:** see [experimental-features.md#ipns-pubsub](./experimental-features.md#ipns-pubsub)
+
 Enables IPFS over pubsub experiment for publishing IPNS records in real time.
 Read about current limitations at [experimental-features.md#ipfs-pubsub](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-pubsub).
 
@@ -1081,6 +1083,8 @@ passing the `--enable-pubsub-experiment` flag to the daemon
 or via the `Pubsub.Enabled` flag below.
 
 ### `Pubsub.Enabled`
+
+**EXPERIMENTAL:** see [experimental-features.md#pubsub](./experimental-features.md#pubsub)
 
 Enables the pubsub experiment.
 Read about current limitations at [experimental-features.md#ipfs-pubsub](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-pubsub).
