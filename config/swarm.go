@@ -35,6 +35,9 @@ type SwarmConfig struct {
 	// When enabled, node will provide a limited relay service to other peers.
 	RelayService RelayService
 
+	// EnableHolePunching enables the hole punching service.
+	EnableHolePunching Flag `json:",omitempty"`
+
 	// Transports contains flags to enable/disable libp2p transports.
 	Transports Transports
 
