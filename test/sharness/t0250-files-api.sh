@@ -858,4 +858,70 @@ test_sharding "(cidv1 root)" "--cid-version=1"
 
 test_kill_ipfs_daemon
 
+# Test automatic sharding and unsharding
+
+# We shard based on size with a threshold of 256 KiB (see config file docs)
+# above which directories are sharded.
+#
+# The directory size is estimated as the size of each link. Links are roughly
+# the entry name + the CID byte length (e.g. 34 bytes for a CIDv0). So for
+# entries of length 10 we need 256 KiB / (34 + 10) ~ 6000 entries in the
+# directory to trigger sharding.
+test_expect_success "set up automatic sharding/unsharding data" '
+  mkdir big_dir
+  for i in `seq 5960` # Just above the number of entries that trigger sharding for 256KiB
+  do
+    echo $i > big_dir/`printf "file%06d" $i` # fixed length of 10 chars
+  done
+'
+
+# TODO: This does not need to report an error https://github.com/ipfs/go-ipfs/issues/8088
+test_expect_failure "reset automatic sharding" '
+  ipfs config --json Internal.UnixFSShardingSizeThreshold null
+'
+
+test_launch_ipfs_daemon_without_network
+
+LARGE_SHARDED="QmWfjnRWRvdvYezQWnfbvrvY7JjrpevsE9cato1x76UqGr"
+LARGE_MINUS_5_UNSHAREDED="QmbVxi5zDdzytrjdufUejM92JsWj8wGVmukk6tiPce3p1m"
+
+test_add_large_sharded_dir() {
+  exphash="$1"
+  test_expect_success "ipfs add on directory succeeds" '
+    ipfs add -r -Q big_dir > shardbigdir_out &&
+    echo "$exphash" > shardbigdir_exp &&
+    test_cmp shardbigdir_exp shardbigdir_out
+  '
+
+  test_expect_success "can access a path under the dir" '
+    ipfs cat "$exphash/file000030" > file30_out &&
+    test_cmp big_dir/file000030 file30_out
+  '
+}
+
+test_add_large_sharded_dir "$LARGE_SHARDED"
+
+test_expect_success "remove a few entries from big_dir/ to trigger unsharding" '
+  ipfs files cp /ipfs/"$LARGE_SHARDED" /big_dir &&
+  for i in `seq 5`
+  do
+    ipfs files rm /big_dir/`printf "file%06d" $i`
+  done &&
+  ipfs files stat --hash /big_dir > unshard_dir_hash &&
+  echo "$LARGE_MINUS_5_UNSHAREDED" > unshard_exp &&
+  test_cmp unshard_exp unshard_dir_hash
+'
+
+test_expect_success "add a few entries to big_dir/ to retrigger sharding" '
+  for i in `seq 5`
+  do
+    ipfs files cp /ipfs/"$LARGE_SHARDED"/`printf "file%06d" $i` /big_dir/`printf "file%06d" $i`
+  done &&
+  ipfs files stat --hash /big_dir > shard_dir_hash &&
+  echo "$LARGE_SHARDED" > shard_exp &&
+  test_cmp shard_exp shard_dir_hash
+'
+
+test_kill_ipfs_daemon
+
 test_done
