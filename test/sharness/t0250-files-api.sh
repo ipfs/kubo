@@ -883,7 +883,7 @@ test_expect_failure "reset automatic sharding" '
 test_launch_ipfs_daemon_without_network
 
 LARGE_SHARDED="QmWfjnRWRvdvYezQWnfbvrvY7JjrpevsE9cato1x76UqGr"
-LARGE_MINUS_5_UNSHAREDED="QmbVxi5zDdzytrjdufUejM92JsWj8wGVmukk6tiPce3p1m"
+LARGE_MINUS_5_UNSHARDED="QmbVxi5zDdzytrjdufUejM92JsWj8wGVmukk6tiPce3p1m"
 
 test_add_large_sharded_dir() {
   exphash="$1"
@@ -908,7 +908,7 @@ test_expect_success "remove a few entries from big_dir/ to trigger unsharding" '
     ipfs files rm /big_dir/`printf "file%06d" $i`
   done &&
   ipfs files stat --hash /big_dir > unshard_dir_hash &&
-  echo "$LARGE_MINUS_5_UNSHAREDED" > unshard_exp &&
+  echo "$LARGE_MINUS_5_UNSHARDED" > unshard_exp &&
   test_cmp unshard_exp unshard_dir_hash
 '
 
