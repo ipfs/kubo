@@ -121,6 +121,15 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			logger.Error("Use the 'Swarm.Transports.Network.Relay' config field instead")
 		}
 	}
+	//nolint
+	if cfg.Swarm.EnableAutoRelay {
+		logger.Error("The 'Swarm.EnableAutoRelay' config field is deprecated.")
+		if cfg.Swarm.RelayClient.Enabled == config.Default {
+			logger.Error("Use the 'Swarm.AutoRelay.Enabled' config field instead")
+		} else {
+			logger.Error("'Swarm.EnableAutoRelay' has been overridden by 'Swarm.AutoRelay.Enabled'")
+		}
+	}
 
 	// Gather all the options
 	opts := fx.Options(
@@ -145,7 +154,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
-		maybeProvide(libp2p.AutoRelay(len(cfg.Swarm.RelayClient.StaticRelays) == 0), cfg.Swarm.EnableAutoRelay),
+		maybeProvide(libp2p.AutoRelay(len(cfg.Swarm.RelayClient.StaticRelays) == 0), cfg.Swarm.RelayClient.Enabled.WithDefault(false)),
 		autonat,
 		connmgr,
 		ps,
