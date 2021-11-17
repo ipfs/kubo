@@ -33,7 +33,3 @@ docs/examples/go-ipfs-as-a-library/example-folder/Qm*
 /parts
 /stage
 /prime
-
-.idea
-.vscode
-*.iml
