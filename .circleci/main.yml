@@ -106,10 +106,21 @@ jobs:
         command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
     - run:
         command: |
-          current=$(git rev-parse HEAD)
-          go get github.com/ipfs/go-ipfs@$current
+          # we want to test the examples against the current version of go-ipfs
+          # however, that version might be in a fork so we need to replace the dependency
+
+          # backup the go.mod and go.sum files to restore them after we run the tests
+          cp go.mod go.mod.bak
+          cp go.sum go.sum.bak
+
+          # make sure the examples run against the current version of go-ipfs
+          go mod edit -replace github.com/ipfs/go-ipfs=./../../..
           go mod tidy
           go test -v ./...
+
+          # restore the go.mod and go.sum files to their original state
+          mv go.mod.bak go.mod
+          mv go.sum.bak go.sum
         working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
 
     - run:
