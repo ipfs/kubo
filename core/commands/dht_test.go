@@ -25,10 +25,10 @@ func TestKeyTranslation(t *testing.T) {
 	}
 
 	if pkk != pkname {
-		t.Fatal("keys didnt match!")
+		t.Fatal("keys didn't match!")
 	}
 
 	if ipnsk != ipnsname {
-		t.Fatal("keys didnt match!")
+		t.Fatal("keys didn't match!")
 	}
 }

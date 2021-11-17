@@ -500,7 +500,7 @@ test_files_api() {
     test_cmp dirhash afterdirhash
   '
 
-  test_expect_success "cannot write to nonexistant path $EXTRA" '
+  test_expect_success "cannot write to nonexistent path $EXTRA" '
     test_expect_code 1 ipfs files write $ARGS $RAW_LEAVES /cats/bar/ < output
   '
 
@@ -742,12 +742,12 @@ test_files_api() {
     verify_dir_contents /
   '
 
-  test_expect_success "remove nonexistant path forcibly" '
-    ipfs files rm --force /nonexistant
+  test_expect_success "remove nonexistent path forcibly" '
+    ipfs files rm --force /nonexistent
   '
 
-  test_expect_success "remove deeply nonexistant path forcibly" '
-    ipfs files rm --force /deeply/nonexistant
+  test_expect_success "remove deeply nonexistent path forcibly" '
+    ipfs files rm --force /deeply/nonexistent
   '
 
   # This one should return code 1 but still remove the rest of the valid files.
