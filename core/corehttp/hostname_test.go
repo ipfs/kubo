@@ -217,6 +217,7 @@ func TestKnownSubdomainDetails(t *testing.T) {
 	knownGateways := prepareKnownGateways(map[string]*config.GatewaySpec{
 		"localhost":               gwLocalhost,
 		"dweb.link":               gwDweb,
+		"devgateway.dweb.link":    gwDweb,
 		"dweb.ipfs.pvt.k12.ma.us": gwLong, // note the sneaky ".ipfs." ;-)
 		"*.wildcard1.tld":         gwWildcard1,
 		"*.*.wildcard2.tld":       gwWildcard2,
@@ -248,6 +249,7 @@ func TestKnownSubdomainDetails(t *testing.T) {
 		// cid in subdomain, known gateway
 		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.localhost:8080", gwLocalhost, "localhost:8080", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
 		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.dweb.link", gwDweb, "dweb.link", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
+		{"bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am.ipfs.devgateway.dweb.link", gwDweb, "devgateway.dweb.link", "ipfs", "bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am", true},
 		// capture everything before .ipfs.
 		{"foo.bar.boo-buzz.ipfs.dweb.link", gwDweb, "dweb.link", "ipfs", "foo.bar.boo-buzz", true},
 		// ipns
