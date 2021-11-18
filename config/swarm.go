@@ -24,7 +24,7 @@ type SwarmConfig struct {
 	// it's not reachable from the public internet.
 	//
 	// Deprecated: This flag is deprecated and is overriden by
-	// `Swarm.AutoRelay.Enabled` if specified.
+	// `Swarm.RelayClient.Enabled` if specified.
 	EnableAutoRelay bool `json:",omitempty"`
 
 	// RelayClient controls the client side of "auto relay" feature.
