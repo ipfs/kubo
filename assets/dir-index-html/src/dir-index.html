@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+{{ $root := . }}
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="description" content="A directory of files hosted on the distributed, decentralized web using IPFS">
+<meta property="og:title" content="Files on IPFS">
+<meta property="og:description" content="{{ .Path }}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://gateway.ipfs.io/ipfs/QmSDeYAe9mga6NdTozAZuyGL3Q1XjsLtvX28XFxJH8oPjq">
+<meta name="twitter:title" content="{{ .Path }}">
+<meta name="twitter:description" content="A directory of files hosted on the distributed, decentralized web using IPFS">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://gateway.ipfs.io/ipfs/QmSDeYAe9mga6NdTozAZuyGL3Q1XjsLtvX28XFxJH8oPjq">
+<meta name="twitter:creator" content="@ipfs">
+<meta name="twitter:site" content="@ipfs">
+<meta name="image" content="https://gateway.ipfs.io/ipfs/QmSDeYAe9mga6NdTozAZuyGL3Q1XjsLtvX28XFxJH8oPjq">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="shortcut icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlo89/56ZQ/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACUjDu1lo89/6mhTP+zrVP/nplD/5+aRK8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHNiIS6Wjz3/ubFY/761W/+vp1D/urRZ/8vDZf/GvmH/nplD/1BNIm8AAAAAAAAAAAAAAAAAAAAAAAAAAJaPPf+knEj/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf+tpk7/nplD/wAAAAAAAAAAAAAAAJaPPf+2rVX/vrVb/761W/++tVv/vrVb/6+nUP+6tFn/y8Nl/8vDZf/Lw2X/y8Nl/8G6Xv+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/761W/+vp1D/urRZ/8vDZf/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/vrVb/761W/++tVv/r6dQ/7q0Wf/Lw2X/y8Nl/8vDZf/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf++tVv/vrVb/761W/++tVv/vbRa/5aPPf+emUP/y8Nl/8vDZf/Lw2X/y8Nl/8vDZf+emUP/AAAAAAAAAACWjz3/vrVb/761W/++tVv/vrVb/5qTQP+inkb/op5G/6KdRv/Lw2X/y8Nl/8vDZf/Lw2X/nplD/wAAAAAAAAAAlo89/761W/++tVv/sqlS/56ZQ//LxWb/0Mlp/9DJaf/Kw2X/oJtE/7+3XP/Lw2X/y8Nl/56ZQ/8AAAAAAAAAAJaPPf+9tFr/mJE+/7GsUv/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+xrFL/nplD/8vDZf+emUP/AAAAAAAAAACWjz3/op5G/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+inkb/nplD/wAAAAAAAAAAAAAAAKKeRv+3slb/0cpq/9HKav/Rymr/0cpq/9HKav/Rymr/0cpq/9HKav+1sFX/op5G/wAAAAAAAAAAAAAAAAAAAAAAAAAAop5GUKKeRv/Nxmf/0cpq/9HKav/Rymr/0cpq/83GZ/+inkb/op5GSAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G16KeRv/LxWb/y8Vm/6KeRv+inkaPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAop5G/6KeRtcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/n8AAPgfAADwDwAAwAMAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAwAMAAPAPAAD4HwAA/n8AAA==" />
+<link rel="stylesheet" href="style.css"/>
+<link rel="stylesheet" href="icons.css">
+<title>{{ .Path }}</title>
+</head>
+<body>
+  <div id="page-header">
+    <div id="page-header-logo" class="ipfs-logo">&nbsp;</div>
+    <div id="page-header-menu">
+      <div class="menu-item-wide"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About IPFS</a></div>
+      <div class="menu-item-wide"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install IPFS</a></div>
+      <div class="menu-item-narrow"><a href="https://ipfs.io" target="_blank" rel="noopener noreferrer">About</a></div>
+      <div class="menu-item-narrow"><a href="https://ipfs.io#install" target="_blank" rel="noopener noreferrer">Install</a></div>
+      <div>
+        <a href="https://github.com/ipfs/dir-index-html/issues/" target="_blank" rel="noopener noreferrer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18.4 21"><circle cx="7.5" cy="4.8" r="1"/><circle cx="11.1" cy="4.8" r="1"/><path d="M12.7 8.4c-0.5-1.5-1.9-2.5-3.5-2.5 -1.6 0-3 1-3.5 2.5H12.7z"/><path d="M8.5 9.7H5c-0.5 0.8-0.7 1.7-0.7 2.7 0 2.6 1.8 4.8 4.2 5.2V9.7z"/><path d="M13.4 9.7H9.9v7.9c2.4-0.4 4.2-2.5 4.2-5.2C14.1 11.4 13.9 10.5 13.4 9.7z"/><circle cx="15.7" cy="12.9" r="1"/><circle cx="15.1" cy="15.4" r="1"/><circle cx="15.3" cy="10.4" r="1"/><circle cx="2.7" cy="12.9" r="1"/><circle cx="3.3" cy="15.4" r="1"/><circle cx="3.1" cy="10.4" r="1"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div id="content">
+    <div id="content-header" class="d-flex flex-wrap">
+      <div>
+        <strong>
+          Index of
+          {{ range .Breadcrumbs -}}
+          /{{ if .Path }}<a href="{{ $root.GatewayURL }}{{ .Path | urlEscape }}">{{ .Name }}</a>{{ else }}{{ .Name }}{{ end }}
+          {{- else }}
+          {{ .Path }}
+          {{ end }}
+        </strong>
+        {{ if .Hash }}
+        <div class="ipfs-hash" translate="no">
+          {{ .Hash }}
+        </div>
+        {{ end }}
+      </div>
+      {{ if .Size }}
+      <div class="no-linebreak flex-shrink-1 ml-auto">
+        <strong>&nbsp;{{ .Size }}</strong>
+      </div>
+      {{ end }}
+    </div>
+    <div class="table-responsive">
+    <table>
+      <tr>
+        <td class="type-icon">
+          <div class="ipfs-_blank">&nbsp;</div>
+        </td>
+        <td>
+          <a href="{{.BackLink | urlEscape}}">..</a>
+        </td>
+        <td></td>
+        <td></td>
+      </tr>
+      {{ range .Listing }}
+      <tr>
+        <td class="type-icon">
+          <div class="{{iconFromExt .Name}}">&nbsp;</div>
+        </td>
+        <td>
+          <a href="{{ .Path | urlEscape }}">{{ .Name }}</a>
+        </td>
+        <td class="no-linebreak">
+          {{ if .Hash }}
+          <a class="ipfs-hash" translate="no" href={{ if $root.DNSLink }}"https://cid.ipfs.io/#{{ .Hash | urlEscape}}" target="_blank" rel="noreferrer noopener"{{ else }}"{{ $root.GatewayURL }}/ipfs/{{ .Hash | urlEscape}}?filename={{ .Name | urlEscape }}"{{ end }}>
+            {{ .ShortHash }}
+          </a>
+          {{ end }}
+        </td>
+        <td class="no-linebreak">{{ .Size }}</td>
+      </tr>
+      {{ end }}
+    </table>
+    </div>
+  </div>
+</body>
+</html>
