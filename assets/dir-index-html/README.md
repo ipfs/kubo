@@ -17,14 +17,7 @@
 When making updates to the directory listing page template, please note the following:
 
 1. Make your changes to the (human-friendly) source documents in the `src` directory
-2. Before testing or releasing, make sure to run the build script to update the minified version in the top-level directory:
-
-```bash
-> npm run build
-```
-3. To get your updates into `go-ipfs`, you'll need to do the following:
-     - Cut a new, appropriately versioned release of `dir-index-html` (don't forget to bump the version number in `package.json`)
-     - Make a PR against `go-ipfs` following [these instructions](https://github.com/ipfs/go-ipfs/tree/master/assets#updating-dir-index-html) for updating the directory index
+2. Before testing or releasing, make sure to run the `go generate .` script to update the minified version in the top-level `./assets` directory
 
 ## Testing
 
@@ -39,16 +32,3 @@ This will listen on [`localhost:3000`](http://localhost:3000/) and reload the te
 
 If you get a "no such file or directory" error upon trying `go run .`, make sure you ran `npm run build` to generate the minified artifact that the test is looking for.
 
-## Contribute
-
-Feel free to join in. All are welcome! A good place to start is to check the [issues](https://github.com/ipfs/dir-index-html/issues) for anything you find interesting.
-
-This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
-
-### Want to hack on IPFS?
-
-[![](https://cdn.rawgit.com/jbenet/contribute-ipfs-gif/master/img/contribute.gif)](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md)
-
-## License
-
-MIT
