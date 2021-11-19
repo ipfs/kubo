@@ -9,8 +9,8 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/go-ipfs-config"
 	util "github.com/ipfs/go-ipfs-util"
-	log "github.com/ipfs/go-log"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/go-log"
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
@@ -121,6 +121,12 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		} else {
 			logger.Error("Use the `Swarm.Transports.Network.Relay' config field instead")
 		}
+	}
+	//nolint
+	if cfg.Swarm.EnableRelayHop {
+		logger.Fatal("The `Swarm.EnableRelayHop` config field is ignored.\n" +
+			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
+			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://github.com/libp2p/go-libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
 	// Gather all the options

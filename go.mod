@@ -30,7 +30,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v0.1.6
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
-	github.com/ipfs/go-ipfs-config v0.16.0
+	github.com/ipfs/go-ipfs-config v0.17.1-0.20211119131814-b64b14eb7fdf
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.9
