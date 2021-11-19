@@ -100,6 +100,9 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
+    - [`Swarm.RelayClient`](#swarmrelayclient)
+      - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled)
+      - [`Swarm.RelayClient.StaticRelays`](#swarmrelayclientstaticrelays)
     - [`Swarm.RelayService`](#swarmrelayservice)
       - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled)
       - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
@@ -1278,6 +1281,8 @@ Type: `bool`
 
 ### `Swarm.EnableAutoRelay`
 
+Deprecated: Set `Swarm.RelayClient.Enabled` to `true`.
+
 Enables "automatic relay user" mode for this node.
 
 Your node will automatically _use_ public relays from the network if it detects
@@ -1291,6 +1296,35 @@ This is likely the feature you're looking for, but see also:
 Default: `false`
 
 Type: `bool`
+
+### `Swarm.RelayClient`
+
+Configuration options for the relay client to use relay services.
+
+Default: `{}`
+
+Type: `object`
+
+#### `Swarm.RelayClient.Enabled`
+
+Enables "automatic relay user" mode for this node.
+
+Your node will automatically _use_ public relays from the network if it detects
+that it cannot be reached from the public internet (e.g., it's behind a
+firewall) and get a `/p2p-circuit` address from a public relay.
+
+Default: `false`
+
+Type: `bool`
+
+#### `Swarm.RelayClient.StaticRelays`
+
+Your node will use these statically configured relay servers instead of
+discovering public relays from the network.
+
+Default: `[]`
+
+Type: `array[string]`
 
 ### `Swarm.RelayService`
 
