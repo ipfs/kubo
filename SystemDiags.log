@@ -1,0 +1,483 @@
+2021-06-18 08:43:54  ================================================
+2021-06-18 08:43:54  EFI System Diagnostic 7.6.1.0 Started
+2021-06-18 08:43:54  Load Options Blank
+2021-06-18 08:43:54  SysDiagsBiosData2011 Configuration Variable Acquired, SysDiagsBiosData2010.Version 2
+2021-06-18 08:43:54  HP Thermal Diagnostic Protocol Not Available
+2021-06-18 08:43:54  HP Thermal Diagnostic 2 Protocol Not Available
+2021-06-18 08:43:54  [L]> System ID: 867A
+2021-06-18 08:43:54  Storage tests are not available since standard HDD is present.
+2021-06-18 08:43:54  HP BIOS Image Interface Protocol Version 2.0
+2021-06-18 08:43:54  [L]> Found 2 Processors 2 Enabled Processors
+2021-06-18 08:43:54  [L]> MpService2 found Bsp at index 0
+2021-06-18 08:43:55  [L]> Found 2 Absolute Pointer Protocol(s)
+2021-06-18 08:43:55  [L]> Found Device path associated with Absolute Pointer Protocol.
+2021-06-18 08:43:55  [L]> 0 UART device path node found.
+2021-06-18 08:43:55  Found Touch Screen Device
+2021-06-18 08:43:55  System Family: Consumer Notebook
+2021-06-18 08:43:55  Filter Serial Port Test for SystemFamily 2 
+2021-06-18 08:43:55  [L]> Locate IsaIoProtocol HandleCount = 0. (Not Found)
+2021-06-18 08:43:55  [L]> IsThunderboltAccessProtocolPresent(): Failed to Locate Thunderbolt Protocol. (Not Found)
+2021-06-18 08:43:55  Failed loading Hp Fingerprint Verify Protocol.(Not Found)
+2021-06-18 08:43:55  [L]> PlatformLang reported as en-US.
+2021-06-18 08:43:55  [L]> Language Selected is currently (eng).
+2021-06-18 08:43:59  Initializing Drive Library.
+2021-06-18 08:43:59  TscPerSecond = 0593E5FEDh 
+2021-06-18 08:43:59  [L]> Find IVRS in ACPI Table
+2021-06-18 08:43:59  [L]> DMA Remap Protection is disabled
+2021-06-18 08:44:03  Installed DTD ATA Commands Protocol
+2021-06-18 08:44:03  Found installed DTD ATA Commands Protocol supporting Packet Commands!
+2021-06-18 08:44:03  Found 1 Hard Disk Drive.
+2021-06-18 08:44:03  Drive 0 SMART Supported
+2021-06-18 08:44:03  Drive 0 - Disk Access disabled during DST
+2021-06-18 08:44:03  AtaCommandsBindBlockIoProtocol(): Linked Block I/O Protocol (0xE2F0C618) to Drive 0
+2021-06-18 08:44:03  1 Total ATA Commands Drives Found
+2021-06-18 08:44:03  No handle found supporting EFI_EXT_SCSI_PASS_THRU_PROTOCOL (143B7632-B81B-4CB7-ABD3-B625A5B9BFFE).
+2021-06-18 08:44:03  No handle found supporting EFI_NVM_EXPRESS_PASS_THRU_PROTOCOL_GUID (52C78312-8EDC-4233-98F2-1A1AA5E388A5).
+2021-06-18 08:44:03  No handle found supporting LEGACY_NVM_EXPRESS_PASS_THRU_PROTOCOL_GUID (EC51EF5C-2CF3-4A55-BF85-B63CA3B13F44).
+2021-06-18 08:44:03  1 Total Hard Disc Drives Found
+2021-06-18 08:44:03  0 Total Optical Disc Drives Found
+2021-06-18 08:44:03  Found 1 Hard Disk Drives
+2021-06-18 08:44:03  Found 0 Optical Disk Drives
+2021-06-18 08:44:03  No handle found supporting EFI_DCPMM_CONFIG_PROTOCOL_GUID (CF2F5F1F-94B6-4C15-9CAE-AFB3BD9F2BA5).
+2021-06-18 08:44:03  Failed to initialize NVDIMM modules.
+2021-06-18 08:44:03  Found Legacy Bios Protocol.
+2021-06-18 08:44:03  SSD Wear ID is 0xAD, Flags is 0x0032, Current is 0x64, Worse is 0x64.
+2021-06-18 08:44:03  SSD Wear Data: 00 00 00 00 00 00. 
+2021-06-18 08:44:03  [L]> System ID: 867A
+2021-06-18 08:44:03  System Model: = HP Stream Laptop 14-DS0xxx
+2021-06-18 08:44:03  System SKU: = 6ZB89UA#ABA
+2021-06-18 08:44:03  System ID: 867A
+2021-06-18 08:44:03  [L]> SMBIOS Type: 3, ID: 0 not found. 
+2021-06-18 08:44:03  Type 11 OS Image: BUILDID#19WW2EBX601#SABA#DABA
+2021-06-18 08:44:03  BOD: 10/12/2020
+2021-06-18 08:44:03  HDD 0 Type : ATA
+2021-06-18 08:44:03  HDD 0 Model :   BHT WR202I0064G E70270F5
+2021-06-18 08:44:03  HDD 0 Firmware: 700100
+2021-06-18 08:44:03  HDD 0 Serial:   P02702I02G103976cf3b
+2021-06-18 08:44:03  DIMM 0 Serial Number: 38069294
+2021-06-18 08:44:03  DIMM 0 Part Number  : M471A5244CB0-CTD    
+2021-06-18 08:44:03  BIOS Revision: F.09
+2021-06-18 08:44:03  [L]> Platform Vendor ID : 0x1022
+2021-06-18 08:44:03  [L]> Platform Device ID : 0x15B0
+2021-06-18 08:44:03  [L]> Only a single DIMM slot on the system
+2021-06-18 08:44:03  [L]> Found EFI_HP_DIMM_ID_PROTOCOL
+2021-06-18 08:44:03  InitializeCeeLogs - No Records Found
+2021-06-18 08:44:03  [L]> EFI_HP_BATTERY_CONTROL_PROTOCOL_2010 is present.
+2021-06-18 08:44:03  Type 11 1 tables
+2021-06-18 08:44:03  Type (000000000000000Bh), Len (0000000000000005h), Handle (000000000000000Dh), String count (000000000000000Dh)
+2021-06-18 08:44:03  HPBATDET: Environment Variable not found.
+2021-06-18 08:44:03  BATDET: Date 6//30//2020 
+2021-06-18 08:44:03  BATDET: 0
+2021-06-18 08:44:03  [L]> BATDET: HP
+2021-06-18 08:44:03  SysDiagsGetBatterySafetyModeStatus(): Failed to get BatterySafeyMode/BatterySafeyModeStatus.
+2021-06-18 08:44:04  BIOS Config Table Configure Legacy Support and Secure Boot section was not found. 
+2021-06-18 08:44:04  Legacy Support:
+2021-06-18 08:44:04  	Disable
+2021-06-18 08:44:04  	*Enable
+2021-06-18 08:44:04  GetBIOSBootModeFromBIOSConfig(): Legacy Support is Enabled. 
+2021-06-18 08:44:04  Secure Boot:
+2021-06-18 08:44:04  	*Disable
+2021-06-18 08:44:04  	Enable
+2021-06-18 08:44:04  GetBIOSBootModeFromBIOSConfig(): Secure Boot is Not Enabled. 
+2021-06-18 08:44:04  BIOS Config Table Adaptive Battery Extender section was not found. 
+2021-06-18 08:44:04  SaveBIOSConfigInfo: Error assigning Battery Adaptive Extender data from BIOS configuration. Status = Not Found
+2021-06-18 08:44:04  BIOS Config Table Adaptive Battery Optimizer section was not found. 
+2021-06-18 08:44:04  BIOS Config Table DMAr Protection section was not found. 
+2021-06-18 08:44:04  BIOS Config Table Batt_LTemp section was not found. 
+2021-06-18 08:44:04  Starting Graphical System Diagnostic Menu
+2021-06-18 08:44:52  Checking if Charging Port Test is available...
+2021-06-18 08:44:52  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-06-18 08:44:53  SysDiagsBatteryCheckDeepDischargeAndLowVoltage(): Failed getting Battery Pack Supplier.
+2021-06-18 08:44:53  Battery0: Charged to 34% and current is 2078mA. Battery Health Manager or Battery Care Function not detected.
+2021-06-18 08:44:58  System Fast Test Selected
+2021-06-18 08:44:58  Estimated Total Time Required = 433s
+2021-06-18 08:44:58  Battery Test Started
+2021-06-18 08:44:58  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-06-18 08:44:58  System reports 1 batteries supported.
+2021-06-18 08:44:59  Battery Pack Supplier Index: 1.
+2021-06-18 08:44:59  Battery MFG Date 6/30/2020.
+2021-06-18 08:44:59  Battery0: Charged to 34% and current is 2077mA. Battery Health Manager or Battery Care Function not detected.
+2021-06-18 08:44:59  Battery 0: Executing Battery Logical State Test.
+2021-06-18 08:44:59  [L]> Battery state is good.
+2021-06-18 08:44:59  Battery 0: Executing Battery Charge State Test.
+2021-06-18 08:44:59  [L]> Battery Charge state is good.
+2021-06-18 08:44:59  Battery 0: Executing Battery Full Test.
+2021-06-18 08:44:59  [L]> Battery state is good.
+2021-06-18 08:45:02  Battery 0 returned 0x0000000000000000
+2021-06-18 08:45:03  Batt 0: Result:       0x0
+2021-06-18 08:45:03  Batt 0: Serial:       11587 06/30/2020
+2021-06-18 08:45:03  Batt 0: Manufacturer: 333-1C-4A-A
+2021-06-18 08:45:03  Batt 0: CTNumber:     6HWQK05WYDX8XV
+2021-06-18 08:45:03  Batt 0: DesignCycleCount:    1000	 Design Capacity:  3620mAh	 Full Charge Capcity      3619mAh
+2021-06-18 08:45:03  Batt 0: RemainingCapacity: 1253mAh	 Max Error:        0000001	 CycleCount:              68     
+2021-06-18 08:45:03  Batt 0: Temperature:       000029	 Voltage:          12001mV	 Current:                 2077mA
+2021-06-18 08:45:03  Batt 0: DesignVoltate:     11340mV	 StatusWord:       0x00080	 CellVoltage1:            4002mV
+2021-06-18 08:45:03  Batt 0: CellVoltage2:      3989mV	 CellVoltage3:     3975mV	 CellVoltage4:            0mV   
+2021-06-18 08:45:03  Batt 0: Warranty:          000003	 Calibration:      0x00003	 ChargeControlSupported:  YES    
+2021-06-18 08:45:03  Batt 0: ACPowerOn:         ON    	 ChargeTempOK:     YES   	 ChargeTest:              1      
+2021-06-18 08:45:03  Batt 0: ChargeCapacity:    99mAh	 TempAlarm:        NO    	 DeepDischarge:           NO     
+2021-06-18 08:45:03  Batt 0: FullCharge:        NO    	 FullChargeStatus: 000000	 BatteryCharge:           YES    
+2021-06-18 08:45:03  Batt 0: LowVoltageDisable: NO    	 AdaptiveBatteryExtender: Not Supported
+2021-06-18 08:45:03  Overall Battery Result = 1
+2021-06-18 08:45:03  Charging Port Test Started
+2021-06-18 08:45:03  Charging Port Test: Step 1 - AC Power State =   1
+2021-06-18 08:45:03  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-06-18 08:45:03  Charging Port Test Step 2:
+2021-06-18 08:45:03  Checking if Charging Port Test is available...
+2021-06-18 08:45:03  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-06-18 08:45:04  Battery Pack Supplier Index: 1.
+2021-06-18 08:45:04  Battery MFG Date 6/30/2020.
+2021-06-18 08:45:04  Battery0: Charged to 34% and current is 2078mA. Battery Health Manager or Battery Care Function not detected.
+2021-06-18 08:45:07  Charging Port Test: Step 3 - Internal Battery Current =   2078mA
+2021-06-18 08:45:07  Charging Port Test Completed - Result 1
+2021-06-18 08:45:07  CPU Test Started
+2021-06-18 08:45:08  Start Numeric Coprocessor Test.
+2021-06-18 08:45:13  CPU Test Completed - Result 1
+2021-06-18 08:45:13  Wireless Module Check Started
+2021-06-18 08:45:13  Wireless Module Check Completed - Result 1
+2021-06-18 08:45:13  SMART Check Started
+2021-06-18 08:45:13  SMART Check Completed - Result 1
+2021-06-18 08:45:13  Short DST Started
+2021-06-18 08:45:13  StartDST(): Drive 0 temperature before Self-DST Test = 32 degrees Celsius 
+2021-06-18 08:45:13  EfiDriveLibGetSelftestLogs(): Get SMART Log failed (Device Error).
+2021-06-18 08:45:13  EfiDriveLibValidateATASelfDSTLogEntry(): Failed to get Smart Self Test Logs on HDD 0 (Result: 3)
+2021-06-18 08:46:06  EfiDriveLibGetSelftestLogs(): Get SMART Log failed (Device Error).
+2021-06-18 08:46:06  EfiDriveLibValidateATASelfDSTLogEntry(): Failed to get Smart Self Test Logs on HDD 0 (Result: 3)
+2021-06-18 08:46:06  Short DST Completed - Result 1
+2021-06-18 08:46:06  Short DST Completed - Result 1
+2021-06-18 08:46:06  [L]> Total Memory 3982MB, Free 3511MB (898978 Pages)
+2021-06-18 08:46:06  [L]> SmbiosGetBiosVendor: AMI
+2021-06-18 08:46:06  [L]> Found VGA device at Seg-0x00:Bus-0x00:Dev-0x01:Func-0x00, ClassCode-0x0300, CommandRegister-0x0007
+2021-06-18 08:46:06  [L]> Both Segment and Bus are 0, continue to get video memory information.
+2021-06-18 08:46:06  [L]> Found Video Device 0x98E41002
+2021-06-18 08:46:06  [L]> GetAllGraphicFB(): GraphicDevice[0]: Base-0x00000000E8000000, Size-0x0000000005000000, 64Bit-TRUE, Supported-TRUE
+2021-06-18 08:46:06  [L]> GetAllGraphicFB(): Found 1 graphic device(s) to test.
+2021-06-18 08:46:06  [L]> GetAllGraphicFB(): VideoMemorySizeTotal is 0x5000000
+2021-06-18 08:46:06  [L]> Audio Controller Bus 0, Dev 1, Func 1
+2021-06-18 08:46:07  [L]> Audio controller Vendor ID 0x1002
+2021-06-18 08:46:07  [L]> Audio controller Device ID 0x15B3
+2021-06-18 08:46:07  [L]> Audio controller Revision ID 0x00
+2021-06-18 08:46:07  [L]> Audio controller Subsystem Vendor ID 0x103C
+2021-06-18 08:46:07  [L]> Audio controller Subsystem Device ID 0x867A
+2021-06-18 08:46:07  [L]> Audio controller Class Code 0x0403
+2021-06-18 08:46:07  [W]> Unsupported Audio Controller VendorID 0x1002 DeviceID 0x15B3 (ignored)
+2021-06-18 08:46:07  [L]> Audio Controller Bus 0, Dev 9, Func 2
+2021-06-18 08:46:07  [L]> Audio controller Vendor ID 0x1022
+2021-06-18 08:46:08  [L]> Audio controller Device ID 0x157A
+2021-06-18 08:46:08  [L]> Audio controller Revision ID 0x00
+2021-06-18 08:46:08  [L]> Audio controller Subsystem Vendor ID 0x103C
+2021-06-18 08:46:08  [L]> Audio controller Subsystem Device ID 0x867A
+2021-06-18 08:46:08  [L]> Audio controller Class Code 0x0403
+2021-06-18 08:46:08  [L]> HD audio codec Vendor ID 0x10EC Device ID 0x0236
+2021-06-18 08:46:08  [L]> HD audio codec Revision ID - 0x100002
+2021-06-18 08:46:08  [L]> The codec 0x10EC0236 need specific patch
+2021-06-18 08:46:08  [L]> RealtekInit(): Set EAPD pin state to high through Node ID 0x0014.
+2021-06-18 08:46:08  [L]> Found 2 EFI_USB2_HC_PROTOCOL handles.
+2021-06-18 08:46:08  System Board Test Completed - Result 1
+2021-06-18 08:46:08  SysDiagCalculatePassID(): Test PassID 20837-23110-53754.
+2021-06-18 08:46:16  System Fast Test Completed
+2021-06-18 08:46:17  No USB optical drive detected.
+2021-06-18 08:46:27  Wireless Module Check Selected
+2021-06-18 08:46:27  Estimated Total Time Required = 30s
+2021-06-18 08:46:27  Wireless Module Check Started
+2021-06-18 08:46:27  Wireless Module Check Completed - Result 1
+2021-06-18 08:46:27  SysDiagCalculatePassID(): Test PassID 20837-25310-53754.
+2021-06-18 08:46:29  Wireless Module Check Completed
+2021-06-18 08:46:30  EFI HP BIOS Management Started
+2021-06-18 08:46:32  BIOS Management Mode = 0
+2021-06-18 08:46:32  Starting BIOS Update Process
+2021-06-18 08:46:32  Setting BIOS Update Token
+2021-06-18 08:46:32  Getting BIOS Detail Information
+2021-06-18 08:46:32  IsBiosSixDigits = 0
+2021-06-18 08:46:32  BIOS Returned BiosID '0867A'
+2021-06-18 08:46:32  QueryImageDetail: 4K Block Size detected.
+2021-06-18 08:46:32  Skip Addresses:
+2021-06-18 08:46:32  Loading BIOS Image
+2021-06-18 08:46:32  File name constructed: EFI\HP\BIOS\New\0867A.bin
+2021-06-18 08:46:32  Failed Reading BIOS Image EFI\HP\BIOS\New\0867A.bin (Not Found)
+2021-06-18 08:47:07  Reading New BIOS Image \EFI\HP\BIOS\Current\0867A.bin
+2021-06-18 08:47:07  Getting BIOS version from file image
+2021-06-18 08:47:07  Bios Version = F.09
+2021-06-18 08:47:07  Verifying AC or Battery Power Status
+2021-06-18 08:47:08  Verifying Binary match
+2021-06-18 08:47:08  Loading Signature File
+2021-06-18 08:47:08  Loading Password File if required
+2021-06-18 08:47:08  BIOS Password not required.
+2021-06-18 08:47:08  Writing BIOS Image
+2021-06-18 08:48:58  Verifying Written BIOS Image
+2021-06-18 08:48:59  VerifyImage: 4K Block Size detected.
+2021-06-18 08:49:26  Updating BIOS files
+2021-06-18 08:49:26  File name constructed: EFI\HP\BIOS\Current\0867A.bin
+2021-06-18 08:49:26  File name constructed: EFI\HP\BIOS\Previous\0867A.bin
+2021-06-18 08:49:26  File name constructed: EFI\HP\BIOS\Current\0867A.sig
+2021-06-18 08:49:26  File name constructed: EFI\HP\BIOS\Previous\0867A.sig
+2021-06-18 08:49:26  File name constructed: EFI\HP\BIOS\Current\0867A.s12
+2021-06-18 08:49:26  Read file EFI\HP\BIOS\Current\0867A.s12 failed (Not Found)
+2021-06-18 08:49:26  File name constructed: EFI\HP\BIOS\Current\0867A.bin
+2021-06-18 08:49:27  File name constructed: EFI\HP\BIOS\Current\0867A.sig
+2021-06-18 08:49:27  File name constructed: EFI\HP\BIOS\New\0867A.bin
+2021-06-18 08:49:27  Will delete file EFI\HP\BIOS\New\0867A.bin
+2021-06-18 08:49:27  File name constructed: EFI\HP\BIOS\New\0867A.sig
+2021-06-18 08:49:27  Will delete file EFI\HP\BIOS\New\0867A.sig
+2021-06-18 08:49:27  EfiBiosUpdateLibEntry(): Result is 0x0
+2021-06-18 08:49:27  Setting Flash Completion Status
+2021-06-18 08:49:27  BIOS Update Process Complete
+2021-06-18 08:49:27  BIOS Update Successful
+2021-08-24 12:44:39  ================================================
+2021-08-24 12:44:39  EFI System Diagnostic 7.6.1.0 Started
+2021-08-24 12:44:39  Load Options Blank
+2021-08-24 12:44:39  SysDiagsBiosData2011 Configuration Variable Acquired, SysDiagsBiosData2010.Version 2
+2021-08-24 12:44:39  HP Thermal Diagnostic Protocol Not Available
+2021-08-24 12:44:39  HP Thermal Diagnostic 2 Protocol Not Available
+2021-08-24 12:44:39  [L]> System ID: 867A
+2021-08-24 12:44:39  Storage tests are not available since standard HDD is present.
+2021-08-24 12:44:39  HP BIOS Image Interface Protocol Version 2.0
+2021-08-24 12:44:39  [L]> Found 2 Processors 2 Enabled Processors
+2021-08-24 12:44:39  [L]> MpService2 found Bsp at index 0
+2021-08-24 12:44:39  [L]> Found 1 Absolute Pointer Protocol(s)
+2021-08-24 12:44:39  [L]> 0 UART device path node found.
+2021-08-24 12:44:39  System Family: Consumer Notebook
+2021-08-24 12:44:39  Filter Serial Port Test for SystemFamily 2 
+2021-08-24 12:44:39  [L]> Locate IsaIoProtocol HandleCount = 0. (Not Found)
+2021-08-24 12:44:40  [L]> IsThunderboltAccessProtocolPresent(): Failed to Locate Thunderbolt Protocol. (Not Found)
+2021-08-24 12:44:40  Failed loading Hp Fingerprint Verify Protocol.(Not Found)
+2021-08-24 12:44:40  [L]> Language Selected is currently (eng).
+2021-08-24 12:44:42  Initializing Drive Library.
+2021-08-24 12:44:42  TscPerSecond = 0593EE0F7h 
+2021-08-24 12:44:42  [L]> Find IVRS in ACPI Table
+2021-08-24 12:44:42  [L]> DMA Remap Protection is disabled
+2021-08-24 12:44:46  Installed DTD ATA Commands Protocol
+2021-08-24 12:44:46  Found installed DTD ATA Commands Protocol supporting Packet Commands!
+2021-08-24 12:44:46  Found 1 Hard Disk Drive.
+2021-08-24 12:44:46  Drive 0 SMART Supported
+2021-08-24 12:44:46  Drive 0 - Disk Access disabled during DST
+2021-08-24 12:44:46  AtaCommandsBindBlockIoProtocol(): Linked Block I/O Protocol (0xE2F4C818) to Drive 0
+2021-08-24 12:44:46  1 Total ATA Commands Drives Found
+2021-08-24 12:44:46  No handle found supporting EFI_EXT_SCSI_PASS_THRU_PROTOCOL (143B7632-B81B-4CB7-ABD3-B625A5B9BFFE).
+2021-08-24 12:44:46  No handle found supporting EFI_NVM_EXPRESS_PASS_THRU_PROTOCOL_GUID (52C78312-8EDC-4233-98F2-1A1AA5E388A5).
+2021-08-24 12:44:46  No handle found supporting LEGACY_NVM_EXPRESS_PASS_THRU_PROTOCOL_GUID (EC51EF5C-2CF3-4A55-BF85-B63CA3B13F44).
+2021-08-24 12:44:46  1 Total Hard Disc Drives Found
+2021-08-24 12:44:46  0 Total Optical Disc Drives Found
+2021-08-24 12:44:46  Found 1 Hard Disk Drives
+2021-08-24 12:44:46  Found 0 Optical Disk Drives
+2021-08-24 12:44:46  No handle found supporting EFI_DCPMM_CONFIG_PROTOCOL_GUID (CF2F5F1F-94B6-4C15-9CAE-AFB3BD9F2BA5).
+2021-08-24 12:44:46  Failed to initialize NVDIMM modules.
+2021-08-24 12:44:46  SSD Wear ID is 0xAD, Flags is 0x0032, Current is 0x64, Worse is 0x64.
+2021-08-24 12:44:46  SSD Wear Data: 00 00 00 00 00 00. 
+2021-08-24 12:44:46  [L]> System ID: 867A
+2021-08-24 12:44:46  System Model: = HP Stream Laptop 14-DS0xxx
+2021-08-24 12:44:46  System SKU: = 6ZB89UA#ABA
+2021-08-24 12:44:46  System ID: 867A
+2021-08-24 12:44:46  [L]> SMBIOS Type: 3, ID: 0 not found. 
+2021-08-24 12:44:46  Type 11 OS Image: BUILDID#19WW2EBX601#SABA#DABA
+2021-08-24 12:44:46  BOD: 10/12/2020
+2021-08-24 12:44:46  HDD 0 Type : ATA
+2021-08-24 12:44:46  HDD 0 Model :   BHT WR202I0064G E70270F5
+2021-08-24 12:44:46  HDD 0 Firmware: 700100
+2021-08-24 12:44:46  HDD 0 Serial:   P02702I02G103976cf3b
+2021-08-24 12:44:46  DIMM 0 Serial Number: 38069294
+2021-08-24 12:44:46  DIMM 0 Part Number  : M471A5244CB0-CTD    
+2021-08-24 12:44:46  BIOS Revision: F.09
+2021-08-24 12:44:46  [L]> Platform Vendor ID : 0x1022
+2021-08-24 12:44:46  [L]> Platform Device ID : 0x15B0
+2021-08-24 12:44:46  [L]> Only a single DIMM slot on the system
+2021-08-24 12:44:46  [L]> Found EFI_HP_DIMM_ID_PROTOCOL
+2021-08-24 12:44:46  [L]> EFI_HP_BATTERY_CONTROL_PROTOCOL_2010 is present.
+2021-08-24 12:44:46  Type 11 1 tables
+2021-08-24 12:44:46  Type (000000000000000Bh), Len (0000000000000005h), Handle (000000000000000Dh), String count (000000000000000Dh)
+2021-08-24 12:44:46  HPBATDET: Environment Variable not found.
+2021-08-24 12:44:46  BATDET: Date 6//30//2020 
+2021-08-24 12:44:46  BATDET: 0
+2021-08-24 12:44:46  [L]> BATDET: HP
+2021-08-24 12:44:46  SysDiagsGetBatterySafetyModeStatus(): Failed to get BatterySafeyMode/BatterySafeyModeStatus.
+2021-08-24 12:44:47  BIOS Config Table Configure Legacy Support and Secure Boot section was not found. 
+2021-08-24 12:44:47  Legacy Support:
+2021-08-24 12:44:47  	*Disable
+2021-08-24 12:44:47  	Enable
+2021-08-24 12:44:47  GetBIOSBootModeFromBIOSConfig(): Legacy Support is Not Enabled. 
+2021-08-24 12:44:47  Secure Boot:
+2021-08-24 12:44:47  	Disable
+2021-08-24 12:44:47  	*Enable
+2021-08-24 12:44:47  GetBIOSBootModeFromBIOSConfig(): Secure Boot is Enabled. 
+2021-08-24 12:44:47  BIOS Config Table Adaptive Battery Extender section was not found. 
+2021-08-24 12:44:47  SaveBIOSConfigInfo: Error assigning Battery Adaptive Extender data from BIOS configuration. Status = Not Found
+2021-08-24 12:44:47  BIOS Config Table Adaptive Battery Optimizer section was not found. 
+2021-08-24 12:44:47  BIOS Config Table DMAr Protection section was not found. 
+2021-08-24 12:44:47  BIOS Config Table Batt_LTemp section was not found. 
+2021-08-24 12:44:47  Starting Graphical System Diagnostic Menu
+2021-08-24 12:45:02  No USB optical drive detected.
+2021-08-24 12:45:09  Memory Quick Test Selected
+2021-08-24 12:45:09  [L]> Total Memory 3982MB, Free 3812MB (975887 Pages)
+2021-08-24 12:45:10  [L]> Calculated 0x0000000017E8F2C8 TSC Ticks per MB.
+2021-08-24 12:45:10  Estimated Total Time Required = 1031s
+2021-08-24 12:45:10  CPU Test Started
+2021-08-24 12:45:11  Start Numeric Coprocessor Test.
+2021-08-24 12:45:18  CPU Test Completed - Result 1
+2021-08-24 12:45:18  Memory Quick Check Started
+2021-08-24 13:01:52  [L]> Tested 3811 MB in 993000 ms with 2 processor(s), normalized test time is 521 ms/MB
+2021-08-24 13:01:52  [L]> Memory Test totally tested 975727 Pages in 1 loop(s).
+2021-08-24 13:01:52  Memory Quick Check Completed - Result 1
+2021-08-24 13:01:52  SysDiagCalculatePassID(): Test PassID 20858-83511-53754.
+2021-08-24 13:55:25  Memory Quick Test Completed
+2021-08-24 13:56:07  No USB optical drive detected.
+2021-08-24 13:56:25  Checking if Charging Port Test is available...
+2021-08-24 13:56:25  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-08-24 13:56:25  SysDiagsBatteryCheckDeepDischargeAndLowVoltage(): Failed getting Battery Pack Supplier.
+2021-08-24 13:56:25  Battery0: Charged to 42% and current is 522mA. Battery Health Manager or Battery Care Function not detected.
+2021-08-24 13:56:41  System Extensive Test Selected
+2021-08-24 13:56:41  [L]> Total Memory 3982MB, Free 3812MB (975887 Pages)
+2021-08-24 13:56:42  [L]> Calculated 0x00000000690132D0 TSC Ticks per MB.
+2021-08-24 13:56:42  Drive Partition 2 (NOTOUCH)
+2021-08-24 13:56:42  Drive Partition 4 (NOTOUCH)
+2021-08-24 13:56:42  Found 4 Partitions on Drive 
+2021-08-24 13:56:42  SectorPerCluster 0x8
+2021-08-24 13:56:42  Cluster Size 0x1000
+2021-08-24 13:56:42  Partition has 0x10000 Clusters
+2021-08-24 13:56:42  Volume is FAT32
+2021-08-24 13:56:42  Drive 0, Partition 0 - Decoding FAT data
+2021-08-24 13:56:42  Partition Starting LBA 0x800
+2021-08-24 13:56:42  Partition Size in LBA 0x82000
+2021-08-24 13:56:42  Partition (FAT32) Clusters: Read=0x3D1D Skipped=0xC2E3 Total=0x10000
+2021-08-24 13:56:42  NTFS Blocks Used 344135, Free 127561
+2021-08-24 13:56:42  EXT3 Blocks Used 0, Free 0
+2021-08-24 13:56:42  FAT32 Clusters Used 15645, Free 49891
+2021-08-24 13:56:42  Estimated Total Time Required = 10199s
+2021-08-24 13:56:42  Battery Test Started
+2021-08-24 13:56:42  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-08-24 13:56:42  System reports 1 batteries supported.
+2021-08-24 13:56:43  Battery Pack Supplier Index: 1.
+2021-08-24 13:56:43  Battery MFG Date 6/30/2020.
+2021-08-24 13:56:43  Battery0: Charged to 42% and current is 522mA. Battery Health Manager or Battery Care Function not detected.
+2021-08-24 13:56:43  Battery 0: Executing Battery Logical State Test.
+2021-08-24 13:56:43  [L]> Battery state is good.
+2021-08-24 13:56:43  Battery 0: Executing Battery Charge State Test.
+2021-08-24 13:56:43  [L]> Battery Charge state is good.
+2021-08-24 13:56:43  Battery 0: Executing Battery Full Test.
+2021-08-24 13:56:43  [L]> Battery state is good.
+2021-08-24 13:56:46  Battery 0 returned 0x0000000000000000
+2021-08-24 13:56:47  Batt 0: Result:       0x0
+2021-08-24 13:56:47  Batt 0: Serial:       11587 06/30/2020
+2021-08-24 13:56:47  Batt 0: Manufacturer: 333-1C-4A-A
+2021-08-24 13:56:47  Batt 0: CTNumber:     6HWQK05WYDX8XV
+2021-08-24 13:56:47  Batt 0: DesignCycleCount:    1000	 Design Capacity:  3620mAh	 Full Charge Capcity      3590mAh
+2021-08-24 13:56:47  Batt 0: RemainingCapacity: 1511mAh	 Max Error:        0000001	 CycleCount:              74     
+2021-08-24 13:56:47  Batt 0: Temperature:       000036	 Voltage:          11547mV	 Current:                 522mA 
+2021-08-24 13:56:47  Batt 0: DesignVoltate:     11340mV	 StatusWord:       0x00080	 CellVoltage1:            3854mV
+2021-08-24 13:56:47  Batt 0: CellVoltage2:      3849mV	 CellVoltage3:     3844mV	 CellVoltage4:            0mV   
+2021-08-24 13:56:47  Batt 0: Warranty:          000003	 Calibration:      0x00003	 ChargeControlSupported:  YES    
+2021-08-24 13:56:47  Batt 0: ACPowerOn:         ON    	 ChargeTempOK:     YES   	 ChargeTest:              1      
+2021-08-24 13:56:47  Batt 0: ChargeCapacity:    99mAh	 TempAlarm:        NO    	 DeepDischarge:           NO     
+2021-08-24 13:56:47  Batt 0: FullCharge:        NO    	 FullChargeStatus: 000000	 BatteryCharge:           YES    
+2021-08-24 13:56:47  Batt 0: LowVoltageDisable: NO    	 AdaptiveBatteryExtender: Not Supported
+2021-08-24 13:56:47  Overall Battery Result = 1
+2021-08-24 13:56:48  Charging Port Test Started
+2021-08-24 13:56:48  Charging Port Test: Step 1 - AC Power State =   1
+2021-08-24 13:56:48  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-08-24 13:56:48  Charging Port Test Step 2:
+2021-08-24 13:56:48  Checking if Charging Port Test is available...
+2021-08-24 13:56:48  [L]> EfiBatteryLibGetSmartAdapterStatus: AdapterStatus is '1'.
+2021-08-24 13:56:49  Battery Pack Supplier Index: 1.
+2021-08-24 13:56:49  Battery MFG Date 6/30/2020.
+2021-08-24 13:56:49  Battery0: Charged to 42% and current is 523mA. Battery Health Manager or Battery Care Function not detected.
+2021-08-24 13:56:52  Charging Port Test: Step 3 - Internal Battery Current =   523mA
+2021-08-24 13:56:52  Charging Port Test Completed - Result 1
+2021-08-24 13:56:52  CPU Test Started
+2021-08-24 13:56:53  Start Numeric Coprocessor Test.
+2021-08-24 13:57:02  CPU Test Completed - Result 1
+2021-08-24 13:57:02  Wireless Module Check Started
+2021-08-24 13:57:02  Wireless Module Check Completed - Result 1
+2021-08-24 13:57:02  SMART Check Started
+2021-08-24 13:57:02  SMART Check Completed - Result 1
+2021-08-24 13:57:02  Short DST Started
+2021-08-24 13:57:02  StartDST(): Drive 0 temperature before Self-DST Test = 32 degrees Celsius 
+2021-08-24 13:57:02  EfiDriveLibGetSelftestLogs(): Get SMART Log failed (Device Error).
+2021-08-24 13:57:02  EfiDriveLibValidateATASelfDSTLogEntry(): Failed to get Smart Self Test Logs on HDD 0 (Result: 3)
+2021-08-24 13:57:56  EfiDriveLibGetSelftestLogs(): Get SMART Log failed (Device Error).
+2021-08-24 13:57:56  EfiDriveLibValidateATASelfDSTLogEntry(): Failed to get Smart Self Test Logs on HDD 0 (Result: 3)
+2021-08-24 13:57:56  Short DST Completed - Result 1
+2021-08-24 13:57:56  Short DST Completed - Result 1
+2021-08-24 13:57:56  EfiDriveLibPollDSTStatus(): Drive 0 temperature before Self-DST Test = 32 degrees Celsius 
+2021-08-24 13:57:56  Optimized DST Started
+2021-08-24 13:58:15  Partition (FAT32) Clusters: Read=3D1E Skipped=C2E2 Total=10000
+2021-08-24 13:58:15  EfiDriveLibExecuteOptimizedDiskTest(): Unknown FS(0x0) on Drive(0) Partition(1).
+2021-08-24 14:08:02  UpdateOptimizedDiskTestProgress: Reach maximum test time.
+2021-08-24 14:08:02  ODST test: FS(0x7) on Drive(0) Partition(2) Reach maximum test time.
+2021-08-24 14:08:02  (NTFS) Blocks (256 Sectors per block): Read=69227 Skipped=405 Total=69632
+2021-08-24 14:08:02  (EXT3) Blocks (256 Sectors per block): Read=0 Skipped=0 Total=0
+2021-08-24 14:08:02  (FAT32) Clusters: Read=15646 Skipped=49890 Total=65536
+2021-08-24 14:08:02  Optimized DST Completed - Result 1
+2021-08-24 14:08:03  EfiDriveLibPollDSTStatus(): Drive 0 temperature after Self-DST Test = 32 degrees Celsius 
+2021-08-24 14:08:03  Long DST Started
+2021-08-24 14:08:03  StartDST(): Drive 0 temperature before Self-DST Test = 32 degrees Celsius 
+2021-08-24 14:08:03  EfiDriveLibGetSelftestLogs(): Get SMART Log failed (Device Error).
+2021-08-24 14:08:03  EfiDriveLibValidateATASelfDSTLogEntry(): Failed to get Smart Self Test Logs on HDD 0 (Result: 3)
+2021-08-24 14:15:21  EfiDriveLibGetSelftestLogs(): Get SMART Log failed (Device Error).
+2021-08-24 14:15:21  EfiDriveLibValidateATASelfDSTLogEntry(): Failed to get Smart Self Test Logs on HDD 0 (Result: 3)
+2021-08-24 14:15:21  Long DST Completed - Result 1
+2021-08-24 14:15:21  Long DST Completed - Result 1
+2021-08-24 14:15:21  Memory Extensive Check Started
+2021-08-24 15:13:53  [L]> Tested 3811 MB in 3512000 ms with 2 processor(s), normalized test time is 1843 ms/MB
+2021-08-24 15:13:53  [L]> Memory Test totally tested 975727 Pages in 1 loop(s).
+2021-08-24 15:13:53  Memory Extensive Check Completed - Result 1
+2021-08-24 15:13:53  Video Memory Test Started
+2021-08-24 15:13:53  Start Video Memory Check.
+2021-08-24 15:13:53  [L]> SmbiosGetBiosVendor: AMI
+2021-08-24 15:13:53  [L]> Found VGA device at Seg-0x00:Bus-0x00:Dev-0x01:Func-0x00, ClassCode-0x0300, CommandRegister-0x0007
+2021-08-24 15:13:53  [L]> Found Video Device 0x98E41002
+2021-08-24 15:13:53  [L]> GetAllGraphicFB(): GraphicDevice[0]: Base-0x00000000E8000000, Size-0x0000000005000000, 64Bit-TRUE, Supported-TRUE
+2021-08-24 15:13:53  [L]> GetAllGraphicFB(): Found 1 graphic device(s) to test.
+2021-08-24 15:13:53  [L]> GetAllGraphicFB(): VideoMemorySizeTotal is 0x5000000
+2021-08-24 15:13:53  [L]> Calibrate TSC.
+2021-08-24 15:13:53  [L]> Start testing card 0: VidDid=0x98E41002, Base=0x00000000E8000000, Size=0x0000000005000000
+2021-08-24 15:13:53  Estimated Time for Video Memory check 547
+2021-08-24 15:13:53  [L]> VideoMemoryTestEntry called
+2021-08-24 15:13:53  [L]> Start testing card 0: VidDid=0x98E41002, Base=0x00000000E8000000, Size=0x0000000005000000
+2021-08-24 15:23:06  [L]> VideoMemTest: TotalSize 0x5000000
+2021-08-24 15:23:06  [L]> VideoMemTest: TestedSize 0x5000000
+2021-08-24 15:23:06  Video Memory Test Completed - Result 1
+2021-08-24 15:23:06  [L]> Total Memory 3982MB, Free 3812MB (975887 Pages)
+2021-08-24 15:23:06  [L]> SmbiosGetBiosVendor: AMI
+2021-08-24 15:23:07  [L]> Found VGA device at Seg-0x00:Bus-0x00:Dev-0x01:Func-0x00, ClassCode-0x0300, CommandRegister-0x0007
+2021-08-24 15:23:07  [L]> Both Segment and Bus are 0, continue to get video memory information.
+2021-08-24 15:23:07  [L]> Found Video Device 0x98E41002
+2021-08-24 15:23:07  [L]> GetAllGraphicFB(): GraphicDevice[0]: Base-0x00000000E8000000, Size-0x0000000005000000, 64Bit-TRUE, Supported-TRUE
+2021-08-24 15:23:07  [L]> GetAllGraphicFB(): Found 1 graphic device(s) to test.
+2021-08-24 15:23:07  [L]> GetAllGraphicFB(): VideoMemorySizeTotal is 0x5000000
+2021-08-24 15:23:07  [L]> Audio Controller Bus 0, Dev 1, Func 1
+2021-08-24 15:23:07  [L]> Audio controller Vendor ID 0x1002
+2021-08-24 15:23:07  [L]> Audio controller Device ID 0x15B3
+2021-08-24 15:23:07  [L]> Audio controller Revision ID 0x00
+2021-08-24 15:23:07  [L]> Audio controller Subsystem Vendor ID 0x103C
+2021-08-24 15:23:07  [L]> Audio controller Subsystem Device ID 0x867A
+2021-08-24 15:23:07  [L]> Audio controller Class Code 0x0403
+2021-08-24 15:23:07  [W]> Unsupported Audio Controller VendorID 0x1002 DeviceID 0x15B3 (ignored)
+2021-08-24 15:23:07  [L]> Audio Controller Bus 0, Dev 9, Func 2
+2021-08-24 15:23:07  [L]> Audio controller Vendor ID 0x1022
+2021-08-24 15:23:07  [L]> Audio controller Device ID 0x157A
+2021-08-24 15:23:07  [L]> Audio controller Revision ID 0x00
+2021-08-24 15:23:07  [L]> Audio controller Subsystem Vendor ID 0x103C
+2021-08-24 15:23:07  [L]> Audio controller Subsystem Device ID 0x867A
+2021-08-24 15:23:07  [L]> Audio controller Class Code 0x0403
+2021-08-24 15:23:07  [L]> HD audio codec Vendor ID 0x10EC Device ID 0x0236
+2021-08-24 15:23:07  [L]> HD audio codec Revision ID - 0x100002
+2021-08-24 15:23:07  [L]> The codec 0x10EC0236 need specific patch
+2021-08-24 15:23:08  [L]> RealtekInit(): Set EAPD pin state to high through Node ID 0x0014.
+2021-08-24 15:23:08  [L]> Found 2 EFI_USB2_HC_PROTOCOL handles.
+2021-08-24 15:23:08  System Board Test Completed - Result 1
+2021-08-24 15:23:08  SysDiagCalculatePassID(): Test PassID 20858-83112-53754.
+2021-08-24 15:40:04  System Extensive Test Completed
+2021-08-24 15:40:07  EFI HP BIOS Management Started
+2021-08-24 15:40:22  BIOS Management Mode = 0
+2021-08-24 15:40:22  Starting BIOS Update Process
+2021-08-24 15:40:22  Setting BIOS Update Token
+2021-08-24 15:40:22  Getting BIOS Detail Information
+2021-08-24 15:40:22  IsBiosSixDigits = 0
+2021-08-24 15:40:22  BIOS Returned BiosID '0867A'
+2021-08-24 15:40:22  QueryImageDetail: 4K Block Size detected.
+2021-08-24 15:40:22  Skip Addresses:
+2021-08-24 15:40:22  Loading BIOS Image
+2021-08-24 15:40:22  File name constructed: EFI\HP\BIOS\New\0867A.bin
+2021-08-24 15:40:22  Failed Reading BIOS Image EFI\HP\BIOS\New\0867A.bin (Not Found)
+2021-08-24 15:42:00  User Canceled Update
+2021-08-24 15:42:00  EfiBiosUpdateLibEntry(): Result is 0xC
+2021-08-24 15:42:00  BIOS Update Process Complete
