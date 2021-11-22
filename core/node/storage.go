@@ -1,8 +1,6 @@
 package node
 
 import (
-	"context"
-
 	"github.com/ipfs/go-datastore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/go-ipfs-config"
@@ -46,7 +44,7 @@ func BaseBlockstoreCtor(cacheOpts blockstore.CacheOpts, nilRepo bool, hashOnRead
 		bs = cidv0v1.NewBlockstore(bs)
 
 		if hashOnRead { // TODO: review: this is how it was done originally, is there a reason we can't just pass this directly?
-			bs.HashOnRead(context.Background(), true)
+			bs.HashOnRead(true)
 		}
 
 		return

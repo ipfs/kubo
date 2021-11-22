@@ -288,7 +288,7 @@ var repoVerifyCmd = &cmds.Command{
 		}
 
 		bs := bstore.NewBlockstore(nd.Repo.Datastore())
-		bs.HashOnRead(req.Context, true)
+		bs.HashOnRead(true)
 
 		keys, err := bs.AllKeysChan(req.Context)
 		if err != nil {
