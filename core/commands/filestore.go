@@ -61,13 +61,13 @@ The output is:
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
-		next, err := filestore.ListAll(fs, fileOrder)
+		next, err := filestore.ListAll(req.Context, fs, fileOrder)
 		if err != nil {
 			return err
 		}
 
 		for {
-			r := next()
+			r := next(req.Context)
 			if r == nil {
 				break
 			}
@@ -138,13 +138,13 @@ For ERROR entries the error will also be printed to stderr.
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
-		next, err := filestore.VerifyAll(fs, fileOrder)
+		next, err := filestore.VerifyAll(req.Context, fs, fileOrder)
 		if err != nil {
 			return err
 		}
 
 		for {
-			r := next()
+			r := next(req.Context)
 			if r == nil {
 				break
 			}
