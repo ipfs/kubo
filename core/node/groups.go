@@ -9,8 +9,8 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	config "github.com/ipfs/go-ipfs-config"
 	util "github.com/ipfs/go-ipfs-util"
-	log "github.com/ipfs/go-log"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/ipfs/go-log"
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
@@ -18,7 +18,6 @@ import (
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
-	uio "github.com/ipfs/go-unixfs/io"
 	"go.uber.org/fx"
 )
 
@@ -109,17 +108,26 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle))
 	}
 
-	// If `cfg.Swarm.DisableRelay` is set and `Network.Relay` isn't, use the former.
-	enableRelay := cfg.Swarm.Transports.Network.Relay.WithDefault(!cfg.Swarm.DisableRelay) //nolint
+	// If `cfg.Swarm.DisableRelay` is set and `Network.RelayTransport` isn't, use the former.
+	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(!cfg.Swarm.DisableRelay) //nolint
 
 	// Warn about a deprecated option.
 	//nolint
 	if cfg.Swarm.DisableRelay {
-		logger.Error("The `Swarm.DisableRelay' config field is deprecated.")
-		if enableRelay {
-			logger.Error("`Swarm.DisableRelay' has been overridden by `Swarm.Transports.Network.Relay'")
+		logger.Error("The 'Swarm.DisableRelay' config field is deprecated.")
+		if enableRelayTransport {
+			logger.Error("'Swarm.DisableRelay' has been overridden by 'Swarm.Transports.Network.Relay'")
 		} else {
-			logger.Error("Use the `Swarm.Transports.Network.Relay' config field instead")
+			logger.Error("Use the 'Swarm.Transports.Network.Relay' config field instead")
+		}
+	}
+	//nolint
+	if cfg.Swarm.EnableAutoRelay {
+		logger.Error("The 'Swarm.EnableAutoRelay' config field is deprecated.")
+		if cfg.Swarm.RelayClient.Enabled == config.Default {
+			logger.Error("Use the 'Swarm.AutoRelay.Enabled' config field instead")
+		} else {
+			logger.Error("'Swarm.EnableAutoRelay' has been overridden by 'Swarm.AutoRelay.Enabled'")
 		}
 	}
 
@@ -130,10 +138,13 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
-		fx.Provide(libp2p.Relay(enableRelay, cfg.Swarm.EnableRelayHop)),
+		fx.Provide(libp2p.RelayTransport(enableRelayTransport)),
+		fx.Provide(libp2p.RelayService(cfg.Swarm.RelayService.Enabled.WithDefault(true), cfg.Swarm.RelayService)),
 		fx.Provide(libp2p.Transports(cfg.Swarm.Transports)),
 		fx.Invoke(libp2p.StartListening(cfg.Addresses.Swarm)),
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled, cfg.Discovery.MDNS.Interval)),
+		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),
+		fx.Provide(libp2p.StaticRelays(cfg.Swarm.RelayClient.StaticRelays)),
 
 		fx.Provide(libp2p.Security(!bcfg.DisableEncryptedConnections, cfg.Swarm.Transports)),
 
@@ -143,7 +154,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
-		maybeProvide(libp2p.AutoRelay, cfg.Swarm.EnableAutoRelay),
+		maybeProvide(libp2p.AutoRelay(len(cfg.Swarm.RelayClient.StaticRelays) == 0), cfg.Swarm.RelayClient.Enabled.WithDefault(false)),
 		autonat,
 		connmgr,
 		ps,
@@ -317,7 +328,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	}
 
 	// TEMP: setting global sharding switch here
-	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
+	//	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
 
 	return fx.Options(
 		bcfgOpts,
