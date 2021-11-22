@@ -18,6 +18,6 @@ func Graphsync(lc fx.Lifecycle, mctx helpers.MetricsCtx, host libp2p.Host, bs bl
 
 	network := network.NewFromLibp2pHost(host)
 	return gsimpl.New(ctx, network,
-		storeutil.LinkSystemForBlockstore(ctx, bs),
+		storeutil.LinkSystemForBlockstore(bs),
 	)
 }
