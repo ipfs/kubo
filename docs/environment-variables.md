@@ -1,12 +1,10 @@
 # go-ipfs environment variables
 
-## `LIBP2P_TCP_REUSEPORT` (`IPFS_REUSEPORT`)
+## `LIBP2P_TCP_REUSEPORT`
 
 go-ipfs tries to reuse the same source port for all connections to improve NAT
 traversal. If this is an issue, you can disable it by setting
 `LIBP2P_TCP_REUSEPORT` to false.
-
-This variable was previously `IPFS_REUSEPORT`.
 
 Default: true
 
