@@ -402,27 +402,22 @@ See [Plugin docs](./plugins.md)
 ## Directory Sharding / HAMT
 
 ### In Version
-0.4.8
+
+- 0.4.8:
+  - Introduced `Experimental.ShardingEnabled` which enabled sharding globally.
+  - All-or-nothing, unnecessary sharding of small directories.
+
+- 0.11.0 :
+  - Removed support for `Experimental.ShardingEnabled`
+  - Replaced with automatic sharding based on the block size
 
 ### State
-Experimental
 
-Allows creating directories with an unlimited number of entries.
+Replaced by autosharding.
 
-**Caveats:**
-1. right now it is a GLOBAL FLAG which will impact the final CID of all directories produced by `ipfs.add` (even the small ones)
-2. currently size of unixfs directories is limited by the maximum block size
+The `Experimental.ShardingEnabled` config field is no longer used, please remove it from your configs.
 
-### Basic Usage:
-
-```
-ipfs config --json Experimental.ShardingEnabled true
-```
-
-### Road to being a real feature
-
-- [ ] Make sure that objects that don't have to be sharded aren't
-- [ ] Generalize sharding and define a new layer between IPLD and IPFS
+go-ipfs now automatically shards when directory block is bigger than 256KB, ensuring every block is small enough to be exchanged with other peers
 
 ## IPNS pubsub
 
