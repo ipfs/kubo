@@ -1,14 +1,6 @@
 # dir-index-html
 
-[![Made by Protocol Labs](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](https://protocol.ai)
-[![Project: IPFS](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](https://ipfs.io/)
-[![Matrix](https://img.shields.io/badge/matrix-%23ipfs%3Amatrix.org-blue.svg?style=flat-square)](https://matrix.to/#/room/#ipfs:matrix.org)
-[![IRC](https://img.shields.io/badge/freenode-%23ipfs-blue.svg?style=flat-square)](http://webchat.freenode.net/?channels=%23ipfs)
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-
 > Directory listing HTML for `go-ipfs` gateways
-
-**NOTE:** This repo is not intended to be used as a standalone project! This code is used by the gateway code within [`go-ipfs`](https://github.com/ipfs/go-ipfs). In the long term, once the the gateway is extracted from `go-ipfs`, the code in this repo will be merged into that gateway package.
 
 ![](https://user-images.githubusercontent.com/157609/88379209-ce6f0600-cda2-11ea-9620-20b9237bb441.png)
 
@@ -16,8 +8,8 @@
 
 When making updates to the directory listing page template, please note the following:
 
-1. Make your changes to the (human-friendly) source documents in the `src` directory
-2. Before testing or releasing, make sure to run the `go generate .` script to update the minified version in the top-level `./assets` directory
+1. Make your changes to the (human-friendly) source documents in the `src` directory and run `npm run build`
+3. Before testing or releasing, go to the top-level `./assets` directory and make sure to run the `go generate .` script to update the bindata version
 
 ## Testing
 
