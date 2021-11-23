@@ -56,7 +56,7 @@ executors:
     environment:
       <<: *default_environment
       NO_SANDBOX: true
-      IPFS_REUSEPORT: false
+      LIBP2P_TCP_REUSEPORT: false
       LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
       E2E_IPFSD_TYPE: go
   dockerizer:
@@ -238,7 +238,7 @@ jobs:
             npx ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
-            IPFS_REUSEPORT: false
+            LIBP2P_TCP_REUSEPORT: false
             LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
       - store_test_results:
