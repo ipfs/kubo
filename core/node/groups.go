@@ -318,13 +318,20 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		return bcfgOpts // error
 	}
 
-	// TEMP: setting global sharding switch here
+	// Auto-sharding settings
 	shardSizeString := cfg.Internal.UnixFSShardingSizeThreshold.WithDefault("256kiB")
 	shardSizeInt, err := humanize.ParseBytes(shardSizeString)
 	if err != nil {
 		return fx.Error(err)
 	}
 	uio.HAMTShardingSize = int(shardSizeInt)
+
+	// Migrate users of deprecated Experimental.ShardingEnabled flag
+	if cfg.Experimental.ShardingEnabled {
+		logger.Fatal("The `Experimental.ShardingEnabled` field is no longer used, please remove it from the config.\n" +
+			"go-ipfs now automatically shards when directory block is bigger than  `" + shardSizeString + "`.\n" +
+			"If you need to restore the old behavior (sharding everything) set `Internal.UnixFSShardingSizeThreshold` to `1B`.\n")
+	}
 
 	return fx.Options(
 		bcfgOpts,
