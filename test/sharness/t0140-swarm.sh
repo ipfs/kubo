@@ -138,22 +138,29 @@ test_expect_success "set up tcp testbed" '
 startup_cluster 2
 
 test_expect_success "disconnect work without specifying a transport address" '
+  echo "peers:" && echo $(ipfsi 0 swarm peers) &&
   [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ] &&
   ipfsi 0 swarm disconnect "/p2p/$(iptb attr get 1 id)" &&
+  echo "peers:" && echo $(ipfsi 0 swarm peers) &&
   [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ]
 '
 
 test_expect_success "connect work without specifying a transport address" '
+  echo "peers:" && echo $(ipfsi 0 swarm peers) &&
   [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ] &&
   ipfsi 0 swarm connect "/p2p/$(iptb attr get 1 id)" &&
+  echo "peers:" && echo $(ipfsi 0 swarm peers) &&
   [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ]
 '
 
 test_expect_success "/p2p addresses work" '
   [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ] &&
+  echo "peers:" && echo $(ipfsi 0 swarm peers) &&
   ipfsi 0 swarm disconnect "/p2p/$(iptb attr get 1 id)" &&
+  echo "peers:" && echo $(ipfsi 0 swarm peers) &&
   [ $(ipfsi 0 swarm peers | wc -l) -eq 0 ] &&
   ipfsi 0 swarm connect "/p2p/$(iptb attr get 1 id)" &&
+  echo "peers:" && echo $(ipfsi 0 swarm peers) &&
   [ $(ipfsi 0 swarm peers | wc -l) -eq 1 ]
 '
 

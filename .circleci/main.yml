@@ -361,21 +361,21 @@ workflows:
   # see: https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
   test:
     jobs:
-    - gobuild
-    - golint
-    - gotest
+#    - gobuild
+#    - golint
+#    - gotest
     - sharness
-    - build
-    - interop:
-        requires:
-          - build
-    - go-ipfs-api:
-        requires:
-          - build
-    - go-ipfs-http-client:
-        requires:
-          - build
-    - ipfs-webui:
-        requires:
-          - build
-    - docker-build
+#    - build
+#    - interop:
+#        requires:
+#          - build
+#    - go-ipfs-api:
+#        requires:
+#          - build
+#    - go-ipfs-http-client:
+#        requires:
+#          - build
+#    - ipfs-webui:
+#        requires:
+#          - build
+#    - docker-build
