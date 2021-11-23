@@ -468,7 +468,11 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 
 ### In Version
 
-0.4.19
+- 0.4.19 :
+  - Introduced Circuit Relay v1
+- 0.11.0 :
+  - Deprecated v1
+  - Introduced [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
 
 ### State
 
@@ -481,15 +485,14 @@ Automatically discovers relays and advertises relay addresses when the node is b
 Modify your ipfs config:
 
 ```
-ipfs config --json Swarm.EnableRelayHop false
-ipfs config --json Swarm.EnableAutoRelay true
+ipfs config --json Swarm.RelayClient.Enabled true
 ```
-
-NOTE: Ensuring `Swarm.EnableRelayHop` is _false_ is extremely important here. If you set it to true, you will _act_ as a public relay for the rest of the network instead of _using_ the public relays.
 
 ### Road to being a real feature
 
 - [ ] needs testing
+- [ ] needs to be automatically enabled when AutoNAT detects node is behind an impenetrable NAT.
+
 
 ## Strategic Providing
 
