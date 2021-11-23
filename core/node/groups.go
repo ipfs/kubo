@@ -130,6 +130,12 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			logger.Error("'Swarm.EnableAutoRelay' has been overridden by 'Swarm.AutoRelay.Enabled'")
 		}
 	}
+	//nolint
+	if cfg.Swarm.EnableRelayHop {
+		logger.Fatal("The `Swarm.EnableRelayHop` config field is ignored.\n" +
+			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
+			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://github.com/libp2p/go-libp2p-relay-daemon (with RelayV1.Enabled: true)")
+	}
 
 	// Gather all the options
 	opts := fx.Options(
