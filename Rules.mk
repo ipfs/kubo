@@ -22,7 +22,7 @@ include mk/golang.mk
 ifeq ($(TEST_NO_FUSE),1)
 	GOTAGS += nofuse
 endif
-export IPFS_REUSEPORT=false
+export LIBP2P_TCP_REUSEPORT=false
 
 # -------------------- #
 #       sub-files      #

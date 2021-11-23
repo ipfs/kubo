@@ -1,17 +1,18 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 
 	filestore "github.com/ipfs/go-filestore"
+	cmds "github.com/ipfs/go-ipfs-cmds"
 	core "github.com/ipfs/go-ipfs/core"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	e "github.com/ipfs/go-ipfs/core/commands/e"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-cmds"
 )
 
 var FileStoreCmd = &cmds.Command{
@@ -56,7 +57,7 @@ The output is:
 		}
 		args := req.Arguments
 		if len(args) > 0 {
-			return listByArgs(res, fs, args)
+			return listByArgs(req.Context, res, fs, args)
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
@@ -133,7 +134,7 @@ For ERROR entries the error will also be printed to stderr.
 		}
 		args := req.Arguments
 		if len(args) > 0 {
-			return listByArgs(res, fs, args)
+			return listByArgs(req.Context, res, fs, args)
 		}
 
 		fileOrder, _ := req.Options[fileOrderOptionName].(bool)
@@ -206,7 +207,7 @@ var dupsFileStore = &cmds.Command{
 		}
 
 		for cid := range ch {
-			have, err := fs.MainBlockstore().Has(cid)
+			have, err := fs.MainBlockstore().Has(req.Context, cid)
 			if err != nil {
 				return res.Emit(&RefWrapper{Err: err.Error()})
 			}
@@ -235,7 +236,7 @@ func getFilestore(env cmds.Environment) (*core.IpfsNode, *filestore.Filestore, e
 	return n, fs, err
 }
 
-func listByArgs(res cmds.ResponseEmitter, fs *filestore.Filestore, args []string) error {
+func listByArgs(ctx context.Context, res cmds.ResponseEmitter, fs *filestore.Filestore, args []string) error {
 	for _, arg := range args {
 		c, err := cid.Decode(arg)
 		if err != nil {
@@ -248,7 +249,7 @@ func listByArgs(res cmds.ResponseEmitter, fs *filestore.Filestore, args []string
 			}
 			continue
 		}
-		r := filestore.Verify(fs, c)
+		r := filestore.Verify(ctx, fs, c)
 		if err := res.Emit(r); err != nil {
 			return err
 		}
