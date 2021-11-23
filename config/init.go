@@ -121,10 +121,11 @@ func addressesConfig() Addresses {
 			"/ip4/0.0.0.0/udp/4001/quic",
 			"/ip6/::/udp/4001/quic",
 		},
-		Announce:   []string{},
-		NoAnnounce: []string{},
-		API:        Strings{"/ip4/127.0.0.1/tcp/5001"},
-		Gateway:    Strings{"/ip4/127.0.0.1/tcp/8080"},
+		Announce:       []string{},
+		AppendAnnounce: []string{},
+		NoAnnounce:     []string{},
+		API:            Strings{"/ip4/127.0.0.1/tcp/5001"},
+		Gateway:        Strings{"/ip4/127.0.0.1/tcp/8080"},
 	}
 }
 
