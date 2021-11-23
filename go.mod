@@ -30,7 +30,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v0.1.6
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
-	github.com/ipfs/go-ipfs-config v0.16.0
+	github.com/ipfs/go-ipfs-config v0.18.0
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
 	github.com/ipfs/go-ipfs-files v0.0.9
@@ -114,5 +114,3 @@ require (
 )
 
 go 1.16
-
-replace github.com/ipfs/go-ipfs-config => github.com/Jorropo/go-ipfs-config v0.14.1-0.20211115134851-f197db464bd5 // Temporary while waiting for https://github.com/ipfs/go-ipfs-config/pull/135/
