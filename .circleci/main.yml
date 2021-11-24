@@ -216,7 +216,8 @@ jobs:
             - bin/ipfs
       - *store_gomod
   interop:
-    executor: node
+    docker:
+      - image: cimg/go:1.16-node
     parallelism: 4
     steps:
       - *make_out_dirs
