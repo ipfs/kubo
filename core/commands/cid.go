@@ -11,7 +11,9 @@ import (
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	verifcid "github.com/ipfs/go-verifcid"
+	"github.com/ipld/go-ipld-prime/multicodec"
 	mbase "github.com/multiformats/go-multibase"
+	mc "github.com/multiformats/go-multicodec"
 	mhash "github.com/multiformats/go-multihash"
 )
 
@@ -296,7 +298,8 @@ var basesCmd = &cmds.Command{
 }
 
 const (
-	codecsNumericOptionName = "numeric"
+	codecsNumericOptionName   = "numeric"
+	codecsSupportedOptionName = "supported"
 )
 
 var codecsCmd = &cmds.Command{
@@ -304,13 +307,31 @@ var codecsCmd = &cmds.Command{
 		Tagline: "List available CID codecs.",
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(codecsNumericOptionName, "also include numeric codes"),
+		cmds.BoolOption(codecsNumericOptionName, "n", "also include numeric codes"),
+		cmds.BoolOption(codecsSupportedOptionName, "s", "list only codecs supported by go-ipfs commands"),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
+		listSupported, _ := req.Options[codecsSupportedOptionName].(bool)
+		supportedCodecs := make(map[uint64]struct{})
+		if listSupported {
+			for _, code := range multicodec.ListEncoders() {
+				supportedCodecs[code] = struct{}{}
+			}
+			for _, code := range multicodec.ListDecoders() {
+				supportedCodecs[code] = struct{}{}
+			}
+		}
+
 		var res []CodeAndName
-		// use CodecToStr as there are multiple names for a given code
-		for code, name := range cid.CodecToStr {
-			res = append(res, CodeAndName{int(code), name})
+		for _, code := range mc.KnownCodes() {
+			if code.Tag() == "ipld" {
+				if listSupported {
+					if _, ok := supportedCodecs[uint64(code)]; !ok {
+						continue
+					}
+				}
+				res = append(res, CodeAndName{int(code), mc.Code(code).String()})
+			}
 		}
 		return cmds.EmitOnce(resp, res)
 	},

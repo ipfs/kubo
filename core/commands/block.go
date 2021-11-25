@@ -114,6 +114,7 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 
 const (
 	blockFormatOptionName = "format"
+	blockStoreCodecOptionName = "store-codec"
 	mhtypeOptionName      = "mhtype"
 	mhlenOptionName       = "mhlen"
 )
@@ -135,6 +136,7 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
+		cmds.StringOption(blockStoreCodecOptionName, "s", "multicodec name for blocks to be stored with"),
 		cmds.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
 		cmds.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
 		cmds.BoolOption(pinOptionName, "pin added blocks recursively").WithDefault(false),
@@ -157,14 +159,8 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 			return errors.New("missing option \"mhlen\"")
 		}
 
-		format, formatSet := req.Options[blockFormatOptionName].(string)
-		if !formatSet {
-			if mhtval != mh.SHA2_256 || (mhlen != -1 && mhlen != 32) {
-				format = "protobuf"
-			} else {
-				format = "v0"
-			}
-		}
+		format, _ := req.Options[blockFormatOptionName].(string)
+		storeCodec, _ := req.Options[blockStoreCodecOptionName].(string)
 
 		pin, _ := req.Options[pinOptionName].(bool)
 
@@ -178,6 +174,7 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 			p, err := api.Block().Put(req.Context, file,
 				options.Block.Hash(mhtval, mhlen),
 				options.Block.Format(format),
+				options.Block.StoreCodec(storeCodec),
 				options.Block.Pin(pin))
 			if err != nil {
 				return err
