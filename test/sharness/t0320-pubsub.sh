@@ -19,72 +19,72 @@ run_pubsub_tests() {
     PEERID_0=$(iptb attr get 0 id) &&
     PEERID_2=$(iptb attr get 2 id)
   '
-  
+
   # ipfs pubsub sub
   test_expect_success 'pubsub' '
-    echo "testOK" > expected &&
+    echo -n -e "test\nOK" | ipfs multibase encode -b base64url > expected &&
     touch empty &&
     mkfifo wait ||
     test_fsh echo init fail
-  
+
     # ipfs pubsub sub is long-running so we need to start it in the background and
     # wait put its output somewhere where we can access it
     (
-      ipfsi 0 pubsub sub --enc=ndpayload testTopic | if read line; then
-          echo $line > actual &&
+      ipfsi 0 pubsub sub --enc=json testTopic | if read line; then
+          echo $line | jq -j .data > actual &&
           echo > wait
         fi
     ) &
   '
-  
+
   test_expect_success "wait until ipfs pubsub sub is ready to do work" '
     go-sleep 500ms
   '
-  
+
   test_expect_success "can see peer subscribed to testTopic" '
     ipfsi 1 pubsub peers testTopic > peers_out
   '
-  
+
   test_expect_success "output looks good" '
     echo $PEERID_0 > peers_exp &&
     test_cmp peers_exp peers_out
   '
-  
-  test_expect_success "publish something" '
-    ipfsi 1 pubsub pub testTopic "testOK" &> pubErr
+
+  test_expect_success "publish something from file" '
+    echo -n -e "test\nOK" > payload-file &&
+    ipfsi 1 pubsub pub testTopic payload-file &> pubErr
   '
-  
+
   test_expect_success "wait until echo > wait executed" '
     cat wait &&
     test_cmp pubErr empty &&
     test_cmp expected actual
   '
-  
+
   test_expect_success "wait for another pubsub message" '
-    echo "testOK2" > expected &&
+    echo -n -e "test\nOK\r\n2" | ipfs multibase encode -b base64url > expected &&
     mkfifo wait2 ||
     test_fsh echo init fail
-  
+
     # ipfs pubsub sub is long-running so we need to start it in the background and
     # wait put its output somewhere where we can access it
     (
-      ipfsi 2 pubsub sub --enc=ndpayload testTopic | if read line; then
-          echo $line > actual &&
+      ipfsi 2 pubsub sub --enc=json testTopic | if read line; then
+          echo $line | jq -j .data > actual &&
           echo > wait2
         fi
     ) &
   '
-  
+
   test_expect_success "wait until ipfs pubsub sub is ready to do work" '
     go-sleep 500ms
   '
-  
-  test_expect_success "publish something" '
-    echo "testOK2" | ipfsi 3 pubsub pub testTopic &> pubErr
+
+  test_expect_success "publish something from stdin" '
+    echo -n -e "test\nOK\r\n2" | ipfsi 3 pubsub pub testTopic &> pubErr
   '
-  
+
   test_expect_success "wait until echo > wait executed" '
-    echo "testOK2" > expected &&
     cat wait2 &&
     test_cmp pubErr empty &&
     test_cmp expected actual
@@ -93,7 +93,7 @@ run_pubsub_tests() {
   test_expect_success 'cleanup fifos' '
     rm -f wait wait2
   '
-  
+
 }
 
 # Normal tests
@@ -114,7 +114,7 @@ startup_cluster $NUM_NODES --enable-pubsub-experiment
 
 test_expect_success 'set node 4 to listen on testTopic' '
   rm -f node4_actual &&
-  ipfsi 4 pubsub sub --enc=ndpayload testTopic > node4_actual &
+  ipfsi 4 pubsub sub --enc=json testTopic > node4_actual &
 '
 
 run_pubsub_tests
