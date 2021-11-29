@@ -65,10 +65,10 @@ PEER ENCODING
 TOPIC AND DATA ENCODING
 
   Topics, Data and Seqno are binary data. To ensure all bytes are transferred
-  correctly RPC client and server will use multibase encoding behind
+  correctly the RPC client and server will use multibase encoding behind
   the scenes.
 
-  You can inspect the format by passing --enc=json. ipfs multibase commands
+  You can inspect the format by passing --enc=json. The ipfs multibase commands
   can be used for encoding/decoding multibase strings in the userland.
 `,
 	},
@@ -160,7 +160,7 @@ HTTP RPC ENCODING
 
   The data to be published is sent in HTTP request body as multipart/form-data.
 
-  Topic names are a binary data too. To ensure all bytes are transferred
+  Topic names are binary data too. To ensure all bytes are transferred
   correctly via URL params, the RPC client and server will use multibase
   encoding behind the scenes.
 
