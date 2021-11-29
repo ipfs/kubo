@@ -17,7 +17,7 @@ require (
 	github.com/ipfs/go-blockservice v0.2.1
 	github.com/ipfs/go-cid v0.1.0
 	github.com/ipfs/go-cidutil v0.0.2
-	github.com/ipfs/go-datastore v0.5.1-0.20211123004600-933404091e73
+	github.com/ipfs/go-datastore v0.5.1
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.0
 	github.com/ipfs/go-ds-flatfs v0.5.0
@@ -50,7 +50,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.2.1
-	github.com/ipfs/go-namesys v0.3.2-0.20211122215315-7c26fd38ecf2
+	github.com/ipfs/go-namesys v0.4.0
 	github.com/ipfs/go-path v0.2.1
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.3.1
@@ -65,7 +65,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-doh-resolver v0.3.1
-	github.com/libp2p/go-libp2p v0.16.0-dev.0.20211121122131-cac4cf3aa159
+	github.com/libp2p/go-libp2p v0.16.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.11.0
 	github.com/libp2p/go-libp2p-discovery v0.6.0
@@ -83,7 +83,7 @@ require (
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
 	github.com/libp2p/go-libp2p-swarm v0.8.0
 	github.com/libp2p/go-libp2p-testing v0.5.0
-	github.com/libp2p/go-libp2p-tls v0.3.0
+	github.com/libp2p/go-libp2p-tls v0.3.1
 	github.com/libp2p/go-libp2p-yamux v0.6.0
 	github.com/libp2p/go-socket-activation v0.1.0
 	github.com/libp2p/go-tcp-transport v0.4.0
