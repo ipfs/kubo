@@ -365,8 +365,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	defer repo.Close()
 
 	offline, _ := req.Options[offlineKwd].(bool)
-	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
-	pubsub, _ := req.Options[enablePubSubKwd].(bool)
+	ipnsps, ipnsPsSet := req.Options[enableIPNSPubSubKwd].(bool)
+	pubsub, psSet := req.Options[enablePubSubKwd].(bool)
+
 	if _, hasMplex := req.Options[enableMultiplexKwd]; hasMplex {
 		log.Errorf("The mplex multiplexer has been enabled by default and the experimental %s flag has been removed.")
 		log.Errorf("To disable this multiplexer, please configure `Swarm.Transports.Multiplexers'.")
@@ -377,11 +378,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	if cfg.Pubsub.Enabled.WithDefault(false) {
-		pubsub = true
+	if !psSet {
+		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
 	}
-	if cfg.Ipns.UsePubsub.WithDefault(false) {
-		ipnsps = true
+	if !ipnsPsSet {
+		ipnsps = cfg.Ipns.UsePubsub.WithDefault(false)
 	}
 
 	// Start assembling node config
