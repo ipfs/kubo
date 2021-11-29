@@ -1,0 +1,17 @@
+{
+  "name": "dir-index-html",
+  "description": "Directory listing HTML for go-ipfs gateways",
+  "version": "1.3.0",
+  "private": true,
+  "homepage": "https://github.com/ipfs/go-ipfs",
+  "license": "MIT",
+  "scripts": {
+    "start": "cd test && go run .",
+    "build": "npm run build:clean && npm run build:remove-style-links && npm run build:minify-wrap-css && npm run build:combine-html-css && npm run build:remove-unused",
+    "build:clean": "rm dir-index.html",
+    "build:remove-style-links": "sed '/<link rel=\"stylesheet\"/d' ./src/dir-index.html > ./base-html.html",
+    "build:minify-wrap-css": "(echo \"<style>\" && cat ./src/icons.css ./src/style.css | tr -d \"\t\n\r\" && echo && echo \"</style>\") > ./minified-wrapped-style.html",
+    "build:combine-html-css": "sed '/<\\/title>/ r ./minified-wrapped-style.html' ./base-html.html > ./dir-index.html",
+    "build:remove-unused": "rm ./base-html.html && rm ./minified-wrapped-style.html"
+  }
+}
