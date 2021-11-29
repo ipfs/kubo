@@ -34,7 +34,7 @@ func TestExtractEnabled(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "returns the vlaue of the Enabled field",
+			name:     "returns the value of the Enabled field",
 			config:   map[string]interface{}{"Enabled": true},
 			expected: true,
 		},

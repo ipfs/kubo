@@ -8,7 +8,7 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	bs "github.com/ipfs/go-ipfs-blockstore"
-	"github.com/ipfs/go-ipfs-pinner"
+	pin "github.com/ipfs/go-ipfs-pinner"
 )
 
 // RemovedBlock is used to represent the result of removing a block.
@@ -40,15 +40,15 @@ func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids
 	go func() {
 		defer close(out)
 
-		unlocker := blocks.GCLock()
-		defer unlocker.Unlock()
+		unlocker := blocks.GCLock(ctx)
+		defer unlocker.Unlock(ctx)
 
 		stillOkay := FilterPinned(ctx, pins, out, cids)
 
 		for _, c := range stillOkay {
 			// Kept for backwards compatibility. We may want to
 			// remove this sometime in the future.
-			has, err := blocks.Has(c)
+			has, err := blocks.Has(ctx, c)
 			if err != nil {
 				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
 				continue
@@ -58,7 +58,7 @@ func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids
 				continue
 			}
 
-			err = blocks.DeleteBlock(c)
+			err = blocks.DeleteBlock(ctx, c)
 			if err != nil {
 				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
 			} else if !opts.Quiet {

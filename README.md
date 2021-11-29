@@ -14,7 +14,7 @@ For more info see: https://docs.ipfs.io/introduction/overview/
 
 Before opening an issue, consider using one of the following locations to ensure you are opening your thread in the right place:
   - go-ipfs _implementation_ bugs in [this repo](https://github.com/ipfs/go-ipfs/issues).
-  - Documentation issues in [ipfs/docs issues](https://github.com/ipfs/docs/issues).
+  - Documentation issues in [ipfs/docs issues](https://github.com/ipfs/ipfs-docs/issues).
   - IPFS _design_ in [ipfs/specs issues](https://github.com/ipfs/specs/issues).
   - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
   - Ask questions and meet the rest of the community at the [IPFS Forum](https://discuss.ipfs.io).
@@ -50,6 +50,7 @@ Before opening an issue, consider using one of the following locations to ensure
   - [macOS package managers](#macos-package-managers)
     - [MacPorts](#MacPorts)
 	- [Nix](#nix-macos)
+    - [Homebrew](#Homebrew)
   - [Windows package managers](#windows-package-managers)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
@@ -169,6 +170,7 @@ $ sudo snap install ipfs
 
 - [MacPorts](#macports)
 - [Nix](#nix-macos)
+- [Homebrew](#Homebrew)
 
 #### MacPorts
 
@@ -187,6 +189,14 @@ $ nix-env -i ipfs
 ```
 
 You can also install the Package by using its attribute name, which is also `ipfs`.
+
+#### Homebrew
+
+A Homebrew formula [ipfs](https://formulae.brew.sh/formula/ipfs) is maintained too.
+
+```
+$ brew install --formula ipfs
+```
 
 ### Windows package managers
 

@@ -18,7 +18,7 @@ test_expect_success "daemon won't start with force pnet env but with no key" '
 
 unset LIBP2P_FORCE_PNET
 
-test_expect_success "daemon output incudes info about the reason" '
+test_expect_success "daemon output includes info about the reason" '
   grep "private network was not configured but is enforced by the environment" stdout ||
   test_fsh cat stdout
 '

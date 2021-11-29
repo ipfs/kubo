@@ -45,7 +45,7 @@ func testOneFile(f string, t *testing.T) {
 	}
 
 	if !bytes.Equal(vcsData, embdData) {
-		t.Errorf("asset %s: vcs and embedded data isnt equal", f)
+		t.Errorf("asset %s: vcs and embedded data isn't equal", f)
 		return
 	}
 

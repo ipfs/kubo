@@ -94,11 +94,10 @@ test_expect_success "'ipfs add dir' succeeds" '
   echo "some text 6" >dir1/dir2/dir4/file6 &&
   echo "some text 2" >dir1/dir3/file2 &&
   echo "some text 5" >dir1/dir3/file5 &&
-  ipfs add -q -r dir1 >actualall &&
-  tail -n1 actualall >actual1 &&
-  echo "$HASH_DIR1" >expected1 &&
+  ipfs add -Q -r dir1 >actual &&
+  echo "$HASH_DIR1" >expected &&
   ipfs repo gc && # remove the patch chaff
-  test_cmp expected1 actual1
+  test_cmp expected actual
 '
 
 test_expect_success "objects are there" '
@@ -265,9 +264,9 @@ test_expect_success "test add nopin dir" '
   mkdir nopin_dir1 &&
   echo "some nopin text 1" >nopin_dir1/file1 &&
   echo "some nopin text 2" >nopin_dir1/file2 &&
-  ipfs add -q -r --pin=false nopin_dir1 | tail -n1 >actual1 &&
-  echo "$HASH_NOPINDIR" >expected1 &&
-  test_cmp actual1 expected1 &&
+  ipfs add -Q -r --pin=false nopin_dir1 >actual &&
+  echo "$HASH_NOPINDIR" >expected &&
+  test_cmp actual expected &&
   test_pin_flag "$HASH_NOPINDIR" direct false &&
   test_pin_flag "$HASH_NOPINDIR" indirect false &&
   test_pin_flag "$HASH_NOPINDIR" recursive false &&

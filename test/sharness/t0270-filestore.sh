@@ -24,7 +24,7 @@ assert_repo_size_less_than() {
 
   test_expect_success "check repo size" '
     test "$(get_repo_size)"  -lt "$expval" ||
-      { echo should be bellow "$expval" && test_fsh get_repo_size; }
+      { echo should be below "$expval" && test_fsh get_repo_size; }
   '
 }
 
@@ -39,7 +39,7 @@ assert_repo_size_greater_than() {
 
 test_filestore_adds() {
   test_expect_success "nocopy add succeeds" '
-    HASH=$(ipfs add --raw-leaves --nocopy -r -q somedir | tail -n1)
+    HASH=$(ipfs add --raw-leaves --nocopy -r -Q somedir)
   '
 
   test_expect_success "nocopy add has right hash" '

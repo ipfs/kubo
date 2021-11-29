@@ -11,9 +11,9 @@ import (
 	"github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	chunker "github.com/ipfs/go-ipfs-chunker"
-	"github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs-posinfo"
+	files "github.com/ipfs/go-ipfs-files"
+	pin "github.com/ipfs/go-ipfs-pinner"
+	posinfo "github.com/ipfs/go-ipfs-posinfo"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
@@ -254,17 +254,17 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 }
 
 // AddAllAndPin adds the given request's files and pin them.
-func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
+func (adder *Adder) AddAllAndPin(ctx context.Context, file files.Node) (ipld.Node, error) {
 	if adder.Pin {
-		adder.unlocker = adder.gcLocker.PinLock()
+		adder.unlocker = adder.gcLocker.PinLock(ctx)
 	}
 	defer func() {
 		if adder.unlocker != nil {
-			adder.unlocker.Unlock()
+			adder.unlocker.Unlock(ctx)
 		}
 	}()
 
-	if err := adder.addFileNode("", file, true); err != nil {
+	if err := adder.addFileNode(ctx, "", file, true); err != nil {
 		return nil, err
 	}
 
@@ -333,10 +333,10 @@ func (adder *Adder) AddAllAndPin(file files.Node) (ipld.Node, error) {
 	return nd, adder.PinRoot(nd)
 }
 
-func (adder *Adder) addFileNode(path string, file files.Node, toplevel bool) error {
+func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Node, toplevel bool) error {
 	defer file.Close()
 
-	err := adder.maybePauseForGC()
+	err := adder.maybePauseForGC(ctx)
 	if err != nil {
 		return err
 	}
@@ -357,7 +357,7 @@ func (adder *Adder) addFileNode(path string, file files.Node, toplevel bool) err
 
 	switch f := file.(type) {
 	case files.Directory:
-		return adder.addDir(path, f, toplevel)
+		return adder.addDir(ctx, path, f, toplevel)
 	case *files.Symlink:
 		return adder.addSymlink(path, f)
 	case files.File:
@@ -405,7 +405,7 @@ func (adder *Adder) addFile(path string, file files.File) error {
 	return adder.addNode(dagnode, path)
 }
 
-func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) error {
+func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory, toplevel bool) error {
 	log.Infof("adding directory: %s", path)
 
 	if !(toplevel && path == "") {
@@ -426,7 +426,7 @@ func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) erro
 	it := dir.Entries()
 	for it.Next() {
 		fpath := gopath.Join(path, it.Name())
-		err := adder.addFileNode(fpath, it.Node(), false)
+		err := adder.addFileNode(ctx, fpath, it.Node(), false)
 		if err != nil {
 			return err
 		}
@@ -435,8 +435,8 @@ func (adder *Adder) addDir(path string, dir files.Directory, toplevel bool) erro
 	return it.Err()
 }
 
-func (adder *Adder) maybePauseForGC() error {
-	if adder.unlocker != nil && adder.gcLocker.GCRequested() {
+func (adder *Adder) maybePauseForGC(ctx context.Context) error {
+	if adder.unlocker != nil && adder.gcLocker.GCRequested(ctx) {
 		rn, err := adder.curRootNode()
 		if err != nil {
 			return err
@@ -447,8 +447,8 @@ func (adder *Adder) maybePauseForGC() error {
 			return err
 		}
 
-		adder.unlocker.Unlock()
-		adder.unlocker = adder.gcLocker.PinLock()
+		adder.unlocker.Unlock(ctx)
+		adder.unlocker = adder.gcLocker.PinLock(ctx)
 	}
 	return nil
 }

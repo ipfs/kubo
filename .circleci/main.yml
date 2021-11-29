@@ -56,7 +56,7 @@ executors:
     environment:
       <<: *default_environment
       NO_SANDBOX: true
-      IPFS_REUSEPORT: false
+      LIBP2P_TCP_REUSEPORT: false
       LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
       E2E_IPFSD_TYPE: go
   dockerizer:
@@ -105,7 +105,22 @@ jobs:
         when: always
         command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
     - run:
-        command: go test -v ./...
+        command: |
+          # we want to test the examples against the current version of go-ipfs
+          # however, that version might be in a fork so we need to replace the dependency
+
+          # backup the go.mod and go.sum files to restore them after we run the tests
+          cp go.mod go.mod.bak
+          cp go.sum go.sum.bak
+
+          # make sure the examples run against the current version of go-ipfs
+          go mod edit -replace github.com/ipfs/go-ipfs=./../../..
+          go mod tidy
+          go test -v ./...
+
+          # restore the go.mod and go.sum files to their original state
+          mv go.mod.bak go.mod
+          mv go.sum.bak go.sum
         working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
 
     - run:
@@ -201,7 +216,8 @@ jobs:
             - bin/ipfs
       - *store_gomod
   interop:
-    executor: node
+    docker:
+      - image: cimg/go:1.16-node
     parallelism: 4
     steps:
       - *make_out_dirs
@@ -212,7 +228,7 @@ jobs:
           command: |
             npm init -y
             npm install ipfs@^0.59.1
-            npm install ipfs-interop@^7.0.5
+            npm install ipfs/interop#master
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
@@ -223,7 +239,7 @@ jobs:
             npx ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
-            IPFS_REUSEPORT: false
+            LIBP2P_TCP_REUSEPORT: false
             LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
       - store_test_results:

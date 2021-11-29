@@ -47,7 +47,7 @@ test_expect_success "add directory with direct pin" '
   mkdir mydir/ &&
   echo "hello world!" > mydir/hello.txt &&
   FILE_UNPINNED=$(ipfs add --pin=false -q -r mydir/hello.txt) &&
-  DIR_PINNED=$(ipfs add --pin=false -q -r mydir | tail -n1) &&
+  DIR_PINNED=$(ipfs add --pin=false -Q -r mydir) &&
   ipfs add --pin=false -r mydir &&
   ipfs pin add --recursive=false $DIR_PINNED &&
   ipfs cat $FILE_UNPINNED
