@@ -9,6 +9,7 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/libp2p/go-libp2p-core/peer"
+	mbase "github.com/multiformats/go-multibase"
 )
 
 type PubsubAPI HttpApi
@@ -21,8 +22,15 @@ func (api *PubsubAPI) Ls(ctx context.Context) ([]string, error) {
 	if err := api.core().Request("pubsub/ls").Exec(ctx, &out); err != nil {
 		return nil, err
 	}
-
-	return out.Strings, nil
+	topics := make([]string, len(out.Strings))
+	for n, mb := range out.Strings {
+		_, topic, err := mbase.Decode(mb)
+		if err != nil {
+			return nil, err
+		}
+		topics[n] = string(topic)
+	}
+	return topics, nil
 }
 
 func (api *PubsubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOption) ([]peer.ID, error) {
@@ -35,7 +43,11 @@ func (api *PubsubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 		Strings []string
 	}
 
-	if err := api.core().Request("pubsub/peers", options.Topic).Exec(ctx, &out); err != nil {
+	var optionalTopic string
+	if len(options.Topic) > 0 {
+		optionalTopic = toMultibase([]byte(options.Topic))
+	}
+	if err := api.core().Request("pubsub/peers", optionalTopic).Exec(ctx, &out); err != nil {
 		return nil, err
 	}
 
@@ -51,7 +63,7 @@ func (api *PubsubAPI) Peers(ctx context.Context, opts ...caopts.PubSubPeersOptio
 }
 
 func (api *PubsubAPI) Publish(ctx context.Context, topic string, message []byte) error {
-	return api.core().Request("pubsub/pub", topic).
+	return api.core().Request("pubsub/pub", toMultibase([]byte(topic))).
 		FileBody(bytes.NewReader(message)).
 		Exec(ctx, nil)
 }
@@ -64,13 +76,18 @@ type pubsubSub struct {
 }
 
 type pubsubMessage struct {
-	JFrom     []byte   `json:"from,omitempty"`
-	JData     []byte   `json:"data,omitempty"`
-	JSeqno    []byte   `json:"seqno,omitempty"`
+	JFrom     string   `json:"from,omitempty"`
+	JData     string   `json:"data,omitempty"`
+	JSeqno    string   `json:"seqno,omitempty"`
 	JTopicIDs []string `json:"topicIDs,omitempty"`
 
-	from peer.ID
-	err  error
+	// real values after unpacking from text/multibase envelopes
+	from   peer.ID
+	data   []byte
+	seqno  []byte
+	topics []string
+
+	err error
 }
 
 func (msg *pubsubMessage) From() peer.ID {
@@ -78,15 +95,17 @@ func (msg *pubsubMessage) From() peer.ID {
 }
 
 func (msg *pubsubMessage) Data() []byte {
-	return msg.JData
+	return msg.data
 }
 
 func (msg *pubsubMessage) Seq() []byte {
-	return msg.JSeqno
+	return msg.seqno
 }
 
+// TODO: do we want to keep this interface as []string,
+// or change to more correct [][]byte?
 func (msg *pubsubMessage) Topics() []string {
-	return msg.JTopicIDs
+	return msg.topics
 }
 
 func (s *pubsubSub) Next(ctx context.Context) (iface.PubSubMessage, error) {
@@ -98,22 +117,41 @@ func (s *pubsubSub) Next(ctx context.Context) (iface.PubSubMessage, error) {
 		if msg.err != nil {
 			return nil, msg.err
 		}
+		// unpack values from text/multibase envelopes
 		var err error
-		msg.from, err = peer.IDFromBytes(msg.JFrom)
-		return &msg, err
+		msg.from, err = peer.Decode(msg.JFrom)
+		if err != nil {
+			return nil, err
+		}
+		_, msg.data, err = mbase.Decode(msg.JData)
+		if err != nil {
+			return nil, err
+		}
+		_, msg.seqno, err = mbase.Decode(msg.JSeqno)
+		if err != nil {
+			return nil, err
+		}
+		for _, mbt := range msg.JTopicIDs {
+			_, topic, err := mbase.Decode(mbt)
+			if err != nil {
+				return nil, err
+			}
+			msg.topics = append(msg.topics, string(topic))
+		}
+		return &msg, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
 }
 
 func (api *PubsubAPI) Subscribe(ctx context.Context, topic string, opts ...caopts.PubSubSubscribeOption) (iface.PubSubSubscription, error) {
+	/* right now we have no options (discover got deprecated)
 	options, err := caopts.PubSubSubscribeOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
-
-	resp, err := api.core().Request("pubsub/sub", topic).
-		Option("discover", options.Discover).Send(ctx)
+	*/
+	resp, err := api.core().Request("pubsub/sub", toMultibase([]byte(topic))).Send(ctx)
 
 	if err != nil {
 		return nil, err
@@ -167,4 +205,10 @@ func (s *pubsubSub) Close() error {
 
 func (api *PubsubAPI) core() *HttpApi {
 	return (*HttpApi)(api)
+}
+
+// Encodes bytes into URL-safe multibase that can be sent over HTTP RPC (URL or body)
+func toMultibase(data []byte) string {
+	mb, _ := mbase.Encode(mbase.Base64url, data)
+	return mb
 }
