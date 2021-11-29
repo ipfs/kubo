@@ -111,10 +111,10 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 			DAGService: dserv,
 			syncFn: func() error {
 				ds := api.repo.Datastore()
-				if err := ds.Sync(bstore.BlockPrefix); err != nil {
+				if err := ds.Sync(ctx, bstore.BlockPrefix); err != nil {
 					return err
 				}
-				return ds.Sync(filestore.FilestorePrefix)
+				return ds.Sync(ctx, filestore.FilestorePrefix)
 			},
 		}
 	}
@@ -164,7 +164,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 		fileAdder.SetMfsRoot(mr)
 	}
 
-	nd, err := fileAdder.AddAllAndPin(files)
+	nd, err := fileAdder.AddAllAndPin(ctx, files)
 	if err != nil {
 		return nil, err
 	}

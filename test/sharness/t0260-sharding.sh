@@ -16,14 +16,14 @@ test_expect_success "set up test data" '
   done
 '
 
-test_add_large_dir() {
+test_add_dir() {
   exphash="$1"
-  test_expect_success "ipfs add on very large directory succeeds" '
+  test_expect_success "ipfs add on directory succeeds" '
     ipfs add -r -Q testdata > sharddir_out &&
     echo "$exphash" > sharddir_exp &&
     test_cmp sharddir_exp sharddir_out
   '
-  test_expect_success "ipfs get on very large directory succeeds" '
+  test_expect_success "ipfs get on directory succeeds" '
     ipfs get -o testdata-out "$exphash" &&
     test_cmp testdata testdata-out
   '
@@ -32,24 +32,29 @@ test_add_large_dir() {
 test_init_ipfs
 
 UNSHARDED="QmavrTrQG4VhoJmantURAYuw3bowq3E2WcvP36NRQDAC1N"
-test_add_large_dir "$UNSHARDED"
+
+test_expect_success "force sharding off" '
+ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1G\""
+'
+
+test_add_dir "$UNSHARDED"
 
 test_launch_ipfs_daemon
 
-test_add_large_dir "$UNSHARDED"
+test_add_dir "$UNSHARDED"
 
 test_kill_ipfs_daemon
 
-test_expect_success "enable sharding" '
-  ipfs config --json Experimental.ShardingEnabled true
+test_expect_success "force sharding on" '
+  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
 '
 
 SHARDED="QmSCJD1KYLhVVHqBK3YyXuoEqHt7vggyJhzoFYbT8v1XYL"
-test_add_large_dir "$SHARDED"
+test_add_dir "$SHARDED"
 
 test_launch_ipfs_daemon
 
-test_add_large_dir "$SHARDED"
+test_add_dir "$SHARDED"
 
 test_kill_ipfs_daemon
 
@@ -93,9 +98,9 @@ test_expect_success "'ipfs resolve' can resolve sharded dirs" '
 
 test_kill_ipfs_daemon
 
-test_add_large_dir_v1() {
+test_add_dir_v1() {
   exphash="$1"
-  test_expect_success "ipfs add (CIDv1) on very large directory succeeds" '
+  test_expect_success "ipfs add (CIDv1) on directory succeeds" '
     ipfs add -r -Q --cid-version=1 testdata > sharddir_out &&
     echo "$exphash" > sharddir_exp &&
     test_cmp sharddir_exp sharddir_out
@@ -109,11 +114,11 @@ test_add_large_dir_v1() {
 
 # this hash implies the directory is CIDv1 and leaf entries are CIDv1 and raw
 SHARDEDV1="bafybeibiemewfzzdyhq2l74wrd6qj2oz42usjlktgnlqv4yfawgouaqn4u"
-test_add_large_dir_v1 "$SHARDEDV1"
+test_add_dir_v1 "$SHARDEDV1"
 
 test_launch_ipfs_daemon
 
-test_add_large_dir_v1 "$SHARDEDV1"
+test_add_dir_v1 "$SHARDEDV1"
 
 test_kill_ipfs_daemon
 
@@ -129,7 +134,7 @@ test_list_incomplete_dir() {
 
   test_expect_success "can list part of the directory" '
     ipfs ls "$largeSHA3dir" 2> ls_err_out
-    echo "Error: merkledag: not found" > exp_err_out &&
+    echo "Error: failed to fetch all nodes" > exp_err_out &&
     cat ls_err_out &&
     test_cmp exp_err_out ls_err_out
   '

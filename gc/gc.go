@@ -40,7 +40,7 @@ type Result struct {
 func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []cid.Cid) <-chan Result {
 	ctx, cancel := context.WithCancel(ctx)
 
-	unlocker := bs.GCLock()
+	unlocker := bs.GCLock(ctx)
 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
@@ -50,7 +50,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	go func() {
 		defer cancel()
 		defer close(output)
-		defer unlocker.Unlock()
+		defer unlocker.Unlock(ctx)
 
 		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
 		if err != nil {
@@ -80,7 +80,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 					break loop
 				}
 				if !gcs.Has(k) {
-					err := bs.DeleteBlock(k)
+					err := bs.DeleteBlock(ctx, k)
 					removed++
 					if err != nil {
 						errors = true
@@ -115,7 +115,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			return
 		}
 
-		err = gds.CollectGarbage()
+		err = gds.CollectGarbage(ctx)
 		if err != nil {
 			select {
 			case output <- Result{Error: err}:
