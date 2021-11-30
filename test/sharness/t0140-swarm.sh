@@ -65,9 +65,16 @@ test_expect_success 'Addresses.Announce affects addresses' '
 
 test_kill_ipfs_daemon
 
-announceCfg='["/dnsaddr/dynamic.example.com", "/ip4/10.20.30.40/tcp/4321"]'
-test_expect_success "test_config_set AppendAnnounce succeeds" "
-  ipfs config --json Addresses.AppendAnnounce '$announceCfg'
+
+announceCfg='["/ip4/127.0.0.1/tcp/4001", "/ip4/1.2.3.4/tcp/1234"]'
+test_expect_success "test_config_set succeeds" "
+  ipfs config --json Addresses.Announce '$announceCfg'
+"
+# Include "/ip4/1.2.3.4/tcp/1234" to ensure we deduplicate addrs already present in Swarm.Announce
+appendAnnounceCfg='["/dnsaddr/dynamic.example.com", "/ip4/10.20.30.40/tcp/4321", "/ip4/1.2.3.4/tcp/1234"]'
+test_expect_success "test_config_set Announce and AppendAnnounce succeeds" "
+  ipfs config --json Addresses.Announce '$announceCfg' &&
+  ipfs config --json Addresses.AppendAnnounce '$appendAnnounceCfg'
 "
 
 test_launch_ipfs_daemon

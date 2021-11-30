@@ -26,7 +26,8 @@ func AddrFilters(filters []string) func() (*ma.Filters, Libp2pOpts, error) {
 }
 
 func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string) (p2pbhost.AddrsFactory, error) {
-	var err error // To assign to the slice in the for loop
+	var err error                     // To assign to the slice in the for loop
+	existing := make(map[string]bool) // To avoid duplicates
 
 	annAddrs := make([]ma.Multiaddr, len(announce))
 	for i, addr := range announce {
@@ -34,14 +35,20 @@ func makeAddrsFactory(announce []string, appendAnnouce []string, noAnnounce []st
 		if err != nil {
 			return nil, err
 		}
+		existing[addr] = true
 	}
 
-	appendAnnAddrs := make([]ma.Multiaddr, len(appendAnnouce))
-	for i, addr := range appendAnnouce {
-		appendAnnAddrs[i], err = ma.NewMultiaddr(addr)
+	var appendAnnAddrs []ma.Multiaddr
+	for _, addr := range appendAnnouce {
+		if existing[addr] {
+			// skip AppendAnnounce that is on the Announce list already
+			continue
+		}
+		appendAddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
 			return nil, err
 		}
+		appendAnnAddrs = append(appendAnnAddrs, appendAddr)
 	}
 
 	filters := ma.NewFilters()
