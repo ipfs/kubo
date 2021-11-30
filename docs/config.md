@@ -1289,7 +1289,7 @@ When enabled, go-ipfs will coordinate with the counterparty using
 a [relayed connection](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md),
 to [upgrade to a direct connection](https://github.com/libp2p/specs/blob/master/relay/DCUtR.md)
 through a NAT/firewall whenever possible.
-This feature requires `Swarm.RelayClient.Enabled` set to `true`.
+This feature requires `Swarm.RelayClient.Enabled` to be set to `true`.
 
 Default: `false`
 
