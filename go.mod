@@ -4,6 +4,7 @@ require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.3.0
 	github.com/blang/semver/v4 v4.0.0
+	github.com/ceramicnetwork/go-dag-jose v0.1.0
 	github.com/cheggaaa/pb v1.0.29
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dustin/go-humanize v1.0.0
@@ -60,7 +61,7 @@ require (
 	github.com/ipfs/tar-utils v0.0.1
 	github.com/ipld/go-car v0.3.2
 	github.com/ipld/go-codec-dagpb v1.3.0
-	github.com/ipld/go-ipld-prime v0.12.3
+	github.com/ipld/go-ipld-prime v0.14.1
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
