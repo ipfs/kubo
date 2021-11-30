@@ -53,7 +53,7 @@ Then use the `ipfs pubsub` commands.
 
 NOTE: `--enable-pubsub-experiment` CLI flag overrides `Pubsub.Enabled` config.
 
-Configuration documentation can be found in [go-ipfs/docs/config.md](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#pubsub)
+Configuration documentation can be found in [go-ipfs/docs/config.md](./config.md#pubsub)
 
 ### Road to being a real feature
 
