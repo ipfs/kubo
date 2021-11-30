@@ -38,14 +38,22 @@ Candidate, disabled by default but will be enabled by default in 0.6.0.
 
 ### In Version
 
-0.4.5
+0.4.5 (`--enable-pubsub-experiment`)
+0.11.0 (`Pubsub.Enabled` flag in config)
 
 ### How to enable
 
-run your daemon with the `--enable-pubsub-experiment` flag. Then use the
-`ipfs pubsub` commands.
+Run your daemon with the `--enable-pubsub-experiment` flag
+or modify your ipfs config and restart the daemon:
+```
+ipfs config --json Pubsub.Enabled true
+```
 
-Configuration documentation can be found in [./config.md]()
+Then use the `ipfs pubsub` commands.
+
+NOTE: `--enable-pubsub-experiment` CLI flag overrides `Pubsub.Enabled` config.
+
+Configuration documentation can be found in [go-ipfs/docs/config.md](./config.md#pubsub)
 
 ### Road to being a real feature
 
@@ -426,11 +434,14 @@ go-ipfs now automatically shards when directory block is bigger than 256KB, ensu
 0.4.14 :
   - Introduced
 
-0.5.0 : 
+0.5.0 :
    - No longer needs to use the DHT for the first resolution
    - When discovering PubSub peers via the DHT, the DHT key is different from previous versions
       - This leads to 0.5 IPNS pubsub peers and 0.4 IPNS pubsub peers not being able to find each other in the DHT
    - Robustness improvements
+
+0.11.0 :
+  - Can be enabled via `Ipns.UsePubsub` flag in config
 
 ### State
 
@@ -452,7 +463,15 @@ Users interested in this feature should upgrade to at least 0.5.0
 
 ### How to enable
 
-run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
+Run your daemon with the `--enable-namesys-pubsub` flag
+or modify your ipfs config and restart the daemon:
+```
+ipfs config --json Ipns.UsePubsub true
+```
+
+NOTE:
+- This feature implicitly enables [ipfs pubsub](#ipfs-pubsub).
+- Passing `--enable-namesys-pubsub` CLI flag overrides `Ipns.UsePubsub` config.
 
 ### Road to being a real feature
 

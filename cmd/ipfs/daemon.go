@@ -178,8 +178,8 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
-		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
+		cmds.BoolOption(enablePubSubKwd, "Enable experimental pubsub feature. Overrides Pubsub.Enabled config."),
+		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
 
@@ -365,11 +365,24 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	defer repo.Close()
 
 	offline, _ := req.Options[offlineKwd].(bool)
-	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
-	pubsub, _ := req.Options[enablePubSubKwd].(bool)
+	ipnsps, ipnsPsSet := req.Options[enableIPNSPubSubKwd].(bool)
+	pubsub, psSet := req.Options[enablePubSubKwd].(bool)
+
 	if _, hasMplex := req.Options[enableMultiplexKwd]; hasMplex {
 		log.Errorf("The mplex multiplexer has been enabled by default and the experimental %s flag has been removed.")
 		log.Errorf("To disable this multiplexer, please configure `Swarm.Transports.Multiplexers'.")
+	}
+
+	cfg, err := repo.Config()
+	if err != nil {
+		return err
+	}
+
+	if !psSet {
+		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
+	}
+	if !ipnsPsSet {
+		ipnsps = cfg.Ipns.UsePubsub.WithDefault(false)
 	}
 
 	// Start assembling node config
@@ -387,11 +400,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		cfg, err := repo.Config()
-		if err != nil {
-			return err
-		}
-
 		routingOption = cfg.Routing.Type
 		if routingOption == "" {
 			routingOption = routingOptionDHTKwd

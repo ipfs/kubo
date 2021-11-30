@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-test_description="Test dht command"
+test_description="Test pubsub command"
 
 . lib/test-lib.sh
 
@@ -96,7 +96,23 @@ run_pubsub_tests() {
 
 }
 
-# Normal tests
+# Normal tests - enabled via config
+
+test_expect_success 'enable the pubsub' '
+  iptb run -- ipfs config --json Pubsub.Enabled true
+'
+
+startup_cluster $NUM_NODES
+run_pubsub_tests
+test_expect_success 'stop iptb' '
+  iptb stop
+'
+
+test_expect_success 'disable the pubsub' '
+  iptb run -- ipfs config --json Pubsub.Enabled false
+'
+
+# Normal tests - enabled via daemon option flag
 
 startup_cluster $NUM_NODES --enable-pubsub-experiment
 run_pubsub_tests
@@ -125,6 +141,29 @@ test_expect_success 'stop iptb' '
 
 test_expect_success 'node 4 got no unsigned messages' '
   test_must_be_empty node4_actual
+'
+
+
+# Confirm negative CLI flag takes precedence over positive config
+
+# --enable-pubsub-experiment=false + Pubsub.Enabled:true
+
+test_expect_success 'enable the pubsub via config' '
+  iptb run -- ipfs config --json Pubsub.Enabled true
+'
+startup_cluster $NUM_NODES --enable-pubsub-experiment=false
+
+test_expect_success 'pubsub cmd fails because it was disabled via cli flag' '
+  test_expect_code 1 ipfsi 4 pubsub ls 2> pubsub_cmd_out
+'
+
+test_expect_success "pubsub cmd produces error" '
+  echo "Error: experimental pubsub feature not enabled. Run daemon with --enable-pubsub-experiment to use." > expected &&
+  test_cmp expected pubsub_cmd_out
+'
+
+test_expect_success 'stop iptb' '
+  iptb stop
 '
 
 test_done
