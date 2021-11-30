@@ -4,7 +4,7 @@ import (
 	"context"
 
 	cid "github.com/ipfs/go-cid"
-	pin "github.com/ipfs/go-ipfs-pinner"
+	"github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 )
@@ -18,7 +18,7 @@ type dagAPI struct {
 type pinningAdder CoreAPI
 
 func (adder *pinningAdder) Add(ctx context.Context, nd ipld.Node) error {
-	defer adder.blockstore.PinLock(ctx).Unlock(ctx)
+	defer adder.blockstore.PinLock().Unlock()
 
 	if err := adder.dag.Add(ctx, nd); err != nil {
 		return err
@@ -30,7 +30,7 @@ func (adder *pinningAdder) Add(ctx context.Context, nd ipld.Node) error {
 }
 
 func (adder *pinningAdder) AddMany(ctx context.Context, nds []ipld.Node) error {
-	defer adder.blockstore.PinLock(ctx).Unlock(ctx)
+	defer adder.blockstore.PinLock().Unlock()
 
 	if err := adder.dag.AddMany(ctx, nds); err != nil {
 		return err

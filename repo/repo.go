@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"context"
 	"errors"
 	"io"
 
@@ -40,7 +39,7 @@ type Repo interface {
 	Datastore() Datastore
 
 	// GetStorageUsage returns the number of bytes stored.
-	GetStorageUsage(context.Context) (uint64, error)
+	GetStorageUsage() (uint64, error)
 
 	// Keystore returns a reference to the key management interface.
 	Keystore() keystore.Keystore

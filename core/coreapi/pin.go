@@ -27,7 +27,7 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 		return err
 	}
 
-	defer api.blockstore.PinLock(ctx).Unlock(ctx)
+	defer api.blockstore.PinLock().Unlock()
 
 	err = api.pinning.Pin(ctx, dagNode, settings.Recursive)
 	if err != nil {
@@ -89,7 +89,7 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 
 	// Note: after unpin the pin sets are flushed to the blockstore, so we need
 	// to take a lock to prevent a concurrent garbage collection
-	defer api.blockstore.PinLock(ctx).Unlock(ctx)
+	defer api.blockstore.PinLock().Unlock()
 
 	if err = api.pinning.Unpin(ctx, rp.Cid(), settings.Recursive); err != nil {
 		return err
@@ -114,7 +114,7 @@ func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opt
 		return err
 	}
 
-	defer api.blockstore.PinLock(ctx).Unlock(ctx)
+	defer api.blockstore.PinLock().Unlock()
 
 	err = api.pinning.Update(ctx, fp.Cid(), tp.Cid(), settings.Unpin)
 	if err != nil {

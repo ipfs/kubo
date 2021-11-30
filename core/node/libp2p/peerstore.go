@@ -8,16 +8,13 @@ import (
 	"go.uber.org/fx"
 )
 
-func Peerstore(lc fx.Lifecycle) (peerstore.Peerstore, error) {
-	pstore, err := pstoremem.NewPeerstore()
-	if err != nil {
-		return nil, err
-	}
+func Peerstore(lc fx.Lifecycle) peerstore.Peerstore {
+	pstore := pstoremem.NewPeerstore()
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
 			return pstore.Close()
 		},
 	})
 
-	return pstore, nil
+	return pstore
 }

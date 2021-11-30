@@ -1,10 +1,21 @@
 {
   "name": "dir-index-html",
+  "author": "lgierth",
   "description": "Directory listing HTML for go-ipfs gateways",
-  "version": "1.3.0",
-  "private": true,
-  "homepage": "https://github.com/ipfs/go-ipfs",
+  "version": "1.2.1",
+  "homepage": "https://github.com/ipfs/dir-index-html#readme",
+  "bugs": {
+    "url": "https://github.com/ipfs/dir-index-html"
+  },
+  "gx": {
+    "dvcsimport": "github.com/ipfs/dir-index-html",
+    "goversion": "1.5.2"
+  },
+  "gxDependencies": [],
+  "gxVersion": "0.14.0",
+  "language": "go",
   "license": "MIT",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "scripts": {
     "start": "cd test && go run .",
     "build": "npm run build:clean && npm run build:remove-style-links && npm run build:minify-wrap-css && npm run build:combine-html-css && npm run build:remove-unused",

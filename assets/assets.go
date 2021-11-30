@@ -1,4 +1,4 @@
-//go:generate npm run build --prefix ./dir-index-html/
+//go:generate git submodule update --init ./dir-index-html
 //go:generate go run github.com/go-bindata/go-bindata/v3/go-bindata -mode=0644 -modtime=1403768328 -pkg=assets init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
 //go:generate gofmt -s -w bindata.go
 //go:generate sh -c "sed -i \"s/.*BindataVersionHash.*/BindataVersionHash=\\\"$(git hash-object bindata.go)\\\"/\" bindata_version_hash.go"

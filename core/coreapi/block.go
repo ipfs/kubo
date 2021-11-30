@@ -46,10 +46,10 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 	}
 
 	if settings.Pin {
-		defer api.blockstore.PinLock(ctx).Unlock(ctx)
+		defer api.blockstore.PinLock().Unlock()
 	}
 
-	err = api.blocks.AddBlock(ctx, b)
+	err = api.blocks.AddBlock(b)
 	if err != nil {
 		return nil, err
 	}

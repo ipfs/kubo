@@ -402,22 +402,27 @@ See [Plugin docs](./plugins.md)
 ## Directory Sharding / HAMT
 
 ### In Version
-
-- 0.4.8:
-  - Introduced `Experimental.ShardingEnabled` which enabled sharding globally.
-  - All-or-nothing, unnecessary sharding of small directories.
-
-- 0.11.0 :
-  - Removed support for `Experimental.ShardingEnabled`
-  - Replaced with automatic sharding based on the block size
+0.4.8
 
 ### State
+Experimental
 
-Replaced by autosharding.
+Allows creating directories with an unlimited number of entries.
 
-The `Experimental.ShardingEnabled` config field is no longer used, please remove it from your configs.
+**Caveats:**
+1. right now it is a GLOBAL FLAG which will impact the final CID of all directories produced by `ipfs.add` (even the small ones)
+2. currently size of unixfs directories is limited by the maximum block size
 
-go-ipfs now automatically shards when directory block is bigger than 256KB, ensuring every block is small enough to be exchanged with other peers
+### Basic Usage:
+
+```
+ipfs config --json Experimental.ShardingEnabled true
+```
+
+### Road to being a real feature
+
+- [ ] Make sure that objects that don't have to be sharded aren't
+- [ ] Generalize sharding and define a new layer between IPLD and IPFS
 
 ## IPNS pubsub
 
@@ -463,11 +468,7 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 
 ### In Version
 
-- 0.4.19 :
-  - Introduced Circuit Relay v1
-- 0.11.0 :
-  - Deprecated v1
-  - Introduced [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
+0.4.19
 
 ### State
 
@@ -480,14 +481,15 @@ Automatically discovers relays and advertises relay addresses when the node is b
 Modify your ipfs config:
 
 ```
-ipfs config --json Swarm.RelayClient.Enabled true
+ipfs config --json Swarm.EnableRelayHop false
+ipfs config --json Swarm.EnableAutoRelay true
 ```
+
+NOTE: Ensuring `Swarm.EnableRelayHop` is _false_ is extremely important here. If you set it to true, you will _act_ as a public relay for the rest of the network instead of _using_ the public relays.
 
 ### Road to being a real feature
 
 - [ ] needs testing
-- [ ] needs to be automatically enabled when AutoNAT detects node is behind an impenetrable NAT.
-
 
 ## Strategic Providing
 

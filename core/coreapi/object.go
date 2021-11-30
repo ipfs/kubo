@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 
 	cid "github.com/ipfs/go-cid"
-	pin "github.com/ipfs/go-ipfs-pinner"
+	"github.com/ipfs/go-ipfs-pinner"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-merkledag/dagutils"
@@ -110,7 +110,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 	}
 
 	if options.Pin {
-		defer api.blockstore.PinLock(ctx).Unlock(ctx)
+		defer api.blockstore.PinLock().Unlock()
 	}
 
 	err = api.dag.Add(ctx, dagnode)

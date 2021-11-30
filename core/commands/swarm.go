@@ -453,7 +453,7 @@ var swarmAddrsLocalCmd = &cmds.Command{
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 }
 
@@ -485,7 +485,7 @@ var swarmAddrsListenCmd = &cmds.Command{
 	},
 	Type: stringList{},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 }
 
@@ -535,7 +535,7 @@ ipfs swarm connect /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N
 		return cmds.EmitOnce(res, &stringList{output})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -600,7 +600,7 @@ it will reconnect.
 		return cmds.EmitOnce(res, &stringList{output})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -722,7 +722,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 		return cmds.EmitOnce(res, &stringList{output})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -778,7 +778,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &stringList{added})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }
@@ -844,7 +844,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &stringList{removed})
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(safeTextListEncoder),
+		cmds.Text: cmds.MakeTypedEncoder(stringListEncoder),
 	},
 	Type: stringList{},
 }

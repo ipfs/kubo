@@ -42,8 +42,8 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	// This is especially important for use cases like dagger:
 	//    ipfs dag import $( ... | ipfs-dagger --stdout=carfifos )
 	//
-	unlocker := node.Blockstore.PinLock(req.Context)
-	defer unlocker.Unlock(req.Context)
+	unlocker := node.Blockstore.PinLock()
+	defer unlocker.Unlock()
 
 	doPinRoots, _ := req.Options[pinRootsOptionName].(bool)
 
@@ -87,7 +87,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 			ret := RootMeta{Cid: c}
 
-			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
+			if block, err := node.Blockstore.Get(c); err != nil {
 				ret.PinErrorMsg = err.Error()
 			} else if nd, err := ipld.Decode(block); err != nil {
 				ret.PinErrorMsg = err.Error()

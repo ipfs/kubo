@@ -1,4 +1,3 @@
-//go:build (linux || darwin || freebsd) && !nofuse
 // +build linux darwin freebsd
 // +build !nofuse
 
@@ -82,7 +81,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	// convert ipld-prime node to universal node
-	blk, err := s.Ipfs.Blockstore.Get(ctx, cidLnk.Cid)
+	blk, err := s.Ipfs.Blockstore.Get(cidLnk.Cid)
 	if err != nil {
 		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
 		return nil, fuse.ENOENT
