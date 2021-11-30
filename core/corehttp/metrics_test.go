@@ -21,7 +21,7 @@ func TestPeersTotal(t *testing.T) {
 	hosts := make([]*bhost.BasicHost, 4)
 	for i := 0; i < 4; i++ {
 		var err error
-		hosts[i], err = bhost.NewHost(ctx, swarmt.GenSwarm(t, ctx), nil)
+		hosts[i], err = bhost.NewHost(swarmt.GenSwarm(t), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

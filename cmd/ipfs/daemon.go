@@ -559,6 +559,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 				log.Error("failed to bootstrap (no peers found): consider updating Bootstrap or Peering section of your config")
 			}
 		})
+
+	}
+
+	// Hard deprecation notice if someone still uses IPFS_REUSEPORT
+	if flag := os.Getenv("IPFS_REUSEPORT"); flag != "" {
+		log.Fatal("Support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead.")
 	}
 
 	// collect long-running errors and block for shutdown

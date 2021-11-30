@@ -338,7 +338,7 @@ func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *con
 
 		ns := labels[i-1]
 		if !isSubdomainNamespace(ns) {
-			break
+			continue
 		}
 
 		// Merge remaining labels (could be a FQDN with DNSLink)

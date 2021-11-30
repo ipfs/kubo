@@ -46,11 +46,11 @@ func BlockService(lc fx.Lifecycle, bs blockstore.Blockstore, rem exchange.Interf
 func Pinning(bstore blockstore.Blockstore, ds format.DAGService, repo repo.Repo) (pin.Pinner, error) {
 	rootDS := repo.Datastore()
 
-	syncFn := func() error {
-		if err := rootDS.Sync(blockstore.BlockPrefix); err != nil {
+	syncFn := func(ctx context.Context) error {
+		if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
 			return err
 		}
-		return rootDS.Sync(filestore.FilestorePrefix)
+		return rootDS.Sync(ctx, filestore.FilestorePrefix)
 	}
 	syncDs := &syncDagService{ds, syncFn}
 
@@ -72,11 +72,11 @@ var (
 // syncDagService is used by the Pinner to ensure data gets persisted to the underlying datastore
 type syncDagService struct {
 	format.DAGService
-	syncFn func() error
+	syncFn func(context.Context) error
 }
 
-func (s *syncDagService) Sync() error {
-	return s.syncFn()
+func (s *syncDagService) Sync(ctx context.Context) error {
+	return s.syncFn(ctx)
 }
 
 func (s *syncDagService) Session(ctx context.Context) format.NodeGetter {
@@ -113,22 +113,22 @@ func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.
 	dsk := datastore.NewKey("/local/filesroot")
 	pf := func(ctx context.Context, c cid.Cid) error {
 		rootDS := repo.Datastore()
-		if err := rootDS.Sync(blockstore.BlockPrefix); err != nil {
+		if err := rootDS.Sync(ctx, blockstore.BlockPrefix); err != nil {
 			return err
 		}
-		if err := rootDS.Sync(filestore.FilestorePrefix); err != nil {
+		if err := rootDS.Sync(ctx, filestore.FilestorePrefix); err != nil {
 			return err
 		}
 
-		if err := rootDS.Put(dsk, c.Bytes()); err != nil {
+		if err := rootDS.Put(ctx, dsk, c.Bytes()); err != nil {
 			return err
 		}
-		return rootDS.Sync(dsk)
+		return rootDS.Sync(ctx, dsk)
 	}
 
 	var nd *merkledag.ProtoNode
-	val, err := repo.Datastore().Get(dsk)
 	ctx := helpers.LifecycleCtx(mctx, lc)
+	val, err := repo.Datastore().Get(ctx, dsk)
 
 	switch {
 	case err == datastore.ErrNotFound || val == nil:
