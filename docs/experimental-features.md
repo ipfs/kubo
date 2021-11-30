@@ -51,6 +51,8 @@ ipfs config --json Pubsub.Enabled true
 
 Then use the `ipfs pubsub` commands.
 
+NOTE: `--enable-pubsub-experiment` CLI flag overrides `Pubsub.Enabled` config.
+
 Configuration documentation can be found in [go-ipfs/docs/config.md](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#pubsub)
 
 ### Road to being a real feature
@@ -432,7 +434,7 @@ go-ipfs now automatically shards when directory block is bigger than 256KB, ensu
 0.4.14 :
   - Introduced
 
-0.5.0 : 
+0.5.0 :
    - No longer needs to use the DHT for the first resolution
    - When discovering PubSub peers via the DHT, the DHT key is different from previous versions
       - This leads to 0.5 IPNS pubsub peers and 0.4 IPNS pubsub peers not being able to find each other in the DHT
@@ -467,7 +469,9 @@ or modify your ipfs config and restart the daemon:
 ipfs config --json Ipns.UsePubsub true
 ```
 
-Note: This feature implicitly enables [ipfs pubsub](#ipfs-pubsub).
+NOTE:
+- This feature implicitly enables [ipfs pubsub](#ipfs-pubsub).
+- Passing `--enable-namesys-pubsub` CLI flag overrides `Ipns.UsePubsub` config.
 
 ### Road to being a real feature
 

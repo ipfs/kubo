@@ -178,8 +178,8 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
-		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
+		cmds.BoolOption(enablePubSubKwd, "Enable experimental pubsub feature. Overrides Pubsub.Enabled config."),
+		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
 

@@ -146,6 +146,8 @@ test_expect_success 'node 4 got no unsigned messages' '
 
 # Confirm negative CLI flag takes precedence over positive config
 
+# --enable-pubsub-experiment=false + Pubsub.Enabled:true
+
 test_expect_success 'enable the pubsub via config' '
   iptb run -- ipfs config --json Pubsub.Enabled true
 '
