@@ -102,4 +102,24 @@ test_expect_success 'enable ipns over pubsub' '
 startup_cluster $NUM_NODES --enable-namesys-pubsub
 run_ipnspubsub_tests
 
+# Confirm negative CLI flag takes precedence over positive config
+
+test_expect_success 'enable the pubsub-ipns via config' '
+  iptb run -- ipfs config --json Ipns.UsePubsub true
+'
+startup_cluster $NUM_NODES --enable-namesys-pubsub=false
+
+test_expect_success 'ipns pubsub cmd fails because it was disabled via cli flag' '
+  test_expect_code 1 ipfsi 1 name pubsub subs 2> pubsubipns_cmd_out
+'
+
+test_expect_success "ipns pubsub cmd produces error" "
+  echo -e \"Error: IPNS pubsub subsystem is not enabled\nUse 'ipfs name pubsub subs --help' for information about this command\" > expected &&
+  test_cmp expected pubsubipns_cmd_out
+"
+
+test_expect_success 'stop iptb' '
+  iptb stop
+'
+
 test_done
