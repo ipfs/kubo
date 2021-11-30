@@ -1,6 +1,6 @@
 # This file will be overwritten on package upgrades, avoid customizations here.
 #
-# To make persistant changes, create file in 
+# To make persistent changes, create file in 
 # "/etc/systemd/system/ipfs.service.d/overwrite.conf" with 
 # `systemctl edit ipfs.service`. This file will be parsed after this 
 # file has been parsed.
@@ -13,7 +13,7 @@
 # For more info about custom unit files see systemd.unit(5).
 
 # This service file enables systemd-hardening features compatible with IPFS,
-# while breaking compability with the fuse-mount function. Use this one only 
+# while breaking compatibility with the fuse-mount function. Use this one only 
 # if you don't need the fuse-mount functionality.
 
 [Unit]

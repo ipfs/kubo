@@ -16,7 +16,6 @@ import (
 
 func newNode(ctx context.Context, t *testing.T) host.Host {
 	h, err := libp2p.New(
-		ctx,
 		libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"),
 		// We'd like to set the connection manager low water to 0, but
 		// that would disable the connection manager.

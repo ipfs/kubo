@@ -15,8 +15,8 @@ fi
 
 test_init_ipfs
 
-test_expect_success 'enable sharding' '
-  ipfs config --json Experimental.ShardingEnabled true
+test_expect_success 'force sharding' '
+  ipfs config --json Internal.UnixFSShardingSizeThreshold "\"1B\""
 '
 
 test_launch_ipfs_daemon

@@ -295,7 +295,7 @@ func prepareKnownGateways(publicGateways map[string]*config.GatewaySpec) gateway
 }
 
 // isKnownHostname checks Gateway.PublicGateways and returns matching
-// GatewaySpec with gracefull fallback to version without port
+// GatewaySpec with graceful fallback to version without port
 func isKnownHostname(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, ok bool) {
 	// Try hostname (host+optional port - value from Host header as-is)
 	if gw, ok := knownGateways.exact[hostname]; ok {
@@ -338,7 +338,7 @@ func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *con
 
 		ns := labels[i-1]
 		if !isSubdomainNamespace(ns) {
-			break
+			continue
 		}
 
 		// Merge remaining labels (could be a FQDN with DNSLink)
