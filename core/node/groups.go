@@ -154,6 +154,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled, cfg.Discovery.MDNS.Interval)),
 		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),
 		fx.Provide(libp2p.StaticRelays(cfg.Swarm.RelayClient.StaticRelays)),
+		fx.Provide(libp2p.HolePunching(cfg.Swarm.EnableHolePunching, cfg.Swarm.RelayClient.Enabled.WithDefault(false))),
 
 		fx.Provide(libp2p.Security(!bcfg.DisableEncryptedConnections, cfg.Swarm.Transports)),
 

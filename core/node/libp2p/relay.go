@@ -70,3 +70,15 @@ func AutoRelay(addDefaultRelays bool) func() (opts Libp2pOpts, err error) {
 		return
 	}
 }
+
+func HolePunching(flag config.Flag, hasRelayClient bool) func() (opts Libp2pOpts, err error) {
+	return func() (opts Libp2pOpts, err error) {
+		if flag.WithDefault(false) {
+			if !hasRelayClient {
+				log.Fatal("To enable `Swarm.EnableHolePunching` requires `Swarm.RelayClient.Enabled` to be enabled.")
+			}
+			opts.Opts = append(opts.Opts, libp2p.EnableHolePunching())
+		}
+		return
+	}
+}
