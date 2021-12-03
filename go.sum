@@ -441,8 +441,8 @@ github.com/ipfs/go-ds-badger v0.2.3/go.mod h1:pEYw0rgg3FIrywKKnL+Snr+w/LjJZVMTBR
 github.com/ipfs/go-ds-badger v0.2.7/go.mod h1:02rnztVKA4aZwDuaRPTf8mpqcKmXP7mLl6JPxd14JHA=
 github.com/ipfs/go-ds-badger v0.3.0 h1:xREL3V0EH9S219kFFueOYJJTcjgNSZ2HY1iSvN7U1Ro=
 github.com/ipfs/go-ds-badger v0.3.0/go.mod h1:1ke6mXNqeV8K3y5Ak2bAA0osoTfmxUdupVCGm4QUIek=
-github.com/ipfs/go-ds-flatfs v0.5.0 h1:ntq2P05cC51VOSZ0VO/HRaCoLefVXNKGRu9gYr9Ajko=
-github.com/ipfs/go-ds-flatfs v0.5.0/go.mod h1:RWTV7oZD/yZYBKdbVIFXTX2fdY2Tbvl94NsWqmoyAX4=
+github.com/ipfs/go-ds-flatfs v0.5.1 h1:ZCIO/kQOS/PSh3vcF1H6a8fkRGS7pOfwfPdx4n/KJH4=
+github.com/ipfs/go-ds-flatfs v0.5.1/go.mod h1:RWTV7oZD/yZYBKdbVIFXTX2fdY2Tbvl94NsWqmoyAX4=
 github.com/ipfs/go-ds-leveldb v0.0.1/go.mod h1:feO8V3kubwsEF22n0YRQCffeb79OOYIykR4L04tMOYc=
 github.com/ipfs/go-ds-leveldb v0.1.0/go.mod h1:hqAW8y4bwX5LWcCtku2rFNX3vjDZCy5LZCg+cSZvYb8=
 github.com/ipfs/go-ds-leveldb v0.4.1/go.mod h1:jpbku/YqBSsBc1qgME8BkWS4AxzF2cEu1Ii2r79Hh9s=
