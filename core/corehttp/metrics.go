@@ -160,9 +160,18 @@ func (c IpfsNodeCollector) PeersTotalValues() map[string]float64 {
 	if c.Node.PeerHost == nil {
 		return vals
 	}
-	for _, conn := range c.Node.PeerHost.Network().Conns() {
+	for _, peerID := range c.Node.PeerHost.Network().Peers() {
+		// Each peer may have more than one connection (see for an explanation
+		// https://github.com/libp2p/go-libp2p-swarm/commit/0538806), so we grab
+		// only one, the first (an arbitrary and non-deterministic choice), which
+		// according to ConnsToPeer is the oldest connection in the list
+		// (https://github.com/libp2p/go-libp2p-swarm/blob/v0.2.6/swarm.go#L362-L364).
+		conns := c.Node.PeerHost.Network().ConnsToPeer(peerID)
+		if len(conns) == 0 {
+			continue
+		}
 		tr := ""
-		for _, proto := range conn.RemoteMultiaddr().Protocols() {
+		for _, proto := range conns[0].RemoteMultiaddr().Protocols() {
 			tr = tr + "/" + proto.Name
 		}
 		vals[tr] = vals[tr] + 1
