@@ -21,6 +21,7 @@ import (
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	assets "github.com/ipfs/go-ipfs/assets"
+	"github.com/ipfs/go-ipfs/tracing"
 	dag "github.com/ipfs/go-merkledag"
 	mfs "github.com/ipfs/go-mfs"
 	path "github.com/ipfs/go-path"
@@ -136,6 +137,7 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// the hour is a hard fallback, we don't expect it to happen, but just in case
 	ctx, cancel := context.WithTimeout(r.Context(), time.Hour)
 	defer cancel()
+
 	r = r.WithContext(ctx)
 
 	defer func() {
@@ -194,6 +196,9 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracing.Span(r.Context(), "Gateway", "GetOrHeadHandler")
+	defer span.End()
+
 	begin := time.Now()
 	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
@@ -271,7 +276,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Resolve path to the final DAG node for the ETag
-	resolvedPath, err := i.api.ResolvePath(r.Context(), parsedPath)
+	resolvedPath, err := i.api.ResolvePath(ctx, parsedPath)
 	switch err {
 	case nil:
 	case coreiface.ErrOffline:
@@ -286,7 +291,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	dr, err := i.api.Unixfs().Get(r.Context(), resolvedPath)
+	dr, err := i.api.Unixfs().Get(ctx, resolvedPath)
 	if err != nil {
 		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
@@ -345,7 +350,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		} else {
 			name = getFilename(urlPath)
 		}
-		i.serveFile(w, r, name, modtime, f)
+		i.serveFile(ctx, w, r, name, modtime, f)
 		return
 	}
 	dir, ok := dr.(files.Directory)
@@ -354,7 +359,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	idx, err := i.api.Unixfs().Get(r.Context(), ipath.Join(resolvedPath, "index.html"))
+	idx, err := i.api.Unixfs().Get(ctx, ipath.Join(resolvedPath, "index.html"))
 	switch err.(type) {
 	case nil:
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
@@ -377,7 +382,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 
 		// write to request
-		i.serveFile(w, r, "index.html", modtime, f)
+		i.serveFile(ctx, w, r, "index.html", modtime, f)
 		return
 	case resolver.ErrNoLink:
 		// no index.html; noop
@@ -403,6 +408,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// storage for directory listing
+	span.AddEvent("DirListingStart")
 	var dirListing []directoryItem
 	dirit := dir.Entries()
 	for dirit.Next() {
@@ -412,7 +418,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			size = humanize.Bytes(uint64(s))
 		}
 
-		resolved, err := i.api.ResolvePath(r.Context(), ipath.Join(resolvedPath, dirit.Name()))
+		resolved, err := i.api.ResolvePath(ctx, ipath.Join(resolvedPath, dirit.Name()))
 		if err != nil {
 			internalWebError(w, err)
 			return
@@ -429,6 +435,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 		dirListing = append(dirListing, di)
 	}
+	span.AddEvent("DirListingEnd")
 	if dirit.Err() != nil {
 		internalWebError(w, dirit.Err())
 		return
@@ -470,7 +477,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var gwURL string
 
 	// Get gateway hostname and build gateway URL.
-	if h, ok := r.Context().Value("gw-hostname").(string); ok {
+	if h, ok := ctx.Value("gw-hostname").(string); ok {
 		gwURL = "//" + h
 	} else {
 		gwURL = ""
@@ -497,7 +504,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
+func (i *gatewayHandler) serveFile(ctx context.Context, w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
+	ctx, span := tracing.Span(ctx, "Gateway", "ServeFile")
+	defer span.End()
+	req = req.WithContext(ctx)
+
 	size, err := file.Size()
 	if err != nil {
 		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
@@ -577,7 +588,10 @@ func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
-	p, err := i.api.Unixfs().Add(r.Context(), files.NewReaderFile(r.Body))
+	ctx, span := tracing.Span(r.Context(), "Gateway", "PostHandler")
+	defer span.End()
+
+	p, err := i.api.Unixfs().Add(ctx, files.NewReaderFile(r.Body))
 	if err != nil {
 		internalWebError(w, err)
 		return
@@ -589,7 +603,9 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, span := tracing.Span(r.Context(), "Gateway", "PutHandler")
+	defer span.End()
+
 	ds := i.api.Dag()
 
 	// Parse the path
@@ -681,7 +697,8 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, span := tracing.Span(r.Context(), "Gateway", "DeleteHandler")
+	defer span.End()
 
 	// parse the path
 

@@ -8,15 +8,21 @@ import (
 	"github.com/ipfs/go-cid"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	pin "github.com/ipfs/go-ipfs-pinner"
+	"github.com/ipfs/go-ipfs/tracing"
 	"github.com/ipfs/go-merkledag"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type PinAPI CoreAPI
 
 func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOption) error {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Add", trace.WithAttributes(attribute.String("path", p.String())))
+	defer span.End()
+
 	dagNode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return fmt.Errorf("pin: %s", err)
@@ -26,6 +32,8 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 	if err != nil {
 		return err
 	}
+
+	span.SetAttributes(attribute.Bool("recursive", settings.Recursive))
 
 	defer api.blockstore.PinLock(ctx).Unlock(ctx)
 
@@ -42,10 +50,15 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 }
 
 func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan coreiface.Pin, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Ls")
+	defer span.End()
+
 	settings, err := caopts.PinLsOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	span.SetAttributes(attribute.String("type", settings.Type))
 
 	switch settings.Type {
 	case "all", "direct", "indirect", "recursive":
@@ -57,6 +70,9 @@ func (api *PinAPI) Ls(ctx context.Context, opts ...caopts.PinLsOption) (<-chan c
 }
 
 func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.PinIsPinnedOption) (string, bool, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "IsPinned", trace.WithAttributes(attribute.String("path", p.String())))
+	defer span.End()
+
 	resolved, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return "", false, fmt.Errorf("error resolving path: %s", err)
@@ -66,6 +82,8 @@ func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 	if err != nil {
 		return "", false, err
 	}
+
+	span.SetAttributes(attribute.String("withtype", settings.WithType))
 
 	mode, ok := pin.StringToMode(settings.WithType)
 	if !ok {
@@ -77,6 +95,9 @@ func (api *PinAPI) IsPinned(ctx context.Context, p path.Path, opts ...caopts.Pin
 
 // Rm pin rm api
 func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOption) error {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Rm", trace.WithAttributes(attribute.String("path", p.String())))
+	defer span.End()
+
 	rp, err := api.core().ResolvePath(ctx, p)
 	if err != nil {
 		return err
@@ -86,6 +107,8 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 	if err != nil {
 		return err
 	}
+
+	span.SetAttributes(attribute.Bool("recursive", settings.Recursive))
 
 	// Note: after unpin the pin sets are flushed to the blockstore, so we need
 	// to take a lock to prevent a concurrent garbage collection
@@ -99,10 +122,18 @@ func (api *PinAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.PinRmOpti
 }
 
 func (api *PinAPI) Update(ctx context.Context, from path.Path, to path.Path, opts ...caopts.PinUpdateOption) error {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Update", trace.WithAttributes(
+		attribute.String("from", from.String()),
+		attribute.String("to", to.String()),
+	))
+	defer span.End()
+
 	settings, err := caopts.PinUpdateOptions(opts...)
 	if err != nil {
 		return err
 	}
+
+	span.SetAttributes(attribute.Bool("unpin", settings.Unpin))
 
 	fp, err := api.core().ResolvePath(ctx, from)
 	if err != nil {
@@ -153,6 +184,9 @@ func (n *badNode) Err() error {
 }
 
 func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Verify")
+	defer span.End()
+
 	visited := make(map[cid.Cid]*pinStatus)
 	bs := api.blockstore
 	DAG := merkledag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
@@ -164,6 +198,9 @@ func (api *PinAPI) Verify(ctx context.Context) (<-chan coreiface.PinStatus, erro
 
 	var checkPin func(root cid.Cid) *pinStatus
 	checkPin = func(root cid.Cid) *pinStatus {
+		ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Verify.CheckPin", trace.WithAttributes(attribute.String("cid", root.String())))
+		defer span.End()
+
 		if status, ok := visited[root]; ok {
 			return status
 		}

@@ -20,6 +20,8 @@ import (
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/go-ipfs/tracing"
+	"go.opentelemetry.io/otel"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs-cmds/cli"
@@ -71,21 +73,30 @@ func main() {
 	os.Exit(mainRet())
 }
 
-func mainRet() int {
+func printErr(err error) int {
+	fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+	return 1
+}
+
+func mainRet() (exitCode int) {
 	rand.Seed(time.Now().UnixNano())
 	ctx := logging.ContextWithLoggable(context.Background(), loggables.Uuid("session"))
 	var err error
 
-	// we'll call this local helper to output errors.
-	// this is so we control how to print errors in one place.
-	printErr := func(err error) {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+	tp, err := tracing.NewTracerProvider(ctx)
+	if err != nil {
+		return printErr(err)
 	}
+	defer func() {
+		if err := tp.Shutdown(ctx); err != nil {
+			exitCode = printErr(err)
+		}
+	}()
+	otel.SetTracerProvider(tp)
 
 	stopFunc, err := profileIfEnabled()
 	if err != nil {
-		printErr(err)
-		return 1
+		return printErr(err)
 	}
 	defer stopFunc() // to be executed as late as possible
 
