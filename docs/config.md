@@ -701,7 +701,7 @@ between content roots.
 
 - `true` - enables [subdomain gateway](#https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
     - **Requires whitelist:** make sure respective `Paths` are set.
-    For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
+      For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
         ```json
         "Gateway": {
             "PublicGateways": {
@@ -786,7 +786,7 @@ Below is a list of the most common public gateway setups.
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
      
    - **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
-  
+    
      `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
      
      `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
@@ -1392,7 +1392,7 @@ Enables providing `/p2p-circuit` v2 relay service to other peers on the network.
 
 NOTE: This is the service/server part of the relay system.
 Disabling this will prevent this node from running as a relay server.
-Use [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for turning your node into a relay user.
+Use [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for turning your node into a relay user.
 
 Default: Enabled
 
@@ -1441,7 +1441,7 @@ Default: `128`
 Type: `optionalInteger`
 
 
-#### `Swarm.RelayService.MaxReservations`
+#### `Swarm.RelayService.MaxCircuits`
 
 Maximum number of open relay connections for each peer.
 
