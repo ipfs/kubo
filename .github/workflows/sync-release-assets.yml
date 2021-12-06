@@ -109,7 +109,7 @@ jobs:
               for (const file of missing_files) {
                 hash_sha = file + ".sha512"
                 hash_cid = file + ".cid"
-                // if didt.ipfs.io does not have both hash checksums for the file, skip this file
+                // if dist.ipfs.io does not have both hash checksums for the file, skip this file
                 if (!dist_assets_map[hash_sha] || !dist_assets_map[hash_cid]) {
                   console.log("skipping", file, "as dist.ipfs.io does not provide a checksum")
                   continue
@@ -170,6 +170,20 @@ jobs:
                     },
                   name: hash_cid,
                   data: await cid_data,
+                })
+                await github.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  name: hash_sha,
+                  data: sha_data,
+                })
+                await github.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  name: hash_cid,
+                  data: cid_data,
                 })
               }
               // summary of assets on both sides
