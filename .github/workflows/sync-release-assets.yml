@@ -90,13 +90,15 @@ jobs:
               }
               await exec.exec('ipfs', ['ls', p], options)
 
-              const dist_assets = []
+              const dist_assets_list = []
+              const dist_assets_map = {}
               missing_files = []
               for (const raw_line of stdout.split("\n")) {
                 line = raw_line.trim();
                 if (line.length != 0) {
                   file = line.split(/(\s+)/).filter( function(e) { return e.trim().length > 0; } )[2]
-                  dist_assets.push(file)
+                  dist_assets_list.push(file)
+                  dist_assets_map[file] = true
                   if (!github_map[file]) {
                     missing_files.push(file)
                   }
@@ -105,10 +107,38 @@ jobs:
 
               // if dist.ipfs.io has files not found in github, copy them over
               for (const file of missing_files) {
+                hash_sha = file + ".sha512"
+                hash_cid = file + ".cid"
+                // if didt.ipfs.io does not have both hash checksums for the file, skip this file
+                if (!dist_assets_map[hash_sha] || !dist_assets_map[hash_cid]) {
+                  console.log("skipping", file, "as dist.ipfs.io does not provide a checksum")
+                  continue
+                }
                 console.log("fetching", file, "from dist.ipfs.io")
                 await exec.exec('ipfs', ['get', p + '/' + file])
+                await exec.exec('ipfs', ['get', p + '/' + hash_sha])
+                await exec.exec('ipfs', ['get', p + '/' + hash_cid])
+
+                console.log("verifying contents of", file)
+                // compute sha512 output for file
+                let sha_stdout = ''
+                const sha_options = {}
+                options.listeners = {
+                  stdout: (data) => {
+                    sha_stdout += data.toString();
+                  }
+                }
+                await exec.exec('sha512sum', [file], sha_options)
+                // read expected sha512 output
+                const sha_data = await fs.readFile(hash_sha, "binary")
+                const cid_data = await fs.readFile(hash_cid, "binary")
+                if (sha_data != sha_stdout) {
+                  throw "checksum verification failed for " + file
+                }
+
                 console.log("uploading", file, "to github release", release.tag_name)
-                resp = await github.repos.uploadReleaseAsset({
+                const data = await fs.readFile(file, "binary")
+                await github.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   release_id: release.id,
@@ -119,9 +149,31 @@ jobs:
                   name: file,
                   data: await fs.readFile(file),
                 })
+                await github.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  headers: {
+                    "content-type": "application/octet-stream",
+                    "content-length": `${(await fs.stat(hash_sha)).size}`
+                    },
+                  name: hash_sha,
+                  data: await sha_data,
+                })
+                await github.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  headers: {
+                    "content-type": "application/octet-stream",
+                    "content-length": `${(await fs.stat(hash_cid)).size}`
+                    },
+                  name: hash_cid,
+                  data: await cid_data,
+                })
               }
               // summary of assets on both sides
-              release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets })
+              release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets_list })
             }
             console.log(release_assets)
             return release_assets
