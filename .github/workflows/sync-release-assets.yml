@@ -107,14 +107,17 @@ jobs:
               for (const file of missing_files) {
                 console.log("fetching", file, "from dist.ipfs.io")
                 await exec.exec('ipfs', ['get', p + '/' + file])
-                const data = await fs.readFile(file, "binary")
                 console.log("uploading", file, "to github release", release.tag_name)
                 resp = await github.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   release_id: release.id,
+                  headers: {
+                    "content-type": "application/octet-stream",
+                    "content-length": `${(await fs.stat(file)).size}`
+                    },
                   name: file,
-                  data: data,
+                  data: await fs.readFile(file),
                 })
               }
               // summary of assets on both sides
