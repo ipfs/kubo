@@ -9,6 +9,10 @@ test_description="Test robustness of garbage collector"
 . lib/test-lib.sh
 set -e
 
+to_raw_cid() {
+    ipfs cid format -b b --codec raw -v 1 "$1"
+}
+
 test_gc_robust_part1() {
 
   test_expect_success "add a 1MB file with --raw-leaves" '
@@ -74,8 +78,8 @@ test_gc_robust_part1() {
   test_expect_success "'ipfs repo gc' should still run and remove as much as possible" '
     test_must_fail ipfs repo gc 2>&1 | tee repo_gc_out &&
     grep -q "could not remove $LEAF2" repo_gc_out &&
-    grep -q "removed $LEAF3" repo_gc_out &&
-    grep -q "removed $LEAF4" repo_gc_out &&
+    grep -q "removed $(to_raw_cid $LEAF3)" repo_gc_out &&
+    grep -q "removed $(to_raw_cid $LEAF4)" repo_gc_out &&
     test_must_fail ipfs block stat $HASH1
   '
 
@@ -85,7 +89,7 @@ test_gc_robust_part1() {
 
   test_expect_success "'ipfs repo gc' should be ok now" '
     ipfs repo gc | tee repo_gc_out
-    grep -q "removed $LEAF2" repo_gc_out
+    grep -q "removed $(to_raw_cid $LEAF2)" repo_gc_out
   '
 }
 
@@ -101,6 +105,7 @@ test_gc_robust_part2() {
 
   LEAF2=QmTbPEyrA1JyGUHFvmtx1FNZVzdBreMv8Hc8jV9sBRWhNA
   LEAF2FILE=.ipfs/blocks/WM/CIQE4EFIJN2SUTQYSKMKNG7VM75W3SXT6LWJCHJJ73UAWN73WCX3WMY.data
+
 
   test_expect_success "add some additional unpinned content" '
     random 1000 3 > junk1 &&
@@ -149,8 +154,8 @@ test_gc_robust_part2() {
 
   test_expect_success "'ipfs repo gc' should be fine now" '
     ipfs repo gc | tee repo_gc_out &&
-    grep -q "removed $HASH2" repo_gc_out &&
-    grep -q "removed $LEAF2" repo_gc_out
+    grep -q "removed $(to_raw_cid $HASH2)" repo_gc_out &&
+    grep -q "removed $(to_raw_cid $LEAF2)" repo_gc_out
   '
 }
 
