@@ -72,11 +72,9 @@ jobs:
               }
               num_synced += 1
 
-              const github_assets = [];
-              github_map = {};
+              const github_assets = new Set()
               for (const asset of release.assets) {
-                github_assets.push(asset.name);
-                github_map[asset.name] = true;
+                github_assets.add(asset.name)
               }
 
               // fetch asset info from dist.ipfs.io
@@ -90,16 +88,14 @@ jobs:
               }
               await exec.exec('ipfs', ['ls', p], options)
 
-              const dist_assets_list = []
-              const dist_assets_map = {}
-              missing_files = []
+              const dist_assets = new Set()
+              const missing_files = []
               for (const raw_line of stdout.split("\n")) {
                 line = raw_line.trim();
                 if (line.length != 0) {
                   file = line.split(/(\s+)/).filter( function(e) { return e.trim().length > 0; } )[2]
-                  dist_assets_list.push(file)
-                  dist_assets_map[file] = true
-                  if (!github_map[file]) {
+                  dist_assets.add(file)
+                  if (!github_assets.has(file)) {
                     missing_files.push(file)
                   }
                 }
@@ -107,87 +103,60 @@ jobs:
 
               // if dist.ipfs.io has files not found in github, copy them over
               for (const file of missing_files) {
-                hash_sha = file + ".sha512"
-                hash_cid = file + ".cid"
-                // if dist.ipfs.io does not have both hash checksums for the file, skip this file
-                if (!dist_assets_map[hash_sha] || !dist_assets_map[hash_cid]) {
-                  console.log("skipping", file, "as dist.ipfs.io does not provide a checksum")
+                file_sha = file + ".sha512"
+                file_cid = file + ".cid"
+
+                // skip files that don't have .cid and .sha512 checksum files
+                if (!dist_assets.has(file_sha) || !dist_assets.has(file_cid)) {
+                  if (!file.endsWith('.cid') && !file.endsWith('.sha512')) { // silent skip of .sha512.sha512 :)
+                    console.log(`skipping "${file}" as dist.ipfs.io does not provide .cid and .sha512 checksum files for it`)
+                  }
                   continue
                 }
+
                 console.log("fetching", file, "from dist.ipfs.io")
                 await exec.exec('ipfs', ['get', p + '/' + file])
-                await exec.exec('ipfs', ['get', p + '/' + hash_sha])
-                await exec.exec('ipfs', ['get', p + '/' + hash_cid])
-
+                await exec.exec('ipfs', ['get', p + '/' + file_sha])
+                await exec.exec('ipfs', ['get', p + '/' + file_cid])
                 console.log("verifying contents of", file)
+
                 // compute sha512 output for file
                 let sha_stdout = ''
                 const sha_options = {}
-                options.listeners = {
+                sha_options.listeners = {
                   stdout: (data) => {
                     sha_stdout += data.toString();
                   }
                 }
                 await exec.exec('sha512sum', [file], sha_options)
                 // read expected sha512 output
-                const sha_data = await fs.readFile(hash_sha, "binary")
-                const cid_data = await fs.readFile(hash_cid, "binary")
-                if (sha_data != sha_stdout) {
+                const sha_data = await fs.readFile(file_sha, "utf8")
+                const digest = (s) => s.split(' ').shift()
+                if (digest(sha_data) != digest(sha_stdout)) {
+                  console.log(`${file}.sha512: ${sha_data}`)
+                  console.log(`sha512sum ${file}: ${sha_stdout}`)
                   throw "checksum verification failed for " + file
                 }
 
                 console.log("uploading", file, "to github release", release.tag_name)
-                const data = await fs.readFile(file, "binary")
-                await github.repos.uploadReleaseAsset({
+                const uploadReleaseAsset = async (file) => github.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   release_id: release.id,
                   headers: {
                     "content-type": "application/octet-stream",
                     "content-length": `${(await fs.stat(file)).size}`
-                    },
+                  },
                   name: file,
-                  data: await fs.readFile(file),
+                  data: await fs.readFile(file)
                 })
-                await github.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: release.id,
-                  headers: {
-                    "content-type": "application/octet-stream",
-                    "content-length": `${(await fs.stat(hash_sha)).size}`
-                    },
-                  name: hash_sha,
-                  data: await sha_data,
-                })
-                await github.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: release.id,
-                  headers: {
-                    "content-type": "application/octet-stream",
-                    "content-length": `${(await fs.stat(hash_cid)).size}`
-                    },
-                  name: hash_cid,
-                  data: await cid_data,
-                })
-                await github.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: release.id,
-                  name: hash_sha,
-                  data: sha_data,
-                })
-                await github.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: release.id,
-                  name: hash_cid,
-                  data: cid_data,
-                })
+                await uploadReleaseAsset(file)
+                await uploadReleaseAsset(file_sha)
+                await uploadReleaseAsset(file_cid)
+
               }
               // summary of assets on both sides
-              release_assets.push({ tag: release.tag_name, github_assets: github_assets, dist_assets: dist_assets_list })
+              release_assets.push({ tag: release.tag_name, github_assets, dist_assets })
             }
             console.log(release_assets)
             return release_assets
