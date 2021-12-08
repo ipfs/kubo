@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"errors"
 
 	filestore "github.com/ipfs/go-filestore"
@@ -43,7 +44,7 @@ func (m *Mock) GetConfigKey(key string) (interface{}, error) {
 
 func (m *Mock) Datastore() Datastore { return m.D }
 
-func (m *Mock) GetStorageUsage() (uint64, error) { return 0, nil }
+func (m *Mock) GetStorageUsage(_ context.Context) (uint64, error) { return 0, nil }
 
 func (m *Mock) Close() error { return m.D.Close() }
 

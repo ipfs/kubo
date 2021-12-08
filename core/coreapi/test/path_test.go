@@ -14,7 +14,6 @@ import (
 	"github.com/ipld/go-ipld-prime"
 )
 
-
 func TestPathUnixFSHAMTPartial(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -27,16 +26,16 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 	a := apis[0]
 
 	// Setting this after instantiating the swarm so that it's not clobbered by loading the go-ipfs config
-	prevVal := uio.UseHAMTSharding
-	uio.UseHAMTSharding = true
+	prevVal := uio.HAMTShardingSize
+	uio.HAMTShardingSize = 1
 	defer func() {
-		uio.UseHAMTSharding = prevVal
+		uio.HAMTShardingSize = prevVal
 	}()
 
 	// Create and add a sharded directory
 	dir := make(map[string]files.Node)
 	// Make sure we have at least two levels of sharding
-	for i := 0; i < uio.DefaultShardWidth + 1; i++ {
+	for i := 0; i < uio.DefaultShardWidth+1; i++ {
 		dir[strconv.Itoa(i)] = files.NewBytesFile([]byte(strconv.Itoa(i)))
 	}
 
@@ -67,7 +66,7 @@ func TestPathUnixFSHAMTPartial(t *testing.T) {
 	for k := range dir {
 		// The node will go out to the (non-existent) network looking for the missing block. Make sure we're erroring
 		// because we exceeded the timeout on our query
-		timeoutCtx, timeoutCancel := context.WithTimeout(ctx, time.Second * 1)
+		timeoutCtx, timeoutCancel := context.WithTimeout(ctx, time.Second*1)
 		_, err := a.ResolveNode(timeoutCtx, path.Join(r, k))
 		if err != nil {
 			if timeoutCtx.Err() == nil {

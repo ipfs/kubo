@@ -14,23 +14,23 @@ test_expect_success "create some objects for testing diffs" '
   mkdir foo &&
   echo "stuff" > foo/bar &&
   mkdir foo/baz &&
-  A=$(ipfs add -r -q foo | tail -n1) &&
-  AR=$(ipfs add --raw-leaves -r -q foo | tail -n1) &&
+  A=$(ipfs add -r -Q foo) &&
+  AR=$(ipfs add --raw-leaves -r -Q foo) &&
   echo "more things" > foo/cat &&
-  B=$(ipfs add -r -q foo | tail -n1) &&
-  BR=$(ipfs add --raw-leaves -r -q foo | tail -n1) &&
+  B=$(ipfs add -r -Q foo) &&
+  BR=$(ipfs add --raw-leaves -r -Q foo) &&
   echo "nested" > foo/baz/dog &&
-  C=$(ipfs add -r -q foo | tail -n1)
-  CR=$(ipfs add --raw-leaves -r -q foo | tail -n1)
+  C=$(ipfs add -r -Q foo)
+  CR=$(ipfs add --raw-leaves -r -Q foo)
   echo "changed" > foo/bar &&
-  D=$(ipfs add -r -q foo | tail -n1) &&
-  DR=$(ipfs add --raw-leaves -r -q foo | tail -n1) &&
+  D=$(ipfs add -r -Q foo) &&
+  DR=$(ipfs add --raw-leaves -r -Q foo) &&
   echo "" > single_file &&
-  SINGLE_FILE=$(ipfs add -r -q single_file | tail -n1) &&
-  SINGLE_FILE_RAW=$(ipfs add --raw-leaves -r -q single_file | tail -n1) &&
+  SINGLE_FILE=$(ipfs add -r -Q single_file) &&
+  SINGLE_FILE_RAW=$(ipfs add --raw-leaves -r -Q single_file) &&
   mkdir empty_dir
-  EMPTY_DIR=$(ipfs add -r -q empty_dir | tail -n1)
-  EMPTY_DIR_RAW=$(ipfs add --raw-leaves -r -q empty_dir | tail -n1)
+  EMPTY_DIR=$(ipfs add -r -Q empty_dir)
+  EMPTY_DIR_RAW=$(ipfs add --raw-leaves -r -Q empty_dir)
 '
 
 test_expect_success "diff against self is empty" '

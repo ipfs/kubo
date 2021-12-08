@@ -50,7 +50,7 @@ run_random_dir_test() {
   '
 
   test_expect_success "add those on node 2" '
-    DIR_HASH=$(ipfsi 2 add -r -q foobar | tail -n1)
+    DIR_HASH=$(ipfsi 2 add -r -Q foobar)
   '
 
   check_dir_fetch 0 $DIR_HASH

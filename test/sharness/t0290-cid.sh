@@ -107,6 +107,7 @@ cat <<EOF > codecs_expect
   112  protobuf
   113  cbor
   120  git-raw
+  133  dag-jose
   144  eth-block
   145  eth-block-list
   146  eth-tx-trie

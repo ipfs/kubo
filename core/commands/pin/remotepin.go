@@ -174,7 +174,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 			return err
 		}
 
-		isInBlockstore, err := node.Blockstore.Has(rp.Cid())
+		isInBlockstore, err := node.Blockstore.Has(req.Context, rp.Cid())
 		if err != nil {
 			return err
 		}

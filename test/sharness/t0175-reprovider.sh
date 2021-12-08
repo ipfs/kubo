@@ -86,7 +86,7 @@ test_expect_success 'add test objects' '
   HASH_FOO=$(ipfsi 0 add -q --offline --pin=false f1) &&
   HASH_BAR=$(ipfsi 0 add -q --offline --pin=false f2) &&
   HASH_BAZ=$(ipfsi 0 add -q --offline f3) &&
-  HASH_BAR_DIR=$(ipfsi 0 add -q --offline -w f2 | tail -1)
+  HASH_BAR_DIR=$(ipfsi 0 add -Q --offline -w f2)
 '
 
 findprovs_empty '$HASH_FOO'

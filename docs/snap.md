@@ -1,6 +1,6 @@
 # Publishing go-ipfs as a snap
 
-> Snap is the default package manager for ubuntu since the release of 20.04. This doc captures what we know about building go-ipfs as a snap packge and publishing it to the snapstore.
+> Snap is the default package manager for ubuntu since the release of 20.04. This doc captures what we know about building go-ipfs as a snap package and publishing it to the snapstore.
 
 The go-ipfs snap is defined in [snap/snapcraft.yaml](https://github.com/ipfs/go-ipfs/blob/master/snap/snapcraft.yaml). For more detail on our snapcraft.yaml see: https://github.com/ipfs-shipyard/ipfs-snap
 
@@ -15,7 +15,7 @@ Linux user can install go-ipfs with:
 $ snap install ipfs
 ```
 
-Apps installed via Snapcraft are auto-updating by default. Snapcraft uses 'Release Channels' to let the user pick their stability level, with channels for `stable`, `candidate`, `beta` and `edge`. Snap will install the lasest release from the `stable` channel by default. A user that wants to test out the bleeding edge can opt in by passing the `--edge` flag
+Apps installed via Snapcraft are auto-updating by default. Snapcraft uses 'Release Channels' to let the user pick their stability level, with channels for `stable`, `candidate`, `beta` and `edge`. Snap will install the latest release from the `stable` channel by default. A user that wants to test out the bleeding edge can opt in by passing the `--edge` flag
 
 ```
 $ snap install --edge ipfs
@@ -182,10 +182,10 @@ The `ipfs` snapcraft.io listing can be edited by
 - @lidel
 - @olizilla
 
-You need a Canonical developer account, then ask an existing owner to add you. Accsess is managed here https://dashboard.snapcraft.io/snaps/ipfs/collaboration/
+You need a Canonical developer account, then ask an existing owner to add you. Access is managed here https://dashboard.snapcraft.io/snaps/ipfs/collaboration/
 
 
-The launchpad.net config is managed by [**IPFS Maintainers**](https://launchpad.net/~ipfs) team, and you can request to join that team with your Canonical developer acccount. The list of maintainers is here: https://launchpad.net/~ipfs/+members
+The launchpad.net config is managed by [**IPFS Maintainers**](https://launchpad.net/~ipfs) team, and you can request to join that team with your Canonical developer account. The list of maintainers is here: https://launchpad.net/~ipfs/+members
 
 At the time of writing the launchpad maintainers are:
 

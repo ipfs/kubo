@@ -175,11 +175,10 @@ test_expect_success "'ipfs refs --unique' is correct" '
   mkdir -p uniques &&
   echo "content1" > uniques/file1 &&
   echo "content1" > uniques/file2 &&
-  ipfs add -r -q uniques > add_output &&
-  ROOT=$(tail -n1 add_output) &&
+  ROOT=$(ipfs add -r -Q uniques) &&
   ipfs refs --unique $ROOT >expected &&
   ipfs add -q uniques/file1 >unique_hash &&
-  test_cmp expected unique_hash || test_fsh cat add_output
+  test_cmp expected unique_hash
 '
 
 test_expect_success "'ipfs refs --unique --recursive' is correct" '
@@ -188,12 +187,11 @@ test_expect_success "'ipfs refs --unique --recursive' is correct" '
   echo "c1" > a/b/f1 &&
   echo "c1" > a/b/c/f1 &&
   echo "c2" > a/b/c/f2 &&
-  ipfs add -r -q a >add_output &&
-  ROOT=$(tail -n1 add_output) &&
+  ROOT=$(ipfs add -r -Q a) &&
   ipfs refs --unique --recursive $ROOT >refs_output &&
   wc -l refs_output | sed "s/^ *//g" >line_count &&
   echo "4 refs_output" >expected &&
-  test_cmp expected line_count || test_fsh cat add_output || test_fsh cat refs_output
+  test_cmp expected line_count || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --recursive (bigger)'" '
@@ -207,12 +205,11 @@ test_expect_success "'ipfs refs --recursive (bigger)'" '
   cp -r b b2 && mv b2 b/b2 &&
   cp -r b b3 && mv b3 b/b3 &&
   cp -r b b4 && mv b4 b/b4 &&
-  ipfs add -r -q b >add_output &&
-  hash=$(tail -n1 add_output) &&
+  hash=$(ipfs add -r -Q b) &&
   ipfs refs -r "$hash" >refs_output &&
   wc -l refs_output | sed "s/^ *//g" >actual &&
   echo "79 refs_output" >expected &&
-  test_cmp expected actual || test_fsh cat add_output || test_fsh cat refs_output
+  test_cmp expected actual || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --unique --recursive (bigger)'" '

@@ -205,7 +205,7 @@ func ConditionalGC(ctx context.Context, node *core.IpfsNode, offset uint64) erro
 }
 
 func (gc *GC) maybeGC(ctx context.Context, offset uint64) error {
-	storage, err := gc.Repo.GetStorageUsage()
+	storage, err := gc.Repo.GetStorageUsage(ctx)
 	if err != nil {
 		return err
 	}

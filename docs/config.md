@@ -21,6 +21,7 @@ config file at runtime.
     - [`Addresses.Gateway`](#addressesgateway)
     - [`Addresses.Swarm`](#addressesswarm)
     - [`Addresses.Announce`](#addressesannounce)
+    - [`Addresses.AppendAnnounce`](#addressesappendannounce)
     - [`Addresses.NoAnnounce`](#addressesnoannounce)
   - [`API`](#api)
     - [`API.HTTPHeaders`](#apihttpheaders)
@@ -68,6 +69,7 @@ config file at runtime.
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
+    - [`Ipns.UsePubsub`](#ipnsusepubsub)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
@@ -86,6 +88,7 @@ config file at runtime.
           - [`Pinning.RemoteServices: Policies.MFS.PinName`](#pinningremoteservices-policiesmfspinname)
           - [`Pinning.RemoteServices: Policies.MFS.RepinInterval`](#pinningremoteservices-policiesmfsrepininterval)
   - [`Pubsub`](#pubsub)
+    - [`Pubsub.Enabled`](#pubsubenabled)
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
   - [`Peering`](#peering)
@@ -99,11 +102,23 @@ config file at runtime.
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
-    - [`Swarm.DisableRelay`](#swarmdisablerelay)
-    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
+    - [`Swarm.EnableHolePunching`](#swarmenableholepunching)
     - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
-      - [Mode 1: `EnableRelayHop` is `false`](#mode-1-enablerelayhop-is-false)
-      - [Mode 2: `EnableRelayHop` is `true`](#mode-2-enablerelayhop-is-true)
+    - [`Swarm.RelayClient`](#swarmrelayclient)
+      - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled)
+      - [`Swarm.RelayClient.StaticRelays`](#swarmrelayclientstaticrelays)
+    - [`Swarm.RelayService`](#swarmrelayservice)
+      - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled)
+      - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
+      - [`Swarm.RelayService.ConnectionDataLimit`](#swarmrelayserviceconnectiondatalimit)
+      - [`Swarm.RelayService.ReservationTTL`](#swarmrelayservicereservationttl)
+      - [`Swarm.RelayService.MaxReservations`](#swarmrelayservicemaxreservations)
+      - [`Swarm.RelayService.MaxCircuits`](#swarmrelayservicemaxcircuits)
+      - [`Swarm.RelayService.BufferSize`](#swarmrelayservicebuffersize)
+      - [`Swarm.RelayService.MaxReservationsPerPeer`](#swarmrelayservicemaxreservationsperpeer)
+      - [`Swarm.RelayService.MaxReservationsPerIP`](#swarmrelayservicemaxreservationsperip)
+      - [`Swarm.RelayService.MaxReservationsPerASN`](#swarmrelayservicemaxreservationsperasn)
+    - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
       - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
@@ -325,8 +340,19 @@ Default: `[]`
 
 Type: `array[string]` (multiaddrs)
 
+### `Addresses.AppendAnnounce`
+
+Similar to [`Addresses.Announce`](#addressesannounce) except this doesn't
+override inferred swarm addresses if non-empty.
+
+Default: `[]`
+
+Type: `array[string]` (multiaddrs)
+
 ### `Addresses.NoAnnounce`
+
 An array of swarm addresses not to announce to the network.
+Takes precedence over `Addresses.Announce` and `Addresses.AppendAnnounce`.
 
 Default: `[]`
 
@@ -923,6 +949,16 @@ Default: `128`
 
 Type: `integer` (non-negative, 0 means the default)
 
+### `Ipns.UsePubsub`
+
+Enables IPFS over pubsub experiment for publishing IPNS records in real time.
+
+**EXPERIMENTAL:**  read about current limitations at [experimental-features.md#ipns-pubsub](./experimental-features.md#ipns-pubsub).
+
+Default: `disabled`
+
+Type: `flag`
+
 ## `Migration`
 
 Migration configures how migrations are downloaded and if the downloads are added to IPFS locally.
@@ -1055,7 +1091,18 @@ Type: `duration`
 ## `Pubsub`
 
 Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
-passing the `--enable-pubsub-experiment` flag to the daemon.
+passing the `--enable-pubsub-experiment` flag to the daemon
+or via the `Pubsub.Enabled` flag below.
+
+### `Pubsub.Enabled`
+
+**EXPERIMENTAL:** read about current limitations at [experimental-features.md#ipfs-pubsub](./experimental-features.md#ipfs-pubsub).
+
+Enables the pubsub system.
+
+Default: `false`
+
+Type: `flag`
 
 ### `Pubsub.Router`
 
@@ -1268,6 +1315,181 @@ Default: `false`
 
 Type: `bool`
 
+### `Swarm.EnableHolePunching`
+
+Enable hole punching for NAT traversal
+when port forwarding is not possible.
+
+When enabled, go-ipfs will coordinate with the counterparty using
+a [relayed connection](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md),
+to [upgrade to a direct connection](https://github.com/libp2p/specs/blob/master/relay/DCUtR.md)
+through a NAT/firewall whenever possible.
+This feature requires `Swarm.RelayClient.Enabled` to be set to `true`.
+
+Default: `false`
+
+Type: `flag`
+
+### `Swarm.EnableAutoRelay`
+
+Deprecated: Set `Swarm.RelayClient.Enabled` to `true`.
+
+Enables "automatic relay user" mode for this node.
+
+Your node will automatically _use_ public relays from the network if it detects
+that it cannot be reached from the public internet (e.g., it's behind a
+firewall) and get a `/p2p-circuit` address from a public relay.
+
+This is likely the feature you're looking for, but see also:
+- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
+- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
+
+Default: `false`
+
+Type: `bool`
+
+### `Swarm.RelayClient`
+
+Configuration options for the relay client to use relay services.
+
+Default: `{}`
+
+Type: `object`
+
+#### `Swarm.RelayClient.Enabled`
+
+Enables "automatic relay user" mode for this node.
+
+Your node will automatically _use_ public relays from the network if it detects
+that it cannot be reached from the public internet (e.g., it's behind a
+firewall) and get a `/p2p-circuit` address from a public relay.
+
+Default: `false`
+
+Type: `bool`
+
+#### `Swarm.RelayClient.StaticRelays`
+
+Your node will use these statically configured relay servers instead of
+discovering public relays from the network.
+
+Default: `[]`
+
+Type: `array[string]`
+
+### `Swarm.RelayService`
+
+Configuration options for the relay service that can be provided to _other_ peers
+on the network ([Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)).
+
+Default: `{}`
+
+Type: `object`
+
+#### `Swarm.RelayService.Enabled`
+
+Enables providing `/p2p-circuit` v2 relay service to other peers on the network.
+
+NOTE: This is the service/server part of the relay system.
+Disabling this will prevent this node from running as a relay server.
+Use [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for turning your node into a relay user.
+
+Default: Enabled
+
+Type: `flag`
+
+#### `Swarm.RelayService.Limit`
+
+Limits applied to every relayed connection.
+
+Default: `{}`
+
+Type: `object[string -> string]`
+
+##### `Swarm.RelayService.ConnectionDurationLimit`
+
+Time limit before a relayed connection is reset.
+
+Default: `"2m"`
+
+Type: `duration`
+
+##### `Swarm.RelayService.ConnectionDataLimit`
+
+Limit of data relayed (in each direction) before a relayed connection is reset.
+
+Default: `131072` (128 kb)
+
+Type: `optionalInteger`
+
+
+#### `Swarm.RelayService.ReservationTTL`
+
+Duration of a new or refreshed reservation. 
+
+Default: `"1h"`
+
+Type: `duration`
+
+
+#### `Swarm.RelayService.MaxReservations`
+
+Maximum number of active relay slots.
+
+Default: `128`
+
+Type: `optionalInteger`
+
+
+#### `Swarm.RelayService.MaxReservations`
+
+Maximum number of open relay connections for each peer.
+
+Default: `16`
+
+Type: `optionalInteger`
+
+
+#### `Swarm.RelayService.BufferSize`
+
+Size of the relayed connection buffers.
+
+Default: `2048`
+
+Type: `optionalInteger`
+
+
+#### `Swarm.RelayService.MaxReservationsPerPeer`
+
+Maximum number of reservations originating from the same peer.
+
+Default: `4`
+
+Type: `optionalInteger`
+
+
+#### `Swarm.RelayService.MaxReservationsPerIP`
+
+Maximum number of reservations originating from the same IP.
+
+Default: `8`
+
+Type: `optionalInteger`
+
+#### `Swarm.RelayService.MaxReservationsPerASN`
+
+Maximum number of reservations originating from the same ASN.
+
+Default: `32`
+
+Type: `optionalInteger`
+
+### `Swarm.EnableRelayHop`
+
+**REMOVED**
+
+Replaced with [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled).
+
 ### `Swarm.DisableRelay`
 
 Deprecated: Set `Swarm.Transports.Network.Relay` to `false`.
@@ -1280,51 +1502,11 @@ Default: `false`
 
 Type: `bool`
 
-### `Swarm.EnableRelayHop`
-
-Configures this node to act as a relay "hop". A relay "hop" relays traffic for other peers.
-
-WARNING: Do not enable this option unless you know what you're doing. Other
-peers will randomly decide to use your node as a relay and consume _all_
-available bandwidth. There is _no_ rate-limiting.
-
-Default: `false`
-
-Type: `bool`
-
-### `Swarm.EnableAutoRelay`
-
-Enables "automatic relay" mode for this node. This option does two _very_
-different things based on the `Swarm.EnableRelayHop`. See
-[#7228](https://github.com/ipfs/go-ipfs/issues/7228) for context.
-
-Default: `false`
-
-Type: `bool`
-
-#### Mode 1: `EnableRelayHop` is `false`
-
-If `Swarm.EnableAutoRelay` is enabled and `Swarm.EnableRelayHop` is disabled,
-your node will automatically _use_ public relays from the network if it detects
-that it cannot be reached from the public internet (e.g., it's behind a
-firewall). This is likely the feature you're looking for.
-
-If you enable `EnableAutoRelay`, you should almost certainly disable
-`EnableRelayHop`.
-
-#### Mode 2: `EnableRelayHop` is `true`
-
-If `EnableAutoRelay` is enabled and `EnableRelayHop` is enabled, your node will
-_act_ as a public relay for the network. Furthermore, in addition to simply
-relaying traffic, your node will advertise itself as a public relay. Unless you
-have the bandwidth of a small ISP, do not enable both of these options at the
-same time.
-
 ### `Swarm.EnableAutoNATService`
 
 **REMOVED**
 
-Please use [`AutoNAT.ServiceMode`][].
+Please use [`AutoNAT.ServiceMode`][#autonatservicemode].
 
 ### `Swarm.ConnMgr`
 
@@ -1470,16 +1652,25 @@ Listen Addresses:
 #### `Swarm.Transports.Network.Relay`
 
 [Libp2p Relay](https://github.com/libp2p/specs/tree/master/relay) proxy
-transport that forms connections by hopping between multiple libp2p nodes. This
-transport is primarily useful for bypassing firewalls and NATs.
+transport that forms connections by hopping between multiple libp2p nodes.
+Allows IPFS node to connect to other peers using their `/p2p-circuit`
+multiaddrs.  This transport is primarily useful for bypassing firewalls and
+NATs.
+
+See also:
+- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
+- [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for getting a public
+  `/p2p-circuit` address when behind a firewall.
+- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) for becoming a
+  limited relay for other peers
 
 Default: Enabled
 
 Type: `flag`
 
-Listen Addresses: This transport is special. Any node that enables this
-transport can receive inbound connections on this transport, without specifying
-a listen address.
+Listen Addresses:
+* This transport is special. Any node that enables this transport can receive
+  inbound connections on this transport, without specifying a listen address.
 
 ### `Swarm.Transports.Security`
 
@@ -1589,7 +1780,7 @@ Example:
 
 Be mindful that:
 - Currently only `https://` URLs for [DNS over HTTPS (DoH)](https://en.wikipedia.org/wiki/DNS_over_HTTPS) endpoints are supported as values.
-- The default catch-all resolver is the cleartext one provided by your operating system. It can be overriden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
+- The default catch-all resolver is the cleartext one provided by your operating system. It can be overridden by adding a DoH entry for the DNS root indicated by  `.` as illustrated above.
 - Out-of-the-box support for selected decentralized TLDs relies on a [centralized service which is provided on best-effort basis](https://www.cloudflare.com/distributed-web-gateway-terms/). The implicit DoH resolvers are:
   ```json
   {

@@ -314,7 +314,7 @@ test_dag_cmd() {
 
   test_expect_success "prepare dag-pb object" '
     echo foo > test_file &&
-    HASH=$(ipfs add -wq test_file | tail -n1 | ipfs cid base32)
+    HASH=$(ipfs add -wQ test_file | ipfs cid base32)
   '
 
   test_expect_success "dag put with json dag-pb works" '

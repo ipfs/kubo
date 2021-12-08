@@ -259,12 +259,12 @@ test_add_cat_file() {
     mkdir test_current_dir/hello &&
     echo "World" > test_current_dir/hello/world &&
     ( cd test_current_dir &&
-    ipfs add -r . | tail -n1 > ../actual && cd ../ ) &&
+    ipfs add -r -Q . > ../actual && cd ../ ) &&
     rm -r test_current_dir
   '
 
   test_expect_success "ipfs add -r . output looks good" '
-    echo "added QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1 test_current_dir" > expected
+    echo "QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1" > expected
     test_cmp expected actual
   '
 
@@ -274,12 +274,12 @@ test_add_cat_file() {
     mkdir test_current_dir/hello &&
     echo "World" > test_current_dir/hello/world &&
     ( cd test_current_dir &&
-    ipfs add -r ./ | tail -n1 > ../actual && cd ../ ) &&
+    ipfs add -r -Q ./ > ../actual && cd ../ ) &&
     rm -r test_current_dir
   '
 
   test_expect_success "ipfs add -r ./ output looks good" '
-    echo "added QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1 test_current_dir" > expected
+    echo "QmZQWnfcqJ6hNkkPvrY9Q5X39GP3jUnUbAV4AbmbbR3Cb1" > expected
     test_cmp expected actual
   '
 
