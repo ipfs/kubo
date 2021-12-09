@@ -37,6 +37,10 @@ For each RC published in each stage:
 Checklist:
 
 - [ ] **Stage 0 - Automated Testing**
+  - [ ] Upgrade to the latest patch release of Go that CircleCI has published
+    - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
+    - [ ] [ipfs/distributions](https://github.com/ipfs/distributions): bump [this version](https://github.com/ipfs/distributions/blob/master/.tool-versions#L2)
+    - [ ] [ipfs/go-ipfs](https://github.com/ipfs/go-ipfs): [example PR](https://github.com/ipfs/go-ipfs/pull/8599)
   - [ ] Fork a new branch (`release-vX.Y.Z`) from `master` and make any further release related changes to this branch. If any "non-trivial" changes (see the footnotes of [docs/releases.md](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md) for a definition) get added to the release, uncheck all the checkboxes and return to this stage.
     - [ ] Follow the RC release process to cut the first RC.
     - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev`.
