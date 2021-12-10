@@ -1223,7 +1223,7 @@ Tells reprovider what should be announced. Valid strategies are:
 
 Default: all
 
-Type: `string` (or unset for the default)
+Type: `string` (or unset for the default, which is "all")
 
 ## `Routing`
 
