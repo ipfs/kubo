@@ -15,7 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/thirdparty/unit"
 
 	files "github.com/ipfs/go-ipfs-files"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -68,7 +68,7 @@ func RunThreeLeggedCat(data []byte, conf testutil.LatencyConfig) error {
 	defer cancel()
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency: conf.NetworkLatency,
 		// TODO add to conf. This is tricky because we want 0 values to be functional.
