@@ -26,12 +26,10 @@ import (
 
 // NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*core.IpfsNode, error) {
-	ctx := context.Background()
-
 	// effectively offline, only peer in its network
-	return core.NewNode(ctx, &core.BuildCfg{
+	return core.NewNode(context.Background(), &core.BuildCfg{
 		Online: true,
-		Host:   MockHostOption(mocknet.New(ctx)),
+		Host:   MockHostOption(mocknet.New()),
 	})
 }
 

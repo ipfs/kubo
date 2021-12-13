@@ -22,7 +22,7 @@ require (
 	github.com/ipfs/go-datastore v0.5.1
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.0
-	github.com/ipfs/go-ds-flatfs v0.5.1
+	github.com/ipfs/go-ds-flatfs v0.5.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ds-measure v0.2.0
 	github.com/ipfs/go-fetcher v1.6.1
@@ -61,37 +61,37 @@ require (
 	github.com/ipfs/tar-utils v0.0.2
 	github.com/ipld/go-car v0.3.2
 	github.com/ipld/go-codec-dagpb v1.3.0
-	github.com/ipld/go-ipld-prime v0.14.2
+	github.com/ipld/go-ipld-prime v0.14.1
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-doh-resolver v0.4.0
-	github.com/libp2p/go-libp2p v0.16.0
-	github.com/libp2p/go-libp2p-connmgr v0.2.4
-	github.com/libp2p/go-libp2p-core v0.11.0
+	github.com/libp2p/go-libp2p v0.18.0
+	github.com/libp2p/go-libp2p-connmgr v0.3.2-0.20220115145817-a7820a5879c7 // indirect
+	github.com/libp2p/go-libp2p-core v0.14.0
 	github.com/libp2p/go-libp2p-discovery v0.6.0
 	github.com/libp2p/go-libp2p-http v0.2.1
 	github.com/libp2p/go-libp2p-kad-dht v0.15.0
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-loggables v0.1.0
-	github.com/libp2p/go-libp2p-mplex v0.4.1
+	github.com/libp2p/go-libp2p-mplex v0.6.0
 	github.com/libp2p/go-libp2p-noise v0.3.0
-	github.com/libp2p/go-libp2p-peerstore v0.4.0
+	github.com/libp2p/go-libp2p-peerstore v0.6.0
 	github.com/libp2p/go-libp2p-pubsub v0.6.0
 	github.com/libp2p/go-libp2p-pubsub-router v0.5.0
-	github.com/libp2p/go-libp2p-quic-transport v0.15.0
+	github.com/libp2p/go-libp2p-quic-transport v0.16.1
 	github.com/libp2p/go-libp2p-record v0.1.3
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
-	github.com/libp2p/go-libp2p-swarm v0.8.0
-	github.com/libp2p/go-libp2p-testing v0.5.0
+	github.com/libp2p/go-libp2p-swarm v0.10.2
+	github.com/libp2p/go-libp2p-testing v0.8.0
 	github.com/libp2p/go-libp2p-tls v0.3.1
-	github.com/libp2p/go-libp2p-yamux v0.6.0
+	github.com/libp2p/go-libp2p-yamux v0.8.2
 	github.com/libp2p/go-socket-activation v0.1.0
-	github.com/libp2p/go-tcp-transport v0.4.0
-	github.com/libp2p/go-ws-transport v0.5.0
+	github.com/libp2p/go-tcp-transport v0.5.1
+	github.com/libp2p/go-ws-transport v0.6.0
 	github.com/miekg/dns v1.1.43
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/multiformats/go-multiaddr v0.4.1
+	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.0.3
 	github.com/multiformats/go-multicodec v0.3.0
