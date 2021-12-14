@@ -13,38 +13,10 @@ jobs:
   sync-github-and-dist-ipfs-io:
     runs-on: "ubuntu-latest"
     steps:
-      - name: Setup go
-        uses: actions/setup-go@v2
+      - uses: ipfs/download-ipfs-distribution-action@v1
+      - uses: ipfs/start-ipfs-daemon-action@v1
         with:
-          go-version: '1.16'
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Build go-ipfs binary
-        run: go install github.com/ipfs/go-ipfs/cmd/ipfs@latest
-      - name: Initialize go-ipfs and start daemon
-        run: |
-          sudo sysctl -w net.core.rmem_max=2500000
-          ipfs init --profile flatfs,server
-          ipfs daemon --enable-gc=false &
-          while (! ipfs id --api "/ip4/127.0.0.1/tcp/5001"); do sleep 1; done
-      - name: Wait for go-ipfs to be ready
-        shell: pwsh
-        run: |
-          for ($i = 0; $i -lt 10; $i++) {
-            $addrs = ipfs id | jq .Addresses;
-            if ($addrs -eq "null") {
-              sleep 1
-            } else {
-              echo "Successfully started the daemon"
-              exit 0
-            }
-          }
+          args: --init --init-profile=flatfs,server --enable-gc=false
       - uses: actions/setup-node@v2
         with:
           node-version: 14
