@@ -1123,7 +1123,10 @@ Remove files or directories.
 		}
 		if len(errs) > 0 {
 			for _, err = range errs {
-				e := res.Emit(err.Error())
+				ret := &RmResult{
+					ErrorMsg: err.Error(),
+				}
+				e := res.Emit(ret)
 				if e != nil {
 					return e
 				}
@@ -1132,6 +1135,10 @@ Remove files or directories.
 		}
 		return nil
 	},
+}
+
+type RmResult struct {
+	ErrorMsg string
 }
 
 func getPrefixNew(req *cmds.Request) (cid.Builder, error) {
