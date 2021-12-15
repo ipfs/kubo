@@ -818,6 +818,7 @@ func preferred404Filename(acceptHeaders []string) (string, string, error) {
 	// If we ever want to offer a 404 file for a different content type
 	// then this function will need to parse q weightings, but for now
 	// the presence of anything matching HTML is enough.
+	fmt.Println("CLIFF: preferred404Filename")
 	for _, acceptHeader := range acceptHeaders {
 		accepted := strings.Split(acceptHeader, ",")
 		for _, spec := range accepted {
