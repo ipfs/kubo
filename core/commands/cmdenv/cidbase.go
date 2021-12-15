@@ -11,7 +11,7 @@ import (
 )
 
 var OptionCidBase = cmds.StringOption("cid-base", "Multibase encoding used for version 1 CIDs in output.")
-var OptionUpgradeCidV0InOutput = cmds.BoolOption("upgrade-cidv0-in-output", "Upgrade version 0 to version 1 CIDs in output.")
+var OptionUpgradeCidV0InOutput = cmds.BoolOption("upgrade-cidv0-in-output", "Upgrade version 0 to version 1 CIDs in output.").WithDefault(true)
 
 // GetCidEncoder processes the `cid-base` and `output-cidv1` options and
 // returns a encoder to use based on those parameters.
