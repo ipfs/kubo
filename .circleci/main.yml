@@ -227,22 +227,13 @@ jobs:
           name: Installing dependencies
           command: |
             npm init -y
-            npm install ipfs@^0.59.1
-            npm install ipfs/interop#master
+            npm install ipfs@^0.61.0
+            npm install ipfs/interop#feat/js-pubsub-and-dht
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
           name: Running tests
           command: |
-            WORKDIR=$(pwd)
-            cd /tmp
-            git clone https://github.com/ipfs/js-ipfs.git
-            cd js-ipfs
-            git checkout 1dcac76f56972fc3519526e93567e39d685033dd
-            npm install
-            npm run build
-            npm run link
-            cd $WORKDIR
             mkdir -p /tmp/test-results/interop/
             export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
             npx ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
@@ -251,9 +242,6 @@ jobs:
             LIBP2P_TCP_REUSEPORT: false
             LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
-            IPFS_JS_EXEC: /tmp/js-ipfs/packages/ipfs/src/cli.js
-            IPFS_JS_MODULE: /tmp/js-ipfs/packages/ipfs/dist/cjs/src/index.js
-            IPFS_JS_HTTP_MODULE: /tmp/js-ipfs/packages/ipfs-http-client/dist/cjs/src/index.js
       - store_test_results:
           path: /tmp/test-results
   go-ipfs-api:
