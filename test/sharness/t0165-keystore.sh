@@ -63,24 +63,14 @@ ipfs key rm key_ed25519
     echo $rsahash > rsa_key_id
   '
 
+  test_key_import_export_all_formats rsa_key
+
   test_expect_success "create a new ed25519 key" '
     edhash=$(ipfs key gen generated_ed25519_key --type=ed25519)
     echo $edhash > ed25519_key_id
   '
 
-  test_expect_success "export and import rsa key" '
-    ipfs key export generated_rsa_key &&
-    ipfs key rm generated_rsa_key &&
-    ipfs key import generated_rsa_key generated_rsa_key.key > roundtrip_rsa_key_id &&
-    test_cmp rsa_key_id roundtrip_rsa_key_id
-  '
-
-  test_expect_success "export and import ed25519 key" '
-    ipfs key export generated_ed25519_key &&
-    ipfs key rm generated_ed25519_key &&
-    ipfs key import generated_ed25519_key generated_ed25519_key.key > roundtrip_ed25519_key_id &&
-    test_cmp ed25519_key_id roundtrip_ed25519_key_id
-  '
+  test_key_import_export_all_formats ed25519_key
 
   test_expect_success "test export file option" '
     ipfs key export generated_rsa_key -o=named_rsa_export_file &&
@@ -176,14 +166,12 @@ ipfs key rm key_ed25519
   '
 
   # export works directly on the keystore present in IPFS_PATH
-  test_expect_success "export and import ed25519 key while daemon is running" '
-    edhash=$(ipfs key gen exported_ed25519_key --type=ed25519)
+  test_expect_success "prepare ed25519 key while daemon is running" '
+    edhash=$(ipfs key gen generated_ed25519_key --type=ed25519)
     echo $edhash > ed25519_key_id
-    ipfs key export exported_ed25519_key &&
-    ipfs key rm exported_ed25519_key &&
-    ipfs key import exported_ed25519_key exported_ed25519_key.key > roundtrip_ed25519_key_id &&
-    test_cmp ed25519_key_id roundtrip_ed25519_key_id
   '
+
+  test_key_import_export_all_formats ed25519_key
 
   test_expect_success "key export over HTTP /api/v0/key/export is not possible" '
     ipfs key gen nohttpexporttest_key --type=ed25519 &&
@@ -212,6 +200,35 @@ test_check_ed25519_sk() {
     echo "Bad ED25519 sk '$1' with len '$sklen'"
     return 1
   }
+}
+
+test_key_import_export_all_formats() {
+  KEY_NAME=$1
+  test_key_import_export $KEY_NAME pem-pkcs8-cleartext
+  test_key_import_export $KEY_NAME pem-pkcs8-encrypted
+  test_key_import_export $KEY_NAME libp2p-protobuf-cleartext
+}
+
+test_key_import_export() {
+  local KEY_NAME FORMAT
+  KEY_NAME=$1
+  FORMAT=$2
+  ORIG_KEY="generated_$KEY_NAME"
+  if [ $FORMAT == "pem-pkcs8-encrypted" ]; then
+    KEY_PASSWORD="--password=fake-test-password"
+  fi
+  if [ $FORMAT == "libp2p-protobuf-cleartext" ]; then
+    FILE_EXT="key"
+  else
+    FILE_EXT="pem"
+  fi
+
+  test_expect_success "export and import $KEY_NAME with format $FORMAT" '
+    ipfs key export $ORIG_KEY --format=$FORMAT $KEY_PASSWORD &&
+    ipfs key rm $ORIG_KEY &&
+    ipfs key import $ORIG_KEY $ORIG_KEY.$FILE_EXT --format=$FORMAT $KEY_PASSWORD > imported_key_id &&
+    test_cmp ${KEY_NAME}_id imported_key_id
+  '
 }
 
 test_key_cmd

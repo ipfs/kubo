@@ -2,6 +2,10 @@ package commands
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -135,6 +139,15 @@ var keyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
+const (
+	// Key format options used both for importing and exporting.
+	keyFormatOptionName             = "format"
+	keyFormatPemEncryptedOption     = "pem-pkcs8-encrypted"
+	keyFormatPemCleartextOption     = "pem-pkcs8-cleartext"
+	keyFormatLibp2pCleartextOption  = "libp2p-protobuf-cleartext"
+	keyEncryptionPasswordOptionName = "password"
+)
+
 var keyExportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Export a keypair",
@@ -150,6 +163,10 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
+		cmds.StringOption(keyFormatOptionName, "f", "The format of the exported private key.").WithDefault(keyFormatLibp2pCleartextOption),
+		cmds.StringOption(keyEncryptionPasswordOptionName, "p", "The password to encrypt the exported key with (for the encrypted variant only)."),
+		// FIXME(BLOCKING): change default to keyFormatPemEncryptedOption once it
+		//  is implemented and the sharness tests (if any) are adapted.
 	},
 	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -186,12 +203,38 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			return fmt.Errorf("key with name '%s' doesn't exist", name)
 		}
 
-		encoded, err := crypto.MarshalPrivateKey(sk)
-		if err != nil {
-			return err
+		exportFormat, _ := req.Options[keyFormatOptionName].(string)
+		var formattedKey []byte
+		switch exportFormat {
+		case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+			stdKey, err := crypto.PrivKeyToStdKey(sk)
+			if err != nil {
+				return fmt.Errorf("converting libp2p private key to std Go key: %w", err)
+
+			}
+			// For some reason the ed25519.PrivateKey does not use pointer
+			// receivers, so we need to convert it for MarshalPKCS8PrivateKey.
+			// (We should probably change this upstream in PrivKeyToStdKey).
+			if ed25519KeyPointer, ok := stdKey.(*ed25519.PrivateKey); ok {
+				stdKey = *ed25519KeyPointer
+			}
+			// This function supports a restricted list of public key algorithms,
+			// but we generate and use only the RSA and ed25519 types that are on that list.
+			formattedKey, err = x509.MarshalPKCS8PrivateKey(stdKey)
+			if err != nil {
+				return fmt.Errorf("marshalling key to PKCS8 format: %w", err)
+			}
+
+		case keyFormatLibp2pCleartextOption:
+			formattedKey, err = crypto.MarshalPrivateKey(sk)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized export format: %s", exportFormat)
 		}
 
-		return res.Emit(bytes.NewReader(encoded))
+		return res.Emit(bytes.NewReader(formattedKey))
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
@@ -208,8 +251,16 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			}
 
 			outPath, _ := req.Options[outputOptionName].(string)
+			exportFormat, _ := req.Options[keyFormatOptionName].(string)
 			if outPath == "" {
-				trimmed := strings.TrimRight(fmt.Sprintf("%s.key", req.Arguments[0]), "/")
+				var fileExtension string
+				switch exportFormat {
+				case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+					fileExtension = "pem"
+				case keyFormatLibp2pCleartextOption:
+					fileExtension = "key"
+				}
+				trimmed := strings.TrimRight(fmt.Sprintf("%s.%s", req.Arguments[0], fileExtension), "/")
 				_, outPath = filepath.Split(trimmed)
 				outPath = filepath.Clean(outPath)
 			}
@@ -221,9 +272,46 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			}
 			defer file.Close()
 
-			_, err = io.Copy(file, outReader)
-			if err != nil {
-				return err
+			switch exportFormat {
+			case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+				privKeyBytes, err := ioutil.ReadAll(outReader)
+				if err != nil {
+					return err
+				}
+
+				var pemBlock *pem.Block
+				if exportFormat == keyFormatPemEncryptedOption {
+					keyEncPassword, ok := req.Options[keyEncryptionPasswordOptionName].(string)
+					if !ok {
+						return fmt.Errorf("missing password to encrypt the key with, set it with --%s",
+							keyEncryptionPasswordOptionName)
+					}
+					// FIXME(BLOCKING): Using deprecated security function.
+					pemBlock, err = x509.EncryptPEMBlock(rand.Reader,
+						"ENCRYPTED PRIVATE KEY",
+						privKeyBytes,
+						[]byte(keyEncPassword),
+						x509.PEMCipherAES256)
+					if err != nil {
+						return fmt.Errorf("encrypting PEM block: %w", err)
+					}
+				} else { // cleartext
+					pemBlock = &pem.Block{
+						Type:  "PRIVATE KEY",
+						Bytes: privKeyBytes,
+					}
+				}
+
+				err = pem.Encode(file, pemBlock)
+				if err != nil {
+					return fmt.Errorf("encoding PEM block: %w", err)
+				}
+
+			case keyFormatLibp2pCleartextOption:
+				_, err = io.Copy(file, outReader)
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
@@ -237,6 +325,9 @@ var keyImportCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		ke.OptionIPNSBase,
+		cmds.StringOption(keyFormatOptionName, "f", "The format of the private key to import.").WithDefault(keyFormatLibp2pCleartextOption),
+		// FIXME: Attempt to figure out the import format.
+		cmds.StringOption(keyEncryptionPasswordOptionName, "p", "The password to decrypt the imported key with (for the encrypted variant only)."),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
@@ -265,9 +356,59 @@ var keyImportCmd = &cmds.Command{
 			return err
 		}
 
-		sk, err := crypto.UnmarshalPrivateKey(data)
-		if err != nil {
-			return err
+		importFormat, _ := req.Options[keyFormatOptionName].(string)
+		var sk crypto.PrivKey
+		switch importFormat {
+		case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+			pemBlock, rest := pem.Decode(data)
+			if pemBlock == nil {
+				return fmt.Errorf("PEM block not found in input data:\n%s", rest)
+			}
+
+			if pemBlock.Type != "PRIVATE KEY" && pemBlock.Type != "ENCRYPTED PRIVATE KEY" {
+				return fmt.Errorf("expected [ENCRYPTED] PRIVATE KEY type in PEM block but got: %s", pemBlock.Type)
+			}
+
+			var privKeyBytes []byte
+			if importFormat == keyFormatPemEncryptedOption {
+				keyDecPassword, ok := req.Options[keyEncryptionPasswordOptionName].(string)
+				if !ok {
+					return fmt.Errorf("missing password to decrypt the key with, set it with --%s",
+						keyEncryptionPasswordOptionName)
+				}
+				privKeyBytes, err = x509.DecryptPEMBlock(pemBlock,
+					[]byte(keyDecPassword))
+				if err != nil {
+					return fmt.Errorf("decrypting PEM block: %w", err)
+				}
+			} else { // cleartext
+				privKeyBytes = pemBlock.Bytes
+			}
+
+			stdKey, err := x509.ParsePKCS8PrivateKey(privKeyBytes)
+			if err != nil {
+				return fmt.Errorf("parsing PKCS8 format: %w", err)
+			}
+
+			// In case ed25519.PrivateKey is returned we need the pointer for
+			// conversion to libp2p (see export command for more details).
+			if ed25519KeyPointer, ok := stdKey.(ed25519.PrivateKey); ok {
+				stdKey = &ed25519KeyPointer
+			}
+
+			sk, _, err = crypto.KeyPairFromStdKey(stdKey)
+			if err != nil {
+				return fmt.Errorf("converting std Go key to libp2p key : %w", err)
+
+			}
+		case keyFormatLibp2pCleartextOption:
+			sk, err = crypto.UnmarshalPrivateKey(data)
+			if err != nil {
+				return err
+			}
+
+		default:
+			return fmt.Errorf("unrecognized import format: %s", importFormat)
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
