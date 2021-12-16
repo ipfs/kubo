@@ -140,7 +140,8 @@ config file at runtime.
     - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
     - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
   - [`DNS`](#dns)
-  - [`DNS.Resolvers`](#dnsresolvers)
+    - [`DNS.Resolvers`](#dnsresolvers)
+    - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
 
 
 
@@ -1757,7 +1758,7 @@ Type: `priority`
 
 Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
 
-## `DNS.Resolvers`
+### `DNS.Resolvers`
 
 Map of [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) to custom resolver URLs.
 
@@ -1793,3 +1794,17 @@ Be mindful that:
 Default: `{}`
 
 Type: `object[string -> string]`
+
+### `DNS.MaxCacheTTL`
+
+Maximum duration entries are valid in the cache.
+
+This allows to cap the Time-To-Live suggested by the DNS response. This includes resolution of DNSLink captured by the custom resolver URLs.
+
+**Examples:**
+* `"5m"` DNS entries are kept for 5 minutes or less.
+* `"0s"` DNS entries expire as soon as they are retrieved.
+
+Default: Respect DNS Response TTL
+
+Type: `optionalDuration`
