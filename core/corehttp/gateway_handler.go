@@ -315,6 +315,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-IPFS-Path", urlPath)
+	w.Header().Set("X-IPFS-Root-CID", resolvedPath.Root().String())
 	w.Header().Set("Etag", responseEtag)
 
 	// set these headers _after_ the error, for we may just not have it
