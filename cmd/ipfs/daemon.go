@@ -68,6 +68,9 @@ const (
 	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
 	enableMultiplexKwd        = "enable-mplex-experiment"
 	agentVersionSuffix        = "agent-version-suffix"
+	enableIndexerProviderKwd  = "index-provider-experiment"
+	indexerProviderFullKwd    = "index-provider-full-import-experiment"
+
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -181,6 +184,8 @@ Headers.
 		cmds.BoolOption(enablePubSubKwd, "Enable experimental pubsub feature. Overrides Pubsub.Enabled config."),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
+		cmds.StringOption(enableIndexerProviderKwd, "Enable experimental indexer provider feature and provide new Cids that are added, with indexer address"),
+		cmds.StringOption(indexerProviderFullKwd, "Enable experimental indexer provider feature and provide all locally stored Cids, with indexer address"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
@@ -540,6 +545,37 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		fmt.Println("Received interrupt signal, shutting down...")
 		fmt.Println("(Hit ctrl-c again to force-shutdown the daemon.)")
 	}()
+
+	idxProviderAddress, idxProviderSet := req.Options[enableIndexerProviderKwd].(string)
+	idxProviderFullAddress, idxProviderFullSet := req.Options[indexerProviderFullKwd].(string)
+
+	// if idxProviderFull is set, we will provide all existing blocks we have.  This
+	// is meant to be a one-time operation, and not meant to be used at the same time
+	// as the idxProviderSet - which advertises newly added blocks on a timer
+	idxProviderNode := &ipfsIdxProviderNode{node}
+	if idxProviderFullSet {
+		err := setupIdxProvider(cctx, idxProviderNode, idxProviderFullAddress)
+		if err != nil {
+			log.Errorf("error setting up idx provider: %s", err)
+			return err
+		}
+		err = advertiseAllCids(cctx.Context(), idxProviderNode)
+		if err != nil {
+			log.Errorf("error advertising local cids: %s", err)
+			return err
+		}
+	}
+	if idxProviderSet {
+		err = setupIdxProvider(cctx, &ipfsIdxProviderNode{node}, idxProviderAddress)
+		if err != nil {
+			log.Errorf("error setting up idx provider: %s", err)
+			return err
+		}
+		// wrap the blockstore in a providerBlockstore so we can watch for puts/deletes
+		pbs := NewProviderBlockstore(node.BaseBlocks)
+		pbs.startBlockstoreProvider(cctx, idxProviderNode)
+		node.BaseBlocks = pbs
+	}
 
 	// Give the user heads up if daemon running in online mode has no peers after 1 minute
 	if !offline {

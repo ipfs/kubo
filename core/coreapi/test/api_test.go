@@ -19,7 +19,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	"github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/go-ipfs/config"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/tests"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -32,7 +32,7 @@ const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 type NodeProvider struct{}
 
 func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]coreiface.CoreAPI, error) {
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 
 	nodes := make([]*core.IpfsNode, n)
 	apis := make([]coreiface.CoreAPI, n)

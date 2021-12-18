@@ -19,7 +19,7 @@ func TestBitswapWithoutRouting(t *testing.T) {
 	const numPeers = 4
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 
 	var nodes []*core.IpfsNode
 	for i := 0; i < numPeers; i++ {

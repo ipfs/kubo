@@ -71,7 +71,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// parse PubSub config
 
 	ps, disc := fx.Options(), fx.Options()
-	if bcfg.getOpt("pubsub") || bcfg.getOpt("ipnsps") {
+	if bcfg.getOpt("pubsub") || bcfg.getOpt("ipnsps") || bcfg.getOpt("idxProvider") {
 		disc = fx.Provide(libp2p.TopicDiscovery())
 
 		var pubsubOptions []pubsub.Option

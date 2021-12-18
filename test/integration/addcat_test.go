@@ -97,7 +97,7 @@ func DirectAddCat(data []byte, conf testutil.LatencyConfig) error {
 	defer cancel()
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency: conf.NetworkLatency,
 		// TODO add to conf. This is tricky because we want 0 values to be functional.

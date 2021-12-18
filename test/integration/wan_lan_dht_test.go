@@ -72,7 +72,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	defer cancel()
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency:   conf.NetworkLatency,
 		Bandwidth: math.MaxInt32,
