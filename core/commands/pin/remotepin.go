@@ -186,7 +186,7 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 				return err
 			}
 			opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
-		} else if isInBlockstore && node.PeerHost == nil {
+		} else if isInBlockstore && !node.IsOnline {
 			fmt.Fprintf(os.Stdout, "Warning: the local node is offline and remote pinning may fail if there is no other provider\n")
 		}
 
