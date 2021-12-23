@@ -21,7 +21,7 @@ require (
 	github.com/ipld/go-ipld-prime v0.0.4-0.20200503082126-7e0619f3a984
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-random-files v0.0.0-20190219210431-31b3f20ebded
-	github.com/libp2p/go-libp2p v0.9.6
+	github.com/microcosm-cc/bluemonday@1.0.16
 	github.com/libp2p/go-libp2p-core v0.5.7
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/multiformats/go-multiaddr-net v0.1.5
