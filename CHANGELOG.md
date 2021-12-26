@@ -47,7 +47,7 @@ Note: the limited Circuit Relay v2 provided with this release only allows low-ba
 Switching to v2 of the relay spec means removal or deprecation of configuration keys that were specific to v1.
 
 - Relay transport and client support circuit-relay v2:
-  - `Swarm.EnableAutoRelay` was replaced by `Swarm.RelayClient.Enable`.
+  - `Swarm.EnableAutoRelay` was replaced by `Swarm.RelayClient.Enabled`.
   - `Swarm.DisableRelay` is deprecated, relay transport can be now disabled globally (both client and service) by setting `Swarm.Transports.Network.Relay` to `false`
 - Relay v1 service provider was replaced by v2:
   - `Swarm.EnableRelayHop` no longer starts an unlimited v1 relay. If you have it set to `true` the node will refuse to start and display an error message.
