@@ -21,7 +21,7 @@ func MapGetKV(v map[string]interface{}, key string) (interface{}, error) {
 
 		cursor, ok = mcursor[part]
 		if !ok {
-			return nil, fmt.Errorf("%s key has no attributes", sofar)
+			return nil, fmt.Errorf("%s.%s not found", sofar, part)
 		}
 	}
 	return cursor, nil
