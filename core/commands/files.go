@@ -348,8 +348,8 @@ $ ipfs pin add <CID>
 
 The lazy-copy feature can also be used to protect partial DAG contents from
 garbage collection. i.e. adding the Wikipedia root to MFS would not download
-all the Wikipedia, but will any downloaded Wikipedia-DAG content from being
-GC'ed.
+all the Wikipedia, but will prevent any downloaded Wikipedia-DAG content from
+being GC'ed.
 `,
 	},
 	Arguments: []cmds.Argument{
