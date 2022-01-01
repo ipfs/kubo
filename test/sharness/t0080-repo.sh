@@ -109,17 +109,25 @@ test_expect_success "remove direct pin" '
 '
 
 test_expect_success "'ipfs repo gc' removes file" '
-  ipfs repo gc >actual7 &&
-  grep "removed $HASH" actual7
+  ipfs block stat $HASH &&
+  ipfs repo gc &&
+  test_must_fail ipfs block stat $HASH
 '
 
+# Convert all to a base32-multihash as refs local outputs cidv1 raw
+# Technically converting refs local output would suffice, but this is more
+# future proof if we ever switch to adding the files with cid-version 1.
 test_expect_success "'ipfs refs local' no longer shows file" '
   EMPTY_DIR=QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn &&
-  ipfs refs local >actual8 &&
-  grep "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y" actual8 &&
-  grep "$EMPTY_DIR" actual8 &&
-  grep "$HASH_WELCOME_DOCS" actual8 &&
-  test_must_fail grep "$HASH" actual8
+  HASH_MH=`cid-fmt -b base32 "%M" "$HASH"` &&
+  HARDCODED_HASH_MH=`cid-fmt -b base32 "%M" "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"` &&
+  EMPTY_DIR_MH=`cid-fmt -b base32 "%M" "$EMPTY_DIR"` &&
+  HASH_WELCOME_DOCS_MH=`cid-fmt -b base32 "%M" "$HASH_WELCOME_DOCS"` &&
+  ipfs refs local | cid-fmt -b base32 --filter "%M" >actual8 &&
+  grep "$HARDCODED_HASH_MH" actual8 &&
+  grep "$EMPTY_DIR_MH" actual8 &&
+  grep "$HASH_WELCOME_DOCS_MH" actual8 &&
+  test_must_fail grep "$HASH_MH" actual8
 '
 
 test_expect_success "adding multiblock random file succeeds" '
@@ -175,11 +183,10 @@ test_expect_success "'ipfs refs --unique' is correct" '
   mkdir -p uniques &&
   echo "content1" > uniques/file1 &&
   echo "content1" > uniques/file2 &&
-  ipfs add -r -q uniques > add_output &&
-  ROOT=$(tail -n1 add_output) &&
+  ROOT=$(ipfs add -r -Q uniques) &&
   ipfs refs --unique $ROOT >expected &&
   ipfs add -q uniques/file1 >unique_hash &&
-  test_cmp expected unique_hash || test_fsh cat add_output
+  test_cmp expected unique_hash
 '
 
 test_expect_success "'ipfs refs --unique --recursive' is correct" '
@@ -188,12 +195,11 @@ test_expect_success "'ipfs refs --unique --recursive' is correct" '
   echo "c1" > a/b/f1 &&
   echo "c1" > a/b/c/f1 &&
   echo "c2" > a/b/c/f2 &&
-  ipfs add -r -q a >add_output &&
-  ROOT=$(tail -n1 add_output) &&
+  ROOT=$(ipfs add -r -Q a) &&
   ipfs refs --unique --recursive $ROOT >refs_output &&
   wc -l refs_output | sed "s/^ *//g" >line_count &&
   echo "4 refs_output" >expected &&
-  test_cmp expected line_count || test_fsh cat add_output || test_fsh cat refs_output
+  test_cmp expected line_count || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --recursive (bigger)'" '
@@ -207,12 +213,11 @@ test_expect_success "'ipfs refs --recursive (bigger)'" '
   cp -r b b2 && mv b2 b/b2 &&
   cp -r b b3 && mv b3 b/b3 &&
   cp -r b b4 && mv b4 b/b4 &&
-  ipfs add -r -q b >add_output &&
-  hash=$(tail -n1 add_output) &&
+  hash=$(ipfs add -r -Q b) &&
   ipfs refs -r "$hash" >refs_output &&
   wc -l refs_output | sed "s/^ *//g" >actual &&
   echo "79 refs_output" >expected &&
-  test_cmp expected actual || test_fsh cat add_output || test_fsh cat refs_output
+  test_cmp expected actual || test_fsh cat refs_output
 '
 
 test_expect_success "'ipfs refs --unique --recursive (bigger)'" '

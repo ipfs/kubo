@@ -167,7 +167,7 @@ test_expect_success "test failure conditions of mutex pprof endpoint" '
 test_expect_success "setup index hash" '
   mkdir index &&
   echo "<p></p>" > index/index.html &&
-  INDEXHASH=$(ipfs add -q -r index | tail -n1)
+  INDEXHASH=$(ipfs add -Q -r index)
   echo index: $INDEXHASH
 '
 

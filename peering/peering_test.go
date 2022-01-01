@@ -16,7 +16,6 @@ import (
 
 func newNode(ctx context.Context, t *testing.T) host.Host {
 	h, err := libp2p.New(
-		ctx,
 		libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"),
 		// We'd like to set the connection manager low water to 0, but
 		// that would disable the connection manager.
@@ -39,6 +38,7 @@ func TestPeeringService(t *testing.T) {
 
 	// peer 1 -> 2
 	ps1.AddPeer(peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
+	require.Contains(t, ps1.ListPeers(), peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
 
 	// We haven't started so we shouldn't have any peers.
 	require.Never(t, func() bool {
@@ -109,6 +109,7 @@ func TestPeeringService(t *testing.T) {
 
 	// Unprotect 2 from 1.
 	ps1.RemovePeer(h2.ID())
+	require.NotContains(t, ps1.ListPeers(), peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
 
 	// Trim connections.
 	h1.ConnManager().TrimOpenConns(ctx)
@@ -127,7 +128,9 @@ func TestPeeringService(t *testing.T) {
 
 	// Until added back
 	ps1.AddPeer(peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
+	require.Contains(t, ps1.ListPeers(), peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
 	ps1.AddPeer(peer.AddrInfo{ID: h3.ID(), Addrs: h3.Addrs()})
+	require.Contains(t, ps1.ListPeers(), peer.AddrInfo{ID: h3.ID(), Addrs: h3.Addrs()})
 	t.Logf("wait for h1 to connect to h2 and h3 again")
 	require.Eventually(t, func() bool {
 		return h1.Network().Connectedness(h2.ID()) == network.Connected
@@ -142,7 +145,9 @@ func TestPeeringService(t *testing.T) {
 
 	// Adding and removing should work after stopping.
 	ps1.AddPeer(peer.AddrInfo{ID: h4.ID(), Addrs: h4.Addrs()})
+	require.Contains(t, ps1.ListPeers(), peer.AddrInfo{ID: h4.ID(), Addrs: h4.Addrs()})
 	ps1.RemovePeer(h2.ID())
+	require.NotContains(t, ps1.ListPeers(), peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()})
 }
 
 func TestNextBackoff(t *testing.T) {

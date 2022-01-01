@@ -1,0 +1,394 @@
+version: 2.1
+
+parameters:
+  resource_class:
+    type: string
+    default: medium
+  make_jobs:
+    type: string
+    default: 3
+
+aliases:
+  make_out_dirs: &make_out_dirs
+    run: mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/{unit,sharness}
+  restore_gomod: &restore_gomod
+    restore_cache:
+      keys:
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
+        - v5-dep-{{ .Branch }}-
+        - v5-dep-master-
+  store_gomod: &store_gomod
+      save_cache:
+        key: v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        paths:
+          - ~/go/pkg/mod
+          - ~/.cache/go-build/
+
+default_environment: &default_environment
+  SERVICE: circle-ci
+  TRAVIS: 1
+  CIRCLE: 1
+  CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+  CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
+  GIT_PAGER: cat
+
+executors:
+  golang:
+    docker:
+      - image: cimg/go:1.16.12
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      TEST_VERBOSE: 1
+  node:
+    docker:
+      - image: circleci/node:14
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
+  node-browsers:
+    docker:
+      - image: circleci/node:14-browsers
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+      <<: *default_environment
+      NO_SANDBOX: true
+      LIBP2P_TCP_REUSEPORT: false
+      LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
+      E2E_IPFSD_TYPE: go
+  dockerizer:
+    docker:
+      - image: cimg/go:1.16.12
+    environment:
+      IMAGE_NAME: ipfs/go-ipfs
+      WIP_IMAGE_TAG: wip
+
+jobs:
+  gobuild:
+    executor: golang
+    steps:
+    - checkout
+    - *make_out_dirs
+    - *restore_gomod
+    - run:
+        command: make cmd/ipfs-try-build
+        environment:
+          TEST_NO_FUSE: 0
+    - run:
+        command: make cmd/ipfs-try-build
+        environment:
+          TEST_NO_FUSE: 1
+    - *store_gomod
+  golint:
+    executor: golang
+    steps:
+    - checkout
+    - *make_out_dirs
+    - *restore_gomod
+    - run: |
+        make -O test_go_lint
+    - *store_gomod
+  gotest:
+    executor: golang
+    steps:
+    - checkout
+    - *make_out_dirs
+    - *restore_gomod
+
+    - run: |
+        make -j 1 test/unit/gotest.junit.xml \
+        && [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
+    - run:
+        when: always
+        command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
+    - run:
+        command: |
+          # we want to test the examples against the current version of go-ipfs
+          # however, that version might be in a fork so we need to replace the dependency
+
+          # backup the go.mod and go.sum files to restore them after we run the tests
+          cp go.mod go.mod.bak
+          cp go.sum go.sum.bak
+
+          # make sure the examples run against the current version of go-ipfs
+          go mod edit -replace github.com/ipfs/go-ipfs=./../../..
+          go mod tidy
+          go test -v ./...
+
+          # restore the go.mod and go.sum files to their original state
+          mv go.mod.bak go.mod
+          mv go.sum.bak go.sum
+        working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
+
+    - run:
+        when: always
+        command: mv "test/unit/gotest.junit.xml" /tmp/circleci-test-results/unit
+
+    - *store_gomod
+
+    - store_test_results:
+        path: /tmp/circleci-test-results
+    # Save artifacts
+    - store_artifacts:
+        path: /tmp/circleci-artifacts
+    - store_artifacts:
+        path: /tmp/circleci-test-results
+  sharness:
+    machine:
+        image: ubuntu-2004:202010-01
+    resource_class: << pipeline.parameters.resource_class >>
+    working_directory: ~/ipfs/go-ipfs
+    environment:
+        <<: *default_environment
+        TEST_NO_DOCKER: 1
+        TEST_NO_FUSE: 1
+        TEST_VERBOSE: 1
+    steps:
+    - run: sudo apt update
+    - run: |
+        mkdir ~/localgo && cd ~/localgo
+        wget https://golang.org/dl/go1.16.12.linux-amd64.tar.gz
+        tar xfz go1.16.12.linux-amd64.tar.gz
+        echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
+    - run: go version
+    - run: sudo apt install socat net-tools
+    - checkout
+
+    - run:
+        mkdir rb-pinning-service-api &&
+        cd rb-pinning-service-api &&
+        git init &&
+        git remote add origin  https://github.com/ipfs-shipyard/rb-pinning-service-api.git &&
+        git fetch --depth 1 origin 773c3adbb421c551d2d89288abac3e01e1f7c3a8 &&
+        git checkout FETCH_HEAD
+    - run:
+        cd rb-pinning-service-api &&
+        docker-compose pull &&
+        docker-compose up -d
+
+    - *make_out_dirs
+    - *restore_gomod
+
+    - run:
+        name: Setup Environment Variables
+        # we need the docker host IP; all ports exported by child containers can be accessed there.
+        command: echo "export TEST_DOCKER_HOST=$(ip -4 addr show docker0 | grep -Po 'inet \K[\d.]+')" >> $BASH_ENV
+    - run:
+        echo TEST_DOCKER_HOST=$TEST_DOCKER_HOST &&
+        make -O -j << pipeline.parameters.make_jobs >> coverage/sharness_tests.coverprofile test/sharness/test-results/sharness.xml TEST_GENERATE_JUNIT=1 CONTINUE_ON_S_FAILURE=1 TEST_DOCKER_HOST=$TEST_DOCKER_HOST
+    - run:
+        when: always
+        command: bash <(curl -s https://codecov.io/bash) -cF sharness -X search -f coverage/sharness_tests.coverprofile
+
+    - run: mv "test/sharness/test-results/sharness.xml" /tmp/circleci-test-results/sharness
+    # make sure we fail if there are test failures
+    - run: find test/sharness/test-results -name 't*-*.sh.*.counts' | test/sharness/lib/sharness/aggregate-results.sh | grep 'failed\s*0'
+
+    - *store_gomod
+
+    - store_test_results:
+        path: /tmp/circleci-test-results
+    # Save artifacts
+    - store_artifacts:
+        path: /tmp/circleci-artifacts
+    - store_artifacts:
+        path: /tmp/circleci-test-results
+  build:
+    executor: golang
+    steps:
+      - checkout
+      - *make_out_dirs
+      - *restore_gomod
+      - run:
+          name: Building
+          command: make build
+      - run:
+          name: Storing
+          command: |
+            mkdir -p /tmp/circleci-workspace/bin
+            cp cmd/ipfs/ipfs /tmp/circleci-workspace/bin
+      - persist_to_workspace:
+          root: /tmp/circleci-workspace
+          paths:
+            - bin/ipfs
+      - *store_gomod
+  interop:
+    docker:
+      - image: cimg/go:1.16-node
+    parallelism: 4
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Installing dependencies
+          command: |
+            npm init -y
+            npm install ipfs@^0.59.1
+            npm install ipfs/interop#master
+            npm install mocha-circleci-reporter@0.0.3
+          working_directory: ~/ipfs/go-ipfs/interop
+      - run:
+          name: Running tests
+          command: |
+            WORKDIR=$(pwd)
+            cd /tmp
+            git clone https://github.com/ipfs/js-ipfs.git
+            cd js-ipfs
+            git checkout 1dcac76f56972fc3519526e93567e39d685033dd
+            npm install
+            npm run build
+            npm run link
+            cd $WORKDIR
+            mkdir -p /tmp/test-results/interop/
+            export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
+            npx ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
+          working_directory: ~/ipfs/go-ipfs/interop
+          environment:
+            LIBP2P_TCP_REUSEPORT: false
+            LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
+            IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
+            IPFS_JS_EXEC: /tmp/js-ipfs/packages/ipfs/src/cli.js
+            IPFS_JS_MODULE: /tmp/js-ipfs/packages/ipfs/dist/cjs/src/index.js
+            IPFS_JS_HTTP_MODULE: /tmp/js-ipfs/packages/ipfs-http-client/dist/cjs/src/index.js
+      - store_test_results:
+          path: /tmp/test-results
+  go-ipfs-api:
+    executor: golang
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Cloning
+          command: |
+            git clone https://github.com/ipfs/go-ipfs-api.git
+            git -C go-ipfs-api log -1
+      - run:
+          name: Starting the daemon
+          command: /tmp/circleci-workspace/bin/ipfs daemon --init --enable-namesys-pubsub
+          background: true
+      - run:
+          name: Waiting for the daemon
+          no_output_timeout: 30s
+          command: |
+            while ! /tmp/circleci-workspace/bin/ipfs id --api=/ip4/127.0.0.1/tcp/5001 2>/dev/null; do
+              sleep 1
+            done
+      - restore_cache:
+          keys:
+            - v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+            - v1-go-api-
+      - run:
+          command: go test -v ./...
+          working_directory: ~/ipfs/go-ipfs/go-ipfs-api
+      - save_cache:
+          key: v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+          paths:
+            - ~/go/pkg/mod
+            - ~/.cache/go-build/
+      - run:
+          name: Stopping the daemon
+          command: /tmp/circleci-workspace/bin/ipfs shutdown
+  go-ipfs-http-client:
+    executor: golang
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Cloning
+          command: |
+            git clone https://github.com/ipfs/go-ipfs-http-client.git
+            git -C go-ipfs-http-client log -1
+      - restore_cache:
+          keys:
+            - v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+            - v1-http-client-
+      - run:
+          name: go test -v ./...
+          command: |
+            export PATH=/tmp/circleci-workspace/bin:$PATH
+            go test -v ./...
+          working_directory: ~/ipfs/go-ipfs/go-ipfs-http-client
+      - save_cache:
+          key: v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+          paths:
+            - ~/go/pkg/mod
+            - ~/.cache/go-build/
+  ipfs-webui:
+    executor: node-browsers
+    steps:
+      - *make_out_dirs
+      - attach_workspace:
+          at: /tmp/circleci-workspace
+      - run:
+          name: Cloning
+          command: |
+            git clone https://github.com/ipfs-shipyard/ipfs-webui.git
+            git -C ipfs-webui log -1
+      - restore_cache:
+          keys:
+            - v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
+            - v1-ipfs-webui-
+      - run:
+          name: Installing dependencies
+          command: |
+            npm install
+          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+      - run:
+          name: Running upstream tests (finish early if they fail)
+          command: |
+            npm test || circleci-agent step halt
+          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+      - run:
+          name: Running tests with go-ipfs built from current commit
+          command: npm test
+          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+          environment:
+            IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
+      - save_cache:
+          key: v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
+          paths:
+            - ~/ipfs/go-ipfs/ipfs-webui/node_modules
+  # We only run build as a test here. DockerHub images are built and published
+  # by Github Action now: https://github.com/ipfs/go-ipfs/pull/8467
+  docker-build:
+    executor: dockerizer
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: "19.03.13"
+      - run:
+          name: Build Docker image
+          command: |
+            docker build -t $IMAGE_NAME:$WIP_IMAGE_TAG .
+
+workflows:
+  version: 2
+
+  # Runs for all branches, but not on tags
+  # see: https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
+  test:
+    jobs:
+    - gobuild
+    - golint
+    - gotest
+    - sharness
+    - build
+    - interop:
+        requires:
+          - build
+    - go-ipfs-api:
+        requires:
+          - build
+    - go-ipfs-http-client:
+        requires:
+          - build
+    - ipfs-webui:
+        requires:
+          - build
+    - docker-build

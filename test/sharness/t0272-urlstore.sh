@@ -110,7 +110,7 @@ EOF
     ipfs repo gc > /dev/null
   '
   
-  test_expect_success "gatway no longer has files" '
+  test_expect_success "gateway no longer has files" '
     test_must_fail curl -f http://127.0.0.1:$GWAY_PORT/ipfs/$HASH1a -o file1.actual
     test_must_fail curl -f http://127.0.0.1:$GWAY_PORT/ipfs/$HASH2a -o file2.actual
   '

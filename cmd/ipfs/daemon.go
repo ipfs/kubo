@@ -67,6 +67,7 @@ const (
 	enablePubSubKwd           = "enable-pubsub-experiment"
 	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
 	enableMultiplexKwd        = "enable-mplex-experiment"
+	agentVersionSuffix        = "agent-version-suffix"
 	// apiAddrKwd    = "address-api"
 	// swarmAddrKwd  = "address-swarm"
 )
@@ -177,9 +178,10 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "Instantiate the ipfs daemon with the experimental pubsub feature enabled."),
-		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS record distribution through pubsub; enables pubsub."),
+		cmds.BoolOption(enablePubSubKwd, "Enable experimental pubsub feature. Overrides Pubsub.Enabled config."),
+		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
+		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
 
 		// TODO: add way to override addresses. tricky part: updating the config if also --init.
 		// cmds.StringOption(apiAddrKwd, "Address for the daemon rpc API (overrides config)"),
@@ -363,11 +365,24 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	defer repo.Close()
 
 	offline, _ := req.Options[offlineKwd].(bool)
-	ipnsps, _ := req.Options[enableIPNSPubSubKwd].(bool)
-	pubsub, _ := req.Options[enablePubSubKwd].(bool)
+	ipnsps, ipnsPsSet := req.Options[enableIPNSPubSubKwd].(bool)
+	pubsub, psSet := req.Options[enablePubSubKwd].(bool)
+
 	if _, hasMplex := req.Options[enableMultiplexKwd]; hasMplex {
 		log.Errorf("The mplex multiplexer has been enabled by default and the experimental %s flag has been removed.")
 		log.Errorf("To disable this multiplexer, please configure `Swarm.Transports.Multiplexers'.")
+	}
+
+	cfg, err := repo.Config()
+	if err != nil {
+		return err
+	}
+
+	if !psSet {
+		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
+	}
+	if !ipnsPsSet {
+		ipnsps = cfg.Ipns.UsePubsub.WithDefault(false)
 	}
 
 	// Start assembling node config
@@ -385,11 +400,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		cfg, err := repo.Config()
-		if err != nil {
-			return err
-		}
-
 		routingOption = cfg.Routing.Type
 		if routingOption == "" {
 			routingOption = routingOptionDHTKwd
@@ -408,6 +418,11 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.NilRouterOption
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
+	}
+
+	agentVersionSuffixString, _ := req.Options[agentVersionSuffix].(string)
+	if agentVersionSuffixString != "" {
+		version.SetUserAgentSuffix(agentVersionSuffixString)
 	}
 
 	node, err := core.NewNode(req.Context, ncfg)
@@ -552,6 +567,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 				log.Error("failed to bootstrap (no peers found): consider updating Bootstrap or Peering section of your config")
 			}
 		})
+
+	}
+
+	// Hard deprecation notice if someone still uses IPFS_REUSEPORT
+	if flag := os.Getenv("IPFS_REUSEPORT"); flag != "" {
+		log.Fatal("Support for IPFS_REUSEPORT was removed. Use LIBP2P_TCP_REUSEPORT instead.")
 	}
 
 	// collect long-running errors and block for shutdown

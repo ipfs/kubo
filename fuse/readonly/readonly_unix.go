@@ -1,3 +1,4 @@
+//go:build (linux || darwin || freebsd) && !nofuse
 // +build linux darwin freebsd
 // +build !nofuse
 
@@ -21,6 +22,7 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	ft "github.com/ipfs/go-unixfs"
 	uio "github.com/ipfs/go-unixfs/io"
+	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )
 
@@ -80,7 +82,7 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	}
 
 	// convert ipld-prime node to universal node
-	blk, err := s.Ipfs.Blockstore.Get(cidLnk.Cid)
+	blk, err := s.Ipfs.Blockstore.Get(ctx, cidLnk.Cid)
 	if err != nil {
 		log.Debugf("fuse failed to retrieve block: %v: %s", cidLnk, err)
 		return nil, fuse.ENOENT
@@ -89,7 +91,13 @@ func (s *Root) Lookup(ctx context.Context, name string) (fs.Node, error) {
 	var fnd ipld.Node
 	switch cidLnk.Cid.Prefix().Codec {
 	case cid.DagProtobuf:
-		fnd, err = mdag.ProtoNodeConverter(blk, nd)
+		adl, ok := nd.(ipldprime.ADL)
+		if ok {
+			substrate := adl.Substrate()
+			fnd, err = mdag.ProtoNodeConverter(blk, substrate)
+		} else {
+			fnd, err = mdag.ProtoNodeConverter(blk, nd)
+		}
 	case cid.Raw:
 		fnd, err = mdag.RawNodeConverter(blk, nd)
 	default:

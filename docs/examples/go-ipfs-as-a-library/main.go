@@ -66,8 +66,6 @@ func createTempRepo() (string, error) {
 		cfg.Experimental.FilestoreEnabled = true
 		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-urlstore
 		cfg.Experimental.UrlstoreEnabled = true
-		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#directory-sharding--hamt
-		cfg.Experimental.ShardingEnabled = true
 		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-p2p
 		cfg.Experimental.Libp2pStreamMounting = true
 		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#p2p-http-proxy

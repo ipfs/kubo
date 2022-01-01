@@ -269,7 +269,7 @@ test_launch_ipfs_daemon() {
 
   # wait for api file to show up
   test_expect_success "api file shows up" '
-    test_wait_for_file 50 100ms "$IPFS_PATH/api"
+    test_wait_for_file 50 200ms "$IPFS_PATH/api"
   '
 
   test_set_address_vars actual_daemon
@@ -287,7 +287,7 @@ test_launch_ipfs_daemon_without_network() {
 
 do_umount() {
   if [ "$(uname -s)" = "Linux" ]; then
-  fusermount -u "$1"
+  fusermount -z -u "$1"
   else
   umount "$1"
   fi

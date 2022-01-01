@@ -46,7 +46,7 @@ run_random_dir_test() {
   '
 
   test_expect_success "add those on node 0" '
-    DIR_HASH=$(ipfsi 0 add -r -q foobar | tail -n1)
+    DIR_HASH=$(ipfsi 0 add -r -Q foobar)
   '
 
   check_dir_fetch 1 $DIR_HASH

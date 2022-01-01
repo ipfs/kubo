@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -35,7 +36,7 @@ const LockFile = "repo.lock"
 var log = logging.Logger("fsrepo")
 
 // version number that we are currently expecting to see
-var RepoVersion = 11
+var RepoVersion = 12
 
 var migrationInstructions = `See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md
 Sorry for the inconvenience. In the future, these will run automatically.`
@@ -660,8 +661,8 @@ func (r *FSRepo) Datastore() repo.Datastore {
 }
 
 // GetStorageUsage computes the storage space taken by the repo in bytes
-func (r *FSRepo) GetStorageUsage() (uint64, error) {
-	return ds.DiskUsage(r.Datastore())
+func (r *FSRepo) GetStorageUsage(ctx context.Context) (uint64, error) {
+	return ds.DiskUsage(ctx, r.Datastore())
 }
 
 func (r *FSRepo) SwarmKey() ([]byte, error) {

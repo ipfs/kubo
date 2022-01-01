@@ -1,0 +1,33 @@
+---
+name: Testground PR Checker
+
+on: [push]
+
+jobs:
+  testground:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.composition_file }}
+    strategy:
+      matrix:
+        include:
+          - backend_addr: ci.testground.ipfs.team
+            backend_proto: https
+            plan_directory: testplans/bitswap
+            composition_file: testplans/bitswap/_compositions/small-k8s.toml
+          - backend_addr: ci.testground.ipfs.team
+            backend_proto: https
+            plan_directory: testplans/bitswap
+            composition_file: testplans/bitswap/_compositions/medium-k8s.toml
+          - backend_addr: ci.testground.ipfs.team
+            backend_proto: https
+            plan_directory: testplans/bitswap
+            composition_file: testplans/bitswap/_compositions/large-k8s.toml
+    steps:
+      - uses: actions/checkout@v2
+      - name: testground run
+        uses: coryschwartz/testground-github-action@v1.1
+        with:
+          backend_addr: ${{ matrix.backend_addr }}
+          backend_proto: ${{ matrix.backend_proto }}
+          plan_directory: ${{ matrix.plan_directory }}
+          composition_file: ${{ matrix.composition_file }}

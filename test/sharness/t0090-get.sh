@@ -89,7 +89,7 @@ test_get_cmd() {
     touch dir/a &&
     mkdir -p dir/b &&
     echo "Hello, Worlds!" >dir/b/c &&
-    HASH2=`ipfs add -r -q dir | tail -n 1` &&
+    HASH2=`ipfs add -r -Q dir` &&
     ipfs get "$HASH2" >actual
   '
 

@@ -38,14 +38,22 @@ Candidate, disabled by default but will be enabled by default in 0.6.0.
 
 ### In Version
 
-0.4.5
+0.4.5 (`--enable-pubsub-experiment`)
+0.11.0 (`Pubsub.Enabled` flag in config)
 
 ### How to enable
 
-run your daemon with the `--enable-pubsub-experiment` flag. Then use the
-`ipfs pubsub` commands.
+Run your daemon with the `--enable-pubsub-experiment` flag
+or modify your ipfs config and restart the daemon:
+```
+ipfs config --json Pubsub.Enabled true
+```
 
-Configuration documentation can be found in [./config.md]()
+Then use the `ipfs pubsub` commands.
+
+NOTE: `--enable-pubsub-experiment` CLI flag overrides `Pubsub.Enabled` config.
+
+Configuration documentation can be found in [go-ipfs/docs/config.md](./config.md#pubsub)
 
 ### Road to being a real feature
 
@@ -402,27 +410,22 @@ See [Plugin docs](./plugins.md)
 ## Directory Sharding / HAMT
 
 ### In Version
-0.4.8
+
+- 0.4.8:
+  - Introduced `Experimental.ShardingEnabled` which enabled sharding globally.
+  - All-or-nothing, unnecessary sharding of small directories.
+
+- 0.11.0 :
+  - Removed support for `Experimental.ShardingEnabled`
+  - Replaced with automatic sharding based on the block size
 
 ### State
-Experimental
 
-Allows creating directories with an unlimited number of entries.
+Replaced by autosharding.
 
-**Caveats:**
-1. right now it is a GLOBAL FLAG which will impact the final CID of all directories produced by `ipfs.add` (even the small ones)
-2. currently size of unixfs directories is limited by the maximum block size
+The `Experimental.ShardingEnabled` config field is no longer used, please remove it from your configs.
 
-### Basic Usage:
-
-```
-ipfs config --json Experimental.ShardingEnabled true
-```
-
-### Road to being a real feature
-
-- [ ] Make sure that objects that don't have to be sharded aren't
-- [ ] Generalize sharding and define a new layer between IPLD and IPFS
+go-ipfs now automatically shards when directory block is bigger than 256KB, ensuring every block is small enough to be exchanged with other peers
 
 ## IPNS pubsub
 
@@ -431,11 +434,14 @@ ipfs config --json Experimental.ShardingEnabled true
 0.4.14 :
   - Introduced
 
-0.5.0 : 
+0.5.0 :
    - No longer needs to use the DHT for the first resolution
    - When discovering PubSub peers via the DHT, the DHT key is different from previous versions
       - This leads to 0.5 IPNS pubsub peers and 0.4 IPNS pubsub peers not being able to find each other in the DHT
    - Robustness improvements
+
+0.11.0 :
+  - Can be enabled via `Ipns.UsePubsub` flag in config
 
 ### State
 
@@ -457,7 +463,15 @@ Users interested in this feature should upgrade to at least 0.5.0
 
 ### How to enable
 
-run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
+Run your daemon with the `--enable-namesys-pubsub` flag
+or modify your ipfs config and restart the daemon:
+```
+ipfs config --json Ipns.UsePubsub true
+```
+
+NOTE:
+- This feature implicitly enables [ipfs pubsub](#ipfs-pubsub).
+- Passing `--enable-namesys-pubsub` CLI flag overrides `Ipns.UsePubsub` config.
 
 ### Road to being a real feature
 
@@ -468,7 +482,11 @@ run your daemon with the `--enable-namesys-pubsub` flag; enables pubsub.
 
 ### In Version
 
-0.4.19
+- 0.4.19 :
+  - Introduced Circuit Relay v1
+- 0.11.0 :
+  - Deprecated v1
+  - Introduced [Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
 
 ### State
 
@@ -481,15 +499,14 @@ Automatically discovers relays and advertises relay addresses when the node is b
 Modify your ipfs config:
 
 ```
-ipfs config --json Swarm.EnableRelayHop false
-ipfs config --json Swarm.EnableAutoRelay true
+ipfs config --json Swarm.RelayClient.Enabled true
 ```
-
-NOTE: Ensuring `Swarm.EnableRelayHop` is _false_ is extremely important here. If you set it to true, you will _act_ as a public relay for the rest of the network instead of _using_ the public relays.
 
 ### Road to being a real feature
 
 - [ ] needs testing
+- [ ] needs to be automatically enabled when AutoNAT detects node is behind an impenetrable NAT.
+
 
 ## Strategic Providing
 

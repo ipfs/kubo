@@ -28,6 +28,16 @@ type Result struct {
 	Error      error
 }
 
+// converts a set of CIDs with different codecs to a set of CIDs with the raw codec.
+func toRawCids(set *cid.Set) (*cid.Set, error) {
+	newSet := cid.NewSet()
+	err := set.ForEach(func(c cid.Cid) error {
+		newSet.Add(cid.NewCidV1(cid.Raw, c.Hash()))
+		return nil
+	})
+	return newSet, err
+}
+
 // GC performs a mark and sweep garbage collection of the blocks in the blockstore
 // first, it creates a 'marked' set and adds to it the following:
 // - all recursively pinned blocks, plus all of their descendants (recursively)
@@ -40,7 +50,7 @@ type Result struct {
 func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn pin.Pinner, bestEffortRoots []cid.Cid) <-chan Result {
 	ctx, cancel := context.WithCancel(ctx)
 
-	unlocker := bs.GCLock()
+	unlocker := bs.GCLock(ctx)
 
 	bsrv := bserv.New(bs, offline.Exchange(bs))
 	ds := dag.NewDAGService(bsrv)
@@ -50,7 +60,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 	go func() {
 		defer cancel()
 		defer close(output)
-		defer unlocker.Unlock()
+		defer unlocker.Unlock(ctx)
 
 		gcs, err := ColoredSet(ctx, pn, ds, bestEffortRoots, output)
 		if err != nil {
@@ -60,6 +70,17 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			}
 			return
 		}
+
+		// The blockstore reports raw blocks. We need to remove the codecs from the CIDs.
+		gcs, err = toRawCids(gcs)
+		if err != nil {
+			select {
+			case output <- Result{Error: err}:
+			case <-ctx.Done():
+			}
+			return
+		}
+
 		keychan, err := bs.AllKeysChan(ctx)
 		if err != nil {
 			select {
@@ -79,8 +100,10 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 				if !ok {
 					break loop
 				}
+				// NOTE: assumes that all CIDs returned by the keychan are _raw_ CIDv1 CIDs.
+				// This means we keep the block as long as we want it somewhere (CIDv1, CIDv0, Raw, other...).
 				if !gcs.Has(k) {
-					err := bs.DeleteBlock(k)
+					err := bs.DeleteBlock(ctx, k)
 					removed++
 					if err != nil {
 						errors = true
@@ -115,7 +138,7 @@ func GC(ctx context.Context, bs bstore.GCBlockstore, dstor dstore.Datastore, pn 
 			return
 		}
 
-		err = gds.CollectGarbage()
+		err = gds.CollectGarbage(ctx)
 		if err != nil {
 			select {
 			case output <- Result{Error: err}:
@@ -154,7 +177,9 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 
 	for _, c := range roots {
 		// Walk recursively walks the dag and adds the keys to the given set
-		err := dag.Walk(ctx, verifyGetLinks, c, set.Visit, dag.Concurrent())
+		err := dag.Walk(ctx, verifyGetLinks, c, func(k cid.Cid) bool {
+			return set.Visit(toCidV1(k))
+		}, dag.Concurrent())
 
 		if err != nil {
 			err = verboseCidError(err)
@@ -163,6 +188,14 @@ func Descendants(ctx context.Context, getLinks dag.GetLinks, set *cid.Set, roots
 	}
 
 	return nil
+}
+
+// toCidV1 converts any CIDv0s to CIDv1s.
+func toCidV1(c cid.Cid) cid.Cid {
+	if c.Version() == 0 {
+		return cid.NewCidV1(c.Type(), c.Hash())
+	}
+	return c
 }
 
 // ColoredSet computes the set of nodes in the graph that are pinned by the
@@ -225,7 +258,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 		return nil, err
 	}
 	for _, k := range dkeys {
-		gcs.Add(k)
+		gcs.Add(toCidV1(k))
 	}
 
 	ikeys, err := pn.InternalPins(ctx)

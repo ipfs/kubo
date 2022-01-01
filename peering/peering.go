@@ -242,6 +242,20 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 	}
 }
 
+// ListPeers lists peers in the peering service.
+func (ps *PeeringService) ListPeers() []peer.AddrInfo {
+	ps.mu.RLock()
+	defer ps.mu.RUnlock()
+
+	out := make([]peer.AddrInfo, 0, len(ps.peers))
+	for id, addrs := range ps.peers {
+		ai := peer.AddrInfo{ID: id}
+		ai.Addrs = append(ai.Addrs, addrs.addrs...)
+		out = append(out, ai)
+	}
+	return out
+}
+
 // RemovePeer removes a peer from the peering service. This function may be
 // safely called at any time: before the service is started, while running, or
 // after it stops.
