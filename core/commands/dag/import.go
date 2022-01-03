@@ -14,7 +14,7 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/options"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	gocar "github.com/ipld/go-car"
+	gocarv2 "github.com/ipld/go-car/v2"
 )
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -160,17 +160,12 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 		err := func() error {
 			defer file.Close()
 
-			car, err := gocar.NewCarReader(file)
+			car, err := gocarv2.NewBlockReader(file)
 			if err != nil {
 				return err
 			}
 
-			// Be explicit here, until the spec is finished
-			if car.Header.Version != 1 {
-				return errors.New("only car files version 1 supported at present")
-			}
-
-			for _, c := range car.Header.Roots {
+			for _, c := range car.Roots {
 				roots[c] = struct{}{}
 			}
 
