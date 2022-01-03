@@ -186,7 +186,8 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		fname, err := config.Filename(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		fname, err := config.Filename(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -291,7 +292,8 @@ variable set to your preferred text editor.
 			return err
 		}
 
-		filename, err := config.Filename(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		filename, err := config.Filename(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}

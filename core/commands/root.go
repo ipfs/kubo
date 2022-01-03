@@ -19,6 +19,8 @@ var log = logging.Logger("core/commands")
 var ErrNotOnline = errors.New("this command must be run in online mode. Try running 'ipfs daemon' first")
 
 const (
+	RepoDirOption    = "repo-dir"
+	ConfigFileOption = "config-file"
 	ConfigOption  = "config"
 	DebugOption   = "debug"
 	LocalOption   = "local" // DEPRECATED: use OfflineOption
@@ -94,7 +96,9 @@ The CLI will exit with one of the following values:
 `,
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(ConfigOption, "c", "Path to the configuration file to use."),
+		cmds.StringOption(RepoDirOption, "Path to the repository directory to use."),
+		cmds.StringOption(ConfigFileOption, "Path to the configuration file to use."),
+		cmds.StringOption(ConfigOption, "c", "[DEPRECATED] Path to the configuration file to use."),
 		cmds.BoolOption(DebugOption, "D", "Operate in debug mode."),
 		cmds.BoolOption(cmds.OptLongHelp, "Show the full command help text."),
 		cmds.BoolOption(cmds.OptShortHelp, "Show a short version of the command help text."),

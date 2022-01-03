@@ -115,12 +115,12 @@ func ExeName(name string) string {
 // ReadMigrationConfig reads the Migration section of the IPFS config, avoiding
 // reading anything other than the Migration section. That way, we're free to
 // make arbitrary changes to all _other_ sections in migrations.
-func ReadMigrationConfig(repoRoot string) (*config.Migration, error) {
+func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migration, error) {
 	var cfg struct {
 		Migration config.Migration
 	}
 
-	cfgPath, err := config.Filename(repoRoot)
+	cfgPath, err := config.Filename(repoRoot, userConfigFile)
 	if err != nil {
 		return nil, err
 	}
