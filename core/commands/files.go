@@ -11,8 +11,10 @@ import (
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
+	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 
 	bservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
@@ -25,6 +27,7 @@ import (
 	mfs "github.com/ipfs/go-mfs"
 	ft "github.com/ipfs/go-unixfs"
 	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	mh "github.com/multiformats/go-multihash"
 )
@@ -70,6 +73,7 @@ operations.
 		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
+		"add":   filesAddCmd,
 		"read":  filesReadCmd,
 		"write": filesWriteCmd,
 		"mv":    filesMvCmd,
@@ -1281,4 +1285,245 @@ func getParentDir(root *mfs.Root, dir string) (*mfs.Directory, error) {
 		return nil, errors.New("expected *mfs.Directory, didn't get it. This is likely a race condition")
 	}
 	return pdir, nil
+}
+
+var filesAddCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Add a file or directory to IPFS MFS.",
+		ShortDescription: `
+Adds the content of <data> to IPFS MFS <path>. Use -r to add directories (recursively).
+`,
+		LongDescription: `
+Adds the content of <data> to IPFS MFS <path>. Use -r to add directories.
+Note that directories are added recursively, to form the IPFS
+MerkleDAG.
+
+If the daemon is not running, it will just add locally.
+If the daemon is started later, it will be advertised after a few
+seconds when the reprovider runs.
+
+Most of the options are similar to that found in 'ipfs add' and indeed
+the resulting dag is the same as though files have been added and copied
+into the MFS. To recursively add all files in a directory, do the following.
+
+ipfs files add -rp /my/mfs/website ./website
+added QmeEte3ZFyKA4yhiQTnBP2x2XTxdDfZzivUiX86xqGT42X website/image.jpg
+added QmdXozHCMxfsps9exhLPCzoJq2VeVRkZtuD6KLev7JhfSB website/index.html
+added QmfGCw7KQkYGnVbz2h7d3T4TGCpDNza32NqUyoV8zqhWFr website
+
+Each file added, or the containing directory can be seen in gateway like so:
+
+  /ipfs/QmfGCw7KQkYGnVbz2h7d3T4TGCpDNza32NqUyoV8zqhWFr
+
+likewise, files can be seen with human-readable names in the MFS.
+
+  ipfs files ls /my/mfs -l        
+  website/	QmfGCw7KQkYGnVbz2h7d3T4TGCpDNza32NqUyoV8zqhWFr	0
+
+  ipfs files ls /my/mfs/website -l
+  image.jpg	QmeEte3ZFyKA4yhiQTnBP2x2XTxdDfZzivUiX86xqGT42X	5
+  index.html	QmdXozHCMxfsps9exhLPCzoJq2VeVRkZtuD6KLev7JhfSB	48
+`,
+	},
+
+	Arguments: []cmds.Argument{
+		cmds.StringArg("path", true, false, "Path to write to."),
+		cmds.FileArg("data", true, true, "The path to a file to be added to IPFS.").EnableRecursive().EnableStdin(),
+	},
+	Options: []cmds.Option{
+		cmds.OptionRecursivePath, // a builtin option that allows recursive paths (-r, --recursive)
+		cmds.OptionDerefArgs,     // a builtin option that resolves passed in filesystem links (--dereference-args)
+		cmds.OptionStdinName,     // a builtin option that optionally allows wrapping stdin into a named file
+		cmds.OptionHidden,
+		cmds.OptionIgnore,
+		cmds.OptionIgnoreRules,
+		cmds.BoolOption(quietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(quieterOptionName, "Q", "Write only final hash."),
+		cmds.BoolOption(silentOptionName, "Write no output."),
+		cmds.BoolOption(progressOptionName, "P", "Stream progress data."),
+		cmds.BoolOption(trickleOptionName, "t", "Use trickle-dag format for dag generation."),
+		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash").WithDefault("size-262144"),
+		cmds.BoolOption(pinOptionName, "Pin this object when adding."),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
+		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
+		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
+		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
+		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
+		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
+		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmds.BoolOption(filesParentsOptionName, "p", "Make parent directories as needed."),
+	},
+	PreRun: addPreRun,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		api, err := cmdenv.GetApi(env, req)
+		if err != nil {
+			return err
+		}
+
+		progress, _ := req.Options[progressOptionName].(bool)
+		trickle, _ := req.Options[trickleOptionName].(bool)
+		silent, _ := req.Options[silentOptionName].(bool)
+		chunker, _ := req.Options[chunkerOptionName].(string)
+		dopin, _ := req.Options[pinOptionName].(bool)
+		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
+		nocopy, _ := req.Options[noCopyOptionName].(bool)
+		fscache, _ := req.Options[fstoreCacheOptionName].(bool)
+		cidVer, cidVerSet := req.Options[cidVersionOptionName].(int)
+		hashFunStr, _ := req.Options[hashOptionName].(string)
+		inline, _ := req.Options[inlineOptionName].(bool)
+		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
+		flush, _ := req.Options[filesFlushOptionName].(bool)
+		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
+		mkParents, _ := req.Options[filesParentsOptionName].(bool)
+		if !ok {
+			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
+		}
+
+		enc, err := cmdenv.GetCidEncoder(req)
+		if err != nil {
+			return err
+		}
+
+		toadd := req.Files
+
+		opts := []options.UnixfsAddOption{
+			options.Unixfs.Hash(hashFunCode),
+
+			options.Unixfs.Inline(inline),
+			options.Unixfs.InlineLimit(inlineLimit),
+
+			options.Unixfs.Chunker(chunker),
+
+			options.Unixfs.Pin(dopin),
+			options.Unixfs.FsCache(fscache),
+			options.Unixfs.Nocopy(nocopy),
+
+			options.Unixfs.Progress(progress),
+			options.Unixfs.Silent(silent),
+		}
+
+		if cidVerSet {
+			opts = append(opts, options.Unixfs.CidVersion(cidVer))
+		}
+
+		if rbset {
+			opts = append(opts, options.Unixfs.RawLeaves(rawblks))
+		}
+
+		if trickle {
+			opts = append(opts, options.Unixfs.Layout(options.TrickleLayout))
+		}
+
+		opts = append(opts, nil) // events option placeholder
+
+		dstBase, err := checkPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		prefix, err := getPrefixNew(req)
+		if err != nil {
+			return err
+		}
+
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+		if mkParents {
+			err := ensureContainingDirectoryExists(nd.FilesRoot, dstBase, prefix)
+			if err != nil {
+				return err
+			}
+		}
+
+		var added int
+		addit := toadd.Entries()
+		for addit.Next() {
+			_, dir := addit.Node().(files.Directory)
+			errCh := make(chan error, 1)
+			events := make(chan interface{}, adderOutChanSize)
+			opts[len(opts)-1] = options.Unixfs.Events(events)
+
+			go func() {
+				var err error
+				defer close(events)
+				p, err := api.Unixfs().Add(req.Context, addit.Node(), opts...)
+				if err != nil {
+					errCh <- err
+					return
+				}
+				src := p.String()
+				dst := dstBase
+				if dst[len(dst)-1] == '/' {
+					dst += gopath.Base(src)
+				}
+
+				node, err := getNodeFromPath(req.Context, nd, api, src)
+				if err != nil {
+					errCh <- fmt.Errorf("cp: cannot get node from path %s: %s", src, err)
+					return
+				}
+
+				err = mfs.PutNode(nd.FilesRoot, dst, node)
+				if err != nil {
+					errCh <- fmt.Errorf("cp: cannot put node in path %s: %s", dst, err)
+					return
+				}
+
+				if flush {
+					_, err := mfs.FlushPath(req.Context, nd.FilesRoot, dst)
+					if err != nil {
+						errCh <- fmt.Errorf("cp: cannot flush the created file %s: %s", dst, err)
+						return
+					}
+				}
+				errCh <- nil
+			}()
+
+			for event := range events {
+				output, ok := event.(*coreiface.AddEvent)
+				if !ok {
+					return errors.New("unknown event type")
+				}
+
+				h := ""
+				if output.Path != nil {
+					h = enc.Encode(output.Path.Cid())
+				}
+
+				if !dir && addit.Name() != "" {
+					output.Name = addit.Name()
+				} else {
+					output.Name = gopath.Join(addit.Name(), output.Name)
+				}
+
+				if err := res.Emit(&AddEvent{
+					Name:  output.Name,
+					Hash:  h,
+					Bytes: output.Bytes,
+					Size:  output.Size,
+				}); err != nil {
+					return err
+				}
+			}
+
+			if err := <-errCh; err != nil {
+				return err
+			}
+			added++
+		}
+
+		if addit.Err() != nil {
+			return addit.Err()
+		}
+
+		if added == 0 {
+			return fmt.Errorf("expected a file argument")
+		}
+
+		return nil
+	},
+	PostRun: addPostRunMap,
+	Type:    AddEvent{},
 }

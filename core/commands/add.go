@@ -21,6 +21,167 @@ import (
 // ErrDepthLimitExceeded indicates that the max depth has been exceeded.
 var ErrDepthLimitExceeded = fmt.Errorf("depth limit exceeded")
 
+var addPostRunMap = cmds.PostRunMap{
+	cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
+		sizeChan := make(chan int64, 1)
+		outChan := make(chan interface{})
+		req := res.Request()
+
+		// Could be slow.
+		go func() {
+			size, err := req.Files.Size()
+			if err != nil {
+				log.Warnf("error getting files size: %s", err)
+				// see comment above
+				return
+			}
+
+			sizeChan <- size
+		}()
+
+		progressBar := func(wait chan struct{}) {
+			defer close(wait)
+
+			quiet, _ := req.Options[quietOptionName].(bool)
+			quieter, _ := req.Options[quieterOptionName].(bool)
+			quiet = quiet || quieter
+
+			progress, _ := req.Options[progressOptionName].(bool)
+
+			var bar *pb.ProgressBar
+			if progress {
+				bar = pb.New64(0).SetUnits(pb.U_BYTES)
+				bar.ManualUpdate = true
+				bar.ShowTimeLeft = false
+				bar.ShowPercent = false
+				bar.Output = os.Stderr
+				bar.Start()
+			}
+
+			lastFile := ""
+			lastHash := ""
+			var totalProgress, prevFiles, lastBytes int64
+
+		LOOP:
+			for {
+				select {
+				case out, ok := <-outChan:
+					if !ok {
+						if quieter {
+							fmt.Fprintln(os.Stdout, lastHash)
+						}
+
+						break LOOP
+					}
+					output := out.(*AddEvent)
+					if len(output.Hash) > 0 {
+						lastHash = output.Hash
+						if quieter {
+							continue
+						}
+
+						if progress {
+							// clear progress bar line before we print "added x" output
+							fmt.Fprintf(os.Stderr, "\033[2K\r")
+						}
+						if quiet {
+							fmt.Fprintf(os.Stdout, "%s\n", output.Hash)
+						} else {
+							fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, cmdenv.EscNonPrint(output.Name))
+						}
+
+					} else {
+						if !progress {
+							continue
+						}
+
+						if len(lastFile) == 0 {
+							lastFile = output.Name
+						}
+						if output.Name != lastFile || output.Bytes < lastBytes {
+							prevFiles += lastBytes
+							lastFile = output.Name
+						}
+						lastBytes = output.Bytes
+						delta := prevFiles + lastBytes - totalProgress
+						totalProgress = bar.Add64(delta)
+					}
+
+					if progress {
+						bar.Update()
+					}
+				case size := <-sizeChan:
+					if progress {
+						bar.Total = size
+						bar.ShowPercent = true
+						bar.ShowBar = true
+						bar.ShowTimeLeft = true
+					}
+				case <-req.Context.Done():
+					// don't set or print error here, that happens in the goroutine below
+					return
+				}
+			}
+
+			if progress && bar.Total == 0 && bar.Get() != 0 {
+				bar.Total = bar.Get()
+				bar.ShowPercent = true
+				bar.ShowBar = true
+				bar.ShowTimeLeft = true
+				bar.Update()
+			}
+		}
+
+		if e := res.Error(); e != nil {
+			close(outChan)
+			return e
+		}
+
+		wait := make(chan struct{})
+		go progressBar(wait)
+
+		defer func() { <-wait }()
+		defer close(outChan)
+
+		for {
+			v, err := res.Next()
+			if err != nil {
+				if err == io.EOF {
+					return nil
+				}
+
+				return err
+			}
+
+			select {
+			case outChan <- v:
+			case <-req.Context.Done():
+				return req.Context.Err()
+			}
+		}
+	},
+}
+
+func addPreRun(req *cmds.Request, env cmds.Environment) error {
+	quiet, _ := req.Options[quietOptionName].(bool)
+	quieter, _ := req.Options[quieterOptionName].(bool)
+	quiet = quiet || quieter
+
+	silent, _ := req.Options[silentOptionName].(bool)
+
+	if quiet || silent {
+		return nil
+	}
+
+	// ipfs cli progress bar defaults to true unless quiet or silent is used
+	_, found := req.Options[progressOptionName].(bool)
+	if !found {
+		req.Options[progressOptionName] = true
+	}
+
+	return nil
+}
+
 type AddEvent struct {
 	Name  string
 	Hash  string `json:",omitempty"`
@@ -141,25 +302,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
 	},
-	PreRun: func(req *cmds.Request, env cmds.Environment) error {
-		quiet, _ := req.Options[quietOptionName].(bool)
-		quieter, _ := req.Options[quieterOptionName].(bool)
-		quiet = quiet || quieter
-
-		silent, _ := req.Options[silentOptionName].(bool)
-
-		if quiet || silent {
-			return nil
-		}
-
-		// ipfs cli progress bar defaults to true unless quiet or silent is used
-		_, found := req.Options[progressOptionName].(bool)
-		if !found {
-			req.Options[progressOptionName] = true
-		}
-
-		return nil
-	},
+	PreRun: addPreRun,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
@@ -287,145 +430,6 @@ only-hash, and progress/status related flags) will change the final hash.
 
 		return nil
 	},
-	PostRun: cmds.PostRunMap{
-		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			sizeChan := make(chan int64, 1)
-			outChan := make(chan interface{})
-			req := res.Request()
-
-			// Could be slow.
-			go func() {
-				size, err := req.Files.Size()
-				if err != nil {
-					log.Warnf("error getting files size: %s", err)
-					// see comment above
-					return
-				}
-
-				sizeChan <- size
-			}()
-
-			progressBar := func(wait chan struct{}) {
-				defer close(wait)
-
-				quiet, _ := req.Options[quietOptionName].(bool)
-				quieter, _ := req.Options[quieterOptionName].(bool)
-				quiet = quiet || quieter
-
-				progress, _ := req.Options[progressOptionName].(bool)
-
-				var bar *pb.ProgressBar
-				if progress {
-					bar = pb.New64(0).SetUnits(pb.U_BYTES)
-					bar.ManualUpdate = true
-					bar.ShowTimeLeft = false
-					bar.ShowPercent = false
-					bar.Output = os.Stderr
-					bar.Start()
-				}
-
-				lastFile := ""
-				lastHash := ""
-				var totalProgress, prevFiles, lastBytes int64
-
-			LOOP:
-				for {
-					select {
-					case out, ok := <-outChan:
-						if !ok {
-							if quieter {
-								fmt.Fprintln(os.Stdout, lastHash)
-							}
-
-							break LOOP
-						}
-						output := out.(*AddEvent)
-						if len(output.Hash) > 0 {
-							lastHash = output.Hash
-							if quieter {
-								continue
-							}
-
-							if progress {
-								// clear progress bar line before we print "added x" output
-								fmt.Fprintf(os.Stderr, "\033[2K\r")
-							}
-							if quiet {
-								fmt.Fprintf(os.Stdout, "%s\n", output.Hash)
-							} else {
-								fmt.Fprintf(os.Stdout, "added %s %s\n", output.Hash, cmdenv.EscNonPrint(output.Name))
-							}
-
-						} else {
-							if !progress {
-								continue
-							}
-
-							if len(lastFile) == 0 {
-								lastFile = output.Name
-							}
-							if output.Name != lastFile || output.Bytes < lastBytes {
-								prevFiles += lastBytes
-								lastFile = output.Name
-							}
-							lastBytes = output.Bytes
-							delta := prevFiles + lastBytes - totalProgress
-							totalProgress = bar.Add64(delta)
-						}
-
-						if progress {
-							bar.Update()
-						}
-					case size := <-sizeChan:
-						if progress {
-							bar.Total = size
-							bar.ShowPercent = true
-							bar.ShowBar = true
-							bar.ShowTimeLeft = true
-						}
-					case <-req.Context.Done():
-						// don't set or print error here, that happens in the goroutine below
-						return
-					}
-				}
-
-				if progress && bar.Total == 0 && bar.Get() != 0 {
-					bar.Total = bar.Get()
-					bar.ShowPercent = true
-					bar.ShowBar = true
-					bar.ShowTimeLeft = true
-					bar.Update()
-				}
-			}
-
-			if e := res.Error(); e != nil {
-				close(outChan)
-				return e
-			}
-
-			wait := make(chan struct{})
-			go progressBar(wait)
-
-			defer func() { <-wait }()
-			defer close(outChan)
-
-			for {
-				v, err := res.Next()
-				if err != nil {
-					if err == io.EOF {
-						return nil
-					}
-
-					return err
-				}
-
-				select {
-				case outChan <- v:
-				case <-req.Context.Done():
-					return req.Context.Err()
-				}
-			}
-		},
-	},
-	Type: AddEvent{},
+	PostRun: addPostRunMap,
+	Type:    AddEvent{},
 }
