@@ -1456,7 +1456,7 @@ likewise, files can be seen with human-readable names in the MFS.
 				src := p.String()
 				dst := dstBase
 				if dst[len(dst)-1] == '/' {
-					dst += gopath.Base(src)
+					dst += gopath.Base(addit.Name())
 				}
 
 				node, err := getNodeFromPath(req.Context, nd, api, src)
