@@ -129,6 +129,7 @@ func TestCommands(t *testing.T) {
 		"/file",
 		"/file/ls",
 		"/files",
+		"/files/add",
 		"/files/chcid",
 		"/files/cp",
 		"/files/flush",
