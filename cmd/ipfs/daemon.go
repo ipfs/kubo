@@ -427,7 +427,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	node, err := core.NewNode(req.Context, ncfg)
 	if err != nil {
-		log.Error("error from node construction: ", err)
 		return err
 	}
 	node.IsDaemon = true
