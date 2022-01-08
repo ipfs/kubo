@@ -120,7 +120,7 @@ func (s *statOutput) MarshalJSON() ([]byte, error) {
 	}{so: (*so)(s)}
 
 	if s.Mode != 0 {
-		out.Mode = fmt.Sprintf("%04d", s.Mode)
+		out.Mode = fmt.Sprintf("%04o", s.Mode)
 	}
 	return json.Marshal(out)
 }
