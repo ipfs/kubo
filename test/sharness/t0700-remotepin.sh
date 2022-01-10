@@ -320,11 +320,11 @@ test_remote_pins ""
 
 test_kill_ipfs_daemon
 
+WARNINGMESSAGE="Warning: the local node is offline and remote pinning may fail if there is no other provider"
+
 test_expect_success "'ipfs pin remote add' shows the warning message while offline" '
   test_expect_code 0 ipfs pin remote add --service=test_pin_svc --enc=json $BASE_ARGS --name=name_a $HASH_A > actual &&
-  echo "Warning: the local node is offline and remote pinning may fail if there is no other provider" > expected &&
-  echo "{\"Status\":\"pinned\",\"Cid\":\"$HASH_A\",\"Name\":\"name_a\"}" >> expected &&
-  test_cmp expected actual
+  test_expect_code 0 grep -q "$WARNINGMESSAGE" actual
 '
 
 test_done
