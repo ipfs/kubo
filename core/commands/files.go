@@ -13,10 +13,13 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/node"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	bservice "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
+	"github.com/ipfs/go-datastore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -70,16 +73,17 @@ operations.
 		cmds.BoolOption(filesFlushOptionName, "f", "Flush target and ancestors after write.").WithDefault(true),
 	},
 	Subcommands: map[string]*cmds.Command{
-		"read":  filesReadCmd,
-		"write": filesWriteCmd,
-		"mv":    filesMvCmd,
-		"cp":    filesCpCmd,
-		"ls":    filesLsCmd,
-		"mkdir": filesMkdirCmd,
-		"stat":  filesStatCmd,
-		"rm":    filesRmCmd,
-		"flush": filesFlushCmd,
-		"chcid": filesChcidCmd,
+		"read":         filesReadCmd,
+		"write":        filesWriteCmd,
+		"mv":           filesMvCmd,
+		"cp":           filesCpCmd,
+		"ls":           filesLsCmd,
+		"mkdir":        filesMkdirCmd,
+		"stat":         filesStatCmd,
+		"rm":           filesRmCmd,
+		"flush":        filesFlushCmd,
+		"chcid":        filesChcidCmd,
+		"replace-root": filesReplaceRoot,
 	},
 }
 
@@ -1130,6 +1134,101 @@ Remove files or directories.
 			}
 			return fmt.Errorf("can't remove some files")
 		}
+		return nil
+	},
+}
+
+var filesReplaceRoot = &cmds.Command{
+	Helptext: cmds.HelpText{
+		// FIXME(BLOCKING): Somewhere around we should flag that this is an advanced command
+		//  that you normally wouldn't need except in case of filesystem corruption. Where?
+		Tagline: "Replace the filesystem root.",
+		ShortDescription: `
+	Replace the filesystem root with another CID.
+
+	$ ipfs init
+	[...]
+	ipfs cat /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme # <- init dir
+	[...] 
+	$ ipfs files ls /
+	[nothing; empty dir]
+	$ ipfs files stat / --hash
+	QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+
+	# FIXME(BLOCKING): Need the following to somehow "start" the root dir, otherwise
+	#  the replace-root will fail to find the '/local/filesroot' entry in the repo
+	$ ipfs files cp /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme /file
+
+	$ GOLOG_LOG_LEVEL="info" ipfs files replace-root QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc # init dir from before
+	[...] replaced MFS files root QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc [...]
+	[here we have the CID of the old root to "undo" in case of error]
+	$ ipfs files ls /
+	[contents from init dir now set as the root of the filesystem]
+	about
+	contact
+	help
+	ping
+	quick-start
+	readme
+	security-notes
+	$ ipfs files replace-root QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn # empty dir from init
+	$ ipfs files ls /
+	[nothing; empty dir]
+`,
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("new-root", true, false, "New root to use."),
+	},
+	// FIXME(BLOCKING): Can/should we do this with the repo running?
+	NoRemote: true,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		if len(req.Arguments) < 1 {
+			fmt.Errorf("new root not provided")
+		}
+		newFilesRootCid, err := cid.Parse(req.Arguments[0])
+		if err != nil {
+			return fmt.Errorf("files root argument provided %s is not a valid CID: %w", req.Arguments[0], err)
+
+		}
+		// FIXME(BLOCKING): Check (a) that this CID exists *locally* and (b)
+		//  that it's a dir.
+
+		cfgRoot, err := cmdenv.GetConfigRoot(env)
+		if err != nil {
+			return err
+		}
+
+		repo, err := fsrepo.Open(cfgRoot)
+		if err != nil {
+			return err
+		}
+		localDS := repo.Datastore()
+		defer repo.Close()
+
+		filesRootBytes, err := localDS.Get(req.Context, node.FilesRootDatastoreKey)
+		if err == datastore.ErrNotFound {
+			return fmt.Errorf("MFS files root %s not found in repo", node.FilesRootDatastoreKey)
+		} else if err != nil {
+			return fmt.Errorf("looking for MFS files root: %w", err)
+		}
+		filesRootCid, err := cid.Cast(filesRootBytes)
+		if err != nil {
+			return fmt.Errorf("casting MFS files root %s as CID: %w", filesRootBytes, err)
+		}
+
+		err = localDS.Put(req.Context, node.FilesRootDatastoreKey, newFilesRootCid.Bytes())
+		if err != nil {
+			return fmt.Errorf("storing new files root: %w", err)
+		}
+		// FIXME(BLOCKING): Do we need this if we're closing the repo at the end
+		//  of the command? Likely not.
+		err = localDS.Sync(req.Context, node.FilesRootDatastoreKey)
+		if err != nil {
+			return fmt.Errorf("syncing new files root: %w", err)
+		}
+
+		log.Infof("replaced MFS files root %s with %s", filesRootCid, newFilesRootCid)
+
 		return nil
 	},
 }
