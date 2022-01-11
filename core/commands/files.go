@@ -1183,7 +1183,7 @@ var filesReplaceRoot = &cmds.Command{
 	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		if len(req.Arguments) < 1 {
-			fmt.Errorf("new root not provided")
+			return fmt.Errorf("new root not provided")
 		}
 		newFilesRootCid, err := cid.Parse(req.Arguments[0])
 		if err != nil {
