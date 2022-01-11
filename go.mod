@@ -91,7 +91,7 @@ require (
 	github.com/libp2p/go-ws-transport v0.5.0
 	github.com/miekg/dns v1.1.43
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/multiformats/go-multiaddr v0.4.1
+	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.0.3
 	github.com/multiformats/go-multicodec v0.3.0
