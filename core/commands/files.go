@@ -20,6 +20,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	"github.com/ipfs/go-datastore"
+	fslock "github.com/ipfs/go-fs-lock"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -1140,40 +1141,45 @@ Remove files or directories.
 
 var filesReplaceRoot = &cmds.Command{
 	Helptext: cmds.HelpText{
-		// FIXME(BLOCKING): Somewhere around we should flag that this is an advanced command
-		//  that you normally wouldn't need except in case of filesystem corruption. Where?
 		Tagline: "Replace the filesystem root.",
 		ShortDescription: `
-	Replace the filesystem root with another CID.
+Replace the filesystem root with another CID when the filesystem has been corrupted.
+`,
+		LongDescription: `
+Replace the filesystem root with another CID.
+This command is meant to run in standalone mode when the daemon isn't running.
+It is an advanced command that you normally do *not* want to run except when
+the filesystem has been corrupted and the daemon refuses to run.
 
-	$ ipfs init
-	[...]
-	ipfs cat /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme # <- init dir
-	[...] 
-	$ ipfs files ls /
-	[nothing; empty dir]
-	$ ipfs files stat / --hash
-	QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+FIXME: Add an example of the daemon not running once https://github.com/ipfs/go-ipfs/issues/7183
+is resolved.
 
-	# FIXME(BLOCKING): Need the following to somehow "start" the root dir, otherwise
-	#  the replace-root will fail to find the '/local/filesroot' entry in the repo
-	$ ipfs files cp /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme /file
-
-	$ GOLOG_LOG_LEVEL="info" ipfs files replace-root QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc # init dir from before
-	[...] replaced MFS files root QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc [...]
-	[here we have the CID of the old root to "undo" in case of error]
-	$ ipfs files ls /
-	[contents from init dir now set as the root of the filesystem]
-	about
-	contact
-	help
-	ping
-	quick-start
-	readme
-	security-notes
-	$ ipfs files replace-root QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn # empty dir from init
-	$ ipfs files ls /
-	[nothing; empty dir]
+$ ipfs init
+[...]
+ipfs cat /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme # <- init dir
+[...] 
+$ ipfs files ls /
+[nothing; empty dir]
+$ ipfs files stat / --hash
+QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+# FIXME(BLOCKING): Need the following to somehow "start" the root dir, otherwise
+#  the replace-root will fail to find the '/local/filesroot' entry in the repo
+$ ipfs files cp /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme /file
+$ GOLOG_LOG_LEVEL="info" ipfs files replace-root QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc # init dir from before
+[...] replaced MFS files root QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc [...]
+[here we have the CID of the old root to "undo" in case of error]
+$ ipfs files ls /
+[contents from init dir now set as the root of the filesystem]
+about
+contact
+help
+ping
+quick-start
+readme
+security-notes
+$ ipfs files replace-root QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn # empty dir from init
+$ ipfs files ls /
+[nothing; empty dir]
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -1200,6 +1206,11 @@ var filesReplaceRoot = &cmds.Command{
 
 		repo, err := fsrepo.Open(cfgRoot)
 		if err != nil {
+			if pathError, ok := err.(*os.PathError); ok {
+				if _, isLockError := pathError.Unwrap().(fslock.LockedError); isLockError {
+					return fmt.Errorf("aquiring the repo lock (make sure the daemon isn't running): %w", err)
+				}
+			}
 			return err
 		}
 		localDS := repo.Datastore()
