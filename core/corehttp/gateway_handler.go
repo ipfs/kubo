@@ -270,6 +270,7 @@ func (i *gatewayHandler) optionsHandler(w http.ResponseWriter, r *http.Request) 
 
 func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 	begin := time.Now()
+	urlPath := r.URL.Path
 
 	logger := log.With("from", r.RequestURI)
 	logger.Debug("http request received")
@@ -319,9 +320,25 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	contentPath := ipath.New(r.URL.Path)
+	redirects, err := i.searchUpTreeForRedirects(r, urlPath)
+	if err == nil {
+		redirected, newPath, err := i.redirect(w, r, redirects)
+		if err != nil {
+			// FIXME what to do here with errors ...
+		}
+
+		if redirected {
+			return
+		}
+
+		if newPath != "" {
+			urlPath = newPath
+		}
+	}
+
+	contentPath := ipath.New(urlPath)
 	if pathErr := contentPath.IsValid(); pathErr != nil {
-		if fixupSuperfluousNamespace(w, r.URL.Path, r.URL.RawQuery) {
+		if fixupSuperfluousNamespace(w, urlPath, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
 			// by returning error/redirect page, nothing left to do here
 			logger.Debugw("redundant namespace; noop")
@@ -408,6 +425,46 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
 		return
 	}
+}
+
+// redirect returns redirected, newPath (if rewrite), error
+func (i *gatewayHandler) redirect(w http.ResponseWriter, r *http.Request, path ipath.Resolved) (bool, string, error) {
+	node, err := i.api.Unixfs().Get(r.Context(), path)
+	if err != nil {
+		return false, "", fmt.Errorf("could not get redirects file: %v", err)
+	}
+
+	defer node.Close()
+
+	f, ok := node.(files.File)
+
+	if !ok {
+		return false, "", fmt.Errorf("redirect, could not convert node to file")
+	}
+
+	redirs := newRedirs(f)
+
+	// extract "file" part of URL, typically the part after /ipfs/CID/...
+	g := strings.Split(r.URL.Path, "/")
+
+	if len(g) > 3 {
+		filePartPath := "/" + strings.Join(g[3:], "/")
+
+		to, code := redirs.search(filePartPath)
+		if code > 0 {
+			if code == 200 {
+				// rewrite
+				newPath := strings.Join(g[0:3], "/") + "/" + to
+				return false, newPath, nil
+			}
+
+			// redirect
+			http.Redirect(w, r, to, code)
+			return true, "", nil
+		}
+	}
+
+	return false, "", nil
 }
 
 func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
@@ -807,6 +864,25 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 		}
 	}
 	return "", nil, nil
+}
+
+func (i *gatewayHandler) searchUpTreeForRedirects(r *http.Request, path string) (ipath.Resolved, error) {
+	pathComponents := strings.Split(path, "/")
+
+	for idx := len(pathComponents); idx >= 3; idx-- {
+		rdir := gopath.Join(append(pathComponents[0:idx], "_redirects")...)
+		rdirPath := ipath.New("/" + rdir)
+		if rdirPath.IsValid() != nil {
+			break
+		}
+		resolvedPath, err := i.api.ResolvePath(r.Context(), rdirPath)
+		if err != nil {
+			continue
+		}
+		return resolvedPath, nil
+	}
+
+	return nil, fmt.Errorf("no redirects in any parent folder")
 }
 
 func (i *gatewayHandler) searchUpTreeFor404(r *http.Request, contentPath ipath.Path) (ipath.Resolved, string, error) {
