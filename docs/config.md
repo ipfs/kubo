@@ -188,37 +188,37 @@ documented in `ipfs config profile --help`.
 
 - `flatfs`
 
-  Configures the node to use the flatfs datastore.
+  Configures the node to use the flatfs datastore (the default).
 
-  This is the most battle-tested and reliable datastore, but it's significantly
-  slower than the badger datastore. You should use this datastore if:
+  This is the most battle-tested and reliable datastore. 
+  You should use this datastore if:
 
   - You need a very simple and very reliable datastore and you trust your
     filesystem. This datastore stores each block as a separate file in the
     underlying filesystem so it's unlikely to lose data unless there's an issue
     with the underlying file system.
-  - You need to run garbage collection on a small (<= 10GiB) datastore. The
-    default datastore, badger, can leave several gigabytes of data behind when
-    garbage collecting.
-  - You're concerned about memory usage. In its default configuration, badger can
-    use up to several gigabytes of memory.
+  - You need to run garbage collection in a way that reclaims free space as soon as possible.
+  - You want to minimize memory usage.
+  - You are ok with the default speed of data import (or prefer to use `--nocopy`).
 
   This profile may only be applied when first initializing the node.
 
 
 - `badgerds`
 
-  Configures the node to use the badger datastore.
+  Configures the node to use the experimental badger datastore (warning: uses an outdated badger 1.x).
 
-  This is the fastest datastore. Use this datastore if performance, especially
-  when adding many gigabytes of files, is critical. However:
-
+  Use this datastore if some aspects of performance, 
+  especially the speed of adding many gigabytes of files, are critical. However, be aware that:
+  
   - This datastore will not properly reclaim space when your datastore is
-    smaller than several gigabytes. If you run IPFS with '--enable-gc' (you have
+    smaller than several gigabytes. If you run IPFS with `--enable-gc` (you have
     enabled block-level garbage collection), you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
-    flatfs.
-  - This datastore uses up to several gigabytes of memory.
+    `flatfs`.
+  - This datastore uses up to several gigabytes of memory.  
+  - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
+  - The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
   This profile may only be applied when first initializing the node.
 
