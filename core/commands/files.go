@@ -439,6 +439,64 @@ type filesLsOutput struct {
 	Entries []mfs.NodeListing
 }
 
+func listPath(req *cmds.Request, filesRoot *mfs.Root, path string) (*filesLsOutput, error) {
+	fsn, err := mfs.Lookup(filesRoot, path)
+	if err != nil {
+		return nil, err
+	}
+
+	long, _ := req.Options[longOptionName].(bool)
+
+	enc, err := cmdenv.GetCidEncoder(req)
+	if err != nil {
+		return nil, err
+	}
+
+	switch fsn := fsn.(type) {
+	case *mfs.Directory:
+		if !long {
+			var output []mfs.NodeListing
+			names, err := fsn.ListNames(req.Context)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, name := range names {
+				output = append(output, mfs.NodeListing{
+					Name: name,
+				})
+			}
+			return &filesLsOutput{output}, nil
+		}
+		listing, err := fsn.List(req.Context)
+		if err != nil {
+			return nil, err
+		}
+		return &filesLsOutput{listing}, nil
+	case *mfs.File:
+		_, name := gopath.Split(path)
+		out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
+		if long {
+			out.Entries[0].Type = int(fsn.Type())
+
+			size, err := fsn.Size()
+			if err != nil {
+				return nil, err
+			}
+			out.Entries[0].Size = size
+
+			nd, err := fsn.GetNode()
+			if err != nil {
+				return nil, err
+			}
+			out.Entries[0].Hash = enc.Encode(nd.Cid())
+		}
+		return out, nil
+	default:
+		return nil, errors.New("unrecognized type")
+	}
+}
+
 const (
 	longOptionName     = "long"
 	dontSortOptionName = "U"
@@ -491,61 +549,11 @@ Examples:
 			return err
 		}
 
-		fsn, err := mfs.Lookup(nd.FilesRoot, path)
+		out, err := listPath(req, nd.FilesRoot, path)
 		if err != nil {
 			return err
 		}
-
-		long, _ := req.Options[longOptionName].(bool)
-
-		enc, err := cmdenv.GetCidEncoder(req)
-		if err != nil {
-			return err
-		}
-
-		switch fsn := fsn.(type) {
-		case *mfs.Directory:
-			if !long {
-				var output []mfs.NodeListing
-				names, err := fsn.ListNames(req.Context)
-				if err != nil {
-					return err
-				}
-
-				for _, name := range names {
-					output = append(output, mfs.NodeListing{
-						Name: name,
-					})
-				}
-				return cmds.EmitOnce(res, &filesLsOutput{output})
-			}
-			listing, err := fsn.List(req.Context)
-			if err != nil {
-				return err
-			}
-			return cmds.EmitOnce(res, &filesLsOutput{listing})
-		case *mfs.File:
-			_, name := gopath.Split(path)
-			out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
-			if long {
-				out.Entries[0].Type = int(fsn.Type())
-
-				size, err := fsn.Size()
-				if err != nil {
-					return err
-				}
-				out.Entries[0].Size = size
-
-				nd, err := fsn.GetNode()
-				if err != nil {
-					return err
-				}
-				out.Entries[0].Hash = enc.Encode(nd.Cid())
-			}
-			return cmds.EmitOnce(res, out)
-		default:
-			return errors.New("unrecognized type")
-		}
+		return cmds.EmitOnce(res, out)
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filesLsOutput) error {
