@@ -437,14 +437,11 @@ func getNodeFromPath(ctx context.Context, node *core.IpfsNode, api iface.CoreAPI
 
 type filesLsOutput struct {
 	Entries []mfs.NodeListing
+	// Optionally set the path for the recursive listing option.
+	Path string
 }
 
-func listPath(req *cmds.Request, filesRoot *mfs.Root, path string) (*filesLsOutput, error) {
-	fsn, err := mfs.Lookup(filesRoot, path)
-	if err != nil {
-		return nil, err
-	}
-
+func listNode(req *cmds.Request, fsNode mfs.FSNode, path string) ([]mfs.NodeListing, error) {
 	long, _ := req.Options[longOptionName].(bool)
 
 	enc, err := cmdenv.GetCidEncoder(req)
@@ -452,7 +449,7 @@ func listPath(req *cmds.Request, filesRoot *mfs.Root, path string) (*filesLsOutp
 		return nil, err
 	}
 
-	switch fsn := fsn.(type) {
+	switch fsn := fsNode.(type) {
 	case *mfs.Directory:
 		if !long {
 			var output []mfs.NodeListing
@@ -464,32 +461,33 @@ func listPath(req *cmds.Request, filesRoot *mfs.Root, path string) (*filesLsOutp
 			for _, name := range names {
 				output = append(output, mfs.NodeListing{
 					Name: name,
+					Type: int(fsn.Type()),
 				})
 			}
-			return &filesLsOutput{output}, nil
+			return output, nil
 		}
 		listing, err := fsn.List(req.Context)
 		if err != nil {
 			return nil, err
 		}
-		return &filesLsOutput{listing}, nil
+		return listing, nil
 	case *mfs.File:
+		// FIXME: `mfs.FSNode` should expose a `Name()` API (it stores the name
+		//  in its inode) and we shouldn't require the path argument here.
 		_, name := gopath.Split(path)
-		out := &filesLsOutput{[]mfs.NodeListing{{Name: name}}}
+		out := []mfs.NodeListing{{Name: name, Type: int(fsn.Type())}}
 		if long {
-			out.Entries[0].Type = int(fsn.Type())
-
 			size, err := fsn.Size()
 			if err != nil {
 				return nil, err
 			}
-			out.Entries[0].Size = size
+			out[0].Size = size
 
 			nd, err := fsn.GetNode()
 			if err != nil {
 				return nil, err
 			}
-			out.Entries[0].Hash = enc.Encode(nd.Cid())
+			out[0].Hash = enc.Encode(nd.Cid())
 		}
 		return out, nil
 	default:
@@ -498,8 +496,9 @@ func listPath(req *cmds.Request, filesRoot *mfs.Root, path string) (*filesLsOutp
 }
 
 const (
-	longOptionName     = "long"
-	dontSortOptionName = "U"
+	longOptionName             = "long"
+	dontSortOptionName         = "U"
+	filesLsRecursiveOptionName = "recursive"
 )
 
 var filesLsCmd = &cmds.Command{
@@ -529,6 +528,7 @@ Examples:
 	Options: []cmds.Option{
 		cmds.BoolOption(longOptionName, "l", "Use long listing format."),
 		cmds.BoolOption(dontSortOptionName, "Do not sort; list entries in directory order."),
+		cmds.BoolOption(filesLsRecursiveOptionName, "R", "List subdirectories recursively.").WithDefault(false),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		var arg string
@@ -549,11 +549,64 @@ Examples:
 			return err
 		}
 
-		out, err := listPath(req, nd.FilesRoot, path)
+		fsn, err := mfs.Lookup(nd.FilesRoot, path)
 		if err != nil {
 			return err
 		}
-		return cmds.EmitOnce(res, out)
+
+		entries, err := listNode(req, fsn, path)
+		if err != nil {
+			return err
+		}
+
+		recursive := req.Options[filesLsRecursiveOptionName].(bool)
+		if !recursive || mfs.IsFile(fsn) {
+			return cmds.EmitOnce(res, filesLsOutput{Entries: entries})
+		}
+
+		// Recursive listing directories; mimic Unix `ls -R` behavior (BFS).
+		listsToProcess := make([]filesLsOutput, 1)
+		listsToProcess[0] = filesLsOutput{Entries: entries, Path: path}
+		for len(listsToProcess) > 0 {
+			listOut := listsToProcess[0]
+			listsToProcess = listsToProcess[1:]
+
+			err = res.Emit(listOut)
+			if err != nil {
+				return err
+			}
+
+			for _, entry := range listOut.Entries {
+				if entry.Type != int(mfs.TDir) {
+					continue
+				}
+				dirPath, err := checkPath(listOut.Path)
+				if err != nil {
+					return err
+				}
+				if dirPath[len(dirPath)-1] != '/' {
+					dirPath += "/"
+				}
+				dirPath += entry.Name
+
+				fsn, err := mfs.Lookup(nd.FilesRoot, dirPath)
+				if err != nil {
+					return err
+				}
+
+				childList, err := listNode(req, fsn, dirPath)
+				if err != nil {
+					return err
+				}
+				listsToProcess = append(listsToProcess,
+					filesLsOutput{Entries: childList, Path: dirPath})
+			}
+		}
+		// FIXME(BLOCKING): Evaluate joining this loop with the basic non-recursive case,
+		//  but it might not be worth it adding complexity to the most common basic case.
+		//  (We almost never will list recursively.)
+
+		return nil
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *filesLsOutput) error {
@@ -565,6 +618,10 @@ Examples:
 			}
 
 			long, _ := req.Options[longOptionName].(bool)
+			if out.Path != "" {
+				// We are listing recursively and the listed path is a directory.
+				fmt.Fprintf(w, "%s:\n", out.Path)
+			}
 			for _, o := range out.Entries {
 				if long {
 					if o.Type == int(mfs.TDir) {
@@ -574,6 +631,9 @@ Examples:
 				} else {
 					fmt.Fprintf(w, "%s\n", o.Name)
 				}
+			}
+			if out.Path != "" {
+				fmt.Fprint(w, "\n")
 			}
 
 			return nil
