@@ -219,6 +219,7 @@ jobs:
     docker:
       - image: cimg/go:1.16-node
     parallelism: 4
+    resource_class: medium
     steps:
       - *make_out_dirs
       - attach_workspace:
