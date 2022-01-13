@@ -224,6 +224,11 @@ jobs:
       - *make_out_dirs
       - attach_workspace:
           at: /tmp/circleci-workspace
+      - restore_cache:
+          keys:
+            - v1-ipfs-interop-{{ .Branch }}-{{ .Revision }}
+            - v1-ipfs-interop-{{ .Branch }}-
+            - v1-ipfs-interop-
       - run:
           name: Installing dependencies
           command: |
@@ -245,6 +250,10 @@ jobs:
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
       - store_test_results:
           path: /tmp/test-results
+      - save_cache:
+          key: v1-ipfs-interop-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - ~/ipfs/go-ipfs/interop/node_modules
   go-ipfs-api:
     executor: golang
     steps:
