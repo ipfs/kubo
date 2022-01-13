@@ -219,7 +219,7 @@ jobs:
     docker:
       - image: cimg/node:16.13.2
     parallelism: 4
-    resource_class: 2xlarge
+    resource_class: large
     steps:
       - *make_out_dirs
       - attach_workspace:
@@ -336,6 +336,7 @@ jobs:
           name: Installing dependencies
           command: |
             npm install
+            npx playwright install
           working_directory: ~/ipfs/go-ipfs/ipfs-webui
       - run:
           name: Running upstream tests (finish early if they fail)
@@ -351,6 +352,7 @@ jobs:
       - save_cache:
           key: v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
           paths:
+            - ~/.cache/ms-playwright
             - ~/ipfs/go-ipfs/ipfs-webui/node_modules
   # We only run build as a test here. DockerHub images are built and published
   # by Github Action now: https://github.com/ipfs/go-ipfs/pull/8467
