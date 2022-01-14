@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -207,6 +208,10 @@ func (NodeProvider) makeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 }
 
 func TestHttpApi(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping due to #142")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
