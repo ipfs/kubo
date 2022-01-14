@@ -132,8 +132,8 @@ func HostnameOption() ServeOption {
 				// Assemble original path prefix.
 				pathPrefix := "/" + ns + "/" + rootID
 
-				// Does this gateway _handle_ subdomains AND this path?
-				if !(gw.UseSubdomains && hasPrefix(pathPrefix, gw.Paths...)) {
+				// Does this gateway handle this path?
+				if !hasPrefix(pathPrefix, gw.Paths...) {
 					// If not, resource does not exist, return 404
 					http.NotFound(w, r)
 					return
