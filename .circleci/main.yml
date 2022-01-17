@@ -226,9 +226,9 @@ jobs:
           at: /tmp/circleci-workspace
       - restore_cache:
           keys:
-            - v1-ipfs-interop-{{ .Branch }}-{{ .Revision }}
-            - v1-ipfs-interop-{{ .Branch }}-
-            - v1-ipfs-interop-
+            - v1-interop-{{ .Branch }}-{{ .Revision }}
+            - v1-interop-{{ .Branch }}-
+            - v1-interop-
       - run:
           name: Installing dependencies
           command: |
@@ -251,7 +251,7 @@ jobs:
       - store_test_results:
           path: /tmp/test-results
       - save_cache:
-          key: v1-ipfs-interop-{{ .Branch }}-{{ .Revision }}
+          key: v1-interop-{{ .Branch }}-{{ .Revision }}
           paths:
             - ~/ipfs/go-ipfs/interop/node_modules
   go-ipfs-api:
