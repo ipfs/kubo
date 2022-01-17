@@ -217,7 +217,7 @@ jobs:
       - *store_gomod
   interop:
     docker:
-      - image: cimg/node:16.13.2
+      - image: cimg/go:1.16-node
     parallelism: 4
     resource_class: large
     steps:
