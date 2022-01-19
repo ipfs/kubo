@@ -54,7 +54,7 @@ test_expect_success "checking ID of self" '
   test_cmp expected-id actual-id
 '
 
-test_expect_success "checking ID of random peer offline" '
+test_expect_success "checking and converting ID of a random peer while offline" '
   # Peer ID taken from `t0140-swarm.sh` test.
   echo k2k4r8ncs1yoluq95unsd7x2vfhgve0ncjoggwqx9vyh3vl8warrcp15 > expected-id &&
   ipfs id -f "<id>\n" --peerid-base base36 --offline QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N > actual-id &&

@@ -23,7 +23,7 @@ import (
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
-const offlineIdErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; use the --offline option instead."
+const offlineIdErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option."
 
 type IdOutput struct {
 	ID              string
