@@ -213,10 +213,10 @@ test_key_import_export() {
   KEY_NAME=$1
   FORMAT=$2
   ORIG_KEY="generated_$KEY_NAME"
-  if [ $FORMAT == "libp2p-protobuf-cleartext" ]; then
-    FILE_EXT="key"
-  else
+  if [ $FORMAT == "pem-pkcs8-cleartext" ]; then
     FILE_EXT="pem"
+  else
+    FILE_EXT="key"
   fi
 
   test_expect_success "export and import $KEY_NAME with format $FORMAT" '
