@@ -140,9 +140,9 @@ var keyGenCmd = &cmds.Command{
 
 const (
 	// Key format options used both for importing and exporting.
-	keyFormatOptionName             = "format"
-	keyFormatPemCleartextOption     = "pem-pkcs8-cleartext"
-	keyFormatLibp2pCleartextOption  = "libp2p-protobuf-cleartext"
+	keyFormatOptionName            = "format"
+	keyFormatPemCleartextOption    = "pem-pkcs8-cleartext"
+	keyFormatLibp2pCleartextOption = "libp2p-protobuf-cleartext"
 )
 
 var keyExportCmd = &cmds.Command{
