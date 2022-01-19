@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"crypto/ed25519"
-	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -142,10 +141,8 @@ var keyGenCmd = &cmds.Command{
 const (
 	// Key format options used both for importing and exporting.
 	keyFormatOptionName             = "format"
-	keyFormatPemEncryptedOption     = "pem-pkcs8-encrypted"
 	keyFormatPemCleartextOption     = "pem-pkcs8-cleartext"
 	keyFormatLibp2pCleartextOption  = "libp2p-protobuf-cleartext"
-	keyEncryptionPasswordOptionName = "password"
 )
 
 var keyExportCmd = &cmds.Command{
@@ -164,9 +161,6 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
 		cmds.StringOption(keyFormatOptionName, "f", "The format of the exported private key.").WithDefault(keyFormatLibp2pCleartextOption),
-		cmds.StringOption(keyEncryptionPasswordOptionName, "p", "The password to encrypt the exported key with (for the encrypted variant only)."),
-		// FIXME(BLOCKING): change default to keyFormatPemEncryptedOption once it
-		//  is implemented and the sharness tests (if any) are adapted.
 	},
 	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -206,7 +200,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 		exportFormat, _ := req.Options[keyFormatOptionName].(string)
 		var formattedKey []byte
 		switch exportFormat {
-		case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+		case keyFormatPemCleartextOption:
 			stdKey, err := crypto.PrivKeyToStdKey(sk)
 			if err != nil {
 				return fmt.Errorf("converting libp2p private key to std Go key: %w", err)
@@ -255,7 +249,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			if outPath == "" {
 				var fileExtension string
 				switch exportFormat {
-				case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+				case keyFormatPemCleartextOption:
 					fileExtension = "pem"
 				case keyFormatLibp2pCleartextOption:
 					fileExtension = "key"
@@ -273,36 +267,16 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			defer file.Close()
 
 			switch exportFormat {
-			case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+			case keyFormatPemCleartextOption:
 				privKeyBytes, err := ioutil.ReadAll(outReader)
 				if err != nil {
 					return err
 				}
 
-				var pemBlock *pem.Block
-				if exportFormat == keyFormatPemEncryptedOption {
-					keyEncPassword, ok := req.Options[keyEncryptionPasswordOptionName].(string)
-					if !ok {
-						return fmt.Errorf("missing password to encrypt the key with, set it with --%s",
-							keyEncryptionPasswordOptionName)
-					}
-					// FIXME(BLOCKING): Using deprecated security function.
-					pemBlock, err = x509.EncryptPEMBlock(rand.Reader,
-						"ENCRYPTED PRIVATE KEY",
-						privKeyBytes,
-						[]byte(keyEncPassword),
-						x509.PEMCipherAES256)
-					if err != nil {
-						return fmt.Errorf("encrypting PEM block: %w", err)
-					}
-				} else { // cleartext
-					pemBlock = &pem.Block{
-						Type:  "PRIVATE KEY",
-						Bytes: privKeyBytes,
-					}
-				}
-
-				err = pem.Encode(file, pemBlock)
+				err = pem.Encode(file, &pem.Block{
+					Type:  "PRIVATE KEY",
+					Bytes: privKeyBytes,
+				})
 				if err != nil {
 					return fmt.Errorf("encoding PEM block: %w", err)
 				}
@@ -326,8 +300,6 @@ var keyImportCmd = &cmds.Command{
 	Options: []cmds.Option{
 		ke.OptionIPNSBase,
 		cmds.StringOption(keyFormatOptionName, "f", "The format of the private key to import.").WithDefault(keyFormatLibp2pCleartextOption),
-		// FIXME: Attempt to figure out the import format.
-		cmds.StringOption(keyEncryptionPasswordOptionName, "p", "The password to decrypt the imported key with (for the encrypted variant only)."),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
@@ -359,33 +331,17 @@ var keyImportCmd = &cmds.Command{
 		importFormat, _ := req.Options[keyFormatOptionName].(string)
 		var sk crypto.PrivKey
 		switch importFormat {
-		case keyFormatPemEncryptedOption, keyFormatPemCleartextOption:
+		case keyFormatPemCleartextOption:
 			pemBlock, rest := pem.Decode(data)
 			if pemBlock == nil {
 				return fmt.Errorf("PEM block not found in input data:\n%s", rest)
 			}
 
-			if pemBlock.Type != "PRIVATE KEY" && pemBlock.Type != "ENCRYPTED PRIVATE KEY" {
-				return fmt.Errorf("expected [ENCRYPTED] PRIVATE KEY type in PEM block but got: %s", pemBlock.Type)
+			if pemBlock.Type != "PRIVATE KEY" {
+				return fmt.Errorf("expected PRIVATE KEY type in PEM block but got: %s", pemBlock.Type)
 			}
 
-			var privKeyBytes []byte
-			if importFormat == keyFormatPemEncryptedOption {
-				keyDecPassword, ok := req.Options[keyEncryptionPasswordOptionName].(string)
-				if !ok {
-					return fmt.Errorf("missing password to decrypt the key with, set it with --%s",
-						keyEncryptionPasswordOptionName)
-				}
-				privKeyBytes, err = x509.DecryptPEMBlock(pemBlock,
-					[]byte(keyDecPassword))
-				if err != nil {
-					return fmt.Errorf("decrypting PEM block: %w", err)
-				}
-			} else { // cleartext
-				privKeyBytes = pemBlock.Bytes
-			}
-
-			stdKey, err := x509.ParsePKCS8PrivateKey(privKeyBytes)
+			stdKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
 			if err != nil {
 				return fmt.Errorf("parsing PKCS8 format: %w", err)
 			}

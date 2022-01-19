@@ -205,7 +205,6 @@ test_check_ed25519_sk() {
 test_key_import_export_all_formats() {
   KEY_NAME=$1
   test_key_import_export $KEY_NAME pem-pkcs8-cleartext
-  test_key_import_export $KEY_NAME pem-pkcs8-encrypted
   test_key_import_export $KEY_NAME libp2p-protobuf-cleartext
 }
 
@@ -214,9 +213,6 @@ test_key_import_export() {
   KEY_NAME=$1
   FORMAT=$2
   ORIG_KEY="generated_$KEY_NAME"
-  if [ $FORMAT == "pem-pkcs8-encrypted" ]; then
-    KEY_PASSWORD="--password=fake-test-password"
-  fi
   if [ $FORMAT == "libp2p-protobuf-cleartext" ]; then
     FILE_EXT="key"
   else
@@ -224,9 +220,9 @@ test_key_import_export() {
   fi
 
   test_expect_success "export and import $KEY_NAME with format $FORMAT" '
-    ipfs key export $ORIG_KEY --format=$FORMAT $KEY_PASSWORD &&
+    ipfs key export $ORIG_KEY --format=$FORMAT &&
     ipfs key rm $ORIG_KEY &&
-    ipfs key import $ORIG_KEY $ORIG_KEY.$FILE_EXT --format=$FORMAT $KEY_PASSWORD > imported_key_id &&
+    ipfs key import $ORIG_KEY $ORIG_KEY.$FILE_EXT --format=$FORMAT > imported_key_id &&
     test_cmp ${KEY_NAME}_id imported_key_id
   '
 }
