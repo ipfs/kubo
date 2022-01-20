@@ -23,7 +23,7 @@ func newResolver(url string, opts ...doh.Option) (madns.BasicResolver, error) {
 		return nil, fmt.Errorf("invalid resolver url: %s", url)
 	}
 
-	return doh.NewResolver(url, opts...), nil
+	return doh.NewResolver(url, opts...)
 }
 
 func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {

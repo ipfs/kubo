@@ -1773,7 +1773,7 @@ Example:
       "eth.": "https://eth.link/dns-query",
       "crypto.": "https://resolver.unstoppable.io/dns-query",
       "libre.": "https://ns1.iriseden.fr/dns-query",
-      ".": "https://doh-ch.blahdns.com:4443/dns-query"
+      ".": "https://cloudflare-dns.com/dns-query"
     }
   }
 }
@@ -1786,7 +1786,7 @@ Be mindful that:
   ```json
   {
     "eth.": "https://resolver.cloudflare-eth.com/dns-query",
-    "crypto.": "https://resolver.cloudflare-eth.com/dns-query
+    "crypto.": "https://resolver.cloudflare-eth.com/dns-query"
   }
   ```
   To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
@@ -1797,9 +1797,12 @@ Type: `object[string -> string]`
 
 ### `DNS.MaxCacheTTL`
 
-Maximum duration entries are valid in the cache.
+Maximum duration entries are valid in the DoH cache.
 
-This allows to cap the Time-To-Live suggested by the DNS response. This includes resolution of DNSLink captured by the custom resolver URLs.
+This allows to cap the Time-To-Live suggested by the DNS response ([RFC2181](https://datatracker.ietf.org/doc/html/rfc2181#section-8)).
+If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dnsresolvers).
+
+Note: This does NOT work with OS-level resolver. To make this a global setting, add `.` entry to `DNS.Resolvers` first.
 
 **Examples:**
 * `"5m"` DNS entries are kept for 5 minutes or less.
