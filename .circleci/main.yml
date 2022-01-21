@@ -219,43 +219,41 @@ jobs:
     docker:
       - image: cimg/go:1.16-node
     parallelism: 4
+    resource_class: large
     steps:
       - *make_out_dirs
       - attach_workspace:
           at: /tmp/circleci-workspace
+      - restore_cache:
+          keys:
+            - v1-interop-{{ .Branch }}-{{ .Revision }}
+            - v1-interop-{{ .Branch }}-
+            - v1-interop-
       - run:
           name: Installing dependencies
           command: |
             npm init -y
-            npm install ipfs@^0.59.1
-            npm install ipfs/interop#master
+            npm install ipfs@^0.61.0
+            npm install ipfs-interop@^8.0.0
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:
           name: Running tests
           command: |
-            WORKDIR=$(pwd)
-            cd /tmp
-            git clone https://github.com/ipfs/js-ipfs.git
-            cd js-ipfs
-            git checkout 1dcac76f56972fc3519526e93567e39d685033dd
-            npm install
-            npm run build
-            npm run link
-            cd $WORKDIR
             mkdir -p /tmp/test-results/interop/
             export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
-            npx ipfs-interop -- -t node -f $(sed -n -e "s|^require('\(.*\)')$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split) -- --reporter mocha-circleci-reporter
+            npx ipfs-interop -- -t node -f $(sed -n -e "s|^import '\(.*\)'$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split --split-by=timings) -- --reporter mocha-circleci-reporter
           working_directory: ~/ipfs/go-ipfs/interop
           environment:
             LIBP2P_TCP_REUSEPORT: false
             LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
-            IPFS_JS_EXEC: /tmp/js-ipfs/packages/ipfs/src/cli.js
-            IPFS_JS_MODULE: /tmp/js-ipfs/packages/ipfs/dist/cjs/src/index.js
-            IPFS_JS_HTTP_MODULE: /tmp/js-ipfs/packages/ipfs-http-client/dist/cjs/src/index.js
       - store_test_results:
           path: /tmp/test-results
+      - save_cache:
+          key: v1-interop-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - ~/ipfs/go-ipfs/interop/node_modules
   go-ipfs-api:
     executor: golang
     steps:
@@ -338,6 +336,7 @@ jobs:
           name: Installing dependencies
           command: |
             npm install
+            npx playwright install
           working_directory: ~/ipfs/go-ipfs/ipfs-webui
       - run:
           name: Running upstream tests (finish early if they fail)
@@ -353,6 +352,7 @@ jobs:
       - save_cache:
           key: v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
           paths:
+            - ~/.cache/ms-playwright
             - ~/ipfs/go-ipfs/ipfs-webui/node_modules
   # We only run build as a test here. DockerHub images are built and published
   # by Github Action now: https://github.com/ipfs/go-ipfs/pull/8467

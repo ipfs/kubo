@@ -166,6 +166,12 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 $ sudo snap install ipfs
 ```
 
+The snap sets `IPFS_PATH` to `SNAP_USER_COMMON`, which is usually `~/snap/ipfs/common`. If you want to use `~/.ipfs` instead, you can bind-mount it to `~/snap/ipfs/common` like this:
+
+```sudo mount --bind ~/.ipfs ~/snap/ipfs/common```
+
+If you want something more sophisticated to escape the snap confinement, we recommend using a different method to install `go-ipfs` so that it is not subject to snap confinement.
+
 #### macOS package managers
 
 - [MacPorts](#macports)
