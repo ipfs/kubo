@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2016 Tom O'Donnell
-# MIT Licensed; see the LICENSE file in this repository.
-#
 
 test_description="Test files add and add commands"
 
@@ -20,8 +17,8 @@ test_expect_success "files add CID matches add CID" '
 
   echo "hi" > f1
 	ADDCID=$(ipfs add -q f1)
-	FILESADDCID=$(ipfs files add -q $DIR f1)
-	test_cmp ADDCID FILESADDCID
+	FILESADDCID=$(ipfs files add -q $DIR/ f1)
+	test $ADDCID = $FILESADDCID
 '
 
 # verify files add does not result in a pin.
@@ -37,3 +34,4 @@ test_expect_code 1 '
 test_kill_ipfs_daemon
 
 test_done
+
