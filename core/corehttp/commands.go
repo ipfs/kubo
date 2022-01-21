@@ -44,6 +44,8 @@ var defaultLocalhostOrigins = []string{
 	"https://[::1]:<port>",
 	"http://localhost:<port>",
 	"https://localhost:<port>",
+	"chrome-extension://nibjojkomfdiaoajekhjakgkdhaomnch", // ipfs-companion
+	"chrome-extension://hjoieblefckbooibpepigmacodalfndh", // ipfs-companion-beta
 }
 
 func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
