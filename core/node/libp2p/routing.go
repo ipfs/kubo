@@ -151,17 +151,24 @@ type p2pPSRoutingIn struct {
 	BaseIpfsRouting BaseIpfsRouting
 	Validator       record.Validator
 	Host            host.Host
+	Repo            repo.Repo
 	PubSub          *pubsub.PubSub `optional:"true"`
 }
 
 func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore, error) {
+	cfg, err := in.Repo.Config()
+	if err != nil {
+		return p2pRouterOut{}, nil, err
+	}
+	ttl := cfg.Ipns.ReproviderDuration.WithDefault(36 * time.Hour)
+
 	psRouter, err := namesys.NewPubsubValueStore(
 		helpers.LifecycleCtx(mctx, lc),
 		in.Host,
 		in.PubSub,
 		in.Validator,
 		namesys.WithRebroadcastInterval(time.Minute),
-		namesys.WithUnusedSubscriptionTTL(36*time.Hour, "ipns"),
+		namesys.WithUnusedSubscriptionTTL(ttl, "ipns"),
 	)
 
 	if err != nil {
