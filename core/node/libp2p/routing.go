@@ -161,6 +161,7 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 		in.PubSub,
 		in.Validator,
 		namesys.WithRebroadcastInterval(time.Minute),
+		namesys.WithUnusedSubscriptionTTL(36*time.Hour, "ipns"),
 	)
 
 	if err != nil {
