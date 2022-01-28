@@ -188,32 +188,31 @@ documented in `ipfs config profile --help`.
 
 - `flatfs`
 
-  Configures the node to use the flatfs datastore (the default).
+  Configures the node to use the flatfs datastore. Flatfs is the default datastore.
 
   This is the most battle-tested and reliable datastore. 
   You should use this datastore if:
 
-  - You need a very simple and very reliable datastore and you trust your
+  - You need a very simple and very reliable datastore, and you trust your
     filesystem. This datastore stores each block as a separate file in the
     underlying filesystem so it's unlikely to lose data unless there's an issue
     with the underlying file system.
   - You need to run garbage collection in a way that reclaims free space as soon as possible.
   - You want to minimize memory usage.
-  - You are ok with the default speed of data import (or prefer to use `--nocopy`).
+  - You are ok with the default speed of data import, or prefer to use `--nocopy`.
 
   This profile may only be applied when first initializing the node.
 
 
 - `badgerds`
 
-  Configures the node to use the experimental badger datastore (warning: uses an outdated badger 1.x).
+  Configures the node to use the experimental badger datastore. Keep in mind that this **uses an outdated badger 1.x**.
 
   Use this datastore if some aspects of performance, 
   especially the speed of adding many gigabytes of files, are critical. However, be aware that:
   
   - This datastore will not properly reclaim space when your datastore is
-    smaller than several gigabytes. If you run IPFS with `--enable-gc` (you have
-    enabled block-level garbage collection), you plan on storing very little data in
+    smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
     `flatfs`.
   - This datastore uses up to several gigabytes of memory.  
