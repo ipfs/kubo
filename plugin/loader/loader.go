@@ -14,11 +14,11 @@ import (
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
-	plugin "github.com/ipfs/go-ipfs/plugin"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/go-ipfs/plugin"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	logging "github.com/ipfs/go-log"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 )
 
 var preloadPlugins []plugin.Plugin
@@ -326,6 +326,23 @@ func (loader *PluginLoader) Close() error {
 		return fmt.Errorf(strings.Join(errs, "\n"))
 	}
 	loader.state = loaderClosed
+	return nil
+}
+
+func (loader *PluginLoader) PropertyConfig(cfg *config.Config) error {
+	if cfg.Plugins.Plugins == nil {
+		cfg.Plugins.Plugins = make(map[string]config.Plugin, len(loader.plugins))
+	}
+	for _, p := range preloadPlugins {
+		pc, ok := p.(plugin.PluginConfiger)
+		if ok {
+
+			cfg.Plugins.Plugins[p.Name()] = config.Plugin{
+				Disabled: false,
+				Config:   pc.Config(),
+			}
+		}
+	}
 	return nil
 }
 
