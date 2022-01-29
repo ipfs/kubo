@@ -17,7 +17,7 @@ the above issue.
 - [ipfs filestore](#ipfs-filestore)
 - [ipfs urlstore](#ipfs-urlstore)
 - [Private Networks](#private-networks)
-- [ipfs p2p](#ipfs-p2p)
+- [ipfs p2p](#ipfs-p2p){Libp2pStreamMounting}
 - [p2p http proxy](#p2p-http-proxy)
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding--hamt)
@@ -195,7 +195,7 @@ configured, the daemon will fail to start.
 - [ ] More documentation
 - [ ] Needs better tooling/UX.
 
-## ipfs p2p
+## ipfs p2p {Libp2pStreamMounting}
 
 Allows tunneling of TCP connections through Libp2p streams. If you've ever used
 port forwarding with SSH (the `-L` option in OpenSSH), this feature is quite
