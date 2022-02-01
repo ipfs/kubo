@@ -103,6 +103,7 @@ is the raw data of the object.
 
 		return res.Emit(data)
 	},
+	Status: cmds.Deprecated,
 }
 
 // ObjectLinksCmd object links command
@@ -177,6 +178,8 @@ multihash. Provided for legacy reasons. Use 'ipfs dag get' instead.
 		}),
 	},
 	Type: &Object{},
+	Status: cmds.Experimental,
+
 }
 
 // ObjectGetCmd object get command
@@ -268,6 +271,8 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag get' instead.
 			return err
 		}),
 	},
+	Status: cmds.Experimental,
+
 }
 
 // ObjectStatCmd object stat command

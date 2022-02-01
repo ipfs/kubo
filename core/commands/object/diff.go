@@ -85,6 +85,8 @@ Example:
 
 		return cmds.EmitOnce(res, &Changes{out})
 	},
+	Status: cmds.Deprecated,
+
 	Type: Changes{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *Changes) error {
