@@ -106,7 +106,10 @@ jobs:
         command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
     - run:
         command: |
-          # we want to test the examples against the current version of go-ipfs
+          # we want to first test with the go-ipfs in the go.mod file
+          go test -v ./...
+
+          # we also want to test the examples against the current version of go-ipfs
           # however, that version might be in a fork so we need to replace the dependency
 
           # backup the go.mod and go.sum files to restore them after we run the tests
