@@ -110,6 +110,7 @@ The CLI will exit with one of the following values:
 		cmds.OptionEncodingType,
 		cmds.OptionStreamChannels,
 		cmds.OptionTimeout,
+		cmds.OptionOutputFile,
 	},
 }
 

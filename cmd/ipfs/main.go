@@ -165,7 +165,7 @@ func mainRet() int {
 		}, nil
 	}
 
-	err = cli.Run(ctx, Root, os.Args, os.Stdin, os.Stdout, os.Stderr, buildEnv, makeExecutor)
+	err = cli.Run(ctx, Root, os.Args, os.Stdin, os.Stderr, buildEnv, makeExecutor)
 	if err != nil {
 		return 1
 	}
