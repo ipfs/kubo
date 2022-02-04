@@ -304,7 +304,7 @@ var keyImportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Import a key and prints imported key id",
 		ShortDescription: `
-Imports a key and stores it under provided name.
+Imports a key and stores it under the provided name.
 
 By default, the is assumed to be in 'libp2p-protobuf-cleartext' format,
 however it is possible to import private keys wrapped in interoperable PEM PKCS8
