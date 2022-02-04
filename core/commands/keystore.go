@@ -306,7 +306,7 @@ var keyImportCmd = &cmds.Command{
 		ShortDescription: `
 Imports a key and stores it under the provided name.
 
-By default, the is assumed to be in 'libp2p-protobuf-cleartext' format,
+By default, the key is assumed to be in 'libp2p-protobuf-cleartext' format,
 however it is possible to import private keys wrapped in interoperable PEM PKCS8
 by passing '--format=pem-pkcs8-cleartext'.
 
