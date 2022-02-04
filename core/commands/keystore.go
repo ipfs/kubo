@@ -310,7 +310,7 @@ By default, the key is assumed to be in 'libp2p-protobuf-cleartext' format,
 however it is possible to import private keys wrapped in interoperable PEM PKCS8
 by passing '--format=pem-pkcs8-cleartext'.
 
-PEM format allows for key generation outside of IPFS node:
+The PEM format allows for key generation outside of the IPFS node:
 
   $ openssl genpkey -algorithm ED25519 > ed25519.pem
   $ ipfs key import test-openssl -f pem-pkcs8-cleartext ed25519.pem
