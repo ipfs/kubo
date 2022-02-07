@@ -53,4 +53,20 @@ else
 
 fi
 
+config_file=/ipfs-config
+if [ -e $config_file ]; then
+  echo "Loading extra config"
+  # Copy config as it will be r/o if its a mounted file
+  cp $config_file /tmp/config
+  # Ensure it has a trailing newline
+  tail -n1 /tmp/config | read -r _ || echo >> /tmp/config
+  while read -r config; do
+    regex="([a-zA-Z\.]+):(.*)"
+    name=$(echo "$config" | sed -En "s/$regex/\1/p")
+    value=$(echo "$config" | sed -En "s/$regex/\2/p")
+    echo "Setting $name to $value"
+    ipfs config --json "$name" "$value"
+  done < /tmp/config
+fi
+
 exec ipfs "$@"
