@@ -112,10 +112,10 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	}
 
 	// If `cfg.Swarm.DisableRelay` is set and `Network.RelayTransport` isn't, use the former.
-	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(!cfg.Swarm.DisableRelay) //nolint
+	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(!cfg.Swarm.DisableRelay) // nolint
 
 	// Warn about a deprecated option.
-	//nolint
+	// nolint
 	if cfg.Swarm.DisableRelay {
 		logger.Error("The 'Swarm.DisableRelay' config field is deprecated.")
 		if enableRelayTransport {
@@ -124,7 +124,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			logger.Error("Use the 'Swarm.Transports.Network.Relay' config field instead")
 		}
 	}
-	//nolint
+	// nolint
 	if cfg.Swarm.EnableAutoRelay {
 		logger.Error("The 'Swarm.EnableAutoRelay' config field is deprecated.")
 		if cfg.Swarm.RelayClient.Enabled == config.Default {
@@ -133,7 +133,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			logger.Error("'Swarm.EnableAutoRelay' has been overridden by 'Swarm.AutoRelay.Enabled'")
 		}
 	}
-	//nolint
+	// nolint
 	if cfg.Swarm.EnableRelayHop {
 		logger.Fatal("The `Swarm.EnableRelayHop` config field is ignored.\n" +
 			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
@@ -144,6 +144,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	opts := fx.Options(
 		BaseLibP2P,
 
+		fx.Provide(libp2p.ResourceManager()),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
