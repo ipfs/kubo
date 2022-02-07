@@ -317,6 +317,29 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	w.Header().Set("X-IPFS-Path", urlPath)
 	w.Header().Set("Etag", responseEtag)
 
+	// X-Ipfs-Roots array for efficient HTTP cache invalidation
+	//   These are logical roots where each CID represent one path segment
+	//   and resolves to either a directory or the root block of a file
+	var sp strings.Builder
+	var pathRoots []string
+	pathSegments := strings.Split(urlPath[6:], "/")
+	sp.WriteString(urlPath[:5]) // /ipfs or /ipns
+	for _, root := range pathSegments {
+		if root == "" {
+			continue
+		}
+		sp.WriteString("/")
+		sp.WriteString(root)
+		resolvedSubPath, err := i.api.ResolvePath(r.Context(), ipath.New(sp.String()))
+		if err != nil {
+			// this should never happen, as we resolved the full path already
+			webError(w, "error while resolving X-Ipfs-Roots", err, http.StatusInternalServerError)
+			return
+		}
+		pathRoots = append(pathRoots, resolvedSubPath.Cid().String())
+	}
+	w.Header().Set("X-Ipfs-Roots", strings.Join(pathRoots, ", "))
+
 	// set these headers _after_ the error, for we may just not have it
 	// and don't want the client to cache a 500 response...
 	// and only if it's /ipfs!
