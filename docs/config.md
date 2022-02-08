@@ -65,6 +65,7 @@ config file at runtime.
       - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
       - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
+    - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -274,6 +275,14 @@ an implicit default when `null` or missing from the config file:
 
 - `null`/missing (apply the default value defined in go-ipfs sources)
 - an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
+
+### `optionalBytes`
+
+Optional Bytes allow specifying some number of bytes which has
+an implicit default when `null` or missing from the config file:
+
+- `null`/missing (apply the default value defined in go-ipfs sources)
+- a string value indicating the number of bytes (e.g. 1B, 10kB, 20 MiB, 2GB, ...)
 
 ## `Addresses`
 
@@ -918,6 +927,18 @@ Values above 10Mb open the potential for aggressively-wanting peers to consume a
 deteriorate the quality provided to less aggressively-wanting peers.
 
 Type: `optionalInteger` (byte count, `null` means default which is 1MB)
+
+### `Internal.UnixFSShardingSizeThreshold`
+
+The sharding threshold used internally to decide whether a UnixFS directory should be sharded or not.
+This value is not strictly related to the size of the UnixFS directory block and any increases in
+the threshold should come with being careful that block sizes stay under 2MiB in order for them to be
+reliably transferable through the networking stack.
+
+Decreasing this value to 1B is functionally equivalent to the previous experimental sharding option to
+shard all directories.
+
+Type: `optionalBytes` (`null` means default which is 256kiB)
 
 ## `Ipns`
 
