@@ -16,6 +16,8 @@ config file at runtime.
     - [`strings`](#strings)
     - [`duration`](#duration)
     - [`optionalInteger`](#optionalinteger)
+    - [`optionalString`](#optionalstring)
+    - [`optionalDuration`](#optionalduration)
   - [`Addresses`](#addresses)
     - [`Addresses.API`](#addressesapi)
     - [`Addresses.Gateway`](#addressesgateway)
@@ -270,11 +272,29 @@ does (e.g, `"1d2h4m40.01s"`).
 
 ### `optionalInteger`
 
-Optional Integers allow specifying some numerical value which has
-an implicit default when `null` or missing from the config file:
+Optional integers allow specifying some numerical value which has
+an implicit default when missing from the config file:
 
-- `null`/missing (apply the default value defined in go-ipfs sources)
+- `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault(value)`)
 - an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
+
+
+### `optionalString`
+
+Optional strings allow specifying some string value which has
+an implicit default when missing from the config file:
+
+- `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault("value")`)
+- a string
+
+
+### `optionalDuration`
+
+Optional durations allow specifying some duration value which has
+an implicit default when missing from the config file:
+
+- `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault("1h2m3s")`)
+- a string with a valid [go duration](#duration)  (e.g, `"1d2h4m40.01s"`).
 
 ## `Addresses`
 
