@@ -154,9 +154,9 @@ Exports a named libp2p key to disk.
 By default, the output will be stored at './<key-name>.key', but an alternate
 path can be specified with '--output=<path>' or '-o=<path>'.
 
-It is possible to export a private key to interoperable PEM PKCS8 format by passing
-explicit '--format=pem-pkcs8-cleartext'. Produced PEM file can then be consumed
-by other software. For example, using openssl to get a PEM with public key:
+It is possible to export a private key to interoperable PEM PKCS8 format by explicitly
+passing '--format=pem-pkcs8-cleartext'. The resulting PEM file can then be consumed
+elsewhere. For example, using openssl to get a PEM with public key:
 
   $ ipfs key export testkey --format=pem-pkcs8-cleartext -o privkey.pem
   $ openssl pkey -in privkey.pem -pubout > pubkey.pem
@@ -304,13 +304,13 @@ var keyImportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Import a key and prints imported key id",
 		ShortDescription: `
-Imports a key and stores it under provided name.
+Imports a key and stores it under the provided name.
 
-By default, the is assumed to be in 'libp2p-protobuf-cleartext' format,
+By default, the key is assumed to be in 'libp2p-protobuf-cleartext' format,
 however it is possible to import private keys wrapped in interoperable PEM PKCS8
 by passing '--format=pem-pkcs8-cleartext'.
 
-PEM format allows for key generation outside of IPFS node:
+The PEM format allows for key generation outside of the IPFS node:
 
   $ openssl genpkey -algorithm ED25519 > ed25519.pem
   $ ipfs key import test-openssl -f pem-pkcs8-cleartext ed25519.pem
