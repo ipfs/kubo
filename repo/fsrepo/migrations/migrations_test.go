@@ -325,7 +325,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := f.(*HttpFetcher); !ok {
+	if rf, ok := f.(*RetryFetcher); !ok {
+		t.Fatal("expected RetryFetcher")
+	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
 		t.Fatal("expected HttpFetcher")
 	}
 
@@ -343,7 +345,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := f.(*HttpFetcher); !ok {
+	if rf, ok := f.(*RetryFetcher); !ok {
+		t.Fatal("expected RetryFetcher")
+	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
 		t.Fatal("expected HttpFetcher")
 	}
 
