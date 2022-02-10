@@ -7,18 +7,18 @@ import (
 
 type RetryFetcher struct {
 	Fetcher
-	maxRetries int
+	maxTries int
 }
 
 var _ Fetcher = (*RetryFetcher)(nil)
 
-func NewRetryFetcher(baseFetcher Fetcher, maxRetries int) *RetryFetcher {
-	return &RetryFetcher{Fetcher: baseFetcher, maxRetries: maxRetries}
+func NewRetryFetcher(baseFetcher Fetcher, maxTries int) *RetryFetcher {
+	return &RetryFetcher{Fetcher: baseFetcher, maxTries: maxTries}
 }
 
 func (r *RetryFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error) {
 	var lastErr error
-	for i := 0; i < r.maxRetries; i++ {
+	for i := 0; i < r.maxTries; i++ {
 		out, err := r.Fetcher.Fetch(ctx, filePath)
 		if err == nil {
 			return out, nil
