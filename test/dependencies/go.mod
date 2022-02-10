@@ -5,10 +5,11 @@ go 1.17
 require (
 	github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd
 	github.com/golangci/golangci-lint v1.45.2
+	github.com/guseggert/go-ds-grpc v0.0.1
 	github.com/ipfs/go-blockservice v0.3.0
 	github.com/ipfs/go-cid v0.1.0
 	github.com/ipfs/go-cidutil v0.0.2
-	github.com/ipfs/go-datastore v0.5.1
+	github.com/ipfs/go-datastore v0.5.2-0.20220326184950-bcfb2ef1cbec
 	github.com/ipfs/go-graphsync v0.11.0
 	github.com/ipfs/go-ipfs-blockstore v1.2.0
 	github.com/ipfs/go-ipfs-exchange-offline v0.2.0
@@ -25,6 +26,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.15.1
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multihash v0.1.0
+	google.golang.org/grpc v1.45.0
 	gotest.tools/gotestsum v0.4.2
 )
 
@@ -286,6 +288,7 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
+	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
@@ -298,3 +301,7 @@ require (
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20211214103731-d0ef000c54e5 // indirect
 )
+
+replace github.com/guseggert/go-ds-grpc v0.0.1 => ../../../go-ds-grpc
+
+replace github.com/ipfs/hang-fds v0.0.2 => ../../../hang-fds

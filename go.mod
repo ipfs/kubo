@@ -3,6 +3,7 @@ module github.com/ipfs/go-ipfs
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
+	github.com/benbjohnson/clock v1.3.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
@@ -14,13 +15,14 @@ require (
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gabriel-vasile/mimetype v1.4.0
+	github.com/guseggert/go-ds-grpc v0.0.0-20220528002339-dc1560ff09ef
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/go-bitswap v0.6.0
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.3.0
 	github.com/ipfs/go-cid v0.1.0
 	github.com/ipfs/go-cidutil v0.0.2
-	github.com/ipfs/go-datastore v0.5.1
+	github.com/ipfs/go-datastore v0.5.2-0.20220326184950-bcfb2ef1cbec
 	github.com/ipfs/go-detect-race v0.0.1
 	github.com/ipfs/go-ds-badger v0.3.0
 	github.com/ipfs/go-ds-flatfs v0.5.1
@@ -48,6 +50,7 @@ require (
 	github.com/ipfs/go-ipld-legacy v0.1.1
 	github.com/ipfs/go-ipns v0.1.2
 	github.com/ipfs/go-log v1.0.5
+	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.6.0
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
@@ -123,11 +126,8 @@ require (
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
-)
+	google.golang.org/grpc v1.45.0
 
-require (
-	github.com/benbjohnson/clock v1.3.0
-	github.com/ipfs/go-log/v2 v2.5.1
 )
 
 require (
@@ -265,7 +265,6 @@ require (
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1 // indirect
-	google.golang.org/grpc v1.45.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect

@@ -83,6 +83,11 @@ $(d)/golangci-lint: github.com/golangci/golangci-lint/cmd/golangci-lint
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/golangci-lint
 
+.PHONY: github.com/ipfs/go-ipfs/test/dependencies/grpc-ds-server
+$(d)/grpc-ds-server: github.com/ipfs/go-ipfs/test/dependencies/grpc-ds-server
+	$(go-build-testdep)
+TGTS_$(d) += $(d)/grpc-ds-server
+
 $(TGTS_$(d)): $$(DEPS_GO)
 
 CLEAN += $(TGTS_$(d))

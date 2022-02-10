@@ -35,6 +35,8 @@ func newGraphsync(ctx context.Context, p2p host.Host, bs blockstore.Blockstore) 
 	return gsimpl.New(ctx,
 		network,
 		storeutil.LinkSystemForBlockstore(bs),
+		// storeutil.LoaderForBlockstore(bs),
+		// storeutil.StorerForBlockstore(bs),
 	), nil
 }
 
@@ -89,13 +91,14 @@ func main() {
 		log.Fatalf("failed to decode CID '%q': %s", os.Args[2], err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	p2p, err := libp2p.New(libp2p.NoListenAddrs)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer p2p.Close()
 
 	err = p2p.Connect(ctx, *ai)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	pluginiplddagjose "github.com/ipfs/go-ipfs/plugin/plugins/dagjose"
 	pluginflatfs "github.com/ipfs/go-ipfs/plugin/plugins/flatfs"
 	pluginipldgit "github.com/ipfs/go-ipfs/plugin/plugins/git"
+	plugingrpcds "github.com/ipfs/go-ipfs/plugin/plugins/grpcds"
 	pluginlevelds "github.com/ipfs/go-ipfs/plugin/plugins/levelds"
 	pluginpeerlog "github.com/ipfs/go-ipfs/plugin/plugins/peerlog"
 )
@@ -20,4 +21,5 @@ func init() {
 	Preload(pluginflatfs.Plugins...)
 	Preload(pluginlevelds.Plugins...)
 	Preload(pluginpeerlog.Plugins...)
+	Preload(plugingrpcds.Plugins...)
 }

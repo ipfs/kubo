@@ -1,0 +1,26 @@
+{
+  "mounts": [
+    {
+      "child": {
+        "type": "grpcds",
+        "name": "grpc-datastore",
+        "target": "127.0.0.1:8990",
+        "allowInsecure": true
+      },
+      "mountpoint": "/blocks",
+      "prefix": "grpc.datastore",
+      "type": "measure"
+    },
+    {
+      "child": {
+        "compression": "none",
+        "path": "datastore",
+        "type": "levelds"
+      },
+      "mountpoint": "/",
+      "prefix": "leveldb.datastore",
+      "type": "measure"
+    }
+  ],
+  "type": "mount"
+}
