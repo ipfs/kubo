@@ -2,7 +2,9 @@ package node
 
 import (
 	"fmt"
+	"math"
 	"strings"
+	"time"
 
 	config "github.com/ipfs/go-ipfs-config"
 	doh "github.com/libp2p/go-doh-resolver"
@@ -16,17 +18,22 @@ var defaultResolvers = map[string]string{
 	"crypto.": "https://resolver.cloudflare-eth.com/dns-query",
 }
 
-func newResolver(url string) (madns.BasicResolver, error) {
+func newResolver(url string, opts ...doh.Option) (madns.BasicResolver, error) {
 	if !strings.HasPrefix(url, "https://") {
 		return nil, fmt.Errorf("invalid resolver url: %s", url)
 	}
 
-	return doh.NewResolver(url), nil
+	return doh.NewResolver(url, opts...)
 }
 
 func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 	var opts []madns.Option
 	var err error
+
+	var dohOpts []doh.Option
+	if !cfg.DNS.MaxCacheTTL.IsDefault() {
+		dohOpts = append(dohOpts, doh.WithMaxCacheTTL(cfg.DNS.MaxCacheTTL.WithDefault(time.Duration(math.MaxUint32)*time.Second)))
+	}
 
 	domains := make(map[string]struct{})           // to track overridden default resolvers
 	rslvrs := make(map[string]madns.BasicResolver) // to reuse resolvers for the same URL
@@ -44,7 +51,7 @@ func DNSResolver(cfg *config.Config) (*madns.Resolver, error) {
 
 		rslv, ok := rslvrs[url]
 		if !ok {
-			rslv, err = newResolver(url)
+			rslv, err = newResolver(url, dohOpts...)
 			if err != nil {
 				return nil, fmt.Errorf("bad resolver for %s: %w", domain, err)
 			}

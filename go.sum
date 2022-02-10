@@ -475,8 +475,8 @@ github.com/ipfs/go-ipfs-chunker v0.0.5 h1:ojCf7HV/m+uS2vhUGWcogIIxiO5ubl5O57Q7Na
 github.com/ipfs/go-ipfs-chunker v0.0.5/go.mod h1:jhgdF8vxRHycr00k13FM8Y0E+6BoalYeobXmUyTreP8=
 github.com/ipfs/go-ipfs-cmds v0.6.0 h1:yAxdowQZzoFKjcLI08sXVNnqVj3jnABbf9smrPQmBsw=
 github.com/ipfs/go-ipfs-cmds v0.6.0/go.mod h1:ZgYiWVnCk43ChwoH8hAmI1IRbuVtq3GSTHwtRB/Kqhk=
-github.com/ipfs/go-ipfs-config v0.18.0 h1:Ta1aNGNEq6RIvzbw7dqzCVZJKb7j+Dd35JFnAOCpT8g=
-github.com/ipfs/go-ipfs-config v0.18.0/go.mod h1:wz2lKzOjgJeYJa6zx8W9VT7mz+iSd0laBMqS/9wmX6A=
+github.com/ipfs/go-ipfs-config v0.19.0 h1:OuKIL+BkOZgJ+hb4Wg/9ynCtE/BaZBWcGy8hgdMepAo=
+github.com/ipfs/go-ipfs-config v0.19.0/go.mod h1:wz2lKzOjgJeYJa6zx8W9VT7mz+iSd0laBMqS/9wmX6A=
 github.com/ipfs/go-ipfs-delay v0.0.0-20181109222059-70721b86a9a8/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
 github.com/ipfs/go-ipfs-delay v0.0.1 h1:r/UXYyRcddO6thwOnhiznIAiSvxMECGgtv35Xs1IeRQ=
 github.com/ipfs/go-ipfs-delay v0.0.1/go.mod h1:8SP1YXK1M1kXuc4KJZINY3TQQ03J2rwBG9QfXmbRPrw=
@@ -673,8 +673,8 @@ github.com/libp2p/go-conn-security-multistream v0.2.0/go.mod h1:hZN4MjlNetKD3Rq5
 github.com/libp2p/go-conn-security-multistream v0.2.1/go.mod h1:cR1d8gA0Hr59Fj6NhaTpFhJZrjSYuNmhpT2r25zYR70=
 github.com/libp2p/go-conn-security-multistream v0.3.0 h1:9UCIKlBL1hC9u7nkMXpD1nkc/T53PKMAn3/k9ivBAVc=
 github.com/libp2p/go-conn-security-multistream v0.3.0/go.mod h1:EEP47t4fw/bTelVmEzIDqSe69hO/ip52xBEhZMLWAHM=
-github.com/libp2p/go-doh-resolver v0.3.1 h1:1wbVGkB4Tdj4WEvjAuYknOPyt4vSSDn9thnj13pKPaY=
-github.com/libp2p/go-doh-resolver v0.3.1/go.mod h1:y5go1ZppAq9N2eppbX0xON01CyPBeUg2yS6BTssssog=
+github.com/libp2p/go-doh-resolver v0.4.0 h1:gUBa1f1XsPwtpE1du0O+nnZCUqtG7oYi7Bb+0S7FQqw=
+github.com/libp2p/go-doh-resolver v0.4.0/go.mod h1:v1/jwsFusgsWIGX/c6vCRrnJ60x7bhTiq/fs2qt0cAg=
 github.com/libp2p/go-eventbus v0.1.0/go.mod h1:vROgu5cs5T7cv7POWlWxBaVLxfSegC5UGQf8A2eEmx4=
 github.com/libp2p/go-eventbus v0.2.1 h1:VanAdErQnpTioN2TowqNcOijf6YwhuODe4pPKSDpxGc=
 github.com/libp2p/go-eventbus v0.2.1/go.mod h1:jc2S4SoEVPP48H9Wpzm5aiGwUCBMfGhVhhBjyhhCJs8=

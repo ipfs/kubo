@@ -140,7 +140,8 @@ config file at runtime.
     - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
     - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
   - [`DNS`](#dns)
-  - [`DNS.Resolvers`](#dnsresolvers)
+    - [`DNS.Resolvers`](#dnsresolvers)
+    - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
 
 
 
@@ -1756,7 +1757,7 @@ Type: `priority`
 
 Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
 
-## `DNS.Resolvers`
+### `DNS.Resolvers`
 
 Map of [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) to custom resolver URLs.
 
@@ -1771,7 +1772,7 @@ Example:
       "eth.": "https://eth.link/dns-query",
       "crypto.": "https://resolver.unstoppable.io/dns-query",
       "libre.": "https://ns1.iriseden.fr/dns-query",
-      ".": "https://doh-ch.blahdns.com:4443/dns-query"
+      ".": "https://cloudflare-dns.com/dns-query"
     }
   }
 }
@@ -1784,7 +1785,7 @@ Be mindful that:
   ```json
   {
     "eth.": "https://resolver.cloudflare-eth.com/dns-query",
-    "crypto.": "https://resolver.cloudflare-eth.com/dns-query
+    "crypto.": "https://resolver.cloudflare-eth.com/dns-query"
   }
   ```
   To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
@@ -1792,3 +1793,20 @@ Be mindful that:
 Default: `{}`
 
 Type: `object[string -> string]`
+
+### `DNS.MaxCacheTTL`
+
+Maximum duration for which entries are valid in the DoH cache.
+
+This allows you to cap the Time-To-Live suggested by the DNS response ([RFC2181](https://datatracker.ietf.org/doc/html/rfc2181#section-8)).
+If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dnsresolvers).
+
+Note: this does NOT work with Go's default DNS resolver. To make this a global setting, add a `.` entry to `DNS.Resolvers` first.
+
+**Examples:**
+* `"5m"` DNS entries are kept for 5 minutes or less.
+* `"0s"` DNS entries expire as soon as they are retrieved.
+
+Default: Respect DNS Response TTL
+
+Type: `optionalDuration`
