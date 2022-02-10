@@ -1797,12 +1797,12 @@ Type: `object[string -> string]`
 
 ### `DNS.MaxCacheTTL`
 
-Maximum duration entries are valid in the DoH cache.
+Maximum duration for which entries are valid in the DoH cache.
 
-This allows to cap the Time-To-Live suggested by the DNS response ([RFC2181](https://datatracker.ietf.org/doc/html/rfc2181#section-8)).
+This allows you to cap the Time-To-Live suggested by the DNS response ([RFC2181](https://datatracker.ietf.org/doc/html/rfc2181#section-8)).
 If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dnsresolvers).
 
-Note: This does NOT work with OS-level resolver. To make this a global setting, add `.` entry to `DNS.Resolvers` first.
+Note: this does NOT work with Go's default DNS resolver. To make this a global setting, add a `.` entry to `DNS.Resolvers` first.
 
 **Examples:**
 * `"5m"` DNS entries are kept for 5 minutes or less.
