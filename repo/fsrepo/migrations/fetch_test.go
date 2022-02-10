@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -96,14 +97,14 @@ func TestHttpFetch(t *testing.T) {
 
 	fetcher := NewHttpFetcher("", ts.URL, "", 0)
 
-	rc, err := fetcher.Fetch(ctx, "/versions")
+	var buf bytes.Buffer
+	err := fetcher.Fetch(ctx, "/versions", &buf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rc.Close()
 
 	var lines []string
-	scan := bufio.NewScanner(rc)
+	scan := bufio.NewScanner(&buf)
 	for scan.Scan() {
 		lines = append(lines, scan.Text())
 	}
@@ -120,7 +121,7 @@ func TestHttpFetch(t *testing.T) {
 	}
 
 	// Check not found
-	_, err = fetcher.Fetch(ctx, "/no_such_file")
+	err = fetcher.Fetch(ctx, "/no_such_file", &bytes.Buffer{})
 	if err == nil || !strings.Contains(err.Error(), "404") {
 		t.Fatal("expected error 404")
 	}
@@ -232,13 +233,12 @@ func TestMultiFetcher(t *testing.T) {
 
 	mf := NewMultiFetcher(badFetcher, fetcher)
 
-	rc, err := mf.Fetch(ctx, "/versions")
-	if err != nil {
+	var buf bytes.Buffer
+	if err := mf.Fetch(ctx, "/versions", &buf); err != nil {
 		t.Fatal(err)
 	}
-	defer rc.Close()
 
-	vers, err := ioutil.ReadAll(rc)
+	vers, err := ioutil.ReadAll(&buf)
 	if err != nil {
 		t.Fatal("could not read versions:", err)
 	}

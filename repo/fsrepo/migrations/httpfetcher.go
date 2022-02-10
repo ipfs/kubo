@@ -62,13 +62,13 @@ func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *Http
 // Fetch attempts to fetch the file at the given path, from the distribution
 // site configured for this HttpFetcher.  Returns io.ReadCloser on success,
 // which caller must close.
-func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
+func (f *HttpFetcher) Fetch(ctx context.Context, filePath string, writer io.Writer) error {
 	gwURL := f.gateway + path.Join(f.distPath, filePath)
 	fmt.Printf("Fetching with HTTP: %q\n", gwURL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, gwURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("http.NewRequest error: %s", err)
+		return fmt.Errorf("http.NewRequest error: %s", err)
 	}
 
 	if f.userAgent != "" {
@@ -77,22 +77,30 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http.DefaultClient.Do error: %s", err)
+		return fmt.Errorf("http.DefaultClient.Do error: %s", err)
 	}
 
 	if resp.StatusCode >= 400 {
 		defer resp.Body.Close()
 		mes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("error reading error body: %s", err)
+			return fmt.Errorf("error reading error body: %s", err)
 		}
-		return nil, fmt.Errorf("GET %s error: %s: %s", gwURL, resp.Status, string(mes))
+		return fmt.Errorf("GET %s error: %s: %s", gwURL, resp.Status, string(mes))
 	}
 
+	var rc io.ReadCloser
 	if f.limit != 0 {
-		return NewLimitReadCloser(resp.Body, f.limit), nil
+		rc = NewLimitReadCloser(resp.Body, f.limit)
+	} else {
+		rc = resp.Body
 	}
-	return resp.Body, nil
+	defer rc.Close()
+
+	if _, err := io.Copy(writer, rc); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (f *HttpFetcher) Close() error {

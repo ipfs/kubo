@@ -290,8 +290,10 @@ func TestReadMigrationConfig(t *testing.T) {
 
 type mockIpfsFetcher struct{}
 
-func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
-	return nil, nil
+var _ Fetcher = (*mockIpfsFetcher)(nil)
+
+func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string, writer io.Writer) error {
+	return nil
 }
 
 func (m *mockIpfsFetcher) Close() error {

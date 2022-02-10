@@ -52,6 +52,8 @@ type IpfsFetcher struct {
 	addrInfo peer.AddrInfo
 }
 
+var _ migrations.Fetcher = (*IpfsFetcher)(nil)
+
 // NewIpfsFetcher creates a new IpfsFetcher
 //
 // Specifying "" for distPath sets the default IPNS path.
@@ -87,7 +89,7 @@ func NewIpfsFetcher(distPath string, fetchLimit int64, repoRoot *string) *IpfsFe
 // Fetch attempts to fetch the file at the given path, from the distribution
 // site configured for this HttpFetcher.  Returns io.ReadCloser on success,
 // which caller must close.
-func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
+func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string, writer io.Writer) error {
 	// Initialize and start IPFS node on first call to Fetch, since the fetcher
 	// may be created by not used.
 	f.openOnce.Do(func() {
@@ -103,30 +105,38 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser
 	fmt.Printf("Fetching with IPFS: %q\n", filePath)
 
 	if f.openErr != nil {
-		return nil, f.openErr
+		return f.openErr
 	}
 
 	iPath, err := parsePath(path.Join(f.distPath, filePath))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	nd, err := f.ipfs.Unixfs().Get(ctx, iPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	f.recordFetched(iPath)
 
 	fileNode, ok := nd.(files.File)
 	if !ok {
-		return nil, fmt.Errorf("%q is not a file", filePath)
+		return fmt.Errorf("%q is not a file", filePath)
 	}
 
+	var rc io.ReadCloser
 	if f.limit != 0 {
-		return migrations.NewLimitReadCloser(fileNode, f.limit), nil
+		rc = migrations.NewLimitReadCloser(fileNode, f.limit)
+	} else {
+		rc = fileNode
 	}
-	return fileNode, nil
+	defer rc.Close()
+
+	if _, err := io.Copy(writer, rc); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (f *IpfsFetcher) Close() error {

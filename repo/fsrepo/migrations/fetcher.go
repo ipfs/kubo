@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -21,7 +22,7 @@ const (
 type Fetcher interface {
 	// Fetch attempts to fetch the file at the given ipfs path.
 	// Returns io.ReadCloser on success, which caller must close.
-	Fetch(ctx context.Context, filePath string) (io.ReadCloser, error)
+	Fetch(ctx context.Context, filePath string, writer io.Writer) error
 	// Close performs any cleanup after the fetcher is not longer needed.
 	Close() error
 }
@@ -49,16 +50,20 @@ func NewMultiFetcher(f ...Fetcher) Fetcher {
 
 // Fetch attempts to fetch the file at each of its fetchers until one succeeds.
 // Returns io.ReadCloser on success, which caller must close.
-func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (io.ReadCloser, error) {
+func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string, writer io.Writer) error {
 	var errs error
 	for _, fetcher := range f.fetchers {
-		rc, err := fetcher.Fetch(ctx, ipfsPath)
+		var buf bytes.Buffer
+		err := fetcher.Fetch(ctx, ipfsPath, &buf)
 		if err == nil {
-			return rc, nil
+			if _, err := io.Copy(writer, &buf); err != nil {
+				return err
+			}
+			return nil
 		}
 		errs = multierror.Append(errs, err)
 	}
-	return nil, errs
+	return errs
 }
 
 func (f *MultiFetcher) Close() error {
