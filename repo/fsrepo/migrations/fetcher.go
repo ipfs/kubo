@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 
@@ -39,7 +40,8 @@ type limitReadCloser struct {
 
 // NewMultiFetcher creates a MultiFetcher with the given Fetchers.  The
 // Fetchers are tried in order ther passed to this function.
-func NewMultiFetcher(f ...Fetcher) Fetcher {
+func NewMultiFetcher(f ...Fetcher) *MultiFetcher {
+
 	mf := &MultiFetcher{
 		fetchers: make([]Fetcher, len(f)),
 	}
@@ -56,6 +58,7 @@ func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) (io.ReadClose
 		if err == nil {
 			return rc, nil
 		}
+		fmt.Printf("Error fetching: %s\n", err.Error())
 		errs = multierror.Append(errs, err)
 	}
 	return nil, errs
