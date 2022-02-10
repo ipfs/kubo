@@ -23,14 +23,7 @@ import (
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
-const offlineIdErrorMessage = `'ipfs id' currently cannot query information on remote
-peers without a running daemon; we are working to fix this.
-In the meantime, if you want to query remote peers using 'ipfs id',
-please run the daemon:
-
-    ipfs daemon &
-    ipfs id QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
-`
+const offlineIdErrorMessage = "'ipfs id' cannot query information on remote peers without a running daemon; if you only want to convert --peerid-base, pass --offline option."
 
 type IdOutput struct {
 	ID              string
@@ -102,19 +95,21 @@ EXAMPLE:
 			return cmds.EmitOnce(res, output)
 		}
 
-		// TODO handle offline mode with polymorphism instead of conditionals
-		if !n.IsOnline {
+		offline, _ := req.Options[OfflineOption].(bool)
+		if !offline && !n.IsOnline {
 			return errors.New(offlineIdErrorMessage)
 		}
 
-		// We need to actually connect to run identify.
-		err = n.PeerHost.Connect(req.Context, peer.AddrInfo{ID: id})
-		switch err {
-		case nil:
-		case kb.ErrLookupFailure:
-			return errors.New(offlineIdErrorMessage)
-		default:
-			return err
+		if !offline {
+			// We need to actually connect to run identify.
+			err = n.PeerHost.Connect(req.Context, peer.AddrInfo{ID: id})
+			switch err {
+			case nil:
+			case kb.ErrLookupFailure:
+				return errors.New(offlineIdErrorMessage)
+			default:
+				return err
+			}
 		}
 
 		output, err := printPeer(keyEnc, n.Peerstore, id)
