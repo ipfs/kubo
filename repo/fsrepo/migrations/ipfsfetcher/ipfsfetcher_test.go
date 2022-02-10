@@ -29,14 +29,13 @@ func TestIpfsFetcher(t *testing.T) {
 	fetcher := NewIpfsFetcher("", 0, nil)
 	defer fetcher.Close()
 
-	var buf bytes.Buffer
-	err := fetcher.Fetch(ctx, "go-ipfs/versions", &buf)
+	out, err := fetcher.Fetch(ctx, "go-ipfs/versions")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var lines []string
-	scan := bufio.NewScanner(&buf)
+	scan := bufio.NewScanner(bytes.NewReader(out))
 	for scan.Scan() {
 		lines = append(lines, scan.Text())
 	}
@@ -53,7 +52,7 @@ func TestIpfsFetcher(t *testing.T) {
 	}
 
 	// Check not found
-	if err = fetcher.Fetch(ctx, "/no_such_file", &bytes.Buffer{}); err == nil {
+	if _, err = fetcher.Fetch(ctx, "/no_such_file"); err == nil {
 		t.Fatal("expected error 404")
 	}
 

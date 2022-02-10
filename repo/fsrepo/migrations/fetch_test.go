@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -97,14 +96,13 @@ func TestHttpFetch(t *testing.T) {
 
 	fetcher := NewHttpFetcher("", ts.URL, "", 0)
 
-	var buf bytes.Buffer
-	err := fetcher.Fetch(ctx, "/versions", &buf)
+	out, err := fetcher.Fetch(ctx, "/versions")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var lines []string
-	scan := bufio.NewScanner(&buf)
+	scan := bufio.NewScanner(bytes.NewReader(out))
 	for scan.Scan() {
 		lines = append(lines, scan.Text())
 	}
@@ -121,7 +119,7 @@ func TestHttpFetch(t *testing.T) {
 	}
 
 	// Check not found
-	err = fetcher.Fetch(ctx, "/no_such_file", &bytes.Buffer{})
+	_, err = fetcher.Fetch(ctx, "/no_such_file")
 	if err == nil || !strings.Contains(err.Error(), "404") {
 		t.Fatal("expected error 404")
 	}
@@ -233,15 +231,11 @@ func TestMultiFetcher(t *testing.T) {
 
 	mf := NewMultiFetcher(badFetcher, fetcher)
 
-	var buf bytes.Buffer
-	if err := mf.Fetch(ctx, "/versions", &buf); err != nil {
+	vers, err := mf.Fetch(ctx, "/versions")
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	vers, err := ioutil.ReadAll(&buf)
-	if err != nil {
-		t.Fatal("could not read versions:", err)
-	}
 	if len(vers) < 45 {
 		fmt.Println("unexpected more data")
 	}

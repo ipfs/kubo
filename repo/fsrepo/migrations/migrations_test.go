@@ -3,7 +3,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -292,8 +291,8 @@ type mockIpfsFetcher struct{}
 
 var _ Fetcher = (*mockIpfsFetcher)(nil)
 
-func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string, writer io.Writer) error {
-	return nil
+func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error) {
+	return nil, nil
 }
 
 func (m *mockIpfsFetcher) Close() error {

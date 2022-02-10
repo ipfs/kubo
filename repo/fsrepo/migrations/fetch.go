@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -111,7 +112,14 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 	defer arcFile.Close()
 
 	// Open connection to download archive from ipfs path and write to file
-	if err := fetcher.Fetch(ctx, arcDistPath, arcFile); err != nil {
+	arcBytes, err := fetcher.Fetch(ctx, arcDistPath)
+	if err != nil {
+		return "", err
+	}
+
+	// Write download data
+	_, err = io.Copy(arcFile, bytes.NewReader(arcBytes))
+	if err != nil {
 		return "", err
 	}
 	arcFile.Close()
