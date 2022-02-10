@@ -74,6 +74,18 @@ ipfs key rm key_ed25519
 
   test_openssl_compatibility_all_types
 
+  INVALID_KEY=../t0165-keystore-data/openssl_secp384r1.pem
+  test_expect_success "import key type we don't generate fails" '
+    test_must_fail ipfs key import restricted-type -f pem-pkcs8-cleartext $INVALID_KEY 2>&1 | tee key_exp_out &&
+    grep -q "Error: key type \*crypto.ECDSAPrivateKey is not allowed to be imported" key_exp_out &&
+    rm key_exp_out
+  '
+
+  test_expect_success "import key type we don't generate succeeds with flag" '
+    ipfs key import restricted-type --allow-any-key-type -f pem-pkcs8-cleartext $INVALID_KEY  > /dev/null  &&
+    ipfs key rm restricted-type
+  '
+
   test_expect_success "test export file option" '
     ipfs key export generated_rsa_key -o=named_rsa_export_file &&
     test_cmp generated_rsa_key.key named_rsa_export_file &&
