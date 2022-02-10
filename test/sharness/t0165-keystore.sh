@@ -72,6 +72,8 @@ ipfs key rm key_ed25519
 
   test_key_import_export_all_formats ed25519_key
 
+  test_openssl_compatibility_all_types
+
   test_expect_success "test export file option" '
     ipfs key export generated_rsa_key -o=named_rsa_export_file &&
     test_cmp generated_rsa_key.key named_rsa_export_file &&
@@ -173,6 +175,8 @@ ipfs key rm key_ed25519
 
   test_key_import_export_all_formats ed25519_key
 
+  test_openssl_compatibility_all_types
+
   test_expect_success "key export over HTTP /api/v0/key/export is not possible" '
     ipfs key gen nohttpexporttest_key --type=ed25519 &&
     curl -X POST -sI "http://$API_ADDR/api/v0/key/export&arg=nohttpexporttest_key" | grep -q "^HTTP/1.1 404 Not Found"
@@ -226,6 +230,39 @@ test_key_import_export() {
     test_cmp ${KEY_NAME}_id imported_key_id
   '
 }
+
+# Test the entire import/export cycle with a openssl-generated key.
+# 1. Import openssl key with PEM format.
+# 2. Export key with libp2p format.
+# 3. Reimport key.
+# 4. Now exported with PEM format.
+# 5. Compare with original openssl key.
+# 6. Clean up.
+test_openssl_compatibility() {
+  local KEY_NAME FORMAT
+  KEY_NAME=$1
+
+  test_expect_success "import and export $KEY_NAME with all formats" '
+    ipfs key import test-openssl -f pem-pkcs8-cleartext $KEY_NAME > /dev/null &&
+    ipfs key export test-openssl -f libp2p-protobuf-cleartext -o $KEY_NAME.libp2p.key &&
+    ipfs key rm test-openssl &&
+
+    ipfs key import test-openssl -f libp2p-protobuf-cleartext $KEY_NAME.libp2p.key > /dev/null &&
+    ipfs key export test-openssl -f pem-pkcs8-cleartext -o $KEY_NAME.ipfs-exported.pem &&
+    ipfs key rm test-openssl &&
+
+    test_cmp $KEY_NAME $KEY_NAME.ipfs-exported.pem &&
+
+    rm $KEY_NAME.libp2p.key &&
+    rm $KEY_NAME.ipfs-exported.pem
+  '
+}
+
+test_openssl_compatibility_all_types() {
+  test_openssl_compatibility ../t0165-keystore-data/openssl_ed25519.pem
+  test_openssl_compatibility ../t0165-keystore-data/openssl_rsa.pem
+}
+
 
 test_key_cmd
 
