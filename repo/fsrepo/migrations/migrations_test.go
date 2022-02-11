@@ -3,7 +3,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -290,7 +289,9 @@ func TestReadMigrationConfig(t *testing.T) {
 
 type mockIpfsFetcher struct{}
 
-func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string) (io.ReadCloser, error) {
+var _ Fetcher = (*mockIpfsFetcher)(nil)
+
+func (m *mockIpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error) {
 	return nil, nil
 }
 
@@ -323,7 +324,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := f.(*HttpFetcher); !ok {
+	if rf, ok := f.(*RetryFetcher); !ok {
+		t.Fatal("expected RetryFetcher")
+	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
 		t.Fatal("expected HttpFetcher")
 	}
 
@@ -341,7 +344,9 @@ func TestGetMigrationFetcher(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := f.(*HttpFetcher); !ok {
+	if rf, ok := f.(*RetryFetcher); !ok {
+		t.Fatal("expected RetryFetcher")
+	} else if _, ok := rf.Fetcher.(*HttpFetcher); !ok {
 		t.Fatal("expected HttpFetcher")
 	}
 

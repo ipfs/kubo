@@ -155,13 +155,14 @@ func ReadMigrationConfig(repoRoot string) (*config.Migration, error) {
 // downloadSources,
 func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetcher func(string) Fetcher) (Fetcher, error) {
 	const httpUserAgent = "go-ipfs"
+	const numTriesPerHTTP = 3
 
 	var fetchers []Fetcher
 	for _, src := range downloadSources {
 		src := strings.TrimSpace(src)
 		switch src {
 		case "HTTPS", "https", "HTTP", "http":
-			fetchers = append(fetchers, NewHttpFetcher(distPath, "", httpUserAgent, 0))
+			fetchers = append(fetchers, &RetryFetcher{NewHttpFetcher(distPath, "", httpUserAgent, 0), numTriesPerHTTP})
 		case "IPFS", "ipfs":
 			if newIpfsFetcher != nil {
 				fetchers = append(fetchers, newIpfsFetcher(distPath))
@@ -178,7 +179,7 @@ func GetMigrationFetcher(downloadSources []string, distPath string, newIpfsFetch
 			default:
 				return nil, errors.New("bad gateway address: url scheme must be http or https")
 			}
-			fetchers = append(fetchers, NewHttpFetcher(distPath, u.String(), httpUserAgent, 0))
+			fetchers = append(fetchers, &RetryFetcher{NewHttpFetcher(distPath, u.String(), httpUserAgent, 0), numTriesPerHTTP})
 		case "":
 			// Ignore empty string
 		}
