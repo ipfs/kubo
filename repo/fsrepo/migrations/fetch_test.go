@@ -2,10 +2,10 @@ package migrations
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -96,14 +96,13 @@ func TestHttpFetch(t *testing.T) {
 
 	fetcher := NewHttpFetcher("", ts.URL, "", 0)
 
-	rc, err := fetcher.Fetch(ctx, "/versions")
+	out, err := fetcher.Fetch(ctx, "/versions")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rc.Close()
 
 	var lines []string
-	scan := bufio.NewScanner(rc)
+	scan := bufio.NewScanner(bytes.NewReader(out))
 	for scan.Scan() {
 		lines = append(lines, scan.Text())
 	}
@@ -232,16 +231,11 @@ func TestMultiFetcher(t *testing.T) {
 
 	mf := NewMultiFetcher(badFetcher, fetcher)
 
-	rc, err := mf.Fetch(ctx, "/versions")
+	vers, err := mf.Fetch(ctx, "/versions")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rc.Close()
 
-	vers, err := ioutil.ReadAll(rc)
-	if err != nil {
-		t.Fatal("could not read versions:", err)
-	}
 	if len(vers) < 45 {
 		fmt.Println("unexpected more data")
 	}
