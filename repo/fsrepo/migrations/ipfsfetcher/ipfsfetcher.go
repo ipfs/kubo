@@ -87,8 +87,7 @@ func NewIpfsFetcher(distPath string, fetchLimit int64, repoRoot *string) *IpfsFe
 }
 
 // Fetch attempts to fetch the file at the given path, from the distribution
-// site configured for this HttpFetcher.  Returns io.ReadCloser on success,
-// which caller must close.
+// site configured for this HttpFetcher.
 func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error) {
 	// Initialize and start IPFS node on first call to Fetch, since the fetcher
 	// may be created by not used.

@@ -60,8 +60,7 @@ func NewHttpFetcher(distPath, gateway, userAgent string, fetchLimit int64) *Http
 }
 
 // Fetch attempts to fetch the file at the given path, from the distribution
-// site configured for this HttpFetcher.  Returns io.ReadCloser on success,
-// which caller must close.
+// site configured for this HttpFetcher.
 func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error) {
 	gwURL := f.gateway + path.Join(f.distPath, filePath)
 	fmt.Printf("Fetching with HTTP: %q\n", gwURL)

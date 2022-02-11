@@ -20,7 +20,6 @@ const (
 
 type Fetcher interface {
 	// Fetch attempts to fetch the file at the given ipfs path.
-	// Returns io.ReadCloser on success, which caller must close.
 	Fetch(ctx context.Context, filePath string) ([]byte, error)
 	// Close performs any cleanup after the fetcher is not longer needed.
 	Close() error
@@ -48,7 +47,6 @@ func NewMultiFetcher(f ...Fetcher) Fetcher {
 }
 
 // Fetch attempts to fetch the file at each of its fetchers until one succeeds.
-// Returns io.ReadCloser on success, which caller must close.
 func (f *MultiFetcher) Fetch(ctx context.Context, ipfsPath string) ([]byte, error) {
 	var errs error
 	for _, fetcher := range f.fetchers {
