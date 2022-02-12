@@ -69,6 +69,7 @@ executors:
 jobs:
   gobuild:
     executor: golang
+    resource_class: 2xlarge+
     steps:
     - checkout
     - *make_out_dirs
