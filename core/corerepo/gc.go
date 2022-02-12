@@ -84,7 +84,9 @@ func BestEffortRoots(filesRoot *mfs.Root) ([]cid.Cid, error) {
 }
 
 func GarbageCollect(n *core.IpfsNode, ctx context.Context) error {
-	roots, err := BestEffortRoots(n.FilesRoot)
+	filesRoot := n.LockedFilesRoot.RLock()
+	defer n.LockedFilesRoot.RUnlock()
+	roots, err := BestEffortRoots(filesRoot)
 	if err != nil {
 		return err
 	}
@@ -148,7 +150,9 @@ func (e *MultiError) Error() string {
 }
 
 func GarbageCollectAsync(n *core.IpfsNode, ctx context.Context) <-chan gc.Result {
-	roots, err := BestEffortRoots(n.FilesRoot)
+	filesRoot := n.LockedFilesRoot.RLock()
+	defer n.LockedFilesRoot.RUnlock()
+	roots, err := BestEffortRoots(filesRoot)
 	if err != nil {
 		out := make(chan gc.Result)
 		out <- gc.Result{Error: err}

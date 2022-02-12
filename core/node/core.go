@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
@@ -167,4 +168,55 @@ func Files(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo, dag format.
 	})
 
 	return root, err
+}
+
+// FIXME(BLOCKING): This should probably be merged into the Files provider above
+//  as no one should have access to the unlocked version of the mfs.Root.
+func LockedFiles(mctx helpers.MetricsCtx, lc fx.Lifecycle, root *mfs.Root) (*LockedFilesRoot, error) {
+	return &LockedFilesRoot{
+		root: root,
+		lock: &sync.Mutex{},
+	}, nil
+}
+
+// We distinguish between locking for reading and writing independently of
+// how is the lock actually implemented internally (we could be write-locking
+// every time, using a RWMutex, or not even locking for reading).
+// The objective is:
+// > For reads we might want to be more careful than a global lock though.
+// > For example, not locking ipfs files ls or ipfs files stat while GC is ongoing,
+// > but preventing corruption between MFS write and read operations (out of date data
+// > is fine with concurrent operations, but corruption would be bad).
+// FIXME(BLOCKING): Decide how are we actually going to implement the locking
+//  distinction between reading and writing.
+// FIXME(BLOCKING): Consider providing our own API functions like GetNode (and similar) that
+//  already take charge of lock-handling here instead of leaving that burden to the consumer.
+//  That way we could also make sure the lock is being enforced correctly.
+type LockedFilesRoot struct {
+	root *mfs.Root
+	lock *sync.Mutex
+}
+
+// FIXME(BLOCKING): Review and cofirm.
+// Not enforcing the lock for reading operations to see if something comes up
+// in the tests. This is dangerous because MFS is not designed to clearly
+// distinguish between read-only and mutating operations. For example, the FSNode
+// interface, which is the result used from the most frequent "read" operation of
+// doing a Lookup, (a) allows the Flush operation and (b) its File/Directory structures
+// implementing it have their own locking mechanism to keep track of open file
+// descriptors.
+func (lfr *LockedFilesRoot) RLock() *mfs.Root {
+	return lfr.root
+}
+
+func (lfr *LockedFilesRoot) RUnlock() {
+}
+
+func (lfr *LockedFilesRoot) Lock() *mfs.Root {
+	lfr.lock.Lock()
+	return lfr.root
+}
+
+func (lfr *LockedFilesRoot) Unlock() {
+	lfr.lock.Unlock()
 }

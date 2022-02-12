@@ -50,7 +50,11 @@ type ipfsPinMFSNode struct {
 }
 
 func (x *ipfsPinMFSNode) RootNode() (ipld.Node, error) {
-	return x.node.FilesRoot.GetDirectory().GetNode()
+	// FIXME(BLOCKING): We're deploying this lock taking mechanism as simply as
+	//  possible for now deferring the unlock but we should be more precise.
+	filesRoot := x.node.LockedFilesRoot.RLock()
+	defer x.node.LockedFilesRoot.RUnlock()
+	return filesRoot.GetDirectory().GetNode()
 }
 
 func (x *ipfsPinMFSNode) Identity() peer.ID {
