@@ -82,6 +82,7 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 	redirect := sw.ResponseWriter.Header().Get("Location")
 	if redirect != "" && code == http.StatusOK {
 		code = http.StatusMovedPermanently
+		log.Debugw("subdomain redirect", "location", redirect, "status", code)
 	}
 	sw.ResponseWriter.WriteHeader(code)
 }
@@ -198,6 +199,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	urlPath := r.URL.Path
 	escapedURLPath := r.URL.EscapedPath()
 
+	logger := log.With("from", r.RequestURI)
+	logger.Debug("http request received")
+
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
 	// It will be prepended to links in directory listings and the index.html redirect.
@@ -210,6 +214,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				break
 			}
 		}
+		logger.Debugw("sub-path (deprecrated)", "prefix", prefix)
 	}
 
 	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
@@ -242,7 +247,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		if u.RawQuery != "" { // preserve query if present
 			path = path + "?" + u.RawQuery
 		}
-		http.Redirect(w, r, gopath.Join("/", prefix, u.Scheme, u.Host, path), http.StatusMovedPermanently)
+
+		redirectURL := gopath.Join("/", prefix, u.Scheme, u.Host, path)
+		logger.Debugw("uri param, redirect", "to", redirectURL, "status", http.StatusMovedPermanently)
+		http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
 		return
 	}
 
@@ -263,6 +271,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		if prefix == "" && fixupSuperfluousNamespace(w, urlPath, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
 			// by returning error/redirect page, nothing left to do here
+			logger.Debugw("redundant namespace; noop")
 			return
 		}
 		// unable to fix path, returning error
@@ -279,6 +288,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	default:
 		if i.servePretty404IfPresent(w, r, parsedPath) {
+			logger.Debugw("serve pretty 404 if present")
 			return
 		}
 
@@ -345,6 +355,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		} else {
 			name = getFilename(urlPath)
 		}
+
+		logger.Debugw("serving file", "name", name)
 		i.serveFile(w, r, name, modtime, f)
 		return
 	}
@@ -354,7 +366,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	idx, err := i.api.Unixfs().Get(r.Context(), ipath.Join(resolvedPath, "index.html"))
+	idxPath := ipath.Join(resolvedPath, "index.html")
+	idx, err := i.api.Unixfs().Get(r.Context(), idxPath)
 	switch err.(type) {
 	case nil:
 		dirwithoutslash := urlPath[len(urlPath)-1] != '/'
@@ -366,7 +379,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				// preserve query parameters
 				suffix = suffix + "?" + r.URL.RawQuery
 			}
-			http.Redirect(w, r, originalUrlPath+suffix, 302)
+
+			redirectURL := originalUrlPath + suffix
+			logger.Debugw("serving index.html file", "to", redirectURL, "status", http.StatusFound, "path", idxPath)
+			http.Redirect(w, r, redirectURL, http.StatusFound)
 			return
 		}
 
@@ -376,11 +392,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		logger.Debugw("serving index.html file", "path", idxPath)
 		// write to request
 		i.serveFile(w, r, "index.html", modtime, f)
 		return
 	case resolver.ErrNoLink:
-		// no index.html; noop
+		logger.Debugw("no index.html; noop", "path", idxPath)
 	default:
 		internalWebError(w, err)
 		return
@@ -391,6 +408,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// Note: this needs to occur before listingTemplate.Execute otherwise we get
 	// superfluous response.WriteHeader call from prometheus/client_golang
 	if w.Header().Get("Location") != "" {
+		logger.Debugw("location moved permanently", "status", http.StatusMovedPermanently)
 		w.WriteHeader(http.StatusMovedPermanently)
 		return
 	}
@@ -399,6 +417,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// type instead of relying on autodetection (which may fail).
 	w.Header().Set("Content-Type", "text/html")
 	if r.Method == http.MethodHead {
+		logger.Debug("return as request's HTTP method is HEAD")
 		return
 	}
 
@@ -490,8 +509,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		Hash:        hash,
 	}
 
-	err = listingTemplate.Execute(w, tplData)
-	if err != nil {
+	logger.Debugw("request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash, "duration", time.Since(begin))
+
+	if err := listingTemplate.Execute(w, tplData); err != nil {
 		internalWebError(w, err)
 		return
 	}
@@ -568,7 +588,7 @@ func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.
 		return false
 	}
 
-	log.Debugf("using pretty 404 file for %s", parsedPath.String())
+	log.Debugw("using pretty 404 file", "path", parsedPath)
 	w.Header().Set("Content-Type", ctype)
 	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 	w.WriteHeader(http.StatusNotFound)
@@ -585,6 +605,7 @@ func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", p.Cid().String())
+	log.Debugw("CID created, http redirect", "from", r.URL, "to", p, "status", http.StatusCreated)
 	http.Redirect(w, r, p.String(), http.StatusCreated)
 }
 
@@ -677,7 +698,10 @@ func (i *gatewayHandler) putHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", newcid.String())
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix, newcid.String(), newPath), http.StatusCreated)
+
+	redirectURL := gopath.Join(ipfsPathPrefix, newcid.String(), newPath)
+	log.Debugw("CID replaced, redirect", "from", r.URL, "to", redirectURL, "status", http.StatusCreated)
+	http.Redirect(w, r, redirectURL, http.StatusCreated)
 }
 
 func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
@@ -748,8 +772,11 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("IPFS-Hash", ncid.String())
+
+	redirectURL := gopath.Join(ipfsPathPrefix+ncid.String(), directory)
 	// note: StatusCreated is technically correct here as we created a new resource.
-	http.Redirect(w, r, gopath.Join(ipfsPathPrefix+ncid.String(), directory), http.StatusCreated)
+	log.Debugw("CID deleted, redirect", "from", r.RequestURI, "to", redirectURL, "status", http.StatusCreated)
+	http.Redirect(w, r, redirectURL, http.StatusCreated)
 }
 
 func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
