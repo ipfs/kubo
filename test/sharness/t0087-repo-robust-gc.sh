@@ -73,7 +73,7 @@ test_gc_robust_part1() {
     grep -q "permission denied" block_rm_err
   '
 
-  # repo gc outputs raw multihashes. We chech HASH1 with block stat rather than
+  # repo gc outputs raw multihashes. We check HASH1 with block stat rather than
   # grepping the output since it's not a raw multihash
   test_expect_success "'ipfs repo gc' should still run and remove as much as possible" '
     test_must_fail ipfs repo gc 2>&1 | tee repo_gc_out &&
