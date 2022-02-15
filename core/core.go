@@ -30,6 +30,7 @@ import (
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	p2phost "github.com/libp2p/go-libp2p-core/host"
 	metrics "github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	routing "github.com/libp2p/go-libp2p-core/routing"
@@ -85,17 +86,18 @@ type IpfsNode struct {
 	RecordValidator      record.Validator
 
 	// Online
-	PeerHost      p2phost.Host            `optional:"true"` // the network host (server+client)
-	Peering       *peering.PeeringService `optional:"true"`
-	Filters       *ma.Filters             `optional:"true"`
-	Bootstrapper  io.Closer               `optional:"true"` // the periodic bootstrapper
-	Routing       routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
-	DNSResolver   *madns.Resolver         // the DNS resolver
-	Exchange      exchange.Interface      // the block exchange + strategy (bitswap)
-	Namesys       namesys.NameSystem      // the name system, resolves paths to hashes
-	Provider      provider.System         // the value provider system
-	IpnsRepub     *ipnsrp.Republisher     `optional:"true"`
-	GraphExchange graphsync.GraphExchange `optional:"true"`
+	PeerHost        p2phost.Host            `optional:"true"` // the network host (server+client)
+	Peering         *peering.PeeringService `optional:"true"`
+	Filters         *ma.Filters             `optional:"true"`
+	Bootstrapper    io.Closer               `optional:"true"` // the periodic bootstrapper
+	Routing         routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
+	DNSResolver     *madns.Resolver         // the DNS resolver
+	Exchange        exchange.Interface      // the block exchange + strategy (bitswap)
+	Namesys         namesys.NameSystem      // the name system, resolves paths to hashes
+	Provider        provider.System         // the value provider system
+	IpnsRepub       *ipnsrp.Republisher     `optional:"true"`
+	GraphExchange   graphsync.GraphExchange `optional:"true"`
+	ResourceManager network.ResourceManager `optional:"true"`
 
 	PubSub   *pubsub.PubSub             `optional:"true"`
 	PSRouter *psrouter.PubsubValueStore `optional:"true"`
