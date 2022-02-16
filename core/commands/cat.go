@@ -106,6 +106,7 @@ var CatCmd = &cmds.Command{
 						var bar *pb.ProgressBar
 						bar, reader = progressBarForReader(os.Stderr, val, int64(res.Length()))
 						bar.Start()
+						defer bar.Finish()
 					}
 
 					err = re.Emit(reader)
