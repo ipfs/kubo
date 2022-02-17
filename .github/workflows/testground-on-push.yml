@@ -26,6 +26,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: testground run
         uses: coryschwartz/testground-github-action@v1.1
+        timeout-minutes: 5
         with:
           backend_addr: ${{ matrix.backend_addr }}
           backend_proto: ${{ matrix.backend_proto }}
