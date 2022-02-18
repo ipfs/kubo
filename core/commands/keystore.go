@@ -143,6 +143,7 @@ const (
 	keyFormatOptionName            = "format"
 	keyFormatPemCleartextOption    = "pem-pkcs8-cleartext"
 	keyFormatLibp2pCleartextOption = "libp2p-protobuf-cleartext"
+	keyAllowAnyTypeOptionName      = "allow-any-key-type"
 )
 
 var keyExportCmd = &cmds.Command{
@@ -319,6 +320,7 @@ The PEM format allows for key generation outside of the IPFS node:
 	Options: []cmds.Option{
 		ke.OptionIPNSBase,
 		cmds.StringOption(keyFormatOptionName, "f", "The format of the private key to import, libp2p-protobuf-cleartext or pem-pkcs8-cleartext.").WithDefault(keyFormatLibp2pCleartextOption),
+		cmds.BoolOption(keyAllowAnyTypeOptionName, "Allow importing any key type.").WithDefault(false),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
@@ -389,6 +391,20 @@ The PEM format allows for key generation outside of the IPFS node:
 
 		default:
 			return fmt.Errorf("unrecognized import format: %s", importFormat)
+		}
+
+		// We only allow importing keys of the same type we generate (see list in
+		// https://github.com/ipfs/interface-go-ipfs-core/blob/1c3d8fc/options/key.go#L58-L60),
+		// unless explicitly stated by the user.
+		allowAnyKeyType, _ := req.Options[keyAllowAnyTypeOptionName].(bool)
+		if !allowAnyKeyType {
+			switch t := sk.(type) {
+			case *crypto.RsaPrivateKey, *crypto.Ed25519PrivateKey:
+			default:
+				return fmt.Errorf("key type %T is not allowed to be imported, only RSA or Ed25519;"+
+					" use flag --%s if you are sure of what you're doing",
+					t, keyAllowAnyTypeOptionName)
+			}
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
