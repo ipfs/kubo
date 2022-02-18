@@ -74,6 +74,7 @@ order to reclaim hard disk space.
 			return err
 		}
 
+		silent, _ := req.Options[repoSilentOptionName].(bool)
 		streamErrors, _ := req.Options[repoStreamErrorsOptionName].(bool)
 
 		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context)
@@ -97,6 +98,9 @@ order to reclaim hard disk space.
 			}
 		} else {
 			err := corerepo.CollectResult(req.Context, gcOutChan, func(k cid.Cid) {
+				if silent {
+					return
+				}
 				// Nothing to do with this error, really. This
 				// most likely means that the client is gone but
 				// we still need to let the GC finish.
