@@ -31,7 +31,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v1.1.2
 	github.com/ipfs/go-ipfs-chunker v0.0.5
 	github.com/ipfs/go-ipfs-cmds v0.6.0
-	github.com/ipfs/go-ipfs-config v0.18.0
+	github.com/ipfs/go-ipfs-config v0.19.0
 	github.com/ipfs/go-ipfs-exchange-interface v0.1.0
 	github.com/ipfs/go-ipfs-exchange-offline v0.1.1
 	github.com/ipfs/go-ipfs-files v0.0.9
@@ -52,7 +52,7 @@ require (
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.2.1
 	github.com/ipfs/go-namesys v0.4.0
-	github.com/ipfs/go-path v0.2.1
+	github.com/ipfs/go-path v0.2.2
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.3.1
 	github.com/ipfs/go-unixfsnode v1.1.3
@@ -65,7 +65,7 @@ require (
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
-	github.com/libp2p/go-doh-resolver v0.3.1
+	github.com/libp2p/go-doh-resolver v0.4.0
 	github.com/libp2p/go-libp2p v0.16.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.11.0
@@ -104,8 +104,8 @@ require (
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	go.opencensus.io v0.23.0
-	go.uber.org/fx v1.15.0
-	go.uber.org/zap v1.19.1
+	go.uber.org/fx v1.16.0
+	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211025112917-711f33c9992c

@@ -111,15 +111,14 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 	}
 	defer arcFile.Close()
 
-	// Open connection to download archive from ipfs path
-	rc, err := fetcher.Fetch(ctx, arcDistPath)
+	// Open connection to download archive from ipfs path and write to file
+	arcBytes, err := fetcher.Fetch(ctx, arcDistPath)
 	if err != nil {
 		return "", err
 	}
-	defer rc.Close()
 
 	// Write download data
-	_, err = io.Copy(arcFile, rc)
+	_, err = io.Copy(arcFile, bytes.NewReader(arcBytes))
 	if err != nil {
 		return "", err
 	}

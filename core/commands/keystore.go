@@ -2,6 +2,9 @@ package commands
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -135,6 +138,13 @@ var keyGenCmd = &cmds.Command{
 	Type: KeyOutput{},
 }
 
+const (
+	// Key format options used both for importing and exporting.
+	keyFormatOptionName            = "format"
+	keyFormatPemCleartextOption    = "pem-pkcs8-cleartext"
+	keyFormatLibp2pCleartextOption = "libp2p-protobuf-cleartext"
+)
+
 var keyExportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Export a keypair",
@@ -143,6 +153,13 @@ Exports a named libp2p key to disk.
 
 By default, the output will be stored at './<key-name>.key', but an alternate
 path can be specified with '--output=<path>' or '-o=<path>'.
+
+It is possible to export a private key to interoperable PEM PKCS8 format by explicitly
+passing '--format=pem-pkcs8-cleartext'. The resulting PEM file can then be consumed
+elsewhere. For example, using openssl to get a PEM with public key:
+
+  $ ipfs key export testkey --format=pem-pkcs8-cleartext -o privkey.pem
+  $ openssl pkey -in privkey.pem -pubout > pubkey.pem
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -150,6 +167,7 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
+		cmds.StringOption(keyFormatOptionName, "f", "The format of the exported private key, libp2p-protobuf-cleartext or pem-pkcs8-cleartext.").WithDefault(keyFormatLibp2pCleartextOption),
 	},
 	NoRemote: true,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -186,12 +204,38 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			return fmt.Errorf("key with name '%s' doesn't exist", name)
 		}
 
-		encoded, err := crypto.MarshalPrivateKey(sk)
-		if err != nil {
-			return err
+		exportFormat, _ := req.Options[keyFormatOptionName].(string)
+		var formattedKey []byte
+		switch exportFormat {
+		case keyFormatPemCleartextOption:
+			stdKey, err := crypto.PrivKeyToStdKey(sk)
+			if err != nil {
+				return fmt.Errorf("converting libp2p private key to std Go key: %w", err)
+
+			}
+			// For some reason the ed25519.PrivateKey does not use pointer
+			// receivers, so we need to convert it for MarshalPKCS8PrivateKey.
+			// (We should probably change this upstream in PrivKeyToStdKey).
+			if ed25519KeyPointer, ok := stdKey.(*ed25519.PrivateKey); ok {
+				stdKey = *ed25519KeyPointer
+			}
+			// This function supports a restricted list of public key algorithms,
+			// but we generate and use only the RSA and ed25519 types that are on that list.
+			formattedKey, err = x509.MarshalPKCS8PrivateKey(stdKey)
+			if err != nil {
+				return fmt.Errorf("marshalling key to PKCS8 format: %w", err)
+			}
+
+		case keyFormatLibp2pCleartextOption:
+			formattedKey, err = crypto.MarshalPrivateKey(sk)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized export format: %s", exportFormat)
 		}
 
-		return res.Emit(bytes.NewReader(encoded))
+		return res.Emit(bytes.NewReader(formattedKey))
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
@@ -208,8 +252,16 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			}
 
 			outPath, _ := req.Options[outputOptionName].(string)
+			exportFormat, _ := req.Options[keyFormatOptionName].(string)
 			if outPath == "" {
-				trimmed := strings.TrimRight(fmt.Sprintf("%s.key", req.Arguments[0]), "/")
+				var fileExtension string
+				switch exportFormat {
+				case keyFormatPemCleartextOption:
+					fileExtension = "pem"
+				case keyFormatLibp2pCleartextOption:
+					fileExtension = "key"
+				}
+				trimmed := strings.TrimRight(fmt.Sprintf("%s.%s", req.Arguments[0], fileExtension), "/")
 				_, outPath = filepath.Split(trimmed)
 				outPath = filepath.Clean(outPath)
 			}
@@ -221,9 +273,26 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 			}
 			defer file.Close()
 
-			_, err = io.Copy(file, outReader)
-			if err != nil {
-				return err
+			switch exportFormat {
+			case keyFormatPemCleartextOption:
+				privKeyBytes, err := ioutil.ReadAll(outReader)
+				if err != nil {
+					return err
+				}
+
+				err = pem.Encode(file, &pem.Block{
+					Type:  "PRIVATE KEY",
+					Bytes: privKeyBytes,
+				})
+				if err != nil {
+					return fmt.Errorf("encoding PEM block: %w", err)
+				}
+
+			case keyFormatLibp2pCleartextOption:
+				_, err = io.Copy(file, outReader)
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
@@ -234,9 +303,22 @@ path can be specified with '--output=<path>' or '-o=<path>'.
 var keyImportCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Import a key and prints imported key id",
+		ShortDescription: `
+Imports a key and stores it under the provided name.
+
+By default, the key is assumed to be in 'libp2p-protobuf-cleartext' format,
+however it is possible to import private keys wrapped in interoperable PEM PKCS8
+by passing '--format=pem-pkcs8-cleartext'.
+
+The PEM format allows for key generation outside of the IPFS node:
+
+  $ openssl genpkey -algorithm ED25519 > ed25519.pem
+  $ ipfs key import test-openssl -f pem-pkcs8-cleartext ed25519.pem
+`,
 	},
 	Options: []cmds.Option{
 		ke.OptionIPNSBase,
+		cmds.StringOption(keyFormatOptionName, "f", "The format of the private key to import, libp2p-protobuf-cleartext or pem-pkcs8-cleartext.").WithDefault(keyFormatLibp2pCleartextOption),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
@@ -265,9 +347,48 @@ var keyImportCmd = &cmds.Command{
 			return err
 		}
 
-		sk, err := crypto.UnmarshalPrivateKey(data)
-		if err != nil {
-			return err
+		importFormat, _ := req.Options[keyFormatOptionName].(string)
+		var sk crypto.PrivKey
+		switch importFormat {
+		case keyFormatPemCleartextOption:
+			pemBlock, rest := pem.Decode(data)
+			if pemBlock == nil {
+				return fmt.Errorf("PEM block not found in input data:\n%s", rest)
+			}
+
+			if pemBlock.Type != "PRIVATE KEY" {
+				return fmt.Errorf("expected PRIVATE KEY type in PEM block but got: %s", pemBlock.Type)
+			}
+
+			stdKey, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
+			if err != nil {
+				return fmt.Errorf("parsing PKCS8 format: %w", err)
+			}
+
+			// In case ed25519.PrivateKey is returned we need the pointer for
+			// conversion to libp2p (see export command for more details).
+			if ed25519KeyPointer, ok := stdKey.(ed25519.PrivateKey); ok {
+				stdKey = &ed25519KeyPointer
+			}
+
+			sk, _, err = crypto.KeyPairFromStdKey(stdKey)
+			if err != nil {
+				return fmt.Errorf("converting std Go key to libp2p key: %w", err)
+
+			}
+		case keyFormatLibp2pCleartextOption:
+			sk, err = crypto.UnmarshalPrivateKey(data)
+			if err != nil {
+				// check if data is PEM, if so, provide user with hint
+				pemBlock, _ := pem.Decode(data)
+				if pemBlock != nil {
+					return fmt.Errorf("unexpected PEM block for format=%s: try again with format=%s", keyFormatLibp2pCleartextOption, keyFormatPemCleartextOption)
+				}
+				return fmt.Errorf("unable to unmarshall format=%s: %w", keyFormatLibp2pCleartextOption, err)
+			}
+
+		default:
+			return fmt.Errorf("unrecognized import format: %s", importFormat)
 		}
 
 		cfgRoot, err := cmdenv.GetConfigRoot(env)
