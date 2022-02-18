@@ -275,7 +275,7 @@ does (e.g, `"1d2h4m40.01s"`).
 ### `optionalInteger`
 
 Optional integers allow specifying some numerical value which has
-an implicit default missing from the config file:
+an implicit default when missing from the config file:
 
 - `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault(value)`)
 - an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
@@ -283,15 +283,17 @@ an implicit default missing from the config file:
 ### `optionalBytes`
 
 Optional Bytes allow specifying some number of bytes which has
-an implicit default missing from the config file:
+an implicit default when missing from the config file:
 
 - `null`/missing (apply the default value defined in go-ipfs sources)
-- a string value indicating the number of bytes (e.g. 1B, 10kB, 20 MiB, 2GB, ...)
+- a string value indicating the number of bytes, including human readable representations:
+  - [SI sizes](https://en.wikipedia.org/wiki/Metric_prefix#List_of_SI_prefixes) (metric units, powers of 1000), e.g. `1B`, `2kB`, `3MB`, `4GB`, `5TB`, …)
+  - [IEC sizes](https://en.wikipedia.org/wiki/Binary_prefix#IEC_prefixes) (binary units, powers of 1024), e.g. `1B`, `2KiB`, `3MiB`, `4GiB`, `5TiB`, …)
 
 ### `optionalString`
 
 Optional strings allow specifying some string value which has
-an implicit default missing from the config file:
+an implicit default when missing from the config file:
 
 - `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault("value")`)
 - a string
@@ -299,7 +301,7 @@ an implicit default missing from the config file:
 ### `optionalDuration`
 
 Optional durations allow specifying some duration value which has
-an implicit default missing from the config file:
+an implicit default when missing from the config file:
 
 - `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault("1h2m3s")`)
 - a string with a valid [go duration](#duration)  (e.g, `"1d2h4m40.01s"`).
@@ -953,12 +955,12 @@ Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 The sharding threshold used internally to decide whether a UnixFS directory should be sharded or not.
 This value is not strictly related to the size of the UnixFS directory block and any increases in
 the threshold should come with being careful that block sizes stay under 2MiB in order for them to be
-reliably transferable through the networking stack.
+reliably transferable through the networking stack (IPFS peers on the public swarm tend to ignore requests for blocks bigger than 2MiB).
 
 Decreasing this value to 1B is functionally equivalent to the previous experimental sharding option to
 shard all directories.
 
-Type: `optionalBytes` (`null` means default which is 256kiB)
+Type: `optionalBytes` (`null` means default which is 256KiB)
 
 ## `Ipns`
 
