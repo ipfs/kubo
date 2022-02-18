@@ -207,11 +207,10 @@ test_expect_success "pin lists look good" '
 '
 
 test_expect_success "'ipfs repo gc' succeeds" '
-  ipfs repo gc >gc_out_actual2 &&
-  echo "removed $HASH_FILE3" > gc_out_exp2 &&
-  echo "removed $HASH_FILE5" >> gc_out_exp2 &&
-  echo "removed $HASH_DIR3" >> gc_out_exp2 &&
-  test_includes_lines gc_out_exp2 gc_out_actual2
+  ipfs repo gc &&
+  test_must_fail ipfs block stat $HASH_FILE3 &&
+  test_must_fail ipfs block stat $HASH_FILE5 &&
+  test_must_fail ipfs block stat $HASH_DIR3
 '
 
 # use object links for HASH_DIR1 here because its children
