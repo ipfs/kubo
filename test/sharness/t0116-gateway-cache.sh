@@ -122,27 +122,27 @@ test_expect_success "Prepare IPNS unixfs content path for testing" '
 # Etag
 
     ## dir generated listing
-    test_expect_success "GET /ipfs/ dir response has special Etag for unixfs dir listing" '
+    test_expect_success "GET /ipfs/ dir response has special Etag for generated dir listing" '
     grep -E "< Etag: \"DirIndex-.+_CID-${ROOT3_CID}\"" curl_ipfs_dir_listing_output
     '
-    test_expect_success "GET /ipns/ dir response has special Etag for unixfs dir listing" '
+    test_expect_success "GET /ipns/ dir response has special Etag for generated dir listing" '
     grep -E "< Etag: \"DirIndex-.+_CID-${ROOT3_CID}\"" curl_ipns_dir_listing_output
     '
 
-    ## dir static index.html
-    test_expect_success "GET /ipfs/ dir index.html response has special Etag for unixfs dir listing" '
-    grep -E "< Etag: \"DirIndex-.+_CID-${ROOT4_CID}\"" curl_ipfs_dir_index.html_output
+    ## dir static index.html should use CID of  the index.html file for improved HTTP caching
+    test_expect_success "GET /ipfs/ dir index.html response has dir CID as Etag" '
+    grep "< Etag: \"${ROOT4_CID}\"" curl_ipfs_dir_index.html_output
     '
-    test_expect_success "GET /ipns/ dir index.html response has special Etag for unixfs dir listing" '
-    grep -E "< Etag: \"DirIndex-.+_CID-${ROOT4_CID}\"" curl_ipns_dir_index.html_output
+    test_expect_success "GET /ipns/ dir index.html response has dir CID as Etag" '
+    grep "< Etag: \"${ROOT4_CID}\"" curl_ipns_dir_index.html_output
     '
 
     ## file
     test_expect_success "GET /ipfs/ response has CID as Etag for a file" '
-    grep -E "< Etag: \"${FILE_CID}\"" curl_ipfs_file_output
+    grep "< Etag: \"${FILE_CID}\"" curl_ipfs_file_output
     '
     test_expect_success "GET /ipns/ response has CID as Etag for a file" '
-    grep -E "< Etag: \"${FILE_CID}\"" curl_ipns_file_output
+    grep "< Etag: \"${FILE_CID}\"" curl_ipns_file_output
     '
 
 test_kill_ipfs_daemon

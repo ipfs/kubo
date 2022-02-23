@@ -382,6 +382,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			internalWebError(w, files.ErrNotReader)
 			return
 		}
+		// static index.html → no need to generate dynamic dir-index-html
+		// replace mutable DirIndex Etag with immutable dir CID
+		w.Header().Set("Etag", `"`+resolvedPath.Cid().String()+`"`)
 
 		// write to request
 		i.serveFile(w, r, "index.html", modtime, f)
