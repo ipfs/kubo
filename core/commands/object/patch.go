@@ -4,18 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/go-ipfs/core/commands/cmdutils"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-)
-
-const (
-	softBlockLimit = 1024 * 1024 // https://github.com/ipfs/go-ipfs/issues/7421#issuecomment-910833499
-	allowBigBlock  = "allow-big-block"
 )
 
 var ObjectPatchCmd = &cmds.Command{
@@ -49,7 +43,7 @@ For modern use cases, use MFS with 'files' commands: 'ipfs files --help'.
 		"set-data":    patchSetDataCmd,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(allowBigBlock, "Disable block size check and allow creation of blocks bigger than 1MB. WARNING: such blocks won't be transferable over the standard bitswap.").WithDefault(false),
+		cmdutils.AllowBigBlockOption,
 	},
 }
 
@@ -92,7 +86,7 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs add' or 'ipfs files' inste
 			return err
 		}
 
-		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
 			return err
 		}
 
@@ -142,7 +136,7 @@ DEPRECATED and provided for legacy reasons. Use 'files cp' and 'dag put' instead
 			return err
 		}
 
-		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
 			return err
 		}
 
@@ -184,7 +178,7 @@ DEPRECATED and provided for legacy reasons. Use 'files rm' instead.
 			return err
 		}
 
-		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
 			return err
 		}
 
@@ -254,7 +248,7 @@ Use MFS and 'files' commands instead:
 			return err
 		}
 
-		if err := checkBlockSize(req, p.Cid(), api.Dag()); err != nil {
+		if err := cmdutils.CheckCIDSize(req, p.Cid(), api.Dag()); err != nil {
 			return err
 		}
 
@@ -267,27 +261,4 @@ Use MFS and 'files' commands instead:
 			return nil
 		}),
 	},
-}
-
-func checkBlockSize(req *cmds.Request, c cid.Cid, dagAPI coreiface.APIDagService) error {
-	allowAnyBlockSize, _ := req.Options[allowBigBlock].(bool)
-	if allowAnyBlockSize {
-		return nil
-	}
-
-	// We do not allow producing blocks bigger than 1 MiB to avoid errors
-	// when transmitting them over BitSwap. The 1 MiB constant is an
-	// unenforced and undeclared rule of thumb hard-coded here.
-	modifiedNode, err := dagAPI.Get(req.Context, c)
-	if err != nil {
-		return err
-	}
-	modifiedNodeSize, err := modifiedNode.Size()
-	if err != nil {
-		return err
-	}
-	if modifiedNodeSize > softBlockLimit {
-		return fmt.Errorf("produced block is over 1MB, object API is deprecated and does not support HAMT-sharding: to create big directories, please use the files API (MFS)")
-	}
-	return nil
 }
