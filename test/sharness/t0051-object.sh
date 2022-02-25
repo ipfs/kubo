@@ -234,7 +234,7 @@ test_object_cmd() {
   '
 
   test_expect_success "ipfs object patch add-link output has the correct error" '
-    grep "produced block is over 1MB, object API is deprecated and does not support HAMT-sharding: to create big directories, please use the files API (MFS)" patch_out
+    grep "produced block is over 1MB" patch_out
   '
 
   test_expect_success "ipfs object patch --allow-big-block=true add-link works" '
