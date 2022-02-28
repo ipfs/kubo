@@ -30,11 +30,11 @@ func Security(enabled bool, tptConfig config.Transports) interface{} {
 	return func() (opts Libp2pOpts) {
 		opts.Opts = append(opts.Opts, prioritizeOptions([]priorityOption{{
 			priority:        tptConfig.Security.TLS,
-			defaultPriority: 100,
+			defaultPriority: 200,
 			opt:             libp2p.Security(tls.ID, tls.New),
 		}, {
 			priority:        tptConfig.Security.Noise,
-			defaultPriority: 300,
+			defaultPriority: 100,
 			opt:             libp2p.Security(noise.ID, noise.New),
 		}}))
 		return opts
