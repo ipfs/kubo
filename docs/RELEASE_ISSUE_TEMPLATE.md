@@ -82,6 +82,7 @@ Checklist:
       - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
       - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
+         - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
       - [ ] to [snap](https://snapcraft.io/ipfs)
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
         - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/go-ipfs/$(curl -s https://dist.ipfs.io/go-ipfs/versions | tail -n 1)"`
