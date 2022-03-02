@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	config "github.com/ipfs/go-ipfs-config"
-	cserialize "github.com/ipfs/go-ipfs-config/serialize"
+	config "github.com/ipfs/go-ipfs/config"
+	cserialize "github.com/ipfs/go-ipfs/config/serialize"
 	"github.com/ipld/go-ipld-prime/multicodec"
 
 	"github.com/ipfs/go-ipfs/core"

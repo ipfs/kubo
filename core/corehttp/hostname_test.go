@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	cid "github.com/ipfs/go-cid"
-	config "github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
+	config "github.com/ipfs/go-ipfs/config"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	path "github.com/ipfs/go-path"
 )
