@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	ipld "github.com/ipfs/go-ipld-format"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
@@ -179,7 +180,7 @@ func (tp *TestSuite) TestBlockRm(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected err to exist")
 	}
-	if !strings.Contains(err.Error(), "blockservice: key not found") {
+	if !ipld.IsNotFound(err) {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 
@@ -187,7 +188,7 @@ func (tp *TestSuite) TestBlockRm(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected err to exist")
 	}
-	if !strings.Contains(err.Error(), "blockstore: block not found") {
+	if !strings.Contains(err.Error(), "not found") {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 
