@@ -1,10 +1,12 @@
 package corehttp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
@@ -38,6 +40,7 @@ const (
 )
 
 var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+var noModtime = time.Unix(0, 0) // disables Last-Modified header if passed as modtime
 
 // HTML-based redirect for errors which can be recovered from, but we want
 // to provide hint to people that they should fix things on their end.
@@ -65,6 +68,7 @@ type gatewayHandler struct {
 	config GatewayConfig
 	api    coreiface.CoreAPI
 
+	// TODO: add metrics for non-unixfs responses (block, car)
 	unixfsGetMetric *prometheus.SummaryVec
 }
 
@@ -297,38 +301,32 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	dr, err := i.api.Unixfs().Get(r.Context(), resolvedPath)
-	if err != nil {
-		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
-		return
-	}
-
-	i.unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
-
-	defer dr.Close()
-
-	var responseEtag string
-
-	// we need to figure out whether this is a directory before doing most of the heavy lifting below
-	_, ok := dr.(files.Directory)
-
-	if ok && assets.BindataVersionHash != "" {
-		// generated dir listing response
-		responseEtag = `"DirIndex-` + assets.BindataVersionHash + `_CID-` + resolvedPath.Cid().String() + `"`
-	} else {
-		// regular file response
-		responseEtag = `"` + resolvedPath.Cid().String() + `"`
-	}
-
-	// Check etag sent back to us
-	if r.Header.Get("If-None-Match") == responseEtag || r.Header.Get("If-None-Match") == `W/`+responseEtag {
+	// Finish early if client already has matching Etag
+	// (suffix match to cover both direct CID and DirIndex cases)
+	cidEtagSuffix := resolvedPath.Cid().String() + `"`
+	if strings.HasSuffix(r.Header.Get("If-None-Match"), cidEtagSuffix) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
+	// Support custom response format via explicit override in URL
+	if responseFormat := r.URL.Query().Get("format"); responseFormat != "" {
+		switch responseFormat {
+		case "block":
+			logger.Debugw("serving raw block", "path", parsedPath)
+			i.serveRawBlock(w, r, resolvedPath.Cid(), parsedPath)
+			return
+		// TODO: case "car"
+		default:
+			err := fmt.Errorf("requested unsupported response format")
+			webError(w, "failed to parse request format", err, http.StatusBadRequest)
+			return
+		}
+	}
+
+	// HTTP Headers
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-Ipfs-Path", urlPath)
-	w.Header().Set("Etag", responseEtag)
 
 	if rootCids, err := i.buildIpfsRootsHeader(urlPath, r); err == nil {
 		w.Header().Set("X-Ipfs-Roots", rootCids)
@@ -337,17 +335,31 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if f, ok := dr.(files.File); ok {
-		logger.Debugw("serving file", "path", parsedPath)
-		i.serveFile(w, r, f, resolvedPath.Cid(), parsedPath)
+	// Handling Unixfs
+	dr, err := i.api.Unixfs().Get(r.Context(), resolvedPath)
+	if err != nil {
+		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
+	// TODO:  do we want to reuse unixfsGetMetric for block/car, or should we have separate ones?
+	i.unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
+	defer dr.Close()
+
+	// Handling Unixfs file
+	if f, ok := dr.(files.File); ok {
+		logger.Debugw("serving file", "path", parsedPath)
+		i.serveFile(w, r, parsedPath, resolvedPath.Cid(), f)
+		return
+	}
+
+	// Handling Unixfs directory
 	dir, ok := dr.(files.Directory)
 	if !ok {
 		internalWebError(w, fmt.Errorf("unsupported file type"))
 		return
 	}
 
+	// Check if directory has index.html, if so, serveFile
 	idxPath := ipath.Join(resolvedPath, "index.html")
 	idx, err := i.api.Unixfs().Get(r.Context(), idxPath)
 	switch err.(type) {
@@ -376,7 +388,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 		logger.Debugw("serving index.html file", "path", idxPath)
 		// write to request
-		i.serveFile(w, r, f, resolvedPath.Cid(), idxPath)
+		i.serveFile(w, r, idxPath, resolvedPath.Cid(), f)
 		return
 	case resolver.ErrNoLink:
 		logger.Debugw("no index.html; noop", "path", idxPath)
@@ -398,6 +410,17 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// A HTML directory index will be presented, be sure to set the correct
 	// type instead of relying on autodetection (which may fail).
 	w.Header().Set("Content-Type", "text/html")
+
+	// Generated dir index requires custom Etag (it may change between go-ipfs versions)
+	if assets.BindataVersionHash != "" {
+		dirEtag := `"DirIndex-` + assets.BindataVersionHash + `_CID-` + resolvedPath.Cid().String() + `"`
+		w.Header().Set("Etag", dirEtag)
+		if r.Header.Get("If-None-Match") == dirEtag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
 	if r.Method == http.MethodHead {
 		logger.Debug("return as request's HTTP method is HEAD")
 		return
@@ -501,53 +524,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 // serveFile returns data behind a file along with HTTP headers based on
 // the file itself, its CID and the contentPath used for accessing it.
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, file files.File, fileCid cid.Cid, contentPath ipath.Path) {
-	var modtime time.Time
-	name := getFilename(contentPath)
+func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, fileCid cid.Cid, file files.File) {
 
-	// Set Etag to file's CID (override whatever we set before)
-	w.Header().Set("Etag", `"`+fileCid.String()+`"`)
+	// Set Cache-Control and read optional Last-Modified time
+	modtime := addCacheControlHeaders(w, r, contentPath, fileCid)
 
-	// Set Cache-Control and Last-Modified
-	if contentPath.Mutable() {
-		// mutable namespaces such as /ipns/ can't be cached forever
-
-		// TODO: set Cache-Control based on TTL of IPNS/DNSLink: https://github.com/ipfs/go-ipfs/issues/1818#issuecomment-1015849462
-		// TODO: set Last-Modified based on unixfs 1.5 (if present)
-
-		/* For now we set Last-Modified to Now() to leverage caching heuristics built into modern browsers:
-		 * https://github.com/ipfs/go-ipfs/pull/8074#pullrequestreview-645196768
-		 * but we should not set it to fake values and use Cache-Control based on TTL instead */
-		modtime = time.Now()
-
-	} else {
-		// immutable! CACHE ALL THE THINGS, FOREVER!
-		w.Header().Set("Cache-Control", immutableCacheControl)
-
-		// Set modtime to 'zero time' to disable Last-Modified header (superseded by Cache-Control)
-		modtime = time.Unix(0, 0)
-		// TODO: support unixfs 1.5 and set it if modification metadata is present in unixfs: https://github.com/ipfs/go-ipfs/issues/6920
-	}
-
-	/* Set Content-Disposition if needed.
-	 * This logic enables:
-	 * - creation of HTML links that trigger "Save As.." dialog instead of being rendered by the browser
-	 * - overriding the filename used when saving subrresource assets on HTML page
-	 * - provide default filename for HTTP clients when downloading direct /ipfs/CID without any subpath
-	 */
-	// URL param ?filename=cat.jpg triggers Content-Disposition: [..] filename
-	urlFilename := r.URL.Query().Get("filename")
-	if urlFilename != "" {
-		disposition := "inline"
-		// URL param ?download=true triggers Content-Disposition: [..] attachment
-		if r.URL.Query().Get("download") == "true" {
-			disposition = "attachment"
-		}
-		utf8Name := url.PathEscape(urlFilename)
-		asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(urlFilename, "_"))
-		w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
-		name = urlFilename
-	}
+	// Set Content-Disposition
+	name := addContentDispositionHeader(w, r, contentPath)
 
 	// Prepare size value for Content-Length HTTP header (set inside of http.ServeContent)
 	size, err := file.Size()
@@ -563,6 +546,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, file 
 	}
 
 	// Calculate deterministic value for Content-Type HTTP header
+	// (we prefer to do it here, rather than using implicit sniffing in http.ServeContent)
 	var ctype string
 	if _, isSymlink := file.(*files.Symlink); isSymlink {
 		// We should be smarter about resolving symlinks but this is the
@@ -601,6 +585,32 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, file 
 	// special fixup around redirects
 	w = &statusResponseWriter{w}
 
+	http.ServeContent(w, r, name, modtime, content)
+}
+
+func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, blockCid cid.Cid, contentPath ipath.Path) {
+	blockReader, err := i.api.Block().Get(r.Context(), contentPath)
+	if err != nil {
+		webError(w, "failed to get block", err, http.StatusInternalServerError)
+		return
+	}
+	block, err := ioutil.ReadAll(blockReader)
+	if err != nil {
+		webError(w, "failed to read block", err, http.StatusInternalServerError)
+		return
+	}
+	content := bytes.NewReader(block)
+
+	// Set Content-Disposition
+	name := blockCid.String() + ".ipfs.block"
+	setContentDispositionHeader(w, name, "attachment")
+
+	// Set remaining headers
+	modtime := addCacheControlHeaders(w, r, contentPath, blockCid)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
+
+	// Done: http.ServeContent will take care of Content-Length and range requests
 	http.ServeContent(w, r, name, modtime, content)
 }
 
@@ -821,6 +831,67 @@ func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
 	for k, v := range i.config.Headers {
 		w.Header()[k] = v
 	}
+}
+
+func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, fileCid cid.Cid) (modtime time.Time) {
+	// Set Etag to file's CID (override whatever was set before)
+	w.Header().Set("Etag", `"`+fileCid.String()+`"`)
+
+	// Set Cache-Control and Last-Modified based on contentPath properties
+	if contentPath.Mutable() {
+		// mutable namespaces such as /ipns/ can't be cached forever
+
+		/* For now we set Last-Modified to Now() to leverage caching heuristics built into modern browsers:
+		 * https://github.com/ipfs/go-ipfs/pull/8074#pullrequestreview-645196768
+		 * but we should not set it to fake values and use Cache-Control based on TTL instead */
+		modtime = time.Now()
+
+		// TODO: set Cache-Control based on TTL of IPNS/DNSLink: https://github.com/ipfs/go-ipfs/issues/1818#issuecomment-1015849462
+		// TODO: set Last-Modified if modification metadata is present in unixfs 1.5: https://github.com/ipfs/go-ipfs/issues/6920
+
+	} else {
+		// immutable! CACHE ALL THE THINGS, FOREVER! wolololol
+		w.Header().Set("Cache-Control", immutableCacheControl)
+
+		// Set modtime to 'zero time' to disable Last-Modified header (superseded by Cache-Control)
+		modtime = noModtime
+
+		// TODO: set Last-Modified if modification metadata is present in unixfs 1.5: https://github.com/ipfs/go-ipfs/issues/6920
+	}
+
+	return modtime
+}
+
+// Set Content-Disposition if filename URL query param is present, return preferred filename
+func addContentDispositionHeader(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) string {
+	/* This logic enables:
+	 * - creation of HTML links that trigger "Save As.." dialog instead of being rendered by the browser
+	 * - overriding the filename used when saving subresource assets on HTML page
+	 * - providing a default filename for HTTP clients when downloading direct /ipfs/CID without any subpath
+	 */
+
+	// URL param ?filename=cat.jpg triggers Content-Disposition: [..] filename
+	// which impacts default name used in "Save As.." dialog
+	name := getFilename(contentPath)
+	urlFilename := r.URL.Query().Get("filename")
+	if urlFilename != "" {
+		disposition := "inline"
+		// URL param ?download=true triggers Content-Disposition: [..] attachment
+		// which skips rendering and forces "Save As.." dialog in browsers
+		if r.URL.Query().Get("download") == "true" {
+			disposition = "attachment"
+		}
+		setContentDispositionHeader(w, urlFilename, disposition)
+		name = urlFilename
+	}
+	return name
+}
+
+// Set Content-Disposition to arbitrary filename and disposition
+func setContentDispositionHeader(w http.ResponseWriter, filename string, disposition string) {
+	utf8Name := url.PathEscape(filename)
+	asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(filename, "_"))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
 }
 
 // Set X-Ipfs-Roots with logical CID array for efficient HTTP cache invalidation.
