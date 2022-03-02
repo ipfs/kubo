@@ -26,8 +26,7 @@ import (
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
 	config "github.com/ipfs/go-ipfs-config"
 	u "github.com/ipfs/go-ipfs-util"
-	logging "github.com/ipfs/go-log"
-	loggables "github.com/libp2p/go-libp2p-loggables"
+	logging "github.com/ipfs/go-log/v2"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -73,7 +72,6 @@ func main() {
 
 func mainRet() int {
 	rand.Seed(time.Now().UnixNano())
-	ctx := logging.ContextWithLoggable(context.Background(), loggables.Uuid("session"))
 	var err error
 
 	// we'll call this local helper to output errors.
@@ -89,7 +87,7 @@ func mainRet() int {
 	}
 	defer stopFunc() // to be executed as late as possible
 
-	intrh, ctx := util.SetupInterruptHandler(ctx)
+	intrh, ctx := util.SetupInterruptHandler(context.Background())
 	defer intrh.Close()
 
 	// Handle `ipfs version` or `ipfs help`

@@ -1,12 +1,14 @@
 package corehttp
 
 import (
+	"bytes"
 	"io"
 	"net"
 	"net/http"
 
 	core "github.com/ipfs/go-ipfs/core"
-	lwriter "github.com/ipfs/go-log/writer"
+
+	logging "github.com/ipfs/go-log/v2"
 )
 
 type writeErrNotifier struct {
@@ -49,8 +51,32 @@ func LogOption() ServeOption {
 		mux.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(200)
 			wnf, errs := newWriteErrNotifier(w)
-			lwriter.WriterGroup.AddWriter(wnf)
-			log.Event(n.Context(), "log API client connected") //nolint deprecated
+
+			// FIXME(BLOCKING): This is a brittle solution and needs careful review.
+			//  Ideally we should use an io.Pipe or similar, but in contrast
+			//  with go-log@v1 where the driver was an io.Writer, here the log
+			//  comes from an io.Reader, and we need to constantly read from it
+			//  and then write to the HTTP response.
+			pipeReader := logging.NewPipeReader()
+			b := new(bytes.Buffer)
+			go func() {
+				for {
+					// FIXME: We are not handling read errors.
+					// FIXME: We may block on read and not catch the context
+					//  cancellation.
+					b.ReadFrom(pipeReader)
+					b.WriteTo(wnf)
+					select {
+					case <-r.Context().Done():
+						return
+					default:
+					}
+				}
+			}()
+
+			// FIXME(BLOCKING): Verify this call replacing the `Event` API
+			//  which has been removed in go-log v2.
+			log.Debugf("log API client connected")
 			<-errs
 		})
 		return mux, nil

@@ -16,7 +16,7 @@ import (
 	"github.com/ipfs/go-cid"
 	core "github.com/ipfs/go-ipfs/core"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	mdag "github.com/ipfs/go-merkledag"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"

@@ -20,7 +20,7 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/libp2p/go-libp2p-core/host"

@@ -8,7 +8,7 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	config "github.com/ipfs/go-ipfs-config"
 
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-core/crypto"

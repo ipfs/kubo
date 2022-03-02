@@ -12,7 +12,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-mfs"
 )
 

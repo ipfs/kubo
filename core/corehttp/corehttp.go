@@ -12,7 +12,7 @@ import (
 	"time"
 
 	core "github.com/ipfs/go-ipfs/core"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/jbenet/goprocess"
 	periodicproc "github.com/jbenet/goprocess/periodic"
 	ma "github.com/multiformats/go-multiaddr"

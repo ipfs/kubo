@@ -23,7 +23,7 @@ import (
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	"github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
-	logging "github.com/ipfs/go-log"
+	logging "github.com/ipfs/go-log/v2"
 	mfs "github.com/ipfs/go-mfs"
 	goprocess "github.com/jbenet/goprocess"
 	connmgr "github.com/libp2p/go-libp2p-core/connmgr"
