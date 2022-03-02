@@ -18,7 +18,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/ipfs/go-cid"
+	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	assets "github.com/ipfs/go-ipfs/assets"
 	dag "github.com/ipfs/go-merkledag"
@@ -32,8 +32,9 @@ import (
 )
 
 const (
-	ipfsPathPrefix = "/ipfs/"
-	ipnsPathPrefix = "/ipns/"
+	ipfsPathPrefix        = "/ipfs/"
+	ipnsPathPrefix        = "/ipns/"
+	immutableCacheControl = "public, max-age=29030400, immutable"
 )
 
 var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
@@ -312,8 +313,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	_, ok := dr.(files.Directory)
 
 	if ok && assets.BindataVersionHash != "" {
+		// generated dir listing response
 		responseEtag = `"DirIndex-` + assets.BindataVersionHash + `_CID-` + resolvedPath.Cid().String() + `"`
 	} else {
+		// regular file response
 		responseEtag = `"` + resolvedPath.Cid().String() + `"`
 	}
 
@@ -324,7 +327,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("X-IPFS-Path", urlPath)
+	w.Header().Set("X-Ipfs-Path", urlPath)
 	w.Header().Set("Etag", responseEtag)
 
 	if rootCids, err := i.buildIpfsRootsHeader(urlPath, r); err == nil {
@@ -334,37 +337,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// set these headers _after_ the error, for we may just not have it
-	// and don't want the client to cache a 500 response...
-	// and only if it's /ipfs!
-	// TODO: break this out when we split /ipfs /ipns routes.
-	modtime := time.Now()
-
 	if f, ok := dr.(files.File); ok {
-		if strings.HasPrefix(urlPath, ipfsPathPrefix) {
-			w.Header().Set("Cache-Control", "public, max-age=29030400, immutable")
-
-			// set modtime to a really long time ago, since files are immutable and should stay cached
-			modtime = time.Unix(1, 0)
-		}
-
-		urlFilename := r.URL.Query().Get("filename")
-		var name string
-		if urlFilename != "" {
-			disposition := "inline"
-			if r.URL.Query().Get("download") == "true" {
-				disposition = "attachment"
-			}
-			utf8Name := url.PathEscape(urlFilename)
-			asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(urlFilename, "_"))
-			w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
-			name = urlFilename
-		} else {
-			name = getFilename(urlPath)
-		}
-
-		logger.Debugw("serving file", "name", name)
-		i.serveFile(w, r, name, modtime, f)
+		logger.Debugw("serving file", "path", parsedPath)
+		i.serveFile(w, r, f, resolvedPath.Cid(), parsedPath)
 		return
 	}
 	dir, ok := dr.(files.Directory)
@@ -398,13 +373,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			internalWebError(w, files.ErrNotReader)
 			return
 		}
-		// static index.html → no need to generate dynamic dir-index-html
-		// replace mutable DirIndex Etag with immutable dir CID
-		w.Header().Set("Etag", `"`+resolvedPath.Cid().String()+`"`)
 
 		logger.Debugw("serving index.html file", "path", idxPath)
 		// write to request
-		i.serveFile(w, r, "index.html", modtime, f)
+		i.serveFile(w, r, f, resolvedPath.Cid(), idxPath)
 		return
 	case resolver.ErrNoLink:
 		logger.Debugw("no index.html; noop", "path", idxPath)
@@ -527,18 +499,70 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, file files.File) {
+// serveFile returns data behind a file along with HTTP headers based on
+// the file itself, its CID and the contentPath used for accessing it.
+func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, file files.File, fileCid cid.Cid, contentPath ipath.Path) {
+	var modtime time.Time
+	name := getFilename(contentPath)
+
+	// Set Etag to file's CID (override whatever we set before)
+	w.Header().Set("Etag", `"`+fileCid.String()+`"`)
+
+	// Set Cache-Control and Last-Modified
+	if contentPath.Mutable() {
+		// mutable namespaces such as /ipns/ can't be cached forever
+
+		// TODO: set Cache-Control based on TTL of IPNS/DNSLink: https://github.com/ipfs/go-ipfs/issues/1818#issuecomment-1015849462
+		// TODO: set Last-Modified based on unixfs 1.5 (if present)
+
+		/* For now we set Last-Modified to Now() to leverage caching heuristics built into modern browsers:
+		 * https://github.com/ipfs/go-ipfs/pull/8074#pullrequestreview-645196768
+		 * but we should not set it to fake values and use Cache-Control based on TTL instead */
+		modtime = time.Now()
+
+	} else {
+		// immutable! CACHE ALL THE THINGS, FOREVER!
+		w.Header().Set("Cache-Control", immutableCacheControl)
+
+		// Set modtime to 'zero time' to disable Last-Modified header (superseded by Cache-Control)
+		modtime = time.Unix(0, 0)
+		// TODO: support unixfs 1.5 and set it if modification metadata is present in unixfs: https://github.com/ipfs/go-ipfs/issues/6920
+	}
+
+	/* Set Content-Disposition if needed.
+	 * This logic enables:
+	 * - creation of HTML links that trigger "Save As.." dialog instead of being rendered by the browser
+	 * - overriding the filename used when saving subrresource assets on HTML page
+	 * - provide default filename for HTTP clients when downloading direct /ipfs/CID without any subpath
+	 */
+	// URL param ?filename=cat.jpg triggers Content-Disposition: [..] filename
+	urlFilename := r.URL.Query().Get("filename")
+	if urlFilename != "" {
+		disposition := "inline"
+		// URL param ?download=true triggers Content-Disposition: [..] attachment
+		if r.URL.Query().Get("download") == "true" {
+			disposition = "attachment"
+		}
+		utf8Name := url.PathEscape(urlFilename)
+		asciiName := url.PathEscape(onlyAscii.ReplaceAllLiteralString(urlFilename, "_"))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"; filename*=UTF-8''%s", disposition, asciiName, utf8Name))
+		name = urlFilename
+	}
+
+	// Prepare size value for Content-Length HTTP header (set inside of http.ServeContent)
 	size, err := file.Size()
 	if err != nil {
 		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
 		return
 	}
 
+	// Lazy seeker enables efficient range-requests and HTTP HEAD responses
 	content := &lazySeeker{
 		size:   size,
 		reader: file,
 	}
 
+	// Calculate deterministic value for Content-Type HTTP header
 	var ctype string
 	if _, isSymlink := file.(*files.Symlink); isSymlink {
 		// We should be smarter about resolving symlinks but this is the
@@ -570,10 +594,14 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, req *http.Request, nam
 			ctype = "text/html"
 		}
 	}
+	// Setting explicit Content-Type to avoid mime-type sniffing on the client
+	// (unifies behavior across gateways and web browsers)
 	w.Header().Set("Content-Type", ctype)
 
+	// special fixup around redirects
 	w = &statusResponseWriter{w}
-	http.ServeContent(w, req, name, modtime, content)
+
+	http.ServeContent(w, r, name, modtime, content)
 }
 
 func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.Request, parsedPath ipath.Path) bool {
@@ -863,7 +891,8 @@ func internalWebError(w http.ResponseWriter, err error) {
 	webErrorWithCode(w, "internalWebError", err, http.StatusInternalServerError)
 }
 
-func getFilename(s string) string {
+func getFilename(contentPath ipath.Path) string {
+	s := contentPath.String()
 	if (strings.HasPrefix(s, ipfsPathPrefix) || strings.HasPrefix(s, ipnsPathPrefix)) && strings.Count(gopath.Clean(s), "/") <= 2 {
 		// Don't want to treat ipfs.io in /ipns/ipfs.io as a filename.
 		return ""
