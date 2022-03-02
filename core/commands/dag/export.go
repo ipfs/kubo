@@ -63,8 +63,7 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 	err = <-errCh
 
 	// minimal user friendliness
-	if err != nil &&
-		err == ipld.ErrNotFound {
+	if ipld.IsNotFound(err) {
 		explicitOffline, _ := req.Options["offline"].(bool)
 		if explicitOffline {
 			err = fmt.Errorf("%s (currently offline, perhaps retry without the offline flag)", err)

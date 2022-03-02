@@ -297,7 +297,7 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 	for _, link := range nd.Links() {
 		child, err := dagserv.Get(ctx, link.Cid)
 
-		if err == ipld.ErrNotFound {
+		if ipld.IsNotFound(err) {
 			local = false
 			continue
 		}
