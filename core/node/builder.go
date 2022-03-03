@@ -8,6 +8,7 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/repo"
@@ -40,6 +41,9 @@ type BuildCfg struct {
 	Routing libp2p.RoutingOption
 	Host    libp2p.HostOption
 	Repo    repo.Repo
+
+	// Bitswap
+	PeerBlockRequestFilter bitswap.PeerBlockRequestFilter
 }
 
 func (cfg *BuildCfg) getOpt(key string) bool {

@@ -24,7 +24,7 @@ const (
 )
 
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
-func OnlineExchange(cfg *config.Config, provide bool) interface{} {
+func OnlineExchange(cfg *config.Config, provide bool, pbrf bitswap.PeerBlockRequestFilter) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
 
@@ -40,6 +40,11 @@ func OnlineExchange(cfg *config.Config, provide bool) interface{} {
 			bitswap.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(DefaultEngineTaskWorkerCount))),
 			bitswap.MaxOutstandingBytesPerPeer(int(internalBsCfg.MaxOutstandingBytesPerPeer.WithDefault(DefaultMaxOutstandingBytesPerPeer))),
 		}
+
+		if pbrf != nil {
+			opts = append(opts, bitswap.WithPeerBlockRequestFilter(pbrf))
+		}
+
 		exch := bitswap.New(helpers.LifecycleCtx(mctx, lc), bitswapNetwork, bs, opts...)
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
