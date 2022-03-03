@@ -54,3 +54,33 @@ func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
 	}
 	return nil
 }
+
+// Merges the right map into the left map, recursively traversing child maps
+// until a non-map value is found
+func MapMergeDeep(left, right map[string]interface{}) map[string]interface{} {
+	// We want to alter a copy of the map, not the original
+	result := make(map[string]interface{})
+	for k, v := range left {
+		result[k] = v
+	}
+
+	for key, rightVal := range right {
+		// If right value is a map
+		if rightMap, ok := rightVal.(map[string]interface{}); ok {
+			// If key is in left
+			if leftVal, found := result[key]; found {
+				// If left value is also a map
+				if leftMap, ok := leftVal.(map[string]interface{}); ok {
+					// Merge nested map
+					result[key] = MapMergeDeep(leftMap, rightMap)
+					continue
+				}
+			}
+		}
+
+		// Otherwise set new value to result
+		result[key] = rightVal
+	}
+
+	return result
+}

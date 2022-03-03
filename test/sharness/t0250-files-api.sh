@@ -876,7 +876,7 @@ test_expect_success "set up automatic sharding/unsharding data" '
 '
 
 # TODO: This does not need to report an error https://github.com/ipfs/go-ipfs/issues/8088
-test_expect_failure "reset automatic sharding" '
+test_expect_success "reset automatic sharding" '
   ipfs config --json Internal.UnixFSShardingSizeThreshold null
 '
 

@@ -559,10 +559,8 @@ func (r *FSRepo) setConfigUnsynced(updated *config.Config) error {
 	if err != nil {
 		return err
 	}
-	for k, v := range m {
-		mapconf[k] = v
-	}
-	if err := serialize.WriteConfigFile(configFilename, mapconf); err != nil {
+	mergedMap := common.MapMergeDeep(mapconf, m)
+	if err := serialize.WriteConfigFile(configFilename, mergedMap); err != nil {
 		return err
 	}
 	// Do not use `*r.config = ...`. This will modify the *shared* config
