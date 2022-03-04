@@ -31,3 +31,10 @@ type Plugin interface {
 	// (possibly uninitialized) IPFS repo and the plugin's config.
 	Init(env *Environment) error
 }
+
+// PluginConfiger is an interface for return the default config on init
+type PluginConfiger interface {
+	Plugin
+	// Config returns the plugin's config
+	Config() interface{}
+}

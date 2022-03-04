@@ -10,18 +10,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	assets "github.com/ipfs/go-ipfs/assets"
+	"github.com/ipfs/go-path"
+	"github.com/ipfs/go-unixfs"
+
+	"github.com/ipfs/go-ipfs/assets"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
-	core "github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	path "github.com/ipfs/go-path"
-	unixfs "github.com/ipfs/go-unixfs"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	config "github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
+	"github.com/ipfs/interface-go-ipfs-core/options"
 )
 
 const (
@@ -119,11 +120,22 @@ environment variable:
 			if err != nil {
 				return err
 			}
+
+			if err := initPluginConfig(cctx, conf); err != nil {
+				return err
+			}
 		}
 
 		profiles, _ := req.Options[profileOptionName].(string)
 		return doInit(os.Stdout, cctx.ConfigRoot, empty, profiles, conf)
 	},
+}
+
+func initPluginConfig(cctx *oldcmds.Context, cfg *config.Config) error {
+	if err := cctx.Plugins.PropertyConfig(cfg); err != nil {
+		return err
+	}
+	return nil
 }
 
 func applyProfiles(conf *config.Config, profiles string) error {
