@@ -108,6 +108,6 @@ As a bonus, you can also find lines that show you how to spawn a node over your 
 - [Comment these lines](./main.go#L219-L223)
 - [Uncomment these lines](./main.go#L209-L216)
 
-## Voilá! You are now a go-ipfs hacker
+## Voilà! You are now a go-ipfs hacker
 
 You've learned how to spawn a go-ipfs node using the go-ipfs core API. There are many more [methods to experiment next](https://godoc.org/github.com/ipfs/interface-go-ipfs-core). Happy hacking!
