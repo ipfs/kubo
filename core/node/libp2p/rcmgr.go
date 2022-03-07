@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 	"go.uber.org/fx"
+	"os"
 )
 
 const NetLimitDefaultFilename = "limit.json"
@@ -21,6 +21,7 @@ func ResourceManager() func(fx.Lifecycle, repo.Repo) (network.ResourceManager, L
 
 		limitFile, err := os.Open(NetLimitDefaultFilename)
 		if errors.Is(err, os.ErrNotExist) {
+			log.Debug("limit file %s not found, creating a default resource manager", NetLimitDefaultFilename)
 			limiter = rcmgr.NewDefaultLimiter()
 		} else {
 			if err != nil {
