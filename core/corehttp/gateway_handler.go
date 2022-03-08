@@ -1,13 +1,10 @@
 package corehttp
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
-	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,8 +16,6 @@ import (
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
-	"github.com/gabriel-vasile/mimetype"
-	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	assets "github.com/ipfs/go-ipfs/assets"
@@ -30,8 +25,6 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	gocar "github.com/ipld/go-car"
-	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
 )
@@ -312,24 +305,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Support custom response format via explicit override in URL
-	if responseFormat := r.URL.Query().Get("format"); responseFormat != "" {
-		switch responseFormat {
-		case "block":
-			logger.Debugw("serving raw block", "path", parsedPath)
-			i.serveRawBlock(w, r, resolvedPath.Cid(), parsedPath)
-			return
-		case "car":
-			logger.Debugw("serving car", "path", parsedPath)
-			i.serveCar(w, r, resolvedPath.Cid(), parsedPath)
-			return
-		default:
-			err := fmt.Errorf("unsupported format %q", responseFormat)
-			webError(w, "failed to parse request format", err, http.StatusBadRequest)
-			return
-		}
-	}
-
 	// HTTP Headers
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-Ipfs-Path", urlPath)
@@ -339,6 +314,32 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	} else { // this should never happen, as we resolved the urlPath already
 		webError(w, "error while resolving X-Ipfs-Roots", err, http.StatusInternalServerError)
 		return
+	}
+
+	// Support custom response formats passed via ?format or Accept HTTP header
+	if contentType := getExplicitContentType(r); contentType != "" {
+		switch contentType {
+		case "application/vnd.ipld.raw":
+			logger.Debugw("serving raw block", "path", parsedPath)
+			i.serveRawBlock(w, r, resolvedPath.Cid(), parsedPath)
+			return
+		case "application/vnd.ipld.car":
+			logger.Debugw("serving car stream", "path", parsedPath)
+			i.serveCar(w, r, resolvedPath.Cid(), parsedPath)
+			return
+		case "application/vnd.ipld.car; version=1":
+			logger.Debugw("serving car stream", "path", parsedPath)
+			i.serveCar(w, r, resolvedPath.Cid(), parsedPath)
+			return
+		case "application/vnd.ipld.car; version=2": // no CARv2 in go-ipfs atm
+			err := fmt.Errorf("unsupported CARv2 format, try again with CARv1")
+			webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
+			return
+		default:
+			err := fmt.Errorf("unsupported format %q", contentType)
+			webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Handling Unixfs
@@ -526,144 +527,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		internalWebError(w, err)
 		return
 	}
-}
-
-// serveFile returns data behind a file along with HTTP headers based on
-// the file itself, its CID and the contentPath used for accessing it.
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, fileCid cid.Cid, file files.File) {
-
-	// Set Cache-Control and read optional Last-Modified time
-	modtime := addCacheControlHeaders(w, r, contentPath, fileCid)
-
-	// Set Content-Disposition
-	name := addContentDispositionHeader(w, r, contentPath)
-
-	// Prepare size value for Content-Length HTTP header (set inside of http.ServeContent)
-	size, err := file.Size()
-	if err != nil {
-		http.Error(w, "cannot serve files with unknown sizes", http.StatusBadGateway)
-		return
-	}
-
-	// Lazy seeker enables efficient range-requests and HTTP HEAD responses
-	content := &lazySeeker{
-		size:   size,
-		reader: file,
-	}
-
-	// Calculate deterministic value for Content-Type HTTP header
-	// (we prefer to do it here, rather than using implicit sniffing in http.ServeContent)
-	var ctype string
-	if _, isSymlink := file.(*files.Symlink); isSymlink {
-		// We should be smarter about resolving symlinks but this is the
-		// "most correct" we can be without doing that.
-		ctype = "inode/symlink"
-	} else {
-		ctype = mime.TypeByExtension(gopath.Ext(name))
-		if ctype == "" {
-			// uses https://github.com/gabriel-vasile/mimetype library to determine the content type.
-			// Fixes https://github.com/ipfs/go-ipfs/issues/7252
-			mimeType, err := mimetype.DetectReader(content)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("cannot detect content-type: %s", err.Error()), http.StatusInternalServerError)
-				return
-			}
-
-			ctype = mimeType.String()
-			_, err = content.Seek(0, io.SeekStart)
-			if err != nil {
-				http.Error(w, "seeker can't seek", http.StatusInternalServerError)
-				return
-			}
-		}
-		// Strip the encoding from the HTML Content-Type header and let the
-		// browser figure it out.
-		//
-		// Fixes https://github.com/ipfs/go-ipfs/issues/2203
-		if strings.HasPrefix(ctype, "text/html;") {
-			ctype = "text/html"
-		}
-	}
-	// Setting explicit Content-Type to avoid mime-type sniffing on the client
-	// (unifies behavior across gateways and web browsers)
-	w.Header().Set("Content-Type", ctype)
-
-	// special fixup around redirects
-	w = &statusResponseWriter{w}
-
-	http.ServeContent(w, r, name, modtime, content)
-}
-
-func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, blockCid cid.Cid, contentPath ipath.Path) {
-	blockReader, err := i.api.Block().Get(r.Context(), contentPath)
-	if err != nil {
-		webError(w, "failed to get block", err, http.StatusInternalServerError)
-		return
-	}
-	block, err := ioutil.ReadAll(blockReader)
-	if err != nil {
-		webError(w, "failed to read block", err, http.StatusInternalServerError)
-		return
-	}
-	content := bytes.NewReader(block)
-
-	// Set Content-Disposition
-	name := blockCid.String() + ".ipfs.block"
-	setContentDispositionHeader(w, name, "attachment")
-
-	// Set remaining headers
-	modtime := addCacheControlHeaders(w, r, contentPath, blockCid)
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
-
-	// Done: http.ServeContent will take care of Content-Length and range requests
-	http.ServeContent(w, r, name, modtime, content)
-}
-
-func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCid cid.Cid, contentPath ipath.Path) {
-	ctx := r.Context()
-
-	// Set Content-Disposition
-	name := rootCid.String() + ".ipfs.car"
-	setContentDispositionHeader(w, name, "attachment")
-
-	// Set remaining headers
-	/* TODO modtime := addCacheControlHeaders(w, r, contentPath, rootCid)
-	- how does cache-control look like, given car can fail mid-stream?
-	  - we don't want clients to cache partial/interrupted CAR
-	  - we may document that client should verify that all blocks were dowloaded,
-	    or we may leverage content-length to hint something went wrong
-	*/
-
-	/* TODO: content-length (so user agents show % of remaining download)
-	- introduce max-car-size  limit in go-ipfs-config and pre-compute CAR first, and then get size and use lazySeeker?
-	- are we able to provide length for Unixfs DAGs? (CumulativeSize+CARv0 header+envelopes)
-	*/
-
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
-
-	// Same go-car settings as dag.export command
-	store := dagStore{dag: i.api.Dag(), ctx: ctx}
-	dag := gocar.Dag{Root: rootCid, Selector: selectorparse.CommonSelector_ExploreAllRecursively}
-	car := gocar.NewSelectiveCar(ctx, store, []gocar.Dag{dag}, gocar.TraverseLinksOnlyOnce())
-
-	w.Header().Set("Transfer-Encoding", "chunked")
-	w.WriteHeader(http.StatusOK)
-
-	if err := car.Write(w); err != nil {
-		// TODO: can we do any error handling here?
-	}
-}
-
-type dagStore struct {
-	dag coreiface.APIDagService
-	ctx context.Context
-}
-
-func (ds dagStore) Get(c cid.Cid) (blocks.Block, error) {
-	obj, err := ds.dag.Get(ds.ctx, c)
-	return obj, err
 }
 
 func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.Request, parsedPath ipath.Path) bool {
@@ -1021,6 +884,23 @@ func getFilename(contentPath ipath.Path) string {
 		return ""
 	}
 	return gopath.Base(s)
+}
+
+// return explicit response format if specified in request as query parameter or via Accept HTTP header
+func getExplicitContentType(r *http.Request) string {
+	if formatParam := r.URL.Query().Get("format"); formatParam != "" {
+		// translate query param to a content type
+		switch formatParam {
+		case "raw":
+			return "application/vnd.ipld.raw"
+		case "car":
+			return "application/vnd.ipld.car"
+		}
+	}
+	if accept := r.Header.Get("Accept"); strings.HasPrefix(accept, "application/vnd.") {
+		return accept
+	}
+	return ""
 }
 
 func (i *gatewayHandler) searchUpTreeFor404(r *http.Request, parsedPath ipath.Path) (ipath.Resolved, string, error) {
