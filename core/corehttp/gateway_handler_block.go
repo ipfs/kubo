@@ -13,12 +13,12 @@ import (
 func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, blockCid cid.Cid, contentPath ipath.Path) {
 	blockReader, err := i.api.Block().Get(r.Context(), contentPath)
 	if err != nil {
-		webError(w, "failed to get block", err, http.StatusInternalServerError)
+		webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
 		return
 	}
 	block, err := ioutil.ReadAll(blockReader)
 	if err != nil {
-		webError(w, "failed to read block", err, http.StatusInternalServerError)
+		webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
 		return
 	}
 	content := bytes.NewReader(block)

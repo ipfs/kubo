@@ -45,6 +45,7 @@ func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCi
 
 	if err := car.Write(w); err != nil {
 		// TODO: can we do any error handling here?
+		// TODO: idea: add best-effort proxy reader which  will set http.StatusOK only if the first block is yielded correctly
 	}
 }
 

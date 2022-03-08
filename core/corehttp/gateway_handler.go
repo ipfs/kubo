@@ -64,7 +64,6 @@ type gatewayHandler struct {
 	config GatewayConfig
 	api    coreiface.CoreAPI
 
-	// TODO: add metrics for non-unixfs responses (block, car)
 	unixfsGetMetric *prometheus.SummaryVec
 }
 
@@ -90,6 +89,7 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 
 func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 	unixfsGetMetric := prometheus.NewSummaryVec(
+		// TODO: deprecate and switch to content type agnostic metrics: https://github.com/ipfs/go-ipfs/issues/8441
 		prometheus.SummaryOpts{
 			Namespace: "ipfs",
 			Subsystem: "http",
@@ -305,6 +305,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Update the global metric of the time it takes to read the final root block of the requested resource
+	// NOTE: for legacy reasons this happens before we go into content-type specific code paths
+	_, err = i.api.Block().Get(r.Context(), resolvedPath)
+	if err != nil {
+		webError(w, "ipfs block get "+resolvedPath.Cid().String(), err, http.StatusInternalServerError)
+		return
+	}
+	i.unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
+
 	// HTTP Headers
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-Ipfs-Path", urlPath)
@@ -348,8 +357,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "ipfs cat "+escapedURLPath, err, http.StatusNotFound)
 		return
 	}
-	// TODO:  do we want to reuse unixfsGetMetric for block/car, or should we have separate ones?
-	i.unixfsGetMetric.WithLabelValues(parsedPath.Namespace()).Observe(time.Since(begin).Seconds())
 	defer dr.Close()
 
 	// Handling Unixfs file
