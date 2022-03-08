@@ -21,7 +21,13 @@ func MapGetKV(v map[string]interface{}, key string) (interface{}, error) {
 
 		cursor, ok = mcursor[part]
 		if !ok {
-			return nil, fmt.Errorf("%s key has no attributes", sofar)
+			// Construct the current path traversed to print a nice error message
+			var path string
+			if len(sofar) > 0 {
+				path += sofar + "."
+			}
+			path += part
+			return nil, fmt.Errorf("%s not found", path)
 		}
 	}
 	return cursor, nil
