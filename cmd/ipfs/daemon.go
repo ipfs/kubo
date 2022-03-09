@@ -17,10 +17,10 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 
 	version "github.com/ipfs/go-ipfs"
-	config "github.com/ipfs/go-ipfs-config"
-	cserial "github.com/ipfs/go-ipfs-config/serialize"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
+	config "github.com/ipfs/go-ipfs/config"
+	cserial "github.com/ipfs/go-ipfs/config/serialize"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
 	"github.com/ipfs/go-ipfs/core/coreapi"

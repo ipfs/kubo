@@ -17,7 +17,7 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	logging "github.com/ipfs/go-log"

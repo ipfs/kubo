@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 	"github.com/ipfs/go-ipfs/core/node/libp2p"

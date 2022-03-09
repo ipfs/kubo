@@ -13,7 +13,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/core"
 )
 

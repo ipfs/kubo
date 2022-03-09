@@ -120,11 +120,18 @@ jobs:
           # make sure the examples run against the current version of go-ipfs
           go mod edit -replace github.com/ipfs/go-ipfs=./../../..
           go mod tidy
+
+          # use the internal config package when we test the current version of go-ipfs
+          sed -i.bak 's;"github.com/ipfs/go-ipfs-config";"github.com/ipfs/go-ipfs/config";' ./main.go
+
           go test -v ./...
 
           # restore the go.mod and go.sum files to their original state
           mv go.mod.bak go.mod
           mv go.sum.bak go.sum
+
+          # restore the main.go to its original state
+          mv main.go.bak main.go
         working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
 
     - run:

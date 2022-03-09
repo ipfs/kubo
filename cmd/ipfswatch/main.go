@@ -1,3 +1,4 @@
+//go:build !plan9
 // +build !plan9
 
 package main
@@ -18,8 +19,8 @@ import (
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 
 	fsnotify "github.com/fsnotify/fsnotify"
-	config "github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
+	config "github.com/ipfs/go-ipfs/config"
 	process "github.com/jbenet/goprocess"
 	homedir "github.com/mitchellh/go-homedir"
 )

@@ -1,3 +1,4 @@
+//go:build !windows && !nofuse
 // +build !windows,!nofuse
 
 package commands
@@ -10,7 +11,7 @@ import (
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 )
 
 const (

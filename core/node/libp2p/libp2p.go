@@ -6,7 +6,7 @@ import (
 	"time"
 
 	version "github.com/ipfs/go-ipfs"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"

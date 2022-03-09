@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	ipld "github.com/ipfs/go-ipld-format"
 	merkledag "github.com/ipfs/go-merkledag"
 	"github.com/libp2p/go-libp2p-core/host"

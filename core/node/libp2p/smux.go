@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	"github.com/libp2p/go-libp2p"
 	smux "github.com/libp2p/go-libp2p-core/mux"
 	mplex "github.com/libp2p/go-libp2p-mplex"
