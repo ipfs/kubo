@@ -24,7 +24,7 @@ func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, b
 	content := bytes.NewReader(block)
 
 	// Set Content-Disposition
-	name := blockCid.String() + ".raw"
+	name := blockCid.String() + ".bin"
 	setContentDispositionHeader(w, name, "attachment")
 
 	// Set remaining headers

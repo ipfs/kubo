@@ -42,7 +42,7 @@ test_expect_success "Create text fixtures" '
     '
 
     test_expect_success "GET response for application/vnd.ipld.raw includes Content-Disposition" '
-    grep "< Content-Disposition: attachment\; filename=\"${FILE_CID}.raw\"" curl_output
+    grep "< Content-Disposition: attachment\; filename=\"${FILE_CID}.bin\"" curl_output
     '
 
     test_expect_success "GET response for application/vnd.ipld.raw includes nosniff hint" '
@@ -62,8 +62,7 @@ test_expect_success "Create text fixtures" '
     '
 
     test_expect_success "GET response for application/vnd.ipld.raw includes Cache-Control" '
-    grep "< X-Ipfs-Path" curl_output &&
-    grep "< X-Ipfs-Roots" curl_output
+    grep "< Cache-Control" curl_output
     '
 
 test_kill_ipfs_daemon
