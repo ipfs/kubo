@@ -42,7 +42,8 @@ func SetupDiscovery(useMdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.
 		if useMdns {
 			service := mdns.NewMdnsService(host, mdns.ServiceName, handler)
 			if err := service.Start(); err != nil {
-				return err
+				log.Error("error starting mdns service: ", err)
+				return nil
 			}
 
 			if mdnsInterval == 0 {
