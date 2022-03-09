@@ -326,29 +326,19 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Support custom response formats passed via ?format or Accept HTTP header
-	if contentType := getExplicitContentType(r); contentType != "" {
-		switch contentType {
-		case "application/vnd.ipld.raw":
-			logger.Debugw("serving raw block", "path", parsedPath)
-			i.serveRawBlock(w, r, resolvedPath.Cid(), parsedPath)
-			return
-		case "application/vnd.ipld.car":
-			logger.Debugw("serving car stream", "path", parsedPath)
-			i.serveCar(w, r, resolvedPath.Cid(), parsedPath)
-			return
-		case "application/vnd.ipld.car; version=1":
-			logger.Debugw("serving car stream", "path", parsedPath)
-			i.serveCar(w, r, resolvedPath.Cid(), parsedPath)
-			return
-		case "application/vnd.ipld.car; version=2": // no CARv2 in go-ipfs atm
-			err := fmt.Errorf("unsupported CARv2 format, try again with CARv1")
-			webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
-			return
-		default:
-			err := fmt.Errorf("unsupported format %q", contentType)
-			webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
-			return
-		}
+	switch contentType := getExplicitContentType(r); contentType {
+	case "application/vnd.ipld.raw":
+		logger.Debugw("serving raw block", "path", parsedPath)
+		i.serveRawBlock(w, r, resolvedPath.Cid(), parsedPath)
+		return
+	case "application/vnd.ipld.car", "application/vnd.ipld.car; version=1":
+		logger.Debugw("serving car stream", "path", parsedPath)
+		i.serveCar(w, r, resolvedPath.Cid(), parsedPath)
+		return
+	default:
+		err := fmt.Errorf("unsupported format %q", contentType)
+		webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
+		return
 	}
 
 	// Handling Unixfs
@@ -904,8 +894,14 @@ func getExplicitContentType(r *http.Request) string {
 			return "application/vnd.ipld.car"
 		}
 	}
-	if accept := r.Header.Get("Accept"); strings.HasPrefix(accept, "application/vnd.") {
-		return accept
+	// Browsers and other user agents will send Accept header with generic types like:
+	// Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+	// We only care about explciit, vendor-specific content-types.
+	for _, accept := range r.Header.Values("Accept") {
+		// respond to the very first ipld content type
+		if strings.HasPrefix(accept, "application/vnd.ipld") {
+			return accept
+		}
 	}
 	return ""
 }
