@@ -5,12 +5,12 @@ test_description="Test HTTP Gateway Raw Block (application/vnd.ipld.raw) Support
 . lib/test-lib.sh
 
 test_init_ipfs
-test_launch_ipfs_daemon
+test_launch_ipfs_daemon_without_network
 
 test_expect_success "Create text fixtures" '
   mkdir -p dir &&
-  echo "hello" > dir/ascii.txt &&
-  ROOT_DIR_CID=$(ipfs add -Qrw --cid-version 1 dir)
+  echo "hello application/vnd.ipld.raw" > dir/ascii.txt &&
+  ROOT_DIR_CID=$(ipfs add -Qrw --cid-version 1 dir) &&
   FILE_CID=$(ipfs resolve -r /ipfs/$ROOT_DIR_CID/dir/ascii.txt | cut -d "/" -f3)
 '
 

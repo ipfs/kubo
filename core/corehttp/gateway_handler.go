@@ -327,6 +327,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	// Support custom response formats passed via ?format or Accept HTTP header
 	switch contentType := getExplicitContentType(r); contentType {
+	case "":
+		// nothing we should special-case, skip
+		break
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", parsedPath)
 		i.serveRawBlock(w, r, resolvedPath.Cid(), parsedPath)

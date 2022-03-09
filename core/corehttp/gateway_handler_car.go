@@ -20,32 +20,31 @@ func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCi
 	name := rootCid.String() + ".car"
 	setContentDispositionHeader(w, name, "attachment")
 
-	// Set remaining headers
-	/* TODO modtime := addCacheControlHeaders(w, r, contentPath, rootCid)
-	- how does cache-control look like, given car can fail mid-stream?
-	  - we don't want clients to cache partial/interrupted CAR
-	  - we may document that client should verify that all blocks were dowloaded,
-	    or we may leverage content-length to hint something went wrong
-	*/
+	// Weak Etag W/ because we can't guarantee byte-for-byte identical  responses
+	// (CAR is streamed, blocks arrive from datastore in non-deterministic order)
+	w.Header().Set("Etag", `W/"`+rootCid.String()+`.car"`)
 
-	/* TODO: content-length (so user agents show % of remaining download)
-	- introduce max-car-size  limit in go-ipfs-config and pre-compute CAR first, and then get size and use lazySeeker?
-	- are we able to provide length for Unixfs DAGs? (CumulativeSize+CARv0 header+envelopes)
-	*/
+	// Explicit Cache-Control to ensure fresh stream on retry.
+	// CAR stream could be interrupted, and client should be able to resume and get full response, not the truncated one
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
 
 	w.Header().Set("Content-Type", "application/vnd.ipld.car; version=1")
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
 
 	// Same go-car settings as dag.export command
 	store := dagStore{dag: i.api.Dag(), ctx: ctx}
+
+	// TODO: support selectors passed as request param: https://github.com/ipfs/go-ipfs/issues/8769
 	dag := gocar.Dag{Root: rootCid, Selector: selectorparse.CommonSelector_ExploreAllRecursively}
 	car := gocar.NewSelectiveCar(ctx, store, []gocar.Dag{dag}, gocar.TraverseLinksOnlyOnce())
 
-	w.WriteHeader(http.StatusOK)
-
 	if err := car.Write(w); err != nil {
-		// TODO: can we do any error handling here?
-		// TODO: idea: add best-effort proxy reader which  will set http.StatusOK only if the first block is yielded correctly
+		// We return error as a trailer, however it is not something browsers can access
+		// (https://github.com/mdn/browser-compat-data/issues/14703)
+		// Due to this, we suggest client always verify that
+		// the received CAR stream response is matching requested DAG selector
+		w.Header().Set("X-Stream-Error", err.Error())
+		return
 	}
 }
 
