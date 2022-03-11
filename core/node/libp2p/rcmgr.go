@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 	"go.uber.org/fx"
-	"os"
 )
 
 const NetLimitDefaultFilename = "limit.json"
@@ -38,7 +39,12 @@ func ResourceManager() func(fx.Lifecycle, repo.Repo) (network.ResourceManager, L
 
 		libp2p.SetDefaultServiceLimits(limiter)
 
-		rcmgr, err := rcmgr.NewResourceManager(limiter)
+		var ropts []rcmgr.Option
+		if os.Getenv("IPFS_DEBUG_RCMGR") != "" {
+			ropts = append(ropts, rcmgr.WithTrace("rcmgr.json.gz"))
+		}
+
+		rcmgr, err := rcmgr.NewResourceManager(limiter, ropts...)
 		if err != nil {
 			return nil, opts, fmt.Errorf("error creating resource manager: %w", err)
 		}
