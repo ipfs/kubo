@@ -44,7 +44,7 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 	// when transmitting them over BitSwap. The 1 MiB constant is an
 	// unenforced and undeclared rule of thumb hard-coded here.
 	if size > SoftBlockLimit {
-		return fmt.Errorf("produced block is over 1MB: big blocks can't be exchanged with other peers. consider using dag-pb for automatic chunking of bigger files, or pass --allow-big-block to override")
+		return fmt.Errorf("produced block is over 1MB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
 	}
 	return nil
 
