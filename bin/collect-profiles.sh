@@ -46,6 +46,17 @@ go tool pprof -symbolize=remote -svg -output mutex.svg "$SOURCE_URL/debug/pprof/
 echo "Disabling mutex profiling"
 curl -X POST "$SOURCE_URL"'/debug/pprof-mutex/?fraction=0'
 
+echo "Enabling block profiling"
+curl -X POST "$SOURCE_URL"'/debug/pprof-block/?rate=1000000'  # profile every 1 ms
+
+echo "Waiting for block data to be updated (30s)"
+sleep 30
+curl -s -o block.txt "$SOURCE_URL"'/debug/pprof/block?debug=2'
+go tool pprof -symbolize=remote -svg -output block.svg "$SOURCE_URL/debug/pprof/block"
+
+echo "Disabling block profiling"
+curl -X POST "$SOURCE_URL"'/debug/pprof-block/?rate=0'
+
 OUTPUT_NAME=ipfs-profile-$(uname -n)-$(date +'%Y-%m-%dT%H:%M:%S%z').tar.gz
 echo "Creating $OUTPUT_NAME"
 popd > /dev/null
