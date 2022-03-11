@@ -10,6 +10,7 @@ import (
 
 	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/cmdutils"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
@@ -138,6 +139,7 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 		cmds.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
 		cmds.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
 		cmds.BoolOption(pinOptionName, "pin added blocks recursively").WithDefault(false),
+		cmdutils.AllowBigBlockOption,
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -179,6 +181,10 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 				options.Block.Format(format),
 				options.Block.Pin(pin))
 			if err != nil {
+				return err
+			}
+
+			if err := cmdutils.CheckBlockSize(req, uint64(p.Size())); err != nil {
 				return err
 			}
 

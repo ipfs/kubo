@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/go-ipfs/core/commands/cmdutils"
 
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
@@ -88,6 +89,7 @@ into an object of the specified format.
 		cmds.StringOption("input-codec", "Codec that the input object is encoded in").WithDefault("dag-json"),
 		cmds.BoolOption("pin", "Pin this object when adding."),
 		cmds.StringOption("hash", "Hash function to use").WithDefault("sha2-256"),
+		cmdutils.AllowBigBlockOption,
 	},
 	Run:  dagPut,
 	Type: OutputObject{},
@@ -205,6 +207,7 @@ Maximum supported CAR version: 1
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
+		cmdutils.AllowBigBlockOption,
 	},
 	Type: CarImportOutput{},
 	Run:  dagImport,

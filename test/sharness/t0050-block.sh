@@ -248,4 +248,18 @@ test_expect_success "put with sha3 and cidv0 fails" '
   echo "foooo" | test_must_fail ipfs block put --mhtype=sha3 --mhlen=20 --format=v0
 '
 
+test_expect_success "'ipfs block put' check block size" '
+    dd if=/dev/zero bs=2MB count=1 > 2-MB-file &&
+    test_expect_code 1 ipfs block put 2-MB-file >block_put_out 2>&1
+  '
+
+  test_expect_success "ipfs block put output has the correct error" '
+    grep "produced block is over 1MiB" block_put_out
+  '
+
+  test_expect_success "ipfs block put --allow-big-block=true works" '
+    test_expect_code 0 ipfs block put 2-MB-file --allow-big-block=true &&
+    rm 2-MB-file
+  '
+
 test_done
