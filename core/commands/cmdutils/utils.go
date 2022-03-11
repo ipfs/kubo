@@ -17,7 +17,7 @@ const (
 var AllowBigBlockOption cmds.Option
 
 func init() {
-	AllowBigBlockOption = cmds.BoolOption(AllowBigBlockOptionName, "Disable block size check and allow creation of blocks bigger than 1MB. WARNING: such blocks won't be transferable over the standard bitswap.").WithDefault(false)
+	AllowBigBlockOption = cmds.BoolOption(AllowBigBlockOptionName, "Disable block size check and allow creation of blocks bigger than 1MiB. WARNING: such blocks won't be transferable over the standard bitswap.").WithDefault(false)
 }
 
 func CheckCIDSize(req *cmds.Request, c cid.Cid, dagAPI coreiface.APIDagService) error {
@@ -44,7 +44,7 @@ func CheckBlockSize(req *cmds.Request, size uint64) error {
 	// when transmitting them over BitSwap. The 1 MiB constant is an
 	// unenforced and undeclared rule of thumb hard-coded here.
 	if size > SoftBlockLimit {
-		return fmt.Errorf("produced block is over 1MB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
+		return fmt.Errorf("produced block is over 1MiB: big blocks can't be exchanged with other peers. consider using UnixFS for automatic chunking of bigger files, or pass --allow-big-block to override")
 	}
 	return nil
 

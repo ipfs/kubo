@@ -246,7 +246,7 @@ func getCompressOptions(req *cmds.Request) (int, error) {
 	return cmplvl, nil
 }
 
-// DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
+// DefaultBufSize is the buffer size for gets. for now, 1MiB, which is ~4 blocks.
 // TODO: does this need to be configurable?
 var DefaultBufSize = 1048576
 

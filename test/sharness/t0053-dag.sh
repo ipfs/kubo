@@ -50,7 +50,7 @@ test_expect_success "'ipfs dag put' check block size" '
   '
 
   test_expect_success "ipfs dag put output has the correct error" '
-    grep "produced block is over 1MB" dag_put_out
+    grep "produced block is over 1MiB" dag_put_out
   '
 
   test_expect_success "ipfs dag put --allow-big-block=true works" '

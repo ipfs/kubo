@@ -254,7 +254,7 @@ test_expect_success "'ipfs block put' check block size" '
   '
 
   test_expect_success "ipfs block put output has the correct error" '
-    grep "produced block is over 1MB" block_put_out
+    grep "produced block is over 1MiB" block_put_out
   '
 
   test_expect_success "ipfs block put --allow-big-block=true works" '

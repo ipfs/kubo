@@ -239,7 +239,7 @@ test_expect_success "'ipfs dag import' check block size" '
     test_expect_code 1 ipfs dag import 2-MB-block.car >dag_import_out 2>&1
 '
 test_expect_success "ipfs dag import output has the correct error" '
-    grep "block is over 1MB" dag_import_out
+    grep "block is over 1MiB" dag_import_out
 '
 
 test_expect_success "ipfs dag import --allow-big-block works" '

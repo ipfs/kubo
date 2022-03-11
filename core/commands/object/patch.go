@@ -58,7 +58,7 @@ Example:
 	$ echo "hello" | ipfs object patch $HASH append-data
 
 NOTE: This does not append data to a file - it modifies the actual raw
-data within a dag-pb object. Blocks have a max size of 1MB and objects larger than
+data within a dag-pb object. Blocks have a max size of 1MiB and objects larger than
 the limit will not be respected by the network.
 
 DEPRECATED and provided for legacy reasons. Use 'ipfs add' or 'ipfs files' instead.
