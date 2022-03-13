@@ -62,7 +62,7 @@ type Gateway struct {
 
 	// NoDNSLink configures the gateway to _not_ perform DNS TXT record
 	// lookups in response to requests with values in `Host` HTTP header.
-	// This flag can be overriden per FQDN in PublicGateways.
+	// This flag can be overridden per FQDN in PublicGateways.
 	NoDNSLink bool
 
 	// PublicGateways configures behavior of known public gateways.

@@ -29,7 +29,7 @@ type SwarmConfig struct {
 	// Node will find and use advertised public relays when it determines that
 	// it's not reachable from the public internet.
 	//
-	// Deprecated: This flag is deprecated and is overriden by
+	// Deprecated: This flag is deprecated and is overridden by
 	// `Swarm.RelayClient.Enabled` if specified.
 	EnableAutoRelay bool `json:",omitempty"`
 
