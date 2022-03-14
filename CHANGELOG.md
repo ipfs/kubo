@@ -1,5 +1,39 @@
 # go-ipfs changelog
 
+## v0.11.1 2022-04-08
+
+This patch release covers a couple of security fixes
+
+### Malformed DAG Traversal
+This patch release fixes a security issue wherein traversing some malformed DAGs can cause the node to panic.
+
+See also the security advisory: https://github.com/ipfs/go-ipfs/security/advisories/GHSA-mcq2-w56r-5w2w
+
+### Docker Compose Ports
+
+This patch release [fixes](https://github.com/ipfs/go-ipfs/commit/816a128aaf963d72c4930852ce32b9a4e31924a1) a security issue with the `docker-compose.yaml` file in which the IPFS daemon API listens on all interfaces instead of only the loopback interface, which could allow remote callers to control your IPFS daemon. If you use the included `docker-compose.yaml` file, it is recommended to upgrade.
+
+See also the security advisory: https://github.com/ipfs/go-ipfs/security/advisories/GHSA-fx5p-f64h-93xc
+
+Thanks to @LynHyper for finding and disclosing this.
+
+### Changelog
+
+<details>
+<summary>Full Changelog</summary>
+- github.com/ipfs/go-ipfs:
+  -  fix: listen on loopback for API and gateway ports in docker-compose.yaml
+- github.com/ipld/go-codec-dagpb (v1.3.0 -> v1.3.2):
+  - fix: use protowire for Links bytes decoding
+</details>
+
+### ❤ Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Rod Vagg | 1 | +34/-19 | 2 |
+| guseggert | 1 | +10/-3 | 1 |
+
 ## v0.11.0 2021-12-08
 
 We're happy to announce go-ipfs 0.11.0. This release comes with improvements to the UnixFS Sharding and PubSub experiments as well as support for Circuit-Relay v2 which sets the network up for decentralized hole punching support.
