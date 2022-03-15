@@ -23,10 +23,11 @@ func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCi
 
 	// Weak Etag W/ because we can't guarantee byte-for-byte identical  responses
 	// (CAR is streamed, and in theory, blocks may arrive from datastore in non-deterministic order)
-	w.Header().Set("Etag", `W/`+getEtag(r, rootCid))
+	etag := getEtag(r, rootCid)
+	w.Header().Set("Etag", `W/`+etag)
 
 	// Finish early if Etag match
-	if r.Header.Get("If-None-Match") == w.Header().Get("Etag") {
+	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
