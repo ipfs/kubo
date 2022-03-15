@@ -22,8 +22,14 @@ func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCi
 	setContentDispositionHeader(w, name, "attachment")
 
 	// Weak Etag W/ because we can't guarantee byte-for-byte identical  responses
-	// (CAR is streamed, blocks arrive from datastore in non-deterministic order)
-	w.Header().Set("Etag", `W/"`+rootCid.String()+`.car"`)
+	// (CAR is streamed, and in theory, blocks may arrive from datastore in non-deterministic order)
+	w.Header().Set("Etag", `W/`+getEtag(r, rootCid))
+
+	// Finish early if Etag match
+	if r.Header.Get("If-None-Match") == w.Header().Get("Etag") {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
 
 	// Make it clear we don't support range-requests over a car stream
 	// Partial downloads and resumes should be handled using

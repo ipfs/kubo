@@ -275,10 +275,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Detect when explicit Accept header or ?format parameter are present
+	responseFormat := customResponseFormat(r)
+
 	// Finish early if client already has matching Etag
-	// (suffix match to cover both direct CID and DirIndex cases)
-	cidEtagSuffix := resolvedPath.Cid().String() + `"`
-	if strings.HasSuffix(r.Header.Get("If-None-Match"), cidEtagSuffix) {
+	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -304,8 +305,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Support custom response formats passed via ?format or Accept HTTP header
-	switch contentType := getExplicitContentType(r); contentType {
-	case "": // The default, implicit response format is UnixFS
+	switch responseFormat {
+	case "": // The implicit response format is UnixFS
 		logger.Debugw("serving unixfs", "path", contentPath)
 		i.serveUnixFs(w, r, resolvedPath, contentPath, logger)
 		return
@@ -317,8 +318,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		logger.Debugw("serving car stream", "path", contentPath)
 		i.serveCar(w, r, resolvedPath.Cid(), contentPath)
 		return
-	default:
-		err := fmt.Errorf("unsupported format %q", contentType)
+	default: // catch-all for unsuported application/vnd.*
+		err := fmt.Errorf("unsupported format %q", responseFormat)
 		webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
 		return
 	}
@@ -544,8 +545,8 @@ func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
 }
 
 func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, fileCid cid.Cid) (modtime time.Time) {
-	// Set Etag to file's CID (override whatever was set before)
-	w.Header().Set("Etag", `"`+fileCid.String()+`"`)
+	// Set Etag to based on CID (override whatever was set before)
+	w.Header().Set("Etag", getEtag(r, fileCid))
 
 	// Set Cache-Control and Last-Modified based on contentPath properties
 	if contentPath.Mutable() {
@@ -566,7 +567,7 @@ func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath 
 		// Set modtime to 'zero time' to disable Last-Modified header (superseded by Cache-Control)
 		modtime = noModtime
 
-		// TODO: set Last-Modified - TBD - /ipfs/ modification metadata is present in unixfs 1.5 https://github.com/ipfs/go-ipfs/issues/6920?
+		// TODO: set Last-Modified? - TBD - /ipfs/ modification metadata is present in unixfs 1.5 https://github.com/ipfs/go-ipfs/issues/6920?
 	}
 
 	return modtime
@@ -681,8 +682,23 @@ func getFilename(contentPath ipath.Path) string {
 	return gopath.Base(s)
 }
 
+// generate Etag value based on HTTP request and CID
+func getEtag(r *http.Request, cid cid.Cid) string {
+	prefix := `"`
+	suffix := `"`
+	responseFormat := customResponseFormat(r)
+	if responseFormat != "" {
+		// application/vnd.ipld.foo → foo
+		f := responseFormat[strings.LastIndex(responseFormat, ".")+1:]
+		// Etag: "cid.foo" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
+		suffix = `.` + f + suffix
+	}
+	// TODO: include selector suffix when https://github.com/ipfs/go-ipfs/issues/8769 lands
+	return prefix + cid.String() + suffix
+}
+
 // return explicit response format if specified in request as query parameter or via Accept HTTP header
-func getExplicitContentType(r *http.Request) string {
+func customResponseFormat(r *http.Request) string {
 	if formatParam := r.URL.Query().Get("format"); formatParam != "" {
 		// translate query param to a content type
 		switch formatParam {

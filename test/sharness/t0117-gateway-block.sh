@@ -53,7 +53,7 @@ test_expect_success "Create text fixtures" '
 # (basic checks, detailed behavior is tested in  t0116-gateway-cache.sh)
 
     test_expect_success "GET response for application/vnd.ipld.raw includes Etag" '
-    grep "< Etag: \"${FILE_CID}\"" curl_output
+    grep "< Etag: \"${FILE_CID}.raw\"" curl_output
     '
 
     test_expect_success "GET response for application/vnd.ipld.raw includes X-Ipfs-Path and X-Ipfs-Roots" '

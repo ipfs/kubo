@@ -77,5 +77,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, conte
 	// special fixup around redirects
 	w = &statusResponseWriter{w}
 
+	// Done: http.ServeContent will take care of
+	// If-None-Match+Etag, Content-Length and range requests
 	http.ServeContent(w, r, name, modtime, content)
 }
