@@ -3,7 +3,6 @@ package corehttp
 import (
 	"context"
 	"fmt"
-	"html"
 	"html/template"
 	"io"
 	"net/http"
@@ -263,15 +262,16 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	switch err {
 	case nil:
 	case coreiface.ErrOffline:
-		webError(w, "ipfs resolve -r "+html.EscapeString(contentPath.String()), err, http.StatusServiceUnavailable)
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
 		return
 	default:
+		// if Accept is text/html, see if ipfs-404.html is present
 		if i.servePretty404IfPresent(w, r, contentPath) {
 			logger.Debugw("serve pretty 404 if present")
 			return
 		}
 
-		webError(w, "ipfs resolve -r "+html.EscapeString(contentPath.String()), err, http.StatusNotFound)
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
 		return
 	}
 
@@ -664,7 +664,7 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 func webErrorWithCode(w http.ResponseWriter, message string, err error, code int) {
 	http.Error(w, fmt.Sprintf("%s: %s", message, err), code)
 	if code >= 500 {
-		log.Warnf("server error: %s: %s", err)
+		log.Warnf("server error: %s: %s", message, err)
 	}
 }
 
@@ -760,6 +760,15 @@ func preferred404Filename(acceptHeaders []string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("there is no 404 file for the requested content types")
+}
+
+// returns unquoted path with all special characters revealed as \u codes
+func debugStr(path string) string {
+	q := fmt.Sprintf("%+q", path)
+	if len(q) >= 3 {
+		q = q[1 : len(q)-1]
+	}
+	return q
 }
 
 // Attempt to fix redundant /ipfs/ namespace as long as resulting
