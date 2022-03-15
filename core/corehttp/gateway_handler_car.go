@@ -25,6 +25,11 @@ func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCi
 	// (CAR is streamed, blocks arrive from datastore in non-deterministic order)
 	w.Header().Set("Etag", `W/"`+rootCid.String()+`.car"`)
 
+	// Make it clear we don't support range-requests over a car stream
+	// Partial downloads and resumes should be handled using
+	// IPLD selectors: https://github.com/ipfs/go-ipfs/issues/8769
+	w.Header().Set("Accept-Ranges", "none")
+
 	// Explicit Cache-Control to ensure fresh stream on retry.
 	// CAR stream could be interrupted, and client should be able to resume and get full response, not the truncated one
 	w.Header().Set("Cache-Control", "no-cache, no-transform")

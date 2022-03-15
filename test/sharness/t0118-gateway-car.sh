@@ -66,7 +66,7 @@ test_launch_ipfs_daemon_without_network
     ipfs dag stat --offline $ROOT_DIR_CID
     '
 
-# Make sure expected HTTP headers are returned with the block bytes
+# Make sure expected HTTP headers are returned with the CAR bytes
 
     test_expect_success "GET response for application/vnd.ipld.car has expected Content-Type" '
     ipfs dag import test-dag.car &&
@@ -88,6 +88,13 @@ test_launch_ipfs_daemon_without_network
     grep "< X-Content-Type-Options: nosniff" curl_output
     '
 
+    # CAR is streamed, gateway may not have the entire thing, unable to support range-requests
+    # Partial downloads and resumes should be handled using
+    # IPLD selectors: https://github.com/ipfs/go-ipfs/issues/8769
+    test_expect_success "GET response for application/vnd.ipld.car includes Accept-Ranges header" '
+    grep "< Accept-Ranges: none" curl_output
+    '
+
 # Cache control HTTP headers
 
     test_expect_success "GET response for application/vnd.ipld.car includes a weak Etag" '
@@ -100,7 +107,7 @@ test_launch_ipfs_daemon_without_network
     grep "< X-Ipfs-Roots" curl_output
     '
 
-    test_expect_success "GET response for application/vnd.ipld.raw includes expected Cache-Control" '
+    test_expect_success "GET response for application/vnd.ipld.car includes expected Cache-Control" '
     grep "< Cache-Control: no-cache, no-transform" curl_output
     '
 
