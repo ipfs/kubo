@@ -14,7 +14,8 @@ import (
 
 // serveCar returns a CAR stream for specific DAG+selector
 func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCid cid.Cid, contentPath ipath.Path) {
-	ctx := r.Context()
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
 
 	// Set Content-Disposition
 	name := rootCid.String() + ".car"
