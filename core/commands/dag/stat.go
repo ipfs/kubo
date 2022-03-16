@@ -70,8 +70,14 @@ func (t *statTraversal) pump() error {
 				return err
 			}
 
-			if t.runners == 0 {
-				// FINISHED !
+			finished := t.runners == 0
+			if t.progressive || finished {
+				if err := t.res.Emit(&t.stats); err != nil {
+					return err
+				}
+			}
+
+			if finished {
 				return nil
 			}
 		}
@@ -89,12 +95,6 @@ func (t *statTraversal) handleStating(c cid.Cid, nodeLen uint64) error {
 		t.stats.Size += nodeLen
 	}
 	t.stats.NumBlocks++
-
-	if t.progressive {
-		if err := t.res.Emit(&t.stats); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -180,12 +180,6 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	err = t.traverse(rp.Cid())
 	if err != nil {
 		return fmt.Errorf("error traversing DAG: %w", err)
-	}
-
-	if !progressive {
-		if err := res.Emit(&t.stats); err != nil {
-			return err
-		}
 	}
 
 	return nil
