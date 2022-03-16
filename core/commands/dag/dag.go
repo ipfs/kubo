@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	pinRootsOptionName = "pin-roots"
-	progressOptionName = "progress"
-	silentOptionName   = "silent"
-	statsOptionName    = "stats"
+	pinRootsOptionName      = "pin-roots"
+	progressOptionName      = "progress"
+	skipRawleavesOptionName = "skip-raw-leaves"
+	silentOptionName        = "silent"
+	statsOptionName         = "stats"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -305,6 +306,7 @@ Note: This command skips duplicate blocks in reporting both size and the number 
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(progressOptionName, "p", "Return progressive data while reading through the DAG").WithDefault(true),
+		cmds.BoolOption(skipRawleavesOptionName, "s", "Skip raw leaves block when size is already known, faster but can lead to underestimating the size with malformed DAGs.").WithDefault(true),
 	},
 	Run:  dagStat,
 	Type: DagStat{},
