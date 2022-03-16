@@ -121,6 +121,25 @@ However, it could reveal:
 	},
 }
 
+func WriteAllGoroutineStacks(w io.Writer) error {
+	// this is based on pprof.writeGoroutineStacks, and removes the 64 MB limit
+	buf := make([]byte, 1<<20)
+	for i := 0; ; i++ {
+		n := runtime.Stack(buf, true)
+		if n < len(buf) {
+			buf = buf[:n]
+			break
+		}
+		// if len(buf) >= 64<<20 {
+		// 	// Filled 64 MB - stop there.
+		// 	break
+		// }
+		buf = make([]byte, 2*len(buf))
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
 func writeProfiles(ctx context.Context, cpuProfileTime time.Duration, w io.Writer) error {
 	archive := zip.NewWriter(w)
 
@@ -142,6 +161,17 @@ func writeProfiles(ctx context.Context, cpuProfileTime time.Duration, w io.Write
 		name: "heap",
 		file: "heap.pprof",
 	}}
+
+	{
+		out, err := archive.Create("goroutines-all.stacks")
+		if err != nil {
+			return err
+		}
+		err = WriteAllGoroutineStacks(out)
+		if err != nil {
+			return err
+		}
+	}
 
 	for _, profile := range profiles {
 		prof := pprof.Lookup(profile.name)

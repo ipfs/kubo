@@ -61,4 +61,8 @@ test_expect_success "goroutines stacktrace is valid" '
   grep -q "goroutine" "profiles/goroutines.stacks"
 '
 
+test_expect_success "full goroutines stacktrace is valid" '
+  grep -q "goroutine" "profiles/goroutines-all.stacks"
+'
+
 test_done
