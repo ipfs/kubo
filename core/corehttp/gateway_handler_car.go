@@ -3,6 +3,7 @@ package corehttp
 import (
 	"context"
 	"net/http"
+	"time"
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -13,7 +14,7 @@ import (
 )
 
 // serveCar returns a CAR stream for specific DAG+selector
-func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCid cid.Cid, contentPath ipath.Path) {
+func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCid cid.Cid, contentPath ipath.Path, begin time.Time) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -59,6 +60,9 @@ func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCi
 		w.Header().Set("X-Stream-Error", err.Error())
 		return
 	}
+
+	// Update metrics
+	i.carStreamGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
 }
 
 type dagStore struct {

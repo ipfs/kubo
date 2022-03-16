@@ -62,8 +62,15 @@ type gatewayHandler struct {
 	config GatewayConfig
 	api    coreiface.CoreAPI
 
-	unixfsGetMetric     *prometheus.SummaryVec
-	unixfsGetHistMetric *prometheus.HistogramVec
+	// generic metrics
+	firstContentBlockGetMetric *prometheus.HistogramVec
+	unixfsGetMetric            *prometheus.SummaryVec // deprecated, use firstContentBlockGetMetric
+
+	// response type metrics
+	unixfsFileGetMetric   *prometheus.HistogramVec
+	unixfsGenDirGetMetric *prometheus.HistogramVec
+	carStreamGetMetric    *prometheus.HistogramVec
+	rawBlockGetMetric     *prometheus.HistogramVec
 }
 
 // StatusResponseWriter enables us to override HTTP Status Code passed to
@@ -86,48 +93,93 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 	sw.ResponseWriter.WriteHeader(code)
 }
 
-func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
-	unixfsGetMetric := prometheus.NewSummaryVec(
-		// TODO: deprecate and switch to content type agnostic metrics: https://github.com/ipfs/go-ipfs/issues/8441
+func newGatewaySummaryMetric(name string, help string) *prometheus.SummaryVec {
+	summaryMetric := prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "ipfs",
 			Subsystem: "http",
-			Name:      "unixfs_get_latency_seconds",
-			Help:      "The time till the first block is received when 'getting' a file from the gateway.",
+			Name:      name,
+			Help:      help,
 		},
 		[]string{"gateway"},
 	)
-	if err := prometheus.Register(unixfsGetMetric); err != nil {
+	if err := prometheus.Register(summaryMetric); err != nil {
 		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
-			unixfsGetMetric = are.ExistingCollector.(*prometheus.SummaryVec)
+			summaryMetric = are.ExistingCollector.(*prometheus.SummaryVec)
 		} else {
-			log.Errorf("failed to register unixfsGetMetric: %v", err)
+			log.Errorf("failed to register ipfs_http_%s: %v", name, err)
 		}
 	}
+	return summaryMetric
+}
 
-	unixfsGetHistMetric := prometheus.NewHistogramVec(
+func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVec {
+	// We can add buckets as a parameter in the future, but for now using static defaults
+	// suggested in https://github.com/ipfs/go-ipfs/issues/8441
+	defaultBuckets := []float64{0.1, 0.5, 1, 2, 3, 5, 8, 13}
+	histogramMetric := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "ipfs",
 			Subsystem: "http",
-			Name:      "unixfs_get_latency_hist_seconds",
-			Help:      "The time till the first block is received when 'getting' a file from the gateway.",
-			Buckets:   []float64{0.1, 0.5, 1, 2, 3, 5, 8, 13},
+			Name:      name,
+			Help:      help,
+			Buckets:   defaultBuckets,
 		},
 		[]string{"gateway"},
 	)
-	if err := prometheus.Register(unixfsGetHistMetric); err != nil {
+	if err := prometheus.Register(histogramMetric); err != nil {
 		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
-			unixfsGetHistMetric = are.ExistingCollector.(*prometheus.HistogramVec)
+			histogramMetric = are.ExistingCollector.(*prometheus.HistogramVec)
 		} else {
-			log.Errorf("failed to register unixfsGetMetric: %v", err)
+			log.Errorf("failed to register ipfs_http_%s: %v", name, err)
 		}
 	}
+	return histogramMetric
+}
 
+func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 	i := &gatewayHandler{
-		config:              c,
-		api:                 api,
-		unixfsGetMetric:     unixfsGetMetric,
-		unixfsGetHistMetric: unixfsGetHistMetric,
+		config: c,
+		api:    api,
+		// Improved Metrics
+		// ----------------------------
+		// Time till the first content block (bar in /ipfs/cid/foo/bar)
+		// (format-agnostic, across all response types)
+		firstContentBlockGetMetric: newGatewayHistogramMetric(
+			"gw_first_content_block_get_latency_seconds",
+			"The time till the first content block is received on GET from the gateway.",
+		),
+
+		// Response-type specific metrics
+		// ----------------------------
+		// UnixFS: time it takes to return a file
+		unixfsFileGetMetric: newGatewayHistogramMetric(
+			"gw_unixfs_file_get_duration_seconds",
+			"The time it takes till the entire file is served on GET from the gateway.",
+		),
+		// UnixFS: time it takes to generate static HTML with directory listing
+		unixfsGenDirGetMetric: newGatewayHistogramMetric(
+			"gw_unixfs_gen_dir_listing_get_duration_seconds",
+			"The time it takes till generated HTML with directory listing is served on GET from the gateway.",
+		),
+		// CAR: time it takes to return requested CAR stream
+		carStreamGetMetric: newGatewayHistogramMetric(
+			"gw_car_stream_get_duration_seconds",
+			"The time it takes to get entire CAR stream on GET from the gateway.",
+		),
+		// Block: time it takes to return requested Block
+		rawBlockGetMetric: newGatewayHistogramMetric(
+			"gw_raw_block_get_duration_seconds",
+			"The time it takes to get entire raw Block on GET from the gateway.",
+		),
+
+		// Legacy Metrics
+		// ----------------------------
+		unixfsGetMetric: newGatewaySummaryMetric( // TODO: remove?
+			// (deprecated, use firstContentBlockGetMetric instead)
+			"unixfs_get_latency_seconds",
+			"The time till the first unixfs node is received on GET from the gateway.",
+		),
 	}
 	return i
 }
@@ -311,9 +363,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "ipfs block get "+resolvedPath.Cid().String(), err, http.StatusInternalServerError)
 		return
 	}
+	ns := contentPath.Namespace()
 	timeToGetFirstContentBlock := time.Since(begin).Seconds()
-	i.unixfsGetMetric.WithLabelValues(contentPath.Namespace()).Observe(timeToGetFirstContentBlock)
-	i.unixfsGetHistMetric.WithLabelValues(contentPath.Namespace()).Observe(timeToGetFirstContentBlock)
+	i.unixfsGetMetric.WithLabelValues(ns).Observe(timeToGetFirstContentBlock) // deprecated, use firstContentBlockGetMetric instead
+	i.firstContentBlockGetMetric.WithLabelValues(ns).Observe(timeToGetFirstContentBlock)
 
 	// HTTP Headers
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
@@ -330,15 +383,15 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	switch responseFormat {
 	case "": // The implicit response format is UnixFS
 		logger.Debugw("serving unixfs", "path", contentPath)
-		i.serveUnixFs(w, r, resolvedPath, contentPath, logger)
+		i.serveUnixFs(w, r, resolvedPath, contentPath, begin, logger)
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)
-		i.serveRawBlock(w, r, resolvedPath.Cid(), contentPath)
+		i.serveRawBlock(w, r, resolvedPath.Cid(), contentPath, begin)
 		return
 	case "application/vnd.ipld.car", "application/vnd.ipld.car; version=1":
 		logger.Debugw("serving car stream", "path", contentPath)
-		i.serveCar(w, r, resolvedPath.Cid(), contentPath)
+		i.serveCar(w, r, resolvedPath.Cid(), contentPath, begin)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
