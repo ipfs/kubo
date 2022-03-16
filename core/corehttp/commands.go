@@ -46,6 +46,11 @@ var defaultLocalhostOrigins = []string{
 	"https://localhost:<port>",
 }
 
+var companionBrowserExtensionOrigins = []string{
+	"chrome-extension://nibjojkomfdiaoajekhjakgkdhaomnch", // ipfs-companion
+	"chrome-extension://hjoieblefckbooibpepigmacodalfndh", // ipfs-companion-beta
+}
+
 func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
 	origin := os.Getenv(originEnvKey)
 	if origin != "" {
@@ -84,10 +89,9 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
-	// by default use localhost origins
-	if len(c.AllowedOrigins()) == 0 {
-		c.SetAllowedOrigins(defaultLocalhostOrigins...)
-	}
+	// always safelist certain origins
+	c.AppendAllowedOrigins(defaultLocalhostOrigins...)
+	c.AppendAllowedOrigins(companionBrowserExtensionOrigins...)
 
 	// by default, use GET, PUT, POST
 	if len(c.AllowedMethods()) == 0 {
