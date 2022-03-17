@@ -1,5 +1,8 @@
 # go-ipfs changelog
 
+## v0.12.1 2022-03-10
+This patch release [fixes](https://github.com/ipfs/go-ipfs/commit/816a128aaf963d72c4930852ce32b9a4e31924a1) a security issue with the `docker-compose.yaml` file, introduced in v0.11.0, in which the IPFS daemon API listens on all interfaces instead of only the loopback interface, which could allow remote callers to control your IPFS daemon. If you use the included `docker-compose.yaml` file, it is recommended to upgrade.
+
 ## v0.12.0 2022-02-17
 
 We're happy to announce go-ipfs 0.12.0. This release switches the storage of IPLD blocks to be keyed by multihash instead of CID.
