@@ -65,17 +65,36 @@ images, audio, video, PDF) and trigger immediate "save as" dialog by appending
 
 > https://ipfs.io/ipfs/QmfM2r8seH2GiRaC4esTjeraXEachRt8ZsSeGaWTPLyMoG?filename=hello_world.txt&download=true
 
-## MIME-Types
+## Response Format
 
-TODO
+An explicit response format can be requested using `?format=raw|car|..` URL parameter,
+or by sending `Accept: application/vnd.ipld.{format}` HTTP header with one of supported content types.
 
-## Read-Only API
+## Content-Types
 
-For convenience, the gateway exposes a read-only API. This read-only API exposes
-a read-only, "safe" subset of the normal API.
+### `application/vnd.ipld.raw`
 
-For example, you use this to download a block:
+Returns a byte array for a single `raw` block.
 
-```
-> curl https://ipfs.io/api/v0/block/get/bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4
-```
+Sending such requests for `/ipfs/{cid}` allows for efficient fetch of blocks with data
+encoded in custom format, without the need for deserialization and traversal on the gateway.
+
+This is equivalent of `ipfs block get`.
+
+### `application/vnd.ipld.car`
+
+Returns a [CAR](https://ipld.io/specs/transport/car/) stream for specific DAG and selector.
+
+Right now only 'full DAG' implicit selector is implemented.
+Support for user-provided IPLD selectors is tracked in https://github.com/ipfs/go-ipfs/issues/8769.
+
+This is a rough equivalent of `ipfs dag export`.
+
+## Deprecated Subset of RPC API
+
+For legacy reasons, the gateway port exposes a small subset of RPC API under `/api/v0/`.
+While this read-only API exposes a read-only, "safe" subset of the normal API,
+it is deprecated and should not be used for greenfield projects.
+
+Where possible, leverage `/ipfs/` and `/ipns/` endpoints.
+along with `application/vnd.ipld.*` Content-Types instead.

@@ -126,12 +126,6 @@ func newTestServerAndNode(t *testing.T, ns mockNamesys) (*httptest.Server, iface
 		t.Fatal(err)
 	}
 
-	cfg, err := n.Repo.Config()
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg.Gateway.PathPrefixes = []string{"/good-prefix"}
-
 	// need this variable here since we need to construct handler with
 	// listener, and server with handler. yay cycles.
 	dh := &delegatedHandler{}
@@ -242,7 +236,7 @@ func TestGatewayGet(t *testing.T) {
 		{"127.0.0.1:8080", "/" + k.Cid().String(), http.StatusNotFound, "404 page not found\n"},
 		{"127.0.0.1:8080", k.String(), http.StatusOK, "fnord"},
 		{"127.0.0.1:8080", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"127.0.0.1:8080", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/%0D%0A%0D%0Ahello: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"127.0.0.1:8080", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/\\r\\n\\r\\nhello: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"127.0.0.1:8080", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 
@@ -403,7 +397,6 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Host = "example.net"
-	req.Header.Set("X-Ipfs-Gateway-Prefix", "/good-prefix")
 
 	res, err = doWithoutRedirect(req)
 	if err != nil {
@@ -417,8 +410,8 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 	hdr = res.Header["Location"]
 	if len(hdr) < 1 {
 		t.Errorf("location header not present")
-	} else if hdr[0] != "/good-prefix/foo/" {
-		t.Errorf("location header is %v, expected /good-prefix/foo/", hdr[0])
+	} else if hdr[0] != "/foo/" {
+		t.Errorf("location header is %v, expected /foo/", hdr[0])
 	}
 
 	// make sure /version isn't exposed
@@ -427,7 +420,6 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Host = "example.net"
-	req.Header.Set("X-Ipfs-Gateway-Prefix", "/good-prefix")
 
 	res, err = doWithoutRedirect(req)
 	if err != nil {
@@ -581,82 +573,6 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 		t.Fatalf("expected file in directory listing")
 	}
 	if !strings.Contains(s, k3.Cid().String()) {
-		t.Fatalf("expected hash in directory listing")
-	}
-
-	// make request to directory listing with prefix
-	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Host = "example.net"
-	req.Header.Set("X-Ipfs-Gateway-Prefix", "/good-prefix")
-
-	res, err = doWithoutRedirect(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// expect correct backlinks with prefix
-	body, err = ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Fatalf("error reading response: %s", err)
-	}
-	s = string(body)
-	t.Logf("body: %s\n", string(body))
-
-	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>") {
-		t.Fatalf("expected a path in directory listing")
-	}
-	if !strings.Contains(s, "<a href=\"/good-prefix/\">") {
-		t.Fatalf("expected backlink in directory listing")
-	}
-	if !strings.Contains(s, "<a href=\"/good-prefix/file.txt\">") {
-		t.Fatalf("expected file in directory listing")
-	}
-	if !strings.Contains(s, k.Cid().String()) {
-		t.Fatalf("expected hash in directory listing")
-	}
-
-	// make request to directory listing with illegal prefix
-	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Host = "example.net"
-	req.Header.Set("X-Ipfs-Gateway-Prefix", "/bad-prefix")
-
-	// make request to directory listing with evil prefix
-	req, err = http.NewRequest(http.MethodGet, ts.URL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Host = "example.net"
-	req.Header.Set("X-Ipfs-Gateway-Prefix", "//good-prefix/foo")
-
-	res, err = doWithoutRedirect(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// expect correct backlinks without illegal prefix
-	body, err = ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Fatalf("error reading response: %s", err)
-	}
-	s = string(body)
-	t.Logf("body: %s\n", string(body))
-
-	if !matchPathOrBreadcrumbs(s, "/") {
-		t.Fatalf("expected a path in directory listing")
-	}
-	if !strings.Contains(s, "<a href=\"/\">") {
-		t.Fatalf("expected backlink in directory listing")
-	}
-	if !strings.Contains(s, "<a href=\"/file.txt\">") {
-		t.Fatalf("expected file in directory listing")
-	}
-	if !strings.Contains(s, k.Cid().String()) {
 		t.Fatalf("expected hash in directory listing")
 	}
 }
