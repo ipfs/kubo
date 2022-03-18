@@ -30,9 +30,9 @@ var DagCmd = &cmds.Command{
 		ShortDescription: `
 'ipfs dag' is used for creating and manipulating DAG objects/hierarchies.
 
-This subcommand is currently an experimental feature, but it is intended
-to deprecate and replace the existing 'ipfs object' command moving forward.
-		`,
+This subcommand is is intended to deprecate and replace
+the existing 'ipfs object' command moving forward.
+`,
 	},
 	Subcommands: map[string]*cmds.Command{
 		"put":     DagPutCmd,

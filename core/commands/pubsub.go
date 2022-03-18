@@ -17,6 +17,7 @@ import (
 )
 
 var PubsubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "An experimental publish-subscribe system on ipfs.",
 		ShortDescription: `
@@ -46,6 +47,7 @@ type pubsubMessage struct {
 }
 
 var PubsubSubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Subscribe to messages on a given topic.",
 		ShortDescription: `
@@ -144,6 +146,7 @@ TOPIC AND DATA ENCODING
 }
 
 var PubsubPubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Publish data to a given pubsub topic.",
 		ShortDescription: `
@@ -199,6 +202,7 @@ HTTP RPC ENCODING
 }
 
 var PubsubLsCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List subscribed topics by name.",
 		ShortDescription: `
@@ -270,6 +274,7 @@ func safeTextListEncoder(req *cmds.Request, w io.Writer, list *stringList) error
 }
 
 var PubsubPeersCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List peers we are currently pubsubbing with.",
 		ShortDescription: `

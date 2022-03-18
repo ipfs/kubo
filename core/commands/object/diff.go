@@ -20,6 +20,7 @@ type Changes struct {
 }
 
 var ObjectDiffCmd = &cmds.Command{
+	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Display the diff between two IPFS objects.",
 		ShortDescription: `
