@@ -155,22 +155,22 @@ func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 		// UnixFS: time it takes to return a file
 		unixfsFileGetMetric: newGatewayHistogramMetric(
 			"gw_unixfs_file_get_duration_seconds",
-			"The time it takes till the entire file is served on GET from the gateway.",
+			"The time to serve an entire UnixFS file from the gateway.",
 		),
 		// UnixFS: time it takes to generate static HTML with directory listing
 		unixfsGenDirGetMetric: newGatewayHistogramMetric(
 			"gw_unixfs_gen_dir_listing_get_duration_seconds",
-			"The time it takes till generated HTML with directory listing is served on GET from the gateway.",
+			"The time to serve a generated UnixFS HTML directory listing from the gateway.",
 		),
 		// CAR: time it takes to return requested CAR stream
 		carStreamGetMetric: newGatewayHistogramMetric(
 			"gw_car_stream_get_duration_seconds",
-			"The time it takes to get entire CAR stream on GET from the gateway.",
+			"The time to GET an entire CAR stream from the gateway.",
 		),
 		// Block: time it takes to return requested Block
 		rawBlockGetMetric: newGatewayHistogramMetric(
 			"gw_raw_block_get_duration_seconds",
-			"The time it takes to get entire raw Block on GET from the gateway.",
+			"The time to GET an entire raw Block from the gateway.",
 		),
 
 		// Legacy Metrics
@@ -178,7 +178,7 @@ func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 		unixfsGetMetric: newGatewaySummaryMetric( // TODO: remove?
 			// (deprecated, use firstContentBlockGetMetric instead)
 			"unixfs_get_latency_seconds",
-			"The time till the first unixfs node is received on GET from the gateway.",
+			"The time to receive the first UnixFS node on a GET from the gateway.",
 		),
 	}
 	return i
