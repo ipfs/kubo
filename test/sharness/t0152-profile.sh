@@ -16,8 +16,8 @@ test_expect_success "profiling requires a running daemon" '
 
 test_launch_ipfs_daemon
 
-test_expect_success "test profiling (without CPU)" '
-  ipfs diag profile --cpu-profile-time=0 > cmd_out
+test_expect_success "test profiling (without samplin)" '
+  ipfs diag profile --profile-time=0 > cmd_out
 '
 
 test_expect_success "filename shows up in output" '
@@ -29,7 +29,7 @@ test_expect_success "profile file created" '
 '
 
 test_expect_success "test profiling with -o" '
-  ipfs diag profile --cpu-profile-time=1s -o test-profile.zip
+  ipfs diag profile --profile-time=1s -o test-profile.zip
 '
 
 test_expect_success "test that test-profile.zip exists" '
@@ -57,12 +57,16 @@ test_expect_success "goroutines profile is valid" '
   go tool pprof -top profiles/ipfs "profiles/goroutines.pprof" | grep -q "Type: goroutine"
 '
 
-test_expect_success "goroutines stacktrace is valid" '
-  grep -q "goroutine" "profiles/goroutines.stacks"
+test_expect_success "mutex profile is valid" '
+  go tool pprof -top profiles/ipfs "profiles/mutex.pprof" | grep -q "Type: delay"
 '
 
-test_expect_success "full goroutines stacktrace is valid" '
-  grep -q "goroutine" "profiles/goroutines-all.stacks"
+test_expect_success "block profile is valid" '
+  go tool pprof -top profiles/ipfs "profiles/block.pprof" | grep -q "Type: delay"
+'
+
+test_expect_success "goroutines stacktrace is valid" '
+  grep -q "goroutine" "profiles/goroutines.stacks"
 '
 
 test_done

@@ -2,18 +2,15 @@ package commands
 
 import (
 	"archive/zip"
-	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"runtime"
-	"runtime/pprof"
 	"strings"
 	"time"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/go-ipfs/core/commands/e"
+	"github.com/ipfs/go-ipfs/profile"
 )
 
 // time format that works in filenames on windows.
@@ -23,22 +20,26 @@ type profileResult struct {
 	File string
 }
 
-const cpuProfileTimeOption = "cpu-profile-time"
+const (
+	profileTimeOption          = "profile-time"
+	mutexProfileFractionOption = "mutex-profile-fraction"
+	blockProfileRateOption     = "block-profile-rate"
+)
 
 var sysProfileCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Collect a performance profile for debugging.",
 		ShortDescription: `
-Collects cpu, heap, and goroutine profiles from a running go-ipfs daemon
-into a single zip file. To aid in debugging, this command also attempts to
-include a copy of the running go-ipfs binary.
+Collects profiles from a running go-ipfs daemon into a single zip file.
+To aid in debugging, this command also attempts to include a copy of
+the running go-ipfs binary.
 `,
 		LongDescription: `
-Collects cpu, heap, and goroutine profiles from a running go-ipfs daemon
-into a single zipfile. To aid in debugging, this command also attempts to
-include a copy of the running go-ipfs binary.
+Collects profiles from a running go-ipfs daemon into a single zipfile.
+To aid in debugging, this command also attempts to include a copy of
+the running go-ipfs binary.
 
-Profile's can be examined using 'go tool pprof', some tips can be found at
+Profiles can be examined using 'go tool pprof', some tips can be found at
 https://github.com/ipfs/go-ipfs/blob/master/docs/debug-guide.md.
 
 Privacy Notice:
@@ -48,6 +49,8 @@ The output file includes:
 - A list of running goroutines.
 - A CPU profile.
 - A heap profile.
+- A mutex profile.
+- A block profile.
 - Your copy of go-ipfs.
 - The output of 'ipfs version --all'.
 
@@ -69,18 +72,36 @@ However, it could reveal:
 	NoLocal: true,
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
-		cmds.StringOption(cpuProfileTimeOption, "The amount of time spent profiling CPU usage.").WithDefault("30s"),
+		cmds.StringOption(profileTimeOption, "The amount of time spent profiling. If this is set to 0, then sampling profiles are skipped.").WithDefault("30s"),
+		cmds.IntOption(mutexProfileFractionOption, "The fraction 1/n of mutex contention events that are reported in the mutex profile.").WithDefault(4),
+		cmds.StringOption(blockProfileRateOption, "The duration to wait between sampling goroutine-blocking events for the blocking profile.").WithDefault("1ms"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cpuProfileTimeStr, _ := req.Options[cpuProfileTimeOption].(string)
-		cpuProfileTime, err := time.ParseDuration(cpuProfileTimeStr)
+		profileTimeStr, _ := req.Options[profileTimeOption].(string)
+		profileTime, err := time.ParseDuration(profileTimeStr)
 		if err != nil {
-			return fmt.Errorf("failed to parse CPU profile duration %q: %w", cpuProfileTimeStr, err)
+			return fmt.Errorf("failed to parse profile duration %q: %w", profileTimeStr, err)
 		}
 
+		blockProfileRateStr, _ := req.Options[blockProfileRateOption].(string)
+		blockProfileRate, err := time.ParseDuration(blockProfileRateStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse block profile rate %q: %w", blockProfileRateStr, err)
+		}
+
+		mutexProfileFraction, _ := req.Options[mutexProfileFractionOption].(int)
+
 		r, w := io.Pipe()
+
 		go func() {
-			_ = w.CloseWithError(writeProfiles(req.Context, cpuProfileTime, w))
+			archive := zip.NewWriter(w)
+			err = profile.WriteProfiles(req.Context, archive, profile.Options{
+				ProfileDuration:      profileTime,
+				MutexProfileFraction: mutexProfileFraction,
+				BlockProfileRate:     blockProfileRate,
+			})
+			archive.Close()
+			_ = w.CloseWithError(err)
 		}()
 		return res.Emit(r)
 	},
@@ -119,149 +140,4 @@ However, it could reveal:
 			return nil
 		}),
 	},
-}
-
-func WriteAllGoroutineStacks(w io.Writer) error {
-	// this is based on pprof.writeGoroutineStacks, and removes the 64 MB limit
-	buf := make([]byte, 1<<20)
-	for i := 0; ; i++ {
-		n := runtime.Stack(buf, true)
-		if n < len(buf) {
-			buf = buf[:n]
-			break
-		}
-		// if len(buf) >= 64<<20 {
-		// 	// Filled 64 MB - stop there.
-		// 	break
-		// }
-		buf = make([]byte, 2*len(buf))
-	}
-	_, err := w.Write(buf)
-	return err
-}
-
-func writeProfiles(ctx context.Context, cpuProfileTime time.Duration, w io.Writer) error {
-	archive := zip.NewWriter(w)
-
-	// Take some profiles.
-	type profile struct {
-		name  string
-		file  string
-		debug int
-	}
-
-	profiles := []profile{{
-		name:  "goroutine",
-		file:  "goroutines.stacks",
-		debug: 2,
-	}, {
-		name: "goroutine",
-		file: "goroutines.pprof",
-	}, {
-		name: "heap",
-		file: "heap.pprof",
-	}}
-
-	{
-		out, err := archive.Create("goroutines-all.stacks")
-		if err != nil {
-			return err
-		}
-		err = WriteAllGoroutineStacks(out)
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, profile := range profiles {
-		prof := pprof.Lookup(profile.name)
-		out, err := archive.Create(profile.file)
-		if err != nil {
-			return err
-		}
-		err = prof.WriteTo(out, profile.debug)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Take a CPU profile.
-	if cpuProfileTime != 0 {
-		out, err := archive.Create("cpu.pprof")
-		if err != nil {
-			return err
-		}
-
-		err = writeCPUProfile(ctx, cpuProfileTime, out)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Collect version info
-	// I'd use diag sysinfo, but that includes some more sensitive information
-	// (GOPATH, etc.).
-	{
-		out, err := archive.Create("version.json")
-		if err != nil {
-			return err
-		}
-
-		err = json.NewEncoder(out).Encode(getVersionInfo())
-		if err != nil {
-			return err
-		}
-	}
-
-	// Collect binary
-	if fi, err := openIPFSBinary(); err == nil {
-		fname := "ipfs"
-		if runtime.GOOS == "windows" {
-			fname += ".exe"
-		}
-
-		out, err := archive.Create(fname)
-		if err != nil {
-			return err
-		}
-
-		_, err = io.Copy(out, fi)
-		_ = fi.Close()
-		if err != nil {
-			return err
-		}
-	}
-	return archive.Close()
-}
-
-func writeCPUProfile(ctx context.Context, d time.Duration, w io.Writer) error {
-	if err := pprof.StartCPUProfile(w); err != nil {
-		return err
-	}
-	defer pprof.StopCPUProfile()
-
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-
-	select {
-	case <-timer.C:
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-	return nil
-}
-
-func openIPFSBinary() (*os.File, error) {
-	if runtime.GOOS == "linux" {
-		pid := os.Getpid()
-		fi, err := os.Open(fmt.Sprintf("/proc/%d/exe", pid))
-		if err == nil {
-			return fi, nil
-		}
-	}
-	path, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-	return os.Open(path)
 }
