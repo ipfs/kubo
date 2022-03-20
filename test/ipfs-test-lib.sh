@@ -62,12 +62,7 @@ docker_run() {
 
 # This takes a docker ID and a command as arguments
 docker_exec() {
-    if test "$CIRCLE" = 1
-    then
-        sudo lxc-attach -n "$(docker inspect --format '{{.Id}}' $1)" -- /bin/bash -c "$2"
-    else
-	docker exec -t "$1" /bin/bash -c "$2"
-    fi
+    docker exec -t "$1" /bin/sh -c "$2"
 }
 
 # This takes a docker ID as argument

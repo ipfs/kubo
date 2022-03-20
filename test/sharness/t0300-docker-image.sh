@@ -29,30 +29,28 @@ TEST_TESTS_DIR=$(dirname "$TEST_SCRIPTS_DIR")
 APP_ROOT_DIR=$(dirname "$TEST_TESTS_DIR")
 
 test_expect_success "docker image build succeeds" '
-  docker_build "$TEST_TESTS_DIR/../Dockerfile" "$APP_ROOT_DIR" >actual ||
+  docker_build "$TEST_TESTS_DIR/../Dockerfile" "$APP_ROOT_DIR" >build-actual ||
   test_fsh echo "TEST_TESTS_DIR: $TEST_TESTS_DIR" ||
   test_fsh echo "APP_ROOT_DIR : $APP_ROOT_DIR" ||
-  test_fsh cat actual
+  test_fsh cat build-actual
 '
 
 test_expect_success "docker image build output looks good" '
-  SUCCESS_LINE=$(egrep "^Successfully built" actual) &&
+  SUCCESS_LINE=$(egrep "^Successfully built" build-actual) &&
   IMAGE_ID=$(expr "$SUCCESS_LINE" : "^Successfully built \(.*\)") ||
-  test_fsh cat actual
+  test_fsh cat build-actual
 '
 
 test_expect_success "docker image runs" '
-  DOC_ID=$(docker_run "$IMAGE_ID")
+  DOC_ID=$(docker run -d -p 127.0.0.1:5001:5001 -p 127.0.0.1:8080:8080 "$IMAGE_ID")
 '
 
-test_expect_success "docker image gateway is up" '
-  docker_exec "$DOC_ID" "wget --retry-connrefused --waitretry=1 --timeout=30 -t 30 \
-    -q -O - http://localhost:8080/version >/dev/null"
+test_expect_success "docker container gateway is up" '
+  pollEndpoint -host=/ip4/127.0.0.1/tcp/8080 -http-url http://localhost:8080/api/v0/version -v -tries 30 -tout 1s
 '
 
-test_expect_success "docker image API is up" '
-  docker_exec "$DOC_ID" "wget --retry-connrefused --waitretry=1 --timeout=30 -t 30 \
-    -q -O - http://localhost:5001/api/v0/version >/dev/null"
+test_expect_success "docker container API is up" '
+  pollEndpoint -host=/ip4/127.0.0.1/tcp/5001 -http-url http://localhost:5001/version -v -tries 30 -tout 1s
 '
 
 test_expect_success "simple ipfs add/cat can be run in docker container" '
@@ -63,8 +61,7 @@ test_expect_success "simple ipfs add/cat can be run in docker container" '
 '
 
 read testcode <<EOF
-  docker exec -i "$DOC_ID" wget --retry-connrefused --waitretry=1 --timeout=30 -t 30 \
-    -q -O - http://localhost:8080/version | grep Commit | cut -d" " -f2 >actual ; \
+  pollEndpoint -host=/ip4/127.0.0.1/tcp/5001 -http-url http://localhost:5001/version -http-out | grep Commit | cut -d" " -f2 >actual ; \
   test -s actual ; \
   docker exec -i "$DOC_ID" ipfs version --enc json \
     | sed 's/^.*"Commit":"\\\([^"]*\\\)".*$/\\\1/g' >expected ; \

@@ -154,7 +154,7 @@ jobs:
     working_directory: ~/ipfs/go-ipfs
     environment:
         <<: *default_environment
-        TEST_NO_DOCKER: 1
+        TEST_NO_DOCKER: 0
         TEST_NO_FUSE: 1
         TEST_VERBOSE: 1
     steps:
