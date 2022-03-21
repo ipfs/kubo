@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"time"
 
 	files "github.com/ipfs/go-ipfs-files"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"go.uber.org/zap"
 )
 
-func (i *gatewayHandler) serveUnixFs(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, logger *zap.SugaredLogger) {
+func (i *gatewayHandler) serveUnixFs(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
 	// Handling UnixFS
 	dr, err := i.api.Unixfs().Get(r.Context(), resolvedPath)
 	if err != nil {
@@ -22,7 +23,7 @@ func (i *gatewayHandler) serveUnixFs(w http.ResponseWriter, r *http.Request, res
 	// Handling Unixfs file
 	if f, ok := dr.(files.File); ok {
 		logger.Debugw("serving unixfs file", "path", contentPath)
-		i.serveFile(w, r, contentPath, resolvedPath.Cid(), f)
+		i.serveFile(w, r, contentPath, resolvedPath.Cid(), f, begin)
 		return
 	}
 
@@ -33,5 +34,5 @@ func (i *gatewayHandler) serveUnixFs(w http.ResponseWriter, r *http.Request, res
 		return
 	}
 	logger.Debugw("serving unixfs directory", "path", contentPath)
-	i.serveDirectory(w, r, resolvedPath, contentPath, dir, logger)
+	i.serveDirectory(w, r, resolvedPath, contentPath, dir, begin, logger)
 }

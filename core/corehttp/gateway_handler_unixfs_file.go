@@ -7,6 +7,7 @@ import (
 	"net/http"
 	gopath "path"
 	"strings"
+	"time"
 
 	"github.com/gabriel-vasile/mimetype"
 	cid "github.com/ipfs/go-cid"
@@ -16,7 +17,7 @@ import (
 
 // serveFile returns data behind a file along with HTTP headers based on
 // the file itself, its CID and the contentPath used for accessing it.
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, fileCid cid.Cid, file files.File) {
+func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, fileCid cid.Cid, file files.File, begin time.Time) {
 
 	// Set Cache-Control and read optional Last-Modified time
 	modtime := addCacheControlHeaders(w, r, contentPath, fileCid)
@@ -80,4 +81,7 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, conte
 	// Done: http.ServeContent will take care of
 	// If-None-Match+Etag, Content-Length and range requests
 	http.ServeContent(w, r, name, modtime, content)
+
+	// Update metrics
+	i.unixfsFileGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
 }

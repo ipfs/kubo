@@ -5,6 +5,7 @@ import (
 	"net/url"
 	gopath "path"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	files "github.com/ipfs/go-ipfs-files"
@@ -18,7 +19,7 @@ import (
 // serveDirectory returns the best representation of UnixFS directory
 //
 // It will return index.html if present, or generate directory listing otherwise.
-func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, logger *zap.SugaredLogger) {
+func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger) {
 
 	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
 	// In this case, we need the original path for constructing redirects
@@ -62,7 +63,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 
 		logger.Debugw("serving index.html file", "path", idxPath)
 		// write to request
-		i.serveFile(w, r, idxPath, resolvedPath.Cid(), f)
+		i.serveFile(w, r, idxPath, resolvedPath.Cid(), f, begin)
 		return
 	case resolver.ErrNoLink:
 		logger.Debugw("no index.html; noop", "path", idxPath)
@@ -194,4 +195,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 		internalWebError(w, err)
 		return
 	}
+
+	// Update metrics
+	i.unixfsGenDirGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
 }
