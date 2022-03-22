@@ -222,6 +222,7 @@ Version         string The repo version.
 }
 
 var repoFsckCmd = &cmds.Command{
+	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/6435
 	Helptext: cmds.HelpText{
 		Tagline: "Remove repo lockfiles.",
 		ShortDescription: `
