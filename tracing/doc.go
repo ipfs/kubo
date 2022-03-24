@@ -1,6 +1,9 @@
 // Package tracing contains the tracing logic for go-ipfs, including configuring the tracer and
 // helping keep consistent naming conventions across the stack.
 //
+// NOTE: Tracing is currently experimental. Span names may change unexpectedly, spans may be removed,
+// and backwards-incompatible changes may be made to tracing configuration, options, and defaults.
+//
 // go-ipfs uses OpenTelemetry as its tracing API, and when possible, standard OpenTelemetry environment
 // variables can be used to configure it. Multiple exporters can also be installed simultaneously,
 // including one that writes traces to a JSON file on disk.
@@ -56,8 +59,8 @@
 //
 // Span names follow a convention of <Component>.<Span>, some examples:
 //
-//  - component=Gateway + span=Request = Gateway.Request
-//  - component=CoreAPI.PinAPI + span=Verify.CheckPin = CoreAPI.PinAPI.Verify.CheckPin
+//  - component=Gateway + span=Request -> Gateway.Request
+//  - component=CoreAPI.PinAPI + span=Verify.CheckPin -> CoreAPI.PinAPI.Verify.CheckPin
 //
 // We follow the OpenTelemetry convention of using whatever TracerProvider is registered globally.
 package tracing
