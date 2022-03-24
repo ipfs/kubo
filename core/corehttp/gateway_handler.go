@@ -25,6 +25,8 @@ import (
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -349,6 +351,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 
 	// Detect when explicit Accept header or ?format parameter are present
 	responseFormat := customResponseFormat(r)
+	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
 
 	// Finish early if client already has matching Etag
 	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
