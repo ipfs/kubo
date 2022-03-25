@@ -53,9 +53,11 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 	span.SetAttributes(
 		attribute.Bool("allowoffline", options.AllowOffline),
 		attribute.String("key", options.Key),
-		attribute.Float64("ttl", options.TTL.Seconds()),
 		attribute.Float64("validtime", options.ValidTime.Seconds()),
 	)
+	if options.TTL != nil {
+		span.SetAttributes(attribute.Float64("ttl", options.TTL.Seconds()))
+	}
 
 	err = api.checkOnline(options.AllowOffline)
 	if err != nil {
