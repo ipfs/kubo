@@ -33,7 +33,11 @@ type Context struct {
 }
 
 func (c *Context) GetConfig() (*config.Config, error) {
-	return c.node.Repo.Config()
+	node, err := c.GetNode()
+	if err != nil {
+		return nil, err
+	}
+	return node.Repo.Config()
 }
 
 // GetNode returns the node of the current Command execution
