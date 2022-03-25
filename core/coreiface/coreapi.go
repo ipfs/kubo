@@ -32,7 +32,7 @@ type CoreAPI interface {
 	// Pin returns an implementation of Pin API
 	Pin() PinAPI
 
-	// ObjectAPI returns an implementation of Object API
+	// Object returns an implementation of Object API
 	Object() ObjectAPI
 
 	// Dht returns an implementation of Dht API
