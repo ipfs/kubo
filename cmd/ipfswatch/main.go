@@ -20,7 +20,6 @@ import (
 
 	fsnotify "github.com/fsnotify/fsnotify"
 	files "github.com/ipfs/go-ipfs-files"
-	config "github.com/ipfs/go-ipfs/config"
 	process "github.com/jbenet/goprocess"
 	homedir "github.com/mitchellh/go-homedir"
 )
@@ -217,9 +216,6 @@ func IsHidden(path string) bool {
 func cmdCtx(node *core.IpfsNode, repoPath string) commands.Context {
 	return commands.Context{
 		ConfigRoot: repoPath,
-		LoadConfig: func(path string) (*config.Config, error) {
-			return node.Repo.Config()
-		},
 		ConstructNode: func() (*core.IpfsNode, error) {
 			return node, nil
 		},
