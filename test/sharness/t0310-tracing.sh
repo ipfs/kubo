@@ -45,7 +45,7 @@ test_expect_success "run opentelemetry collector" '
 test_launch_ipfs_daemon
 
 test_expect_success "check that a swarm span eventually appears in exported traces" '
-  until cat traces.json | jq -r .[][0].instrumentationLibrarySpans[].spans[].name | grep CoreAPI.SwarmAPI; do sleep 0.1; done
+  until cat traces.json | jq -r .[][].instrumentationLibrarySpans[].spans[].name | grep CoreAPI.SwarmAPI; do sleep 0.1; done
 '
 
 test_expect_success "kill docker container" '
