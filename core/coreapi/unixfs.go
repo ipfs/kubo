@@ -247,11 +247,12 @@ func (api *UnixfsAPI) Ls(ctx context.Context, p path.Path, opts ...options.Unixf
 }
 
 func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, settings *options.UnixfsLsSettings) coreiface.DirEntry {
-	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "ProcessLink", trace.WithAttributes(
-		attribute.String("linkname", linkres.Link.Name),
-		attribute.String("cid", linkres.Link.Cid.String()),
-	))
+	ctx, span := tracing.Span(ctx, "CoreAPI.UnixfsAPI", "ProcessLink")
 	defer span.End()
+	if linkres.Link != nil {
+		span.SetAttributes(attribute.String("linkname", linkres.Link.Name), attribute.String("cid", linkres.Link.Cid.String()))
+
+	}
 
 	if linkres.Err != nil {
 		return coreiface.DirEntry{Err: linkres.Err}
