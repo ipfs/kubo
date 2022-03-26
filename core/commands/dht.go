@@ -234,6 +234,10 @@ var findProvidersDhtCmd = &cmds.Command{
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
 			return printEvent(qeo, w, verbose)
 		}),
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, qeo *QueryEventOut) error {
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			return printEvent(qeo, w, verbose)
+		}),
 	},
 	Type: QueryEventOut{},
 }
