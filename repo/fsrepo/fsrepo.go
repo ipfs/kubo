@@ -205,22 +205,6 @@ func checkInitialized(path string) error {
 	return nil
 }
 
-// ConfigAt returns an error if the FSRepo at the given path is not
-// initialized. This function allows callers to read the config file even when
-// another process is running and holding the lock.
-func ConfigAt(repoPath string) (*config.Config, error) {
-
-	// packageLock must be held to ensure that the Read is atomic.
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	configFilename, err := config.Filename(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	return serialize.Load(configFilename)
-}
-
 // configIsInitialized returns true if the repo is initialized at
 // provided |path|.
 func configIsInitialized(path string) bool {
