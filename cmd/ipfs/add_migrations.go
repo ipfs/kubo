@@ -31,16 +31,13 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 
 	for _, fetcher := range fetchers {
 		switch f := fetcher.(type) {
-		case nil:
-			// https://github.com/ipfs/go-ipfs/issues/8780
-			continue
 		case *ipfsfetcher.IpfsFetcher:
 			// Add migrations by connecting to temp node and getting from IPFS
 			err := addMigrationPaths(ctx, node, f.AddrInfo(), f.FetchedPaths(), pin)
 			if err != nil {
 				return err
 			}
-		case *migrations.HttpFetcher:
+		case *migrations.HttpFetcher, *migrations.RetryFetcher: // https://github.com/ipfs/go-ipfs/issues/8780
 			// Add the downloaded migration files directly
 			if migrations.DownloadDirectory != "" {
 				var paths []string
