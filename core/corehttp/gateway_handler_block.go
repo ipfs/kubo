@@ -33,10 +33,11 @@ func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, b
 	w.Header().Set("Content-Type", "application/vnd.ipld.raw")
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
 
-	// Done: http.ServeContent will take care of
-	// If-None-Match+Etag, Content-Length and range requests
-	http.ServeContent(w, r, name, modtime, content)
+	code, err := ServeContent(w, r, name, modtime, content)
 
-	// Update metrics
-	i.rawBlockGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
+	// Was response successful?
+	if code/100 == 2 && err == nil {
+		// Update metrics
+		i.rawBlockGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
+	}
 }

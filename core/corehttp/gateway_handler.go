@@ -33,8 +33,10 @@ const (
 	immutableCacheControl = "public, max-age=29030400, immutable"
 )
 
-var onlyAscii = regexp.MustCompile("[[:^ascii:]]")
-var noModtime = time.Unix(0, 0) // disables Last-Modified header if passed as modtime
+var (
+	onlyAscii = regexp.MustCompile("[[:^ascii:]]")
+	noModtime = time.Unix(0, 0) // disables Last-Modified header if passed as modtime
+)
 
 // HTML-based redirect for errors which can be recovered from, but we want
 // to provide hint to people that they should fix things on their end.
@@ -91,6 +93,48 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 		log.Debugw("subdomain redirect", "location", redirect, "status", code)
 	}
 	sw.ResponseWriter.WriteHeader(code)
+}
+
+// ServeContent replies to the request using the content in the provided ReadSeeker
+// and returns the status code written and any error encountered during a write.
+// It wraps http.ServeContent which takes care of If-None-Match+Etag,
+// Content-Length and range requests.
+func ServeContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) (int, error) {
+	ew := &errRecordingResponseWriter{ResponseWriter: w}
+	http.ServeContent(ew, req, name, modtime, content)
+	return ew.code, ew.err
+}
+
+// errRecordingResponseWriter wraps a ResponseWriter to record the status code and any write error.
+type errRecordingResponseWriter struct {
+	http.ResponseWriter
+	code int
+	err  error
+}
+
+func (w *errRecordingResponseWriter) WriteHeader(code int) {
+	if w.code == 0 {
+		w.code = code
+	}
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *errRecordingResponseWriter) Write(p []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(p)
+	if err != nil && w.err == nil {
+		w.err = nil
+	}
+	return n, err
+}
+
+// ReadFrom exposes errRecordingResponseWriter's underlying ResponseWriter to io.Copy
+// to allow optimized methods to be taken advantage of.
+func (w *errRecordingResponseWriter) ReadFrom(r io.Reader) (n int64, err error) {
+	n, err = io.Copy(w.ResponseWriter, r)
+	if err != nil && w.err == nil {
+		w.err = nil
+	}
+	return n, err
 }
 
 func newGatewaySummaryMetric(name string, help string) *prometheus.SummaryVec {
@@ -634,7 +678,6 @@ func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath 
 
 		// TODO: set Cache-Control based on TTL of IPNS/DNSLink: https://github.com/ipfs/go-ipfs/issues/1818#issuecomment-1015849462
 		// TODO: set Last-Modified based on /ipns/ publishing timestamp?
-
 	} else {
 		// immutable! CACHE ALL THE THINGS, FOREVER! wolololol
 		w.Header().Set("Cache-Control", immutableCacheControl)
