@@ -12,10 +12,10 @@ import (
 
 var randomSha256MH = mh.Multihash{0x12, 0x20, 0x88, 0x82, 0x73, 0x37, 0x7c, 0xc1, 0xc9, 0x96, 0xad, 0xee, 0xd, 0x26, 0x84, 0x2, 0xc9, 0xc9, 0x5c, 0xf9, 0x5c, 0x4d, 0x9b, 0xc3, 0x3f, 0xfb, 0x4a, 0xd8, 0xaf, 0x28, 0x6b, 0xca, 0x1a, 0xf2}
 
-func doAbyfyIpldNotFoundTest(t *testing.T, original error) {
+func doParseIpldNotFoundTest(t *testing.T, original error) {
 	originalMsg := original.Error()
 
-	rebuilt := abyfyIpldNotFoundFallbackToMSG(originalMsg)
+	rebuilt := parseIPLDNotFoundWithFallbackToMSG(originalMsg)
 
 	rebuiltMsg := rebuilt.Error()
 
@@ -30,8 +30,8 @@ func doAbyfyIpldNotFoundTest(t *testing.T, original error) {
 	}
 }
 
-func TestAbyfyIpldNotFound(t *testing.T) {
-	if err := abyfyIpldNotFoundFallbackToMSG(""); err != nil {
+func TestParseIPLDNotFound(t *testing.T) {
+	if err := parseIPLDNotFoundWithFallbackToMSG(""); err != nil {
 		t.Errorf("expected empty string to give no error; got %T %q", err, err.Error())
 	}
 
@@ -54,7 +54,7 @@ func TestAbyfyIpldNotFound(t *testing.T) {
 				err = fmt.Errorf(wrap, err)
 			}
 
-			doAbyfyIpldNotFoundTest(t, err)
+			doParseIpldNotFoundTest(t, err)
 		}
 	}
 }

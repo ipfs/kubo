@@ -66,7 +66,7 @@ func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
 		return nil, err
 	}
 	if resp.Error != nil {
-		return nil, abyfyIpldNotFoundFallbackToError(resp.Error)
+		return nil, parseIPLDNotFoundWithFallbackToError(resp.Error)
 	}
 
 	//TODO: make get return ReadCloser to avoid copying
@@ -98,14 +98,14 @@ func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRm
 		return err
 	}
 
-	return abyfyIpldNotFoundFallbackToMSG(removedBlock.Error)
+	return parseIPLDNotFoundWithFallbackToMSG(removedBlock.Error)
 }
 
 func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (iface.BlockStat, error) {
 	var out blockStat
 	err := api.core().Request("block/stat", p.String()).Exec(ctx, &out)
 	if err != nil {
-		return nil, abyfyIpldNotFoundFallbackToError(err)
+		return nil, parseIPLDNotFoundWithFallbackToError(err)
 	}
 	out.cid, err = cid.Parse(out.Key)
 	if err != nil {

@@ -27,8 +27,8 @@ func (e prePostWrappedNotFoundError) Unwrap() error {
 	return e.wrapped
 }
 
-func abyfyIpldNotFoundFallbackToMSG(msg string) error {
-	err, handled := abyfyIpldNotFound(msg)
+func parseIPLDNotFoundWithFallbackToMSG(msg string) error {
+	err, handled := parseIPLDNotFound(msg)
 	if handled {
 		return err
 	}
@@ -36,8 +36,8 @@ func abyfyIpldNotFoundFallbackToMSG(msg string) error {
 	return errors.New(msg)
 }
 
-func abyfyIpldNotFoundFallbackToError(msg error) error {
-	err, handled := abyfyIpldNotFound(msg.Error())
+func parseIPLDNotFoundWithFallbackToError(msg error) error {
+	err, handled := parseIPLDNotFound(msg.Error())
 	if handled {
 		return err
 	}
@@ -47,7 +47,7 @@ func abyfyIpldNotFoundFallbackToError(msg error) error {
 
 // This file handle parsing and returning the correct ABI based errors from error messages
 //lint:ignore ST1008 this function is not using the error as a mean to return failure but it massages it to return the correct type
-func abyfyIpldNotFound(msg string) (error, bool) {
+func parseIPLDNotFound(msg string) (error, bool) {
 	if msg == "" {
 		return nil, true // Fast path
 	}
