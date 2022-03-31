@@ -352,6 +352,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// Detect when explicit Accept header or ?format parameter are present
 	responseFormat := customResponseFormat(r)
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
+	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResolvedPath", resolvedPath.String()))
 
 	// Finish early if client already has matching Etag
 	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
@@ -390,11 +391,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)
-		i.serveRawBlock(w, r, resolvedPath.Cid(), contentPath, begin)
+		i.serveRawBlock(w, r, resolvedPath, contentPath, begin)
 		return
 	case "application/vnd.ipld.car", "application/vnd.ipld.car; version=1":
 		logger.Debugw("serving car stream", "path", contentPath)
-		i.serveCar(w, r, resolvedPath.Cid(), contentPath, begin)
+		i.serveCar(w, r, resolvedPath, contentPath, begin)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)

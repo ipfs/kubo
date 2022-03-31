@@ -7,6 +7,7 @@ This is a document for helping debug go-ipfs. Please add to it if you can!
 - [Analyzing the stack dump](#analyzing-the-stack-dump)
 - [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
 - [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
+- [Tracing](#tracing)
 - [Other](#other)
 
 ### Beginning
@@ -94,6 +95,11 @@ the quickest way to easily point out where the hot spots in the code are.
 ### Analyzing vars and memory statistics
 
 The output is JSON formatted and includes badger store statistics, the command line run, and the output from Go's [runtime.ReadMemStats](https://golang.org/pkg/runtime/#ReadMemStats). The [MemStats](https://golang.org/pkg/runtime/#MemStats) has useful information about memory allocation and garbage collection.
+
+### Tracing
+
+Experimental tracing via OpenTelemetry suite of tools is available.
+See `tracing/doc.go` for more details.
 
 ### Other
 

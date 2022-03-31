@@ -70,7 +70,7 @@ test_go_fmt:
 TEST_GO += test_go_fmt
 
 test_go_lint: test/bin/golangci-lint
-	golangci-lint run ./...
+	golangci-lint run --timeout=3m ./...
 .PHONY: test_go_lint
 
 test_go: $(TEST_GO)
