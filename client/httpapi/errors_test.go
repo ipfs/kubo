@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ipfs/go-cid"
@@ -42,9 +43,8 @@ func TestParseIPLDNotFound(t *testing.T) {
 		"%w is wrong",
 	} {
 		for _, err := range [...]error{
-			errors.New("file not found"),
-			errors.New(" not found"),
-			errors.New("Bad_CID not found"),
+			errors.New("ipld: could not find "),
+			errors.New("ipld: could not find Bad_CID"),
 			errors.New("network connection timeout"),
 			ipld.ErrNotFound{Cid: cid.Undef},
 			ipld.ErrNotFound{Cid: cid.NewCidV0(randomSha256MH)},
@@ -55,6 +55,14 @@ func TestParseIPLDNotFound(t *testing.T) {
 			}
 
 			doParseIpldNotFoundTest(t, err)
+		}
+	}
+}
+
+func TestNotAsciiLetterOrDigits(t *testing.T) {
+	for i := rune(0); i <= 256; i++ {
+		if notAsciiLetterOrDigits(i) != !strings.ContainsAny(string(i), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") {
+			t.Errorf("%q is incorrectly identified", i)
 		}
 	}
 }
