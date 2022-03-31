@@ -188,7 +188,7 @@ func (tp *TestSuite) TestBlockRm(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected err to exist")
 	}
-	if !strings.Contains(err.Error(), "not found") {
+	if !ipld.IsNotFound(err) {
 		t.Errorf("unexpected error; %s", err.Error())
 	}
 
