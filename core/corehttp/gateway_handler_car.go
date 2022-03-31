@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -14,9 +15,18 @@ import (
 )
 
 // serveCar returns a CAR stream for specific DAG+selector
-func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCid cid.Cid, contentPath ipath.Path, begin time.Time) {
+func (i *gatewayHandler) serveCar(w http.ResponseWriter, r *http.Request, rootCid cid.Cid, contentPath ipath.Path, carVersion string, begin time.Time) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
+
+	switch carVersion {
+	case "": // noop, client does not care about version
+	case "1": // noop, we support this
+	default:
+		err := fmt.Errorf("only version=1 is supported")
+		webError(w, "unsupported CAR version", err, http.StatusBadRequest)
+		return
+	}
 
 	// Set Content-Disposition
 	name := rootCid.String() + ".car"
