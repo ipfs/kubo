@@ -8,7 +8,6 @@ import (
 
 	files "github.com/ipfs/go-ipfs-files"
 
-	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/cmdutils"
 
@@ -213,6 +212,11 @@ const (
 	blockQuietOptionName = "quiet"
 )
 
+type removedBlock struct {
+	Hash  string `json:",omitempty"`
+	Error string `json:",omitempty"`
+}
+
 var blockRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Remove IPFS block(s).",
@@ -246,7 +250,7 @@ It takes a list of base58 encoded multihashes to remove.
 
 			err = api.Block().Rm(req.Context, rp, options.Block.Force(force))
 			if err != nil {
-				if err := res.Emit(&util.RemovedBlock{
+				if err := res.Emit(&removedBlock{
 					Hash:  rp.Cid().String(),
 					Error: err.Error(),
 				}); err != nil {
@@ -256,7 +260,7 @@ It takes a list of base58 encoded multihashes to remove.
 			}
 
 			if !quiet {
-				err := res.Emit(&util.RemovedBlock{
+				err := res.Emit(&removedBlock{
 					Hash: rp.Cid().String(),
 				})
 				if err != nil {
@@ -269,8 +273,29 @@ It takes a list of base58 encoded multihashes to remove.
 	},
 	PostRun: cmds.PostRunMap{
 		cmds.CLI: func(res cmds.Response, re cmds.ResponseEmitter) error {
-			return util.ProcRmOutput(res.Next, os.Stdout, os.Stderr)
+			someFailed := false
+			for {
+				res, err := res.Next()
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					return err
+				}
+				r := res.(*removedBlock)
+				if r.Hash == "" && r.Error != "" {
+					return fmt.Errorf("aborted: %s", r.Error)
+				} else if r.Error != "" {
+					someFailed = true
+					fmt.Fprintf(os.Stderr, "cannot remove %s: %s\n", r.Hash, r.Error)
+				} else {
+					fmt.Fprintf(os.Stdout, "removed %s\n", r.Hash)
+				}
+			}
+			if someFailed {
+				return fmt.Errorf("some blocks not removed")
+			}
+			return nil
 		},
 	},
-	Type: util.RemovedBlock{},
+	Type: removedBlock{},
 }

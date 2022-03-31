@@ -3,6 +3,7 @@ package blockstoreutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -13,14 +14,14 @@ import (
 )
 
 // RemovedBlock is used to represent the result of removing a block.
-// If a block was removed successfully, then the Error string will be
-// empty.  If a block could not be removed, then Error will contain the
+// If a block was removed successfully, then the Error will be empty.
+// If a block could not be removed, then Error will contain the
 // reason the block could not be removed.  If the removal was aborted
 // due to a fatal error, Hash will be empty, Error will contain the
 // reason, and no more results will be sent.
 type RemovedBlock struct {
-	Hash  string `json:",omitempty"`
-	Error string `json:",omitempty"`
+	Hash  string
+	Error error
 }
 
 // RmBlocksOpts is used to wrap options for RmBlocks().
@@ -51,17 +52,17 @@ func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids
 			// remove this sometime in the future.
 			has, err := blocks.Has(ctx, c)
 			if err != nil {
-				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: err}
 				continue
 			}
 			if !has && !opts.Force {
-				out <- &RemovedBlock{Hash: c.String(), Error: format.ErrNotFound{Cid: c}.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: format.ErrNotFound{Cid: c}}
 				continue
 			}
 
 			err = blocks.DeleteBlock(ctx, c)
 			if err != nil {
-				out <- &RemovedBlock{Hash: c.String(), Error: err.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: err}
 			} else if !opts.Quiet {
 				out <- &RemovedBlock{Hash: c.String()}
 			}
@@ -79,7 +80,7 @@ func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, 
 	stillOkay := make([]cid.Cid, 0, len(cids))
 	res, err := pins.CheckIfPinned(ctx, cids...)
 	if err != nil {
-		out <- &RemovedBlock{Error: fmt.Sprintf("pin check failed: %s", err)}
+		out <- &RemovedBlock{Error: fmt.Errorf("pin check failed: %w", err)}
 		return nil
 	}
 	for _, r := range res {
@@ -88,7 +89,7 @@ func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, 
 		} else {
 			out <- &RemovedBlock{
 				Hash:  r.Key.String(),
-				Error: r.String(),
+				Error: errors.New(r.String()),
 			}
 		}
 	}
@@ -107,11 +108,11 @@ func ProcRmOutput(next func() (interface{}, error), sout io.Writer, serr io.Writ
 			return err
 		}
 		r := res.(*RemovedBlock)
-		if r.Hash == "" && r.Error != "" {
-			return fmt.Errorf("aborted: %s", r.Error)
-		} else if r.Error != "" {
+		if r.Hash == "" && r.Error != nil {
+			return fmt.Errorf("aborted: %w", r.Error)
+		} else if r.Error != nil {
 			someFailed = true
-			fmt.Fprintf(serr, "cannot remove %s: %s\n", r.Hash, r.Error)
+			fmt.Fprintf(serr, "cannot remove %s: %v\n", r.Hash, r.Error)
 		} else {
 			fmt.Fprintf(sout, "removed %s\n", r.Hash)
 		}
