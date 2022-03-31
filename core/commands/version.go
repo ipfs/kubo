@@ -5,17 +5,24 @@ import (
 	"fmt"
 	"io"
 	"runtime/debug"
+	"strings"
 
 	version "github.com/ipfs/kubo"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
+
+	versioncmp "github.com/hashicorp/go-version"
+	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 )
 
 const (
-	versionNumberOptionName = "number"
-	versionCommitOptionName = "commit"
-	versionRepoOptionName   = "repo"
-	versionAllOptionName    = "all"
+	versionNumberOptionName             = "number"
+	versionCommitOptionName             = "commit"
+	versionRepoOptionName               = "repo"
+	versionAllOptionName                = "all"
+	versionCompareNewFractionOptionName = "--newer-fraction"
 )
 
 var VersionCmd = &cmds.Command{
@@ -24,7 +31,8 @@ var VersionCmd = &cmds.Command{
 		ShortDescription: "Returns the current version of IPFS and exits.",
 	},
 	Subcommands: map[string]*cmds.Command{
-		"deps": depsVersionCommand,
+		"deps":  depsVersionCommand,
+		"check": checkVersionCommand,
 	},
 
 	Options: []cmds.Option{
@@ -126,6 +134,137 @@ Print out all dependencies and their versions.`,
 				fmt.Fprintf(w, " => %s", dep.ReplacedBy)
 			}
 			fmt.Fprintf(w, "\n")
+			return nil
+		}),
+	},
+}
+
+type CheckOutput struct {
+	PeersCounted    int
+	GreatestVersion string
+	OldVersion      bool
+}
+
+var checkVersionCommand = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Checks IPFS version against network (online only).",
+		ShortDescription: `
+Checks node versions in our DHT to compare if we're running an older version.`,
+	},
+	Options: []cmds.Option{
+		cmds.FloatOption(versionCompareNewFractionOptionName, "f", "Fraction of peers with new version to generate update warning.").WithDefault(0.1),
+	},
+	Type: CheckOutput{},
+
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		nd, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
+
+		if !nd.IsOnline {
+			return ErrNotOnline
+		}
+
+		if nd.DHT == nil {
+			return ErrNotDHT
+		}
+
+		ourVersion, err := versioncmp.NewVersion(strings.Replace(version.CurrentVersionNumber, "-dev", "", -1))
+		if err != nil {
+			return fmt.Errorf("could not parse our own version %s: %w",
+				version.CurrentVersionNumber, err)
+		}
+
+		greatestVersionSeen := ourVersion
+		totalPeersCounted := 1 // Us (and to avoid division-by-zero edge case).
+		withGreaterVersion := 0
+
+		recordPeerVersion := func(agentVersion string) {
+			// We process the version as is it assembled in GetUserAgentVersion.
+			segments := strings.Split(agentVersion, "/")
+			if len(segments) < 2 {
+				return
+			}
+			if segments[0] != "kubo" {
+				return
+			}
+			versionNumber := segments[1] // As in our CurrentVersionNumber.
+
+			// Ignore development releases.
+			if strings.Contains(versionNumber, "-dev") {
+				return
+			}
+			if strings.Contains(versionNumber, "-rc") {
+				return
+			}
+
+			peerVersion, err := versioncmp.NewVersion(versionNumber)
+			if err != nil {
+				// Do not error on invalid remote versions, just ignore.
+				return
+			}
+
+			// Valid peer version number.
+			totalPeersCounted += 1
+			if ourVersion.LessThan(peerVersion) {
+				withGreaterVersion += 1
+			}
+			if peerVersion.GreaterThan(greatestVersionSeen) {
+				greatestVersionSeen = peerVersion
+			}
+		}
+
+		// Logic taken from `ipfs stats dht` command.
+		if nd.DHTClient != nd.DHT {
+			client, ok := nd.DHTClient.(*fullrt.FullRT)
+			if !ok {
+				return cmds.Errorf(cmds.ErrClient, "could not generate stats for the WAN DHT client type")
+			}
+			for _, p := range client.Stat() {
+				if ver, err := nd.Peerstore.Get(p, "AgentVersion"); err == nil {
+					recordPeerVersion(ver.(string))
+				} else if err == pstore.ErrNotFound {
+					// ignore
+				} else {
+					// this is a bug, usually.
+					log.Errorw(
+						"failed to get agent version from peerstore",
+						"error", err,
+					)
+				}
+			}
+		} else {
+			for _, pi := range nd.DHT.WAN.RoutingTable().GetPeerInfos() {
+				if ver, err := nd.Peerstore.Get(pi.Id, "AgentVersion"); err == nil {
+					recordPeerVersion(ver.(string))
+				} else if err == pstore.ErrNotFound {
+					// ignore
+				} else {
+					// this is a bug, usually.
+					log.Errorw(
+						"failed to get agent version from peerstore",
+						"error", err,
+					)
+				}
+			}
+		}
+
+		newerFraction, _ := req.Options[versionCompareNewFractionOptionName].(float64)
+		if err := cmds.EmitOnce(res, CheckOutput{
+			PeersCounted:    totalPeersCounted,
+			GreatestVersion: greatestVersionSeen.String(),
+			OldVersion:      (float64(withGreaterVersion) / float64(totalPeersCounted)) > newerFraction,
+		}); err != nil {
+			return err
+		}
+		return nil
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, checkOutput CheckOutput) error {
+			if checkOutput.OldVersion {
+				fmt.Fprintf(w, "⚠️WARNING: this Kubo node is running an outdated version compared to other peers, update to %s\n", checkOutput.GreatestVersion)
+			}
 			return nil
 		}),
 	},
