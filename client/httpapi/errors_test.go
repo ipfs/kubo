@@ -24,9 +24,9 @@ func doParseIpldNotFoundTest(t *testing.T, original error) {
 	}
 
 	originalNotFound := ipld.IsNotFound(original)
-	rebuiltNotFound := ipld.IsNotFound(original)
+	rebuiltNotFound := ipld.IsNotFound(rebuilt)
 	if originalNotFound != rebuiltNotFound {
-		t.Errorf("expected Ipld.IsNotFound to be %t; got %t", originalNotFound, rebuiltNotFound)
+		t.Errorf("for %q expected Ipld.IsNotFound to be %t; got %t", originalMsg, originalNotFound, rebuiltNotFound)
 	}
 }
 
