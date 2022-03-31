@@ -16,7 +16,7 @@ var randomSha256MH = mh.Multihash{0x12, 0x20, 0x88, 0x82, 0x73, 0x37, 0x7c, 0xc1
 func doParseIpldNotFoundTest(t *testing.T, original error) {
 	originalMsg := original.Error()
 
-	rebuilt := parseIPLDNotFoundWithFallbackToMSG(originalMsg)
+	rebuilt := parseErrNotFoundWithFallbackToMSG(originalMsg)
 
 	rebuiltMsg := rebuilt.Error()
 
@@ -32,7 +32,7 @@ func doParseIpldNotFoundTest(t *testing.T, original error) {
 }
 
 func TestParseIPLDNotFound(t *testing.T) {
-	if err := parseIPLDNotFoundWithFallbackToMSG(""); err != nil {
+	if err := parseErrNotFoundWithFallbackToMSG(""); err != nil {
 		t.Errorf("expected empty string to give no error; got %T %q", err, err.Error())
 	}
 
@@ -56,6 +56,27 @@ func TestParseIPLDNotFound(t *testing.T) {
 
 			doParseIpldNotFoundTest(t, err)
 		}
+	}
+}
+
+func TestBlockstoreNotFoundMatchingIPLDErrNotFound(t *testing.T) {
+	if !ipld.IsNotFound(blockstoreNotFoundMatchingIPLDErrNotFound{}) {
+		t.Fatalf("expected blockstoreNotFoundMatchingIPLDErrNotFound to match ipld.IsNotFound; got false")
+	}
+
+	for _, wrap := range [...]string{
+		"",
+		"merkledag: %w",
+		"testing: %w the test",
+		"%w is wrong",
+	} {
+		var err error = blockstoreNotFoundMatchingIPLDErrNotFound{"blockstore: block not found"}
+
+		if wrap != "" {
+			err = fmt.Errorf(wrap, err)
+		}
+
+		doParseIpldNotFoundTest(t, err)
 	}
 }
 

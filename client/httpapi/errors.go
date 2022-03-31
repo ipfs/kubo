@@ -8,6 +8,8 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 )
 
+// This file handle parsing and returning the correct ABI based errors from error messages
+
 type prePostWrappedNotFoundError struct {
 	pre  string
 	post string
@@ -27,8 +29,8 @@ func (e prePostWrappedNotFoundError) Unwrap() error {
 	return e.wrapped
 }
 
-func parseIPLDNotFoundWithFallbackToMSG(msg string) error {
-	err, handled := parseIPLDNotFound(msg)
+func parseErrNotFoundWithFallbackToMSG(msg string) error {
+	err, handled := parseErrNotFound(msg)
 	if handled {
 		return err
 	}
@@ -36,8 +38,8 @@ func parseIPLDNotFoundWithFallbackToMSG(msg string) error {
 	return errors.New(msg)
 }
 
-func parseIPLDNotFoundWithFallbackToError(msg error) error {
-	err, handled := parseIPLDNotFound(msg.Error())
+func parseErrNotFoundWithFallbackToError(msg error) error {
+	err, handled := parseErrNotFound(msg.Error())
 	if handled {
 		return err
 	}
@@ -57,13 +59,25 @@ func notAsciiLetterOrDigits(r rune) bool {
 	return notAsciiLetterOrDigitsLUT[r] > 0
 }
 
-// This file handle parsing and returning the correct ABI based errors from error messages
 //lint:ignore ST1008 this function is not using the error as a mean to return failure but it massages it to return the correct type
-func parseIPLDNotFound(msg string) (error, bool) {
+func parseErrNotFound(msg string) (error, bool) {
 	if msg == "" {
 		return nil, true // Fast path
 	}
 
+	if err, handled := parseIPLDErrNotFound(msg); handled {
+		return err, true
+	}
+
+	if err, handled := parseBlockstoreNotFound(msg); handled {
+		return err, true
+	}
+
+	return nil, false
+}
+
+//lint:ignore ST1008 using error as values
+func parseIPLDErrNotFound(msg string) (error, bool) {
 	// The patern we search for is:
 	const ipldErrNotFoundKey = "ipld: could not find " /*CID*/
 	// We try to parse the CID, if it's invalid we give up and return a simple text error.
@@ -113,4 +127,34 @@ func parseIPLDNotFound(msg string) (error, bool) {
 	}
 
 	return err, true
+}
+
+// This is a simple error type that just return msg as Error().
+// But that also match ipld.ErrNotFound when called with Is(err).
+// That is needed to keep compatiblity with code that use string.Contains(err.Error(), "blockstore: block not found")
+// and code using ipld.ErrNotFound
+type blockstoreNotFoundMatchingIPLDErrNotFound struct {
+	msg string
+}
+
+func (e blockstoreNotFoundMatchingIPLDErrNotFound) String() string {
+	return e.Error()
+}
+
+func (e blockstoreNotFoundMatchingIPLDErrNotFound) Error() string {
+	return e.msg
+}
+
+func (e blockstoreNotFoundMatchingIPLDErrNotFound) Is(err error) bool {
+	_, ok := err.(ipld.ErrNotFound)
+	return ok
+}
+
+//lint:ignore ST1008 using error as values
+func parseBlockstoreNotFound(msg string) (error, bool) {
+	if !strings.Contains(msg, "blockstore: block not found") {
+		return nil, false
+	}
+
+	return blockstoreNotFoundMatchingIPLDErrNotFound{msg: msg}, true
 }
