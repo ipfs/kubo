@@ -520,3 +520,16 @@ findprovs_expect() {
     test_cmp findprovsOut expected
   '
 }
+
+purge_blockstore() {
+  ipfs pin ls --quiet --type=recursive | ipfs pin rm &>/dev/null
+  ipfs repo gc --silent &>/dev/null
+
+  test_expect_success "pinlist empty" '
+    [[ -z "$( ipfs pin ls )" ]]
+  '
+  test_expect_success "nothing left to gc" '
+    [[ -z "$( ipfs repo gc )" ]]
+  '
+}
+

@@ -17,10 +17,10 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 
 	version "github.com/ipfs/go-ipfs"
-	config "github.com/ipfs/go-ipfs-config"
-	cserial "github.com/ipfs/go-ipfs-config/serialize"
 	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
+	config "github.com/ipfs/go-ipfs/config"
+	cserial "github.com/ipfs/go-ipfs/config/serialize"
 	"github.com/ipfs/go-ipfs/core"
 	commands "github.com/ipfs/go-ipfs/core/commands"
 	"github.com/ipfs/go-ipfs/core/coreapi"
@@ -427,7 +427,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	node, err := core.NewNode(req.Context, ncfg)
 	if err != nil {
-		log.Error("error from node construction: ", err)
 		return err
 	}
 	node.IsDaemon = true
@@ -660,7 +659,9 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		corehttp.VersionOption(),
 		defaultMux("/debug/vars"),
 		defaultMux("/debug/pprof/"),
+		defaultMux("/debug/stack"),
 		corehttp.MutexFractionOption("/debug/pprof-mutex/"),
+		corehttp.BlockProfileRateOption("/debug/pprof-block/"),
 		corehttp.MetricsScrapingOption("/debug/metrics/prometheus"),
 		corehttp.LogOption(),
 	}

@@ -120,11 +120,18 @@ jobs:
           # make sure the examples run against the current version of go-ipfs
           go mod edit -replace github.com/ipfs/go-ipfs=./../../..
           go mod tidy
+
+          # use the internal config package when we test the current version of go-ipfs
+          sed -i.bak 's;"github.com/ipfs/go-ipfs-config";"github.com/ipfs/go-ipfs/config";' ./main.go
+
           go test -v ./...
 
           # restore the go.mod and go.sum files to their original state
           mv go.mod.bak go.mod
           mv go.sum.bak go.sum
+
+          # restore the main.go to its original state
+          mv main.go.bak main.go
         working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
 
     - run:
@@ -147,7 +154,7 @@ jobs:
     working_directory: ~/ipfs/go-ipfs
     environment:
         <<: *default_environment
-        TEST_NO_DOCKER: 1
+        TEST_NO_DOCKER: 0
         TEST_NO_FUSE: 1
         TEST_VERBOSE: 1
     steps:
@@ -285,7 +292,7 @@ jobs:
             - v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
             - v1-go-api-
       - run:
-          command: go test -v ./...
+          command: go test -count=1 -v ./...
           working_directory: ~/ipfs/go-ipfs/go-ipfs-api
       - save_cache:
           key: v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
@@ -311,10 +318,10 @@ jobs:
             - v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
             - v1-http-client-
       - run:
-          name: go test -v ./...
+          name: go test -count=1 -v ./...
           command: |
             export PATH=/tmp/circleci-workspace/bin:$PATH
-            go test -v ./...
+            go test -count=1 -v ./...
           working_directory: ~/ipfs/go-ipfs/go-ipfs-http-client
       - save_cache:
           key: v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}

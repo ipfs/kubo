@@ -233,7 +233,7 @@ func ColoredSet(ctx context.Context, pn pin.Pinner, ng ipld.NodeGetter, bestEffo
 
 	bestEffortGetLinks := func(ctx context.Context, cid cid.Cid) ([]*ipld.Link, error) {
 		links, err := ipld.GetLinks(ctx, ng, cid)
-		if err != nil && err != ipld.ErrNotFound {
+		if err != nil && !ipld.IsNotFound(err) {
 			errors = true
 			select {
 			case output <- Result{Error: &CannotFetchLinksError{cid, err}}:

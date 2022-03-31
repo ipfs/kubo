@@ -9,6 +9,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	bs "github.com/ipfs/go-ipfs-blockstore"
 	pin "github.com/ipfs/go-ipfs-pinner"
+	format "github.com/ipfs/go-ipld-format"
 )
 
 // RemovedBlock is used to represent the result of removing a block.
@@ -54,7 +55,7 @@ func RmBlocks(ctx context.Context, blocks bs.GCBlockstore, pins pin.Pinner, cids
 				continue
 			}
 			if !has && !opts.Force {
-				out <- &RemovedBlock{Hash: c.String(), Error: bs.ErrNotFound.Error()}
+				out <- &RemovedBlock{Hash: c.String(), Error: format.ErrNotFound{Cid: c}.Error()}
 				continue
 			}
 

@@ -42,7 +42,6 @@
     ["ipfs/go-ipns", "go-ipns", "IPNS datastructures and validation logic"],
 
     "Repo",
-    ["ipfs/go-ipfs-config", "go-ipfs-config", "go-ipfs config file definitions"],
     ["ipfs/go-fs-lock", "go-fs-lock", "lockfile management functions"],
     ["ipfs/fs-repo-migrations", "fs-repo-migrations", "repo migrations"],
 

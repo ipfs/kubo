@@ -1,3 +1,4 @@
+//go:build !windows && !nofuse
 // +build !windows,!nofuse
 
 package commands
@@ -6,11 +7,12 @@ import (
 	"fmt"
 	"io"
 
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 )
 
 const (
@@ -80,7 +82,7 @@ baz
 		cmds.StringOption(mountIPNSPathOptionName, "n", "The path where IPNS should be mounted."),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		cfg, err := cmdenv.GetConfig(env)
+		cfg, err := env.(*oldcmds.Context).GetConfig()
 		if err != nil {
 			return err
 		}

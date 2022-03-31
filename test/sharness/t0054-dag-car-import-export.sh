@@ -179,7 +179,7 @@ test_expect_success "basic offline export of 'getting started' dag works" '
 '
 
 
-echo "Error: merkledag: not found (currently offline, perhaps retry after attaching to the network)" > offline_fetch_error_expected
+echo "Error: block was not found locally (offline): QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX not found (currently offline, perhaps retry after attaching to the network)" > offline_fetch_error_expected
 test_expect_success "basic offline export of nonexistent cid" '
   ! ipfs dag export QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2> offline_fetch_error_actual >/dev/null
 '
@@ -231,6 +231,19 @@ test_expect_success "naked root import works" '
 '
 test_expect_success "naked root import expected output" '
    test_cmp_sorted naked_root_import_json_expected naked_root_import_json_actual
+'
+
+test_expect_success "'ipfs dag import' check block size" '
+    BIG_CID=$(dd if=/dev/zero bs=2MB count=1 | ipfs dag put --input-codec=raw --store-codec=raw --allow-big-block) &&
+    ipfs dag export $BIG_CID > 2-MB-block.car &&
+    test_expect_code 1 ipfs dag import 2-MB-block.car >dag_import_out 2>&1
+'
+test_expect_success "ipfs dag import output has the correct error" '
+    grep "block is over 1MiB" dag_import_out
+'
+
+test_expect_success "ipfs dag import --allow-big-block works" '
+    test_expect_code 0 ipfs dag import --allow-big-block 2-MB-block.car
 '
 
 test_done

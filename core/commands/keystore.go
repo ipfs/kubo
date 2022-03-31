@@ -14,9 +14,9 @@ import (
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
 	keystore "github.com/ipfs/go-ipfs-keystore"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
+	config "github.com/ipfs/go-ipfs/config"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/go-ipfs/core/commands/e"
 	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"

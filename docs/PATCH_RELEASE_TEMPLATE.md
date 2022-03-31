@@ -2,12 +2,15 @@
 
 This process handles patch releases from version `vX.Y.Z` to `vX.Y.Z+1` assuming that `vX.Y.Z` is the latest released version of go-ipfs.
 
+- [ ] Get temporary permissions to force-push to `release-*` branches
 - [ ] Fork a new branch (`release-vX.Y.Z`) from `release` and cherry-pick the relevant commits from master (or custom fixes) onto this branch
-- [ ] Make a minimal changelog update tracking the relevant fixes to CHANGELOG.
-- [ ] version string in `version.go` has been updated (in the `release-vX.Y.Z+1` branch).
+  - [ ] Use `git cherry-pick -x` so that the commit message says `(cherry picked from commit ...)`
+- [ ] Make a minimal changelog update tracking the relevant fixes to CHANGELOG, as its own commit e.g. `docs: update changelog vX.Y.Z+1`
+- [ ] version string in `version.go` has been updated (in the `release-vX.Y.Z+1` branch), as its own commit. 
 - [ ] Make a PR merging `release-vX.Y.Z+1` into the release branch
-- [ ] tag the merge commit in the `release` branch with `vX.Y.Z+1`
-- [ ] upload to dist.ipfs.io
+  - This may be unnecessary, e.g. for backports
+- [ ] Tag the merge commit in the `release` branch with `vX.Y.Z+1` (ensure the tag is signed)
+- [ ] Upload to dist.ipfs.io
   1. Build: https://github.com/ipfs/distributions#usage.
   2. Pin the resulting release.
   3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.

@@ -24,6 +24,8 @@ fi
 echo Collecting goroutine stacks
 curl -s -o goroutines.stacks "$SOURCE_URL"'/debug/pprof/goroutine?debug=2'
 
+curl -s -o goroutines.stacks.full "$SOURCE_URL"'/debug/stack'
+
 echo Collecting goroutine profile
 go tool pprof -symbolize=remote -svg -output goroutine.svg "$SOURCE_URL/debug/pprof/goroutine"
 

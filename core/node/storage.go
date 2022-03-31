@@ -3,7 +3,7 @@ package node
 import (
 	"github.com/ipfs/go-datastore"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-filestore"
