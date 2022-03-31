@@ -94,7 +94,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	w.Header().Set("Content-Type", "text/html")
 
 	// Generated dir index requires custom Etag (it may change between go-ipfs versions)
-	if assets.BindataVersionHash != "" {
+	if assets.AssetHash != "" {
 		dirEtag := getDirListingEtag(resolvedPath.Cid())
 		w.Header().Set("Etag", dirEtag)
 		if r.Header.Get("If-None-Match") == dirEtag {
@@ -208,5 +208,5 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 }
 
 func getDirListingEtag(dirCid cid.Cid) string {
-	return `"DirIndex-` + assets.BindataVersionHash + `_CID-` + dirCid.String() + `"`
+	return `"DirIndex-` + assets.AssetHash + `_CID-` + dirCid.String() + `"`
 }

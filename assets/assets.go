@@ -1,22 +1,29 @@
 //go:generate npm run build --prefix ./dir-index-html/
-//go:generate go run github.com/go-bindata/go-bindata/v3/go-bindata -mode=0644 -modtime=1403768328 -pkg=assets init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
-//go:generate gofmt -s -w bindata.go
-//go:generate sh -c "sed -i \"s/.*BindataVersionHash.*/BindataVersionHash=\\\"$(git hash-object bindata.go)\\\"/\" bindata_version_hash.go"
-//go:generate gofmt -s -w bindata_version_hash.go
 package assets
 
 import (
+	"embed"
 	"fmt"
+	"io"
+	"io/fs"
 	"path/filepath"
+	"strconv"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 
+	"github.com/cespare/xxhash"
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
+
+//go:embed init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
+var dir embed.FS
+
+// AssetHash a non-cryptographic hash of all embedded assets
+var AssetHash string
 
 // initDocPaths lists the paths for the docs we want to seed during --init
 var initDocPaths = []string{
@@ -27,6 +34,35 @@ var initDocPaths = []string{
 	filepath.Join("init-doc", "security-notes"),
 	filepath.Join("init-doc", "quick-start"),
 	filepath.Join("init-doc", "ping"),
+}
+
+func init() {
+	sum := xxhash.New()
+	err := fs.WalkDir(Asset, ".", func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
+		}
+
+		file, err := dir.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = io.Copy(sum, file)
+		return err
+	})
+	if err != nil {
+		panic("error creating asset sum: " + err.Error())
+	}
+
+	AssetHash = strconv.FormatUint(sum.Sum64(), 32)
+}
+
+// Asset loads and returns the asset for the given name.
+// It returns an error if the asset could not be found or
+// could not be loaded.
+func Asset(f string) ([]byte, error) {
+	return dir.ReadFile(f)
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key

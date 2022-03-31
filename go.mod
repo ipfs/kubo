@@ -5,6 +5,7 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
+	github.com/cespare/xxhash v1.1.0
 	github.com/cheggaaa/pb v1.0.29
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/dustin/go-humanize v1.0.0
@@ -12,7 +13,6 @@ require (
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gabriel-vasile/mimetype v1.4.0
-	github.com/go-bindata/go-bindata/v3 v3.1.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/go-bitswap v0.6.0
 	github.com/ipfs/go-block-format v0.0.3
