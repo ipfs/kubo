@@ -23,12 +23,9 @@ Specifies the log level for go-ipfs.
 
 ## `IPFS_LOGGING_FMT`
 
-Sets the log message format. Can be one of:
+Specifies the log message format.
 
-* `color`
-* `nocolor`
-
-Default: `color`
+`IPFS_LOGGING_FMT` is a deprecated alias for the `GOLOG_LOG_FMT` environment variable.  See below.
 
 ## `GOLOG_LOG_LEVEL`
 
@@ -54,6 +51,21 @@ GOLOG_LOG_LEVEL="error,core/server=debug" ipfs daemon
 ```
 
 Logging can also be configured at runtime, both globally and on a per-subsystem basis, with the `ipfs log` command.
+
+## `GOLOG_LOG_FMT`
+
+Specifies the log message format.  It supports the following values:
+
+- `color` -- human readable, colorized (ANSI) output
+- `nocolor` -- human readable, plain-text output.
+- `json` -- structured JSON.
+
+For example, to log structured JSON (for easier parsing):
+
+```bash
+export GOLOG_LOG_FMT="json"
+```
+The logging format defaults to `color` when the output is a terminal, and `nocolor` otherwise.
 
 ## `GOLOG_FILE`
 
