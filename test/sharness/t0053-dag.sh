@@ -462,6 +462,27 @@ test_expect_success "'ipfs dag put' check block size" '
     echo "Size: 302705, NumBlocks: 5" > exp_stat_directory_unixfs &&
     test_cmp exp_stat_directory_unixfs actual_stat_directory_unixfs
   '
+
+  test_expect_success "dag stat of directory of inlined file" '
+    mkdir -p inlinedir &&
+    echo "0123456789abcdefghijklmnopqrstu" > inlinedir/inlined.txt &&
+    DIRECTORY_INLINE=$(ipfs add -r --raw-leaves --inline --inline-limit=32 --pin=false -Q inlinedir) &&
+    ipfs dag stat $DIRECTORY_INLINE > actual_stat_inlined &&
+    echo "Size: 59, NumBlocks: 2" > exp_stat_inlined &&
+    test_cmp actual_stat_inlined exp_stat_inlined
+  '
+
+  test_expect_success "dag stat of mixed codecs with equal multihash" '
+    mkdir -p mixedCodecsDir &&
+    random 1M > mixedCodecsDir/random &&
+    MIXED_FILE_ROOT=$(ipfs add --raw-leaves --chunker=size-524288 --pin=false -Q mixedCodecsDir/random) &&
+    ipfs block get $MIXED_FILE_ROOT > mixedCodecsDir/rawleaf &&
+    MIXED_FOLDER=$(ipfs add -r --raw-leaves --chunker=size-524288 --pin=false -Q mixedCodecsDir) &&
+    ipfs dag stat $MIXED_FOLDER > actual_stat_mixed_codecs &&
+    DIRECTORY_METADATA=$(ipfs block stat $DIRECTORY_INLINE) &&
+    echo "Size: 1000213, NumBlocks: 4" > exp_stat_mixed_codecs &&
+    test_cmp exp_stat_mixed_codecs actual_stat_mixed_codecs
+  '
 }
 
 # should work offline
