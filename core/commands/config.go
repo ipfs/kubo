@@ -215,17 +215,19 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		return cmds.EmitOnce(res, &cfg)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
-			buf, err := config.HumanOutput(out)
-			if err != nil {
-				return err
-			}
-			buf = append(buf, byte('\n'))
-			_, err = w.Write(buf)
-			return err
-		}),
+		cmds.Text: HumanJsonEncoder,
 	},
 }
+
+var HumanJsonEncoder = cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
+	buf, err := config.HumanOutput(out)
+	if err != nil {
+		return err
+	}
+	buf = append(buf, byte('\n'))
+	_, err = w.Write(buf)
+	return err
+})
 
 // Scrubs value and returns error if missing
 func scrubValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {

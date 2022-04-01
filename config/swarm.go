@@ -49,6 +49,9 @@ type SwarmConfig struct {
 
 	// ConnMgr configures the connection manager.
 	ConnMgr ConnMgr
+
+	// ResourceMgr configures the libp2p Network Resource Manager
+	ResourceMgr ResourceMgr
 }
 
 type RelayClient struct {
@@ -128,4 +131,37 @@ type ConnMgr struct {
 	LowWater    int
 	HighWater   int
 	GracePeriod string
+}
+
+// ResourceMgr defines configuration options for the libp2p Network Resource Manager
+// <https://github.com/libp2p/go-libp2p-resource-manager#readme>
+type ResourceMgr struct {
+	// Enables the Network Resource Manager feature
+	Enabled Flag `json:",omitempty"`
+
+	// Limits is a map of Resource Scope.
+	Limits map[string]ResourceMgrScopeConfig `json:",omitempty"`
+}
+
+const (
+	ResourceMgrSystemScope         = "system"
+	ResourceMgrTransientScope      = "transient"
+	ResourceMgrServiceScopePrefix  = "svc:"
+	ResourceMgrProtocolScopePrefix = "proto:"
+	ResourceMgrPeerScopePrefix     = "peer:"
+)
+
+// libp2p Network Resource Manager config for a scope (ipfs swarm stats|limit)
+type ResourceMgrScopeConfig struct {
+	Dynamic bool `json:",omitempty"`
+	// set if Dynamic is false
+	Memory int64 `json:",omitempty"`
+	// set if Dynamic is true
+	MemoryFraction float64 `json:",omitempty"`
+	MinMemory      int64   `json:",omitempty"`
+	MaxMemory      int64   `json:",omitempty"`
+
+	Streams, StreamsInbound, StreamsOutbound int
+	Conns, ConnsInbound, ConnsOutbound       int
+	FD                                       int
 }

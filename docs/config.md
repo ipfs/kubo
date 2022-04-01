@@ -130,6 +130,7 @@ config file at runtime.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+    - [`Swarm.ResourceMgr`](#swarmresourcemgr)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -1627,6 +1628,74 @@ by the connection manager.
 Default: `"20s"`
 
 Type: `duration`
+
+### `Swarm.ResourceMgr`
+
+The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per a scope,
+and track recource usage over time.
+
+#### `Swarm.ResourceMgr.Enabled`
+
+**EXPERIMENTAL**: this feature is is disabled by default, use with caution.
+
+Enables the libp2p Network Resource Manager and auguments the default limits
+using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
+
+Default: `false`
+
+Type: `flag`
+
+#### `Swarm.ResourceMgr.Limits`
+
+Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
+
+The key is a string with the scope name. It can be one of the following:
+- `system`      -- limits the system aggregate resource usage.
+- `transient`     -- limits the transient resource usage
+- `svc:<service>` -- limits the resource usage of a specific service
+- `proto:<proto>` -- limits the resource usage of a specific protocol
+- `peer:<peer>`   -- limits the resource usage of a specific peer
+
+Example:
+
+```json
+{
+  "Swarm": {
+    "ResourceMgr": {
+      "Enabled": true,
+      "Limits": {
+        "system": {
+          "Conns": 1024,
+          "ConnsInbound": 256,
+          "ConnsOutbound": 1024,
+          "FD": 512,
+          "Memory": 1073741824,
+          "Streams": 16384,
+          "StreamsInbound": 4096,
+          "StreamsOutbound": 16384
+        },
+        "transient": {
+          "Conns": 128,
+          "ConnsInbound": 32,
+          "ConnsOutbound": 128,
+          "FD": 128,
+          "Memory": 67108864,
+          "Streams": 512,
+          "StreamsInbound": 128,
+          "StreamsOutbound": 512
+        }
+      }
+    }
+  }
+}
+```
+
+Current resource usage and a list of services, protocols, and peers can be obtained via
+`ipfs swarm stats --help`
+
+Default: `{}` (empty == implicit defaults from go-libp2p)
+
+Type: `object[string->object]
 
 ### `Swarm.Transports`
 
