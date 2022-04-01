@@ -455,7 +455,7 @@ test_expect_success "'ipfs dag put' check block size" '
 
   test_expect_success "dag stat of directory of UnixFS objects" '
     mkdir -p unixfsdir &&
-    echo "1234" > unixfsdir/small.txt
+    echo "1234" > unixfsdir/small.txt &&
     printf "1%.0s" {1..10000000} > unixfsdir/many1s.txt &&
     DIRECTORY_UNIXFS=$(ipfs add -r --pin=false -Q unixfsdir) &&
     ipfs dag stat $DIRECTORY_UNIXFS > actual_stat_directory_unixfs &&
