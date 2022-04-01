@@ -12,6 +12,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mdag "github.com/ipfs/go-merkledag"
+	mh "github.com/multiformats/go-multihash"
 )
 
 func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -38,11 +39,22 @@ func dagStat(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) 
 	}
 
 	dagstats := &DagStat{}
+	isMHAlreadySeen := make(map[string]struct{})
 	err = traverse.Traverse(obj, traverse.Options{
 		DAG:   nodeGetter,
 		Order: traverse.DFSPre,
 		Func: func(current traverse.State) error {
-			dagstats.Size += uint64(len(current.Node.RawData()))
+			c := current.Node.Cid()
+			// Only count once blocks that show up multiple times with different codecs
+			k := string(c.Hash())
+			if _, seen := isMHAlreadySeen[k]; seen {
+				return nil
+			}
+			isMHAlreadySeen[k] = struct{}{}
+
+			if c.Prefix().MhType != mh.IDENTITY { // Do not count inlined blocks
+				dagstats.Size += uint64(len(current.Node.RawData()))
+			}
 			dagstats.NumBlocks++
 
 			if progressive {
