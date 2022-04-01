@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 
 	cid "github.com/ipfs/go-cid"
 	bs "github.com/ipfs/go-ipfs-blockstore"
@@ -94,31 +93,4 @@ func FilterPinned(ctx context.Context, pins pin.Pinner, out chan<- interface{}, 
 		}
 	}
 	return stillOkay
-}
-
-// ProcRmOutput takes a function which returns a result from RmBlocks or EOF if there is no input.
-// It then writes to stdout/stderr according to the RemovedBlock object returned from the function.
-func ProcRmOutput(next func() (interface{}, error), sout io.Writer, serr io.Writer) error {
-	someFailed := false
-	for {
-		res, err := next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		r := res.(*RemovedBlock)
-		if r.Hash == "" && r.Error != nil {
-			return fmt.Errorf("aborted: %w", r.Error)
-		} else if r.Error != nil {
-			someFailed = true
-			fmt.Fprintf(serr, "cannot remove %s: %v\n", r.Hash, r.Error)
-		} else {
-			fmt.Fprintf(sout, "removed %s\n", r.Hash)
-		}
-	}
-	if someFailed {
-		return fmt.Errorf("some blocks not removed")
-	}
-	return nil
 }
