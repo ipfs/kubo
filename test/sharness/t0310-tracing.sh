@@ -39,13 +39,13 @@ EOF
 rm -rf traces.json && touch traces.json && chmod 777 traces.json
 
 test_expect_success "run opentelemetry collector" '
-  docker run --rm -d -v "$PWD/collector-config.yaml":/etc/otel/config.yaml -v "$PWD":/traces --net=host --name=ipfs-test-otel-collector otel/opentelemetry-collector-contrib
+  docker run --rm -d -v "$PWD/collector-config.yaml":/config.yaml -v "$PWD":/traces --net=host --name=ipfs-test-otel-collector otel/opentelemetry-collector-contrib:0.48.0 --config /config.yaml
 '
 
 test_launch_ipfs_daemon
 
 test_expect_success "check that a swarm span eventually appears in exported traces" '
-  until cat traces.json | jq -r .[][].instrumentationLibrarySpans[].spans[].name | grep CoreAPI.SwarmAPI; do sleep 0.1; done
+  until cat traces.json | grep CoreAPI.SwarmAPI >/dev/null; do sleep 0.1; done
 '
 
 test_expect_success "kill docker container" '
