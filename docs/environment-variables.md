@@ -102,3 +102,45 @@ Deprecated: Use the `Swarm.Transports.Multiplexers` config field.
 Tells go-ipfs which multiplexers to use in which order.
 
 Default: "/yamux/1.0.0 /mplex/6.7.0"
+
+# Tracing
+**NOTE** Tracing support is experimental--releases may contain tracing-related breaking changes.
+
+## `IPFS_TRACING`
+Enables OpenTelemetry tracing.
+
+Default: false
+
+## `IPFS_TRACING_JAEGER`
+Enables the Jaeger exporter for OpenTelemetry.
+
+For additional Jaeger exporter configuration, see: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#jaeger-exporter
+
+Default: false
+
+## `IPFS_TRACING_OTLP_HTTP`
+Enables the OTLP HTTP exporter for OpenTelemetry.
+
+For additional exporter configuration, see: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md
+
+Default: false
+
+## `IPFS_TRACING_OTLP_GRPC`
+Enables the OTLP gRPC exporter for OpenTelemetry.
+
+For additional exporter configuration, see: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md
+
+Default: false
+
+## `IPFS_TRACING_FILE`
+Enables the file exporter for OpenTelemetry, writing traces to the given file in JSON format.
+
+Example: "/var/log/ipfs-traces.json"
+
+Default: "" (disabled)
+
+## `IPFS_TRACING_RATIO`
+The ratio of traces to export, as a floating point value in the interval [0, 1].
+
+Deault: 1.0 (export all traces)
+
