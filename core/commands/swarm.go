@@ -314,6 +314,7 @@ var swarmPeersCmd = &cmds.Command{
 }
 
 var swarmStatsCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Report resource usage for a scope.",
 		LongDescription: `Report resource usage for a scope.
@@ -358,6 +359,7 @@ var swarmStatsCmd = &cmds.Command{
 }
 
 var swarmLimitCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Get or set resource limits for a scope.",
 		LongDescription: `Get or set resource limits for a scope.
