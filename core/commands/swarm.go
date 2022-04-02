@@ -394,7 +394,7 @@ For permanent limits set Swarm.ResourceMgr.Limits in the $IPFS_PATH/config file.
 		}
 
 		if node.ResourceManager == nil {
-			return fmt.Errorf("no resource manager available, make sure the daemon is running")
+			return fmt.Errorf("no resource manager available: make sure the daemon is running with Swarm.ResourceMgr.Enabled in the config")
 		}
 
 		scope := req.Arguments[0]
