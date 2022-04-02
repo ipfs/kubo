@@ -131,6 +131,8 @@ config file at runtime.
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
+      - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
+      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -1693,9 +1695,13 @@ Example:
 Current resource usage and a list of services, protocols, and peers can be obtained via
 `ipfs swarm stats --help`
 
+It is also possible to adjust runtime limits via `ipfs stats limit --help`,
+however changes are ephemeral (config remains intact), and won't be applied
+after reboot.
+
 Default: `{}` (empty == implicit defaults from go-libp2p)
 
-Type: `object[string->object]
+Type: `object[string->object]`
 
 ### `Swarm.Transports`
 
