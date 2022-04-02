@@ -3,7 +3,6 @@ package httpapi
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/ipfs/go-cid"
@@ -36,12 +35,17 @@ func TestParseIPLDNotFound(t *testing.T) {
 		t.Errorf("expected empty string to give no error; got %T %q", err, err.Error())
 	}
 
-	for _, wrap := range [...]string{
+	cidBreaks := make([]string, len(cidBreakSet))
+	for i, v := range cidBreakSet {
+		cidBreaks[i] = "%w" + string(v)
+	}
+
+	for _, wrap := range append(cidBreaks,
 		"",
 		"merkledag: %w",
 		"testing: %w the test",
 		"%w is wrong",
-	} {
+	) {
 		for _, err := range [...]error{
 			errors.New("ipld: could not find "),
 			errors.New("ipld: could not find Bad_CID"),
@@ -77,13 +81,5 @@ func TestBlockstoreNotFoundMatchingIPLDErrNotFound(t *testing.T) {
 		}
 
 		doParseIpldNotFoundTest(t, err)
-	}
-}
-
-func TestNotAsciiLetterOrDigits(t *testing.T) {
-	for i := rune(0); i <= 256; i++ {
-		if notAsciiLetterOrDigits(i) != !strings.ContainsAny(string(i), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") {
-			t.Errorf("%q is incorrectly identified", i)
-		}
 	}
 }

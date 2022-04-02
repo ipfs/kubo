@@ -47,18 +47,6 @@ func parseErrNotFoundWithFallbackToError(msg error) error {
 	return msg
 }
 
-// Use a string to move it into RODATA
-// print("".join("\\x01" if chr(i) not in string.ascii_letters + string.digits else "\\x00" for i in range(ord('z')+1)))
-const notAsciiLetterOrDigitsLUT = "\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-
-func notAsciiLetterOrDigits(r rune) bool {
-	if r > 'z' {
-		return true
-	}
-
-	return notAsciiLetterOrDigitsLUT[r] > 0
-}
-
 //lint:ignore ST1008 this function is not using the error as a mean to return failure but it massages it to return the correct type
 func parseErrNotFound(msg string) (error, bool) {
 	if msg == "" {
@@ -75,6 +63,12 @@ func parseErrNotFound(msg string) (error, bool) {
 
 	return nil, false
 }
+
+// Assume CIDs break on:
+// - Whitespaces: " \t\n\r\v\f"
+// - Semicolon: ";" this is to parse ipld.ErrNotFound wrapped in multierr
+// - Double Quotes: "\"" this is for parsing %q and %#v formating
+const cidBreakSet = " \t\n\r\v\f;\""
 
 //lint:ignore ST1008 using error as values
 func parseIPLDErrNotFound(msg string) (error, bool) {
@@ -99,9 +93,9 @@ func parseIPLDErrNotFound(msg string) (error, bool) {
 		c = cid.Undef
 		postIndex = len("node")
 	} else {
-		// Assume that CIDs only contain a-zA-Z0-9 characters.
-		// This is true because go-ipld-format use go-cid#Cid.String which use base{3{2,6},58}.
-		postIndex = strings.IndexFunc(msgPostKey, notAsciiLetterOrDigits)
+		postIndex = strings.IndexFunc(msgPostKey, func(r rune) bool {
+			return strings.ContainsAny(string(r), cidBreakSet)
+		})
 		if postIndex < 0 {
 			postIndex = len(msgPostKey)
 		}
