@@ -74,12 +74,15 @@ func TestBlockstoreNotFoundMatchingIPLDErrNotFound(t *testing.T) {
 		"testing: %w the test",
 		"%w is wrong",
 	} {
-		var err error = blockstoreNotFoundMatchingIPLDErrNotFound{"blockstore: block not found"}
+		for _, err := range [...]error{
+			errors.New("network connection timeout"),
+			blockstoreNotFoundMatchingIPLDErrNotFound{"blockstore: block not found"},
+		} {
+			if wrap != "" {
+				err = fmt.Errorf(wrap, err)
+			}
 
-		if wrap != "" {
-			err = fmt.Errorf(wrap, err)
+			doParseIpldNotFoundTest(t, err)
 		}
-
-		doParseIpldNotFoundTest(t, err)
 	}
 }
