@@ -162,22 +162,32 @@ test_expect_success "Add the _redirects file test directory" '
 
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
-test_expect_success "_redirects - /301-redirect-one" '
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/301-redirect-one redirects with 301, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/301-redirect-one" > response &&
   test_should_contain "one.html" response &&
   test_should_contain "301 Moved Permanently" response
 '
 
-test_expect_success "_redirects - /302-redirect-two" '
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/302-redirect-two redirects with 302, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/302-redirect-two" > response &&
   test_should_contain "two.html" response &&
   test_should_contain "302 Found" response
 '
 
-test_expect_success "_redirects - /200-index" '
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/200-index returns 200, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/200-index" > response &&
   test_should_contain "index.html" response &&
   test_should_contain "200 OK" response
+'
+
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/has-no-redirects-entry returns 404, since not in _redirects file" '
+  curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/has-no-redirects-entry" > response &&
+  test_should_contain "404 Not Found" response
+'
+
+test_expect_success "request for http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR_CID/301-redirect-one returns 404, no _redirects since no origin isolation" '
+  curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR_CID/301-redirect-one" > response &&
+  test_should_contain "404 Not Found" response
 '
 
 ## ============================================================================
