@@ -30,7 +30,7 @@ func ResourceManager(cfg cfg.ResourceMgr) func(fx.Lifecycle, repo.Repo) (network
 		enabled := cfg.Enabled.WithDefault(false)
 
 		/// ENV overrides Config (if present)
-		switch os.Getenv("IPFS_RCMGR") {
+		switch os.Getenv("LIBP2P_RCMGR") {
 		case "0", "false":
 			enabled = false
 		case "1", "true":
@@ -65,7 +65,7 @@ func ResourceManager(cfg cfg.ResourceMgr) func(fx.Lifecycle, repo.Repo) (network
 			libp2p.SetDefaultServiceLimits(limiter)
 
 			var ropts []rcmgr.Option
-			if os.Getenv("IPFS_DEBUG_RCMGR") != "" {
+			if os.Getenv("LIBP2P_DEBUG_RCMGR") != "" {
 				ropts = append(ropts, rcmgr.WithTrace("rcmgr.json.gz"))
 			}
 
