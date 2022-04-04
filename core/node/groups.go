@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
@@ -141,22 +140,12 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://github.com/libp2p/go-libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
-	// Swarm.ResourceMgr
-	enableResourceMgr := cfg.Swarm.ResourceMgr.Enabled.WithDefault(false)
-	/// ENV overrides Config (if present)
-	switch os.Getenv("IPFS_RCMGR") {
-	case "0", "false":
-		enableResourceMgr = false
-	case "1", "true":
-		enableResourceMgr = true
-	}
-
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
 
 		// Services (resource management)
-		maybeProvide(libp2p.ResourceManager(cfg.Swarm.ResourceMgr), enableResourceMgr),
+		fx.Provide(libp2p.ResourceManager(cfg.Swarm.ResourceMgr)),
 
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),

@@ -102,3 +102,19 @@ Deprecated: Use the `Swarm.Transports.Multiplexers` config field.
 Tells go-ipfs which multiplexers to use in which order.
 
 Default: "/yamux/1.0.0 /mplex/6.7.0"
+
+## `IPFS_RCMGR`
+
+Forces [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme)
+to be enabled (`1`) or disabled (`0`).
+When set, overrides [`Swarm.ResourceMgr.Enabled`](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#swarmresourcemgrenabled) from the config.
+
+Default: use config (not set)
+
+## `IPFS_DEBUG_RCMGR`
+
+Enables tracing of [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme)
+and outputs it to `rcmgr.json.gz`
+
+
+Default: disabled (not set)
