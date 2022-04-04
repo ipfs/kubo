@@ -10,9 +10,12 @@ import (
 	"github.com/dustin/go-humanize"
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/assets"
+	"github.com/ipfs/go-ipfs/tracing"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +23,8 @@ import (
 //
 // It will return index.html if present, or generate directory listing otherwise.
 func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger) {
+	ctx, span := tracing.Span(r.Context(), "Gateway", "ServeDirectory", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+	defer span.End()
 
 	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
 	// In this case, we need the original path for constructing redirects
@@ -35,7 +40,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 
 	// Check if directory has index.html, if so, serveFile
 	idxPath := ipath.Join(resolvedPath, "index.html")
-	idx, err := i.api.Unixfs().Get(r.Context(), idxPath)
+	idx, err := i.api.Unixfs().Get(ctx, idxPath)
 	switch err.(type) {
 	case nil:
 		cpath := contentPath.String()
@@ -63,7 +68,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 
 		logger.Debugw("serving index.html file", "path", idxPath)
 		// write to request
-		i.serveFile(w, r, idxPath, resolvedPath.Cid(), f, begin)
+		i.serveFile(w, r, resolvedPath, idxPath, f, begin)
 		return
 	case resolver.ErrNoLink:
 		logger.Debugw("no index.html; noop", "path", idxPath)
@@ -111,7 +116,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 			size = humanize.Bytes(uint64(s))
 		}
 
-		resolved, err := i.api.ResolvePath(r.Context(), ipath.Join(resolvedPath, dirit.Name()))
+		resolved, err := i.api.ResolvePath(ctx, ipath.Join(resolvedPath, dirit.Name()))
 		if err != nil {
 			internalWebError(w, err)
 			return

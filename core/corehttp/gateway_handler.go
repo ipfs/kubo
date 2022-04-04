@@ -26,6 +26,8 @@ import (
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -354,6 +356,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "error while processing the Accept header", err, http.StatusBadRequest)
 		return
 	}
+	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
+	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResolvedPath", resolvedPath.String()))
 
 	// Finish early if client already has matching Etag
 	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
@@ -392,12 +396,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)
-		i.serveRawBlock(w, r, resolvedPath.Cid(), contentPath, begin)
+		i.serveRawBlock(w, r, resolvedPath, contentPath, begin)
 		return
 	case "application/vnd.ipld.car":
 		logger.Debugw("serving car stream", "path", contentPath)
 		carVersion := formatParams["version"]
-		i.serveCar(w, r, resolvedPath.Cid(), contentPath, carVersion, begin)
+    i.serveCar(w, r, resolvedPath, contentPath, carVersion, begin)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
