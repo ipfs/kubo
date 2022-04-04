@@ -14,6 +14,7 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	pin "github.com/ipfs/go-ipfs-pinner"
 	posinfo "github.com/ipfs/go-ipfs-posinfo"
+	"github.com/ipfs/go-ipfs/tracing"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
@@ -158,20 +159,23 @@ func (adder *Adder) curRootNode() (ipld.Node, error) {
 
 // Recursively pins the root node of Adder and
 // writes the pin state to the backing datastore.
-func (adder *Adder) PinRoot(root ipld.Node) error {
+func (adder *Adder) PinRoot(ctx context.Context, root ipld.Node) error {
+	ctx, span := tracing.Span(ctx, "CoreUnix.Adder", "PinRoot")
+	defer span.End()
+
 	if !adder.Pin {
 		return nil
 	}
 
 	rnk := root.Cid()
 
-	err := adder.dagService.Add(adder.ctx, root)
+	err := adder.dagService.Add(ctx, root)
 	if err != nil {
 		return err
 	}
 
 	if adder.tempRoot.Defined() {
-		err := adder.pinning.Unpin(adder.ctx, adder.tempRoot, true)
+		err := adder.pinning.Unpin(ctx, adder.tempRoot, true)
 		if err != nil {
 			return err
 		}
@@ -179,7 +183,7 @@ func (adder *Adder) PinRoot(root ipld.Node) error {
 	}
 
 	adder.pinning.PinWithMode(rnk, pin.Recursive)
-	return adder.pinning.Flush(adder.ctx)
+	return adder.pinning.Flush(ctx)
 }
 
 func (adder *Adder) outputDirs(path string, fsn mfs.FSNode) error {
@@ -255,6 +259,9 @@ func (adder *Adder) addNode(node ipld.Node, path string) error {
 
 // AddAllAndPin adds the given request's files and pin them.
 func (adder *Adder) AddAllAndPin(ctx context.Context, file files.Node) (ipld.Node, error) {
+	ctx, span := tracing.Span(ctx, "CoreUnix.Adder", "AddAllAndPin")
+	defer span.End()
+
 	if adder.Pin {
 		adder.unlocker = adder.gcLocker.PinLock(ctx)
 	}
@@ -330,10 +337,13 @@ func (adder *Adder) AddAllAndPin(ctx context.Context, file files.Node) (ipld.Nod
 	if !adder.Pin {
 		return nd, nil
 	}
-	return nd, adder.PinRoot(nd)
+	return nd, adder.PinRoot(ctx, nd)
 }
 
 func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Node, toplevel bool) error {
+	ctx, span := tracing.Span(ctx, "CoreUnix.Adder", "AddFileNode")
+	defer span.End()
+
 	defer file.Close()
 
 	err := adder.maybePauseForGC(ctx)
@@ -436,13 +446,16 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 }
 
 func (adder *Adder) maybePauseForGC(ctx context.Context) error {
+	ctx, span := tracing.Span(ctx, "CoreUnix.Adder", "MaybePauseForGC")
+	defer span.End()
+
 	if adder.unlocker != nil && adder.gcLocker.GCRequested(ctx) {
 		rn, err := adder.curRootNode()
 		if err != nil {
 			return err
 		}
 
-		err = adder.PinRoot(rn)
+		err = adder.PinRoot(ctx, rn)
 		if err != nil {
 			return err
 		}

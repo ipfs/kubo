@@ -9,6 +9,7 @@ import (
 	version "github.com/ipfs/go-ipfs"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
@@ -87,11 +88,13 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 				"X-Stream-Output",
 			}, headers[ACEHeadersName]...))
 
-		gateway := newGatewayHandler(GatewayConfig{
+		var gateway http.Handler = newGatewayHandler(GatewayConfig{
 			Headers:      headers,
 			Writable:     writable,
 			PathPrefixes: cfg.Gateway.PathPrefixes,
 		}, api)
+
+		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")
 
 		for _, p := range paths {
 			mux.Handle(p+"/", gateway)
