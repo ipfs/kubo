@@ -32,6 +32,10 @@ test_expect_success "docker image build succeeds" '
 
 test_init_ipfs
 
+test_expect_success "configure migration sources" '
+  ipfs config --json Migration.DownloadSources "[\"http://127.0.0.1:17233\"]"
+'
+
 test_expect_success "make repo be version 4" '
   echo 4 > "$IPFS_PATH/version"
 '
@@ -43,17 +47,13 @@ test_expect_success "setup http response" '
   echo "v1.1.1" >> vers_resp
 '
 
-pretend_server() {
-    socat tcp-listen:17233,fork,bind=127.0.0.1,reuseaddr 'SYSTEM:cat vers_resp'!!STDERR &
-}
-
 test_expect_success "startup fake dists server" '
-  pretend_server > dist_serv_out &
+  ( socat tcp-listen:17233,fork,bind=127.0.0.1,reuseaddr "SYSTEM:cat vers_resp"!!STDERR 2> dist_serv_out ) &
   echo $! > netcat_pid
 '
 
 test_expect_success "docker image runs" '
-  DOC_ID=$(docker run -d -v "$IPFS_PATH":/data/ipfs --net=host -e IPFS_DIST_PATH="http://localhost:17233" "$IMAGE_ID" --migrate)
+  DOC_ID=$(docker run -d -v "$IPFS_PATH":/data/ipfs --net=host "$IMAGE_ID")
 '
 
 test_expect_success "docker container tries to pull migrations from netcat" '
@@ -74,7 +74,7 @@ test_expect_success "kill the net cat" '
 '
 
 test_expect_success "correct version was requested" '
-  grep "/fs-repo-migrations/v1.1.1/fs-repo-migrations_v1.1.1_linux-amd64.tar.gz" dist_serv_out > /dev/null
+  grep "/fs-repo-6-to-7/v1.1.1/fs-repo-6-to-7_v1.1.1_linux-amd64.tar.gz" dist_serv_out > /dev/null
 '
 
 test_done

@@ -69,9 +69,6 @@ func MockCmdsCtx() (commands.Context, error) {
 
 	return commands.Context{
 		ConfigRoot: "/tmp/.mockipfsconfig",
-		LoadConfig: func(path string) (*config.Config, error) {
-			return &conf, nil
-		},
 		ConstructNode: func() (*core.IpfsNode, error) {
 			return node, nil
 		},

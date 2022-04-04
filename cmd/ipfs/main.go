@@ -27,7 +27,6 @@ import (
 	"github.com/ipfs/go-ipfs-cmds/cli"
 	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
 	u "github.com/ipfs/go-ipfs-util"
-	config "github.com/ipfs/go-ipfs/config"
 	logging "github.com/ipfs/go-log"
 	loggables "github.com/libp2p/go-libp2p-loggables"
 	ma "github.com/multiformats/go-multiaddr"
@@ -149,7 +148,6 @@ func mainRet() (exitCode int) {
 		// this is so that we can construct the node lazily.
 		return &oldcmds.Context{
 			ConfigRoot: repoPath,
-			LoadConfig: loadConfig,
 			ReqLog:     &oldcmds.ReqLog{},
 			Plugins:    plugins,
 			ConstructNode: func() (n *core.IpfsNode, err error) {
@@ -315,10 +313,6 @@ func getRepoPath(req *cmds.Request) (string, error) {
 		return "", err
 	}
 	return repoPath, nil
-}
-
-func loadConfig(path string) (*config.Config, error) {
-	return fsrepo.ConfigAt(path)
 }
 
 // startProfiling begins CPU profiling and returns a `stop` function to be

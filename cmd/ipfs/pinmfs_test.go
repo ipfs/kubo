@@ -24,7 +24,7 @@ func (x *testPinMFSContext) Context() context.Context {
 	return x.ctx
 }
 
-func (x *testPinMFSContext) GetConfigNoCache() (*config.Config, error) {
+func (x *testPinMFSContext) GetConfig() (*config.Config, error) {
 	return x.cfg, x.err
 }
 
