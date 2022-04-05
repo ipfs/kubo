@@ -118,10 +118,8 @@ func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRm
 			return errors.New("got unexpected output from util.RmBlocks")
 		}
 
-		// Because errors come as strings we lose information about
-		// the error type.
-		if remBlock.Error != "" {
-			return errors.New(remBlock.Error)
+		if remBlock.Error != nil {
+			return remBlock.Error
 		}
 		return nil
 	case <-ctx.Done():

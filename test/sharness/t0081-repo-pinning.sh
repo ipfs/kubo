@@ -238,7 +238,7 @@ test_expect_success "some are no longer there" '
 test_launch_ipfs_daemon_without_network
 test_expect_success "recursive pin fails without objects" '
   test_must_fail ipfs pin add -r "$HASH_DIR1" 2>err_expected8 &&
-  grep "not found" err_expected8 ||
+  grep "ipld: could not find" err_expected8 ||
   test_fsh cat err_expected8
 '
 

@@ -134,9 +134,9 @@ test_expect_success "multi-block 'ipfs block rm <invalid> <valid> <invalid>'" '
 '
 
 test_expect_success "multi-block 'ipfs block rm <invalid> <valid> <invalid>' output looks good" '
-  echo "cannot remove $RANDOMHASH: $RANDOMHASH not found" >> expect_mixed_rm &&
+  echo "cannot remove $RANDOMHASH: ipld: could not find $RANDOMHASH" >> expect_mixed_rm &&
   echo "removed $TESTHASH" >> expect_mixed_rm &&
-  echo "cannot remove $RANDOMHASH: $RANDOMHASH not found" >> expect_mixed_rm &&
+  echo "cannot remove $RANDOMHASH: ipld: could not find $RANDOMHASH" >> expect_mixed_rm &&
   echo "Error: some blocks not removed" >> expect_mixed_rm
   test_cmp actual_mixed_rm expect_mixed_rm
 '
