@@ -30,7 +30,7 @@ type redirectHandler struct {
 }
 
 func (i *redirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, i.path, 302)
+	http.Redirect(w, r, i.path, http.StatusFound)
 }
 
 type redirLine struct {
@@ -42,7 +42,7 @@ type redirLine struct {
 func (rdl redirLine) match(s string) (bool, error) {
 	re, err := regexp.Compile(rdl.matcher)
 	if err != nil {
-		return false, fmt.Errorf("Failed to compile %v: %v", rdl.matcher, err)
+		return false, fmt.Errorf("failed to compile %v: %v", rdl.matcher, err)
 	}
 
 	match := re.FindString(s)
@@ -70,7 +70,7 @@ func newRedirs(f io.Reader) *redirs {
 			matcher := groups[0]
 			to := groups[1]
 			// default to 302 (temporary redirect)
-			code := 302
+			code := http.StatusFound
 			if len(groups) >= 3 {
 				c, err := strconv.Atoi(groups[2])
 				if err == nil {

@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -22,6 +23,7 @@ import (
 
 func (i *gatewayHandler) getOrHeadHandlerUnixfs(w http.ResponseWriter, r *http.Request, begin time.Time, logger *zap.SugaredLogger) {
 	urlPath := r.URL.Path
+
 	// Only look for _redirects file if we have Origin isolation
 	if hasOriginIsolation(r) {
 		// Check for _redirects file and redirect as needed
@@ -178,7 +180,7 @@ func (i *gatewayHandler) redirect(w http.ResponseWriter, r *http.Request, path i
 
 		to, code := redirs.search(filePartPath)
 		if code > 0 {
-			if code == 200 {
+			if code == http.StatusOK {
 				// rewrite
 				newPath := strings.Join(g[0:3], "/") + "/" + to
 				return false, newPath, nil
@@ -197,8 +199,11 @@ func (i *gatewayHandler) redirect(w http.ResponseWriter, r *http.Request, path i
 func (i *gatewayHandler) getRedirectsFile(r *http.Request) (ipath.Resolved, error) {
 	// r.URL.Path is the full ipfs path to the requested resource,
 	// regardless of whether path or subdomain resolution is used.
-	rootPath := getRootPath(r.URL.Path)
-	// TODO(JJ): handle error
+	rootPath, err := getRootPath(r.URL.Path)
+	if err != nil {
+		return nil, err
+	}
+
 	path := ipath.New(gopath.Join(rootPath, "_redirects"))
 	resolvedPath, err := i.api.ResolvePath(r.Context(), path)
 	if err != nil {
@@ -208,12 +213,12 @@ func (i *gatewayHandler) getRedirectsFile(r *http.Request) (ipath.Resolved, erro
 }
 
 // Returns the root CID path for the given path
-func getRootPath(path string) string {
+func getRootPath(path string) (string, error) {
 	if strings.HasPrefix(path, ipfsPathPrefix) && strings.Count(gopath.Clean(path), "/") >= 2 {
 		parts := strings.Split(path, "/")
-		return gopath.Join(ipfsPathPrefix, parts[2])
+		return gopath.Join(ipfsPathPrefix, parts[2]), nil
 	} else {
-		return ""
+		return "", errors.New("failed to get root CID path")
 	}
 }
 

@@ -154,13 +154,20 @@ test_expect_success "Add the _redirects file test directory" '
   echo "index.html" > testredirect/index.html &&
   echo "one.html" > testredirect/one.html &&
   echo "two.html" > testredirect/two.html &&
-  echo "^/301-redirect-one$ /one.html 301" > testredirect/_redirects &&
+  echo "^/redirect-one$ /one.html" > testredirect/_redirects &&
+  echo "^/301-redirect-one$ /one.html 301" >> testredirect/_redirects &&
   echo "^/302-redirect-two$ /two.html 302" >> testredirect/_redirects &&
   echo "^/200-index$ /index.html 200" >> testredirect/_redirects &&
   REDIRECTS_DIR_CID=$(ipfs add -Qr --cid-version 1 testredirect)
 '
 
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 302, per _redirects file" '
+  curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/redirect-one" > response &&
+  test_should_contain "one.html" response &&
+  test_should_contain "302 Found" response
+'
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/301-redirect-one redirects with 301, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/301-redirect-one" > response &&
