@@ -67,7 +67,7 @@ EOE
   # Explainer:
   # naked_root_import_json_expected output is produced by dag import of combined_naked_roots_genesis_and_128.car
   # executed when roots are already present in the repo - thus the BlockCount=0
-  # (if blocks were not present in the repo, blockstore: block not found would be returned)
+  # (if blocks were not present in the repo, ipld: could not find <CID> would be returned)
   cat >naked_root_import_json_expected <<EOE
 {"Root":{"Cid":{"/":"bafy2bzaceaxm23epjsmh75yvzcecsrbavlmkcxnva66bkdebdcnyw3bjrc74u"},"PinErrorMsg":""}}
 {"Root":{"Cid":{"/":"bafy2bzaced4ueelaegfs5fqu4tzsh6ywbbpfk3cxppupmxfdhbpbhzawfw5oy"},"PinErrorMsg":""}}
@@ -179,7 +179,7 @@ test_expect_success "basic offline export of 'getting started' dag works" '
 '
 
 
-echo "Error: block was not found locally (offline): QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX not found (currently offline, perhaps retry after attaching to the network)" > offline_fetch_error_expected
+echo "Error: block was not found locally (offline): ipld: could not find QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX (currently offline, perhaps retry after attaching to the network)" > offline_fetch_error_expected
 test_expect_success "basic offline export of nonexistent cid" '
   ! ipfs dag export QmYwAPJXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 2> offline_fetch_error_actual >/dev/null
 '
