@@ -1638,7 +1638,7 @@ and track recource usage over time.
 
 #### `Swarm.ResourceMgr.Enabled`
 
-**EXPERIMENTAL**: this feature is is disabled by default, use with caution.
+**EXPERIMENTAL**: this feature is disabled by default, use with caution.
 
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
