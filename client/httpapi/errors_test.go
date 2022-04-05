@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	mbase "github.com/multiformats/go-multibase"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -40,6 +41,11 @@ func TestParseIPLDNotFound(t *testing.T) {
 		cidBreaks[i] = "%w" + string(v)
 	}
 
+	base58BTCEncoder, err := mbase.NewEncoder(mbase.Base58BTC)
+	if err != nil {
+		t.Fatalf("expected to find Base58BTC encoder; got error %q", err.Error())
+	}
+
 	for _, wrap := range append(cidBreaks,
 		"",
 		"merkledag: %w",
@@ -49,6 +55,7 @@ func TestParseIPLDNotFound(t *testing.T) {
 		for _, err := range [...]error{
 			errors.New("ipld: could not find "),
 			errors.New("ipld: could not find Bad_CID"),
+			errors.New("ipld: could not find " + cid.NewCidV1(cid.Raw, randomSha256MH).Encode(base58BTCEncoder)), // Test that we only accept CIDv0 and base32 CIDs
 			errors.New("network connection timeout"),
 			ipld.ErrNotFound{Cid: cid.Undef},
 			ipld.ErrNotFound{Cid: cid.NewCidV0(randomSha256MH)},

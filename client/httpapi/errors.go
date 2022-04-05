@@ -3,9 +3,11 @@ package httpapi
 import (
 	"errors"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
+	mbase "github.com/multiformats/go-multibase"
 )
 
 // This file handle parsing and returning the correct ABI based errors from error messages
@@ -97,14 +99,27 @@ func parseIPLDErrNotFound(msg string) (error, bool) {
 			return strings.ContainsAny(string(r), cidBreakSet)
 		})
 		if postIndex < 0 {
+			// no breakage meaning the string look like this something + "ipld: could not find bafy"
 			postIndex = len(msgPostKey)
 		}
 
+		cidStr := msgPostKey[:postIndex]
+
 		var err error
-		c, err = cid.Decode(msgPostKey[:postIndex])
+		c, err = cid.Decode(cidStr)
 		if err != nil {
-			// Unknown
+			// failed to decode CID give up
 			return nil, false
+		}
+
+		// check that the CID is either a CIDv0 or a base32 multibase
+		// because that what ipld.ErrNotFound.Error() -> cid.Cid.String() do currently
+		if c.Version() != 0 {
+			baseRune, _ := utf8.DecodeRuneInString(cidStr)
+			if baseRune == utf8.RuneError || baseRune != mbase.Base32 {
+				// not a multibase we expect, give up
+				return nil, false
+			}
 		}
 	}
 
