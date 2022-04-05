@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
-	cfg "github.com/ipfs/go-ipfs/config"
 	config "github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/libp2p/go-libp2p"
@@ -19,10 +19,11 @@ import (
 )
 
 const NetLimitDefaultFilename = "limit.json"
+const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var NoResourceMgrError = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(cfg cfg.ResourceMgr) func(fx.Lifecycle, repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
+func ResourceManager(cfg config.ResourceMgr) func(fx.Lifecycle, repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 	return func(lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var limiter *rcmgr.BasicLimiter
 		var manager network.ResourceManager
@@ -42,15 +43,19 @@ func ResourceManager(cfg cfg.ResourceMgr) func(fx.Lifecycle, repo.Repo) (network
 		if enabled {
 			log.Debug("libp2p resource manager is enabled")
 
+			repoPath, err := config.PathRoot()
+			if err != nil {
+				return nil, opts, fmt.Errorf("error opening IPFS_PATH: %w", err)
+			}
+
 			// Try defaults from limit.json if provided
 			// (a convention to make libp2p team life easier)
-			// TODO: look in current dir and in IPFS_PATH
-			_, err := os.Stat(NetLimitDefaultFilename)
+			limitFilePath := filepath.Join(repoPath, NetLimitDefaultFilename)
+			_, err = os.Stat(limitFilePath)
 			if !errors.Is(err, os.ErrNotExist) {
-				limitFile, err := os.Open(NetLimitDefaultFilename)
+				limitFile, err := os.Open(limitFilePath)
 				if err != nil {
-					return nil, opts, fmt.Errorf("error opening limit JSON file %s: %w",
-						NetLimitDefaultFilename, err)
+					return nil, opts, fmt.Errorf("error opening limit JSON file %q: %w", limitFilePath, err)
 				}
 				defer limitFile.Close() //nolint:errcheck
 				limiter, err = rcmgr.NewDefaultLimiterFromJSON(limitFile)
@@ -68,7 +73,8 @@ func ResourceManager(cfg cfg.ResourceMgr) func(fx.Lifecycle, repo.Repo) (network
 
 			var ropts []rcmgr.Option
 			if os.Getenv("LIBP2P_DEBUG_RCMGR") != "" {
-				ropts = append(ropts, rcmgr.WithTrace("rcmgr.json.gz"))
+				traceFilePath := filepath.Join(repoPath, NetLimitTraceFilename)
+				ropts = append(ropts, rcmgr.WithTrace(traceFilePath))
 			}
 
 			manager, err = rcmgr.NewResourceManager(limiter, ropts...)
