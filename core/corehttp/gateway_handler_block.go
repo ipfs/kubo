@@ -6,13 +6,18 @@ import (
 	"net/http"
 	"time"
 
-	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs/tracing"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // serveRawBlock returns bytes behind a raw block
-func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, blockCid cid.Cid, contentPath ipath.Path, begin time.Time) {
-	blockReader, err := i.api.Block().Get(r.Context(), contentPath)
+func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time) {
+	ctx, span := tracing.Span(r.Context(), "Gateway", "ServeRawBlock", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+	defer span.End()
+	blockCid := resolvedPath.Cid()
+	blockReader, err := i.api.Block().Get(ctx, resolvedPath)
 	if err != nil {
 		webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
 		return

@@ -5,8 +5,11 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	pin "github.com/ipfs/go-ipfs-pinner"
+	"github.com/ipfs/go-ipfs/tracing"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type dagAPI struct {
@@ -18,6 +21,8 @@ type dagAPI struct {
 type pinningAdder CoreAPI
 
 func (adder *pinningAdder) Add(ctx context.Context, nd ipld.Node) error {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinningAdder", "Add", trace.WithAttributes(attribute.String("node", nd.String())))
+	defer span.End()
 	defer adder.blockstore.PinLock(ctx).Unlock(ctx)
 
 	if err := adder.dag.Add(ctx, nd); err != nil {
@@ -30,6 +35,8 @@ func (adder *pinningAdder) Add(ctx context.Context, nd ipld.Node) error {
 }
 
 func (adder *pinningAdder) AddMany(ctx context.Context, nds []ipld.Node) error {
+	ctx, span := tracing.Span(ctx, "CoreAPI.PinningAdder", "AddMany", trace.WithAttributes(attribute.Int("nodes.count", len(nds))))
+	defer span.End()
 	defer adder.blockstore.PinLock(ctx).Unlock(ctx)
 
 	if err := adder.dag.AddMany(ctx, nds); err != nil {

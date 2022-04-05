@@ -241,6 +241,7 @@ func (loader *PluginLoader) Inject() error {
 
 	for _, pl := range loader.plugins {
 		if pl, ok := pl.(plugin.PluginIPLD); ok {
+
 			err := injectIPLDPlugin(pl)
 			if err != nil {
 				loader.state = loaderFailed
@@ -338,6 +339,7 @@ func injectIPLDPlugin(pl plugin.PluginIPLD) error {
 }
 
 func injectTracerPlugin(pl plugin.PluginTracer) error {
+	log.Warn("Tracer plugins are deprecated, it's recommended to configure an OpenTelemetry collector instead.")
 	tracer, err := pl.InitTracer()
 	if err != nil {
 		return err

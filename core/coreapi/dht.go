@@ -9,17 +9,22 @@ import (
 	cidutil "github.com/ipfs/go-cidutil"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-ipfs/tracing"
 	dag "github.com/ipfs/go-merkledag"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	routing "github.com/libp2p/go-libp2p-core/routing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type DhtAPI CoreAPI
 
 func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (peer.AddrInfo, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.DhtAPI", "FindPeer", trace.WithAttributes(attribute.String("peer", p.String())))
+	defer span.End()
 	err := api.checkOnline(false)
 	if err != nil {
 		return peer.AddrInfo{}, err
@@ -34,10 +39,14 @@ func (api *DhtAPI) FindPeer(ctx context.Context, p peer.ID) (peer.AddrInfo, erro
 }
 
 func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopts.DhtFindProvidersOption) (<-chan peer.AddrInfo, error) {
+	ctx, span := tracing.Span(ctx, "CoreAPI.DhtAPI", "FindProviders", trace.WithAttributes(attribute.String("path", p.String())))
+	defer span.End()
+
 	settings, err := caopts.DhtFindProvidersOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
+	span.SetAttributes(attribute.Int("numproviders", settings.NumProviders))
 
 	err = api.checkOnline(false)
 	if err != nil {
@@ -59,10 +68,14 @@ func (api *DhtAPI) FindProviders(ctx context.Context, p path.Path, opts ...caopt
 }
 
 func (api *DhtAPI) Provide(ctx context.Context, path path.Path, opts ...caopts.DhtProvideOption) error {
+	ctx, span := tracing.Span(ctx, "CoreAPI.DhtAPI", "Provide", trace.WithAttributes(attribute.String("path", path.String())))
+	defer span.End()
+
 	settings, err := caopts.DhtProvideOptions(opts...)
 	if err != nil {
 		return err
 	}
+	span.SetAttributes(attribute.Bool("recursive", settings.Recursive))
 
 	err = api.checkOnline(false)
 	if err != nil {

@@ -51,8 +51,23 @@ test_launch_ipfs_daemon_without_network
     # explicit version=1
     test_expect_success "GET for application/vnd.ipld.raw version=1 returns a CARv1 stream" '
     ipfs dag import test-dag.car &&
+    curl -sX GET -H "Accept: application/vnd.ipld.car;version=1" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt" -o gateway-header-v1.car &&
+    test_cmp deterministic.car gateway-header-v1.car
+    '
+
+    # explicit version=1 with whitepace
+    test_expect_success "GET for application/vnd.ipld.raw version=1 returns a CARv1 stream (with whitespace)" '
+    ipfs dag import test-dag.car &&
     curl -sX GET -H "Accept: application/vnd.ipld.car; version=1" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt" -o gateway-header-v1.car &&
     test_cmp deterministic.car gateway-header-v1.car
+    '
+
+    # explicit version=2
+    test_expect_success "GET for application/vnd.ipld.raw version=2 returns HTTP 400 Bad Request error" '
+    curl -svX GET -H "Accept: application/vnd.ipld.car;version=2" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt" > curl_output 2>&1 &&
+    cat curl_output &&
+    grep "400 Bad Request" curl_output &&
+    grep "unsupported CAR version" curl_output
     '
 
 # GET unixfs directory as a CAR with DAG and some selector

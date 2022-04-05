@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,6 +26,8 @@ import (
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -392,7 +395,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Detect when explicit Accept header or ?format parameter are present
-	responseFormat := customResponseFormat(r)
+	responseFormat, formatParams, err := customResponseFormat(r)
+	if err != nil {
+		webError(w, "error while processing the Accept header", err, http.StatusBadRequest)
+		return
+	}
+	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
+	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResolvedPath", resolvedPath.String()))
 
 	// Finish early if client already has matching Etag
 	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
@@ -431,11 +440,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)
-		i.serveRawBlock(w, r, resolvedPath.Cid(), contentPath, begin)
+		i.serveRawBlock(w, r, resolvedPath, contentPath, begin)
 		return
-	case "application/vnd.ipld.car", "application/vnd.ipld.car; version=1":
+	case "application/vnd.ipld.car":
 		logger.Debugw("serving car stream", "path", contentPath)
-		i.serveCar(w, r, resolvedPath.Cid(), contentPath, begin)
+		carVersion := formatParams["version"]
+    i.serveCar(w, r, resolvedPath, contentPath, carVersion, begin)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
@@ -804,8 +814,8 @@ func getFilename(contentPath ipath.Path) string {
 func getEtag(r *http.Request, cid cid.Cid) string {
 	prefix := `"`
 	suffix := `"`
-	responseFormat := customResponseFormat(r)
-	if responseFormat != "" {
+	responseFormat, _, err := customResponseFormat(r)
+	if err == nil && responseFormat != "" {
 		// application/vnd.ipld.foo → foo
 		f := responseFormat[strings.LastIndex(responseFormat, ".")+1:]
 		// Etag: "cid.foo" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
@@ -816,14 +826,14 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 }
 
 // return explicit response format if specified in request as query parameter or via Accept HTTP header
-func customResponseFormat(r *http.Request) string {
+func customResponseFormat(r *http.Request) (mediaType string, params map[string]string, err error) {
 	if formatParam := r.URL.Query().Get("format"); formatParam != "" {
 		// translate query param to a content type
 		switch formatParam {
 		case "raw":
-			return "application/vnd.ipld.raw"
+			return "application/vnd.ipld.raw", nil, nil
 		case "car":
-			return "application/vnd.ipld.car"
+			return "application/vnd.ipld.car", nil, nil
 		}
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
@@ -832,10 +842,14 @@ func customResponseFormat(r *http.Request) string {
 	for _, accept := range r.Header.Values("Accept") {
 		// respond to the very first ipld content type
 		if strings.HasPrefix(accept, "application/vnd.ipld") {
-			return accept
+			mediatype, params, err := mime.ParseMediaType(accept)
+			if err != nil {
+				return "", nil, err
+			}
+			return mediatype, params, nil
 		}
 	}
-	return ""
+	return "", nil, nil
 }
 
 func (i *gatewayHandler) searchUpTreeFor404(r *http.Request, contentPath ipath.Path) (ipath.Resolved, string, error) {
