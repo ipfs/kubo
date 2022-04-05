@@ -346,12 +346,8 @@ test_add_cat_file() {
     test_cmp expected actual
   '
 
-  test_expect_success "ipfs add with multiple files of same name succeeds" '
-    mkdir -p mountdir/same-file/ &&
-    cp mountdir/hello.txt mountdir/same-file/hello.txt &&
-    ipfs add mountdir/hello.txt mountdir/same-file/hello.txt >actual &&
-    rm mountdir/same-file/hello.txt  &&
-    rmdir mountdir/same-file
+  test_expect_success "ipfs add with multiple files of same name and import dir succeeds" '
+    ipfs add mountdir/hello.txt mountdir/hello.txt >actual
   '
 
   test_expect_success "ipfs add with multiple files of same name output looks good" '
