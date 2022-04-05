@@ -3,7 +3,6 @@ package httpapi
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 
@@ -67,7 +66,7 @@ func (api *BlockAPI) Get(ctx context.Context, p path.Path) (io.Reader, error) {
 		return nil, err
 	}
 	if resp.Error != nil {
-		return nil, resp.Error
+		return nil, parseErrNotFoundWithFallbackToError(resp.Error)
 	}
 
 	//TODO: make get return ReadCloser to avoid copying
@@ -99,18 +98,14 @@ func (api *BlockAPI) Rm(ctx context.Context, p path.Path, opts ...caopts.BlockRm
 		return err
 	}
 
-	if removedBlock.Error != "" {
-		return errors.New(removedBlock.Error)
-	}
-
-	return nil
+	return parseErrNotFoundWithFallbackToMSG(removedBlock.Error)
 }
 
 func (api *BlockAPI) Stat(ctx context.Context, p path.Path) (iface.BlockStat, error) {
 	var out blockStat
 	err := api.core().Request("block/stat", p.String()).Exec(ctx, &out)
 	if err != nil {
-		return nil, err
+		return nil, parseErrNotFoundWithFallbackToError(err)
 	}
 	out.cid, err = cid.Parse(out.Key)
 	if err != nil {
