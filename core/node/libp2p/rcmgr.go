@@ -75,7 +75,8 @@ func ResourceManager(cfg config.ResourceMgr) func(fx.Lifecycle, repo.Repo) (netw
 
 			libp2p.SetDefaultServiceLimits(limiter)
 
-			ropts := []rcmgr.Option{rcmgr.WithMetrics(&rcmgrMetrics{})}
+			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics())}
+
 			if os.Getenv("LIBP2P_DEBUG_RCMGR") != "" {
 				traceFilePath := filepath.Join(repoPath, NetLimitTraceFilename)
 				ropts = append(ropts, rcmgr.WithTrace(traceFilePath))
@@ -378,24 +379,7 @@ func NetSetLimit(mgr network.ResourceManager, scope string, limit config.Resourc
 	}
 }
 
-var (
-	rcmgrConnAllowed         *prometheus.CounterVec
-	rcmgrConnBlocked         *prometheus.CounterVec
-	rcmgrStreamAllowed       *prometheus.CounterVec
-	rcmgrStreamBlocked       *prometheus.CounterVec
-	rcmgrPeerAllowed         prometheus.Counter
-	rcmgrPeerBlocked         prometheus.Counter
-	rcmgrProtocolAllowed     *prometheus.CounterVec
-	rcmgrProtocolBlocked     *prometheus.CounterVec
-	rcmgrProtocolPeerBlocked *prometheus.CounterVec
-	rcmgrServiceAllowed      *prometheus.CounterVec
-	rcmgrServiceBlocked      *prometheus.CounterVec
-	rcmgrServicePeerBlocked  *prometheus.CounterVec
-	rcmgrMemoryAllowed       prometheus.Counter
-	rcmgrMemoryBlocked       prometheus.Counter
-)
-
-func init() {
+func createRcmgrMetrics() rcmgr.MetricsReporter {
 	const (
 		direction = "direction"
 		usesFD    = "usesFD"
@@ -403,122 +387,157 @@ func init() {
 		service   = "service"
 	)
 
-	rcmgrConnAllowed = prometheus.NewCounterVec(
+	connAllowed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_conns_allowed_total",
 			Help: "allowed connections",
 		},
 		[]string{direction, usesFD},
 	)
-	prometheus.MustRegister(rcmgrConnAllowed)
+	prometheus.MustRegister(connAllowed)
 
-	rcmgrConnBlocked = prometheus.NewCounterVec(
+	connBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_conns_blocked_total",
 			Help: "blocked connections",
 		},
 		[]string{direction, usesFD},
 	)
-	prometheus.MustRegister(rcmgrConnBlocked)
+	prometheus.MustRegister(connBlocked)
 
-	rcmgrStreamAllowed = prometheus.NewCounterVec(
+	streamAllowed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_streams_allowed_total",
 			Help: "allowed streams",
 		},
 		[]string{direction},
 	)
-	prometheus.MustRegister(rcmgrStreamAllowed)
+	prometheus.MustRegister(streamAllowed)
 
-	rcmgrStreamBlocked = prometheus.NewCounterVec(
+	streamBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_streams_blocked_total",
 			Help: "blocked streams",
 		},
 		[]string{direction},
 	)
-	prometheus.MustRegister(rcmgrStreamBlocked)
+	prometheus.MustRegister(streamBlocked)
 
-	rcmgrPeerAllowed = prometheus.NewCounter(prometheus.CounterOpts{
+	peerAllowed := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_peers_allowed_total",
 		Help: "allowed peers",
 	})
-	prometheus.MustRegister(rcmgrPeerAllowed)
+	prometheus.MustRegister(peerAllowed)
 
-	rcmgrPeerBlocked = prometheus.NewCounter(prometheus.CounterOpts{
+	peerBlocked := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_peer_blocked_total",
 		Help: "blocked peers",
 	})
-	prometheus.MustRegister(rcmgrPeerBlocked)
+	prometheus.MustRegister(peerBlocked)
 
-	rcmgrProtocolAllowed = prometheus.NewCounterVec(
+	protocolAllowed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_protocols_allowed_total",
 			Help: "allowed streams attached to a protocol",
 		},
 		[]string{protocol},
 	)
-	prometheus.MustRegister(rcmgrProtocolAllowed)
+	prometheus.MustRegister(protocolAllowed)
 
-	rcmgrProtocolBlocked = prometheus.NewCounterVec(
+	protocolBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_protocols_blocked_total",
 			Help: "blocked streams attached to a protocol",
 		},
 		[]string{protocol},
 	)
-	prometheus.MustRegister(rcmgrProtocolBlocked)
+	prometheus.MustRegister(protocolBlocked)
 
-	rcmgrProtocolPeerBlocked = prometheus.NewCounterVec(
+	protocolPeerBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_protocols_for_peer_blocked_total",
 			Help: "blocked streams attached to a protocol for a specific peer",
 		},
 		[]string{protocol},
 	)
-	prometheus.MustRegister(rcmgrProtocolPeerBlocked)
+	prometheus.MustRegister(protocolPeerBlocked)
 
-	rcmgrServiceAllowed = prometheus.NewCounterVec(
+	serviceAllowed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_services_allowed_total",
 			Help: "allowed streams attached to a service",
 		},
 		[]string{service},
 	)
-	prometheus.MustRegister(rcmgrServiceAllowed)
+	prometheus.MustRegister(serviceAllowed)
 
-	rcmgrServiceBlocked = prometheus.NewCounterVec(
+	serviceBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_services_blocked_total",
 			Help: "blocked streams attached to a service",
 		},
 		[]string{service},
 	)
-	prometheus.MustRegister(rcmgrServiceBlocked)
+	prometheus.MustRegister(serviceBlocked)
 
-	rcmgrServicePeerBlocked = prometheus.NewCounterVec(
+	servicePeerBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "libp2p_rcmgr_service_for_peer_blocked_total",
 			Help: "blocked streams attached to a service for a specific peer",
 		},
 		[]string{service},
 	)
-	prometheus.MustRegister(rcmgrServicePeerBlocked)
+	prometheus.MustRegister(servicePeerBlocked)
 
-	rcmgrMemoryAllowed = prometheus.NewCounter(prometheus.CounterOpts{
+	memoryAllowed := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_memory_allocations_allowed_total",
 		Help: "allowed memory allocations",
 	})
-	prometheus.MustRegister(rcmgrMemoryAllowed)
+	prometheus.MustRegister(memoryAllowed)
 
-	rcmgrMemoryBlocked = prometheus.NewCounter(prometheus.CounterOpts{
+	memoryBlocked := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_memory_allocations_blocked_total",
 		Help: "blocked memory allocations",
 	})
-	prometheus.MustRegister(rcmgrMemoryBlocked)
+	prometheus.MustRegister(memoryBlocked)
+
+	return rcmgrMetrics{
+		connAllowed,
+		connBlocked,
+		streamAllowed,
+		streamBlocked,
+		peerAllowed,
+		peerBlocked,
+		protocolAllowed,
+		protocolBlocked,
+		protocolPeerBlocked,
+		serviceAllowed,
+		serviceBlocked,
+		servicePeerBlocked,
+		memoryAllowed,
+		memoryBlocked,
+	}
 }
 
-type rcmgrMetrics struct{}
+// Failsafe to ensure interface from go-libp2p-resource-manager is implemented
+var _ rcmgr.MetricsReporter = rcmgrMetrics{}
+
+type rcmgrMetrics struct {
+	connAllowed         *prometheus.CounterVec
+	connBlocked         *prometheus.CounterVec
+	streamAllowed       *prometheus.CounterVec
+	streamBlocked       *prometheus.CounterVec
+	peerAllowed         prometheus.Counter
+	peerBlocked         prometheus.Counter
+	protocolAllowed     *prometheus.CounterVec
+	protocolBlocked     *prometheus.CounterVec
+	protocolPeerBlocked *prometheus.CounterVec
+	serviceAllowed      *prometheus.CounterVec
+	serviceBlocked      *prometheus.CounterVec
+	servicePeerBlocked  *prometheus.CounterVec
+	memoryAllowed       prometheus.Counter
+	memoryBlocked       prometheus.Counter
+}
 
 func getDirection(d network.Direction) string {
 	switch d {
@@ -532,57 +551,57 @@ func getDirection(d network.Direction) string {
 }
 
 func (r rcmgrMetrics) AllowConn(dir network.Direction, usefd bool) {
-	rcmgrConnAllowed.WithLabelValues(getDirection(dir), strconv.FormatBool(usefd)).Add(1)
+	r.connAllowed.WithLabelValues(getDirection(dir), strconv.FormatBool(usefd)).Inc()
 }
 
 func (r rcmgrMetrics) BlockConn(dir network.Direction, usefd bool) {
-	rcmgrConnBlocked.WithLabelValues(getDirection(dir), strconv.FormatBool(usefd)).Add(1)
+	r.connBlocked.WithLabelValues(getDirection(dir), strconv.FormatBool(usefd)).Inc()
 }
 
 func (r rcmgrMetrics) AllowStream(_ peer.ID, dir network.Direction) {
-	rcmgrStreamAllowed.WithLabelValues(getDirection(dir)).Add(1)
+	r.streamAllowed.WithLabelValues(getDirection(dir)).Inc()
 }
 
 func (r rcmgrMetrics) BlockStream(_ peer.ID, dir network.Direction) {
-	rcmgrStreamBlocked.WithLabelValues(getDirection(dir)).Add(1)
+	r.streamBlocked.WithLabelValues(getDirection(dir)).Inc()
 }
 
 func (r rcmgrMetrics) AllowPeer(_ peer.ID) {
-	rcmgrPeerAllowed.Add(1)
+	r.peerAllowed.Inc()
 }
 
 func (r rcmgrMetrics) BlockPeer(_ peer.ID) {
-	rcmgrPeerBlocked.Add(1)
+	r.peerBlocked.Inc()
 }
 
 func (r rcmgrMetrics) AllowProtocol(proto protocol.ID) {
-	rcmgrProtocolAllowed.WithLabelValues(string(proto)).Add(1)
+	r.protocolAllowed.WithLabelValues(string(proto)).Inc()
 }
 
 func (r rcmgrMetrics) BlockProtocol(proto protocol.ID) {
-	rcmgrProtocolBlocked.WithLabelValues(string(proto)).Add(1)
+	r.protocolBlocked.WithLabelValues(string(proto)).Inc()
 }
 
 func (r rcmgrMetrics) BlockProtocolPeer(proto protocol.ID, _ peer.ID) {
-	rcmgrProtocolPeerBlocked.WithLabelValues(string(proto)).Add(1)
+	r.protocolPeerBlocked.WithLabelValues(string(proto)).Inc()
 }
 
 func (r rcmgrMetrics) AllowService(svc string) {
-	rcmgrServiceAllowed.WithLabelValues(svc).Add(1)
+	r.serviceAllowed.WithLabelValues(svc).Inc()
 }
 
 func (r rcmgrMetrics) BlockService(svc string) {
-	rcmgrServiceBlocked.WithLabelValues(svc).Add(1)
+	r.serviceBlocked.WithLabelValues(svc).Inc()
 }
 
 func (r rcmgrMetrics) BlockServicePeer(svc string, _ peer.ID) {
-	rcmgrServicePeerBlocked.WithLabelValues(svc).Add(1)
+	r.servicePeerBlocked.WithLabelValues(svc).Inc()
 }
 
 func (r rcmgrMetrics) AllowMemory(_ int) {
-	rcmgrMemoryAllowed.Add(1)
+	r.memoryAllowed.Inc()
 }
 
 func (r rcmgrMetrics) BlockMemory(_ int) {
-	rcmgrMemoryBlocked.Add(1)
+	r.memoryBlocked.Inc()
 }
