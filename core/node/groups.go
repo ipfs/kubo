@@ -146,7 +146,6 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(cfg.Swarm.ResourceMgr)),
-
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
