@@ -102,10 +102,16 @@ func (sw *statusResponseWriter) WriteHeader(code int) {
 // and returns the status code written and any error encountered during a write.
 // It wraps http.ServeContent which takes care of If-None-Match+Etag,
 // Content-Length and range requests.
-func ServeContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) (int, error) {
+func ServeContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) (int, bool, error) {
 	ew := &errRecordingResponseWriter{ResponseWriter: w}
 	http.ServeContent(ew, req, name, modtime, content)
-	return ew.code, ew.err
+
+	// When we calculate some metrics we want a flag that lets us to ignore
+	// errors and 304 Not Modified, and only care when requested data
+	// was sent in full.
+	dataSent := ew.code/100 == 2 && ew.err == nil
+
+	return ew.code, dataSent, ew.err
 }
 
 // errRecordingResponseWriter wraps a ResponseWriter to record the status code and any write error.
@@ -445,7 +451,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	case "application/vnd.ipld.car":
 		logger.Debugw("serving car stream", "path", contentPath)
 		carVersion := formatParams["version"]
-    i.serveCar(w, r, resolvedPath, contentPath, carVersion, begin)
+		i.serveCar(w, r, resolvedPath, contentPath, carVersion, begin)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)

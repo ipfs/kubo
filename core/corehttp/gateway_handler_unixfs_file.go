@@ -82,10 +82,12 @@ func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, resol
 	// special fixup around redirects
 	w = &statusResponseWriter{w}
 
-	code, err := ServeContent(w, r, name, modtime, content)
+	// ServeContent will take care of
+	// If-None-Match+Etag, Content-Length and range requests
+	_, dataSent, _ := ServeContent(w, r, name, modtime, content)
 
 	// Was response successful?
-	if code/100 == 2 && err == nil {
+	if dataSent {
 		// Update metrics
 		i.unixfsFileGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
 	}
