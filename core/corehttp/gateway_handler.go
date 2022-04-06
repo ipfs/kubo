@@ -131,7 +131,7 @@ func (w *errRecordingResponseWriter) WriteHeader(code int) {
 func (w *errRecordingResponseWriter) Write(p []byte) (int, error) {
 	n, err := w.ResponseWriter.Write(p)
 	if err != nil && w.err == nil {
-		w.err = nil
+		w.err = err
 	}
 	return n, err
 }
@@ -141,7 +141,7 @@ func (w *errRecordingResponseWriter) Write(p []byte) (int, error) {
 func (w *errRecordingResponseWriter) ReadFrom(r io.Reader) (n int64, err error) {
 	n, err = io.Copy(w.ResponseWriter, r)
 	if err != nil && w.err == nil {
-		w.err = nil
+		w.err = err
 	}
 	return n, err
 }
