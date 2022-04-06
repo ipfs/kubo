@@ -66,12 +66,12 @@ func ResourceManager(cfg config.ResourceMgr) func(fx.Lifecycle, repo.Repo) (netw
 				}
 
 			} else {
-				// Use defaults from go-libp2p
+				//  Use defaults from rcmgr_defaults.go
 				log.Debug("limit file %s not found, creating a default resource manager", NetLimitDefaultFilename)
-				limiter = rcmgr.NewDefaultLimiter()
+				limiter = newDefaultLimiter() // see rcmgr_defaults.go
 			}
 
-			libp2p.SetDefaultServiceLimits(limiter)
+			setDefaultServiceLimits(limiter) // see rcmgr_defaults.go
 
 			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics())}
 
