@@ -53,6 +53,12 @@ type Gateway struct {
 	//  }
 	PathPrefixes []string
 
+	// MaxDirectorySize is the maximum directory size that will be listed in the
+	// gateway. A directory being listed with a detected size above this threshold
+	// will be stopped to avoid performance downgrade while fetching entries'
+	// metadata. The default value of 0 means no limit will be applied.
+	MaxDirectorySize OptionalInteger `json:",omitempty"`
+
 	// FIXME: Not yet implemented
 	APICommands []string
 

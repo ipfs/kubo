@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	gopath "path"
@@ -24,7 +25,7 @@ import (
 // serveDirectory returns the best representation of UnixFS directory
 //
 // It will return index.html if present, or generate directory listing otherwise.
-func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger) {
+func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger, directoryTooBig <-chan struct{}) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeDirectory", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 
@@ -135,9 +136,16 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		}
 		dirListing = append(dirListing, di)
 	}
+	var warnMaxDirectorySize string
 	if dirit.Err() != nil {
-		internalWebError(w, dirit.Err())
-		return
+		select {
+		case <-directoryTooBig:
+			warnMaxDirectorySize = fmt.Sprintf("Directories bigger than %d items can't be rendered fully. Try using the CLI: ipfs ls -s --size=false --resolve-type=false %s",
+				i.config.MaxDirectorySize, resolvedPath.Cid().String())
+		default:
+			internalWebError(w, dirit.Err())
+			return
+		}
 	}
 
 	// construct the correct back link
@@ -186,14 +194,15 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
-		GatewayURL:  gwURL,
-		DNSLink:     dnslink,
-		Listing:     dirListing,
-		Size:        size,
-		Path:        contentPath.String(),
-		Breadcrumbs: breadcrumbs(contentPath.String(), dnslink),
-		BackLink:    backLink,
-		Hash:        hash,
+		GatewayURL:           gwURL,
+		DNSLink:              dnslink,
+		Listing:              dirListing,
+		Size:                 size,
+		Path:                 contentPath.String(),
+		Breadcrumbs:          breadcrumbs(contentPath.String(), dnslink),
+		BackLink:             backLink,
+		Hash:                 hash,
+		WarnMaxDirectorySize: warnMaxDirectorySize,
 	}
 
 	logger.Debugw("request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash)

@@ -53,6 +53,11 @@
           {{ .Hash }}
         </div>
         {{ end }}
+        {{ if .WarnMaxDirectorySize }}
+        <div>
+          {{ .WarnMaxDirectorySize }}
+        </div>
+        {{ end }}
       </div>
       {{ if .Size }}
       <div class="no-linebreak flex-shrink-1 ml-auto">
