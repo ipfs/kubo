@@ -43,7 +43,11 @@ func (*wasmipld) Init(env *plugin.Environment) error {
 }
 
 func (*wasmipld) Register(reg multicodec.Registry) error {
+	reg.RegisterEncoder(uint64(mc.TorrentInfo), WacEncode)
+	reg.RegisterDecoder(uint64(mc.TorrentInfo), WacDecode)
+
 	reg.RegisterEncoder(uint64(mc.Bencode), bencodeipld.Encode)
+	//reg.RegisterDecoder(uint64(mc.Bencode), bencodeipld.Decode)
 	reg.RegisterDecoder(uint64(mc.Bencode), func(assembler datamodel.NodeAssembler, reader io.Reader) error {
 		// Almost all operations in wasmtime require a contextual `store`
 		// argument to share, so create that first
@@ -97,7 +101,7 @@ func (*wasmipld) Register(reg multicodec.Registry) error {
 		decodePtr, _ := decodePtrI.(int32)
 		buf = memory.UnsafeData(store)
 
-		dec, err := reg.LookupDecoder(uint64(mc.DagCbor))
+		dec, err := reg.LookupDecoder(uint64(mc.TorrentInfo))
 		if err != nil {
 			return err
 		}
