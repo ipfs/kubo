@@ -410,7 +410,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResolvedPath", resolvedPath.String()))
 
 	// Finish early if client already has matching Etag
-	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
+	ifNoneMatch := r.Header.Get("If-None-Match")
+	if ifNoneMatch == getEtag(r, resolvedPath.Cid()) || ifNoneMatch == getDirListingEtag(resolvedPath.Cid()) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}

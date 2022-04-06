@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/go-ipfs/assets"
 	"github.com/ipfs/go-ipfs/tracing"
@@ -93,7 +94,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 
 	// Generated dir index requires custom Etag (it may change between go-ipfs versions)
 	if assets.BindataVersionHash != "" {
-		dirEtag := `"DirIndex-` + assets.BindataVersionHash + `_CID-` + resolvedPath.Cid().String() + `"`
+		dirEtag := getDirListingEtag(resolvedPath.Cid())
 		w.Header().Set("Etag", dirEtag)
 		if r.Header.Get("If-None-Match") == dirEtag {
 			w.WriteHeader(http.StatusNotModified)
@@ -203,4 +204,8 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 
 	// Update metrics
 	i.unixfsGenDirGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
+}
+
+func getDirListingEtag(dirCid cid.Cid) string {
+	return `"DirIndex-` + assets.BindataVersionHash + `_CID-` + dirCid.String() + `"`
 }
