@@ -17,28 +17,55 @@ Default: ~/.ipfs
 
 ## `IPFS_LOGGING`
 
-Sets the log level for go-ipfs. It can be set to one of:
+Specifies the log level for go-ipfs.
 
-* `CRITICAL`
-* `ERROR`
-* `WARNING`
-* `NOTICE`
-* `INFO`
-* `DEBUG`
-
-Logging can also be configured (on a subsystem by subsystem basis) at runtime
-with the `ipfs log` command.
-
-Default: `ERROR`
+`IPFS_LOGGING` is a deprecated alias for the `GOLOG_LOG_LEVEL` environment variable.  See below.
 
 ## `IPFS_LOGGING_FMT`
 
-Sets the log message format. Can be one of:
+Specifies the log message format.
 
-* `color`
-* `nocolor`
+`IPFS_LOGGING_FMT` is a deprecated alias for the `GOLOG_LOG_FMT` environment variable.  See below.
 
-Default: `color`
+## `GOLOG_LOG_LEVEL`
+
+Specifies the log-level, both globally and on a per-subsystem basis.  Level can be one of:
+
+* `debug`
+* `info`
+* `warn`
+* `error`
+* `dpanic`
+* `panic`
+* `fatal`
+
+Per-subsystem levels can be specified with `subsystem=level`.  One global level and one or more per-subsystem levels
+can be specified by separating them with commas.
+
+Default: `error`
+
+Example:
+
+```console
+GOLOG_LOG_LEVEL="error,core/server=debug" ipfs daemon
+```
+
+Logging can also be configured at runtime, both globally and on a per-subsystem basis, with the `ipfs log` command.
+
+## `GOLOG_LOG_FMT`
+
+Specifies the log message format.  It supports the following values:
+
+- `color` -- human readable, colorized (ANSI) output
+- `nocolor` -- human readable, plain-text output.
+- `json` -- structured JSON.
+
+For example, to log structured JSON (for easier parsing):
+
+```bash
+export GOLOG_LOG_FMT="json"
+```
+The logging format defaults to `color` when the output is a terminal, and `nocolor` otherwise.
 
 ## `GOLOG_FILE`
 
