@@ -139,8 +139,8 @@ type ResourceMgr struct {
 	// Enables the Network Resource Manager feature
 	Enabled Flag `json:",omitempty"`
 
-	// Limits is a map of Resource Scope.
-	Limits map[string]ResourceMgrScopeConfig `json:",omitempty"`
+	/* TODO: decide if and how we want to expose limits in our config
+	Limits *ResourceMgrScopeConfig `json:",omitempty"` */
 }
 
 const (
@@ -151,7 +151,30 @@ const (
 	ResourceMgrPeerScopePrefix     = "peer:"
 )
 
-// libp2p Network Resource Manager config for a scope (ipfs swarm stats|limit)
+/* TODO: decide if and how we want to expose limits in our config
+type ResourceMgrLimitsConfig struct {
+	System    *ResourceMgrScopeConfig `json:",omitempty"`
+	Transient *ResourceMgrScopeConfig `json:",omitempty"`
+
+	ServiceDefault     *ResourceMgrScopeConfig           `json:",omitempty"`
+	ServicePeerDefault *ResourceMgrScopeConfig           `json:",omitempty"`
+	Service            map[string]ResourceMgrScopeConfig `json:",omitempty"`
+	ServicePeer        map[string]ResourceMgrScopeConfig `json:",omitempty"`
+
+	ProtocolDefault     *ResourceMgrScopeConfig           `json:",omitempty"`
+	ProtocolPeerDefault *ResourceMgrScopeConfig           `json:",omitempty"`
+	Protocol            map[string]ResourceMgrScopeConfig `json:",omitempty"`
+	ProtocolPeer        map[string]ResourceMgrScopeConfig `json:",omitempty"`
+
+	PeerDefault *ResourceMgrScopeConfig           `json:",omitempty"`
+	Peer        map[string]ResourceMgrScopeConfig `json:",omitempty"`
+
+	Conn   *ResourceMgrScopeConfig `json:",omitempty"`
+	Stream *ResourceMgrScopeConfig `json:",omitempty"`
+}
+*/
+
+// libp2p Network Resource Manager config for a scope
 type ResourceMgrScopeConfig struct {
 	Dynamic bool `json:",omitempty"`
 	// set if Dynamic is false

@@ -132,7 +132,6 @@ config file at runtime.
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
-      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -1647,16 +1646,14 @@ Default: `false`
 
 Type: `flag`
 
+<!-- TODO: decide if and how we want to expose limits in our config
+
 #### `Swarm.ResourceMgr.Limits`
 
 Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
 
-The key is a string with the scope name. It can be one of the following:
-- `system`      -- limits the system aggregate resource usage.
-- `transient`     -- limits the transient resource usage
-- `svc:<service>` -- limits the resource usage of a specific service
-- `proto:<proto>` -- limits the resource usage of a specific protocol
-- `peer:<peer>`   -- limits the resource usage of a specific peer
+The format follows [`limit.json`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.1.5/limit_config.go#L165)
+struct from go-libp2p-resource-manager@v0.1.5
 
 Example:
 
@@ -1666,7 +1663,7 @@ Example:
     "ResourceMgr": {
       "Enabled": true,
       "Limits": {
-        "system": {
+        "System": {
           "Conns": 1024,
           "ConnsInbound": 256,
           "ConnsOutbound": 1024,
@@ -1675,16 +1672,6 @@ Example:
           "Streams": 16384,
           "StreamsInbound": 4096,
           "StreamsOutbound": 16384
-        },
-        "transient": {
-          "Conns": 128,
-          "ConnsInbound": 32,
-          "ConnsOutbound": 128,
-          "FD": 128,
-          "Memory": 67108864,
-          "Streams": 512,
-          "StreamsInbound": 128,
-          "StreamsOutbound": 512
         }
       }
     }
@@ -1702,6 +1689,8 @@ after reboot.
 Default: `{}` (empty == implicit defaults from go-libp2p)
 
 Type: `object[string->object]`
+
+-->
 
 ### `Swarm.Transports`
 

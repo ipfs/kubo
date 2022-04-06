@@ -25,14 +25,14 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var NoResourceMgrError = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(cfg config.ResourceMgr) func(fx.Lifecycle, repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
+func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 	return func(lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var limiter *rcmgr.BasicLimiter
 		var manager network.ResourceManager
 		var opts Libp2pOpts
 
 		// Config Swarm.ResourceMgr.Enabled decides if we run a real manager
-		enabled := cfg.Enabled.WithDefault(false)
+		enabled := cfg.ResourceMgr.Enabled.WithDefault(false)
 
 		/// ENV overrides Config (if present)
 		switch os.Getenv("LIBP2P_RCMGR") {
@@ -50,25 +50,23 @@ func ResourceManager(cfg config.ResourceMgr) func(fx.Lifecycle, repo.Repo) (netw
 				return nil, opts, fmt.Errorf("error opening IPFS_PATH: %w", err)
 			}
 
-			// Try defaults from limit.json if provided
-			// (a convention to make libp2p team life easier)
+			// Create limiter:
+			// - parse $IPFS_PATH/limits.json if exists
+			// - use defaultLimits from rcmgr_defaults.go
+			defaultLimits := adjustedDefaultLimits(cfg)
 			limitFilePath := filepath.Join(repoPath, NetLimitDefaultFilename)
-			_, err = os.Stat(limitFilePath)
-			if !errors.Is(err, os.ErrNotExist) {
-				limitFile, err := os.Open(limitFilePath)
+			limitFile, err := os.Open(limitFilePath)
+			switch {
+			case err == nil:
+				defer limitFile.Close()
+				limiter, err = rcmgr.NewLimiterFromJSON(limitFile, defaultLimits)
 				if err != nil {
-					return nil, opts, fmt.Errorf("error opening limit JSON file %q: %w", limitFilePath, err)
+					return nil, opts, fmt.Errorf("error parsing libp2p limit file: %w", err)
 				}
-				defer limitFile.Close() //nolint:errcheck
-				limiter, err = rcmgr.NewDefaultLimiterFromJSON(limitFile)
-				if err != nil {
-					return nil, opts, fmt.Errorf("error parsing limit file: %w", err)
-				}
-
-			} else {
-				//  Use defaults from rcmgr_defaults.go
-				log.Debug("limit file %s not found, creating a default resource manager", NetLimitDefaultFilename)
-				limiter = newDefaultLimiter() // see rcmgr_defaults.go
+			case errors.Is(err, os.ErrNotExist):
+				limiter = rcmgr.NewStaticLimiter(defaultLimits)
+			default:
+				return nil, opts, err
 			}
 
 			setDefaultServiceLimits(limiter) // see rcmgr_defaults.go
@@ -82,15 +80,7 @@ func ResourceManager(cfg config.ResourceMgr) func(fx.Lifecycle, repo.Repo) (netw
 
 			manager, err = rcmgr.NewResourceManager(limiter, ropts...)
 			if err != nil {
-				return nil, opts, fmt.Errorf("error creating resource manager: %w", err)
-			}
-
-			// Apply user-defined Swarm.ResourceMgr.Limits
-			for scope, userLimit := range cfg.Limits {
-				err := NetSetLimit(manager, scope, userLimit)
-				if err != nil {
-					return nil, opts, fmt.Errorf("error while applying Swarm.ResourceMgr.Limits for scope %q: %w", scope, err)
-				}
+				return nil, opts, fmt.Errorf("error creating libp2p resource manager: %w", err)
 			}
 
 		} else {
