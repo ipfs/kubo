@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	bencodeipld "github.com/aschmahmann/go-ipld-bittorrent/bencode"
-	bittorrentipld "github.com/aschmahmann/go-ipld-bittorrent/bittorrent"
+	"github.com/ipld/go-ipld-prime/linking"
 	"io"
 	"io/ioutil"
 
@@ -65,9 +65,15 @@ func (*wasmipld) Register(reg multicodec.Registry) error {
 			return err
 		}
 
+		item := wasmtime.WrapFunc(store, func(caller *wasmtime.Caller, cidPtr int32, cidLen int32) int32 {
+			return 0
+		})
+
+		item2 := wasmtime.WrapFunc(store, func(input int32) {})
+
 		// Next up we instantiate a module which is where we link in all our
 		// imports. We've got one import so we pass that in here.
-		instance, err := wasmtime.NewInstance(store, module, []wasmtime.AsExtern{})
+		instance, err := wasmtime.NewInstance(store, module, []wasmtime.AsExtern{item2, item})
 		if err != nil {
 			return err
 		}
@@ -116,6 +122,9 @@ func (*wasmipld) Register(reg multicodec.Registry) error {
 
 func (b *wasmipld) RegisterADL(m map[string]ipld.NodeReifier) error {
 	const adlName = "bittorrentv1-file"
-	m[adlName] = bittorrentipld.ReifyBTFile
+	//m[adlName] = bittorrentipld.ReifyBTFile
+	m[adlName] = func(context linking.LinkContext, node datamodel.Node, system *linking.LinkSystem) (datamodel.Node, error) {
+		return newWasmADLNode(context, node, system)
+	}
 	return nil
 }
