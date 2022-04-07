@@ -43,7 +43,7 @@ func (i *gatewayHandler) getOrHeadHandlerUnixfs(w http.ResponseWriter, r *http.R
 			// _redirects file exists, so parse it and redirect
 			redirected, newPath, err := i.redirect(w, r, redirectsFile)
 			if err != nil {
-				// TODO(JJ): How should we handle parse or redirect errors?
+				err = fmt.Errorf("invalid _redirects file at %q: %w", redirectsFile.String(), err)
 				internalWebError(w, err)
 				return
 			}
