@@ -69,7 +69,7 @@ func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (netw
 				return nil, opts, err
 			}
 
-			setDefaultServiceLimits(limiter) // see rcmgr_defaults.go
+			libp2p.SetDefaultServiceLimits(limiter)
 
 			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics())}
 
