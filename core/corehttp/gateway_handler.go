@@ -28,6 +28,7 @@ import (
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 const (
@@ -324,61 +325,20 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	logger := log.With("from", r.RequestURI)
 	logger.Debug("http request received")
 
-	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/go-ipfs/issues/7702)
-	// TODO: remove this after  go-ipfs 0.13 ships
-	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); prfx != "" {
-		err := fmt.Errorf("X-Ipfs-Gateway-Prefix support was removed: https://github.com/ipfs/go-ipfs/issues/7702")
-		webError(w, "unsupported HTTP header", err, http.StatusBadRequest)
+	if handledUnsupportedHeaders(w, r) {
 		return
 	}
 
-	// ?uri query param support for requests produced by web browsers
-	// via navigator.registerProtocolHandler Web API
-	// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
-	// TLDR: redirect /ipfs/?uri=ipfs%3A%2F%2Fcid%3Fquery%3Dval to /ipfs/cid?query=val
-	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
-		u, err := url.Parse(uriParam)
-		if err != nil {
-			webError(w, "failed to parse uri query parameter", err, http.StatusBadRequest)
-			return
-		}
-		if u.Scheme != "ipfs" && u.Scheme != "ipns" {
-			webError(w, "uri query parameter scheme must be ipfs or ipns", err, http.StatusBadRequest)
-			return
-		}
-		path := u.Path
-		if u.RawQuery != "" { // preserve query if present
-			path = path + "?" + u.RawQuery
-		}
-
-		redirectURL := gopath.Join("/", u.Scheme, u.Host, path)
-		logger.Debugw("uri param, redirect", "to", redirectURL, "status", http.StatusMovedPermanently)
-		http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+	if handledProtocolHandlerRedirect(w, r, logger) {
 		return
 	}
 
-	// Service Worker registration request
-	if r.Header.Get("Service-Worker") == "script" {
-		// Disallow Service Worker registration on namespace roots
-		// https://github.com/ipfs/go-ipfs/issues/4025
-		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)
-		if matched {
-			err := fmt.Errorf("registration is not allowed for this scope")
-			webError(w, "navigator.serviceWorker", err, http.StatusBadRequest)
-			return
-		}
+	if handledInvalidServiceWorkerRegistration(w, r) {
+		return
 	}
 
 	contentPath := ipath.New(r.URL.Path)
-	if pathErr := contentPath.IsValid(); pathErr != nil {
-		if fixupSuperfluousNamespace(w, r.URL.Path, r.URL.RawQuery) {
-			// the error was due to redundant namespace, which we were able to fix
-			// by returning error/redirect page, nothing left to do here
-			logger.Debugw("redundant namespace; noop")
-			return
-		}
-		// unable to fix path, returning error
-		webError(w, "invalid ipfs path", pathErr, http.StatusBadRequest)
+	if handledSuperfluousNamespaces(w, r, contentPath, logger) {
 		return
 	}
 
@@ -416,26 +376,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Update the global metric of the time it takes to read the final root block of the requested resource
-	// NOTE: for legacy reasons this happens before we go into content-type specific code paths
-	_, err = i.api.Block().Get(r.Context(), resolvedPath)
-	if err != nil {
-		webError(w, "ipfs block get "+resolvedPath.Cid().String(), err, http.StatusInternalServerError)
+	if i.handledUpdateFirstContentBlockMetrics(w, r, begin, contentPath, resolvedPath) {
 		return
 	}
-	ns := contentPath.Namespace()
-	timeToGetFirstContentBlock := time.Since(begin).Seconds()
-	i.unixfsGetMetric.WithLabelValues(ns).Observe(timeToGetFirstContentBlock) // deprecated, use firstContentBlockGetMetric instead
-	i.firstContentBlockGetMetric.WithLabelValues(ns).Observe(timeToGetFirstContentBlock)
 
-	// HTTP Headers
-	i.addUserHeaders(w) // ok, _now_ write user's headers.
-	w.Header().Set("X-Ipfs-Path", contentPath.String())
-
-	if rootCids, err := i.buildIpfsRootsHeader(contentPath.String(), r); err == nil {
-		w.Header().Set("X-Ipfs-Roots", rootCids)
-	} else { // this should never happen, as we resolved the contentPath already
-		webError(w, "error while resolving X-Ipfs-Roots", err, http.StatusInternalServerError)
+	if i.handledSetHeaders(w, r, contentPath) {
 		return
 	}
 
@@ -911,6 +856,77 @@ func debugStr(path string) string {
 	return q
 }
 
+func handledUnsupportedHeaders(w http.ResponseWriter, r *http.Request) bool {
+	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/go-ipfs/issues/7702)
+	// TODO: remove this after  go-ipfs 0.13 ships
+	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); prfx != "" {
+		err := fmt.Errorf("X-Ipfs-Gateway-Prefix support was removed: https://github.com/ipfs/go-ipfs/issues/7702")
+		webError(w, "unsupported HTTP header", err, http.StatusBadRequest)
+		return true
+	} else {
+		return false
+	}
+}
+
+// ?uri query param support for requests produced by web browsers
+// via navigator.registerProtocolHandler Web API
+// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
+// TLDR: redirect /ipfs/?uri=ipfs%3A%2F%2Fcid%3Fquery%3Dval to /ipfs/cid?query=val
+func handledProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) bool {
+	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
+		u, err := url.Parse(uriParam)
+		if err != nil {
+			webError(w, "failed to parse uri query parameter", err, http.StatusBadRequest)
+			return true
+		}
+		if u.Scheme != "ipfs" && u.Scheme != "ipns" {
+			webError(w, "uri query parameter scheme must be ipfs or ipns", err, http.StatusBadRequest)
+			return true
+		}
+		path := u.Path
+		if u.RawQuery != "" { // preserve query if present
+			path = path + "?" + u.RawQuery
+		}
+
+		redirectURL := gopath.Join("/", u.Scheme, u.Host, path)
+		logger.Debugw("uri param, redirect", "to", redirectURL, "status", http.StatusMovedPermanently)
+		http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+		return true
+	}
+
+	return false
+}
+
+// Disallow Service Worker registration on namespace roots
+// https://github.com/ipfs/go-ipfs/issues/4025
+func handledInvalidServiceWorkerRegistration(w http.ResponseWriter, r *http.Request) bool {
+	if r.Header.Get("Service-Worker") == "script" {
+		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)
+		if matched {
+			err := fmt.Errorf("registration is not allowed for this scope")
+			webError(w, "navigator.serviceWorker", err, http.StatusBadRequest)
+			return true
+		}
+	}
+
+	return false
+}
+
+func handledSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) bool {
+	if pathErr := contentPath.IsValid(); pathErr != nil {
+		if fixupSuperfluousNamespace(w, r.URL.Path, r.URL.RawQuery) {
+			// the error was due to redundant namespace, which we were able to fix
+			// by returning error/redirect page, nothing left to do here
+			logger.Debugw("redundant namespace; noop")
+			return true
+		}
+		// unable to fix path, returning error
+		webError(w, "invalid ipfs path", pathErr, http.StatusBadRequest)
+		return true
+	}
+	return false
+}
+
 // Attempt to fix redundant /ipfs/ namespace as long as resulting
 // 'intended' path is valid.  This is in case gremlins were tickled
 // wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
@@ -939,4 +955,33 @@ func fixupSuperfluousNamespace(w http.ResponseWriter, urlPath string, urlQuery s
 		SuggestedPath: intendedPath.String(),
 		ErrorMsg:      fmt.Sprintf("invalid path: %q should be %q", urlPath, intendedPath.String()),
 	}) == nil
+}
+
+func (i *gatewayHandler) handledUpdateFirstContentBlockMetrics(w http.ResponseWriter, r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) bool {
+	// Update the global metric of the time it takes to read the final root block of the requested resource
+	// NOTE: for legacy reasons this happens before we go into content-type specific code paths
+	_, err := i.api.Block().Get(r.Context(), resolvedPath)
+	if err != nil {
+		webError(w, "ipfs block get "+resolvedPath.Cid().String(), err, http.StatusInternalServerError)
+		return true
+	}
+	ns := contentPath.Namespace()
+	timeToGetFirstContentBlock := time.Since(begin).Seconds()
+	i.unixfsGetMetric.WithLabelValues(ns).Observe(timeToGetFirstContentBlock) // deprecated, use firstContentBlockGetMetric instead
+	i.firstContentBlockGetMetric.WithLabelValues(ns).Observe(timeToGetFirstContentBlock)
+	return false
+}
+
+func (i *gatewayHandler) handledSetHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
+	i.addUserHeaders(w) // ok, _now_ write user's headers.
+	w.Header().Set("X-Ipfs-Path", contentPath.String())
+
+	if rootCids, err := i.buildIpfsRootsHeader(contentPath.String(), r); err == nil {
+		w.Header().Set("X-Ipfs-Roots", rootCids)
+	} else { // this should never happen, as we resolved the contentPath already
+		webError(w, "error while resolving X-Ipfs-Roots", err, http.StatusInternalServerError)
+		return true
+	}
+
+	return false
 }
