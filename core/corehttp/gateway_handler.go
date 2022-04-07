@@ -378,23 +378,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Resolve path to the final DAG node for the ETag
-	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
-	switch err {
-	case nil:
-	case coreiface.ErrOffline:
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
-		return
-	default:
-		// if Accept is text/html, see if ipfs-404.html is present
-		if i.servePretty404IfPresent(w, r, contentPath) {
-			logger.Debugw("serve pretty 404 if present")
-			return
-		}
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
-		return
-	}
-
 	// Detect when explicit Accept header or ?format parameter are present
 	responseFormat, formatParams, err := customResponseFormat(r)
 	if err != nil {
@@ -402,6 +385,17 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
+
+	var ok bool
+	var resolvedPath ipath.Resolved
+	if isUnixfsResponseFormat(responseFormat) {
+		resolvedPath, contentPath, ok = i.handleUnixfsPathResolution(w, r, contentPath, logger)
+	} else {
+		resolvedPath, contentPath, ok = i.handleNonUnixfsPathResolution(w, r, contentPath, logger)
+	}
+	if !ok {
+		return
+	}
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResolvedPath", resolvedPath.String()))
 
 	// Detect when If-None-Match HTTP header allows returning HTTP 304 Not Modified
@@ -1115,4 +1109,20 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 	}
 
 	return nil
+}
+
+func (i *gatewayHandler) handleNonUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
+	// Resolve the path for the provided contentPath
+	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
+
+	switch err {
+	case nil:
+		return resolvedPath, contentPath, true
+	case coreiface.ErrOffline:
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
+		return nil, nil, false
+	default:
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
+		return nil, nil, false
+	}
 }

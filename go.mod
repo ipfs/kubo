@@ -12,8 +12,9 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/elgris/jsondiff v0.0.0-20160530203242-765b5c24c302
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5
-	github.com/fsnotify/fsnotify v1.5.4
-	github.com/gabriel-vasile/mimetype v1.4.1
+	github.com/fission-suite/go-redirects v0.0.0-20220412202828-a86b2398567d
+	github.com/fsnotify/fsnotify v1.5.1
+	github.com/gabriel-vasile/mimetype v1.4.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/go-bitswap v0.10.2
 	github.com/ipfs/go-block-format v0.0.3
@@ -93,6 +94,7 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/stretchr/testify v1.8.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb
 	github.com/wI2L/jsondiff v0.2.0
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
