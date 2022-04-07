@@ -273,20 +273,20 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	logger := log.With("from", r.RequestURI)
 	logger.Debug("http request received")
 
-	if !validateSupportedHeaders(w, r) {
+	if handleUnsupportedHeaders(w, r) {
 		return
 	}
 
-	if !protocolHandlerRegistration(w, r, logger) {
+	if handleProtocolHandlerRedirect(w, r, logger) {
 		return
 	}
 
-	if !serviceWorkerRegistration(w, r) {
+	if handleInvalidServiceWorkerRegistration(w, r) {
 		return
 	}
 
 	contentPath := ipath.New(r.URL.Path)
-	if !fixSuperfluousNamespaces(w, r, contentPath, logger) {
+	if handleSuperfluousNamespaces(w, r, contentPath, logger) {
 		return
 	}
 
@@ -758,28 +758,28 @@ func fixupSuperfluousNamespace(w http.ResponseWriter, urlPath string, urlQuery s
 	}) == nil
 }
 
-func validateSupportedHeaders(w http.ResponseWriter, r *http.Request) bool {
+func handleUnsupportedHeaders(w http.ResponseWriter, r *http.Request) bool {
 	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/go-ipfs/issues/7702)
 	// TODO: remove this after  go-ipfs 0.13 ships
 	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); prfx != "" {
 		err := fmt.Errorf("X-Ipfs-Gateway-Prefix support was removed: https://github.com/ipfs/go-ipfs/issues/7702")
 		webError(w, "unsupported HTTP header", err, http.StatusBadRequest)
-		return false
-	} else {
 		return true
+	} else {
+		return false
 	}
 }
 
-func protocolHandlerRegistration(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) bool {
+func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) bool {
 	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
 		u, err := url.Parse(uriParam)
 		if err != nil {
 			webError(w, "failed to parse uri query parameter", err, http.StatusBadRequest)
-			return false
+			return true
 		}
 		if u.Scheme != "ipfs" && u.Scheme != "ipns" {
 			webError(w, "uri query parameter scheme must be ipfs or ipns", err, http.StatusBadRequest)
-			return false
+			return true
 		}
 		path := u.Path
 		if u.RawQuery != "" { // preserve query if present
@@ -789,28 +789,28 @@ func protocolHandlerRegistration(w http.ResponseWriter, r *http.Request, logger 
 		redirectURL := gopath.Join("/", u.Scheme, u.Host, path)
 		logger.Debugw("uri param, redirect", "to", redirectURL, "status", http.StatusMovedPermanently)
 		http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
-		return false
+		return true
 	}
 
-	return true
+	return false
 }
 
 // Disallow Service Worker registration on namespace roots
 // https://github.com/ipfs/go-ipfs/issues/4025
-func serviceWorkerRegistration(w http.ResponseWriter, r *http.Request) bool {
+func handleInvalidServiceWorkerRegistration(w http.ResponseWriter, r *http.Request) bool {
 	if r.Header.Get("Service-Worker") == "script" {
 		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)
 		if matched {
 			err := fmt.Errorf("registration is not allowed for this scope")
 			webError(w, "navigator.serviceWorker", err, http.StatusBadRequest)
-			return false
+			return true
 		}
 	}
 
-	return true
+	return false
 }
 
-func fixSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) bool {
+func handleSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) bool {
 	if pathErr := contentPath.IsValid(); pathErr != nil {
 		if fixupSuperfluousNamespace(w, r.URL.Path, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
@@ -820,9 +820,9 @@ func fixSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, contentPat
 		}
 		// unable to fix path, returning error
 		webError(w, "invalid ipfs path", pathErr, http.StatusBadRequest)
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 func (i *gatewayHandler) finishEarlyForMatchingETag(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved) bool {
