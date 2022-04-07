@@ -215,11 +215,11 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		return cmds.EmitOnce(res, &cfg)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: HumanJsonEncoder,
+		cmds.Text: HumanJSONEncoder,
 	},
 }
 
-var HumanJsonEncoder = cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
+var HumanJSONEncoder = cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
 	buf, err := config.HumanOutput(out)
 	if err != nil {
 		return err

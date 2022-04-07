@@ -1633,7 +1633,7 @@ Type: `duration`
 ### `Swarm.ResourceMgr`
 
 The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per a scope,
-and track recource usage over time.
+and tracking recource usage over time.
 
 #### `Swarm.ResourceMgr.Enabled`
 
@@ -1646,7 +1646,7 @@ Default: `false`
 
 Type: `flag`
 
-<!-- TODO: decide if and how we want to expose limits in our config
+<!-- TODO: config compatible with the output of 'swarm limit' - see https://github.com/ipfs/go-ipfs/issues/8858
 
 #### `Swarm.ResourceMgr.Limits`
 
@@ -1682,9 +1682,9 @@ Example:
 Current resource usage and a list of services, protocols, and peers can be obtained via
 `ipfs swarm stats --help`
 
-It is also possible to adjust runtime limits via `ipfs stats limit --help`,
-however changes are ephemeral (config remains intact), and won't be applied
-after reboot.
+It is also possible to adjust runtime limits via `ipfs stats limit --help`.
+By default changes are ephemeral (config remains intact), and won't be applied
+after reboot. To persist them here, pass `limit -s`.
 
 Default: `{}` (empty == implicit defaults from go-libp2p)
 

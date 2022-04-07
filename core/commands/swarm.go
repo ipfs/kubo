@@ -356,7 +356,7 @@ The output of this command is JSON.
 		return cmds.EmitOnce(res, b)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: HumanJsonEncoder,
+		cmds.Text: HumanJSONEncoder,
 	},
 }
 
@@ -433,7 +433,7 @@ For permanent limits set Swarm.ResourceMgr.Limits in the $IPFS_PATH/config file.
 		return cmds.EmitOnce(res, b)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: HumanJsonEncoder,
+		cmds.Text: HumanJSONEncoder,
 	},
 }
 

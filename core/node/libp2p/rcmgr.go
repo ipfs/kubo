@@ -155,7 +155,7 @@ func NetStat(mgr network.ResourceManager, scope string) (NetStatOut, error) {
 		return result, err
 
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
-		svc := scope[4:]
+		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
 		err = mgr.ViewService(svc, func(s network.ServiceScope) error {
 			stat := s.Stat()
 			result.Services = map[string]network.ScopeStat{
@@ -166,7 +166,7 @@ func NetStat(mgr network.ResourceManager, scope string) (NetStatOut, error) {
 		return result, err
 
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
-		proto := scope[6:]
+		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
 		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error {
 			stat := s.Stat()
 			result.Protocols = map[string]network.ScopeStat{
@@ -177,7 +177,7 @@ func NetStat(mgr network.ResourceManager, scope string) (NetStatOut, error) {
 		return result, err
 
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
-		p := scope[5:]
+		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
 		pid, err := peer.Decode(p)
 		if err != nil {
 			return result, fmt.Errorf("invalid peer ID: %q: %w", p, err)
@@ -251,21 +251,21 @@ func NetLimit(mgr network.ResourceManager, scope string) (config.ResourceMgrScop
 		return result, err
 
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
-		svc := scope[4:]
+		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
 		err := mgr.ViewService(svc, func(s network.ServiceScope) error {
 			return getLimit(s)
 		})
 		return result, err
 
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
-		proto := scope[6:]
+		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
 		err := mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error {
 			return getLimit(s)
 		})
 		return result, err
 
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
-		p := scope[5:]
+		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
 		pid, err := peer.Decode(p)
 		if err != nil {
 			return result, fmt.Errorf("invalid peer ID: %q: %w", p, err)
