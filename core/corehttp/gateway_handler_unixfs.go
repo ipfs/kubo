@@ -41,7 +41,7 @@ func (i *gatewayHandler) getOrHeadHandlerUnixfs(w http.ResponseWriter, r *http.R
 			}
 		} else {
 			// _redirects file exists, so parse it and redirect
-			redirected, newPath, err := i.redirect(w, r, redirectsFile)
+			redirected, newPath, err := i.handleRedirectsFile(w, r, redirectsFile)
 			if err != nil {
 				err = fmt.Errorf("invalid _redirects file at %q: %w", redirectsFile.String(), err)
 				internalWebError(w, err)
@@ -79,14 +79,16 @@ func (i *gatewayHandler) getOrHeadHandlerUnixfs(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if i.finishEarlyForMatchingETag(w, r, resolvedPath) {
+	if i.returnedNotModifiedForMatchingETag(w, r, resolvedPath) {
 		return
 	}
 
-	if !i.updateGlobalMetrics(w, r, begin, contentPath, resolvedPath) {
+	// TODO(JJ): Rename to avoid negation?
+	if !i.updateFirstContentBlockMetrics(w, r, begin, contentPath, resolvedPath) {
 		return
 	}
 
+	// TODO(JJ): Rename to avoid negation?
 	if !i.setHeaders(w, r, contentPath) {
 		return
 	}
@@ -156,7 +158,7 @@ func (i *gatewayHandler) serveUnixfs(w http.ResponseWriter, r *http.Request, res
 }
 
 // redirect returns redirected, newPath (if rewrite), error
-func (i *gatewayHandler) redirect(w http.ResponseWriter, r *http.Request, path ipath.Resolved) (bool, string, error) {
+func (i *gatewayHandler) handleRedirectsFile(w http.ResponseWriter, r *http.Request, path ipath.Resolved) (bool, string, error) {
 	node, err := i.api.Unixfs().Get(r.Context(), path)
 	if err != nil {
 		return false, "", fmt.Errorf("could not get redirects file: %v", err)

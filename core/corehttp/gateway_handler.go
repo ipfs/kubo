@@ -273,20 +273,20 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	logger := log.With("from", r.RequestURI)
 	logger.Debug("http request received")
 
-	if handleUnsupportedHeaders(w, r) {
+	if handledUnsupportedHeaders(w, r) {
 		return
 	}
 
-	if handleProtocolHandlerRedirect(w, r, logger) {
+	if handledProtocolHandlerRedirect(w, r, logger) {
 		return
 	}
 
-	if handleInvalidServiceWorkerRegistration(w, r) {
+	if handledInvalidServiceWorkerRegistration(w, r) {
 		return
 	}
 
 	contentPath := ipath.New(r.URL.Path)
-	if handleSuperfluousNamespaces(w, r, contentPath, logger) {
+	if handledSuperfluousNamespaces(w, r, contentPath, logger) {
 		return
 	}
 
@@ -319,11 +319,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if i.finishEarlyForMatchingETag(w, r, resolvedPath) {
+	if i.returnedNotModifiedForMatchingETag(w, r, resolvedPath) {
 		return
 	}
 
-	if !i.updateGlobalMetrics(w, r, begin, contentPath, resolvedPath) {
+	if !i.updateFirstContentBlockMetrics(w, r, begin, contentPath, resolvedPath) {
 		return
 	}
 
@@ -758,7 +758,7 @@ func fixupSuperfluousNamespace(w http.ResponseWriter, urlPath string, urlQuery s
 	}) == nil
 }
 
-func handleUnsupportedHeaders(w http.ResponseWriter, r *http.Request) bool {
+func handledUnsupportedHeaders(w http.ResponseWriter, r *http.Request) bool {
 	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/go-ipfs/issues/7702)
 	// TODO: remove this after  go-ipfs 0.13 ships
 	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); prfx != "" {
@@ -770,7 +770,7 @@ func handleUnsupportedHeaders(w http.ResponseWriter, r *http.Request) bool {
 	}
 }
 
-func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) bool {
+func handledProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) bool {
 	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
 		u, err := url.Parse(uriParam)
 		if err != nil {
@@ -797,7 +797,7 @@ func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logge
 
 // Disallow Service Worker registration on namespace roots
 // https://github.com/ipfs/go-ipfs/issues/4025
-func handleInvalidServiceWorkerRegistration(w http.ResponseWriter, r *http.Request) bool {
+func handledInvalidServiceWorkerRegistration(w http.ResponseWriter, r *http.Request) bool {
 	if r.Header.Get("Service-Worker") == "script" {
 		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)
 		if matched {
@@ -810,13 +810,13 @@ func handleInvalidServiceWorkerRegistration(w http.ResponseWriter, r *http.Reque
 	return false
 }
 
-func handleSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) bool {
+func handledSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) bool {
 	if pathErr := contentPath.IsValid(); pathErr != nil {
 		if fixupSuperfluousNamespace(w, r.URL.Path, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
 			// by returning error/redirect page, nothing left to do here
 			logger.Debugw("redundant namespace; noop")
-			return false
+			return true
 		}
 		// unable to fix path, returning error
 		webError(w, "invalid ipfs path", pathErr, http.StatusBadRequest)
@@ -825,7 +825,7 @@ func handleSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, content
 	return false
 }
 
-func (i *gatewayHandler) finishEarlyForMatchingETag(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved) bool {
+func (i *gatewayHandler) returnedNotModifiedForMatchingETag(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved) bool {
 	// Finish early if client already has matching Etag
 	if r.Header.Get("If-None-Match") == getEtag(r, resolvedPath.Cid()) {
 		w.WriteHeader(http.StatusNotModified)
@@ -836,7 +836,7 @@ func (i *gatewayHandler) finishEarlyForMatchingETag(w http.ResponseWriter, r *ht
 }
 
 // Update the global metric of the time it takes to read the final root block of the requested resource
-func (i *gatewayHandler) updateGlobalMetrics(w http.ResponseWriter, r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) bool {
+func (i *gatewayHandler) updateFirstContentBlockMetrics(w http.ResponseWriter, r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) bool {
 	// NOTE: for legacy reasons this happens before we go into content-type specific code paths
 	_, err := i.api.Block().Get(r.Context(), resolvedPath)
 	if err != nil {
