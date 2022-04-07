@@ -22,3 +22,7 @@
 - combined_naked_roots_genesis_and_128.car
   - only the roots of `lotus_devnet_genesis.car` and `lotus_testnet_export_128.car`, to to be used in combination with the root-less parts to validate "transactional" pinning
 
+- lotus_testnet_export_128_v2.car
+- lotus_devnet_genesis_v2.car
+  - generated with `car index lotus_testnet_export_128.car > lotus_testnet_export_128_v2.car`
+  - install `go-car` CLI from https://github.com/ipld/go-car
