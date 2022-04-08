@@ -1,5 +1,51 @@
 # go-ipfs changelog
 
+## v0.12.2 and v0.11.1 2022-04-08
+
+This patch release fixes a security issue wherein traversing some malformed DAGs can cause the node to panic.
+
+See also the security advisory: https://github.com/ipfs/go-ipfs/security/advisories/GHSA-mcq2-w56r-5w2w
+
+Note: the v0.11.1 patch release contains the Docker compose fix from v0.12.1 as well
+
+### Changelog
+
+<details>
+<summary>Full Changelog</summary>
+- github.com/ipld/go-codec-dagpb (v1.3.0 -> v1.3.2):
+  - fix: use protowire for Links bytes decoding
+</details>
+
+### ❤ Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Rod Vagg | 1 | +34/-19 | 2 |
+
+## v0.12.1 2022-03-17
+
+This patch release [fixes](https://github.com/ipfs/go-ipfs/commit/816a128aaf963d72c4930852ce32b9a4e31924a1) a security issue with the `docker-compose.yaml` file in which the IPFS daemon API listens on all interfaces instead of only the loopback interface, which could allow remote callers to control your IPFS daemon. If you use the included `docker-compose.yaml` file, it is recommended to upgrade.
+
+See also the security advisory: https://github.com/ipfs/go-ipfs/security/advisories/GHSA-fx5p-f64h-93xc
+
+Thanks to @LynHyper for finding and disclosing this.
+
+### Changelog
+
+<details>
+<summary>Full Changelog</summary>
+
+- github.com/ipfs/go-ipfs:
+  -  fix: listen on loopback for API and gateway ports in docker-compose.yaml
+
+</details>
+
+### ❤ Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| guseggert | 1 | +10/-3 | 1 |
+
 ## v0.12.0 2022-02-17
 
 We're happy to announce go-ipfs 0.12.0. This release switches the storage of IPLD blocks to be keyed by multihash instead of CID.
