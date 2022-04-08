@@ -662,6 +662,7 @@ func (i *gatewayHandler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	nnode, err := root.GetDirectory().GetNode()
 	if err != nil {
 		webError(w, "WritableGateway: failed to finalize", err, http.StatusInternalServerError)
+		return
 	}
 	ncid := nnode.Cid()
 
