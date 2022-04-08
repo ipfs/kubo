@@ -7,11 +7,11 @@
   "license": "MIT",
   "scripts": {
     "start": "cd test && go run .",
-    "build": "npm run build:clean && npm run build:remove-style-links && npm run build:minify-wrap-css && npm run build:combine-html-css && npm run build:remove-unused",
+    "build": "npm run build:clean && npm run build:remove-links && npm run build:minify-wrap && npm run build:combine-html-css-js && npm run build:remove-unused",
     "build:clean": "rm dir-index.html",
-    "build:remove-style-links": "sed '/<link rel=\"stylesheet\"/d' ./src/dir-index.html > ./base-html.html",
-    "build:minify-wrap-css": "(echo \"<style>\" && cat ./src/icons.css ./src/style.css | tr -d \"\t\n\r\" && echo && echo \"</style>\") > ./minified-wrapped-style.html",
-    "build:combine-html-css": "sed '/<\\/title>/ r ./minified-wrapped-style.html' ./base-html.html > ./dir-index.html",
-    "build:remove-unused": "rm ./base-html.html && rm ./minified-wrapped-style.html"
+    "build:remove-links": "sed -e '/<script rel=\"script\"/d' -e '/<link rel=\"stylesheet\"/d' ./src/dir-index.html > ./base-html.html",
+    "build:minify-wrap": "(echo \"<style>\" && cat ./src/icons.css ./src/style.css | tr -d \"\t\n\r\" && echo && echo \"</style>\" && echo \"<script>\" && cat ./src/script.js | tr -d \"\t\n\n\" && echo && echo \"</script>\") > ./minified-wrapped.html",
+    "build:combine-html-css-js": "sed '/<\\/title>/ r ./minified-wrapped.html' ./base-html.html > ./dir-index.html",
+    "build:remove-unused": "rm ./base-html.html && rm ./minified-wrapped.html"
   }
 }

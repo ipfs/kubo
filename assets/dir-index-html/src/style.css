@@ -132,6 +132,10 @@ td {
 	width:1.15em
 }
 
+.not-cached-locally {
+	vertical-align: bottom;
+}
+
 .no-linebreak {
 	white-space:nowrap
 }
