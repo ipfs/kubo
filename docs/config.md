@@ -130,6 +130,8 @@ config file at runtime.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+    - [`Swarm.ResourceMgr`](#swarmresourcemgr)
+      - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -1627,6 +1629,68 @@ by the connection manager.
 Default: `"20s"`
 
 Type: `duration`
+
+### `Swarm.ResourceMgr`
+
+The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per a scope,
+and tracking recource usage over time.
+
+#### `Swarm.ResourceMgr.Enabled`
+
+**EXPERIMENTAL**: this feature is disabled by default, use with caution.
+
+Enables the libp2p Network Resource Manager and auguments the default limits
+using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
+
+Default: `false`
+
+Type: `flag`
+
+<!-- TODO: config compatible with the output of 'swarm limit' - see https://github.com/ipfs/go-ipfs/issues/8858
+
+#### `Swarm.ResourceMgr.Limits`
+
+Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
+
+The format follows [`limit.json`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.1.5/limit_config.go#L165)
+struct from go-libp2p-resource-manager@v0.1.5
+
+Example:
+
+```json
+{
+  "Swarm": {
+    "ResourceMgr": {
+      "Enabled": true,
+      "Limits": {
+        "System": {
+          "Conns": 1024,
+          "ConnsInbound": 256,
+          "ConnsOutbound": 1024,
+          "FD": 512,
+          "Memory": 1073741824,
+          "Streams": 16384,
+          "StreamsInbound": 4096,
+          "StreamsOutbound": 16384
+        }
+      }
+    }
+  }
+}
+```
+
+Current resource usage and a list of services, protocols, and peers can be obtained via
+`ipfs swarm stats --help`
+
+It is also possible to adjust runtime limits via `ipfs stats limit --help`.
+By default changes are ephemeral (config remains intact), and won't be applied
+after reboot. To persist them here, pass `limit -s`.
+
+Default: `{}` (empty == implicit defaults from go-libp2p)
+
+Type: `object[string->object]`
+
+-->
 
 ### `Swarm.Transports`
 

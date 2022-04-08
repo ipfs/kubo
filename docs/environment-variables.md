@@ -1,13 +1,5 @@
 # go-ipfs environment variables
 
-## `LIBP2P_TCP_REUSEPORT`
-
-go-ipfs tries to reuse the same source port for all connections to improve NAT
-traversal. If this is an issue, you can disable it by setting
-`LIBP2P_TCP_REUSEPORT` to false.
-
-Default: true
-
 ## `IPFS_PATH`
 
 Sets the location of the IPFS repo (where the config, blocks, etc.
@@ -122,6 +114,14 @@ $ ipfs resolve -r /ipns/dnslink-test2.example.com
 /ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 ```
 
+## `LIBP2P_TCP_REUSEPORT`
+
+go-ipfs tries to reuse the same source port for all connections to improve NAT
+traversal. If this is an issue, you can disable it by setting
+`LIBP2P_TCP_REUSEPORT` to false.
+
+Default: true
+
 ## `LIBP2P_MUX_PREFS`
 
 Deprecated: Use the `Swarm.Transports.Multiplexers` config field.
@@ -130,11 +130,28 @@ Tells go-ipfs which multiplexers to use in which order.
 
 Default: "/yamux/1.0.0 /mplex/6.7.0"
 
+## `LIBP2P_RCMGR`
+
+Forces [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme)
+to be enabled (`1`) or disabled (`0`).
+When set, overrides [`Swarm.ResourceMgr.Enabled`](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#swarmresourcemgrenabled) from the config.
+
+Default: use config (not set)
+
+## `LIBP2P_DEBUG_RCMGR`
+
+Enables tracing of [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme)
+and outputs it to `rcmgr.json.gz`
+
+
+Default: disabled (not set)
+
 # Tracing
-**NOTE** Tracing support is experimental--releases may contain tracing-related breaking changes.
 
 ## `IPFS_TRACING`
 Enables OpenTelemetry tracing.
+
+**NOTE** Tracing support is experimental: releases may contain tracing-related breaking changes.
 
 Default: false
 
@@ -197,5 +214,4 @@ Default: "" (disabled)
 ## `IPFS_TRACING_RATIO`
 The ratio of traces to export, as a floating point value in the interval [0, 1].
 
-Deault: 1.0 (export all traces)
-
+Default: 1.0 (export all traces)

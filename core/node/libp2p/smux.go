@@ -7,12 +7,12 @@ import (
 
 	config "github.com/ipfs/go-ipfs/config"
 	"github.com/libp2p/go-libp2p"
-	smux "github.com/libp2p/go-libp2p-core/mux"
+	"github.com/libp2p/go-libp2p-core/network"
 	mplex "github.com/libp2p/go-libp2p-mplex"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 )
 
-func yamuxTransport() smux.Multiplexer {
+func yamuxTransport() network.Multiplexer {
 	tpt := *yamux.DefaultTransport
 	tpt.AcceptBacklog = 512
 	if os.Getenv("YAMUX_DEBUG") != "" {
