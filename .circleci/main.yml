@@ -304,6 +304,9 @@ jobs:
           command: |
             git clone https://github.com/ipfs/go-ipfs-http-client.git
             git -C go-ipfs-http-client log -1
+            cd go-ipfs-http-client
+            git checkout v0.2.0
+            cd ..
       - restore_cache:
           keys:
             - v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
