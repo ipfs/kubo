@@ -36,7 +36,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: cimg/go:1.16.12
+      - image: cimg/go:1.16.15
     working_directory: ~/ipfs/go-ipfs
     environment:
       <<: *default_environment
@@ -61,7 +61,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer:
     docker:
-      - image: cimg/go:1.16.12
+      - image: cimg/go:1.16.15
     environment:
       IMAGE_NAME: ipfs/go-ipfs
       WIP_IMAGE_TAG: wip
@@ -150,8 +150,8 @@ jobs:
     - run: sudo apt update
     - run: |
         mkdir ~/localgo && cd ~/localgo
-        wget https://golang.org/dl/go1.16.12.linux-amd64.tar.gz
-        tar xfz go1.16.12.linux-amd64.tar.gz
+        wget https://golang.org/dl/go1.16.15.linux-amd64.tar.gz
+        tar xfz go1.16.15.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
     - run: sudo apt install socat net-tools
@@ -292,6 +292,9 @@ jobs:
           command: |
             git clone https://github.com/ipfs/go-ipfs-http-client.git
             git -C go-ipfs-http-client log -1
+            cd go-ipfs-http-client
+            git checkout v0.2.0
+            cd ..
       - restore_cache:
           keys:
             - v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
