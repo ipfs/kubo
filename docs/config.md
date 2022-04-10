@@ -1388,7 +1388,7 @@ This is likely the feature you're looking for, but see also:
 - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
 - Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
 
-Default: `false`
+Default: `true`
 
 Type: `bool`
 

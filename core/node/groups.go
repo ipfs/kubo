@@ -8,7 +8,7 @@ import (
 
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	util "github.com/ipfs/go-ipfs-util"
-	config "github.com/ipfs/go-ipfs/config"
+	"github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -37,6 +37,8 @@ var BaseLibP2P = fx.Options(
 
 	fx.Invoke(libp2p.PNetChecker),
 )
+
+type AddrInfoChan chan peer.AddrInfo
 
 func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// parse ConnMgr config
@@ -140,9 +142,13 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://github.com/libp2p/go-libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
+	peerChan := make(chan peer.AddrInfo)
+	usesRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(true)
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
+
+		fx.Supply(peerChan),
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(cfg.Swarm)),
@@ -155,7 +161,6 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Invoke(libp2p.StartListening(cfg.Addresses.Swarm)),
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled, cfg.Discovery.MDNS.Interval)),
 		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),
-		fx.Provide(libp2p.StaticRelays(cfg.Swarm.RelayClient.StaticRelays)),
 		fx.Provide(libp2p.HolePunching(cfg.Swarm.EnableHolePunching, cfg.Swarm.RelayClient.Enabled.WithDefault(false))),
 
 		fx.Provide(libp2p.Security(!bcfg.DisableEncryptedConnections, cfg.Swarm.Transports)),
@@ -166,7 +171,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
-		maybeProvide(libp2p.AutoRelay(len(cfg.Swarm.RelayClient.StaticRelays) == 0), cfg.Swarm.RelayClient.Enabled.WithDefault(false)),
+		maybeProvide(libp2p.AutoRelay(cfg.Swarm.RelayClient.StaticRelays, peerChan), usesRelayClient),
+
+		maybeInvoke(libp2p.AutoRelayFeeder, usesRelayClient),
 		autonat,
 		connmgr,
 		ps,

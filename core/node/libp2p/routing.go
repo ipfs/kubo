@@ -2,18 +2,20 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"time"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 
 	"github.com/ipfs/go-ipfs/repo"
-	host "github.com/libp2p/go-libp2p-core/host"
-	routing "github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
-	"github.com/libp2p/go-libp2p-pubsub"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
@@ -178,4 +180,47 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 			Priority: 100,
 		},
 	}, psRouter, nil
+}
+
+func AutoRelayFeeder(lc fx.Lifecycle, h host.Host, peerChan chan peer.AddrInfo, dht *ddht.DHT) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
+		t := time.NewTicker(time.Minute / 3) // TODO: this is way too frequent. Should probably use some kind of backoff
+		defer t.Stop()
+		for {
+			select {
+			case <-t.C:
+			case <-ctx.Done():
+				return
+			}
+			closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			for _, p := range closestPeers {
+				addrs := h.Peerstore().Addrs(p)
+				if len(addrs) == 0 {
+					continue
+				}
+				select {
+				case peerChan <- peer.AddrInfo{ID: p, Addrs: addrs}:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			cancel()
+			<-done
+			return nil
+		},
+	})
 }
