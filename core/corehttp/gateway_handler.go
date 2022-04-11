@@ -443,16 +443,16 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	switch responseFormat {
 	case "": // The implicit response format is UnixFS
 		logger.Debugw("serving unixfs", "path", contentPath)
-		i.serveUnixFs(w, r, resolvedPath, contentPath, begin, logger)
+		i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)
-		i.serveRawBlock(w, r, resolvedPath, contentPath, begin)
+		i.serveRawBlock(r.Context(), w, r, resolvedPath, contentPath, begin)
 		return
 	case "application/vnd.ipld.car":
 		logger.Debugw("serving car stream", "path", contentPath)
 		carVersion := formatParams["version"]
-		i.serveCar(w, r, resolvedPath, contentPath, carVersion, begin)
+		i.serveCAR(r.Context(), w, r, resolvedPath, contentPath, carVersion, begin)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)

@@ -2,6 +2,7 @@ package corehttp
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -13,8 +14,8 @@ import (
 )
 
 // serveRawBlock returns bytes behind a raw block
-func (i *gatewayHandler) serveRawBlock(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time) {
-	ctx, span := tracing.Span(r.Context(), "Gateway", "ServeRawBlock", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time) {
+	ctx, span := tracing.Span(ctx, "Gateway", "ServeRawBlock", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 	blockCid := resolvedPath.Cid()
 	blockReader, err := i.api.Block().Get(ctx, resolvedPath)

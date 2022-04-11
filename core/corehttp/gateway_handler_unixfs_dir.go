@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	gopath "path"
@@ -23,8 +24,8 @@ import (
 // serveDirectory returns the best representation of UnixFS directory
 //
 // It will return index.html if present, or generate directory listing otherwise.
-func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger) {
-	ctx, span := tracing.Span(r.Context(), "Gateway", "ServeDirectory", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, dir files.Directory, begin time.Time, logger *zap.SugaredLogger) {
+	ctx, span := tracing.Span(ctx, "Gateway", "ServeDirectory", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 
 	// HostnameOption might have constructed an IPNS/IPFS path using the Host header.
@@ -69,7 +70,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 
 		logger.Debugw("serving index.html file", "path", idxPath)
 		// write to request
-		i.serveFile(w, r, resolvedPath, idxPath, f, begin)
+		i.serveFile(ctx, w, r, resolvedPath, idxPath, f, begin)
 		return
 	case resolver.ErrNoLink:
 		logger.Debugw("no index.html; noop", "path", idxPath)
