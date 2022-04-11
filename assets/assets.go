@@ -2,12 +2,14 @@
 package assets
 
 import (
-	"crypto/sha256"
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"path/filepath"
+	"strconv"
 
+	"github.com/OneOfOne/xxhash"
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/coreapi"
 
@@ -37,25 +39,25 @@ var initDocPaths = []string{
 }
 
 func init() {
-	sha := sha256.New()
-	fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
+	sum := xxhash.New32()
+	err := fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
 		}
 
-		file, err := dir.ReadFile(path)
+		file, err := dir.Open(path)
 		if err != nil {
-			panic(err)
+			return err
 		}
-		_, err = sha.Write(file)
-		if err != nil {
-			panic(err)
-		}
-		return nil
+		defer file.Close()
+		_, err = io.Copy(sum, file)
+		return err
 	})
+	if err != nil {
+		panic("error creating asset sum: " + err.Error())
+	}
 
-	hexSum := sha.Sum(nil)
-	AssetHash = fmt.Sprintf("%x", hexSum)
+	AssetHash = strconv.FormatUint(uint64(sum.Sum32()), 32)
 }
 
 // Asset loads and returns the asset for the given name.
