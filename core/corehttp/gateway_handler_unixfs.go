@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"net/http"
@@ -14,8 +15,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func (i *gatewayHandler) serveUnixFs(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
-	ctx, span := tracing.Span(r.Context(), "Gateway", "ServeUnixFs", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *gatewayHandler) serveUnixFS(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
+	ctx, span := tracing.Span(ctx, "Gateway", "ServeUnixFS", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 	// Handling UnixFS
 	dr, err := i.api.Unixfs().Get(ctx, resolvedPath)
@@ -28,16 +29,16 @@ func (i *gatewayHandler) serveUnixFs(w http.ResponseWriter, r *http.Request, res
 	// Handling Unixfs file
 	if f, ok := dr.(files.File); ok {
 		logger.Debugw("serving unixfs file", "path", contentPath)
-		i.serveFile(w, r, resolvedPath, contentPath, f, begin)
+		i.serveFile(ctx, w, r, resolvedPath, contentPath, f, begin)
 		return
 	}
 
 	// Handling Unixfs directory
 	dir, ok := dr.(files.Directory)
 	if !ok {
-		internalWebError(w, fmt.Errorf("unsupported UnixFs type"))
+		internalWebError(w, fmt.Errorf("unsupported UnixFS type"))
 		return
 	}
 	logger.Debugw("serving unixfs directory", "path", contentPath)
-	i.serveDirectory(w, r, resolvedPath, contentPath, dir, begin, logger)
+	i.serveDirectory(ctx, w, r, resolvedPath, contentPath, dir, begin, logger)
 }

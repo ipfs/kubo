@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -19,8 +20,8 @@ import (
 
 // serveFile returns data behind a file along with HTTP headers based on
 // the file itself, its CID and the contentPath used for accessing it.
-func (i *gatewayHandler) serveFile(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, file files.File, begin time.Time) {
-	_, span := tracing.Span(r.Context(), "Gateway", "ServeFile", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
+func (i *gatewayHandler) serveFile(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, file files.File, begin time.Time) {
+	_, span := tracing.Span(ctx, "Gateway", "ServeFile", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 
 	// Set Cache-Control and read optional Last-Modified time
