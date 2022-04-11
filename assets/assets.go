@@ -20,7 +20,7 @@ import (
 )
 
 //go:embed init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
-var dir embed.FS
+var Asset embed.FS
 
 // AssetHash a non-cryptographic hash of all embedded assets
 var AssetHash string
@@ -43,7 +43,7 @@ func init() {
 			return nil
 		}
 
-		file, err := dir.Open(path)
+		file, err := Asset.Open(path)
 		if err != nil {
 			return err
 		}
@@ -56,13 +56,6 @@ func init() {
 	}
 
 	AssetHash = strconv.FormatUint(sum.Sum64(), 32)
-}
-
-// Asset loads and returns the asset for the given name.
-// It returns an error if the asset could not be found or
-// could not be loaded.
-func Asset(f string) ([]byte, error) {
-	return dir.ReadFile(f)
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
@@ -84,7 +77,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 	basePath := path.IpfsPath(dirb.Cid())
 
 	for _, p := range l {
-		d, err := Asset(p)
+		d, err := Asset.ReadFile(p)
 		if err != nil {
 			return cid.Cid{}, fmt.Errorf("assets: could load Asset '%s': %s", p, err)
 		}
