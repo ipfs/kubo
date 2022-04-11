@@ -67,13 +67,13 @@ NETWORK COMMANDS
   swarm         Manage connections to the p2p network
   dht           Query the DHT for values or peers
   ping          Measure the latency of a connection
-  diag          Print diagnostics
   bitswap       Inspect bitswap state
   pubsub        Send and receive messages via pubsub
 
 TOOL COMMANDS
   config        Manage configuration
   version       Show IPFS version information
+  diag          Generate diagnostic reports
   update        Download and apply go-ipfs updates
   commands      List all available commands
   log           Manage and show logs of running daemon

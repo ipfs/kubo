@@ -71,7 +71,7 @@ However, it could reveal:
 	},
 	NoLocal: true,
 	Options: []cmds.Option{
-		cmds.StringOption(outputOptionName, "o", "The path where the output should be stored."),
+		cmds.StringOption(outputOptionName, "o", "The path where the output .zip should be stored. Default: ./ipfs-profile-[timestamp].zip"),
 		cmds.StringOption(profileTimeOption, "The amount of time spent profiling. If this is set to 0, then sampling profiles are skipped.").WithDefault("30s"),
 		cmds.IntOption(mutexProfileFractionOption, "The fraction 1/n of mutex contention events that are reported in the mutex profile.").WithDefault(4),
 		cmds.StringOption(blockProfileRateOption, "The duration to wait between sampling goroutine-blocking events for the blocking profile.").WithDefault("1ms"),
