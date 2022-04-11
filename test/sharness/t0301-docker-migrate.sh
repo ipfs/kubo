@@ -77,5 +77,7 @@ test_expect_success "correct version was requested" '
   grep "/fs-repo-6-to-7/v1.1.1/fs-repo-6-to-7_v1.1.1_linux-amd64.tar.gz" dist_serv_out > /dev/null
 '
 
+docker_rm "$DOC_ID"
+docker_rmi "$IMAGE_ID"
 test_done
 

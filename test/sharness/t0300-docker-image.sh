@@ -99,5 +99,7 @@ test_expect_success "stop docker container" '
   docker_stop "$DOC_ID"
 '
 
+docker_rm "$DOC_ID"
+docker_rmi "$IMAGE_ID"
 test_done
 
