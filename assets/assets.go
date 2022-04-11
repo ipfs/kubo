@@ -2,8 +2,10 @@
 package assets
 
 import (
+	"crypto/sha256"
 	"embed"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -18,6 +20,11 @@ import (
 //go:embed init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
 var dir embed.FS
 
+var (
+	// AssetHash a non-cryptographic hash of all embedded assets
+	AssetHash string
+)
+
 // initDocPaths lists the paths for the docs we want to seed during --init
 var initDocPaths = []string{
 	filepath.Join("init-doc", "about"),
@@ -27,6 +34,28 @@ var initDocPaths = []string{
 	filepath.Join("init-doc", "security-notes"),
 	filepath.Join("init-doc", "quick-start"),
 	filepath.Join("init-doc", "ping"),
+}
+
+func init() {
+	sha := sha256.New()
+	fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
+		}
+
+		file, err := dir.ReadFile(path)
+		if err != nil {
+			panic(err)
+		}
+		_, err = sha.Write(file)
+		if err != nil {
+			panic(err)
+		}
+		return nil
+	})
+
+	hexSum := sha.Sum(nil)
+	AssetHash = fmt.Sprintf("%x", hexSum)
 }
 
 // Asset loads and returns the asset for the given name.

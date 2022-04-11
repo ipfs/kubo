@@ -9,8 +9,8 @@ import (
 
 	"github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs"
 	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-ipfs/assets"
 	"github.com/ipfs/go-ipfs/tracing"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
@@ -93,7 +93,7 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 	w.Header().Set("Content-Type", "text/html")
 
 	// Generated dir index requires custom Etag (it may change between go-ipfs versions)
-	if ipfs.CurrentCommit != "" {
+	if assets.AssetHash != "" {
 		dirEtag := getDirListingEtag(resolvedPath.Cid())
 		w.Header().Set("Etag", dirEtag)
 		if r.Header.Get("If-None-Match") == dirEtag {
@@ -207,5 +207,5 @@ func (i *gatewayHandler) serveDirectory(w http.ResponseWriter, r *http.Request, 
 }
 
 func getDirListingEtag(dirCid cid.Cid) string {
-	return `"DirIndex-` + ipfs.CurrentCommit + `_CID-` + dirCid.String() + `"`
+	return `"DirIndex-` + assets.AssetHash + `_CID-` + dirCid.String() + `"`
 }
