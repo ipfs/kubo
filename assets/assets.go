@@ -20,7 +20,7 @@ import (
 )
 
 //go:embed init-doc dir-index-html/dir-index.html dir-index-html/knownIcons.txt
-var dir embed.FS
+var Asset embed.FS
 
 var (
 	// AssetHash a non-cryptographic hash of all embedded assets
@@ -40,12 +40,12 @@ var initDocPaths = []string{
 
 func init() {
 	sum := xxhash.New32()
-	err := fs.WalkDir(dir, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(Asset, ".", func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
 		}
 
-		file, err := dir.Open(path)
+		file, err := Asset.Open(path)
 		if err != nil {
 			return err
 		}
@@ -58,13 +58,6 @@ func init() {
 	}
 
 	AssetHash = strconv.FormatUint(uint64(sum.Sum32()), 32)
-}
-
-// Asset loads and returns the asset for the given name.
-// It returns an error if the asset could not be found or
-// could not be loaded.
-func Asset(f string) ([]byte, error) {
-	return dir.ReadFile(f)
 }
 
 // SeedInitDocs adds the list of embedded init documentation to the passed node, pins it and returns the root key
