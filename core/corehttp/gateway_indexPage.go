@@ -12,15 +12,15 @@ import (
 
 // structs for directory listing
 type listingTemplateData struct {
-	GatewayURL           string
-	DNSLink              bool
-	Listing              []directoryItem
-	Size                 string
-	Path                 string
-	Breadcrumbs          []breadcrumb
-	BackLink             string
-	Hash                 string
-	WarnMaxDirectorySize string
+	GatewayURL          string
+	DNSLink             bool
+	Listing             []directoryItem
+	Size                string
+	Path                string
+	Breadcrumbs         []breadcrumb
+	BackLink            string
+	Hash                string
+	HTMLDirListingLimit int
 }
 
 type directoryItem struct {
