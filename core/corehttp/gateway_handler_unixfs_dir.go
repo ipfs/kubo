@@ -114,7 +114,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	itemCount := 0
 	for dirit.Next() {
 		itemCount++
-		if itemCount > i.config.HTMLDirListingLimit {
+		if i.config.HTMLDirListingLimit > 0 && itemCount > i.config.HTMLDirListingLimit {
 			break
 		}
 		size := "?"
