@@ -39,6 +39,10 @@ var initDocPaths = []string{
 func init() {
 	sum := xxhash.New()
 	err := fs.WalkDir(Asset, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if d.IsDir() {
 			return nil
 		}
