@@ -54,6 +54,7 @@ LABEL maintainer="Steven Allen <steven@stebalien.com>"
 ENV SRC_DIR /go-ipfs
 COPY --from=0 $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
+COPY --from=0 $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run
 COPY --from=0 /tmp/su-exec/su-exec-static /sbin/su-exec
 COPY --from=0 /tmp/tini /sbin/tini
 COPY --from=0 /bin/fusermount /usr/local/bin/fusermount
@@ -92,6 +93,10 @@ RUN mkdir -p $IPFS_PATH \
 # Create mount points for `ipfs mount` command
 RUN mkdir /ipfs /ipns \
   && chown ipfs:users /ipfs /ipns
+
+# Create the init scripts directory
+RUN mkdir /container-init.d \
+  && chown ipfs:users /container-init.d
 
 # Expose the fs-repo as a volume.
 # start_ipfs initializes an fs-repo if none is mounted.

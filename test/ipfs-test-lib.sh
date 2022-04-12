@@ -70,6 +70,16 @@ docker_stop() {
     docker stop "$1"
 }
 
+# This takes a docker ID as argument
+docker_rm() {
+    docker rm -f -v "$1" > /dev/null
+}
+
+# This takes a docker image name as argument
+docker_rmi() {
+    docker rmi -f "$1" > /dev/null
+}
+
 # Test whether all the expected lines are included in a file. The file
 # can have extra lines.
 #
