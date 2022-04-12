@@ -17,19 +17,30 @@ import (
 	"github.com/ipfs/go-log"
 )
 
+const (
+	CollectorGoroutinesStack = "goroutines-stack"
+	CollectorGoroutinesPprof = "goroutines-pprof"
+	CollectorVersion         = "version"
+	CollectorHeap            = "heap"
+	CollectorBin             = "bin"
+	CollectorCPU             = "cpu"
+	CollectorMutex           = "mutex"
+	CollectorBlock           = "block"
+)
+
 var (
 	logger = log.Logger("profile")
 	goos   = runtime.GOOS
 )
 
-type profile struct {
+type collector struct {
 	outputFile   string
 	isExecutable bool
-	profileFunc  func(ctx context.Context, opts Options, writer io.Writer) error
+	collectFunc  func(ctx context.Context, opts Options, writer io.Writer) error
 	enabledFunc  func(opts Options) bool
 }
 
-func (p *profile) fileName() string {
+func (p *collector) outputFileName() string {
 	fName := p.outputFile
 	if p.isExecutable {
 		if goos == "windows" {
@@ -39,51 +50,52 @@ func (p *profile) fileName() string {
 	return fName
 }
 
-var profiles = []profile{
-	{
+var collectors = map[string]collector{
+	CollectorGoroutinesStack: {
 		outputFile:  "goroutines.stacks",
-		profileFunc: goroutineStacksText,
+		collectFunc: goroutineStacksText,
 		enabledFunc: func(opts Options) bool { return true },
 	},
-	{
+	CollectorGoroutinesPprof: {
 		outputFile:  "goroutines.pprof",
-		profileFunc: goroutineStacksProto,
+		collectFunc: goroutineStacksProto,
 		enabledFunc: func(opts Options) bool { return true },
 	},
-	{
+	CollectorVersion: {
 		outputFile:  "version.json",
-		profileFunc: versionInfo,
+		collectFunc: versionInfo,
 		enabledFunc: func(opts Options) bool { return true },
 	},
-	{
+	CollectorHeap: {
 		outputFile:  "heap.pprof",
-		profileFunc: heapProfile,
+		collectFunc: heapProfile,
 		enabledFunc: func(opts Options) bool { return true },
 	},
-	{
+	CollectorBin: {
 		outputFile:   "ipfs",
 		isExecutable: true,
-		profileFunc:  binary,
+		collectFunc:  binary,
 		enabledFunc:  func(opts Options) bool { return true },
 	},
-	{
+	CollectorCPU: {
 		outputFile:  "cpu.pprof",
-		profileFunc: profileCPU,
+		collectFunc: profileCPU,
 		enabledFunc: func(opts Options) bool { return opts.ProfileDuration > 0 },
 	},
-	{
+	CollectorMutex: {
 		outputFile:  "mutex.pprof",
-		profileFunc: mutexProfile,
+		collectFunc: mutexProfile,
 		enabledFunc: func(opts Options) bool { return opts.ProfileDuration > 0 && opts.MutexProfileFraction > 0 },
 	},
-	{
+	CollectorBlock: {
 		outputFile:  "block.pprof",
-		profileFunc: blockProfile,
+		collectFunc: blockProfile,
 		enabledFunc: func(opts Options) bool { return opts.ProfileDuration > 0 && opts.BlockProfileRate > 0 },
 	},
 }
 
 type Options struct {
+	Collectors           []string
 	ProfileDuration      time.Duration
 	MutexProfileFraction int
 	BlockProfileRate     time.Duration
@@ -97,7 +109,7 @@ func WriteProfiles(ctx context.Context, archive *zip.Writer, opts Options) error
 	return p.runProfile(ctx)
 }
 
-// profiler runs the profiles concurrently and writes the results to the zip archive.
+// profiler runs the collectors concurrently and writes the results to the zip archive.
 type profiler struct {
 	archive *zip.Writer
 	opts    Options
@@ -113,22 +125,31 @@ func (p *profiler) runProfile(ctx context.Context) error {
 	ctx, cancelFn := context.WithCancel(ctx)
 	defer cancelFn()
 
-	results := make(chan profileResult, len(profiles))
+	var collectorsToRun []collector
+	for _, name := range p.opts.Collectors {
+		c, ok := collectors[name]
+		if !ok {
+			return fmt.Errorf("unknown collector '%s'", name)
+		}
+		collectorsToRun = append(collectorsToRun, c)
+	}
+
+	results := make(chan profileResult, len(p.opts.Collectors))
 	wg := sync.WaitGroup{}
-	for _, prof := range profiles {
-		if !prof.enabledFunc(p.opts) {
+	for _, c := range collectorsToRun {
+		if !c.enabledFunc(p.opts) {
 			continue
 		}
 
-		fName := prof.fileName()
+		fName := c.outputFileName()
 
 		wg.Add(1)
-		go func(prof profile) {
+		go func(c collector) {
 			defer wg.Done()
 			logger.Infow("collecting profile", "File", fName)
 			defer logger.Infow("profile done", "File", fName)
 			b := bytes.Buffer{}
-			err := prof.profileFunc(ctx, p.opts, &b)
+			err := c.collectFunc(ctx, p.opts, &b)
 			if err != nil {
 				select {
 				case results <- profileResult{err: fmt.Errorf("generating profile data for %q: %w", fName, err)}:
@@ -140,7 +161,7 @@ func (p *profiler) runProfile(ctx context.Context) error {
 			case results <- profileResult{buf: &b, fName: fName}:
 			case <-ctx.Done():
 			}
-		}(prof)
+		}(c)
 	}
 	go func() {
 		wg.Wait()

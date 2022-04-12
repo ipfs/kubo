@@ -16,7 +16,7 @@ test_expect_success "profiling requires a running daemon" '
 
 test_launch_ipfs_daemon
 
-test_expect_success "test profiling (without samplin)" '
+test_expect_success "test profiling (without sampling)" '
   ipfs diag profile --profile-time=0 > cmd_out
 '
 
@@ -35,6 +35,11 @@ test_expect_success "test profiling with -o" '
 test_expect_success "test that test-profile.zip exists" '
   test -e test-profile.zip
 '
+
+test_expect_success "test profiling with specific collectors" '
+  ipfs diag profile --collectors version,goroutines-stack -o test-profile-small.zip
+'
+
 test_kill_ipfs_daemon
 
 if ! test_have_prereq UNZIP; then
@@ -42,7 +47,8 @@ if ! test_have_prereq UNZIP; then
 fi
 
 test_expect_success "unpack profiles" '
-  unzip -d profiles test-profile.zip
+  unzip -d profiles test-profile.zip &&
+  unzip -d profiles-small test-profile-small.zip
 '
 
 test_expect_success "cpu profile is valid" '
@@ -67,6 +73,12 @@ test_expect_success "block profile is valid" '
 
 test_expect_success "goroutines stacktrace is valid" '
   grep -q "goroutine" "profiles/goroutines.stacks"
+'
+
+test_expect_success "the small profile only contains the requested data" '
+  find profiles-small -type f | sort > actual &&
+  echo -e "profiles-small/goroutines.stacks\nprofiles-small/version.json" > expected &&
+  test_cmp expected actual
 '
 
 test_done

@@ -21,6 +21,7 @@ type profileResult struct {
 }
 
 const (
+	collectorsOptionName       = "collectors"
 	profileTimeOption          = "profile-time"
 	mutexProfileFractionOption = "mutex-profile-fraction"
 	blockProfileRateOption     = "block-profile-rate"
@@ -72,11 +73,24 @@ However, it could reveal:
 	NoLocal: true,
 	Options: []cmds.Option{
 		cmds.StringOption(outputOptionName, "o", "The path where the output .zip should be stored. Default: ./ipfs-profile-[timestamp].zip"),
+		cmds.DelimitedStringsOption(",", collectorsOptionName, "The list of collectors to use for collecting diagnostic data.").
+			WithDefault([]string{
+				profile.CollectorGoroutinesStack,
+				profile.CollectorGoroutinesPprof,
+				profile.CollectorVersion,
+				profile.CollectorHeap,
+				profile.CollectorBin,
+				profile.CollectorCPU,
+				profile.CollectorMutex,
+				profile.CollectorBlock,
+			}),
 		cmds.StringOption(profileTimeOption, "The amount of time spent profiling. If this is set to 0, then sampling profiles are skipped.").WithDefault("30s"),
 		cmds.IntOption(mutexProfileFractionOption, "The fraction 1/n of mutex contention events that are reported in the mutex profile.").WithDefault(4),
 		cmds.StringOption(blockProfileRateOption, "The duration to wait between sampling goroutine-blocking events for the blocking profile.").WithDefault("1ms"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		collectors := req.Options[collectorsOptionName].([]string)
+
 		profileTimeStr, _ := req.Options[profileTimeOption].(string)
 		profileTime, err := time.ParseDuration(profileTimeStr)
 		if err != nil {
@@ -96,6 +110,7 @@ However, it could reveal:
 		go func() {
 			archive := zip.NewWriter(w)
 			err = profile.WriteProfiles(req.Context, archive, profile.Options{
+				Collectors:           collectors,
 				ProfileDuration:      profileTime,
 				MutexProfileFraction: mutexProfileFraction,
 				BlockProfileRate:     blockProfileRate,

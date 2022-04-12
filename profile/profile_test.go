@@ -12,6 +12,17 @@ import (
 )
 
 func TestProfiler(t *testing.T) {
+	allCollectors := []string{
+		CollectorGoroutinesStack,
+		CollectorGoroutinesPprof,
+		CollectorVersion,
+		CollectorHeap,
+		CollectorBin,
+		CollectorCPU,
+		CollectorMutex,
+		CollectorBlock,
+	}
+
 	cases := []struct {
 		name string
 		opts Options
@@ -22,6 +33,7 @@ func TestProfiler(t *testing.T) {
 		{
 			name: "happy case",
 			opts: Options{
+				Collectors:           allCollectors,
 				ProfileDuration:      1 * time.Millisecond,
 				MutexProfileFraction: 4,
 				BlockProfileRate:     50 * time.Nanosecond,
@@ -40,6 +52,7 @@ func TestProfiler(t *testing.T) {
 		{
 			name: "windows",
 			opts: Options{
+				Collectors:           allCollectors,
 				ProfileDuration:      1 * time.Millisecond,
 				MutexProfileFraction: 4,
 				BlockProfileRate:     50 * time.Nanosecond,
@@ -59,6 +72,7 @@ func TestProfiler(t *testing.T) {
 		{
 			name: "sampling profiling disabled",
 			opts: Options{
+				Collectors:           allCollectors,
 				MutexProfileFraction: 4,
 				BlockProfileRate:     50 * time.Nanosecond,
 			},
@@ -73,9 +87,9 @@ func TestProfiler(t *testing.T) {
 		{
 			name: "Mutex profiling disabled",
 			opts: Options{
-				ProfileDuration:      1 * time.Millisecond,
-				MutexProfileFraction: 0,
-				BlockProfileRate:     50 * time.Nanosecond,
+				Collectors:       allCollectors,
+				ProfileDuration:  1 * time.Millisecond,
+				BlockProfileRate: 50 * time.Nanosecond,
 			},
 			expectFiles: []string{
 				"goroutines.stacks",
@@ -90,6 +104,7 @@ func TestProfiler(t *testing.T) {
 		{
 			name: "block profiling disabled",
 			opts: Options{
+				Collectors:           allCollectors,
 				ProfileDuration:      1 * time.Millisecond,
 				MutexProfileFraction: 4,
 				BlockProfileRate:     0,
@@ -102,6 +117,18 @@ func TestProfiler(t *testing.T) {
 				"ipfs",
 				"cpu.pprof",
 				"mutex.pprof",
+			},
+		},
+		{
+			name: "single collector",
+			opts: Options{
+				Collectors:           []string{CollectorVersion},
+				ProfileDuration:      1 * time.Millisecond,
+				MutexProfileFraction: 4,
+				BlockProfileRate:     0,
+			},
+			expectFiles: []string{
+				"version.json",
 			},
 		},
 	}
