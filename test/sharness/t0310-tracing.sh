@@ -10,8 +10,8 @@ test_description="Test tracing"
 
 test_init_ipfs
 
-export IPFS_TRACING=1
-export IPFS_TRACING_OTLP_GRPC=1
+export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 
 cat <<EOF > collector-config.yaml
