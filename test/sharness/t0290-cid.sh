@@ -151,6 +151,7 @@ cat <<EOF > supported_codecs_expect
   112  dag-pb
   113  dag-cbor
   120  git-raw
+  133  dag-jose
   297  dag-json
   512  json
 EOF
