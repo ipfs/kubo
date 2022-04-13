@@ -325,20 +325,14 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	logger := log.With("from", r.RequestURI)
 	logger.Debug("http request received")
 
-	if handledUnsupportedHeaders(w, r) {
-		return
-	}
-
-	if handledProtocolHandlerRedirect(w, r, logger) {
-		return
-	}
-
-	if handledInvalidServiceWorkerRegistration(w, r) {
+	if isUnsupportedHeadersError(w, r) ||
+		isProtocolHandlerRedirect(w, r, logger) ||
+		isServiceWorkerRegistrationError(w, r) {
 		return
 	}
 
 	contentPath := ipath.New(r.URL.Path)
-	if handledSuperfluousNamespaces(w, r, contentPath, logger) {
+	if isSuperfluousNamespaceError(w, r, contentPath, logger) {
 		return
 	}
 
@@ -376,11 +370,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if i.handledUpdateFirstContentBlockMetrics(w, r, begin, contentPath, resolvedPath) {
-		return
-	}
-
-	if i.handledSetHeaders(w, r, contentPath) {
+	if i.isGettingFirstBlockError(w, r, begin, contentPath, resolvedPath) ||
+		i.isSetCommonHeadersError(w, r, contentPath) {
 		return
 	}
 
@@ -856,23 +847,22 @@ func debugStr(path string) string {
 	return q
 }
 
-func handledUnsupportedHeaders(w http.ResponseWriter, r *http.Request) bool {
+func isUnsupportedHeadersError(w http.ResponseWriter, r *http.Request) bool {
 	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/go-ipfs/issues/7702)
 	// TODO: remove this after  go-ipfs 0.13 ships
 	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); prfx != "" {
 		err := fmt.Errorf("X-Ipfs-Gateway-Prefix support was removed: https://github.com/ipfs/go-ipfs/issues/7702")
 		webError(w, "unsupported HTTP header", err, http.StatusBadRequest)
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 // ?uri query param support for requests produced by web browsers
 // via navigator.registerProtocolHandler Web API
 // https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
 // TLDR: redirect /ipfs/?uri=ipfs%3A%2F%2Fcid%3Fquery%3Dval to /ipfs/cid?query=val
-func handledProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) bool {
+func isProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) bool {
 	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
 		u, err := url.Parse(uriParam)
 		if err != nil {
@@ -899,7 +889,7 @@ func handledProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logg
 
 // Disallow Service Worker registration on namespace roots
 // https://github.com/ipfs/go-ipfs/issues/4025
-func handledInvalidServiceWorkerRegistration(w http.ResponseWriter, r *http.Request) bool {
+func isServiceWorkerRegistrationError(w http.ResponseWriter, r *http.Request) bool {
 	if r.Header.Get("Service-Worker") == "script" {
 		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)
 		if matched {
@@ -912,7 +902,7 @@ func handledInvalidServiceWorkerRegistration(w http.ResponseWriter, r *http.Requ
 	return false
 }
 
-func handledSuperfluousNamespaces(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) bool {
+func isSuperfluousNamespaceError(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) bool {
 	if pathErr := contentPath.IsValid(); pathErr != nil {
 		if fixupSuperfluousNamespace(w, r.URL.Path, r.URL.RawQuery) {
 			// the error was due to redundant namespace, which we were able to fix
@@ -957,7 +947,7 @@ func fixupSuperfluousNamespace(w http.ResponseWriter, urlPath string, urlQuery s
 	}) == nil
 }
 
-func (i *gatewayHandler) handledUpdateFirstContentBlockMetrics(w http.ResponseWriter, r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) bool {
+func (i *gatewayHandler) isGettingFirstBlockError(w http.ResponseWriter, r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) bool {
 	// Update the global metric of the time it takes to read the final root block of the requested resource
 	// NOTE: for legacy reasons this happens before we go into content-type specific code paths
 	_, err := i.api.Block().Get(r.Context(), resolvedPath)
@@ -972,7 +962,7 @@ func (i *gatewayHandler) handledUpdateFirstContentBlockMetrics(w http.ResponseWr
 	return false
 }
 
-func (i *gatewayHandler) handledSetHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
+func (i *gatewayHandler) isSetCommonHeadersError(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-Ipfs-Path", contentPath.String())
 
