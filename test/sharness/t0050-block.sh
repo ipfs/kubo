@@ -10,16 +10,18 @@ test_description="Test block command"
 
 test_init_ipfs
 
-HASH="QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk"
-HASHB="QmdnpnsaEj69isdw5sNzp3h3HkaDz7xKq7BmvFFBzNr5e7"
+HASH="bafkreibmlvvgdyihetgocpof6xk64kjjzdeq2e4c7hqs3krdheosk4tgj4"
+HASHB="bafkreihfsphazrk2ilejpekyltjeh5k4yvwgjuwg26ueafohqioeo3sdca"
 
-#
+HASHV0="QmRKqGMAM6EZngbpjSqrvYzq5Qd8b1bSWymjSUY9zQSNDk"
+HASHBV0="QmdnpnsaEj69isdw5sNzp3h3HkaDz7xKq7BmvFFBzNr5e7"
+
 # "block put tests"
 #
 
 test_expect_success "'ipfs block put' succeeds" '
   echo "Hello Mars!" >expected_in &&
-  ipfs block put <expected_in >actual_out
+  ipfs block put <expected_in | tee actual_out
 '
 
 test_expect_success "'ipfs block put' output looks good" '
@@ -30,7 +32,7 @@ test_expect_success "'ipfs block put' output looks good" '
 test_expect_success "'ipfs block put' with 2 files succeeds" '
   echo "Hello Mars!" > a &&
   echo "Hello Venus!" > b &&
-  ipfs block put a b >actual_out
+  ipfs block put a b | tee actual_out
 '
 
 test_expect_success "'ipfs block put' output looks good" '
@@ -39,8 +41,8 @@ test_expect_success "'ipfs block put' output looks good" '
   test_cmp expected_out actual_out
 '
 
-test_expect_success "can set cid store codec on block put" '
-  CODEC_HASH=$(ipfs block put --store-codec=dag-pb ../t0051-object-data/testPut.pb)
+test_expect_success "can set cid codec on block put" '
+  CODEC_HASH=$(ipfs block put --cid-codec=dag-pb ../t0051-object-data/testPut.pb)
 '
 
 test_expect_success "block get output looks right" '
@@ -205,7 +207,9 @@ test_expect_success "multi-block 'ipfs block rm -q' produces no output" '
   test ! -s block_rm_out
 '
 
-test_expect_success "can set cid format on block put" '
+# --format used 'protobuf' for 'dag-pb' which was invalid, but we keep
+# for backward-compatibility
+test_expect_success "can set deprecated --format=protobuf on block put" '
   HASH=$(ipfs block put --format=protobuf ../t0051-object-data/testPut.pb)
 '
 
@@ -220,7 +224,22 @@ test_expect_success "block get output looks right" '
   test_cmp pb_block_out ../t0051-object-data/testPut.pb
 '
 
-test_expect_success "can set multihash type and length on block put" '
+test_expect_success "can set --cid-codec=dag-pb on block put" '
+  HASH=$(ipfs block put --cid-codec=dag-pb ../t0051-object-data/testPut.pb)
+'
+
+test_expect_success "created an object correctly!" '
+  ipfs object get $HASH > obj_out &&
+  echo "{\"Links\":[],\"Data\":\"test json for sharness test\"}" > obj_exp &&
+  test_cmp obj_out obj_exp
+'
+
+test_expect_success "block get output looks right" '
+  ipfs block get $HASH > pb_block_out &&
+  test_cmp pb_block_out ../t0051-object-data/testPut.pb
+'
+
+test_expect_success "can set multihash type and length on block put with --format=raw (deprecated)" '
   HASH=$(echo "foooo" | ipfs block put --format=raw --mhtype=sha3 --mhlen=20)
 '
 
@@ -245,17 +264,21 @@ test_expect_success "no panic in output" '
   test_expect_code 1 grep "panic" stat_out
 '
 
-# FIXME: FAILING. This should work once 'protobuf' is added back in
-#  the default in https://github.com/ipfs/interface-go-ipfs-core/pull/80
-#  (after the first round of review passes).
+test_expect_success "can set multihash type and length on block put without format or cid-codec" '
+  HASH=$(echo "foooo" | ipfs block put --mhtype=sha3 --mhlen=20)
+'
 
-#test_expect_success "can set multihash type and length on block put without format" '
-#  HASH=$(echo "foooo" | ipfs block put --mhtype=sha3 --mhlen=20)
-#'
-#
-#test_expect_success "output looks good" '
-#  test "bafybifctrq4xazzixy2v4ezymjcvzpskqdwlxra" = "$HASH"
-#'
+test_expect_success "output looks good" '
+  test "bafkrifctrq4xazzixy2v4ezymjcvzpskqdwlxra" = "$HASH"
+'
+
+test_expect_success "can set multihash type and length on block put with cid-codec=dag-pb" '
+  HASH=$(echo "foooo" | ipfs block put --mhtype=sha3 --mhlen=20 --cid-codec=dag-pb)
+'
+
+test_expect_success "output looks good" '
+  test "bafybifctrq4xazzixy2v4ezymjcvzpskqdwlxra" = "$HASH"
+'
 
 test_expect_success "put with sha3 and cidv0 fails" '
   echo "foooo" | test_must_fail ipfs block put --mhtype=sha3 --mhlen=20 --format=v0
