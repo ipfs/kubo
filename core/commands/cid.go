@@ -330,6 +330,8 @@ var codecsCmd = &cmds.Command{
 			for _, code := range multicodec.ListDecoders() {
 				supportedCodecs[code] = struct{}{}
 			}
+			// add libp2p-key
+			supportedCodecs[uint64(mc.Libp2pKey)] = struct{}{}
 		}
 
 		var res []CodeAndName
