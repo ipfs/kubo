@@ -28,7 +28,9 @@ test_expect_success "Add the test directory" '
   echo "I am a txt file in confusing /ipfs dir" > rootDir/ipfs/file.txt &&
   echo "I am a txt file in confusing /ipns dir" > rootDir/ipns/file.txt &&
   DIR_CID=$(ipfs add -Qr --cid-version 1 rootDir) &&
-  FILE_CID=$(ipfs files stat /ipfs/$DIR_CID/ą/ę/file-źł.txt | head -1)
+  FILE_CID=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Hash) &&
+  FILE_SIZE=$(ipfs files stat --enc=json /ipfs/$DIR_CID/ą/ę/file-źł.txt | jq -r .Size)
+  echo "$FILE_CID / $FILE_SIZE"
 '
 
 ## ============================================================================
@@ -139,20 +141,22 @@ test_expect_success "dnslink gw: hash column should be a CID link to cid.ipfs.io
 ## Test dir listing of a big directory
 ## ============================================================================
 
-ipfs config --json Gateway.HTMLDirListingLimit 2
+test_expect_success "dir listing should resolve child sizes if under Gateway.FastDirIndexThreshold" '
+  curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ą/ę/ | tee list_response &&
+  test_should_contain "/ipfs/${FILE_CID}?filename" list_response &&
+  test_should_contain ">${FILE_SIZE} B</td>" list_response
+'
+
+# force fast dir index for all responses
+ipfs config --json Gateway.FastDirIndexThreshold 0
 # restart daemon to apply config changes
 test_kill_ipfs_daemon
 test_launch_ipfs_daemon
 
-test_expect_success "dir listing should be limited to Gateway.HTMLDirListingLimit" '
-  curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ > list_response &&
-  test_should_contain "Index of" list_response &&
-  test_should_contain "Below listing shows only the first 2 items." list_response &&
-  test_should_contain "<a href=\"/ipfs/$DIR_CID/api\">api</a>" list_response &&
-  test_should_contain "<a href=\"/ipfs/$DIR_CID/ipfs\">ipfs</a>" list_response &&
-  test_not_should_contain "<a href=\"/ipfs/$DIR_CID/ipns\">ipns</a>" list_response &&
-  test_should_contain "Directories bigger than 2 items can'\''t be rendered fully on this gateway." list_response &&
-  test_should_contain "To see all CIDs from this directory, adjust <code>Gateway.HTMLDirListingLimit</code>, or use the CLI" list_response
+test_expect_success "dir listing should not resolve child sizes beyond Gateway.FastDirIndexThreshold" '
+  curl -sD - http://127.0.0.1:$GWAY_PORT/ipfs/${DIR_CID}/ą/ę/ | tee list_response &&
+  test_should_contain "/ipfs/${FILE_CID}?filename" list_response &&
+  test_should_not_contain ">${FILE_SIZE} B</td>" list_response
 '
 
 ## ============================================================================

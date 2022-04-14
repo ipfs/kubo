@@ -71,21 +71,6 @@
         <td></td>
         <td></td>
       </tr>
-      {{ if gt .HTMLDirListingLimit 0 }}
-      {{ if ge (len .Listing) .HTMLDirListingLimit }}
-      <tr>
-        <td>
-        </td>
-        <td>
-          <p>Below listing shows only the first {{ .HTMLDirListingLimit }} items.</p>
-          <p>To see all CIDs from this directory, adjust <code>Gateway.HTMLDirListingLimit</code>, or use the CLI:</p>
-          <p><code>ipfs ls -s --size=false --resolve-type=false  {{ .Hash }} </code></p>
-        </td>
-        <td></td>
-        <td></td>
-      </tr>
-      {{ end }}
-      {{ end }}
       {{ range .Listing }}
       <tr>
         <td class="type-icon">
@@ -103,28 +88,6 @@
         </td>
         <td class="no-linebreak">{{ .Size }}</td>
       </tr>
-      {{ end }}
-      {{ if gt .HTMLDirListingLimit 0 }}
-      {{ if ge (len .Listing) .HTMLDirListingLimit }}
-      <tr>
-        <td></td>
-        <td>
-          + more
-        </td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>
-          <p>Directories bigger than {{ .HTMLDirListingLimit }} items can't be rendered fully on this gateway.</p>
-          <p>To see all CIDs from this directory, adjust <code>Gateway.HTMLDirListingLimit</code>, or use the CLI:</p>
-          <p><code>ipfs ls -s --size=false --resolve-type=false {{ .Hash }}</code></p>
-        </td>
-        <td></td>
-        <td></td>
-      </tr>
-      {{ end }}
       {{ end }}
     </table>
     </div>
