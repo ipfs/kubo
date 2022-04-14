@@ -25,8 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: testground run
-        # restore the mainline once https://github.com/coryschwartz/testground-github-action/pull/2 is released
-        uses: galargh/testground-github-action@6bdc2d4f12280a3e0ec654fd75fe170d4b7931df
+        uses: testground/testground-github-action@v1
         timeout-minutes: 5
         with:
           backend_addr: ${{ matrix.backend_addr }}
