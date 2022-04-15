@@ -93,15 +93,9 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	// type instead of relying on autodetection (which may fail).
 	w.Header().Set("Content-Type", "text/html")
 
-	// Generated dir index requires custom Etag (it may change between go-ipfs versions)
-	if assets.AssetHash != "" {
-		dirEtag := getDirListingEtag(resolvedPath.Cid())
-		w.Header().Set("Etag", dirEtag)
-		if r.Header.Get("If-None-Match") == dirEtag {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-	}
+	// Generated dir index requires custom Etag (output may change between go-ipfs versions)
+	dirEtag := getDirListingEtag(resolvedPath.Cid())
+	w.Header().Set("Etag", dirEtag)
 
 	if r.Method == http.MethodHead {
 		logger.Debug("return as request's HTTP method is HEAD")
