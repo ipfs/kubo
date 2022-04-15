@@ -1,5 +1,5 @@
 # Note: when updating the go minor version here, also update the go-channel in snap/snapcraft.yml
-FROM golang:1.16.15-buster
+FROM golang:1.17.9-buster
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Install deps

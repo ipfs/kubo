@@ -1,5 +1,5 @@
 # golang utilities
-GO_MIN_VERSION = 1.15.2
+GO_MIN_VERSION = 1.17
 export GO111MODULE=on
 
 
