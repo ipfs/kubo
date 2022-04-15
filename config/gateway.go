@@ -53,11 +53,11 @@ type Gateway struct {
 	//  }
 	PathPrefixes []string
 
-	// FastDirIndexThreshold is the minimal number of items in a directory that
-	// triggers Gateway to switch to an inexpensive HTML listing generation.
-	// This allows for listing big directories with tens of thousands of items
-	// can be returned as soon as the root node of dag-pb directory is
-	// resolved, without reading any additional metadata from child nodes.
+	// FastDirIndexThreshold is the minimum number of items in a directory
+	// before the Gateway switches to a shallow, faster listing which only
+	// requires the root node. This allows for listing big directories fast,
+	// without the linear slowdown caused by reading size metadata from child
+	// nodes.
 	// Setting to 0 will enable fast listings for all directories.
 	FastDirIndexThreshold *OptionalInteger `json:",omitempty"`
 
