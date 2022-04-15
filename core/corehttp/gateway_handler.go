@@ -766,8 +766,8 @@ func (i *gatewayHandler) buildIpfsRootsHeader(contentPath string, r *http.Reques
 		the last root (responsible for specific article) may not change at all.
 	*/
 	var sp strings.Builder
+	var pathRoots []string
 	pathSegments := strings.Split(contentPath[6:], "/")
-	pathRoots := make([]string, 0, len(pathSegments))
 	sp.WriteString(contentPath[:5]) // /ipfs or /ipns
 	for _, root := range pathSegments {
 		if root == "" {
