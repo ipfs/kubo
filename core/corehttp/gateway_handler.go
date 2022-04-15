@@ -97,7 +97,7 @@ func (r *requestError) Error() string {
 	return r.Err.Error()
 }
 
-func newRequestError(message string, err error, statusCode int) error {
+func newRequestError(message string, err error, statusCode int) *requestError {
 	return &requestError{
 		Message:    message,
 		Err:        err,
@@ -753,9 +753,8 @@ func (i *gatewayHandler) buildIpfsRootsHeader(contentPath string, r *http.Reques
 	return rootCidList, nil
 }
 
-func webRequestError(w http.ResponseWriter, err error) {
-	re := err.(*requestError)
-	webError(w, re.Message, re.Err, re.StatusCode)
+func webRequestError(w http.ResponseWriter, err *requestError) {
+	webError(w, err.Message, err.Err, err.StatusCode)
 }
 
 func webError(w http.ResponseWriter, message string, err error, defaultCode int) {
@@ -884,7 +883,7 @@ func debugStr(path string) string {
 	return q
 }
 
-func handleUnsupportedHeaders(r *http.Request) (err error) {
+func handleUnsupportedHeaders(r *http.Request) (err *requestError) {
 	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/go-ipfs/issues/7702)
 	// TODO: remove this after  go-ipfs 0.13 ships
 	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); prfx != "" {
@@ -925,7 +924,7 @@ func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logge
 
 // Disallow Service Worker registration on namespace roots
 // https://github.com/ipfs/go-ipfs/issues/4025
-func handleServiceWorkerRegistration(r *http.Request) (err error) {
+func handleServiceWorkerRegistration(r *http.Request) (err *requestError) {
 	if r.Header.Get("Service-Worker") == "script" {
 		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)
 		if matched {
@@ -981,7 +980,7 @@ func handleSuperfluousNamespace(w http.ResponseWriter, r *http.Request, contentP
 	return true
 }
 
-func (i *gatewayHandler) handleGettingFirstBlock(r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) error {
+func (i *gatewayHandler) handleGettingFirstBlock(r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) *requestError {
 	// Update the global metric of the time it takes to read the final root block of the requested resource
 	// NOTE: for legacy reasons this happens before we go into content-type specific code paths
 	_, err := i.api.Block().Get(r.Context(), resolvedPath)
@@ -995,7 +994,7 @@ func (i *gatewayHandler) handleGettingFirstBlock(r *http.Request, begin time.Tim
 	return nil
 }
 
-func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) error {
+func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) *requestError {
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-Ipfs-Path", contentPath.String())
 
