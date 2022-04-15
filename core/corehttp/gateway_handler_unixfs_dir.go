@@ -109,9 +109,6 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
-	// storage for directory listing
-	var dirListing []directoryItem
-
 	// Optimization 1:
 	// List children without fetching their root blocks (fast, but no size info)
 	results, err := i.api.Unixfs().Ls(ctx, resolvedPath, options.Unixfs.ResolveChildren(false))
@@ -119,6 +116,10 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 		internalWebError(w, err)
 		return
 	}
+
+	// storage for directory listing
+	dirListing := make([]directoryItem, 0, len(results))
+
 	for link := range results {
 		if link.Err != nil {
 			internalWebError(w, err)
