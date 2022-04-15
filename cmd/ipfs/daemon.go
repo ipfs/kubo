@@ -704,22 +704,23 @@ func printSwarmAddrs(node *core.IpfsNode) {
 		return
 	}
 
-	var lisAddrs []string
 	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
 	if err != nil {
 		log.Errorf("failed to read listening addresses: %s", err)
 	}
-	for _, addr := range ifaceAddrs {
-		lisAddrs = append(lisAddrs, addr.String())
+	lisAddrs := make([]string, len(ifaceAddrs))
+	for i, addr := range ifaceAddrs {
+		lisAddrs[i] = addr.String()
 	}
 	sort.Strings(lisAddrs)
 	for _, addr := range lisAddrs {
 		fmt.Printf("Swarm listening on %s\n", addr)
 	}
 
-	var addrs []string
-	for _, addr := range node.PeerHost.Addrs() {
-		addrs = append(addrs, addr.String())
+	nodePhostAddrs := node.PeerHost.Addrs()
+	addrs := make([]string, len(nodePhostAddrs))
+	for i, addr := range nodePhostAddrs {
+		addrs[i] = addr.String()
 	}
 	sort.Strings(addrs)
 	for _, addr := range addrs {
