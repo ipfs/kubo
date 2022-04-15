@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/tracing"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
+	unixfile "github.com/ipfs/go-unixfs/file"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"go.opentelemetry.io/otel/attribute"
@@ -111,6 +112,11 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 
 	// storage for directory listing
 	var dirListing []directoryItem
+	type entryRequest struct {
+		entryIndex int
+		cid cid.Cid
+	}
+	var entryRequests []*entryRequest
 
 	// Optimization 1:
 	// List children without fetching their root blocks (fast, but no size info)
@@ -133,20 +139,92 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 			ShortHash: shortHash(hash),
 		}
 		dirListing = append(dirListing, di)
+		entryRequests = append(entryRequests, &entryRequest{
+			entryIndex: len(dirListing) - 1,
+			cid:       link.Cid,
+		})
 	}
 
-	// Optimization 2: fetch sizes only for dirs below FastDirIndexThreshold
-	if len(dirListing) < i.config.FastDirIndexThreshold {
-		dirit := dir.Entries()
-		linkNo := 0
-		for dirit.Next() {
-			size := "?"
-			if s, err := dirit.Node().Size(); err == nil {
-				// Size may not be defined/supported. Continue anyways.
-				size = humanize.Bytes(uint64(s))
+	// Optimization 2:
+	// Fetch in parallel entry's metadata up to FastDirIndexThreshold.
+	// Code inspired from go-merkledag.Walk().
+	// FIXME: Review number and (maybe) export it.
+	const defaultConcurrentFetch = 32
+	fetchersCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	feed := make(chan *entryRequest)
+	go func() {
+		for _, r := range entryRequests {
+			select {
+			case feed <- r:
+			case <-fetchersCtx.Done():
+				return
 			}
-			dirListing[linkNo].Size = size
-			linkNo++
+		}
+	}()
+	type entryInfo struct {
+		entryIndex int
+		size string
+	}
+	out := make(chan entryInfo)
+	errChan := make(chan error)
+
+	for c := 0; c < defaultConcurrentFetch; c++ {
+		go func() {
+			for r := range feed {
+				nd, err := i.api.Dag().Get(fetchersCtx, r.cid)
+				if err != nil {
+					select {
+					case errChan <- err:
+					case <-fetchersCtx.Done():
+					}
+					return
+				}
+				file, err := unixfile.NewUnixfsFile(fetchersCtx, i.api.Dag(), nd)
+				if err != nil {
+					select {
+					case errChan <- err:
+					case <-fetchersCtx.Done():
+					}
+					return
+				}
+				size := "?"
+				if s, err := file.Size(); err == nil {
+					// Size may not be defined/supported. Continue anyways.
+					// FIXME: Check above. The UnixFS files we're iterating
+					//  (because we use the UnixFS API) should always support
+					//  this.
+					size = humanize.Bytes(uint64(s))
+				}
+
+				outInfo := entryInfo {
+					entryIndex: r.entryIndex,
+					size: size,
+				}
+				select {
+				case out <- outInfo:
+				case <-fetchersCtx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	entriesFetch := 0
+	for (i.config.FastDirIndexThreshold == 0 || entriesFetch < i.config.FastDirIndexThreshold) &&
+		entriesFetch < len(dirListing) {
+		select {
+		case outInfo := <-out:
+			dirListing[outInfo.entryIndex].Size = outInfo.size
+			entriesFetch++
+		case err := <-errChan:
+			internalWebError(w, err)
+			return
+		case <-ctx.Done():
+			if ctx.Err() != nil {
+				internalWebError(w, ctx.Err())
+			}
+			return
 		}
 	}
 
