@@ -344,21 +344,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	logger := log.With("from", r.RequestURI)
 	logger.Debug("http request received")
 
-	var (
-		err          error
-		shouldReturn bool
-	)
-
 	if err := handleUnsupportedHeaders(r); err != nil {
 		webRequestError(w, err)
 		return
 	}
 
-	err, shouldReturn = handleProtocolHandlerRedirect(w, r, logger)
-	if err != nil {
-		webRequestError(w, err)
-	}
-	if shouldReturn {
+	if requestHandled := handleProtocolHandlerRedirect(w, r, logger); requestHandled {
 		return
 	}
 
@@ -368,10 +359,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	contentPath := ipath.New(r.URL.Path)
-	if err, shouldReturn = handleSuperfluousNamespace(w, r, contentPath); err != nil {
-		webRequestError(w, err)
-	}
-	if shouldReturn {
+	if requestHandled := handleSuperfluousNamespace(w, r, contentPath); requestHandled {
 		return
 	}
 
@@ -409,12 +397,12 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err = i.handleGettingFirstBlock(r, begin, contentPath, resolvedPath); err != nil {
+	if err := i.handleGettingFirstBlock(r, begin, contentPath, resolvedPath); err != nil {
 		webRequestError(w, err)
 		return
 	}
 
-	if err = i.setCommonHeaders(w, r, contentPath); err != nil {
+	if err := i.setCommonHeaders(w, r, contentPath); err != nil {
 		webRequestError(w, err)
 		return
 	}
@@ -910,14 +898,16 @@ func handleUnsupportedHeaders(r *http.Request) (err error) {
 // via navigator.registerProtocolHandler Web API
 // https://developer.mozilla.org/en-US/docs/Web/API/Navigator/registerProtocolHandler
 // TLDR: redirect /ipfs/?uri=ipfs%3A%2F%2Fcid%3Fquery%3Dval to /ipfs/cid?query=val
-func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) (err error, shouldReturn bool) {
+func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logger *zap.SugaredLogger) (requestHandled bool) {
 	if uriParam := r.URL.Query().Get("uri"); uriParam != "" {
 		u, err := url.Parse(uriParam)
 		if err != nil {
-			return newRequestError("failed to parse uri query parameter", err, http.StatusBadRequest), true
+			webError(w, "failed to parse uri query parameter", err, http.StatusBadRequest)
+			return true
 		}
 		if u.Scheme != "ipfs" && u.Scheme != "ipns" {
-			return newRequestError("uri query parameter scheme must be ipfs or ipns", err, http.StatusBadRequest), true
+			webError(w, "uri query parameter scheme must be ipfs or ipns", err, http.StatusBadRequest)
+			return true
 		}
 		path := u.Path
 		if u.RawQuery != "" { // preserve query if present
@@ -927,10 +917,10 @@ func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logge
 		redirectURL := gopath.Join("/", u.Scheme, u.Host, path)
 		logger.Debugw("uri param, redirect", "to", redirectURL, "status", http.StatusMovedPermanently)
 		http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
-		return nil, true
+		return true
 	}
 
-	return nil, false
+	return false
 }
 
 // Disallow Service Worker registration on namespace roots
@@ -951,21 +941,22 @@ func handleServiceWorkerRegistration(r *http.Request) (err error) {
 // 'intended' path is valid.  This is in case gremlins were tickled
 // wrong way and user ended up at /ipfs/ipfs/{cid} or /ipfs/ipns/{id}
 // like in bafybeien3m7mdn6imm425vc2s22erzyhbvk5n3ofzgikkhmdkh5cuqbpbq :^))
-func handleSuperfluousNamespace(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) (err error, shouldReturn bool) {
+func handleSuperfluousNamespace(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) (requestHandled bool) {
 	// If the path is valid, there's nothing to do
 	if pathErr := contentPath.IsValid(); pathErr == nil {
-		return nil, false
+		return false
 	}
 
 	// If there's no superflous namespace, there's nothing to do
 	if !(strings.HasPrefix(r.URL.Path, "/ipfs/ipfs/") || strings.HasPrefix(r.URL.Path, "/ipfs/ipns/")) {
-		return nil, false
+		return false
 	}
 
 	// Attempt to fix the superflous namespace
 	intendedPath := ipath.New(strings.TrimPrefix(r.URL.Path, "/ipfs"))
 	if err := intendedPath.IsValid(); err != nil {
-		return newRequestError("invalid ipfs path", err, http.StatusBadRequest), true
+		webError(w, "invalid ipfs path", err, http.StatusBadRequest)
+		return true
 	}
 	intendedURL := intendedPath.String()
 	if r.URL.RawQuery != "" {
@@ -984,10 +975,10 @@ func handleSuperfluousNamespace(w http.ResponseWriter, r *http.Request, contentP
 		SuggestedPath: intendedPath.String(),
 		ErrorMsg:      fmt.Sprintf("invalid path: %q should be %q", r.URL.Path, intendedPath.String()),
 	}); err != nil {
-		return newRequestError("failed to redirect when fixing superfluous namespace", err, http.StatusBadRequest), true
+		webError(w, "failed to redirect when fixing superfluous namespace", err, http.StatusBadRequest)
 	}
 
-	return nil, true
+	return true
 }
 
 func (i *gatewayHandler) handleGettingFirstBlock(r *http.Request, begin time.Time, contentPath ipath.Path, resolvedPath ipath.Resolved) error {
