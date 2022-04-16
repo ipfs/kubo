@@ -247,6 +247,11 @@ test_expect_success "output looks good" '
   test "bafkrifctrq4xazzixy2v4ezymjcvzpskqdwlxra" = "$HASH"
 '
 
+test_expect_success "can't use both legacy format and custom cid-codec at the same time" '
+  test_expect_code 1 ipfs block put --format=dag-cbor --cid-codec=dag-json < ../t0051-object-data/testPut.pb 2> output &&
+  test_should_contain "unable to use \"format\" (deprecated) and a custom \"cid-codec\" at the same time" output
+'
+
 test_expect_success "can read block with different hash" '
   ipfs block get $HASH > blk_get_out &&
   echo "foooo" > blk_get_exp &&
@@ -260,6 +265,7 @@ test_expect_success "'ipfs block stat' with nothing from stdin doesn't crash" '
   test_expect_code 1 ipfs block stat < /dev/null 2> stat_out
 '
 
+# lol
 test_expect_success "no panic in output" '
   test_expect_code 1 grep "panic" stat_out
 '

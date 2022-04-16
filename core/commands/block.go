@@ -142,7 +142,7 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 		cmds.FileArg("data", true, true, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(blockCidCodecOptionName, "Multicodec to use in returned CID. Default: raw"),
+		cmds.StringOption(blockCidCodecOptionName, "Multicodec to use in returned CID").WithDefault("raw"),
 		cmds.StringOption(mhtypeOptionName, "Multihash hash function").WithDefault("sha2-256"),
 		cmds.IntOption(mhlenOptionName, "Multihash hash length").WithDefault(-1),
 		cmds.BoolOption(pinOptionName, "Pin added blocks recursively").WithDefault(false),
@@ -168,8 +168,13 @@ only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 
 		cidCodec, _ := req.Options[blockCidCodecOptionName].(string)
 		format, _ := req.Options[blockFormatOptionName].(string) // deprecated
-		if format != "" && cidCodec != "" {
-			return fmt.Errorf("unable to use %q (deprecated) with %q at the same time", blockFormatOptionName, blockCidCodecOptionName)
+
+		// use of legacy 'format' needs to supress 'cid-codec'
+		if format != "" {
+			if cidCodec != "" && cidCodec != "raw" {
+				return fmt.Errorf("unable to use %q (deprecated) and a custom %q at the same time", blockFormatOptionName, blockCidCodecOptionName)
+			}
+			cidCodec = "" // makes it no-op
 		}
 
 		pin, _ := req.Options[pinOptionName].(bool)
