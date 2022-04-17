@@ -45,6 +45,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
+	forceHashOptionName   = "force"
 )
 
 const adderOutChanSize = 8
@@ -140,7 +141,9 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
+		cmds.BoolOption(forceHashOptionName, "Forcibly allow hasing of insecure hashing schemes").WithDefault(false),
 	},
+
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		quiet, _ := req.Options[quietOptionName].(bool)
 		quieter, _ := req.Options[quieterOptionName].(bool)
@@ -166,6 +169,7 @@ only-hash, and progress/status related flags) will change the final hash.
 			return err
 		}
 
+	
 		progress, _ := req.Options[progressOptionName].(bool)
 		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
@@ -181,11 +185,15 @@ only-hash, and progress/status related flags) will change the final hash.
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 
+		force, _ := req.Options[forceHashOptionName].(bool)
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
+		if !force && strings.ToLower(hashFunStr) == "sha1" {
+			return fmt.Errorf("selected hash function is no longer secure; use --hash=sha2-256 or pass --force " )
+		}
 		if !ok {
 			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
 		}
-
+		
 		enc, err := cmdenv.GetCidEncoder(req)
 		if err != nil {
 			return err
