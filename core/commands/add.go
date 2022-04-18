@@ -45,7 +45,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
-	forceHashOptionName   = "force"
+	forceHashOptionName   = "allow-insecure-hash-function"
 )
 
 const adderOutChanSize = 8
@@ -169,7 +169,7 @@ only-hash, and progress/status related flags) will change the final hash.
 			return err
 		}
 
-	
+		
 		progress, _ := req.Options[progressOptionName].(bool)
 		trickle, _ := req.Options[trickleOptionName].(bool)
 		wrap, _ := req.Options[wrapOptionName].(bool)
@@ -185,9 +185,9 @@ only-hash, and progress/status related flags) will change the final hash.
 		inline, _ := req.Options[inlineOptionName].(bool)
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 
-		force, _ := req.Options[forceHashOptionName].(bool)
+		forceHash, _ := req.Options[forceHashOptionName].(bool)
 		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
-		if !force && strings.ToLower(hashFunStr) == "sha1" {
+		if !forceHash && strings.ToLower(hashFunStr) == "sha1" {
 			return fmt.Errorf("selected hash function is no longer secure; use --hash=sha2-256 or pass --force " )
 		}
 		if !ok {
