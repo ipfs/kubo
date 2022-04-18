@@ -4,17 +4,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/ipfs/go-cid"
-	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	"github.com/ipld/go-ipld-prime/multicodec"
-	mc "github.com/multiformats/go-multicodec"
-	"io"
-	"io/ioutil"
-
 	"github.com/bytecodealliance/wasmtime-go"
+	"github.com/ipfs/go-cid"
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/datamodel"
 	"github.com/ipld/go-ipld-prime/linking"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	"github.com/ipld/go-ipld-prime/multicodec"
+	"io"
 )
 
 type wasmADLNode struct {
@@ -34,6 +31,7 @@ var _ datamodel.LargeBytesNode = (*wasmADLNode)(nil)
 type wasmtimeThings struct {
 	store *wasmtime.Store
 	instance *wasmtime.Instance
+	tfc      uint64
 }
 
 func newWasmADLNode(ctx linking.LinkContext, node datamodel.Node, lsys *linking.LinkSystem) (*wasmADLNode, error) {
@@ -51,17 +49,9 @@ func newWasmADLNode(ctx linking.LinkContext, node datamodel.Node, lsys *linking.
 func (w *wasmADLNode) initialize() error {
 	// Almost all operations in wasmtime require a contextual `store`
 	// argument to share, so create that first
-	store := wasmtime.NewStore(wasmtime.NewEngine())
+	store := wasmtime.NewStore(wasmG.engine)
 
-	wasm, err := ioutil.ReadFile("C:\\Users\\adin\\workspace\\rust\\wasm-ipld\\target\\wasm32-unknown-unknown\\release\\wasm_ipld.wasm")
-	if err != nil {
-		return err
-	}
-
-	// Once we have our binary `wasm` we can compile that into a `*Module`
-	// which represents compiled JIT code.
-	module, err := wasmtime.NewModule(store.Engine, wasm)
-	if err != nil {
+	if err := store.AddFuel(fuelPerOp); err != nil {
 		return err
 	}
 
@@ -88,12 +78,13 @@ func (w *wasmADLNode) initialize() error {
 	})
 
 	item2 := wasmtime.WrapFunc(store, func(input int32) {
-		fmt.Println(input)
+		// TODO: This function is a debug hook to be removed
+		// fmt.Println(input)
 	})
 
 	// Next up we instantiate a module which is where we link in all our
 	// imports. We've got one import so we pass that in here.
-	instance, err := wasmtime.NewInstance(store, module, []wasmtime.AsExtern{item2, item})
+	instance, err := wasmtime.NewInstance(store, wasmG.module, []wasmtime.AsExtern{item2, item})
 	if err != nil {
 		return err
 	}
@@ -105,16 +96,6 @@ func (w *wasmADLNode) initialize() error {
 
 	loadAdlFn := instance.GetExport(store, "load_adl").Func()
 	memory := instance.GetExport(store,"memory").Memory()
-	old, err := memory.Grow(store, 12000);
-	if err != nil {
-		return err
-	}
-	fmt.Printf("old pages - %d", old)
-	old, err = memory.Grow(store, 12000);
-	if err != nil {
-		return err
-	}
-	fmt.Printf("old pages - %d", old)
 	alloc := instance.GetExport(store,"myalloc").Func()
 
 	// TODO: Figure out ADL type detection
@@ -126,12 +107,11 @@ func (w *wasmADLNode) initialize() error {
 
 	var inputBuf bytes.Buffer
 
-	enc, err := multicodec.DefaultRegistry.LookupEncoder(uint64(mc.TorrentInfo))
+	enc, err := multicodec.DefaultRegistry.LookupEncoder(WacMC)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Switch to WAC
 	if err := enc(w.substrate, &inputBuf); err != nil {
 		return err
 	}
@@ -141,30 +121,14 @@ func (w *wasmADLNode) initialize() error {
 
 	// //Allocate memory
 	inputBlkPtrI, err := alloc.Call(store, inputSize)
+	if err != nil {
+		return err
+	}
 	inputBlkPtr, ok := inputBlkPtrI.(int32)
 	if !ok {
 		return fmt.Errorf("input block pointer not int32")
 	}
 	input := inputBuf.Bytes()
-	fmt.Printf("cbor- %x\n", input)
-
-	/*
-	lbw := instance.GetExport(store, "lbw").Func()
-	if _, err := lbw.Call(store); err != nil {
-		return err
-	}
-	 */
-
-	/*
-	hc := "A3667069656365735828010101010101010101010101010101010101010102020202020202020202020202020202020202026C7069656365206C656E67746814666C656E6774681828"
-	hcb, err := hex.DecodeString(hc)
-	if err != nil {
-		panic(err)
-	}
-
-	input = hcb
-	inputSize = int32(len(hcb))
-	 */
 
 	// TODO: Dellocate input buffer
 
@@ -182,6 +146,18 @@ func (w *wasmADLNode) initialize() error {
 	}
 
 	w.adlWasmPtr = adlPtr
+
+	tfc, enabled := store.FuelConsumed()
+	if !enabled {
+		panic("how is fuel consumption not enabled?")
+	}
+	fc := tfc - w.w.tfc
+	w.w.tfc = tfc
+	fmt.Printf("Fuel consumed for ADL load: %d\n", fc)
+	if err := store.AddFuel(fuelPerOp - fc); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -311,6 +287,18 @@ func (r *wasmADLRS) Read(p []byte) (n int, err error) {
 	}
 
 	readI, err := readFn.Call(r.wt.store, r.adlPtr, bufferPtr, int32(len(p)))
+
+	tfc, enabled := r.wt.store.FuelConsumed()
+	if !enabled {
+		panic("how is fuel consumption not enabled?")
+	}
+	fc := tfc - r.wt.tfc
+	r.wt.tfc = tfc
+	fmt.Printf("Fuel consumed for read: %d\n", fc)
+	if err := r.wt.store.AddFuel(fuelPerOp - fc); err != nil {
+		return 0, err
+	}
+
 	if err != nil {
 		fmt.Println(err)
 		return 0, err
@@ -331,6 +319,18 @@ func (r *wasmADLRS) Read(p []byte) (n int, err error) {
 func (r *wasmADLRS) Seek(offset int64, whence int) (int64, error) {
 	seekFn := r.wt.instance.GetExport(r.wt.store, "seek_adl").Func()
 	resI, err := seekFn.Call(r.wt.store, r.adlPtr, offset, int32(whence))
+
+	tfc, enabled := r.wt.store.FuelConsumed()
+	if !enabled {
+		panic("how is fuel consumption not enabled?")
+	}
+	fc := tfc - r.wt.tfc
+	r.wt.tfc = tfc
+	fmt.Printf("Fuel consumed for seek: %d\n", fc)
+	if err := r.wt.store.AddFuel(fuelPerOp - fc); err != nil {
+		return 0, err
+	}
+
 	if err != nil {
 		return 0, err
 	}

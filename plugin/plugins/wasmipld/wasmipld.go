@@ -5,11 +5,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	bencodeipld "github.com/aschmahmann/go-ipld-bittorrent/bencode"
+	"github.com/bytecodealliance/wasmtime-go"
 	"github.com/ipld/go-ipld-prime/linking"
 	"io"
 	"io/ioutil"
-
-	"github.com/bytecodealliance/wasmtime-go"
 
 	"github.com/ipfs/go-ipfs/plugin"
 
@@ -42,28 +41,48 @@ func (*wasmipld) Init(env *plugin.Environment) error {
 	return nil
 }
 
+const fuelPerOp = 10_000_000
+
+type wasmGlobals struct {
+	engine *wasmtime.Engine
+	module *wasmtime.Module
+}
+
+var wasmG *wasmGlobals
+
+func init() {
+	config := wasmtime.NewConfig()
+	config.SetConsumeFuel(true)
+	engine := wasmtime.NewEngineWithConfig(config)
+
+	wasm, err := ioutil.ReadFile("C:\\Users\\adin\\workspace\\rust\\wasm-ipld\\target\\wasm32-unknown-unknown\\release\\wasm_ipld.wasm")
+	if err != nil {
+		panic(err)
+	}
+
+	// Once we have our binary `wasm` we can compile that into a `*Module`
+	// which represents compiled JIT code.
+	module, err := wasmtime.NewModule(engine, wasm)
+	if err != nil {
+		panic(err)
+	}
+
+	wasmG = &wasmGlobals{
+		engine: engine,
+		module: module,
+	}
+}
+
 func (*wasmipld) Register(reg multicodec.Registry) error {
-	reg.RegisterEncoder(uint64(mc.TorrentInfo), WacEncode)
-	reg.RegisterDecoder(uint64(mc.TorrentInfo), WacDecode)
+	reg.RegisterEncoder(WacMC, WacEncode)
+	reg.RegisterDecoder(WacMC, WacDecode)
 
 	reg.RegisterEncoder(uint64(mc.Bencode), bencodeipld.Encode)
 	//reg.RegisterDecoder(uint64(mc.Bencode), bencodeipld.Decode)
 	reg.RegisterDecoder(uint64(mc.Bencode), func(assembler datamodel.NodeAssembler, reader io.Reader) error {
 		// Almost all operations in wasmtime require a contextual `store`
 		// argument to share, so create that first
-		store := wasmtime.NewStore(wasmtime.NewEngine())
-
-		wasm, err := ioutil.ReadFile("C:\\Users\\adin\\workspace\\rust\\wasm-ipld\\target\\wasm32-unknown-unknown\\release\\wasm_ipld.wasm")
-		if err != nil {
-			return err
-		}
-
-		// Once we have our binary `wasm` we can compile that into a `*Module`
-		// which represents compiled JIT code.
-		module, err := wasmtime.NewModule(store.Engine, wasm)
-		if err != nil {
-			return err
-		}
+		store := wasmtime.NewStore(wasmG.engine)
 
 		item := wasmtime.WrapFunc(store, func(caller *wasmtime.Caller, cidPtr int32, cidLen int32) int32 {
 			return 0
@@ -73,8 +92,12 @@ func (*wasmipld) Register(reg multicodec.Registry) error {
 
 		// Next up we instantiate a module which is where we link in all our
 		// imports. We've got one import so we pass that in here.
-		instance, err := wasmtime.NewInstance(store, module, []wasmtime.AsExtern{item2, item})
+		instance, err := wasmtime.NewInstance(store, wasmG.module, []wasmtime.AsExtern{item2, item})
 		if err != nil {
+			return err
+		}
+
+		if err := store.AddFuel(fuelPerOp); err != nil {
 			return err
 		}
 
@@ -94,6 +117,9 @@ func (*wasmipld) Register(reg multicodec.Registry) error {
 
 		// //Allocate memory
 		ptr2, err := alloc.Call(store, size2)
+		if err != nil {
+			return err
+		}
 		pointer, _ := ptr2.(int32)
 
 		buf := memory.UnsafeData(store)
@@ -107,14 +133,19 @@ func (*wasmipld) Register(reg multicodec.Registry) error {
 		decodePtr, _ := decodePtrI.(int32)
 		buf = memory.UnsafeData(store)
 
-		dec, err := reg.LookupDecoder(uint64(mc.TorrentInfo))
+		fc, enabled := store.FuelConsumed()
+		if !enabled {
+			panic("how is fuel consumption not enabled?")
+		}
+		fmt.Printf("Fuel consumed for block decoding: %d\n", fc)
+
+		dec, err := reg.LookupDecoder(WacMC)
 		if err != nil {
 			return err
 		}
 
 		outSize := (int32)(binary.LittleEndian.Uint64(buf[pointer:pointer+lenSize]))
 		d := buf[decodePtr:decodePtr+outSize]
-		fmt.Printf("%x\n", d)
 		return dec(assembler, bytes.NewReader(d))
 	})
 	return nil

@@ -11,6 +11,8 @@ import (
 	"github.com/multiformats/go-varint"
 )
 
+const WacMC = 0x80
+
 type WacCode uint8
 
 const (
