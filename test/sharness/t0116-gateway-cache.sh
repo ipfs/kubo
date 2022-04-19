@@ -145,6 +145,55 @@ test_expect_success "Prepare IPNS unixfs content path for testing" '
     grep "< Etag: \"${FILE_CID}\"" curl_ipns_file_output
     '
 
+# If-None-Match (return 304 Not Modified when client sends matching Etag they already have)
+
+    test_expect_success "GET for /ipfs/ file with matching Etag in If-None-Match returns 304 Not Modified" '
+    curl -svX GET -H "If-None-Match: \"$FILE_CID\"" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/root4/index.html" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
+    test_expect_success "GET for /ipfs/ dir with index.html file with matching Etag in If-None-Match returns 304 Not Modified" '
+    curl -svX GET -H "If-None-Match: \"$ROOT4_CID\"" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/root4/" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
+    test_expect_success "GET for /ipfs/ file with matching third Etag in If-None-Match returns 304 Not Modified" '
+    curl -svX GET -H "If-None-Match: \"fakeEtag1\", \"fakeEtag2\", \"$FILE_CID\"" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/root4/index.html" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
+    test_expect_success "GET for /ipfs/ file with matching weak Etag in If-None-Match returns 304 Not Modified" '
+    curl -svX GET -H "If-None-Match: W/\"$FILE_CID\"" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/root4/index.html" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
+    test_expect_success "GET for /ipfs/ file with wildcard Etag in If-None-Match returns 304 Not Modified" '
+    curl -svX GET -H "If-None-Match: *" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/root4/index.html" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
+    test_expect_success "GET for /ipns/ file with matching Etag in If-None-Match returns 304 Not Modified" '
+    curl -svX GET -H "If-None-Match: \"$FILE_CID\"" "http://127.0.0.1:$GWAY_PORT/ipns/$TEST_IPNS_ID/root2/root3/root4/index.html" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
+    test_expect_success "GET for /ipfs/ dir listing with matching weak Etag in If-None-Match returns 304 Not Modified" '
+    curl -svX GET -H "If-None-Match: W/\"$ROOT3_CID\"" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
+    # DirIndex etag is based on xxhash(./assets/dir-index-html), so we need to fetch it dynamically
+    test_expect_success "GET for /ipfs/ dir listing with matching strong Etag in If-None-Match returns 304 Not Modified" '
+    curl -Is "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/"| grep -i Etag | cut -f2- -d: | tr -d "[:space:]\"" > dir_index_etag &&
+    curl -svX GET -H "If-None-Match: \"$(<dir_index_etag)\"" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+    test_expect_success "GET for /ipfs/ dir listing with matching weak Etag in If-None-Match returns 304 Not Modified" '
+    curl -Is "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/"| grep -i Etag | cut -f2- -d: | tr -d "[:space:]\"" > dir_index_etag &&
+    curl -svX GET -H "If-None-Match: W/\"$(<dir_index_etag)\"" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/" >/dev/null 2>curl_output &&
+    test_should_contain "304 Not Modified" curl_output
+    '
+
 test_kill_ipfs_daemon
 
 test_done
