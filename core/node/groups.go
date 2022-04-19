@@ -113,37 +113,39 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		autonat = fx.Provide(libp2p.AutoNATService(cfg.AutoNAT.Throttle))
 	}
 
-	// If `cfg.Swarm.DisableRelay` is set and `Network.RelayTransport` isn't, use the former.
-	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(!cfg.Swarm.DisableRelay) // nolint
+	enableRelayTransport := cfg.Swarm.Transports.Network.Relay.WithDefault(true) // nolint
+	enableRelayService := cfg.Swarm.RelayService.Enabled.WithDefault(enableRelayTransport)
+	enableRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(enableRelayTransport)
 
-	// Warn about a deprecated option.
+	// Log error when relay subsystem could not be initialized due to missing dependency
+	if !enableRelayTransport {
+		if enableRelayService {
+			logger.Fatal("Failed to enable `Swarm.RelayService`, it requires `Swarm.Transports.Network.Relay` to be true.")
+		}
+		if enableRelayClient {
+			logger.Fatal("Failed to enable `Swarm.RelayClient`, it requires `Swarm.Transports.Network.Relay` to be true.")
+		}
+	}
+
+	// Force users to migrate old config.
 	// nolint
 	if cfg.Swarm.DisableRelay {
-		logger.Error("The 'Swarm.DisableRelay' config field is deprecated.")
-		if enableRelayTransport {
-			logger.Error("'Swarm.DisableRelay' has been overridden by 'Swarm.Transports.Network.Relay'")
-		} else {
-			logger.Error("Use the 'Swarm.Transports.Network.Relay' config field instead")
-		}
+		logger.Fatal("The 'Swarm.DisableRelay' config field was removed." +
+			"Use the 'Swarm.Transports.Network.Relay' instead.")
 	}
 	// nolint
 	if cfg.Swarm.EnableAutoRelay {
-		logger.Error("The 'Swarm.EnableAutoRelay' config field is deprecated.")
-		if cfg.Swarm.RelayClient.Enabled == config.Default {
-			logger.Error("Use the 'Swarm.AutoRelay.Enabled' config field instead")
-		} else {
-			logger.Error("'Swarm.EnableAutoRelay' has been overridden by 'Swarm.AutoRelay.Enabled'")
-		}
+		logger.Fatal("The 'Swarm.EnableAutoRelay' config field was removed." +
+			"Use the 'Swarm.RelayClient.Enabled' instead.")
 	}
 	// nolint
 	if cfg.Swarm.EnableRelayHop {
-		logger.Fatal("The `Swarm.EnableRelayHop` config field is ignored.\n" +
+		logger.Fatal("The `Swarm.EnableRelayHop` config field was removed.\n" +
 			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
-			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://github.com/libp2p/go-libp2p-relay-daemon (with RelayV1.Enabled: true)")
+			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.io/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
 	peerChan := make(chan peer.AddrInfo)
-	usesRelayClient := cfg.Swarm.RelayClient.Enabled.WithDefault(true)
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
@@ -156,12 +158,12 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.AppendAnnounce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
 		fx.Provide(libp2p.RelayTransport(enableRelayTransport)),
-		fx.Provide(libp2p.RelayService(cfg.Swarm.RelayService.Enabled.WithDefault(true), cfg.Swarm.RelayService)),
+		fx.Provide(libp2p.RelayService(enableRelayService, cfg.Swarm.RelayService)),
 		fx.Provide(libp2p.Transports(cfg.Swarm.Transports)),
 		fx.Invoke(libp2p.StartListening(cfg.Addresses.Swarm)),
 		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled, cfg.Discovery.MDNS.Interval)),
 		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),
-		fx.Provide(libp2p.HolePunching(cfg.Swarm.EnableHolePunching, cfg.Swarm.RelayClient.Enabled.WithDefault(false))),
+		fx.Provide(libp2p.HolePunching(cfg.Swarm.EnableHolePunching, enableRelayClient)),
 
 		fx.Provide(libp2p.Security(!bcfg.DisableEncryptedConnections, cfg.Swarm.Transports)),
 
@@ -171,9 +173,8 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
-		maybeProvide(libp2p.AutoRelay(cfg.Swarm.RelayClient.StaticRelays, peerChan), usesRelayClient),
-
-		maybeInvoke(libp2p.AutoRelayFeeder, usesRelayClient),
+		maybeProvide(libp2p.AutoRelay(cfg.Swarm.RelayClient.StaticRelays, peerChan), enableRelayClient),
+		maybeInvoke(libp2p.AutoRelayFeeder, enableRelayClient),
 		autonat,
 		connmgr,
 		ps,
