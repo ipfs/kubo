@@ -1368,7 +1368,7 @@ to [upgrade to a direct connection](https://github.com/libp2p/specs/blob/master/
 through a NAT/firewall whenever possible.
 This feature requires `Swarm.RelayClient.Enabled` to be set to `true`.
 
-Default: `true`
+Default: `false`
 
 Type: `flag`
 
@@ -1394,9 +1394,9 @@ Your node will automatically _use_ public relays from the network if it detects
 that it cannot be reached from the public internet (e.g., it's behind a
 firewall) and get a `/p2p-circuit` address from a public relay.
 
-Default: `false`
+Default: `true`
 
-Type: `bool`
+Type: `flag`
 
 #### `Swarm.RelayClient.StaticRelays`
 
@@ -1424,7 +1424,7 @@ NOTE: This is the service/server part of the relay system.
 Disabling this will prevent this node from running as a relay server.
 Use [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for turning your node into a relay user.
 
-Default: Enabled
+Default: `true`
 
 Type: `flag`
 
