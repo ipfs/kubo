@@ -53,7 +53,7 @@ type Gateway struct {
 	//  }
 	PathPrefixes []string
 
-	// FastDirIndexThreshold is the minimum number of items in a directory
+	// FastDirIndexThreshold is the maximum number of items in a directory
 	// before the Gateway switches to a shallow, faster listing which only
 	// requires the root node. This allows for listing big directories fast,
 	// without the linear slowdown caused by reading size metadata from child
