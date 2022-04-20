@@ -124,4 +124,6 @@ test_expect_success "spoofed DNSLink record resolves in cli" "
   test_should_contain \"index.html\" result
 "
 
+test_kill_ipfs_daemon
+
 test_done
