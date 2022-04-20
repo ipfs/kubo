@@ -20,43 +20,37 @@ import (
 
 // Resolve the provided path.
 //
-// Resolving a UnixFS path involves determining if the provided `path.Path` exists and returning the `path.Resolved` corresponding to that path.
-// For UnixFS, path resolution is more involved if a `_redirects`` file exists, stored underneath the root CID of the path.
+// Resolving a UnixFS path involves determining if the provided `path.Path` exists and returning the `path.Resolved`
+// corresponding to that path. For UnixFS, path resolution is more involved if a `_redirects`` file exists, stored
+// underneath the root CID of the path.
 //
 // Example 1:
 // If a path exists, usually we should return the `path.Resolved` corresponding to that path.
-// However, the `_redirects` file may contain a forced redirect rule corresponding to the path (i.e. a rule with a `!` after the status code).
-// Forced redirect rules must be evaluated, even if the path exists, thus overriding the path.
+// However, the `_redirects` file may contain a forced redirect rule corresponding to the path
+// (i.e. a rule with a `!` after the status code).  Forced redirect rules must be evaluated,
+// even if the path exists, thus overriding the path.
 //
 // Example 2:
-// If a path does not exist, usually we should return a `nil` resolution path and an error indicating that the path doesn't exist.
-// However, the `_redirects` file may contain a redirect rule that redirects that path to a different path.
+// If a path does not exist, usually we should return a `nil` resolution path and an error indicating that the path
+// doesn't exist.  However, the `_redirects` file may contain a redirect rule that redirects that path to a different path.
 // We need to evaluate the rule and perform the redirect if present.
 //
 // Example 3:
 // Another possibility is that the path corresponds to a rewrite rule (i.e. a rule with a status of 200).
-// In this case, we don't perform a redirect, but do need to return a `path.Resolved` and `path.Path` corresponding to the rewrite destination path.
+// In this case, we don't perform a redirect, but do need to return a `path.Resolved` and `path.Path` corresponding to
+// the rewrite destination path.
 //
 // Note that for security reasons, redirect rules are only processed when the request has origin isolation.
-//
-// if redirectRules, err = i.getRedirectRules(r, redirectsFile); redirectRules != nil {
-// 			redirected, newPath, err := i.handleRedirectsFile(w, r, redirectsFile, true, logger)
 func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
 	// Before we do anything, determine if we must evaluate redirect rules
 	redirectsFile, err := i.getRedirectsFile(r)
 	if err != nil {
 		switch err.(type) {
 		case resolver.ErrNoLink:
-			// _redirects files doesn't exist, so don't error
-		// case coreiface.ErrResolveFailed.(type):
-		// TODO(JJ): How to get type?
-		// 	// Couldn't resolve ipns name when trying to compute root
-		// Tests indicate we should return 404, not 500
-		// 	internalWebError(w, err)
-		// 	return nil, nil, false
+			// The _redirects files doesn't exist.  Don't error since its existence is optional.
 		default:
-			// Let users know about issues with _redirects file handling
-			internalWebError(w, err)
+			// Any other path resolution issues should be treated as 404
+			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
 			return nil, nil, false
 		}
 	}
@@ -112,14 +106,9 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 	default:
 		// If we can't resolve the path, look for matching _redirects rules and process them
 		if mustEvaluateRedirectRules {
-			// Check for _redirects file and redirect as needed
-			// /ipfs/CID/a/b/c/
-			// /ipfs/CID/_redirects
-			// /ipns/domain/ipfs/CID
-			// /ipns/domain
 			logger.Debugf("r.URL.Path=%v", r.URL.Path)
 
-			redirected, newPath, err := i.handleNonForcedRedirect(w, r, redirectRules, logger)
+			redirected, newPath, err := i.handleRedirect(w, r, redirectRules, logger)
 			if err != nil {
 				err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
 				internalWebError(w, err)
@@ -160,14 +149,17 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 }
 
 func (i *gatewayHandler) handleForcedRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule, logger *zap.SugaredLogger) (bool, string, error) {
-	return i.handleRedirectsFile(w, r, redirectRules, true, logger)
+	forcedRedirectRules := []redirects.Rule{}
+	for _, rule := range redirectRules {
+		if rule.Force {
+			forcedRedirectRules = append(forcedRedirectRules, rule)
+		}
+	}
+
+	return i.handleRedirect(w, r, forcedRedirectRules, logger)
 }
 
-func (i *gatewayHandler) handleNonForcedRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule, logger *zap.SugaredLogger) (bool, string, error) {
-	return i.handleRedirectsFile(w, r, redirectRules, false, logger)
-}
-
-func (i *gatewayHandler) handleRedirectsFile(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule, onlyForce bool, logger *zap.SugaredLogger) (bool, string, error) {
+func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule, logger *zap.SugaredLogger) (bool, string, error) {
 	logger.Debugf("redirectRules=%v", redirectRules)
 
 	// Attempt to match a rule to the URL path, and perform the corresponding redirect or rewrite
@@ -181,11 +173,6 @@ func (i *gatewayHandler) handleRedirectsFile(w http.ResponseWriter, r *http.Requ
 
 		logger.Debugf("_redirects: urlPath=", urlPath)
 		for _, rule := range redirectRules {
-			if onlyForce && !rule.Force {
-				logger.Debugf("_redirects: skipping non-forced rule: %v", rule)
-				continue
-			}
-
 			// get rule.From, trim trailing slash, ...
 			fromPath := urlpath.New(strings.TrimSuffix(rule.From, "/"))
 			logger.Debugf("_redirects: fromPath=%v", strings.TrimSuffix(rule.From, "/"))
@@ -275,7 +262,6 @@ func (i *gatewayHandler) getRedirectsFile(r *http.Request) (ipath.Resolved, erro
 	path := ipath.Join(rootPath, "_redirects")
 	resolvedPath, err := i.api.ResolvePath(r.Context(), path)
 	if err != nil {
-		// TODO(JJ): should this error be wrapped for more context?
 		return nil, err
 	}
 	return resolvedPath, nil
