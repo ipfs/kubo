@@ -69,7 +69,7 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 
 	// If we must evaluate redirect rules and there is a forced redirect for our path, there's no point in attempting to resolve the path,
 	// since we will have to redirect regardless of whether or not the path exists.  Just handle the forced redirect instead.
-	redirected, newPath, err := i.handleForcedRedirect(w, r, redirectRules, logger)
+	redirected, newPath, err := i.handleForcedRedirect(w, r, redirectRules)
 	if err != nil {
 		err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
 		internalWebError(w, err)
@@ -89,7 +89,6 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 			internalWebError(w, err)
 			return nil, nil, false
 		}
-		logger.Debugf("_redirects: 200 rewrite. newPath=%v", newPath)
 
 		return resolvedPath, contentPath, true
 	}
@@ -106,9 +105,7 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 	default:
 		// If we can't resolve the path, look for matching _redirects rules and process them
 		if mustEvaluateRedirectRules {
-			logger.Debugf("r.URL.Path=%v", r.URL.Path)
-
-			redirected, newPath, err := i.handleRedirect(w, r, redirectRules, logger)
+			redirected, newPath, err := i.handleRedirect(w, r, redirectRules)
 			if err != nil {
 				err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
 				internalWebError(w, err)
@@ -128,7 +125,6 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 					internalWebError(w, err)
 					return nil, nil, false
 				}
-				logger.Debugf("_redirects: 200 rewrite. newPath=%v", newPath)
 
 				return resolvedPath, contentPath, true
 			}
@@ -148,7 +144,7 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 	}
 }
 
-func (i *gatewayHandler) handleForcedRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule, logger *zap.SugaredLogger) (bool, string, error) {
+func (i *gatewayHandler) handleForcedRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule) (bool, string, error) {
 	forcedRedirectRules := []redirects.Rule{}
 	for _, rule := range redirectRules {
 		if rule.Force {
@@ -156,12 +152,10 @@ func (i *gatewayHandler) handleForcedRedirect(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	return i.handleRedirect(w, r, forcedRedirectRules, logger)
+	return i.handleRedirect(w, r, forcedRedirectRules)
 }
 
-func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule, logger *zap.SugaredLogger) (bool, string, error) {
-	logger.Debugf("redirectRules=%v", redirectRules)
-
+func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule) (bool, string, error) {
 	// Attempt to match a rule to the URL path, and perform the corresponding redirect or rewrite
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) > 3 {
@@ -171,11 +165,9 @@ func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, 
 		// Trim off the trailing /
 		urlPath = strings.TrimSuffix(urlPath, "/")
 
-		logger.Debugf("_redirects: urlPath=", urlPath)
 		for _, rule := range redirectRules {
 			// get rule.From, trim trailing slash, ...
 			fromPath := urlpath.New(strings.TrimSuffix(rule.From, "/"))
-			logger.Debugf("_redirects: fromPath=%v", strings.TrimSuffix(rule.From, "/"))
 			match, ok := fromPath.Match(urlPath)
 			if !ok {
 				continue
@@ -185,8 +177,6 @@ func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, 
 			toPath := rule.To
 			toPath = replacePlaceholders(toPath, match)
 			toPath = replaceSplat(toPath, match)
-
-			logger.Debugf("_redirects: toPath=%v", toPath)
 
 			// Rewrite
 			if rule.Status == 200 {

@@ -393,7 +393,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		resolvedPath, contentPath, ok = i.handleUnixfsPathResolution(w, r, contentPath, logger)
 	} else {
 		// TODO(JJ): Update function signature re: err, bool returning, per clean up PR feedback
-		resolvedPath, contentPath, ok = i.handleNonUnixfsPathResolution(w, r, contentPath, logger)
+		resolvedPath, contentPath, ok = i.handleNonUnixfsPathResolution(w, r, contentPath)
 	}
 	if !ok {
 		return
@@ -1113,7 +1113,7 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 	return nil
 }
 
-func (i *gatewayHandler) handleNonUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
+func (i *gatewayHandler) handleNonUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) (ipath.Resolved, ipath.Path, bool) {
 	// Resolve the path for the provided contentPath
 	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
 
