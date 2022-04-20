@@ -389,8 +389,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	var ok bool
 	var resolvedPath ipath.Resolved
 	if isUnixfsResponseFormat(responseFormat) {
+		// TODO(JJ): Update function signature re: err, bool returning, per clean up PR feedback
 		resolvedPath, contentPath, ok = i.handleUnixfsPathResolution(w, r, contentPath, logger)
 	} else {
+		// TODO(JJ): Update function signature re: err, bool returning, per clean up PR feedback
 		resolvedPath, contentPath, ok = i.handleNonUnixfsPathResolution(w, r, contentPath, logger)
 	}
 	if !ok {
