@@ -51,14 +51,13 @@ TEXT ENCODING COMMANDS
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
   mount         Mount an IPFS read-only mount point
-  resolve       Resolve any type of name
+  resolve       Resolve any type of content path
   name          Publish and resolve IPNS names
   key           Create and list IPNS name keypairs
-  dns           Resolve DNS links
   pin           Pin objects to local storage
   repo          Manipulate the IPFS repository
   stats         Various operational stats
-  p2p           Libp2p stream mounting
+  p2p           Libp2p stream mounting (experimental)
   filestore     Manage the filestore (experimental)
 
 NETWORK COMMANDS
