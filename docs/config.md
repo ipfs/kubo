@@ -681,40 +681,7 @@ Type: `bool`
 
 ### `Gateway.PathPrefixes`
 
-**DEPRECATED:** see [kubo#7702](https://github.com/ipfs/kubo/issues/7702)
-
-<!--
-An array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
-header.
-
-The X-Ipfs-Path-Prefix header is used to specify a base path to prepend to links
-in directory listings and for trailing-slash redirects. It is intended to be set
-by a frontend http proxy like nginx.
-
-Example: We mount `blog.ipfs.io` (a dnslink page) at `ipfs.io/blog`.
-
-**.ipfs/config**
-```json
-"Gateway": {
-  "PathPrefixes": ["/blog"],
-}
-```
-
-**nginx_ipfs.conf**
-```nginx
-location /blog/ {
-  rewrite "^/blog(/.*)$" $1 break;
-  proxy_set_header Host blog.ipfs.io;
-  proxy_set_header X-Ipfs-Gateway-Prefix /blog;
-  proxy_pass http://127.0.0.1:8080;
-}
-```
-
--->
-
-Default: `[]`
-
-Type: `array[string]`
+**REMOVED:** see [go-ipfs#7702](https://github.com/ipfs/go-ipfs/issues/7702)
 
 ### `Gateway.PublicGateways`
 

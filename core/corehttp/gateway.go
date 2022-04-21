@@ -20,7 +20,6 @@ import (
 type GatewayConfig struct {
 	Headers               map[string][]string
 	Writable              bool
-	PathPrefixes          []string
 	FastDirIndexThreshold int
 }
 
@@ -86,7 +85,6 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 		gateway := NewGatewayHandler(GatewayConfig{
 			Headers:               headers,
 			Writable:              writable,
-			PathPrefixes:          cfg.Gateway.PathPrefixes,
 			FastDirIndexThreshold: int(cfg.Gateway.FastDirIndexThreshold.WithDefault(100)),
 		}, api, offlineApi)
 
