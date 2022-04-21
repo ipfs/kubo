@@ -57,7 +57,7 @@ require (
 	github.com/ipfs/go-unixfs v0.3.1
 	github.com/ipfs/go-unixfsnode v1.1.3
 	github.com/ipfs/go-verifcid v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.6.3-0.20220413011532-7e14e1e09703
+	github.com/ipfs/interface-go-ipfs-core v0.7.0
 	github.com/ipfs/tar-utils v0.0.2
 	github.com/ipld/go-car v0.3.2
 	github.com/ipld/go-car/v2 v2.1.1
