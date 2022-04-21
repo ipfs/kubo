@@ -7,9 +7,10 @@ import (
 	"io"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+	mc "github.com/multiformats/go-multicodec"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -31,20 +32,33 @@ func (s *blockStat) Path() path.Resolved {
 }
 
 func (api *BlockAPI) Put(ctx context.Context, r io.Reader, opts ...caopts.BlockPutOption) (iface.BlockStat, error) {
-	options, _, err := caopts.BlockPutOptions(opts...)
+	options, err := caopts.BlockPutOptions(opts...)
+	px := options.CidPrefix
 	if err != nil {
 		return nil, err
 	}
 
-	mht, ok := mh.Codes[options.MhType]
+	mht, ok := mh.Codes[px.MhType]
 	if !ok {
-		return nil, fmt.Errorf("unknowm mhType %d", options.MhType)
+		return nil, fmt.Errorf("unknowm mhType %d", px.MhType)
+	}
+
+	var cidOptKey, cidOptVal string
+	switch {
+	case px.Version == 0 && px.Codec == cid.DagProtobuf:
+		// ensure legacy --format=v0 passes as BlockPutOption still works
+		cidOptKey = "format"
+		cidOptVal = "v0"
+	default:
+		// pass codec as string
+		cidOptKey = "cid-codec"
+		cidOptVal = mc.Code(px.Codec).String()
 	}
 
 	req := api.core().Request("block/put").
 		Option("mhtype", mht).
-		Option("mhlen", options.MhLength).
-		Option("format", options.Codec).
+		Option("mhlen", px.MhLength).
+		Option(cidOptKey, cidOptVal).
 		Option("pin", options.Pin).
 		FileBody(r)
 
