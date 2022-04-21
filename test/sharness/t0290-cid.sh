@@ -103,11 +103,19 @@ Z    90  base58flickr
 EOF
 
 cat <<EOF > codecs_expect
+   81  cbor
    85  raw
-  112  protobuf
-  113  cbor
+  112  dag-pb
+  113  dag-cbor
+  114  libp2p-key
   120  git-raw
+  123  torrent-info
+  124  torrent-file
+  129  leofcoin-block
+  130  leofcoin-tx
+  131  leofcoin-pr
   133  dag-jose
+  134  dag-cose
   144  eth-block
   145  eth-block-list
   146  eth-tx-trie
@@ -117,16 +125,36 @@ cat <<EOF > codecs_expect
   150  eth-state-trie
   151  eth-account-snapshot
   152  eth-storage-trie
+  153  eth-receipt-log-trie
+  154  eth-reciept-log
   176  bitcoin-block
   177  bitcoin-tx
+  178  bitcoin-witness-commitment
   192  zcash-block
   193  zcash-tx
+  208  stellar-block
+  209  stellar-tx
   224  decred-block
   225  decred-tx
   240  dash-block
   241  dash-tx
-61697  fil-commitment-unsealed
-61698  fil-commitment-sealed
+  250  swarm-manifest
+  251  swarm-feed
+  297  dag-json
+  496  swhid-1-snp
+  512  json
+EOF
+
+cat <<EOF > supported_codecs_expect
+   81  cbor
+   85  raw
+  112  dag-pb
+  113  dag-cbor
+  114  libp2p-key
+  120  git-raw
+  133  dag-jose
+  297  dag-json
+  512  json
 EOF
 
 cat <<EOF > hashes_expect
@@ -230,6 +258,17 @@ test_expect_success "cid codecs" '
 test_expect_success "cid codecs --numeric" '
   ipfs cid codecs --numeric > actual &&
   test_cmp codecs_expect actual
+'
+
+test_expect_success "cid codecs --supported" '
+  cut -c 8- supported_codecs_expect > expect &&
+  ipfs cid codecs --supported > actual
+  test_cmp expect actual
+'
+
+test_expect_success "cid codecs --supported --numeric" '
+  ipfs cid codecs --supported --numeric > actual &&
+  test_cmp supported_codecs_expect actual
 '
 
 test_expect_success "cid hashes" '

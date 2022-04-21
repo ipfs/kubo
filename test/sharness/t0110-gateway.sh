@@ -262,7 +262,7 @@ test_expect_success "try fetching it from gateway" '
 
 test_expect_success "Add compact blocks" '
   ipfs block put ../t0110-gateway-data/foo.block &&
-  FOO2_HASH=$(ipfs block put ../t0110-gateway-data/foofoo.block) &&
+  FOO2_HASH=$(ipfs block put --cid-codec=dag-pb ../t0110-gateway-data/foofoo.block) &&
   printf "foofoo" > expected
 '
 

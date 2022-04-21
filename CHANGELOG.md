@@ -1,5 +1,22 @@
 # go-ipfs changelog
 
+## v0.13 (DRAFT)
+
+### BREAKING CHANGES
+
+- `ipfs block put` command produces CIDv1 with `raw` codec by default now
+    - `ipfs block put --cid-codec` makes `block put` return CID with alternative codec
+       - this impacts only the returned CID, it does  not trigger any validation or data transformation
+       - codec names are validated against tables from https://github.com/multiformats/go-multicodec
+    - `ipfs block put --format` is deprecated. It used incorrect codec names and should be avoided for new deployments. Use it only if you need the old, invalid behavior, namely:
+      - `ipfs block put --format=v0` will produce CIDv0 (implicit dag-pb)
+      - `ipfs block put --format=cbor` will produce CIDv1 with dag-cbor (!)
+      - `ipfs block put --format=protobuf` will produce CIDv1 with dag-pb (!)
+- `ipfs cid codecs` command
+  - it now lists codecs from https://github.com/multiformats/go-multicodec
+  - `ipfs cid codecs --supported` can be passed to only show codecs supported in various go-ipfs commands
+
+
 ## v0.12.2 and v0.11.1 2022-04-08
 
 This patch release fixes a security issue wherein traversing some malformed DAGs can cause the node to panic.

@@ -31,8 +31,8 @@ var BlockCmd = &cmds.Command{
 		Tagline: "Interact with raw IPFS blocks.",
 		ShortDescription: `
 'ipfs block' is a plumbing command used to manipulate raw IPFS blocks.
-Reads from stdin or writes to stdout, and <key> is a base58 encoded
-multihash.
+Reads from stdin or writes to stdout. A block is identified by a Multihash
+passed with a valid CID.
 `,
 	},
 
@@ -51,14 +51,14 @@ var blockStatCmd = &cmds.Command{
 'ipfs block stat' is a plumbing command for retrieving information
 on raw IPFS blocks. It outputs the following to stdout:
 
-	Key  - the base58 encoded multihash
+	Key  - the CID of the block
 	Size - the size of the block in bytes
 
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to stat.").EnableStdin(),
+		cmds.StringArg("cid", true, false, "The CID of an existing block to stat.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -90,12 +90,12 @@ var blockGetCmd = &cmds.Command{
 		Tagline: "Get a raw IPFS block.",
 		ShortDescription: `
 'ipfs block get' is a plumbing command for retrieving raw IPFS blocks.
-It outputs to stdout, and <key> is a base58 encoded multihash.
+It takes a <cid>, and outputs the block to stdout.
 `,
 	},
 
 	Arguments: []cmds.Argument{
-		cmds.StringArg("key", true, false, "The base58 multihash of an existing block to get.").EnableStdin(),
+		cmds.StringArg("cid", true, false, "The CID of an existing block to get.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -113,9 +113,10 @@ It outputs to stdout, and <key> is a base58 encoded multihash.
 }
 
 const (
-	blockFormatOptionName = "format"
-	mhtypeOptionName      = "mhtype"
-	mhlenOptionName       = "mhlen"
+	blockFormatOptionName   = "format"
+	blockCidCodecOptionName = "cid-codec"
+	mhtypeOptionName        = "mhtype"
+	mhlenOptionName         = "mhlen"
 )
 
 var blockPutCmd = &cmds.Command{
@@ -123,10 +124,17 @@ var blockPutCmd = &cmds.Command{
 		Tagline: "Store input as an IPFS block.",
 		ShortDescription: `
 'ipfs block put' is a plumbing command for storing raw IPFS blocks.
-It reads from stdin, and outputs the block's CID to stdout.
+It reads data from stdin, and outputs the block's CID to stdout.
 
-Unless specified, this command returns dag-pb CIDv0 CIDs. Setting 'mhtype' to anything
-other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1.
+Unless cid-codec is specified, this command returns raw (0x55) CIDv1 CIDs.
+
+Passing alternative --cid-codec does not modify imported data, nor run any
+validation. It is provided solely for convenience for users who create blocks
+in userland.
+
+NOTE:
+Do not use --format for any new code. It got superseded by --cid-codec and left
+only for backward compatibility when a legacy CIDv0 is required (--format=v0).
 `,
 	},
 
@@ -134,11 +142,12 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 		cmds.FileArg("data", true, true, "The data to be stored as an IPFS block.").EnableStdin(),
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(blockFormatOptionName, "f", "cid format for blocks to be created with."),
-		cmds.StringOption(mhtypeOptionName, "multihash hash function").WithDefault("sha2-256"),
-		cmds.IntOption(mhlenOptionName, "multihash hash length").WithDefault(-1),
-		cmds.BoolOption(pinOptionName, "pin added blocks recursively").WithDefault(false),
+		cmds.StringOption(blockCidCodecOptionName, "Multicodec to use in returned CID").WithDefault("raw"),
+		cmds.StringOption(mhtypeOptionName, "Multihash hash function").WithDefault("sha2-256"),
+		cmds.IntOption(mhlenOptionName, "Multihash hash length").WithDefault(-1),
+		cmds.BoolOption(pinOptionName, "Pin added blocks recursively").WithDefault(false),
 		cmdutils.AllowBigBlockOption,
+		cmds.StringOption(blockFormatOptionName, "f", "Use legacy format for returned CID (DEPRECATED)"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -157,13 +166,15 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 			return errors.New("missing option \"mhlen\"")
 		}
 
-		format, formatSet := req.Options[blockFormatOptionName].(string)
-		if !formatSet {
-			if mhtval != mh.SHA2_256 || (mhlen != -1 && mhlen != 32) {
-				format = "protobuf"
-			} else {
-				format = "v0"
+		cidCodec, _ := req.Options[blockCidCodecOptionName].(string)
+		format, _ := req.Options[blockFormatOptionName].(string) // deprecated
+
+		// use of legacy 'format' needs to supress 'cid-codec'
+		if format != "" {
+			if cidCodec != "" && cidCodec != "raw" {
+				return fmt.Errorf("unable to use %q (deprecated) and a custom %q at the same time", blockFormatOptionName, blockCidCodecOptionName)
 			}
+			cidCodec = "" // makes it no-op
 		}
 
 		pin, _ := req.Options[pinOptionName].(bool)
@@ -177,6 +188,7 @@ other than 'sha2-256' or format to anything other than 'v0' will result in CIDv1
 
 			p, err := api.Block().Put(req.Context, file,
 				options.Block.Hash(mhtval, mhlen),
+				options.Block.CidCodec(cidCodec),
 				options.Block.Format(format),
 				options.Block.Pin(pin))
 			if err != nil {
@@ -219,14 +231,14 @@ type removedBlock struct {
 
 var blockRmCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "Remove IPFS block(s).",
+		Tagline: "Remove IPFS block(s) from the local datastore.",
 		ShortDescription: `
 'ipfs block rm' is a plumbing command for removing raw ipfs blocks.
-It takes a list of base58 encoded multihashes to remove.
+It takes a list of CIDs to remove from the local datastore..
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("hash", true, true, "Bash58 encoded multihash of block(s) to remove."),
+		cmds.StringArg("cid", true, true, "CIDs of block(s) to remove."),
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(forceOptionName, "f", "Ignore nonexistent blocks."),
