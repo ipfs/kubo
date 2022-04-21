@@ -57,7 +57,7 @@ require (
 	github.com/ipfs/go-unixfs v0.3.1
 	github.com/ipfs/go-unixfsnode v1.1.3
 	github.com/ipfs/go-verifcid v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.6.2
+	github.com/ipfs/interface-go-ipfs-core v0.7.0
 	github.com/ipfs/tar-utils v0.0.2
 	github.com/ipld/go-car v0.3.2
 	github.com/ipld/go-car/v2 v2.1.1
@@ -96,25 +96,25 @@ require (
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.0.3
-	github.com/multiformats/go-multicodec v0.4.0
+	github.com/multiformats/go-multicodec v0.4.1
 	github.com/multiformats/go-multihash v0.1.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/wI2L/jsondiff v0.2.0
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	go.opencensus.io v0.23.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.27.0
-	go.opentelemetry.io/otel v1.2.0
-	go.opentelemetry.io/otel/exporters/jaeger v1.2.0
+	go.opentelemetry.io/otel v1.6.3
+	go.opentelemetry.io/otel/exporters/jaeger v1.6.3
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.2.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.2.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.2.0
-	go.opentelemetry.io/otel/sdk v1.2.0
-	go.opentelemetry.io/otel/trace v1.2.0
+	go.opentelemetry.io/otel/sdk v1.6.3
+	go.opentelemetry.io/otel/trace v1.6.3
 	go.uber.org/dig v1.14.0
 	go.uber.org/fx v1.16.0
 	go.uber.org/zap v1.21.0
@@ -150,6 +150,8 @@ require (
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/go-kit/log v0.1.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
