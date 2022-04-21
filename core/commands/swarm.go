@@ -23,6 +23,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	mamask "github.com/whyrusleeping/multiaddr-filter"
@@ -401,7 +402,7 @@ For permanent limits set Swarm.ResourceMgr.Limits in the $IPFS_PATH/config file.
 
 		//  set scope limit to new values (when limit.json is passed as a second arg)
 		if req.Files != nil {
-			var newLimit config.ResourceMgrScopeConfig
+			var newLimit rcmgr.BasicLimitConfig
 			it := req.Files.Entries()
 			if it.Next() {
 				file := files.FileFromEntry(it)
@@ -411,7 +412,7 @@ For permanent limits set Swarm.ResourceMgr.Limits in the $IPFS_PATH/config file.
 				if err := json.NewDecoder(file).Decode(&newLimit); err != nil {
 					return errors.New("failed to decode JSON as ResourceMgrScopeConfig")
 				}
-				return libp2p.NetSetLimit(node.ResourceManager, scope, newLimit)
+				return libp2p.NetSetLimit(node.ResourceManager, node.Repo, scope, newLimit)
 			}
 			if err := it.Err(); err != nil {
 				return fmt.Errorf("error opening limit JSON file: %w", err)

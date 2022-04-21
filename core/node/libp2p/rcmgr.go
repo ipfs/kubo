@@ -2,7 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,7 +26,6 @@ var NoResourceMgrError = fmt.Errorf("missing ResourceMgr: make sure the daemon i
 
 func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 	return func(lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
-		var limiter *rcmgr.BasicLimiter
 		var manager network.ResourceManager
 		var opts Libp2pOpts
 
@@ -47,25 +45,12 @@ func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (netw
 
 			repoPath, err := config.PathRoot()
 			if err != nil {
-				return nil, opts, fmt.Errorf("error opening IPFS_PATH: %w", err)
+				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			// Create limiter:
-			// - parse $IPFS_PATH/limits.json if exists
-			// - use defaultLimits from rcmgr_defaults.go
 			defaultLimits := adjustedDefaultLimits(cfg)
-			limitFilePath := filepath.Join(repoPath, NetLimitDefaultFilename)
-			limitFile, err := os.Open(limitFilePath)
-			switch {
-			case err == nil:
-				defer limitFile.Close()
-				limiter, err = rcmgr.NewLimiterFromJSON(limitFile, defaultLimits)
-				if err != nil {
-					return nil, opts, fmt.Errorf("error parsing libp2p limit file: %w", err)
-				}
-			case errors.Is(err, os.ErrNotExist):
-				limiter = rcmgr.NewStaticLimiter(defaultLimits)
-			default:
+			limiter, err := rcmgr.NewLimiter(*cfg.ResourceMgr.Limits, defaultLimits)
+			if err != nil {
 				return nil, opts, err
 			}
 
@@ -80,9 +65,8 @@ func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (netw
 
 			manager, err = rcmgr.NewResourceManager(limiter, ropts...)
 			if err != nil {
-				return nil, opts, fmt.Errorf("error creating libp2p resource manager: %w", err)
+				return nil, opts, fmt.Errorf("creating libp2p resource manager: %w", err)
 			}
-
 		} else {
 			log.Debug("libp2p resource manager is disabled")
 			manager = network.NullResourceManager
@@ -196,14 +180,13 @@ func NetStat(mgr network.ResourceManager, scope string) (NetStatOut, error) {
 	}
 }
 
-func NetLimit(mgr network.ResourceManager, scope string) (config.ResourceMgrScopeConfig, error) {
-	var result config.ResourceMgrScopeConfig
+func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BasicLimitConfig, error) {
+	var result rcmgr.BasicLimitConfig
 	getLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
 			return NoResourceMgrError
 		}
-
 		limit := limiter.Limit()
 		switch l := limit.(type) {
 		case *rcmgr.StaticLimit:
@@ -280,7 +263,8 @@ func NetLimit(mgr network.ResourceManager, scope string) (config.ResourceMgrScop
 	}
 }
 
-func NetSetLimit(mgr network.ResourceManager, scope string, limit config.ResourceMgrScopeConfig) error {
+// NetSetLimit sets new ResourceManager limits for the given scope. The limits take effect immediately, and are also persisted to the repo config.
+func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limit rcmgr.BasicLimitConfig) error {
 	setLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
@@ -324,45 +308,68 @@ func NetSetLimit(mgr network.ResourceManager, scope string, limit config.Resourc
 		return nil
 	}
 
+	cfg, err := repo.Config()
+	if err != nil {
+		return fmt.Errorf("reading config to set limit: %w", err)
+	}
+
+	setConfigLimit := func(f func(c *rcmgr.BasicLimiterConfig)) {
+		if cfg.Swarm.ResourceMgr.Limits == nil {
+			cfg.Swarm.ResourceMgr.Limits = &rcmgr.BasicLimiterConfig{}
+		}
+		f(cfg.Swarm.ResourceMgr.Limits)
+	}
+
 	switch {
 	case scope == config.ResourceMgrSystemScope:
-		err := mgr.ViewSystem(func(s network.ResourceScope) error {
+		err = mgr.ViewSystem(func(s network.ResourceScope) error {
 			return setLimit(s)
 		})
-		return err
+		setConfigLimit(func(c *rcmgr.BasicLimiterConfig) { c.System = &limit })
 
 	case scope == config.ResourceMgrTransientScope:
-		err := mgr.ViewTransient(func(s network.ResourceScope) error {
+		err = mgr.ViewTransient(func(s network.ResourceScope) error {
 			return setLimit(s)
 		})
-		return err
+		setConfigLimit(func(c *rcmgr.BasicLimiterConfig) { c.Transient = &limit })
 
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
-		svc := scope[4:]
-		err := mgr.ViewService(svc, func(s network.ServiceScope) error {
+		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
+		err = mgr.ViewService(svc, func(s network.ServiceScope) error {
 			return setLimit(s)
 		})
-		return err
+		setConfigLimit(func(c *rcmgr.BasicLimiterConfig) { c.Service[svc] = limit })
 
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
-		proto := scope[6:]
-		err := mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error {
+		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
+		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error {
 			return setLimit(s)
 		})
-		return err
+		setConfigLimit(func(c *rcmgr.BasicLimiterConfig) { c.Service[proto] = limit })
 
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
-		p := scope[5:]
-		pid, err := peer.Decode(p)
+		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
+		var pid peer.ID
+		pid, err = peer.Decode(p)
 		if err != nil {
 			return fmt.Errorf("invalid peer ID: %q: %w", p, err)
 		}
 		err = mgr.ViewPeer(pid, func(s network.PeerScope) error {
 			return setLimit(s)
 		})
-		return err
+		setConfigLimit(func(c *rcmgr.BasicLimiterConfig) { c.Service[p] = limit })
 
 	default:
 		return fmt.Errorf("invalid scope %q", scope)
 	}
+
+	if err != nil {
+		return err
+	}
+
+	if err := repo.SetConfig(cfg); err != nil {
+		return fmt.Errorf("writing new limits to repo config: %w", err)
+	}
+
+	return nil
 }
