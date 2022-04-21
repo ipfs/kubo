@@ -2,15 +2,15 @@ package options
 
 import (
 	"fmt"
+
 	cid "github.com/ipfs/go-cid"
+	mc "github.com/multiformats/go-multicodec"
 	mh "github.com/multiformats/go-multihash"
 )
 
 type BlockPutSettings struct {
-	Codec    string
-	MhType   uint64
-	MhLength int
-	Pin      bool
+	CidPrefix cid.Prefix
+	Pin       bool
 }
 
 type BlockRmSettings struct {
@@ -20,53 +20,29 @@ type BlockRmSettings struct {
 type BlockPutOption func(*BlockPutSettings) error
 type BlockRmOption func(*BlockRmSettings) error
 
-func BlockPutOptions(opts ...BlockPutOption) (*BlockPutSettings, cid.Prefix, error) {
+func BlockPutOptions(opts ...BlockPutOption) (*BlockPutSettings, error) {
+	var cidPrefix cid.Prefix
+
+	// Baseline is CIDv1 raw sha2-255-32 (can be tweaked later via opts)
+	cidPrefix.Version = 1
+	cidPrefix.Codec = uint64(mc.Raw)
+	cidPrefix.MhType = mh.SHA2_256
+	cidPrefix.MhLength = -1 // -1 means len is to be calculated during mh.Sum()
+
 	options := &BlockPutSettings{
-		Codec:    "",
-		MhType:   mh.SHA2_256,
-		MhLength: -1,
-		Pin:      false,
+		CidPrefix: cidPrefix,
+		Pin:       false,
 	}
 
+	// Apply any overrides
 	for _, opt := range opts {
 		err := opt(options)
 		if err != nil {
-			return nil, cid.Prefix{}, err
+			return nil, err
 		}
 	}
 
-	var pref cid.Prefix
-	pref.Version = 1
-
-	if options.Codec == "" {
-		if options.MhType != mh.SHA2_256 || (options.MhLength != -1 && options.MhLength != 32) {
-			options.Codec = "protobuf"
-		} else {
-			options.Codec = "v0"
-		}
-	}
-
-	if options.Codec == "v0" && options.MhType == mh.SHA2_256 {
-		pref.Version = 0
-	}
-
-	formatval, ok := cid.Codecs[options.Codec]
-	if !ok {
-		return nil, cid.Prefix{}, fmt.Errorf("unrecognized format: %s", options.Codec)
-	}
-
-	if options.Codec == "v0" {
-		if options.MhType != mh.SHA2_256 || (options.MhLength != -1 && options.MhLength != 32) {
-			return nil, cid.Prefix{}, fmt.Errorf("only sha2-255-32 is allowed with CIDv0")
-		}
-	}
-
-	pref.Codec = formatval
-
-	pref.MhType = options.MhType
-	pref.MhLength = options.MhLength
-
-	return options, pref, nil
+	return options, nil
 }
 
 func BlockRmOptions(opts ...BlockRmOption) (*BlockRmSettings, error) {
@@ -87,13 +63,75 @@ type blockOpts struct{}
 
 var Block blockOpts
 
-// Format is an option for Block.Put which specifies the multicodec to use to
-// serialize the object. Default is "v0"
-func (blockOpts) Format(codec string) BlockPutOption {
+// CidCodec is the modern option for Block.Put which specifies the multicodec to use
+// in the CID returned by the Block.Put operation.
+// It uses correct codes from go-multicodec and replaces the old Format now with CIDv1 as the default.
+func (blockOpts) CidCodec(codecName string) BlockPutOption {
 	return func(settings *BlockPutSettings) error {
-		settings.Codec = codec
+		if codecName == "" {
+			return nil
+		}
+		code, err := codeFromName(codecName)
+		if err != nil {
+			return err
+		}
+		settings.CidPrefix.Codec = uint64(code)
 		return nil
 	}
+}
+
+// Map string to code from go-multicodec
+func codeFromName(codecName string) (mc.Code, error) {
+	var cidCodec mc.Code
+	err := cidCodec.Set(codecName)
+	return cidCodec, err
+}
+
+// Format is a legacy option for Block.Put which specifies the multicodec to
+// use to serialize the object.
+// Provided for backward-compatibility only. Use CidCodec instead.
+func (blockOpts) Format(format string) BlockPutOption {
+	return func(settings *BlockPutSettings) error {
+		if format == "" {
+			return nil
+		}
+		// Opt-in CIDv0 support for backward-compatibility
+		if format == "v0" {
+			settings.CidPrefix.Version = 0
+		}
+
+		// Fixup a legacy (invalid) names for dag-pb (0x70)
+		if format == "v0" || format == "protobuf" {
+			format = "dag-pb"
+		}
+
+		// Fixup invalid name for dag-cbor (0x71)
+		if format == "cbor" {
+			format = "dag-cbor"
+		}
+
+		// Set code based on name passed as "format"
+		code, err := codeFromName(format)
+		if err != nil {
+			return err
+		}
+		settings.CidPrefix.Codec = uint64(code)
+
+		// If CIDv0, ensure all parameters are compatible
+		// (in theory go-cid would validate this anyway, but we want to provide better errors)
+		pref := settings.CidPrefix
+		if pref.Version == 0 {
+			if pref.Codec != uint64(mc.DagPb) {
+				return fmt.Errorf("only dag-pb is allowed with CIDv0")
+			}
+			if pref.MhType != mh.SHA2_256 || (pref.MhLength != -1 && pref.MhLength != 32) {
+				return fmt.Errorf("only sha2-255-32 is allowed with CIDv0")
+			}
+		}
+
+		return nil
+	}
+
 }
 
 // Hash is an option for Block.Put which specifies the multihash settings to use
@@ -101,8 +139,8 @@ func (blockOpts) Format(codec string) BlockPutOption {
 // If mhLen is set to -1, default length for the hash will be used
 func (blockOpts) Hash(mhType uint64, mhLen int) BlockPutOption {
 	return func(settings *BlockPutSettings) error {
-		settings.MhType = mhType
-		settings.MhLength = mhLen
+		settings.CidPrefix.MhType = mhType
+		settings.CidPrefix.MhLength = mhLen
 		return nil
 	}
 }

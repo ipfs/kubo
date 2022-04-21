@@ -17,15 +17,19 @@ import (
 )
 
 var (
-	pbCid    = "QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN"
-	cborCid  = "bafyreicnga62zhxnmnlt6ymq5hcbsg7gdhqdu6z4ehu3wpjhvqnflfy6nm"
-	cborKCid = "bafyr2qgsohbwdlk7ajmmbb4lhoytmest4wdbe5xnexfvtxeatuyqqmwv3fgxp3pmhpc27gwey2cct56gloqefoqwcf3yqiqzsaqb7p4jefhcw"
+	pbCidV0  = "QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN"                                                                 // dag-pb
+	pbCid    = "bafybeiffndsajwhk3lwjewwdxqntmjm4b5wxaaanokonsggenkbw6slwk4"                                                    // dag-pb
+	rawCid   = "bafkreiffndsajwhk3lwjewwdxqntmjm4b5wxaaanokonsggenkbw6slwk4"                                                    // raw bytes
+	cborCid  = "bafyreicnga62zhxnmnlt6ymq5hcbsg7gdhqdu6z4ehu3wpjhvqnflfy6nm"                                                    // dag-cbor
+	cborKCid = "bafyr2qgsohbwdlk7ajmmbb4lhoytmest4wdbe5xnexfvtxeatuyqqmwv3fgxp3pmhpc27gwey2cct56gloqefoqwcf3yqiqzsaqb7p4jefhcw" // dag-cbor keccak-512
 )
 
+// dag-pb
 func pbBlock() io.Reader {
 	return bytes.NewReader([]byte{10, 12, 8, 2, 18, 6, 104, 101, 108, 108, 111, 10, 24, 6})
 }
 
+// dag-cbor
 func cborBlock() io.Reader {
 	return bytes.NewReader([]byte{101, 72, 101, 108, 108, 111})
 }
@@ -38,8 +42,12 @@ func (tp *TestSuite) TestBlock(t *testing.T) {
 		return nil
 	})
 
-	t.Run("TestBlockPut", tp.TestBlockPut)
-	t.Run("TestBlockPutFormat", tp.TestBlockPutFormat)
+	t.Run("TestBlockPut (get raw CIDv1)", tp.TestBlockPut)
+	t.Run("TestBlockPutCidCodec: dag-pb", tp.TestBlockPutCidCodecDagPb)
+	t.Run("TestBlockPutCidCodec: dag-cbor", tp.TestBlockPutCidCodecDagCbor)
+	t.Run("TestBlockPutFormat (legacy): cbor → dag-cbor", tp.TestBlockPutFormatDagCbor)
+	t.Run("TestBlockPutFormat (legacy): protobuf → dag-pb", tp.TestBlockPutFormatDagPb)
+	t.Run("TestBlockPutFormat (legacy): v0 → CIDv0", tp.TestBlockPutFormatV0)
 	t.Run("TestBlockPutHash", tp.TestBlockPutHash)
 	t.Run("TestBlockGet", tp.TestBlockGet)
 	t.Run("TestBlockRm", tp.TestBlockRm)
@@ -47,6 +55,7 @@ func (tp *TestSuite) TestBlock(t *testing.T) {
 	t.Run("TestBlockPin", tp.TestBlockPin)
 }
 
+// when no opts are passed, produced CID has 'raw' codec
 func (tp *TestSuite) TestBlockPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -60,12 +69,14 @@ func (tp *TestSuite) TestBlockPut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if res.Path().Cid().String() != pbCid {
+	if res.Path().Cid().String() != rawCid {
 		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
 	}
 }
 
-func (tp *TestSuite) TestBlockPutFormat(t *testing.T) {
+// Format is deprecated, it used invalid codec names.
+// Confirm 'cbor' gets fixed to 'dag-cbor'
+func (tp *TestSuite) TestBlockPutFormatDagCbor(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	api, err := tp.makeAPI(ctx)
@@ -83,6 +94,82 @@ func (tp *TestSuite) TestBlockPutFormat(t *testing.T) {
 	}
 }
 
+// Format is deprecated, it used invalid codec names.
+// Confirm 'protobuf' got fixed to 'dag-pb'
+func (tp *TestSuite) TestBlockPutFormatDagPb(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := api.Block().Put(ctx, pbBlock(), opt.Block.Format("protobuf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Path().Cid().String() != pbCid {
+		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
+	}
+}
+
+// Format is deprecated, it used invalid codec names.
+// Confirm fake codec 'v0' got fixed to CIDv0 (with implicit dag-pb codec)
+func (tp *TestSuite) TestBlockPutFormatV0(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := api.Block().Put(ctx, pbBlock(), opt.Block.Format("v0"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Path().Cid().String() != pbCidV0 {
+		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
+	}
+}
+
+func (tp *TestSuite) TestBlockPutCidCodecDagCbor(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := api.Block().Put(ctx, cborBlock(), opt.Block.CidCodec("dag-cbor"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Path().Cid().String() != cborCid {
+		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
+	}
+}
+
+func (tp *TestSuite) TestBlockPutCidCodecDagPb(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	api, err := tp.makeAPI(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := api.Block().Put(ctx, pbBlock(), opt.Block.CidCodec("dag-pb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Path().Cid().String() != pbCid {
+		t.Errorf("got wrong cid: %s", res.Path().Cid().String())
+	}
+}
+
 func (tp *TestSuite) TestBlockPutHash(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -95,7 +182,7 @@ func (tp *TestSuite) TestBlockPutHash(t *testing.T) {
 		ctx,
 		cborBlock(),
 		opt.Block.Hash(mh.KECCAK_512, -1),
-		opt.Block.Format("cbor"),
+		opt.Block.CidCodec("dag-cbor"),
 	)
 	if err != nil {
 		t.Fatal(err)
