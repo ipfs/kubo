@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -230,7 +229,7 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag get' instead.
 			return err
 		}
 
-		data, err := ioutil.ReadAll(r)
+		data, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}

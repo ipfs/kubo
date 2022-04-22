@@ -3,7 +3,7 @@ package corehttp
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -267,7 +267,7 @@ func TestGatewayGet(t *testing.T) {
 		if contentType != "text/plain; charset=utf-8" {
 			t.Errorf("expected content type to be text/plain, got %s", contentType)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if resp.StatusCode != test.status {
 			t.Errorf("(%d) got %d, expected %d from %s", i, resp.StatusCode, test.status, urlstr)
 			t.Errorf("Body: %s", body)
@@ -335,7 +335,7 @@ func TestPretty404(t *testing.T) {
 		if resp.StatusCode != test.status {
 			t.Fatalf("got %d, expected %d, from %s", resp.StatusCode, test.status, test.path)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatalf("error reading response from %s: %s", test.path, err)
 		}
@@ -482,7 +482,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// expect correct links
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}
@@ -519,7 +519,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// expect correct backlinks at root
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}
@@ -556,7 +556,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// expect correct backlinks
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}
@@ -638,7 +638,7 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}

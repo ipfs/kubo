@@ -2,7 +2,6 @@ package coredag
 
 import (
 	"io"
-	"io/ioutil"
 	"math"
 
 	"github.com/ipfs/go-merkledag"
@@ -18,7 +17,7 @@ func rawRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
 		mhType = mh.SHA2_256
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -331,7 +330,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 		if cacheMigrations || pinMigrations {
 			// Create temp directory to store downloaded migration archives
-			migrations.DownloadDirectory, err = ioutil.TempDir("", "migrations")
+			migrations.DownloadDirectory, err = os.MkdirTemp("", "migrations")
 			if err != nil {
 				return err
 			}
