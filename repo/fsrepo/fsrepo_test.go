@@ -3,7 +3,6 @@ package fsrepo
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,7 +15,7 @@ import (
 
 // swap arg order
 func testRepoPath(p string, t *testing.T) string {
-	name, err := ioutil.TempDir("", p)
+	name, err := os.MkdirTemp("", p)
 	if err != nil {
 		t.Fatal(err)
 	}

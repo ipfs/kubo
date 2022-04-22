@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	cid "github.com/ipfs/go-cid"
 	pin "github.com/ipfs/go-ipfs-pinner"
@@ -79,7 +78,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		attribute.String("inputenc", options.InputEnc),
 	)
 
-	data, err := ioutil.ReadAll(io.LimitReader(src, inputLimit+10))
+	data, err := io.ReadAll(io.LimitReader(src, inputLimit+10))
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +315,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reade
 		return nil, dag.ErrNotProtobuf
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

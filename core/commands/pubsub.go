@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sort"
 
@@ -191,7 +190,7 @@ HTTP RPC ENCODING
 			return err
 		}
 		defer file.Close()
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}

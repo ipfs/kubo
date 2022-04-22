@@ -2,7 +2,6 @@ package coredag
 
 import (
 	"io"
-	"io/ioutil"
 	"math"
 
 	"github.com/ipfs/go-merkledag"
@@ -13,7 +12,7 @@ import (
 )
 
 func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +30,7 @@ func dagpbJSONParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error)
 }
 
 func dagpbRawParser(r io.Reader, mhType uint64, mhLen int) ([]ipld.Node, error) {
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

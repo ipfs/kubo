@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -270,7 +269,7 @@ func initSpec(path string, conf map[string]interface{}) error {
 	}
 	bytes := dsc.DiskSpec().Bytes()
 
-	return ioutil.WriteFile(fn, bytes, 0600)
+	return os.WriteFile(fn, bytes, 0600)
 }
 
 // Init initializes a new FSRepo at the given path with the provided config.
@@ -338,7 +337,7 @@ func APIAddr(repoPath string) (ma.Multiaddr, error) {
 	// some hidden wisdom. However, I'm fixing it such that:
 	// 1. We don't read too little.
 	// 2. We don't truncate and succeed.
-	buf, err := ioutil.ReadAll(io.LimitReader(f, 2048))
+	buf, err := io.ReadAll(io.LimitReader(f, 2048))
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +453,7 @@ func (r *FSRepo) readSpec() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	b, err := ioutil.ReadFile(fn)
+	b, err := os.ReadFile(fn)
 	if err != nil {
 		return "", err
 	}
@@ -515,7 +514,7 @@ func (r *FSRepo) FileManager() *filestore.FileManager {
 }
 
 func (r *FSRepo) BackupConfig(prefix string) (string, error) {
-	temp, err := ioutil.TempFile(r.path, "config-"+prefix)
+	temp, err := os.CreateTemp(r.path, "config-"+prefix)
 	if err != nil {
 		return "", err
 	}
@@ -667,7 +666,7 @@ func (r *FSRepo) SwarmKey() ([]byte, error) {
 	}
 	defer f.Close()
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 var _ io.Closer = &FSRepo{}

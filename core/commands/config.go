@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -192,7 +191,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		data, err := ioutil.ReadFile(fname)
+		data, err := os.ReadFile(fname)
 		if err != nil {
 			return err
 		}
