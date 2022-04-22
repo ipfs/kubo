@@ -33,9 +33,10 @@ const (
 )
 
 type IpfsFetcher struct {
-	distPath string
-	limit    int64
-	repoRoot *string
+	distPath       string
+	limit          int64
+	repoRoot       *string
+	userConfigFile string
 
 	openOnce  sync.Once
 	openErr   error
@@ -62,11 +63,12 @@ var _ migrations.Fetcher = (*IpfsFetcher)(nil)
 // Bootstrap and peer information in read from the IPFS config file in
 // repoRoot, unless repoRoot is nil.  If repoRoot is empty (""), then read the
 // config from the default IPFS directory.
-func NewIpfsFetcher(distPath string, fetchLimit int64, repoRoot *string) *IpfsFetcher {
+func NewIpfsFetcher(distPath string, fetchLimit int64, repoRoot *string, userConfigFile string) *IpfsFetcher {
 	f := &IpfsFetcher{
-		limit:    defaultFetchLimit,
-		distPath: migrations.LatestIpfsDist,
-		repoRoot: repoRoot,
+		limit:          defaultFetchLimit,
+		distPath:       migrations.LatestIpfsDist,
+		repoRoot:       repoRoot,
+		userConfigFile: userConfigFile,
 	}
 
 	if distPath != "" {
@@ -92,7 +94,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 	// Initialize and start IPFS node on first call to Fetch, since the fetcher
 	// may be created by not used.
 	f.openOnce.Do(func() {
-		bootstrap, peers := readIpfsConfig(f.repoRoot)
+		bootstrap, peers := readIpfsConfig(f.repoRoot, f.userConfigFile)
 		f.ipfsTmpDir, f.openErr = initTempNode(ctx, bootstrap, peers)
 		if f.openErr != nil {
 			return
@@ -288,12 +290,12 @@ func parsePath(fetchPath string) (ipath.Path, error) {
 	return ipfsPath, ipfsPath.IsValid()
 }
 
-func readIpfsConfig(repoRoot *string) (bootstrap []string, peers []peer.AddrInfo) {
+func readIpfsConfig(repoRoot *string, userConfigFile string) (bootstrap []string, peers []peer.AddrInfo) {
 	if repoRoot == nil {
 		return
 	}
 
-	cfgPath, err := config.Filename(*repoRoot)
+	cfgPath, err := config.Filename(*repoRoot, userConfigFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

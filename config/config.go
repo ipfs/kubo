@@ -76,9 +76,23 @@ func Path(configroot, extension string) (string, error) {
 }
 
 // Filename returns the configuration file path given a configuration root
-// directory. If the configuration root directory is empty, use the default one
-func Filename(configroot string) (string, error) {
-	return Path(configroot, DefaultConfigFile)
+// directory and a user-provided configuration file path argument with the
+// following rules:
+// * If the user-provided configuration file path is empty, use the default one.
+// * If the configuration root directory is empty, use the default one.
+// * If the user-provided configuration file path is only a file name, use the
+//   configuration root directory, otherwise use only the user-provided path
+//   and ignore the configuration root.
+func Filename(configroot string, userConfigFile string) (string, error) {
+	if userConfigFile == "" {
+		return Path(configroot, DefaultConfigFile)
+	}
+
+	if filepath.Dir(userConfigFile) == "." {
+		return Path(configroot, userConfigFile)
+	}
+
+	return userConfigFile, nil
 }
 
 // HumanOutput gets a config value ready for printing

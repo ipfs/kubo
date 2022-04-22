@@ -298,7 +298,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		}
 
 		// Read Migration section of IPFS config
-		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot)
+		configFileOpt, _ := req.Options[commands.ConfigFileOption].(string)
+		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -309,7 +310,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		// to construct the particular IPFS fetcher implementation used here,
 		// which is called only if an IPFS fetcher is needed.
 		newIpfsFetcher := func(distPath string) migrations.Fetcher {
-			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot)
+			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
 		}
 
 		// Fetch migrations from current distribution, or location from environ
