@@ -29,11 +29,18 @@ test_add_force_hash() {
     test_expect_success "'ipfs add --allow-insecure-hash-function succeeds" '
     ipfs add --hash=sha2-256 --allow-insecure-hash-function mountdir/hello.txt >actual
     '
-     test_expect_success "ipfs add --allow-insecure-hash-function succeeds output looks good" '
+    test_expect_success "ipfs add --allow-insecure-hash-function succeeds output looks good" '
     HASH="QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH" &&
     echo "added $HASH hello.txt" >expected &&
     test_cmp expected actual
-  '
+    '
+    test_expect_failure "ipfs -add --hash=sha1 fails" '
+    ipfs add --hash=sha1 mountdir/hello.txt >actual
+    '
+
+    test_expect_failure 'ipfs -add --hash=sha1 correct out' '
+    test_cmp expected actual
+    '
 
 }
 
