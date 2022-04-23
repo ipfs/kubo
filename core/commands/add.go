@@ -186,8 +186,9 @@ only-hash, and progress/status related flags) will change the final hash.
 		inlineLimit, _ := req.Options[inlineLimitOptionName].(int)
 
 		forceHash, _ := req.Options[forceHashOptionName].(bool)
-		hashFunCode, ok := mh.Names[strings.ToLower(hashFunStr)]
-		if !forceHash && strings.ToLower(hashFunStr) == "sha1" {
+		loweredHash := strings.ToLower(hashFunStr)
+		hashFunCode, ok := mh.Names[loweredHash]
+		if !forceHash && loweredHash == "sha1" {
 			return fmt.Errorf("selected hash function is no longer secure; use --hash=sha2-256 or pass --force " )
 		}
 		if !ok {
