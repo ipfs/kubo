@@ -197,6 +197,11 @@ func AutoRelayFeeder(lc fx.Lifecycle, h host.Host, peerChan chan peer.AddrInfo, 
 			case <-ctx.Done():
 				return
 			}
+			// TODO: refactor AutoRelayFeeder, for now we skip it if dht missing to fix sharness panics
+			if dht == nil {
+				fmt.Println("AutoRelayFeeder: noop due to missing dht.WAN")
+				continue
+			}
 			closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
 			if err != nil {
 				fmt.Println(err)
