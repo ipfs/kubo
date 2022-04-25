@@ -4,18 +4,15 @@
 // NOTE: Tracing is currently experimental. Span names may change unexpectedly, spans may be removed,
 // and backwards-incompatible changes may be made to tracing configuration, options, and defaults.
 //
-// go-ipfs uses OpenTelemetry as its tracing API, and when possible, standard OpenTelemetry environment
-// variables can be used to configure it. Multiple exporters can also be installed simultaneously,
-// including one that writes traces to a JSON file on disk.
+// Tracing is configured through environment variables, as consistent with the OpenTelemetry spec as possible:
 //
-// In general, tracing is configured through environment variables. The IPFS-specific environment variables are:
+// https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
 //
-//  - IPFS_TRACING: enable tracing in go-ipfs
-//  - IPFS_TRACING_JAEGER: enable the Jaeger exporter
-//  - IPFS_TRACING_RATIO: the ratio of traces to export, defaults to 1 (export everything)
-//  - IPFS_TRACING_FILE: write traces to the given filename
-//  - IPFS_TRACING_OTLP_HTTP: enable the OTLP HTTP exporter
-//  - IPFS_TRACING_OTLP_GRPC: enable the OTLP gRPC exporter
+//  - OTEL_TRACES_EXPORTER: a comma-separated list of exporters
+//    - otlp
+//    - jaeger
+//    - zipkin
+//    - file
 //
 // Different exporters have their own set of environment variables, depending on the exporter. These are typically
 // standard environment variables. Some common ones:
@@ -30,11 +27,24 @@
 //
 // OTLP HTTP/gRPC:
 //
+//  - OTEL_EXPORTER_OTLP_PROTOCOL
+//    - one of [grpc, http/protobuf]
+//    - default: grpc
 //  - OTEL_EXPORTER_OTLP_ENDPOINT
 //  - OTEL_EXPORTER_OTLP_CERTIFICATE
 //  - OTEL_EXPORTER_OTLP_HEADERS
 //  - OTEL_EXPORTER_OTLP_COMPRESSION
 //  - OTEL_EXPORTER_OTLP_TIMEOUT
+//
+// Zipkin:
+//
+//  - OTEL_EXPORTER_ZIPKIN_ENDPOINT
+//
+// File:
+//
+//  - OTEL_EXPORTER_FILE_PATH
+//    - file path to write JSON traces
+//    - default: `$PWD/traces.json`
 //
 // For example, if you run a local IPFS daemon, you can use the jaegertracing/all-in-one Docker image to run
 // a full Jaeger stack and configure go-ipfs to publish traces to it:
@@ -47,10 +57,11 @@
 //    -p 5778:5778 \
 //    -p 16686:16686 \
 //    -p 14268:14268 \
+//    -p 14269:14269 \
 //    -p 14250:14250 \
 //    -p 9411:9411 \
 //    jaegertracing/all-in-one
-//  IPFS_TRACING=1 IPFS_TRACING_JAEGER=1 ipfs daemon
+//  OTEL_TRACES_EXPORTER=jaeger ipfs daemon
 //
 //  In this example the Jaeger UI is available at http://localhost:16686.
 //
