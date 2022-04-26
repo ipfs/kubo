@@ -197,12 +197,5 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 
 	defaultLimitConfig := scalingLimitConfig.Scale(int64(maxMemory), int(numFD))
 
-	// If a high water mark is set:
-	if cfg.ConnMgr.Type == "basic" {
-		// set the connection limit higher than high water mark so that the ConnMgr has "space and time" to close "least useful" connections.
-		defaultLimitConfig.System.Conns = 2 * cfg.ConnMgr.HighWater
-		log.Info("adjusted default resource manager System.Conns limits to match ConnMgr.HighWater value of %s", cfg.ConnMgr.HighWater)
-	}
-
 	return defaultLimitConfig, nil
 }

@@ -243,9 +243,15 @@ documented in `ipfs config profile --help`.
 
 - `lowpower`
 
-  Reduces daemon overhead on the system. May affect node
+  Reduces daemon overhead on the system. Affects node
   functionality - performance of content discovery and data
-  fetching may be degraded.
+  fetching may be degraded. Local data won't be announced on routing systems like DHT.
+
+  - `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
+  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on DHT and other routing systems(!)
+  - Disables AutoNAT.
+
+  Use this profile with caution.
 
 ## Types
 
@@ -1730,7 +1736,8 @@ be configured to keep. Kubo currently supports two connection managers:
 * none: never close idle connections.
 * basic: the default connection manager.
 
-Default: basic
+By default, this section is empty and the implicit defaults defined below
+are used.
 
 #### `Swarm.ConnMgr.Type`
 
@@ -1739,8 +1746,7 @@ management) and `"basic"`.
 
 Default: "basic".
 
-Type: `string` (when unset or `""`, the default connection manager is applied
-and all `ConnMgr` fields are ignored).
+Type: `optionalString` (default when unset or empty)
 
 #### Basic Connection Manager
 
@@ -1779,7 +1785,7 @@ trim down to.
 
 Default: `600`
 
-Type: `integer`
+Type: `optionalInteger`
 
 ##### `Swarm.ConnMgr.HighWater`
 
@@ -1789,7 +1795,7 @@ towards this limit.
 
 Default: `900`
 
-Type: `integer`
+Type: `optionalInteger`
 
 ##### `Swarm.ConnMgr.GracePeriod`
 
@@ -1798,7 +1804,7 @@ by the connection manager.
 
 Default: `"20s"`
 
-Type: `duration`
+Type: `optionalDuration`
 
 ### `Swarm.ResourceMgr`
 
