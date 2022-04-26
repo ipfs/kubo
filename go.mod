@@ -51,7 +51,7 @@ require (
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
 	github.com/ipfs/go-mfs v0.2.1
-	github.com/ipfs/go-namesys v0.4.0
+	github.com/ipfs/go-namesys v0.4.1-0.20220426174228-2e37afbc2bf2
 	github.com/ipfs/go-path v0.2.2
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
 	github.com/ipfs/go-unixfs v0.3.1
