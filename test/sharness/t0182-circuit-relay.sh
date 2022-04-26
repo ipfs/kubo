@@ -26,12 +26,14 @@ staticrelay=$(ipfsi 1 swarm addrs local | sed -e "s|$|/p2p/$PEERID_1|g" | jq --r
 
 test_expect_success 'configure the relay node as a static relay for node A' '
     ipfsi 0 config Internal.Libp2pForceReachability private &&
+    ipfsi 0 config --json Discovery.MDNS.Enabled false &&
     ipfsi 0 config --json Swarm.RelayClient.Enabled true &&
     ipfsi 0 config --json Swarm.RelayClient.StaticRelays "$staticrelay"
 '
 
 test_expect_success 'configure the relay node' '
   ipfsi 1 config --json Addresses.Swarm "$relayaddrs" &&
+  ipfsi 1 config --json Discovery.MDNS.Enabled false &&
   ipfsi 1 config Internal.Libp2pForceReachability public
 '
 
