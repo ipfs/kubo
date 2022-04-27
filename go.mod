@@ -50,11 +50,11 @@ require (
 	github.com/ipfs/go-merkledag v0.6.0
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-metrics-prometheus v0.0.2
-	github.com/ipfs/go-mfs v0.2.1
+	github.com/ipfs/go-mfs v0.2.0
 	github.com/ipfs/go-namesys v0.4.0
 	github.com/ipfs/go-path v0.2.2
 	github.com/ipfs/go-pinning-service-http-client v0.1.0
-	github.com/ipfs/go-unixfs v0.3.1
+	github.com/ipfs/go-unixfs v0.3.1-0.20220414144628-e4a026305ad7
 	github.com/ipfs/go-unixfsnode v1.1.3
 	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
