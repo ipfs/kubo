@@ -4,6 +4,7 @@ require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
 	github.com/blang/semver/v4 v4.0.0
+	github.com/cenkalti/backoff/v4 v4.1.2
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/cheggaaa/pb v1.0.29
@@ -135,7 +136,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
-	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/containerd/cgroups v1.0.3 // indirect

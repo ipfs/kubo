@@ -2,7 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 
+	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
 )
 
@@ -189,7 +189,13 @@ func AutoRelayFeeder(lc fx.Lifecycle, h host.Host, peerChan chan peer.AddrInfo, 
 	go func() {
 		defer close(done)
 
-		t := time.NewTicker(time.Minute / 3) // TODO: this is way too frequent. Should probably use some kind of backoff
+		// Feed peers more often right after the bootstrap, then backoff
+		bo := backoff.NewExponentialBackOff()
+		bo.InitialInterval = 15 * time.Second
+		bo.Multiplier = 3
+		bo.MaxInterval = 1 * time.Hour
+		bo.MaxElapsedTime = 0 // never stop
+		t := backoff.NewTicker(bo)
 		defer t.Stop()
 		for {
 			select {
@@ -197,14 +203,14 @@ func AutoRelayFeeder(lc fx.Lifecycle, h host.Host, peerChan chan peer.AddrInfo, 
 			case <-ctx.Done():
 				return
 			}
-			// TODO: refactor AutoRelayFeeder, for now we skip it if dht missing to fix sharness panics
 			if dht == nil {
-				fmt.Println("AutoRelayFeeder: noop due to missing dht.WAN")
+				/* noop due to missing dht.WAN. happens in some unit tests,
+				   not worth fixing as we will refactor this after go-libp2p 0.20 */
 				continue
 			}
 			closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
 			if err != nil {
-				fmt.Println(err)
+				// usually 'failed to find any peer in table', no no-op
 				continue
 			}
 			for _, p := range closestPeers {
