@@ -381,8 +381,7 @@ It is possible to use this command to inspect and tweak limits at runtime:
 	$ vi limit.json
 	$ ipfs swarm limit system limit.json
 
-Changes made via command line are discarded on node shutdown.
-For permanent limits set Swarm.ResourceMgr.Limits in the $IPFS_PATH/config file.
+Changes made via command line are persisted in the Swarm.ResourceMgr.Limits field of the $IPFS_PATH/config file.
 `},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("scope", true, false, "scope of the limit"),
