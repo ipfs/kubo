@@ -15,7 +15,10 @@
 - `ipfs cid codecs` command
   - it now lists codecs from https://github.com/multiformats/go-multicodec
   - `ipfs cid codecs --supported` can be passed to only show codecs supported in various go-ipfs commands
-
+- `Swarm` configuration
+  - Daemon will refuse to start if long-deprecated RelayV1 config key `Swarm.EnableAutoRelay` or `Swarm.DisableRelay` is set to `true`
+  - When `Swarm.Transports.Network.Relay` is disabled,  `Swarm.RelayService` and `Swarm.RelayClient` are also disabled (unless user explicitly enabled them).
+    -  If user enabled them manually, then we error on start and inform they require  `Swarm.Transports.Network.Relay`
 
 ## v0.12.2 and v0.11.1 2022-04-08
 
