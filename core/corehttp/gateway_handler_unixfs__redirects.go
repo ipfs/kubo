@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"github.com/tj/go-redirects"
@@ -43,22 +42,13 @@ import (
 // Note that for security reasons, redirect rules are only processed when the request has origin isolation.
 func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
 	// Before we do anything, determine if we must evaluate redirect rules
-	redirectsFile, err := i.getRedirectsFile(r)
-	if err != nil {
-		switch err.(type) {
-		case resolver.ErrNoLink:
-			// The _redirects files doesn't exist.  Don't error since its existence is optional.
-		default:
-			// Any other path resolution issues should be treated as 404
-			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
-			return nil, nil, false
-		}
-	}
+	redirectsFile := i.getRedirectsFile(r, logger)
 
 	mustEvaluateRedirectRules := hasOriginIsolation(r) && redirectsFile != nil
 
 	// Get redirect rules if we know we'll need them
 	var redirectRules []redirects.Rule
+	var err error
 	if mustEvaluateRedirectRules {
 		redirectRules, err = i.getRedirectRules(r, redirectsFile)
 		if err != nil {
@@ -241,20 +231,26 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 }
 
 // Returns a resolved path to the _redirects file located in the root CID path of the requested path
-func (i *gatewayHandler) getRedirectsFile(r *http.Request) (ipath.Resolved, error) {
+func (i *gatewayHandler) getRedirectsFile(r *http.Request, logger *zap.SugaredLogger) ipath.Resolved {
 	// r.URL.Path is the full ipfs path to the requested resource,
 	// regardless of whether path or subdomain resolution is used.
 	rootPath, err := getRootPath(r.URL.Path)
 	if err != nil {
-		return nil, err
+		logger.Debugf("getRootPath failed", err)
+		return nil
 	}
 
+	logger.Debugf("rootPath type=%t", rootPath)
 	path := ipath.Join(rootPath, "_redirects")
 	resolvedPath, err := i.api.ResolvePath(r.Context(), path)
+
 	if err != nil {
-		return nil, err
+		// Any path resolution failures are ignored and we just assume there's no _redirects file.
+		// Note that ignoring these errors also ensures that the use of the empty CID (bafkqaaa) in tests doesn't fail.
+		logger.Debugf("ResolvePath failed.  rootPath=%v, err=%v", rootPath, err)
+		return nil
 	}
-	return resolvedPath, nil
+	return resolvedPath
 }
 
 // Returns the root CID Path for the given path
