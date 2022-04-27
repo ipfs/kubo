@@ -258,12 +258,6 @@ func (i *gatewayHandler) getRedirectsFile(r *http.Request) (ipath.Resolved, erro
 }
 
 // Returns the root CID Path for the given path
-//   /ipfs/CID/*
-//     CID is the root CID
-//   /ipns/domain/*
-//     Need to resolve domain ipns path to get CID
-//   /ipns/domain/ipfs/CID
-//     Is this legit?  If so, we should use CID?
 func getRootPath(path string) (ipath.Path, error) {
 	if isIpfsPath(path) {
 		parts := strings.Split(path, "/")
@@ -308,7 +302,6 @@ func (i *gatewayHandler) serve404(w http.ResponseWriter, r *http.Request, conten
 	return err
 }
 
-// TODO(JJ): Confirm approach
 func hasOriginIsolation(r *http.Request) bool {
 	_, gw := r.Context().Value("gw-hostname").(string)
 	_, dnslink := r.Context().Value("dnslink-hostname").(string)
