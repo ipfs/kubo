@@ -60,6 +60,8 @@ type processInitialRoutingOut struct {
 	BaseRT    BaseIpfsRouting
 }
 
+type AddrInfoChan chan peer.AddrInfo
+
 func BaseRouting(experimentalDHTClient bool) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
 		var dr *ddht.DHT
@@ -185,8 +187,8 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 	}, psRouter, nil
 }
 
-func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, chan peer.AddrInfo, *ddht.DHT) {
-	return func(lc fx.Lifecycle, h host.Host, peerChan chan peer.AddrInfo, dht *ddht.DHT) {
+func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, AddrInfoChan, *ddht.DHT) {
+	return func(lc fx.Lifecycle, h host.Host, peerChan AddrInfoChan, dht *ddht.DHT) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 

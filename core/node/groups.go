@@ -38,8 +38,6 @@ var BaseLibP2P = fx.Options(
 	fx.Invoke(libp2p.PNetChecker),
 )
 
-type AddrInfoChan chan peer.AddrInfo
-
 func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// parse ConnMgr config
 
@@ -145,7 +143,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.io/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
-	peerChan := make(chan peer.AddrInfo)
+	peerChan := make(libp2p.AddrInfoChan)
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
