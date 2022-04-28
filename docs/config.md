@@ -131,6 +131,7 @@ config file at runtime.
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
+      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -1641,14 +1642,12 @@ Default: `false`
 
 Type: `flag`
 
-<!-- TODO: config compatible with the output of 'swarm limit' - see https://github.com/ipfs/go-ipfs/issues/8858
-
 #### `Swarm.ResourceMgr.Limits`
 
 Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
 
-The format follows [`limit.json`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.1.5/limit_config.go#L165)
-struct from go-libp2p-resource-manager@v0.1.5
+The map supports fields from [`BasicLimiterConfig`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.3.0/limit_config.go#L165-L185)
+struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p-resource-manager#readme).
 
 Example:
 
@@ -1674,18 +1673,16 @@ Example:
 }
 ```
 
-Current resource usage and a list of services, protocols, and peers can be obtained via
-`ipfs swarm stats --help`
+Current resource usage and a list of services, protocols, and peers can be
+obtained via `ipfs swarm stats --help`
 
-It is also possible to adjust runtime limits via `ipfs stats limit --help`.
-By default changes are ephemeral (config remains intact), and won't be applied
-after reboot. To persist them here, pass `limit -s`.
+It is also possible to adjust some runtime limits via `ipfs stats limit --help`.
+Changes made via `stats limit` are persisted in `Swarm.ResourceMgr.Limits`.
 
-Default: `{}` (empty == implicit defaults from go-libp2p)
+Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->object]`
 
--->
 
 ### `Swarm.Transports`
 
