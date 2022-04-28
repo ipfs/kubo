@@ -302,7 +302,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 }
 
 func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	out := make(chan coreiface.DirEntry)
+	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
 
 	go func() {
 		defer close(out)

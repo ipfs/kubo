@@ -51,6 +51,7 @@ config file at runtime.
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
+    - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
     - [`Gateway.PublicGateways`](#gatewaypublicgateways)
@@ -645,6 +646,20 @@ A url to redirect requests for `/` to.
 Default: `""`
 
 Type: `string` (url)
+
+### `Gateway.FastDirIndexThreshold`
+
+The maximum number of items in a directory before the Gateway switches
+to a shallow, faster listing which only requires the root node.
+
+This allows for fast listings of big directories, without the linear slowdown caused
+by reading size metadata from child nodes.
+
+Setting to 0 will enable fast listings for all directories.
+
+Default: `100`
+
+Type: `optionalInteger`
 
 ### `Gateway.Writable`
 
