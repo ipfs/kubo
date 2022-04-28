@@ -77,8 +77,8 @@ test_expect_success "GET to API succeeds" '
   curl -svX GET "http://127.0.0.1:$GWAY_PORT/api/v0/cat?arg=$thash" >/dev/null 2>curl_output
 '
 # GET Response from the API should NOT contain CORS headers
-# Blacklisting: https://git.io/vzaj2
-# Rationale: https://git.io/vzajX
+# Blacklisting: https://github.com/ipfs/go-ipfs/blob/5d9ee59908099df3f7e85679f7384c98d4ac8111/commands/http/handler.go#L71-L82
+# Rationale: https://github.com/ipfs/go-ipfs/pull/1529#issuecomment-125702347
 test_expect_success "OPTIONS response for API looks good" '
   grep -q "Access-Control-Allow-" curl_output && false || true
 '
