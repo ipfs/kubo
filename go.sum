@@ -905,8 +905,9 @@ github.com/libp2p/go-libp2p-pnet v0.2.0 h1:J6htxttBipJujEjz1y0a5+eYoiPcFHhSYHH6n
 github.com/libp2p/go-libp2p-pnet v0.2.0/go.mod h1:Qqvq6JH/oMZGwqs3N1Fqhv8NVhrdYcO0BW4wssv21LA=
 github.com/libp2p/go-libp2p-protocol v0.0.1/go.mod h1:Af9n4PiruirSDjHycM1QuiMi/1VZNHYcK8cLgFJLZ4s=
 github.com/libp2p/go-libp2p-protocol v0.1.0/go.mod h1:KQPHpAabB57XQxGrXCNvbL6UEXfQqUgC/1adR2Xtflk=
-github.com/libp2p/go-libp2p-pubsub v0.6.0 h1:98+RXuEWW17U6cAijK1yaTf6mw/B+n5yPA421z+dlo0=
 github.com/libp2p/go-libp2p-pubsub v0.6.0/go.mod h1:nJv87QM2cU0w45KPR1rZicq+FmFIOD16zmT+ep1nOmg=
+github.com/libp2p/go-libp2p-pubsub v0.6.1 h1:wycbV+f4rreCoVY61Do6g/BUk0RIrbNRcYVbn+QkjGk=
+github.com/libp2p/go-libp2p-pubsub v0.6.1/go.mod h1:nJv87QM2cU0w45KPR1rZicq+FmFIOD16zmT+ep1nOmg=
 github.com/libp2p/go-libp2p-pubsub-router v0.5.0 h1:WuYdY42DVIJ+N0qMdq2du/E9poJH+xzsXL7Uptwj9tw=
 github.com/libp2p/go-libp2p-pubsub-router v0.5.0/go.mod h1:TRJKskSem3C0aSb3CmRgPwq6IleVFzds6hS09fmZbGM=
 github.com/libp2p/go-libp2p-quic-transport v0.10.0/go.mod h1:RfJbZ8IqXIhxBRm5hqUEJqjiiY8xmEuq3HUDS993MkA=
