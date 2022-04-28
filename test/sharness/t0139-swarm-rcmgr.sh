@@ -41,7 +41,7 @@ test_expect_success "setting an invalid limit should result in a failure" "
 test_expect_success "test enabling resource manager" "
   ipfs config --json Swarm.ResourceMgr.Enabled true &&
   ipfs config --json Swarm.ResourceMgr &&
-  jq -e '.Swarm.ResourceMgr.Enabled == true'
+  jq -e '.Swarm.ResourceMgr.Enabled == true' < \"$IPFS_PATH/config\"
 "
 
 test_launch_ipfs_daemon
