@@ -242,6 +242,7 @@ func (i *gatewayHandler) getRedirectsFile(r *http.Request, logger *zap.SugaredLo
 
 	logger.Debugf("rootPath type=%t", rootPath)
 	path := ipath.Join(rootPath, "_redirects")
+	// TODO(JJ): When requesting a non-existent CID with NoFetch=true, this path resolution can take about a minute (on my slow internet).  No similar hang for master.  Why?
 	resolvedPath, err := i.api.ResolvePath(r.Context(), path)
 
 	if err != nil {
