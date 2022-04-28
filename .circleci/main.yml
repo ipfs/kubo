@@ -177,7 +177,7 @@ jobs:
         git checkout FETCH_HEAD
     - run:
         cd rb-pinning-service-api &&
-        docker-compose pull &&
+        (while ! docker-compose pull; do sleep 5; done) &&
         docker-compose up -d
 
     - *make_out_dirs
