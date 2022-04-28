@@ -125,7 +125,7 @@ test_resolve_cmd_b32() {
   local self_hash_b32libp2pkey=$(echo $self_hash | ipfs cid format -v 1 -b b --codec libp2p-key)
   test_expect_success "resolve of /ipns/{cidv1} with multicodec other than libp2p-key returns a meaningful error" '
     test_expect_code 1 ipfs resolve /ipns/$self_hash_b32protobuf 2>cidcodec_error &&
-    grep "Error: peer ID represented as CIDv1 require libp2p-key multicodec: retry with /ipns/$self_hash_b32libp2pkey" cidcodec_error
+    test_should_contain "Error: peer ID represented as CIDv1 require libp2p-key multicodec: retry with /ipns/$self_hash_b32libp2pkey" cidcodec_error
   '
 }
 

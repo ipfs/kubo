@@ -31,8 +31,14 @@ test_expect_success 'configure the relay node as a static relay for node A' '
 '
 
 test_expect_success 'configure the relay node' '
-  ipfsi 1 config --json Addresses.Swarm "$relayaddrs" &&
-  ipfsi 1 config Internal.Libp2pForceReachability public
+  ipfsi 1 config Internal.Libp2pForceReachability public &&
+  ipfsi 1 config --json Swarm.RelayService.Enabled true &&
+  ipfsi 1 config --json Addresses.Swarm "$relayaddrs"
+'
+
+test_expect_success 'configure the node B' '
+    ipfsi 2 config Internal.Libp2pForceReachability private &&
+    ipfsi 2 config --json Swarm.RelayClient.Enabled true
 '
 
 test_expect_success 'restart nodes' '
@@ -50,7 +56,14 @@ test_expect_success 'connect B <-> Relay' '
 '
 
 test_expect_success 'wait until relay is ready to do work' '
-  sleep 1
+  while ! ipfsi 2 swarm connect /p2p/$PEERID_1/p2p-circuit/p2p/$PEERID_0; do
+    iptb stop &&
+    iptb_wait_stop &&
+    iptb start -wait -- --routing=none &&
+    iptb connect 0 1 &&
+    iptb connect 2 1 &&
+    sleep 5
+  done
 '
 
 test_expect_success 'connect A <-Relay-> B' '
