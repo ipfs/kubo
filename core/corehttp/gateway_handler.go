@@ -412,9 +412,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	// TODO(JJ): With the UnixFS redirects handling above, this is no longer the first block
+	// TODO(JJ): Should this be somewhere else for UnixFS, given the redirects handling above?
 	if err := i.handleGettingFirstBlock(r, begin, contentPath, resolvedPath); err != nil {
-		// TODO(JJ): This is where the error comes from when requesting a non-existing CID hangs and eventually returns with an error
 		webRequestError(w, err)
 		return
 	}
