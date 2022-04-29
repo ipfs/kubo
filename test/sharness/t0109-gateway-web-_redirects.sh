@@ -87,18 +87,13 @@ test_expect_success "request for http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR
 test_kill_ipfs_daemon
 
 # disable wildcard DNSLink gateway
-# and enable it on specific NSLink hostname
+# and enable it on specific DNSLink hostname
 ipfs config --json Gateway.NoDNSLink true && \
 ipfs config --json Gateway.PublicGateways '{
   "dnslink-enabled-on-fqdn.example.org": {
     "NoDNSLink": false,
     "UseSubdomains": false,
     "Paths": ["/ipfs"]
-  },
-  "only-dnslink-enabled-on-fqdn.example.org": {
-    "NoDNSLink": false,
-    "UseSubdomains": false,
-    "Paths": []
   },
   "dnslink-disabled-on-fqdn.example.com": {
     "NoDNSLink": true,
@@ -109,9 +104,8 @@ ipfs config --json Gateway.PublicGateways '{
 
 # DNSLink test requires a daemon in online mode with precached /ipns/ mapping
 DNSLINK_FQDN="dnslink-enabled-on-fqdn.example.org"
-ONLY_DNSLINK_FQDN="only-dnslink-enabled-on-fqdn.example.org"
 NO_DNSLINK_FQDN="dnslink-disabled-on-fqdn.example.com"
-export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$REDIRECTS_DIR_CID,$ONLY_DNSLINK_FQDN:/ipfs/$REDIRECTS_DIR_CID"
+export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$REDIRECTS_DIR_CID"
 
 # restart daemon to apply config changes
 test_launch_ipfs_daemon
@@ -123,6 +117,18 @@ test_expect_success "spoofed DNSLink record resolves in cli" "
   ipfs cat /ipns/$DNSLINK_FQDN/_redirects > result &&
   test_should_contain \"index.html\" result
 "
+
+test_expect_success "request for $DNSLINK_FQDN/redirect-one redirects with default of 301, per _redirects file" '
+  curl -sD - --resolve $DNSLINK_FQDN:$GWAY_PORT:127.0.0.1 "http://$DNSLINK_FQDN:$GWAY_PORT/redirect-one" > response &&
+  test_should_contain "one.html" response &&
+  test_should_contain "301 Moved Permanently" response
+'
+
+test_expect_success "request for $NO_DNSLINK_FQDN/redirect-one does not redirect, since DNSLink is disabled" '
+  curl -sD - --resolve $NO_DNSLINK_FQDN:$GWAY_PORT:127.0.0.1 "http://$NO_DNSLINK_FQDN:$GWAY_PORT/redirect-one" > response &&
+  test_should_not_contain "one.html" response &&
+  test_should_not_contain "301 Moved Permanently" response
+'
 
 test_kill_ipfs_daemon
 
