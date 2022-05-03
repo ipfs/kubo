@@ -1,34 +1,37 @@
-package main
+package out
 
-import (
-	"fmt"
-	"os"
+// TODO fix dependency deprecation: iptb-plugins is still using go-ipfs-config that is deprecated, that is using an old go-libp2p-core version
+// package main
 
-	cli "github.com/ipfs/iptb/cli"
-	testbed "github.com/ipfs/iptb/testbed"
+// import (
+// 	"fmt"
+// 	"os"
 
-	plugin "github.com/ipfs/iptb-plugins/local"
-)
+// 	cli "github.com/ipfs/iptb/cli"
+// 	testbed "github.com/ipfs/iptb/testbed"
 
-func init() {
-	_, err := testbed.RegisterPlugin(testbed.IptbPlugin{
-		From:        "<builtin>",
-		NewNode:     plugin.NewNode,
-		GetAttrList: plugin.GetAttrList,
-		GetAttrDesc: plugin.GetAttrDesc,
-		PluginName:  plugin.PluginName,
-		BuiltIn:     true,
-	}, false)
+// 	plugin "github.com/ipfs/iptb-plugins/local"
+// )
 
-	if err != nil {
-		panic(err)
-	}
-}
+// func init() {
+// 	_, err := testbed.RegisterPlugin(testbed.IptbPlugin{
+// 		From:        "<builtin>",
+// 		NewNode:     plugin.NewNode,
+// 		GetAttrList: plugin.GetAttrList,
+// 		GetAttrDesc: plugin.GetAttrDesc,
+// 		PluginName:  plugin.PluginName,
+// 		BuiltIn:     true,
+// 	}, false)
 
-func main() {
-	cli := cli.NewCli()
-	if err := cli.Run(os.Args); err != nil {
-		fmt.Fprintf(cli.ErrWriter, "%s\n", err)
-		os.Exit(1)
-	}
-}
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
+
+// func main() {
+// 	cli := cli.NewCli()
+// 	if err := cli.Run(os.Args); err != nil {
+// 		fmt.Fprintf(cli.ErrWriter, "%s\n", err)
+// 		os.Exit(1)
+// 	}
+// }
