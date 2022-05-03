@@ -245,7 +245,7 @@ jobs:
           command: |
             npm init -y
             npm install ipfs@^0.61.0
-            npm install ipfs-interop@^8.0.0
+            npm install ipfs-interop@^8.0.10
             npm install mocha-circleci-reporter@0.0.3
           working_directory: ~/ipfs/go-ipfs/interop
       - run:

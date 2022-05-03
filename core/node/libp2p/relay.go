@@ -69,9 +69,16 @@ func AutoRelay(staticRelays []string, peerChan <-chan peer.AddrInfo) func() (opt
 
 func HolePunching(flag config.Flag, hasRelayClient bool) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
-		if flag.WithDefault(false) {
+		if flag.WithDefault(true) {
 			if !hasRelayClient {
-				log.Fatal("To enable `Swarm.EnableHolePunching` requires `Swarm.RelayClient.Enabled` to be enabled.")
+				// If hole punching is explicitly enabled but the relay client is disabled then panic,
+				// otherwise just silently disable hole punching
+				if flag != config.Default {
+					log.Fatal("Failed to enable `Swarm.EnableHolePunching`, it requires `Swarm.RelayClient.Enabled` to be true.")
+				} else {
+					log.Info("HolePunching has been disabled due to the RelayClient being disabled.")
+				}
+				return
 			}
 			opts.Opts = append(opts.Opts, libp2p.EnableHolePunching())
 		}
