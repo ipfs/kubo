@@ -21,11 +21,11 @@ var ErrNotOnline = errors.New("this command must be run in online mode. Try runn
 const (
 	RepoDirOption    = "repo-dir"
 	ConfigFileOption = "config-file"
-	ConfigOption  = "config"
-	DebugOption   = "debug"
-	LocalOption   = "local" // DEPRECATED: use OfflineOption
-	OfflineOption = "offline"
-	ApiOption     = "api"
+	ConfigOption     = "config"
+	DebugOption      = "debug"
+	LocalOption      = "local" // DEPRECATED: use OfflineOption
+	OfflineOption    = "offline"
+	ApiOption        = "api"
 )
 
 var Root = &cmds.Command{
