@@ -12,12 +12,17 @@ aliases:
   make_out_dirs: &make_out_dirs
     run: mkdir -p /tmp/circleci-artifacts /tmp/circleci-workspace /tmp/circleci-test-results/{unit,sharness}
   restore_gomod: &restore_gomod
-    restore_cache:
-      keys:
-        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
-        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
-        - v5-dep-{{ .Branch }}-
-        - v5-dep-master-
+    - restore_cache:
+        keys:
+          - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+          - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
+          - v5-dep-{{ .Branch }}-
+          - v5-dep-master-
+    - run: 
+        name: Download all dependencies
+        command: |
+          # download all missing dependencies to avoid timeouts
+          go mod download -x
   store_gomod: &store_gomod
       save_cache:
         key: v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
