@@ -1383,7 +1383,7 @@ to [upgrade to a direct connection](https://github.com/libp2p/specs/blob/master/
 through a NAT/firewall whenever possible.
 This feature requires `Swarm.RelayClient.Enabled` to be set to `true`.
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
