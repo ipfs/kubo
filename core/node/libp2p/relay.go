@@ -71,7 +71,11 @@ func HolePunching(flag config.Flag, hasRelayClient bool) func() (opts Libp2pOpts
 	return func() (opts Libp2pOpts, err error) {
 		if flag.WithDefault(true) {
 			if !hasRelayClient {
-				log.Fatal("Failed to enable `Swarm.EnableHolePunching`, it requires `Swarm.RelayClient.Enabled` to be true.")
+				// If hole punching is explicitly enabled but the relay client is disabled then panic,
+				// otherwise just silently disable hole punching
+				if flag != config.Default {
+					log.Fatal("Failed to enable `Swarm.EnableHolePunching`, it requires `Swarm.RelayClient.Enabled` to be true.")
+				}
 				return
 			}
 			opts.Opts = append(opts.Opts, libp2p.EnableHolePunching())
