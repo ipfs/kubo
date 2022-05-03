@@ -1,3 +1,4 @@
+//go:build (linux || darwin || freebsd || netbsd || openbsd) && !nofuse
 // +build linux darwin freebsd netbsd openbsd
 // +build !nofuse
 
