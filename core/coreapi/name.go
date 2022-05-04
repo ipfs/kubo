@@ -75,6 +75,7 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 	}
 
 	if options.TTL != nil {
+		// nolint: staticcheck // non-backward compatible change
 		ctx = context.WithValue(ctx, "ipns-publish-ttl", *options.TTL)
 	}
 

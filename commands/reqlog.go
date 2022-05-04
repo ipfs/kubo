@@ -42,7 +42,7 @@ func (rl *ReqLog) AddEntry(rle *ReqLogEntry) {
 	rl.nextID++
 	rl.Requests = append(rl.Requests, rle)
 
-	if rle == nil || !rle.Active {
+	if !rle.Active {
 		rl.maybeCleanup()
 	}
 }
