@@ -35,7 +35,6 @@ func newGraphsync(ctx context.Context, p2p host.Host, bs blockstore.Blockstore) 
 	return gsimpl.New(ctx,
 		network,
 		storeutil.LinkSystemForBlockstore(bs),
-		//TODO: not needed anymore? // storeutil.StorerForBlockstore(bs),
 	), nil
 }
 
