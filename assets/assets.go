@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"path/filepath"
+	gopath "path"
 	"strconv"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -27,13 +27,13 @@ var AssetHash string
 
 // initDocPaths lists the paths for the docs we want to seed during --init
 var initDocPaths = []string{
-	filepath.Join("init-doc", "about"),
-	filepath.Join("init-doc", "readme"),
-	filepath.Join("init-doc", "help"),
-	filepath.Join("init-doc", "contact"),
-	filepath.Join("init-doc", "security-notes"),
-	filepath.Join("init-doc", "quick-start"),
-	filepath.Join("init-doc", "ping"),
+	gopath.Join("init-doc", "about"),
+	gopath.Join("init-doc", "readme"),
+	gopath.Join("init-doc", "help"),
+	gopath.Join("init-doc", "contact"),
+	gopath.Join("init-doc", "security-notes"),
+	gopath.Join("init-doc", "quick-start"),
+	gopath.Join("init-doc", "ping"),
 }
 
 func init() {
@@ -91,7 +91,7 @@ func addAssetList(nd *core.IpfsNode, l []string) (cid.Cid, error) {
 			return cid.Cid{}, err
 		}
 
-		fname := filepath.Base(p)
+		fname := gopath.Base(p)
 
 		basePath, err = api.Object().AddLink(nd.Context(), basePath, fname, fp)
 		if err != nil {
