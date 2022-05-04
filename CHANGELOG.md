@@ -1,6 +1,6 @@
 # go-ipfs changelog
 
-## go-ipfs v0.13.0 Changelog
+## v0.13.0 2022-05-04
 
 We're happy to announce go-ipfs 0.13.0, packed full of changes and improvements!
 
@@ -17,7 +17,6 @@ Below is an outline of all that is in this release, so you get a sense of all th
   * [Circuit Relay V1 is deprecated](#circuit-relay-v1-is-deprecated)
   * [`ls` requests for `/multistream/1.0.0` are removed](#-ls--requests-for---multistream-100--are-removed)
   * [Gateway Items](#gateway-items)
-  * [YAMUX over Mplex](#yamux-over-mplex)
 - [🔦 Highlights](#---highlights)
   * [🧑‍💼 libp2p Network Resource Manager (`Swarm.ResourceMgr`)](#------libp2p-network-resource-manager---swarmresourcemgr--)
   * [🔃 Relay V2 client with auto discovery (`Swarm.RelayClient`)](#---relay-v2-client-with-auto-discovery---swarmrelayclient--)
@@ -34,6 +33,7 @@ Below is an outline of all that is in this release, so you get a sense of all th
   * [🧹 Using standard IPLD codec names across the CLI/HTTP API](#---using-standard-ipld-codec-names-across-the-cli-http-api)
   * [🐳 Custom initialization for Docker](#---custom-initialization-for-docker)
   * [RPC API docs for experimental and deprecated commands](#rpc-api-docs-for-experimental-and-deprecated-commands)
+  * [Yamux over Mplex](#yamux-over-mplex)
 
 ### 🛠 BREAKING CHANGES
 
@@ -282,10 +282,9 @@ $ ipfs name pubsub state --help
 WARNING:   EXPERIMENTAL, command may change in future releases
 ```
 
-### Art Interlude
+#### Yamux over Mplex
 
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Anonymous_Flemish_master_-_Young_woman_on_her_deathbed.jpg/800px-Anonymous_Flemish_master_-_Young_woman_on_her_deathbed.jpg?20150401134921)](https://commons.wikimedia.org/wiki/File:Anonymous_Flemish_master_-_Young_woman_on_her_deathbed.jpg)
-_IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, circa 1621
+The more fully featured yamux stream multiplexer is now prioritized over mplex for outgoing connections.
 
 ### Changelog
 
@@ -293,6 +292,16 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
 <summary>Full Changelog</summary>
 
 - github.com/ipfs/go-ipfs:
+  - docs: v0.13.0 changelog
+  - docs(tracing): update env var docs for new tracing env vars
+  - feat: enable Resource Manager by default
+  - chore: Update test/dependencies to match go-ipfs dependencies. (#8928) ([ipfs/go-ipfs#8928](https://github.com/ipfs/go-ipfs/pull/8928))
+  - chore: fix linting errors (#8930) ([ipfs/go-ipfs#8930](https://github.com/ipfs/go-ipfs/pull/8930))
+  - docs: Swarm.ResourceMgr.Limits
+  - feat: EnableHolePunching by default ([ipfs/go-ipfs#8748](https://github.com/ipfs/go-ipfs/pull/8748))
+  - ci: add more golang strictness checks ([ipfs/go-ipfs#8931](https://github.com/ipfs/go-ipfs/pull/8931))
+  - feat(gateway): Gateway.FastDirIndexThreshold (#8853) ([ipfs/go-ipfs#8853](https://github.com/ipfs/go-ipfs/pull/8853))
+  - docs: replace all git.io links with their actual URLs
   - feat: relay v2 discovery (go-libp2p v0.19.0) (#8868) ([ipfs/go-ipfs#8868](https://github.com/ipfs/go-ipfs/pull/8868))
   - fix(cmds): add: reject files with different import dir
   - chore: mark 'log tail' experimental (#8912) ([ipfs/go-ipfs#8912](https://github.com/ipfs/go-ipfs/pull/8912))
@@ -390,6 +399,53 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
   - v1.2.0
   - refactor: follow the happy left practice in Filestore.DeleteBlock
   - Use ipld.ErrNotFound
+- github.com/ipfs/go-graphsync (v0.11.0 -> v0.13.1):
+  - docs(CHANGELOG): update for v0.13.1
+  - feat(ipld): wrap bindnode with panic protection (#368) ([ipfs/go-graphsync#368](https://github.com/ipfs/go-graphsync/pull/368))
+  - docs(CHANGELOG): update for v0.13.0 (#366) ([ipfs/go-graphsync#366](https://github.com/ipfs/go-graphsync/pull/366))
+  - fix(impl): delete file
+  - Minimal alternate metadata type support (#365) ([ipfs/go-graphsync#365](https://github.com/ipfs/go-graphsync/pull/365))
+  - Fix unixfs fetch (#364) ([ipfs/go-graphsync#364](https://github.com/ipfs/go-graphsync/pull/364))
+  - [Feature] UUIDs, protocol versioning, v2 protocol w/ dag-cbor messaging (#332) ([ipfs/go-graphsync#332](https://github.com/ipfs/go-graphsync/pull/332))
+  - feat(CHANGELOG): update for v0.12.0
+  - Use do not send blocks for pause/resume & prevent processing of blocks on cancelled requests (#333) ([ipfs/go-graphsync#333](https://github.com/ipfs/go-graphsync/pull/333))
+  - Support unixfs reification in default linksystem (#329) ([ipfs/go-graphsync#329](https://github.com/ipfs/go-graphsync/pull/329))
+  - Don't run hooks on blocks we didn't have (#331) ([ipfs/go-graphsync#331](https://github.com/ipfs/go-graphsync/pull/331))
+  - feat(responsemanager): trace full messages via links to responses (#325) ([ipfs/go-graphsync#325](https://github.com/ipfs/go-graphsync/pull/325))
+  - chore(requestmanager): rename processResponses internals for consistency (#328) ([ipfs/go-graphsync#328](https://github.com/ipfs/go-graphsync/pull/328))
+  - Response message tracing (#327) ([ipfs/go-graphsync#327](https://github.com/ipfs/go-graphsync/pull/327))
+  - fix(testutil): fix tracing span collection (#324) ([ipfs/go-graphsync#324](https://github.com/ipfs/go-graphsync/pull/324))
+  - docs(CHANGELOG): update for v0.11.5 release
+  - feat(requestmanager): add tracing for response messages & block processing (#322) ([ipfs/go-graphsync#322](https://github.com/ipfs/go-graphsync/pull/322))
+  - ipldutil: simplify state synchronization, add docs (#300) ([ipfs/go-graphsync#300](https://github.com/ipfs/go-graphsync/pull/300))
+  - docs(CHANGELOG): update for v0.11.4 release
+  - Scrub response errors (#320) ([ipfs/go-graphsync#320](https://github.com/ipfs/go-graphsync/pull/320))
+  - fix(responsemanager): remove unused maxInProcessRequests parameter (#319) ([ipfs/go-graphsync#319](https://github.com/ipfs/go-graphsync/pull/319))
+  - feat(responsemanager): allow ctx augmentation via queued request hook
+  - make go test with coverpkg=./...
+  - docs(CHANGELOG): update for v0.11.3
+  - Merge tag 'v0.10.9'
+  - feat: add basic tracing for responses (#291) ([ipfs/go-graphsync#291](https://github.com/ipfs/go-graphsync/pull/291))
+  - fix(impl): remove accidental legacy field (#310) ([ipfs/go-graphsync#310](https://github.com/ipfs/go-graphsync/pull/310))
+  - docs(CHANGELOG): update for v0.11.2
+  - Merge branch 'release/v0.10.8'
+  - feat(taskqueue): fix race on peer state gather (#303) ([ipfs/go-graphsync#303](https://github.com/ipfs/go-graphsync/pull/303))
+  - feat(responsemanager): clarify response completion (#304) ([ipfs/go-graphsync#304](https://github.com/ipfs/go-graphsync/pull/304))
+  - docs(CHANGELOG): update for v0.11.1
+  - Merge branch 'release/v0.10.7'
+  - Expose task queue diagnostics (#302) ([ipfs/go-graphsync#302](https://github.com/ipfs/go-graphsync/pull/302))
+  - chore: short-circuit unnecessary message processing
+  - Add a bit of logging (#301) ([ipfs/go-graphsync#301](https://github.com/ipfs/go-graphsync/pull/301))
+  - Peer Stats function (#298) ([ipfs/go-graphsync#298](https://github.com/ipfs/go-graphsync/pull/298))
+  - fix: use sync.Cond to handle no-task blocking wait (#299) ([ipfs/go-graphsync#299](https://github.com/ipfs/go-graphsync/pull/299))
+  - ipldutil: use chooser APIs from dagpb and basicnode (#292) ([ipfs/go-graphsync#292](https://github.com/ipfs/go-graphsync/pull/292))
+  - testutil/chaintypes: simplify maintenance of codegen (#294) ([ipfs/go-graphsync#294](https://github.com/ipfs/go-graphsync/pull/294))
+  - fix(test): increase 1s timeouts to 2s for slow CI (#289) ([ipfs/go-graphsync#289](https://github.com/ipfs/go-graphsync/pull/289))
+  - docs(tests): document tracing test helper utilities
+  - feat: add basic OT tracing for incoming requests
+  - fix(responsemanager): make fix more global
+  - fix(responsemanager): fix flaky tests
+  - feat: add WorkerTaskQueue#WaitForNoActiveTasks() for tests (#284) ([ipfs/go-graphsync#284](https://github.com/ipfs/go-graphsync/pull/284))
 - github.com/ipfs/go-ipfs-blockstore (v1.1.2 -> v1.2.0):
   - v0.2.0 ([ipfs/go-ipfs-blockstore#98](https://github.com/ipfs/go-ipfs-blockstore/pull/98))
   - s/log/logger
@@ -412,6 +468,14 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
 - github.com/ipfs/go-ipfs-exchange-offline (v0.1.1 -> v0.2.0):
   - v0.2.0
   - Improve NotFound error description
+- github.com/ipfs/go-ipfs-files (v0.0.9 -> v0.1.1):
+  - Release v0.1.1
+  - fix: add dragonfly build option for filewriter flags
+  - fix: add freebsd build option for filewriter flags
+  - Release v0.1.0
+  - docs: fix community CONTRIBUTING.md link (#45) ([ipfs/go-ipfs-files#45](https://github.com/ipfs/go-ipfs-files/pull/45))
+  - chore(filewriter): cleanup writes (#43) ([ipfs/go-ipfs-files#43](https://github.com/ipfs/go-ipfs-files/pull/43))
+  - sync: update CI config files (#44) ([ipfs/go-ipfs-files#44](https://github.com/ipfs/go-ipfs-files/pull/44))
 - github.com/ipfs/go-ipld-format (v0.2.0 -> v0.4.0):
   - chore: release version v0.4.0
   - feat: use new more clearer format in ErrNotFound
@@ -425,6 +489,8 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
   - remove Makefile ([ipfs/go-ipld-format#59](https://github.com/ipfs/go-ipld-format/pull/59))
   - fix staticcheck ([ipfs/go-ipld-format#60](https://github.com/ipfs/go-ipld-format/pull/60))
   - Allowing custom NavigableNode implementations ([ipfs/go-ipld-format#58](https://github.com/ipfs/go-ipld-format/pull/58))
+- github.com/ipfs/go-ipld-legacy (v0.1.0 -> v0.1.1):
+  - feat(node): add json.Marshaller method ([ipfs/go-ipld-legacy#7](https://github.com/ipfs/go-ipld-legacy/pull/7))
 - github.com/ipfs/go-log/v2 (v2.3.0 -> v2.5.1):
   - feat: add logger option to skip a number of stack frames ([ipfs/go-log#132](https://github.com/ipfs/go-log/pull/132))
   - release v2.5.0 (#131) ([ipfs/go-log#131](https://github.com/ipfs/go-log/pull/131))
@@ -444,14 +510,34 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
   - fix: CIDv1 error with go-libp2p 0.19 (#32) ([ipfs/go-namesys#32](https://github.com/ipfs/go-namesys/pull/32))
   - feat: add tracing (#30) ([ipfs/go-namesys#30](https://github.com/ipfs/go-namesys/pull/30))
   - fix(publisher): fix garbled code output (#28) ([ipfs/go-namesys#28](https://github.com/ipfs/go-namesys/pull/28))
-- github.com/ipfs/go-path (v0.2.1 -> v0.2.2):
+- github.com/ipfs/go-path (v0.2.1 -> v0.3.0):
+  - Release v0.3.0 ([ipfs/go-path#55](https://github.com/ipfs/go-path/pull/55))
+  - Resolver: convert to interface. ([ipfs/go-path#53](https://github.com/ipfs/go-path/pull/53))
   - Release v0.2.2 (#52) ([ipfs/go-path#52](https://github.com/ipfs/go-path/pull/52))
   - chore: improve error message for invalid ipfs paths ([ipfs/go-path#51](https://github.com/ipfs/go-path/pull/51))
+- github.com/ipfs/go-peertaskqueue (v0.7.0 -> v0.7.1):
+  - Add topic inspector ([ipfs/go-peertaskqueue#20](https://github.com/ipfs/go-peertaskqueue/pull/20))
 - github.com/ipfs/go-pinning-service-http-client (v0.1.0 -> v0.1.1):
   - chore: release v0.1.1
   - fix: error handling while enumerating pins
   - sync: update CI config files (#15) ([ipfs/go-pinning-service-http-client#15](https://github.com/ipfs/go-pinning-service-http-client/pull/15))
   - Resolve lint issues prior to CI integration
+- github.com/ipfs/go-unixfsnode (v1.1.3 -> v1.4.0):
+  - 1.4.0 release ([ipfs/go-unixfsnode#29](https://github.com/ipfs/go-unixfsnode/pull/29))
+  - Partial file test ([ipfs/go-unixfsnode#26](https://github.com/ipfs/go-unixfsnode/pull/26))
+  - Add unixfs to UnixFS path selector tail ([ipfs/go-unixfsnode#28](https://github.com/ipfs/go-unixfsnode/pull/28))
+  - release v1.3.0 ([ipfs/go-unixfsnode#25](https://github.com/ipfs/go-unixfsnode/pull/25))
+  - add AsLargeBytes support to unixfs files (#24) ([ipfs/go-unixfsnode#24](https://github.com/ipfs/go-unixfsnode/pull/24))
+  - fix: add extra test to span the shard/no-shard boundary
+  - fix: more Tsize fixes, fix HAMT and make it match go-unixfs output
+  - fix: encode Tsize correctly everywhere (using wraped LinkSystem)
+  - docs(version): tag 1.2.0
+  - Update deps for ADL selectors ([ipfs/go-unixfsnode#20](https://github.com/ipfs/go-unixfsnode/pull/20))
+  - add license (#17) ([ipfs/go-unixfsnode#17](https://github.com/ipfs/go-unixfsnode/pull/17))
+  - handle empty files (#15) ([ipfs/go-unixfsnode#15](https://github.com/ipfs/go-unixfsnode/pull/15))
+  - Add ADL/single-node-view of a full unixFS file. (#14) ([ipfs/go-unixfsnode#14](https://github.com/ipfs/go-unixfsnode/pull/14))
+  - sync: update CI config files (#13) ([ipfs/go-unixfsnode#13](https://github.com/ipfs/go-unixfsnode/pull/13))
+  - Add builder for unixfs dags (#12) ([ipfs/go-unixfsnode#12](https://github.com/ipfs/go-unixfsnode/pull/12))
 - github.com/ipfs/interface-go-ipfs-core (v0.5.2 -> v0.7.0):
   - refactor(block): CIDv1 and BlockPutSettings CidPrefix (#80) ([ipfs/interface-go-ipfs-core#80](https://github.com/ipfs/interface-go-ipfs-core/pull/80))
   - chore: release v0.6.2
@@ -555,7 +641,8 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
   - Perform test locally instead of using a live dns resolution ([libp2p/go-doh-resolver#13](https://github.com/libp2p/go-doh-resolver/pull/13))
   - sync: update CI config files (#7) ([libp2p/go-doh-resolver#7](https://github.com/libp2p/go-doh-resolver/pull/7))
   - fix staticcheck ([libp2p/go-doh-resolver#6](https://github.com/libp2p/go-doh-resolver/pull/6))
-- github.com/libp2p/go-libp2p (v0.16.0 -> v0.19.0):
+- github.com/libp2p/go-libp2p (v0.16.0 -> v0.19.1):
+  - fix race condition in holepunch service, release v0.19.1 ([libp2p/go-libp2p#1474](https://github.com/libp2p/go-libp2p/pull/1474))
   - release v0.19.0 (#1408) ([libp2p/go-libp2p#1408](https://github.com/libp2p/go-libp2p/pull/1408))
   - Close resource manager when host closes (#1343) ([libp2p/go-libp2p#1343](https://github.com/libp2p/go-libp2p/pull/1343))
   - fix flaky reconnect test (#1406) ([libp2p/go-libp2p#1406](https://github.com/libp2p/go-libp2p/pull/1406))
@@ -644,25 +731,6 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
   - fix race condition in TestActiveRelay ([libp2p/go-libp2p-circuit#133](https://github.com/libp2p/go-libp2p-circuit/pull/133))
   - minor staticcheck fixes ([libp2p/go-libp2p-circuit#126](https://github.com/libp2p/go-libp2p-circuit/pull/126))
   - Timeout Stream Read ([libp2p/go-libp2p-circuit#124](https://github.com/libp2p/go-libp2p-circuit/pull/124))
-- github.com/libp2p/go-libp2p-connmgr (v0.2.4 -> v0.3.2-0.20220115145817-a7820a5879c7):
-  - hide watchdog behind cgo flag
-  - release v0.3.1 ([libp2p/go-libp2p-connmgr#102](https://github.com/libp2p/go-libp2p-connmgr/pull/102))
-  - make emergency trimming optional, disabled by default ([libp2p/go-libp2p-connmgr#101](https://github.com/libp2p/go-libp2p-connmgr/pull/101))
-  - release v0.3.0 (#97) ([libp2p/go-libp2p-connmgr#97](https://github.com/libp2p/go-libp2p-connmgr/pull/97))
-  - aggressively trim connections when we're running out of memory ([libp2p/go-libp2p-connmgr#86](https://github.com/libp2p/go-libp2p-connmgr/pull/86))
-  - fix flaky tests caused by super short silence periods ([libp2p/go-libp2p-connmgr#96](https://github.com/libp2p/go-libp2p-connmgr/pull/96))
-  - sync: update CI config files (#94) ([libp2p/go-libp2p-connmgr#94](https://github.com/libp2p/go-libp2p-connmgr/pull/94))
-  - introduce WithGracePeriod and WithSilencePeriod configuration options ([libp2p/go-libp2p-connmgr#93](https://github.com/libp2p/go-libp2p-connmgr/pull/93))
-  - remove check for the last trim time when trimming ([libp2p/go-libp2p-connmgr#92](https://github.com/libp2p/go-libp2p-connmgr/pull/92))
-  - add an error return value to the constructor ([libp2p/go-libp2p-connmgr#87](https://github.com/libp2p/go-libp2p-connmgr/pull/87))
-  - fix race condition in getConnsToClose ([libp2p/go-libp2p-connmgr#85](https://github.com/libp2p/go-libp2p-connmgr/pull/85))
-  - unexport the config ([libp2p/go-libp2p-connmgr#90](https://github.com/libp2p/go-libp2p-connmgr/pull/90))
-  - update go-log to v2 ([libp2p/go-libp2p-connmgr#88](https://github.com/libp2p/go-libp2p-connmgr/pull/88))
-  - make sure the background go routine has stopped when closing ([libp2p/go-libp2p-connmgr#89](https://github.com/libp2p/go-libp2p-connmgr/pull/89))
-  - chore: remove codecov config (#91) ([libp2p/go-libp2p-connmgr#91](https://github.com/libp2p/go-libp2p-connmgr/pull/91))
-  - fix build ([libp2p/go-libp2p-connmgr#84](https://github.com/libp2p/go-libp2p-connmgr/pull/84))
-  - fix: trim connections every gracePeriod/2 ([libp2p/go-libp2p-connmgr#52](https://github.com/libp2p/go-libp2p-connmgr/pull/52))
-  - fix staticcheck ([libp2p/go-libp2p-connmgr#78](https://github.com/libp2p/go-libp2p-connmgr/pull/78))
 - github.com/libp2p/go-libp2p-core (v0.11.0 -> v0.15.1):
   - release v0.15.1 (#246) ([libp2p/go-libp2p-core#246](https://github.com/libp2p/go-libp2p-core/pull/246))
   - feat: harden encoding/decoding functions against panics (#243) ([libp2p/go-libp2p-core#243](https://github.com/libp2p/go-libp2p-core/pull/243))
@@ -702,6 +770,11 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
   - when passed an event bus, automatically clean up disconnected peers ([libp2p/go-libp2p-peerstore#184](https://github.com/libp2p/go-libp2p-peerstore/pull/184))
   - implement the RemovePeer method ([libp2p/go-libp2p-peerstore#174](https://github.com/libp2p/go-libp2p-peerstore/pull/174))
   - chore: update go-log to v2 (#179) ([libp2p/go-libp2p-peerstore#179](https://github.com/libp2p/go-libp2p-peerstore/pull/179))
+- github.com/libp2p/go-libp2p-pubsub (v0.6.0 -> v0.6.1):
+  - add tests for clearing the peerPromises map
+  - properly clear the peerPromises map
+  - more info
+  - add to MinTopicSize godoc re topic size
 - github.com/libp2p/go-libp2p-quic-transport (v0.15.0 -> v0.17.0):
   - release v0.17.0 (#269) ([libp2p/go-libp2p-quic-transport#269](https://github.com/libp2p/go-libp2p-quic-transport/pull/269))
   - update quic-go to v0.27.0 (#264) ([libp2p/go-libp2p-quic-transport#264](https://github.com/libp2p/go-libp2p-quic-transport/pull/264))
@@ -917,42 +990,42 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
 
 | Contributor | Commits | Lines ± | Files Changed |
 |-------------|---------|---------|---------------|
-| Jorropo | 16 | +79107/-72184 | 25 |
-| Marten Seemann | 367 | +15210/-12905 | 882 |
-| vyzo | 135 | +7953/-1774 | 234 |
-| Will Scott | 36 | +2772/-1783 | 90 |
-| Daniel Martí | 33 | +2993/-862 | 89 |
-| Will | 21 | +3004/-354 | 95 |
-| Steven Allen | 88 | +2474/-868 | 136 |
-| Marcin Rataj | 25 | +2249/-804 | 61 |
+| Marten Seemann | 350 | +14631/-12574 | 847 |
+| Rod Vagg | 36 | +9362/-4300 | 231 |
+| vyzo | 135 | +7963/-1785 | 233 |
+| hannahhoward | 40 | +3761/-1652 | 175 |
+| Will | 26 | +4771/-404 | 118 |
+| Will Scott | 39 | +2885/-1784 | 93 |
+| Daniel Martí | 36 | +3163/-996 | 114 |
+| Adin Schmahmann | 43 | +3346/-522 | 114 |
+| Steven Allen | 87 | +2465/-867 | 135 |
+| Marcin Rataj | 26 | +2257/-815 | 62 |
 | Masih H. Derkani | 14 | +2068/-861 | 71 |
-| Adin Schmahmann | 34 | +2264/-484 | 75 |
-| Gus Eggert | 20 | +2102/-590 | 87 |
-| Lucas Molas | 24 | +1288/-520 | 70 |
+| Gus Eggert | 22 | +2197/-680 | 94 |
+| Lucas Molas | 26 | +1596/-576 | 88 |
 | Raúl Kripalani | 18 | +1519/-271 | 38 |
-| Rod Vagg | 18 | +1392/-395 | 36 |
 | Brian Tiger Chow | 20 | +833/-379 | 40 |
 | Jeromy Johnson | 53 | +646/-302 | 83 |
 | Łukasz Magiera | 26 | +592/-245 | 43 |
 | Artem Mikheev | 2 | +616/-120 | 5 |
 | Franky W | 2 | +49/-525 | 9 |
 | Laurent Senta | 3 | +468/-82 | 52 |
+| Hector Sanjuan | 29 | +245/-176 | 58 |
 | Juan Batiz-Benet | 8 | +285/-80 | 18 |
-| Hector Sanjuan | 26 | +206/-154 | 55 |
 | Justin Johnson | 2 | +181/-88 | 2 |
 | Thibault Meunier | 5 | +216/-28 | 8 |
 | Aayush Rajasekaran | 2 | +133/-103 | 11 |
 | James Wetter | 2 | +234/-1 | 2 |
 | gammazero | 7 | +140/-84 | 12 |
+| web3-bot | 35 | +157/-66 | 61 |
 | Rachel Chen | 2 | +165/-57 | 17 |
-| web3-bot | 34 | +154/-66 | 60 |
 | Toby | 2 | +107/-86 | 11 |
+| Jorropo | 16 | +97/-96 | 24 |
 | Dominic Della Valle | 4 | +148/-33 | 6 |
 | Ian Davis | 2 | +152/-28 | 6 |
 | Kyle Huntsman | 2 | +172/-6 | 5 |
 | huoju | 4 | +127/-41 | 6 |
 | Jeromy | 19 | +71/-58 | 31 |
-| hannahhoward | 4 | +111/-17 | 6 |
 | Lars Gierth | 12 | +63/-54 | 20 |
 | Eric Myhre | 3 | +95/-15 | 8 |
 | Caian Benedicto | 1 | +69/-12 | 6 |
@@ -972,9 +1045,12 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
 | Tommi Virtanen | 3 | +23/-9 | 4 |
 | tarekbadr | 1 | +30/-1 | 1 |
 | Petar Maymounkov | 2 | +30/-0 | 4 |
+| Antonio Navarro Perez | 2 | +15/-13 | 7 |
 | rht | 3 | +17/-10 | 4 |
 | Miguel Mota | 1 | +23/-0 | 1 |
 | Manfred Touron | 1 | +21/-2 | 2 |
+| watjurk | 1 | +17/-5 | 1 |
+| SukkaW | 1 | +11/-11 | 5 |
 | Ho-Sheng Hsiao | 2 | +11/-10 | 6 |
 | chblodg | 1 | +18/-2 | 1 |
 | Friedel Ziegelmayer | 2 | +18/-0 | 2 |
@@ -995,12 +1071,13 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
 | Eclésio Junior | 1 | +8/-0 | 1 |
 | godcong | 3 | +4/-3 | 3 |
 | jwh | 1 | +6/-0 | 2 |
-| dependabot[bot] | 1 | +3/-3 | 1 |
 | Volker Mische | 1 | +4/-2 | 1 |
+| rene | 2 | +3/-2 | 2 |
 | keks | 1 | +5/-0 | 1 |
 | Hlib | 1 | +4/-1 | 2 |
 | Arash Payan | 1 | +5/-0 | 1 |
 | siiky | 1 | +2/-2 | 1 |
+| Wayback Archiver | 1 | +2/-2 | 1 |
 | Ju Huo | 1 | +2/-2 | 1 |
 | Ivan | 2 | +2/-2 | 2 |
 | Ettore Di Giacinto | 2 | +3/-1 | 2 |
@@ -1019,13 +1096,14 @@ _IPFS Steward after finishing writing go-ipfs Release Notes,_ oil on canvas, cir
 | David Florness | 1 | +1/-1 | 1 |
 | Coenie Beyers | 1 | +1/-1 | 1 |
 | Benedikt Spies | 1 | +1/-1 | 1 |
+| Abdul Rauf | 1 | +1/-1 | 1 |
 | makeworld | 1 | +1/-0 | 1 |
 | ignoramous | 1 | +0/-1 | 1 |
+| galargh | 1 | +1/-0 | 1 |
 | Omicron166 | 1 | +0/-1 | 1 |
 | Jan Winkelmann | 1 | +1/-0 | 1 |
 | Dr Ian Preston | 1 | +1/-0 | 1 |
 | Baptiste Jonglez | 1 | +1/-0 | 1 |
-
 
 ## v0.12.2 and v0.11.1 2022-04-08
 
