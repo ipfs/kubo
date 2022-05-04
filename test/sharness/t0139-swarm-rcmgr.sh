@@ -17,39 +17,9 @@ test_expect_success 'disconnected: swarm stats requires running daemon' '
   test_should_contain "missing ResourceMgr" actual
 '
 
-# swarm limit|stats should fail in online mode by default
-# because Resource Manager is opt-in
+# swarm limit|stats should succeed in online mode by default
+# because Resource Manager is opt-out
 test_launch_ipfs_daemon
-
-test_expect_success 'ResourceMgr disabled by default: swarm limit requires Swarm.ResourceMgr.Enabled' '
-  test_expect_code 1 ipfs swarm limit system 2> actual &&
-  test_should_contain "missing ResourceMgr" actual
-'
-test_expect_success 'ResourceMgr disabled by default: swarm stats requires Swarm.ResourceMgr.Enabled' '
-  test_expect_code 1 ipfs swarm stats all 2> actual &&
-  test_should_contain "missing ResourceMgr" actual
-'
-
-test_kill_ipfs_daemon
-
-test_expect_success "setting an invalid limit should result in a failure" "
-  test_expect_code 1 ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 'asdf' 2> actual &&
-  test_should_contain 'failed to unmarshal' actual
-"
-
-# swarm limit|stat should work when Swarm.ResourceMgr.Enabled
-test_expect_success "test enabling resource manager" "
-  ipfs config --json Swarm.ResourceMgr.Enabled true &&
-  ipfs config --json Swarm.ResourceMgr &&
-  jq -e '.Swarm.ResourceMgr.Enabled == true' < \"$IPFS_PATH/config\"
-"
-
-test_launch_ipfs_daemon
-
-test_expect_success "test setting system conns limit" "
-  ipfs config --json Swarm.ResourceMgr.Enabled true &&
-  ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 99999
-"
 
 # every scope has the same fields, so we only inspect System
 test_expect_success 'ResourceMgr enabled: swarm limit' '
@@ -79,13 +49,18 @@ test_expect_success 'ResourceMgr enabled: swarm stats' '
 # shut down the daemon, set a limit in the config, and verify that it's applied
 test_kill_ipfs_daemon
 
-test_expect_success "set system conn limit" "
+test_expect_success "Set system conns limit while daemon is not running" "
   ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 99999
+"
+
+test_expect_success "Set an invalid limit, which should result in a failure" "
+  test_expect_code 1 ipfs config --json Swarm.ResourceMgr.Limits.System.Conns 'asdf' 2> actual &&
+  test_should_contain 'failed to unmarshal' actual
 "
 
 test_launch_ipfs_daemon
 
-test_expect_success 'ResourceMgr enabled: swarm limit' '
+test_expect_success 'Ensure the new system conns limit is applied' '
   ipfs swarm limit system --enc=json | tee json &&
   jq -e ".Conns == 99999" < json
 '
@@ -148,6 +123,25 @@ test_expect_success 'Set limit for peer scope with an invalid peer ID' '
   echo "{\"Memory\": 99}" > invalid-peer-id.json &&
   test_expect_code 1 ipfs swarm limit peer:foo invalid-peer-id.json 2> actual &&
   test_should_contain "invalid peer ID" actual
+'
+
+test_kill_ipfs_daemon
+
+# test correct behavior when resource manager is disabled
+test_expect_success 'Disable resource manager' '
+  ipfs config --bool Swarm.ResourceMgr.Enabled false
+'
+
+test_launch_ipfs_daemon
+
+test_expect_success 'Swarm limit should fail since RM is disabled' '
+  test_expect_code 1 ipfs swarm limit system 2> actual &&
+  test_should_contain "missing ResourceMgr" actual
+'
+
+test_expect_success 'Swarm stats should fail since RM is disabled' '
+  test_expect_code 1 ipfs swarm stats all 2> actual &&
+  test_should_contain "missing ResourceMgr" actual
 '
 
 test_kill_ipfs_daemon

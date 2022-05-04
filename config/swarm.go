@@ -138,7 +138,7 @@ type ConnMgr struct {
 // ResourceMgr defines configuration options for the libp2p Network Resource Manager
 // <https://github.com/libp2p/go-libp2p-resource-manager#readme>
 type ResourceMgr struct {
-	// Enables the Network Resource Manager feature
+	// Enables the Network Resource Manager feature, default to on.
 	Enabled Flag                      `json:",omitempty"`
 	Limits  *rcmgr.BasicLimiterConfig `json:",omitempty"`
 }

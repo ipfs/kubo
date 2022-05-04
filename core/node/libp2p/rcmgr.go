@@ -29,8 +29,7 @@ func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (netw
 		var manager network.ResourceManager
 		var opts Libp2pOpts
 
-		// Config Swarm.ResourceMgr.Enabled decides if we run a real manager
-		enabled := cfg.ResourceMgr.Enabled.WithDefault(false)
+		enabled := cfg.ResourceMgr.Enabled.WithDefault(true)
 
 		/// ENV overrides Config (if present)
 		switch os.Getenv("LIBP2P_RCMGR") {
