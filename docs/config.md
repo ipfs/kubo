@@ -1632,13 +1632,10 @@ The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resour
 and tracking recource usage over time.
 
 #### `Swarm.ResourceMgr.Enabled`
-
-**EXPERIMENTAL**: this feature is disabled by default, use with caution.
-
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
