@@ -75,7 +75,7 @@ TOPIC AND DATA ENCODING
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", true, false, "Name of topic to subscribe to."),
+		cmds.StringArg("topic", true, false, "Name of topic to subscribe to (multibase encoded when sent over HTTP RPC)."),
 	},
 	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -170,7 +170,7 @@ HTTP RPC ENCODING
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", true, false, "Topic to publish to."),
+		cmds.StringArg("topic", true, false, "Topic to publish to (multibase encoded when sent over HTTP RPC)."),
 		cmds.FileArg("data", true, false, "The data to be published.").EnableStdin(),
 	},
 	PreRun: urlArgsEncoder,
