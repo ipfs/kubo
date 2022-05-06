@@ -247,8 +247,6 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 		cancel()
 		// Wait until ipfs is stopped
 		<-node.Context().Done()
-
-		fmt.Println("migration peer", node.Identity, "shutdown")
 	}
 
 	addrs, err := ipfs.Swarm().LocalAddrs(ctx)
