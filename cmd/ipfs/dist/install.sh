@@ -15,6 +15,7 @@ is_write_perm_missing=""
 for raw in $binpaths; do
   # Expand the $HOME variable.
   binpath=$(eval echo "$raw")
+  mkdir -p "$binpath"
   if mv "$bin" "$binpath/ipfs" ; then
     echo "Moved $bin to $binpath"
     exit 0
