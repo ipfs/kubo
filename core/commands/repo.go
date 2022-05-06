@@ -406,9 +406,12 @@ var repoMigrateCmd = &cmds.Command{
 		allowDowngrade, _ := req.Options[repoAllowDowngradeOptionName].(bool)
 
 		_, err := fsrepo.Open(cctx.ConfigRoot)
-		if err != fsrepo.ErrNeedMigration {
+
+		if err == nil {
 			fmt.Println("Repo does not require migration.")
 			return nil
+		} else if err != fsrepo.ErrNeedMigration {
+			return err
 		}
 
 		fmt.Println("Found outdated fs-repo, starting migration.")

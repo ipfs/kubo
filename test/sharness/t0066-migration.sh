@@ -93,7 +93,7 @@ test_expect_success "output looks good" '
   grep "Success: fs-repo migrated to version $IPFS_REPO_VER" true_out > /dev/null
 '
 
-test_expect_success "manually reset repo version to 11" '
+test_expect_success "manually reset repo version to latest" '
   echo "$IPFS_REPO_VER" > "$IPFS_PATH"/version
 '
 
@@ -104,6 +104,22 @@ test_expect_success "detect repo does not need migration" '
 test_expect_success "output looks good" '
   grep "Repo does not require migration" migrate_out > /dev/null
 '
-cat migrate_out
+
+# ensure that we get a lock error if we need to migrate and the daemon is running
+test_launch_ipfs_daemon
+
+test_expect_success "manually reset repo version to $MIGRATION_START" '
+  echo "$MIGRATION_START" > "$IPFS_PATH"/version
+'
+
+test_expect_success "ipfs repo migrate fails" '
+  test_expect_code 1 ipfs repo migrate 2> migrate_out
+'
+
+test_expect_success "output looks good" '
+  grep "repo.lock" migrate_out > /dev/null
+'
+
+test_kill_ipfs_daemon
 
 test_done
