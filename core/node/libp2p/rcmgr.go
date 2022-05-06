@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"fmt"
+	"github.com/pbnjay/memory"
 	"os"
 	"path/filepath"
 	"strings"
@@ -409,19 +410,38 @@ func ResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) error
 		return nil
 	}
 
-	getDefaultBasicLimitConfig := func(limit rcmgr.BaseLimit, memory rcmgr.MemoryLimit) rcmgr.BasicLimitConfig {
+	// Retrieve the existing limit!
+	oldLimit, err := NetLimit(mgr, scope)
+	if err != nil {
+		return fmt.Errorf(" error retrieving existing limits: %w", err)
+	}
+
+	getDefaultBasicLimitConfig := func(limit rcmgr.BaseLimit, mem rcmgr.MemoryLimit) rcmgr.BasicLimitConfig {
 		var result rcmgr.BasicLimitConfig
-		result.Dynamic = true
-		result.MemoryFraction = memory.MemoryFraction
-		result.MinMemory = memory.MinMemory
-		result.MaxMemory = memory.MaxMemory
-		result.Streams = limit.Streams
-		result.StreamsInbound = limit.StreamsInbound
-		result.StreamsOutbound = limit.StreamsOutbound
-		result.Conns = limit.Conns
-		result.ConnsInbound = limit.ConnsInbound
-		result.ConnsOutbound = limit.ConnsOutbound
-		result.FD = limit.FD
+		switch oldLimit.Dynamic {
+		case true:
+			result.Dynamic = true
+			result.MemoryFraction = mem.MemoryFraction
+			result.MinMemory = mem.MinMemory
+			result.MaxMemory = mem.MaxMemory
+			result.Streams = limit.Streams
+			result.StreamsInbound = limit.StreamsInbound
+			result.StreamsOutbound = limit.StreamsOutbound
+			result.Conns = limit.Conns
+			result.ConnsInbound = limit.ConnsInbound
+			result.ConnsOutbound = limit.ConnsOutbound
+			result.FD = limit.FD
+		case false:
+			result.Dynamic = false
+			result.Memory = mem.GetMemory(int64(memory.TotalMemory()))
+			result.Streams = limit.Streams
+			result.StreamsInbound = limit.StreamsInbound
+			result.StreamsOutbound = limit.StreamsOutbound
+			result.Conns = limit.Conns
+			result.ConnsInbound = limit.ConnsInbound
+			result.ConnsOutbound = limit.ConnsOutbound
+			result.FD = limit.FD
+		}
 
 		return result
 	}

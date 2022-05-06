@@ -430,7 +430,7 @@ Changes made via command line are persisted in the Swarm.ResourceMgr.Limits fiel
 				return err
 			}
 		}
-		
+
 		// get scope limit
 		result, err := libp2p.NetLimit(node.ResourceManager, scope)
 		if err != nil {
