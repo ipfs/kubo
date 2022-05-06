@@ -1,10 +1,14 @@
 ---
 name: Testground PR Checker
 
-on: [push]
+on:
+  workflow_dispatch:
+  push:
+
 
 jobs:
   testground:
+    if: github.repository == 'ipfs/go-ipfs' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: ${{ matrix.composition_file }}
     strategy:
