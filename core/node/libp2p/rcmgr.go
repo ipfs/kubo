@@ -397,3 +397,53 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 
 	return nil
 }
+
+func ResetLimit(mgr network.ResourceManager, repo repo.Repo, scope string) error {
+	cfg, err := repo.Config()
+	if err != nil {
+		return fmt.Errorf("reading config to set limit: %w", err)
+	}
+
+	// Do not reset if there are no limits or the resource manager is not enabled
+	if !cfg.Swarm.ResourceMgr.Enabled.WithDefault(true) || cfg.Swarm.ResourceMgr.Limits == nil {
+		return nil
+	}
+
+	getDefaultBasicLimitConfig := func(limit rcmgr.BaseLimit, memory rcmgr.MemoryLimit) rcmgr.BasicLimitConfig {
+		var result rcmgr.BasicLimitConfig
+		result.Dynamic = true
+		result.MemoryFraction = memory.MemoryFraction
+		result.MinMemory = memory.MinMemory
+		result.MaxMemory = memory.MaxMemory
+		result.Streams = limit.Streams
+		result.StreamsInbound = limit.StreamsInbound
+		result.StreamsOutbound = limit.StreamsOutbound
+		result.Conns = limit.Conns
+		result.ConnsInbound = limit.ConnsInbound
+		result.ConnsOutbound = limit.ConnsOutbound
+		result.FD = limit.FD
+
+		return result
+	}
+
+	handleReset := func(limit rcmgr.BaseLimit, memory rcmgr.MemoryLimit) error {
+		limitConfig := getDefaultBasicLimitConfig(limit, memory)
+		return NetSetLimit(mgr, repo, scope, limitConfig)
+	}
+
+	defaultLimits := rcmgr.DefaultLimits
+	switch {
+	case scope == config.ResourceMgrSystemScope:
+		return handleReset(defaultLimits.SystemBaseLimit, defaultLimits.SystemMemory)
+	case scope == config.ResourceMgrTransientScope:
+		return handleReset(defaultLimits.TransientBaseLimit, defaultLimits.TransientMemory)
+	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
+		return handleReset(defaultLimits.ServiceBaseLimit, defaultLimits.ServiceMemory)
+	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
+		return handleReset(defaultLimits.ProtocolBaseLimit, defaultLimits.ProtocolMemory)
+	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
+		return handleReset(defaultLimits.PeerBaseLimit, defaultLimits.PeerMemory)
+	default:
+		return fmt.Errorf("invalid scope %q", scope)
+	}
+}
