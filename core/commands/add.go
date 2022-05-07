@@ -88,6 +88,31 @@ Buzhash or Rabin fingerprint chunker for content defined chunking by
 specifying buzhash or rabin-[min]-[avg]-[max] (where min/avg/max refer
 to the desired chunk sizes in bytes), e.g. 'rabin-262144-524288-1048576'.
 
+If you just specify 'rabin' without parameters the default sizes are
+'rabin-87381-262144-393216' and the parameters used for buzhash are
+always min: 131072 and max: 524288 with a mask of 65536. Buzhash
+is the significantly lighter algorithm with comparable performance.
+
+The parameters chosen won't be stored in the resulting data and the 
+chunker only determines the cut-marks - there's no special support
+needed for the reading client for any of these.
+Choosing a rolling chunker your data will be stored with a variable
+blocksizes in a file while with a fixed size-* all blocks will have
+the same length.
+
+Choosing a smaller chunksize might lead to better deduplication
+results if you store similar files, with the tradeoff of storage 
+overhead and may result in a slower transmission speed due to more
+objects which need to be transmitted.
+
+Files stored with different chunkers in IPFS will NOT deduplicate,
+as the hashes per chunk will be different. Resulting in different
+CIDs for each chunk and the resulting file.
+
+If you store large files with a chance of duplicate data stored in
+them in a "plaintext fashing" - not compressed, it is recommended to
+use a rolling chunker.
+
 The following examples use very small byte sizes to demonstrate the
 properties of the different chunkers on a small file. You'll likely
 want to use a 1024 times larger chunk sizes for most files.
