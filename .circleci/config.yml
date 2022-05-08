@@ -1,37 +1,26 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
-setup: true
-orbs:
-  continuation: circleci/continuation@0.2.0
+
+# Define a job to be invoked later in a workflow.
+# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  generate-params:
-    executor: continuation/default
+  say-hello:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:stable
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
       - checkout
-      - run: 
-          name: Generate params
-          # for builds on the ipfs/go-ipfs repo, use 2xlarge for faster builds
-          # but since this is not available for many contributors, we otherwise use medium
-          command: |
-            echo $CIRCLE_REPOSITORY_URL
-            if [ "$CIRCLE_REPOSITORY_URL" = 'git@github.com:ipfs/go-ipfs.git' ]; then
-                resource_class=2xlarge
-                make_jobs=10
-            else
-                resource_class=medium
-                make_jobs=3
-            fi
-            cat \<<- EOF > params.json
-              {
-                "resource_class": "$resource_class",
-                "make_jobs": "$make_jobs"
-              }
-            EOF
-            cat params.json
-      - continuation/continue:
-          parameters: params.json
-          configuration_path: .circleci/main.yml
+      - run:
+          name: "Say hello"
+          command: "echo Hello, World!"
+
+# Invoke jobs via workflows
+# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  version: 2
-  setup-workflow:
+  say-hello-workflow:
     jobs:
-      - generate-params
+      - say-hello
