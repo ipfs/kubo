@@ -1,8 +1,8 @@
 package dagcmd
 
 import (
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )

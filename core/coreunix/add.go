@@ -14,7 +14,6 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	pin "github.com/ipfs/go-ipfs-pinner"
 	posinfo "github.com/ipfs/go-ipfs-posinfo"
-	"github.com/ipfs/go-ipfs/tracing"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	dag "github.com/ipfs/go-merkledag"
@@ -25,6 +24,7 @@ import (
 	"github.com/ipfs/go-unixfs/importer/trickle"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/tracing"
 )
 
 var log = logging.Logger("coreunix")

@@ -9,7 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/backoff"
 	disc "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/kubo/core/node/helpers"
 	"go.uber.org/fx"
 )
 

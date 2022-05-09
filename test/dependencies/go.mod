@@ -1,4 +1,4 @@
-module github.com/ipfs/go-ipfs/test/dependencies
+module github.com/ipfs/kubo/test/dependencies
 
 go 1.17
 

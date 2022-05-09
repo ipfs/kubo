@@ -11,9 +11,9 @@ import (
 	"github.com/cheggaaa/pb"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipld "github.com/ipfs/go-ipld-format"
 	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	gocar "github.com/ipld/go-car"

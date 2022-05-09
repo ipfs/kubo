@@ -1,10 +1,17 @@
-# go-ipfs
+# kubo
 
-![banner](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
+![kubo](https://user-images.githubusercontent.com/157609/167471494-dee3a355-b551-4fbf-98e0-2eb76e867b48.png)
 
 [![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square&cacheSeconds=3600)](https://protocol.ai)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square&cacheSeconds=3600)](https://godoc.org/github.com/ipfs/go-ipfs)
 [![CircleCI](https://img.shields.io/circleci/build/github/ipfs/go-ipfs?style=flat-square&cacheSeconds=3600)](https://circleci.com/gh/ipfs/go-ipfs)
+
+## What is "IPFS Banana"?
+
+This repo provides "jack of all trades, master of none" implementation of IPFS.
+
+It should be enough to get you started, if you find it lacking, see [other implementations](https://ipfs.io/#install).
+
 
 ## What is IPFS?
 
@@ -12,8 +19,9 @@ IPFS is a global, versioned, peer-to-peer filesystem. It combines good ideas fro
 
 For more info see: https://docs.ipfs.io/introduction/overview/
 
+
 Before opening an issue, consider using one of the following locations to ensure you are opening your thread in the right place:
-  - go-ipfs _implementation_ bugs in [this repo](https://github.com/ipfs/go-ipfs/issues).
+  - kubo (previously named go-ipfs) _implementation_ bugs in [this repo](https://github.com/ipfs/go-ipfs/issues).
   - Documentation issues in [ipfs/docs issues](https://github.com/ipfs/ipfs-docs/issues).
   - IPFS _design_ in [ipfs/specs issues](https://github.com/ipfs/specs/issues).
   - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
@@ -35,48 +43,53 @@ Before opening an issue, consider using one of the following locations to ensure
 
 ## Table of Contents
 
-- [Security Issues](#security-issues)
-- [Install](#install)
-  - [System Requirements](#system-requirements)
-  - [Docker](#docker)
-  - [Native Linux package managers](#native-linux-package-managers)
-    - [ArchLinux](#archlinux)
-    - [Nix](#nix-linux)
-    - [Solus](#solus)
-    - [openSUSE](#opensuse)
-  - [Other package managers](#other-package-managers)
-    - [Guix](#guix)
-    - [Snap](#snap)
-    - [macOS package managers](#macos-package-managers)
-    - [MacPorts](#macports)
-    - [Nix](#nix-macos)
-    - [Homebrew](#homebrew)
-  - [Windows package managers](#windows-package-managers)
-    - [Chocolatey](#chocolatey)
-    - [Scoop](#scoop)
-  - [Install prebuilt binaries](#install-prebuilt-binaries)
-  - [Build from Source](#build-from-source)
-    - [Install Go](#install-go)
-    - [Download and Compile IPFS](#download-and-compile-ipfs)
-      - [Cross Compiling](#cross-compiling)
-      - [OpenSSL](#openssl)
-    - [Troubleshooting](#troubleshooting)
-  - [Updating go-ipfs](#updating-go-ipfs)
-    - [Using ipfs-update](#using-ipfs-update)
-    - [Downloading IPFS builds using IPFS](#downloading-ipfs-builds-using-ipfs)
-- [Getting Started](#getting-started)
-  - [Usage](#usage)
-  - [Some things to try](#some-things-to-try)
-  - [Troubleshooting](#troubleshooting-1)
-- [Packages](#packages)
-- [Development](#development)
-  - [Map of go-ipfs Subsystems](#map-of-go-ipfs-subsystems)
-  - [CLI, HTTP-API, Architecture Diagram](#cli-http-api-architecture-diagram)
-  - [Testing](#testing)
-  - [Development Dependencies](#development-dependencies)
-  - [Developer Notes](#developer-notes)
-- [Contributing](#contributing)
-- [License](#license)
+- [kubo](#kubo)
+  - [What is "IPFS Banana"?](#what-is-ipfs-banana)
+  - [What is IPFS?](#what-is-ipfs)
+  - [Next milestones](#next-milestones)
+  - [Table of Contents](#table-of-contents)
+  - [Security Issues](#security-issues)
+  - [Install](#install)
+    - [System Requirements](#system-requirements)
+    - [Docker](#docker)
+    - [Native Linux package managers](#native-linux-package-managers)
+      - [ArchLinux](#archlinux)
+      - [Nix](#nix)
+      - [Solus](#solus)
+      - [openSUSE](#opensuse)
+    - [Other package managers](#other-package-managers)
+      - [Guix](#guix)
+      - [Snap](#snap)
+      - [macOS package managers](#macos-package-managers)
+      - [MacPorts](#macports)
+      - [Nix](#nix-1)
+      - [Homebrew](#homebrew)
+    - [Windows package managers](#windows-package-managers)
+      - [Chocolatey](#chocolatey)
+      - [Scoop](#scoop)
+    - [Install prebuilt binaries](#install-prebuilt-binaries)
+    - [Build from Source](#build-from-source)
+      - [Install Go](#install-go)
+      - [Download and Compile IPFS](#download-and-compile-ipfs)
+        - [Cross Compiling](#cross-compiling)
+        - [OpenSSL](#openssl)
+      - [Troubleshooting](#troubleshooting)
+    - [Updating](#updating)
+      - [Using ipfs-update](#using-ipfs-update)
+      - [Downloading builds using IPFS](#downloading-builds-using-ipfs)
+  - [Getting Started](#getting-started)
+    - [Usage](#usage)
+    - [Some things to try](#some-things-to-try)
+    - [Troubleshooting](#troubleshooting-1)
+  - [Packages](#packages)
+  - [Development](#development)
+    - [Map of Implemented Subsystems](#map-of-implemented-subsystems)
+    - [CLI, HTTP-API, Architecture Diagram](#cli-http-api-architecture-diagram)
+    - [Testing](#testing)
+    - [Development Dependencies](#development-dependencies)
+    - [Developer Notes](#developer-notes)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Security Issues
 
@@ -310,7 +323,7 @@ dependencies as well.
 - Shell command completions can be generated with one of the `ipfs commands completion` subcommands. Read [docs/command-completion.md](docs/command-completion.md) to learn more.
 - See the [misc folder](https://github.com/ipfs/go-ipfs/tree/master/misc) for how to connect IPFS to systemd or whatever init system your distro uses.
 
-### Updating go-ipfs
+### Updating
 
 #### Using ipfs-update
 
@@ -318,9 +331,11 @@ IPFS has an updating tool that can be accessed through `ipfs update`. The tool i
 not installed alongside IPFS in order to keep that logic independent of the main
 codebase. To install `ipfs update`, [download it here](https://ipfs.io/ipns/dist.ipfs.io/#ipfs-update).
 
-#### Downloading IPFS builds using IPFS
+#### Downloading builds using IPFS
 
-List the available versions of go-ipfs:
+<!-- TODO: rename this section after we figure out if dist.ipfs.io sgould produce both /go-ipfs/ and /kubo/ -->
+
+List the available versions of "go-ipfs" implementation:
 
 ```
 $ ipfs cat /ipns/dist.ipfs.io/go-ipfs/versions
@@ -454,8 +469,8 @@ Some places to get you started on the codebase:
   - PubSub: https://github.com/libp2p/go-libp2p-pubsub
 - [IPFS : The `Add` command demystified](https://github.com/ipfs/go-ipfs/tree/master/docs/add-code-flow.md)
 
-### Map of go-ipfs Subsystems
-**WIP**: This is a high-level architecture diagram of the various sub-systems of go-ipfs. To be updated with how they interact. Anyone who has suggestions is welcome to comment [here](https://docs.google.com/drawings/d/1OVpBT2q-NtSJqlPX3buvjYhOnWfdzb85YEsM_njesME/edit) on how we can improve this!
+### Map of Implemented Subsystems
+**WIP**: This is a high-level architecture diagram of the various sub-systems of this specific implementation. To be updated with how they interact. Anyone who has suggestions is welcome to comment [here](https://docs.google.com/drawings/d/1OVpBT2q-NtSJqlPX3buvjYhOnWfdzb85YEsM_njesME/edit) on how we can improve this!
 <img src="https://docs.google.com/drawings/d/e/2PACX-1vS_n1FvSu6mdmSirkBrIIEib2gqhgtatD9awaP2_WdrGN4zTNeg620XQd9P95WT-IvognSxIIdCM5uE/pub?w=1446&amp;h=1036">
 
 ### CLI, HTTP-API, Architecture Diagram
@@ -492,7 +507,7 @@ Please reach out to us in one [chat](https://docs.ipfs.io/community/chat/) rooms
 
 ## License
 
-The go-ipfs project is dual-licensed under Apache 2.0 and MIT terms:
+This project is dual-licensed under Apache 2.0 and MIT terms:
 
 - Apache License, Version 2.0, ([LICENSE-APACHE](https://github.com/ipfs/go-ipfs/blob/master/LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
 - MIT license ([LICENSE-MIT](https://github.com/ipfs/go-ipfs/blob/master/LICENSE-MIT) or http://opensource.org/licenses/MIT)

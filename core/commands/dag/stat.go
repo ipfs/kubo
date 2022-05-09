@@ -5,10 +5,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	"github.com/ipfs/go-ipfs/core/commands/e"
 	"github.com/ipfs/go-merkledag/traverse"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/e"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mdag "github.com/ipfs/go-merkledag"
