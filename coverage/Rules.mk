@@ -21,7 +21,7 @@ $(UCOVER_$(d)): $(d)/coverage_deps ALWAYS
 	$(eval TMP_PKG := $(subst _,/,$(basename $(@F))))
 	$(eval TMP_DEPS := $(shell $(GOCC) list -f '{{range .Deps}}{{.}} {{end}}' $(go-flags-with-tags) $(TMP_PKG) | sed 's/ /\n/g' | grep ipfs/go-ipfs) $(TMP_PKG))
 	$(eval TMP_DEPS_LIST := $(call join-with,$(comma),$(TMP_DEPS)))
-	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) -v -covermode=atomic -json -coverpkg=$(TMP_DEPS_LIST) -coverprofile=$@ $(TMP_PKG) | tee -a test/unit/gotest.json
+	$(GOCC) test $(go-flags-with-tags) $(GOTFLAGS) -v -count=1 -covermode=atomic -json -coverpkg=$(TMP_DEPS_LIST) -coverprofile=$@ $(TMP_PKG) | tee -a test/unit/gotest.json
 
 
 $(d)/unit_tests.coverprofile: $(UCOVER_$(d))
