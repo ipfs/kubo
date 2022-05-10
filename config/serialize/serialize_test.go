@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"github.com/ipfs/go-ipfs/repo/common"
 	"os"
 	"runtime"
 	"testing"
@@ -21,7 +22,12 @@ func TestConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfgWritten.Identity.PeerID != cfgRead.Identity.PeerID {
+	peerId, err := common.MapGetKV(cfgRead, "Identity.PeerID")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cfgWritten.Identity.PeerID != peerId.(string) {
 		t.Fatal()
 	}
 	st, err := os.Stat(filename)

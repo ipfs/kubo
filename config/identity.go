@@ -12,7 +12,7 @@ const PrivKeySelector = IdentityTag + "." + PrivKeyTag
 
 // Identity tracks the configuration of the local node's identity.
 type Identity struct {
-	PeerID  string
+	PeerID  string `json:",omitempty"`
 	PrivKey string `json:",omitempty"`
 }
 

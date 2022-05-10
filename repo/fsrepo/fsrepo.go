@@ -96,16 +96,20 @@ type FSRepo struct {
 	closed bool
 	// path is the file-system path
 	path string
-	// Path to the configuration file that may or may not be inside the FSRepo
+	// Path to the user configuration override file that may or may not be inside the FSRepo
 	// path (see config.Filename for more details).
+	// FIXME: Rename to userConfigOverrideFilePath.
 	configFilePath string
 	// lockfile is the file system lock to prevent others from opening
 	// the same fsrepo path concurrently
 	lockfile io.Closer
-	config   *config.Config
-	ds       repo.Datastore
-	keystore keystore.Keystore
-	filemgr  *filestore.FileManager
+	// System configuration that will be used by the running node.
+	// It is the merge of the internal defaultConfig and the external JSON file
+	// with the user overrides.
+	config *config.Config
+	ds            repo.Datastore
+	keystore      keystore.Keystore
+	filemgr       *filestore.FileManager
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -236,7 +240,7 @@ func configIsInitialized(path string) bool {
 	return true
 }
 
-func initConfig(path string, conf *config.Config) error {
+func initConfig(path string, conf config.UserConfigOverrides) error {
 	if configIsInitialized(path) {
 		return nil
 	}
@@ -275,7 +279,7 @@ func initSpec(path string, conf map[string]interface{}) error {
 
 // Init initializes a new FSRepo at the given path with the provided config.
 // TODO add support for custom datastores.
-func Init(repoPath string, conf *config.Config) error {
+func Init(repoPath string, conf config.UserConfigOverrides) error {
 
 	// packageLock must be held to ensure that the repo is not initialized more
 	// than once.
@@ -290,7 +294,18 @@ func Init(repoPath string, conf *config.Config) error {
 		return err
 	}
 
-	if err := initSpec(repoPath, conf.Datastore.Spec); err != nil {
+	var profiles string
+	profilesFromMap, err := common.MapGetKV(conf, "Profiles")
+	if err != nil {
+		if pStr, ok := profilesFromMap.(string); ok { // FIXME: Why do we need this second check?
+			profiles = pStr
+		}
+	}
+	c, err := config.DefaultConfig(profiles)
+	if err != nil {
+		return err
+	}
+	if err := initSpec(repoPath, c.Datastore.Spec); err != nil {
 		return err
 	}
 
@@ -390,11 +405,11 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 
 // openConfig returns an error if the config file is not present.
 func (r *FSRepo) openConfig() error {
-	conf, err := serialize.Load(r.configFilePath)
+	config, err := config.GetConfig(r.configFilePath)
 	if err != nil {
 		return err
 	}
-	r.config = conf
+	r.config = config
 	return nil
 }
 
@@ -491,7 +506,8 @@ func (r *FSRepo) Close() error {
 	return r.lockfile.Close()
 }
 
-// Config the current config. This function DOES NOT copy the config. The caller
+// Config returns the running system configuration.
+// This function DOES NOT copy the config. The caller
 // MUST NOT modify it without first calling `Clone`.
 //
 // Result when not Open is undefined. The method may panic if it pleases.
@@ -570,30 +586,32 @@ func (r *FSRepo) SetConfig(updated *config.Config) error {
 	if err := serialize.WriteConfigFile(r.configFilePath, mergedMap); err != nil {
 		return err
 	}
-	// Do not use `*r.config = ...`. This will modify the *shared* config
-	// returned by `r.Config`.
-	r.config = updated
-	return nil
+
+	return r.openConfig()
 }
 
 // GetConfigKey retrieves only the value of a particular key.
 func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	if r.closed {
-		return nil, errors.New("repo is closed")
-	}
-
-	var cfg map[string]interface{}
-	if err := serialize.ReadConfigFile(r.configFilePath, &cfg); err != nil {
+	c, err := r.Config()
+	if err != nil {
 		return nil, err
 	}
-	return common.MapGetKV(cfg, key)
+
+	configMap, err := config.ToMap(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return common.MapGetKV(configMap, key)
 }
 
 // SetConfigKey writes the value of a particular key.
 func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
+	if key == config.PrivKeySelector {
+		return fmt.Errorf("identity key %s cannot be replaced through the API",
+			config.PrivKeySelector)
+	}
+
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
@@ -607,37 +625,27 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return err
 	}
 
-	// Load private key to guard against it being overwritten.
-	// NOTE: this is a temporary measure to secure this field until we move
-	// keys out of the config file.
-	pkval, err := common.MapGetKV(mapconf, config.PrivKeySelector)
-	if err != nil {
-		return err
-	}
-
 	// Set the key in the map.
 	if err := common.MapSetKV(mapconf, key, value); err != nil {
 		return err
 	}
 
-	// replace private key, in case it was overwritten.
-	if err := common.MapSetKV(mapconf, config.PrivKeySelector, pkval); err != nil {
-		return err
-	}
-
 	// This step doubles as to validate the map against the struct
 	// before serialization
-	conf, err := config.FromMap(mapconf)
+	buf, err := config.JsonEncode(mapconf)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid user config file: %s", err)
 	}
-	r.config = conf
+	_, err = config.DecodeUserConfigOverrides(buf)
+	if err != nil {
+		return fmt.Errorf("invalid user config file: %s", err)
+	}
 
 	if err := serialize.WriteConfigFile(r.configFilePath, mapconf); err != nil {
 		return err
 	}
 
-	return nil
+	return r.openConfig()
 }
 
 // Datastore returns a repo-owned datastore. If FSRepo is Closed, return value

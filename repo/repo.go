@@ -17,10 +17,17 @@ var (
 	ErrApiNotRunning = errors.New("api not running")
 )
 
+// FIXME: Anything returning config.Config here would now be returning
+//  the system config: internal system defaults with the UserConfigOverrides
+//  applied over them.
 // Repo represents all persistent data of a given ipfs node.
 type Repo interface {
-	// Config returns the ipfs configuration file from the repo. Changes made
-	// to the returned config are not automatically persisted.
+	// Config returns the running ipfs configuration from the system defaults
+	// overridden where applicable by a user-defined JSON file in the repo.
+	// Changes made to the returned config are not automatically persisted, but
+	// do impact on the running node.
+	// FIXME: Deprecate this in favor of GetSystemConfigKey to have a read-only
+	//  configuration that is modified explicitly in SetSystemConfigKey.
 	Config() (*config.Config, error)
 
 	// BackupConfig creates a backup of the current configuration file using
@@ -28,12 +35,18 @@ type Repo interface {
 	BackupConfig(prefix string) (string, error)
 
 	// SetConfig persists the given configuration struct to storage.
+	// FIXME: Deprecate this in favor of `SetConfigKey` to clearly
+	//  expose which configuration options is being changed in the API call.
 	SetConfig(*config.Config) error
 
-	// SetConfigKey sets the given key-value pair within the config and persists it to storage.
+	// SetConfigKey sets the given key-value pair within the system config and
+	// also persists it to the user configuration overrides file.
 	SetConfigKey(key string, value interface{}) error
 
 	// GetConfigKey reads the value for the given key from the configuration in storage.
+	// FIXME: Deprecate this and replace it with two distinct APIs:
+	//  * GetSystemConfigKey: reads from the running system configuration.
+	//  * GetUserConfigOverrideKey: reads from the user override file (`.ipfs/conf`).
 	GetConfigKey(key string) (interface{}, error)
 
 	// Datastore returns a reference to the configured data storage backend.

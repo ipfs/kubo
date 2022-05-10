@@ -21,7 +21,9 @@ func (o *Strings) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if len(value) == 0 {
-		*o = []string{}
+		*o = nil
+		// FIXME: Unmarshal to nil instead of an instantiated (emtpy) `[]string{}`
+		//  value to conform to the rest of the default (Go library) unmarshal logic.
 	} else {
 		*o = []string{value}
 	}

@@ -61,12 +61,16 @@ func encode(w io.Writer, value interface{}) error {
 }
 
 // Load reads given file and returns the read config, or error.
-func Load(filename string) (*config.Config, error) {
+func Load(filename string) (config.UserConfigOverrides, error) {
 	var cfg config.Config
 	err := ReadConfigFile(filename, &cfg)
 	if err != nil {
 		return nil, err
 	}
+	cfgMap, err := config.ToMap(&cfg)
+	if err != nil {
+		return nil, err
+	}
 
-	return &cfg, err
+	return cfgMap, err
 }
