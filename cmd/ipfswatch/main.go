@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	commands "github.com/ipfs/go-ipfs/commands"
+	"github.com/ipfs/go-ipfs/config"
 	core "github.com/ipfs/go-ipfs/core"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
@@ -25,8 +26,16 @@ import (
 )
 
 var http = flag.Bool("http", false, "expose IPFS HTTP API")
-var repoPath = flag.String("repo", os.Getenv("IPFS_PATH"), "IPFS_PATH to use")
+var repoPath *string
 var watchPath = flag.String("path", ".", "the path to watch")
+
+func init() {
+	ipfsPath, err := config.PathRoot()
+	if err != nil {
+		ipfsPath = os.Getenv(config.EnvDir)
+	}
+	repoPath = flag.String("repo", ipfsPath, "repo path to use")
+}
 
 func main() {
 	flag.Parse()

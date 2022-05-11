@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ipfs/go-ipfs/config"
+
 	"github.com/mitchellh/go-homedir"
 )
 
 const (
-	envIpfsPath = "IPFS_PATH"
-	defIpfsDir  = ".ipfs"
 	versionFile = "version"
 )
 
@@ -29,25 +29,16 @@ func init() {
 func IpfsDir(dir string) (string, error) {
 	var err error
 	if dir == "" {
-		dir = os.Getenv(envIpfsPath)
-	}
-	if dir != "" {
-		dir, err = homedir.Expand(dir)
+		dir, err = config.PathRoot()
 		if err != nil {
 			return "", err
 		}
-		return dir, nil
 	}
-
-	home, err := homedir.Dir()
+	dir, err = homedir.Expand(dir)
 	if err != nil {
 		return "", err
 	}
-	if home == "" {
-		return "", errors.New("could not determine IPFS_PATH, home dir not set")
-	}
-
-	return filepath.Join(home, defIpfsDir), nil
+	return dir, nil
 }
 
 // CheckIpfsDir gets the ipfs directory and checks that the directory exists.

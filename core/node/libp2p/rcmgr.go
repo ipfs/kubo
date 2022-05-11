@@ -44,7 +44,7 @@ func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (netw
 
 			repoPath, err := config.PathRoot()
 			if err != nil {
-				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
+				return nil, opts, fmt.Errorf("opening config path root: %w", err)
 			}
 
 			defaultLimits := adjustedDefaultLimits(cfg)

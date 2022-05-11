@@ -148,8 +148,7 @@ func TestFetchMigrations(t *testing.T) {
 func TestRunMigrations(t *testing.T) {
 	fakeHome := t.TempDir()
 
-	os.Setenv("HOME", fakeHome)
-	fakeIpfs := filepath.Join(fakeHome, ".ipfs")
+	os.Setenv(config.EnvDir, filepath.Join(fakeHome, ".ipfs"))
 
 	err := os.Mkdir(fakeIpfs, os.ModePerm)
 	if err != nil {
