@@ -1035,6 +1035,8 @@ Default: `cache`
 
 ## `Mounts`
 
+**EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
+
 FUSE mount point configuration options.
 
 ### `Mounts.IPFS`
