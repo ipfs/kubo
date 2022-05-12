@@ -40,6 +40,15 @@ run_single_file_test() {
   check_file_fetch 0 $FILEA_HASH filea
 }
 
+run_2MiB_block_test() {
+  test_expect_success "add a file on node1" '
+    random $((1024*1024*2)) > filea &&
+    FILEA_HASH=$(ipfsi 1 block put filea)
+  '
+
+  check_file_fetch 0 $FILEA_HASH filea
+}
+
 run_random_dir_test() {
   test_expect_success "create a bunch of random files" '
     random-files -depth=3 -dirs=4 -files=5 -seed=5 foobar > /dev/null
@@ -62,22 +71,24 @@ run_advanced_test() {
 
   run_single_file_test
 
+  run_2MiB_block_test
+
   run_random_dir_test
 
   test_expect_success "node0 data transferred looks correct" '
     ipfsi 0 bitswap stat > stat0 &&
     grep "blocks sent: 126" stat0 > /dev/null &&
-    grep "blocks received: 5" stat0 > /dev/null &&
+    grep "blocks received: 6" stat0 > /dev/null &&
     grep "data sent: 228113" stat0 > /dev/null &&
-    grep "data received: 1000256" stat0 > /dev/null
+    grep "data received: 3097408" stat0 > /dev/null
   '
 
   test_expect_success "node1 data transferred looks correct" '
     ipfsi 1 bitswap stat > stat1 &&
     grep "blocks received: 126" stat1 > /dev/null &&
-    grep "blocks sent: 5" stat1 > /dev/null &&
+    grep "blocks sent: 6" stat1 > /dev/null &&
     grep "data received: 228113" stat1 > /dev/null &&
-    grep "data sent: 1000256" stat1 > /dev/null
+    grep "data sent: 3097408" stat1 > /dev/null
   '
 
   test_expect_success "shut down nodes" '

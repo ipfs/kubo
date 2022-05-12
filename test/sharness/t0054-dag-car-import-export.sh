@@ -234,16 +234,16 @@ test_expect_success "naked root import expected output" '
 '
 
 test_expect_success "'ipfs dag import' check block size" '
-    BIG_CID=$(dd if=/dev/zero bs=2MB count=1 | ipfs dag put --input-codec=raw --store-codec=raw --allow-big-block) &&
-    ipfs dag export $BIG_CID > 2-MB-block.car &&
-    test_expect_code 1 ipfs dag import 2-MB-block.car >dag_import_out 2>&1
+    BIG_CID=$(dd if=/dev/zero bs=4MB count=1 | ipfs dag put --input-codec=raw --store-codec=raw --allow-big-block) &&
+    ipfs dag export $BIG_CID > 4-MB-block.car &&
+    test_expect_code 1 ipfs dag import 4-MB-block.car >dag_import_out 2>&1
 '
 test_expect_success "ipfs dag import output has the correct error" '
-    grep "block is over 1MiB" dag_import_out
+    grep "block is over 2MiB" dag_import_out
 '
 
 test_expect_success "ipfs dag import --allow-big-block works" '
-    test_expect_code 0 ipfs dag import --allow-big-block 2-MB-block.car
+    test_expect_code 0 ipfs dag import --allow-big-block 4-MB-block.car
 '
 
 cat > version_2_import_expected << EOE
