@@ -52,7 +52,6 @@ TEXT ENCODING COMMANDS
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
-  mount         Mount an IPFS read-only mount point
   resolve       Resolve any type of content path
   name          Publish and resolve IPNS names
   key           Create and list IPNS name keypairs
@@ -61,6 +60,7 @@ ADVANCED COMMANDS
   stats         Various operational stats
   p2p           Libp2p stream mounting (experimental)
   filestore     Manage the filestore (experimental)
+  mount         Mount an IPFS read-only mount point (experimental)
 
 NETWORK COMMANDS
   id            Show info about IPFS peers
