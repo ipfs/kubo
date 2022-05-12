@@ -21,6 +21,7 @@ const (
 )
 
 var MountCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts IPFS to the filesystem (read-only).",
 		ShortDescription: `
