@@ -61,6 +61,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		return err
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := req.Context
 		cmplvl, err := getCompressOptions(req)
 		if err != nil {
 			return err
@@ -73,7 +74,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 		p := path.New(req.Arguments[0])
 
-		file, err := api.Unixfs().Get(req.Context, p)
+		file, err := api.Unixfs().Get(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -90,6 +91,13 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		if err != nil {
 			return err
 		}
+		go func() {
+			// We cannot defer a close in the response writer (like we should)
+			// Because the cmd framework outsmart us and doesn't call response
+			// if the context is over.
+			<-ctx.Done()
+			reader.Close()
+		}()
 
 		return res.Emit(reader)
 	},
@@ -273,7 +281,7 @@ func (i *identityWriteCloser) Close() error {
 	return nil
 }
 
-func fileArchive(f files.Node, name string, archive bool, compression int) (io.Reader, error) {
+func fileArchive(f files.Node, name string, archive bool, compression int) (io.ReadCloser, error) {
 	cleaned := gopath.Clean(name)
 	_, filename := gopath.Split(cleaned)
 
