@@ -89,7 +89,9 @@ Checklist:
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
   - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
+    - 2022-05-13 implementation note: Outercore Marketing (e.g., Emily Vaughan) periodically checks this airtable and then handles it.  If we're needed something posted quickly, she can be pinged directly.
   - [ ] Broadcasting (link to blog post)
+    - *Note:* add a comment to the release with the link to these.
     - [ ] Twitter (request in Slack channel #pl-marketing-requests)
     - [ ] Matrix
     - [ ] [Reddit](https://reddit.com/r/ipfs)
