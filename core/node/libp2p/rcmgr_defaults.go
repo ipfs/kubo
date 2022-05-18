@@ -38,14 +38,17 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.DefaultLimitConfig {
 	if cfg.ConnMgr.Type == "basic" {
 		maxconns := cfg.ConnMgr.HighWater
 		if 2*maxconns > defaultLimits.SystemBaseLimit.ConnsInbound {
-			// adjust conns to 2x to allow for two conns per peer (TCP+QUIC)
+			// Conns should be at least 2x larger than the high water to allow for two conns per peer (TCP+QUIC).
+			//
+			// Outbound conns are set very high to allow for the accelerated DHT client to refresh its routing table.
+			// Currently it does not gracefully handle RM throttling, once it does we can lower this.
 			defaultLimits.SystemBaseLimit.ConnsInbound = logScale(2 * maxconns)
-			defaultLimits.SystemBaseLimit.ConnsOutbound = logScale(2 * maxconns)
-			defaultLimits.SystemBaseLimit.Conns = logScale(4 * maxconns)
+			defaultLimits.SystemBaseLimit.ConnsOutbound = logScale(64 * maxconns)
+			defaultLimits.SystemBaseLimit.Conns = defaultLimits.SystemBaseLimit.ConnsOutbound + defaultLimits.SystemBaseLimit.ConnsInbound
 
-			defaultLimits.SystemBaseLimit.StreamsInbound = logScale(16 * maxconns)
-			defaultLimits.SystemBaseLimit.StreamsOutbound = logScale(64 * maxconns)
-			defaultLimits.SystemBaseLimit.Streams = logScale(64 * maxconns)
+			defaultLimits.SystemBaseLimit.StreamsInbound = defaultLimits.SystemBaseLimit.ConnsInbound * 4
+			defaultLimits.SystemBaseLimit.StreamsOutbound = defaultLimits.SystemBaseLimit.ConnsOutbound * 16
+			defaultLimits.SystemBaseLimit.Streams = defaultLimits.SystemBaseLimit.Conns * 16
 
 			if 2*maxconns > defaultLimits.SystemBaseLimit.FD {
 				defaultLimits.SystemBaseLimit.FD = logScale(2 * maxconns)
