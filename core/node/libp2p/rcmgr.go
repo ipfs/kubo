@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/benbjohnson/clock"
 	config "github.com/ipfs/go-ipfs/config"
+	"github.com/ipfs/go-ipfs/core/node/helpers"
 	"github.com/ipfs/go-ipfs/repo"
-
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -24,8 +26,8 @@ const NetLimitTraceFilename = "rcmgr.json.gz"
 
 var NoResourceMgrError = fmt.Errorf("missing ResourceMgr: make sure the daemon is running with Swarm.ResourceMgr.Enabled")
 
-func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
-	return func(lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
+func ResourceManager(cfg config.SwarmConfig) interface{} {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (network.ResourceManager, Libp2pOpts, error) {
 		var manager network.ResourceManager
 		var opts Libp2pOpts
 
@@ -72,6 +74,13 @@ func ResourceManager(cfg config.SwarmConfig) func(fx.Lifecycle, repo.Repo) (netw
 			if err != nil {
 				return nil, opts, fmt.Errorf("creating libp2p resource manager: %w", err)
 			}
+			lrm := &loggingResourceManager{
+				clock:    clock.New(),
+				logger:   &logging.Logger("resourcemanager").SugaredLogger,
+				delegate: manager,
+			}
+			lrm.start(helpers.LifecycleCtx(mctx, lc))
+			manager = lrm
 		} else {
 			log.Debug("libp2p resource manager is disabled")
 			manager = network.NullResourceManager
