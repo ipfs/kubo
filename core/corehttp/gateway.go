@@ -84,9 +84,12 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 
 		headers[ACEHeadersName] = cleanHeaderSet(
 			append([]string{
+				"Content-Length",
 				"Content-Range",
 				"X-Chunked-Output",
 				"X-Stream-Output",
+				"X-Ipfs-Path",
+				"X-Ipfs-Roots",
 			}, headers[ACEHeadersName]...))
 
 		var gateway http.Handler = newGatewayHandler(GatewayConfig{
