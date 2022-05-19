@@ -11,7 +11,7 @@ import (
 	"github.com/multiformats/go-varint"
 )
 
-const WacMC = 0x80
+const WacMC = 0x81
 
 type WacCode uint8
 
@@ -32,7 +32,9 @@ const (
 func WacEncode(n ipld.Node, w io.Writer) error {
 	bw, ok := w.(byteAndNormalWriter)
 	if !ok {
-		bw = bufio.NewWriter(w)
+		x := bufio.NewWriter(w)
+		bw = x
+		defer x.Flush()
 	}
 
 	switch k := n.Kind(); k {
