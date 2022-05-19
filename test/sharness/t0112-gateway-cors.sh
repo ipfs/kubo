@@ -26,7 +26,10 @@ test_expect_success "GET response for Gateway resource looks good" '
   grep "< Access-Control-Allow-Origin: \*" curl_output &&
   grep "< Access-Control-Allow-Methods: GET" curl_output &&
   grep "< Access-Control-Allow-Headers: Range" curl_output &&
-  grep "< Access-Control-Expose-Headers: Content-Range" curl_output
+  grep "< Access-Control-Expose-Headers: Content-Range" curl_output &&
+  grep "< Access-Control-Expose-Headers: Content-Length" curl_output &&
+  grep "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
+  grep "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output
 '
 
 # HTTP OPTIONS Request
@@ -40,7 +43,10 @@ test_expect_success "OPTIONS response for Gateway resource looks good" '
   grep "< Access-Control-Allow-Origin: \*" curl_output &&
   grep "< Access-Control-Allow-Methods: GET" curl_output &&
   grep "< Access-Control-Allow-Headers: Range" curl_output &&
-  grep "< Access-Control-Expose-Headers: Content-Range" curl_output
+  grep "< Access-Control-Expose-Headers: Content-Range" curl_output &&
+  grep "< Access-Control-Expose-Headers: Content-Length" curl_output &&
+  grep "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
+  grep "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output
 '
 
 test_kill_ipfs_daemon
@@ -63,6 +69,9 @@ test_expect_success "Access-Control-Allow-Headers extends" '
   grep "< Access-Control-Allow-Headers: Range" curl_output &&
   grep "< Access-Control-Allow-Headers: X-Custom1" curl_output &&
   grep "< Access-Control-Expose-Headers: Content-Range" curl_output &&
+  grep "< Access-Control-Expose-Headers: Content-Length" curl_output &&
+  grep "< Access-Control-Expose-Headers: X-Ipfs-Path" curl_output &&
+  grep "< Access-Control-Expose-Headers: X-Ipfs-Roots" curl_output &&
   grep "< Access-Control-Expose-Headers: X-Custom2" curl_output
 '
 
