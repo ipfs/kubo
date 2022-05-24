@@ -196,12 +196,12 @@ func main() {
 	defer cancel()
 
 	// Spawn a local peer using a temporary path, for testing purposes
-	peerAPI, peerNode, err := spawnEphemeral(ctx)
+	ipfsA, nodeA, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn peer node: %s", err))
 	}
 
-	peerCidFile, err := peerAPI.Unixfs().Add(ctx,
+	peerCidFile, err := ipfsA.Unixfs().Add(ctx,
 		files.NewBytesFile([]byte("hello from ipfs 101 in go-ipfs")))
 	if err != nil {
 		panic(fmt.Errorf("could not add File: %s", err))
@@ -211,7 +211,7 @@ func main() {
 
 	// Spawn a node using a temporary path, creating a temporary repo for the run
 	fmt.Println("Spawning node on a temporary repo")
-	ipfs, _, err := spawnEphemeral(ctx)
+	ipfsB, _, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
 	}
@@ -231,7 +231,7 @@ func main() {
 		panic(fmt.Errorf("could not get File: %s", err))
 	}
 
-	cidFile, err := ipfs.Unixfs().Add(ctx, someFile)
+	cidFile, err := ipfsB.Unixfs().Add(ctx, someFile)
 	if err != nil {
 		panic(fmt.Errorf("could not add File: %s", err))
 	}
@@ -243,7 +243,7 @@ func main() {
 		panic(fmt.Errorf("could not get File: %s", err))
 	}
 
-	cidDirectory, err := ipfs.Unixfs().Add(ctx, someDirectory)
+	cidDirectory, err := ipfsB.Unixfs().Add(ctx, someDirectory)
 	if err != nil {
 		panic(fmt.Errorf("could not add Directory: %s", err))
 	}
@@ -260,7 +260,7 @@ func main() {
 	outputPathFile := outputBasePath + strings.Split(cidFile.String(), "/")[2]
 	outputPathDirectory := outputBasePath + strings.Split(cidDirectory.String(), "/")[2]
 
-	rootNodeFile, err := ipfs.Unixfs().Get(ctx, cidFile)
+	rootNodeFile, err := ipfsB.Unixfs().Get(ctx, cidFile)
 	if err != nil {
 		panic(fmt.Errorf("could not get file with CID: %s", err))
 	}
@@ -272,7 +272,7 @@ func main() {
 
 	fmt.Printf("got file back from IPFS (IPFS path: %s) and wrote it to %s\n", cidFile.String(), outputPathFile)
 
-	rootNodeDirectory, err := ipfs.Unixfs().Get(ctx, cidDirectory)
+	rootNodeDirectory, err := ipfsB.Unixfs().Get(ctx, cidDirectory)
 	if err != nil {
 		panic(fmt.Errorf("could not get file with CID: %s", err))
 	}
@@ -288,7 +288,7 @@ func main() {
 
 	fmt.Println("\n-- Going to connect to a few nodes in the Network as bootstrappers --")
 
-	peerMa := fmt.Sprintf("/ip4/127.0.0.1/udp/4010/p2p/%s", peerNode.Identity.String())
+	peerMa := fmt.Sprintf("/ip4/127.0.0.1/udp/4010/p2p/%s", nodeA.Identity.String())
 
 	bootstrapNodes := []string{
 		// IPFS Bootstrapper nodes.
@@ -314,7 +314,7 @@ func main() {
 	}
 
 	go func() {
-		err := connectToPeers(ctx, ipfs, bootstrapNodes)
+		err := connectToPeers(ctx, ipfsB, bootstrapNodes)
 		if err != nil {
 			log.Printf("failed connect to peers: %s", err)
 		}
@@ -326,7 +326,7 @@ func main() {
 	outputPath := outputBasePath + exampleCIDStr
 	testCID := icorepath.New(exampleCIDStr)
 
-	rootNode, err := ipfs.Unixfs().Get(ctx, testCID)
+	rootNode, err := ipfsB.Unixfs().Get(ctx, testCID)
 	if err != nil {
 		panic(fmt.Errorf("could not get file with CID: %s", err))
 	}
