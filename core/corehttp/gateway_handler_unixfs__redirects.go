@@ -171,13 +171,13 @@ func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, 
 			// Rewrite
 			if rule.Status == 200 {
 				// Prepend the rootPath
-				toPath = rootPath + rule.To
+				toPath = rootPath + toPath
 				return false, toPath, nil
 			}
 
 			// Or 404
 			if rule.Status == 404 {
-				toPath = rootPath + rule.To
+				toPath = rootPath + toPath
 				content404Path := ipath.New(toPath)
 				err := i.serve404(w, r, content404Path)
 				return true, toPath, err
