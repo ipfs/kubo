@@ -10,11 +10,12 @@ import (
 	disc "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
+	irouting "github.com/ipfs/go-ipfs/routing"
 	"go.uber.org/fx"
 )
 
 func TopicDiscovery() interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, cr BaseIpfsRouting) (service discovery.Discovery, err error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, cr irouting.TieredRouter) (service discovery.Discovery, err error) {
 		baseDisc := disc.NewRoutingDiscovery(cr)
 		minBackoff, maxBackoff := time.Second*60, time.Hour
 		rng := rand.New(rand.NewSource(rand.Int63()))

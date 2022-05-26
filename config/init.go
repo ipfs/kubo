@@ -47,9 +47,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			},
 		},
 
-		Routing: Routing{
-			Type: "dht",
-		},
+		Routing: Routing{},
 
 		// setup the node mount points.
 		Mounts: Mounts{

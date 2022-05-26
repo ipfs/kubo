@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
+	irouting "github.com/ipfs/go-ipfs/routing"
 
+	ds "github.com/ipfs/go-datastore"
+	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	config "github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -25,8 +28,6 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
 )
-
-type BaseIpfsRouting routing.Routing
 
 type Router struct {
 	routing.Routing
@@ -57,7 +58,6 @@ type processInitialRoutingOut struct {
 	Router    Router `group:"routers"`
 	DHT       *ddht.DHT
 	DHTClient routing.Routing `name:"dhtc"`
-	BaseRT    BaseIpfsRouting
 }
 
 type AddrInfoChan chan peer.AddrInfo
@@ -111,7 +111,6 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 				},
 				DHT:       dr,
 				DHTClient: expClient,
-				BaseRT:    expClient,
 			}, nil
 		}
 
@@ -122,8 +121,37 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 			},
 			DHT:       dr,
 			DHTClient: dr,
-			BaseRT:    in.Router,
 		}, nil
+	}
+}
+
+type delegatedRouterOut struct {
+	fx.Out
+
+	Routers []Router `group:"routers,flatten"`
+}
+
+func DelegatedRouting(routers map[string]config.Router) interface{} {
+	return func() (delegatedRouterOut, error) {
+		out := delegatedRouterOut{}
+
+		for _, v := range routers {
+			if !v.Enabled {
+				continue
+			}
+
+			r, err := irouting.RoutingFromConfig(v)
+			if err != nil {
+				return out, err
+			}
+
+			out.Routers = append(out.Routers, Router{
+				Routing:  r,
+				Priority: irouting.GetPriority(v.Parameters),
+			})
+		}
+
+		return out, nil
 	}
 }
 
@@ -134,7 +162,7 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
-func Routing(in p2pOnlineRoutingIn) routing.Routing {
+func Routing(in p2pOnlineRoutingIn) irouting.TieredRouter {
 	routers := in.Routers
 
 	sort.SliceStable(routers, func(i, j int) bool {
@@ -146,19 +174,29 @@ func Routing(in p2pOnlineRoutingIn) routing.Routing {
 		irouters[i] = v.Routing
 	}
 
-	return routinghelpers.Tiered{
-		Routers:   irouters,
-		Validator: in.Validator,
+	return irouting.Tiered{
+		Tiered: routinghelpers.Tiered{
+			Routers:   irouters,
+			Validator: in.Validator,
+		},
+	}
+}
+
+func OfflineRouting(dstore ds.Datastore, validator record.Validator) p2pRouterOut {
+	return p2pRouterOut{
+		Router: Router{
+			Routing:  offroute.NewOfflineRouter(dstore, validator),
+			Priority: 10000,
+		},
 	}
 }
 
 type p2pPSRoutingIn struct {
 	fx.In
 
-	BaseIpfsRouting BaseIpfsRouting
-	Validator       record.Validator
-	Host            host.Host
-	PubSub          *pubsub.PubSub `optional:"true"`
+	Validator record.Validator
+	Host      host.Host
+	PubSub    *pubsub.PubSub `optional:"true"`
 }
 
 func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore, error) {

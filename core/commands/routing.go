@@ -32,11 +32,26 @@ var DhtCmd = &cmds.Command{
 
 	Subcommands: map[string]*cmds.Command{
 		"query":     queryDhtCmd,
-		"findprovs": findProvidersDhtCmd,
-		"findpeer":  findPeerDhtCmd,
-		"get":       getValueDhtCmd,
-		"put":       putValueDhtCmd,
-		"provide":   provideRefDhtCmd,
+		"findprovs": findProvidersRoutingCmd,
+		"findpeer":  findPeerRoutingCmd,
+		"get":       getValueRoutingCmd,
+		"put":       putValueRoutingCmd,
+		"provide":   provideRefRoutingCmd,
+	},
+}
+
+var RoutingCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline:          "Issue commands directly through the DHT.",
+		ShortDescription: ``,
+	},
+
+	Subcommands: map[string]*cmds.Command{
+		"findprovs": findProvidersRoutingCmd,
+		"findpeer":  findPeerRoutingCmd,
+		"get":       getValueRoutingCmd,
+		"put":       putValueRoutingCmd,
+		"provide":   provideRefRoutingCmd,
 	},
 }
 
@@ -138,7 +153,7 @@ const (
 	numProvidersOptionName = "num-providers"
 )
 
-var findProvidersDhtCmd = &cmds.Command{
+var findProvidersRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Find peers that can provide a specific value, given a key.",
 		ShortDescription: "Outputs a list of newline-delimited provider Peer IDs.",
@@ -230,7 +245,7 @@ const (
 	recursiveOptionName = "recursive"
 )
 
-var provideRefDhtCmd = &cmds.Command{
+var provideRefRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Announce to the network that you are providing given values.",
 	},
@@ -365,7 +380,7 @@ func provideKeysRec(ctx context.Context, r routing.Routing, dserv ipld.DAGServic
 	return nil
 }
 
-var findPeerDhtCmd = &cmds.Command{
+var findPeerRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline:          "Find the multiaddresses associated with a Peer ID.",
 		ShortDescription: "Outputs a list of newline-delimited multiaddresses.",
@@ -441,7 +456,7 @@ var findPeerDhtCmd = &cmds.Command{
 	Type: routing.QueryEvent{},
 }
 
-var getValueDhtCmd = &cmds.Command{
+var getValueRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Given a key, query the routing system for its best value.",
 		ShortDescription: `
@@ -529,7 +544,7 @@ Different key types can specify other 'best' rules.
 	Type: routing.QueryEvent{},
 }
 
-var putValueDhtCmd = &cmds.Command{
+var putValueRoutingCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Write a key/value pair to the routing system.",
 		ShortDescription: `

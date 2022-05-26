@@ -102,6 +102,7 @@ config file at runtime.
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
   - [`Routing`](#routing)
+    - [`Routing.Routers`](#routingrouters)
     - [`Routing.Type`](#routingtype)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
@@ -1288,7 +1289,17 @@ Type: `string` (or unset for the default, which is "all")
 
 Contains options for content, peer, and IPNS routing mechanisms.
 
+### `Routing.Routers`
+
+It can contains several Router implementation, some of them using the [reframe specs](https://github.com/ipfs/specs/blob/master/REFRAME.md).
+
+// TODO add more documentation
+
+Type: `object[string->object]`
+
 ### `Routing.Type`
+
+**DEPRECATED:** use [`Routing.Routers`](#routingrouters) instead.
 
 Content routing mode. Can be overridden with daemon `--routing` flag.
 

@@ -8,8 +8,8 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	config "github.com/ipfs/go-ipfs/config"
+	irouting "github.com/ipfs/go-ipfs/routing"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
@@ -25,7 +25,7 @@ const (
 
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
 func OnlineExchange(cfg *config.Config, provide bool) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt irouting.TieredRouter, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
 
 		var internalBsCfg config.InternalBitswap

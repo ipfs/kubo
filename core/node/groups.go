@@ -17,7 +17,6 @@ import (
 	"github.com/ipfs/go-ipfs/p2p"
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	uio "github.com/ipfs/go-unixfs/io"
 
 	"github.com/dustin/go-humanize"
@@ -167,6 +166,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		fx.Provide(libp2p.Routing),
 		fx.Provide(libp2p.BaseRouting(cfg.Experimental.AcceleratedDHTClient)),
+		fx.Provide(libp2p.DelegatedRouting(cfg.Routing.Routers)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
@@ -313,7 +313,8 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(offline.Exchange),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(0)),
-		fx.Provide(offroute.NewOfflineRouter),
+		fx.Provide(libp2p.Routing),
+		fx.Provide(libp2p.OfflineRouting),
 		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
 	)
 }
