@@ -25,34 +25,37 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.DefaultLimitConfig {
 		checkImplicitDefaults()
 	}
 
-	// Return to use unmodified static limits based on values from go-libp2p 0.18
-	// return defaultLimits
-
 	// Adjust limits
 	// (based on https://github.com/filecoin-project/lotus/pull/8318/files)
 	// - give it more memory, up to 4G, min of 1G
 	// - if Swarm.ConnMgr.HighWater is too high, adjust Conn/FD/Stream limits
 	defaultLimits := rcmgr.DefaultLimits.WithSystemMemory(.125, 1<<30, 4<<30)
 
+	// Outbound conns are set very high to allow for the accelerated DHT client to (re)load its routing table.
+	// Currently it doesn't gracefully handle RM throttling--once it does we can lower this.
+	// High outbound conn limits are considered less of a DoS risk than high inbound conn limits.
+	// Also note that, due to the behavior of the accelerated DHT client, we don't need many streams, just conns.
+	defaultLimits.SystemBaseLimit.ConnsOutbound = 65536
+
 	// Do we need to adjust due to Swarm.ConnMgr.HighWater?
 	if cfg.ConnMgr.Type == "basic" {
 		maxconns := cfg.ConnMgr.HighWater
 		if 2*maxconns > defaultLimits.SystemBaseLimit.ConnsInbound {
 			// Conns should be at least 2x larger than the high water to allow for two conns per peer (TCP+QUIC).
-			//
-			// Outbound conns are set very high to allow for the accelerated DHT client to refresh its routing table.
-			// Currently it does not gracefully handle RM throttling, once it does we can lower this.
 			defaultLimits.SystemBaseLimit.ConnsInbound = logScale(2 * maxconns)
-			defaultLimits.SystemBaseLimit.ConnsOutbound = logScale(64 * maxconns)
-			defaultLimits.SystemBaseLimit.Conns = defaultLimits.SystemBaseLimit.ConnsOutbound + defaultLimits.SystemBaseLimit.ConnsInbound
 
-			defaultLimits.SystemBaseLimit.StreamsInbound = defaultLimits.SystemBaseLimit.ConnsInbound * 4
-			defaultLimits.SystemBaseLimit.StreamsOutbound = defaultLimits.SystemBaseLimit.ConnsOutbound * 16
-			defaultLimits.SystemBaseLimit.Streams = defaultLimits.SystemBaseLimit.Conns * 16
+			// We want the floor of outbound conns to be no less than what was set above.
+			if outbound := logScale(2 * maxconns); outbound > defaultLimits.SystemBaseLimit.ConnsOutbound {
+				defaultLimits.SystemBaseLimit.ConnsOutbound = outbound
+			}
 
 			if 2*maxconns > defaultLimits.SystemBaseLimit.FD {
 				defaultLimits.SystemBaseLimit.FD = logScale(2 * maxconns)
 			}
+
+			defaultLimits.SystemBaseLimit.StreamsInbound = logScale(16 * maxconns)
+			defaultLimits.SystemBaseLimit.StreamsOutbound = logScale(64 * maxconns)
+			defaultLimits.SystemBaseLimit.Streams = logScale(64 * maxconns)
 
 			defaultLimits.ServiceBaseLimit.StreamsInbound = logScale(8 * maxconns)
 			defaultLimits.ServiceBaseLimit.StreamsOutbound = logScale(32 * maxconns)
@@ -63,6 +66,8 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.DefaultLimitConfig {
 			defaultLimits.ProtocolBaseLimit.Streams = logScale(32 * maxconns)
 		}
 	}
+
+	defaultLimits.SystemBaseLimit.Conns = defaultLimits.SystemBaseLimit.ConnsOutbound + defaultLimits.SystemBaseLimit.ConnsInbound
 
 	return defaultLimits
 }
