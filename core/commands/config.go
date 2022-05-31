@@ -507,6 +507,8 @@ func editConfig(filename string) error {
 	return cmd.Run()
 }
 
+// FIXME: Review expectations on this command. How will it work when we replace
+//  and "old" (full of defaults) config file with the "new" overrides?
 func replaceConfig(r repo.Repo, file io.Reader) error {
 	var newCfg config.Config
 	if err := json.NewDecoder(file).Decode(&newCfg); err != nil {

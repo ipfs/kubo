@@ -592,6 +592,22 @@ func (r *FSRepo) SetConfig(updated *config.Config) error {
 
 // GetConfigKey retrieves only the value of a particular key.
 func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
+	// Since we're still allowing any field to be stored in the user file (even
+	// if it doesn't map to the Config struct) first look there, and only later
+	// (if not found) look in the running config.
+	// FIXME: Review if we can remove this expectation in the future. For now
+	//  we only take this path if there are no errors (the config file might
+	//  not even exist at the point of calling this API).
+	overrides, err := config.ReadUserConfigOverrides(r.configFilePath)
+	if err == nil {
+		value, err := common.MapGetKV(overrides, key)
+		if err == nil {
+			return value, nil
+		}
+	}
+
+	// Not in the file, look in the running config (that includes the system
+	// default values).
 	c, err := r.Config()
 	if err != nil {
 		return nil, err
