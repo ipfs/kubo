@@ -74,15 +74,18 @@ To understand the wider context why we made these changes, read *Highlights* bel
 
 *You can now easily bound how much resource usage libp2p consumes!  This aids in protecting nodes from consuming more resources then are available to them.*
 
-The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) is enabled by default, but can be disabled via:
+The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) is disabled by default, but can be enabled via:
 
-`ipfs config --json Swarm.ResourceMgr.Enabled false`
+`ipfs config --json Swarm.ResourceMgr.Enabled true`
 
 When enabled, it applies some safe defaults that can be inspected and adjusted with:
+
 - `ipfs swarm stats --help`
 - `ipfs swarm limit --help`
 
 User changes persist to config at [`Swarm.ResourceMgr`](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#swarmresourcemgr).
+
+The Resource Manager will be enabled by default in a future release.
 
 #### 🔃 Relay V2 client with auto discovery (`Swarm.RelayClient`)
 

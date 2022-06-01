@@ -6,6 +6,25 @@ test_description="Test ipfs swarm ResourceMgr config and commands"
 
 test_init_ipfs
 
+# test correct behavior when resource manager is disabled (default behavior)
+test_launch_ipfs_daemon
+
+test_expect_success 'Swarm limit should fail since RM is disabled' '
+  test_expect_code 1 ipfs swarm limit system 2> actual &&
+  test_should_contain "missing ResourceMgr" actual
+'
+
+test_expect_success 'Swarm stats should fail since RM is disabled' '
+  test_expect_code 1 ipfs swarm stats all 2> actual &&
+  test_should_contain "missing ResourceMgr" actual
+'
+
+test_kill_ipfs_daemon
+
+test_expect_success 'Enable resource manager' '
+  ipfs config --bool Swarm.ResourceMgr.Enabled true
+'
+
 # swarm limit|stats should fail in offline mode
 
 test_expect_success 'disconnected: swarm limit requires running daemon' '
@@ -123,25 +142,6 @@ test_expect_success 'Set limit for peer scope with an invalid peer ID' '
   echo "{\"Memory\": 99}" > invalid-peer-id.json &&
   test_expect_code 1 ipfs swarm limit peer:foo invalid-peer-id.json 2> actual &&
   test_should_contain "invalid peer ID" actual
-'
-
-test_kill_ipfs_daemon
-
-# test correct behavior when resource manager is disabled
-test_expect_success 'Disable resource manager' '
-  ipfs config --bool Swarm.ResourceMgr.Enabled false
-'
-
-test_launch_ipfs_daemon
-
-test_expect_success 'Swarm limit should fail since RM is disabled' '
-  test_expect_code 1 ipfs swarm limit system 2> actual &&
-  test_should_contain "missing ResourceMgr" actual
-'
-
-test_expect_success 'Swarm stats should fail since RM is disabled' '
-  test_expect_code 1 ipfs swarm stats all 2> actual &&
-  test_should_contain "missing ResourceMgr" actual
 '
 
 test_kill_ipfs_daemon
