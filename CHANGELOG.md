@@ -53,6 +53,9 @@ Below is an outline of all that is in this release, so you get a sense of all th
 - Now lists codecs from [go-multicodec](https://github.com/multiformats/go-multicodec) library.
 - `ipfs cid codecs --supported` can be passed to only show codecs supported in various go-ipfs commands.
 
+#### `ipfs cid format` command
+- CidV0 Now correctly requires the `dag-pb` codec, instead of the `protobuf` codec.
+
 #### `Swarm` configuration
 - Daemon will refuse to start if long-deprecated RelayV1 config key `Swarm.EnableAutoRelay` or `Swarm.DisableRelay` is set to `true`.
 - If `Swarm.Transports.Network.Relay` is disabled,  then `Swarm.RelayService` and `Swarm.RelayClient` are also disabled (unless they have been explicitly enabled).

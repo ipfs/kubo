@@ -11,8 +11,9 @@ import (
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	verifcid "github.com/ipfs/go-verifcid"
-	"github.com/ipld/go-ipld-prime/multicodec"
+	ipldmulticodec "github.com/ipld/go-ipld-prime/multicodec"
 	mbase "github.com/multiformats/go-multibase"
+	"github.com/multiformats/go-multicodec"
 	mc "github.com/multiformats/go-multicodec"
 	mhash "github.com/multiformats/go-multihash"
 )
@@ -70,11 +71,12 @@ The optional format string is a printf style format string:
 		opts.fmtStr = fmtStr
 
 		if codecStr != "" {
-			codec, ok := cid.Codecs[codecStr]
-			if !ok {
-				return fmt.Errorf("unknown IPLD codec: %q", codecStr)
+			var codec multicodec.Code
+			err := codec.Set(codecStr)
+			if err != nil {
+				return err
 			}
-			opts.newCodec = codec
+			opts.newCodec = uint64(codec)
 		} // otherwise, leave it as 0 (not a valid IPLD codec)
 
 		switch verStr {
@@ -324,10 +326,10 @@ var codecsCmd = &cmds.Command{
 		listSupported, _ := req.Options[codecsSupportedOptionName].(bool)
 		supportedCodecs := make(map[uint64]struct{})
 		if listSupported {
-			for _, code := range multicodec.ListEncoders() {
+			for _, code := range ipldmulticodec.ListEncoders() {
 				supportedCodecs[code] = struct{}{}
 			}
-			for _, code := range multicodec.ListDecoders() {
+			for _, code := range ipldmulticodec.ListDecoders() {
 				supportedCodecs[code] = struct{}{}
 			}
 			// add libp2p-key

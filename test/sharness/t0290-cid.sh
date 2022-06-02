@@ -290,7 +290,7 @@ test_expect_success "cid format -c raw" '
 
 test_expect_success "cid format -c protobuf -v 0" '
   echo $CIDbase > expected &&
-  ipfs cid format --codec protobuf -v 0 $CIDb32raw > actual &&
+  ipfs cid format --codec dag-pb -v 0 $CIDb32raw > actual &&
   test_cmp actual expected
 '
 
