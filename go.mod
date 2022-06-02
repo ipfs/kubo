@@ -7,6 +7,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
+	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/cheggaaa/pb v1.0.29
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/dustin/go-humanize v1.0.1
@@ -98,7 +99,6 @@ require (
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20231225121904-e25f5bc08668 // indirect
 	github.com/cskr/pubsub v1.0.2 // indirect

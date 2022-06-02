@@ -10,6 +10,7 @@ import (
 
 	"github.com/ipfs/boxo/files"
 	"github.com/ipfs/boxo/path"
+	"github.com/cespare/xxhash/v2"
 	cid "github.com/ipfs/go-cid"
 	options "github.com/ipfs/kubo/core/coreiface/options"
 )
