@@ -31,11 +31,16 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.DefaultLimitConfig {
 	// - if Swarm.ConnMgr.HighWater is too high, adjust Conn/FD/Stream limits
 	defaultLimits := rcmgr.DefaultLimits.WithSystemMemory(.125, 1<<30, 4<<30)
 
-	// Outbound conns are set very high to allow for the accelerated DHT client to (re)load its routing table.
-	// Currently it doesn't gracefully handle RM throttling--once it does we can lower this.
+	// Outbound conns and FDs are set very high to allow for the accelerated DHT client to (re)load its routing table.
+	// Currently it doesn't gracefully handle RM throttling--once it does we can lower these.
 	// High outbound conn limits are considered less of a DoS risk than high inbound conn limits.
 	// Also note that, due to the behavior of the accelerated DHT client, we don't need many streams, just conns.
-	defaultLimits.SystemBaseLimit.ConnsOutbound = 65536
+	if minOutbound := 65536; defaultLimits.SystemBaseLimit.ConnsOutbound < minOutbound {
+		defaultLimits.SystemBaseLimit.ConnsOutbound = minOutbound
+	}
+	if minFD := 4096; defaultLimits.SystemBaseLimit.FD < minFD {
+		defaultLimits.SystemBaseLimit.FD = minFD
+	}
 
 	// Do we need to adjust due to Swarm.ConnMgr.HighWater?
 	if cfg.ConnMgr.Type == "basic" {
@@ -44,9 +49,9 @@ func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.DefaultLimitConfig {
 			// Conns should be at least 2x larger than the high water to allow for two conns per peer (TCP+QUIC).
 			defaultLimits.SystemBaseLimit.ConnsInbound = logScale(2 * maxconns)
 
-			// We want the floor of outbound conns to be no less than what was set above.
-			if outbound := logScale(2 * maxconns); outbound > defaultLimits.SystemBaseLimit.ConnsOutbound {
-				defaultLimits.SystemBaseLimit.ConnsOutbound = outbound
+			// We want the floor of minOutbound conns to be no less than what was set above.
+			if minOutbound := logScale(2 * maxconns); minOutbound > defaultLimits.SystemBaseLimit.ConnsOutbound {
+				defaultLimits.SystemBaseLimit.ConnsOutbound = minOutbound
 			}
 
 			if 2*maxconns > defaultLimits.SystemBaseLimit.FD {
