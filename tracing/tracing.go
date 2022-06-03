@@ -15,7 +15,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	traceapi "go.opentelemetry.io/otel/trace"
 )
 
@@ -129,8 +129,7 @@ func NewTracerProvider(ctx context.Context) (shutdownTracerProvider, error) {
 
 	r, err := resource.Merge(
 		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
+		resource.NewSchemaless(
 			semconv.ServiceNameKey.String("go-ipfs"),
 			semconv.ServiceVersionKey.String(version.CurrentVersionNumber),
 		),
