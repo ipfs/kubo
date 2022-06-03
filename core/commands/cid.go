@@ -35,7 +35,7 @@ var CidCmd = &cmds.Command{
 const (
 	cidFormatOptionName    = "f"
 	cidVerisonOptionName   = "v"
-	cidCodecOptionName     = "codec"
+	cidCodecOptionName     = "mc"
 	cidMultibaseOptionName = "b"
 )
 
