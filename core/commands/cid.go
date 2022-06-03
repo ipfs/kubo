@@ -54,7 +54,7 @@ The optional format string is a printf style format string:
 	Options: []cmds.Option{
 		cmds.StringOption(cidFormatOptionName, "Printf style format string.").WithDefault("%s"),
 		cmds.StringOption(cidVerisonOptionName, "CID version to convert to."),
-		cmds.StringOption(cidCodecOptionName, "CID codec to convert to."),
+		cmds.StringOption(cidCodecOptionName, "CID multicodec to convert to."),
 		cmds.StringOption(cidMultibaseOptionName, "Multibase to display CID in."),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
@@ -313,7 +313,7 @@ const (
 
 var codecsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List available CID codecs.",
+		Tagline: "List available CID multicodecs.",
 		ShortDescription: `
 'ipfs cid codecs' relies on https://github.com/multiformats/go-multicodec
 `,
