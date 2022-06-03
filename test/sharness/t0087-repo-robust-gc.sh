@@ -10,7 +10,7 @@ test_description="Test robustness of garbage collector"
 set -e
 
 to_raw_cid() {
-    ipfs cid format -b b --codec raw -v 1 "$1"
+    ipfs cid format -b b --mc raw -v 1 "$1"
 }
 
 test_gc_robust_part1() {

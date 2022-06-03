@@ -13,6 +13,7 @@ CIDb32="bafybeibxm2nsadl3fnxv2sxcxmxaco2jl53wpeorjdzidjwf5aqdg7wa6u"
 CIDbase="QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6"
 CIDb32pb="bafybeievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
 CIDb32raw="bafkreievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
+CIDb32dagcbor="bafyreievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
 
 test_expect_success "cid base32 works" '
   echo $CIDb32 > expected &&
@@ -284,13 +285,28 @@ test_expect_success "cid hashes --numeric" '
 
 test_expect_success "cid format -c raw" '
   echo $CIDb32raw > expected &&
-  ipfs cid format --codec raw -b base32 $CIDb32pb > actual &&
+  ipfs cid format --mc raw -b base32 $CIDb32pb > actual &&
   test_cmp actual expected
 '
 
-test_expect_success "cid format -c protobuf -v 0" '
+test_expect_success "cid format --mc dag-pb -v 0" '
   echo $CIDbase > expected &&
-  ipfs cid format --codec protobuf -v 0 $CIDb32raw > actual &&
+  ipfs cid format --mc dag-pb -v 0 $CIDb32raw > actual &&
+  test_cmp actual expected
+'
+
+test_expect_success "cid format --mc dag-cbor" '
+  echo $CIDb32dagcbor > expected &&
+  ipfs cid format --mc dag-cbor $CIDb32pb > actual &&
+  test_cmp actual expected
+'
+
+# this was an old flag that we removed, explicitly to force an error
+# so the user would read about the new multicodec names introduced
+# by https://github.com/ipfs/go-cid/commit/b2064d74a8b098193b316689a715cdf4e4934805
+test_expect_success "cid format --codec fails" '
+  echo "Error: unknown option \"codec\"" > expected &&
+  test_expect_code 1 ipfs cid format --codec protobuf 2> actual &&
   test_cmp actual expected
 '
 
