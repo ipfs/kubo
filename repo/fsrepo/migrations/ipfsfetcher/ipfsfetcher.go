@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ipfs/go-ipfs/repo/common"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -177,7 +178,7 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	if err != nil {
 		return "", err
 	}
-	cfg, err := config.InitWithIdentity(identity)
+	cfg, err := config.NewUserConfigOverrides(identity)
 	if err != nil {
 		return "", err
 	}
@@ -189,19 +190,27 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	}
 
 	// configure the temporary node
-	cfg.Routing.Type = "dhtclient"
-
-	// Disable listening for inbound connections
-	cfg.Addresses.Gateway = []string{}
-	cfg.Addresses.API = []string{}
-	cfg.Addresses.Swarm = []string{tempNodeTcpAddr}
+	err = common.MapSetManyKV(cfg, []common.KeyValue{
+		{Key: "cfg.Routing.Type", Value: "dhtclient"},
+		// Disable listening for inbound connections
+		{Key: "cfg.Addresses.Gateway", Value: []string{}},
+		{Key: "cfg.Addresses.API", Value: []string{}},
+		{Key: "cfg.Addresses.Swarm", Value: []string{tempNodeTcpAddr}},
+	})
+	if err != nil {
+		return "", err
+	}
 
 	if len(bootstrap) != 0 {
-		cfg.Bootstrap = bootstrap
+		if err := common.MapSetKV(cfg, "cfg.Bootstrap", bootstrap); err != nil {
+			return "", err
+		}
 	}
 
 	if len(peers) != 0 {
-		cfg.Peering.Peers = peers
+		if err := common.MapSetKV(cfg, "cfg.Peering.Peers", peers); err != nil {
+			return "", err
+		}
 	}
 
 	// Assumes that repo plugins are already loaded

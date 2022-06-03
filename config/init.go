@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
@@ -21,6 +22,46 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	return InitWithIdentity(identity)
 }
 
+// FIXME: Join with InitWithIdentity.
+func DefaultConfig(profiles string) (*Config, error) {
+	defaultConfig, err := InitWithIdentity(Identity{})
+	if err != nil {
+		return nil, err
+	}
+	if err := applyProfiles(defaultConfig, profiles); err != nil {
+		return nil, err
+	}
+	return defaultConfig, nil
+}
+
+func CheckProfiles(profiles string) error {
+	for _, profile := range strings.Split(profiles, ",") {
+		_, ok := Profiles[profile]
+		if !ok {
+			return fmt.Errorf("invalid configuration profile: %s", profile)
+		}
+	}
+	return nil
+}
+
+func applyProfiles(conf *Config, profiles string) error {
+	if profiles == "" {
+		return nil
+	}
+
+	if err := CheckProfiles(profiles); err != nil {
+		return err
+	}
+
+	for _, profile := range strings.Split(profiles, ",") {
+		if err := Profiles[profile].Transform(conf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// FIXME: Rename to DefaultConfig. No identity.
 func InitWithIdentity(identity Identity) (*Config, error) {
 	bootstrapPeers, err := DefaultBootstrapPeers()
 	if err != nil {
@@ -138,6 +179,18 @@ func DefaultDatastoreConfig() Datastore {
 		BloomFilterSize:    0,
 		Spec:               flatfsSpec(),
 	}
+}
+
+func DefaultDatastoreConfigMap() map[string]interface{} {
+	buf, err := JsonEncode(DefaultDatastoreConfig())
+	if err != nil {
+		panic("failed to encode DefaultDatastoreConfig")
+	}
+	m, err := jsonDecodeMap(buf)
+	if err != nil {
+		panic("failed to decode DefaultDatastoreConfig")
+	}
+	return m
 }
 
 func badgerSpec() map[string]interface{} {

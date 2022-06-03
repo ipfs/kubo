@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	config "github.com/ipfs/go-ipfs/config"
-	cserialize "github.com/ipfs/go-ipfs/config/serialize"
 	"github.com/ipld/go-ipld-prime/multicodec"
 
 	"github.com/ipfs/go-ipfs/core"
@@ -97,13 +96,17 @@ type PluginLoader struct {
 func NewPluginLoader(repo string) (*PluginLoader, error) {
 	loader := &PluginLoader{plugins: make(map[string]plugin.Plugin, len(preloadPlugins)), repo: repo}
 	if repo != "" {
-		cfg, err := cserialize.Load(filepath.Join(repo, config.DefaultConfigFile))
-		switch err {
-		case cserialize.ErrNotInitialized:
-		case nil:
-			loader.config = cfg.Plugins
-		default:
+		cfgFilename := filepath.Join(repo, config.DefaultConfigFile)
+		_, err := os.Open(cfgFilename)
+		if err != nil && !os.IsNotExist(err) {
 			return nil, err
+		}
+		if !os.IsNotExist(err) {
+			cfg, err := config.GetConfig(cfgFilename)
+			if err != nil {
+				return nil, err
+			}
+			loader.config = cfg.Plugins
 		}
 	}
 	for _, v := range preloadPlugins {

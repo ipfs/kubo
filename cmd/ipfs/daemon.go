@@ -248,28 +248,26 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if initialize && !fsrepo.IsInitialized(cctx.ConfigRoot) {
 		cfgLocation, _ := req.Options[initConfigOptionKwd].(string)
 		profiles, _ := req.Options[initProfileOptionKwd].(string)
-		var conf *config.Config
+		var conf config.UserConfigOverrides
 
 		if cfgLocation != "" {
 			if conf, err = cserial.Load(cfgLocation); err != nil {
 				return err
 			}
-		}
-
-		if conf == nil {
+		} else {
 			identity, err := config.CreateIdentity(os.Stdout, []options.KeyGenerateOption{
 				options.Key.Type(algorithmDefault),
 			})
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+			conf, err = config.NewUserConfigOverridesWithProfiles(identity, profiles)
 			if err != nil {
 				return err
 			}
 		}
 
-		if err = doInit(os.Stdout, cctx.ConfigRoot, false, profiles, conf); err != nil {
+		if err = doInit(os.Stdout, cctx.ConfigRoot, false, conf); err != nil {
 			return err
 		}
 	}

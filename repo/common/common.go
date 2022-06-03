@@ -61,6 +61,21 @@ func MapSetKV(v map[string]interface{}, key string, value interface{}) error {
 	return nil
 }
 
+type KeyValue struct {
+	Key   string
+	Value interface{}
+}
+
+func MapSetManyKV(v map[string]interface{}, kvs []KeyValue) error {
+	for _, kv := range kvs {
+		err := MapSetKV(v, kv.Key, kv.Value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Merges the right map into the left map, recursively traversing child maps
 // until a non-map value is found
 func MapMergeDeep(left, right map[string]interface{}) map[string]interface{} {

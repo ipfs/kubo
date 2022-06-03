@@ -2,21 +2,19 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
-
 	assets "github.com/ipfs/go-ipfs/assets"
 	oldcmds "github.com/ipfs/go-ipfs/commands"
 	core "github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/commands"
+	"github.com/ipfs/go-ipfs/repo/common"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	path "github.com/ipfs/go-path"
 	unixfs "github.com/ipfs/go-unixfs"
+	"io"
+	"os"
+	"path/filepath"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
@@ -77,7 +75,7 @@ environment variable:
 		algorithm, _ := req.Options[algorithmOptionName].(string)
 		nBitsForKeypair, nBitsGiven := req.Options[bitsOptionName].(int)
 
-		var conf *config.Config
+		var conf config.UserConfigOverrides
 
 		f := req.Files
 		if f != nil {
@@ -93,10 +91,11 @@ environment variable:
 				return fmt.Errorf("expected a regular file")
 			}
 
-			conf = &config.Config{}
-			if err := json.NewDecoder(file).Decode(conf); err != nil {
+			decoded, err := config.DecodeUserConfigOverrides(file)
+			if err != nil {
 				return err
 			}
+			conf = decoded
 		}
 
 		if conf == nil {
@@ -115,36 +114,29 @@ environment variable:
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+			conf, err = config.NewUserConfigOverrides(identity)
 			if err != nil {
 				return err
 			}
 		}
 
-		profiles, _ := req.Options[profileOptionName].(string)
-		return doInit(os.Stdout, cctx.ConfigRoot, empty, profiles, conf)
+		if profiles, ok := req.Options[profileOptionName].(string); ok {
+			// Replace old config's profiles with the ones passed as arguments.
+			err := config.CheckProfiles(profiles)
+			if err != nil {
+				return err
+			}
+			err = common.MapSetKV(conf, "Profiles", profiles)
+			if err != nil {
+				return err
+			}
+		}
+
+		return doInit(os.Stdout, cctx.ConfigRoot, empty, conf)
 	},
 }
 
-func applyProfiles(conf *config.Config, profiles string) error {
-	if profiles == "" {
-		return nil
-	}
-
-	for _, profile := range strings.Split(profiles, ",") {
-		transformer, ok := config.Profiles[profile]
-		if !ok {
-			return fmt.Errorf("invalid configuration profile: %s", profile)
-		}
-
-		if err := transformer.Transform(conf); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func doInit(out io.Writer, repoRoot string, empty bool, confProfiles string, conf *config.Config) error {
+func doInit(out io.Writer, repoRoot string, empty bool, conf config.UserConfigOverrides) error {
 	if _, err := fmt.Fprintf(out, "initializing IPFS node at %s\n", repoRoot); err != nil {
 		return err
 	}
@@ -155,10 +147,6 @@ func doInit(out io.Writer, repoRoot string, empty bool, confProfiles string, con
 
 	if fsrepo.IsInitialized(repoRoot) {
 		return errRepoExists
-	}
-
-	if err := applyProfiles(conf, confProfiles); err != nil {
-		return err
 	}
 
 	if err := fsrepo.Init(repoRoot, conf); err != nil {
