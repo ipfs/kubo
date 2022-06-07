@@ -3,10 +3,9 @@ module github.com/ipfs/go-ipfs
 require (
 	bazil.org/fuse v0.0.0-20200407214033-5883e5a4b512
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
-	github.com/aschmahmann/go-ipld-bittorrent v0.0.0-20220401201843-17fb1f5c31c8
+	github.com/aschmahmann/wasm-ipld/gobind v0.0.0-20220401201843-17fb1f5c31c8
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.3
-	github.com/bytecodealliance/wasmtime-go v0.35.0
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/cheggaaa/pb v1.0.29
@@ -98,9 +97,8 @@ require (
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.0.3
-	github.com/multiformats/go-multicodec v0.4.1
+	github.com/multiformats/go-multicodec v0.5.0
 	github.com/multiformats/go-multihash v0.1.0
-	github.com/multiformats/go-varint v0.0.6
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
@@ -139,11 +137,9 @@ require (
 	github.com/Stebalien/go-bitfield v0.0.1 // indirect
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
-	github.com/anacrolix/missinggo v1.3.0 // indirect
-	github.com/anacrolix/missinggo/v2 v2.5.2 // indirect
-	github.com/anacrolix/torrent v1.41.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.1 // indirect
+	github.com/bytecodealliance/wasmtime-go v0.36.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
@@ -171,12 +167,12 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20190910122728-9d188e94fb99 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
 	github.com/hannahhoward/go-pubsub v0.0.0-20200423002714-8d62886cc36e // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.0.0 // indirect
@@ -232,6 +228,7 @@ require (
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/gomega v1.17.0 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
 	github.com/openzipkin/zipkin-go v0.4.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
@@ -242,6 +239,7 @@ require (
 	github.com/prometheus/statsd_exporter v0.21.0 // indirect
 	github.com/raulk/clock v1.1.0 // indirect
 	github.com/raulk/go-watchdog v1.2.0 // indirect
+	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -280,5 +278,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
+
+replace github.com/aschmahmann/wasm-ipld/gobind => ../../../../../workspace/rust/wasm-ipld/gobind
 
 go 1.17

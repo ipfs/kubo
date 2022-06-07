@@ -441,7 +441,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			i.serveIPLD(w, r, resolvedPath, contentPath, selector, selectorCID, begin, logger)
 		} else {
 			logger.Debugw("serving unixfs", "path", contentPath)
-			i.serveUnixFS(w, r, resolvedPath, contentPath, begin, logger)
+			i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
 		}
 		return
 	case "application/vnd.ipld.raw":

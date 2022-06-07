@@ -24,7 +24,7 @@ func dagGet(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) e
 
 	codecStr, _ := req.Options["output-codec"].(string)
 	var codec mc.Code
-		if err := codec.Set(codecStr); err != nil {
+	if err := codec.Set(codecStr); err != nil {
 		return err
 	}
 
