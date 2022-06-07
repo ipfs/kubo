@@ -129,6 +129,7 @@ require (
 require (
 	github.com/benbjohnson/clock v1.3.0
 	github.com/ipfs/go-log/v2 v2.5.1
+	github.com/mitchellh/mapstructure v1.1.2
 )
 
 require (

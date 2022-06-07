@@ -1,15 +1,17 @@
 package wasmipld
 
 import (
-	wasmbind "github.com/aschmahmann/wasm-ipld/gobind"
 	"io/ioutil"
-
-	"github.com/ipfs/go-ipfs/plugin"
 
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"
 
 	mc "github.com/multiformats/go-multicodec"
+
+	"github.com/ipfs/go-ipfs/plugin"
+	"github.com/mitchellh/mapstructure"
+
+	wasmbind "github.com/aschmahmann/wasm-ipld/gobind"
 )
 
 // Plugins is exported list of plugins that will be loaded
@@ -30,41 +32,76 @@ func (*wasmipld) Version() string {
 	return "0.0.1"
 }
 
+type WasmIPLDConfig struct {
+	Codecs []WasmIPLDCodecConfig
+	ADLs   []WasmIPLDADLConfig
+}
+
+type WasmIPLDCodecConfig struct {
+	Code     string
+	Encode   bool
+	Decode   bool
+	WasmPath string
+}
+
+type WasmIPLDADLConfig struct {
+	Name     string
+	WasmPath string
+}
+
 func (*wasmipld) Init(env *plugin.Environment) error {
+	config := env.Config
+	if config == nil {
+		return nil
+	}
+
+	var cfg WasmIPLDConfig
+	// Note: This dependency is just for convenience and is in our go.sum anyway
+	// It can go away if we upstream this into the main config instead of keeping it as a plugin
+	if err := mapstructure.Decode(config, &cfg); err != nil {
+		return err
+	}
+
+	registry = &wasmRegistry{}
+
+	for _, c := range cfg.Codecs {
+		wasm, err := ioutil.ReadFile(c.WasmPath)
+		if err != nil {
+			return err
+		}
+
+		var code mc.Code
+		if err := code.Set(c.Code); err != nil {
+			return err
+		}
+
+		codecRegistration := codecReg{
+			code:   code,
+			wasm:   wasm,
+			encode: c.Encode,
+			decode: c.Decode,
+		}
+		registry.Codecs = append(registry.Codecs, codecRegistration)
+	}
+
+	for _, a := range cfg.ADLs {
+		wasm, err := ioutil.ReadFile(a.WasmPath)
+		if err != nil {
+			return err
+		}
+
+		adlRegistration := adlReg{
+			name: a.Name,
+			wasm: wasm,
+		}
+
+		registry.ADLs = append(registry.ADLs, adlRegistration)
+	}
+
 	return nil
 }
 
 const fuelPerOp = 10_000_000
-
-func init() {
-	registry = &wasmRegistry{}
-
-	wasm, err := ioutil.ReadFile("C:\\Users\\adin\\workspace\\rust\\wasm-ipld\\wasmlib\\target\\wasm32-unknown-unknown\\release\\bencode.wasm")
-	if err != nil {
-		panic(err)
-	}
-	bencodeCodec := codecReg{
-		code:   mc.Bencode,
-		wasm:   wasm,
-		encode: true,
-		decode: true,
-	}
-
-	wasm, err = ioutil.ReadFile("C:\\Users\\adin\\workspace\\rust\\wasm-ipld\\wasmlib\\target\\wasm32-unknown-unknown\\release\\bt_dirv1.wasm")
-	if err != nil {
-		panic(err)
-	}
-	registry.Codecs = append(registry.Codecs, bencodeCodec)
-
-	const btFileADLName = "bittorrentv1-file"
-	const btDirADLName = "bittorrentv1-directory"
-	btDirV1Adl := adlReg{
-		name: btDirADLName,
-		wasm: wasm,
-	}
-
-	registry.ADLs = append(registry.ADLs, btDirV1Adl)
-}
 
 var registry *wasmRegistry
 
