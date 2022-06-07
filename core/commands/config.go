@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
@@ -500,6 +501,12 @@ func editConfig(filename string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		return errors.New("ENV variable $EDITOR not set")
+	}
+
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/C", editor, filename)
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		return cmd.Run()
 	}
 
 	cmd := exec.Command("sh", "-c", editor+" "+filename)
