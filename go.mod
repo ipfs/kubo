@@ -3,7 +3,7 @@ module github.com/ipfs/go-ipfs
 require (
 	bazil.org/fuse v0.0.0-20200407214033-5883e5a4b512
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
-	github.com/aschmahmann/wasm-ipld/gobind v0.0.0-20220401201843-17fb1f5c31c8
+	github.com/aschmahmann/wasm-ipld/gobind v0.0.0-20220607151816-3afb0185f645
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/ceramicnetwork/go-dag-jose v0.1.0
@@ -279,7 +279,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
-
-replace github.com/aschmahmann/wasm-ipld/gobind => ../../../../../workspace/rust/wasm-ipld/gobind
 
 go 1.17
