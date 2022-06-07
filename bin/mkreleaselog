@@ -5,6 +5,7 @@
 set -euo pipefail
 export GO111MODULE=on
 export GOPATH="$(go env GOPATH)"
+export REPO_ROOT="$(git -C $(realpath $(dirname $0)) rev-parse --show-toplevel)"
 
 # List of PCRE regular expressions to match "included" modules.
 INCLUDE_MODULES=(
@@ -52,7 +53,7 @@ IGNORE_FILES=(
 
 if [[ ${#INCLUDE_MODULES[@]} -gt 0 ]]; then
     INCLUDE_REGEX="(${$(printf "|%s" "${INCLUDE_MODULES[@]}"):1})"
-else 
+else
     INCLUDE_REGEX="" # "match anything"
 fi
 
@@ -153,7 +154,7 @@ ignored_commit() {
     local matches
 
     # Check to see if this commit includes any non-ignored files.
-    matches=$(git -C "$dir" diff-tree --no-commit-id --name-only -r "$commit^" "$commit" \
+    matches=$(git -C "$REPO_ROOT" diff-tree --no-commit-id --name-only -r "$commit^" "$commit" \
                   -- "${IGNORE_FILES_PATHSPEC[@]}" | wc -l)
     [[ "$matches" -eq 0 ]]
 }
@@ -166,10 +167,9 @@ release_log() {
     local start="$2"
     local end="${3:-HEAD}"
     local repo="$(strip_version "$1")"
-    local dir="$GOPATH/src/$repo"
 
     local commit pr
-    git -C "$dir" log \
+    git -C "$REPO_ROOT" log \
         --format='tformat:%H %s' \
         --first-parent \
         "$start..$end" |
@@ -181,7 +181,7 @@ release_log() {
 
             if [[ "$subject" =~ '^Merge pull request #([0-9]+) from' ]]; then
                 local prnum="${BASH_REMATCH[2]}"
-                local desc="$(git -C "$dir" show --summary --format='tformat:%b' "$commit" | head -1)"
+                local desc="$(git -C "$REPO_ROOT" show --summary --format='tformat:%b' "$commit" | head -1)"
                 printf -- "- %s (%s)\n" "$desc" "$(pr_link "$repo" "$prnum")"
             elif [[ "$subject" =~ '\(#([0-9]+)\)$' ]]; then
                 local prnum="${BASH_REMATCH[2]}"
