@@ -2,7 +2,6 @@ package loader
 
 import (
 	pluginbadgerds "github.com/ipfs/go-ipfs/plugin/plugins/badgerds"
-	pluginipldbittorrent "github.com/ipfs/go-ipfs/plugin/plugins/bittorrent"
 	pluginiplddagjose "github.com/ipfs/go-ipfs/plugin/plugins/dagjose"
 	pluginflatfs "github.com/ipfs/go-ipfs/plugin/plugins/flatfs"
 	pluginipldgit "github.com/ipfs/go-ipfs/plugin/plugins/git"
@@ -18,7 +17,6 @@ import (
 func init() {
 	Preload(pluginipldgit.Plugins...)
 	Preload(pluginiplddagjose.Plugins...)
-	Preload(pluginipldbittorrent.Plugins...)
 	Preload(pluginipldwasm.Plugins...)
 	Preload(pluginbadgerds.Plugins...)
 	Preload(pluginflatfs.Plugins...)
