@@ -23,6 +23,7 @@ As usual, this release includes important fixes, some of which may be critical f
 For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
+- new commits should be added to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
 - tag commit with `vX.Y.Z-rcN`
 - upload to dist.ipfs.io
   1. Build: https://github.com/ipfs/distributions#usage.
@@ -76,25 +77,34 @@ Checklist:
 - [ ] **Stage 3 - Release**
   - [ ] Final preparation
     - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
-    - [ ] Merge `release-vX.Y.Z` into the `release` branch.
-    - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
+    - [ ] Open a PR merging `release-vX.Y.Z` into the `release` branch.
+      - This should be reviewed by the person who most recently released a version of `go-ipfs`.
+	  - Use a merge commit (no rebase, no squash)
+    - [ ] Prepare the command to use for tagging the merge commit (on the `release` branch) with `vX.Y.Z`.
+      - Use `git tag -s` to ensure the tag is signed
+    - [ ] Have the tagging command reviewed by the person who most recently released a version of `go-ipfs`
+      - This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing
+    - [ ] Push the tag
+      - Use `git push origin <tag>`
+      - DO NOT USE `git push --tags`, as it will push ALL of your local tags
+      - This should initiate a Docker build in GitHub Actions that publishes a `vX.Y.Z` tagged Docker image to DockerHub
     - [ ] Release published
       - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
       - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
          - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
+         - [ ] Wait for Chocolatey to approve the release (usually takes a few hours)
       - [ ] to [snap](https://snapcraft.io/ipfs)
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
-        - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/go-ipfs/$(curl -s https://dist.ipfs.io/go-ipfs/versions | tail -n 1)"`
+        - [ ] After publishing the GitHub release, run the workflow to attach the release assets: https://github.com/ipfs/go-ipfs/actions/workflows/sync-release-assets.yml
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
   - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
-  - [ ] Broadcasting (link to blog post)
+  - [ ] Broadcasting
     - [ ] Twitter (request in Slack channel #pl-marketing-requests)
-    - [ ] Matrix
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Announce it on the [IPFS Users Mailing List](https://groups.google.com/forum/#!forum/ipfs-users)
+      - A bot auto-posts this to Discord and Matrix
 - [ ] **Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
