@@ -503,13 +503,13 @@ func editConfig(filename string) error {
 		return errors.New("ENV variable $EDITOR not set")
 	}
 
-	if runtime.GOOS == "windows" {
-		cmd := exec.Command("cmd", "/C", editor, filename)
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-		return cmd.Run()
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/C", editor, filename)
+	default:
+		cmd = exec.Command("sh", "-c", editor+" "+filename)
 	}
-
-	cmd := exec.Command("sh", "-c", editor+" "+filename)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
 }
