@@ -502,7 +502,7 @@ func editConfig(filename string) error {
 		return errors.New("ENV variable $EDITOR not set")
 	}
 
-	cmd := exec.Command("sh", "-c", editor+" "+filename)
+	cmd := exec.Command(editor, filename)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
 }
