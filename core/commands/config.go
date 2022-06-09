@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
