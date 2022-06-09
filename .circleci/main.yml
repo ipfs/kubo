@@ -367,7 +367,7 @@ jobs:
             - ~/.cache/ms-playwright
             - ~/ipfs/go-ipfs/ipfs-webui/node_modules
   # We only run build as a test here. DockerHub images are built and published
-  # by Github Action now: https://github.com/ipfs/go-ipfs/pull/8467
+  # by GitHub Action now: https://github.com/ipfs/go-ipfs/pull/8467
   docker-build:
     executor: dockerizer
     steps:
