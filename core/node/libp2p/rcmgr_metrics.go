@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/libp2p/go-libp2p-core/network"
@@ -10,6 +11,17 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 )
+
+func mustRegister(c prometheus.Collector) {
+	err := prometheus.Register(c)
+	are := prometheus.AlreadyRegisteredError{}
+	if errors.As(err, &are) {
+		return
+	}
+	if err != nil {
+		panic(err)
+	}
+}
 
 func createRcmgrMetrics() rcmgr.MetricsReporter {
 	const (
@@ -26,7 +38,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{direction, usesFD},
 	)
-	prometheus.MustRegister(connAllowed)
+	mustRegister(connAllowed)
 
 	connBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -35,7 +47,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{direction, usesFD},
 	)
-	prometheus.MustRegister(connBlocked)
+	mustRegister(connBlocked)
 
 	streamAllowed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -44,7 +56,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{direction},
 	)
-	prometheus.MustRegister(streamAllowed)
+	mustRegister(streamAllowed)
 
 	streamBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -53,19 +65,19 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{direction},
 	)
-	prometheus.MustRegister(streamBlocked)
+	mustRegister(streamBlocked)
 
 	peerAllowed := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_peers_allowed_total",
 		Help: "allowed peers",
 	})
-	prometheus.MustRegister(peerAllowed)
+	mustRegister(peerAllowed)
 
 	peerBlocked := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_peer_blocked_total",
 		Help: "blocked peers",
 	})
-	prometheus.MustRegister(peerBlocked)
+	mustRegister(peerBlocked)
 
 	protocolAllowed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -74,7 +86,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{protocol},
 	)
-	prometheus.MustRegister(protocolAllowed)
+	mustRegister(protocolAllowed)
 
 	protocolBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -83,7 +95,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{protocol},
 	)
-	prometheus.MustRegister(protocolBlocked)
+	mustRegister(protocolBlocked)
 
 	protocolPeerBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -92,7 +104,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{protocol},
 	)
-	prometheus.MustRegister(protocolPeerBlocked)
+	mustRegister(protocolPeerBlocked)
 
 	serviceAllowed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -101,7 +113,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{service},
 	)
-	prometheus.MustRegister(serviceAllowed)
+	mustRegister(serviceAllowed)
 
 	serviceBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -110,7 +122,7 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{service},
 	)
-	prometheus.MustRegister(serviceBlocked)
+	mustRegister(serviceBlocked)
 
 	servicePeerBlocked := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -119,19 +131,19 @@ func createRcmgrMetrics() rcmgr.MetricsReporter {
 		},
 		[]string{service},
 	)
-	prometheus.MustRegister(servicePeerBlocked)
+	mustRegister(servicePeerBlocked)
 
 	memoryAllowed := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_memory_allocations_allowed_total",
 		Help: "allowed memory allocations",
 	})
-	prometheus.MustRegister(memoryAllowed)
+	mustRegister(memoryAllowed)
 
 	memoryBlocked := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "libp2p_rcmgr_memory_allocations_blocked_total",
 		Help: "blocked memory allocations",
 	})
-	prometheus.MustRegister(memoryBlocked)
+	mustRegister(memoryBlocked)
 
 	return rcmgrMetrics{
 		connAllowed,

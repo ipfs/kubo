@@ -221,7 +221,7 @@ var testConfig = `
 func TestReadMigrationConfigDefaults(t *testing.T) {
 	tmpDir := makeConfig(t, "{}")
 
-	cfg, err := ReadMigrationConfig(tmpDir)
+	cfg, err := ReadMigrationConfig(tmpDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func TestReadMigrationConfigDefaults(t *testing.T) {
 func TestReadMigrationConfigErrors(t *testing.T) {
 	tmpDir := makeConfig(t, `{"Migration": {"Keep": "badvalue"}}`)
 
-	_, err := ReadMigrationConfig(tmpDir)
+	_, err := ReadMigrationConfig(tmpDir, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -252,13 +252,13 @@ func TestReadMigrationConfigErrors(t *testing.T) {
 	}
 
 	os.RemoveAll(tmpDir)
-	_, err = ReadMigrationConfig(tmpDir)
+	_, err = ReadMigrationConfig(tmpDir, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}
 
 	tmpDir = makeConfig(t, `}{`)
-	_, err = ReadMigrationConfig(tmpDir)
+	_, err = ReadMigrationConfig(tmpDir, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -267,7 +267,7 @@ func TestReadMigrationConfigErrors(t *testing.T) {
 func TestReadMigrationConfig(t *testing.T) {
 	tmpDir := makeConfig(t, testConfig)
 
-	cfg, err := ReadMigrationConfig(tmpDir)
+	cfg, err := ReadMigrationConfig(tmpDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}

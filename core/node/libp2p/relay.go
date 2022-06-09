@@ -1,10 +1,10 @@
 package libp2p
 
 import (
-	config "github.com/ipfs/go-ipfs/config"
-	"github.com/libp2p/go-libp2p-core/peer"
-
+	"github.com/ipfs/go-ipfs/config"
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/p2p/host/autorelay"
 	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 )
 
@@ -43,39 +43,42 @@ func RelayService(enable bool, relayOpts config.RelayService) func() (opts Libp2
 	}
 }
 
-func StaticRelays(relays []string) func() (opts Libp2pOpts, err error) {
+func AutoRelay(staticRelays []string, peerChan <-chan peer.AddrInfo) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
-		staticRelays := make([]peer.AddrInfo, 0, len(relays))
-		for _, s := range relays {
-			var addr *peer.AddrInfo
-			addr, err = peer.AddrInfoFromString(s)
-			if err != nil {
-				return
-			}
-			staticRelays = append(staticRelays, *addr)
-		}
+		var autoRelayOpts []autorelay.Option
 		if len(staticRelays) > 0 {
-			opts.Opts = append(opts.Opts, libp2p.StaticRelays(staticRelays))
+			static := make([]peer.AddrInfo, 0, len(staticRelays))
+			for _, s := range staticRelays {
+				var addr *peer.AddrInfo
+				addr, err = peer.AddrInfoFromString(s)
+				if err != nil {
+					return
+				}
+				static = append(static, *addr)
+			}
+			autoRelayOpts = append(autoRelayOpts, autorelay.WithStaticRelays(static))
+			autoRelayOpts = append(autoRelayOpts, autorelay.WithCircuitV1Support())
 		}
-		return
-	}
-}
-
-func AutoRelay(addDefaultRelays bool) func() (opts Libp2pOpts, err error) {
-	return func() (opts Libp2pOpts, err error) {
-		opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay())
-		if addDefaultRelays {
-			opts.Opts = append(opts.Opts, libp2p.DefaultStaticRelays())
+		if peerChan != nil {
+			autoRelayOpts = append(autoRelayOpts, autorelay.WithPeerSource(peerChan))
 		}
+		opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay(autoRelayOpts...))
 		return
 	}
 }
 
 func HolePunching(flag config.Flag, hasRelayClient bool) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
-		if flag.WithDefault(false) {
+		if flag.WithDefault(true) {
 			if !hasRelayClient {
-				log.Fatal("To enable `Swarm.EnableHolePunching` requires `Swarm.RelayClient.Enabled` to be enabled.")
+				// If hole punching is explicitly enabled but the relay client is disabled then panic,
+				// otherwise just silently disable hole punching
+				if flag != config.Default {
+					log.Fatal("Failed to enable `Swarm.EnableHolePunching`, it requires `Swarm.RelayClient.Enabled` to be true.")
+				} else {
+					log.Info("HolePunching has been disabled due to the RelayClient being disabled.")
+				}
+				return
 			}
 			opts.Opts = append(opts.Opts, libp2p.EnableHolePunching())
 		}

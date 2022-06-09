@@ -11,7 +11,10 @@ import (
 	cidutil "github.com/ipfs/go-cidutil"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	verifcid "github.com/ipfs/go-verifcid"
+	ipldmulticodec "github.com/ipld/go-ipld-prime/multicodec"
 	mbase "github.com/multiformats/go-multibase"
+	"github.com/multiformats/go-multicodec"
+	mc "github.com/multiformats/go-multicodec"
 	mhash "github.com/multiformats/go-multihash"
 )
 
@@ -32,7 +35,7 @@ var CidCmd = &cmds.Command{
 const (
 	cidFormatOptionName    = "f"
 	cidVerisonOptionName   = "v"
-	cidCodecOptionName     = "codec"
+	cidCodecOptionName     = "mc"
 	cidMultibaseOptionName = "b"
 )
 
@@ -46,12 +49,12 @@ The optional format string is a printf style format string:
 ` + cidutil.FormatRef,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("cid", true, true, "Cids to format.").EnableStdin(),
+		cmds.StringArg("cid", true, true, "CIDs to format.").EnableStdin(),
 	},
 	Options: []cmds.Option{
 		cmds.StringOption(cidFormatOptionName, "Printf style format string.").WithDefault("%s"),
 		cmds.StringOption(cidVerisonOptionName, "CID version to convert to."),
-		cmds.StringOption(cidCodecOptionName, "CID codec to convert to."),
+		cmds.StringOption(cidCodecOptionName, "CID multicodec to convert to."),
 		cmds.StringOption(cidMultibaseOptionName, "Multibase to display CID in."),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
@@ -63,16 +66,17 @@ The optional format string is a printf style format string:
 		opts := cidFormatOpts{}
 
 		if strings.IndexByte(fmtStr, '%') == -1 {
-			return fmt.Errorf("invalid format string: %s", fmtStr)
+			return fmt.Errorf("invalid format string: %q", fmtStr)
 		}
 		opts.fmtStr = fmtStr
 
 		if codecStr != "" {
-			codec, ok := cid.Codecs[codecStr]
-			if !ok {
-				return fmt.Errorf("unknown IPLD codec: %s", codecStr)
+			var codec multicodec.Code
+			err := codec.Set(codecStr)
+			if err != nil {
+				return err
 			}
-			opts.newCodec = codec
+			opts.newCodec = uint64(codec)
 		} // otherwise, leave it as 0 (not a valid IPLD codec)
 
 		switch verStr {
@@ -80,13 +84,13 @@ The optional format string is a printf style format string:
 			// noop
 		case "0":
 			if opts.newCodec != 0 && opts.newCodec != cid.DagProtobuf {
-				return fmt.Errorf("cannot convert to CIDv0 with any codec other than DagPB")
+				return fmt.Errorf("cannot convert to CIDv0 with any codec other than dag-pb")
 			}
 			opts.verConv = toCidV0
 		case "1":
 			opts.verConv = toCidV1
 		default:
-			return fmt.Errorf("invalid cid version: %s", verStr)
+			return fmt.Errorf("invalid cid version: %q", verStr)
 		}
 
 		if baseStr != "" {
@@ -123,9 +127,13 @@ type CidFormatRes struct {
 var base32Cmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Convert CIDs to Base32 CID version 1.",
+		ShortDescription: `
+'ipfs cid base32' normalizes passes CIDs to their canonical case-insensitive encoding.
+Useful when processing third-party CIDs which could come with arbitrary formats.
+`,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("cid", true, true, "Cids to convert.").EnableStdin(),
+		cmds.StringArg("cid", true, true, "CIDs to convert.").EnableStdin(),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
 		opts := cidFormatOpts{
@@ -232,7 +240,7 @@ func emitCids(req *cmds.Request, resp cmds.ResponseEmitter, opts cidFormatOpts) 
 
 func toCidV0(c cid.Cid) (cid.Cid, error) {
 	if c.Type() != cid.DagProtobuf {
-		return cid.Cid{}, fmt.Errorf("can't convert non-protobuf nodes to cidv0")
+		return cid.Cid{}, fmt.Errorf("can't convert non-dag-pb nodes to cidv0")
 	}
 	return cid.NewCidV0(c.Hash()), nil
 }
@@ -254,6 +262,9 @@ const (
 var basesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List available multibase encodings.",
+		ShortDescription: `
+'ipfs cid bases' relies on https://github.com/multiformats/go-multibase
+`,
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(prefixOptionName, "also include the single letter prefixes in addition to the code"),
@@ -296,21 +307,45 @@ var basesCmd = &cmds.Command{
 }
 
 const (
-	codecsNumericOptionName = "numeric"
+	codecsNumericOptionName   = "numeric"
+	codecsSupportedOptionName = "supported"
 )
 
 var codecsCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
-		Tagline: "List available CID codecs.",
+		Tagline: "List available CID multicodecs.",
+		ShortDescription: `
+'ipfs cid codecs' relies on https://github.com/multiformats/go-multicodec
+`,
 	},
 	Options: []cmds.Option{
-		cmds.BoolOption(codecsNumericOptionName, "also include numeric codes"),
+		cmds.BoolOption(codecsNumericOptionName, "n", "also include numeric codes"),
+		cmds.BoolOption(codecsSupportedOptionName, "s", "list only codecs supported by go-ipfs commands"),
 	},
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {
+		listSupported, _ := req.Options[codecsSupportedOptionName].(bool)
+		supportedCodecs := make(map[uint64]struct{})
+		if listSupported {
+			for _, code := range ipldmulticodec.ListEncoders() {
+				supportedCodecs[code] = struct{}{}
+			}
+			for _, code := range ipldmulticodec.ListDecoders() {
+				supportedCodecs[code] = struct{}{}
+			}
+			// add libp2p-key
+			supportedCodecs[uint64(mc.Libp2pKey)] = struct{}{}
+		}
+
 		var res []CodeAndName
-		// use CodecToStr as there are multiple names for a given code
-		for code, name := range cid.CodecToStr {
-			res = append(res, CodeAndName{int(code), name})
+		for _, code := range mc.KnownCodes() {
+			if code.Tag() == "ipld" {
+				if listSupported {
+					if _, ok := supportedCodecs[uint64(code)]; !ok {
+						continue
+					}
+				}
+				res = append(res, CodeAndName{int(code), mc.Code(code).String()})
+			}
 		}
 		return cmds.EmitOnce(resp, res)
 	},
@@ -334,6 +369,9 @@ var codecsCmd = &cmds.Command{
 var hashesCmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "List available multihashes.",
+		ShortDescription: `
+'ipfs cid hashes' relies on https://github.com/multiformats/go-multihash
+`,
 	},
 	Options: codecsCmd.Options,
 	Run: func(req *cmds.Request, resp cmds.ResponseEmitter, env cmds.Environment) error {

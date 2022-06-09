@@ -63,7 +63,7 @@ In HTTP, our API layering uses a REST-like mapping, where:
 
 There is a "standard IPFS API" which is currently defined as "all the commands
 exposed by the go-ipfs implementation". There are auto-generated [API Docs](https://ipfs.io/docs/api/).
-You can Also see [a listing here](https://git.io/v5KG1), or get a list of
+You can Also see [a listing here](https://github.com/ipfs/go-ipfs/blob/94b832df861728c65e912935641d08880c341e0a/core/commands/root.go#L96-L130), or get a list of
 commands by running `ipfs commands` locally.
 
 ## Implementing bindings for the HTTP API
@@ -80,8 +80,8 @@ To date, we have two different HTTP API clients:
 
 - [js-ipfs-api](https://github.com/ipfs/js-ipfs-api) - simple javascript
   wrapper -- best to look at
-- [go-ipfs/commands/http](https://git.io/v5KnB) -
-  generalized transport based on the [command definitions](https://git.io/v5KnE)
+- [go-ipfs/commands/http](https://github.com/ipfs/go-ipfs/tree/916f987de2c35db71815b54bbb9a0a71df829838/commands/http) -
+  generalized transport based on the [command definitions](https://github.com/ipfs/go-ipfs/tree/916f987de2c35db71815b54bbb9a0a71df829838/core/commands)
 
 The Go implementation is good to answer harder questions, like how is multipart
 handled, or what headers should be set in edge conditions. But the javascript
@@ -90,12 +90,12 @@ implementation is very concise, and easy to follow.
 #### Anatomy of node-ipfs-api
 
 Currently, node-ipfs-api has three main files
-- [src/index.js](https://git.io/v5Kn2) defines the functions clients of the API
+- [src/index.js](https://github.com/ipfs-inactive/js-ipfs-http-client/blob/66d1462bd02181d46e8baf4cd9d476b213426ad8/src/index.js) defines the functions clients of the API
   module will use. uses `RequestAPI`, and translates function call parameters to
   the API almost directly.
-- [src/get-files-stream.js](https://git.io/v5Knr) implements the hardest part:
+- [src/get-files-stream.js](https://github.com/ipfs-inactive/js-ipfs-http-client/blob/66d1462bd02181d46e8baf4cd9d476b213426ad8/src/get-files-stream.js) implements the hardest part:
   file streaming. This one uses multipart.
-- [src/request-api.js](https://git.io/v5KnP) generic function call to perform
+- [src/request-api.js](https://github.com/ipfs-inactive/js-ipfs-http-client/blob/66d1462bd02181d46e8baf4cd9d476b213426ad8/src/request-api.js) generic function call to perform
   the actual HTTP requests
 
 ## Note on multipart + inspecting requests

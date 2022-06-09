@@ -51,6 +51,7 @@ config file at runtime.
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
+    - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
     - [`Gateway.PublicGateways`](#gatewaypublicgateways)
@@ -107,7 +108,6 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.EnableHolePunching`](#swarmenableholepunching)
-    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
     - [`Swarm.RelayClient`](#swarmrelayclient)
       - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled)
       - [`Swarm.RelayClient.StaticRelays`](#swarmrelayclientstaticrelays)
@@ -122,7 +122,6 @@ config file at runtime.
       - [`Swarm.RelayService.MaxReservationsPerPeer`](#swarmrelayservicemaxreservationsperpeer)
       - [`Swarm.RelayService.MaxReservationsPerIP`](#swarmrelayservicemaxreservationsperip)
       - [`Swarm.RelayService.MaxReservationsPerASN`](#swarmrelayservicemaxreservationsperasn)
-    - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
       - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
@@ -132,6 +131,7 @@ config file at runtime.
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
+      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -648,6 +648,20 @@ Default: `""`
 
 Type: `string` (url)
 
+### `Gateway.FastDirIndexThreshold`
+
+The maximum number of items in a directory before the Gateway switches
+to a shallow, faster listing which only requires the root node.
+
+This allows for fast listings of big directories, without the linear slowdown caused
+by reading size metadata from child nodes.
+
+Setting to 0 will enable fast listings for all directories.
+
+Default: `100`
+
+Type: `optionalInteger`
+
 ### `Gateway.Writable`
 
 A boolean to configure whether the gateway is writeable or not.
@@ -1021,6 +1035,8 @@ Default: `cache`
 
 ## `Mounts`
 
+**EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
+
 FUSE mount point configuration options.
 
 ### `Mounts.IPFS`
@@ -1370,27 +1386,15 @@ to [upgrade to a direct connection](https://github.com/libp2p/specs/blob/master/
 through a NAT/firewall whenever possible.
 This feature requires `Swarm.RelayClient.Enabled` to be set to `true`.
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
 ### `Swarm.EnableAutoRelay`
 
-Deprecated: Set `Swarm.RelayClient.Enabled` to `true`.
+**REMOVED**
 
-Enables "automatic relay user" mode for this node.
-
-Your node will automatically _use_ public relays from the network if it detects
-that it cannot be reached from the public internet (e.g., it's behind a
-firewall) and get a `/p2p-circuit` address from a public relay.
-
-This is likely the feature you're looking for, but see also:
-- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
-- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
-
-Default: `false`
-
-Type: `bool`
+See `Swarm.RelayClient` instead.
 
 ### `Swarm.RelayClient`
 
@@ -1408,14 +1412,14 @@ Your node will automatically _use_ public relays from the network if it detects
 that it cannot be reached from the public internet (e.g., it's behind a
 firewall) and get a `/p2p-circuit` address from a public relay.
 
-Default: `false`
+Default: `true`
 
-Type: `bool`
+Type: `flag`
 
 #### `Swarm.RelayClient.StaticRelays`
 
-Your node will use these statically configured relay servers instead of
-discovering public relays from the network.
+Your node will use these statically configured relay servers (V1 or V2)
+instead of discovering public relays V2 from the network.
 
 Default: `[]`
 
@@ -1438,7 +1442,7 @@ NOTE: This is the service/server part of the relay system.
 Disabling this will prevent this node from running as a relay server.
 Use [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for turning your node into a relay user.
 
-Default: Enabled
+Default: `true`
 
 Type: `flag`
 
@@ -1536,15 +1540,9 @@ Replaced with [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled).
 
 ### `Swarm.DisableRelay`
 
-Deprecated: Set `Swarm.Transports.Network.Relay` to `false`.
+**REMOVED**
 
-Disables the p2p-circuit relay transport. This will prevent this node from
-connecting to nodes behind relays, or accepting connections from nodes behind
-relays.
-
-Default: `false`
-
-Type: `bool`
+Set `Swarm.Transports.Network.Relay` to `false` instead.
 
 ### `Swarm.EnableAutoNATService`
 
@@ -1636,9 +1634,6 @@ The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resour
 and tracking recource usage over time.
 
 #### `Swarm.ResourceMgr.Enabled`
-
-**EXPERIMENTAL**: this feature is disabled by default, use with caution.
-
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
 
@@ -1646,14 +1641,12 @@ Default: `false`
 
 Type: `flag`
 
-<!-- TODO: config compatible with the output of 'swarm limit' - see https://github.com/ipfs/go-ipfs/issues/8858
-
 #### `Swarm.ResourceMgr.Limits`
 
 Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
 
-The format follows [`limit.json`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.1.5/limit_config.go#L165)
-struct from go-libp2p-resource-manager@v0.1.5
+The map supports fields from [`BasicLimiterConfig`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.3.0/limit_config.go#L165-L185)
+struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p-resource-manager#readme).
 
 Example:
 
@@ -1679,18 +1672,16 @@ Example:
 }
 ```
 
-Current resource usage and a list of services, protocols, and peers can be obtained via
-`ipfs swarm stats --help`
+Current resource usage and a list of services, protocols, and peers can be
+obtained via `ipfs swarm stats --help`
 
-It is also possible to adjust runtime limits via `ipfs stats limit --help`.
-By default changes are ephemeral (config remains intact), and won't be applied
-after reboot. To persist them here, pass `limit -s`.
+It is also possible to adjust some runtime limits via `ipfs stats limit --help`.
+Changes made via `stats limit` are persisted in `Swarm.ResourceMgr.Limits`.
 
-Default: `{}` (empty == implicit defaults from go-libp2p)
+Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->object]`
 
--->
 
 ### `Swarm.Transports`
 
@@ -1765,8 +1756,9 @@ NATs.
 
 See also:
 - Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
-- [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for getting a public
-  `/p2p-circuit` address when behind a firewall.
+- [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for getting a public
+-  `/p2p-circuit` address when behind a firewall.
+  - [`Swarm.EnableHolePunching`](#swarmenableholepunching) for direct connection upgrade through relay
 - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) for becoming a
   limited relay for other peers
 

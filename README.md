@@ -24,7 +24,7 @@ Before opening an issue, consider using one of the following locations to ensure
 
 ## Next milestones
 
-[Milestones on Github](https://github.com/ipfs/go-ipfs/milestones)
+[Milestones on GitHub](https://github.com/ipfs/go-ipfs/milestones)
 
 <!-- ToDo automate creation of these
 [![GitHub milestone version 0.9.1](https://img.shields.io/github/milestones/progress/ipfs/go-ipfs/51?logo=ipfs&style=flat-square&cacheSeconds=3600)](https://github.com/ipfs/go-ipfs/milestone/51)

@@ -303,7 +303,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 }
 
 func getRepoPath(req *cmds.Request) (string, error) {
-	repoOpt, found := req.Options["config"].(string)
+	repoOpt, found := req.Options[corecmds.RepoDirOption].(string)
 	if found && repoOpt != "" {
 		return repoOpt, nil
 	}

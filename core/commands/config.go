@@ -186,7 +186,8 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		fname, err := config.Filename(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		fname, err := config.Filename(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -291,7 +292,8 @@ variable set to your preferred text editor.
 			return err
 		}
 
-		filename, err := config.Filename(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		filename, err := config.Filename(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -500,7 +502,7 @@ func editConfig(filename string) error {
 		return errors.New("ENV variable $EDITOR not set")
 	}
 
-	cmd := exec.Command("sh", "-c", editor+" "+filename)
+	cmd := exec.Command(editor, filename)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
 }

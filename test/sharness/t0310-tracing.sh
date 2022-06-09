@@ -10,8 +10,8 @@ test_description="Test tracing"
 
 test_init_ipfs
 
-export IPFS_TRACING=1
-export IPFS_TRACING_OTLP_GRPC=1
+export OTEL_TRACES_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 
 cat <<EOF > collector-config.yaml
@@ -39,7 +39,7 @@ EOF
 rm -rf traces.json && touch traces.json && chmod 777 traces.json
 
 test_expect_success "run opentelemetry collector" '
-  docker run --rm -d -v "$PWD/collector-config.yaml":/config.yaml -v "$PWD":/traces --net=host --name=ipfs-test-otel-collector otel/opentelemetry-collector-contrib:0.48.0 --config /config.yaml
+  docker run --rm -d -v "$PWD/collector-config.yaml":/config.yaml -v "$PWD":/traces --net=host --name=ipfs-test-otel-collector otel/opentelemetry-collector-contrib:0.52.0 --config /config.yaml
 '
 
 test_launch_ipfs_daemon

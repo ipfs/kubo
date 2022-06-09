@@ -13,6 +13,7 @@ CIDb32="bafybeibxm2nsadl3fnxv2sxcxmxaco2jl53wpeorjdzidjwf5aqdg7wa6u"
 CIDbase="QmYNmQKp6SuaVrpgWRsPTgCQCnpxUYGq76YEKBXuj2N4H6"
 CIDb32pb="bafybeievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
 CIDb32raw="bafkreievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
+CIDb32dagcbor="bafyreievd6mwe6vcwnkwo3eizs3h7w3a34opszbyfxziqdxguhjw7imdve"
 
 test_expect_success "cid base32 works" '
   echo $CIDb32 > expected &&
@@ -103,11 +104,19 @@ Z    90  base58flickr
 EOF
 
 cat <<EOF > codecs_expect
+   81  cbor
    85  raw
-  112  protobuf
-  113  cbor
+  112  dag-pb
+  113  dag-cbor
+  114  libp2p-key
   120  git-raw
+  123  torrent-info
+  124  torrent-file
+  129  leofcoin-block
+  130  leofcoin-tx
+  131  leofcoin-pr
   133  dag-jose
+  134  dag-cose
   144  eth-block
   145  eth-block-list
   146  eth-tx-trie
@@ -117,16 +126,36 @@ cat <<EOF > codecs_expect
   150  eth-state-trie
   151  eth-account-snapshot
   152  eth-storage-trie
+  153  eth-receipt-log-trie
+  154  eth-reciept-log
   176  bitcoin-block
   177  bitcoin-tx
+  178  bitcoin-witness-commitment
   192  zcash-block
   193  zcash-tx
+  208  stellar-block
+  209  stellar-tx
   224  decred-block
   225  decred-tx
   240  dash-block
   241  dash-tx
-61697  fil-commitment-unsealed
-61698  fil-commitment-sealed
+  250  swarm-manifest
+  251  swarm-feed
+  297  dag-json
+  496  swhid-1-snp
+  512  json
+EOF
+
+cat <<EOF > supported_codecs_expect
+   81  cbor
+   85  raw
+  112  dag-pb
+  113  dag-cbor
+  114  libp2p-key
+  120  git-raw
+  133  dag-jose
+  297  dag-json
+  512  json
 EOF
 
 cat <<EOF > hashes_expect
@@ -232,6 +261,17 @@ test_expect_success "cid codecs --numeric" '
   test_cmp codecs_expect actual
 '
 
+test_expect_success "cid codecs --supported" '
+  cut -c 8- supported_codecs_expect > expect &&
+  ipfs cid codecs --supported > actual
+  test_cmp expect actual
+'
+
+test_expect_success "cid codecs --supported --numeric" '
+  ipfs cid codecs --supported --numeric > actual &&
+  test_cmp supported_codecs_expect actual
+'
+
 test_expect_success "cid hashes" '
   cut -c 8- hashes_expect > expect &&
   ipfs cid hashes > actual
@@ -245,13 +285,28 @@ test_expect_success "cid hashes --numeric" '
 
 test_expect_success "cid format -c raw" '
   echo $CIDb32raw > expected &&
-  ipfs cid format --codec raw -b base32 $CIDb32pb > actual &&
+  ipfs cid format --mc raw -b base32 $CIDb32pb > actual &&
   test_cmp actual expected
 '
 
-test_expect_success "cid format -c protobuf -v 0" '
+test_expect_success "cid format --mc dag-pb -v 0" '
   echo $CIDbase > expected &&
-  ipfs cid format --codec protobuf -v 0 $CIDb32raw > actual &&
+  ipfs cid format --mc dag-pb -v 0 $CIDb32raw > actual &&
+  test_cmp actual expected
+'
+
+test_expect_success "cid format --mc dag-cbor" '
+  echo $CIDb32dagcbor > expected &&
+  ipfs cid format --mc dag-cbor $CIDb32pb > actual &&
+  test_cmp actual expected
+'
+
+# this was an old flag that we removed, explicitly to force an error
+# so the user would read about the new multicodec names introduced
+# by https://github.com/ipfs/go-cid/commit/b2064d74a8b098193b316689a715cdf4e4934805
+test_expect_success "cid format --codec fails" '
+  echo "Error: unknown option \"codec\"" > expected &&
+  test_expect_code 1 ipfs cid format --codec protobuf 2> actual &&
   test_cmp actual expected
 '
 

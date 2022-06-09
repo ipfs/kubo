@@ -1,3 +1,4 @@
+//go:build !nofuse
 // +build !nofuse
 
 package node
