@@ -31,7 +31,12 @@ func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWrite
 	content := bytes.NewReader(block)
 
 	// Set Content-Disposition
-	name := blockCid.String() + ".bin"
+	var name string
+	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
+		name = urlFilename
+	} else {
+		name = blockCid.String() + ".bin"
+	}
 	setContentDispositionHeader(w, name, "attachment")
 
 	// Set remaining headers
