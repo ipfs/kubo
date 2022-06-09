@@ -271,6 +271,16 @@ test_expect_success "GET compact blocks succeeds" '
   test_cmp expected actual
 '
 
+test_expect_success "GET TAR file from gateway and extract" '
+  curl "http://127.0.0.1:$port/ipfs/$FOO2_HASH?format=tar" | tar -x
+'
+
+test_expect_success "GET TAR file has expected Content-Type" '
+  curl -svX GET "http://127.0.0.1:$port/ipfs/$FOO2_HASH?format=tar" > curl_output_filename 2>&1 &&
+  cat curl_output_filename &&
+  grep "< Content-Type: application/x-tar" curl_output_filename
+'
+
 test_kill_ipfs_daemon
 
 
