@@ -187,6 +187,19 @@ func (ps *PeeringService) Start() error {
 	return nil
 }
 
+//	GetState get the State of the Peering Service
+func (ps *PeeringService) GetState() string {
+	switch ps.state {
+	case stateInit:
+		return "init"
+	case stateRunning:
+		return "running"
+	case stateStopped:
+		return "stopped"
+	}
+	return "State Unknown"
+}
+
 // Stop stops the peering service.
 func (ps *PeeringService) Stop() error {
 	ps.host.Network().StopNotify((*netNotifee)(ps))
