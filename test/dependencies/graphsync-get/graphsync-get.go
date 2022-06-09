@@ -11,7 +11,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	dssync "github.com/ipfs/go-datastore/sync"
-	"github.com/ipfs/go-graphsync"
+	graphsync "github.com/ipfs/go-graphsync"
 	gsimpl "github.com/ipfs/go-graphsync/impl"
 	"github.com/ipfs/go-graphsync/network"
 	"github.com/ipfs/go-graphsync/storeutil"
@@ -21,7 +21,7 @@ import (
 	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
-	basicnode "github.com/ipld/go-ipld-prime/node/basic"
+	basicnode "github.com/ipld/go-ipld-prime/node/basicnode"
 	ipldselector "github.com/ipld/go-ipld-prime/traversal/selector"
 	"github.com/ipld/go-ipld-prime/traversal/selector/builder"
 	"github.com/libp2p/go-libp2p"
@@ -34,13 +34,12 @@ func newGraphsync(ctx context.Context, p2p host.Host, bs blockstore.Blockstore) 
 	network := network.NewFromLibp2pHost(p2p)
 	return gsimpl.New(ctx,
 		network,
-		storeutil.LoaderForBlockstore(bs),
-		storeutil.StorerForBlockstore(bs),
+		storeutil.LinkSystemForBlockstore(bs),
 	), nil
 }
 
 var selectAll ipld.Node = func() ipld.Node {
-	ssb := builder.NewSelectorSpecBuilder(basicnode.Style.Any)
+	ssb := builder.NewSelectorSpecBuilder(basicnode.Prototype.Any)
 	return ssb.ExploreRecursive(
 		ipldselector.RecursionLimitDepth(100), // default max
 		ssb.ExploreAll(ssb.ExploreRecursiveEdge()),
@@ -90,13 +89,14 @@ func main() {
 		log.Fatalf("failed to decode CID '%q': %s", os.Args[2], err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	p2p, err := libp2p.New(ctx, libp2p.NoListenAddrs)
+	p2p, err := libp2p.New(libp2p.NoListenAddrs)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	err = p2p.Connect(ctx, *ai)
 	if err != nil {
 		log.Fatal(err)

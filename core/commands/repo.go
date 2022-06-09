@@ -51,6 +51,7 @@ type GcResult struct {
 const (
 	repoStreamErrorsOptionName = "stream-errors"
 	repoQuietOptionName        = "quiet"
+	repoSilentOptionName       = "silent"
 )
 
 var repoGcCmd = &cmds.Command{
@@ -65,6 +66,7 @@ order to reclaim hard disk space.
 	Options: []cmds.Option{
 		cmds.BoolOption(repoStreamErrorsOptionName, "Stream errors."),
 		cmds.BoolOption(repoQuietOptionName, "q", "Write minimal output."),
+		cmds.BoolOption(repoSilentOptionName, "Write no output."),
 	},
 	Run: func(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
 		n, err := cmdenv.GetNode(env)
@@ -72,6 +74,7 @@ order to reclaim hard disk space.
 			return err
 		}
 
+		silent, _ := req.Options[repoSilentOptionName].(bool)
 		streamErrors, _ := req.Options[repoStreamErrorsOptionName].(bool)
 
 		gcOutChan := corerepo.GarbageCollectAsync(n, req.Context)
@@ -95,6 +98,9 @@ order to reclaim hard disk space.
 			}
 		} else {
 			err := corerepo.CollectResult(req.Context, gcOutChan, func(k cid.Cid) {
+				if silent {
+					return
+				}
 				// Nothing to do with this error, really. This
 				// most likely means that the client is gone but
 				// we still need to let the GC finish.
@@ -111,6 +117,11 @@ order to reclaim hard disk space.
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, gcr *GcResult) error {
 			quiet, _ := req.Options[repoQuietOptionName].(bool)
+			silent, _ := req.Options[repoSilentOptionName].(bool)
+
+			if silent {
+				return nil
+			}
 
 			if gcr.Error != "" {
 				_, err := fmt.Fprintf(w, "Error: %s\n", gcr.Error)
@@ -211,6 +222,7 @@ Version         string The repo version.
 }
 
 var repoFsckCmd = &cmds.Command{
+	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/6435
 	Helptext: cmds.HelpText{
 		Tagline: "Remove repo lockfiles.",
 		ShortDescription: `

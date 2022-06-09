@@ -72,7 +72,7 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	defer cancel()
 
 	// create network
-	mn := mocknet.New(ctx)
+	mn := mocknet.New()
 	mn.SetLinkDefaults(mocknet.LinkOptions{
 		Latency:   conf.NetworkLatency,
 		Bandwidth: math.MaxInt32,
@@ -209,9 +209,9 @@ WanStartupWait:
 	for {
 		select {
 		case err := <-testPeer.DHT.WAN.RefreshRoutingTable():
-			//if err != nil {
+			// if err != nil {
 			//	fmt.Printf("Error refreshing routing table: %v\n", err)
-			//}
+			// }
 			if testPeer.DHT.WAN.RoutingTable() == nil ||
 				testPeer.DHT.WAN.RoutingTable().Size() == 0 ||
 				err != nil {

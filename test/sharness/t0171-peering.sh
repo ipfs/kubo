@@ -33,7 +33,7 @@ peer_addrs() {
 peer() {
   PEER1="$1" &&
   PEER2="$2" &&
-  PEER_LIST="$(ipfsi "$PEER1" config Peering.Peers)" &&
+  PEER_LIST="$(ipfsi "$PEER1" config Peering.Peers || true)" &&
   { [[ "$PEER_LIST" == "null" ]] || PEER_LIST_INNER="${PEER_LIST:1:-1}"; } &&
   ADDR_INFO="$(printf '[%s{"ID": "%s", "Addrs": %s}]' \
              "${PEER_LIST_INNER:+${PEER_LIST_INNER},}" \

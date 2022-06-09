@@ -12,14 +12,15 @@ import (
 
 // structs for directory listing
 type listingTemplateData struct {
-	GatewayURL  string
-	DNSLink     bool
-	Listing     []directoryItem
-	Size        string
-	Path        string
-	Breadcrumbs []breadcrumb
-	BackLink    string
-	Hash        string
+	GatewayURL            string
+	DNSLink               bool
+	Listing               []directoryItem
+	Size                  string
+	Path                  string
+	Breadcrumbs           []breadcrumb
+	BackLink              string
+	Hash                  string
+	FastDirIndexThreshold int
 }
 
 type directoryItem struct {
@@ -94,7 +95,7 @@ func hasDNSLinkOrigin(gwURL string, path string) bool {
 var listingTemplate *template.Template
 
 func init() {
-	knownIconsBytes, err := assets.Asset("dir-index-html/knownIcons.txt")
+	knownIconsBytes, err := assets.Asset.ReadFile("dir-index-html/knownIcons.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -121,7 +122,7 @@ func init() {
 	}
 
 	// Directory listing template
-	dirIndexBytes, err := assets.Asset("dir-index-html/dir-index.html")
+	dirIndexBytes, err := assets.Asset.ReadFile("dir-index-html/dir-index.html")
 	if err != nil {
 		panic(err)
 	}

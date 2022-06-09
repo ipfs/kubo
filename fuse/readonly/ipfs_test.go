@@ -1,3 +1,4 @@
+//go:build !nofuse && !openbsd && !netbsd && !plan9
 // +build !nofuse,!openbsd,!netbsd,!plan9
 
 package readonly

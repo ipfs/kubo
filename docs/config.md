@@ -16,6 +16,9 @@ config file at runtime.
     - [`strings`](#strings)
     - [`duration`](#duration)
     - [`optionalInteger`](#optionalinteger)
+    - [`optionalBytes`](#optionalbytes)
+    - [`optionalString`](#optionalstring)
+    - [`optionalDuration`](#optionalduration)
   - [`Addresses`](#addresses)
     - [`Addresses.API`](#addressesapi)
     - [`Addresses.Gateway`](#addressesgateway)
@@ -48,6 +51,7 @@ config file at runtime.
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
+    - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
     - [`Gateway.Writable`](#gatewaywritable)
     - [`Gateway.PathPrefixes`](#gatewaypathprefixes)
     - [`Gateway.PublicGateways`](#gatewaypublicgateways)
@@ -65,6 +69,7 @@ config file at runtime.
       - [`Internal.Bitswap.EngineBlockstoreWorkerCount`](#internalbitswapengineblockstoreworkercount)
       - [`Internal.Bitswap.EngineTaskWorkerCount`](#internalbitswapenginetaskworkercount)
       - [`Internal.Bitswap.MaxOutstandingBytesPerPeer`](#internalbitswapmaxoutstandingbytesperpeer)
+    - [`Internal.UnixFSShardingSizeThreshold`](#internalunixfsshardingsizethreshold)
   - [`Ipns`](#ipns)
     - [`Ipns.RepublishPeriod`](#ipnsrepublishperiod)
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
@@ -103,7 +108,6 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.EnableHolePunching`](#swarmenableholepunching)
-    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
     - [`Swarm.RelayClient`](#swarmrelayclient)
       - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled)
       - [`Swarm.RelayClient.StaticRelays`](#swarmrelayclientstaticrelays)
@@ -118,7 +122,6 @@ config file at runtime.
       - [`Swarm.RelayService.MaxReservationsPerPeer`](#swarmrelayservicemaxreservationsperpeer)
       - [`Swarm.RelayService.MaxReservationsPerIP`](#swarmrelayservicemaxreservationsperip)
       - [`Swarm.RelayService.MaxReservationsPerASN`](#swarmrelayservicemaxreservationsperasn)
-    - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
       - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
@@ -126,6 +129,9 @@ config file at runtime.
         - [`Swarm.ConnMgr.LowWater`](#swarmconnmgrlowwater)
         - [`Swarm.ConnMgr.HighWater`](#swarmconnmgrhighwater)
         - [`Swarm.ConnMgr.GracePeriod`](#swarmconnmgrgraceperiod)
+    - [`Swarm.ResourceMgr`](#swarmresourcemgr)
+      - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
+      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -140,7 +146,8 @@ config file at runtime.
     - [`Swarm.Transports.Multiplexers.Yamux`](#swarmtransportsmultiplexersyamux)
     - [`Swarm.Transports.Multiplexers.Mplex`](#swarmtransportsmultiplexersmplex)
   - [`DNS`](#dns)
-  - [`DNS.Resolvers`](#dnsresolvers)
+    - [`DNS.Resolvers`](#dnsresolvers)
+    - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
 
 
 
@@ -188,37 +195,36 @@ documented in `ipfs config profile --help`.
 
 - `flatfs`
 
-  Configures the node to use the flatfs datastore.
+  Configures the node to use the flatfs datastore. Flatfs is the default datastore.
 
-  This is the most battle-tested and reliable datastore, but it's significantly
-  slower than the badger datastore. You should use this datastore if:
+  This is the most battle-tested and reliable datastore. 
+  You should use this datastore if:
 
-  - You need a very simple and very reliable datastore and you trust your
+  - You need a very simple and very reliable datastore, and you trust your
     filesystem. This datastore stores each block as a separate file in the
     underlying filesystem so it's unlikely to lose data unless there's an issue
     with the underlying file system.
-  - You need to run garbage collection on a small (<= 10GiB) datastore. The
-    default datastore, badger, can leave several gigabytes of data behind when
-    garbage collecting.
-  - You're concerned about memory usage. In its default configuration, badger can
-    use up to several gigabytes of memory.
+  - You need to run garbage collection in a way that reclaims free space as soon as possible.
+  - You want to minimize memory usage.
+  - You are ok with the default speed of data import, or prefer to use `--nocopy`.
 
   This profile may only be applied when first initializing the node.
 
 
 - `badgerds`
 
-  Configures the node to use the badger datastore.
+  Configures the node to use the experimental badger datastore. Keep in mind that this **uses an outdated badger 1.x**.
 
-  This is the fastest datastore. Use this datastore if performance, especially
-  when adding many gigabytes of files, is critical. However:
-
+  Use this datastore if some aspects of performance, 
+  especially the speed of adding many gigabytes of files, are critical. However, be aware that:
+  
   - This datastore will not properly reclaim space when your datastore is
-    smaller than several gigabytes. If you run IPFS with '--enable-gc' (you have
-    enabled block-level garbage collection), you plan on storing very little data in
+    smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
-    flatfs.
-  - This datastore uses up to several gigabytes of memory.
+    `flatfs`.
+  - This datastore uses up to several gigabytes of memory.  
+  - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
+  - The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
   This profile may only be applied when first initializing the node.
 
@@ -270,11 +276,37 @@ does (e.g, `"1d2h4m40.01s"`).
 
 ### `optionalInteger`
 
-Optional Integers allow specifying some numerical value which has
-an implicit default when `null` or missing from the config file:
+Optional integers allow specifying some numerical value which has
+an implicit default when missing from the config file:
+
+- `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault(value)`)
+- an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
+
+### `optionalBytes`
+
+Optional Bytes allow specifying some number of bytes which has
+an implicit default when missing from the config file:
 
 - `null`/missing (apply the default value defined in go-ipfs sources)
-- an integer between `-2^63` and `2^63-1` (i.e. `-9223372036854775808` to `9223372036854775807`)
+- a string value indicating the number of bytes, including human readable representations:
+  - [SI sizes](https://en.wikipedia.org/wiki/Metric_prefix#List_of_SI_prefixes) (metric units, powers of 1000), e.g. `1B`, `2kB`, `3MB`, `4GB`, `5TB`, …)
+  - [IEC sizes](https://en.wikipedia.org/wiki/Binary_prefix#IEC_prefixes) (binary units, powers of 1024), e.g. `1B`, `2KiB`, `3MiB`, `4GiB`, `5TiB`, …)
+
+### `optionalString`
+
+Optional strings allow specifying some string value which has
+an implicit default when missing from the config file:
+
+- `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault("value")`)
+- a string
+
+### `optionalDuration`
+
+Optional durations allow specifying some duration value which has
+an implicit default when missing from the config file:
+
+- `null`/missing will apply the default value defined in go-ipfs sources (`.WithDefault("1h2m3s")`)
+- a string with a valid [go duration](#duration)  (e.g, `"1d2h4m40.01s"`).
 
 ## `Addresses`
 
@@ -616,6 +648,20 @@ Default: `""`
 
 Type: `string` (url)
 
+### `Gateway.FastDirIndexThreshold`
+
+The maximum number of items in a directory before the Gateway switches
+to a shallow, faster listing which only requires the root node.
+
+This allows for fast listings of big directories, without the linear slowdown caused
+by reading size metadata from child nodes.
+
+Setting to 0 will enable fast listings for all directories.
+
+Default: `100`
+
+Type: `optionalInteger`
+
 ### `Gateway.Writable`
 
 A boolean to configure whether the gateway is writeable or not.
@@ -701,7 +747,7 @@ between content roots.
 
 - `true` - enables [subdomain gateway](#https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
     - **Requires whitelist:** make sure respective `Paths` are set.
-    For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
+      For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
         ```json
         "Gateway": {
             "PublicGateways": {
@@ -786,7 +832,7 @@ Below is a list of the most common public gateway setups.
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
      
    - **X-Forwarded-Proto:** if you run go-ipfs behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
-  
+    
      `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
      
      `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
@@ -920,6 +966,18 @@ deteriorate the quality provided to less aggressively-wanting peers.
 
 Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 
+### `Internal.UnixFSShardingSizeThreshold`
+
+The sharding threshold used internally to decide whether a UnixFS directory should be sharded or not.
+This value is not strictly related to the size of the UnixFS directory block and any increases in
+the threshold should come with being careful that block sizes stay under 2MiB in order for them to be
+reliably transferable through the networking stack (IPFS peers on the public swarm tend to ignore requests for blocks bigger than 2MiB).
+
+Decreasing this value to 1B is functionally equivalent to the previous experimental sharding option to
+shard all directories.
+
+Type: `optionalBytes` (`null` means default which is 256KiB)
+
 ## `Ipns`
 
 ### `Ipns.RepublishPeriod`
@@ -976,6 +1034,8 @@ Specifies whether or not to keep the migration after downloading it. Options are
 Default: `cache`
 
 ## `Mounts`
+
+**EXPERIMENTAL:** read about current limitations at [fuse.md](./fuse.md).
 
 FUSE mount point configuration options.
 
@@ -1223,7 +1283,7 @@ Tells reprovider what should be announced. Valid strategies are:
 
 Default: all
 
-Type: `string` (or unset for the default)
+Type: `string` (or unset for the default, which is "all")
 
 ## `Routing`
 
@@ -1326,27 +1386,15 @@ to [upgrade to a direct connection](https://github.com/libp2p/specs/blob/master/
 through a NAT/firewall whenever possible.
 This feature requires `Swarm.RelayClient.Enabled` to be set to `true`.
 
-Default: `false`
+Default: `true`
 
 Type: `flag`
 
 ### `Swarm.EnableAutoRelay`
 
-Deprecated: Set `Swarm.RelayClient.Enabled` to `true`.
+**REMOVED**
 
-Enables "automatic relay user" mode for this node.
-
-Your node will automatically _use_ public relays from the network if it detects
-that it cannot be reached from the public internet (e.g., it's behind a
-firewall) and get a `/p2p-circuit` address from a public relay.
-
-This is likely the feature you're looking for, but see also:
-- [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) if your node should act as a limited relay for other peers
-- Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
-
-Default: `false`
-
-Type: `bool`
+See `Swarm.RelayClient` instead.
 
 ### `Swarm.RelayClient`
 
@@ -1364,14 +1412,14 @@ Your node will automatically _use_ public relays from the network if it detects
 that it cannot be reached from the public internet (e.g., it's behind a
 firewall) and get a `/p2p-circuit` address from a public relay.
 
-Default: `false`
+Default: `true`
 
-Type: `bool`
+Type: `flag`
 
 #### `Swarm.RelayClient.StaticRelays`
 
-Your node will use these statically configured relay servers instead of
-discovering public relays from the network.
+Your node will use these statically configured relay servers (V1 or V2)
+instead of discovering public relays V2 from the network.
 
 Default: `[]`
 
@@ -1392,9 +1440,9 @@ Enables providing `/p2p-circuit` v2 relay service to other peers on the network.
 
 NOTE: This is the service/server part of the relay system.
 Disabling this will prevent this node from running as a relay server.
-Use [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for turning your node into a relay user.
+Use [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for turning your node into a relay user.
 
-Default: Enabled
+Default: `true`
 
 Type: `flag`
 
@@ -1441,7 +1489,7 @@ Default: `128`
 Type: `optionalInteger`
 
 
-#### `Swarm.RelayService.MaxReservations`
+#### `Swarm.RelayService.MaxCircuits`
 
 Maximum number of open relay connections for each peer.
 
@@ -1492,15 +1540,9 @@ Replaced with [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled).
 
 ### `Swarm.DisableRelay`
 
-Deprecated: Set `Swarm.Transports.Network.Relay` to `false`.
+**REMOVED**
 
-Disables the p2p-circuit relay transport. This will prevent this node from
-connecting to nodes behind relays, or accepting connections from nodes behind
-relays.
-
-Default: `false`
-
-Type: `bool`
+Set `Swarm.Transports.Network.Relay` to `false` instead.
 
 ### `Swarm.EnableAutoNATService`
 
@@ -1586,6 +1628,61 @@ Default: `"20s"`
 
 Type: `duration`
 
+### `Swarm.ResourceMgr`
+
+The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per a scope,
+and tracking recource usage over time.
+
+#### `Swarm.ResourceMgr.Enabled`
+Enables the libp2p Network Resource Manager and auguments the default limits
+using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
+
+Default: `false`
+
+Type: `flag`
+
+#### `Swarm.ResourceMgr.Limits`
+
+Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
+
+The map supports fields from [`BasicLimiterConfig`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.3.0/limit_config.go#L165-L185)
+struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p-resource-manager#readme).
+
+Example:
+
+```json
+{
+  "Swarm": {
+    "ResourceMgr": {
+      "Enabled": true,
+      "Limits": {
+        "System": {
+          "Conns": 1024,
+          "ConnsInbound": 256,
+          "ConnsOutbound": 1024,
+          "FD": 512,
+          "Memory": 1073741824,
+          "Streams": 16384,
+          "StreamsInbound": 4096,
+          "StreamsOutbound": 16384
+        }
+      }
+    }
+  }
+}
+```
+
+Current resource usage and a list of services, protocols, and peers can be
+obtained via `ipfs swarm stats --help`
+
+It is also possible to adjust some runtime limits via `ipfs stats limit --help`.
+Changes made via `stats limit` are persisted in `Swarm.ResourceMgr.Limits`.
+
+Default: `{}` (use the safe implicit defaults)
+
+Type: `object[string->object]`
+
+
 ### `Swarm.Transports`
 
 Configuration section for libp2p transports. An empty configuration will apply
@@ -1659,8 +1756,9 @@ NATs.
 
 See also:
 - Docs: [Libp2p Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/)
-- [`Swarm.EnableAutoRelay`](#swarmenableautorelay) for getting a public
-  `/p2p-circuit` address when behind a firewall.
+- [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled) for getting a public
+-  `/p2p-circuit` address when behind a firewall.
+  - [`Swarm.EnableHolePunching`](#swarmenableholepunching) for direct connection upgrade through relay
 - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled) for becoming a
   limited relay for other peers
 
@@ -1757,7 +1855,7 @@ Type: `priority`
 
 Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
 
-## `DNS.Resolvers`
+### `DNS.Resolvers`
 
 Map of [FQDNs](https://en.wikipedia.org/wiki/Fully_qualified_domain_name) to custom resolver URLs.
 
@@ -1772,7 +1870,7 @@ Example:
       "eth.": "https://eth.link/dns-query",
       "crypto.": "https://resolver.unstoppable.io/dns-query",
       "libre.": "https://ns1.iriseden.fr/dns-query",
-      ".": "https://doh-ch.blahdns.com:4443/dns-query"
+      ".": "https://cloudflare-dns.com/dns-query"
     }
   }
 }
@@ -1785,7 +1883,7 @@ Be mindful that:
   ```json
   {
     "eth.": "https://resolver.cloudflare-eth.com/dns-query",
-    "crypto.": "https://resolver.cloudflare-eth.com/dns-query
+    "crypto.": "https://resolver.cloudflare-eth.com/dns-query"
   }
   ```
   To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
@@ -1793,3 +1891,20 @@ Be mindful that:
 Default: `{}`
 
 Type: `object[string -> string]`
+
+### `DNS.MaxCacheTTL`
+
+Maximum duration for which entries are valid in the DoH cache.
+
+This allows you to cap the Time-To-Live suggested by the DNS response ([RFC2181](https://datatracker.ietf.org/doc/html/rfc2181#section-8)).
+If present, the upper bound is applied to DoH resolvers in [`DNS.Resolvers`](#dnsresolvers).
+
+Note: this does NOT work with Go's default DNS resolver. To make this a global setting, add a `.` entry to `DNS.Resolvers` first.
+
+**Examples:**
+* `"5m"` DNS entries are kept for 5 minutes or less.
+* `"0s"` DNS entries expire as soon as they are retrieved.
+
+Default: Respect DNS Response TTL
+
+Type: `optionalDuration`

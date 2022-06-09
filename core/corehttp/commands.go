@@ -16,7 +16,7 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	cmdsHttp "github.com/ipfs/go-ipfs-cmds/http"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	path "github.com/ipfs/go-path"
 )
 
@@ -44,6 +44,11 @@ var defaultLocalhostOrigins = []string{
 	"https://[::1]:<port>",
 	"http://localhost:<port>",
 	"https://localhost:<port>",
+}
+
+var companionBrowserExtensionOrigins = []string{
+	"chrome-extension://nibjojkomfdiaoajekhjakgkdhaomnch", // ipfs-companion
+	"chrome-extension://hjoieblefckbooibpepigmacodalfndh", // ipfs-companion-beta
 }
 
 func addCORSFromEnv(c *cmdsHttp.ServerConfig) {
@@ -84,10 +89,9 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
-	// by default use localhost origins
-	if len(c.AllowedOrigins()) == 0 {
-		c.SetAllowedOrigins(defaultLocalhostOrigins...)
-	}
+	// always safelist certain origins
+	c.AppendAllowedOrigins(defaultLocalhostOrigins...)
+	c.AppendAllowedOrigins(companionBrowserExtensionOrigins...)
 
 	// by default, use GET, PUT, POST
 	if len(c.AllowedMethods()) == 0 {

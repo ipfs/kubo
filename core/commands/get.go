@@ -54,12 +54,14 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		cmds.BoolOption(archiveOptionName, "a", "Output a TAR archive."),
 		cmds.BoolOption(compressOptionName, "C", "Compress the output with GZIP compression."),
 		cmds.IntOption(compressionLevelOptionName, "l", "The level of compression (1-9)."),
+		cmds.BoolOption(progressOptionName, "p", "Stream progress data.").WithDefault(true),
 	},
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
 		_, err := getCompressOptions(req)
 		return err
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		ctx := req.Context
 		cmplvl, err := getCompressOptions(req)
 		if err != nil {
 			return err
@@ -72,7 +74,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 
 		p := path.New(req.Arguments[0])
 
-		file, err := api.Unixfs().Get(req.Context, p)
+		file, err := api.Unixfs().Get(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -89,6 +91,13 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		if err != nil {
 			return err
 		}
+		go func() {
+			// We cannot defer a close in the response writer (like we should)
+			// Because the cmd framework outsmart us and doesn't call response
+			// if the context is over.
+			<-ctx.Done()
+			reader.Close()
+		}()
 
 		return res.Emit(reader)
 	},
@@ -114,6 +123,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 			}
 
 			archive, _ := req.Options[archiveOptionName].(bool)
+			progress, _ := req.Options[progressOptionName].(bool)
 
 			gw := getWriter{
 				Out:         os.Stdout,
@@ -121,6 +131,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 				Archive:     archive,
 				Compression: cmplvl,
 				Size:        int64(res.Length()),
+				Progress:    progress,
 			}
 
 			return gw.Write(outReader, outPath)
@@ -181,6 +192,7 @@ type getWriter struct {
 	Archive     bool
 	Compression int
 	Size        int64
+	Progress    bool
 }
 
 func (gw *getWriter) Write(r io.Reader, fpath string) error {
@@ -213,22 +225,29 @@ func (gw *getWriter) writeArchive(r io.Reader, fpath string) error {
 	defer file.Close()
 
 	fmt.Fprintf(gw.Out, "Saving archive to %s\n", fpath)
-	bar, barR := progressBarForReader(gw.Err, r, gw.Size)
-	bar.Start()
-	defer bar.Finish()
+	if gw.Progress {
+		var bar *pb.ProgressBar
+		bar, r = progressBarForReader(gw.Err, r, gw.Size)
+		bar.Start()
+		defer bar.Finish()
+	}
 
-	_, err = io.Copy(file, barR)
+	_, err = io.Copy(file, r)
 	return err
 }
 
 func (gw *getWriter) writeExtracted(r io.Reader, fpath string) error {
 	fmt.Fprintf(gw.Out, "Saving file(s) to %s\n", fpath)
-	bar := makeProgressBar(gw.Err, gw.Size)
-	bar.Start()
-	defer bar.Finish()
-	defer bar.Set64(gw.Size)
+	var progressCb func(int64) int64
+	if gw.Progress {
+		bar := makeProgressBar(gw.Err, gw.Size)
+		bar.Start()
+		defer bar.Finish()
+		defer bar.Set64(gw.Size)
+		progressCb = bar.Add64
+	}
 
-	extractor := &tar.Extractor{Path: fpath, Progress: bar.Add64}
+	extractor := &tar.Extractor{Path: fpath, Progress: progressCb}
 	return extractor.Extract(r)
 }
 
@@ -246,7 +265,7 @@ func getCompressOptions(req *cmds.Request) (int, error) {
 	return cmplvl, nil
 }
 
-// DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
+// DefaultBufSize is the buffer size for gets. for now, 1MiB, which is ~4 blocks.
 // TODO: does this need to be configurable?
 var DefaultBufSize = 1048576
 
@@ -262,7 +281,7 @@ func (i *identityWriteCloser) Close() error {
 	return nil
 }
 
-func fileArchive(f files.Node, name string, archive bool, compression int) (io.Reader, error) {
+func fileArchive(f files.Node, name string, archive bool, compression int) (io.ReadCloser, error) {
 	cleaned := gopath.Clean(name)
 	_, filename := gopath.Split(cleaned)
 

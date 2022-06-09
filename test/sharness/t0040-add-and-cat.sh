@@ -345,6 +345,23 @@ test_add_cat_file() {
     echo "added Qmf35k66MZNW2GijohUmXQEWKZU4cCGTCwK6idfnt152wJ hello2.txt" >> expected &&
     test_cmp expected actual
   '
+
+  test_expect_success "ipfs add with multiple files of same name and import dir succeeds" '
+    ipfs add mountdir/hello.txt mountdir/hello.txt >actual
+  '
+
+  test_expect_success "ipfs add with multiple files of same name output looks good" '
+    echo "added QmVr26fY1tKyspEJBniVhqxQeEjhF78XerGiqWAwraVLQH hello.txt" >expected &&
+    test_cmp expected actual
+  '
+
+    test_must_fail "ipfs add with multiple files of same name but different dirs fails" '
+      mkdir -p mountdir/same-file/ &&
+      cp mountdir/hello.txt mountdir/same-file/hello.txt &&
+      ipfs add mountdir/hello.txt mountdir/same-file/hello.txt >actual &&
+      rm mountdir/same-file/hello.txt  &&
+      rmdir mountdir/same-file
+    '
 }
 
 test_add_cat_5MB() {

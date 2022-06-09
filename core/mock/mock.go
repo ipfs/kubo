@@ -13,7 +13,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -26,12 +26,10 @@ import (
 
 // NewMockNode constructs an IpfsNode for use in tests.
 func NewMockNode() (*core.IpfsNode, error) {
-	ctx := context.Background()
-
 	// effectively offline, only peer in its network
-	return core.NewNode(ctx, &core.BuildCfg{
+	return core.NewNode(context.Background(), &core.BuildCfg{
 		Online: true,
-		Host:   MockHostOption(mocknet.New(ctx)),
+		Host:   MockHostOption(mocknet.New()),
 	})
 }
 
@@ -69,9 +67,6 @@ func MockCmdsCtx() (commands.Context, error) {
 
 	return commands.Context{
 		ConfigRoot: "/tmp/.mockipfsconfig",
-		LoadConfig: func(path string) (*config.Config, error) {
-			return &conf, nil
-		},
 		ConstructNode: func() (*core.IpfsNode, error) {
 			return node, nil
 		},

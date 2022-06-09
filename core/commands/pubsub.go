@@ -17,6 +17,7 @@ import (
 )
 
 var PubsubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "An experimental publish-subscribe system on ipfs.",
 		ShortDescription: `
@@ -46,6 +47,7 @@ type pubsubMessage struct {
 }
 
 var PubsubSubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Subscribe to messages on a given topic.",
 		ShortDescription: `
@@ -73,7 +75,7 @@ TOPIC AND DATA ENCODING
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", true, false, "Name of topic to subscribe to."),
+		cmds.StringArg("topic", true, false, "Name of topic to subscribe to (multibase encoded when sent over HTTP RPC)."),
 	},
 	PreRun: urlArgsEncoder,
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -144,6 +146,7 @@ TOPIC AND DATA ENCODING
 }
 
 var PubsubPubCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Publish data to a given pubsub topic.",
 		ShortDescription: `
@@ -167,7 +170,7 @@ HTTP RPC ENCODING
 `,
 	},
 	Arguments: []cmds.Argument{
-		cmds.StringArg("topic", true, false, "Topic to publish to."),
+		cmds.StringArg("topic", true, false, "Topic to publish to (multibase encoded when sent over HTTP RPC)."),
 		cmds.FileArg("data", true, false, "The data to be published.").EnableStdin(),
 	},
 	PreRun: urlArgsEncoder,
@@ -199,6 +202,7 @@ HTTP RPC ENCODING
 }
 
 var PubsubLsCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List subscribed topics by name.",
 		ShortDescription: `
@@ -270,6 +274,7 @@ func safeTextListEncoder(req *cmds.Request, w io.Writer, list *stringList) error
 }
 
 var PubsubPeersCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "List peers we are currently pubsubbing with.",
 		ShortDescription: `

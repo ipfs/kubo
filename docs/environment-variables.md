@@ -1,13 +1,5 @@
 # go-ipfs environment variables
 
-## `LIBP2P_TCP_REUSEPORT`
-
-go-ipfs tries to reuse the same source port for all connections to improve NAT
-traversal. If this is an issue, you can disable it by setting
-`LIBP2P_TCP_REUSEPORT` to false.
-
-Default: true
-
 ## `IPFS_PATH`
 
 Sets the location of the IPFS repo (where the config, blocks, etc.
@@ -17,28 +9,55 @@ Default: ~/.ipfs
 
 ## `IPFS_LOGGING`
 
-Sets the log level for go-ipfs. It can be set to one of:
+Specifies the log level for go-ipfs.
 
-* `CRITICAL`
-* `ERROR`
-* `WARNING`
-* `NOTICE`
-* `INFO`
-* `DEBUG`
-
-Logging can also be configured (on a subsystem by subsystem basis) at runtime
-with the `ipfs log` command.
-
-Default: `ERROR`
+`IPFS_LOGGING` is a deprecated alias for the `GOLOG_LOG_LEVEL` environment variable.  See below.
 
 ## `IPFS_LOGGING_FMT`
 
-Sets the log message format. Can be one of:
+Specifies the log message format.
 
-* `color`
-* `nocolor`
+`IPFS_LOGGING_FMT` is a deprecated alias for the `GOLOG_LOG_FMT` environment variable.  See below.
 
-Default: `color`
+## `GOLOG_LOG_LEVEL`
+
+Specifies the log-level, both globally and on a per-subsystem basis.  Level can be one of:
+
+* `debug`
+* `info`
+* `warn`
+* `error`
+* `dpanic`
+* `panic`
+* `fatal`
+
+Per-subsystem levels can be specified with `subsystem=level`.  One global level and one or more per-subsystem levels
+can be specified by separating them with commas.
+
+Default: `error`
+
+Example:
+
+```console
+GOLOG_LOG_LEVEL="error,core/server=debug" ipfs daemon
+```
+
+Logging can also be configured at runtime, both globally and on a per-subsystem basis, with the `ipfs log` command.
+
+## `GOLOG_LOG_FMT`
+
+Specifies the log message format.  It supports the following values:
+
+- `color` -- human readable, colorized (ANSI) output
+- `nocolor` -- human readable, plain-text output.
+- `json` -- structured JSON.
+
+For example, to log structured JSON (for easier parsing):
+
+```bash
+export GOLOG_LOG_FMT="json"
+```
+The logging format defaults to `color` when the output is a terminal, and `nocolor` otherwise.
 
 ## `GOLOG_FILE`
 
@@ -95,6 +114,14 @@ $ ipfs resolve -r /ipns/dnslink-test2.example.com
 /ipfs/bafkreicysg23kiwv34eg2d7qweipxwosdo2py4ldv42nbauguluen5v6am
 ```
 
+## `LIBP2P_TCP_REUSEPORT`
+
+go-ipfs tries to reuse the same source port for all connections to improve NAT
+traversal. If this is an issue, you can disable it by setting
+`LIBP2P_TCP_REUSEPORT` to false.
+
+Default: true
+
 ## `LIBP2P_MUX_PREFS`
 
 Deprecated: Use the `Swarm.Transports.Multiplexers` config field.
@@ -102,3 +129,88 @@ Deprecated: Use the `Swarm.Transports.Multiplexers` config field.
 Tells go-ipfs which multiplexers to use in which order.
 
 Default: "/yamux/1.0.0 /mplex/6.7.0"
+
+## `LIBP2P_RCMGR`
+
+Forces [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme)
+to be enabled (`1`) or disabled (`0`).
+When set, overrides [`Swarm.ResourceMgr.Enabled`](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#swarmresourcemgrenabled) from the config.
+
+Default: use config (not set)
+
+## `LIBP2P_DEBUG_RCMGR`
+
+Enables tracing of [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme)
+and outputs it to `rcmgr.json.gz`
+
+
+Default: disabled (not set)
+
+# Tracing
+For advanced configuration (e.g. ratio-based sampling), see also: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
+
+## `OTEL_TRACES_EXPORTER`
+Specifies the exporters to use as a comma-separated string. Each exporter has a set of additional environment variables used to configure it. The following values are supported:
+
+- `otlp`
+- `jaeger`
+- `zipkin`
+- `file` -- appends traces to a JSON file on the filesystem
+
+Setting this enables OpenTelemetry tracing.
+
+**NOTE** Tracing support is experimental: releases may contain tracing-related breaking changes.
+
+Default: "" (no exporters)
+
+## `OTLP Exporter`
+Unless specified in this section, the OTLP exporter uses the environment variables documented here: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md
+
+### `OTEL_EXPORTER_OTLP_PROTOCOL`
+Specifies the OTLP protocol to use, which is one of:
+
+- `grpc`
+- `http/protobuf`
+
+Default: "grpc"
+
+## `Jaeger Exporter`
+
+See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#jaeger-exporter
+
+## `Zipkin Exporter`
+See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md#zipkin-exporter
+
+## `File Exporter`
+### `OTEL_EXPORTER_FILE_PATH`
+Specifies the filesystem path for the JSON file.
+
+Default: "$PWD/traces.json"
+
+### How to use Jaeger UI
+
+One can use the `jaegertracing/all-in-one` Docker image to run a full Jaeger
+stack and configure go-ipfs to publish traces to it (here, in an ephemeral
+container):
+
+```console
+$ docker run --rm -it --name jaeger \
+    -e COLLECTOR_ZIPKIN_HOST_PORT=:9411 \
+    -p 5775:5775/udp \
+    -p 6831:6831/udp \
+    -p 6832:6832/udp \
+    -p 5778:5778 \
+    -p 16686:16686 \
+    -p 14268:14268 \
+    -p 14268:14269 \
+    -p 14250:14250 \
+    -p 9411:9411 \
+    jaegertracing/all-in-one
+```
+
+Then, in other terminal, start go-ipfs with Jaeger tracing enabled:
+```
+$ OTEL_TRACES_EXPORTER=jaeger ipfs daemon
+```
+
+Finally, the [Jaeger UI](https://github.com/jaegertracing/jaeger-ui#readme) is available at http://localhost:16686

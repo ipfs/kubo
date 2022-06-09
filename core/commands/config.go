@@ -16,7 +16,7 @@ import (
 
 	"github.com/elgris/jsondiff"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 )
 
 // ConfigUpdateOutput is config profile apply command's output
@@ -186,7 +186,8 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		fname, err := config.Filename(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		fname, err := config.Filename(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}
@@ -215,17 +216,19 @@ NOTE: For security reasons, this command will omit your private key and remote s
 		return cmds.EmitOnce(res, &cfg)
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
-			buf, err := config.HumanOutput(out)
-			if err != nil {
-				return err
-			}
-			buf = append(buf, byte('\n'))
-			_, err = w.Write(buf)
-			return err
-		}),
+		cmds.Text: HumanJSONEncoder,
 	},
 }
+
+var HumanJSONEncoder = cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *map[string]interface{}) error {
+	buf, err := config.HumanOutput(out)
+	if err != nil {
+		return err
+	}
+	buf = append(buf, byte('\n'))
+	_, err = w.Write(buf)
+	return err
+})
 
 // Scrubs value and returns error if missing
 func scrubValue(m map[string]interface{}, key []string) (map[string]interface{}, error) {
@@ -289,7 +292,8 @@ variable set to your preferred text editor.
 			return err
 		}
 
-		filename, err := config.Filename(cfgRoot)
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		filename, err := config.Filename(cfgRoot, configFileOpt)
 		if err != nil {
 			return err
 		}

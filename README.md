@@ -166,6 +166,12 @@ With snap, in any of the [supported Linux distributions](https://snapcraft.io/do
 $ sudo snap install ipfs
 ```
 
+The snap sets `IPFS_PATH` to `SNAP_USER_COMMON`, which is usually `~/snap/ipfs/common`. If you want to use `~/.ipfs` instead, you can bind-mount it to `~/snap/ipfs/common` like this:
+
+```sudo mount --bind ~/.ipfs ~/snap/ipfs/common```
+
+If you want something more sophisticated to escape the snap confinement, we recommend using a different method to install `go-ipfs` so that it is not subject to snap confinement.
+
 #### macOS package managers
 
 - [MacPorts](#macports)
@@ -406,7 +412,6 @@ Listing of the main packages used in the IPFS ecosystem. There are also three sp
 | **Namesys** |
 | [`go-ipns`](//github.com/ipfs/go-ipns) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipns/master)](https://travis-ci.com/ipfs/go-ipns) | [![codecov](https://codecov.io/gh/ipfs/go-ipns/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipns) | IPNS datastructures and validation logic |
 | **Repo** |
-| [`go-ipfs-config`](//github.com/ipfs/go-ipfs-config) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-config/master)](https://travis-ci.com/ipfs/go-ipfs-config) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-config/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-config) | go-ipfs config file definitions |
 | [`go-fs-lock`](//github.com/ipfs/go-fs-lock) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-fs-lock/master)](https://travis-ci.com/ipfs/go-fs-lock) | [![codecov](https://codecov.io/gh/ipfs/go-fs-lock/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-fs-lock) | lockfile management functions |
 | [`fs-repo-migrations`](//github.com/ipfs/fs-repo-migrations) | [![Travis CI](https://flat.badgen.net/travis/ipfs/fs-repo-migrations/master)](https://travis-ci.com/ipfs/fs-repo-migrations) | [![codecov](https://codecov.io/gh/ipfs/fs-repo-migrations/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/fs-repo-migrations) | repo migrations |
 | **IPLD** |

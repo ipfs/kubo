@@ -1,3 +1,4 @@
+//go:build !windows && nofuse
 // +build !windows,nofuse
 
 package commands
@@ -7,6 +8,7 @@ import (
 )
 
 var MountCmd = &cmds.Command{
+	Status: cmds.Experimental,
 	Helptext: cmds.HelpText{
 		Tagline: "Mounts ipfs to the filesystem (disabled).",
 		ShortDescription: `

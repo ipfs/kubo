@@ -1,4 +1,6 @@
-// +build !cgo,!noplugin
+//go:build !cgo && !noplugin && (linux || darwin || freebsd)
+// +build !cgo
+// +build !noplugin
 // +build linux darwin freebsd
 
 package loader

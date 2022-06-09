@@ -18,7 +18,7 @@ import (
 
 	mbase "github.com/multiformats/go-multibase"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
@@ -249,6 +249,7 @@ func withHostnameContext(r *http.Request, hostname string) *http.Request {
 	// on subdomain and dnslink gateways. While DNSlink could read value from
 	// Host header, subdomain gateways have more comples rules (knownSubdomainDetails)
 	// More: https://github.com/ipfs/dir-index-html/issues/42
+	// nolint: staticcheck // non-backward compatible change
 	ctx := context.WithValue(r.Context(), "gw-hostname", hostname)
 	return r.WithContext(ctx)
 }

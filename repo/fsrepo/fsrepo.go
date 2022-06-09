@@ -20,9 +20,9 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	measure "github.com/ipfs/go-ds-measure"
 	lockfile "github.com/ipfs/go-fs-lock"
-	config "github.com/ipfs/go-ipfs-config"
-	serialize "github.com/ipfs/go-ipfs-config/serialize"
 	util "github.com/ipfs/go-ipfs-util"
+	config "github.com/ipfs/go-ipfs/config"
+	serialize "github.com/ipfs/go-ipfs/config/serialize"
 	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	logging "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
@@ -50,7 +50,7 @@ See https://github.com/ipfs/fs-repo-migrations/blob/master/run.md for details.`
 var (
 	ErrNoVersion     = errors.New("no version file found, please run 0-to-1 migration tool.\n" + migrationInstructions)
 	ErrOldRepo       = errors.New("ipfs repo found in old '~/.go-ipfs' location, please run migration tool.\n" + migrationInstructions)
-	ErrNeedMigration = errors.New("ipfs repo needs migration")
+	ErrNeedMigration = errors.New("ipfs repo needs migration, please run migration tool.\n" + migrationInstructions)
 )
 
 type NoRepoError struct {
@@ -96,6 +96,9 @@ type FSRepo struct {
 	closed bool
 	// path is the file-system path
 	path string
+	// Path to the configuration file that may or may not be inside the FSRepo
+	// path (see config.Filename for more details).
+	configFilePath string
 	// lockfile is the file system lock to prevent others from opening
 	// the same fsrepo path concurrently
 	lockfile io.Closer
@@ -111,16 +114,25 @@ var _ repo.Repo = (*FSRepo)(nil)
 // initialized.
 func Open(repoPath string) (repo.Repo, error) {
 	fn := func() (repo.Repo, error) {
-		return open(repoPath)
+		return open(repoPath, "")
 	}
 	return onlyOne.Open(repoPath, fn)
 }
 
-func open(repoPath string) (repo.Repo, error) {
+// OpenWithUserConfig is the equivalent to the Open function above but with the
+// option to set the configuration file path instead of using the default.
+func OpenWithUserConfig(repoPath string, userConfigFilePath string) (repo.Repo, error) {
+	fn := func() (repo.Repo, error) {
+		return open(repoPath, userConfigFilePath)
+	}
+	return onlyOne.Open(repoPath, fn)
+}
+
+func open(repoPath string, userConfigFilePath string) (repo.Repo, error) {
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	r, err := newFSRepo(repoPath)
+	r, err := newFSRepo(repoPath, userConfigFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -185,13 +197,19 @@ func open(repoPath string) (repo.Repo, error) {
 	return r, nil
 }
 
-func newFSRepo(rpath string) (*FSRepo, error) {
+func newFSRepo(rpath string, userConfigFilePath string) (*FSRepo, error) {
 	expPath, err := homedir.Expand(filepath.Clean(rpath))
 	if err != nil {
 		return nil, err
 	}
 
-	return &FSRepo{path: expPath}, nil
+	configFilePath, err := config.Filename(rpath, userConfigFilePath)
+	if err != nil {
+		// FIXME: Personalize this when the user config path is "".
+		return nil, fmt.Errorf("finding config filepath from repo %s and user config %s: %w",
+			rpath, userConfigFilePath, err)
+	}
+	return &FSRepo{path: expPath, configFilePath: configFilePath}, nil
 }
 
 func checkInitialized(path string) error {
@@ -205,26 +223,10 @@ func checkInitialized(path string) error {
 	return nil
 }
 
-// ConfigAt returns an error if the FSRepo at the given path is not
-// initialized. This function allows callers to read the config file even when
-// another process is running and holding the lock.
-func ConfigAt(repoPath string) (*config.Config, error) {
-
-	// packageLock must be held to ensure that the Read is atomic.
-	packageLock.Lock()
-	defer packageLock.Unlock()
-
-	configFilename, err := config.Filename(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	return serialize.Load(configFilename)
-}
-
 // configIsInitialized returns true if the repo is initialized at
 // provided |path|.
 func configIsInitialized(path string) bool {
-	configFilename, err := config.Filename(path)
+	configFilename, err := config.Filename(path, "")
 	if err != nil {
 		return false
 	}
@@ -238,7 +240,7 @@ func initConfig(path string, conf *config.Config) error {
 	if configIsInitialized(path) {
 		return nil
 	}
-	configFilename, err := config.Filename(path)
+	configFilename, err := config.Filename(path, "")
 	if err != nil {
 		return err
 	}
@@ -388,11 +390,7 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 
 // openConfig returns an error if the config file is not present.
 func (r *FSRepo) openConfig() error {
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
-	conf, err := serialize.Load(configFilename)
+	conf, err := serialize.Load(r.configFilePath)
 	if err != nil {
 		return err
 	}
@@ -523,12 +521,7 @@ func (r *FSRepo) BackupConfig(prefix string) (string, error) {
 	}
 	defer temp.Close()
 
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return "", err
-	}
-
-	orig, err := os.OpenFile(configFilename, os.O_RDONLY, 0600)
+	orig, err := os.OpenFile(r.configFilePath, os.O_RDONLY, 0600)
 	if err != nil {
 		return "", err
 	}
@@ -542,44 +535,45 @@ func (r *FSRepo) BackupConfig(prefix string) (string, error) {
 	return orig.Name(), nil
 }
 
-// setConfigUnsynced is for private use.
-func (r *FSRepo) setConfigUnsynced(updated *config.Config) error {
-	configFilename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
-	// to avoid clobbering user-provided keys, must read the config from disk
-	// as a map, write the updated struct values to the map and write the map
-	// to disk.
-	var mapconf map[string]interface{}
-	if err := serialize.ReadConfigFile(configFilename, &mapconf); err != nil {
-		return err
-	}
-	m, err := config.ToMap(updated)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		mapconf[k] = v
-	}
-	if err := serialize.WriteConfigFile(configFilename, mapconf); err != nil {
-		return err
-	}
-	// Do not use `*r.config = ...`. This will modify the *shared* config
-	// returned by `r.Config`.
-	r.config = updated
-	return nil
-}
-
 // SetConfig updates the FSRepo's config. The user must not modify the config
 // object after calling this method.
+// FIXME: There is an inherent contradiction with storing non-user-generated
+//  Go config.Config structures as user-generated JSON nested maps. This is
+//  evidenced by the issue of `omitempty` property of fields that aren't defined
+//  by the user and Go still needs to initialize them to its default (which
+//  is not reflected in the repo's config file, see
+//  https://github.com/ipfs/go-ipfs/issues/8088 for more details).
+//  In general we should call this API with a JSON nested maps as argument
+//  (`map[string]interface{}`). Many calls to this function are forced to
+//  synthesize the config.Config struct from their available JSON map just to
+//  satisfy this (causing incompatibilities like the `omitempty` one above).
+//  We need to comb SetConfig calls and replace them when possible with a
+//  JSON map variant.
 func (r *FSRepo) SetConfig(updated *config.Config) error {
 
 	// packageLock is held to provide thread-safety.
 	packageLock.Lock()
 	defer packageLock.Unlock()
 
-	return r.setConfigUnsynced(updated)
+	// to avoid clobbering user-provided keys, must read the config from disk
+	// as a map, write the updated struct values to the map and write the map
+	// to disk.
+	var mapconf map[string]interface{}
+	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
+		return err
+	}
+	m, err := config.ToMap(updated)
+	if err != nil {
+		return err
+	}
+	mergedMap := common.MapMergeDeep(mapconf, m)
+	if err := serialize.WriteConfigFile(r.configFilePath, mergedMap); err != nil {
+		return err
+	}
+	// Do not use `*r.config = ...`. This will modify the *shared* config
+	// returned by `r.Config`.
+	r.config = updated
+	return nil
 }
 
 // GetConfigKey retrieves only the value of a particular key.
@@ -591,12 +585,8 @@ func (r *FSRepo) GetConfigKey(key string) (interface{}, error) {
 		return nil, errors.New("repo is closed")
 	}
 
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return nil, err
-	}
 	var cfg map[string]interface{}
-	if err := serialize.ReadConfigFile(filename, &cfg); err != nil {
+	if err := serialize.ReadConfigFile(r.configFilePath, &cfg); err != nil {
 		return nil, err
 	}
 	return common.MapGetKV(cfg, key)
@@ -611,13 +601,9 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 		return errors.New("repo is closed")
 	}
 
-	filename, err := config.Filename(r.path)
-	if err != nil {
-		return err
-	}
 	// Load into a map so we don't end up writing any additional defaults to the config file.
 	var mapconf map[string]interface{}
-	if err := serialize.ReadConfigFile(filename, &mapconf); err != nil {
+	if err := serialize.ReadConfigFile(r.configFilePath, &mapconf); err != nil {
 		return err
 	}
 
@@ -645,10 +631,13 @@ func (r *FSRepo) SetConfigKey(key string, value interface{}) error {
 	if err != nil {
 		return err
 	}
-	if err := serialize.WriteConfigFile(filename, mapconf); err != nil {
+	r.config = conf
+
+	if err := serialize.WriteConfigFile(r.configFilePath, mapconf); err != nil {
 		return err
 	}
-	return r.setConfigUnsynced(conf) // TODO roll this into this method
+
+	return nil
 }
 
 // Datastore returns a repo-owned datastore. If FSRepo is Closed, return value

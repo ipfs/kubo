@@ -19,6 +19,7 @@ the above issue.
 - [Private Networks](#private-networks)
 - [ipfs p2p](#ipfs-p2p)
 - [p2p http proxy](#p2p-http-proxy)
+- [FUSE](#fuse)
 - [Plugins](#plugins)
 - [Directory Sharding / HAMT](#directory-sharding--hamt)
 - [IPNS PubSub](#ipns-pubsub)
@@ -385,6 +386,15 @@ We also support the use of protocol names of the form /x/$NAME/http where $NAME 
 - [ ] Needs more people to use and report on how well it works / fits use cases
 - [ ] More documentation
 - [ ] Need better integration with the subdomain gateway feature.
+
+## FUSE
+
+FUSE makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
+allowing argitrary apps access to IPFS using a subset of filesystem abstractions.
+
+It is considered  EXPERIMENTAL due to limited (and buggy) support on some platforms.
+
+See [fuse.md](./fuse.md) for more details.
 
 ## Plugins
 

@@ -19,8 +19,8 @@ import (
 	unixfs "github.com/ipfs/go-unixfs"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
 	files "github.com/ipfs/go-ipfs-files"
+	config "github.com/ipfs/go-ipfs/config"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 )
 

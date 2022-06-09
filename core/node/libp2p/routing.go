@@ -2,22 +2,27 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
 	"sort"
 	"time"
 
 	"github.com/ipfs/go-ipfs/core/node/helpers"
 
+	config "github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/repo"
-	host "github.com/libp2p/go-libp2p-core/host"
-	routing "github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
-	"github.com/libp2p/go-libp2p-pubsub"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 
+	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
 )
 
@@ -54,6 +59,8 @@ type processInitialRoutingOut struct {
 	DHTClient routing.Routing `name:"dhtc"`
 	BaseRT    BaseIpfsRouting
 }
+
+type AddrInfoChan chan peer.AddrInfo
 
 func BaseRouting(experimentalDHTClient bool) interface{} {
 	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
@@ -178,4 +185,81 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 			Priority: 100,
 		},
 	}, psRouter, nil
+}
+
+func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, AddrInfoChan, *ddht.DHT) {
+	return func(lc fx.Lifecycle, h host.Host, peerChan AddrInfoChan, dht *ddht.DHT) {
+		ctx, cancel := context.WithCancel(context.Background())
+		done := make(chan struct{})
+
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Recovering from unexpected error in AutoRelayFeeder:", r)
+				debug.PrintStack()
+			}
+		}()
+		go func() {
+			defer close(done)
+
+			// Feed peers more often right after the bootstrap, then backoff
+			bo := backoff.NewExponentialBackOff()
+			bo.InitialInterval = 15 * time.Second
+			bo.Multiplier = 3
+			bo.MaxInterval = 1 * time.Hour
+			bo.MaxElapsedTime = 0 // never stop
+			t := backoff.NewTicker(bo)
+			defer t.Stop()
+			for {
+				select {
+				case <-t.C:
+				case <-ctx.Done():
+					return
+				}
+
+				// Always feed trusted IDs (Peering.Peers in the config)
+				for _, trustedPeer := range cfgPeering.Peers {
+					if len(trustedPeer.Addrs) == 0 {
+						continue
+					}
+					select {
+					case peerChan <- trustedPeer:
+					case <-ctx.Done():
+						return
+					}
+				}
+
+				// Additionally, feed closest peers discovered via DHT
+				if dht == nil {
+					/* noop due to missing dht.WAN. happens in some unit tests,
+					   not worth fixing as we will refactor this after go-libp2p 0.20 */
+					continue
+				}
+				closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
+				if err != nil {
+					// no-op: usually 'failed to find any peer in table' during startup
+					continue
+				}
+				for _, p := range closestPeers {
+					addrs := h.Peerstore().Addrs(p)
+					if len(addrs) == 0 {
+						continue
+					}
+					dhtPeer := peer.AddrInfo{ID: p, Addrs: addrs}
+					select {
+					case peerChan <- dhtPeer:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}()
+
+		lc.Append(fx.Hook{
+			OnStop: func(_ context.Context) error {
+				cancel()
+				<-done
+				return nil
+			},
+		})
+	}
 }

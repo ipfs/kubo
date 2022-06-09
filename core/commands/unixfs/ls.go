@@ -33,8 +33,9 @@ type LsOutput struct {
 }
 
 var LsCmd = &cmds.Command{
+	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/pull/7755
 	Helptext: cmds.HelpText{
-		Tagline: "List directory contents for Unix filesystem objects. Deprecated: Use 'ipfs ls' instead.",
+		Tagline: "List directory contents for Unix filesystem objects. Deprecated: Use 'ipfs ls' and 'ipfs files ls' instead.",
 		ShortDescription: `
 Displays the contents of an IPFS or IPNS object(s) at the given path.
 

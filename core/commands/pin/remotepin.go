@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -16,7 +17,7 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	logging "github.com/ipfs/go-log"
@@ -185,6 +186,8 @@ NOTE: a comma-separated notation is supported in CLI for convenience:
 				return err
 			}
 			opts = append(opts, pinclient.PinOpts.WithOrigins(addrs...))
+		} else if isInBlockstore && !node.IsOnline && cmds.GetEncoding(req, cmds.Text) == cmds.Text {
+			fmt.Fprintf(os.Stdout, "WARNING: the local node is offline and remote pinning may fail if there is no other provider for this CID\n")
 		}
 
 		// Execute remote pin request

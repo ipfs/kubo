@@ -11,7 +11,7 @@ import (
 	loader "github.com/ipfs/go-ipfs/plugin/loader"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	logging "github.com/ipfs/go-log"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
@@ -26,30 +26,18 @@ type Context struct {
 
 	Plugins *loader.PluginLoader
 
-	config     *config.Config
-	LoadConfig func(path string) (*config.Config, error)
-
 	Gateway       bool
 	api           coreiface.CoreAPI
 	node          *core.IpfsNode
 	ConstructNode func() (*core.IpfsNode, error)
 }
 
-// GetConfig returns the config of the current Command execution
-// context. It may load it with the provided function.
 func (c *Context) GetConfig() (*config.Config, error) {
-	var err error
-	if c.config == nil {
-		if c.LoadConfig == nil {
-			return nil, errors.New("nil LoadConfig function")
-		}
-		c.config, err = c.LoadConfig(c.ConfigRoot)
+	node, err := c.GetNode()
+	if err != nil {
+		return nil, err
 	}
-	return c.config, err
-}
-
-func (c *Context) GetConfigNoCache() (*config.Config, error) {
-	return c.LoadConfig(c.ConfigRoot)
+	return node.Repo.Config()
 }
 
 // GetNode returns the node of the current Command execution
@@ -61,12 +49,6 @@ func (c *Context) GetNode() (*core.IpfsNode, error) {
 			return nil, errors.New("nil ConstructNode function")
 		}
 		c.node, err = c.ConstructNode()
-		if err == nil {
-			// Pre-load the config from the repo to avoid re-parsing it from disk.
-			if cfg, err := c.node.Repo.Config(); err != nil {
-				c.config = cfg
-			}
-		}
 	}
 	return c.node, err
 }

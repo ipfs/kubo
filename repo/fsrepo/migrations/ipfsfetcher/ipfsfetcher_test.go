@@ -26,7 +26,7 @@ func TestIpfsFetcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fetcher := NewIpfsFetcher("", 0, nil)
+	fetcher := NewIpfsFetcher("", 0, nil, "")
 	defer fetcher.Close()
 
 	out, err := fetcher.Fetch(ctx, "go-ipfs/versions")
@@ -62,7 +62,7 @@ func TestInitIpfsFetcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	f := NewIpfsFetcher("", 0, nil)
+	f := NewIpfsFetcher("", 0, nil, "")
 	defer f.Close()
 
 	// Init ipfs repo
@@ -132,7 +132,7 @@ func TestReadIpfsConfig(t *testing.T) {
 `
 
 	noSuchDir := "no_such_dir-5953aa51-1145-4efd-afd1-a069075fcf76"
-	bootstrap, peers := readIpfsConfig(&noSuchDir)
+	bootstrap, peers := readIpfsConfig(&noSuchDir, "")
 	if bootstrap != nil {
 		t.Error("expected nil bootstrap")
 	}
@@ -142,12 +142,12 @@ func TestReadIpfsConfig(t *testing.T) {
 
 	tmpDir := makeConfig(t, testConfig)
 
-	bootstrap, peers = readIpfsConfig(nil)
+	bootstrap, peers = readIpfsConfig(nil, "")
 	if bootstrap != nil || peers != nil {
 		t.Fatal("expected nil ipfs config items")
 	}
 
-	bootstrap, peers = readIpfsConfig(&tmpDir)
+	bootstrap, peers = readIpfsConfig(&tmpDir, "")
 	if len(bootstrap) != 2 {
 		t.Fatal("wrong number of bootstrap addresses")
 	}
@@ -189,7 +189,7 @@ func TestBadBootstrappingIpfsConfig(t *testing.T) {
 
 	tmpDir := makeConfig(t, configBadBootstrap)
 
-	bootstrap, peers := readIpfsConfig(&tmpDir)
+	bootstrap, peers := readIpfsConfig(&tmpDir, "")
 	if bootstrap != nil {
 		t.Fatal("expected nil bootstrap")
 	}
@@ -219,7 +219,7 @@ func TestBadPeersIpfsConfig(t *testing.T) {
 
 	tmpDir := makeConfig(t, configBadPeers)
 
-	bootstrap, peers := readIpfsConfig(&tmpDir)
+	bootstrap, peers := readIpfsConfig(&tmpDir, "")
 	if peers != nil {
 		t.Fatal("expected nil peers")
 	}

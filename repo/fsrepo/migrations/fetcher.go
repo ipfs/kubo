@@ -38,7 +38,7 @@ type limitReadCloser struct {
 }
 
 // NewMultiFetcher creates a MultiFetcher with the given Fetchers.  The
-// Fetchers are tried in order ther passed to this function.
+// Fetchers are tried in order, then passed to this function.
 func NewMultiFetcher(f ...Fetcher) *MultiFetcher {
 
 	mf := &MultiFetcher{

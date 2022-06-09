@@ -297,7 +297,7 @@ func walkBlock(ctx context.Context, dagserv ipld.DAGService, nd ipld.Node) (bool
 	for _, link := range nd.Links() {
 		child, err := dagserv.Get(ctx, link.Cid)
 
-		if err == ipld.ErrNotFound {
+		if ipld.IsNotFound(err) {
 			local = false
 			continue
 		}
@@ -348,8 +348,8 @@ $ ipfs pin add <CID>
 
 The lazy-copy feature can also be used to protect partial DAG contents from
 garbage collection. i.e. adding the Wikipedia root to MFS would not download
-all the Wikipedia, but will any downloaded Wikipedia-DAG content from being
-GC'ed.
+all the Wikipedia, but will prevent any downloaded Wikipedia-DAG content from
+being GC'ed.
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -1052,74 +1052,13 @@ Remove files or directories.
 		for _, arg := range req.Arguments {
 			path, err := checkPath(arg)
 			if err != nil {
-				errs = append(errs, fmt.Errorf("%s: %w", arg, err))
+				errs = append(errs, fmt.Errorf("%s is not a valid path: %w", arg, err))
 				continue
 			}
 
-			if path == "/" {
-				errs = append(errs, fmt.Errorf("%s: cannot delete root", path))
-				continue
-			}
-
-			// 'rm a/b/c/' will fail unless we trim the slash at the end
-			if path[len(path)-1] == '/' {
-				path = path[:len(path)-1]
-			}
-
-			dir, name := gopath.Split(path)
-
-			pdir, err := getParentDir(nd.FilesRoot, dir)
-			if err != nil {
-				if force && err == os.ErrNotExist {
-					continue
-				}
-				errs = append(errs, fmt.Errorf("%s: parent lookup: %w", path, err))
-				continue
-			}
-
-			if force {
-				err := pdir.Unlink(name)
-				if err != nil {
-					if err == os.ErrNotExist {
-						continue
-					}
-					errs = append(errs, fmt.Errorf("%s: %w", path, err))
-					continue
-				}
-				err = pdir.Flush()
-				if err != nil {
-					errs = append(errs, fmt.Errorf("%s: %w", path, err))
-				}
-				continue
-			}
-
-			// get child node by name, when the node is corrupted and nonexistent,
-			// it will return specific error.
-			child, err := pdir.Child(name)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("%s: %w", path, err))
-				continue
-			}
-
-			switch child.(type) {
-			case *mfs.Directory:
-				if !dashr {
-					errs = append(errs, fmt.Errorf("%s is a directory, use -r to remove directories", path))
-					continue
-				}
-			}
-
-			err = pdir.Unlink(name)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("%s: %w", path, err))
-				continue
-			}
-
-			err = pdir.Flush()
-			if err != nil {
+			if err := removePath(nd.FilesRoot, path, force, dashr); err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", path, err))
 			}
-			continue
 		}
 		if len(errs) > 0 {
 			for _, err = range errs {
@@ -1132,6 +1071,59 @@ Remove files or directories.
 		}
 		return nil
 	},
+}
+
+func removePath(filesRoot *mfs.Root, path string, force bool, dashr bool) error {
+	if path == "/" {
+		return fmt.Errorf("cannot delete root")
+	}
+
+	// 'rm a/b/c/' will fail unless we trim the slash at the end
+	if path[len(path)-1] == '/' {
+		path = path[:len(path)-1]
+	}
+
+	dir, name := gopath.Split(path)
+
+	pdir, err := getParentDir(filesRoot, dir)
+	if err != nil {
+		if force && err == os.ErrNotExist {
+			return nil
+		}
+		return err
+	}
+
+	if force {
+		err := pdir.Unlink(name)
+		if err != nil {
+			if err == os.ErrNotExist {
+				return nil
+			}
+			return err
+		}
+		return pdir.Flush()
+	}
+
+	// get child node by name, when the node is corrupted and nonexistent,
+	// it will return specific error.
+	child, err := pdir.Child(name)
+	if err != nil {
+		return err
+	}
+
+	switch child.(type) {
+	case *mfs.Directory:
+		if !dashr {
+			return fmt.Errorf("path is a directory, use -r to remove directories")
+		}
+	}
+
+	err = pdir.Unlink(name)
+	if err != nil {
+		return err
+	}
+
+	return pdir.Flush()
 }
 
 func getPrefixNew(req *cmds.Request) (cid.Builder, error) {

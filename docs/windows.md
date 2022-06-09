@@ -114,9 +114,16 @@ You can use whichever version of `git` you wish but we recommend the Windows bui
 
 Clone and change directory to the source code, if you haven't already:
 
-```
+CMD:
+```bat
 git clone https://github.com/ipfs/go-ipfs %GOPATH%/src/github.com/ipfs/go-ipfs
 cd %GOPATH%/src/github.com/ipfs/go-ipfs/cmd/ipfs
+```
+
+PowerShell:
+```powershell
+git clone https://github.com/ipfs/go-ipfs $env:GOPATH/src/github.com/ipfs/go-ipfs
+cd $env:GOPATH/src/github.com/ipfs/go-ipfs/cmd/ipfs
 ```
 
 We need the `git` commit hash to be included in our build so that in the extremely rare event a bug is found, we have a reference point later for tracking it. We'll ask `git` for it and store it in a variable. The syntax for the next command is different depending on whether you're using the interactive command line or writing a batch file. Use the one that applies to you.  
@@ -124,9 +131,18 @@ We need the `git` commit hash to be included in our build so that in the extreme
 - interpreter: `FOR /F %%V IN ('git rev-parse --short HEAD') do set SHA=%%V`  
 
 Finally, we'll build and test `ipfs` itself.
-```
+
+CMD:
+```bat
 go install -ldflags="-X "github.com/ipfs/go-ipfs".CurrentCommit=%SHA%"
 %GOPATH%\bin\ipfs.exe version --all
+```
+
+PowerShell:
+```powershell
+go install -ldflags="-X "github.com/ipfs/go-ipfs".CurrentCommit=$env:SHA"
+cp ./ipfs.exe $env:GOPATH/bin/ipfs.exe -force
+. $env:GOPATH/bin/ipfs.exe version --all
 ```
 You can check that the ipfs output versions match with `go version` and `git rev-parse --short HEAD`.  
 If `ipfs.exe` executes and everything matches, then building was successful.

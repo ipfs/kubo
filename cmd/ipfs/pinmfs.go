@@ -13,7 +13,7 @@ import (
 	logging "github.com/ipfs/go-log"
 	pinclient "github.com/ipfs/go-pinning-service-http-client"
 
-	config "github.com/ipfs/go-ipfs-config"
+	config "github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-ipfs/core"
 )
 
@@ -36,7 +36,7 @@ const defaultRepinInterval = 5 * time.Minute
 
 type pinMFSContext interface {
 	Context() context.Context
-	GetConfigNoCache() (*config.Config, error)
+	GetConfig() (*config.Config, error)
 }
 
 type pinMFSNode interface {
@@ -104,7 +104,7 @@ func pinMFSOnChange(configPollInterval time.Duration, cctx pinMFSContext, node p
 		}
 
 		// reread the config, which may have changed in the meantime
-		cfg, err := cctx.GetConfigNoCache()
+		cfg, err := cctx.GetConfig()
 		if err != nil {
 			select {
 			case errCh <- fmt.Errorf("pinning reading config (%v)", err):
