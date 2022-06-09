@@ -301,6 +301,16 @@ test_expect_success "Verify gateway file" '
   test_cmp gateway_daemon_actual gateway_file_actual
 '
 
+test_expect_success "GET TAR file from gateway and extract" '
+  curl "http://127.0.0.1:$port/ipfs/$FOO2_HASH?format=tar" | tar -x
+'
+
+test_expect_success "GET TAR file has expected Content-Type" '
+  curl -svX GET "http://127.0.0.1:$port/ipfs/$FOO2_HASH?format=tar" > curl_output_filename 2>&1 &&
+  cat curl_output_filename &&
+  grep "< Content-Type: application/x-tar" curl_output_filename
+'
+
 test_kill_ipfs_daemon
 
 GWPORT=32563
