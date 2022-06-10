@@ -141,7 +141,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
-		cmds.BoolOption(forceHashOptionName, "Forcibly allow hasing of insecure hashing schemes").WithDefault(false),
+		cmds.BoolOption(forceHashOptionName, "Allow use of insecure hash functions.").WithDefault(false),
 	},
 
 	PreRun: func(req *cmds.Request, env cmds.Environment) error {
