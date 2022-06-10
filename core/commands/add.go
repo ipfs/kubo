@@ -189,7 +189,7 @@ only-hash, and progress/status related flags) will change the final hash.
 		loweredHash := strings.ToLower(hashFunStr)
 		hashFunCode, ok := mh.Names[loweredHash]
 		if !forceHash && loweredHash == "sha1" {
-			return fmt.Errorf("selected hash function is no longer secure; use --hash=sha2-256 or pass --force " )
+			return fmt.Errorf("selected hash function is no longer secure; use --hash=sha2-256 or pass --allow-insecure-hash" )
 		}
 		if !ok {
 			return fmt.Errorf("unrecognized hash function: %s", strings.ToLower(hashFunStr))
