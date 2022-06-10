@@ -35,7 +35,12 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	rootCid := resolvedPath.Cid()
 
 	// Set Content-Disposition
-	name := rootCid.String() + ".car"
+	var name string
+	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
+		name = urlFilename
+	} else {
+		name = rootCid.String() + ".car"
+	}
 	setContentDispositionHeader(w, name, "attachment")
 
 	// Weak Etag W/ because we can't guarantee byte-for-byte identical  responses

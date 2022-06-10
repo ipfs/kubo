@@ -298,9 +298,25 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
 
 <details>
 <summary>Full Changelog</summary>
-
 - github.com/ipfs/go-ipfs:
-  - docs: v0.13.0 changelog
+  - feat: upgrade to go-libp2p-kad-dht@v0.16.0 (#9005) ([ipfs/go-ipfs#9005](https://github.com/ipfs/go-ipfs/pull/9005))
+  - docs: fix typo in the `swarm/peering` help text
+  - feat: disable resource manager by default (#9003) ([ipfs/go-ipfs#9003](https://github.com/ipfs/go-ipfs/pull/9003))
+  - fix: adjust rcmgr limits for accelerated DHT client rt refresh (#8982) ([ipfs/go-ipfs#8982](https://github.com/ipfs/go-ipfs/pull/8982))
+  - fix(ci): make go-ipfs-as-a-library work without external peers (#8978) ([ipfs/go-ipfs#8978](https://github.com/ipfs/go-ipfs/pull/8978))
+  - feat: log when resource manager limits are exceeded (#8980) ([ipfs/go-ipfs#8980](https://github.com/ipfs/go-ipfs/pull/8980))
+  - fix: JS caching via Access-Control-Expose-Headers (#8984) ([ipfs/go-ipfs#8984](https://github.com/ipfs/go-ipfs/pull/8984))
+  - docs: fix abstractions typo
+  - fix: hanging goroutine in get fileArchive handler
+  - fix(node/libp2p): disable rcmgr checkImplicitDefaults ([ipfs/go-ipfs#8965](https://github.com/ipfs/go-ipfs/pull/8965))
+  - pubsub multibase encoding (#8933) ([ipfs/go-ipfs#8933](https://github.com/ipfs/go-ipfs/pull/8933))
+  - 'pin rm' helptext: rewrite description as object is not removed from local storage (immediately) ([ipfs/go-ipfs#8947](https://github.com/ipfs/go-ipfs/pull/8947))
+  -  ([ipfs/go-ipfs#8934](https://github.com/ipfs/go-ipfs/pull/8934))
+  - Add instructions to resolve repo migration error (#8946) ([ipfs/go-ipfs#8946](https://github.com/ipfs/go-ipfs/pull/8946))
+  - fix: use path instead of filepath for asset embeds to support Windows
+  - Release v0.13.0-rc1
+  - docs: v0.13.0 changelog ([ipfs/go-ipfs#8941](https://github.com/ipfs/go-ipfs/pull/8941))
+  - chore: build with go 1.18.1 ([ipfs/go-ipfs#8932](https://github.com/ipfs/go-ipfs/pull/8932))
   - docs(tracing): update env var docs for new tracing env vars
   - feat: enable Resource Manager by default
   - chore: Update test/dependencies to match go-ipfs dependencies. (#8928) ([ipfs/go-ipfs#8928](https://github.com/ipfs/go-ipfs/pull/8928))
@@ -350,8 +366,7 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - feat: add gateway histogram metrics (#8443) ([ipfs/go-ipfs#8443](https://github.com/ipfs/go-ipfs/pull/8443))
   - ErrNotFound changes: bubble tagged libraries. ([ipfs/go-ipfs#8803](https://github.com/ipfs/go-ipfs/pull/8803))
   - Fix typos
-  - Bubble ErrNotFound improvements.
-    ([ipfs/go-ipfs#8757](https://github.com/ipfs/go-ipfs/pull/8757))
+ ([ipfs/go-ipfs#8757](https://github.com/ipfs/go-ipfs/pull/8757))
   - feat(gateway): Block and CAR response formats (#8758) ([ipfs/go-ipfs#8758](https://github.com/ipfs/go-ipfs/pull/8758))
   - fix: allow ipfs-companion browser extension to access RPC API (#8690) ([ipfs/go-ipfs#8690](https://github.com/ipfs/go-ipfs/pull/8690))
   - fix(core/node): unwrap fx error in node construction ([ipfs/go-ipfs#8638](https://github.com/ipfs/go-ipfs/pull/8638))
@@ -363,8 +378,7 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - docs: note the default reprovider strategy as all (#8603) ([ipfs/go-ipfs#8603](https://github.com/ipfs/go-ipfs/pull/8603))
   - fix: listen on loopback for API and gateway ports in docker-compose.yaml (#8773) ([ipfs/go-ipfs#8773](https://github.com/ipfs/go-ipfs/pull/8773))
   - fix(discovery): fix daemon not starting due to mdns startup failure (#8704) ([ipfs/go-ipfs#8704](https://github.com/ipfs/go-ipfs/pull/8704))
-  - Move go-ipfs-config back into go-ipfs,
-    ([ipfs/go-ipfs#8756](https://github.com/ipfs/go-ipfs/pull/8756))
+ ([ipfs/go-ipfs#8756](https://github.com/ipfs/go-ipfs/pull/8756))
   - feat: ipfs-webui v2.15 (#8712) ([ipfs/go-ipfs#8712](https://github.com/ipfs/go-ipfs/pull/8712))
   - feat: X-Ipfs-Roots for smarter HTTP caches (#8720) ([ipfs/go-ipfs#8720](https://github.com/ipfs/go-ipfs/pull/8720))
   - chore: add instructions for Chocolatey release
@@ -403,6 +417,20 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - v0.3.0
   - s/log/logger
   - Use ipld.ErrNotFound instead of ErrNotFound
+- github.com/ipfs/go-cid (v0.1.0 -> v0.2.0):
+  - fix: remove invalid multicodec2string mappings (#137) ([ipfs/go-cid#137](https://github.com/ipfs/go-cid/pull/137))
+  - sync: update CI config files (#136) ([ipfs/go-cid#136](https://github.com/ipfs/go-cid/pull/136))
+  - Benchmark existing ways to check for `IDENTITY` CIDs
+  - avoid double alloc in NewCidV1
+  - sync: update CI config files ([ipfs/go-cid#131](https://github.com/ipfs/go-cid/pull/131))
+- github.com/ipfs/go-cidutil (v0.0.2 -> v0.1.0):
+ ([ipfs/go-cidutil#36](https://github.com/ipfs/go-cidutil/pull/36))
+  - sync: update CI config files ([ipfs/go-cidutil#35](https://github.com/ipfs/go-cidutil/pull/35))
+  - sync: update CI config files (#34) ([ipfs/go-cidutil#34](https://github.com/ipfs/go-cidutil/pull/34))
+  - fix staticcheck ([ipfs/go-cidutil#31](https://github.com/ipfs/go-cidutil/pull/31))
+  - add license file so it can be found by go-licenses ([ipfs/go-cidutil#27](https://github.com/ipfs/go-cidutil/pull/27))
+  - test: fix for base32 switch ([ipfs/go-cidutil#16](https://github.com/ipfs/go-cidutil/pull/16))
+  - doc: add a lead maintainer
 - github.com/ipfs/go-filestore (v1.1.0 -> v1.2.0):
   - v1.2.0
   - refactor: follow the happy left practice in Filestore.DeleteBlock
@@ -555,43 +583,6 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - v0.6.0
   - Update tests to use ipld.IsNotFound to check for notfound errors
   - sync: update CI config files (#79) ([ipfs/interface-go-ipfs-core#79](https://github.com/ipfs/interface-go-ipfs-core/pull/79))
-- github.com/ipld/go-car/v2 (null -> v2.1.1):
-  - Update v2 to context datastores (#275) ([ipld/go-car#275](https://github.com/ipld/go-car/pull/275))
-  - update context datastore ([ipld/go-car#273](https://github.com/ipld/go-car/pull/273))
-  - Traversal-based car creation (#269) ([ipld/go-car#269](https://github.com/ipld/go-car/pull/269))
-  - Seek to start before index generation in `ReadOnly` blockstore
-  - support extraction of unixfs content stored in car files (#263) ([ipld/go-car#263](https://github.com/ipld/go-car/pull/263))
-  - Add a barebones readme to the car CLI (#262) ([ipld/go-car#262](https://github.com/ipld/go-car/pull/262))
-  - sync: update CI config files (#261) ([ipld/go-car#261](https://github.com/ipld/go-car/pull/261))
-  - fix!: use -version=n instead of -v1 for index command
-  - feat: fix get-dag and add version=1 option
-  - creation of car from file / directory (#246) ([ipld/go-car#246](https://github.com/ipld/go-car/pull/246))
-  - forEach iterates over index in stable order (#258) ([ipld/go-car#258](https://github.com/ipld/go-car/pull/258))
-  - Expose selector traversal options for SelectiveCar ([ipld/go-car#251](https://github.com/ipld/go-car/pull/251))
-  - Implement API to allow replacing root CIDs in a CARv1 or CARv2
-  - blockstore: OpenReadWrite should not modify if it refuses to resume
-  - clarify the relation between StoreIdentityCIDs and SetFullyIndexed
-  - Implement options to handle `IDENTITY` CIDs gracefully
-  - Combine API options for simplicity and logical coherence
-  - Add test script for car verify (#236) ([ipld/go-car#236](https://github.com/ipld/go-car/pull/236))
-  - cmd/car: add first testscript tests
-  - integrate `car/` cli into `cmd/car` (#233) ([ipld/go-car#233](https://github.com/ipld/go-car/pull/233))
-  - Add `car get-dag` command (#232) ([ipld/go-car#232](https://github.com/ipld/go-car/pull/232))
-  - Separate CLI to separate module (#231) ([ipld/go-car#231](https://github.com/ipld/go-car/pull/231))
-  - add `get block` to car cli (#230) ([ipld/go-car#230](https://github.com/ipld/go-car/pull/230))
-  - use file size when loading from v1 car (#229) ([ipld/go-car#229](https://github.com/ipld/go-car/pull/229))
-  - add interface describing iteration (#228) ([ipld/go-car#228](https://github.com/ipld/go-car/pull/228))
-  - Add `list` and `filter` commands (#227) ([ipld/go-car#227](https://github.com/ipld/go-car/pull/227))
-  - Add `car split` command (#226) ([ipld/go-car#226](https://github.com/ipld/go-car/pull/226))
-  - Make `MultihashIndexSorted` the default index codec for CARv2
-  - Add carve utility for updating the index of a car{v1,v2} file (#219) ([ipld/go-car#219](https://github.com/ipld/go-car/pull/219))
-  - Ignore records with `IDENTITY` CID in `IndexSorted`
-  - Fix index GetAll infinite loop if function always returns `true`
-  - Expose the ability to iterate over records in `MultihasIndexSorted`
-  - avoid another alloc per read byte
-  - avoid allocating on every byte read
-  - Implement new index type that also includes mutltihash code
-  - Return `nil` as Index reader when reading indexless CARv2
 - github.com/ipld/go-codec-dagpb (v1.3.2 -> v1.4.0):
   - bump to v1.4.0 given that we updated ipld-prime
   - add a decode-then-encode roundtrip fuzzer
@@ -640,8 +631,6 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - Update to context datastores (#312) ([ipld/go-ipld-prime#312](https://github.com/ipld/go-ipld-prime/pull/312))
   - schema: add support for struct tuple reprs
   - Allow parsing padding in dag-json bytes fields (#309) ([ipld/go-ipld-prime#309](https://github.com/ipld/go-ipld-prime/pull/309))
-- github.com/ipld/go-ipld-prime/storage/bsadapter (null -> v0.0.0-20211210234204-ce2a1c70cd73):
-  failed to fetch repo
 - github.com/libp2p/go-doh-resolver (v0.3.1 -> v0.4.0):
   - Release v0.4.0 (#16) ([libp2p/go-doh-resolver#16](https://github.com/libp2p/go-doh-resolver/pull/16))
   - sync: update CI config files (#14) ([libp2p/go-doh-resolver#14](https://github.com/libp2p/go-doh-resolver/pull/14))
@@ -649,7 +638,11 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - Perform test locally instead of using a live dns resolution ([libp2p/go-doh-resolver#13](https://github.com/libp2p/go-doh-resolver/pull/13))
   - sync: update CI config files (#7) ([libp2p/go-doh-resolver#7](https://github.com/libp2p/go-doh-resolver/pull/7))
   - fix staticcheck ([libp2p/go-doh-resolver#6](https://github.com/libp2p/go-doh-resolver/pull/6))
-- github.com/libp2p/go-libp2p (v0.16.0 -> v0.19.1):
+- github.com/libp2p/go-libp2p (v0.16.0 -> v0.19.4):
+  - update go-yamux to v3.1.2, release v0.19.4 (#1590) ([libp2p/go-libp2p#1590](https://github.com/libp2p/go-libp2p/pull/1590))
+  - update quic-go to v0.27.1, release v0.19.3 (#1518) ([libp2p/go-libp2p#1518](https://github.com/libp2p/go-libp2p/pull/1518))
+  - release v0.19.2
+  - holepunch: fix incorrect message type for the SYNC message (#1478) ([libp2p/go-libp2p#1478](https://github.com/libp2p/go-libp2p/pull/1478))
   - fix race condition in holepunch service, release v0.19.1 ([libp2p/go-libp2p#1474](https://github.com/libp2p/go-libp2p/pull/1474))
   - release v0.19.0 (#1408) ([libp2p/go-libp2p#1408](https://github.com/libp2p/go-libp2p/pull/1408))
   - Close resource manager when host closes (#1343) ([libp2p/go-libp2p#1343](https://github.com/libp2p/go-libp2p/pull/1343))
@@ -757,6 +750,12 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - release v0.12.0 (#223) ([libp2p/go-libp2p-core#223](https://github.com/libp2p/go-libp2p-core/pull/223))
   - generate ecdsa public key from an input public key (#219) ([libp2p/go-libp2p-core#219](https://github.com/libp2p/go-libp2p-core/pull/219))
   - add RemovePeer method to PeerMetadata, Metrics, ProtoBook and Keybook (#218) ([libp2p/go-libp2p-core#218](https://github.com/libp2p/go-libp2p-core/pull/218))
+- github.com/libp2p/go-libp2p-kad-dht (v0.15.0 -> v0.16.0):
+  - Version 0.16.0 (#774) ([libp2p/go-libp2p-kad-dht#774](https://github.com/libp2p/go-libp2p-kad-dht/pull/774))
+  - feat: add error log when resource manager throttles crawler (#772) ([libp2p/go-libp2p-kad-dht#772](https://github.com/libp2p/go-libp2p-kad-dht/pull/772))
+  - fix: incorrect format handling ([libp2p/go-libp2p-kad-dht#771](https://github.com/libp2p/go-libp2p-kad-dht/pull/771))
+  - Upgrade to go-libp2p v0.16.0 (#756) ([libp2p/go-libp2p-kad-dht#756](https://github.com/libp2p/go-libp2p-kad-dht/pull/756))
+  - sync: update CI config files ([libp2p/go-libp2p-kad-dht#758](https://github.com/libp2p/go-libp2p-kad-dht/pull/758))
 - github.com/libp2p/go-libp2p-mplex (v0.4.1 -> v0.7.0):
   - release v0.7.0 (#36) ([libp2p/go-libp2p-mplex#36](https://github.com/libp2p/go-libp2p-mplex/pull/36))
   - release v0.6.0 (#32) ([libp2p/go-libp2p-mplex#32](https://github.com/libp2p/go-libp2p-mplex/pull/32))
@@ -916,22 +915,8 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - use the transport.Upgrader interface ([libp2p/go-ws-transport#110](https://github.com/libp2p/go-ws-transport/pull/110))
   - sync: update CI config files (#108) ([libp2p/go-ws-transport#108](https://github.com/libp2p/go-ws-transport/pull/108))
   - sync: update CI config files (#106) ([libp2p/go-ws-transport#106](https://github.com/libp2p/go-ws-transport/pull/106))
-- github.com/libp2p/go-yamux/v3 (null -> v3.1.1):
-  - release v3.1.1 (#88) ([libp2p/go-yamux#88](https://github.com/libp2p/go-yamux/pull/88))
-  - feat: catch panics in yamux send/receive loops ([libp2p/go-yamux#86](https://github.com/libp2p/go-yamux/pull/86))
-  - release v3.1.0 (#83) ([libp2p/go-yamux#83](https://github.com/libp2p/go-yamux/pull/83))
-  - fix flaky TestPing test on Windows (#84) ([libp2p/go-yamux#84](https://github.com/libp2p/go-yamux/pull/84))
-  - correctly release memory when the connection is closed (#81) ([libp2p/go-yamux#81](https://github.com/libp2p/go-yamux/pull/81))
-  - release v3.0.2 ([libp2p/go-yamux#78](https://github.com/libp2p/go-yamux/pull/78))
-  - fix memory accounting for window updates ([libp2p/go-yamux#77](https://github.com/libp2p/go-yamux/pull/77))
-  - release v3.0.1 (#76) ([libp2p/go-yamux#76](https://github.com/libp2p/go-yamux/pull/76))
-  - release v3.0.0 (#74) ([libp2p/go-yamux#74](https://github.com/libp2p/go-yamux/pull/74))
-  - add a MemoryManager ([libp2p/go-yamux#69](https://github.com/libp2p/go-yamux/pull/69))
-  - fix: ensure that pings don't get stuck behind writes ([libp2p/go-yamux#71](https://github.com/libp2p/go-yamux/pull/71))
-  - sync: update CI config files (#68) ([libp2p/go-yamux#68](https://github.com/libp2p/go-yamux/pull/68))
-  - limit the number of concurrent incoming streams ([libp2p/go-yamux#66](https://github.com/libp2p/go-yamux/pull/66))
-  - drastically reduce allocations in ring buffer implementation (#64) ([libp2p/go-yamux#64](https://github.com/libp2p/go-yamux/pull/64))
-- github.com/lucas-clemente/quic-go (v0.24.0 -> v0.27.0):
+- github.com/lucas-clemente/quic-go (v0.24.0 -> v0.27.1):
+  - don't send path MTU probe packets on a timer
   - stop using the deprecated net.Error.Temporary, update golangci-lint to v1.45.2 ([lucas-clemente/quic-go#3367](https://github.com/lucas-clemente/quic-go/pull/3367))
   - add support for serializing Extended CONNECT requests (#3360) ([lucas-clemente/quic-go#3360](https://github.com/lucas-clemente/quic-go/pull/3360))
   - improve the error thrown when building with an unsupported Go version ([lucas-clemente/quic-go#3364](https://github.com/lucas-clemente/quic-go/pull/3364))
@@ -991,44 +976,42 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
   - don't commit the fuzzing binary ([multiformats/go-multistream#74](https://github.com/multiformats/go-multistream/pull/74))
   - sync: update CI config files (#71) ([multiformats/go-multistream#71](https://github.com/multiformats/go-multistream/pull/71))
   - remove Makefile ([multiformats/go-multistream#67](https://github.com/multiformats/go-multistream/pull/67))
-
 </details>
 
 ### ❤ Contributors
-
 | Contributor | Commits | Lines ± | Files Changed |
 |-------------|---------|---------|---------------|
-| Marten Seemann | 350 | +14631/-12574 | 847 |
-| Rod Vagg | 36 | +9362/-4300 | 231 |
-| vyzo | 135 | +7963/-1785 | 233 |
+| Marten Seemann | 347 | +14453/-12552 | 842 |
+| Rod Vagg | 28 | +8848/-4033 | 214 |
+| vyzo | 133 | +7959/-1783 | 231 |
 | hannahhoward | 40 | +3761/-1652 | 175 |
-| Will | 26 | +4771/-404 | 118 |
 | Will Scott | 39 | +2885/-1784 | 93 |
-| Daniel Martí | 36 | +3163/-996 | 114 |
-| Adin Schmahmann | 43 | +3346/-522 | 114 |
-| Steven Allen | 87 | +2465/-867 | 135 |
-| Marcin Rataj | 26 | +2257/-815 | 62 |
-| Masih H. Derkani | 14 | +2068/-861 | 71 |
-| Gus Eggert | 22 | +2197/-680 | 94 |
-| Lucas Molas | 26 | +1596/-576 | 88 |
+| Daniel Martí | 32 | +3043/-969 | 103 |
+| Adin Schmahmann | 48 | +3439/-536 | 121 |
+| Gus Eggert | 29 | +2644/-788 | 123 |
+| Steven Allen | 87 | +2417/-840 | 135 |
+| Marcin Rataj | 29 | +2312/-942 | 75 |
+| Will | 11 | +2520/-62 | 56 |
+| Lucas Molas | 28 | +1602/-578 | 90 |
 | Raúl Kripalani | 18 | +1519/-271 | 38 |
 | Brian Tiger Chow | 20 | +833/-379 | 40 |
+| Masih H. Derkani | 5 | +514/-460 | 8 |
 | Jeromy Johnson | 53 | +646/-302 | 83 |
 | Łukasz Magiera | 26 | +592/-245 | 43 |
 | Artem Mikheev | 2 | +616/-120 | 5 |
 | Franky W | 2 | +49/-525 | 9 |
 | Laurent Senta | 3 | +468/-82 | 52 |
-| Hector Sanjuan | 29 | +245/-176 | 58 |
+| Hector Sanjuan | 32 | +253/-187 | 62 |
 | Juan Batiz-Benet | 8 | +285/-80 | 18 |
 | Justin Johnson | 2 | +181/-88 | 2 |
 | Thibault Meunier | 5 | +216/-28 | 8 |
-| Aayush Rajasekaran | 2 | +133/-103 | 11 |
 | James Wetter | 2 | +234/-1 | 2 |
+| web3-bot | 36 | +158/-66 | 62 |
 | gammazero | 7 | +140/-84 | 12 |
-| web3-bot | 35 | +157/-66 | 61 |
 | Rachel Chen | 2 | +165/-57 | 17 |
+| Jorropo | 18 | +108/-99 | 26 |
 | Toby | 2 | +107/-86 | 11 |
-| Jorropo | 16 | +97/-96 | 24 |
+| Antonio Navarro Perez | 4 | +82/-103 | 9 |
 | Dominic Della Valle | 4 | +148/-33 | 6 |
 | Ian Davis | 2 | +152/-28 | 6 |
 | Kyle Huntsman | 2 | +172/-6 | 5 |
@@ -1037,7 +1020,6 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
 | Lars Gierth | 12 | +63/-54 | 20 |
 | Eric Myhre | 3 | +95/-15 | 8 |
 | Caian Benedicto | 1 | +69/-12 | 6 |
-| whyrusleeping | 2 | +50/-26 | 7 |
 | Raúl Kripalani | 2 | +63/-13 | 2 |
 | Anton Petrov | 1 | +73/-0 | 1 |
 | hunjixin | 2 | +67/-2 | 5 |
@@ -1048,22 +1030,23 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
 | Manuel Alonso | 1 | +42/-9 | 2 |
 | Jakub Sztandera | 10 | +37/-13 | 13 |
 | Aarsh Shah | 1 | +39/-5 | 2 |
-| pymq | 1 | +32/-8 | 2 |
 | Dave Justice | 1 | +32/-4 | 2 |
 | Tommi Virtanen | 3 | +23/-9 | 4 |
 | tarekbadr | 1 | +30/-1 | 1 |
+| whyrusleeping | 1 | +26/-4 | 3 |
 | Petar Maymounkov | 2 | +30/-0 | 4 |
-| Antonio Navarro Perez | 2 | +15/-13 | 7 |
 | rht | 3 | +17/-10 | 4 |
 | Miguel Mota | 1 | +23/-0 | 1 |
 | Manfred Touron | 1 | +21/-2 | 2 |
 | watjurk | 1 | +17/-5 | 1 |
 | SukkaW | 1 | +11/-11 | 5 |
+| Nicholas Bollweg | 1 | +21/-0 | 1 |
 | Ho-Sheng Hsiao | 2 | +11/-10 | 6 |
 | chblodg | 1 | +18/-2 | 1 |
 | Friedel Ziegelmayer | 2 | +18/-0 | 2 |
 | Shu Shen | 2 | +15/-2 | 3 |
 | Peter Rabbitson | 1 | +15/-2 | 1 |
+| galargh | 2 | +15/-0 | 2 |
 | ᴍᴀᴛᴛ ʙᴇʟʟ | 3 | +13/-1 | 4 |
 | aarshkshah1992 | 3 | +12/-2 | 3 |
 | RubenKelevra | 4 | +5/-8 | 5 |
@@ -1074,18 +1057,22 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
 | Elijah | 1 | +10/-0 | 1 |
 | Dimitris Apostolou | 2 | +5/-5 | 5 |
 | Michael Avila | 3 | +8/-1 | 4 |
+| siiky | 3 | +4/-4 | 3 |
 | Somajit | 1 | +4/-4 | 1 |
 | Sherod Taylor | 1 | +0/-8 | 2 |
 | Eclésio Junior | 1 | +8/-0 | 1 |
 | godcong | 3 | +4/-3 | 3 |
+| Piotr Galar | 3 | +3/-4 | 3 |
 | jwh | 1 | +6/-0 | 2 |
+| dependabot[bot] | 1 | +3/-3 | 1 |
 | Volker Mische | 1 | +4/-2 | 1 |
+| Aayush Rajasekaran | 1 | +3/-3 | 1 |
 | rene | 2 | +3/-2 | 2 |
 | keks | 1 | +5/-0 | 1 |
 | Hlib | 1 | +4/-1 | 2 |
 | Arash Payan | 1 | +5/-0 | 1 |
-| siiky | 1 | +2/-2 | 1 |
 | Wayback Archiver | 1 | +2/-2 | 1 |
+| T Mo | 1 | +2/-2 | 1 |
 | Ju Huo | 1 | +2/-2 | 1 |
 | Ivan | 2 | +2/-2 | 2 |
 | Ettore Di Giacinto | 2 | +3/-1 | 2 |
@@ -1102,12 +1089,12 @@ The more fully featured yamux stream multiplexer is now prioritized over mplex f
 | Glenn | 1 | +1/-1 | 1 |
 | George Antoniadis | 1 | +1/-1 | 1 |
 | David Florness | 1 | +1/-1 | 1 |
+| Daniel Norman | 1 | +1/-1 | 1 |
 | Coenie Beyers | 1 | +1/-1 | 1 |
 | Benedikt Spies | 1 | +1/-1 | 1 |
 | Abdul Rauf | 1 | +1/-1 | 1 |
 | makeworld | 1 | +1/-0 | 1 |
 | ignoramous | 1 | +0/-1 | 1 |
-| galargh | 1 | +1/-0 | 1 |
 | Omicron166 | 1 | +0/-1 | 1 |
 | Jan Winkelmann | 1 | +1/-0 | 1 |
 | Dr Ian Preston | 1 | +1/-0 | 1 |
