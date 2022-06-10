@@ -45,7 +45,7 @@ const (
 	hashOptionName        = "hash"
 	inlineOptionName      = "inline"
 	inlineLimitOptionName = "inline-limit"
-	forceHashOptionName   = "allow-insecure-hash-function"
+	forceHashOptionName   = "allow-insecure-hash"
 )
 
 const adderOutChanSize = 8
