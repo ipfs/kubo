@@ -1,8 +1,10 @@
 package corehttp
 
 import (
+	"compress/gzip"
 	"context"
 	"html"
+	"io"
 	"net/http"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 
 var unixEpochTime = time.Unix(0, 0)
 
-func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
+func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger, compressed bool) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeTAR", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
 
@@ -38,6 +40,9 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 		name = urlFilename
 	} else {
 		name = resolvedPath.Cid().String() + ".tar"
+		if compressed {
+			name += ".gz"
+		}
 	}
 	setContentDispositionHeader(w, name, "attachment")
 
@@ -49,8 +54,19 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 	}
 	defer file.Close()
 
+	// Define the output writer, maybe build a Gzip writer
+	var dstw io.Writer
+	if compressed {
+		gzipw := gzip.NewWriter(w)
+		defer gzipw.Close()
+
+		dstw = gzipw
+	} else {
+		dstw = w
+	}
+
 	// Construct the TAR writer
-	tarw, err := files.NewTarWriter(w)
+	tarw, err := files.NewTarWriter(dstw)
 	if err != nil {
 		webError(w, "could not build tar writer", err, http.StatusInternalServerError)
 		return
@@ -64,7 +80,8 @@ func (i *gatewayHandler) serveTAR(ctx context.Context, w http.ResponseWriter, r 
 		w.Header().Set("Last-Modified", modtime.UTC().Format(http.TimeFormat))
 	}
 
-	w.Header().Set("Content-Type", "application/x-tar")
+	responseFormat, _, _ := customResponseFormat(r)
+	w.Header().Set("Content-Type", responseFormat)
 
 	if err := tarw.WriteFile(file, name); err != nil {
 		// We return error as a trailer, however it is not something browsers can access

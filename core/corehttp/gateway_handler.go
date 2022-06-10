@@ -432,7 +432,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	case "application/x-tar":
 		logger.Debugw("serving tar file", "path", contentPath)
-		i.serveTAR(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
+		i.serveTAR(r.Context(), w, r, resolvedPath, contentPath, begin, logger, false)
+		return
+	case "application/x-tar+gzip":
+		logger.Debugw("serving tar file", "path", contentPath)
+		i.serveTAR(r.Context(), w, r, resolvedPath, contentPath, begin, logger, true)
 		return
 	default: // catch-all for unsuported application/vnd.*
 		err := fmt.Errorf("unsupported format %q", responseFormat)
@@ -878,7 +882,7 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 		// Etag: "cid.foo" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
 		suffix = `.` + f + suffix
 		// Since different TAR implementations may produce different byte-for-byte responses, we define a weak Etag.
-		if responseFormat == "application/x-tar" {
+		if strings.HasPrefix(responseFormat, "application/x-tar") {
 			prefix = "W/" + prefix
 		}
 	}
@@ -897,6 +901,8 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 			return "application/vnd.ipld.car", nil, nil
 		case "tar":
 			return "application/x-tar", nil, nil
+		case "tar.gz":
+			return "application/x-tar+gzip", nil, nil
 		}
 	}
 	// Browsers and other user agents will send Accept header with generic types like:
