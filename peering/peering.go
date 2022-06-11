@@ -33,11 +33,17 @@ const (
 var logger = log.Logger("peering")
 
 type state int
+type PeeringState string
 
 const (
 	stateInit state = iota
 	stateRunning
 	stateStopped
+
+	PeerStateInit    PeeringState = "init"
+	PeerStateRunning PeeringState = "running"
+	PeerStateStopped PeeringState = "stopped"
+	PeerStateUnknown PeeringState = "unknown"
 )
 
 // peerHandler keeps track of all state related to a specific "peering" peer.
@@ -153,9 +159,10 @@ func (ph *peerHandler) startIfDisconnected() {
 type PeeringService struct {
 	host host.Host
 
-	mu    sync.RWMutex
-	peers map[peer.ID]*peerHandler
-	state state
+	mu           sync.RWMutex
+	peers        map[peer.ID]*peerHandler
+	state        state
+	peeringState PeeringState
 }
 
 // NewPeeringService constructs a new peering service. Peers can be added and
@@ -187,23 +194,28 @@ func (ps *PeeringService) Start() error {
 	return nil
 }
 
-//	GetState get the State of the Peering Service
-func (ps *PeeringService) GetState() string {
-	switch ps.state {
+func (s state) String() PeeringState {
+	switch s {
 	case stateInit:
-		return "init"
+		return PeerStateInit
 	case stateRunning:
-		return "running"
+		return PeerStateRunning
 	case stateStopped:
-		return "stopped"
+		return PeerStateStopped
 	}
-	return "State Unknown"
+	return PeerStateUnknown
+}
+
+//	GetState get the State of the Peering Service
+func (ps *PeeringService) GetState() state {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	return ps.state
 }
 
 // Stop stops the peering service.
 func (ps *PeeringService) Stop() error {
 	ps.host.Network().StopNotify((*netNotifee)(ps))
-
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
