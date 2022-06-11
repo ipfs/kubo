@@ -159,10 +159,9 @@ func (ph *peerHandler) startIfDisconnected() {
 type PeeringService struct {
 	host host.Host
 
-	mu           sync.RWMutex
-	peers        map[peer.ID]*peerHandler
-	state        state
-	peeringState PeeringState
+	mu sync.RWMutex
+	peers map[peer.ID]*peerHandler
+	state PeeringState
 }
 
 // NewPeeringService constructs a new peering service. Peers can be added and
