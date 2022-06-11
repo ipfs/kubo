@@ -32,19 +32,26 @@ const (
 
 var logger = log.Logger("peering")
 
-type state int
-type PeeringState string
+type PeeringState uint
+
+func (s PeeringState) String() string {
+  switch s {
+  case PeeringInit:
+    return "init"
+  case PeeringRunning:
+    return "running"
+  case PeeringStopped:
+    return "stopped"
+  default:
+    return "unkown peering state: " + strconv.FormatUint(uint64(s), 10)
+  }
+}
 
 const (
-	stateInit state = iota
-	stateRunning
-	stateStopped
-
-	PeerStateInit    PeeringState = "init"
-	PeerStateRunning PeeringState = "running"
-	PeerStateStopped PeeringState = "stopped"
-	PeerStateUnknown PeeringState = "unknown"
-)
+	PeeringInit PeeringState = iota
+	PeeringRunning
+	PeeringStopped
+}
 
 // peerHandler keeps track of all state related to a specific "peering" peer.
 type peerHandler struct {
