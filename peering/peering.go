@@ -33,15 +33,15 @@ const (
 
 var logger = log.Logger("peering")
 
-type PeeringState uint
+type State uint
 
-func (s PeeringState) String() string {
+func (s State) String() string {
 	switch s {
-	case PeeringInit:
+	case StateInit:
 		return "init"
-	case PeeringRunning:
+	case StateRunning:
 		return "running"
-	case PeeringStopped:
+	case StateStopped:
 		return "stopped"
 	default:
 		return "unkown peering state: " + strconv.FormatUint(uint64(s), 10)
@@ -49,9 +49,9 @@ func (s PeeringState) String() string {
 }
 
 const (
-	PeeringInit PeeringState = iota
-	PeeringRunning
-	PeeringStopped
+	StateInit State = iota
+	StateRunning
+	StateStopped
 )
 
 // peerHandler keeps track of all state related to a specific "peering" peer.
@@ -169,7 +169,7 @@ type PeeringService struct {
 
 	mu    sync.RWMutex
 	peers map[peer.ID]*peerHandler
-	state PeeringState
+	state State
 }
 
 // NewPeeringService constructs a new peering service. Peers can be added and
@@ -186,23 +186,23 @@ func (ps *PeeringService) Start() error {
 	defer ps.mu.Unlock()
 
 	switch ps.state {
-	case PeeringInit:
+	case StateInit:
 		logger.Infow("starting")
-	case PeeringRunning:
+	case StateRunning:
 		return nil
-	case PeeringStopped:
+	case StateStopped:
 		return errors.New("already stopped")
 	}
 	ps.host.Network().Notify((*netNotifee)(ps))
-	ps.state = PeeringRunning
+	ps.state = StateRunning
 	for _, handler := range ps.peers {
 		go handler.startIfDisconnected()
 	}
 	return nil
 }
 
-// State get the PeeringState of the PeeringService
-func (ps *PeeringService) State() PeeringState {
+// GetState get the State of the PeeringService
+func (ps *PeeringService) GetState() State {
 	ps.mu.RLock()
 	defer ps.mu.RUnlock()
 	return ps.state
@@ -215,12 +215,12 @@ func (ps *PeeringService) Stop() error {
 	defer ps.mu.Unlock()
 
 	switch ps.state {
-	case PeeringInit, PeeringRunning:
+	case StateInit, StateRunning:
 		logger.Infow("stopping")
 		for _, handler := range ps.peers {
 			handler.stop()
 		}
-		ps.state = PeeringStopped
+		ps.state = StateStopped
 	}
 	return nil
 }
@@ -251,9 +251,9 @@ func (ps *PeeringService) AddPeer(info peer.AddrInfo) {
 		handler.ctx, handler.cancel = context.WithCancel(context.Background())
 		ps.peers[info.ID] = handler
 		switch ps.state {
-		case PeeringRunning:
+		case StateRunning:
 			go handler.startIfDisconnected()
-		case PeeringStopped:
+		case StateStopped:
 			// We still construct everything in this state because
 			// it's easier to reason about. But we should still free
 			// resources.
