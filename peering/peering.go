@@ -200,25 +200,12 @@ func (ps *PeeringService) Start() error {
 	return nil
 }
 
-func (s state) String() PeeringState {
-	switch s {
-	case stateInit:
-		return PeerStateInit
-	case stateRunning:
-		return PeerStateRunning
-	case stateStopped:
-		return PeerStateStopped
-	}
-	return PeerStateUnknown
+// State get the PeeringState of the PeeringService
+func (ps *PeeringService) State() PeeringState {
+  ps.mu.RLock()
+  defer ps.mu.RUnlock()
+  return ps.state
 }
-
-//	GetState get the State of the Peering Service
-func (ps *PeeringService) GetState() state {
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-	return ps.state
-}
-
 // Stop stops the peering service.
 func (ps *PeeringService) Stop() error {
 	ps.host.Network().StopNotify((*netNotifee)(ps))
