@@ -1630,10 +1630,16 @@ Type: `duration`
 
 ### `Swarm.ResourceMgr`
 
+**EXPERIMENTAL: `Swarm.ResourceMgr` configuration will change in future release**
+
 The [libp2p Network Resource Manager](https://github.com/libp2p/go-libp2p-resource-manager#readme) allows setting limits per a scope,
 and tracking recource usage over time.
 
 #### `Swarm.ResourceMgr.Enabled`
+
+**EXPERIMENTAL: `Swarm.ResourceMgr` is in active development, enable it only if you want to provide maintainers with feedback**
+
+
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
 
@@ -1643,12 +1649,14 @@ Type: `flag`
 
 #### `Swarm.ResourceMgr.Limits`
 
+**EXPERIMENTAL: `Swarm.ResourceMgr.Limits` configuration will change in future release, exposed here only for convenience**
+
 Map of resource limits [per scope](https://github.com/libp2p/go-libp2p-resource-manager#resource-scopes).
 
 The map supports fields from [`BasicLimiterConfig`](https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.3.0/limit_config.go#L165-L185)
 struct from [go-libp2p-resource-manager](https://github.com/libp2p/go-libp2p-resource-manager#readme).
 
-Example:
+**Example: (format may change in future release)**
 
 ```json
 {
