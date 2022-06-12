@@ -3,12 +3,12 @@ package libp2p
 import (
 	"fmt"
 
-	config "github.com/ipfs/go-ipfs/config"
-	libp2p "github.com/libp2p/go-libp2p"
-	metrics "github.com/libp2p/go-libp2p-core/metrics"
-	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
-	tcp "github.com/libp2p/go-tcp-transport"
-	websocket "github.com/libp2p/go-ws-transport"
+	"github.com/ipfs/go-ipfs/config"
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/metrics"
+	libp2pquic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	"github.com/libp2p/go-libp2p/p2p/transport/websocket"
 
 	"go.uber.org/fx"
 )
