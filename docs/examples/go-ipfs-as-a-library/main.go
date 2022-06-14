@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -47,13 +47,13 @@ func setupPlugins(externalPluginsPath string) error {
 }
 
 func createTempRepo() (string, error) {
-	repoPath, err := ioutil.TempDir("", "ipfs-shell")
+	repoPath, err := os.MkdirTemp("", "ipfs-shell")
 	if err != nil {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
 	}
 
 	// Create a config with default options and a 2048 bit key
-	cfg, err := config.Init(ioutil.Discard, 2048)
+	cfg, err := config.Init(io.Discard, 2048)
 	if err != nil {
 		return "", err
 	}
@@ -252,7 +252,7 @@ func main() {
 
 	/// --- Part III: Getting the file and directory you added back
 
-	outputBasePath, err := ioutil.TempDir("", "example")
+	outputBasePath, err := os.MkdirTemp("", "example")
 	if err != nil {
 		panic(fmt.Errorf("could not create output dir (%v)", err))
 	}

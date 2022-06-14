@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -89,7 +88,7 @@ func FetchBinary(ctx context.Context, fetcher Fetcher, dist, ver, binName, out s
 		}
 	} else {
 		// Create temp directory to store download
-		tmpDir, err = ioutil.TempDir("", arcName)
+		tmpDir, err = os.MkdirTemp("", arcName)
 		if err != nil {
 			return "", err
 		}

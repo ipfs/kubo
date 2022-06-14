@@ -3,7 +3,7 @@ package corehttp
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -23,7 +23,7 @@ func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWrite
 		webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
 		return
 	}
-	block, err := ioutil.ReadAll(blockReader)
+	block, err := io.ReadAll(blockReader)
 	if err != nil {
 		webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
 		return

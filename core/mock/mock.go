@@ -3,7 +3,7 @@ package coremock
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	libp2p2 "github.com/ipfs/go-ipfs/core/node/libp2p"
 
@@ -75,7 +75,7 @@ func MockCmdsCtx() (commands.Context, error) {
 
 func MockPublicNode(ctx context.Context, mn mocknet.Mocknet) (*core.IpfsNode, error) {
 	ds := syncds.MutexWrap(datastore.NewMapDatastore())
-	cfg, err := config.Init(ioutil.Discard, 2048)
+	cfg, err := config.Init(io.Discard, 2048)
 	if err != nil {
 		return nil, err
 	}
