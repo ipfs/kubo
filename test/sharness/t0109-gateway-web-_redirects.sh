@@ -11,26 +11,12 @@ test_launch_ipfs_daemon
 ## Test _redirects file support
 ## ============================================================================
 
-# Directory tree crafted to test _redirects file support
+# Import test case
+# Run `ipfs cat /ipfs/$REDIRECTS_DIR_CID/_redirects` to see sample _redirects file
 test_expect_success "Add the _redirects file test directory" '
-  mkdir -p testredirect/ &&
-  echo "my index" > testredirect/index.html &&
-  echo "my one" > testredirect/one.html &&
-  echo "my two" > testredirect/two.html &&
-  echo "my 404" > testredirect/404.html &&
-  mkdir testredirect/redirected-splat &&
-  echo "redirected splat one" > testredirect/redirected-splat/one.html &&
-  echo "/redirect-one /one.html" > testredirect/_redirects &&
-  echo "/301-redirect-one /one.html 301" >> testredirect/_redirects &&
-  echo "/302-redirect-two /two.html 302" >> testredirect/_redirects &&
-  echo "/200-index /index.html 200" >> testredirect/_redirects &&
-  echo "/posts/:year/:month/:day/:title /articles/:year/:month/:day/:title 301" >> testredirect/_redirects &&
-  echo "/splat/:splat /redirected-splat/:splat 301" >> testredirect/_redirects &&
-  echo "/en/* /404.html 404" >> testredirect/_redirects &&
-  echo "/* /index.html 200" >> testredirect/_redirects &&
-  REDIRECTS_DIR_CID=$(ipfs add -Qr --cid-version 1 testredirect)
+  ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
 '
-
+REDIRECTS_DIR_CID=bafybeigs3wowz6pug7ckfgtwrsrltjjx5disx5pztnucgt4ygryv5w6qy4
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
