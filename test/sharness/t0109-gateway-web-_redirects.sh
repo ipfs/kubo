@@ -16,7 +16,7 @@ test_launch_ipfs_daemon
 test_expect_success "Add the _redirects file test directory" '
   ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
 '
-REDIRECTS_DIR_CID=bafybeigs3wowz6pug7ckfgtwrsrltjjx5disx5pztnucgt4ygryv5w6qy4
+REDIRECTS_DIR_CID=QmaiAcL7pFedPJXxNJNDVDTUR78We7yBhdLzg151ZMzLCv
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
@@ -56,7 +56,7 @@ test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/splat/one.html redirect
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/en/has-no-redirects-entry returns custom 404, per _redirects file" '
-  curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/en/has-no-redirects-entry" > response &&
+  curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/not-found/has-no-redirects-entry" > response &&
   test_should_contain "404 Not Found" response
 '
 
