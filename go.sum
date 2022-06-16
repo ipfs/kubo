@@ -635,8 +635,9 @@ github.com/ipfs/go-peertaskqueue v0.7.1/go.mod h1:M/akTIE/z1jGNXMU7kFB4TeSEFvj68
 github.com/ipfs/go-pinning-service-http-client v0.1.1 h1:Bar+Vi60A0zI8GSSrumVqnbFg6qkUgZSQTX9sV5jWrA=
 github.com/ipfs/go-pinning-service-http-client v0.1.1/go.mod h1:i6tC2nWOnJbZZUQPgxOlrg4CX8bhQZMh4II09FxvD58=
 github.com/ipfs/go-unixfs v0.2.4/go.mod h1:SUdisfUjNoSDzzhGVxvCL9QO/nKdwXdr+gbMUdqcbYw=
-github.com/ipfs/go-unixfs v0.3.1 h1:LrfED0OGfG98ZEegO4/xiprx2O+yS+krCMQSp7zLVv8=
 github.com/ipfs/go-unixfs v0.3.1/go.mod h1:h4qfQYzghiIc8ZNFKiLMFWOTzrWIAtzYQ59W/pCFf1o=
+github.com/ipfs/go-unixfs v0.4.0 h1:qSyyxfB/OiDdWHYiSbyaqKC7zfSE/TFL0QdwkRjBm20=
+github.com/ipfs/go-unixfs v0.4.0/go.mod h1:I7Nqtm06HgOOd+setAoCU6rf/HgVFHE+peeNuOv/5+g=
 github.com/ipfs/go-unixfsnode v1.1.2/go.mod h1:5dcE2x03pyjHk4JjamXmunTMzz+VUtqvPwZjIEkfV6s=
 github.com/ipfs/go-unixfsnode v1.4.0 h1:9BUxHBXrbNi8mWHc6j+5C580WJqtVw9uoeEKn4tMhwA=
 github.com/ipfs/go-unixfsnode v1.4.0/go.mod h1:qc7YFFZ8tABc58p62HnIYbUMwj9chhUuFWmxSokfePo=
