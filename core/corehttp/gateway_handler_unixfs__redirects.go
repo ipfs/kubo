@@ -24,14 +24,11 @@ import (
 // underneath the root CID of the path.
 //
 // Example 1:
-// If a path exists, usually we should return the `path.Resolved` corresponding to that path.
-// However, the `_redirects` file may contain a forced redirect rule corresponding to the path
-// (i.e. a rule with a `!` after the status code).  Forced redirect rules must be evaluated,
-// even if the path exists, thus overriding the path.
+// If a path exists, we always return the `path.Resolved` corresponding to that path, regardless of the existence of a `_redirects` file.
 //
 // Example 2:
 // If a path does not exist, usually we should return a `nil` resolution path and an error indicating that the path
-// doesn't exist.  However, the `_redirects` file may contain a redirect rule that redirects that path to a different path.
+// doesn't exist.  However, a `_redirects` file may exist and contain a redirect rule that redirects that path to a different path.
 // We need to evaluate the rule and perform the redirect if present.
 //
 // Example 3:
@@ -41,49 +38,7 @@ import (
 //
 // Note that for security reasons, redirect rules are only processed when the request has origin isolation.
 func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
-	// Before we do anything, determine if we must evaluate redirect rules
-	redirectsFile := i.getRedirectsFile(r, logger)
-
-	mustEvaluateRedirectRules := hasOriginIsolation(r) && redirectsFile != nil
-
-	// Get redirect rules if we know we'll need them
-	var redirectRules []redirects.Rule
-	var err error
-	if mustEvaluateRedirectRules {
-		redirectRules, err = i.getRedirectRules(r, redirectsFile)
-		if err != nil {
-			internalWebError(w, err)
-			return nil, nil, false
-		}
-	}
-
-	// If we must evaluate redirect rules and there is a forced redirect for our path, there's no point in attempting to resolve the path,
-	// since we will have to redirect regardless of whether or not the path exists.  Just handle the forced redirect instead.
-	redirected, newPath, err := i.handleForcedRedirect(w, r, redirectRules)
-	if err != nil {
-		err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
-		internalWebError(w, err)
-		return nil, nil, false
-	}
-
-	if redirected {
-		return nil, nil, false
-	}
-
-	// 200 is treated as a rewrite, so update the path and continue
-	if newPath != "" {
-		// Reassign contentPath and resolvedPath since the URL was rewritten
-		contentPath = ipath.New(newPath)
-		resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
-		if err != nil {
-			internalWebError(w, err)
-			return nil, nil, false
-		}
-
-		return resolvedPath, contentPath, true
-	}
-
-	// No forced redirect.  Attempt to resolve the provided path.
+	// Attempt to resolve the provided path.
 	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
 
 	switch err {
@@ -93,30 +48,40 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
 		return nil, nil, false
 	default:
-		// If we can't resolve the path, look for matching _redirects rules and process them
-		if mustEvaluateRedirectRules {
-			redirected, newPath, err := i.handleRedirect(w, r, redirectRules)
-			if err != nil {
-				err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
-				internalWebError(w, err)
-				return nil, nil, false
-			}
-
-			if redirected {
-				return nil, nil, false
-			}
-
-			// 200 is treated as a rewrite, so update the path and continue
-			if newPath != "" {
-				// Reassign contentPath and resolvedPath since the URL was rewritten
-				contentPath = ipath.New(newPath)
-				resolvedPath, err = i.api.ResolvePath(r.Context(), contentPath)
+		// The path can't be resolved.
+		// If we have origin isolation, attempt to handle any redirect rules.
+		if hasOriginIsolation(r) {
+			redirectsFile := i.getRedirectsFile(r, logger)
+			if redirectsFile != nil {
+				redirectRules, err := i.getRedirectRules(r, redirectsFile)
 				if err != nil {
 					internalWebError(w, err)
 					return nil, nil, false
 				}
 
-				return resolvedPath, contentPath, true
+				redirected, newPath, err := i.handleRedirect(w, r, redirectRules)
+				if err != nil {
+					err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
+					internalWebError(w, err)
+					return nil, nil, false
+				}
+
+				if redirected {
+					return nil, nil, false
+				}
+
+				// 200 is treated as a rewrite, so update the path and continue
+				if newPath != "" {
+					// Reassign contentPath and resolvedPath since the URL was rewritten
+					contentPath = ipath.New(newPath)
+					resolvedPath, err = i.api.ResolvePath(r.Context(), contentPath)
+					if err != nil {
+						internalWebError(w, err)
+						return nil, nil, false
+					}
+
+					return resolvedPath, contentPath, true
+				}
 			}
 		}
 
@@ -132,17 +97,6 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
 		return nil, nil, false
 	}
-}
-
-func (i *gatewayHandler) handleForcedRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule) (bool, string, error) {
-	forcedRedirectRules := []redirects.Rule{}
-	for _, rule := range redirectRules {
-		if rule.Force {
-			forcedRedirectRules = append(forcedRedirectRules, rule)
-		}
-	}
-
-	return i.handleRedirect(w, r, forcedRedirectRules)
 }
 
 func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule) (bool, string, error) {
