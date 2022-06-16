@@ -221,7 +221,7 @@ func HostnameOption() ServeOption {
 			if !cfg.Gateway.NoDNSLink && isDNSLinkName(r.Context(), coreAPI, host) {
 				// rewrite path and handle as DNSLink
 				r.URL.Path = "/ipns/" + stripPort(host) + r.URL.Path
-				ctx := context.WithValue(r.Context(), "dnslink-hostname", host)
+				ctx := context.WithValue(r.Context(), requestContextKey("dnslink-hostname"), host)
 				childMux.ServeHTTP(w, withHostnameContext(r.WithContext(ctx), host))
 				return
 			}
