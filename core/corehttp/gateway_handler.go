@@ -3,6 +3,7 @@ package corehttp
 import (
 	"context"
 	"fmt"
+	"github.com/ipld/go-ipld-prime"
 	"html/template"
 	"io"
 	"mime"
@@ -415,11 +416,33 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	var selector ipld.Node
+	var selectorCID cid.Cid
+	if selectorParam := r.URL.Query().Get("selector"); selectorParam != "" {
+		selectorCID, err = cid.Decode(selectorParam)
+		if err != nil {
+			webError(w, "selector is not a valid CID", err, http.StatusInternalServerError)
+			return
+		}
+		selectorNode, err := i.api.Dag().Get(r.Context(), selectorCID)
+		if err != nil {
+			webError(w, "could not get selector", err, http.StatusInternalServerError)
+			return
+		}
+		selector = selectorNode.(ipld.Node)
+	}
+
 	// Support custom response formats passed via ?format or Accept HTTP header
 	switch responseFormat {
 	case "": // The implicit response format is UnixFS
-		logger.Debugw("serving unixfs", "path", contentPath)
-		i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
+		// If there is a selector we're in IPLD land
+		if selector != nil {
+			logger.Debugw("serving ipld selector request", "path", contentPath, "selector", selectorCID)
+			i.serveIPLD(w, r, resolvedPath, contentPath, selector, selectorCID, begin, logger)
+		} else {
+			logger.Debugw("serving unixfs", "path", contentPath)
+			i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
+		}
 		return
 	case "application/vnd.ipld.raw":
 		logger.Debugw("serving raw block", "path", contentPath)

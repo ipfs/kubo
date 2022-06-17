@@ -14,9 +14,15 @@ Interfaces here aren't yet completely stable.
 package coreapi
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	ipld2 "github.com/ipld/go-ipld-prime"
+	"github.com/ipld/go-ipld-prime/datamodel"
+	"github.com/ipld/go-ipld-prime/linking"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	"io"
 
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-fetcher"
@@ -89,6 +95,25 @@ func NewCoreAPI(n *core.IpfsNode, opts ...options.ApiOption) (coreiface.CoreAPI,
 	}
 
 	return (&CoreAPI{nd: n, parentOpts: *parentOpts}).WithOptions(opts...)
+}
+
+var KnownReifiers map[string]ipld2.NodeReifier = make(map[string]ipld2.NodeReifier)
+
+func (api *CoreAPI) LinkSystem() ipld2.LinkSystem {
+	lsys := cidlink.DefaultLinkSystem()
+	lsys.KnownReifiers = KnownReifiers
+	lsys.StorageReadOpener = func(linkContext linking.LinkContext, link datamodel.Link) (io.Reader, error) {
+		if cl, ok := link.(cidlink.Link); !ok {
+			return nil, fmt.Errorf("cannot process link: %v", link)
+		} else {
+			block, err := api.blocks.GetBlock(linkContext.Ctx, cl.Cid)
+			if err != nil {
+				return nil, err
+			}
+			return bytes.NewReader(block.RawData()), nil
+		}
+	}
+	return lsys
 }
 
 // Unixfs returns the UnixfsAPI interface implementation backed by the go-ipfs node
