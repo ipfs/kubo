@@ -7,7 +7,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-	legacymdns "github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
 
 	"go.uber.org/fx"
 
@@ -49,12 +48,6 @@ func SetupDiscovery(useMdns bool, mdnsInterval int) func(helpers.MetricsCtx, fx.
 			if mdnsInterval == 0 {
 				mdnsInterval = 5
 			}
-			legacyService, err := legacymdns.NewMdnsService(mctx, host, time.Duration(mdnsInterval)*time.Second, legacymdns.ServiceTag)
-			if err != nil {
-				log.Error("mdns error: ", err)
-				return nil
-			}
-			legacyService.RegisterNotifee(handler)
 		}
 		return nil
 	}

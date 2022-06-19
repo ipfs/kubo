@@ -5,10 +5,10 @@ is read once at node instantiation, either for an offline command, or when
 starting the daemon. Commands that execute on a running daemon do not read the
 config file at runtime.
 
-## Table of Contents
+# Table of Contents
 
 - [The go-ipfs config file](#the-go-ipfs-config-file)
-  - [Table of Contents](#table-of-contents)
+- [Table of Contents](#table-of-contents)
   - [Profiles](#profiles)
   - [Types](#types)
     - [`flag`](#flag)
@@ -108,13 +108,15 @@ config file at runtime.
     - [`Swarm.DisableBandwidthMetrics`](#swarmdisablebandwidthmetrics)
     - [`Swarm.DisableNatPortMap`](#swarmdisablenatportmap)
     - [`Swarm.EnableHolePunching`](#swarmenableholepunching)
+    - [`Swarm.EnableAutoRelay`](#swarmenableautorelay)
     - [`Swarm.RelayClient`](#swarmrelayclient)
       - [`Swarm.RelayClient.Enabled`](#swarmrelayclientenabled)
       - [`Swarm.RelayClient.StaticRelays`](#swarmrelayclientstaticrelays)
     - [`Swarm.RelayService`](#swarmrelayservice)
       - [`Swarm.RelayService.Enabled`](#swarmrelayserviceenabled)
-      - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
-      - [`Swarm.RelayService.ConnectionDataLimit`](#swarmrelayserviceconnectiondatalimit)
+      - [`Swarm.RelayService.Limit`](#swarmrelayservicelimit)
+        - [`Swarm.RelayService.ConnectionDurationLimit`](#swarmrelayserviceconnectiondurationlimit)
+        - [`Swarm.RelayService.ConnectionDataLimit`](#swarmrelayserviceconnectiondatalimit)
       - [`Swarm.RelayService.ReservationTTL`](#swarmrelayservicereservationttl)
       - [`Swarm.RelayService.MaxReservations`](#swarmrelayservicemaxreservations)
       - [`Swarm.RelayService.MaxCircuits`](#swarmrelayservicemaxcircuits)
@@ -122,6 +124,8 @@ config file at runtime.
       - [`Swarm.RelayService.MaxReservationsPerPeer`](#swarmrelayservicemaxreservationsperpeer)
       - [`Swarm.RelayService.MaxReservationsPerIP`](#swarmrelayservicemaxreservationsperip)
       - [`Swarm.RelayService.MaxReservationsPerASN`](#swarmrelayservicemaxreservationsperasn)
+    - [`Swarm.EnableRelayHop`](#swarmenablerelayhop)
+    - [`Swarm.DisableRelay`](#swarmdisablerelay)
     - [`Swarm.EnableAutoNATService`](#swarmenableautonatservice)
     - [`Swarm.ConnMgr`](#swarmconnmgr)
       - [`Swarm.ConnMgr.Type`](#swarmconnmgrtype)
@@ -148,8 +152,6 @@ config file at runtime.
   - [`DNS`](#dns)
     - [`DNS.Resolvers`](#dnsresolvers)
     - [`DNS.MaxCacheTTL`](#dnsmaxcachettl)
-
-
 
 ## Profiles
 
@@ -574,15 +576,15 @@ Type: `object`
 
 ## `Discovery`
 
-Contains options for configuring ipfs node discovery mechanisms.
+Contains options for configuring IPFS node discovery mechanisms.
 
 ### `Discovery.MDNS`
 
-Options for multicast dns peer discovery.
+Options for [ZeroConf](https://github.com/libp2p/zeroconf#readme) Multicast DNS-SD peer discovery.
 
 #### `Discovery.MDNS.Enabled`
 
-A boolean value for whether or not mdns should be active.
+A boolean value for whether or not Multicast DNS-SD should be active.
 
 Default: `true`
 
