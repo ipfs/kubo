@@ -128,7 +128,7 @@ var base32Cmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Convert CIDs to Base32 CID version 1.",
 		ShortDescription: `
-'ipfs cid base32' normalizes passes CIDs to their canonical case-insensitive encoding.
+'ipfs cid base32' normalizes passed CIDs to their canonical case-insensitive encoding.
 Useful when processing third-party CIDs which could come with arbitrary formats.
 `,
 	},
