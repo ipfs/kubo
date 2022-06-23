@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/ipfs/go-block-format"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipld-format"
+	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+	multicodec "github.com/multiformats/go-multicodec"
 )
 
 type httpNodeAdder HttpApi
@@ -56,13 +57,21 @@ func (api *HttpDagServ) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 func (api *httpNodeAdder) add(ctx context.Context, nd format.Node, pin bool) error {
 	c := nd.Cid()
 	prefix := c.Prefix()
-	format := cid.CodecToStr[prefix.Codec]
+
+	// preserve 'cid-codec' when sent over HTTP
+	cidCodec := multicodec.Code(prefix.Codec).String()
+
+	// 'format' got replaced by 'cid-codec' in https://github.com/ipfs/interface-go-ipfs-core/pull/80
+	// but we still support it here for backward-compatibility with use of CIDv0
+	format := ""
 	if prefix.Version == 0 {
+		cidCodec = ""
 		format = "v0"
 	}
 
 	stat, err := api.core().Block().Put(ctx, bytes.NewReader(nd.RawData()),
 		options.Block.Hash(prefix.MhType, prefix.MhLength),
+		options.Block.CidCodec(cidCodec),
 		options.Block.Format(format),
 		options.Block.Pin(pin))
 	if err != nil {
