@@ -62,7 +62,7 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
 
 	// Same go-car settings as dag.export command
-	store := dagStore{dag: i.api.Dag(), ctx: ctx}
+	store := dagStore{i.api.Dag()}
 
 	// TODO: support selectors passed as request param: https://github.com/ipfs/go-ipfs/issues/8769
 	dag := gocar.Dag{Root: rootCid, Selector: selectorparse.CommonSelector_ExploreAllRecursively}
@@ -83,10 +83,8 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 
 type dagStore struct {
 	dag coreiface.APIDagService
-	ctx context.Context
 }
 
-func (ds dagStore) Get(c cid.Cid) (blocks.Block, error) {
-	obj, err := ds.dag.Get(ds.ctx, c)
-	return obj, err
+func (ds dagStore) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+	return ds.dag.Get(ctx, c)
 }

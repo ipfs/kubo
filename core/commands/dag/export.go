@@ -45,7 +45,7 @@ func dagExport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			close(errCh)
 		}()
 
-		store := dagStore{dag: api.Dag(), ctx: req.Context}
+		store := dagStore{api.Dag()}
 		dag := gocar.Dag{Root: c, Selector: selectorparse.CommonSelector_ExploreAllRecursively}
 		// TraverseLinksOnlyOnce is safe for an exhaustive selector but won't be when we allow
 		// arbitrary selectors here
@@ -136,10 +136,8 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 
 type dagStore struct {
 	dag iface.APIDagService
-	ctx context.Context
 }
 
-func (ds dagStore) Get(c cid.Cid) (blocks.Block, error) {
-	obj, err := ds.dag.Get(ds.ctx, c)
-	return obj, err
+func (ds dagStore) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+	return ds.dag.Get(ctx, c)
 }
