@@ -100,13 +100,13 @@ func AddrsFactory(announce []string, appendAnnouce []string, noAnnounce []string
 }
 
 func listenAddresses(addresses []string) ([]ma.Multiaddr, error) {
-	var listen []ma.Multiaddr
-	for _, addr := range addresses {
+	listen := make([]ma.Multiaddr, len(addresses))
+	for i, addr := range addresses {
 		maddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
 			return nil, fmt.Errorf("failure to parse config.Addresses.Swarm: %s", addresses)
 		}
-		listen = append(listen, maddr)
+		listen[i] = maddr
 	}
 
 	return listen, nil
