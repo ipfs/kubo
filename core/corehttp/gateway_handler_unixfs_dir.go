@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-ipfs/tracing"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -93,51 +94,55 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	// type instead of relying on autodetection (which may fail).
 	w.Header().Set("Content-Type", "text/html")
 
-	// Generated dir index requires custom Etag (it may change between go-ipfs versions)
-	if assets.AssetHash != "" {
-		dirEtag := getDirListingEtag(resolvedPath.Cid())
-		w.Header().Set("Etag", dirEtag)
-		if r.Header.Get("If-None-Match") == dirEtag {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-	}
+	// Generated dir index requires custom Etag (output may change between go-ipfs versions)
+	dirEtag := getDirListingEtag(resolvedPath.Cid())
+	w.Header().Set("Etag", dirEtag)
 
 	if r.Method == http.MethodHead {
 		logger.Debug("return as request's HTTP method is HEAD")
 		return
 	}
 
-	// storage for directory listing
-	var dirListing []directoryItem
-	dirit := dir.Entries()
-	for dirit.Next() {
-		size := "?"
-		if s, err := dirit.Node().Size(); err == nil {
-			// Size may not be defined/supported. Continue anyways.
-			size = humanize.Bytes(uint64(s))
-		}
+	// Optimization 1:
+	// List children without fetching their root blocks (fast, but no size info)
+	results, err := i.api.Unixfs().Ls(ctx, resolvedPath, options.Unixfs.ResolveChildren(false))
+	if err != nil {
+		internalWebError(w, err)
+		return
+	}
 
-		resolved, err := i.api.ResolvePath(ctx, ipath.Join(resolvedPath, dirit.Name()))
-		if err != nil {
+	// storage for directory listing
+	dirListing := make([]directoryItem, 0, len(results))
+
+	for link := range results {
+		if link.Err != nil {
 			internalWebError(w, err)
 			return
 		}
-		hash := resolved.Cid().String()
-
-		// See comment above where originalUrlPath is declared.
+		hash := link.Cid.String()
 		di := directoryItem{
-			Size:      size,
-			Name:      dirit.Name(),
-			Path:      gopath.Join(originalUrlPath, dirit.Name()),
+			Size:      "", // no size because we did not fetch child nodes
+			Name:      link.Name,
+			Path:      gopath.Join(originalUrlPath, link.Name),
 			Hash:      hash,
 			ShortHash: shortHash(hash),
 		}
 		dirListing = append(dirListing, di)
 	}
-	if dirit.Err() != nil {
-		internalWebError(w, dirit.Err())
-		return
+
+	// Optimization 2: fetch sizes only for dirs below FastDirIndexThreshold
+	if len(dirListing) < i.config.FastDirIndexThreshold {
+		dirit := dir.Entries()
+		linkNo := 0
+		for dirit.Next() {
+			size := "?"
+			if s, err := dirit.Node().Size(); err == nil {
+				// Size may not be defined/supported. Continue anyways.
+				size = humanize.Bytes(uint64(s))
+			}
+			dirListing[linkNo].Size = size
+			linkNo++
+		}
 	}
 
 	// construct the correct back link
@@ -186,14 +191,15 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 
 	// See comment above where originalUrlPath is declared.
 	tplData := listingTemplateData{
-		GatewayURL:  gwURL,
-		DNSLink:     dnslink,
-		Listing:     dirListing,
-		Size:        size,
-		Path:        contentPath.String(),
-		Breadcrumbs: breadcrumbs(contentPath.String(), dnslink),
-		BackLink:    backLink,
-		Hash:        hash,
+		GatewayURL:            gwURL,
+		DNSLink:               dnslink,
+		Listing:               dirListing,
+		Size:                  size,
+		Path:                  contentPath.String(),
+		Breadcrumbs:           breadcrumbs(contentPath.String(), dnslink),
+		BackLink:              backLink,
+		Hash:                  hash,
+		FastDirIndexThreshold: i.config.FastDirIndexThreshold,
 	}
 
 	logger.Debugw("request processed", "tplDataDNSLink", dnslink, "tplDataSize", size, "tplDataBackLink", backLink, "tplDataHash", hash)

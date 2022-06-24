@@ -1,3 +1,4 @@
+//go:build !windows && nofuse
 // +build !windows,nofuse
 
 package node

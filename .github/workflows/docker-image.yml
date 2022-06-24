@@ -11,6 +11,7 @@ on:
 
 jobs:
   push_to_registry:
+    if: github.repository == 'ipfs/go-ipfs' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     env:

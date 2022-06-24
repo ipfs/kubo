@@ -96,7 +96,7 @@ func (api *UnixfsAPI) Add(ctx context.Context, files files.Node, opts ...options
 	//}
 
 	if settings.NoCopy && !(cfg.Experimental.FilestoreEnabled || cfg.Experimental.UrlstoreEnabled) {
-		return nil, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://git.io/vNItf")
+		return nil, fmt.Errorf("either the filestore or the urlstore must be enabled to use nocopy, see: https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-filestore")
 	}
 
 	addblockstore := api.blockstore
@@ -302,7 +302,7 @@ func (api *UnixfsAPI) processLink(ctx context.Context, linkres ft.LinkResult, se
 }
 
 func (api *UnixfsAPI) lsFromLinksAsync(ctx context.Context, dir uio.Directory, settings *options.UnixfsLsSettings) (<-chan coreiface.DirEntry, error) {
-	out := make(chan coreiface.DirEntry)
+	out := make(chan coreiface.DirEntry, uio.DefaultShardWidth)
 
 	go func() {
 		defer close(out)

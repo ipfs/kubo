@@ -18,6 +18,7 @@ import (
 func (i *gatewayHandler) serveUnixFS(ctx context.Context, w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, begin time.Time, logger *zap.SugaredLogger) {
 	ctx, span := tracing.Span(ctx, "Gateway", "ServeUnixFS", trace.WithAttributes(attribute.String("path", resolvedPath.String())))
 	defer span.End()
+
 	// Handling UnixFS
 	dr, err := i.api.Unixfs().Get(ctx, resolvedPath)
 	if err != nil {
@@ -39,6 +40,7 @@ func (i *gatewayHandler) serveUnixFS(ctx context.Context, w http.ResponseWriter,
 		internalWebError(w, fmt.Errorf("unsupported UnixFS type"))
 		return
 	}
+
 	logger.Debugw("serving unixfs directory", "path", contentPath)
 	i.serveDirectory(ctx, w, r, resolvedPath, contentPath, dir, begin, logger)
 }

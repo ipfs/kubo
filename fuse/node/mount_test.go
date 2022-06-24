@@ -1,9 +1,9 @@
+//go:build !openbsd && !nofuse && !netbsd && !plan9
 // +build !openbsd,!nofuse,!netbsd,!plan9
 
 package node
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -53,7 +53,7 @@ func TestExternalUnmount(t *testing.T) {
 	}
 
 	// get the test dir paths (/tmp/fusetestXXXX)
-	dir, err := ioutil.TempDir("", "fusetest")
+	dir, err := os.MkdirTemp("", "fusetest")
 	if err != nil {
 		t.Fatal(err)
 	}

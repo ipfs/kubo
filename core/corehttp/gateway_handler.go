@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	gopath "path"
@@ -390,11 +391,18 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResolvedPath", resolvedPath.String()))
 
-	// Finish early if client already has matching Etag
-	ifNoneMatch := r.Header.Get("If-None-Match")
-	if ifNoneMatch == getEtag(r, resolvedPath.Cid()) || ifNoneMatch == getDirListingEtag(resolvedPath.Cid()) {
-		w.WriteHeader(http.StatusNotModified)
-		return
+	// Detect when If-None-Match HTTP header allows returning HTTP 304 Not Modified
+	if inm := r.Header.Get("If-None-Match"); inm != "" {
+		pathCid := resolvedPath.Cid()
+		// need to check against both File and Dir Etag variants
+		// because this inexpensive check happens before we do any I/O
+		cidEtag := getEtag(r, pathCid)
+		dirEtag := getDirListingEtag(pathCid)
+		if etagMatch(inm, cidEtag, dirEtag) {
+			// Finish early if client already has a matching Etag
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 	}
 
 	if err := i.handleGettingFirstBlock(r, begin, contentPath, resolvedPath); err != nil {
@@ -788,6 +796,71 @@ func getFilename(contentPath ipath.Path) string {
 		return ""
 	}
 	return gopath.Base(s)
+}
+
+// etagMatch evaluates if we can respond with HTTP 304 Not Modified
+// It supports multiple weak and strong etags passed in If-None-Matc stringh
+// including the wildcard one.
+func etagMatch(ifNoneMatchHeader string, cidEtag string, dirEtag string) bool {
+	buf := ifNoneMatchHeader
+	for {
+		buf = textproto.TrimString(buf)
+		if len(buf) == 0 {
+			break
+		}
+		if buf[0] == ',' {
+			buf = buf[1:]
+			continue
+		}
+		// If-None-Match: * should match against any etag
+		if buf[0] == '*' {
+			return true
+		}
+		etag, remain := scanETag(buf)
+		if etag == "" {
+			break
+		}
+		// Check for match both strong and weak etags
+		if etagWeakMatch(etag, cidEtag) || etagWeakMatch(etag, dirEtag) {
+			return true
+		}
+		buf = remain
+	}
+	return false
+}
+
+// scanETag determines if a syntactically valid ETag is present at s. If so,
+// the ETag and remaining text after consuming ETag is returned. Otherwise,
+// it returns "", "".
+// (This is the same logic as one executed inside of http.ServeContent)
+func scanETag(s string) (etag string, remain string) {
+	s = textproto.TrimString(s)
+	start := 0
+	if strings.HasPrefix(s, "W/") {
+		start = 2
+	}
+	if len(s[start:]) < 2 || s[start] != '"' {
+		return "", ""
+	}
+	// ETag is either W/"text" or "text".
+	// See RFC 7232 2.3.
+	for i := start + 1; i < len(s); i++ {
+		c := s[i]
+		switch {
+		// Character values allowed in ETags.
+		case c == 0x21 || c >= 0x23 && c <= 0x7E || c >= 0x80:
+		case c == '"':
+			return s[:i+1], s[i+1:]
+		default:
+			return "", ""
+		}
+	}
+	return "", ""
+}
+
+// etagWeakMatch reports whether a and b match using weak ETag comparison.
+func etagWeakMatch(a, b string) bool {
+	return strings.TrimPrefix(a, "W/") == strings.TrimPrefix(b, "W/")
 }
 
 // generate Etag value based on HTTP request and CID

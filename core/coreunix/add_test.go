@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -282,7 +281,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 
 	data := make([]byte, 5*1024*1024)
 	rand.New(rand.NewSource(2)).Read(data) // Rand.Read never returns an error
-	fileData := ioutil.NopCloser(bytes.NewBuffer(data))
+	fileData := io.NopCloser(bytes.NewBuffer(data))
 	fileInfo := dummyFileInfo{"foo.txt", int64(len(data)), time.Now()}
 	file, _ := files.NewReaderPathFile(filepath.Join(os.TempDir(), "foo.txt"), fileData, &fileInfo)
 

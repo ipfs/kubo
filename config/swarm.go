@@ -1,5 +1,7 @@
 package config
 
+import rcmgr "github.com/libp2p/go-libp2p-resource-manager"
+
 type SwarmConfig struct {
 	// AddrFilters specifies a set libp2p addresses that we should never
 	// dial or receive connections from.
@@ -136,11 +138,9 @@ type ConnMgr struct {
 // ResourceMgr defines configuration options for the libp2p Network Resource Manager
 // <https://github.com/libp2p/go-libp2p-resource-manager#readme>
 type ResourceMgr struct {
-	// Enables the Network Resource Manager feature
-	Enabled Flag `json:",omitempty"`
-
-	/* TODO: decide if and how we want to expose limits in our config
-	Limits *ResourceMgrScopeConfig `json:",omitempty"` */
+	// Enables the Network Resource Manager feature, default to on.
+	Enabled Flag                      `json:",omitempty"`
+	Limits  *rcmgr.BasicLimiterConfig `json:",omitempty"`
 }
 
 const (
@@ -150,41 +150,3 @@ const (
 	ResourceMgrProtocolScopePrefix = "proto:"
 	ResourceMgrPeerScopePrefix     = "peer:"
 )
-
-/* TODO: decide if and how we want to expose limits in our config
-type ResourceMgrLimitsConfig struct {
-	System    *ResourceMgrScopeConfig `json:",omitempty"`
-	Transient *ResourceMgrScopeConfig `json:",omitempty"`
-
-	ServiceDefault     *ResourceMgrScopeConfig           `json:",omitempty"`
-	ServicePeerDefault *ResourceMgrScopeConfig           `json:",omitempty"`
-	Service            map[string]ResourceMgrScopeConfig `json:",omitempty"`
-	ServicePeer        map[string]ResourceMgrScopeConfig `json:",omitempty"`
-
-	ProtocolDefault     *ResourceMgrScopeConfig           `json:",omitempty"`
-	ProtocolPeerDefault *ResourceMgrScopeConfig           `json:",omitempty"`
-	Protocol            map[string]ResourceMgrScopeConfig `json:",omitempty"`
-	ProtocolPeer        map[string]ResourceMgrScopeConfig `json:",omitempty"`
-
-	PeerDefault *ResourceMgrScopeConfig           `json:",omitempty"`
-	Peer        map[string]ResourceMgrScopeConfig `json:",omitempty"`
-
-	Conn   *ResourceMgrScopeConfig `json:",omitempty"`
-	Stream *ResourceMgrScopeConfig `json:",omitempty"`
-}
-*/
-
-// libp2p Network Resource Manager config for a scope
-type ResourceMgrScopeConfig struct {
-	Dynamic bool `json:",omitempty"`
-	// set if Dynamic is false
-	Memory int64 `json:",omitempty"`
-	// set if Dynamic is true
-	MemoryFraction float64 `json:",omitempty"`
-	MinMemory      int64   `json:",omitempty"`
-	MaxMemory      int64   `json:",omitempty"`
-
-	Streams, StreamsInbound, StreamsOutbound int
-	Conns, ConnsInbound, ConnsOutbound       int
-	FD                                       int
-}

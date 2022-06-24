@@ -388,6 +388,15 @@ test_should_contain() {
   fi
 }
 
+test_should_not_contain() {
+  test "$#" = 2 || error "bug in the test script: not 2 parameters to test_should_not_contain"
+  if grep -q "$1" "$2"
+  then
+    echo "'$2' contains undesired value '$1'"
+    return 1
+  fi
+}
+
 test_str_contains() {
   find=$1
   shift

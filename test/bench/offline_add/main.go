@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -38,7 +37,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 		b.SetBytes(amount)
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			tmpDir, err := ioutil.TempDir("", "")
+			tmpDir, err := os.MkdirTemp("", "")
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -56,7 +55,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 			}
 
 			const seed = 1
-			f, err := ioutil.TempFile("", "")
+			f, err := os.CreateTemp("", "")
 			if err != nil {
 				b.Fatal(err)
 			}

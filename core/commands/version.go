@@ -71,7 +71,7 @@ var VersionCmd = &cmds.Command{
 				return nil
 			}
 
-			fmt.Fprint(w, fmt.Sprintf("ipfs version %s%s\n", version.Version, commitTxt))
+			fmt.Fprintf(w, "ipfs version %s%s\n", version.Version, commitTxt)
 			return nil
 		}),
 	},

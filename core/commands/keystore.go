@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -276,7 +275,7 @@ elsewhere. For example, using openssl to get a PEM with public key:
 
 			switch exportFormat {
 			case keyFormatPemCleartextOption:
-				privKeyBytes, err := ioutil.ReadAll(outReader)
+				privKeyBytes, err := io.ReadAll(outReader)
 				if err != nil {
 					return err
 				}
@@ -344,7 +343,7 @@ The PEM format allows for key generation outside of the IPFS node:
 		}
 		defer file.Close()
 
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}

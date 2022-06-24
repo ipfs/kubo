@@ -16,9 +16,10 @@ import (
 )
 
 type GatewayConfig struct {
-	Headers      map[string][]string
-	Writable     bool
-	PathPrefixes []string
+	Headers               map[string][]string
+	Writable              bool
+	PathPrefixes          []string
+	FastDirIndexThreshold int
 }
 
 // A helper function to clean up a set of headers:
@@ -83,15 +84,19 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 
 		headers[ACEHeadersName] = cleanHeaderSet(
 			append([]string{
+				"Content-Length",
 				"Content-Range",
 				"X-Chunked-Output",
 				"X-Stream-Output",
+				"X-Ipfs-Path",
+				"X-Ipfs-Roots",
 			}, headers[ACEHeadersName]...))
 
 		var gateway http.Handler = newGatewayHandler(GatewayConfig{
-			Headers:      headers,
-			Writable:     writable,
-			PathPrefixes: cfg.Gateway.PathPrefixes,
+			Headers:               headers,
+			Writable:              writable,
+			PathPrefixes:          cfg.Gateway.PathPrefixes,
+			FastDirIndexThreshold: int(cfg.Gateway.FastDirIndexThreshold.WithDefault(100)),
 		}, api)
 
 		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")

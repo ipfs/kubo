@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -63,7 +62,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 
 		logger.Println("Need", len(missing), "migrations, downloading.")
 
-		tmpDir, err := ioutil.TempDir("", "migrations")
+		tmpDir, err := os.MkdirTemp("", "migrations")
 		if err != nil {
 			return err
 		}
@@ -115,12 +114,12 @@ func ExeName(name string) string {
 // ReadMigrationConfig reads the Migration section of the IPFS config, avoiding
 // reading anything other than the Migration section. That way, we're free to
 // make arbitrary changes to all _other_ sections in migrations.
-func ReadMigrationConfig(repoRoot string) (*config.Migration, error) {
+func ReadMigrationConfig(repoRoot string, userConfigFile string) (*config.Migration, error) {
 	var cfg struct {
 		Migration config.Migration
 	}
 
-	cfgPath, err := config.Filename(repoRoot)
+	cfgPath, err := config.Filename(repoRoot, userConfigFile)
 	if err != nil {
 		return nil, err
 	}

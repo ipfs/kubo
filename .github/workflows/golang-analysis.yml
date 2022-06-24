@@ -1,0 +1,37 @@
+on: [push, pull_request]
+name: Go Checks
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    name: All
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "1.18.x"
+      - name: Check that go.mod is tidy
+        uses: protocol/multiple-go-modules@v1.2
+        with:
+          run: |
+            go mod tidy
+            if [[ -n $(git ls-files --other --exclude-standard --directory -- go.sum) ]]; then
+              echo "go.sum was added by go mod tidy"
+              exit 1
+            fi
+            git diff --exit-code -- go.sum go.mod
+      - name: gofmt
+        if: always() # run this step even if the previous one failed
+        run: |
+          out=$(gofmt -s -l .)
+          if [[ -n "$out" ]]; then
+            echo $out | awk '{print "::error file=" $0 ",line=0,col=0::File is not gofmt-ed."}'
+            exit 1
+          fi
+      - name: go vet
+        if: always() # run this step even if the previous one failed
+        uses: protocol/multiple-go-modules@v1.2
+        with:
+          run: go vet ./...

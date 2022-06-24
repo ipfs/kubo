@@ -53,7 +53,15 @@ type Gateway struct {
 	//  }
 	PathPrefixes []string
 
-	// FIXME: Not yet implemented
+	// FastDirIndexThreshold is the maximum number of items in a directory
+	// before the Gateway switches to a shallow, faster listing which only
+	// requires the root node. This allows for listing big directories fast,
+	// without the linear slowdown caused by reading size metadata from child
+	// nodes.
+	// Setting to 0 will enable fast listings for all directories.
+	FastDirIndexThreshold *OptionalInteger `json:",omitempty"`
+
+	// FIXME: Not yet implemented: https://github.com/ipfs/go-ipfs/issues/8059
 	APICommands []string
 
 	// NoFetch configures the gateway to _not_ fetch blocks in response to

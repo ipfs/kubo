@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -31,17 +30,17 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 	ctx, span := tracing.Span(ctx, "CoreAPI.BlockAPI", "Put")
 	defer span.End()
 
-	settings, pref, err := caopts.BlockPutOptions(opts...)
+	settings, err := caopts.BlockPutOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadAll(src)
+	data, err := io.ReadAll(src)
 	if err != nil {
 		return nil, err
 	}
 
-	bcid, err := pref.Sum(data)
+	bcid, err := settings.CidPrefix.Sum(data)
 	if err != nil {
 		return nil, err
 	}
