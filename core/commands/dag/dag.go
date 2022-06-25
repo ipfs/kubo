@@ -205,7 +205,7 @@ Maximum supported CAR version: 1
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
-		cmds.BoolOption(silentOptionName, "No output."),
+		cmds.BoolOption(silentOptionName, "q", "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
 		cmdutils.AllowBigBlockOption,
 	},
