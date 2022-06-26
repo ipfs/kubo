@@ -86,7 +86,7 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		res.SetLength(uint64(size))
 
 		archive, _ := req.Options[archiveOptionName].(bool)
-		reader, err := fileArchive(file, p.String(), getOutPath(req), archive, cmplvl)
+		reader, err := fileArchive(file, p.String(), archive, cmplvl)
 		if err != nil {
 			return err
 		}
@@ -263,7 +263,7 @@ func (i *identityWriteCloser) Close() error {
 	return nil
 }
 
-func fileArchive(f files.Node, name string, outpath string, archive bool, compression int) (io.Reader, error) {
+func fileArchive(f files.Node, name string, archive bool, compression int) (io.Reader, error) {
 	var err error = nil
 	cleaned := gopath.Clean(name)
 	_, filename := gopath.Split(cleaned)
