@@ -342,7 +342,7 @@ func statProtoNode(n *dag.ProtoNode, enc cidenc.Encoder, cid cid.Cid, cumulsize 
 	switch d.Type() {
 	case ft.TDirectory, ft.THAMTShard:
 		stat.Type = "directory"
-	case ft.TFile, ft.TMetadata, ft.TRaw:
+	case ft.TFile, ft.TSymlink, ft.TMetadata, ft.TRaw:
 		stat.Type = "file"
 	default:
 		return nil, fmt.Errorf("unrecognized node type: %s", d.Type())

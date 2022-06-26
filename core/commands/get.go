@@ -1,10 +1,12 @@
 package commands
 
 import (
+	tar2 "archive/tar"
 	"bufio"
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"github.com/ipfs/tar-utils"
 	"io"
 	"os"
 	gopath "path"
@@ -18,7 +20,6 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	"github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ipfs/tar-utils"
 )
 
 var ErrInvalidCompressionLevel = errors.New("compression level must be between 1 and 9")
@@ -262,20 +263,6 @@ func (i *identityWriteCloser) Close() error {
 	return nil
 }
 
-func updateFileMeta(fn files.Node, filename string) error {
-	if t := fn.ModTime(); !t.IsZero() {
-		if err := os.Chtimes(filename, t, t); err != nil {
-			return err
-		}
-	}
-	if mode := fn.Mode(); mode != 0 {
-		if err := os.Chmod(filename, mode); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func fileArchive(f files.Node, name string, outpath string, archive bool, compression int) (io.Reader, error) {
 	var err error = nil
 	cleaned := gopath.Clean(name)
@@ -308,11 +295,6 @@ func fileArchive(f files.Node, name string, outpath string, archive bool, compre
 			return nil
 		}
 		pipew.Close() // everything seems to be ok.
-		if !archive {
-			if err := updateFileMeta(f, outpath); err != nil {
-				return err
-			}
-		}
 		return nil
 	}
 
@@ -338,9 +320,14 @@ func fileArchive(f files.Node, name string, outpath string, archive bool, compre
 			return nil, err
 		}
 
+		// if not creating an archive set the format to PAX in order to preserve nanoseconds
+		if !archive {
+			w.SetFormat(tar2.FormatPAX)
+		}
+
 		go func() {
 			// write all the nodes recursively
-			if err := w.WriteFile(f, filename); checkErrAndClosePipe(err) {
+			if err := w.WriteNode(f, filename); checkErrAndClosePipe(err) {
 				return
 			}
 			w.Close()               // close tar writer

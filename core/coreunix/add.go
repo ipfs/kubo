@@ -115,13 +115,13 @@ func (adder *Adder) add(reader io.Reader) (ipld.Node, error) {
 	}
 
 	params := ihelper.DagBuilderParams{
-		Dagserv:    adder.bufferedDS,
-		RawLeaves:  adder.RawLeaves,
-		Maxlinks:   ihelper.DefaultLinksPerBlock,
-		NoCopy:     adder.NoCopy,
-		CidBuilder: adder.CidBuilder,
-		FileMode:   adder.FileMode,
-		FileMtime:  adder.FileMtime,
+		Dagserv:     adder.bufferedDS,
+		RawLeaves:   adder.RawLeaves,
+		Maxlinks:    ihelper.DefaultLinksPerBlock,
+		NoCopy:      adder.NoCopy,
+		CidBuilder:  adder.CidBuilder,
+		FileMode:    adder.FileMode,
+		FileModTime: adder.FileMtime,
 	}
 
 	db, err := params.New(chnk)
@@ -350,6 +350,14 @@ func (adder *Adder) addFileNode(ctx context.Context, path string, file files.Nod
 		return err
 	}
 
+	if adder.PreserveMtime {
+		adder.FileMtime = file.ModTime()
+	}
+
+	if adder.PreserveMode {
+		adder.FileMode = file.Mode()
+	}
+
 	if adder.liveNodes >= liveCacheSize {
 		// TODO: A smarter cache that uses some sort of lru cache with an eviction handler
 		mr, err := adder.mfsRoot()
@@ -382,6 +390,18 @@ func (adder *Adder) addSymlink(path string, l *files.Symlink) error {
 		return err
 	}
 
+	if adder.PreserveMtime {
+		fsn, err := unixfs.FSNodeFromBytes(sdata)
+		if err != nil {
+			return err
+		}
+
+		fsn.SetModTime(l.ModTime())
+		if sdata, err = fsn.GetBytes(); err != nil {
+			return err
+		}
+	}
+
 	dagnode := dag.NodeWithData(sdata)
 	dagnode.SetCidBuilder(adder.CidBuilder)
 	err = adder.dagService.Add(adder.ctx, dagnode)
@@ -405,14 +425,6 @@ func (adder *Adder) addFile(path string, file files.File) error {
 		}
 	}
 
-	if adder.PreserveMtime {
-		adder.FileMtime = file.ModTime()
-	}
-
-	if adder.PreserveMode {
-		adder.FileMode = file.Mode()
-	}
-
 	dagnode, err := adder.add(reader)
 	if err != nil {
 		return err
@@ -425,6 +437,17 @@ func (adder *Adder) addFile(path string, file files.File) error {
 func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory, toplevel bool) error {
 	log.Infof("adding directory: %s", path)
 
+	// if we need to store mode or modification time then create a new root which includes that data
+	if toplevel && (adder.PreserveMode || adder.PreserveMtime) {
+		nd := unixfs.EmptyDirNodeWithStat(adder.FileMode, adder.FileMtime)
+		nd.SetCidBuilder(adder.CidBuilder)
+		mr, err := mfs.NewRoot(ctx, adder.dagService, nd, nil)
+		if err != nil {
+			return err
+		}
+		adder.SetMfsRoot(mr)
+	}
+
 	if !(toplevel && path == "") {
 		mr, err := adder.mfsRoot()
 		if err != nil {
@@ -434,6 +457,8 @@ func (adder *Adder) addDir(ctx context.Context, path string, dir files.Directory
 			Mkparents:  true,
 			Flush:      false,
 			CidBuilder: adder.CidBuilder,
+			Mode:       adder.FileMode,
+			ModTime:    adder.FileMtime,
 		})
 		if err != nil {
 			return err
