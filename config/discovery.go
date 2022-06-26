@@ -7,6 +7,7 @@ type Discovery struct {
 type MDNS struct {
 	Enabled bool
 
-	// Time in seconds between discovery rounds
-	Interval int
+	// DEPRECATED: the time between discovery rounds is no longer configurable
+	// See: https://github.com/ipfs/go-ipfs/pull/9048#discussion_r906814717
+	Interval *OptionalInteger `json:",omitempty"`
 }

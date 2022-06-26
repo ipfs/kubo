@@ -592,11 +592,8 @@ Type: `bool`
 
 #### `Discovery.MDNS.Interval`
 
-The number of seconds between discovery checks.
-
-Default: `5`
-
-Type: `integer` (integer seconds, 0 means the default)
+**REMOVED:**  this is not configurable any more
+in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 ## `Gateway`
 
