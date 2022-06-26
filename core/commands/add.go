@@ -40,10 +40,6 @@ func (t *TimeParts) UnmarshalJSON(data []byte) (err error) {
 	return
 }
 
-func AsJSON(t *time.Time) string {
-	return fmt.Sprintf("{\"secs\":%v,\"nsecs\":%v}", t.Unix(), t.Nanosecond())
-}
-
 type AddEvent struct {
 	Name       string
 	Hash       string `json:",omitempty"`
