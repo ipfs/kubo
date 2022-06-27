@@ -43,8 +43,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Identity:  identity,
 		Discovery: Discovery{
 			MDNS: MDNS{
-				Enabled:  true,
-				Interval: 10,
+				Enabled: true,
 			},
 		},
 
