@@ -2,8 +2,7 @@
 
 The IPFS protocol and its implementations are still in heavy development. This
 means that there may be problems in our protocols, or there may be mistakes in
-our implementations. And -- though IPFS is not production-ready yet -- many
-people are already running nodes in their machines. So we take security
+our implementations. We take security
 vulnerabilities very seriously. If you discover a security issue, please bring
 it to our attention right away!
 
