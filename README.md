@@ -47,24 +47,26 @@ Before opening an issue, consider using one of the following locations to ensure
   - [Other package managers](#other-package-managers)
     - [Guix](#guix)
     - [Snap](#snap)
-  - [macOS package managers](#macos-package-managers)
-    - [MacPorts](#MacPorts)
-	- [Nix](#nix-macos)
-    - [Homebrew](#Homebrew)
+    - [macOS package managers](#macos-package-managers)
+    - [MacPorts](#macports)
+    - [Nix](#nix-macos)
+    - [Homebrew](#homebrew)
   - [Windows package managers](#windows-package-managers)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
-  - [Install prebuilt binaries](#install-prebuilt-binaries)  
+  - [Install prebuilt binaries](#install-prebuilt-binaries)
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
-    - [Cross Compiling](#cross-compiling)
-    - [OpenSSL](#openssl)
+      - [Cross Compiling](#cross-compiling)
+      - [OpenSSL](#openssl)
     - [Troubleshooting](#troubleshooting)
   - [Updating go-ipfs](#updating-go-ipfs)
+    - [Using ipfs-update](#using-ipfs-update)
+    - [Downloading IPFS builds using IPFS](#downloading-ipfs-builds-using-ipfs)
 - [Getting Started](#getting-started)
-  - [Some things to try](#some-things-to-try)
   - [Usage](#usage)
+  - [Some things to try](#some-things-to-try)
   - [Troubleshooting](#troubleshooting-1)
 - [Packages](#packages)
 - [Development](#development)
@@ -78,11 +80,7 @@ Before opening an issue, consider using one of the following locations to ensure
 
 ## Security Issues
 
-The IPFS protocol and its implementations are still in heavy development. This means that there may be problems in our protocols, or there may be mistakes in our implementations. And -- though IPFS is not production-ready yet -- many people are already running nodes in their machines. So we take security vulnerabilities very seriously. If you discover a security issue, please bring it to our attention right away!
-
-If you find a vulnerability that may affect live deployments -- for example, by exposing a remote execution exploit -- please send your report privately to security@ipfs.io. Please DO NOT file a public issue.
-
-If the issue is a protocol weakness that cannot be immediately exploited or something not yet deployed, just discuss it openly.
+Please follow [`SECURITY.md`](SECURITY.md).
 
 ## Install
 
@@ -168,7 +166,9 @@ $ sudo snap install ipfs
 
 The snap sets `IPFS_PATH` to `SNAP_USER_COMMON`, which is usually `~/snap/ipfs/common`. If you want to use `~/.ipfs` instead, you can bind-mount it to `~/snap/ipfs/common` like this:
 
-```sudo mount --bind ~/.ipfs ~/snap/ipfs/common```
+```
+$ sudo mount --bind ~/.ipfs ~/snap/ipfs/common
+```
 
 If you want something more sophisticated to escape the snap confinement, we recommend using a different method to install `go-ipfs` so that it is not subject to snap confinement.
 
