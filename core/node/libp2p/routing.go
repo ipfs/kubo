@@ -63,7 +63,7 @@ type processInitialRoutingOut struct {
 type AddrInfoChan chan peer.AddrInfo
 
 func BaseRouting(experimentalDHTClient bool) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
+	return func(lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
 		var dr *ddht.DHT
 		if dht, ok := in.Router.(*ddht.DHT); ok {
 			dr = dht
@@ -136,7 +136,7 @@ func DelegatedRouting(routers map[string]config.Router) interface{} {
 		out := delegatedRouterOut{}
 
 		for _, v := range routers {
-			if !v.Enabled {
+			if !v.Enabled.WithDefault(true) {
 				continue
 			}
 

@@ -16,7 +16,7 @@ type Router struct {
 	// Reframe type allows to add other resolvers using the Reframe spec:
 	// https://github.com/ipfs/specs/blob/master/REFRAME.md
 	Type    string
-	Enabled bool
+	Enabled Flag `json:",omitempty"`
 
 	// Methods that we want to use from this provider.
 	// Leave it empty to use all the supported and available ones.

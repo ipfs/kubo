@@ -1291,7 +1291,7 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Routers`
 
-It can contains several Router implementation, some of them using the [reframe specs](https://github.com/ipfs/specs/blob/master/REFRAME.md).
+It can contain several Router implementations, such as DHT and delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/blob/master/REFRAME.md).
 
 // TODO add more documentation
 
