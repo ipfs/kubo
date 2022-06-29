@@ -168,8 +168,15 @@ type p2pOnlineContentRoutingIn struct {
 	ContentRouter []routing.ContentRouting `group:"content-routers"`
 }
 
-func ContentRouting(in p2pOnlineContentRoutingIn) irouting.TieredContentRouter {
-	return &irouting.ContentRoutingWrapper{ContentRoutings: in.ContentRouter}
+func ContentRouting(in p2pOnlineContentRoutingIn) routing.ContentRouting {
+	var routers []routing.Routing
+	for _, cr := range in.ContentRouter {
+		routers = append(routers, irouting.NewContentRoutingWrapper(cr))
+	}
+
+	return routinghelpers.Tiered{
+		Routers: routers,
+	}
 }
 
 type p2pOnlineRoutingIn struct {

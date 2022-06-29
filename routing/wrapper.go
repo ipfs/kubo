@@ -2,9 +2,7 @@ package routing
 
 import (
 	"context"
-	"sync"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
 	drc "github.com/ipfs/go-delegated-routing/client"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -67,97 +65,33 @@ func (pmw *ProvideManyWrapper) Ready() bool {
 	return out
 }
 
-var _ TieredContentRouter = &ContentRoutingWrapper{}
-
 type ContentRoutingWrapper struct {
-	ContentRoutings []routing.ContentRouting
+	routing.ContentRouting
+	routing.ValueStore
 }
 
-// Provide adds the given cid to the content routing system. If 'true' is
-// passed, it also announces it, otherwise it is just kept in the local
-// accounting of which objects are being provided.
-func (crw *ContentRoutingWrapper) Provide(ctx context.Context, cid cid.Cid, announce bool) error {
-	c := len(crw.ContentRoutings)
-	wg := sync.WaitGroup{}
-	wg.Add(c)
-
-	errors := make([]error, c)
-
-	for i, cr := range crw.ContentRoutings {
-		go func(cr routing.ContentRouting, i int) {
-			errors[i] = cr.Provide(ctx, cid, announce)
-			wg.Done()
-		}(cr, i)
-	}
-
-	wg.Wait()
-
-	var out []error
-	success := false
-	for _, e := range errors {
-		switch e {
-		case nil:
-			success = true
-		case routing.ErrNotSupported:
-		default:
-			out = append(out, e)
-		}
-	}
-	switch len(out) {
-	case 0:
-		if success {
-			// No errors and at least one router succeeded.
-			return nil
-		}
-		// No routers supported this operation.
-		return routing.ErrNotSupported
-	case 1:
-		return out[0]
-	default:
-		return &multierror.Error{Errors: out}
+func NewContentRoutingWrapper(cr routing.ContentRouting) *ContentRoutingWrapper {
+	return &ContentRoutingWrapper{
+		ContentRouting: cr,
 	}
 }
 
-// Search for peers who are able to provide a given key
-//
-// When count is 0, this method will return an unbounded number of
-// results.
-func (crw *ContentRoutingWrapper) FindProvidersAsync(ctx context.Context, cid cid.Cid, count int) <-chan peer.AddrInfo {
-	subCtx, cancel := context.WithCancel(ctx)
+func (crw *ContentRoutingWrapper) Bootstrap(context.Context) error {
+	return nil
+}
 
-	aich := make(chan peer.AddrInfo)
+func (crw *ContentRoutingWrapper) FindPeer(context.Context, peer.ID) (peer.AddrInfo, error) {
+	return peer.AddrInfo{}, routing.ErrNotSupported
+}
 
-	for _, ri := range crw.ContentRoutings {
-		fpch := ri.FindProvidersAsync(subCtx, cid, count)
-		go func() {
-			for ai := range fpch {
-				aich <- ai
-			}
-		}()
-	}
+func (crw *ContentRoutingWrapper) PutValue(context.Context, string, []byte, ...routing.Option) error {
+	return routing.ErrNotSupported
+}
 
-	out := make(chan peer.AddrInfo)
+func (crw *ContentRoutingWrapper) GetValue(context.Context, string, ...routing.Option) ([]byte, error) {
+	return nil, routing.ErrNotSupported
+}
 
-	go func() {
-		defer cancel()
-		c := 0
-		doCount := true
-		if count <= 0 {
-			doCount = false
-		}
-
-		for ai := range aich {
-			if c >= count && doCount {
-				return
-			}
-
-			out <- ai
-
-			if doCount {
-				c++
-			}
-		}
-	}()
-
-	return out
+func (crw *ContentRoutingWrapper) SearchValue(context.Context, string, ...routing.Option) (<-chan []byte, error) {
+	return nil, routing.ErrNotSupported
 }

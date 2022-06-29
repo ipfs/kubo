@@ -9,11 +9,11 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/backoff"
 	disc "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 
-	irouting "github.com/ipfs/go-ipfs/routing"
+	"github.com/libp2p/go-libp2p-core/routing"
 )
 
 func TopicDiscovery() interface{} {
-	return func(host host.Host, cr irouting.TieredContentRouter) (service discovery.Discovery, err error) {
+	return func(host host.Host, cr routing.ContentRouting) (service discovery.Discovery, err error) {
 		baseDisc := disc.NewRoutingDiscovery(cr)
 		minBackoff, maxBackoff := time.Second*60, time.Hour
 		rng := rand.New(rand.NewSource(rand.Int63()))
