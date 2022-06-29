@@ -55,7 +55,9 @@ type processInitialRoutingIn struct {
 type processInitialRoutingOut struct {
 	fx.Out
 
-	Router    Router `group:"routers"`
+	Router        Router                 `group:"routers"`
+	ContentRouter routing.ContentRouting `group:"content-routers"`
+
 	DHT       *ddht.DHT
 	DHTClient routing.Routing `name:"dhtc"`
 }
@@ -109,8 +111,9 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 					Routing:  expClient,
 					Priority: 1000,
 				},
-				DHT:       dr,
-				DHTClient: expClient,
+				DHT:           dr,
+				DHTClient:     expClient,
+				ContentRouter: expClient,
 			}, nil
 		}
 
@@ -119,8 +122,9 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 				Priority: 1000,
 				Routing:  in.Router,
 			},
-			DHT:       dr,
-			DHTClient: dr,
+			DHT:           dr,
+			DHTClient:     dr,
+			ContentRouter: in.Router,
 		}, nil
 	}
 }
@@ -128,7 +132,8 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 type delegatedRouterOut struct {
 	fx.Out
 
-	Routers []Router `group:"routers,flatten"`
+	Routers       []Router                 `group:"routers,flatten"`
+	ContentRouter []routing.ContentRouting `group:"content-routers,flatten"`
 }
 
 func DelegatedRouting(routers map[string]config.Router) interface{} {
@@ -149,10 +154,22 @@ func DelegatedRouting(routers map[string]config.Router) interface{} {
 				Routing:  r,
 				Priority: irouting.GetPriority(v.Parameters),
 			})
+
+			out.ContentRouter = append(out.ContentRouter, r)
 		}
 
 		return out, nil
 	}
+}
+
+type p2pOnlineContentRoutingIn struct {
+	fx.In
+
+	ContentRouter []routing.ContentRouting `group:"content-routers"`
+}
+
+func ContentRouting(in p2pOnlineContentRoutingIn) irouting.TieredContentRouter {
+	return &irouting.ContentRoutingWrapper{ContentRoutings: in.ContentRouter}
 }
 
 type p2pOnlineRoutingIn struct {

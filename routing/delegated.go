@@ -15,6 +15,10 @@ type TieredRouter interface {
 	ProviderManyWrapper() ProvideMany
 }
 
+type TieredContentRouter interface {
+	routing.ContentRouting
+}
+
 var _ TieredRouter = &Tiered{}
 
 // Tiered is a routing Tiered implementation providing some extra methods to fill
