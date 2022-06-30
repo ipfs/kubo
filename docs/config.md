@@ -1276,11 +1276,12 @@ Type: `array[peering]`
 ### `Reprovider.Strategy`
 
 Tells reprovider what should be announced. Valid strategies are:
-  - "all" - announce all stored data
-  - "pinned" - only announce pinned data
-  - "roots" - only announce directly pinned keys and root keys of recursive pins
 
-Default: all
+- `"all"` - announce all CIDs of stored blocks
+- `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
+- `"roots"` - only announce root CIDs of recursive pins and explicitly pinned CIDs
+
+Default: `"all"`
 
 Type: `string` (or unset for the default, which is "all")
 
