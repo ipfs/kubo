@@ -103,6 +103,9 @@ config file at runtime.
     - [`Reprovider.Strategy`](#reproviderstrategy)
   - [`Routing`](#routing)
     - [`Routing.Routers`](#routingrouters)
+      - [`Routing.Routers: Type`](#routingrouters-type)
+      - [`Routing.Routers: Enabled`](#routingrouters-enabled)
+      - [`Routing.Routers: Parameters`](#routingrouters-parameters)
     - [`Routing.Type`](#routingtype)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
@@ -1293,9 +1296,26 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 It can contain several Router implementations, such as DHT and delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/blob/master/REFRAME.md).
 
-// TODO add more documentation
-
 Type: `object[string->object]`
+
+#### `Routing.Routers: Type`
+
+It specifies the routing type that will be created. Supported types:
+
+- `reframe`
+- `dht` (WIP)
+
+#### `Routing.Routers: Enabled`
+
+Flag to disable the specified router without removing it from the configuration file.
+
+#### `Routing.Routers: Parameters`
+
+Parameters needed to create the specified router. Supported params per router type:
+
+- `reframe`
+  - `address` (mandatory): Address that will be used to connect to a specified server.
+  - `priority`: Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
 
 ### `Routing.Type`
 

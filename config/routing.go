@@ -15,13 +15,9 @@ type Router struct {
 	// Type can be one of "dht", "dhtclient", "dhtserver", "reframe".
 	// Reframe type allows to add other resolvers using the Reframe spec:
 	// https://github.com/ipfs/specs/blob/master/REFRAME.md
-	Type    string
-	Enabled Flag `json:",omitempty"`
+	Type string
 
-	// Methods that we want to use from this provider.
-	// Leave it empty to use all the supported and available ones.
-	// Actual supported methods: "FindProviders", "GetIPNS", "PutIPNS"
-	Methods []string
+	Enabled Flag `json:",omitempty"`
 
 	// Parameters are extra configuration that this router might need.
 	// A common one for reframe endpoints is "Address".
