@@ -76,10 +76,7 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 			headers[http.CanonicalHeaderKey(h)] = v
 		}
 
-		acheaders := AccessControlHeaders()
-		for k, v := range acheaders {
-			headers[k] = v
-		}
+		AddAccessControlHeaders(headers)
 
 		offlineApi, err := api.WithOptions(options.Api.Offline(true))
 		if err != nil {
@@ -102,9 +99,16 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 	}
 }
 
-func AccessControlHeaders() map[string][]string {
-	headers := make(map[string][]string)
-
+// AddAccessControlHeaders adds default headers used for controlling
+// cross-origin requests. This function adds several values to the
+// Access-Control-Allow-Headers and Access-Control-Expose-Headers entries.
+// If the Access-Control-Allow-Origin entry is missing a value of '*' is
+// added, indicating that browsers should allow requesting code from any
+// origin to access the resource.
+// If the Access-Control-Allow-Methods entry is missing a value of 'GET' is
+// added, indicating that browsers may use the GET method when issuing cross
+// origin requests.
+func AddAccessControlHeaders(headers map[string][]string) {
 	// Hard-coded headers.
 	const ACAHeadersName = "Access-Control-Allow-Headers"
 	const ACEHeadersName = "Access-Control-Expose-Headers"
@@ -137,8 +141,6 @@ func AccessControlHeaders() map[string][]string {
 			"X-Ipfs-Path",
 			"X-Ipfs-Roots",
 		}, headers[ACEHeadersName]...))
-
-	return headers
 }
 
 func VersionOption() ServeOption {
