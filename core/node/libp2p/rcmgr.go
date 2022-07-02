@@ -34,7 +34,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 
 		enabled := cfg.ResourceMgr.Enabled.WithDefault(false)
 
-		/// ENV overrides Config (if present)
+		//  ENV overrides Config (if present)
 		switch os.Getenv("LIBP2P_RCMGR") {
 		case "0", "false":
 			enabled = false
@@ -50,19 +50,17 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			defaultLimits := adjustedDefaultLimits(cfg)
+			limitCfg := adjustedDefaultLimits(cfg)
+			libp2p.SetDefaultServiceLimits(limitCfg)
+			limits := limitCfg.AutoScale()
 
-			var limits rcmgr.BasicLimiterConfig
 			if cfg.ResourceMgr.Limits != nil {
-				limits = *cfg.ResourceMgr.Limits
+				l := *cfg.ResourceMgr.Limits
+				l.Apply(limits)
+				limits = l
 			}
 
-			limiter, err := rcmgr.NewLimiter(limits, defaultLimits)
-			if err != nil {
-				return nil, opts, err
-			}
-
-			libp2p.SetDefaultServiceLimits(limiter)
+			limiter := rcmgr.NewFixedLimiter(limits)
 
 			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics())}
 
@@ -195,8 +193,8 @@ func NetStat(mgr network.ResourceManager, scope string) (NetStatOut, error) {
 	}
 }
 
-func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BasicLimitConfig, error) {
-	var result rcmgr.BasicLimitConfig
+func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BaseLimit, error) {
+	var result rcmgr.BaseLimit
 	getLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
@@ -204,30 +202,15 @@ func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BasicLimitConfig
 		}
 		limit := limiter.Limit()
 		switch l := limit.(type) {
-		case *rcmgr.StaticLimit:
-			result.Dynamic = false
+		case *rcmgr.BaseLimit:
 			result.Memory = l.Memory
-			result.Streams = l.BaseLimit.Streams
-			result.StreamsInbound = l.BaseLimit.StreamsInbound
-			result.StreamsOutbound = l.BaseLimit.StreamsOutbound
-			result.Conns = l.BaseLimit.Conns
-			result.ConnsInbound = l.BaseLimit.ConnsInbound
-			result.ConnsOutbound = l.BaseLimit.ConnsOutbound
-			result.FD = l.BaseLimit.FD
-
-		case *rcmgr.DynamicLimit:
-			result.Dynamic = true
-			result.MemoryFraction = l.MemoryLimit.MemoryFraction
-			result.MinMemory = l.MemoryLimit.MinMemory
-			result.MaxMemory = l.MemoryLimit.MaxMemory
-			result.Streams = l.BaseLimit.Streams
-			result.StreamsInbound = l.BaseLimit.StreamsInbound
-			result.StreamsOutbound = l.BaseLimit.StreamsOutbound
-			result.Conns = l.BaseLimit.Conns
-			result.ConnsInbound = l.BaseLimit.ConnsInbound
-			result.ConnsOutbound = l.BaseLimit.ConnsOutbound
-			result.FD = l.BaseLimit.FD
-
+			result.Streams = l.Streams
+			result.StreamsInbound = l.StreamsInbound
+			result.StreamsOutbound = l.StreamsOutbound
+			result.Conns = l.Conns
+			result.ConnsInbound = l.ConnsInbound
+			result.ConnsOutbound = l.ConnsOutbound
+			result.FD = l.FD
 		default:
 			return fmt.Errorf("unknown limit type %T", limit)
 		}
@@ -237,89 +220,36 @@ func NetLimit(mgr network.ResourceManager, scope string) (rcmgr.BasicLimitConfig
 
 	switch {
 	case scope == config.ResourceMgrSystemScope:
-		err := mgr.ViewSystem(func(s network.ResourceScope) error {
-			return getLimit(s)
-		})
-		return result, err
-
+		return result, mgr.ViewSystem(func(s network.ResourceScope) error { return getLimit(s) })
 	case scope == config.ResourceMgrTransientScope:
-		err := mgr.ViewTransient(func(s network.ResourceScope) error {
-			return getLimit(s)
-		})
-		return result, err
-
+		return result, mgr.ViewTransient(func(s network.ResourceScope) error { return getLimit(s) })
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
 		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
-		err := mgr.ViewService(svc, func(s network.ServiceScope) error {
-			return getLimit(s)
-		})
-		return result, err
-
+		return result, mgr.ViewService(svc, func(s network.ServiceScope) error { return getLimit(s) })
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
 		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
-		err := mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error {
-			return getLimit(s)
-		})
-		return result, err
-
+		return result, mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error { return getLimit(s) })
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
 		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
 		pid, err := peer.Decode(p)
 		if err != nil {
 			return result, fmt.Errorf("invalid peer ID: %q: %w", p, err)
 		}
-		err = mgr.ViewPeer(pid, func(s network.PeerScope) error {
-			return getLimit(s)
-		})
-		return result, err
-
+		return result, mgr.ViewPeer(pid, func(s network.PeerScope) error { return getLimit(s) })
 	default:
 		return result, fmt.Errorf("invalid scope %q", scope)
 	}
 }
 
 // NetSetLimit sets new ResourceManager limits for the given scope. The limits take effect immediately, and are also persisted to the repo config.
-func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limit rcmgr.BasicLimitConfig) error {
+func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limit rcmgr.BaseLimit) error {
 	setLimit := func(s network.ResourceScope) error {
 		limiter, ok := s.(rcmgr.ResourceScopeLimiter)
 		if !ok { // NullResourceManager
 			return NoResourceMgrError
 		}
 
-		var newLimit rcmgr.Limit
-		if limit.Dynamic {
-			newLimit = &rcmgr.DynamicLimit{
-				MemoryLimit: rcmgr.MemoryLimit{
-					MemoryFraction: limit.MemoryFraction,
-					MinMemory:      limit.MinMemory,
-					MaxMemory:      limit.MaxMemory,
-				},
-				BaseLimit: rcmgr.BaseLimit{
-					Streams:         limit.Streams,
-					StreamsInbound:  limit.StreamsInbound,
-					StreamsOutbound: limit.StreamsOutbound,
-					Conns:           limit.Conns,
-					ConnsInbound:    limit.ConnsInbound,
-					ConnsOutbound:   limit.ConnsOutbound,
-					FD:              limit.FD,
-				},
-			}
-		} else {
-			newLimit = &rcmgr.StaticLimit{
-				Memory: limit.Memory,
-				BaseLimit: rcmgr.BaseLimit{
-					Streams:         limit.Streams,
-					StreamsInbound:  limit.StreamsInbound,
-					StreamsOutbound: limit.StreamsOutbound,
-					Conns:           limit.Conns,
-					ConnsInbound:    limit.ConnsInbound,
-					ConnsOutbound:   limit.ConnsOutbound,
-					FD:              limit.FD,
-				},
-			}
-		}
-
-		limiter.SetLimit(newLimit)
+		limiter.SetLimit(&limit)
 		return nil
 	}
 
@@ -329,48 +259,36 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 	}
 
 	if cfg.Swarm.ResourceMgr.Limits == nil {
-		cfg.Swarm.ResourceMgr.Limits = &rcmgr.BasicLimiterConfig{}
+		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}
 	}
 	configLimits := cfg.Swarm.ResourceMgr.Limits
 
 	var setConfigFunc func()
 	switch {
 	case scope == config.ResourceMgrSystemScope:
-		err = mgr.ViewSystem(func(s network.ResourceScope) error {
-			return setLimit(s)
-		})
-		setConfigFunc = func() { configLimits.System = &limit }
-
+		err = mgr.ViewSystem(func(s network.ResourceScope) error { return setLimit(s) })
+		setConfigFunc = func() { configLimits.System = limit }
 	case scope == config.ResourceMgrTransientScope:
-		err = mgr.ViewTransient(func(s network.ResourceScope) error {
-			return setLimit(s)
-		})
-		setConfigFunc = func() { configLimits.Transient = &limit }
-
+		err = mgr.ViewTransient(func(s network.ResourceScope) error { return setLimit(s) })
+		setConfigFunc = func() { configLimits.Transient = limit }
 	case strings.HasPrefix(scope, config.ResourceMgrServiceScopePrefix):
 		svc := strings.TrimPrefix(scope, config.ResourceMgrServiceScopePrefix)
-		err = mgr.ViewService(svc, func(s network.ServiceScope) error {
-			return setLimit(s)
-		})
+		err = mgr.ViewService(svc, func(s network.ServiceScope) error { return setLimit(s) })
 		setConfigFunc = func() {
 			if configLimits.Service == nil {
-				configLimits.Service = map[string]rcmgr.BasicLimitConfig{}
+				configLimits.Service = map[string]rcmgr.BaseLimit{}
 			}
 			configLimits.Service[svc] = limit
 		}
-
 	case strings.HasPrefix(scope, config.ResourceMgrProtocolScopePrefix):
 		proto := strings.TrimPrefix(scope, config.ResourceMgrProtocolScopePrefix)
-		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error {
-			return setLimit(s)
-		})
+		err = mgr.ViewProtocol(protocol.ID(proto), func(s network.ProtocolScope) error { return setLimit(s) })
 		setConfigFunc = func() {
 			if configLimits.Protocol == nil {
-				configLimits.Protocol = map[string]rcmgr.BasicLimitConfig{}
+				configLimits.Protocol = map[protocol.ID]rcmgr.BaseLimit{}
 			}
-			configLimits.Protocol[proto] = limit
+			configLimits.Protocol[protocol.ID(proto)] = limit
 		}
-
 	case strings.HasPrefix(scope, config.ResourceMgrPeerScopePrefix):
 		p := strings.TrimPrefix(scope, config.ResourceMgrPeerScopePrefix)
 		var pid peer.ID
@@ -378,16 +296,13 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 		if err != nil {
 			return fmt.Errorf("invalid peer ID: %q: %w", p, err)
 		}
-		err = mgr.ViewPeer(pid, func(s network.PeerScope) error {
-			return setLimit(s)
-		})
+		err = mgr.ViewPeer(pid, func(s network.PeerScope) error { return setLimit(s) })
 		setConfigFunc = func() {
 			if configLimits.Peer == nil {
-				configLimits.Peer = map[string]rcmgr.BasicLimitConfig{}
+				configLimits.Peer = map[peer.ID]rcmgr.BaseLimit{}
 			}
-			configLimits.Peer[p] = limit
+			configLimits.Peer[pid] = limit
 		}
-
 	default:
 		return fmt.Errorf("invalid scope %q", scope)
 	}
@@ -397,7 +312,7 @@ func NetSetLimit(mgr network.ResourceManager, repo repo.Repo, scope string, limi
 	}
 
 	if cfg.Swarm.ResourceMgr.Limits == nil {
-		cfg.Swarm.ResourceMgr.Limits = &rcmgr.BasicLimiterConfig{}
+		cfg.Swarm.ResourceMgr.Limits = &rcmgr.LimitConfig{}
 	}
 	setConfigFunc()
 
