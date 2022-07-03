@@ -1294,22 +1294,46 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Routers`
 
-It can contain several Router implementations, such as DHT and delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/blob/master/REFRAME.md).
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+
+Map of additional Routers.
+
+Allows for extending the default routing (DHT) with alternative Router
+implementations, such as custom DHTs and delegated routing based
+on the [reframe protocol](https://github.com/ipfs/specs/blob/master/REFRAME.md).
+
+The map key is a name of a Router, and the value is its configuration.
+
+Default: `{}`
 
 Type: `object[string->object]`
 
 #### `Routing.Routers: Type`
 
-It specifies the routing type that will be created. Supported types:
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
 
-- `reframe`
-- `dht` (WIP)
+It specifies the routing type that will be created.
+
+Currently supported types:
+
+- `reframe` (delegated routing based on the [reframe protocol][https://github.com/ipfs/specs/blob/master/REFRAME.md])
+- <del>`dht`</del> (WIP, custom DHT will be added in a future release)
+
+Type: `string`
 
 #### `Routing.Routers: Enabled`
 
-Flag to disable the specified router without removing it from the configuration file.
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+
+Optional flag to disable the specified router without removing it from the configuration file.
+
+Default: `true`
+
+Type: `flag` (`null`/missing will apply the default)
 
 #### `Routing.Routers: Parameters`
+
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
 
 Parameters needed to create the specified router. Supported params per router type:
 
@@ -1317,11 +1341,11 @@ Parameters needed to create the specified router. Supported params per router ty
   - `address` (mandatory): Address that will be used to connect to a specified server.
   - `priority`: Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
 
+Default: `{}` (use the safe implicit defaults)
+
+Type: `object[string->string]`
+
 ### `Routing.Type`
-
-**DEPRECATED:** use [`Routing.Routers`](#routingrouters) instead.
-
-Content routing mode. Can be overridden with daemon `--routing` flag.
 
 There are two core routing options: "none" and "dht" (default).
 
@@ -1356,9 +1380,9 @@ unless you're sure your node is reachable from the public network.
 }
 ```
 
-Default: dht
+Default: `dht`
 
-Type: `string` (or unset for the default)
+Type: `optionalString` (`null`/missing means the default)
 
 ## `Swarm`
 
