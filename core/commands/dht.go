@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -111,7 +112,19 @@ var queryDhtCmd = &cmds.Command{
 			}()
 
 			for e := range events {
-				if err := res.Emit(e); err != nil {
+				pfm := pfuncMap{
+					routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
+						fmt.Fprintf(out, "%s\n", obj.ID)
+						return nil
+					},
+				}
+				verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+				qeo, err := processQueryEvent(e, verbose, pfm)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("QueryEventOut: %v\n", qeo)
+				if err := res.Emit(qeo); err != nil {
 					return err
 				}
 			}
@@ -120,18 +133,12 @@ var queryDhtCmd = &cmds.Command{
 		}
 	},
 	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
-			pfm := pfuncMap{
-				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
-					fmt.Fprintf(out, "%s\n", obj.ID)
-					return nil
-				},
-			}
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, qeo *QueryEventOut) error {
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			return printEvent(out, w, verbose, pfm)
+			return printEvent(qeo, w, verbose)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: QueryEventOut{},
 }
 
 const (
@@ -188,15 +195,6 @@ var findProvidersDhtCmd = &cmds.Command{
 			}
 		}()
 		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
 			pfm := pfuncMap{
 				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
@@ -218,12 +216,25 @@ var findProvidersDhtCmd = &cmds.Command{
 					return nil
 				},
 			}
-
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			return printEvent(out, w, verbose, pfm)
+			qeo, err := processQueryEvent(e, verbose, pfm)
+			if err != nil {
+				return err
+			}
+			if err := res.Emit(qeo); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, qeo *QueryEventOut) error {
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			return printEvent(qeo, w, verbose)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: QueryEventOut{},
 }
 
 const (
@@ -304,15 +315,6 @@ var provideRefDhtCmd = &cmds.Command{
 		}()
 
 		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
-		}
-
-		return provideErr
-	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
 			pfm := pfuncMap{
 				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
@@ -321,12 +323,25 @@ var provideRefDhtCmd = &cmds.Command{
 					return nil
 				},
 			}
-
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			return printEvent(out, w, verbose, pfm)
+			qeo, err := processQueryEvent(e, verbose, pfm)
+			if err != nil {
+				return err
+			}
+			if err := res.Emit(qeo); err != nil {
+				return err
+			}
+		}
+
+		return provideErr
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, qeo *QueryEventOut) error {
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			return printEvent(qeo, w, verbose)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: QueryEventOut{},
 }
 
 func provideKeys(ctx context.Context, r routing.Routing, cids []cid.Cid) error {
@@ -415,15 +430,6 @@ var findPeerDhtCmd = &cmds.Command{
 		}()
 
 		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
-		}
-
-		return findPeerErr
-	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
 			pfm := pfuncMap{
 				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
 					pi := obj.Responses[0]
@@ -433,12 +439,25 @@ var findPeerDhtCmd = &cmds.Command{
 					return nil
 				},
 			}
-
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			return printEvent(out, w, verbose, pfm)
+			qeo, err := processQueryEvent(e, verbose, pfm)
+			if err != nil {
+				return err
+			}
+			if err := res.Emit(qeo); err != nil {
+				return err
+			}
+		}
+
+		return findPeerErr
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, qeo *QueryEventOut) error {
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			return printEvent(qeo, w, verbose)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: QueryEventOut{},
 }
 
 var getValueDhtCmd = &cmds.Command{
@@ -498,15 +517,6 @@ Different key types can specify other 'best' rules.
 		}()
 
 		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
-		}
-
-		return getErr
-	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
 			pfm := pfuncMap{
 				routing.Value: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
@@ -521,12 +531,25 @@ Different key types can specify other 'best' rules.
 					return err
 				},
 			}
-
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
-			return printEvent(out, w, verbose, pfm)
+			qeo, err := processQueryEvent(e, verbose, pfm)
+			if err != nil {
+				return err
+			}
+			if err := res.Emit(qeo); err != nil {
+				return err
+			}
+		}
+
+		return getErr
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, qeo *QueryEventOut) error {
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			return printEvent(qeo, w, verbose)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: QueryEventOut{},
 }
 
 var putValueDhtCmd = &cmds.Command{
@@ -600,15 +623,6 @@ identified by QmFoo.
 		}()
 
 		for e := range events {
-			if err := res.Emit(e); err != nil {
-				return err
-			}
-		}
-
-		return putErr
-	},
-	Encoders: cmds.EncoderMap{
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *routing.QueryEvent) error {
 			pfm := pfuncMap{
 				routing.FinalPeer: func(obj *routing.QueryEvent, out io.Writer, verbose bool) error {
 					if verbose {
@@ -621,66 +635,101 @@ identified by QmFoo.
 					return nil
 				},
 			}
-
 			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			qeo, err := processQueryEvent(e, verbose, pfm)
+			if err != nil {
+				return err
+			}
+			if err := res.Emit(qeo); err != nil {
+				return err
+			}
+		}
 
-			return printEvent(out, w, verbose, pfm)
+		return putErr
+	},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, qeo *QueryEventOut) error {
+			verbose, _ := req.Options[dhtVerboseOptionName].(bool)
+			return printEvent(qeo, w, verbose)
 		}),
 	},
-	Type: routing.QueryEvent{},
+	Type: QueryEventOut{},
 }
 
 type printFunc func(obj *routing.QueryEvent, out io.Writer, verbose bool) error
 type pfuncMap map[routing.QueryEventType]printFunc
 
-func printEvent(obj *routing.QueryEvent, out io.Writer, verbose bool, override pfuncMap) error {
+type QueryEventOut struct {
+	Time   string `json:",omitempty"`
+	Status string
+}
+
+func processQueryEvent(obj *routing.QueryEvent, verbose bool, override pfuncMap) (QueryEventOut, error) {
+	out := QueryEventOut{}
+
 	if verbose {
-		fmt.Fprintf(out, "%s: ", time.Now().Format("15:04:05.000"))
+		out.Time = time.Now().Format("15:04:05.000")
 	}
 
 	if override != nil {
 		if pf, ok := override[obj.Type]; ok {
-			return pf(obj, out, verbose)
+			b := new(bytes.Buffer)
+			err := pf(obj, b, verbose)
+			if err != nil {
+				return QueryEventOut{}, err
+			}
+			out.Status = b.String()
+			return out, nil
 		}
 	}
 
 	switch obj.Type {
 	case routing.SendingQuery:
 		if verbose {
-			fmt.Fprintf(out, "* querying %s\n", obj.ID)
+			out.Status = fmt.Sprintf("* querying %s\n", obj.ID)
 		}
 	case routing.Value:
 		if verbose {
-			fmt.Fprintf(out, "got value: '%s'\n", obj.Extra)
+			out.Status = fmt.Sprintf("got value: '%s'\n", obj.Extra)
 		} else {
-			fmt.Fprint(out, obj.Extra)
+			out.Status = fmt.Sprint(out, obj.Extra)
 		}
 	case routing.PeerResponse:
 		if verbose {
-			fmt.Fprintf(out, "* %s says use ", obj.ID)
+			out.Status = fmt.Sprintf("* %s says use ", obj.ID)
 			for _, p := range obj.Responses {
-				fmt.Fprintf(out, "%s ", p.ID)
+				out.Status += fmt.Sprintf("%s ", p.ID)
 			}
-			fmt.Fprintln(out)
+			out.Status += "\n"
 		}
 	case routing.QueryError:
 		if verbose {
-			fmt.Fprintf(out, "error: %s\n", obj.Extra)
+			out.Status = fmt.Sprintf("error: %s\n", obj.Extra)
 		}
 	case routing.DialingPeer:
 		if verbose {
-			fmt.Fprintf(out, "dialing peer: %s\n", obj.ID)
+			out.Status = fmt.Sprintf("dialing peer: %s\n", obj.ID)
 		}
 	case routing.AddingPeer:
 		if verbose {
-			fmt.Fprintf(out, "adding peer to query: %s\n", obj.ID)
+			out.Status = fmt.Sprintf("adding peer to query: %s\n", obj.ID)
 		}
 	case routing.FinalPeer:
 	default:
 		if verbose {
-			fmt.Fprintf(out, "unrecognized event type: %d\n", obj.Type)
+			out.Status = fmt.Sprintf("unrecognized event type: %d\n", obj.Type)
 		}
 	}
+	return out, nil
+}
+
+func printEvent(qeo *QueryEventOut, out io.Writer, verbose bool) error {
+	if verbose {
+		fmt.Fprintf(out, "%s: ", qeo.Time)
+	}
+
+	fmt.Fprintf(out, qeo.Status)
+
 	return nil
 }
 
