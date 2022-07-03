@@ -1,4 +1,4 @@
-# The go-ipfs config file
+#IPFS-Configurations-Go:
 
 The go-ipfs config file is a JSON document located at `$IPFS_PATH/config`. It
 is read once at node instantiation, either for an offline command, or when
