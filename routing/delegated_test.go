@@ -60,8 +60,6 @@ func TestRoutingFromConfig(t *testing.T) {
 
 	require.NotNil(r)
 	require.NoError(err)
-
-	// TODO add dht
 }
 
 func TestTieredRouter(t *testing.T) {

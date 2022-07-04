@@ -65,15 +65,9 @@ func RoutingFromConfig(c config.Router) (routing.Routing, error) {
 	switch {
 	case c.Type == string(config.RouterTypeReframe):
 		return reframeRoutingFromConfig(c)
-	case c.Type == string(config.RouterTypeDHT):
-		return dhtRoutingFromConfig(c)
 	default:
 		return nil, &RouterTypeNotFoundError{c.Type}
 	}
-}
-
-func dhtRoutingFromConfig(conf config.Router) (routing.Routing, error) {
-	panic("implement this")
 }
 
 func reframeRoutingFromConfig(conf config.Router) (routing.Routing, error) {

@@ -171,7 +171,11 @@ type p2pOnlineContentRoutingIn struct {
 func ContentRouting(in p2pOnlineContentRoutingIn) routing.ContentRouting {
 	var routers []routing.Routing
 	for _, cr := range in.ContentRouter {
-		routers = append(routers, irouting.NewContentRoutingWrapper(cr))
+		routers = append(routers,
+			&routinghelpers.Compose{
+				ContentRouting: cr,
+			},
+		)
 	}
 
 	return routinghelpers.Tiered{

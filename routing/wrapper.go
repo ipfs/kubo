@@ -64,34 +64,3 @@ func (pmw *ProvideManyWrapper) Ready() bool {
 
 	return out
 }
-
-type ContentRoutingWrapper struct {
-	routing.ContentRouting
-	routing.ValueStore
-}
-
-func NewContentRoutingWrapper(cr routing.ContentRouting) *ContentRoutingWrapper {
-	return &ContentRoutingWrapper{
-		ContentRouting: cr,
-	}
-}
-
-func (crw *ContentRoutingWrapper) Bootstrap(context.Context) error {
-	return nil
-}
-
-func (crw *ContentRoutingWrapper) FindPeer(context.Context, peer.ID) (peer.AddrInfo, error) {
-	return peer.AddrInfo{}, routing.ErrNotSupported
-}
-
-func (crw *ContentRoutingWrapper) PutValue(context.Context, string, []byte, ...routing.Option) error {
-	return routing.ErrNotSupported
-}
-
-func (crw *ContentRoutingWrapper) GetValue(context.Context, string, ...routing.Option) ([]byte, error) {
-	return nil, routing.ErrNotSupported
-}
-
-func (crw *ContentRoutingWrapper) SearchValue(context.Context, string, ...routing.Option) (<-chan []byte, error) {
-	return nil, routing.ErrNotSupported
-}

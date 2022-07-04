@@ -31,7 +31,6 @@ type RouterType string
 
 const (
 	RouterTypeReframe RouterType = "reframe"
-	RouterTypeDHT     RouterType = "dht"
 )
 
 type RouterParam string
