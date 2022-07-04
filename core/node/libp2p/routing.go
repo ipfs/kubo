@@ -168,6 +168,8 @@ type p2pOnlineContentRoutingIn struct {
 	ContentRouter []routing.ContentRouting `group:"content-routers"`
 }
 
+// ContentRouting will get all routers that can do contentRouting and add them
+// all together using a TieredRouter. It will be used for topic discovery.
 func ContentRouting(in p2pOnlineContentRoutingIn) routing.ContentRouting {
 	var routers []routing.Routing
 	for _, cr := range in.ContentRouter {
@@ -190,6 +192,9 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
+// Routing will get all routers obtained from different methods
+// (delegated routers, pub-sub, and so on) and add them all together
+// using a TieredRouter.
 func Routing(in p2pOnlineRoutingIn) irouting.TieredRouter {
 	routers := in.Routers
 
@@ -210,6 +215,7 @@ func Routing(in p2pOnlineRoutingIn) irouting.TieredRouter {
 	}
 }
 
+// OfflineRouting provides a special Router to the routers list when we are creating a offline node.
 func OfflineRouting(dstore ds.Datastore, validator record.Validator) p2pRouterOut {
 	return p2pRouterOut{
 		Router: Router{
