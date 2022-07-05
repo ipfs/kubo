@@ -1279,7 +1279,7 @@ Tells reprovider what should be announced. Valid strategies are:
 
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
-- `"roots"` - only announce root CIDs of recursive pins and explicitly pinned CIDs
+- `"roots"` - only announce the root block of explicitly pinned CIDs
 
 Default: `"all"`
 
