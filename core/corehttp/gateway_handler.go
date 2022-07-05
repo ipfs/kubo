@@ -24,6 +24,7 @@ import (
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
@@ -66,8 +67,9 @@ type redirectTemplateData struct {
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	config GatewayConfig
-	api    coreiface.CoreAPI
+	config     GatewayConfig
+	api        coreiface.CoreAPI
+	offlineApi coreiface.CoreAPI
 
 	// generic metrics
 	firstContentBlockGetMetric *prometheus.HistogramVec
@@ -211,10 +213,15 @@ func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVe
 	return histogramMetric
 }
 
-func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
+func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) (*gatewayHandler, error) {
+	offlineApi, err := api.WithOptions(options.Api.Offline(true))
+	if err != nil {
+		return nil, err
+	}
 	i := &gatewayHandler{
-		config: c,
-		api:    api,
+		config:     c,
+		api:        api,
+		offlineApi: offlineApi,
 		// Improved Metrics
 		// ----------------------------
 		// Time till the first content block (bar in /ipfs/cid/foo/bar)
@@ -255,7 +262,7 @@ func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 			"The time to receive the first UnixFS node on a GET from the gateway.",
 		),
 	}
-	return i
+	return i, nil
 }
 
 func parseIpfsPath(p string) (cid.Cid, string, error) {
@@ -360,6 +367,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	contentPath := ipath.New(r.URL.Path)
+
+	if requestHandled := i.handleOnlyIfCached(w, r, contentPath, logger); requestHandled {
+		return
+	}
+
 	if requestHandled := handleSuperfluousNamespace(w, r, contentPath); requestHandled {
 		return
 	}
@@ -954,6 +966,28 @@ func debugStr(path string) string {
 		q = q[1 : len(q)-1]
 	}
 	return q
+}
+
+// Detect 'Cache-Control: only-if-cached' in request and return data if it is already in the local datastore.
+// https://github.com/ipfs/specs/blob/main/http-gateways/PATH_GATEWAY.md#cache-control-request-header
+func (i *gatewayHandler) handleOnlyIfCached(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (requestHandled bool) {
+	if r.Header.Get("Cache-Control") == "only-if-cached" {
+		_, err := i.offlineApi.Block().Stat(r.Context(), contentPath)
+		if err != nil {
+			if r.Method == http.MethodHead {
+				w.WriteHeader(http.StatusPreconditionFailed)
+				return true
+			}
+			errMsg := fmt.Sprintf("%q not in local datastore", contentPath.String())
+			http.Error(w, errMsg, http.StatusPreconditionFailed)
+			return true
+		}
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusOK)
+			return true
+		}
+	}
+	return false
 }
 
 func handleUnsupportedHeaders(r *http.Request) (err *requestError) {
