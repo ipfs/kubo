@@ -20,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 	rcmgrObs "github.com/libp2p/go-libp2p-resource-manager/obs"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.opencensus.io/stats/view"
 
@@ -72,6 +73,20 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			}
 
 			ropts := []rcmgr.Option{rcmgr.WithMetrics(createRcmgrMetrics()), rcmgr.WithTraceReporter(str)}
+
+			if len(cfg.ResourceMgr.Allowlist) > 0 {
+				var mas []multiaddr.Multiaddr
+				for _, maStr := range cfg.ResourceMgr.Allowlist {
+					ma, err := multiaddr.NewMultiaddr(maStr)
+					if err != nil {
+						log.Errorf("failed to parse multiaddr=%v for allowlist, skipping. err=%v", maStr, err)
+						continue
+					}
+					mas = append(mas, ma)
+				}
+				ropts = append(ropts, rcmgr.WithAllowlistedMultiaddrs(mas))
+				log.Infof("Setting allowlist to: %v", mas)
+			}
 
 			// Hook up the trace reporter metrics
 			view.Register(rcmgrObs.DefaultViews...)
