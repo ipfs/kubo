@@ -1,5 +1,11 @@
 # go-ipfs changelog
 
+## v0.14.0 TBD
+
+### Overview
+
+- Delegated routing using [Reframe protocol](https://github.com/ipfs/specs/blob/main/REFRAME.md)
+
 ## v0.13.0 2022-05-04
 
 We're happy to announce go-ipfs 0.13.0, packed full of changes and improvements!
