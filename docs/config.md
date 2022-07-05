@@ -75,6 +75,7 @@ config file at runtime.
     - [`Ipns.RecordLifetime`](#ipnsrecordlifetime)
     - [`Ipns.ResolveCacheSize`](#ipnsresolvecachesize)
     - [`Ipns.UsePubsub`](#ipnsusepubsub)
+    - [`Ipns.ReproviderDuration`](#ipnsreproviderduration)
   - [`Migration`](#migration)
     - [`Migration.DownloadSources`](#migrationdownloadsources)
     - [`Migration.Keep`](#migrationkeep)
@@ -1015,6 +1016,14 @@ Enables IPFS over pubsub experiment for publishing IPNS records in real time.
 Default: `disabled`
 
 Type: `flag`
+
+### `Ipns.ReproviderDuration`
+
+Time duration specifying how long a node stays subscribed to an IPNS PubSub topic after a lookup.
+
+Default: `36h`.
+
+Type: `duration`
 
 ## `Migration`
 
