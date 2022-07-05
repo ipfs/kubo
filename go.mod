@@ -68,7 +68,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-doh-resolver v0.4.0
-	github.com/libp2p/go-libp2p v0.20.1-0.20220702110402-59d643acf30f
+	github.com/libp2p/go-libp2p v0.21.0-rc
 	github.com/libp2p/go-libp2p-core v0.19.0
 	github.com/libp2p/go-libp2p-http v0.2.1
 	github.com/libp2p/go-libp2p-kad-dht v0.16.1-0.20220702124207-e5a723647953
@@ -78,7 +78,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.6.1
 	github.com/libp2p/go-libp2p-pubsub-router v0.5.0
 	github.com/libp2p/go-libp2p-record v0.1.3
-	github.com/libp2p/go-libp2p-resource-manager v0.4.1-0.20220702093928-7ceb0b850c67
+	github.com/libp2p/go-libp2p-resource-manager v0.5.0
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
 	github.com/libp2p/go-libp2p-testing v0.10.0
 	github.com/libp2p/go-socket-activation v0.1.0
