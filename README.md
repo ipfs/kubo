@@ -2,7 +2,7 @@
 
 > the oldest IPFS implementation, previously known as "go-ipfs"
 
-![kubo](https://user-images.githubusercontent.com/157609/167471494-dee3a355-b551-4fbf-98e0-2eb76e867b48.png)
+![kubo, an IPFS node in Go](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
 
 [![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square&cacheSeconds=3600)](https://protocol.ai)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square&cacheSeconds=3600)](https://godoc.org/github.com/ipfs/kubo)
