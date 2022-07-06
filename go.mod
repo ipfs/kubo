@@ -1,7 +1,8 @@
 module github.com/ipfs/kubo
 
 replace github.com/multiformats/go-multihash => github.com/laudiacay/go-multihash v0.2.0
-replace github.com/ipfs/go-verifcid => github.com/laudiacay/go-verifcid v0.1.0
+
+replace github.com/ipfs/go-verifcid => github.com/laudiacay/go-verifcid v0.0.2-0.20220706213528-ec99cb98eda2
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
@@ -91,7 +92,7 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.1.0
 	github.com/multiformats/go-multicodec v0.5.0
-	github.com/laudiacay/go-multihash v0.2.0
+	github.com/multiformats/go-multihash v0.2.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
