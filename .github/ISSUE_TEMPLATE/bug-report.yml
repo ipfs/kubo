@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in go-ipfs.
+description: Report a bug in Kubo.
 labels:
   - kind/bug
   - need/triage
@@ -7,12 +7,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        - Make sure you are running the [latest version of go-ipfs][releases] before reporting an issue.
-        - If you have an enhancement or feature request for go-ipfs, please select [a different option][issues].
+        - Make sure you are running the [latest version of Kubo][releases] before reporting an issue.
+        - If you have an enhancement or feature request for Kubo, please select [a different option][issues].
         - Please report possible security issues by email to security@ipfs.io
 
-        [issues]: https://github.com/ipfs/go-ipfs/issues/new/choose
-        [releases]: https://github.com/ipfs/go-ipfs/releases
+        [issues]: https://github.com/ipfs/kubo/issues/new/choose
+        [releases]: https://github.com/ipfs/kubo/releases
   - type: checkboxes
     attributes:
       label: Checklist
@@ -20,9 +20,9 @@ body:
       options:
         - label: This is a bug report, not a question. Ask questions on [discuss.ipfs.io](https://discuss.ipfs.io).
           required: true
-        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my bug.
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/kubo/issues?q=is%3Aissue) for my bug.
           required: true
-        - label: I am running the latest [go-ipfs version](https://dist.ipfs.io/#go-ipfs) or have an issue updating.
+        - label: I am running the latest [kubo version](https://dist.ipfs.io/#kubo) or have an issue updating.
           required: true
   - type: dropdown
     id: install

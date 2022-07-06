@@ -1,12 +1,12 @@
 name: Feature
-description: Suggest a new feature in go-ipfs.
+description: Suggest a new feature in Kubo.
 labels:
   - kind/feature
 body:
   - type: markdown
     attributes:
       value: |
-        Suggest a new feature in go-ipfs (the program). If you'd like to suggest an improvement to the IPFS protocol, please discuss it on [the forum](https://discuss.ipfs.io).
+        Suggest a new feature in Kubo (the program). If you'd like to suggest an improvement to the IPFS protocol, please discuss it on [the forum](https://discuss.ipfs.io).
 
         Issues in this repo must be specific, actionable, and well motivated. They should be starting points for _building_ new features, not brainstorming ideas.
 
@@ -25,7 +25,7 @@ body:
           required: true
         - label: I am not suggesting a protocol enhancement.
           required: true
-        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my issue.
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/kubo/issues?q=is%3Aissue) for my issue.
           required: true
   - type: textarea
     attributes:
