@@ -6,9 +6,11 @@ they were stored in a traditional web server.
 
 [More about Gateways](https://docs.ipfs.io/concepts/ipfs-gateway/) and [addressing IPFS on the web](https://docs.ipfs.io/how-to/address-ipfs-on-web/).
 
+Kubo's Gateway implementation follows [ipfs/specs: Specification for HTTP Gateways](https://github.com/ipfs/specs/tree/main/http-gateways#readme).
+
 ### Local gateway
 
-By default, go-ipfs nodes run
+By default, Kubo nodes run
 a [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://127.0.0.1:8080/`
 and a [subdomain gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://localhost:8080/`
 
@@ -24,8 +26,8 @@ There is a list of third-party public gateways provided by the IPFS community at
 ## Configuration
 
 The `Gateway.*` configuration options are (briefly) described in the
-[config](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#gateway)
-documentation, including a list of common [gateway recipes](https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#gateway-recipes).
+[config](https://github.com/ipfs/kubo/blob/master/docs/config.md#gateway)
+documentation, including a list of common [gateway recipes](https://github.com/ipfs/kubo/blob/master/docs/config.md#gateway-recipes).
 
 ### Debug
 The gateway's log level can be changed with this command:
@@ -45,7 +47,7 @@ a directory:
 2. Dynamically build and serve a listing of the contents of the directory.
 
 <sub><sup>&dagger;</sup>This redirect is skipped if the query string contains a
-`go-get=1` parameter. See [PR#3964](https://github.com/ipfs/go-ipfs/pull/3963)
+`go-get=1` parameter. See [PR#3964](https://github.com/ipfs/kubo/pull/3963)
 for details</sub>
 
 ## Static Websites
@@ -97,7 +99,7 @@ This is equivalent of `ipfs block get`.
 Returns a [CAR](https://ipld.io/specs/transport/car/) stream for specific DAG and selector.
 
 Right now only 'full DAG' implicit selector is implemented.
-Support for user-provided IPLD selectors is tracked in https://github.com/ipfs/go-ipfs/issues/8769.
+Support for user-provided IPLD selectors is tracked in https://github.com/ipfs/kubo/issues/8769.
 
 This is a rough equivalent of `ipfs dag export`.
 
