@@ -81,12 +81,12 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	i.carStreamGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
 }
 
+// FIXME(@Jorropo): https://github.com/ipld/go-car/issues/315
 type dagStore struct {
 	dag coreiface.APIDagService
 	ctx context.Context
 }
 
-func (ds dagStore) Get(c cid.Cid) (blocks.Block, error) {
-	obj, err := ds.dag.Get(ds.ctx, c)
-	return obj, err
+func (ds dagStore) Get(_ context.Context, c cid.Cid) (blocks.Block, error) {
+	return ds.dag.Get(ds.ctx, c)
 }
