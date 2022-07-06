@@ -55,9 +55,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				return nil, opts, fmt.Errorf("opening IPFS_PATH: %w", err)
 			}
 
-			limitCfg := adjustedDefaultLimits(cfg)
-			libp2p.SetDefaultServiceLimits(limitCfg)
-			limits := limitCfg.AutoScale()
+			limits := adjustedDefaultLimits(cfg)
 
 			if cfg.ResourceMgr.Limits != nil {
 				l := *cfg.ResourceMgr.Limits

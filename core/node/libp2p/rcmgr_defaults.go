@@ -18,64 +18,62 @@ import (
 
 // adjustedDefaultLimits allows for tweaking defaults based on external factors,
 // such as values in Swarm.ConnMgr.HiWater config.
-func adjustedDefaultLimits(cfg config.SwarmConfig) *rcmgr.ScalingLimitConfig {
+func adjustedDefaultLimits(cfg config.SwarmConfig) rcmgr.LimitConfig {
 	// Run checks to avoid introducing regressions
 	if os.Getenv("IPFS_CHECK_RCMGR_DEFAULTS") != "" {
 		// FIXME: Broken. Being tracked in https://github.com/ipfs/go-ipfs/issues/8949.
 		checkImplicitDefaults()
 	}
-	return &rcmgr.DefaultLimits
+	defaultLimits := rcmgr.DefaultLimits
+	libp2p.SetDefaultServiceLimits(&defaultLimits)
 
-	// // Adjust limits
-	// // (based on https://github.com/filecoin-project/lotus/pull/8318/files)
-	// // - give it more memory, up to 4G, min of 1G
-	// // - if Swarm.ConnMgr.HighWater is too high, adjust Conn/FD/Stream limits
-	// defaultLimits := rcmgr.DefaultLimits.WithSystemMemory(.125, 1<<30, 4<<30)
-	//
-	// // Outbound conns and FDs are set very high to allow for the accelerated DHT client to (re)load its routing table.
-	// // Currently it doesn't gracefully handle RM throttling--once it does we can lower these.
-	// // High outbound conn limits are considered less of a DoS risk than high inbound conn limits.
-	// // Also note that, due to the behavior of the accelerated DHT client, we don't need many streams, just conns.
-	// if minOutbound := 65536; defaultLimits.SystemBaseLimit.ConnsOutbound < minOutbound {
-	// 	defaultLimits.SystemBaseLimit.ConnsOutbound = minOutbound
-	// }
-	// if minFD := 4096; defaultLimits.SystemBaseLimit.FD < minFD {
-	// 	defaultLimits.SystemBaseLimit.FD = minFD
-	// }
-	//
+	// Adjust limits
+	// (based on https://github.com/filecoin-project/lotus/pull/8318/files)
+	// - if Swarm.ConnMgr.HighWater is too high, adjust Conn/FD/Stream limits
+
+	// Outbound conns and FDs are set very high to allow for the accelerated DHT client to (re)load its routing table.
+	// Currently it doesn't gracefully handle RM throttling--once it does we can lower these.
+	// High outbound conn limits are considered less of a DoS risk than high inbound conn limits.
+	// Also note that, due to the behavior of the accelerated DHT client, we don't need many streams, just conns.
+	if minOutbound := 65536; defaultLimits.SystemBaseLimit.ConnsOutbound < minOutbound {
+		defaultLimits.SystemBaseLimit.ConnsOutbound = minOutbound
+	}
+	if minFD := 4096; defaultLimits.SystemBaseLimit.FD < minFD {
+		defaultLimits.SystemBaseLimit.FD = minFD
+	}
+	defaultLimitConfig := defaultLimits.AutoScale()
+
 	// Do we need to adjust due to Swarm.ConnMgr.HighWater?
-	// if cfg.ConnMgr.Type == "basic" {
-	// 	maxconns := cfg.ConnMgr.HighWater
-	// 	if 2*maxconns > defaultLimits.SystemBaseLimit.ConnsInbound {
-	// 		// Conns should be at least 2x larger than the high water to allow for two conns per peer (TCP+QUIC).
-	// 		defaultLimits.SystemBaseLimit.ConnsInbound = logScale(2 * maxconns)
-	//
-	// 		// We want the floor of minOutbound conns to be no less than what was set above.
-	// 		if minOutbound := logScale(2 * maxconns); minOutbound > defaultLimits.SystemBaseLimit.ConnsOutbound {
-	// 			defaultLimits.SystemBaseLimit.ConnsOutbound = minOutbound
-	// 		}
-	//
-	// 		if 2*maxconns > defaultLimits.SystemBaseLimit.FD {
-	// 			defaultLimits.SystemBaseLimit.FD = logScale(2 * maxconns)
-	// 		}
-	//
-	// 		defaultLimits.SystemBaseLimit.StreamsInbound = logScale(16 * maxconns)
-	// 		defaultLimits.SystemBaseLimit.StreamsOutbound = logScale(64 * maxconns)
-	// 		defaultLimits.SystemBaseLimit.Streams = logScale(64 * maxconns)
-	//
-	// 		defaultLimits.ServiceBaseLimit.StreamsInbound = logScale(8 * maxconns)
-	// 		defaultLimits.ServiceBaseLimit.StreamsOutbound = logScale(32 * maxconns)
-	// 		defaultLimits.ServiceBaseLimit.Streams = logScale(32 * maxconns)
-	//
-	// 		defaultLimits.ProtocolBaseLimit.StreamsInbound = logScale(8 * maxconns)
-	// 		defaultLimits.ProtocolBaseLimit.StreamsOutbound = logScale(32 * maxconns)
-	// 		defaultLimits.ProtocolBaseLimit.Streams = logScale(32 * maxconns)
-	// 	}
-	// }
-	//
-	// defaultLimits.SystemBaseLimit.Conns = defaultLimits.SystemBaseLimit.ConnsOutbound + defaultLimits.SystemBaseLimit.ConnsInbound
-	//
-	// return defaultLimits
+	if cfg.ConnMgr.Type == "basic" {
+		maxconns := cfg.ConnMgr.HighWater
+		if 2*maxconns > defaultLimitConfig.System.ConnsInbound {
+			// adjust conns to 2x to allow for two conns per peer (TCP+QUIC)
+			defaultLimitConfig.System.ConnsInbound = logScale(2 * maxconns)
+			defaultLimitConfig.System.ConnsOutbound = logScale(2 * maxconns)
+			defaultLimitConfig.System.Conns = logScale(4 * maxconns)
+
+			defaultLimitConfig.System.StreamsInbound = logScale(16 * maxconns)
+			defaultLimitConfig.System.StreamsOutbound = logScale(64 * maxconns)
+			defaultLimitConfig.System.Streams = logScale(64 * maxconns)
+
+			if 2*maxconns > defaultLimitConfig.System.FD {
+				defaultLimitConfig.System.FD = logScale(2 * maxconns)
+			}
+
+			defaultLimitConfig.ServiceDefault.StreamsInbound = logScale(8 * maxconns)
+			defaultLimitConfig.ServiceDefault.StreamsOutbound = logScale(32 * maxconns)
+			defaultLimitConfig.ServiceDefault.Streams = logScale(32 * maxconns)
+
+			defaultLimitConfig.ProtocolDefault.StreamsInbound = logScale(8 * maxconns)
+			defaultLimitConfig.ProtocolDefault.StreamsOutbound = logScale(32 * maxconns)
+			defaultLimitConfig.ProtocolDefault.Streams = logScale(32 * maxconns)
+
+			log.Info("adjusted default resource manager limits")
+		}
+
+	}
+
+	return defaultLimitConfig
 }
 
 func logScale(val int) int {
