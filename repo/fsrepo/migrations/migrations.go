@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	config "github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/kubo/config"
 )
 
 const (

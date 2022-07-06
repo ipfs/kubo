@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ipfs/go-ipfs/config"
+	"github.com/ipfs/kubo/config"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/network"

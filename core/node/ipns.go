@@ -11,11 +11,11 @@ import (
 	record "github.com/libp2p/go-libp2p-record"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-ipfs/repo"
-	irouting "github.com/ipfs/go-ipfs/routing"
+	irouting "github.com/ipfs/kubo/routing"
 
 	"github.com/ipfs/go-namesys"
 	"github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/kubo/repo"
 )
 
 const DefaultIpnsCacheSize = 128

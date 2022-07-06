@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
   ca-certificates \
   fuse
 
-ENV SRC_DIR /go-ipfs
+ENV SRC_DIR /kubo
 
 # Download packages first so they can be cached.
 COPY go.mod go.sum $SRC_DIR/
@@ -51,7 +51,7 @@ FROM busybox:1.31.1-glibc
 LABEL maintainer="Steven Allen <steven@stebalien.com>"
 
 # Get the ipfs binary, entrypoint script, and TLS CAs from the build container.
-ENV SRC_DIR /go-ipfs
+ENV SRC_DIR /kubo
 COPY --from=0 $SRC_DIR/cmd/ipfs/ipfs /usr/local/bin/ipfs
 COPY --from=0 $SRC_DIR/bin/container_daemon /usr/local/bin/start_ipfs
 COPY --from=0 $SRC_DIR/bin/container_init_run /usr/local/bin/container_init_run

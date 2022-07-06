@@ -9,12 +9,12 @@ import (
 	"sort"
 	"strings"
 
-	version "github.com/ipfs/go-ipfs"
-	core "github.com/ipfs/go-ipfs/core"
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	version "github.com/ipfs/kubo"
+	core "github.com/ipfs/kubo/core"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
+	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	ic "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"

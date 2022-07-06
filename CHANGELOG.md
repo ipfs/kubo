@@ -1,10 +1,98 @@
-# go-ipfs changelog
+# Kubo changelog
 
 ## v0.14.0 TBD
 
 ### Overview
 
 - Delegated routing using [Reframe protocol](https://github.com/ipfs/specs/blob/main/REFRAME.md)
+
+
+## v0.13.1 2022-07-06
+
+This release includes security fixes for various DOS vectors when importing untrusted user input with `ipfs dag import`
+and the [`v0/dag/import`](https://docs.ipfs.io/reference/http/api/#api-v0-dag-import) endpoint.
+
+View the linked [security advisory](https://github.com/ipfs/go-ipfs/security/advisories/GHSA-f2gr-7299-487h) for more information.
+
+### Changelog
+
+- github.com/ipfs/go-ipfs:
+  - chore: update car
+- github.com/ipld/go-car (v0.3.2 -> v0.4.0) & (v2.1.1 -> v2.4.0):
+  - Bump version in prep for releasing go-car `v0`
+  - Revert changes to `insertionindex`
+  - Revert changes to `index.Index` while keeping most of security fixes
+  - Return error when section length is invalid `varint`
+  - Drop repeated package name from `CarStats`
+  - Benchmark `Reader.Inspect` with and without hash validation
+  - Use consistent CID mismatch error in `Inspect` and `BlockReader.Next`
+  - Use streaming APIs to verify the hash of blocks in CAR `Inspect`
+  - test: add fuzzing for reader#Inspect
+  - feat: add block hash validation to Inspect()
+  - feat: add Reader#Inspect() function to check basic validity of a CAR and return stats
+  - Remove support for `ForEach` enumeration from car-index-sorted
+  - Use a fix code as the multihash code for `CarIndexSorted`
+  - Fix testutil assertion logic and update index generation tests
+  - fix: tighter constraint of singleWidthIndex width, add index recommentation docs
+  - fix: explicitly disable serialization of insertionindex
+  - feat: MaxAllowed{Header,Section}Size option
+  - feat: MaxAllowedSectionSize default to 32M
+  - fix: use CidFromReader() which has overread and OOM protection
+  - fix: staticcheck catches
+  - fix: revert to internalio.NewOffsetReadSeeker in Reader#IndexReader
+  - fix index comparisons
+  - feat: Refactor indexes to put storage considerations on consumers
+  - test: v2 add fuzzing of the index
+  - fix: v2 don't divide by zero in width indexes
+  - fix: v2 don't allocate indexes too big
+  - test: v2 add fuzzing to Reader
+  - fix: v2 don't accept overflowing offsets while reading v2 headers
+  - test: v2 add fuzzing to BlockReader
+  - fix: v2 don't OOM if the header size is too big
+  - test: add fuzzing of NewCarReader
+  - fix: do bound check while checking for CIDv0
+  - fix: don't OOM if the header size is too big
+  - Add API to regenerate index from CARv1 or CARv2
+  - PrototypeChooser support (#305) ([ipld/go-car#305](https://github.com/ipld/go-car/pull/305))
+  - bump to newer blockstore err not found (#301) ([ipld/go-car#301](https://github.com/ipld/go-car/pull/301))
+  - Car command supports for `largebytes` nodes (#296) ([ipld/go-car#296](https://github.com/ipld/go-car/pull/296))
+  - fix(test): rootless fixture should have no roots, not null roots
+  - Allow extracton of a raw unixfs file (#284) ([ipld/go-car#284](https://github.com/ipld/go-car/pull/284))
+  - cmd/car: use a better install command in the README
+  - feat: --version selector for `car create` & update deps
+  - feat: add option to create blockstore that writes a plain CARv1 (#288) ([ipld/go-car#288](https://github.com/ipld/go-car/pull/288))
+  - add `car detach-index list` to list detached index contents (#287) ([ipld/go-car#287](https://github.com/ipld/go-car/pull/287))
+  - add `car root` command (#283) ([ipld/go-car#283](https://github.com/ipld/go-car/pull/283))
+  - make specification of root cid in get-dag command optional (#281) ([ipld/go-car#281](https://github.com/ipld/go-car/pull/281))
+  - Update `version.json` after manual tag push
+  - Update v2 to context datastores (#275) ([ipld/go-car#275](https://github.com/ipld/go-car/pull/275))
+  - update context datastore ([ipld/go-car#273](https://github.com/ipld/go-car/pull/273))
+  - Traversal-based car creation (#269) ([ipld/go-car#269](https://github.com/ipld/go-car/pull/269))
+  - Seek to start before index generation in `ReadOnly` blockstore
+  - support extraction of unixfs content stored in car files (#263) ([ipld/go-car#263](https://github.com/ipld/go-car/pull/263))
+  - Add a barebones readme to the car CLI (#262) ([ipld/go-car#262](https://github.com/ipld/go-car/pull/262))
+  - sync: update CI config files (#261) ([ipld/go-car#261](https://github.com/ipld/go-car/pull/261))
+  - fix!: use -version=n instead of -v1 for index command
+  - feat: fix get-dag and add version=1 option
+  - creation of car from file / directory (#246) ([ipld/go-car#246](https://github.com/ipld/go-car/pull/246))
+  - forEach iterates over index in stable order (#258) ([ipld/go-car#258](https://github.com/ipld/go-car/pull/258))
+- github.com/multiformats/go-multicodec (v0.4.1 -> v0.5.0):
+  - Bump version to 0.5.0
+  - Bump version to 0.4.2
+  - deps: update stringer version in go generate command
+  - docs(readme): improved usage examples (#66) ([multiformats/go-multicodec#66](https://github.com/multiformats/go-multicodec/pull/66))
+
+### ❤  Contributors
+
+| Contributor | Commits | Lines ± | Files Changed |
+|-------------|---------|---------|---------------|
+| Masih H. Derkani | 27 | +1494/-1446 | 100 |
+| Rod Vagg | 31 | +2021/-606 | 105 |
+| Will | 19 | +1898/-151 | 69 |
+| Jorropo | 27 | +1638/-248 | 76 |
+| Aayush Rajasekaran | 1 | +130/-100 | 10 |
+| whyrusleeping | 1 | +24/-22 | 4 |
+| Marcin Rataj | 1 | +27/-1 | 1 |
 
 ## v0.13.0 2022-05-04
 
@@ -146,7 +234,7 @@ There are two ways for requesting CID specific response format:
 
 ```console
 $ curl  -H 'Accept: application/vnd.ipld.raw' "http://127.0.0.1:8080/ipfs/QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN" --output block.bin
-$ cat block.bin | ipfs block put 
+$ cat block.bin | ipfs block put
 $ ipfs cat QmZULkCELmmk5XNfCgTnCyFgAVxBRBXyDHGGMVoLFLiXEN
 hello
 ```
@@ -2129,7 +2217,7 @@ As usual, this release includes important fixes, some of which may be critical f
 - `ipfs dag put`
   - defaults changed to reduce ambiguity and surprises: input is now assumed to be [`dag-json`](https://ipld.io/specs/codecs/dag-json/spec/), and data is serialized to [`dag-cbor`](https://ipld.io/specs/codecs/dag-cbor/spec/) at rest.
   - `--format` and `--input-enc` were removed and replaced with `--store-codec` and `--input-codec`
-  - codec names now match the ones defined in the [multicodec table](https://github.com/multiformats/multicodec/blob/master/table.csv) 
+  - codec names now match the ones defined in the [multicodec table](https://github.com/multiformats/multicodec/blob/master/table.csv)
   - dag-pb (e.g. unixfs) field names changed - impacts userland code that works with `dag-pb` objects stored via `dag put`
 
 Keep reading to learn more details.
@@ -3513,7 +3601,7 @@ Examples include:
 ```
 ipfs pin remote service add myservice https://myservice.tld:1234/api/path myaccess key
 
-ipfs pin remote add /ipfs/bafymydata --service=myservice --name=myfile 
+ipfs pin remote add /ipfs/bafymydata --service=myservice --name=myfile
 ipfs pin remote ls --service=myservice --name=myfile
 ipfs pin remote ls --service=myservice --cid=bafymydata
 ipfs pin remote rm --serivce=myservice --name=myfile
@@ -3536,7 +3624,7 @@ Previously DNSLink names would have trouble loading over subdomain gateways with
 
 `/ipns/en.wikipedia-on-ipfs.org` →
 `ipns://en.wikipedia-on-ipfs.org`  →
-`https://dweb.link/ipns/en.wikipedia-on-ipfs.org` 
+`https://dweb.link/ipns/en.wikipedia-on-ipfs.org`
 `https://en-wikipedia--on--ipfs-org.ipns.dweb.link` :point_left: _a single DNS label, no TLS error_
 
 #### QUIC update
@@ -5264,7 +5352,7 @@ default. This:
 
 * Ensures that every dapp gets its own browser origin.
 * Makes it easier to write websites that "just work" with IPFS because absolute paths will now work (though you should still use relative links because they're better).
-  
+
 Paths addressing the gateway by IP address (`http://127.0.0.1:5001/ipfs/CID`) will not be altered as IP addresses can't have subdomains.
 
 Note: cURL doesn't follow redirects by default. To avoid breaking cURL and other clients that don't support redirects, go-ipfs will return the requested file along with the redirect. Browsers will follow the redirect and abort the download while cURL will ignore the redirect and finish the download.
@@ -5293,7 +5381,7 @@ This feature will be enabled by default in 0.6.0.
 
 ##### IPNS with base32 PIDs
 
-IPNS names can now be expressed as special multibase CIDs. E.g., 
+IPNS names can now be expressed as special multibase CIDs. E.g.,
 
 > /ipns/bafzbeibxfjp4gaxc4cdn57257cyvc7jfa4rlp4e5min6geg44m57g6nx7e
 
@@ -5391,7 +5479,7 @@ IPFS now allows rapid reading and writing of blocks in [`.car` format](https://g
 ~$ ipfs dag export QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc \
 | xz > welcome_to_ipfs.car.xz
 
- 0s  6.73 KiB / ? [-------=-------------------------------------] 5.16 MiB/s 0s 
+ 0s  6.73 KiB / ? [-------=-------------------------------------] 5.16 MiB/s 0s
 
 ```
 Then on another `ipfs` instance, not even connected to the network:
@@ -5419,7 +5507,7 @@ To enable structured logging, set the `IPFS_LOGGING_FMT` environment variable to
 
 Note: while we've switched to using Zap as the logging backend, most of go-ipfs still logs strings.
 
-##### Systemd Support 
+##### Systemd Support
 
 For Linux users, this release includes support for two systemd features: socket activation and startup/shutdown notifications. This makes it possible to:
 
@@ -5476,7 +5564,7 @@ type Plugin interface {
 }
 ```
 
-to 
+to
 
 ```go
 type Environment struct {
@@ -6486,7 +6574,7 @@ This release includes fixes for the following regressions:
    networking module, causing it to announce the wrong addresses and sometimes
    complain about not being able to determine the IP address
    ([ipfs/go-ipfs#6415](https://github.com/ipfs/go-ipfs/pull/6415)).
-   
+
 It also includes fixes for:
 
 1. Pins not being persisted after `ipfs block add --pin`
@@ -6771,13 +6859,13 @@ rce is stdin.
   -p,               --progress            bool   - Stream progress data.
   -t,               --trickle             bool   - Use trickle-dag format for da
 g generation.
-  -n,               --only-hash           bool   - Only chunk and hash - do not 
+  -n,               --only-hash           bool   - Only chunk and hash - do not
 write to disk.
   -w,               --wrap-with-directory bool   - Wrap files with a directory o
 bject.
   -s,               --chunker             string - Chunking algorithm, size-[byt
 es] or rabin-[min]-[avg]-[max]. Default: size-262144.
-  --pin                                   bool   - Pin this object when adding. 
+  --pin                                   bool   - Pin this object when adding.
 Default: true.
   --raw-leaves                            bool   - Use raw blocks for leaf nodes
 . (experimental).
@@ -7275,7 +7363,7 @@ performance issues that we've now fixed in this release. Specifically:
 * We've fixed quite a number of performance issues that only show up when
   rapidly forming new connections. This will actually help _all_ nodes but will
   especially help relays.
-  
+
 If you've enabled relay _hop_ (`Swarm.EnableRelayHop`) in go-ipfs 0.4.19 and it
 hasn't burned down your machine yet, this release should improve things
 significantly. However, relays are still under heavy load so running an open
@@ -8342,7 +8430,7 @@ bafybeicg2rebjoofv4kbyovkw7af3rpiitvnl6i7ckcywaq6xjcxnc2mby
 
 The refactored `ipfs p2p` command allows forwarding TCP streams through two IPFS
 nodes from one host to another. It's `ssh -L` but for IPFS. You can find
-documentation 
+documentation
 [here](https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-p2p).
 It's still experimental but we don't expect too many breaking changes at this
 point (it will very likely be stabilized in the next release). Quick summary of
@@ -9980,7 +10068,7 @@ few other improvements to other parts of the codebase. Notably:
 	- 81% coverage on blockstore  ([ipfs/go-ipfs#3074](https://github.com/ipfs/go-ipfs/pull/3074))
 	- 80% coverage of unixfs/mod  ([ipfs/go-ipfs#3096](https://github.com/ipfs/go-ipfs/pull/3096))
 	- 82% coverage on blocks  ([ipfs/go-ipfs#3086](https://github.com/ipfs/go-ipfs/pull/3086))
-	- 87% coverage on unixfs   ([ipfs/go-ipfs#3492](https://github.com/ipfs/go-ipfs/pull/3492)) 
+	- 87% coverage on unixfs   ([ipfs/go-ipfs#3492](https://github.com/ipfs/go-ipfs/pull/3492))
 	- Improve coverage on routing/offline  ([ipfs/go-ipfs#3516](https://github.com/ipfs/go-ipfs/pull/3516))
 	- Add test for flags package   ([ipfs/go-ipfs#3449](https://github.com/ipfs/go-ipfs/pull/3449))
 	- improve test coverage on merkledag package  ([ipfs/go-ipfs#3113](https://github.com/ipfs/go-ipfs/pull/3113))

@@ -7,16 +7,16 @@ import (
 	"github.com/ipfs/go-bitswap/network"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	config "github.com/ipfs/go-ipfs/config"
-	irouting "github.com/ipfs/go-ipfs/routing"
+	config "github.com/ipfs/kubo/config"
+	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p-core/host"
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/kubo/core/node/helpers"
 )
 
 const (
-	// Docs: https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#internalbitswap
+	// Docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#internalbitswap
 	DefaultEngineBlockstoreWorkerCount = 128
 	DefaultTaskWorkerCount             = 8
 	DefaultEngineTaskWorkerCount       = 8

@@ -11,9 +11,9 @@ import (
 	"github.com/cheggaaa/pb"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipld "github.com/ipfs/go-ipld-format"
 	iface "github.com/ipfs/interface-go-ipfs-core"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	gocar "github.com/ipld/go-car"
@@ -134,12 +134,12 @@ func finishCLIExport(res cmds.Response, re cmds.ResponseEmitter) error {
 	}
 }
 
+// FIXME(@Jorropo): https://github.com/ipld/go-car/issues/315
 type dagStore struct {
 	dag iface.APIDagService
 	ctx context.Context
 }
 
-func (ds dagStore) Get(c cid.Cid) (blocks.Block, error) {
-	obj, err := ds.dag.Get(ds.ctx, c)
-	return obj, err
+func (ds dagStore) Get(_ context.Context, c cid.Cid) (blocks.Block, error) {
+	return ds.dag.Get(ds.ctx, c)
 }

@@ -12,15 +12,15 @@ import (
 	"sync"
 
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/config"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 

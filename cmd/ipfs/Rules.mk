@@ -13,7 +13,7 @@ PATH := $(realpath $(d)):$(PATH)
 # DEPS_OO_$(d) += merkledag/pb/merkledag.pb.go namesys/pb/namesys.pb.go
 # DEPS_OO_$(d) += pin/internal/pb/header.pb.go unixfs/pb/unixfs.pb.go
 
-$(d)_flags =-ldflags="-X "github.com/ipfs/go-ipfs".CurrentCommit=$(git-hash)"
+$(d)_flags =-ldflags="-X "github.com/ipfs/kubo".CurrentCommit=$(git-hash)"
 
 $(d)-try-build $(IPFS_BIN_$(d)): GOFLAGS += $(cmd/ipfs_flags)
 
@@ -42,7 +42,7 @@ CLEAN += $(COVER_BIN_$(d))
 
 $(COVER_BIN_$(d)): GOTAGS += testrunmain
 $(COVER_BIN_$(d)): $(d) $$(DEPS_GO) ALWAYS
-	$(eval TMP_PKGS := $(shell $(GOCC) list -f '{{range .Deps}}{{.}} {{end}}' $(go-flags-with-tags) ./cmd/ipfs | sed 's/ /\n/g' | grep ipfs/go-ipfs) $(call go-pkg-name,$<))
+	$(eval TMP_PKGS := $(shell $(GOCC) list -f '{{range .Deps}}{{.}} {{end}}' $(go-flags-with-tags) ./cmd/ipfs | sed 's/ /\n/g' | grep ipfs/kubo) $(call go-pkg-name,$<))
 	$(eval TMP_LIST := $(call join-with,$(comma),$(TMP_PKGS)))
 	@echo $(GOCC) test $@ -c -covermode atomic -coverpkg ... $(go-flags-with-tags) ./$(@D) # for info
 	@$(GOCC) test -o $@ -c -covermode atomic -coverpkg $(TMP_LIST) $(go-flags-with-tags) ./$(@D) 2>&1 | (grep -v 'warning: no packages being tested' || true)

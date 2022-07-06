@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-log"
+	version "github.com/ipfs/kubo"
 )
 
 const (

@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   sync-github-and-dist-ipfs-io:
-    if: github.repository == 'ipfs/go-ipfs' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: "ubuntu-latest"
     steps:
       - uses: ipfs/download-ipfs-distribution-action@v1
@@ -51,7 +51,7 @@ jobs:
               }
 
               // fetch asset info from dist.ipfs.io
-              p = '/ipns/dist.ipfs.io/go-ipfs/' + release.tag_name
+              p = '/ipns/dist.ipfs.io/kubo/' + release.tag_name
               let stdout = ''
               const options = {}
               options.listeners = {

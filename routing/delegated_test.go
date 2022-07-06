@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/config"
+	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"

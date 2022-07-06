@@ -3,7 +3,7 @@ package common
 import (
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/assert"
+	"github.com/ipfs/kubo/thirdparty/assert"
 )
 
 func TestMapMergeDeepReturnsNew(t *testing.T) {

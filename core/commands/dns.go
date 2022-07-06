@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	ncmd "github.com/ipfs/go-ipfs/core/commands/name"
 	namesys "github.com/ipfs/go-namesys"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	ncmd "github.com/ipfs/kubo/core/commands/name"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 )
@@ -17,7 +17,7 @@ const (
 )
 
 var DNSCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/8607
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/8607
 	Helptext: cmds.HelpText{
 		Tagline: "Resolve DNSLink records.",
 		ShortDescription: `

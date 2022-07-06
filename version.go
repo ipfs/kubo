@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 )
 
 // CurrentCommit is the current git commit, this is set as a ldflag in the Makefile
@@ -13,13 +13,13 @@ var CurrentCommit string
 // CurrentVersionNumber is the current application's version literal
 const CurrentVersionNumber = "0.14.0-dev"
 
-const ApiVersion = "/go-ipfs/" + CurrentVersionNumber + "/"
+const ApiVersion = "/kubo/" + CurrentVersionNumber + "/"
 
 // GetUserAgentVersion is the libp2p user agent used by go-ipfs.
 //
 // Note: This will end in `/` when no commit is available. This is expected.
 func GetUserAgentVersion() string {
-	userAgent := "go-ipfs/" + CurrentVersionNumber + "/" + CurrentCommit
+	userAgent := "kubo/" + CurrentVersionNumber + "/" + CurrentCommit
 	if userAgentSuffix != "" {
 		if CurrentCommit != "" {
 			userAgent += "/"

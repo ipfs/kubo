@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
-	ke "github.com/ipfs/go-ipfs/core/commands/keyencode"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
+	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	"github.com/libp2p/go-libp2p-core/peer"
 	record "github.com/libp2p/go-libp2p-record"
 )

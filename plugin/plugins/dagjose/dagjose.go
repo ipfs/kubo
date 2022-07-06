@@ -1,7 +1,7 @@
 package dagjose
 
 import (
-	"github.com/ipfs/go-ipfs/plugin"
+	"github.com/ipfs/kubo/plugin"
 
 	"github.com/ceramicnetwork/go-dag-jose/dagjose"
 	"github.com/ipld/go-ipld-prime/multicodec"

@@ -13,9 +13,9 @@ import (
 	"github.com/ipfs/go-ipfs-provider/simple"
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/repo"
-	irouting "github.com/ipfs/go-ipfs/routing"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/repo"
+	irouting "github.com/ipfs/kubo/routing"
 )
 
 const kReprovideFrequency = time.Hour * 12
