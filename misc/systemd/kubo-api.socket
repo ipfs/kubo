@@ -2,10 +2,10 @@
 # config.
 
 [Unit]
-Description=IPFS API Socket
+Description=Kubo's API Socket
 
 [Socket]
-Service=ipfs.service
+Service=kubo.service
 FileDescriptorName=io.ipfs.api
 BindIPv6Only=true
 ListenStream=127.0.0.1:5001

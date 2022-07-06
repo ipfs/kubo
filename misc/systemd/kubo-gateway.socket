@@ -2,10 +2,10 @@
 # your config.
 
 [Unit]
-Description=IPFS Gateway Socket
+Description=Kubo's Gateway Socket
 
 [Socket]
-Service=ipfs.service
+Service=kubo.service
 FileDescriptorName=io.ipfs.gateway
 BindIPv6Only=true
 ListenStream=127.0.0.1:8080

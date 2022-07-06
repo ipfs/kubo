@@ -1,29 +1,29 @@
 # This file will be overwritten on package upgrades, avoid customizations here.
 #
 # To make persistent changes, create file in 
-# "/etc/systemd/system/ipfs.service.d/overwrite.conf" with 
-# `systemctl edit ipfs.service`. This file will be parsed after this 
+# "/etc/systemd/system/kubo.service.d/overwrite.conf" with
+# `systemctl edit kubo.service`. This file will be parsed after this
 # file has been parsed.
 #
 # To overwrite a variable, like ExecStart you have to specify it once
 # blank and a second time with a new value, like:
 # ExecStart=
-# ExecStart=/usr/bin/ipfs daemon --flag1 --flag2
+# ExecStart=/usr/bin/kubo daemon --flag1 --flag2
 #
 # For more info about custom unit files see systemd.unit(5).
 
-# This service file enables systemd-hardening features compatible with IPFS,
+# This service file enables systemd-hardening features compatible with Kubo,
 # while breaking compatibility with the fuse-mount function. Use this one only 
 # if you don't need the fuse-mount functionality.
 
 [Unit]
-Description=InterPlanetary File System (IPFS) daemon
+Description=Kubo daemon for the InterPlanetary File System (IPFS)
 Documentation=https://docs.ipfs.tech/
 After=network.target
 
 [Service]
 # hardening
-ReadWritePaths="/var/lib/ipfs/"
+ReadWritePaths="/var/lib/kubo/"
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectKernelTunables=true
@@ -51,26 +51,26 @@ CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 # enable for 1-1024 port listening
 #AmbientCapabilities=CAP_NET_BIND_SERVICE 
 # enable to specify a custom path see docs/environment-variables.md for further documentations
-#Environment=IPFS_PATH=/custom/ipfs/path
+#Environment=IPFS_PATH=/custom/kubo/path
 # enable to specify a higher limit for open files/connections
 #LimitNOFILE=1000000
 
 #don't use swap
 MemorySwapMax=0
 
-# Don't timeout on startup. Opening the IPFS repo can take a long time in some cases (e.g., when
-# badger is recovering) and migrations can delay startup.
+# Don't timeout on startup. Opening the Kubo repo can take a long time in some cases (e.g., when
+# badger is recovering).
 #
 # Ideally, we'd be a bit smarter about this but there's no good way to do that without hooking
-# systemd dependencies deeper into go-ipfs.
+# systemd dependencies deeper into Kubo.
 TimeoutStartSec=infinity
 
 Type=notify
-User=ipfs
-Group=ipfs
-StateDirectory=ipfs
+User=kubo
+Group=kubo
+StateDirectory=kubo
 Environment=IPFS_PATH="${HOME}"
-ExecStart=/usr/bin/ipfs daemon --init --migrate
+ExecStart=/usr/bin/kubo daemon --enable-gc
 Restart=on-failure
 KillSignal=SIGINT
 
