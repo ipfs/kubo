@@ -1,4 +1,4 @@
-# This snap will build go-ipfs from source.
+# This snap will build kubo from source.
 name: ipfs
 summary: global, versioned, peer-to-peer filesystem # 79 char long summary
 description: |
@@ -28,9 +28,9 @@ parts:
     source: '.'
     source-tag: master
     plugin: go
-    # keep me up to date with the go version that go-ipfs expects to be built with.
+    # keep me up to date with the go version that kubo expects to be built with.
     go-channel: 1.18/stable
-    go-importpath: github.com/ipfs/go-ipfs
+    go-importpath: github.com/ipfs/kubo
     build-packages:
         - build-essential
 
