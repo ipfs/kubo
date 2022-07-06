@@ -10,10 +10,15 @@
 
 ## What is Kubo?
 
-Kubo is the oldest IPFS implementation, previously known as go-ipfs.
-Think of it as a "jack of all trades, master of none" implementation of IPFS.
+Kubo (go-ipfs) the earliest and most widely used implementation of IPFS.
 
-It should be enough to get you started, if you find it lacking, see [other implementations](https://ipfs.io/#install).
+It includes:
+- an IPFS daemon server
+- extensive [command line tooling](https://docs.ipfs.io/reference/cli/)
+- an [HTTP Gateway](https://github.com/ipfs/specs/tree/main/http-gateways#readme) (`/ipfs/`, `/ipns/`) for serving content to HTTP browsers
+- an HTTP RPC API (`/api/v0`) for controlling the daemon node
+
+Note: [other implementations exist](https://ipfs.io/#install).
 
 ## What is IPFS?
 
