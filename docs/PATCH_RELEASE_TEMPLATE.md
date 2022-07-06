@@ -1,8 +1,6 @@
 # Patch Release Checklist
 
 This process handles patch releases from version `vX.Y.Z` to `vX.Y.Z+1` assuming that `vX.Y.Z` is the latest released version of go-ipfs.
-
-- [ ] Get temporary permissions to force-push to `release-*` branches
 - [ ] Fork a new branch (`release-vX.Y.Z`) from `release` and cherry-pick the relevant commits from master (or custom fixes) onto this branch
   - [ ] Use `git cherry-pick -x` so that the commit message says `(cherry picked from commit ...)`
 - [ ] Make a minimal changelog update tracking the relevant fixes to CHANGELOG, as its own commit e.g. `docs: update changelog vX.Y.Z+1`
@@ -14,11 +12,13 @@ This process handles patch releases from version `vX.Y.Z` to `vX.Y.Z+1` assuming
   1. Build: https://github.com/ipfs/distributions#usage.
   2. Pin the resulting release.
   3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
-  4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
+  - Note the DNSLink record for dist.ipfs.io points to the new distribution as part of [CI after merging into master](https://github.com/ipfs/distributions/blob/master/.github/workflows/main.yml#L154).
 - [ ] cut a release on [github](https://github.com/ipfs/go-ipfs/releases) and upload the result of the ipfs/distributions build in the previous step.
-- Announce the Release:
-  - [ ] On IRC/Matrix (both #ipfs and #ipfs-dev)
+- [ ] Announce the Release:
   - [ ] On discuss.ipfs.io
+    - This will automatically post to IPFS Discord #ipfs-chatter
+    - Examples from the past: [0.13.1](https://discuss.ipfs.io/t/go-ipfs-v0-13-1-has-been-released/14599)
+    - [ ] Pin the topic
 - [ ] Release published
   - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
   - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
