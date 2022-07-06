@@ -14,7 +14,6 @@ import (
 	fuse "bazil.org/fuse"
 	fs "bazil.org/fuse/fs"
 	"github.com/ipfs/go-cid"
-	core "github.com/ipfs/go-ipfs/core"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	mdag "github.com/ipfs/go-merkledag"
@@ -22,6 +21,7 @@ import (
 	"github.com/ipfs/go-path/resolver"
 	ft "github.com/ipfs/go-unixfs"
 	uio "github.com/ipfs/go-unixfs/io"
+	core "github.com/ipfs/kubo/core"
 	ipldprime "github.com/ipld/go-ipld-prime"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 )

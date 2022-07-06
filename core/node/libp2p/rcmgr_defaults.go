@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	config "github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 

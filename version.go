@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 )
 
 // CurrentCommit is the current git commit, this is set as a ldflag in the Makefile

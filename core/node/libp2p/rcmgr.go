@@ -8,10 +8,11 @@ import (
 	"strings"
 
 	"github.com/benbjohnson/clock"
-	config "github.com/ipfs/go-ipfs/config"
-	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/repo"
 	logging "github.com/ipfs/go-log/v2"
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/repo"
+
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"

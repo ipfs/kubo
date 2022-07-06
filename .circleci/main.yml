@@ -119,11 +119,11 @@ jobs:
           cp go.sum go.sum.bak
 
           # make sure the examples run against the current version of go-ipfs
-          go mod edit -replace github.com/ipfs/go-ipfs=./../../..
+          go mod edit -replace github.com/ipfs/kubo=./../../..
           go mod tidy
 
           # use the internal config package when we test the current version of go-ipfs
-          sed -i.bak 's;"github.com/ipfs/go-ipfs-config";"github.com/ipfs/go-ipfs/config";' ./main.go
+          sed -i.bak 's;"github.com/ipfs/go-ipfs-config";"github.com/ipfs/kubo/config";' ./main.go
 
           go test -v ./...
 

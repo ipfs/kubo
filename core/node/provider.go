@@ -15,9 +15,9 @@ import (
 	"github.com/multiformats/go-multihash"
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/kubo/core/node/helpers"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/repo"
 )
 
 const kReprovideFrequency = time.Hour * 12

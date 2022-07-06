@@ -1,4 +1,4 @@
-module github.com/ipfs/go-ipfs
+module github.com/ipfs/kubo
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
