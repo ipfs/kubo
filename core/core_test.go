@@ -166,10 +166,10 @@ func TestDelegatedRoutingMulti(t *testing.T) {
 	require.Contains(string(v), "RECORD FROM SERVICE 2")
 
 	err = n.Routing.PutValue(ctx, theID1, v)
-	require.NoError(err)
+	require.Error(err)
 
 	err = n.Routing.PutValue(ctx, theID2, v)
-	require.NoError(err)
+	require.Error(err)
 }
 
 func StartRoutingServer(t *testing.T, d drs.DelegatedRoutingService) string {
