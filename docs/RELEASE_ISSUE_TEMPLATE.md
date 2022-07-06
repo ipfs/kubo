@@ -28,10 +28,12 @@ For each RC published in each stage:
   1. Build: https://github.com/ipfs/distributions#usage.
   2. Pin the resulting release.
   3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
-  4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
-- cut a pre-release on [github](https://github.com/ipfs/go-ipfs/releases) and upload the result of the ipfs/distributions build in the previous step.
+  - Note the DNSLink record for dist.ipfs.io points to the new distribution as part of [CI after merging into master](https://github.com/ipfs/distributions/blob/master/.github/workflows/main.yml#L154).
 - Announce the RC:
-  - [ ] On Matrix (both #ipfs and #ipfs-dev)
+  - [ ] 
+    - This will automatically post to IPFS Discord #ipfs-chatter
+    - Examples from the past: [0.14.0 - fill this in]()
+    - [ ] Pin the topic
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
 
 Checklist:
