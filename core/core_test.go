@@ -3,6 +3,7 @@ package core
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"net/http/httptest"
 	"path"
 	"testing"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-delegated-routing/client"
+	"github.com/ipfs/go-ipfs/core/node/libp2p"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipns"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -80,7 +82,46 @@ var testIdentity = config.Identity{
 
 var errNotSupported = errors.New("method not supported")
 
-func TestDelegatedRouting(t *testing.T) {
+func TestDelegatedRoutingSingle(t *testing.T) {
+	require := require.New(t)
+
+	pId1, priv1, err := GeneratePeerID()
+	require.NoError(err)
+
+	pId2, _, err := GeneratePeerID()
+	require.NoError(err)
+
+	theID := path.Join("/ipns", string(pId1))
+	theErrorID := path.Join("/ipns", string(pId2))
+
+	d := &delegatedRoutingService{
+		goodPeerID: pId1,
+		badPeerID:  pId2,
+		pk1:        priv1,
+	}
+
+	url := StartRoutingServer(t, d)
+	n := GetNode(t, url)
+
+	ctx := context.Background()
+
+	v, err := n.Routing.GetValue(ctx, theID)
+	require.NoError(err)
+	require.NotNil(v)
+	require.Contains(string(v), "RECORD FROM SERVICE 0")
+
+	v, err = n.Routing.GetValue(ctx, theErrorID)
+	require.Nil(v)
+	require.Error(err)
+
+	err = n.Routing.PutValue(ctx, theID, v)
+	require.NoError(err)
+
+	err = n.Routing.PutValue(ctx, theErrorID, v)
+	require.Error(err)
+}
+
+func TestDelegatedRoutingMulti(t *testing.T) {
 	require := require.New(t)
 
 	pId1, priv1, err := GeneratePeerID()
@@ -89,21 +130,72 @@ func TestDelegatedRouting(t *testing.T) {
 	pId2, priv2, err := GeneratePeerID()
 	require.NoError(err)
 
-	theID := path.Join("/ipns", string(pId1))
-	theErrorID := path.Join("/ipns", string(pId2))
+	theID1 := path.Join("/ipns", string(pId1))
+	theID2 := path.Join("/ipns", string(pId2))
+
+	d1 := &delegatedRoutingService{
+		goodPeerID: pId1,
+		badPeerID:  pId2,
+		pk1:        priv1,
+		serviceID:  1,
+	}
+
+	url1 := StartRoutingServer(t, d1)
+
+	d2 := &delegatedRoutingService{
+		goodPeerID: pId2,
+		badPeerID:  pId1,
+		pk1:        priv2,
+		serviceID:  2,
+	}
+
+	url2 := StartRoutingServer(t, d2)
+
+	n := GetNode(t, url1, url2)
 
 	ctx := context.Background()
 
-	d := &delegatedRoutingService{
-		theID:      theID,
-		theErrorID: theErrorID,
-		pk1:        priv1,
-		pk2:        priv2,
-	}
+	v, err := n.Routing.GetValue(ctx, theID1)
+	require.NoError(err)
+	require.NotNil(v)
+	require.Contains(string(v), "RECORD FROM SERVICE 1")
+
+	v, err = n.Routing.GetValue(ctx, theID2)
+	require.NoError(err)
+	require.NotNil(v)
+	require.Contains(string(v), "RECORD FROM SERVICE 2")
+
+	err = n.Routing.PutValue(ctx, theID1, v)
+	require.NoError(err)
+
+	err = n.Routing.PutValue(ctx, theID2, v)
+	require.NoError(err)
+}
+
+func StartRoutingServer(t *testing.T, d drs.DelegatedRoutingService) string {
+	t.Helper()
 
 	f := drs.DelegatedRoutingAsyncHandler(d)
 	svr := httptest.NewServer(f)
-	defer svr.Close()
+	t.Cleanup(func() {
+		svr.Close()
+	})
+
+	return svr.URL
+}
+
+func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
+	t.Helper()
+
+	routers := make(map[string]config.Router)
+	for i, ru := range reframeURLs {
+		routers[fmt.Sprintf("reframe-%d", i)] = config.Router{
+			Type: string(config.RouterTypeReframe),
+			Parameters: map[string]string{
+				string(config.RouterParamAddress): ru,
+			},
+		}
+	}
 
 	cfg := config.Config{
 		Identity: testIdentity,
@@ -112,15 +204,8 @@ func TestDelegatedRouting(t *testing.T) {
 			API:   []string{"/ip4/127.0.0.1/tcp/8000"},
 		},
 		Routing: config.Routing{
-			Type: config.NewOptionalString("none"),
-			Routers: map[string]config.Router{
-				"test-router": {
-					Type: string(config.RouterTypeReframe),
-					Parameters: map[string]string{
-						string(config.RouterParamAddress): svr.URL,
-					},
-				},
-			},
+			Type:    config.NewOptionalString("none"),
+			Routers: routers,
 		},
 	}
 
@@ -129,16 +214,10 @@ func TestDelegatedRouting(t *testing.T) {
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 
-	n, err := NewNode(ctx, &BuildCfg{Repo: r, Online: true})
-	require.NoError(err)
+	n, err := NewNode(context.Background(), &BuildCfg{Repo: r, Online: true, Routing: libp2p.NilRouterOption})
+	require.NoError(t, err)
 
-	v, err := n.Routing.GetValue(ctx, theID)
-	require.NoError(err)
-	require.NotNil(v)
-
-	v, err = n.Routing.GetValue(ctx, theErrorID)
-	require.Nil(v)
-	require.Error(err)
+	return n
 }
 
 func GeneratePeerID() (peer.ID, crypto.PrivKey, error) {
@@ -152,8 +231,9 @@ func GeneratePeerID() (peer.ID, crypto.PrivKey, error) {
 }
 
 type delegatedRoutingService struct {
-	theID, theErrorID string
-	pk1, pk2          crypto.PrivKey
+	goodPeerID, badPeerID peer.ID
+	pk1                   crypto.PrivKey
+	serviceID             int
 }
 
 func (drs *delegatedRoutingService) FindProviders(ctx context.Context, key cid.Cid) (<-chan client.FindProvidersAsyncResult, error) {
@@ -168,9 +248,9 @@ func (drs *delegatedRoutingService) GetIPNS(ctx context.Context, id []byte) (<-c
 		defer cancel()
 
 		var out client.GetIPNSAsyncResult
-		switch string(id) {
-		case drs.theID:
-			ie, err := ipns.Create(drs.pk1, []byte("THE RECORD"), 0, time.Now().Add(10*time.Hour), 100*time.Hour)
+		switch peer.ID(id) {
+		case drs.goodPeerID:
+			ie, err := ipns.Create(drs.pk1, []byte(fmt.Sprintf("RECORD FROM SERVICE %d", drs.serviceID)), 0, time.Now().Add(10*time.Hour), 100*time.Hour)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -183,7 +263,7 @@ func (drs *delegatedRoutingService) GetIPNS(ctx context.Context, id []byte) (<-c
 				Record: ieb,
 				Err:    nil,
 			}
-		case drs.theErrorID:
+		case drs.badPeerID:
 			out = client.GetIPNSAsyncResult{
 				Record: nil,
 				Err:    errors.New("THE ERROR"),
@@ -204,5 +284,30 @@ func (drs *delegatedRoutingService) GetIPNS(ctx context.Context, id []byte) (<-c
 }
 
 func (drs *delegatedRoutingService) PutIPNS(ctx context.Context, id []byte, record []byte) (<-chan client.PutIPNSAsyncResult, error) {
-	return nil, errNotSupported
+	ctx, cancel := context.WithCancel(ctx)
+	ch := make(chan client.PutIPNSAsyncResult)
+	go func() {
+		defer close(ch)
+		defer cancel()
+
+		var out client.PutIPNSAsyncResult
+		switch peer.ID(id) {
+		case drs.goodPeerID:
+			out = client.PutIPNSAsyncResult{}
+		case drs.badPeerID:
+			out = client.PutIPNSAsyncResult{
+				Err: fmt.Errorf("THE ERROR %d", drs.serviceID),
+			}
+		default:
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case ch <- out:
+		}
+	}()
+
+	return ch, nil
 }
