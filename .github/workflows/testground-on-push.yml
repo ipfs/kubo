@@ -8,7 +8,7 @@ on:
 
 jobs:
   testground:
-    if: github.repository == 'ipfs/go-ipfs' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     name: ${{ matrix.composition_file }}
     strategy:

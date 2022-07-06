@@ -1,5 +1,5 @@
 name: Documentation Issue
-description: Report missing, erroneous docs, broken links or propose new go-ipfs docs.
+description: Report missing, erroneous docs, broken links or propose new Kubo docs.
 labels:
   - topic/docs-ipfs
   - need/triage
@@ -15,7 +15,7 @@ body:
       options:
         - label: I am reporting a documentation issue in this repo, not https://docs.ipfs.io.
           required: true
-        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my issue.
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/kubo/issues?q=is%3Aissue) for my issue.
           required: true
   - type: input
     attributes:

@@ -2,7 +2,7 @@
 
 **EXPERIMENTAL:** FUSE support is limited, YMMV.
 
-`go-ipfs` makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
+Kubo makes it possible to mount `/ipfs` and `/ipns` namespaces in your OS,
 allowing arbitrary apps access to IPFS.
 
 ## Install FUSE

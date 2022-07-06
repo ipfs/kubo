@@ -85,7 +85,7 @@ func addHeadersFromConfig(c *cmdsHttp.ServerConfig, nc *config.Config) {
 			c.Headers[h] = v
 		}
 	}
-	c.Headers["Server"] = []string{"go-ipfs/" + version.CurrentVersionNumber}
+	c.Headers["Server"] = []string{"kubo/" + version.CurrentVersionNumber}
 }
 
 func addCORSDefaults(c *cmdsHttp.ServerConfig) {
@@ -163,7 +163,7 @@ func CommandsROOption(cctx oldcmds.Context) ServeOption {
 	return commandsOption(cctx, corecommands.RootRO, true)
 }
 
-// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/go-ipfs/`
+// CheckVersionOption returns a ServeOption that checks whether the client ipfs version matches. Does nothing when the user agent string does not contain `/kubo/` or `/go-ipfs/`
 func CheckVersionOption() ServeOption {
 	daemonVersion := version.ApiVersion
 
@@ -177,8 +177,8 @@ func CheckVersionOption() ServeOption {
 				// backwards compatibility to previous version check
 				if len(pth) >= 2 && pth[1] != "version" {
 					clientVersion := r.UserAgent()
-					// skips check if client is not go-ipfs
-					if strings.Contains(clientVersion, "/go-ipfs/") && daemonVersion != clientVersion {
+					// skips check if client is not kubo (go-ipfs)
+					if (strings.Contains(clientVersion, "/go-ipfs/") || strings.Contains(clientVersion, "/kubo/")) && daemonVersion != clientVersion {
 						http.Error(w, fmt.Sprintf("%s (%s != %s)", errAPIVersionMismatch, daemonVersion, clientVersion), http.StatusBadRequest)
 						return
 					}
