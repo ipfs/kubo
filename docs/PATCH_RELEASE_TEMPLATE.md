@@ -21,8 +21,8 @@ This process handles patch releases from version `vX.Y.Z` to `vX.Y.Z+1` assuming
     - [ ] Pin the topic
 - [ ] Release published
   - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
-  - [ ] to [npm](https://www.npmjs.com/package/go-ipfs) (should be done by [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch job manually)
-  - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (should be done by [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch job manually)
+  - [ ] to [npm](https://www.npmjs.com/package/go-ipfs) (should be done by [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
+  - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (should be done by [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
   - [ ] to [snap](https://snapcraft.io/ipfs) (should happen automatically, see [snap/snapcraft.yaml](https://github.com/ipfs/go-ipfs/blob/master/snap/snapcraft.yaml))
   - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
   - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
