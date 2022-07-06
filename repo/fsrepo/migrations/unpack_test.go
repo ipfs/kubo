@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -36,7 +35,7 @@ func TestUnpackTgz(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	badTarGzip := filepath.Join(tmpDir, "bad.tar.gz")
-	err := ioutil.WriteFile(badTarGzip, []byte("bad-data\n"), 0644)
+	err := os.WriteFile(badTarGzip, []byte("bad-data\n"), 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +79,7 @@ func TestUnpackZip(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	badZip := filepath.Join(tmpDir, "bad.zip")
-	err := ioutil.WriteFile(badZip, []byte("bad-data\n"), 0644)
+	err := os.WriteFile(badZip, []byte("bad-data\n"), 0644)
 	if err != nil {
 		panic(err)
 	}

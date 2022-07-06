@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -63,7 +62,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 
 		logger.Println("Need", len(missing), "migrations, downloading.")
 
-		tmpDir, err := ioutil.TempDir("", "migrations")
+		tmpDir, err := os.MkdirTemp("", "migrations")
 		if err != nil {
 			return err
 		}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -192,7 +191,7 @@ NOTE: For security reasons, this command will omit your private key and remote s
 			return err
 		}
 
-		data, err := ioutil.ReadFile(fname)
+		data, err := os.ReadFile(fname)
 		if err != nil {
 			return err
 		}
@@ -502,7 +501,7 @@ func editConfig(filename string) error {
 		return errors.New("ENV variable $EDITOR not set")
 	}
 
-	cmd := exec.Command("sh", "-c", editor+" "+filename)
+	cmd := exec.Command(editor, filename)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd.Run()
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -134,7 +133,7 @@ func (f *IpfsFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 	}
 	defer rc.Close()
 
-	return ioutil.ReadAll(rc)
+	return io.ReadAll(rc)
 }
 
 func (f *IpfsFetcher) Close() error {
@@ -171,7 +170,7 @@ func (f *IpfsFetcher) recordFetched(fetchedPath ipath.Path) {
 }
 
 func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo) (string, error) {
-	identity, err := config.CreateIdentity(ioutil.Discard, []options.KeyGenerateOption{
+	identity, err := config.CreateIdentity(io.Discard, []options.KeyGenerateOption{
 		options.Key.Type(options.Ed25519Key),
 	})
 	if err != nil {
@@ -183,7 +182,7 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	}
 
 	// create temporary ipfs directory
-	dir, err := ioutil.TempDir("", "ipfs-temp")
+	dir, err := os.MkdirTemp("", "ipfs-temp")
 	if err != nil {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
 	}
@@ -247,8 +246,6 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 		cancel()
 		// Wait until ipfs is stopped
 		<-node.Context().Done()
-
-		fmt.Println("migration peer", node.Identity, "shutdown")
 	}
 
 	addrs, err := ipfs.Swarm().LocalAddrs(ctx)

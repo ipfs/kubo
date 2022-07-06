@@ -3,7 +3,6 @@ package corehttp
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 )
@@ -37,7 +36,7 @@ func TestLazySeekerError(t *testing.T) {
 	}
 
 	// shouldn't have actually seeked.
-	b, err := ioutil.ReadAll(s)
+	b, err := io.ReadAll(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +52,7 @@ func TestLazySeekerError(t *testing.T) {
 	if off != 0 {
 		t.Fatal("expected to seek to the start")
 	}
-	b, err = ioutil.ReadAll(s)
+	b, err = io.ReadAll(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +69,7 @@ func TestLazySeekerError(t *testing.T) {
 		t.Fatal("expected to seek to the start")
 	}
 	// right here...
-	b, err = ioutil.ReadAll(s)
+	b, err = io.ReadAll(s)
 	if err == nil {
 		t.Fatalf("expected an error, got output %s", string(b))
 	}
@@ -120,7 +119,7 @@ func TestLazySeeker(t *testing.T) {
 	}
 
 	expectSeek(io.SeekEnd, 0, s.size, "")
-	b, err := ioutil.ReadAll(s)
+	b, err := io.ReadAll(s)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -134,9 +134,9 @@ func netInfo(online bool, out map[string]interface{}) error {
 		return err
 	}
 
-	var straddrs []string
-	for _, a := range addrs {
-		straddrs = append(straddrs, a.String())
+	straddrs := make([]string, len(addrs))
+	for i, a := range addrs {
+		straddrs[i] = a.String()
 	}
 
 	n["interface_addresses"] = straddrs

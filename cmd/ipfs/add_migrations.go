@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -154,7 +153,7 @@ func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath ipath.Path) 
 	if !ok {
 		return fmt.Errorf("not a file node: %q", ipfsPath)
 	}
-	_, err = io.Copy(ioutil.Discard, fnd)
+	_, err = io.Copy(io.Discard, fnd)
 	if err != nil {
 		return fmt.Errorf("cannot read migration: %w", err)
 	}

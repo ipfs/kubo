@@ -11,11 +11,14 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	humanize "github.com/dustin/go-humanize"
+	oldcmds "github.com/ipfs/go-ipfs/commands"
 	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
+	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 
+	humanize "github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -39,6 +42,7 @@ var RepoCmd = &cmds.Command{
 		"fsck":    repoFsckCmd,
 		"version": repoVersionCmd,
 		"verify":  repoVerifyCmd,
+		"migrate": repoMigrateCmd,
 	},
 }
 
@@ -49,9 +53,10 @@ type GcResult struct {
 }
 
 const (
-	repoStreamErrorsOptionName = "stream-errors"
-	repoQuietOptionName        = "quiet"
-	repoSilentOptionName       = "silent"
+	repoStreamErrorsOptionName   = "stream-errors"
+	repoQuietOptionName          = "quiet"
+	repoSilentOptionName         = "silent"
+	repoAllowDowngradeOptionName = "allow-downgrade"
 )
 
 var repoGcCmd = &cmds.Command{
@@ -385,5 +390,68 @@ var repoVersionCmd = &cmds.Command{
 			}
 			return nil
 		}),
+	},
+}
+
+var repoMigrateCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Apply any outstanding migrations to the repo.",
+	},
+	Options: []cmds.Option{
+		cmds.BoolOption(repoAllowDowngradeOptionName, "Allow downgrading to a lower repo version"),
+	},
+	NoRemote: true,
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		cctx := env.(*oldcmds.Context)
+		allowDowngrade, _ := req.Options[repoAllowDowngradeOptionName].(bool)
+
+		_, err := fsrepo.Open(cctx.ConfigRoot)
+
+		if err == nil {
+			fmt.Println("Repo does not require migration.")
+			return nil
+		} else if err != fsrepo.ErrNeedMigration {
+			return err
+		}
+
+		fmt.Println("Found outdated fs-repo, starting migration.")
+
+		// Read Migration section of IPFS config
+		configFileOpt, _ := req.Options[ConfigFileOption].(string)
+		migrationCfg, err := migrations.ReadMigrationConfig(cctx.ConfigRoot, configFileOpt)
+		if err != nil {
+			return err
+		}
+
+		// Define function to create IPFS fetcher.  Do not supply an
+		// already-constructed IPFS fetcher, because this may be expensive and
+		// not needed according to migration config. Instead, supply a function
+		// to construct the particular IPFS fetcher implementation used here,
+		// which is called only if an IPFS fetcher is needed.
+		newIpfsFetcher := func(distPath string) migrations.Fetcher {
+			return ipfsfetcher.NewIpfsFetcher(distPath, 0, &cctx.ConfigRoot, configFileOpt)
+		}
+
+		// Fetch migrations from current distribution, or location from environ
+		fetchDistPath := migrations.GetDistPathEnv(migrations.CurrentIpfsDist)
+
+		// Create fetchers according to migrationCfg.DownloadSources
+		fetcher, err := migrations.GetMigrationFetcher(migrationCfg.DownloadSources, fetchDistPath, newIpfsFetcher)
+		if err != nil {
+			return err
+		}
+		defer fetcher.Close()
+
+		err = migrations.RunMigration(cctx.Context(), fetcher, fsrepo.RepoVersion, "", allowDowngrade)
+		if err != nil {
+			fmt.Println("The migrations of fs-repo failed:")
+			fmt.Printf("  %s\n", err)
+			fmt.Println("If you think this is a bug, please file an issue and include this whole log output.")
+			fmt.Println("  https://github.com/ipfs/fs-repo-migrations")
+			return err
+		}
+
+		fmt.Printf("Success: fs-repo has been migrated to version %d.\n", fsrepo.RepoVersion)
+		return nil
 	},
 }

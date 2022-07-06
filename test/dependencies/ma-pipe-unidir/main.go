@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 
@@ -58,7 +57,7 @@ func app() int {
 
 		if len(opts.PidFile) > 0 {
 			data := []byte(strconv.Itoa(os.Getpid()))
-			err := ioutil.WriteFile(opts.PidFile, data, 0644)
+			err := os.WriteFile(opts.PidFile, data, 0644)
 			if err != nil {
 				return 1
 			}
@@ -79,7 +78,7 @@ func app() int {
 
 		if len(opts.PidFile) > 0 {
 			data := []byte(strconv.Itoa(os.Getpid()))
-			err := ioutil.WriteFile(opts.PidFile, data, 0644)
+			err := os.WriteFile(opts.PidFile, data, 0644)
 			if err != nil {
 				return 1
 			}

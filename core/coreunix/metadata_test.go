@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"testing"
 
 	bserv "github.com/ipfs/go-blockservice"
@@ -87,7 +86,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err := ioutil.ReadAll(ndr)
+	out, err := io.ReadAll(ndr)
 	if err != nil {
 		t.Fatal(err)
 	}
