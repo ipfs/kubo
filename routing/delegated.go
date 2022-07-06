@@ -73,7 +73,7 @@ func RoutingFromConfig(c config.Router) (routing.Routing, error) {
 func reframeRoutingFromConfig(conf config.Router) (routing.Routing, error) {
 	var dr drp.DelegatedRouting_Client
 
-	param := string(config.RouterParamAddress)
+	param := string(config.RouterParamEndpoint)
 	addr, ok := conf.Parameters[param]
 	if !ok {
 		return nil, NewParamNeededErr(param, conf.Type)

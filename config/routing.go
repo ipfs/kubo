@@ -21,7 +21,7 @@ type Router struct {
 	Enabled Flag `json:",omitempty"`
 
 	// Parameters are extra configuration that this router might need.
-	// A common one for reframe endpoints is "address".
+	// A common one for reframe router is "Endpoint".
 	Parameters map[string]string
 }
 
@@ -36,9 +36,9 @@ const (
 type RouterParam string
 
 const (
-	// RouterParamAddress is the URL where the routing implementation will point to get the information.
+	// RouterParamEndpoint is the URL where the routing implementation will point to get the information.
 	// Usually used for reframe Routers.
-	RouterParamAddress RouterParam = "address"
+	RouterParamEndpoint RouterParam = "Endpoint"
 
-	RouterParamPriority RouterParam = "priority"
+	RouterParamPriority RouterParam = "Priority"
 )

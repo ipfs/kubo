@@ -1338,9 +1338,22 @@ Type: `flag` (`null`/missing will apply the default)
 
 Parameters needed to create the specified router. Supported params per router type:
 
-- `reframe`
-  - `address` (mandatory): Address that will be used to connect to a specified server.
-  - `priority`: Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
+Reframe:
+  - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
+  - `Priority` (optional): Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
+
+**Example:**
+
+To add router provided by _Store the Index_ team at [cid.contact](https://cid.contact):
+
+```console
+$ ipfs config Routing.Routers.CidContact --json '{
+  "Type": "reframe",
+  "Parameters": {
+    "Endpoint": "https://cid.contact/reframe"
+  }
+}'
+```
 
 Default: `{}` (use the safe implicit defaults)
 

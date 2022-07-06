@@ -54,7 +54,7 @@ func TestRoutingFromConfig(t *testing.T) {
 	r, err = RoutingFromConfig(config.Router{
 		Type: string(config.RouterTypeReframe),
 		Parameters: map[string]string{
-			string(config.RouterParamAddress): "test",
+			string(config.RouterParamEndpoint): "test",
 		},
 	})
 

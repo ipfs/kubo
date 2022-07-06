@@ -70,13 +70,13 @@ test_kill_ipfs_daemon
 ipfs config Routing.Routers.TestDelegatedRouter --json '{
   "Type": "reframe",
   "Parameters": {
-    "address": "http://127.0.0.1:5098/reframe"
+    "Endpoint": "http://127.0.0.1:5098/reframe"
   }
 }' || exit 1
 
 test_expect_success "adding reframe endpoint to Routing.Routers config works" '
   echo "http://127.0.0.1:5098/reframe" > expected &&
-  ipfs config Routing.Routers.TestDelegatedRouter.Parameters.address > actual &&
+  ipfs config Routing.Routers.TestDelegatedRouter.Parameters.Endpoint > actual &&
   test_cmp expected actual
 '
 

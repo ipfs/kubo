@@ -192,7 +192,7 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 		routers[fmt.Sprintf("reframe-%d", i)] = config.Router{
 			Type: string(config.RouterTypeReframe),
 			Parameters: map[string]string{
-				string(config.RouterParamAddress): ru,
+				string(config.RouterParamEndpoint): ru,
 			},
 		}
 	}
