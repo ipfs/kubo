@@ -14,7 +14,7 @@ type Router struct {
 
 	// Currenly only supported Type is "reframe".
 	// Reframe type allows to add other resolvers using the Reframe spec:
-	// https://github.com/ipfs/specs/blob/master/REFRAME.md
+	// https://github.com/ipfs/specs/tree/main/reframe
 	// In the future we will support "dht" and other Types here.
 	Type string
 

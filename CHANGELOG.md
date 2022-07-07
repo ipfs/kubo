@@ -16,7 +16,7 @@ Below is an outline of all that is in this release, so you get a sense of all th
 Content routing is the a term used to describe the problem of finding providers for a given piece of content.
 If you have a hash, or CID of some data, how do you find who has it?
 In IPFS, until now, only a DHT was used as a decentralized answer to content routing.
-Now, content routing can be handled by clients implementing the [Reframe protocol](https://github.com/ipfs/specs/blob/main/REFRAME.md).
+Now, content routing can be handled by clients implementing the [Reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme).
 
 Example configuration usage using the [Filecoin Network Indexer](https://docs.cid.contact/filecoin-network-indexer/overview):
 

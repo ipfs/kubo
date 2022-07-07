@@ -1301,7 +1301,7 @@ Map of additional Routers.
 
 Allows for extending the default routing (DHT) with alternative Router
 implementations, such as custom DHTs and delegated routing based
-on the [reframe protocol](https://github.com/ipfs/specs/blob/master/REFRAME.md).
+on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme).
 
 The map key is a name of a Router, and the value is its configuration.
 
@@ -1317,7 +1317,7 @@ It specifies the routing type that will be created.
 
 Currently supported types:
 
-- `reframe` (delegated routing based on the [reframe protocol][https://github.com/ipfs/specs/blob/master/REFRAME.md])
+- `reframe` (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
 - <del>`dht`</del> (WIP, custom DHT will be added in a future release)
 
 Type: `string`
