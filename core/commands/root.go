@@ -135,6 +135,7 @@ var rootSubcommands = map[string]*cmds.Command{
 	"config":    ConfigCmd,
 	"dag":       dag.DagCmd,
 	"dht":       DhtCmd,
+	"routing":   RoutingCmd,
 	"diag":      DiagCmd,
 	"dns":       DNSCmd,
 	"id":        IDCmd,
