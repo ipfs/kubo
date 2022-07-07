@@ -81,7 +81,6 @@ Before opening an issue, consider using one of the following locations to ensure
     - [Usage](#usage)
     - [Some things to try](#some-things-to-try)
     - [Troubleshooting](#troubleshooting-1)
-  - [Packages](#packages)
   - [Development](#development)
     - [Map of Implemented Subsystems](#map-of-implemented-subsystems)
     - [CLI, HTTP-API, Architecture Diagram](#cli-http-api-architecture-diagram)
