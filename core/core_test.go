@@ -200,8 +200,8 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 	cfg := config.Config{
 		Identity: testIdentity,
 		Addresses: config.Addresses{
-			Swarm: []string{"/ip4/0.0.0.0/tcp/4001", "/ip4/0.0.0.0/udp/4001/quic"},
-			API:   []string{"/ip4/127.0.0.1/tcp/8000"},
+			Swarm: []string{"/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"},
+			API:   []string{"/ip4/127.0.0.1/tcp/0"},
 		},
 		Routing: config.Routing{
 			Type:    config.NewOptionalString("none"),
