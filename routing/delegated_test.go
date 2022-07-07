@@ -49,7 +49,7 @@ func TestRoutingFromConfig(t *testing.T) {
 	})
 
 	require.Nil(r)
-	require.EqualError(err, "configuration param 'address' is needed for reframe delegated routing types")
+	require.EqualError(err, "configuration param 'Endpoint' is needed for reframe delegated routing types")
 
 	r, err = RoutingFromConfig(config.Router{
 		Type: string(config.RouterTypeReframe),
