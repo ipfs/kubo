@@ -7,31 +7,32 @@ test_description="Test multibase commands"
 # note: all "ipfs multibase" commands should work without requiring a repo
 
 cat <<EOF > bases_expect
-      0  identity
-0    48  base2
-b    98  base32
-B    66  base32upper
-c    99  base32pad
-C    67  base32padupper
-f   102  base16
-F    70  base16upper
-k   107  base36
-K    75  base36upper
-m   109  base64
-M    77  base64pad
-t   116  base32hexpad
-T    84  base32hexpadupper
-u   117  base64url
-U    85  base64urlpad
-v   118  base32hex
-V    86  base32hexupper
-z   122  base58btc
-Z    90  base58flickr
+        0  identity
+0      48  base2
+b      98  base32
+B      66  base32upper
+c      99  base32pad
+C      67  base32padupper
+f     102  base16
+F      70  base16upper
+k     107  base36
+K      75  base36upper
+m     109  base64
+M      77  base64pad
+t     116  base32hexpad
+T      84  base32hexpadupper
+u     117  base64url
+U      85  base64urlpad
+v     118  base32hex
+V      86  base32hexupper
+z     122  base58btc
+Z      90  base58flickr
+   128640  base256emoji
 EOF
 
 # TODO: expose same cmd under multibase?
 test_expect_success "multibase list" '
-  cut -c 10- bases_expect > expect &&
+  cut -c 12- bases_expect > expect &&
   ipfs multibase list > actual &&
   test_cmp expect actual
 '
