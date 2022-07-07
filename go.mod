@@ -261,4 +261,6 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
+replace go.opencensus.io => go.opencensus.io v0.23.0
+
 go 1.17
