@@ -12,7 +12,7 @@ import (
 
 type TieredRouter interface {
 	routing.Routing
-	ProviderManyWrapper() ProvideMany
+	ProvideMany() ProvideMany
 }
 
 var _ TieredRouter = &Tiered{}
@@ -23,9 +23,9 @@ type Tiered struct {
 	routinghelpers.Tiered
 }
 
-// ProviderManyWrapper returns a ProviderMany implementation including all Routers that
-// implements ProviderMany
-func (ds Tiered) ProviderManyWrapper() ProvideMany {
+// ProvideMany returns a ProvideMany implementation including all Routers that
+// implements ProvideMany
+func (ds Tiered) ProvideMany() ProvideMany {
 	var pms []ProvideMany
 	for _, r := range ds.Tiered.Routers {
 		pm, ok := r.(ProvideMany)

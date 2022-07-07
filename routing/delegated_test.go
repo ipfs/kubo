@@ -71,12 +71,12 @@ func TestTieredRouter(t *testing.T) {
 		},
 	}
 
-	pm := tr.ProviderManyWrapper()
+	pm := tr.ProvideMany()
 	require.Nil(pm)
 
 	tr.Tiered.Routers = append(tr.Tiered.Routers, &dummyRouter{})
 
-	pm = tr.ProviderManyWrapper()
+	pm = tr.ProvideMany()
 	require.NotNil(pm)
 }
 

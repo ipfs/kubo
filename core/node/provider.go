@@ -63,7 +63,7 @@ func SimpleProviderSys(isOnline bool) interface{} {
 // BatchedProviderSys creates new provider system
 func BatchedProviderSys(isOnline bool, reprovideInterval string) interface{} {
 	return func(lc fx.Lifecycle, cr irouting.TieredRouter, q *q.Queue, keyProvider simple.KeyChanFunc, repo repo.Repo) (provider.System, error) {
-		r := cr.ProviderManyWrapper()
+		r := cr.ProvideMany()
 		if r == nil {
 			return nil, fmt.Errorf("BatchedProviderSys requires a content router that supports provideMany")
 		}
