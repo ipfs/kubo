@@ -12,7 +12,7 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/tj/go-redirects"
+	redirects "github.com/justincjohnson/go-ipfs-redirects"
 	"github.com/ucarion/urlpath"
 	"go.uber.org/zap"
 )

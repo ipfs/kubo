@@ -121,7 +121,7 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1
 )
 
-require github.com/tj/go-redirects v0.0.0-20200911105812-fd1ba1020b37
+require github.com/justincjohnson/go-ipfs-redirects v0.0.0-20220421174837-04fcc92d1018
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
@@ -229,7 +229,6 @@ require (
 	github.com/tidwall/gjson v1.14.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/tj/assert v0.0.3 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20210219115102-f37d292932f2 // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect
