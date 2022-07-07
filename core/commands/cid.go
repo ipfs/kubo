@@ -291,11 +291,11 @@ var basesCmd = &cmds.Command{
 				}
 				switch {
 				case prefixes && numeric:
-					fmt.Fprintf(w, "%c %5d  %s\n", code, v.Code, v.Name)
+					fmt.Fprintf(w, "%c %7d  %s\n", code, v.Code, v.Name)
 				case prefixes:
 					fmt.Fprintf(w, "%c  %s\n", code, v.Name)
 				case numeric:
-					fmt.Fprintf(w, "%5d  %s\n", v.Code, v.Name)
+					fmt.Fprintf(w, "%7d  %s\n", v.Code, v.Name)
 				default:
 					fmt.Fprintf(w, "%s\n", v.Name)
 				}
