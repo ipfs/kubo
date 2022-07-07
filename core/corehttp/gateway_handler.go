@@ -24,6 +24,7 @@ import (
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
@@ -66,8 +67,9 @@ type redirectTemplateData struct {
 // gatewayHandler is a HTTP handler that serves IPFS objects (accessible by default at /ipfs/<path>)
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
-	config GatewayConfig
-	api    coreiface.CoreAPI
+	config     GatewayConfig
+	api        coreiface.CoreAPI
+	offlineApi coreiface.CoreAPI
 
 	// generic metrics
 	firstContentBlockGetMetric *prometheus.HistogramVec
@@ -189,7 +191,7 @@ func newGatewaySummaryMetric(name string, help string) *prometheus.SummaryVec {
 
 func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVec {
 	// We can add buckets as a parameter in the future, but for now using static defaults
-	// suggested in https://github.com/ipfs/go-ipfs/issues/8441
+	// suggested in https://github.com/ipfs/kubo/issues/8441
 	defaultBuckets := []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60}
 	histogramMetric := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -211,10 +213,15 @@ func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVe
 	return histogramMetric
 }
 
-func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
+func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) (*gatewayHandler, error) {
+	offlineApi, err := api.WithOptions(options.Api.Offline(true))
+	if err != nil {
+		return nil, err
+	}
 	i := &gatewayHandler{
-		config: c,
-		api:    api,
+		config:     c,
+		api:        api,
+		offlineApi: offlineApi,
 		// Improved Metrics
 		// ----------------------------
 		// Time till the first content block (bar in /ipfs/cid/foo/bar)
@@ -255,7 +262,7 @@ func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) *gatewayHandler {
 			"The time to receive the first UnixFS node on a GET from the gateway.",
 		),
 	}
-	return i
+	return i, nil
 }
 
 func parseIpfsPath(p string) (cid.Cid, string, error) {
@@ -360,6 +367,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	contentPath := ipath.New(r.URL.Path)
+
+	if requestHandled := i.handleOnlyIfCached(w, r, contentPath, logger); requestHandled {
+		return
+	}
+
 	if requestHandled := handleSuperfluousNamespace(w, r, contentPath); requestHandled {
 		return
 	}
@@ -666,11 +678,11 @@ func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath 
 		// mutable namespaces such as /ipns/ can't be cached forever
 
 		/* For now we set Last-Modified to Now() to leverage caching heuristics built into modern browsers:
-		 * https://github.com/ipfs/go-ipfs/pull/8074#pullrequestreview-645196768
+		 * https://github.com/ipfs/kubo/pull/8074#pullrequestreview-645196768
 		 * but we should not set it to fake values and use Cache-Control based on TTL instead */
 		modtime = time.Now()
 
-		// TODO: set Cache-Control based on TTL of IPNS/DNSLink: https://github.com/ipfs/go-ipfs/issues/1818#issuecomment-1015849462
+		// TODO: set Cache-Control based on TTL of IPNS/DNSLink: https://github.com/ipfs/kubo/issues/1818#issuecomment-1015849462
 		// TODO: set Last-Modified based on /ipns/ publishing timestamp?
 	} else {
 		// immutable! CACHE ALL THE THINGS, FOREVER! wolololol
@@ -679,7 +691,7 @@ func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath 
 		// Set modtime to 'zero time' to disable Last-Modified header (superseded by Cache-Control)
 		modtime = noModtime
 
-		// TODO: set Last-Modified? - TBD - /ipfs/ modification metadata is present in unixfs 1.5 https://github.com/ipfs/go-ipfs/issues/6920?
+		// TODO: set Last-Modified? - TBD - /ipfs/ modification metadata is present in unixfs 1.5 https://github.com/ipfs/kubo/issues/6920?
 	}
 
 	return modtime
@@ -874,7 +886,7 @@ func getEtag(r *http.Request, cid cid.Cid) string {
 		// Etag: "cid.foo" (gives us nice compression together with Content-Disposition in block (raw) and car responses)
 		suffix = `.` + f + suffix
 	}
-	// TODO: include selector suffix when https://github.com/ipfs/go-ipfs/issues/8769 lands
+	// TODO: include selector suffix when https://github.com/ipfs/kubo/issues/8769 lands
 	return prefix + cid.String() + suffix
 }
 
@@ -956,11 +968,33 @@ func debugStr(path string) string {
 	return q
 }
 
+// Detect 'Cache-Control: only-if-cached' in request and return data if it is already in the local datastore.
+// https://github.com/ipfs/specs/blob/main/http-gateways/PATH_GATEWAY.md#cache-control-request-header
+func (i *gatewayHandler) handleOnlyIfCached(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (requestHandled bool) {
+	if r.Header.Get("Cache-Control") == "only-if-cached" {
+		_, err := i.offlineApi.Block().Stat(r.Context(), contentPath)
+		if err != nil {
+			if r.Method == http.MethodHead {
+				w.WriteHeader(http.StatusPreconditionFailed)
+				return true
+			}
+			errMsg := fmt.Sprintf("%q not in local datastore", contentPath.String())
+			http.Error(w, errMsg, http.StatusPreconditionFailed)
+			return true
+		}
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusOK)
+			return true
+		}
+	}
+	return false
+}
+
 func handleUnsupportedHeaders(r *http.Request) (err *requestError) {
-	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/go-ipfs/issues/7702)
+	// X-Ipfs-Gateway-Prefix was removed (https://github.com/ipfs/kubo/issues/7702)
 	// TODO: remove this after  go-ipfs 0.13 ships
 	if prfx := r.Header.Get("X-Ipfs-Gateway-Prefix"); prfx != "" {
-		err := fmt.Errorf("X-Ipfs-Gateway-Prefix support was removed: https://github.com/ipfs/go-ipfs/issues/7702")
+		err := fmt.Errorf("X-Ipfs-Gateway-Prefix support was removed: https://github.com/ipfs/kubo/issues/7702")
 		return newRequestError("unsupported HTTP header", err, http.StatusBadRequest)
 	}
 	return nil
@@ -996,7 +1030,7 @@ func handleProtocolHandlerRedirect(w http.ResponseWriter, r *http.Request, logge
 }
 
 // Disallow Service Worker registration on namespace roots
-// https://github.com/ipfs/go-ipfs/issues/4025
+// https://github.com/ipfs/kubo/issues/4025
 func handleServiceWorkerRegistration(r *http.Request) (err *requestError) {
 	if r.Header.Get("Service-Worker") == "script" {
 		matched, _ := regexp.MatchString(`^/ip[fn]s/[^/]+$`, r.URL.Path)

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
 	cmds "github.com/ipfs/go-ipfs-cmds"

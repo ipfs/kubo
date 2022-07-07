@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"io"
 
-	libp2p2 "github.com/ipfs/go-ipfs/core/node/libp2p"
+	libp2p2 "github.com/ipfs/kubo/core/node/libp2p"
 
-	"github.com/ipfs/go-ipfs/commands"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/kubo/commands"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/repo"
 
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	config "github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/kubo/config"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"

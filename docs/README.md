@@ -6,9 +6,9 @@ If you’re experiencing an issue with IPFS, **please follow [our issue guide](g
 
 Otherwise, check out the following guides to using and developing IPFS:
 
-## Developing `go-ipfs`
+## Developing `kubo`
 
-- First, please read the Contributing Guidelines [for IPFS projects](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md) and then the Contributing Guidelines for [go-ipfs specifically](https://github.com/ipfs/community/blob/master/CONTRIBUTING_GO.md)
+- First, please read the Contributing Guidelines [for IPFS projects](https://github.com/ipfs/community/blob/master/CONTRIBUTING.md) and then the Contributing Guidelines for [Go code specifically](https://github.com/ipfs/community/blob/master/CONTRIBUTING_GO.md)
 - Building on…
     - [Windows](windows.md)
 - [Performance Debugging Guidelines](debug-guide.md)
@@ -17,7 +17,7 @@ Otherwise, check out the following guides to using and developing IPFS:
 ## Guides
 
 - [How to Implement an API Client](implement-api-bindings.md)
-- [Connecting with Websockets](transports.md) — if you want `js-ipfs` nodes in web browsers to connect to your `go-ipfs` node, you will need to turn on websocket support in your `go-ipfs` node.
+- [Connecting with Websockets](transports.md) — if you want `js-ipfs` nodes in web browsers to connect to your `kubo` node, you will need to turn on websocket support in your `kubo` node.
 
 ## Advanced User Guides
 
@@ -28,7 +28,7 @@ Otherwise, check out the following guides to using and developing IPFS:
 - [Installing command completion](command-completion.md)
 - [Mounting IPFS with FUSE](fuse.md)
 - [Installing plugins](plugins.md)
-- [Setting up an IPFS Gateway](https://github.com/ipfs/go-ipfs/blob/master/docs/gateway.md)
+- [Setting up an IPFS Gateway](https://github.com/ipfs/kubo/blob/master/docs/gateway.md)
 
 ## Other
 

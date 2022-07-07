@@ -16,7 +16,7 @@ test_id_compute_agent() {
     else
         AGENT_COMMIT="${AGENT_COMMIT##$AGENT_VERSION-}"
     fi
-    AGENT_VERSION="go-ipfs/$AGENT_VERSION/$AGENT_COMMIT"
+    AGENT_VERSION="kubo/$AGENT_VERSION/$AGENT_COMMIT"
     if test -n "$AGENT_SUFFIX"; then
       if test -n "$AGENT_COMMIT"; then
         AGENT_VERSION="$AGENT_VERSION/"

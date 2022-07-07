@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-ipfs/plugin"
-	"github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/plugin"
+	"github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/fsrepo"
 
 	humanize "github.com/dustin/go-humanize"
 	badgerds "github.com/ipfs/go-ds-badger"

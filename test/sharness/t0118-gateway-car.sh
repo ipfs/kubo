@@ -128,8 +128,8 @@ test_launch_ipfs_daemon_without_network
     grep "< X-Ipfs-Roots" curl_output
     '
 
-    test_expect_success "GET response for application/vnd.ipld.car includes expected Cache-Control" '
-    grep "< Cache-Control: no-cache, no-transform" curl_output
+    test_expect_success "GET response for application/vnd.ipld.car includes same Cache-Control as a block or a file" '
+    grep "< Cache-Control: public, max-age=29030400, immutable" curl_output
     '
 
 test_kill_ipfs_daemon

@@ -1,12 +1,12 @@
 name: Enhancement
-description: Suggest an improvement to an existing go-ipfs feature.
+description: Suggest an improvement to an existing kubo feature.
 labels:
   - kind/enhancement
 body:
   - type: markdown
     attributes:
       value: |
-        Suggest an enhancement to go-ipfs (the program). If you'd like to suggest an improvement to the IPFS protocol, please discuss it on [the forum](https://discuss.ipfs.io).
+        Suggest an enhancement to Kubo (the program). If you'd like to suggest an improvement to the IPFS protocol, please discuss it on [the forum](https://discuss.ipfs.io).
 
         Issues in this repo must be specific, actionable, and well motivated. They should be starting points for _building_ new features, not brainstorming ideas.
 
@@ -14,7 +14,7 @@ body:
 
         **Example:**
 
-        > Reduce memory usage of `ipfs cat` (specific) by buffering less in ... (actionable). This would let me run go-ipfs on my Raspberry Pi (motivated).
+        > Reduce memory usage of `ipfs cat` (specific) by buffering less in ... (actionable). This would let me run Kubo on my Raspberry Pi (motivated).
   - type: checkboxes
     attributes:
       label: Checklist
@@ -24,7 +24,7 @@ body:
           required: true
         - label: I am not suggesting a protocol enhancement.
           required: true
-        - label: I have searched on the [issue tracker](https://github.com/ipfs/go-ipfs/issues?q=is%3Aissue) for my issue.
+        - label: I have searched on the [issue tracker](https://github.com/ipfs/kubo/issues?q=is%3Aissue) for my issue.
           required: true
   - type: textarea
     attributes:

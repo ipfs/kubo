@@ -5,7 +5,7 @@ import (
 )
 
 var UnixFSCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/pull/7755
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/pull/7755
 	Helptext: cmds.HelpText{
 		Tagline: "Interact with IPFS objects representing Unix filesystems.",
 		ShortDescription: `
