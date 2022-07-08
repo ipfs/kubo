@@ -52,7 +52,7 @@ executors:
       <<: *default_environment
   node-browsers:
     docker:
-      - image: circleci/node:14-browsers
+      - image: circleci/node:16.12.0-browsers
     working_directory: ~/ipfs/kubo
     environment:
       <<: *default_environment
@@ -347,7 +347,7 @@ jobs:
       - run:
           name: Installing dependencies
           command: |
-            npm install
+            npm ci --prefer-offline --no-audit --progress=false --cache ~/ipfs/kubo/.cache/npm
             npx playwright install
           working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
@@ -365,7 +365,7 @@ jobs:
           key: v1-ipfs-webui-{{ checksum "~/ipfs/kubo/ipfs-webui/package-lock.json" }}
           paths:
             - ~/.cache/ms-playwright
-            - ~/ipfs/kubo/ipfs-webui/node_modules
+            - ~/ipfs/kubo/.cache/npm
   # We only run build as a test here. DockerHub images are built and published
   # by GitHub Action now: https://github.com/ipfs/kubo/pull/8467
   docker-build:
