@@ -67,6 +67,7 @@ NETWORK COMMANDS
   bootstrap     Add or remove bootstrap peers
   swarm         Manage connections to the p2p network
   dht           Query the DHT for values or peers
+  routing       Issue routing commands
   ping          Measure the latency of a connection
   bitswap       Inspect bitswap state
   pubsub        Send and receive messages via pubsub
