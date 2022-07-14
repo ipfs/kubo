@@ -1,4 +1,4 @@
-> Release Issue Template
+> Release Issue Template.  If doing a patch release, see [here](https://github.com/ipfs/kubo/blob/master/docs/PATCH_RELEASE_TEMPLATE.md)
 
 # Items to do upon creating the release issue
 - [ ] Fill in the Meta section
