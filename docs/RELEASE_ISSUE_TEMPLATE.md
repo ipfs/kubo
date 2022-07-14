@@ -12,6 +12,7 @@
 * Release reviewer: @who
 * Expected RC date: week of 2022-MM-DD
 * Expected final release date: 2022-MM-DD
+
 See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
 
 # Kubo X.Y.Z Release
