@@ -1,8 +1,22 @@
 > Release Issue Template
 
-# go-ipfs X.Y.Z Release
+# Items to do upon creating the release issue
+- [ ] Fill in the Meta section
+- [ ] Assign the issue to the release owner and reviewer.
+- [ ] Name the issue "Release vX.Y.Z"
+- [ ] Set the proper values for X.Y.Z for
+- [ ] Pin the issue
 
-We're happy to announce go-ipfs X.Y.Z, bla bla...
+# Meta
+* Release owner: @who
+* Release reviewer: @who
+* Expected RC date: week of 2022-MM-DD
+* Expected final release date: 2022-MM-DD
+See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
+
+# Kubo X.Y.Z Release
+
+We're happy to announce Kubo X.Y.Z, bla bla...
 
 As usual, this release includes important fixes, some of which may be critical for security. Unless the fix addresses a bug being exploited in the wild, the fix will _not_ be called out in the release notes. Please make sure to update ASAP. See our [release process](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md#security-fix-policy) for details.
 
