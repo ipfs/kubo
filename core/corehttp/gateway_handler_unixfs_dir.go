@@ -41,28 +41,30 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	}
 	originalUrlPath := requestURI.Path
 
+	// Ensure directory paths end with '/'
+	if originalUrlPath[len(originalUrlPath)-1] != '/' {
+		// don't redirect to trailing slash if it's go get
+		// https://github.com/ipfs/kubo/pull/3963
+		goget := r.URL.Query().Get("go-get") == "1"
+		if !goget {
+			suffix := "/"
+			// preserve query parameters
+			if r.URL.RawQuery != "" {
+				suffix = suffix + "?" + r.URL.RawQuery
+			}
+			// /ipfs/cid/foo?bar must be redirected to /ipfs/cid/foo/?bar
+			redirectURL := originalUrlPath + suffix
+			logger.Debugw("directory location moved permanently", "status", http.StatusMovedPermanently)
+			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+			return
+		}
+	}
+
 	// Check if directory has index.html, if so, serveFile
 	idxPath := ipath.Join(contentPath, "index.html")
 	idx, err := i.api.Unixfs().Get(ctx, idxPath)
 	switch err.(type) {
 	case nil:
-		cpath := contentPath.String()
-		dirwithoutslash := cpath[len(cpath)-1] != '/'
-		goget := r.URL.Query().Get("go-get") == "1"
-		if dirwithoutslash && !goget {
-			// See comment above where originalUrlPath is declared.
-			suffix := "/"
-			if r.URL.RawQuery != "" {
-				// preserve query parameters
-				suffix = suffix + "?" + r.URL.RawQuery
-			}
-
-			redirectURL := originalUrlPath + suffix
-			logger.Debugw("serving index.html file", "to", redirectURL, "status", http.StatusFound, "path", idxPath)
-			http.Redirect(w, r, redirectURL, http.StatusFound)
-			return
-		}
-
 		f, ok := idx.(files.File)
 		if !ok {
 			internalWebError(w, files.ErrNotReader)
@@ -163,7 +165,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	// add the correct link depending on whether the path ends with a slash
 	default:
 		if strings.HasSuffix(backLink, "/") {
-			backLink += "./.."
+			backLink += ".."
 		} else {
 			backLink += "/.."
 		}

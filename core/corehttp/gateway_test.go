@@ -380,9 +380,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// expect 302 redirect to same path, but with trailing slash
-	if res.StatusCode != 302 {
-		t.Errorf("status is %d, expected 302", res.StatusCode)
+	// expect 301 redirect to same path, but with trailing slash
+	if res.StatusCode != 301 {
+		t.Errorf("status is %d, expected 301", res.StatusCode)
 	}
 	hdr := res.Header["Location"]
 	if len(hdr) < 1 {
@@ -403,9 +403,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// expect 302 redirect to same path, but with prefix and trailing slash
-	if res.StatusCode != 302 {
-		t.Errorf("status is %d, expected 302", res.StatusCode)
+	// expect 301 redirect to same path, but with prefix and trailing slash
+	if res.StatusCode != 301 {
+		t.Errorf("status is %d, expected 301", res.StatusCode)
 	}
 	hdr = res.Header["Location"]
 	if len(hdr) < 1 {
@@ -492,7 +492,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
@@ -566,7 +566,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"//example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/file.txt\">") {

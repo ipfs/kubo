@@ -72,6 +72,7 @@ test_expect_success "GET IPFS directory file output looks good" '
 
 test_expect_success "GET IPFS directory with index.html returns redirect to add trailing slash" "
   curl -sI -o response_without_slash \"http://127.0.0.1:$port/ipfs/$HASH2/dirwithindex?query=to-remember\"  &&
+  test_should_contain \"HTTP/1.1 301 Moved Permanently\" response_without_slash &&
   test_should_contain \"Location: /ipfs/$HASH2/dirwithindex/?query=to-remember\" response_without_slash
 "
 
