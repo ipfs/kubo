@@ -529,8 +529,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !matchPathOrBreadcrumbs(s, "/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/\">") {
-		t.Fatalf("expected backlink in directory listing")
+	if strings.Contains(s, "<a href=\"/\">") {
+		t.Fatalf("expected no backlink in directory listing of the root CID")
 	}
 	if !strings.Contains(s, "<a href=\"/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
