@@ -152,11 +152,13 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	// don't go further up than /ipfs/$hash/
 	pathSplit := path.SplitList(contentPath.String())
 	switch {
-	// keep backlink
+	// skip backlink when listing a content root
 	case len(pathSplit) == 3: // url: /ipfs/$hash
+		backLink = ""
 
-	// keep backlink
+	// skip backlink when listing a content root
 	case len(pathSplit) == 4 && pathSplit[3] == "": // url: /ipfs/$hash/
+		backLink = ""
 
 	// add the correct link depending on whether the path ends with a slash
 	default:
