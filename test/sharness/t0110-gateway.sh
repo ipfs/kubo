@@ -75,6 +75,13 @@ test_expect_success "GET IPFS directory with index.html returns redirect to add 
   test_should_contain \"Location: /ipfs/$HASH2/dirwithindex/?query=to-remember\" response_without_slash
 "
 
+# This enables go get to parse go-import meta tags from index.html files stored in IPFS
+# https://github.com/ipfs/kubo/pull/3963
+test_expect_success "GET IPFS directory with index.html and no trailing slash returns expected output when go-get is passed" "
+  curl -s -o response_with_slash \"http://127.0.0.1:$port/ipfs/$HASH2/dirwithindex?go-get=1\"  &&
+  test_should_contain \"hello i am a webpage\" response_with_slash
+"
+
 test_expect_success "GET IPFS directory with index.html and trailing slash returns expected output" "
   curl -s -o response_with_slash \"http://127.0.0.1:$port/ipfs/$HASH2/dirwithindex/?query=to-remember\"  &&
   test_should_contain \"hello i am a webpage\" response_with_slash
