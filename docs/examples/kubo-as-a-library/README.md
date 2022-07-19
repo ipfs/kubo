@@ -1,6 +1,6 @@
-# Use go-ipfs as a library to spawn a node and add a file
+# Use Kubo (go-ipfs) as a library to spawn a node and add a file
 
-> This tutorial is the sibling of the [js-ipfs IPFS 101 tutorial](https://github.com/ipfs/js-ipfs/tree/master/examples/ipfs-101).
+> This tutorial is the sibling of the [js-ipfs IPFS 101 tutorial](https://github.com/ipfs-examples/js-ipfs-examples/tree/master/examples/ipfs-101#readme).
 
 By the end of this tutorial, you will learn how to:
 
@@ -26,26 +26,26 @@ In order to complete this tutorial, you will need:
 
 **Note:** Make sure you have [![](https://img.shields.io/badge/go-%3E%3D1.13.0-blue.svg?style=flat-square)](https://golang.org/dl/) installed.
 
-Download go-ipfs and jump into the example folder:
+Download Kubo and jump into the example folder:
 
-```
-> go get -u github.com/ipfs/go-ipfs
-cd $GOPATH/src/github.com/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
+```console
+$ git clone https://github.com/ipfs/kubo.git
+$ cd kubo/docs/examples/kubo-as-a-library
 ```
 
 ## Running the example as-is
 
 To run the example, simply do:
 
-```
-> go run main.go
+```console
+$ go run main.go
 ```
 
 You should see the following as output:
 
 ```
 -- Getting an IPFS node running --
-Spawning node on a temporary repo
+Spawning Kubo node on a temporary repo
 IPFS node is running
 
 -- Adding and getting back files & directories --
@@ -58,7 +58,7 @@ Got directory back from IPFS (IPFS path: /ipfs/QmdQdu1fkaAUokmkfpWrmPHK78F9Eo9K2
 Fetching a file from the network with CID QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj
 Wrote the file to ./example-folder/QmUaoioqU7bxezBQZkUcgcSyokatMY71sxsALxQmRRrHrj
 
-All done! You just finalized your first tutorial on how to use go-ipfs as a library
+All done! You just finalized your first tutorial on how to use Kubo as a library
 ```
 
 ## Understanding the example
@@ -108,6 +108,6 @@ As a bonus, you can also find lines that show you how to spawn a node over your 
 - [Comment these lines](./main.go#L219-L223)
 - [Uncomment these lines](./main.go#L209-L216)
 
-## Voilá! You are now a go-ipfs hacker
+## Voilá! You are now a Kubo hacker
 
-You've learned how to spawn a go-ipfs node using the go-ipfs core API. There are many more [methods to experiment next](https://godoc.org/github.com/ipfs/interface-go-ipfs-core). Happy hacking!
+You've learned how to spawn a Kubo node using the Core API. There are many more [methods to experiment next](https://godoc.org/github.com/ipfs/interface-go-ipfs-core). Happy hacking!
