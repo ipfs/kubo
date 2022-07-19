@@ -22,7 +22,7 @@ func (i *gatewayHandler) serveUnixFS(ctx context.Context, w http.ResponseWriter,
 	// Handling UnixFS
 	dr, err := i.api.Unixfs().Get(ctx, resolvedPath)
 	if err != nil {
-		webError(w, "ipfs cat "+html.EscapeString(contentPath.String()), err, http.StatusNotFound)
+		webError(w, "ipfs cat "+html.EscapeString(contentPath.String()), err, http.StatusBadRequest)
 		return
 	}
 	defer dr.Close()
