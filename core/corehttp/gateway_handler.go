@@ -4,6 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/ipld/go-ipld-prime"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
+	basicnode "github.com/ipld/go-ipld-prime/node/basic"
+	"github.com/ipld/go-ipld-prime/traversal/selector/builder"
+	"github.com/multiformats/go-multicodec"
+	"github.com/multiformats/go-multihash"
 	"html/template"
 	"io"
 	"mime"
@@ -365,22 +370,35 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Resolve path to the final DAG node for the ETag
-	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
-	switch err {
-	case nil:
-	case coreiface.ErrOffline:
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
-		return
-	default:
-		// if Accept is text/html, see if ipfs-404.html is present
-		if i.servePretty404IfPresent(w, r, contentPath) {
-			logger.Debugw("serve pretty 404 if present")
+	ns := contentPath.Namespace()
+
+	var resolvedPath ipath.Resolved
+	var err error
+	if ns != "ipld" {
+		// Resolve path to the final DAG node for the ETag
+		resolvedPath, err = i.api.ResolvePath(r.Context(), contentPath)
+		switch err {
+		case nil:
+		case coreiface.ErrOffline:
+			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
+			return
+		default:
+			// if Accept is text/html, see if ipfs-404.html is present
+			if i.servePretty404IfPresent(w, r, contentPath) {
+				logger.Debugw("serve pretty 404 if present")
+				return
+			}
+
+			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
 			return
 		}
-
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
-		return
+	} else {
+		cstr := strings.Split(contentPath.String(), "/")[2]
+		c, err := cid.Decode(cstr)
+		if err != nil {
+			webError(w, "resolve /ipld error "+debugStr(contentPath.String()), err, http.StatusNotFound)
+		}
+		resolvedPath = ipath.IpfsPath(c)
 	}
 
 	// Detect when explicit Accept header or ?format parameter are present
@@ -416,7 +434,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var selector ipld.Node
+	var querySelector ipld.Node
 	var selectorCID cid.Cid
 	if selectorParam := r.URL.Query().Get("selector"); selectorParam != "" {
 		selectorCID, err = cid.Decode(selectorParam)
@@ -429,16 +447,78 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			webError(w, "could not get selector", err, http.StatusInternalServerError)
 			return
 		}
-		selector = selectorNode.(ipld.Node)
+		querySelector = selectorNode.(ipld.Node)
+	}
+
+	if ipldPathParam := r.URL.Query().Get("ipld-path"); ipldPathParam != "" || ns == "ipld" {
+		var pcs []string
+		if ipldPathParam != "" {
+			pcs = strings.Split(ipldPathParam, "|")
+		} else {
+			pcs = strings.Split(contentPath.String(), "/")[3:]
+		}
+		buildSel := builder.NewSelectorSpecBuilder(basicnode.Prototype__Any{})
+		var fnBuildSel func(comps []string) (builder.SelectorSpec, error)
+		fnBuildSel = func(comps []string) (builder.SelectorSpec, error) {
+			if len(comps) == 0 {
+				return buildSel.Matcher(), nil
+			}
+			comp := comps[0]
+			if comp[0] != '[' {
+				next, err := fnBuildSel(comps[1:])
+				if err != nil {
+					return nil, err
+				}
+				return buildSel.ExploreFields(func(specBuilder builder.ExploreFieldsSpecBuilder) {
+					specBuilder.Insert(comp, next)
+				}), nil
+			} else {
+				matched, err := regexp.MatchString(`[ADL=(.*)]`, comp)
+				if err != nil {
+					return nil, err
+				}
+				if !matched {
+					return nil, fmt.Errorf("invalid path component %s", comp)
+				}
+				adlName := comp[5 : len(comp)-1]
+				next, err := fnBuildSel(comps[1:])
+				if err != nil {
+					return nil, err
+				}
+				return buildSel.ExploreInterpretAs(adlName, next), nil
+			}
+		}
+
+		sel, err := fnBuildSel(pcs)
+		if err != nil {
+			webError(w, "problem with ipld pathing", err, http.StatusBadRequest)
+			return
+		}
+
+		querySelector = sel.Node()
+		lsys := cidlink.DefaultLinkSystem()
+		lnk, err := lsys.ComputeLink(cidlink.LinkPrototype{Prefix: cid.Prefix{
+			Version:  1,
+			Codec:    uint64(multicodec.DagJson),
+			MhType:   multihash.IDENTITY,
+			MhLength: -1,
+		}}, querySelector)
+
+		selectorCIDLnk, ok := lnk.(cidlink.Link)
+		if !ok {
+			webError(w, "could not compute selector CID", err, http.StatusInternalServerError)
+			return
+		}
+		selectorCID = selectorCIDLnk.Cid
 	}
 
 	// Support custom response formats passed via ?format or Accept HTTP header
 	switch responseFormat {
 	case "": // The implicit response format is UnixFS
 		// If there is a selector we're in IPLD land
-		if selector != nil {
+		if querySelector != nil {
 			logger.Debugw("serving ipld selector request", "path", contentPath, "selector", selectorCID)
-			i.serveIPLD(w, r, resolvedPath, contentPath, selector, selectorCID, begin, logger)
+			i.serveIPLD(w, r, resolvedPath, contentPath, querySelector, selectorCID, begin, logger)
 		} else {
 			logger.Debugw("serving unixfs", "path", contentPath)
 			i.serveUnixFS(r.Context(), w, r, resolvedPath, contentPath, begin, logger)
@@ -1094,11 +1174,12 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
 	w.Header().Set("X-Ipfs-Path", contentPath.String())
 
-	if rootCids, err := i.buildIpfsRootsHeader(contentPath.String(), r); err == nil {
-		w.Header().Set("X-Ipfs-Roots", rootCids)
-	} else { // this should never happen, as we resolved the contentPath already
-		return newRequestError("error while resolving X-Ipfs-Roots", err, http.StatusInternalServerError)
+	if contentPath.Namespace() != "ipld" {
+		if rootCids, err := i.buildIpfsRootsHeader(contentPath.String(), r); err == nil {
+			w.Header().Set("X-Ipfs-Roots", rootCids)
+		} else { // this should never happen, as we resolved the contentPath already
+			return newRequestError("error while resolving X-Ipfs-Roots", err, http.StatusInternalServerError)
+		}
 	}
-
 	return nil
 }

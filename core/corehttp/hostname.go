@@ -24,7 +24,7 @@ import (
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 )
 
-var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/"}
+var defaultPaths = []string{"/ipfs/", "/ipns/", "/api/", "/p2p/", "/ipld/"}
 
 var subdomainGatewaySpec = &config.GatewaySpec{
 	Paths:         defaultPaths,
