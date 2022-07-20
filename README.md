@@ -389,6 +389,10 @@ Please direct general questions and help requests to our [forum](https://discuss
 
 If you believe you've found a bug, check the [issues list](https://github.com/ipfs/kubo/issues) and, if you don't see your problem there, either come talk to us on [Matrix chat](https://docs.ipfs.io/community/chat/), or file an issue of your own!
 
+## Packages
+
+See [IPFS in GO](https://docs.ipfs.io/reference/go/api/) documentation.
+
 ## Development
 
 Some places to get you started on the codebase:
