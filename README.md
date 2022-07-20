@@ -18,7 +18,7 @@ It includes:
 - an [HTTP Gateway](https://github.com/ipfs/specs/tree/main/http-gateways#readme) (`/ipfs/`, `/ipns/`) for serving content to HTTP browsers
 - an HTTP RPC API (`/api/v0`) for controlling the daemon node
 
-Note: [other implementations exist](https://docs.ipfs.io/concepts/ipfs-implementations/).
+Note: [other implementations exist](https://docs.ipfs.io/basics/ipfs-implementations/).
 
 ## What is IPFS?
 
