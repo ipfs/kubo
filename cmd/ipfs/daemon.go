@@ -400,10 +400,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type
-		if routingOption == "" {
-			routingOption = routingOptionDHTKwd
-		}
+		routingOption = cfg.Routing.Type.WithDefault(routingOptionDHTKwd)
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
@@ -926,7 +923,7 @@ func printVersion() {
 	if version.CurrentCommit != "" {
 		v += "-" + version.CurrentCommit
 	}
-	fmt.Printf("go-ipfs version: %s\n", v)
+	fmt.Printf("Kubo version: %s\n", v)
 	fmt.Printf("Repo version: %d\n", fsrepo.RepoVersion)
 	fmt.Printf("System version: %s\n", runtime.GOARCH+"/"+runtime.GOOS)
 	fmt.Printf("Golang version: %s\n", runtime.Version())

@@ -68,7 +68,7 @@ test_expect_success "Create text fixtures" '
     '
 
     test_expect_success "GET response for application/vnd.ipld.raw includes Cache-Control" '
-    grep "< Cache-Control" curl_output
+    grep "< Cache-Control: public, max-age=29030400, immutable" curl_output
     '
 
 test_kill_ipfs_daemon
