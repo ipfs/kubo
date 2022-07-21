@@ -287,7 +287,7 @@ export PATH=$PATH:$GOPATH/bin
 ```
 $ git clone https://github.com/ipfs/kubo.git
 
-$ cd go-ipfs
+$ cd kubo
 $ make install
 ```
 
