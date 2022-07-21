@@ -40,11 +40,11 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - tag commit with `vX.Y.Z-rcN`
-- upload to dist.ipfs.io
-  1. Build: https://github.com/ipfs/distributions#usage.
-  2. Pin the resulting release.
-  3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
-  - Note the DNSLink record for dist.ipfs.io points to the new distribution as part of [CI after merging into master](https://github.com/ipfs/distributions/blob/master/.github/workflows/main.yml#L154).
+- add artifacts to https://dist.ipfs.io
+  1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
+  2. Wait for PR to build artifacts and generate diff
+  3. Inspect results, merge if CI is green and the diff looks ok
+  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.io
 - Announce the RC:
   - [ ] 
     - This will automatically post to IPFS Discord #ipfs-chatter
