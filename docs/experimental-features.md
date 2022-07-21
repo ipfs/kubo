@@ -1,14 +1,14 @@
-# Experimental features of go-ipfs
+# Experimental features of Kubo
 
-This document contains a list of experimental features in go-ipfs.
+This document contains a list of experimental features in Kubo.
 These features, commands, and APIs aren't mature, and you shouldn't rely on them.
 Once they reach maturity, there's going to be mention in the changelog and
 release posts. If they don't reach maturity, the same applies, and their code is
 removed.
 
-Subscribe to https://github.com/ipfs/go-ipfs/issues/3397 to get updates.
+Subscribe to https://github.com/ipfs/kubo/issues/3397 to get updates.
 
-When you add a new experimental feature to go-ipfs or change an experimental
+When you add a new experimental feature to kubo or change an experimental
 feature, you MUST please make a PR updating this document, and link the PR in
 the above issue.
 
@@ -54,7 +54,7 @@ Then use the `ipfs pubsub` commands.
 
 NOTE: `--enable-pubsub-experiment` CLI flag overrides `Pubsub.Enabled` config.
 
-Configuration documentation can be found in [go-ipfs/docs/config.md](./config.md#pubsub)
+Configuration documentation can be found in [kubo/docs/config.md](./config.md#pubsub)
 
 ### Road to being a real feature
 
@@ -435,7 +435,7 @@ Replaced by autosharding.
 
 The `Experimental.ShardingEnabled` config field is no longer used, please remove it from your configs.
 
-go-ipfs now automatically shards when directory block is bigger than 256KB, ensuring every block is small enough to be exchanged with other peers
+kubo now automatically shards when directory block is bigger than 256KB, ensuring every block is small enough to be exchanged with other peers
 
 ## IPNS pubsub
 
@@ -574,7 +574,7 @@ ipfs config --json Experimental.GraphsyncEnabled true
 
 Stable, enabled by default
 
-[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in go-ipfs, Noise is easier to implement and is thus the "interop" transport between IPFS and libp2p implementations.
+[Noise](https://github.com/libp2p/specs/tree/master/noise) libp2p transport based on the [Noise Protocol Framework](https://noiseprotocol.org/noise.html). While TLS remains the default transport in Kubo, Noise is easier to implement and is thus the "interop" transport between IPFS and libp2p implementations.
 
 ## Accelerated DHT Client
 

@@ -3,20 +3,19 @@ package fsrepo
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/thirdparty/assert"
+	"github.com/ipfs/kubo/thirdparty/assert"
 
 	datastore "github.com/ipfs/go-datastore"
-	config "github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/kubo/config"
 )
 
 // swap arg order
 func testRepoPath(p string, t *testing.T) string {
-	name, err := ioutil.TempDir("", p)
+	name, err := os.MkdirTemp("", p)
 	if err != nil {
 		t.Fatal(err)
 	}

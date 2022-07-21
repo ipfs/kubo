@@ -49,6 +49,12 @@ test_expect_success "Create text fixtures" '
     grep "< X-Content-Type-Options: nosniff" curl_output
     '
 
+    test_expect_success "GET for application/vnd.ipld.raw with query filename includes Content-Disposition with custom filename" '
+    curl -svX GET -H "Accept: application/vnd.ipld.raw" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/dir/ascii.txt?filename=foobar.bin" >/dev/null 2>curl_output_filename &&
+    cat curl_output_filename &&
+    grep "< Content-Disposition: attachment\; filename=\"foobar.bin\"" curl_output_filename
+    '
+
 # Cache control HTTP headers
 # (basic checks, detailed behavior is tested in  t0116-gateway-cache.sh)
 
@@ -62,7 +68,7 @@ test_expect_success "Create text fixtures" '
     '
 
     test_expect_success "GET response for application/vnd.ipld.raw includes Cache-Control" '
-    grep "< Cache-Control" curl_output
+    grep "< Cache-Control: public, max-age=29030400, immutable" curl_output
     '
 
 test_kill_ipfs_daemon

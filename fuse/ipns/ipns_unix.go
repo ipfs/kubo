@@ -216,7 +216,7 @@ func (r *Root) Forget() {
 func (r *Root) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 	log.Debug("Root ReadDirAll")
 
-	var listing []fuse.Dirent
+	listing := make([]fuse.Dirent, 0, len(r.Keys)*2)
 	for alias, k := range r.Keys {
 		ent := fuse.Dirent{
 			Name: k.ID().Pretty(),
@@ -291,12 +291,12 @@ func (s *Directory) Lookup(ctx context.Context, name string) (fs.Node, error) {
 
 // ReadDirAll reads the link structure as directory entries
 func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	var entries []fuse.Dirent
 	listing, err := dir.dir.List(ctx)
 	if err != nil {
 		return nil, err
 	}
-	for _, entry := range listing {
+	entries := make([]fuse.Dirent, len(listing))
+	for i, entry := range listing {
 		dirent := fuse.Dirent{Name: entry.Name}
 
 		switch mfs.NodeType(entry.Type) {
@@ -306,7 +306,7 @@ func (dir *Directory) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 			dirent.Type = fuse.DT_File
 		}
 
-		entries = append(entries, dirent)
+		entries[i] = dirent
 	}
 
 	if len(entries) > 0 {

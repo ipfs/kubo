@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -19,13 +19,13 @@ func main() {
 		fmt.Println("IPFS_COVER_DIR not defined")
 		os.Exit(1)
 	}
-	coverFile, err := ioutil.TempFile(coverDir, "coverage-")
+	coverFile, err := os.CreateTemp(coverDir, "coverage-")
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
-	retFile, err := ioutil.TempFile("", "cover-ret-file")
+	retFile, err := os.CreateTemp("", "cover-ret-file")
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
@@ -69,7 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	b, err := ioutil.ReadAll(retFile)
+	b, err := io.ReadAll(retFile)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)

@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"os"
 	"sync"
@@ -16,8 +15,8 @@ import (
 
 	"bazil.org/fuse"
 
-	core "github.com/ipfs/go-ipfs/core"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	core "github.com/ipfs/kubo/core"
+	coreapi "github.com/ipfs/kubo/core/coreapi"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	racedet "github.com/ipfs/go-detect-race"
@@ -57,12 +56,12 @@ func writeFileOrFail(t *testing.T, size int, path string) []byte {
 
 func writeFile(size int, path string) ([]byte, error) {
 	data := randBytes(size)
-	err := ioutil.WriteFile(path, data, 0666)
+	err := os.WriteFile(path, data, 0666)
 	return data, err
 }
 
 func verifyFile(t *testing.T, path string, wantData []byte) {
-	isData, err := ioutil.ReadFile(path)
+	isData, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +167,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	fname := mnt.Dir + "/local/testfile"
 	data := writeFileOrFail(t, 10, fname)
 
-	rbuf, err := ioutil.ReadFile(fname)
+	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +177,7 @@ func TestIpnsBasicIO(t *testing.T) {
 	}
 
 	fname2 := mnt.Dir + "/" + nd.Identity.Pretty() + "/testfile"
-	rbuf, err = ioutil.ReadFile(fname2)
+	rbuf, err = os.ReadFile(fname2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +203,7 @@ func TestFilePersistence(t *testing.T) {
 	_, mnt = setupIpnsTest(t, node)
 	defer mnt.Close()
 
-	rbuf, err := ioutil.ReadFile(mnt.Dir + fname)
+	rbuf, err := os.ReadFile(mnt.Dir + fname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,7 +323,7 @@ func TestAppendFile(t *testing.T) {
 
 	data = append(data, nudata...)
 
-	rbuf, err := ioutil.ReadFile(fname)
+	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -453,7 +452,7 @@ func TestFSThrash(t *testing.T) {
 
 	wg.Wait()
 	for name, data := range files {
-		out, err := ioutil.ReadFile(name)
+		out, err := os.ReadFile(name)
 		if err != nil {
 			t.Error(err)
 		}
@@ -492,7 +491,7 @@ func TestMultiWrite(t *testing.T) {
 	}
 	fi.Close()
 
-	rbuf, err := ioutil.ReadFile(fpath)
+	rbuf, err := os.ReadFile(fpath)
 	if err != nil {
 		t.Fatal(err)
 	}

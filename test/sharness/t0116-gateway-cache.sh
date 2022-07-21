@@ -67,6 +67,57 @@ test_expect_success "Prepare IPNS unixfs content path for testing" '
     cat curl_ipns_file_output
     '
 
+# Cache-Control
+
+# Cache-Control: immutable /ipfs/ file
+    test_expect_success "GET /ipfs/ unixfs file has expected Cache-Control" '
+    test_should_contain "< Cache-Control: public, max-age=29030400, immutable" curl_ipfs_file_output
+    '
+# Cache-Control: generated /ipfs/dir/ (listing)
+    # TODO: test_should_contain "< Cache-Control: public, max-age=TBD" curl_ipfs_dir_listing_output
+    test_expect_success "GET /ipfs/ unixfs dir listing has no Cache-Control" '
+    test_should_not_contain "< Cache-Control" curl_ipns_dir_listing_output
+    '
+# Cache-Control: immutable /ipfs/dir/ (index.html)
+    test_expect_success "GET /ipfs/ unixfs dir with index.html has expected Cache-Control" '
+    test_should_contain "< Cache-Control: public, max-age=29030400, immutable" curl_ipfs_dir_index.html_output
+    '
+
+# Cache-Control: mutable /ipns/ file
+    test_expect_success "GET /ipns/ unixfs file has no Cache-Control" '
+    test_should_not_contain "< Cache-Control" curl_ipns_file_output
+    '
+# Cache-Control: generated /ipns/dir/ (listing)
+    test_expect_success "GET /ipns/ unixfs dir listing has no Cache-Control" '
+    test_should_not_contain "< Cache-Control" curl_ipns_dir_listing_output
+    '
+# Cache-Control: immutable /ipns/dir/ (index.html)
+    test_expect_success "GET /ipns/ unixfs dir with index.html has no Cache-Control" '
+    test_should_not_contain "< Cache-Control" curl_ipns_dir_index.html_output
+    '
+
+# Cache-Control: only-if-cached
+    test_expect_success "HEAD for /ipfs/ with only-if-cached succeeds when in local datastore" '
+    curl -sv -I -H "Cache-Control: only-if-cached" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/root4/index.html" > curl_onlyifcached_postitive_head 2>&1 &&
+    cat curl_onlyifcached_postitive_head &&
+    grep "< HTTP/1.1 200 OK" curl_onlyifcached_postitive_head
+    '
+    test_expect_success "HEAD for /ipfs/ with only-if-cached fails when not in local datastore" '
+    curl -sv -I -H "Cache-Control: only-if-cached" "http://127.0.0.1:$GWAY_PORT/ipfs/$(date | ipfs add --only-hash -Q)" > curl_onlyifcached_negative_head 2>&1 &&
+    cat curl_onlyifcached_negative_head &&
+    grep "< HTTP/1.1 412 Precondition Failed" curl_onlyifcached_negative_head
+    '
+    test_expect_success "GET for /ipfs/ with only-if-cached succeeds when in local datastore" '
+    curl -svX GET -H "Cache-Control: only-if-cached" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT1_CID/root2/root3/root4/index.html" >/dev/null 2>curl_onlyifcached_postitive_out &&
+    cat curl_onlyifcached_postitive_out &&
+    grep "< HTTP/1.1 200 OK" curl_onlyifcached_postitive_out
+    '
+    test_expect_success "GET for /ipfs/ with only-if-cached fails when not in local datastore" '
+    curl -svX GET -H "Cache-Control: only-if-cached" "http://127.0.0.1:$GWAY_PORT/ipfs/$(date | ipfs add --only-hash -Q)" >/dev/null 2>curl_onlyifcached_negative_out &&
+    cat curl_onlyifcached_negative_out &&
+    grep "< HTTP/1.1 412 Precondition Failed" curl_onlyifcached_negative_out
+    '
+
 # X-Ipfs-Path
 
     ## dir generated listing

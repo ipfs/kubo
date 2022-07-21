@@ -5,18 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -37,7 +36,7 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 			if err != nil {
 				return err
 			}
-		case *migrations.HttpFetcher, *migrations.RetryFetcher: // https://github.com/ipfs/go-ipfs/issues/8780
+		case *migrations.HttpFetcher, *migrations.RetryFetcher: // https://github.com/ipfs/kubo/issues/8780
 			// Add the downloaded migration files directly
 			if migrations.DownloadDirectory != "" {
 				var paths []string
@@ -154,7 +153,7 @@ func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath ipath.Path) 
 	if !ok {
 		return fmt.Errorf("not a file node: %q", ipfsPath)
 	}
-	_, err = io.Copy(ioutil.Discard, fnd)
+	_, err = io.Copy(io.Discard, fnd)
 	if err != nil {
 		return fmt.Errorf("cannot read migration: %w", err)
 	}

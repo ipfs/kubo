@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/ipld/go-ipld-prime"
 	"github.com/ipld/go-ipld-prime/multicodec"

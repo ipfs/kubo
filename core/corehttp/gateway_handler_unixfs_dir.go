@@ -11,12 +11,12 @@ import (
 	"github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/assets"
-	"github.com/ipfs/go-ipfs/tracing"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/assets"
+	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -42,7 +42,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	originalUrlPath := requestURI.Path
 
 	// Check if directory has index.html, if so, serveFile
-	idxPath := ipath.Join(resolvedPath, "index.html")
+	idxPath := ipath.Join(contentPath, "index.html")
 	idx, err := i.api.Unixfs().Get(ctx, idxPath)
 	switch err.(type) {
 	case nil:
@@ -81,7 +81,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	}
 
 	// See statusResponseWriter.WriteHeader
-	// and https://github.com/ipfs/go-ipfs/issues/7164
+	// and https://github.com/ipfs/kubo/issues/7164
 	// Note: this needs to occur before listingTemplate.Execute otherwise we get
 	// superfluous response.WriteHeader call from prometheus/client_golang
 	if w.Header().Get("Location") != "" {
@@ -146,7 +146,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	}
 
 	// construct the correct back link
-	// https://github.com/ipfs/go-ipfs/issues/1365
+	// https://github.com/ipfs/kubo/issues/1365
 	var backLink string = originalUrlPath
 
 	// don't go further up than /ipfs/$hash/

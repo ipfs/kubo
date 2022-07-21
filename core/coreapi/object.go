@@ -9,11 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	cid "github.com/ipfs/go-cid"
 	pin "github.com/ipfs/go-ipfs-pinner"
-	"github.com/ipfs/go-ipfs/tracing"
 	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	"github.com/ipfs/go-merkledag/dagutils"
@@ -21,6 +19,7 @@ import (
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	caopts "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -79,7 +78,7 @@ func (api *ObjectAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Obj
 		attribute.String("inputenc", options.InputEnc),
 	)
 
-	data, err := ioutil.ReadAll(io.LimitReader(src, inputLimit+10))
+	data, err := io.ReadAll(io.LimitReader(src, inputLimit+10))
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +315,7 @@ func (api *ObjectAPI) patchData(ctx context.Context, path ipath.Path, r io.Reade
 		return nil, dag.ErrNotProtobuf
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

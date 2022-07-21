@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,18 +12,18 @@ import (
 
 	filestore "github.com/ipfs/go-filestore"
 	keystore "github.com/ipfs/go-ipfs-keystore"
-	repo "github.com/ipfs/go-ipfs/repo"
-	"github.com/ipfs/go-ipfs/repo/common"
-	dir "github.com/ipfs/go-ipfs/thirdparty/dir"
+	repo "github.com/ipfs/kubo/repo"
+	"github.com/ipfs/kubo/repo/common"
+	dir "github.com/ipfs/kubo/thirdparty/dir"
 
 	ds "github.com/ipfs/go-datastore"
 	measure "github.com/ipfs/go-ds-measure"
 	lockfile "github.com/ipfs/go-fs-lock"
 	util "github.com/ipfs/go-ipfs-util"
-	config "github.com/ipfs/go-ipfs/config"
-	serialize "github.com/ipfs/go-ipfs/config/serialize"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
 	logging "github.com/ipfs/go-log"
+	config "github.com/ipfs/kubo/config"
+	serialize "github.com/ipfs/kubo/config/serialize"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	homedir "github.com/mitchellh/go-homedir"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -270,7 +269,7 @@ func initSpec(path string, conf map[string]interface{}) error {
 	}
 	bytes := dsc.DiskSpec().Bytes()
 
-	return ioutil.WriteFile(fn, bytes, 0600)
+	return os.WriteFile(fn, bytes, 0600)
 }
 
 // Init initializes a new FSRepo at the given path with the provided config.
@@ -338,7 +337,7 @@ func APIAddr(repoPath string) (ma.Multiaddr, error) {
 	// some hidden wisdom. However, I'm fixing it such that:
 	// 1. We don't read too little.
 	// 2. We don't truncate and succeed.
-	buf, err := ioutil.ReadAll(io.LimitReader(f, 2048))
+	buf, err := io.ReadAll(io.LimitReader(f, 2048))
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +417,7 @@ func (r *FSRepo) openDatastore() error {
 		return fmt.Errorf("required Datastore.Spec entry missing from config file")
 	}
 	if r.config.Datastore.NoSync {
-		log.Warn("NoSync is now deprecated in favor of datastore specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/ipfs/go-ipfs/blob/master/docs/datastores.md#flatfs.")
+		log.Warn("NoSync is now deprecated in favor of datastore specific settings. If you want to disable fsync on flatfs set 'sync' to false. See https://github.com/ipfs/kubo/blob/master/docs/datastores.md#flatfs.")
 	}
 
 	dsc, err := AnyDatastoreConfig(r.config.Datastore.Spec)
@@ -454,7 +453,7 @@ func (r *FSRepo) readSpec() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	b, err := ioutil.ReadFile(fn)
+	b, err := os.ReadFile(fn)
 	if err != nil {
 		return "", err
 	}
@@ -515,7 +514,7 @@ func (r *FSRepo) FileManager() *filestore.FileManager {
 }
 
 func (r *FSRepo) BackupConfig(prefix string) (string, error) {
-	temp, err := ioutil.TempFile(r.path, "config-"+prefix)
+	temp, err := os.CreateTemp(r.path, "config-"+prefix)
 	if err != nil {
 		return "", err
 	}
@@ -542,7 +541,7 @@ func (r *FSRepo) BackupConfig(prefix string) (string, error) {
 //  evidenced by the issue of `omitempty` property of fields that aren't defined
 //  by the user and Go still needs to initialize them to its default (which
 //  is not reflected in the repo's config file, see
-//  https://github.com/ipfs/go-ipfs/issues/8088 for more details).
+//  https://github.com/ipfs/kubo/issues/8088 for more details).
 //  In general we should call this API with a JSON nested maps as argument
 //  (`map[string]interface{}`). Many calls to this function are forced to
 //  synthesize the config.Config struct from their available JSON map just to
@@ -667,7 +666,7 @@ func (r *FSRepo) SwarmKey() ([]byte, error) {
 	}
 	defer f.Close()
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 var _ io.Closer = &FSRepo{}

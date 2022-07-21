@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"text/tabwriter"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/ipfs/go-cid"
@@ -47,7 +46,7 @@ const (
 )
 
 var ObjectCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated commands to interact with dag-pb objects. Use 'dag' or 'files' instead.",
 		ShortDescription: `
@@ -69,7 +68,7 @@ directly. Deprecated, use more modern 'ipfs dag' and 'ipfs files' instead.`,
 
 // ObjectDataCmd object data command
 var ObjectDataCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated way to read the raw bytes of a dag-pb object: use 'dag get' instead.",
 		ShortDescription: `
@@ -109,7 +108,7 @@ is the raw data of the object.
 
 // ObjectLinksCmd object links command
 var ObjectLinksCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated way to output links in the specified dag-pb object: use 'dag get' instead.",
 		ShortDescription: `
@@ -184,7 +183,7 @@ multihash. Provided for legacy reasons. Use 'ipfs dag get' instead.
 
 // ObjectGetCmd object get command
 var ObjectGetCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated way to get and serialize the dag-pb node. Use 'dag get' instead",
 		ShortDescription: `
@@ -230,7 +229,7 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag get' instead.
 			return err
 		}
 
-		data, err := ioutil.ReadAll(r)
+		data, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
@@ -276,7 +275,7 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag get' instead.
 
 // ObjectStatCmd object stat command
 var ObjectStatCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated way to read stats for the dag-pb node. Use 'files stat' instead.",
 		ShortDescription: `
@@ -376,7 +375,7 @@ DEPRECATED: Provided for legacy reasons. Modern replacements:
 
 // ObjectPutCmd object put command
 var ObjectPutCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated way to store input as a DAG object. Use 'dag put' instead.",
 		ShortDescription: `
@@ -456,7 +455,7 @@ DEPRECATED and provided for legacy reasons. Use 'ipfs dag put' instead.
 
 // ObjectNewCmd object new command
 var ObjectNewCmd = &cmds.Command{
-	Status: cmds.Deprecated, // https://github.com/ipfs/go-ipfs/issues/7936
+	Status: cmds.Deprecated, // https://github.com/ipfs/kubo/issues/7936
 	Helptext: cmds.HelpText{
 		Tagline: "Deprecated way to create a new dag-pb object from a template.",
 		ShortDescription: `

@@ -14,13 +14,13 @@ aliases:
   restore_gomod: &restore_gomod
     restore_cache:
       keys:
-        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
-        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/kubo/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        - v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/kubo/go.sum" }}-
         - v5-dep-{{ .Branch }}-
         - v5-dep-master-
   store_gomod: &store_gomod
       save_cache:
-        key: v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/go-ipfs/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
+        key: v5-dep-{{ .Branch }}-{{ checksum "~/ipfs/kubo/go.sum" }}-{{ .Environment.CIRCLE_JOB }}
         paths:
           - ~/go/pkg/mod
           - ~/.cache/go-build/
@@ -38,7 +38,7 @@ executors:
   golang:
     docker:
       - image: cimg/go:1.18.3
-    working_directory: ~/ipfs/go-ipfs
+    working_directory: ~/ipfs/kubo
     environment:
       <<: *default_environment
       TEST_NO_DOCKER: 1
@@ -47,13 +47,13 @@ executors:
   node:
     docker:
       - image: circleci/node:14
-    working_directory: ~/ipfs/go-ipfs
+    working_directory: ~/ipfs/kubo
     environment:
       <<: *default_environment
   node-browsers:
     docker:
-      - image: circleci/node:14-browsers
-    working_directory: ~/ipfs/go-ipfs
+      - image: circleci/node:16.12.0-browsers
+    working_directory: ~/ipfs/kubo
     environment:
       <<: *default_environment
       NO_SANDBOX: true
@@ -64,7 +64,7 @@ executors:
     docker:
       - image: cimg/go:1.18.3
     environment:
-      IMAGE_NAME: ipfs/go-ipfs
+      IMAGE_NAME: ipfs/kubo
       WIP_IMAGE_TAG: wip
 
 jobs:
@@ -108,22 +108,22 @@ jobs:
         command: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
     - run:
         command: |
-          # we want to first test with the go-ipfs in the go.mod file
+          # we want to first test with the kubo version in the go.mod file
           go test -v ./...
 
-          # we also want to test the examples against the current version of go-ipfs
+          # we also want to test the examples against the current version of kubo
           # however, that version might be in a fork so we need to replace the dependency
 
           # backup the go.mod and go.sum files to restore them after we run the tests
           cp go.mod go.mod.bak
           cp go.sum go.sum.bak
 
-          # make sure the examples run against the current version of go-ipfs
-          go mod edit -replace github.com/ipfs/go-ipfs=./../../..
+          # make sure the examples run against the current version of kubo
+          go mod edit -replace github.com/ipfs/kubo=./../../..
           go mod tidy
 
-          # use the internal config package when we test the current version of go-ipfs
-          sed -i.bak 's;"github.com/ipfs/go-ipfs-config";"github.com/ipfs/go-ipfs/config";' ./main.go
+          # use the internal config package when we test the current version of kubo
+          sed -i.bak 's;"github.com/ipfs/go-ipfs-config";"github.com/ipfs/kubo/config";' ./main.go
 
           go test -v ./...
 
@@ -133,7 +133,7 @@ jobs:
 
           # restore the main.go to its original state
           mv main.go.bak main.go
-        working_directory: ~/ipfs/go-ipfs/docs/examples/go-ipfs-as-a-library
+        working_directory: ~/ipfs/kubo/docs/examples/go-ipfs-as-a-library
 
     - run:
         when: always
@@ -152,7 +152,7 @@ jobs:
     machine:
         image: ubuntu-2004:202010-01
     resource_class: << pipeline.parameters.resource_class >>
-    working_directory: ~/ipfs/go-ipfs
+    working_directory: ~/ipfs/kubo
     environment:
         <<: *default_environment
         TEST_NO_DOCKER: 0
@@ -248,14 +248,14 @@ jobs:
             npm install ipfs@^0.61.0
             npm install ipfs-interop@^8.0.10
             npm install mocha-circleci-reporter@0.0.3
-          working_directory: ~/ipfs/go-ipfs/interop
+          working_directory: ~/ipfs/kubo/interop
       - run:
           name: Running tests
           command: |
             mkdir -p /tmp/test-results/interop/
             export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
             npx ipfs-interop -- -t node -f $(sed -n -e "s|^import '\(.*\)'$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split --split-by=timings) -- --reporter mocha-circleci-reporter
-          working_directory: ~/ipfs/go-ipfs/interop
+          working_directory: ~/ipfs/kubo/interop
           environment:
             LIBP2P_TCP_REUSEPORT: false
             LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
@@ -265,7 +265,7 @@ jobs:
       - save_cache:
           key: v1-interop-{{ .Branch }}-{{ .Revision }}
           paths:
-            - ~/ipfs/go-ipfs/interop/node_modules
+            - ~/ipfs/kubo/interop/node_modules
   go-ipfs-api:
     executor: golang
     steps:
@@ -290,13 +290,13 @@ jobs:
             done
       - restore_cache:
           keys:
-            - v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+            - v1-go-api-{{ checksum "~/ipfs/kubo/go-ipfs-api/go.sum" }}
             - v1-go-api-
       - run:
           command: go test -count=1 -v ./...
-          working_directory: ~/ipfs/go-ipfs/go-ipfs-api
+          working_directory: ~/ipfs/kubo/go-ipfs-api
       - save_cache:
-          key: v1-go-api-{{ checksum "~/ipfs/go-ipfs/go-ipfs-api/go.sum" }}
+          key: v1-go-api-{{ checksum "~/ipfs/kubo/go-ipfs-api/go.sum" }}
           paths:
             - ~/go/pkg/mod
             - ~/.cache/go-build/
@@ -316,16 +316,16 @@ jobs:
             git -C go-ipfs-http-client log -1
       - restore_cache:
           keys:
-            - v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+            - v1-http-client-{{ checksum "~/ipfs/kubo/go-ipfs-http-client/go.sum" }}
             - v1-http-client-
       - run:
           name: go test -count=1 -v ./...
           command: |
             export PATH=/tmp/circleci-workspace/bin:$PATH
             go test -count=1 -v ./...
-          working_directory: ~/ipfs/go-ipfs/go-ipfs-http-client
+          working_directory: ~/ipfs/kubo/go-ipfs-http-client
       - save_cache:
-          key: v1-http-client-{{ checksum "~/ipfs/go-ipfs/go-ipfs-http-client/go.sum" }}
+          key: v1-http-client-{{ checksum "~/ipfs/kubo/go-ipfs-http-client/go.sum" }}
           paths:
             - ~/go/pkg/mod
             - ~/.cache/go-build/
@@ -338,36 +338,36 @@ jobs:
       - run:
           name: Cloning
           command: |
-            git clone https://github.com/ipfs-shipyard/ipfs-webui.git
+            git clone https://github.com/ipfs/ipfs-webui.git
             git -C ipfs-webui log -1
       - restore_cache:
           keys:
-            - v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
+            - v1-ipfs-webui-{{ checksum "~/ipfs/kubo/ipfs-webui/package-lock.json" }}
             - v1-ipfs-webui-
       - run:
           name: Installing dependencies
           command: |
-            npm install
+            npm ci --prefer-offline --no-audit --progress=false --cache ~/ipfs/kubo/.cache/npm
             npx playwright install
-          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+          working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
           name: Running upstream tests (finish early if they fail)
           command: |
             npm test || circleci-agent step halt
-          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+          working_directory: ~/ipfs/kubo/ipfs-webui
       - run:
-          name: Running tests with go-ipfs built from current commit
+          name: Running tests with kubo built from current commit
           command: npm test
-          working_directory: ~/ipfs/go-ipfs/ipfs-webui
+          working_directory: ~/ipfs/kubo/ipfs-webui
           environment:
             IPFS_GO_EXEC: /tmp/circleci-workspace/bin/ipfs
       - save_cache:
-          key: v1-ipfs-webui-{{ checksum "~/ipfs/go-ipfs/ipfs-webui/package-lock.json" }}
+          key: v1-ipfs-webui-{{ checksum "~/ipfs/kubo/ipfs-webui/package-lock.json" }}
           paths:
             - ~/.cache/ms-playwright
-            - ~/ipfs/go-ipfs/ipfs-webui/node_modules
+            - ~/ipfs/kubo/.cache/npm
   # We only run build as a test here. DockerHub images are built and published
-  # by Github Action now: https://github.com/ipfs/go-ipfs/pull/8467
+  # by GitHub Action now: https://github.com/ipfs/kubo/pull/8467
   docker-build:
     executor: dockerizer
     steps:

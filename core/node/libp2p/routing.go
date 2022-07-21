@@ -7,10 +7,13 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/kubo/core/node/helpers"
+	irouting "github.com/ipfs/kubo/routing"
 
-	config "github.com/ipfs/go-ipfs/config"
-	"github.com/ipfs/go-ipfs/repo"
+	ds "github.com/ipfs/go-datastore"
+	offroute "github.com/ipfs/go-ipfs-routing/offline"
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/repo"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
@@ -25,8 +28,6 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
 )
-
-type BaseIpfsRouting routing.Routing
 
 type Router struct {
 	routing.Routing
@@ -54,16 +55,17 @@ type processInitialRoutingIn struct {
 type processInitialRoutingOut struct {
 	fx.Out
 
-	Router    Router `group:"routers"`
+	Router        Router                 `group:"routers"`
+	ContentRouter routing.ContentRouting `group:"content-routers"`
+
 	DHT       *ddht.DHT
 	DHTClient routing.Routing `name:"dhtc"`
-	BaseRT    BaseIpfsRouting
 }
 
 type AddrInfoChan chan peer.AddrInfo
 
 func BaseRouting(experimentalDHTClient bool) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
+	return func(lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
 		var dr *ddht.DHT
 		if dht, ok := in.Router.(*ddht.DHT); ok {
 			dr = dht
@@ -109,9 +111,9 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 					Routing:  expClient,
 					Priority: 1000,
 				},
-				DHT:       dr,
-				DHTClient: expClient,
-				BaseRT:    expClient,
+				DHT:           dr,
+				DHTClient:     expClient,
+				ContentRouter: expClient,
 			}, nil
 		}
 
@@ -120,10 +122,66 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 				Priority: 1000,
 				Routing:  in.Router,
 			},
-			DHT:       dr,
-			DHTClient: dr,
-			BaseRT:    in.Router,
+			DHT:           dr,
+			DHTClient:     dr,
+			ContentRouter: in.Router,
 		}, nil
+	}
+}
+
+type delegatedRouterOut struct {
+	fx.Out
+
+	Routers       []Router                 `group:"routers,flatten"`
+	ContentRouter []routing.ContentRouting `group:"content-routers,flatten"`
+}
+
+func DelegatedRouting(routers map[string]config.Router) interface{} {
+	return func() (delegatedRouterOut, error) {
+		out := delegatedRouterOut{}
+
+		for _, v := range routers {
+			if !v.Enabled.WithDefault(true) {
+				continue
+			}
+
+			r, err := irouting.RoutingFromConfig(v)
+			if err != nil {
+				return out, err
+			}
+
+			out.Routers = append(out.Routers, Router{
+				Routing:  r,
+				Priority: irouting.GetPriority(v.Parameters),
+			})
+
+			out.ContentRouter = append(out.ContentRouter, r)
+		}
+
+		return out, nil
+	}
+}
+
+type p2pOnlineContentRoutingIn struct {
+	fx.In
+
+	ContentRouter []routing.ContentRouting `group:"content-routers"`
+}
+
+// ContentRouting will get all routers that can do contentRouting and add them
+// all together using a TieredRouter. It will be used for topic discovery.
+func ContentRouting(in p2pOnlineContentRoutingIn) routing.ContentRouting {
+	var routers []routing.Routing
+	for _, cr := range in.ContentRouter {
+		routers = append(routers,
+			&routinghelpers.Compose{
+				ContentRouting: cr,
+			},
+		)
+	}
+
+	return routinghelpers.Tiered{
+		Routers: routers,
 	}
 }
 
@@ -134,7 +192,10 @@ type p2pOnlineRoutingIn struct {
 	Validator record.Validator
 }
 
-func Routing(in p2pOnlineRoutingIn) routing.Routing {
+// Routing will get all routers obtained from different methods
+// (delegated routers, pub-sub, and so on) and add them all together
+// using a TieredRouter.
+func Routing(in p2pOnlineRoutingIn) irouting.TieredRouter {
 	routers := in.Routers
 
 	sort.SliceStable(routers, func(i, j int) bool {
@@ -146,19 +207,30 @@ func Routing(in p2pOnlineRoutingIn) routing.Routing {
 		irouters[i] = v.Routing
 	}
 
-	return routinghelpers.Tiered{
-		Routers:   irouters,
-		Validator: in.Validator,
+	return irouting.Tiered{
+		Tiered: routinghelpers.Tiered{
+			Routers:   irouters,
+			Validator: in.Validator,
+		},
+	}
+}
+
+// OfflineRouting provides a special Router to the routers list when we are creating a offline node.
+func OfflineRouting(dstore ds.Datastore, validator record.Validator) p2pRouterOut {
+	return p2pRouterOut{
+		Router: Router{
+			Routing:  offroute.NewOfflineRouter(dstore, validator),
+			Priority: 10000,
+		},
 	}
 }
 
 type p2pPSRoutingIn struct {
 	fx.In
 
-	BaseIpfsRouting BaseIpfsRouting
-	Validator       record.Validator
-	Host            host.Host
-	PubSub          *pubsub.PubSub `optional:"true"`
+	Validator record.Validator
+	Host      host.Host
+	PubSub    *pubsub.PubSub `optional:"true"`
 }
 
 func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (p2pRouterOut, *namesys.PubsubValueStore, error) {

@@ -61,7 +61,7 @@ type Gateway struct {
 	// Setting to 0 will enable fast listings for all directories.
 	FastDirIndexThreshold *OptionalInteger `json:",omitempty"`
 
-	// FIXME: Not yet implemented: https://github.com/ipfs/go-ipfs/issues/8059
+	// FIXME: Not yet implemented: https://github.com/ipfs/kubo/issues/8059
 	APICommands []string
 
 	// NoFetch configures the gateway to _not_ fetch blocks in response to

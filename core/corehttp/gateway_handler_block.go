@@ -3,12 +3,12 @@ package corehttp
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
-	"github.com/ipfs/go-ipfs/tracing"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -23,7 +23,7 @@ func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWrite
 		webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
 		return
 	}
-	block, err := ioutil.ReadAll(blockReader)
+	block, err := io.ReadAll(blockReader)
 	if err != nil {
 		webError(w, "ipfs block get "+blockCid.String(), err, http.StatusInternalServerError)
 		return
@@ -31,7 +31,12 @@ func (i *gatewayHandler) serveRawBlock(ctx context.Context, w http.ResponseWrite
 	content := bytes.NewReader(block)
 
 	// Set Content-Disposition
-	name := blockCid.String() + ".bin"
+	var name string
+	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
+		name = urlFilename
+	} else {
+		name = blockCid.String() + ".bin"
+	}
 	setContentDispositionHeader(w, name, "attachment")
 
 	// Set remaining headers
