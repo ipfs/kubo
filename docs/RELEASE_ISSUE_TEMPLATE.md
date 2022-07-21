@@ -98,10 +98,9 @@ Checklist:
     - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
     - [ ] Release published
       - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
-      - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
-      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
-         - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
-      - [ ] to [snap](https://snapcraft.io/ipfs)
+      - [ ] to [npm](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
+      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
+      - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
         - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/go-ipfs/$(curl -s https://dist.ipfs.io/go-ipfs/versions | tail -n 1)"`
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
