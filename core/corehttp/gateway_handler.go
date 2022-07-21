@@ -213,6 +213,7 @@ func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVe
 }
 
 // NewGatewayHandler returns an http.Handler that can act as a gateway to IPFS content
+// offlineApi is a version of the API that should not make network requests for missing data
 func NewGatewayHandler(c GatewayConfig, api NodeAPI, offlineApi NodeAPI) http.Handler {
 	return newGatewayHandler(c, api, offlineApi)
 }
