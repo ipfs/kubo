@@ -1355,6 +1355,8 @@ $ ipfs config Routing.Routers.CidContact --json '{
 }'
 ```
 
+Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node.
+
 Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
