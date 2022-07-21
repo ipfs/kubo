@@ -42,7 +42,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	originalUrlPath := requestURI.Path
 
 	// Check if directory has index.html, if so, serveFile
-	idxPath := ipath.Join(resolvedPath, "index.html")
+	idxPath := ipath.Join(contentPath, "index.html")
 	idx, err := i.api.Unixfs().Get(ctx, idxPath)
 	switch err.(type) {
 	case nil:
