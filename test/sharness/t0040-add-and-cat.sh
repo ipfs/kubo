@@ -362,6 +362,27 @@ test_add_cat_file() {
       rm mountdir/same-file/hello.txt  &&
       rmdir mountdir/same-file
     '
+
+  test_expect_success "ipfs add --to-files succeeds" '
+    echo "Hello MFS!" > mountdir/mfs.txt &&
+    ipfs add mountdir/mfs.txt --to-files /ipfs-add-to-files >actual
+  '
+
+  test_expect_success "ipfs add --to-files output looks good" '
+    HASH="QmVT8bL3sGBA2TwvX8JPhrv5CYZL8LLLfW7mxkUjPZsgBr" &&
+    echo "added $HASH mfs.txt" >expected &&
+    test_cmp expected actual
+  '
+
+  test_expect_success "ipfs files read succeeds" '
+    ipfs files read /ipfs-add-to-files >actual
+  '
+
+  test_expect_success "ipfs cat output looks good" '
+    echo "Hello MFS!" >expected &&
+    test_cmp expected actual &&
+    rm mountdir/mfs.txt
+  '
 }
 
 test_add_cat_5MB() {
