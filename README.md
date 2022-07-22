@@ -43,7 +43,6 @@ Before opening an issue, consider using one of the following locations to ensure
 
 ## Table of Contents
 
-- [kubo](#kubo)
   - [What is Kubo?](#what-is-kubo)
   - [What is IPFS?](#what-is-ipfs)
   - [Next milestones](#next-milestones)
@@ -88,6 +87,7 @@ Before opening an issue, consider using one of the following locations to ensure
     - [Testing](#testing)
     - [Development Dependencies](#development-dependencies)
     - [Developer Notes](#developer-notes)
+  - [Maintainer Info](#maintainer-info)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -431,6 +431,12 @@ If you make changes to the protocol buffers, you will need to install the [proto
 ### Developer Notes
 
 Find more documentation for developers on [docs](./docs)
+
+## Maintainer Info
+* [Project Board for active and upcoming work](https://pl-strflt.notion.site/Kubo-GitHub-Project-Board-c68f9192e48e4e9eba185fa697bf0570)
+* [Release Process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4)
+* [Additional PL EngRes Kubo maintainer info](https://pl-strflt.notion.site/Kubo-go-ipfs-4a484aeeaa974dcf918027c300426c05)
+
 
 ## Contributing
 
