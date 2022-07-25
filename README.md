@@ -124,15 +124,15 @@ More info on how to run kubo (go-ipfs) inside Docker can be found [here](https:/
 - [Solus](#solus)
 - [openSUSE](#openSUSE)
 
-#### ArchLinux
+#### Arch Linux
 
-[![go-ipfs via Community Repo](https://img.shields.io/archlinux/v/community/x86_64/go-ipfs?color=1793d1&label=go-ipfs&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://wiki.archlinux.org/title/IPFS)
+[![kubo via Community Repo](https://img.shields.io/archlinux/v/community/x86_64/kubo?color=1793d1&label=kubo&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://wiki.archlinux.org/title/IPFS)
 
 ```bash
-# pacman -Syu go-ipfs
+# pacman -S kubo
 ```
 
-[![go-ipfs-git via AUR](https://img.shields.io/static/v1?label=go-ipfs-git&message=latest%40master&color=1793d1&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://aur.archlinux.org/packages/go-ipfs-git/)
+[![kubo-git via AUR](https://img.shields.io/static/v1?label=kubo-git&message=latest%40master&color=1793d1&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://aur.archlinux.org/packages/kubo/)
 
 #### <a name="nix-linux">Nix</a>
 
