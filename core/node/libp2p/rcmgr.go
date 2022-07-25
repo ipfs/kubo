@@ -96,7 +96,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				Namespace: "rcmgr_trace_metrics",
 			})
 			if err != nil {
-				return nil, opts, fmt.Errorf("creating new prom exporter", err)
+				return nil, opts, fmt.Errorf("creating new prom exporter: %w", err)
 			}
 
 			if os.Getenv("LIBP2P_DEBUG_RCMGR") != "" {
