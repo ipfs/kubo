@@ -87,11 +87,17 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 			}
 
 			// Hook up the trace reporter metrics
-			view.Register(rcmgrObs.DefaultViews...)
-			ocprom.NewExporter(ocprom.Options{
+			err = view.Register(rcmgrObs.DefaultViews...)
+			if err != nil {
+				return nil, opts, fmt.Errorf("registering rcmgr obs views: %w", err)
+			}
+			_, err = ocprom.NewExporter(ocprom.Options{
 				Registry:  prometheus.DefaultRegisterer.(*prometheus.Registry),
 				Namespace: "rcmgr_trace_metrics",
 			})
+			if err != nil {
+				return nil, opts, fmt.Errorf("creating new prom exporter", err)
+			}
 
 			if os.Getenv("LIBP2P_DEBUG_RCMGR") != "" {
 				traceFilePath := filepath.Join(repoPath, NetLimitTraceFilename)
