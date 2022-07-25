@@ -125,7 +125,8 @@ index 6750ff7..336e426 100644
  
  test_known_broken_failure_() {
  	test_broken=$(($test_broken + 1))
- 	say_color warn "not ok $test_count - $@ # TODO known breakage"
+- 	say_color warn "not ok $test_count - $@ # TODO known breakage"
++ 	say_color warn "skip $test_count - $@ # TODO known breakage"
 +
 +	junit_testcase "$@"
  }
