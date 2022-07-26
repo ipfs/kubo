@@ -45,12 +45,12 @@ For each RC published in each stage:
   2. Wait for PR to build artifacts and generate diff
   3. Inspect results, merge if CI is green and the diff looks ok
   4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.io
-- Announce the RC:
-  - [ ] 
+  - [ ] Announce the RC
     - This will automatically post to IPFS Discord #ipfs-chatter
     - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
     - [ ] Pin the topic
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
+  - [ ] Notify the gateway team on Slack.
 
 Checklist:
 
@@ -96,15 +96,22 @@ Checklist:
     - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
     - [ ] Merge `release-vX.Y.Z` into the `release` branch.
     - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
-    - [ ] Release published
-      - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
+    - [ ] Publish to `dist.ipfs.io` (mostly automated stuff, you just have to push two slocs changes for dist's CI to do magic)
+      - [ ] Open a PR with `./dist.sh add-version kubo vX.Y.Z` update on [ipfs/distributions](https://github.com/ipfs/distributions).
+      - [ ] Merge that PR (ONCE CI IS GREEN).
+      - [ ] Wait for CI to be green on master.
+    - [ ] **Important release to do**
+      - [ ] to [dist.ipfs.io](https://dist.ipfs.io) *cross check CI*
+      - [ ] to [github](https://github.com/ipfs/go-ipfs/releases) ***manual action to do***
+        - [ ] Publish a new github release, target the tag made previously. Include changelog highlights, just lookup previous major releases for inspiration.
+        - [ ] Run the [synchronisation workflow](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) (it also runs once a day on a cron job)
+      - [ ] Send a message to notify the gateway team.
+      - [ ] Send a message to notify the GUI team (need to do a new IPFS-desktop release).
+    - [ ] Less important releases *check async*
       - [ ] to [npm](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
       - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
-      - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
-        - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/kubo/$(curl -s https://dist.ipfs.io/kubo/versions | tail -n 1)"`
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
-    - [ ] Cut a new ipfs-desktop release
   - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
   - [ ] Broadcasting (link to blog post)
     - [ ] Twitter (request in Slack channel #pl-marketing-requests)
