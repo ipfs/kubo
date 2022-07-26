@@ -805,8 +805,6 @@ github.com/libp2p/go-libp2p v0.16.0/go.mod h1:ump42BsirwAWxKzsCiFnTtN1Yc+DuPu76f
 github.com/libp2p/go-libp2p v0.18.0/go.mod h1:+veaZ9z1SZQhmc5PW78jvnnxZ89Mgvmh4cggO11ETmw=
 github.com/libp2p/go-libp2p v0.20.0/go.mod h1:g0C5Fu+aXXbCXkusCzLycuBowEih3ElmDqtbo61Em7k=
 github.com/libp2p/go-libp2p v0.20.1-0.20220702080325-0d7f192a0b2b/go.mod h1:/V/lQvlr89XZv5MKTyl1yb0bPr5rb71m6EZB/j8CUfE=
-github.com/libp2p/go-libp2p v0.21.0-rc h1:crtmR72I74+CYRrua6e9vWeSGr5zswakPsc2UlKUcNI=
-github.com/libp2p/go-libp2p v0.21.0-rc/go.mod h1:Rd7kO2vO4f7LbqBrojpVYVdZQIO1r7S2mO35fbDdmD0=
 github.com/libp2p/go-libp2p v0.21.0-rc.0.20220713113257-7facd81bba88 h1:XuP+WvReOEbFkpoVf2L0TOVQM7VCAvR2uXr0GHD8Tb4=
 github.com/libp2p/go-libp2p v0.21.0-rc.0.20220713113257-7facd81bba88/go.mod h1:zvcA6/C4mr5/XQarRICh+L1SN9dAHHlSWDq4x5VYxg4=
 github.com/libp2p/go-libp2p-asn-util v0.0.0-20200825225859-85005c6cf052/go.mod h1:nRMRTab+kZuk0LnKZpxhOVH/ndsdr2Nr//Zltc/vwgo=
@@ -868,7 +866,6 @@ github.com/libp2p/go-libp2p-core v0.11.0/go.mod h1:ECdxehoYosLYHgDDFa2N4yE8Y7aQR
 github.com/libp2p/go-libp2p-core v0.12.0/go.mod h1:ECdxehoYosLYHgDDFa2N4yE8Y7aQRAMf0sX9mf2sbGg=
 github.com/libp2p/go-libp2p-core v0.14.0/go.mod h1:tLasfcVdTXnixsLB0QYaT1syJOhsbrhG7q6pGrHtBg8=
 github.com/libp2p/go-libp2p-core v0.16.1/go.mod h1:O3i/7y+LqUb0N+qhzXjBjjpchgptWAVMG1Voegk7b4c=
-github.com/libp2p/go-libp2p-core v0.19.0 h1:KDw7hanmh0EuVdZqsHCAzmkdiYMk5uR5h0UGSCVTxSU=
 github.com/libp2p/go-libp2p-core v0.19.0/go.mod h1:AkA+FUKQfYt1FLNef5fOPlo/naAWjKy/RCjkcPjqzYg=
 github.com/libp2p/go-libp2p-core v0.19.1 h1:zaZQQCeCrFMtxFa1wHy6AhsVynyNmZAvwgWqSSPT3WE=
 github.com/libp2p/go-libp2p-core v0.19.1/go.mod h1:2uLhmmqDiFY+dw+70KkBLeKvvsJHGWUINRDdeV1ip7k=
@@ -965,8 +962,7 @@ github.com/libp2p/go-libp2p-record v0.1.3/go.mod h1:yNUff/adKIfPnYQXgp6FQmNu3gLJ
 github.com/libp2p/go-libp2p-resource-manager v0.1.5/go.mod h1:wJPNjeE4XQlxeidwqVY5G6DLOKqFK33u2n8blpl0I6Y=
 github.com/libp2p/go-libp2p-resource-manager v0.3.0/go.mod h1:K+eCkiapf+ey/LADO4TaMpMTP9/Qde/uLlrnRqV4PLQ=
 github.com/libp2p/go-libp2p-resource-manager v0.4.0/go.mod h1:+5QPxFLRXYlRDZ0P1bPKE7zyZDvex5TLVOqePwRmwfc=
-github.com/libp2p/go-libp2p-resource-manager v0.5.0 h1:se7dW2dCpa+KISlxmKCK2hCzOTtxCmdt/9b16KFKhbk=
-github.com/libp2p/go-libp2p-resource-manager v0.5.0/go.mod h1:CggtV6EZb+Y0dGh41q5ezO4udcVKyhcEFpydHD8EMe0=
+github.com/libp2p/go-libp2p-resource-manager v0.5.1/go.mod h1:CggtV6EZb+Y0dGh41q5ezO4udcVKyhcEFpydHD8EMe0=
 github.com/libp2p/go-libp2p-resource-manager v0.5.2-0.20220726100605-79d6a704e902 h1:eDqxD3jn4I+Z6KvK7sHCQhMw1PzNcL3/7UgH+RfDSd0=
 github.com/libp2p/go-libp2p-resource-manager v0.5.2-0.20220726100605-79d6a704e902/go.mod h1:CggtV6EZb+Y0dGh41q5ezO4udcVKyhcEFpydHD8EMe0=
 github.com/libp2p/go-libp2p-routing v0.0.1/go.mod h1:N51q3yTr4Zdr7V8Jt2JIktVU+3xBBylx1MZeVA6t1Ys=
@@ -1006,8 +1002,8 @@ github.com/libp2p/go-libp2p-testing v0.5.0/go.mod h1:QBk8fqIL1XNcno/l3/hhaIEn4aL
 github.com/libp2p/go-libp2p-testing v0.7.0/go.mod h1:OLbdn9DbgdMwv00v+tlp1l3oe2Cl+FAjoWIA2pa0X6E=
 github.com/libp2p/go-libp2p-testing v0.8.0/go.mod h1:gRdsNxQSxAZowTgcLY7CC33xPmleZzoBpqSYbWenqPc=
 github.com/libp2p/go-libp2p-testing v0.9.2/go.mod h1:Td7kbdkWqYTJYQGTwzlgXwaqldraIanyjuRiAbK/XQU=
-github.com/libp2p/go-libp2p-testing v0.10.0 h1:LO7wuUPPNAe1D1s0HZ+9WoROaGIn/MEl1wtugXuTRzg=
 github.com/libp2p/go-libp2p-testing v0.10.0/go.mod h1:jJ4fiJwyZ3UlPTLcnz/sEmPPSviQ79Q0MVD/CykzrP0=
+github.com/libp2p/go-libp2p-testing v0.11.0 h1:+R7FRl/U3Y00neyBSM2qgDzqz3HkWH24U9nMlascHL4=
 github.com/libp2p/go-libp2p-testing v0.11.0/go.mod h1:qG4sF27dfKFoK9KlVzK2y52LQKhp0VEmLjV5aDqr1Hg=
 github.com/libp2p/go-libp2p-tls v0.1.3/go.mod h1:wZfuewxOndz5RTnCAxFliGjvYSDA40sKitV4c50uI1M=
 github.com/libp2p/go-libp2p-tls v0.3.0/go.mod h1:fwF5X6PWGxm6IDRwF3V8AVCCj/hOd5oFlg+wo2FxJDY=
@@ -1444,9 +1440,7 @@ github.com/prometheus/procfs v0.7.3/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1
 github.com/prometheus/statsd_exporter v0.21.0 h1:hA05Q5RFeIjgwKIYEdFd59xu5Wwaznf33yKI+pyX6T8=
 github.com/prometheus/statsd_exporter v0.21.0/go.mod h1:rbT83sZq2V+p73lHhPZfMc3MLCHmSHelCh9hSGYNLTQ=
 github.com/rabbitmq/amqp091-go v1.1.0/go.mod h1:ogQDLSOACsLPsIq0NpbtiifNZi2YOz0VTJ0kHRghqbM=
-github.com/raulk/clock v1.1.0 h1:dpb29+UKMbLqiU/jqIJptgLR1nn23HLgMY0sTCDza5Y=
 github.com/raulk/clock v1.1.0/go.mod h1:3MpVxdZ/ODBQDxbN+kzshf5OSZwPjtMDx6BBXBmOeY0=
-github.com/raulk/go-watchdog v1.2.0 h1:konN75pw2BMmZ+AfuAm5rtFsWcJpKF3m02rKituuXNo=
 github.com/raulk/go-watchdog v1.2.0/go.mod h1:lzSbAl5sh4rtI8tYHU01BWIDzgzqaQLj6RcA1i4mlqI=
 github.com/raulk/go-watchdog v1.3.0 h1:oUmdlHxdkXRJlwfG0O9omj8ukerm8MEQavSiDTEtBsk=
 github.com/raulk/go-watchdog v1.3.0/go.mod h1:fIvOnLbF0b0ZwkB9YU4mOW9Did//4vPZtDqv66NfsMU=
