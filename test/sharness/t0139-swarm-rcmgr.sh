@@ -2,6 +2,8 @@
 #
 test_description="Test ipfs swarm ResourceMgr config and commands"
 
+export IPFS_CHECK_RCMGR_DEFAULTS=1
+
 . lib/test-lib.sh
 
 test_init_ipfs

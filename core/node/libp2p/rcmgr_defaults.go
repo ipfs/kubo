@@ -107,6 +107,7 @@ func checkImplicitDefaults() {
 	}
 
 	// Check 2: did go-libp2p's SetDefaultServiceLimits change?
+	// We compare the baseline (min specs), and check if we went down in any limits.
 	l := rcmgr.DefaultLimits
 	libp2p.SetDefaultServiceLimits(&l)
 	limits := l.AutoScale()
@@ -121,13 +122,45 @@ func checkImplicitDefaults() {
 		log.Fatal(err)
 	}
 	if len(changes) > 0 {
-		ok = false
-		log.Errorf("===> OOF! go-libp2p changed DefaultServiceLimits\n"+
-			"=> changes ('test' represents the old value):\n%s\n"+
-			"=> go-libp2p SetDefaultServiceLimits update needs a review:\n"+
-			"Please inspect if changes impact go-ipfs users, and update expectedDefaultServiceLimits in rcmgr_defaults.go to remove this message",
-			strings.Join(changes, "\n"),
-		)
+		oldState := map[string]int{}
+		type Op struct {
+			Op    string
+			Path  string
+			Value int
+		}
+		for _, changeStr := range changes {
+			change := Op{}
+			err := json.Unmarshal([]byte(changeStr), &change)
+			if err != nil {
+				continue
+			}
+			if change.Op == "test" {
+				oldState[change.Path] = change.Value
+			}
+		}
+
+		for _, changeStr := range changes {
+			change := Op{}
+			err := json.Unmarshal([]byte(changeStr), &change)
+			if err != nil {
+				continue
+			}
+			if change.Op == "replace" {
+				oldVal, okFound := oldState[change.Path]
+				if okFound && oldVal > change.Value {
+					ok = false
+					fmt.Printf("reduced value for %s. Old: %v; new: %v\n", change.Path, oldVal, change.Value)
+				}
+			}
+		}
+
+		if !ok {
+			log.Errorf("===> OOF! go-libp2p reduced DefaultServiceLimits\n" +
+				"=> See the aboce reduced values for info.\n" +
+				"=> go-libp2p SetDefaultServiceLimits update needs a review:\n" +
+				"Please inspect if changes impact go-ipfs users, and update expectedDefaultServiceLimits in rcmgr_defaults.go to remove this message",
+			)
+		}
 	}
 	if !ok {
 		log.Fatal("daemon will refuse to run with the resource manager until this is resolved")
@@ -377,173 +410,49 @@ const expectedDefaultLimits = `{
   }
 }`
 
-// https://github.com/libp2p/go-libp2p/blob/v0.18.0/limits.go#L17
+// Generated from the default limits and scaling to 0 (base limit).
 const expectedDefaultServiceLimits = `{
-  "SystemLimits": {
-    "Streams": 16384,
-    "StreamsInbound": 4096,
-    "StreamsOutbound": 16384,
-    "Conns": 1024,
-    "ConnsInbound": 256,
-    "ConnsOutbound": 1024,
-    "FD": 512,
-    "Memory": 1073741824
-  },
-  "TransientLimits": {
-    "Streams": 512,
-    "StreamsInbound": 128,
-    "StreamsOutbound": 512,
+  "System": {
+    "Streams": 2048,
+    "StreamsInbound": 1024,
+    "StreamsOutbound": 2048,
     "Conns": 128,
-    "ConnsInbound": 32,
+    "ConnsInbound": 64,
     "ConnsOutbound": 128,
-    "FD": 128,
-    "Memory": 67108864
+    "FD": 256,
+    "Memory": 134217728
   },
-  "DefaultServiceLimits": {
-    "Streams": 8192,
-    "StreamsInbound": 2048,
-    "StreamsOutbound": 8192,
-    "Conns": 0,
-    "ConnsInbound": 0,
-    "ConnsOutbound": 0,
-    "FD": 0,
-    "Memory": 67108864
+  "Transient": {
+    "Streams": 256,
+    "StreamsInbound": 128,
+    "StreamsOutbound": 256,
+    "Conns": 64,
+    "ConnsInbound": 32,
+    "ConnsOutbound": 64,
+    "FD": 64,
+    "Memory": 33554432
   },
-  "DefaultServicePeerLimits": {
-    "Streams": 512,
-    "StreamsInbound": 256,
-    "StreamsOutbound": 512,
-    "Conns": 0,
-    "ConnsInbound": 0,
-    "ConnsOutbound": 0,
-    "FD": 0,
-    "Memory": 16777216
+  "AllowlistedSystem": {
+    "Streams": 2048,
+    "StreamsInbound": 1024,
+    "StreamsOutbound": 2048,
+    "Conns": 128,
+    "ConnsInbound": 64,
+    "ConnsOutbound": 128,
+    "FD": 256,
+    "Memory": 134217728
   },
-  "ServiceLimits": {
-    "libp2p.autonat": {
-      "Streams": 128,
-      "StreamsInbound": 128,
-      "StreamsOutbound": 128,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    },
-    "libp2p.holepunch": {
-      "Streams": 256,
-      "StreamsInbound": 128,
-      "StreamsOutbound": 128,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    },
-    "libp2p.identify": {
-      "Streams": 256,
-      "StreamsInbound": 128,
-      "StreamsOutbound": 128,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    },
-    "libp2p.ping": {
-      "Streams": 128,
-      "StreamsInbound": 128,
-      "StreamsOutbound": 128,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    },
-    "libp2p.relay/v1": {
-      "Streams": 1024,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 1024,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    },
-    "libp2p.relay/v2": {
-      "Streams": 1024,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 1024,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    }
+  "AllowlistedTransient": {
+    "Streams": 256,
+    "StreamsInbound": 128,
+    "StreamsOutbound": 256,
+    "Conns": 64,
+    "ConnsInbound": 32,
+    "ConnsOutbound": 64,
+    "FD": 64,
+    "Memory": 33554432
   },
-  "ServicePeerLimits": {
-    "libp2p.autonat": {
-      "Streams": 2,
-      "StreamsInbound": 2,
-      "StreamsOutbound": 2,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 557056
-    },
-    "libp2p.holepunch": {
-      "Streams": 2,
-      "StreamsInbound": 2,
-      "StreamsOutbound": 2,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 557056
-    },
-    "libp2p.identify": {
-      "Streams": 32,
-      "StreamsInbound": 16,
-      "StreamsOutbound": 16,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 8912896
-    },
-    "libp2p.ping": {
-      "Streams": 4,
-      "StreamsInbound": 2,
-      "StreamsOutbound": 3,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 1114112
-    },
-    "libp2p.relay/v1": {
-      "Streams": 64,
-      "StreamsInbound": 64,
-      "StreamsOutbound": 64,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 17825792
-    },
-    "libp2p.relay/v2": {
-      "Streams": 64,
-      "StreamsInbound": 64,
-      "StreamsOutbound": 64,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 17825792
-    }
-  },
-  "DefaultProtocolLimits": {
+  "ServiceDefault": {
     "Streams": 4096,
     "StreamsInbound": 1024,
     "StreamsOutbound": 4096,
@@ -553,8 +462,70 @@ const expectedDefaultServiceLimits = `{
     "FD": 0,
     "Memory": 67108864
   },
-  "DefaultProtocolPeerLimits": {
-    "Streams": 512,
+  "Service": {
+    "libp2p.autonat": {
+      "Streams": 64,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "libp2p.holepunch": {
+      "Streams": 64,
+      "StreamsInbound": 32,
+      "StreamsOutbound": 32,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "libp2p.identify": {
+      "Streams": 128,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "libp2p.ping": {
+      "Streams": 64,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "libp2p.relay/v1": {
+      "Streams": 256,
+      "StreamsInbound": 256,
+      "StreamsOutbound": 256,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 16777216
+    },
+    "libp2p.relay/v2": {
+      "Streams": 256,
+      "StreamsInbound": 256,
+      "StreamsOutbound": 256,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 16777216
+    }
+  },
+  "ServicePeerDefault": {
+    "Streams": 256,
     "StreamsInbound": 128,
     "StreamsOutbound": 256,
     "Conns": 0,
@@ -563,99 +534,181 @@ const expectedDefaultServiceLimits = `{
     "FD": 0,
     "Memory": 16777216
   },
-  "ProtocolLimits": {
-    "/ipfs/id/1.0.0": {
-      "Streams": 4096,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 4096,
+  "ServicePeer": {
+    "libp2p.autonat": {
+      "Streams": 2,
+      "StreamsInbound": 2,
+      "StreamsOutbound": 2,
       "Conns": 0,
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 33554432
+      "Memory": 1048576
     },
-    "/ipfs/id/push/1.0.0": {
-      "Streams": 4096,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 4096,
+    "libp2p.holepunch": {
+      "Streams": 2,
+      "StreamsInbound": 2,
+      "StreamsOutbound": 2,
       "Conns": 0,
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 33554432
+      "Memory": 1048576
     },
-    "/ipfs/ping/1.0.0": {
-      "Streams": 4096,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 4096,
+    "libp2p.identify": {
+      "Streams": 32,
+      "StreamsInbound": 16,
+      "StreamsOutbound": 16,
       "Conns": 0,
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 67108864
+      "Memory": 1048576
     },
-    "/libp2p/autonat/1.0.0": {
-      "Streams": 4096,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 4096,
+    "libp2p.ping": {
+      "Streams": 4,
+      "StreamsInbound": 2,
+      "StreamsOutbound": 3,
       "Conns": 0,
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 67108864
+      "Memory": 8590458880
     },
-    "/libp2p/circuit/relay/0.1.0": {
-      "Streams": 1280,
-      "StreamsInbound": 1280,
-      "StreamsOutbound": 1280,
+    "libp2p.relay/v1": {
+      "Streams": 64,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
       "Conns": 0,
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 67108864
+      "Memory": 1048576
     },
-    "/libp2p/circuit/relay/0.2.0/hop": {
-      "Streams": 1280,
-      "StreamsInbound": 1280,
-      "StreamsOutbound": 1280,
+    "libp2p.relay/v2": {
+      "Streams": 64,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
       "Conns": 0,
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 67108864
-    },
-    "/libp2p/circuit/relay/0.2.0/stop": {
-      "Streams": 1280,
-      "StreamsInbound": 1280,
-      "StreamsOutbound": 1280,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    },
-    "/libp2p/dcutr": {
-      "Streams": 4096,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 4096,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 67108864
-    },
-    "/p2p/id/delta/1.0.0": {
-      "Streams": 4096,
-      "StreamsInbound": 1024,
-      "StreamsOutbound": 4096,
-      "Conns": 0,
-      "ConnsInbound": 0,
-      "ConnsOutbound": 0,
-      "FD": 0,
-      "Memory": 33554432
+      "Memory": 1048576
     }
   },
-  "ProtocolPeerLimits": {
+  "ProtocolDefault": {
+    "Streams": 2048,
+    "StreamsInbound": 512,
+    "StreamsOutbound": 2048,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "FD": 0,
+    "Memory": 67108864
+  },
+  "Protocol": {
+    "/ipfs/id/1.0.0": {
+      "Streams": 128,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "/ipfs/id/push/1.0.0": {
+      "Streams": 128,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "/ipfs/ping/1.0.0": {
+      "Streams": 64,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "/libp2p/autonat/1.0.0": {
+      "Streams": 64,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "/libp2p/circuit/relay/0.1.0": {
+      "Streams": 640,
+      "StreamsInbound": 640,
+      "StreamsOutbound": 640,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 16777216
+    },
+    "/libp2p/circuit/relay/0.2.0/hop": {
+      "Streams": 640,
+      "StreamsInbound": 640,
+      "StreamsOutbound": 640,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 16777216
+    },
+    "/libp2p/circuit/relay/0.2.0/stop": {
+      "Streams": 640,
+      "StreamsInbound": 640,
+      "StreamsOutbound": 640,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 16777216
+    },
+    "/libp2p/dcutr": {
+      "Streams": 64,
+      "StreamsInbound": 32,
+      "StreamsOutbound": 32,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    },
+    "/p2p/id/delta/1.0.0": {
+      "Streams": 128,
+      "StreamsInbound": 64,
+      "StreamsOutbound": 64,
+      "Conns": 0,
+      "ConnsInbound": 0,
+      "ConnsOutbound": 0,
+      "FD": 0,
+      "Memory": 4194304
+    }
+  },
+  "ProtocolPeerDefault": {
+    "Streams": 256,
+    "StreamsInbound": 64,
+    "StreamsOutbound": 128,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "FD": 0,
+    "Memory": 16777216
+  },
+  "ProtocolPeer": {
     "/ipfs/id/1.0.0": {
       "Streams": 32,
       "StreamsInbound": 16,
@@ -664,7 +717,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 8912896
+      "Memory": 8590458880
     },
     "/ipfs/id/push/1.0.0": {
       "Streams": 32,
@@ -674,7 +727,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 8912896
+      "Memory": 8590458880
     },
     "/ipfs/ping/1.0.0": {
       "Streams": 4,
@@ -684,7 +737,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 1114112
+      "Memory": 8590458880
     },
     "/libp2p/autonat/1.0.0": {
       "Streams": 2,
@@ -694,7 +747,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 557056
+      "Memory": 1048576
     },
     "/libp2p/circuit/relay/0.1.0": {
       "Streams": 128,
@@ -704,7 +757,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 35651584
+      "Memory": 33554432
     },
     "/libp2p/circuit/relay/0.2.0/hop": {
       "Streams": 128,
@@ -714,7 +767,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 35651584
+      "Memory": 33554432
     },
     "/libp2p/circuit/relay/0.2.0/stop": {
       "Streams": 128,
@@ -724,7 +777,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 35651584
+      "Memory": 33554432
     },
     "/libp2p/dcutr": {
       "Streams": 2,
@@ -734,7 +787,7 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 557056
+      "Memory": 1048576
     },
     "/p2p/id/delta/1.0.0": {
       "Streams": 32,
@@ -744,21 +797,20 @@ const expectedDefaultServiceLimits = `{
       "ConnsInbound": 0,
       "ConnsOutbound": 0,
       "FD": 0,
-      "Memory": 8912896
+      "Memory": 8590458880
     }
   },
-  "DefaultPeerLimits": {
-    "Streams": 1024,
-    "StreamsInbound": 512,
-    "StreamsOutbound": 1024,
-    "Conns": 16,
-    "ConnsInbound": 8,
-    "ConnsOutbound": 16,
-    "FD": 8,
+  "PeerDefault": {
+    "Streams": 512,
+    "StreamsInbound": 256,
+    "StreamsOutbound": 512,
+    "Conns": 8,
+    "ConnsInbound": 4,
+    "ConnsOutbound": 8,
+    "FD": 4,
     "Memory": 67108864
   },
-  "PeerLimits": null,
-  "ConnLimits": {
+  "Conn": {
     "Streams": 0,
     "StreamsInbound": 0,
     "StreamsOutbound": 0,
@@ -768,7 +820,7 @@ const expectedDefaultServiceLimits = `{
     "FD": 1,
     "Memory": 1048576
   },
-  "StreamLimits": {
+  "Stream": {
     "Streams": 1,
     "StreamsInbound": 1,
     "StreamsOutbound": 1,
