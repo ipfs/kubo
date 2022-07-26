@@ -78,7 +78,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.6.1
 	github.com/libp2p/go-libp2p-pubsub-router v0.5.0
 	github.com/libp2p/go-libp2p-record v0.1.3
-	github.com/libp2p/go-libp2p-resource-manager v0.5.0
+	github.com/libp2p/go-libp2p-resource-manager v0.5.2-0.20220726100605-79d6a704e902
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
 	github.com/libp2p/go-libp2p-testing v0.10.0
 	github.com/libp2p/go-socket-activation v0.1.0

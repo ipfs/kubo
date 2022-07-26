@@ -963,6 +963,8 @@ github.com/libp2p/go-libp2p-resource-manager v0.3.0/go.mod h1:K+eCkiapf+ey/LADO4
 github.com/libp2p/go-libp2p-resource-manager v0.4.0/go.mod h1:+5QPxFLRXYlRDZ0P1bPKE7zyZDvex5TLVOqePwRmwfc=
 github.com/libp2p/go-libp2p-resource-manager v0.5.0 h1:se7dW2dCpa+KISlxmKCK2hCzOTtxCmdt/9b16KFKhbk=
 github.com/libp2p/go-libp2p-resource-manager v0.5.0/go.mod h1:CggtV6EZb+Y0dGh41q5ezO4udcVKyhcEFpydHD8EMe0=
+github.com/libp2p/go-libp2p-resource-manager v0.5.2-0.20220726100605-79d6a704e902 h1:eDqxD3jn4I+Z6KvK7sHCQhMw1PzNcL3/7UgH+RfDSd0=
+github.com/libp2p/go-libp2p-resource-manager v0.5.2-0.20220726100605-79d6a704e902/go.mod h1:CggtV6EZb+Y0dGh41q5ezO4udcVKyhcEFpydHD8EMe0=
 github.com/libp2p/go-libp2p-routing v0.0.1/go.mod h1:N51q3yTr4Zdr7V8Jt2JIktVU+3xBBylx1MZeVA6t1Ys=
 github.com/libp2p/go-libp2p-routing-helpers v0.2.3 h1:xY61alxJ6PurSi+MXbywZpelvuU4U4p/gPTxjqCqTzY=
 github.com/libp2p/go-libp2p-routing-helpers v0.2.3/go.mod h1:795bh+9YeoFl99rMASoiVgHdi5bjack0N1+AFAdbvBw=
