@@ -151,103 +151,190 @@ func jsonDiff(old []byte, updated []byte) ([]string, error) {
 // https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.1.5/limit_defaults.go#L49
 const expectedDefaultLimits = `{
   "SystemBaseLimit": {
-    "Streams": 16384,
-    "StreamsInbound": 4096,
-    "StreamsOutbound": 16384,
-    "Conns": 1024,
-    "ConnsInbound": 256,
-    "ConnsOutbound": 1024,
-    "FD": 512
+    "Streams": 2048,
+    "StreamsInbound": 1024,
+    "StreamsOutbound": 2048,
+    "Conns": 128,
+    "ConnsInbound": 64,
+    "ConnsOutbound": 128,
+    "FD": 256,
+    "Memory": 134217728
   },
-  "SystemMemory": {
-    "MemoryFraction": 0.125,
-    "MinMemory": 134217728,
-    "MaxMemory": 1073741824
+  "SystemLimitIncrease": {
+    "Streams": 2048,
+    "StreamsInbound": 1024,
+    "StreamsOutbound": 2048,
+    "Conns": 128,
+    "ConnsInbound": 64,
+    "ConnsOutbound": 128,
+    "Memory": 1073741824,
+    "FDFraction": 1
   },
   "TransientBaseLimit": {
-    "Streams": 512,
+    "Streams": 256,
     "StreamsInbound": 128,
-    "StreamsOutbound": 512,
-    "Conns": 128,
+    "StreamsOutbound": 256,
+    "Conns": 64,
     "ConnsInbound": 32,
-    "ConnsOutbound": 128,
-    "FD": 128
+    "ConnsOutbound": 64,
+    "FD": 64,
+    "Memory": 33554432
   },
-  "TransientMemory": {
-    "MemoryFraction": 1,
-    "MinMemory": 67108864,
-    "MaxMemory": 67108864
+  "TransientLimitIncrease": {
+    "Streams": 256,
+    "StreamsInbound": 128,
+    "StreamsOutbound": 256,
+    "Conns": 32,
+    "ConnsInbound": 16,
+    "ConnsOutbound": 32,
+    "Memory": 134217728,
+    "FDFraction": 0.25
+  },
+  "AllowlistedSystemBaseLimit": {
+    "Streams": 2048,
+    "StreamsInbound": 1024,
+    "StreamsOutbound": 2048,
+    "Conns": 128,
+    "ConnsInbound": 64,
+    "ConnsOutbound": 128,
+    "FD": 256,
+    "Memory": 134217728
+  },
+  "AllowlistedSystemLimitIncrease": {
+    "Streams": 2048,
+    "StreamsInbound": 1024,
+    "StreamsOutbound": 2048,
+    "Conns": 128,
+    "ConnsInbound": 64,
+    "ConnsOutbound": 128,
+    "Memory": 1073741824,
+    "FDFraction": 1
+  },
+  "AllowlistedTransientBaseLimit": {
+    "Streams": 256,
+    "StreamsInbound": 128,
+    "StreamsOutbound": 256,
+    "Conns": 64,
+    "ConnsInbound": 32,
+    "ConnsOutbound": 64,
+    "FD": 64,
+    "Memory": 33554432
+  },
+  "AllowlistedTransientLimitIncrease": {
+    "Streams": 256,
+    "StreamsInbound": 128,
+    "StreamsOutbound": 256,
+    "Conns": 32,
+    "ConnsInbound": 16,
+    "ConnsOutbound": 32,
+    "Memory": 134217728,
+    "FDFraction": 0.25
   },
   "ServiceBaseLimit": {
-    "Streams": 8192,
-    "StreamsInbound": 2048,
-    "StreamsOutbound": 8192,
-    "Conns": 0,
-    "ConnsInbound": 0,
-    "ConnsOutbound": 0,
-    "FD": 0
-  },
-  "ServiceMemory": {
-    "MemoryFraction": 0.03125,
-    "MinMemory": 67108864,
-    "MaxMemory": 268435456
-  },
-  "ServicePeerBaseLimit": {
-    "Streams": 512,
-    "StreamsInbound": 256,
-    "StreamsOutbound": 512,
-    "Conns": 0,
-    "ConnsInbound": 0,
-    "ConnsOutbound": 0,
-    "FD": 0
-  },
-  "ServicePeerMemory": {
-    "MemoryFraction": 0.0078125,
-    "MinMemory": 16777216,
-    "MaxMemory": 67108864
-  },
-  "ProtocolBaseLimit": {
     "Streams": 4096,
     "StreamsInbound": 1024,
     "StreamsOutbound": 4096,
     "Conns": 0,
     "ConnsInbound": 0,
     "ConnsOutbound": 0,
-    "FD": 0
+    "FD": 0,
+    "Memory": 67108864
   },
-  "ProtocolMemory": {
-    "MemoryFraction": 0.015625,
-    "MinMemory": 67108864,
-    "MaxMemory": 134217728
+  "ServiceLimitIncrease": {
+    "Streams": 2048,
+    "StreamsInbound": 512,
+    "StreamsOutbound": 2048,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "Memory": 134217728,
+    "FDFraction": 0
   },
-  "ProtocolPeerBaseLimit": {
-    "Streams": 512,
+  "ServiceLimits": null,
+  "ServicePeerBaseLimit": {
+    "Streams": 256,
     "StreamsInbound": 128,
     "StreamsOutbound": 256,
     "Conns": 0,
     "ConnsInbound": 0,
     "ConnsOutbound": 0,
-    "FD": 0
+    "FD": 0,
+    "Memory": 16777216
   },
-  "ProtocolPeerMemory": {
-    "MemoryFraction": 0.0078125,
-    "MinMemory": 16777216,
-    "MaxMemory": 67108864
+  "ServicePeerLimitIncrease": {
+    "Streams": 8,
+    "StreamsInbound": 4,
+    "StreamsOutbound": 8,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "Memory": 4194304,
+    "FDFraction": 0
   },
-  "PeerBaseLimit": {
-    "Streams": 1024,
+  "ServicePeerLimits": null,
+  "ProtocolBaseLimit": {
+    "Streams": 2048,
     "StreamsInbound": 512,
-    "StreamsOutbound": 1024,
-    "Conns": 16,
-    "ConnsInbound": 8,
-    "ConnsOutbound": 16,
-    "FD": 8
+    "StreamsOutbound": 2048,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "FD": 0,
+    "Memory": 67108864
   },
-  "PeerMemory": {
-    "MemoryFraction": 0.0078125,
-    "MinMemory": 67108864,
-    "MaxMemory": 134217728
+  "ProtocolLimitIncrease": {
+    "Streams": 512,
+    "StreamsInbound": 256,
+    "StreamsOutbound": 512,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "Memory": 171966464,
+    "FDFraction": 0
   },
+  "ProtocolLimits": null,
+  "ProtocolPeerBaseLimit": {
+    "Streams": 256,
+    "StreamsInbound": 64,
+    "StreamsOutbound": 128,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "FD": 0,
+    "Memory": 16777216
+  },
+  "ProtocolPeerLimitIncrease": {
+    "Streams": 16,
+    "StreamsInbound": 4,
+    "StreamsOutbound": 8,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "Memory": 4,
+    "FDFraction": 0
+  },
+  "ProtocolPeerLimits": null,
+  "PeerBaseLimit": {
+    "Streams": 512,
+    "StreamsInbound": 256,
+    "StreamsOutbound": 512,
+    "Conns": 8,
+    "ConnsInbound": 4,
+    "ConnsOutbound": 8,
+    "FD": 4,
+    "Memory": 67108864
+  },
+  "PeerLimitIncrease": {
+    "Streams": 256,
+    "StreamsInbound": 128,
+    "StreamsOutbound": 256,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "Memory": 134217728,
+    "FDFraction": 0.015625
+  },
+  "PeerLimits": null,
   "ConnBaseLimit": {
     "Streams": 0,
     "StreamsInbound": 0,
@@ -255,9 +342,19 @@ const expectedDefaultLimits = `{
     "Conns": 1,
     "ConnsInbound": 1,
     "ConnsOutbound": 1,
-    "FD": 1
+    "FD": 1,
+    "Memory": 1048576
   },
-  "ConnMemory": 1048576,
+  "ConnLimitIncrease": {
+    "Streams": 0,
+    "StreamsInbound": 0,
+    "StreamsOutbound": 0,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "Memory": 0,
+    "FDFraction": 0
+  },
   "StreamBaseLimit": {
     "Streams": 1,
     "StreamsInbound": 1,
@@ -265,9 +362,19 @@ const expectedDefaultLimits = `{
     "Conns": 0,
     "ConnsInbound": 0,
     "ConnsOutbound": 0,
-    "FD": 0
+    "FD": 0,
+    "Memory": 16777216
   },
-  "StreamMemory": 16777216
+  "StreamLimitIncrease": {
+    "Streams": 0,
+    "StreamsInbound": 0,
+    "StreamsOutbound": 0,
+    "Conns": 0,
+    "ConnsInbound": 0,
+    "ConnsOutbound": 0,
+    "Memory": 0,
+    "FDFraction": 0
+  }
 }`
 
 // https://github.com/libp2p/go-libp2p/blob/v0.18.0/limits.go#L17
