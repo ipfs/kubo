@@ -197,7 +197,8 @@ Note:
   currently present in the blockstore does not represent a complete DAG,
   pinning of that individual root will fail.
 
-Maximum supported CAR version: 1
+Maximum supported CAR version: 2
+Specification of CAR formats: https://ipld.io/specs/transport/car/
 `,
 	},
 	Arguments: []cmds.Argument{
@@ -265,6 +266,7 @@ var DagExportCmd = &cmds.Command{
 'ipfs dag export' fetches a DAG and streams it out as a well-formed .car file.
 Note that at present only single root selections / .car files are supported.
 The output of blocks happens in strict DAG-traversal, first-seen, order.
+CAR file follows the CARv1 format: https://ipld.io/specs/transport/car/carv1/
 `,
 	},
 	Arguments: []cmds.Argument{
