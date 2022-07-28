@@ -1,8 +1,8 @@
 module github.com/ipfs/kubo
 
-replace github.com/multiformats/go-multihash => github.com/laudiacay/go-multihash v0.2.1-0.20220728115748-b1c41390818b
+replace github.com/multiformats/go-multihash => github.com/laudiacay/go-multihash v0.2.1-0.20220728134632-4f44f4a78ef5
 
-replace github.com/ipfs/go-verifcid => github.com/laudiacay/go-verifcid v0.1.0-0.20220728125441-8b2f9dc86cfb
+replace github.com/ipfs/go-verifcid => github.com/laudiacay/go-verifcid v0.0.2-0.20220728135245-e9ad4d714376
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
@@ -61,7 +61,7 @@ require (
 	github.com/ipfs/go-pinning-service-http-client v0.1.1
 	github.com/ipfs/go-unixfs v0.4.0
 	github.com/ipfs/go-unixfsnode v1.4.0
-	github.com/ipfs/go-verifcid v0.1.0
+	github.com/ipfs/go-verifcid v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
 	github.com/ipfs/tar-utils v0.0.2
 	github.com/ipld/go-car v0.4.0
@@ -92,7 +92,7 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.3.1
 	github.com/multiformats/go-multibase v0.1.0
 	github.com/multiformats/go-multicodec v0.5.0
-	github.com/multiformats/go-multihash v0.2.1
+	github.com/multiformats/go-multihash v0.2.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.1
