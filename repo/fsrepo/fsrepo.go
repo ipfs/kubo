@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"net"
 
 	filestore "github.com/ipfs/go-filestore"
 	keystore "github.com/ipfs/go-ipfs-keystore"
@@ -398,7 +398,7 @@ func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
 		return err
 	}
 
-	if _, err = fmt.Fprintf(f, "http://%s", addr.String()); err != nil {
+	if _, err := fmt.Fprintf(f, "http://%s", addr.String()); err != nil {
 		return err
 	}
 	if err = f.Close(); err != nil {

@@ -807,7 +807,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if err := node.Repo.SetGatewayAddr(listeners[0].Addr()); err != nil {
-		return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %s", err)
+		return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
 	}
 
 	errc := make(chan error)
