@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"net"
 
 	filestore "github.com/ipfs/go-filestore"
 	keystore "github.com/ipfs/go-ipfs-keystore"
@@ -63,6 +64,7 @@ func (err NoRepoError) Error() string {
 }
 
 const apiFile = "api"
+const gatewayFile = "gateway"
 const swarmKeyFile = "swarm.key"
 
 const specFn = "datastore_spec"
@@ -387,6 +389,35 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 	return err
 }
 
+// SetGatewayAddr writes the Gateway Addr to the /gateway file.
+func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
+	// Create a temp file to write the address, so that we don't leave empty file when the
+	// program crashes after creating the file.
+	f, err := os.Create(filepath.Join(r.path, "."+gatewayFile+".tmp"))
+	if err != nil {
+		return err
+	}
+
+	if _, err = fmt.Fprintf(f, "http://%s", addr.String()); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+
+	// Atomically rename the temp file to the correct file name.
+	if err = os.Rename(filepath.Join(r.path, "."+gatewayFile+".tmp"), filepath.Join(r.path,
+		gatewayFile)); err == nil {
+		return nil
+	}
+	// Remove the temp file when rename return error
+	if err1 := os.Remove(filepath.Join(r.path, "."+gatewayFile+".tmp")); err1 != nil {
+		return fmt.Errorf("File Rename error: %s, File remove error: %s", err.Error(),
+			err1.Error())
+	}
+	return err
+}
+
 // openConfig returns an error if the config file is not present.
 func (r *FSRepo) openConfig() error {
 	conf, err := serialize.Load(r.configFilePath)
@@ -472,6 +503,11 @@ func (r *FSRepo) Close() error {
 	err := os.Remove(filepath.Join(r.path, apiFile))
 	if err != nil && !os.IsNotExist(err) {
 		log.Warn("error removing api file: ", err)
+	}
+
+	err = os.Remove(filepath.Join(r.path, gatewayFile))
+	if err != nil && !os.IsNotExist(err) {
+		log.Warn("error removing gateway file: ", err)
 	}
 
 	if err := r.ds.Close(); err != nil {
