@@ -420,7 +420,7 @@ func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
 	}
 	// Remove the temp file when rename return error
 	if err1 := os.Remove(tmpPath); err1 != nil {
-		return fmt.Errorf("File Rename error: %w, File remove error: %s", err.Error(), err1.Error())
+		return fmt.Errorf("File Rename error: %w, File remove error: %s", err, err1.Error())
 	}
 	return err
 }
