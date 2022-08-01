@@ -393,27 +393,34 @@ func (r *FSRepo) SetAPIAddr(addr ma.Multiaddr) error {
 func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
 	// Create a temp file to write the address, so that we don't leave empty file when the
 	// program crashes after creating the file.
-	f, err := os.Create(filepath.Join(r.path, "."+gatewayFile+".tmp"))
+	tmpPath := filepath.Join(r.path, "."+gatewayFile+".tmp")
+	f, err := os.Create(tmpPath)
 	if err != nil {
 		return err
 	}
+	var good bool
+	// Silently remove as worst last case with defers.
+	defer func() {
+	  if !good { os.Remove(tmpPath) }
+	}()
+	defer f.Close()
 
 	if _, err := fmt.Fprintf(f, "http://%s", addr.String()); err != nil {
 		return err
 	}
-	if err = f.Close(); err != nil {
+	if err := f.Close(); err != nil {
 		return err
 	}
 
 	// Atomically rename the temp file to the correct file name.
-	if err = os.Rename(filepath.Join(r.path, "."+gatewayFile+".tmp"), filepath.Join(r.path,
-		gatewayFile)); err == nil {
+	err = os.Rename(tmpPath, filepath.Join(r.path, gatewayFile))
+	good = err == nil
+	if good {
 		return nil
 	}
 	// Remove the temp file when rename return error
-	if err1 := os.Remove(filepath.Join(r.path, "."+gatewayFile+".tmp")); err1 != nil {
-		return fmt.Errorf("File Rename error: %s, File remove error: %s", err.Error(),
-			err1.Error())
+	if err1 := os.Remove(tmpPath); err1 != nil {
+		return fmt.Errorf("File Rename error: %w, File remove error: %s", err.Error(), err1.Error())
 	}
 	return err
 }
