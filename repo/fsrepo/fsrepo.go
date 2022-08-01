@@ -401,7 +401,9 @@ func (r *FSRepo) SetGatewayAddr(addr net.Addr) error {
 	var good bool
 	// Silently remove as worst last case with defers.
 	defer func() {
-	  if !good { os.Remove(tmpPath) }
+		if !good {
+			os.Remove(tmpPath)
+		}
 	}()
 	defer f.Close()
 
