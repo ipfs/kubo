@@ -91,7 +91,7 @@ func TestToDNSLinkFQDN(t *testing.T) {
 		out string
 	}{
 		{"singlelabel", "singlelabel"},
-		{"docs-ipfs-io", "docs.ipfs.io"},
+		{"docs-ipfs-tech", "docs.ipfs.tech"},
 		{"dnslink-long--name-example-com", "dnslink.long-name.example.com"},
 	} {
 		out := toDNSLinkFQDN(test.in)

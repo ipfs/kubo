@@ -14,11 +14,11 @@ Kubo (go-ipfs) the earliest and most widely used implementation of IPFS.
 
 It includes:
 - an IPFS daemon server
-- extensive [command line tooling](https://docs.ipfs.io/reference/cli/)
+- extensive [command line tooling](https://docs.ipfs.tech/reference/kubo/cli/)
 - an [HTTP Gateway](https://github.com/ipfs/specs/tree/main/http-gateways#readme) (`/ipfs/`, `/ipns/`) for serving content to HTTP browsers
 - an HTTP RPC API (`/api/v0`) for controlling the daemon node
 
-Note: [other implementations exist](https://docs.ipfs.io/basics/ipfs-implementations/).
+Note: [other implementations exist](https://docs.ipfs.tech/basics/ipfs-implementations/).
 
 ## What is IPFS?
 
@@ -32,7 +32,7 @@ Before opening an issue, consider using one of the following locations to ensure
   - IPFS _design_ in [ipfs/specs issues](https://github.com/ipfs/specs/issues).
   - Exploration of new ideas in [ipfs/notes issues](https://github.com/ipfs/notes/issues).
   - Ask questions and meet the rest of the community at the [IPFS Forum](https://discuss.ipfs.io).
-  - Or [chat with us](https://docs.ipfs.io/community/chat/).
+  - Or [chat with us](https://docs.ipfs.tech/community/chat/).
  
 [![YouTube Channel Subscribers](https://img.shields.io/youtube/channel/subscribers/UCdjsUXJ3QawK4O5L1kqqsew?label=Subscribe%20IPFS&style=social&cacheSeconds=3600)](https://www.youtube.com/channel/UCdjsUXJ3QawK4O5L1kqqsew) [![Follow @IPFS on Twitter](https://img.shields.io/twitter/follow/IPFS?style=social&cacheSeconds=3600)](https://twitter.com/IPFS)
 
@@ -115,7 +115,7 @@ If your system is resource-constrained, we recommend:
 [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ipfs/kubo?color=blue&label=kubo%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/kubo/)
 -->
 
-More info on how to run kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.io/how-to/run-ipfs-inside-docker/).
+More info on how to run kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.tech/how-to/run-ipfs-inside-docker/).
 
 ### Native Linux package managers
 
@@ -363,8 +363,8 @@ $ ipfs get /ipns/dist.ipfs.io/go-ipfs/$VERSION/go-ipfs_$VERSION_windows-amd64.zi
 
 ### Usage
 
-[![docs: Command-line quick start](https://img.shields.io/static/v1?label=docs&message=Command-line%20quick%20start&color=blue&style=flat-square&cacheSeconds=3600)](https://docs.ipfs.io/how-to/command-line-quick-start/)
-[![docs: Command-line reference](https://img.shields.io/static/v1?label=docs&message=Command-line%20reference&color=blue&style=flat-square&cacheSeconds=3600)](https://docs.ipfs.io/reference/cli/)
+[![docs: Command-line quick start](https://img.shields.io/static/v1?label=docs&message=Command-line%20quick%20start&color=blue&style=flat-square&cacheSeconds=3600)](https://docs.ipfs.tech/how-to/command-line-quick-start/)
+[![docs: Command-line reference](https://img.shields.io/static/v1?label=docs&message=Command-line%20reference&color=blue&style=flat-square&cacheSeconds=3600)](https://docs.ipfs.tech/reference/kubo/cli/)
 
 To start using IPFS, you must first initialize IPFS's config files on your
 system, this is done with `ipfs init`. See `ipfs init --help` for information on
@@ -387,11 +387,11 @@ If you have previously installed IPFS before and you are running into problems g
 
 Please direct general questions and help requests to our [forum](https://discuss.ipfs.io) or our IRC channel (freenode #ipfs).
 
-If you believe you've found a bug, check the [issues list](https://github.com/ipfs/kubo/issues) and, if you don't see your problem there, either come talk to us on [Matrix chat](https://docs.ipfs.io/community/chat/), or file an issue of your own!
+If you believe you've found a bug, check the [issues list](https://github.com/ipfs/kubo/issues) and, if you don't see your problem there, either come talk to us on [Matrix chat](https://docs.ipfs.tech/community/chat/), or file an issue of your own!
 
 ## Packages
 
-See [IPFS in GO](https://docs.ipfs.io/reference/go/api/) documentation.
+See [IPFS in GO](https://docs.ipfs.tech/reference/go/api/) documentation.
 
 ## Development
 
@@ -446,7 +446,7 @@ We ❤️ all [our contributors](docs/AUTHORS); this project wouldn’t be what 
 
 This repository falls under the IPFS [Code of Conduct](https://github.com/ipfs/community/blob/master/code-of-conduct.md).
 
-Please reach out to us in one [chat](https://docs.ipfs.io/community/chat/) rooms.
+Please reach out to us in one [chat](https://docs.ipfs.tech/community/chat/) rooms.
 
 ## License
 
