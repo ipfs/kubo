@@ -806,8 +806,10 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 		return nil, fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err)
 	}
 
-	if err := node.Repo.SetGatewayAddr(listeners[0].Addr()); err != nil {
-		return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
+	if len(listeners) > 0 {
+		if err := node.Repo.SetGatewayAddr(listeners[0].Addr()); err != nil {
+			return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
+		}
 	}
 
 	errc := make(chan error)
