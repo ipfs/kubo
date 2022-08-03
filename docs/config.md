@@ -1618,7 +1618,7 @@ Set `Swarm.Transports.Network.Relay` to `false` instead.
 
 **REMOVED**
 
-Please use [`AutoNAT.ServiceMode`][#autonatservicemode].
+Please use [`AutoNAT.ServiceMode`](#autonatservicemode).
 
 ### `Swarm.ConnMgr`
 
