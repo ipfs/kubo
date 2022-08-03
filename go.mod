@@ -1,6 +1,6 @@
 module github.com/ipfs/kubo
 
-replace github.com/multiformats/go-multihash => github.com/laudiacay/go-multihash v0.2.1-0.20220728134632-4f44f4a78ef5
+replace github.com/multiformats/go-multihash => github.com/laudiacay/go-multihash v0.2.1-0.20220803155855-c7de973b5b4d
 
 replace github.com/ipfs/go-verifcid => github.com/laudiacay/go-verifcid v0.0.2-0.20220728135245-e9ad4d714376
 
