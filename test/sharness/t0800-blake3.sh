@@ -18,13 +18,13 @@ BLAKE3RAWCID128BYTE="bafkr5aabjhoiodpr3z75mb4uz26oispvztnok5np7kthujfwflfqhybz3o
 
 ### block tests, including for various sizes of hash ###
 
-test_expect_success "putting a block with an mhash blake3 succeeds" '
+test_expect_success "putting a block with an mhash blake3 succeeds (default 32 bytes)" '
   HASH=$(echo "foo" | ipfs block put --mhtype=blake3 --cid-codec=raw | tee actual_out) &&
-  test $BLAKE3RAWCID128BYTE = "$HASH"
+  test $BLAKE3RAWCID32BYTE = "$HASH"
 '
 
 test_expect_success "block get output looks right" '
-  ipfs block get $BLAKE3RAWCID128BYTE > blk_get_out &&
+  ipfs block get $BLAKE3RAWCID32BYTE > blk_get_out &&
   echo "foo" > blk_get_exp &&
   test_cmp blk_get_exp blk_get_out
 '
@@ -40,13 +40,13 @@ test_expect_success "64B block get output looks right" '
   test_cmp blk_get_exp blk_get_out
 '
 
-test_expect_success "putting a block with an mhash blake3 succeeds: 32 bytes" '
-  HASH=$(echo "foo" | ipfs block put --mhtype=blake3 --mhlen=32 --cid-codec=raw | tee actual_out) &&
-  test $BLAKE3RAWCID32BYTE = "$HASH"
+test_expect_success "putting a block with an mhash blake3 succeeds: 128 bytes" '
+  HASH=$(echo "foo" | ipfs block put --mhtype=blake3 --mhlen=128 --cid-codec=raw | tee actual_out) &&
+  test $BLAKE3RAWCID128BYTE = "$HASH"
 '
 
 test_expect_success "32B block get output looks right" '
-  ipfs block get $BLAKE3RAWCID32BYTE > blk_get_out &&
+  ipfs block get $BLAKE3RAWCID128BYTE > blk_get_out &&
   echo "foo" > blk_get_exp &&
   test_cmp blk_get_exp blk_get_out
 '
@@ -55,11 +55,11 @@ test_expect_success "32B block get output looks right" '
 
 test_expect_success "dag put works with blake3" '
   HASH=$(echo "foo" | ipfs dag put --input-codec=raw --store-codec=raw --hash=blake3 | tee actual_out) &&
-  test $BLAKE3RAWCID128BYTE = "$HASH"
+  test $BLAKE3RAWCID32BYTE = "$HASH"
 '
 
 test_expect_success "dag get output looks right" '
-  ipfs dag get --output-codec=raw $BLAKE3RAWCID128BYTE > dag_get_out &&
+  ipfs dag get --output-codec=raw $BLAKE3RAWCID32BYTE > dag_get_out &&
   echo "foo" > dag_get_exp &&
   test_cmp dag_get_exp dag_get_out
 '
@@ -69,11 +69,11 @@ test_expect_success "dag get output looks right" '
 test_expect_success "adding a file with just foo in it to ipfs" '
   echo "foo" > afile &&
   HASH=$(ipfs add -q --hash=blake3 --raw-leaves afile | tee actual_out) &&
-  test $BLAKE3RAWCID128BYTE = "$HASH"
+  test $BLAKE3RAWCID32BYTE = "$HASH"
 '
 
 test_expect_success "catting it" '
-  ipfs cat $BLAKE3RAWCID128BYTE > cat_out &&
+  ipfs cat $BLAKE3RAWCID32BYTE > cat_out &&
   echo "foo" > cat_exp &&
   test_cmp cat_exp cat_out
 '
