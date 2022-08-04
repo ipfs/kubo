@@ -46,7 +46,7 @@ var VersionCmd = &cmds.Command{
 				if version.Commit != "" {
 					ver += "-" + version.Commit
 				}
-				out := fmt.Sprintf("go-ipfs version: %s\n"+
+				out := fmt.Sprintf("Kubo version: %s\n"+
 					"Repo version: %s\nSystem version: %s\nGolang version: %s\n",
 					ver, version.Repo, version.System, version.Golang)
 				fmt.Fprint(w, out)

@@ -18,7 +18,7 @@ It includes:
 - an [HTTP Gateway](https://github.com/ipfs/specs/tree/main/http-gateways#readme) (`/ipfs/`, `/ipns/`) for serving content to HTTP browsers
 - an HTTP RPC API (`/api/v0`) for controlling the daemon node
 
-Note: [other implementations exist](https://ipfs.io/#install).
+Note: [other implementations exist](https://docs.ipfs.io/basics/ipfs-implementations/).
 
 ## What is IPFS?
 
@@ -43,53 +43,53 @@ Before opening an issue, consider using one of the following locations to ensure
 
 ## Table of Contents
 
-- [kubo](#kubo)
-  - [What is Kubo?](#what-is-kubo)
-  - [What is IPFS?](#what-is-ipfs)
-  - [Next milestones](#next-milestones)
-  - [Table of Contents](#table-of-contents)
-  - [Security Issues](#security-issues)
-  - [Install](#install)
-    - [System Requirements](#system-requirements)
-    - [Docker](#docker)
-    - [Native Linux package managers](#native-linux-package-managers)
-      - [ArchLinux](#archlinux)
-      - [Nix](#nix)
-      - [Solus](#solus)
-      - [openSUSE](#opensuse)
-    - [Other package managers](#other-package-managers)
-      - [Guix](#guix)
-      - [Snap](#snap)
-      - [macOS package managers](#macos-package-managers)
-      - [MacPorts](#macports)
-      - [Nix](#nix-1)
-      - [Homebrew](#homebrew)
-    - [Windows package managers](#windows-package-managers)
-      - [Chocolatey](#chocolatey)
-      - [Scoop](#scoop)
-    - [Install prebuilt binaries](#install-prebuilt-binaries)
-    - [Build from Source](#build-from-source)
-      - [Install Go](#install-go)
-      - [Download and Compile IPFS](#download-and-compile-ipfs)
-        - [Cross Compiling](#cross-compiling)
-        - [OpenSSL](#openssl)
-      - [Troubleshooting](#troubleshooting)
-    - [Updating](#updating)
-      - [Using ipfs-update](#using-ipfs-update)
-      - [Downloading builds using IPFS](#downloading-builds-using-ipfs)
-  - [Getting Started](#getting-started)
-    - [Usage](#usage)
-    - [Some things to try](#some-things-to-try)
-    - [Troubleshooting](#troubleshooting-1)
-  - [Packages](#packages)
-  - [Development](#development)
-    - [Map of Implemented Subsystems](#map-of-implemented-subsystems)
-    - [CLI, HTTP-API, Architecture Diagram](#cli-http-api-architecture-diagram)
-    - [Testing](#testing)
-    - [Development Dependencies](#development-dependencies)
-    - [Developer Notes](#developer-notes)
-  - [Contributing](#contributing)
-  - [License](#license)
+- [What is Kubo?](#what-is-kubo)
+- [What is IPFS?](#what-is-ipfs)
+- [Next milestones](#next-milestones)
+- [Table of Contents](#table-of-contents)
+- [Security Issues](#security-issues)
+- [Install](#install)
+  - [System Requirements](#system-requirements)
+  - [Docker](#docker)
+  - [Native Linux package managers](#native-linux-package-managers)
+    - [ArchLinux](#archlinux)
+    - [Nix](#nix)
+    - [Solus](#solus)
+    - [openSUSE](#opensuse)
+  - [Other package managers](#other-package-managers)
+    - [Guix](#guix)
+    - [Snap](#snap)
+    - [macOS package managers](#macos-package-managers)
+    - [MacPorts](#macports)
+    - [Nix](#nix-1)
+    - [Homebrew](#homebrew)
+  - [Windows package managers](#windows-package-managers)
+    - [Chocolatey](#chocolatey)
+    - [Scoop](#scoop)
+  - [Install prebuilt binaries](#install-prebuilt-binaries)
+  - [Build from Source](#build-from-source)
+    - [Install Go](#install-go)
+    - [Download and Compile IPFS](#download-and-compile-ipfs)
+      - [Cross Compiling](#cross-compiling)
+      - [OpenSSL](#openssl)
+    - [Troubleshooting](#troubleshooting)
+  - [Updating](#updating)
+    - [Using ipfs-update](#using-ipfs-update)
+    - [Downloading builds using IPFS](#downloading-builds-using-ipfs)
+- [Getting Started](#getting-started)
+  - [Usage](#usage)
+  - [Some things to try](#some-things-to-try)
+  - [Troubleshooting](#troubleshooting-1)
+- [Packages](#packages)
+- [Development](#development)
+  - [Map of Implemented Subsystems](#map-of-implemented-subsystems)
+  - [CLI, HTTP-API, Architecture Diagram](#cli-http-api-architecture-diagram)
+  - [Testing](#testing)
+  - [Development Dependencies](#development-dependencies)
+  - [Developer Notes](#developer-notes)
+- [Maintainer Info](#maintainer-info)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Security Issues
 
@@ -124,15 +124,15 @@ More info on how to run kubo (go-ipfs) inside Docker can be found [here](https:/
 - [Solus](#solus)
 - [openSUSE](#openSUSE)
 
-#### ArchLinux
+#### Arch Linux
 
-[![go-ipfs via Community Repo](https://img.shields.io/archlinux/v/community/x86_64/go-ipfs?color=1793d1&label=go-ipfs&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://wiki.archlinux.org/title/IPFS)
+[![kubo via Community Repo](https://img.shields.io/archlinux/v/community/x86_64/kubo?color=1793d1&label=kubo&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://wiki.archlinux.org/title/IPFS)
 
 ```bash
-# pacman -Syu go-ipfs
+# pacman -S kubo
 ```
 
-[![go-ipfs-git via AUR](https://img.shields.io/static/v1?label=go-ipfs-git&message=latest%40master&color=1793d1&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://aur.archlinux.org/packages/go-ipfs-git/)
+[![kubo-git via AUR](https://img.shields.io/static/v1?label=kubo-git&message=latest%40master&color=1793d1&logo=arch-linux&style=flat-square&cacheSeconds=3600)](https://aur.archlinux.org/packages/kubo/)
 
 #### <a name="nix-linux">Nix</a>
 
@@ -287,7 +287,7 @@ export PATH=$PATH:$GOPATH/bin
 ```
 $ git clone https://github.com/ipfs/kubo.git
 
-$ cd go-ipfs
+$ cd kubo
 $ make install
 ```
 
@@ -320,10 +320,6 @@ Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross-c
   Ensure that `go version` reports at least 1.10. See above for how to install go.
 - If you are interested in development, please install the development
 dependencies as well.
-- _WARNING_: Older versions of OSX FUSE (for Mac OS X) can cause kernel panics when mounting!-
-  We strongly recommend you use the [latest version of OSX FUSE](http://osxfuse.github.io/).
-  (See https://github.com/ipfs/kubo/issues/177)
-- Read [docs/fuse.md](docs/fuse.md) for more details on setting up FUSE (so that you can mount the filesystem).
 - Shell command completions can be generated with one of the `ipfs commands completion` subcommands. Read [docs/command-completion.md](docs/command-completion.md) to learn more.
 - See the [misc folder](https://github.com/ipfs/kubo/tree/master/misc) for how to connect IPFS to systemd or whatever init system your distro uses.
 
@@ -395,70 +391,7 @@ If you believe you've found a bug, check the [issues list](https://github.com/ip
 
 ## Packages
 
-> This table is generated using the module [`package-table`](https://github.com/ipfs-shipyard/package-table) with `package-table --data=package-list.json`.
-
-Listing of the main packages used in the IPFS ecosystem. There are also three specifications worth linking here:
-
-| Name | CI/Travis | Coverage | Description |
-| ---------|---------|---------|--------- |
-| **Libp2p** |
-| [`go-libp2p`](//github.com/libp2p/go-libp2p) | [![Travis CI](https://flat.badgen.net/travis/libp2p/go-libp2p/master)](https://travis-ci.com/libp2p/go-libp2p) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/libp2p/go-libp2p) | p2p networking library |
-| [`go-libp2p-pubsub`](//github.com/libp2p/go-libp2p-pubsub) | [![Travis CI](https://flat.badgen.net/travis/libp2p/go-libp2p-pubsub/master)](https://travis-ci.com/libp2p/go-libp2p-pubsub) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-pubsub/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/libp2p/go-libp2p-pubsub) | pubsub built on libp2p |
-| [`go-libp2p-kad-dht`](//github.com/libp2p/go-libp2p-kad-dht) | [![Travis CI](https://flat.badgen.net/travis/libp2p/go-libp2p-kad-dht/master)](https://travis-ci.com/libp2p/go-libp2p-kad-dht) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-kad-dht/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/libp2p/go-libp2p-kad-dht) | dht-backed router |
-| [`go-libp2p-pubsub-router`](//github.com/libp2p/go-libp2p-pubsub-router) | [![Travis CI](https://flat.badgen.net/travis/libp2p/go-libp2p-pubsub-router/master)](https://travis-ci.com/libp2p/go-libp2p-pubsub-router) | [![codecov](https://codecov.io/gh/libp2p/go-libp2p-pubsub-router/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/libp2p/go-libp2p-pubsub-router) | pubsub-backed router |
-| **Multiformats** |
-| [`go-cid`](//github.com/ipfs/go-cid) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-cid/master)](https://travis-ci.com/ipfs/go-cid) | [![codecov](https://codecov.io/gh/ipfs/go-cid/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-cid) | CID implementation |
-| [`go-multiaddr`](//github.com/multiformats/go-multiaddr) | [![Travis CI](https://flat.badgen.net/travis/multiformats/go-multiaddr/master)](https://travis-ci.com/multiformats/go-multiaddr) | [![codecov](https://codecov.io/gh/multiformats/go-multiaddr/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/multiformats/go-multiaddr) | multiaddr implementation |
-| [`go-multihash`](//github.com/multiformats/go-multihash) | [![Travis CI](https://flat.badgen.net/travis/multiformats/go-multihash/master)](https://travis-ci.com/multiformats/go-multihash) | [![codecov](https://codecov.io/gh/multiformats/go-multihash/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/multiformats/go-multihash) | multihash implementation |
-| [`go-multibase`](//github.com/multiformats/go-multibase) | [![Travis CI](https://flat.badgen.net/travis/multiformats/go-multibase/master)](https://travis-ci.com/multiformats/go-multibase) | [![codecov](https://codecov.io/gh/multiformats/go-multibase/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/multiformats/go-multibase) | mulitbase implementation |
-| **Files** |
-| [`go-unixfs`](//github.com/ipfs/go-unixfs) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-unixfs/master)](https://travis-ci.com/ipfs/go-unixfs) | [![codecov](https://codecov.io/gh/ipfs/go-unixfs/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-unixfs) | the core 'filesystem' logic |
-| [`go-mfs`](//github.com/ipfs/go-mfs) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-mfs/master)](https://travis-ci.com/ipfs/go-mfs) | [![codecov](https://codecov.io/gh/ipfs/go-mfs/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-mfs) | a mutable filesystem editor for unixfs |
-| [`go-ipfs-posinfo`](//github.com/ipfs/go-ipfs-posinfo) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-posinfo/master)](https://travis-ci.com/ipfs/go-ipfs-posinfo) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-posinfo/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-posinfo) | helper datatypes for the filestore |
-| [`go-ipfs-chunker`](//github.com/ipfs/go-ipfs-chunker) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-chunker/master)](https://travis-ci.com/ipfs/go-ipfs-chunker) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-chunker/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-chunker) | file chunkers |
-| **Exchange** |
-| [`go-ipfs-exchange-interface`](//github.com/ipfs/go-ipfs-exchange-interface) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-exchange-interface/master)](https://travis-ci.com/ipfs/go-ipfs-exchange-interface) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-exchange-interface/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-exchange-interface) | exchange service interface |
-| [`go-ipfs-exchange-offline`](//github.com/ipfs/go-ipfs-exchange-offline) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-exchange-offline/master)](https://travis-ci.com/ipfs/go-ipfs-exchange-offline) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-exchange-offline/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-exchange-offline) | (dummy) offline implementation of the exchange service |
-| [`go-bitswap`](//github.com/ipfs/go-bitswap) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-bitswap/master)](https://travis-ci.com/ipfs/go-bitswap) | [![codecov](https://codecov.io/gh/ipfs/go-bitswap/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-bitswap) | bitswap protocol implementation |
-| [`go-blockservice`](//github.com/ipfs/go-blockservice) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-blockservice/master)](https://travis-ci.com/ipfs/go-blockservice) | [![codecov](https://codecov.io/gh/ipfs/go-blockservice/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-blockservice) | service that plugs a blockstore and an exchange together |
-| **Datastores** |
-| [`go-datastore`](//github.com/ipfs/go-datastore) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-datastore/master)](https://travis-ci.com/ipfs/go-datastore) | [![codecov](https://codecov.io/gh/ipfs/go-datastore/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-datastore) | datastore interfaces, adapters, and basic implementations |
-| [`go-ipfs-ds-help`](//github.com/ipfs/go-ipfs-ds-help) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-ds-help/master)](https://travis-ci.com/ipfs/go-ipfs-ds-help) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-ds-help/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-ds-help) | datastore utility functions |
-| [`go-ds-flatfs`](//github.com/ipfs/go-ds-flatfs) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ds-flatfs/master)](https://travis-ci.com/ipfs/go-ds-flatfs) | [![codecov](https://codecov.io/gh/ipfs/go-ds-flatfs/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ds-flatfs) | a filesystem-based datastore |
-| [`go-ds-measure`](//github.com/ipfs/go-ds-measure) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ds-measure/master)](https://travis-ci.com/ipfs/go-ds-measure) | [![codecov](https://codecov.io/gh/ipfs/go-ds-measure/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ds-measure) | a metric-collecting database adapter |
-| [`go-ds-leveldb`](//github.com/ipfs/go-ds-leveldb) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ds-leveldb/master)](https://travis-ci.com/ipfs/go-ds-leveldb) | [![codecov](https://codecov.io/gh/ipfs/go-ds-leveldb/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ds-leveldb) | a leveldb based datastore |
-| [`go-ds-badger`](//github.com/ipfs/go-ds-badger) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ds-badger/master)](https://travis-ci.com/ipfs/go-ds-badger) | [![codecov](https://codecov.io/gh/ipfs/go-ds-badger/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ds-badger) | a badgerdb based datastore |
-| **Namesys** |
-| [`go-ipns`](//github.com/ipfs/go-ipns) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipns/master)](https://travis-ci.com/ipfs/go-ipns) | [![codecov](https://codecov.io/gh/ipfs/go-ipns/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipns) | IPNS datastructures and validation logic |
-| **Repo** |
-| [`go-fs-lock`](//github.com/ipfs/go-fs-lock) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-fs-lock/master)](https://travis-ci.com/ipfs/go-fs-lock) | [![codecov](https://codecov.io/gh/ipfs/go-fs-lock/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-fs-lock) | lockfile management functions |
-| [`fs-repo-migrations`](//github.com/ipfs/fs-repo-migrations) | [![Travis CI](https://flat.badgen.net/travis/ipfs/fs-repo-migrations/master)](https://travis-ci.com/ipfs/fs-repo-migrations) | [![codecov](https://codecov.io/gh/ipfs/fs-repo-migrations/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/fs-repo-migrations) | repo migrations |
-| **IPLD** |
-| [`go-block-format`](//github.com/ipfs/go-block-format) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-block-format/master)](https://travis-ci.com/ipfs/go-block-format) | [![codecov](https://codecov.io/gh/ipfs/go-block-format/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-block-format) | block interfaces and implementations |
-| [`go-ipfs-blockstore`](//github.com/ipfs/go-ipfs-blockstore) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-blockstore/master)](https://travis-ci.com/ipfs/go-ipfs-blockstore) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-blockstore/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-blockstore) | blockstore interfaces and implementations |
-| [`go-ipld-format`](//github.com/ipfs/go-ipld-format) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipld-format/master)](https://travis-ci.com/ipfs/go-ipld-format) | [![codecov](https://codecov.io/gh/ipfs/go-ipld-format/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipld-format) | IPLD interfaces |
-| [`go-ipld-cbor`](//github.com/ipfs/go-ipld-cbor) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipld-cbor/master)](https://travis-ci.com/ipfs/go-ipld-cbor) | [![codecov](https://codecov.io/gh/ipfs/go-ipld-cbor/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipld-cbor) | IPLD-CBOR implementation |
-| [`go-ipld-git`](//github.com/ipfs/go-ipld-git) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipld-git/master)](https://travis-ci.com/ipfs/go-ipld-git) | [![codecov](https://codecov.io/gh/ipfs/go-ipld-git/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipld-git) | IPLD-Git implementation |
-| [`go-merkledag`](//github.com/ipfs/go-merkledag) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-merkledag/master)](https://travis-ci.com/ipfs/go-merkledag) | [![codecov](https://codecov.io/gh/ipfs/go-merkledag/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-merkledag) | IPLD-Merkledag implementation (and then some) |
-| **Commands** |
-| [`go-ipfs-cmds`](//github.com/ipfs/go-ipfs-cmds) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-cmds/master)](https://travis-ci.com/ipfs/go-ipfs-cmds) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-cmds/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-cmds) | CLI & HTTP commands library |
-| [`go-ipfs-files`](//github.com/ipfs/go-ipfs-files) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-files/master)](https://travis-ci.com/ipfs/go-ipfs-files) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-files/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-files) | CLI & HTTP commands library |
-| [`go-ipfs-api`](//github.com/ipfs/go-ipfs-api) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-api/master)](https://travis-ci.com/ipfs/go-ipfs-api) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-api/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-api) | an old, stable shell for the IPFS HTTP API |
-| [`go-ipfs-http-client`](//github.com/ipfs/go-ipfs-http-client) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-http-client/master)](https://travis-ci.com/ipfs/go-ipfs-http-client) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-http-client/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-http-client) | a new, unstable shell for the IPFS HTTP API |
-| [`interface-go-ipfs-core`](//github.com/ipfs/interface-go-ipfs-core) | [![Travis CI](https://flat.badgen.net/travis/ipfs/interface-go-ipfs-core/master)](https://travis-ci.com/ipfs/interface-go-ipfs-core) | [![codecov](https://codecov.io/gh/ipfs/interface-go-ipfs-core/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/interface-go-ipfs-core) | core go-ipfs API interface definitions |
-| **Metrics & Logging** |
-| [`go-metrics-interface`](//github.com/ipfs/go-metrics-interface) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-metrics-interface/master)](https://travis-ci.com/ipfs/go-metrics-interface) | [![codecov](https://codecov.io/gh/ipfs/go-metrics-interface/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-metrics-interface) | metrics collection interfaces |
-| [`go-metrics-prometheus`](//github.com/ipfs/go-metrics-prometheus) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-metrics-prometheus/master)](https://travis-ci.com/ipfs/go-metrics-prometheus) | [![codecov](https://codecov.io/gh/ipfs/go-metrics-prometheus/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-metrics-prometheus) | prometheus-backed metrics collector |
-| [`go-log`](//github.com/ipfs/go-log) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-log/master)](https://travis-ci.com/ipfs/go-log) | [![codecov](https://codecov.io/gh/ipfs/go-log/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-log) | logging framework |
-| **Generics/Utils** |
-| [`go-ipfs-routing`](//github.com/ipfs/go-ipfs-routing) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-routing/master)](https://travis-ci.com/ipfs/go-ipfs-routing) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-routing/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-routing) | routing (content, peer, value) helpers |
-| [`go-ipfs-util`](//github.com/ipfs/go-ipfs-util) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-util/master)](https://travis-ci.com/ipfs/go-ipfs-util) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-util/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-util) | the kitchen sink |
-| [`go-ipfs-addr`](//github.com/ipfs/go-ipfs-addr) | [![Travis CI](https://flat.badgen.net/travis/ipfs/go-ipfs-addr/master)](https://travis-ci.com/ipfs/go-ipfs-addr) | [![codecov](https://codecov.io/gh/ipfs/go-ipfs-addr/branch/master/graph/badge.svg?style=flat-square)](https://codecov.io/gh/ipfs/go-ipfs-addr) | utility functions for parsing IPFS multiaddrs |
-
-For brevity, we've omitted most go-libp2p, go-ipld, and go-multiformats packages. These package tables can be found in their respective project's READMEs:
-
-* [go-libp2p](https://github.com/libp2p/go-libp2p#packages)
-* [go-ipld](https://github.com/ipld/go-ipld#packages)
+See [IPFS in GO](https://docs.ipfs.io/reference/go/api/) documentation.
 
 ## Development
 
@@ -498,6 +431,12 @@ If you make changes to the protocol buffers, you will need to install the [proto
 ### Developer Notes
 
 Find more documentation for developers on [docs](./docs)
+
+## Maintainer Info
+* [Project Board for active and upcoming work](https://pl-strflt.notion.site/Kubo-GitHub-Project-Board-c68f9192e48e4e9eba185fa697bf0570)
+* [Release Process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4)
+* [Additional PL EngRes Kubo maintainer info](https://pl-strflt.notion.site/Kubo-go-ipfs-4a484aeeaa974dcf918027c300426c05)
+
 
 ## Contributing
 

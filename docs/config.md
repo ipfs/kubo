@@ -102,6 +102,10 @@ config file at runtime.
     - [`Reprovider.Interval`](#reproviderinterval)
     - [`Reprovider.Strategy`](#reproviderstrategy)
   - [`Routing`](#routing)
+    - [`Routing.Routers`](#routingrouters)
+      - [`Routing.Routers: Type`](#routingrouters-type)
+      - [`Routing.Routers: Enabled`](#routingrouters-enabled)
+      - [`Routing.Routers: Parameters`](#routingrouters-parameters)
     - [`Routing.Type`](#routingtype)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
@@ -1289,9 +1293,75 @@ Type: `string` (or unset for the default, which is "all")
 
 Contains options for content, peer, and IPNS routing mechanisms.
 
-### `Routing.Type`
+### `Routing.Routers`
 
-Content routing mode. Can be overridden with daemon `--routing` flag.
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+
+Map of additional Routers.
+
+Allows for extending the default routing (DHT) with alternative Router
+implementations, such as custom DHTs and delegated routing based
+on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme).
+
+The map key is a name of a Router, and the value is its configuration.
+
+Default: `{}`
+
+Type: `object[string->object]`
+
+#### `Routing.Routers: Type`
+
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+
+It specifies the routing type that will be created.
+
+Currently supported types:
+
+- `reframe` (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
+- <del>`dht`</del> (WIP, custom DHT will be added in a future release)
+
+Type: `string`
+
+#### `Routing.Routers: Enabled`
+
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+
+Optional flag to disable the specified router without removing it from the configuration file.
+
+Default: `true`
+
+Type: `flag` (`null`/missing will apply the default)
+
+#### `Routing.Routers: Parameters`
+
+**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
+
+Parameters needed to create the specified router. Supported params per router type:
+
+Reframe:
+  - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
+  - `Priority` (optional): Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
+
+**Example:**
+
+To add router provided by _Store the Index_ team at [cid.contact](https://cid.contact):
+
+```console
+$ ipfs config Routing.Routers.CidContact --json '{
+  "Type": "reframe",
+  "Parameters": {
+    "Endpoint": "https://cid.contact/reframe"
+  }
+}'
+```
+
+Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node.
+
+Default: `{}` (use the safe implicit defaults)
+
+Type: `object[string->string]`
+
+### `Routing.Type`
 
 There are two core routing options: "none" and "dht" (default).
 
@@ -1326,9 +1396,9 @@ unless you're sure your node is reachable from the public network.
 }
 ```
 
-Default: dht
+Default: `dht`
 
-Type: `string` (or unset for the default)
+Type: `optionalString` (`null`/missing means the default)
 
 ## `Swarm`
 
@@ -1548,7 +1618,7 @@ Set `Swarm.Transports.Network.Relay` to `false` instead.
 
 **REMOVED**
 
-Please use [`AutoNAT.ServiceMode`][#autonatservicemode].
+Please use [`AutoNAT.ServiceMode`](#autonatservicemode).
 
 ### `Swarm.ConnMgr`
 

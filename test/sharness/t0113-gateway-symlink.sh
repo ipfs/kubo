@@ -22,7 +22,7 @@ test_expect_success "Add the test directory" '
 '
 
 test_expect_success "Test the directory listing" '
-  curl "$GWAY_ADDR/ipfs/$HASH" > list_response &&
+  curl "$GWAY_ADDR/ipfs/$HASH/" > list_response &&
   test_should_contain ">foo<" list_response &&
   test_should_contain ">bar<" list_response
 '
