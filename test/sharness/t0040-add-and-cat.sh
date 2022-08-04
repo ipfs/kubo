@@ -375,7 +375,8 @@ test_add_cat_file() {
   '
 
   test_expect_success "ipfs files read succeeds" '
-    ipfs files read /ipfs-add-to-files >actual
+    ipfs files read /ipfs-add-to-files >actual &&
+    ipfs files rm /ipfs-add-to-files
   '
 
   test_expect_success "ipfs cat output looks good" '
