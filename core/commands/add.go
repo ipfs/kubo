@@ -210,42 +210,6 @@ only-hash, and progress/status related flags) will change the final hash.
 			})
 		}
 
-		ipfsNode, err := cmdenv.GetNode(env)
-		if err != nil {
-			return err
-		}
-		toFilesDst := ""
-		if toFilesSet {
-			dirIterator := toadd.Entries()
-			if !dirIterator.Next() {
-				if dirIterator.Err() != nil {
-					return dirIterator.Err()
-				}
-				return fmt.Errorf("%s: to-no file entry to copy to MFS path %q", toFilesOptionName, toFilesStr)
-			}
-			srcName := dirIterator.Name()
-			if dirIterator.Next() {
-				return fmt.Errorf("%s: more than one entry to copy to MFS path %q: %q and %q", toFilesOptionName, toFilesStr, srcName, dirIterator.Name())
-			}
-
-			if toFilesStr == "" {
-				toFilesStr = "/"
-			}
-			toFilesDst, err = checkPath(toFilesStr)
-			if err != nil {
-				return fmt.Errorf("%s: %w", toFilesOptionName, err)
-			}
-
-			if toFilesDst[len(toFilesDst)-1] == '/' {
-				toFilesDst += path.Base(srcName)
-			}
-
-			_, err = mfs.Lookup(ipfsNode.FilesRoot, path.Dir(toFilesDst))
-			if err != nil {
-				return fmt.Errorf("%s: MFS destination directory %q does not exist: %w", toFilesOptionName, path.Dir(toFilesDst), err)
-			}
-		}
-
 		opts := []options.UnixfsAddOption{
 			options.Unixfs.Hash(hashFunCode),
 
@@ -277,7 +241,12 @@ only-hash, and progress/status related flags) will change the final hash.
 
 		opts = append(opts, nil) // events option placeholder
 
+		ipfsNode, err := cmdenv.GetNode(env)
+		if err != nil {
+			return err
+		}
 		var added int
+		var fileAddedToMFS bool
 		addit := toadd.Entries()
 		for addit.Next() {
 			_, dir := addit.Node().(files.Directory)
@@ -294,6 +263,29 @@ only-hash, and progress/status related flags) will change the final hash.
 					return
 				}
 				if toFilesSet {
+					if fileAddedToMFS {
+						errCh <- fmt.Errorf("%s: more than one entry to copy to MFS path %q", toFilesOptionName, toFilesStr)
+						return
+					}
+
+					if toFilesStr == "" {
+						toFilesStr = "/"
+					}
+					toFilesDst, err := checkPath(toFilesStr)
+					if err != nil {
+						errCh <- fmt.Errorf("%s: %w", toFilesOptionName, err)
+						return
+					}
+					if toFilesDst[len(toFilesDst)-1] == '/' {
+						toFilesDst += path.Base(addit.Name())
+					}
+
+					_, err = mfs.Lookup(ipfsNode.FilesRoot, path.Dir(toFilesDst))
+					if err != nil {
+						errCh <- fmt.Errorf("%s: MFS destination directory %q does not exist: %w", toFilesOptionName, path.Dir(toFilesDst), err)
+						return
+					}
+
 					var nodeAdded ipld.Node
 					nodeAdded, err = api.Dag().Get(req.Context, pathAdded.Cid())
 					if err != nil {
@@ -302,8 +294,10 @@ only-hash, and progress/status related flags) will change the final hash.
 					}
 					err = mfs.PutNode(ipfsNode.FilesRoot, toFilesDst, nodeAdded)
 					if err != nil {
-						err = fmt.Errorf("%s: cannot put node in path %s: %s", toFilesOptionName, toFilesDst, err)
+						errCh <- fmt.Errorf("%s: cannot put node in path %s: %s", toFilesOptionName, toFilesDst, err)
+						return
 					}
+					fileAddedToMFS = true
 				}
 				errCh <- err
 			}()

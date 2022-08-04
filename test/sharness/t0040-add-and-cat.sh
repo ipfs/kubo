@@ -369,8 +369,8 @@ test_add_cat_file() {
   '
 
   test_expect_success "ipfs add --to-files output looks good" '
-    HASH="QmVT8bL3sGBA2TwvX8JPhrv5CYZL8LLLfW7mxkUjPZsgBr" &&
-    echo "added $HASH mfs.txt" >expected &&
+    HASH_MFS="QmVT8bL3sGBA2TwvX8JPhrv5CYZL8LLLfW7mxkUjPZsgBr" &&
+    echo "added $HASH_MFS mfs.txt" >expected &&
     test_cmp expected actual
   '
 
