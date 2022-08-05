@@ -21,6 +21,7 @@ import (
 	repo "github.com/ipfs/kubo/repo"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/tracing"
+	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -92,6 +93,7 @@ func mainRet() (exitCode int) {
 		}
 	}()
 	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
 
 	stopFunc, err := profileIfEnabled()
 	if err != nil {
