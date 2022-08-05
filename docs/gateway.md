@@ -54,7 +54,7 @@ for details</sub>
 
 You can use an IPFS gateway to serve static websites at a custom domain using
 [DNSLink](https://docs.ipfs.tech/concepts/glossary/#dnslink). See [Example: IPFS
-Gateway](https://dnslink.io/#example-ipfs-gateway) for instructions.
+Gateway](https://dnslink.dev/#example-ipfs-gateway) for instructions.
 
 ## Filenames
 
