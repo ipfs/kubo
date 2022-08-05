@@ -748,7 +748,7 @@ Type: `array[string]`
 A boolean to configure whether the gateway at the hostname provides [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
 between content roots.
 
-- `true` - enables [subdomain gateway](#https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
+- `true` - enables [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
     - **Requires whitelist:** make sure respective `Paths` are set.
       For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
         ```json
@@ -764,7 +764,7 @@ between content roots.
     - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
     - **API:** if `/api` is on the `Paths` whitelist, `http://{hostname}/api/{cmd}` produces redirect to `http://api.{hostname}/api/{cmd}`
 
-- `false` - enables [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
+- `false` - enables [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
     ```json
     "Gateway": {
@@ -821,7 +821,7 @@ $ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 Below is a list of the most common public gateway setups.
 
-* Public [subdomain gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
+* Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "dweb.link": {
@@ -845,7 +845,7 @@ Below is a list of the most common public gateway setups.
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
 
 
-* Public [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
+* Public [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "ipfs.io": {
@@ -861,7 +861,7 @@ Below is a list of the most common public gateway setups.
   ```
   * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
-* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).
+* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#dnslink-gateway).
 
   Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
@@ -1931,7 +1931,7 @@ Type: `priority`
 
 ## `DNS`
 
-Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
 
 ### `DNS.Resolvers`
 
