@@ -287,6 +287,12 @@ test_expect_success "GET compact blocks succeeds" '
   test_cmp expected actual
 '
 
+test_expect_success "Verify gateway file" '
+  cat "$IPFS_PATH/gateway" >> gateway_file_actual &&
+  echo -n "http://$GWAY_ADDR" >> gateway_daemon_actual &&
+  test_cmp gateway_daemon_actual gateway_file_actual
+'
+
 test_kill_ipfs_daemon
 
 
