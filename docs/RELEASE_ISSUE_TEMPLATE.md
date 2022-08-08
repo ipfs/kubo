@@ -105,9 +105,10 @@ Checklist:
         - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/kubo/$(curl -s https://dist.ipfs.io/kubo/versions | tail -n 1)"`
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
-  - [ ] Get a blog post created.  
-    - Make a request in Filecoin Slack channel #shared-pl-marketing-requests
-    - Request should take the form of "We'd like a Kubo release notes blog entry that links to the release notes https://github.com/ipfs/kubo/releases/tag/v0.Y.0"
+  - [ ] Get a blog post created 
+    - [Submit a request using this form](https://airtable.com/shrNH8YWole1xc70I).
+    - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form gets spam).
+    - Don't makre this as done until the blog entry is live.
   - [ ] Broadcasting (link to blog post)
     - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
     - [ ] [Reddit](https://reddit.com/r/ipfs)
