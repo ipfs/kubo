@@ -105,13 +105,13 @@ Checklist:
         - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/kubo/$(curl -s https://dist.ipfs.io/kubo/versions | tail -n 1)"`
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
-  - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
+  - [ ] Get a blog post created.  
+    - Make a request in Filecoin Slack channel #shared-pl-marketing-requests
+    - Request should take the form of "We'd like a Kubo release notes blog entry that links to the release notes https://github.com/ipfs/kubo/releases/tag/v0.Y.0"
   - [ ] Broadcasting (link to blog post)
-    - [ ] Twitter (request in Slack channel #pl-marketing-requests)
-    - [ ] Matrix
+    - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Announce it on the [IPFS Users Mailing List](https://groups.google.com/forum/#!forum/ipfs-users)
 - [ ] **Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
