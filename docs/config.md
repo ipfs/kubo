@@ -1318,7 +1318,7 @@ It specifies the routing type that will be created.
 Currently supported types:
 
 - `reframe` (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
-- <del>`dht`</del> (WIP, custom DHT will be added in a future release)
+- `dht` use a DHT as a routing mechanism
 
 Type: `string`
 
@@ -1338,10 +1338,17 @@ Type: `flag` (`null`/missing will apply the default)
 
 Parameters needed to create the specified router. Supported params per router type:
 
+General:
+  - `Priority` (optional): Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
 Reframe:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
-  - `Priority` (optional): Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
-
+DHT:
+  - `DHTMode` (mandatory): DHT type that will be use to create the DHT router. Possible values: 
+    - `dht`
+    - `dhtcilent`
+    - `dhtserver`
+  - `TrackFullNetworkDHT` (optional): It will start an experimental DHT router that will scan the entire network. Really resources intensive. `DHTMode` will be ignored.
+  
 **Example:**
 
 To add router provided by _Store the Index_ team at [cid.contact](https://cid.contact):
@@ -1360,45 +1367,6 @@ Anyone can create and run their own Reframe endpoint, and experiment with custom
 Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
-
-### `Routing.Type`
-
-There are two core routing options: "none" and "dht" (default).
-
-* If set to "none", your node will use _no_ routing system. You'll have to
-  explicitly connect to peers that have the content you're looking for.
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will use the IPFS DHT.
-
-When the DHT is enabled, it can operate in two modes: client and server.
-
-* In server mode, your node will query other peers for DHT records, and will
-  respond to requests from other peers (both requests to store records and
-  requests to retrieve records).
-* In client mode, your node will query the DHT as a client but will not respond
-  to requests from other peers. This mode is less resource-intensive than server
-  mode.
-
-When `Routing.Type` is set to `dht`, your node will start as a DHT client, and
-switch to a DHT server when and if it determines that it's reachable from the
-public internet (e.g., it's not behind a firewall).
-
-To force a specific DHT mode, client or server, set `Routing.Type` to
-`dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
-unless you're sure your node is reachable from the public network.
-
-**Example:**
-
-```json
-{
-  "Routing": {
-    "Type": "dhtclient"
-  }
-}
-```
-
-Default: `dht`
-
-Type: `optionalString` (`null`/missing means the default)
 
 ## `Swarm`
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	_ "expvar"
 	"fmt"
 	"net"
@@ -14,6 +13,15 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	mprome "github.com/ipfs/go-metrics-prometheus"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
+	goprocess "github.com/jbenet/goprocess"
+	sockets "github.com/libp2p/go-socket-activation"
+	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
+	prometheus "github.com/prometheus/client_golang/prometheus"
+	promauto "github.com/prometheus/client_golang/prometheus/promauto"
 
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
@@ -25,21 +33,10 @@ import (
 	"github.com/ipfs/kubo/core/coreapi"
 	corehttp "github.com/ipfs/kubo/core/corehttp"
 	corerepo "github.com/ipfs/kubo/core/corerepo"
-	libp2p "github.com/ipfs/kubo/core/node/libp2p"
 	nodeMount "github.com/ipfs/kubo/fuse/node"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	sockets "github.com/libp2p/go-socket-activation"
-
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	mprome "github.com/ipfs/go-metrics-prometheus"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	goprocess "github.com/jbenet/goprocess"
-	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr/net"
-	prometheus "github.com/prometheus/client_golang/prometheus"
-	promauto "github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -399,23 +396,12 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
-	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type.WithDefault(routingOptionDHTKwd)
+	rt := config.RouterTypeDHT
+	if routingOption != routingOptionDefaultKwd {
+		rt = config.RouterType(routingOption)
 	}
-	switch routingOption {
-	case routingOptionSupernodeKwd:
-		return errors.New("supernode routing was never fully implemented and has been removed")
-	case routingOptionDHTClientKwd:
-		ncfg.Routing = libp2p.DHTClientOption
-	case routingOptionDHTKwd:
-		ncfg.Routing = libp2p.DHTOption
-	case routingOptionDHTServerKwd:
-		ncfg.Routing = libp2p.DHTServerOption
-	case routingOptionNoneKwd:
-		ncfg.Routing = libp2p.NilRouterOption
-	default:
-		return fmt.Errorf("unrecognized routing option: %s", routingOption)
-	}
+
+	ncfg.Routing = rt
 
 	agentVersionSuffixString, _ := req.Options[agentVersionSuffix].(string)
 	if agentVersionSuffixString != "" {

@@ -5,23 +5,20 @@ import (
 	"fmt"
 	"io"
 
-	libp2p2 "github.com/ipfs/kubo/core/node/libp2p"
-
-	"github.com/ipfs/kubo/commands"
-	"github.com/ipfs/kubo/core"
-	"github.com/ipfs/kubo/repo"
-
 	"github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	config "github.com/ipfs/kubo/config"
-
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
-
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+
+	"github.com/ipfs/kubo/commands"
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core"
+	libp2p2 "github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/repo"
 )
 
 // NewMockNode constructs an IpfsNode for use in tests.
@@ -86,7 +83,7 @@ func MockPublicNode(ctx context.Context, mn mocknet.Mocknet) (*core.IpfsNode, er
 	cfg.Datastore = config.Datastore{}
 	return core.NewNode(ctx, &core.BuildCfg{
 		Online:  true,
-		Routing: libp2p2.DHTServerOption,
+		Routing: config.RouterTypeDHT,
 		Repo: &repo.Mock{
 			C: *cfg,
 			D: ds,

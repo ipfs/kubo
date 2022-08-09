@@ -1,6 +1,7 @@
 package core
 
 import (
+	context "context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -9,21 +10,18 @@ import (
 	"testing"
 	"time"
 
-	context "context"
-
 	"github.com/ipfs/go-cid"
+	datastore "github.com/ipfs/go-datastore"
+	syncds "github.com/ipfs/go-datastore/sync"
 	"github.com/ipfs/go-delegated-routing/client"
+	drs "github.com/ipfs/go-delegated-routing/server"
 	"github.com/ipfs/go-ipns"
-	"github.com/ipfs/kubo/core/node/libp2p"
-	"github.com/ipfs/kubo/repo"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 
-	datastore "github.com/ipfs/go-datastore"
-	syncds "github.com/ipfs/go-datastore/sync"
-	drs "github.com/ipfs/go-delegated-routing/server"
 	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/repo"
 )
 
 func TestInitialization(t *testing.T) {
@@ -190,9 +188,9 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 	routers := make(map[string]config.Router)
 	for i, ru := range reframeURLs {
 		routers[fmt.Sprintf("reframe-%d", i)] = config.Router{
-			Type: string(config.RouterTypeReframe),
-			Parameters: map[string]string{
-				string(config.RouterParamEndpoint): ru,
+			Type: config.RouterTypeReframe,
+			Parameters: config.RouterParams{
+				config.RouterParamEndpoint: ru,
 			},
 		}
 	}
@@ -204,7 +202,6 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 			API:   []string{"/ip4/127.0.0.1/tcp/0"},
 		},
 		Routing: config.Routing{
-			Type:    config.NewOptionalString("none"),
 			Routers: routers,
 		},
 	}
@@ -214,7 +211,7 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 
-	n, err := NewNode(context.Background(), &BuildCfg{Repo: r, Online: true, Routing: libp2p.NilRouterOption})
+	n, err := NewNode(context.Background(), &BuildCfg{Repo: r, Online: true, Routing: config.RouterTypeNone})
 	require.NoError(t, err)
 
 	return n

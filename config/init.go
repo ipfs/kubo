@@ -22,11 +22,6 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 }
 
 func InitWithIdentity(identity Identity) (*Config, error) {
-	bootstrapPeers, err := DefaultBootstrapPeers()
-	if err != nil {
-		return nil, err
-	}
-
 	datastore := DefaultDatastoreConfig()
 
 	conf := &Config{
@@ -39,8 +34,9 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Addresses: addressesConfig(),
 
 		Datastore: datastore,
-		Bootstrap: BootstrapPeerStrings(bootstrapPeers),
-		Identity:  identity,
+		Bootstrap: DefaultBootstrapAddresses,
+
+		Identity: identity,
 		Discovery: Discovery{
 			MDNS: MDNS{
 				Enabled: true,
@@ -48,7 +44,29 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		},
 
 		Routing: Routing{
-			Type: NewOptionalString("dht"),
+			Routers: map[string]Router{
+				"dht-lan": {
+					Type:    RouterTypeDHT,
+					Enabled: True,
+					Parameters: RouterParams{
+						RouterParamDHTType:             RouterValueDHTType,
+						RouterParamPriority:            100,
+						RouterParamTrackFullNetworkDHT: false,
+						RouterParamPublicIPNetwork:     false,
+					},
+				},
+				"dht-wan": {
+					Type:    RouterTypeDHT,
+					Enabled: True,
+					Parameters: RouterParams{
+						RouterParamDHTType:             RouterValueDHTType,
+						RouterParamPriority:            100,
+						RouterParamTrackFullNetworkDHT: false,
+						RouterParamPublicIPNetwork:     true,
+						RouterParamBootstrappers:       DefaultBootstrapAddresses,
+					},
+				},
+			},
 		},
 
 		// setup the node mount points.

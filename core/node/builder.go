@@ -6,17 +6,17 @@ import (
 	"encoding/base64"
 	"errors"
 
+	ds "github.com/ipfs/go-datastore"
+	dsync "github.com/ipfs/go-datastore/sync"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"go.uber.org/fx"
 
+	cfg "github.com/ipfs/kubo/config"
+	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
-
-	ds "github.com/ipfs/go-datastore"
-	dsync "github.com/ipfs/go-datastore/sync"
-	cfg "github.com/ipfs/kubo/config"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 type BuildCfg struct {
@@ -37,7 +37,7 @@ type BuildCfg struct {
 	// If NilRepo is set, a Repo backed by a nil datastore will be constructed
 	NilRepo bool
 
-	Routing libp2p.RoutingOption
+	Routing config.RouterType
 	Host    libp2p.HostOption
 	Repo    repo.Repo
 }
@@ -69,8 +69,8 @@ func (cfg *BuildCfg) fillDefaults() error {
 		cfg.Repo = r
 	}
 
-	if cfg.Routing == nil {
-		cfg.Routing = libp2p.DHTOption
+	if cfg.Routing == "" {
+		cfg.Routing = config.RouterTypeDHT
 	}
 
 	if cfg.Host == nil {
@@ -105,7 +105,7 @@ func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 		return cfg.Host
 	})
 
-	routingOption := fx.Provide(func() libp2p.RoutingOption {
+	routingOption := fx.Provide(func() config.RouterType {
 		return cfg.Routing
 	})
 

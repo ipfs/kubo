@@ -5,56 +5,50 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ipfs/kubo/config"
 )
 
 func TestPriority(t *testing.T) {
 	require := require.New(t)
-	params := make(map[string]string)
+	params := make(config.RouterParams)
 	p := GetPriority(params)
 
 	require.Equal(defaultPriority, p)
 
-	params[string(config.RouterParamPriority)] = "101"
+	params[config.RouterParamPriority] = 101
 
 	p = GetPriority(params)
 
 	require.Equal(101, p)
 
-	params[string(config.RouterParamPriority)] = "NAN"
+	params[config.RouterParamPriority] = "NAN"
 
 	p = GetPriority(params)
 
 	require.Equal(defaultPriority, p)
 }
 
-func TestRoutingFromConfig(t *testing.T) {
+func TestReframeRoutingFromConfig(t *testing.T) {
 	require := require.New(t)
 
-	r, err := RoutingFromConfig(config.Router{
-		Type: "unknown",
-	})
-
-	require.Nil(r)
-	require.EqualError(err, "router type unknown is not supported")
-
-	r, err = RoutingFromConfig(config.Router{
-		Type:       string(config.RouterTypeReframe),
-		Parameters: make(map[string]string),
+	r, err := ReframeRoutingFromConfig(config.Router{
+		Type:       config.RouterTypeReframe,
+		Parameters: make(config.RouterParams),
 	})
 
 	require.Nil(r)
 	require.EqualError(err, "configuration param 'Endpoint' is needed for reframe delegated routing types")
 
-	r, err = RoutingFromConfig(config.Router{
-		Type: string(config.RouterTypeReframe),
-		Parameters: map[string]string{
-			string(config.RouterParamEndpoint): "test",
+	r, err = ReframeRoutingFromConfig(config.Router{
+		Type: config.RouterTypeReframe,
+		Parameters: config.RouterParams{
+			config.RouterParamEndpoint: "test",
 		},
 	})
 

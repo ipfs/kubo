@@ -6,36 +6,22 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	util "github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-log"
-	"github.com/ipfs/kubo/config"
+	uio "github.com/ipfs/go-unixfs/io"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"go.uber.org/fx"
 
+	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/p2p"
-
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	uio "github.com/ipfs/go-unixfs/io"
-
-	"github.com/dustin/go-humanize"
-	"go.uber.org/fx"
 )
 
 var logger = log.Logger("core:constructor")
-
-var BaseLibP2P = fx.Options(
-	fx.Provide(libp2p.UserAgent),
-	fx.Provide(libp2p.PNet),
-	fx.Provide(libp2p.ConnectionManager),
-	fx.Provide(libp2p.Host),
-	fx.Provide(libp2p.MultiaddrResolver),
-
-	fx.Provide(libp2p.DiscoveryHandler),
-
-	fx.Invoke(libp2p.PNetChecker),
-)
 
 func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	// parse ConnMgr config
@@ -145,7 +131,15 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	peerChan := make(libp2p.AddrInfoChan)
 	// Gather all the options
 	opts := fx.Options(
-		BaseLibP2P,
+		fx.Provide(libp2p.UserAgent),
+		fx.Provide(libp2p.PNet),
+		fx.Provide(libp2p.ConnectionManager),
+		fx.Provide(libp2p.MultiaddrResolver),
+
+		fx.Provide(libp2p.DiscoveryHandler),
+
+		fx.Invoke(libp2p.PNetChecker),
+		fx.Provide(libp2p.HostAndRouters(cfg.Routing.Routers, cfg.Experimental.AcceleratedDHTClient)),
 
 		fx.Supply(peerChan),
 
@@ -165,10 +159,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.Security(!bcfg.DisableEncryptedConnections, cfg.Swarm.Transports)),
 
 		fx.Provide(libp2p.Routing),
-		fx.Provide(libp2p.ContentRouting),
 
-		fx.Provide(libp2p.BaseRouting(cfg.Experimental.AcceleratedDHTClient)),
-		fx.Provide(libp2p.DelegatedRouting(cfg.Routing.Routers)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
@@ -316,7 +307,6 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(0)),
 		fx.Provide(libp2p.Routing),
-		fx.Provide(libp2p.ContentRouting),
 		fx.Provide(libp2p.OfflineRouting),
 		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
 	)

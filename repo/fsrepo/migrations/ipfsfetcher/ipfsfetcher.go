@@ -15,13 +15,13 @@ import (
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
-	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
-	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 const (
@@ -188,7 +188,16 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	}
 
 	// configure the temporary node
-	cfg.Routing.Type = config.NewOptionalString("dhtclient")
+	cfg.Routing.Routers = map[string]config.Router{
+		"dht-client": {
+			Type:    config.RouterTypeDHT,
+			Enabled: config.True,
+			Parameters: config.RouterParams{
+				config.RouterParamDHTType:       config.RouterValueDHTTypeClient,
+				config.RouterParamBootstrappers: cfg.Bootstrap,
+			},
+		},
+	}
 
 	// Disable listening for inbound connections
 	cfg.Addresses.Gateway = []string{}
@@ -226,7 +235,7 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 	// Construct the node
 	node, err := core.NewNode(ctxIpfsLife, &core.BuildCfg{
 		Online:  true,
-		Routing: libp2p.DHTClientOption,
+		Routing: config.RouterTypeDHT,
 		Repo:    r,
 	})
 	if err != nil {

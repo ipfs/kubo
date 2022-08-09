@@ -7,26 +7,21 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ipfs/kubo/core/node/helpers"
-	irouting "github.com/ipfs/kubo/routing"
-
+	"github.com/cenkalti/backoff/v4"
 	ds "github.com/ipfs/go-datastore"
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
-	config "github.com/ipfs/kubo/config"
-	"github.com/ipfs/kubo/repo"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
-	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
-
-	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
+
+	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core/node/helpers"
+	irouting "github.com/ipfs/kubo/routing"
 )
 
 type Router struct {
@@ -41,149 +36,7 @@ type p2pRouterOut struct {
 	Router Router `group:"routers"`
 }
 
-type processInitialRoutingIn struct {
-	fx.In
-
-	Router routing.Routing `name:"initialrouting"`
-
-	// For setting up experimental DHT client
-	Host      host.Host
-	Repo      repo.Repo
-	Validator record.Validator
-}
-
-type processInitialRoutingOut struct {
-	fx.Out
-
-	Router        Router                 `group:"routers"`
-	ContentRouter routing.ContentRouting `group:"content-routers"`
-
-	DHT       *ddht.DHT
-	DHTClient routing.Routing `name:"dhtc"`
-}
-
 type AddrInfoChan chan peer.AddrInfo
-
-func BaseRouting(experimentalDHTClient bool) interface{} {
-	return func(lc fx.Lifecycle, in processInitialRoutingIn) (out processInitialRoutingOut, err error) {
-		var dr *ddht.DHT
-		if dht, ok := in.Router.(*ddht.DHT); ok {
-			dr = dht
-
-			lc.Append(fx.Hook{
-				OnStop: func(ctx context.Context) error {
-					return dr.Close()
-				},
-			})
-		}
-
-		if dr != nil && experimentalDHTClient {
-			cfg, err := in.Repo.Config()
-			if err != nil {
-				return out, err
-			}
-			bspeers, err := cfg.BootstrapPeers()
-			if err != nil {
-				return out, err
-			}
-
-			expClient, err := fullrt.NewFullRT(in.Host,
-				dht.DefaultPrefix,
-				fullrt.DHTOption(
-					dht.Validator(in.Validator),
-					dht.Datastore(in.Repo.Datastore()),
-					dht.BootstrapPeers(bspeers...),
-					dht.BucketSize(20),
-				),
-			)
-			if err != nil {
-				return out, err
-			}
-
-			lc.Append(fx.Hook{
-				OnStop: func(ctx context.Context) error {
-					return expClient.Close()
-				},
-			})
-
-			return processInitialRoutingOut{
-				Router: Router{
-					Routing:  expClient,
-					Priority: 1000,
-				},
-				DHT:           dr,
-				DHTClient:     expClient,
-				ContentRouter: expClient,
-			}, nil
-		}
-
-		return processInitialRoutingOut{
-			Router: Router{
-				Priority: 1000,
-				Routing:  in.Router,
-			},
-			DHT:           dr,
-			DHTClient:     dr,
-			ContentRouter: in.Router,
-		}, nil
-	}
-}
-
-type delegatedRouterOut struct {
-	fx.Out
-
-	Routers       []Router                 `group:"routers,flatten"`
-	ContentRouter []routing.ContentRouting `group:"content-routers,flatten"`
-}
-
-func DelegatedRouting(routers map[string]config.Router) interface{} {
-	return func() (delegatedRouterOut, error) {
-		out := delegatedRouterOut{}
-
-		for _, v := range routers {
-			if !v.Enabled.WithDefault(true) {
-				continue
-			}
-
-			r, err := irouting.RoutingFromConfig(v)
-			if err != nil {
-				return out, err
-			}
-
-			out.Routers = append(out.Routers, Router{
-				Routing:  r,
-				Priority: irouting.GetPriority(v.Parameters),
-			})
-
-			out.ContentRouter = append(out.ContentRouter, r)
-		}
-
-		return out, nil
-	}
-}
-
-type p2pOnlineContentRoutingIn struct {
-	fx.In
-
-	ContentRouter []routing.ContentRouting `group:"content-routers"`
-}
-
-// ContentRouting will get all routers that can do contentRouting and add them
-// all together using a TieredRouter. It will be used for topic discovery.
-func ContentRouting(in p2pOnlineContentRoutingIn) routing.ContentRouting {
-	var routers []routing.Routing
-	for _, cr := range in.ContentRouter {
-		routers = append(routers,
-			&routinghelpers.Compose{
-				ContentRouting: cr,
-			},
-		)
-	}
-
-	return routinghelpers.Tiered{
-		Routers: routers,
-	}
-}
 
 type p2pOnlineRoutingIn struct {
 	fx.In
@@ -259,8 +112,8 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 	}, psRouter, nil
 }
 
-func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, AddrInfoChan, *ddht.DHT) {
-	return func(lc fx.Lifecycle, h host.Host, peerChan AddrInfoChan, dht *ddht.DHT) {
+func AutoRelayFeeder(cfgPeering config.Peering) interface{} {
+	return func(lc fx.Lifecycle, h host.Host, peerChan AddrInfoChan, router irouting.TieredRouter) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 
@@ -300,13 +153,7 @@ func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, Ad
 					}
 				}
 
-				// Additionally, feed closest peers discovered via DHT
-				if dht == nil {
-					/* noop due to missing dht.WAN. happens in some unit tests,
-					   not worth fixing as we will refactor this after go-libp2p 0.20 */
-					continue
-				}
-				closestPeers, err := dht.WAN.GetClosestPeers(ctx, h.ID().String())
+				closestPeers, err := router.GetClosestPeers(ctx, h.ID().String())
 				if err != nil {
 					// no-op: usually 'failed to find any peer in table' during startup
 					continue

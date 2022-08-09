@@ -174,7 +174,16 @@ functionality - performance of content discovery and data
 fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
-			c.Routing.Type = NewOptionalString("dhtclient")
+			c.Routing.Routers = map[string]Router{
+				"dht-client": {
+					Type:    RouterTypeDHT,
+					Enabled: True,
+					Parameters: RouterParams{
+						RouterParamBootstrappers: DefaultBootstrapAddresses,
+						RouterParamDHTType:       RouterValueDHTTypeClient,
+					},
+				},
+			}
 			c.AutoNAT.ServiceMode = AutoNATServiceDisabled
 			c.Reprovider.Interval = "0"
 
