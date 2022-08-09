@@ -123,7 +123,7 @@ func DHTRoutingFromConfig(conf config.Router, params *ExtraDHTParams) (routing.R
 	}
 
 	dhtTP, _ := conf.Parameters.String(config.RouterParamDHTType)
-	mode := dht.ModeAuto
+	var mode dht.ModeOpt
 	switch dhtTP {
 	case config.RouterValueDHTType:
 		mode = dht.ModeAuto
