@@ -211,7 +211,7 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 
-	n, err := NewNode(context.Background(), &BuildCfg{Repo: r, Online: true, Routing: config.RouterTypeNone})
+	n, err := NewNode(context.Background(), &BuildCfg{Repo: r, Online: true})
 	require.NoError(t, err)
 
 	return n

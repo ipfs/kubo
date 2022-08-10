@@ -81,9 +81,18 @@ func MockPublicNode(ctx context.Context, mn mocknet.Mocknet) (*core.IpfsNode, er
 		fmt.Sprintf("/ip4/18.0.%d.%d/tcp/4001", count>>16, count&0xFF),
 	}
 	cfg.Datastore = config.Datastore{}
+
+	cfg.Routing.Routers = map[string]config.Router{
+		"dht-server": {
+			Type:    config.RouterTypeDHT,
+			Enabled: config.True,
+			Parameters: config.RouterParams{
+				config.RouterParamDHTType: config.RouterValueDHTTypeServer,
+			},
+		},
+	}
 	return core.NewNode(ctx, &core.BuildCfg{
-		Online:  true,
-		Routing: config.RouterTypeDHT,
+		Online: true,
 		Repo: &repo.Mock{
 			C: *cfg,
 			D: ds,

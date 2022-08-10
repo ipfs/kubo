@@ -233,9 +233,8 @@ func (f *IpfsFetcher) startTempNode(ctx context.Context) error {
 
 	// Construct the node
 	node, err := core.NewNode(ctxIpfsLife, &core.BuildCfg{
-		Online:  true,
-		Routing: config.RouterTypeDHT,
-		Repo:    r,
+		Online: true,
+		Repo:   r,
 	})
 	if err != nil {
 		cancel()

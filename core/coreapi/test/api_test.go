@@ -86,10 +86,9 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		}
 
 		node, err := core.NewNode(ctx, &core.BuildCfg{
-			Routing: config.RouterTypeDHT,
-			Repo:    r,
-			Host:    mock.MockHostOption(mn),
-			Online:  fullIdentity,
+			Repo:   r,
+			Host:   mock.MockHostOption(mn),
+			Online: fullIdentity,
 			ExtraOpts: map[string]bool{
 				"pubsub": true,
 			},

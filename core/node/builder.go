@@ -13,7 +13,6 @@ import (
 	"go.uber.org/fx"
 
 	cfg "github.com/ipfs/kubo/config"
-	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/node/helpers"
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/repo"
@@ -37,9 +36,8 @@ type BuildCfg struct {
 	// If NilRepo is set, a Repo backed by a nil datastore will be constructed
 	NilRepo bool
 
-	Routing config.RouterType
-	Host    libp2p.HostOption
-	Repo    repo.Repo
+	Host libp2p.HostOption
+	Repo repo.Repo
 }
 
 func (cfg *BuildCfg) getOpt(key string) bool {
@@ -67,10 +65,6 @@ func (cfg *BuildCfg) fillDefaults() error {
 			return err
 		}
 		cfg.Repo = r
-	}
-
-	if cfg.Routing == "" {
-		cfg.Routing = config.RouterTypeDHT
 	}
 
 	if cfg.Host == nil {
@@ -105,10 +99,6 @@ func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 		return cfg.Host
 	})
 
-	routingOption := fx.Provide(func() config.RouterType {
-		return cfg.Routing
-	})
-
 	conf, err := cfg.Repo.Config()
 	if err != nil {
 		return fx.Error(err), nil
@@ -117,7 +107,6 @@ func (cfg *BuildCfg) options(ctx context.Context) (fx.Option, *cfg.Config) {
 	return fx.Options(
 		repoOption,
 		hostOption,
-		routingOption,
 		metricsCtx,
 	), conf
 }

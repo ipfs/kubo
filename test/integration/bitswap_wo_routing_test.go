@@ -9,7 +9,6 @@ import (
 	"github.com/ipfs/go-cid"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 
-	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	coremock "github.com/ipfs/kubo/core/mock"
 )
@@ -25,9 +24,8 @@ func TestBitswapWithoutRouting(t *testing.T) {
 	var nodes []*core.IpfsNode
 	for i := 0; i < numPeers; i++ {
 		n, err := core.NewNode(ctx, &core.BuildCfg{
-			Online:  true,
-			Host:    coremock.MockHostOption(mn),
-			Routing: config.RouterTypeNone, // no routing
+			Online: true,
+			Host:   coremock.MockHostOption(mn),
 		})
 		if err != nil {
 			t.Fatal(err)

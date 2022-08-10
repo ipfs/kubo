@@ -50,8 +50,6 @@ const (
 	migrateKwd               = "migrate"
 	mountKwd                 = "mount"
 	offlineKwd               = "offline" // global option
-	routingOptionKwd         = "routing"
-	routingOptionDefaultKwd  = "default"
 	unencryptTransportKwd    = "disable-transport-encryption"
 	unrestrictedApiAccessKwd = "unrestricted-api"
 	writableKwd              = "writable"
@@ -159,7 +157,6 @@ Headers.
 		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
 		cmds.StringOption(initConfigOptionKwd, "Path to existing configuration file to be loaded during --init"),
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
-		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
@@ -389,14 +386,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		},
 		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
-
-	routingOption, _ := req.Options[routingOptionKwd].(string)
-	rt := config.RouterTypeDHT
-	if routingOption != routingOptionDefaultKwd {
-		rt = config.RouterType(routingOption)
-	}
-
-	ncfg.Routing = rt
 
 	agentVersionSuffixString, _ := req.Options[agentVersionSuffix].(string)
 	if agentVersionSuffixString != "" {

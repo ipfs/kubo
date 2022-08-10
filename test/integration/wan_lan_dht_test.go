@@ -17,7 +17,6 @@ import (
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	ma "github.com/multiformats/go-multiaddr"
 
-	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
 	mock "github.com/ipfs/kubo/core/mock"
 )
@@ -93,9 +92,8 @@ func RunDHTConnectivity(conf testutil.LatencyConfig, numPeers int) error {
 	defer connCtxCancel()
 	for i := 0; i < numPeers; i++ {
 		wanPeer, err := core.NewNode(ctx, &core.BuildCfg{
-			Online:  true,
-			Routing: config.RouterTypeDHT,
-			Host:    mock.MockHostOption(mn),
+			Online: true,
+			Host:   mock.MockHostOption(mn),
 		})
 		if err != nil {
 			return err
