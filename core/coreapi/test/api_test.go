@@ -68,7 +68,15 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		c.Addresses.Swarm = []string{fmt.Sprintf("/ip4/18.0.%d.1/tcp/4001", i)}
 		c.Identity = ident
 		c.Experimental.FilestoreEnabled = true
-
+		c.Routing.Routers = map[string]config.Router{
+			"dht-server": {
+				Type:    config.RouterTypeDHT,
+				Enabled: config.True,
+				Parameters: config.RouterParams{
+					config.RouterParamDHTType: config.RouterValueDHTTypeServer,
+				},
+			},
+		}
 		ds := syncds.MutexWrap(datastore.NewMapDatastore())
 		r := &repo.Mock{
 			C: c,
