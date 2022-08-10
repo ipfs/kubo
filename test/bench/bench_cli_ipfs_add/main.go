@@ -45,12 +45,7 @@ func benchmarkAdd(amount int64) (*testing.BenchmarkResult, error) {
 		b.SetBytes(amount)
 		for i := 0; i < b.N; i++ {
 			b.StopTimer()
-			tmpDir, err := os.MkdirTemp("", "")
-			if err != nil {
-				benchmarkError = err
-				b.Fatal(err)
-			}
-			defer os.RemoveAll(tmpDir)
+			tmpDir := b.TempDir()
 
 			env := append(
 				[]string{fmt.Sprintf("%s=%s", config.EnvDir, path.Join(tmpDir, config.DefaultPathName))}, // first in order to override
