@@ -63,7 +63,6 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 						RouterParamPriority:            100,
 						RouterParamTrackFullNetworkDHT: false,
 						RouterParamPublicIPNetwork:     true,
-						RouterParamBootstrappers:       DefaultBootstrapAddresses,
 					},
 				},
 			},

@@ -61,7 +61,6 @@ const (
 	RouterParamPriority            RouterParam = "Priority"
 	RouterParamDHTType             RouterParam = "Mode"
 	RouterParamTrackFullNetworkDHT RouterParam = "TrackFullNetworkDHT"
-	RouterParamBootstrappers       RouterParam = "Bootstrappers"
 	RouterParamPublicIPNetwork     RouterParam = "Public-IP-Network"
 )
 

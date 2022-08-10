@@ -193,8 +193,7 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 			Type:    config.RouterTypeDHT,
 			Enabled: config.True,
 			Parameters: config.RouterParams{
-				config.RouterParamDHTType:       config.RouterValueDHTTypeClient,
-				config.RouterParamBootstrappers: cfg.Bootstrap,
+				config.RouterParamDHTType: config.RouterValueDHTTypeClient,
 			},
 		},
 	}

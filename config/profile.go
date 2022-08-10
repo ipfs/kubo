@@ -179,8 +179,7 @@ fetching may be degraded.
 					Type:    RouterTypeDHT,
 					Enabled: True,
 					Parameters: RouterParams{
-						RouterParamBootstrappers: DefaultBootstrapAddresses,
-						RouterParamDHTType:       RouterValueDHTTypeClient,
+						RouterParamDHTType: RouterValueDHTTypeClient,
 					},
 				},
 			}
