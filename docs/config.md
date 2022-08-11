@@ -46,6 +46,7 @@ config file at runtime.
     - [`Discovery.MDNS`](#discoverymdns)
       - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
       - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
+  - [`Experimental`](#experimental)
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
@@ -598,6 +599,10 @@ Type: `bool`
 
 **REMOVED:**  this is not configurable any more
 in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
+
+## `Experimental`
+
+Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
 
 ## `Gateway`
 
