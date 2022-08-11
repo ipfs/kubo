@@ -16,7 +16,9 @@ test_launch_ipfs_daemon
 test_expect_success "Add the _redirects file test directory" '
   ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
 '
-REDIRECTS_DIR_CID=QmcZzEbsNsQM6PmnvPbtDJdRAen5skkCxDRS8K7HafpAsX
+CAR_ROOT_CID=QmVg9ckSKEZ9oc248zg8aUV5rNqrRWjnk6zbFAJhBPLQRd
+
+REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples | cut -d "/" -f3)
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
@@ -77,6 +79,48 @@ test_expect_success "request for http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR
   test_should_not_contain "my 404" response
 '
 
+# With \r\n newline carriage return
+NEWLINE_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/newlines | cut -d "/" -f3)
+NEWLINE_REDIRECTS_DIR_HOSTNAME="${NEWLINE_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+test_expect_success "newline: request for $NEWLINE_REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
+  curl -sD - --resolve $NEWLINE_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$NEWLINE_REDIRECTS_DIR_HOSTNAME/redirect-one" > response &&
+  test_should_contain "one.html" response &&
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location:" response
+'
+
+# Good codes
+GOOD_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/good-codes | cut -d "/" -f3)
+GOOD_REDIRECTS_DIR_HOSTNAME="${GOOD_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+test_expect_success "good codes: request for $GOOD_REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
+  curl -sD - --resolve $GOOD_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$GOOD_REDIRECTS_DIR_HOSTNAME/a301" > response &&
+  test_should_contain "b301" response &&
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location:" response
+'
+
+# Bad codes
+BAD_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/bad-codes | cut -d "/" -f3)
+BAD_REDIRECTS_DIR_HOSTNAME="${BAD_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+
+# if accessing a path that doesn't exist, read _redirects and fail parsing, and return error
+test_expect_success "bad codes: request for $BAD_REDIRECTS_DIR_HOSTNAME/not-found returns error about bad code" '
+  curl -sD - --resolve $BAD_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$BAD_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
+  test_should_contain "500" response &&
+  test_should_contain "unsupported redirect status" response
+'
+
+# if accessing a path that does exist, don't read _redirects and therefore don't fail parsing
+test_expect_success "bad codes: request for $BAD_REDIRECTS_DIR_HOSTNAME/found.html doesn't return error about bad code" '
+  curl -sD - --resolve $BAD_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$BAD_REDIRECTS_DIR_HOSTNAME/found.html" > response &&
+  test_should_contain "200" response &&
+  test_should_contain "my found" response &&
+  test_should_not_contain "unsupported redirect status" response
+'
+
 test_kill_ipfs_daemon
 
 # disable wildcard DNSLink gateway
@@ -96,6 +140,7 @@ ipfs config --json Gateway.PublicGateways '{
 }' || exit 1
 
 # DNSLink test requires a daemon in online mode with precached /ipns/ mapping
+# REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples | cut -d "/" -f3)
 DNSLINK_FQDN="dnslink-enabled-on-fqdn.example.org"
 NO_DNSLINK_FQDN="dnslink-disabled-on-fqdn.example.com"
 export IPFS_NS_MAP="$DNSLINK_FQDN:/ipfs/$REDIRECTS_DIR_CID"

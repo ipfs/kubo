@@ -110,6 +110,11 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 		urlPath = strings.TrimSuffix(urlPath, "/")
 
 		for _, rule := range redirectRules {
+			// Error right away if the rule is invalid
+			if !isValidCode(rule.Status) {
+				return false, "", fmt.Errorf("unsupported redirect status code: %d", rule.Status)
+			}
+
 			// get rule.From, trim trailing slash, ...
 			fromPath := urlpath.New(strings.TrimSuffix(rule.From, "/"))
 			match, ok := fromPath.Match(urlPath)
@@ -152,9 +157,6 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 				http.Redirect(w, r, toPath, rule.Status)
 				return true, toPath, nil
 			}
-
-			// Unsupported status code
-			return false, toPath, fmt.Errorf("unsupported redirect status code: %d", rule.Status)
 		}
 	}
 
@@ -170,6 +172,16 @@ func replacePlaceholders(to string, match urlpath.Match) string {
 	}
 
 	return to
+}
+
+func isValidCode(code int) bool {
+	validCodes := []int{200, 301, 302, 303, 307, 308, 404, 410, 451}
+	for _, validCode := range validCodes {
+		if validCode == code {
+			return true
+		}
+	}
+	return false
 }
 
 func replaceSplat(to string, match urlpath.Match) string {
@@ -211,6 +223,7 @@ func (i *gatewayHandler) getRedirectsFile(r *http.Request, contentPath ipath.Pat
 	}
 
 	// Check for root path.
+	// TODO(JJ): I don't think I need this anymore.
 	// _, err = i.api.Block().Get(r.Context(), rootPath)
 	// if err != nil {
 	// 	return nil
