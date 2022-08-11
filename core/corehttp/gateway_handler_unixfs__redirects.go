@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	redirects "github.com/ipfs-shipyard/go-ipfs-redirects"
 	files "github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	redirects "github.com/justincjohnson/go-ipfs-redirects"
 	"github.com/ucarion/urlpath"
 	"go.uber.org/zap"
 )

@@ -121,8 +121,6 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1
 )
 
-require github.com/justincjohnson/go-ipfs-redirects v0.0.0-20220421174837-04fcc92d1018
-
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/Kubuxu/go-os-helper v0.0.1 // indirect
@@ -164,6 +162,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
+	github.com/ipfs-shipyard/go-ipfs-redirects v0.0.0-20220811135158-8b4073eab362 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.0.0 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
