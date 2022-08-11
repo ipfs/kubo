@@ -94,7 +94,7 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 		}
 
 		// Fallback
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
 		return nil, nil, false
 	}
 }
