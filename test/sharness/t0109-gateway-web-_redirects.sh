@@ -16,19 +16,21 @@ test_launch_ipfs_daemon
 test_expect_success "Add the _redirects file test directory" '
   ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
 '
-REDIRECTS_DIR_CID=QmaiAcL7pFedPJXxNJNDVDTUR78We7yBhdLzg151ZMzLCv
+REDIRECTS_DIR_CID=QmcZzEbsNsQM6PmnvPbtDJdRAen5skkCxDRS8K7HafpAsX
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/redirect-one" > response &&
   test_should_contain "one.html" response &&
-  test_should_contain "301 Moved Permanently" response
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/301-redirect-one redirects with 301, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/301-redirect-one" > response &&
   test_should_contain "one.html" response &&
-  test_should_contain "301 Moved Permanently" response
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/302-redirect-two redirects with 302, per _redirects file" '
@@ -46,13 +48,15 @@ test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/200-index returns 200, 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/posts/:year/:month/:day/:title redirects with 301 and placeholders, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/posts/2022/01/01/hello-world" > response &&
   test_should_contain "/articles/2022/01/01/hello-world" response &&
-  test_should_contain "301 Moved Permanently" response
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/splat/one.html redirects with 301 and splat placeholder, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/splat/one.html" > response &&
   test_should_contain "/redirected-splat/one.html" response &&
-  test_should_contain "301 Moved Permanently" response
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/en/has-no-redirects-entry returns custom 404, per _redirects file" '
@@ -107,13 +111,15 @@ test_expect_success "spoofed DNSLink record resolves in cli" "
 test_expect_success "request for $DNSLINK_FQDN/redirect-one redirects with default of 301, per _redirects file" '
   curl -sD - --resolve $DNSLINK_FQDN:$GWAY_PORT:127.0.0.1 "http://$DNSLINK_FQDN:$GWAY_PORT/redirect-one" > response &&
   test_should_contain "one.html" response &&
-  test_should_contain "301 Moved Permanently" response
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location" response
 '
 
 test_expect_success "request for $NO_DNSLINK_FQDN/redirect-one does not redirect, since DNSLink is disabled" '
   curl -sD - --resolve $NO_DNSLINK_FQDN:$GWAY_PORT:127.0.0.1 "http://$NO_DNSLINK_FQDN:$GWAY_PORT/redirect-one" > response &&
   test_should_not_contain "one.html" response &&
-  test_should_not_contain "301 Moved Permanently" response
+  test_should_not_contain "301 Moved Permanently" response &&
+  test_should_not_contain "Location" response
 '
 
 test_kill_ipfs_daemon

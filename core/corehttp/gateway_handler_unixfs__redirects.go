@@ -51,7 +51,7 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 		// The path can't be resolved.
 		// If we have origin isolation, attempt to handle any redirect rules.
 		if hasOriginIsolation(r) {
-			redirectsFile := i.getRedirectsFile(r, logger)
+			redirectsFile := i.getRedirectsFile(r, contentPath, logger)
 			if redirectsFile != nil {
 				redirectRules, err := i.getRedirectRules(r, redirectsFile)
 				if err != nil {
@@ -59,7 +59,7 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 					return nil, nil, false
 				}
 
-				redirected, newPath, err := i.handleRedirect(w, r, redirectRules)
+				redirected, newPath, err := i.handleRedirectsFileRules(w, r, contentPath, redirectRules)
 				if err != nil {
 					err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
 					internalWebError(w, err)
@@ -99,9 +99,9 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 	}
 }
 
-func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, redirectRules []redirects.Rule) (bool, string, error) {
+func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, redirectRules []redirects.Rule) (bool, string, error) {
 	// Attempt to match a rule to the URL path, and perform the corresponding redirect or rewrite
-	pathParts := strings.Split(r.URL.Path, "/")
+	pathParts := strings.Split(contentPath.String(), "/")
 	if len(pathParts) > 3 {
 		// All paths should start with /ipfs/cid/, so get the path after that
 		urlPath := "/" + strings.Join(pathParts[3:], "/")
@@ -129,7 +129,7 @@ func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, 
 				return false, toPath, nil
 			}
 
-			// Or 404
+			// Or 400s
 			if rule.Status == 404 {
 				toPath = rootPath + toPath
 				content404Path := ipath.New(toPath)
@@ -137,9 +137,24 @@ func (i *gatewayHandler) handleRedirect(w http.ResponseWriter, r *http.Request, 
 				return true, toPath, err
 			}
 
+			if rule.Status == 410 {
+				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusGone)
+				return true, toPath, nil
+			}
+
+			if rule.Status == 451 {
+				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusUnavailableForLegalReasons)
+				return true, toPath, nil
+			}
+
 			// Or redirect
-			http.Redirect(w, r, toPath, rule.Status)
-			return true, toPath, nil
+			if rule.Status >= 301 && rule.Status <= 308 {
+				http.Redirect(w, r, toPath, rule.Status)
+				return true, toPath, nil
+			}
+
+			// Unsupported status code
+			return false, toPath, fmt.Errorf("unsupported redirect status code: %d", rule.Status)
 		}
 	}
 
@@ -172,7 +187,8 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 	// Convert the node into a file
 	f, ok := node.(files.File)
 	if !ok {
-		return nil, fmt.Errorf("could not convert _redirects node to file")
+		return nil, fmt.Errorf("could not parse _redirects: %v", err)
+
 	}
 
 	// Parse redirect rules from file
@@ -185,10 +201,10 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 }
 
 // Returns a resolved path to the _redirects file located in the root CID path of the requested path
-func (i *gatewayHandler) getRedirectsFile(r *http.Request, logger *zap.SugaredLogger) ipath.Resolved {
+func (i *gatewayHandler) getRedirectsFile(r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) ipath.Resolved {
 	// r.URL.Path is the full ipfs path to the requested resource,
 	// regardless of whether path or subdomain resolution is used.
-	rootPath, err := getRootPath(r.URL.Path)
+	rootPath, err := getRootPath(contentPath.String())
 	if err != nil {
 		logger.Debugf("getRootPath failed", err)
 		return nil

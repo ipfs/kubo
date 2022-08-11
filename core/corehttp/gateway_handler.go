@@ -412,7 +412,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	// TODO(JJ): Should this be somewhere else for UnixFS, given the redirects handling above?
 	if err := i.handleGettingFirstBlock(r, begin, contentPath, resolvedPath); err != nil {
 		webRequestError(w, err)
 		return
