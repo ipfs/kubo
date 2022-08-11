@@ -2,6 +2,10 @@ module github.com/ipfs/kubo/examples/kubo-as-a-library
 
 go 1.17
 
+// Used to keep this in sync with the current version of kubo. You should remove
+// this if you copy this example.
+replace github.com/ipfs/kubo => ./../../..
+
 require (
 	github.com/ipfs/go-ipfs-files v0.1.1
 	github.com/ipfs/interface-go-ipfs-core v0.7.0
