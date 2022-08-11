@@ -117,6 +117,7 @@ require (
 
 require (
 	github.com/benbjohnson/clock v1.3.0
+	github.com/ipfs-shipyard/go-ipfs-redirects v0.0.0-20220811135158-8b4073eab362
 	github.com/ipfs/go-delegated-routing v0.6.0
 	github.com/ipfs/go-log/v2 v2.5.1
 )
@@ -162,7 +163,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
-	github.com/ipfs-shipyard/go-ipfs-redirects v0.0.0-20220811135158-8b4073eab362 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.0.0 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
