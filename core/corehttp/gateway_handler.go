@@ -29,7 +29,9 @@ import (
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -291,6 +293,10 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), time.Hour)
 	defer cancel()
 	r = r.WithContext(ctx)
+
+	// Emit tracing context headers if present
+	prop := otel.GetTextMapPropagator()
+	prop.Inject(r.Context(), propagation.HeaderCarrier(w.Header()))
 
 	defer func() {
 		if r := recover(); r != nil {
