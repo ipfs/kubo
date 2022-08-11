@@ -178,7 +178,7 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 	// Parse redirect rules from file
 	redirectRules, err := redirects.Parse(f)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse redirect rules: %v", err)
+		return nil, fmt.Errorf("could not parse _redirects: %v", err)
 	}
 
 	return redirectRules, nil
