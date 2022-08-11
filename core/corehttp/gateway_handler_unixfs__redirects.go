@@ -211,10 +211,10 @@ func (i *gatewayHandler) getRedirectsFile(r *http.Request, contentPath ipath.Pat
 	}
 
 	// Check for root path.
-	_, err = i.api.Block().Get(r.Context(), rootPath)
-	if err != nil {
-		return nil
-	}
+	// _, err = i.api.Block().Get(r.Context(), rootPath)
+	// if err != nil {
+	// 	return nil
+	// }
 
 	// Check for _redirects file.
 	// Any path resolution failures are ignored and we just assume there's no _redirects file.
