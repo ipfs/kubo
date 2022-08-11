@@ -602,7 +602,7 @@ in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 ## `Experimental`
 
-Toggle and configure experimental features of Kubo. Experimental features are listed [here](https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md).
+Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
 
 ## `Gateway`
 
