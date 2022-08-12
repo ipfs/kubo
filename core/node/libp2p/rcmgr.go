@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	ocprom "contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/benbjohnson/clock"
 	logging "github.com/ipfs/go-log/v2"
 	config "github.com/ipfs/kubo/config"
@@ -21,7 +20,6 @@ import (
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
 	rcmgrObs "github.com/libp2p/go-libp2p-resource-manager/obs"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.opencensus.io/stats/view"
 
 	"go.uber.org/fx"
@@ -86,17 +84,9 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				log.Infof("Setting allowlist to: %v", mas)
 			}
 
-			// Hook up the trace reporter metrics
-			err = view.Register(rcmgrObs.DefaultViews...)
+			view.Register(rcmgrObs.DefaultViews...)
 			if err != nil {
 				return nil, opts, fmt.Errorf("registering rcmgr obs views: %w", err)
-			}
-			_, err = ocprom.NewExporter(ocprom.Options{
-				Registry:  prometheus.DefaultRegisterer.(*prometheus.Registry),
-				Namespace: "rcmgr_trace_metrics",
-			})
-			if err != nil {
-				return nil, opts, fmt.Errorf("creating new prom exporter: %w", err)
 			}
 
 			if os.Getenv("LIBP2P_DEBUG_RCMGR") != "" {
