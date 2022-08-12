@@ -16,7 +16,6 @@ require (
 
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc // indirect
-	contrib.go.opencensus.io/exporter/prometheus v0.4.0 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/Stebalien/go-bitfield v0.0.1 // indirect
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
@@ -46,14 +45,11 @@ require (
 	github.com/flynn/noise v1.0.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/go-kit/log v0.2.0 // indirect
-	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
@@ -135,7 +131,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.6.1 // indirect
 	github.com/libp2p/go-libp2p-pubsub-router v0.5.0 // indirect
 	github.com/libp2p/go-libp2p-record v0.1.3 // indirect
-	github.com/libp2p/go-libp2p-resource-manager v0.5.3-0.20220811175249-3da204ad693e // indirect
+	github.com/libp2p/go-libp2p-resource-manager v0.5.3 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.2.3 // indirect
 	github.com/libp2p/go-libp2p-xor v0.1.0 // indirect
 	github.com/libp2p/go-mplex v0.7.0 // indirect
@@ -181,7 +177,6 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.35.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/prometheus/statsd_exporter v0.21.0 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -228,6 +223,5 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
