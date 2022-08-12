@@ -110,7 +110,6 @@ test_expect_success "good codes: request for $GOOD_REDIRECTS_DIR_HOSTNAME/redire
 BAD_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/bad-codes | cut -d "/" -f3)
 BAD_REDIRECTS_DIR_HOSTNAME="${BAD_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
-
 # if accessing a path that doesn't exist, read _redirects and fail parsing, and return error
 test_expect_success "bad codes: request for $BAD_REDIRECTS_DIR_HOSTNAME/not-found returns error about bad code" '
   curl -sD - --resolve $BAD_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$BAD_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
@@ -124,6 +123,17 @@ test_expect_success "bad codes: request for $BAD_REDIRECTS_DIR_HOSTNAME/found.ht
   test_should_contain "200" response &&
   test_should_contain "my found" response &&
   test_should_not_contain "unsupported redirect status" response
+'
+
+# Bad codes
+INVALID_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/invalid | cut -d "/" -f3)
+INVALID_REDIRECTS_DIR_HOSTNAME="${INVALID_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+# if accessing a path that doesn't exist, read _redirects and fail parsing, and return error
+test_expect_success "invalid file: request for $INVALID_REDIRECTS_DIR_HOSTNAME/not-found returns error about invalid redirects file" '
+  curl -sD - --resolve $INVALID_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$INVALID_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
+  test_should_contain "500" response &&
+  test_should_contain "could not parse _redirects:" response
 '
 
 test_kill_ipfs_daemon

@@ -200,7 +200,6 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 	f, ok := node.(files.File)
 	if !ok {
 		return nil, fmt.Errorf("could not parse _redirects: %v", err)
-
 	}
 
 	// Parse redirect rules from file
@@ -214,7 +213,7 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 
 // Returns a resolved path to the _redirects file located in the root CID path of the requested path
 func (i *gatewayHandler) getRedirectsFile(r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) ipath.Resolved {
-	// r.URL.Path is the full ipfs path to the requested resource,
+	// contentPath is the full ipfs path to the requested resource,
 	// regardless of whether path or subdomain resolution is used.
 	rootPath, err := getRootPath(contentPath.String())
 	if err != nil {
