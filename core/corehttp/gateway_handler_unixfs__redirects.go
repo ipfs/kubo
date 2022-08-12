@@ -12,7 +12,6 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
-	"github.com/ucarion/urlpath"
 	"go.uber.org/zap"
 )
 
@@ -119,28 +118,22 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 				return false, "", fmt.Errorf("unsupported redirect status code: %d", rule.Status)
 			}
 
-			// get rule.From, trim trailing slash, ...
-			fromPath := urlpath.New(strings.TrimSuffix(rule.From, "/"))
-			match, ok := fromPath.Match(urlPath)
-			if !ok {
+			if !rule.MatchAndExpandPlaceholders(urlPath) {
 				continue
 			}
 
-			// We have a match!  Perform substitutions.
-			toPath := rule.To
-			toPath = replacePlaceholders(toPath, match)
-			toPath = replaceSplat(toPath, match)
+			// We have a match!
 
 			// Rewrite
 			if rule.Status == 200 {
 				// Prepend the rootPath
-				toPath = rootPath + toPath
+				toPath := rootPath + rule.To
 				return false, toPath, nil
 			}
 
 			// Or 400s
 			if rule.Status == 404 {
-				toPath = rootPath + toPath
+				toPath := rootPath + rule.To
 				content404Path := ipath.New(toPath)
 				err := i.serve404(w, r, content404Path)
 				return true, toPath, err
@@ -148,34 +141,24 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 
 			if rule.Status == 410 {
 				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusGone)
-				return true, toPath, nil
+				return true, rule.To, nil
 			}
 
 			if rule.Status == 451 {
 				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusUnavailableForLegalReasons)
-				return true, toPath, nil
+				return true, rule.To, nil
 			}
 
 			// Or redirect
 			if rule.Status >= 301 && rule.Status <= 308 {
-				http.Redirect(w, r, toPath, rule.Status)
-				return true, toPath, nil
+				http.Redirect(w, r, rule.To, rule.Status)
+				return true, rule.To, nil
 			}
 		}
 	}
 
 	// No redirects matched
 	return false, "", nil
-}
-
-func replacePlaceholders(to string, match urlpath.Match) string {
-	if len(match.Params) > 0 {
-		for key, value := range match.Params {
-			to = strings.ReplaceAll(to, ":"+key, value)
-		}
-	}
-
-	return to
 }
 
 func isValidCode(code int) bool {
@@ -186,10 +169,6 @@ func isValidCode(code int) bool {
 		}
 	}
 	return false
-}
-
-func replaceSplat(to string, match urlpath.Match) string {
-	return strings.ReplaceAll(to, ":splat", match.Trailing)
 }
 
 func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipath.Resolved) ([]redirects.Rule, error) {

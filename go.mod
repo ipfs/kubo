@@ -93,7 +93,6 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/stretchr/testify v1.8.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb
 	github.com/wI2L/jsondiff v0.2.0
 	github.com/whyrusleeping/go-sysinfo v0.0.0-20190219211824-4a357d4b90b1
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
@@ -117,7 +116,7 @@ require (
 
 require (
 	github.com/benbjohnson/clock v1.3.0
-	github.com/ipfs-shipyard/go-ipfs-redirects v0.0.0-20220811135158-8b4073eab362
+	github.com/ipfs-shipyard/go-ipfs-redirects v0.0.0-20220812193924-389cc1df778a
 	github.com/ipfs/go-delegated-routing v0.6.0
 	github.com/ipfs/go-log/v2 v2.5.1
 )
@@ -228,6 +227,7 @@ require (
 	github.com/tidwall/gjson v1.14.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20210219115102-f37d292932f2 // indirect
 	github.com/whyrusleeping/chunker v0.0.0-20181014151217-fe64bd25879f // indirect
