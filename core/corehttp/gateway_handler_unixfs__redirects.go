@@ -36,7 +36,7 @@ import (
 // the rewrite destination path.
 //
 // Note that for security reasons, redirect rules are only processed when the request has origin isolation.
-func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
+func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Request, responseFormat string, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
 	// Attempt to resolve the provided path.
 	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
 
@@ -47,54 +47,59 @@ func (i *gatewayHandler) handleUnixfsPathResolution(w http.ResponseWriter, r *ht
 		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
 		return nil, nil, false
 	default:
-		// The path can't be resolved.
-		// If we have origin isolation, attempt to handle any redirect rules.
-		if hasOriginIsolation(r) {
-			redirectsFile := i.getRedirectsFile(r, contentPath, logger)
-			if redirectsFile != nil {
-				redirectRules, err := i.getRedirectRules(r, redirectsFile)
-				if err != nil {
-					internalWebError(w, err)
-					return nil, nil, false
-				}
-
-				redirected, newPath, err := i.handleRedirectsFileRules(w, r, contentPath, redirectRules)
-				if err != nil {
-					err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
-					internalWebError(w, err)
-					return nil, nil, false
-				}
-
-				if redirected {
-					return nil, nil, false
-				}
-
-				// 200 is treated as a rewrite, so update the path and continue
-				if newPath != "" {
-					// Reassign contentPath and resolvedPath since the URL was rewritten
-					contentPath = ipath.New(newPath)
-					resolvedPath, err = i.api.ResolvePath(r.Context(), contentPath)
+		if isUnixfsResponseFormat(responseFormat) {
+			// The path can't be resolved.
+			// If we have origin isolation, attempt to handle any redirect rules.
+			if hasOriginIsolation(r) {
+				redirectsFile := i.getRedirectsFile(r, contentPath, logger)
+				if redirectsFile != nil {
+					redirectRules, err := i.getRedirectRules(r, redirectsFile)
 					if err != nil {
 						internalWebError(w, err)
 						return nil, nil, false
 					}
 
-					return resolvedPath, contentPath, true
+					redirected, newPath, err := i.handleRedirectsFileRules(w, r, contentPath, redirectRules)
+					if err != nil {
+						err = fmt.Errorf("trouble processing _redirects file at %q: %w", redirectsFile.String(), err)
+						internalWebError(w, err)
+						return nil, nil, false
+					}
+
+					if redirected {
+						return nil, nil, false
+					}
+
+					// 200 is treated as a rewrite, so update the path and continue
+					if newPath != "" {
+						// Reassign contentPath and resolvedPath since the URL was rewritten
+						contentPath = ipath.New(newPath)
+						resolvedPath, err = i.api.ResolvePath(r.Context(), contentPath)
+						if err != nil {
+							internalWebError(w, err)
+							return nil, nil, false
+						}
+
+						return resolvedPath, contentPath, true
+					}
 				}
 			}
-		}
 
-		// if Accept is text/html, see if ipfs-404.html is present
-		// This logic isn't documented and will likely be removed at some point.
-		// Any 404 logic in _redirects above will have already run by this time, so it's really an extra fall back
-		if i.servePretty404IfPresent(w, r, contentPath) {
-			logger.Debugw("serve pretty 404 if present")
+			// if Accept is text/html, see if ipfs-404.html is present
+			// This logic isn't documented and will likely be removed at some point.
+			// Any 404 logic in _redirects above will have already run by this time, so it's really an extra fall back
+			if i.servePretty404IfPresent(w, r, contentPath) {
+				logger.Debugw("serve pretty 404 if present")
+				return nil, nil, false
+			}
+
+			// Fallback
+			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
+			return nil, nil, false
+		} else {
+			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
 			return nil, nil, false
 		}
-
-		// Fallback
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
-		return nil, nil, false
 	}
 }
 

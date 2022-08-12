@@ -386,13 +386,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
 
-	var ok bool
-	var resolvedPath ipath.Resolved
-	if isUnixfsResponseFormat(responseFormat) {
-		resolvedPath, contentPath, ok = i.handleUnixfsPathResolution(w, r, contentPath, logger)
-	} else {
-		resolvedPath, contentPath, ok = i.handleNonUnixfsPathResolution(w, r, contentPath)
-	}
+	resolvedPath, contentPath, ok := i.handlePathResolution(w, r, responseFormat, contentPath, logger)
 	if !ok {
 		return
 	}
@@ -1109,20 +1103,4 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 	}
 
 	return nil
-}
-
-func (i *gatewayHandler) handleNonUnixfsPathResolution(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) (ipath.Resolved, ipath.Path, bool) {
-	// Resolve the path for the provided contentPath
-	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
-
-	switch err {
-	case nil:
-		return resolvedPath, contentPath, true
-	case coreiface.ErrOffline:
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
-		return nil, nil, false
-	default:
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
-		return nil, nil, false
-	}
 }
