@@ -16,6 +16,8 @@ import (
 )
 
 // FXNodeInfo contains information useful for adding fx options.
+// This is the extension point for providing more info/context to fx plugins
+// to make decisions about what options to include.
 type FXNodeInfo struct {
 	FXOptions []fx.Option
 }
