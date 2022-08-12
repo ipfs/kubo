@@ -24,11 +24,11 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - tag commit with `vX.Y.Z-rcN`
-- upload to dist.ipfs.io
+- upload to dist.ipfs.tech
   1. Build: https://github.com/ipfs/distributions#usage.
   2. Pin the resulting release.
   3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
-  4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
+  4. Ask the infra team to update the DNSLink record for dist.ipfs.tech to point to the new distribution.
 - cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and upload the result of the ipfs/distributions build in the previous step.
 - Announce the RC:
   - [ ] On Matrix (both #ipfs and #ipfs-dev)
@@ -79,13 +79,13 @@ Checklist:
     - [ ] Merge `release-vX.Y.Z` into the `release` branch.
     - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
     - [ ] Release published
-      - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
+      - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
       - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
          - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
       - [ ] to [snap](https://snapcraft.io/ipfs)
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
-        - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/kubo/$(curl -s https://dist.ipfs.io/kubo/versions | tail -n 1)"`
+        - [ ] reuse signed artifacts from https://dist.ipfs.tech/kubo (run [sync-release-assets.yml workflow](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml))
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
   - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
