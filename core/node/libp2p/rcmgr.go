@@ -84,7 +84,7 @@ func ResourceManager(cfg config.SwarmConfig) interface{} {
 				log.Infof("Setting allowlist to: %v", mas)
 			}
 
-			view.Register(rcmgrObs.DefaultViews...)
+			err = view.Register(rcmgrObs.DefaultViews...)
 			if err != nil {
 				return nil, opts, fmt.Errorf("registering rcmgr obs views: %w", err)
 			}
