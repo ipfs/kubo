@@ -79,9 +79,14 @@ test_expect_success "request for http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR
   test_should_not_contain "my 404" response
 '
 
-# With \r\n newline carriage return
+# With CRLF line terminator
 NEWLINE_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/newlines | cut -d "/" -f3)
 NEWLINE_REDIRECTS_DIR_HOSTNAME="${NEWLINE_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+test_expect_success "newline: _redirects has CRLF line terminators" '
+  ipfs cat /ipfs/$NEWLINE_REDIRECTS_DIR_CID/_redirects | file - > response &&
+  test_should_contain "with CRLF line terminators" response
+'
 
 test_expect_success "newline: request for $NEWLINE_REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
   curl -sD - --resolve $NEWLINE_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$NEWLINE_REDIRECTS_DIR_HOSTNAME/redirect-one" > response &&
