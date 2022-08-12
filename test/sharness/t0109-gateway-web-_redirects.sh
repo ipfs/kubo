@@ -16,7 +16,7 @@ test_launch_ipfs_daemon
 test_expect_success "Add the _redirects file test directory" '
   ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
 '
-CAR_ROOT_CID=QmVg9ckSKEZ9oc248zg8aUV5rNqrRWjnk6zbFAJhBPLQRd
+CAR_ROOT_CID=QmfHFheaikRRB6ap7AdL4FHBkyHPhPBDX7fS25rMzYhLuW
 
 REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples | cut -d "/" -f3)
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
@@ -125,7 +125,7 @@ test_expect_success "bad codes: request for $BAD_REDIRECTS_DIR_HOSTNAME/found.ht
   test_should_not_contain "unsupported redirect status" response
 '
 
-# Bad codes
+# Invalid file, containing "hello"
 INVALID_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/invalid | cut -d "/" -f3)
 INVALID_REDIRECTS_DIR_HOSTNAME="${INVALID_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
@@ -134,6 +134,18 @@ test_expect_success "invalid file: request for $INVALID_REDIRECTS_DIR_HOSTNAME/n
   curl -sD - --resolve $INVALID_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$INVALID_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
   test_should_contain "500" response &&
   test_should_contain "could not parse _redirects:" response
+'
+
+# Invalid file, containing forced redirect
+INVALID_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/forced | cut -d "/" -f3)
+INVALID_REDIRECTS_DIR_HOSTNAME="${INVALID_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+
+# if accessing a path that doesn't exist, read _redirects and fail parsing, and return error
+test_expect_success "invalid file: request for $INVALID_REDIRECTS_DIR_HOSTNAME/not-found returns error about invalid redirects file" '
+  curl -sD - --resolve $INVALID_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$INVALID_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
+  test_should_contain "500" response &&
+  test_should_contain "could not parse _redirects:" response &&
+  test_should_contain "forced redirects (or \"shadowing\") are not supported by IPFS gateways" response
 '
 
 test_kill_ipfs_daemon
