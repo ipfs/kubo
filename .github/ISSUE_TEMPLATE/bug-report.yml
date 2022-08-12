@@ -22,7 +22,7 @@ body:
           required: true
         - label: I have searched on the [issue tracker](https://github.com/ipfs/kubo/issues?q=is%3Aissue) for my bug.
           required: true
-        - label: I am running the latest [kubo version](https://dist.ipfs.io/#kubo) or have an issue updating.
+        - label: I am running the latest [kubo version](https://dist.ipfs.tech/#kubo) or have an issue updating.
           required: true
   - type: dropdown
     id: install
@@ -33,7 +33,7 @@ body:
       description: Please select your installation method
       options:
         - ipfs-desktop
-        - ipfs-update or dist.ipfs.io
+        - ipfs-update or dist.ipfs.tech
         - third-party binary
         - built from source
   - type: textarea
