@@ -68,6 +68,7 @@ const (
 	swarmLatencyOptionName           = "latency"
 	swarmDirectionOptionName         = "direction"
 	swarmResetLimitsOptionName       = "reset"
+	swarmSaveOptionName              = "save"
 	swarmUsedResourcesPercentageName = "min-used-limit-perc"
 )
 
@@ -103,6 +104,9 @@ var swarmPeeringAddCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("address", true, true, "address of peer to add into the peering subsystem"),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmSaveOptionName, "if set, address(es) will be saved to peering config"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		addrs := make([]ma.Multiaddr, len(req.Arguments))
 
@@ -135,6 +139,30 @@ var swarmPeeringAddCmd = &cmds.Command{
 				return err
 			}
 		}
+
+		save, _ := req.Options[swarmSaveOptionName].(bool)
+		if save {
+			r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+			cfg, err := r.Config()
+			if err != nil {
+				return err
+			}
+
+			addrInfos, err := mergeAddrInfo(addInfos, cfg.Peering.Peers)
+			if err != nil {
+				return fmt.Errorf("error merging peers: %w", err)
+			}
+
+			cfg.Peering.Peers = addrInfos
+			if err := r.SetConfig(cfg); err != nil {
+				return fmt.Errorf("error writing new peers to repo config: %w", err)
+			}
+		}
+
 		return nil
 	},
 	Encoders: cmds.EncoderMap{
@@ -193,6 +221,9 @@ var swarmPeeringRmCmd = &cmds.Command{
 	Arguments: []cmds.Argument{
 		cmds.StringArg("ID", true, true, "ID of peer to remove from the peering subsystem"),
 	},
+	Options: []cmds.Option{
+		cmds.BoolOption(swarmSaveOptionName, "if set, address(es) will be removed from peering config"),
+	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
@@ -213,6 +244,25 @@ var swarmPeeringRmCmd = &cmds.Command{
 				return err
 			}
 		}
+
+		save, _ := req.Options[swarmSaveOptionName].(bool)
+		if save {
+			r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+			cfg, err := r.Config()
+			if err != nil {
+				return err
+			}
+
+			cfg.Peering.Peers = node.Peering.ListPeers()
+			if err := r.SetConfig(cfg); err != nil {
+				return fmt.Errorf("error removing peers from repo config: %w", err)
+			}
+		}
+
 		return nil
 	},
 	Type: peeringResult{},
@@ -1089,4 +1139,18 @@ func filtersRemove(r repo.Repo, cfg *config.Config, toRemoveFilters []string) ([
 	}
 
 	return removed, nil
+}
+
+func mergeAddrInfo(addrInfos ...[]peer.AddrInfo) ([]peer.AddrInfo, error) {
+	var addrs []ma.Multiaddr
+	for _, infos := range addrInfos {
+		for _, addrInfo := range infos {
+			addr, err := peer.AddrInfoToP2pAddrs(&addrInfo)
+			if err != nil {
+				return nil, err
+			}
+			addrs = append(addrs, addr...)
+		}
+	}
+	return peer.AddrInfosFromP2pAddrs(addrs...)
 }
