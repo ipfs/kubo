@@ -52,6 +52,7 @@ TEXT ENCODING COMMANDS
 
 ADVANCED COMMANDS
   daemon        Start a long-running daemon process
+  shutdown      Shut down the daemon process
   resolve       Resolve any type of content path
   name          Publish and resolve IPNS names
   key           Create and list IPNS name keypairs
