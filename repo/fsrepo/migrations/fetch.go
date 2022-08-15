@@ -173,7 +173,7 @@ func osWithVariant() (string, error) {
 
 // makeArchivePath composes the path, relative to the distribution site, from which to
 // download a binary.  The path returned does not contain the distribution site path,
-// e.g. "/ipns/dist.ipfs.io/", since that is know to the fetcher.
+// e.g. "/ipns/dist.ipfs.tech/", since that is know to the fetcher.
 //
 // Returns the archive path and the base name.
 //

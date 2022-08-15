@@ -40,14 +40,16 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - tag commit with `vX.Y.Z-rcN`
-- add artifacts to https://dist.ipfs.io
+- add artifacts to https://dist.ipfs.tech/kubo
   1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
   2. Wait for PR to build artifacts and generate diff
   3. Inspect results, merge if CI is green and the diff looks ok
-  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.io
-  - [ ] Announce the RC
+  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech
+- cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the ipfs/distributions build in the previous step).
+- Announce the RC:
+  - [ ] 
     - This will automatically post to IPFS Discord #ipfs-chatter
-    - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
+    - Examples from the past: [0.14.0](https://discuss.ipfs.tech/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
     - [ ] Pin the topic
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
   - [ ] Notify the gateway team on Slack.
@@ -89,36 +91,34 @@ Checklist:
     - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
     - [ ] Update docs by merging the auto-created PR in https://github.com/ipfs/ipfs-docs/pulls (they are auto-created every 12 hours)
   - [ ] Invite the wider community through (link to the release issue):
-    - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
+    - [ ] [discuss.ipfs.tech](https://discuss.ipfs.tech/c/announcements)
     - [ ] Matrix
 - [ ] **Stage 3 - Release**
   - [ ] Final preparation
     - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
     - [ ] Merge `release-vX.Y.Z` into the `release` branch.
     - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
-    - [ ] Publish to `dist.ipfs.io` (mostly automated stuff, you just have to push two slocs changes for dist's CI to do magic)
+    - [ ] Publish to `dist.ipfs.tech` (mostly automated stuff, you just have to push two slocs changes for dist's CI to do magic)
       - [ ] Open a PR with `./dist.sh add-version kubo vX.Y.Z` update on [ipfs/distributions](https://github.com/ipfs/distributions).
       - [ ] Merge that PR (ONCE CI IS GREEN).
       - [ ] Wait for CI to be green on master.
     - [ ] **Important release to do**
-      - [ ] to [dist.ipfs.io](https://dist.ipfs.io) *cross check CI*
+      - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech) *cross check CI*
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases) ***manual action to do***
         - [ ] Publish a new github release, target the tag made previously. Include changelog highlights, just lookup previous major releases for inspiration.
         - [ ] Run the [synchronisation workflow](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) (it also runs once a day on a cron job)
       - [ ] Send a message to notify the gateway team.
       - [ ] Send a message to notify the GUI team (need to do a new IPFS-desktop release).
     - [ ] Less important releases *check async*
-      - [ ] to [npm](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
+      - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
       - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
   - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
   - [ ] Broadcasting (link to blog post)
-    - [ ] Twitter (request in Slack channel #pl-marketing-requests)
-    - [ ] Matrix
+    - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
     - [ ] [Reddit](https://reddit.com/r/ipfs)
-    - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Announce it on the [IPFS Users Mailing List](https://groups.google.com/forum/#!forum/ipfs-users)
+    - [ ] [discuss.ipfs.tech](https://discuss.ipfs.tech/c/announcements)
 - [ ] **Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
@@ -128,7 +128,7 @@ Checklist:
 
 ## ⁉️ Do you have questions?
 
-The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
+The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.tech](http://discuss.ipfs.tech). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
 
 ## Release improvements for next time
 
@@ -151,5 +151,5 @@ Would you like to contribute to the IPFS project and don't know how? Well, there
 - Check the issues with the `help wanted` label in the [ipfs/kubo repo](https://github.com/ipfs/kubo/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
 - Join an IPFS All Hands, introduce yourself and let us know where you would like to contribute - https://github.com/ipfs/team-mgmt/#weekly-ipfs-all-hands
 - Hack with IPFS and show us what you made! The All Hands call is also the perfect venue for demos, join in and show us what you built
-- Join the discussion at [discuss.ipfs.io](https://discuss.ipfs.io/) and help users finding their answers.
+- Join the discussion at [discuss.ipfs.tech](https://discuss.ipfs.tech/) and help users finding their answers.
 - Join the [🚀 IPFS Core Implementations Weekly Sync 🛰](https://github.com/ipfs/team-mgmt/issues/992) and be part of the action!

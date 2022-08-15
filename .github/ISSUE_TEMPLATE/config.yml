@@ -10,7 +10,7 @@ contact_links:
    url: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#readme
    about: Documentation on Private Networks, Filestore and other experimental features.
  - name: RPC API Reference
-   url: https://docs.ipfs.io/reference/http/api/
+   url: https://docs.ipfs.tech/reference/kubo/rpc/
    about: Documentation of all Kubo RPC API endpoints.
  - name: IPFS Official Forum
    url: https://discuss.ipfs.io
