@@ -40,11 +40,12 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - tag commit with `vX.Y.Z-rcN`
-- add artifacts to https://dist.ipfs.io
+- add artifacts to https://dist.ipfs.tech
   1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
   2. Wait for PR to build artifacts and generate diff
   3. Inspect results, merge if CI is green and the diff looks ok
-  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.io
+  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech
+- cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the ipfs/distributions build in the previous step).
 - Announce the RC:
   - [ ] 
     - This will automatically post to IPFS Discord #ipfs-chatter
@@ -97,12 +98,12 @@ Checklist:
     - [ ] Merge `release-vX.Y.Z` into the `release` branch.
     - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
     - [ ] Release published
-      - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
-      - [ ] to [npm](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
+      - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
+      - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
       - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
-        - [ ] use the artifacts built in CI for dist.ipfs.io: `wget "https://ipfs.io/api/v0/get?arg=/ipns/dist.ipfs.io/kubo/$(curl -s https://dist.ipfs.io/kubo/versions | tail -n 1)"`
+        - [ ] reuse signed artifacts from https://dist.ipfs.tech/kubo (run [sync-release-assets.yml workflow](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml))
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
   - [ ] Get a blog post created 

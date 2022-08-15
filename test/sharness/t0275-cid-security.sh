@@ -23,7 +23,7 @@ test_expect_success "adding using too short of a hash function gives out an erro
 '
 
 test_expect_success "error reason is pointed out" '
-  grep "hashes must be at 20 least bytes long" block_out
+  grep "hashes must be at least 20 bytes long" block_out
 '
 
 
@@ -45,7 +45,7 @@ test_cat_get() {
     '
 
   test_expect_success "error reason is pointed out" '
-     grep "hashes must be at 20 least bytes long" ipfs_get
+     grep "hashes must be at least 20 bytes long" ipfs_get
   '
 }
 

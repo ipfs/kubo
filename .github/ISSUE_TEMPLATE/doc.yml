@@ -7,13 +7,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Problems with documentation on https://docs.ipfs.io should be reported to https://github.com/ipfs/ipfs-docs
+        Problems with documentation on https://docs.ipfs.tech should be reported to https://github.com/ipfs/ipfs-docs
   - type: checkboxes
     attributes:
       label: Checklist
       description: Please verify the following.
       options:
-        - label: I am reporting a documentation issue in this repo, not https://docs.ipfs.io.
+        - label: I am reporting a documentation issue in this repo, not https://docs.ipfs.tech.
           required: true
         - label: I have searched on the [issue tracker](https://github.com/ipfs/kubo/issues?q=is%3Aissue) for my issue.
           required: true

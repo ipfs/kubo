@@ -1,6 +1,6 @@
 # Developer Documentation and Guides
 
-If you are looking for User Documentation & Guides, please visit [docs.ipfs.io](https://docs.ipfs.io/).
+If you are looking for User Documentation & Guides, please visit [docs.ipfs.tech](https://docs.ipfs.tech/).
 
 If you’re experiencing an issue with IPFS, **please follow [our issue guide](github-issue-guide.md) when filing an issue!**
 

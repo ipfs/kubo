@@ -88,8 +88,12 @@ test_expect_success "GET IPFS directory with index.html and trailing slash retur
   test_should_contain \"hello i am a webpage\" response_with_slash
 "
 
-test_expect_success "GET IPFS nonexistent file returns code expected (404)" '
+test_expect_success "GET IPFS nonexistent file returns 404 (Not Found)" '
   test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/$HASH2/pleaseDontAddMe" "HTTP/1.1 404 Not Found"
+'
+
+test_expect_success "GET IPFS invalid CID returns 400 (Bad Request)" '
+  test_curl_resp_http_code "http://127.0.0.1:$port/ipfs/QmInvalid/pleaseDontAddMe" "HTTP/1.1 400 Bad Request"
 '
 
 # https://github.com/ipfs/go-ipfs/issues/8230
@@ -103,6 +107,10 @@ test_expect_success "GET /ipfs/ipfs/{cid} returns redirect to the valid path" '
   curl -sD - "http://127.0.0.1:$port/ipfs/ipfs/bafkqaaa?query=to-remember" > response_with_double_ipfs_ns &&
   test_should_contain "<meta http-equiv=\"refresh\" content=\"10;url=/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns &&
   test_should_contain "<link rel=\"canonical\" href=\"/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns
+'
+
+test_expect_success "GET invalid IPNS root returns 400 (Bad Request)" '
+  test_curl_resp_http_code "http://127.0.0.1:$port/ipns/QmInvalid/pleaseDontAddMe" "HTTP/1.1 400 Bad Request"
 '
 
 test_expect_failure "GET IPNS path succeeds" '
@@ -277,6 +285,12 @@ test_expect_success "Add compact blocks" '
 test_expect_success "GET compact blocks succeeds" '
   curl -o actual "http://127.0.0.1:$port/ipfs/$FOO2_HASH" &&
   test_cmp expected actual
+'
+
+test_expect_success "Verify gateway file" '
+  cat "$IPFS_PATH/gateway" >> gateway_file_actual &&
+  echo -n "http://$GWAY_ADDR" >> gateway_daemon_actual &&
+  test_cmp gateway_daemon_actual gateway_file_actual
 '
 
 test_kill_ipfs_daemon

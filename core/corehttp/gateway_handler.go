@@ -19,6 +19,7 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
+	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	mfs "github.com/ipfs/go-mfs"
 	path "github.com/ipfs/go-path"
@@ -389,8 +390,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			logger.Debugw("serve pretty 404 if present")
 			return
 		}
-
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
 		return
 	}
 
@@ -781,6 +781,8 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 	if _, ok := err.(resolver.ErrNoLink); ok {
 		webErrorWithCode(w, message, err, http.StatusNotFound)
 	} else if err == routing.ErrNotFound {
+		webErrorWithCode(w, message, err, http.StatusNotFound)
+	} else if ipld.IsNotFound(err) {
 		webErrorWithCode(w, message, err, http.StatusNotFound)
 	} else if err == context.DeadlineExceeded {
 		webErrorWithCode(w, message, err, http.StatusRequestTimeout)
