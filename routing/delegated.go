@@ -3,6 +3,7 @@ package routing
 import (
 	"context"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-datastore"
 	drc "github.com/ipfs/go-delegated-routing/client"
 	drp "github.com/ipfs/go-delegated-routing/gen/proto"
@@ -59,17 +60,23 @@ func (ds Tiered) ProvideMany() ProvideMany {
 
 func (ds Tiered) GetClosestPeers(ctx context.Context, key string) ([]peer.ID, error) {
 	var out []peer.ID
+	var outErr error
 	for _, r := range ds.Tiered.Routers {
 		gcp, ok := r.(kademlia)
 		if ok {
 			ps, err := gcp.GetClosestPeers(ctx, key)
 			if err != nil {
+				outErr = multierror.Append(outErr, err)
 				continue
 			}
 
 			out = append(out, ps...)
 		}
 	}
+	if len(out) == 0 && len(out) != 0 {
+		return nil, outErr
+	}
+
 	return out, nil
 }
 
@@ -125,7 +132,7 @@ func DHTRoutingFromConfig(conf config.Router, params *ExtraDHTParams) (routing.R
 	dhtTP, _ := conf.Parameters.String(config.RouterParamDHTType)
 	var mode dht.ModeOpt
 	switch dhtTP {
-	case config.RouterValueDHTType:
+	case config.RouterValueDHTTypeAuto:
 		mode = dht.ModeAuto
 	case config.RouterValueDHTTypeClient:
 		mode = dht.ModeClient

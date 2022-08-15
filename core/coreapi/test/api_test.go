@@ -69,11 +69,24 @@ func (NodeProvider) MakeAPISwarm(ctx context.Context, fullIdentity bool, n int) 
 		c.Identity = ident
 		c.Experimental.FilestoreEnabled = true
 		c.Routing.Routers = map[string]config.Router{
-			"dht-server": {
+			"dht-lan-server": {
 				Type:    config.RouterTypeDHT,
 				Enabled: config.True,
 				Parameters: config.RouterParams{
-					config.RouterParamDHTType: config.RouterValueDHTTypeServer,
+					config.RouterParamDHTType:             config.RouterValueDHTTypeServer,
+					config.RouterParamPriority:            100,
+					config.RouterParamTrackFullNetworkDHT: false,
+					config.RouterParamPublicIPNetwork:     false,
+				},
+			},
+			"dht-wan-server": {
+				Type:    config.RouterTypeDHT,
+				Enabled: config.True,
+				Parameters: config.RouterParams{
+					config.RouterParamDHTType:             config.RouterValueDHTTypeServer,
+					config.RouterParamPriority:            100,
+					config.RouterParamTrackFullNetworkDHT: false,
+					config.RouterParamPublicIPNetwork:     true,
 				},
 			},
 		}

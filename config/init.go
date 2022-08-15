@@ -49,7 +49,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 					Type:    RouterTypeDHT,
 					Enabled: True,
 					Parameters: RouterParams{
-						RouterParamDHTType:             RouterValueDHTType,
+						RouterParamDHTType:             RouterValueDHTTypeServer,
 						RouterParamPriority:            100,
 						RouterParamTrackFullNetworkDHT: false,
 						RouterParamPublicIPNetwork:     false,
@@ -59,7 +59,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 					Type:    RouterTypeDHT,
 					Enabled: True,
 					Parameters: RouterParams{
-						RouterParamDHTType:             RouterValueDHTType,
+						RouterParamDHTType:             RouterValueDHTTypeAuto,
 						RouterParamPriority:            100,
 						RouterParamTrackFullNetworkDHT: false,
 						RouterParamPublicIPNetwork:     true,

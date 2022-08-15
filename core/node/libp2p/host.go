@@ -135,7 +135,7 @@ func HostAndRouters(routers map[string]config.Router, experimentalTrackFullNetwo
 		// this code is necessary just for tests: mock network constructions
 		// ignore the libp2p constructor options that actually construct the routing!
 		if len(out.Routers) == 0 {
-			r, err := irouting.CreateDHT(&irouting.ExtraDHTParams{
+			pubr, err := irouting.CreateDHT(&irouting.ExtraDHTParams{
 				ExperimentalTrackFullNetworkDHT: false,
 				BootstrapPeers:                  bootstrappers,
 				Host:                            out.Host,
@@ -147,14 +147,26 @@ func HostAndRouters(routers map[string]config.Router, experimentalTrackFullNetwo
 				return P2PHostOut{}, err
 			}
 
+			privr, err := irouting.CreateDHT(&irouting.ExtraDHTParams{
+				ExperimentalTrackFullNetworkDHT: false,
+				BootstrapPeers:                  bootstrappers,
+				Host:                            out.Host,
+				Validator:                       params.Validator,
+				Datastore:                       params.Repo.Datastore(),
+				Context:                         ctx,
+			}, false, dht.ModeServer)
+			if err != nil {
+				return P2PHostOut{}, err
+			}
+
 			tr := irouting.Tiered{
 				Tiered: routinghelpers.Tiered{
-					Routers:   []routing.Routing{r},
+					Routers:   []routing.Routing{pubr, privr},
 					Validator: params.Validator,
 				},
 			}
 
-			out.Routers = []Router{{Routing: r, Priority: 1}}
+			out.Routers = []Router{{Routing: pubr, Priority: 1}, {Routing: privr, Priority: 1}}
 			out.Host = routedhost.Wrap(out.Host, tr)
 		}
 

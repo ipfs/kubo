@@ -189,11 +189,24 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 
 	// configure the temporary node
 	cfg.Routing.Routers = map[string]config.Router{
-		"dht-client": {
+		"dht-lan-client": {
 			Type:    config.RouterTypeDHT,
 			Enabled: config.True,
 			Parameters: config.RouterParams{
-				config.RouterParamDHTType: config.RouterValueDHTTypeClient,
+				config.RouterParamDHTType:             config.RouterValueDHTTypeClient,
+				config.RouterParamPriority:            100,
+				config.RouterParamTrackFullNetworkDHT: false,
+				config.RouterParamPublicIPNetwork:     false,
+			},
+		},
+		"dht-wan-client": {
+			Type:    config.RouterTypeDHT,
+			Enabled: config.True,
+			Parameters: config.RouterParams{
+				config.RouterParamDHTType:             config.RouterValueDHTTypeClient,
+				config.RouterParamPriority:            100,
+				config.RouterParamTrackFullNetworkDHT: false,
+				config.RouterParamPublicIPNetwork:     true,
 			},
 		},
 	}

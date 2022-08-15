@@ -65,9 +65,9 @@ const (
 )
 
 const (
-	RouterValueDHTTypeServer = "dhtserver"
-	RouterValueDHTTypeClient = "dhtclient"
-	RouterValueDHTType       = "auto"
+	RouterValueDHTTypeServer = "server"
+	RouterValueDHTTypeClient = "client"
+	RouterValueDHTTypeAuto   = "auto"
 )
 
-var RouterValueDHTTypes = []string{string(RouterValueDHTType), string(RouterValueDHTTypeServer), string(RouterValueDHTTypeClient)}
+var RouterValueDHTTypes = []string{string(RouterValueDHTTypeAuto), string(RouterValueDHTTypeServer), string(RouterValueDHTTypeClient)}

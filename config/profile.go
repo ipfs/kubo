@@ -175,11 +175,24 @@ fetching may be degraded.
 `,
 		Transform: func(c *Config) error {
 			c.Routing.Routers = map[string]Router{
-				"dht-client": {
+				"dht-lan-client": {
 					Type:    RouterTypeDHT,
 					Enabled: True,
 					Parameters: RouterParams{
-						RouterParamDHTType: RouterValueDHTTypeClient,
+						RouterParamDHTType:             RouterValueDHTTypeClient,
+						RouterParamPriority:            100,
+						RouterParamTrackFullNetworkDHT: false,
+						RouterParamPublicIPNetwork:     false,
+					},
+				},
+				"dht-wan-client": {
+					Type:    RouterTypeDHT,
+					Enabled: True,
+					Parameters: RouterParams{
+						RouterParamDHTType:             RouterValueDHTTypeClient,
+						RouterParamPriority:            100,
+						RouterParamTrackFullNetworkDHT: false,
+						RouterParamPublicIPNetwork:     true,
 					},
 				},
 			}
