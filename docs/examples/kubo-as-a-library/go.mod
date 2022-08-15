@@ -124,7 +124,7 @@ require (
 	github.com/libp2p/go-libp2p v0.21.0 // indirect
 	github.com/libp2p/go-libp2p-asn-util v0.2.0 // indirect
 	github.com/libp2p/go-libp2p-discovery v0.7.0 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.16.1-0.20220811151450-6a2603e9927e // indirect
+	github.com/libp2p/go-libp2p-kad-dht v0.17.0 // indirect
 	github.com/libp2p/go-libp2p-kbucket v0.4.7 // indirect
 	github.com/libp2p/go-libp2p-loggables v0.1.0 // indirect
 	github.com/libp2p/go-libp2p-peerstore v0.7.1 // indirect
