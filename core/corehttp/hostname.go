@@ -324,7 +324,7 @@ func isKnownHostname(hostname string, knownGateways gatewayHosts) (gw *config.Ga
 func knownSubdomainDetails(hostname string, knownGateways gatewayHosts) (gw *config.GatewaySpec, gwHostname, ns, rootID string, ok bool) {
 	labels := strings.Split(hostname, ".")
 	// Look for FQDN of a known gateway hostname.
-	// Example: given "dist.ipfs.io.ipns.dweb.link":
+	// Example: given "dist.ipfs.tech.ipns.dweb.link":
 	// 1. Lookup "link" TLD in knownGateways: negative
 	// 2. Lookup "dweb.link" in knownGateways: positive
 	//

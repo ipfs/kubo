@@ -13,7 +13,7 @@ const (
 	// Current distribution to fetch migrations from
 	CurrentIpfsDist = "/ipfs/QmdaCHYBDHEhXCMoynH5UcohEay6m1XayZCcxWZzKAHNVN" // fs-repo-11-to-12 v1.0.2
 	// Latest distribution path.  Default for fetchers.
-	LatestIpfsDist = "/ipns/dist.ipfs.io"
+	LatestIpfsDist = "/ipns/dist.ipfs.tech"
 
 	// Distribution environ variable
 	envIpfsDistPath = "IPFS_DIST_PATH"

@@ -15,6 +15,37 @@ import (
 	"go.uber.org/fx"
 )
 
+// FXNodeInfo contains information useful for adding fx options.
+// This is the extension point for providing more info/context to fx plugins
+// to make decisions about what options to include.
+type FXNodeInfo struct {
+	FXOptions []fx.Option
+}
+
+// fxOptFunc takes in some info about the IPFS node and returns the full set of fx opts to use.
+type fxOptFunc func(FXNodeInfo) ([]fx.Option, error)
+
+var fxOptionFuncs []fxOptFunc
+
+// RegisterFXOptionFunc registers a function that is run before the fx app is initialized.
+// Functions are invoked in the order they are registered,
+// and the resulting options are passed into the next function's FXNodeInfo.
+//
+// Note that these are applied globally, by all invocations of NewNode.
+// There are multiple places in Kubo that construct nodes, such as:
+//   - Repo initialization
+//   - Daemon initialization
+//   - When running migrations
+//   - etc.
+//
+// If your fx options are doing anything sophisticated, you should keep this in mind.
+//
+// For example, if you plug in a blockservice that disallows non-allowlisted CIDs,
+// this may break migrations that fetch migration code over IPFS.
+func RegisterFXOptionFunc(optFunc fxOptFunc) {
+	fxOptionFuncs = append(fxOptionFuncs, optFunc)
+}
+
 // from https://stackoverflow.com/a/59348871
 type valueContext struct {
 	context.Context
@@ -41,12 +72,21 @@ func NewNode(ctx context.Context, cfg *BuildCfg) (*IpfsNode, error) {
 		ctx: ctx,
 	}
 
-	app := fx.New(
+	opts := []fx.Option{
 		node.IPFS(ctx, cfg),
-
 		fx.NopLogger,
-		fx.Extract(n),
-	)
+	}
+	for _, optFunc := range fxOptionFuncs {
+		var err error
+		opts, err = optFunc(FXNodeInfo{FXOptions: opts})
+		if err != nil {
+			cancel()
+			return nil, fmt.Errorf("building fx opts: %w", err)
+		}
+	}
+	opts = append(opts, fx.Extract(n))
+
+	app := fx.New(opts...)
 
 	var once sync.Once
 	var stopErr error
