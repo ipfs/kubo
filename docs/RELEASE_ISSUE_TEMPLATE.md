@@ -39,6 +39,7 @@ As usual, this release includes important fixes, some of which may be critical f
 For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
+- new commits should be added to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
 - tag commit with `vX.Y.Z-rcN`
 - add artifacts to https://dist.ipfs.tech
   1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
@@ -95,32 +96,43 @@ Checklist:
 - [ ] **Stage 3 - Release**
   - [ ] Final preparation
     - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
-    - [ ] Merge `release-vX.Y.Z` into the `release` branch.
-    - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
+    - [ ] Open a PR merging `release-vX.Y.Z` into the `release` branch.
+      - This should be reviewed by the person who most recently released a version of `go-ipfs`.
+	  - Use a merge commit (no rebase, no squash)
+    - [ ] Prepare the command to use for tagging the merge commit (on the `release` branch) with `vX.Y.Z`.
+      - Use `git tag -s` to ensure the tag is signed
+    - [ ] Have the tagging command reviewed by the person who most recently released a version of `go-ipfs`
+      - This is a dangerous operation, as it is difficult to reverse due to Go modules and automated Docker image publishing
+    - [ ] Push the tag
+      - Use `git push origin <tag>`
+      - DO NOT USE `git push --tags`, as it will push ALL of your local tags
+      - This should initiate a Docker build in GitHub Actions that publishes a `vX.Y.Z` tagged Docker image to DockerHub
     - [ ] Release published
       - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
       - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
       - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
+         - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
+         - [ ] Wait for Chocolatey to approve the release (usually takes a few hours)
       - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
-        - [ ] reuse signed artifacts from https://dist.ipfs.tech/kubo (run [sync-release-assets.yml workflow](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml))
+        - [ ] After publishing the GitHub release, run the workflow to attach the release assets: https://github.com/ipfs/go-ipfs/actions/workflows/sync-release-assets.yml
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
   - [ ] Get a blog post created 
     - [Submit a request using this form](https://airtable.com/shrNH8YWole1xc70I).
     - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form gets spam).
-    - Don't makre this as done until the blog entry is live.
+    - Don't mark this as done until the blog entry is live.
   - [ ] Broadcasting (link to blog post)
     - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
+      - A bot auto-posts this to Discord and Matrix
 - [ ] **Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
   - [ ] Mark PR draft created for IPFS Desktop as ready for review.
-
-
+  
 ## ⁉️ Do you have questions?
 
 The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
