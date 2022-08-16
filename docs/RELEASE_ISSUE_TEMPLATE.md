@@ -1,4 +1,20 @@
-> Release Issue Template
+> Release Issue Template.  If doing a patch release, see [here](https://github.com/ipfs/kubo/blob/master/docs/PATCH_RELEASE_TEMPLATE.md)
+
+# Items to do upon creating the release issue
+- [ ] Fill in the Meta section
+- [ ] Assign the issue to the release owner and reviewer.
+- [ ] Name the issue "Release vX.Y.Z"
+- [ ] Set the proper values for X.Y.Z for
+- [ ] Pin the issue
+
+# Meta
+* Release owner: @who
+* Release reviewer: @who
+* Expected RC date: week of 2022-MM-DD
+* Expected final release date: 2022-MM-DD
+* Accompanying PR for improving the release process: (example: https://github.com/ipfs/kubo/pull/9100)
+
+See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
 
 # Kubo X.Y.Z Release
 
@@ -24,14 +40,17 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - tag commit with `vX.Y.Z-rcN`
-- upload to dist.ipfs.tech
-  1. Build: https://github.com/ipfs/distributions#usage.
-  2. Pin the resulting release.
-  3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
-  4. Ask the infra team to update the DNSLink record for dist.ipfs.tech to point to the new distribution.
-- cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and upload the result of the ipfs/distributions build in the previous step.
+- add artifacts to https://dist.ipfs.tech
+  1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
+  2. Wait for PR to build artifacts and generate diff
+  3. Inspect results, merge if CI is green and the diff looks ok
+  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech
+- cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the ipfs/distributions build in the previous step).
 - Announce the RC:
-  - [ ] On Matrix (both #ipfs and #ipfs-dev)
+  - [ ] 
+    - This will automatically post to IPFS Discord #ipfs-chatter
+    - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
+    - [ ] Pin the topic
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
 
 Checklist:
@@ -80,21 +99,21 @@ Checklist:
     - [ ] Tag this merge commit (on the `release` branch) with `vX.Y.Z`.
     - [ ] Release published
       - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
-      - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
-      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
-         - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
-      - [ ] to [snap](https://snapcraft.io/ipfs)
+      - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
+      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
+      - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
         - [ ] reuse signed artifacts from https://dist.ipfs.tech/kubo (run [sync-release-assets.yml workflow](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml))
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
-  - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
+  - [ ] Get a blog post created 
+    - [Submit a request using this form](https://airtable.com/shrNH8YWole1xc70I).
+    - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form gets spam).
+    - Don't makre this as done until the blog entry is live.
   - [ ] Broadcasting (link to blog post)
-    - [ ] Twitter (request in Slack channel #pl-marketing-requests)
-    - [ ] Matrix
+    - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Announce it on the [IPFS Users Mailing List](https://groups.google.com/forum/#!forum/ipfs-users)
 - [ ] **Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
