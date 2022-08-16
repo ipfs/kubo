@@ -141,6 +141,7 @@ config file at runtime.
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
+      - [`Swarm.ResourceMgr.Allowlist`](#swarmresourcemgrallowlist)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -1765,6 +1766,14 @@ Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->object]`
 
+#### `Swarm.ResourceMgr.Allowlist`
+
+A list of multiaddrs that can bypass normal system limits (but are still limited by the allowlist scope).
+Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p-resource-manager#Allowlist.Add).
+
+Default: `[]`
+
+Type: `array[string]` (multiaddrs)
 
 ### `Swarm.Transports`
 
