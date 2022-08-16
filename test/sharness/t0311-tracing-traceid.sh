@@ -36,7 +36,7 @@ EOF
 rm -rf traces.json && touch traces.json && chmod 777 traces.json
 
 test_expect_success "run opentelemetry collector" '
-  docker run --rm -d -v "$PWD/collector-config.yaml":/config.yaml -v "$PWD":/traces --net=host --name=ipfs-test-otel-collector otel/opentelemetry-collector-contrib:0.52.0 --config /config.yaml
+  docker run --rm -d -v "$PWD/collector-config.yaml":/config.yaml -v "$PWD":/traces --net=host --name=ipfs-test-otel-collector-t0311 otel/opentelemetry-collector-contrib:0.52.0 --config /config.yaml
 '
 
 test_launch_ipfs_daemon
@@ -85,7 +85,7 @@ test_expect_success "Trace id is used in traces" '
 test_kill_ipfs_daemon
 
 test_expect_success "kill docker container" '
-  docker kill ipfs-test-otel-collector
+  docker kill ipfs-test-otel-collector-t0311
 '
 
 test_done
