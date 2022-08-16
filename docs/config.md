@@ -1719,6 +1719,8 @@ and tracking recource usage over time.
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
 
+Various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+
 Default: `false`
 
 Type: `flag`
