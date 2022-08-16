@@ -8,9 +8,9 @@ import (
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/tracing"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/tracing"
 	gocar "github.com/ipld/go-car"
 	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 	"go.opentelemetry.io/otel/attribute"
@@ -35,11 +35,22 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	rootCid := resolvedPath.Cid()
 
 	// Set Content-Disposition
-	name := rootCid.String() + ".car"
+	var name string
+	if urlFilename := r.URL.Query().Get("filename"); urlFilename != "" {
+		name = urlFilename
+	} else {
+		name = rootCid.String() + ".car"
+	}
 	setContentDispositionHeader(w, name, "attachment")
 
-	// Weak Etag W/ because we can't guarantee byte-for-byte identical  responses
-	// (CAR is streamed, and in theory, blocks may arrive from datastore in non-deterministic order)
+	// Set Cache-Control (same logic as for a regular files)
+	addCacheControlHeaders(w, r, contentPath, rootCid)
+
+	// Weak Etag W/ because we can't guarantee byte-for-byte identical
+	// responses, but still want to benefit from HTTP Caching. Two CAR
+	// responses for the same CID and selector will be logically equivalent,
+	// but when CAR is streamed, then in theory, blocks may arrive from
+	// datastore in non-deterministic order.
 	etag := `W/` + getEtag(r, rootCid)
 	w.Header().Set("Etag", etag)
 
@@ -50,13 +61,9 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	}
 
 	// Make it clear we don't support range-requests over a car stream
-	// Partial downloads and resumes should be handled using
-	// IPLD selectors: https://github.com/ipfs/go-ipfs/issues/8769
+	// Partial downloads and resumes should be handled using requests for
+	// sub-DAGs and IPLD selectors: https://github.com/ipfs/go-ipfs/issues/8769
 	w.Header().Set("Accept-Ranges", "none")
-
-	// Explicit Cache-Control to ensure fresh stream on retry.
-	// CAR stream could be interrupted, and client should be able to resume and get full response, not the truncated one
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
 
 	w.Header().Set("Content-Type", "application/vnd.ipld.car; version=1")
 	w.Header().Set("X-Content-Type-Options", "nosniff") // no funny business in the browsers :^)
@@ -64,7 +71,7 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	// Same go-car settings as dag.export command
 	store := dagStore{dag: i.api.Dag(), ctx: ctx}
 
-	// TODO: support selectors passed as request param: https://github.com/ipfs/go-ipfs/issues/8769
+	// TODO: support selectors passed as request param: https://github.com/ipfs/kubo/issues/8769
 	dag := gocar.Dag{Root: rootCid, Selector: selectorparse.CommonSelector_ExploreAllRecursively}
 	car := gocar.NewSelectiveCar(ctx, store, []gocar.Dag{dag}, gocar.TraverseLinksOnlyOnce())
 
@@ -81,12 +88,12 @@ func (i *gatewayHandler) serveCAR(ctx context.Context, w http.ResponseWriter, r 
 	i.carStreamGetMetric.WithLabelValues(contentPath.Namespace()).Observe(time.Since(begin).Seconds())
 }
 
+// FIXME(@Jorropo): https://github.com/ipld/go-car/issues/315
 type dagStore struct {
 	dag coreiface.APIDagService
 	ctx context.Context
 }
 
-func (ds dagStore) Get(c cid.Cid) (blocks.Block, error) {
-	obj, err := ds.dag.Get(ds.ctx, c)
-	return obj, err
+func (ds dagStore) Get(_ context.Context, c cid.Cid) (blocks.Block, error) {
+	return ds.dag.Get(ds.ctx, c)
 }

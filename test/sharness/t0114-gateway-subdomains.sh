@@ -268,7 +268,7 @@ test_expect_success "valid file and subdirectory paths in directory listing at {
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.localhost/sub/dir" '
   curl -s --resolve $DIR_HOSTNAME:127.0.0.1 "http://$DIR_HOSTNAME/ipfs/ipns/" > list_response &&
-  test_should_contain "<a href=\"/ipfs/ipns/./..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
   test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 
@@ -441,7 +441,7 @@ test_expect_success "valid file and directory paths in directory listing at {cid
 
 test_expect_success "valid parent directory path in directory listing at {cid}.ipfs.example.com/sub/dir" '
   curl -s -H "Host: $DIR_FQDN" http://127.0.0.1:$GWAY_PORT/ipfs/ipns/ > list_response &&
-  test_should_contain "<a href=\"/ipfs/ipns/./..\">..</a>" list_response &&
+  test_should_contain "<a href=\"/ipfs/ipns/..\">..</a>" list_response &&
   test_should_contain "<a href=\"/ipfs/ipns/bar\">bar</a>" list_response
 '
 

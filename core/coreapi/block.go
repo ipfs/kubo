@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -16,8 +15,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	util "github.com/ipfs/go-ipfs/blocks/blockstoreutil"
-	"github.com/ipfs/go-ipfs/tracing"
+	util "github.com/ipfs/kubo/blocks/blockstoreutil"
+	"github.com/ipfs/kubo/tracing"
 )
 
 type BlockAPI CoreAPI
@@ -36,7 +35,7 @@ func (api *BlockAPI) Put(ctx context.Context, src io.Reader, opts ...caopts.Bloc
 		return nil, err
 	}
 
-	data, err := ioutil.ReadAll(src)
+	data, err := io.ReadAll(src)
 	if err != nil {
 		return nil, err
 	}

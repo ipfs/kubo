@@ -1,22 +1,25 @@
-# `go-ipfs` Release Flow
+# `kubo` Release Flow
 
-## Table of Contents
+# Table of Contents
 
-- [Release Philosophy](#release-philosophy)
-- [Release Flow](#release-flow)
-  - [Stage 0 - Automated Testing](#stage-0---automated-testing)
-  - [Stage 1 - Internal Testing](#stage-1---internal-testing)
-  - [Stage 2 - Community Dev Testing](#stage-2---community-dev-testing)
-  - [Stage 3 - Community Prod Testing](#stage-3---community-prod-testing)
-  - [Stage 4 - Release](#stage-4---release)
-- [Release Cycle](#release-cycle)
-  - [Patch Releases](#patch-releases)
-- [Performing a Release](#performing-a-release)
-- [Release Version Numbers (aka semver)](#release-version-numbers-aka-semver)
+- [`kubo` Release Flow](#kubo-release-flow)
+- [Table of Contents](#table-of-contents)
+  - [Release Philosophy](#release-philosophy)
+  - [Release Flow](#release-flow)
+    - [Stage 0 - Automated Testing](#stage-0---automated-testing)
+    - [Stage 1 - Internal Testing](#stage-1---internal-testing)
+    - [Stage 2 - Community Dev Testing](#stage-2---community-dev-testing)
+    - [Stage 3 - Community Prod Testing](#stage-3---community-prod-testing)
+    - [Stage 4 - Release](#stage-4---release)
+  - [Release Cycle](#release-cycle)
+    - [Patch Releases](#patch-releases)
+  - [Security Fix Policy](#security-fix-policy)
+  - [Performing a Release](#performing-a-release)
+  - [Release Version Numbers (aka semver)](#release-version-numbers-aka-semver)
 
 ## Release Philosophy
 
-`go-ipfs` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages that gives us the opportunity to test the new version against our test environments (unit, interop, integration), QA in our current production environment, IPFS apps (e.g. Desktop and WebUI) and with our community and _early testers_<sup>[1]</sup> that have IPFS running in production.
+`kubo` aims to have release every six weeks, two releases per quarter. During these 6 week releases, we go through 4 different stages that gives us the opportunity to test the new version against our test environments (unit, interop, integration), QA in our current production environment, IPFS apps (e.g. Desktop and WebUI) and with our community and _early testers_<sup>[1]</sup> that have IPFS running in production.
 
 We might expand the six week release schedule in case of:
 
@@ -25,9 +28,9 @@ We might expand the six week release schedule in case of:
 
 ## Release Flow
 
-`go-ipfs` releases come in 5 stages designed to gradually roll out changes and reduce the impact of any regressions that may have been introduced. If we need to merge non-trivial<sup>[2]</sup> changes during the process, we start over at stage 0.
+`kubo` releases come in 5 stages designed to gradually roll out changes and reduce the impact of any regressions that may have been introduced. If we need to merge non-trivial<sup>[2]</sup> changes during the process, we start over at stage 0.
 
-![go-ipfs-release-process-illustration](https://user-images.githubusercontent.com/618519/62986422-653fee00-bdf0-11e9-8f61-197117b61da2.png)
+![kubo-release-process-illustration](https://user-images.githubusercontent.com/618519/62986422-653fee00-bdf0-11e9-8f61-197117b61da2.png)
 
 ### Stage 0 - Automated Testing
 
@@ -93,21 +96,21 @@ Finally, unless a security issue is actively being exploited or a significant nu
 
 ## Performing a Release
 
-The release is managed by the `Lead Maintainer` for `go-ipfs`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md) not more than **48 hours** after the previous release.
+The release is managed by the `Lead Maintainer` for `kubo`. It starts with the opening of an issue containing the content available on the [RELEASE_ISSUE_TEMPLATE](./RELEASE_ISSUE_TEMPLATE.md) not more than **48 hours** after the previous release.
 
-This issue is pinned and labeled ["release"](https://github.com/ipfs/go-ipfs/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aopen+label%3Arelease). When the cycle is due to begin the 5 stages will be followed until the release is done.
+This issue is pinned and labeled ["release"](https://github.com/ipfs/kubo/issues?utf8=%E2%9C%93&q=is%3Aissue+is%3Aopen+label%3Arelease). When the cycle is due to begin the 5 stages will be followed until the release is done.
 
 ## Release Version Numbers (aka semver)
 
-Until `go-ipfs` 0.4.X, `go-ipfs` was not using semver to communicate the type of release
+Until `kubo` 0.4.X, `kubo` was not using semver to communicate the type of release
 
-Post `go-ipfs` 0.5.X, `go-ipfs` will use semver. This means that patch releases will not contain any breaking changes nor new features. Minor releases might contain breaking changes and always contain some new feature
+Post `kubo` 0.5.X, `kubo` will use semver. This means that patch releases will not contain any breaking changes nor new features. Minor releases might contain breaking changes and always contain some new feature
 
-Post `go-ipfs` 1.X.X (future), `go-ipfs` will use semver. This means that only major releases will contain breaking changes, minors will be reserved for new features and patches for bug fixes.
+Post `kubo` 1.X.X (future), `kubo` will use semver. This means that only major releases will contain breaking changes, minors will be reserved for new features and patches for bug fixes.
 
 We do not yet retroactively apply fixes to older releases (no Long Term Support releases for now), which means that we always recommend users to update to the latest, whenever possible.
 
 ----------------------------
 
-- <sup>**[1]**</sup> - _early testers_ is an IPFS programme in which members of the community can self-volunteer to help test `go-ipfs` Release Candidates. You find more info about it at [EARLY_TESTERS.md](./EARLY_TESTERS.md)
+- <sup>**[1]**</sup> - _early testers_ is an IPFS programme in which members of the community can self-volunteer to help test `kubo` Release Candidates. You find more info about it at [EARLY_TESTERS.md](./EARLY_TESTERS.md)
 - <sup>**[2]**</sup> - A non-trivial change is any change that could potentially introduce an issue not trivially caught by automated testing. This is up to the discretion of the Lead Maintainer but the assumption is that every change is non-trivial unless proven otherwise.

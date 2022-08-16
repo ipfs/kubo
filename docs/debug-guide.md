@@ -1,14 +1,17 @@
 # General performance debugging guidelines
 
-This is a document for helping debug go-ipfs. Please add to it if you can!
+This is a document for helping debug Kubo. Please add to it if you can!
 
-### Table of Contents
-- [Beginning](#beginning)
-- [Analyzing the stack dump](#analyzing-the-stack-dump)
-- [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
-- [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
-- [Tracing](#tracing)
-- [Other](#other)
+# Table of Contents
+
+- [General performance debugging guidelines](#general-performance-debugging-guidelines)
+- [Table of Contents](#table-of-contents)
+    - [Beginning](#beginning)
+    - [Analyzing the stack dump](#analyzing-the-stack-dump)
+    - [Analyzing the CPU Profile](#analyzing-the-cpu-profile)
+    - [Analyzing vars and memory statistics](#analyzing-vars-and-memory-statistics)
+    - [Tracing](#tracing)
+    - [Other](#other)
 
 ### Beginning
 
@@ -103,6 +106,6 @@ See `tracing/doc.go` for more details.
 
 ### Other
 
-If you have any questions, or want us to analyze some weird go-ipfs behaviour,
+If you have any questions, or want us to analyze some weird kubo behaviour,
 just let us know, and be sure to include all the profiling information
 mentioned at the top.

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"sort"
 
-	version "github.com/ipfs/go-ipfs"
-	core "github.com/ipfs/go-ipfs/core"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	version "github.com/ipfs/kubo"
+	core "github.com/ipfs/kubo/core"
+	coreapi "github.com/ipfs/kubo/core/coreapi"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	options "github.com/ipfs/interface-go-ipfs-core/options"
@@ -92,12 +92,16 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 				"X-Ipfs-Roots",
 			}, headers[ACEHeadersName]...))
 
-		var gateway http.Handler = newGatewayHandler(GatewayConfig{
+		var gateway http.Handler
+		gateway, err = newGatewayHandler(GatewayConfig{
 			Headers:               headers,
 			Writable:              writable,
 			PathPrefixes:          cfg.Gateway.PathPrefixes,
 			FastDirIndexThreshold: int(cfg.Gateway.FastDirIndexThreshold.WithDefault(100)),
 		}, api)
+		if err != nil {
+			return nil, err
+		}
 
 		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")
 

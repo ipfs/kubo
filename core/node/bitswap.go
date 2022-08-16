@@ -7,16 +7,16 @@ import (
 	"github.com/ipfs/go-bitswap/network"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	config "github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/kubo/config"
+	irouting "github.com/ipfs/kubo/routing"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/routing"
 	"go.uber.org/fx"
 
-	"github.com/ipfs/go-ipfs/core/node/helpers"
+	"github.com/ipfs/kubo/core/node/helpers"
 )
 
 const (
-	// Docs: https://github.com/ipfs/go-ipfs/blob/master/docs/config.md#internalbitswap
+	// Docs: https://github.com/ipfs/kubo/blob/master/docs/config.md#internalbitswap
 	DefaultEngineBlockstoreWorkerCount = 128
 	DefaultTaskWorkerCount             = 8
 	DefaultEngineTaskWorkerCount       = 8
@@ -25,7 +25,7 @@ const (
 
 // OnlineExchange creates new LibP2P backed block exchange (BitSwap)
 func OnlineExchange(cfg *config.Config, provide bool) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt routing.Routing, bs blockstore.GCBlockstore) exchange.Interface {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, rt irouting.TieredRouter, bs blockstore.GCBlockstore) exchange.Interface {
 		bitswapNetwork := network.NewFromIpfsHost(host, rt)
 
 		var internalBsCfg config.InternalBitswap

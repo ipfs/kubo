@@ -11,12 +11,12 @@ import (
 	"github.com/dustin/go-humanize"
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/ipfs/go-ipfs/assets"
-	"github.com/ipfs/go-ipfs/tracing"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	"github.com/ipfs/kubo/assets"
+	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -41,28 +41,30 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	}
 	originalUrlPath := requestURI.Path
 
+	// Ensure directory paths end with '/'
+	if originalUrlPath[len(originalUrlPath)-1] != '/' {
+		// don't redirect to trailing slash if it's go get
+		// https://github.com/ipfs/kubo/pull/3963
+		goget := r.URL.Query().Get("go-get") == "1"
+		if !goget {
+			suffix := "/"
+			// preserve query parameters
+			if r.URL.RawQuery != "" {
+				suffix = suffix + "?" + r.URL.RawQuery
+			}
+			// /ipfs/cid/foo?bar must be redirected to /ipfs/cid/foo/?bar
+			redirectURL := originalUrlPath + suffix
+			logger.Debugw("directory location moved permanently", "status", http.StatusMovedPermanently)
+			http.Redirect(w, r, redirectURL, http.StatusMovedPermanently)
+			return
+		}
+	}
+
 	// Check if directory has index.html, if so, serveFile
-	idxPath := ipath.Join(resolvedPath, "index.html")
+	idxPath := ipath.Join(contentPath, "index.html")
 	idx, err := i.api.Unixfs().Get(ctx, idxPath)
 	switch err.(type) {
 	case nil:
-		cpath := contentPath.String()
-		dirwithoutslash := cpath[len(cpath)-1] != '/'
-		goget := r.URL.Query().Get("go-get") == "1"
-		if dirwithoutslash && !goget {
-			// See comment above where originalUrlPath is declared.
-			suffix := "/"
-			if r.URL.RawQuery != "" {
-				// preserve query parameters
-				suffix = suffix + "?" + r.URL.RawQuery
-			}
-
-			redirectURL := originalUrlPath + suffix
-			logger.Debugw("serving index.html file", "to", redirectURL, "status", http.StatusFound, "path", idxPath)
-			http.Redirect(w, r, redirectURL, http.StatusFound)
-			return
-		}
-
 		f, ok := idx.(files.File)
 		if !ok {
 			internalWebError(w, files.ErrNotReader)
@@ -81,7 +83,7 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	}
 
 	// See statusResponseWriter.WriteHeader
-	// and https://github.com/ipfs/go-ipfs/issues/7164
+	// and https://github.com/ipfs/kubo/issues/7164
 	// Note: this needs to occur before listingTemplate.Execute otherwise we get
 	// superfluous response.WriteHeader call from prometheus/client_golang
 	if w.Header().Get("Location") != "" {
@@ -146,22 +148,24 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	}
 
 	// construct the correct back link
-	// https://github.com/ipfs/go-ipfs/issues/1365
+	// https://github.com/ipfs/kubo/issues/1365
 	var backLink string = originalUrlPath
 
 	// don't go further up than /ipfs/$hash/
 	pathSplit := path.SplitList(contentPath.String())
 	switch {
-	// keep backlink
+	// skip backlink when listing a content root
 	case len(pathSplit) == 3: // url: /ipfs/$hash
+		backLink = ""
 
-	// keep backlink
+	// skip backlink when listing a content root
 	case len(pathSplit) == 4 && pathSplit[3] == "": // url: /ipfs/$hash/
+		backLink = ""
 
 	// add the correct link depending on whether the path ends with a slash
 	default:
 		if strings.HasSuffix(backLink, "/") {
-			backLink += "./.."
+			backLink += ".."
 		} else {
 			backLink += "/.."
 		}

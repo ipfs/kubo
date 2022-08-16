@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,12 +16,12 @@ import (
 	icorepath "github.com/ipfs/interface-go-ipfs-core/path"
 	ma "github.com/multiformats/go-multiaddr"
 
-	"github.com/ipfs/go-ipfs/config"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/plugin/loader" // This package is needed so that all the preloaded plugins are loaded automatically
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/config"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/plugin/loader" // This package is needed so that all the preloaded plugins are loaded automatically
+	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -47,13 +47,13 @@ func setupPlugins(externalPluginsPath string) error {
 }
 
 func createTempRepo() (string, error) {
-	repoPath, err := ioutil.TempDir("", "ipfs-shell")
+	repoPath, err := os.MkdirTemp("", "ipfs-shell")
 	if err != nil {
 		return "", fmt.Errorf("failed to get temp dir: %s", err)
 	}
 
 	// Create a config with default options and a 2048 bit key
-	cfg, err := config.Init(ioutil.Discard, 2048)
+	cfg, err := config.Init(io.Discard, 2048)
 	if err != nil {
 		return "", err
 	}
@@ -62,16 +62,16 @@ func createTempRepo() (string, error) {
 	// features (See experimental-features.md) or customizing the gateway endpoint.
 	// To do such things, you should modify the variable `cfg`. For example:
 	if *flagExp {
-		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-filestore
+		// https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-filestore
 		cfg.Experimental.FilestoreEnabled = true
-		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-urlstore
+		// https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-urlstore
 		cfg.Experimental.UrlstoreEnabled = true
-		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#ipfs-p2p
+		// https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#ipfs-p2p
 		cfg.Experimental.Libp2pStreamMounting = true
-		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#p2p-http-proxy
+		// https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md#p2p-http-proxy
 		cfg.Experimental.P2pHttpProxy = true
-		// https://github.com/ipfs/go-ipfs/blob/master/docs/experimental-features.md#strategic-providing
-		cfg.Experimental.StrategicProviding = true
+		// See also: https://github.com/ipfs/kubo/blob/master/docs/config.md
+		// And: https://github.com/ipfs/kubo/blob/master/docs/experimental-features.md
 	}
 
 	// Create the repo with the config
@@ -202,7 +202,7 @@ func main() {
 	}
 
 	peerCidFile, err := ipfsA.Unixfs().Add(ctx,
-		files.NewBytesFile([]byte("hello from ipfs 101 in go-ipfs")))
+		files.NewBytesFile([]byte("hello from ipfs 101 in Kubo")))
 	if err != nil {
 		panic(fmt.Errorf("could not add File: %s", err))
 	}
@@ -210,7 +210,7 @@ func main() {
 	fmt.Printf("Added file to peer with CID %s\n", peerCidFile.String())
 
 	// Spawn a node using a temporary path, creating a temporary repo for the run
-	fmt.Println("Spawning node on a temporary repo")
+	fmt.Println("Spawning Kubo node on a temporary repo")
 	ipfsB, _, err := spawnEphemeral(ctx)
 	if err != nil {
 		panic(fmt.Errorf("failed to spawn ephemeral node: %s", err))
@@ -252,7 +252,7 @@ func main() {
 
 	/// --- Part III: Getting the file and directory you added back
 
-	outputBasePath, err := ioutil.TempDir("", "example")
+	outputBasePath, err := os.MkdirTemp("", "example")
 	if err != nil {
 		panic(fmt.Errorf("could not create output dir (%v)", err))
 	}
@@ -338,5 +338,5 @@ func main() {
 
 	fmt.Printf("Wrote the file to %s\n", outputPath)
 
-	fmt.Println("\nAll done! You just finalized your first tutorial on how to use go-ipfs as a library")
+	fmt.Println("\nAll done! You just finalized your first tutorial on how to use Kubo as a library")
 }

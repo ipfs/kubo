@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sort"
 
-	cmdenv "github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	mbase "github.com/multiformats/go-multibase"
 	"github.com/pkg/errors"
 
@@ -191,7 +190,7 @@ HTTP RPC ENCODING
 			return err
 		}
 		defer file.Close()
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return err
 		}
@@ -337,7 +336,7 @@ TOPIC AND DATA ENCODING
 
 // TODO: move to cmdenv?
 // Encode binary data to be passed as multibase string in URL arguments.
-// (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
+// (avoiding issues described in https://github.com/ipfs/kubo/issues/7939)
 func urlArgsEncoder(req *cmds.Request, env cmds.Environment) error {
 	encoder, _ := mbase.EncoderByName("base64url")
 	for n, arg := range req.Arguments {
@@ -347,7 +346,7 @@ func urlArgsEncoder(req *cmds.Request, env cmds.Environment) error {
 }
 
 // Decode binary data passed as multibase string in URL arguments.
-// (avoiding issues described in https://github.com/ipfs/go-ipfs/issues/7939)
+// (avoiding issues described in https://github.com/ipfs/kubo/issues/7939)
 func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
 	for n, arg := range req.Arguments {
 		encoding, data, err := mbase.Decode(arg)
@@ -356,7 +355,7 @@ func urlArgsDecoder(req *cmds.Request, env cmds.Environment) error {
 		}
 
 		// Enforce URL-safe encoding is used for data passed via URL arguments
-		// - without this we get data corruption similar to https://github.com/ipfs/go-ipfs/issues/7939
+		// - without this we get data corruption similar to https://github.com/ipfs/kubo/issues/7939
 		// - we can't just deny base64, because there may be other bases that
 		//   are not URL-safe – better to force base64url which is known to be
 		//   safe in URL context

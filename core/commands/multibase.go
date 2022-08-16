@@ -3,11 +3,11 @@ package commands
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 	mbase "github.com/multiformats/go-multibase"
 )
 
@@ -66,7 +66,7 @@ but one can customize used base with -b:
 		if err != nil {
 			return fmt.Errorf("failed to access file: %w", err)
 		}
-		buf, err := ioutil.ReadAll(file)
+		buf, err := io.ReadAll(file)
 		if err != nil {
 			return fmt.Errorf("failed to read file contents: %w", err)
 		}
@@ -105,7 +105,7 @@ This command expects multibase inside of a file or via stdin:
 		if err != nil {
 			return fmt.Errorf("failed to access file: %w", err)
 		}
-		encoded_data, err := ioutil.ReadAll(file)
+		encoded_data, err := io.ReadAll(file)
 		if err != nil {
 			return fmt.Errorf("failed to read file contents: %w", err)
 		}
@@ -156,7 +156,7 @@ but one can customize used base with -b:
 		if err != nil {
 			return fmt.Errorf("failed to access file: %w", err)
 		}
-		encoded_data, err := ioutil.ReadAll(file)
+		encoded_data, err := io.ReadAll(file)
 		if err != nil {
 			return fmt.Errorf("failed to read file contents: %w", err)
 		}

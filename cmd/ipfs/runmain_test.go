@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -21,7 +20,7 @@ func TestRunMain(t *testing.T) {
 
 	p := os.Getenv("IPFS_COVER_RET_FILE")
 	if len(p) != 0 {
-		ioutil.WriteFile(p, []byte(fmt.Sprintf("%d\n", ret)), 0777)
+		os.WriteFile(p, []byte(fmt.Sprintf("%d\n", ret)), 0777)
 	}
 
 	// close outputs so go testing doesn't print anything

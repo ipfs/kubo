@@ -14,14 +14,14 @@ import (
 	"io"
 
 	"github.com/ipfs/go-filestore"
-	"github.com/ipfs/go-ipfs-pinner"
+	pin "github.com/ipfs/go-ipfs-pinner"
 
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-fetcher"
 	"github.com/ipfs/go-graphsync"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	"github.com/ipfs/go-ipfs-provider"
+	provider "github.com/ipfs/go-ipfs-provider"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
 	mfs "github.com/ipfs/go-mfs"
@@ -43,15 +43,16 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	"github.com/ipfs/go-ipfs/core/bootstrap"
-	"github.com/ipfs/go-ipfs/core/node"
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/fuse/mount"
-	"github.com/ipfs/go-ipfs/p2p"
-	"github.com/ipfs/go-ipfs/peering"
-	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-namesys"
 	ipnsrp "github.com/ipfs/go-namesys/republisher"
+	"github.com/ipfs/kubo/core/bootstrap"
+	"github.com/ipfs/kubo/core/node"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/fuse/mount"
+	"github.com/ipfs/kubo/p2p"
+	"github.com/ipfs/kubo/peering"
+	"github.com/ipfs/kubo/repo"
+	irouting "github.com/ipfs/kubo/routing"
 )
 
 var log = logging.Logger("core")
@@ -90,7 +91,7 @@ type IpfsNode struct {
 	Peering         *peering.PeeringService `optional:"true"`
 	Filters         *ma.Filters             `optional:"true"`
 	Bootstrapper    io.Closer               `optional:"true"` // the periodic bootstrapper
-	Routing         routing.Routing         `optional:"true"` // the routing system. recommend ipfs-dht
+	Routing         irouting.TieredRouter   `optional:"true"` // the routing system. recommend ipfs-dht
 	DNSResolver     *madns.Resolver         // the DNS resolver
 	Exchange        exchange.Interface      // the block exchange + strategy (bitswap)
 	Namesys         namesys.NameSystem      // the name system, resolves paths to hashes

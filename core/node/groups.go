@@ -8,16 +8,15 @@ import (
 
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	util "github.com/ipfs/go-ipfs-util"
-	"github.com/ipfs/go-ipfs/config"
 	"github.com/ipfs/go-log"
+	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/ipfs/go-ipfs/core/node/libp2p"
-	"github.com/ipfs/go-ipfs/p2p"
+	"github.com/ipfs/kubo/core/node/libp2p"
+	"github.com/ipfs/kubo/p2p"
 
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	uio "github.com/ipfs/go-unixfs/io"
 
 	"github.com/dustin/go-humanize"
@@ -140,7 +139,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	if cfg.Swarm.EnableRelayHop {
 		logger.Fatal("The `Swarm.EnableRelayHop` config field was removed.\n" +
 			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
-			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.io/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
+			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.tech/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
 	peerChan := make(libp2p.AddrInfoChan)
@@ -159,14 +158,17 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.RelayService(enableRelayService, cfg.Swarm.RelayService)),
 		fx.Provide(libp2p.Transports(cfg.Swarm.Transports)),
 		fx.Invoke(libp2p.StartListening(cfg.Addresses.Swarm)),
-		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled, cfg.Discovery.MDNS.Interval)),
+		fx.Invoke(libp2p.SetupDiscovery(cfg.Discovery.MDNS.Enabled)),
 		fx.Provide(libp2p.ForceReachability(cfg.Internal.Libp2pForceReachability)),
 		fx.Provide(libp2p.HolePunching(cfg.Swarm.EnableHolePunching, enableRelayClient)),
 
 		fx.Provide(libp2p.Security(!bcfg.DisableEncryptedConnections, cfg.Swarm.Transports)),
 
 		fx.Provide(libp2p.Routing),
+		fx.Provide(libp2p.ContentRouting),
+
 		fx.Provide(libp2p.BaseRouting(cfg.Experimental.AcceleratedDHTClient)),
+		fx.Provide(libp2p.DelegatedRouting(cfg.Routing.Routers)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
@@ -313,7 +315,9 @@ func Offline(cfg *config.Config) fx.Option {
 		fx.Provide(offline.Exchange),
 		fx.Provide(DNSResolver),
 		fx.Provide(Namesys(0)),
-		fx.Provide(offroute.NewOfflineRouter),
+		fx.Provide(libp2p.Routing),
+		fx.Provide(libp2p.ContentRouting),
+		fx.Provide(libp2p.OfflineRouting),
 		OfflineProviders(cfg.Experimental.StrategicProviding, cfg.Experimental.AcceleratedDHTClient, cfg.Reprovider.Strategy, cfg.Reprovider.Interval),
 	)
 }

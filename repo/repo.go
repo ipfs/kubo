@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 
 	filestore "github.com/ipfs/go-filestore"
 	keystore "github.com/ipfs/go-ipfs-keystore"
 
 	ds "github.com/ipfs/go-datastore"
-	config "github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/kubo/config"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -50,6 +51,9 @@ type Repo interface {
 
 	// SetAPIAddr sets the API address in the repo.
 	SetAPIAddr(addr ma.Multiaddr) error
+
+	// SetGatewayAddr sets the Gateway address in the repo.
+	SetGatewayAddr(addr net.Addr) error
 
 	// SwarmKey returns the configured shared symmetric key for the private networks feature.
 	SwarmKey() ([]byte, error)

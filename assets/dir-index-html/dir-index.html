@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="description" content="A directory of files hosted on the distributed, decentralized web using IPFS">
+<meta name="description" content="A directory of content-addressed files hosted on IPFS">
 <meta property="og:title" content="Files on IPFS">
 <meta property="og:description" content="{{ .Path }}">
 <meta property="og:type" content="website">
@@ -62,6 +62,7 @@
     </div>
     <div class="table-responsive">
     <table>
+      {{ if .BackLink }}
       <tr>
         <td class="type-icon">
           <div class="ipfs-_blank">&nbsp;</div>
@@ -72,6 +73,7 @@
         <td></td>
         <td></td>
       </tr>
+      {{ end }}
       {{ range .Listing }}
       <tr>
         <td class="type-icon">

@@ -110,6 +110,12 @@ test_launch_ipfs_daemon_without_network
     grep "< Accept-Ranges: none" curl_output
     '
 
+    test_expect_success "GET for application/vnd.ipld.car with query filename includes Content-Disposition with custom filename" '
+    curl -svX GET -H "Accept: application/vnd.ipld.car" "http://127.0.0.1:$GWAY_PORT/ipfs/$ROOT_DIR_CID/subdir/ascii.txt?filename=foobar.car" > curl_output_filename 2>&1 &&
+    cat curl_output_filename &&
+    grep "< Content-Disposition: attachment\; filename=\"foobar.car\"" curl_output_filename
+    '
+
 # Cache control HTTP headers
 
     test_expect_success "GET response for application/vnd.ipld.car includes a weak Etag" '
@@ -122,8 +128,8 @@ test_launch_ipfs_daemon_without_network
     grep "< X-Ipfs-Roots" curl_output
     '
 
-    test_expect_success "GET response for application/vnd.ipld.car includes expected Cache-Control" '
-    grep "< Cache-Control: no-cache, no-transform" curl_output
+    test_expect_success "GET response for application/vnd.ipld.car includes same Cache-Control as a block or a file" '
+    grep "< Cache-Control: public, max-age=29030400, immutable" curl_output
     '
 
 test_kill_ipfs_daemon

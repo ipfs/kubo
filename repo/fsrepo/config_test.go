@@ -2,15 +2,14 @@ package fsrepo_test
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 
-	"github.com/ipfs/go-ipfs/plugin/loader"
-	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/ipfs/kubo/plugin/loader"
+	"github.com/ipfs/kubo/repo/fsrepo"
 
-	"github.com/ipfs/go-ipfs/config"
+	"github.com/ipfs/kubo/config"
 )
 
 // note: to test sorting of the mountpoints in the disk spec they are
@@ -89,7 +88,7 @@ func TestDefaultDatastoreConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +126,7 @@ func TestLevelDbConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +164,7 @@ func TestFlatfsConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +202,7 @@ func TestMeasureConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir, err := ioutil.TempDir("", "ipfs-datastore-config-test")
+	dir, err := os.MkdirTemp("", "ipfs-datastore-config-test")
 	if err != nil {
 		t.Fatal(err)
 	}

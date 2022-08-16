@@ -4,7 +4,6 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -16,21 +15,21 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
-	version "github.com/ipfs/go-ipfs"
-	utilmain "github.com/ipfs/go-ipfs/cmd/ipfs/util"
-	oldcmds "github.com/ipfs/go-ipfs/commands"
-	config "github.com/ipfs/go-ipfs/config"
-	cserial "github.com/ipfs/go-ipfs/config/serialize"
-	"github.com/ipfs/go-ipfs/core"
-	commands "github.com/ipfs/go-ipfs/core/commands"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	corehttp "github.com/ipfs/go-ipfs/core/corehttp"
-	corerepo "github.com/ipfs/go-ipfs/core/corerepo"
-	libp2p "github.com/ipfs/go-ipfs/core/node/libp2p"
-	nodeMount "github.com/ipfs/go-ipfs/fuse/node"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations"
-	"github.com/ipfs/go-ipfs/repo/fsrepo/migrations/ipfsfetcher"
+	version "github.com/ipfs/kubo"
+	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
+	oldcmds "github.com/ipfs/kubo/commands"
+	config "github.com/ipfs/kubo/config"
+	cserial "github.com/ipfs/kubo/config/serialize"
+	"github.com/ipfs/kubo/core"
+	commands "github.com/ipfs/kubo/core/commands"
+	"github.com/ipfs/kubo/core/coreapi"
+	corehttp "github.com/ipfs/kubo/core/corehttp"
+	corerepo "github.com/ipfs/kubo/core/corerepo"
+	libp2p "github.com/ipfs/kubo/core/node/libp2p"
+	nodeMount "github.com/ipfs/kubo/fuse/node"
+	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations"
+	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
 	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -293,7 +292,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 		if !domigrate {
 			fmt.Println("Not running migrations of fs-repo now.")
-			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.io")
+			fmt.Println("Please get fs-repo-migrations from https://dist.ipfs.tech")
 			return fmt.Errorf("fs-repo requires migration")
 		}
 
@@ -331,7 +330,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 		if cacheMigrations || pinMigrations {
 			// Create temp directory to store downloaded migration archives
-			migrations.DownloadDirectory, err = ioutil.TempDir("", "migrations")
+			migrations.DownloadDirectory, err = os.MkdirTemp("", "migrations")
 			if err != nil {
 				return err
 			}
@@ -401,10 +400,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type
-		if routingOption == "" {
-			routingOption = routingOptionDHTKwd
-		}
+		routingOption = cfg.Routing.Type.WithDefault(routingOptionDHTKwd)
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
@@ -705,22 +701,23 @@ func printSwarmAddrs(node *core.IpfsNode) {
 		return
 	}
 
-	var lisAddrs []string
 	ifaceAddrs, err := node.PeerHost.Network().InterfaceListenAddresses()
 	if err != nil {
 		log.Errorf("failed to read listening addresses: %s", err)
 	}
-	for _, addr := range ifaceAddrs {
-		lisAddrs = append(lisAddrs, addr.String())
+	lisAddrs := make([]string, len(ifaceAddrs))
+	for i, addr := range ifaceAddrs {
+		lisAddrs[i] = addr.String()
 	}
 	sort.Strings(lisAddrs)
 	for _, addr := range lisAddrs {
 		fmt.Printf("Swarm listening on %s\n", addr)
 	}
 
-	var addrs []string
-	for _, addr := range node.PeerHost.Addrs() {
-		addrs = append(addrs, addr.String())
+	nodePhostAddrs := node.PeerHost.Addrs()
+	addrs := make([]string, len(nodePhostAddrs))
+	for i, addr := range nodePhostAddrs {
+		addrs[i] = addr.String()
 	}
 	sort.Strings(addrs)
 	for _, addr := range addrs {
@@ -801,12 +798,18 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if len(cfg.Gateway.PathPrefixes) > 0 {
-		log.Error("Support for X-Ipfs-Gateway-Prefix and Gateway.PathPrefixes is deprecated and will be removed in the next release. Please comment on the issue if you're using this feature: https://github.com/ipfs/go-ipfs/issues/7702")
+		log.Error("Support for X-Ipfs-Gateway-Prefix and Gateway.PathPrefixes is deprecated and will be removed in the next release. Please comment on the issue if you're using this feature: https://github.com/ipfs/kubo/issues/7702")
 	}
 
 	node, err := cctx.ConstructNode()
 	if err != nil {
 		return nil, fmt.Errorf("serveHTTPGateway: ConstructNode() failed: %s", err)
+	}
+
+	if len(listeners) > 0 {
+		if err := node.Repo.SetGatewayAddr(listeners[0].Addr()); err != nil {
+			return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
+		}
 	}
 
 	errc := make(chan error)
@@ -926,7 +929,7 @@ func printVersion() {
 	if version.CurrentCommit != "" {
 		v += "-" + version.CurrentCommit
 	}
-	fmt.Printf("go-ipfs version: %s\n", v)
+	fmt.Printf("Kubo version: %s\n", v)
 	fmt.Printf("Repo version: %d\n", fsrepo.RepoVersion)
 	fmt.Printf("System version: %s\n", runtime.GOARCH+"/"+runtime.GOOS)
 	fmt.Printf("Golang version: %s\n", runtime.Version())

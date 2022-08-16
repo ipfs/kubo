@@ -321,6 +321,11 @@ type OptionalString struct {
 	value *string
 }
 
+// NewOptionalString returns an OptionalString from a string
+func NewOptionalString(s string) *OptionalString {
+	return &OptionalString{value: &s}
+}
+
 // WithDefault resolves the integer with the given default.
 func (p *OptionalString) WithDefault(defaultValue string) (value string) {
 	if p == nil || p.value == nil {

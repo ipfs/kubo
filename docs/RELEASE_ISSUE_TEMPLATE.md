@@ -1,8 +1,24 @@
-> Release Issue Template
+> Release Issue Template.  If doing a patch release, see [here](https://github.com/ipfs/kubo/blob/master/docs/PATCH_RELEASE_TEMPLATE.md)
 
-# go-ipfs X.Y.Z Release
+# Items to do upon creating the release issue
+- [ ] Fill in the Meta section
+- [ ] Assign the issue to the release owner and reviewer.
+- [ ] Name the issue "Release vX.Y.Z"
+- [ ] Set the proper values for X.Y.Z for
+- [ ] Pin the issue
 
-We're happy to announce go-ipfs X.Y.Z, bla bla...
+# Meta
+* Release owner: @who
+* Release reviewer: @who
+* Expected RC date: week of 2022-MM-DD
+* Expected final release date: 2022-MM-DD
+* Accompanying PR for improving the release process: (example: https://github.com/ipfs/kubo/pull/9100)
+
+See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
+
+# Kubo X.Y.Z Release
+
+We're happy to announce Kubo X.Y.Z, bla bla...
 
 As usual, this release includes important fixes, some of which may be critical for security. Unless the fix addresses a bug being exploited in the wild, the fix will _not_ be called out in the release notes. Please make sure to update ASAP. See our [release process](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md#security-fix-policy) for details.
 
@@ -25,14 +41,17 @@ For each RC published in each stage:
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - new commits should be added to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
 - tag commit with `vX.Y.Z-rcN`
-- upload to dist.ipfs.io
-  1. Build: https://github.com/ipfs/distributions#usage.
-  2. Pin the resulting release.
-  3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
-  4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
-- cut a pre-release on [github](https://github.com/ipfs/go-ipfs/releases) and upload the result of the ipfs/distributions build in the previous step.
+- add artifacts to https://dist.ipfs.tech
+  1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
+  2. Wait for PR to build artifacts and generate diff
+  3. Inspect results, merge if CI is green and the diff looks ok
+  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech
+- cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the ipfs/distributions build in the previous step).
 - Announce the RC:
-  - [ ] On Matrix (both #ipfs and #ipfs-dev)
+  - [ ] 
+    - This will automatically post to IPFS Discord #ipfs-chatter
+    - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
+    - [ ] Pin the topic
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
 
 Checklist:
@@ -41,7 +60,7 @@ Checklist:
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
     - [ ] [ipfs/distributions](https://github.com/ipfs/distributions): bump [this version](https://github.com/ipfs/distributions/blob/master/.tool-versions#L2)
-    - [ ] [ipfs/go-ipfs](https://github.com/ipfs/go-ipfs): [example PR](https://github.com/ipfs/go-ipfs/pull/8599)
+    - [ ] [ipfs/kubo](https://github.com/ipfs/kubo): [example PR](https://github.com/ipfs/kubo/pull/8599)
   - [ ] Fork a new branch (`release-vX.Y.Z`) from `master` and make any further release related changes to this branch. If any "non-trivial" changes (see the footnotes of [docs/releases.md](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md) for a definition) get added to the release, uncheck all the checkboxes and return to this stage.
     - [ ] Follow the RC release process to cut the first RC.
     - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev`.
@@ -89,19 +108,22 @@ Checklist:
       - DO NOT USE `git push --tags`, as it will push ALL of your local tags
       - This should initiate a Docker build in GitHub Actions that publishes a `vX.Y.Z` tagged Docker image to DockerHub
     - [ ] Release published
-      - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
-      - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
-      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs)
+      - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
+      - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (done by CI at [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
+      - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (done by CI at [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
          - [ ] Manually run [the release workflow](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml)
          - [ ] Wait for Chocolatey to approve the release (usually takes a few hours)
-      - [ ] to [snap](https://snapcraft.io/ipfs)
+      - [ ] to [snap](https://snapcraft.io/ipfs) (done CI at [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
       - [ ] to [github](https://github.com/ipfs/go-ipfs/releases)
         - [ ] After publishing the GitHub release, run the workflow to attach the release assets: https://github.com/ipfs/go-ipfs/actions/workflows/sync-release-assets.yml
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
-  - [ ] Submit [this form](https://airtable.com/shrNH8YWole1xc70I) to publish a blog post, linking to the GitHub release notes
-  - [ ] Broadcasting
-    - [ ] Twitter (request in Slack channel #pl-marketing-requests)
+  - [ ] Get a blog post created 
+    - [Submit a request using this form](https://airtable.com/shrNH8YWole1xc70I).
+    - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form gets spam).
+    - Don't mark this as done until the blog entry is live.
+  - [ ] Broadcasting (link to blog post)
+    - [ ] Twitter (request in Filecoin Slack channel #shared-pl-marketing-requests)
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
       - A bot auto-posts this to Discord and Matrix
@@ -110,8 +132,7 @@ Checklist:
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
   - [ ] Mark PR draft created for IPFS Desktop as ready for review.
-
-
+  
 ## ⁉️ Do you have questions?
 
 The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
@@ -134,7 +155,7 @@ The best place to ask your questions about IPFS, how it works and what you can d
 
 Would you like to contribute to the IPFS project and don't know how? Well, there are a few places you can get started:
 
-- Check the issues with the `help wanted` label in the [go-ipfs repo](https://github.com/ipfs/go-ipfs/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
+- Check the issues with the `help wanted` label in the [ipfs/kubo repo](https://github.com/ipfs/kubo/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
 - Join an IPFS All Hands, introduce yourself and let us know where you would like to contribute - https://github.com/ipfs/team-mgmt/#weekly-ipfs-all-hands
 - Hack with IPFS and show us what you made! The All Hands call is also the perfect venue for demos, join in and show us what you built
 - Join the discussion at [discuss.ipfs.io](https://discuss.ipfs.io/) and help users finding their answers.

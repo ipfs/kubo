@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	version "github.com/ipfs/go-ipfs"
 	"github.com/ipfs/go-log"
+	version "github.com/ipfs/kubo"
 )
 
 const (
@@ -125,13 +125,13 @@ func (p *profiler) runProfile(ctx context.Context) error {
 	ctx, cancelFn := context.WithCancel(ctx)
 	defer cancelFn()
 
-	var collectorsToRun []collector
-	for _, name := range p.opts.Collectors {
+	collectorsToRun := make([]collector, len(p.opts.Collectors))
+	for i, name := range p.opts.Collectors {
 		c, ok := collectors[name]
 		if !ok {
 			return fmt.Errorf("unknown collector '%s'", name)
 		}
-		collectorsToRun = append(collectorsToRun, c)
+		collectorsToRun[i] = c
 	}
 
 	results := make(chan profileResult, len(p.opts.Collectors))

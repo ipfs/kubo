@@ -8,38 +8,38 @@ define go-build-testdep
 	$(GOCC) build $(go-flags-with-tags) -o "$${OUT}" "$<"
 endef
 
-.PHONY: github.com/ipfs/go-ipfs/test/dependencies/pollEndpoint
-$(d)/pollEndpoint: github.com/ipfs/go-ipfs/test/dependencies/pollEndpoint
+.PHONY: github.com/ipfs/kubo/test/dependencies/pollEndpoint
+$(d)/pollEndpoint: github.com/ipfs/kubo/test/dependencies/pollEndpoint
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/pollEndpoint
 
-.PHONY: github.com/ipfs/go-ipfs/test/dependencies/go-sleep
-$(d)/go-sleep: github.com/ipfs/go-ipfs/test/dependencies/go-sleep
+.PHONY: github.com/ipfs/kubo/test/dependencies/go-sleep
+$(d)/go-sleep: github.com/ipfs/kubo/test/dependencies/go-sleep
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/go-sleep
 
-.PHONY: github.com/ipfs/go-ipfs/test/dependencies/graphsync-get
-$(d)/graphsync-get: github.com/ipfs/go-ipfs/test/dependencies/graphsync-get
+.PHONY: github.com/ipfs/kubo/test/dependencies/graphsync-get
+$(d)/graphsync-get: github.com/ipfs/kubo/test/dependencies/graphsync-get
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/graphsync-get
 
-.PHONY: github.com/ipfs/go-ipfs/test/dependencies/go-timeout
-$(d)/go-timeout: github.com/ipfs/go-ipfs/test/dependencies/go-timeout
+.PHONY: github.com/ipfs/kubo/test/dependencies/go-timeout
+$(d)/go-timeout: github.com/ipfs/kubo/test/dependencies/go-timeout
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/go-timeout
 
-.PHONY: github.com/ipfs/go-ipfs/test/dependencies/iptb
-$(d)/iptb: github.com/ipfs/go-ipfs/test/dependencies/iptb
+.PHONY: github.com/ipfs/kubo/test/dependencies/iptb
+$(d)/iptb: github.com/ipfs/kubo/test/dependencies/iptb
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/iptb
 
-.PHONY: github.com/ipfs/go-ipfs/test/dependencies/ma-pipe-unidir
-$(d)/ma-pipe-unidir: github.com/ipfs/go-ipfs/test/dependencies/ma-pipe-unidir
+.PHONY: github.com/ipfs/kubo/test/dependencies/ma-pipe-unidir
+$(d)/ma-pipe-unidir: github.com/ipfs/kubo/test/dependencies/ma-pipe-unidir
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/ma-pipe-unidir
 
-.PHONY: github.com/ipfs/go-ipfs/test/dependencies/json-to-junit
-$(d)/json-to-junit: github.com/ipfs/go-ipfs/test/dependencies/json-to-junit
+.PHONY: github.com/ipfs/kubo/test/dependencies/json-to-junit
+$(d)/json-to-junit: github.com/ipfs/kubo/test/dependencies/json-to-junit
 	$(go-build-testdep)
 TGTS_$(d) += $(d)/json-to-junit
 

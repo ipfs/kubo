@@ -11,11 +11,12 @@ on:
 
 jobs:
   push_to_registry:
-    if: github.repository == 'ipfs/go-ipfs' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: ipfs/go-ipfs
+      IMAGE_NAME: ipfs/kubo
+      LEGACY_IMAGE_NAME: ipfs/go-ipfs
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2

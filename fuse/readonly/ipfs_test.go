@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
@@ -19,9 +18,9 @@ import (
 
 	"bazil.org/fuse"
 
-	core "github.com/ipfs/go-ipfs/core"
-	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
-	coremock "github.com/ipfs/go-ipfs/core/mock"
+	core "github.com/ipfs/kubo/core"
+	coreapi "github.com/ipfs/kubo/core/coreapi"
+	coremock "github.com/ipfs/kubo/core/mock"
 
 	fstest "bazil.org/fuse/fs/fstestutil"
 	chunker "github.com/ipfs/go-ipfs-chunker"
@@ -91,7 +90,7 @@ func TestIpfsBasicRead(t *testing.T) {
 	fi, data := randObj(t, nd, 10000)
 	k := fi.Cid()
 	fname := path.Join(mnt.Dir, k.String())
-	rbuf, err := ioutil.ReadFile(fname)
+	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +189,7 @@ func TestIpfsStressRead(t *testing.T) {
 				relpath := strings.Replace(item.String(), item.Namespace(), "", 1)
 				fname := path.Join(mnt.Dir, relpath)
 
-				rbuf, err := ioutil.ReadFile(fname)
+				rbuf, err := os.ReadFile(fname)
 				if err != nil {
 					errs <- err
 				}
@@ -204,7 +203,7 @@ func TestIpfsStressRead(t *testing.T) {
 					errs <- err
 				}
 
-				data, err := ioutil.ReadAll(read.(files.File))
+				data, err := io.ReadAll(read.(files.File))
 				if err != nil {
 					errs <- err
 				}
@@ -260,12 +259,12 @@ func TestIpfsBasicDirRead(t *testing.T) {
 
 	dirname := path.Join(mnt.Dir, d1nd.Cid().String())
 	fname := path.Join(dirname, "actual")
-	rbuf, err := ioutil.ReadFile(fname)
+	rbuf, err := os.ReadFile(fname)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dirents, err := ioutil.ReadDir(dirname)
+	dirents, err := os.ReadDir(dirname)
 	if err != nil {
 		t.Fatal(err)
 	}

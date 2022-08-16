@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -15,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	config "github.com/ipfs/go-ipfs/config"
+	config "github.com/ipfs/kubo/config"
 )
 
 const (
@@ -63,7 +62,7 @@ func RunMigration(ctx context.Context, fetcher Fetcher, targetVer int, ipfsDir s
 
 		logger.Println("Need", len(missing), "migrations, downloading.")
 
-		tmpDir, err := ioutil.TempDir("", "migrations")
+		tmpDir, err := os.MkdirTemp("", "migrations")
 		if err != nil {
 			return err
 		}

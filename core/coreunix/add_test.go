@@ -4,16 +4,15 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/gc"
-	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/gc"
+	"github.com/ipfs/kubo/repo"
 
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
@@ -23,9 +22,9 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	files "github.com/ipfs/go-ipfs-files"
 	pi "github.com/ipfs/go-ipfs-posinfo"
-	config "github.com/ipfs/go-ipfs/config"
 	dag "github.com/ipfs/go-merkledag"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
+	config "github.com/ipfs/kubo/config"
 )
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
@@ -282,7 +281,7 @@ func testAddWPosInfo(t *testing.T, rawLeaves bool) {
 
 	data := make([]byte, 5*1024*1024)
 	rand.New(rand.NewSource(2)).Read(data) // Rand.Read never returns an error
-	fileData := ioutil.NopCloser(bytes.NewBuffer(data))
+	fileData := io.NopCloser(bytes.NewBuffer(data))
 	fileInfo := dummyFileInfo{"foo.txt", int64(len(data)), time.Now()}
 	file, _ := files.NewReaderPathFile(filepath.Join(os.TempDir(), "foo.txt"), fileData, &fileInfo)
 

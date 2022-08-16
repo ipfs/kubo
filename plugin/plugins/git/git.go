@@ -4,7 +4,7 @@ import (
 	"compress/zlib"
 	"io"
 
-	"github.com/ipfs/go-ipfs/plugin"
+	"github.com/ipfs/kubo/plugin"
 
 	// Note that depending on this package registers it's multicodec encoder and decoder.
 	git "github.com/ipfs/go-ipld-git"

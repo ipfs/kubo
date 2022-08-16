@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/ipfs/go-ipfs/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdenv"
 
 	"github.com/cheggaaa/pb"
 	"github.com/ipfs/go-ipfs-cmds"

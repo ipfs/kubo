@@ -128,7 +128,7 @@ var base32Cmd = &cmds.Command{
 	Helptext: cmds.HelpText{
 		Tagline: "Convert CIDs to Base32 CID version 1.",
 		ShortDescription: `
-'ipfs cid base32' normalizes passes CIDs to their canonical case-insensitive encoding.
+'ipfs cid base32' normalizes passed CIDs to their canonical case-insensitive encoding.
 Useful when processing third-party CIDs which could come with arbitrary formats.
 `,
 	},
@@ -291,11 +291,11 @@ var basesCmd = &cmds.Command{
 				}
 				switch {
 				case prefixes && numeric:
-					fmt.Fprintf(w, "%c %5d  %s\n", code, v.Code, v.Name)
+					fmt.Fprintf(w, "%c %7d  %s\n", code, v.Code, v.Name)
 				case prefixes:
 					fmt.Fprintf(w, "%c  %s\n", code, v.Name)
 				case numeric:
-					fmt.Fprintf(w, "%5d  %s\n", v.Code, v.Name)
+					fmt.Fprintf(w, "%7d  %s\n", v.Code, v.Name)
 				default:
 					fmt.Fprintf(w, "%s\n", v.Name)
 				}

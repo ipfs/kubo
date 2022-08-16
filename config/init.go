@@ -43,13 +43,12 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		Identity:  identity,
 		Discovery: Discovery{
 			MDNS: MDNS{
-				Enabled:  true,
-				Interval: 10,
+				Enabled: true,
 			},
 		},
 
 		Routing: Routing{
-			Type: "dht",
+			Type: NewOptionalString("dht"),
 		},
 
 		// setup the node mount points.

@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"testing"
 
 	bserv "github.com/ipfs/go-blockservice"
-	core "github.com/ipfs/go-ipfs/core"
 	merkledag "github.com/ipfs/go-merkledag"
 	ft "github.com/ipfs/go-unixfs"
 	importer "github.com/ipfs/go-unixfs/importer"
 	uio "github.com/ipfs/go-unixfs/io"
+	core "github.com/ipfs/kubo/core"
 
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
@@ -87,7 +86,7 @@ func TestMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, err := ioutil.ReadAll(ndr)
+	out, err := io.ReadAll(ndr)
 	if err != nil {
 		t.Fatal(err)
 	}

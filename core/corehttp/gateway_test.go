@@ -3,7 +3,7 @@ package corehttp
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -11,20 +11,20 @@ import (
 	"testing"
 	"time"
 
-	version "github.com/ipfs/go-ipfs"
-	core "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
-	repo "github.com/ipfs/go-ipfs/repo"
 	namesys "github.com/ipfs/go-namesys"
+	version "github.com/ipfs/kubo"
+	core "github.com/ipfs/kubo/core"
+	"github.com/ipfs/kubo/core/coreapi"
+	repo "github.com/ipfs/kubo/repo"
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	files "github.com/ipfs/go-ipfs-files"
-	config "github.com/ipfs/go-ipfs/config"
 	path "github.com/ipfs/go-path"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	config "github.com/ipfs/kubo/config"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
@@ -235,8 +235,8 @@ func TestGatewayGet(t *testing.T) {
 		{"127.0.0.1:8080", "/", http.StatusNotFound, "404 page not found\n"},
 		{"127.0.0.1:8080", "/" + k.Cid().String(), http.StatusNotFound, "404 page not found\n"},
 		{"127.0.0.1:8080", k.String(), http.StatusOK, "fnord"},
-		{"127.0.0.1:8080", "/ipns/nxdomain.example.com", http.StatusNotFound, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"127.0.0.1:8080", "/ipns/%0D%0A%0D%0Ahello", http.StatusNotFound, "ipfs resolve -r /ipns/\\r\\n\\r\\nhello: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"127.0.0.1:8080", "/ipns/nxdomain.example.com", http.StatusBadRequest, "ipfs resolve -r /ipns/nxdomain.example.com: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"127.0.0.1:8080", "/ipns/%0D%0A%0D%0Ahello", http.StatusBadRequest, "ipfs resolve -r /ipns/\\r\\n\\r\\nhello: " + namesys.ErrResolveFailed.Error() + "\n"},
 		{"127.0.0.1:8080", "/ipns/example.com", http.StatusOK, "fnord"},
 		{"example.com", "/", http.StatusOK, "fnord"},
 
@@ -244,8 +244,8 @@ func TestGatewayGet(t *testing.T) {
 		{"double.example.com", "/", http.StatusOK, "fnord"},
 		{"triple.example.com", "/", http.StatusOK, "fnord"},
 		{"working.example.com", k.String(), http.StatusNotFound, "ipfs resolve -r /ipns/working.example.com" + k.String() + ": no link named \"ipfs\" under " + k.Cid().String() + "\n"},
-		{"broken.example.com", "/", http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
-		{"broken.example.com", k.String(), http.StatusNotFound, "ipfs resolve -r /ipns/broken.example.com" + k.String() + ": " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"broken.example.com", "/", http.StatusBadRequest, "ipfs resolve -r /ipns/broken.example.com/: " + namesys.ErrResolveFailed.Error() + "\n"},
+		{"broken.example.com", k.String(), http.StatusBadRequest, "ipfs resolve -r /ipns/broken.example.com" + k.String() + ": " + namesys.ErrResolveFailed.Error() + "\n"},
 		// This test case ensures we don't treat the TLD as a file extension.
 		{"example.man", "/", http.StatusOK, "fnord"},
 	} {
@@ -267,7 +267,7 @@ func TestGatewayGet(t *testing.T) {
 		if contentType != "text/plain; charset=utf-8" {
 			t.Errorf("expected content type to be text/plain, got %s", contentType)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if resp.StatusCode != test.status {
 			t.Errorf("(%d) got %d, expected %d from %s", i, resp.StatusCode, test.status, urlstr)
 			t.Errorf("Body: %s", body)
@@ -335,7 +335,7 @@ func TestPretty404(t *testing.T) {
 		if resp.StatusCode != test.status {
 			t.Fatalf("got %d, expected %d, from %s", resp.StatusCode, test.status, test.path)
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatalf("error reading response from %s: %s", test.path, err)
 		}
@@ -380,9 +380,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// expect 302 redirect to same path, but with trailing slash
-	if res.StatusCode != 302 {
-		t.Errorf("status is %d, expected 302", res.StatusCode)
+	// expect 301 redirect to same path, but with trailing slash
+	if res.StatusCode != 301 {
+		t.Errorf("status is %d, expected 301", res.StatusCode)
 	}
 	hdr := res.Header["Location"]
 	if len(hdr) < 1 {
@@ -403,9 +403,9 @@ func TestIPNSHostnameRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// expect 302 redirect to same path, but with prefix and trailing slash
-	if res.StatusCode != 302 {
-		t.Errorf("status is %d, expected 302", res.StatusCode)
+	// expect 301 redirect to same path, but with prefix and trailing slash
+	if res.StatusCode != 301 {
+		t.Errorf("status is %d, expected 301", res.StatusCode)
 	}
 	hdr = res.Header["Location"]
 	if len(hdr) < 1 {
@@ -482,7 +482,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// expect correct links
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}
@@ -492,7 +492,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/./..\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/file.txt\">") {
@@ -519,7 +519,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// expect correct backlinks at root
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}
@@ -529,8 +529,8 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !matchPathOrBreadcrumbs(s, "/") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/\">") {
-		t.Fatalf("expected backlink in directory listing")
+	if strings.Contains(s, "<a href=\"/\">") {
+		t.Fatalf("expected no backlink in directory listing of the root CID")
 	}
 	if !strings.Contains(s, "<a href=\"/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
@@ -556,7 +556,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	}
 
 	// expect correct backlinks
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}
@@ -566,7 +566,7 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !matchPathOrBreadcrumbs(s, "/ipns/<a href=\"//example.net/\">example.net</a>/<a href=\"//example.net/foo%3F%20%23%3C%27\">foo? #&lt;&#39;</a>/<a href=\"//example.net/foo%3F%20%23%3C%27/bar\">bar</a>") {
 		t.Fatalf("expected a path in directory listing")
 	}
-	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/./..\">") {
+	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/..\">") {
 		t.Fatalf("expected backlink in directory listing")
 	}
 	if !strings.Contains(s, "<a href=\"/foo%3F%20%23%3C%27/bar/file.txt\">") {
@@ -638,7 +638,7 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("error reading response: %s", err)
 	}
