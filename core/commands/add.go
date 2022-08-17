@@ -116,7 +116,7 @@ IPFS software to use the same import parameters as Kubo.
 
 If you need to back up or transport content-addressed data using a non-IPFS
 medium, CID can be preserved with CAR files.
-See 'ipfs dag export' and 'dag import' for more information.
+See 'dag export' and 'dag import' for more information.
 `,
 	},
 
