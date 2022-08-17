@@ -25,7 +25,6 @@ import (
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
@@ -69,8 +68,8 @@ type redirectTemplateData struct {
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
 	config     GatewayConfig
-	api        coreiface.CoreAPI
-	offlineApi coreiface.CoreAPI
+	api        NodeAPI
+	offlineApi NodeAPI
 
 	// generic metrics
 	firstContentBlockGetMetric *prometheus.HistogramVec
@@ -214,11 +213,13 @@ func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVe
 	return histogramMetric
 }
 
-func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) (*gatewayHandler, error) {
-	offlineApi, err := api.WithOptions(options.Api.Offline(true))
-	if err != nil {
-		return nil, err
-	}
+// NewGatewayHandler returns an http.Handler that can act as a gateway to IPFS content
+// offlineApi is a version of the API that should not make network requests for missing data
+func NewGatewayHandler(c GatewayConfig, api NodeAPI, offlineApi NodeAPI) http.Handler {
+	return newGatewayHandler(c, api, offlineApi)
+}
+
+func newGatewayHandler(c GatewayConfig, api NodeAPI, offlineApi NodeAPI) *gatewayHandler {
 	i := &gatewayHandler{
 		config:     c,
 		api:        api,
@@ -263,7 +264,7 @@ func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) (*gatewayHandler,
 			"The time to receive the first UnixFS node on a GET from the gateway.",
 		),
 	}
-	return i, nil
+	return i
 }
 
 func parseIpfsPath(p string) (cid.Cid, string, error) {
