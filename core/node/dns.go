@@ -16,6 +16,22 @@ import (
 var defaultResolvers = map[string]string{
 	"eth.":    "https://resolver.cloudflare-eth.com/dns-query",
 	"crypto.": "https://resolver.cloudflare-eth.com/dns-query",
+	//OpenNIC domains.
+	"bbs.": "https://opennic1.eth-services.de:853/",
+	"chan.": "https://opennic1.eth-services.de:853/",
+	"cyb.": "https://opennic1.eth-services.de:853/",
+	"dyn.": "https://opennic1.eth-services.de:853/",
+	"geek.": "https://opennic1.eth-services.de:853/",
+	"gopher.": "https://opennic1.eth-services.de:853/",
+	"indy.": "https://opennic1.eth-services.de:853/",
+	"libre.": "https://opennic1.eth-services.de:853/",
+	"neo.": "https://opennic1.eth-services.de:853/",
+	"null.": "https://opennic1.eth-services.de:853/",
+	"o.": "https://opennic1.eth-services.de:853/",
+	"oss.": "https://opennic1.eth-services.de:853/",
+	"oz.": "https://opennic1.eth-services.de:853/",
+	"parody.": "https://opennic1.eth-services.de:853/",
+	"pirate.": "https://opennic1.eth-services.de:853/",
 }
 
 func newResolver(url string, opts ...doh.Option) (madns.BasicResolver, error) {
