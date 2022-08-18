@@ -1253,7 +1253,8 @@ Type: `duration`
 ### `Reprovider.Strategy`
 
 Tells reprovider what should be announced. Valid strategies are:
-Some options have better privacy than others.
+
+*Some options have better privacy than others.*
 
 - `"all"` - announce all CIDs of stored blocks
 - `"pinned"` - only announce pinned CIDs recursively (both roots and child blocks)
