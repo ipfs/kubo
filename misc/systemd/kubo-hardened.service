@@ -51,7 +51,7 @@ CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 # enable for 1-1024 port listening
 #AmbientCapabilities=CAP_NET_BIND_SERVICE 
 # enable to specify a custom path see docs/environment-variables.md for further documentations
-#Environment=IPFS_PATH=/custom/kubo/path
+#Environment=IPFS_PATH=/custom/kubo-repo/path
 # enable to specify a higher limit for open files/connections
 #LimitNOFILE=1000000
 
