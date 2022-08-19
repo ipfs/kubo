@@ -2,6 +2,8 @@
 #
 test_description="Test ipfs swarm ResourceMgr config and commands"
 
+export IPFS_CHECK_RCMGR_DEFAULTS=1
+
 . lib/test-lib.sh
 
 test_init_ipfs
@@ -145,5 +147,55 @@ test_expect_success 'Set limit for peer scope with an invalid peer ID' '
 '
 
 test_kill_ipfs_daemon
+
+## Test allowlist
+
+test_expect_success 'init iptb' '
+  iptb testbed create -type localipfs -count 3 -init
+'
+
+test_expect_success 'peer ids' '
+  PEERID_0=$(iptb attr get 0 id) &&
+  PEERID_1=$(iptb attr get 1 id) &&
+  PEERID_2=$(iptb attr get 2 id)
+'
+
+#enable resource manager
+test_expect_success 'enable RCMGR' '
+  ipfsi 0 config --bool Swarm.ResourceMgr.Enabled true &&
+  ipfsi 0 config --json Swarm.ResourceMgr.Allowlist "[\"/ip4/0.0.0.0/ipcidr/0/p2p/$PEERID_2\"]"
+'
+
+test_expect_success 'start nodes' '
+  iptb start -wait [0-2]
+'
+
+test_expect_success "change system limits on node 0" '
+ ipfsi 0 swarm limit system | jq ". + {Conns: 0,ConnsInbound: 0, ConnsOutbound: 0}" > system.json &&
+ ipfsi 0 swarm limit system system.json
+'
+
+test_expect_success "node 0 fails to connect to 1" '
+  test_expect_code 1 iptb connect 0 1
+'
+
+test_expect_success "node 0 connects to 2 because it's allowlisted" '
+  iptb connect 0 2
+'
+
+test_expect_success "node 0 fails to ping 1" '
+  test_expect_code 1 ipfsi 0 ping -n2 -- "$PEERID_1" 2> actual &&
+  test_should_contain "Error: ping failed" actual
+'
+
+test_expect_success "node 1 can ping 2" '
+  ipfsi 0 ping -n2 -- "$PEERID_2"
+'
+
+test_expect_success 'stop iptb' '
+  iptb stop 0 &&
+  iptb stop 1 &&
+  iptb stop 2
+'
 
 test_done

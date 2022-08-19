@@ -141,6 +141,7 @@ config file at runtime.
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
+      - [`Swarm.ResourceMgr.Allowlist`](#swarmresourcemgrallowlist)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -1347,7 +1348,7 @@ Reframe:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
   - `Priority` (optional): Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
 
-**Example:**
+**Examples:**
 
 To add router provided by _Store the Index_ team at [cid.contact](https://cid.contact):
 
@@ -1360,7 +1361,7 @@ $ ipfs config Routing.Routers.CidContact --json '{
 }'
 ```
 
-Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node.
+Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node. Protocol Labs provides a public instance at `https://routing.delegate.ipfs.io/reframe`.
 
 Default: `{}` (use the safe implicit defaults)
 
@@ -1718,6 +1719,8 @@ and tracking recource usage over time.
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
 
+Various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+
 Default: `false`
 
 Type: `flag`
@@ -1765,6 +1768,14 @@ Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->object]`
 
+#### `Swarm.ResourceMgr.Allowlist`
+
+A list of multiaddrs that can bypass normal system limits (but are still limited by the allowlist scope).
+Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p-resource-manager#Allowlist.Add).
+
+Default: `[]`
+
+Type: `array[string]` (multiaddrs)
 
 ### `Swarm.Transports`
 

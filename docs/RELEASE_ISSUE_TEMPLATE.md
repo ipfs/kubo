@@ -4,14 +4,14 @@
 - [ ] Fill in the Meta section
 - [ ] Assign the issue to the release owner and reviewer.
 - [ ] Name the issue "Release vX.Y.Z"
-- [ ] Set the proper values for X.Y.Z for
+- [ ] Set the proper values for X.Y.Z
 - [ ] Pin the issue
 
 # Meta
 * Release owner: @who
 * Release reviewer: @who
 * Expected RC date: week of 2022-MM-DD
-* Expected final release date: 2022-MM-DD
+* 🚢 Expected final release date: 2022-MM-DD
 * Accompanying PR for improving the release process: (example: https://github.com/ipfs/kubo/pull/9100)
 
 See the [Kubo release process](https://pl-strflt.notion.site/Kubo-Release-Process-5a5d066264704009a28a79cff93062c4) for more info.
@@ -25,10 +25,6 @@ As usual, this release includes important fixes, some of which may be critical f
 ## 🗺 What's left for release
 
 <List of items with PRs and/or Issues to be considered for this release>
-
-# 🚢 Estimated shipping date
-
-<Date this release will ship on if everything goes to plan (week beginning...)>
 
 ## 🔦 Highlights
 
