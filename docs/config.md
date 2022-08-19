@@ -1261,6 +1261,7 @@ Tells reprovider what should be announced. Valid strategies are:
 - `"roots"` - only announce the root block of explicitly pinned CIDs (offers the best privacy)
 
 **DISCLAIMER: Assume that your CIDs are public information regardless of the option you choose.**
+
 Learn more on [IPFS Docs](https://docs.ipfs.tech/concepts/privacy-and-encryption/)
 
 Default: `"all"`
