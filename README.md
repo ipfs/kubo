@@ -110,12 +110,9 @@ If your system is resource-constrained, we recommend:
 
 ### Docker
 
-[![Docker Image Version (legacy name)](https://img.shields.io/docker/v/ipfs/go-ipfs?color=blue&label=go-ipfs%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/go-ipfs/)
-<!-- TODO: replace with kubo after we have minimum set of images after kubo 0.14 (stable semver release, 'latest' and 'release' docker tags)
 [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ipfs/kubo?color=blue&label=kubo%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/kubo/)
--->
 
-More info on how to run kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.tech/how-to/run-ipfs-inside-docker/).
+More info on how to run Kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.tech/how-to/run-ipfs-inside-docker/).
 
 ### Native Linux package managers
 
