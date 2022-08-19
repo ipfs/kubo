@@ -2,7 +2,7 @@
 # config.
 
 [Unit]
-Description=Kubo's API Socket
+Description=Kubo's RPC API Socket
 
 [Socket]
 Service=kubo.service
