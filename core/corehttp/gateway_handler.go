@@ -24,7 +24,6 @@ import (
 	mfs "github.com/ipfs/go-mfs"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
