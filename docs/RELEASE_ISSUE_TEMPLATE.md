@@ -48,7 +48,7 @@ For each RC published in each stage:
   - [ ] Create a new post on [Discuss](https://discuss.ipfs.io)
     - This will automatically post to IPFS Discord #ipfs-chatter
     - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
-    - [ ] Pin the topic. You need admin privileges for that.
+  - [ ] Pin the topic. You need admin privileges for that.
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
 
 Checklist:
