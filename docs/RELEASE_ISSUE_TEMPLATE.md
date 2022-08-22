@@ -36,18 +36,19 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - new commits should be added to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
+- `release-` branches are protected. You can do all needed updates on a separated branch and when everything is settled push to `release-vX.Y.Z`
 - tag commit with `vX.Y.Z-rcN`
 - add artifacts to https://dist.ipfs.tech
   1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
-  2. Wait for PR to build artifacts and generate diff
+  2. Wait for PR to build artifacts and generate diff (~30min)
   3. Inspect results, merge if CI is green and the diff looks ok
-  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech
+  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech (~30min)
 - cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the ipfs/distributions build in the previous step).
 - Announce the RC:
-  - [ ] 
+  - [ ] Create a new post on [Discuss](https://discuss.ipfs.io)
     - This will automatically post to IPFS Discord #ipfs-chatter
     - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
-    - [ ] Pin the topic
+    - [ ] Pin the topic. You need admin privileges for that.
   - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
 
 Checklist:
