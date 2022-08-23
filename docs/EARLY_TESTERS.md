@@ -26,8 +26,6 @@ We will ask early testers to participate at two points in the process:
 - [ ] Infura (@MichaelMure)
 - [ ] Textile (@sanderpick)
 - [ ] Pinata (@obo20)
-- [ ] RTrade (@postables)
-- [ ] QRI (@b5)
 - [ ] Siderus (@koalalorenzo)
 - [ ] Charity Engine (@rytiss, @tristanolive)
 - [ ] Fission (@bmann)
