@@ -62,7 +62,7 @@ Checklist:
     - [ ] Follow the RC release process to cut the first RC.
     - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev`.
   - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
-    - [ ] unit, sharness, cross-build, etc (`TEST_NO_FUSE=1 make test`)
+    - [ ] unit, sharness, cross-build, etc (`make test`)
     - [ ] lint (`make test_go_lint`)
     - [ ] [interop](https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs)
     - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
