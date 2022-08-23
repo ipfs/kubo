@@ -36,7 +36,7 @@ For each RC published in each stage:
 
 - version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
 - new commits should be added to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
-- `release-` branches are protected. You can do all needed updates on a separated branch and when everything is settled push to `release-vX.Y.Z`
+  - `release-` branches are protected. You can do all needed updates on a separated branch and when everything is settled push to `release-vX.Y.Z`
 - tag commit with `vX.Y.Z-rcN`
 - add artifacts to https://dist.ipfs.tech
   1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
