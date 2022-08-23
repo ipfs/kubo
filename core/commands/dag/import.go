@@ -8,6 +8,7 @@ import (
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	ipld "github.com/ipfs/go-ipld-format"
+	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	iface "github.com/ipfs/interface-go-ipfs-core"
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
@@ -90,7 +91,7 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
 				ret.PinErrorMsg = err.Error()
-			} else if nd, err := ipld.Decode(block); err != nil {
+			} else if nd, err := ipldlegacy.DecodeNode(req.Context, block); err != nil {
 				ret.PinErrorMsg = err.Error()
 			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
 				ret.PinErrorMsg = err.Error()
@@ -181,7 +182,7 @@ func importWorker(req *cmds.Request, re cmds.ResponseEmitter, api iface.CoreAPI,
 				}
 
 				// the double-decode is suboptimal, but we need it for batching
-				nd, err := ipld.Decode(block)
+				nd, err := ipldlegacy.DecodeNode(req.Context, block)
 				if err != nil {
 					return err
 				}
