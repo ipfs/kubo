@@ -37,7 +37,7 @@ default_environment: &default_environment
 executors:
   golang:
     docker:
-      - image: cimg/go:1.18.3
+      - image: cimg/go:1.18.5
     working_directory: ~/ipfs/kubo
     environment:
       <<: *default_environment
@@ -62,7 +62,7 @@ executors:
       E2E_IPFSD_TYPE: go
   dockerizer:
     docker:
-      - image: cimg/go:1.18.3
+      - image: cimg/go:1.18.5
     environment:
       IMAGE_NAME: ipfs/kubo
       WIP_IMAGE_TAG: wip
@@ -156,8 +156,8 @@ jobs:
     - run: sudo apt update
     - run: |
         mkdir ~/localgo && cd ~/localgo
-        wget https://golang.org/dl/go1.18.3.linux-amd64.tar.gz
-        tar xfz go1.18.3.linux-amd64.tar.gz
+        wget https://golang.org/dl/go1.18.5.linux-amd64.tar.gz
+        tar xfz go1.18.5.linux-amd64.tar.gz
         echo "export PATH=$(pwd)/go/bin:\$PATH" >> ~/.bashrc
     - run: go version
     - run: sudo apt install socat net-tools
@@ -223,7 +223,7 @@ jobs:
       - *store_gomod
   interop:
     docker:
-      - image: cimg/go:1.18.3-node
+      - image: cimg/go:1.18.5-node
     parallelism: 4
     resource_class: large
     steps:
