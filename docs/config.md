@@ -1262,7 +1262,7 @@ Tells reprovider what should be announced. Valid strategies are:
 
 **DISCLAIMER: Assume that your CIDs are public information regardless of the option you choose.**
 
-Learn more on [IPFS Docs](https://docs.ipfs.tech/concepts/privacy-and-encryption/)
+Learn more about privacy and encryption on [IPFS Docs](https://docs.ipfs.tech/concepts/privacy-and-encryption/)
 
 Default: `"all"`
 
