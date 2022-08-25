@@ -69,7 +69,7 @@ func (keyOpts) Type(algorithm string) KeyGenerateOption {
 // generated. Default is -1
 //
 // value of -1 means 'use default size for key type':
-//  * 2048 for RSA
+//   - 2048 for RSA
 func (keyOpts) Size(size int) KeyGenerateOption {
 	return func(settings *KeyGenerateSettings) error {
 		settings.Size = size

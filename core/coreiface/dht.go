@@ -2,6 +2,7 @@ package iface
 
 import (
 	"context"
+
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"

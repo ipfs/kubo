@@ -2,11 +2,12 @@ package iface
 
 import (
 	"context"
+
 	"github.com/ipfs/interface-go-ipfs-core/options"
 	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs-files"
+	files "github.com/ipfs/go-ipfs-files"
 )
 
 type AddEvent struct {

@@ -113,7 +113,6 @@ func (nameOpts) Cache(cache bool) NameResolveOption {
 	}
 }
 
-//
 func (nameOpts) ResolveOption(opt ropts.ResolveOpt) NameResolveOption {
 	return func(settings *NameResolveSettings) error {
 		settings.ResolveOpts = append(settings.ResolveOpts, opt)

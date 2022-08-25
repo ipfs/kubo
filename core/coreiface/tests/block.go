@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -211,7 +210,7 @@ func (tp *TestSuite) TestBlockGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d, err := ioutil.ReadAll(r)
+	d, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +248,7 @@ func (tp *TestSuite) TestBlockRm(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d, err := ioutil.ReadAll(r)
+	d, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}

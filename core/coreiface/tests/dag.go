@@ -2,11 +2,12 @@ package tests
 
 import (
 	"context"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 	"math"
 	gopath "path"
 	"strings"
 	"testing"
+
+	path "github.com/ipfs/interface-go-ipfs-core/path"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 

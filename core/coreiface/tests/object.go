@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"io/ioutil"
+	"io"
 	"strings"
 	"testing"
 
-	"github.com/ipfs/interface-go-ipfs-core"
+	iface "github.com/ipfs/interface-go-ipfs-core"
 	opt "github.com/ipfs/interface-go-ipfs-core/options"
 )
 
@@ -143,7 +143,7 @@ func (tp *TestSuite) TestObjectData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -383,7 +383,7 @@ func (tp *TestSuite) TestObjectAddData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +416,7 @@ func (tp *TestSuite) TestObjectSetData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}

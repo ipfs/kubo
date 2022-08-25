@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/rand"
 	"os"
@@ -113,7 +112,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 		return path.IpfsPath(c)
 	}
 
-	rf, err := ioutil.TempFile(os.TempDir(), "unixfs-add-real")
+	rf, err := os.CreateTemp(os.TempDir(), "unixfs-add-real")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +133,7 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 	defer os.Remove(rfp)
 
 	realFile := func() files.Node {
-		n, err := files.NewReaderPathFile(rfp, ioutil.NopCloser(strings.NewReader(helloStr)), stat)
+		n, err := files.NewReaderPathFile(rfp, io.NopCloser(strings.NewReader(helloStr)), stat)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -474,12 +473,12 @@ func (tp *TestSuite) TestAdd(t *testing.T) {
 					defer orig.Close()
 					defer got.Close()
 
-					do, err := ioutil.ReadAll(orig.(files.File))
+					do, err := io.ReadAll(orig.(files.File))
 					if err != nil {
 						t.Fatal(err)
 					}
 
-					dg, err := ioutil.ReadAll(got.(files.File))
+					dg, err := io.ReadAll(got.(files.File))
 					if err != nil {
 						t.Fatal(err)
 					}

@@ -15,7 +15,7 @@ import (
 // * /ipfs - Immutable unixfs path (files)
 // * /ipld - Immutable ipld path (data)
 // * /ipns - Mutable names. Usually resolves to one of the immutable paths
-//TODO: /local (MFS)
+// TODO: /local (MFS)
 type Path interface {
 	// String returns the path as a string.
 	String() string
