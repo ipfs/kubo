@@ -179,6 +179,7 @@ func (c *datastoreConfig) Create(path string) (repo.Datastore, error) {
 	defopts.ZSTDCompressionLevel = c.zstdCompressionLevel
 	defopts.BlockCacheSize = c.blockCacheSize
 	defopts.ValueLogFileSize = c.vlogFileSize
+	defopts.NumVersionsToKeep = 1
 
 	return badger2ds.NewDatastore(p, &defopts)
 }
