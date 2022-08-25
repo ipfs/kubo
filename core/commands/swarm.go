@@ -142,24 +142,12 @@ var swarmPeeringAddCmd = &cmds.Command{
 
 		save, _ := req.Options[swarmSaveOptionName].(bool)
 		if save {
-			r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
-			if err != nil {
-				return err
+			update := func(cfg *config.Config) {
+				cfg.Peering.Peers = node.Peering.ListPeers()
 			}
-			defer r.Close()
-			cfg, err := r.Config()
+			err := updateAndPersistConfig(env, update)
 			if err != nil {
-				return err
-			}
-
-			addrInfos, err := mergeAddrInfo(addInfos, cfg.Peering.Peers)
-			if err != nil {
-				return fmt.Errorf("error merging peers: %w", err)
-			}
-
-			cfg.Peering.Peers = addrInfos
-			if err := r.SetConfig(cfg); err != nil {
-				return fmt.Errorf("error writing new peers to repo config: %w", err)
+				return fmt.Errorf("unable to update and persist config change: %w", err)
 			}
 		}
 
@@ -247,19 +235,12 @@ var swarmPeeringRmCmd = &cmds.Command{
 
 		save, _ := req.Options[swarmSaveOptionName].(bool)
 		if save {
-			r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
-			if err != nil {
-				return err
+			update := func(cfg *config.Config) {
+				cfg.Peering.Peers = node.Peering.ListPeers()
 			}
-			defer r.Close()
-			cfg, err := r.Config()
+			err := updateAndPersistConfig(env, update)
 			if err != nil {
-				return err
-			}
-
-			cfg.Peering.Peers = node.Peering.ListPeers()
-			if err := r.SetConfig(cfg); err != nil {
-				return fmt.Errorf("error removing peers from repo config: %w", err)
+				return fmt.Errorf("unable to update and persist config change: %w", err)
 			}
 		}
 
@@ -1141,16 +1122,19 @@ func filtersRemove(r repo.Repo, cfg *config.Config, toRemoveFilters []string) ([
 	return removed, nil
 }
 
-func mergeAddrInfo(addrInfos ...[]peer.AddrInfo) ([]peer.AddrInfo, error) {
-	var addrs []ma.Multiaddr
-	for _, infos := range addrInfos {
-		for _, addrInfo := range infos {
-			addr, err := peer.AddrInfoToP2pAddrs(&addrInfo)
-			if err != nil {
-				return nil, err
-			}
-			addrs = append(addrs, addr...)
-		}
+func updateAndPersistConfig(env cmds.Environment, update func(*config.Config)) error {
+	r, err := fsrepo.Open(env.(*commands.Context).ConfigRoot)
+	if err != nil {
+		return fmt.Errorf("error opening repo: %w", err)
 	}
-	return peer.AddrInfosFromP2pAddrs(addrs...)
+	defer r.Close()
+	cfg, err := r.Config()
+	if err != nil {
+		return fmt.Errorf("error fetching config file: %w", err)
+	}
+	update(cfg)
+	if err := r.SetConfig(cfg); err != nil {
+		return fmt.Errorf("error removing peers from repo config: %w", err)
+	}
+	return nil
 }
