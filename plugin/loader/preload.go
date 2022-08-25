@@ -1,7 +1,7 @@
 package loader
 
 import (
-	pluginbadger2ds "github.com/ipfs/go-ipfs/plugin/plugins/badger2ds"
+	pluginbadger2ds "github.com/ipfs/kubo/plugin/plugins/badger2ds"
 	pluginbadgerds "github.com/ipfs/kubo/plugin/plugins/badgerds"
 	pluginiplddagjose "github.com/ipfs/kubo/plugin/plugins/dagjose"
 	pluginflatfs "github.com/ipfs/kubo/plugin/plugins/flatfs"
