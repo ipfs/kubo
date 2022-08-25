@@ -180,10 +180,6 @@ However, be aware that:
   on storing very little data in your IPFS node, and disk usage is more
   critical than performance, consider using flatfs.
 * This datastore uses up to several gigabytes of memory.
-* Good for medium-size datastores, but may run into performance issues
-  if your dataset is bigger than a terabyte.
-* The current implementation is based on old badger 1.x
-  which is no longer supported by the upstream team.
 
 This profile may only be applied when first initializing the node.`,
 
