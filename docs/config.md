@@ -1281,7 +1281,7 @@ not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
 manually announce your content periodically.
 
-Type: `array[peering]`
+Type: `duration`
 
 ### `Reprovider.Strategy`
 
