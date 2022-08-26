@@ -11,14 +11,14 @@ Kubo was the first is the most widely used IPFS implementation today. Implementi
 
 Featureset
 - Runs an IPFS-Node as a network service
-- Command Line Interface to IPFS-Nodes
-- Local Web2-to-Web3 HTTP Gateway functionality
+- [Command Line Interface](https://docs.ipfs.tech/reference/kubo/cli/) to IPFS-Nodes
+- Local [Web2-to-Web3 HTTP Gateway functionality](https://github.com/ipfs/specs/tree/main/http-gateways#readme) 
 - HTTP RPC API (`/api/v0`) to access and control the daemon
 - IPFS's internal Webgui can be used to manage the Kubo nodes
 
 ### Other implementations
 
-See https://docs.ipfs.tech/basics/ipfs-implementations/
+See [List](https://docs.ipfs.tech/basics/ipfs-implementations/)
 
 ## What is IPFS?
 
