@@ -175,10 +175,6 @@ Use this datastore if some aspects of performance,
 especially the speed of adding many gigabytes of files, are critical.
 However, be aware that:
 
-* This datastore will not properly reclaim space when your datastore is
-  smaller than several gigabytes.  If you run IPFS with --enable-gc, you plan
-  on storing very little data in your IPFS node, and disk usage is more
-  critical than performance, consider using flatfs.
 * This datastore uses up to several gigabytes of memory.
 
 This profile may only be applied when first initializing the node.`,
