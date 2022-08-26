@@ -150,7 +150,7 @@ running the daemon as:
 
 Or you can set routing to dhtclient in the config:
 
-ipfs config Routing.Type dhtclient
+  ipfs config Routing.Type dhtclient
 
 DEPRECATION NOTICE
 
