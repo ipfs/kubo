@@ -81,7 +81,12 @@ Checklist:
       - [ ] Ensure the RC is published to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) ([happens automatically, just wait for CI](https://github.com/ipfs/npm-go-ipfs/actions))
       - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop) and push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde)), and open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826))
       - [ ] Ensure CI tests pass, repeat for new RCs
-    - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion) - @lidel
+    - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
+      - Start kubo daemon of the version to release.
+      - Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)`
+      - Start a fresh firefox instance using `firefox --profile $(mktemp -d)`
+      - Install IPFS companion for the specific shop.
+      - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
 - [ ] **Stage 2 - Community Prod Testing**
   - [ ] Documentation
     - [ ] Ensure that [CHANGELOG.md](https://github.com/ipfs/go-ipfs/tree/master/CHANGELOG.md) is up to date
