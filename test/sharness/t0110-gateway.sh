@@ -288,15 +288,24 @@ test_expect_success "GET compact blocks succeeds" '
 '
 
 test_expect_success "Verify gateway file" '
-  cat "$IPFS_PATH/gateway" >> gateway_file_actual &&
-  echo -n "http://$GWAY_ADDR" >> gateway_daemon_actual &&
+  cat "$IPFS_PATH/gateway" > gateway_file_actual &&
+  echo -n "http://$GWAY_ADDR" > gateway_daemon_actual &&
   test_cmp gateway_daemon_actual gateway_file_actual
 '
 
 test_kill_ipfs_daemon
 
-
 GWPORT=32563
+
+test_expect_success "Verify gateway file diallable while on unspecified" '
+  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/$GWPORT &&
+  test_launch_ipfs_daemon &&
+  cat "$IPFS_PATH/gateway" > gateway_file_actual &&
+  echo -n "http://127.0.0.1:$GWPORT" > gateway_file_expected &&
+  test_cmp gateway_file_expected gateway_file_actual
+'
+
+test_kill_ipfs_daemon
 
 test_expect_success "set up iptb testbed" '
   iptb testbed create -type localipfs -count 5 -force -init &&
