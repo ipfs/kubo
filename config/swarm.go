@@ -1,6 +1,6 @@
 package config
 
-import rcmgr "github.com/libp2p/go-libp2p-resource-manager"
+import rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 type SwarmConfig struct {
 	// AddrFilters specifies a set libp2p addresses that we should never
@@ -136,14 +136,14 @@ type ConnMgr struct {
 }
 
 // ResourceMgr defines configuration options for the libp2p Network Resource Manager
-// <https://github.com/libp2p/go-libp2p-resource-manager#readme>
+// <https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#readme>
 type ResourceMgr struct {
 	// Enables the Network Resource Manager feature, default to on.
 	Enabled Flag               `json:",omitempty"`
 	Limits  *rcmgr.LimitConfig `json:",omitempty"`
 	// A list of multiaddrs that can bypass normal system limits (but are still
 	// limited by the allowlist scope). Convenience config around
-	// https://pkg.go.dev/github.com/libp2p/go-libp2p-resource-manager#Allowlist.Add
+	// https://pkg.go.dev/github.com/libp2p/go-libp2p/p2p/host/resource-manager#Allowlist.Add
 	Allowlist []string `json:",omitempty"`
 }
 

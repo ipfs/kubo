@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	crypto_pb "github.com/libp2p/go-libp2p-core/crypto/pb"
+	crypto_pb "github.com/libp2p/go-libp2p/core/crypto/pb"
 )
 
 func TestCreateIdentity(t *testing.T) {

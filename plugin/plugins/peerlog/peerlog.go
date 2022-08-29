@@ -8,10 +8,10 @@ import (
 	logging "github.com/ipfs/go-log"
 	core "github.com/ipfs/kubo/core"
 	plugin "github.com/ipfs/kubo/plugin"
-	event "github.com/libp2p/go-libp2p-core/event"
-	network "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	event "github.com/libp2p/go-libp2p/core/event"
+	network "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	"go.uber.org/zap"
 )
 

@@ -15,8 +15,8 @@ import (
 	"github.com/ipfs/kubo/thirdparty/unit"
 
 	files "github.com/ipfs/go-ipfs-files"
-	"github.com/libp2p/go-libp2p-core/peer"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
+	"github.com/libp2p/go-libp2p/core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 

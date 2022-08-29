@@ -4,10 +4,10 @@ import (
 	"io"
 	"sync"
 
-	ifconnmgr "github.com/libp2p/go-libp2p-core/connmgr"
-	net "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
+	ifconnmgr "github.com/libp2p/go-libp2p/core/connmgr"
+	net "github.com/libp2p/go-libp2p/core/network"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	protocol "github.com/libp2p/go-libp2p/core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 )
