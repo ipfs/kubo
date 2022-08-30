@@ -1,4 +1,4 @@
-name: Sync github release assets with dist.ipfs.io
+name: Sync github release assets with dist.ipfs.tech
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  sync-github-and-dist-ipfs-io:
+  sync-github-and-dist-ipfs-tech:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: "ubuntu-latest"
     steps:
@@ -50,8 +50,8 @@ jobs:
                 github_assets.add(asset.name)
               }
 
-              // fetch asset info from dist.ipfs.io
-              p = '/ipns/dist.ipfs.io/kubo/' + release.tag_name
+              // fetch asset info from dist.ipfs.tech
+              p = '/ipns/dist.ipfs.tech/kubo/' + release.tag_name
               let stdout = ''
               const options = {}
               options.listeners = {
@@ -74,7 +74,7 @@ jobs:
                 }
               }
 
-              // if dist.ipfs.io has files not found in github, copy them over
+              // if dist.ipfs.tech has files not found in github, copy them over
               for (const file of missing_files) {
                 file_sha = file + ".sha512"
                 file_cid = file + ".cid"
@@ -82,12 +82,12 @@ jobs:
                 // skip files that don't have .cid and .sha512 checksum files
                 if (!dist_assets.has(file_sha) || !dist_assets.has(file_cid)) {
                   if (!file.endsWith('.cid') && !file.endsWith('.sha512')) { // silent skip of .sha512.sha512 :)
-                    console.log(`skipping "${file}" as dist.ipfs.io does not provide .cid and .sha512 checksum files for it`)
+                    console.log(`skipping "${file}" as dist.ipfs.tech does not provide .cid and .sha512 checksum files for it`)
                   }
                   continue
                 }
 
-                console.log("fetching", file, "from dist.ipfs.io")
+                console.log("fetching", file, "from dist.ipfs.tech")
                 await exec.exec('ipfs', ['get', p + '/' + file])
                 await exec.exec('ipfs', ['get', p + '/' + file_sha])
                 await exec.exec('ipfs', ['get', p + '/' + file_cid])

@@ -139,8 +139,12 @@ type ConnMgr struct {
 // <https://github.com/libp2p/go-libp2p-resource-manager#readme>
 type ResourceMgr struct {
 	// Enables the Network Resource Manager feature, default to on.
-	Enabled Flag                      `json:",omitempty"`
-	Limits  *rcmgr.BasicLimiterConfig `json:",omitempty"`
+	Enabled Flag               `json:",omitempty"`
+	Limits  *rcmgr.LimitConfig `json:",omitempty"`
+	// A list of multiaddrs that can bypass normal system limits (but are still
+	// limited by the allowlist scope). Convenience config around
+	// https://pkg.go.dev/github.com/libp2p/go-libp2p-resource-manager#Allowlist.Add
+	Allowlist []string `json:",omitempty"`
 }
 
 const (

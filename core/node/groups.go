@@ -139,7 +139,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	if cfg.Swarm.EnableRelayHop {
 		logger.Fatal("The `Swarm.EnableRelayHop` config field was removed.\n" +
 			"Use `Swarm.RelayService` to configure the circuit v2 relay.\n" +
-			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.io/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
+			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.tech/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
 	peerChan := make(libp2p.AddrInfoChan)
