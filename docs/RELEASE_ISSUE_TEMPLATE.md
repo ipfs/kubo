@@ -85,7 +85,7 @@ Checklist:
       - Start kubo daemon of the version to release.
       - Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)`
       - Start a fresh firefox instance using `firefox --profile $(mktemp -d)`
-      - Install IPFS companion for the specific shop.
+- Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
       - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
 - [ ] **Stage 2 - Community Prod Testing**
   - [ ] Documentation
