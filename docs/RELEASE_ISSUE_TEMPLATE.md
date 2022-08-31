@@ -71,11 +71,14 @@ Checklist:
 - [ ] **Stage 1 - Internal Testing**
   - [ ] CHANGELOG.md has been updated
     - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
+    	- install `zsh`
+    	- `GO111MODULE=off go get -u github.com/ipfs/kubo`
+    	- Go to `$GOPATH/src/ipfs/kubo` and execute `./bin/mkreleaselog`
   - [ ] Infrastructure Testing. Open an issue against https://github.com/protocol/bifrost-infra like https://github.com/protocol/bifrost-infra/issues/2046 but spell out all that we want (gateways, bootstrapper, and cluster)
     - [ ] Deploy new version to a subset of Bootstrappers
     - [ ] Deploy new version to a subset of Gateways
     - [ ] Deploy new version to a subset of Preload nodes
-    - [ ] Collect metrics every day. Work with the Infrastructure team to learn of any hiccup
+    - [ ] Collect [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day. Work with the Infrastructure team to learn of any hiccup
   - [ ] IPFS Application Testing -  Run the tests of the following applications:
     - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
       - [ ] Ensure the RC is published to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) ([happens automatically, just wait for CI](https://github.com/ipfs/npm-go-ipfs/actions))
