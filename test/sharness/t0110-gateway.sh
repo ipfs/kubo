@@ -103,6 +103,14 @@ test_expect_success "GET IPFS inlined zero-length data object returns ok code (2
   test_should_contain "Content-Length: 0" empty_ok_response
 '
 
+# https://github.com/ipfs/kubo/issues/9238
+test_expect_success "GET IPFS inlined zero-length data object with byte range returns ok code (200)" '
+  curl -sD - "http://127.0.0.1:$port/ipfs/bafkqaaa" -H "Range: bytes=0-1048575" > empty_ok_response &&
+  test_should_contain "HTTP/1.1 200 OK" empty_ok_response &&
+  test_should_contain "Content-Length: 0" empty_ok_response &&
+  test_should_contain "Content-Type: text/plain" empty_ok_response
+'
+
 test_expect_success "GET /ipfs/ipfs/{cid} returns redirect to the valid path" '
   curl -sD - "http://127.0.0.1:$port/ipfs/ipfs/bafkqaaa?query=to-remember" > response_with_double_ipfs_ns &&
   test_should_contain "<meta http-equiv=\"refresh\" content=\"10;url=/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns &&
