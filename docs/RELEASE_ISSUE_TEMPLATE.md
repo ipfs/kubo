@@ -45,7 +45,7 @@ For each RC published in each stage:
   4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech (~30min)
 - cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the ipfs/distributions build in the previous step).
 - Announce the RC:
-  - [ ] Create a new post on [Discuss](https://discuss.ipfs.io)
+  - [ ] Create a new post on [Discuss](https://discuss.ipfs.tech)
     - This will automatically post to IPFS Discord #ipfs-chatter
     - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
   - [ ] Pin the topic. You need admin privileges for that.
