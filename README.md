@@ -15,8 +15,8 @@ Kubo (go-ipfs) the earliest and most widely used implementation of IPFS.
 It includes:
 - an IPFS daemon server
 - extensive [command line tooling](https://docs.ipfs.tech/reference/kubo/cli/)
-- an [HTTP Gateway](https://github.com/ipfs/specs/tree/main/http-gateways#readme) (`/ipfs/`, `/ipns/`) for serving content to HTTP browsers
-- an HTTP RPC API (`/api/v0`) for controlling the daemon node
+- an [HTTP Gateway](https://docs.ipfs.tech/reference/http/gateway/) (`/ipfs/`, `/ipns/`) for serving content to HTTP browsers
+- an [HTTP RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`) for controlling the daemon node
 
 Note: [other implementations exist](https://docs.ipfs.tech/basics/ipfs-implementations/).
 
@@ -51,31 +51,30 @@ Before opening an issue, consider using one of the following locations to ensure
 - [Install](#install)
   - [System Requirements](#system-requirements)
   - [Docker](#docker)
-  - [Native Linux package managers](#native-linux-package-managers)
-    - [ArchLinux](#archlinux)
+  - [Official prebuilt binaries](#official-prebuilt-binaries)
+    - [Updating](#updating)
+      - [Using ipfs-update](#using-ipfs-update)
+      - [Downloading builds using IPFS](#downloading-builds-using-ipfs)
+  - [Unofficial Linux packages](#unofficial-linux-packages)
+    - [ArchLinux](#arch-linux)
     - [Nix](#nix)
     - [Solus](#solus)
     - [openSUSE](#opensuse)
-  - [Other package managers](#other-package-managers)
     - [Guix](#guix)
     - [Snap](#snap)
-    - [macOS package managers](#macos-package-managers)
+  - [Unofficial MacOS packages](#unofficial-macos-packages)
     - [MacPorts](#macports)
     - [Nix](#nix-1)
-    - [Homebrew](#homebrew)
-  - [Windows package managers](#windows-package-managers)
+    - [Homebrew](#homebrew)  
+  - [Unofficial Windows packages](#unofficial-windows-packages)
     - [Chocolatey](#chocolatey)
     - [Scoop](#scoop)
-  - [Install prebuilt binaries](#install-prebuilt-binaries)
   - [Build from Source](#build-from-source)
     - [Install Go](#install-go)
     - [Download and Compile IPFS](#download-and-compile-ipfs)
       - [Cross Compiling](#cross-compiling)
       - [OpenSSL](#openssl)
     - [Troubleshooting](#troubleshooting)
-  - [Updating](#updating)
-    - [Using ipfs-update](#using-ipfs-update)
-    - [Downloading builds using IPFS](#downloading-builds-using-ipfs)
 - [Getting Started](#getting-started)
   - [Usage](#usage)
   - [Some things to try](#some-things-to-try)
@@ -110,19 +109,67 @@ If your system is resource-constrained, we recommend:
 
 ### Docker
 
-[![Docker Image Version (legacy name)](https://img.shields.io/docker/v/ipfs/go-ipfs?color=blue&label=go-ipfs%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/go-ipfs/)
-<!-- TODO: replace with kubo after we have minimum set of images after kubo 0.14 (stable semver release, 'latest' and 'release' docker tags)
+Official images are published at https://hub.docker.com/r/ipfs/kubo/:
+
 [![Docker Image Version (latest semver)](https://img.shields.io/docker/v/ipfs/kubo?color=blue&label=kubo%20docker%20image&logo=docker&sort=semver&style=flat-square&cacheSeconds=3600)](https://hub.docker.com/r/ipfs/kubo/)
--->
 
-More info on how to run kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.tech/how-to/run-ipfs-inside-docker/).
+More info on how to run Kubo (go-ipfs) inside Docker can be found [here](https://docs.ipfs.tech/how-to/run-ipfs-inside-docker/).
 
-### Native Linux package managers
+### Official prebuilt binaries
+
+The official binaries are published at https://dist.ipfs.tech#kubo:
+
+[![dist.ipfs.tech Downloads](https://img.shields.io/github/v/release/ipfs/kubo?label=dist.ipfs.tech&logo=ipfs&style=flat-square&cacheSeconds=3600)](https://dist.ipfs.tech#kubo)
+
+From there:
+- Click the blue "Download Kubo" on the right side of the page.
+- Open/extract the archive.
+- Move kubo (`ipfs`) to your path (`install.sh` can do it for you).
+
+If you are unable to access [dist.ipfs.tech](https://dist.ipfs.tech#kubo), you can also download kubo (go-ipfs) from:
+- this project's GitHub [releases](https://github.com/ipfs/kubo/releases/latest) page
+- `/ipns/dist.ipfs.tech` at [dweb.link](https://dweb.link/ipns/dist.ipfs.tech#kubo) gateway
+
+#### Updating
+
+##### Using ipfs-update
+
+IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
+not installed alongside IPFS in order to keep that logic independent of the main
+codebase. To install `ipfs-update` tool, [download it here](https://dist.ipfs.tech/#ipfs-update).
+
+##### Downloading builds using IPFS
+
+List the available versions of Kubo (go-ipfs) implementation:
+
+```console
+$ ipfs cat /ipns/dist.ipfs.tech/kubo/versions
+```
+
+Then, to view available builds for a version from the previous command (`$VERSION`):
+
+```console
+$ ipfs ls /ipns/dist.ipfs.tech/kubo/$VERSION
+```
+
+To download a given build of a version:
+
+```console
+$ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_darwin-386.tar.gz    # darwin 32-bit build
+$ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_darwin-amd64.tar.gz  # darwin 64-bit build
+$ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_freebsd-amd64.tar.gz # freebsd 64-bit build
+$ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_linux-386.tar.gz     # linux 32-bit build
+$ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_linux-amd64.tar.gz   # linux 64-bit build
+$ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_linux-arm.tar.gz     # linux arm build
+$ ipfs get /ipns/dist.ipfs.tech/kubo/$VERSION/kubo_$VERSION_windows-amd64.zip    # windows 64-bit build
+```
+
+### Unofficial Linux packages
 
 - [Arch Linux](#arch-linux)
 - [Nix](#nix-linux)
 - [Solus](#solus)
-- [openSUSE](#openSUSE)
+- [openSUSE](#opensuse)
 
 #### Arch Linux
 
@@ -159,11 +206,6 @@ You can also install it through the Solus software center.
 
 [Community Package for go-ipfs](https://software.opensuse.org/package/go-ipfs)
 
-### Other package managers
-
-- [Guix](#guix)
-- [Snap](#snap)
-
 #### Guix
 
 GNU's functional package manager, [Guix](https://www.gnu.org/software/guix/), also provides a go-ipfs package:
@@ -173,6 +215,11 @@ $ guix package -i go-ipfs
 ```
 
 #### Snap
+
+> ⚠️ **SNAP USE IS DISCOURAGED**
+> 
+> If you want something more sophisticated to escape the Snap confinement, we recommend using a different method to install Kubo so that it is not subject to snap confinement.
+
 
 With snap, in any of the [supported Linux distributions](https://snapcraft.io/docs/core/install):
 
@@ -185,14 +232,6 @@ The snap sets `IPFS_PATH` to `SNAP_USER_COMMON`, which is usually `~/snap/ipfs/c
 ```
 $ sudo mount --bind ~/.ipfs ~/snap/ipfs/common
 ```
-
-If you want something more sophisticated to escape the snap confinement, we recommend using a different method to install kubo so that it is not subject to snap confinement.
-
-#### macOS package managers
-
-- [MacPorts](#macports)
-- [Nix](#nix-macos)
-- [Homebrew](#Homebrew)
 
 #### MacPorts
 
@@ -220,7 +259,7 @@ A Homebrew formula [ipfs](https://formulae.brew.sh/formula/ipfs) is maintained t
 $ brew install --formula ipfs
 ```
 
-### Windows package managers
+### Unofficial Windows packages
 
 - [Chocolatey](#chocolatey)
 - [Scoop](#scoop)
@@ -242,18 +281,12 @@ PS> scoop bucket add extras
 PS> scoop install go-ipfs
 ```
 
-### Install prebuilt binaries
+### Unofficial macOS packages
 
-[![dist.ipfs.tech Downloads](https://img.shields.io/github/v/release/ipfs/kubo?label=dist.ipfs.tech&logo=ipfs&style=flat-square&cacheSeconds=3600)](https://dweb.link/ipns/dist.ipfs.tech#kubo)
+- [MacPorts](#macports)
+- [Nix](#nix-macos)
+- [Homebrew](#homebrew)
 
-From there:
-- Click the blue "Download kubo" on the right side of the page.
-- Open/extract the archive.
-- Move kubo (`ipfs`) to your path (`install.sh` can do it for you).
-
-If you are unable to access [dist.ipfs.tech](https://dist.ipfs.tech#kubo), you can also download kubo (go-ipfs) from:
-- this project's GitHub [releases](https://github.com/ipfs/kubo/releases/latest) page
-- `/ipns/dist.ipfs.tech` at [dweb.link](https://dweb.link/ipns/dist.ipfs.tech#kubo) gateway
 
 ### Build from Source
 
@@ -322,42 +355,6 @@ Note: OpenSSL requires CGO support and, by default, CGO is disabled when cross-c
 dependencies as well.
 - Shell command completions can be generated with one of the `ipfs commands completion` subcommands. Read [docs/command-completion.md](docs/command-completion.md) to learn more.
 - See the [misc folder](https://github.com/ipfs/kubo/tree/master/misc) for how to connect IPFS to systemd or whatever init system your distro uses.
-
-### Updating
-
-#### Using ipfs-update
-
-IPFS has an updating tool that can be accessed through `ipfs update`. The tool is
-not installed alongside IPFS in order to keep that logic independent of the main
-codebase. To install `ipfs update`, [download it here](https://dist.ipfs.tech/#ipfs-update).
-
-#### Downloading builds using IPFS
-
-<!-- TODO: rename this section after we figure out if dist.ipfs.tech sgould produce both /go-ipfs/ and /kubo/ -->
-
-List the available versions of kubo (go-ipfs) implementation:
-
-```
-$ ipfs cat /ipns/dist.ipfs.tech/go-ipfs/versions
-```
-
-Then, to view available builds for a version from the previous command ($VERSION):
-
-```
-$ ipfs ls /ipns/dist.ipfs.tech/go-ipfs/$VERSION
-```
-
-To download a given build of a version:
-
-```
-$ ipfs get /ipns/dist.ipfs.tech/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-386.tar.gz # darwin 32-bit build
-$ ipfs get /ipns/dist.ipfs.tech/go-ipfs/$VERSION/go-ipfs_$VERSION_darwin-amd64.tar.gz # darwin 64-bit build
-$ ipfs get /ipns/dist.ipfs.tech/go-ipfs/$VERSION/go-ipfs_$VERSION_freebsd-amd64.tar.gz # freebsd 64-bit build
-$ ipfs get /ipns/dist.ipfs.tech/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-386.tar.gz # linux 32-bit build
-$ ipfs get /ipns/dist.ipfs.tech/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-amd64.tar.gz # linux 64-bit build
-$ ipfs get /ipns/dist.ipfs.tech/go-ipfs/$VERSION/go-ipfs_$VERSION_linux-arm.tar.gz # linux arm build
-$ ipfs get /ipns/dist.ipfs.tech/go-ipfs/$VERSION/go-ipfs_$VERSION_windows-amd64.zip # windows 64-bit build
-```
 
 ## Getting Started
 

@@ -142,14 +142,15 @@ environment variable:
 
 Routing
 
-IPFS by default will use a DHT for content routing. There is a highly
-experimental alternative that operates the DHT in a 'client only' mode that
-can be enabled by running the daemon as:
+IPFS by default will use a DHT for content routing. There is an alternative
+that operates the DHT in a 'client only' mode that can be enabled by
+running the daemon as:
 
   ipfs daemon --routing=dhtclient
 
-This will later be transitioned into a config option once it gets out of the
-'experimental' stage.
+Or you can set routing to dhtclient in the config:
+
+  ipfs config Routing.Type dhtclient
 
 DEPRECATION NOTICE
 
@@ -673,8 +674,8 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 		return nil, fmt.Errorf("serveHTTPApi: ConstructNode() failed: %s", err)
 	}
 
-	if err := node.Repo.SetAPIAddr(listeners[0].Multiaddr()); err != nil {
-		return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %s", err)
+	if err := node.Repo.SetAPIAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr())); err != nil {
+		return nil, fmt.Errorf("serveHTTPApi: SetAPIAddr() failed: %w", err)
 	}
 
 	errc := make(chan error)
@@ -693,6 +694,19 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	}()
 
 	return errc, nil
+}
+
+func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
+	first, rest := ma.SplitFirst(maddr)
+
+	switch {
+	case first.Equal(manet.IP4Unspecified):
+		return manet.IP4Loopback.Encapsulate(rest)
+	case first.Equal(manet.IP6Unspecified):
+		return manet.IP6Loopback.Encapsulate(rest)
+	default:
+		return maddr // not ip
+	}
 }
 
 // printSwarmAddrs prints the addresses of the host
@@ -799,7 +813,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if len(cfg.Gateway.PathPrefixes) > 0 {
-		log.Error("Support for X-Ipfs-Gateway-Prefix and Gateway.PathPrefixes is deprecated and will be removed in the next release. Please comment on the issue if you're using this feature: https://github.com/ipfs/kubo/issues/7702")
+		log.Fatal("Support for custom Gateway.PathPrefixes was removed: https://github.com/ipfs/go-ipfs/issues/7702")
 	}
 
 	node, err := cctx.ConstructNode()
@@ -808,7 +822,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	if len(listeners) > 0 {
-		if err := node.Repo.SetGatewayAddr(listeners[0].Addr()); err != nil {
+		addr, err := manet.ToNetAddr(rewriteMaddrToUseLocalhostIfItsAny(listeners[0].Multiaddr()))
+		if err != nil {
+			return nil, fmt.Errorf("serveHTTPGateway: manet.ToIP() failed: %w", err)
+		}
+		if err := node.Repo.SetGatewayAddr(addr); err != nil {
 			return nil, fmt.Errorf("serveHTTPGateway: SetGatewayAddr() failed: %w", err)
 		}
 	}
@@ -831,7 +849,7 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	return errc, nil
 }
 
-//collects options and opens the fuse mountpoint
+// collects options and opens the fuse mountpoint
 func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	cfg, err := cctx.GetConfig()
 	if err != nil {
