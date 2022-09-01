@@ -71,9 +71,7 @@ Checklist:
 - [ ] **Stage 1 - Internal Testing**
   - [ ] CHANGELOG.md has been updated
     - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
-    	- install `zsh`
-    	- `GO111MODULE=off go get -u github.com/ipfs/kubo`
-    	- Go to `$GOPATH/src/ipfs/kubo` and execute `./bin/mkreleaselog`
+    	- you need to install `zsh`.
   - [ ] Infrastructure Testing. Open an issue against https://github.com/protocol/bifrost-infra like https://github.com/protocol/bifrost-infra/issues/2046 but spell out all that we want (gateways, bootstrapper, and cluster)
     - [ ] Deploy new version to a subset of Bootstrappers
     - [ ] Deploy new version to a subset of Gateways
