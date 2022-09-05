@@ -117,6 +117,11 @@ func (i *gatewayHandler) serveDirectory(ctx context.Context, w http.ResponseWrit
 	dirListing := make([]directoryItem, 0, len(results))
 
 	for link := range results {
+		if ctx.Err() != nil {
+			internalWebError(w, ctx.Err())
+			return
+		}
+
 		if link.Err != nil {
 			internalWebError(w, err)
 			return
