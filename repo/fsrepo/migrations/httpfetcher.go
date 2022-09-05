@@ -2,11 +2,23 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"path"
 	"strings"
+
+	bservice "github.com/ipfs/go-blockservice"
+	ds "github.com/ipfs/go-datastore"
+	dssync "github.com/ipfs/go-datastore/sync"
+	bstore "github.com/ipfs/go-ipfs-blockstore"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	files "github.com/ipfs/go-ipfs-files"
+	dag "github.com/ipfs/go-merkledag"
+	unixfile "github.com/ipfs/go-unixfs/file"
+	gocarv2 "github.com/ipld/go-car/v2"
 )
 
 const (
@@ -68,6 +80,7 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 	if err != nil {
 		return nil, fmt.Errorf("http.NewRequest error: %s", err)
 	}
+	req.Header.Set("Accept", "application/vnd.ipld.car")
 
 	if f.userAgent != "" {
 		req.Header.Set("User-Agent", f.userAgent)
@@ -95,9 +108,63 @@ func (f *HttpFetcher) Fetch(ctx context.Context, filePath string) ([]byte, error
 	}
 	defer rc.Close()
 
-	return io.ReadAll(rc)
+	return carStreamToFileBytes(ctx, rc)
 }
 
 func (f *HttpFetcher) Close() error {
 	return nil
+}
+
+func carStreamToFileBytes(ctx context.Context, r io.Reader) ([]byte, error) {
+	// Create temporary block datastore and dag service.
+	db := dssync.MutexWrap(ds.NewMapDatastore())
+	bs := bstore.NewBlockstore(db)
+	ds := dag.NewDAGService(bservice.New(bs, offline.Exchange(bs)))
+
+	defer ds.Blocks.Close()
+	defer db.Close()
+
+	// Create CAR reader
+	car, err := gocarv2.NewBlockReader(r)
+	if err != nil {
+		return nil, fmt.Errorf("error creating car reader: %s", err)
+	}
+
+	// Add all blocks to the blockstore.
+	for {
+		block, err := car.Next()
+		if err != nil && err != io.EOF {
+			return nil, err
+		} else if block == nil {
+			break
+		}
+
+		err = bs.Put(ctx, block)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(car.Roots) != 1 {
+		return nil, errors.New("multiple-root CAR unexpected")
+	}
+
+	// Get node from DAG service with the file.
+	node, err := ds.Get(ctx, car.Roots[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// Make UnixFS file out of the node.
+	uf, err := unixfile.NewUnixfsFile(ctx, ds, node)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if it's a file and return.
+	if f, ok := uf.(files.File); ok {
+		return ioutil.ReadAll(f)
+	}
+
+	return nil, errors.New("unexpected unixfs node type")
 }
