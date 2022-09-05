@@ -134,14 +134,14 @@ func carStreamToFileBytes(ctx context.Context, r io.Reader) ([]byte, error) {
 	for {
 		block, err := car.Next()
 		if err != nil && err != io.EOF {
-			return nil, err
+			return nil, fmt.Errorf("error reading block from car: %s", err)
 		} else if block == nil {
 			break
 		}
 
 		err = bs.Put(ctx, block)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error putting block in blockstore: %s", err)
 		}
 	}
 
@@ -152,13 +152,13 @@ func carStreamToFileBytes(ctx context.Context, r io.Reader) ([]byte, error) {
 	// Get node from DAG service with the file.
 	node, err := ds.Get(ctx, car.Roots[0])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting cid from dag service: %s", err)
 	}
 
 	// Make UnixFS file out of the node.
 	uf, err := unixfile.NewUnixfsFile(ctx, ds, node)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error building unixfs file: %s", err)
 	}
 
 	// Check if it's a file and return.
