@@ -269,7 +269,7 @@ $ brew install --formula ipfs
 [![Chocolatey Version](https://img.shields.io/chocolatey/v/go-ipfs?color=00a4ef&label=go-ipfs&logo=windows&style=flat-square&cacheSeconds=3600)](https://chocolatey.org/packages/go-ipfs)
 
 ```Powershell
-PS> choco install ipfs
+PS> choco install go-ipfs
 ```
 
 #### Scoop
