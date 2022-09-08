@@ -25,6 +25,17 @@ a:visited {
 	color:#00b0e9
 }
 
+button {
+	padding: 0;
+	border: none;
+	background: none;
+	vertical-align: middle;
+}
+
+button:hover svg {
+	fill: #00b0e9;
+}
+
 strong {
 	font-weight:700
 }
