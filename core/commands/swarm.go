@@ -122,6 +122,9 @@ var swarmPeeringAddCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if node.PeerHost == nil {
+			return ErrNotOnline
+		}
 
 		for _, addrinfo := range addInfos {
 			node.Peering.AddPeer(addrinfo)
@@ -153,6 +156,10 @@ var swarmPeeringLsCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
+		if node.PeerHost == nil {
+			return ErrNotOnline
+		}
+
 		peers := node.Peering.ListPeers()
 		return cmds.EmitOnce(res, addrInfos{Peers: peers})
 	},
@@ -188,6 +195,9 @@ var swarmPeeringRmCmd = &cmds.Command{
 		node, err := cmdenv.GetNode(env)
 		if err != nil {
 			return err
+		}
+		if node.PeerHost == nil {
+			return ErrNotOnline
 		}
 
 		for _, arg := range req.Arguments {
