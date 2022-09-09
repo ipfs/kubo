@@ -59,6 +59,7 @@ const (
 	routingOptionDHTKwd       = "dht"
 	routingOptionDHTServerKwd = "dhtserver"
 	routingOptionNoneKwd      = "none"
+	routingOptionCustomKwd    = "custom"
 	routingOptionDefaultKwd   = "default"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedApiAccessKwd  = "unrestricted-api"
@@ -401,7 +402,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
-		routingOption = cfg.Routing.Type.WithDefault(routingOptionDHTKwd)
+		routingOption = cfg.Routing.Type
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:
@@ -414,6 +415,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		ncfg.Routing = libp2p.DHTServerOption
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
+	case routingOptionCustomKwd:
+		ncfg.Routing = libp2p.ConstructDelegatedRouting(cfg.Routing.Routers, cfg.Routing.Methods)
 	default:
 		return fmt.Errorf("unrecognized routing option: %s", routingOption)
 	}

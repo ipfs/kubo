@@ -1,13 +1,17 @@
 package routing
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ipfs/kubo/config"
+)
 
 type ParamNeededError struct {
 	ParamName  string
-	RouterType string
+	RouterType config.RouterType
 }
 
-func NewParamNeededErr(param, routing string) error {
+func NewParamNeededErr(param string, routing config.RouterType) error {
 	return &ParamNeededError{
 		ParamName:  param,
 		RouterType: routing,
@@ -19,7 +23,7 @@ func (e *ParamNeededError) Error() string {
 }
 
 type RouterTypeNotFoundError struct {
-	RouterType string
+	RouterType config.RouterType
 }
 
 func (e *RouterTypeNotFoundError) Error() string {

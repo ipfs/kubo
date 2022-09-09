@@ -129,39 +129,6 @@ func BaseRouting(experimentalDHTClient bool) interface{} {
 	}
 }
 
-type delegatedRouterOut struct {
-	fx.Out
-
-	Routers       []Router                 `group:"routers,flatten"`
-	ContentRouter []routing.ContentRouting `group:"content-routers,flatten"`
-}
-
-func DelegatedRouting(routers map[string]config.Router) interface{} {
-	return func() (delegatedRouterOut, error) {
-		out := delegatedRouterOut{}
-
-		for _, v := range routers {
-			if !v.Enabled.WithDefault(true) {
-				continue
-			}
-
-			r, err := irouting.RoutingFromConfig(v)
-			if err != nil {
-				return out, err
-			}
-
-			out.Routers = append(out.Routers, Router{
-				Routing:  r,
-				Priority: irouting.GetPriority(v.Parameters),
-			})
-
-			out.ContentRouter = append(out.ContentRouter, r)
-		}
-
-		return out, nil
-	}
-}
-
 type p2pOnlineContentRoutingIn struct {
 	fx.In
 
@@ -195,24 +162,23 @@ type p2pOnlineRoutingIn struct {
 // Routing will get all routers obtained from different methods
 // (delegated routers, pub-sub, and so on) and add them all together
 // using a TieredRouter.
-func Routing(in p2pOnlineRoutingIn) irouting.TieredRouter {
+func Routing(in p2pOnlineRoutingIn) irouting.ProvideManyRouter {
 	routers := in.Routers
 
 	sort.SliceStable(routers, func(i, j int) bool {
 		return routers[i].Priority < routers[j].Priority
 	})
 
-	irouters := make([]routing.Routing, len(routers))
-	for i, v := range routers {
-		irouters[i] = v.Routing
+	var cRouters []*routinghelpers.ParallelRouter
+	for _, v := range routers {
+		cRouters = append(cRouters, &routinghelpers.ParallelRouter{
+			Timeout:     5 * time.Minute,
+			IgnoreError: true,
+			Router:      v.Routing,
+		})
 	}
 
-	return irouting.Tiered{
-		Tiered: routinghelpers.Tiered{
-			Routers:   irouters,
-			Validator: in.Validator,
-		},
-	}
+	return routinghelpers.NewComposableParallel(cRouters)
 }
 
 // OfflineRouting provides a special Router to the routers list when we are creating a offline node.

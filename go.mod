@@ -1,5 +1,7 @@
 module github.com/ipfs/kubo
 
+replace github.com/libp2p/go-libp2p-routing-helpers => /home/ajnavarro/workspace/go-libp2p-routing-helpers
+
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0

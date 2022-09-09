@@ -55,7 +55,7 @@ type onlineExchangeIn struct {
 
 	Mctx        helpers.MetricsCtx
 	Host        host.Host
-	Rt          irouting.TieredRouter
+	Rt          irouting.ProvideManyRouter
 	Bs          blockstore.GCBlockstore
 	BitswapOpts []bitswap.Option `group:"bitswap-options"`
 }

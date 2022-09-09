@@ -187,14 +187,17 @@ func StartRoutingServer(t *testing.T, d drs.DelegatedRoutingService) string {
 func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 	t.Helper()
 
-	routers := make(map[string]config.Router)
+	routers := make(config.Routers)
 	for i, ru := range reframeURLs {
-		routers[fmt.Sprintf("reframe-%d", i)] = config.Router{
-			Type: string(config.RouterTypeReframe),
-			Parameters: map[string]string{
-				string(config.RouterParamEndpoint): ru,
-			},
-		}
+		routers[fmt.Sprintf("reframe-%d", i)] =
+			config.RouterParser{
+				Router: config.Router{
+					Type: config.RouterTypeReframe,
+					Parameters: &config.ReframeRouterParams{
+						Endpoint: ru,
+					},
+				},
+			}
 	}
 
 	cfg := config.Config{
@@ -204,7 +207,7 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 			API:   []string{"/ip4/127.0.0.1/tcp/0"},
 		},
 		Routing: config.Routing{
-			Type:    config.NewOptionalString("none"),
+			Type:    "none",
 			Routers: routers,
 		},
 	}

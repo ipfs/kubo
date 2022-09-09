@@ -5,10 +5,9 @@ import (
 
 	"github.com/ipfs/go-cid"
 	drc "github.com/ipfs/go-delegated-routing/client"
+	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
-	"github.com/multiformats/go-multihash"
-	"golang.org/x/sync/errgroup"
 )
 
 var _ routing.Routing = &reframeRoutingWrapper{}
@@ -32,35 +31,7 @@ func (c *reframeRoutingWrapper) FindPeer(ctx context.Context, id peer.ID) (peer.
 	return peer.AddrInfo{}, routing.ErrNotSupported
 }
 
-type ProvideMany interface {
-	ProvideMany(ctx context.Context, keys []multihash.Multihash) error
-	Ready() bool
-}
-
-var _ ProvideMany = &ProvideManyWrapper{}
-
-type ProvideManyWrapper struct {
-	pms []ProvideMany
-}
-
-func (pmw *ProvideManyWrapper) ProvideMany(ctx context.Context, keys []multihash.Multihash) error {
-	var g errgroup.Group
-	for _, pm := range pmw.pms {
-		pm := pm
-		g.Go(func() error {
-			return pm.ProvideMany(ctx, keys)
-		})
-	}
-
-	return g.Wait()
-}
-
-// Ready is ready if all providers are ready
-func (pmw *ProvideManyWrapper) Ready() bool {
-	out := true
-	for _, pm := range pmw.pms {
-		out = out && pm.Ready()
-	}
-
-	return out
+type ProvideManyRouter interface {
+	routinghelpers.ProvideManyRouter
+	routing.Routing
 }
