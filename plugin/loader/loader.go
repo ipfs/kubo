@@ -157,9 +157,9 @@ func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 		return nil
 	}
 
-	cpl := loader.config.Plugins[name]
 	ci, ok := pl.(plugin.ConfigInitializer)
 	if ok {
+		cpl := loader.config.Plugins[name]
 		loader.config.Plugins[name] = config.Plugin{
 			Disabled: cpl.Disabled,
 			Config:   ci.Config(cpl.Config),
