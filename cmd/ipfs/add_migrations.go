@@ -16,7 +16,7 @@ import (
 	"github.com/ipfs/kubo/core/coreapi"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // addMigrations adds any migration downloaded by the fetcher to the IPFS node

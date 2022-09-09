@@ -13,7 +13,7 @@ import (
 	namesys "github.com/ipfs/go-namesys"
 	core "github.com/ipfs/kubo/core"
 	coreapi "github.com/ipfs/kubo/core/coreapi"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	dns "github.com/miekg/dns"
 
 	mbase "github.com/multiformats/go-multibase"

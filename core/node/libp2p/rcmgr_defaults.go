@@ -9,7 +9,7 @@ import (
 
 	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
-	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	"github.com/wI2L/jsondiff"
 )
@@ -181,7 +181,7 @@ func jsonDiff(old []byte, updated []byte) ([]string, error) {
 	return changes, nil
 }
 
-// https://github.com/libp2p/go-libp2p-resource-manager/blob/v0.1.5/limit_defaults.go#L49
+// https://github.com/libp2p/go-libp2p/blob/v0.22.0/p2p/host/resource-manager/limit_defaults.go#L343
 const expectedDefaultLimits = `{
   "SystemBaseLimit": {
     "Streams": 2048,

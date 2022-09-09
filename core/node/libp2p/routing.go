@@ -14,9 +14,6 @@ import (
 	offroute "github.com/ipfs/go-ipfs-routing/offline"
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/repo"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -24,6 +21,9 @@ import (
 	namesys "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 
 	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/fx"
@@ -259,8 +259,8 @@ func PubsubRouter(mctx helpers.MetricsCtx, lc fx.Lifecycle, in p2pPSRoutingIn) (
 	}, psRouter, nil
 }
 
-func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, AddrInfoChan, *ddht.DHT) {
-	return func(lc fx.Lifecycle, h host.Host, peerChan AddrInfoChan, dht *ddht.DHT) {
+func autoRelayFeeder(cfgPeering config.Peering, peerChan chan<- peer.AddrInfo) fx.Option {
+	return fx.Invoke(func(lc fx.Lifecycle, h host.Host, dht *ddht.DHT) {
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{})
 
@@ -333,5 +333,5 @@ func AutoRelayFeeder(cfgPeering config.Peering) func(fx.Lifecycle, host.Host, Ad
 				return nil
 			},
 		})
-	}
+	})
 }

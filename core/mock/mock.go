@@ -16,10 +16,10 @@ import (
 	config "github.com/ipfs/kubo/config"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	testutil "github.com/libp2p/go-libp2p-testing/net"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )

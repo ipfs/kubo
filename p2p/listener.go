@@ -4,9 +4,9 @@ import (
 	"errors"
 	"sync"
 
-	p2phost "github.com/libp2p/go-libp2p-core/host"
-	net "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	p2phost "github.com/libp2p/go-libp2p/core/host"
+	net "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 )
 

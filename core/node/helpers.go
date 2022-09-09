@@ -43,7 +43,7 @@ func maybeProvide(opt interface{}, enable bool) fx.Option {
 	return fx.Options()
 }
 
-//nolint unused
+// nolint unused
 func maybeInvoke(opt interface{}, enable bool) fx.Option {
 	if enable {
 		return fx.Invoke(opt)

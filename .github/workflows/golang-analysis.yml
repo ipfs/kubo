@@ -11,7 +11,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-go@v2
         with:
-          go-version: "1.18.x"
+          go-version: "1.19.x"
       - name: Check that go.mod is tidy
         uses: protocol/multiple-go-modules@v1.2
         with:
@@ -22,12 +22,13 @@ jobs:
               exit 1
             fi
             git diff --exit-code -- go.sum go.mod
-      - name: gofmt
+      - name: go fmt
         if: always() # run this step even if the previous one failed
         run: |
-          out=$(gofmt -s -l .)
+          out=$(go fmt ./...)
           if [[ -n "$out" ]]; then
-            echo $out | awk '{print "::error file=" $0 ",line=0,col=0::File is not gofmt-ed."}'
+            echo "Files are not go-fmt-ed:"
+            echo "$out"
             exit 1
           fi
       - name: go vet
