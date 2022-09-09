@@ -8,9 +8,10 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/ipld/go-ipld-prime/multicodec"
+
 	config "github.com/ipfs/kubo/config"
 	cserialize "github.com/ipfs/kubo/config/serialize"
-	"github.com/ipld/go-ipld-prime/multicodec"
 
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
@@ -79,12 +80,12 @@ func (ls loaderState) String() string {
 // PluginLoader keeps track of loaded plugins.
 //
 // To use:
-// 1. Load any desired plugins with Load and LoadDirectory. Preloaded plugins
-//    will automatically be loaded.
-// 2. Call Initialize to run all initialization logic.
-// 3. Call Inject to register the plugins.
-// 4. Optionally call Start to start plugins.
-// 5. Call Close to close all plugins.
+//  1. Load any desired plugins with Load and LoadDirectory. Preloaded plugins
+//     will automatically be loaded.
+//  2. Call Initialize to run all initialization logic.
+//  3. Call Inject to register the plugins.
+//  4. Optionally call Start to start plugins.
+//  5. Call Close to close all plugins.
 type PluginLoader struct {
 	state   loaderState
 	plugins map[string]plugin.Plugin
@@ -147,10 +148,24 @@ func (loader *PluginLoader) Load(pl plugin.Plugin) error {
 				"while trying to load dynamically: %s",
 			name, ppl.Version(), pl.Version())
 	}
+	if loader.config.Plugins == nil {
+		loader.config.Plugins = make(map[string]config.Plugin)
+	}
+
 	if loader.config.Plugins[name].Disabled {
 		log.Infof("not loading disabled plugin %s", name)
 		return nil
 	}
+
+	cpl := loader.config.Plugins[name]
+	ci, ok := pl.(plugin.ConfigInitializer)
+	if ok {
+		loader.config.Plugins[name] = config.Plugin{
+			Disabled: cpl.Disabled,
+			Config:   ci.Config(cpl.Config),
+		}
+	}
+
 	loader.plugins[name] = pl
 	return nil
 }
@@ -302,6 +317,10 @@ func (loader *PluginLoader) Start(node *core.IpfsNode) error {
 	}
 
 	return loader.transition(loaderStarting, loaderStarted)
+}
+
+func (loader *PluginLoader) PluginConfig() config.Plugins {
+	return loader.config
 }
 
 // Close stops all long-running plugins.

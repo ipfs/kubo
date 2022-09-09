@@ -12,6 +12,7 @@ import (
 
 	path "github.com/ipfs/go-path"
 	unixfs "github.com/ipfs/go-unixfs"
+
 	assets "github.com/ipfs/kubo/assets"
 	oldcmds "github.com/ipfs/kubo/commands"
 	core "github.com/ipfs/kubo/core"
@@ -21,6 +22,7 @@ import (
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
+
 	config "github.com/ipfs/kubo/config"
 )
 
@@ -119,6 +121,7 @@ environment variable:
 			if err != nil {
 				return err
 			}
+			conf.Plugins = cctx.Plugins.PluginConfig()
 		}
 
 		profiles, _ := req.Options[profileOptionName].(string)

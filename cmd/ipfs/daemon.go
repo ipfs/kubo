@@ -15,6 +15,8 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
+	sockets "github.com/libp2p/go-socket-activation"
+
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -30,7 +32,6 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	sockets "github.com/libp2p/go-socket-activation"
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	mprome "github.com/ipfs/go-metrics-prometheus"
@@ -267,6 +268,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			if err != nil {
 				return err
 			}
+			conf.Plugins = cctx.Plugins.PluginConfig()
 		}
 
 		if err = doInit(os.Stdout, cctx.ConfigRoot, false, profiles, conf); err != nil {
