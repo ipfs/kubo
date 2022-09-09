@@ -216,7 +216,7 @@ var swarmPeeringRmCmd = &cmds.Command{
 	Type: peeringResult{},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, pr *peeringResult) error {
-			fmt.Fprintf(w, "add %s %s\n", pr.ID.String(), pr.Status)
+			fmt.Fprintf(w, "remove %s %s\n", pr.ID.String(), pr.Status)
 			return nil
 		}),
 	},
