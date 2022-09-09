@@ -91,7 +91,7 @@ func TestToDNSLinkFQDN(t *testing.T) {
 		out string
 	}{
 		{"singlelabel", "singlelabel"},
-		{"docs-ipfs-io", "docs.ipfs.io"},
+		{"docs-ipfs-tech", "docs.ipfs.tech"},
 		{"dnslink-long--name-example-com", "dnslink.long-name.example.com"},
 	} {
 		out := toDNSLinkFQDN(test.in)
@@ -261,7 +261,7 @@ func TestKnownSubdomainDetails(t *testing.T) {
 		// dnslink in subdomain
 		{"en.wikipedia-on-ipfs.org.ipns.localhost:8080", gwLocalhost, "localhost:8080", "ipns", "en.wikipedia-on-ipfs.org", true},
 		{"en.wikipedia-on-ipfs.org.ipns.localhost", gwLocalhost, "localhost", "ipns", "en.wikipedia-on-ipfs.org", true},
-		{"dist.ipfs.io.ipns.localhost:8080", gwLocalhost, "localhost:8080", "ipns", "dist.ipfs.io", true},
+		{"dist.ipfs.tech.ipns.localhost:8080", gwLocalhost, "localhost:8080", "ipns", "dist.ipfs.tech", true},
 		{"en.wikipedia-on-ipfs.org.ipns.dweb.link", gwDweb, "dweb.link", "ipns", "en.wikipedia-on-ipfs.org", true},
 		// edge case check: public gateway under long TLD (see: https://publicsuffix.org)
 		{"foo.dweb.ipfs.pvt.k12.ma.us", nil, "", "", "", false},

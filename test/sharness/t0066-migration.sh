@@ -58,7 +58,7 @@ test_expect_success "ipfs daemon --migrate=false fails" '
 '
 
 test_expect_success "output looks good" '
-  grep "Please get fs-repo-migrations from https://dist.ipfs.io" false_out
+  grep "Please get fs-repo-migrations from https://dist.ipfs.tech" false_out
 '
 
 # The migrations will succeed, but the daemon will still exit with 1 because
@@ -81,7 +81,7 @@ test_expect_success "'ipfs daemon' prompts to auto migrate" '
 test_expect_success "output looks good" '
   grep "Found outdated fs-repo" daemon_out > /dev/null &&
   grep "Run migrations now?" daemon_out > /dev/null &&
-  grep "Please get fs-repo-migrations from https://dist.ipfs.io" daemon_out > /dev/null
+  grep "Please get fs-repo-migrations from https://dist.ipfs.tech" daemon_out > /dev/null
 '
 
 test_expect_success "ipfs repo migrate succeed" '

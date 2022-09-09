@@ -52,7 +52,7 @@ IGNORE_FILES=(
 
 if [[ ${#INCLUDE_MODULES[@]} -gt 0 ]]; then
     INCLUDE_REGEX="(${$(printf "|%s" "${INCLUDE_MODULES[@]}"):1})"
-else 
+else
     INCLUDE_REGEX="" # "match anything"
 fi
 
@@ -149,11 +149,12 @@ pr_link() {
 }
 
 ignored_commit() {
-    local commit="$1"
+    local repo="$1"
+    local commit="$2"
     local matches
 
     # Check to see if this commit includes any non-ignored files.
-    matches=$(git -C "$dir" diff-tree --no-commit-id --name-only -r "$commit^" "$commit" \
+    matches=$(git -C "$repo" diff-tree --no-commit-id --name-only -r "$commit^" "$commit" \
                   -- "${IGNORE_FILES_PATHSPEC[@]}" | wc -l)
     [[ "$matches" -eq 0 ]]
 }
@@ -175,7 +176,7 @@ release_log() {
         "$start..$end" |
         while read commit subject; do
             # Skip commits that only touch ignored files.
-            if ignored_commit "$commit"; then
+            if ignored_commit "$dir" "$commit"; then
                 continue
             fi
 

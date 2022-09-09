@@ -19,12 +19,12 @@ import (
 
 	cid "github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
+	ipld "github.com/ipfs/go-ipld-format"
 	dag "github.com/ipfs/go-merkledag"
 	mfs "github.com/ipfs/go-mfs"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p-core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
@@ -68,8 +68,8 @@ type redirectTemplateData struct {
 // (it serves requests like GET /ipfs/QmVRzPKPzNtSrEzBFm2UZfxmPAgnaLke4DMcerbsGGSaFe/link)
 type gatewayHandler struct {
 	config     GatewayConfig
-	api        coreiface.CoreAPI
-	offlineApi coreiface.CoreAPI
+	api        NodeAPI
+	offlineApi NodeAPI
 
 	// generic metrics
 	firstContentBlockGetMetric *prometheus.HistogramVec
@@ -213,11 +213,13 @@ func newGatewayHistogramMetric(name string, help string) *prometheus.HistogramVe
 	return histogramMetric
 }
 
-func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) (*gatewayHandler, error) {
-	offlineApi, err := api.WithOptions(options.Api.Offline(true))
-	if err != nil {
-		return nil, err
-	}
+// NewGatewayHandler returns an http.Handler that can act as a gateway to IPFS content
+// offlineApi is a version of the API that should not make network requests for missing data
+func NewGatewayHandler(c GatewayConfig, api NodeAPI, offlineApi NodeAPI) http.Handler {
+	return newGatewayHandler(c, api, offlineApi)
+}
+
+func newGatewayHandler(c GatewayConfig, api NodeAPI, offlineApi NodeAPI) *gatewayHandler {
 	i := &gatewayHandler{
 		config:     c,
 		api:        api,
@@ -262,7 +264,7 @@ func newGatewayHandler(c GatewayConfig, api coreiface.CoreAPI) (*gatewayHandler,
 			"The time to receive the first UnixFS node on a GET from the gateway.",
 		),
 	}
-	return i, nil
+	return i
 }
 
 func parseIpfsPath(p string) (cid.Cid, string, error) {
@@ -389,8 +391,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			logger.Debugw("serve pretty 404 if present")
 			return
 		}
-
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
 		return
 	}
 
@@ -781,6 +782,8 @@ func webError(w http.ResponseWriter, message string, err error, defaultCode int)
 	if _, ok := err.(resolver.ErrNoLink); ok {
 		webErrorWithCode(w, message, err, http.StatusNotFound)
 	} else if err == routing.ErrNotFound {
+		webErrorWithCode(w, message, err, http.StatusNotFound)
+	} else if ipld.IsNotFound(err) {
 		webErrorWithCode(w, message, err, http.StatusNotFound)
 	} else if err == context.DeadlineExceeded {
 		webErrorWithCode(w, message, err, http.StatusRequestTimeout)

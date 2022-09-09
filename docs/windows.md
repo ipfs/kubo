@@ -1,7 +1,7 @@
 # Building on Windows
 ![](https://ipfs.io/ipfs/QmccXW7JSZMVXidSc7tHsU6aktuaiV923q4yBGHUsdymYo/build.gif)
 
-If you just want to install kubo, please download it from https://dist.ipfs.io/#kubo. This document explains how to build it from source.
+If you just want to install kubo, please download it from https://dist.ipfs.tech/#kubo. This document explains how to build it from source.
 
 ## Install Go
 `kubo` is built on Golang and thus depends on it for all building methods.  

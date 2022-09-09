@@ -173,6 +173,7 @@ cat <<EOF > hashes_expect
    27  keccak-256
    28  keccak-384
    29  keccak-512
+   30  blake3
    86  dbl-sha2-256
 45588  blake2b-160
 45589  blake2b-168

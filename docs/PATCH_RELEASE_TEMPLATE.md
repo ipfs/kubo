@@ -10,20 +10,22 @@ This process handles patch releases from version `vX.Y.Z` to `vX.Y.Z+1` assuming
 - [ ] Make a PR merging `release-vX.Y.Z+1` into the release branch
   - This may be unnecessary, e.g. for backports
 - [ ] Tag the merge commit in the `release` branch with `vX.Y.Z+1` (ensure the tag is signed)
-- [ ] Upload to dist.ipfs.io
-  1. Build: https://github.com/ipfs/distributions#usage.
-  2. Pin the resulting release.
-  3. Make a PR against ipfs/distributions with the updated versions, including the new hash in the PR comment.
-  4. Ask the infra team to update the DNSLink record for dist.ipfs.io to point to the new distribution.
-- [ ] cut a release on [github](https://github.com/ipfs/kubo/releases) and upload the result of the ipfs/distributions build in the previous step.
-- Announce the Release:
-  - [ ] On IRC/Matrix (both #ipfs and #ipfs-dev)
-  - [ ] On discuss.ipfs.io
+- [ ] Add artifacts to https://dist.ipfs.tech/kubo
+  1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
+  2. Wait for PR to build artifacts and generate diff
+  3. Inspect results, merge if CI is green and the diff looks ok
+  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech
+- [ ] Cut a release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (run [sync-release-assets.yml workflow](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml)).
+- [ ] Announce the Release:
+  - [ ] On [discuss.ipfs.tech](https://discuss.ipfs.tech)
+    - This will automatically post to Matrix (`#lobby:ipfs.io`) and IPFS Discord (`#ipfs-chatter`)
+    - Examples from the past: [0.13.1](https://discuss.ipfs.tech/t/go-ipfs-v0-13-1-has-been-released/14599)
+    - [ ] Pin the discuss topic
 - [ ] Release published
-  - [ ] to [dist.ipfs.io](https://dist.ipfs.io)
-  - [ ] to [npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs)
-  - [ ] to [chocolatey](https://chocolatey.org/packages/ipfs)
-  - [ ] to [snap](https://snapcraft.io/ipfs)
+  - [ ] to [dist.ipfs.tech](https://dist.ipfs.tech)
+  - [ ] to [npm-go-ipfs](https://www.npmjs.com/package/go-ipfs) (should be done by [ipfs/npm-go-ipfs](https://github.com/ipfs/npm-go-ipfs), but ok to dispatch [this job](https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml) manually)
+  - [ ] to [chocolatey](https://chocolatey.org/packages/go-ipfs) (should be done by [ipfs/choco-go-ipfs](https://github.com/ipfs/choco-go-ipfs/), but ok to dispatch [this job](https://github.com/ipfs/choco-go-ipfs/actions/workflows/main.yml) manually)
+  - [ ] to [snap](https://snapcraft.io/ipfs) (should happen automatically, see [snap/snapcraft.yaml](https://github.com/ipfs/kubo/blob/master/snap/snapcraft.yaml))
   - [ ] to [github](https://github.com/ipfs/kubo/releases)
   - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
 - [ ] Cut a new ipfs-desktop release

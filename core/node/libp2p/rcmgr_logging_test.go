@@ -8,6 +8,7 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/libp2p/go-libp2p-core/network"
 	rcmgr "github.com/libp2p/go-libp2p-resource-manager"
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
@@ -15,8 +16,11 @@ import (
 
 func TestLoggingResourceManager(t *testing.T) {
 	clock := clock.NewMock()
-	limiter := rcmgr.NewDefaultLimiter()
-	limiter.SystemLimits = limiter.SystemLimits.WithConnLimit(1, 1, 1)
+	limits := rcmgr.DefaultLimits.AutoScale()
+	limits.System.Conns = 1
+	limits.System.ConnsInbound = 1
+	limits.System.ConnsOutbound = 1
+	limiter := rcmgr.NewFixedLimiter(limits)
 	rm, err := rcmgr.NewResourceManager(limiter)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +37,7 @@ func TestLoggingResourceManager(t *testing.T) {
 
 	// 2 of these should result in resource limit exceeded errors and subsequent log messages
 	for i := 0; i < 3; i++ {
-		_, _ = lrm.OpenConnection(network.DirInbound, false)
+		_, _ = lrm.OpenConnection(network.DirInbound, false, ma.StringCast("/ip4/127.0.0.1/tcp/1234"))
 	}
 
 	// run the logger which will write an entry for those errors

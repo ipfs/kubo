@@ -51,6 +51,30 @@ func MetricsOpenCensusCollectionOption() ServeOption {
 	}
 }
 
+// MetricsOpenCensusDefaultPrometheusRegistry registers the default prometheus
+// registry as an exporter to OpenCensus metrics. This means that OpenCensus
+// metrics will show up in the prometheus metrics endpoint
+func MetricsOpenCensusDefaultPrometheusRegistry() ServeOption {
+	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {
+		log.Info("Init OpenCensus with default prometheus registry")
+
+		pe, err := ocprom.NewExporter(ocprom.Options{
+			Registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
+			OnError: func(err error) {
+				log.Errorw("OC default registry ERROR", "error", err)
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// register prometheus with opencensus
+		view.RegisterExporter(pe)
+
+		return mux, nil
+	}
+}
+
 // MetricsCollectionOption adds collection of net/http-related metrics.
 func MetricsCollectionOption(handlerName string) ServeOption {
 	return func(_ *core.IpfsNode, _ net.Listener, mux *http.ServeMux) (*http.ServeMux, error) {

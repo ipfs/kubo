@@ -46,6 +46,7 @@ config file at runtime.
     - [`Discovery.MDNS`](#discoverymdns)
       - [`Discovery.MDNS.Enabled`](#discoverymdnsenabled)
       - [`Discovery.MDNS.Interval`](#discoverymdnsinterval)
+  - [`Experimental`](#experimental)
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
@@ -140,6 +141,7 @@ config file at runtime.
     - [`Swarm.ResourceMgr`](#swarmresourcemgr)
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
+      - [`Swarm.ResourceMgr.Allowlist`](#swarmresourcemgrallowlist)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
       - [`Swarm.Transports.Network.TCP`](#swarmtransportsnetworktcp)
@@ -599,6 +601,10 @@ Type: `bool`
 **REMOVED:**  this is not configurable any more
 in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
+## `Experimental`
+
+Toggle and configure experimental features of Kubo. Experimental features are listed [here](./experimental-features.md).
+
 ## `Gateway`
 
 Options for the HTTP gateway.
@@ -675,40 +681,7 @@ Type: `bool`
 
 ### `Gateway.PathPrefixes`
 
-**DEPRECATED:** see [kubo#7702](https://github.com/ipfs/kubo/issues/7702)
-
-<!--
-An array of acceptable url paths that a client can specify in X-Ipfs-Path-Prefix
-header.
-
-The X-Ipfs-Path-Prefix header is used to specify a base path to prepend to links
-in directory listings and for trailing-slash redirects. It is intended to be set
-by a frontend http proxy like nginx.
-
-Example: We mount `blog.ipfs.io` (a dnslink page) at `ipfs.io/blog`.
-
-**.ipfs/config**
-```json
-"Gateway": {
-  "PathPrefixes": ["/blog"],
-}
-```
-
-**nginx_ipfs.conf**
-```nginx
-location /blog/ {
-  rewrite "^/blog(/.*)$" $1 break;
-  proxy_set_header Host blog.ipfs.io;
-  proxy_set_header X-Ipfs-Gateway-Prefix /blog;
-  proxy_pass http://127.0.0.1:8080;
-}
-```
-
--->
-
-Default: `[]`
-
-Type: `array[string]`
+**REMOVED:** see [go-ipfs#7702](https://github.com/ipfs/go-ipfs/issues/7702)
 
 ### `Gateway.PublicGateways`
 
@@ -748,7 +721,7 @@ Type: `array[string]`
 A boolean to configure whether the gateway at the hostname provides [Origin isolation](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)
 between content roots.
 
-- `true` - enables [subdomain gateway](#https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
+- `true` - enables [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://*.{hostname}/`
     - **Requires whitelist:** make sure respective `Paths` are set.
       For example, `Paths: ["/ipfs", "/ipns"]` are required for `http://{cid}.ipfs.{hostname}` and `http://{foo}.ipns.{hostname}` to work:
         ```json
@@ -764,7 +737,7 @@ between content roots.
     - **Backward-compatible:** requests for content paths such as `http://{hostname}/ipfs/{cid}` produce redirect to `http://{cid}.ipfs.{hostname}`
     - **API:** if `/api` is on the `Paths` whitelist, `http://{hostname}/api/{cmd}` produces redirect to `http://api.{hostname}/api/{cmd}`
 
-- `false` - enables [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
+- `false` - enables [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://{hostname}/*`
   - Example:
     ```json
     "Gateway": {
@@ -821,7 +794,7 @@ $ ipfs config --json Gateway.PublicGateways '{"localhost": null }'
 
 Below is a list of the most common public gateway setups.
 
-* Public [subdomain gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
+* Public [subdomain gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#subdomain-gateway) at `http://{cid}.ipfs.dweb.link` (each content root gets its own Origin)
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "dweb.link": {
@@ -845,7 +818,7 @@ Below is a list of the most common public gateway setups.
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
 
 
-* Public [path gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
+* Public [path gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#path-gateway) at `http://ipfs.io/ipfs/{cid}` (no Origin separation)
    ```console
    $ ipfs config --json Gateway.PublicGateways '{
        "ipfs.io": {
@@ -861,7 +834,7 @@ Below is a list of the most common public gateway setups.
   ```
   * Note that `NoDNSLink: false` is the default (it works out of the box unless set to `true` manually)
 
-* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.io/how-to/address-ipfs-on-web/#dnslink-gateway).
+* Hardened, site-specific [DNSLink gateway](https://docs.ipfs.tech/how-to/address-ipfs-on-web/#dnslink-gateway).
 
   Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
@@ -1275,7 +1248,7 @@ not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
 manually announce your content periodically.
 
-Type: `array[peering]`
+Type: `duration`
 
 ### `Reprovider.Strategy`
 
@@ -1342,7 +1315,7 @@ Reframe:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
   - `Priority` (optional): Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
 
-**Example:**
+**Examples:**
 
 To add router provided by _Store the Index_ team at [cid.contact](https://cid.contact):
 
@@ -1355,7 +1328,7 @@ $ ipfs config Routing.Routers.CidContact --json '{
 }'
 ```
 
-Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node.
+Anyone can create and run their own Reframe endpoint, and experiment with custom routing logic. See [`someguy`](https://github.com/aschmahmann/someguy) example, which proxies requests to BOTH the IPFS Public DHT AND an Indexer node. Protocol Labs provides a public instance at `https://routing.delegate.ipfs.io/reframe`.
 
 Default: `{}` (use the safe implicit defaults)
 
@@ -1618,7 +1591,7 @@ Set `Swarm.Transports.Network.Relay` to `false` instead.
 
 **REMOVED**
 
-Please use [`AutoNAT.ServiceMode`][#autonatservicemode].
+Please use [`AutoNAT.ServiceMode`](#autonatservicemode).
 
 ### `Swarm.ConnMgr`
 
@@ -1713,6 +1686,8 @@ and tracking recource usage over time.
 Enables the libp2p Network Resource Manager and auguments the default limits
 using user-defined ones in `Swarm.ResourceMgr.Limits` (if present).
 
+Various `*rcmgr_*` metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+
 Default: `false`
 
 Type: `flag`
@@ -1760,6 +1735,14 @@ Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->object]`
 
+#### `Swarm.ResourceMgr.Allowlist`
+
+A list of multiaddrs that can bypass normal system limits (but are still limited by the allowlist scope).
+Convenience config around [go-libp2p-resource-manager#Allowlist.Add](https://pkg.go.dev/github.com/libp2p/go-libp2p-resource-manager#Allowlist.Add).
+
+Default: `[]`
+
+Type: `array[string]` (multiaddrs)
 
 ### `Swarm.Transports`
 
@@ -1931,7 +1914,7 @@ Type: `priority`
 
 ## `DNS`
 
-Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.io/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
+Options for configuring DNS resolution for [DNSLink](https://docs.ipfs.tech/concepts/dnslink/) and `/dns*` [Multiaddrs](https://github.com/multiformats/multiaddr/).
 
 ### `DNS.Resolvers`
 

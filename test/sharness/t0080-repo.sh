@@ -64,7 +64,7 @@ test_expect_success "'ipfs repo gc --silent' succeeds (no output)" '
   ipfs repo gc --silent >gc_out_empty &&
   test_cmp /dev/null gc_out_empty &&
   test_must_fail ipfs cat "$HASH2" 2>err_expected1 &&
-  grep "Error: ipld: could not find $HASH2" err_expected1
+  grep "Error: block was not found locally (offline): ipld: could not find $HASH2" err_expected1
 '
 
 test_kill_ipfs_daemon
