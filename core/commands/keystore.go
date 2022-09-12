@@ -22,8 +22,8 @@ import (
 	ke "github.com/ipfs/kubo/core/commands/keyencode"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	migrations "github.com/ipfs/kubo/repo/fsrepo/migrations"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 var KeyCmd = &cmds.Command{

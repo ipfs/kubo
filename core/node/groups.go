@@ -10,8 +10,8 @@ import (
 	util "github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/config"
-	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/p2p"
@@ -142,12 +142,9 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 			"If you want to continue running a circuit v1 relay, please use the standalone relay daemon: https://dist.ipfs.tech/#libp2p-relay-daemon (with RelayV1.Enabled: true)")
 	}
 
-	peerChan := make(libp2p.AddrInfoChan)
 	// Gather all the options
 	opts := fx.Options(
 		BaseLibP2P,
-
-		fx.Supply(peerChan),
 
 		// Services (resource management)
 		fx.Provide(libp2p.ResourceManager(cfg.Swarm)),
@@ -173,8 +170,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),
 		maybeProvide(libp2p.NatPortMap, !cfg.Swarm.DisableNatPortMap),
-		maybeProvide(libp2p.AutoRelay(cfg.Swarm.RelayClient.StaticRelays, peerChan), enableRelayClient),
-		maybeInvoke(libp2p.AutoRelayFeeder(cfg.Peering), enableRelayClient),
+		libp2p.MaybeAutoRelay(cfg.Swarm.RelayClient.StaticRelays, cfg.Peering, enableRelayClient),
 		autonat,
 		connmgr,
 		ps,

@@ -5,8 +5,8 @@ import (
 
 	"github.com/ipfs/go-cid"
 	drc "github.com/ipfs/go-delegated-routing/client"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/multiformats/go-multihash"
 	"golang.org/x/sync/errgroup"
 )

@@ -6,9 +6,9 @@ import (
 
 	util "github.com/ipfs/go-ipfs-util"
 	"github.com/ipfs/go-ipns"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	record "github.com/libp2p/go-libp2p-record"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
 	irouting "github.com/ipfs/kubo/routing"
