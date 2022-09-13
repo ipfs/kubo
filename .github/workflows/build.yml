@@ -39,16 +39,14 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/setup-go@v3
-        with:
-          go-version: 1.19.1
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
-      - uses: actions/checkout@v3
+          node-version: 16.12.0
       - uses: actions/download-artifact@v3
         with:
           name: kubo
+          path: cmd/ipfs
+      - run: chmod +x cmd/ipfs/ipfs
       - run: |
           echo "::set-output name=dir::$(npm config get cache)"
         id: npm-cache-dir
@@ -58,26 +56,19 @@ jobs:
           key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-${{ github.job }}-
+      - run: mkdir interop
       - run: |
           npm init -y
           npm install ipfs@^0.61.0
           npm install ipfs-interop@^8.0.10
           npm install mocha-circleci-reporter@0.0.3
         working-directory: interop
-      - run: |
-          mkdir -p /tmp/test-results/interop/
-          export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
-          npx ipfs-interop -- -t node -f $(sed -n -e "s|^import '\(.*\)'$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split --split-by=timings) -- --reporter mocha-circleci-reporter
+      - run: npx ipfs-interop
         env:
           LIBP2P_TCP_REUSEPORT: false
           LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
           IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
         working-directory: interop
-      - uses: actions/upload-artifact@v3
-        with:
-          name: interop
-          path: /tmp/test-results/**/*
-        if: always()
   go-ipfs-api:
     needs: [build]
     runs-on: ubuntu-latest
@@ -95,10 +86,11 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: 1.19.1
-      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: kubo
+          path: cmd/ipfs
+      - run: chmod +x cmd/ipfs/ipfs
       - uses: actions/checkout@v3
         with:
           repository: ipfs/go-ipfs-api
@@ -108,6 +100,7 @@ jobs:
           while ! cmd/ipfs/ipfs id --api=/ip4/127.0.0.1/tcp/5001 2>/dev/null; do
             sleep 1
           done
+        timeout-minutes: 5
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
@@ -132,10 +125,11 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: 1.19.1
-      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: kubo
+          path: cmd/ipfs
+      - run: chmod +x cmd/ipfs/ipfs
       - uses: actions/checkout@v3
         with:
           repository: ipfs/go-ipfs-http-client
@@ -145,6 +139,7 @@ jobs:
           name: ${{ github.job }}
       - run: echo '${{ github.workspace }}/cmd/ipfs' >> $GITHUB_PATH
       - run: go test -count=1 -v ./...
+        working-directory: go-ipfs-http-client
   ipfs-webui:
     needs: [build]
     runs-on: ubuntu-latest
@@ -162,11 +157,12 @@ jobs:
     steps:
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
-      - uses: actions/checkout@v3
+          node-version: 16.12.0
       - uses: actions/download-artifact@v3
         with:
           name: kubo
+          path: cmd/ipfs
+      - run: chmod +x cmd/ipfs/ipfs
       - uses: actions/checkout@v3
         with:
           repository: ipfs/ipfs-webui
