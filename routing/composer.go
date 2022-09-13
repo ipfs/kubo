@@ -5,10 +5,13 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
+	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
+	"github.com/multiformats/go-multihash"
 )
 
+var _ routinghelpers.ProvideManyRouter = &Composer{}
 var _ routing.Routing = &Composer{}
 
 type Composer struct {
@@ -21,6 +24,24 @@ type Composer struct {
 
 func (c *Composer) Provide(ctx context.Context, cid cid.Cid, provide bool) error {
 	return c.ProvideRouter.Provide(ctx, cid, provide)
+}
+
+func (c *Composer) ProvideMany(ctx context.Context, keys []multihash.Multihash) error {
+	pmr, ok := c.ProvideRouter.(routinghelpers.ProvideManyRouter)
+	if !ok {
+		return nil
+	}
+
+	return pmr.ProvideMany(ctx, keys)
+}
+
+func (c *Composer) Ready() bool {
+	pmr, ok := c.ProvideRouter.(routinghelpers.ProvideManyRouter)
+	if !ok {
+		return false
+	}
+
+	return pmr.Ready()
 }
 
 func (c *Composer) FindProvidersAsync(ctx context.Context, cid cid.Cid, count int) <-chan peer.AddrInfo {
