@@ -20,6 +20,10 @@ type reframeRoutingWrapper struct {
 	*drc.ContentRoutingClient
 }
 
+func (c *reframeRoutingWrapper) Provide(ctx context.Context, key cid.Cid, announce bool) error {
+	return c.ContentRoutingClient.Provide(ctx, key, announce)
+}
+
 func (c *reframeRoutingWrapper) FindProvidersAsync(ctx context.Context, cid cid.Cid, count int) <-chan peer.AddrInfo {
 	return c.ContentRoutingClient.FindProvidersAsync(ctx, cid, count)
 }
@@ -30,6 +34,14 @@ func (c *reframeRoutingWrapper) Bootstrap(ctx context.Context) error {
 
 func (c *reframeRoutingWrapper) FindPeer(ctx context.Context, id peer.ID) (peer.AddrInfo, error) {
 	return peer.AddrInfo{}, routing.ErrNotSupported
+}
+
+func (c *reframeRoutingWrapper) ProvideMany(ctx context.Context, keys []multihash.Multihash) error {
+	return c.ContentRoutingClient.ProvideMany(ctx, keys)
+}
+
+func (c *reframeRoutingWrapper) Ready() bool {
+	return true
 }
 
 type ProvideMany interface {

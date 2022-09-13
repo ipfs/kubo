@@ -236,6 +236,10 @@ type delegatedRoutingService struct {
 	serviceID             int
 }
 
+func (drs *delegatedRoutingService) Provide(ctx context.Context, req *client.ProvideRequest) (<-chan client.ProvideAsyncResult, error) {
+	return nil, errNotSupported
+}
+
 func (drs *delegatedRoutingService) FindProviders(ctx context.Context, key cid.Cid) (<-chan client.FindProvidersAsyncResult, error) {
 	return nil, errNotSupported
 }

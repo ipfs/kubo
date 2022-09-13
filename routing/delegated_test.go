@@ -2,11 +2,13 @@ package routing
 
 import (
 	"context"
+	"encoding/base64"
 	"testing"
 
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/kubo/config"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/multiformats/go-multihash"
@@ -38,7 +40,7 @@ func TestRoutingFromConfig(t *testing.T) {
 
 	r, err := RoutingFromConfig(config.Router{
 		Type: "unknown",
-	})
+	}, "", nil, "")
 
 	require.Nil(r)
 	require.EqualError(err, "router type unknown is not supported")
@@ -46,7 +48,7 @@ func TestRoutingFromConfig(t *testing.T) {
 	r, err = RoutingFromConfig(config.Router{
 		Type:       string(config.RouterTypeReframe),
 		Parameters: make(map[string]string),
-	})
+	}, "", nil, "")
 
 	require.Nil(r)
 	require.EqualError(err, "configuration param 'Endpoint' is needed for reframe delegated routing types")
@@ -56,7 +58,26 @@ func TestRoutingFromConfig(t *testing.T) {
 		Parameters: map[string]string{
 			string(config.RouterParamEndpoint): "test",
 		},
-	})
+	}, "", nil, "")
+
+	require.NotNil(r)
+	require.NoError(err)
+
+	priv, pub, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
+	require.NoError(err)
+
+	id, err := peer.IDFromPublicKey(pub)
+	require.NoError(err)
+
+	privM, err := crypto.MarshalPrivateKey(priv)
+	require.NoError(err)
+
+	r, err = RoutingFromConfig(config.Router{
+		Type: string(config.RouterTypeReframe),
+		Parameters: map[string]string{
+			string(config.RouterParamEndpoint): "test",
+		},
+	}, id.String(), []string{"/ip4/0.0.0.0/tcp/4001"}, base64.StdEncoding.EncodeToString(privM))
 
 	require.NotNil(r)
 	require.NoError(err)
@@ -85,7 +106,6 @@ type dummyRouter struct {
 
 func (dr *dummyRouter) Provide(context.Context, cid.Cid, bool) error {
 	panic("not implemented")
-
 }
 
 func (dr *dummyRouter) FindProvidersAsync(context.Context, cid.Cid, int) <-chan peer.AddrInfo {

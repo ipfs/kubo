@@ -165,7 +165,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 		fx.Provide(libp2p.ContentRouting),
 
 		fx.Provide(libp2p.BaseRouting(cfg.Experimental.AcceleratedDHTClient)),
-		fx.Provide(libp2p.DelegatedRouting(cfg.Routing.Routers)),
+		fx.Provide(libp2p.DelegatedRouting(cfg.Routing.Routers, cfg.Identity.PeerID, cfg.Addresses.Swarm, cfg.Identity.PrivKey)),
 		maybeProvide(libp2p.PubsubRouter, bcfg.getOpt("ipnsps")),
 
 		maybeProvide(libp2p.BandwidthCounter, !cfg.Swarm.DisableBandwidthMetrics),

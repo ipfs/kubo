@@ -136,7 +136,7 @@ type delegatedRouterOut struct {
 	ContentRouter []routing.ContentRouting `group:"content-routers,flatten"`
 }
 
-func DelegatedRouting(routers map[string]config.Router) interface{} {
+func DelegatedRouting(routers map[string]config.Router, peerID string, addrs []string, priv string) interface{} {
 	return func() (delegatedRouterOut, error) {
 		out := delegatedRouterOut{}
 
@@ -145,7 +145,7 @@ func DelegatedRouting(routers map[string]config.Router) interface{} {
 				continue
 			}
 
-			r, err := irouting.RoutingFromConfig(v)
+			r, err := irouting.RoutingFromConfig(v, peerID, addrs, priv)
 			if err != nil {
 				return out, err
 			}
