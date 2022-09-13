@@ -1,0 +1,192 @@
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  build:
+    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.1
+      - uses: actions/checkout@v3
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - run: make build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kubo
+          path: cmd/ipfs/ipfs
+  interop:
+    needs: [build]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.1
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: kubo
+      - run: |
+          echo "::set-output name=dir::$(npm config get cache)"
+        id: npm-cache-dir
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-
+      - run: |
+          npm init -y
+          npm install ipfs@^0.61.0
+          npm install ipfs-interop@^8.0.10
+          npm install mocha-circleci-reporter@0.0.3
+        working-directory: interop
+      - run: |
+          mkdir -p /tmp/test-results/interop/
+          export MOCHA_FILE="$(mktemp /tmp/test-results/interop/unit.XXXXXX.xml)"
+          npx ipfs-interop -- -t node -f $(sed -n -e "s|^import '\(.*\)'$|test/\1|p" node_modules/ipfs-interop/test/node.js | circleci tests split --split-by=timings) -- --reporter mocha-circleci-reporter
+        env:
+          LIBP2P_TCP_REUSEPORT: false
+          LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
+          IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
+        working-directory: interop
+      - uses: actions/upload-artifact@v3
+        with:
+          name: interop
+          path: /tmp/test-results/**/*
+        if: always()
+  go-ipfs-api:
+    needs: [build]
+    runs-on: ubuntu-latest
+    env:
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.1
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: kubo
+      - uses: actions/checkout@v3
+        with:
+          repository: ipfs/go-ipfs-api
+          path: go-ipfs-api
+      - run: cmd/ipfs/ipfs daemon --init --enable-namesys-pubsub &
+      - run: |
+          while ! cmd/ipfs/ipfs id --api=/ip4/127.0.0.1/tcp/5001 2>/dev/null; do
+            sleep 1
+          done
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - run: go test -count=1 -v ./...
+        working-directory: go-ipfs-api
+      - run: cmd/ipfs/ipfs shutdown
+        if: always()
+  go-ipfs-http-client:
+    needs: [build]
+    runs-on: ubuntu-latest
+    env:
+      TEST_NO_DOCKER: 1
+      TEST_NO_FUSE: 1
+      TEST_VERBOSE: 1
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.1
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: kubo
+      - uses: actions/checkout@v3
+        with:
+          repository: ipfs/go-ipfs-http-client
+          path: go-ipfs-http-client
+      - uses: protocol/cache-go-action@v1
+        with:
+          name: ${{ github.job }}
+      - run: echo '${{ github.workspace }}/cmd/ipfs' >> $GITHUB_PATH
+      - run: go test -count=1 -v ./...
+  ipfs-webui:
+    needs: [build]
+    runs-on: ubuntu-latest
+    env:
+      NO_SANDBOX: true
+      LIBP2P_TCP_REUSEPORT: false
+      LIBP2P_ALLOW_WEAK_RSA_KEYS: 1
+      E2E_IPFSD_TYPE: go
+      TRAVIS: 1
+      GIT_PAGER: cat
+      IPFS_CHECK_RCMGR_DEFAULTS: 1
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: kubo
+      - uses: actions/checkout@v3
+        with:
+          repository: ipfs/ipfs-webui
+          path: ipfs-webui
+      - run: |
+          echo "::set-output name=dir::$(npm config get cache)"
+        id: npm-cache-dir
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-${{ github.job }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.job }}-
+      - run: |
+          npm ci --prefer-offline --no-audit --progress=false
+          npx playwright install
+        working-directory: ipfs-webui
+      - run: npm test
+        working-directory: ipfs-webui
+      - run: npm test
+        env:
+          IPFS_GO_EXEC: ${{ github.workspace }}/cmd/ipfs/ipfs
+        working-directory: ipfs-webui
