@@ -30,8 +30,11 @@ jobs:
       - run: |
           make -j 1 test/unit/gotest.junit.xml &&
             [[ ! $(jq -s -c 'map(select(.Action == "fail")) | .[]' test/unit/gotest.json) ]]
-      - run: bash <(curl -s https://codecov.io/bash) -cF unittests -X search -f coverage/unit_tests.coverprofile
+      - uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
         if: always()
+        with:
+          name: unittests
+          files: coverage/unit_tests.coverprofile
       - run: |
           # we want to first test with the kubo version in the go.mod file
           go test -v ./...
