@@ -11,12 +11,17 @@ import (
 )
 
 var _ routing.Routing = &reframeRoutingWrapper{}
+var _ routinghelpers.ProvideManyRouter = &reframeRoutingWrapper{}
 
 // reframeRoutingWrapper is a wrapper needed to construct the routing.Routing interface from
 // delegated-routing library.
 type reframeRoutingWrapper struct {
 	*drc.Client
 	*drc.ContentRoutingClient
+}
+
+func (c *reframeRoutingWrapper) Provide(ctx context.Context, id cid.Cid, announce bool) error {
+	return c.ContentRoutingClient.Provide(ctx, id, announce)
 }
 
 func (c *reframeRoutingWrapper) FindProvidersAsync(ctx context.Context, cid cid.Cid, count int) <-chan peer.AddrInfo {

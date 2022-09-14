@@ -243,6 +243,10 @@ func (drs *delegatedRoutingService) FindProviders(ctx context.Context, key cid.C
 	return nil, errNotSupported
 }
 
+func (drs *delegatedRoutingService) Provide(ctx context.Context, req *client.ProvideRequest) (<-chan client.ProvideAsyncResult, error) {
+	return nil, errNotSupported
+}
+
 func (drs *delegatedRoutingService) GetIPNS(ctx context.Context, id []byte) (<-chan client.GetIPNSAsyncResult, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	ch := make(chan client.GetIPNSAsyncResult)

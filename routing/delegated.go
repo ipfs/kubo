@@ -144,7 +144,11 @@ func reframeRoutingFromConfig(conf config.Router) (routing.Routing, error) {
 		return nil, err
 	}
 
-	c := drc.NewClient(dr)
+	// TODO support Provide adding missing params.
+	c, err := drc.NewClient(dr, nil, nil)
+	if err != nil {
+		return nil, err
+	}
 	crc := drc.NewContentRoutingClient(c)
 	return &reframeRoutingWrapper{
 		Client:               c,
