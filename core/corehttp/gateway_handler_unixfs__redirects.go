@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	redirects "github.com/ipfs-shipyard/go-ipfs-redirects"
 	files "github.com/ipfs/go-ipfs-files"
+	redirects "github.com/ipfs/go-ipfs-redirects-file"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"go.uber.org/zap"
