@@ -65,7 +65,7 @@ require (
 	github.com/ipld/go-car v0.4.0
 	github.com/ipld/go-car/v2 v2.4.0
 	github.com/ipld/go-codec-dagpb v1.4.1
-	github.com/ipld/go-ipld-prime v0.17.1-0.20220627233435-adf99676901e
+	github.com/ipld/go-ipld-prime v0.18.0
 	github.com/jbenet/go-random v0.0.0-20190219211222-123a90aedc0c
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
@@ -118,7 +118,7 @@ require (
 
 require (
 	github.com/benbjohnson/clock v1.3.0
-	github.com/ipfs/go-delegated-routing v0.5.0
+	github.com/ipfs/go-delegated-routing v0.5.2
 	github.com/ipfs/go-log/v2 v2.5.1
 )
 
