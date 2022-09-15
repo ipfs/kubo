@@ -8,6 +8,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	drc "github.com/ipfs/go-delegated-routing/client"
 	drp "github.com/ipfs/go-delegated-routing/gen/proto"
+	logging "github.com/ipfs/go-log"
 	"github.com/ipfs/kubo/config"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
@@ -19,9 +20,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 )
 
+var log = logging.Logger("routing/delegated")
+
 func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams) (routing.Routing, error) {
 	stack := make(map[string]routing.Routing)
 	processLater := make(config.Routers)
+	log.Info("starting to parse ", len(routers), " routers")
 	for k, r := range routers {
 		if !r.Enabled.WithDefault(true) {
 			continue
@@ -32,11 +36,13 @@ func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams
 			processLater[k] = r
 			continue
 		}
-
+		log.Info("creating router ", k)
 		router, err := routingFromConfig(r.Router, extra)
 		if err != nil {
 			return nil, err
 		}
+
+		log.Info("router ", k, " created with params ", r.Parameters)
 
 		stack[k] = router
 	}
@@ -48,6 +54,7 @@ func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams
 			return nil, fmt.Errorf("problem getting composable router Parameters from router %s", k)
 		}
 
+		log.Info("creating router helper ", k)
 		switch r.Type {
 		case config.RouterTypeParallel:
 			var pr []*routinghelpers.ParallelRouter
@@ -83,6 +90,8 @@ func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams
 
 			stack[k] = routinghelpers.NewComposableSequential(sr)
 		}
+
+		log.Info("router ", k, " created with params ", r.Parameters)
 	}
 
 	if len(methods) != config.MethodsCount {
@@ -107,6 +116,8 @@ func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams
 		case config.MethodNameProvide:
 			finalRouter.ProvideRouter = router
 		}
+
+		log.Info("using method ", mn, " with router ", m.RouterName)
 	}
 
 	return finalRouter, nil
