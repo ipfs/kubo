@@ -1387,8 +1387,65 @@ $ ipfs config Routing.Methods --json '{
       }
     }'
 ```
+Complete example using 3 Routers, reframe, DHT and parallel.
 
+```
+$ ipfs config Routing.Type --json '"custom"'
 
+$ ipfs config Routing.Routers.CidContact --json '{
+  "Type": "reframe",
+  "Parameters": {
+    "Endpoint": "https://cid.contact/reframe"
+  }
+}'
+
+$ ipfs config Routing.Routers.WanDHT --json '{
+  "Type": "dht",
+  "Parameters": {
+    "Mode": "auto",
+    "PublicIPNetwork": true,
+    "AcceleratedDHTClient": false
+  }
+}'
+
+$ ipfs config Routing.Routers.ParallelHelper --json '{
+  "Type": "parallel",
+  "Parameters": {
+    "Routers": [
+        {
+        "RouterName" : "CidContact",
+        "IgnoreErrors" : true,
+        "Timeout": "3s"
+        },
+        {
+        "RouterName" : "WanDHT",
+        "IgnoreErrors" : false,
+        "Timeout": "5m",
+        "ExecuteAfter": "2s"
+        }
+    ]
+  }
+}'
+
+ipfs config Routing.Methods --json '{
+      "find-peers": {
+        "RouterName": "ParallelHelper"
+      },
+      "find-providers": {
+        "RouterName": "ParallelHelper"
+      },
+      "get-ipns": {
+        "RouterName": "ParallelHelper"
+      },
+      "provide": {
+        "RouterName": "WanDHT"
+      },
+      "put-ipns": {
+        "RouterName": "ParallelHelper"
+      }
+    }'
+
+```
 
 ### `Routing.Type`
 
