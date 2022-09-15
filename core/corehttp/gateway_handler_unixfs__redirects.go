@@ -114,10 +114,6 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 
 		for _, rule := range redirectRules {
 			// Error right away if the rule is invalid
-			if !isValidCode(rule.Status) {
-				return false, "", fmt.Errorf("unsupported redirect status code: %d", rule.Status)
-			}
-
 			if !rule.MatchAndExpandPlaceholders(urlPath) {
 				continue
 			}
@@ -159,16 +155,6 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 
 	// No redirects matched
 	return false, "", nil
-}
-
-func isValidCode(code int) bool {
-	validCodes := []int{200, 301, 302, 303, 307, 308, 404, 410, 451}
-	for _, validCode := range validCodes {
-		if validCode == code {
-			return true
-		}
-	}
-	return false
 }
 
 func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipath.Resolved) ([]redirects.Rule, error) {
