@@ -35,6 +35,7 @@ import (
 // the rewrite destination path.
 //
 // Note that for security reasons, redirect rules are only processed when the request has origin isolation.
+// See https://github.com/ipfs/specs/pull/290 for more information.
 func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Request, responseFormat string, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
 	// Attempt to resolve the provided path.
 	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
