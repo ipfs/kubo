@@ -87,7 +87,7 @@ func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Req
 			// if Accept is text/html, see if ipfs-404.html is present
 			// This logic isn't documented and will likely be removed at some point.
 			// Any 404 logic in _redirects above will have already run by this time, so it's really an extra fall back
-			if i.servePretty404IfPresent(w, r, contentPath) {
+			if i.serveLegacy404IfPresent(w, r, contentPath) {
 				logger.Debugw("serve pretty 404 if present")
 				return nil, nil, false
 			}

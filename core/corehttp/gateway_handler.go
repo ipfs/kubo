@@ -437,7 +437,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
+// Deprecated: legacy ipfs-404.html files are superseded by _redirects file
+// This is provided only for backward-compatibility, until websites migrate
+// to 404s managed via _redirects file (https://github.com/ipfs/specs/pull/290)
+func (i *gatewayHandler) serveLegacy404IfPresent(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
 	resolved404Path, ctype, err := i.searchUpTreeFor404(r, contentPath)
 	if err != nil {
 		return false
