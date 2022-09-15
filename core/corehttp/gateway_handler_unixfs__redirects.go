@@ -18,7 +18,7 @@ import (
 // Resolve the provided path.
 //
 // Resolving a UnixFS path involves determining if the provided `path.Path` exists and returning the `path.Resolved`
-// corresponding to that path. For UnixFS, path resolution is more involved if a `_redirects`` file exists, stored
+// corresponding to that path. For UnixFS, path resolution is more involved if a `_redirects` file exists, stored
 // underneath the root CID of the path.
 //
 // Example 1:
