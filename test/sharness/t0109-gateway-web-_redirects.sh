@@ -16,7 +16,7 @@ test_launch_ipfs_daemon
 test_expect_success "Add the _redirects file test directory" '
   ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
 '
-CAR_ROOT_CID=QmfHFheaikRRB6ap7AdL4FHBkyHPhPBDX7fS25rMzYhLuW
+CAR_ROOT_CID=QmQprDnhzptPQZwC5dnSvGgmeF9yKCvnNqWA94yVAZCv3a
 
 REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples | cut -d "/" -f3)
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
@@ -146,6 +146,16 @@ test_expect_success "invalid file: request for $INVALID_REDIRECTS_DIR_HOSTNAME/n
   test_should_contain "500" response &&
   test_should_contain "could not parse _redirects:" response &&
   test_should_contain "forced redirects (or \"shadowing\") are not supported by IPFS gateways" response
+'
+
+# if accessing a path that doesn't exist and _redirects file is too large, return error
+TOO_LARGE_REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/too-large | cut -d "/" -f3)
+TOO_LARGE_REDIRECTS_DIR_HOSTNAME="${TOO_LARGE_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
+test_expect_success "invalid file: request for $TOO_LARGE_REDIRECTS_DIR_HOSTNAME/not-found returns error about too large redirects file" '
+  curl -sD - --resolve $TOO_LARGE_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$TOO_LARGE_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
+  test_should_contain "500" response &&
+  test_should_contain "could not parse _redirects:" response &&
+  test_should_contain "redirects file size cannot exceed" response
 '
 
 test_kill_ipfs_daemon
