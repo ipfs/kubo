@@ -114,7 +114,7 @@ BAD_REDIRECTS_DIR_HOSTNAME="${BAD_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 test_expect_success "bad codes: request for $BAD_REDIRECTS_DIR_HOSTNAME/not-found returns error about bad code" '
   curl -sD - --resolve $BAD_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$BAD_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
   test_should_contain "500" response &&
-  test_should_contain "unsupported redirect status" response
+  test_should_contain "status code 999 is not supported" response
 '
 
 # if accessing a path that does exist, don't read _redirects and therefore don't fail parsing
