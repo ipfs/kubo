@@ -56,7 +56,7 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 				MethodNameProvide:       Method{},
 				MethodNamePutIPNS:       Method{},
 			},
-			Routers: Routers{},
+			Routers: nil,
 		},
 
 		// setup the node mount points.

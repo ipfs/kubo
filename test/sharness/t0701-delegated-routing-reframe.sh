@@ -67,12 +67,31 @@ test_expect_success "no routers means findprovs returns no results" '
 test_kill_ipfs_daemon
 
 # set Routing config to only use delegated routing via mocked reframe endpoint
+
+ipfs config Routing.Type --json '"custom"' || exit 1
 ipfs config Routing.Routers.TestDelegatedRouter --json '{
   "Type": "reframe",
   "Parameters": {
     "Endpoint": "http://127.0.0.1:5098/reframe"
   }
 }' || exit 1
+ipfs config Routing.Methods --json '{
+      "find-peers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "find-providers": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "get-ipns": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "provide": {
+        "RouterName": "TestDelegatedRouter"
+      },
+      "put-ipns": {
+        "RouterName": "TestDelegatedRouter"
+      }
+    }' || exit 1
 
 test_expect_success "adding reframe endpoint to Routing.Routers config works" '
   echo "http://127.0.0.1:5098/reframe" > expected &&
