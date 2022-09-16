@@ -49,7 +49,7 @@ func constructDHTRouting(mode dht.ModeOpt) func(
 	}
 }
 
-func ConstructDelegatedRouting(routers config.Routers, methods config.Methods) func(
+func ConstructDelegatedRouting(routers config.Routers, methods config.Methods, peerID string, addrs []string, privKey string) func(
 	ctx context.Context,
 	host host.Host,
 	dstore datastore.Batching,
@@ -63,13 +63,19 @@ func ConstructDelegatedRouting(routers config.Routers, methods config.Methods) f
 		validator record.Validator,
 		bootstrapPeers ...peer.AddrInfo,
 	) (routing.Routing, error) {
-		return irouting.Parse(routers, methods, &irouting.ExtraDHTParams{
-			BootstrapPeers: bootstrapPeers,
-			Host:           host,
-			Validator:      validator,
-			Datastore:      dstore,
-			Context:        ctx,
-		})
+		return irouting.Parse(routers, methods,
+			&irouting.ExtraDHTParams{
+				BootstrapPeers: bootstrapPeers,
+				Host:           host,
+				Validator:      validator,
+				Datastore:      dstore,
+				Context:        ctx,
+			},
+			&irouting.ExtraReframeParams{
+				PeerID:     peerID,
+				Addrs:      addrs,
+				PrivKeyB64: privKey,
+			})
 	}
 }
 

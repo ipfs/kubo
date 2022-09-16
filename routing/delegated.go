@@ -2,6 +2,7 @@ package routing
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -15,14 +16,17 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
 	record "github.com/libp2p/go-libp2p-record"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
 	host "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/routing"
+	ma "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multicodec"
 )
 
 var log = logging.Logger("routing/delegated")
 
-func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams) (routing.Routing, error) {
+func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraReframe *ExtraReframeParams) (routing.Routing, error) {
 	stack := make(map[string]routing.Routing)
 	processLater := make(config.Routers)
 	log.Info("starting to parse ", len(routers), " routers")
@@ -37,7 +41,7 @@ func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams
 			continue
 		}
 		log.Info("creating router ", k)
-		router, err := routingFromConfig(r.Router, extra)
+		router, err := routingFromConfig(r.Router, extraDHT, extraReframe)
 		if err != nil {
 			return nil, err
 		}
@@ -123,14 +127,14 @@ func Parse(routers config.Routers, methods config.Methods, extra *ExtraDHTParams
 	return finalRouter, nil
 }
 
-func routingFromConfig(conf config.Router, extra *ExtraDHTParams) (routing.Routing, error) {
+func routingFromConfig(conf config.Router, extraDHT *ExtraDHTParams, extraReframe *ExtraReframeParams) (routing.Routing, error) {
 	var router routing.Routing
 	var err error
 	switch conf.Type {
 	case config.RouterTypeReframe:
-		router, err = reframeRoutingFromConfig(conf)
+		router, err = reframeRoutingFromConfig(conf, extraReframe)
 	case config.RouterTypeDHT:
-		router, err = dhtRoutingFromConfig(conf, extra)
+		router, err = dhtRoutingFromConfig(conf, extraDHT)
 	default:
 		return nil, fmt.Errorf("unknown router type %s", conf.Type)
 	}
@@ -138,7 +142,13 @@ func routingFromConfig(conf config.Router, extra *ExtraDHTParams) (routing.Routi
 	return router, err
 }
 
-func reframeRoutingFromConfig(conf config.Router) (routing.Routing, error) {
+type ExtraReframeParams struct {
+	PeerID     string
+	Addrs      []string
+	PrivKeyB64 string
+}
+
+func reframeRoutingFromConfig(conf config.Router, extraReframe *ExtraReframeParams) (routing.Routing, error) {
 	var dr drp.DelegatedRouting_Client
 
 	params, ok := conf.Parameters.(*config.ReframeRouterParams)
@@ -155,15 +165,69 @@ func reframeRoutingFromConfig(conf config.Router) (routing.Routing, error) {
 		return nil, err
 	}
 
-	// TODO support Provide adding missing params.
-	c, err := drc.NewClient(dr, nil, nil)
-	if err != nil {
-		return nil, err
+	var c *drc.Client
+	if extraReframe == nil {
+		c, err = drc.NewClient(dr, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		prov, err := createProvider(extraReframe.PeerID, extraReframe.Addrs)
+		if err != nil {
+			return nil, err
+		}
+
+		key, err := decodePrivKey(extraReframe.PrivKeyB64)
+		if err != nil {
+			return nil, err
+		}
+
+		c, err = drc.NewClient(dr, prov, key)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	crc := drc.NewContentRoutingClient(c)
 	return &reframeRoutingWrapper{
 		Client:               c,
 		ContentRoutingClient: crc,
+	}, nil
+}
+
+func decodePrivKey(keyB64 string) (ic.PrivKey, error) {
+	pk, err := base64.StdEncoding.DecodeString(keyB64)
+	if err != nil {
+		return nil, err
+	}
+
+	return ic.UnmarshalPrivateKey(pk)
+}
+
+func createProvider(peerID string, addrs []string) (*drc.Provider, error) {
+	pID, err := peer.Decode(peerID)
+	if err != nil {
+		return nil, err
+	}
+
+	var mas []ma.Multiaddr
+	for _, a := range addrs {
+		m, err := ma.NewMultiaddr(a)
+		if err != nil {
+			return nil, err
+		}
+
+		mas = append(mas, m)
+	}
+
+	return &drc.Provider{
+		Peer: peer.AddrInfo{
+			ID:    pID,
+			Addrs: mas,
+		},
+		ProviderProto: []drc.TransferProtocol{
+			{Codec: multicodec.TransportBitswap},
+		},
 	}, nil
 }
 
