@@ -1947,6 +1947,15 @@ Be mindful that:
     "crypto.": "https://resolver.cloudflare-eth.com/dns-query"
   }
   ```
+
+  Optionally, [eth.limo](https://eth.limo) can be used as an alternative to Cloudflare for `eth.` resolution:
+
+  ```json
+  {
+    "eth.": "https://dns.eth.limo/dns-query"
+  }
+  ```
+
   To get all the benefits of a decentralized naming system we strongly suggest setting DoH endpoint to an empty string and running own decentralized resolver as catch-all one on localhost.
 
 Default: `{}`
