@@ -1,7 +1,5 @@
 module github.com/ipfs/kubo
 
-replace github.com/libp2p/go-libp2p-routing-helpers => /home/ajnavarro/workspace/go-libp2p-routing-helpers
-
 require (
 	bazil.org/fuse v0.0.0-20200117225306-7b5117fecadc
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0
@@ -79,7 +77,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.6.1
 	github.com/libp2p/go-libp2p-pubsub-router v0.5.0
 	github.com/libp2p/go-libp2p-record v0.2.0
-	github.com/libp2p/go-libp2p-routing-helpers v0.2.3
+	github.com/libp2p/go-libp2p-routing-helpers v0.4.0
 	github.com/libp2p/go-libp2p-testing v0.12.0
 	github.com/libp2p/go-socket-activation v0.1.0
 	github.com/miekg/dns v1.1.50
@@ -113,7 +111,7 @@ require (
 	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
+	golang.org/x/sys v0.0.0-20220915200043-7b5979e65e41
 )
 
 require (
