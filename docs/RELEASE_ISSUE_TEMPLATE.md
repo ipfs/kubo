@@ -72,7 +72,8 @@ Checklist:
   - [ ] CHANGELOG.md has been updated
     - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
     	- you need to install `zsh`.
-  - [ ] Infrastructure Testing. Open an issue against https://github.com/protocol/bifrost-infra like https://github.com/protocol/bifrost-infra/issues/2046 but spell out all that we want (gateways, bootstrapper, and cluster)
+  - [ ] Infrastructure Testing. 
+    - [ ] Open an issue against https://github.com/protocol/bifrost-infra and spell out all that we want (e.g.,mgateways, bootstrapper, and cluster).  [example](https://github.com/protocol/bifrost-infra/issues/2046)
     - [ ] Deploy new version to a subset of Bootstrappers
     - [ ] Deploy new version to a subset of Gateways
     - [ ] Deploy new version to a subset of Preload nodes
