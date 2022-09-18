@@ -7,7 +7,7 @@ import (
 
 	"github.com/ipfs/kubo/core"
 
-	inet "github.com/libp2p/go-libp2p-core/network"
+	inet "github.com/libp2p/go-libp2p/core/network"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 )

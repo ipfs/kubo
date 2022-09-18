@@ -25,7 +25,7 @@ import (
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	config "github.com/ipfs/kubo/config"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
+	ci "github.com/libp2p/go-libp2p/core/crypto"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 

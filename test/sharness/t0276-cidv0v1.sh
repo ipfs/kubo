@@ -28,8 +28,8 @@ test_expect_success "add file using CIDv0" '
 '
 
 test_expect_success "check hashes" '
-  test "$(cid-fmt %v-%c $AHASHv0)" = "cidv0-protobuf" &&
-  test "$(cid-fmt %v-%c $AHASHv1)" = "cidv1-protobuf" &&
+  test "$(cid-fmt %v-%c $AHASHv0)" = "cidv0-dag-pb" &&
+  test "$(cid-fmt %v-%c $AHASHv1)" = "cidv1-dag-pb" &&
   test "$(cid-fmt -b z -v 0 %s $AHASHv1)" = "$AHASHv0"
 '
 

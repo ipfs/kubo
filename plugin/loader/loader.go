@@ -79,12 +79,12 @@ func (ls loaderState) String() string {
 // PluginLoader keeps track of loaded plugins.
 //
 // To use:
-// 1. Load any desired plugins with Load and LoadDirectory. Preloaded plugins
-//    will automatically be loaded.
-// 2. Call Initialize to run all initialization logic.
-// 3. Call Inject to register the plugins.
-// 4. Optionally call Start to start plugins.
-// 5. Call Close to close all plugins.
+//  1. Load any desired plugins with Load and LoadDirectory. Preloaded plugins
+//     will automatically be loaded.
+//  2. Call Initialize to run all initialization logic.
+//  3. Call Inject to register the plugins.
+//  4. Optionally call Start to start plugins.
+//  5. Call Close to close all plugins.
 type PluginLoader struct {
 	state   loaderState
 	plugins map[string]plugin.Plugin

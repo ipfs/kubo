@@ -8,10 +8,10 @@ import (
 	logging "github.com/ipfs/go-log"
 	core "github.com/ipfs/kubo/core"
 	plugin "github.com/ipfs/kubo/plugin"
-	event "github.com/libp2p/go-libp2p-core/event"
-	network "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	event "github.com/libp2p/go-libp2p/core/event"
+	network "github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	"go.uber.org/zap"
 )
 
@@ -39,11 +39,13 @@ type plEvent struct {
 // Log all the PeerIDs. This is considered internal, unsupported, and may break at any point.
 //
 // Usage:
-//   GOLOG_FILE=~/peer.log IPFS_LOGGING_FMT=json ipfs daemon
-// Output:
-//   {"level":"info","ts":"2020-02-10T13:54:26.639Z","logger":"plugin/peerlog","caller":"peerlog/peerlog.go:51","msg":"connected","peer":"QmS2H72gdrekXJggGdE9SunXPntBqdkJdkXQJjuxcH8Cbt"}
-//   {"level":"info","ts":"2020-02-10T13:54:59.095Z","logger":"plugin/peerlog","caller":"peerlog/peerlog.go:56","msg":"identified","peer":"QmS2H72gdrekXJggGdE9SunXPntBqdkJdkXQJjuxcH8Cbt","agent":"go-ipfs/0.5.0/"}
 //
+//	GOLOG_FILE=~/peer.log IPFS_LOGGING_FMT=json ipfs daemon
+//
+// Output:
+//
+//	{"level":"info","ts":"2020-02-10T13:54:26.639Z","logger":"plugin/peerlog","caller":"peerlog/peerlog.go:51","msg":"connected","peer":"QmS2H72gdrekXJggGdE9SunXPntBqdkJdkXQJjuxcH8Cbt"}
+//	{"level":"info","ts":"2020-02-10T13:54:59.095Z","logger":"plugin/peerlog","caller":"peerlog/peerlog.go:56","msg":"identified","peer":"QmS2H72gdrekXJggGdE9SunXPntBqdkJdkXQJjuxcH8Cbt","agent":"go-ipfs/0.5.0/"}
 type peerLogPlugin struct {
 	enabled      bool
 	droppedCount uint64

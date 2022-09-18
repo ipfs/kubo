@@ -78,11 +78,11 @@ func Path(configroot, extension string) (string, error) {
 // Filename returns the configuration file path given a configuration root
 // directory and a user-provided configuration file path argument with the
 // following rules:
-// * If the user-provided configuration file path is empty, use the default one.
-// * If the configuration root directory is empty, use the default one.
-// * If the user-provided configuration file path is only a file name, use the
-//   configuration root directory, otherwise use only the user-provided path
-//   and ignore the configuration root.
+//   - If the user-provided configuration file path is empty, use the default one.
+//   - If the configuration root directory is empty, use the default one.
+//   - If the user-provided configuration file path is only a file name, use the
+//     configuration root directory, otherwise use only the user-provided path
+//     and ignore the configuration root.
 func Filename(configroot string, userConfigFile string) (string, error) {
 	if userConfigFile == "" {
 		return Path(configroot, DefaultConfigFile)

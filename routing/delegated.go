@@ -6,8 +6,8 @@ import (
 	drc "github.com/ipfs/go-delegated-routing/client"
 	drp "github.com/ipfs/go-delegated-routing/gen/proto"
 	"github.com/ipfs/kubo/config"
-	"github.com/libp2p/go-libp2p-core/routing"
 	routinghelpers "github.com/libp2p/go-libp2p-routing-helpers"
+	"github.com/libp2p/go-libp2p/core/routing"
 )
 
 type TieredRouter interface {

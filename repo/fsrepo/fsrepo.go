@@ -582,17 +582,17 @@ func (r *FSRepo) BackupConfig(prefix string) (string, error) {
 // SetConfig updates the FSRepo's config. The user must not modify the config
 // object after calling this method.
 // FIXME: There is an inherent contradiction with storing non-user-generated
-//  Go config.Config structures as user-generated JSON nested maps. This is
-//  evidenced by the issue of `omitempty` property of fields that aren't defined
-//  by the user and Go still needs to initialize them to its default (which
-//  is not reflected in the repo's config file, see
-//  https://github.com/ipfs/kubo/issues/8088 for more details).
-//  In general we should call this API with a JSON nested maps as argument
-//  (`map[string]interface{}`). Many calls to this function are forced to
-//  synthesize the config.Config struct from their available JSON map just to
-//  satisfy this (causing incompatibilities like the `omitempty` one above).
-//  We need to comb SetConfig calls and replace them when possible with a
-//  JSON map variant.
+// Go config.Config structures as user-generated JSON nested maps. This is
+// evidenced by the issue of `omitempty` property of fields that aren't defined
+// by the user and Go still needs to initialize them to its default (which
+// is not reflected in the repo's config file, see
+// https://github.com/ipfs/kubo/issues/8088 for more details).
+// In general we should call this API with a JSON nested maps as argument
+// (`map[string]interface{}`). Many calls to this function are forced to
+// synthesize the config.Config struct from their available JSON map just to
+// satisfy this (causing incompatibilities like the `omitempty` one above).
+// We need to comb SetConfig calls and replace them when possible with a
+// JSON map variant.
 func (r *FSRepo) SetConfig(updated *config.Config) error {
 
 	// packageLock is held to provide thread-safety.

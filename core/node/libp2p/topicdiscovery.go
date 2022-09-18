@@ -4,12 +4,12 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p/core/discovery"
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/p2p/discovery/backoff"
 	disc "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 
-	"github.com/libp2p/go-libp2p-core/routing"
+	"github.com/libp2p/go-libp2p/core/routing"
 )
 
 func TopicDiscovery() interface{} {

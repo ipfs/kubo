@@ -23,8 +23,8 @@ import (
 	config "github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
-	"github.com/libp2p/go-libp2p-core/host"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/host"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 var log = logging.Logger("core/commands/cmdenv")

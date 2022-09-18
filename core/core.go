@@ -5,7 +5,7 @@ Packages underneath core/ provide a (relatively) stable, low-level API
 to carry out most IPFS-related tasks.  For more details on the other
 interfaces and how core/... fits into the bigger IPFS picture, see:
 
-  $ godoc github.com/ipfs/go-ipfs
+	$ godoc github.com/ipfs/go-ipfs
 */
 package core
 
@@ -26,18 +26,18 @@ import (
 	logging "github.com/ipfs/go-log"
 	mfs "github.com/ipfs/go-mfs"
 	goprocess "github.com/jbenet/goprocess"
-	connmgr "github.com/libp2p/go-libp2p-core/connmgr"
-	ic "github.com/libp2p/go-libp2p-core/crypto"
-	p2phost "github.com/libp2p/go-libp2p-core/host"
-	metrics "github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
-	routing "github.com/libp2p/go-libp2p-core/routing"
 	ddht "github.com/libp2p/go-libp2p-kad-dht/dual"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	psrouter "github.com/libp2p/go-libp2p-pubsub-router"
 	record "github.com/libp2p/go-libp2p-record"
+	connmgr "github.com/libp2p/go-libp2p/core/connmgr"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
+	p2phost "github.com/libp2p/go-libp2p/core/host"
+	metrics "github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/network"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+	routing "github.com/libp2p/go-libp2p/core/routing"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	p2pbhost "github.com/libp2p/go-libp2p/p2p/host/basic"
 	ma "github.com/multiformats/go-multiaddr"

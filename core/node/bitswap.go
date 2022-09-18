@@ -9,7 +9,7 @@ import (
 	exchange "github.com/ipfs/go-ipfs-exchange-interface"
 	config "github.com/ipfs/kubo/config"
 	irouting "github.com/ipfs/kubo/routing"
-	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p/core/host"
 	"go.uber.org/fx"
 
 	"github.com/ipfs/kubo/core/node/helpers"
