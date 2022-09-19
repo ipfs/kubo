@@ -139,10 +139,10 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash").WithDefault("size-262144"),
 		cmds.BoolOption(pinOptionName, "Pin this object when adding.").WithDefault(true),
-		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
+		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes. (enabled for CIDv1)"),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
-		cmds.IntOption(cidVersionOptionName, "CID version. Defaults to 0 unless an option that depends on CIDv1 is passed. Passing version 1 will cause the raw-leaves option to default to true."),
+		cmds.IntOption(cidVersionOptionName, "CID version (default is 1)"),
 		cmds.StringOption(hashOptionName, "Hash function to use. Implies CIDv1 if not sha2-256. (experimental)").WithDefault("sha2-256"),
 		cmds.BoolOption(inlineOptionName, "Inline small blocks into CIDs. (experimental)"),
 		cmds.IntOption(inlineLimitOptionName, "Maximum block size to inline. (experimental)").WithDefault(32),
@@ -223,6 +223,8 @@ See 'dag export' and 'dag import' for more information.
 
 		if cidVerSet {
 			opts = append(opts, options.Unixfs.CidVersion(cidVer))
+		} else {
+			opts = append(opts, options.Unixfs.CidVersion(1))
 		}
 
 		if rbset {
