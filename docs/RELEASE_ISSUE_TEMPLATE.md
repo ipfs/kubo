@@ -1,3 +1,5 @@
+<!-- Last updated by @galargh during [0.16.0 release](https://github.com/ipfs/kubo/issues/9237) -->
+
 > Release Issue Template.  If doing a patch release, see [here](https://github.com/ipfs/kubo/blob/master/docs/PATCH_RELEASE_TEMPLATE.md)
 
 # Items to do upon creating the release issue
@@ -72,7 +74,7 @@ Checklist:
   - [ ] CHANGELOG.md has been updated
     - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
     	- you need to install `zsh`.
-  - [ ] Infrastructure Testing. 
+  - [ ] Infrastructure Testing.
     - [ ] Open an issue against https://github.com/protocol/bifrost-infra and spell out all that we want (e.g.,mgateways, bootstrapper, and cluster).  [example](https://github.com/protocol/bifrost-infra/issues/2046)
     - [ ] Deploy new version to a subset of Bootstrappers
     - [ ] Deploy new version to a subset of Gateways
@@ -124,7 +126,7 @@ Checklist:
         - [ ] After publishing the GitHub release, run the workflow to attach the release assets: https://github.com/ipfs/go-ipfs/actions/workflows/sync-release-assets.yml
       - [ ] to [arch](https://www.archlinux.org/packages/community/x86_64/go-ipfs/) (flag it out of date)
     - [ ] Cut a new ipfs-desktop release
-  - [ ] Get a blog post created 
+  - [ ] Get a blog post created
     - [Submit a request using this form](https://airtable.com/shrNH8YWole1xc70I).
     - Notify marketing in #shared-pl-marketing-requests about the blog entry request (since the form gets spam).
     - Don't mark this as done until the blog entry is live.
@@ -138,7 +140,7 @@ Checklist:
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
   - [ ] Mark PR draft created for IPFS Desktop as ready for review.
-  
+
 ## ⁉️ Do you have questions?
 
 The best place to ask your questions about IPFS, how it works and what you can do with it is at [discuss.ipfs.io](http://discuss.ipfs.io). We are also available at the `#ipfs` channel on Freenode, which is also [accessible through our Matrix bridge](https://riot.im/app/#/room/#freenode_#ipfs:matrix.org).
