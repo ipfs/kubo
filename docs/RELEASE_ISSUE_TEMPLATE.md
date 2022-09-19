@@ -56,7 +56,7 @@ For each RC published in each stage:
 Checklist:
 
 - [ ] **Stage 0 - Automated Testing**
-  - [ ] Upgrade to the latest patch release of Go that CircleCI has published
+  - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
     - [ ] [ipfs/distributions](https://github.com/ipfs/distributions): bump [this version](https://github.com/ipfs/distributions/blob/master/.tool-versions#L2)
     - [ ] [ipfs/kubo](https://github.com/ipfs/kubo): [example PR](https://github.com/ipfs/kubo/pull/8599)
