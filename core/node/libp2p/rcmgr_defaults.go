@@ -376,7 +376,7 @@ const expectedDefaultLimits = `{
     "ConnsInbound": 1,
     "ConnsOutbound": 1,
     "FD": 1,
-    "Memory": 1048576
+    "Memory": 33554432
   },
   "ConnLimitIncrease": {
     "Streams": 0,

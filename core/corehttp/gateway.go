@@ -146,7 +146,7 @@ func VersionOption() ServeOption {
 		mux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "Commit: %s\n", version.CurrentCommit)
 			fmt.Fprintf(w, "Client Version: %s\n", version.GetUserAgentVersion())
-			fmt.Fprintf(w, "Protocol Version: %s\n", id.LibP2PVersion)
+			fmt.Fprintf(w, "Protocol Version: %s\n", id.DefaultProtocolVersion)
 		})
 		return mux, nil
 	}
