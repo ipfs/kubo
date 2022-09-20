@@ -1928,7 +1928,7 @@ Example:
 {
   "DNS": {
     "Resolvers": {
-      "eth.": "https://eth.link/dns-query",
+      "eth.": "https://dns.eth.limo/dns-query",
       "crypto.": "https://resolver.unstoppable.io/dns-query",
       "libre.": "https://ns1.iriseden.fr/dns-query",
       ".": "https://cloudflare-dns.com/dns-query"
