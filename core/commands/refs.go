@@ -52,7 +52,9 @@ with the following format:
 
   <link base58 hash>
 
-NOTE: List all references recursively by using the flag '-r'.
+List all references recursively by using the flag '-r'.
+
+NOTE: Kubo will try to fetch the blocks of the passed path if they can't be found in the local store.
 `,
 	},
 	Subcommands: map[string]*cmds.Command{
