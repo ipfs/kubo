@@ -15,15 +15,15 @@ func TestRoutingFromConfig(t *testing.T) {
 
 	r, err := routingFromConfig(config.Router{
 		Type: "unknown",
-	}, nil, nil)
+	}, nil, nil, nil, nil)
 
 	require.Nil(r)
-	require.EqualError(err, "unknown router type unknown")
+	require.EqualError(err, "unknown router type \"unknown\"")
 
 	r, err = routingFromConfig(config.Router{
 		Type:       config.RouterTypeReframe,
 		Parameters: &config.ReframeRouterParams{},
-	}, nil, nil)
+	}, nil, nil, nil, nil)
 
 	require.Nil(r)
 	require.EqualError(err, "configuration param 'Endpoint' is needed for reframe delegated routing types")
@@ -33,7 +33,7 @@ func TestRoutingFromConfig(t *testing.T) {
 		Parameters: &config.ReframeRouterParams{
 			Endpoint: "test",
 		},
-	}, nil, nil)
+	}, nil, nil, nil, nil)
 
 	require.NoError(err)
 	require.NotNil(r)
@@ -56,7 +56,7 @@ func TestRoutingFromConfig(t *testing.T) {
 		PeerID:     id.String(),
 		Addrs:      []string{"/ip4/0.0.0.0/tcp/4001"},
 		PrivKeyB64: base64.StdEncoding.EncodeToString(privM),
-	})
+	}, nil, nil)
 
 	require.NotNil(r)
 	require.NoError(err)

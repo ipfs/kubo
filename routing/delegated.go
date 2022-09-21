@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/ipfs/go-datastore"
 	drc "github.com/ipfs/go-delegated-routing/client"
@@ -27,7 +28,7 @@ import (
 var log = logging.Logger("routing/delegated")
 
 func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraReframe *ExtraReframeParams) (routing.Routing, error) {
-	stack := make(map[string]routing.Routing)
+	createdRouters := make(map[string]routing.Routing)
 	processLater := make(config.Routers)
 	log.Info("starting to parse ", len(routers), " routers")
 	for k, r := range routers {
@@ -41,72 +42,43 @@ func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTPar
 			continue
 		}
 		log.Info("creating router ", k)
-		router, err := routingFromConfig(r.Router, extraDHT, extraReframe)
+		router, err := routingFromConfig(r.Router, extraDHT, extraReframe, nil, nil)
 		if err != nil {
 			return nil, err
 		}
 
 		log.Info("router ", k, " created with params ", r.Parameters)
 
-		stack[k] = router
+		createdRouters[k] = router
 	}
 
-	// using the stack, instantiate all parallel and sequential routers
+	// using the createdRouters, instantiate all parallel and sequential routers
 	for k, r := range processLater {
 		crp, ok := r.Router.Parameters.(*config.ComposableRouterParams)
 		if !ok {
-			return nil, fmt.Errorf("problem getting composable router Parameters from router %s", k)
+			return nil, fmt.Errorf("problem getting composable router Parameters from router %q", k)
 		}
 
 		log.Info("creating router helper ", k)
-		switch r.Type {
-		case config.RouterTypeParallel:
-			var pr []*routinghelpers.ParallelRouter
-			for _, cr := range crp.Routers {
-				ri, ok := stack[cr.RouterName]
-				if !ok {
-					return nil, fmt.Errorf("router with name %s not found", cr.RouterName)
-				}
-
-				pr = append(pr, &routinghelpers.ParallelRouter{
-					Router:       ri,
-					IgnoreError:  cr.IgnoreErrors,
-					Timeout:      cr.Timeout.Duration,
-					ExecuteAfter: cr.ExecuteAfter.WithDefault(0),
-				})
-			}
-
-			stack[k] = routinghelpers.NewComposableParallel(pr)
-		case config.RouterTypeSequential:
-			var sr []*routinghelpers.SequentialRouter
-			for _, cr := range crp.Routers {
-				ri, ok := stack[cr.RouterName]
-				if !ok {
-					return nil, fmt.Errorf("router with name %s not found", cr.RouterName)
-				}
-
-				sr = append(sr, &routinghelpers.SequentialRouter{
-					Router:      ri,
-					IgnoreError: cr.IgnoreErrors,
-					Timeout:     cr.Timeout.Duration,
-				})
-			}
-
-			stack[k] = routinghelpers.NewComposableSequential(sr)
+		router, err := routingFromConfig(r.Router, extraDHT, extraReframe, crp, createdRouters)
+		if err != nil {
+			return nil, err
 		}
+
+		createdRouters[k] = router
 
 		log.Info("router ", k, " created with params ", r.Parameters)
 	}
 
-	if len(methods) != config.MethodsCount {
-		return nil, fmt.Errorf("number of methods from routing configuration must be %d", config.MethodsCount)
+	if err := methods.Check(); err != nil {
+		return nil, err
 	}
 
 	finalRouter := &Composer{}
 	for mn, m := range methods {
-		router, ok := stack[m.RouterName]
+		router, ok := createdRouters[m.RouterName]
 		if !ok {
-			return nil, fmt.Errorf("router with name %s not found for method %s", m.RouterName, mn)
+			return nil, fmt.Errorf("router with name %q not found for method %q", m.RouterName, mn)
 		}
 		switch mn {
 		case config.MethodNamePutIPNS:
@@ -127,7 +99,12 @@ func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTPar
 	return finalRouter, nil
 }
 
-func routingFromConfig(conf config.Router, extraDHT *ExtraDHTParams, extraReframe *ExtraReframeParams) (routing.Routing, error) {
+func routingFromConfig(conf config.Router,
+	extraDHT *ExtraDHTParams,
+	extraReframe *ExtraReframeParams,
+	extraComposableParams *config.ComposableRouterParams,
+	routers map[string]routing.Routing,
+) (routing.Routing, error) {
 	var router routing.Routing
 	var err error
 	switch conf.Type {
@@ -135,8 +112,53 @@ func routingFromConfig(conf config.Router, extraDHT *ExtraDHTParams, extraRefram
 		router, err = reframeRoutingFromConfig(conf, extraReframe)
 	case config.RouterTypeDHT:
 		router, err = dhtRoutingFromConfig(conf, extraDHT)
+	case config.RouterTypeParallel:
+		if extraComposableParams == nil || routers == nil {
+			err = fmt.Errorf("missing params needed to create a composable router")
+			break
+		}
+		var pr []*routinghelpers.ParallelRouter
+		for _, cr := range extraComposableParams.Routers {
+			ri, ok := routers[cr.RouterName]
+			if !ok {
+				err = fmt.Errorf("router with name %q not found. If you have a router with this name, "+
+					"check routers order in configuration. Take into account that nested parallel and/or sequential "+
+					"routers are not supported", cr.RouterName)
+				break
+			}
+
+			pr = append(pr, &routinghelpers.ParallelRouter{
+				Router:       ri,
+				IgnoreError:  cr.IgnoreErrors,
+				Timeout:      cr.Timeout.Duration,
+				ExecuteAfter: cr.ExecuteAfter.WithDefault(0),
+			})
+		}
+
+		router = routinghelpers.NewComposableParallel(pr)
+	case config.RouterTypeSequential:
+		if extraComposableParams == nil || routers == nil {
+			err = fmt.Errorf("missing params needed to create a composable router")
+			break
+		}
+		var sr []*routinghelpers.SequentialRouter
+		for _, cr := range extraComposableParams.Routers {
+			ri, ok := routers[cr.RouterName]
+			if !ok {
+				err = fmt.Errorf("router with name %q not found", cr.RouterName)
+				break
+			}
+
+			sr = append(sr, &routinghelpers.SequentialRouter{
+				Router:      ri,
+				IgnoreError: cr.IgnoreErrors,
+				Timeout:     cr.Timeout.Duration,
+			})
+		}
+
+		router = routinghelpers.NewComposableSequential(sr)
 	default:
-		return nil, fmt.Errorf("unknown router type %s", conf.Type)
+		return nil, fmt.Errorf("unknown router type %q", conf.Type)
 	}
 
 	return router, err
@@ -151,21 +173,30 @@ type ExtraReframeParams struct {
 func reframeRoutingFromConfig(conf config.Router, extraReframe *ExtraReframeParams) (routing.Routing, error) {
 	var dr drp.DelegatedRouting_Client
 
-	params, ok := conf.Parameters.(*config.ReframeRouterParams)
-	if !ok {
-		return nil, errors.New("problem getting reframe Parameters")
-	}
+	params := conf.Parameters.(*config.ReframeRouterParams)
 
 	if params.Endpoint == "" {
 		return nil, NewParamNeededErr("Endpoint", conf.Type)
 	}
 
-	dr, err := drp.New_DelegatedRouting_Client(params.Endpoint)
+	// Increase per-host connection pool since we are making lots of concurrent requests.
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConns = 500
+	transport.MaxIdleConnsPerHost = 100
+
+	delegateHTTPClient := &http.Client{
+		Transport: transport,
+	}
+	dr, err := drp.New_DelegatedRouting_Client(params.Endpoint,
+		drp.DelegatedRouting_Client_WithHTTPClient(delegateHTTPClient),
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	var c *drc.Client
+
+	// this path is for tests only
 	if extraReframe == nil {
 		c, err = drc.NewClient(dr, nil, nil)
 		if err != nil {
@@ -258,7 +289,7 @@ func dhtRoutingFromConfig(conf config.Router, extra *ExtraDHTParams) (routing.Ro
 	case config.DHTModeServer:
 		mode = dht.ModeServer
 	default:
-		return nil, fmt.Errorf("invalid DHT mode: [%s]", params.Mode)
+		return nil, fmt.Errorf("invalid DHT mode: %q", params.Mode)
 	}
 
 	return createDHT(extra, params.PublicIPNetwork, mode)

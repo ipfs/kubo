@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 // Routing defines configuration options for libp2p routing
@@ -34,6 +35,37 @@ type Router struct {
 
 type Routers map[string]RouterParser
 type Methods map[MethodName]Method
+
+func (m Methods) Check() error {
+
+	// Check supported methods
+	for _, mn := range MethodNameList {
+		_, ok := m[mn]
+		if !ok {
+			return fmt.Errorf("method name %q is missing from Routing.Methods config param", mn)
+		}
+	}
+
+	// Check unsupported methods
+	for k := range m {
+		seen := false
+		for _, mn := range MethodNameList {
+			if mn == k {
+				seen = true
+				break
+			}
+		}
+
+		if seen {
+			continue
+		}
+
+		return fmt.Errorf("method name %q is not a supported method on Routing.Methods config param", k)
+	}
+
+	return nil
+}
+
 type RouterParser struct {
 	Router
 }
@@ -98,7 +130,7 @@ const (
 	MethodNamePutIPNS       MethodName = "put-ipns"
 )
 
-const MethodsCount = 5
+var MethodNameList = []MethodName{MethodNameProvide, MethodNameFindPeers, MethodNameFindProviders, MethodNameGetIPNS, MethodNamePutIPNS}
 
 type ReframeRouterParams struct {
 	// Endpoint is the URL where the routing implementation will point to get the information.

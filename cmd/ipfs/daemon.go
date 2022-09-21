@@ -403,6 +403,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	routingOption, _ := req.Options[routingOptionKwd].(string)
 	if routingOption == routingOptionDefaultKwd {
 		routingOption = cfg.Routing.Type
+		if routingOption == "" {
+			routingOption = routingOptionDHTKwd
+		}
 	}
 	switch routingOption {
 	case routingOptionSupernodeKwd:

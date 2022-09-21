@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -288,7 +287,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 		}
 		return nil
 	default:
-		return errors.New("invalid duration")
+		return fmt.Errorf("unable to parse duration, expected a duration string or a float, but got %T", v)
 	}
 }
 

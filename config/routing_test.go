@@ -71,7 +71,7 @@ func TestRouterParameters(t *testing.T) {
 				}},
 			},
 		},
-		Methods: map[MethodName]Method{
+		Methods: Methods{
 			MethodNameFindPeers: {
 				RouterName: "router-reframe",
 			},
@@ -129,7 +129,7 @@ func TestRouterMissingParameters(t *testing.T) {
 				},
 			}},
 		},
-		Methods: map[MethodName]Method{
+		Methods: Methods{
 			MethodNameFindPeers: {
 				RouterName: "router-wrong-reframe",
 			},
@@ -156,4 +156,45 @@ func TestRouterMissingParameters(t *testing.T) {
 	err = json.Unmarshal(out, r2)
 	require.NoError(err)
 	require.Empty(r2.Routers["router-wrong-reframe"].Parameters.(*ReframeRouterParams).Endpoint)
+}
+
+func TestMethods(t *testing.T) {
+	require := require.New(t)
+
+	methodsOK := Methods{
+		MethodNameFindPeers: {
+			RouterName: "router-wrong-reframe",
+		},
+		MethodNameFindProviders: {
+			RouterName: "router-wrong-reframe",
+		},
+		MethodNameGetIPNS: {
+			RouterName: "router-wrong-reframe",
+		},
+		MethodNameProvide: {
+			RouterName: "router-wrong-reframe",
+		},
+		MethodNamePutIPNS: {
+			RouterName: "router-wrong-reframe",
+		},
+	}
+
+	require.NoError(methodsOK.Check())
+
+	methodsMissing := Methods{
+		MethodNameFindPeers: {
+			RouterName: "router-wrong-reframe",
+		},
+		MethodNameGetIPNS: {
+			RouterName: "router-wrong-reframe",
+		},
+		MethodNameProvide: {
+			RouterName: "router-wrong-reframe",
+		},
+		MethodNamePutIPNS: {
+			RouterName: "router-wrong-reframe",
+		},
+	}
+
+	require.Error(methodsMissing.Check())
 }
