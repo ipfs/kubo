@@ -768,10 +768,14 @@ The CID produced by 'files write' will be different from 'ipfs add' because
 See '--trickle' in 'ipfs add --help' for more information.
 
 If you want to add a file without modifying an existing one,
-use 'ipfs add --to-files' instead. Below will add to MFS at /myfs/file.txt:
+use 'ipfs add' with '--to-files':
 
-  ipfs add --to-files /myfs/ file.txt
+  > ipfs files mkdir -p /myfs/dir
+  > ipfs add example.jpg --to-files /myfs/dir/
+  > ipfs files ls /myfs/dir/
+  example.jpg
 
+See '--to-files' in 'ipfs add --help' for more information.
 `,
 	},
 	Arguments: []cmds.Argument{

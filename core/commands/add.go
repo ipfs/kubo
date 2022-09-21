@@ -86,7 +86,14 @@ Files imported with 'ipfs add' are protected from GC (implicit '--pin=true'),
 but it is up to you to remember the returned CID to get the data back later.
 
 Passing '--to-files' creates a reference in Files API (MFS), making it easier
-to find it in the future. See 'ipfs files --help' to learn more about using MFS
+to find it in the future:
+
+  > ipfs files mkdir -p /myfs/dir
+  > ipfs add example.jpg --to-files /myfs/dir/
+  > ipfs files ls /myfs/dir/
+  example.jpg
+
+See 'ipfs files --help' to learn more about using MFS
 for keeping track of added files and directories.
 
 The chunker option, '-s', specifies the chunking strategy that dictates
