@@ -217,7 +217,7 @@ func printSelf(keyEnc ke.KeyEncoder, node *core.IpfsNode) (interface{}, error) {
 		info.Protocols = node.PeerHost.Mux().Protocols()
 		sort.Strings(info.Protocols)
 	}
-	info.ProtocolVersion = identify.LibP2PVersion
+	info.ProtocolVersion = identify.DefaultProtocolVersion
 	info.AgentVersion = version.GetUserAgentVersion()
 	return info, nil
 }

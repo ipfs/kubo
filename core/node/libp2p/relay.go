@@ -1,6 +1,8 @@
 package libp2p
 
 import (
+	"context"
+
 	"github.com/ipfs/kubo/config"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -74,17 +76,25 @@ func MaybeAutoRelay(staticRelays []string, cfgPeering config.Peering, enabled bo
 	return fx.Options(
 		// Provide AutoRelay option
 		fx.Provide(func() (opts Libp2pOpts, err error) {
-			opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay(autorelay.WithPeerSource(func(numPeers int) <-chan peer.AddrInfo {
+			opts.Opts = append(opts.Opts, libp2p.EnableAutoRelay(autorelay.WithPeerSource(func(ctx context.Context, numPeers int) <-chan peer.AddrInfo {
 				// TODO(9257): make this code smarter (have a state and actually try to grow the search outward) instead of a long running task just polling our K cluster.
-				r := make(chan peer.AddrInfo, numPeers)
+				r := make(chan peer.AddrInfo)
 				go func() {
 					defer close(r)
 					for ; numPeers != 0; numPeers-- {
-						v, ok := <-peerChan
-						if !ok {
+						select {
+						case v, ok := <-peerChan:
+							if !ok {
+								return
+							}
+							select {
+							case r <- v:
+							case <-ctx.Done():
+								return
+							}
+						case <-ctx.Done():
 							return
 						}
-						r <- v
 					}
 				}()
 				return r

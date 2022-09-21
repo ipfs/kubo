@@ -21,7 +21,8 @@ func Transports(tptConfig config.Transports) interface{} {
 		privateNetworkEnabled := pnet.Fprint != nil
 
 		if tptConfig.Network.TCP.WithDefault(true) {
-			opts.Opts = append(opts.Opts, libp2p.Transport(tcp.NewTCPTransport))
+			// TODO(9290): Make WithMetrics configurable
+			opts.Opts = append(opts.Opts, libp2p.Transport(tcp.NewTCPTransport, tcp.WithMetrics()))
 		}
 
 		if tptConfig.Network.Websocket.WithDefault(true) {
@@ -37,7 +38,8 @@ func Transports(tptConfig config.Transports) interface{} {
 						"Please disable Swarm.Transports.Network.QUIC.",
 				)
 			}
-			opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport))
+			// TODO(9290): Make WithMetrics configurable
+			opts.Opts = append(opts.Opts, libp2p.Transport(libp2pquic.NewTransport, libp2pquic.WithMetrics()))
 		}
 
 		return opts, nil
