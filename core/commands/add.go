@@ -268,12 +268,9 @@ See 'dag export' and 'dag import' for more information.
 					errCh <- err
 					return
 				}
-				if toFilesSet {
-					if fileAddedToMFS {
-						errCh <- fmt.Errorf("%s: more than one entry to copy to MFS path %q", toFilesOptionName, toFilesStr)
-						return
-					}
 
+				// creating MFS pointers when optional --to-files is set
+				if toFilesSet {
 					if toFilesStr == "" {
 						toFilesStr = "/"
 					}
@@ -282,13 +279,33 @@ See 'dag export' and 'dag import' for more information.
 						errCh <- fmt.Errorf("%s: %w", toFilesOptionName, err)
 						return
 					}
-					if toFilesDst[len(toFilesDst)-1] == '/' {
+					dstAsDir := toFilesDst[len(toFilesDst)-1] == '/'
+
+					if dstAsDir {
+						mfsNode, err := mfs.Lookup(ipfsNode.FilesRoot, toFilesDst)
+						// confirm dst exists
+						if err != nil {
+							errCh <- fmt.Errorf("%s: MFS destination directory %q does not exist: %w", toFilesOptionName, toFilesDst, err)
+							return
+						}
+						// confirm dst is a dir
+						if mfsNode.Type() != mfs.TDir {
+							errCh <- fmt.Errorf("%s: MFS destination %q is not a directory", toFilesOptionName, toFilesDst)
+							return
+						}
+						// if MFS destination is a dir, append filename to the dir path
 						toFilesDst += path.Base(addit.Name())
+					}
+
+					// error if we try to overwrite a preexisting file destination
+					if fileAddedToMFS && !dstAsDir {
+						errCh <- fmt.Errorf("%s: MFS destination is a file: only one entry can be copied to %q", toFilesOptionName, toFilesDst)
+						return
 					}
 
 					_, err = mfs.Lookup(ipfsNode.FilesRoot, path.Dir(toFilesDst))
 					if err != nil {
-						errCh <- fmt.Errorf("%s: MFS destination directory %q does not exist: %w", toFilesOptionName, path.Dir(toFilesDst), err)
+						errCh <- fmt.Errorf("%s: MFS destination parent %q %q does not exist: %w", toFilesOptionName, toFilesDst, path.Dir(toFilesDst), err)
 						return
 					}
 
@@ -300,7 +317,7 @@ See 'dag export' and 'dag import' for more information.
 					}
 					err = mfs.PutNode(ipfsNode.FilesRoot, toFilesDst, nodeAdded)
 					if err != nil {
-						errCh <- fmt.Errorf("%s: cannot put node in path %s: %s", toFilesOptionName, toFilesDst, err)
+						errCh <- fmt.Errorf("%s: cannot put node in path %q: %w", toFilesOptionName, toFilesDst, err)
 						return
 					}
 					fileAddedToMFS = true
