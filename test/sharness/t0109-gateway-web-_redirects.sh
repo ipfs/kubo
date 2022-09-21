@@ -23,22 +23,20 @@ REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/redirect-one" > response &&
-  test_should_contain "one.html" response &&
   test_should_contain "301 Moved Permanently" response &&
-  test_should_contain "Location:" response
+  test_should_contain "Location: /one.html" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/301-redirect-one redirects with 301, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/301-redirect-one" > response &&
-  test_should_contain "one.html" response &&
-  test_should_contain "301 Moved Permanently" response
+  test_should_contain "301 Moved Permanently" response &&
+  test_should_contain "Location: /one.html" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/302-redirect-two redirects with 302, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/302-redirect-two" > response &&
-  test_should_contain "two.html" response &&
   test_should_contain "302 Found" response &&
-  test_should_contain "Location:" response
+  test_should_contain "Location: /two.html" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/200-index returns 200, per _redirects file" '
@@ -49,21 +47,22 @@ test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/200-index returns 200, 
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/posts/:year/:month/:day/:title redirects with 301 and placeholders, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/posts/2022/01/01/hello-world" > response &&
-  test_should_contain "/articles/2022/01/01/hello-world" response &&
   test_should_contain "301 Moved Permanently" response &&
-  test_should_contain "Location:" response
+  test_should_contain "Location: /articles/2022/01/01/hello-world" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/splat/one.html redirects with 301 and splat placeholder, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/splat/one.html" > response &&
-  test_should_contain "/redirected-splat/one.html" response &&
   test_should_contain "301 Moved Permanently" response &&
-  test_should_contain "Location:" response
+  test_should_contain "Location: /redirected-splat/one.html" response
 '
 
+# ensure custom 404 works and has the same cache headers as regular /ipfs/ path
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/en/has-no-redirects-entry returns custom 404, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/not-found/has-no-redirects-entry" > response &&
   test_should_contain "404 Not Found" response &&
+  test_should_contain "Cache-Control: public, max-age=29030400, immutable" response &&
+  test_should_contain "Etag: \"Qmd9GD7Bauh6N2ZLfNnYS3b7QVAijbud83b8GE8LPMNBBP\"" response &&
   test_should_contain "my 404" response
 '
 
@@ -73,7 +72,8 @@ test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/catch-all returns 200, 
   test_should_contain "my index" response
 '
 
-test_expect_success "request for http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR_CID/301-redirect-one returns 404, no _redirects since no origin isolation" '
+# This test ensures _redirects is supported only on Web Gateways that use Host header (DNSLink, Subdomain)
+test_expect_success "request for http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR_CID/301-redirect-one returns generic 404 (no custom 404 from _redirects since no origin isolation)" '
   curl -sD - "http://127.0.0.1:$GWAY_PORT/ipfs/$REDIRECTS_DIR_CID/301-redirect-one" > response &&
   test_should_contain "404 Not Found" response &&
   test_should_not_contain "my 404" response
@@ -90,9 +90,8 @@ test_expect_success "newline: _redirects has CRLF line terminators" '
 
 test_expect_success "newline: request for $NEWLINE_REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
   curl -sD - --resolve $NEWLINE_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$NEWLINE_REDIRECTS_DIR_HOSTNAME/redirect-one" > response &&
-  test_should_contain "one.html" response &&
   test_should_contain "301 Moved Permanently" response &&
-  test_should_contain "Location:" response
+  test_should_contain "Location: /one.html" response
 '
 
 # Good codes
@@ -101,9 +100,8 @@ GOOD_REDIRECTS_DIR_HOSTNAME="${GOOD_REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT
 
 test_expect_success "good codes: request for $GOOD_REDIRECTS_DIR_HOSTNAME/redirect-one redirects with default of 301, per _redirects file" '
   curl -sD - --resolve $GOOD_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$GOOD_REDIRECTS_DIR_HOSTNAME/a301" > response &&
-  test_should_contain "b301" response &&
   test_should_contain "301 Moved Permanently" response &&
-  test_should_contain "Location:" response
+  test_should_contain "Location: /b301" response
 '
 
 # Bad codes
@@ -195,9 +193,19 @@ test_expect_success "spoofed DNSLink record resolves in cli" "
 
 test_expect_success "request for $DNSLINK_FQDN/redirect-one redirects with default of 301, per _redirects file" '
   curl -sD - --resolve $DNSLINK_FQDN:$GWAY_PORT:127.0.0.1 "http://$DNSLINK_FQDN:$GWAY_PORT/redirect-one" > response &&
-  test_should_contain "one.html" response &&
   test_should_contain "301 Moved Permanently" response &&
-  test_should_contain "Location:" response
+  test_should_contain "Location: /one.html" response
+'
+
+# ensure custom 404 works and has the same cache headers as regular /ipns/ paths
+test_expect_success "request for $DNSLINK_FQDN/en/has-no-redirects-entry returns custom 404, per _redirects file" '
+  curl -sD - --resolve $DNSLINK_FQDN:$GWAY_PORT:127.0.0.1 "http://$DNSLINK_FQDN:$GWAY_PORT/not-found/has-no-redirects-entry" > response &&
+  test_should_contain "404 Not Found" response &&
+  test_should_contain "Etag: \"Qmd9GD7Bauh6N2ZLfNnYS3b7QVAijbud83b8GE8LPMNBBP\"" response &&
+  test_should_not_contain "Cache-Control: public, max-age=29030400, immutable" response &&
+  test_should_not_contain "immutable" response &&
+  test_should_contain "Date: " response &&
+  test_should_contain "my 404" response
 '
 
 test_expect_success "request for $NO_DNSLINK_FQDN/redirect-one does not redirect, since DNSLink is disabled" '

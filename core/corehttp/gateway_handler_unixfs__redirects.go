@@ -237,6 +237,7 @@ func (i *gatewayHandler) serve404(w http.ResponseWriter, r *http.Request, conten
 	log.Debugw("using _redirects 404 file", "path", content404Path)
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	addCacheControlHeaders(w, r, content404Path, resolved404Path.Cid())
 	w.WriteHeader(http.StatusNotFound)
 	_, err = io.CopyN(w, f, size)
 	return err
