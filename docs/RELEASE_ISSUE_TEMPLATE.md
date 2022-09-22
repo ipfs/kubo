@@ -55,6 +55,8 @@ For each RC published in each stage:
 
 Checklist:
 
+- [ ] **Stage -1 - Prerequisites**
+  - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
 - [ ] **Stage 0 - Automated Testing**
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
