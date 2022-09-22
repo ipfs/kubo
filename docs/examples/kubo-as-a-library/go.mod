@@ -68,7 +68,6 @@ require (
 	github.com/ipfs/go-cid v0.3.2 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
-	github.com/ipfs/go-datastore v0.5.1 // indirect
 	github.com/ipfs/go-delegated-routing v0.6.0 // indirect
 	github.com/ipfs/go-ds-badger v0.3.0 // indirect
 	github.com/ipfs/go-ds-flatfs v0.5.1 // indirect
