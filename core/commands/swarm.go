@@ -122,7 +122,7 @@ var swarmPeeringAddCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		if node.PeerHost == nil {
+		if !node.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -156,7 +156,7 @@ var swarmPeeringLsCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		if node.PeerHost == nil {
+		if !node.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -196,7 +196,7 @@ var swarmPeeringRmCmd = &cmds.Command{
 		if err != nil {
 			return err
 		}
-		if node.PeerHost == nil {
+		if !node.IsOnline {
 			return ErrNotOnline
 		}
 
