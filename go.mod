@@ -117,7 +117,7 @@ require (
 require (
 	github.com/benbjohnson/clock v1.3.0
 	github.com/ipfs/go-delegated-routing v0.6.0
-	github.com/ipfs/go-ipfs-redirects-file v0.0.0-20220915124754-4946b031ee37
+	github.com/ipfs/go-ipfs-redirects-file v0.0.0-20220922142158-c6830ef7c5f1
 	github.com/ipfs/go-log/v2 v2.5.1
 )
 
