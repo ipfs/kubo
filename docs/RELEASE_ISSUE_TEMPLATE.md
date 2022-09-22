@@ -34,37 +34,34 @@ As usual, this release includes important fixes, some of which may be critical f
 
 ## ✅ Release Checklist
 
-For each RC published in each stage:
-
-- version string in `version.go` has been updated (in the `release-vX.Y.Z` branch).
-- new commits should be added to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
-  - Note: `release-` branches are protected. You can do all needed updates on a separated branch and when everything is settled push to `release-vX.Y.Z`
-- tag commit with `vX.Y.Z-rcN`
-- add artifacts to https://dist.ipfs.tech
-  1. Make a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
-  2. Wait for PR to build artifacts and generate diff (~30min)
-  3. Inspect results, merge if CI is green and the diff looks ok
-  4. Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech (~30min)
-- cut a pre-release on [github](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the ipfs/distributions build in the previous step).
-- Announce the RC:
-  - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech)
-    - This will automatically post to IPFS Discord #ipfs-chatter
-    - Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
-  - [ ] Pin the topic. You need to be part of the [admin group](https://discuss.ipfs.tech/g/admins) for that.
-  - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md).  Do this by copy/pasting their GitHub usernames and checkboxes as a comment so they get a GitHub notification.  ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
-
 Checklist:
 
-- [ ] **Stage -1 - Prerequisites**
+- [ ] **Stage 0 - Prerequisites**
   - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
-- [ ] **Stage 0 - Automated Testing**
+- [ ] **Stage 1 - Initial Preparations**
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
     - [ ] [ipfs/distributions](https://github.com/ipfs/distributions): bump [this version](https://github.com/ipfs/distributions/blob/master/.tool-versions#L2)
     - [ ] [ipfs/kubo](https://github.com/ipfs/kubo): [example PR](https://github.com/ipfs/kubo/pull/8599)
-  - [ ] Fork a new branch (`release-vX.Y.Z`) from `master` and make any further release related changes to this branch. If any "non-trivial" changes (see the footnotes of [docs/releases.md](https://github.com/ipfs/go-ipfs/tree/master/docs/releases.md) for a definition) get added to the release, uncheck all the checkboxes and return to this stage.
-    - [ ] Follow the RC release process to cut the first RC.
-    - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev`.
+  - [ ] Fork a new branch (`release-vX.Y.Z`) from `master`.
+  - [ ] Bump the version in `version.go` in the `master` branch to `vX.(Y+1).0-dev`.
+- [ ] **Stage 2 - Release Candidate** - _if any [non-trivial](docs/releases.md#footnotes) changes need to be included in the release, return to this stage_
+  - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z-rcN`.
+  - [ ] If applicable, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
+      - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
+  - [ ] Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN"`)
+  - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`).
+  - [ ] Push the `vX.Y.Z-rcN` tag to GitHub (`git push origin vX.Y.Z-rcN`; DO NOT USE `git push --tags` because it pushes all your local tags).
+  - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
+    - [ ] Wait for PR to build artifacts and generate diff (~30min)
+    - [ ] Inspect results, merge if CI is green and the diff looks ok
+    - [ ] Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech (~30min)
+  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the `ipfs/distributions` build from the previous step).
+  - [ ] Announce the RC
+    - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). This will automatically post to IPFS Discord #ipfs-chatter. Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
+    - [ ] Pin the topic. You need to be part of the [admin group](https://discuss.ipfs.tech/g/admins) for that.
+    - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md). Do this by copy/pasting their GitHub usernames and checkboxes as a comment to the release issue so they get a GitHub notification. ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
+- [ ] **Stage 3 - Automated Testing**
   - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
     - [ ] unit, sharness, cross-build, etc (`make test`)
     - [ ] lint (`make test_go_lint`)
@@ -72,7 +69,7 @@ Checklist:
     - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
     - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
     - [ ] [WebUI](https://github.com/ipfs-shipyard/ipfs-webui)
-- [ ] **Stage 1 - Internal Testing**
+- [ ] **Stage 4 - Internal Testing**
   - [ ] CHANGELOG.md has been updated
     - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
     	- you need to install `zsh`.
@@ -93,7 +90,7 @@ Checklist:
       - Start a fresh firefox instance using `firefox --profile $(mktemp -d)`
       - Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
       - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
-- [ ] **Stage 2 - Community Prod Testing**
+- [ ] **Stage 5 - Community Prod Testing**
   - [ ] Documentation
     - [ ] Ensure that [CHANGELOG.md](https://github.com/ipfs/go-ipfs/tree/master/CHANGELOG.md) is up to date
 	  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
@@ -103,7 +100,7 @@ Checklist:
   - [ ] Invite the wider community through (link to the release issue):
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
     - [ ] Matrix
-- [ ] **Stage 3 - Release**
+- [ ] **Stage 6 - Release**
   - [ ] Final preparation
     - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
     - [ ] Open a PR merging `release-vX.Y.Z` into the `release` branch.
@@ -137,7 +134,7 @@ Checklist:
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
       - A bot auto-posts this to Discord and Matrix
-- [ ] **Post-Release**
+- [ ] **Stage 7 - Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
