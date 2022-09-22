@@ -38,6 +38,7 @@ Checklist:
 
 - [ ] **Stage 0 - Prerequisites**
   - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
+  - [ ] Create `docs-release-vX.Y.Z` branch, open a draft PR and keep updating `docs/RELEASE_ISSUE_TEMPLATE.md` on that branch as you go.
 - [ ] **Stage 1 - Initial Preparations**
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
@@ -139,6 +140,7 @@ Checklist:
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
   - [ ] Mark PR draft created for IPFS Desktop as ready for review.
+  - [ ] Mark PR draft created from `docs-release-vX.Y.Z` as ready for review.
 
 ## ⁉️ Do you have questions?
 
