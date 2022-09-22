@@ -24,6 +24,7 @@ import (
 	mfs "github.com/ipfs/go-mfs"
 	path "github.com/ipfs/go-path"
 	"github.com/ipfs/go-path/resolver"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	routing "github.com/libp2p/go-libp2p/core/routing"
 	prometheus "github.com/prometheus/client_golang/prometheus"
@@ -959,6 +960,49 @@ func debugStr(path string) string {
 		q = q[1 : len(q)-1]
 	}
 	return q
+}
+
+// Resolve the provided contentPath including any special handling related to
+// the requested responseFormat. Returned ok flag indicates if gateway handler
+// should continue processing the request.
+func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Request, responseFormat string, contentPath ipath.Path, logger *zap.SugaredLogger) (resolvedPath ipath.Resolved, newContentPath ipath.Path, ok bool) {
+	// Attempt to resolve the provided path.
+	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
+
+	switch err {
+	case nil:
+		return resolvedPath, contentPath, true
+	case coreiface.ErrOffline:
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
+		return nil, nil, false
+	default:
+		// The path can't be resolved.
+		if isUnixfsResponseFormat(responseFormat) {
+			// If we have origin isolation (subdomain gw, DNSLink website),
+			// and response type is UnixFS (default for website hosting)
+			// check for presence of _redirects file and apply rules defined there.
+			// See: https://github.com/ipfs/specs/pull/290
+			if hasOriginIsolation(r) {
+				resolvedPath, newContentPath, ok, hadMatchingRule := i.serveRedirectsIfPresent(w, r, resolvedPath, contentPath, logger)
+				if hadMatchingRule {
+					logger.Debugw("applied a rule from _redirects file")
+					return resolvedPath, newContentPath, ok
+				}
+			}
+
+			// if Accept is text/html, see if ipfs-404.html is present
+			// This logic isn't documented and will likely be removed at some point.
+			// Any 404 logic in _redirects above will have already run by this time, so it's really an extra fall back
+			if i.serveLegacy404IfPresent(w, r, contentPath) {
+				logger.Debugw("served legacy 404")
+				return nil, nil, false
+			}
+		}
+
+		// Note: webError will replace http.StatusBadRequest  with StatusNotFound if necessary
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
+		return nil, nil, false
+	}
 }
 
 // Detect 'Cache-Control: only-if-cached' in request and return data if it is already in the local datastore.

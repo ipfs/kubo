@@ -15,66 +15,29 @@ import (
 	"go.uber.org/zap"
 )
 
-// Resolve the provided path.
-func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Request, responseFormat string, contentPath ipath.Path, logger *zap.SugaredLogger) (ipath.Resolved, ipath.Path, bool) {
-	// Attempt to resolve the provided path.
-	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
-
-	switch err {
-	case nil:
-		return resolvedPath, contentPath, true
-	case coreiface.ErrOffline:
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
-		return nil, nil, false
-	default:
-		if isUnixfsResponseFormat(responseFormat) {
-			// The path can't be resolved.
-			// If we have origin isolation, attempt to handle any redirect rules.
-			if hasOriginIsolation(r) {
-				resolvedPath, contentPath, ok, hadMatchingRule := i.serveRedirectsIfPresent(w, r, resolvedPath, contentPath, logger)
-				if hadMatchingRule {
-					return resolvedPath, contentPath, ok
-				}
-			}
-
-			// if Accept is text/html, see if ipfs-404.html is present
-			// This logic isn't documented and will likely be removed at some point.
-			// Any 404 logic in _redirects above will have already run by this time, so it's really an extra fall back
-			if i.serveLegacy404IfPresent(w, r, contentPath) {
-				logger.Debugw("serve pretty 404 if present")
-				return nil, nil, false
-			}
-
-			// Fallback
-			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
-			return nil, nil, false
-		} else {
-			webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusNotFound)
-			return nil, nil, false
-		}
-	}
-}
-
 // Resolving a UnixFS path involves determining if the provided `path.Path` exists and returning the `path.Resolved`
-// corresponding to that path. For UnixFS, path resolution is more involved if a `_redirects` file exists, stored
-// underneath the root CID of the path.
+// corresponding to that path. For UnixFS, path resolution is more involved.
 //
-// Example 1:
+// When a path under requested CID does not exist, Gateway will check if a `_redirects` file exists
+// underneath the root CID of the path, and apply rules defined there.
+// See sepcification introduced in: https://github.com/ipfs/specs/pull/290
+//
+// Scenario 1:
 // If a path exists, we always return the `path.Resolved` corresponding to that path, regardless of the existence of a `_redirects` file.
 //
-// Example 2:
+// Scenario 2:
 // If a path does not exist, usually we should return a `nil` resolution path and an error indicating that the path
 // doesn't exist.  However, a `_redirects` file may exist and contain a redirect rule that redirects that path to a different path.
 // We need to evaluate the rule and perform the redirect if present.
 //
-// Example 3:
+// Scenario 3:
 // Another possibility is that the path corresponds to a rewrite rule (i.e. a rule with a status of 200).
 // In this case, we don't perform a redirect, but do need to return a `path.Resolved` and `path.Path` corresponding to
 // the rewrite destination path.
 //
 // Note that for security reasons, redirect rules are only processed when the request has origin isolation.
 // See https://github.com/ipfs/specs/pull/290 for more information.
-func (i *gatewayHandler) serveRedirectsIfPresent(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, logger *zap.SugaredLogger) (newResolvedPath ipath.Resolved, newContentPath ipath.Path, ok bool, hadMatchingRule bool) {
+func (i *gatewayHandler) serveRedirectsIfPresent(w http.ResponseWriter, r *http.Request, resolvedPath ipath.Resolved, contentPath ipath.Path, logger *zap.SugaredLogger) (newResolvedPath ipath.Resolved, newContentPath ipath.Path, continueProcessing bool, hadMatchingRule bool) {
 	redirectsFile := i.getRedirectsFile(r, contentPath, logger)
 	if redirectsFile != nil {
 		redirectRules, err := i.getRedirectRules(r, redirectsFile)
@@ -107,11 +70,11 @@ func (i *gatewayHandler) serveRedirectsIfPresent(w http.ResponseWriter, r *http.
 			return resolvedPath, contentPath, true, true
 		}
 	}
-	// No matching rule
-	return resolvedPath, contentPath, false, false
+	// No matching rule, paths remain the same, continue regular processing
+	return resolvedPath, contentPath, true, false
 }
 
-func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, redirectRules []redirects.Rule) (bool, string, error) {
+func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, redirectRules []redirects.Rule) (redirected bool, newContentPath string, err error) {
 	// Attempt to match a rule to the URL path, and perform the corresponding redirect or rewrite
 	pathParts := strings.Split(contentPath.String(), "/")
 	if len(pathParts) > 3 {
@@ -146,18 +109,18 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 
 			if rule.Status == 410 {
 				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusGone)
-				return true, rule.To, nil
+				return true, "", nil
 			}
 
 			if rule.Status == 451 {
 				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusUnavailableForLegalReasons)
-				return true, rule.To, nil
+				return true, "", nil
 			}
 
 			// Or redirect
 			if rule.Status >= 301 && rule.Status <= 308 {
 				http.Redirect(w, r, rule.To, rule.Status)
-				return true, rule.To, nil
+				return true, "", nil
 			}
 		}
 	}
@@ -170,20 +133,20 @@ func (i *gatewayHandler) getRedirectRules(r *http.Request, redirectsFilePath ipa
 	// Convert the path into a file node
 	node, err := i.api.Unixfs().Get(r.Context(), redirectsFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("could not get _redirects node: %v", err)
+		return nil, fmt.Errorf("could not get _redirects: %w", err)
 	}
 	defer node.Close()
 
 	// Convert the node into a file
 	f, ok := node.(files.File)
 	if !ok {
-		return nil, fmt.Errorf("could not parse _redirects: %v", err)
+		return nil, fmt.Errorf("could not parse _redirects: %w", err)
 	}
 
 	// Parse redirect rules from file
 	redirectRules, err := redirects.Parse(f)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse _redirects: %v", err)
+		return nil, fmt.Errorf("could not parse _redirects: %w", err)
 	}
 
 	return redirectRules, nil
