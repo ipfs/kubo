@@ -10,30 +10,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRoutingFromConfig(t *testing.T) {
+func TestReframeRoutingFromConfig(t *testing.T) {
 	require := require.New(t)
 
-	r, err := routingFromConfig(config.Router{
-		Type: "unknown",
-	}, nil, nil, nil, nil)
-
-	require.Nil(r)
-	require.EqualError(err, "unknown router type \"unknown\"")
-
-	r, err = routingFromConfig(config.Router{
+	r, err := reframeRoutingFromConfig(config.Router{
 		Type:       config.RouterTypeReframe,
 		Parameters: &config.ReframeRouterParams{},
-	}, nil, nil, nil, nil)
+	}, nil)
 
 	require.Nil(r)
 	require.EqualError(err, "configuration param 'Endpoint' is needed for reframe delegated routing types")
 
-	r, err = routingFromConfig(config.Router{
+	r, err = reframeRoutingFromConfig(config.Router{
 		Type: config.RouterTypeReframe,
 		Parameters: &config.ReframeRouterParams{
 			Endpoint: "test",
 		},
-	}, nil, nil, nil, nil)
+	}, nil)
 
 	require.NoError(err)
 	require.NotNil(r)
@@ -47,16 +40,16 @@ func TestRoutingFromConfig(t *testing.T) {
 	privM, err := crypto.MarshalPrivateKey(priv)
 	require.NoError(err)
 
-	r, err = routingFromConfig(config.Router{
+	r, err = reframeRoutingFromConfig(config.Router{
 		Type: config.RouterTypeReframe,
 		Parameters: &config.ReframeRouterParams{
 			Endpoint: "test",
 		},
-	}, nil, &ExtraReframeParams{
+	}, &ExtraReframeParams{
 		PeerID:     id.String(),
 		Addrs:      []string{"/ip4/0.0.0.0/tcp/4001"},
 		PrivKeyB64: base64.StdEncoding.EncodeToString(privM),
-	}, nil, nil)
+	})
 
 	require.NotNil(r)
 	require.NoError(err)
@@ -113,4 +106,143 @@ func TestParser(t *testing.T) {
 
 	require.Equal(comp.FindPeersRouter, comp.FindProvidersRouter)
 	require.Equal(comp.ProvideRouter, comp.PutValueRouter)
+}
+
+func TestParserRecursive(t *testing.T) {
+	require := require.New(t)
+
+	router, err := Parse(config.Routers{
+		"reframe1": config.RouterParser{
+			Router: config.Router{
+				Type:    config.RouterTypeReframe,
+				Enabled: config.True,
+				Parameters: &config.ReframeRouterParams{
+					Endpoint: "testEndpoint1",
+				},
+			},
+		},
+		"reframe2": config.RouterParser{
+			Router: config.Router{
+				Type:    config.RouterTypeReframe,
+				Enabled: config.True,
+				Parameters: &config.ReframeRouterParams{
+					Endpoint: "testEndpoint2",
+				},
+			},
+		},
+		"reframe3": config.RouterParser{
+			Router: config.Router{
+				Type:    config.RouterTypeReframe,
+				Enabled: config.True,
+				Parameters: &config.ReframeRouterParams{
+					Endpoint: "testEndpoint3",
+				},
+			},
+		},
+		"composable1": config.RouterParser{
+			Router: config.Router{
+				Type:    config.RouterTypeSequential,
+				Enabled: config.True,
+				Parameters: &config.ComposableRouterParams{
+					Routers: []config.ConfigRouter{
+						{
+							RouterName: "reframe1",
+						},
+						{
+							RouterName: "reframe2",
+						},
+					},
+				},
+			},
+		},
+		"composable2": config.RouterParser{
+			Router: config.Router{
+				Type:    config.RouterTypeParallel,
+				Enabled: config.True,
+				Parameters: &config.ComposableRouterParams{
+					Routers: []config.ConfigRouter{
+						{
+							RouterName: "composable1",
+						},
+						{
+							RouterName: "reframe3",
+						},
+					},
+				},
+			},
+		},
+	}, config.Methods{
+		config.MethodNameFindPeers: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNameFindProviders: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNameGetIPNS: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNamePutIPNS: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNameProvide: config.Method{
+			RouterName: "composable2",
+		},
+	}, &ExtraDHTParams{}, nil)
+
+	require.NoError(err)
+
+	_, ok := router.(*Composer)
+	require.True(ok)
+
+}
+
+func TestParserRecursiveLoop(t *testing.T) {
+	require := require.New(t)
+
+	_, err := Parse(config.Routers{
+		"composable1": config.RouterParser{
+			Router: config.Router{
+				Type:    config.RouterTypeSequential,
+				Enabled: config.True,
+				Parameters: &config.ComposableRouterParams{
+					Routers: []config.ConfigRouter{
+						{
+							RouterName: "composable2",
+						},
+					},
+				},
+			},
+		},
+		"composable2": config.RouterParser{
+			Router: config.Router{
+				Type:    config.RouterTypeParallel,
+				Enabled: config.True,
+				Parameters: &config.ComposableRouterParams{
+					Routers: []config.ConfigRouter{
+						{
+							RouterName: "composable1",
+						},
+					},
+				},
+			},
+		},
+	}, config.Methods{
+		config.MethodNameFindPeers: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNameFindProviders: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNameGetIPNS: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNamePutIPNS: config.Method{
+			RouterName: "composable2",
+		},
+		config.MethodNameProvide: config.Method{
+			RouterName: "composable2",
+		},
+	}, &ExtraDHTParams{}, nil)
+
+	require.ErrorContains(err, "dependency loop creating router with name \"composable2\"")
 }

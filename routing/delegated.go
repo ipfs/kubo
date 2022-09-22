@@ -28,58 +28,27 @@ import (
 var log = logging.Logger("routing/delegated")
 
 func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTParams, extraReframe *ExtraReframeParams) (routing.Routing, error) {
-	createdRouters := make(map[string]routing.Routing)
-	processLater := make(config.Routers)
-	log.Info("starting to parse ", len(routers), " routers")
-	for k, r := range routers {
-		if !r.Enabled.WithDefault(true) {
-			continue
-		}
-
-		if r.Type == config.RouterTypeSequential ||
-			r.Type == config.RouterTypeParallel {
-			processLater[k] = r
-			continue
-		}
-		log.Info("creating router ", k)
-		router, err := routingFromConfig(r.Router, extraDHT, extraReframe, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Info("router ", k, " created with params ", r.Parameters)
-
-		createdRouters[k] = router
-	}
-
-	// using the createdRouters, instantiate all parallel and sequential routers
-	for k, r := range processLater {
-		crp, ok := r.Router.Parameters.(*config.ComposableRouterParams)
-		if !ok {
-			return nil, fmt.Errorf("problem getting composable router Parameters from router %q", k)
-		}
-
-		log.Info("creating router helper ", k)
-		router, err := routingFromConfig(r.Router, extraDHT, extraReframe, crp, createdRouters)
-		if err != nil {
-			return nil, err
-		}
-
-		createdRouters[k] = router
-
-		log.Info("router ", k, " created with params ", r.Parameters)
-	}
-
 	if err := methods.Check(); err != nil {
 		return nil, err
 	}
 
+	createdRouters := make(map[string]routing.Routing)
 	finalRouter := &Composer{}
+
+	// Create all needed routers from method names
 	for mn, m := range methods {
-		router, ok := createdRouters[m.RouterName]
-		if !ok {
-			return nil, fmt.Errorf("router with name %q not found for method %q", m.RouterName, mn)
+		r, ok := createdRouters[m.RouterName]
+		var router routing.Routing
+		if ok {
+			router = r
+		} else {
+			r, err := parse(make(map[string]bool), createdRouters, m.RouterName, routers, extraDHT, extraReframe)
+			if err != nil {
+				return nil, err
+			}
+			router = r
 		}
+
 		switch mn {
 		case config.MethodNamePutIPNS:
 			finalRouter.PutValueRouter = router
@@ -99,32 +68,49 @@ func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTPar
 	return finalRouter, nil
 }
 
-func routingFromConfig(conf config.Router,
+func parse(visited map[string]bool,
+	createdRouters map[string]routing.Routing,
+	routerName string,
+	routersCfg config.Routers,
 	extraDHT *ExtraDHTParams,
 	extraReframe *ExtraReframeParams,
-	extraComposableParams *config.ComposableRouterParams,
-	routers map[string]routing.Routing,
 ) (routing.Routing, error) {
+	// check if we already created it
+	r, ok := createdRouters[routerName]
+	if ok {
+		return r, nil
+	}
+
+	// check if we are in a dep loop
+	if visited[routerName] {
+		return nil, fmt.Errorf("dependency loop creating router with name %q", routerName)
+	}
+
+	// set node as visited
+	visited[routerName] = true
+
+	cfg, ok := routersCfg[routerName]
+	if !ok {
+		return nil, fmt.Errorf("config for router with name %q not found", routerName)
+	}
+
 	var router routing.Routing
 	var err error
-	switch conf.Type {
+	switch cfg.Type {
 	case config.RouterTypeReframe:
-		router, err = reframeRoutingFromConfig(conf, extraReframe)
+		router, err = reframeRoutingFromConfig(cfg.Router, extraReframe)
 	case config.RouterTypeDHT:
-		router, err = dhtRoutingFromConfig(conf, extraDHT)
+		router, err = dhtRoutingFromConfig(cfg.Router, extraDHT)
 	case config.RouterTypeParallel:
-		if extraComposableParams == nil || routers == nil {
-			err = fmt.Errorf("missing params needed to create a composable router")
-			break
-		}
+		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var pr []*routinghelpers.ParallelRouter
-		for _, cr := range extraComposableParams.Routers {
-			ri, ok := routers[cr.RouterName]
+		for _, cr := range crp.Routers {
+			ri, ok := createdRouters[cr.RouterName]
 			if !ok {
-				err = fmt.Errorf("router with name %q not found. If you have a router with this name, "+
-					"check routers order in configuration. Take into account that nested parallel and/or sequential "+
-					"routers are not supported", cr.RouterName)
-				break
+				ri, err = parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			pr = append(pr, &routinghelpers.ParallelRouter{
@@ -133,20 +119,20 @@ func routingFromConfig(conf config.Router,
 				Timeout:      cr.Timeout.Duration,
 				ExecuteAfter: cr.ExecuteAfter.WithDefault(0),
 			})
+
 		}
 
 		router = routinghelpers.NewComposableParallel(pr)
 	case config.RouterTypeSequential:
-		if extraComposableParams == nil || routers == nil {
-			err = fmt.Errorf("missing params needed to create a composable router")
-			break
-		}
+		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var sr []*routinghelpers.SequentialRouter
-		for _, cr := range extraComposableParams.Routers {
-			ri, ok := routers[cr.RouterName]
+		for _, cr := range crp.Routers {
+			ri, ok := createdRouters[cr.RouterName]
 			if !ok {
-				err = fmt.Errorf("router with name %q not found", cr.RouterName)
-				break
+				ri, err = parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			sr = append(sr, &routinghelpers.SequentialRouter{
@@ -154,14 +140,23 @@ func routingFromConfig(conf config.Router,
 				IgnoreError: cr.IgnoreErrors,
 				Timeout:     cr.Timeout.Duration,
 			})
+
 		}
 
 		router = routinghelpers.NewComposableSequential(sr)
 	default:
-		return nil, fmt.Errorf("unknown router type %q", conf.Type)
+		return nil, fmt.Errorf("unknown router type %q", cfg.Type)
 	}
 
-	return router, err
+	if err != nil {
+		return nil, err
+	}
+
+	createdRouters[routerName] = router
+
+	log.Info("created router ", routerName, " with params ", cfg.Parameters)
+
+	return router, nil
 }
 
 type ExtraReframeParams struct {
