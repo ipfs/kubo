@@ -1,6 +1,3 @@
-# kubo
-
-> the oldest IPFS implementation, previously known as "go-ipfs"
 
 ![kubo, an IPFS node in Go](https://ipfs.io/ipfs/bafykbzacecaesuqmivkauix25v6i6xxxsvsrtxknhgb5zak3xxsg2nb4dhs2u/ipfs.go.png)
 
@@ -10,15 +7,18 @@
 
 ## What is Kubo?
 
-Kubo (go-ipfs) the earliest and most widely used implementation of IPFS.
+Kubo was the first is the most widely used IPFS implementation today. Implementing the *Interplanetary Filesystem* - the Web3 standard and contender to replace https. Thus powered by IPLD's data models and the libp2p for network communication. Kubo is written in Go.
 
-It includes:
-- an IPFS daemon server
-- extensive [command line tooling](https://docs.ipfs.tech/reference/kubo/cli/)
-- an [HTTP Gateway](https://docs.ipfs.tech/reference/http/gateway/) (`/ipfs/`, `/ipns/`) for serving content to HTTP browsers
-- an [HTTP RPC API](https://docs.ipfs.tech/reference/kubo/rpc/) (`/api/v0`) for controlling the daemon node
+Featureset
+- Runs an IPFS-Node as a network service
+- [Command Line Interface](https://docs.ipfs.tech/reference/kubo/cli/) to IPFS-Nodes
+- Local [Web2-to-Web3 HTTP Gateway functionality](https://github.com/ipfs/specs/tree/main/http-gateways#readme) 
+- HTTP RPC API (`/api/v0`) to access and control the daemon
+- IPFS's internal Webgui can be used to manage the Kubo nodes
 
-Note: [other implementations exist](https://docs.ipfs.tech/basics/ipfs-implementations/).
+### Other implementations
+
+See [List](https://docs.ipfs.tech/basics/ipfs-implementations/)
 
 ## What is IPFS?
 
