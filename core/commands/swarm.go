@@ -850,7 +850,7 @@ Filters default to those specified under the "Swarm.AddrFilters" config key.
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -886,7 +886,7 @@ var swarmFiltersAddCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
@@ -942,7 +942,7 @@ var swarmFiltersRmCmd = &cmds.Command{
 			return err
 		}
 
-		if n.PeerHost == nil {
+		if !n.IsOnline {
 			return ErrNotOnline
 		}
 
