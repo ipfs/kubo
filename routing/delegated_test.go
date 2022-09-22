@@ -61,8 +61,7 @@ func TestParser(t *testing.T) {
 	router, err := Parse(config.Routers{
 		"r1": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeReframe,
-				Enabled: config.True,
+				Type: config.RouterTypeReframe,
 				Parameters: &config.ReframeRouterParams{
 					Endpoint: "testEndpoint",
 				},
@@ -70,8 +69,7 @@ func TestParser(t *testing.T) {
 		},
 		"r2": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeSequential,
-				Enabled: config.True,
+				Type: config.RouterTypeSequential,
 				Parameters: &config.ComposableRouterParams{
 					Routers: []config.ConfigRouter{
 						{
@@ -114,8 +112,7 @@ func TestParserRecursive(t *testing.T) {
 	router, err := Parse(config.Routers{
 		"reframe1": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeReframe,
-				Enabled: config.True,
+				Type: config.RouterTypeReframe,
 				Parameters: &config.ReframeRouterParams{
 					Endpoint: "testEndpoint1",
 				},
@@ -123,8 +120,7 @@ func TestParserRecursive(t *testing.T) {
 		},
 		"reframe2": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeReframe,
-				Enabled: config.True,
+				Type: config.RouterTypeReframe,
 				Parameters: &config.ReframeRouterParams{
 					Endpoint: "testEndpoint2",
 				},
@@ -132,8 +128,7 @@ func TestParserRecursive(t *testing.T) {
 		},
 		"reframe3": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeReframe,
-				Enabled: config.True,
+				Type: config.RouterTypeReframe,
 				Parameters: &config.ReframeRouterParams{
 					Endpoint: "testEndpoint3",
 				},
@@ -141,8 +136,7 @@ func TestParserRecursive(t *testing.T) {
 		},
 		"composable1": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeSequential,
-				Enabled: config.True,
+				Type: config.RouterTypeSequential,
 				Parameters: &config.ComposableRouterParams{
 					Routers: []config.ConfigRouter{
 						{
@@ -157,8 +151,7 @@ func TestParserRecursive(t *testing.T) {
 		},
 		"composable2": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeParallel,
-				Enabled: config.True,
+				Type: config.RouterTypeParallel,
 				Parameters: &config.ComposableRouterParams{
 					Routers: []config.ConfigRouter{
 						{
@@ -202,8 +195,7 @@ func TestParserRecursiveLoop(t *testing.T) {
 	_, err := Parse(config.Routers{
 		"composable1": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeSequential,
-				Enabled: config.True,
+				Type: config.RouterTypeSequential,
 				Parameters: &config.ComposableRouterParams{
 					Routers: []config.ConfigRouter{
 						{
@@ -215,8 +207,7 @@ func TestParserRecursiveLoop(t *testing.T) {
 		},
 		"composable2": config.RouterParser{
 			Router: config.Router{
-				Type:    config.RouterTypeParallel,
-				Enabled: config.True,
+				Type: config.RouterTypeParallel,
 				Parameters: &config.ComposableRouterParams{
 					Routers: []config.ConfigRouter{
 						{

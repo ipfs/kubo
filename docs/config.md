@@ -105,7 +105,6 @@ config file at runtime.
   - [`Routing`](#routing)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
-      - [`Routing.Routers: Enabled`](#routingrouters-enabled)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
     - [`Routing: Methods`](#routing-methods)
     - [`Routing.Type`](#routingtype)
@@ -1296,16 +1295,6 @@ Currently supported types:
 - `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
 Type: `string`
-
-#### `Routing.Routers: Enabled`
-
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
-
-Optional flag to disable the specified router without removing it from the configuration file.
-
-Default: `true`
-
-Type: `flag` (`null`/missing will apply the default)
 
 #### `Routing.Routers: Parameters`
 

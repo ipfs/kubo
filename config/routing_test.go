@@ -16,8 +16,7 @@ func TestRouterParameters(t *testing.T) {
 		Type: "custom",
 		Routers: map[string]RouterParser{
 			"router-dht": {Router{
-				Type:    RouterTypeDHT,
-				Enabled: True,
+				Type: RouterTypeDHT,
 				Parameters: DHTRouterParams{
 					Mode:                 "auto",
 					AcceleratedDHTClient: true,
@@ -25,15 +24,13 @@ func TestRouterParameters(t *testing.T) {
 				},
 			}},
 			"router-reframe": {Router{
-				Type:    RouterTypeReframe,
-				Enabled: True,
+				Type: RouterTypeReframe,
 				Parameters: ReframeRouterParams{
 					Endpoint: "reframe-endpoint",
 				},
 			}},
 			"router-parallel": {Router{
-				Type:    RouterTypeParallel,
-				Enabled: True,
+				Type: RouterTypeParallel,
 				Parameters: ComposableRouterParams{
 					Routers: []ConfigRouter{
 						{
@@ -52,8 +49,7 @@ func TestRouterParameters(t *testing.T) {
 				}},
 			},
 			"router-sequential": {Router{
-				Type:    RouterTypeSequential,
-				Enabled: True,
+				Type: RouterTypeSequential,
 				Parameters: ComposableRouterParams{
 					Routers: []ConfigRouter{
 						{
@@ -120,8 +116,7 @@ func TestRouterMissingParameters(t *testing.T) {
 		Type: "custom",
 		Routers: map[string]RouterParser{
 			"router-wrong-reframe": {Router{
-				Type:    RouterTypeReframe,
-				Enabled: True,
+				Type: RouterTypeReframe,
 				Parameters: DHTRouterParams{
 					Mode:                 "auto",
 					AcceleratedDHTClient: true,

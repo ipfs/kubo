@@ -26,8 +26,6 @@ type Router struct {
 	// In the future we will support "dht" and other Types here.
 	Type RouterType
 
-	Enabled Flag `json:",omitempty"`
-
 	// Parameters are extra configuration that this router might need.
 	// A common one for reframe router is "Endpoint".
 	Parameters interface{}
@@ -95,7 +93,6 @@ func (r *RouterParser) UnmarshalJSON(b []byte) error {
 	}
 
 	r.Router.Type = out.Type
-	r.Router.Enabled = out.Enabled
 	r.Router.Parameters = p
 
 	return nil

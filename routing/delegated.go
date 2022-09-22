@@ -37,16 +37,9 @@ func Parse(routers config.Routers, methods config.Methods, extraDHT *ExtraDHTPar
 
 	// Create all needed routers from method names
 	for mn, m := range methods {
-		r, ok := createdRouters[m.RouterName]
-		var router routing.Routing
-		if ok {
-			router = r
-		} else {
-			r, err := parse(make(map[string]bool), createdRouters, m.RouterName, routers, extraDHT, extraReframe)
-			if err != nil {
-				return nil, err
-			}
-			router = r
+		router, err := parse(make(map[string]bool), createdRouters, m.RouterName, routers, extraDHT, extraReframe)
+		if err != nil {
+			return nil, err
 		}
 
 		switch mn {
@@ -105,12 +98,9 @@ func parse(visited map[string]bool,
 		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var pr []*routinghelpers.ParallelRouter
 		for _, cr := range crp.Routers {
-			ri, ok := createdRouters[cr.RouterName]
-			if !ok {
-				ri, err = parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
-				if err != nil {
-					return nil, err
-				}
+			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
+			if err != nil {
+				return nil, err
 			}
 
 			pr = append(pr, &routinghelpers.ParallelRouter{
@@ -127,12 +117,9 @@ func parse(visited map[string]bool,
 		crp := cfg.Parameters.(*config.ComposableRouterParams)
 		var sr []*routinghelpers.SequentialRouter
 		for _, cr := range crp.Routers {
-			ri, ok := createdRouters[cr.RouterName]
-			if !ok {
-				ri, err = parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
-				if err != nil {
-					return nil, err
-				}
+			ri, err := parse(visited, createdRouters, cr.RouterName, routersCfg, extraDHT, extraReframe)
+			if err != nil {
+				return nil, err
 			}
 
 			sr = append(sr, &routinghelpers.SequentialRouter{
