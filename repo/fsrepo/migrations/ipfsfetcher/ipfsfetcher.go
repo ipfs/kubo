@@ -188,7 +188,7 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	}
 
 	// configure the temporary node
-	cfg.Routing.Type = config.NewOptionalString("dhtclient")
+	cfg.Routing.Type = "dhtclient"
 
 	// Disable listening for inbound connections
 	cfg.Addresses.Gateway = []string{}

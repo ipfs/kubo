@@ -117,8 +117,6 @@ func TestDelegatedRoutingSingle(t *testing.T) {
 	err = n.Routing.PutValue(ctx, theID, v)
 	require.NoError(err)
 
-	err = n.Routing.PutValue(ctx, theErrorID, v)
-	require.Error(err)
 }
 
 func TestDelegatedRoutingMulti(t *testing.T) {
@@ -164,12 +162,6 @@ func TestDelegatedRoutingMulti(t *testing.T) {
 	require.NoError(err)
 	require.NotNil(v)
 	require.Contains(string(v), "RECORD FROM SERVICE 2")
-
-	err = n.Routing.PutValue(ctx, theID1, v)
-	require.Error(err)
-
-	err = n.Routing.PutValue(ctx, theID2, v)
-	require.Error(err)
 }
 
 func StartRoutingServer(t *testing.T, d drs.DelegatedRoutingService) string {
@@ -187,16 +179,41 @@ func StartRoutingServer(t *testing.T, d drs.DelegatedRoutingService) string {
 func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 	t.Helper()
 
-	routers := make(map[string]config.Router)
+	routers := make(config.Routers)
+	var routerNames []string
 	for i, ru := range reframeURLs {
-		routers[fmt.Sprintf("reframe-%d", i)] = config.Router{
-			Type: string(config.RouterTypeReframe),
-			Parameters: map[string]string{
-				string(config.RouterParamEndpoint): ru,
-			},
-		}
+		rn := fmt.Sprintf("reframe-%d", i)
+		routerNames = append(routerNames, rn)
+		routers[rn] =
+			config.RouterParser{
+				Router: config.Router{
+					Type: config.RouterTypeReframe,
+					Parameters: &config.ReframeRouterParams{
+						Endpoint: ru,
+					},
+				},
+			}
 	}
 
+	var crs []config.ConfigRouter
+	for _, rn := range routerNames {
+		crs = append(crs, config.ConfigRouter{
+			RouterName:   rn,
+			IgnoreErrors: true,
+			Timeout:      config.Duration{Duration: time.Minute},
+		})
+	}
+
+	const parallelRouterName = "parallel-router"
+
+	routers[parallelRouterName] = config.RouterParser{
+		Router: config.Router{
+			Type: config.RouterTypeParallel,
+			Parameters: &config.ComposableRouterParams{
+				Routers: crs,
+			},
+		},
+	}
 	cfg := config.Config{
 		Identity: testIdentity,
 		Addresses: config.Addresses{
@@ -204,8 +221,25 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 			API:   []string{"/ip4/127.0.0.1/tcp/0"},
 		},
 		Routing: config.Routing{
-			Type:    config.NewOptionalString("none"),
+			Type:    "custom",
 			Routers: routers,
+			Methods: config.Methods{
+				config.MethodNameFindPeers: config.Method{
+					RouterName: parallelRouterName,
+				},
+				config.MethodNameFindProviders: config.Method{
+					RouterName: parallelRouterName,
+				},
+				config.MethodNameGetIPNS: config.Method{
+					RouterName: parallelRouterName,
+				},
+				config.MethodNameProvide: config.Method{
+					RouterName: parallelRouterName,
+				},
+				config.MethodNamePutIPNS: config.Method{
+					RouterName: parallelRouterName,
+				},
+			},
 		},
 	}
 
@@ -214,7 +248,19 @@ func GetNode(t *testing.T, reframeURLs ...string) *IpfsNode {
 		D: syncds.MutexWrap(datastore.NewMapDatastore()),
 	}
 
-	n, err := NewNode(context.Background(), &BuildCfg{Repo: r, Online: true, Routing: libp2p.NilRouterOption})
+	n, err := NewNode(context.Background(),
+		&BuildCfg{
+			Repo:   r,
+			Online: true,
+			Routing: libp2p.ConstructDelegatedRouting(
+				cfg.Routing.Routers,
+				cfg.Routing.Methods,
+				cfg.Identity.PeerID,
+				cfg.Addresses.Swarm,
+				cfg.Identity.PrivKey,
+			),
+		},
+	)
 	require.NoError(t, err)
 
 	return n
@@ -237,6 +283,10 @@ type delegatedRoutingService struct {
 }
 
 func (drs *delegatedRoutingService) FindProviders(ctx context.Context, key cid.Cid) (<-chan client.FindProvidersAsyncResult, error) {
+	return nil, errNotSupported
+}
+
+func (drs *delegatedRoutingService) Provide(ctx context.Context, req *client.ProvideRequest) (<-chan client.ProvideAsyncResult, error) {
 	return nil, errNotSupported
 }
 

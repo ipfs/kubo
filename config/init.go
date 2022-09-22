@@ -48,7 +48,15 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		},
 
 		Routing: Routing{
-			Type: NewOptionalString("dht"),
+			Type: "dht",
+			Methods: Methods{
+				MethodNameFindPeers:     Method{},
+				MethodNameFindProviders: Method{},
+				MethodNameGetIPNS:       Method{},
+				MethodNameProvide:       Method{},
+				MethodNamePutIPNS:       Method{},
+			},
+			Routers: nil,
 		},
 
 		// setup the node mount points.

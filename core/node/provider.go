@@ -28,13 +28,13 @@ func ProviderQueue(mctx helpers.MetricsCtx, lc fx.Lifecycle, repo repo.Repo) (*q
 }
 
 // SimpleProvider creates new record provider
-func SimpleProvider(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *q.Queue, rt irouting.TieredRouter) provider.Provider {
+func SimpleProvider(mctx helpers.MetricsCtx, lc fx.Lifecycle, queue *q.Queue, rt irouting.ProvideManyRouter) provider.Provider {
 	return simple.NewProvider(helpers.LifecycleCtx(mctx, lc), queue, rt)
 }
 
 // SimpleReprovider creates new reprovider
 func SimpleReprovider(reproviderInterval time.Duration) interface{} {
-	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, rt irouting.TieredRouter, keyProvider simple.KeyChanFunc) (provider.Reprovider, error) {
+	return func(mctx helpers.MetricsCtx, lc fx.Lifecycle, rt irouting.ProvideManyRouter, keyProvider simple.KeyChanFunc) (provider.Reprovider, error) {
 		return simple.NewReprovider(helpers.LifecycleCtx(mctx, lc), reproviderInterval, rt, keyProvider), nil
 	}
 }
@@ -62,12 +62,7 @@ func SimpleProviderSys(isOnline bool) interface{} {
 
 // BatchedProviderSys creates new provider system
 func BatchedProviderSys(isOnline bool, reprovideInterval string) interface{} {
-	return func(lc fx.Lifecycle, cr irouting.TieredRouter, q *q.Queue, keyProvider simple.KeyChanFunc, repo repo.Repo) (provider.System, error) {
-		r := cr.ProvideMany()
-		if r == nil {
-			return nil, fmt.Errorf("BatchedProviderSys requires a content router that supports provideMany")
-		}
-
+	return func(lc fx.Lifecycle, cr irouting.ProvideManyRouter, q *q.Queue, keyProvider simple.KeyChanFunc, repo repo.Repo) (provider.System, error) {
 		reprovideIntervalDuration := kReprovideFrequency
 		if reprovideInterval != "" {
 			dur, err := time.ParseDuration(reprovideInterval)
@@ -78,7 +73,7 @@ func BatchedProviderSys(isOnline bool, reprovideInterval string) interface{} {
 			reprovideIntervalDuration = dur
 		}
 
-		sys, err := batched.New(r, q,
+		sys, err := batched.New(cr, q,
 			batched.ReproviderInterval(reprovideIntervalDuration),
 			batched.Datastore(repo.Datastore()),
 			batched.KeyProvider(keyProvider))

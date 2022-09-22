@@ -11,11 +11,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	madns "github.com/multiformats/go-multiaddr-dns"
 
-	irouting "github.com/ipfs/kubo/routing"
-
 	"github.com/ipfs/go-namesys"
 	"github.com/ipfs/go-namesys/republisher"
 	"github.com/ipfs/kubo/repo"
+	irouting "github.com/ipfs/kubo/routing"
 )
 
 const DefaultIpnsCacheSize = 128
@@ -29,8 +28,8 @@ func RecordValidator(ps peerstore.Peerstore) record.Validator {
 }
 
 // Namesys creates new name system
-func Namesys(cacheSize int) func(rt irouting.TieredRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
-	return func(rt irouting.TieredRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+func Namesys(cacheSize int) func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
+	return func(rt irouting.ProvideManyRouter, rslv *madns.Resolver, repo repo.Repo) (namesys.NameSystem, error) {
 		opts := []namesys.Option{
 			namesys.WithDatastore(repo.Datastore()),
 			namesys.WithDNSResolver(rslv),

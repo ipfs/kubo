@@ -105,8 +105,8 @@ config file at runtime.
   - [`Routing`](#routing)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
-      - [`Routing.Routers: Enabled`](#routingrouters-enabled)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
+    - [`Routing: Methods`](#routing-methods)
     - [`Routing.Type`](#routingtype)
   - [`Swarm`](#swarm)
     - [`Swarm.AddrFilters`](#swarmaddrfilters)
@@ -1291,19 +1291,10 @@ It specifies the routing type that will be created.
 Currently supported types:
 
 - `reframe` (delegated routing based on the [reframe protocol](https://github.com/ipfs/specs/tree/main/reframe#readme))
-- <del>`dht`</del> (WIP, custom DHT will be added in a future release)
+- `dht`
+- `parallel` and `sequential`: Helpers that can be used to run several routers sequentially or in parallel.
 
 Type: `string`
-
-#### `Routing.Routers: Enabled`
-
-**EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
-
-Optional flag to disable the specified router without removing it from the configuration file.
-
-Default: `true`
-
-Type: `flag` (`null`/missing will apply the default)
 
 #### `Routing.Routers: Parameters`
 
@@ -1313,7 +1304,26 @@ Parameters needed to create the specified router. Supported params per router ty
 
 Reframe:
   - `Endpoint` (mandatory): URL that will be used to connect to a specified router.
-  - `Priority` (optional): Priority is used when making a routing request. Small numbers represent more important routers. The default priority is 100000.
+
+DHT:
+  - `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
+  - `"AcceleratedDHTClient"`: Set to `true` if you want to use the experimentalDHT.
+  - `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
+
+Parallel:
+  - `Routers`: A list of routers that will be executed in parallel:
+    - `Name:string`: Name of the router. It should be one of the previously added to `Routers` list.
+    - `Timeout:duration`: Local timeout. It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`). Time will start counting when this specific router is called, and it will stop when the router returns, or we reach the specified timeout.
+    - `ExecuteAfter:duration`: Providing this param will delay the execution of that router at the specified time. It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
+    - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
+  - `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
+  
+Sequential:
+  - `Routers`: A list of routers that will be executed in order:
+    - `Name:string`: Name of the router. It should be one of the previously added to `Routers` list.
+    - `Timeout:duration`: Local timeout. It accepts strings compatible with Go `time.ParseDuration(string)`. Time will start counting when this specific router is called, and it will stop when the router returns, or we reach the specified timeout.
+    - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
+  - `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)`.
 
 **Examples:**
 
@@ -1334,13 +1344,106 @@ Default: `{}` (use the safe implicit defaults)
 
 Type: `object[string->string]`
 
+### `Routing: Methods`
+
+`Methods:map` will define which routers will be executed per method. The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list. 
+
+The value will contain:
+- `RouterName:string`: Name of the router. It should be one of the previously added to `Routing.Routers` list.
+
+Type: `object[string->object]`
+
+**Examples:**
+
+To use the previously added `CidContact` reframe router on all methods:
+
+```console
+$ ipfs config Routing.Methods --json '{
+      "find-peers": {
+        "RouterName": "CidContact"
+      },
+      "find-providers": {
+        "RouterName": "CidContact"
+      },
+      "get-ipns": {
+        "RouterName": "CidContact"
+      },
+      "provide": {
+        "RouterName": "CidContact"
+      },
+      "put-ipns": {
+        "RouterName": "CidContact"
+      }
+    }'
+```
+Complete example using 3 Routers, reframe, DHT and parallel.
+
+```
+$ ipfs config Routing.Type --json '"custom"'
+
+$ ipfs config Routing.Routers.CidContact --json '{
+  "Type": "reframe",
+  "Parameters": {
+    "Endpoint": "https://cid.contact/reframe"
+  }
+}'
+
+$ ipfs config Routing.Routers.WanDHT --json '{
+  "Type": "dht",
+  "Parameters": {
+    "Mode": "auto",
+    "PublicIPNetwork": true,
+    "AcceleratedDHTClient": false
+  }
+}'
+
+$ ipfs config Routing.Routers.ParallelHelper --json '{
+  "Type": "parallel",
+  "Parameters": {
+    "Routers": [
+        {
+        "RouterName" : "CidContact",
+        "IgnoreErrors" : true,
+        "Timeout": "3s"
+        },
+        {
+        "RouterName" : "WanDHT",
+        "IgnoreErrors" : false,
+        "Timeout": "5m",
+        "ExecuteAfter": "2s"
+        }
+    ]
+  }
+}'
+
+ipfs config Routing.Methods --json '{
+      "find-peers": {
+        "RouterName": "ParallelHelper"
+      },
+      "find-providers": {
+        "RouterName": "ParallelHelper"
+      },
+      "get-ipns": {
+        "RouterName": "ParallelHelper"
+      },
+      "provide": {
+        "RouterName": "WanDHT"
+      },
+      "put-ipns": {
+        "RouterName": "ParallelHelper"
+      }
+    }'
+
+```
+
 ### `Routing.Type`
 
-There are two core routing options: "none" and "dht" (default).
+There are three core routing options: "none", "dht" (default) and "custom".
 
 * If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
 * If set to "dht" (or "dhtclient"/"dhtserver"), your node will use the IPFS DHT.
+* If set to "custom", `Routing.Routers` will be used.
 
 When the DHT is enabled, it can operate in two modes: client and server.
 
