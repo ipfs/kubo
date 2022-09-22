@@ -103,6 +103,14 @@ test_expect_success "GET IPFS inlined zero-length data object returns ok code (2
   test_should_contain "Content-Length: 0" empty_ok_response
 '
 
+# https://github.com/ipfs/kubo/issues/9238
+test_expect_success "GET IPFS inlined zero-length data object with byte range returns ok code (200)" '
+  curl -sD - "http://127.0.0.1:$port/ipfs/bafkqaaa" -H "Range: bytes=0-1048575" > empty_ok_response &&
+  test_should_contain "HTTP/1.1 200 OK" empty_ok_response &&
+  test_should_contain "Content-Length: 0" empty_ok_response &&
+  test_should_contain "Content-Type: text/plain" empty_ok_response
+'
+
 test_expect_success "GET /ipfs/ipfs/{cid} returns redirect to the valid path" '
   curl -sD - "http://127.0.0.1:$port/ipfs/ipfs/bafkqaaa?query=to-remember" > response_with_double_ipfs_ns &&
   test_should_contain "<meta http-equiv=\"refresh\" content=\"10;url=/ipfs/bafkqaaa?query=to-remember\" />" response_with_double_ipfs_ns &&
@@ -288,15 +296,24 @@ test_expect_success "GET compact blocks succeeds" '
 '
 
 test_expect_success "Verify gateway file" '
-  cat "$IPFS_PATH/gateway" >> gateway_file_actual &&
-  echo -n "http://$GWAY_ADDR" >> gateway_daemon_actual &&
+  cat "$IPFS_PATH/gateway" > gateway_file_actual &&
+  echo -n "http://$GWAY_ADDR" > gateway_daemon_actual &&
   test_cmp gateway_daemon_actual gateway_file_actual
 '
 
 test_kill_ipfs_daemon
 
-
 GWPORT=32563
+
+test_expect_success "Verify gateway file diallable while on unspecified" '
+  ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/$GWPORT &&
+  test_launch_ipfs_daemon &&
+  cat "$IPFS_PATH/gateway" > gateway_file_actual &&
+  echo -n "http://127.0.0.1:$GWPORT" > gateway_file_expected &&
+  test_cmp gateway_file_expected gateway_file_actual
+'
+
+test_kill_ipfs_daemon
 
 test_expect_success "set up iptb testbed" '
   iptb testbed create -type localipfs -count 5 -force -init &&

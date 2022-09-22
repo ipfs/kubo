@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
@@ -48,7 +48,15 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 		},
 
 		Routing: Routing{
-			Type: NewOptionalString("dht"),
+			Type: "dht",
+			Methods: Methods{
+				MethodNameFindPeers:     Method{},
+				MethodNameFindProviders: Method{},
+				MethodNameGetIPNS:       Method{},
+				MethodNameProvide:       Method{},
+				MethodNamePutIPNS:       Method{},
+			},
+			Routers: nil,
 		},
 
 		// setup the node mount points.

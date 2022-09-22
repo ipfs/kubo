@@ -37,6 +37,15 @@ func (i *gatewayHandler) serveFile(ctx context.Context, w http.ResponseWriter, r
 		return
 	}
 
+	if size == 0 {
+		// We override null files to 200 to avoid issues with fragment caching reverse proxies.
+		// Also whatever you are asking for, it's cheaper to just give you the complete file (nothing).
+		// TODO: remove this if clause once https://github.com/golang/go/issues/54794 is fixed in two latest releases of go
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	// Lazy seeker enables efficient range-requests and HTTP HEAD responses
 	content := &lazySeeker{
 		size:   size,

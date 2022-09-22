@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	core "github.com/ipfs/kubo/core"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p/core/peer"
 
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	p2phttp "github.com/libp2p/go-libp2p-http"
+	protocol "github.com/libp2p/go-libp2p/core/protocol"
 )
 
 // P2PProxyOption is an endpoint for proxying a HTTP request to another ipfs peer

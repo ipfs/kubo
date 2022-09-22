@@ -25,7 +25,7 @@ import (
 	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	config "github.com/ipfs/kubo/config"
-	ci "github.com/libp2p/go-libp2p-core/crypto"
+	ci "github.com/libp2p/go-libp2p/core/crypto"
 	id "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
@@ -652,7 +652,7 @@ func TestVersion(t *testing.T) {
 		t.Fatalf("response doesn't contain client version:\n%s", s)
 	}
 
-	if !strings.Contains(s, "Protocol Version: "+id.LibP2PVersion) {
+	if !strings.Contains(s, "Protocol Version: "+id.DefaultProtocolVersion) {
 		t.Fatalf("response doesn't contain protocol version:\n%s", s)
 	}
 }

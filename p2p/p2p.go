@@ -2,9 +2,9 @@ package p2p
 
 import (
 	logging "github.com/ipfs/go-log"
-	p2phost "github.com/libp2p/go-libp2p-core/host"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	pstore "github.com/libp2p/go-libp2p-core/peerstore"
+	p2phost "github.com/libp2p/go-libp2p/core/host"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
 )
 
 var log = logging.Logger("p2p-mount")
