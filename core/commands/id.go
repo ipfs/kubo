@@ -52,6 +52,7 @@ If no peer is specified, prints out information for local peers.
 <pver>: Protocol version.
 <pubkey>: Public key.
 <addrs>: Addresses (newline delimited).
+<protocols>: Libp2p Protocol registrations (newline delimited).
 
 EXAMPLE:
 
