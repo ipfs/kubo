@@ -117,7 +117,7 @@ require (
 require (
 	github.com/benbjohnson/clock v1.3.0
 	github.com/ipfs/go-delegated-routing v0.6.0
-	github.com/ipfs/go-ipfs-redirects-file v0.0.0-20220922142158-c6830ef7c5f1
+	github.com/ipfs/go-ipfs-redirects-file v0.1.0
 	github.com/ipfs/go-log/v2 v2.5.1
 )
 
@@ -170,9 +170,8 @@ require (
 	github.com/ipfs/go-peertaskqueue v0.7.1 // indirect
 	github.com/ipld/edelweiss v0.2.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
-	github.com/justincjohnson/go-ipfs-redirects v0.0.0-20220421174837-04fcc92d1018 // indirect
-	github.com/klauspost/compress v1.15.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.1.0 // indirect
+	github.com/klauspost/compress v1.15.10 // indirect
+	github.com/klauspost/cpuid/v2 v2.1.1 // indirect
 	github.com/koron/go-ssdp v0.0.3 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-cidranger v1.1.0 // indirect

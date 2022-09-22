@@ -565,10 +565,8 @@ github.com/ipfs/go-ipfs-pq v0.0.2 h1:e1vOOW6MuOwG2lqxcLA+wEn93i/9laCY8sXAw76jFOY
 github.com/ipfs/go-ipfs-pq v0.0.2/go.mod h1:LWIqQpqfRG3fNc5XsnIhz/wQ2XXGyugQwls7BgUmUfY=
 github.com/ipfs/go-ipfs-provider v0.7.1 h1:eKToBUAb6ZY8iiA6AYVxzW4G1ep67XUaaEBUIYpxhfw=
 github.com/ipfs/go-ipfs-provider v0.7.1/go.mod h1:QwdDYRYnC5sYGLlOwVDY/0ZB6T3zcMtu+5+GdGeUuw8=
-github.com/ipfs/go-ipfs-redirects-file v0.0.0-20220915124754-4946b031ee37 h1:dLsZj3RA40WYZHJr4L+S31/BJkOMDlwXyvEYgY/Nv8c=
-github.com/ipfs/go-ipfs-redirects-file v0.0.0-20220915124754-4946b031ee37/go.mod h1:tAwRjCV0RjLTjH8DR/AU7VYvfQECg+lpUy2Mdzv7gyk=
-github.com/ipfs/go-ipfs-redirects-file v0.0.0-20220922142158-c6830ef7c5f1 h1:zw2jqiTDEm+0eLuYolTxNFa2BecJrssPznBkYc4VmEs=
-github.com/ipfs/go-ipfs-redirects-file v0.0.0-20220922142158-c6830ef7c5f1/go.mod h1:tAwRjCV0RjLTjH8DR/AU7VYvfQECg+lpUy2Mdzv7gyk=
+github.com/ipfs/go-ipfs-redirects-file v0.1.0 h1:fD7iK1TAb294Kx7ps3eq1ofzy5EJyx7t0dl4Ds0FtVU=
+github.com/ipfs/go-ipfs-redirects-file v0.1.0/go.mod h1:tAwRjCV0RjLTjH8DR/AU7VYvfQECg+lpUy2Mdzv7gyk=
 github.com/ipfs/go-ipfs-routing v0.0.1/go.mod h1:k76lf20iKFxQTjcJokbPM9iBXVXVZhcOwc360N4nuKs=
 github.com/ipfs/go-ipfs-routing v0.1.0/go.mod h1:hYoUkJLyAUKhF58tysKpids8RNDPO42BVMgK5dNsoqY=
 github.com/ipfs/go-ipfs-routing v0.2.1 h1:E+whHWhJkdN9YeoHZNj5itzc+OR292AJ2uE9FFiW0BY=
