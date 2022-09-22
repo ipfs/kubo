@@ -521,6 +521,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		"commit":  version.CurrentCommit,
 	}).Set(1)
 
+	// TODO(9285): make metrics more configurable
 	// initialize metrics collector
 	prometheus.MustRegister(&corehttp.IpfsNodeCollector{Node: node})
 
