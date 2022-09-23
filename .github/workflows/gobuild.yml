@@ -6,9 +6,12 @@ on:
       - 'master'
 
 jobs:
-  gobuild:
+  runner:
     if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    uses: galorgh/kubo/.github/workflows/runner.yml@github-actions
+  gobuild:
+    needs: [runner]
+    runs-on: ${{ needs.runner.outputs.config.labels }}
     env:
       TEST_NO_DOCKER: 1
       TEST_VERBOSE: 1

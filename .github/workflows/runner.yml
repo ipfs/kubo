@@ -1,0 +1,29 @@
+on:
+  workflow_call:
+    outputs:
+      config:
+        description: "The runner's configuration"
+        value: ${{ jobs.runner.outputs.config }}
+
+jobs:
+  runner:
+    runs-on: ubuntu-latest
+    outputs:
+      config: ${{ steps.runner.outputs.result }}
+    steps:
+      - uses: actions/github-script@v6
+        id: config
+        with:
+          script: |
+            const repo = context.repo()
+            if (`${repo.owner}/${repo.repo}` === 'ipfs/kubo') {
+              return {
+                labels: ['self-hosted', 'linux', 'x64', 'kubo'],
+                parallel: 10
+              }
+            } else {
+              return {
+                labels: ['ubuntu-latest'],
+                parallel: 3
+              }
+            }
