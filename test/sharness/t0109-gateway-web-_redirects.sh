@@ -16,7 +16,7 @@ test_launch_ipfs_daemon
 test_expect_success "Add the _redirects file test directory" '
   ipfs dag import ../t0109-gateway-web-_redirects-data/redirects.car
 '
-CAR_ROOT_CID=QmQprDnhzptPQZwC5dnSvGgmeF9yKCvnNqWA94yVAZCv3a
+CAR_ROOT_CID=QmQyqMY5vUBSbSxyitJqthgwZunCQjDVtNd8ggVCxzuPQ4
 
 REDIRECTS_DIR_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples | cut -d "/" -f3)
 REDIRECTS_DIR_HOSTNAME="${REDIRECTS_DIR_CID}.ipfs.localhost:$GWAY_PORT"
@@ -57,13 +57,32 @@ test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/splat/one.html redirect
   test_should_contain "Location: /redirected-splat/one.html" response
 '
 
-# ensure custom 404 works and has the same cache headers as regular /ipfs/ path
-test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/en/has-no-redirects-entry returns custom 404, per _redirects file" '
+# ensure custom 4xx works and has the same cache headers as regular /ipfs/ path
+CUSTOM_4XX_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples/404.html | cut -d "/" -f3)
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/not-found/has-no-redirects-entry returns custom 404, per _redirects file" '
   curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/not-found/has-no-redirects-entry" > response &&
   test_should_contain "404 Not Found" response &&
   test_should_contain "Cache-Control: public, max-age=29030400, immutable" response &&
-  test_should_contain "Etag: \"Qmd9GD7Bauh6N2ZLfNnYS3b7QVAijbud83b8GE8LPMNBBP\"" response &&
+  test_should_contain "Etag: \"$CUSTOM_4XX_CID\"" response &&
   test_should_contain "my 404" response
+'
+
+CUSTOM_4XX_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples/410.html | cut -d "/" -f3)
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/gone/has-no-redirects-entry returns custom 410, per _redirects file" '
+  curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/gone/has-no-redirects-entry" > response &&
+  test_should_contain "410 Gone" response &&
+  test_should_contain "Cache-Control: public, max-age=29030400, immutable" response &&
+  test_should_contain "Etag: \"$CUSTOM_4XX_CID\"" response &&
+  test_should_contain "my 410" response
+'
+
+CUSTOM_4XX_CID=$(ipfs resolve -r /ipfs/$CAR_ROOT_CID/examples/451.html | cut -d "/" -f3)
+test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/unavail/has-no-redirects-entry returns custom 451, per _redirects file" '
+  curl -sD - --resolve $REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$REDIRECTS_DIR_HOSTNAME/unavail/has-no-redirects-entry" > response &&
+  test_should_contain "451 Unavailable For Legal Reasons" response &&
+  test_should_contain "Cache-Control: public, max-age=29030400, immutable" response &&
+  test_should_contain "Etag: \"$CUSTOM_4XX_CID\"" response &&
+  test_should_contain "my 451" response
 '
 
 test_expect_success "request for $REDIRECTS_DIR_HOSTNAME/catch-all returns 200, per _redirects file" '

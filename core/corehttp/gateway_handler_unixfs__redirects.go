@@ -10,7 +10,6 @@ import (
 
 	files "github.com/ipfs/go-ipfs-files"
 	redirects "github.com/ipfs/go-ipfs-redirects-file"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	ipath "github.com/ipfs/interface-go-ipfs-core/path"
 	"go.uber.org/zap"
 )
@@ -99,22 +98,12 @@ func (i *gatewayHandler) handleRedirectsFileRules(w http.ResponseWriter, r *http
 				return false, toPath, nil
 			}
 
-			// Or 400s
-			if rule.Status == 404 {
+			// Or 4xx
+			if rule.Status == 404 || rule.Status == 410 || rule.Status == 451 {
 				toPath := rootPath + rule.To
-				content404Path := ipath.New(toPath)
-				err := i.serve404(w, r, content404Path)
+				content4xxPath := ipath.New(toPath)
+				err := i.serve4xx(w, r, content4xxPath, rule.Status)
 				return true, toPath, err
-			}
-
-			if rule.Status == 410 {
-				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusGone)
-				return true, "", nil
-			}
-
-			if rule.Status == 451 {
-				webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), coreiface.ErrResolveFailed, http.StatusUnavailableForLegalReasons)
-				return true, "", nil
 			}
 
 			// Or redirect
@@ -175,13 +164,13 @@ func getRootPath(path ipath.Path) ipath.Path {
 	return ipath.New(gopath.Join("/", path.Namespace(), parts[2]))
 }
 
-func (i *gatewayHandler) serve404(w http.ResponseWriter, r *http.Request, content404Path ipath.Path) error {
-	resolved404Path, err := i.api.ResolvePath(r.Context(), content404Path)
+func (i *gatewayHandler) serve4xx(w http.ResponseWriter, r *http.Request, content4xxPath ipath.Path, status int) error {
+	resolved4xxPath, err := i.api.ResolvePath(r.Context(), content4xxPath)
 	if err != nil {
 		return err
 	}
 
-	node, err := i.api.Unixfs().Get(r.Context(), resolved404Path)
+	node, err := i.api.Unixfs().Get(r.Context(), resolved4xxPath)
 	if err != nil {
 		return err
 	}
@@ -189,19 +178,19 @@ func (i *gatewayHandler) serve404(w http.ResponseWriter, r *http.Request, conten
 
 	f, ok := node.(files.File)
 	if !ok {
-		return fmt.Errorf("could not convert node for 404 page to file")
+		return fmt.Errorf("could not convert node for %d page to file", status)
 	}
 
 	size, err := f.Size()
 	if err != nil {
-		return fmt.Errorf("could not get size of 404 page")
+		return fmt.Errorf("could not get size of %d page", status)
 	}
 
-	log.Debugw("using _redirects 404 file", "path", content404Path)
+	log.Debugf("using _redirects %d file, path=%v", status, content4xxPath)
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
-	addCacheControlHeaders(w, r, content404Path, resolved404Path.Cid())
-	w.WriteHeader(http.StatusNotFound)
+	addCacheControlHeaders(w, r, content4xxPath, resolved4xxPath.Cid())
+	w.WriteHeader(status)
 	_, err = io.CopyN(w, f, size)
 	return err
 }
