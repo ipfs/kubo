@@ -9,7 +9,7 @@ jobs:
   runner:
     runs-on: ubuntu-latest
     outputs:
-      config: ${{ steps.runner.outputs.result }}
+      config: ${{ steps.config.outputs.result }}
     steps:
       - uses: actions/github-script@v6
         id: config
@@ -26,3 +26,4 @@ jobs:
                 parallel: 3
               }
             }
+      - run: echo ${{ steps.config.outputs.result }}
