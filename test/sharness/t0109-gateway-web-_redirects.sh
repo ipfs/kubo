@@ -162,7 +162,7 @@ test_expect_success "invalid file: request for $INVALID_REDIRECTS_DIR_HOSTNAME/n
   curl -sD - --resolve $INVALID_REDIRECTS_DIR_HOSTNAME:127.0.0.1 "http://$INVALID_REDIRECTS_DIR_HOSTNAME/not-found" > response &&
   test_should_contain "500" response &&
   test_should_contain "could not parse _redirects:" response &&
-  test_should_contain "forced redirects (or \"shadowing\") are not supported by IPFS gateways" response
+  test_should_contain "forced redirects (or \"shadowing\") are not supported" response
 '
 
 # if accessing a path that doesn't exist and _redirects file is too large, return error

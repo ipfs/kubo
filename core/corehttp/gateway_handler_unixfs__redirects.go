@@ -186,7 +186,7 @@ func (i *gatewayHandler) serve4xx(w http.ResponseWriter, r *http.Request, conten
 		return fmt.Errorf("could not get size of %d page", status)
 	}
 
-	log.Debugf("using _redirects %d file, path=%v", status, content4xxPath)
+	log.Debugf("using _redirects: custom %d file at %q", status, content4xxPath)
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
 	addCacheControlHeaders(w, r, content4xxPath, resolved4xxPath.Cid())
