@@ -11,7 +11,6 @@ jobs:
     uses: galorgh/kubo/.github/workflows/runner.yml@github-actions
   sharness:
     needs: [runner]
-    if: github.repository == 'ipfs/kubo' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ fromJSON(needs.runner.outputs.config).labels }}
     env:
       TEST_NO_DOCKER: 0
