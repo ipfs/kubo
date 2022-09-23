@@ -38,9 +38,10 @@ jobs:
       - uses: protocol/cache-go-action@v1
         with:
           name: ${{ github.job }}
+      # check if docker compose (not docker-compose) is available on default gh runners
       - run: |
-          (for i in {1..3}; do docker-compose pull && break || sleep 5; done) &&
-            docker-compose up -d
+          (for i in {1..3}; do docker compose pull && break || sleep 5; done) &&
+            docker compose up -d
         working-directory: rb-pinning-service-api
       - uses: protocol/cache-go-action@v1
         with:
