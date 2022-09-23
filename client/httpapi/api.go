@@ -3,7 +3,6 @@ package httpapi
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -74,7 +73,7 @@ func ApiAddr(ipfspath string) (ma.Multiaddr, error) {
 
 	apiFile := filepath.Join(baseDir, DefaultApiFile)
 
-	api, err := ioutil.ReadFile(apiFile)
+	api, err := os.ReadFile(apiFile)
 	if err != nil {
 		return nil, err
 	}

@@ -5,11 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 
-	"github.com/ipfs/go-ipfs-files"
+	files "github.com/ipfs/go-ipfs-files"
 )
 
 type RequestBuilder interface {
@@ -59,7 +58,7 @@ func (r *requestBuilder) Body(body io.Reader) RequestBuilder {
 
 // FileBody sets the request body to the given reader wrapped into multipartreader.
 func (r *requestBuilder) FileBody(body io.Reader) RequestBuilder {
-	pr, _ := files.NewReaderPathFile("/dev/stdin", ioutil.NopCloser(body), nil)
+	pr, _ := files.NewReaderPathFile("/dev/stdin", io.NopCloser(body), nil)
 	d := files.NewMapDirectory(map[string]files.Node{"": pr})
 	r.body = files.NewMultiFileReader(d, false)
 
