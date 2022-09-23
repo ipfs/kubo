@@ -210,3 +210,78 @@ func isUnixfsResponseFormat(responseFormat string) bool {
 	// The implicit response format is UnixFS
 	return responseFormat == ""
 }
+
+// Deprecated: legacy ipfs-404.html files are superseded by _redirects file
+// This is provided only for backward-compatibility, until websites migrate
+// to 404s managed via _redirects file (https://github.com/ipfs/specs/pull/290)
+func (i *gatewayHandler) serveLegacy404IfPresent(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
+	resolved404Path, ctype, err := i.searchUpTreeFor404(r, contentPath)
+	if err != nil {
+		return false
+	}
+
+	dr, err := i.api.Unixfs().Get(r.Context(), resolved404Path)
+	if err != nil {
+		return false
+	}
+	defer dr.Close()
+
+	f, ok := dr.(files.File)
+	if !ok {
+		return false
+	}
+
+	size, err := f.Size()
+	if err != nil {
+		return false
+	}
+
+	log.Debugw("using pretty 404 file", "path", contentPath)
+	w.Header().Set("Content-Type", ctype)
+	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
+	w.WriteHeader(http.StatusNotFound)
+	_, err = io.CopyN(w, f, size)
+	return err == nil
+}
+
+func (i *gatewayHandler) searchUpTreeFor404(r *http.Request, contentPath ipath.Path) (ipath.Resolved, string, error) {
+	filename404, ctype, err := preferred404Filename(r.Header.Values("Accept"))
+	if err != nil {
+		return nil, "", err
+	}
+
+	pathComponents := strings.Split(contentPath.String(), "/")
+
+	for idx := len(pathComponents); idx >= 3; idx-- {
+		pretty404 := gopath.Join(append(pathComponents[0:idx], filename404)...)
+		parsed404Path := ipath.New("/" + pretty404)
+		if parsed404Path.IsValid() != nil {
+			break
+		}
+		resolvedPath, err := i.api.ResolvePath(r.Context(), parsed404Path)
+		if err != nil {
+			continue
+		}
+		return resolvedPath, ctype, nil
+	}
+
+	return nil, "", fmt.Errorf("no pretty 404 in any parent folder")
+}
+
+func preferred404Filename(acceptHeaders []string) (string, string, error) {
+	// If we ever want to offer a 404 file for a different content type
+	// then this function will need to parse q weightings, but for now
+	// the presence of anything matching HTML is enough.
+	for _, acceptHeader := range acceptHeaders {
+		accepted := strings.Split(acceptHeader, ",")
+		for _, spec := range accepted {
+			contentType := strings.SplitN(spec, ";", 1)[0]
+			switch contentType {
+			case "*/*", "text/*", "text/html":
+				return "ipfs-404.html", "text/html", nil
+			}
+		}
+	}
+
+	return "", "", fmt.Errorf("there is no 404 file for the requested content types")
+}
