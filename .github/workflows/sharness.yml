@@ -60,5 +60,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: sharness
-          path: kubo/test/sharness/test-results/sharness.xml
+          path: |
+            kubo/test/sharness/test-results/sharness.xml
+            .junit
         if: always()
