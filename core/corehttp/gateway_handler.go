@@ -386,6 +386,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
 		return
 	default:
+		// cache 404s where we know the path does not exist
+		if _, ok := err.(resolver.ErrNoLink); ok {
+			addCacheControlHeaders(w, r, contentPath, cid.Undef)
+		}
+
 		// if Accept is text/html, see if ipfs-404.html is present
 		if i.servePretty404IfPresent(w, r, contentPath) {
 			logger.Debugw("serve pretty 404 if present")
@@ -671,8 +676,11 @@ func (i *gatewayHandler) addUserHeaders(w http.ResponseWriter) {
 }
 
 func addCacheControlHeaders(w http.ResponseWriter, r *http.Request, contentPath ipath.Path, fileCid cid.Cid) (modtime time.Time) {
-	// Set Etag to based on CID (override whatever was set before)
-	w.Header().Set("Etag", getEtag(r, fileCid))
+	// fileCid is cid.Undef for errors that are cacheable. ErrNoLink is one example.
+	if fileCid != cid.Undef {
+		// Set Etag to based on CID (override whatever was set before)
+		w.Header().Set("Etag", getEtag(r, fileCid))
+	}
 
 	// Set Cache-Control and Last-Modified based on contentPath properties
 	if contentPath.Mutable() {
