@@ -13,7 +13,6 @@ import (
 	gopath "path"
 	"regexp"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"time"
 
@@ -378,23 +377,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Resolve path to the final DAG node for the ETag
-	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
-	switch err {
-	case nil:
-	case coreiface.ErrOffline:
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
-		return
-	default:
-		// if Accept is text/html, see if ipfs-404.html is present
-		if i.servePretty404IfPresent(w, r, contentPath) {
-			logger.Debugw("serve pretty 404 if present")
-			return
-		}
-		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
-		return
-	}
-
 	// Detect when explicit Accept header or ?format parameter are present
 	responseFormat, formatParams, err := customResponseFormat(r)
 	if err != nil {
@@ -402,6 +384,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResponseFormat", responseFormat))
+
+	resolvedPath, contentPath, ok := i.handlePathResolution(w, r, responseFormat, contentPath, logger)
+	if !ok {
+		return
+	}
 	trace.SpanFromContext(r.Context()).SetAttributes(attribute.String("ResolvedPath", resolvedPath.String()))
 
 	// Detect when If-None-Match HTTP header allows returning HTTP 304 Not Modified
@@ -448,36 +435,6 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		webError(w, "failed respond with requested content type", err, http.StatusBadRequest)
 		return
 	}
-}
-
-func (i *gatewayHandler) servePretty404IfPresent(w http.ResponseWriter, r *http.Request, contentPath ipath.Path) bool {
-	resolved404Path, ctype, err := i.searchUpTreeFor404(r, contentPath)
-	if err != nil {
-		return false
-	}
-
-	dr, err := i.api.Unixfs().Get(r.Context(), resolved404Path)
-	if err != nil {
-		return false
-	}
-	defer dr.Close()
-
-	f, ok := dr.(files.File)
-	if !ok {
-		return false
-	}
-
-	size, err := f.Size()
-	if err != nil {
-		return false
-	}
-
-	log.Debugw("using pretty 404 file", "path", contentPath)
-	w.Header().Set("Content-Type", ctype)
-	w.Header().Set("Content-Length", strconv.FormatInt(size, 10))
-	w.WriteHeader(http.StatusNotFound)
-	_, err = io.CopyN(w, f, size)
-	return err == nil
 }
 
 func (i *gatewayHandler) postHandler(w http.ResponseWriter, r *http.Request) {
@@ -920,48 +877,6 @@ func customResponseFormat(r *http.Request) (mediaType string, params map[string]
 	return "", nil, nil
 }
 
-func (i *gatewayHandler) searchUpTreeFor404(r *http.Request, contentPath ipath.Path) (ipath.Resolved, string, error) {
-	filename404, ctype, err := preferred404Filename(r.Header.Values("Accept"))
-	if err != nil {
-		return nil, "", err
-	}
-
-	pathComponents := strings.Split(contentPath.String(), "/")
-
-	for idx := len(pathComponents); idx >= 3; idx-- {
-		pretty404 := gopath.Join(append(pathComponents[0:idx], filename404)...)
-		parsed404Path := ipath.New("/" + pretty404)
-		if parsed404Path.IsValid() != nil {
-			break
-		}
-		resolvedPath, err := i.api.ResolvePath(r.Context(), parsed404Path)
-		if err != nil {
-			continue
-		}
-		return resolvedPath, ctype, nil
-	}
-
-	return nil, "", fmt.Errorf("no pretty 404 in any parent folder")
-}
-
-func preferred404Filename(acceptHeaders []string) (string, string, error) {
-	// If we ever want to offer a 404 file for a different content type
-	// then this function will need to parse q weightings, but for now
-	// the presence of anything matching HTML is enough.
-	for _, acceptHeader := range acceptHeaders {
-		accepted := strings.Split(acceptHeader, ",")
-		for _, spec := range accepted {
-			contentType := strings.SplitN(spec, ";", 1)[0]
-			switch contentType {
-			case "*/*", "text/*", "text/html":
-				return "ipfs-404.html", "text/html", nil
-			}
-		}
-	}
-
-	return "", "", fmt.Errorf("there is no 404 file for the requested content types")
-}
-
 // returns unquoted path with all special characters revealed as \u codes
 func debugStr(path string) string {
 	q := fmt.Sprintf("%+q", path)
@@ -969,6 +884,49 @@ func debugStr(path string) string {
 		q = q[1 : len(q)-1]
 	}
 	return q
+}
+
+// Resolve the provided contentPath including any special handling related to
+// the requested responseFormat. Returned ok flag indicates if gateway handler
+// should continue processing the request.
+func (i *gatewayHandler) handlePathResolution(w http.ResponseWriter, r *http.Request, responseFormat string, contentPath ipath.Path, logger *zap.SugaredLogger) (resolvedPath ipath.Resolved, newContentPath ipath.Path, ok bool) {
+	// Attempt to resolve the provided path.
+	resolvedPath, err := i.api.ResolvePath(r.Context(), contentPath)
+
+	switch err {
+	case nil:
+		return resolvedPath, contentPath, true
+	case coreiface.ErrOffline:
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusServiceUnavailable)
+		return nil, nil, false
+	default:
+		// The path can't be resolved.
+		if isUnixfsResponseFormat(responseFormat) {
+			// If we have origin isolation (subdomain gw, DNSLink website),
+			// and response type is UnixFS (default for website hosting)
+			// check for presence of _redirects file and apply rules defined there.
+			// See: https://github.com/ipfs/specs/pull/290
+			if hasOriginIsolation(r) {
+				resolvedPath, newContentPath, ok, hadMatchingRule := i.serveRedirectsIfPresent(w, r, resolvedPath, contentPath, logger)
+				if hadMatchingRule {
+					logger.Debugw("applied a rule from _redirects file")
+					return resolvedPath, newContentPath, ok
+				}
+			}
+
+			// if Accept is text/html, see if ipfs-404.html is present
+			// This logic isn't documented and will likely be removed at some point.
+			// Any 404 logic in _redirects above will have already run by this time, so it's really an extra fall back
+			if i.serveLegacy404IfPresent(w, r, contentPath) {
+				logger.Debugw("served legacy 404")
+				return nil, nil, false
+			}
+		}
+
+		// Note: webError will replace http.StatusBadRequest  with StatusNotFound if necessary
+		webError(w, "ipfs resolve -r "+debugStr(contentPath.String()), err, http.StatusBadRequest)
+		return nil, nil, false
+	}
 }
 
 // Detect 'Cache-Control: only-if-cached' in request and return data if it is already in the local datastore.
