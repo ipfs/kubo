@@ -44,11 +44,28 @@ type FileSystem struct {
 
 // NewFileSystem constructs new fs using given core.IpfsNode instance.
 func NewFileSystem(ctx context.Context, ipfs iface.CoreAPI, ipfspath, ipnspath string) (*FileSystem, error) {
-	key, err := ipfs.Key().Self(ctx)
+
+	keys, err := ipfs.Key().List(ctx)
 	if err != nil {
 		return nil, err
 	}
-	root, err := CreateRoot(ctx, ipfs, map[string]iface.Key{"local": key}, ipfspath, ipnspath)
+
+	selfkey, err := ipfs.Key().Self(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var keymap = make(map[string]iface.Key)
+	keymap["local"] = selfkey
+	for _, k := range keys {
+		if k.ID() == selfkey.ID() {
+			continue
+		}
+		keymap[k.Name()] = k
+	}
+
+	fmt.Println(keymap)
+	root, err := CreateRoot(ctx, ipfs, keymap, ipfspath, ipnspath)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +137,11 @@ func CreateRoot(ctx context.Context, ipfs iface.CoreAPI, keys map[string]iface.K
 	links := make(map[string]*Link)
 	for alias, k := range keys {
 		root, fsn, err := loadRoot(ctx, ipfs, k)
+		if err == dag.ErrNotProtobuf {
+			log.Errorf("skipping non-protobuf key %s: %s", alias, k.Path())
+			delete(keys, alias)
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
