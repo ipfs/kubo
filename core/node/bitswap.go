@@ -22,7 +22,7 @@ const (
 	DefaultTaskWorkerCount             = 8
 	DefaultEngineTaskWorkerCount       = 8
 	DefaultMaxOutstandingBytesPerPeer  = 1 << 20
-	DefaultProviderSearchDelay         = 20 * time.Millisecond
+	DefaultProviderSearchDelay         = 1000 * time.Millisecond
 )
 
 type bitswapOptionsOut struct {
