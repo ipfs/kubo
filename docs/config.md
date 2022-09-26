@@ -148,6 +148,8 @@ config file at runtime.
       - [`Swarm.Transports.Network.Websocket`](#swarmtransportsnetworkwebsocket)
       - [`Swarm.Transports.Network.QUIC`](#swarmtransportsnetworkquic)
       - [`Swarm.Transports.Network.Relay`](#swarmtransportsnetworkrelay)
+      - [`Swarm.Transports.Network.WebTransport`](#swarmtransportsnetworkwebtransport)
+        - [`How to enable WebTransport`](#how-to-enable-webtransport)
     - [`Swarm.Transports.Security`](#swarmtransportssecurity)
       - [`Swarm.Transports.Security.TLS`](#swarmtransportssecuritytls)
       - [`Swarm.Transports.Security.SECIO`](#swarmtransportssecuritysecio)
@@ -205,7 +207,7 @@ documented in `ipfs config profile --help`.
 
   Configures the node to use the flatfs datastore. Flatfs is the default datastore.
 
-  This is the most battle-tested and reliable datastore. 
+  This is the most battle-tested and reliable datastore.
   You should use this datastore if:
 
   - You need a very simple and very reliable datastore, and you trust your
@@ -223,9 +225,9 @@ documented in `ipfs config profile --help`.
 
   Configures the node to use the experimental badger datastore. Keep in mind that this **uses an outdated badger 1.x**.
 
-  Use this datastore if some aspects of performance, 
+  Use this datastore if some aspects of performance,
   especially the speed of adding many gigabytes of files, are critical. However, be aware that:
-  
+
   - This datastore will not properly reclaim space when your datastore is
     smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
@@ -358,6 +360,7 @@ Supported Transports:
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * websocket - `/ipN/.../tcp/.../ws`
 * quic - `/ipN/.../udp/.../quic`
+* webtransport (*experiemental*) - `/ipN/.../udp/.../quic/webtransport` - require using a different port than the QUIC listener for now
 
 Default:
 ```json
@@ -804,17 +807,17 @@ Below is a list of the most common public gateway setups.
      }'
    ```
    - **Backward-compatible:** this feature enables automatic redirects from content paths to subdomains:
-   
+
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.dweb.link`
-     
+
    - **X-Forwarded-Proto:** if you run Kubo behind a reverse proxy that provides TLS, make it add a `X-Forwarded-Proto: https` HTTP header to ensure users are redirected to `https://`, not `http://`. It will also ensure DNSLink names are inlined to fit in a single DNS label, so they work fine with a wildcart TLS cert ([details](https://github.com/ipfs/in-web-browsers/issues/169)). The NGINX directive is `proxy_set_header X-Forwarded-Proto "https";`.:
-    
+
      `http://dweb.link/ipfs/{cid}` → `https://{cid}.ipfs.dweb.link`
-     
+
      `http://dweb.link/ipns/your-dnslink.site.example.com` → `https://your--dnslink-site-example-com.ipfs.dweb.link`
-     
+
    - **X-Forwarded-Host:** we also support `X-Forwarded-Host: example.com` if you want to override subdomain gateway host from the original request:
-   
+
      `http://dweb.link/ipfs/{cid}` → `http://{cid}.ipfs.example.com`
 
 
@@ -839,7 +842,7 @@ Below is a list of the most common public gateway setups.
   Disable fetching of remote data (`NoFetch: true`) and resolving DNSLink at unknown hostnames (`NoDNSLink: true`).
   Then, enable DNSLink gateway only for the specific hostname (for which data
   is already present on the node), without exposing any content-addressing `Paths`:
-  
+
    ```console
    $ ipfs config --json Gateway.NoFetch true
    $ ipfs config --json Gateway.NoDNSLink true
@@ -871,7 +874,7 @@ Type: `string` (base64 encoded)
 
 This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile Kubo.  
 
-**Be aware that making informed change here requires in-depth knowledge and most users should leave these untouched. All knobs listed here are subject to breaking changes between versions.** 
+**Be aware that making informed change here requires in-depth knowledge and most users should leave these untouched. All knobs listed here are subject to breaking changes between versions.**
 
 ### `Internal.Bitswap`
 
@@ -1317,7 +1320,7 @@ Parallel:
     - `ExecuteAfter:duration`: Providing this param will delay the execution of that router at the specified time. It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
     - `IgnoreErrors:bool`: It will specify if that router should be ignored if an error occurred.
   - `Timeout:duration`: Global timeout.  It accepts strings compatible with Go `time.ParseDuration(string)` (`10s`, `1m`, `2h`).
-  
+
 Sequential:
   - `Routers`: A list of routers that will be executed in order:
     - `Name:string`: Name of the router. It should be one of the previously added to `Routers` list.
@@ -1346,7 +1349,7 @@ Type: `object[string->string]`
 
 ### `Routing: Methods`
 
-`Methods:map` will define which routers will be executed per method. The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list. 
+`Methods:map` will define which routers will be executed per method. The key will be the name of the method: `"provide"`, `"find-providers"`, `"find-peers"`, `"put-ipns"`, `"get-ipns"`. All methods must be added to the list.
 
 The value will contain:
 - `RouterName:string`: Name of the router. It should be one of the previously added to `Routing.Routers` list.
@@ -1619,7 +1622,7 @@ Type: `optionalInteger`
 
 #### `Swarm.RelayService.ReservationTTL`
 
-Duration of a new or refreshed reservation. 
+Duration of a new or refreshed reservation.
 
 Default: `"1h"`
 
@@ -1858,7 +1861,7 @@ Configuration section for libp2p _network_ transports. Transports enabled in
 this section will be used for dialing. However, to receive connections on these
 transports, multiaddrs for these transports must be added to `Addresses.Swarm`.
 
-Supported transports are: QUIC, TCP, WS, and Relay.
+Supported transports are: QUIC, TCP, WS, Relay and WebTransport.
 
 Each field in this section is a `flag`.
 
@@ -1933,6 +1936,49 @@ Type: `flag`
 Listen Addresses:
 * This transport is special. Any node that enables this transport can receive
   inbound connections on this transport, without specifying a listen address.
+
+
+#### `Swarm.Transports.Network.WebTransport`
+
+A new feature of [`go-libp2p`](https://github.com/libp2p/go-libp2p/releases/tag/v0.23.0)
+is the [WebTransport](https://github.com/libp2p/go-libp2p/issues/1717) transport.
+
+This is a spiritual descendant of WebSocket but over `HTTP/3`.
+Since this runs on top of `HTTP/3` it uses `QUIC` under the hood.
+We expect it to perform worst than `QUIC` because of the extra overhead,
+this transport is really meant at agents that cannot do `TCP` or `QUIC` (like browsers).
+
+For now it is **disabled by default** and considered **experimental**.
+If you find issues running it please [report them to us](https://github.com/ipfs/kubo/issues/new).
+
+In the future Kubo will listen on WebTransport by default for anyone already listening on QUIC addresses.
+
+WebTransport is a new transport protocol currently under development by the IETF and the W3C, and already implemented by Chrome.
+Conceptually, it’s like WebSocket run over QUIC instead of TCP. Most importantly, it allows browsers to establish (secure!) connections to WebTransport servers without the need for CA-signed certificates,
+thereby enabling any js-libp2p node running in a browser to connect to any kubo node, with zero manual configuration involved.
+
+The previous alternative is websocket secure, which require installing a reverse proxy and TLS certificates manually.
+
+Default: Disabled
+
+Type: `flag`
+
+
+#### How to enable WebTransport
+
+Thoses steps are temporary and wont be needed once we make it enabled by default.
+
+1. Enable the WebTransport transport:
+   `ipfs config Swarm.Transports.Network.WebTransport --json true`
+1. Add a listener address for WebTransport to your `Addresses.Swarm` key, for example:
+   ```json
+   [
+     "/ip4/0.0.0.0/tcp/4001",
+     "/ip4/0.0.0.0/udp/4001/quic",
+     "/ip4/0.0.0.0/udp/4002/quic/webtransport"
+   ]
+   ```
+1. Restart your daemon to apply the config changes.
 
 ### `Swarm.Transports.Security`
 
