@@ -39,6 +39,11 @@ Checklist:
 - [ ] **Stage 0 - Prerequisites**
   - [ ] Ensure that the `What's left for release` section has all the checkboxes checked. If that's not the case, discuss the open items with Kubo maintainers and update the release schedule accordingly.
   - [ ] Create `docs-release-vX.Y.Z` branch, open a draft PR and keep updating `docs/RELEASE_ISSUE_TEMPLATE.md` on that branch as you go.
+  - [ ] Ensure you have [GPG key generated]() and [added to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account). This will enable you to created signed tags.
+  - [ ] Ensure you have [admin access](https://discuss.ipfs.tech/g/admins) to [IPFS Discourse](https://discuss.ipfs.tech/). Admin access is required to globally pin posts and create banners. @2color might be able to assist you.
+  - [ ] Access to [#bifrost](https://filecoinproject.slack.com/archives/C03MMMF606T) channel in FIL Slack might come in handy. Ask the release reviewer to invite you over.
+  - [ ] After the release is deployed to our internal infrastructure, you're going to need read access to [IPFS network metrics](https://github.com/protocol/pldw/blob/624f47cf4ec14ad2cec6adf601a9f7b203ef770d/docs/sources/ipfs.md#ipfs-network-metrics) dashboards. Open an access request in https://github.com/protocol/pldw/issues/new/choose if you don't have it yet ([example](https://github.com/protocol/pldw/issues/158)).
+  - [ ] You're also going to need NPM installed on your system. See [here](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) for instructions.
 - [ ] **Stage 1 - Initial Preparations**
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
@@ -50,58 +55,86 @@ Checklist:
   - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z-rcN`.
   - [ ] If applicable, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
       - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
-  - [ ] Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN"`)
-  - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`).
+  - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`) and create a draft PR from that branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
+  - [ ] Wait for CI to run and complete PR checks. All checks should pass.
+  - [ ] Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN`, use "Pre-release 0.15.0-rc1" as the tag message)
   - [ ] Push the `vX.Y.Z-rcN` tag to GitHub (`git push origin vX.Y.Z-rcN`; DO NOT USE `git push --tags` because it pushes all your local tags).
-  - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions) with local changes produced by `add-version` (see [usage](https://github.com/ipfs/distributions#usage))
+  - [ ] Add artifacts to https://dist.ipfs.tech by making a PR against [ipfs/distributions](https://github.com/ipfs/distributions)
+    - [ ] Clone the `ipfs/distributions` repo locally.
+    - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
+    - [ ] Run `./dist.sh add-version kubo vX.Y.Z-rcN` to add the new version to the `versions` file ([instructions](https://github.com/ipfs/distributions#usage)).
+      - If you're adding a new RC, `dist.sh` will print _WARNING: not marking pre-release kubo vX.Y.Z-rc1n as the current version._.
+    - [ ] Push the `kubo-release-vX.Y.Z-rcn` branch to GitHub and create a PR from that branch ([example](https://github.com/ipfs/distributions/pull/760)).
     - [ ] Wait for PR to build artifacts and generate diff (~30min)
     - [ ] Inspect results, merge if CI is green and the diff looks ok
-    - [ ] Wait for `master` branch to build and update DNSLink at https://dist.ipfs.tech (~30min)
-  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) and reuse signed artifacts from https://dist.ipfs.tech/kubo (upload the result of the `ipfs/distributions` build from the previous step).
+    - [ ] Wait for `master` branch to build. It will automatically update DNSLink at https://dist.ipfs.tech (~30min)
+  - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0-rc1))
+    - Use `vX.Y.Z-rcN` as the tag.
+    - Link to the release issue in the description.
+    - Link to the relevant [changelog](https://github.com/ipfs/kubo/blob/master/docs/changelogs/) in the description.
+    - Check `This is a pre-release`.
+  - [ ] Synchronize release artifacts by running [sync-release-assets](https://github.com/ipfs/kubo/actions/workflows/sync-release-assets.yml) workflow.
   - [ ] Announce the RC
-    - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). This will automatically post to IPFS Discord #ipfs-chatter. Examples from the past: [0.14.0](https://discuss.ipfs.io/t/kubo-formerly-go-ipfs-v0-14-0-release-is-out/14794)
-    - [ ] Pin the topic. You need to be part of the [admin group](https://discuss.ipfs.tech/g/admins) for that.
-    - [ ] To the _early testers_ listed in [docs/EARLY_TESTERS.md](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md). Do this by copy/pasting their GitHub usernames and checkboxes as a comment to the release issue so they get a GitHub notification. ([example](https://github.com/ipfs/go-ipfs/issues/8176#issuecomment-909356394))
-- [ ] **Stage 3 - Automated Testing**
-  - [ ] Automated Testing (already tested in CI) - Ensure that all tests are passing, this includes:
-    - [ ] unit, sharness, cross-build, etc (`make test`)
-    - [ ] lint (`make test_go_lint`)
-    - [ ] [interop](https://github.com/ipfs/interop#test-with-a-non-yet-released-version-of-go-ipfs)
-    - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
-    - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
-    - [ ] [WebUI](https://github.com/ipfs-shipyard/ipfs-webui)
-- [ ] **Stage 4 - Internal Testing**
-  - [ ] CHANGELOG.md has been updated
-    - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
-    	- you need to install `zsh`.
+    - [ ] Create a new post on [IPFS Discourse](https://discuss.ipfs.tech). ([example](https://discuss.ipfs.tech/t/kubo-v0-16-0-rc1-release-candidate-is-out/15248))
+      - Use `Kubo vX.Y.Z-rcn Release Candidate is out!` as the title.
+      - Use `kubo` and `go-ipfs` as topics.
+      - Repeat the title as a heading (`##`) in the description.
+      - Link to the release issue in the description.
+    - [ ] Pin the topic globally so that it stays at the top of the category.
+    - [ ] If there is no more important banner currently set on Discourse (e.g. IPFS Camp announcement), make the topic into a banner.
+    - [ ] Check if Discourse post was automatically copied to:
+      - [ ] IPFS Discord #ipfs-chatter
+      - [ ] FIL Slack #ipfs-chatter
+      - [ ] Matrix
+    - [ ] Mention [early testers](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) in the comment under the release issue ([example](https://github.com/ipfs/kubo/issues/9237#issuecomment-1258072509)).
+- [ ] **Stage 3 - Internal Testing**
   - [ ] Infrastructure Testing.
-    - [ ] Open an issue against https://github.com/protocol/bifrost-infra and spell out all that we want (e.g.,mgateways, bootstrapper, and cluster).  [example](https://github.com/protocol/bifrost-infra/issues/2046)
-    - [ ] Deploy new version to a subset of Bootstrappers
-    - [ ] Deploy new version to a subset of Gateways
-    - [ ] Deploy new version to a subset of Preload nodes
-    - [ ] Collect [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day. Work with the Infrastructure team to learn of any hiccup
-  - [ ] IPFS Application Testing -  Run the tests of the following applications:
+    - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
+      - Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
+      - Mention @protocol/bifrost-team in the issue if you opened it prior to the release
+      - [Optional] Reply under a message about the issue in the #bifrost channel on FIL Slack once the RC is out. Send the message to the channel.
+      - [ ] Check [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day.
+        - Compare the metrics trends week over week.
+        - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
+  - [ ] IPFS Application Testing.
     - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
-      - [ ] Ensure the RC is published to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) ([happens automatically, just wait for CI](https://github.com/ipfs/npm-go-ipfs/actions))
-      - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop) and push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde)), and open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826))
+      - [ ] Ensure the RC is published to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) ([happens automatically, just wait for CI](https://github.com/ipfs/npm-go-ipfs/actions)), you can run https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml to force release new version
+      - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop) and push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde)), and open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826)), you have to check out the repo to update package-lock.json
       - [ ] Ensure CI tests pass, repeat for new RCs
     - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
       - Start kubo daemon of the version to release.
-      - Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)`
-      - Start a fresh firefox instance using `firefox --profile $(mktemp -d)`
+      - Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)` (macos `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=$(mktemp -d)`)
+      - Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
       - Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
       - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
-- [ ] **Stage 5 - Community Prod Testing**
+    - [ ] [interop](https://github.com/ipfs/interop)
+      - [ ] Clone the `ipfs/interop` repo locally.
+      - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
+      - [ ] Update `go-ipfs` version to `vX.Y.Z-rcN` in [package.json](https://github.com/ipfs/interop/blob/master/package.json).
+      - [ ] Run `npm install` locally
+      - [ ] Push the `kubo-release-vX.Y.Z-rcn` branch to GitHub and create a draft PR from that branch ([example](https://github.com/ipfs/interop/pull/511)).
+    - [ ] [go-ipfs-api](https://github.com/ipfs/go-ipfs-api)
+      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-api/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-api/commit/26aeb9075240e595d4a095a4e803767171eec06c)).
+      - [ ] Ensure that CI is green.
+      - [ ] Delete the branch.
+    - [ ] [go-ipfs-http-client](https://github.com/ipfs/go-ipfs-http-client)
+      - [ ] Create a branch with kubo version pinned in the [test setup action](https://github.com/ipfs/go-ipfs-http-client/blob/master/.github/actions/go-test-setup/action.yml) ([example](https://github.com/ipfs/go-ipfs-http-client/commit/940886ca500e567c42660122f405432579ecad90)).
+      - [ ] Ensure that CI is green.
+      - [ ] Delete the branch.
+    - [ ] [WebUI](https://github.com/ipfs-shipyard/ipfs-webui)
+      - [ ] Run [CI workflow](https://github.com/ipfs/ipfs-webui/actions/workflows/ci.yml) with `vX.Y.Z-rcN` for the `kubo-version` input.
+      - [ ] Ensure that CI is green.
+- [ ] **Stage 4 - Community Prod Testing** - _ONLY FOR FINAL RELEASE_
   - [ ] Documentation
     - [ ] Ensure that [CHANGELOG.md](https://github.com/ipfs/go-ipfs/tree/master/CHANGELOG.md) is up to date
+      - [ ] CHANGELOG.md has been updated // This is only relevant for final release
+        - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
+          - you need to install `zsh`.
 	  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
 	  - [ ] Keep the release notes as trim as possible (removing some of the top headers, like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
     - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
     - [ ] Update docs by merging the auto-created PR in https://github.com/ipfs/ipfs-docs/pulls (they are auto-created every 12 hours) (only for final releases, not RCs)
-  - [ ] Invite the wider community through (link to the release issue):
-    - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
-    - [ ] Matrix
-- [ ] **Stage 6 - Release**
+- [ ] **Stage 5 - Release** - _ONLY FOR FINAL RELEASE_
   - [ ] Final preparation
     - [ ] Verify that version string in [`version.go`](https://github.com/ipfs/go-ipfs/tree/master/version.go) has been updated.
     - [ ] Open a PR merging `release-vX.Y.Z` into the `release` branch.
@@ -135,7 +168,7 @@ Checklist:
     - [ ] [Reddit](https://reddit.com/r/ipfs)
     - [ ] [discuss.ipfs.io](https://discuss.ipfs.io/c/announcements)
       - A bot auto-posts this to Discord and Matrix
-- [ ] **Stage 7 - Post-Release**
+- [ ] **Stage 6 - Post-Release**
   - [ ] Merge the `release` branch back into `master`, ignoring the changes to `version.go` (keep the `-dev` version from master).
   - [ ] Create an issue using this release issue template for the _next_ release.
   - [ ] Make sure any last-minute changelog updates from the blog post make it back into the CHANGELOG.
