@@ -54,6 +54,22 @@ test_expect_success 'ResourceMgr enabled: swarm limit' '
   jq -e .StreamsInbound < json &&
   jq -e .StreamsOutbound < json
 '
+test_expect_success 'ResourceMgr enabled: swarm limit reset' '
+  ipfs swarm limit system --reset --enc=json 2> reset &&
+  ipfs swarm limit system --enc=json 2> actual &&
+  test_cmp reset actual
+'
+
+test_expect_success 'ResourceMgr enabled: swarm limit reset on map values' '
+  ipfs swarm limit peer:12D3KooWL7i1T9VSPeF8AgQApbyM51GNKZsYPvNvL347aMDmvNzG --reset --enc=json 2> reset &&
+  ipfs swarm limit peer:12D3KooWL7i1T9VSPeF8AgQApbyM51GNKZsYPvNvL347aMDmvNzG --enc=json 2> actual &&
+  test_cmp reset actual
+'
+
+test_expect_success 'ResourceMgr enabled: scope is required using reset flag' '
+  test_expect_code 1 ipfs swarm limit --reset 2> actual &&
+  test_should_contain "Error: argument \"scope\" is required" actual
+'
 
 test_expect_success 'connected: swarm stats all working properly' '
   test_expect_code 0 ipfs swarm stats all
