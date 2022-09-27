@@ -44,6 +44,11 @@ Checklist:
   - [ ] Access to [#bifrost](https://filecoinproject.slack.com/archives/C03MMMF606T) channel in FIL Slack might come in handy. Ask the release reviewer to invite you over.
   - [ ] After the release is deployed to our internal infrastructure, you're going to need read access to [IPFS network metrics](https://github.com/protocol/pldw/blob/624f47cf4ec14ad2cec6adf601a9f7b203ef770d/docs/sources/ipfs.md#ipfs-network-metrics) dashboards. Open an access request in https://github.com/protocol/pldw/issues/new/choose if you don't have it yet ([example](https://github.com/protocol/pldw/issues/158)).
   - [ ] You're also going to need NPM installed on your system. See [here](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) for instructions.
+  - [ ] Prepare changelog proposal in [docs/changelogs/vX.Y.md](docs/changelogs).
+    - Skip filling out the `### Changelog` section (the one where which lists all the commits and contributors) for now. We will populate it after the release branch is cut.
+  - [ ] Install ZSH ([instructions](https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH#install-and-set-up-zsh-as-default)). It is needed by the changelog creation script.
+  - [ ] Ensure you have `kubo` checked out under `$(go env GOPATH)/src/github.com/ipfs/kubo`. This is required by the changelog creation script.
+    - If you want your clone to live in a different location, you can symlink it to the expected location by running `mkdir -p $(go env GOPATH)/src/github.com/ipfs && ln -s $(pwd) $(go env GOPATH)/src/github.com/ipfs/kubo`.
 - [ ] **Stage 1 - Initial Preparations**
   - [ ] Upgrade to the latest patch release of Go that CircleCI has published (currently used version: `1.19.1`)
     - [ ] See the list here: https://hub.docker.com/r/cimg/go/tags
@@ -55,6 +60,11 @@ Checklist:
   - [ ] Bump the version in `version.go` in the `release-vX.Y.Z` branch to `vX.Y.Z-rcN`.
   - [ ] If applicable, add new commits to the `release-vX.Y.Z` branch from `master` using `git cherry-pick -x ...`
       - Note: `release-*` branches are protected. You can do all needed updates on a separated branch (e.g. `wip-release-vX.Y.Z`) and when everything is settled push to `release-vX.Y.Z`
+  - [ ] Update the [docs/changelogs/vX.Y.md](docs/changelogs) with the new commits and contributors.
+    - [ ] Run `./bin/mkreleaselog` twice to generate the changelog and copy the output.
+      - The first run of the script might be poluted with `git clone` output.
+    - [ ] Paste the output into the `### Changelog` section of the changelog file inside the `<details><summary></summary></details>` block.
+    - [ ] Commit the changelog changes.
   - [ ] Push the `release-vX.Y.Z` branch to GitHub (`git push origin release-vX.Y.Z`) and create a draft PR from that branch if it doesn't exist yet ([example](https://github.com/ipfs/kubo/pull/9306)).
   - [ ] Wait for CI to run and complete PR checks. All checks should pass.
   - [ ] Tag HEAD `release-vX.Y.Z` commit with `vX.Y.Z-rcN` (`git tag -s vX.Y.Z-rcN`, use "Pre-release 0.15.0-rc1" as the tag message)
@@ -125,11 +135,6 @@ Checklist:
       - [ ] Run [CI workflow](https://github.com/ipfs/ipfs-webui/actions/workflows/ci.yml) with `vX.Y.Z-rcN` for the `kubo-version` input.
       - [ ] Ensure that CI is green.
 - [ ] **Stage 4 - Community Prod Testing** - _ONLY FOR FINAL RELEASE_
-  - [ ] Documentation
-    - [ ] Ensure that [CHANGELOG.md](https://github.com/ipfs/go-ipfs/tree/master/CHANGELOG.md) is up to date
-      - [ ] CHANGELOG.md has been updated // This is only relevant for final release
-        - use [`./bin/mkreleaselog`](https://github.com/ipfs/go-ipfs/tree/master/bin/mkreleaselog) to generate a nice starter list
-          - you need to install `zsh`.
 	  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
 	  - [ ] Keep the release notes as trim as possible (removing some of the top headers, like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
     - [ ] Ensure that [README.md](https://github.com/ipfs/go-ipfs/tree/master/README.md)  is up to date
