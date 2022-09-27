@@ -78,6 +78,7 @@ Checklist:
     - [ ] Wait for PR to build artifacts and generate diff (~30min)
     - [ ] Inspect results, merge if CI is green and the diff looks ok
     - [ ] Wait for `master` branch to build. It will automatically update DNSLink at https://dist.ipfs.tech (~30min)
+  - [ ] Publish the RC to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) by running https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml (it happens automatically but it is safe to speed up the process and kick of a run manually)
   - [ ] Cut a pre-release on [GitHub](https://github.com/ipfs/kubo/releases) ([instructions](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release), [example](https://github.com/ipfs/kubo/releases/tag/v0.16.0-rc1))
     - Use `vX.Y.Z-rcN` as the tag.
     - Link to the release issue in the description.
@@ -98,25 +99,7 @@ Checklist:
       - [ ] Matrix
     - [ ] Mention [early testers](https://github.com/ipfs/go-ipfs/tree/master/docs/EARLY_TESTERS.md) in the comment under the release issue ([example](https://github.com/ipfs/kubo/issues/9237#issuecomment-1258072509)).
 - [ ] **Stage 3 - Internal Testing**
-  - [ ] Infrastructure Testing.
-    - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
-      - Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
-      - Mention @protocol/bifrost-team in the issue if you opened it prior to the release
-      - [Optional] Reply under a message about the issue in the #bifrost channel on FIL Slack once the RC is out. Send the message to the channel.
-      - [ ] Check [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day.
-        - Compare the metrics trends week over week.
-        - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
-  - [ ] IPFS Application Testing.
-    - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
-      - [ ] Ensure the RC is published to [the NPM package](https://www.npmjs.com/package/go-ipfs?activeTab=versions) ([happens automatically, just wait for CI](https://github.com/ipfs/npm-go-ipfs/actions)), you can run https://github.com/ipfs/npm-go-ipfs/actions/workflows/main.yml to force release new version
-      - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop) and push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde)), and open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826)), you have to check out the repo to update package-lock.json
-      - [ ] Ensure CI tests pass, repeat for new RCs
-    - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
-      - Start kubo daemon of the version to release.
-      - Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)` (macos `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=$(mktemp -d)`)
-      - Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
-      - Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
-      - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
+  - [ ] Library Testing.
     - [ ] [interop](https://github.com/ipfs/interop)
       - [ ] Clone the `ipfs/interop` repo locally.
       - [ ] Create a new branch (`kubo-release-vX.Y.Z-rcn`) from `master`.
@@ -134,6 +117,24 @@ Checklist:
     - [ ] [WebUI](https://github.com/ipfs-shipyard/ipfs-webui)
       - [ ] Run [CI workflow](https://github.com/ipfs/ipfs-webui/actions/workflows/ci.yml) with `vX.Y.Z-rcN` for the `kubo-version` input.
       - [ ] Ensure that CI is green.
+  - [ ] Infrastructure Testing.
+    - [ ] Open an issue against [bifrost-infra](https://github.com/protocol/bifrost-infra) ([example](https://github.com/protocol/bifrost-infra/issues/2109)).
+      - Spell out all that we want updated - gateways, the bootstraper and the cluster/preload nodes
+      - Mention @protocol/bifrost-team in the issue if you opened it prior to the release
+      - [Optional] Reply under a message about the issue in the #bifrost channel on FIL Slack once the RC is out. Send the message to the channel.
+      - [ ] Check [metrics](https://protocollabs.grafana.net/d/8zlhkKTZk/gateway-slis-precomputed?orgId=1) every day.
+        - Compare the metrics trends week over week.
+        - If there is an unexpected variation in the trend, message the #bifrost channel on FIL Slack and ask for help investigation the cause.
+  - [ ] IPFS Application Testing.
+    - [ ] [IPFS Desktop](https://github.com/ipfs-shipyard/ipfs-desktop)
+      - [ ] Upgrade to the RC in [ipfs-desktop](https://github.com/ipfs-shipyard/ipfs-desktop) and push to a branch ([example](https://github.com/ipfs/ipfs-desktop/pull/1826/commits/b0a23db31ce942b46d95965ee6fe770fb24d6bde)), and open a draft PR to track through the final release ([example](https://github.com/ipfs/ipfs-desktop/pull/1826)), you have to check out the repo to update package-lock.json
+      - [ ] Ensure CI tests pass
+    - [ ] [IPFS Companion](https://github.com/ipfs-shipyard/ipfs-companion)
+      - Start kubo daemon of the version to release.
+      - Start a fresh chromium or chrome instance using `chromium --user-data-dir=$(mktemp -d)` (macos `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=$(mktemp -d)`)
+      - Start a fresh firefox instance using `firefox --profile $(mktemp -d)` (macos `/Applications/Firefox.app/Contents/MacOS/firefox --profile $(mktemp -d)`)
+      - Install IPFS Companion from [vendor-specific store](https://github.com/ipfs/ipfs-companion/#readme).
+      - Check that the comunication between Kubo daemon and IPFS companion is working properly checking if the number of connected peers changes.
 - [ ] **Stage 4 - Community Prod Testing** - _ONLY FOR FINAL RELEASE_
 	  - [ ] Add a link from release notes to Discuss post (like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
 	  - [ ] Keep the release notes as trim as possible (removing some of the top headers, like we did here: https://github.com/ipfs/kubo/releases/tag/v0.15.0 )
